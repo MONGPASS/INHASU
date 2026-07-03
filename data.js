@@ -164,14 +164,14 @@ window.QUOTE = {
 
   // ── 사진 경로 (img 폴더에 넣고 경로 입력) ─────────
   images: {
-    cover: "",                        // 표지 대표 이미지
+    cover: "img/quote/cover.webp",    // 표지 대표 이미지
     coverLabel: "고비 대표 이미지",
-    lodges: ["", "", "", ""],         // 게르 비교: 텐트/유목민게르/일반게르/고급게르
-    lodgeNote: "",                    // 게르 비교 하단 안내 이미지
-    guide: "",                        // 가이드 사진
-    meals: ["", "", ""],              // 캠프장 조식 / 현지식 / 특식
-    specials: ["", "", "", ""],       // 허르헉 / 더블 샤브샤브 / 한식 / 삼겹살
-    locals: ["", "", "", ""],         // 추천 현지식 (호쇼르/보오쯔/초이왕/골리야시)
-    docs: ["", "", "", "", ""],       // 등록 서류
+    lodges: ["img/quote/lodge-tent.webp", "img/quote/lodge-nomad.webp", "img/quote/lodge-std.webp", "img/quote/lodge-lux.webp"],  // 텐트/유목민게르/일반게르/고급게르
+    lodgeNote: "",                    // 게르 비교 하단 안내 이미지 (미제공)
+    guide: "img/quote/guide.webp",    // 가이드 사진
+    meals: ["img/quote/meal-breakfast.webp", "img/quote/meal-local.webp", "img/quote/meal-special.webp"],  // 조식/현지식/특식
+    specials: ["img/quote/spec-khorkhog.webp", "img/quote/spec-shabu.webp", "img/quote/spec-korean.webp", "img/quote/spec-pork.webp"],  // 허르헉/샤브샤브/한식/삼겹살
+    locals: ["img/quote/local-khuushuur.webp", "img/quote/local-buuz.webp", "img/quote/local-tsuivan.webp", "img/quote/local-goulash.webp"],  // 호쇼르/보오쯔/초이왕/골리야시
+    docs: ["", "", "", "", ""],       // 등록 서류 (미사용)
   },
 };
