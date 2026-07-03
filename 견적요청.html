@@ -500,12 +500,12 @@ function render() {
       const f = c.regions.find(r => r.name === spotFocus) || c.regions[0];
       return `
       <div class="region-panel">
-        <div class="rp-lbl">${c.emoji} 가보고 싶은 곳을 골라주세요 <span>· 선택사항, 복수 가능</span></div>
+        <div class="rp-lbl">가보고 싶은 곳을 골라주세요 <span>· 선택사항, 복수 가능</span></div>
         <div class="rp-circles">
           ${c.regions.map(r => {
             const on = S.destSpots.includes(r.name);
             return `<button type="button" class="region-chip ${on ? "on" : ""}" data-spot="${esc(r.name)}">
-              <span class="rc-img">${r.emoji || "📍"}${on ? `<span class="rc-check">✓</span>` : ""}</span>
+              <span class="rc-img"${r.img ? ` style="background-image:url('${esc(r.img)}')"` : ""}>${r.img ? "" : (r.emoji || "📍")}${on ? `<span class="rc-check">✓</span>` : ""}</span>
               <span class="rc-name">${esc(r.name)}</span>
             </button>`;
           }).join("")}
@@ -520,7 +520,7 @@ function render() {
           return `
           <div class="chip dest-card ${sel ? "sel" : ""}" data-key="destination" data-val="${esc(d.name)}">
             ${d.badge ? `<span class="badge-pill">${esc(d.badge)}</span>` : ""}
-            <div class="dc-name">${d.emoji} ${esc(d.name)}</div>
+            <div class="dc-name">${esc(d.name)}</div>
             <div class="dc-tag">${esc(d.tagline)}</div>
           </div>
           ${sel ? panelHtml(d) : ""}`;
