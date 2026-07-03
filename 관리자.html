@@ -138,7 +138,17 @@
 
   .mode { position:fixed; left:246px; bottom:12px; font-size:11.5px; color:var(--gray); background:#fff; border:1px solid var(--line); border-radius:8px; padding:6px 11px; z-index:5; }
   @media (max-width:900px){ .stats{grid-template-columns:repeat(2,1fr)} }
-  @media (max-width:760px){ .side{display:none} .content{padding:18px} .mode{left:12px} thead .hide,tbody .hide{display:none} }
+  @media (max-width:760px){
+    .shell{ flex-direction:column; }
+    .side{ width:100%; height:auto; flex:none; position:sticky; top:0; z-index:20;
+      flex-direction:row; align-items:center; gap:6px; padding:8px 10px;
+      border-right:none; border-bottom:1px solid var(--line); }
+    .side-brand{ display:none; }
+    .side nav{ flex:1 1 auto; min-width:0; display:flex; gap:5px; overflow-x:auto; }
+    .side .mi{ width:auto; white-space:nowrap; margin-bottom:0; padding:9px 13px; flex:none; }
+    .side-foot{ flex:none; margin:0; padding:0 0 0 6px; border:none; border-left:1px solid var(--line); display:flex; gap:4px; }
+    .content{padding:18px} .mode{left:12px} thead .hide,tbody .hide{display:none}
+  }
 </style>
 </head>
 <body>
@@ -297,6 +307,12 @@ $("previewFormBtn").onclick = () => window.open("견적요청.html", "_blank");
 async function loadData() {
   try {
     const res = await fetch(`${CFG.apiBase}?token=${encodeURIComponent(ADMIN_TOKEN)}`);
+    if (res.status === 401) {   // 저장된 토큰이 무효(비번 변경 등) → 재로그인 요구
+      sessionStorage.removeItem("leaders_admin_token"); ADMIN_TOKEN = "";
+      $("dash").style.display = "none"; $("login").style.display = "";
+      $("loginErr").textContent = "세션이 만료되었거나 비밀번호가 변경되었어요. 새 비밀번호로 로그인해 주세요.";
+      $("pw").value = ""; return;
+    }
     if (res.ok) { const j = await res.json();
       if (j.ok && Array.isArray(j.items)) { RECORDS = j.items; mode = "server";
         $("modeTag").textContent = "● 서버 연결됨 (전체 기기 공유)"; render(); return; } }
