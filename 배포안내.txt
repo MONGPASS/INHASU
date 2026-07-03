@@ -14,7 +14,7 @@
     https://milkway-mongolia.pages.dev
 
 ● 관리자 (문의 확인·견적서 제작)
-    https://milkway-mongolia.pages.dev/관리자.html
+    https://mongolia-milkyway.com/admin
     비밀번호:  Cloudflare 대시보드의 환경변수 ADMIN_TOKEN 값
               (Pages > milkway-mongolia > Settings > Variables and Secrets)
 
