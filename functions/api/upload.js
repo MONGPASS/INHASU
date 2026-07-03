@@ -16,6 +16,14 @@ const ALLOWED_EXT = ["pdf", "jpg", "jpeg", "png", "webp", "heic", "gif"];
 
 export async function onRequestPost({ request, env }) {
   try {
+    const url = new URL(request.url);
+    // folder=images → 공개 이미지(명소·견적 사진). 관리자 인증 필요.
+    // 그 외 → uploads/ (고객 첨부, 비공개, 인증 없음)
+    const isPublic = url.searchParams.get("folder") === "images";
+    if (isPublic && url.searchParams.get("token") !== env.ADMIN_TOKEN) {
+      return json({ ok: false, error: "unauthorized" }, 401);
+    }
+
     const form = await request.formData();
     const file = form.get("file");
     if (!file || typeof file === "string") {
@@ -30,15 +38,17 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: false, error: "type not allowed" }, 415);
     }
 
-    // 키: uploads/<타임스탬프>_<안전한 파일명>
     const safeName = name.replace(/[^\w가-힣.\-]/g, "_").slice(-80);
-    const key = `uploads/${Date.now()}_${safeName}`;
+    const folder = isPublic ? "images" : "uploads";
+    const key = `${folder}/${Date.now()}_${safeName}`;
 
     await env.FILES.put(key, file.stream(), {
       httpMetadata: { contentType: file.type || "application/octet-stream" },
       customMetadata: { originalName: name },
     });
 
+    // 공개 이미지는 바로 쓸 수 있는 공개 URL도 함께 반환
+    if (isPublic) return json({ ok: true, key, url: "/api/img/" + key.slice("images/".length) });
     return json({ ok: true, key, name });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);
