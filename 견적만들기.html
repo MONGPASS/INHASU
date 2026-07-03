@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>견적서 만들기 · 몽골리아 은하수</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a6a5e'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<script src="data.js"></script>
+<script src="presets.js"></script>
+<style>
+  :root { --accent:#06c4a0; --deep:#0a6a5e; --deep2:#06413a; --soft:#eaf7f3;
+    --ink:#1b3531; --sub:#6b7c78; --gray:#97a5a1; --line:#e4ede9; --bg:#eef3f1; --red:#e2574c; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Pretendard, system-ui, "Malgun Gothic", sans-serif; background: var(--bg); color: var(--ink); }
+
+  header { background:#fff; border-bottom:1px solid var(--line); height:60px; display:flex; align-items:center; gap:12px; padding:0 24px; position:sticky; top:0; z-index:20; }
+  header .logo { width:30px; height:30px; border-radius:8px; background:var(--deep); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:14px; }
+  header b { font-size:15.5px; font-weight:800; }
+  header .tag { font-size:12px; color:var(--gray); font-weight:600; }
+  header .sp { margin-left:auto; }
+  header a { text-decoration:none; }
+  header button { border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:9px; padding:9px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; margin-left:8px; }
+  header button.go { background:var(--deep); color:#fff; border-color:var(--deep); }
+  header button.map { background:var(--soft); color:var(--deep); border-color:transparent; }
+
+  /* 사이드바 */
+  .shell { display:flex; min-height:100vh; }
+  .side { width:232px; flex:0 0 232px; background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; padding:20px 14px; position:sticky; top:0; height:100vh; z-index:25; }
+  .side-brand { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; }
+  .side-brand .logo2 { width:38px; height:38px; border-radius:11px; background:var(--deep); color:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .side-brand b { font-size:15px; font-weight:800; display:block; line-height:1.2; }
+  .side-brand small { font-size:11.5px; color:var(--gray); font-weight:600; }
+  .menu-label { font-size:11px; font-weight:800; color:#b3bdba; letter-spacing:.05em; padding:16px 10px 7px; }
+  .mi { display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:11px; color:var(--sub); font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; margin-bottom:2px; transition:.12s; }
+  .mi svg { flex:0 0 auto; }
+  .mi:hover { background:var(--soft); color:var(--deep); }
+  .mi.on { background:var(--deep); color:#fff; }
+  .ecol { flex:1; min-width:0; display:flex; flex-direction:column; }
+
+  main { max-width:920px; margin:0 auto; padding:22px 22px 96px; width:100%; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px 24px; margin-bottom:16px; }
+  .card h2 { font-size:16px; font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+  .card h2 .n { width:22px; height:22px; border-radius:7px; background:var(--soft); color:var(--deep); font-size:12px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; }
+  .card .hint { font-size:12.5px; color:var(--gray); margin-bottom:16px; }
+
+  .row { display:grid; gap:12px; }
+  .row.c2 { grid-template-columns:1fr 1fr; }
+  .row.c3 { grid-template-columns:1fr 1fr 1fr; }
+  label.f { display:block; }
+  label.f span { display:block; font-size:12.5px; font-weight:700; color:var(--sub); margin-bottom:6px; }
+  input, select, textarea { width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; font-family:inherit; color:var(--ink); outline:none; background:#fff; }
+  input:focus, select:focus, textarea:focus { border-color:var(--accent); }
+  textarea { resize:vertical; line-height:1.6; }
+  .calc-note { font-size:12px; color:var(--accent); font-weight:700; margin-top:6px; }
+
+  /* 코스 선택 */
+  .course-pick { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+  .course-btn { border:1.5px solid var(--line); border-radius:12px; padding:14px 16px; cursor:pointer; text-align:left; background:#fff; transition:.12s; }
+  .course-btn:hover { border-color:var(--accent); }
+  .course-btn.sel { border-color:var(--accent); background:var(--soft); }
+  .course-btn b { font-size:14px; display:block; }
+  .course-btn small { font-size:12px; color:var(--sub); }
+
+  /* 명소 체크 */
+  .spot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:9px; }
+  .spot-chk { display:flex; align-items:center; gap:9px; border:1.5px solid var(--line); border-radius:11px; padding:11px 13px; cursor:pointer; transition:.12s; }
+  .spot-chk:hover { border-color:var(--accent); }
+  .spot-chk.on { border-color:var(--accent); background:var(--soft); }
+  .spot-chk .box { width:20px; height:20px; border-radius:6px; border:1.5px solid #c7d0cd; flex:0 0 auto; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; }
+  .spot-chk.on .box { background:var(--accent); border-color:var(--accent); }
+  .spot-chk b { font-size:13.5px; }
+  .spot-chk small { display:block; font-size:11px; color:var(--gray); }
+  .spot-order { margin-left:auto; font-size:11px; font-weight:800; color:var(--accent); }
+
+  /* 요금 옵션 */
+  .opt-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #f1f5f3; }
+  .opt-row:last-child { border-bottom:none; }
+  .opt-row .tgl { width:42px; height:24px; border-radius:99px; background:#d9e2df; position:relative; cursor:pointer; flex:0 0 auto; transition:.15s; }
+  .opt-row .tgl.on { background:var(--accent); }
+  .opt-row .tgl::after { content:""; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; transition:.15s; }
+  .opt-row .tgl.on::after { left:20px; }
+  .opt-row .lbl { font-size:14px; font-weight:600; }
+  .opt-row .amt { margin-left:auto; font-weight:700; font-size:13.5px; }
+  .opt-row .amt.plus { color:var(--accent); } .opt-row .amt.minus { color:var(--red); }
+  .opt-row .calc { font-size:11.5px; color:var(--gray); width:120px; text-align:right; }
+  .opt-row .del { border:none; background:none; color:var(--gray); cursor:pointer; font-size:16px; }
+  .add-opt { display:flex; gap:8px; margin-top:12px; }
+  .add-opt input { flex:1; }
+  .add-opt input.amt-in { max-width:120px; }
+  .add-opt button { border:1.5px dashed var(--accent); color:var(--deep); background:#fff; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .sec-lbl { font-size:13px; font-weight:800; color:var(--deep); margin:20px 0 8px; }
+  .opt-row .pax { flex:0 0 auto; font-size:13px; font-weight:800; color:var(--deep); background:var(--soft); border-radius:8px; padding:4px 10px; }
+  .opt-row .bal { margin-left:auto; font-weight:800; font-size:14px; color:var(--ink); }
+  .opt-row .bal small { font-size:11px; color:var(--gray); font-weight:600; margin-left:2px; }
+
+  .total-bar { display:grid; grid-template-columns:repeat(4,1fr); gap:0; border-radius:12px; overflow:hidden; margin-top:16px; }
+  .total-bar .t { color:#fff; text-align:center; padding:13px 6px; }
+  .total-bar .t span { display:block; font-size:11px; opacity:.85; margin-bottom:4px; }
+  .total-bar .t b { font-size:18px; font-weight:800; }
+  .total-bar .t:nth-child(1){background:#06413a}.total-bar .t:nth-child(2){background:#257c71}
+  .total-bar .t:nth-child(3){background:#0a6a5e}.total-bar .t:nth-child(4){background:#06c4a0}
+
+  /* 일정 편집 */
+  .day-edit { border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
+  .day-edit .dh { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .day-edit .dh .badge { background:var(--deep); color:#fff; border-radius:7px; padding:4px 10px; font-size:12.5px; font-weight:800; }
+  .day-edit .dh input.dest { flex:1; font-weight:700; }
+  .day-edit .dh input.move { max-width:150px; }
+  .day-edit .snip-row { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+  .day-edit .snip-sel { width:auto; min-width:180px; padding:8px 12px; border:1.5px solid var(--accent); border-radius:9px; background:var(--soft); color:var(--deep); font-weight:700; font-size:12.5px; cursor:pointer; }
+  .day-edit .snip-hint { font-size:11px; color:var(--gray); }
+  .day-edit textarea.items { min-height:96px; font-size:13px; }
+  .day-edit .sub { font-size:11.5px; color:var(--gray); margin:6px 0; }
+  .day-edit .row.c2 input { font-size:13px; }
+  .day-edit .dh .day-del { border:none; background:#f6eeee; color:#c96a5e; width:28px; height:28px; border-radius:8px; font-size:14px; cursor:pointer; flex:0 0 auto; font-family:inherit; }
+  .day-edit .dh .day-del:hover { background:#f3d9d5; }
+  .day-add { width:100%; padding:13px; border:1.5px dashed var(--accent); background:#fff; color:var(--deep); border-radius:12px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .day-add:hover { background:var(--soft); }
+
+  .bottom { position:fixed; left:232px; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); padding:14px 22px; display:flex; gap:10px; justify-content:center; z-index:15; }
+  @media (max-width:820px){ .side{display:none} .bottom{left:0} }
+  .bottom button { padding:14px 28px; border-radius:12px; font-size:15px; font-weight:800; border:none; cursor:pointer; font-family:inherit; }
+  .bottom .preview { background:var(--deep); color:#fff; }
+  .bottom .mapbtn { background:var(--soft); color:var(--deep); }
+  .bottom .reset { background:#f2f5f4; color:var(--sub); }
+  .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--deep2); color:#fff; padding:12px 22px; border-radius:12px; font-size:14px; font-weight:600; opacity:0; transition:.25s; z-index:30; pointer-events:none; }
+  .toast.on { opacity:1; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="side-brand">
+      <span class="logo2">▲</span>
+      <div><b>몽골리아 은하수</b><small>몽골리아 관리자</small></div>
+    </div>
+    <nav>
+      <a class="mi" href="관리자.html">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        대시보드
+      </a>
+      <a class="mi" href="관리자.html">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        견적 문의
+      </a>
+      <a class="mi on" href="견적만들기.html">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        견적서 만들기
+      </a>
+      <a class="mi" href="코스관리.html">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l11 0M9 12l11 0M9 18l11 0"/><circle cx="4" cy="6" r="1.6"/><circle cx="4" cy="12" r="1.6"/><circle cx="4" cy="18" r="1.6"/></svg>
+        코스 관리
+      </a>
+      <a class="mi" href="일정관리.html">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        일정 관리
+      </a>
+      <a class="mi" href="명소관리.html">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        명소 관리
+      </a>
+    </nav>
+  </aside>
+  <div class="ecol">
+<header>
+  <span class="logo">▲</span><b>견적서 만들기</b><span class="tag">몽골리아 은하수</span>
+  <span class="sp"></span>
+  <button class="map" id="hMapBtn">🗺 지도</button>
+  <button class="go" id="hGoBtn">견적서 미리보기 →</button>
+</header>
+
+<main>
+  <!-- 코스 -->
+  <div class="card">
+    <h2><span class="n">1</span>코스 불러오기</h2>
+    <div class="hint">코스를 고르면 일정·대표 명소·기본 요금이 한 번에 채워집니다. 이후 아래에서 자유롭게 수정하세요.</div>
+    <div class="course-pick" id="coursePick"></div>
+  </div>
+
+  <!-- 기본 정보 -->
+  <div class="card">
+    <h2><span class="n">2</span>기본 정보</h2>
+    <div class="row c3">
+      <label class="f"><span>고객명</span><input id="f_customer" placeholder="예) 강민지"></label>
+      <label class="f"><span>여행지</span><input id="f_destination" placeholder="예) 고비"></label>
+      <label class="f"><span>문서번호</span><input id="f_quoteNo"></label>
+    </div>
+    <div class="row c3" style="margin-top:12px">
+      <label class="f"><span>몽골 입국일</span><input type="date" id="f_depart"></label>
+      <label class="f"><span>귀국일</span><input type="date" id="f_return"></label>
+      <label class="f"><span>인원(명)</span><input type="number" id="f_pax" min="1" value="6"></label>
+    </div>
+    <div class="row c3" style="margin-top:12px">
+      <label class="f"><span>차량</span><input id="f_vehicle" placeholder="예) 하이에이스"></label>
+      <label class="f"><span>항공 IN</span><input id="f_flightIn" placeholder="예) 08/06 - 04:30"></label>
+      <label class="f"><span>항공 OUT</span><input id="f_flightOut" placeholder="예) 08/10 - 18:15"></label>
+    </div>
+    <div class="calc-note" id="nightsNote"></div>
+  </div>
+
+  <!-- 대표 명소 -->
+  <div class="card">
+    <h2><span class="n">3</span>대표 명소</h2>
+    <div class="hint">체크한 명소가 견적서 "대표 명소" 페이지와 지도에 순서대로 나옵니다. 설명·몽골어 지명은 자동으로 채워집니다.</div>
+    <div class="spot-grid" id="spotGrid"></div>
+  </div>
+
+  <!-- 요금 -->
+  <div class="card">
+    <h2><span class="n">4</span>요금 (1인 기준)</h2>
+    <div class="hint">예약금은 고정, 잔금은 인원별로 입력합니다. 금액은 원 단위로 넣으면 견적서엔 "만원"으로 표시됩니다.</div>
+    <label class="f" style="max-width:260px"><span>예약금 (1인)</span><input type="number" id="f_deposit" step="1000"></label>
+
+    <div class="sec-lbl">추가 및 할인 사항 <span style="font-weight:500;color:var(--gray)">· 견적서에 안내로 표시 (자동계산 없음)</span></div>
+    <div id="optList"></div>
+    <div class="add-opt">
+      <input id="newOptLabel" placeholder="항목 (예: 게르 업그레이드)">
+      <input id="newOptCalc" placeholder="금액 안내 (예: 50,000원*1박)">
+      <button id="addOptBtn">＋ 추가</button>
+    </div>
+
+    <div class="sec-lbl">인원별 잔금 (1인 기준)</div>
+    <div id="balList"></div>
+    <div class="add-opt">
+      <input class="amt-in" id="newBalPax" type="number" placeholder="인원">
+      <input class="amt-in" id="newBalAmt" type="number" placeholder="잔금(원)">
+      <button id="addBalBtn">＋ 추가</button>
+    </div>
+  </div>
+
+  <!-- 일정 -->
+  <div class="card">
+    <h2><span class="n">5</span>일자별 일정</h2>
+    <div class="hint">코스에서 채워진 일정입니다. 목적지·이동·세부 일정을 자유롭게 수정하세요. (한 줄에 하나씩. "*"로 시작하면 강조, "("로 시작하면 회색)</div>
+    <div id="dayCheck" style="font-size:12.5px; margin-bottom:12px"></div>
+    <div id="dayList"></div>
+  </div>
+</main>
+
+<div class="bottom">
+  <button class="reset" id="resetBtn">초기화</button>
+  <button class="mapbtn" id="mapBtn">🗺 지도 미리보기</button>
+  <button class="preview" id="previewBtn">📄 견적서 미리보기</button>
+</div>
+<div class="toast" id="toast"></div>
+  </div><!-- /.ecol -->
+</div><!-- /.shell -->
+
+<script>
+const $ = id => document.getElementById(id);
+const BASE = structuredClone(window.QUOTE);   // 브랜드·이미지 기본값 유지용
+
+/* 편집 상태 */
+let ST = {
+  customer: "", destination: "", quoteNo: "",
+  depart: "", return_: "", pax: 6,
+  vehicle: "", flightIn: "", flightOut: "",
+  deposit: (BASE.price && BASE.price.deposit) || 50000,
+  options: structuredClone((BASE.price && BASE.price.options) || []),    // {label, calc}
+  balances: structuredClone((BASE.price && BASE.price.balances) || []),  // {pax, amount}
+  spots: [],              // 선택된 명소 이름(순서 유지)
+  days: [],               // 일정
+  intensity: 3,
+};
+
+/* 관리자에서 넘어온 고객 정보 반영 */
+try {
+  const pre = JSON.parse(localStorage.getItem("leaders_prefill") || "null");
+  if (pre) {
+    ST.customer = pre.name || "";
+    ST.depart = pre.depart || "";
+    ST.return_ = pre.return_ || "";
+    ST.pax = (pre.adult || 0) + (pre.child || 0) + (pre.infant || 0) || 6;
+    localStorage.removeItem("leaders_prefill");
+  }
+} catch (e) {}
+
+const nights = () => {
+  if (!ST.depart || !ST.return_) return null;
+  const n = Math.round((new Date(ST.return_) - new Date(ST.depart)) / 86400000);
+  return isNaN(n) ? null : n;
+};
+const won = n => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("ko-KR") + "원";
+const wonMan = n => (n/10000).toLocaleString("ko-KR", { maximumFractionDigits: 1 }) + "만원";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ── 코스 목록 ── */
+function renderCourses() {
+  const courses = getCourses();
+  const entries = Object.entries(courses);
+  $("coursePick").innerHTML = entries.length
+    ? entries.map(([name, c]) => `
+        <div class="course-btn" data-c="${esc(name)}">
+          <b>${esc(name)}</b>
+          <small>${esc(c.destination)} · ${esc(c.nights)}</small>
+        </div>`).join("")
+    : `<div style="color:var(--gray);font-size:13px">등록된 코스가 없습니다. 관리자 → 코스 관리에서 추가하세요.</div>`;
+  $("coursePick").querySelectorAll(".course-btn").forEach(b => b.onclick = () => loadCourse(b.dataset.c));
+}
+function loadCourse(name) {
+  const c = getCourses()[name];
+  if (!c) return;
+  ST.destination = c.destination;
+  ST.vehicle = c.vehicle || "";
+  ST.intensity = c.intensity || 3;
+  ST.spots = [...(c.highlights || [])];
+  ST.days = structuredClone(c.days || []);
+  // 요금(예약금·잔금·할인항목)은 기존 입력값을 유지합니다.
+  document.querySelectorAll(".course-btn").forEach(b => b.classList.toggle("sel", b.dataset.c === name));
+  fillForm(); renderAll();
+  toast(`"${name}" 코스를 불러왔습니다`);
+}
+
+/* ── 폼 채우기 ── */
+function fillForm() {
+  $("f_customer").value = ST.customer;
+  $("f_destination").value = ST.destination;
+  $("f_quoteNo").value = ST.quoteNo || autoQuoteNo();
+  $("f_depart").value = ST.depart;
+  $("f_return").value = ST.return_;
+  $("f_pax").value = ST.pax;
+  $("f_vehicle").value = ST.vehicle;
+  $("f_flightIn").value = ST.flightIn;
+  $("f_flightOut").value = ST.flightOut;
+  $("f_deposit").value = ST.deposit;
+  updateNights();
+}
+function autoQuoteNo() {
+  const d = new Date();
+  return `${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}-${String(d.getHours())}${String(d.getMinutes()).padStart(2,"0")}`;
+}
+function updateNights() {
+  const n = nights();
+  $("nightsNote").textContent = n && n > 0 ? `총 ${n}박 ${n+1}일` : (n !== null && n <= 0 ? "⚠ 귀국일이 입국일보다 빨라요" : "");
+  const dc = document.getElementById("dayCheck");
+  if (dc) dc.innerHTML = dayCountNote();
+}
+
+/* 입력 → 상태 반영 */
+const bind = (id, key, num) => $(id).oninput = e => {
+  ST[key] = num ? (parseInt(e.target.value) || 0) : e.target.value;
+  if (key === "depart" || key === "return_") updateNights();
+};
+bind("f_customer","customer"); bind("f_destination","destination"); bind("f_quoteNo","quoteNo");
+bind("f_depart","depart"); bind("f_return","return_"); bind("f_pax","pax",true);
+bind("f_vehicle","vehicle"); bind("f_flightIn","flightIn"); bind("f_flightOut","flightOut");
+bind("f_deposit","deposit",true);
+
+/* ── 명소 그리드 ── */
+function renderSpots() {
+  $("spotGrid").innerHTML = Object.entries(getSpots()).map(([name, s]) => {
+    const idx = ST.spots.indexOf(name);
+    const on = idx >= 0;
+    return `<div class="spot-chk ${on?"on":""}" data-s="${esc(name)}">
+      <div class="box">${on?"✓":""}</div>
+      <div><b>${esc(name)}</b><small>${esc(s.short)}</small></div>
+      ${on?`<span class="spot-order">${idx+1}</span>`:""}
+    </div>`;
+  }).join("");
+  $("spotGrid").querySelectorAll(".spot-chk").forEach(el => el.onclick = () => {
+    const name = el.dataset.s, i = ST.spots.indexOf(name);
+    if (i >= 0) ST.spots.splice(i, 1); else ST.spots.push(name);
+    renderSpots();
+  });
+}
+
+/* ── 추가 및 할인 사항 (표시용 {label, calc}) ── */
+function renderOptions() {
+  if (!ST.options.length) {
+    $("optList").innerHTML = `<div style="font-size:12.5px;color:var(--gray);padding:6px 0">등록된 추가·할인 안내가 없습니다.</div>`;
+  } else {
+    $("optList").innerHTML = ST.options.map((o, i) => `
+      <div class="opt-row" data-i="${i}">
+        <div class="lbl">${esc(o.label)}</div>
+        <div class="bal" style="font-size:13px;color:var(--sub)">${esc(o.calc||"")}</div>
+        <button class="del">✕</button>
+      </div>`).join("");
+    $("optList").querySelectorAll(".opt-row").forEach(row => {
+      const i = +row.dataset.i;
+      row.querySelector(".del").onclick = () => { ST.options.splice(i, 1); renderOptions(); };
+    });
+  }
+}
+$("addOptBtn").onclick = () => {
+  const label = $("newOptLabel").value.trim();
+  const calc = $("newOptCalc").value.trim();
+  if (!label) { toast("항목 이름을 입력하세요"); return; }
+  ST.options.push({ label, calc });
+  $("newOptLabel").value = ""; $("newOptCalc").value = "";
+  renderOptions();
+};
+
+/* ── 인원별 잔금 ({pax, amount}) ── */
+function renderBalances() {
+  const sorted = () => ST.balances.slice().sort((a,b) => a.pax - b.pax);
+  ST.balances = sorted();
+  if (!ST.balances.length) {
+    $("balList").innerHTML = `<div style="font-size:12.5px;color:var(--gray);padding:6px 0">인원별 잔금을 추가하세요.</div>`;
+  } else {
+    $("balList").innerHTML = ST.balances.map((b, i) => `
+      <div class="opt-row" data-i="${i}">
+        <div class="pax">${b.pax}인</div>
+        <div class="bal">${won(b.amount)}<small>(${wonMan(b.amount)})</small></div>
+        <button class="del">✕</button>
+      </div>`).join("");
+    $("balList").querySelectorAll(".opt-row").forEach(row => {
+      const i = +row.dataset.i;
+      row.querySelector(".del").onclick = () => { ST.balances.splice(i, 1); renderBalances(); };
+    });
+  }
+}
+$("addBalBtn").onclick = () => {
+  const pax = parseInt($("newBalPax").value);
+  const amt = parseInt($("newBalAmt").value);
+  if (isNaN(pax) || isNaN(amt)) { toast("인원과 잔금을 입력하세요"); return; }
+  const ex = ST.balances.find(b => b.pax === pax);
+  if (ex) ex.amount = amt; else ST.balances.push({ pax, amount: amt });
+  $("newBalPax").value = ""; $("newBalAmt").value = "";
+  renderBalances();
+};
+
+/* ── 일정 편집 ── */
+function renumberDays() { ST.days.forEach((d, i) => d.d = i + 1); }
+
+function dayCountNote() {
+  const n = nights();
+  const need = (n && n > 0) ? n + 1 : null;
+  if (!need) return "";
+  if (ST.days.length === need) return `<span style="color:var(--accent)">✓ 여행 기간(${n}박 ${need}일)과 일정 칸 수가 맞습니다.</span>`;
+  return `<span style="color:#d98a3a;font-weight:700">⚠ 여행 기간은 ${n}박 ${need}일인데 일정 칸은 ${ST.days.length}개입니다. 아래에서 일자를 추가/삭제해 맞춰주세요.</span>`;
+}
+
+function renderDays() {
+  $("dayCheck").innerHTML = dayCountNote();
+  const snips = getSnippets();
+  const snipOptions = Object.keys(snips).map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join("");
+  $("dayList").innerHTML = ST.days.map((d, i) => `
+    <div class="day-edit" data-i="${i}">
+      <div class="dh">
+        <span class="badge">${d.d}일차</span>
+        <input class="dest" value="${esc((d.dest||"").replace(/<br\s*\/?>/gi," / "))}" placeholder="목적지">
+        <input class="move" value="${esc(d.move||"")} ${esc(d.dist||"")}" placeholder="이동 6시간 (300 km)">
+        <button class="day-del" title="이 일자 삭제">✕</button>
+      </div>
+      <div class="snip-row">
+        <select class="snip-sel">
+          <option value="">📋 일정 불러오기…</option>
+          ${snipOptions}
+        </select>
+        <span class="snip-hint">클릭 한 번에 이 일자를 채웁니다. 없으면 아래에 직접 작성하세요.</span>
+      </div>
+      <textarea class="items">${esc((d.items||[]).join("\n"))}</textarea>
+      <div class="sub">숙소 / 식사(조·중·석)</div>
+      <div class="row c2">
+        <input class="stay" value="${esc((d.stay?.name||"").replace(/<br\s*\/?>/gi," "))}" placeholder="숙소명">
+        <input class="meals" value="${esc((d.meals||[]).join(", "))}" placeholder="캠프식, 현지식당, 캠프식">
+      </div>
+    </div>`).join("") + `
+    <button class="day-add" id="dayAddBtn">＋ 일자 추가</button>`;
+
+  $("dayList").querySelectorAll(".day-edit").forEach(el => {
+    const i = +el.dataset.i;
+    el.querySelector(".snip-sel").onchange = e => {
+      const s = getSnippets()[e.target.value];
+      if (!s) return;
+      const dNum = ST.days[i].d;
+      ST.days[i] = { d: dNum, dest: s.dest||"", move: s.move||"", dist: s.dist||"",
+        items: [...(s.items||[])], stay: { name: s.stay?.name||"", tags: [...(s.stay?.tags||[])] }, meals: [...(s.meals||["","",""])] };
+      renderDays();
+      toast(`"${e.target.value}" 일정을 불러왔습니다`);
+    };
+    el.querySelector(".dest").oninput = e => ST.days[i].dest = e.target.value.replace(/ \/ /g, "<br>");
+    el.querySelector(".move").oninput = e => {
+      const m = e.target.value.match(/^(.*?)(\(.*\))?\s*$/);
+      ST.days[i].move = (m[1]||"").trim(); ST.days[i].dist = (m[2]||"").trim();
+    };
+    el.querySelector(".items").oninput = e => ST.days[i].items = e.target.value.split("\n").filter(x => x.trim());
+    el.querySelector(".stay").oninput = e => ST.days[i].stay = { name: e.target.value, tags: ST.days[i].stay?.tags||[] };
+    el.querySelector(".meals").oninput = e => ST.days[i].meals = e.target.value.split(",").map(x => x.trim());
+    el.querySelector(".day-del").onclick = () => {
+      if (ST.days.length <= 1) { toast("최소 1일은 필요합니다"); return; }
+      ST.days.splice(i, 1); renumberDays(); renderDays();
+    };
+  });
+  $("dayAddBtn").onclick = () => {
+    ST.days.push({ d: ST.days.length + 1, dest: "", move: "", dist: "", items: [], stay: { name: "", tags: [] }, meals: ["", "", ""] });
+    renumberDays(); renderDays();
+    // 새 칸으로 스크롤
+    const cards = $("dayList").querySelectorAll(".day-edit");
+    cards[cards.length - 1]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+}
+
+function renderAll() { renderSpots(); renderOptions(); renderBalances(); renderDays(); }
+
+/* ── QUOTE 생성 & 저장 ── */
+function buildQuote() {
+  const n = nights();
+  const Q = structuredClone(BASE);
+  Q.customer = ST.customer || "고객";
+  Q.destination = ST.destination || "몽골";
+  Q.quoteNo = $("f_quoteNo").value || autoQuoteNo();
+  Q.pax = ST.pax; Q.paxNote = `${ST.pax}인`;
+  Q.nights = n && n > 0 ? `${n}박 ${n+1}일` : BASE.nights;
+  Q.vehicle = ST.vehicle || BASE.vehicle;
+  Q.intensity = ST.intensity;
+  if (ST.depart && ST.return_) {
+    Q.period = `${ST.depart} ~ ${ST.return_}`;
+    Q.periodShort = `${ST.depart.replace(/-/g,". ")} — ${ST.return_.slice(5).replace(/-/g,". ")}`;
+  }
+  Q.flight = { in: ST.flightIn || BASE.flight.in, out: ST.flightOut || BASE.flight.out };
+
+  Q.price = { ...BASE.price, deposit: ST.deposit,
+    options: ST.options.map(o => ({ label: o.label, calc: o.calc || "" })),
+    balances: ST.balances.slice().sort((a,b) => a.pax - b.pax).map(b => ({ pax: b.pax, amount: b.amount })) };
+
+  Q.days = ST.days;
+  const LIB = getSpots();
+  Q.highlights = ST.spots.map(name => {
+    const s = LIB[name] || {};
+    return {
+      nameMn: s.nameMn || "", name, desc: s.desc || "",
+      img: s.img || "",
+      subImgs: (s.subImgs && s.subImgs.length ? s.subImgs : ["","","",""]),
+    };
+  });
+  return Q;
+}
+function save() {
+  localStorage.setItem("leaders_quote", JSON.stringify(buildQuote()));
+}
+
+$("previewBtn").onclick = $("hGoBtn").onclick = () => { save(); window.open("견적서.html", "_blank"); };
+$("mapBtn").onclick = $("hMapBtn").onclick = () => { save(); window.open("일정지도.html", "_blank"); };
+$("resetBtn").onclick = () => {
+  if (!confirm("입력한 내용을 모두 지울까요?")) return;
+  localStorage.removeItem("leaders_quote");
+  ST = { customer:"", destination:"", quoteNo:"", depart:"", return_:"", pax:6, vehicle:"", flightIn:"", flightOut:"",
+    deposit:(BASE.price && BASE.price.deposit) || 50000,
+    options:structuredClone((BASE.price && BASE.price.options) || []),
+    balances:structuredClone((BASE.price && BASE.price.balances) || []),
+    spots:[], days:[], intensity:3 };
+  fillForm(); renderAll();
+  toast("초기화되었습니다");
+};
+
+let toastT;
+function toast(msg) {
+  $("toast").textContent = msg; $("toast").classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(() => $("toast").classList.remove("on"), 1800);
+}
+
+/* ── 시작 ── */
+renderCourses();
+// 첫 코스를 기본으로 불러오기 (고객 정보는 유지)
+const firstCourse = Object.keys(getCourses())[0];
+if (firstCourse) loadCourse(firstCourse);
+else { fillForm(); renderAll(); }
+</script>
+</body>
+</html>

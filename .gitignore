@@ -1,0 +1,12 @@
+# Cloudflare Wrangler build cache / temp
+.wrangler/
+
+# Node
+node_modules/
+
+# Local Claude Code tooling (settings, plans, scratch)
+.claude/
+
+# OS
+Thumbs.db
+.DS_Store

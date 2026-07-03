@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>몽골 맞춤 견적 요청 · 몽골리아 은하수</title>
+<!-- 카톡·인스타 링크 공유 미리보기 -->
+<meta property="og:title" content="몽골 맞춤 견적 받기 | 몽골리아 은하수">
+<meta property="og:description" content="1분이면 끝! 인원·날짜·코스만 고르면 24시간 내 맞춤 견적서를 보내드려요.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://milkway-mongolia.pages.dev">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a6a5e'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://cdn.jsdelivr.net/">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #EDF0F4; font-family: Pretendard, system-ui, -apple-system, sans-serif; }
+  @keyframes scaleIn { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes fadeUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  input::placeholder, textarea::placeholder { color: #B4B9BF; }
+  *::-webkit-scrollbar { width: 8px; }
+  *::-webkit-scrollbar-thumb { background: #DDE1E6; border-radius: 99px; }
+
+  .wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 20px; }
+  .topbar { width: 100%; max-width: 720px; display: flex; align-items: center; gap: 9px; margin-bottom: 16px; }
+  .topbar .mark {
+    width: 26px; height: 26px; border-radius: 8px; background: var(--accent-deep);
+    color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .topbar b { font-weight: 800; font-size: 18px; color: #1B1D1F; letter-spacing: -.01em; }
+  .topbar span.r { margin-left: auto; font-size: 13px; color: #9AA0A6; font-weight: 600; }
+
+  .card {
+    width: 100%; max-width: 720px; background: #fff; border-radius: 28px;
+    box-shadow: 0 14px 44px rgba(20, 40, 80, .09);
+    display: flex; flex-direction: column; min-height: 668px; overflow: hidden;
+  }
+  .card-head { padding: 22px 34px 0; }
+  .head-row { display: flex; align-items: center; height: 26px; }
+  .back-btn {
+    width: 30px; height: 30px; border: none; background: #F4F5F7; border-radius: 9px;
+    color: #454A50; font-size: 20px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .prog-txt { margin-left: auto; font-size: 14px; font-weight: 700; color: var(--accent); }
+  .prog-track { height: 5px; background: #EDF0F4; border-radius: 99px; margin-top: 14px; overflow: hidden; }
+  .prog-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .35s cubic-bezier(.4,0,.2,1); }
+
+  .card-body { flex: 1; overflow-y: auto; padding: 26px 34px 8px; display: flex; flex-direction: column; }
+  .step-anim { animation: fadeUp .28s ease; display: flex; flex-direction: column; flex: 1; }
+  .step-head { text-align: center; margin-bottom: 24px; }
+  .badge {
+    width: 64px; height: 64px; border-radius: 20px; background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 14px;
+  }
+  .step-title { font-size: 24px; font-weight: 800; color: #1B1D1F; letter-spacing: -.02em; text-wrap: balance; }
+  .step-sub { font-size: 15px; color: #9AA0A6; margin-top: 7px; }
+
+  .counter-row { display: flex; align-items: center; justify-content: space-between; padding: 20px 6px; border-bottom: 1px solid #F1F2F4; }
+  .counter-row .lbl { font-size: 17px; font-weight: 600; color: #1B1D1F; }
+  .counter-row .sub { font-size: 13px; color: #9AA0A6; margin-top: 3px; }
+  .counter-ctrl { display: flex; align-items: center; gap: 18px; }
+  .counter-ctrl .val { min-width: 22px; text-align: center; font-size: 19px; font-weight: 700; color: #1B1D1F; }
+  .cbtn {
+    width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid #DBE0E6; background: #fff;
+    color: var(--accent); font-size: 20px; line-height: 1; padding: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-family: inherit;
+  }
+  .cbtn:disabled { border-color: #EBEEF1; color: #CDD3DA; cursor: default; }
+
+  .field-lbl { font-size: 14px; font-weight: 600; color: #454A50; margin-bottom: 8px; display: block; }
+  .txt-input, .date-input, textarea.txt-area {
+    width: 100%; padding: 15px 16px; border: 1.5px solid #E1E4E8; border-radius: 12px;
+    font-size: 15px; color: #1B1D1F; font-family: inherit; outline: none; background: #fff;
+  }
+  .txt-input:focus, .date-input:focus, textarea.txt-area:focus { border-color: var(--accent); }
+  textarea.txt-area { min-height: 150px; line-height: 1.6; resize: vertical; }
+  .nights { margin-top: 16px; text-align: center; font-size: 15px; font-weight: 700; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .chip {
+    padding: 17px 14px; border-radius: 14px; background: #F4F5F7; border: 1.5px solid transparent;
+    color: #4A4F55; font-size: 15px; font-weight: 500; cursor: pointer; text-align: center;
+    line-height: 1.2; transition: all .15s ease; user-select: none;
+  }
+  .chip.sel { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .group-lbl { font-size: 14px; font-weight: 700; color: #1B1D1F; margin: 2px 0 10px; }
+  .group-lbl.mt { margin-top: 24px; }
+
+  .file-lbl {
+    display: flex; align-items: center; gap: 11px; padding: 15px 16px;
+    border: 1.5px dashed #C7D0D9; border-radius: 12px; cursor: pointer; color: #6B7078; font-size: 14px;
+  }
+  .agree-row { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; padding: 16px; background: #F7F8FA; border-radius: 12px; }
+  .agree-box {
+    width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px; background: #fff;
+    border: 1.5px solid #C7D0D9; color: #fff; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .agree-box.on { background: var(--accent); border-color: var(--accent); }
+  .agree-txt { font-size: 14px; color: #454A50; line-height: 1.5; }
+  .agree-txt small { color: #9AA0A6; font-size: 13px; }
+
+  .card-foot { padding: 16px 34px 26px; }
+  .primary-btn {
+    width: 100%; padding: 17px; border-radius: 14px; background: #CBD2DA; color: #fff;
+    font-size: 17px; font-weight: 700; border: none; cursor: not-allowed;
+    font-family: inherit; transition: background .15s ease;
+  }
+  .primary-btn.ok { background: var(--accent); cursor: pointer; }
+  .ghost-btn {
+    width: 100%; padding: 17px; border-radius: 14px; background: #F4F5F7; color: #454A50;
+    font-size: 16px; font-weight: 700; border: none; cursor: pointer; font-family: inherit;
+  }
+
+  .done-badge {
+    width: 76px; height: 76px; border-radius: 50%; background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center; font-size: 38px;
+    margin: 0 auto 16px; animation: scaleIn .4s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .summary { background: #F7F8FA; border-radius: 16px; padding: 8px 18px; }
+  .summary .row { display: flex; gap: 16px; padding: 13px 0; border-bottom: 1px solid #ECEEF1; }
+  .summary .row:last-child { border-bottom: none; }
+  .summary .k { font-size: 14px; color: #9AA0A6; font-weight: 600; min-width: 82px; }
+  .summary .v { font-size: 14px; color: #1B1D1F; font-weight: 600; text-align: right; margin-left: auto; }
+  .copy-link { display: block; text-align: center; margin-top: 12px; font-size: 13px; color: #9AA0A6; cursor: pointer; text-decoration: underline; }
+
+  .kakao-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 16px; border-radius: 14px; background: #FEE500; color: #191919;
+    font-size: 16px; font-weight: 800; border: none; cursor: pointer; font-family: inherit;
+    text-decoration: none; margin-bottom: 10px;
+  }
+  .err-box {
+    background: #FDF0EE; border: 1.5px solid #F3D6D1; border-radius: 12px;
+    padding: 15px 17px; font-size: 14px; color: #B5504A; line-height: 1.65; margin-bottom: 18px;
+  }
+  .err-box a { color: #B5504A; font-weight: 700; }
+  .file-lbl.up-done { border-style: solid; border-color: var(--accent); color: #1B1D1F; background: var(--accent-soft); }
+  .file-lbl.up-err { border-color: #E0574B; color: #B5504A; background: #FDF0EE; }
+
+  /* ── 모바일 (인스타 유입 대응) ── */
+  @media (max-width: 520px) {
+    .wrap { padding: 16px 12px 24px; }
+    .topbar { margin-bottom: 12px; padding: 0 4px; }
+    .topbar b { font-size: 16px; }
+    .card { border-radius: 20px; min-height: 0; }
+    .card-head { padding: 18px 20px 0; }
+    .card-body { padding: 20px 20px 8px; }
+    .card-foot { padding: 12px 20px 20px; }
+    .step-head { margin-bottom: 18px; }
+    .step-title { font-size: 21px; }
+    .step-sub { font-size: 13.5px; }
+    .badge { width: 54px; height: 54px; font-size: 26px; border-radius: 16px; }
+    .grid3 { grid-template-columns: repeat(2, 1fr); }
+    .grid2, .grid3 { gap: 8px; }
+    .chip { padding: 14px 10px; font-size: 14px; }
+    .counter-row { padding: 16px 2px; }
+    .txt-input, .date-input, textarea.txt-area { padding: 13px 14px; font-size: 15px; }
+    .primary-btn, .ghost-btn, .kakao-btn { padding: 15px; font-size: 16px; }
+    .summary .k { min-width: 72px; font-size: 13px; }
+    .summary .v { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <span class="mark">▲</span><b id="brandName"></b>
+    <span class="r">맞춤 견적 요청서</span>
+  </div>
+  <div class="card">
+    <div class="card-head" id="cardHead"></div>
+    <div class="card-body" id="cardBody"></div>
+    <div class="card-foot" id="cardFoot"></div>
+  </div>
+</div>
+
+<script>
+/* ═════════════════════════════════════════════════════
+   설정 — 여기만 바꾸면 됩니다 (브랜드, 색상, 선택지)
+   ═════════════════════════════════════════════════════ */
+const CONFIG = {
+  brand: "몽골리아 은하수",
+  accent: "#06c4a0",        // 포인트 색상
+  accentDeep: "#0a6a5e",    // 로고 색상
+
+  /* 접수 API 주소. Cloudflare에 배포하면 이 상대주소가 자동으로 작동합니다.
+     로컬(파일 열기)에서는 API가 없으므로 이 브라우저에만 저장됩니다. */
+  endpoint: "/api/requests",
+
+  /* 카카오톡 채널 주소 — 완료 화면·오류 화면의 상담 버튼에 사용. 비우면 버튼 숨김 */
+  kakao: "https://pf.kakao.com/_BSLaxl",
+
+  types:    ["허니문", "가족 여행", "우정 여행", "나 홀로", "효도 여행", "단체·워크샵", "사진 출사", "오지 탐험"],
+  dests:    ["중앙 몽골 투어", "고비사막 투어", "홉스골 호수 투어", "서부 몽골(알타이)", "카라코룸·오르혼 계곡", "북부 몽골 투어", "몽골 전체 일주", "나담 축제 투어"],
+  /* 시내(울란바토르)만 호텔 가능 / 투어지역은 게르 등급만 가능 */
+  cityStays: ["호텔(5성급)", "호텔(4성급)", "게스트하우스", "상관없음"],
+  gerStays:  ["고급 여행자 게르", "일반 여행자 게르", "상관없음"],
+  vehicles: ["푸르공(6인)", "스타렉스(6인)", "랜드크루저(4인)", "델리카(6인)", "대형 버스(25인)", "상관없음"],
+  budgets:  ["100만원 이하", "1인 100~150만원", "1인 150~200만원", "1인 200~300만원", "1인 300만원 이상", "상담 후 결정"],
+};
+
+/* 로컬 데모 환경(파일 열기·미리보기)인지 판별 — 이때는 서버 없이 브라우저 저장으로 완료 처리 */
+const IS_LOCAL = location.protocol === "file:" ||
+  ["localhost", "127.0.0.1"].includes(location.hostname);
+
+/* 제출 처리 — 서버 저장이 확인된 경우에만 성공을 반환합니다.
+   (실패 시 완료 화면을 띄우지 않아 문의 유실을 막습니다) */
+async function onSubmitRequest(data) {
+  const record = {
+    ...data,
+    id: Date.now() + "_" + (data.phone || ""),
+    receivedAt: new Date().toISOString(),
+    status: "신규",
+    memo: "",
+  };
+  // 화면 진행용 내부 필드는 저장하지 않음
+  ["step", "done", "submitting", "submitError", "fileState"].forEach(k => delete record[k]);
+
+  // 로컬 데모: 이 브라우저에 저장하고 성공 처리 (관리자 페이지 로컬 모드가 읽음)
+  if (IS_LOCAL) {
+    try {
+      const key = "leaders_requests";
+      const list = JSON.parse(localStorage.getItem(key) || "[]");
+      list.unshift(record);
+      localStorage.setItem(key, JSON.stringify(list));
+      return { ok: true, local: true };
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
+  }
+
+  // 실서버: 응답을 확인한 경우에만 성공
+  try {
+    const res = await fetch(CONFIG.endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(record),
+    });
+    if (res.ok) return { ok: true };
+    return { ok: false, error: "server " + res.status };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+/* ═════════════ 상태 ═════════════ */
+const META = {
+  1: { icon: "👥", title: "여행 인원은 몇 명인가요?", sub: "함께 떠나실 인원을 알려주세요. (성인 1명 이상)" },
+  2: { icon: "📅", title: "언제 몽골로 떠나시나요?", sub: "몽골 입국일과 귀국일을 선택해 주세요." },
+  3: { icon: "💍", title: "어떤 여행을 원하세요?", sub: "여행 타입을 선택해 주세요." },
+  4: { icon: "🗺️", title: "가고 싶은 몽골은 어디인가요?", sub: "희망하는 투어 지역을 선택해 주세요." },
+  5: { icon: "🏨", title: "숙소와 차량을 골라주세요", sub: "여행 스타일에 맞게 선택해 주세요." },
+  6: { icon: "💰", title: "예상 여행 경비는?", sub: "1인 기준 희망 예산을 선택해 주세요." },
+  7: { icon: "📝", title: "신청자 정보를 알려주세요", sub: "견적서를 받으실 연락처를 입력해 주세요." },
+  8: { icon: "✅", title: "마지막으로 확인해 주세요", sub: "요청사항 확인 후 동의하고 제출해 주세요." },
+};
+
+const S = {
+  step: 1, done: false, submitting: false, submitError: "",
+  adult: 2, child: 0, infant: 0,
+  depart: "", return_: "",
+  tripType: "", destination: "", cityStay: "", gerStay: "", vehicle: "", budget: "",
+  name: "", phone: "", email: "", kakaoId: "",
+  request: "", fileName: "", fileKey: "", fileState: "", agree: false,
+};
+
+/* ── 입력 임시저장 (새로고침해도 복원) ── */
+try {
+  const draft = JSON.parse(sessionStorage.getItem("leaders_draft") || "null");
+  if (draft && typeof draft === "object") {
+    Object.assign(S, draft, { done: false, submitting: false, submitError: "" });
+    if (S.fileState === "uploading") { S.fileState = ""; S.fileName = ""; S.fileKey = ""; }
+  }
+} catch (e) {}
+function saveDraft() {
+  try { sessionStorage.setItem("leaders_draft", JSON.stringify(S)); } catch (e) {}
+}
+
+document.documentElement.style.setProperty("--accent", CONFIG.accent);
+document.documentElement.style.setProperty("--accent-soft", CONFIG.accent + "14");
+document.documentElement.style.setProperty("--accent-deep", CONFIG.accentDeep);
+document.getElementById("brandName").textContent = CONFIG.brand;
+
+/* ═════════════ 로직 ═════════════ */
+const nights = () => {
+  if (!S.depart || !S.return_) return null;
+  const d1 = new Date(S.depart), d2 = new Date(S.return_);
+  if (isNaN(d1) || isNaN(d2)) return null;
+  return Math.round((d2 - d1) / 86400000);
+};
+
+/* 날짜 제한용: 오늘, 그리고 특정 날짜 +N일 (YYYY-MM-DD) */
+const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const todayStr = () => fmtDate(new Date());
+const plusDays = (ymd, n) => { const d = new Date(ymd); d.setDate(d.getDate() + n); return fmtDate(d); };
+
+function canProceed() {
+  switch (S.step) {
+    case 1: return S.adult >= 1;   // 성인 최소 1명 (아동·유아만 예약 불가)
+    case 2: { const n = nights(); return n !== null && n > 0; }
+    case 3: return !!S.tripType;
+    case 4: return !!S.destination;
+    case 5: return !!S.cityStay && !!S.gerStay && !!S.vehicle;
+    case 6: return !!S.budget;
+    case 7: return S.name.trim().length > 0 && /^[0-9]{9,11}$/.test(S.phone) && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(S.email);
+    case 8: return S.agree;
+    default: return true;
+  }
+}
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const chips = (list, sel, key, cols) => `
+  <div class="${cols}">
+    ${list.map(l => `<div class="chip ${l === sel ? "sel" : ""}" data-key="${key}" data-val="${esc(l)}">${esc(l)}</div>`).join("")}
+  </div>`;
+
+function summaryRows() {
+  const n = nights();
+  return [
+    ["여행 인원", `성인 ${S.adult} · 아동 ${S.child} · 유아 ${S.infant}`],
+    ["여행 일정", `${S.depart} ~ ${S.return_}${n > 0 ? ` (${n}박 ${n + 1}일)` : ""}`],
+    ["여행 타입", S.tripType],
+    ["희망 투어", S.destination],
+    ["시내 숙소", S.cityStay],
+    ["투어지역 게르", S.gerStay],
+    ["차량", S.vehicle],
+    ["여행 경비", S.budget],
+    ["신청자", S.name || "-"],
+    ...(S.kakaoId ? [["카카오톡 ID", S.kakaoId]] : []),
+  ];
+}
+
+/* ═════════════ 렌더 ═════════════ */
+function render() {
+  if (!S.done) saveDraft();   // 상태가 바뀔 때마다 임시저장 (새로고침 복원용)
+  const head = document.getElementById("cardHead");
+  const body = document.getElementById("cardBody");
+  const foot = document.getElementById("cardFoot");
+
+  if (S.done) {
+    head.innerHTML = "";
+    body.innerHTML = `
+      <div class="step-anim" style="padding-top:6px">
+        <div class="step-head" style="margin-bottom:20px">
+          <div class="done-badge">🎉</div>
+          <div class="step-title">견적 요청이 완료되었어요!</div>
+          <div class="step-sub" style="line-height:1.5">담당자가 확인 후 남겨주신 연락처로 연락드려요.<br>(영업시간 기준 24시간 이내)</div>
+        </div>
+        <div class="summary">
+          ${summaryRows().map(([k, v]) => `<div class="row"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join("")}
+        </div>
+        <span class="copy-link" id="copyBtn">요청 내용 복사하기 (카카오톡 상담 시 붙여넣기)</span>
+      </div>`;
+    foot.innerHTML = `
+      ${CONFIG.kakao ? `<a class="kakao-btn" href="${esc(CONFIG.kakao)}" target="_blank">💬 카카오톡 채널로 빠른 상담</a>` : ""}
+      <button class="ghost-btn" id="restartBtn">새 견적 요청하기</button>`;
+    document.getElementById("restartBtn").onclick = () => {
+      S.done = false; S.step = 1; S.submitError = "";
+      try { sessionStorage.removeItem("leaders_draft"); } catch (e) {}
+      render();
+    };
+    document.getElementById("copyBtn").onclick = () => {
+      const txt = `[몽골 맞춤 견적 요청]\n` + summaryRows().map(([k, v]) => `${k}: ${v}`).join("\n")
+        + `\n연락처: ${S.phone}\n이메일: ${S.email}` + (S.request ? `\n요청사항: ${S.request}` : "");
+      navigator.clipboard.writeText(txt).then(() => alert("복사되었습니다!"));
+    };
+    return;
+  }
+
+  const m = META[S.step];
+
+  head.innerHTML = `
+    <div class="head-row">
+      ${S.step > 1 ? `<button class="back-btn" id="backBtn">‹</button>` : ""}
+      <span class="prog-txt">${S.step} / 8</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" style="width:${S.step / 8 * 100}%"></div></div>`;
+  if (S.step > 1) document.getElementById("backBtn").onclick = () => { S.step--; render(); };
+
+  let inner = "";
+  if (S.step === 1) {
+    const rows = [
+      ["adult", "성인", "만 12세 이상", S.adult],
+      ["child", "아동", "만 2~11세", S.child],
+      ["infant", "유아", "만 2세 미만", S.infant],
+    ];
+    inner = rows.map(([k, l, sub, v]) => `
+      <div class="counter-row">
+        <div><div class="lbl">${l}</div><div class="sub">${sub}</div></div>
+        <div class="counter-ctrl">
+          <button class="cbtn" data-cnt="${k}" data-d="-1" ${v === 0 ? "disabled" : ""}>−</button>
+          <div class="val">${v}</div>
+          <button class="cbtn" data-cnt="${k}" data-d="1">+</button>
+        </div>
+      </div>`).join("");
+  } else if (S.step === 2) {
+    const n = nights();
+    const nTxt = n !== null && n > 0 ? `총 ${n}박 ${n + 1}일` : (n !== null && n <= 0 ? "귀국일은 입국일 이후로 선택해 주세요." : "");
+    inner = `
+      <div style="display:flex;gap:14px">
+        <label style="flex:1"><span class="field-lbl">몽골 입국일</span>
+          <input type="date" class="date-input" id="depart" value="${S.depart}" min="${todayStr()}"></label>
+        <label style="flex:1"><span class="field-lbl">귀국일</span>
+          <input type="date" class="date-input" id="return_" value="${S.return_}" min="${S.depart ? plusDays(S.depart, 1) : todayStr()}"></label>
+      </div>
+      <div class="nights" style="color:${n !== null && n <= 0 ? "#E0574B" : "var(--accent)"}">${nTxt}</div>`;
+  } else if (S.step === 3) {
+    inner = chips(CONFIG.types, S.tripType, "tripType", "grid3");
+  } else if (S.step === 4) {
+    inner = chips(CONFIG.dests, S.destination, "destination", "grid2");
+  } else if (S.step === 5) {
+    inner = `
+      <div class="group-lbl">시내(울란바토르) 숙소</div>${chips(CONFIG.cityStays, S.cityStay, "cityStay", "grid2")}
+      <div class="group-lbl mt">투어지역 게르 등급 <span style="font-weight:500;color:#9AA0A6;font-size:12px">· 시내 외 지역은 게르만 가능해요</span></div>${chips(CONFIG.gerStays, S.gerStay, "gerStay", "grid3")}
+      <div class="group-lbl mt">차량</div>${chips(CONFIG.vehicles, S.vehicle, "vehicle", "grid3")}`;
+  } else if (S.step === 6) {
+    inner = chips(CONFIG.budgets, S.budget, "budget", "grid2");
+  } else if (S.step === 7) {
+    inner = `
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <label><span class="field-lbl">신청자 이름</span>
+          <input class="txt-input" id="name" value="${esc(S.name)}" placeholder="예) 홍길동"></label>
+        <label><span class="field-lbl">휴대폰 번호</span>
+          <input class="txt-input" id="phone" inputmode="numeric" value="${esc(S.phone)}" placeholder="본인 휴대폰 번호 ('-' 제외)"></label>
+        <label><span class="field-lbl">이메일</span>
+          <input class="txt-input" id="email" value="${esc(S.email)}" placeholder="견적서를 받으실 이메일 주소"></label>
+        <label><span class="field-lbl">카카오톡 ID <span style="font-weight:500;color:#9AA0A6">(선택 — 카톡 상담을 원하시면)</span></span>
+          <input class="txt-input" id="kakaoId" value="${esc(S.kakaoId)}" placeholder="카카오톡 ID"></label>
+      </div>`;
+  } else if (S.step === 8) {
+    // 파일 상태별 표시
+    let fileCls = "", fileTxt = "항공권 또는 준비된 일정표가 있으면 첨부해 주세요 (선택 · 10MB 이하)";
+    if (S.fileState === "uploading") { fileTxt = `⏳ "${S.fileName}" 업로드 중…`; }
+    else if (S.fileState === "done" || S.fileState === "local") { fileCls = "up-done"; fileTxt = `✓ "${S.fileName}" 첨부 완료 (변경하려면 클릭)`; }
+    else if (S.fileState === "error") { fileCls = "up-err"; fileTxt = "⚠ 업로드에 실패했어요 — 다시 선택하거나, 파일 없이 제출 후 카톡으로 보내주세요"; }
+
+    inner = `
+      ${S.submitError ? `<div class="err-box"><b>앗, 접수 전송에 실패했어요.</b><br>
+        인터넷 연결을 확인하고 아래 버튼으로 다시 시도해 주세요.<br>
+        ${CONFIG.kakao ? `계속 안 되면 <a href="${esc(CONFIG.kakao)}" target="_blank">카카오톡 채널</a>로 문의 부탁드려요.` : ""}</div>` : ""}
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <label><span class="field-lbl">요청사항</span>
+          <textarea class="txt-area" id="request" placeholder="예) 승마 체험과 별 관측을 꼭 넣고 싶어요.&#10;아이와 함께라 이동시간이 짧았으면 합니다.">${esc(S.request)}</textarea></label>
+        <label class="file-lbl ${fileCls}">
+          <span style="font-size:16px">📎</span>
+          <span>${esc(fileTxt)}</span>
+          <input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.gif" style="display:none">
+        </label>
+        <div class="agree-row" id="agreeRow">
+          <div class="agree-box ${S.agree ? "on" : ""}">✓</div>
+          <div class="agree-txt">개인정보 수집 및 이용에 동의합니다.<br><small>이름·연락처·이메일은 견적 상담 목적으로만 사용됩니다.</small></div>
+        </div>
+      </div>`;
+  }
+
+  body.innerHTML = `
+    <div class="step-anim">
+      <div class="step-head">
+        <div class="badge">${m.icon}</div>
+        <div class="step-title">${m.title}</div>
+        <div class="step-sub">${m.sub}</div>
+      </div>
+      ${inner}
+    </div>`;
+
+  foot.innerHTML = `<button class="primary-btn" id="nextBtn">${S.step < 8 ? "다음" : "견적 요청하기"}</button>`;
+  syncPrimary();
+
+  /* ── 이벤트 연결 ── */
+  document.getElementById("nextBtn").onclick = async () => {
+    if (S.submitting || !canProceed()) return;
+    if (S.step < 8) { S.step++; render(); return; }
+
+    // 최종 제출
+    if (S.fileState === "uploading") { alert("파일 업로드가 끝날 때까지 잠시만 기다려주세요."); return; }
+    S.submitting = true; S.submitError = "";
+    const btn = document.getElementById("nextBtn");
+    btn.textContent = "접수 중…"; btn.classList.remove("ok");
+
+    const result = await onSubmitRequest({ ...S, nights: nights() });
+    S.submitting = false;
+    if (result.ok) {
+      S.done = true;
+      try { sessionStorage.removeItem("leaders_draft"); } catch (e) {}
+    } else {
+      S.submitError = result.error || "전송 실패";
+    }
+    render();
+  };
+  body.querySelectorAll("[data-cnt]").forEach(b => b.onclick = () => {
+    const k = b.dataset.cnt, d = +b.dataset.d;
+    S[k] = Math.max(0, S[k] + d); render();
+  });
+  body.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+    S[c.dataset.key] = c.dataset.val; render();
+  });
+  ["depart", "return_"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.onchange = () => {
+      S[id] = el.value;
+      // 입국일을 귀국일 이후로 바꾸면 귀국일 초기화
+      if (id === "depart" && S.return_ && S.depart && S.return_ <= S.depart) S.return_ = "";
+      render();
+    };
+  });
+  ["name", "phone", "email", "kakaoId", "request"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.oninput = () => {
+      S[id] = id === "phone" ? el.value.replace(/[^0-9]/g, "") : el.value;
+      if (id === "phone") el.value = S.phone;
+      saveDraft();
+      syncPrimary();
+    };
+  });
+
+  /* 파일 선택 즉시 R2 업로드 (로컬 데모에선 이름만 기록) */
+  const file = document.getElementById("file");
+  if (file) file.onchange = async () => {
+    const f = file.files[0];
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) { alert("파일은 10MB 이하만 첨부할 수 있어요."); return; }
+    S.fileName = f.name;
+    if (IS_LOCAL) { S.fileState = "local"; S.fileKey = ""; render(); return; }
+    S.fileState = "uploading"; S.fileKey = ""; render();
+    try {
+      const fd = new FormData();
+      fd.append("file", f);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const j = await res.json().catch(() => null);
+      if (res.ok && j && j.ok) { S.fileKey = j.key; S.fileState = "done"; }
+      else { S.fileState = "error"; }
+    } catch (e) { S.fileState = "error"; }
+    render();
+  };
+  const agree = document.getElementById("agreeRow");
+  if (agree) agree.onclick = () => { S.agree = !S.agree; render(); };
+}
+
+function syncPrimary() {
+  const btn = document.getElementById("nextBtn");
+  if (btn) btn.classList.toggle("ok", canProceed());
+}
+
+render();
+</script>
+</body>
+</html>

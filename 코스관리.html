@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>코스 관리 · 몽골리아 은하수</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a6a5e'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<script src="presets.js"></script>
+<style>
+  :root { --accent:#06c4a0; --deep:#0a6a5e; --deep2:#06413a; --soft:#eaf7f3;
+    --ink:#1b2b28; --sub:#6b7c78; --gray:#9aa5a2; --line:#eceef1; --bg:#f6f8f9; --red:#e2574c; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:Pretendard, system-ui, "Malgun Gothic", sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
+  svg { display:block; }
+
+  .shell { display:flex; min-height:100vh; }
+  .side { width:232px; flex:0 0 232px; background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; padding:20px 14px; position:sticky; top:0; height:100vh; }
+  .side-brand { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; }
+  .side-brand .logo { width:38px; height:38px; border-radius:11px; background:var(--deep); color:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .side-brand b { font-size:15px; font-weight:800; display:block; line-height:1.2; }
+  .side-brand small { font-size:11.5px; color:var(--gray); font-weight:600; }
+  .menu-label { font-size:11px; font-weight:800; color:#b3bdba; letter-spacing:.05em; padding:16px 10px 7px; }
+  .mi { display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:11px; color:var(--sub); font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; margin-bottom:2px; transition:.12s; }
+  .mi svg { flex:0 0 auto; }
+  .mi:hover { background:var(--soft); color:var(--deep); }
+  .mi.on { background:var(--deep); color:#fff; }
+
+  .content { flex:1; min-width:0; padding:26px 34px 60px; max-width:1100px; }
+  .page-head { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .page-head h1 { font-size:20px; font-weight:800; }
+  .page-head .add { margin-left:auto; background:var(--deep); color:#fff; border:none; border-radius:10px; padding:11px 18px; font-size:13.5px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .lead { font-size:13px; color:var(--sub); margin-bottom:20px; }
+  .lead b { color:var(--deep); }
+
+  .clist { display:flex; flex-direction:column; gap:12px; }
+  .ccard { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 20px; cursor:pointer; display:flex; align-items:center; gap:16px; transition:.12s; }
+  .ccard:hover { border-color:var(--accent); box-shadow:0 6px 20px rgba(20,50,45,.05); }
+  .ccard .ic { width:44px; height:44px; border-radius:12px; background:var(--soft); color:var(--deep); display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .ccard .body { flex:1; min-width:0; }
+  .ccard h3 { font-size:16px; font-weight:800; }
+  .ccard .meta { font-size:12.5px; color:var(--sub); margin-top:3px; }
+  .ccard .meta .dot { color:var(--gray); margin:0 6px; }
+  .ccard .days-badge { background:#eef2f1; color:var(--deep); border-radius:99px; padding:5px 12px; font-size:12px; font-weight:800; flex:0 0 auto; }
+
+  /* 드로어 */
+  .overlay { position:fixed; inset:0; background:rgba(20,40,36,.4); z-index:40; opacity:0; pointer-events:none; transition:.2s; }
+  .overlay.on { opacity:1; pointer-events:auto; }
+  .drawer { position:fixed; top:0; right:0; width:600px; max-width:96vw; height:100%; background:#fff; z-index:50; box-shadow:-10px 0 40px rgba(20,40,36,.15); transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
+  .drawer.on { transform:translateX(0); }
+  .dh { padding:20px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; }
+  .dh h2 { font-size:18px; font-weight:800; }
+  .dh .x { margin-left:auto; border:none; background:#f2f5f4; width:32px; height:32px; border-radius:9px; font-size:18px; cursor:pointer; color:var(--sub); }
+  .db { flex:1; overflow-y:auto; padding:22px 24px; }
+  label.f { display:block; margin-bottom:14px; }
+  label.f span { display:block; font-size:12.5px; font-weight:700; color:var(--sub); margin-bottom:6px; }
+  input, textarea, select { width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; font-family:inherit; color:var(--ink); outline:none; background:#fff; }
+  input:focus, textarea:focus, select:focus { border-color:var(--accent); }
+  textarea { resize:vertical; line-height:1.6; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .sec-title { font-size:14px; font-weight:800; margin:22px 0 10px; display:flex; align-items:center; gap:8px; }
+  .sec-title .n { width:20px; height:20px; border-radius:6px; background:var(--soft); color:var(--deep); font-size:11px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; }
+
+  /* 명소 체크 */
+  .spot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
+  .spot-chk { display:flex; align-items:center; gap:8px; border:1.5px solid var(--line); border-radius:10px; padding:9px 11px; cursor:pointer; transition:.12s; }
+  .spot-chk:hover { border-color:var(--accent); }
+  .spot-chk.on { border-color:var(--accent); background:var(--soft); }
+  .spot-chk .box { width:18px; height:18px; border-radius:5px; border:1.5px solid #c7d0cd; flex:0 0 auto; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; }
+  .spot-chk.on .box { background:var(--accent); border-color:var(--accent); }
+  .spot-chk b { font-size:12.5px; }
+  .spot-order { margin-left:auto; font-size:10.5px; font-weight:800; color:var(--accent); }
+
+  /* 일자 편집 */
+  .day-edit { border:1px solid var(--line); border-radius:12px; padding:13px 15px; margin-bottom:10px; }
+  .day-edit .dh2 { display:flex; align-items:center; gap:9px; margin-bottom:9px; }
+  .day-edit .badge { background:var(--deep); color:#fff; border-radius:7px; padding:4px 10px; font-size:12px; font-weight:800; flex:0 0 auto; }
+  .day-edit input.dest { flex:1; font-weight:700; }
+  .day-edit input.move { max-width:170px; }
+  .day-edit .day-del { border:none; background:#f6eeee; color:#c96a5e; width:28px; height:28px; border-radius:8px; font-size:14px; cursor:pointer; flex:0 0 auto; }
+  .day-edit textarea.items { min-height:88px; font-size:13px; }
+  .day-edit .lbl2 { font-size:11px; color:var(--gray); margin:8px 0 5px; }
+  .day-add { width:100%; padding:12px; border:1.5px dashed var(--accent); background:#fff; color:var(--deep); border-radius:11px; font-size:13.5px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .day-add:hover { background:var(--soft); }
+
+  .df { padding:16px 24px; border-top:1px solid var(--line); display:flex; gap:8px; }
+  .df button { padding:13px 0; border-radius:11px; font-size:14px; font-weight:800; cursor:pointer; border:none; font-family:inherit; }
+  .df .save { flex:1; background:var(--deep); color:#fff; }
+  .df .del { background:#fbeceb; color:var(--red); padding:13px 18px; }
+
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--deep2); color:#fff; padding:12px 22px; border-radius:12px; font-size:14px; font-weight:600; opacity:0; transition:.25s; z-index:60; pointer-events:none; }
+  .toast.on { opacity:1; }
+  @media (max-width:820px){ .side{display:none} .content{padding:20px} }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="side-brand"><span class="logo">▲</span><div><b>몽골리아 은하수</b><small>몽골리아 관리자</small></div></div>
+    <nav>
+      <a class="mi" href="관리자.html"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>대시보드</a>
+      <a class="mi" href="견적만들기.html"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>견적서 만들기</a>
+      <a class="mi on" href="코스관리.html"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l11 0"/><path d="M9 12l11 0"/><path d="M9 18l11 0"/><circle cx="4" cy="6" r="1.6"/><circle cx="4" cy="12" r="1.6"/><circle cx="4" cy="18" r="1.6"/></svg>코스 관리</a>
+      <a class="mi" href="일정관리.html"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>일정 관리</a>
+      <a class="mi" href="명소관리.html"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>명소 관리</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="page-head">
+      <h1>코스 관리</h1>
+      <button class="add" id="addBtn">＋ 새 코스 추가</button>
+    </div>
+    <div class="lead">여기서 만든 코스가 <b>견적서 만들기 → 코스 불러오기</b>에 나타납니다. 클릭 한 번으로 일정·명소·기본가가 자동으로 채워져요.</div>
+    <div class="clist" id="clist"></div>
+  </main>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const won = n => (Number(n)||0).toLocaleString("ko-KR") + "원";
+
+let COURSES = {};
+
+function load() { COURSES = JSON.parse(JSON.stringify(getCourses())); renderList(); }
+function persist() { saveCourses(COURSES); }
+
+function renderList() {
+  const entries = Object.entries(COURSES);
+  $("clist").innerHTML = entries.length ? entries.map(([name, c]) => `
+    <div class="ccard" data-k="${esc(name)}">
+      <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l11 0M9 12l11 0M9 18l11 0"/><circle cx="4" cy="6" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="4" cy="18" r="1.5"/></svg></div>
+      <div class="body">
+        <h3>${esc(name)}</h3>
+        <div class="meta">${esc(c.destination||"")}<span class="dot">·</span>${esc(c.nights||"")}<span class="dot">·</span>기본 ${won(c.base)}<span class="dot">·</span>명소 ${(c.highlights||[]).length}곳</div>
+      </div>
+      <div class="days-badge">${(c.days||[]).length}일 일정</div>
+    </div>`).join("")
+    : `<div style="text-align:center;padding:60px;color:var(--gray)">등록된 코스가 없습니다. 우측 상단 <b>＋ 새 코스 추가</b>로 만들어보세요.</div>`;
+  $("clist").querySelectorAll(".ccard").forEach(el => el.onclick = () => openEdit(el.dataset.k));
+}
+
+/* ── 편집 드로어 ── */
+let draftDays = [];
+
+function blankDay(i) { return { d:i+1, dest:"", move:"", dist:"", items:[], stay:{name:"",tags:[]}, meals:["","",""] }; }
+
+function openEdit(key) {
+  const isNew = key === null;
+  const c = isNew
+    ? { destination:"", nights:"", intensity:3, base:0, vehicle:"", highlights:[], days:[blankDay(0)] }
+    : JSON.parse(JSON.stringify(COURSES[key]));
+  draftDays = (c.days && c.days.length) ? c.days : [blankDay(0)];
+  let draftSpots = [...(c.highlights || [])];
+
+  $("drawer").innerHTML = `
+    <div class="dh"><h2>${isNew ? "새 코스 추가" : "코스 편집"}</h2><button class="x" id="closeX">✕</button></div>
+    <div class="db">
+      <label class="f"><span>코스 이름</span><input id="f_name" value="${esc(isNew?"":key)}" placeholder="예) 고비 4박5일"></label>
+      <div class="row3">
+        <label class="f"><span>여행지</span><input id="f_dest" value="${esc(c.destination)}" placeholder="고비"></label>
+        <label class="f"><span>기간</span><input id="f_nights" value="${esc(c.nights)}" placeholder="4박5일"></label>
+        <label class="f"><span>기본금(1인)</span><input id="f_base" type="number" step="1000" value="${esc(c.base)}"></label>
+      </div>
+      <div class="row2">
+        <label class="f"><span>차량</span><input id="f_vehicle" value="${esc(c.vehicle)}" placeholder="하이에이스"></label>
+        <label class="f"><span>이동강도 (1~5)</span>
+          <select id="f_intensity">${[1,2,3,4,5].map(i=>`<option value="${i}" ${i===(c.intensity||3)?"selected":""}>${i}</option>`).join("")}</select></label>
+      </div>
+
+      <div class="sec-title"><span class="n">1</span>대표 명소 <span style="font-weight:500;color:var(--gray);font-size:12px">· 견적서 명소 페이지에 나옴</span></div>
+      <div class="spot-grid" id="spotGrid"></div>
+
+      <div class="sec-title"><span class="n">2</span>일자별 일정</div>
+      <div id="dayList"></div>
+    </div>
+    <div class="df">
+      ${isNew ? "" : `<button class="del" id="delBtn">삭제</button>`}
+      <button class="save" id="saveBtn">${isNew ? "추가하기" : "저장하기"}</button>
+    </div>`;
+
+  // 명소 그리드
+  function renderSpots() {
+    const lib = getSpots();
+    $("spotGrid").innerHTML = Object.keys(lib).map(name => {
+      const idx = draftSpots.indexOf(name), on = idx >= 0;
+      return `<div class="spot-chk ${on?"on":""}" data-s="${esc(name)}">
+        <div class="box">${on?"✓":""}</div><b>${esc(name)}</b>${on?`<span class="spot-order">${idx+1}</span>`:""}</div>`;
+    }).join("") || `<div style="color:var(--gray);font-size:12px">명소 관리에서 먼저 명소를 등록하세요.</div>`;
+    $("spotGrid").querySelectorAll(".spot-chk").forEach(el => el.onclick = () => {
+      const n = el.dataset.s, i = draftSpots.indexOf(n);
+      if (i>=0) draftSpots.splice(i,1); else draftSpots.push(n);
+      renderSpots();
+    });
+  }
+  renderSpots();
+
+  // 일자 편집
+  function renumber() { draftDays.forEach((d,i)=>d.d=i+1); }
+  function renderDays() {
+    $("dayList").innerHTML = draftDays.map((d,i)=>`
+      <div class="day-edit" data-i="${i}">
+        <div class="dh2">
+          <span class="badge">${d.d}일차</span>
+          <input class="dest" value="${esc((d.dest||"").replace(/<br\s*\/?>/gi," / "))}" placeholder="목적지">
+          <input class="move" value="${esc(d.move||"")} ${esc(d.dist||"")}" placeholder="이동 6시간 (300 km)">
+          <button class="day-del" title="삭제">✕</button>
+        </div>
+        <textarea class="items" placeholder="한 줄에 하나씩. *강조, (회색">${esc((d.items||[]).join("\n"))}</textarea>
+        <div class="lbl2">숙소 / 숙소태그(쉼표) / 식사(조·중·석)</div>
+        <div class="row3">
+          <input class="stay" value="${esc((d.stay?.name||"").replace(/<br\s*\/?>/gi," "))}" placeholder="여행자 캠프">
+          <input class="tags" value="${esc((d.stay?.tags||[]).join(", "))}" placeholder="전기 O, 샤워 O">
+          <input class="meals" value="${esc((d.meals||[]).join(", "))}" placeholder="캠프식, 현지식당, 캠프식">
+        </div>
+      </div>`).join("") + `<button class="day-add" id="dayAddBtn">＋ 일자 추가</button>`;
+
+    $("dayList").querySelectorAll(".day-edit").forEach(el => {
+      const i = +el.dataset.i;
+      el.querySelector(".dest").oninput = e => draftDays[i].dest = e.target.value.replace(/ \/ /g,"<br>");
+      el.querySelector(".move").oninput = e => { const m = e.target.value.match(/^(.*?)(\(.*\))?\s*$/); draftDays[i].move=(m[1]||"").trim(); draftDays[i].dist=(m[2]||"").trim(); };
+      el.querySelector(".items").oninput = e => draftDays[i].items = e.target.value.split("\n").filter(x=>x.trim());
+      el.querySelector(".stay").oninput = e => draftDays[i].stay = { name:e.target.value, tags:draftDays[i].stay?.tags||[] };
+      el.querySelector(".tags").oninput = e => draftDays[i].stay = { name:draftDays[i].stay?.name||"", tags:e.target.value.split(",").map(x=>x.trim()).filter(Boolean) };
+      el.querySelector(".meals").oninput = e => draftDays[i].meals = e.target.value.split(",").map(x=>x.trim());
+      el.querySelector(".day-del").onclick = () => { if (draftDays.length<=1){toast("최소 1일 필요");return;} draftDays.splice(i,1); renumber(); renderDays(); };
+    });
+    $("dayAddBtn").onclick = () => { draftDays.push(blankDay(draftDays.length)); renderDays(); const c=$("dayList").querySelectorAll(".day-edit"); c[c.length-1]?.scrollIntoView({behavior:"smooth",block:"center"}); };
+  }
+  renderDays();
+
+  $("drawer").classList.add("on"); $("overlay").classList.add("on");
+  $("closeX").onclick = closeDrawer;
+
+  $("saveBtn").onclick = () => {
+    const name = $("f_name").value.trim();
+    if (!name) { toast("코스 이름을 입력하세요"); return; }
+    const rec = {
+      destination: $("f_dest").value.trim(),
+      nights: $("f_nights").value.trim(),
+      intensity: parseInt($("f_intensity").value) || 3,
+      base: parseInt($("f_base").value) || 0,
+      vehicle: $("f_vehicle").value.trim(),
+      highlights: draftSpots,
+      days: draftDays.map((d,i) => ({ d:i+1, dest:d.dest||"", move:d.move||"", dist:d.dist||"", items:d.items||[], stay:{name:d.stay?.name||"", tags:d.stay?.tags||[]}, meals:d.meals||["","",""] })),
+    };
+    if (!isNew && key !== name) delete COURSES[key];
+    COURSES[name] = rec;
+    persist(); renderList(); closeDrawer();
+    toast(isNew ? "코스가 추가되었습니다" : "저장되었습니다");
+  };
+  const delEl = $("delBtn");
+  if (delEl) delEl.onclick = () => { if (!confirm(`"${key}" 코스를 삭제할까요?`)) return; delete COURSES[key]; persist(); renderList(); closeDrawer(); toast("삭제되었습니다"); };
+}
+function closeDrawer(){ $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); }
+$("overlay").onclick = closeDrawer;
+$("addBtn").onclick = () => openEdit(null);
+
+let toastT;
+function toast(m){ $("toast").textContent=m; $("toast").classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>$("toast").classList.remove("on"),1900); }
+
+load();
+</script>
+</body>
+</html>
