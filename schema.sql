@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS requests (
   budget       TEXT,               -- 예산 (목록용)
   status       TEXT DEFAULT '신규', -- 신규/진행중/완료/보류
   memo         TEXT DEFAULT '',    -- 상담 메모
-  data         TEXT                -- 전체 내용 JSON
+  data         TEXT,               -- 전체 내용 JSON
+  token        TEXT                -- 고객 마이페이지 매직링크 토큰(추측 불가)
 );
 
 CREATE INDEX IF NOT EXISTS idx_received ON requests(received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token ON requests(token);

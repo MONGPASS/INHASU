@@ -19,14 +19,15 @@ export async function onRequestPost({ request, env }) {
 
     await env.DB.prepare(
       `INSERT OR REPLACE INTO requests
-       (id, received_at, name, phone, destination, budget, status, memo, data)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, received_at, name, phone, destination, budget, status, memo, data, token)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       id,
       d.receivedAt || new Date().toISOString(),
       d.name || "", d.phone || "", d.destination || "", d.budget || "",
       d.status || "신규", d.memo || "",
-      JSON.stringify(d)
+      JSON.stringify(d),
+      d.token || null
     ).run();
 
     return json({ ok: true, id });

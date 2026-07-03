@@ -124,6 +124,7 @@
   .bottom .preview { background:var(--deep); color:#fff; }
   .bottom .mapbtn { background:var(--soft); color:var(--deep); }
   .bottom .reset { background:#f2f5f4; color:var(--sub); }
+  .bottom .publish { background:#16261f; color:#fff; }
   .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--deep2); color:#fff; padding:12px 22px; border-radius:12px; font-size:14px; font-weight:600; opacity:0; transition:.25s; z-index:30; pointer-events:none; }
   .toast.on { opacity:1; }
 </style>
@@ -242,6 +243,7 @@
   <button class="reset" id="resetBtn">초기화</button>
   <button class="mapbtn" id="mapBtn">🗺 지도 미리보기</button>
   <button class="preview" id="previewBtn">📄 견적서 미리보기</button>
+  <button class="publish" id="publishBtn" style="display:none">📤 고객에게 발행</button>
 </div>
 <div class="toast" id="toast"></div>
   </div><!-- /.ecol -->
@@ -265,6 +267,7 @@ let ST = {
 };
 
 /* 관리자에서 넘어온 고객 정보 반영 */
+let REQ_ID = "", REQ_TOKEN = "";
 try {
   const pre = JSON.parse(localStorage.getItem("leaders_prefill") || "null");
   if (pre) {
@@ -272,9 +275,12 @@ try {
     ST.depart = pre.depart || "";
     ST.return_ = pre.return_ || "";
     ST.pax = (pre.adult || 0) + (pre.child || 0) + (pre.infant || 0) || 6;
+    REQ_ID = pre.id || "";
+    REQ_TOKEN = pre.token || "";
     localStorage.removeItem("leaders_prefill");
   }
 } catch (e) {}
+const ADMIN_PW = "leaders-8cca68ba";   // 관리자 API 인증 (관리자.html과 동일)
 
 const nights = () => {
   if (!ST.depart || !ST.return_) return null;
@@ -533,6 +539,34 @@ function save() {
 
 $("previewBtn").onclick = $("hGoBtn").onclick = () => { save(); window.open("견적서.html", "_blank"); };
 $("mapBtn").onclick = $("hMapBtn").onclick = () => { save(); window.open("일정지도.html", "_blank"); };
+
+/* ── 고객에게 발행 (특정 요청에서 열렸을 때만) ── */
+if (REQ_ID && REQ_TOKEN) {
+  const pubBtn = $("publishBtn");
+  pubBtn.style.display = "";
+  pubBtn.onclick = async () => {
+    if (!confirm("이 견적을 고객에게 발행할까요?\n발행하면 고객이 링크에서 견적서를 볼 수 있고, 상태가 '완료'로 바뀝니다.")) return;
+    pubBtn.disabled = true; pubBtn.textContent = "발행 중…";
+    try {
+      const res = await fetch(`/api/requests/${encodeURIComponent(REQ_ID)}?token=${encodeURIComponent(ADMIN_PW)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quote: buildQuote(), status: "완료" }),
+      });
+      if (!res.ok) throw new Error("http " + res.status);
+      const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + REQ_TOKEN;
+      try { await navigator.clipboard.writeText(link); } catch (e) {}
+      toast("✓ 발행 완료! 고객 링크가 복사됐어요 — 카톡으로 보내세요");
+      pubBtn.textContent = "✓ 발행됨 (링크 복사)";
+      pubBtn.onclick = () => { navigator.clipboard.writeText(link).then(() => toast("링크 복사됨")); };
+    } catch (e) {
+      toast("⚠ 발행 실패 — 서버 연결을 확인하세요");
+      pubBtn.textContent = "📤 고객에게 발행";
+    } finally {
+      pubBtn.disabled = false;
+    }
+  };
+}
 $("resetBtn").onclick = () => {
   if (!confirm("입력한 내용을 모두 지울까요?")) return;
   localStorage.removeItem("leaders_quote");

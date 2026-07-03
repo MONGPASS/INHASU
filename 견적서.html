@@ -38,12 +38,31 @@
 <div class="hint">💡 <b>Ctrl + P</b> → 대상 <b>"PDF로 저장"</b> → 여백 <b>없음</b>, 배경 그래픽 <b>켜기</b>로 인쇄하면 고객용 PDF가 됩니다. 내용은 <b>data.js</b>만 수정하세요.</div>
 <div class="wrap" id="root"></div>
 
-<script>
-/* 편집기(견적만들기)에서 저장한 견적이 있으면 그것을, 없으면 data.js 샘플 */
-const Q = (() => {
+<script type="module">
+/* 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 */
+const _token = new URLSearchParams(location.search).get("t");
+const Q = await (async () => {
+  if (_token) {
+    try {
+      const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
+      const j = await res.json();
+      if (j.ok && j.quote) return j.quote;
+    } catch (e) {}
+    return null;   // 토큰은 있지만 아직 견적 미발행
+  }
   try { const s = JSON.parse(localStorage.getItem("leaders_quote") || "null"); if (s) return s; } catch (e) {}
   return window.QUOTE;
 })();
+
+if (!Q) {
+  document.getElementById("root").innerHTML =
+    `<div style="max-width:640px;margin:80px auto;padding:0 24px;text-align:center;font-family:Pretendard,sans-serif;color:#16261f">
+      <div style="font-size:46px">🕓</div>
+      <h1 style="font-size:22px;margin:14px 0 8px;font-weight:800">견적서 준비 중이에요</h1>
+      <p style="color:#6b7c78;line-height:1.65;font-size:15px">담당자가 맞춤 견적서를 작성하고 있어요.<br>완료되면 이 링크에서 바로 확인하실 수 있습니다.</p>
+      <a href="내견적.html?t=${encodeURIComponent(_token || "")}" style="display:inline-block;margin-top:22px;color:#06c4a0;font-weight:800;text-decoration:none">← 내 견적 확인으로 돌아가기</a>
+    </div>`;
+} else {
 
 const won = n => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("ko-KR") + "원";
 const wonMan = n => Math.round(n / 10000).toLocaleString("ko-KR") + "만원";
@@ -459,6 +478,7 @@ const pgTerms = `
 document.getElementById("root").innerHTML =
   pgCover + pgQuote + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgSafety + pgRisk + pgTerms;
 document.title = `${B.company}_${Q.customer}님_맞춤견적서_${Q.quoteNo}`;
+}
 </script>
 </body>
 </html>

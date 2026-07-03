@@ -442,7 +442,7 @@ function openDrawer(id) {
   $("drawer").querySelectorAll(".st-btn").forEach(b => b.onclick = () => updateStatus(id, b.dataset.s));
   $("memo").onblur = () => saveMemo(id, $("memo").value);
   $("makeBtn").onclick = () => {
-    localStorage.setItem("leaders_prefill", JSON.stringify({ name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant }));
+    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant }));
     window.open("견적만들기.html","_blank");
   };
   $("copyBtn").onclick = () => {

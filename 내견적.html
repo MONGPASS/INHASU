@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>내 견적 확인 · 몽골리아 은하수</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
+<style>
+  @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+  :root { --accent:#06c4a0; --soft:#eaf7f3; --ink:#16261f; --sub:#6b7c78; --line:#e7eaee; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:"Pretendard Variable", Pretendard, system-ui, "Malgun Gothic", sans-serif; color:var(--ink);
+    background:radial-gradient(125% 90% at 50% -5%, #DFF6EC 0%, #EFFBF6 42%, #FFFFFF 100%); min-height:100vh;
+    border-top:3px solid var(--accent); display:flex; flex-direction:column; align-items:center; padding:26px 18px 40px; }
+  .brand { display:inline-flex; align-items:center; gap:8px; margin-bottom:20px; }
+  .brand svg { display:block; }
+  .brand b { font-size:16px; font-weight:800; letter-spacing:-.02em; }
+  .brand b i { font-style:normal; color:var(--accent); }
+  .card { width:100%; max-width:440px; background:#fff; border:1px solid var(--line); border-radius:20px;
+    box-shadow:0 12px 40px rgba(20,50,45,.07); padding:28px 24px; text-align:center; }
+  .emoji { font-size:44px; }
+  h1 { font-size:21px; font-weight:800; letter-spacing:-.03em; margin:12px 0 6px; }
+  .desc { font-size:14px; color:var(--sub); line-height:1.6; }
+  .badge { display:inline-block; margin-top:14px; font-size:12.5px; font-weight:800; padding:6px 14px; border-radius:999px; }
+  .badge.wait { background:var(--soft); color:#0a6a5e; }
+  .badge.done { background:#e6f5ef; color:#0a6a5e; }
+  .sum { margin-top:20px; text-align:left; background:#F7F8FA; border-radius:14px; padding:6px 16px; }
+  .sum .row { display:flex; gap:14px; padding:11px 0; border-bottom:1px solid #ECEEF1; font-size:13.5px; }
+  .sum .row:last-child { border-bottom:none; }
+  .sum .k { color:#9AA0A6; font-weight:600; min-width:64px; }
+  .sum .v { color:var(--ink); font-weight:600; margin-left:auto; text-align:right; }
+  .btn { display:block; width:100%; margin-top:16px; padding:15px; border:none; border-radius:13px; font-family:inherit;
+    font-size:15.5px; font-weight:800; cursor:pointer; text-decoration:none; text-align:center; }
+  .btn.primary { background:var(--ink); color:#fff; }
+  .btn.accent { background:var(--accent); color:#fff; }
+  .btn.kakao { background:#FEE500; color:#3C1E1E; }
+  .btn.ghost { background:#fff; color:var(--sub); border:1px solid var(--line); font-weight:700; }
+  .hint { margin-top:14px; font-size:12px; color:#9AA0A6; line-height:1.5; }
+</style>
+</head>
+<body>
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#06c4a0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.3 5.7L20 11l-5.7 2.3L12 19l-2.3-5.7L4 11l5.7-2.3z"></path></svg>
+    <b>몽골리아 <i>은하수</i></b>
+  </div>
+  <div class="card" id="card">
+    <div class="emoji">⏳</div>
+    <h1>불러오는 중…</h1>
+  </div>
+
+<script>
+  const KAKAO = "https://pf.kakao.com/_BSLaxl";
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const card = document.getElementById("card");
+  const token = new URLSearchParams(location.search).get("t");
+
+  const paxTxt = r => {
+    const p = [];
+    if (r.adult) p.push(`성인 ${r.adult}`);
+    if (r.child) p.push(`아동 ${r.child}`);
+    if (r.infant) p.push(`유아 ${r.infant}`);
+    return p.join(" · ") || "-";
+  };
+  const periodTxt = r => {
+    if (!r.depart) return "-";
+    const n = r.nights ? ` (${r.nights}박 ${r.nights + 1}일)` : "";
+    return `${r.depart}${r.return_ ? " ~ " + r.return_ : ""}${n}`;
+  };
+  const destTxt = r => (r.destination || "-") + (r.destSpots && r.destSpots.length ? ` · ${r.destSpots.join(", ")}` : "");
+
+  const sumHtml = r => `
+    <div class="sum">
+      <div class="row"><span class="k">여행지</span><span class="v">${esc(destTxt(r))}</span></div>
+      <div class="row"><span class="k">일정</span><span class="v">${esc(periodTxt(r))}</span></div>
+      <div class="row"><span class="k">인원</span><span class="v">${esc(paxTxt(r))}</span></div>
+    </div>`;
+
+  function showError(msg) {
+    card.innerHTML = `<div class="emoji">🔗</div><h1>링크를 확인해 주세요</h1>
+      <div class="desc">${esc(msg)}</div>
+      <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡으로 문의하기</a>`;
+  }
+
+  async function load() {
+    if (!token) return showError("올바른 접속 링크가 아닙니다. 담당자에게 받은 링크로 접속해 주세요.");
+    let r;
+    try {
+      const res = await fetch("/api/my/" + encodeURIComponent(token), { cache: "no-store" });
+      if (res.status === 404) return showError("존재하지 않거나 만료된 링크입니다.");
+      if (!res.ok) throw new Error("http " + res.status);
+      r = await res.json();
+      if (!r.ok) throw new Error(r.error || "error");
+    } catch (e) {
+      return showError("일시적으로 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+    }
+
+    const nm = r.name ? `${esc(r.name)}님, ` : "";
+    if (r.quote) {
+      card.innerHTML = `
+        <div class="emoji">🎉</div>
+        <h1>견적서가 도착했어요!</h1>
+        <div class="desc">${nm}요청하신 맞춤 견적서가 준비됐습니다.</div>
+        <span class="badge done">✓ 견적 완료</span>
+        ${sumHtml(r)}
+        <a class="btn accent" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>
+        <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡 상담</a>`;
+    } else {
+      card.innerHTML = `
+        <div class="emoji">✅</div>
+        <h1>견적 요청이 접수됐어요</h1>
+        <div class="desc">${nm}담당자가 확인 후 남겨주신 연락처로 연락드려요.<br>(영업시간 기준 24시간 이내)<br>견적서가 준비되면 이 화면에서 바로 확인할 수 있어요.</div>
+        <span class="badge wait">⏳ ${esc(r.status || "확인 중")}</span>
+        ${sumHtml(r)}
+        <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡으로 빠른 상담</a>
+        <button class="btn ghost" onclick="location.reload()">새로고침</button>
+        <div class="hint">이 링크를 저장해 두시면 언제든 진행 상황을 확인할 수 있어요.</div>`;
+    }
+  }
+  load();
+</script>
+</body>
+</html>

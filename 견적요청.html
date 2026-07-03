@@ -172,6 +172,11 @@
   .summary .k { font-size: 14px; color: #9AA0A6; font-weight: 600; min-width: 82px; }
   .summary .v { font-size: 14px; color: #1B1D1F; font-weight: 600; text-align: right; margin-left: auto; }
   .copy-link { display: block; text-align: center; margin-top: 12px; font-size: 13px; color: #9AA0A6; cursor: pointer; text-decoration: underline; }
+  .mylink-box { margin-top: 16px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 32%, #fff); border-radius: 14px; padding: 14px 16px; text-align: left; }
+  .mylink-h { font-size: 14px; font-weight: 800; color: #1B1D1F; }
+  .mylink-sub { font-size: 12px; color: #6B7178; margin: 4px 0 10px; line-height: 1.5; }
+  .mylink-url { font-size: 12px; color: #1B1D1F; background: #fff; border-radius: 8px; padding: 9px 11px; word-break: break-all; border: 1px solid #E7EAEE; }
+  .mylink-btn { margin-top: 9px; width: 100%; padding: 11px; border: none; border-radius: 10px; background: var(--accent); color: #fff; font-family: inherit; font-size: 13.5px; font-weight: 800; cursor: pointer; }
 
   .kakao-btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -291,9 +296,12 @@ const IS_LOCAL = location.protocol === "file:" ||
 /* 제출 처리 — 서버 저장이 확인된 경우에만 성공을 반환합니다.
    (실패 시 완료 화면을 띄우지 않아 문의 유실을 막습니다) */
 async function onSubmitRequest(data) {
+  // 고객 마이페이지 매직링크 토큰 (추측 불가)
+  const token = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + Math.random().toString(36))).replace(/-/g, "");
   const record = {
     ...data,
     id: Date.now() + "_" + (data.phone || ""),
+    token,
     receivedAt: new Date().toISOString(),
     status: "신규",
     memo: "",
@@ -308,7 +316,7 @@ async function onSubmitRequest(data) {
       const list = JSON.parse(localStorage.getItem(key) || "[]");
       list.unshift(record);
       localStorage.setItem(key, JSON.stringify(list));
-      return { ok: true, local: true };
+      return { ok: true, local: true, token };
     } catch (e) {
       return { ok: false, error: String(e) };
     }
@@ -321,7 +329,7 @@ async function onSubmitRequest(data) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(record),
     });
-    if (res.ok) return { ok: true };
+    if (res.ok) return { ok: true, token };
     return { ok: false, error: "server " + res.status };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -438,6 +446,13 @@ function render() {
         <div class="summary">
           ${summaryRows().map(([k, v]) => `<div class="row"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join("")}
         </div>
+        ${(S.token && !IS_LOCAL) ? `
+        <div class="mylink-box">
+          <div class="mylink-h">🔗 내 견적 확인 링크</div>
+          <div class="mylink-sub">진행 상황과 완성된 견적서를 여기서 볼 수 있어요. (담당자가 카톡으로도 보내드려요)</div>
+          <div class="mylink-url" id="myUrl">${esc(location.origin + "/" + encodeURI("내견적.html") + "?t=" + S.token)}</div>
+          <button class="mylink-btn" id="copyMyLink">링크 복사</button>
+        </div>` : ""}
         <span class="copy-link" id="copyBtn">요청 내용 복사하기 (카카오톡 상담 시 붙여넣기)</span>
       </div>`;
     foot.innerHTML = `
@@ -452,6 +467,12 @@ function render() {
       const txt = `[몽골 맞춤 견적 요청]\n` + summaryRows().map(([k, v]) => `${k}: ${v}`).join("\n")
         + `\n연락처: ${S.phone}\n이메일: ${S.email}` + (S.request ? `\n요청사항: ${S.request}` : "");
       navigator.clipboard.writeText(txt).then(() => alert("복사되었습니다!"));
+    };
+    const myLinkBtn = document.getElementById("copyMyLink");
+    if (myLinkBtn) myLinkBtn.onclick = () => {
+      navigator.clipboard.writeText(document.getElementById("myUrl").textContent).then(() => {
+        myLinkBtn.textContent = "✓ 복사됨"; setTimeout(() => myLinkBtn.textContent = "링크 복사", 1500);
+      });
     };
     return;
   }
@@ -601,7 +622,7 @@ function render() {
     const result = await onSubmitRequest({ ...S, nights: nights() });
     S.submitting = false;
     if (result.ok) {
-      S.done = true;
+      S.done = true; S.token = result.token || "";
       try { sessionStorage.removeItem("leaders_draft"); } catch (e) {}
     } else {
       S.submitError = result.error || "전송 실패";
