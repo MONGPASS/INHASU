@@ -85,6 +85,23 @@
     line-height: 1.2; transition: all .15s ease; user-select: none;
   }
   .chip.sel { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+  /* 투어 지역 카드 */
+  .dest-card { text-align: left; position: relative; padding: 15px 16px; background: #fff; border-color: #E7EAEE; }
+  .dest-card .badge-pill {
+    position: absolute; top: 12px; right: 12px; font-size: 11px; font-weight: 700;
+    background: var(--accent-soft); color: var(--accent); border-radius: 99px; padding: 3px 9px;
+  }
+  .dest-card .dc-name { font-size: 15px; font-weight: 700; color: #1B1D1F; margin-bottom: 4px; padding-right: 58px; }
+  .dest-card .dc-desc { font-size: 12.5px; font-weight: 400; color: #6B7178; line-height: 1.55; margin-bottom: 7px; }
+  .dest-card .dc-tags { font-size: 11.5px; font-weight: 500; color: #9AA0A6; }
+  .dest-card.sel { background: var(--accent-soft); }
+  .dest-card.sel .dc-name { color: var(--accent); }
+  .dest-card.sel .badge-pill { background: var(--accent); color: #fff; }
+  .dest-unsure { margin-top: 10px; border: 1.5px dashed #C9CFD6; background: #FAFBFC; }
+  .dest-unsure .dc-name { font-size: 14px; color: #6B7178; margin: 0; padding: 0; }
+  .dest-unsure.sel .dc-name { color: var(--accent); }
+
   .group-lbl { font-size: 14px; font-weight: 700; color: #1B1D1F; margin: 2px 0 10px; }
   .group-lbl.mt { margin-top: 24px; }
 
@@ -155,7 +172,9 @@
     .badge { width: 54px; height: 54px; font-size: 26px; border-radius: 16px; }
     .grid3 { grid-template-columns: repeat(2, 1fr); }
     .grid2, .grid3 { gap: 8px; }
+    .dest-grid { grid-template-columns: 1fr; }
     .chip { padding: 14px 10px; font-size: 14px; }
+    .dest-card { padding: 13px 14px; }
     .counter-row { padding: 16px 2px; }
     .txt-input, .date-input, textarea.txt-area { padding: 13px 14px; font-size: 15px; }
     .primary-btn, .ghost-btn, .kakao-btn { padding: 15px; font-size: 16px; }
@@ -194,7 +213,18 @@ const CONFIG = {
   kakao: "https://pf.kakao.com/_BSLaxl",
 
   types:    ["허니문", "가족 여행", "우정 여행", "나 홀로", "효도 여행", "단체·워크샵", "사진 출사", "오지 탐험"],
-  dests:    ["중앙 몽골 투어", "고비사막 투어", "홉스골 호수 투어", "서부 몽골(알타이)", "카라코룸·오르혼 계곡", "북부 몽골 투어", "몽골 전체 일주", "나담 축제 투어"],
+  /* 투어 지역 — 처음 몽골 가는 분도 고를 수 있게 설명·키워드를 함께 보여줍니다 */
+  destInfo: [
+    { name:"중앙 몽골 투어",       emoji:"🐎", badge:"인기 1위",    desc:"초원 승마와 미니사막을 짧은 이동으로. 일정이 여유로워요.",   tags:"테렐지 · 승마 · 미니고비 · 3박4일~" },
+    { name:"고비사막 투어",        emoji:"🌌", badge:"은하수 명소", desc:"쏟아지는 은하수와 거대한 모래언덕. 낙타 타고 사막 일몰까지.", tags:"모래썰매 · 은하수 · 낙타체험 · 4박5일~" },
+    { name:"홉스골 호수 투어",     emoji:"🏞️", badge:"여름 피서",   desc:"'몽골의 스위스'라 불리는 푸른 호수와 침엽수 숲.",            tags:"호수 · 승마 · 순록마을 · 4박5일~" },
+    { name:"카라코룸·오르혼 계곡", emoji:"🏛️", badge:"",            desc:"칭기즈칸 제국의 옛 수도와 사원. 역사와 초원을 함께.",        tags:"에르덴조 사원 · 폭포 · 유네스코" },
+    { name:"서부 몽골(알타이)",    emoji:"🏔️", badge:"오지 탐험",   desc:"만년설 알타이산맥과 독수리 사냥꾼의 카자흐 문화.",           tags:"설산 · 독수리 사냥꾼 · 6일~" },
+    { name:"북부 몽골 투어",       emoji:"🦌", badge:"",            desc:"순록 유목민 차탕족이 사는 원시 타이가 숲.",                  tags:"차탕족 · 순록 · 오지" },
+    { name:"몽골 전체 일주",       emoji:"🚐", badge:"장기 여행",   desc:"고비부터 홉스골까지, 몽골의 하이라이트를 한 번에.",          tags:"7일 이상 · 고비+홉스골" },
+    { name:"몽골 트레킹 투어",     emoji:"🥾", badge:"",            desc:"광활한 초원과 산·계곡을 두 발로 걷는 트레킹 중심 여행.",     tags:"트레킹 · 캠핑 · 승마 · 체력별 코스" },
+  ],
+  destUnsure: "잘 모르겠어요 (여행사 추천 요청)",
   /* 시내(울란바토르)만 호텔 가능 / 투어지역은 게르 등급만 가능 */
   cityStays: ["호텔(5성급)", "호텔(4성급)", "게스트하우스", "상관없음"],
   gerStays:  ["고급 여행자 게르", "일반 여행자 게르", "상관없음"],
@@ -251,7 +281,7 @@ const META = {
   1: { icon: "👥", title: "여행 인원은 몇 명인가요?", sub: "함께 떠나실 인원을 알려주세요. (성인 1명 이상)" },
   2: { icon: "📅", title: "언제 몽골로 떠나시나요?", sub: "몽골 입국일과 귀국일을 선택해 주세요." },
   3: { icon: "💍", title: "어떤 여행을 원하세요?", sub: "여행 타입을 선택해 주세요." },
-  4: { icon: "🗺️", title: "가고 싶은 몽골은 어디인가요?", sub: "희망하는 투어 지역을 선택해 주세요." },
+  4: { icon: "🗺️", title: "가고 싶은 몽골은 어디인가요?", sub: "잘 몰라도 괜찮아요. 어떤 곳인지 보고 골라주세요." },
   5: { icon: "🏨", title: "숙소와 차량을 골라주세요", sub: "여행 스타일에 맞게 선택해 주세요." },
   6: { icon: "💰", title: "예상 여행 경비는?", sub: "1인 기준 희망 예산을 선택해 주세요." },
   7: { icon: "📝", title: "신청자 정보를 알려주세요", sub: "견적서를 받으실 연락처를 입력해 주세요." },
@@ -411,7 +441,19 @@ function render() {
   } else if (S.step === 3) {
     inner = chips(CONFIG.types, S.tripType, "tripType", "grid3");
   } else if (S.step === 4) {
-    inner = chips(CONFIG.dests, S.destination, "destination", "grid2");
+    inner = `
+      <div class="grid2 dest-grid">
+        ${CONFIG.destInfo.map(d => `
+          <div class="chip dest-card ${d.name === S.destination ? "sel" : ""}" data-key="destination" data-val="${esc(d.name)}">
+            ${d.badge ? `<span class="badge-pill">${esc(d.badge)}</span>` : ""}
+            <div class="dc-name">${d.emoji} ${esc(d.name)}</div>
+            <div class="dc-desc">${esc(d.desc)}</div>
+            <div class="dc-tags">${esc(d.tags)}</div>
+          </div>`).join("")}
+      </div>
+      <div class="chip dest-card dest-unsure ${CONFIG.destUnsure === S.destination ? "sel" : ""}" data-key="destination" data-val="${esc(CONFIG.destUnsure)}">
+        <div class="dc-name" style="text-align:center">🤔 아직 잘 모르겠어요 — 여행사가 추천해 주세요</div>
+      </div>`;
   } else if (S.step === 5) {
     inner = `
       <div class="group-lbl">시내(울란바토르) 숙소</div>${chips(CONFIG.cityStays, S.cityStay, "cityStay", "grid2")}
