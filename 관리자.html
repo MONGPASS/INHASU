@@ -247,21 +247,38 @@
 
 <script>
 /* ═══════════════ 설정 ═══════════════ */
-const CFG = { brand:"몽골리아 은하수", password:"leaders-8cca68ba", apiBase:"/api/requests" };
+const CFG = { brand:"몽골리아 은하수", apiBase:"/api/requests" };
 const STATUSES = ["신규","진행중","완료","보류"];
 const AVA_COLORS = ["#06c4a0","#3aa0e0","#e0913a","#8a6fe0","#cf6a5e","#2f9e8a","#5aa469"];
 let RECORDS = [], filterStatus = null, searchText = "", mode = "local";
 const $ = id => document.getElementById(id);
 
-/* ═══════════════ 로그인 ═══════════════ */
-function tryLogin() {
-  if ($("pw").value === CFG.password) { sessionStorage.setItem("leaders_admin","1"); showDash(); }
-  else { $("loginErr").textContent = "비밀번호가 올바르지 않습니다."; $("pw").value = ""; }
+/* ═══════════════ 로그인 ═══════════════
+   비밀번호는 페이지에 저장하지 않고, 서버(Cloudflare env ADMIN_TOKEN)로만 검증합니다.
+   → 비밀번호 변경: Cloudflare 대시보드 > Pages > 설정 > 환경 변수 ADMIN_TOKEN 수정 */
+let ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
+
+async function tryLogin() {
+  const pw = $("pw").value;
+  if (!pw) return;
+  $("loginErr").textContent = "확인 중…";
+  try {
+    const res = await fetch(`${CFG.apiBase}?token=${encodeURIComponent(pw)}`);
+    let j = null; try { j = await res.json(); } catch (e) {}
+    if (j && j.ok && Array.isArray(j.items)) {
+      ADMIN_TOKEN = pw; sessionStorage.setItem("leaders_admin_token", pw);
+      $("loginErr").textContent = ""; showDash(); return;
+    }
+    if (res.status === 401) { $("loginErr").textContent = "비밀번호가 올바르지 않습니다."; $("pw").value = ""; return; }
+  } catch (e) {}
+  // 서버 미연결(로컬 데모/배포 전) — 데모 비밀번호로만 진입
+  if (pw === "demo") { ADMIN_TOKEN = "demo"; sessionStorage.setItem("leaders_admin_token", "demo"); $("loginErr").textContent = ""; showDash(); return; }
+  $("loginErr").textContent = "비밀번호가 올바르지 않거나 서버에 연결할 수 없어요.";
 }
 $("loginBtn").onclick = tryLogin;
 $("pw").onkeydown = e => { if (e.key === "Enter") tryLogin(); };
-$("navLogout").onclick = () => { sessionStorage.removeItem("leaders_admin"); location.reload(); };
-if (sessionStorage.getItem("leaders_admin") === "1") showDash();
+$("navLogout").onclick = () => { sessionStorage.removeItem("leaders_admin_token"); location.reload(); };
+if (ADMIN_TOKEN) showDash();
 function showDash() { $("login").style.display = "none"; $("dash").style.display = "block"; $("whoName").textContent = CFG.brand; setView("dash"); loadData(); }
 
 /* 화면 전환: 대시보드(개요+목록) ↔ 견적 문의(목록만) */
@@ -279,7 +296,7 @@ $("previewFormBtn").onclick = () => window.open("견적요청.html", "_blank");
 /* ═══════════════ 데이터 ═══════════════ */
 async function loadData() {
   try {
-    const res = await fetch(`${CFG.apiBase}?token=${encodeURIComponent(CFG.password)}`);
+    const res = await fetch(`${CFG.apiBase}?token=${encodeURIComponent(ADMIN_TOKEN)}`);
     if (res.ok) { const j = await res.json();
       if (j.ok && Array.isArray(j.items)) { RECORDS = j.items; mode = "server";
         $("modeTag").textContent = "● 서버 연결됨 (전체 기기 공유)"; render(); return; } }
@@ -429,7 +446,7 @@ function openDrawer(id) {
         <div class="k">예산</div><div class="v">${esc(r.budget)||"-"}</div>
         ${r.fileName?`<div class="k">첨부</div><div class="v">${
           r.fileKey
-            ? `<a href="/api/file/${encodeURIComponent(r.fileKey).replace(/%2F/g,"/")}?token=${encodeURIComponent(CFG.password)}" target="_blank" style="color:var(--deep);font-weight:700">📎 ${esc(r.fileName)} ↓ 다운로드</a>`
+            ? `<a href="/api/file/${encodeURIComponent(r.fileKey).replace(/%2F/g,"/")}?token=${encodeURIComponent(ADMIN_TOKEN)}" target="_blank" style="color:var(--deep);font-weight:700">📎 ${esc(r.fileName)} ↓ 다운로드</a>`
             : `📎 ${esc(r.fileName)} <span style="color:var(--gray);font-size:12px">(파일명만 전달됨)</span>`
         }</div>`:""}
       </div>
@@ -442,7 +459,7 @@ function openDrawer(id) {
   $("drawer").querySelectorAll(".st-btn").forEach(b => b.onclick = () => updateStatus(id, b.dataset.s));
   $("memo").onblur = () => saveMemo(id, $("memo").value);
   $("makeBtn").onclick = () => {
-    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant }));
+    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant }));
     window.open("견적만들기.html","_blank");
   };
   $("copyBtn").onclick = () => {
@@ -458,7 +475,7 @@ async function persist(id, patch) {
   const r = RECORDS.find(x => String(x.id) === String(id));
   if (r) Object.assign(r, patch);
   if (mode === "local") localStorage.setItem("leaders_requests", JSON.stringify(RECORDS));
-  else { try { await fetch(`${CFG.apiBase}/${encodeURIComponent(id)}?token=${encodeURIComponent(CFG.password)}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(patch) }); } catch(e){} }
+  else { try { await fetch(`${CFG.apiBase}/${encodeURIComponent(id)}?token=${encodeURIComponent(ADMIN_TOKEN)}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(patch) }); } catch(e){} }
 }
 function updateStatus(id,s){ persist(id,{status:s}); render(); openDrawer(id); }
 function saveMemo(id,m){ persist(id,{memo:m}); }

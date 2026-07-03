@@ -267,7 +267,7 @@ let ST = {
 };
 
 /* 관리자에서 넘어온 고객 정보 반영 */
-let REQ_ID = "", REQ_TOKEN = "";
+let REQ_ID = "", REQ_TOKEN = "", ADMIN_TOKEN = "";
 try {
   const pre = JSON.parse(localStorage.getItem("leaders_prefill") || "null");
   if (pre) {
@@ -277,10 +277,10 @@ try {
     ST.pax = (pre.adult || 0) + (pre.child || 0) + (pre.infant || 0) || 6;
     REQ_ID = pre.id || "";
     REQ_TOKEN = pre.token || "";
+    ADMIN_TOKEN = pre.adminToken || sessionStorage.getItem("leaders_admin_token") || "";
     localStorage.removeItem("leaders_prefill");
   }
 } catch (e) {}
-const ADMIN_PW = "leaders-8cca68ba";   // 관리자 API 인증 (관리자.html과 동일)
 
 const nights = () => {
   if (!ST.depart || !ST.return_) return null;
@@ -541,14 +541,14 @@ $("previewBtn").onclick = $("hGoBtn").onclick = () => { save(); window.open("견
 $("mapBtn").onclick = $("hMapBtn").onclick = () => { save(); window.open("일정지도.html", "_blank"); };
 
 /* ── 고객에게 발행 (특정 요청에서 열렸을 때만) ── */
-if (REQ_ID && REQ_TOKEN) {
+if (REQ_ID && REQ_TOKEN && ADMIN_TOKEN) {
   const pubBtn = $("publishBtn");
   pubBtn.style.display = "";
   pubBtn.onclick = async () => {
     if (!confirm("이 견적을 고객에게 발행할까요?\n발행하면 고객이 링크에서 견적서를 볼 수 있고, 상태가 '완료'로 바뀝니다.")) return;
     pubBtn.disabled = true; pubBtn.textContent = "발행 중…";
     try {
-      const res = await fetch(`/api/requests/${encodeURIComponent(REQ_ID)}?token=${encodeURIComponent(ADMIN_PW)}`, {
+      const res = await fetch(`/api/requests/${encodeURIComponent(REQ_ID)}?token=${encodeURIComponent(ADMIN_TOKEN)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quote: buildQuote(), status: "완료" }),

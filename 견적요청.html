@@ -157,8 +157,9 @@
   }
   .primary-btn.ok { background: var(--accent); cursor: pointer; }
   .ghost-btn {
-    width: 100%; padding: 17px; border-radius: 14px; background: #F4F5F7; color: #454A50;
+    display: block; width: 100%; padding: 17px; border-radius: 14px; background: #F4F5F7; color: #454A50;
     font-size: 16px; font-weight: 700; border: none; cursor: pointer; font-family: inherit;
+    text-align: center; text-decoration: none; box-sizing: border-box;
   }
 
   .done-badge {
@@ -246,6 +247,9 @@ const CONFIG = {
 
   /* 카카오톡 채널 주소 — 완료 화면·오류 화면의 상담 버튼에 사용. 비우면 버튼 숨김 */
   kakao: "https://pf.kakao.com/_BSLaxl",
+
+  /* 완료 화면 "상품 보러가기" 버튼 링크 (홈페이지) */
+  productUrl: "https://www.mongoliasky.co.kr/",
 
   types:    ["허니문", "가족 여행", "우정 여행", "나 홀로", "효도 여행", "단체·워크샵", "사진 출사", "오지 탐험"],
   /* 투어 지역 — 카테고리 4개, 클릭하면 소속 지역이 펼쳐집니다 */
@@ -457,8 +461,9 @@ function render() {
       </div>`;
     foot.innerHTML = `
       ${CONFIG.kakao ? `<a class="kakao-btn" href="${esc(CONFIG.kakao)}" target="_blank">💬 카카오톡 채널로 빠른 상담</a>` : ""}
-      <button class="ghost-btn" id="restartBtn">새 견적 요청하기</button>`;
-    document.getElementById("restartBtn").onclick = () => {
+      ${CONFIG.productUrl ? `<a class="ghost-btn" href="${esc(CONFIG.productUrl)}" target="_blank" rel="noopener">🛍 상품 보러가기</a>` : `<button class="ghost-btn" id="restartBtn">새 견적 요청하기</button>`}`;
+    const restartBtn = document.getElementById("restartBtn");
+    if (restartBtn) restartBtn.onclick = () => {
       S.done = false; S.step = 1; S.submitError = "";
       try { sessionStorage.removeItem("leaders_draft"); } catch (e) {}
       render();

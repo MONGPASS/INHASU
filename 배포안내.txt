@@ -15,8 +15,11 @@
 
 ● 관리자 (문의 확인·견적서 제작)
     https://milkway-mongolia.pages.dev/관리자.html
-    비밀번호:  leaders-8cca68ba
+    비밀번호:  Cloudflare 대시보드의 환경변수 ADMIN_TOKEN 값
+              (Pages > milkway-mongolia > Settings > Variables and Secrets)
 
+  ※ 비밀번호는 이제 페이지에 저장되지 않고 Cloudflare(ADMIN_TOKEN)에서만 관리됩니다.
+     변경하려면 대시보드에서 ADMIN_TOKEN 값을 바꾸면 즉시 적용됩니다.
   ※ 관리자 주소·비밀번호는 사장님만 아셔야 합니다. 고객에게 공유 금지.
 
 
