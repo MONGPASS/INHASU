@@ -105,12 +105,26 @@
   .region-panel { margin-top: 10px; background: var(--accent-soft); border-radius: 14px; padding: 14px 16px; }
   .region-panel .rp-lbl { font-size: 13.5px; font-weight: 700; color: #1B1D1F; margin-bottom: 10px; }
   .region-panel .rp-lbl span { font-weight: 500; color: #9AA0A6; font-size: 12px; }
-  .region-panel .rp-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .region-panel .rp-circles { display: flex; flex-wrap: wrap; gap: 16px 12px; }
   .region-chip {
-    background: #fff; border: 1.5px solid #E7EAEE; border-radius: 99px; padding: 8px 14px;
-    font-size: 13px; font-weight: 600; color: #4A4F55; cursor: pointer; user-select: none; transition: all .15s ease;
+    background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
+    width: 74px; display: flex; flex-direction: column; align-items: center; gap: 7px;
   }
-  .region-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .region-chip .rc-img {
+    width: 64px; height: 64px; border-radius: 50%; position: relative;
+    background: linear-gradient(135deg, #EADFD3, #cbb9a6); background-size: cover; background-position: center;
+    display: flex; align-items: center; justify-content: center; font-size: 28px; line-height: 1;
+    border: 2.5px solid transparent; box-shadow: 0 2px 8px rgba(20,40,34,.1); transition: all .15s ease;
+  }
+  .region-chip.on .rc-img { border-color: var(--accent); box-shadow: 0 0 0 2px #fff, 0 3px 12px rgba(6,196,160,.45); }
+  .region-chip .rc-check {
+    position: absolute; right: -3px; bottom: -3px; width: 21px; height: 21px; border-radius: 50%;
+    background: var(--accent); color: #fff; border: 2px solid #fff; font-size: 11px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .region-chip .rc-name { font-size: 12px; font-weight: 700; color: #4A4F55; text-align: center; letter-spacing: -.02em; line-height: 1.25; }
+  .region-chip.on .rc-name { color: var(--accent); }
+  .region-chip:active .rc-img { transform: scale(.94); }
   .region-desc { margin-top: 11px; padding-top: 10px; border-top: 1px solid rgba(6,196,160,.18); font-size: 12.5px; color: #6B7178; line-height: 1.55; }
   .region-desc b { color: #1B1D1F; }
 
@@ -229,30 +243,33 @@ const CONFIG = {
   destCats: [
     { name:"중앙 몽골 투어", emoji:"🐎", badge:"인기 1위", tagline:"초원 승마·온천, 이동 짧고 여유로운 코스",
       regions:[
-        { name:"테를지 국립공원",   desc:"울란바토르에서 1.5시간. 기암괴석 초원에서 승마 체험." },
-        { name:"엘슨타사르해",      desc:"'미니 고비' 사막. 낙타 체험을 짧은 일정으로." },
-        { name:"하르허링(카라코룸)", desc:"몽골제국의 옛 수도. 에르덴조 사원." },
-        { name:"쳉헤르 온천",       desc:"숲속 노천 온천. 여행 피로 푸는 힐링 코스." },
-        { name:"어르헝 폭포",       desc:"유네스코 오르혼 계곡의 폭포와 초원." },
+        { name:"테를지 국립공원",   emoji:"🏞️", desc:"울란바토르에서 1.5시간. 기암괴석 초원에서 승마 체험." },
+        { name:"엘슨타사르해",      emoji:"🏜️", desc:"'미니 고비' 사막. 낙타 체험을 짧은 일정으로." },
+        { name:"하르허링",         emoji:"🏛️", desc:"몽골제국의 옛 수도 카라코룸. 에르덴조 사원." },
+        { name:"오르혼 계곡",       emoji:"💧", desc:"유네스코 세계유산. 초원과 폭포가 어우러진 계곡." },
+        { name:"쳉헤르 온천",       emoji:"♨️", desc:"숲속 노천 온천. 여행 피로 푸는 힐링 코스." },
+        { name:"우기 호수",         emoji:"🦆", desc:"철새가 모이는 잔잔한 초원 호수." },
+        { name:"호스타이 국립공원",  emoji:"🐴", desc:"야생마 '타히'를 만날 수 있는 국립공원." },
       ]},
     { name:"고비사막 투어", emoji:"🌌", badge:"은하수 명소", tagline:"쏟아지는 은하수와 거대한 모래언덕",
       regions:[
-        { name:"차강소브라가", desc:"바다가 융기한 거대 침식 절벽. '하얀 탑'." },
-        { name:"욜린암",       desc:"한여름에도 얼음이 남는 협곡 트레킹." },
-        { name:"홍고린엘스",   desc:"'노래하는 사막'. 선셋·모래썰매·낙타 체험." },
-        { name:"바양작",       desc:"공룡알 화석이 나온 '불타는 절벽'." },
+        { name:"차강소브라가", emoji:"🏜️", desc:"바다가 융기한 거대 침식 절벽. '하얀 탑'." },
+        { name:"욜린암",       emoji:"🧊", desc:"한여름에도 얼음이 남는 협곡 트레킹." },
+        { name:"홍고린엘스",   emoji:"🐫", desc:"'노래하는 사막'. 선셋·모래썰매·낙타 체험." },
+        { name:"바양작",       emoji:"🦖", desc:"공룡알 화석이 나온 '불타는 절벽'." },
       ]},
     { name:"홉스굴 투어", emoji:"🏞️", badge:"여름 피서", tagline:"'몽골의 스위스' 푸른 호수와 침엽수 숲",
       regions:[
-        { name:"홉스굴 호수",     desc:"몽골 담수 70%의 거대 호수. 승마·보트·호숫가 게르." },
-        { name:"차탕족 순록마을", desc:"순록과 사는 유목민 마을 방문." },
-        { name:"우쉬긴 우붸르",   desc:"고대 사슴돌 유적과 호수 전망." },
+        { name:"무릉",   emoji:"🏘️", desc:"홉스굴로 가는 관문 도시." },
+        { name:"홉스굴", emoji:"🛶", desc:"몽골 담수 70%의 거대 호수. 승마·보트·호숫가 게르." },
       ]},
     { name:"몽골 트레킹 투어", emoji:"🥾", badge:"", tagline:"초원과 산을 두 발로, 체력별 맞춤 코스",
       regions:[
-        { name:"테를지 트레킹", desc:"기암 초원 능선을 걷는 입문 코스." },
-        { name:"오르혼 계곡",   desc:"폭포·초원·유목민 게르를 잇는 중급 코스." },
-        { name:"홉스굴 둘레길", desc:"호수와 숲을 따라 걷는 여름 명코스." },
+        { name:"열트산",         emoji:"⛰️", desc:"탁 트인 능선을 걷는 고지대 트레킹 코스." },
+        { name:"엉거츠산",       emoji:"🏔️", desc:"초원 위로 솟은 봉우리, 파노라마 전망." },
+        { name:"체체궁산",       emoji:"🥾", desc:"울란바토르 남쪽 보그드산 자락의 당일 트레킹." },
+        { name:"테를지 국립공원", emoji:"🏞️", desc:"기암 초원 능선을 걷는 입문 트레킹." },
+        { name:"몽골 올레길",     emoji:"🚶", desc:"제주올레가 만든 몽골 올레 트레킹 코스." },
       ]},
   ],
   destUnsure: "잘 모르겠어요 (여행사 추천 요청)",
@@ -489,10 +506,13 @@ function render() {
       ${cat ? `
       <div class="region-panel">
         <div class="rp-lbl">${cat.emoji} 가보고 싶은 곳을 골라주세요 <span>· 선택사항, 복수 가능</span></div>
-        <div class="rp-chips">
+        <div class="rp-circles">
           ${cat.regions.map(r => {
             const on = S.destSpots.includes(r.name);
-            return `<div class="region-chip ${on ? "on" : ""}" data-spot="${esc(r.name)}">${on ? "✓ " : ""}${esc(r.name)}</div>`;
+            return `<button type="button" class="region-chip ${on ? "on" : ""}" data-spot="${esc(r.name)}">
+              <span class="rc-img">${r.emoji || "📍"}${on ? `<span class="rc-check">✓</span>` : ""}</span>
+              <span class="rc-name">${esc(r.name)}</span>
+            </button>`;
           }).join("")}
         </div>
         ${focus ? `<div class="region-desc"><b>${esc(focus.name)}</b> — ${esc(focus.desc)}</div>` : ""}
