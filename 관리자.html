@@ -422,7 +422,7 @@ function openDrawer(id) {
         <div class="k">인원</div><div class="v">${esc(paxTxt(r))}</div>
         <div class="k">일정</div><div class="v">${esc(r.depart)||"?"} ~ ${esc(r.return_)||"?"} (${esc(nightTxt(r))})</div>
         <div class="k">여행타입</div><div class="v">${esc(r.tripType)||"-"}</div>
-        <div class="k">희망투어</div><div class="v">${esc(r.destination)||"-"}</div>
+        <div class="k">희망투어</div><div class="v">${esc(r.destination)||"-"}${r.destSpots&&r.destSpots.length?`<br><span style="font-weight:500;color:var(--gray);font-size:12.5px">관심 지역: ${esc(r.destSpots.join(", "))}</span>`:""}</div>
         <div class="k">시내 숙소</div><div class="v">${esc(r.cityStay || r.stay)||"-"}</div>
         <div class="k">투어 게르</div><div class="v">${esc(r.gerStay)||"-"}</div>
         <div class="k">차량</div><div class="v">${esc(r.vehicle)||"-"}</div>
@@ -446,7 +446,7 @@ function openDrawer(id) {
     window.open("견적만들기.html","_blank");
   };
   $("copyBtn").onclick = () => {
-    const txt = `[견적 문의] ${r.name}\n연락처: ${r.phone}\n이메일: ${r.email}${r.kakaoId?`\n카톡ID: ${r.kakaoId}`:""}\n인원: ${paxTxt(r)}\n일정: ${r.depart}~${r.return_} (${nightTxt(r)})\n타입: ${r.tripType}\n투어: ${r.destination}\n시내숙소: ${r.cityStay || r.stay || "-"}\n투어게르: ${r.gerStay || "-"}\n차량: ${r.vehicle}\n예산: ${r.budget}\n요청: ${r.request||"-"}`;
+    const txt = `[견적 문의] ${r.name}\n연락처: ${r.phone}\n이메일: ${r.email}${r.kakaoId?`\n카톡ID: ${r.kakaoId}`:""}\n인원: ${paxTxt(r)}\n일정: ${r.depart}~${r.return_} (${nightTxt(r)})\n타입: ${r.tripType}\n투어: ${r.destination}${r.destSpots&&r.destSpots.length?` / 관심: ${r.destSpots.join(", ")}`:""}\n시내숙소: ${r.cityStay || r.stay || "-"}\n투어게르: ${r.gerStay || "-"}\n차량: ${r.vehicle}\n예산: ${r.budget}\n요청: ${r.request||"-"}`;
     navigator.clipboard.writeText(txt).then(()=>{ $("copyBtn").textContent="✓ 복사됨"; setTimeout(()=>$("copyBtn").textContent="📋 정보 복사",1500); });
   };
 }

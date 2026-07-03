@@ -93,14 +93,26 @@
     background: var(--accent-soft); color: var(--accent); border-radius: 99px; padding: 3px 9px;
   }
   .dest-card .dc-name { font-size: 15px; font-weight: 700; color: #1B1D1F; margin-bottom: 4px; padding-right: 58px; }
-  .dest-card .dc-desc { font-size: 12.5px; font-weight: 400; color: #6B7178; line-height: 1.55; margin-bottom: 7px; }
-  .dest-card .dc-tags { font-size: 11.5px; font-weight: 500; color: #9AA0A6; }
+  .dest-card .dc-tag { font-size: 12.5px; font-weight: 400; color: #6B7178; line-height: 1.5; }
   .dest-card.sel { background: var(--accent-soft); }
   .dest-card.sel .dc-name { color: var(--accent); }
   .dest-card.sel .badge-pill { background: var(--accent); color: #fff; }
   .dest-unsure { margin-top: 10px; border: 1.5px dashed #C9CFD6; background: #FAFBFC; }
   .dest-unsure .dc-name { font-size: 14px; color: #6B7178; margin: 0; padding: 0; }
   .dest-unsure.sel .dc-name { color: var(--accent); }
+
+  /* 선택한 카테고리의 지역 펼침 패널 */
+  .region-panel { margin-top: 10px; background: var(--accent-soft); border-radius: 14px; padding: 14px 16px; }
+  .region-panel .rp-lbl { font-size: 13.5px; font-weight: 700; color: #1B1D1F; margin-bottom: 10px; }
+  .region-panel .rp-lbl span { font-weight: 500; color: #9AA0A6; font-size: 12px; }
+  .region-panel .rp-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .region-chip {
+    background: #fff; border: 1.5px solid #E7EAEE; border-radius: 99px; padding: 8px 14px;
+    font-size: 13px; font-weight: 600; color: #4A4F55; cursor: pointer; user-select: none; transition: all .15s ease;
+  }
+  .region-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .region-desc { margin-top: 11px; padding-top: 10px; border-top: 1px solid rgba(6,196,160,.18); font-size: 12.5px; color: #6B7178; line-height: 1.55; }
+  .region-desc b { color: #1B1D1F; }
 
   .group-lbl { font-size: 14px; font-weight: 700; color: #1B1D1F; margin: 2px 0 10px; }
   .group-lbl.mt { margin-top: 24px; }
@@ -213,16 +225,35 @@ const CONFIG = {
   kakao: "https://pf.kakao.com/_BSLaxl",
 
   types:    ["허니문", "가족 여행", "우정 여행", "나 홀로", "효도 여행", "단체·워크샵", "사진 출사", "오지 탐험"],
-  /* 투어 지역 — 처음 몽골 가는 분도 고를 수 있게 설명·키워드를 함께 보여줍니다 */
-  destInfo: [
-    { name:"중앙 몽골 투어",       emoji:"🐎", badge:"인기 1위",    desc:"초원 승마와 미니사막을 짧은 이동으로. 일정이 여유로워요.",   tags:"테렐지 · 승마 · 미니고비 · 3박4일~" },
-    { name:"고비사막 투어",        emoji:"🌌", badge:"은하수 명소", desc:"쏟아지는 은하수와 거대한 모래언덕. 낙타 타고 사막 일몰까지.", tags:"모래썰매 · 은하수 · 낙타체험 · 4박5일~" },
-    { name:"홉스골 호수 투어",     emoji:"🏞️", badge:"여름 피서",   desc:"'몽골의 스위스'라 불리는 푸른 호수와 침엽수 숲.",            tags:"호수 · 승마 · 순록마을 · 4박5일~" },
-    { name:"카라코룸·오르혼 계곡", emoji:"🏛️", badge:"",            desc:"칭기즈칸 제국의 옛 수도와 사원. 역사와 초원을 함께.",        tags:"에르덴조 사원 · 폭포 · 유네스코" },
-    { name:"서부 몽골(알타이)",    emoji:"🏔️", badge:"오지 탐험",   desc:"만년설 알타이산맥과 독수리 사냥꾼의 카자흐 문화.",           tags:"설산 · 독수리 사냥꾼 · 6일~" },
-    { name:"북부 몽골 투어",       emoji:"🦌", badge:"",            desc:"순록 유목민 차탕족이 사는 원시 타이가 숲.",                  tags:"차탕족 · 순록 · 오지" },
-    { name:"몽골 전체 일주",       emoji:"🚐", badge:"장기 여행",   desc:"고비부터 홉스골까지, 몽골의 하이라이트를 한 번에.",          tags:"7일 이상 · 고비+홉스골" },
-    { name:"몽골 트레킹 투어",     emoji:"🥾", badge:"",            desc:"광활한 초원과 산·계곡을 두 발로 걷는 트레킹 중심 여행.",     tags:"트레킹 · 캠핑 · 승마 · 체력별 코스" },
+  /* 투어 지역 — 카테고리 4개, 클릭하면 소속 지역이 펼쳐집니다 */
+  destCats: [
+    { name:"중앙 몽골 투어", emoji:"🐎", badge:"인기 1위", tagline:"초원 승마·온천, 이동 짧고 여유로운 코스",
+      regions:[
+        { name:"테를지 국립공원",   desc:"울란바토르에서 1.5시간. 기암괴석 초원에서 승마 체험." },
+        { name:"엘슨타사르해",      desc:"'미니 고비' 사막. 낙타 체험을 짧은 일정으로." },
+        { name:"하르허링(카라코룸)", desc:"몽골제국의 옛 수도. 에르덴조 사원." },
+        { name:"쳉헤르 온천",       desc:"숲속 노천 온천. 여행 피로 푸는 힐링 코스." },
+        { name:"어르헝 폭포",       desc:"유네스코 오르혼 계곡의 폭포와 초원." },
+      ]},
+    { name:"고비사막 투어", emoji:"🌌", badge:"은하수 명소", tagline:"쏟아지는 은하수와 거대한 모래언덕",
+      regions:[
+        { name:"차강소브라가", desc:"바다가 융기한 거대 침식 절벽. '하얀 탑'." },
+        { name:"욜린암",       desc:"한여름에도 얼음이 남는 협곡 트레킹." },
+        { name:"홍고린엘스",   desc:"'노래하는 사막'. 선셋·모래썰매·낙타 체험." },
+        { name:"바양작",       desc:"공룡알 화석이 나온 '불타는 절벽'." },
+      ]},
+    { name:"홉스굴 투어", emoji:"🏞️", badge:"여름 피서", tagline:"'몽골의 스위스' 푸른 호수와 침엽수 숲",
+      regions:[
+        { name:"홉스굴 호수",     desc:"몽골 담수 70%의 거대 호수. 승마·보트·호숫가 게르." },
+        { name:"차탕족 순록마을", desc:"순록과 사는 유목민 마을 방문." },
+        { name:"우쉬긴 우붸르",   desc:"고대 사슴돌 유적과 호수 전망." },
+      ]},
+    { name:"몽골 트레킹 투어", emoji:"🥾", badge:"", tagline:"초원과 산을 두 발로, 체력별 맞춤 코스",
+      regions:[
+        { name:"테를지 트레킹", desc:"기암 초원 능선을 걷는 입문 코스." },
+        { name:"오르혼 계곡",   desc:"폭포·초원·유목민 게르를 잇는 중급 코스." },
+        { name:"홉스굴 둘레길", desc:"호수와 숲을 따라 걷는 여름 명코스." },
+      ]},
   ],
   destUnsure: "잘 모르겠어요 (여행사 추천 요청)",
   /* 시내(울란바토르)만 호텔 가능 / 투어지역은 게르 등급만 가능 */
@@ -292,16 +323,18 @@ const S = {
   step: 1, done: false, submitting: false, submitError: "",
   adult: 2, child: 0, infant: 0,
   depart: "", return_: "",
-  tripType: "", destination: "", cityStay: "", gerStay: "", vehicle: "", budget: "",
+  tripType: "", destination: "", destSpots: [], cityStay: "", gerStay: "", vehicle: "", budget: "",
   name: "", phone: "", email: "", kakaoId: "",
   request: "", fileName: "", fileKey: "", fileState: "", agree: false,
 };
+let spotFocus = "";   // 4단계에서 마지막으로 누른 지역 (설명 표시용 — 저장 안 함)
 
 /* ── 입력 임시저장 (새로고침해도 복원) ── */
 try {
   const draft = JSON.parse(sessionStorage.getItem("leaders_draft") || "null");
   if (draft && typeof draft === "object") {
     Object.assign(S, draft, { done: false, submitting: false, submitError: "" });
+    if (!Array.isArray(S.destSpots)) S.destSpots = [];
     if (S.fileState === "uploading") { S.fileState = ""; S.fileName = ""; S.fileKey = ""; }
   }
 } catch (e) {}
@@ -355,6 +388,7 @@ function summaryRows() {
     ["여행 일정", `${S.depart} ~ ${S.return_}${n > 0 ? ` (${n}박 ${n + 1}일)` : ""}`],
     ["여행 타입", S.tripType],
     ["희망 투어", S.destination],
+    ...(S.destSpots && S.destSpots.length ? [["관심 지역", S.destSpots.join(", ")]] : []),
     ["시내 숙소", S.cityStay],
     ["투어지역 게르", S.gerStay],
     ["차량", S.vehicle],
@@ -441,16 +475,28 @@ function render() {
   } else if (S.step === 3) {
     inner = chips(CONFIG.types, S.tripType, "tripType", "grid3");
   } else if (S.step === 4) {
+    const cat = CONFIG.destCats.find(c => c.name === S.destination);
+    const focus = cat ? (cat.regions.find(r => r.name === spotFocus) || cat.regions[0]) : null;
     inner = `
       <div class="grid2 dest-grid">
-        ${CONFIG.destInfo.map(d => `
+        ${CONFIG.destCats.map(d => `
           <div class="chip dest-card ${d.name === S.destination ? "sel" : ""}" data-key="destination" data-val="${esc(d.name)}">
             ${d.badge ? `<span class="badge-pill">${esc(d.badge)}</span>` : ""}
             <div class="dc-name">${d.emoji} ${esc(d.name)}</div>
-            <div class="dc-desc">${esc(d.desc)}</div>
-            <div class="dc-tags">${esc(d.tags)}</div>
+            <div class="dc-tag">${esc(d.tagline)}</div>
           </div>`).join("")}
       </div>
+      ${cat ? `
+      <div class="region-panel">
+        <div class="rp-lbl">${cat.emoji} 가보고 싶은 곳을 골라주세요 <span>· 선택사항, 복수 가능</span></div>
+        <div class="rp-chips">
+          ${cat.regions.map(r => {
+            const on = S.destSpots.includes(r.name);
+            return `<div class="region-chip ${on ? "on" : ""}" data-spot="${esc(r.name)}">${on ? "✓ " : ""}${esc(r.name)}</div>`;
+          }).join("")}
+        </div>
+        ${focus ? `<div class="region-desc"><b>${esc(focus.name)}</b> — ${esc(focus.desc)}</div>` : ""}
+      </div>` : ""}
       <div class="chip dest-card dest-unsure ${CONFIG.destUnsure === S.destination ? "sel" : ""}" data-key="destination" data-val="${esc(CONFIG.destUnsure)}">
         <div class="dc-name" style="text-align:center">🤔 아직 잘 모르겠어요 — 여행사가 추천해 주세요</div>
       </div>`;
@@ -538,7 +584,13 @@ function render() {
     S[k] = Math.max(0, S[k] + d); render();
   });
   body.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+    if (c.dataset.key === "destination" && S.destination !== c.dataset.val) { S.destSpots = []; spotFocus = ""; }
     S[c.dataset.key] = c.dataset.val; render();
+  });
+  body.querySelectorAll(".region-chip").forEach(c => c.onclick = () => {
+    const name = c.dataset.spot, i = S.destSpots.indexOf(name);
+    if (i >= 0) S.destSpots.splice(i, 1); else S.destSpots.push(name);
+    spotFocus = name; render();
   });
   ["depart", "return_"].forEach(id => {
     const el = document.getElementById(id);
