@@ -101,14 +101,18 @@
   .dest-unsure .dc-name { font-size: 14px; color: #6B7178; margin: 0; padding: 0; }
   .dest-unsure.sel .dc-name { color: var(--accent); }
 
-  /* 선택한 카테고리의 지역 펼침 패널 */
-  .region-panel { margin-top: 10px; background: var(--accent-soft); border-radius: 14px; padding: 14px 16px; }
-  .region-panel .rp-lbl { font-size: 13.5px; font-weight: 700; color: #1B1D1F; margin-bottom: 10px; }
+  /* 투어 카테고리 세로 목록(아코디언) */
+  .dest-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+  .dest-unsure { margin-top: 10px; }
+
+  /* 선택한 카테고리 바로 아래 펼쳐지는 지역 패널 */
+  .region-panel { margin-top: -4px; background: var(--accent-soft); border-radius: 14px; padding: 14px 14px 16px; }
+  .region-panel .rp-lbl { font-size: 13.5px; font-weight: 700; color: #1B1D1F; margin-bottom: 12px; }
   .region-panel .rp-lbl span { font-weight: 500; color: #9AA0A6; font-size: 12px; }
-  .region-panel .rp-circles { display: flex; flex-wrap: wrap; gap: 16px 12px; }
+  .region-panel .rp-circles { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 16px 6px; justify-items: center; }
   .region-chip {
     background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
-    width: 74px; display: flex; flex-direction: column; align-items: center; gap: 7px;
+    width: 100%; display: flex; flex-direction: column; align-items: center; gap: 7px;
   }
   .region-chip .rc-img {
     width: 64px; height: 64px; border-radius: 50%; position: relative;
@@ -492,22 +496,13 @@ function render() {
   } else if (S.step === 3) {
     inner = chips(CONFIG.types, S.tripType, "tripType", "grid3");
   } else if (S.step === 4) {
-    const cat = CONFIG.destCats.find(c => c.name === S.destination);
-    const focus = cat ? (cat.regions.find(r => r.name === spotFocus) || cat.regions[0]) : null;
-    inner = `
-      <div class="grid2 dest-grid">
-        ${CONFIG.destCats.map(d => `
-          <div class="chip dest-card ${d.name === S.destination ? "sel" : ""}" data-key="destination" data-val="${esc(d.name)}">
-            ${d.badge ? `<span class="badge-pill">${esc(d.badge)}</span>` : ""}
-            <div class="dc-name">${d.emoji} ${esc(d.name)}</div>
-            <div class="dc-tag">${esc(d.tagline)}</div>
-          </div>`).join("")}
-      </div>
-      ${cat ? `
+    const panelHtml = (c) => {
+      const f = c.regions.find(r => r.name === spotFocus) || c.regions[0];
+      return `
       <div class="region-panel">
-        <div class="rp-lbl">${cat.emoji} 가보고 싶은 곳을 골라주세요 <span>· 선택사항, 복수 가능</span></div>
+        <div class="rp-lbl">${c.emoji} 가보고 싶은 곳을 골라주세요 <span>· 선택사항, 복수 가능</span></div>
         <div class="rp-circles">
-          ${cat.regions.map(r => {
+          ${c.regions.map(r => {
             const on = S.destSpots.includes(r.name);
             return `<button type="button" class="region-chip ${on ? "on" : ""}" data-spot="${esc(r.name)}">
               <span class="rc-img">${r.emoji || "📍"}${on ? `<span class="rc-check">✓</span>` : ""}</span>
@@ -515,8 +510,22 @@ function render() {
             </button>`;
           }).join("")}
         </div>
-        ${focus ? `<div class="region-desc"><b>${esc(focus.name)}</b> — ${esc(focus.desc)}</div>` : ""}
-      </div>` : ""}
+        ${f ? `<div class="region-desc"><b>${esc(f.name)}</b> — ${esc(f.desc)}</div>` : ""}
+      </div>`;
+    };
+    inner = `
+      <div class="dest-list">
+        ${CONFIG.destCats.map(d => {
+          const sel = d.name === S.destination;
+          return `
+          <div class="chip dest-card ${sel ? "sel" : ""}" data-key="destination" data-val="${esc(d.name)}">
+            ${d.badge ? `<span class="badge-pill">${esc(d.badge)}</span>` : ""}
+            <div class="dc-name">${d.emoji} ${esc(d.name)}</div>
+            <div class="dc-tag">${esc(d.tagline)}</div>
+          </div>
+          ${sel ? panelHtml(d) : ""}`;
+        }).join("")}
+      </div>
       <div class="chip dest-card dest-unsure ${CONFIG.destUnsure === S.destination ? "sel" : ""}" data-key="destination" data-val="${esc(CONFIG.destUnsure)}">
         <div class="dc-name" style="text-align:center">🤔 아직 잘 모르겠어요 — 여행사가 추천해 주세요</div>
       </div>`;
