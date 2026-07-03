@@ -49,7 +49,7 @@
     transition: transform .55s cubic-bezier(.4,.1,.2,1), opacity .55s ease;
     box-shadow: 0 20px 44px rgba(20,40,34,.28);
   }
-  .card .bg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 74px; }
+  .card .bg { position: absolute; inset: 0; background-size: cover; background-position: center; }
   .card .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,18,30,0) 38%, rgba(20,18,30,.82) 100%); }
   .card .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 20px 22px; text-align: center; }
   .card .cap .cat { font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
@@ -147,7 +147,7 @@
 
   carousel.innerHTML = SLIDES.map((s, i) => `
     <div class="card" data-i="${i}">
-      <div class="bg" style="background:${s.bg}">${s.emoji}</div>
+      <div class="bg" style="background:${s.bg}; background-image:url('img/home/${i + 1}.webp')"></div>
       <div class="shade"></div>
       <div class="cap">
         <div class="cat" style="color:${s.cat_col}">${s.cat}</div>
