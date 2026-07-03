@@ -11,7 +11,7 @@
 <style>
   @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
   :root {
-    --ink: #1b3531; --deep: #0a6a5e; --teal: #06c4a0; --teal-dk: #0a6a5e;
+    --ink: #1b3531; --deep: #06c4a0; --teal: #06c4a0; --teal-dk: #06c4a0;
     --mint: #eaf7f3; --mint2: #f5fbf9; --line: #e2edea; --gray: #97a5a1;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -124,10 +124,14 @@ const Q = (() => {
 const SPOTS = { "울란바토르": { lat: 47.8864, lng: 106.9057, desc: "몽골의 수도" } };
 const _lib = (window.getSpots ? getSpots() : (window.PRESETS ? PRESETS.spots : {}));
 for (const [name, s] of Object.entries(_lib)) {
-  if (s && s.lat != null) SPOTS[name] = { lat: s.lat, lng: s.lng, desc: s.short || s.desc };
+  if (s && s.lat != null) SPOTS[name] = { lat: s.lat, lng: s.lng, desc: s.short || s.desc, img: s.img || "" };
 }
+// 견적서에 담긴 명소 사진도 이름으로 병합 (다른 기기에서 열어도 사진이 보이도록)
+(Q.highlights || []).forEach(h => {
+  if (h && h.name && SPOTS[h.name] && h.img && !SPOTS[h.name].img) SPOTS[h.name].img = h.img;
+});
 
-const DAY_COLORS = ["#06413a", "#0a6a5e", "#0a6a5e", "#06c4a0", "#6fd0c2", "#93dfd4", "#b7ece4"];
+const DAY_COLORS = ["#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0"];
 
 /* ── 헤더 채우기 ── */
 document.getElementById("brandName").textContent = Q.brand.companyEn;
@@ -165,8 +169,9 @@ stops.forEach(s => {
     className: "", iconSize: [28, 28], iconAnchor: [14, 14],
     html: `<div class="marker-pin" style="background:${DAY_COLORS[s.di % DAY_COLORS.length]}">${s.n}</div>`,
   });
+  const popImg = s.spot.img ? `<img src="${s.spot.img}" alt="${s.name}" style="width:100%;height:104px;object-fit:cover;border-radius:9px;margin-bottom:7px;display:block">` : "";
   markers[s.n] = L.marker(ll, { icon }).addTo(map)
-    .bindPopup(`<b>${s.n}. ${s.name}</b><br>${s.day}일차 · ${s.spot.desc || ""}`);
+    .bindPopup(`${popImg}<b>${s.n}. ${s.name}</b><br>${s.day}일차 · ${s.spot.desc || ""}`, { minWidth: s.spot.img ? 190 : 100 });
 });
 
 if (latlngs.length) {
@@ -202,9 +207,13 @@ Q.days.forEach((d, di) => {
   dayStops.forEach(s => {
     const el = document.createElement("div");
     el.className = "spot-item"; el.id = `stop-${s.n}`;
+    const thumb = (s.spot && s.spot.img) ? `<img src="${s.spot.img}" alt="${s.name}" style="width:42px;height:42px;border-radius:9px;object-fit:cover;flex:none">` : "";
     el.innerHTML = `
       <span class="num" style="background:${DAY_COLORS[di % DAY_COLORS.length]}">${s.n}</span>
-      <div><b>${s.name}</b><div class="sub">${s.spot ? (s.spot.desc || "") : "좌표 미등록 (SPOTS에 추가하세요)"}</div></div>`;
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        ${thumb}
+        <div style="min-width:0"><b>${s.name}</b><div class="sub">${s.spot ? (s.spot.desc || "") : "좌표 미등록 (SPOTS에 추가하세요)"}</div></div>
+      </div>`;
     el.onclick = () => focusStop(s.n);
     daylist.appendChild(el);
   });

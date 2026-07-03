@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>대시보드 · 몽골리아 은하수</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a6a5e'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <style>
-  :root { --accent:#06c4a0; --deep:#0a6a5e; --deep2:#06413a; --soft:#eaf7f3;
+  :root { --accent:#06c4a0; --deep:#06c4a0; --deep2:#06c4a0; --soft:#eaf7f3;
     --ink:#1b2b28; --sub:#6b7c78; --gray:#9aa5a2; --line:#eceef1; --bg:#f6f8f9;
-    --new:#2f9e8a; --prog:#e0913a; --done:#8a95a0; --hold:#cf6a5e; --up:#2fa27f; --down:#d96a5e; }
+    --new:#06c4a0; --prog:#e0913a; --done:#8a95a0; --hold:#cf6a5e; --up:#06c4a0; --down:#d96a5e; }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:Pretendard, system-ui, "Malgun Gothic", sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
   svg { display:block; }
@@ -332,7 +332,7 @@ function sparkline(vals, w, h, color) {
     <path d="${area}" fill="url(#${gid})"/><path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 const ICON = {
-  total: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2f9e8a" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  total: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06c4a0" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   new: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e0913a" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>`,
   prog: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c98b2e" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
   done: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b8f88" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
@@ -351,7 +351,7 @@ function render() {
 
   // 통계 카드 (미니 그래프)
   const cards = [
-    { k:"전체 문의", v:total, ic:ICON.total, icbg:"#e6f5ef", delta:`오늘 +${todayCnt}`, dc:"up", spark:sparkline(series(14,{cumulative:true}),96,40,"#2fa27f") },
+    { k:"전체 문의", v:total, ic:ICON.total, icbg:"#e6f5ef", delta:`오늘 +${todayCnt}`, dc:"up", spark:sparkline(series(14,{cumulative:true}),96,40,"#06c4a0") },
     { k:"신규 (확인 필요)", v:cnt["신규"], ic:ICON.new, icbg:"#fdf2e3", delta:cnt["신규"]?"확인 필요":"없음", dc:cnt["신규"]?"warn":"flat", spark:sparkline(series(14,{status:"신규"}),96,40,"#06c4a0") },
     { k:"진행중 (상담 중)", v:cnt["진행중"], ic:ICON.prog, icbg:"#fdf2e3", delta:"상담 중", dc:"warn", spark:sparkline(series(14,{status:"진행중"}),96,40,"#e0913a") },
     { k:"완료", v:cnt["완료"], ic:ICON.done, icbg:"#eef2f1", delta:`이번달 ${cnt["완료"]}`, dc:"flat", spark:sparkline(series(14,{status:"완료"}),96,40,"#8a95a0") },
