@@ -234,7 +234,7 @@ const pgSpots = (() => {
     out += `
 <div class="page" style="padding:44px 48px;">
   <div style="display:flex; align-items:center; justify-content:space-between;">
-    <div><div class="eyebrow">GOBI HIGHLIGHTS</div><div style="color:#152C28; font-size:26px; font-weight:800; margin-top:5px;">${esc(Q.destination)} 대표 명소${cont}</div></div>
+    <div><div class="eyebrow">TOUR HIGHLIGHTS</div><div style="color:#152C28; font-size:26px; font-weight:800; margin-top:5px;">${esc(Q.destination)} 대표 명소${cont}</div></div>
     <span class="logo-mark">${LOGO}</span>
   </div>
   ${chunk.map((h, j) => spotBlock(h) + (j < chunk.length - 1 ? divider : "")).join("")}
