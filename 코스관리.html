@@ -42,6 +42,10 @@
   .ccard .meta { font-size:12.5px; color:var(--sub); margin-top:3px; }
   .ccard .meta .dot { color:var(--gray); margin:0 6px; }
   .ccard .days-badge { background:#eef2f1; color:var(--deep); border-radius:99px; padding:5px 12px; font-size:12px; font-weight:800; flex:0 0 auto; }
+  .ccard .card-acts { display:flex; gap:6px; flex:0 0 auto; }
+  .ccard .card-acts button { border:1.5px solid var(--line); background:#fff; border-radius:9px; padding:7px 11px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; color:var(--sub); transition:.12s; }
+  .ccard .card-acts .dup:hover { border-color:var(--accent); color:var(--deep); background:var(--soft); }
+  .ccard .card-acts .rm:hover { border-color:#e2574c; color:#e2574c; background:#fbeceb; }
 
   /* 드로어 */
   .overlay { position:fixed; inset:0; background:rgba(20,40,36,.4); z-index:40; opacity:0; pointer-events:none; transition:.2s; }
@@ -139,6 +143,22 @@ let COURSES = {};
 function load() { COURSES = JSON.parse(JSON.stringify(getCourses())); renderList(); }
 function persist() { saveCourses(COURSES); }
 
+/* 일정 불러오기 옵션 — 카테고리(지역)별 <optgroup>으로 묶기 */
+function snipOptionsGrouped() {
+  const snips = getSnippets();
+  const catOf = s => (s && s.cat ? String(s.cat).trim() : "");
+  const order = (window.getSnippetCats ? getSnippetCats() : []).slice();
+  Object.values(snips).forEach(s => { const c = catOf(s); if (c && !order.includes(c)) order.push(c); });
+  const groups = [...order.map(c => [c, c]), ["", "미분류"]];
+  let html = "";
+  groups.forEach(([cat, label]) => {
+    const names = Object.entries(snips).filter(([, s]) => catOf(s) === cat).map(([n]) => n);
+    if (!names.length) return;
+    html += `<optgroup label="${esc(label)}">${names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</optgroup>`;
+  });
+  return html;
+}
+
 function renderList() {
   const entries = Object.entries(COURSES);
   $("clist").innerHTML = entries.length ? entries.map(([name, c]) => `
@@ -149,9 +169,38 @@ function renderList() {
         <div class="meta">${esc(c.destination||"")}<span class="dot">·</span>${esc(c.nights||"")}<span class="dot">·</span>기본 ${won(c.base)}<span class="dot">·</span>명소 ${(c.highlights||[]).length}곳</div>
       </div>
       <div class="days-badge">${(c.days||[]).length}일 일정</div>
+      <div class="card-acts">
+        <button class="dup" data-act="dup" title="복제">복제</button>
+        <button class="rm" data-act="rm" title="삭제">삭제</button>
+      </div>
     </div>`).join("")
     : `<div style="text-align:center;padding:60px;color:var(--gray)">등록된 코스가 없습니다. 우측 상단 <b>＋ 새 코스 추가</b>로 만들어보세요.</div>`;
-  $("clist").querySelectorAll(".ccard").forEach(el => el.onclick = () => openEdit(el.dataset.k));
+  $("clist").querySelectorAll(".ccard").forEach(el => {
+    el.onclick = (e) => {
+      const act = e.target.closest("[data-act]")?.dataset.act;
+      if (act === "dup") { duplicateCourse(el.dataset.k); return; }
+      if (act === "rm") { deleteCourse(el.dataset.k); return; }
+      openEdit(el.dataset.k);
+    };
+  });
+}
+
+/* 코스 복제 — "{이름} (복사)" 로 새 코스 생성 */
+function duplicateCourse(key) {
+  const src = COURSES[key];
+  if (!src) return;
+  let name = `${key} (복사)`, n = 2;
+  while (COURSES[name]) name = `${key} (복사 ${n++})`;
+  COURSES[name] = JSON.parse(JSON.stringify(src));
+  persist(); renderList();
+  toast(`"${name}" (으)로 복제되었습니다`);
+}
+/* 코스 삭제 */
+function deleteCourse(key) {
+  if (!confirm(`"${key}" 코스를 삭제할까요?`)) return;
+  delete COURSES[key];
+  persist(); renderList();
+  toast("삭제되었습니다");
 }
 
 /* ── 편집 드로어 ── */
@@ -227,8 +276,7 @@ function openEdit(key) {
   // 일자 편집
   function renumber() { draftDays.forEach((d,i)=>d.d=i+1); }
   function renderDays() {
-    const snips = getSnippets();
-    const snipOptions = Object.keys(snips).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    const snipOptions = snipOptionsGrouped();
     $("dayList").innerHTML = draftDays.map((d,i)=>`
       <div class="day-edit" data-i="${i}">
         <div class="dh2">
