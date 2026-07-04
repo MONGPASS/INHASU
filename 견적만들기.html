@@ -127,6 +127,21 @@
   .bottom .publish { background:#16261f; color:#fff; }
   .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--deep2); color:#fff; padding:12px 22px; border-radius:12px; font-size:14px; font-weight:600; opacity:0; transition:.25s; z-index:30; pointer-events:none; }
   .toast.on { opacity:1; }
+
+  /* 발행 결과: 고객 링크 패널 */
+  .linkmask { position:fixed; inset:0; background:rgba(20,40,36,.45); z-index:60; display:none; align-items:center; justify-content:center; padding:20px; }
+  .linkmask.on { display:flex; }
+  .linkbox { background:#fff; border-radius:18px; max-width:480px; width:100%; padding:26px 24px; box-shadow:0 20px 60px rgba(20,40,36,.25); }
+  .linkbox h3 { font-size:18px; font-weight:800; margin-bottom:4px; }
+  .linkbox p { font-size:13px; color:var(--sub); margin-bottom:16px; line-height:1.6; }
+  .linkbox .urlrow { display:flex; gap:8px; }
+  .linkbox .urlrow input { flex:1; padding:12px 13px; border:1.5px solid var(--line); border-radius:10px; font-size:13px; font-family:inherit; color:var(--ink); background:#f7f8fa; }
+  .linkbox .urlrow button { padding:0 16px; border:none; border-radius:10px; background:var(--deep); color:#fff; font-weight:800; font-size:13.5px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .linkbox .acts { display:flex; gap:8px; margin-top:14px; }
+  .linkbox .acts a, .linkbox .acts button { flex:1; text-align:center; padding:13px; border-radius:11px; font-size:14px; font-weight:800; text-decoration:none; cursor:pointer; border:none; font-family:inherit; }
+  .linkbox .acts .kakao { background:#FEE500; color:#3C1E1E; }
+  .linkbox .acts .open { background:var(--soft); color:var(--deep); }
+  .linkbox .acts .close { background:#f2f5f4; color:var(--sub); }
 </style>
 </head>
 <body>
@@ -197,6 +212,14 @@
       <label class="f"><span>항공 IN</span><input id="f_flightIn" placeholder="예) 08/06 - 04:30"></label>
       <label class="f"><span>항공 OUT</span><input id="f_flightOut" placeholder="예) 08/10 - 18:15"></label>
     </div>
+    <div class="row c3" style="margin-top:12px">
+      <label class="f"><span>담당자</span><input id="f_manager" placeholder="예) 볼라"></label>
+      <label class="f"><span>픽업</span><input id="f_pickup" placeholder="비우면 '항공 IN + 공항' 자동"></label>
+      <label class="f"><span>드랍</span><input id="f_drop" placeholder="비우면 '항공 OUT + 공항' 자동"></label>
+    </div>
+    <div class="row c3" style="margin-top:12px">
+      <label class="f"><span>인원 표기 (선택)</span><input id="f_paxNote" placeholder="예) 6인 (남2/여4) — 비우면 '6인'"></label>
+    </div>
     <div class="calc-note" id="nightsNote"></div>
   </div>
 
@@ -230,9 +253,18 @@
     </div>
   </div>
 
+  <!-- 안내 문구 -->
+  <div class="card">
+    <h2><span class="n">5</span>혜택 · 이벤트 · 비고</h2>
+    <div class="hint">견적서 기본 정보 표에 그대로 표시됩니다. 비우면 견적서에 빈 칸으로 나옵니다.</div>
+    <label class="f" style="margin-bottom:12px"><span>여행사 혜택</span><input id="f_benefits" placeholder="예) 판초 1인1개, 캠핑의자 세트, 낙타양말 증정"></label>
+    <label class="f" style="margin-bottom:12px"><span>참여 가능 이벤트 <span style="font-weight:500;color:var(--gray)">· 한 줄에 하나씩</span></span><textarea id="f_events" style="min-height:90px" placeholder="❤️1번: 후기이벤트 참여시 1인 1만원할인&#10;❤️2번: 인스타 후기 작성시 1인 2만원할인"></textarea></label>
+    <label class="f"><span>비고</span><input id="f_remark" placeholder="특이사항 (비우면 '-')"></label>
+  </div>
+
   <!-- 일정 -->
   <div class="card">
-    <h2><span class="n">5</span>일자별 일정</h2>
+    <h2><span class="n">6</span>일자별 일정</h2>
     <div class="hint">코스에서 채워진 일정입니다. 목적지·이동·세부 일정을 자유롭게 수정하세요. (한 줄에 하나씩. "*"로 시작하면 강조, "("로 시작하면 회색)</div>
     <div id="dayCheck" style="font-size:12.5px; margin-bottom:12px"></div>
     <div id="dayList"></div>
@@ -243,9 +275,26 @@
   <button class="reset" id="resetBtn">초기화</button>
   <button class="mapbtn" id="mapBtn">🗺 지도 미리보기</button>
   <button class="preview" id="previewBtn">📄 견적서 미리보기</button>
-  <button class="publish" id="publishBtn" style="display:none">📤 고객에게 발행</button>
+  <button class="publish" id="publishBtn">📤 저장 · 고객 링크 만들기</button>
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- 발행 결과: 고객에게 보낼 링크 -->
+<div class="linkmask" id="linkMask">
+  <div class="linkbox">
+    <h3>✓ 견적서가 저장됐어요</h3>
+    <p>아래 링크를 고객에게 보내세요. 고객은 링크에서 견적서를 바로 볼 수 있어요. 견적을 수정하고 다시 발행하면 같은 링크에 반영됩니다.</p>
+    <div class="urlrow">
+      <input id="linkUrl" readonly onclick="this.select()">
+      <button id="linkCopy">복사</button>
+    </div>
+    <div class="acts">
+      <a class="kakao" id="linkKakao" href="https://pf.kakao.com/_BSLaxl" target="_blank">💬 카톡 채널</a>
+      <a class="open" id="linkOpen" href="#" target="_blank">고객 화면 열기</a>
+      <button class="close" id="linkClose">닫기</button>
+    </div>
+  </div>
+</div>
   </div><!-- /.ecol -->
 </div><!-- /.shell -->
 
@@ -258,6 +307,12 @@ let ST = {
   customer: "", destination: "", quoteNo: "",
   depart: "", return_: "", pax: 6,
   vehicle: "", flightIn: "", flightOut: "",
+  manager: BASE.manager || "",            // 담당자
+  paxNote: "",                            // 인원 표기 (예: 6인 (남2/여4)) — 비우면 "N인"
+  pickup: "", drop: "",                   // 픽업/드랍 — 비우면 항공 IN/OUT + " 공항" 자동
+  benefits: BASE.benefits || "",          // 여행사 혜택
+  events: (BASE.events || []).join("\n"), // 참여 가능 이벤트 (한 줄 = 한 항목)
+  remark: BASE.remark || "",              // 비고
   deposit: (BASE.price && BASE.price.deposit) || 50000,
   options: structuredClone((BASE.price && BASE.price.options) || []),    // {label, calc}
   balances: structuredClone((BASE.price && BASE.price.balances) || []),  // {pax, amount}
@@ -267,20 +322,27 @@ let ST = {
 };
 
 /* 관리자에서 넘어온 고객 정보 반영 */
-let REQ_ID = "", REQ_TOKEN = "", ADMIN_TOKEN = "";
+let REQ_ID = "", REQ_TOKEN = "", ADMIN_TOKEN = "", FROM_REQ = false, REQ_SPOTS = [], QUOTE_RESTORE = null;
 try {
   const pre = JSON.parse(localStorage.getItem("leaders_prefill") || "null");
   if (pre) {
+    FROM_REQ = true;
     ST.customer = pre.name || "";
     ST.depart = pre.depart || "";
     ST.return_ = pre.return_ || "";
     ST.pax = (pre.adult || 0) + (pre.child || 0) + (pre.infant || 0) || 6;
+    ST.destination = pre.destination || "";      // 고객이 고른 여행지 (예: 중앙 몽골 투어)
+    ST.vehicle = pre.vehicle || "";              // 고객이 고른 차량 (예: 스타렉스(6인))
+    REQ_SPOTS = Array.isArray(pre.destSpots) ? pre.destSpots : [];  // 관심 지역
     REQ_ID = pre.id || "";
     REQ_TOKEN = pre.token || "";
     ADMIN_TOKEN = pre.adminToken || sessionStorage.getItem("leaders_admin_token") || "";
+    QUOTE_RESTORE = pre.quote || null;   // 이미 발행된 견적이 있으면 그대로 복원해 수정
     localStorage.removeItem("leaders_prefill");
   }
 } catch (e) {}
+// 요청에서 오지 않고 직접 열었을 때도 로그인 토큰을 잡아둡니다.
+if (!ADMIN_TOKEN) ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
 
 const nights = () => {
   if (!ST.depart || !ST.return_) return null;
@@ -304,18 +366,32 @@ function renderCourses() {
     : `<div style="color:var(--gray);font-size:13px">등록된 코스가 없습니다. 관리자 → 코스 관리에서 추가하세요.</div>`;
   $("coursePick").querySelectorAll(".course-btn").forEach(b => b.onclick = () => loadCourse(b.dataset.c));
 }
-function loadCourse(name) {
+function loadCourse(name, opts = {}) {
   const c = getCourses()[name];
   if (!c) return;
-  ST.destination = c.destination;
-  ST.vehicle = c.vehicle || "";
+  // 고객 요청에서 넘어온 경우(keepCustomer) 여행지·차량은 고객이 고른 값을 유지합니다.
+  if (!opts.keepCustomer || !ST.destination) ST.destination = c.destination;
+  if (!opts.keepCustomer || !ST.vehicle) ST.vehicle = c.vehicle || "";
   ST.intensity = c.intensity || 3;
   ST.spots = [...(c.highlights || [])];
   ST.days = structuredClone(c.days || []);
   // 요금(예약금·잔금·할인항목)은 기존 입력값을 유지합니다.
   document.querySelectorAll(".course-btn").forEach(b => b.classList.toggle("sel", b.dataset.c === name));
   fillForm(); renderAll();
-  toast(`"${name}" 코스를 불러왔습니다`);
+  if (!opts.silent) toast(`"${name}" 코스를 불러왔습니다`);
+}
+
+/* 고객이 고른 여행지와 가장 가까운 코스를 찾습니다 (예: "중앙 몽골 투어" → "중앙 몽골") */
+function matchCourse(dest) {
+  if (!dest) return null;
+  const norm = s => String(s || "").replace(/\s|투어|여행|몽골/g, "");
+  const d = norm(dest);
+  if (!d) return null;
+  for (const [name, c] of Object.entries(getCourses())) {
+    const cd = norm(c.destination), cn = norm(name);
+    if ((cd && (d.includes(cd) || cd.includes(d))) || (cn && (d.includes(cn) || cn.includes(d)))) return name;
+  }
+  return null;
 }
 
 /* ── 폼 채우기 ── */
@@ -329,6 +405,13 @@ function fillForm() {
   $("f_vehicle").value = ST.vehicle;
   $("f_flightIn").value = ST.flightIn;
   $("f_flightOut").value = ST.flightOut;
+  $("f_manager").value = ST.manager;
+  $("f_pickup").value = ST.pickup;
+  $("f_drop").value = ST.drop;
+  $("f_paxNote").value = ST.paxNote;
+  $("f_benefits").value = ST.benefits;
+  $("f_events").value = ST.events;
+  $("f_remark").value = ST.remark;
   $("f_deposit").value = ST.deposit;
   updateNights();
 }
@@ -351,6 +434,8 @@ const bind = (id, key, num) => $(id).oninput = e => {
 bind("f_customer","customer"); bind("f_destination","destination"); bind("f_quoteNo","quoteNo");
 bind("f_depart","depart"); bind("f_return","return_"); bind("f_pax","pax",true);
 bind("f_vehicle","vehicle"); bind("f_flightIn","flightIn"); bind("f_flightOut","flightOut");
+bind("f_manager","manager"); bind("f_pickup","pickup"); bind("f_drop","drop"); bind("f_paxNote","paxNote");
+bind("f_benefits","benefits"); bind("f_events","events"); bind("f_remark","remark");
 bind("f_deposit","deposit",true);
 
 /* ── 명소 그리드 ── */
@@ -500,26 +585,47 @@ function renderDays() {
 
 function renderAll() { renderSpots(); renderOptions(); renderBalances(); renderDays(); }
 
+/* 날짜 포맷 헬퍼 */
+const fmtDot = d => `${d.getFullYear()}. ${String(d.getMonth()+1).padStart(2,"0")}. ${String(d.getDate()).padStart(2,"0")}`;
+const fmtKor = d => `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+const korDate = iso => { const p = String(iso).split("-").map(Number); return (p.length===3 && !p.some(isNaN)) ? `${p[0]}년 ${p[1]}월 ${p[2]}일` : iso; };
+
 /* ── QUOTE 생성 & 저장 ── */
 function buildQuote() {
   const n = nights();
+  const now = new Date();
   const Q = structuredClone(BASE);
   Q.customer = ST.customer || "고객";
   Q.destination = ST.destination || "몽골";
   Q.quoteNo = $("f_quoteNo").value || autoQuoteNo();
-  Q.pax = ST.pax; Q.paxNote = `${ST.pax}인`;
+  Q.issueDate = fmtDot(now);                                       // ① 발행일 = 오늘
+  Q.manager = ST.manager || BASE.manager;                          // ② 담당자
+  Q.pax = ST.pax;
+  Q.paxNote = ST.paxNote.trim() || `${ST.pax}인`;                  // ⑦ 인원 표기
   Q.nights = n && n > 0 ? `${n}박 ${n+1}일` : BASE.nights;
   Q.vehicle = ST.vehicle || BASE.vehicle;
   Q.intensity = ST.intensity;
   if (ST.depart && ST.return_) {
-    Q.period = `${ST.depart} ~ ${ST.return_}`;
+    Q.period = `${korDate(ST.depart)} ~ ${korDate(ST.return_)}`;   // ⑧ 한국어 기간
     Q.periodShort = `${ST.depart.replace(/-/g,". ")} — ${ST.return_.slice(5).replace(/-/g,". ")}`;
   }
+  Q.departISO = ST.depart; Q.returnISO = ST.return_;              // 수정 왕복용(견적서엔 미표시)
   Q.flight = { in: ST.flightIn || BASE.flight.in, out: ST.flightOut || BASE.flight.out };
+  // ③ 픽업/드랍 — 비우면 항공 IN/OUT + " 공항" 자동 파생
+  Q.pickup = ST.pickup.trim() || (ST.flightIn ? ST.flightIn + " 공항" : BASE.pickup);
+  Q.drop   = ST.drop.trim()   || (ST.flightOut ? ST.flightOut + " 공항" : BASE.drop);
+  // ④ 혜택 · 이벤트 · 비고
+  Q.benefits = ST.benefits;
+  Q.events = ST.events.split("\n").map(x => x.trim()).filter(Boolean);
+  Q.remark = ST.remark.trim() || "-";
 
   Q.price = { ...BASE.price, deposit: ST.deposit,
+    validUntil: fmtKor(new Date(now.getTime() + 7*86400000)),      // ⑤ 유효기간 = 발행일 + 7일
     options: ST.options.map(o => ({ label: o.label, calc: o.calc || "" })),
     balances: ST.balances.slice().sort((a,b) => a.pax - b.pax).map(b => ({ pax: b.pax, amount: b.amount })) };
+
+  // ⑥ 표지 이미지 라벨 = 여행지 (이미지 파일 자체는 디자인 자산이라 유지)
+  Q.images = { ...BASE.images, coverLabel: `${Q.destination} 대표 이미지` };
 
   Q.days = ST.days;
   const LIB = getSpots();
@@ -537,45 +643,137 @@ function save() {
   localStorage.setItem("leaders_quote", JSON.stringify(buildQuote()));
 }
 
+/* ── 초안 자동저장 ──
+   작성 중 내용을 4초마다 이 브라우저에 저장해 두어,
+   실수로 창을 닫아도 다시 열면 이어서 작성할 수 있습니다. */
+const DRAFT_KEY = "leaders_quote_draft";
+let BOOTED = false, lastDraftJson = "";
+const draftSnap = () => JSON.stringify({ st: ST, reqId: REQ_ID, reqToken: REQ_TOKEN });
+function loadDraft() { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (e) { return null; } }
+function clearDraft() { localStorage.removeItem(DRAFT_KEY); lastDraftJson = draftSnap(); }
+setInterval(() => {
+  if (!BOOTED) return;
+  const snap = draftSnap();
+  if (snap === lastDraftJson) return;   // 변경 없음
+  lastDraftJson = snap;
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ st: ST, reqId: REQ_ID, reqToken: REQ_TOKEN, savedAt: new Date().toISOString() }));
+}, 4000);
+
+/* 발행된 견적(Q)을 편집 상태(ST)로 되돌립니다 — "견적서 수정"에서 사용 */
+function restoreFromQuote(q) {
+  if (!q || typeof q !== "object") return false;
+  ST.customer = q.customer || "";
+  ST.destination = q.destination || "";
+  ST.quoteNo = q.quoteNo || "";
+  // 날짜: ISO 필드 우선, 없으면 옛 견적의 ISO 형식 period에서 파싱
+  if (q.departISO) { ST.depart = q.departISO; ST.return_ = q.returnISO || ""; }
+  else { const m = String(q.period || "").match(/(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})/); if (m) { ST.depart = m[1]; ST.return_ = m[2]; } }
+  ST.pax = q.pax || ST.pax;
+  ST.paxNote = q.paxNote || "";
+  ST.vehicle = q.vehicle || "";
+  ST.intensity = q.intensity || 3;
+  ST.flightIn = (q.flight && q.flight.in) || "";
+  ST.flightOut = (q.flight && q.flight.out) || "";
+  ST.manager = q.manager || BASE.manager || "";
+  ST.pickup = q.pickup || ""; ST.drop = q.drop || "";
+  ST.benefits = q.benefits || "";
+  ST.events = Array.isArray(q.events) ? q.events.join("\n") : "";
+  ST.remark = (q.remark && q.remark !== "-") ? q.remark : "";
+  if (q.price) {
+    if (q.price.deposit != null) ST.deposit = q.price.deposit;
+    ST.options = structuredClone(q.price.options || []);
+    ST.balances = structuredClone(q.price.balances || []);
+  }
+  ST.days = structuredClone(q.days || []);
+  ST.spots = (q.highlights || []).map(h => h && h.name).filter(Boolean);
+  return true;
+}
+
 $("previewBtn").onclick = $("hGoBtn").onclick = () => { save(); window.open("견적서.html", "_blank"); };
 $("mapBtn").onclick = $("hMapBtn").onclick = () => { save(); window.open("일정지도.html", "_blank"); };
 
-/* ── 고객에게 발행 (특정 요청에서 열렸을 때만) ── */
-if (REQ_ID && REQ_TOKEN && ADMIN_TOKEN) {
-  const pubBtn = $("publishBtn");
-  pubBtn.style.display = "";
-  pubBtn.onclick = async () => {
-    if (!confirm("이 견적을 고객에게 발행할까요?\n발행하면 고객이 링크에서 견적서를 볼 수 있고, 상태가 '완료'로 바뀝니다.")) return;
-    pubBtn.disabled = true; pubBtn.textContent = "발행 중…";
-    try {
-      const res = await fetch(`/api/requests/${encodeURIComponent(REQ_ID)}?token=${encodeURIComponent(ADMIN_TOKEN)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quote: buildQuote(), status: "완료" }),
-      });
-      if (!res.ok) throw new Error("http " + res.status);
-      const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + REQ_TOKEN;
-      try { await navigator.clipboard.writeText(link); } catch (e) {}
-      toast("✓ 발행 완료! 고객 링크가 복사됐어요 — 카톡으로 보내세요");
-      pubBtn.textContent = "✓ 발행됨 (링크 복사)";
-      pubBtn.onclick = () => { navigator.clipboard.writeText(link).then(() => toast("링크 복사됨")); };
-    } catch (e) {
-      toast("⚠ 발행 실패 — 서버 연결을 확인하세요");
-      pubBtn.textContent = "📤 고객에게 발행";
-    } finally {
-      pubBtn.disabled = false;
-    }
-  };
+/* ── 고객에게 발행 (저장 + 링크 생성) ──
+   · 요청에서 열림  → 기존 요청 레코드에 견적을 붙여 저장(PATCH)
+   · 직접 작성(워크인) → 새 견적 레코드를 만들어 저장(POST), 링크용 토큰 자동 생성
+   두 경우 모두 고객은 내견적.html?t=<token> 링크로 견적서를 봅니다. */
+function randToken() {
+  const a = new Uint8Array(16);   // 128-bit 랜덤 (추측 불가 링크)
+  crypto.getRandomValues(a);
+  return [...a].map(b => b.toString(16).padStart(2, "0")).join("");
 }
+function showLinkBox(link) {
+  $("linkUrl").value = link;
+  $("linkOpen").href = link;
+  $("linkMask").classList.add("on");
+}
+$("linkCopy").onclick = () => {
+  const inp = $("linkUrl"); inp.select();
+  navigator.clipboard.writeText(inp.value).then(() => toast("링크가 복사됐어요")).catch(() => { document.execCommand("copy"); toast("링크가 복사됐어요"); });
+};
+$("linkClose").onclick = () => $("linkMask").classList.remove("on");
+$("linkMask").onclick = e => { if (e.target === $("linkMask")) $("linkMask").classList.remove("on"); };
+
+const pubBtn = $("publishBtn");
+pubBtn.onclick = async () => {
+  const q = buildQuote();
+  if (!ST.customer.trim()) { toast("먼저 고객명을 입력하세요"); $("f_customer").focus(); return; }
+  if (!confirm("이 견적을 저장하고 고객에게 보낼 링크를 만들까요?")) return;
+  pubBtn.disabled = true; const label = pubBtn.textContent; pubBtn.textContent = "저장 중…";
+  try {
+    let token = REQ_TOKEN;
+    if (REQ_ID && REQ_TOKEN) {
+      // 기존 고객 요청에 발행
+      if (!ADMIN_TOKEN) throw new Error("관리자 로그인이 필요합니다");
+      const res = await fetch(`/api/requests/${encodeURIComponent(REQ_ID)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
+        body: JSON.stringify({ quote: q, status: "완료" }),
+      });
+      if (res.status === 401) throw new Error("관리자 인증이 만료됐어요. 관리자 페이지에서 다시 로그인해 주세요.");
+      if (!res.ok) throw new Error("http " + res.status);
+    } else {
+      // 워크인: 새 견적 레코드 생성
+      token = randToken();
+      const n = nights();
+      const res = await fetch(`/api/requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: Date.now() + "_walkin", token, status: "완료",
+          name: ST.customer.trim(), destination: ST.destination || "",
+          depart: ST.depart || "", return_: ST.return_ || "",
+          nights: n && n > 0 ? n : null,
+          adult: ST.pax || 0, child: 0, infant: 0,
+          receivedAt: new Date().toISOString(),
+          source: "walkin", quote: q,
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!j.ok) throw new Error(j.error || "저장 실패");
+    }
+    const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + token;
+    try { await navigator.clipboard.writeText(link); } catch (e) {}
+    clearDraft();   // 발행 완료 → 초안 정리
+    showLinkBox(link);
+    toast("✓ 저장 완료 — 링크가 복사됐어요");
+  } catch (e) {
+    toast("⚠ 저장 실패: " + (e.message || "서버 연결을 확인하세요"));
+  } finally {
+    pubBtn.disabled = false; pubBtn.textContent = label;
+  }
+};
 $("resetBtn").onclick = () => {
   if (!confirm("입력한 내용을 모두 지울까요?")) return;
   localStorage.removeItem("leaders_quote");
   ST = { customer:"", destination:"", quoteNo:"", depart:"", return_:"", pax:6, vehicle:"", flightIn:"", flightOut:"",
+    manager: BASE.manager || "", paxNote:"", pickup:"", drop:"",
+    benefits: BASE.benefits || "", events: (BASE.events || []).join("\n"), remark: BASE.remark || "",
     deposit:(BASE.price && BASE.price.deposit) || 50000,
     options:structuredClone((BASE.price && BASE.price.options) || []),
     balances:structuredClone((BASE.price && BASE.price.balances) || []),
     spots:[], days:[], intensity:3 };
   fillForm(); renderAll();
+  clearDraft();   // 초기화된 상태 기준으로 초안도 정리
   toast("초기화되었습니다");
 };
 
@@ -585,12 +783,36 @@ function toast(msg) {
   clearTimeout(toastT); toastT = setTimeout(() => $("toast").classList.remove("on"), 1800);
 }
 
-/* ── 시작 ── */
-renderCourses();
-// 첫 코스를 기본으로 불러오기 (고객 정보는 유지)
-const firstCourse = Object.keys(getCourses())[0];
-if (firstCourse) loadCourse(firstCourse);
-else { fillForm(); renderAll(); }
+/* ── 시작 ── 서버(D1)에서 최신 코스·명소·일정을 받아온 뒤 렌더링 */
+(window.cloudReady || Promise.resolve()).then(() => {
+  renderCourses();
+  if (QUOTE_RESTORE && restoreFromQuote(QUOTE_RESTORE)) {
+    // 이미 발행된 견적 수정: 발행 당시 내용을 그대로 복원
+    fillForm(); renderAll();
+    toast("발행된 견적서를 불러왔습니다 — 수정 후 다시 발행하세요");
+  } else if (FROM_REQ) {
+    // 고객 요청에서 넘어옴: 여행지·차량 등 고객이 고른 값을 우선 반영.
+    // 여행지에 맞는 코스가 있으면 일정·명소만 채우고, 여행지·차량 텍스트는 고객 값 유지.
+    const matched = matchCourse(ST.destination);
+    if (matched) loadCourse(matched, { keepCustomer: true, silent: true });
+    else { fillForm(); renderAll(); }
+  } else {
+    // 일반 진입: 작성 중이던 초안이 있으면 자동 복원 (새로 시작하려면 [초기화])
+    const draft = loadDraft();
+    if (draft && draft.st) {
+      Object.assign(ST, draft.st);
+      if (!REQ_ID && draft.reqId) { REQ_ID = draft.reqId; REQ_TOKEN = draft.reqToken || ""; }
+      fillForm(); renderAll();
+      toast(`작성 중이던 초안(${String(draft.savedAt||"").slice(5,16).replace("T"," ")})을 복원했어요 — 새로 시작하려면 [초기화]`);
+    } else {
+      const firstCourse = Object.keys(getCourses())[0];
+      if (firstCourse) loadCourse(firstCourse);
+      else { fillForm(); renderAll(); }
+    }
+  }
+  lastDraftJson = draftSnap();   // 부팅 직후 상태는 저장하지 않음 (수정할 때만 초안 기록)
+  BOOTED = true;
+});
 </script>
 </body>
 </html>

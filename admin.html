@@ -6,6 +6,7 @@
 <title>대시보드 · 몽골리아 은하수</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<script src="presets.js"></script>
 <style>
   :root { --accent:#06c4a0; --deep:#06c4a0; --deep2:#06c4a0; --soft:#eaf7f3;
     --ink:#1b2b28; --sub:#6b7c78; --gray:#9aa5a2; --line:#eceef1; --bg:#f6f8f9;
@@ -135,6 +136,24 @@
   .df button { flex:1; text-align:center; padding:13px 0; border-radius:11px; font-size:14px; font-weight:700; cursor:pointer; border:none; font-family:inherit; }
   .df .primary { background:var(--deep); color:#fff; }
   .df .copy { background:var(--soft); color:var(--deep); }
+  .df .danger { background:#fbeceb; color:#e2574c; flex:0 0 auto; padding:13px 16px; }
+
+  /* 발행된 견적 안내 박스 */
+  .pub-box { margin-top:16px; background:#e9f8f3; border:1px solid #c5ecdf; border-radius:12px; padding:11px 14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px; font-weight:800; color:#0a6a5e; }
+  .pub-box .acts { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
+  .pub-box .pb { border:1px solid #c5ecdf; background:#fff; color:var(--deep); border-radius:8px; padding:7px 11px; font-size:12px; font-weight:700; cursor:pointer; text-decoration:none; font-family:inherit; display:inline-block; }
+
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#123a33; color:#fff; padding:12px 22px; border-radius:12px; font-size:14px; font-weight:600; opacity:0; transition:.25s; z-index:80; pointer-events:none; }
+  .toast.on { opacity:1; }
+
+  /* 목록: 정렬 헤더 · 출발 임박 표시 · 더보기 */
+  th.sortable { cursor:pointer; user-select:none; }
+  th.sortable:hover { color:var(--deep); }
+  tr.urgent td:first-child { box-shadow:inset 3px 0 0 #e2574c; }
+  .dday { background:#fbeceb; color:#e2574c; font-weight:800; font-size:11px; border-radius:6px; padding:2px 7px; margin-left:6px; white-space:nowrap; }
+  .more-row { text-align:center; padding:14px; border-top:1px solid var(--line); }
+  .more-row button { border:1.5px solid var(--line); background:#fff; color:var(--sub); border-radius:10px; padding:10px 22px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .more-row button:hover { border-color:var(--accent); color:var(--deep); }
 
   .mode { position:fixed; left:246px; bottom:12px; font-size:11.5px; color:var(--gray); background:#fff; border:1px solid var(--line); border-radius:8px; padding:6px 11px; z-index:5; }
   @media (max-width:900px){ .stats{grid-template-columns:repeat(2,1fr)} }
@@ -229,6 +248,11 @@
           <div class="btns">
             <button class="btn" id="previewFormBtn">👁 요청 폼 미리보기</button>
             <button class="btn" id="copyLinkBtn">🔗 링크 복사</button>
+            <button class="btn" id="backupBtn" title="명소·코스·일정을 JSON 파일로 내려받기">⬇ 콘텐츠 백업</button>
+            <button class="btn" id="restoreBtn" title="백업 JSON 파일로 복원">⬆ 복원</button>
+            <button class="btn" id="reqBackupBtn" title="문의 전체(발행 견적 포함)를 JSON으로 내려받기">⬇ 문의 백업</button>
+            <button class="btn" id="csvBtn" title="현재 필터·검색이 적용된 문의 목록을 엑셀용 CSV로 내려받기">⬇ CSV</button>
+            <input type="file" id="restoreFile" accept="application/json,.json" style="display:none">
             <a class="btn primary" href="견적만들기.html">＋ 견적서 만들기</a>
           </div>
         </div>
@@ -242,7 +266,7 @@
       <div class="toolbar">
         <div class="search">
           <span class="si"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input id="search" placeholder="이름·연락처·투어 지역으로 검색">
+          <input id="search" placeholder="이름·연락처·요청내용·메모로 검색">
         </div>
         <div class="chips" id="chips"></div>
       </div>
@@ -254,6 +278,7 @@
 <div class="overlay" id="overlay"></div>
 <div class="drawer" id="drawer"></div>
 <div class="mode" id="modeTag"></div>
+<div class="toast" id="toast"></div>
 
 <script>
 /* ═══════════════ 설정 ═══════════════ */
@@ -261,6 +286,7 @@ const CFG = { brand:"몽골리아 은하수", apiBase:"/api/requests" };
 const STATUSES = ["신규","진행중","완료","보류"];
 const AVA_COLORS = ["#06c4a0","#3aa0e0","#e0913a","#8a6fe0","#cf6a5e","#2f9e8a","#5aa469"];
 let RECORDS = [], filterStatus = null, searchText = "", mode = "local";
+let sortKey = "receivedAt", sortDir = -1, showLimit = 50;   // 목록 정렬·더보기 상태
 const $ = id => document.getElementById(id);
 
 /* ═══════════════ 로그인 ═══════════════
@@ -273,7 +299,8 @@ async function tryLogin() {
   if (!pw) return;
   $("loginErr").textContent = "확인 중…";
   try {
-    const res = await fetch(`${CFG.apiBase}?token=${encodeURIComponent(pw)}`);
+    // 토큰은 URL에 남지 않도록 헤더로 전달
+    const res = await fetch(CFG.apiBase, { headers: { "x-admin-token": pw } });
     let j = null; try { j = await res.json(); } catch (e) {}
     if (j && j.ok && Array.isArray(j.items)) {
       ADMIN_TOKEN = pw; sessionStorage.setItem("leaders_admin_token", pw);
@@ -306,7 +333,7 @@ $("previewFormBtn").onclick = () => window.open("견적요청.html", "_blank");
 /* ═══════════════ 데이터 ═══════════════ */
 async function loadData() {
   try {
-    const res = await fetch(`${CFG.apiBase}?token=${encodeURIComponent(ADMIN_TOKEN)}`);
+    const res = await fetch(CFG.apiBase, { headers: { "x-admin-token": ADMIN_TOKEN } });
     if (res.status === 401) {   // 저장된 토큰이 무효(비번 변경 등) → 재로그인 요구
       sessionStorage.removeItem("leaders_admin_token"); ADMIN_TOKEN = "";
       $("dash").style.display = "none"; $("login").style.display = "";
@@ -315,16 +342,95 @@ async function loadData() {
     }
     if (res.ok) { const j = await res.json();
       if (j.ok && Array.isArray(j.items)) { RECORDS = j.items; mode = "server";
-        $("modeTag").textContent = "● 서버 연결됨 (전체 기기 공유)"; render(); return; } }
+        $("modeTag").textContent = "● 서버 연결됨 (전체 기기 공유)"; checkNewArrivals(); render(); return; } }
   } catch (e) {}
   RECORDS = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
   mode = "local"; $("modeTag").textContent = "○ 로컬 모드 (이 브라우저 · 배포 전)"; render();
 }
 $("navRefresh").onclick = loadData;
-$("search").oninput = e => { searchText = e.target.value.trim().toLowerCase(); render(); };
+
+/* ═══ 자동 새로고침 · 새 문의 알림 ═══
+   60초마다 목록을 갱신하고, 새 문의가 도착하면 토스트와 탭 제목으로 알립니다. */
+const PAGE_TITLE = document.title;
+let knownIds = null;
+function checkNewArrivals() {
+  const ids = new Set(RECORDS.map(r => String(r.id)));
+  if (knownIds) {
+    const fresh = RECORDS.filter(r => !knownIds.has(String(r.id)));
+    if (fresh.length) {
+      toast(`🔔 새 견적 문의 ${fresh.length}건 도착 — ${fresh[0].name || "이름 없음"}님${fresh.length > 1 ? " 외" : ""}`);
+      document.title = `(${fresh.length}건 새 문의) ` + PAGE_TITLE;
+    }
+  }
+  knownIds = ids;
+}
+setInterval(() => { if (ADMIN_TOKEN && mode === "server") loadData(); }, 60000);
+window.addEventListener("focus", () => { document.title = PAGE_TITLE; });
+$("search").oninput = e => { searchText = e.target.value.trim().toLowerCase(); showLimit = 50; render(); };
 $("copyLinkBtn").onclick = () => {
   const url = location.origin.startsWith("http") ? location.origin + "/견적요청.html" : "견적요청.html";
   navigator.clipboard.writeText(url).then(() => { $("copyLinkBtn").textContent = "✓ 복사됨"; setTimeout(()=>$("copyLinkBtn").textContent="🔗 요청 폼 링크 복사",1500); });
+};
+
+/* ═══ 콘텐츠 백업 · 복원 ═══
+   명소·명소 카테고리·코스·일정·일정 카테고리를 JSON 한 파일로 내려받고,
+   그 파일로 언제든 복원할 수 있습니다. (실수로 지웠을 때의 보험) */
+$("backupBtn").onclick = () => {
+  const data = {
+    _type: "leaders-backup", exportedAt: new Date().toISOString(),
+    spots: getSpots(), spot_cats: getSpotCats(),
+    courses: getCourses(), snippets: getSnippets(), snippet_cats: getSnippetCats(),
+  };
+  downloadFile(`콘텐츠백업_${dateOnly(new Date().toISOString())}.json`, JSON.stringify(data, null, 2), "application/json");
+  toast("콘텐츠 백업 파일을 내려받았어요 — 안전한 곳에 보관하세요");
+};
+
+/* 문의 백업: 전체 문의(발행된 견적 포함)를 JSON으로 내려받기 — 다운로드 전용(복원 없음) */
+$("reqBackupBtn").onclick = () => {
+  if (!RECORDS.length) { toast("내보낼 문의가 없어요"); return; }
+  const data = { _type: "leaders-requests-backup", exportedAt: new Date().toISOString(), count: RECORDS.length, items: RECORDS };
+  downloadFile(`문의백업_${dateOnly(new Date().toISOString())}.json`, JSON.stringify(data, null, 2), "application/json");
+  toast(`문의 ${RECORDS.length}건을 내려받았어요 (발행 견적 포함)`);
+};
+
+/* CSV 내보내기: 현재 필터·검색·정렬이 적용된 목록을 엑셀 호환(UTF-8 BOM) CSV로 */
+$("csvBtn").onclick = () => {
+  const rows = visibleRows();
+  if (!rows.length) { toast("내보낼 문의가 없어요"); return; }
+  const cell = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const head = ["접수일","상태","이름","전화","이메일","성인","아동","유아","출발일","귀국일","박수","여행지","차량","예산","견적발행","메모"];
+  const lines = rows.map(r => [
+    dateOnly(r.receivedAt), r.status || "신규", r.name, r.phone, r.email,
+    r.adult || 0, r.child || 0, r.infant || 0,
+    r.depart, r.return_, r.nights, r.destination, r.vehicle, r.budget,
+    r.quote ? "O" : "", r.memo,
+  ].map(cell).join(","));
+  downloadFile(`문의목록_${dateOnly(new Date().toISOString())}.csv`,
+    "\uFEFF" + [head.map(cell).join(","), ...lines].join("\r\n"),   // BOM: 엑셀 한글 깨짐 방지
+    "text/csv;charset=utf-8");
+  toast(`문의 ${rows.length}건을 CSV로 내려받았어요`);
+};
+$("restoreBtn").onclick = () => $("restoreFile").click();
+$("restoreFile").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  e.target.value = "";
+  try {
+    const data = JSON.parse(await f.text());
+    if (!data || data._type !== "leaders-backup") throw new Error("이 사이트의 백업 파일이 아니에요");
+    const when = (data.exportedAt || "").slice(0, 10) || "날짜 미상";
+    if (!confirm(`${when} 백업으로 명소·코스·일정을 모두 교체할까요?\n지금 있는 내용을 덮어씁니다.`)) return;
+    const jobs = [];
+    if (data.spots) jobs.push(saveSpots(data.spots));
+    if (data.spot_cats) jobs.push(saveSpotCats(data.spot_cats));
+    if (data.courses) jobs.push(saveCourses(data.courses));
+    if (data.snippets) jobs.push(saveSnippets(data.snippets));
+    if (data.snippet_cats) jobs.push(saveSnippetCats(data.snippet_cats));
+    if (!jobs.length) throw new Error("백업 파일에 복원할 내용이 없어요");
+    const results = await Promise.all(jobs);
+    if (results.every(r => r && r.ok)) toast("✓ 복원 완료 — 서버에 반영됐어요");
+    else if (results.every(r => r && (r.ok || r.local))) toast("복원됨 (이 브라우저에만 — 서버 반영은 배포 환경에서)");
+    else toast("⚠ 일부 항목이 서버에 저장되지 않았어요. 다시 시도해 주세요.");
+  } catch (err) { toast("⚠ 복원 실패: " + err.message); }
 };
 
 /* ═══════════════ 유틸 ═══════════════ */
@@ -334,6 +440,32 @@ const paxSum = r => (r.adult||0)+(r.child||0)+(r.infant||0);
 const paxTxt = r => `성인 ${r.adult||0}·아동 ${r.child||0}·유아 ${r.infant||0}`;
 const dateOnly = iso => { const d = new Date(iso); return isNaN(d) ? "-" : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
 const avaColor = name => AVA_COLORS[[...String(name)].reduce((a,c)=>a+c.charCodeAt(0),0) % AVA_COLORS.length];
+// 출발까지 남은 일수 (출발일 없거나 잘못됐으면 null)
+function dDay(r) {
+  if (!r.depart) return null;
+  const t = new Date(); t.setHours(0,0,0,0);
+  const d = new Date(r.depart); if (isNaN(d)) return null; d.setHours(0,0,0,0);
+  return Math.round((d - t) / 86400000);
+}
+// 텍스트를 파일로 내려받기
+function downloadFile(name, text, type) {
+  const blob = new Blob([text], { type });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+// 현재 상태칩·검색·정렬이 적용된 목록 (표시 개수 제한 없음) — 목록 렌더와 CSV가 함께 사용
+function visibleRows() {
+  let rows = RECORDS.slice();
+  if (filterStatus) rows = rows.filter(r => (r.status||"신규")===filterStatus);
+  if (searchText) rows = rows.filter(r => [r.name,r.phone,r.destination,r.tripType,r.request,r.memo,r.email].some(v=>String(v||"").toLowerCase().includes(searchText)));
+  rows.sort((a, b) => {
+    const va = String(a[sortKey] ?? ""), vb = String(b[sortKey] ?? "");
+    return (va < vb ? -1 : va > vb ? 1 : 0) * sortDir;
+  });
+  return rows;
+}
 
 /* 최근 N일 일별 접수 시계열 */
 function series(n, { cumulative=false, status=null } = {}) {
@@ -378,6 +510,8 @@ function render() {
   const todayStr = dateOnly(new Date().toISOString());
   const todayCnt = RECORDS.filter(r => dateOnly(r.receivedAt) === todayStr).length;
   const waiting = cnt["신규"] + cnt["진행중"];
+  const thisMonth = todayStr.slice(0, 7);   // YYYY-MM
+  const doneMonth = RECORDS.filter(r => (r.status||"신규")==="완료" && dateOnly(r.receivedAt).slice(0,7) === thisMonth).length;
 
   $("menuCount").textContent = total;
   $("welcomeSub").textContent = `처리 대기 ${waiting}건 · 오늘 접수 ${todayCnt}건 · 전체 ${total}건`;
@@ -387,7 +521,7 @@ function render() {
     { k:"전체 문의", v:total, ic:ICON.total, icbg:"#e6f5ef", delta:`오늘 +${todayCnt}`, dc:"up", spark:sparkline(series(14,{cumulative:true}),96,40,"#06c4a0") },
     { k:"신규 (확인 필요)", v:cnt["신규"], ic:ICON.new, icbg:"#fdf2e3", delta:cnt["신규"]?"확인 필요":"없음", dc:cnt["신규"]?"warn":"flat", spark:sparkline(series(14,{status:"신규"}),96,40,"#06c4a0") },
     { k:"진행중 (상담 중)", v:cnt["진행중"], ic:ICON.prog, icbg:"#fdf2e3", delta:"상담 중", dc:"warn", spark:sparkline(series(14,{status:"진행중"}),96,40,"#e0913a") },
-    { k:"완료", v:cnt["완료"], ic:ICON.done, icbg:"#eef2f1", delta:`이번달 ${cnt["완료"]}`, dc:"flat", spark:sparkline(series(14,{status:"완료"}),96,40,"#8a95a0") },
+    { k:"완료", v:cnt["완료"], ic:ICON.done, icbg:"#eef2f1", delta:`이번달 ${doneMonth}`, dc:"flat", spark:sparkline(series(14,{status:"완료"}),96,40,"#8a95a0") },
   ];
   $("stats").innerHTML = cards.map(c => `
     <div class="stat">
@@ -402,27 +536,30 @@ function render() {
   const chipDefs = [["전체", total], ...STATUSES.map(s => [s, cnt[s]])];
   $("chips").innerHTML = chipDefs.map(([k,v]) =>
     `<div class="chip ${filterStatus===k||(k==="전체"&&!filterStatus)?"on":""}" data-f="${k}">${k}<span class="cnt">${v}</span></div>`).join("");
-  $("chips").querySelectorAll(".chip").forEach(el => el.onclick = () => { filterStatus = el.dataset.f==="전체"?null:el.dataset.f; render(); });
+  $("chips").querySelectorAll(".chip").forEach(el => el.onclick = () => { filterStatus = el.dataset.f==="전체"?null:el.dataset.f; showLimit = 50; render(); });
 
-  // 필터
-  let rows = RECORDS.slice();
-  if (filterStatus) rows = rows.filter(r => (r.status||"신규")===filterStatus);
-  if (searchText) rows = rows.filter(r => [r.name,r.phone,r.destination,r.tripType].some(v=>String(v||"").toLowerCase().includes(searchText)));
+  // 필터 + 정렬
+  const rows = visibleRows();
 
   if (!rows.length) {
     $("list").innerHTML = `<div class="empty"><div class="big">📭</div>
       ${total ? "조건에 맞는 문의가 없습니다." : "아직 접수된 문의가 없습니다.<br><span style='font-size:13px'>견적 요청 폼에서 테스트로 제출해 보세요.</span>"}</div>`;
     return;
   }
+  const arrow = k => sortKey === k ? (sortDir > 0 ? " ▲" : " ▼") : "";
+  const shown = rows.slice(0, showLimit);
   $("list").innerHTML = `
     <table>
       <thead><tr>
-        <th>신청자</th><th class="hide">요청 내용</th><th>상태</th>
-        <th class="hide r">인원</th><th class="hide r">일정</th><th class="r">예산</th><th class="r">접수일</th>
+        <th class="sortable" data-sort="name">신청자${arrow("name")}</th><th class="hide">요청 내용</th><th>상태</th>
+        <th class="hide r">인원</th><th class="hide r sortable" data-sort="depart">일정${arrow("depart")}</th><th class="r">예산</th><th class="r sortable" data-sort="receivedAt">접수일${arrow("receivedAt")}</th>
       </tr></thead>
       <tbody>
-        ${rows.map(r => `
-          <tr data-id="${esc(r.id)}">
+        ${shown.map(r => {
+          const dd = dDay(r);
+          const urgent = dd !== null && dd >= 0 && dd <= 7 && ["신규","진행중"].includes(r.status||"신규");
+          return `
+          <tr data-id="${esc(r.id)}" ${urgent ? 'class="urgent" title="출발이 임박한 미처리 문의"' : ""}>
             <td><div class="cust">
               <div class="avatar" style="background:${avaColor(r.name)}">${esc((r.name||"?").slice(0,1))}</div>
               <div><b>${esc(r.name)||"-"}</b><div class="ph">${esc(r.phone)||""}</div></div>
@@ -430,13 +567,22 @@ function render() {
             <td class="hide desc"><b>${esc(r.destination)||"-"}</b> · ${esc(r.tripType)||""} <span style="color:var(--gray)">${esc((r.request||"").replace(/\n/g," ").slice(0,26))}${(r.request||"").length>26?"…":""}</span></td>
             <td><span class="badge b-${r.status||"신규"}"><span class="dot"></span>${r.status||"신규"}</span></td>
             <td class="hide r muted">${paxSum(r)}명</td>
-            <td class="hide r muted">${esc(nightTxt(r))}</td>
+            <td class="hide r muted">${esc(nightTxt(r))}${urgent ? `<span class="dday">D-${dd}</span>` : ""}</td>
             <td class="r"><span class="num">${esc((r.budget||"-").replace("1인 ",""))}</span></td>
             <td class="r muted">${dateOnly(r.receivedAt)}</td>
-          </tr>`).join("")}
+          </tr>`;}).join("")}
       </tbody>
-    </table>`;
+    </table>
+    ${rows.length > showLimit ? `<div class="more-row"><button id="moreBtn">더보기 (남은 ${rows.length - showLimit}건)</button></div>` : ""}`;
   $("list").querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = () => openDrawer(tr.dataset.id));
+  $("list").querySelectorAll("th.sortable").forEach(th => th.onclick = () => {
+    const k = th.dataset.sort;
+    if (sortKey === k) sortDir *= -1;
+    else { sortKey = k; sortDir = k === "name" ? 1 : -1; }   // 이름은 가나다순, 날짜는 최신순부터
+    showLimit = 50; render();
+  });
+  const moreBtn = $("moreBtn");
+  if (moreBtn) moreBtn.onclick = () => { showLimit += 50; render(); };
 }
 
 /* ═══════════════ 상세 드로어 ═══════════════ */
@@ -466,18 +612,37 @@ function openDrawer(id) {
             : `📎 ${esc(r.fileName)} <span style="color:var(--gray);font-size:12px">(파일명만 전달됨)</span>`
         }</div>`:""}
       </div>
+      ${r.quote && r.token ? `
+      <div class="pub-box">✓ 견적서 발행됨
+        <span class="acts">
+          <a class="pb" href="견적서.html?t=${encodeURIComponent(r.token)}" target="_blank">📄 견적서 보기</a>
+          <button class="pb" id="pubLinkBtn">🔗 고객 링크 복사</button>
+        </span>
+      </div>` : ""}
       ${r.request?`<div class="req-box">${esc(r.request)}</div>`:""}
       <textarea class="memo" id="memo" placeholder="상담 메모 (예: 7/2 통화, 홉스골 추가 원함)">${esc(r.memo)||""}</textarea>
     </div>
-    <div class="df"><button class="copy" id="copyBtn">📋 정보 복사</button><button class="primary" id="makeBtn">📄 견적서 만들기</button></div>`;
+    <div class="df">
+      <button class="danger" id="delReqBtn">🗑</button>
+      <button class="copy" id="copyBtn">📋 정보 복사</button>
+      <button class="primary" id="makeBtn">${r.quote ? "✎ 견적서 수정" : "📄 견적서 만들기"}</button>
+    </div>`;
   $("drawer").classList.add("on"); $("overlay").classList.add("on");
   $("closeX").onclick = closeDrawer;
   $("drawer").querySelectorAll(".st-btn").forEach(b => b.onclick = () => updateStatus(id, b.dataset.s));
   $("memo").onblur = () => saveMemo(id, $("memo").value);
   $("makeBtn").onclick = () => {
-    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant }));
+    // 이미 발행된 견적이 있으면 편집기에서 그대로 복원해 수정할 수 있게 함께 넘깁니다.
+    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, destSpots:r.destSpots, budget:r.budget, quote:r.quote||null }));
     window.open("견적만들기.html","_blank");
   };
+  const pubLink = $("pubLinkBtn");
+  if (pubLink) pubLink.onclick = () => {
+    const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + r.token;
+    navigator.clipboard.writeText(link).then(() => toast("고객 링크가 복사됐어요 — 카톡으로 보내세요"))
+      .catch(() => toast("복사 실패 — 주소를 직접 복사해 주세요"));
+  };
+  $("delReqBtn").onclick = () => deleteRequest(r);
   $("copyBtn").onclick = () => {
     const txt = `[견적 문의] ${r.name}\n연락처: ${r.phone}\n이메일: ${r.email}${r.kakaoId?`\n카톡ID: ${r.kakaoId}`:""}\n인원: ${paxTxt(r)}\n일정: ${r.depart}~${r.return_} (${nightTxt(r)})\n타입: ${r.tripType}\n투어: ${r.destination}${r.destSpots&&r.destSpots.length?` / 관심: ${r.destSpots.join(", ")}`:""}\n시내숙소: ${r.cityStay || r.stay || "-"}\n투어게르: ${r.gerStay || "-"}\n차량: ${r.vehicle}\n예산: ${r.budget}\n요청: ${r.request||"-"}`;
     navigator.clipboard.writeText(txt).then(()=>{ $("copyBtn").textContent="✓ 복사됨"; setTimeout(()=>$("copyBtn").textContent="📋 정보 복사",1500); });
@@ -486,15 +651,55 @@ function openDrawer(id) {
 function closeDrawer(){ $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); }
 $("overlay").onclick = closeDrawer;
 
+/* ═══════════════ 토스트 ═══════════════ */
+let toastT;
+function toast(m){ $("toast").textContent = m; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(()=>$("toast").classList.remove("on"), 2400); }
+
 /* ═══════════════ 상태·메모 저장 ═══════════════ */
 async function persist(id, patch) {
   const r = RECORDS.find(x => String(x.id) === String(id));
   if (r) Object.assign(r, patch);
-  if (mode === "local") localStorage.setItem("leaders_requests", JSON.stringify(RECORDS));
-  else { try { await fetch(`${CFG.apiBase}/${encodeURIComponent(id)}?token=${encodeURIComponent(ADMIN_TOKEN)}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(patch) }); } catch(e){} }
+  if (mode === "local") { localStorage.setItem("leaders_requests", JSON.stringify(RECORDS)); return { ok: true, local: true }; }
+  try {
+    const res = await fetch(`${CFG.apiBase}/${encodeURIComponent(id)}`, { method:"PATCH", headers:{"Content-Type":"application/json","x-admin-token":ADMIN_TOKEN}, body:JSON.stringify(patch) });
+    if (res.status === 401) return { ok: false, error: "관리자 인증이 만료됐어요. 다시 로그인해 주세요." };
+    if (!res.ok) return { ok: false, error: "서버 오류 (" + res.status + ")" };
+    return { ok: true };
+  } catch(e){ return { ok: false, error: "서버에 연결할 수 없어요" }; }
 }
-function updateStatus(id,s){ persist(id,{status:s}); render(); openDrawer(id); }
-function saveMemo(id,m){ persist(id,{memo:m}); }
+async function updateStatus(id,s){
+  const res = await persist(id,{status:s}); render(); openDrawer(id);
+  toast(res.ok ? `상태가 "${s}"(으)로 저장됐어요` : "⚠ 상태 저장 실패: " + res.error);
+}
+const memoLast = {};   // 마지막 저장값 (변경 없으면 저장 안 함)
+async function saveMemo(id, m) {
+  if (memoLast[id] === undefined) {
+    const r = RECORDS.find(x => String(x.id) === String(id));
+    memoLast[id] = (r && r.memo) || "";
+  }
+  if (m === memoLast[id]) return;   // 변경 없음
+  const res = await persist(id, { memo: m });
+  if (res.ok) { memoLast[id] = m; toast("메모가 저장됐어요"); }
+  else toast("⚠ 메모 저장 실패: " + res.error);
+}
+
+/* ═══════════════ 문의 삭제 ═══════════════ */
+async function deleteRequest(r) {
+  if (!confirm(`"${r.name || "-"}" 님의 문의를 삭제할까요?\n발행된 견적서 링크도 함께 사라지며, 되돌릴 수 없습니다.`)) return;
+  if (mode === "local") {
+    RECORDS = RECORDS.filter(x => String(x.id) !== String(r.id));
+    localStorage.setItem("leaders_requests", JSON.stringify(RECORDS));
+    closeDrawer(); render(); toast("삭제되었습니다"); return;
+  }
+  try {
+    const res = await fetch(`${CFG.apiBase}/${encodeURIComponent(r.id)}`, { method: "DELETE", headers: { "x-admin-token": ADMIN_TOKEN } });
+    const j = await res.json().catch(() => ({}));
+    if (res.status === 401) { toast("⚠ 관리자 인증이 만료됐어요. 다시 로그인해 주세요."); return; }
+    if (!j.ok) { toast("⚠ 삭제 실패: " + (j.error || "서버 오류")); return; }
+    RECORDS = RECORDS.filter(x => String(x.id) !== String(r.id));
+    closeDrawer(); render(); toast("삭제되었습니다");
+  } catch (e) { toast("⚠ 삭제 실패 — 서버 연결을 확인하세요"); }
+}
 
 /* 데모 샘플 */
 (function seedDemo(){

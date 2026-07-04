@@ -265,7 +265,8 @@ $("addBtn").onclick = () => openEdit(null);
 let toastT;
 function toast(m){ $("toast").textContent=m; $("toast").classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>$("toast").classList.remove("on"),1900); }
 
-load();
+/* 서버(D1)에서 최신 코스·명소를 받아온 뒤 렌더링 */
+(window.cloudReady || Promise.resolve()).then(load);
 </script>
 </body>
 </html>

@@ -197,6 +197,27 @@ window.getSpots = function () {
 };
 window.saveSpots = function (obj) {
   localStorage.setItem("leaders_spots", JSON.stringify(obj));
+  return window.cloudPush ? window.cloudPush("spots", obj) : Promise.resolve({ ok: false, local: true });
+};
+
+/* ───────────────────────────────────────────────────────────────
+   명소 카테고리(지역/여행지) 목록 읽기/쓰기
+   · 각 명소의 s.region 값이 어느 카테고리에 속하는지를 나타냅니다.
+   · 예전에는 고비/중앙/북부/서부 4개 고정이었지만, 이제 자유롭게
+     추가·이름변경·삭제할 수 있습니다. (순서·빈 카테고리 보존용 목록)
+   ─────────────────────────────────────────────────────────────── */
+window.DEFAULT_SPOT_CATS = ["고비", "중앙", "북부", "서부"];
+window.getSpotCats = function () {
+  try {
+    const saved = JSON.parse(localStorage.getItem("leaders_spot_cats") || "null");
+    if (Array.isArray(saved)) return saved;
+  } catch (e) {}
+  return window.DEFAULT_SPOT_CATS.slice();
+};
+window.saveSpotCats = function (arr) {
+  const a = Array.isArray(arr) ? arr : [];
+  localStorage.setItem("leaders_spot_cats", JSON.stringify(a));
+  return window.cloudPush ? window.cloudPush("spot_cats", a) : Promise.resolve({ ok: false, local: true });
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -215,6 +236,7 @@ window.getCourses = function () {
 };
 window.saveCourses = function (obj) {
   localStorage.setItem("leaders_courses", JSON.stringify(obj));
+  return window.cloudPush ? window.cloudPush("courses", obj) : Promise.resolve({ ok: false, local: true });
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -230,4 +252,100 @@ window.getSnippets = function () {
 };
 window.saveSnippets = function (obj) {
   localStorage.setItem("leaders_snippets", JSON.stringify(obj));
+  return window.cloudPush ? window.cloudPush("snippets", obj) : Promise.resolve({ ok: false, local: true });
 };
+
+/* ───────────────────────────────────────────────────────────────
+   일정 카테고리(지역) 목록 읽기/쓰기
+   · 각 일정 조각의 s.cat 값이 어느 카테고리(지역)에 속하는지를 나타냅니다.
+   · 이 배열은 카테고리 순서와 "비어있는 카테고리"까지 보존하기 위한 목록입니다.
+   ─────────────────────────────────────────────────────────────── */
+window.getSnippetCats = function () {
+  try {
+    const saved = JSON.parse(localStorage.getItem("leaders_snippet_cats") || "null");
+    if (Array.isArray(saved)) return saved;
+  } catch (e) {}
+  return [];
+};
+window.saveSnippetCats = function (arr) {
+  const a = Array.isArray(arr) ? arr : [];
+  localStorage.setItem("leaders_snippet_cats", JSON.stringify(a));
+  return window.cloudPush ? window.cloudPush("snippet_cats", a) : Promise.resolve({ ok: false, local: true });
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   서버 영구 저장 동기화 (Cloudflare D1 · /api/data/:key)
+   ---------------------------------------------------------------
+   · 지금까지 명소·코스·일정은 이 브라우저(localStorage)에만 저장돼,
+     다른 기기/브라우저에서는 보이지 않았습니다.
+   · 이제 저장하면 서버로 올라가고(cloudPush), 페이지를 열 때
+     서버에서 받아옵니다(cloudReady). localStorage는 캐시/오프라인 대비.
+   · 명소 이미지는 이미 R2에 WebP로 업로드되고, 그 공개 URL이
+     이 라이브러리에 함께 저장되므로 이미지까지 영구 보존됩니다.
+   ═══════════════════════════════════════════════════════════════ */
+window.CLOUD_KEYS = {
+  spots: "leaders_spots",
+  spot_cats: "leaders_spot_cats",
+  courses: "leaders_courses",
+  snippets: "leaders_snippets",
+  snippet_cats: "leaders_snippet_cats",
+};
+
+// 서버에서 마지막으로 받은 각 키의 updatedAt — 동시 편집 충돌 감지용
+window.CLOUD_META = {};
+
+// 서버에서 한 종류를 받아 localStorage에 반영. 성공 시 데이터, 없거나 실패 시 null.
+window.cloudPull = async function (key) {
+  const lsKey = window.CLOUD_KEYS[key];
+  if (!lsKey) return null;
+  try {
+    const r = await fetch("/api/data/" + key, { cache: "no-store" });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (j && j.ok) {
+      window.CLOUD_META[key] = j.updatedAt || "";   // 이 시점 기준으로 충돌 검사
+      if (j.data != null) {
+        localStorage.setItem(lsKey, JSON.stringify(j.data));
+        return j.data;
+      }
+    }
+  } catch (e) { /* 서버 없음(로컬 데모) 또는 네트워크 오류 → localStorage 유지 */ }
+  return null;
+};
+
+// 서버에 저장(관리자 토큰 필요). {ok, ...} 반환.
+// 다른 기기/탭이 먼저 저장했으면(409) 덮어쓸지 물어보고, 취소하면 저장을 중단합니다.
+window.cloudPush = async function (key, obj) {
+  if (!window.CLOUD_KEYS[key]) return { ok: false, error: "unknown key" };
+  const token = sessionStorage.getItem("leaders_admin_token") || "";
+  if (!token) return { ok: false, error: "no-token", local: true };
+  // 토큰은 URL에 남지 않도록 헤더로 전달 (base/force는 쿼리 유지)
+  const put = (qs) => fetch("/api/data/" + key + (qs ? "?" + qs : ""), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "x-admin-token": token },
+    body: JSON.stringify(obj),
+  });
+  try {
+    const base = window.CLOUD_META[key];
+    let r = await put(base !== undefined ? "base=" + encodeURIComponent(base) : "");
+    if (r.status === 409) {
+      const ow = confirm("다른 기기(또는 다른 탭)에서 먼저 저장한 내용이 있어요.\n\n[확인] 지금 화면의 내용으로 덮어쓰기\n[취소] 저장 중단 — 새로고침해서 최신 내용을 확인하세요");
+      if (!ow) return { ok: false, conflict: true, error: "다른 기기에서 먼저 저장했어요. 새로고침 후 다시 작업해 주세요." };
+      r = await put("force=1");
+    }
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) return { ok: false, error: "관리자 인증이 만료됐어요. 관리자 페이지에서 다시 로그인해 주세요." };
+    if (!j.ok) return { ok: false, error: j.error || "서버 저장 실패" };
+    window.CLOUD_META[key] = j.updatedAt || "";
+    return j;
+  } catch (e) {
+    return { ok: false, error: String(e), local: true };
+  }
+};
+
+// 페이지 로드 시: 서버에서 모든 라이브러리를 받아 localStorage에 채웁니다.
+// 각 페이지는 `await window.cloudReady` 후에 렌더링하면 서버 데이터를 반영합니다.
+window.cloudReady = (async function () {
+  await Promise.all(Object.keys(window.CLOUD_KEYS).map((k) => window.cloudPull(k)));
+  try { window.dispatchEvent(new Event("cloud-ready")); } catch (e) {}
+})();

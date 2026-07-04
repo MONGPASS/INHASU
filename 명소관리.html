@@ -31,8 +31,17 @@
   .page-head { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
   .page-head h1 { font-size:20px; font-weight:800; }
   .page-head .add { margin-left:auto; background:var(--deep); color:#fff; border:none; border-radius:10px; padding:11px 18px; font-size:13.5px; font-weight:800; cursor:pointer; font-family:inherit; }
-  .lead { font-size:13px; color:var(--sub); margin-bottom:20px; }
+  .lead { font-size:13px; color:var(--sub); margin-bottom:16px; }
   .lead b { color:var(--deep); }
+
+  .tabs { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+  .tab { border:1.5px solid var(--line); background:#fff; color:var(--sub); border-radius:999px; padding:8px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:7px; transition:.12s; }
+  .tab:hover { border-color:var(--accent); color:var(--deep); }
+  .tab.on { background:var(--deep); border-color:var(--deep); color:#fff; }
+  .tab .cnt { font-size:11px; font-weight:800; opacity:.85; }
+  .tab.addcat { color:var(--deep); border-style:dashed; border-color:var(--accent); }
+  .tab .edit { display:inline-flex; margin-left:2px; opacity:.75; }
+  .tab .edit:hover { opacity:1; }
 
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; }
   .spot-card { background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; cursor:pointer; transition:.12s; }
@@ -124,7 +133,8 @@
       <h1>명소 관리</h1>
       <button class="add" id="addBtn">＋ 새 명소 추가</button>
     </div>
-    <div class="lead">여기서 추가·수정한 명소가 <b>견적서 대표 명소 페이지</b>와 <b>지도</b>, <b>견적서 만들기</b>에 그대로 반영됩니다. 명소를 클릭해 이미지와 설명을 넣어보세요.</div>
+    <div class="lead">여기서 추가·수정한 명소가 <b>견적서 대표 명소 페이지</b>와 <b>지도</b>, <b>견적서 만들기</b>에 그대로 반영됩니다. <b>카테고리(지역)</b> 탭으로 여행지별로 명소를 관리할 수 있습니다.</div>
+    <div class="tabs" id="tabs"></div>
     <div class="grid" id="grid"></div>
   </main>
 </div>
@@ -144,19 +154,88 @@ const ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
 
 let SPOTS = {};   // 작업 중인 명소 라이브러리
 let editKey = null;
+let CATS = [];            // 카테고리(지역/여행지) 목록 (순서 보존)
+let activeCat = "__all";  // 현재 탭: "__all"(전체) | "__none"(미분류) | 카테고리명
+const UNCAT = "미분류";
 
 function load() {
   SPOTS = JSON.parse(JSON.stringify(getSpots()));  // 깊은 복사
-  renderGrid();
+  CATS = getSpotCats().slice();
+  // 명소에 들어있는 지역 중 목록에 없는 것이 있으면 자동 편입
+  Object.values(SPOTS).forEach(s => {
+    const c = (s.region || "").trim();
+    if (c && !CATS.includes(c)) CATS.push(c);
+  });
+  if (activeCat !== "__all" && activeCat !== "__none" && !CATS.includes(activeCat)) activeCat = "__all";
+  renderTabs(); renderGrid();
 }
+// 서버(D1)에 영구 저장. localStorage에도 쓰고, 서버 반영 결과를 반환합니다.
 function persist() {
-  saveSpots(SPOTS);
   updateStorage();
+  saveSpotCats(CATS);
+  return saveSpots(SPOTS);   // {ok:true}=서버저장 / {local:true}=로컬만 / {ok:false}=실패
+}
+
+/* ── 카테고리 탭 ── */
+function catOf(s){ return (s && s.region ? String(s.region).trim() : ""); }
+function countIn(cat){ return Object.values(SPOTS).filter(s => catOf(s) === cat).length; }
+
+function renderTabs() {
+  const total = Object.keys(SPOTS).length;
+  const noneCnt = Object.values(SPOTS).filter(s => !catOf(s)).length;
+  let html = `<button class="tab ${activeCat==="__all"?"on":""}" data-cat="__all">전체 <span class="cnt">${total}</span></button>`;
+  CATS.forEach(c => {
+    const on = activeCat === c;
+    html += `<button class="tab ${on?"on":""}" data-cat="${esc(c)}">${esc(c)} <span class="cnt">${countIn(c)}</span>`
+      + (on ? `<span class="edit" data-act="ren" title="이름 변경">✎</span><span class="edit" data-act="del" title="삭제">🗑</span>` : ``)
+      + `</button>`;
+  });
+  if (noneCnt) html += `<button class="tab ${activeCat==="__none"?"on":""}" data-cat="__none">${UNCAT} <span class="cnt">${noneCnt}</span></button>`;
+  html += `<button class="tab addcat" id="addCatBtn">＋ 카테고리</button>`;
+  $("tabs").innerHTML = html;
+
+  $("tabs").querySelectorAll(".tab[data-cat]").forEach(el => {
+    el.onclick = (e) => {
+      const act = e.target.closest(".edit")?.dataset.act;
+      if (act === "ren") { renameCat(el.dataset.cat); return; }
+      if (act === "del") { deleteCat(el.dataset.cat); return; }
+      activeCat = el.dataset.cat; renderTabs(); renderGrid();
+    };
+  });
+  $("addCatBtn").onclick = addCat;
+}
+
+function addCat() {
+  const name = (prompt("새 카테고리(지역/여행지) 이름을 입력하세요") || "").trim();
+  if (!name) return;
+  if (name === UNCAT) { toast(`"${UNCAT}"은(는) 사용할 수 없는 이름입니다`); return; }
+  if (CATS.includes(name)) { toast("이미 있는 카테고리입니다"); activeCat = name; renderTabs(); renderGrid(); return; }
+  CATS.push(name); saveSpotCats(CATS); activeCat = name; renderTabs(); renderGrid();
+  toast(`"${name}" 카테고리가 추가되었습니다`);
+}
+function renameCat(cat) {
+  const name = (prompt("카테고리 이름 변경", cat) || "").trim();
+  if (!name || name === cat) return;
+  if (name === UNCAT || CATS.includes(name)) { toast("사용할 수 없거나 이미 있는 이름입니다"); return; }
+  CATS = CATS.map(c => c === cat ? name : c);
+  Object.values(SPOTS).forEach(s => { if (catOf(s) === cat) s.region = name; });
+  if (activeCat === cat) activeCat = name;
+  persist(); renderTabs(); renderGrid(); toast("이름이 변경되었습니다");
+}
+function deleteCat(cat) {
+  const n = countIn(cat);
+  if (!confirm(`"${cat}" 카테고리를 삭제할까요?` + (n ? `\n이 카테고리의 명소 ${n}개는 "${UNCAT}"으로 이동합니다. (명소는 삭제되지 않습니다)` : ""))) return;
+  CATS = CATS.filter(c => c !== cat);
+  Object.values(SPOTS).forEach(s => { if (catOf(s) === cat) s.region = ""; });
+  if (activeCat === cat) activeCat = "__all";
+  persist(); renderTabs(); renderGrid(); toast("카테고리가 삭제되었습니다");
 }
 
 /* ── 카드 그리드 ── */
 function renderGrid() {
-  const entries = Object.entries(SPOTS);
+  let entries = Object.entries(SPOTS);
+  if (activeCat === "__none") entries = entries.filter(([,s]) => !catOf(s));
+  else if (activeCat !== "__all") entries = entries.filter(([,s]) => catOf(s) === activeCat);
   $("grid").innerHTML = entries.map(([name, s]) => `
     <div class="spot-card" data-k="${esc(name)}">
       <div class="thumb">
@@ -168,7 +247,12 @@ function renderGrid() {
         <h3>${esc(name)}</h3>
         <p>${esc(s.short || s.desc || "설명을 추가하세요")}</p>
       </div>
-    </div>`).join("");
+    </div>`).join("")
+  || `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--gray)">${
+      activeCat === "__all"
+        ? `등록된 명소가 없습니다. 우측 상단 <b>＋ 새 명소 추가</b>로 만들어보세요.`
+        : `이 카테고리에 명소가 없습니다. <b>＋ 새 명소 추가</b> 시 카테고리에서 선택해 넣어보세요.`
+    }</div>`;
   $("grid").querySelectorAll(".spot-card").forEach(el => el.onclick = () => openEdit(el.dataset.k));
   updateStorage();
 }
@@ -196,7 +280,7 @@ function fileToImage(file, maxW, quality) {
           try {
             const fd = new FormData();
             fd.append("file", blob, "spot.webp");
-            const up = await fetch("/api/upload?folder=images&token=" + encodeURIComponent(ADMIN_TOKEN), { method: "POST", body: fd });
+            const up = await fetch("/api/upload?folder=images", { method: "POST", body: fd, headers: { "x-admin-token": ADMIN_TOKEN } });
             const j = await up.json().catch(() => ({}));
             if (up.status === 401) throw new Error("관리자 인증이 만료됐어요. 관리자 페이지에서 다시 로그인해 주세요.");
             if (!j.ok || !j.url) throw new Error(j.error || "업로드 실패");
@@ -212,10 +296,16 @@ function fileToImage(file, maxW, quality) {
 }
 
 /* ── 편집 드로어 ── */
+function catOptions(sel) {
+  const opts = CATS.map(c => `<option value="${esc(c)}" ${c===sel?"selected":""}>${esc(c)}</option>`).join("");
+  return `<option value="" ${!sel?"selected":""}>${UNCAT} (지역 미지정)</option>${opts}<option value="__new">＋ 새 카테고리 추가…</option>`;
+}
+
 function openEdit(key) {
   editKey = key;
   const isNew = key === null;
-  const s = isNew ? { nameMn:"", region:"", short:"", desc:"", lat:"", lng:"", img:"", subImgs:["","","",""] }
+  const defCat = (isNew && activeCat !== "__all" && activeCat !== "__none") ? activeCat : "";
+  const s = isNew ? { nameMn:"", region:defCat, short:"", desc:"", lat:"", lng:"", img:"", subImgs:["","","",""] }
                   : JSON.parse(JSON.stringify(SPOTS[key]));
   s.subImgs = s.subImgs || ["","","",""];
   while (s.subImgs.length < 4) s.subImgs.push("");
@@ -236,10 +326,8 @@ function openEdit(key) {
         <input id="f_name" value="${esc(nameVal)}" placeholder="예) 차강소브라가" ${isNew ? "" : ""}></label>
       <div class="row2">
         <label class="f"><span>몽골어 지명</span><input id="f_mn" value="${esc(s.nameMn)}" placeholder="예) Цагаан суварга"></label>
-        <label class="f"><span>지역</span>
-          <select id="f_region">
-            ${["","고비","중앙","북부","서부"].map(r => `<option value="${r}" ${r===s.region?"selected":""}>${r||"선택 안 함"}</option>`).join("")}
-          </select></label>
+        <label class="f"><span>카테고리 (지역/여행지)</span>
+          <select id="f_region">${catOptions(catOf(s))}</select></label>
       </div>
       <label class="f"><span>한 줄 소개 (카드·지도에 표시)</span>
         <input id="f_short" value="${esc(s.short)}" placeholder="예) '하얀 탑' 침식지형"></label>
@@ -298,12 +386,24 @@ function openEdit(key) {
   $("mainUp").onclick = () => $("mainFile").click();
   $("mainFile").onchange = onMainFile;
 
-  $("saveBtn").onclick = () => {
+  // 카테고리 선택: "＋ 새 카테고리 추가…" 를 고르면 즉시 이름을 입력받아 목록에 추가
+  const catSel = $("f_region");
+  let prevCat = catSel.value;
+  catSel.onchange = () => {
+    if (catSel.value !== "__new") { prevCat = catSel.value; return; }
+    const name = (prompt("새 카테고리(지역/여행지) 이름을 입력하세요") || "").trim();
+    if (!name || name === UNCAT) { catSel.value = prevCat; if (name === UNCAT) toast(`"${UNCAT}"은(는) 사용할 수 없는 이름입니다`); return; }
+    if (!CATS.includes(name)) { CATS.push(name); saveSpotCats(CATS); renderTabs(); }
+    catSel.innerHTML = catOptions(name);
+    catSel.value = name; prevCat = name;
+  };
+
+  $("saveBtn").onclick = async () => {
     const name = $("f_name").value.trim();
     if (!name) { toast("명소 이름을 입력하세요"); return; }
     const rec = {
       nameMn: $("f_mn").value.trim(),
-      region: $("f_region").value,
+      region: catSel.value === "__new" ? "" : catSel.value,
       short: $("f_short").value.trim(),
       desc: $("f_desc").value.trim(),
       lat: parseFloat($("f_lat").value) || undefined,
@@ -314,40 +414,56 @@ function openEdit(key) {
     // 이름(키)이 바뀌었으면 기존 키 삭제
     if (!isNew && key !== name) delete SPOTS[key];
     SPOTS[name] = rec;
+    const btn = $("saveBtn"); btn.disabled = true; btn.textContent = "저장 중…";
+    let res;
     try {
-      persist();
+      res = await persist();
     } catch (err) {
       toast("⚠ 저장 공간이 부족합니다. 이미지 수를 줄여주세요.");
+      btn.disabled = false; btn.textContent = isNew ? "추가하기" : "저장하기";
       return;
     }
-    renderGrid(); closeDrawer();
-    toast(isNew ? "명소가 추가되었습니다" : "저장되었습니다");
+    // 새 명소를 특정 카테고리에 넣었다면 그 탭이 보이도록 전환
+    if (isNew && rec.region) activeCat = rec.region;
+    renderTabs(); renderGrid(); closeDrawer();
+    toast(saveMsg(res, isNew ? "명소가 추가되었습니다" : "저장되었습니다"));
   };
 
   const delEl = $("delBtn");
-  if (delEl) delEl.onclick = () => {
+  if (delEl) delEl.onclick = async () => {
     if (!confirm(`"${key}" 명소를 삭제할까요?`)) return;
-    delete SPOTS[key]; persist(); renderGrid(); closeDrawer();
-    toast("삭제되었습니다");
+    delete SPOTS[key];
+    const res = await persist();
+    renderTabs(); renderGrid(); closeDrawer();
+    toast(saveMsg(res, "삭제되었습니다"));
   };
 }
 function closeDrawer(){ $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); editKey=null; }
 $("overlay").onclick = closeDrawer;
 $("addBtn").onclick = () => openEdit(null);
 
+/* 저장 결과 메시지: 서버 저장 성공/로컬만/실패 구분 */
+function saveMsg(res, okMsg) {
+  if (res && res.ok) return "☁ 서버에 영구 저장됨 · " + okMsg;
+  if (res && res.local) return okMsg + " (이 브라우저에만 저장 — 서버 저장하려면 관리자 로그인 필요)";
+  return "⚠ 로컬에는 저장됨, 서버 저장 실패: " + ((res && res.error) || "알 수 없는 오류");
+}
+
 /* 저장 용량 표시 */
 function updateStorage() {
   try {
     const bytes = new Blob([localStorage.getItem("leaders_spots") || ""]).size;
     const kb = Math.round(bytes / 1024);
-    $("storageTag").textContent = `명소 데이터 ${kb} KB · 이 브라우저에 저장됨`;
+    const where = ADMIN_TOKEN ? "서버(D1)에 영구 저장" : "이 브라우저에 저장 (서버 저장하려면 관리자 로그인)";
+    $("storageTag").textContent = `명소 데이터 ${kb} KB · ${where}`;
   } catch (e) {}
 }
 
 let toastT;
-function toast(m){ $("toast").textContent = m; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(()=>$("toast").classList.remove("on"), 1900); }
+function toast(m){ $("toast").textContent = m; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(()=>$("toast").classList.remove("on"), 2600); }
 
-load();
+/* 서버(D1)에서 최신 명소를 받아온 뒤 렌더링 */
+(window.cloudReady || Promise.resolve()).then(load);
 </script>
 </body>
 </html>
