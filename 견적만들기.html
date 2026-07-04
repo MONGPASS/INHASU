@@ -63,6 +63,20 @@
   .course-btn small { font-size:12px; color:var(--sub); }
 
   /* 명소 체크 */
+  /* 이동강도 선택 */
+  .intensity { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .int-dots { display:flex; gap:6px; }
+  .int-dot { width:34px; height:34px; border-radius:9px; border:1.5px solid var(--line); background:#fff; color:var(--sub); font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; transition:.12s; }
+  .int-dot:hover { border-color:var(--accent); }
+  .int-dot.on { background:var(--deep); border-color:var(--deep); color:#fff; }
+  .int-desc { font-size:12.5px; color:var(--sub); font-weight:700; }
+
+  /* 대표 명소 — 카테고리별 그룹 */
+  .spot-cat { margin-top:16px; }
+  .spot-cat:first-child { margin-top:0; }
+  .spot-cat-head { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:800; color:var(--deep); margin-bottom:9px; }
+  .spot-cat-head .ln { flex:1; height:1px; background:var(--line); }
+  .spot-cat-head .cc { font-size:11px; font-weight:700; color:var(--gray); }
   .spot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:9px; }
   .spot-chk { display:flex; align-items:center; gap:9px; border:1.5px solid var(--line); border-radius:11px; padding:11px 13px; cursor:pointer; transition:.12s; }
   .spot-chk:hover { border-color:var(--accent); }
@@ -219,6 +233,9 @@
     </div>
     <div class="row c3" style="margin-top:12px">
       <label class="f"><span>인원 표기 (선택)</span><input id="f_paxNote" placeholder="예) 6인 (남2/여4) — 비우면 '6인'"></label>
+      <label class="f" style="grid-column:span 2"><span>이동강도 (난이도) — 견적서에 점 5개로 표시</span>
+        <div class="intensity"><div class="int-dots" id="intDots"></div><span class="int-desc" id="intDesc"></span></div>
+      </label>
     </div>
     <div class="calc-note" id="nightsNote"></div>
   </div>
@@ -226,8 +243,8 @@
   <!-- 대표 명소 -->
   <div class="card">
     <h2><span class="n">3</span>대표 명소</h2>
-    <div class="hint">체크한 명소가 견적서 "대표 명소" 페이지와 지도에 순서대로 나옵니다. 설명·몽골어 지명은 자동으로 채워집니다.</div>
-    <div class="spot-grid" id="spotGrid"></div>
+    <div class="hint">체크한 명소가 견적서 "대표 명소" 페이지와 지도에 순서대로 나옵니다. 지역(카테고리)별로 묶여 있어요. 설명·몽골어 지명은 자동으로 채워집니다.</div>
+    <div id="spotGroups"></div>
   </div>
 
   <!-- 요금 -->
@@ -442,16 +459,34 @@ bind("f_deposit","deposit",true);
 
 /* ── 명소 그리드 ── */
 function renderSpots() {
-  $("spotGrid").innerHTML = Object.entries(getSpots()).map(([name, s]) => {
-    const idx = ST.spots.indexOf(name);
-    const on = idx >= 0;
+  const spots = getSpots();
+  const chip = (name, s) => {
+    const idx = ST.spots.indexOf(name), on = idx >= 0;
     return `<div class="spot-chk ${on?"on":""}" data-s="${esc(name)}">
       <div class="box">${on?"✓":""}</div>
-      <div><b>${esc(name)}</b><small>${esc(s.short)}</small></div>
+      <div><b>${esc(name)}</b><small>${esc(s.short||"")}</small></div>
       ${on?`<span class="spot-order">${idx+1}</span>`:""}
     </div>`;
-  }).join("");
-  $("spotGrid").querySelectorAll(".spot-chk").forEach(el => el.onclick = () => {
+  };
+  // 카테고리(지역) 순서: 명소관리에서 정한 순서 우선, 나머지·미분류는 뒤로
+  const catOf = s => (s && s.region ? String(s.region).trim() : "");
+  const order = (window.getSpotCats ? getSpotCats() : []).slice();
+  Object.values(spots).forEach(s => { const c = catOf(s); if (c && !order.includes(c)) order.push(c); });
+  const groups = [...order.map(c => [c, c]), ["", "미분류"]];
+
+  let html = "";
+  groups.forEach(([cat, label]) => {
+    const items = Object.entries(spots).filter(([, s]) => catOf(s) === cat);
+    if (!items.length) return;
+    const sel = items.filter(([n]) => ST.spots.includes(n)).length;
+    html += `<div class="spot-cat">
+      <div class="spot-cat-head">${esc(label)}<span class="ln"></span><span class="cc">${sel?`${sel}개 선택 · `:""}${items.length}곳</span></div>
+      <div class="spot-grid">${items.map(([name, s]) => chip(name, s)).join("")}</div>
+    </div>`;
+  });
+  $("spotGroups").innerHTML = html || `<div style="font-size:12.5px;color:var(--gray)">등록된 명소가 없습니다. 명소 관리에서 추가하세요.</div>`;
+
+  $("spotGroups").querySelectorAll(".spot-chk").forEach(el => el.onclick = () => {
     const name = el.dataset.s, i = ST.spots.indexOf(name);
     if (i >= 0) ST.spots.splice(i, 1); else ST.spots.push(name);
     renderSpots();
@@ -585,7 +620,18 @@ function renderDays() {
   };
 }
 
-function renderAll() { renderSpots(); renderOptions(); renderBalances(); renderDays(); }
+/* ── 이동강도(난이도) 선택 ── */
+const INT_DESC = { 1:"매우 여유", 2:"여유", 3:"보통", 4:"빡셈", 5:"매우 빡셈" };
+function renderIntensity() {
+  $("intDots").innerHTML = [1,2,3,4,5].map(i =>
+    `<button type="button" class="int-dot ${i <= ST.intensity ? "on" : ""}" data-i="${i}">${i}</button>`).join("");
+  $("intDesc").textContent = `${ST.intensity}단계 · ${INT_DESC[ST.intensity] || ""}`;
+  $("intDots").querySelectorAll(".int-dot").forEach(el => el.onclick = () => {
+    ST.intensity = +el.dataset.i; renderIntensity();
+  });
+}
+
+function renderAll() { renderIntensity(); renderSpots(); renderOptions(); renderBalances(); renderDays(); }
 
 /* 날짜 포맷 헬퍼 */
 const fmtDot = d => `${d.getFullYear()}. ${String(d.getMonth()+1).padStart(2,"0")}. ${String(d.getDate()).padStart(2,"0")}`;
