@@ -63,7 +63,15 @@
   .sec-title .n { width:20px; height:20px; border-radius:6px; background:var(--soft); color:var(--deep); font-size:11px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; }
 
   /* 명소 체크 */
+  .spot-cat { margin-top:14px; }
+  .spot-cat:first-child { margin-top:0; }
+  .spot-cat-head { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:800; color:var(--deep); margin-bottom:8px; }
+  .spot-cat-head .ln { flex:1; height:1px; background:var(--line); }
+  .spot-cat-head .cc { font-size:10.5px; font-weight:700; color:var(--gray); }
   .spot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
+  .snip-row { display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+  .snip-row select { max-width:230px; font-size:13px; padding:8px 11px; border-color:var(--accent); color:var(--deep); font-weight:700; cursor:pointer; }
+  .snip-row .snip-hint { font-size:11px; color:var(--gray); }
   .spot-chk { display:flex; align-items:center; gap:8px; border:1.5px solid var(--line); border-radius:10px; padding:9px 11px; cursor:pointer; transition:.12s; }
   .spot-chk:hover { border-color:var(--accent); }
   .spot-chk.on { border-color:var(--accent); background:var(--soft); }
@@ -174,8 +182,8 @@ function openEdit(key) {
           <select id="f_intensity">${[1,2,3,4,5].map(i=>`<option value="${i}" ${i===(c.intensity||3)?"selected":""}>${i}</option>`).join("")}</select></label>
       </div>
 
-      <div class="sec-title"><span class="n">1</span>대표 명소 <span style="font-weight:500;color:var(--gray);font-size:12px">· 견적서 명소 페이지에 나옴</span></div>
-      <div class="spot-grid" id="spotGrid"></div>
+      <div class="sec-title"><span class="n">1</span>대표 명소 <span style="font-weight:500;color:var(--gray);font-size:12px">· 지역(카테고리)별로 묶여 있어요 · 견적서 명소 페이지에 나옴</span></div>
+      <div id="spotGroups"></div>
 
       <div class="sec-title"><span class="n">2</span>일자별 일정</div>
       <div id="dayList"></div>
@@ -185,15 +193,30 @@ function openEdit(key) {
       <button class="save" id="saveBtn">${isNew ? "추가하기" : "저장하기"}</button>
     </div>`;
 
-  // 명소 그리드
+  // 명소 그리드 — 카테고리(지역)별 그룹
   function renderSpots() {
     const lib = getSpots();
-    $("spotGrid").innerHTML = Object.keys(lib).map(name => {
+    const catOf = s => (s && s.region ? String(s.region).trim() : "");
+    const chip = name => {
       const idx = draftSpots.indexOf(name), on = idx >= 0;
       return `<div class="spot-chk ${on?"on":""}" data-s="${esc(name)}">
         <div class="box">${on?"✓":""}</div><b>${esc(name)}</b>${on?`<span class="spot-order">${idx+1}</span>`:""}</div>`;
-    }).join("") || `<div style="color:var(--gray);font-size:12px">명소 관리에서 먼저 명소를 등록하세요.</div>`;
-    $("spotGrid").querySelectorAll(".spot-chk").forEach(el => el.onclick = () => {
+    };
+    const order = (window.getSpotCats ? getSpotCats() : []).slice();
+    Object.values(lib).forEach(s => { const c = catOf(s); if (c && !order.includes(c)) order.push(c); });
+    const groups = [...order.map(c => [c, c]), ["", "미분류"]];
+    let html = "";
+    groups.forEach(([cat, label]) => {
+      const items = Object.entries(lib).filter(([, s]) => catOf(s) === cat);
+      if (!items.length) return;
+      const sel = items.filter(([n]) => draftSpots.includes(n)).length;
+      html += `<div class="spot-cat">
+        <div class="spot-cat-head">${esc(label)}<span class="ln"></span><span class="cc">${sel?`${sel}개 선택 · `:""}${items.length}곳</span></div>
+        <div class="spot-grid">${items.map(([n]) => chip(n)).join("")}</div>
+      </div>`;
+    });
+    $("spotGroups").innerHTML = html || `<div style="color:var(--gray);font-size:12px">명소 관리에서 먼저 명소를 등록하세요.</div>`;
+    $("spotGroups").querySelectorAll(".spot-chk").forEach(el => el.onclick = () => {
       const n = el.dataset.s, i = draftSpots.indexOf(n);
       if (i>=0) draftSpots.splice(i,1); else draftSpots.push(n);
       renderSpots();
@@ -204,6 +227,8 @@ function openEdit(key) {
   // 일자 편집
   function renumber() { draftDays.forEach((d,i)=>d.d=i+1); }
   function renderDays() {
+    const snips = getSnippets();
+    const snipOptions = Object.keys(snips).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
     $("dayList").innerHTML = draftDays.map((d,i)=>`
       <div class="day-edit" data-i="${i}">
         <div class="dh2">
@@ -211,6 +236,10 @@ function openEdit(key) {
           <input class="dest" value="${esc((d.dest||"").replace(/<br\s*\/?>/gi," / "))}" placeholder="목적지">
           <input class="move" value="${esc(d.move||"")} ${esc(d.dist||"")}" placeholder="이동 6시간 (300 km)">
           <button class="day-del" title="삭제">✕</button>
+        </div>
+        <div class="snip-row">
+          <select class="snip-sel"><option value="">📋 일정 불러오기…</option>${snipOptions}</select>
+          <span class="snip-hint">일정 관리에서 만든 하루 일정을 클릭 한 번에 채웁니다.</span>
         </div>
         <textarea class="items" placeholder="한 줄에 하나씩. *강조, (회색">${esc((d.items||[]).join("\n"))}</textarea>
         <div class="lbl2">숙소 / 숙소태그(쉼표) / 식사(조·중·석)</div>
@@ -223,6 +252,14 @@ function openEdit(key) {
 
     $("dayList").querySelectorAll(".day-edit").forEach(el => {
       const i = +el.dataset.i;
+      el.querySelector(".snip-sel").onchange = e => {
+        const s = getSnippets()[e.target.value];
+        if (!s) return;
+        draftDays[i] = { d: draftDays[i].d, dest: s.dest||"", move: s.move||"", dist: s.dist||"",
+          items: [...(s.items||[])], stay: { name: s.stay?.name||"", tags: [...(s.stay?.tags||[])] }, meals: [...(s.meals||["","",""])] };
+        renderDays();
+        toast(`"${e.target.value}" 일정을 불러왔습니다`);
+      };
       el.querySelector(".dest").oninput = e => draftDays[i].dest = e.target.value.replace(/ \/ /g,"<br>");
       el.querySelector(".move").oninput = e => { const m = e.target.value.match(/^(.*?)(\(.*\))?\s*$/); draftDays[i].move=(m[1]||"").trim(); draftDays[i].dist=(m[2]||"").trim(); };
       el.querySelector(".items").oninput = e => draftDays[i].items = e.target.value.split("\n").filter(x=>x.trim());
