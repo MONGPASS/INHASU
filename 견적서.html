@@ -221,15 +221,28 @@ const spotBlock = h => `
       </div>
     </div>
   </div>`;
-const pgSpots = `
+/* 명소가 많으면 한 페이지에 안 들어가 잘리므로 3개씩 여러 페이지로 나눕니다. */
+const SPOTS_PER_PAGE = 3;
+const pgSpots = (() => {
+  const hs = Q.highlights || [];
+  if (!hs.length) return "";
+  const divider = `<div style="height:1px; background:#EAF3EF; margin:24px 0;"></div>`;
+  let out = "";
+  for (let i = 0; i < hs.length; i += SPOTS_PER_PAGE) {
+    const chunk = hs.slice(i, i + SPOTS_PER_PAGE);
+    const cont = i > 0 ? ` <span style="font-size:15px; color:#8CA39D; font-weight:700;">(계속)</span>` : "";
+    out += `
 <div class="page" style="padding:44px 48px;">
   <div style="display:flex; align-items:center; justify-content:space-between;">
-    <div><div class="eyebrow">GOBI HIGHLIGHTS</div><div style="color:#152C28; font-size:26px; font-weight:800; margin-top:5px;">${esc(Q.destination)} 대표 명소</div></div>
+    <div><div class="eyebrow">GOBI HIGHLIGHTS</div><div style="color:#152C28; font-size:26px; font-weight:800; margin-top:5px;">${esc(Q.destination)} 대표 명소${cont}</div></div>
     <span class="logo-mark">${LOGO}</span>
   </div>
-  ${Q.highlights.map((h, i) => spotBlock(h) + (i < Q.highlights.length - 1 ? `<div style="height:1px; background:#EAF3EF; margin:24px 0;"></div>` : "")).join("")}
-  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서</span><span>03</span></div>
+  ${chunk.map((h, j) => spotBlock(h) + (j < chunk.length - 1 ? divider : "")).join("")}
+  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 대표 명소</span><span>03</span></div>
 </div>`;
+  }
+  return out;
+})();
 
 /* ══════════ 04 게르 비교 ══════════ */
 const lodgeCol = (img, cap, sub, hot, side) => {
