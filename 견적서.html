@@ -487,9 +487,15 @@ const pgTerms = `
   <div class="pfoot"><span>${esc(B.companyFull)} · 계약 전 확인 사항 · 약관</span><span>10</span></div>
 </div>`;
 
-/* ── 렌더 ── */
+/* ── 렌더 ──
+   보류 페이지(해외안전정보·건강이상/위험고지·계약전확인/약관)는 견적 확정 후
+   따로 보낼 예정이라 기본에서는 숨깁니다. 코드는 그대로 유지(삭제 아님).
+   · 다시 포함하려면: 주소 뒤에 &full=1 (예: 견적서.html?t=…&full=1)
+   · 항상 포함으로 되돌리려면: SHOW_CONTRACT_PAGES 를 true 로 */
+const SHOW_CONTRACT_PAGES = new URLSearchParams(location.search).get("full") === "1";
 document.getElementById("root").innerHTML =
-  pgCover + pgQuote + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgSafety + pgRisk + pgTerms;
+  pgCover + pgQuote + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance
+  + (SHOW_CONTRACT_PAGES ? pgSafety + pgRisk + pgTerms : "");
 document.title = `${B.company}_${Q.customer}님_맞춤견적서_${Q.quoteNo}`;
 }
 </script>
