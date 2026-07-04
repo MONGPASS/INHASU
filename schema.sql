@@ -16,3 +16,11 @@ CREATE TABLE IF NOT EXISTS requests (
 
 CREATE INDEX IF NOT EXISTS idx_received ON requests(received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_token ON requests(token);
+
+-- 콘텐츠 라이브러리(명소·코스·일정·일정 카테고리) 서버 영구 저장
+-- /api/data/:key 가 접속 시 자동으로 만들기도 하지만, 배포 때 함께 실행해 두면 좋습니다.
+CREATE TABLE IF NOT EXISTS kv (
+  k           TEXT PRIMARY KEY,   -- spots / spot_cats / courses / snippets / snippet_cats
+  v           TEXT,               -- 값(JSON 문자열)
+  updated_at  TEXT                -- 마지막 저장 시각(ISO)
+);

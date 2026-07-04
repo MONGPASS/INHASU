@@ -19,8 +19,10 @@ export async function onRequestPost({ request, env }) {
     const url = new URL(request.url);
     // folder=images → 공개 이미지(명소·견적 사진). 관리자 인증 필요.
     // 그 외 → uploads/ (고객 첨부, 비공개, 인증 없음)
+    // 토큰은 x-admin-token 헤더 우선, ?token= 쿼리도 호환용으로 허용.
     const isPublic = url.searchParams.get("folder") === "images";
-    if (isPublic && url.searchParams.get("token") !== env.ADMIN_TOKEN) {
+    const token = request.headers.get("x-admin-token") || url.searchParams.get("token") || "";
+    if (isPublic && (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN)) {
       return json({ ok: false, error: "unauthorized" }, 401);
     }
 

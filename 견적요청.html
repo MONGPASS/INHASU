@@ -232,6 +232,10 @@
   </div>
 </div>
 
+<!-- 스팸 방어용 honeypot: 사람에게는 보이지 않는 칸. 봇이 채우면 서버가 조용히 버립니다. -->
+<input type="text" id="hp_website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+       style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
+
 <script>
 /* ═════════════════════════════════════════════════════
    설정 — 여기만 바꾸면 됩니다 (브랜드, 색상, 선택지)
@@ -312,6 +316,8 @@ async function onSubmitRequest(data) {
   };
   // 화면 진행용 내부 필드는 저장하지 않음
   ["step", "done", "submitting", "submitError", "fileState"].forEach(k => delete record[k]);
+  // 스팸 방어: honeypot 값 포함 (사람은 빈 값, 봇은 채움 → 서버가 무시)
+  record.website = document.getElementById("hp_website")?.value || "";
 
   // 로컬 데모: 이 브라우저에 저장하고 성공 처리 (관리자 페이지 로컬 모드가 읽음)
   if (IS_LOCAL) {
@@ -334,6 +340,7 @@ async function onSubmitRequest(data) {
       body: JSON.stringify(record),
     });
     if (res.ok) return { ok: true, token };
+    if (res.status === 429) return { ok: false, error: "짧은 시간에 여러 번 제출됐어요. 1분 뒤에 다시 시도해 주세요." };
     return { ok: false, error: "server " + res.status };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -583,7 +590,7 @@ function render() {
 
     inner = `
       ${S.submitError ? `<div class="err-box"><b>앗, 접수 전송에 실패했어요.</b><br>
-        인터넷 연결을 확인하고 아래 버튼으로 다시 시도해 주세요.<br>
+        ${/[가-힣]/.test(S.submitError) ? esc(S.submitError) : "인터넷 연결을 확인하고 아래 버튼으로 다시 시도해 주세요."}<br>
         ${CONFIG.kakao ? `계속 안 되면 <a href="${esc(CONFIG.kakao)}" target="_blank">카카오톡 채널</a>로 문의 부탁드려요.` : ""}</div>` : ""}
       <div style="display:flex;flex-direction:column;gap:18px">
         <label><span class="field-lbl">요청사항</span>
