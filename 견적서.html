@@ -41,6 +41,8 @@
 <script type="module">
 /* 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 */
 const _token = new URLSearchParams(location.search).get("t");
+// 상단 안내 바(Ctrl+P 등)는 관리자용 — 고객 링크로 열면 숨김
+if (_token) document.querySelector(".hint")?.remove();
 const Q = await (async () => {
   if (_token) {
     try {
