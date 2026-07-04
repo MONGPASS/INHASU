@@ -70,6 +70,12 @@
   input:focus, textarea:focus, select:focus { border-color:var(--accent); }
   textarea { resize:vertical; line-height:1.65; min-height:110px; }
   .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .geo-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px; font-weight:700; color:var(--sub); margin-bottom:8px; }
+  .geo-btn { margin-left:auto; border:1.5px solid var(--accent); background:var(--soft); color:var(--deep); border-radius:9px; padding:7px 12px; font-size:12.5px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .geo-btn:disabled { opacity:.55; cursor:default; }
+  .geo-msg { font-size:12px; margin-top:7px; line-height:1.5; min-height:2px; }
+  .geo-msg.ok { color:var(--deep); font-weight:700; }
+  .geo-msg.err { color:var(--red); font-weight:700; }
 
   /* 이미지 업로드 */
   .up-main { border:1.5px dashed #c7d0cd; border-radius:14px; height:180px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; position:relative; background:#fafcfb; color:var(--gray); text-align:center; }
@@ -131,6 +137,7 @@
   <main class="content">
     <div class="page-head">
       <h1>명소 관리</h1>
+      <button class="add" id="geoAllBtn" style="background:var(--soft);color:var(--deep)">📍 좌표 일괄 채우기</button>
       <button class="add" id="addBtn">＋ 새 명소 추가</button>
     </div>
     <div class="lead">여기서 추가·수정한 명소가 <b>견적서 대표 명소 페이지</b>와 <b>지도</b>, <b>견적서 만들기</b>에 그대로 반영됩니다. <b>카테고리(지역)</b> 탭으로 여행지별로 명소를 관리할 수 있습니다.</div>
@@ -151,6 +158,22 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&l
 /* 로컬 데모(서버 없음)면 base64로 폴백, 실서버면 R2에 WebP 업로드 */
 const IS_LOCAL = location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname);
 const ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
+
+/* ── 좌표 자동 조회(지오코딩) ── 서버(/api/geocode)가 Nominatim을 호출 ── */
+async function geocode(query, altQuery) {
+  const token = sessionStorage.getItem("leaders_admin_token") || ADMIN_TOKEN;
+  const tries = [query, altQuery, altQuery ? altQuery + " Mongolia" : ""].filter((v, i, a) => v && a.indexOf(v) === i);
+  for (const q of tries) {
+    try {
+      const res = await fetch("/api/geocode?token=" + encodeURIComponent(token) + "&q=" + encodeURIComponent(q));
+      if (res.status === 401) { toast("관리자 로그인이 필요합니다"); return null; }
+      const j = await res.json().catch(() => ({}));
+      if (j.ok && j.lat != null) return j;
+    } catch (e) {}
+  }
+  return null;
+}
+function setGeoMsg(msg, cls) { const el = $("geoMsg"); if (el) { el.textContent = msg; el.className = "geo-msg " + (cls || ""); } }
 
 let SPOTS = {};   // 작업 중인 명소 라이브러리
 let editKey = null;
@@ -333,10 +356,15 @@ function openEdit(key) {
         <input id="f_short" value="${esc(s.short)}" placeholder="예) '하얀 탑' 침식지형"></label>
       <label class="f"><span>상세 설명 (견적서에 표시)</span>
         <textarea id="f_desc" placeholder="명소에 대한 설명을 적어주세요.">${esc(s.desc)}</textarea></label>
-      <div class="row2">
-        <label class="f"><span>위도 (lat) — 지도용, 선택</span><input id="f_lat" value="${esc(s.lat)}" placeholder="44.7086" inputmode="decimal"></label>
-        <label class="f"><span>경도 (lng) — 지도용, 선택</span><input id="f_lng" value="${esc(s.lng)}" placeholder="105.7469" inputmode="decimal"></label>
+      <div class="geo-head">
+        <span>위치 좌표 <span style="font-weight:500;color:var(--gray)">· 이동거리·지도 자동 계산에 사용</span></span>
+        <button type="button" class="geo-btn" id="geoBtn">📍 이름으로 좌표 자동 찾기</button>
       </div>
+      <div class="row2">
+        <label class="f"><span>위도 (lat)</span><input id="f_lat" value="${esc(s.lat)}" placeholder="44.7086" inputmode="decimal"></label>
+        <label class="f"><span>경도 (lng)</span><input id="f_lng" value="${esc(s.lng)}" placeholder="105.7469" inputmode="decimal"></label>
+      </div>
+      <div class="geo-msg" id="geoMsg"></div>
     </div>
     <div class="df">
       ${isNew ? "" : `<button class="del" id="delBtn">삭제</button>`}
@@ -385,6 +413,18 @@ function openEdit(key) {
   }
   $("mainUp").onclick = () => $("mainFile").click();
   $("mainFile").onchange = onMainFile;
+
+  // 좌표 자동 찾기: 명소 이름(한글) / 몽골어 지명으로 위도·경도 조회
+  $("geoBtn").onclick = async () => {
+    const nm = $("f_name").value.trim(), mn = $("f_mn").value.trim();
+    if (!nm && !mn) { setGeoMsg("먼저 명소 이름을 입력하세요", "err"); return; }
+    const btn = $("geoBtn"); btn.disabled = true; btn.textContent = "찾는 중…"; setGeoMsg("", "");
+    const hit = await geocode(mn || nm, nm);
+    btn.disabled = false; btn.textContent = "📍 이름으로 좌표 자동 찾기";
+    if (!hit) { setGeoMsg("좌표를 찾지 못했어요. 이름(특히 몽골어 지명)을 확인하거나 직접 입력해 주세요.", "err"); return; }
+    $("f_lat").value = hit.lat; $("f_lng").value = hit.lng;
+    setGeoMsg(`✓ 찾았어요: ${hit.display?.split(",").slice(0,3).join(", ") || `${hit.lat}, ${hit.lng}`} — 위치가 맞는지 확인 후 저장하세요.`, "ok");
+  };
 
   // 카테고리 선택: "＋ 새 카테고리 추가…" 를 고르면 즉시 이름을 입력받아 목록에 추가
   const catSel = $("f_region");
@@ -441,6 +481,24 @@ function openEdit(key) {
 function closeDrawer(){ $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); editKey=null; }
 $("overlay").onclick = closeDrawer;
 $("addBtn").onclick = () => openEdit(null);
+
+/* 좌표 없는 명소 일괄 채우기 (Nominatim 정책: 초당 1회로 순차 처리) */
+$("geoAllBtn").onclick = async () => {
+  const missing = Object.entries(SPOTS).filter(([, s]) => s.lat == null || s.lng == null);
+  if (!missing.length) { toast("좌표가 빠진 명소가 없습니다 ✓"); return; }
+  if (!confirm(`좌표가 없는 명소 ${missing.length}곳의 좌표를 이름으로 자동 조회할까요?\n(한 곳당 약 1초, 총 ${missing.length}초쯤 걸려요)`)) return;
+  const btn = $("geoAllBtn"); btn.disabled = true;
+  let done = 0, fail = 0;
+  for (const [name, s] of missing) {
+    btn.textContent = `조회 중… ${done + fail + 1}/${missing.length}`;
+    const hit = await geocode(s.nameMn || name, name);
+    if (hit) { s.lat = hit.lat; s.lng = hit.lng; done++; } else fail++;
+    await new Promise(r => setTimeout(r, 1100));   // Nominatim 초당 1회 준수
+  }
+  btn.disabled = false; btn.textContent = "📍 좌표 일괄 채우기";
+  if (done) { const res = await persist(); renderGrid(); toast(saveMsg(res, `${done}곳 좌표를 채웠어요${fail ? ` (${fail}곳은 못 찾음)` : ""}`)); }
+  else toast(`좌표를 찾지 못했어요 (${fail}곳) — 몽골어 지명을 채우면 정확도가 올라갑니다`);
+};
 
 /* 저장 결과 메시지: 서버 저장 성공/로컬만/실패 구분 */
 function saveMsg(res, okMsg) {
