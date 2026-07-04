@@ -294,7 +294,6 @@ const CONFIG = {
   cityStays: ["호텔(5성급)", "호텔(4성급)", "게스트하우스", "상관없음"],
   gerStays:  ["고급 여행자 게르", "일반 여행자 게르", "상관없음"],
   vehicles: ["푸르공(6인)", "스타렉스(6인)", "랜드크루저(4인)", "델리카(6인)", "대형 버스(25인)", "상관없음"],
-  budgets:  ["100만원 이하", "1인 100~150만원", "1인 150~200만원", "1인 200~300만원", "1인 300만원 이상", "상담 후 결정"],
 };
 
 /* 로컬 데모 환경(파일 열기·미리보기)인지 판별 — 이때는 서버 없이 브라우저 저장으로 완료 처리 */
@@ -354,7 +353,7 @@ const META = {
   3: { icon: "💍", title: "어떤 여행을 원하세요?", sub: "여행 타입을 선택해 주세요." },
   4: { icon: "🗺️", title: "가고 싶은 몽골은 어디인가요?", sub: "잘 몰라도 괜찮아요. 어떤 곳인지 보고 골라주세요." },
   5: { icon: "🏨", title: "숙소와 차량을 골라주세요", sub: "여행 스타일에 맞게 선택해 주세요." },
-  6: { icon: "💰", title: "예상 여행 경비는?", sub: "1인 기준 희망 예산을 선택해 주세요." },
+  6: { icon: "✈️", title: "항공권을 발행하셨나요?", sub: "이미 발권하셨다면 도착·출발 일시를 알려주세요. 견적서와 픽업·드랍 안내에 반영됩니다." },
   7: { icon: "📝", title: "신청자 정보를 알려주세요", sub: "견적서를 받으실 연락처를 입력해 주세요." },
   8: { icon: "✅", title: "마지막으로 확인해 주세요", sub: "요청사항 확인 후 동의하고 제출해 주세요." },
 };
@@ -363,7 +362,8 @@ const S = {
   step: 1, done: false, submitting: false, submitError: "",
   adult: 2, child: 0, infant: 0,
   depart: "", return_: "",
-  tripType: "", destination: "", destSpots: [], cityStay: "", gerStay: "", vehicle: "", budget: "",
+  tripType: "", destination: "", destSpots: [], cityStay: "", gerStay: "", vehicle: "",
+  flightIssued: "", flightIn: "", flightOut: "",   // 항공권 발행 여부 + 도착/출발 일시
   name: "", phone: "", email: "", kakaoId: "",
   request: "", fileName: "", fileKey: "", fileState: "", agree: false,
 };
@@ -407,7 +407,7 @@ function canProceed() {
     case 3: return !!S.tripType;
     case 4: return !!S.destination;
     case 5: return !!S.cityStay && !!S.gerStay && !!S.vehicle;
-    case 6: return !!S.budget;
+    case 6: return S.flightIssued === "아니요, 아직이에요" || (S.flightIssued && !!S.flightIn && !!S.flightOut);
     case 7: return S.name.trim().length > 0 && /^[0-9]{9,11}$/.test(S.phone) && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(S.email);
     case 8: return S.agree;
     default: return true;
@@ -415,6 +415,15 @@ function canProceed() {
 }
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* datetime-local 값("2026-08-06T04:30") → 견적서 표기("08/06 - 04:30") */
+const fmtFlight = v => {
+  if (!v) return "";
+  const d = new Date(v);
+  if (isNaN(d)) return v;
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} - ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+const flightYes = () => S.flightIssued.startsWith("예");
 
 const chips = (list, sel, key, cols) => `
   <div class="${cols}">
@@ -432,7 +441,7 @@ function summaryRows() {
     ["시내 숙소", S.cityStay],
     ["투어지역 게르", S.gerStay],
     ["차량", S.vehicle],
-    ["여행 경비", S.budget],
+    ["항공권", flightYes() ? `도착 ${fmtFlight(S.flightIn)} · 출발 ${fmtFlight(S.flightOut)}` : "미발행 (미정)"],
     ["신청자", S.name || "-"],
     ...(S.kakaoId ? [["카카오톡 ID", S.kakaoId]] : []),
   ];
@@ -568,7 +577,16 @@ function render() {
       <div class="group-lbl mt">투어지역 게르 등급 <span style="font-weight:500;color:#9AA0A6;font-size:12px">· 시내 외 지역은 게르만 가능해요</span></div>${chips(CONFIG.gerStays, S.gerStay, "gerStay", "grid3")}
       <div class="group-lbl mt">차량</div>${chips(CONFIG.vehicles, S.vehicle, "vehicle", "grid3")}`;
   } else if (S.step === 6) {
-    inner = chips(CONFIG.budgets, S.budget, "budget", "grid2");
+    inner = `
+      ${chips(["예, 발행했어요", "아니요, 아직이에요"], S.flightIssued, "flightIssued", "grid2")}
+      ${flightYes() ? `
+        <div style="display:flex;flex-direction:column;gap:18px;margin-top:22px">
+          <label><span class="field-lbl">✈️ 몽골 도착 일시 (IN)</span>
+            <input class="txt-input" type="datetime-local" id="flightIn" value="${esc(S.flightIn)}"></label>
+          <label><span class="field-lbl">✈️ 몽골 출발 일시 (OUT)</span>
+            <input class="txt-input" type="datetime-local" id="flightOut" value="${esc(S.flightOut)}"></label>
+        </div>` : ""}
+      ${S.flightIssued && !flightYes() ? `<div style="margin-top:18px;font-size:13px;color:#9AA0A6;line-height:1.6">괜찮아요! 견적서에는 <b>미정</b>으로 표시되고, 발권 후 알려주시면 일정에 반영해 드려요.</div>` : ""}`;
   } else if (S.step === 7) {
     inner = `
       <div style="display:flex;flex-direction:column;gap:18px">
@@ -631,7 +649,12 @@ function render() {
     const btn = document.getElementById("nextBtn");
     btn.textContent = "접수 중…"; btn.classList.remove("ok");
 
-    const result = await onSubmitRequest({ ...S, nights: nights() });
+    const result = await onSubmitRequest({
+      ...S, nights: nights(),
+      // 항공권: 발행한 경우에만 "MM/DD - HH:mm" 형식으로 저장, 미발행이면 빈 값(견적서에 "미정")
+      flightIn: flightYes() ? fmtFlight(S.flightIn) : "",
+      flightOut: flightYes() ? fmtFlight(S.flightOut) : "",
+    });
     S.submitting = false;
     if (result.ok) {
       S.done = true; S.token = result.token || "";
@@ -654,7 +677,7 @@ function render() {
     if (i >= 0) S.destSpots.splice(i, 1); else S.destSpots.push(name);
     spotFocus = name; render();
   });
-  ["depart", "return_"].forEach(id => {
+  ["depart", "return_", "flightIn", "flightOut"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.onchange = () => {
       S[id] = el.value;

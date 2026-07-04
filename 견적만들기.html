@@ -333,6 +333,8 @@ try {
     ST.pax = (pre.adult || 0) + (pre.child || 0) + (pre.infant || 0) || 6;
     ST.destination = pre.destination || "";      // 고객이 고른 여행지 (예: 중앙 몽골 투어)
     ST.vehicle = pre.vehicle || "";              // 고객이 고른 차량 (예: 스타렉스(6인))
+    ST.flightIn = pre.flightIn || "";            // 고객이 알려준 항공 도착 (없으면 견적서에 "미정")
+    ST.flightOut = pre.flightOut || "";
     REQ_SPOTS = Array.isArray(pre.destSpots) ? pre.destSpots : [];  // 관심 지역
     REQ_ID = pre.id || "";
     REQ_TOKEN = pre.token || "";
@@ -610,10 +612,11 @@ function buildQuote() {
     Q.periodShort = `${ST.depart.replace(/-/g,". ")} — ${ST.return_.slice(5).replace(/-/g,". ")}`;
   }
   Q.departISO = ST.depart; Q.returnISO = ST.return_;              // 수정 왕복용(견적서엔 미표시)
-  Q.flight = { in: ST.flightIn || BASE.flight.in, out: ST.flightOut || BASE.flight.out };
+  // 항공·픽업·드랍: 입력이 없으면 샘플값 대신 "미정" (고객이 알려준 경우에만 실제 값 표시)
+  Q.flight = { in: ST.flightIn.trim() || "미정", out: ST.flightOut.trim() || "미정" };
   // ③ 픽업/드랍 — 비우면 항공 IN/OUT + " 공항" 자동 파생
-  Q.pickup = ST.pickup.trim() || (ST.flightIn ? ST.flightIn + " 공항" : BASE.pickup);
-  Q.drop   = ST.drop.trim()   || (ST.flightOut ? ST.flightOut + " 공항" : BASE.drop);
+  Q.pickup = ST.pickup.trim() || (ST.flightIn.trim() ? ST.flightIn.trim() + " 공항" : "미정");
+  Q.drop   = ST.drop.trim()   || (ST.flightOut.trim() ? ST.flightOut.trim() + " 공항" : "미정");
   // ④ 혜택 · 이벤트 · 비고
   Q.benefits = ST.benefits;
   Q.events = ST.events.split("\n").map(x => x.trim()).filter(Boolean);
@@ -672,10 +675,13 @@ function restoreFromQuote(q) {
   ST.paxNote = q.paxNote || "";
   ST.vehicle = q.vehicle || "";
   ST.intensity = q.intensity || 3;
-  ST.flightIn = (q.flight && q.flight.in) || "";
-  ST.flightOut = (q.flight && q.flight.out) || "";
+  // "미정"은 미입력 상태로 복원 (편집칸에 '미정' 글자가 들어가지 않게)
+  const noTbd = v => (v && v !== "미정") ? v : "";
+  ST.flightIn = noTbd(q.flight && q.flight.in);
+  ST.flightOut = noTbd(q.flight && q.flight.out);
   ST.manager = q.manager || BASE.manager || "";
-  ST.pickup = q.pickup || ""; ST.drop = q.drop || "";
+  ST.pickup = noTbd(q.pickup).replace(/^(.+) 공항$/, (m, p) => p === ST.flightIn ? "" : m);
+  ST.drop = noTbd(q.drop).replace(/^(.+) 공항$/, (m, p) => p === ST.flightOut ? "" : m);
   ST.benefits = q.benefits || "";
   ST.events = Array.isArray(q.events) ? q.events.join("\n") : "";
   ST.remark = (q.remark && q.remark !== "-") ? q.remark : "";

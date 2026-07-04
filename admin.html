@@ -398,11 +398,11 @@ $("csvBtn").onclick = () => {
   const rows = visibleRows();
   if (!rows.length) { toast("내보낼 문의가 없어요"); return; }
   const cell = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
-  const head = ["접수일","상태","이름","전화","이메일","성인","아동","유아","출발일","귀국일","박수","여행지","차량","예산","견적발행","메모"];
+  const head = ["접수일","상태","이름","전화","이메일","성인","아동","유아","출발일","귀국일","박수","여행지","차량","항공IN","항공OUT","예산","견적발행","메모"];
   const lines = rows.map(r => [
     dateOnly(r.receivedAt), r.status || "신규", r.name, r.phone, r.email,
     r.adult || 0, r.child || 0, r.infant || 0,
-    r.depart, r.return_, r.nights, r.destination, r.vehicle, r.budget,
+    r.depart, r.return_, r.nights, r.destination, r.vehicle, r.flightIn || "", r.flightOut || "", r.budget,
     r.quote ? "O" : "", r.memo,
   ].map(cell).join(","));
   downloadFile(`문의목록_${dateOnly(new Date().toISOString())}.csv`,
@@ -605,7 +605,8 @@ function openDrawer(id) {
         <div class="k">시내 숙소</div><div class="v">${esc(r.cityStay || r.stay)||"-"}</div>
         <div class="k">투어 게르</div><div class="v">${esc(r.gerStay)||"-"}</div>
         <div class="k">차량</div><div class="v">${esc(r.vehicle)||"-"}</div>
-        <div class="k">예산</div><div class="v">${esc(r.budget)||"-"}</div>
+        <div class="k">항공권</div><div class="v">${(r.flightIn||r.flightOut) ? `IN ${esc(r.flightIn||"미정")} · OUT ${esc(r.flightOut||"미정")}` : `미발행 <span style="font-weight:500;color:var(--gray)">(견적서에 미정으로 표시)</span>`}</div>
+        ${r.budget?`<div class="k">예산</div><div class="v">${esc(r.budget)}</div>`:""}
         ${r.fileName?`<div class="k">첨부</div><div class="v">${
           r.fileKey
             ? `<a href="/api/file/${encodeURIComponent(r.fileKey).replace(/%2F/g,"/")}?token=${encodeURIComponent(ADMIN_TOKEN)}" target="_blank" style="color:var(--deep);font-weight:700">📎 ${esc(r.fileName)} ↓ 다운로드</a>`
@@ -633,7 +634,7 @@ function openDrawer(id) {
   $("memo").onblur = () => saveMemo(id, $("memo").value);
   $("makeBtn").onclick = () => {
     // 이미 발행된 견적이 있으면 편집기에서 그대로 복원해 수정할 수 있게 함께 넘깁니다.
-    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, destSpots:r.destSpots, budget:r.budget, quote:r.quote||null }));
+    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, destSpots:r.destSpots, budget:r.budget, flightIn:r.flightIn||"", flightOut:r.flightOut||"", quote:r.quote||null }));
     window.open("견적만들기.html","_blank");
   };
   const pubLink = $("pubLinkBtn");
@@ -644,7 +645,7 @@ function openDrawer(id) {
   };
   $("delReqBtn").onclick = () => deleteRequest(r);
   $("copyBtn").onclick = () => {
-    const txt = `[견적 문의] ${r.name}\n연락처: ${r.phone}\n이메일: ${r.email}${r.kakaoId?`\n카톡ID: ${r.kakaoId}`:""}\n인원: ${paxTxt(r)}\n일정: ${r.depart}~${r.return_} (${nightTxt(r)})\n타입: ${r.tripType}\n투어: ${r.destination}${r.destSpots&&r.destSpots.length?` / 관심: ${r.destSpots.join(", ")}`:""}\n시내숙소: ${r.cityStay || r.stay || "-"}\n투어게르: ${r.gerStay || "-"}\n차량: ${r.vehicle}\n예산: ${r.budget}\n요청: ${r.request||"-"}`;
+    const txt = `[견적 문의] ${r.name}\n연락처: ${r.phone}\n이메일: ${r.email}${r.kakaoId?`\n카톡ID: ${r.kakaoId}`:""}\n인원: ${paxTxt(r)}\n일정: ${r.depart}~${r.return_} (${nightTxt(r)})\n타입: ${r.tripType}\n투어: ${r.destination}${r.destSpots&&r.destSpots.length?` / 관심: ${r.destSpots.join(", ")}`:""}\n시내숙소: ${r.cityStay || r.stay || "-"}\n투어게르: ${r.gerStay || "-"}\n차량: ${r.vehicle}\n항공권: ${(r.flightIn||r.flightOut) ? `IN ${r.flightIn||"미정"} / OUT ${r.flightOut||"미정"}` : "미발행"}${r.budget?`\n예산: ${r.budget}`:""}\n요청: ${r.request||"-"}`;
     navigator.clipboard.writeText(txt).then(()=>{ $("copyBtn").textContent="✓ 복사됨"; setTimeout(()=>$("copyBtn").textContent="📋 정보 복사",1500); });
   };
 }
