@@ -317,7 +317,7 @@ window.cloudPull = async function (key) {
 // 다른 기기/탭이 먼저 저장했으면(409) 덮어쓸지 물어보고, 취소하면 저장을 중단합니다.
 window.cloudPush = async function (key, obj) {
   if (!window.CLOUD_KEYS[key]) return { ok: false, error: "unknown key" };
-  const token = sessionStorage.getItem("leaders_admin_token") || "";
+  const token = localStorage.getItem("leaders_admin_token") || sessionStorage.getItem("leaders_admin_token") || "";
   if (!token) return { ok: false, error: "no-token", local: true };
   // 토큰은 URL에 남지 않도록 헤더로 전달 (base/force는 쿼리 유지)
   const put = (qs) => fetch("/api/data/" + key + (qs ? "?" + qs : ""), {

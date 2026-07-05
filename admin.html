@@ -2,7 +2,13 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#06c4a0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="은하수 관리자">
+<link rel="apple-touch-icon" href="img/app/apple-touch-icon.png">
 <title>대시보드 · 몽골리아 은하수</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
@@ -292,7 +298,7 @@ const $ = id => document.getElementById(id);
 /* ═══════════════ 로그인 ═══════════════
    비밀번호는 페이지에 저장하지 않고, 서버(Cloudflare env ADMIN_TOKEN)로만 검증합니다.
    → 비밀번호 변경: Cloudflare 대시보드 > Pages > 설정 > 환경 변수 ADMIN_TOKEN 수정 */
-let ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
+let ADMIN_TOKEN = localStorage.getItem("leaders_admin_token") || sessionStorage.getItem("leaders_admin_token") || "";
 
 async function tryLogin() {
   const pw = $("pw").value;
@@ -303,18 +309,18 @@ async function tryLogin() {
     const res = await fetch(CFG.apiBase, { headers: { "x-admin-token": pw } });
     let j = null; try { j = await res.json(); } catch (e) {}
     if (j && j.ok && Array.isArray(j.items)) {
-      ADMIN_TOKEN = pw; sessionStorage.setItem("leaders_admin_token", pw);
+      ADMIN_TOKEN = pw; localStorage.setItem("leaders_admin_token", pw);   // 홈 화면 앱에서도 로그인 유지
       $("loginErr").textContent = ""; showDash(); return;
     }
     if (res.status === 401) { $("loginErr").textContent = "비밀번호가 올바르지 않습니다."; $("pw").value = ""; return; }
   } catch (e) {}
   // 서버 미연결(로컬 데모/배포 전) — 데모 비밀번호로만 진입
-  if (pw === "demo") { ADMIN_TOKEN = "demo"; sessionStorage.setItem("leaders_admin_token", "demo"); $("loginErr").textContent = ""; showDash(); return; }
+  if (pw === "demo") { ADMIN_TOKEN = "demo"; localStorage.setItem("leaders_admin_token", "demo"); $("loginErr").textContent = ""; showDash(); return; }
   $("loginErr").textContent = "비밀번호가 올바르지 않거나 서버에 연결할 수 없어요.";
 }
 $("loginBtn").onclick = tryLogin;
 $("pw").onkeydown = e => { if (e.key === "Enter") tryLogin(); };
-$("navLogout").onclick = () => { sessionStorage.removeItem("leaders_admin_token"); location.reload(); };
+$("navLogout").onclick = () => { localStorage.removeItem("leaders_admin_token"); sessionStorage.removeItem("leaders_admin_token"); location.reload(); };
 if (ADMIN_TOKEN) showDash();
 function showDash() { $("login").style.display = "none"; $("dash").style.display = "block"; $("whoName").textContent = CFG.brand; setView("dash"); loadData(); }
 
@@ -335,7 +341,7 @@ async function loadData() {
   try {
     const res = await fetch(CFG.apiBase, { headers: { "x-admin-token": ADMIN_TOKEN } });
     if (res.status === 401) {   // 저장된 토큰이 무효(비번 변경 등) → 재로그인 요구
-      sessionStorage.removeItem("leaders_admin_token"); ADMIN_TOKEN = "";
+      localStorage.removeItem("leaders_admin_token"); sessionStorage.removeItem("leaders_admin_token"); ADMIN_TOKEN = "";
       $("dash").style.display = "none"; $("login").style.display = "";
       $("loginErr").textContent = "세션이 만료되었거나 비밀번호가 변경되었어요. 새 비밀번호로 로그인해 주세요.";
       $("pw").value = ""; return;
@@ -715,5 +721,6 @@ async function deleteRequest(r) {
   ]));
 })();
 </script>
+<script src="admin-nav.js"></script>
 </body>
 </html>

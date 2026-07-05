@@ -2,7 +2,13 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#06c4a0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="은하수 관리자">
+<link rel="apple-touch-icon" href="img/app/apple-touch-icon.png">
 <title>명소 관리 · 몽골리아 은하수</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
@@ -157,11 +163,11 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&l
 
 /* 로컬 데모(서버 없음)면 base64로 폴백, 실서버면 R2에 WebP 업로드 */
 const IS_LOCAL = location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname);
-const ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
+const ADMIN_TOKEN = localStorage.getItem("leaders_admin_token") || sessionStorage.getItem("leaders_admin_token") || "";
 
 /* ── 좌표 자동 조회(지오코딩) ── 서버(/api/geocode)가 Nominatim을 호출 ── */
 async function geocode(query, altQuery) {
-  const token = sessionStorage.getItem("leaders_admin_token") || ADMIN_TOKEN;
+  const token = localStorage.getItem("leaders_admin_token") || sessionStorage.getItem("leaders_admin_token") || ADMIN_TOKEN;
   const tries = [query, altQuery, altQuery ? altQuery + " Mongolia" : ""].filter((v, i, a) => v && a.indexOf(v) === i);
   for (const q of tries) {
     try {
@@ -523,5 +529,6 @@ function toast(m){ $("toast").textContent = m; $("toast").classList.add("on"); c
 /* 서버(D1)에서 최신 명소를 받아온 뒤 렌더링 */
 (window.cloudReady || Promise.resolve()).then(load);
 </script>
+<script src="admin-nav.js"></script>
 </body>
 </html>
