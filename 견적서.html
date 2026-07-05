@@ -41,6 +41,8 @@
 <script type="module">
 /* 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 */
 const _token = new URLSearchParams(location.search).get("t");
+// 상단 안내 바(Ctrl+P 등)는 관리자용 — 고객 링크로 열면 숨김
+if (_token) document.querySelector(".hint")?.remove();
 const Q = await (async () => {
   if (_token) {
     try {
@@ -221,15 +223,28 @@ const spotBlock = h => `
       </div>
     </div>
   </div>`;
-const pgSpots = `
+/* 명소가 많으면 한 페이지에 안 들어가 잘리므로 3개씩 여러 페이지로 나눕니다. */
+const SPOTS_PER_PAGE = 3;
+const pgSpots = (() => {
+  const hs = Q.highlights || [];
+  if (!hs.length) return "";
+  const divider = `<div style="height:1px; background:#EAF3EF; margin:24px 0;"></div>`;
+  let out = "";
+  for (let i = 0; i < hs.length; i += SPOTS_PER_PAGE) {
+    const chunk = hs.slice(i, i + SPOTS_PER_PAGE);
+    const cont = i > 0 ? ` <span style="font-size:15px; color:#8CA39D; font-weight:700;">(계속)</span>` : "";
+    out += `
 <div class="page" style="padding:44px 48px;">
   <div style="display:flex; align-items:center; justify-content:space-between;">
-    <div><div class="eyebrow">GOBI HIGHLIGHTS</div><div style="color:#152C28; font-size:26px; font-weight:800; margin-top:5px;">${esc(Q.destination)} 대표 명소</div></div>
+    <div><div class="eyebrow">TOUR HIGHLIGHTS</div><div style="color:#152C28; font-size:26px; font-weight:800; margin-top:5px;">${esc(Q.destination)} 대표 명소${cont}</div></div>
     <span class="logo-mark">${LOGO}</span>
   </div>
-  ${Q.highlights.map((h, i) => spotBlock(h) + (i < Q.highlights.length - 1 ? `<div style="height:1px; background:#EAF3EF; margin:24px 0;"></div>` : "")).join("")}
-  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서</span><span>03</span></div>
+  ${chunk.map((h, j) => spotBlock(h) + (j < chunk.length - 1 ? divider : "")).join("")}
+  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 대표 명소</span><span>03</span></div>
 </div>`;
+  }
+  return out;
+})();
 
 /* ══════════ 04 게르 비교 ══════════ */
 const lodgeCol = (img, cap, sub, hot, side) => {
@@ -474,9 +489,15 @@ const pgTerms = `
   <div class="pfoot"><span>${esc(B.companyFull)} · 계약 전 확인 사항 · 약관</span><span>10</span></div>
 </div>`;
 
-/* ── 렌더 ── */
+/* ── 렌더 ──
+   보류 페이지(해외안전정보·건강이상/위험고지·계약전확인/약관)는 견적 확정 후
+   따로 보낼 예정이라 기본에서는 숨깁니다. 코드는 그대로 유지(삭제 아님).
+   · 다시 포함하려면: 주소 뒤에 &full=1 (예: 견적서.html?t=…&full=1)
+   · 항상 포함으로 되돌리려면: SHOW_CONTRACT_PAGES 를 true 로 */
+const SHOW_CONTRACT_PAGES = new URLSearchParams(location.search).get("full") === "1";
 document.getElementById("root").innerHTML =
-  pgCover + pgQuote + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgSafety + pgRisk + pgTerms;
+  pgCover + pgQuote + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance
+  + (SHOW_CONTRACT_PAGES ? pgSafety + pgRisk + pgTerms : "");
 document.title = `${B.company}_${Q.customer}님_맞춤견적서_${Q.quoteNo}`;
 }
 </script>

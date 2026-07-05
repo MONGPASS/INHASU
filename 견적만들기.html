@@ -548,18 +548,78 @@ $("addBalBtn").onclick = () => {
   renderBalances();
 };
 
+/* ── 이동시간·거리 자동 추정 ──
+   명소 라이브러리의 위도·경도로 일차별 목적지 간 거리를 계산해,
+   비어 있는 이동(move)·거리(dist) 칸을 자동으로 채웁니다.
+   · 직선거리 × 도로우회계수 1.4, 평균 55km/h (몽골 비포장 감안한 추정치)
+   · 관리자가 직접 적은 값은 절대 덮지 않음 (_auto 플래그로 구분) */
+const EXTRA_COORDS = { "울란바토르": { lat: 47.8864, lng: 106.9057 } };   // 일정지도.html과 동일
+const ROAD_FACTOR = 1.4, AVG_KMH = 55;
+
+function spotCoord(name) {
+  const n = String(name || "").trim();
+  if (!n) return null;
+  if (EXTRA_COORDS[n]) return EXTRA_COORDS[n];
+  const s = getSpots()[n];
+  return (s && s.lat != null && s.lng != null) ? { lat: +s.lat, lng: +s.lng } : null;
+}
+function haversineKm(a, b) {
+  const R = 6371, rad = x => x * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat/2)**2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const destNames = destStr => String(destStr || "").split(/<br\s*\/?>|\s\/\s/i).map(s => s.trim()).filter(Boolean);
+
+function estimateDayMove(prevLastDest, destStr) {
+  const names = destNames(destStr);
+  if (!names.length) return null;
+  const waypoints = [prevLastDest, ...names].map(spotCoord);
+  if (waypoints.some(c => !c)) return null;   // 좌표 모르는 곳이 있으면 추정 안 함
+  let km = 0;
+  for (let i = 1; i < waypoints.length; i++) km += haversineKm(waypoints[i-1], waypoints[i]);
+  km = Math.round(km * ROAD_FACTOR / 10) * 10;          // 10km 단위
+  if (km < 5) return null;                               // 같은 장소 수준이면 표기 생략
+  const halfH = Math.max(1, Math.round(km / AVG_KMH * 2)) / 2;   // 30분 단위
+  const h = Math.floor(halfH), min = halfH % 1 ? " 30분" : "";
+  return { move: `이동 약 ${h}시간${min}`, dist: `(약 ${km} km)` };
+}
+
+/* 비어 있거나(_auto) 자동으로 채웠던 일자의 이동시간을 다시 계산 */
+function autoFillMoves() {
+  ST.days.forEach((d, i) => {
+    if ((d.move || d.dist) && !d._auto) return;   // 직접 입력한 값은 유지
+    const prev = i === 0 ? "울란바토르" : (destNames(ST.days[i-1].dest).pop() || "울란바토르");
+    const est = estimateDayMove(prev, d.dest);
+    if (est) { d.move = est.move; d.dist = est.dist; d._auto = true; }
+    else if (d._auto) { d.move = ""; d.dist = ""; delete d._auto; }
+  });
+}
+
 /* ── 일정 편집 ── */
 function renumberDays() { ST.days.forEach((d, i) => d.d = i + 1); }
 
 function dayCountNote() {
   const n = nights();
   const need = (n && n > 0) ? n + 1 : null;
-  if (!need) return "";
-  if (ST.days.length === need) return `<span style="color:var(--accent)">✓ 여행 기간(${n}박 ${need}일)과 일정 칸 수가 맞습니다.</span>`;
-  return `<span style="color:#d98a3a;font-weight:700">⚠ 여행 기간은 ${n}박 ${need}일인데 일정 칸은 ${ST.days.length}개입니다. 아래에서 일자를 추가/삭제해 맞춰주세요.</span>`;
+  let html = "";
+  if (need) {
+    html = ST.days.length === need
+      ? `<span style="color:var(--accent)">✓ 여행 기간(${n}박 ${need}일)과 일정 칸 수가 맞습니다.</span>`
+      : `<span style="color:#d98a3a;font-weight:700">⚠ 여행 기간은 ${n}박 ${need}일인데 일정 칸은 ${ST.days.length}개입니다. 아래에서 일자를 추가/삭제해 맞춰주세요.</span>`;
+  }
+  // 좌표가 없어 이동시간을 자동 계산 못 한 일자 안내
+  const noCoord = ST.days.filter((d, i) => {
+    if (d.move || d.dist || !destNames(d.dest).length) return false;
+    const prev = i === 0 ? "울란바토르" : (destNames(ST.days[i-1].dest).pop() || "울란바토르");
+    return !estimateDayMove(prev, d.dest);
+  }).map(d => d.d);
+  if (noCoord.length) html += `${html ? "<br>" : ""}<span style="color:var(--gray)">ℹ ${noCoord.join("·")}일차는 좌표를 몰라 이동시간을 자동 계산하지 못했어요 — 명소 관리에서 위도·경도를 입력하거나 직접 적어주세요.</span>`;
+  return html;
 }
 
 function renderDays() {
+  autoFillMoves();   // 빈 이동시간을 좌표 기반으로 자동 채움
   $("dayCheck").innerHTML = dayCountNote();
   const snips = getSnippets();
   const snipOptions = Object.keys(snips).map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join("");
@@ -599,9 +659,12 @@ function renderDays() {
       toast(`"${e.target.value}" 일정을 불러왔습니다`);
     };
     el.querySelector(".dest").oninput = e => ST.days[i].dest = e.target.value.replace(/ \/ /g, "<br>");
+    // 목적지 입력을 마치면(blur) 이동시간을 다시 자동 계산해 표시
+    el.querySelector(".dest").onchange = () => { if (ST.days[i]._auto) { ST.days[i].move = ""; ST.days[i].dist = ""; } renderDays(); };
     el.querySelector(".move").oninput = e => {
       const m = e.target.value.match(/^(.*?)(\(.*\))?\s*$/);
       ST.days[i].move = (m[1]||"").trim(); ST.days[i].dist = (m[2]||"").trim();
+      delete ST.days[i]._auto;   // 직접 입력 → 이후 자동 계산이 덮지 않음
     };
     el.querySelector(".items").oninput = e => ST.days[i].items = e.target.value.split("\n").filter(x => x.trim());
     el.querySelector(".stay").oninput = e => ST.days[i].stay = { name: e.target.value, tags: ST.days[i].stay?.tags||[] };
@@ -676,7 +739,8 @@ function buildQuote() {
   // ⑥ 표지 이미지 라벨 = 여행지 (이미지 파일 자체는 디자인 자산이라 유지)
   Q.images = { ...BASE.images, coverLabel: `${Q.destination} 대표 이미지` };
 
-  Q.days = ST.days;
+  autoFillMoves();   // 빈 이동시간 자동 채움 (안전망)
+  Q.days = ST.days.map(({ _auto, ...d }) => d);   // 내부 플래그는 견적서에 저장하지 않음
   const LIB = getSpots();
   Q.highlights = ST.spots.map(name => {
     const s = LIB[name] || {};
@@ -741,18 +805,69 @@ function restoreFromQuote(q) {
   return true;
 }
 
-$("previewBtn").onclick = $("hGoBtn").onclick = () => { save(); window.open("견적서.html", "_blank"); };
-$("mapBtn").onclick = $("hMapBtn").onclick = () => { save(); window.open("일정지도.html", "_blank"); };
-
-/* ── 고객에게 발행 (저장 + 링크 생성) ──
-   · 요청에서 열림  → 기존 요청 레코드에 견적을 붙여 저장(PATCH)
-   · 직접 작성(워크인) → 새 견적 레코드를 만들어 저장(POST), 링크용 토큰 자동 생성
-   두 경우 모두 고객은 내견적.html?t=<token> 링크로 견적서를 봅니다. */
+/* ── 고객 기록 저장 (미리보기·발행 공용) ──
+   · 첫 저장(워크인): 새 레코드 생성(POST, 기본 상태 "진행중") → REQ_ID/REQ_TOKEN 보관
+   · 이후/요청에서 열림: 같은 레코드에 견적을 갱신(PATCH, 관리자 토큰)
+   → 견적서를 "미리보기"만 해도 관리자 견적 문의 목록에 고객 기록이 남습니다. */
 function randToken() {
   const a = new Uint8Array(16);   // 128-bit 랜덤 (추측 불가 링크)
   crypto.getRandomValues(a);
   return [...a].map(b => b.toString(16).padStart(2, "0")).join("");
 }
+let SAVING_REC = false;
+async function ensureRecord(fields = {}) {
+  if (!ST.customer.trim()) return { ok: false, skip: true };   // 고객명 없으면 기록 안 함
+  if (SAVING_REC) return { ok: false, busy: true };
+  SAVING_REC = true;
+  try {
+    const q = buildQuote();
+    if (REQ_ID && REQ_TOKEN) {
+      if (!ADMIN_TOKEN) return { ok: false, error: "관리자 로그인이 필요합니다" };
+      const res = await fetch(`/api/requests/${encodeURIComponent(REQ_ID)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
+        body: JSON.stringify({ quote: q, ...fields }),
+      });
+      if (res.status === 401) return { ok: false, error: "관리자 인증이 만료됐어요. 다시 로그인해 주세요." };
+      if (!res.ok) return { ok: false, error: "http " + res.status };
+      return { ok: true, token: REQ_TOKEN };
+    }
+    // 워크인 최초 저장
+    const token = randToken();
+    const id = Date.now() + "_walkin";
+    const n = nights();
+    const res = await fetch(`/api/requests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id, token, status: "진행중",
+        name: ST.customer.trim(), destination: ST.destination || "",
+        depart: ST.depart || "", return_: ST.return_ || "",
+        nights: n && n > 0 ? n : null,
+        adult: ST.pax || 0, child: 0, infant: 0,
+        receivedAt: new Date().toISOString(),
+        source: "walkin", quote: q, ...fields,
+      }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!j.ok) return { ok: false, error: j.error || "저장 실패" };
+    REQ_ID = id; REQ_TOKEN = token;   // 이후 미리보기·발행은 이 레코드를 갱신
+    return { ok: true, token, created: true };
+  } catch (e) {
+    return { ok: false, error: String(e.message || e) };
+  } finally { SAVING_REC = false; }
+}
+
+/* 미리보기·지도보기: 화면은 바로 열고, 고객 기록은 백그라운드로 저장 */
+let recWarned = false;
+function autoRecord() {
+  ensureRecord().then(r => {
+    if (r.ok && r.created) toast("☁ 고객 기록이 견적 문의 목록에 저장됐어요");
+    else if (!r.ok && r.error && !recWarned) { recWarned = true; toast("⚠ 고객 기록 저장 실패: " + r.error); }
+  });
+}
+$("previewBtn").onclick = $("hGoBtn").onclick = () => { save(); window.open("견적서.html", "_blank"); autoRecord(); };
+$("mapBtn").onclick = $("hMapBtn").onclick = () => { save(); window.open("일정지도.html", "_blank"); autoRecord(); };
 function showLinkBox(link) {
   $("linkUrl").value = link;
   $("linkOpen").href = link;
@@ -765,54 +880,20 @@ $("linkCopy").onclick = () => {
 $("linkClose").onclick = () => $("linkMask").classList.remove("on");
 $("linkMask").onclick = e => { if (e.target === $("linkMask")) $("linkMask").classList.remove("on"); };
 
+/* ── 고객에게 발행: 기록 저장(ensureRecord) + 상태 "완료" + 고객 링크 안내 ── */
 const pubBtn = $("publishBtn");
 pubBtn.onclick = async () => {
-  const q = buildQuote();
   if (!ST.customer.trim()) { toast("먼저 고객명을 입력하세요"); $("f_customer").focus(); return; }
   if (!confirm("이 견적을 저장하고 고객에게 보낼 링크를 만들까요?")) return;
   pubBtn.disabled = true; const label = pubBtn.textContent; pubBtn.textContent = "저장 중…";
-  try {
-    let token = REQ_TOKEN;
-    if (REQ_ID && REQ_TOKEN) {
-      // 기존 고객 요청에 발행
-      if (!ADMIN_TOKEN) throw new Error("관리자 로그인이 필요합니다");
-      const res = await fetch(`/api/requests/${encodeURIComponent(REQ_ID)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
-        body: JSON.stringify({ quote: q, status: "완료" }),
-      });
-      if (res.status === 401) throw new Error("관리자 인증이 만료됐어요. 관리자 페이지에서 다시 로그인해 주세요.");
-      if (!res.ok) throw new Error("http " + res.status);
-    } else {
-      // 워크인: 새 견적 레코드 생성
-      token = randToken();
-      const n = nights();
-      const res = await fetch(`/api/requests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: Date.now() + "_walkin", token, status: "완료",
-          name: ST.customer.trim(), destination: ST.destination || "",
-          depart: ST.depart || "", return_: ST.return_ || "",
-          nights: n && n > 0 ? n : null,
-          adult: ST.pax || 0, child: 0, infant: 0,
-          receivedAt: new Date().toISOString(),
-          source: "walkin", quote: q,
-        }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!j.ok) throw new Error(j.error || "저장 실패");
-    }
-    const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + token;
-    try { await navigator.clipboard.writeText(link); } catch (e) {}
-    clearDraft();   // 발행 완료 → 초안 정리
-    showLinkBox(link);
-    toast("✓ 저장 완료 — 링크가 복사됐어요");
-  } catch (e) {
-    toast("⚠ 저장 실패: " + (e.message || "서버 연결을 확인하세요"));
-  } finally {
-    pubBtn.disabled = false; pubBtn.textContent = label;
-  }
+  const r = await ensureRecord({ status: "완료" });
+  pubBtn.disabled = false; pubBtn.textContent = label;
+  if (!r.ok) { toast("⚠ 저장 실패: " + (r.error || "서버 연결을 확인하세요")); return; }
+  const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + r.token;
+  try { await navigator.clipboard.writeText(link); } catch (e) {}
+  clearDraft();   // 발행 완료 → 초안 정리
+  showLinkBox(link);
+  toast("✓ 저장 완료 — 링크가 복사됐어요");
 };
 $("resetBtn").onclick = () => {
   if (!confirm("입력한 내용을 모두 지울까요?")) return;
