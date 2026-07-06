@@ -123,8 +123,12 @@
   .total-bar .t:nth-child(3){background:#06c4a0}.total-bar .t:nth-child(4){background:#06c4a0}
 
   /* 일정 편집 */
-  .day-edit { border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
+  .day-edit { border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; background:#fff; transition:box-shadow .12s, border-color .12s; }
+  .day-edit.dragging { opacity:.45; }
+  .day-edit.drag-over { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent) inset; }
   .day-edit .dh { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .day-edit .dh .drag-handle { cursor:grab; color:#c2ccc9; font-size:17px; line-height:1; padding:0 2px; user-select:none; flex:0 0 auto; }
+  .day-edit .dh .drag-handle:active { cursor:grabbing; }
   .day-edit .dh .badge { background:var(--deep); color:#fff; border-radius:7px; padding:4px 10px; font-size:12.5px; font-weight:800; }
   .day-edit .dh input.dest { flex:1; font-weight:700; }
   .day-edit .dh input.move { max-width:150px; }
@@ -575,6 +579,7 @@ function dayCountNote() {
 }
 
 function renderDays() {
+  let dragIdx = null;   // 드래그 중인 일자 인덱스
   $("dayCheck").innerHTML = dayCountNote();
   const snips = getSnippets();
   // 카테고리(지역)별로 optgroup 그룹핑 — 일정관리의 cat 필드 사용
@@ -595,6 +600,7 @@ function renderDays() {
   $("dayList").innerHTML = ST.days.map((d, i) => `
     <div class="day-edit" data-i="${i}">
       <div class="dh">
+        <span class="drag-handle" title="드래그해서 순서 변경">⠿</span>
         <span class="badge">${d.d}일차</span>
         <input class="dest" value="${esc((d.dest||"").replace(/<br\s*\/?>/gi," / "))}" placeholder="목적지">
         <input class="move" value="${esc(d.move||"")} ${esc(d.dist||"")}" placeholder="이동 6시간 (300 km)">
@@ -639,6 +645,31 @@ function renderDays() {
       if (ST.days.length <= 1) { toast("최소 1일은 필요합니다"); return; }
       ST.days.splice(i, 1); renumberDays(); renderDays();
     };
+    // ── 드래그앤드랍 순서 변경 (핸들로만 시작) ──
+    const _h = el.querySelector(".drag-handle");
+    _h.addEventListener("mousedown", () => { el.draggable = true; });
+    _h.addEventListener("mouseup", () => { el.draggable = false; });
+    el.addEventListener("dragstart", e => {
+      dragIdx = i; el.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", String(i)); } catch (_) {}
+    });
+    el.addEventListener("dragend", () => {
+      el.draggable = false; el.classList.remove("dragging");
+      $("dayList").querySelectorAll(".day-edit").forEach(x => x.classList.remove("drag-over"));
+    });
+    el.addEventListener("dragover", e => {
+      e.preventDefault(); e.dataTransfer.dropEffect = "move";
+      if (dragIdx !== null && dragIdx !== i) el.classList.add("drag-over");
+    });
+    el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
+    el.addEventListener("drop", e => {
+      e.preventDefault(); el.classList.remove("drag-over");
+      if (dragIdx === null || dragIdx === i) return;
+      const [moved] = ST.days.splice(dragIdx, 1);
+      ST.days.splice(i, 0, moved);
+      dragIdx = null; renumberDays(); renderDays();
+    });
   });
   $("dayAddBtn").onclick = () => {
     ST.days.push({ d: ST.days.length + 1, dest: "", move: "", dist: "", items: [], stay: { name: "", tags: [] }, meals: ["", "", ""] });
