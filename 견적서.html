@@ -227,7 +227,7 @@ const pgSchedule = `
   <div style="margin-top:20px; font-size:10.5px; color:#8CA39D; line-height:1.85;">
     ${Q.scheduleNotes.map(n => `<div>* ${esc(n)}</div>`).join("")}
   </div>
-  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 일정표</span><span>02</span></div>
+  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 일정표</span><span>04</span></div>
 </div>`;
 
 /* ══════════ 03 명소 ══════════ */
@@ -250,7 +250,7 @@ const pgSpots = `
     <span class="logo-mark">${LOGO}</span>
   </div>
   ${Q.highlights.map((h, i) => spotBlock(h) + (i < Q.highlights.length - 1 ? `<div style="height:1px; background:#EAF3EF; margin:24px 0;"></div>` : "")).join("")}
-  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서</span><span>03</span></div>
+  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서</span><span>05</span></div>
 </div>`;
 
 /* ══════════ 04 게르 비교 ══════════ */
@@ -306,7 +306,7 @@ const pgLodge = `
       <div><b style="color:#06C4A0;">3.</b> 매년 답사와 여행자 만족도 등을 반영하여 신축캠프장 위주로 캠프장을 엄선합니다.</div>
     </div>
   </div>
-  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 게르 안내</span><span>04</span></div>
+  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 게르 안내</span><span>06</span></div>
 </div>`;
 
 /* ══════════ 05 은하수 팀 ══════════ */
@@ -343,7 +343,7 @@ const pgTeam = `
     <div style="margin-top:10px;"><b>🐫고비 투어 / 🚤홉스골 투어:</b></div>
     <div>* 인원 무관: 장거리 오프로드 이동이 많은 코스 특성상, 여행의 안전과 피로도를 최소화하기 위해 [전문 가이드 1인 + 기사 1인]이 2인 1조로 고정 배정됩니다.</div>
   </div>
-  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 은하수 팀 안내</span><span>05</span></div>
+  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 은하수 팀 안내</span><span>07</span></div>
 </div>`;
 
 /* ══════════ 06 식사 ══════════ */
@@ -380,7 +380,7 @@ const pgMeals = `
     ${localCat("군만두", "(호쇼르)", Q.images.locals[0])}${localCat("찐만두", "(보오쯔)", Q.images.locals[1])}${localCat("볶음 국수", "(초이왕)", Q.images.locals[2])}${localCat("고기 덮밥", "(골리야시)", Q.images.locals[3])}
     <div></div><div></div>
   </div>
-  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 식사 안내</span><span>06</span></div>
+  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 식사 안내</span><span>08</span></div>
 </div>`;
 
 /* ══════════ 07 여행자 보험 & 액티비티 ══════════ */
@@ -411,7 +411,7 @@ const pgInsurance = `
   <div style="margin-top:24px; background:#FBEEEA; border:1px solid #F1CFC6; border-radius:12px; padding:18px 22px; text-align:center;">
     <div style="color:#C9604B; font-size:14px; font-weight:800; line-height:1.6;"><b>❗ 체험 프로그램 참여 안내 ❗</b><br><span style="font-weight:600;">투어 중 진행되는 액티비티 체험 전에 <b>'면책동의서'</b> 작성을 진행할 예정입니다. 체험 중 발생할 수 있는 안전사고에 대해 투어사에 법적 책임을 묻거나 별도의 보상을 요구하실 수 없으므로, 동의서 내용을 꼼꼼히 확인해 주시고 현장 가이드의 안전 수칙을 철저히 준수하여 안전하고 즐거운 체험을 즐겨주시기 바랍니다.</span></div>
   </div>
-  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 · 여행자 보험 &amp; 체험 유의사항</span><span>07</span></div>
+  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 · 여행자 보험 &amp; 체험 유의사항</span><span>09</span></div>
 </div>`;
 
 /* ══════════ 08 해외 안전정보 ══════════ */
@@ -444,7 +444,7 @@ const pgSafety = `
       <div>· 현지에서 구급차량이 필요할 경우 긴급전화 <b>103번</b>으로 연락하시기 바랍니다.</div>
     </div>
   </div>
-  <div class="pfoot"><span>${esc(B.companyFull)} · 해외 안전정보</span><span>08</span></div>
+  <div class="pfoot"><span>${esc(B.companyFull)} · 해외 안전정보</span><span>10</span></div>
 </div>`;
 
 /* ══════════ 09 위험 고지 ══════════ */
@@ -469,7 +469,7 @@ const pgRisk = `
     <div><b style="color:#C9604B;">2</b> 각종 암, 혹은 여행 중 문제가 발생할 수 있는 모든 질병</div>
     <div><b style="color:#C9604B;">3</b> 생명에 이상이 발생할 수 있는 약물을 투여 중인 환자 / 임신하신 분</div>
   </div>
-  <div class="pfoot"><span>${esc(B.companyFull)} · 위험 고지</span><span>09</span></div>
+  <div class="pfoot"><span>${esc(B.companyFull)} · 위험 고지</span><span>11</span></div>
 </div>`;
 
 /* ══════════ 10 계약·약관 ══════════ */
@@ -493,12 +493,57 @@ const pgTerms = `
   <div style="margin-top:20px; background:#F5FBF9; border:1.5px solid #BFE6D9; border-radius:14px; padding:16px 20px; font-size:12.5px; font-weight:700; line-height:1.9; color:#06c4a0;">
     ✓ 본인은 위의 고지사항을 안내받고, 충분히 본 여행의 특수성을 확인했음을 인정하며, 위 내용에 대하여 고지받았으므로 이에 대한 책임은 본인에게 있음을 인지하고 계약을 진행합니다.
   </div>
-  <div class="pfoot"><span>${esc(B.companyFull)} · 계약 전 확인 사항 · 약관</span><span>10</span></div>
+  <div class="pfoot"><span>${esc(B.companyFull)} · 계약 전 확인 사항 · 약관</span><span>12</span></div>
+</div>`;
+
+/* ── 투어 포함/불포함 사항 (디자인 3p) — 가격 다음 페이지 ── */
+const pgInclusions = `
+<div class="page" style="padding:44px 52px; display:flex; flex-direction:column;">
+  <div style="text-align:center;">
+    <div style="font-family:'Playfair Display',serif; font-style:italic; font-size:15px; color:#06C4A0; letter-spacing:0.08em;">MONGOLIA MILKY WAY</div>
+    <div style="color:#152C28; font-size:30px; font-weight:800; letter-spacing:-0.02em; margin-top:6px;">투어 포함사항과 불포함 사항</div>
+    <div style="color:#40544F; font-size:13px; margin-top:8px;">여행에 꼭 필요한 서비스를 모두 포함하여 편안하고 안전한 여행을 제공합니다. <b style="color:#0A6A5E;">현지 추가 비용 일절 없습니다.</b></div>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:22px; margin-bottom:22px; flex:1; grid-auto-rows:1fr;">
+    ${[["🏕️","전일정 숙박"],["🍽️","전일정 현지 맛집 식사"],["🍲","특식 2회"],["🚐","픽업 & 샌딩"],["🚙","전일정 차량"],["🧭","전문 가이드"],["🎟️","여행지 입장료"],["💧","1일 1생수 제공"],["🐫","액티비티 비용"],["🗺️","맞춤형 투어"],["☕","모카포트 커피"],["🪑","캠핑 의자 · 테이블"],["🧦","몽골 낙타양말"],["🧥","판초 제공"],["🌌","새벽 은하수 헌팅"]].map(([ic,label]) => `<div style="background:#F5FBF9; border:1px solid #E3F0EB; border-radius:14px; padding:22px 10px; min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><span style="width:56px; height:56px; border-radius:50%; background:#EAF7F3; display:flex; align-items:center; justify-content:center; font-size:27px;">${ic}</span><span style="font-size:13px; font-weight:700; color:#152C28; text-align:center;">${label}</span></div>`).join("")}
+  </div>
+  <div style="margin-top:auto; background:#FBEEEA; border:1px solid #F1CFC6; border-radius:14px; padding:20px 24px; display:flex; align-items:center; gap:20px;">
+    <div style="flex:none; text-align:center;">
+      <div style="width:46px; height:46px; border-radius:50%; background:#E4A99B; color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; margin:0 auto;">✕</div>
+      <div style="color:#C9604B; font-size:16px; font-weight:800; margin-top:8px;">불포함<br>사항</div>
+    </div>
+    <div style="flex:1; display:flex; flex-wrap:wrap; gap:10px;">
+      ${["왕복 항공권","개인경비","선택관광 비용","여행자 보험","휴대폰 유심비"].map(x => `<span style="background:#fff; border:1px solid #E8D3CC; color:#9A4634; font-size:13px; font-weight:700; padding:9px 16px; border-radius:22px;">${x}</span>`).join("")}
+    </div>
+  </div>
+  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 포함/불포함 사항</span><span>02</span></div>
+</div>`;
+
+/* ── 2026 특별 혜택 (디자인 4p) ── */
+const pgBenefits = `
+<div class="page" style="padding:44px 52px; display:flex; flex-direction:column;">
+  <div style="text-align:center; position:relative;">
+    <svg style="position:absolute; left:0; top:-4px;" width="70" height="60" viewBox="0 0 70 60" fill="none"><path d="M14 8 L20 26 M8 18 L30 20 M12 30 L26 12" stroke="#152C28" stroke-width="1.6" stroke-linecap="round"></path><path d="M40 30 L44 44 M34 38 L52 36" stroke="#06C4A0" stroke-width="1.6" stroke-linecap="round"></path></svg>
+    <svg style="position:absolute; right:0; top:-4px; transform:scaleX(-1);" width="70" height="60" viewBox="0 0 70 60" fill="none"><path d="M14 8 L20 26 M8 18 L30 20 M12 30 L26 12" stroke="#152C28" stroke-width="1.6" stroke-linecap="round"></path><path d="M40 30 L44 44 M34 38 L52 36" stroke="#06C4A0" stroke-width="1.6" stroke-linecap="round"></path></svg>
+    <div style="color:#40544F; font-size:16px; font-weight:700;">2026년 몽골리아 은하수의</div>
+    <div style="color:#152C28; font-size:32px; font-weight:800; letter-spacing:-0.02em; margin-top:4px;"><span style="color:#06C4A0;">특별 혜택</span>을 소개합니다</div>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:22px; margin-bottom:22px; flex:1; grid-auto-rows:1fr;">
+    ${[["🌌","당신의 삶을 우러러 볼 시간","새벽 은하수 헌팅",0],["🪑","6인 이하 팀에 한해 모두 제공","캠핑 의자 · 테이블",0],["🧦","모든 분들께 기념품 증정","몽골 낙타 양말",0],["☕","초원에서 커피 한잔의 여유","모카포트 커피",0],["🧥","6인 이하 팀에 한해 모두 제공","인생샷 필수품 판초",0],["💧","모든 갈증은 은하수가 해결","매일 생수 제공",0],["🍲","매일매일이 맛집 투어","특식 2회 이상",0],["🗺️","일정 내에서 자유롭게 조율 가능","맞춤형 투어",0],["🚫","추가로 제안하는 옵션·팁은 사절","일체 추가요금 없음",1]].map(([ic,sub,label,hi]) => `<div style="background:${hi?"#EAF7F3":"#F5FBF9"}; border:${hi?"1.5px solid #06C4A0":"1px solid #E3F0EB"}; border-radius:14px; padding:20px 14px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center;"><div style="width:66px; height:66px; border-radius:50%; background:${hi?"#fff":"#EAF7F3"}; display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto;">${ic}</div><div style="color:${hi?"#0A6A5E":"#8CA39D"}; font-size:11px; margin-top:12px;">${sub}</div><div style="color:${hi?"#06C4A0":"#152C28"}; font-size:16px; font-weight:800; margin-top:4px;">${label}</div></div>`).join("")}
+  </div>
+  <div style="margin-top:auto; background:#0A6A5E; border-radius:14px; padding:22px 26px; display:flex; align-items:center; justify-content:center; gap:14px;">
+    <span style="font-size:26px;">🌟</span>
+    <div style="text-align:center;">
+      <div style="color:#7FD8C4; font-family:'Playfair Display',serif; font-style:italic; font-size:13px;">All included, no hidden fees</div>
+      <div style="color:#fff; font-size:18px; font-weight:800; margin-top:3px;">이 모든 혜택을 추가요금 없이, 몽골리아 은하수와 함께하세요</div>
+    </div>
+  </div>
+  <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 - 특별 혜택</span><span>03</span></div>
 </div>`;
 
 /* ── 렌더 ── */
 document.getElementById("root").innerHTML =
-  pgCover + pgQuote + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgSafety + pgRisk + pgTerms;
+  pgCover + pgQuote + pgInclusions + pgBenefits + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgSafety + pgRisk + pgTerms;
 document.title = `${B.company}_${Q.customer}님_맞춤견적서_${Q.quoteNo}`;
 }
 </script>
