@@ -81,6 +81,9 @@
   .day-edit .day-del { border:none; background:#f6eeee; color:#c96a5e; width:28px; height:28px; border-radius:8px; font-size:14px; cursor:pointer; flex:0 0 auto; }
   .day-edit textarea.items { min-height:88px; font-size:13px; }
   .day-edit .lbl2 { font-size:11px; color:var(--gray); margin:8px 0 5px; }
+  .day-edit .snip-row { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+  .day-edit .snip-sel { width:auto; min-width:180px; padding:8px 12px; border:1.5px solid var(--accent); border-radius:9px; background:var(--soft); color:var(--deep); font-weight:700; font-size:12.5px; cursor:pointer; font-family:inherit; }
+  .day-edit .snip-hint { font-size:11px; color:var(--gray); }
   .day-add { width:100%; padding:12px; border:1.5px dashed var(--accent); background:#fff; color:var(--deep); border-radius:11px; font-size:13.5px; font-weight:800; cursor:pointer; font-family:inherit; }
   .day-add:hover { background:var(--soft); }
 
@@ -204,6 +207,14 @@ function openEdit(key) {
   // 일자 편집
   function renumber() { draftDays.forEach((d,i)=>d.d=i+1); }
   function renderDays() {
+    // 일정관리에서 만든 스니펫을 카테고리(지역)별 optgroup으로
+    const _snips = getSnippets();
+    const _cats = (window.getSnippetCats ? getSnippetCats() : []);
+    const _byCat = {};
+    Object.entries(_snips).forEach(([name, s]) => { const c = (s && s.cat ? String(s.cat).trim() : "") || "기타"; (_byCat[c] = _byCat[c] || []).push(name); });
+    const _ordered = [..._cats.filter(c => _byCat[c]), ...Object.keys(_byCat).filter(c => !_cats.includes(c) && c !== "기타")];
+    if (_byCat["기타"]) _ordered.push("기타");
+    const snipOptions = _ordered.map(c => `<optgroup label="${esc(c)}">${_byCat[c].map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</optgroup>`).join("");
     $("dayList").innerHTML = draftDays.map((d,i)=>`
       <div class="day-edit" data-i="${i}">
         <div class="dh2">
@@ -212,6 +223,7 @@ function openEdit(key) {
           <input class="move" value="${esc(d.move||"")} ${esc(d.dist||"")}" placeholder="이동 6시간 (300 km)">
           <button class="day-del" title="삭제">✕</button>
         </div>
+        <div class="snip-row"><select class="snip-sel"><option value="">📋 일정 불러오기…</option>${snipOptions}</select><span class="snip-hint">클릭 한 번에 이 일자를 채웁니다.</span></div>
         <textarea class="items" placeholder="한 줄에 하나씩. *강조, (회색">${esc((d.items||[]).join("\n"))}</textarea>
         <div class="lbl2">숙소 / 숙소태그(쉼표) / 식사(조·중·석)</div>
         <div class="row3">
@@ -230,6 +242,14 @@ function openEdit(key) {
       el.querySelector(".tags").oninput = e => draftDays[i].stay = { name:draftDays[i].stay?.name||"", tags:e.target.value.split(",").map(x=>x.trim()).filter(Boolean) };
       el.querySelector(".meals").oninput = e => draftDays[i].meals = e.target.value.split(",").map(x=>x.trim());
       el.querySelector(".day-del").onclick = () => { if (draftDays.length<=1){toast("최소 1일 필요");return;} draftDays.splice(i,1); renumber(); renderDays(); };
+      el.querySelector(".snip-sel").onchange = e => {
+        const s = getSnippets()[e.target.value];
+        if (!s) return;
+        const dNum = draftDays[i].d;
+        draftDays[i] = { d:dNum, dest:s.dest||"", move:s.move||"", dist:s.dist||"", items:[...(s.items||[])], stay:{ name:s.stay?.name||"", tags:[...(s.stay?.tags||[])] }, meals:[...(s.meals||["","",""])] };
+        renderDays();
+        toast(`"${e.target.value}" 일정을 불러왔습니다`);
+      };
     });
     $("dayAddBtn").onclick = () => { draftDays.push(blankDay(draftDays.length)); renderDays(); const c=$("dayList").querySelectorAll(".day-edit"); c[c.length-1]?.scrollIntoView({behavior:"smooth",block:"center"}); };
   }
