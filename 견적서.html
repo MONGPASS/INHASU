@@ -59,6 +59,22 @@ const Q = await (async () => {
   return window.QUOTE;
 })();
 
+/* 명소 사진은 항상 명소관리 최신본을 우선 반영 —
+   견적 발행 뒤 명소관리에서 이미지를 바꿔도 이미 만든 견적서에 바로 나타나도록 */
+if (Q && Array.isArray(Q.highlights) && Q.highlights.length) {
+  try {
+    const r = await fetch("/api/data/spots", { cache: "no-store" });
+    const j = await r.json();
+    const lib = (j && j.ok && j.data) ? j.data : null;
+    if (lib) Q.highlights.forEach(h => {
+      const s = h && h.name ? lib[h.name] : null;
+      if (!s) return;
+      if (s.img) h.img = s.img;
+      if (Array.isArray(s.subImgs) && s.subImgs.some(x => x)) h.subImgs = s.subImgs;
+    });
+  } catch (e) { /* 서버 없음(로컬 미리보기) → 견적에 저장된 이미지 그대로 사용 */ }
+}
+
 if (!Q) {
   document.getElementById("root").innerHTML =
     `<div style="max-width:640px;margin:80px auto;padding:0 24px;text-align:center;font-family:Pretendard,sans-serif;color:#16261f">
@@ -248,15 +264,20 @@ const spotBlock = h => `
       </div>
     </div>
   </div>`;
-const pgSpots = `
+/* 명소가 많으면 A4 한 장에 3개씩 자동 페이지 분할 */
+const SPOTS_PER_PAGE = 3;
+const _hlChunks = [];
+for (let _i = 0; _i < (Q.highlights || []).length; _i += SPOTS_PER_PAGE) _hlChunks.push(Q.highlights.slice(_i, _i + SPOTS_PER_PAGE));
+if (!_hlChunks.length) _hlChunks.push([]);
+const pgSpots = _hlChunks.map((chunk, pi) => `
 <div class="page" style="padding:44px 48px;">
   <div style="display:flex; align-items:center; justify-content:space-between;">
-    <div><div class="eyebrow">GOBI HIGHLIGHTS</div><div style="color:#152C28; font-size:26px; font-weight:800; margin-top:5px;">${esc(Q.destination)} 대표 명소</div></div>
+    <div><div class="eyebrow">GOBI HIGHLIGHTS</div><div style="color:#152C28; font-size:26px; font-weight:800; margin-top:5px;">${esc(Q.destination)} 대표 명소${_hlChunks.length > 1 ? ` <span style="font-size:15px;color:#8CA39D;font-weight:700;">(${pi + 1}/${_hlChunks.length})</span>` : ""}</div></div>
     <span class="logo-mark">${LOGO}</span>
   </div>
-  ${Q.highlights.map((h, i) => spotBlock(h) + (i < Q.highlights.length - 1 ? `<div style="height:1px; background:#EAF3EF; margin:24px 0;"></div>` : "")).join("")}
+  ${chunk.map((h, i) => spotBlock(h) + (i < chunk.length - 1 ? `<div style="height:1px; background:#EAF3EF; margin:24px 0;"></div>` : "")).join("")}
   <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서</span><span>04</span></div>
-</div>`;
+</div>`).join("");
 
 /* ══════════ 04 게르 비교 ══════════ */
 const lodgeCol = (img, cap, sub, hot, side) => {
@@ -597,6 +618,10 @@ const pgCert = `
    ※ 견적 단계에선 안전정보/위험고지/약관(pgSafety·pgRisk·pgTerms) 제외 — 계약 단계에서 별도 안내 */
 document.getElementById("root").innerHTML =
   pgCover + pgQuote + pgInclusions + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgArrival + pgCert;
+/* 페이지 번호 자동 재부여 — 명소 페이지가 늘어나도 번호가 이어지도록 (표지는 푸터 없음) */
+document.querySelectorAll("#root .page .pfoot > span:last-child").forEach((el, i) => {
+  el.textContent = String(i + 1).padStart(2, "0");
+});
 document.title = `${B.company}_${Q.customer}님_맞춤견적서_${Q.quoteNo}`;
 }
 </script>
