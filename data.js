@@ -167,7 +167,7 @@ window.QUOTE = {
     cover: "img/quote/cover.webp",    // 표지 대표 이미지
     coverLabel: "고비 대표 이미지",
     lodges: ["img/quote/lodge-tent.webp", "img/quote/lodge-nomad.webp", "img/quote/lodge-std.webp", "img/quote/lodge-lux.webp"],  // 텐트/유목민게르/일반게르/고급게르
-    lodgeNote: "",                    // 게르 비교 하단 안내 이미지 (미제공)
+    lodgeNote: "img/quote/lodge-note.webp",  // 게르 비교 하단 안내 이미지 (게르 내부)
     guide: "img/quote/guide.webp",    // 가이드 사진
     meals: ["img/quote/meal-breakfast.webp", "img/quote/meal-local.webp", "img/quote/meal-special.webp"],  // 조식/현지식/특식
     specials: ["img/quote/spec-khorkhog.webp", "img/quote/spec-shabu.webp", "img/quote/spec-korean.webp", "img/quote/spec-pork.webp"],  // 허르헉/샤브샤브/한식/삼겹살

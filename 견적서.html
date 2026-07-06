@@ -94,6 +94,18 @@ const balEco = b => (b.economy != null ? b.economy : (b.amount || 0));
 const balFull = b => (b.full != null ? b.full : (b.amount || 0));
 const B = Q.brand;
 
+/* 디자인 자산 이미지(게르·식사·아이콘·허가증 등)는 data.js 최신본으로 보충 —
+   이미 발행된 견적에 빠져 있거나 비어 있는 항목도 새 이미지가 바로 반영되도록 */
+if (window.QUOTE && window.QUOTE.images) {
+  const cur = Q.images || {};
+  const merged = { ...window.QUOTE.images };
+  for (const [k, v] of Object.entries(cur)) {
+    const empty = v == null || v === "" || (Array.isArray(v) && !v.some(x => x));
+    if (!empty) merged[k] = v;
+  }
+  Q.images = merged;
+}
+
 /* 이미지 자리표시자/사진 */
 const ph = (src, label, style) => src
   ? `<div class="ph" style="${style}"><img src="${src}" alt="${esc(label)}"></div>`
@@ -273,7 +285,7 @@ if (!_hlChunks.length) _hlChunks.push([]);
 const pgSpots = _hlChunks.map((chunk, pi) => `
 <div class="page" style="padding:44px 48px;">
   <div style="display:flex; align-items:center; justify-content:space-between;">
-    <div><div class="eyebrow">GOBI HIGHLIGHTS</div><div style="color:#152C28; font-size:26px; font-weight:800; margin-top:5px;">${esc(Q.destination)} 대표 명소${_hlChunks.length > 1 ? ` <span style="font-size:15px;color:#8CA39D;font-weight:700;">(${pi + 1}/${_hlChunks.length})</span>` : ""}</div></div>
+    <div><div class="eyebrow">TOUR HIGHLIGHTS</div><div style="color:#152C28; font-size:26px; font-weight:800; margin-top:5px;">${esc(Q.destination)} 대표 명소${_hlChunks.length > 1 ? ` <span style="font-size:15px;color:#8CA39D;font-weight:700;">(${pi + 1}/${_hlChunks.length})</span>` : ""}</div></div>
     <span class="logo-mark">${LOGO}</span>
   </div>
   ${chunk.map((h, i) => spotBlock(h) + (i < chunk.length - 1 ? `<div style="height:1px; background:#EAF3EF; margin:24px 0;"></div>` : "")).join("")}
