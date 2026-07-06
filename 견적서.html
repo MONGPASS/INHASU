@@ -26,11 +26,8 @@
 
   @page { size: A4; margin: 0; }
 
-  /* 잔금 2단계(풀패키지/실속형) 탭 */
-  .bal-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-  .bal-tab { border: 1.5px solid #CDE8DF; background: #fff; color: #06c4a0; font-weight: 800; font-size: 12.5px; padding: 9px 16px; border-radius: 9px; cursor: pointer; font-family: inherit; }
-  .bal-tab.on { background: #06c4a0; color: #fff; border-color: #06c4a0; }
-  .bal-grid-label { font-size: 11px; font-weight: 700; color: #8CA39D; margin-bottom: 7px; }
+  /* 잔금 2단계(풀패키지/실속형) 라벨 */
+  .bal-grid-label { font-size: 11.5px; font-weight: 800; color: #06c4a0; margin-bottom: 5px; }
 
   @media print {
     body { background: #fff; }
@@ -38,9 +35,6 @@
     .wrap { gap: 0; padding: 0; }
     .page { box-shadow: none; page-break-after: always; }
     .page:last-child { page-break-after: auto; }
-    /* 인쇄 시 탭 숨기고 두 요금(풀패키지·실속형) 모두 표시 */
-    .bal-tabs { display: none !important; }
-    .bal-panel { display: block !important; margin-bottom: 12px; }
   }
 </style>
 </head>
@@ -175,21 +169,17 @@ const pgQuote = `
   ${(() => {
     const pills = (tier) => Q.price.balances.map(b => {
       const amt = tier === "economy" ? balEco(b) : balFull(b);
-      return `<div style="background:#06c4a0; padding:14px; text-align:center;"><div style="color:#DFF7EF; font-size:11px; font-weight:700;">${b.pax}인 잔금(1인기준)</div><div style="color:#fff; font-size:21px; font-weight:800; margin-top:8px;">${wonMan(amt)}</div></div>`;
+      return `<div style="background:#06c4a0; padding:9px 8px; text-align:center;"><div style="color:#DFF7EF; font-size:10px; font-weight:700;">${b.pax}인 잔금(1인기준)</div><div style="color:#fff; font-size:17px; font-weight:800; margin-top:4px;">${wonMan(amt)}</div></div>`;
     }).join("");
     const grid = (tier) => `<div style="display:grid; grid-template-columns:repeat(${Q.price.balances.length},1fr); gap:1px; background:#CDE8DF; border-radius:10px; overflow:hidden;">${pills(tier)}</div>`;
     return `
-    <div style="margin-top:16px;">
-      <div class="bal-tabs">
-        <button type="button" class="bal-tab on" data-t="full">🏕 풀패키지 (고급게르)</button>
-        <button type="button" class="bal-tab" data-t="economy">⛺ 실속형 (일반게르)</button>
-      </div>
-      <div class="bal-panel" data-t="full">
-        <div class="bal-grid-label">풀패키지 (고급게르) · 인원별 잔금</div>
+    <div style="margin-top:14px;">
+      <div>
+        <div class="bal-grid-label">🏕 풀패키지 (고급게르) · 인원별 잔금</div>
         ${grid("full")}
       </div>
-      <div class="bal-panel" data-t="economy" style="display:none;">
-        <div class="bal-grid-label">실속형 (일반게르) · 인원별 잔금</div>
+      <div style="margin-top:10px;">
+        <div class="bal-grid-label">⛺ 실속형 (일반게르) · 인원별 잔금</div>
         ${grid("economy")}
       </div>
     </div>`;
@@ -510,13 +500,6 @@ const pgTerms = `
 document.getElementById("root").innerHTML =
   pgCover + pgQuote + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgSafety + pgRisk + pgTerms;
 document.title = `${B.company}_${Q.customer}님_맞춤견적서_${Q.quoteNo}`;
-
-/* 잔금 요금 탭(풀패키지/실속형) 전환 */
-document.querySelectorAll(".bal-tab").forEach(tab => tab.onclick = () => {
-  const t = tab.dataset.t;
-  document.querySelectorAll(".bal-tab").forEach(x => x.classList.toggle("on", x === tab));
-  document.querySelectorAll(".bal-panel").forEach(p => p.style.display = (p.dataset.t === t) ? "" : "none");
-});
 }
 </script>
 </body>
