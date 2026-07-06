@@ -39,13 +39,14 @@
 </style>
 </head>
 <body>
-<div class="hint" id="printHint">💡 <b>Ctrl + P</b> → 대상 <b>"PDF로 저장"</b> → 여백 <b>없음</b>, 배경 그래픽 <b>켜기</b>로 인쇄하면 고객용 PDF가 됩니다. 내용은 <b>data.js</b>만 수정하세요.</div>
+<div class="hint" id="printHint" style="display:none">💡 <b>Ctrl + P</b> → 대상 <b>"PDF로 저장"</b> → 여백 <b>없음</b>, 배경 그래픽 <b>켜기</b>로 인쇄하면 고객용 PDF가 됩니다.</div>
 <div class="wrap" id="root"></div>
 
 <script type="module">
 /* 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 */
 const _token = new URLSearchParams(location.search).get("t");
-if (_token) { const _ph = document.getElementById("printHint"); if (_ph) _ph.style.display = "none"; }
+/* 인쇄 안내는 관리자용 — 기본 숨김, 고객 링크(?t=)가 아닐 때만 표시 */
+if (!_token) { const _ph = document.getElementById("printHint"); if (_ph) _ph.style.display = ""; }
 const Q = await (async () => {
   if (_token) {
     try {
