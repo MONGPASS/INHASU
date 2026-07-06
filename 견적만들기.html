@@ -577,7 +577,21 @@ function dayCountNote() {
 function renderDays() {
   $("dayCheck").innerHTML = dayCountNote();
   const snips = getSnippets();
-  const snipOptions = Object.keys(snips).map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join("");
+  // 카테고리(지역)별로 optgroup 그룹핑 — 일정관리의 cat 필드 사용
+  const snipCats = (window.getSnippetCats ? getSnippetCats() : []);
+  const byCat = {};
+  Object.entries(snips).forEach(([name, s]) => {
+    const c = (s && s.cat ? String(s.cat).trim() : "") || "기타";
+    (byCat[c] = byCat[c] || []).push(name);
+  });
+  const ordered = [
+    ...snipCats.filter(c => byCat[c]),                                    // 등록된 카테고리 순서
+    ...Object.keys(byCat).filter(c => !snipCats.includes(c) && c !== "기타"), // 목록에 없는 카테고리
+  ];
+  if (byCat["기타"]) ordered.push("기타");                                 // 미분류는 맨 뒤
+  const snipOptions = ordered.map(c =>
+    `<optgroup label="${esc(c)}">${byCat[c].map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join("")}</optgroup>`
+  ).join("");
   $("dayList").innerHTML = ST.days.map((d, i) => `
     <div class="day-edit" data-i="${i}">
       <div class="dh">
