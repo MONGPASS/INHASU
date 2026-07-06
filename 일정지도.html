@@ -154,6 +154,40 @@ for (const [name, s] of Object.entries(_lib)) {
   if (h && h.name && SPOTS[h.name] && h.img && !SPOTS[h.name].img) SPOTS[h.name].img = h.img;
 });
 
+/* 명소 라이브러리에 없지만 일정에 자주 쓰이는 고정 지점 + 이름 별칭 (좌표 자동 연결용) */
+const EXTRA_SPOTS = {
+  "칭기스칸국제공항": { lat: 47.6478, lng: 106.8206, desc: "칭기스칸 국제공항" },
+  "칭기즈칸국제공항": { lat: 47.6478, lng: 106.8206, desc: "칭기스칸 국제공항" },
+  "어기호수":        { lat: 47.7667, lng: 102.7167, desc: "어기 호수(Ögii)" },
+  "우기호수":        { lat: 47.7667, lng: 102.7167, desc: "어기 호수(Ögii)" },
+  "미니사막":        { lat: 47.3500, lng: 103.6700, desc: "미니 고비(엘승타사르하이)" },
+  "미니고비":        { lat: 47.3500, lng: 103.6700, desc: "미니 고비(엘승타사르하이)" },
+  "엘슨타사르해":    { lat: 47.3500, lng: 103.6700, desc: "엘승타사르하이" },
+  "하르허링":        { lat: 47.1970, lng: 102.8230, desc: "하르허링(카라코룸)" },
+  "쳉헤르온천":      { lat: 47.3175, lng: 101.6503, desc: "쳉헤르 온천" },
+  "호스타이국립공원": { lat: 47.7500, lng: 105.9000, desc: "호스타이 국립공원" },
+  "오르혼폭포":      { lat: 46.7900, lng: 101.9600, desc: "오르혼 폭포" },
+  "오르혼계곡":      { lat: 46.7900, lng: 101.9600, desc: "오르혼 계곡" },
+  "무릉":           { lat: 49.6342, lng: 100.1625, desc: "무릉(Mörön)" },
+  "하트갈":         { lat: 50.4400, lng: 100.1600, desc: "하트갈(홉스굴 남단)" },
+  "아마르바야스갈란트": { lat: 49.4833, lng: 105.0833, desc: "아마르바야스갈란트 사원" },
+};
+
+/* 이름 매칭: 정확일치 → 별칭 → 부분일치. 공백·구두점·대소문자 무시 */
+const _norm = s => (s || "").normalize("NFC").replace(/[\s·・.,()]/g, "").toLowerCase();
+const _spotNorm = {}, _extraNorm = {};
+for (const [k, v] of Object.entries(SPOTS)) _spotNorm[_norm(k)] = { ...v };
+for (const [k, v] of Object.entries(EXTRA_SPOTS)) _extraNorm[_norm(k)] = v;
+function resolveSpot(raw) {
+  const k = _norm(raw);
+  if (!k) return null;
+  if (_spotNorm[k]) return _spotNorm[k];    // 명소 라이브러리 정확 일치
+  if (_extraNorm[k]) return _extraNorm[k];  // 내장 고정지점/별칭 정확 일치
+  for (const [nk, v] of Object.entries(_spotNorm))  if (nk.length >= 2 && (k.includes(nk) || nk.includes(k))) return v;  // 부분 일치(라이브러리 우선)
+  for (const [nk, v] of Object.entries(_extraNorm)) if (nk.length >= 2 && (k.includes(nk) || nk.includes(k))) return v;
+  return null;
+}
+
 const DAY_COLORS = ["#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0"];
 
 /* ── 헤더 채우기 ── */
@@ -171,7 +205,7 @@ const stops = [];             // {n, day, name, spot, move}
 Q.days.forEach((d, di) => {
   const names = d.dest.split(/<br\s*\/?>/i).map(s => s.trim()).filter(Boolean);
   names.forEach(name => {
-    const spot = SPOTS[name];
+    const spot = resolveSpot(name);
     stops.push({ n: ++seq, day: d.d, di, name, spot, move: d.move + " " + d.dist });
   });
 });
