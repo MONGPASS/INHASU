@@ -591,9 +591,10 @@ const pgCert = `
   <div class="pfoot"><span>${esc(B.companyFull)} 맞춤 견적서 · 공식 허가증</span><span>11</span></div>
 </div>`;
 
-/* ── 렌더 ── */
+/* ── 렌더 ──
+   ※ 견적 단계에선 안전정보/위험고지/약관(pgSafety·pgRisk·pgTerms) 제외 — 계약 단계에서 별도 안내 */
 document.getElementById("root").innerHTML =
-  pgCover + pgQuote + pgInclusions + pgBenefits + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgArrival + pgCert + pgSafety + pgRisk + pgTerms;
+  pgCover + pgQuote + pgInclusions + pgBenefits + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgArrival + pgCert;
 document.title = `${B.company}_${Q.customer}님_맞춤견적서_${Q.quoteNo}`;
 }
 </script>
