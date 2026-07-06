@@ -173,5 +173,9 @@ window.QUOTE = {
     specials: ["img/quote/spec-khorkhog.webp", "img/quote/spec-shabu.webp", "img/quote/spec-korean.webp", "img/quote/spec-pork.webp"],  // 허르헉/샤브샤브/한식/삼겹살
     locals: ["img/quote/local-khuushuur.webp", "img/quote/local-buuz.webp", "img/quote/local-tsuivan.webp", "img/quote/local-goulash.webp"],  // 호쇼르/보오쯔/초이왕/골리야시
     docs: ["", "", "", "", ""],       // 등록 서류 (미사용)
+    // 공항 가이드 미팅 사진 (미제공 시 회색 자리표시)
+    arrival: { gate: "", board: "", wide: "" },  // 입국게이트 / 픽업보드 / 공항미팅 대표(가로)
+    // 공식 허가증 6장 (현지허가증3 · 국내사업자등록증 · 통신판매업신고증 · 중소기업확인서)
+    certs: ["", "", "", "", "", ""],
   },
 };
