@@ -56,13 +56,13 @@ window.QUOTE = {
       { label: "호텔 업그레이드(1박/3성급>4성급)", calc: "5,000원*5일" },
       { label: "은하수 후기 이벤트 1번", calc: "10,000원*1인" },
     ],
-    // 인원별 잔금 (1인기준) — 원 단위로 입력, 화면엔 만원으로 표시
+    // 인원별 잔금 (1인기준) — economy=실속형(일반게르), full=풀패키지(고급게르). 원 단위 입력.
     balances: [
-      { pax: 2, amount: 950000 },
-      { pax: 3, amount: 1050000 },
-      { pax: 4, amount: 1100000 },
-      { pax: 5, amount: 950000 },
-      { pax: 6, amount: 900000 },
+      { pax: 2, economy: 850000, full: 950000 },
+      { pax: 3, economy: 950000, full: 1050000 },
+      { pax: 4, economy: 1000000, full: 1100000 },
+      { pax: 5, economy: 850000, full: 950000 },
+      { pax: 6, economy: 800000, full: 900000 },
     ],
     validUntil: "2026년 7월 12일",
     payment: "예약금: 계좌이체 · 잔금: 현장결제(현금)",
