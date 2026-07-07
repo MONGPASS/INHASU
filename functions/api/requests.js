@@ -7,7 +7,7 @@
    GET  : 관리자 페이지에서 목록 조회 (토큰 필요 — x-admin-token 헤더 또는 ?token=)
    ═══════════════════════════════════════════════════════════ */
 
-import { sendAlimtalk } from "./_aligo.js";
+import { sendAlimtalk } from "./_solapi.js";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
