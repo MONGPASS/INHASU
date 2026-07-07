@@ -21,17 +21,31 @@ const dohA = async (name, type) => {
   } catch (e) { return ["실패"]; }
 };
 
+// IP 인증 통과 여부만 확인 — 일부러 가짜 키로 호출 (발송 안 됨, 비밀정보 사용 안 함)
+// · IP가 막혀 있으면: code -99 "인증되지 않는 서버 IP..."
+// · IP는 통과했으면: 다른 오류(키 불일치 등) → IP 등록이 먹혔다는 뜻
+const aligoIpProbe = async () => {
+  try {
+    const form = new FormData();
+    form.set("apikey", "ip-probe-invalid-key");
+    form.set("userid", "ip-probe");
+    const r = await fetch("https://kakaoapi.aligo.in/akv10/alimtalk/send/", { method: "POST", body: form });
+    const j = await r.json().catch(() => ({}));
+    return { code: j.code, message: j.message, ipBlocked: j.code === -99 };
+  } catch (e) { return { error: String(e).slice(0, 80) }; }
+};
+
 export async function onRequestGet() {
-  const [identV4, amazon, aligoA, aligoAAAA] = await Promise.all([
+  const [identV4, aligoA, aligoAAAA, probe] = await Promise.all([
     fetchText("https://v4.ident.me"),               // IPv4 전용 에코
-    fetchText("https://checkip.amazonaws.com"),     // AWS 에코 (듀얼스택일 수 있음)
     dohA("kakaoapi.aligo.in", "A"),                 // 알리고 서버의 IPv4
     dohA("kakaoapi.aligo.in", "AAAA"),              // 알리고 서버의 IPv6 (없어야 정상)
+    aligoIpProbe(),
   ]);
   return new Response(JSON.stringify({
     "IPv4전용에코(v4.ident.me)": identV4,
-    "아마존에코": amazon,
     "알리고서버_A(IPv4)": aligoA,
     "알리고서버_AAAA(IPv6)": aligoAAAA,
+    "알리고IP인증프로브": probe,
   }, null, 2), { headers: { "Content-Type": "application/json; charset=utf-8" } });
 }
