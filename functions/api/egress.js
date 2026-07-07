@@ -21,26 +21,33 @@ const dohA = async (name, type) => {
   } catch (e) { return ["실패"]; }
 };
 
-// IP 인증 통과 여부만 확인 — 일부러 가짜 키로 호출 (발송 안 됨, 비밀정보 사용 안 함)
-// · IP가 막혀 있으면: code -99 "인증되지 않는 서버 IP..."
-// · IP는 통과했으면: 다른 오류(키 불일치 등) → IP 등록이 먹혔다는 뜻
-const aligoIpProbe = async () => {
+// IP 인증 통과 여부만 확인 — 실제 계정(서버 환경변수)으로 호출하되 수신자를
+// 비워서 절대 발송되지 않게 함. 응답에는 오류 코드/메시지만 담김(비밀값 노출 없음).
+// · IP가 막혀 있으면: "인증되지 않는 서버 IP..." 메시지
+// · IP는 통과했으면: 수신자/템플릿 관련 다른 오류 → IP 등록이 먹혔다는 뜻
+const aligoIpProbe = async (env) => {
+  if (!env.ALIGO_API_KEY || !env.ALIGO_USER_ID) return { skipped: "env 미설정" };
   try {
     const form = new FormData();
-    form.set("apikey", "ip-probe-invalid-key");
-    form.set("userid", "ip-probe");
+    form.set("apikey", env.ALIGO_API_KEY);
+    form.set("userid", env.ALIGO_USER_ID);
+    form.set("senderkey", env.ALIGO_SENDER_KEY || "");
+    form.set("tpl_code", (env.ALIGO_TPL_CODE || "").split(",")[0].trim());
+    form.set("sender", env.ALIGO_SENDER || "");
+    // receiver_1 없음 → 인증을 다 통과해도 "수신자 없음"류 오류로 끝남 (발송 0건)
     const r = await fetch("https://kakaoapi.aligo.in/akv10/alimtalk/send/", { method: "POST", body: form });
     const j = await r.json().catch(() => ({}));
-    return { code: j.code, message: j.message, ipBlocked: j.code === -99 };
+    const ipBlocked = /서버 IP/.test(j.message || "");
+    return { code: j.code, message: j.message, IP차단여부: ipBlocked ? "차단됨" : "통과!" };
   } catch (e) { return { error: String(e).slice(0, 80) }; }
 };
 
-export async function onRequestGet() {
+export async function onRequestGet({ env }) {
   const [identV4, aligoA, aligoAAAA, probe] = await Promise.all([
     fetchText("https://v4.ident.me"),               // IPv4 전용 에코
     dohA("kakaoapi.aligo.in", "A"),                 // 알리고 서버의 IPv4
     dohA("kakaoapi.aligo.in", "AAAA"),              // 알리고 서버의 IPv6 (없어야 정상)
-    aligoIpProbe(),
+    aligoIpProbe(env),
   ]);
   return new Response(JSON.stringify({
     "IPv4전용에코(v4.ident.me)": identV4,
