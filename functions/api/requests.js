@@ -60,12 +60,11 @@ export async function onRequestPost(context) {
     ).run();
     if (!r.meta || r.meta.changes === 0) return json({ ok: false, error: "duplicate" }, 409);
 
-    // 접수 확인 카톡 알림톡 (알리고) — 응답을 막지 않게 백그라운드로.
+    // 접수 확인 카톡 알림톡("맞춤여행접수" 템플릿) — 응답을 막지 않게 백그라운드로.
     // 발송 실패해도 접수 저장에는 영향 없음. 결과는 CF 함수 로그에서 확인.
-    if (d.phone && d.token) {
-      const link = new URL(request.url).origin + "/내견적?t=" + d.token;
+    if (d.phone && d.source !== "walkin") {
       context.waitUntil(
-        sendAlimtalk(env, { name: d.name || "고객", phone: d.phone, link })
+        sendAlimtalk(env, { name: d.name || "고객", phone: d.phone })
           .then(res => console.log("alimtalk", JSON.stringify(res)))
           .catch(e => console.log("alimtalk-err", String(e)))
       );
