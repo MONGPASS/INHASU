@@ -35,9 +35,10 @@ export async function onRequestGet({ request, env }) {
   };
 
   // 이 서버(Cloudflare)가 밖으로 나갈 때 쓰는 실제 IP — 알리고에 등록해야 하는 값
+  // 알리고는 IPv4만 받으므로 IPv4 전용 서비스(api4.ipify.org)로 확인
   let egressIp = null;
   try {
-    egressIp = (await (await fetch("https://api.ipify.org?format=text")).text()).trim();
+    egressIp = (await (await fetch("https://api4.ipify.org?format=text")).text()).trim();
   } catch (e) { egressIp = "확인 실패: " + String(e); }
 
   const phone = url.searchParams.get("phone");
