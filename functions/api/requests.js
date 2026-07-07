@@ -7,6 +7,8 @@
    GET  : 관리자 페이지에서 목록 조회 (토큰 필요 — x-admin-token 헤더 또는 ?token=)
    ═══════════════════════════════════════════════════════════ */
 
+import { sendAlimtalk } from "./_aligo.js";
+
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
     status,
@@ -21,7 +23,8 @@ const isAdmin = (request, env) => {
 };
 
 // ── 고객 제출 저장 ──
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost(context) {
+  const { request, env } = context;
   try {
     const d = await request.json();
 
@@ -56,6 +59,17 @@ export async function onRequestPost({ request, env }) {
       d.token || null
     ).run();
     if (!r.meta || r.meta.changes === 0) return json({ ok: false, error: "duplicate" }, 409);
+
+    // 접수 확인 카톡 알림톡 (알리고) — 응답을 막지 않게 백그라운드로.
+    // 발송 실패해도 접수 저장에는 영향 없음. 결과는 CF 함수 로그에서 확인.
+    if (d.phone && d.token) {
+      const link = new URL(request.url).origin + "/내견적?t=" + d.token;
+      context.waitUntil(
+        sendAlimtalk(env, { name: d.name || "고객", phone: d.phone, link })
+          .then(res => console.log("alimtalk", JSON.stringify(res)))
+          .catch(e => console.log("alimtalk-err", String(e)))
+      );
+    }
 
     return json({ ok: true, id });
   } catch (e) {
