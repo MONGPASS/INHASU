@@ -25,12 +25,15 @@ export async function onRequestPatch({ request, env, params }) {
     const patch = await request.json();
     const id = params.id;
 
-    // 현재 레코드 읽기
-    const row = await env.DB.prepare("SELECT data FROM requests WHERE id = ?").bind(id).first();
+    // 현재 레코드 읽기 (status 컬럼도 함께 — 상태 보존용)
+    const row = await env.DB.prepare("SELECT data, status FROM requests WHERE id = ?").bind(id).first();
     if (!row) return json({ ok: false, error: "not found" }, 404);
 
     const rec = JSON.parse(row.data);
     Object.assign(rec, patch);
+    // patch에 status가 없으면 기존 상태 유지 — 견적 발행 등으로 상태가 임의로 바뀌지 않게.
+    // 상태 변경은 관리자가 대시보드에서 명시적으로 status를 보낼 때만 이뤄짐.
+    if (patch.status === undefined) rec.status = row.status || rec.status || "신규";
 
     await env.DB.prepare(
       "UPDATE requests SET status = ?, memo = ?, data = ? WHERE id = ?"
