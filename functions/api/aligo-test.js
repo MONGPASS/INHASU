@@ -34,11 +34,17 @@ export async function onRequestGet({ request, env }) {
     _senderkey힌트: hint(env.ALIGO_SENDER_KEY),
   };
 
+  // 이 서버(Cloudflare)가 밖으로 나갈 때 쓰는 실제 IP — 알리고에 등록해야 하는 값
+  let egressIp = null;
+  try {
+    egressIp = (await (await fetch("https://api.ipify.org?format=text")).text()).trim();
+  } catch (e) { egressIp = "확인 실패: " + String(e); }
+
   const phone = url.searchParams.get("phone");
   if (!phone) {
-    return json({ ok: true, note: "환경변수 상태만 확인. 실제 발송 테스트하려면 &phone=010... 추가", envState });
+    return json({ ok: true, note: "환경변수 상태만 확인. 실제 발송 테스트하려면 &phone=010... 추가", 발송서버IP: egressIp, envState });
   }
 
   const result = await sendAlimtalk(env, { name: url.searchParams.get("name") || "테스트", phone });
-  return json({ ok: result.ok, envState, aligoResponse: result });
+  return json({ ok: result.ok, 발송서버IP: egressIp, envState, aligoResponse: result });
 }
