@@ -217,6 +217,15 @@
     <h2><span class="n">1</span>코스 불러오기</h2>
     <div class="hint">코스를 고르면 일정·대표 명소·기본 요금이 한 번에 채워집니다. 이후 아래에서 자유롭게 수정하세요.</div>
     <div class="course-pick" id="coursePick"></div>
+
+    <!-- 다른 고객 견적 복제 -->
+    <div style="margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div class="hint" style="margin:0; flex:1; min-width:220px;">이미 다른 고객에게 만든 견적을 그대로 복제합니다. <b style="color:var(--deep)">일정·명소·요금·차량·혜택</b>이 모두 복사되고, <b style="color:var(--deep)">고객명·날짜·인원</b>은 지금 값 그대로 유지됩니다.</div>
+        <button type="button" id="cloneBtn" style="border:1.5px solid var(--line); background:var(--soft); color:var(--deep); border-radius:10px; padding:10px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;">📋 다른 견적에서 복제</button>
+      </div>
+      <div id="clonePick" style="display:none; margin-top:12px; max-height:300px; overflow:auto; gap:8px;"></div>
+    </div>
   </div>
 
   <!-- 기본 정보 -->
@@ -801,6 +810,82 @@ function restoreFromQuote(q) {
   ST.spots = (q.highlights || []).map(h => h && h.name).filter(Boolean);
   return true;
 }
+
+/* 다른 견적의 "내용만" 현재 견적으로 복제 — 고객명·날짜·인원·문서번호·항공 등 개인 정보는 건드리지 않음.
+   일정·명소·요금·차량·난이도·혜택·이벤트·여행지만 가져와, 다른 고객에게 보낼 비슷한 견적을 빠르게 만든다. */
+function importQuoteContent(q) {
+  if (!q || typeof q !== "object") return false;
+  if (q.destination) ST.destination = q.destination;
+  ST.vehicle = q.vehicle || "";
+  ST.intensity = q.intensity || 3;
+  ST.benefits = q.benefits || "";
+  ST.events = Array.isArray(q.events) ? q.events.join("\n") : "";
+  ST.remark = (q.remark && q.remark !== "-") ? q.remark : "";
+  if (q.price) {
+    if (q.price.deposit != null) ST.deposit = q.price.deposit;
+    ST.options = structuredClone(q.price.options || []);
+    ST.balances = structuredClone(q.price.balances || []);
+  }
+  ST.days = structuredClone(q.days || []);
+  ST.spots = (q.highlights || []).map(h => h && h.name).filter(Boolean);
+  return true;
+}
+
+/* ── 다른 견적에서 복제: 서버에서 발행된 견적 목록을 받아 고르게 함 ── */
+let CLONE_LIST = [];
+async function fetchQuoteList() {
+  if (!ADMIN_TOKEN) throw new Error("관리자 로그인이 필요합니다 — 관리자 페이지에서 열어주세요");
+  const res = await fetch("/api/requests", { headers: { "x-admin-token": ADMIN_TOKEN }, cache: "no-store" });
+  if (res.status === 401) throw new Error("관리자 인증이 만료됐어요. 관리자 페이지에서 다시 로그인해 주세요.");
+  if (!res.ok) throw new Error("목록을 불러오지 못했어요 (http " + res.status + ")");
+  const j = await res.json();
+  // 견적(quote)이 있는 건만, 그리고 지금 편집 중인 요청 자신은 제외
+  return (j.items || []).filter(x => x && x.quote && x.id !== REQ_ID);
+}
+function renderClonePick() {
+  const box = $("clonePick");
+  if (!CLONE_LIST.length) {
+    box.innerHTML = `<div style="color:var(--gray);font-size:13px;padding:4px 2px">복제할 수 있는 발행된 견적이 아직 없어요.</div>`;
+    return;
+  }
+  box.innerHTML = CLONE_LIST.map((it, i) => {
+    const q = it.quote || {};
+    const who = esc(q.customer || it.name || "고객");
+    const dest = esc(q.destination || it.destination || "");
+    const period = q.period ? esc(q.period) : (it.depart ? esc(it.depart + (it.return_ ? " ~ " + it.return_ : "")) : "");
+    const nn = q.nights ? esc(q.nights) : "";
+    const days = (q.days || []).length, spots = (q.highlights || []).length;
+    return `<div class="course-btn clone-row" data-i="${i}">
+      <b>${who}${dest ? " · " + dest : ""}</b>
+      <small>${[period, nn, days ? `일정 ${days}일` : "", spots ? `명소 ${spots}곳` : ""].filter(Boolean).join(" · ")}</small>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".clone-row").forEach(el => el.onclick = () => {
+    const it = CLONE_LIST[+el.dataset.i];
+    if (!it || !it.quote) return;
+    const who = it.quote.customer || it.name || "이 고객";
+    if (ST.days && ST.days.length && !confirm(`현재 일정·명소·요금을 "${who}" 견적 내용으로 덮어씁니다.\n(고객명·날짜·인원은 그대로 유지) 계속할까요?`)) return;
+    importQuoteContent(it.quote);
+    fillForm(); renderAll();
+    $("clonePick").style.display = "none";
+    toast(`"${who}" 견적을 복제했습니다 — 고객 정보만 확인 후 발행하세요`);
+  });
+}
+$("cloneBtn").onclick = async () => {
+  const box = $("clonePick");
+  if (box.style.display !== "none") { box.style.display = "none"; return; }
+  const btn = $("cloneBtn"), label = btn.textContent;
+  btn.disabled = true; btn.textContent = "불러오는 중…";
+  try {
+    CLONE_LIST = await fetchQuoteList();
+    renderClonePick();
+    box.style.display = "grid";
+  } catch (e) {
+    toast("⚠ " + (e.message || "목록을 불러오지 못했어요"));
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+};
 
 $("previewBtn").onclick = $("hGoBtn").onclick = () => { save(); window.open("견적서.html", "_blank"); };
 $("mapBtn").onclick = $("hMapBtn").onclick = () => { save(); window.open("일정지도.html", "_blank"); };
