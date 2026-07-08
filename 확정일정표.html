@@ -787,7 +787,7 @@ const pgBookingAssign = bookingAssign ? (() => {
   };
   return `<div class="page" style="padding:22px 26px 48px; background:#FCFEFD;">
     <div style="border:1.5px solid #9FE4D8; border-radius:12px; padding:22px 28px 18px; background:#fff; min-height:316px;">
-      ${sectionTitle("👤", "투어 가이드 인사말", "여행 시작부터 마지막 순간까지 함께합니다.")}
+      ${sectionTitle("👤", "가이드 정보", "")}
       <div style="display:grid; grid-template-columns:170px 1fr; gap:28px; align-items:center;">
         <div>
           ${g.img ? `<div class="ph" style="width:148px; height:148px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; margin:0 auto;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:148px; height:148px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; background:${ASSIGN_STYLE.soft}; margin:0 auto;"></div>`}
@@ -800,8 +800,8 @@ const pgBookingAssign = bookingAssign ? (() => {
         <div>
           <div style="color:${ASSIGN_STYLE.accent}; font-size:20px; font-weight:900; line-height:1.45;">“ 안녕하세요! 함께하는 여행을 진심으로 환영합니다. ”</div>
           <div style="margin-top:14px; color:${ASSIGN_STYLE.body}; font-size:13px; font-weight:700; line-height:1.8;">${esc(g.desc || "여행의 시작부터 마지막 순간까지 안전하고 즐거운 추억이 될 수 있도록 최선을 다하겠습니다. 궁금하신 점이나 도움이 필요하시면 언제든지 편하게 말씀해주세요.")}</div>
-          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1px; border-top:1px dashed ${ASSIGN_STYLE.line}; margin-top:18px; padding-top:14px;">
-            ${[["언어", g.korean || "한국어"], ["경력", g.career || "-"], ["한마디", "즐거운 여행 되세요!"]].map(([k,val]) => `<div style="text-align:center; border-right:1px dashed ${ASSIGN_STYLE.line}; min-height:50px;"><div style="color:${ASSIGN_STYLE.accent}; font-size:12px; font-weight:900;">${k}</div><div style="margin-top:6px; color:${ASSIGN_STYLE.body}; font-size:11.5px; font-weight:700;">${esc(val)}</div></div>`).join("")}
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:1px; border-top:1px dashed ${ASSIGN_STYLE.line}; margin-top:18px; padding-top:16px;">
+            ${[["언어", g.korean || "한국어"], ["경력", g.career || "-"]].map(([k,val], idx) => `<div style="text-align:center; ${idx === 0 ? `border-right:1px dashed ${ASSIGN_STYLE.line};` : ""} min-height:62px;"><div style="color:${ASSIGN_STYLE.accent}; font-size:15px; font-weight:900;">${k}</div><div style="margin-top:8px; color:${ASSIGN_STYLE.body}; font-size:16px; font-weight:900;">${esc(val)}</div></div>`).join("")}
           </div>
         </div>
       </div>
@@ -825,7 +825,7 @@ const pgBookingAssign = bookingAssign ? (() => {
     </div>
 
     <div style="border:1.5px solid #9FE4D8; border-radius:12px; padding:18px 24px; background:#fff; margin-top:12px;">
-      ${sectionTitle("🏨", "일자별 숙소 배정", "편안한 휴식을 위해 엄선된 숙소입니다.")}
+      ${sectionTitle("🏨", "숙소 정보", "편안한 휴식을 위해 엄선된 숙소입니다.")}
       ${lodges.map(lodgeCard).join("") || `<div style="color:${ASSIGN_STYLE.muted}; font-size:13px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
     </div>
     <div style="position:absolute; bottom:18px; left:0; right:0; text-align:center; color:${ASSIGN_STYLE.accent}; font-size:13px; font-weight:700;">즐거운 여행, 안전한 여행, 행복한 추억을 함께 만들어가요!</div>

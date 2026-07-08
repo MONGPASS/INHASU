@@ -596,7 +596,7 @@ const secBookingAssign = bookingAssign ? (() => {
   };
   return card(`
     <div class="blk" style="border:1.5px solid #9FE4D8; border-radius:12px; padding:18px 16px; background:#fff;">
-      ${sectionTitle("👤", "투어 가이드 인사말", "함께하는 여행")}
+      ${sectionTitle("👤", "가이드 정보", "")}
       <div style="display:flex; gap:15px; align-items:center;">
         ${g.img ? `<div class="ph" style="width:108px; height:108px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:108px; height:108px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; background:${ASSIGN_STYLE.soft}; flex:none;"></div>`}
         <div style="flex:1; min-width:0;">
@@ -607,8 +607,8 @@ const secBookingAssign = bookingAssign ? (() => {
       </div>
       <div style="margin-top:14px; color:${ASSIGN_STYLE.accent}; font-size:15px; font-weight:900; line-height:1.45;">“ 안녕하세요! 함께하는 여행을 진심으로 환영합니다. ”</div>
       <div style="margin-top:9px; color:${ASSIGN_STYLE.body}; font-size:12px; font-weight:700; line-height:1.7;">${esc(g.desc || "안전하고 편안한 몽골 여행을 위해 최선을 다하겠습니다.")}</div>
-      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1px; border-top:1px dashed ${ASSIGN_STYLE.line}; margin-top:13px; padding-top:12px; text-align:center;">
-        ${[["언어", g.korean || "한국어"], ["경력", g.career || "-"], ["한마디", "즐거운 여행 되세요!"]].map(([k,val]) => `<div><div style="color:${ASSIGN_STYLE.accent}; font-size:11px; font-weight:900;">${k}</div><div style="margin-top:5px; color:${ASSIGN_STYLE.body}; font-size:10.5px; font-weight:700;">${esc(val)}</div></div>`).join("")}
+      <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:1px; border-top:1px dashed ${ASSIGN_STYLE.line}; margin-top:13px; padding-top:13px; text-align:center;">
+        ${[["언어", g.korean || "한국어"], ["경력", g.career || "-"]].map(([k,val], idx) => `<div style="${idx === 0 ? `border-right:1px dashed ${ASSIGN_STYLE.line};` : ""}"><div style="color:${ASSIGN_STYLE.accent}; font-size:13px; font-weight:900;">${k}</div><div style="margin-top:6px; color:${ASSIGN_STYLE.body}; font-size:14px; font-weight:900;">${esc(val)}</div></div>`).join("")}
       </div>
     </div>
 
@@ -622,7 +622,7 @@ const secBookingAssign = bookingAssign ? (() => {
     </div>
 
     <div class="blk" style="border:1.5px solid #9FE4D8; border-radius:12px; padding:16px; background:#fff; margin-top:12px;">
-      ${sectionTitle("🏨", "일자별 숙소 배정", "엄선된 숙소")}
+      ${sectionTitle("🏨", "숙소 정보", "엄선된 숙소")}
       ${lodges.map(lodgeCard).join("") || `<div style="color:#8CA39D; font-size:12px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
     </div>
   `);
