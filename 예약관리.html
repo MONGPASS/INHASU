@@ -69,8 +69,15 @@
   .preview b { display:block; font-size:14px; }
   .preview p { margin-top:4px; color:var(--sub); font-size:12.5px; line-height:1.45; font-weight:600; }
   .quick-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .edit-panel { margin-top:10px; border:1px solid var(--line); border-radius:12px; background:#fff; overflow:hidden; }
+  .edit-panel summary { cursor:pointer; padding:10px 12px; color:var(--book); font-size:12.5px; font-weight:900; list-style:none; }
+  .edit-panel summary::-webkit-details-marker { display:none; }
+  .edit-panel summary::after { content:"열기"; float:right; color:var(--sub); font-weight:800; }
+  .edit-panel[open] summary::after { content:"닫기"; }
+  .edit-body { padding:0 12px 12px; }
 
-  .lodge-row { display:grid; grid-template-columns:64px 1fr 130px auto; gap:8px; margin-bottom:8px; align-items:end; }
+  .lodge-row { border:1px solid var(--line); border-radius:13px; padding:12px; margin-bottom:10px; background:#fff; }
+  .lodge-fields { display:grid; grid-template-columns:64px 1fr 130px auto; gap:8px; align-items:end; }
   .lodge-row .del-lodge { align-self:center; border:none; background:#fff1f0; color:#c75b52; border-radius:9px; padding:9px 10px; cursor:pointer; font-weight:900; }
 
   .chk { display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:600; padding:9px 0;
@@ -103,8 +110,8 @@
     main { padding:14px 10px; }
     section.card { padding:16px; }
     .summary { grid-template-columns:1fr 1fr; }
-    .lodge-row { grid-template-columns:56px 1fr auto; }
-    .lodge-row label:nth-of-type(3) { grid-column:1 / -1; }
+    .lodge-fields { grid-template-columns:56px 1fr auto; }
+    .lodge-fields label:nth-of-type(3) { grid-column:1 / -1; }
     .savebar { justify-content:stretch; }
     #saveBtn, .savebar .barbtn { flex:1; text-align:center; padding-left:10px; padding-right:10px; }
   }
@@ -249,6 +256,25 @@ function summaryHtml() {
 
 function previewHtml(type, rec) {
   rec = rec || {};
+  if (type === "guide" && rec.name && LIBS.guides[rec.name]) {
+    const lib = LIBS.guides[rec.name];
+    rec = {
+      ...rec,
+      img: rec.img || lib.img || "",
+      desc: rec.desc || lib.desc || "",
+      career: rec.career || lib.career || "",
+      korean: rec.korean || lib.korean || "",
+    };
+  }
+  if (type === "vehicle" && rec.model && LIBS.vehicles[rec.model]) {
+    const lib = LIBS.vehicles[rec.model];
+    rec = {
+      ...rec,
+      img: rec.img || lib.img || "",
+      imgs: (Array.isArray(rec.imgs) && rec.imgs.length) ? rec.imgs : (Array.isArray(lib.imgs) ? lib.imgs : []),
+      desc: rec.desc || lib.desc || "",
+    };
+  }
   const name = rec && (rec.name || rec.model);
   const img = rec && rec.img;
   const imgs = rec && Array.isArray(rec.imgs) ? rec.imgs.length : (img ? 1 : 0);
@@ -260,6 +286,18 @@ function previewHtml(type, rec) {
   return `<div class="preview" id="${type}Preview">
     <div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(title)}">` : icon}</div>
     <div><b>${esc(title)}</b><p>${esc(sub || "리소스를 선택하면 고객에게 보일 정보와 이미지 상태가 표시됩니다.")}</p></div>
+  </div>`;
+}
+function lodgePreviewHtml(l, i) {
+  const lib = LIBS.lodges[l.name] || {};
+  const rec = { ...lib, ...l };
+  const img = rec.img || (Array.isArray(rec.imgs) ? rec.imgs[0] : "");
+  const imgs = Array.isArray(rec.imgs) ? rec.imgs.length : (img ? 1 : 0);
+  const title = rec.name || `${i + 1}일차 숙소 미선택`;
+  const sub = [rec.grade, rec.region, rec.desc || rec.tags, imgs ? `이미지 ${imgs}장` : ""].filter(Boolean).join(" · ");
+  return `<div class="preview" id="lodgePreview${i}" style="margin-top:0;">
+    <div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(title)}">` : "🏕"}</div>
+    <div><b>DAY${esc(rec.day || i + 1)} · ${esc(title)}</b><p>${esc(sub || "숙소를 선택하면 고객에게 보일 이미지와 설명이 표시됩니다.")}</p></div>
   </div>`;
 }
 
@@ -287,12 +325,18 @@ function dayCard(d, i) {
 function lodgeRow(l, i) {
   return `
   <div class="lodge-row" data-li="${i}">
-    <label class="f"><span>일차</span><input data-lk="day" type="number" min="1" value="${esc(l.day || i + 1)}"></label>
-    <label class="f"><span>캠프장/호텔 이름</span><input data-lk="name" list="lodgeList" value="${esc(l.name || "")}" placeholder="○○ 여행자 캠프"></label>
-    <label class="f"><span>등급</span><select data-lk="grade">
-      ${["","일반게르","고급게르","호텔"].map(g => `<option value="${g}" ${l.grade === g ? "selected" : ""}>${g || "선택"}</option>`).join("")}
-    </select></label>
-    <button class="del-lodge" data-del-lodge="${i}" title="숙소 배정 삭제">×</button>
+    ${lodgePreviewHtml(l, i)}
+    <details class="edit-panel">
+      <summary>세부정보 수정</summary>
+      <div class="edit-body lodge-fields">
+        <label class="f"><span>일차</span><input data-lk="day" type="number" min="1" value="${esc(l.day || i + 1)}"></label>
+        <label class="f"><span>캠프장/호텔 이름</span><input data-lk="name" list="lodgeList" value="${esc(l.name || "")}" placeholder="○○ 여행자 캠프"></label>
+        <label class="f"><span>등급</span><select data-lk="grade">
+          ${["","일반게르","고급게르","호텔"].map(g => `<option value="${g}" ${l.grade === g ? "selected" : ""}>${g || "선택"}</option>`).join("")}
+        </select></label>
+        <button class="del-lodge" data-del-lodge="${i}" title="숙소 배정 삭제">×</button>
+      </div>
+    </details>
   </div>`;
 }
 
@@ -319,26 +363,34 @@ function render() {
     <div class="assign-box">
       <div class="subtt"><span>👤 가이드</span><select class="pick" id="g_pick"><option value="">📥 리소스에서 선택…</option></select></div>
       ${previewHtml("guide", a.guide)}
-      <div class="grid4">
-        <label class="f"><span>이름</span><input id="g_name" list="guideList" value="${esc(a.guide.name)}"></label>
-        <label class="f"><span>경력</span><input id="g_career" value="${esc(a.guide.career)}" placeholder="7년"></label>
-        <label class="f"><span>한국어</span><input id="g_korean" value="${esc(a.guide.korean)}" placeholder="상급"></label>
-        <label class="f"><span>연락처 (내부용)</span><input id="g_phone" value="${esc(a.guide.phone)}"></label>
-      </div>
-      <div class="grid2" style="margin-top:10px;">
-        <label class="f"><span>사진 URL (선택)</span><input id="g_img" value="${esc(a.guide.img)}" placeholder="img/… 또는 업로드 주소"></label>
-        <label class="f"><span>한 줄 소개 (고객 노출)</span><input id="g_desc" value="${esc(a.guide.desc)}" placeholder="한국 유학 5년 · 고비 투어 전문"></label>
-      </div>
+      <details class="edit-panel">
+        <summary>세부정보 수정</summary>
+        <div class="edit-body">
+          <div class="grid4">
+            <label class="f"><span>이름</span><input id="g_name" list="guideList" value="${esc(a.guide.name)}"></label>
+            <label class="f"><span>경력</span><input id="g_career" value="${esc(a.guide.career)}" placeholder="7년"></label>
+            <label class="f"><span>한국어</span><input id="g_korean" value="${esc(a.guide.korean)}" placeholder="상급"></label>
+            <label class="f"><span>연락처 (내부용)</span><input id="g_phone" value="${esc(a.guide.phone)}"></label>
+          </div>
+          <div class="grid2" style="margin-top:10px;">
+            <label class="f"><span>사진 URL (선택)</span><input id="g_img" value="${esc(a.guide.img)}" placeholder="img/… 또는 업로드 주소"></label>
+            <label class="f"><span>한 줄 소개 (고객 노출)</span><input id="g_desc" value="${esc(a.guide.desc)}" placeholder="한국 유학 5년 · 고비 투어 전문"></label>
+          </div>
+        </div>
+      </details>
     </div>
 
     <div class="assign-box">
       <div class="subtt"><span>🚐 차량</span><select class="pick" id="v_pick"><option value="">📥 리소스에서 선택…</option></select></div>
       ${previewHtml("vehicle", a.vehicle)}
-      <div class="grid3">
-        <label class="f"><span>차종</span><input id="v_model" list="vehicleList" value="${esc(a.vehicle.model)}" placeholder="하이스"></label>
-        <label class="f"><span>인승</span><input id="v_seats" value="${esc(a.vehicle.seats)}" placeholder="9인승"></label>
-        <label class="f"><span>차량번호 (내부용)</span><input id="v_plate" value="${esc(a.vehicle.plate)}"></label>
-      </div>
+      <details class="edit-panel">
+        <summary>세부정보 수정</summary>
+        <div class="edit-body grid3">
+          <label class="f"><span>차종</span><input id="v_model" list="vehicleList" value="${esc(a.vehicle.model)}" placeholder="하이스"></label>
+          <label class="f"><span>인승</span><input id="v_seats" value="${esc(a.vehicle.seats)}" placeholder="9인승"></label>
+          <label class="f"><span>차량번호 (내부용)</span><input id="v_plate" value="${esc(a.vehicle.plate)}"></label>
+        </div>
+      </details>
     </div>
 
     <div class="assign-box">
@@ -478,6 +530,9 @@ async function loadLibs() {
     } catch (e) {}
   }));
   fillDatalists();
+  updateResourcePreview("guide", BK.assign.guide);
+  updateResourcePreview("vehicle", BK.assign.vehicle);
+  document.querySelectorAll(".lodge-row").forEach(updateLodgePreview);
 }
 function fillDatalists() {
   const fill = (key, listId) => { const el = $(listId); if (el) el.innerHTML = Object.keys(LIBS[key]).map(n => `<option value="${esc(n)}">`).join(""); };
@@ -521,10 +576,17 @@ function bindAutofill() {
   on("v_pick", el => { if (el.value) applyVehicle(el.value); });
   on("g_name", el => applyGuide(el.value.trim()));
   on("v_model", el => applyVehicle(el.value.trim()));
-  document.querySelectorAll('.lodge-row [data-lk="name"]').forEach(inp => inp.addEventListener("change", () => {
-    const r = LIBS.lodges[inp.value.trim()]; if (!r) return;
+  document.querySelectorAll('.lodge-row [data-lk="name"]').forEach(inp => {
+    inp.addEventListener("input", () => updateLodgePreview(inp.closest(".lodge-row")));
+    inp.addEventListener("change", () => {
+    const r = LIBS.lodges[inp.value.trim()];
     const sel = inp.closest(".lodge-row").querySelector('[data-lk="grade"]');
-    if (r.grade && sel) sel.value = r.grade;
+    if (r && r.grade && sel) sel.value = r.grade;
+    updateLodgePreview(inp.closest(".lodge-row"));
+    });
+  });
+  document.querySelectorAll('.lodge-row [data-lk="day"], .lodge-row [data-lk="grade"]').forEach(inp => inp.addEventListener("input", () => {
+    updateLodgePreview(inp.closest(".lodge-row"));
   }));
   ["g_name","g_career","g_korean","g_img","g_desc"].forEach(id => {
     const el = $(id); if (el) el.addEventListener("input", () => updateResourcePreview("guide", {
@@ -536,6 +598,17 @@ function bindAutofill() {
       model:$("v_model").value, seats:$("v_seats").value
     }));
   });
+}
+
+function updateLodgePreview(row) {
+  if (!row) return;
+  const i = Number(row.dataset.li) || 0;
+  const name = row.querySelector('[data-lk="name"]')?.value.trim() || "";
+  const day = Number(row.querySelector('[data-lk="day"]')?.value) || i + 1;
+  const grade = row.querySelector('[data-lk="grade"]')?.value || "";
+  const old = $("lodgePreview" + i);
+  if (!old) return;
+  old.outerHTML = lodgePreviewHtml({ day, name, grade }, i);
 }
 
 /* ══════════ 저장 ══════════ */
