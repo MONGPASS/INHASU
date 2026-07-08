@@ -180,30 +180,33 @@ const card = (inner) => `<div class="card"><div class="pad">${inner}</div></div>
 const imgsOf = obj => [...new Set([obj && obj.img, ...((obj && Array.isArray(obj.imgs)) ? obj.imgs : [])].filter(Boolean))];
 const ASSIGN_STYLE = {
   ink: "#152C28",
-  body: "#24272A",
-  line: "#C9D1CE",
-  accent: "#10B4C6",
+  body: "#354B46",
+  muted: "#8CA39D",
+  line: "#DDEBE6",
+  accent: "#06C4A0",
+  soft: "#EAF7F3",
+  panel: "#F5FBF9",
   font: "'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif",
 };
 const AS = {
-  pageTitle: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:31px; font-weight:900; letter-spacing:0; line-height:1.08;`,
-  day: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:22px; font-weight:900; letter-spacing:0; line-height:1;`,
-  name: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:27px; font-weight:900; letter-spacing:0; line-height:1.08;`,
+  pageTitle: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.accent}; font-size:30px; font-weight:900; letter-spacing:0; line-height:1.08;`,
+  day: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.accent}; font-size:18px; font-weight:900; letter-spacing:0; line-height:1;`,
+  name: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:25px; font-weight:900; letter-spacing:0; line-height:1.08;`,
   meta: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:11px; font-weight:800; letter-spacing:0; line-height:1.2;`,
-  body: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:12.5px; font-weight:800; letter-spacing:0; line-height:1.45;`,
-  guideName: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:38px; font-weight:900; letter-spacing:0; line-height:1;`,
+  body: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:12.5px; font-weight:700; letter-spacing:0; line-height:1.5;`,
+  guideName: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.accent}; font-size:36px; font-weight:900; letter-spacing:0; line-height:1;`,
   guideRole: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:13px; font-weight:800; letter-spacing:0; line-height:1.2;`,
-  guideBody: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:13px; font-weight:800; letter-spacing:0; line-height:1.45;`,
-  vehicleTitle: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:35px; font-weight:900; letter-spacing:0; line-height:1.08;`,
-  vehicleName: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:34px; font-weight:900; letter-spacing:0; line-height:1.08;`,
+  guideBody: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:13px; font-weight:700; letter-spacing:0; line-height:1.5;`,
+  vehicleTitle: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.accent}; font-size:33px; font-weight:900; letter-spacing:0; line-height:1.08;`,
+  vehicleName: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:31px; font-weight:900; letter-spacing:0; line-height:1.08;`,
 };
 const photoStrip = (imgs, label, h = 78) => {
   const arr = imgs.slice(0, 3);
   while (arr.length < 3) arr.push("");
   return `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:4px;">
     ${arr.map((src, i) => src
-      ? `<div class="ph" style="height:${h}px; background:#eee; border:1px solid #fff;"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`
-      : `<div class="ph" style="height:${h}px; background:#EEF3F2; color:#9AB0AA; font-family:${ASSIGN_STYLE.font}; font-size:10px; font-weight:700;">${esc(label)}</div>`).join("")}
+      ? `<div class="ph" style="height:${h}px; background:#fff; border:1px solid ${ASSIGN_STYLE.line};"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`
+      : `<div class="ph" style="height:${h}px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; border:1px solid ${ASSIGN_STYLE.line}; font-family:${ASSIGN_STYLE.font}; font-size:10px; font-weight:700;">${esc(label)}</div>`).join("")}
   </div>`;
 };
 const bookingAssign = (Q.booking && Q.booking.assign) ? Q.booking.assign : null;
@@ -300,7 +303,7 @@ const dayCard = (d) => {
   const distTxt = String(d.dist || "").replace(/[()]/g, "").trim();
   const moveTxt = String(d.move || "").replace(/이동\s*/, "");
   const meta = [moveTxt, distTxt].filter(Boolean).join(" · ");
-  const stayTags = (d.stay.tags && d.stay.tags.length) ? `<span style="background:#EAF7F3; color:#0A6A5E; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:14px;">${d.stay.tags.join(" · ")}</span>` : "";
+  const stayTags = (d.stay.tags && d.stay.tags.length) ? `<span style="background:#fff; color:#0A6A5E; border:1px solid #DDEBE6; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:14px;">${d.stay.tags.join(" · ")}</span>` : "";
   return `
   <div class="blk" style="border:1px solid #E3F0EB; border-radius:14px; overflow:hidden;">
     <div class="row" style="justify-content:space-between; background:#06C4A0; padding:11px 15px;">
@@ -312,7 +315,7 @@ const dayCard = (d) => {
         ${d.items.map((it, i) => `<div style="position:relative; ${i < d.items.length - 1 ? "margin-bottom:9px;" : ""} line-height:1.45;"><span style="position:absolute; left:-28.5px; top:2px; width:11px; height:11px; border-radius:50%; background:#06C4A0;"></span>${itemHtml(it)}</div>`).join("")}
       </div>
       <div style="display:flex; gap:8px; margin-top:11px; flex-wrap:wrap;">
-        <span style="background:#EAF7F3; color:#0A6A5E; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:14px;">🛏 ${noBr(d.stay.name)}</span>${stayTags}
+        <span style="background:#EAF7F3; color:#0A6A5E; border:1px solid #DDEBE6; font-size:10.5px; font-weight:800; padding:5px 10px; border-radius:14px;">🛏 ${noBr(d.stay.name)}</span>${stayTags}
       </div>
       <div style="margin-top:8px; font-size:10.5px; color:#8CA39D;">🍽 ${(d.meals || []).join(" · ")}</div>
     </div>
@@ -567,12 +570,12 @@ const secBookingAssign = bookingAssign ? (() => {
   const vehicleImgs = imgsOf(v);
   const lodgeCard = (l, i) => {
     const imgs = imgsOf(l);
-    return `<div class="blk" style="${i ? `border-top:1.5px solid ${ASSIGN_STYLE.line}; padding-top:15px; margin-top:15px;` : ""}">
-      <div style="${AS.day}">DAY${esc(l.day || i + 1)}</div>
-      <div style="margin-top:9px;">${photoStrip(imgs, l.name, 78)}</div>
+    return `<div class="blk" style="background:${i % 2 ? '#fff' : ASSIGN_STYLE.panel}; border:1px solid ${ASSIGN_STYLE.line}; border-radius:14px; padding:14px; ${i ? `margin-top:12px;` : ""}">
+      <div style="display:inline-flex; align-items:center; justify-content:center; background:${ASSIGN_STYLE.soft}; border:1px solid ${ASSIGN_STYLE.line}; border-radius:18px; padding:6px 11px; ${AS.day}">DAY${esc(l.day || i + 1)}</div>
+      <div style="margin-top:10px;">${photoStrip(imgs, l.name, 74)}</div>
       <div style="display:flex; align-items:baseline; gap:8px; margin-top:11px; flex-wrap:wrap;">
         <div style="${AS.name} text-transform:uppercase;">${esc(l.name)}</div>
-        ${l.grade ? `<div style="${AS.meta} white-space:nowrap;">${esc(l.grade)}</div>` : ""}
+        ${l.grade ? `<div style="background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border:1px solid ${ASSIGN_STYLE.line}; border-radius:15px; padding:5px 9px; white-space:nowrap; ${AS.meta}">${esc(l.grade)}</div>` : ""}
       </div>
       <div style="margin-top:5px; ${AS.body}">${esc(l.desc || l.tags || "확정된 숙소 정보입니다.")}</div>
     </div>`;
@@ -583,8 +586,8 @@ const secBookingAssign = bookingAssign ? (() => {
     <div class="blk" style="${AS.pageTitle} margin-bottom:16px;">확정 숙소 배정</div>
     ${lodges.map(lodgeCard).join("") || `<div style="color:#8CA39D; font-size:12px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
   `) + card(`
-    <div class="blk" style="border:2px solid ${ASSIGN_STYLE.accent}; margin:-18px; padding:34px 20px; display:flex; align-items:center; gap:18px; min-height:230px;">
-      ${g.img ? `<div class="ph" style="width:118px; height:118px; border-radius:50%; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:118px; height:118px; border-radius:50%; background:#EAF2EE; flex:none;"></div>`}
+    <div class="blk" style="background:${ASSIGN_STYLE.panel}; border:1px solid ${ASSIGN_STYLE.line}; margin:-18px; padding:34px 20px; display:flex; align-items:center; gap:18px; min-height:230px;">
+      ${g.img ? `<div class="ph" style="width:118px; height:118px; border-radius:50%; flex:none; border:1px solid ${ASSIGN_STYLE.line};"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:118px; height:118px; border-radius:50%; background:${ASSIGN_STYLE.soft}; border:1px solid ${ASSIGN_STYLE.line}; flex:none;"></div>`}
       <div style="flex:1; min-width:0;">
         <div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;">
           <div style="${AS.guideName}">${esc(g.name || "가이드")}</div>
@@ -595,9 +598,10 @@ const secBookingAssign = bookingAssign ? (() => {
     </div>
   `) + card(`
     <div class="blk" style="${AS.vehicleTitle}">차량정보</div>
-    <div style="margin-top:13px;">${photoStrip(vehicleImgs, vehicleName, 104)}</div>
+    <div style="height:1px; background:${ASSIGN_STYLE.line}; margin-top:12px;"></div>
+    <div style="margin-top:13px; background:${ASSIGN_STYLE.panel}; border:1px solid ${ASSIGN_STYLE.line}; border-radius:14px; padding:10px;">${photoStrip(vehicleImgs, vehicleName, 94)}</div>
     <div style="${AS.vehicleName} margin-top:17px;">${esc(vehicleName)}</div>
-    ${v.seats ? `<div style="margin-top:2px; ${AS.meta}">${esc(v.seats)}</div>` : ""}
+    ${v.seats ? `<div style="display:inline-block; margin-top:7px; background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border:1px solid ${ASSIGN_STYLE.line}; border-radius:16px; padding:5px 10px; ${AS.meta}">${esc(v.seats)}</div>` : ""}
     <div style="margin-top:8px; ${AS.guideBody}">${esc(v.desc || "몽골 장거리 이동에 적합한 차량으로 일정과 인원에 맞춰 배정됩니다.")}</div>
   `);
 })() : "";

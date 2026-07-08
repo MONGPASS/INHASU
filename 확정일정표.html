@@ -152,31 +152,33 @@ const itemHtml = t => {
 const imgsOf = obj => [...new Set([obj && obj.img, ...((obj && Array.isArray(obj.imgs)) ? obj.imgs : [])].filter(Boolean))];
 const ASSIGN_STYLE = {
   ink: "#152C28",
-  body: "#24272A",
-  muted: "#4A5351",
-  line: "#C9D1CE",
-  accent: "#10B4C6",
+  body: "#354B46",
+  muted: "#8CA39D",
+  line: "#DDEBE6",
+  accent: "#06C4A0",
+  soft: "#EAF7F3",
+  panel: "#F5FBF9",
   font: "'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif",
 };
 const AS = {
-  pageTitle: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:38px; font-weight:900; letter-spacing:0; line-height:1.08;`,
-  day: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:24px; font-weight:900; letter-spacing:0; line-height:1;`,
-  name: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:30px; font-weight:900; letter-spacing:0; line-height:1.08;`,
+  pageTitle: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.accent}; font-size:36px; font-weight:900; letter-spacing:0; line-height:1.08;`,
+  day: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.accent}; font-size:19px; font-weight:900; letter-spacing:0; line-height:1;`,
+  name: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:28px; font-weight:900; letter-spacing:0; line-height:1.08;`,
   meta: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:13px; font-weight:800; letter-spacing:0; line-height:1.2;`,
-  body: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:15px; font-weight:800; letter-spacing:0; line-height:1.45;`,
-  guideName: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:52px; font-weight:900; letter-spacing:0; line-height:1;`,
+  body: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:14px; font-weight:700; letter-spacing:0; line-height:1.55;`,
+  guideName: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.accent}; font-size:48px; font-weight:900; letter-spacing:0; line-height:1;`,
   guideRole: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:17px; font-weight:800; letter-spacing:0; line-height:1.2;`,
-  guideBody: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:18px; font-weight:800; letter-spacing:0; line-height:1.45;`,
-  vehicleTitle: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:46px; font-weight:900; letter-spacing:0; line-height:1.08;`,
-  vehicleName: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:42px; font-weight:900; letter-spacing:0; line-height:1.08;`,
+  guideBody: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:17px; font-weight:700; letter-spacing:0; line-height:1.5;`,
+  vehicleTitle: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.accent}; font-size:42px; font-weight:900; letter-spacing:0; line-height:1.08;`,
+  vehicleName: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:38px; font-weight:900; letter-spacing:0; line-height:1.08;`,
 };
 const photoStrip = (imgs, label, h = 132) => {
   const arr = imgs.slice(0, 3);
   while (arr.length < 3) arr.push("");
   return `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px;">
     ${arr.map((src, i) => src
-      ? `<div class="ph" style="height:${h}px; background:#eee; border:1px solid #fff;"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`
-      : `<div class="ph" style="height:${h}px; background:#EEF3F2; color:#9AB0AA; font-family:${ASSIGN_STYLE.font}; font-size:12px; font-weight:700;">${esc(label)}</div>`).join("")}
+      ? `<div class="ph" style="height:${h}px; background:#fff; border:1px solid ${ASSIGN_STYLE.line};"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`
+      : `<div class="ph" style="height:${h}px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; border:1px solid ${ASSIGN_STYLE.line}; font-family:${ASSIGN_STYLE.font}; font-size:12px; font-weight:700;">${esc(label)}</div>`).join("")}
   </div>`;
 };
 const bookingAssign = (Q.booking && Q.booking.assign) ? Q.booking.assign : null;
@@ -294,7 +296,7 @@ const dayRow = (d, i) => {
     <div style="background:${bg}; padding:12px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;"><span style="width:12px;height:12px;border-radius:3px;background:${DAY_CUBE[i % DAY_CUBE.length]};"></span><b style="color:#152C28; font-size:12px;">${d.d}일차</b></div>
     <div style="background:${bg}; padding:12px 8px; color:#152C28; line-height:1.5;"><b>${d.dest}</b><br><span style="color:#8CA39D;">${esc(d.move)}<br>${esc(d.dist)}</span></div>
     <div style="background:${bg}; padding:12px 10px; color:#354B46; line-height:1.85;">${d.items.map(itemHtml).join("<br>")}</div>
-    <div style="background:${bg}; padding:12px 8px; color:#152C28; font-weight:600; line-height:1.6; text-align:center;">${d.stay.name}${d.stay.tags.length ? `<br><br><span style="color:#8CA39D; font-weight:500;">${d.stay.tags.join("<br>")}</span>` : ""}</div>
+    <div style="background:${i % 2 ? '#EAF7F3' : '#F5FBF9'}; padding:12px 8px; color:#152C28; font-weight:800; line-height:1.6; text-align:center; border-left:1px solid #DDEBE6; border-right:1px solid #DDEBE6;">${d.stay.name}${d.stay.tags.length ? `<br><br><span style="display:inline-block; color:#0A6A5E; background:#fff; border:1px solid #DDEBE6; border-radius:14px; padding:4px 8px; font-weight:700;">${d.stay.tags.join("<br>")}</span>` : ""}</div>
     <div style="background:${bg}; padding:12px 6px; color:#354B46; text-align:center; line-height:1.9;">${d.meals.join("<br>")}</div>`;
 };
 // 일정 페이지 상단 헤더(로고·제목·이동강도) — 여러 장으로 나뉘어도 매 장 반복
@@ -761,27 +763,27 @@ const pgBookingAssign = bookingAssign ? (() => {
   const vehicleImgs = imgsOf(v);
   const lodgeCard = (l, i) => {
     const imgs = imgsOf(l);
-    return `<div style="${i ? `border-top:1.5px solid ${ASSIGN_STYLE.line}; padding-top:20px; margin-top:20px;` : ""}">
-      <div style="${AS.day}">DAY${esc(l.day || i + 1)}</div>
-      <div style="margin-top:10px;">${photoStrip(imgs, l.name, 118)}</div>
+    return `<div style="background:${i % 2 ? '#fff' : ASSIGN_STYLE.panel}; border:1px solid ${ASSIGN_STYLE.line}; border-radius:14px; padding:16px 18px; ${i ? `margin-top:14px;` : ""}">
+      <div style="display:inline-flex; align-items:center; justify-content:center; background:${ASSIGN_STYLE.soft}; border:1px solid ${ASSIGN_STYLE.line}; border-radius:20px; padding:7px 13px; ${AS.day}">DAY${esc(l.day || i + 1)}</div>
+      <div style="margin-top:12px;">${photoStrip(imgs, l.name, 110)}</div>
       <div style="display:flex; align-items:baseline; gap:12px; margin-top:12px;">
         <div style="${AS.name} text-transform:uppercase;">${esc(l.name)}</div>
-        ${l.grade ? `<div style="${AS.meta}">${esc(l.grade)}</div>` : ""}
+        ${l.grade ? `<div style="background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border:1px solid ${ASSIGN_STYLE.line}; border-radius:16px; padding:5px 10px; ${AS.meta}">${esc(l.grade)}</div>` : ""}
       </div>
       <div style="margin-top:5px; ${AS.body}">${esc(l.desc || l.tags || "확정된 숙소 정보입니다.")}</div>
     </div>`;
   };
   const guideRole = g.korean ? `${esc(g.korean)} 가이드` : "한국어 가이드";
   const vehicleName = v.model || Q.vehicle || "배정 차량";
-  return `<div class="page" style="padding:46px 50px; background:#fff;">
+  return `<div class="page" style="padding:46px 50px; background:#FCFEFD;">
     <div style="${AS.pageTitle} margin-bottom:20px;">확정 숙소 배정</div>
     ${lodges.map(lodgeCard).join("") || `<div style="color:#777; font-size:14px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
     <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 숙소 배정</span><span>11</span></div>
   </div>
-  <div class="page" style="padding:0; background:#fff;">
-    <div style="position:absolute; inset:0; border:2px solid ${ASSIGN_STYLE.accent}; pointer-events:none;"></div>
-    <div style="position:absolute; left:58px; right:58px; top:198px; display:flex; align-items:center; gap:32px;">
-      ${g.img ? `<div class="ph" style="width:178px; height:178px; border-radius:50%; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:178px; height:178px; border-radius:50%; background:#EAF2EE; flex:none;"></div>`}
+  <div class="page" style="padding:0; background:#FCFEFD;">
+    <div style="position:absolute; inset:48px 50px auto 50px; height:1px; background:${ASSIGN_STYLE.line};"></div>
+    <div style="position:absolute; left:58px; right:58px; top:198px; display:flex; align-items:center; gap:32px; background:${ASSIGN_STYLE.panel}; border:1px solid ${ASSIGN_STYLE.line}; border-radius:18px; padding:34px 38px;">
+      ${g.img ? `<div class="ph" style="width:178px; height:178px; border-radius:50%; flex:none; border:1px solid ${ASSIGN_STYLE.line};"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:178px; height:178px; border-radius:50%; background:${ASSIGN_STYLE.soft}; border:1px solid ${ASSIGN_STYLE.line}; flex:none;"></div>`}
       <div style="flex:1;">
         <div style="display:flex; align-items:baseline; gap:14px;">
           <div style="${AS.guideName}">${esc(g.name || "가이드")}</div>
@@ -792,12 +794,13 @@ const pgBookingAssign = bookingAssign ? (() => {
     </div>
     <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 가이드 안내</span><span>12</span></div>
   </div>
-  <div class="page" style="padding:54px 50px; background:#fff;">
+  <div class="page" style="padding:54px 50px; background:#FCFEFD;">
     <div style="${AS.vehicleTitle}">차량정보</div>
-    <div style="margin-top:20px;">${photoStrip(vehicleImgs, vehicleName, 176)}</div>
+    <div style="height:1px; background:${ASSIGN_STYLE.line}; margin-top:16px;"></div>
+    <div style="margin-top:20px; background:${ASSIGN_STYLE.panel}; border:1px solid ${ASSIGN_STYLE.line}; border-radius:16px; padding:16px;">${photoStrip(vehicleImgs, vehicleName, 160)}</div>
     <div style="${AS.vehicleName} margin-top:24px;">${esc(vehicleName)}</div>
-    ${v.seats ? `<div style="margin-top:2px; ${AS.meta}">${esc(v.seats)}</div>` : ""}
-    <div style="margin-top:12px; ${AS.guideBody} max-width:650px;">${esc(v.desc || "몽골 장거리 이동에 적합한 차량으로 일정과 인원에 맞춰 배정됩니다.")}</div>
+    ${v.seats ? `<div style="display:inline-block; margin-top:8px; background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border:1px solid ${ASSIGN_STYLE.line}; border-radius:18px; padding:6px 12px; ${AS.meta}">${esc(v.seats)}</div>` : ""}
+    <div style="margin-top:14px; ${AS.guideBody} max-width:650px;">${esc(v.desc || "몽골 장거리 이동에 적합한 차량으로 일정과 인원에 맞춰 배정됩니다.")}</div>
     <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 차량 정보</span><span>13</span></div>
   </div>`;
 })() : "";
