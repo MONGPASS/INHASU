@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>맞춤 견적서 · 몽골리아 은하수</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<script src="data.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Pretendard', -apple-system, sans-serif; -webkit-font-smoothing: antialiased;
+    background: #DBE6E2; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #152C28; }
+
+  /* 상단 안내/도구 바 */
+  .topbar { position: sticky; top: 0; z-index: 30; background: #06c4a0; color: #EAFBF6;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 14px; font-size: 12.5px; }
+  .topbar .tb-links { display: flex; gap: 8px; }
+  .topbar a, .topbar button { font: inherit; color: #06413A; background: #EAFBF6; border: none; border-radius: 18px;
+    padding: 6px 12px; font-weight: 800; cursor: pointer; text-decoration: none; white-space: nowrap; }
+  .topbar .tb-pc { background: rgba(255,255,255,0.18); color: #EAFBF6; }
+
+  /* 문서 컨테이너 — 화면에선 폰 카드 스택, 인쇄에선 페이지 */
+  .doc { max-width: 430px; margin: 0 auto; padding: 18px 14px 40px; display: flex; flex-direction: column; gap: 18px; }
+  .card { background: #FCFEFD; border-radius: 22px; box-shadow: 0 18px 44px rgba(6,65,58,0.14);
+    overflow: hidden; }
+  .card > .pad { padding: 22px 22px 26px; }
+
+  /* 잘림 방지용 원자 블록 */
+  .blk { break-inside: avoid; }
+
+  .row { display: flex; align-items: center; }
+  .ph { display: flex; align-items: center; justify-content: center; background: #EAF2EE;
+    color: #A9BCB6; font-size: 11px; overflow: hidden; }
+  .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ph.contain { background: #fff; }
+  .ph.contain img { object-fit: contain; }
+  .logo-mark { display: inline-flex; flex: none; }
+
+  .print-only { display: none; }
+
+  @media (max-width: 460px) {
+    .doc { padding: 14px 10px 32px; gap: 14px; }
+    .card > .pad { padding: 18px 18px 22px; }
+  }
+
+  /* ── 인쇄(PDF) ── 각 섹션을 새 페이지에서 시작, 블록은 절대 잘리지 않게 ── */
+  @page { size: 420px 760px; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .topbar, .fab { display: none !important; }
+    .print-only { display: block; }
+    .doc { max-width: none; margin: 0; padding: 0; gap: 0; display: block; }
+    .card { border-radius: 0; box-shadow: none; break-before: page; }
+    .card:first-child { break-before: auto; }
+    .card > .pad { padding: 26px 26px 30px; }
+  }
+
+  /* 플로팅 PDF 저장 버튼 */
+  .fab { position: fixed; right: 16px; bottom: 18px; z-index: 40; background: #152C28; color: #fff;
+    border: none; border-radius: 26px; padding: 13px 20px; font: 800 14.5px 'Pretendard', sans-serif;
+    box-shadow: 0 10px 26px rgba(6,65,58,0.32); cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar" style="display:none">
+  <span id="tbHint">💡 저장 버튼으로 모바일 PDF를 받으세요</span>
+  <span class="tb-links">
+    <a class="tb-pc" id="pcLink" href="#">💻 PC 버전</a>
+    <button id="tbSave">📄 PDF 저장</button>
+  </span>
+</div>
+
+<div class="doc" id="root"></div>
+<button class="fab" id="fab" style="display:none" onclick="window.print()">📄 PDF 저장</button>
+
+<script type="module">
+/* ── 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 ── */
+const params = new URLSearchParams(location.search);
+const _token = params.get("t");
+
+/* PC 버전 링크(같은 파라미터 유지, 강제 PC = m=0) */
+(() => {
+  const p = new URLSearchParams(location.search); p.set("m", "0");
+  const el = document.getElementById("pcLink");
+  if (el) el.href = "견적서.html?" + p.toString();
+})();
+
+const Q = await (async () => {
+  if (_token) {
+    try {
+      const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
+      const j = await res.json();
+      if (j.ok && j.quote) return j.quote;
+    } catch (e) {}
+    return null;   // 토큰은 있지만 아직 견적 미발행
+  }
+  try { const s = JSON.parse(localStorage.getItem("leaders_quote") || "null"); if (s) return s; } catch (e) {}
+  return window.QUOTE;
+})();
+
+/* 명소 사진은 항상 명소관리 최신본을 우선 반영 */
+if (Q && Array.isArray(Q.highlights) && Q.highlights.length) {
+  try {
+    const r = await fetch("/api/data/spots", { cache: "no-store" });
+    const j = await r.json();
+    const lib = (j && j.ok && j.data) ? j.data : null;
+    if (lib) Q.highlights.forEach(h => {
+      const s = h && h.name ? lib[h.name] : null;
+      if (!s) return;
+      if (s.img) h.img = s.img;
+      if (Array.isArray(s.subImgs) && s.subImgs.some(x => x)) h.subImgs = s.subImgs;
+    });
+  } catch (e) {}
+}
+
+const root = document.getElementById("root");
+
+/* 토큰만 있고 아직 미발행 */
+if (!Q) {
+  root.innerHTML =
+    `<div class="card"><div class="pad" style="text-align:center;">
+      <div style="font-size:46px">🕓</div>
+      <h1 style="font-size:21px;margin:14px 0 8px;font-weight:800">견적서 준비 중이에요</h1>
+      <p style="color:#6b7c78;line-height:1.65;font-size:14.5px">담당자가 맞춤 견적서를 작성하고 있어요.<br>완료되면 이 링크에서 바로 확인하실 수 있습니다.</p>
+      <a href="내견적.html?t=${encodeURIComponent(_token || "")}" style="display:inline-block;margin-top:20px;color:#06c4a0;font-weight:800;text-decoration:none">← 내 견적 확인으로 돌아가기</a>
+    </div>`;
+} else {
+
+/* 편집기/샘플(고객 링크 아님)일 때만 상단 도구바 표시 */
+if (!_token) { document.getElementById("topbar").style.display = ""; }
+document.getElementById("fab").style.display = "";
+document.getElementById("tbSave")?.addEventListener("click", () => window.print());
+
+const won = n => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("ko-KR") + "원";
+const wonMan = n => Math.round(n / 10000).toLocaleString("ko-KR") + "만원";
+const esc = s => String(s ?? "");
+const noBr = s => String(s ?? "").replace(/<br\s*\/?>/gi, " ");
+const balEco = b => (b.economy != null ? b.economy : (b.amount || 0));
+const balFull = b => (b.full != null ? b.full : (b.amount || 0));
+const B = Q.brand;
+
+/* 디자인 자산 이미지(게르·식사·아이콘·허가증 등)는 data.js 최신본으로 보충 */
+if (window.QUOTE && window.QUOTE.images) {
+  const cur = Q.images || {};
+  const merged = { ...window.QUOTE.images };
+  for (const [k, v] of Object.entries(cur)) {
+    const empty = v == null || v === "" || (Array.isArray(v) && !v.some(x => x));
+    if (!empty) merged[k] = v;
+  }
+  Q.images = merged;
+}
+const IMG = Q.images || {};
+const arr = IMG.arrival || {};
+
+/* 이미지 헬퍼 */
+const ph = (src, label, style) => src
+  ? `<div class="ph" style="${style}"><img src="${src}" alt="${esc(label)}"></div>`
+  : `<div class="ph" style="${style}">${esc(label) || ""}</div>`;
+const phC = (src, label, style) => src
+  ? `<div class="ph contain" style="${style}"><img src="${src}" alt="${esc(label)}"></div>`
+  : `<div class="ph" style="${style}">${esc(label) || ""}</div>`;
+
+const itemHtml = t => {
+  if (t.startsWith("*")) return `<span style="color:#06C4A0; font-weight:600;">${esc(t)}</span>`;
+  if (t.startsWith("(")) return `<span style="color:#8CA39D;">${esc(t)}</span>`;
+  return esc(t);
+};
+
+const LOGO = (sz = 30) => `<svg width="${sz}" height="${sz}" viewBox="0 0 48 48" fill="none" class="logo-mark"><rect x="1.5" y="1.5" width="45" height="45" rx="13" stroke="#0A6A5E" stroke-width="1.8"></rect><path d="M9 33 L19 18 L26 28 L32 20 L39 33 Z" fill="#0A6A5E"></path></svg>`;
+
+const card = (inner) => `<div class="card"><div class="pad">${inner}</div></div>`;
+
+/* ══════════ 1) 표지 ══════════ */
+const secCover = card(`
+  <div class="blk">
+    <div class="row" style="justify-content:space-between;">
+      <div class="row" style="gap:9px;">${LOGO(30)}
+        <div style="color:#0A6A5E; font-size:11px; font-weight:800; letter-spacing:0.14em;">MONGOLIA<br>MILKY WAY</div>
+      </div>
+      <div style="background:#06C4A0; color:#fff; font-size:9.5px; font-weight:800; letter-spacing:0.08em; padding:7px 13px; border-radius:20px;">CUSTOM ESTIMATE</div>
+    </div>
+    <div style="margin-top:36px;">
+      <div style="font-family:'Playfair Display',serif; font-size:15px; color:#06C4A0;">${esc(B.slogan)}</div>
+      <div style="color:#152C28; font-size:36px; font-weight:800; line-height:1.12; letter-spacing:-0.03em; margin-top:12px;">${esc(B.company)}<br><span style="color:#06C4A0;">맞춤 견적서</span></div>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:22px;">
+      <div style="flex:1; background:#F1F7F5; border-radius:10px; padding:11px 12px;"><div style="color:#06C4A0; font-size:9.5px; font-weight:700; letter-spacing:0.1em;">발행일</div><div style="color:#152C28; font-size:13px; font-weight:800; margin-top:3px;">${esc(Q.issueDate)}</div></div>
+      <div style="flex:1; background:#F1F7F5; border-radius:10px; padding:11px 12px;"><div style="color:#06C4A0; font-size:9.5px; font-weight:700; letter-spacing:0.1em;">담당</div><div style="color:#152C28; font-size:13px; font-weight:800; margin-top:3px;">${esc(Q.manager)}</div></div>
+      <div style="flex:1.3; background:#F1F7F5; border-radius:10px; padding:11px 12px;"><div style="color:#06C4A0; font-size:9.5px; font-weight:700; letter-spacing:0.1em;">문서번호</div><div style="color:#152C28; font-size:13px; font-weight:800; margin-top:3px;">${esc(Q.quoteNo)}</div></div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;">
+      <div style="background:#EAF7F3; color:#0A6A5E; font-size:12px; font-weight:700; padding:8px 14px; border-radius:22px;">여행지 · ${esc(Q.destination)}</div>
+      <div style="background:#EAF7F3; color:#0A6A5E; font-size:12px; font-weight:700; padding:8px 14px; border-radius:22px;">${esc(Q.nights)}</div>
+      <div style="background:#EAF7F3; color:#0A6A5E; font-size:12px; font-weight:700; padding:8px 14px; border-radius:22px;">${esc(Q.pax)}인</div>
+    </div>
+  </div>
+  ${ph(IMG.cover, IMG.coverLabel, "width:100%; height:250px; border-radius:16px; margin-top:18px; box-shadow:0 16px 34px rgba(10,106,94,0.16);")}
+  <div class="row blk" style="justify-content:space-between; margin-top:16px; color:#8CA39D; font-size:11px;">
+    <div>${esc(B.instagram)}</div><div>카카오톡: ${esc(B.kakao)}</div>
+  </div>`);
+
+/* ══════════ 2) 견적서 ══════════ */
+const infoRow = (k, v, kb) => `<div style="display:grid; grid-template-columns:82px 1fr; border-bottom:1px solid #EAF3EF;"><div style="background:#EAF7F3; color:#0A6A5E; font-weight:700; padding:11px 12px;">${k}</div><div style="padding:11px 12px; color:#152C28; font-weight:600; line-height:1.5;">${v}</div></div>`;
+const balCard = (bg, sub, title, tier) => `
+  <div class="blk" style="background:${bg}; border-radius:12px; padding:14px 16px;">
+    <div style="color:#EAFBF6; font-size:11px; font-weight:700;">${title}</div>
+    <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+      ${Q.price.balances.map(b => `<div class="row" style="justify-content:space-between;"><span style="color:${sub}; font-size:12px;">${b.pax}인 잔금(1인기준)</span><span style="color:#fff; font-size:19px; font-weight:800;">${wonMan(tier === "full" ? balFull(b) : balEco(b))}</span></div>`).join("")}
+    </div>
+  </div>`;
+
+const secQuote = card(`
+  <div class="blk">
+    <div class="row" style="justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-family:'Playfair Display',serif; font-size:12px; color:#06C4A0;">${esc(B.slogan)}</div>
+        <div style="color:#06C4A0; font-size:22px; font-weight:800; letter-spacing:-0.02em; margin-top:4px; line-height:1.2;">${esc(B.company)}<br>맞춤견적서</div>
+      </div>${LOGO(30)}
+    </div>
+    <div style="margin-top:10px; font-size:9.5px; color:#8CA39D; line-height:1.6;">${esc(B.bizMn)}<br>${esc(B.bizKr)}</div>
+    <div style="height:1px; background:#DCEAE5; margin:14px 0;"></div>
+  </div>
+  <div class="blk" style="border:1px solid #DDEBE6; border-radius:12px; overflow:hidden; font-size:12px;">
+    ${infoRow("고객명", esc(Q.customer))}
+    ${infoRow("문서번호", esc(Q.quoteNo))}
+    ${infoRow("여행지", esc(Q.destination))}
+    ${infoRow("인원", esc(Q.paxNote))}
+    ${infoRow("여행 기간", esc(Q.period) + " (" + esc(Q.nights) + ")")}
+    ${infoRow("차량", esc(Q.vehicle))}
+    <div style="display:grid; grid-template-columns:1fr 1fr;">
+      <div style="display:grid; grid-template-columns:auto 1fr; border-right:1px solid #EAF3EF;"><div style="background:#06C4A0; color:#EAFBF6; font-weight:700; padding:11px 10px; font-size:10.5px;">항공 IN</div><div style="background:#F3FAF8; padding:11px 8px; color:#152C28; font-weight:600; text-align:center;">${esc(Q.flight.in)}</div></div>
+      <div style="display:grid; grid-template-columns:auto 1fr;"><div style="background:#06C4A0; color:#EAFBF6; font-weight:700; padding:11px 10px; font-size:10.5px;">항공 OUT</div><div style="background:#F3FAF8; padding:11px 8px; color:#152C28; font-weight:600; text-align:center;">${esc(Q.flight.out)}</div></div>
+    </div>
+    ${infoRow("픽업", esc(Q.pickup))}
+    <div style="display:grid; grid-template-columns:82px 1fr;"><div style="background:#EAF7F3; color:#0A6A5E; font-weight:700; padding:11px 12px;">드랍</div><div style="padding:11px 12px; color:#152C28; font-weight:600; line-height:1.5;">${esc(Q.drop)}</div></div>
+  </div>
+  <div class="blk" style="margin-top:12px; background:#F5FBF9; border:1px solid #E3F0EB; border-radius:12px; padding:13px 15px;">
+    <div style="color:#0A6A5E; font-size:12px; font-weight:800;">여행사 혜택</div>
+    <div style="margin-top:6px; font-size:11px; color:#40544F; line-height:1.7;">${esc(Q.benefits)}</div>
+  </div>
+  <div class="blk" style="margin-top:10px; background:#FFF8F5; border:1px solid #F3E0D8; border-radius:12px; padding:13px 15px;">
+    <div style="color:#C9604B; font-size:12px; font-weight:800;">참여 가능 이벤트</div>
+    <div style="margin-top:6px; font-size:10.5px; color:#5C4B47; line-height:1.75;">${(Q.events || []).map(e => esc(e)).join("<br>")}</div>
+  </div>
+  <div class="blk" style="margin-top:12px; row; display:flex; gap:10px; align-items:center; background:#EAF7F3; border-radius:12px; padding:14px 16px;">
+    <div style="color:#0A6A5E; font-size:12px; font-weight:800; flex:none;">예약금<br><span style="font-weight:600; color:#8CA39D; font-size:10px;">1인기준×인원수</span></div>
+    <div style="flex:1; text-align:right; color:#152C28; font-size:24px; font-weight:800;">${wonMan(Q.price.deposit)}</div>
+  </div>
+  ${(Q.price.options && Q.price.options.length) ? `<div class="blk" style="margin-top:10px; background:#F7F9F8; border:1px solid #E7EDEB; border-radius:12px; padding:12px 15px;">
+    <div style="color:#0A6A5E; font-size:11.5px; font-weight:800;">추가 및 할인 사항</div>
+    <div style="margin-top:7px; display:flex; flex-direction:column; gap:5px; font-size:11px;">
+      ${Q.price.options.map(o => `<div class="row" style="justify-content:space-between; gap:10px;"><span style="color:#354B46; font-weight:600;">${esc(o.label)}</span><span style="color:#8CA39D; white-space:nowrap;">${esc(o.calc)}</span></div>`).join("")}
+    </div></div>` : ""}
+  <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+    ${balCard("#06C4A0", "#EAFBF6", "🏨 풀패키지 · 4성급호텔+고급게르", "full")}
+    ${balCard("#0A6A5E", "#CDEDE4", "⛺ 실속형 · 3성급호텔+일반게르", "economy")}
+  </div>
+  <div class="blk" style="margin-top:14px; font-size:10px; color:#8CA39D; line-height:1.7;">견적서 내 금액은 모두 1인 기준이며, 해당 견적은 ${esc(Q.price.validUntil)}까지 유효합니다.<br><b style="color:#0A6A5E;">[결제]</b> ${esc(Q.price.payment)} <span style="color:#B0C2BC;">${esc(Q.price.paymentNote)}</span><br><b style="color:#0A6A5E;">[입금]</b> ${esc(B.account)}${Q.remark && Q.remark !== "-" ? `<br><b style="color:#0A6A5E;">[비고]</b> ${esc(Q.remark)}` : ""}</div>`);
+
+/* ══════════ 3) 일정표 ══════════ */
+const dayCard = (d) => {
+  const distTxt = String(d.dist || "").replace(/[()]/g, "").trim();
+  const moveTxt = String(d.move || "").replace(/이동\s*/, "");
+  const meta = [moveTxt, distTxt].filter(Boolean).join(" · ");
+  const stayTags = (d.stay.tags && d.stay.tags.length) ? `<span style="background:#EAF7F3; color:#0A6A5E; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:14px;">${d.stay.tags.join(" · ")}</span>` : "";
+  return `
+  <div class="blk" style="border:1px solid #E3F0EB; border-radius:14px; overflow:hidden;">
+    <div class="row" style="justify-content:space-between; background:#06C4A0; padding:11px 15px;">
+      <div class="row" style="gap:9px;"><span style="color:#fff; font-size:12px; font-weight:800;">${d.d}일차</span><b style="color:#fff; font-size:14px;">${noBr(d.dest)}</b></div>
+      ${meta ? `<span style="color:#EAFBF6; font-size:10.5px; white-space:nowrap;">${esc(meta)}</span>` : ""}
+    </div>
+    <div style="padding:13px 15px;">
+      <div style="position:relative; margin:4px 0 0 6px; padding-left:22px; border-left:1.5px solid #C5E6DC; font-size:11.5px; color:#354B46;">
+        ${d.items.map((it, i) => `<div style="position:relative; ${i < d.items.length - 1 ? "margin-bottom:9px;" : ""} line-height:1.45;"><span style="position:absolute; left:-28.5px; top:2px; width:11px; height:11px; border-radius:50%; background:#06C4A0;"></span>${itemHtml(it)}</div>`).join("")}
+      </div>
+      <div style="display:flex; gap:8px; margin-top:11px; flex-wrap:wrap;">
+        <span style="background:#EAF7F3; color:#0A6A5E; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:14px;">🛏 ${noBr(d.stay.name)}</span>${stayTags}
+      </div>
+      <div style="margin-top:8px; font-size:10.5px; color:#8CA39D;">🍽 ${(d.meals || []).join(" · ")}</div>
+    </div>
+  </div>`;
+};
+const secSchedule = card(`
+  <div class="blk">
+    <div class="row" style="gap:10px;">${LOGO(34)}
+      <div>
+        <div style="color:#06C4A0; font-size:10px; font-weight:800; letter-spacing:0.14em;">MONGOLIA MILKY WAY</div>
+        <div style="color:#152C28; font-size:26px; font-weight:800; letter-spacing:-0.02em;">${esc(Q.destination)} ${esc(Q.nights)}</div>
+      </div>
+    </div>
+    <div class="row" style="gap:8px; margin-top:12px; background:#EAF7F3; padding:8px 14px; border-radius:22px; width:fit-content;">
+      <span style="color:#0A6A5E; font-size:11px; font-weight:700;">이동강도</span>
+      <span class="row" style="gap:4px;">${[1,2,3,4,5].map(i => `<span style="width:8px;height:8px;border-radius:50%;background:${i <= (Q.intensity || 0) ? '#06C4A0' : '#CFE3DD'};"></span>`).join("")}</span>
+    </div>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
+    ${(Q.days || []).map(dayCard).join("")}
+  </div>
+  ${(Q.scheduleNotes && Q.scheduleNotes.length) ? `<div class="blk" style="margin-top:16px; font-size:9.5px; color:#40544F; line-height:1.75;">${Q.scheduleNotes.filter(Boolean).map(n => "* " + esc(n)).join("<br>")}</div>` : ""}`);
+
+/* ══════════ 4) 포함/불포함 (webp 아이콘) ══════════ */
+const INCLUSIONS = [["stay","전일정 숙박"],["meals","전일정 현지 맛집 식사"],["special","특식 2회"],["pickup","픽업 & 샌딩"],["vehicle","전일정 차량"],["guide","전문 가이드"],["entrance","여행지 입장료"],["water","1일 1생수 제공"],["activity","액티비티 비용"],["custom","맞춤형 투어"],["coffee","모카포트 커피"],["chair","캠핑 의자·테이블"],["socks","몽골 낙타양말"],["poncho","판초 제공"],["galaxy","새벽 은하수 헌팅"]];
+const EXCLUSIONS = ["왕복 항공권","개인경비","선택관광 비용","여행자 보험","휴대폰 유심비"];
+const secInclusions = card(`
+  <div class="blk" style="text-align:center;">
+    <div style="font-family:'Playfair Display',serif; font-size:12px; color:#06C4A0; letter-spacing:0.06em;">MONGOLIA MILKY WAY</div>
+    <div style="color:#152C28; font-size:23px; font-weight:800; letter-spacing:-0.02em; margin-top:5px;">투어 포함 · 불포함 사항</div>
+    <div style="color:#40544F; font-size:11.5px; margin-top:7px; line-height:1.5;">여행에 꼭 필요한 서비스를 모두 포함합니다.<br><b style="color:#0A6A5E;">현지 추가 비용 일절 없습니다.</b></div>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:18px;">
+    ${INCLUSIONS.map(([ic, label]) => `<div class="blk" style="background:#F5FBF9; border:1px solid #E3F0EB; border-radius:14px; padding:15px 8px; display:flex; flex-direction:column; align-items:center; gap:9px;"><img src="img/icons/${ic}.png" alt="${label}" style="height:48px; width:auto; object-fit:contain;"><span style="font-size:13px; font-weight:800; color:#152C28; text-align:center; line-height:1.3;">${label}</span></div>`).join("")}
+  </div>
+  <div class="blk" style="margin-top:14px; background:#F7F9F8; border:1px solid #E7EDEB; border-radius:14px; padding:16px 18px;">
+    <div class="row" style="gap:8px;"><span style="width:22px; height:22px; border-radius:50%; background:#152C28; color:#fff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center;">✕</span><b style="color:#152C28; font-size:14px;">불포함 사항</b></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px 12px; margin-top:13px;">
+      ${EXCLUSIONS.map(x => `<div class="row" style="gap:8px; font-size:12px; color:#40544F;"><span style="color:#B6C2BE;">—</span>${x}</div>`).join("")}
+    </div>
+  </div>`);
+
+/* ══════════ 5) 명소 ══════════ */
+const spotBlock = (h) => `
+  <div class="blk">
+    ${ph(h.img, h.name, "width:100%; height:180px; border-radius:12px;")}
+    <div style="color:#06C4A0; font-size:11px; font-weight:700; margin-top:12px;">📍 ${esc(h.nameMn)}</div>
+    <div style="color:#152C28; font-size:20px; font-weight:800; margin-top:2px;">${esc(h.name)}</div>
+    <p style="color:#40544F; font-size:11.5px; line-height:1.7; margin:8px 0 0;">${h.desc}</p>
+    ${(h.subImgs && h.subImgs.some(x => x)) ? `<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:12px;">${h.subImgs.map(s => ph(s, "", "width:100%; height:56px; border-radius:7px;")).join("")}</div>` : ""}
+  </div>`;
+const secSpots = (Q.highlights && Q.highlights.length) ? card(`
+  <div class="blk row" style="justify-content:space-between; align-items:flex-start;">
+    <div>
+      <div style="color:#06C4A0; font-size:11px; font-weight:800; letter-spacing:0.14em;">TOUR HIGHLIGHTS</div>
+      <div style="color:#152C28; font-size:22px; font-weight:800; letter-spacing:-0.02em; margin-top:3px;">${esc(Q.destination)} 대표 명소</div>
+    </div>${LOGO(30)}
+  </div>
+  <div style="display:flex; flex-direction:column; margin-top:18px;">
+    ${Q.highlights.map((h, i) => (i ? `<div style="height:1px; background:#EAF3EF; margin:20px 0;"></div>` : "") + spotBlock(h)).join("")}
+  </div>`) : "";
+
+/* ══════════ 6) 숙소 비교 ══════════ */
+const LODGES = IMG.lodges || [];
+const specRow = (label, a, b, bg) => `<div style="display:grid; grid-template-columns:64px 1fr 1fr; background:${bg}; border-top:1px solid #E3F0EB;"><div style="padding:10px 6px; color:#5FA593; font-weight:700; text-align:center; font-size:9.5px;">${label}</div><div style="padding:10px 6px; color:#354B46; text-align:center; border-left:1px solid #EEF4F1;">${a}</div><div style="padding:10px 6px; color:#0A6A5E; font-weight:700; text-align:center; border-left:1px solid #EEF4F1;">${b}</div></div>`;
+const secLodge = card(`
+  <div class="blk">
+    <div style="color:#40544F; font-size:12px; font-weight:700;">여행의 품질 만큼은 절대 타협하지 않습니다</div>
+    <div style="color:#152C28; font-size:24px; font-weight:800; letter-spacing:-0.02em; line-height:1.2; margin-top:6px;">${esc(B.company)}<br>숙소의 차별점</div>
+  </div>
+  <div class="blk" style="margin-top:20px;">
+    <div style="display:inline-block; background:#3A4A46; color:#fff; font-size:12px; font-weight:800; padding:6px 18px; border-radius:16px;">타 여행사</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+      <div style="background:#F5FBF9; border:1px solid #E3F0EB; border-radius:12px; overflow:hidden;">${ph(LODGES[0], "", "width:100%; height:96px;")}<div style="padding:9px; text-align:center; color:#152C28; font-size:12.5px; font-weight:800;">텐트설치</div></div>
+      <div style="background:#F5FBF9; border:1px solid #E3F0EB; border-radius:12px; overflow:hidden;">${ph(LODGES[1], "", "width:100%; height:96px;")}<div style="padding:9px; text-align:center; color:#152C28; font-size:12.5px; font-weight:800;">유목민게르</div></div>
+    </div>
+    <div style="margin-top:10px; font-size:11px; color:#354B46; line-height:1.9;">
+      <div class="row" style="justify-content:space-between; border-bottom:1px solid #EEF4F1; padding:5px 0;"><span style="color:#8CA39D;">⚡ 전기</span><span>전기 불가 · 제한적</span></div>
+      <div class="row" style="justify-content:space-between; border-bottom:1px solid #EEF4F1; padding:5px 0;"><span style="color:#8CA39D;">🚻 화장실</span><span>푸세식 · 공용</span></div>
+      <div class="row" style="justify-content:space-between; border-bottom:1px solid #EEF4F1; padding:5px 0;"><span style="color:#8CA39D;">🚿 세면·샤워</span><span style="color:#C9604B;">시설 없음</span></div>
+      <div class="row" style="justify-content:space-between; border-bottom:1px solid #EEF4F1; padding:5px 0;"><span style="color:#8CA39D;">📶 와이파이</span><span style="color:#C9604B;">사용 불가능</span></div>
+      <div class="row" style="justify-content:space-between; padding:5px 0;"><span style="color:#8CA39D;">🔥 난방</span><span>난로 불가 · 장작 화로</span></div>
+    </div>
+  </div>
+  <div class="blk" style="margin-top:20px; border:1.5px solid #06C4A0; border-radius:14px; padding:16px; background:#F1FBF7;">
+    <div style="display:inline-block; background:#06C4A0; color:#fff; font-size:12px; font-weight:800; padding:6px 18px; border-radius:16px;">${esc(B.company)} 여행사</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+      <div style="background:#fff; border:1px solid #CDEBE0; border-radius:12px; overflow:hidden;">${ph(LODGES[2], "", "width:100%; height:96px;")}<div style="padding:9px; text-align:center; color:#152C28; font-size:12.5px; font-weight:800;">일반게르<br><span style="font-size:10px; color:#8CA39D;">(실속형)</span></div></div>
+      <div style="background:#fff; border:1px solid #CDEBE0; border-radius:12px; overflow:hidden;">${ph(LODGES[3], "", "width:100%; height:96px;")}<div style="padding:9px; text-align:center; color:#152C28; font-size:12.5px; font-weight:800;">고급게르<br><span style="font-size:10px; color:#8CA39D;">(풀패키지)</span></div></div>
+    </div>
+    <div style="margin-top:12px; border:1px solid #CDEBE0; border-radius:10px; overflow:hidden; font-size:10.5px;">
+      <div style="display:grid; grid-template-columns:64px 1fr 1fr; background:#DFF3EC;">
+        <div style="padding:9px 6px;"></div>
+        <div style="padding:9px 6px; color:#0A6A5E; font-weight:800; text-align:center; border-left:1px solid #CDEBE0;">일반게르<br><span style="font-size:9px; color:#5FA593;">실속형</span></div>
+        <div style="padding:9px 6px; color:#0A6A5E; font-weight:800; text-align:center; border-left:1px solid #CDEBE0;">고급게르<br><span style="font-size:9px; color:#5FA593;">풀패키지</span></div>
+      </div>
+      ${specRow("⚡ 전기", "사용 가능", "사용 가능", "#fff")}
+      ${specRow("🚻 화장실", "공용 화장실", "게르 내부 비치", "#F7FCFA")}
+      ${specRow("🚿 세면·샤워", "공용 샤워실·세면대", "게르 내부 비치", "#fff")}
+      ${specRow("📶 와이파이", "캠프장 내 사용", "캠프장 내 사용", "#F7FCFA")}
+      ${specRow("🔥 난방", "게르 내 장작 화로", "바닥 난방 or 전기난로", "#fff")}
+    </div>
+  </div>
+  <div class="blk" style="margin-top:14px; background:#fff; border:1px solid #E3F0EB; border-radius:14px; overflow:hidden;">
+    ${ph(IMG.lodgeNote, "게르 내부", "width:100%; height:120px;")}
+    <div style="padding:14px 15px;">
+      <div style="display:flex; gap:8px; align-items:flex-start; font-size:10.5px; color:#40544F; line-height:1.6;"><span style="flex:none;">🏠</span><span>게르는 <b style="color:#152C28;">3~4인실</b> 기준으로 배정되나, 캠프장별 수용 시설에 따라 객실 인원 구성이 달라질 수 있습니다.</span></div>
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <div style="flex:1; border:1px solid #06C4A0; border-radius:10px; padding:11px 12px; background:#F1FBF7;"><div style="display:inline-block; color:#fff; font-size:10px; font-weight:800; padding:3px 9px; border-radius:12px; background:#06C4A0;">실속형</div><div style="margin-top:8px; font-size:11px; color:#0A6A5E; line-height:1.5; font-weight:600;">호텔 3성급<br>+ 일반 게르</div></div>
+        <div style="flex:1; border:1.5px solid #06C4A0; border-radius:10px; padding:11px 12px; background:#F1FBF7;"><div style="display:inline-block; color:#fff; font-size:10px; font-weight:800; padding:3px 9px; border-radius:12px; background:#06C4A0;">풀패키지</div><div style="margin-top:8px; font-size:11px; color:#0A6A5E; font-weight:600; line-height:1.5;">호텔 4성급<br>+ 고급/일반 게르 혼합</div></div>
+      </div>
+      <div style="margin-top:11px; background:#FBF3EF; border-radius:8px; padding:9px 11px; font-size:10px; color:#9A6B5A; line-height:1.6;">* 풀패키지를 선택하시더라도, 인프라가 제한적인 일부 지역의 캠프장 사정에 따라 고급 게르 대신 일반 게르로 대체 운영될 수 있는 점 양해 부탁드립니다.</div>
+    </div>
+  </div>
+  <div class="blk" style="margin-top:16px; background:#EAF7F3; border-radius:12px; padding:14px 16px;">
+    <div style="color:#0A6A5E; font-size:12.5px; font-weight:800;">📋 숙소 선정 방식</div>
+    <div style="margin-top:8px; font-size:11px; color:#40544F; line-height:1.8;">1. 몽골 현지팀이 직접 캠프장 방문 후 선정<br>2. 청결·시설·운영 상태를 내부 기준으로 확인<br>3. 매년 답사와 만족도 반영해 지속 업데이트</div>
+  </div>`);
+
+/* ══════════ 7) 팀 소개 ══════════ */
+const secTeam = card(`
+  <div class="blk">
+    <div style="color:#06C4A0; font-size:11px; font-weight:800; letter-spacing:0.14em;">INHASU TEAM</div>
+    <div style="color:#152C28; font-size:26px; font-weight:800; letter-spacing:-0.02em;">은하수 팀 소개</div>
+    ${ph(IMG.guide, "가이드 사진", "width:100%; height:220px; border-radius:14px; margin-top:16px;")}
+    <div style="font-family:'Playfair Display',serif; font-style:italic; color:#06C4A0; font-size:11.5px; margin-top:8px; text-align:center;">최소 3년 이상 숙련된 전문 가이드분들이 모십니다</div>
+  </div>
+  <div class="blk" style="margin-top:18px;">
+    <div style="display:inline-block; background:#06C4A0; color:#fff; font-size:14px; font-weight:800; padding:6px 16px; border-radius:8px;">가이드님</div>
+    <div style="margin-top:11px; font-size:12px; color:#40544F; line-height:1.85;">전원 한국어 가능한 <b style="color:#152C28;">전문가이드 자격교육을 이수</b>하여 검증된 전문가입니다! 한국 유학이나 근무 경험이 있는 숙련된 전문인력으로 구성됩니다.</div>
+    <div style="margin-top:8px; display:inline-block; background:#C7EFE3; color:#2F776E; font-size:12px; font-weight:700; padding:8px 12px; border-radius:8px;">한국어 소통은 전혀 걱정하지 않아도 됩니다!</div>
+  </div>
+  <div class="blk" style="margin-top:18px;">
+    <div style="display:inline-block; background:#06C4A0; color:#fff; font-size:14px; font-weight:800; padding:6px 16px; border-radius:8px;">기사님</div>
+    <div style="margin-top:11px; font-size:12px; color:#40544F; line-height:1.85;">길도 이정표도 없는 거친 몽골의 비포장도로에서 헤매지 않고 최적의 길을 찾아내며, <b style="color:#152C28;">오프로드도 걱정없이 안전하게 운행</b>합니다. 주행 중 발생할 수 있는 돌발 상황에도 당황하지 않고, 현장에서 바로바로 차량을 정비할 수 있는 준전문능력을 갖추고 있습니다. 투어 출발 전 종합 점검부터 쾌적한 세차까지, 엄격한 자체 매뉴얼에 따라 <b style="color:#0A6A5E;">완벽한 차량 컨디션을 유지</b>합니다.</div>
+  </div>
+  <div class="blk" style="margin-top:16px; background:#F5FBF9; border:1px solid #E3F0EB; border-radius:12px; padding:14px 16px; font-size:11px; color:#40544F; line-height:1.8;">
+    <div>* 저희는 거품 없는 합리적인 여행 비용과 안전한 투어 진행을 위해 지역 및 인원수 별로 전문가를 맞춤 배정합니다.</div>
+    <div style="margin-top:8px;">🌳 <b style="color:#0A6A5E;">중부 투어</b></div>
+    <div>· 2인~4인 출발 시: [전문 드라이빙 가이드 1인] 배정</div>
+    <div>· 5인 이상 출발 시: [전문 가이드 1인 + 기사 1인] 배정</div>
+    <div style="margin-top:8px;">🐫 <b style="color:#0A6A5E;">고비 투어 / 홉스골 투어</b></div>
+    <div>· 인원 무관: 장거리 오프로드 특성상 [전문 가이드 1인 + 기사 1인]이 2인 1조로 고정 배정</div>
+  </div>`);
+
+/* ══════════ 8) 식사 ══════════ */
+const MEALS = IMG.meals || [], SPECIALS = IMG.specials || [], LOCALS = IMG.locals || [];
+const mealCat = (label, img) => `<div><div style="display:inline-block; background:#06C4A0; color:#fff; font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px;">${label}</div>${ph(img, "", "width:100%; height:90px; margin-top:7px; border-radius:9px;")}</div>`;
+const specCat = (label, img) => `<div><div style="display:inline-block; background:#EAF7F3; color:#0A6A5E; font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px;">${label}</div>${ph(img, "", "width:100%; height:100px; margin-top:7px; border-radius:9px;")}</div>`;
+const localCat = (label, sub, img) => `<div style="text-align:center;">${ph(img, "", "width:110px; height:110px; margin:0 auto; border-radius:50%;")}<div style="margin-top:8px; font-size:11.5px; font-weight:700; color:#152C28;">${label} <span style="color:#06C4A0;">${sub}</span></div></div>`;
+const secMeals = card(`
+  <div class="blk">
+    <div style="color:#06C4A0; font-size:11px; font-weight:800; letter-spacing:0.14em;">MEALS</div>
+    <div style="display:inline-block; background:#06C4A0; color:#fff; font-size:20px; font-weight:800; padding:8px 18px; border-radius:10px; margin-top:6px;">은하수만의 맛집투어!</div>
+  </div>
+  <div class="blk" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px;">
+    ${mealCat("캠프장 조식", MEALS[0])}${mealCat("현지식", MEALS[1])}${mealCat("특식", MEALS[2])}
+  </div>
+  <div class="blk" style="margin-top:14px; border:1px solid #E3F0EB; border-radius:12px; overflow:hidden; font-size:11px;">
+    <div style="display:grid; grid-template-columns:70px 1fr; background:#F7FCFA; border-bottom:1px solid #E3F0EB;"><div style="padding:11px 6px; color:#5FA593; font-weight:700; text-align:center;">🥪 조식</div><div style="padding:11px 13px; color:#354B46; line-height:1.5; border-left:1px solid #EEF4F1;">숙소(여행자 캠프장) 식당에서 제공되는 <b style="color:#0A6A5E;">캠프식</b></div></div>
+    <div style="display:grid; grid-template-columns:70px 1fr; background:#fff; border-bottom:1px solid #E3F0EB;"><div style="padding:11px 6px; color:#5FA593; font-weight:700; text-align:center;">🥕 중식</div><div style="padding:11px 13px; color:#354B46; line-height:1.5; border-left:1px solid #EEF4F1;">이동 중 현지 식당에서 드시는 <b style="color:#0A6A5E;">현지식</b></div></div>
+    <div style="display:grid; grid-template-columns:70px 1fr; background:#F7FCFA;"><div style="padding:11px 6px; color:#5FA593; font-weight:700; text-align:center;">🍽 석식</div><div style="padding:11px 13px; color:#354B46; line-height:1.5; border-left:1px solid #EEF4F1;">숙소 식당의 캠프식 · 일정에 따라 <b style="color:#0A6A5E;">특식 제공</b></div></div>
+  </div>
+  <div class="blk" style="margin-top:14px; background:#FBEEEA; border:1px solid #F1CFC6; border-radius:12px; padding:14px 16px;">
+    <div style="color:#C9604B; font-size:13.5px; font-weight:800; text-align:center;">❗ 가이드가 직접 요리하지 않습니다 ❗</div>
+    <div style="margin-top:7px; font-size:10.5px; color:#5C4B47; line-height:1.75; text-align:center;">무더운 여름철 몽골 오지에서의 취사는 위생 문제가 발생할 확률이 높고 투어 시간도 낭비됩니다. ${esc(B.companyFull)}는 가이드 요리 대신 '여행의 안전과 만족도'에만 집중할 수 있도록 검증된 식사만을 대접합니다.</div>
+  </div>
+  <div class="blk" style="margin-top:16px;">
+    <div class="row" style="gap:10px;"><div style="display:inline-block; background:#06C4A0; color:#fff; font-size:14px; font-weight:800; padding:5px 14px; border-radius:8px;">특식 4종</div><span style="font-size:10px; color:#8CA39D;">🥕 투어당 특식 2종 기본, 일정에 따라 추가</span></div>
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px;">
+      ${specCat("허르헉", SPECIALS[0])}${specCat("더블 샤브샤브", SPECIALS[1])}${specCat("한식", SPECIALS[2])}${specCat("삼겹살", SPECIALS[3])}
+    </div>
+  </div>
+  <div class="blk" style="margin-top:16px;">
+    <div style="display:inline-block; background:#06C4A0; color:#fff; font-size:14px; font-weight:800; padding:5px 14px; border-radius:8px;">🍎 추천 현지식</div>
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:14px 10px; margin-top:12px;">
+      ${localCat("군만두", "(호쇼르)", LOCALS[0])}${localCat("찐만두", "(보오쯔)", LOCALS[1])}${localCat("볶음 국수", "(초이왕)", LOCALS[2])}${localCat("고기 덮밥", "(골리야시)", LOCALS[3])}
+    </div>
+  </div>`);
+
+/* ══════════ 9) 여행자 보험 & 체험 ══════════ */
+const rideRule = (n, t) => `<div class="blk" style="display:flex; gap:12px; align-items:flex-start; background:#F5FBF9; border:1px solid #E3F0EB; border-radius:12px; padding:13px 15px;"><span style="flex:none; width:24px; height:24px; border-radius:50%; background:#06C4A0; color:#fff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center;">${n}</span><span style="font-size:11.5px; color:#354B46; line-height:1.65;">${t}</span></div>`;
+const secInsurance = card(`
+  <div class="blk">
+    <div style="color:#06C4A0; font-size:11px; font-weight:800; letter-spacing:0.14em;">TRAVEL INSURANCE &amp; ACTIVITY</div>
+    <div style="color:#152C28; font-size:22px; font-weight:800; letter-spacing:-0.02em; margin-top:4px;">여행자 보험 &amp; 체험 유의사항</div>
+    <div style="margin-top:10px; font-size:11.5px; color:#40544F; line-height:1.8;">몽골 현지 여행자 보험은 처리 속도가 느리고 보상 금액이 적으며 실제 적용이 원활하지 않은 경우가 많습니다. 뜻밖의 상황에서도 신속하고 안전한 보상을 받으실 수 있도록, <b style="color:#0A6A5E;">반드시 한국에서 출국하시기 전 국내 보험사의 여행자 보험에 가입</b>하고 오실 것을 적극 추천드립니다.</div>
+  </div>
+  <div class="blk" style="margin-top:14px; background:#EAF7F3; border:1px solid #CBEADF; border-radius:12px; padding:14px 15px;">
+    <div style="font-size:12px; color:#40544F; font-weight:700; text-align:center;">🐫 체험 프로그램(승마·낙타·모래 썰매 등)은 여행자가 선택할 수 있습니다.</div>
+    <div style="display:flex; gap:10px; margin-top:11px;">
+      <div style="flex:1; background:#fff; border-radius:10px; padding:11px; text-align:center;"><div style="font-size:10px; color:#8CA39D; font-weight:600;">승마 미체험 시 환불</div><div style="color:#0A6A5E; font-size:16px; font-weight:800; margin-top:3px;">1인당 5,000원</div></div>
+      <div style="flex:1; background:#fff; border-radius:10px; padding:11px; text-align:center;"><div style="font-size:10px; color:#8CA39D; font-weight:600;">낙타 미체험 시 환불</div><div style="color:#0A6A5E; font-size:16px; font-weight:800; margin-top:3px;">1인당 5,000원</div></div>
+    </div>
+  </div>
+  <div class="blk" style="margin-top:12px; font-size:11px; color:#40544F; line-height:1.6;">
+    <div class="row" style="gap:8px; margin-top:6px; align-items:flex-start;"><span style="color:#06C4A0; font-weight:800;">–</span><span>엑티비티 참여 여부는 자유롭게 결정하실 수 있으며, 희망하지 않을 경우 가이드에게 사전에 말씀해 주세요.</span></div>
+    <div class="row" style="gap:8px; margin-top:6px; align-items:flex-start;"><span style="color:#06C4A0; font-weight:800;">–</span><span>가이드의 안내를 따르지 않아 발생한 안전사고에 대해서는 여행사가 책임지지 않습니다.</span></div>
+    <div class="row" style="gap:8px; margin-top:6px; align-items:flex-start;"><span style="color:#06C4A0; font-weight:800;">–</span><span>체험 중 발생할 수 있는 <span style="color:#C9604B; font-weight:800;">안전사고에 대비해 반드시 여행자 보험에 가입</span>해 주세요.</span></div>
+  </div>
+  <div class="blk" style="margin-top:16px; display:flex; align-items:center; gap:9px;"><span style="width:4px; height:16px; background:#06C4A0; border-radius:2px;"></span><b style="color:#152C28; font-size:15px;">🐎 승마·낙타 체험 시 유의 사항</b></div>
+  <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+    ${rideRule(1, `승마나 낙타에 탈 때는 언제나 <b style="color:#0A6A5E;">왼쪽에서 올라가도록</b> 합니다. 몽골 말들은 왼쪽 접근을 허용하도록 훈련받으며, 반대쪽에서 다가가면 거부감을 나타낼 수 있습니다.`)}
+    ${rideRule(2, `말은 선천적으로 겁이 많은 동물이므로, 말의 주위에서 <b style="color:#0A6A5E;">놀라거나 큰 소리를 내는 행위</b>는 위험할 수 있습니다.`)}
+    ${rideRule(3, `말의 뒤편으로 접근하거나 서 있는 행위를 금하며, 항시 <b style="color:#0A6A5E;">2m 후방 주의</b>를 요합니다. 말 뒤로 접근하면 위협으로 알고 발길질을 할 수 있습니다.`)}
+  </div>
+  <div class="blk" style="margin-top:14px; background:#FBEEEA; border:1px solid #F1CFC6; border-radius:12px; padding:14px 16px; text-align:center;">
+    <div style="color:#C9604B; font-size:13px; font-weight:800;">❗ 체험 프로그램 참여 안내 ❗</div>
+    <div style="margin-top:6px; font-size:10.5px; color:#5C4B47; line-height:1.75;">투어 중 진행되는 액티비티 체험 전에 <b>'면책동의서'</b> 작성을 진행할 예정입니다. 체험 중 발생할 수 있는 안전사고에 대해 투어사에 법적 책임을 묻거나 별도의 보상을 요구하실 수 없으므로, 동의서 내용을 꼼꼼히 확인하고 현장 가이드의 안전 수칙을 준수해 주세요.</div>
+  </div>`);
+
+/* ══════════ 10) 공항 미팅 ══════════ */
+const secArrival = card(`
+  <div class="blk">
+    <div style="color:#06C4A0; font-size:11px; font-weight:800; letter-spacing:0.14em;">ARRIVAL · GUIDE MEETING</div>
+    <div style="color:#152C28; font-size:23px; font-weight:800; letter-spacing:-0.02em; margin-top:4px;">몽골 공항에서 가이드 미팅</div>
+  </div>
+  <div class="blk" style="margin-top:16px; background:#EAF7F3; border:1px solid #CBEADF; border-radius:14px; padding:16px 18px;">
+    <div style="color:#0A6A5E; font-size:15px; font-weight:800;">몽골 도착해서 어떻게 할까요?</div>
+    <div style="margin-top:12px; display:flex; flex-direction:column; gap:11px; font-size:12px; color:#354B46; line-height:1.55;">
+      ${[`몽골 도착 시간에 맞춰 저희 <b style="color:#0A6A5E;">${esc(B.companyFull)} 가이드님</b>이 마중 나갈 예정입니다.`, `예약자 <b style="color:#0A6A5E;">${esc(Q.customer)}</b>님으로 된 픽업보드를 들고 있는 가이드님을 찾아주세요.`, `입국 게이트로 나와 탐앤탐스 카페 앞 벤치 근처에서 만나요.`].map(t => `<div style="display:flex; gap:10px; align-items:flex-start;"><span style="flex:none; width:20px; height:20px; border-radius:50%; background:#06C4A0; color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center;">✓</span><span>${t}</span></div>`).join("")}
+    </div>
+  </div>
+  <div class="blk" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;">
+    <div><div style="display:inline-block; color:#fff; font-size:11px; font-weight:700; padding:4px 12px; border-radius:6px; background:#06C4A0;">입국 게이트</div>${ph(arr.gate, "입국 게이트", "width:100%; aspect-ratio:1; margin-top:8px; border-radius:12px;")}</div>
+    <div><div style="display:inline-block; color:#fff; font-size:11px; font-weight:700; padding:4px 12px; border-radius:6px; background:#06C4A0;">가이드 픽업보드</div>${ph(arr.board, "픽업보드", "width:100%; aspect-ratio:1; margin-top:8px; border-radius:12px;")}</div>
+  </div>
+  <div class="blk" style="margin-top:14px;">
+    <div style="display:inline-block; color:#fff; font-size:11px; font-weight:700; padding:4px 12px; border-radius:6px; background:#06C4A0;">공항 미팅 안내</div>
+    ${phC(arr.wide, "공항 미팅 대표 이미지", "width:100%; height:230px; margin-top:8px; border-radius:12px;")}
+  </div>`);
+
+/* ══════════ 11) 공식 허가증 ══════════ */
+const CERTS = IMG.certs || [];
+const CERT_LABELS = ["현지 여행업 허가증","현지 여행업 허가증","현지 여행업 허가증","국내 사업자등록증","국내 통신판매업신고증","중소기업 확인서"];
+const secCert = card(`
+  <div class="blk" style="text-align:center;">
+    <div style="color:#06C4A0; font-size:12px; font-weight:800; letter-spacing:0.16em;">CERTIFICATE</div>
+    <div style="color:#152C28; font-size:22px; font-weight:800; letter-spacing:-0.02em; margin-top:8px; line-height:1.3;">${esc(B.company)}<br>현지 여행사 공식 허가증</div>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:22px;">
+    ${CERT_LABELS.map((label, i) => `<div class="blk" style="text-align:center;"><div style="font-size:12px; font-weight:800; color:#152C28; margin-bottom:8px;">${label}</div><div style="background:#fff; border:3px solid #06C4A0; border-radius:10px; padding:5px; box-shadow:0 6px 14px rgba(0,0,0,0.1);">${phC(CERTS[i], label, "width:100%; height:180px; border-radius:6px;")}</div></div>`).join("")}
+  </div>
+  <div class="blk" style="margin-top:18px; background:#EAF7F3; border-radius:12px; padding:14px 16px; font-size:11px; color:#40544F; line-height:1.75; text-align:center;">${esc(B.companyFull)}는 <b style="color:#0A6A5E;">대한민국과 몽골 양국 정부에 정식 인허가</b>를 받고 등록된 여행사입니다. 여행업 보증보험 가입, 몽골 현지 법인 설립 및 몽골여행협회(MATA) 등록까지 모든 안전장치를 갖추고 있습니다.</div>`);
+
+/* ── 렌더 (디자인 순서) ── */
+root.innerHTML = secCover + secQuote + secSchedule + secInclusions + secSpots + secLodge + secTeam + secMeals + secInsurance + secArrival + secCert;
+document.title = `${B.company}_${esc(Q.customer)}님_맞춤견적서_${esc(Q.quoteNo)}`;
+}
+</script>
+</body>
+</html>

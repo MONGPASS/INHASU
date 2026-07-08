@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>맞춤 견적서 · 몽골리아 은하수</title>
+<script>
+/* 모바일 접속자는 모바일 전용 견적서로 자동 이동 (?m=1 강제 모바일 / ?m=0 강제 PC) */
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var f = p.get("m");
+    var narrow = Math.min(window.innerWidth || 9999, (window.screen && screen.width) || 9999) <= 820;
+    if (f === "1" || (f !== "0" && narrow)) {
+      location.replace("견적서-모바일.html" + location.search);
+    }
+  } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <script src="data.js"></script>
@@ -618,7 +631,7 @@ const pgInclusions = `
     <div style="color:#40544F; font-size:13px; margin-top:8px;">여행에 꼭 필요한 서비스를 모두 포함하여 편안하고 안전한 여행을 제공합니다. <b style="color:#0A6A5E;">현지 추가 비용 일절 없습니다.</b></div>
   </div>
   <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px; margin-bottom:14px; flex:1; grid-auto-rows:1fr;">
-    ${[["stay","전일정 숙박"],["meals","전일정 현지 맛집 식사"],["special","특식 2회"],["pickup","픽업 & 샌딩"],["vehicle","전일정 차량"],["guide","전문 가이드"],["entrance","여행지 입장료"],["water","1일 1생수 제공"],["activity","액티비티 비용"],["custom","맞춤형 투어"],["coffee","모카포트 커피"],["chair","캠핑 의자 · 테이블"],["socks","몽골 낙타양말"],["poncho","판초 제공"],["galaxy","새벽 은하수 헌팅"]].map(([ic,label]) => `<div style="background:#F5FBF9; border:1px solid #E3F0EB; border-radius:14px; padding:12px 10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;"><img src="img/icons/${ic}.webp" alt="${label}" style="height:64px; width:auto; object-fit:contain;"><span style="font-size:17px; font-weight:800; color:#152C28; line-height:1.3; text-align:center;">${label}</span></div>`).join("")}
+    ${[["stay","전일정 숙박"],["meals","전일정 현지 맛집 식사"],["special","특식 2회"],["pickup","픽업 & 샌딩"],["vehicle","전일정 차량"],["guide","전문 가이드"],["entrance","여행지 입장료"],["water","1일 1생수 제공"],["activity","액티비티 비용"],["custom","맞춤형 투어"],["coffee","모카포트 커피"],["chair","캠핑 의자 · 테이블"],["socks","몽골 낙타양말"],["poncho","판초 제공"],["galaxy","새벽 은하수 헌팅"]].map(([ic,label]) => `<div style="background:#F5FBF9; border:1px solid #E3F0EB; border-radius:14px; padding:12px 10px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;"><img src="img/icons/${ic}.png" alt="${label}" style="height:64px; width:auto; object-fit:contain;"><span style="font-size:17px; font-weight:800; color:#152C28; line-height:1.3; text-align:center;">${label}</span></div>`).join("")}
   </div>
   <div style="margin-top:auto; background:#FBEEEA; border:1px solid #F1CFC6; border-radius:14px; padding:14px 22px; display:flex; align-items:center; gap:16px;">
     <div style="flex:none; color:#C9604B; font-size:15px; font-weight:800; white-space:nowrap;">✕ 불포함 사항</div>
@@ -639,7 +652,7 @@ const pgBenefits = `
     <div style="color:#152C28; font-size:32px; font-weight:800; letter-spacing:-0.02em; margin-top:4px;"><span style="color:#06C4A0;">특별 혜택</span>을 소개합니다</div>
   </div>
   <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:22px; margin-bottom:22px; flex:1; grid-auto-rows:1fr;">
-    ${[["galaxy","당신의 삶을 우러러 볼 시간","새벽 은하수 헌팅",0],["chair","6인 이하 팀에 한해 모두 제공","캠핑 의자 · 테이블",0],["socks","모든 분들께 기념품 증정","몽골 낙타 양말",0],["coffee","초원에서 커피 한잔의 여유","모카포트 커피",0],["poncho","6인 이하 팀에 한해 모두 제공","인생샷 필수품 판초",0],["water","모든 갈증은 은하수가 해결","매일 생수 제공",0],["special","매일매일이 맛집 투어","특식 2회 이상",0],["custom","일정 내에서 자유롭게 조율 가능","맞춤형 투어",0],["nofee","추가로 제안하는 옵션·팁은 사절","일체 추가요금 없음",1]].map(([ic,sub,label,hi]) => `<div style="background:${hi?"#EAF7F3":"#F5FBF9"}; border:${hi?"1.5px solid #06C4A0":"1px solid #E3F0EB"}; border-radius:14px; padding:20px 14px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center;"><img src="img/icons/${ic}.webp" alt="${label}" style="height:72px; width:auto; object-fit:contain; margin:0 auto;"><div style="color:${hi?"#0A6A5E":"#8CA39D"}; font-size:11px; margin-top:12px;">${sub}</div><div style="color:${hi?"#06C4A0":"#152C28"}; font-size:16px; font-weight:800; margin-top:4px;">${label}</div></div>`).join("")}
+    ${[["galaxy","당신의 삶을 우러러 볼 시간","새벽 은하수 헌팅",0],["chair","6인 이하 팀에 한해 모두 제공","캠핑 의자 · 테이블",0],["socks","모든 분들께 기념품 증정","몽골 낙타 양말",0],["coffee","초원에서 커피 한잔의 여유","모카포트 커피",0],["poncho","6인 이하 팀에 한해 모두 제공","인생샷 필수품 판초",0],["water","모든 갈증은 은하수가 해결","매일 생수 제공",0],["special","매일매일이 맛집 투어","특식 2회 이상",0],["custom","일정 내에서 자유롭게 조율 가능","맞춤형 투어",0],["nofee","추가로 제안하는 옵션·팁은 사절","일체 추가요금 없음",1]].map(([ic,sub,label,hi]) => `<div style="background:${hi?"#EAF7F3":"#F5FBF9"}; border:${hi?"1.5px solid #06C4A0":"1px solid #E3F0EB"}; border-radius:14px; padding:20px 14px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center;"><img src="img/icons/${ic}.png" alt="${label}" style="height:72px; width:auto; object-fit:contain; margin:0 auto;"><div style="color:${hi?"#0A6A5E":"#8CA39D"}; font-size:11px; margin-top:12px;">${sub}</div><div style="color:${hi?"#06C4A0":"#152C28"}; font-size:16px; font-weight:800; margin-top:4px;">${label}</div></div>`).join("")}
   </div>
   <div style="margin-top:auto; background:#0A6A5E; border-radius:14px; padding:22px 26px; display:flex; align-items:center; justify-content:center; gap:14px;">
     <span style="font-size:26px;">🌟</span>
