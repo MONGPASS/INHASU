@@ -120,6 +120,10 @@ const hasVehicle = r => !!(vehicle(r).model || r.vehicle);
 const hasLodges = r => lodges(r).length > 0;
 const isReservation = r => (r.status === "예약확정") || !!r.booking;
 const assignDone = r => !!guide(r).name && hasVehicle(r) && hasLodges(r);
+const reservationOrder = r => {
+  const bk = r.booking || {};
+  return bk.confirmedAt || r.receivedAt || r.id || "";
+};
 
 async function load() {
   if (!ADMIN_TOKEN && !IS_LOCAL) {
@@ -155,11 +159,7 @@ function rows() {
     if (!q) return true;
     const text = [r.name, r.destination, r.tripType, r.vehicle, vehicle(r).model, guide(r).name, ...lodges(r).map(l => l.name)].join(" ").toLowerCase();
     return text.includes(q);
-  }).sort((a, b) => {
-    const ad = dateOnly(a.depart) || "9999-99-99";
-    const bd = dateOnly(b.depart) || "9999-99-99";
-    return ad.localeCompare(bd);
-  });
+  }).sort((a, b) => String(reservationOrder(b)).localeCompare(String(reservationOrder(a))));
 }
 
 function render() {
