@@ -694,8 +694,16 @@ async function persist(id, patch) {
   } catch(e){ return { ok: false, error: "서버에 연결할 수 없어요" }; }
 }
 async function updateStatus(id,s){
-  const res = await persist(id,{status:s}); render(); openDrawer(id);
-  toast(res.ok ? `상태가 "${s}"(으)로 저장됐어요` : "⚠ 상태 저장 실패: " + res.error);
+  // 낙관적 업데이트: 화면 먼저 즉시 반영 → 서버 저장은 뒤에서. 실패하면 원래 상태로 되돌림.
+  const r = RECORDS.find(x => String(x.id) === String(id));
+  const prev = r ? (r.status || "신규") : undefined;
+  if (r) r.status = s;
+  render(); openDrawer(id);
+  const res = await persist(id,{status:s});
+  if (res.ok) { toast(`상태가 "${s}"(으)로 저장됐어요`); return; }
+  if (r) r.status = prev;   // 저장 실패 → 되돌리기
+  render(); openDrawer(id);
+  toast("⚠ 상태 저장 실패: " + res.error);
 }
 const memoLast = {};   // 마지막 저장값 (변경 없으면 저장 안 함)
 async function saveMemo(id, m) {
