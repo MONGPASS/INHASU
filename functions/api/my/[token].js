@@ -31,9 +31,8 @@ export async function onRequestGet({ env, params }) {
     const bk = rec.booking || null;
     const safeAssign = a => a ? {
       guide:   a.guide   ? { name: a.guide.name || "",  career: a.guide.career || "",  korean: a.guide.korean || "", img: a.guide.img || "",  desc: a.guide.desc || "" } : null,
-      driver:  a.driver  ? { name: a.driver.name || "", career: a.driver.career || "", img: a.driver.img || "" } : null,
-      vehicle: a.vehicle ? { model: a.vehicle.model || "", seats: a.vehicle.seats || "", img: a.vehicle.img || "" } : null,
-      lodges:  Array.isArray(a.lodges) ? a.lodges.map(l => ({ day: l.day, name: l.name || "", grade: l.grade || "", img: l.img || "", tags: l.tags || "" })) : [],
+      vehicle: a.vehicle ? { model: a.vehicle.model || "", seats: a.vehicle.seats || "", img: a.vehicle.img || "", imgs: Array.isArray(a.vehicle.imgs) ? a.vehicle.imgs : [] } : null,
+      lodges:  Array.isArray(a.lodges) ? a.lodges.map(l => ({ day: l.day, name: l.name || "", grade: l.grade || "", img: l.img || "", imgs: Array.isArray(l.imgs) ? l.imgs : [], tags: l.tags || "", desc: l.desc || "" })) : [],
     } : null;
     const booking = bk ? {
       confirmedAt: bk.confirmedAt || "",

@@ -107,7 +107,7 @@
         ${signed
           ? `<a class="btn ghost" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank">📜 여행계약서 보기 (서명완료)</a>`
           : `<a class="btn accent" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank">✍️ 여행계약서 확인·서명하기</a>`}
-        <a class="btn ${signed ? "accent" : "primary"}" ${signed ? 'style="background:#3d7ff0;"' : ""} href="${esc("확정안내.html?t=" + encodeURIComponent(token))}" target="_blank">🎫 확정 안내 보기</a>
+        <a class="btn ${signed ? "accent" : "primary"}" ${signed ? 'style="background:#3d7ff0;"' : ""} href="${esc("확정일정표.html?t=" + encodeURIComponent(token))}" target="_blank">🎫 확정일정표 보기</a>
         ${r.quote ? `<a class="btn ghost" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>` : ""}
         <a class="btn ghost" href="${esc("일정지도.html?t=" + encodeURIComponent(token))}" target="_blank">🗺 일정 지도 보기</a>
         <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡 상담</a>`;

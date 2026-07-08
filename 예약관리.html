@@ -88,7 +88,7 @@
   <span class="who" id="hMeta"></span>
   <span class="hd-acts">
     <a class="hbtn" id="quoteLink" href="#" target="_blank">📄 견적서</a>
-    <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 고객 확정안내</a>
+    <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 고객 확정일정표</a>
     <button class="hbtn" id="copyLinkBtn">🔗 고객 링크 복사</button>
   </span>
 </header>
@@ -122,8 +122,8 @@ function blankBooking() {
   return {
     confirmedAt: new Date().toISOString().slice(0, 10),
     days: [],
-    assign: { guide:{name:"",career:"",korean:"",phone:"",img:"",desc:""}, driver:{name:"",career:"",phone:"",img:""},
-              vehicle:{model:"",seats:"",plate:"",img:""}, lodges:[] },
+    assign: { guide:{name:"",career:"",korean:"",phone:"",img:"",desc:""},
+              vehicle:{model:"",seats:"",plate:"",img:"",imgs:[]}, lodges:[] },
     checklist: { deposit:false, balance:false, flight:false, insurance:false, contract:false },
     contract: null,   // 고객 서명 시 서버(/api/sign)가 채움 — {signedAt, signImg, snapshot…}
     notes: "", adminMemo: "",
@@ -136,7 +136,6 @@ function normBooking(b) {
   return { ...base, ...b,
     assign: { ...base.assign, ...(b.assign || {}),
       guide: { ...base.assign.guide, ...((b.assign||{}).guide || {}) },
-      driver: { ...base.assign.driver, ...((b.assign||{}).driver || {}) },
       vehicle: { ...base.assign.vehicle, ...((b.assign||{}).vehicle || {}) },
       lodges: Array.isArray((b.assign||{}).lodges) ? b.assign.lodges : [] },
     checklist: { ...base.checklist, ...(b.checklist || {}) },
@@ -151,7 +150,7 @@ function init() {
   $("hName").textContent = PRE.name || "-";
   $("hMeta").textContent = `${PRE.destination || "-"} · ${PRE.depart || "?"} ~ ${PRE.return_ || "?"} · ${paxTot}명 · 현재상태 [${PRE.status}]`;
   $("quoteLink").href = PRE.token ? "견적서.html?t=" + encodeURIComponent(PRE.token) : "#";
-  $("confirmLink").href = PRE.token ? "확정안내.html?t=" + encodeURIComponent(PRE.token) : "#";
+  $("confirmLink").href = PRE.token ? "확정일정표.html?t=" + encodeURIComponent(PRE.token) : "#";
   $("copyLinkBtn").onclick = () => {
     if (!PRE.token) return toast("고객 토큰이 없는 요청이에요");
     const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + PRE.token;
@@ -212,7 +211,7 @@ function render() {
   </section>
 
   <section class="card">
-    <div class="sec-h"><h2><span class="n">2</span>배정 (가이드 · 기사 · 차량 · 숙소)</h2>
+    <div class="sec-h"><h2><span class="n">2</span>배정 (가이드 · 차량 · 숙소)</h2>
       <span class="tip">이름·소개는 고객 확정안내에 보여요 · 연락처/차량번호는 내부용</span></div>
 
     <div class="assign-box">
@@ -226,15 +225,6 @@ function render() {
       <div class="grid2" style="margin-top:10px;">
         <label class="f"><span>사진 URL (선택)</span><input id="g_img" value="${esc(a.guide.img)}" placeholder="img/… 또는 업로드 주소"></label>
         <label class="f"><span>한 줄 소개 (고객 노출)</span><input id="g_desc" value="${esc(a.guide.desc)}" placeholder="한국 유학 5년 · 고비 투어 전문"></label>
-      </div>
-    </div>
-
-    <div class="assign-box">
-      <div class="subtt"><span>🧑‍🔧 기사</span><select class="pick" id="d_pick"><option value="">📥 리소스에서 선택…</option></select></div>
-      <div class="grid3">
-        <label class="f"><span>이름</span><input id="d_name" value="${esc(a.driver.name)}"></label>
-        <label class="f"><span>경력</span><input id="d_career" value="${esc(a.driver.career)}"></label>
-        <label class="f"><span>연락처 (내부용)</span><input id="d_phone" value="${esc(a.driver.phone)}"></label>
       </div>
     </div>
 
@@ -311,9 +301,7 @@ function pullForm() {
   // 배정
   const g = id => $(id) ? $(id).value.trim() : "";
   BK.assign.guide = { name:g("g_name"), career:g("g_career"), korean:g("g_korean"), phone:g("g_phone"), img:g("g_img"), desc:g("g_desc") };
-  BK.assign.driver = { name:g("d_name"), career:g("d_career"), phone:g("d_phone"),
-    img: (LIBS.drivers[g("d_name")] || {}).img || "" };
-  BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), plate:g("v_plate"), img:"" };
+  BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), plate:g("v_plate"), img:"", imgs:[] };
   BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map(el => {
     const name = el.querySelector('[data-lk="name"]').value.trim();
     const lib = LIBS.lodges[name] || {};   // 라이브러리에 있으면 사진·태그를 고객 확정안내에 함께 노출
@@ -321,12 +309,13 @@ function pullForm() {
       day: Number(el.querySelector('[data-lk="day"]').value) || 0,
       name,
       grade: el.querySelector('[data-lk="grade"]').value,
-      img: lib.img || "", tags: lib.tags || "",
+      img: lib.img || "", imgs: Array.isArray(lib.imgs) ? lib.imgs : (lib.img ? [lib.img] : []), tags: lib.tags || "", desc: lib.desc || "",
     };
   }).filter(l => l.name);
   // 차량 사진도 라이브러리에서 자동 첨부
   const vlib = LIBS.vehicles[BK.assign.vehicle.model] || {};
   if (vlib.img) BK.assign.vehicle.img = vlib.img;
+  BK.assign.vehicle.imgs = Array.isArray(vlib.imgs) ? vlib.imgs : (vlib.img ? [vlib.img] : []);
   // 체크리스트·메모
   BK.checklist = { deposit:$("c_deposit").checked, balance:$("c_balance").checked, flight:$("c_flight").checked,
                    insurance:$("c_insurance").checked, contract:$("c_contract").checked };
@@ -370,7 +359,7 @@ function bindEvents() {
 }
 
 /* ══════════ 리소스 라이브러리 (리소스관리에서 등록한 가이드·숙소·차량) ══════════ */
-let LIBS = { guides: {}, drivers: {}, lodges: {}, vehicles: {} };
+let LIBS = { guides: {}, lodges: {}, vehicles: {} };
 async function loadLibs() {
   await Promise.all(Object.keys(LIBS).map(async key => {
     try {
@@ -393,7 +382,7 @@ function fillDatalists() {
     el.value = cur;
     if (!Object.keys(LIBS[key]).length) el.innerHTML = `<option value="">리소스관리에 등록된 항목 없음</option>`;
   };
-  pick("guides", "g_pick"); pick("drivers", "d_pick"); pick("vehicles", "v_pick");
+  pick("guides", "g_pick"); pick("vehicles", "v_pick");
 }
 /* 라이브러리 레코드 → 폼 필드 채움 */
 function applyGuide(name) {
@@ -402,12 +391,6 @@ function applyGuide(name) {
   $("g_career").value = r.career || ""; $("g_korean").value = r.korean || "";
   $("g_phone").value = r.phone || ""; $("g_img").value = r.img || ""; $("g_desc").value = r.desc || "";
   toast(`가이드 "${name}" 정보를 불러왔어요`); return true;
-}
-function applyDriver(name) {
-  const r = LIBS.drivers[name]; if (!r) return false;
-  $("d_name").value = name;
-  $("d_career").value = r.career || ""; $("d_phone").value = r.phone || "";
-  toast(`기사 "${name}" 정보를 불러왔어요`); return true;
 }
 function applyVehicle(name) {
   const r = LIBS.vehicles[name]; if (!r) return false;
@@ -419,10 +402,8 @@ function applyVehicle(name) {
 function bindAutofill() {
   const on = (id, fn) => { const el = $(id); if (el) el.addEventListener("change", () => fn(el)); };
   on("g_pick", el => { if (el.value) applyGuide(el.value); });
-  on("d_pick", el => { if (el.value) applyDriver(el.value); });
   on("v_pick", el => { if (el.value) applyVehicle(el.value); });
   on("g_name", el => applyGuide(el.value.trim()));
-  on("d_name", el => applyDriver(el.value.trim()));
   on("v_model", el => applyVehicle(el.value.trim()));
   document.querySelectorAll('.lodge-row [data-lk="name"]').forEach(inp => inp.addEventListener("change", () => {
     const r = LIBS.lodges[inp.value.trim()]; if (!r) return;

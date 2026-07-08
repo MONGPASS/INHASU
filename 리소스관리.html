@@ -68,6 +68,15 @@
   .up-main img { width:100%; height:100%; object-fit:cover; }
   .up-main .ph { display:flex; flex-direction:column; gap:8px; align-items:center; font-size:13px; }
   .up-main .change { position:absolute; right:8px; bottom:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:4px 10px; border-radius:7px; }
+  .multi-upload { border:1.5px dashed #c7d0cd; border-radius:14px; padding:12px; background:#fafcfb; }
+  .multi-head { display:flex; align-items:center; gap:8px; justify-content:space-between; margin-bottom:10px; }
+  .multi-head b { font-size:13px; color:var(--sub); }
+  .multi-head button { border:none; background:var(--deep); color:#fff; border-radius:9px; padding:8px 12px; font:800 12px Pretendard; cursor:pointer; }
+  .multi-list { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .multi-img { height:74px; border-radius:10px; overflow:hidden; position:relative; background:#eef2f1; }
+  .multi-img img { width:100%; height:100%; object-fit:cover; display:block; }
+  .multi-img button { position:absolute; right:5px; top:5px; border:none; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,.58); color:#fff; cursor:pointer; font-weight:800; }
+  .multi-empty { grid-column:1/-1; padding:16px; text-align:center; color:var(--gray); font-size:12px; }
   .hintline { font-size:11.5px; color:var(--gray); margin-top:6px; }
 
   .df { padding:16px 24px; border-top:1px solid var(--line); display:flex; gap:8px; }
@@ -148,11 +157,6 @@ const TYPES = {
     sub: r => [r.career && `경력 ${r.career}`, r.korean && `한국어 ${r.korean}`].filter(Boolean).join(" · "),
     get: () => window.getGuides(), save: o => window.saveGuides(o),
   },
-  drivers: {
-    label: "기사", icon: "🧑‍🔧", one: "기사",
-    sub: r => r.career ? `경력 ${r.career}` : "",
-    get: () => window.getDrivers(), save: o => window.saveDrivers(o),
-  },
   lodges: {
     label: "숙소", icon: "🏕", one: "숙소(캠프장·호텔)",
     sub: r => [r.region, r.grade].filter(Boolean).join(" · "),
@@ -193,7 +197,7 @@ function renderGrid() {
   $("grid").innerHTML = Object.entries(LIB).map(([name, r]) => `
     <div class="res-card" data-k="${esc(name)}">
       <div class="thumb">
-        ${r.img ? `<img src="${r.img}" alt="${esc(name)}">` : `<div class="noimg"><span style="font-size:30px">${T.icon}</span><span>이미지 없음</span></div>`}
+        ${(r.img || (Array.isArray(r.imgs) && r.imgs[0])) ? `<img src="${r.img || r.imgs[0]}" alt="${esc(name)}">` : `<div class="noimg"><span style="font-size:30px">${T.icon}</span><span>이미지 없음</span></div>`}
         ${T.sub(r) ? `<span class="badge">${esc(T.sub(r))}</span>` : ""}
       </div>
       <div class="body">
@@ -253,12 +257,6 @@ function fieldRows(type, r) {
     </div>
     <label class="f"><span>연락처 (내부용 — 고객에게 안 보임)</span><input id="f_phone" value="${esc(r.phone||"")}"></label>
     <label class="f"><span>한 줄 소개 (고객 확정안내에 노출)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
-  if (type === "drivers") return `
-    <div class="row2">
-      <label class="f"><span>경력 (예: 10년)</span><input id="f_career" value="${esc(r.career||"")}"></label>
-      <label class="f"><span>연락처 (내부용)</span><input id="f_phone" value="${esc(r.phone||"")}"></label>
-    </div>
-    <label class="f"><span>메모 (선택)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
   if (type === "lodges") return `
     <div class="row2">
       <label class="f"><span>지역 (예: 홍고린엘스)</span><input id="f_region" value="${esc(r.region||"")}"></label>
@@ -278,7 +276,6 @@ function fieldRows(type, r) {
 function readFields(type, r) {
   const v = id => $(id) ? $(id).value.trim() : "";
   if (type === "guides") { r.career=v("f_career"); r.korean=v("f_korean"); r.phone=v("f_phone"); r.desc=v("f_desc"); }
-  else if (type === "drivers") { r.career=v("f_career"); r.phone=v("f_phone"); r.desc=v("f_desc"); }
   else if (type === "lodges") { r.region=v("f_region"); r.grade=v("f_grade"); r.tags=v("f_tags"); r.desc=v("f_desc"); }
   else { r.seats=v("f_seats"); r.plate=v("f_plate"); r.desc=v("f_desc"); }
   return r;
@@ -290,17 +287,38 @@ function openEdit(key) {
   const isNew = key === null;
   const r = isNew ? { img:"" } : JSON.parse(JSON.stringify(LIB[key]));
   let draftImg = r.img || "";
+  let draftImgs = Array.isArray(r.imgs) ? [...r.imgs] : (draftImg ? [draftImg] : []);
+  const multiEnabled = activeType === "lodges" || activeType === "vehicles";
+  const renderMulti = () => {
+    const el = $("multiList"); if (!el) return;
+    el.innerHTML = draftImgs.length
+      ? draftImgs.map((src, i) => `<div class="multi-img"><img src="${src}" alt="추가 사진 ${i + 1}"><button type="button" data-rm-img="${i}">×</button></div>`).join("")
+      : `<div class="multi-empty">추가 사진이 없습니다. 여러 장을 한 번에 선택해 업로드하세요.</div>`;
+    el.querySelectorAll("[data-rm-img]").forEach(btn => btn.onclick = () => {
+      draftImgs.splice(Number(btn.dataset.rmImg), 1);
+      if (draftImg && !draftImgs.includes(draftImg)) draftImgs.unshift(draftImg);
+      renderMulti();
+    });
+  };
 
   $("drawer").innerHTML = `
     <div class="dh"><h2>${isNew ? `새 ${T.one} 추가` : `${T.one} 수정`}</h2><button class="x" id="dX">✕</button></div>
     <div class="db">
-      <label class="f"><span>이름 ${activeType==="vehicles" ? "(예: 하이스 1호)" : ""}</span><input id="f_name" value="${esc(key||"")}" placeholder="${activeType==="guides"?"바트카":activeType==="drivers"?"엥흐바야르":activeType==="lodges"?"고비 오아시스 캠프":"하이스 1호"}"></label>
+      <label class="f"><span>이름 ${activeType==="vehicles" ? "(예: 하이스 1호)" : ""}</span><input id="f_name" value="${esc(key||"")}" placeholder="${activeType==="guides"?"바트카":activeType==="lodges"?"고비 오아시스 캠프":"하이스 1호"}"></label>
       <label class="f"><span>대표 사진 ${activeType==="guides" ? "(고객 확정안내에 노출)" : ""}</span></label>
       <div class="up-main" id="upMain">
         ${draftImg ? `<img src="${draftImg}"><span class="change">사진 변경</span>` : `<div class="ph"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 3 3 4-4 4 4"/></svg><span>사진 업로드 (클릭)</span></div>`}
       </div>
       <input type="file" id="fileMain" accept="image/*" style="display:none">
       <div class="hintline">사진은 자동으로 줄여서(WebP) 서버에 저장돼요.</div>
+      ${multiEnabled ? `
+      <div style="height:14px"></div>
+      <div class="multi-upload">
+        <div class="multi-head"><b>추가 사진 여러 장</b><button type="button" id="multiPick">＋ 사진 추가</button></div>
+        <div class="multi-list" id="multiList"></div>
+      </div>
+      <input type="file" id="fileMulti" accept="image/*" multiple style="display:none">
+      <div class="hintline">숙소와 차량은 고객 확정 일정표에서 옆으로 넘겨 볼 수 있습니다.</div>` : ""}
       <div style="height:14px"></div>
       ${fieldRows(activeType, r)}
     </div>
@@ -317,18 +335,46 @@ function openEdit(key) {
     $("upMain").innerHTML = `<div class="ph">업로드 중…</div>`;
     try {
       draftImg = await fileToImage(f, 1200, 0.82);
+      if (multiEnabled && !draftImgs.includes(draftImg)) draftImgs.unshift(draftImg);
       $("upMain").innerHTML = `<img src="${draftImg}"><span class="change">사진 변경</span>`;
+      renderMulti();
     } catch (err) {
       toast("⚠ " + err.message);
       $("upMain").innerHTML = draftImg ? `<img src="${draftImg}"><span class="change">사진 변경</span>` : `<div class="ph">사진 업로드 (클릭)</div>`;
     }
   };
+  if (multiEnabled) {
+    renderMulti();
+    $("multiPick").onclick = () => $("fileMulti").click();
+    $("fileMulti").onchange = async (e) => {
+      const files = [...e.target.files];
+      if (!files.length) return;
+      $("multiList").innerHTML = `<div class="multi-empty">업로드 중…</div>`;
+      try {
+        for (const f of files) {
+          const src = await fileToImage(f, 1200, 0.82);
+          if (!draftImgs.includes(src)) draftImgs.push(src);
+          if (!draftImg) {
+            draftImg = src;
+            $("upMain").innerHTML = `<img src="${draftImg}"><span class="change">사진 변경</span>`;
+          }
+        }
+        renderMulti();
+      } catch (err) {
+        toast("⚠ " + err.message);
+        renderMulti();
+      } finally {
+        $("fileMulti").value = "";
+      }
+    };
+  }
 
   $("dSave").onclick = async () => {
     const name = $("f_name").value.trim();
     if (!name) return toast("이름을 입력해 주세요");
     if ((isNew || name !== editKey) && LIB[name]) return toast("이미 같은 이름이 있어요");
     const rec = readFields(activeType, { img: draftImg });
+    if (multiEnabled) rec.imgs = [...new Set([draftImg, ...draftImgs].filter(Boolean))];
     if (!isNew && name !== editKey) delete LIB[editKey];
     LIB[name] = rec;
     const res = await persist();
