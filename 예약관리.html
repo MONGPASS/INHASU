@@ -47,7 +47,10 @@
   .day-h .del { border:none; background:transparent; color:#c66; cursor:pointer; font-size:15px; padding:4px; }
   .day-b { padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
 
-  .subtt { font-size:12.5px; font-weight:800; color:var(--book); margin-bottom:8px; }
+  .subtt { font-size:12.5px; font-weight:800; color:var(--book); margin-bottom:8px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .pick { font:700 12px Pretendard; color:var(--book); background:var(--bookSoft);
+    border:1px solid #c9dafb; border-radius:9px; padding:7px 10px; cursor:pointer; max-width:220px; }
   .assign-box { border:1px solid var(--line); border-radius:13px; padding:14px; }
   .assign-box + .assign-box { margin-top:12px; }
 
@@ -213,7 +216,7 @@ function render() {
       <span class="tip">이름·소개는 고객 확정안내에 보여요 · 연락처/차량번호는 내부용</span></div>
 
     <div class="assign-box">
-      <div class="subtt">👤 가이드</div>
+      <div class="subtt"><span>👤 가이드</span><select class="pick" id="g_pick"><option value="">📥 리소스에서 선택…</option></select></div>
       <div class="grid4">
         <label class="f"><span>이름</span><input id="g_name" list="guideList" value="${esc(a.guide.name)}"></label>
         <label class="f"><span>경력</span><input id="g_career" value="${esc(a.guide.career)}" placeholder="7년"></label>
@@ -227,7 +230,7 @@ function render() {
     </div>
 
     <div class="assign-box">
-      <div class="subtt">🧑‍🔧 기사</div>
+      <div class="subtt"><span>🧑‍🔧 기사</span><select class="pick" id="d_pick"><option value="">📥 리소스에서 선택…</option></select></div>
       <div class="grid3">
         <label class="f"><span>이름</span><input id="d_name" value="${esc(a.driver.name)}"></label>
         <label class="f"><span>경력</span><input id="d_career" value="${esc(a.driver.career)}"></label>
@@ -236,7 +239,7 @@ function render() {
     </div>
 
     <div class="assign-box">
-      <div class="subtt">🚐 차량</div>
+      <div class="subtt"><span>🚐 차량</span><select class="pick" id="v_pick"><option value="">📥 리소스에서 선택…</option></select></div>
       <div class="grid3">
         <label class="f"><span>차종</span><input id="v_model" list="vehicleList" value="${esc(a.vehicle.model)}" placeholder="하이스"></label>
         <label class="f"><span>인승</span><input id="v_seats" value="${esc(a.vehicle.seats)}" placeholder="9인승"></label>
@@ -308,7 +311,8 @@ function pullForm() {
   // 배정
   const g = id => $(id) ? $(id).value.trim() : "";
   BK.assign.guide = { name:g("g_name"), career:g("g_career"), korean:g("g_korean"), phone:g("g_phone"), img:g("g_img"), desc:g("g_desc") };
-  BK.assign.driver = { name:g("d_name"), career:g("d_career"), phone:g("d_phone"), img:"" };
+  BK.assign.driver = { name:g("d_name"), career:g("d_career"), phone:g("d_phone"),
+    img: (LIBS.drivers[g("d_name")] || {}).img || "" };
   BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), plate:g("v_plate"), img:"" };
   BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map(el => {
     const name = el.querySelector('[data-lk="name"]').value.trim();
@@ -366,7 +370,7 @@ function bindEvents() {
 }
 
 /* ══════════ 리소스 라이브러리 (리소스관리에서 등록한 가이드·숙소·차량) ══════════ */
-let LIBS = { guides: {}, lodges: {}, vehicles: {} };
+let LIBS = { guides: {}, drivers: {}, lodges: {}, vehicles: {} };
 async function loadLibs() {
   await Promise.all(Object.keys(LIBS).map(async key => {
     try {
@@ -380,26 +384,46 @@ async function loadLibs() {
 function fillDatalists() {
   const fill = (key, listId) => { const el = $(listId); if (el) el.innerHTML = Object.keys(LIBS[key]).map(n => `<option value="${esc(n)}">`).join(""); };
   fill("guides", "guideList"); fill("lodges", "lodgeList"); fill("vehicles", "vehicleList");
+  // 선택형 불러오기 드롭다운 — 리소스관리에 등록된 이름 목록
+  const pick = (key, pickId) => {
+    const el = $(pickId); if (!el) return;
+    const cur = el.value;
+    el.innerHTML = `<option value="">📥 리소스에서 선택…</option>` +
+      Object.keys(LIBS[key]).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    el.value = cur;
+    if (!Object.keys(LIBS[key]).length) el.innerHTML = `<option value="">리소스관리에 등록된 항목 없음</option>`;
+  };
+  pick("guides", "g_pick"); pick("drivers", "d_pick"); pick("vehicles", "v_pick");
 }
-/* 라이브러리에서 이름을 고르면 나머지 필드 자동 채움 */
+/* 라이브러리 레코드 → 폼 필드 채움 */
+function applyGuide(name) {
+  const r = LIBS.guides[name]; if (!r) return false;
+  $("g_name").value = name;
+  $("g_career").value = r.career || ""; $("g_korean").value = r.korean || "";
+  $("g_phone").value = r.phone || ""; $("g_img").value = r.img || ""; $("g_desc").value = r.desc || "";
+  toast(`가이드 "${name}" 정보를 불러왔어요`); return true;
+}
+function applyDriver(name) {
+  const r = LIBS.drivers[name]; if (!r) return false;
+  $("d_name").value = name;
+  $("d_career").value = r.career || ""; $("d_phone").value = r.phone || "";
+  toast(`기사 "${name}" 정보를 불러왔어요`); return true;
+}
+function applyVehicle(name) {
+  const r = LIBS.vehicles[name]; if (!r) return false;
+  $("v_model").value = name;
+  $("v_seats").value = r.seats || ""; $("v_plate").value = r.plate || "";
+  toast(`차량 "${name}" 정보를 불러왔어요`); return true;
+}
+/* 드롭다운 선택·이름 직접 입력 모두 자동 채움 */
 function bindAutofill() {
-  const g = $("g_name");
-  if (g) g.addEventListener("change", () => {
-    const r = LIBS.guides[g.value.trim()]; if (!r) return;
-    if (r.career) $("g_career").value = r.career;
-    if (r.korean) $("g_korean").value = r.korean;
-    if (r.phone) $("g_phone").value = r.phone;
-    if (r.img) $("g_img").value = r.img;
-    if (r.desc) $("g_desc").value = r.desc;
-    toast(`가이드 "${g.value.trim()}" 정보를 불러왔어요`);
-  });
-  const v = $("v_model");
-  if (v) v.addEventListener("change", () => {
-    const r = LIBS.vehicles[v.value.trim()]; if (!r) return;
-    if (r.seats) $("v_seats").value = r.seats;
-    if (r.plate) $("v_plate").value = r.plate;
-    toast(`차량 "${v.value.trim()}" 정보를 불러왔어요`);
-  });
+  const on = (id, fn) => { const el = $(id); if (el) el.addEventListener("change", () => fn(el)); };
+  on("g_pick", el => { if (el.value) applyGuide(el.value); });
+  on("d_pick", el => { if (el.value) applyDriver(el.value); });
+  on("v_pick", el => { if (el.value) applyVehicle(el.value); });
+  on("g_name", el => applyGuide(el.value.trim()));
+  on("d_name", el => applyDriver(el.value.trim()));
+  on("v_model", el => applyVehicle(el.value.trim()));
   document.querySelectorAll('.lodge-row [data-lk="name"]').forEach(inp => inp.addEventListener("change", () => {
     const r = LIBS.lodges[inp.value.trim()]; if (!r) return;
     const sel = inp.closest(".lodge-row").querySelector('[data-lk="grade"]');

@@ -289,6 +289,11 @@ window.saveGuides = (obj) => {
   localStorage.setItem("leaders_guides", JSON.stringify(obj));
   return window.cloudPush ? window.cloudPush("guides", obj) : Promise.resolve({ ok: false, local: true });
 };
+window.getDrivers = () => _libGet("leaders_drivers");
+window.saveDrivers = (obj) => {
+  localStorage.setItem("leaders_drivers", JSON.stringify(obj));
+  return window.cloudPush ? window.cloudPush("drivers", obj) : Promise.resolve({ ok: false, local: true });
+};
 window.getLodges = () => _libGet("leaders_lodges");
 window.saveLodges = (obj) => {
   localStorage.setItem("leaders_lodges", JSON.stringify(obj));
@@ -317,6 +322,7 @@ window.CLOUD_KEYS = {
   snippets: "leaders_snippets",
   snippet_cats: "leaders_snippet_cats",
   guides: "leaders_guides",
+  drivers: "leaders_drivers",
   lodges: "leaders_lodges",
   vehicles: "leaders_vehicles",
 };

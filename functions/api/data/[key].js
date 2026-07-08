@@ -21,7 +21,7 @@ const json = (obj, status = 200) =>
     },
   });
 
-const ALLOWED = ["spots", "spot_cats", "courses", "snippets", "snippet_cats", "guides", "lodges", "vehicles"];
+const ALLOWED = ["spots", "spot_cats", "courses", "snippets", "snippet_cats", "guides", "drivers", "lodges", "vehicles"];
 
 // kv 테이블은 없으면 자동으로 만듭니다(별도 마이그레이션 불필요).
 async function ensureTable(env) {

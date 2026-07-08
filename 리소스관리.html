@@ -144,6 +144,11 @@ const TYPES = {
     sub: r => [r.career && `경력 ${r.career}`, r.korean && `한국어 ${r.korean}`].filter(Boolean).join(" · "),
     get: () => window.getGuides(), save: o => window.saveGuides(o),
   },
+  drivers: {
+    label: "기사", icon: "🧑‍🔧", one: "기사",
+    sub: r => r.career ? `경력 ${r.career}` : "",
+    get: () => window.getDrivers(), save: o => window.saveDrivers(o),
+  },
   lodges: {
     label: "숙소", icon: "🏕", one: "숙소(캠프장·호텔)",
     sub: r => [r.region, r.grade].filter(Boolean).join(" · "),
@@ -244,6 +249,12 @@ function fieldRows(type, r) {
     </div>
     <label class="f"><span>연락처 (내부용 — 고객에게 안 보임)</span><input id="f_phone" value="${esc(r.phone||"")}"></label>
     <label class="f"><span>한 줄 소개 (고객 확정안내에 노출)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
+  if (type === "drivers") return `
+    <div class="row2">
+      <label class="f"><span>경력 (예: 10년)</span><input id="f_career" value="${esc(r.career||"")}"></label>
+      <label class="f"><span>연락처 (내부용)</span><input id="f_phone" value="${esc(r.phone||"")}"></label>
+    </div>
+    <label class="f"><span>메모 (선택)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
   if (type === "lodges") return `
     <div class="row2">
       <label class="f"><span>지역 (예: 홍고린엘스)</span><input id="f_region" value="${esc(r.region||"")}"></label>
@@ -263,6 +274,7 @@ function fieldRows(type, r) {
 function readFields(type, r) {
   const v = id => $(id) ? $(id).value.trim() : "";
   if (type === "guides") { r.career=v("f_career"); r.korean=v("f_korean"); r.phone=v("f_phone"); r.desc=v("f_desc"); }
+  else if (type === "drivers") { r.career=v("f_career"); r.phone=v("f_phone"); r.desc=v("f_desc"); }
   else if (type === "lodges") { r.region=v("f_region"); r.grade=v("f_grade"); r.tags=v("f_tags"); r.desc=v("f_desc"); }
   else { r.seats=v("f_seats"); r.plate=v("f_plate"); r.desc=v("f_desc"); }
   return r;
@@ -278,7 +290,7 @@ function openEdit(key) {
   $("drawer").innerHTML = `
     <div class="dh"><h2>${isNew ? `새 ${T.one} 추가` : `${T.one} 수정`}</h2><button class="x" id="dX">✕</button></div>
     <div class="db">
-      <label class="f"><span>이름 ${activeType==="vehicles" ? "(예: 하이스 1호)" : ""}</span><input id="f_name" value="${esc(key||"")}" placeholder="${activeType==="guides"?"바트카":activeType==="lodges"?"고비 오아시스 캠프":"하이스 1호"}"></label>
+      <label class="f"><span>이름 ${activeType==="vehicles" ? "(예: 하이스 1호)" : ""}</span><input id="f_name" value="${esc(key||"")}" placeholder="${activeType==="guides"?"바트카":activeType==="drivers"?"엥흐바야르":activeType==="lodges"?"고비 오아시스 캠프":"하이스 1호"}"></label>
       <label class="f"><span>대표 사진 ${activeType==="guides" ? "(고객 확정안내에 노출)" : ""}</span></label>
       <div class="up-main" id="upMain">
         ${draftImg ? `<img src="${draftImg}"><span class="change">사진 변경</span>` : `<div class="ph"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 3 3 4-4 4 4"/></svg><span>사진 업로드 (클릭)</span></div>`}
