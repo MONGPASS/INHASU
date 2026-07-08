@@ -123,7 +123,7 @@ function blankBooking() {
     confirmedAt: new Date().toISOString().slice(0, 10),
     days: [],
     assign: { guide:{name:"",career:"",korean:"",phone:"",img:"",desc:""},
-              vehicle:{model:"",seats:"",plate:"",img:"",imgs:[]}, lodges:[] },
+              vehicle:{model:"",seats:"",plate:"",img:"",imgs:[],desc:""}, lodges:[] },
     checklist: { deposit:false, balance:false, flight:false, insurance:false, contract:false },
     contract: null,   // 고객 서명 시 서버(/api/sign)가 채움 — {signedAt, signImg, snapshot…}
     notes: "", adminMemo: "",
@@ -301,7 +301,7 @@ function pullForm() {
   // 배정
   const g = id => $(id) ? $(id).value.trim() : "";
   BK.assign.guide = { name:g("g_name"), career:g("g_career"), korean:g("g_korean"), phone:g("g_phone"), img:g("g_img"), desc:g("g_desc") };
-  BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), plate:g("v_plate"), img:"", imgs:[] };
+  BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), plate:g("v_plate"), img:"", imgs:[], desc:"" };
   BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map(el => {
     const name = el.querySelector('[data-lk="name"]').value.trim();
     const lib = LIBS.lodges[name] || {};   // 라이브러리에 있으면 사진·태그를 고객 확정안내에 함께 노출
@@ -316,6 +316,7 @@ function pullForm() {
   const vlib = LIBS.vehicles[BK.assign.vehicle.model] || {};
   if (vlib.img) BK.assign.vehicle.img = vlib.img;
   BK.assign.vehicle.imgs = Array.isArray(vlib.imgs) ? vlib.imgs : (vlib.img ? [vlib.img] : []);
+  BK.assign.vehicle.desc = vlib.desc || "";
   // 체크리스트·메모
   BK.checklist = { deposit:$("c_deposit").checked, balance:$("c_balance").checked, flight:$("c_flight").checked,
                    insurance:$("c_insurance").checked, contract:$("c_contract").checked };

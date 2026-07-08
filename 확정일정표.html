@@ -150,10 +150,15 @@ const itemHtml = t => {
   return esc(t);
 };
 const imgsOf = obj => [...new Set([obj && obj.img, ...((obj && Array.isArray(obj.imgs)) ? obj.imgs : [])].filter(Boolean))];
-const slideImgs = (imgs, label, h = 150) => imgs.length ? `
-  <div style="display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:6px;">
-    ${imgs.map((src, i) => `<div class="ph" style="width:230px; height:${h}px; border-radius:12px; flex:0 0 230px; scroll-snap-align:start;"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`).join("")}
-  </div>` : `<div class="ph" style="height:${h}px; border-radius:12px;">${esc(label) || "이미지 없음"}</div>`;
+const photoStrip = (imgs, label, h = 132) => {
+  const arr = imgs.slice(0, 3);
+  while (arr.length < 3) arr.push("");
+  return `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px;">
+    ${arr.map((src, i) => src
+      ? `<div class="ph" style="height:${h}px; background:#eee;"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`
+      : `<div class="ph" style="height:${h}px; background:#eef2f1;">${esc(label)}</div>`).join("")}
+  </div>`;
+};
 const bookingAssign = (Q.booking && Q.booking.assign) ? Q.booking.assign : null;
 
 /* ══════════ 표지 ══════════ */
@@ -736,42 +741,44 @@ const pgBookingAssign = bookingAssign ? (() => {
   const vehicleImgs = imgsOf(v);
   const lodgeCard = (l, i) => {
     const imgs = imgsOf(l);
-    return `<div style="border:1px solid #DDEBE6; border-radius:14px; padding:12px; background:${i % 2 ? "#F7FCFA" : "#fff"}; break-inside:avoid;">
-      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-        <div>
-          <div style="color:#06C4A0; font-size:11px; font-weight:800;">${esc(l.day || i + 1)}일차 숙소</div>
-          <div style="color:#152C28; font-size:17px; font-weight:800; margin-top:3px;">${esc(l.name)}</div>
-        </div>
-        ${l.grade ? `<span style="background:#EAF7F3; color:#0A6A5E; font-size:11px; font-weight:800; padding:6px 10px; border-radius:999px;">${esc(l.grade)}</span>` : ""}
+    return `<div style="${i ? "border-top:1.5px solid #C8C8C8; padding-top:18px; margin-top:18px;" : ""}">
+      <div style="font-family:Impact, 'Arial Black', Pretendard, sans-serif; color:#24272A; font-size:24px; font-weight:900; letter-spacing:-0.02em;">DAY${esc(l.day || i + 1)}</div>
+      <div style="margin-top:8px;">${photoStrip(imgs, l.name, 112)}</div>
+      <div style="display:flex; align-items:baseline; gap:12px; margin-top:10px;">
+        <div style="font-family:Impact, 'Arial Black', Pretendard, sans-serif; color:#24272A; font-size:27px; font-weight:900; letter-spacing:-0.03em; text-transform:uppercase;">${esc(l.name)}</div>
+        ${l.grade ? `<div style="color:#24272A; font-size:13px; font-weight:800;">${esc(l.grade)}</div>` : ""}
       </div>
-      ${l.tags ? `<div style="margin-top:7px; color:#8CA39D; font-size:11px; font-weight:700;">${esc(l.tags)}</div>` : ""}
-      ${imgs.length ? `<div style="margin-top:10px;">${slideImgs(imgs, l.name, 118)}</div>` : ""}
-      ${l.desc ? `<div style="margin-top:8px; color:#40544F; font-size:11px; line-height:1.55;">${esc(l.desc)}</div>` : ""}
+      <div style="margin-top:5px; color:#24272A; font-size:13.5px; line-height:1.45; font-weight:800;">${esc(l.desc || l.tags || "확정된 숙소 정보입니다.")}</div>
     </div>`;
   };
-  return `<div class="page" style="padding:48px 52px;">
-    <div class="eyebrow">CONFIRMED ASSIGNMENT</div>
-    <div style="color:#152C28; font-size:30px; font-weight:800; letter-spacing:-0.02em; margin-top:6px;">가이드 · 차량 · 확정 숙소 배정</div>
-    <div style="margin-top:20px; display:grid; grid-template-columns:1fr 1.2fr; gap:16px;">
-      <div style="border:1px solid #DDEBE6; border-radius:14px; padding:16px; background:#F5FBF9;">
-        <div style="color:#06C4A0; font-size:11px; font-weight:800; letter-spacing:0.12em;">GUIDE</div>
-        ${g.img ? ph(g.img, g.name, "width:100%; height:140px; border-radius:12px; margin-top:10px;") : ""}
-        <div style="color:#152C28; font-size:20px; font-weight:800; margin-top:12px;">${esc(g.name || "배정 예정")}</div>
-        <div style="margin-top:7px; color:#40544F; font-size:11.5px; line-height:1.7;">${[g.career && `경력 ${g.career}`, g.korean && `한국어 ${g.korean}`].filter(Boolean).map(esc).join(" · ")}</div>
-        ${g.desc ? `<div style="margin-top:8px; color:#40544F; font-size:11.5px; line-height:1.7;">${esc(g.desc)}</div>` : ""}
-      </div>
-      <div style="border:1px solid #DDEBE6; border-radius:14px; padding:16px; background:#fff;">
-        <div style="color:#06C4A0; font-size:11px; font-weight:800; letter-spacing:0.12em;">VEHICLE</div>
-        <div style="color:#152C28; font-size:20px; font-weight:800; margin-top:6px;">${esc(v.model || Q.vehicle || "배정 예정")}</div>
-        ${v.seats ? `<div style="margin-top:5px; color:#8CA39D; font-size:12px; font-weight:800;">${esc(v.seats)}</div>` : ""}
-        <div style="margin-top:12px;">${slideImgs(vehicleImgs, v.model || "차량", 150)}</div>
+  const guideRole = g.korean ? `${esc(g.korean)} 가이드` : "한국어 가이드";
+  const vehicleName = v.model || Q.vehicle || "배정 차량";
+  return `<div class="page" style="padding:42px 50px; background:#fff;">
+    <div style="font-family:Impact, 'Arial Black', Pretendard, sans-serif; color:#24272A; font-size:32px; font-weight:900; letter-spacing:-0.03em; margin-bottom:16px;">확정 숙소 배정</div>
+    ${lodges.map(lodgeCard).join("") || `<div style="color:#777; font-size:14px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
+    <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 숙소 배정</span><span>11</span></div>
+  </div>
+  <div class="page" style="padding:0; background:#fff;">
+    <div style="position:absolute; inset:0; border:2px solid #10B4C6; pointer-events:none;"></div>
+    <div style="position:absolute; left:46px; right:46px; top:210px; display:flex; align-items:center; gap:30px;">
+      ${g.img ? `<div class="ph" style="width:160px; height:160px; border-radius:50%; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:160px; height:160px; border-radius:50%; background:#EAF2EE; flex:none;"></div>`}
+      <div style="flex:1;">
+        <div style="display:flex; align-items:baseline; gap:14px;">
+          <div style="font-family:Impact, 'Arial Black', Pretendard, sans-serif; color:#24272A; font-size:52px; font-weight:900; letter-spacing:-0.05em;">${esc(g.name || "가이드")}</div>
+          <div style="color:#24272A; font-size:17px; font-weight:700;">${guideRole}</div>
+        </div>
+        <div style="margin-top:16px; color:#24272A; font-size:18px; line-height:1.45; font-weight:800;">${esc(g.desc || "안전하고 편안한 몽골 여행을 위해 최선을 다하겠습니다.")}</div>
       </div>
     </div>
-    <div style="margin-top:18px;">
-      <div style="display:flex; align-items:center; gap:8px; color:#0A6A5E; font-size:16px; font-weight:800; margin-bottom:10px;">🏕 확정 숙소 배정 정보</div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">${lodges.map(lodgeCard).join("") || `<div style="color:#8CA39D; font-size:13px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}</div>
-    </div>
-    <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 배정 정보</span><span>11</span></div>
+    <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 가이드 안내</span><span>12</span></div>
+  </div>
+  <div class="page" style="padding:52px 50px; background:#fff;">
+    <div style="font-family:Impact, 'Arial Black', Pretendard, sans-serif; color:#24272A; font-size:46px; font-weight:900; letter-spacing:-0.04em;">차량정보</div>
+    <div style="margin-top:18px;">${photoStrip(vehicleImgs, vehicleName, 160)}</div>
+    <div style="font-family:Impact, 'Arial Black', Pretendard, sans-serif; color:#24272A; font-size:42px; font-weight:900; letter-spacing:-0.04em; margin-top:22px;">${esc(vehicleName)}</div>
+    ${v.seats ? `<div style="margin-top:2px; color:#24272A; font-size:15px; font-weight:800;">${esc(v.seats)}</div>` : ""}
+    <div style="margin-top:12px; color:#24272A; font-size:18px; line-height:1.5; font-weight:800; max-width:650px;">${esc(v.desc || "몽골 장거리 이동에 적합한 차량으로 일정과 인원에 맞춰 배정됩니다.")}</div>
+    <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 차량 정보</span><span>13</span></div>
   </div>`;
 })() : "";
 
