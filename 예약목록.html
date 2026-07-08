@@ -49,7 +49,9 @@
   .avatar { width:38px; height:38px; border-radius:11px; background:var(--book); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; flex:none; }
   .cust b { display:block; font-size:14px; }
   .muted { color:var(--gray); font-size:12.5px; font-weight:600; }
-  .tag { display:inline-flex; align-items:center; gap:5px; border-radius:99px; padding:5px 10px; font-size:12px; font-weight:800; white-space:nowrap; }
+  .tag { display:inline-flex; align-items:center; gap:5px; border-radius:99px; padding:5px 10px; font-size:12px; font-weight:800; white-space:nowrap; border:0; font-family:inherit; }
+  button.tag { cursor:pointer; }
+  button.tag:hover { filter:brightness(.97); box-shadow:0 0 0 1px rgba(0,0,0,.04) inset; }
   .tag.ok { background:#e8f7f2; color:#0a6a5e; }
   .tag.warn { background:#fff5e9; color:#b76d14; }
   .tag.bad { background:#fbeceb; color:#b84e44; }
@@ -194,15 +196,15 @@ function render() {
         <td><b>${esc(period(r))}</b>${dd !== null ? `<div class="muted">${dd >= 0 ? `D-${dd}` : `출발 ${Math.abs(dd)}일 경과`}</div>` : ""}</td>
         <td class="hide-xs">${signed(r) ? `<span class="tag ok">서명완료</span>` : `<span class="tag bad">미서명</span>`}</td>
         <td><div class="assign">
-          <span class="tag ${guide(r).name ? "ok" : "warn"}">가이드</span>
-          <span class="tag ${hasVehicle(r) ? "ok" : "warn"}">차량</span>
-          <span class="tag ${hasLodges(r) ? "ok" : "warn"}">숙소</span>
+          <button class="tag ${guide(r).name ? "ok" : "warn"}" data-open="${esc(r.id)}" title="가이드 배정 수정">가이드</button>
+          <button class="tag ${hasVehicle(r) ? "ok" : "warn"}" data-open="${esc(r.id)}" title="차량 배정 수정">차량</button>
+          <button class="tag ${hasLodges(r) ? "ok" : "warn"}" data-open="${esc(r.id)}" title="숙소 배정 수정">숙소</button>
         </div></td>
         <td class="hide-sm"><div class="muted">${esc(v.model || r.vehicle || "차량 미정")}</div><div class="muted">${ls.length ? esc(ls.map(l => l.name).slice(0,2).join(", ")) + (ls.length > 2 ? ` 외 ${ls.length - 2}` : "") : "숙소 미정"}</div></td>
         <td><div class="actions">
-          <button class="mini blue" data-open="${esc(r.id)}">예약관리</button>
-          ${token ? `<a class="mini" href="확정일정표.html?t=${encodeURIComponent(token)}" target="_blank">일정표</a>` : ""}
-          ${token ? `<a class="mini" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">계약서</a>` : ""}
+          <button class="mini blue" data-open="${esc(r.id)}">배정관리</button>
+          ${token ? `<a class="mini" href="확정일정표.html?t=${encodeURIComponent(token)}&v=assign3" target="_blank">일정표 보기</a>` : ""}
+          ${token ? `<a class="mini" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">${signed(r) ? "계약서 보기" : "서명 요청"}</a>` : ""}
         </div></td>
       </tr>`;
     }).join("")}</tbody></table>`;

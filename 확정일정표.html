@@ -159,11 +159,11 @@ const ASSIGN_STYLE = {
   font: "'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif",
 };
 const AS = {
-  pageTitle: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:34px; font-weight:900; letter-spacing:0; line-height:1.12;`,
+  pageTitle: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:38px; font-weight:900; letter-spacing:0; line-height:1.08;`,
   day: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:24px; font-weight:900; letter-spacing:0; line-height:1;`,
-  name: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:28px; font-weight:900; letter-spacing:0; line-height:1.08;`,
+  name: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:30px; font-weight:900; letter-spacing:0; line-height:1.08;`,
   meta: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:13px; font-weight:800; letter-spacing:0; line-height:1.2;`,
-  body: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:14px; font-weight:800; letter-spacing:0; line-height:1.45;`,
+  body: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:15px; font-weight:800; letter-spacing:0; line-height:1.45;`,
   guideName: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.ink}; font-size:52px; font-weight:900; letter-spacing:0; line-height:1;`,
   guideRole: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:17px; font-weight:800; letter-spacing:0; line-height:1.2;`,
   guideBody: `font-family:${ASSIGN_STYLE.font}; color:${ASSIGN_STYLE.body}; font-size:18px; font-weight:800; letter-spacing:0; line-height:1.45;`,
@@ -175,7 +175,7 @@ const photoStrip = (imgs, label, h = 132) => {
   while (arr.length < 3) arr.push("");
   return `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px;">
     ${arr.map((src, i) => src
-      ? `<div class="ph" style="height:${h}px; background:#eee;"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`
+      ? `<div class="ph" style="height:${h}px; background:#eee; border:1px solid #fff;"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`
       : `<div class="ph" style="height:${h}px; background:#EEF3F2; color:#9AB0AA; font-family:${ASSIGN_STYLE.font}; font-size:12px; font-weight:700;">${esc(label)}</div>`).join("")}
   </div>`;
 };
@@ -761,10 +761,10 @@ const pgBookingAssign = bookingAssign ? (() => {
   const vehicleImgs = imgsOf(v);
   const lodgeCard = (l, i) => {
     const imgs = imgsOf(l);
-    return `<div style="${i ? `border-top:1.5px solid ${ASSIGN_STYLE.line}; padding-top:18px; margin-top:18px;` : ""}">
+    return `<div style="${i ? `border-top:1.5px solid ${ASSIGN_STYLE.line}; padding-top:20px; margin-top:20px;` : ""}">
       <div style="${AS.day}">DAY${esc(l.day || i + 1)}</div>
-      <div style="margin-top:8px;">${photoStrip(imgs, l.name, 112)}</div>
-      <div style="display:flex; align-items:baseline; gap:12px; margin-top:10px;">
+      <div style="margin-top:10px;">${photoStrip(imgs, l.name, 118)}</div>
+      <div style="display:flex; align-items:baseline; gap:12px; margin-top:12px;">
         <div style="${AS.name} text-transform:uppercase;">${esc(l.name)}</div>
         ${l.grade ? `<div style="${AS.meta}">${esc(l.grade)}</div>` : ""}
       </div>
@@ -773,15 +773,15 @@ const pgBookingAssign = bookingAssign ? (() => {
   };
   const guideRole = g.korean ? `${esc(g.korean)} 가이드` : "한국어 가이드";
   const vehicleName = v.model || Q.vehicle || "배정 차량";
-  return `<div class="page" style="padding:42px 50px; background:#fff;">
-    <div style="${AS.pageTitle} margin-bottom:16px;">확정 숙소 배정</div>
+  return `<div class="page" style="padding:46px 50px; background:#fff;">
+    <div style="${AS.pageTitle} margin-bottom:20px;">확정 숙소 배정</div>
     ${lodges.map(lodgeCard).join("") || `<div style="color:#777; font-size:14px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
     <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 숙소 배정</span><span>11</span></div>
   </div>
   <div class="page" style="padding:0; background:#fff;">
     <div style="position:absolute; inset:0; border:2px solid ${ASSIGN_STYLE.accent}; pointer-events:none;"></div>
-    <div style="position:absolute; left:46px; right:46px; top:210px; display:flex; align-items:center; gap:30px;">
-      ${g.img ? `<div class="ph" style="width:160px; height:160px; border-radius:50%; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:160px; height:160px; border-radius:50%; background:#EAF2EE; flex:none;"></div>`}
+    <div style="position:absolute; left:58px; right:58px; top:198px; display:flex; align-items:center; gap:32px;">
+      ${g.img ? `<div class="ph" style="width:178px; height:178px; border-radius:50%; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:178px; height:178px; border-radius:50%; background:#EAF2EE; flex:none;"></div>`}
       <div style="flex:1;">
         <div style="display:flex; align-items:baseline; gap:14px;">
           <div style="${AS.guideName}">${esc(g.name || "가이드")}</div>
@@ -792,10 +792,10 @@ const pgBookingAssign = bookingAssign ? (() => {
     </div>
     <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 가이드 안내</span><span>12</span></div>
   </div>
-  <div class="page" style="padding:52px 50px; background:#fff;">
+  <div class="page" style="padding:54px 50px; background:#fff;">
     <div style="${AS.vehicleTitle}">차량정보</div>
-    <div style="margin-top:18px;">${photoStrip(vehicleImgs, vehicleName, 160)}</div>
-    <div style="${AS.vehicleName} margin-top:22px;">${esc(vehicleName)}</div>
+    <div style="margin-top:20px;">${photoStrip(vehicleImgs, vehicleName, 176)}</div>
+    <div style="${AS.vehicleName} margin-top:24px;">${esc(vehicleName)}</div>
     ${v.seats ? `<div style="margin-top:2px; ${AS.meta}">${esc(v.seats)}</div>` : ""}
     <div style="margin-top:12px; ${AS.guideBody} max-width:650px;">${esc(v.desc || "몽골 장거리 이동에 적합한 차량으로 일정과 인원에 맞춰 배정됩니다.")}</div>
     <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 차량 정보</span><span>13</span></div>
