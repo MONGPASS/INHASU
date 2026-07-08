@@ -144,9 +144,10 @@ const lodgeList = lodges.length ? `
     <div style="color:#0A6A5E; font-size:12.5px; font-weight:800; margin-bottom:8px;">🏕 일차별 숙소</div>
     <div style="border:1px solid #E3F0EB; border-radius:12px; overflow:hidden; font-size:12px;">
       ${lodges.map((l, i) => `
-      <div style="display:grid; grid-template-columns:58px 1fr auto; ${i ? "border-top:1px solid #EEF4F1;" : ""} background:${i % 2 ? "#F7FCFA" : "#fff"};">
+      <div style="display:grid; grid-template-columns:${l.img ? "52px " : ""}58px 1fr auto; align-items:center; ${i ? "border-top:1px solid #EEF4F1;" : ""} background:${i % 2 ? "#F7FCFA" : "#fff"};">
+        ${l.img ? `<div style="padding:6px 0 6px 8px;">${ph(l.img, l.name, "width:44px; height:44px; border-radius:8px;")}</div>` : ""}
         <div style="padding:11px 8px; color:#06C4A0; font-weight:800; text-align:center;">${esc(l.day)}일차</div>
-        <div style="padding:11px 4px; color:#152C28; font-weight:600;">${esc(l.name)}</div>
+        <div style="padding:11px 4px; color:#152C28; font-weight:600;">${esc(l.name)}${l.tags ? `<br><span style="font-size:10px; color:#8CA39D; font-weight:600;">${esc(l.tags)}</span>` : ""}</div>
         <div style="padding:11px 12px; color:#8CA39D; font-weight:700; font-size:11px;">${esc(l.grade || "")}</div>
       </div>`).join("")}
     </div>

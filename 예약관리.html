@@ -310,11 +310,19 @@ function pullForm() {
   BK.assign.guide = { name:g("g_name"), career:g("g_career"), korean:g("g_korean"), phone:g("g_phone"), img:g("g_img"), desc:g("g_desc") };
   BK.assign.driver = { name:g("d_name"), career:g("d_career"), phone:g("d_phone"), img:"" };
   BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), plate:g("v_plate"), img:"" };
-  BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map(el => ({
-    day: Number(el.querySelector('[data-lk="day"]').value) || 0,
-    name: el.querySelector('[data-lk="name"]').value.trim(),
-    grade: el.querySelector('[data-lk="grade"]').value,
-  })).filter(l => l.name);
+  BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map(el => {
+    const name = el.querySelector('[data-lk="name"]').value.trim();
+    const lib = LIBS.lodges[name] || {};   // 라이브러리에 있으면 사진·태그를 고객 확정안내에 함께 노출
+    return {
+      day: Number(el.querySelector('[data-lk="day"]').value) || 0,
+      name,
+      grade: el.querySelector('[data-lk="grade"]').value,
+      img: lib.img || "", tags: lib.tags || "",
+    };
+  }).filter(l => l.name);
+  // 차량 사진도 라이브러리에서 자동 첨부
+  const vlib = LIBS.vehicles[BK.assign.vehicle.model] || {};
+  if (vlib.img) BK.assign.vehicle.img = vlib.img;
   // 체크리스트·메모
   BK.checklist = { deposit:$("c_deposit").checked, balance:$("c_balance").checked, flight:$("c_flight").checked,
                    insurance:$("c_insurance").checked, contract:$("c_contract").checked };
@@ -353,20 +361,50 @@ function bindEvents() {
     await save();
     render();
   };
+  fillDatalists();   // 리렌더 시 datalist·자동채움 다시 연결
+  bindAutofill();
 }
 
-/* ══════════ 라이브러리 자동완성 (있으면) ══════════ */
+/* ══════════ 리소스 라이브러리 (리소스관리에서 등록한 가이드·숙소·차량) ══════════ */
+let LIBS = { guides: {}, lodges: {}, vehicles: {} };
 async function loadLibs() {
-  const fill = async (key, listId, pick) => {
+  await Promise.all(Object.keys(LIBS).map(async key => {
     try {
       const r = await fetch("/api/data/" + key, { cache: "no-store" });
       const j = await r.json();
-      if (!j.ok || !j.data) return;
-      const names = Object.keys(j.data);
-      $(listId).innerHTML = names.map(n => `<option value="${esc(pick ? pick(n, j.data[n]) : n)}">`).join("");
+      if (j.ok && j.data) LIBS[key] = j.data;
     } catch (e) {}
-  };
+  }));
+  fillDatalists();
+}
+function fillDatalists() {
+  const fill = (key, listId) => { const el = $(listId); if (el) el.innerHTML = Object.keys(LIBS[key]).map(n => `<option value="${esc(n)}">`).join(""); };
   fill("guides", "guideList"); fill("lodges", "lodgeList"); fill("vehicles", "vehicleList");
+}
+/* 라이브러리에서 이름을 고르면 나머지 필드 자동 채움 */
+function bindAutofill() {
+  const g = $("g_name");
+  if (g) g.addEventListener("change", () => {
+    const r = LIBS.guides[g.value.trim()]; if (!r) return;
+    if (r.career) $("g_career").value = r.career;
+    if (r.korean) $("g_korean").value = r.korean;
+    if (r.phone) $("g_phone").value = r.phone;
+    if (r.img) $("g_img").value = r.img;
+    if (r.desc) $("g_desc").value = r.desc;
+    toast(`가이드 "${g.value.trim()}" 정보를 불러왔어요`);
+  });
+  const v = $("v_model");
+  if (v) v.addEventListener("change", () => {
+    const r = LIBS.vehicles[v.value.trim()]; if (!r) return;
+    if (r.seats) $("v_seats").value = r.seats;
+    if (r.plate) $("v_plate").value = r.plate;
+    toast(`차량 "${v.value.trim()}" 정보를 불러왔어요`);
+  });
+  document.querySelectorAll('.lodge-row [data-lk="name"]').forEach(inp => inp.addEventListener("change", () => {
+    const r = LIBS.lodges[inp.value.trim()]; if (!r) return;
+    const sel = inp.closest(".lodge-row").querySelector('[data-lk="grade"]');
+    if (r.grade && sel) sel.value = r.grade;
+  }));
 }
 
 /* ══════════ 저장 ══════════ */

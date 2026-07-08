@@ -274,6 +274,33 @@ window.saveSnippetCats = function (arr) {
 };
 
 /* ═══════════════════════════════════════════════════════════════
+   예약 리소스 라이브러리 (가이드·숙소·차량) 읽기/쓰기
+   관리자 "리소스 관리"에서 편집 — 예약관리 배정과 고객 확정안내가 사용합니다.
+   ═══════════════════════════════════════════════════════════════ */
+const _libGet = (lsKey) => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(lsKey) || "null");
+    if (saved && typeof saved === "object") return saved;
+  } catch (e) {}
+  return {};
+};
+window.getGuides = () => _libGet("leaders_guides");
+window.saveGuides = (obj) => {
+  localStorage.setItem("leaders_guides", JSON.stringify(obj));
+  return window.cloudPush ? window.cloudPush("guides", obj) : Promise.resolve({ ok: false, local: true });
+};
+window.getLodges = () => _libGet("leaders_lodges");
+window.saveLodges = (obj) => {
+  localStorage.setItem("leaders_lodges", JSON.stringify(obj));
+  return window.cloudPush ? window.cloudPush("lodges", obj) : Promise.resolve({ ok: false, local: true });
+};
+window.getVehicles = () => _libGet("leaders_vehicles");
+window.saveVehicles = (obj) => {
+  localStorage.setItem("leaders_vehicles", JSON.stringify(obj));
+  return window.cloudPush ? window.cloudPush("vehicles", obj) : Promise.resolve({ ok: false, local: true });
+};
+
+/* ═══════════════════════════════════════════════════════════════
    서버 영구 저장 동기화 (Cloudflare D1 · /api/data/:key)
    ---------------------------------------------------------------
    · 지금까지 명소·코스·일정은 이 브라우저(localStorage)에만 저장돼,
@@ -289,6 +316,9 @@ window.CLOUD_KEYS = {
   courses: "leaders_courses",
   snippets: "leaders_snippets",
   snippet_cats: "leaders_snippet_cats",
+  guides: "leaders_guides",
+  lodges: "leaders_lodges",
+  vehicles: "leaders_vehicles",
 };
 
 // 서버에서 마지막으로 받은 각 키의 updatedAt — 동시 편집 충돌 감지용
