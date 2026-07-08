@@ -571,7 +571,6 @@ const secBookingAssign = bookingAssign ? (() => {
   const guideRole = g.korean ? `${esc(g.korean)} 가이드` : "한국어 가이드";
   const vehicleName = v.model || Q.vehicle || "배정 차량";
   const sectionTitle = (icon, title, sub) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-    <div style="font-size:21px;">${icon}</div>
     <div style="color:${ASSIGN_STYLE.accent}; font-size:22px; font-weight:900;">${title}</div>
     ${sub ? `<div style="color:${ASSIGN_STYLE.muted}; font-size:10px; font-weight:800;">${sub}</div>` : ""}
   </div>`;
