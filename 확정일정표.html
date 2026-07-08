@@ -296,7 +296,7 @@ const dayRow = (d, i) => {
     <div style="background:${bg}; padding:12px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;"><span style="width:12px;height:12px;border-radius:3px;background:${DAY_CUBE[i % DAY_CUBE.length]};"></span><b style="color:#152C28; font-size:12px;">${d.d}일차</b></div>
     <div style="background:${bg}; padding:12px 8px; color:#152C28; line-height:1.5;"><b>${d.dest}</b><br><span style="color:#8CA39D;">${esc(d.move)}<br>${esc(d.dist)}</span></div>
     <div style="background:${bg}; padding:12px 10px; color:#354B46; line-height:1.85;">${d.items.map(itemHtml).join("<br>")}</div>
-    <div style="background:${i % 2 ? '#EAF7F3' : '#F5FBF9'}; padding:12px 8px; color:#152C28; font-weight:800; line-height:1.6; text-align:center; border-left:1px solid #DDEBE6; border-right:1px solid #DDEBE6;">${d.stay.name}${d.stay.tags.length ? `<br><br><span style="display:inline-block; color:#0A6A5E; background:#fff; border:1px solid #DDEBE6; border-radius:14px; padding:4px 8px; font-weight:700;">${d.stay.tags.join("<br>")}</span>` : ""}</div>
+    <div style="background:${i % 2 ? '#EAF7F3' : '#F5FBF9'}; padding:12px 8px; color:#152C28; font-weight:800; line-height:1.9; text-align:center; border-left:1px solid #DDEBE6; border-right:1px solid #DDEBE6;">${d.stay.name}${d.stay.tags.length ? `<br><br><span style="color:#0A6A5E; font-weight:700;">${d.stay.tags.join("<br>")}</span>` : ""}</div>
     <div style="background:${bg}; padding:12px 6px; color:#354B46; text-align:center; line-height:1.9;">${d.meals.join("<br>")}</div>`;
 };
 // 일정 페이지 상단 헤더(로고·제목·이동강도) — 여러 장으로 나뉘어도 매 장 반복

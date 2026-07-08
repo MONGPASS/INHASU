@@ -303,7 +303,7 @@ const dayCard = (d) => {
   const distTxt = String(d.dist || "").replace(/[()]/g, "").trim();
   const moveTxt = String(d.move || "").replace(/이동\s*/, "");
   const meta = [moveTxt, distTxt].filter(Boolean).join(" · ");
-  const stayTags = (d.stay.tags && d.stay.tags.length) ? `<span style="background:#fff; color:#0A6A5E; border:1px solid #DDEBE6; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:14px;">${d.stay.tags.join(" · ")}</span>` : "";
+  const stayTags = (d.stay.tags && d.stay.tags.length) ? `<span style="color:#0A6A5E; font-size:10.5px; font-weight:700;">${d.stay.tags.join(" · ")}</span>` : "";
   return `
   <div class="blk" style="border:1px solid #E3F0EB; border-radius:14px; overflow:hidden;">
     <div class="row" style="justify-content:space-between; background:#06C4A0; padding:11px 15px;">
@@ -315,7 +315,7 @@ const dayCard = (d) => {
         ${d.items.map((it, i) => `<div style="position:relative; ${i < d.items.length - 1 ? "margin-bottom:9px;" : ""} line-height:1.45;"><span style="position:absolute; left:-28.5px; top:2px; width:11px; height:11px; border-radius:50%; background:#06C4A0;"></span>${itemHtml(it)}</div>`).join("")}
       </div>
       <div style="display:flex; gap:8px; margin-top:11px; flex-wrap:wrap;">
-        <span style="background:#EAF7F3; color:#0A6A5E; border:1px solid #DDEBE6; font-size:10.5px; font-weight:800; padding:5px 10px; border-radius:14px;">🛏 ${noBr(d.stay.name)}</span>${stayTags}
+        <span style="color:#0A6A5E; font-size:10.5px; font-weight:800;">${noBr(d.stay.name)}</span>${stayTags}
       </div>
       <div style="margin-top:8px; font-size:10.5px; color:#8CA39D;">🍽 ${(d.meals || []).join(" · ")}</div>
     </div>
