@@ -41,6 +41,18 @@
   .btn:disabled { opacity:.45; cursor:not-allowed; }
 
   .print-only { display:none; }
+
+  /* ── PC(넓은 화면): 문서를 넓게 — 모바일은 기존 그대로 ── */
+  @media screen and (min-width: 720px) {
+    .doc { max-width: 720px; padding: 34px 20px 70px; gap: 24px; }
+    .card { border-radius: 18px; }
+    .card > .pad { padding: 38px 48px 44px; }
+    .sec-title { font-size: 26px; }
+    .num-list { font-size: 13px; }
+    .agree { font-size: 13px; }
+    #signPad { height: 200px; }
+  }
+
   @page { size: 420px 760px; margin: 0; }
   @media print {
     body { background: #fff; }
