@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>여행계약서 · 몽골리아 은하수</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Pretendard', -apple-system, sans-serif; -webkit-font-smoothing: antialiased;
+    background: #DBE6E2; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #152C28; }
+
+  .doc { max-width: 430px; margin: 0 auto; padding: 18px 14px 40px; display: flex; flex-direction: column; gap: 18px; }
+  .card { background: #FCFEFD; border-radius: 22px; box-shadow: 0 18px 44px rgba(6,65,58,0.14); overflow: hidden; }
+  .card > .pad { padding: 22px 22px 26px; }
+  .blk { break-inside: avoid; }
+  .row { display: flex; align-items: center; }
+
+  .sec-eyebrow { color:#06C4A0; font-size:11px; font-weight:800; letter-spacing:0.14em; }
+  .sec-title { color:#152C28; font-size:22px; font-weight:800; letter-spacing:-0.02em; margin-top:4px; }
+  .h-bar { display:flex; align-items:center; gap:8px; font-size:14.5px; font-weight:800; margin:4px 0 10px; }
+  .h-bar .bar { width:4px; height:15px; background:#06C4A0; border-radius:2px; flex:none; }
+  .num-list { font-size:12px; color:#40544F; line-height:1.85; }
+  .num-list .it { display:grid; grid-template-columns:20px 1fr; gap:4px; margin-bottom:7px; }
+  .num-list .it b { color:#06c4a0; }
+
+  /* 서명 캔버스 */
+  .sign-wrap { border:1.5px dashed #9CCDBF; border-radius:14px; background:#FAFDFC; position:relative; overflow:hidden; }
+  #signPad { display:block; width:100%; height:170px; touch-action:none; cursor:crosshair; }
+  .sign-hint { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#B8CCC5; font-size:14px; font-weight:700; pointer-events:none; }
+  .agree { display:flex; gap:10px; align-items:flex-start; font-size:12px; color:#354B46; line-height:1.6;
+    padding:11px 0; border-bottom:1px dashed #E3F0EB; cursor:pointer; }
+  .agree input { width:17px; height:17px; accent-color:#06C4A0; flex:none; margin-top:1px; }
+  .btn { display:block; width:100%; border:none; border-radius:13px; padding:15px; margin-top:12px;
+    font:800 15px 'Pretendard', sans-serif; cursor:pointer; text-align:center; text-decoration:none; }
+  .btn.mint { background:#06C4A0; color:#fff; }
+  .btn.ghost { background:#fff; color:#6b7c78; border:1px solid #E3F0EB; font-weight:700; }
+  .btn:disabled { opacity:.45; cursor:not-allowed; }
+
+  .print-only { display:none; }
+  @page { size: 420px 760px; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .fab, .no-print { display: none !important; }
+    .print-only { display: block; }
+    .doc { max-width: none; margin: 0; padding: 0; gap: 0; display: block; }
+    .card { border-radius: 0; box-shadow: none; break-before: page; }
+    .card:first-child { break-before: auto; }
+    .card > .pad { padding: 26px 26px 30px; }
+  }
+  .fab { position: fixed; right: 16px; bottom: 18px; z-index: 40; background: #152C28; color: #fff;
+    border: none; border-radius: 26px; padding: 13px 20px; font: 800 14.5px 'Pretendard', sans-serif;
+    box-shadow: 0 10px 26px rgba(6,65,58,0.32); cursor: pointer; }
+  #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(16px); background:#152C28; color:#fff;
+    font-size:13.5px; font-weight:700; padding:11px 20px; border-radius:12px; opacity:0; pointer-events:none; transition:.25s; z-index:50; }
+  #toast.on { opacity:1; transform:translateX(-50%); }
+</style>
+</head>
+<body>
+<div class="doc" id="root"></div>
+<button class="fab" id="fab" style="display:none" onclick="window.print()">📄 PDF 저장</button>
+<div id="toast"></div>
+
+<script type="module">
+const KAKAO = "https://pf.kakao.com/_BSLaxl";
+const _token = new URLSearchParams(location.search).get("t");
+const root = document.getElementById("root");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+let toastT;
+const toast = m => { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); };
+
+const R = await (async () => {
+  if (!_token) return null;
+  try {
+    const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
+    const j = await res.json();
+    if (j.ok) return j;
+  } catch (e) {}
+  return null;
+})();
+
+if (!R || !R.booking) {
+  root.innerHTML = `
+  <div class="card"><div class="pad" style="text-align:center;">
+    <div style="font-size:46px">📜</div>
+    <h1 style="font-size:20px; margin:14px 0 8px; font-weight:800;">계약서 준비 중이에요</h1>
+    <p style="color:#6b7c78; line-height:1.65; font-size:14px;">예약이 확정된 뒤에 여행계약서에<br>서명하실 수 있어요.</p>
+    <a href="내견적.html?t=${encodeURIComponent(_token || "")}" style="display:inline-block; margin-top:20px; color:#06c4a0; font-weight:800; text-decoration:none;">← 내 견적으로 돌아가기</a>
+  </div></div>`;
+} else {
+
+const BK = R.booking;
+const signed = BK.contract && BK.contract.signedAt;
+// 서명 후에는 서명 시점 스냅샷을 우선 표시 (계약 내용 동결)
+const S = signed && BK.contract.snapshot ? BK.contract.snapshot : R;
+const paxTxt = [S.adult ? `성인 ${S.adult}` : "", S.child ? `아동 ${S.child}` : "", S.infant ? `유아 ${S.infant}` : ""].filter(Boolean).join(" · ") || "-";
+const period = S.depart ? `${S.depart}${S.return_ ? " ~ " + S.return_ : ""}${S.nights ? ` (${S.nights}박 ${S.nights + 1}일)` : ""}` : "-";
+const fmtDT = iso => { try { const d = new Date(iso); return `${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; } catch(e){ return iso; } };
+
+const card = inner => `<div class="card"><div class="pad">${inner}</div></div>`;
+const numList = arr => `<div class="num-list">${arr.map((t, i) => `<div class="it"><b>${i + 1}</b><span>${t}</span></div>`).join("")}</div>`;
+const LOGO = `<svg width="30" height="30" viewBox="0 0 48 48" fill="none" style="flex:none;"><rect x="1.5" y="1.5" width="45" height="45" rx="13" stroke="#0A6A5E" stroke-width="1.8"></rect><path d="M9 33 L19 18 L26 28 L32 20 L39 33 Z" fill="#0A6A5E"></path></svg>`;
+
+/* ── 1) 계약 정보 ── */
+const secHead = card(`
+  <div class="blk">
+    <div class="row" style="justify-content:space-between;">
+      <div class="row" style="gap:9px;">${LOGO}
+        <div style="color:#0A6A5E; font-size:11px; font-weight:800; letter-spacing:0.14em;">MONGOLIA<br>MILKY WAY</div>
+      </div>
+      <div style="background:${signed ? "#06C4A0" : "#152C28"}; color:#fff; font-size:9.5px; font-weight:800; letter-spacing:0.08em; padding:7px 13px; border-radius:20px;">${signed ? "SIGNED" : "TRAVEL CONTRACT"}</div>
+    </div>
+    <div style="text-align:center; margin-top:24px;">
+      <div style="font-family:'Playfair Display',serif; font-size:13px; color:#06C4A0;">MONGOLIA MILKY WAY</div>
+      <div style="color:#152C28; font-size:28px; font-weight:800; letter-spacing:-0.02em; margin-top:6px;">여행계약서</div>
+      ${signed ? `<div style="display:inline-block; margin-top:10px; background:#EAF7F3; color:#0A6A5E; font-size:12px; font-weight:800; padding:7px 16px; border-radius:18px;">✓ ${fmtDT(BK.contract.signedAt)} 서명 완료</div>` : ""}
+    </div>
+    <div style="margin-top:22px; border:1px solid #DDEBE6; border-radius:14px; overflow:hidden; font-size:12.5px;">
+      ${[["계약자(여행자)", esc(S.name || R.name)], ["여행지", esc(S.destination || "-")], ["여행 기간", esc(period)], ["인원", esc(paxTxt)], ["예약 확정일", esc(BK.confirmedAt || "-")], ["여행사", "몽골리아 은하수 현지 여행사"]].map(([k, v], i) => `
+        <div style="display:grid; grid-template-columns:104px 1fr; ${i ? "border-top:1px solid #EAF3EF;" : ""}">
+          <div style="background:#EAF7F3; color:#0A6A5E; font-weight:700; padding:12px;">${k}</div>
+          <div style="padding:12px; color:#152C28; font-weight:600;">${v}</div>
+        </div>`).join("")}
+    </div>
+    <div style="margin-top:12px; font-size:10.5px; color:#8CA39D; line-height:1.7;">몽골 현지 사업자 등록번호: 9011640064(SUUNZAM) · 국내 대행사 사업자 등록번호: 730-54-00614(헬로볼라)</div>
+  </div>`);
+
+/* ── 2) 위험 고지 ── */
+const secRisk = card(`
+  <div class="blk">
+    <div class="sec-eyebrow">HEALTH &amp; RISK NOTICE</div>
+    <div class="sec-title">질병 및 건강 위험도 고지</div>
+  </div>
+  <div class="blk" style="margin-top:14px;">${numList([
+    "여행지역에 포함된 몽골 외곽지역은 비포장 도로가 많으며 도로 사정이 좋지 않은 점을 사전 고지합니다. 안전벨트 미착용으로 부상 시 여행사 및 차량기사에게 책임을 전가할 수 없습니다.",
+    "최근 이상기후로 인해 몽골 내에서도 아침·저녁으로 심한 온도차가 있을 수 있습니다.",
+    "긴 시간 좋지 않은 도로를 이동하며 피로도가 축적될 수 있습니다.",
+    "특히 고비사막 등 모든 몽골여행 상품은 비포장 오프로드와 산악지역 등 사고 위험이 존재하며, 차량이 많이 흔들려 불편할 수 있습니다.",
+    "먹는 물과 길거리 음식물에 대한 위생도 문제될 수 있음을 알려드립니다.",
+    "각종 액티비티·레포츠 체험 시 위험도가 있어 본인 선택에 의해 진행하며, 안전은 본인이 책임지게 됩니다. (예: 승마·낙타체험, 샌드보딩 등)",
+  ])}</div>
+  <div class="blk" style="margin-top:8px; background:#FBEEEA; border:1px solid #F1CFC6; border-radius:12px; padding:14px 16px; font-size:11.5px; color:#5C4B47; line-height:1.85;">
+    <div style="color:#C9604B; font-weight:800; margin-bottom:7px;">계약 전 의사의 허락이 필요한 질병 — 허락 없이 참여할 땐 본인 책임 하에 여행을 진행함을 확인합니다.</div>
+    <div><b style="color:#C9604B;">1</b> 퇴행성 증상, 허리디스크, 고혈압, 심장질환, 신장질환 및 각종 기저질환 등</div>
+    <div><b style="color:#C9604B;">2</b> 각종 암, 혹은 여행 중 문제가 발생할 수 있는 모든 질병</div>
+    <div><b style="color:#C9604B;">3</b> 생명에 이상이 발생할 수 있는 약물을 투여 중인 환자 / 임신하신 분</div>
+  </div>`);
+
+/* ── 3) 확인 사항 · 약관 ── */
+const secTerms = card(`
+  <div class="blk">
+    <div class="sec-eyebrow">PRE-CONTRACT &amp; TERMS</div>
+    <div class="sec-title">계약 전 확인 사항</div>
+  </div>
+  <div class="blk" style="margin-top:14px;">
+    <div class="h-bar"><span class="bar"></span>계약 전 본인 확인사항</div>
+    ${numList([
+      "본인은 이 여행이 다수의 위험하고 특수한 상황들을 내포하고 있는 여행임을 알고 신청합니다. (고비사막 등 몽골의 열악한 비포장 도로사정)",
+      "본인은 여행 중 문제가 되는 질병이 없음을 인정하고, 만약 질병을 숨기고 진행하다 문제가 발생하면 본인 책임임을 인정합니다.",
+      "특수지역의 열악한 도로사정으로 일어날 수 있는 안전사고를 사전 인지하며, 여행 중 안전벨트 착용을 의무화하고 개인안전에 만전을 다할 것을 확인합니다.",
+      "개별일정으로 팀을 이탈하여 개별 행동 시에는 이탈 시점부터 일어난 모든 사건·사고에 대한 책임이 본인에게 있음을 확인합니다.",
+    ])}
+  </div>
+  <div class="blk" style="margin-top:10px;">
+    <div class="h-bar"><span class="bar"></span>현지 추가 체류비용이 발생될 수 있는 경우</div>
+    ${numList([
+      "천재지변·파업 등 예측 불가능한 현지사정으로 일정변경(대체일정)이 일어날 수 있으며, 이로 인해 발생되는 추가 요금은 여행사의 책임범위가 아님을 확인합니다.",
+      "특수지역 여행 상품으로, 천재지변으로 선납해 놓은 항공+호텔을 이용하지 못할 경우 현지 체류비용이 추가로 발생될 수 있음을 이해하며 확인합니다.",
+      "기상악화로 국내선의 문제가 발생할 경우에도 현지에서 추가 체류비용이 발생될 수 있음을 이해하며 확인합니다.",
+    ])}
+  </div>
+  <div class="blk" style="margin-top:10px;">
+    <div class="h-bar"><span class="bar"></span>액티비티 체험 면책 동의</div>
+    <div style="font-size:12px; color:#40544F; line-height:1.85;">투어 중 진행되는 액티비티(승마·낙타·모래썰매 등) 체험 중 발생할 수 있는 안전사고에 대해, 가이드의 안전 수칙을 따르지 않아 발생한 사고는 여행사에 법적 책임을 묻거나 별도의 보상을 요구할 수 없음을 확인합니다. 체험 전 반드시 국내 여행자 보험에 가입해 주시기 바랍니다.</div>
+  </div>
+  <div class="blk" style="margin-top:14px; background:#F5FBF9; border:1.5px solid #BFE6D9; border-radius:14px; padding:15px 18px; font-size:12.5px; font-weight:700; line-height:1.85; color:#06a488;">
+    ✓ 본인은 위의 고지사항을 안내받고, 충분히 본 여행의 특수성을 확인했음을 인정하며, 위 내용에 대하여 고지받았으므로 이에 대한 책임은 본인에게 있음을 인지하고 계약을 진행합니다.
+  </div>`);
+
+/* ── 4) 서명 ── */
+const secSign = signed ? card(`
+  <div class="blk" style="text-align:center;">
+    <div class="sec-eyebrow">SIGNATURE</div>
+    <div class="sec-title">서명 완료</div>
+    <div style="margin-top:16px; border:1.5px solid #BFE6D9; border-radius:14px; background:#FAFDFC; padding:10px;">
+      <img src="${BK.contract.signImg}" alt="서명" style="max-width:100%; height:120px; object-fit:contain;">
+    </div>
+    <div style="margin-top:12px; font-size:13px; color:#354B46; font-weight:700;">${esc(BK.contract.signerName || S.name || R.name)} <span style="color:#8CA39D; font-weight:600;">· ${fmtDT(BK.contract.signedAt)}</span></div>
+    <div style="margin-top:6px; font-size:10.5px; color:#8CA39D;">약관 버전 ${esc(BK.contract.termsVersion)} · 본 계약서는 서명 시점의 내용으로 보관됩니다.</div>
+    <div class="no-print">
+      <button class="btn ghost" onclick="window.print()">📄 계약서 PDF 저장</button>
+      <a class="btn ghost" href="내견적.html?t=${encodeURIComponent(_token)}">← 내 견적 화면으로</a>
+    </div>
+  </div>`) : card(`
+  <div class="blk">
+    <div class="sec-eyebrow">SIGNATURE</div>
+    <div class="sec-title">동의 및 서명</div>
+    <div style="margin-top:8px;">
+      <label class="agree"><input type="checkbox" id="agree1"><span>위 <b>질병·건강 위험도 고지</b>와 <b>계약 전 확인 사항</b>을 모두 읽고 이해했으며 이에 동의합니다. <b style="color:#C9604B;">(필수)</b></span></label>
+      <label class="agree" style="border-bottom:none;"><input type="checkbox" id="agree2"><span>본 전자 서명이 서면 서명과 동일한 효력을 가짐에 동의합니다. <b style="color:#C9604B;">(필수)</b></span></label>
+    </div>
+    <div style="margin-top:14px; font-size:12px; font-weight:800; color:#0A6A5E;">✍️ 아래 칸에 손가락(또는 마우스)으로 서명해 주세요</div>
+    <div class="sign-wrap" style="margin-top:8px;">
+      <canvas id="signPad"></canvas>
+      <div class="sign-hint" id="signHint">여기에 서명</div>
+    </div>
+    <button class="btn ghost" id="clearBtn" style="margin-top:8px;">지우기</button>
+    <button class="btn mint" id="submitBtn" disabled>✍️ 서명하고 계약 완료하기</button>
+    <div style="margin-top:10px; font-size:10.5px; color:#8CA39D; line-height:1.6; text-align:center;">서명 후에는 계약 내용이 동결 보관되며, 수정이 필요하면 카카오톡으로 문의해 주세요.</div>
+  </div>`);
+
+root.innerHTML = secHead + secRisk + secTerms + secSign;
+document.getElementById("fab").style.display = signed ? "" : "none";
+document.title = `몽골리아 은하수_${esc(S.name || R.name)}님_여행계약서`;
+
+/* ── 캔버스 서명판 ── */
+if (!signed) {
+  const pad = document.getElementById("signPad");
+  const hint = document.getElementById("signHint");
+  const ctx = pad.getContext("2d");
+  let drawn = false, drawing = false, last = null;
+
+  function fit() {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const w = pad.clientWidth, h = pad.clientHeight;
+    // 리사이즈 시 기존 서명 보존
+    const keep = drawn ? pad.toDataURL() : null;
+    pad.width = Math.round(w * dpr); pad.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineWidth = 2.6; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#152C28";
+    if (keep) { const im = new Image(); im.onload = () => ctx.drawImage(im, 0, 0, w, h); im.src = keep; }
+  }
+  fit(); window.addEventListener("resize", fit);
+
+  const pos = e => { const r = pad.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  pad.addEventListener("pointerdown", e => { e.preventDefault(); pad.setPointerCapture(e.pointerId); drawing = true; last = pos(e); });
+  pad.addEventListener("pointermove", e => {
+    if (!drawing) return; e.preventDefault();
+    const p = pos(e);
+    ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    last = p;
+    if (!drawn) { drawn = true; hint.style.display = "none"; refresh(); }
+  });
+  const stop = () => { drawing = false; last = null; };
+  pad.addEventListener("pointerup", stop); pad.addEventListener("pointercancel", stop);
+
+  const a1 = document.getElementById("agree1"), a2 = document.getElementById("agree2");
+  const submitBtn = document.getElementById("submitBtn");
+  const refresh = () => { submitBtn.disabled = !(a1.checked && a2.checked && drawn); };
+  a1.onchange = a2.onchange = refresh;
+
+  document.getElementById("clearBtn").onclick = () => {
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, pad.width, pad.height); ctx.restore();
+    drawn = false; hint.style.display = ""; refresh();
+  };
+
+  submitBtn.onclick = async () => {
+    if (submitBtn.disabled) return;
+    submitBtn.disabled = true; submitBtn.textContent = "제출 중…";
+    try {
+      const res = await fetch("/api/sign/" + encodeURIComponent(_token), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agree: true, signImg: pad.toDataURL("image/png"), signerName: R.name || "" }),
+      });
+      const j = await res.json();
+      if (res.status === 409) { toast("이미 서명된 계약서예요 — 새로고침합니다"); setTimeout(() => location.reload(), 1200); return; }
+      if (!j.ok) throw new Error(j.error || "서버 오류");
+      toast("✓ 서명이 완료됐어요!");
+      setTimeout(() => location.reload(), 900);
+    } catch (e) {
+      toast("⚠ 제출 실패: " + e.message + " — 다시 시도해 주세요");
+      submitBtn.disabled = false; submitBtn.textContent = "✍️ 서명하고 계약 완료하기";
+    }
+  };
+}
+}
+</script>
+</body>
+</html>

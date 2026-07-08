@@ -40,6 +40,14 @@ export async function onRequestGet({ env, params }) {
       days: Array.isArray(bk.days) ? bk.days : [],
       notes: bk.notes || "",
       assign: safeAssign(bk.assign),
+      // 계약 서명 상태 — 본인 서명 이미지·서명 시각만 (IP·기기 정보는 반환 안 함)
+      contract: (bk.contract && bk.contract.signedAt) ? {
+        signedAt: bk.contract.signedAt,
+        signImg: bk.contract.signImg || "",
+        signerName: bk.contract.signerName || "",
+        termsVersion: bk.contract.termsVersion || "",
+        snapshot: bk.contract.snapshot || null,
+      } : null,
     } : null;
 
     // 고객 안전 필드만 추림 (민감정보 제외)

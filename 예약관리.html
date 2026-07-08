@@ -122,6 +122,7 @@ function blankBooking() {
     assign: { guide:{name:"",career:"",korean:"",phone:"",img:"",desc:""}, driver:{name:"",career:"",phone:"",img:""},
               vehicle:{model:"",seats:"",plate:"",img:""}, lodges:[] },
     checklist: { deposit:false, balance:false, flight:false, insurance:false, contract:false },
+    contract: null,   // 고객 서명 시 서버(/api/sign)가 채움 — {signedAt, signImg, snapshot…}
     notes: "", adminMemo: "",
   };
 }
@@ -257,7 +258,28 @@ function render() {
     <label class="chk"><input type="checkbox" id="c_balance" ${c.balance ? "checked" : ""}> 잔금 수령 (현장)</label>
     <label class="chk"><input type="checkbox" id="c_flight" ${c.flight ? "checked" : ""}> 항공권 발권 확인</label>
     <label class="chk"><input type="checkbox" id="c_insurance" ${c.insurance ? "checked" : ""}> 여행자 보험 가입 안내</label>
-    <label class="chk"><input type="checkbox" id="c_contract" ${c.contract ? "checked" : ""}> 여행계약서 서명 (2단계 기능 예정)</label>
+    <label class="chk"><input type="checkbox" id="c_contract" ${c.contract ? "checked" : ""}> 여행계약서 서명</label>
+    ${(() => {
+      const ct = BK.contract;
+      if (ct && ct.signedAt) {
+        const dt = String(ct.signedAt).replace("T", " ").slice(0, 16);
+        return `<div class="assign-box" style="margin-top:12px; background:#F1FBF7; border-color:#BFE6D9;">
+          <div class="subtt" style="color:#0A6A5E;">📜 여행계약서 — <b>✓ ${esc(dt)} 서명 완료</b> (${esc(ct.signerName || PRE.name)})</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="hbtn" href="계약서.html?t=${encodeURIComponent(PRE.token || "")}" target="_blank">📜 계약서 보기</a>
+            <button class="hbtn" id="resetSignBtn" style="color:#c66;">서명 초기화</button>
+          </div>
+        </div>`;
+      }
+      return `<div class="assign-box" style="margin-top:12px;">
+        <div class="subtt">📜 여행계약서 — 미서명</div>
+        <div style="font-size:12px; color:var(--sub); margin-bottom:10px;">고객 링크(내견적)에서 바로 서명할 수 있어요. 계약서 링크를 직접 보낼 수도 있습니다.</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <a class="hbtn" href="계약서.html?t=${encodeURIComponent(PRE.token || "")}" target="_blank">📜 계약서 미리보기</a>
+          <button class="hbtn" id="copyContractBtn">✍️ 계약서 링크 복사</button>
+        </div>
+      </div>`;
+    })()}
     <div class="grid2" style="margin-top:14px;">
       <label class="f"><span>고객 안내문 (확정안내 하단에 노출)</span><textarea id="bk_notes" rows="3" placeholder="예: 공항 픽업은 4:30 입국게이트 앞입니다.">${esc(BK.notes)}</textarea></label>
       <label class="f"><span>내부 메모 (고객에게 안 보임)</span><textarea id="bk_memo" rows="3">${esc(BK.adminMemo)}</textarea></label>
@@ -317,6 +339,20 @@ function bindEvents() {
     render(); toast("일정표 숙소를 배정 목록으로 복사했어요");
   };
   $("saveBtn").onclick = save;
+  const ccb = $("copyContractBtn");
+  if (ccb) ccb.onclick = () => {
+    if (!PRE.token) return toast("고객 토큰이 없는 요청이에요");
+    const link = location.origin + "/" + encodeURI("계약서.html") + "?t=" + PRE.token;
+    navigator.clipboard.writeText(link).then(()=>toast("계약서 링크 복사 — 카톡으로 보내세요")).catch(()=>toast("복사 실패"));
+  };
+  const rsb = $("resetSignBtn");
+  if (rsb) rsb.onclick = async () => {
+    if (!confirm("서명을 초기화할까요?\n고객이 계약서에 다시 서명해야 합니다. (기존 서명 기록은 삭제됩니다)")) return;
+    $("c_contract").checked = false;   // save()의 pullForm이 체크박스를 읽으므로 DOM 먼저 해제
+    BK.contract = null;                // pullForm은 contract를 건드리지 않음 → null 유지된 채 저장
+    await save();
+    render();
+  };
 }
 
 /* ══════════ 라이브러리 자동완성 (있으면) ══════════ */

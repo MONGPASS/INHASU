@@ -623,7 +623,7 @@ function openDrawer(id) {
         </span>
       </div>` : ""}
       ${r.quote ? `
-      <div class="pub-box" style="background:#e8effc; border-color:#c9dafb; color:#2b5cc4;">${r.booking ? "✓ 예약 진행 중" : "카톡 상담으로 확정되면 →"}
+      <div class="pub-box" style="background:#e8effc; border-color:#c9dafb; color:#2b5cc4;">${r.booking ? "✓ 예약 진행 중" + (r.booking.contract && r.booking.contract.signedAt ? " · ✍ 서명완료" : " · 계약서 미서명") : "카톡 상담으로 확정되면 →"}
         <span class="acts">
           <button class="pb" id="bookBtn" style="border-color:#c9dafb; color:#2b5cc4;">${r.booking ? "📋 예약관리 열기" : "📋 예약관리 시작"}</button>
           ${r.booking && r.token ? `<a class="pb" style="border-color:#c9dafb; color:#2b5cc4;" href="확정안내.html?t=${encodeURIComponent(r.token)}" target="_blank">🎫 확정안내 보기</a>` : ""}
