@@ -568,41 +568,63 @@ const secBookingAssign = bookingAssign ? (() => {
   const lodges = Array.isArray(bookingAssign.lodges) ? bookingAssign.lodges.filter(l => l && l.name) : [];
   if (!g.name && !v.model && !lodges.length) return "";
   const vehicleImgs = imgsOf(v);
+  const guideRole = g.korean ? `${esc(g.korean)} 가이드` : "한국어 가이드";
+  const vehicleName = v.model || Q.vehicle || "배정 차량";
+  const sectionTitle = (icon, title, sub) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+    <div style="font-size:21px;">${icon}</div>
+    <div style="color:${ASSIGN_STYLE.accent}; font-size:22px; font-weight:900;">${title}</div>
+    ${sub ? `<div style="color:${ASSIGN_STYLE.muted}; font-size:10px; font-weight:800;">${sub}</div>` : ""}
+  </div>`;
+  const infoLine = (icon, k, val) => `<div style="display:grid; grid-template-columns:28px 64px 1fr; align-items:center; gap:7px; border-top:1px solid ${ASSIGN_STYLE.line}; padding:9px 0;">
+    <div style="width:23px; height:23px; border-radius:50%; background:${ASSIGN_STYLE.accent}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px;">${icon}</div>
+    <div style="color:${ASSIGN_STYLE.accent}; font-size:12px; font-weight:900;">${k}</div>
+    <div style="color:${ASSIGN_STYLE.body}; font-size:11px; font-weight:700;">${esc(val || "-")}</div>
+  </div>`;
   const lodgeCard = (l, i) => {
     const imgs = imgsOf(l);
-    return `<div class="blk" style="background:${i % 2 ? '#fff' : ASSIGN_STYLE.panel}; border:1px solid ${ASSIGN_STYLE.line}; border-radius:14px; padding:14px; ${i ? `margin-top:12px;` : ""}">
-      <div style="display:inline-flex; align-items:center; justify-content:center; background:${ASSIGN_STYLE.soft}; border:1px solid ${ASSIGN_STYLE.line}; border-radius:18px; padding:6px 11px; ${AS.day}">DAY${esc(l.day || i + 1)}</div>
-      <div style="margin-top:10px;">${photoStrip(imgs, l.name, 74)}</div>
+    return `<div style="${i ? `margin-top:13px;` : ""}">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+        <div style="background:${ASSIGN_STYLE.accent}; color:#fff; border-radius:15px; padding:5px 12px; font-size:12px; font-weight:900;">${esc(l.day || i + 1)}일차</div>
+        <div style="color:${ASSIGN_STYLE.accent}; font-size:16px; font-weight:900;">${esc(l.name)}</div>
+      </div>
+      ${photoStrip(imgs, l.name, 68)}
       <div style="display:flex; align-items:baseline; gap:8px; margin-top:11px; flex-wrap:wrap;">
-        <div style="${AS.name} text-transform:uppercase;">${esc(l.name)}</div>
         ${l.grade ? `<div style="background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border:1px solid ${ASSIGN_STYLE.line}; border-radius:15px; padding:5px 9px; white-space:nowrap; ${AS.meta}">${esc(l.grade)}</div>` : ""}
       </div>
       <div style="margin-top:5px; ${AS.body}">${esc(l.desc || l.tags || "확정된 숙소 정보입니다.")}</div>
     </div>`;
   };
-  const guideRole = g.korean ? `${esc(g.korean)} 가이드` : "한국어 가이드";
-  const vehicleName = v.model || Q.vehicle || "배정 차량";
   return card(`
-    <div class="blk" style="${AS.pageTitle} margin-bottom:16px;">확정 숙소 배정</div>
-    ${lodges.map(lodgeCard).join("") || `<div style="color:#8CA39D; font-size:12px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
-  `) + card(`
-    <div class="blk" style="background:${ASSIGN_STYLE.panel}; border:1px solid ${ASSIGN_STYLE.line}; margin:-18px; padding:34px 20px; display:flex; align-items:center; gap:18px; min-height:230px;">
-      ${g.img ? `<div class="ph" style="width:118px; height:118px; border-radius:50%; flex:none; border:1px solid ${ASSIGN_STYLE.line};"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:118px; height:118px; border-radius:50%; background:${ASSIGN_STYLE.soft}; border:1px solid ${ASSIGN_STYLE.line}; flex:none;"></div>`}
-      <div style="flex:1; min-width:0;">
-        <div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;">
-          <div style="${AS.guideName}">${esc(g.name || "가이드")}</div>
-          <div style="${AS.guideRole}">${guideRole}</div>
+    <div class="blk" style="border:1.5px solid #9FE4D8; border-radius:12px; padding:18px 16px; background:#fff;">
+      ${sectionTitle("👤", "투어 가이드 인사말", "함께하는 여행")}
+      <div style="display:flex; gap:15px; align-items:center;">
+        ${g.img ? `<div class="ph" style="width:108px; height:108px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:108px; height:108px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; background:${ASSIGN_STYLE.soft}; flex:none;"></div>`}
+        <div style="flex:1; min-width:0;">
+          <div style="color:${ASSIGN_STYLE.accent}; font-size:14px; font-weight:900;">가이드 이름</div>
+          <div style="margin-top:4px; color:${ASSIGN_STYLE.accent}; font-size:30px; font-weight:900;">${esc(g.name || "가이드")}</div>
+          <div style="color:${ASSIGN_STYLE.body}; font-size:12px; font-weight:800;">${guideRole}</div>
         </div>
-        <div style="margin-top:8px; ${AS.guideBody}">${esc(g.desc || "안전하고 편안한 몽골 여행을 위해 최선을 다하겠습니다.")}</div>
+      </div>
+      <div style="margin-top:14px; color:${ASSIGN_STYLE.accent}; font-size:15px; font-weight:900; line-height:1.45;">“ 안녕하세요! 함께하는 여행을 진심으로 환영합니다. ”</div>
+      <div style="margin-top:9px; color:${ASSIGN_STYLE.body}; font-size:12px; font-weight:700; line-height:1.7;">${esc(g.desc || "안전하고 편안한 몽골 여행을 위해 최선을 다하겠습니다.")}</div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1px; border-top:1px dashed ${ASSIGN_STYLE.line}; margin-top:13px; padding-top:12px; text-align:center;">
+        ${[["언어", g.korean || "한국어"], ["경력", g.career || "-"], ["한마디", "즐거운 여행 되세요!"]].map(([k,val]) => `<div><div style="color:${ASSIGN_STYLE.accent}; font-size:11px; font-weight:900;">${k}</div><div style="margin-top:5px; color:${ASSIGN_STYLE.body}; font-size:10.5px; font-weight:700;">${esc(val)}</div></div>`).join("")}
       </div>
     </div>
-  `) + card(`
-    <div class="blk" style="${AS.vehicleTitle}">차량정보</div>
-    <div style="height:1px; background:${ASSIGN_STYLE.line}; margin-top:12px;"></div>
-    <div style="margin-top:13px; background:${ASSIGN_STYLE.panel}; border:1px solid ${ASSIGN_STYLE.line}; border-radius:14px; padding:10px;">${photoStrip(vehicleImgs, vehicleName, 94)}</div>
-    <div style="${AS.vehicleName} margin-top:17px;">${esc(vehicleName)}</div>
-    ${v.seats ? `<div style="display:inline-block; margin-top:7px; background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border:1px solid ${ASSIGN_STYLE.line}; border-radius:16px; padding:5px 10px; ${AS.meta}">${esc(v.seats)}</div>` : ""}
-    <div style="margin-top:8px; ${AS.guideBody}">${esc(v.desc || "몽골 장거리 이동에 적합한 차량으로 일정과 인원에 맞춰 배정됩니다.")}</div>
+
+    <div class="blk" style="border:1.5px solid #9FE4D8; border-radius:12px; padding:16px; background:#fff; margin-top:12px;">
+      ${sectionTitle("🚐", "차량 정보", "안전한 이동")}
+      <div>${vehicleImgs[0] ? `<div class="ph" style="height:135px; background:#fff;"><img src="${vehicleImgs[0]}" alt="${esc(vehicleName)}" style="object-fit:contain;"></div>` : `<div class="ph" style="height:135px; background:${ASSIGN_STYLE.soft};">차량 이미지</div>`}</div>
+      <div style="margin-top:10px; color:${ASSIGN_STYLE.ink}; font-size:23px; font-weight:900;">${esc(vehicleName)}</div>
+      ${infoLine("♿", "탑승 인원", v.seats || "일정 인원에 맞춰 배정")}
+      ${infoLine("🧳", "수하물", "대형 캐리어 적재 가능")}
+      ${infoLine("❄", "차량 특징", v.desc || "몽골 장거리 이동에 적합한 차량입니다.")}
+    </div>
+
+    <div class="blk" style="border:1.5px solid #9FE4D8; border-radius:12px; padding:16px; background:#fff; margin-top:12px;">
+      ${sectionTitle("🏨", "일자별 숙소 배정", "엄선된 숙소")}
+      ${lodges.map(lodgeCard).join("") || `<div style="color:#8CA39D; font-size:12px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
+    </div>
   `);
 })() : "";
 
