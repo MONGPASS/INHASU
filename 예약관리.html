@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>예약관리 · 몽골리아 은하수</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%233d7ff0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+  :root { --accent:#06c4a0; --book:#3d7ff0; --ink:#16261f; --sub:#6b7c78; --line:#e3ebe8; --soft:#f2f8f6; --bookSoft:#eaf1fd; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:Pretendard, system-ui, "Malgun Gothic", sans-serif; background:#f4f7f6; color:var(--ink); padding-bottom:90px; }
+
+  header { position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--line);
+    padding:14px 22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  header h1 { font-size:18px; font-weight:800; letter-spacing:-0.02em; }
+  header h1 b { color:var(--book); }
+  .who { font-size:13px; color:var(--sub); font-weight:600; }
+  .who b { color:var(--ink); }
+  .hd-acts { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  .hbtn { border:1px solid var(--line); background:#fff; border-radius:10px; padding:9px 14px;
+    font:700 13px Pretendard; cursor:pointer; color:var(--ink); text-decoration:none; }
+  .hbtn.blue { background:var(--book); border-color:var(--book); color:#fff; }
+
+  main { max-width:960px; margin:0 auto; padding:20px 16px; display:flex; flex-direction:column; gap:16px; }
+  section.card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; }
+  .sec-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .sec-h h2 { font-size:15.5px; font-weight:800; display:flex; align-items:center; gap:8px; }
+  .sec-h h2 .n { width:24px; height:24px; border-radius:8px; background:var(--book); color:#fff; font-size:13px;
+    display:inline-flex; align-items:center; justify-content:center; }
+  .sec-h .tip { font-size:12px; color:var(--sub); }
+
+  label.f { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:700; color:var(--sub); }
+  label.f input, label.f select, label.f textarea { font:600 13.5px Pretendard; color:var(--ink);
+    border:1px solid var(--line); border-radius:9px; padding:9px 11px; background:#fff; width:100%; }
+  label.f textarea { resize:vertical; min-height:64px; line-height:1.6; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .grid4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }
+  @media (max-width:640px){ .grid3,.grid4 { grid-template-columns:1fr 1fr; } }
+
+  /* 일정 카드 */
+  .day { border:1px solid var(--line); border-radius:13px; overflow:hidden; margin-bottom:12px; }
+  .day-h { display:flex; align-items:center; gap:10px; background:var(--soft); padding:10px 14px; }
+  .day-h .dn { background:var(--accent); color:#fff; font-size:12px; font-weight:800; padding:4px 11px; border-radius:8px; flex:none; }
+  .day-h input { flex:1; border:none; background:transparent; font:800 14.5px Pretendard; color:var(--ink); min-width:80px; }
+  .day-h .del { border:none; background:transparent; color:#c66; cursor:pointer; font-size:15px; padding:4px; }
+  .day-b { padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
+
+  .subtt { font-size:12.5px; font-weight:800; color:var(--book); margin-bottom:8px; }
+  .assign-box { border:1px solid var(--line); border-radius:13px; padding:14px; }
+  .assign-box + .assign-box { margin-top:12px; }
+
+  .lodge-row { display:grid; grid-template-columns:64px 1fr 130px; gap:8px; margin-bottom:8px; align-items:end; }
+
+  .chk { display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:600; padding:9px 0;
+    border-bottom:1px dashed var(--line); cursor:pointer; }
+  .chk:last-of-type { border-bottom:none; }
+  .chk input { width:17px; height:17px; accent-color:var(--book); }
+
+  .addbtn { border:1.5px dashed #bcd; background:#fff; color:var(--book); border-radius:10px;
+    padding:10px; font:700 13px Pretendard; cursor:pointer; width:100%; }
+
+  /* 하단 저장 바 */
+  .savebar { position:fixed; left:0; right:0; bottom:0; z-index:30; background:#fff; border-top:1px solid var(--line);
+    padding:12px 18px; display:flex; align-items:center; gap:14px; justify-content:center; flex-wrap:wrap; }
+  .savebar .opt { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:700; color:var(--sub); cursor:pointer; }
+  .savebar .opt input { accent-color:var(--book); width:16px; height:16px; }
+  #saveBtn { background:var(--book); color:#fff; border:none; border-radius:12px; padding:13px 34px;
+    font:800 15px Pretendard; cursor:pointer; box-shadow:0 8px 20px rgba(61,127,240,.28); }
+
+  #toast { position:fixed; bottom:86px; left:50%; transform:translateX(-50%) translateY(16px);
+    background:var(--ink); color:#fff; font-size:13.5px; font-weight:700; padding:11px 20px; border-radius:12px;
+    opacity:0; pointer-events:none; transition:.25s; z-index:40; }
+  #toast.on { opacity:1; transform:translateX(-50%); }
+
+  .empty { text-align:center; padding:60px 20px; color:var(--sub); }
+  .empty h2 { font-size:19px; color:var(--ink); margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 예약관리 <b id="hName"></b></h1>
+  <span class="who" id="hMeta"></span>
+  <span class="hd-acts">
+    <a class="hbtn" id="quoteLink" href="#" target="_blank">📄 견적서</a>
+    <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 고객 확정안내</a>
+    <button class="hbtn" id="copyLinkBtn">🔗 고객 링크 복사</button>
+  </span>
+</header>
+
+<main id="main"></main>
+
+<div class="savebar" id="savebar" style="display:none">
+  <label class="opt"><input type="checkbox" id="setStatus" checked> 저장 시 상태를 '예약확정'으로 변경</label>
+  <button id="saveBtn">💾 예약 정보 저장</button>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const noBr = s => String(s ?? "").replace(/<br\s*\/?>/gi, " ").trim();
+let toastT;
+const toast = m => { $("toast").textContent = m; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(()=>$("toast").classList.remove("on"), 2400); };
+
+/* ── 진입 정보 (대시보드에서 전달) ── */
+let PRE = null;
+try { PRE = JSON.parse(localStorage.getItem("leaders_booking_prefill") || "null"); } catch (e) {}
+const ADMIN_TOKEN = (PRE && PRE.adminToken) || sessionStorage.getItem("leaders_admin_token") || "";
+
+/* 진입 분기는 스크립트 맨 아래에서 실행 (함수·상태 선언 이후) */
+
+/* ══════════ 편집 상태 ══════════ */
+let BK = null;   // booking 편집본
+
+function blankBooking() {
+  return {
+    confirmedAt: new Date().toISOString().slice(0, 10),
+    days: [],
+    assign: { guide:{name:"",career:"",korean:"",phone:"",img:"",desc:""}, driver:{name:"",career:"",phone:"",img:""},
+              vehicle:{model:"",seats:"",plate:"",img:""}, lodges:[] },
+    checklist: { deposit:false, balance:false, flight:false, insurance:false, contract:false },
+    notes: "", adminMemo: "",
+  };
+}
+// 저장돼 있던 booking + 빈 틀 병합 (구버전 데이터 호환)
+function normBooking(b) {
+  const base = blankBooking();
+  if (!b) return base;
+  return { ...base, ...b,
+    assign: { ...base.assign, ...(b.assign || {}),
+      guide: { ...base.assign.guide, ...((b.assign||{}).guide || {}) },
+      driver: { ...base.assign.driver, ...((b.assign||{}).driver || {}) },
+      vehicle: { ...base.assign.vehicle, ...((b.assign||{}).vehicle || {}) },
+      lodges: Array.isArray((b.assign||{}).lodges) ? b.assign.lodges : [] },
+    checklist: { ...base.checklist, ...(b.checklist || {}) },
+  };
+}
+// 견적 일정 → 확정 일정 복사 (견적서 days 구조 그대로)
+const daysFromQuote = q => (q && Array.isArray(q.days)) ? JSON.parse(JSON.stringify(q.days)) : [];
+
+function init() {
+  BK = normBooking(PRE.booking);
+  const paxTot = (PRE.adult||0)+(PRE.child||0)+(PRE.infant||0);
+  $("hName").textContent = PRE.name || "-";
+  $("hMeta").textContent = `${PRE.destination || "-"} · ${PRE.depart || "?"} ~ ${PRE.return_ || "?"} · ${paxTot}명 · 현재상태 [${PRE.status}]`;
+  $("quoteLink").href = PRE.token ? "견적서.html?t=" + encodeURIComponent(PRE.token) : "#";
+  $("confirmLink").href = PRE.token ? "확정안내.html?t=" + encodeURIComponent(PRE.token) : "#";
+  $("copyLinkBtn").onclick = () => {
+    if (!PRE.token) return toast("고객 토큰이 없는 요청이에요");
+    const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + PRE.token;
+    navigator.clipboard.writeText(link).then(()=>toast("고객 링크 복사 — 카톡으로 보내세요")).catch(()=>toast("복사 실패"));
+  };
+  $("setStatus").checked = PRE.status !== "예약확정";
+  $("savebar").style.display = "";
+  render();
+  loadLibs();   // 가이드/숙소/차량 라이브러리 (있으면 자동완성)
+}
+
+/* ══════════ 렌더 ══════════ */
+function dayCard(d, i) {
+  return `
+  <div class="day" data-i="${i}">
+    <div class="day-h">
+      <span class="dn">${i + 1}일차</span>
+      <input data-k="dest" value="${esc(noBr(d.dest))}" placeholder="목적지">
+      <input data-k="move" value="${esc(d.move || "")}" placeholder="이동 시간" style="flex:none; width:110px; font-weight:600; font-size:12.5px; color:#5a6;">
+      <input data-k="dist" value="${esc(d.dist || "")}" placeholder="(km)" style="flex:none; width:80px; font-weight:600; font-size:12.5px; color:#5a6;">
+      <button class="del" data-del="${i}" title="이 일차 삭제">✕</button>
+    </div>
+    <div class="day-b">
+      <label class="f"><span>일정 (한 줄에 하나)</span><textarea data-k="items" rows="4">${esc((d.items || []).join("\n"))}</textarea></label>
+      <div class="grid3">
+        <label class="f"><span>숙소</span><input data-k="stayName" value="${esc(noBr((d.stay || {}).name))}" placeholder="여행자 캠프 (일반게르)"></label>
+        <label class="f"><span>숙소 태그 (쉼표)</span><input data-k="stayTags" value="${esc(((d.stay || {}).tags || []).join(", "))}" placeholder="전기 O, 샤워 O"></label>
+        <label class="f"><span>식사 (쉼표: 아침, 점심, 저녁)</span><input data-k="meals" value="${esc((d.meals || []).join(", "))}" placeholder="캠프식, 현지식당, 캠프식"></label>
+      </div>
+    </div>
+  </div>`;
+}
+function lodgeRow(l, i) {
+  return `
+  <div class="lodge-row" data-li="${i}">
+    <label class="f"><span>일차</span><input data-lk="day" type="number" min="1" value="${esc(l.day || i + 1)}"></label>
+    <label class="f"><span>캠프장/호텔 이름</span><input data-lk="name" list="lodgeList" value="${esc(l.name || "")}" placeholder="○○ 여행자 캠프"></label>
+    <label class="f"><span>등급</span><select data-lk="grade">
+      ${["","일반게르","고급게르","호텔"].map(g => `<option value="${g}" ${l.grade === g ? "selected" : ""}>${g || "선택"}</option>`).join("")}
+    </select></label>
+  </div>`;
+}
+
+function render() {
+  const a = BK.assign, c = BK.checklist;
+  $("main").innerHTML = `
+  <section class="card">
+    <div class="sec-h">
+      <h2><span class="n">1</span>확정 일정표</h2>
+      <span style="display:flex; gap:8px;">
+        <button class="hbtn" id="pullQuote">↺ 견적 일정 불러오기</button>
+        <button class="hbtn" id="addDay">＋ 일차 추가</button>
+      </span>
+    </div>
+    ${BK.days.length ? `<div id="dayWrap">${BK.days.map(dayCard).join("")}</div>`
+      : `<div style="text-align:center; padding:28px; color:var(--sub); font-size:13.5px;">
+           아직 확정 일정이 없어요. <b>↺ 견적 일정 불러오기</b>를 누르면 발행한 견적서의 일정을 그대로 가져와 수정할 수 있어요.</div>`}
+  </section>
+
+  <section class="card">
+    <div class="sec-h"><h2><span class="n">2</span>배정 (가이드 · 기사 · 차량 · 숙소)</h2>
+      <span class="tip">이름·소개는 고객 확정안내에 보여요 · 연락처/차량번호는 내부용</span></div>
+
+    <div class="assign-box">
+      <div class="subtt">👤 가이드</div>
+      <div class="grid4">
+        <label class="f"><span>이름</span><input id="g_name" list="guideList" value="${esc(a.guide.name)}"></label>
+        <label class="f"><span>경력</span><input id="g_career" value="${esc(a.guide.career)}" placeholder="7년"></label>
+        <label class="f"><span>한국어</span><input id="g_korean" value="${esc(a.guide.korean)}" placeholder="상급"></label>
+        <label class="f"><span>연락처 (내부용)</span><input id="g_phone" value="${esc(a.guide.phone)}"></label>
+      </div>
+      <div class="grid2" style="margin-top:10px;">
+        <label class="f"><span>사진 URL (선택)</span><input id="g_img" value="${esc(a.guide.img)}" placeholder="img/… 또는 업로드 주소"></label>
+        <label class="f"><span>한 줄 소개 (고객 노출)</span><input id="g_desc" value="${esc(a.guide.desc)}" placeholder="한국 유학 5년 · 고비 투어 전문"></label>
+      </div>
+    </div>
+
+    <div class="assign-box">
+      <div class="subtt">🧑‍🔧 기사</div>
+      <div class="grid3">
+        <label class="f"><span>이름</span><input id="d_name" value="${esc(a.driver.name)}"></label>
+        <label class="f"><span>경력</span><input id="d_career" value="${esc(a.driver.career)}"></label>
+        <label class="f"><span>연락처 (내부용)</span><input id="d_phone" value="${esc(a.driver.phone)}"></label>
+      </div>
+    </div>
+
+    <div class="assign-box">
+      <div class="subtt">🚐 차량</div>
+      <div class="grid3">
+        <label class="f"><span>차종</span><input id="v_model" list="vehicleList" value="${esc(a.vehicle.model)}" placeholder="하이스"></label>
+        <label class="f"><span>인승</span><input id="v_seats" value="${esc(a.vehicle.seats)}" placeholder="9인승"></label>
+        <label class="f"><span>차량번호 (내부용)</span><input id="v_plate" value="${esc(a.vehicle.plate)}"></label>
+      </div>
+    </div>
+
+    <div class="assign-box">
+      <div class="subtt">🏕 일차별 숙소</div>
+      <div id="lodgeWrap">${a.lodges.map(lodgeRow).join("")}</div>
+      <button class="addbtn" id="addLodge">＋ 숙소 배정 추가</button>
+      ${BK.days.length ? `<button class="addbtn" id="lodgeFromDays" style="margin-top:8px;">↺ 확정 일정표의 숙소를 그대로 가져오기</button>` : ""}
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="sec-h"><h2><span class="n">3</span>체크리스트 · 메모</h2></div>
+    <label class="chk"><input type="checkbox" id="c_deposit" ${c.deposit ? "checked" : ""}> 예약금 입금 확인</label>
+    <label class="chk"><input type="checkbox" id="c_balance" ${c.balance ? "checked" : ""}> 잔금 수령 (현장)</label>
+    <label class="chk"><input type="checkbox" id="c_flight" ${c.flight ? "checked" : ""}> 항공권 발권 확인</label>
+    <label class="chk"><input type="checkbox" id="c_insurance" ${c.insurance ? "checked" : ""}> 여행자 보험 가입 안내</label>
+    <label class="chk"><input type="checkbox" id="c_contract" ${c.contract ? "checked" : ""}> 여행계약서 서명 (2단계 기능 예정)</label>
+    <div class="grid2" style="margin-top:14px;">
+      <label class="f"><span>고객 안내문 (확정안내 하단에 노출)</span><textarea id="bk_notes" rows="3" placeholder="예: 공항 픽업은 4:30 입국게이트 앞입니다.">${esc(BK.notes)}</textarea></label>
+      <label class="f"><span>내부 메모 (고객에게 안 보임)</span><textarea id="bk_memo" rows="3">${esc(BK.adminMemo)}</textarea></label>
+    </div>
+  </section>
+
+  <datalist id="guideList"></datalist>
+  <datalist id="lodgeList"></datalist>
+  <datalist id="vehicleList"></datalist>`;
+
+  bindEvents();
+}
+
+/* ══════════ 폼 → BK 동기화 ══════════ */
+function pullForm() {
+  // 일정
+  document.querySelectorAll(".day").forEach((el, i) => {
+    const d = BK.days[i]; if (!d) return;
+    const v = k => el.querySelector(`[data-k="${k}"]`)?.value ?? "";
+    d.dest = v("dest"); d.move = v("move"); d.dist = v("dist");
+    d.items = v("items").split("\n").map(s => s.trim()).filter(Boolean);
+    d.stay = { name: v("stayName"), tags: v("stayTags").split(",").map(s => s.trim()).filter(Boolean) };
+    d.meals = v("meals").split(",").map(s => s.trim()).filter(Boolean);
+    d.d = i + 1;
+  });
+  // 배정
+  const g = id => $(id) ? $(id).value.trim() : "";
+  BK.assign.guide = { name:g("g_name"), career:g("g_career"), korean:g("g_korean"), phone:g("g_phone"), img:g("g_img"), desc:g("g_desc") };
+  BK.assign.driver = { name:g("d_name"), career:g("d_career"), phone:g("d_phone"), img:"" };
+  BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), plate:g("v_plate"), img:"" };
+  BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map(el => ({
+    day: Number(el.querySelector('[data-lk="day"]').value) || 0,
+    name: el.querySelector('[data-lk="name"]').value.trim(),
+    grade: el.querySelector('[data-lk="grade"]').value,
+  })).filter(l => l.name);
+  // 체크리스트·메모
+  BK.checklist = { deposit:$("c_deposit").checked, balance:$("c_balance").checked, flight:$("c_flight").checked,
+                   insurance:$("c_insurance").checked, contract:$("c_contract").checked };
+  BK.notes = $("bk_notes").value; BK.adminMemo = $("bk_memo").value;
+}
+
+function bindEvents() {
+  $("pullQuote").onclick = () => {
+    if (!PRE.quote) return toast("발행된 견적이 없어요 — 먼저 견적서를 만들어 주세요");
+    if (BK.days.length && !confirm("현재 확정 일정을 견적서 일정으로 교체할까요?")) return;
+    pullForm(); BK.days = daysFromQuote(PRE.quote); render(); toast("견적 일정을 가져왔어요 — 수정 후 저장하세요");
+  };
+  $("addDay").onclick = () => { pullForm(); BK.days.push({ d:BK.days.length+1, dest:"", move:"", dist:"", items:[], stay:{name:"",tags:[]}, meals:[] }); render(); };
+  document.querySelectorAll(".day .del").forEach(b => b.onclick = () => {
+    pullForm(); BK.days.splice(Number(b.dataset.del), 1); render();
+  });
+  $("addLodge").onclick = () => { pullForm(); BK.assign.lodges.push({ day:BK.assign.lodges.length+1, name:"", grade:"" }); render(); };
+  const lf = $("lodgeFromDays");
+  if (lf) lf.onclick = () => {
+    pullForm();
+    BK.assign.lodges = BK.days.map((d, i) => ({ day:i+1, name:noBr((d.stay||{}).name), grade:"" })).filter(l => l.name && l.name !== "숙소미포함");
+    render(); toast("일정표 숙소를 배정 목록으로 복사했어요");
+  };
+  $("saveBtn").onclick = save;
+}
+
+/* ══════════ 라이브러리 자동완성 (있으면) ══════════ */
+async function loadLibs() {
+  const fill = async (key, listId, pick) => {
+    try {
+      const r = await fetch("/api/data/" + key, { cache: "no-store" });
+      const j = await r.json();
+      if (!j.ok || !j.data) return;
+      const names = Object.keys(j.data);
+      $(listId).innerHTML = names.map(n => `<option value="${esc(pick ? pick(n, j.data[n]) : n)}">`).join("");
+    } catch (e) {}
+  };
+  fill("guides", "guideList"); fill("lodges", "lodgeList"); fill("vehicles", "vehicleList");
+}
+
+/* ══════════ 저장 ══════════ */
+async function save() {
+  pullForm();
+  if (!BK.confirmedAt) BK.confirmedAt = new Date().toISOString().slice(0, 10);
+  const patch = { booking: BK };
+  if ($("setStatus").checked) patch.status = "예약확정";
+  $("saveBtn").disabled = true; $("saveBtn").textContent = "저장 중…";
+  try {
+    const res = await fetch(`/api/requests/${encodeURIComponent(PRE.id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
+      body: JSON.stringify(patch),
+    });
+    if (res.status === 401) throw new Error("관리자 인증이 만료됐어요 — 대시보드에서 다시 열어주세요");
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || "서버 오류");
+    if (patch.status) { PRE.status = patch.status; $("setStatus").checked = false; }
+    PRE.booking = BK;
+    localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));
+    const paxTot = (PRE.adult||0)+(PRE.child||0)+(PRE.infant||0);
+    $("hMeta").textContent = `${PRE.destination || "-"} · ${PRE.depart || "?"} ~ ${PRE.return_ || "?"} · ${paxTot}명 · 현재상태 [${PRE.status}]`;
+    toast("✓ 저장됐어요" + (patch.status ? " — 상태: 예약확정" : ""));
+  } catch (e) {
+    toast("⚠ " + e.message);
+  } finally {
+    $("saveBtn").disabled = false; $("saveBtn").textContent = "💾 예약 정보 저장";
+  }
+}
+
+/* ── 진입 ── */
+if (!PRE || !PRE.id) {
+  $("main").innerHTML = `<div class="empty"><h2>열 예약이 없어요</h2>
+    통합 대시보드에서 고객을 선택한 뒤 <b>📋 예약관리</b> 버튼으로 열어주세요.<br><br>
+    <a class="hbtn" href="/admin">← 대시보드로</a></div>`;
+} else {
+  init();
+}
+</script>
+</body>
+</html>

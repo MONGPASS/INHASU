@@ -27,6 +27,21 @@ export async function onRequestGet({ env, params }) {
 
     const rec = JSON.parse(row.data || "{}");
 
+    // 예약 확정 정보 — 고객에게 보여줄 안전 서브셋만 (내부 메모·체크리스트·연락처 제외)
+    const bk = rec.booking || null;
+    const safeAssign = a => a ? {
+      guide:   a.guide   ? { name: a.guide.name || "",  career: a.guide.career || "",  korean: a.guide.korean || "", img: a.guide.img || "",  desc: a.guide.desc || "" } : null,
+      driver:  a.driver  ? { name: a.driver.name || "", career: a.driver.career || "", img: a.driver.img || "" } : null,
+      vehicle: a.vehicle ? { model: a.vehicle.model || "", seats: a.vehicle.seats || "", img: a.vehicle.img || "" } : null,
+      lodges:  Array.isArray(a.lodges) ? a.lodges.map(l => ({ day: l.day, name: l.name || "", grade: l.grade || "", img: l.img || "", tags: l.tags || "" })) : [],
+    } : null;
+    const booking = bk ? {
+      confirmedAt: bk.confirmedAt || "",
+      days: Array.isArray(bk.days) ? bk.days : [],
+      notes: bk.notes || "",
+      assign: safeAssign(bk.assign),
+    } : null;
+
     // 고객 안전 필드만 추림 (민감정보 제외)
     return json({
       ok: true,
@@ -43,6 +58,7 @@ export async function onRequestGet({ env, params }) {
       infant: rec.infant || 0,
       receivedAt: rec.receivedAt || "",
       quote: rec.quote || null,
+      booking,
     });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);

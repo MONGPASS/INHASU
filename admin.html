@@ -10,7 +10,7 @@
 <style>
   :root { --accent:#06c4a0; --deep:#06c4a0; --deep2:#06c4a0; --soft:#eaf7f3;
     --ink:#1b2b28; --sub:#6b7c78; --gray:#9aa5a2; --line:#eceef1; --bg:#f6f8f9;
-    --new:#06c4a0; --prog:#e0913a; --done:#8a95a0; --hold:#cf6a5e; --up:#06c4a0; --down:#d96a5e; }
+    --new:#06c4a0; --prog:#e0913a; --book:#3d7ff0; --done:#8a95a0; --hold:#cf6a5e; --up:#06c4a0; --down:#d96a5e; }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:Pretendard, system-ui, "Malgun Gothic", sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
   svg { display:block; }
@@ -106,6 +106,7 @@
   .badge .dot { width:6px; height:6px; border-radius:50%; }
   .b-신규 { background:#e6f5f1; color:#1f8f7c; } .b-신규 .dot { background:var(--new); }
   .b-진행중 { background:#fdf2e3; color:#b7801f; } .b-진행중 .dot { background:var(--prog); }
+  .b-예약확정 { background:#e8effc; color:#2b5cc4; } .b-예약확정 .dot { background:var(--book); }
   .b-완료 { background:#eef0f2; color:#6b7480; } .b-완료 .dot { background:var(--done); }
   .b-보류 { background:#fbeceb; color:#b5504a; } .b-보류 .dot { background:var(--hold); }
   .empty { text-align:center; padding:66px 20px; color:var(--gray); }
@@ -126,6 +127,7 @@
   .st-btn.sel { color:#fff; border-color:transparent; }
   .st-btn.sel[data-s="신규"]{background:var(--new)} .st-btn.sel[data-s="진행중"]{background:var(--prog)}
   .st-btn.sel[data-s="완료"]{background:var(--done)} .st-btn.sel[data-s="보류"]{background:var(--hold)}
+  .st-btn.sel[data-s="예약확정"]{background:var(--book)}
   .info-grid { display:grid; grid-template-columns:84px 1fr; gap:12px 14px; font-size:14px; }
   .info-grid .k { color:var(--gray); font-weight:600; }
   .info-grid .v { font-weight:600; word-break:break-word; }
@@ -283,7 +285,7 @@
 <script>
 /* ═══════════════ 설정 ═══════════════ */
 const CFG = { brand:"몽골리아 은하수", apiBase:"/api/requests" };
-const STATUSES = ["신규","진행중","완료","보류"];
+const STATUSES = ["신규","진행중","예약확정","완료","보류"];
 const AVA_COLORS = ["#06c4a0","#3aa0e0","#e0913a","#8a6fe0","#cf6a5e","#2f9e8a","#5aa469"];
 let RECORDS = [], filterStatus = null, searchText = "", mode = "local";
 let sortKey = "receivedAt", sortDir = -1, showLimit = 50;   // 목록 정렬·더보기 상태
@@ -620,6 +622,13 @@ function openDrawer(id) {
           <button class="pb" id="pubLinkBtn">🔗 고객 링크 복사</button>
         </span>
       </div>` : ""}
+      ${r.quote ? `
+      <div class="pub-box" style="background:#e8effc; border-color:#c9dafb; color:#2b5cc4;">${r.booking ? "✓ 예약 진행 중" : "카톡 상담으로 확정되면 →"}
+        <span class="acts">
+          <button class="pb" id="bookBtn" style="border-color:#c9dafb; color:#2b5cc4;">${r.booking ? "📋 예약관리 열기" : "📋 예약관리 시작"}</button>
+          ${r.booking && r.token ? `<a class="pb" style="border-color:#c9dafb; color:#2b5cc4;" href="확정안내.html?t=${encodeURIComponent(r.token)}" target="_blank">🎫 확정안내 보기</a>` : ""}
+        </span>
+      </div>` : ""}
       ${r.request?`<div class="req-box">${esc(r.request)}</div>`:""}
       <textarea class="memo" id="memo" placeholder="상담 메모 (예: 7/2 통화, 홉스골 추가 원함)">${esc(r.memo)||""}</textarea>
     </div>
@@ -636,6 +645,18 @@ function openDrawer(id) {
     // 이미 발행된 견적이 있으면 편집기에서 그대로 복원해 수정할 수 있게 함께 넘깁니다.
     localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, destSpots:r.destSpots, budget:r.budget, flightIn:r.flightIn||"", flightOut:r.flightOut||"", quote:r.quote||null }));
     window.open("견적만들기.html","_blank");
+  };
+  const bookBtn = $("bookBtn");
+  if (bookBtn) bookBtn.onclick = () => {
+    // 예약관리 화면에 필요한 정보를 함께 넘김 (견적만들기와 같은 방식)
+    localStorage.setItem("leaders_booking_prefill", JSON.stringify({
+      id: r.id, token: r.token || "", adminToken: ADMIN_TOKEN, status: r.status || "신규",
+      name: r.name, phone: r.phone || "", depart: r.depart || "", return_: r.return_ || "",
+      adult: r.adult || 0, child: r.child || 0, infant: r.infant || 0,
+      destination: r.destination || "", vehicle: r.vehicle || "",
+      quote: r.quote || null, booking: r.booking || null,
+    }));
+    window.open("예약관리.html", "_blank");
   };
   const pubLink = $("pubLinkBtn");
   if (pubLink) pubLink.onclick = () => {
