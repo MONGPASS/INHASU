@@ -784,6 +784,23 @@ const pgBookingAssign = bookingAssign ? (() => {
       <div style="margin-top:7px; color:${ASSIGN_STYLE.body}; font-size:12px; font-weight:700; line-height:1.5;">${esc(l.desc || l.tags || "편안한 휴식을 위해 엄선된 숙소입니다.")}</div>
     </div>`;
   };
+  const lodgeChunks = [];
+  for (let i = 0; i < lodges.length; i += 3) lodgeChunks.push(lodges.slice(i, i + 3));
+  const lodgePages = lodgeChunks.length ? lodgeChunks.map((chunk, pageIdx) => `
+  <div class="page" style="padding:38px 26px 48px; background:#FCFEFD;">
+    <div style="border:1.5px solid #9FE4D8; border-radius:12px; padding:18px 24px; background:#fff; min-height:990px;">
+      ${sectionTitle("🏨", "숙소 정보", pageIdx ? "이어서 보기" : "편안한 휴식을 위해 엄선된 숙소입니다.")}
+      ${chunk.map((l, i) => lodgeCard(l, i)).join("")}
+    </div>
+    <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 숙소 정보</span><span>12</span></div>
+  </div>`).join("") : `
+  <div class="page" style="padding:38px 26px 48px; background:#FCFEFD;">
+    <div style="border:1.5px solid #9FE4D8; border-radius:12px; padding:18px 24px; background:#fff; min-height:990px;">
+      ${sectionTitle("🏨", "숙소 정보", "편안한 휴식을 위해 엄선된 숙소입니다.")}
+      <div style="color:${ASSIGN_STYLE.muted}; font-size:13px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>
+    </div>
+    <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 숙소 정보</span><span>12</span></div>
+  </div>`;
   return `<div class="page" style="padding:22px 26px 48px; background:#FCFEFD;">
     <div style="border:1.5px solid #9FE4D8; border-radius:12px; padding:22px 28px 18px; background:#fff; min-height:316px;">
       ${sectionTitle("👤", "가이드 정보", "")}
@@ -823,13 +840,8 @@ const pgBookingAssign = bookingAssign ? (() => {
       </div>
     </div>
 
-    <div style="border:1.5px solid #9FE4D8; border-radius:12px; padding:18px 24px; background:#fff; margin-top:12px;">
-      ${sectionTitle("🏨", "숙소 정보", "편안한 휴식을 위해 엄선된 숙소입니다.")}
-      ${lodges.map(lodgeCard).join("") || `<div style="color:${ASSIGN_STYLE.muted}; font-size:13px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
-    </div>
-    <div style="position:absolute; bottom:18px; left:0; right:0; text-align:center; color:${ASSIGN_STYLE.accent}; font-size:13px; font-weight:700;">즐거운 여행, 안전한 여행, 행복한 추억을 함께 만들어가요!</div>
     <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 배정 안내</span><span>11</span></div>
-  </div>`;
+  </div>${lodgePages}`;
 })() : "";
 
 /* ── 렌더 ──
