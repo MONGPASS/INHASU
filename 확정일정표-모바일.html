@@ -568,61 +568,85 @@ const secBookingAssign = bookingAssign ? (() => {
   const lodges = Array.isArray(bookingAssign.lodges) ? bookingAssign.lodges.filter(l => l && l.name) : [];
   if (!g.name && !v.model && !lodges.length) return "";
   const vehicleImgs = imgsOf(v);
-  const guideRole = g.korean ? `${esc(g.korean)} 가이드` : "한국어 가이드";
+  const guideRole = g.korean ? `한국어 ${esc(g.korean)}` : "한국어 가이드";
   const vehicleName = v.model || Q.vehicle || "배정 차량";
-  const sectionTitle = (icon, title, sub) => `<div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-    <div style="color:${ASSIGN_STYLE.accent}; font-size:22px; font-weight:900;">${title}</div>
-    ${sub ? `<div style="color:${ASSIGN_STYLE.muted}; font-size:10px; font-weight:800;">${sub}</div>` : ""}
+  /* 디자인 11p 스타일: 부드러운 라운드 카드 + accent 텍스트 제목 (모바일 폭에 맞게 축소) */
+  const CARD = `background:#fff; border:1px solid #E3F0EB; border-radius:16px;`;
+  const cardTitle = (title, sub) => `<div style="display:flex; align-items:baseline; gap:8px;">
+    <span style="color:${ASSIGN_STYLE.accent}; font-size:19px; font-weight:800; letter-spacing:-0.01em;">${title}</span>
+    ${sub ? `<span style="color:${ASSIGN_STYLE.muted}; font-size:11px; font-weight:700;">${sub}</span>` : ""}
   </div>`;
-  const infoLine = (icon, k, val) => `<div style="display:grid; grid-template-columns:28px 64px 1fr; align-items:center; gap:7px; border-top:1px solid ${ASSIGN_STYLE.line}; padding:9px 0;">
-    <div style="width:23px; height:23px; border-radius:50%; background:${ASSIGN_STYLE.accent}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px;">${icon}</div>
-    <div style="color:${ASSIGN_STYLE.accent}; font-size:12px; font-weight:900;">${k}</div>
-    <div style="color:${ASSIGN_STYLE.body}; font-size:11px; font-weight:700;">${esc(val || "-")}</div>
+  const VIC = { seat: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="6" r="3"></circle><path d="M6 21 v-3 a6 6 0 0 1 12 0 v3"></path></svg>`,
+    bag: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="5" y="8" width="14" height="12" rx="1.5"></rect><path d="M9 8 V6 a3 3 0 0 1 6 0 v2"></path></svg>`,
+    feat: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 3 v18 M3 12 h18 M6 6 l12 12 M18 6 L6 18"></path></svg>` };
+  const infoLine = (icon, k, val) => `<div style="display:flex; align-items:center; gap:11px; border-top:1px solid #EEF4F1; padding:9px 0;">
+    <span style="flex:none; width:26px; height:26px; border-radius:50%; background:${ASSIGN_STYLE.accent}; display:flex; align-items:center; justify-content:center;">${icon}</span>
+    <span style="color:#0A6A5E; font-size:12px; font-weight:800; width:64px; flex:none;">${k}</span>
+    <span style="color:${ASSIGN_STYLE.body}; font-size:12px;">${esc(val || "-")}</span>
   </div>`;
+  const guideCell = (label, inner, bg) => `<div style="background:${bg || '#fff'}; padding:12px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+    <div style="color:${ASSIGN_STYLE.accent}; font-size:11px; font-weight:800;">${label}</div>${inner}</div>`;
+  const guideType = g.role || "전문 가이드";
+  const guidePhone = g.phone || "";
+  const guideQr = g.qr || "";
+  const lodgeGrid = (imgs, label) => {
+    const arr = imgs.slice(0, 3);
+    while (arr.length < 3) arr.push("");
+    return `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+      ${arr.map((src, i) => src
+        ? `<div class="ph" style="height:92px; border-radius:9px;"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`
+        : `<div class="ph" style="height:92px; border-radius:9px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-family:${ASSIGN_STYLE.font}; font-size:10px; font-weight:700;">${esc(label)}</div>`).join("")}
+    </div>`;
+  };
   const lodgeCard = (l, i) => {
     const imgs = imgsOf(l);
-    return `<div style="${i ? `margin-top:13px;` : ""}">
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-        <div style="background:${ASSIGN_STYLE.accent}; color:#fff; border-radius:15px; padding:5px 12px; font-size:12px; font-weight:900;">${esc(l.day || i + 1)}일차</div>
-        <div style="color:${ASSIGN_STYLE.accent}; font-size:16px; font-weight:900;">${esc(l.name)}</div>
+    return `<div style="${i ? `margin-top:16px; padding-top:16px; border-top:1px solid #EEF4F1;` : ""}">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span style="background:${ASSIGN_STYLE.accent}; color:#fff; border-radius:14px; padding:4px 11px; font-size:11px; font-weight:800;">${esc(l.day || i + 1)}일차</span>
+        <span style="color:${ASSIGN_STYLE.ink}; font-size:16px; font-weight:800;">${esc(l.name)}</span>
+        ${l.grade ? `<span style="color:${ASSIGN_STYLE.muted}; font-size:11px;">${esc(l.grade)}</span>` : ""}
       </div>
-      ${photoStrip(imgs, l.name, 68)}
-      <div style="display:flex; align-items:baseline; gap:8px; margin-top:11px; flex-wrap:wrap;">
-        ${l.grade ? `<div style="background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border:1px solid ${ASSIGN_STYLE.line}; border-radius:15px; padding:5px 9px; white-space:nowrap; ${AS.meta}">${esc(l.grade)}</div>` : ""}
-      </div>
-      <div style="margin-top:5px; ${AS.body}">${esc(l.desc || l.tags || "확정된 숙소 정보입니다.")}</div>
+      <div style="margin-top:11px;">${lodgeGrid(imgs, l.name)}</div>
+      <div style="margin-top:9px; color:${ASSIGN_STYLE.body}; font-size:12px; font-weight:600; line-height:1.55;">${esc(l.desc || l.tags || "확정된 숙소 정보입니다.")}</div>
     </div>`;
   };
   return card(`
-    <div class="blk" style="border:1.5px solid #9FE4D8; border-radius:12px; padding:18px 16px; background:#fff;">
-      ${sectionTitle("👤", "가이드 정보", "")}
-      <div style="display:flex; gap:15px; align-items:center;">
-        ${g.img ? `<div class="ph" style="width:108px; height:108px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div style="width:108px; height:108px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; background:${ASSIGN_STYLE.soft}; flex:none;"></div>`}
+    <div class="blk" style="${CARD} padding:20px 16px;">
+      ${cardTitle("가이드 정보", "")}
+      <div style="display:flex; gap:15px; align-items:flex-start; margin-top:14px;">
+        ${g.img ? `<div class="ph" style="width:100px; height:100px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div class="ph" style="width:100px; height:100px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:11px; font-weight:700; flex:none;">가이드 사진</div>`}
         <div style="flex:1; min-width:0;">
-          <div style="color:${ASSIGN_STYLE.accent}; font-size:14px; font-weight:900;">가이드 이름</div>
-          <div style="margin-top:4px; color:${ASSIGN_STYLE.accent}; font-size:30px; font-weight:900;">${esc(g.name || "가이드")}</div>
-          <div style="color:${ASSIGN_STYLE.body}; font-size:12px; font-weight:800;">${guideRole}</div>
+          <div style="color:${ASSIGN_STYLE.ink}; font-size:21px; font-weight:800; letter-spacing:-0.01em;">${esc(g.name || "가이드")}</div>
+          <div style="color:${ASSIGN_STYLE.accent}; font-size:12.5px; font-weight:700; margin-top:2px;">${guideRole}${g.career ? ` · 경력 ${esc(g.career)}` : ""}</div>
+          <div style="margin-top:9px; color:#40544F; font-size:12px; font-weight:600; line-height:1.75;">${esc(g.desc || "안전하고 편안한 몽골 여행을 위해 최선을 다하겠습니다.")}</div>
         </div>
       </div>
-      <div style="margin-top:14px; color:${ASSIGN_STYLE.accent}; font-size:15px; font-weight:900; line-height:1.45;">“ 안녕하세요! 함께하는 여행을 진심으로 환영합니다. ”</div>
-      <div style="margin-top:9px; color:${ASSIGN_STYLE.body}; font-size:12px; font-weight:700; line-height:1.7;">${esc(g.desc || "안전하고 편안한 몽골 여행을 위해 최선을 다하겠습니다.")}</div>
-      <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:1px; border-top:1px dashed ${ASSIGN_STYLE.line}; margin-top:13px; padding-top:13px; text-align:center;">
-        ${[["언어", g.korean || "한국어"], ["경력", g.career || "-"]].map(([k,val], idx) => `<div style="${idx === 0 ? `border-right:1px dashed ${ASSIGN_STYLE.line};` : ""}"><div style="color:${ASSIGN_STYLE.accent}; font-size:13px; font-weight:900;">${k}</div><div style="margin-top:6px; color:${ASSIGN_STYLE.body}; font-size:14px; font-weight:900;">${esc(val)}</div></div>`).join("")}
+      <div style="display:grid; grid-template-columns:1.2fr 1.1fr 0.9fr; gap:1px; background:#EAF3EF; border:1px solid #EAF3EF; border-radius:11px; overflow:hidden; margin-top:15px;">
+        ${guideCell("가이드 구분", `<div style="display:inline-block; margin-top:6px; background:${ASSIGN_STYLE.accent}; color:#fff; font-size:10.5px; font-weight:800; padding:4px 9px; border-radius:12px; line-height:1.25;">${esc(guideType)}</div>`, ASSIGN_STYLE.panel)}
+        ${guideCell("전화번호", `<div style="color:${ASSIGN_STYLE.ink}; font-size:12.5px; font-weight:700; margin-top:5px; word-break:keep-all;">${esc(guidePhone || "-")}</div>${guidePhone ? `<div style="color:${ASSIGN_STYLE.muted}; font-size:10px; margin-top:2px;">현지 연락 가능</div>` : ""}`)}
+        ${guideCell("카카오톡 QR", guideQr
+          ? `<div class="ph" style="width:58px; height:58px; margin-top:5px; border-radius:7px; background:#fff; border:1px solid ${ASSIGN_STYLE.line};"><img src="${guideQr}" alt="카카오톡 QR" style="object-fit:contain;"></div>`
+          : `<div class="ph" style="width:58px; height:58px; margin-top:5px; border-radius:7px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:10px; font-weight:700; border:1px dashed ${ASSIGN_STYLE.line};">QR</div>`)}
       </div>
     </div>
 
-    <div class="blk" style="border:1.5px solid #9FE4D8; border-radius:12px; padding:16px; background:#fff; margin-top:12px;">
-      ${sectionTitle("🚐", "차량 정보", "안전한 이동")}
-      <div>${vehicleImgs[0] ? `<div class="ph" style="height:135px; background:#fff;"><img src="${vehicleImgs[0]}" alt="${esc(vehicleName)}" style="object-fit:contain;"></div>` : `<div class="ph" style="height:135px; background:${ASSIGN_STYLE.soft};">차량 이미지</div>`}</div>
-      <div style="margin-top:10px; color:${ASSIGN_STYLE.ink}; font-size:23px; font-weight:900;">${esc(vehicleName)}</div>
-      ${infoLine("♿", "탑승 인원", v.seats || "일정 인원에 맞춰 배정")}
-      ${infoLine("🧳", "수하물", "대형 캐리어 적재 가능")}
-      ${infoLine("❄", "차량 특징", v.desc || "몽골 장거리 이동에 적합한 차량입니다.")}
+    <div class="blk" style="${CARD} padding:20px 16px; margin-top:12px;">
+      ${cardTitle("차량 정보", "안전한 이동")}
+      <div style="margin-top:14px;">${vehicleImgs[0] ? `<div class="ph" style="height:150px; border-radius:12px; background:#fff;"><img src="${vehicleImgs[0]}" alt="${esc(vehicleName)}" style="object-fit:contain;"></div>` : `<div class="ph" style="height:150px; border-radius:12px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:12px; font-weight:700;">차량 사진</div>`}</div>
+      <div style="display:inline-block; background:${ASSIGN_STYLE.soft}; color:#0A6A5E; font-size:11px; font-weight:800; padding:4px 11px; border-radius:13px; margin-top:14px;">차종</div>
+      <div style="margin-top:7px; color:${ASSIGN_STYLE.ink}; font-size:23px; font-weight:800;">${esc(vehicleName)}</div>
+      <div style="margin-top:10px;">
+        ${infoLine(VIC.seat, "탑승 인원", v.seats || "일정 인원에 맞춰 배정")}
+        ${infoLine(VIC.bag, "수하물", "대형 캐리어 적재 가능")}
+        ${infoLine(VIC.feat, "차량 특징", v.desc || "몽골 장거리 이동에 적합한 차량입니다.")}
+      </div>
     </div>
 
-    <div class="blk" style="border:1.5px solid #9FE4D8; border-radius:12px; padding:16px; background:#fff; margin-top:12px;">
-      ${sectionTitle("🏨", "숙소 정보", "엄선된 숙소")}
-      ${lodges.map(lodgeCard).join("") || `<div style="color:#8CA39D; font-size:12px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
+    <div class="blk" style="${CARD} padding:20px 16px; margin-top:12px;">
+      ${cardTitle("숙소 정보", "엄선된 숙소")}
+      <div style="margin-top:14px;">
+        ${lodges.map(lodgeCard).join("") || `<div style="color:#8CA39D; font-size:12px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
+      </div>
     </div>
   `);
 })() : "";

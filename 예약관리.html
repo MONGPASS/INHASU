@@ -162,7 +162,7 @@ function blankBooking() {
   return {
     confirmedAt: new Date().toISOString().slice(0, 10),
     days: [],
-    assign: { guide:{name:"",career:"",korean:"",phone:"",img:"",desc:""},
+    assign: { guide:{name:"",role:"",career:"",korean:"",phone:"",qr:"",img:"",desc:""},
               vehicle:{model:"",seats:"",plate:"",img:"",imgs:[],desc:""}, lodges:[] },
     checklist: { deposit:false, balance:false, flight:false, insurance:false, contract:false },
     contract: null,   // 고객 서명 시 서버(/api/sign)가 채움 — {signedAt, signImg, snapshot…}
@@ -336,6 +336,9 @@ function lodgeRow(l, i) {
         </select></label>
         <button class="del-lodge" data-del-lodge="${i}" title="숙소 배정 삭제">×</button>
       </div>
+      <div class="edit-body" style="margin-top:8px;">
+        <label class="f"><span>숙소 설명 (고객 노출 — 비우면 리소스 설명 사용)</span><input data-lk="desc" value="${esc(l.descCustom || "")}" placeholder="게르 내부 화장실 / 샤워실 / 세면대 구비"></label>
+      </div>
     </details>
   </div>`;
 }
@@ -368,9 +371,14 @@ function render() {
         <div class="edit-body">
           <div class="grid4">
             <label class="f"><span>이름</span><input id="g_name" list="guideList" value="${esc(a.guide.name)}"></label>
+            <label class="f"><span>가이드 구분 (고객 노출)</span><input id="g_role" list="guideRoleList" value="${esc(a.guide.role)}" placeholder="가이드 겸 드라이버"></label>
             <label class="f"><span>경력</span><input id="g_career" value="${esc(a.guide.career)}" placeholder="7년"></label>
             <label class="f"><span>한국어</span><input id="g_korean" value="${esc(a.guide.korean)}" placeholder="상급"></label>
-            <label class="f"><span>연락처 (내부용)</span><input id="g_phone" value="${esc(a.guide.phone)}"></label>
+          </div>
+          <datalist id="guideRoleList"><option value="가이드 겸 드라이버"></option><option value="전문 가이드"></option><option value="전문 가이드 + 기사"></option></datalist>
+          <div class="grid2" style="margin-top:10px;">
+            <label class="f"><span>전화번호 (고객 노출 — 일정표 표시)</span><input id="g_phone" value="${esc(a.guide.phone)}" placeholder="+976 8000-0000"></label>
+            <label class="f"><span>카카오톡 QR 이미지 URL (고객 노출)</span><input id="g_qr" value="${esc(a.guide.qr)}" placeholder="img/… 또는 업로드 주소"></label>
           </div>
           <div class="grid2" style="margin-top:10px;">
             <label class="f"><span>사진 URL (선택)</span><input id="g_img" value="${esc(a.guide.img)}" placeholder="img/… 또는 업로드 주소"></label>
@@ -387,8 +395,11 @@ function render() {
         <summary>세부정보 수정</summary>
         <div class="edit-body grid3">
           <label class="f"><span>차종</span><input id="v_model" list="vehicleList" value="${esc(a.vehicle.model)}" placeholder="하이스"></label>
-          <label class="f"><span>인승</span><input id="v_seats" value="${esc(a.vehicle.seats)}" placeholder="9인승"></label>
+          <label class="f"><span>탑승 인원 (고객 노출)</span><input id="v_seats" value="${esc(a.vehicle.seats)}" placeholder="6인"></label>
           <label class="f"><span>차량번호 (내부용)</span><input id="v_plate" value="${esc(a.vehicle.plate)}"></label>
+        </div>
+        <div class="edit-body" style="margin-top:10px;">
+          <label class="f"><span>차량 특징 (고객 노출 — 비우면 리소스 설명 사용)</span><input id="v_desc" value="${esc(a.vehicle.desc)}" placeholder="몽골 장거리 이동에 적합한 차량입니다."></label>
         </div>
       </details>
     </div>
@@ -457,23 +468,26 @@ function pullForm() {
   });
   // 배정
   const g = id => $(id) ? $(id).value.trim() : "";
-  BK.assign.guide = { name:g("g_name"), career:g("g_career"), korean:g("g_korean"), phone:g("g_phone"), img:g("g_img"), desc:g("g_desc") };
+  BK.assign.guide = { name:g("g_name"), role:g("g_role"), career:g("g_career"), korean:g("g_korean"),
+                      phone:g("g_phone"), qr:g("g_qr"), img:g("g_img"), desc:g("g_desc") };
   BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), plate:g("v_plate"), img:"", imgs:[], desc:"" };
   BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map(el => {
     const name = el.querySelector('[data-lk="name"]').value.trim();
     const lib = LIBS.lodges[name] || {};   // 라이브러리에 있으면 사진·태그를 고객 확정안내에 함께 노출
+    const descCustom = (el.querySelector('[data-lk="desc"]') || {}).value?.trim() || "";
     return {
       day: Number(el.querySelector('[data-lk="day"]').value) || 0,
       name,
       grade: el.querySelector('[data-lk="grade"]').value,
-      img: lib.img || "", imgs: Array.isArray(lib.imgs) ? lib.imgs : (lib.img ? [lib.img] : []), tags: lib.tags || "", desc: lib.desc || "",
+      img: lib.img || "", imgs: Array.isArray(lib.imgs) ? lib.imgs : (lib.img ? [lib.img] : []), tags: lib.tags || "",
+      descCustom, desc: descCustom || lib.desc || "",   // 관리자가 입력하면 우선, 비우면 리소스 설명
     };
   }).filter(l => l.name);
-  // 차량 사진도 라이브러리에서 자동 첨부
+  // 차량 사진도 라이브러리에서 자동 첨부 · 특징은 관리자 입력 우선
   const vlib = LIBS.vehicles[BK.assign.vehicle.model] || {};
   if (vlib.img) BK.assign.vehicle.img = vlib.img;
   BK.assign.vehicle.imgs = Array.isArray(vlib.imgs) ? vlib.imgs : (vlib.img ? [vlib.img] : []);
-  BK.assign.vehicle.desc = vlib.desc || "";
+  BK.assign.vehicle.desc = g("v_desc") || vlib.desc || "";
   // 체크리스트·메모
   BK.checklist = { deposit:$("c_deposit").checked, balance:$("c_balance").checked, flight:$("c_flight").checked,
                    insurance:$("c_insurance").checked, contract:$("c_contract").checked };
