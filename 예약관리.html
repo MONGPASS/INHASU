@@ -299,28 +299,8 @@ function summaryHtml() {
   </section>`;
 }
 
-function importedInfoHtml() {
-  /* 결제 금액·상태·영수증은 ③ 계약·정산 정보에서 관리 — 여기엔 엑셀 시트 원본 흔적만 남긴다 */
-  const s = PRE.sourceSheet || {};
-  const hasSheet = s.no || s.contractMonth || s.travelMonth || s.quoteFile || s.contractFile || s.originalContractFile || s.memo;
-  if (!hasSheet) return "";
-  return `<section class="card">
-    <div class="sec-h">
-      <h2><span class="n">4</span>엑셀 시트 원본 기록</h2>
-      <span class="tip">참고용 — 결제 금액·상태는 위 ③ 계약·정산 정보에서 관리하세요</span>
-    </div>
-    <div class="grid3">
-      ${infoCell("시트 번호", s.no)}
-      ${infoCell("계약월", s.contractMonth)}
-      ${infoCell("여행월", s.travelMonth)}
-    </div>
-    <div class="grid2" style="margin-top:12px;">
-      ${infoCell("견적서 원본", s.quoteFile)}
-      ${infoCell("계약서 원본", s.contractFile || s.originalContractFile)}
-    </div>
-    ${s.memo ? `<div class="assign-box" style="margin-top:12px;"><div class="subtt">시트 메모</div><div style="font-size:13px;color:var(--ink);line-height:1.65;white-space:pre-wrap;">${esc(s.memo)}</div></div>` : ""}
-  </section>`;
-}
+/* 엑셀 시트 원본 기록 섹션은 제거됨 (엑셀·Word에서 플랫폼으로 이관 중이라 대조용 정보 불필요) */
+function importedInfoHtml() { return ""; }
 
 function previewHtml(type, rec) {
   rec = rec || {};
@@ -546,7 +526,7 @@ function render() {
   ${importedInfoHtml()}
 
   <section class="card">
-    <div class="sec-h"><h2><span class="n">5</span>체크리스트 · 메모</h2></div>
+    <div class="sec-h"><h2><span class="n">4</span>체크리스트 · 메모</h2></div>
     <label class="chk"><input type="checkbox" id="c_deposit" ${c.deposit ? "checked" : ""}> 예약금 입금 확인</label>
     <label class="chk"><input type="checkbox" id="c_balance" ${c.balance ? "checked" : ""}> 잔금 수령 (현장)</label>
     <label class="chk"><input type="checkbox" id="c_flight" ${c.flight ? "checked" : ""}> 항공권 발권 확인</label>
@@ -803,6 +783,10 @@ async function save(opts = {}) {
     if (miss.length && !confirm(`누락 항목이 있어요: ${miss.join(", ")}\n그래도 '예약확정'으로 저장할까요?`)) return;
   }
   const patch = { booking: BK };
+  /* 대표 고객명·여행 기간을 booking과 함께 저장 — Word 가져오기로 갱신한 값이 목록·문서에 반영되게 */
+  if (PRE.name) patch.name = PRE.name;
+  if (PRE.depart) patch.depart = PRE.depart;
+  if (PRE.return_) patch.return_ = PRE.return_;
   if (opts.resetContract) patch.resetContract = true;   // 서버의 서명 보존을 명시적으로 해제
   if ($("setStatus").checked) patch.status = "예약확정";
   $("saveBtn").disabled = true; $("saveBtn").textContent = "저장 중…";
@@ -997,7 +981,17 @@ async function importDocx(e) {
     if (has.mo) parts.push("계약 금액");
     if (has.days) parts.push(`일정 ${r.days.length}일차`);
     if (!parts.length) throw new Error("계약서에서 인식 가능한 내용을 찾지 못했어요");
+    /* 계약서(문서·목록)에 쓰이는 대표 고객명·여행 기간도 Word 기준으로 동기화 */
+    const leadName = r.travelers[0] && r.travelers[0].nameKo ? r.travelers[0].nameKo : "";
+    const newName = leadName ? (r.travelers.length > 1 ? `${leadName} 외 ${r.travelers.length - 1}명` : leadName) : "";
+    const newDepart = r.flight.inDate || "", newReturn = r.flight.outDate || "";
     let msg = `Word 계약서에서 ${parts.join(" · ")}를 찾았어요.\n폼의 해당 항목을 이 내용으로 교체할까요?`;
+    if (newName || newDepart) {
+      const bits = [];
+      if (newName) bits.push(`고객명 → ${newName}`);
+      if (newDepart) bits.push(`여행 기간 → ${newDepart} ~ ${newReturn || "?"}`);
+      msg += `\n\n· 예약 기본정보도 Word 기준으로 갱신됩니다: ${bits.join(" · ")}`;
+    }
     msg += "\n\n※ 가이드·차량·숙소 배정은 자동으로 채우지 않아요 — 사진·소개가 붙도록 배정 섹션에서 리소스로 직접 선택하세요.";
     if (r.lodges.length) msg += `\n · Word 숙소: ${r.lodges.map(l => `${l.day}일차 ${l.name}`).join(", ")}`;
     if (r.guideText) msg += `\n · Word 가이드/차량: ${r.guideText}`;
@@ -1008,6 +1002,13 @@ async function importDocx(e) {
     if (has.fl) BK.flight = { ...BK.flight, ...r.flight };
     if (has.mo) BK.contractInfo = { ...BK.contractInfo, ...r.money };
     if (has.days) BK.days = r.days;
+    /* 대표 고객명·여행 기간은 레코드(top-level) 필드 — save()에서 함께 PATCH되어 목록·문서에 반영됨 */
+    if (newName) PRE.name = newName;
+    if (newDepart) PRE.depart = newDepart;
+    if (newReturn) PRE.return_ = newReturn;
+    $("hName").textContent = PRE.name || "-";
+    const paxTot = (PRE.adult||0)+(PRE.child||0)+(PRE.infant||0);
+    $("hMeta").textContent = `${PRE.destination || "-"} · ${PRE.depart || "?"} ~ ${PRE.return_ || "?"} · ${paxTot}명 · 현재상태 [${PRE.status}]`;
     render();
     toast("✓ Word 계약서 내용을 폼에 채웠어요 — 검토 후 저장하세요");
   } catch (err) {

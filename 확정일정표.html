@@ -88,6 +88,8 @@ const buildConfirmedQuote = j => {
     q.price = { deposit: 0, options: [], balances: [] };   // 아래에서 contractInfo로 채움
     q.remark = "";                     // 아래에서 ci.note로 채움
     q.pickup = ""; q.drop = "";        // 아래에서 실제 항공편으로 채움
+    q.vehicle = "";                    // 샘플 차종 대신 실제 배정 차량만 (없으면 '차량 확인 중')
+    q.singleBalance = true;            // 견적 없는 예약: 잔금 1개만 표시 (풀패키지/실속형 2단 비교 없음)
   }
   const pax = (Number(j.adult) || 0) + (Number(j.child) || 0) + (Number(j.infant) || 0);
   const ci = bk.contractInfo || {};
@@ -322,6 +324,12 @@ const pgQuote = `
       return `<div style="background:#06c4a0; padding:9px 8px; text-align:center;"><div style="color:#DFF7EF; font-size:10px; font-weight:700;">${b.pax}인 잔금(1인기준)</div><div style="color:#fff; font-size:17px; font-weight:800; margin-top:4px;">${wonMan(amt)}</div>${Q.price.balanceStatus ? `<div style="color:#DFF7EF; font-size:10px; font-weight:800; margin-top:3px;">${esc(Q.price.balanceStatus)}</div>` : ""}</div>`;
     }).join("");
     const grid = (tier) => `<div style="display:grid; grid-template-columns:repeat(${Q.price.balances.length},1fr); gap:1px; background:#CDE8DF; border-radius:10px; overflow:hidden;">${pills(tier)}</div>`;
+    /* 견적 없는 예약(Word·엑셀): 계약된 잔금 1개만 — 풀패키지/실속형 2단 비교 없이 단일 표기 */
+    if (Q.singleBalance) return `
+    <div style="margin-top:14px;">
+      <div class="bal-grid-label">💳 인원별 잔금 (현지 지불)</div>
+      ${grid("full")}
+    </div>`;
     return `
     <div style="margin-top:14px;">
       <div>
