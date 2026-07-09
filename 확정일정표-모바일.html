@@ -86,19 +86,61 @@ const _token = params.get("t");
   if (el) el.href = "확정일정표.html?" + p.toString();
 })();
 
+const clone = obj => JSON.parse(JSON.stringify(obj || {}));
+const dateDot = s => String(s || "").slice(0, 10).replace(/-/g, ". ");
+const dateKo = s => {
+  const d = String(s || "").slice(0, 10);
+  return d ? `${d.slice(0, 4)}년 ${Number(d.slice(5, 7))}월 ${Number(d.slice(8, 10))}일` : "";
+};
+const nightsText = (n, days) => n != null && n !== "" ? `${n}박${Number(n) + 1}일` : (days ? `${Math.max(0, days - 1)}박${days}일` : "");
+const buildConfirmedQuote = j => {
+  if (!j || !j.booking) return null;
+  const bk = j.booking || {};
+  const hasDays = Array.isArray(bk.days) && bk.days.length;
+  if (!j.quote && !hasDays) return null;
+  const q = clone(j.quote || window.QUOTE || {});
+  const pax = (Number(j.adult) || 0) + (Number(j.child) || 0) + (Number(j.infant) || 0);
+  const ci = bk.contractInfo || {};
+  const flight = bk.flight || {};
+  const assign = bk.assign || {};
+  const vehicle = (assign.vehicle && assign.vehicle.model) || q.vehicle || "";
+  if (hasDays) q.days = clone(bk.days);
+  q.issueDate = bk.confirmedAt || q.issueDate || dateDot(new Date().toISOString());
+  q.quoteNo = q.quoteNo ? `${q.quoteNo}-CONFIRM` : `${String(j.depart || "").replaceAll("-", "").slice(2)}-${String(j.name || "CONFIRM").replace(/\s+/g, "")}-CONFIRM`;
+  q.customer = j.name || q.customer || "고객";
+  q.destination = ci.region || j.destination || q.destination || "";
+  q.pax = pax || q.pax || 1;
+  q.paxNote = pax ? `${pax}인` : (q.paxNote || "인원 확인");
+  q.period = j.depart && j.return_ ? `${dateKo(j.depart)} ~ ${dateKo(j.return_)}` : (q.period || "");
+  q.periodShort = j.depart && j.return_ ? `${dateDot(j.depart)} — ${dateDot(j.return_)}` : (q.periodShort || "");
+  q.nights = nightsText(j.nights, hasDays ? bk.days.length : 0) || q.nights || "";
+  q.vehicle = vehicle || "차량 확인 중";
+  q.flight = {
+    in: flight.inNo || flight.inTime || flight.inDate ? `${dateDot(flight.inDate || j.depart)} ${flight.inTime || ""} ${flight.inNo || ""}`.trim() : ((q.flight || {}).in || "-"),
+    out: flight.outNo || flight.outTime || flight.outDate ? `${dateDot(flight.outDate || j.return_)} ${flight.outTime || ""} ${flight.outNo || ""}`.trim() : ((q.flight || {}).out || "-"),
+  };
+  q.pickup = q.pickup || q.flight.in || "-";
+  q.drop = q.drop || q.flight.out || "-";
+  q.price = { ...(q.price || {}) };
+  q.price.deposit = Number(ci.depositAmount) || (q.price.deposit || 0);
+  q.price.options = Array.isArray(q.price.options) ? q.price.options : [];
+  q.price.balances = Array.isArray(q.price.balances) && q.price.balances.length
+    ? q.price.balances
+    : [{ pax: q.pax || 1, economy: Number(ci.balanceAmount) || 0, full: Number(ci.balanceAmount) || 0 }];
+  if (ci.balanceAmount) q.price.balances = [{ pax: q.pax || 1, economy: Number(ci.balanceAmount), full: Number(ci.balanceAmount) }];
+  q.price.validUntil = q.price.validUntil || q.issueDate;
+  q.price.payment = q.price.payment || "예약금: 계좌이체 · 잔금: 현장결제";
+  q.price.paymentNote = q.price.paymentNote || "";
+  q.remark = ci.note || q.remark || "-";
+  q.booking = bk;
+  return q;
+};
 const Q = await (async () => {
   if (_token) {
     try {
       const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
       const j = await res.json();
-      if (j.ok && j.quote && j.booking) {
-        const q = JSON.parse(JSON.stringify(j.quote));
-        if (Array.isArray(j.booking.days) && j.booking.days.length) q.days = j.booking.days;
-        q.issueDate = j.booking.confirmedAt || q.issueDate;
-        q.quoteNo = q.quoteNo ? `${q.quoteNo}-CONFIRM` : "CONFIRM";
-        q.booking = j.booking;
-        return q;
-      }
+      if (j.ok && j.booking) return buildConfirmedQuote(j);
     } catch (e) {}
     return null;   // 토큰은 있지만 아직 예약 확정 정보가 없음
   }
