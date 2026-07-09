@@ -930,10 +930,13 @@ function dxParseScheduleTable(rows, out) {
     if (!cur.dest && place && place !== "이동" && place !== "캠프장") cur.dest = place;
     const mv = detail.match(/\(([^)]*내외[^)]*)\)/);
     if (mv && detail.includes("이동")) cur.move = mv[1];
-    const isMeal = /조식|아침\s*식사|점심\s*식사|저녁\s*식사/.test(detail);
-    if (isMeal) {                                      // 식사 행 → meals (아침/점심/저녁 순으로 쌓임)
-      const extra = detail.includes(":") ? dxClean(detail.split(":").pop()) : "";
-      cur.meals.push([extra, note].filter(Boolean).join(" · ") || "포함");
+    const mealM = detail.match(/^(조식|중식|석식|아침\s*식사|점심\s*식사|저녁\s*식사)/);
+    if (mealM) {                                        // 식사 행 → 식사 칸(meals)
+      const menu = detail.includes(":") ? dxClean(detail.split(":").slice(1).join(":")) : "";
+      cur.meals.push([menu, note].filter(Boolean).join(" · ") || "식사");
+      // 식사 문구 뒤에 활동(자유 시간·허르헉 체험 등)이 더 있으면 일정에도 남긴다 (내용 유실 방지)
+      let rest2 = menu ? "" : dxClean(detail.slice(mealM[0].length).replace(/^[·:,\s]+/, "")).replace(/^(후|및|과|와)\s*/, "");
+      if (rest2.length >= 2) cur.items.push(detail);
       continue;
     }
     if (/체크인/.test(detail)) {                        // 체크인 행 → 숙소 텍스트 (일정 그리드용)
