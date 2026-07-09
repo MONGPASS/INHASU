@@ -298,7 +298,7 @@ function render() {
       <th class="hide-sm">항공</th><th>차량</th>
       <th class="sortable" data-k="progress">진행상황${arrow("progress")}</th>
       <th class="hide-sm">구분</th>
-      <th>매출액</th><th>예약금</th><th>잔금</th><th>현금영수증</th><th style="text-align:right">관리</th>
+      <th>예약금</th><th>잔금</th><th>현금영수증</th><th style="text-align:right">관리</th>
     </tr></thead>
     <tbody>${data.map(r => {
       const v = vehicle(r);
@@ -317,7 +317,6 @@ function render() {
         <td>${esc(v.model || r.vehicle || "-")}</td>
         <td>${selCell(r, "progress")}</td>
         <td class="hide-sm">${selCell(r, "pkgTier")}</td>
-        <td>${moneyTxt(f.salesAmount)}</td>
         <td>${moneyTxt(f.depositAmount)}</td>
         <td>${moneyTxt(f.balanceAmount)}</td>
         <td>${esc(f.cashReceipt || "-")}</td>
