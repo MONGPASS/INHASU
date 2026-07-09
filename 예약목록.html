@@ -288,7 +288,7 @@ function render() {
 
   $("list").innerHTML = `<table>
     <thead><tr>
-      <th>번호</th><th>조인여부</th><th class="hide-sm">계약월</th>
+      <th>번호</th><th class="hide-sm">계약월</th>
       <th class="sortable" data-k="book">예약일${arrow("book")}</th>
       <th class="sortable" data-k="name">고객명${arrow("name")}</th>
       <th>관리</th>
@@ -296,7 +296,6 @@ function render() {
       <th class="hide-xs">몽골출발</th>
       <th class="sortable" data-k="pax">인원${arrow("pax")}</th>
       <th class="hide-xs">일정</th><th class="hide-sm">지역</th>
-      <th class="sortable hide-sm" data-k="month">월${arrow("month")}</th>
       <th class="hide-sm">항공</th><th>차량</th>
       <th class="sortable" data-k="progress">진행상황${arrow("progress")}</th>
       <th class="hide-sm">구분</th><th>견적서 원본</th><th>계약서 원본</th>
@@ -311,7 +310,6 @@ function render() {
       const contractFile = s.contractFile || s.originalContractFile || "";
       return `<tr data-id="${esc(r.id)}">
         <td class="num">${nums[String(r.id)] || "-"}</td>
-        <td>${selCell(r, "joinType")}</td>
         <td class="hide-sm">${monthOf(bookDate(r))}</td>
         <td>${esc(bookDate(r) || "-")}</td>
         <td><div class="name-cell"><b>${esc(r.name || "-")}</b></div></td>
@@ -321,7 +319,6 @@ function render() {
         <td>${paxSum(r) || "-"}</td>
         <td class="hide-xs">${esc(nightsTxt(r))}</td>
         <td class="hide-sm">${esc(r.destination || "-")}</td>
-        <td class="hide-sm">${monthOf(r.depart)}</td>
         <td class="hide-sm">${selCell(r, "flightIncl")}</td>
         <td>${esc(v.model || r.vehicle || "-")}</td>
         <td>${selCell(r, "progress")}</td>
@@ -415,6 +412,7 @@ const normDate = v => {
   const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   return m ? `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}` : "";
 };
+const isBlank = v => v == null || v === "";
 const cleanCell = v => String(v ?? "").replace(/\s+/g, " ").trim();
 const headerKey = v => cleanCell(v).replace(/[↵\r\n]/g, " ").replace(/\s+/g, "").replace(/[()（）]/g, "").toLowerCase();
 const parseMoney = v => {
@@ -437,7 +435,7 @@ const XL_HEADERS = {
   "진행상황": "progress", "구분": "pkgTier",
   "예약일": "bookDate", "계약일": "bookDate", "계약월": "contractMonth",
   "견적서": "quoteFile", "계약서": "contractFile",
-  "매출액": "salesAmount", "총금액": "salesAmount", "판매금액": "salesAmount",
+  "금액": "salesAmount", "매출액": "salesAmount", "총금액": "salesAmount", "판매금액": "salesAmount", "여행비": "salesAmount", "여행경비": "salesAmount",
   "예약금": "depositAmount", "계약금": "depositAmount",
   "잔금": "balanceAmount", "현장잔금": "balanceAmount",
   "현금영수증": "cashReceipt", "현금영수증상태": "cashReceipt",
@@ -450,15 +448,17 @@ const headerField = cell => {
   const raw = cleanCell(cell);
   return XL_HEADERS[raw] || XL_HEADERS[headerKey(raw)] || "";
 };
-function parseSheet(rowsArr) {
+function parseSheet(rowsArr, rowsFmt = rowsArr) {
   // 헤더 행 찾기: 알려진 컬럼명이 3개 이상 매칭되는 첫 행
   let hi = -1, cols = {};
   for (let i = 0; i < Math.min(rowsArr.length, 10); i++) {
     const c = {};
-    (rowsArr[i] || []).forEach((cell, ci) => {
+    const max = Math.max((rowsArr[i] || []).length, (rowsFmt[i] || []).length);
+    for (let ci = 0; ci < max; ci++) {
+      const cell = !isBlank((rowsArr[i] || [])[ci]) ? (rowsArr[i] || [])[ci] : (rowsFmt[i] || [])[ci];
       const key = headerField(cell);
       if (key && c[key] === undefined) c[key] = ci;
-    });
+    }
     if (Object.keys(c).length >= 3) { hi = i; cols = c; break; }
   }
   if (hi < 0) throw new Error("헤더 행을 찾지 못했어요 — 시트에 닉네임/MONGOL/KOREA 등의 컬럼명이 필요합니다");
@@ -473,7 +473,12 @@ function parseSheet(rowsArr) {
   const out = [];
   for (let i = hi + 1; i < rowsArr.length; i++) {
     const row = rowsArr[i] || [];
-    const get = k => cols[k] !== undefined ? row[cols[k]] : "";
+    const rowFmt = rowsFmt[i] || [];
+    const get = k => {
+      if (cols[k] === undefined) return "";
+      const raw = row[cols[k]];
+      return !isBlank(raw) ? raw : (rowFmt[cols[k]] ?? "");
+    };
     const name = String(get("name") ?? "").trim();
     if (!name) continue;
     const sched = String(get("schedule") ?? "");
@@ -519,16 +524,21 @@ function parseSheet(rowsArr) {
   return out;
 }
 function showImportPreview(items) {
-  const existing = RECORDS.map(r => `${(r.name || "").trim()}|${dateOnly(r.depart)}`);
-  items.forEach(it => { it.dup = existing.includes(`${it.name}|${it.depart}`); });
+  const existing = {};
+  RECORDS.forEach(r => { existing[`${(r.name || "").trim()}|${dateOnly(r.depart)}`] = r; });
+  items.forEach(it => {
+    const old = existing[`${it.name}|${it.depart}`];
+    it.dup = !!old;
+    it.existingId = old ? old.id : "";
+  });
   const dups = items.filter(i => i.dup).length;
   $("impWrap").innerHTML = `<div class="modal">
-    <div class="mh"><h2>📥 엑셀 가져오기 — ${items.length}건 발견${dups ? ` (중복 의심 ${dups}건은 기본 제외)` : ""}</h2><button class="x" id="impX">✕</button></div>
+    <div class="mh"><h2>📥 엑셀 가져오기 — ${items.length}건 발견${dups ? ` (기존 고객 ${dups}건은 업데이트 가능)` : ""}</h2><button class="x" id="impX">✕</button></div>
     <div class="mb"><table>
       <thead><tr><th></th><th>고객명</th><th>예약일</th><th>도착</th><th>출발</th><th>인원</th><th>일정</th><th>지역</th><th>조인</th><th>진행상황</th><th>구분</th><th>매출액</th><th>예약금</th><th>잔금</th><th>현금영수증</th></tr></thead>
       <tbody>${items.map((it, i) => `<tr class="${it.dup ? "dup-row" : ""}">
-        <td><input type="checkbox" data-imp="${i}" ${it.dup ? "" : "checked"}></td>
-        <td><b>${esc(it.name)}</b>${it.dup ? ` <span class="dup-mark">중복 의심</span>` : ""}</td>
+        <td><input type="checkbox" data-imp="${i}" checked></td>
+        <td><b>${esc(it.name)}</b>${it.dup ? ` <span class="dup-mark">기존 고객 업데이트</span>` : ""}</td>
         <td>${esc(it.bookDate || "-")}</td><td>${esc(it.depart || "-")}</td><td>${esc(it.return_ || "-")}</td>
         <td>${it.adult || "-"}</td><td>${it.nights !== "" ? `${it.nights}박` : "-"}</td>
         <td>${esc(it.destination || "-")}</td><td>${esc(it.joinType)}</td>
@@ -549,31 +559,45 @@ function showImportPreview(items) {
     const stamp = Date.now();
     for (let i = 0; i < picked.length; i++) {
       const it = picked[i];
+      const old = it.existingId ? RECORDS.find(r => String(r.id) === String(it.existingId)) : null;
       const rec = {
-        id: `imp_${stamp}_${i}`,
+        id: old ? old.id : `imp_${stamp}_${i}`,
         source: "excel-import",          // 카톡 알림톡 발송 안 함 (전화번호도 없음)
-        status: "예약확정",
-        token: newToken(),
+        status: old ? (old.status || "예약확정") : "예약확정",
+        token: old ? (old.token || newToken()) : newToken(),
         receivedAt: it.bookDate ? `${it.bookDate}T00:00:00.000Z` : new Date().toISOString(),
-        name: it.name, phone: "", depart: it.depart, return_: it.return_,
+        name: it.name, phone: old ? (old.phone || "") : "", depart: it.depart, return_: it.return_,
         adult: it.adult, child: 0, infant: 0, nights: it.nights,
         destination: it.destination, vehicle: it.vehicle,
         joinType: it.joinType, flightIncl: it.flightIncl, progress: it.progress, pkgTier: it.pkgTier,
         finance: it.finance, sourceSheet: it.sourceSheet,
-        booking: { confirmedAt: it.bookDate || TODAY, days: [], assign: { guide: {}, vehicle: {}, lodges: [] },
+        booking: { ...(old ? (old.booking || {}) : {}),
+                   confirmedAt: (old && old.booking && old.booking.confirmedAt) || it.bookDate || TODAY,
+                   days: (old && old.booking && Array.isArray(old.booking.days)) ? old.booking.days : [],
+                   assign: (old && old.booking && old.booking.assign) || { guide: {}, vehicle: {}, lodges: [] },
                    checklist: {
+                     ...((old && old.booking && old.booking.checklist) || {}),
                      deposit: !!it.finance.depositAmount,
-                     balance: false,
                      flight: it.flightIncl === "포함",
-                     insurance: false,
-                     contract: false
                    },
-                   contract: null, notes: "", adminMemo: it.sourceSheet.memo || "" },
+                   contract: old && old.booking ? (old.booking.contract || null) : null,
+                   notes: old && old.booking ? (old.booking.notes || "") : "",
+                   adminMemo: it.sourceSheet.memo || (old && old.booking ? (old.booking.adminMemo || "") : "") },
       };
       try {
         if (IS_LOCAL) {
           const arr = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
-          arr.push(rec); localStorage.setItem("leaders_requests", JSON.stringify(arr));
+          const idx = arr.findIndex(x => String(x.id) === String(rec.id));
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...rec }; else arr.push(rec);
+          localStorage.setItem("leaders_requests", JSON.stringify(arr));
+        } else if (old) {
+          const res = await fetch(`/api/requests/${encodeURIComponent(old.id)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
+            body: JSON.stringify(rec),
+          });
+          const j = await res.json();
+          if (!j.ok) throw 0;
         } else {
           const res = await fetch("/api/requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
           const j = await res.json();
@@ -599,7 +623,8 @@ $("impFile").onchange = async (e) => {
     const wb = XLSX.read(buf, { cellDates: true });
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rowsArr = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
-    const items = parseSheet(rowsArr);
+    const rowsFmt = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" });
+    const items = parseSheet(rowsArr, rowsFmt);
     if (!items.length) return toast("가져올 데이터가 없어요 — 시트 내용을 확인해 주세요");
     showImportPreview(items);
   } catch (err) {
