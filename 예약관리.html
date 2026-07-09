@@ -508,9 +508,9 @@ function render() {
     <div class="assign-box">
       <div class="subtt">💳 계약·정산 정보</div>
       <div class="grid3">
-        <label class="f"><span>여행상품명</span><input id="ci_productName" value="${esc(ci.productName || PRE.destination || "")}" placeholder="남고비 사막앤초원"></label>
-        <label class="f"><span>여행지역</span><input id="ci_region" value="${esc(ci.region || PRE.destination || "")}" placeholder="남고비"></label>
-        <label class="f"><span>현금영수증</span><input id="ci_cashReceipt" value="${esc(ci.cashReceipt || "")}" placeholder="완료 / 예정 / 해당x"></label>
+        <label class="f"><span>여행상품명</span><input id="ci_productName" list="productNameList" value="${esc(ci.productName || PRE.destination || "")}" placeholder="선택 또는 직접 입력"></label>
+        <label class="f"><span>여행지역</span><input id="ci_region" list="regionList" value="${esc(ci.region || PRE.destination || "")}" placeholder="선택 또는 직접 입력"></label>
+        <label class="f"><span>현금영수증</span><input id="ci_cashReceipt" list="cashReceiptList" value="${esc(ci.cashReceipt || "")}" placeholder="선택 또는 직접 입력"></label>
       </div>
       <div class="grid3" style="margin-top:10px;">
         <label class="f"><span>여행경비</span><input id="ci_totalAmount" type="number" value="${esc(ci.totalAmount || 0)}" placeholder="6900000"></label>
@@ -559,7 +559,21 @@ function render() {
 
   <datalist id="guideList"></datalist>
   <datalist id="lodgeList"></datalist>
-  <datalist id="vehicleList"></datalist>`;
+  <datalist id="vehicleList"></datalist>
+  <datalist id="productNameList">
+    <option value="중앙몽골"></option><option value="고비사막"></option><option value="홉스골"></option>
+    <option value="남고비 사막앤초원"></option><option value="중앙몽골+테를지"></option><option value="울란바타르+테를지"></option>
+    <option value="홉스골+테를지"></option><option value="고비사막+중앙몽골"></option>
+  </datalist>
+  <datalist id="regionList">
+    <option value="중앙몽골"></option><option value="고비사막"></option><option value="남고비"></option><option value="홉스골"></option>
+    <option value="테를지"></option><option value="울란바타르"></option><option value="울란바타르+테를지"></option>
+    <option value="중앙몽골+테를지"></option><option value="홉스골+테를지"></option><option value="고비사막+중앙몽골"></option>
+  </datalist>
+  <datalist id="cashReceiptList">
+    <option value="완료"></option><option value="예정"></option><option value="해당x"></option>
+    <option value="전자세금계산서"></option><option value="현금영수증"></option><option value="미발행"></option>
+  </datalist>`;
 
   bindEvents();
 }
