@@ -288,32 +288,26 @@ function render() {
 
   $("list").innerHTML = `<table>
     <thead><tr>
-      <th>번호</th><th class="hide-sm">계약월</th>
+      <th>번호</th>
       <th class="sortable" data-k="book">예약일${arrow("book")}</th>
       <th class="sortable" data-k="name">고객명${arrow("name")}</th>
-      <th>관리</th>
       <th class="sortable" data-k="depart">몽골도착${arrow("depart")}</th>
       <th class="hide-xs">몽골출발</th>
       <th class="sortable" data-k="pax">인원${arrow("pax")}</th>
       <th class="hide-xs">일정</th><th class="hide-sm">지역</th>
       <th class="hide-sm">항공</th><th>차량</th>
       <th class="sortable" data-k="progress">진행상황${arrow("progress")}</th>
-      <th class="hide-sm">구분</th><th>견적서 원본</th><th>계약서 원본</th>
+      <th class="hide-sm">구분</th>
       <th>매출액</th><th>예약금</th><th>잔금</th><th>현금영수증</th><th style="text-align:right">관리</th>
     </tr></thead>
     <tbody>${data.map(r => {
       const v = vehicle(r);
       const token = r.token || "";
       const f = r.finance || {};
-      const s = r.sourceSheet || {};
-      const quoteFile = s.quoteFile || (r.quote ? "견적서" : "");
-      const contractFile = s.contractFile || s.originalContractFile || "";
       return `<tr data-id="${esc(r.id)}">
         <td class="num">${nums[String(r.id)] || "-"}</td>
-        <td class="hide-sm">${monthOf(bookDate(r))}</td>
         <td>${esc(bookDate(r) || "-")}</td>
         <td><div class="name-cell"><b>${esc(r.name || "-")}</b></div></td>
-        <td><button class="mini blue" data-open="${esc(r.id)}">관리</button></td>
         <td>${esc(dateOnly(r.depart) || "-")}</td>
         <td class="hide-xs">${esc(dateOnly(r.return_) || "-")}</td>
         <td>${paxSum(r) || "-"}</td>
@@ -323,8 +317,6 @@ function render() {
         <td>${esc(v.model || r.vehicle || "-")}</td>
         <td>${selCell(r, "progress")}</td>
         <td class="hide-sm">${selCell(r, "pkgTier")}</td>
-        <td title="${esc(quoteFile)}"><div class="doc-stack">${token && r.quote ? `<a class="tag ok" href="견적서.html?t=${encodeURIComponent(token)}" target="_blank">플랫폼</a>` : ""}<span class="wide-text">${esc(quoteFile || "-")}</span></div></td>
-        <td title="${esc(contractFile)}"><div class="doc-stack">${token ? (signed(r) ? `<a class="tag ok" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">서명완료</a>` : `<a class="tag bad" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">미서명</a>`) : ""}<span class="wide-text">${esc(contractFile || "-")}</span></div></td>
         <td>${moneyTxt(f.salesAmount)}</td>
         <td>${moneyTxt(f.depositAmount)}</td>
         <td>${moneyTxt(f.balanceAmount)}</td>
@@ -488,8 +480,9 @@ function parseSheet(rowsArr, rowsFmt = rowsArr) {
     const prog = String(get("progress") ?? "").trim();
     const tier = String(get("pkgTier") ?? "").trim();
     const salesAmount = parseMoney(get("salesAmount"));
-    const depositAmount = parseMoney(get("depositAmount"));
     const balanceAmount = parseMoney(get("balanceAmount"));
+    const depositRaw = parseMoney(get("depositAmount"));
+    const depositAmount = depositRaw || (salesAmount && balanceAmount && salesAmount >= balanceAmount ? salesAmount - balanceAmount : 0);
     out.push({
       name,
       depart: normDate(get("depart")),
