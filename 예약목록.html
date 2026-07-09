@@ -66,9 +66,9 @@
 
   /* ── 엑셀형 표: 가로 스크롤 + 밀도 ── */
   .table-card { overflow:auto; }
-  .table-card table { min-width:2020px; }
-  .table-card th { padding:12px 10px; font-size:12px; }
-  .table-card td { padding:10px 10px; font-size:12.5px; white-space:nowrap; }
+  .table-card table { min-width:1420px; table-layout:fixed; }
+  .table-card th { padding:11px 8px; font-size:11.5px; overflow:hidden; text-overflow:ellipsis; }
+  .table-card td { padding:10px 8px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .table-card::-webkit-scrollbar { height:12px; }
   .table-card::-webkit-scrollbar-track { background:#f2f5f4; border-radius:999px; }
   .table-card::-webkit-scrollbar-thumb { background:#cbd8d4; border-radius:999px; border:3px solid #f2f5f4; }
@@ -77,7 +77,7 @@
   th.sortable:hover { color:var(--ink); }
   .num { color:var(--gray); font-weight:800; }
   /* 인라인 편집 select (엑셀 드롭다운) */
-  .sel { border:1px solid var(--line); border-radius:8px; padding:6px 6px; font:700 12px Pretendard; background:#fff; color:var(--ink); cursor:pointer; max-width:110px; }
+  .sel { border:1px solid var(--line); border-radius:8px; padding:6px 6px; font:700 12px Pretendard; background:#fff; color:var(--ink); cursor:pointer; max-width:100%; }
   .sel:focus { outline:none; border-color:var(--accent); }
   .sel[data-p="계약완료"] { background:#e8f7f2; color:#0a6a5e; border-color:#cdeee5; }
   .sel[data-p="투어종료"] { background:#eef1f0; color:#5b6a66; border-color:#dfe5e3; }
@@ -287,6 +287,14 @@ function render() {
   const nums = rowNumbers();
 
   $("list").innerHTML = `<table>
+    <colgroup>
+      <col style="width:40px"><col style="width:96px"><col style="width:118px">
+      <col style="width:96px"><col style="width:96px"><col style="width:46px">
+      <col style="width:62px"><col style="width:106px"><col style="width:76px">
+      <col style="width:88px"><col style="width:112px"><col style="width:86px">
+      <col style="width:88px"><col style="width:98px"><col style="width:82px">
+      <col style="width:130px">
+    </colgroup>
     <thead><tr>
       <th>번호</th>
       <th class="sortable" data-k="book">예약일${arrow("book")}</th>
