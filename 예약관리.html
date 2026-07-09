@@ -143,9 +143,8 @@
   <h1>📋 예약관리 <b id="hName"></b></h1>
   <span class="who" id="hMeta"></span>
   <span class="hd-acts">
+    <a class="hbtn" href="예약목록.html">← 예약 목록</a>
     <button class="hbtn" id="importDocxBtn">📄 Word 계약서 가져오기</button>
-    <button class="hbtn" id="makeQuoteBtn">📝 견적서 만들기</button>
-    <a class="hbtn" id="quoteLink" href="#" target="_blank">📄 견적서</a>
     <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 고객 확정일정표</a>
     <a class="hbtn" id="contractLink" href="#" target="_blank">📜 여행계약서</a>
     <button class="hbtn" id="copyLinkBtn">🔗 고객 링크 복사</button>
@@ -243,23 +242,11 @@ function init() {
   const paxTot = (PRE.adult||0)+(PRE.child||0)+(PRE.infant||0);
   $("hName").textContent = PRE.name || "-";
   $("hMeta").textContent = `${PRE.destination || "-"} · ${PRE.depart || "?"} ~ ${PRE.return_ || "?"} · ${paxTot}명 · 현재상태 [${PRE.status}]`;
-  $("quoteLink").href = PRE.token ? "견적서.html?t=" + encodeURIComponent(PRE.token) : "#";
   $("confirmLink").href = PRE.token ? "확정일정표.html?t=" + encodeURIComponent(PRE.token) : "#";
   $("contractLink").href = PRE.token ? "계약서.html?t=" + encodeURIComponent(PRE.token) : "#";
   $("undoBtn").onclick = resetToSaved;
   $("copyLinkBtn").onclick = () => {
     copyCustomerLink();
-  };
-  /* 견적 없이 들어온 예약(카톡·엑셀)에도 견적을 만들어 붙일 수 있게 — admin.html의 견적서 만들기와 동일 흐름 */
-  $("makeQuoteBtn").textContent = PRE.quote ? "📝 견적서 수정" : "📝 견적서 만들기";
-  $("makeQuoteBtn").onclick = () => {
-    localStorage.setItem("leaders_prefill", JSON.stringify({
-      id: PRE.id, token: PRE.token || "", adminToken: ADMIN_TOKEN,
-      name: PRE.name || "", depart: PRE.depart || "", return_: PRE.return_ || "",
-      adult: PRE.adult || 0, child: PRE.child || 0, infant: PRE.infant || 0,
-      destination: PRE.destination || "", vehicle: PRE.vehicle || "", quote: PRE.quote || null,
-    }));
-    window.open("견적만들기.html", "_blank");
   };
   /* 기존 Word 여행계약서(.docx)에서 여행자·항공·금액·일정을 자동 추출 */
   $("importDocxBtn").onclick = () => $("docxFile").click();
@@ -448,7 +435,7 @@ function render() {
     <div class="sec-h">
       <h2><span class="n">1</span>확정 일정표</h2>
       <span style="display:flex; gap:8px;">
-        <button class="hbtn" id="pullQuote">↺ 견적 일정 불러오기</button>
+        ${PRE.quote ? `<button class="hbtn" id="pullQuote">↺ 견적 일정 불러오기</button>` : ""}
         <button class="hbtn" id="addDay">＋ 일차 추가</button>
       </span>
     </div>
@@ -676,7 +663,7 @@ function pullForm() {
 }
 
 function bindEvents() {
-  $("pullQuote").onclick = () => {
+  if ($("pullQuote")) $("pullQuote").onclick = () => {
     if (!PRE.quote) return toast("발행된 견적이 없어요 — 먼저 견적서를 만들어 주세요");
     if (BK.days.length && !confirm("현재 확정 일정을 견적서 일정으로 교체할까요?")) return;
     pullForm(); BK.days = daysFromQuote(PRE.quote); render(); toast("견적 일정을 가져왔어요 — 수정 후 저장하세요");
@@ -893,10 +880,11 @@ async function save(opts = {}) {
     if (miss.length && !confirm(`누락 항목이 있어요: ${miss.join(", ")}\n그래도 '예약확정'으로 저장할까요?`)) return;
   }
   const patch = { booking: BK };
-  /* 대표 고객명·여행 기간을 booking과 함께 저장 — Word 가져오기로 갱신한 값이 목록·문서에 반영되게 */
+  /* 대표 고객명·여행 기간·인원을 booking과 함께 저장 — Word 가져오기로 갱신한 값이 목록·문서에 반영되게 */
   if (PRE.name) patch.name = PRE.name;
   if (PRE.depart) patch.depart = PRE.depart;
   if (PRE.return_) patch.return_ = PRE.return_;
+  patch.adult = PRE.adult || 0; patch.child = PRE.child || 0; patch.infant = PRE.infant || 0;
   if (opts.resetContract) patch.resetContract = true;   // 서버의 서명 보존을 명시적으로 해제
   if ($("setStatus").checked) patch.status = "예약확정";
   $("saveBtn").disabled = true; $("saveBtn").textContent = "저장 중…";
@@ -993,8 +981,11 @@ function dxParseContractTable(rows, out) {
       else if (label === "여행경비") mo.totalAmount = dxNum(val);
       else if (label === "예약금") mo.depositAmount = dxNum(val);
       else if (label.startsWith("잔금")) mo.balanceAmount = dxNum(val);
+      else if (label === "인원수" || label === "인원") out.pax = dxNum(val);
     }
   }
+  // 인원수 명시가 없으면 여행자 명단 수로 대체
+  if (!out.pax && out.travelers.length) out.pax = out.travelers.length;
 }
 
 /* [숙소정보] 표: 날짜|인원|지역|유형|개수|룸타입|숙소명 — 일정표 stay 매칭·안내용 (배정은 직접 선택) */
@@ -1061,7 +1052,7 @@ function dxParseScheduleTable(rows, out) {
 }
 
 function parseContractDocx(xml) {
-  const out = { travelers: [], flight: {}, money: {}, lodges: [], days: null, guideText: "", warnings: [] };
+  const out = { travelers: [], flight: {}, money: {}, lodges: [], days: null, guideText: "", pax: 0, warnings: [] };
   const tables = docxTables(xml);
   if (!tables.length) throw new Error("계약서에서 표를 찾지 못했어요");
   const flat = rows => rows.map(r => r.join(" ")).join(" ");
@@ -1098,11 +1089,14 @@ async function importDocx(e) {
     const leadName = r.travelers[0] && r.travelers[0].nameKo ? r.travelers[0].nameKo : "";
     const newName = leadName ? (r.travelers.length > 1 ? `${leadName} 외 ${r.travelers.length - 1}명` : leadName) : "";
     const newDepart = r.flight.inDate || "", newReturn = r.flight.outDate || "";
+    const curPax = (PRE.adult||0)+(PRE.child||0)+(PRE.infant||0);
+    const newPax = r.pax && r.pax !== curPax ? r.pax : 0;   // 인원수 변경 시에만 갱신
     let msg = `Word 계약서에서 ${parts.join(" · ")}를 찾았어요.\n폼의 해당 항목을 이 내용으로 교체할까요?`;
-    if (newName || newDepart) {
+    if (newName || newDepart || newPax) {
       const bits = [];
       if (newName) bits.push(`고객명 → ${newName}`);
       if (newDepart) bits.push(`여행 기간 → ${newDepart} ~ ${newReturn || "?"}`);
+      if (newPax) bits.push(`인원 → ${newPax}명`);
       msg += `\n\n· 예약 기본정보도 Word 기준으로 갱신됩니다: ${bits.join(" · ")}`;
     }
     msg += "\n\n※ 가이드·차량·숙소 배정은 자동으로 채우지 않아요 — 사진·소개가 붙도록 배정 섹션에서 리소스로 직접 선택하세요.";
@@ -1115,10 +1109,11 @@ async function importDocx(e) {
     if (has.fl) BK.flight = { ...BK.flight, ...r.flight };
     if (has.mo) BK.contractInfo = { ...BK.contractInfo, ...r.money };
     if (has.days) BK.days = r.days;
-    /* 대표 고객명·여행 기간은 레코드(top-level) 필드 — save()에서 함께 PATCH되어 목록·문서에 반영됨 */
+    /* 대표 고객명·여행 기간·인원은 레코드(top-level) 필드 — save()에서 함께 PATCH되어 목록·문서에 반영됨 */
     if (newName) PRE.name = newName;
     if (newDepart) PRE.depart = newDepart;
     if (newReturn) PRE.return_ = newReturn;
+    if (newPax) { PRE.adult = newPax; PRE.child = 0; PRE.infant = 0; }
     $("hName").textContent = PRE.name || "-";
     const paxTot = (PRE.adult||0)+(PRE.child||0)+(PRE.infant||0);
     $("hMeta").textContent = `${PRE.destination || "-"} · ${PRE.depart || "?"} ~ ${PRE.return_ || "?"} · ${paxTot}명 · 현재상태 [${PRE.status}]`;
