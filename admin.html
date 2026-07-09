@@ -706,25 +706,40 @@ async function updateStatus(id,s){
   if (!r) return;
   const prev = r.status || "신규";
 
-  // ── 예약확정 트리거: 발행된 견적이 있어야 하고, 확정 순간 견적 일정을 booking으로 승계 ──
-  // (booking.js의 seedBookingFromQuote — 예약관리와 동일본. 이미 booking이 있으면 손대지 않음/멱등)
-  let seeded = false;
+  let seeded = false, removedBooking = false;
+  const prevBooking = r.booking || null;
   const patch = { status: s };
+
   if (s === "예약확정") {
+    // ── 예약확정 트리거: 발행된 견적이 있어야 하고, 확정 순간 견적 일정을 booking으로 승계 ──
+    // (booking.js의 seedBookingFromQuote — 예약관리와 동일본. 이미 booking이 있으면 손대지 않음/멱등)
     if (!r.quote) { toast("⚠ 견적서를 먼저 발행해야 예약확정할 수 있어요"); return; }
     if (!r.booking) { r.booking = seedBookingFromQuote(r); seeded = true; patch.booking = r.booking; }
+  } else if (prev === "예약확정" && (s === "신규" || s === "진행중") && r.booking) {
+    // ── 예약확정 해제(견적 단계 복귀): 예약관리 목록에서 빠지도록 booking 정리 ──
+    // 확정 시 자동 생성만 된 상태(autoSeeded)면 손실이 없으니 조용히 제거,
+    // 예약관리에서 직접 입력한 배정·계약 정보가 있으면 삭제 여부를 확인. (완료/보류로 갈 땐 유지)
+    if (!r.booking.autoSeeded &&
+        !confirm("이 예약에 입력한 배정·계약 정보가 있어요.\n'예약확정'을 해제하면 예약관리 목록에서 빠지고, 입력한 예약 정보는 삭제됩니다.\n계속할까요?")) {
+      return;   // 취소 — 상태 유지
+    }
+    r.booking = null; patch.booking = null; removedBooking = true;
   }
 
   r.status = s;
   render(); openDrawer(id);
   const res = await persist(id, patch);
   if (res.ok) {
-    toast(seeded ? "예약확정 — 견적 일정을 예약으로 옮겼어요" : `상태가 "${s}"(으)로 저장됐어요`);
+    toast(seeded ? "예약확정 — 견적 일정을 예약으로 옮겼어요"
+        : removedBooking ? `예약확정 해제 — 예약관리에서 제외됐어요 (상태: ${s})`
+        : `상태가 "${s}"(으)로 저장됐어요`);
     // ※ 고객 확정 안내(확정일정표/알림톡) 자동 발송 훅은 여기에 연결 예정 (이번 범위 제외)
     return;
   }
-  r.status = prev;               // 저장 실패 → 되돌리기
-  if (seeded) delete r.booking;  // 이번에 만든 booking도 함께 롤백
+  // 저장 실패 → 되돌리기
+  r.status = prev;
+  if (seeded) r.booking = null;              // 이번에 만든 booking 롤백
+  if (removedBooking) r.booking = prevBooking;  // 제거한 booking 복원
   render(); openDrawer(id);
   toast("⚠ 상태 저장 실패: " + res.error);
 }

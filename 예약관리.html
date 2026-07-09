@@ -845,6 +845,7 @@ async function save(opts = {}) {
     const miss = assignStats().missing.filter(m => m !== "계약 미서명" || !opts.resetContract);
     if (miss.length && !confirm(`누락 항목이 있어요: ${miss.join(", ")}\n그래도 '예약확정'으로 저장할까요?`)) return;
   }
+  BK.autoSeeded = false;   // 예약관리에서 직접 저장 = 수동 관리 시작 (확정 해제 시 자동삭제 대상에서 제외)
   const patch = { booking: BK };
   /* 대표 고객명·여행 기간·인원을 booking과 함께 저장 — Word 가져오기로 갱신한 값이 목록·문서에 반영되게 */
   if (PRE.name) patch.name = PRE.name;

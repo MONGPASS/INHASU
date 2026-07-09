@@ -19,6 +19,7 @@ function blankBooking() {
     contract: null,   // 고객 서명 시 서버(/api/sign)가 채움 — {signedAt, signImg, snapshot…}
     highlights: [],   // 대표 명소 — 확정일정표 "대표 명소" 페이지에 노출 {nameMn,name,desc,img,subImgs}
     notes: "", adminMemo: "",
+    autoSeeded: false,  // 예약확정 시 견적에서 자동 생성만 된 상태 여부 (예약관리에서 저장하면 false로 해제)
   };
 }
 
@@ -92,5 +93,6 @@ function seedBookingFromQuote(rec) {
     cashReceipt: fin.cashReceipt || "",
   };
   bk.flight = { ...bk.flight, inDate: rec.depart || "", outDate: rec.return_ || "" };
+  bk.autoSeeded = true;   // 확정 시 자동 생성만 된 상태 — 확정 해제(진행중/신규 복귀) 시 조용히 정리 가능
   return bk;
 }
