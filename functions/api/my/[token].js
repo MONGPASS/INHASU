@@ -40,6 +40,31 @@ export async function onRequestGet({ env, params }) {
     const booking = bk ? {
       confirmedAt: bk.confirmedAt || "",
       days: Array.isArray(bk.days) ? bk.days : [],
+      travelers: Array.isArray(bk.travelers) ? bk.travelers.map(t => ({
+        nameKo: t.nameKo || "",
+        passportName: t.passportName || "",
+        birth: t.birth || "",
+        phone: t.phone || "",
+        gender: t.gender || "",
+        passportNo: t.passportNo || "",
+      })) : [],
+      flight: bk.flight ? {
+        inDate: bk.flight.inDate || "",
+        inTime: bk.flight.inTime || "",
+        inNo: bk.flight.inNo || "",
+        outDate: bk.flight.outDate || "",
+        outTime: bk.flight.outTime || "",
+        outNo: bk.flight.outNo || "",
+      } : null,
+      contractInfo: {
+        productName: (bk.contractInfo && bk.contractInfo.productName) || rec.destination || "",
+        region: (bk.contractInfo && bk.contractInfo.region) || rec.destination || "",
+        totalAmount: Number((bk.contractInfo && bk.contractInfo.totalAmount) || (rec.finance && rec.finance.salesAmount) || 0),
+        depositAmount: Number((bk.contractInfo && bk.contractInfo.depositAmount) || (rec.finance && rec.finance.depositAmount) || 0),
+        balanceAmount: Number((bk.contractInfo && bk.contractInfo.balanceAmount) || (rec.finance && rec.finance.balanceAmount) || 0),
+        cashReceipt: (bk.contractInfo && bk.contractInfo.cashReceipt) || (rec.finance && rec.finance.cashReceipt) || "",
+        note: (bk.contractInfo && bk.contractInfo.note) || "",
+      },
       // notes(추가 메모)는 내부 참고용 — 고객에게 반환하지 않음
       assign: safeAssign(bk.assign),
       // 계약 서명 상태 — 본인 서명 이미지·서명 시각만 (IP·기기 정보는 반환 안 함)

@@ -111,6 +111,10 @@ const S = signed && BK.contract.snapshot ? BK.contract.snapshot : R;
 const paxTxt = [S.adult ? `성인 ${S.adult}` : "", S.child ? `아동 ${S.child}` : "", S.infant ? `유아 ${S.infant}` : ""].filter(Boolean).join(" · ") || "-";
 const period = S.depart ? `${S.depart}${S.return_ ? " ~ " + S.return_ : ""}${S.nights ? ` (${S.nights}박 ${S.nights + 1}일)` : ""}` : "-";
 const fmtDT = iso => { try { const d = new Date(iso); return `${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; } catch(e){ return iso; } };
+const money = n => Number(n || 0) ? `₩${Number(n).toLocaleString("ko-KR")}` : "-";
+const travelers = signed && S.travelers ? S.travelers : (Array.isArray(BK.travelers) ? BK.travelers : []);
+const flight = (signed && S.flight) ? S.flight : (BK.flight || {});
+const contractInfo = (signed && S.contractInfo) ? S.contractInfo : (BK.contractInfo || {});
 
 const card = inner => `<div class="card"><div class="pad">${inner}</div></div>`;
 const numList = arr => `<div class="num-list">${arr.map((t, i) => `<div class="it"><b>${i + 1}</b><span>${t}</span></div>`).join("")}</div>`;
@@ -138,6 +142,56 @@ const secHead = card(`
         </div>`).join("")}
     </div>
     <div style="margin-top:12px; font-size:10.5px; color:#8CA39D; line-height:1.7;">몽골 현지 사업자 등록번호: 9011640064(SUUNZAM) · 국내 대행사 사업자 등록번호: 730-54-00614(헬로볼라)</div>
+  </div>`);
+
+const simpleTable = rows => `<div style="border:1px solid #DDEBE6; border-radius:14px; overflow:hidden; font-size:12px;">
+  ${rows.map(([k, v], i) => `<div style="display:grid; grid-template-columns:108px 1fr; ${i ? "border-top:1px solid #EAF3EF;" : ""}">
+    <div style="background:#EAF7F3; color:#0A6A5E; font-weight:800; padding:11px;">${k}</div>
+    <div style="padding:11px; color:#152C28; font-weight:650; line-height:1.55;">${v}</div>
+  </div>`).join("")}
+</div>`;
+
+const secContractDetail = card(`
+  <div class="blk">
+    <div class="sec-eyebrow">CONTRACT DETAILS</div>
+    <div class="sec-title">여행자 · 항공 · 금액 정보</div>
+  </div>
+  <div class="blk" style="margin-top:14px;">
+    <div class="h-bar"><span class="bar"></span>여행상품 정보</div>
+    ${simpleTable([
+      ["여행상품명", esc(contractInfo.productName || R.destination || "-")],
+      ["여행지역", esc(contractInfo.region || R.destination || "-")],
+      ["여행경비", money(contractInfo.totalAmount)],
+      ["예약금", money(contractInfo.depositAmount)],
+      ["잔금", money(contractInfo.balanceAmount)],
+      ["현금영수증", esc(contractInfo.cashReceipt || "-")],
+      ["비고", esc(contractInfo.note || "-")],
+    ])}
+  </div>
+  <div class="blk" style="margin-top:14px;">
+    <div class="h-bar"><span class="bar"></span>항공 정보</div>
+    ${simpleTable([
+      ["몽골 도착", `${esc(flight.inDate || S.depart || "-")} ${esc(flight.inTime || "")} · ${esc(flight.inNo || "-")}`],
+      ["몽골 출발", `${esc(flight.outDate || S.return_ || "-")} ${esc(flight.outTime || "")} · ${esc(flight.outNo || "-")}`],
+    ])}
+  </div>
+  <div class="blk" style="margin-top:14px;">
+    <div class="h-bar"><span class="bar"></span>여행자 정보</div>
+    ${travelers.length ? `<div style="border:1px solid #DDEBE6; border-radius:14px; overflow:hidden;">
+      <table style="width:100%; border-collapse:collapse; font-size:10.8px;">
+        <thead><tr style="background:#EAF7F3; color:#0A6A5E;">
+          <th style="padding:8px; text-align:left;">한글명</th><th style="padding:8px; text-align:left;">여권명</th><th style="padding:8px; text-align:left;">여권번호</th><th style="padding:8px; text-align:left;">생년월일</th><th style="padding:8px; text-align:left;">연락처</th><th style="padding:8px; text-align:left;">성별</th>
+        </tr></thead>
+        <tbody>${travelers.map(t => `<tr style="border-top:1px solid #EAF3EF;">
+          <td style="padding:8px; font-weight:700;">${esc(t.nameKo || "-")}</td>
+          <td style="padding:8px;">${esc(t.passportName || "-")}</td>
+          <td style="padding:8px;">${esc(t.passportNo || "-")}</td>
+          <td style="padding:8px;">${esc(t.birth || "-")}</td>
+          <td style="padding:8px;">${esc(t.phone || "-")}</td>
+          <td style="padding:8px;">${esc(t.gender || "-")}</td>
+        </tr>`).join("")}</tbody>
+      </table>
+    </div>` : `<div style="font-size:12px; color:#8CA39D; border:1px solid #DDEBE6; border-radius:14px; padding:14px;">등록된 여행자 상세 정보가 없습니다.</div>`}
   </div>`);
 
 /* ── 2) 위험 고지 ── */
@@ -224,7 +278,7 @@ const secSign = signed ? card(`
     <div style="margin-top:10px; font-size:10.5px; color:#8CA39D; line-height:1.6; text-align:center;">서명 후에는 계약 내용이 동결 보관되며, 수정이 필요하면 카카오톡으로 문의해 주세요.</div>
   </div>`);
 
-root.innerHTML = secHead + secRisk + secTerms + secSign;
+root.innerHTML = secHead + secContractDetail + secRisk + secTerms + secSign;
 document.getElementById("fab").style.display = signed ? "" : "none";
 document.title = `몽골리아 은하수_${esc(S.name || R.name)}님_여행계약서`;
 

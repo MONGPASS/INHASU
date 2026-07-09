@@ -164,6 +164,9 @@ function blankBooking() {
     days: [],
     assign: { guide:{name:"",nameEn:"",role:"",phone:"",qr:"",img:"",desc:""},
               vehicle:{model:"",seats:"",plate:"",img:"",imgs:[],desc:""}, lodges:[] },
+    travelers: [],
+    flight: { inDate:"", inTime:"", inNo:"", outDate:"", outTime:"", outNo:"" },
+    contractInfo: { productName:"", region:"", totalAmount:0, depositAmount:0, balanceAmount:0, cashReceipt:"", note:"" },
     checklist: { deposit:false, balance:false, flight:false, insurance:false, contract:false },
     contract: null,   // 고객 서명 시 서버(/api/sign)가 채움 — {signedAt, signImg, snapshot…}
     notes: "", adminMemo: "",
@@ -178,6 +181,9 @@ function normBooking(b) {
       guide: { ...base.assign.guide, ...((b.assign||{}).guide || {}) },
       vehicle: { ...base.assign.vehicle, ...((b.assign||{}).vehicle || {}) },
       lodges: Array.isArray((b.assign||{}).lodges) ? b.assign.lodges : [] },
+    travelers: Array.isArray(b.travelers) ? b.travelers : [],
+    flight: { ...base.flight, ...(b.flight || {}) },
+    contractInfo: { ...base.contractInfo, ...(b.contractInfo || {}) },
     checklist: { ...base.checklist, ...(b.checklist || {}) },
   };
 }
@@ -186,6 +192,21 @@ const daysFromQuote = q => (q && Array.isArray(q.days)) ? JSON.parse(JSON.string
 
 function init() {
   BK = normBooking(PRE.booking);
+  const fin = PRE.finance || {};
+  BK.contractInfo = {
+    ...BK.contractInfo,
+    productName: BK.contractInfo.productName || PRE.destination || "",
+    region: BK.contractInfo.region || PRE.destination || "",
+    totalAmount: BK.contractInfo.totalAmount || fin.salesAmount || 0,
+    depositAmount: BK.contractInfo.depositAmount || fin.depositAmount || 0,
+    balanceAmount: BK.contractInfo.balanceAmount || fin.balanceAmount || 0,
+    cashReceipt: BK.contractInfo.cashReceipt || fin.cashReceipt || "",
+  };
+  BK.flight = {
+    ...BK.flight,
+    inDate: BK.flight.inDate || PRE.depart || "",
+    outDate: BK.flight.outDate || PRE.return_ || "",
+  };
   SAVED_BK_JSON = JSON.stringify(BK);
   const paxTot = (PRE.adult||0)+(PRE.child||0)+(PRE.infant||0);
   $("hName").textContent = PRE.name || "-";
@@ -376,8 +397,26 @@ function lodgeRow(l, i) {
   </div>`;
 }
 
+function travelerRow(t, i) {
+  return `<div class="traveler-row" data-ti="${i}" style="border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;">
+    <div class="grid3">
+      <label class="f"><span>한글명</span><input data-tk="nameKo" value="${esc(t.nameKo || "")}" placeholder="김세준"></label>
+      <label class="f"><span>여권명</span><input data-tk="passportName" value="${esc(t.passportName || "")}" placeholder="KIM SEJUN"></label>
+      <label class="f"><span>생년월일</span><input data-tk="birth" value="${esc(t.birth || "")}" placeholder="2002.11.02"></label>
+    </div>
+    <div class="grid4" style="margin-top:10px;">
+      <label class="f"><span>연락처</span><input data-tk="phone" value="${esc(t.phone || "")}" placeholder="010-0000-0000"></label>
+      <label class="f"><span>성별</span><select data-tk="gender">${["","남","여"].map(g => `<option value="${g}" ${t.gender === g ? "selected" : ""}>${g || "선택"}</option>`).join("")}</select></label>
+      <label class="f"><span>여권번호</span><input data-tk="passportNo" value="${esc(t.passportNo || "")}"></label>
+      <button class="del-lodge" data-del-traveler="${i}" title="여행자 삭제">×</button>
+    </div>
+  </div>`;
+}
+
 function render() {
   const a = BK.assign, c = BK.checklist;
+  const fl = BK.flight || {};
+  const ci = BK.contractInfo || {};
   $("main").innerHTML = summaryHtml() + `
   <section class="card">
     <div class="sec-h">
@@ -445,10 +484,47 @@ function render() {
     </div>
   </section>
 
+  <section class="card">
+    <div class="sec-h"><h2><span class="n">3</span>계약 기본정보</h2>
+      <span class="tip">계약서 PDF에 표시되는 고객·항공·금액 정보입니다</span></div>
+    <div class="assign-box">
+      <div class="subtt">👥 여행자 정보</div>
+      <div id="travelerWrap">${(BK.travelers || []).map(travelerRow).join("")}</div>
+      <button class="addbtn" id="addTraveler">＋ 여행자 추가</button>
+    </div>
+    <div class="assign-box">
+      <div class="subtt">✈️ 항공 정보</div>
+      <div class="grid3">
+        <label class="f"><span>몽골 도착일</span><input id="fl_inDate" value="${esc(fl.inDate || PRE.depart || "")}" placeholder="2026-08-25"></label>
+        <label class="f"><span>몽골 도착시간</span><input id="fl_inTime" value="${esc(fl.inTime || "")}" placeholder="04:30"></label>
+        <label class="f"><span>도착 항공편명</span><input id="fl_inNo" value="${esc(fl.inNo || "")}" placeholder="OM310"></label>
+      </div>
+      <div class="grid3" style="margin-top:10px;">
+        <label class="f"><span>몽골 출발일</span><input id="fl_outDate" value="${esc(fl.outDate || PRE.return_ || "")}" placeholder="2026-08-31"></label>
+        <label class="f"><span>몽골 출발시간</span><input id="fl_outTime" value="${esc(fl.outTime || "")}" placeholder="20:30"></label>
+        <label class="f"><span>출발 항공편명</span><input id="fl_outNo" value="${esc(fl.outNo || "")}" placeholder="OM309"></label>
+      </div>
+    </div>
+    <div class="assign-box">
+      <div class="subtt">💳 계약·정산 정보</div>
+      <div class="grid3">
+        <label class="f"><span>여행상품명</span><input id="ci_productName" value="${esc(ci.productName || PRE.destination || "")}" placeholder="남고비 사막앤초원"></label>
+        <label class="f"><span>여행지역</span><input id="ci_region" value="${esc(ci.region || PRE.destination || "")}" placeholder="남고비"></label>
+        <label class="f"><span>현금영수증</span><input id="ci_cashReceipt" value="${esc(ci.cashReceipt || "")}" placeholder="완료 / 예정 / 해당x"></label>
+      </div>
+      <div class="grid3" style="margin-top:10px;">
+        <label class="f"><span>여행경비</span><input id="ci_totalAmount" type="number" value="${esc(ci.totalAmount || 0)}" placeholder="6900000"></label>
+        <label class="f"><span>예약금</span><input id="ci_depositAmount" type="number" value="${esc(ci.depositAmount || 0)}" placeholder="250000"></label>
+        <label class="f"><span>잔금</span><input id="ci_balanceAmount" type="number" value="${esc(ci.balanceAmount || 0)}" placeholder="6650000"></label>
+      </div>
+      <label class="f" style="margin-top:10px;"><span>계약서 비고/기타사항</span><textarea id="ci_note" rows="3" placeholder="추가 안내사항">${esc(ci.note || "")}</textarea></label>
+    </div>
+  </section>
+
   ${importedInfoHtml()}
 
   <section class="card">
-    <div class="sec-h"><h2><span class="n">4</span>체크리스트 · 메모</h2></div>
+    <div class="sec-h"><h2><span class="n">5</span>체크리스트 · 메모</h2></div>
     <label class="chk"><input type="checkbox" id="c_deposit" ${c.deposit ? "checked" : ""}> 예약금 입금 확인</label>
     <label class="chk"><input type="checkbox" id="c_balance" ${c.balance ? "checked" : ""}> 잔금 수령 (현장)</label>
     <label class="chk"><input type="checkbox" id="c_flight" ${c.flight ? "checked" : ""}> 항공권 발권 확인</label>
@@ -522,6 +598,20 @@ function pullForm() {
   if (vlib.img) BK.assign.vehicle.img = vlib.img;
   BK.assign.vehicle.imgs = Array.isArray(vlib.imgs) ? vlib.imgs : (vlib.img ? [vlib.img] : []);
   BK.assign.vehicle.desc = g("v_desc") || vlib.desc || "";
+  BK.travelers = [...document.querySelectorAll(".traveler-row")].map(el => ({
+    nameKo: (el.querySelector('[data-tk="nameKo"]') || {}).value?.trim() || "",
+    passportName: (el.querySelector('[data-tk="passportName"]') || {}).value?.trim() || "",
+    birth: (el.querySelector('[data-tk="birth"]') || {}).value?.trim() || "",
+    phone: (el.querySelector('[data-tk="phone"]') || {}).value?.trim() || "",
+    gender: (el.querySelector('[data-tk="gender"]') || {}).value || "",
+    passportNo: (el.querySelector('[data-tk="passportNo"]') || {}).value?.trim() || "",
+  })).filter(t => t.nameKo || t.passportName || t.phone || t.passportNo);
+  BK.flight = { inDate:g("fl_inDate"), inTime:g("fl_inTime"), inNo:g("fl_inNo"),
+                outDate:g("fl_outDate"), outTime:g("fl_outTime"), outNo:g("fl_outNo") };
+  BK.contractInfo = {
+    productName:g("ci_productName"), region:g("ci_region"), cashReceipt:g("ci_cashReceipt"), note:$("ci_note") ? $("ci_note").value : "",
+    totalAmount:Number(g("ci_totalAmount")) || 0, depositAmount:Number(g("ci_depositAmount")) || 0, balanceAmount:Number(g("ci_balanceAmount")) || 0,
+  };
   // 체크리스트·메모
   BK.checklist = { deposit:$("c_deposit").checked, balance:$("c_balance").checked, flight:$("c_flight").checked,
                    insurance:$("c_insurance").checked, contract:$("c_contract").checked };
@@ -541,6 +631,10 @@ function bindEvents() {
   $("addLodge").onclick = () => { pullForm(); BK.assign.lodges.push({ day:BK.assign.lodges.length+1, name:"", grade:"" }); render(); };
   document.querySelectorAll("[data-del-lodge]").forEach(b => b.onclick = () => {
     pullForm(); BK.assign.lodges.splice(Number(b.dataset.delLodge), 1); render();
+  });
+  $("addTraveler").onclick = () => { pullForm(); BK.travelers.push({ nameKo:"", passportName:"", birth:"", phone:"", gender:"", passportNo:"" }); render(); };
+  document.querySelectorAll("[data-del-traveler]").forEach(b => b.onclick = () => {
+    pullForm(); BK.travelers.splice(Number(b.dataset.delTraveler), 1); render();
   });
   const lf = $("lodgeFromDays");
   if (lf) lf.onclick = () => {

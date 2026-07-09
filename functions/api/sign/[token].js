@@ -44,6 +44,8 @@ export async function onRequestPost({ request, env, params }) {
       return json({ ok: false, error: "already signed" }, 409);
 
     // 서명 시점의 계약 내용 동결 — 이후 예약 정보가 바뀌어도 서명 당시 내용이 남습니다
+    const bk = rec.booking || {};
+    const ci = bk.contractInfo || {};
     const contract = {
       signedAt: new Date().toISOString(),
       signImg: sig,
@@ -56,8 +58,22 @@ export async function onRequestPost({ request, env, params }) {
         return_: rec.return_ || "",
         nights: rec.nights || null,
         adult: rec.adult || 0, child: rec.child || 0, infant: rec.infant || 0,
-        confirmedAt: rec.booking.confirmedAt || "",
-        dayCount: Array.isArray(rec.booking.days) ? rec.booking.days.length : 0,
+        confirmedAt: bk.confirmedAt || "",
+        dayCount: Array.isArray(bk.days) ? bk.days.length : 0,
+        travelers: Array.isArray(bk.travelers) ? bk.travelers.map(t => ({
+          nameKo: t.nameKo || "", passportName: t.passportName || "", birth: t.birth || "",
+          phone: t.phone || "", gender: t.gender || "", passportNo: t.passportNo || "",
+        })) : [],
+        flight: bk.flight || null,
+        contractInfo: {
+          productName: ci.productName || rec.destination || "",
+          region: ci.region || rec.destination || "",
+          totalAmount: Number(ci.totalAmount || (rec.finance && rec.finance.salesAmount) || 0),
+          depositAmount: Number(ci.depositAmount || (rec.finance && rec.finance.depositAmount) || 0),
+          balanceAmount: Number(ci.balanceAmount || (rec.finance && rec.finance.balanceAmount) || 0),
+          cashReceipt: ci.cashReceipt || (rec.finance && rec.finance.cashReceipt) || "",
+          note: ci.note || "",
+        },
       },
       // 법적 증빙 보조 (분쟁 대비): 접속 IP·기기 정보
       ip: request.headers.get("CF-Connecting-IP") || "",
