@@ -304,7 +304,6 @@ const pgQuote = `
     ${hcell("여행지")}${cell(esc(Q.destination))}${hcell("인원")}${cell(esc(Q.paxNote))}
     ${hcell("여행 기간")}${cell(esc(Q.period) + "<br>(" + esc(Q.nights) + ")")}${hcell("차량")}${cell(esc(Q.vehicle))}
     ${hcell("항공권 IN", true)}${cell(esc(Q.flight.in), "#F3FAF8")}${hcell("항공권 OUT", true)}${cell(esc(Q.flight.out), "#F3FAF8")}
-    ${hcell("픽업")}${cell(esc(Q.pickup))}${hcell("드랍")}${cell(esc(Q.drop))}
     ${(Q.benefits || (Q.events || []).length) ? `${hcell("여행사 혜택")}${cell(esc(Q.benefits).replace(/, /g, ",<br>"))}${hcell("참여 가능 이벤트")}<div style="background:#fff; color:#152C28; font-weight:600; padding:11px 14px; font-size:11px; line-height:1.6; display:flex; flex-direction:column; justify-content:center;">${(Q.events || []).map(e => `<div>${esc(e)}</div>`).join("")}</div>` : ""}
     ${hcell("비고")}<div style="background:#fff; color:#152C28; font-weight:600; padding:13px 14px; display:flex; align-items:center; justify-content:center; grid-column:span 3;">${esc(Q.remark)}</div>
   </div>

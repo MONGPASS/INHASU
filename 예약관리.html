@@ -147,6 +147,7 @@
     <button class="hbtn" id="makeQuoteBtn">📝 견적서 만들기</button>
     <a class="hbtn" id="quoteLink" href="#" target="_blank">📄 견적서</a>
     <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 고객 확정일정표</a>
+    <a class="hbtn" id="contractLink" href="#" target="_blank">📜 여행계약서</a>
     <button class="hbtn" id="copyLinkBtn">🔗 고객 링크 복사</button>
   </span>
 </header>
@@ -244,6 +245,7 @@ function init() {
   $("hMeta").textContent = `${PRE.destination || "-"} · ${PRE.depart || "?"} ~ ${PRE.return_ || "?"} · ${paxTot}명 · 현재상태 [${PRE.status}]`;
   $("quoteLink").href = PRE.token ? "견적서.html?t=" + encodeURIComponent(PRE.token) : "#";
   $("confirmLink").href = PRE.token ? "확정일정표.html?t=" + encodeURIComponent(PRE.token) : "#";
+  $("contractLink").href = PRE.token ? "계약서.html?t=" + encodeURIComponent(PRE.token) : "#";
   $("undoBtn").onclick = resetToSaved;
   $("copyLinkBtn").onclick = () => {
     copyCustomerLink();
