@@ -7,6 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <script src="presets.js"></script>
+<script src="booking.js"></script>
 <style>
   :root { --accent:#06c4a0; --deep:#06c4a0; --deep2:#06c4a0; --soft:#eaf7f3;
     --ink:#1b2b28; --sub:#6b7c78; --gray:#9aa5a2; --line:#eceef1; --bg:#f6f8f9;
@@ -631,7 +632,7 @@ function openDrawer(id) {
         </span>
       </div>` : ""}
       ${r.quote ? `
-      <div class="pub-box" style="background:#e8effc; border-color:#c9dafb; color:#2b5cc4;">${r.booking ? "✓ 예약 진행 중" + (r.booking.contract && r.booking.contract.signedAt ? " · ✍ 서명완료" : " · 계약서 미서명") : "카톡 상담으로 확정되면 →"}
+      <div class="pub-box" style="background:#e8effc; border-color:#c9dafb; color:#2b5cc4;">${r.booking ? "✓ 예약 진행 중" + (r.booking.contract && r.booking.contract.signedAt ? " · ✍ 서명완료" : " · 계약서 미서명") : "상단 '예약확정'을 누르면 견적 일정이 예약으로 넘어가요 →"}
         <span class="acts">
           <button class="pb" id="bookBtn" style="border-color:#c9dafb; color:#2b5cc4;">${r.booking ? "📋 예약관리 열기" : "📋 예약관리 시작"}</button>
           ${r.booking && r.token ? `<a class="pb" style="border-color:#c9dafb; color:#2b5cc4;" href="확정일정표.html?t=${encodeURIComponent(r.token)}" target="_blank">🎫 확정일정표 보기</a>` : ""}
@@ -700,12 +701,28 @@ async function persist(id, patch) {
 async function updateStatus(id,s){
   // 낙관적 업데이트: 화면 먼저 즉시 반영 → 서버 저장은 뒤에서. 실패하면 원래 상태로 되돌림.
   const r = RECORDS.find(x => String(x.id) === String(id));
-  const prev = r ? (r.status || "신규") : undefined;
-  if (r) r.status = s;
+  if (!r) return;
+  const prev = r.status || "신규";
+
+  // ── 예약확정 트리거: 발행된 견적이 있어야 하고, 확정 순간 견적 일정을 booking으로 승계 ──
+  // (booking.js의 seedBookingFromQuote — 예약관리와 동일본. 이미 booking이 있으면 손대지 않음/멱등)
+  let seeded = false;
+  const patch = { status: s };
+  if (s === "예약확정") {
+    if (!r.quote) { toast("⚠ 견적서를 먼저 발행해야 예약확정할 수 있어요"); return; }
+    if (!r.booking) { r.booking = seedBookingFromQuote(r); seeded = true; patch.booking = r.booking; }
+  }
+
+  r.status = s;
   render(); openDrawer(id);
-  const res = await persist(id,{status:s});
-  if (res.ok) { toast(`상태가 "${s}"(으)로 저장됐어요`); return; }
-  if (r) r.status = prev;   // 저장 실패 → 되돌리기
+  const res = await persist(id, patch);
+  if (res.ok) {
+    toast(seeded ? "예약확정 — 견적 일정을 예약으로 옮겼어요" : `상태가 "${s}"(으)로 저장됐어요`);
+    // ※ 고객 확정 안내(확정일정표/알림톡) 자동 발송 훅은 여기에 연결 예정 (이번 범위 제외)
+    return;
+  }
+  r.status = prev;               // 저장 실패 → 되돌리기
+  if (seeded) delete r.booking;  // 이번에 만든 booking도 함께 롤백
   render(); openDrawer(id);
   toast("⚠ 상태 저장 실패: " + res.error);
 }
