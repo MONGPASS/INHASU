@@ -155,7 +155,7 @@ const ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
 const TYPES = {
   guides: {
     label: "가이드", icon: "👤", one: "가이드",
-    sub: r => [r.career && `경력 ${r.career}`, r.korean && `한국어 ${r.korean}`].filter(Boolean).join(" · "),
+    sub: r => [r.role, r.career && `경력 ${r.career}`, r.korean && `한국어 ${r.korean}`].filter(Boolean).join(" · "),
     get: () => window.getGuides(), save: o => window.saveGuides(o),
   },
   lodges: {
@@ -253,30 +253,41 @@ function fileToImage(file, maxW, quality) {
 function fieldRows(type, r) {
   if (type === "guides") return `
     <div class="row2">
+      <label class="f"><span>가이드 구분 (확정 일정표에 노출)</span><input id="f_role" list="roleList" value="${esc(r.role||"")}" placeholder="가이드 겸 드라이버"></label>
       <label class="f"><span>경력 (예: 7년)</span><input id="f_career" value="${esc(r.career||"")}"></label>
-      <label class="f"><span>한국어 수준 (예: 상급)</span><input id="f_korean" value="${esc(r.korean||"")}"></label>
     </div>
-    <label class="f"><span>연락처 (내부용 — 고객에게 안 보임)</span><input id="f_phone" value="${esc(r.phone||"")}"></label>
-    <label class="f"><span>한 줄 소개 (고객 확정안내에 노출)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
+    <datalist id="roleList"><option value="가이드 겸 드라이버"></option><option value="전문 가이드"></option><option value="전문 가이드 + 기사"></option></datalist>
+    <div class="row2">
+      <label class="f"><span>한국어 수준 (예: 상급)</span><input id="f_korean" value="${esc(r.korean||"")}"></label>
+      <label class="f"><span>전화번호 (확정 일정표에 노출 — 현지 연락처)</span><input id="f_phone" value="${esc(r.phone||"")}" placeholder="+976 8000-0000"></label>
+    </div>
+    <label class="f"><span>카카오톡 QR (확정 일정표에 노출 — 선택)</span></label>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <div id="qrBox" style="flex:none; width:84px; height:84px; border:1.5px dashed #CFE3DC; border-radius:10px; background:#F5FBF9; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;">${r.qr ? `<img src="${esc(r.qr)}" style="width:100%; height:100%; object-fit:contain;">` : `<span style="font-size:11px; color:#8CA39D; font-weight:700; text-align:center;">QR 업로드<br>(클릭)</span>`}</div>
+      <input id="f_qr" value="${esc(r.qr||"")}" placeholder="또는 이미지 URL 직접 입력" style="flex:1;">
+    </div>
+    <input type="file" id="fileQr" accept="image/*" style="display:none">
+    <div style="height:10px"></div>
+    <label class="f"><span>한 줄 소개 (확정 일정표에 노출)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
   if (type === "lodges") return `
     <div class="row2">
       <label class="f"><span>지역 (예: 홍고린엘스)</span><input id="f_region" value="${esc(r.region||"")}"></label>
-      <label class="f"><span>등급</span><select id="f_grade">
+      <label class="f"><span>등급 (확정 일정표에 노출)</span><select id="f_grade">
         ${["","일반게르","고급게르","호텔"].map(g => `<option value="${g}" ${r.grade===g?"selected":""}>${g||"선택"}</option>`).join("")}
       </select></label>
     </div>
     <label class="f"><span>시설 태그 (쉼표 — 예: 전기 O, 샤워 O, 와이파이 O)</span><input id="f_tags" value="${esc(r.tags||"")}"></label>
-    <label class="f"><span>소개 (선택)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
+    <label class="f"><span>숙소 설명 (확정 일정표 사진 아래 노출 — 예: 게르 내부 화장실 / 샤워실 / 세면대 구비)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
   return `
     <div class="row2">
-      <label class="f"><span>인승 (예: 9인승)</span><input id="f_seats" value="${esc(r.seats||"")}"></label>
+      <label class="f"><span>탑승 인원 (확정 일정표에 노출 — 예: 6인)</span><input id="f_seats" value="${esc(r.seats||"")}" placeholder="6인"></label>
       <label class="f"><span>차량번호 (내부용)</span><input id="f_plate" value="${esc(r.plate||"")}"></label>
     </div>
-    <label class="f"><span>메모 (선택)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
+    <label class="f"><span>차량 특징 (확정 일정표에 노출 — 예: 몽골 장거리 이동에 적합한 차량입니다.)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
 }
 function readFields(type, r) {
   const v = id => $(id) ? $(id).value.trim() : "";
-  if (type === "guides") { r.career=v("f_career"); r.korean=v("f_korean"); r.phone=v("f_phone"); r.desc=v("f_desc"); }
+  if (type === "guides") { r.role=v("f_role"); r.career=v("f_career"); r.korean=v("f_korean"); r.phone=v("f_phone"); r.qr=v("f_qr"); r.desc=v("f_desc"); }
   else if (type === "lodges") { r.region=v("f_region"); r.grade=v("f_grade"); r.tags=v("f_tags"); r.desc=v("f_desc"); }
   else { r.seats=v("f_seats"); r.plate=v("f_plate"); r.desc=v("f_desc"); }
   return r;
@@ -344,6 +355,27 @@ function openEdit(key) {
       $("upMain").innerHTML = draftImg ? `<img src="${draftImg}"><span class="change">사진 변경</span>` : `<div class="ph">사진 업로드 (클릭)</div>`;
     }
   };
+  /* 가이드 카카오톡 QR 업로드 — 대표 사진과 같은 파이프라인(WebP 축소 후 서버 저장) */
+  const qrBox = $("qrBox");
+  if (qrBox) {
+    const qrPreview = () => {
+      const u = $("f_qr").value.trim();
+      qrBox.innerHTML = u
+        ? `<img src="${u}" style="width:100%; height:100%; object-fit:contain;">`
+        : `<span style="font-size:11px; color:#8CA39D; font-weight:700; text-align:center;">QR 업로드<br>(클릭)</span>`;
+    };
+    qrBox.onclick = () => $("fileQr").click();
+    $("f_qr").addEventListener("input", qrPreview);
+    $("fileQr").onchange = async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      qrBox.innerHTML = `<span style="font-size:11px; color:#8CA39D;">업로드 중…</span>`;
+      try { $("f_qr").value = await fileToImage(f, 480, 0.9); }
+      catch (err) { toast("⚠ " + err.message); }
+      qrPreview();
+      $("fileQr").value = "";
+    };
+  }
+
   if (multiEnabled) {
     renderMulti();
     $("multiPick").onclick = () => $("fileMulti").click();

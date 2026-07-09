@@ -566,8 +566,9 @@ function fillDatalists() {
 function applyGuide(name) {
   const r = LIBS.guides[name]; if (!r) return false;
   $("g_name").value = name;
-  $("g_career").value = r.career || ""; $("g_korean").value = r.korean || "";
-  $("g_phone").value = r.phone || ""; $("g_img").value = r.img || ""; $("g_desc").value = r.desc || "";
+  $("g_role").value = r.role || ""; $("g_career").value = r.career || ""; $("g_korean").value = r.korean || "";
+  $("g_phone").value = r.phone || ""; $("g_qr").value = r.qr || "";
+  $("g_img").value = r.img || ""; $("g_desc").value = r.desc || "";
   updateResourcePreview("guide", { name, ...r });
   toast(`가이드 "${name}" 정보를 불러왔어요`); return true;
 }
