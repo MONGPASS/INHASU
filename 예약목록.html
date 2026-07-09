@@ -59,6 +59,7 @@
   .name-cell { display:flex; align-items:center; gap:8px; }
   .mini { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:7px 10px; font:800 12px Pretendard; text-decoration:none; cursor:pointer; }
   .mini.blue { border-color:#c9dafb; color:#2b5cc4; background:#f5f8ff; }
+  .mini.green { border-color:var(--deep); color:#fff; background:var(--deep); }
   .empty { text-align:center; padding:70px 20px; color:var(--gray); line-height:1.6; }
   .empty b { color:var(--ink); }
   .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#123a33; color:#fff; padding:12px 22px; border-radius:12px; font-size:14px; font-weight:700; opacity:0; transition:.25s; z-index:80; pointer-events:none; }
@@ -66,7 +67,7 @@
 
   /* ── 엑셀형 표: 가로 스크롤 + 밀도 ── */
   .table-card { overflow:auto; }
-  .table-card table { min-width:1420px; table-layout:fixed; }
+  .table-card table { min-width:1460px; table-layout:fixed; }
   .table-card th { padding:11px 8px; font-size:11.5px; overflow:hidden; text-overflow:ellipsis; }
   .table-card td { padding:10px 8px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .table-card::-webkit-scrollbar { height:12px; }
@@ -87,6 +88,18 @@
   .doc-stack { display:flex; align-items:center; gap:6px; max-width:220px; }
   a.tag { text-decoration:none; }
   a.tag.dim, span.tag.dim { background:#f2f5f4; color:var(--gray); }
+  .contract-badge { display:inline-flex; align-items:center; justify-content:center; min-width:62px; border-radius:9px; padding:8px 10px; font-weight:900; font-size:12px; }
+  .contract-badge.signed { background:#e8f7f2; color:#0a6a5e; }
+  .contract-badge.unsigned { background:#fbeceb; color:#b84e44; }
+  .assign-status { display:flex; flex-direction:column; gap:7px; min-width:0; }
+  .assign-chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .assign-chip { display:inline-flex; align-items:center; border-radius:8px; padding:5px 8px; font-size:12px; font-weight:900; background:#fff3df; color:#b76d14; }
+  .assign-chip.ok { background:#e8f7f2; color:#0a6a5e; }
+  .assign-progress { font-size:12px; font-weight:900; color:#b76d14; }
+  .assign-progress.ok { color:#0a6a5e; }
+  .resource-lines { display:flex; flex-direction:column; gap:5px; line-height:1.32; min-width:0; }
+  .resource-lines span { overflow:hidden; text-overflow:ellipsis; }
+  .resource-lines .missing { color:#b76d14; }
 
   /* ── 엑셀 가져오기 모달 ── */
   .modal-wrap { position:fixed; inset:0; background:rgba(15,30,26,.45); z-index:90; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -123,7 +136,7 @@
   </aside>
   <main class="content">
     <div class="page-head">
-      <div><h1>예약 관리</h1><p>예약확정 고객을 엑셀 시트처럼 한 화면에서 관리합니다. 조인·항공·진행상황·구분은 표에서 바로 수정돼요.</p></div>
+      <div><h1>예약 관리</h1><p>예약확정 고객을 엑셀 시트처럼 한 화면에서 관리합니다. 계약·배정·차량·숙소 상태를 한눈에 확인해요.</p></div>
       <div style="display:flex; gap:8px;">
         <button class="btn" id="importBtn">📥 엑셀 가져오기</button>
         <button class="btn" id="refreshBtn">↻ 새로고침</button>
@@ -283,6 +296,31 @@ function render() {
       ${opts.map(o => `<option value="${o}" ${cur === o ? "selected" : ""}>${o}</option>`).join("")}
     </select>`;
   };
+  const contractCell = r => signed(r)
+    ? `<span class="contract-badge signed">서명완료</span>`
+    : `<span class="contract-badge unsigned">미서명</span>`;
+  const assignCell = r => {
+    const checks = [
+      ["가이드", !!guide(r).name],
+      ["차량", hasVehicle(r)],
+      ["숙소", hasLodges(r)],
+    ];
+    const done = checks.filter(([, ok]) => ok).length;
+    return `<div class="assign-status">
+      <div class="assign-chips">${checks.map(([label, ok]) => `<span class="assign-chip ${ok ? "ok" : ""}">${ok ? "✓ " : ""}${label}</span>`).join("")}</div>
+      <div class="assign-progress ${done === checks.length ? "ok" : ""}">${done === checks.length ? "배정 완료" : `${done}/${checks.length} 완료`}</div>
+    </div>`;
+  };
+  const resourceCell = r => {
+    const v = vehicle(r);
+    const vehicleName = v.model || r.vehicle || "";
+    const lodgeList = lodges(r);
+    const lodgeText = lodgeList.length > 1 ? `${lodgeList[0].name} 외 ${lodgeList.length - 1}` : (lodgeList[0] || {}).name;
+    return `<div class="resource-lines">
+      <span class="${vehicleName ? "" : "missing"}">차량 ${esc(vehicleName || "미정")}</span>
+      <span class="${lodgeText ? "" : "missing"}">숙소 ${esc(lodgeText || "미정")}</span>
+    </div>`;
+  };
   const arrow = k => sortKey === k ? (sortDir > 0 ? " ▲" : " ▼") : "";
   const nums = rowNumbers();
 
@@ -290,10 +328,9 @@ function render() {
     <colgroup>
       <col style="width:40px"><col style="width:96px"><col style="width:118px">
       <col style="width:96px"><col style="width:96px"><col style="width:46px">
-      <col style="width:62px"><col style="width:106px"><col style="width:76px">
-      <col style="width:88px"><col style="width:112px"><col style="width:86px">
-      <col style="width:88px"><col style="width:98px"><col style="width:82px">
-      <col style="width:130px">
+      <col style="width:62px"><col style="width:106px"><col style="width:86px">
+      <col style="width:170px"><col style="width:180px"><col style="width:88px">
+      <col style="width:98px"><col style="width:86px"><col style="width:186px">
     </colgroup>
     <thead><tr>
       <th>번호</th>
@@ -303,13 +340,10 @@ function render() {
       <th class="hide-xs">몽골출발</th>
       <th class="sortable" data-k="pax">인원${arrow("pax")}</th>
       <th class="hide-xs">일정</th><th class="hide-sm">지역</th>
-      <th class="hide-sm">항공</th><th>차량</th>
-      <th class="sortable" data-k="progress">진행상황${arrow("progress")}</th>
-      <th class="hide-sm">구분</th>
+      <th>계약</th><th>배정 상태</th><th>차량·숙소</th>
       <th>예약금</th><th>잔금</th><th>현금영수증</th><th style="text-align:right">관리</th>
     </tr></thead>
     <tbody>${data.map(r => {
-      const v = vehicle(r);
       const token = r.token || "";
       const f = r.finance || {};
       return `<tr data-id="${esc(r.id)}">
@@ -321,16 +355,16 @@ function render() {
         <td>${paxSum(r) || "-"}</td>
         <td class="hide-xs">${esc(nightsTxt(r))}</td>
         <td class="hide-sm">${esc(r.destination || "-")}</td>
-        <td class="hide-sm">${selCell(r, "flightIncl")}</td>
-        <td>${esc(v.model || r.vehicle || "-")}</td>
-        <td>${selCell(r, "progress")}</td>
-        <td class="hide-sm">${selCell(r, "pkgTier")}</td>
+        <td>${contractCell(r)}</td>
+        <td>${assignCell(r)}</td>
+        <td>${resourceCell(r)}</td>
         <td>${moneyTxt(f.depositAmount)}</td>
         <td>${moneyTxt(f.balanceAmount)}</td>
         <td>${esc(f.cashReceipt || "-")}</td>
         <td><div class="actions">
-          <button class="mini blue" data-open="${esc(r.id)}">관리</button>
+          <button class="mini green" data-open="${esc(r.id)}">배정 관리</button>
           ${token ? `<a class="mini" href="확정일정표.html?t=${encodeURIComponent(token)}&v=assign3" target="_blank">일정표</a>` : ""}
+          ${token ? `<a class="mini" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">${signed(r) ? "계약서" : "서명 요청"}</a>` : ""}
         </div></td>
       </tr>`;
     }).join("")}</tbody></table>`;
