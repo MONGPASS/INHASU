@@ -32,9 +32,13 @@
   .stat .v { font-size:30px; font-weight:800; margin-top:8px; line-height:1; }
   .stat .s { color:var(--gray); font-size:12px; margin-top:8px; font-weight:700; }
   .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
-  .search { flex:1; min-width:240px; max-width:420px; }
+  .search { flex:1; min-width:300px; max-width:560px; }
   .search input { width:100%; border:1px solid var(--line); border-radius:11px; padding:11px 13px; font:600 14px Pretendard; outline:none; }
   .search input:focus { border-color:var(--accent); }
+  .sortbox { display:flex; align-items:center; gap:7px; }
+  .sortbox label { color:var(--sub); font-size:12.5px; font-weight:800; }
+  .sortbox select, .sortbox button { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:10px; padding:10px 11px; font:800 12.5px Pretendard; cursor:pointer; }
+  .sortbox select:focus { outline:none; border-color:var(--accent); }
   .chips { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
   .chip { border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:99px; padding:8px 13px; font:800 12.5px Pretendard; cursor:pointer; }
   .chip.on { background:var(--deep); border-color:var(--deep); color:#fff; }
@@ -48,7 +52,9 @@
   .rowcheck { width:16px; height:16px; accent-color:var(--deep); cursor:pointer; }
   .money-stack { display:flex; flex-direction:column; gap:6px; align-items:flex-start; min-width:0; }
   .money-stack .amount { font-weight:700; }
-  .pay-sel { width:100%; min-width:80px; border:1px solid var(--line); border-radius:8px; padding:5px 6px; font:800 11.5px Pretendard; background:#fff; color:var(--ink); cursor:pointer; }
+  .pay-sel { width:100%; min-width:96px; border:1px solid var(--line); border-radius:8px; padding:5px 6px; font:800 11.5px Pretendard; background:#fff; color:var(--ink); cursor:pointer; }
+  .col-money, .col-receipt { text-align:left; }
+  .col-actions { text-align:right; }
   .pay-sel[data-v="입금완료"] { background:#e8f7f2; color:#0a6a5e; border-color:#cdeee5; }
   .pay-sel[data-v="현지현금전달"], .pay-sel[data-v="현장현금전달"] { background:#fff5e9; color:#b76d14; border-color:#f5e0c4; }
   .pay-sel[data-v="미입금"], .pay-sel[data-v="미수령"] { background:#fbeceb; color:#b84e44; border-color:#f3d2ce; }
@@ -81,7 +87,7 @@
 
   /* ── 엑셀형 표: 가로 스크롤 + 밀도 ── */
   .table-card { overflow:auto; }
-  .table-card table { min-width:1322px; table-layout:fixed; }
+  .table-card table { min-width:1410px; table-layout:fixed; }
   .table-card th { padding:11px 8px; font-size:11.5px; overflow:hidden; text-overflow:ellipsis; }
   .table-card td { padding:10px 8px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .table-card::-webkit-scrollbar { height:12px; }
@@ -155,7 +161,20 @@
     </div>
     <div class="stats" id="stats"></div>
     <div class="toolbar">
-      <div class="search"><input id="q" placeholder="고객명, 여행지, 차량, 숙소 검색"></div>
+      <div class="search"><input id="q" placeholder="고객명, 여행지, 날짜, 인원, 차량, 숙소, 가이드, 입금상태 검색"></div>
+      <div class="sortbox">
+        <label for="sortSelect">정렬</label>
+        <select id="sortSelect" title="정렬 기준">
+          <option value="book">예약일순</option>
+          <option value="depart">여행 시작일순</option>
+          <option value="return">여행 종료일순</option>
+          <option value="name">고객명순</option>
+          <option value="pax">인원순</option>
+          <option value="balance">잔금순</option>
+          <option value="status">계약 상태순</option>
+        </select>
+        <button id="sortDirBtn" type="button" title="정렬 방향">오름차순</button>
+      </div>
       <div class="chips" id="chips"></div>
     </div>
     <div class="bulkbar" id="bulkbar"></div>
@@ -224,7 +243,8 @@ const PAY_OPTS = {
 let sortKey = "book", sortDir = 1;
 const SORT_VALS = {
   book: bookDate, name: r => r.name || "", depart: r => dateOnly(r.depart),
-  pax: paxSum, progress: progressOf, month: r => dateOnly(r.depart),
+  return: r => dateOnly(r.return_), pax: paxSum, progress: progressOf, status: progressOf,
+  balance: r => Number((r.finance || {}).balanceAmount || 0), month: r => dateOnly(r.depart),
 };
 
 async function load() {
@@ -251,17 +271,28 @@ async function load() {
 }
 
 function rows() {
-  const q = query.trim().toLowerCase();
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   return RECORDS.filter(isReservation).filter(r => {
     const dd = dDay(r);
     const missing = !assignDone(r);
     if (filter === "계약미서명" && signed(r)) return false;
     if (filter === "배정미완료" && !missing) return false;
     if (filter === "출발임박" && !(dd !== null && dd >= 0 && dd <= 14)) return false;
-    if (!q) return true;
-    const text = [r.name, r.destination, r.tripType, r.vehicle, vehicle(r).model, guide(r).name,
-                  progressOf(r), r.joinType, r.pkgTier, ...lodges(r).map(l => l.name)].join(" ").toLowerCase();
-    return text.includes(q);
+    if (!terms.length) return true;
+    const f = r.finance || {};
+    const c = (((r.booking || {}).contractInfo) || {});
+    const fl = (((r.booking || {}).flight) || {});
+    const travelers = Array.isArray(((r.booking || {}).travelers)) ? r.booking.travelers : [];
+    const text = [
+      r.id, r.token, r.name, r.phone, r.destination, r.tripType, r.vehicle, vehicle(r).model, guide(r).name, guide(r).phone,
+      progressOf(r), signed(r) ? "서명완료 계약완료" : "미서명", r.joinType, r.pkgTier,
+      bookDate(r), dateOnly(r.depart), dateOnly(r.return_), monthOf(r.depart), nightsTxt(r), String(paxSum(r) || ""),
+      f.depositAmount, f.depositStatus, f.balanceAmount, f.balanceStatus, f.cashReceipt,
+      c.productName, c.region, c.depositStatus, c.balanceStatus, c.cashReceipt, fl.inNo, fl.outNo, fl.inTime, fl.outTime,
+      ...lodges(r).map(l => `${l.name} ${l.grade || ""}`),
+      ...travelers.map(t => `${t.nameKo || ""} ${t.passportName || ""} ${t.phone || ""} ${t.passportNo || ""}`),
+    ].join(" ").toLowerCase();
+    return terms.every(t => text.includes(t));
   }).sort((a, b) => {
     const f = SORT_VALS[sortKey] || bookDate;
     const av = f(a), bv = f(b);
@@ -305,6 +336,10 @@ function renderBulkbar(data) {
 
 function render() {
   cleanupSelection();
+  const sortSel = $("sortSelect");
+  const sortBtn = $("sortDirBtn");
+  if (sortSel) sortSel.value = SORT_VALS[sortKey] ? sortKey : "book";
+  if (sortBtn) sortBtn.textContent = sortDir > 0 ? "오름차순" : "내림차순";
   const all = RECORDS.filter(isReservation);
   const unsigned = all.filter(r => !signed(r)).length;
   const incomplete = all.filter(r => !assignDone(r)).length;
@@ -382,8 +417,8 @@ function render() {
       <col style="width:42px"><col style="width:40px"><col style="width:96px"><col style="width:118px">
       <col style="width:96px"><col style="width:96px"><col style="width:46px">
       <col style="width:62px"><col style="width:106px"><col style="width:86px">
-      <col style="width:170px"><col style="width:88px">
-      <col style="width:98px"><col style="width:86px"><col style="width:186px">
+      <col style="width:170px"><col style="width:120px">
+      <col style="width:126px"><col style="width:104px"><col style="width:192px">
     </colgroup>
     <thead><tr>
       <th><input class="rowcheck" type="checkbox" id="checkAllRows" ${allChecked ? "checked" : ""} title="현재 목록 전체 선택"></th>
@@ -395,7 +430,7 @@ function render() {
       <th class="sortable" data-k="pax">인원${arrow("pax")}</th>
       <th class="hide-xs">일정</th><th class="hide-sm">지역</th>
       <th>계약</th><th>배정 상태</th>
-      <th>예약금</th><th>잔금</th><th>현금영수증</th><th style="text-align:right">관리</th>
+      <th class="col-money">예약금</th><th class="col-money">잔금</th><th class="col-receipt">현금영수증</th><th class="col-actions">관리</th>
     </tr></thead>
     <tbody>${data.map(r => {
       const token = r.token || "";
@@ -412,10 +447,10 @@ function render() {
         <td class="hide-sm">${esc(r.destination || "-")}</td>
         <td>${contractCell(r)}</td>
         <td>${assignCell(r)}</td>
-        <td>${moneyCell(r, "depositAmount", "depositStatus")}</td>
-        <td>${moneyCell(r, "balanceAmount", "balanceStatus")}</td>
-        <td>${esc(f.cashReceipt || "-")}</td>
-        <td><div class="actions">
+        <td class="col-money">${moneyCell(r, "depositAmount", "depositStatus")}</td>
+        <td class="col-money">${moneyCell(r, "balanceAmount", "balanceStatus")}</td>
+        <td class="col-receipt">${esc(f.cashReceipt || "-")}</td>
+        <td class="col-actions"><div class="actions">
           <button class="mini green" data-open="${esc(r.id)}">배정 관리</button>
           ${token ? `<a class="mini" href="확정일정표.html?t=${encodeURIComponent(token)}&v=assign3" target="_blank">일정표</a>` : ""}
           ${token ? `<a class="mini" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">${signed(r) ? "계약서" : "서명 요청"}</a>` : ""}
@@ -851,6 +886,8 @@ $("impFile").onchange = async (e) => {
 };
 
 $("q").addEventListener("input", e => { query = e.target.value; render(); });
+$("sortSelect").addEventListener("change", e => { sortKey = e.target.value; sortDir = 1; render(); });
+$("sortDirBtn").onclick = () => { sortDir = -sortDir; render(); };
 $("refreshBtn").onclick = () => load().then(() => toast("예약 목록을 새로고침했습니다"));
 load();
 </script>
