@@ -20,7 +20,7 @@
   .mi { display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:11px; color:var(--sub); font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; margin-bottom:2px; border:none; background:none; width:100%; font-family:inherit; transition:.12s; }
   .mi:hover { background:var(--soft); color:var(--deep); }
   .mi.on { background:var(--deep); color:#fff; }
-  .content { flex:1; min-width:0; padding:26px 34px 60px; max-width:1240px; }
+  .content { flex:1; min-width:0; width:calc(100vw - 232px); padding:26px 24px 60px; max-width:none; }
   .page-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
   .page-head h1 { font-size:22px; font-weight:800; }
   .page-head p { color:var(--sub); font-size:13px; margin-top:5px; }
@@ -38,7 +38,7 @@
   .chips { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
   .chip { border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:99px; padding:8px 13px; font:800 12.5px Pretendard; cursor:pointer; }
   .chip.on { background:var(--deep); border-color:var(--deep); color:#fff; }
-  .table-card { background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .table-card { background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; max-width:100%; }
   table { width:100%; border-collapse:collapse; }
   th { background:#fafbfc; text-align:left; color:var(--sub); font-size:12.5px; font-weight:800; padding:13px 16px; border-bottom:1px solid var(--line); white-space:nowrap; }
   td { padding:14px 16px; border-bottom:1px solid #f2f5f4; vertical-align:middle; }
@@ -65,10 +65,14 @@
   .toast.on { opacity:1; }
 
   /* ── 엑셀형 표: 가로 스크롤 + 밀도 ── */
-  .table-card { overflow-x:auto; }
-  .table-card table { min-width:1460px; }
+  .table-card { overflow:auto; }
+  .table-card table { min-width:2020px; }
   .table-card th { padding:12px 10px; font-size:12px; }
   .table-card td { padding:10px 10px; font-size:12.5px; white-space:nowrap; }
+  .table-card::-webkit-scrollbar { height:12px; }
+  .table-card::-webkit-scrollbar-track { background:#f2f5f4; border-radius:999px; }
+  .table-card::-webkit-scrollbar-thumb { background:#cbd8d4; border-radius:999px; border:3px solid #f2f5f4; }
+  .wide-text { max-width:180px; overflow:hidden; text-overflow:ellipsis; display:inline-block; vertical-align:middle; }
   th.sortable { cursor:pointer; user-select:none; }
   th.sortable:hover { color:var(--ink); }
   .num { color:var(--gray); font-weight:800; }
@@ -80,6 +84,7 @@
   .sel[data-p="예약취소"] { background:#fbeceb; color:#b84e44; border-color:#f3d2ce; }
   .sel[data-p="계약대기"] { background:#fff5e9; color:#b76d14; border-color:#f5e0c4; }
   .doc-tags { display:flex; gap:5px; }
+  .doc-stack { display:flex; align-items:center; gap:6px; max-width:220px; }
   a.tag { text-decoration:none; }
   a.tag.dim, span.tag.dim { background:#f2f5f4; color:var(--gray); }
 
@@ -98,7 +103,7 @@
   .dup-mark { color:#b76d14; font-weight:800; font-size:11.5px; }
 
   @media (max-width:900px){ .stats{grid-template-columns:repeat(2,1fr)} .hide-sm{display:none} }
-  @media (max-width:760px){ .shell{display:block} .side{display:none} .content{padding:20px 14px} .stats{grid-template-columns:1fr 1fr} th.hide-xs,td.hide-xs{display:none} }
+  @media (max-width:760px){ .shell{display:block} .side{display:none} .content{width:100%;padding:20px 14px} .stats{grid-template-columns:1fr 1fr} th.hide-xs,td.hide-xs{display:none} }
 </style>
 </head>
 <body>
@@ -293,11 +298,16 @@ function render() {
       <th class="sortable hide-sm" data-k="month">월${arrow("month")}</th>
       <th class="hide-sm">항공</th><th>차량</th>
       <th class="sortable" data-k="progress">진행상황${arrow("progress")}</th>
-      <th class="hide-sm">구분</th><th>견적서·계약서</th><th style="text-align:right">관리</th>
+      <th class="hide-sm">구분</th><th>견적서 원본</th><th>계약서 원본</th>
+      <th>매출액</th><th>예약금</th><th>잔금</th><th>현금영수증</th><th style="text-align:right">관리</th>
     </tr></thead>
     <tbody>${data.map(r => {
       const v = vehicle(r);
       const token = r.token || "";
+      const f = r.finance || {};
+      const s = r.sourceSheet || {};
+      const quoteFile = s.quoteFile || (r.quote ? "견적서" : "");
+      const contractFile = s.contractFile || s.originalContractFile || "";
       return `<tr data-id="${esc(r.id)}">
         <td class="num">${nums[String(r.id)] || "-"}</td>
         <td>${selCell(r, "joinType")}</td>
@@ -314,10 +324,12 @@ function render() {
         <td>${esc(v.model || r.vehicle || "-")}</td>
         <td>${selCell(r, "progress")}</td>
         <td class="hide-sm">${selCell(r, "pkgTier")}</td>
-        <td><div class="doc-tags">
-          ${r.quote && token ? `<a class="tag ok" href="견적서.html?t=${encodeURIComponent(token)}" target="_blank">견적서</a>` : `<span class="tag dim">견적 -</span>`}
-          ${token ? (signed(r) ? `<a class="tag ok" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">계약서</a>` : `<a class="tag bad" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">미서명</a>`) : `<span class="tag dim">계약 -</span>`}
-        </div></td>
+        <td title="${esc(quoteFile)}"><div class="doc-stack">${token && r.quote ? `<a class="tag ok" href="견적서.html?t=${encodeURIComponent(token)}" target="_blank">플랫폼</a>` : ""}<span class="wide-text">${esc(quoteFile || "-")}</span></div></td>
+        <td title="${esc(contractFile)}"><div class="doc-stack">${token ? (signed(r) ? `<a class="tag ok" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">서명완료</a>` : `<a class="tag bad" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">미서명</a>`) : ""}<span class="wide-text">${esc(contractFile || "-")}</span></div></td>
+        <td>${moneyTxt(f.salesAmount)}</td>
+        <td>${moneyTxt(f.depositAmount)}</td>
+        <td>${moneyTxt(f.balanceAmount)}</td>
+        <td>${esc(f.cashReceipt || "-")}</td>
         <td><div class="actions">
           <button class="mini blue" data-open="${esc(r.id)}">배정관리</button>
           ${token ? `<a class="mini" href="확정일정표.html?t=${encodeURIComponent(token)}&v=assign3" target="_blank">일정표</a>` : ""}
