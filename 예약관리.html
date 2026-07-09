@@ -186,14 +186,15 @@ let SAVED_BK_JSON = "";
 function init() {
   BK = normBooking(PRE.booking);
   const fin = PRE.finance || {};
+  const qm = quoteMoney(PRE);   // 엑셀 finance가 없으면 발행 견적(quote.price)에서 금액 환산
   BK.contractInfo = {
     ...BK.contractInfo,
     productName: BK.contractInfo.productName || PRE.destination || "",
     region: BK.contractInfo.region || PRE.destination || "",
-    totalAmount: BK.contractInfo.totalAmount || fin.salesAmount || 0,
-    depositAmount: BK.contractInfo.depositAmount || fin.depositAmount || 0,
+    totalAmount: BK.contractInfo.totalAmount || fin.salesAmount || qm.totalAmount,
+    depositAmount: BK.contractInfo.depositAmount || fin.depositAmount || qm.depositAmount,
     depositStatus: BK.contractInfo.depositStatus || fin.depositStatus || (BK.checklist.deposit ? "입금완료" : "미입금"),
-    balanceAmount: BK.contractInfo.balanceAmount || fin.balanceAmount || 0,
+    balanceAmount: BK.contractInfo.balanceAmount || fin.balanceAmount || qm.balanceAmount,
     balanceStatus: BK.contractInfo.balanceStatus || fin.balanceStatus || (BK.checklist.balance ? "입금완료" : "미수령"),
     cashReceipt: BK.contractInfo.cashReceipt || fin.cashReceipt || "",
   };

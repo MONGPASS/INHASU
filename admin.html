@@ -663,6 +663,8 @@ function openDrawer(id) {
       name: r.name, phone: r.phone || "", depart: r.depart || "", return_: r.return_ || "",
       adult: r.adult || 0, child: r.child || 0, infant: r.infant || 0,
       destination: r.destination || "", vehicle: r.vehicle || "",
+      pkgTier: r.pkgTier || "", gerStay: r.gerStay || "",   // 잔금 티어(실속형/풀패키지) 판별용
+      finance: r.finance || null,                            // 엑셀 가져오기 금액(있으면 우선)
       quote: r.quote || null, booking: r.booking || null,
     }));
     window.open("예약관리.html", "_blank");

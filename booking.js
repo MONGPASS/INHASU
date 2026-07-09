@@ -42,6 +42,32 @@ function normBooking(b) {
 // 견적 일정 → 확정 일정 복사 (견적서 days 구조 그대로)
 const daysFromQuote = q => (q && Array.isArray(q.days)) ? JSON.parse(JSON.stringify(q.days)) : [];
 
+// 잔금 2단계: economy=실속형(일반게르), full=풀패키지(고급게르). 구버전 {amount} 호환 (견적서와 동일)
+const balEco  = b => (b && b.economy != null ? b.economy : ((b && b.amount) || 0));
+const balFull = b => (b && b.full    != null ? b.full    : ((b && b.amount) || 0));
+
+/* 견적(quote.price)에서 계약 정산 금액을 계산.
+   견적은 "1인 기준·인원별·티어별"이라 단일 총액이 저장돼 있지 않으므로 환산한다.
+     예약금 = 1인 예약금 × 인원
+     잔금   = 해당 인원의 잔금(티어) × 인원   (티어: 고급/풀패키지면 full, 아니면 실속형 economy)
+     여행경비 = 예약금 + 잔금
+   rec: 문의 레코드 { quote, adult/child/infant, pkgTier, gerStay, ... } */
+function quoteMoney(rec) {
+  rec = rec || {};
+  const q = rec.quote || null;
+  const p = q && q.price;
+  if (!p) return { totalAmount: 0, depositAmount: 0, balanceAmount: 0 };
+  const pax = Number(q.pax) || ((rec.adult||0)+(rec.child||0)+(rec.infant||0)) || 0;
+  const isFull = /풀패키지|최고급|고급/.test(`${rec.pkgTier||""} ${rec.gerStay||""}`);
+  const bals = Array.isArray(p.balances) ? p.balances : [];
+  let row = bals.find(b => Number(b.pax) === pax);
+  if (!row && bals.length) row = bals.reduce((a,b) => Math.abs(Number(b.pax)-pax) < Math.abs(Number(a.pax)-pax) ? b : a);
+  const per = row ? (isFull ? balFull(row) : balEco(row)) : 0;
+  const depositAmount = (Number(p.deposit) || 0) * pax;
+  const balanceAmount = per * pax;
+  return { totalAmount: depositAmount + balanceAmount, depositAmount, balanceAmount };
+}
+
 /* 예약확정 순간 호출 — 발행된 견적(rec.quote)과 문의 레코드 기본정보에서 booking 스켈레톤 생성.
    예약관리 init()의 승계 규칙과 동일하되, 견적 일정·대표명소를 자동으로 끌어온다
    (예약관리에서 "↺ 견적 일정 불러오기"를 누르지 않아도 확정 시점에 일정이 채워지게).
@@ -51,16 +77,17 @@ function seedBookingFromQuote(rec) {
   const bk = blankBooking();
   const fin = rec.finance || {};
   const q = rec.quote || null;
+  const qm = quoteMoney(rec);   // 견적 금액 환산 (엑셀 finance가 없을 때 사용)
   bk.days = daysFromQuote(q);
   if (q && Array.isArray(q.highlights)) bk.highlights = JSON.parse(JSON.stringify(q.highlights));
   bk.contractInfo = {
     ...bk.contractInfo,
     productName: rec.destination || "",
     region: rec.destination || "",
-    totalAmount: fin.salesAmount || 0,
-    depositAmount: fin.depositAmount || 0,
+    totalAmount: fin.salesAmount || qm.totalAmount,
+    depositAmount: fin.depositAmount || qm.depositAmount,
     depositStatus: fin.depositStatus || "미입금",
-    balanceAmount: fin.balanceAmount || 0,
+    balanceAmount: fin.balanceAmount || qm.balanceAmount,
     balanceStatus: fin.balanceStatus || "미수령",
     cashReceipt: fin.cashReceipt || "",
   };
