@@ -80,6 +80,15 @@ const buildConfirmedQuote = j => {
   const hasDays = Array.isArray(bk.days) && bk.days.length;
   if (!j.quote && !hasDays) return null;
   const q = clone(j.quote || window.QUOTE || {});
+  if (!j.quote) {   // 견적 없이 확정된 예약(카톡·엑셀 가져오기) — 샘플 견적의 판매 내용 제거 (브랜딩·디자인 자산은 유지)
+    q.quoteNo = "";                    // 아래에서 예약 기반 문서번호 합성
+    q.manager = "몽골리아 은하수";
+    q.benefits = ""; q.events = [];
+    q.highlights = [];                 // 샘플 명소 제거 — 명소 페이지 생략됨
+    q.price = { deposit: 0, options: [], balances: [] };   // 아래에서 contractInfo로 채움
+    q.remark = "";                     // 아래에서 ci.note로 채움
+    q.pickup = ""; q.drop = "";        // 아래에서 실제 항공편으로 채움
+  }
   const pax = (Number(j.adult) || 0) + (Number(j.child) || 0) + (Number(j.infant) || 0);
   const ci = bk.contractInfo || {};
   const flight = bk.flight || {};
@@ -291,7 +300,7 @@ const pgQuote = `
     ${hcell("여행 기간")}${cell(esc(Q.period) + "<br>(" + esc(Q.nights) + ")")}${hcell("차량")}${cell(esc(Q.vehicle))}
     ${hcell("항공권 IN", true)}${cell(esc(Q.flight.in), "#F3FAF8")}${hcell("항공권 OUT", true)}${cell(esc(Q.flight.out), "#F3FAF8")}
     ${hcell("픽업")}${cell(esc(Q.pickup))}${hcell("드랍")}${cell(esc(Q.drop))}
-    ${hcell("여행사 혜택")}${cell(esc(Q.benefits).replace(/, /g, ",<br>"))}${hcell("참여 가능 이벤트")}<div style="background:#fff; color:#152C28; font-weight:600; padding:11px 14px; font-size:11px; line-height:1.6; display:flex; flex-direction:column; justify-content:center;">${Q.events.map(e => `<div>${esc(e)}</div>`).join("")}</div>
+    ${(Q.benefits || (Q.events || []).length) ? `${hcell("여행사 혜택")}${cell(esc(Q.benefits).replace(/, /g, ",<br>"))}${hcell("참여 가능 이벤트")}<div style="background:#fff; color:#152C28; font-weight:600; padding:11px 14px; font-size:11px; line-height:1.6; display:flex; flex-direction:column; justify-content:center;">${(Q.events || []).map(e => `<div>${esc(e)}</div>`).join("")}</div>` : ""}
     ${hcell("비고")}<div style="background:#fff; color:#152C28; font-weight:600; padding:13px 14px; display:flex; align-items:center; justify-content:center; grid-column:span 3;">${esc(Q.remark)}</div>
   </div>
 
@@ -494,11 +503,10 @@ const spotBlock = h => `
       </div>
     </div>
   </div>`;
-/* 명소가 많으면 A4 한 장에 3개씩 자동 페이지 분할 */
+/* 명소가 많으면 A4 한 장에 3개씩 자동 페이지 분할 — 명소가 없으면(견적 없는 예약) 페이지 자체를 생략 */
 const SPOTS_PER_PAGE = 3;
 const _hlChunks = [];
 for (let _i = 0; _i < (Q.highlights || []).length; _i += SPOTS_PER_PAGE) _hlChunks.push(Q.highlights.slice(_i, _i + SPOTS_PER_PAGE));
-if (!_hlChunks.length) _hlChunks.push([]);
 const pgSpots = _hlChunks.map((chunk, pi) => `
 <div class="page" style="padding:44px 48px;">
   <div style="display:flex; align-items:center; justify-content:space-between;">

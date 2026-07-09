@@ -123,6 +123,7 @@
   <h1>📋 예약관리 <b id="hName"></b></h1>
   <span class="who" id="hMeta"></span>
   <span class="hd-acts">
+    <button class="hbtn" id="makeQuoteBtn">📝 견적서 만들기</button>
     <a class="hbtn" id="quoteLink" href="#" target="_blank">📄 견적서</a>
     <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 고객 확정일정표</a>
     <button class="hbtn" id="copyLinkBtn">🔗 고객 링크 복사</button>
@@ -219,6 +220,17 @@ function init() {
   $("copyLinkBtn").onclick = () => {
     copyCustomerLink();
   };
+  /* 견적 없이 들어온 예약(카톡·엑셀)에도 견적을 만들어 붙일 수 있게 — admin.html의 견적서 만들기와 동일 흐름 */
+  $("makeQuoteBtn").textContent = PRE.quote ? "📝 견적서 수정" : "📝 견적서 만들기";
+  $("makeQuoteBtn").onclick = () => {
+    localStorage.setItem("leaders_prefill", JSON.stringify({
+      id: PRE.id, token: PRE.token || "", adminToken: ADMIN_TOKEN,
+      name: PRE.name || "", depart: PRE.depart || "", return_: PRE.return_ || "",
+      adult: PRE.adult || 0, child: PRE.child || 0, infant: PRE.infant || 0,
+      destination: PRE.destination || "", vehicle: PRE.vehicle || "", quote: PRE.quote || null,
+    }));
+    window.open("견적만들기.html", "_blank");
+  };
   $("setStatus").checked = PRE.status !== "예약확정";
   $("savebar").style.display = "";
   render();
@@ -283,21 +295,16 @@ function summaryHtml() {
 }
 
 function importedInfoHtml() {
-  const f = PRE.finance || {};
+  /* 결제 금액·상태·영수증은 ③ 계약·정산 정보에서 관리 — 여기엔 엑셀 시트 원본 흔적만 남긴다 */
   const s = PRE.sourceSheet || {};
-  if (!PRE.finance && !PRE.sourceSheet) return "";
+  const hasSheet = s.no || s.contractMonth || s.travelMonth || s.quoteFile || s.contractFile || s.originalContractFile || s.memo;
+  if (!hasSheet) return "";
   return `<section class="card">
     <div class="sec-h">
-      <h2><span class="n">3</span>엑셀 원본 · 정산 정보</h2>
-      <span class="tip">기존 관리 시트에서 가져온 내부 확인용 정보입니다</span>
+      <h2><span class="n">4</span>엑셀 시트 원본 기록</h2>
+      <span class="tip">참고용 — 결제 금액·상태는 위 ③ 계약·정산 정보에서 관리하세요</span>
     </div>
-    <div class="summary">
-      ${infoCell("매출액", moneyTxt(f.salesAmount))}
-      ${infoCell("예약금", moneyTxt(f.depositAmount))}
-      ${infoCell("잔금", moneyTxt(f.balanceAmount))}
-      ${infoCell("현금영수증", f.cashReceipt)}
-    </div>
-    <div class="grid3" style="margin-top:12px;">
+    <div class="grid3">
       ${infoCell("시트 번호", s.no)}
       ${infoCell("계약월", s.contractMonth)}
       ${infoCell("여행월", s.travelMonth)}
