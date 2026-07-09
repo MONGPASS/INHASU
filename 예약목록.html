@@ -73,21 +73,7 @@
   td { padding:14px 16px; border-bottom:1px solid #f2f5f4; vertical-align:middle; }
   tr:last-child td { border-bottom:none; }
   tbody tr:hover { background:#fbfdfc; }
-  .cust { display:flex; align-items:center; gap:11px; }
-  .avatar { width:38px; height:38px; border-radius:11px; background:var(--book); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; flex:none; }
-  .cust b { display:block; font-size:14px; }
-  .muted { color:var(--gray); font-size:12.5px; font-weight:600; }
-  .tag { display:inline-flex; align-items:center; gap:5px; border-radius:99px; padding:5px 10px; font-size:12px; font-weight:800; white-space:nowrap; border:0; font-family:inherit; }
-  button.tag { cursor:pointer; }
-  button.tag:hover { filter:brightness(.97); box-shadow:0 0 0 1px rgba(0,0,0,.04) inset; }
-  .tag.ok { background:#e8f7f2; color:#0a6a5e; }
-  .tag.warn { background:#fff5e9; color:#b76d14; }
-  .tag.bad { background:#fbeceb; color:#b84e44; }
-  .assign { display:flex; flex-wrap:wrap; gap:6px; }
-  .actions { display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap; }
-  .name-cell { display:flex; align-items:center; gap:8px; }
   .mini { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:7px 10px; font:800 12px Pretendard; text-decoration:none; cursor:pointer; }
-  .mini.blue { border-color:#c9dafb; color:#2b5cc4; background:#f5f8ff; }
   .mini.green { border-color:var(--deep); color:#fff; background:var(--deep); }
   .empty { text-align:center; padding:70px 20px; color:var(--gray); line-height:1.6; }
   .empty b { color:var(--ink); }
@@ -103,21 +89,9 @@
   .table-card::-webkit-scrollbar { height:12px; }
   .table-card::-webkit-scrollbar-track { background:#f2f5f4; border-radius:999px; }
   .table-card::-webkit-scrollbar-thumb { background:#cbd8d4; border-radius:999px; border:3px solid #f2f5f4; }
-  .wide-text { max-width:180px; overflow:hidden; text-overflow:ellipsis; display:inline-block; vertical-align:middle; }
   th.sortable { cursor:pointer; user-select:none; }
   th.sortable:hover { color:var(--ink); }
   .num { color:var(--gray); font-weight:800; }
-  /* 인라인 편집 select (엑셀 드롭다운) */
-  .sel { border:1px solid var(--line); border-radius:8px; padding:6px 6px; font:700 12px Pretendard; background:#fff; color:var(--ink); cursor:pointer; max-width:100%; }
-  .sel:focus { outline:none; border-color:var(--accent); }
-  .sel[data-p="계약완료"] { background:#e8f7f2; color:#0a6a5e; border-color:#cdeee5; }
-  .sel[data-p="투어종료"] { background:#eef1f0; color:#5b6a66; border-color:#dfe5e3; }
-  .sel[data-p="예약취소"] { background:#fbeceb; color:#b84e44; border-color:#f3d2ce; }
-  .sel[data-p="계약대기"] { background:#fff5e9; color:#b76d14; border-color:#f5e0c4; }
-  .doc-tags { display:flex; gap:5px; }
-  .doc-stack { display:flex; align-items:center; gap:6px; max-width:220px; }
-  a.tag { text-decoration:none; }
-  a.tag.dim, span.tag.dim { background:#f2f5f4; color:var(--gray); }
   .contract-badge { display:inline-flex; align-items:center; justify-content:center; min-width:62px; border-radius:9px; padding:8px 10px; font-weight:900; font-size:12px; }
   .contract-badge.signed { background:#e8f7f2; color:#0a6a5e; }
   .contract-badge.unsigned { background:#fbeceb; color:#b84e44; }
@@ -245,7 +219,7 @@ const lodges = r => (((r.booking || {}).assign || {}).lodges || []).filter(l => 
 const vehicle = r => (((r.booking || {}).assign || {}).vehicle || {});
 const guide = r => (((r.booking || {}).assign || {}).guide || {});
 const signed = r => !!(((r.booking || {}).contract || {}).signedAt);
-const hasVehicle = r => !!(vehicle(r).model || r.vehicle);
+const hasVehicle = r => !!vehicle(r).model;   // 실제 배정(배정관리)만 인정 — 엑셀 차량 텍스트는 미배정 취급
 const hasLodges = r => lodges(r).length > 0;
 const isReservation = r => (r.status === "예약확정") || !!r.booking;
 const assignDone = r => !!guide(r).name && hasVehicle(r) && hasLodges(r);
@@ -411,21 +385,6 @@ function render() {
     $("list").innerHTML = `<div class="empty">조건에 맞는 예약이 없습니다.</div>`;
     return;
   }
-  /* 인라인 편집 select — 엑셀 드롭다운처럼 즉시 저장 */
-  const selCell = (r, field) => {
-    const opts = FIELD_OPTS[field];
-    if (field === "progress") {
-      const eff = progressOf(r);
-      return `<select class="sel" data-field="progress" data-id="${esc(r.id)}" data-p="${esc(eff)}">
-        <option value="" ${r.progress ? "" : "selected"}>${esc(progressAuto(r))} (자동)</option>
-        ${opts.map(o => `<option value="${o}" ${r.progress === o ? "selected" : ""}>${o}</option>`).join("")}
-      </select>`;
-    }
-    const cur = field === "pkgTier" && r[field] === "풀페키지" ? "풀패키지" : (r[field] || opts[0]);
-    return `<select class="sel" data-field="${field}" data-id="${esc(r.id)}">
-      ${opts.map(o => `<option value="${o}" ${cur === o ? "selected" : ""}>${o}</option>`).join("")}
-    </select>`;
-  };
   const contractCell = r => signed(r)
     ? `<span class="contract-badge signed">서명완료</span>`
     : `<span class="contract-badge unsigned">미서명</span>`;
@@ -451,12 +410,13 @@ function render() {
       <div class="assign-detail">${esc(detail)}</div>
     </div>`;
   };
+  /* 결제 표시 우선순위: 배정관리 입력(contractInfo) → 엑셀(finance) → 체크리스트 */
   const payStatus = (r, field) => {
     const f = r.finance || {};
     const c = (((r.booking || {}).contractInfo) || {});
     const ck = (((r.booking || {}).checklist) || {});
-    if (field === "depositStatus") return f.depositStatus || c.depositStatus || (ck.deposit ? "입금완료" : "미입금");
-    return f.balanceStatus || c.balanceStatus || (ck.balance ? "입금완료" : "미수령");
+    if (field === "depositStatus") return c.depositStatus || f.depositStatus || (ck.deposit ? "입금완료" : "미입금");
+    return c.balanceStatus || f.balanceStatus || (ck.balance ? "입금완료" : "미수령");
   };
   const paySelect = (r, statusField) => {
     const cur = payStatus(r, statusField);
@@ -466,12 +426,15 @@ function render() {
   };
   const payCell = r => {
     const f = r.finance || {};
+    const ci = (((r.booking || {}).contractInfo) || {});
+    const deposit = Number(ci.depositAmount) || Number(f.depositAmount) || 0;
+    const balance = Number(ci.balanceAmount) || Number(f.balanceAmount) || 0;
     return `<div class="pay-two">
-      <div class="pay-line"><span class="pay-label">예약금</span><span class="amount">${moneyTxt(f.depositAmount)}</span>${paySelect(r, "depositStatus")}</div>
-      <div class="pay-line"><span class="pay-label">잔금</span><span class="amount">${moneyTxt(f.balanceAmount)}</span>${paySelect(r, "balanceStatus")}</div>
+      <div class="pay-line"><span class="pay-label">예약금</span><span class="amount">${moneyTxt(deposit)}</span>${paySelect(r, "depositStatus")}</div>
+      <div class="pay-line"><span class="pay-label">잔금</span><span class="amount">${moneyTxt(balance)}</span>${paySelect(r, "balanceStatus")}</div>
     </div>`;
   };
-  const nameCell = r => `<div class="cust-name"><b>${esc(r.name || "-")}</b><span class="pax">${paxSum(r) || 0}명</span></div>`;
+  const nameCell = r => `<div class="cust-name"><b>${esc(r.name || "-")}</b><span class="pax">${paxSum(r) ? `${paxSum(r)}명` : "인원 미정"}</span></div>`;
   const periodCell = r => {
     const dep = dateOnly(r.depart), ret = dateOnly(r.return_);
     const dd = dDay(r);
@@ -516,6 +479,7 @@ function render() {
     <tbody>${data.map(r => {
       const token = r.token || "";
       const f = r.finance || {};
+      const ci = (((r.booking || {}).contractInfo) || {});
       return `<tr data-id="${esc(r.id)}">
         <td><input class="rowcheck row-select" type="checkbox" data-select="${esc(r.id)}" ${SELECTED.has(String(r.id)) ? "checked" : ""} title="예약 선택"></td>
         <td class="num">${nums[String(r.id)] || "-"}</td>
@@ -525,7 +489,7 @@ function render() {
         <td>${contractCell(r)}</td>
         <td class="td-wrap">${assignCell(r)}</td>
         <td class="td-wrap col-pay">${payCell(r)}</td>
-        <td class="col-receipt">${esc(f.cashReceipt || "-")}</td>
+        <td class="col-receipt">${esc(ci.cashReceipt || f.cashReceipt || "-")}</td>
         <td class="col-actions">${actionsCell(r, token)}</td>
       </tr>`;
     }).join("")}</tbody></table>`;
@@ -547,44 +511,12 @@ function render() {
     if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
     render();
   });
-  $("list").querySelectorAll("select.sel").forEach(sel => {
-    sel.onclick = e => e.stopPropagation();
-    sel.onchange = () => saveField(sel.dataset.id, sel.dataset.field, sel.value);
-  });
   $("list").querySelectorAll("select.pay-sel").forEach(sel => {
     sel.onclick = e => e.stopPropagation();
     sel.onchange = () => saveFinanceStatus(sel.dataset.id, sel.dataset.finance, sel.value);
   });
 }
 
-/* ── 인라인 필드 저장: PATCH 단일 필드 (booking과 독립 병합 — 예약관리 저장과 충돌 없음) ── */
-async function saveField(id, field, value) {
-  const r = RECORDS.find(x => String(x.id) === String(id));
-  if (!r) return;
-  const prev = r[field];
-  r[field] = value;
-  try {
-    if (IS_LOCAL) {
-      const arr = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
-      const t = arr.find(x => String(x.id) === String(id));
-      if (t) { t[field] = value; localStorage.setItem("leaders_requests", JSON.stringify(arr)); }
-    } else {
-      const res = await fetch(`/api/requests/${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
-        body: JSON.stringify({ [field]: value }),
-      });
-      if (res.status === 401) throw new Error("관리자 인증이 만료됐어요");
-      const j = await res.json();
-      if (!j.ok) throw new Error(j.error || "저장 실패");
-    }
-    toast("✓ 저장됐어요");
-  } catch (e) {
-    r[field] = prev;
-    toast("⚠ " + e.message);
-  }
-  render();
-}
 async function saveFinanceStatus(id, field, value) {
   const r = RECORDS.find(x => String(x.id) === String(id));
   if (!r) return;
