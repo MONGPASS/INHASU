@@ -27,10 +27,23 @@
   .btn { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:10px; padding:10px 14px; font:800 13px Pretendard; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
   .btn.primary { background:var(--deep); color:#fff; border-color:var(--deep); }
   .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
-  .stat { background:#fff; border:1px solid var(--line); border-radius:15px; padding:17px 18px; }
-  .stat .k { color:var(--sub); font-weight:800; font-size:12.5px; }
-  .stat .v { font-size:30px; font-weight:800; margin-top:8px; line-height:1; }
-  .stat .s { color:var(--gray); font-size:12px; margin-top:8px; font-weight:700; }
+  .stat { position:relative; background:#fff; border:1px solid var(--line); border-radius:16px; padding:15px 16px 13px 18px; overflow:hidden; }
+  .stat::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--c,#06c4a0); }
+  .stat-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .stat-ico { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:var(--cs,#eaf7f3); color:var(--c,#06c4a0); }
+  .stat-ico svg { width:18px; height:18px; }
+  .stat-pill { font-size:11px; font-weight:800; padding:4px 10px; border-radius:99px; background:var(--cs,#eaf7f3); color:var(--c,#06c4a0); white-space:nowrap; }
+  .stat-k { color:var(--sub); font-weight:800; font-size:12.5px; }
+  .stat-v { font-size:28px; font-weight:800; margin-top:5px; line-height:1; display:flex; align-items:baseline; gap:3px; }
+  .stat-v .unit { font-size:13px; font-weight:800; color:var(--gray); }
+  .stat-bot { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:11px; }
+  .stat-sub { color:var(--gray); font-size:12px; font-weight:700; }
+  .stat-act { font-size:12px; font-weight:800; color:var(--c,#06c4a0); cursor:pointer; border:none; background:none; font-family:inherit; padding:0; white-space:nowrap; }
+  .stat-act:hover { text-decoration:underline; }
+  .stat.c-teal  { --c:#06c4a0; --cs:#e4f6f1; }
+  .stat.c-red   { --c:#d96a5e; --cs:#fbeceb; }
+  .stat.c-amber { --c:#d9932f; --cs:#fbf1e2; }
+  .stat.c-green { --c:#1f9d76; --cs:#e6f5ef; }
   .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
   .search { flex:1; min-width:300px; max-width:560px; }
   .search input { width:100%; border:1px solid var(--line); border-radius:11px; padding:11px 13px; font:600 14px Pretendard; outline:none; }
@@ -87,9 +100,10 @@
 
   /* ── 엑셀형 표: 가로 스크롤 + 밀도 ── */
   .table-card { overflow:auto; }
-  .table-card table { min-width:1410px; table-layout:fixed; }
-  .table-card th { padding:11px 8px; font-size:11.5px; overflow:hidden; text-overflow:ellipsis; }
-  .table-card td { padding:10px 8px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .table-card table { min-width:1160px; table-layout:fixed; }
+  .table-card th { padding:13px 12px; font-size:12px; overflow:hidden; text-overflow:ellipsis; }
+  .table-card td { padding:13px 12px; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .table-card td.td-wrap { white-space:normal; overflow:visible; text-overflow:clip; }
   .table-card::-webkit-scrollbar { height:12px; }
   .table-card::-webkit-scrollbar-track { background:#f2f5f4; border-radius:999px; }
   .table-card::-webkit-scrollbar-thumb { background:#cbd8d4; border-radius:999px; border:3px solid #f2f5f4; }
@@ -111,12 +125,34 @@
   .contract-badge { display:inline-flex; align-items:center; justify-content:center; min-width:62px; border-radius:9px; padding:8px 10px; font-weight:900; font-size:12px; }
   .contract-badge.signed { background:#e8f7f2; color:#0a6a5e; }
   .contract-badge.unsigned { background:#fbeceb; color:#b84e44; }
-  .assign-status { display:flex; flex-direction:column; gap:7px; min-width:0; }
-  .assign-chips { display:flex; gap:6px; flex-wrap:wrap; }
-  .assign-chip { display:inline-flex; align-items:center; border-radius:8px; padding:5px 8px; font-size:12px; font-weight:900; background:#fff3df; color:#b76d14; }
-  .assign-chip.ok { background:#e8f7f2; color:#0a6a5e; }
-  .assign-progress { font-size:12px; font-weight:900; color:#b76d14; }
-  .assign-progress.ok { color:#0a6a5e; }
+  /* 배정 상태 — 진행 바 + 요약 */
+  .assign-status { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .assign-bar { display:flex; align-items:center; gap:9px; }
+  .assign-track { flex:1; height:6px; border-radius:99px; background:#eef1f0; overflow:hidden; min-width:56px; max-width:118px; }
+  .assign-track > span { display:block; height:100%; border-radius:99px; background:#e0913a; transition:width .2s; }
+  .assign-track.ok > span { background:var(--accent); }
+  .assign-count { font-size:11.5px; font-weight:900; color:#b76d14; white-space:nowrap; }
+  .assign-count.ok { color:#0a6a5e; }
+  .assign-detail { font-size:11.5px; font-weight:700; color:var(--gray); line-height:1.35; white-space:normal; }
+  /* 결제 — 예약금·잔금 통합 */
+  .pay-two { display:flex; flex-direction:column; gap:7px; }
+  .pay-line { display:flex; align-items:center; gap:6px; }
+  .pay-label { font-size:11px; font-weight:800; color:var(--gray); width:32px; flex:none; }
+  .pay-line .amount { font-weight:800; font-size:12px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  /* 여행 기간·지역 */
+  .period { display:flex; flex-direction:column; gap:3px; }
+  .period .range { font-weight:700; font-size:12px; white-space:nowrap; }
+  .period .arrow { color:var(--gray); margin:0 4px; }
+  .period .sub { color:var(--gray); font-size:11.5px; font-weight:700; }
+  .dday { display:inline-block; margin-left:6px; font-size:10.5px; font-weight:900; color:#b76d14; background:#fff3df; border-radius:6px; padding:1px 6px; vertical-align:middle; }
+  /* 고객명 + 인원 */
+  .cust-name b { font-size:13px; font-weight:800; display:block; }
+  .cust-name .pax { color:var(--gray); font-size:11.5px; font-weight:700; }
+  /* 관리 액션 */
+  .row-actions { display:flex; flex-direction:column; gap:6px; align-items:stretch; }
+  .mini.wide { width:100%; text-align:center; padding:9px 8px; }
+  .row-sub-actions { display:flex; gap:6px; }
+  .row-sub-actions .mini { flex:1; text-align:center; padding:7px 6px; }
 
   /* ── 엑셀 가져오기 모달 ── */
   .modal-wrap { position:fixed; inset:0; background:rgba(15,30,26,.45); z-index:90; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -345,12 +381,25 @@ function render() {
   const unsigned = all.filter(r => !signed(r)).length;
   const incomplete = all.filter(r => !assignDone(r)).length;
   const soon = all.filter(r => { const dd = dDay(r); return dd !== null && dd >= 0 && dd <= 14; }).length;
-  $("stats").innerHTML = [
-    ["예약확정", all.length, "전체 확정 고객"],
-    ["계약 미서명", unsigned, "서명 요청 필요"],
-    ["배정 미완료", incomplete, "가이드·차량·숙소 확인"],
-    ["14일 내 출발", soon, "출발 전 최종 점검"],
-  ].map(([k,v,s]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("");
+  const ICO = {
+    clip:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 15l2 2 5-5"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+    pen:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`,
+    users: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>`,
+  };
+  const statDefs = [
+    { c:"c-teal",  ico:ICO.clip,  pill:"전체",      k:"예약 확정",    v:all.length, sub:"전체 확정 고객",       act:"",          f:"전체" },
+    { c:"c-red",   ico:ICO.pen,   pill:"조치 필요", k:"계약 미서명",  v:unsigned,   sub:"서명 요청 필요",       act:"서명 요청 →", f:"계약미서명" },
+    { c:"c-amber", ico:ICO.users, pill:"조치 필요", k:"배정 미완료",  v:incomplete, sub:"가이드·차량·숙소 확인", act:"배정 확인 →", f:"배정미완료" },
+    { c:"c-green", ico:ICO.clock, pill:"임박",      k:"14일 내 출발", v:soon,       sub:"출발 전 최종 점검",     act:"점검 →",     f:"출발임박" },
+  ];
+  $("stats").innerHTML = statDefs.map(s => `<div class="stat ${s.c}">
+    <div class="stat-top"><div class="stat-ico">${s.ico}</div><span class="stat-pill">${s.pill}</span></div>
+    <div class="stat-k">${s.k}</div>
+    <div class="stat-v">${s.v}<span class="unit">건</span></div>
+    <div class="stat-bot"><span class="stat-sub">${s.sub}</span>${s.act ? `<button class="stat-act" data-f="${s.f}">${s.act}</button>` : ""}</div>
+  </div>`).join("");
+  $("stats").querySelectorAll(".stat-act").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
   const chipDefs = [["전체", all.length], ["계약미서명", unsigned], ["배정미완료", incomplete], ["출발임박", soon]];
   $("chips").innerHTML = chipDefs.map(([k, n]) => `<button class="chip ${filter===k?"on":""}" data-f="${k}">${k} ${n}</button>`).join("");
   $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
@@ -385,10 +434,20 @@ function render() {
       ["차량", hasVehicle(r)],
       ["숙소", hasLodges(r)],
     ];
+    const total = checks.length;
     const done = checks.filter(([, ok]) => ok).length;
+    const allOk = done === total;
+    const pct = Math.round((done / total) * 100);
+    const doneLabels = checks.filter(([, ok]) => ok).map(([l]) => l);
+    const pendLabels = checks.filter(([, ok]) => !ok).map(([l]) => l);
+    const detail = allOk ? "가이드·차량·숙소 모두 배정"
+      : `${doneLabels.length ? `${doneLabels.join("·")} 배정 · ` : ""}${pendLabels.join("·")} 대기`;
     return `<div class="assign-status">
-      <div class="assign-chips">${checks.map(([label, ok]) => `<span class="assign-chip ${ok ? "ok" : ""}">${ok ? "✓ " : ""}${label}</span>`).join("")}</div>
-      <div class="assign-progress ${done === checks.length ? "ok" : ""}">${done === checks.length ? "배정 완료" : `${done}/${checks.length} 완료`}</div>
+      <div class="assign-bar">
+        <div class="assign-track ${allOk ? "ok" : ""}"><span style="width:${pct}%"></span></div>
+        <span class="assign-count ${allOk ? "ok" : ""}">${allOk ? "배정 완료" : `${done}/${total} 완료`}</span>
+      </div>
+      <div class="assign-detail">${esc(detail)}</div>
     </div>`;
   };
   const payStatus = (r, field) => {
@@ -398,16 +457,38 @@ function render() {
     if (field === "depositStatus") return f.depositStatus || c.depositStatus || (ck.deposit ? "입금완료" : "미입금");
     return f.balanceStatus || c.balanceStatus || (ck.balance ? "입금완료" : "미수령");
   };
-  const moneyCell = (r, amountField, statusField) => {
-    const f = r.finance || {};
+  const paySelect = (r, statusField) => {
     const cur = payStatus(r, statusField);
-    return `<div class="money-stack">
-      <span class="amount">${moneyTxt(f[amountField])}</span>
-      <select class="pay-sel" data-finance="${statusField}" data-id="${esc(r.id)}" data-v="${esc(cur)}">
-        ${PAY_OPTS[statusField].map(o => `<option value="${o}" ${cur === o ? "selected" : ""}>${o}</option>`).join("")}
-      </select>
+    return `<select class="pay-sel" data-finance="${statusField}" data-id="${esc(r.id)}" data-v="${esc(cur)}">
+      ${PAY_OPTS[statusField].map(o => `<option value="${o}" ${cur === o ? "selected" : ""}>${o}</option>`).join("")}
+    </select>`;
+  };
+  const payCell = r => {
+    const f = r.finance || {};
+    return `<div class="pay-two">
+      <div class="pay-line"><span class="pay-label">예약금</span><span class="amount">${moneyTxt(f.depositAmount)}</span>${paySelect(r, "depositStatus")}</div>
+      <div class="pay-line"><span class="pay-label">잔금</span><span class="amount">${moneyTxt(f.balanceAmount)}</span>${paySelect(r, "balanceStatus")}</div>
     </div>`;
   };
+  const nameCell = r => `<div class="cust-name"><b>${esc(r.name || "-")}</b><span class="pax">${paxSum(r) || 0}명</span></div>`;
+  const periodCell = r => {
+    const dep = dateOnly(r.depart), ret = dateOnly(r.return_);
+    const dd = dDay(r);
+    const ddChip = (dd !== null && dd >= 0 && dd <= 14) ? `<span class="dday">${dd === 0 ? "D-DAY" : "D-" + dd}</span>` : "";
+    const nt = nightsTxt(r);
+    const sub = [nt !== "-" ? nt : "", r.destination || ""].filter(Boolean).join(" · ");
+    return `<div class="period">
+      <div class="range">${esc(dep || "?")}<span class="arrow">→</span>${esc(ret || "?")}${ddChip}</div>
+      <div class="sub">${esc(sub || "-")}</div>
+    </div>`;
+  };
+  const actionsCell = (r, token) => `<div class="row-actions">
+    <button class="mini green wide" data-open="${esc(r.id)}">배정 관리</button>
+    <div class="row-sub-actions">
+      ${token ? `<a class="mini" href="확정일정표.html?t=${encodeURIComponent(token)}&v=assign3" target="_blank">일정표</a>` : ""}
+      ${token ? `<a class="mini" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">${signed(r) ? "계약서" : "서명 요청"}</a>` : ""}
+    </div>
+  </div>`;
   const arrow = k => sortKey === k ? (sortDir > 0 ? " ▲" : " ▼") : "";
   const nums = rowNumbers();
   const visibleIds = data.map(r => String(r.id));
@@ -415,23 +496,21 @@ function render() {
 
   $("list").innerHTML = `<table>
     <colgroup>
-      <col style="width:42px"><col style="width:40px"><col style="width:96px"><col style="width:118px">
-      <col style="width:96px"><col style="width:96px"><col style="width:46px">
-      <col style="width:62px"><col style="width:106px"><col style="width:86px">
-      <col style="width:170px"><col style="width:120px">
-      <col style="width:126px"><col style="width:104px"><col style="width:192px">
+      <col style="width:38px"><col style="width:40px"><col style="width:92px"><col style="width:120px">
+      <col style="width:184px"><col style="width:76px"><col style="width:176px">
+      <col style="width:196px"><col style="width:84px"><col style="width:176px">
     </colgroup>
     <thead><tr>
       <th><input class="rowcheck" type="checkbox" id="checkAllRows" ${allChecked ? "checked" : ""} title="현재 목록 전체 선택"></th>
       <th>번호</th>
       <th class="sortable" data-k="book">예약일${arrow("book")}</th>
       <th class="sortable" data-k="name">고객명${arrow("name")}</th>
-      <th class="sortable" data-k="depart">몽골도착${arrow("depart")}</th>
-      <th class="hide-xs">몽골출발</th>
-      <th class="sortable" data-k="pax">인원${arrow("pax")}</th>
-      <th class="hide-xs">일정</th><th class="hide-sm">지역</th>
-      <th>계약</th><th>배정 상태</th>
-      <th class="col-money">예약금</th><th class="col-money">잔금</th><th class="col-receipt">현금영수증</th><th class="col-actions">관리</th>
+      <th class="sortable" data-k="depart">여행 기간·지역${arrow("depart")}</th>
+      <th>계약</th>
+      <th>배정 상태</th>
+      <th>결제</th>
+      <th class="col-receipt">영수증</th>
+      <th class="col-actions">관리</th>
     </tr></thead>
     <tbody>${data.map(r => {
       const token = r.token || "";
@@ -440,22 +519,13 @@ function render() {
         <td><input class="rowcheck row-select" type="checkbox" data-select="${esc(r.id)}" ${SELECTED.has(String(r.id)) ? "checked" : ""} title="예약 선택"></td>
         <td class="num">${nums[String(r.id)] || "-"}</td>
         <td>${esc(bookDate(r) || "-")}</td>
-        <td><div class="name-cell"><b>${esc(r.name || "-")}</b></div></td>
-        <td>${esc(dateOnly(r.depart) || "-")}</td>
-        <td class="hide-xs">${esc(dateOnly(r.return_) || "-")}</td>
-        <td>${paxSum(r) || "-"}</td>
-        <td class="hide-xs">${esc(nightsTxt(r))}</td>
-        <td class="hide-sm">${esc(r.destination || "-")}</td>
+        <td>${nameCell(r)}</td>
+        <td class="td-wrap">${periodCell(r)}</td>
         <td>${contractCell(r)}</td>
-        <td>${assignCell(r)}</td>
-        <td class="col-money">${moneyCell(r, "depositAmount", "depositStatus")}</td>
-        <td class="col-money">${moneyCell(r, "balanceAmount", "balanceStatus")}</td>
+        <td class="td-wrap">${assignCell(r)}</td>
+        <td class="td-wrap col-pay">${payCell(r)}</td>
         <td class="col-receipt">${esc(f.cashReceipt || "-")}</td>
-        <td class="col-actions"><div class="actions">
-          <button class="mini green" data-open="${esc(r.id)}">배정 관리</button>
-          ${token ? `<a class="mini" href="확정일정표.html?t=${encodeURIComponent(token)}&v=assign3" target="_blank">일정표</a>` : ""}
-          ${token ? `<a class="mini" href="계약서.html?t=${encodeURIComponent(token)}" target="_blank">${signed(r) ? "계약서" : "서명 요청"}</a>` : ""}
-        </div></td>
+        <td class="col-actions">${actionsCell(r, token)}</td>
       </tr>`;
     }).join("")}</tbody></table>`;
   $("checkAllRows").onchange = e => {
