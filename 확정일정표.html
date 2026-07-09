@@ -126,6 +126,9 @@ const buildConfirmedQuote = j => {
   q.price.payment = q.price.payment || "예약금: 계좌이체 · 잔금: 현장결제";
   q.price.paymentNote = q.price.paymentNote || "";
   q.remark = ci.note || q.remark || "-";
+  // 대표 명소 — 배정관리에서 고른 명소(booking.highlights)가 있으면 그것을 우선 사용
+  // (견적 없는 카톡·엑셀·Word 예약도 대표 명소 페이지가 채워짐 · 이미지는 아래에서 /api/data/spots로 최신화)
+  if (Array.isArray(bk.highlights) && bk.highlights.length) q.highlights = clone(bk.highlights);
   q.booking = bk;
   return q;
 };

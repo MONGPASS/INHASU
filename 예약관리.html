@@ -105,6 +105,26 @@
 
   .empty { text-align:center; padding:60px 20px; color:var(--sub); }
   .empty h2 { font-size:19px; color:var(--ink); margin-bottom:8px; }
+
+  /* 일정 불러오기 (코스관리 스니펫) — 견적만들기와 동일 */
+  .snip-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .snip-sel { width:auto; min-width:180px; padding:8px 12px; border:1.5px solid var(--accent); border-radius:9px; background:var(--soft); color:var(--accent); font:700 12.5px Pretendard; cursor:pointer; }
+  .snip-hint { font-size:11px; color:var(--sub); }
+  /* 대표 명소 선택기 — 견적만들기와 동일 */
+  .spot-cat { margin-top:16px; }
+  .spot-cat:first-child { margin-top:0; }
+  .spot-cat-head { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:800; color:var(--accent); margin-bottom:9px; }
+  .spot-cat-head .ln { flex:1; height:1px; background:var(--line); }
+  .spot-cat-head .cc { font-size:11px; font-weight:700; color:var(--sub); }
+  .spot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:9px; }
+  .spot-chk { display:flex; align-items:center; gap:9px; border:1.5px solid var(--line); border-radius:11px; padding:11px 13px; cursor:pointer; transition:.12s; }
+  .spot-chk:hover { border-color:var(--accent); }
+  .spot-chk.on { border-color:var(--accent); background:var(--soft); }
+  .spot-chk .box { width:20px; height:20px; border-radius:6px; border:1.5px solid #c7d0cd; flex:0 0 auto; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; }
+  .spot-chk.on .box { background:var(--accent); border-color:var(--accent); }
+  .spot-chk b { font-size:13.5px; }
+  .spot-chk small { display:block; font-size:11px; color:var(--sub); }
+  .spot-order { margin-left:auto; font-size:11px; font-weight:800; color:var(--accent); }
   @media (max-width:760px){
     header { padding:12px 14px; }
     main { padding:14px 10px; }
@@ -172,6 +192,7 @@ function blankBooking() {
     contractInfo: { productName:"", region:"", totalAmount:0, depositAmount:0, depositStatus:"미입금", balanceAmount:0, balanceStatus:"미수령", cashReceipt:"", note:"" },
     checklist: { deposit:false, balance:false, flight:false, insurance:false, contract:false },
     contract: null,   // 고객 서명 시 서버(/api/sign)가 채움 — {signedAt, signImg, snapshot…}
+    highlights: [],   // 대표 명소 — 확정일정표 "대표 명소" 페이지에 노출 {nameMn,name,desc,img,subImgs}
     notes: "", adminMemo: "",
   };
 }
@@ -188,6 +209,7 @@ function normBooking(b) {
     flight: { ...base.flight, ...(b.flight || {}) },
     contractInfo: { ...base.contractInfo, ...(b.contractInfo || {}) },
     checklist: { ...base.checklist, ...(b.checklist || {}) },
+    highlights: Array.isArray(b.highlights) ? b.highlights : [],
   };
 }
 // 견적 일정 → 확정 일정 복사 (견적서 days 구조 그대로)
@@ -212,6 +234,10 @@ function init() {
     inDate: BK.flight.inDate || PRE.depart || "",
     outDate: BK.flight.outDate || PRE.return_ || "",
   };
+  // 대표 명소: booking에 없으면 발행된 견적의 명소를 초기값으로 (선택기에 미리 체크됨)
+  if (!BK.highlights.length && PRE.quote && Array.isArray(PRE.quote.highlights)) {
+    BK.highlights = JSON.parse(JSON.stringify(PRE.quote.highlights));
+  }
   SAVED_BK_JSON = JSON.stringify(BK);
   const paxTot = (PRE.adult||0)+(PRE.child||0)+(PRE.infant||0);
   $("hName").textContent = PRE.name || "-";
@@ -361,6 +387,10 @@ function dayCard(d, i) {
       <button class="del" data-del="${i}" title="이 일차 삭제">✕</button>
     </div>
     <div class="day-b">
+      <div class="snip-row">
+        <select class="snip-sel" data-i="${i}"><option value="">📋 일정 불러오기…</option></select>
+        <span class="snip-hint">코스관리에 저장한 일정을 클릭 한 번에 채웁니다. 없으면 아래에 직접 작성하세요.</span>
+      </div>
       <label class="f"><span>일정 (한 줄에 하나)</span><textarea data-k="items" rows="4">${esc((d.items || []).join("\n"))}</textarea></label>
       <div class="grid3">
         <label class="f"><span>숙소</span><input data-k="stayName" value="${esc(noBr((d.stay || {}).name))}" placeholder="여행자 캠프 (일반게르)"></label>
@@ -426,7 +456,13 @@ function render() {
   </section>
 
   <section class="card">
-    <div class="sec-h"><h2><span class="n">2</span>배정 (가이드 · 차량 · 숙소)</h2>
+    <div class="sec-h"><h2><span class="n">2</span>대표 명소</h2>
+      <span class="tip">체크한 명소가 고객 확정일정표의 "대표 명소" 페이지에 순서대로 나와요 · 명소관리에 등록한 목록</span></div>
+    <div id="spotGroups"><div style="font-size:12.5px;color:var(--sub)">명소 목록을 불러오는 중…</div></div>
+  </section>
+
+  <section class="card">
+    <div class="sec-h"><h2><span class="n">3</span>배정 (가이드 · 차량 · 숙소)</h2>
       <span class="tip">이름·소개는 고객 확정안내에 보여요 · 연락처/차량번호는 내부용</span></div>
 
     <div class="assign-box">
@@ -479,7 +515,7 @@ function render() {
   </section>
 
   <section class="card">
-    <div class="sec-h"><h2><span class="n">3</span>계약 기본정보</h2>
+    <div class="sec-h"><h2><span class="n">4</span>계약 기본정보</h2>
       <span class="tip">계약서 PDF에 표시되는 고객·항공·금액 정보입니다</span></div>
     <div class="assign-box">
       <div class="subtt">👥 여행자 정보</div>
@@ -526,7 +562,7 @@ function render() {
   ${importedInfoHtml()}
 
   <section class="card">
-    <div class="sec-h"><h2><span class="n">4</span>체크리스트 · 메모</h2></div>
+    <div class="sec-h"><h2><span class="n">5</span>체크리스트 · 메모</h2></div>
     <label class="chk"><input type="checkbox" id="c_deposit" ${c.deposit ? "checked" : ""}> 예약금 입금 확인</label>
     <label class="chk"><input type="checkbox" id="c_balance" ${c.balance ? "checked" : ""}> 잔금 수령 (현장)</label>
     <label class="chk"><input type="checkbox" id="c_flight" ${c.flight ? "checked" : ""}> 항공권 발권 확인</label>
@@ -647,6 +683,16 @@ function bindEvents() {
   document.querySelectorAll(".day .del").forEach(b => b.onclick = () => {
     pullForm(); BK.days.splice(Number(b.dataset.del), 1); render();
   });
+  /* 일정 불러오기 — 코스관리 스니펫을 이 일차에 그대로 채움 (견적만들기와 동일 로직) */
+  document.querySelectorAll(".snip-sel").forEach(sel => sel.onchange = () => {
+    const s = SNIPPETS[sel.value]; if (!s) return;
+    const i = Number(sel.dataset.i);
+    pullForm();
+    const dNum = BK.days[i] ? BK.days[i].d : i + 1;
+    BK.days[i] = { d:dNum, dest:s.dest||"", move:s.move||"", dist:s.dist||"",
+      items:[...(s.items||[])], stay:{ name:(s.stay&&s.stay.name)||"", tags:[...((s.stay&&s.stay.tags)||[])] }, meals:[...(s.meals||[])] };
+    render(); toast(`"${sel.value}" 일정을 불러왔어요`);
+  });
   $("addLodge").onclick = () => { pullForm(); BK.assign.lodges.push({ day:BK.assign.lodges.length+1, name:"", grade:"" }); render(); };
   document.querySelectorAll("[data-del-lodge]").forEach(b => b.onclick = () => {
     pullForm(); BK.assign.lodges.splice(Number(b.dataset.delLodge), 1); render();
@@ -677,11 +723,14 @@ function bindEvents() {
     render();
   };
   fillDatalists();   // 리렌더 시 datalist·자동채움 다시 연결
+  fillSnipSelects(); // 일정 불러오기 옵션 채움
+  renderSpots();     // 대표 명소 선택기 렌더
   bindAutofill();
 }
 
-/* ══════════ 리소스 라이브러리 (리소스관리에서 등록한 가이드·숙소·차량) ══════════ */
+/* ══════════ 리소스 라이브러리 (리소스관리·코스관리·명소관리에서 등록한 데이터) ══════════ */
 let LIBS = { guides: {}, lodges: {}, vehicles: {} };
+let SNIPPETS = {}, SNIP_CATS = [], SPOTS = {}, SPOT_CATS = [];   // 코스관리(일정)·명소관리
 async function loadLibs() {
   await Promise.all(Object.keys(LIBS).map(async key => {
     try {
@@ -690,10 +739,69 @@ async function loadLibs() {
       if (j.ok && j.data) LIBS[key] = j.data;
     } catch (e) {}
   }));
+  // 코스관리 스니펫 · 명소관리 명소 (일정 불러오기 / 대표 명소 기능용)
+  const fetchData = async key => { try { const r = await fetch("/api/data/" + key, { cache:"no-store" }); const j = await r.json(); return (j.ok && j.data) ? j.data : null; } catch (e) { return null; } };
+  const [sn, sc, sp, pc] = await Promise.all([fetchData("snippets"), fetchData("snippet_cats"), fetchData("spots"), fetchData("spot_cats")]);
+  if (sn) SNIPPETS = sn;
+  if (Array.isArray(sc)) SNIP_CATS = sc;
+  if (sp) SPOTS = sp;
+  if (Array.isArray(pc)) SPOT_CATS = pc;
   fillDatalists();
+  fillSnipSelects();
+  renderSpots();
   updateResourcePreview("guide", BK.assign.guide);
   updateResourcePreview("vehicle", BK.assign.vehicle);
   document.querySelectorAll(".lodge-row").forEach(updateLodgePreview);
+}
+
+/* 일정 불러오기 드롭다운 옵션 — 코스관리 스니펫을 cat별 optgroup으로 (견적만들기와 동일) */
+function fillSnipSelects() {
+  const byCat = {};
+  Object.entries(SNIPPETS).forEach(([name, s]) => { const c = (s && s.cat ? String(s.cat).trim() : "") || "기타"; (byCat[c] = byCat[c] || []).push(name); });
+  const ordered = [...SNIP_CATS.filter(c => byCat[c]), ...Object.keys(byCat).filter(c => !SNIP_CATS.includes(c) && c !== "기타")];
+  if (byCat["기타"]) ordered.push("기타");
+  const opts = ordered.map(c => `<optgroup label="${esc(c)}">${byCat[c].map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</optgroup>`).join("");
+  document.querySelectorAll(".snip-sel").forEach(sel => {
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">📋 일정 불러오기…</option>` + opts;
+    sel.value = cur;
+  });
+}
+
+/* 대표 명소 선택기 — 명소관리 명소를 지역(카테고리)별로, BK.highlights 토글 (견적만들기와 동일) */
+function renderSpots() {
+  const box = $("spotGroups"); if (!box) return;
+  const sel = (BK.highlights || []).map(h => h && h.name).filter(Boolean);
+  const catOf = s => (s && s.region ? String(s.region).trim() : "");
+  const chip = (name, s) => {
+    const idx = sel.indexOf(name), on = idx >= 0;
+    return `<div class="spot-chk ${on ? "on" : ""}" data-s="${esc(name)}">
+      <div class="box">${on ? "✓" : ""}</div>
+      <div><b>${esc(name)}</b><small>${esc(s.short || "")}</small></div>
+      ${on ? `<span class="spot-order">${idx + 1}</span>` : ""}
+    </div>`;
+  };
+  const order = Array.isArray(SPOT_CATS) ? SPOT_CATS.slice() : [];
+  Object.values(SPOTS).forEach(s => { const c = catOf(s); if (c && !order.includes(c)) order.push(c); });
+  const groups = [...order.map(c => [c, c]), ["", "미분류"]];
+  let html = "";
+  groups.forEach(([cat, label]) => {
+    const items = Object.entries(SPOTS).filter(([, s]) => catOf(s) === cat);
+    if (!items.length) return;
+    const cnt = items.filter(([n]) => sel.includes(n)).length;
+    html += `<div class="spot-cat"><div class="spot-cat-head">${esc(label)}<span class="ln"></span><span class="cc">${cnt ? `${cnt}개 선택 · ` : ""}${items.length}곳</span></div>
+      <div class="spot-grid">${items.map(([n, s]) => chip(n, s)).join("")}</div></div>`;
+  });
+  box.innerHTML = html || `<div style="font-size:12.5px;color:var(--sub)">등록된 명소가 없습니다. 명소 관리에서 추가하세요.</div>`;
+  box.querySelectorAll(".spot-chk").forEach(el => el.onclick = () => {
+    const name = el.dataset.s, i = sel.indexOf(name);
+    if (i >= 0) BK.highlights.splice(i, 1);
+    else {
+      const s = SPOTS[name] || {};
+      BK.highlights.push({ nameMn: s.nameMn || "", name, desc: s.desc || "", img: s.img || "", subImgs: (s.subImgs && s.subImgs.length ? s.subImgs : ["", "", "", ""]) });
+    }
+    renderSpots();
+  });
 }
 function fillDatalists() {
   const fill = (key, listId) => { const el = $(listId); if (el) el.innerHTML = Object.keys(LIBS[key]).map(n => `<option value="${esc(n)}">`).join(""); };
