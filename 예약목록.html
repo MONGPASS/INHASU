@@ -183,7 +183,7 @@ const FIELD_OPTS = {
   joinType:   ["조인x", "조인1차", "조인2차"],
   flightIncl: ["불포함", "포함"],
   progress:   ["계약대기", "계약완료", "투어종료", "예약취소"],
-  pkgTier:    ["풀페키지", "실속", "최고급"],
+  pkgTier:    ["풀패키지", "실속", "최고급"],
 };
 /* 정렬 상태 — 기본: 예약일 오름차순 (엑셀과 동일, 번호가 위→아래 증가) */
 let sortKey = "book", sortDir = 1;
@@ -273,7 +273,7 @@ function render() {
         ${opts.map(o => `<option value="${o}" ${r.progress === o ? "selected" : ""}>${o}</option>`).join("")}
       </select>`;
     }
-    const cur = r[field] || opts[0];
+    const cur = field === "pkgTier" && r[field] === "풀페키지" ? "풀패키지" : (r[field] || opts[0]);
     return `<select class="sel" data-field="${field}" data-id="${esc(r.id)}">
       ${opts.map(o => `<option value="${o}" ${cur === o ? "selected" : ""}>${o}</option>`).join("")}
     </select>`;
@@ -377,6 +377,8 @@ function openBooking(id) {
     name: r.name, phone: r.phone || "", depart: r.depart || "", return_: r.return_ || "",
     adult: r.adult || 0, child: r.child || 0, infant: r.infant || 0,
     destination: r.destination || "", vehicle: r.vehicle || "",
+    joinType: r.joinType || "", flightIncl: r.flightIncl || "", progress: r.progress || "", pkgTier: r.pkgTier || "",
+    finance: r.finance || null, sourceSheet: r.sourceSheet || null,
     quote: r.quote || null, booking: r.booking || null,
   }));
   window.open("예약관리.html", "_blank");
@@ -394,22 +396,49 @@ const loadXLSX = () => XLSX_P || (XLSX_P = new Promise((res, rej) => {
 const newToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, "0")).join("");
 const normDate = v => {
   if (v == null || v === "") return "";
+  if (typeof v === "number" && isFinite(v)) {
+    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  }
   if (v instanceof Date) return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, "0")}-${String(v.getDate()).padStart(2, "0")}`;
   const s = String(v).trim().replace(/[.\/]/g, "-").replace(/\s+/g, "");
   const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   return m ? `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}` : "";
 };
+const cleanCell = v => String(v ?? "").replace(/\s+/g, " ").trim();
+const headerKey = v => cleanCell(v).replace(/[↵\r\n]/g, " ").replace(/\s+/g, "").replace(/[()（）]/g, "").toLowerCase();
+const parseMoney = v => {
+  if (v == null || v === "") return 0;
+  if (typeof v === "number" && isFinite(v)) return Math.round(v);
+  const n = Number(String(v).replace(/[^\d.-]/g, ""));
+  return Number.isFinite(n) ? Math.round(n) : 0;
+};
+const moneyTxt = n => n ? `₩${Number(n).toLocaleString("ko-KR")}` : "-";
 /* 엑셀 헤더 → 시스템 필드 (닉네임/MONGOL/KOREA 등 실제 시트 헤더 기준) */
 const XL_HEADERS = {
+  "번호": "sheetNo", "no": "sheetNo",
   "닉네임": "name", "고객명": "name", "이름": "name",
   "MONGOL": "depart", "몽골도착일": "depart", "몽골도착": "depart",
   "KOREA": "return_", "몽골출발일": "return_", "몽골출발": "return_",
   "인원": "adult", "인원수": "adult",
-  "일정": "schedule", "지역": "destination",
+  "일정": "schedule", "지역": "destination", "월": "travelMonth",
   "조인여부": "joinType", "조인": "joinType",
   "항공": "flightIncl", "차량": "vehicle",
   "진행상황": "progress", "구분": "pkgTier",
-  "예약일": "bookDate", "계약일": "bookDate",
+  "예약일": "bookDate", "계약일": "bookDate", "계약월": "contractMonth",
+  "견적서": "quoteFile", "계약서": "contractFile",
+  "매출액": "salesAmount", "총금액": "salesAmount", "판매금액": "salesAmount",
+  "예약금": "depositAmount", "계약금": "depositAmount",
+  "잔금": "balanceAmount", "현장잔금": "balanceAmount",
+  "현금영수증": "cashReceipt", "현금영수증상태": "cashReceipt",
+  "메모": "sheetMemo", "비고": "sheetMemo", "참고": "sheetMemo",
+  "2025궁뭔여행계약서원본": "originalContractFile",
+  "2025궁뭔여행객계약서원본": "originalContractFile",
+  "2025몽골여행계약서원본": "originalContractFile",
+};
+const headerField = cell => {
+  const raw = cleanCell(cell);
+  return XL_HEADERS[raw] || XL_HEADERS[headerKey(raw)] || "";
 };
 function parseSheet(rowsArr) {
   // 헤더 행 찾기: 알려진 컬럼명이 3개 이상 매칭되는 첫 행
@@ -417,7 +446,7 @@ function parseSheet(rowsArr) {
   for (let i = 0; i < Math.min(rowsArr.length, 10); i++) {
     const c = {};
     (rowsArr[i] || []).forEach((cell, ci) => {
-      const key = XL_HEADERS[String(cell ?? "").trim()];
+      const key = headerField(cell);
       if (key && c[key] === undefined) c[key] = ci;
     });
     if (Object.keys(c).length >= 3) { hi = i; cols = c; break; }
@@ -443,6 +472,9 @@ function parseSheet(rowsArr) {
     const flight = String(get("flightIncl") ?? "").trim();
     const prog = String(get("progress") ?? "").trim();
     const tier = String(get("pkgTier") ?? "").trim();
+    const salesAmount = parseMoney(get("salesAmount"));
+    const depositAmount = parseMoney(get("depositAmount"));
+    const balanceAmount = parseMoney(get("balanceAmount"));
     out.push({
       name,
       depart: normDate(get("depart")),
@@ -455,7 +487,23 @@ function parseSheet(rowsArr) {
       joinType: /조인\s*1/.test(join) ? "조인1차" : /조인\s*2/.test(join) ? "조인2차" : "조인x",
       flightIncl: (flight.includes("포함") && !flight.includes("불")) ? "포함" : "불포함",
       progress: FIELD_OPTS.progress.includes(prog) ? prog : (prog.includes("취소") ? "예약취소" : prog.includes("종료") ? "투어종료" : ""),
-      pkgTier: tier.includes("풀") ? "풀페키지" : tier.includes("실속") ? "실속" : (tier.includes("최고") || tier.includes("럭셔리")) ? "최고급" : "",
+      pkgTier: tier.includes("풀") ? "풀패키지" : tier.includes("실속") ? "실속" : (tier.includes("최고") || tier.includes("럭셔리")) ? "최고급" : "",
+      finance: {
+        salesAmount,
+        depositAmount,
+        balanceAmount,
+        cashReceipt: cleanCell(get("cashReceipt")),
+      },
+      sourceSheet: {
+        no: cleanCell(get("sheetNo")),
+        contractMonth: cleanCell(get("contractMonth")),
+        travelMonth: cleanCell(get("travelMonth")),
+        schedule: sched,
+        quoteFile: cleanCell(get("quoteFile")),
+        contractFile: cleanCell(get("contractFile")),
+        originalContractFile: cleanCell(get("originalContractFile")),
+        memo: cleanCell(get("sheetMemo")),
+      },
     });
   }
   return out;
@@ -467,7 +515,7 @@ function showImportPreview(items) {
   $("impWrap").innerHTML = `<div class="modal">
     <div class="mh"><h2>📥 엑셀 가져오기 — ${items.length}건 발견${dups ? ` (중복 의심 ${dups}건은 기본 제외)` : ""}</h2><button class="x" id="impX">✕</button></div>
     <div class="mb"><table>
-      <thead><tr><th></th><th>고객명</th><th>예약일</th><th>도착</th><th>출발</th><th>인원</th><th>일정</th><th>지역</th><th>조인</th><th>진행상황</th><th>구분</th></tr></thead>
+      <thead><tr><th></th><th>고객명</th><th>예약일</th><th>도착</th><th>출발</th><th>인원</th><th>일정</th><th>지역</th><th>조인</th><th>진행상황</th><th>구분</th><th>매출액</th><th>예약금</th><th>잔금</th><th>현금영수증</th></tr></thead>
       <tbody>${items.map((it, i) => `<tr class="${it.dup ? "dup-row" : ""}">
         <td><input type="checkbox" data-imp="${i}" ${it.dup ? "" : "checked"}></td>
         <td><b>${esc(it.name)}</b>${it.dup ? ` <span class="dup-mark">중복 의심</span>` : ""}</td>
@@ -475,6 +523,7 @@ function showImportPreview(items) {
         <td>${it.adult || "-"}</td><td>${it.nights !== "" ? `${it.nights}박` : "-"}</td>
         <td>${esc(it.destination || "-")}</td><td>${esc(it.joinType)}</td>
         <td>${esc(it.progress || "자동")}</td><td>${esc(it.pkgTier || "-")}</td>
+        <td>${moneyTxt(it.finance.salesAmount)}</td><td>${moneyTxt(it.finance.depositAmount)}</td><td>${moneyTxt(it.finance.balanceAmount)}</td><td>${esc(it.finance.cashReceipt || "-")}</td>
       </tr>`).join("")}</tbody>
     </table></div>
     <div class="mf"><button class="btn" id="impCancel">취소</button><button class="btn primary" id="impGo">선택 항목 가져오기</button></div>
@@ -500,8 +549,16 @@ function showImportPreview(items) {
         adult: it.adult, child: 0, infant: 0, nights: it.nights,
         destination: it.destination, vehicle: it.vehicle,
         joinType: it.joinType, flightIncl: it.flightIncl, progress: it.progress, pkgTier: it.pkgTier,
+        finance: it.finance, sourceSheet: it.sourceSheet,
         booking: { confirmedAt: it.bookDate || TODAY, days: [], assign: { guide: {}, vehicle: {}, lodges: [] },
-                   checklist: {}, contract: null, notes: "", adminMemo: "" },
+                   checklist: {
+                     deposit: !!it.finance.depositAmount,
+                     balance: false,
+                     flight: it.flightIncl === "포함",
+                     insurance: false,
+                     contract: false
+                   },
+                   contract: null, notes: "", adminMemo: it.sourceSheet.memo || "" },
       };
       try {
         if (IS_LOCAL) {
