@@ -617,7 +617,7 @@ const secBookingAssign = bookingAssign ? (() => {
         ${g.img ? `<div class="ph" style="width:100px; height:100px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div class="ph" style="width:100px; height:100px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:11px; font-weight:700; flex:none;">가이드 사진</div>`}
         <div style="flex:1; min-width:0;">
           <div style="color:${ASSIGN_STYLE.ink}; font-size:21px; font-weight:800; letter-spacing:-0.01em;">${esc(g.name || "가이드")}</div>
-          <div style="color:${ASSIGN_STYLE.accent}; font-size:12.5px; font-weight:700; margin-top:2px;">${guideRole}${g.career ? ` · 경력 ${esc(g.career)}` : ""}</div>
+          <div style="color:${ASSIGN_STYLE.accent}; font-size:12.5px; font-weight:700; margin-top:2px;">${g.nameEn ? esc(g.nameEn) : `${guideRole}${g.career ? ` · 경력 ${esc(g.career)}` : ""}`}</div>
           <div style="margin-top:9px; color:#40544F; font-size:12px; font-weight:600; line-height:1.75;">${esc(g.desc || "안전하고 편안한 몽골 여행을 위해 최선을 다하겠습니다.")}</div>
         </div>
       </div>

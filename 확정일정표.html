@@ -393,8 +393,8 @@ function paginateSchedule() {
 
 function paginateAssignmentLodges() {
   const root = document.getElementById("root");
-  const firstPage = root.querySelector("[data-assign-page]");
-  if (!firstPage) return;
+  /* 숙소 정보는 가이드·차량 페이지와 분리된 전용 페이지에서 시작 (첫 페이지도 data-assign-lodge-page) */
+  if (!root.querySelector("[data-assign-lodge-page]")) return;
 
   const makeNextPage = (afterPage) => {
     afterPage.insertAdjacentHTML("afterend", `
@@ -411,7 +411,7 @@ function paginateAssignmentLodges() {
     return afterPage.nextElementSibling;
   };
 
-  const lodgePages = () => [firstPage, ...root.querySelectorAll("[data-assign-lodge-page]")];
+  const lodgePages = () => [...root.querySelectorAll("[data-assign-lodge-page]")];
   const isOverflowing = (page, list) => {
     const cards = Array.from(list.querySelectorAll("[data-assign-lodge-card]"));
     if (!cards.length) return false;
@@ -426,7 +426,7 @@ function paginateAssignmentLodges() {
     if (!list) continue;
     while (isOverflowing(page, list) && guard < 200) {
       const cards = Array.from(list.querySelectorAll("[data-assign-lodge-card]"));
-      if (cards.length <= 1 && page !== firstPage) break;
+      if (cards.length <= 1) break;   // 한 페이지에 최소 1개 숙소는 유지
       const next = lodgePages()[idx + 1] || makeNextPage(page);
       next.querySelector("[data-assign-lodge-list]").prepend(cards[cards.length - 1]);
       guard++;
@@ -855,7 +855,7 @@ const pgBookingAssign = bookingAssign ? (() => {
       <div style="display:flex; gap:28px; margin-top:18px; align-items:flex-start;">
         ${g.img ? `<div class="ph" style="width:150px; height:150px; flex:none; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent};"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div class="ph" style="width:150px; height:150px; flex:none; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:12px; font-weight:700;">가이드 사진</div>`}
         <div style="flex:1;">
-          <div style="display:flex; align-items:baseline; gap:10px;"><span style="color:${ASSIGN_STYLE.ink}; font-size:24px; font-weight:800; letter-spacing:-0.01em;">${esc(g.name || "가이드")}</span><span style="color:${ASSIGN_STYLE.accent}; font-size:14px; font-weight:700;">${guideRole}${g.career ? ` · 경력 ${esc(g.career)}` : ""}</span></div>
+          <div style="display:flex; align-items:baseline; gap:10px;"><span style="color:${ASSIGN_STYLE.ink}; font-size:24px; font-weight:800; letter-spacing:-0.01em;">${esc(g.name || "가이드")}</span><span style="color:${ASSIGN_STYLE.accent}; font-size:15px; font-weight:700;">${g.nameEn ? esc(g.nameEn) : `${guideRole}${g.career ? ` · 경력 ${esc(g.career)}` : ""}`}</span></div>
           <div style="margin-top:12px; color:#40544F; font-size:12.5px; font-weight:600; line-height:1.85;">${esc(g.desc || "안녕하세요! 함께하는 여행을 진심으로 환영합니다. 여행의 시작부터 마지막 순간까지 안전하고 즐거운 추억이 될 수 있도록 최선을 다하겠습니다. 궁금하신 점이나 도움이 필요하시면 언제든지 편하게 말씀해주세요.")}</div>
         </div>
       </div>
@@ -884,14 +884,17 @@ const pgBookingAssign = bookingAssign ? (() => {
       </div>
     </div>
 
-    <div data-assign-lodge-section style="${CARD} padding:26px 30px; flex:1;">
+    <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 배정 안내</span><span>11</span></div>
+  </div>
+
+  <div class="page" data-assign-lodge-page style="padding:36px 40px 48px; background:#FCFEFD;">
+    <div data-assign-lodge-section style="${CARD} padding:26px 30px; min-height:990px;">
       ${cardTitle("숙소 정보", "편안한 휴식을 위해 엄선된 숙소입니다.")}
       <div data-assign-lodge-list style="margin-top:16px;">
         ${lodges.map(lodgeCard).join("") || `<div style="color:${ASSIGN_STYLE.muted}; font-size:13px;">숙소 배정 정보가 저장되면 이곳에 표시됩니다.</div>`}
       </div>
     </div>
-
-    <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 배정 안내</span><span>11</span></div>
+    <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표 · 숙소 정보</span><span>12</span></div>
   </div>`;
 })() : "";
 

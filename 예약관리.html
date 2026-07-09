@@ -162,7 +162,7 @@ function blankBooking() {
   return {
     confirmedAt: new Date().toISOString().slice(0, 10),
     days: [],
-    assign: { guide:{name:"",role:"",career:"",korean:"",phone:"",qr:"",img:"",desc:""},
+    assign: { guide:{name:"",nameEn:"",role:"",phone:"",qr:"",img:"",desc:""},
               vehicle:{model:"",seats:"",plate:"",img:"",imgs:[],desc:""}, lodges:[] },
     checklist: { deposit:false, balance:false, flight:false, insurance:false, contract:false },
     contract: null,   // 고객 서명 시 서버(/api/sign)가 채움 — {signedAt, signImg, snapshot…}
@@ -262,8 +262,8 @@ function previewHtml(type, rec) {
       ...rec,
       img: rec.img || lib.img || "",
       desc: rec.desc || lib.desc || "",
-      career: rec.career || lib.career || "",
-      korean: rec.korean || lib.korean || "",
+      nameEn: rec.nameEn || lib.nameEn || "",
+      role: rec.role || lib.role || "",
     };
   }
   if (type === "vehicle" && rec.model && LIBS.vehicles[rec.model]) {
@@ -280,7 +280,7 @@ function previewHtml(type, rec) {
   const imgs = rec && Array.isArray(rec.imgs) ? rec.imgs.length : (img ? 1 : 0);
   const title = name || (type === "guide" ? "가이드 미선택" : "차량 미선택");
   const sub = type === "guide"
-    ? [rec.career, rec.korean, rec.desc].filter(Boolean).join(" · ")
+    ? [rec.nameEn, rec.role, rec.desc].filter(Boolean).join(" · ")
     : [rec.seats, rec.desc, imgs ? `이미지 ${imgs}장` : ""].filter(Boolean).join(" · ");
   const icon = type === "guide" ? "👤" : "🚐";
   return `<div class="preview" id="${type}Preview">
@@ -369,11 +369,10 @@ function render() {
       <details class="edit-panel">
         <summary>세부정보 수정</summary>
         <div class="edit-body">
-          <div class="grid4">
+          <div class="grid3">
             <label class="f"><span>이름</span><input id="g_name" list="guideList" value="${esc(a.guide.name)}"></label>
+            <label class="f"><span>영문 이름 (고객 노출)</span><input id="g_nameEn" value="${esc(a.guide.nameEn)}" placeholder="Hyeonjin"></label>
             <label class="f"><span>가이드 구분 (고객 노출)</span><input id="g_role" list="guideRoleList" value="${esc(a.guide.role)}" placeholder="가이드 겸 드라이버"></label>
-            <label class="f"><span>경력</span><input id="g_career" value="${esc(a.guide.career)}" placeholder="7년"></label>
-            <label class="f"><span>한국어</span><input id="g_korean" value="${esc(a.guide.korean)}" placeholder="상급"></label>
           </div>
           <datalist id="guideRoleList"><option value="가이드 겸 드라이버"></option><option value="전문 가이드"></option><option value="전문 가이드 + 기사"></option></datalist>
           <div class="grid2" style="margin-top:10px;">
@@ -468,7 +467,7 @@ function pullForm() {
   });
   // 배정
   const g = id => $(id) ? $(id).value.trim() : "";
-  BK.assign.guide = { name:g("g_name"), role:g("g_role"), career:g("g_career"), korean:g("g_korean"),
+  BK.assign.guide = { name:g("g_name"), nameEn:g("g_nameEn"), role:g("g_role"),
                       phone:g("g_phone"), qr:g("g_qr"), img:g("g_img"), desc:g("g_desc") };
   BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), plate:g("v_plate"), img:"", imgs:[], desc:"" };
   BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map(el => {
@@ -566,7 +565,7 @@ function fillDatalists() {
 function applyGuide(name) {
   const r = LIBS.guides[name]; if (!r) return false;
   $("g_name").value = name;
-  $("g_role").value = r.role || ""; $("g_career").value = r.career || ""; $("g_korean").value = r.korean || "";
+  $("g_nameEn").value = r.nameEn || ""; $("g_role").value = r.role || "";
   $("g_phone").value = r.phone || ""; $("g_qr").value = r.qr || "";
   $("g_img").value = r.img || ""; $("g_desc").value = r.desc || "";
   updateResourcePreview("guide", { name, ...r });
@@ -603,14 +602,14 @@ function bindAutofill() {
   document.querySelectorAll('.lodge-row [data-lk="day"], .lodge-row [data-lk="grade"]').forEach(inp => inp.addEventListener("input", () => {
     updateLodgePreview(inp.closest(".lodge-row"));
   }));
-  ["g_name","g_career","g_korean","g_img","g_desc"].forEach(id => {
+  ["g_name","g_nameEn","g_role","g_img","g_desc"].forEach(id => {
     const el = $(id); if (el) el.addEventListener("input", () => updateResourcePreview("guide", {
-      name:$("g_name").value, career:$("g_career").value, korean:$("g_korean").value, img:$("g_img").value, desc:$("g_desc").value
+      name:$("g_name").value, nameEn:$("g_nameEn").value, role:$("g_role").value, img:$("g_img").value, desc:$("g_desc").value
     }));
   });
-  ["v_model","v_seats"].forEach(id => {
+  ["v_model","v_seats","v_desc"].forEach(id => {
     const el = $(id); if (el) el.addEventListener("input", () => updateResourcePreview("vehicle", {
-      model:$("v_model").value, seats:$("v_seats").value
+      model:$("v_model").value, seats:$("v_seats").value, desc:$("v_desc").value
     }));
   });
 }

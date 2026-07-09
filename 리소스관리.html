@@ -155,7 +155,7 @@ const ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
 const TYPES = {
   guides: {
     label: "가이드", icon: "👤", one: "가이드",
-    sub: r => [r.role, r.career && `경력 ${r.career}`, r.korean && `한국어 ${r.korean}`].filter(Boolean).join(" · "),
+    sub: r => [r.nameEn, r.role].filter(Boolean).join(" · "),
     get: () => window.getGuides(), save: o => window.saveGuides(o),
   },
   lodges: {
@@ -253,14 +253,11 @@ function fileToImage(file, maxW, quality) {
 function fieldRows(type, r) {
   if (type === "guides") return `
     <div class="row2">
+      <label class="f"><span>영문 이름 (확정 일정표에 노출 — 예: Hyeonjin)</span><input id="f_nameEn" value="${esc(r.nameEn||"")}" placeholder="Hyeonjin"></label>
       <label class="f"><span>가이드 구분 (확정 일정표에 노출)</span><input id="f_role" list="roleList" value="${esc(r.role||"")}" placeholder="가이드 겸 드라이버"></label>
-      <label class="f"><span>경력 (예: 7년)</span><input id="f_career" value="${esc(r.career||"")}"></label>
     </div>
     <datalist id="roleList"><option value="가이드 겸 드라이버"></option><option value="전문 가이드"></option><option value="전문 가이드 + 기사"></option></datalist>
-    <div class="row2">
-      <label class="f"><span>한국어 수준 (예: 상급)</span><input id="f_korean" value="${esc(r.korean||"")}"></label>
-      <label class="f"><span>전화번호 (확정 일정표에 노출 — 현지 연락처)</span><input id="f_phone" value="${esc(r.phone||"")}" placeholder="+976 8000-0000"></label>
-    </div>
+    <label class="f"><span>전화번호 (확정 일정표에 노출 — 현지 연락처)</span><input id="f_phone" value="${esc(r.phone||"")}" placeholder="+976 8000-0000"></label>
     <label class="f"><span>카카오톡 QR (확정 일정표에 노출 — 선택)</span></label>
     <div style="display:flex; gap:10px; align-items:center;">
       <div id="qrBox" style="flex:none; width:84px; height:84px; border:1.5px dashed #CFE3DC; border-radius:10px; background:#F5FBF9; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;">${r.qr ? `<img src="${esc(r.qr)}" style="width:100%; height:100%; object-fit:contain;">` : `<span style="font-size:11px; color:#8CA39D; font-weight:700; text-align:center;">QR 업로드<br>(클릭)</span>`}</div>
@@ -287,7 +284,7 @@ function fieldRows(type, r) {
 }
 function readFields(type, r) {
   const v = id => $(id) ? $(id).value.trim() : "";
-  if (type === "guides") { r.role=v("f_role"); r.career=v("f_career"); r.korean=v("f_korean"); r.phone=v("f_phone"); r.qr=v("f_qr"); r.desc=v("f_desc"); }
+  if (type === "guides") { r.nameEn=v("f_nameEn"); r.role=v("f_role"); r.phone=v("f_phone"); r.qr=v("f_qr"); r.desc=v("f_desc"); }
   else if (type === "lodges") { r.region=v("f_region"); r.grade=v("f_grade"); r.tags=v("f_tags"); r.desc=v("f_desc"); }
   else { r.seats=v("f_seats"); r.plate=v("f_plate"); r.desc=v("f_desc"); }
   return r;
