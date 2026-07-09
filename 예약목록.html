@@ -38,6 +38,20 @@
   .chips { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
   .chip { border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:99px; padding:8px 13px; font:800 12.5px Pretendard; cursor:pointer; }
   .chip.on { background:var(--deep); border-color:var(--deep); color:#fff; }
+  .bulkbar { display:flex; align-items:center; gap:8px; margin:0 0 14px; flex-wrap:wrap; }
+  .bulkbar .count { color:var(--sub); font-size:12.5px; font-weight:800; margin-right:4px; }
+  .bulkbtn { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:9px; padding:8px 11px; font:800 12.5px Pretendard; cursor:pointer; }
+  .bulkbtn:hover:not(:disabled) { border-color:#cfd9d6; background:#fbfdfc; }
+  .bulkbtn.primary { background:var(--deep); border-color:var(--deep); color:#fff; }
+  .bulkbtn.danger { background:#fff5f4; border-color:#f2d1cc; color:#b84e44; }
+  .bulkbtn:disabled { opacity:.45; cursor:not-allowed; }
+  .rowcheck { width:16px; height:16px; accent-color:var(--deep); cursor:pointer; }
+  .money-stack { display:flex; flex-direction:column; gap:6px; align-items:flex-start; min-width:0; }
+  .money-stack .amount { font-weight:700; }
+  .pay-sel { width:100%; min-width:80px; border:1px solid var(--line); border-radius:8px; padding:5px 6px; font:800 11.5px Pretendard; background:#fff; color:var(--ink); cursor:pointer; }
+  .pay-sel[data-v="입금완료"] { background:#e8f7f2; color:#0a6a5e; border-color:#cdeee5; }
+  .pay-sel[data-v="현지현금전달"], .pay-sel[data-v="현장현금전달"] { background:#fff5e9; color:#b76d14; border-color:#f5e0c4; }
+  .pay-sel[data-v="미입금"], .pay-sel[data-v="미수령"] { background:#fbeceb; color:#b84e44; border-color:#f3d2ce; }
   .table-card { background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; max-width:100%; }
   table { width:100%; border-collapse:collapse; }
   th { background:#fafbfc; text-align:left; color:var(--sub); font-size:12.5px; font-weight:800; padding:13px 16px; border-bottom:1px solid var(--line); white-space:nowrap; }
@@ -67,7 +81,7 @@
 
   /* ── 엑셀형 표: 가로 스크롤 + 밀도 ── */
   .table-card { overflow:auto; }
-  .table-card table { min-width:1460px; table-layout:fixed; }
+  .table-card table { min-width:1322px; table-layout:fixed; }
   .table-card th { padding:11px 8px; font-size:11.5px; overflow:hidden; text-overflow:ellipsis; }
   .table-card td { padding:10px 8px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .table-card::-webkit-scrollbar { height:12px; }
@@ -97,9 +111,6 @@
   .assign-chip.ok { background:#e8f7f2; color:#0a6a5e; }
   .assign-progress { font-size:12px; font-weight:900; color:#b76d14; }
   .assign-progress.ok { color:#0a6a5e; }
-  .resource-lines { display:flex; flex-direction:column; gap:5px; line-height:1.32; min-width:0; }
-  .resource-lines span { overflow:hidden; text-overflow:ellipsis; }
-  .resource-lines .missing { color:#b76d14; }
 
   /* ── 엑셀 가져오기 모달 ── */
   .modal-wrap { position:fixed; inset:0; background:rgba(15,30,26,.45); z-index:90; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -147,6 +158,7 @@
       <div class="search"><input id="q" placeholder="고객명, 여행지, 차량, 숙소 검색"></div>
       <div class="chips" id="chips"></div>
     </div>
+    <div class="bulkbar" id="bulkbar"></div>
     <div class="table-card" id="list"></div>
   </main>
 </div>
@@ -160,6 +172,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&l
 const ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
 const IS_LOCAL = location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname);
 let RECORDS = [], filter = "전체", query = "";
+let SELECTED = new Set();
 let toastT;
 function toast(m){ $("toast").textContent = m; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(()=>$("toast").classList.remove("on"), 2400); }
 const dateOnly = s => s ? String(s).slice(0, 10) : "";
@@ -202,6 +215,10 @@ const FIELD_OPTS = {
   flightIncl: ["불포함", "포함"],
   progress:   ["계약대기", "계약완료", "투어종료", "예약취소"],
   pkgTier:    ["풀패키지", "실속", "최고급"],
+};
+const PAY_OPTS = {
+  depositStatus: ["미입금", "입금완료"],
+  balanceStatus: ["미수령", "입금완료", "현지현금전달", "계좌입금", "카드결제"],
 };
 /* 정렬 상태 — 기본: 예약일 오름차순 (엑셀과 동일, 번호가 위→아래 증가) */
 let sortKey = "book", sortDir = 1;
@@ -260,8 +277,34 @@ function rowNumbers() {
     .forEach((r, i) => { map[String(r.id)] = i + 1; });
   return map;
 }
+const selectedRecords = () => RECORDS.filter(r => SELECTED.has(String(r.id)));
+function cleanupSelection() {
+  const ids = new Set(RECORDS.filter(isReservation).map(r => String(r.id)));
+  SELECTED = new Set([...SELECTED].filter(id => ids.has(id)));
+}
+function renderBulkbar(data) {
+  const visible = data.map(r => String(r.id));
+  const selected = selectedRecords();
+  const allVisibleSelected = visible.length > 0 && visible.every(id => SELECTED.has(id));
+  $("bulkbar").innerHTML = `
+    <span class="count">선택 ${selected.length}건</span>
+    <button class="bulkbtn" id="bulkVisible">${allVisibleSelected ? "현재 목록 선택 해제" : "현재 목록 전체 선택"}</button>
+    <button class="bulkbtn" id="bulkClear" ${selected.length ? "" : "disabled"}>선택 해제</button>
+    <button class="bulkbtn primary" id="bulkClone" ${selected.length ? "" : "disabled"}>선택 예약 복제</button>
+    <button class="bulkbtn danger" id="bulkDelete" ${selected.length ? "" : "disabled"}>선택 영구 삭제</button>
+  `;
+  $("bulkVisible").onclick = () => {
+    if (allVisibleSelected) visible.forEach(id => SELECTED.delete(id));
+    else visible.forEach(id => SELECTED.add(id));
+    render();
+  };
+  $("bulkClear").onclick = () => { SELECTED.clear(); render(); };
+  $("bulkClone").onclick = cloneSelected;
+  $("bulkDelete").onclick = deleteSelected;
+}
 
 function render() {
+  cleanupSelection();
   const all = RECORDS.filter(isReservation);
   const unsigned = all.filter(r => !signed(r)).length;
   const incomplete = all.filter(r => !assignDone(r)).length;
@@ -277,6 +320,7 @@ function render() {
   $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
 
   const data = rows();
+  renderBulkbar(data);
   if (!data.length) {
     $("list").innerHTML = `<div class="empty">조건에 맞는 예약이 없습니다.</div>`;
     return;
@@ -311,28 +355,38 @@ function render() {
       <div class="assign-progress ${done === checks.length ? "ok" : ""}">${done === checks.length ? "배정 완료" : `${done}/${checks.length} 완료`}</div>
     </div>`;
   };
-  const resourceCell = r => {
-    const v = vehicle(r);
-    const vehicleName = v.model || r.vehicle || "";
-    const lodgeList = lodges(r);
-    const lodgeText = lodgeList.length > 1 ? `${lodgeList[0].name} 외 ${lodgeList.length - 1}` : (lodgeList[0] || {}).name;
-    return `<div class="resource-lines">
-      <span class="${vehicleName ? "" : "missing"}">차량 ${esc(vehicleName || "미정")}</span>
-      <span class="${lodgeText ? "" : "missing"}">숙소 ${esc(lodgeText || "미정")}</span>
+  const payStatus = (r, field) => {
+    const f = r.finance || {};
+    const c = (((r.booking || {}).contractInfo) || {});
+    const ck = (((r.booking || {}).checklist) || {});
+    if (field === "depositStatus") return f.depositStatus || c.depositStatus || (ck.deposit ? "입금완료" : "미입금");
+    return f.balanceStatus || c.balanceStatus || (ck.balance ? "입금완료" : "미수령");
+  };
+  const moneyCell = (r, amountField, statusField) => {
+    const f = r.finance || {};
+    const cur = payStatus(r, statusField);
+    return `<div class="money-stack">
+      <span class="amount">${moneyTxt(f[amountField])}</span>
+      <select class="pay-sel" data-finance="${statusField}" data-id="${esc(r.id)}" data-v="${esc(cur)}">
+        ${PAY_OPTS[statusField].map(o => `<option value="${o}" ${cur === o ? "selected" : ""}>${o}</option>`).join("")}
+      </select>
     </div>`;
   };
   const arrow = k => sortKey === k ? (sortDir > 0 ? " ▲" : " ▼") : "";
   const nums = rowNumbers();
+  const visibleIds = data.map(r => String(r.id));
+  const allChecked = visibleIds.length > 0 && visibleIds.every(id => SELECTED.has(id));
 
   $("list").innerHTML = `<table>
     <colgroup>
-      <col style="width:40px"><col style="width:96px"><col style="width:118px">
+      <col style="width:42px"><col style="width:40px"><col style="width:96px"><col style="width:118px">
       <col style="width:96px"><col style="width:96px"><col style="width:46px">
       <col style="width:62px"><col style="width:106px"><col style="width:86px">
-      <col style="width:170px"><col style="width:180px"><col style="width:88px">
+      <col style="width:170px"><col style="width:88px">
       <col style="width:98px"><col style="width:86px"><col style="width:186px">
     </colgroup>
     <thead><tr>
+      <th><input class="rowcheck" type="checkbox" id="checkAllRows" ${allChecked ? "checked" : ""} title="현재 목록 전체 선택"></th>
       <th>번호</th>
       <th class="sortable" data-k="book">예약일${arrow("book")}</th>
       <th class="sortable" data-k="name">고객명${arrow("name")}</th>
@@ -340,13 +394,14 @@ function render() {
       <th class="hide-xs">몽골출발</th>
       <th class="sortable" data-k="pax">인원${arrow("pax")}</th>
       <th class="hide-xs">일정</th><th class="hide-sm">지역</th>
-      <th>계약</th><th>배정 상태</th><th>차량·숙소</th>
+      <th>계약</th><th>배정 상태</th>
       <th>예약금</th><th>잔금</th><th>현금영수증</th><th style="text-align:right">관리</th>
     </tr></thead>
     <tbody>${data.map(r => {
       const token = r.token || "";
       const f = r.finance || {};
       return `<tr data-id="${esc(r.id)}">
+        <td><input class="rowcheck row-select" type="checkbox" data-select="${esc(r.id)}" ${SELECTED.has(String(r.id)) ? "checked" : ""} title="예약 선택"></td>
         <td class="num">${nums[String(r.id)] || "-"}</td>
         <td>${esc(bookDate(r) || "-")}</td>
         <td><div class="name-cell"><b>${esc(r.name || "-")}</b></div></td>
@@ -357,9 +412,8 @@ function render() {
         <td class="hide-sm">${esc(r.destination || "-")}</td>
         <td>${contractCell(r)}</td>
         <td>${assignCell(r)}</td>
-        <td>${resourceCell(r)}</td>
-        <td>${moneyTxt(f.depositAmount)}</td>
-        <td>${moneyTxt(f.balanceAmount)}</td>
+        <td>${moneyCell(r, "depositAmount", "depositStatus")}</td>
+        <td>${moneyCell(r, "balanceAmount", "balanceStatus")}</td>
         <td>${esc(f.cashReceipt || "-")}</td>
         <td><div class="actions">
           <button class="mini green" data-open="${esc(r.id)}">배정 관리</button>
@@ -368,6 +422,18 @@ function render() {
         </div></td>
       </tr>`;
     }).join("")}</tbody></table>`;
+  $("checkAllRows").onchange = e => {
+    visibleIds.forEach(id => e.target.checked ? SELECTED.add(id) : SELECTED.delete(id));
+    render();
+  };
+  $("list").querySelectorAll("[data-select]").forEach(cb => {
+    cb.onclick = e => e.stopPropagation();
+    cb.onchange = () => {
+      if (cb.checked) SELECTED.add(String(cb.dataset.select));
+      else SELECTED.delete(String(cb.dataset.select));
+      render();
+    };
+  });
   $("list").querySelectorAll("[data-open]").forEach(btn => btn.onclick = () => openBooking(btn.dataset.open));
   $("list").querySelectorAll("th.sortable").forEach(th => th.onclick = () => {
     const k = th.dataset.k;
@@ -377,6 +443,10 @@ function render() {
   $("list").querySelectorAll("select.sel").forEach(sel => {
     sel.onclick = e => e.stopPropagation();
     sel.onchange = () => saveField(sel.dataset.id, sel.dataset.field, sel.value);
+  });
+  $("list").querySelectorAll("select.pay-sel").forEach(sel => {
+    sel.onclick = e => e.stopPropagation();
+    sel.onchange = () => saveFinanceStatus(sel.dataset.id, sel.dataset.finance, sel.value);
   });
 }
 
@@ -407,6 +477,120 @@ async function saveField(id, field, value) {
     toast("⚠ " + e.message);
   }
   render();
+}
+async function saveFinanceStatus(id, field, value) {
+  const r = RECORDS.find(x => String(x.id) === String(id));
+  if (!r) return;
+  const prevFinance = deepClone(r.finance || {});
+  const prevBooking = deepClone(r.booking || {});
+  const finance = { ...(r.finance || {}), [field]: value };
+  const booking = { ...(r.booking || {}) };
+  booking.contractInfo = { ...(booking.contractInfo || {}), [field]: value };
+  booking.checklist = { ...(booking.checklist || {}) };
+  if (field === "depositStatus") booking.checklist.deposit = value === "입금완료";
+  if (field === "balanceStatus") booking.checklist.balance = value === "입금완료" || value === "현지현금전달" || value === "현장현금전달";
+  r.finance = finance;
+  r.booking = booking;
+  try {
+    if (IS_LOCAL) {
+      const arr = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
+      const t = arr.find(x => String(x.id) === String(id));
+      if (t) {
+        t.finance = finance;
+        t.booking = booking;
+        localStorage.setItem("leaders_requests", JSON.stringify(arr));
+      }
+    } else {
+      const res = await fetch(`/api/requests/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
+        body: JSON.stringify({ finance, booking }),
+      });
+      if (res.status === 401) throw new Error("관리자 인증이 만료됐어요");
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error || "저장 실패");
+    }
+    toast("✓ 입금 상태가 저장됐어요");
+  } catch (e) {
+    r.finance = prevFinance;
+    r.booking = prevBooking;
+    toast("⚠ " + e.message);
+  }
+  render();
+}
+const deepClone = obj => JSON.parse(JSON.stringify(obj || {}));
+const cloneRecord = (r, i, stamp) => {
+  const rec = deepClone(r);
+  rec.id = `clone_${stamp}_${i}`;
+  rec.token = newToken();
+  rec.receivedAt = new Date().toISOString();
+  rec.source = "reservation-clone";
+  rec.name = rec.name || "복제 예약";
+  rec.memo = rec.memo || "";
+  if (rec.booking) {
+    rec.booking = deepClone(rec.booking);
+    rec.booking.contract = null;
+    rec.booking.checklist = { ...(rec.booking.checklist || {}), contract: false };
+    if (!rec.booking.confirmedAt) rec.booking.confirmedAt = TODAY;
+  }
+  if (rec.quote && rec.quote.quoteNo) rec.quote.quoteNo = `${rec.quote.quoteNo}-COPY`;
+  return rec;
+};
+async function cloneSelected() {
+  const picked = selectedRecords();
+  if (!picked.length) return toast("복제할 예약을 선택해 주세요");
+  if (!confirm(`선택한 ${picked.length}건을 복제할까요?\n고객명과 일정은 그대로 복사되고, 고객 링크 토큰은 새로 생성됩니다.`)) return;
+  const stamp = Date.now();
+  let ok = 0, fail = 0;
+  for (let i = 0; i < picked.length; i++) {
+    const rec = cloneRecord(picked[i], i, stamp);
+    try {
+      if (IS_LOCAL) {
+        const arr = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
+        arr.push(rec);
+        localStorage.setItem("leaders_requests", JSON.stringify(arr));
+      } else {
+        const res = await fetch("/api/requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
+          body: JSON.stringify(rec),
+        });
+        const j = await res.json();
+        if (!j.ok) throw new Error(j.error || "복제 실패");
+      }
+      ok++;
+    } catch (e) { fail++; }
+  }
+  SELECTED.clear();
+  await load();
+  toast(`✓ ${ok}건 복제 완료${fail ? ` · 실패 ${fail}건` : ""}`);
+}
+async function deleteSelected() {
+  const picked = selectedRecords();
+  if (!picked.length) return toast("삭제할 예약을 선택해 주세요");
+  const names = picked.slice(0, 5).map(r => r.name || r.id).join(", ");
+  const more = picked.length > 5 ? ` 외 ${picked.length - 5}건` : "";
+  if (!confirm(`선택한 ${picked.length}건을 영구 삭제할까요?\n${names}${more}\n\n삭제 후에는 복구할 수 없습니다.`)) return;
+  let ok = 0, fail = 0;
+  for (const r of picked) {
+    try {
+      if (IS_LOCAL) {
+        const arr = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
+        localStorage.setItem("leaders_requests", JSON.stringify(arr.filter(x => String(x.id) !== String(r.id))));
+      } else {
+        const res = await fetch(`/api/requests/${encodeURIComponent(r.id)}`, {
+          method: "DELETE",
+          headers: { "x-admin-token": ADMIN_TOKEN },
+        });
+        const j = await res.json();
+        if (!j.ok) throw new Error(j.error || "삭제 실패");
+      }
+      ok++;
+    } catch (e) { fail++; }
+  }
+  SELECTED.clear();
+  await load();
+  toast(`✓ ${ok}건 삭제 완료${fail ? ` · 실패 ${fail}건` : ""}`);
 }
 
 function openBooking(id) {
@@ -633,7 +817,7 @@ function showImportPreview(items) {
           const j = await res.json();
           if (!j.ok) throw 0;
         } else {
-          const res = await fetch("/api/requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
+          const res = await fetch("/api/requests", { method: "POST", headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN }, body: JSON.stringify(rec) });
           const j = await res.json();
           if (!j.ok) throw 0;
         }

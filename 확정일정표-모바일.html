@@ -123,6 +123,8 @@ const buildConfirmedQuote = j => {
   q.drop = q.drop || q.flight.out || "-";
   q.price = { ...(q.price || {}) };
   q.price.deposit = Number(ci.depositAmount) || (q.price.deposit || 0);
+  q.price.depositStatus = ci.depositStatus || q.price.depositStatus || "";
+  q.price.balanceStatus = ci.balanceStatus || q.price.balanceStatus || "";
   q.price.options = Array.isArray(q.price.options) ? q.price.options : [];
   q.price.balances = Array.isArray(q.price.balances) && q.price.balances.length
     ? q.price.balances
@@ -288,7 +290,7 @@ const balCard = (bg, sub, title, tier) => `
   <div class="blk" style="background:${bg}; border-radius:12px; padding:14px 16px;">
     <div style="color:#EAFBF6; font-size:11px; font-weight:700;">${title}</div>
     <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
-      ${Q.price.balances.map(b => `<div class="row" style="justify-content:space-between;"><span style="color:${sub}; font-size:12px;">${b.pax}인 잔금(1인기준)</span><span style="color:#fff; font-size:19px; font-weight:800;">${wonMan(tier === "full" ? balFull(b) : balEco(b))}</span></div>`).join("")}
+      ${Q.price.balances.map(b => `<div class="row" style="justify-content:space-between; gap:8px;"><span style="color:${sub}; font-size:12px;">${b.pax}인 잔금(1인기준)${Q.price.balanceStatus ? `<br><b style="font-size:10px;">${esc(Q.price.balanceStatus)}</b>` : ""}</span><span style="color:#fff; font-size:19px; font-weight:800;">${wonMan(tier === "full" ? balFull(b) : balEco(b))}</span></div>`).join("")}
     </div>
   </div>`;
 
@@ -327,7 +329,7 @@ const secQuote = card(`
   </div>
   <div class="blk" style="margin-top:12px; row; display:flex; gap:10px; align-items:center; background:#EAF7F3; border-radius:12px; padding:14px 16px;">
     <div style="color:#0A6A5E; font-size:12px; font-weight:800; flex:none;">예약금<br><span style="font-weight:600; color:#8CA39D; font-size:10px;">1인기준×인원수</span></div>
-    <div style="flex:1; text-align:right; color:#152C28; font-size:24px; font-weight:800;">${wonMan(Q.price.deposit)}</div>
+    <div style="flex:1; text-align:right; color:#152C28; font-size:24px; font-weight:800;">${wonMan(Q.price.deposit)}${Q.price.depositStatus ? `<div style="font-size:11px; color:#06c4a0; font-weight:800; margin-top:3px;">${esc(Q.price.depositStatus)}</div>` : ""}</div>
   </div>
   ${(Q.price.options && Q.price.options.length) ? `<div class="blk" style="margin-top:10px; background:#F7F9F8; border:1px solid #E7EDEB; border-radius:12px; padding:12px 15px;">
     <div style="color:#0A6A5E; font-size:11.5px; font-weight:800;">추가 및 할인 사항</div>

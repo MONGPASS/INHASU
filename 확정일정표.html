@@ -104,6 +104,8 @@ const buildConfirmedQuote = j => {
   q.drop = q.drop || q.flight.out || "-";
   q.price = { ...(q.price || {}) };
   q.price.deposit = Number(ci.depositAmount) || (q.price.deposit || 0);
+  q.price.depositStatus = ci.depositStatus || q.price.depositStatus || "";
+  q.price.balanceStatus = ci.balanceStatus || q.price.balanceStatus || "";
   q.price.options = Array.isArray(q.price.options) ? q.price.options : [];
   q.price.balances = Array.isArray(q.price.balances) && q.price.balances.length
     ? q.price.balances
@@ -296,7 +298,10 @@ const pgQuote = `
   <div style="display:grid; grid-template-columns:1fr 1.6fr; gap:1px; background:#DDEBE6; border:1px solid #DDEBE6; border-radius:10px; overflow:hidden; margin-top:16px; font-size:12.5px;">
     <div style="background:#EAF7F3; color:#06c4a0; font-weight:700; padding:12px 14px; text-align:center;">예약금 (1인기준x인원수)</div>
     <div style="background:#EAF7F3; color:#06c4a0; font-weight:700; padding:12px 14px; text-align:center;">추가 및 할인 사항</div>
-    <div style="background:#fff; color:#152C28; font-weight:800; font-size:22px; padding:20px 14px; display:flex; align-items:center; justify-content:center;">${wonMan(Q.price.deposit)}</div>
+    <div style="background:#fff; color:#152C28; font-weight:800; font-size:22px; padding:18px 14px; display:flex; flex-direction:column; gap:5px; align-items:center; justify-content:center;">
+      <span>${wonMan(Q.price.deposit)}</span>
+      ${Q.price.depositStatus ? `<span style="font-size:11px; color:#06c4a0; font-weight:800;">${esc(Q.price.depositStatus)}</span>` : ""}
+    </div>
     <div style="background:#fff; padding:14px 18px; display:flex; flex-direction:column; gap:7px; justify-content:center;">
       ${Q.price.options.map(o => `<div style="display:flex; justify-content:space-between;"><span style="color:#354B46; font-weight:600;">${esc(o.label)}</span><span style="color:#8CA39D;">${esc(o.calc)}</span></div>`).join("")}
     </div>
@@ -305,7 +310,7 @@ const pgQuote = `
   ${(() => {
     const pills = (tier) => Q.price.balances.map(b => {
       const amt = tier === "economy" ? balEco(b) : balFull(b);
-      return `<div style="background:#06c4a0; padding:9px 8px; text-align:center;"><div style="color:#DFF7EF; font-size:10px; font-weight:700;">${b.pax}인 잔금(1인기준)</div><div style="color:#fff; font-size:17px; font-weight:800; margin-top:4px;">${wonMan(amt)}</div></div>`;
+      return `<div style="background:#06c4a0; padding:9px 8px; text-align:center;"><div style="color:#DFF7EF; font-size:10px; font-weight:700;">${b.pax}인 잔금(1인기준)</div><div style="color:#fff; font-size:17px; font-weight:800; margin-top:4px;">${wonMan(amt)}</div>${Q.price.balanceStatus ? `<div style="color:#DFF7EF; font-size:10px; font-weight:800; margin-top:3px;">${esc(Q.price.balanceStatus)}</div>` : ""}</div>`;
     }).join("");
     const grid = (tier) => `<div style="display:grid; grid-template-columns:repeat(${Q.price.balances.length},1fr); gap:1px; background:#CDE8DF; border-radius:10px; overflow:hidden;">${pills(tier)}</div>`;
     return `

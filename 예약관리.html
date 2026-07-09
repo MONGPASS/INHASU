@@ -166,7 +166,7 @@ function blankBooking() {
               vehicle:{model:"",seats:"",plate:"",img:"",imgs:[],desc:""}, lodges:[] },
     travelers: [],
     flight: { inDate:"", inTime:"", inNo:"", outDate:"", outTime:"", outNo:"" },
-    contractInfo: { productName:"", region:"", totalAmount:0, depositAmount:0, balanceAmount:0, cashReceipt:"", note:"" },
+    contractInfo: { productName:"", region:"", totalAmount:0, depositAmount:0, depositStatus:"미입금", balanceAmount:0, balanceStatus:"미수령", cashReceipt:"", note:"" },
     checklist: { deposit:false, balance:false, flight:false, insurance:false, contract:false },
     contract: null,   // 고객 서명 시 서버(/api/sign)가 채움 — {signedAt, signImg, snapshot…}
     notes: "", adminMemo: "",
@@ -199,7 +199,9 @@ function init() {
     region: BK.contractInfo.region || PRE.destination || "",
     totalAmount: BK.contractInfo.totalAmount || fin.salesAmount || 0,
     depositAmount: BK.contractInfo.depositAmount || fin.depositAmount || 0,
+    depositStatus: BK.contractInfo.depositStatus || fin.depositStatus || (BK.checklist.deposit ? "입금완료" : "미입금"),
     balanceAmount: BK.contractInfo.balanceAmount || fin.balanceAmount || 0,
+    balanceStatus: BK.contractInfo.balanceStatus || fin.balanceStatus || (BK.checklist.balance ? "입금완료" : "미수령"),
     cashReceipt: BK.contractInfo.cashReceipt || fin.cashReceipt || "",
   };
   BK.flight = {
@@ -517,6 +519,14 @@ function render() {
         <label class="f"><span>예약금</span><input id="ci_depositAmount" type="number" value="${esc(ci.depositAmount || 0)}" placeholder="250000"></label>
         <label class="f"><span>잔금</span><input id="ci_balanceAmount" type="number" value="${esc(ci.balanceAmount || 0)}" placeholder="6650000"></label>
       </div>
+      <div class="grid3" style="margin-top:10px;">
+        <label class="f"><span>예약금 상태</span><select id="ci_depositStatus">
+          ${["미입금", "입금완료"].map(v => `<option value="${v}" ${(ci.depositStatus || "미입금") === v ? "selected" : ""}>${v}</option>`).join("")}
+        </select></label>
+        <label class="f"><span>잔금 상태</span><select id="ci_balanceStatus">
+          ${["미수령", "입금완료", "현지현금전달", "계좌입금", "카드결제"].map(v => `<option value="${v}" ${(ci.balanceStatus || "미수령") === v ? "selected" : ""}>${v}</option>`).join("")}
+        </select></label>
+      </div>
       <label class="f" style="margin-top:10px;"><span>계약서 비고/기타사항</span><textarea id="ci_note" rows="3" placeholder="추가 안내사항">${esc(ci.note || "")}</textarea></label>
     </div>
   </section>
@@ -624,11 +634,14 @@ function pullForm() {
                 outDate:g("fl_outDate"), outTime:g("fl_outTime"), outNo:g("fl_outNo") };
   BK.contractInfo = {
     productName:g("ci_productName"), region:g("ci_region"), cashReceipt:g("ci_cashReceipt"), note:$("ci_note") ? $("ci_note").value : "",
-    totalAmount:Number(g("ci_totalAmount")) || 0, depositAmount:Number(g("ci_depositAmount")) || 0, balanceAmount:Number(g("ci_balanceAmount")) || 0,
+    totalAmount:Number(g("ci_totalAmount")) || 0, depositAmount:Number(g("ci_depositAmount")) || 0, depositStatus:g("ci_depositStatus") || "미입금",
+    balanceAmount:Number(g("ci_balanceAmount")) || 0, balanceStatus:g("ci_balanceStatus") || "미수령",
   };
   // 체크리스트·메모
   BK.checklist = { deposit:$("c_deposit").checked, balance:$("c_balance").checked, flight:$("c_flight").checked,
                    insurance:$("c_insurance").checked, contract:$("c_contract").checked };
+  BK.checklist.deposit = BK.contractInfo.depositStatus === "입금완료";
+  BK.checklist.balance = ["입금완료", "현지현금전달", "현장현금전달"].includes(BK.contractInfo.balanceStatus);
   BK.notes = $("bk_notes").value; BK.adminMemo = $("bk_memo").value;
 }
 

@@ -163,7 +163,9 @@ const secContractDetail = card(`
       ["여행지역", esc(contractInfo.region || R.destination || "-")],
       ["여행경비", money(contractInfo.totalAmount)],
       ["예약금", money(contractInfo.depositAmount)],
+      ["예약금 상태", esc(contractInfo.depositStatus || "-")],
       ["잔금", money(contractInfo.balanceAmount)],
+      ["잔금 상태", esc(contractInfo.balanceStatus || "-")],
       ["현금영수증", esc(contractInfo.cashReceipt || "-")],
       ["비고", esc(contractInfo.note || "-")],
     ])}

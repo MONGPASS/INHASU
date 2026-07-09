@@ -27,14 +27,15 @@ export async function onRequestPost(context) {
   const { request, env } = context;
   try {
     const d = await request.json();
+    const admin = isAdmin(request, env);
 
     // 스팸 방어 1: honeypot — 사람 눈에는 안 보이는 숨은 칸.
     // 봇이 채워서 제출하면 저장하지 않고 성공한 척 응답합니다.
-    if (d.website) return json({ ok: true, id: "ok" });
+    if (!admin && d.website) return json({ ok: true, id: "ok" });
     delete d.website;
 
     // 스팸 방어 2: 같은 전화번호로 60초 안에 또 제출하면 차단
-    if (d.phone) {
+    if (!admin && d.phone) {
       const cutoff = new Date(Date.now() - 60_000).toISOString();
       const dup = await env.DB.prepare(
         "SELECT id FROM requests WHERE phone = ? AND received_at > ? LIMIT 1"
