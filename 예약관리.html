@@ -123,12 +123,14 @@
   <h1>📋 예약관리 <b id="hName"></b></h1>
   <span class="who" id="hMeta"></span>
   <span class="hd-acts">
+    <button class="hbtn" id="importDocxBtn">📄 Word 계약서 가져오기</button>
     <button class="hbtn" id="makeQuoteBtn">📝 견적서 만들기</button>
     <a class="hbtn" id="quoteLink" href="#" target="_blank">📄 견적서</a>
     <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 고객 확정일정표</a>
     <button class="hbtn" id="copyLinkBtn">🔗 고객 링크 복사</button>
   </span>
 </header>
+<input type="file" id="docxFile" accept=".docx" style="display:none">
 
 <main id="main"></main>
 
@@ -231,6 +233,9 @@ function init() {
     }));
     window.open("견적만들기.html", "_blank");
   };
+  /* 기존 Word 여행계약서(.docx)에서 여행자·항공·금액·일정을 자동 추출 */
+  $("importDocxBtn").onclick = () => $("docxFile").click();
+  $("docxFile").onchange = importDocx;
   $("setStatus").checked = PRE.status !== "예약확정";
   $("savebar").style.display = "";
   render();
@@ -821,6 +826,192 @@ async function save(opts = {}) {
     toast("⚠ " + e.message);
   } finally {
     $("saveBtn").disabled = false; $("saveBtn").textContent = "💾 예약 정보 저장";
+  }
+}
+
+/* ══════════ Word 여행계약서(.docx) 가져오기 ══════════
+   기존 관리하던 Word 계약서에서 여행자·항공·계약금액·일정표를 자동 추출해 폼을 채운다.
+   배정(가이드·차량·숙소)은 채우지 않음 — 리소스관리와 연결해 사진·소개가 붙도록 직접 선택해야 함. */
+let JSZIP_P = null;
+const loadJSZip = () => JSZIP_P || (JSZIP_P = new Promise((res, rej) => {
+  const s = document.createElement("script");
+  s.src = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
+  s.onload = () => res(window.JSZip);
+  s.onerror = () => rej(new Error("문서 라이브러리를 불러오지 못했어요 (인터넷 연결 확인)"));
+  document.head.appendChild(s);
+}));
+
+const dxNum = v => { const n = Number(String(v ?? "").replace(/[^\d]/g, "")); return Number.isFinite(n) ? n : 0; };
+const dxDate = v => {            // "26,07,11" / "26.07.11" / "2026-07-11" → "2026-07-11"
+  const m = String(v ?? "").match(/(\d{2,4})\D+(\d{1,2})\D+(\d{1,2})/);
+  if (!m) return "";
+  const y = m[1].length === 2 ? "20" + m[1] : m[1];
+  return `${y}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+};
+const dxClean = s => String(s ?? "").replace(/\s+/g, " ").trim();
+
+/* document.xml → 문서 순서대로 { markers: 직전 문단 텍스트, rows } 표 목록 */
+function docxTables(xml) {
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  const body = doc.getElementsByTagName("w:body")[0];
+  if (!body) throw new Error("문서 본문을 찾지 못했어요");
+  const textOf = el => dxClean([...el.getElementsByTagName("w:t")].map(t => t.textContent).join(""));
+  const tables = [];
+  let marker = "";
+  for (const node of body.children) {
+    if (node.tagName === "w:p") {
+      const t = textOf(node);
+      if (t) marker = t;
+    } else if (node.tagName === "w:tbl") {
+      const rows = [...node.getElementsByTagName("w:tr")].map(tr =>
+        [...tr.children].filter(c => c.tagName === "w:tc").map(textOf));
+      tables.push({ marker, rows });
+      marker = "";
+    }
+  }
+  return tables;
+}
+
+/* 계약 표: 여행자 / 항공 / 금액 — 라벨 옆 칸이 값 (라벨-값 교차 배열) */
+function dxParseContractTable(rows, out) {
+  let flightNoCount = 0;
+  for (const cells of rows) {
+    if (cells[0] === "한글명") {                      // 여행자 행 (빈 행은 이름 없음 → 스킵)
+      const pick = label => { const i = cells.indexOf(label); return i >= 0 ? dxClean(cells[i + 1]) : ""; };
+      const name = pick("한글명");
+      if (!name) continue;
+      const tail = cells[cells.length - 1] || "";
+      const gender = /\(남\/\)/.test(tail) ? "남" : /\(\/여\)/.test(tail) ? "여" : "";
+      out.travelers.push({ nameKo: name, passportName: pick("여권명"), birth: "", phone: pick("연락처").replace(/\D/g, ""), gender, passportNo: "" });
+      continue;
+    }
+    for (let i = 0; i < cells.length; i++) {
+      const label = dxClean(cells[i]), val = dxClean(cells[i + 1] ?? "");
+      if (!label || !val) continue;
+      const fl = out.flight, mo = out.money;
+      if (label === "몽골도착일") fl.inDate = dxDate(val);
+      else if (label === "몽골출발일") fl.outDate = dxDate(val);
+      else if (label === "몽골도착시간") fl.inTime = val;
+      else if (label === "몽골출발시간") fl.outTime = val;
+      else if (label === "항공편명") { if (flightNoCount++ === 0) fl.inNo = val; else fl.outNo = val; }
+      else if (label === "여행상품명") mo.productName = val;
+      else if (label === "여행지역") mo.region = val;
+      else if (label === "여행경비") mo.totalAmount = dxNum(val);
+      else if (label === "예약금") mo.depositAmount = dxNum(val);
+      else if (label.startsWith("잔금")) mo.balanceAmount = dxNum(val);
+    }
+  }
+}
+
+/* [숙소정보] 표: 날짜|인원|지역|유형|개수|룸타입|숙소명 — 일정표 stay 매칭·안내용 (배정은 직접 선택) */
+function dxParseLodgeTable(rows, out, inDate) {
+  const base = inDate ? new Date(inDate + "T00:00:00") : null;
+  for (const cells of rows) {
+    const d = dxDate(cells[0]);
+    if (!d) continue;
+    const day = base ? Math.round((new Date(d + "T00:00:00") - base) / 86400000) + 1 : out.lodges.length + 1;
+    const name = dxClean((cells[6] || cells[cells.length - 1] || "").replace(/\d{6,}/g, ""));
+    if (!name) continue;
+    out.lodges.push({ day, name, type: dxClean(cells[3] || ""), room: dxClean(cells[5] || "") });
+  }
+}
+
+/* [일정] 표 → BK.days — "N일차" 행이 새 일차, "A > B" 단독 행이 다음 일차의 목적지 */
+function dxParseScheduleTable(rows, out) {
+  const days = [];
+  let cur = null, pendingDest = "";
+  const newDay = n => {
+    cur = { d: n, dest: pendingDest, move: "", items: [], stay: { name: "", tags: [] }, meals: [] };
+    pendingDest = "";
+    days.push(cur);
+  };
+  for (const cells of rows) {
+    const nonEmpty = cells.map(dxClean).filter(Boolean);
+    if (!nonEmpty.length) continue;
+    if (/^(포함\s*사항|불포함\s*사항)/.test(nonEmpty[0])) break;   // 일정 표 뒤에 붙는 포함/불포함 목록 — 플랫폼 고정 페이지와 중복이라 제외
+    if (nonEmpty.length === 1) {                       // 제목 / 헤더 / 이동 헤더
+      if (/>/.test(nonEmpty[0])) pendingDest = nonEmpty[0].replace(/\s*>\s*/g, " > ");
+      continue;
+    }
+    if (nonEmpty[0] === "날짜" || nonEmpty.includes("상세일정")) continue;   // 컬럼 헤더
+    let rest = cells.map(dxClean);
+    const dayIdx = rest.findIndex(c => /^\d+\s*일차$/.test(c));
+    if (dayIdx >= 0) { newDay(Number(rest[dayIdx].match(/\d+/)[0])); rest = rest.slice(dayIdx + 1); }
+    if (!cur) newDay(days.length + 1);
+    while (rest.length && !rest[0]) rest.shift();                        // 병합된 일차 칸 등 빈 선행 셀 제거
+    if (/^(새벽|오전|점심|오후|저녁|밤)$/.test(rest[0] || "")) rest.shift(); // 시간대 칸
+    let [place, detail, note] = [rest[0] || "", rest[1] || "", rest[2] || ""];
+    if (!detail && place) { detail = place; place = ""; }                // 장소 칸이 생략된 변형 서식
+    if (!detail) continue;
+    if (!cur.dest && place && place !== "이동" && place !== "캠프장") cur.dest = place;
+    const mv = detail.match(/\(([^)]*내외[^)]*)\)/);
+    if (mv && detail.includes("이동")) cur.move = mv[1];
+    const isMeal = /조식|아침\s*식사|점심\s*식사|저녁\s*식사/.test(detail);
+    if (isMeal) {                                      // 식사 행 → meals (아침/점심/저녁 순으로 쌓임)
+      const extra = detail.includes(":") ? dxClean(detail.split(":").pop()) : "";
+      cur.meals.push([extra, note].filter(Boolean).join(" · ") || "포함");
+      continue;
+    }
+    if (/체크인/.test(detail)) {                        // 체크인 행 → 숙소 텍스트 (일정 그리드용)
+      const lodge = out.lodges.find(l => l.day === cur.d);
+      cur.stay.name = lodge ? lodge.name : (note || detail);
+      cur.stay.tags = lodge ? [lodge.type, lodge.room].filter(Boolean) : (note ? [note] : []);
+      continue;
+    }
+    cur.items.push(detail + (note ? ` (${note})` : ""));
+  }
+  if (days.length) out.days = days;
+}
+
+function parseContractDocx(xml) {
+  const out = { travelers: [], flight: {}, money: {}, lodges: [], days: null, guideText: "", warnings: [] };
+  const tables = docxTables(xml);
+  if (!tables.length) throw new Error("계약서에서 표를 찾지 못했어요");
+  const flat = rows => rows.map(r => r.join(" ")).join(" ");
+  const contract = tables.find(t => /몽골도착일|여행자 정보/.test(flat(t.rows)));
+  if (contract) dxParseContractTable(contract.rows, out); else out.warnings.push("계약 정보 표(여행자·항공·금액)를 찾지 못했어요");
+  const lodge = tables.find(t => t.marker.includes("숙소정보")) || tables.find(t => t !== contract && t.rows.some(r => dxDate(r[0]) && /게르|호텔|리조트|주택/i.test(r.join(" "))));
+  if (lodge) dxParseLodgeTable(lodge.rows, out, out.flight.inDate);
+  const guide = tables.find(t => t.marker.includes("가이드정보")) || tables.find(t => /가이드겸기사/.test(flat(t.rows)));
+  if (guide) out.guideText = dxClean(guide.rows.map(r => r.filter(Boolean).join(" ")).join(" / "));
+  const sched = tables.find(t => t.marker.includes("일정")) || tables.find(t => t.rows.some(r => /^\d+\s*일차$/.test(dxClean(r[0]))));
+  if (sched) dxParseScheduleTable(sched.rows, out); else out.warnings.push("일정 표를 찾지 못했어요 — 확정 일정표는 직접 입력해 주세요");
+  return out;
+}
+
+async function importDocx(e) {
+  const f = e.target.files[0];
+  $("docxFile").value = "";
+  if (!f) return;
+  try {
+    toast("Word 계약서를 읽는 중…");
+    const JSZip = await loadJSZip();
+    const zip = await JSZip.loadAsync(await f.arrayBuffer());
+    const entry = zip.file("word/document.xml");
+    if (!entry) throw new Error(".docx 형식이 아니에요 — Word에서 .docx로 저장한 파일을 올려주세요");
+    const r = parseContractDocx(await entry.async("string"));
+    const has = { trav: r.travelers.length, fl: Object.values(r.flight).some(Boolean), mo: Object.values(r.money).some(Boolean), days: r.days && r.days.length };
+    const parts = [];
+    if (has.trav) parts.push(`여행자 ${r.travelers.length}명`);
+    if (has.fl) parts.push("항공 정보");
+    if (has.mo) parts.push("계약 금액");
+    if (has.days) parts.push(`일정 ${r.days.length}일차`);
+    if (!parts.length) throw new Error("계약서에서 인식 가능한 내용을 찾지 못했어요");
+    let msg = `Word 계약서에서 ${parts.join(" · ")}를 찾았어요.\n폼의 해당 항목을 이 내용으로 교체할까요?`;
+    msg += "\n\n※ 가이드·차량·숙소 배정은 자동으로 채우지 않아요 — 사진·소개가 붙도록 배정 섹션에서 리소스로 직접 선택하세요.";
+    if (r.lodges.length) msg += `\n · Word 숙소: ${r.lodges.map(l => `${l.day}일차 ${l.name}`).join(", ")}`;
+    if (r.guideText) msg += `\n · Word 가이드/차량: ${r.guideText}`;
+    if (r.warnings.length) msg += `\n\n⚠ ${r.warnings.join("\n⚠ ")}`;
+    if (!confirm(msg)) return;
+    pullForm();
+    if (has.trav) BK.travelers = r.travelers;
+    if (has.fl) BK.flight = { ...BK.flight, ...r.flight };
+    if (has.mo) BK.contractInfo = { ...BK.contractInfo, ...r.money };
+    if (has.days) BK.days = r.days;
+    render();
+    toast("✓ Word 계약서 내용을 폼에 채웠어요 — 검토 후 저장하세요");
+  } catch (err) {
+    toast("⚠ " + (err.message || "Word 파싱 실패"));
   }
 }
 
