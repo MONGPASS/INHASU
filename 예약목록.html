@@ -43,7 +43,6 @@
   th { background:#fafbfc; text-align:left; color:var(--sub); font-size:12.5px; font-weight:800; padding:13px 16px; border-bottom:1px solid var(--line); white-space:nowrap; }
   td { padding:14px 16px; border-bottom:1px solid #f2f5f4; vertical-align:middle; }
   tr:last-child td { border-bottom:none; }
-  tbody tr { cursor:pointer; }
   tbody tr:hover { background:#fbfdfc; }
   .cust { display:flex; align-items:center; gap:11px; }
   .avatar { width:38px; height:38px; border-radius:11px; background:var(--book); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; flex:none; }
@@ -57,6 +56,7 @@
   .tag.bad { background:#fbeceb; color:#b84e44; }
   .assign { display:flex; flex-wrap:wrap; gap:6px; }
   .actions { display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap; }
+  .name-cell { display:flex; align-items:center; gap:8px; }
   .mini { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:7px 10px; font:800 12px Pretendard; text-decoration:none; cursor:pointer; }
   .mini.blue { border-color:#c9dafb; color:#2b5cc4; background:#f5f8ff; }
   .empty { text-align:center; padding:70px 20px; color:var(--gray); line-height:1.6; }
@@ -291,6 +291,7 @@ function render() {
       <th>번호</th><th>조인여부</th><th class="hide-sm">계약월</th>
       <th class="sortable" data-k="book">예약일${arrow("book")}</th>
       <th class="sortable" data-k="name">고객명${arrow("name")}</th>
+      <th>관리</th>
       <th class="sortable" data-k="depart">몽골도착${arrow("depart")}</th>
       <th class="hide-xs">몽골출발</th>
       <th class="sortable" data-k="pax">인원${arrow("pax")}</th>
@@ -313,7 +314,8 @@ function render() {
         <td>${selCell(r, "joinType")}</td>
         <td class="hide-sm">${monthOf(bookDate(r))}</td>
         <td>${esc(bookDate(r) || "-")}</td>
-        <td><b>${esc(r.name || "-")}</b></td>
+        <td><div class="name-cell"><b>${esc(r.name || "-")}</b></div></td>
+        <td><button class="mini blue" data-open="${esc(r.id)}">관리</button></td>
         <td>${esc(dateOnly(r.depart) || "-")}</td>
         <td class="hide-xs">${esc(dateOnly(r.return_) || "-")}</td>
         <td>${paxSum(r) || "-"}</td>
@@ -331,15 +333,11 @@ function render() {
         <td>${moneyTxt(f.balanceAmount)}</td>
         <td>${esc(f.cashReceipt || "-")}</td>
         <td><div class="actions">
-          <button class="mini blue" data-open="${esc(r.id)}">배정관리</button>
+          <button class="mini blue" data-open="${esc(r.id)}">관리</button>
           ${token ? `<a class="mini" href="확정일정표.html?t=${encodeURIComponent(token)}&v=assign3" target="_blank">일정표</a>` : ""}
         </div></td>
       </tr>`;
     }).join("")}</tbody></table>`;
-  $("list").querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = (e) => {
-    if (e.target.closest("a,button,select")) return;
-    openBooking(tr.dataset.id);
-  });
   $("list").querySelectorAll("[data-open]").forEach(btn => btn.onclick = () => openBooking(btn.dataset.open));
   $("list").querySelectorAll("th.sortable").forEach(th => th.onclick = () => {
     const k = th.dataset.k;
