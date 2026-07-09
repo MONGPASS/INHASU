@@ -63,14 +63,10 @@
   .bulkbtn.danger { background:#fff5f4; border-color:#f2d1cc; color:#b84e44; }
   .bulkbtn:disabled { opacity:.45; cursor:not-allowed; }
   .rowcheck { width:16px; height:16px; accent-color:var(--deep); cursor:pointer; }
-  .money-stack { display:flex; flex-direction:column; gap:6px; align-items:flex-start; min-width:0; }
-  .money-stack .amount { font-weight:700; }
-  .pay-sel { width:100%; min-width:96px; border:1px solid var(--line); border-radius:8px; padding:5px 6px; font:800 11.5px Pretendard; background:#fff; color:var(--ink); cursor:pointer; }
-  .col-money, .col-receipt { text-align:left; }
+  .col-receipt { text-align:left; }
   .col-actions { text-align:right; }
-  .pay-sel[data-v="입금완료"] { background:#e8f7f2; color:#0a6a5e; border-color:#cdeee5; }
-  .pay-sel[data-v="현지현금전달"], .pay-sel[data-v="현장현금전달"] { background:#fff5e9; color:#b76d14; border-color:#f5e0c4; }
-  .pay-sel[data-v="미입금"], .pay-sel[data-v="미수령"] { background:#fbeceb; color:#b84e44; border-color:#f3d2ce; }
+  .pay-sel { border:none; background:none; color:inherit; font:inherit; cursor:pointer; padding:0 0 0 1px; margin:0; appearance:none; -webkit-appearance:none; }
+  .pay-sel:focus { outline:none; }
   .table-card { background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; max-width:100%; }
   table { width:100%; border-collapse:collapse; }
   th { background:#fafbfc; text-align:left; color:var(--sub); font-size:12.5px; font-weight:800; padding:13px 16px; border-bottom:1px solid var(--line); white-space:nowrap; }
@@ -100,7 +96,7 @@
 
   /* ── 엑셀형 표: 가로 스크롤 + 밀도 ── */
   .table-card { overflow:auto; }
-  .table-card table { min-width:1160px; table-layout:fixed; }
+  .table-card table { min-width:1196px; table-layout:fixed; }
   .table-card th { padding:13px 12px; font-size:12px; overflow:hidden; text-overflow:ellipsis; }
   .table-card td { padding:13px 12px; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .table-card td.td-wrap { white-space:normal; overflow:visible; text-overflow:clip; }
@@ -134,11 +130,16 @@
   .assign-count { font-size:11.5px; font-weight:900; color:#b76d14; white-space:nowrap; }
   .assign-count.ok { color:#0a6a5e; }
   .assign-detail { font-size:11.5px; font-weight:700; color:var(--gray); line-height:1.35; white-space:normal; }
-  /* 결제 — 예약금·잔금 통합 */
-  .pay-two { display:flex; flex-direction:column; gap:7px; }
-  .pay-line { display:flex; align-items:center; gap:6px; }
-  .pay-label { font-size:11px; font-weight:800; color:var(--gray); width:32px; flex:none; }
-  .pay-line .amount { font-weight:800; font-size:12px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  /* 결제 — 예약금·잔금 통합 (금액 + 인라인 상태 텍스트, 클릭 시 편집) */
+  .pay-two { display:flex; flex-direction:column; gap:6px; }
+  .pay-line { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .pay-label { font-size:11px; font-weight:800; color:var(--gray); width:30px; flex:none; }
+  .pay-line .amount { font-weight:800; font-size:12px; }
+  .pay-stat { display:inline-flex; align-items:center; font-weight:800; font-size:11.5px; cursor:pointer; }
+  .pay-stat[data-v="입금완료"] { color:#0a6a5e; }
+  .pay-stat[data-v="현지현금전달"], .pay-stat[data-v="현장현금전달"], .pay-stat[data-v="계좌입금"], .pay-stat[data-v="카드결제"] { color:#b76d14; }
+  .pay-stat[data-v="미입금"], .pay-stat[data-v="미수령"] { color:#b84e44; }
+  .pay-stat select { color:inherit; }
   /* 여행 기간·지역 */
   .period { display:flex; flex-direction:column; gap:3px; }
   .period .range { font-weight:700; font-size:12px; white-space:nowrap; }
@@ -459,9 +460,9 @@ function render() {
   };
   const paySelect = (r, statusField) => {
     const cur = payStatus(r, statusField);
-    return `<select class="pay-sel" data-finance="${statusField}" data-id="${esc(r.id)}" data-v="${esc(cur)}">
+    return `<span class="pay-stat" data-v="${esc(cur)}">·<select class="pay-sel" data-finance="${statusField}" data-id="${esc(r.id)}" data-v="${esc(cur)}">
       ${PAY_OPTS[statusField].map(o => `<option value="${o}" ${cur === o ? "selected" : ""}>${o}</option>`).join("")}
-    </select>`;
+    </select></span>`;
   };
   const payCell = r => {
     const f = r.finance || {};
@@ -497,8 +498,8 @@ function render() {
   $("list").innerHTML = `<table>
     <colgroup>
       <col style="width:38px"><col style="width:40px"><col style="width:92px"><col style="width:120px">
-      <col style="width:184px"><col style="width:76px"><col style="width:176px">
-      <col style="width:196px"><col style="width:84px"><col style="width:176px">
+      <col style="width:180px"><col style="width:72px"><col style="width:170px">
+      <col style="width:214px"><col style="width:78px"><col style="width:172px">
     </colgroup>
     <thead><tr>
       <th><input class="rowcheck" type="checkbox" id="checkAllRows" ${allChecked ? "checked" : ""} title="현재 목록 전체 선택"></th>
