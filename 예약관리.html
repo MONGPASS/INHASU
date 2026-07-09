@@ -134,8 +134,6 @@
 <div class="savebar" id="savebar" style="display:none">
   <label class="opt"><input type="checkbox" id="setStatus" checked> 저장 시 상태를 '예약확정'으로 변경</label>
   <button class="barbtn danger" id="undoBtn">↩ 되돌리기</button>
-  <a class="barbtn" id="pdfBtn" href="#" target="_blank">PDF 미리보기</a>
-  <button class="barbtn" id="copyBottomBtn">링크 복사</button>
   <button id="saveBtn">💾 예약 정보 저장</button>
 </div>
 <div id="toast"></div>
@@ -192,8 +190,6 @@ function init() {
   $("hMeta").textContent = `${PRE.destination || "-"} · ${PRE.depart || "?"} ~ ${PRE.return_ || "?"} · ${paxTot}명 · 현재상태 [${PRE.status}]`;
   $("quoteLink").href = PRE.token ? "견적서.html?t=" + encodeURIComponent(PRE.token) : "#";
   $("confirmLink").href = PRE.token ? "확정일정표.html?t=" + encodeURIComponent(PRE.token) : "#";
-  $("pdfBtn").href = PRE.token ? "확정일정표.html?t=" + encodeURIComponent(PRE.token) : "#";
-  $("copyBottomBtn").onclick = () => copyCustomerLink();
   $("undoBtn").onclick = resetToSaved;
   $("copyLinkBtn").onclick = () => {
     copyCustomerLink();
@@ -201,7 +197,10 @@ function init() {
   $("setStatus").checked = PRE.status !== "예약확정";
   $("savebar").style.display = "";
   render();
-  loadLibs();   // 가이드/숙소/차량 라이브러리 (있으면 자동완성)
+  /* 미저장 감지 기준(SAVED_BK_JSON)은 pullForm 정규형으로 — 원시 데이터와 폼 수집형의
+     구조 차이(숙소 이미지 자동첨부·계약 체크 자동화 등)가 dirty로 오탐되지 않게 */
+  pullForm(); SAVED_BK_JSON = JSON.stringify(BK);
+  loadLibs().then(() => { pullForm(); SAVED_BK_JSON = JSON.stringify(BK); });   // 라이브러리 폴백 반영 후 재스냅샷
 }
 
 function copyCustomerLink() {
@@ -224,21 +223,25 @@ function assignStats() {
   const guideOk = !!(a.guide && a.guide.name);
   const vehicleOk = !!(a.vehicle && a.vehicle.model);
   const lodgeCount = (a.lodges || []).filter(l => l && l.name).length;
+  /* 필요 숙소 수: 일정표에서 숙소가 지정된 일수 기준 (마지막 날은 보통 귀국이라 숙소 없음).
+     일정표에 숙소가 하나도 지정 안 됐으면 (일수 - 1) 폴백 */
+  const stayDays = days.filter(d => { const n = noBr((d.stay || {}).name); return n && n !== "숙소미포함"; }).length;
+  const lodgeNeeded = days.length ? (stayDays || Math.max(days.length - 1, 0)) : 0;
   const signed = !!(BK.contract && BK.contract.signedAt);
   const checklistDone = Object.values(BK.checklist || {}).filter(Boolean).length;
   const missing = [];
   if (!days.length) missing.push("확정 일정 없음");
   if (!guideOk) missing.push("가이드 미배정");
   if (!vehicleOk) missing.push("차량 미배정");
-  if (days.length && lodgeCount < days.length) missing.push(`숙소 ${days.length - lodgeCount}일 미배정`);
+  if (lodgeNeeded && lodgeCount < lodgeNeeded) missing.push(`숙소 ${lodgeNeeded - lodgeCount}일 미배정`);
   if (!signed) missing.push("계약 미서명");
-  return { guideOk, vehicleOk, lodgeCount, signed, checklistDone, missing };
+  return { guideOk, vehicleOk, lodgeCount, lodgeNeeded, signed, checklistDone, missing };
 }
 
 function summaryHtml() {
   const st = assignStats();
   const days = BK.days.length;
-  const lodgeTotal = days || st.lodgeCount;
+  const lodgeTotal = st.lodgeNeeded || st.lodgeCount;
   return `<section class="card">
     <div class="sec-h">
       <h2><span class="n">✓</span>운영 상태</h2>
@@ -247,7 +250,7 @@ function summaryHtml() {
     <div class="summary">
       <div class="sum-card ${days ? "ok" : "warn"}"><div class="k">확정 일정</div><div class="v">${days}일</div><div class="s">${days ? "일정표 편집 가능" : "견적 일정 불러오기 필요"}</div></div>
       <div class="sum-card ${st.guideOk && st.vehicleOk ? "ok" : "warn"}"><div class="k">가이드·차량</div><div class="v">${st.guideOk && st.vehicleOk ? "완료" : "확인 필요"}</div><div class="s">가이드 ${st.guideOk ? "완료" : "미정"} · 차량 ${st.vehicleOk ? "완료" : "미정"}</div></div>
-      <div class="sum-card ${lodgeTotal && st.lodgeCount >= lodgeTotal ? "ok" : "warn"}"><div class="k">일자별 숙소</div><div class="v">${st.lodgeCount}/${lodgeTotal || 0}</div><div class="s">${lodgeTotal ? "일정 일수 기준" : "일정 등록 후 확인"}</div></div>
+      <div class="sum-card ${lodgeTotal && st.lodgeCount >= lodgeTotal ? "ok" : "warn"}"><div class="k">일자별 숙소</div><div class="v">${st.lodgeCount}/${lodgeTotal || 0}</div><div class="s">${lodgeTotal ? "숙박 일수 기준 (귀국일 제외)" : "일정 등록 후 확인"}</div></div>
       <div class="sum-card ${st.signed ? "ok" : "warn"}"><div class="k">계약·체크</div><div class="v">${st.signed ? "서명완료" : "미서명"}</div><div class="s">체크리스트 ${st.checklistDone}/5</div></div>
     </div>
     ${st.missing.length ? `<div class="miss">${st.missing.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : `<div class="miss"><span style="background:#f1fbf7;border-color:#bfe6d9;color:#0a6a5e;">필수 항목 완료</span></div>`}
@@ -405,7 +408,7 @@ function render() {
 
     <div class="assign-box">
       <div class="subtt">🏕 일차별 숙소</div>
-      ${BK.days.length ? `<div style="font-size:12px;color:var(--sub);font-weight:700;margin-bottom:10px;">확정 일정 ${BK.days.length}일 기준으로 숙소 누락 여부를 확인합니다.</div>` : ""}
+      ${BK.days.length ? `<div style="font-size:12px;color:var(--sub);font-weight:700;margin-bottom:10px;">숙박 ${assignStats().lodgeNeeded}일 기준으로 숙소 누락 여부를 확인합니다. (귀국일 제외)</div>` : ""}
       <div id="lodgeWrap">${a.lodges.map(lodgeRow).join("")}</div>
       <button class="addbtn" id="addLodge">＋ 숙소 배정 추가</button>
       ${BK.days.length ? `<button class="addbtn" id="lodgeFromDays" style="margin-top:8px;">↺ 확정 일정표의 숙소를 그대로 가져오기</button>` : ""}
@@ -418,7 +421,7 @@ function render() {
     <label class="chk"><input type="checkbox" id="c_balance" ${c.balance ? "checked" : ""}> 잔금 수령 (현장)</label>
     <label class="chk"><input type="checkbox" id="c_flight" ${c.flight ? "checked" : ""}> 항공권 발권 확인</label>
     <label class="chk"><input type="checkbox" id="c_insurance" ${c.insurance ? "checked" : ""}> 여행자 보험 가입 안내</label>
-    <label class="chk"><input type="checkbox" id="c_contract" ${c.contract ? "checked" : ""}> 여행계약서 서명</label>
+    <label class="chk" title="고객이 계약서에 서명하면 자동으로 체크됩니다"><input type="checkbox" id="c_contract" ${(c.contract || (BK.contract && BK.contract.signedAt)) ? "checked" : ""} disabled> 여행계약서 서명 <span style="font-size:11px; color:var(--sub); font-weight:600;">(고객 서명 시 자동 체크)</span></label>
     ${(() => {
       const ct = BK.contract;
       if (ct && ct.signedAt) {
@@ -441,7 +444,7 @@ function render() {
       </div>`;
     })()}
     <div class="grid2" style="margin-top:14px;">
-      <label class="f"><span>고객 안내문 (확정안내 하단에 노출)</span><textarea id="bk_notes" rows="3" placeholder="예: 공항 픽업은 4:30 입국게이트 앞입니다.">${esc(BK.notes)}</textarea></label>
+      <label class="f"><span>추가 메모 (내부 참고용 — 고객에게 보이지 않음)</span><textarea id="bk_notes" rows="3" placeholder="예: 공항 픽업 4:30 입국게이트 앞 — 가이드에게 전달">${esc(BK.notes)}</textarea></label>
       <label class="f"><span>내부 메모 (고객에게 안 보임)</span><textarea id="bk_memo" rows="3">${esc(BK.adminMemo)}</textarea></label>
     </div>
   </section>
@@ -513,7 +516,7 @@ function bindEvents() {
     BK.assign.lodges = BK.days.map((d, i) => ({ day:i+1, name:noBr((d.stay||{}).name), grade:"" })).filter(l => l.name && l.name !== "숙소미포함");
     render(); toast("일정표 숙소를 배정 목록으로 복사했어요");
   };
-  $("saveBtn").onclick = save;
+  $("saveBtn").onclick = () => save();
   const ccb = $("copyContractBtn");
   if (ccb) ccb.onclick = () => {
     if (!PRE.token) return toast("고객 토큰이 없는 요청이에요");
@@ -525,7 +528,7 @@ function bindEvents() {
     if (!confirm("서명을 초기화할까요?\n고객이 계약서에 다시 서명해야 합니다. (기존 서명 기록은 삭제됩니다)")) return;
     $("c_contract").checked = false;   // save()의 pullForm이 체크박스를 읽으므로 DOM 먼저 해제
     BK.contract = null;                // pullForm은 contract를 건드리지 않음 → null 유지된 채 저장
-    await save();
+    await save({ resetContract: true });   // 서버의 서명 보존 로직에 명시적 초기화임을 알림
     render();
   };
   fillDatalists();   // 리렌더 시 datalist·자동채움 다시 연결
@@ -626,10 +629,16 @@ function updateLodgePreview(row) {
 }
 
 /* ══════════ 저장 ══════════ */
-async function save() {
+async function save(opts = {}) {
   pullForm();
   if (!BK.confirmedAt) BK.confirmedAt = new Date().toISOString().slice(0, 10);
+  /* '예약확정' 전환 시 누락 항목 확인 — 취소하면 저장 중단 */
+  if ($("setStatus").checked) {
+    const miss = assignStats().missing.filter(m => m !== "계약 미서명" || !opts.resetContract);
+    if (miss.length && !confirm(`누락 항목이 있어요: ${miss.join(", ")}\n그래도 '예약확정'으로 저장할까요?`)) return;
+  }
   const patch = { booking: BK };
+  if (opts.resetContract) patch.resetContract = true;   // 서버의 서명 보존을 명시적으로 해제
   if ($("setStatus").checked) patch.status = "예약확정";
   $("saveBtn").disabled = true; $("saveBtn").textContent = "저장 중…";
   try {
@@ -662,6 +671,12 @@ if (!PRE || !PRE.id) {
     <a class="hbtn" href="/admin">← 대시보드로</a></div>`;
 } else {
   init();
+  /* 미저장 변경이 있으면 탭 닫기/이동 전에 경고 */
+  window.addEventListener("beforeunload", e => {
+    if (!BK) return;
+    try { pullForm(); } catch (_) { return; }
+    if (JSON.stringify(BK) !== SAVED_BK_JSON) { e.preventDefault(); e.returnValue = ""; }
+  });
 }
 </script>
 </body>

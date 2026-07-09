@@ -30,6 +30,17 @@ export async function onRequestPatch({ request, env, params }) {
     if (!row) return json({ ok: false, error: "not found" }, 404);
 
     const rec = JSON.parse(row.data);
+    // booking 저장 시 기존 계약 서명은 보존 — 관리자가 예약관리를 열어둔 사이 고객이 서명해도
+    // 구스냅샷 저장으로 서명이 지워지지 않게. 명시적 초기화(resetContract)일 때만 삭제 허용.
+    if (patch.booking && !patch.resetContract) {
+      const prev = rec.booking;
+      if (prev && prev.contract && prev.contract.signedAt &&
+          !(patch.booking.contract && patch.booking.contract.signedAt)) {
+        patch.booking.contract = prev.contract;
+        patch.booking.checklist = { ...(patch.booking.checklist || {}), contract: true };
+      }
+    }
+    delete patch.resetContract;   // 플래그가 rec에 저장되지 않게
     Object.assign(rec, patch);
     // patch에 status가 없으면 기존 상태 유지 — 견적 발행 등으로 상태가 임의로 바뀌지 않게.
     // 상태 변경은 관리자가 대시보드에서 명시적으로 status를 보낼 때만 이뤄짐.

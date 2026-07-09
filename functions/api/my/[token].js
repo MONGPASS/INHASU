@@ -30,14 +30,17 @@ export async function onRequestGet({ env, params }) {
     // 예약 확정 정보 — 고객에게 보여줄 안전 서브셋만 (내부 메모·체크리스트·연락처 제외)
     const bk = rec.booking || null;
     const safeAssign = a => a ? {
-      guide:   a.guide   ? { name: a.guide.name || "",  career: a.guide.career || "",  korean: a.guide.korean || "", img: a.guide.img || "",  desc: a.guide.desc || "" } : null,
+      // 가이드: 고객 확정일정표에 노출되는 필드 전체 (영문이름·구분·전화·카톡QR 포함 — 관리자가 고객 노출용으로 입력)
+      guide:   a.guide   ? { name: a.guide.name || "", nameEn: a.guide.nameEn || "", role: a.guide.role || "",
+                             phone: a.guide.phone || "", qr: a.guide.qr || "",
+                             career: a.guide.career || "",  korean: a.guide.korean || "", img: a.guide.img || "",  desc: a.guide.desc || "" } : null,
       vehicle: a.vehicle ? { model: a.vehicle.model || "", seats: a.vehicle.seats || "", img: a.vehicle.img || "", imgs: Array.isArray(a.vehicle.imgs) ? a.vehicle.imgs : [], desc: a.vehicle.desc || "" } : null,
       lodges:  Array.isArray(a.lodges) ? a.lodges.map(l => ({ day: l.day, name: l.name || "", grade: l.grade || "", img: l.img || "", imgs: Array.isArray(l.imgs) ? l.imgs : [], tags: l.tags || "", desc: l.desc || "" })) : [],
     } : null;
     const booking = bk ? {
       confirmedAt: bk.confirmedAt || "",
       days: Array.isArray(bk.days) ? bk.days : [],
-      notes: bk.notes || "",
+      // notes(추가 메모)는 내부 참고용 — 고객에게 반환하지 않음
       assign: safeAssign(bk.assign),
       // 계약 서명 상태 — 본인 서명 이미지·서명 시각만 (IP·기기 정보는 반환 안 함)
       contract: (bk.contract && bk.contract.signedAt) ? {
