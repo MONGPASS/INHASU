@@ -5,6 +5,8 @@
    - 서명 시점의 계약 스냅샷(고객·여행 정보·약관 버전)을 함께 동결 저장
    ═══════════════════════════════════════════════════════════ */
 
+import { notifyAdmin, sendBookingConfirmed } from "../_solapi.js";
+
 const TERMS_VERSION = "v1-2026-07";       // 계약서.html 조항을 바꾸면 버전도 올려주세요
 const MAX_SIGN_BYTES = 300_000;           // 서명 PNG dataURL 최대 길이 (~220KB 이미지)
 
@@ -17,7 +19,8 @@ const json = (obj, status = 200) =>
     },
   });
 
-export async function onRequestPost({ request, env, params }) {
+export async function onRequestPost(context) {
+  const { request, env, params } = context;
   try {
     const token = Array.isArray(params.token) ? params.token[0] : params.token;
     if (!token || String(token).length < 16) return json({ ok: false, error: "invalid token" }, 400);
@@ -96,10 +99,31 @@ export async function onRequestPost({ request, env, params }) {
       if (!rec.booking.confirmedAt) rec.booking.confirmedAt = now.slice(0, 10);
       rec.activities.push({ at: now, type: "status_changed", detail: "상태: 진행중 → 예약확정" });
     }
+    /* ── 알림 ── 백그라운드 발송이라 실패해도 서명 저장에는 영향 없음 */
+    rec.notify = rec.notify && typeof rec.notify === "object" ? rec.notify : {};
+    const confirmedNow = status === "예약확정" && !rec.notify.confirmSentAt && rec.phone && rec.token;
+    if (confirmedNow) {
+      rec.notify.confirmSentAt = now;
+      rec.activities.push({ at: now, type: "notify_sent", detail: "고객에게 예약 확정 알림톡 발송" });
+    }
     rec.activities = rec.activities.slice(-100);
 
     await env.DB.prepare("UPDATE requests SET status = ?, data = ? WHERE id = ?")
       .bind(status, JSON.stringify(rec), row.id).run();
+
+    const bg = (tag, p) => context.waitUntil(
+      p.then(res => console.log(tag, JSON.stringify(res))).catch(e => console.log(tag + "-err", String(e)))
+    );
+    bg("notify-admin-sign", notifyAdmin(env,
+      `[계약서 서명] ${rec.name || "고객"} · ${rec.destination || "여행지 미정"}\n` +
+      `고객이 여행계약서에 서명했습니다.${status === "예약확정" ? " 예약이 확정되었습니다." : ""}`
+    ));
+    if (confirmedNow) {
+      bg("alimtalk-confirm", sendBookingConfirmed(env, {
+        name: rec.name || "고객", phone: rec.phone,
+        origin: new URL(request.url).origin, token: rec.token,
+      }));
+    }
 
     return json({ ok: true, signedAt: contract.signedAt, status });
   } catch (e) {

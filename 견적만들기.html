@@ -292,6 +292,7 @@
     <div class="glabel">기본 정보</div>
     <div class="row c3">
       <label class="f"><span>고객명</span><input id="f_customer" placeholder="예) 강민지"></label>
+      <label class="f"><span>연락처 <span>(카톡 알림톡 발송용)</span></span><input id="f_phone" inputmode="numeric" placeholder="01012345678"></label>
       <label class="f"><span>여행지</span><input id="f_destination" placeholder="예) 고비"></label>
       <label class="f"><span>문서번호</span><input id="f_quoteNo"></label>
       <label class="f"><span>몽골 입국일</span><input type="date" id="f_depart"></label>
@@ -446,7 +447,7 @@ const BASE = structuredClone(window.QUOTE);   // 브랜드·이미지 기본값 
 
 /* 편집 상태 */
 let ST = {
-  customer: "", destination: "", quoteNo: "",
+  customer: "", phone: "", destination: "", quoteNo: "",
   depart: "", return_: "", pax: 6,
   vehicle: "", flightIn: "", flightOut: "",
   manager: BASE.manager || "",            // 담당자
@@ -471,6 +472,7 @@ try {
   if (pre) {
     FROM_REQ = true;
     ST.customer = pre.name || "";
+    ST.phone = pre.phone || "";
     ST.depart = pre.depart || "";
     ST.return_ = pre.return_ || "";
     ST.pax = (pre.adult || 0) + (pre.child || 0) + (pre.infant || 0) || 6;
@@ -558,6 +560,7 @@ function matchCourse(dest) {
 /* ── 폼 채우기 ── */
 function fillForm() {
   $("f_customer").value = ST.customer;
+  $("f_phone").value = ST.phone;
   $("f_destination").value = ST.destination;
   $("f_quoteNo").value = ST.quoteNo || autoQuoteNo();
   $("f_depart").value = ST.depart;
@@ -594,7 +597,7 @@ const bind = (id, key, num) => $(id).oninput = e => {
   if (key === "pax" || key === "deposit") renderTotal();
   if (key === "manager") renderManagerChip();
 };
-bind("f_customer","customer"); bind("f_destination","destination"); bind("f_quoteNo","quoteNo");
+bind("f_customer","customer"); bind("f_phone","phone"); bind("f_destination","destination"); bind("f_quoteNo","quoteNo");
 bind("f_depart","depart"); bind("f_return","return_"); bind("f_pax","pax",true);
 bind("f_vehicle","vehicle"); bind("f_flightIn","flightIn"); bind("f_flightOut","flightOut");
 bind("f_manager","manager"); bind("f_pickup","pickup"); bind("f_drop","drop"); bind("f_paxNote","paxNote");
@@ -1118,6 +1121,8 @@ pubBtn.onclick = async () => {
       const nN = nights();
       if (ST.depart && ST.return_) { patch.depart = ST.depart; patch.return_ = ST.return_; patch.nights = (nN && nN > 0) ? nN : null; }
       if (ST.destination) patch.destination = ST.destination;
+      const tel = ST.phone.replace(/[^0-9]/g, "");
+      if (tel) patch.phone = tel;   // 알림톡 발송에 쓰이는 연락처 — 편집기에서 고친 값을 반영
       const res = await fetch(`/api/requests/${encodeURIComponent(REQ_ID)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
@@ -1134,7 +1139,8 @@ pubBtn.onclick = async () => {
         headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
         body: JSON.stringify({
           status: "진행중",
-          name: ST.customer.trim(), destination: ST.destination || "",
+          name: ST.customer.trim(), phone: ST.phone.replace(/[^0-9]/g, ""),
+          destination: ST.destination || "",
           depart: ST.depart || "", return_: ST.return_ || "",
           nights: n && n > 0 ? n : null,
           adult: ST.pax || 0, child: 0, infant: 0,
@@ -1161,7 +1167,7 @@ pubBtn.onclick = async () => {
 $("resetBtn").onclick = () => {
   if (!confirm("입력한 내용을 모두 지울까요?")) return;
   localStorage.removeItem("leaders_quote");
-  ST = { customer:"", destination:"", quoteNo:"", depart:"", return_:"", pax:6, vehicle:"", flightIn:"", flightOut:"",
+  ST = { customer:"", phone:"", destination:"", quoteNo:"", depart:"", return_:"", pax:6, vehicle:"", flightIn:"", flightOut:"",
     manager: BASE.manager || "", paxNote:"", pickup:"", drop:"",
     benefits: BASE.benefits || "", events: (BASE.events || []).join("\n"), remark: BASE.remark || "",
     deposit:(BASE.price && BASE.price.deposit) || 50000,

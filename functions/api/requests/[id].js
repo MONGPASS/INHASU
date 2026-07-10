@@ -4,6 +4,8 @@
    DELETE : 관리자가 문의 삭제 (?token=… 필요)
    ═══════════════════════════════════════════════════════════ */
 
+import { sendQuoteReady, sendBookingConfirmed } from "../_solapi.js";
+
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
     status,
@@ -35,7 +37,8 @@ const isPublishReady = rec => {
     lodges.length >= (stayDays || Math.max(days.length - 1, 0));
 };
 
-export async function onRequestPatch({ request, env, params }) {
+export async function onRequestPatch(context) {
+  const { request, env, params } = context;
   if (!isAdmin(request, env)) {
     return json({ ok: false, error: "unauthorized" }, 401);
   }
@@ -43,12 +46,17 @@ export async function onRequestPatch({ request, env, params }) {
     const patch = await request.json();
     const id = params.id;
 
+    // 견적 재발행 시에도 고객에게 다시 알리고 싶을 때 관리자가 보내는 플래그
+    const forceNotifyQuote = patch.notifyQuote === true;
+    delete patch.notifyQuote;
+
     // 현재 레코드 읽기 (status 컬럼도 함께 — 상태 보존용)
     const row = await env.DB.prepare("SELECT data, status FROM requests WHERE id = ?").bind(id).first();
     if (!row) return json({ ok: false, error: "not found" }, 404);
 
     const rec = JSON.parse(row.data);
     const hadBooking = !!rec.booking;
+    const hadQuote = !!rec.quote;
     const prevStatus = row.status || rec.status || "신규";
     const prevDecision = (rec.decision && rec.decision.status) || "pending";
     const prevPublish = (rec.booking && rec.booking.publishStatus) || (prevStatus === "예약확정" ? "published" : "draft");
@@ -113,6 +121,31 @@ export async function onRequestPatch({ request, env, params }) {
     const nextBalance = rec.booking && rec.booking.contractInfo ? rec.booking.contractInfo.balanceStatus || "미수령" : "미수령";
     if (prevDeposit !== nextDeposit) rec.activities.push({ at: now, type: "payment_changed", detail: `예약금: ${prevDeposit} → ${nextDeposit}` });
     if (prevBalance !== nextBalance) rec.activities.push({ at: now, type: "payment_changed", detail: `잔금: ${prevBalance} → ${nextBalance}` });
+    rec.activities = rec.activities.slice(-100);
+
+    /* ── 고객 카톡 알림톡 ──
+       발송 여부를 rec.notify에 남겨 같은 알림이 두 번 나가지 않게 합니다.
+       발송은 백그라운드(waitUntil)라 실패해도 저장·응답에는 영향이 없습니다. */
+    rec.notify = rec.notify && typeof rec.notify === "object" ? rec.notify : {};
+    const who = { name: rec.name || "고객", phone: rec.phone || "", origin: new URL(request.url).origin, token: rec.token || "" };
+    const bg = (tag, p) => context.waitUntil(
+      p.then(res => console.log(tag, JSON.stringify(res))).catch(e => console.log(tag + "-err", String(e)))
+    );
+
+    // ① 견적서 발행 — 처음 붙을 때, 또는 관리자가 재발송을 요청했을 때
+    const quotePublished = !!rec.quote && (!hadQuote || forceNotifyQuote);
+    if (quotePublished && rec.phone && rec.token) {
+      rec.notify.quoteSentAt = now;
+      rec.activities.push({ at: now, type: "notify_sent", detail: "고객에게 견적서 도착 알림톡 발송" });
+      bg("alimtalk-quote", sendQuoteReady(env, who));
+    }
+
+    // ② 예약 확정 — 상태가 예약확정으로 넘어간 순간 한 번만
+    if (prevStatus !== "예약확정" && rec.status === "예약확정" && !rec.notify.confirmSentAt && rec.phone && rec.token) {
+      rec.notify.confirmSentAt = now;
+      rec.activities.push({ at: now, type: "notify_sent", detail: "고객에게 예약 확정 알림톡 발송" });
+      bg("alimtalk-confirm", sendBookingConfirmed(env, who));
+    }
     rec.activities = rec.activities.slice(-100);
 
     await env.DB.prepare(

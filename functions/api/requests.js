@@ -7,7 +7,7 @@
    GET  : 관리자 페이지에서 목록 조회 (토큰 필요 — x-admin-token 헤더 또는 ?token=)
    ═══════════════════════════════════════════════════════════ */
 
-import { sendAlimtalk } from "./_solapi.js";
+import { sendAlimtalk, sendQuoteReady, notifyAdmin } from "./_solapi.js";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -103,14 +103,28 @@ export async function onRequestPost(context) {
     ).run();
     if (!r.meta || r.meta.changes === 0) return json({ ok: false, error: "duplicate" }, 409);
 
-    // 접수 확인 카톡 알림톡("맞춤여행접수" 템플릿) — 응답을 막지 않게 백그라운드로.
+    // 알림 발송 — 응답을 막지 않게 백그라운드로.
     // 발송 실패해도 접수 저장에는 영향 없음. 결과는 CF 함수 로그에서 확인.
-    if (d.phone && d.source !== "walkin") {
-      context.waitUntil(
-        sendAlimtalk(env, { name: d.name || "고객", phone: d.phone })
-          .then(res => console.log("alimtalk", JSON.stringify(res)))
-          .catch(e => console.log("alimtalk-err", String(e)))
-      );
+    const origin = new URL(request.url).origin;
+    const bg = (tag, p) => context.waitUntil(
+      p.then(res => console.log(tag, JSON.stringify(res))).catch(e => console.log(tag + "-err", String(e)))
+    );
+
+    const who = { name: d.name || "고객", phone: d.phone, origin, token };
+
+    if (d.source === "walkin") {
+      // 관리자가 견적서 만들기에서 바로 발행한 워크인 견적 → 고객에게 "견적서 도착"
+      if (d.phone && d.quote) bg("alimtalk-quote", sendQuoteReady(env, who));
+    } else {
+      // 고객 견적요청 접수 → 고객에게 "맞춤여행접수", 관리자에게 문자
+      if (d.phone) bg("alimtalk", sendAlimtalk(env, who));
+
+      const pax = Number(d.adult || 0) + Number(d.child || 0) + Number(d.infant || 0);
+      bg("notify-admin-request", notifyAdmin(env,
+        `[새 견적요청] ${d.name || "고객"} · ${d.destination || "여행지 미정"}\n` +
+        `${d.depart || "일정 미정"}${d.return_ ? " ~ " + d.return_ : ""} · ${pax || "?"}명\n` +
+        `연락처 ${d.phone || "-"}`
+      ));
     }
 
     return json({ ok: true, id, token });

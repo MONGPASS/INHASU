@@ -1,6 +1,8 @@
 /* 고객 견적 수락 · /api/accept/<token>
    POST: 고객이 발행 견적을 확인하고 예약 진행 의사를 확정합니다. */
 
+import { notifyAdmin } from "../_solapi.js";
+
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
     status,
@@ -10,7 +12,8 @@ const json = (obj, status = 200) =>
     },
   });
 
-export async function onRequestPost({ env, params }) {
+export async function onRequestPost(context) {
+  const { env, params } = context;
   try {
     const token = Array.isArray(params.token) ? params.token[0] : params.token;
     if (!token || String(token).length < 16) return json({ ok: false, error: "invalid token" }, 400);
@@ -38,6 +41,15 @@ export async function onRequestPost({ env, params }) {
     await env.DB.prepare("UPDATE requests SET status = ?, data = ? WHERE id = ?")
       .bind(rec.status, JSON.stringify(rec), row.id)
       .run();
+
+    // 담당자에게 문자 알림 — 백그라운드, 실패해도 수락 처리에는 영향 없음
+    context.waitUntil(
+      notifyAdmin(env,
+        `[견적 수락] ${rec.name || "고객"} · ${rec.destination || "여행지 미정"}\n` +
+        `고객이 견적을 수락했습니다. 예약 준비를 시작해 주세요.`
+      ).then(res => console.log("notify-admin-accept", JSON.stringify(res)))
+       .catch(e => console.log("notify-admin-accept-err", String(e)))
+    );
 
     return json({ ok: true, acceptedAt: now });
   } catch (e) {

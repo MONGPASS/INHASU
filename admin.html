@@ -670,7 +670,7 @@ function openDrawer(id) {
   $("memo").onblur = () => saveMemo(id, $("memo").value);
   $("makeBtn").onclick = () => {
     // 이미 발행된 견적이 있으면 편집기에서 그대로 복원해 수정할 수 있게 함께 넘깁니다.
-    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, travelStyles:r.travelStyles, destSpots:r.destSpots, cityStay:r.cityStay||r.stay||"", gerStay:r.gerStay||"", budget:r.budget, request:r.request||"", flightIn:r.flightIn||"", flightOut:r.flightOut||"", quote:r.quote||null }));
+    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, phone:r.phone||"", depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, travelStyles:r.travelStyles, destSpots:r.destSpots, cityStay:r.cityStay||r.stay||"", gerStay:r.gerStay||"", budget:r.budget, request:r.request||"", flightIn:r.flightIn||"", flightOut:r.flightOut||"", quote:r.quote||null }));
     window.open("견적만들기.html","_blank");
   };
   const bookBtn = $("bookBtn");
