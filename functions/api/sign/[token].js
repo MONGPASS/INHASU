@@ -33,7 +33,7 @@ export async function onRequestPost({ request, env, params }) {
       return json({ ok: false, error: "signature too large" }, 413);
 
     const row = await env.DB
-      .prepare("SELECT id, data FROM requests WHERE token = ?")
+      .prepare("SELECT id, data, status FROM requests WHERE token = ?")
       .bind(token)
       .first();
     if (!row) return json({ ok: false, error: "not found" }, 404);
@@ -68,12 +68,12 @@ export async function onRequestPost({ request, env, params }) {
         contractInfo: {
           productName: ci.productName || rec.destination || "",
           region: ci.region || rec.destination || "",
-          totalAmount: Number(ci.totalAmount || (rec.finance && rec.finance.salesAmount) || 0),
-          depositAmount: Number(ci.depositAmount || (rec.finance && rec.finance.depositAmount) || 0),
-          depositStatus: ci.depositStatus || (rec.finance && rec.finance.depositStatus) || "",
-          balanceAmount: Number(ci.balanceAmount || (rec.finance && rec.finance.balanceAmount) || 0),
-          balanceStatus: ci.balanceStatus || (rec.finance && rec.finance.balanceStatus) || "",
-          cashReceipt: ci.cashReceipt || (rec.finance && rec.finance.cashReceipt) || "",
+          totalAmount: Number(ci.totalAmount || 0),
+          depositAmount: Number(ci.depositAmount || 0),
+          depositStatus: ci.depositStatus || "",
+          balanceAmount: Number(ci.balanceAmount || 0),
+          balanceStatus: ci.balanceStatus || "",
+          cashReceipt: ci.cashReceipt || "",
           note: ci.note || "",
         },
       },
@@ -84,11 +84,24 @@ export async function onRequestPost({ request, env, params }) {
     rec.booking.contract = contract;
     rec.booking.checklist = { ...(rec.booking.checklist || {}), contract: true };
 
-    // status·memo 컬럼은 건드리지 않고 data만 갱신
-    await env.DB.prepare("UPDATE requests SET data = ? WHERE id = ?")
-      .bind(JSON.stringify(rec), row.id).run();
+    const now = contract.signedAt;
+    rec.activities = Array.isArray(rec.activities) ? rec.activities : [];
+    rec.activities.push({ at: now, type: "contract_signed", detail: "고객이 여행계약서에 서명함" });
+    let status = row.status || rec.status || "진행중";
+    const accepted = !!(rec.decision && rec.decision.status === "accepted") || status === "예약확정";
+    const depositPaid = rec.booking.contractInfo && rec.booking.contractInfo.depositStatus === "입금완료";
+    if (accepted && depositPaid && ["신규", "진행중"].includes(status)) {
+      status = "예약확정";
+      rec.status = status;
+      if (!rec.booking.confirmedAt) rec.booking.confirmedAt = now.slice(0, 10);
+      rec.activities.push({ at: now, type: "status_changed", detail: "상태: 진행중 → 예약확정" });
+    }
+    rec.activities = rec.activities.slice(-100);
 
-    return json({ ok: true, signedAt: contract.signedAt });
+    await env.DB.prepare("UPDATE requests SET status = ?, data = ? WHERE id = ?")
+      .bind(status, JSON.stringify(rec), row.id).run();
+
+    return json({ ok: true, signedAt: contract.signedAt, status });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);
   }

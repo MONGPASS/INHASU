@@ -36,6 +36,13 @@
   .btn.accent { background:var(--accent); color:#fff; }
   .btn.kakao { background:#FEE500; color:#3C1E1E; }
   .btn.ghost { background:#fff; color:var(--sub); border:1px solid var(--line); font-weight:700; }
+  .steps { margin-top:18px; text-align:left; border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .step { display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--line); color:#9AA0A6; font-size:13px; font-weight:700; }
+  .step:last-child { border-bottom:none; }
+  .step .dot { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#eef1f3; color:#9AA0A6; font-size:11px; flex:none; }
+  .step.done { color:var(--ink); }
+  .step.done .dot { background:var(--accent); color:#fff; }
+  .notice { margin-top:16px; padding:13px 14px; border-radius:12px; background:#fff7e8; color:#8a651e; font-size:13px; line-height:1.55; }
   .hint { margin-top:14px; font-size:12px; color:#9AA0A6; line-height:1.5; }
 </style>
 </head>
@@ -76,6 +83,19 @@
       <div class="row"><span class="k">인원</span><span class="v">${esc(paxTxt(r))}</span></div>
     </div>`;
 
+  const progressHtml = r => {
+    const booking = r.booking || {};
+    const accepted = r.decision && r.decision.status === "accepted";
+    const signed = !!(booking.contract && booking.contract.signedAt);
+    const depositPaid = !!(booking.contractInfo && booking.contractInfo.depositStatus === "입금완료");
+    const confirmed = r.status === "예약확정";
+    const published = booking.publishStatus === "published";
+    return `<div class="steps">
+      ${[["견적 수락",accepted],["계약서 서명",signed],["예약금 확인",depositPaid],["예약 확정",confirmed],["확정일정표 공개",published]].map(([label,done]) =>
+        `<div class="step ${done ? "done" : ""}"><span class="dot">${done ? "✓" : ""}</span>${label}</div>`).join("")}
+    </div>`;
+  };
+
   function showError(msg) {
     card.innerHTML = `<div class="emoji">🔗</div><h1>링크를 확인해 주세요</h1>
       <div class="desc">${esc(msg)}</div>
@@ -98,29 +118,49 @@
     const nm = r.name ? `${esc(r.name)}님, ` : "";
     if (r.booking) {
       const signed = r.booking.contract && r.booking.contract.signedAt;
+      const confirmed = r.status === "예약확정";
+      const published = r.booking.publishStatus === "published";
       card.innerHTML = `
-        <div class="emoji">🎫</div>
-        <h1>예약이 확정됐어요!</h1>
-        <div class="desc">${nm}확정 일정표와 가이드·차량·숙소 배정을 확인하세요.${signed ? "" : "<br><b style='color:#0a6a5e'>여행계약서 서명을 완료해 주세요.</b>"}</div>
-        <span class="badge done" style="background:#e8effc;color:#2b5cc4;">✓ 예약 확정${signed ? " · ✍ 서명완료" : ""}</span>
+        <div class="emoji">${confirmed ? "🎫" : "🧾"}</div>
+        <h1>${confirmed ? "예약이 확정됐어요!" : "예약 절차를 진행하고 있어요"}</h1>
+        <div class="desc">${nm}${confirmed ? (published ? "확정일정표가 준비되었습니다." : "예약은 확정됐으며 세부 일정과 배정을 준비하고 있습니다.") : (signed ? "계약 확인이 완료되었습니다. 예약금 확인 후 예약이 확정됩니다." : "여행계약서를 확인하고 서명을 완료해 주세요.")}</div>
+        <span class="badge ${confirmed ? "done" : "wait"}" ${confirmed ? 'style="background:#e8effc;color:#2b5cc4;"' : ""}>${confirmed ? "✓ 예약 확정" : "⏳ 예약 진행 중"}</span>
         ${sumHtml(r)}
+        ${progressHtml(r)}
         ${signed
           ? `<a class="btn ghost" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank">📜 여행계약서 보기 (서명완료)</a>`
           : `<a class="btn accent" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank">✍️ 여행계약서 확인·서명하기</a>`}
-        <a class="btn ${signed ? "accent" : "primary"}" ${signed ? 'style="background:#3d7ff0;"' : ""} href="${esc("확정일정표.html?t=" + encodeURIComponent(token))}" target="_blank">🎫 확정일정표 보기</a>
+        ${published ? `<a class="btn accent" style="background:#3d7ff0;" href="${esc("확정일정표.html?t=" + encodeURIComponent(token))}" target="_blank">🎫 확정일정표 보기</a>` : `<div class="notice">세부 일정과 가이드·차량·숙소 배정이 완료되면 확정일정표가 공개됩니다.</div>`}
         ${r.quote ? `<a class="btn ghost" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>` : ""}
-        <a class="btn ghost" href="${esc("일정지도.html?t=" + encodeURIComponent(token))}" target="_blank">🗺 일정 지도 보기</a>
+        ${published ? `<a class="btn ghost" href="${esc("일정지도.html?t=" + encodeURIComponent(token))}" target="_blank">🗺 일정 지도 보기</a>` : ""}
         <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡 상담</a>`;
     } else if (r.quote) {
+      const accepted = r.decision && r.decision.status === "accepted";
       card.innerHTML = `
-        <div class="emoji">🎉</div>
-        <h1>견적서가 도착했어요!</h1>
-        <div class="desc">${nm}요청하신 맞춤 견적서가 준비됐습니다.</div>
-        <span class="badge done">✓ 견적 완료</span>
+        <div class="emoji">${accepted ? "🧾" : "🎉"}</div>
+        <h1>${accepted ? "예약 준비를 시작했어요" : "견적서가 도착했어요!"}</h1>
+        <div class="desc">${nm}${accepted ? "견적 수락이 확인되었습니다. 담당자가 계약 절차를 준비하고 있습니다." : "요청하신 맞춤 견적서를 확인하고 예약 진행 여부를 알려주세요."}</div>
+        <span class="badge ${accepted ? "wait" : "done"}">${accepted ? "⏳ 예약 준비 중" : "✓ 견적 완료"}</span>
         ${sumHtml(r)}
+        ${progressHtml(r)}
         <a class="btn accent" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>
-        <a class="btn primary" href="${esc("일정지도.html?t=" + encodeURIComponent(token))}" target="_blank">🗺 일정 지도 보기</a>
+        ${!accepted ? `<button class="btn primary" id="acceptQuoteBtn">이 견적으로 예약 진행하기</button>` : ""}
+        <a class="btn ghost" href="${esc("일정지도.html?t=" + encodeURIComponent(token))}" target="_blank">🗺 제안 일정 지도 보기</a>
         <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡 상담</a>`;
+      const acceptBtn = document.getElementById("acceptQuoteBtn");
+      if (acceptBtn) acceptBtn.onclick = async () => {
+        if (!confirm("이 견적으로 예약 절차를 진행할까요?\n담당자가 계약과 예약금 안내를 이어서 도와드립니다.")) return;
+        acceptBtn.disabled = true; acceptBtn.textContent = "처리 중…";
+        try {
+          const res = await fetch("/api/accept/" + encodeURIComponent(token), { method:"POST" });
+          const j = await res.json();
+          if (!j.ok) throw new Error(j.error || "처리 실패");
+          await load();
+        } catch (e) {
+          acceptBtn.disabled = false; acceptBtn.textContent = "이 견적으로 예약 진행하기";
+          alert("예약 진행 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        }
+      };
     } else {
       card.innerHTML = `
         <div class="emoji">✅</div>

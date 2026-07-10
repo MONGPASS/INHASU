@@ -8,7 +8,9 @@
 
 function blankBooking() {
   return {
-    confirmedAt: new Date().toISOString().slice(0, 10),
+    confirmedAt: "",
+    publishStatus: "draft",
+    publishedAt: "",
     days: [],
     assign: { guide:{name:"",nameEn:"",role:"",phone:"",qr:"",img:"",desc:""},
               vehicle:{model:"",seats:"",plate:"",img:"",imgs:[],desc:""}, lodges:[] },
@@ -72,25 +74,23 @@ function quoteMoney(rec) {
 /* 예약확정 순간 호출 — 발행된 견적(rec.quote)과 문의 레코드 기본정보에서 booking 스켈레톤 생성.
    예약관리 init()의 승계 규칙과 동일하되, 견적 일정·대표명소를 자동으로 끌어온다
    (예약관리에서 "↺ 견적 일정 불러오기"를 누르지 않아도 확정 시점에 일정이 채워지게).
-   rec: 문의 레코드 { quote, finance, destination, depart, return_, ... } */
+   rec: 문의 레코드 { quote, destination, depart, return_, ... } */
 function seedBookingFromQuote(rec) {
   rec = rec || {};
   const bk = blankBooking();
-  const fin = rec.finance || {};
   const q = rec.quote || null;
-  const qm = quoteMoney(rec);   // 견적 금액 환산 (엑셀 finance가 없을 때 사용)
+  const qm = quoteMoney(rec);
   bk.days = daysFromQuote(q);
   if (q && Array.isArray(q.highlights)) bk.highlights = JSON.parse(JSON.stringify(q.highlights));
   bk.contractInfo = {
     ...bk.contractInfo,
     productName: rec.destination || "",
     region: rec.destination || "",
-    totalAmount: fin.salesAmount || qm.totalAmount,
-    depositAmount: fin.depositAmount || qm.depositAmount,
-    depositStatus: fin.depositStatus || "미입금",
-    balanceAmount: fin.balanceAmount || qm.balanceAmount,
-    balanceStatus: fin.balanceStatus || "미수령",
-    cashReceipt: fin.cashReceipt || "",
+    totalAmount: qm.totalAmount,
+    depositAmount: qm.depositAmount,
+    depositStatus: "미입금",
+    balanceAmount: qm.balanceAmount,
+    balanceStatus: "미수령",
   };
   bk.flight = { ...bk.flight, inDate: rec.depart || "", outDate: rec.return_ || "" };
   bk.autoSeeded = true;   // 확정 시 자동 생성만 된 상태 — 확정 해제(진행중/신규 복귀) 시 조용히 정리 가능

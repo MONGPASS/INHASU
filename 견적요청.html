@@ -18,6 +18,9 @@
   @keyframes scaleIn { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   @keyframes fadeUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   input::placeholder, textarea::placeholder { color: #B4B9BF; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--accent) 34%, transparent); outline-offset: 2px;
+  }
   *::-webkit-scrollbar { width: 8px; }
   *::-webkit-scrollbar-thumb { background: #DDE1E6; border-radius: 99px; }
 
@@ -75,6 +78,8 @@
   }
   .txt-input:focus, .date-input:focus, textarea.txt-area:focus { border-color: var(--accent); }
   textarea.txt-area { min-height: 150px; line-height: 1.6; resize: vertical; }
+  .date-grid { display: flex; gap: 14px; }
+  .date-grid > label { flex: 1; }
   .nights { margin-top: 16px; text-align: center; font-size: 15px; font-weight: 700; }
 
   .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -82,7 +87,7 @@
   .chip {
     padding: 17px 14px; border-radius: 14px; background: #F4F5F7; border: 1.5px solid transparent;
     color: #4A4F55; font-size: 15px; font-weight: 500; cursor: pointer; text-align: center;
-    line-height: 1.2; transition: all .15s ease; user-select: none;
+    line-height: 1.2; transition: all .15s ease; user-select: none; font-family: inherit; width: 100%;
   }
   .chip.sel { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 700; }
 
@@ -139,7 +144,7 @@
     display: flex; align-items: center; gap: 11px; padding: 15px 16px;
     border: 1.5px dashed #C7D0D9; border-radius: 12px; cursor: pointer; color: #6B7078; font-size: 14px;
   }
-  .agree-row { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; padding: 16px; background: #F7F8FA; border-radius: 12px; }
+  .agree-row { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; padding: 16px; background: #F7F8FA; border: 0; border-radius: 12px; width: 100%; font-family: inherit; text-align: left; }
   .agree-box {
     width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px; background: #fff;
     border: 1.5px solid #C7D0D9; color: #fff; font-size: 13px;
@@ -156,6 +161,7 @@
     font-family: inherit; transition: background .15s ease;
   }
   .primary-btn.ok { background: var(--accent); cursor: pointer; }
+  .primary-btn:disabled { background: #CBD2DA; cursor: not-allowed; }
   .ghost-btn {
     display: block; width: 100%; padding: 17px; border-radius: 14px; background: #F4F5F7; color: #454A50;
     font-size: 16px; font-weight: 700; border: none; cursor: pointer; font-family: inherit;
@@ -213,6 +219,7 @@
     .dest-card { padding: 13px 14px; }
     .counter-row { padding: 16px 2px; }
     .txt-input, .date-input, textarea.txt-area { padding: 13px 14px; font-size: 15px; }
+    .date-grid { flex-direction: column; gap: 18px; }
     .primary-btn, .ghost-btn, .kakao-btn { padding: 15px; font-size: 16px; }
     .summary .k { min-width: 72px; font-size: 13px; }
     .summary .v { font-size: 13px; }
@@ -303,12 +310,8 @@ const IS_LOCAL = location.protocol === "file:" ||
 /* 제출 처리 — 서버 저장이 확인된 경우에만 성공을 반환합니다.
    (실패 시 완료 화면을 띄우지 않아 문의 유실을 막습니다) */
 async function onSubmitRequest(data) {
-  // 고객 마이페이지 매직링크 토큰 (추측 불가)
-  const token = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + Math.random().toString(36))).replace(/-/g, "");
   const record = {
     ...data,
-    id: Date.now() + "_" + (data.phone || ""),
-    token,
     receivedAt: new Date().toISOString(),
     status: "신규",
     memo: "",
@@ -322,6 +325,9 @@ async function onSubmitRequest(data) {
   if (IS_LOCAL) {
     try {
       const key = "leaders_requests";
+      const token = crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : String(Date.now());
+      record.id = Date.now() + "_local";
+      record.token = token;
       const list = JSON.parse(localStorage.getItem(key) || "[]");
       list.unshift(record);
       localStorage.setItem(key, JSON.stringify(list));
@@ -338,8 +344,10 @@ async function onSubmitRequest(data) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(record),
     });
-    if (res.ok) return { ok: true, token };
+    const payload = await res.json().catch(() => null);
+    if (res.ok && payload && payload.ok) return { ok: true, token: payload.token || "" };
     if (res.status === 429) return { ok: false, error: "짧은 시간에 여러 번 제출됐어요. 1분 뒤에 다시 시도해 주세요." };
+    if (res.status === 400) return { ok: false, error: "입력 내용을 다시 확인해 주세요." };
     return { ok: false, error: "server " + res.status };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -427,7 +435,7 @@ const flightYes = () => S.flightIssued.startsWith("예");
 
 const chips = (list, sel, key, cols) => `
   <div class="${cols}">
-    ${list.map(l => `<div class="chip ${l === sel ? "sel" : ""}" data-key="${key}" data-val="${esc(l)}">${esc(l)}</div>`).join("")}
+    ${list.map(l => `<button type="button" class="chip ${l === sel ? "sel" : ""}" data-key="${key}" data-val="${esc(l)}" aria-pressed="${l === sel}">${esc(l)}</button>`).join("")}
   </div>`;
 
 function summaryRows() {
@@ -460,7 +468,7 @@ function render() {
       <div class="step-anim" style="padding-top:6px">
         <div class="step-head" style="margin-bottom:20px">
           <div class="done-badge">🎉</div>
-          <div class="step-title">견적 요청이 완료되었어요!</div>
+          <h1 class="step-title">견적 요청이 완료되었어요!</h1>
           <div class="step-sub" style="line-height:1.5">담당자가 확인 후 남겨주신 연락처로 연락드려요.<br>(영업시간 기준 24시간 이내)</div>
         </div>
         <div class="summary">
@@ -502,10 +510,10 @@ function render() {
 
   head.innerHTML = `
     <div class="head-row">
-      ${S.step > 1 ? `<button class="back-btn" id="backBtn">‹</button>` : ""}
-      <span class="prog-txt">${S.step} / 8</span>
+      ${S.step > 1 ? `<button class="back-btn" id="backBtn" type="button" aria-label="이전 단계">‹</button>` : ""}
+      <span class="prog-txt" aria-live="polite">${S.step} / 8</span>
     </div>
-    <div class="prog-track"><div class="prog-fill" style="width:${S.step / 8 * 100}%"></div></div>`;
+    <div class="prog-track" role="progressbar" aria-label="견적 요청 진행률" aria-valuemin="1" aria-valuemax="8" aria-valuenow="${S.step}"><div class="prog-fill" style="width:${S.step / 8 * 100}%"></div></div>`;
   if (S.step > 1) document.getElementById("backBtn").onclick = () => { S.step--; render(); };
 
   let inner = "";
@@ -519,16 +527,16 @@ function render() {
       <div class="counter-row">
         <div><div class="lbl">${l}</div><div class="sub">${sub}</div></div>
         <div class="counter-ctrl">
-          <button class="cbtn" data-cnt="${k}" data-d="-1" ${v === 0 ? "disabled" : ""}>−</button>
+          <button class="cbtn" data-cnt="${k}" data-d="-1" aria-label="${l} 1명 줄이기" ${v === 0 ? "disabled" : ""}>−</button>
           <div class="val">${v}</div>
-          <button class="cbtn" data-cnt="${k}" data-d="1">+</button>
+          <button class="cbtn" data-cnt="${k}" data-d="1" aria-label="${l} 1명 늘리기">+</button>
         </div>
       </div>`).join("");
   } else if (S.step === 2) {
     const n = nights();
     const nTxt = n !== null && n > 0 ? `총 ${n}박 ${n + 1}일` : (n !== null && n <= 0 ? "귀국일은 입국일 이후로 선택해 주세요." : "");
     inner = `
-      <div style="display:flex;gap:14px">
+      <div class="date-grid">
         <label style="flex:1"><span class="field-lbl">몽골 입국일</span>
           <input type="date" class="date-input" id="depart" value="${S.depart}" min="${todayStr()}"></label>
         <label style="flex:1"><span class="field-lbl">귀국일</span>
@@ -546,7 +554,7 @@ function render() {
         <div class="rp-circles">
           ${c.regions.map(r => {
             const on = S.destSpots.includes(r.name);
-            return `<button type="button" class="region-chip ${on ? "on" : ""}" data-spot="${esc(r.name)}">
+            return `<button type="button" class="region-chip ${on ? "on" : ""}" data-spot="${esc(r.name)}" aria-pressed="${on}">
               <span class="rc-img"${r.img ? ` style="background-image:url('${esc(r.img)}')"` : ""}>${r.img ? "" : (r.emoji || "📍")}${on ? `<span class="rc-check">✓</span>` : ""}</span>
               <span class="rc-name">${esc(r.name)}</span>
             </button>`;
@@ -560,17 +568,17 @@ function render() {
         ${CONFIG.destCats.map(d => {
           const sel = d.name === S.destination;
           return `
-          <div class="chip dest-card ${sel ? "sel" : ""}" data-key="destination" data-val="${esc(d.name)}">
+          <button type="button" class="chip dest-card ${sel ? "sel" : ""}" data-key="destination" data-val="${esc(d.name)}" aria-pressed="${sel}">
             ${d.badge ? `<span class="badge-pill">${esc(d.badge)}</span>` : ""}
             <div class="dc-name">${esc(d.name)}</div>
             <div class="dc-tag">${esc(d.tagline)}</div>
-          </div>
+          </button>
           ${sel ? panelHtml(d) : ""}`;
         }).join("")}
       </div>
-      <div class="chip dest-card dest-unsure ${CONFIG.destUnsure === S.destination ? "sel" : ""}" data-key="destination" data-val="${esc(CONFIG.destUnsure)}">
+      <button type="button" class="chip dest-card dest-unsure ${CONFIG.destUnsure === S.destination ? "sel" : ""}" data-key="destination" data-val="${esc(CONFIG.destUnsure)}" aria-pressed="${CONFIG.destUnsure === S.destination}">
         <div class="dc-name" style="text-align:center">🤔 아직 잘 모르겠어요 — 여행사가 추천해 주세요</div>
-      </div>`;
+      </button>`;
   } else if (S.step === 5) {
     inner = `
       <div class="group-lbl">시내(울란바토르) 숙소</div>${chips(CONFIG.cityStays, S.cityStay, "cityStay", "grid2")}
@@ -591,11 +599,11 @@ function render() {
     inner = `
       <div style="display:flex;flex-direction:column;gap:18px">
         <label><span class="field-lbl">신청자 이름</span>
-          <input class="txt-input" id="name" value="${esc(S.name)}" placeholder="예) 홍길동"></label>
+          <input class="txt-input" id="name" value="${esc(S.name)}" placeholder="예) 홍길동" autocomplete="name" maxlength="40"></label>
         <label><span class="field-lbl">휴대폰 번호</span>
-          <input class="txt-input" id="phone" inputmode="numeric" value="${esc(S.phone)}" placeholder="본인 휴대폰 번호 ('-' 제외)"></label>
+          <input class="txt-input" id="phone" type="tel" inputmode="numeric" value="${esc(S.phone)}" placeholder="본인 휴대폰 번호 ('-' 제외)" autocomplete="tel" maxlength="11"></label>
         <label><span class="field-lbl">이메일</span>
-          <input class="txt-input" id="email" value="${esc(S.email)}" placeholder="견적서를 받으실 이메일 주소"></label>
+          <input class="txt-input" id="email" type="email" value="${esc(S.email)}" placeholder="견적서를 받으실 이메일 주소" autocomplete="email" maxlength="120"></label>
         <label><span class="field-lbl">카카오톡 ID <span style="font-weight:500;color:#9AA0A6">(선택 — 카톡 상담을 원하시면)</span></span>
           <input class="txt-input" id="kakaoId" value="${esc(S.kakaoId)}" placeholder="카카오톡 ID"></label>
       </div>`;
@@ -618,10 +626,10 @@ function render() {
           <span>${esc(fileTxt)}</span>
           <input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.gif" style="display:none">
         </label>
-        <div class="agree-row" id="agreeRow">
+        <button type="button" class="agree-row" id="agreeRow" aria-pressed="${S.agree}">
           <div class="agree-box ${S.agree ? "on" : ""}">✓</div>
           <div class="agree-txt">개인정보 수집 및 이용에 동의합니다.<br><small>이름·연락처·이메일은 견적 상담 목적으로만 사용됩니다.</small></div>
-        </div>
+        </button>
       </div>`;
   }
 
@@ -629,13 +637,13 @@ function render() {
     <div class="step-anim">
       <div class="step-head">
         <div class="badge">${m.icon}</div>
-        <div class="step-title">${m.title}</div>
+        <h1 class="step-title">${m.title}</h1>
         <div class="step-sub">${m.sub}</div>
       </div>
       ${inner}
     </div>`;
 
-  foot.innerHTML = `<button class="primary-btn" id="nextBtn">${S.step < 8 ? "다음" : "견적 요청하기"}</button>`;
+  foot.innerHTML = `<button class="primary-btn" id="nextBtn" type="button">${S.step < 8 ? "다음" : "견적 요청하기"}</button>`;
   syncPrimary();
 
   /* ── 이벤트 연결 ── */
@@ -721,7 +729,11 @@ function render() {
 
 function syncPrimary() {
   const btn = document.getElementById("nextBtn");
-  if (btn) btn.classList.toggle("ok", canProceed());
+  if (btn) {
+    const enabled = canProceed();
+    btn.classList.toggle("ok", enabled);
+    btn.disabled = !enabled;
+  }
 }
 
 render();

@@ -80,7 +80,7 @@
   .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#123a33; color:#fff; padding:12px 22px; border-radius:12px; font-size:14px; font-weight:700; opacity:0; transition:.25s; z-index:80; pointer-events:none; }
   .toast.on { opacity:1; }
 
-  /* ── 엑셀형 표: 가로 스크롤 + 밀도 ── */
+  /* ── 예약 표: 가로 스크롤 + 밀도 ── */
   .table-card { overflow:auto; }
   .table-card table { min-width:1196px; table-layout:fixed; }
   .table-card th { padding:13px 12px; font-size:12px; overflow:hidden; text-overflow:ellipsis; }
@@ -150,7 +150,7 @@
   </aside>
   <main class="content">
     <div class="page-head">
-      <div><h1>예약 관리</h1><p>예약확정 고객을 엑셀 시트처럼 한 화면에서 관리합니다. 계약·배정·차량·숙소 상태를 한눈에 확인해요.</p></div>
+      <div><h1>예약 관리</h1><p>예약확정 고객의 계약·배정·차량·숙소 상태를 한눈에 확인해요.</p></div>
       <div style="display:flex; gap:8px;">
         <button class="btn" id="refreshBtn">↻ 새로고침</button>
       </div>
@@ -202,7 +202,7 @@ const lodges = r => (((r.booking || {}).assign || {}).lodges || []).filter(l => 
 const vehicle = r => (((r.booking || {}).assign || {}).vehicle || {});
 const guide = r => (((r.booking || {}).assign || {}).guide || {});
 const signed = r => !!(((r.booking || {}).contract || {}).signedAt);
-const hasVehicle = r => !!vehicle(r).model;   // 실제 배정(배정관리)만 인정 — 엑셀 차량 텍스트는 미배정 취급
+const hasVehicle = r => !!vehicle(r).model;
 const hasLodges = r => lodges(r).length > 0;
 const isReservation = r => (r.status === "예약확정") || !!r.booking;
 const assignDone = r => !!guide(r).name && hasVehicle(r) && hasLodges(r);
@@ -210,7 +210,7 @@ const reservationOrder = r => {
   const bk = r.booking || {};
   return bk.confirmedAt || r.receivedAt || r.id || "";
 };
-/* ── 엑셀 컬럼 파생값 ── */
+/* ── 목록 파생값 ── */
 const bookDate = r => dateOnly((r.booking || {}).confirmedAt || r.receivedAt);   // 예약일
 const monthOf = s => { const d = dateOnly(s); return d ? `${Number(d.slice(5, 7))}월` : "-"; };
 const nightsTxt = r => r.nights != null && r.nights !== "" ? (Number(r.nights) === 0 ? "당일" : `${r.nights}박${Number(r.nights) + 1}일`) : "-";
@@ -234,12 +234,12 @@ const PAY_OPTS = {
   depositStatus: ["미입금", "입금완료"],
   balanceStatus: ["미수령", "입금완료", "현지현금전달", "계좌입금", "카드결제"],
 };
-/* 정렬 상태 — 기본: 예약일 오름차순 (엑셀과 동일, 번호가 위→아래 증가) */
+/* 정렬 상태 — 기본: 예약일 오름차순 (번호가 위→아래 증가) */
 let sortKey = "book", sortDir = 1;
 const SORT_VALS = {
   book: bookDate, name: r => r.name || "", depart: r => dateOnly(r.depart),
   return: r => dateOnly(r.return_), pax: paxSum, progress: progressOf, status: progressOf,
-  balance: r => Number((r.finance || {}).balanceAmount || 0), month: r => dateOnly(r.depart),
+  balance: r => Number((((r.booking || {}).contractInfo) || {}).balanceAmount || 0), month: r => dateOnly(r.depart),
 };
 
 async function load() {
@@ -274,7 +274,6 @@ function rows() {
     if (filter === "배정미완료" && !missing) return false;
     if (filter === "출발임박" && !(dd !== null && dd >= 0 && dd <= 14)) return false;
     if (!terms.length) return true;
-    const f = r.finance || {};
     const c = (((r.booking || {}).contractInfo) || {});
     const fl = (((r.booking || {}).flight) || {});
     const travelers = Array.isArray(((r.booking || {}).travelers)) ? r.booking.travelers : [];
@@ -282,7 +281,6 @@ function rows() {
       r.id, r.token, r.name, r.phone, r.destination, r.tripType, r.vehicle, vehicle(r).model, guide(r).name, guide(r).phone,
       progressOf(r), signed(r) ? "서명완료 계약완료" : "미서명", r.joinType, r.pkgTier,
       bookDate(r), dateOnly(r.depart), dateOnly(r.return_), monthOf(r.depart), nightsTxt(r), String(paxSum(r) || ""),
-      f.depositAmount, f.depositStatus, f.balanceAmount, f.balanceStatus, f.cashReceipt,
       c.productName, c.region, c.depositStatus, c.balanceStatus, c.cashReceipt, fl.inNo, fl.outNo, fl.inTime, fl.outTime,
       ...lodges(r).map(l => `${l.name} ${l.grade || ""}`),
       ...travelers.map(t => `${t.nameKo || ""} ${t.passportName || ""} ${t.phone || ""} ${t.passportNo || ""}`),
@@ -368,9 +366,13 @@ function render() {
     $("list").innerHTML = `<div class="empty">조건에 맞는 예약이 없습니다.</div>`;
     return;
   }
-  const contractCell = r => signed(r)
-    ? `<span class="contract-badge signed">서명완료</span>`
-    : `<span class="contract-badge unsigned">미서명</span>`;
+  const contractCell = r => {
+    const accepted = !!(r.decision && r.decision.status === "accepted") || r.status === "예약확정";
+    if (!accepted) return `<span class="contract-badge unsigned">수락대기</span>`;
+    return signed(r)
+      ? `<span class="contract-badge signed">서명완료</span>`
+      : `<span class="contract-badge unsigned">서명대기</span>`;
+  };
   const assignCell = r => {
     const checks = [
       ["가이드", !!guide(r).name],
@@ -393,25 +395,23 @@ function render() {
       <div class="assign-detail">${esc(detail)}</div>
     </div>`;
   };
-  /* 결제 표시 우선순위: 배정관리 입력(contractInfo) → 엑셀(finance) → 체크리스트 */
+  /* 결제 상태는 예약의 contractInfo를 기준으로 표시 */
   const payStatus = (r, field) => {
-    const f = r.finance || {};
     const c = (((r.booking || {}).contractInfo) || {});
     const ck = (((r.booking || {}).checklist) || {});
-    if (field === "depositStatus") return c.depositStatus || f.depositStatus || (ck.deposit ? "입금완료" : "미입금");
-    return c.balanceStatus || f.balanceStatus || (ck.balance ? "입금완료" : "미수령");
+    if (field === "depositStatus") return c.depositStatus || (ck.deposit ? "입금완료" : "미입금");
+    return c.balanceStatus || (ck.balance ? "입금완료" : "미수령");
   };
   const paySelect = (r, statusField) => {
     const cur = payStatus(r, statusField);
-    return `<span class="pay-stat" data-v="${esc(cur)}">·<select class="pay-sel" data-finance="${statusField}" data-id="${esc(r.id)}" data-v="${esc(cur)}">
+    return `<span class="pay-stat" data-v="${esc(cur)}">·<select class="pay-sel" data-status="${statusField}" data-id="${esc(r.id)}" data-v="${esc(cur)}">
       ${PAY_OPTS[statusField].map(o => `<option value="${o}" ${cur === o ? "selected" : ""}>${o}</option>`).join("")}
     </select></span>`;
   };
   const payCell = r => {
-    const f = r.finance || {};
     const ci = (((r.booking || {}).contractInfo) || {});
-    const deposit = Number(ci.depositAmount) || Number(f.depositAmount) || 0;
-    const balance = Number(ci.balanceAmount) || Number(f.balanceAmount) || 0;
+    const deposit = Number(ci.depositAmount) || 0;
+    const balance = Number(ci.balanceAmount) || 0;
     return `<div class="pay-two">
       <div class="pay-line"><span class="pay-label">예약금</span><span class="amount">${moneyTxt(deposit)}</span>${paySelect(r, "depositStatus")}</div>
       <div class="pay-line"><span class="pay-label">잔금</span><span class="amount">${moneyTxt(balance)}</span>${paySelect(r, "balanceStatus")}</div>
@@ -461,7 +461,6 @@ function render() {
     </tr></thead>
     <tbody>${data.map(r => {
       const token = r.token || "";
-      const f = r.finance || {};
       const ci = (((r.booking || {}).contractInfo) || {});
       return `<tr data-id="${esc(r.id)}">
         <td><input class="rowcheck row-select" type="checkbox" data-select="${esc(r.id)}" ${SELECTED.has(String(r.id)) ? "checked" : ""} title="예약 선택"></td>
@@ -472,7 +471,7 @@ function render() {
         <td>${contractCell(r)}</td>
         <td class="td-wrap">${assignCell(r)}</td>
         <td class="td-wrap col-pay">${payCell(r)}</td>
-        <td class="col-receipt">${esc(ci.cashReceipt || f.cashReceipt || "-")}</td>
+        <td class="col-receipt">${esc(ci.cashReceipt || "-")}</td>
         <td class="col-actions">${actionsCell(r, token)}</td>
       </tr>`;
     }).join("")}</tbody></table>`;
@@ -496,29 +495,25 @@ function render() {
   });
   $("list").querySelectorAll("select.pay-sel").forEach(sel => {
     sel.onclick = e => e.stopPropagation();
-    sel.onchange = () => saveFinanceStatus(sel.dataset.id, sel.dataset.finance, sel.value);
+    sel.onchange = () => savePaymentStatus(sel.dataset.id, sel.dataset.status, sel.value);
   });
 }
 
-async function saveFinanceStatus(id, field, value) {
+async function savePaymentStatus(id, field, value) {
   const r = RECORDS.find(x => String(x.id) === String(id));
   if (!r) return;
-  const prevFinance = deepClone(r.finance || {});
   const prevBooking = deepClone(r.booking || {});
-  const finance = { ...(r.finance || {}), [field]: value };
   const booking = { ...(r.booking || {}) };
   booking.contractInfo = { ...(booking.contractInfo || {}), [field]: value };
   booking.checklist = { ...(booking.checklist || {}) };
   if (field === "depositStatus") booking.checklist.deposit = value === "입금완료";
   if (field === "balanceStatus") booking.checklist.balance = value === "입금완료" || value === "현지현금전달" || value === "현장현금전달";
-  r.finance = finance;
   r.booking = booking;
   try {
     if (IS_LOCAL) {
       const arr = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
       const t = arr.find(x => String(x.id) === String(id));
       if (t) {
-        t.finance = finance;
         t.booking = booking;
         localStorage.setItem("leaders_requests", JSON.stringify(arr));
       }
@@ -526,15 +521,15 @@ async function saveFinanceStatus(id, field, value) {
       const res = await fetch(`/api/requests/${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
-        body: JSON.stringify({ finance, booking }),
+        body: JSON.stringify({ booking }),
       });
       if (res.status === 401) throw new Error("관리자 인증이 만료됐어요");
       const j = await res.json();
       if (!j.ok) throw new Error(j.error || "저장 실패");
+      if (j.status) r.status = j.status;
     }
     toast("✓ 입금 상태가 저장됐어요");
   } catch (e) {
-    r.finance = prevFinance;
     r.booking = prevBooking;
     toast("⚠ " + e.message);
   }
@@ -624,7 +619,7 @@ function openBooking(id) {
     adult: r.adult || 0, child: r.child || 0, infant: r.infant || 0,
     destination: r.destination || "", vehicle: r.vehicle || "",
     joinType: r.joinType || "", flightIncl: r.flightIncl || "", progress: r.progress || "", pkgTier: r.pkgTier || "",
-    finance: r.finance || null, sourceSheet: r.sourceSheet || null,
+    decision: r.decision || null,
     quote: r.quote || null, booking: r.booking || null,
   }));
   window.open("예약관리.html", "_blank");

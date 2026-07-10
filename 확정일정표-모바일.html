@@ -94,7 +94,7 @@ const dateKo = s => {
 };
 const nightsText = (n, days) => n != null && n !== "" ? `${n}박${Number(n) + 1}일` : (days ? `${Math.max(0, days - 1)}박${days}일` : "");
 const buildConfirmedQuote = j => {
-  if (!j || !j.booking) return null;
+  if (!j || !j.booking || j.booking.publishStatus !== "published") return null;
   const bk = j.booking || {};
   const hasDays = Array.isArray(bk.days) && bk.days.length;
   if (!j.quote && !hasDays) return null;

@@ -902,11 +902,6 @@ $("mapBtn").onclick = $("hMapBtn").onclick = () => { save(); window.open("일정
    · 요청에서 열림  → 기존 요청 레코드에 견적을 붙여 저장(PATCH)
    · 직접 작성(워크인) → 새 견적 레코드를 만들어 저장(POST), 링크용 토큰 자동 생성
    두 경우 모두 고객은 내견적.html?t=<token> 링크로 견적서를 봅니다. */
-function randToken() {
-  const a = new Uint8Array(16);   // 128-bit 랜덤 (추측 불가 링크)
-  crypto.getRandomValues(a);
-  return [...a].map(b => b.toString(16).padStart(2, "0")).join("");
-}
 function showLinkBox(link) {
   $("linkUrl").value = link;
   $("linkOpen").href = link;
@@ -955,13 +950,13 @@ pubBtn.onclick = async () => {
       if (!res.ok) throw new Error("http " + res.status);
     } else {
       // 워크인: 새 견적 레코드 생성
-      token = randToken();
+      if (!ADMIN_TOKEN) throw new Error("관리자 로그인이 필요합니다");
       const n = nights();
       const res = await fetch(`/api/requests`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
         body: JSON.stringify({
-          id: Date.now() + "_walkin", token, status: "진행중",
+          status: "진행중",
           name: ST.customer.trim(), destination: ST.destination || "",
           depart: ST.depart || "", return_: ST.return_ || "",
           nights: n && n > 0 ? n : null,
@@ -972,6 +967,8 @@ pubBtn.onclick = async () => {
       });
       const j = await res.json().catch(() => ({}));
       if (!j.ok) throw new Error(j.error || "저장 실패");
+      token = j.token || "";
+      if (!token) throw new Error("고객 링크 토큰을 받지 못했습니다");
     }
     const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + token;
     try { await navigator.clipboard.writeText(link); } catch (e) {}

@@ -154,7 +154,8 @@
 <main id="main"></main>
 
 <div class="savebar" id="savebar" style="display:none">
-  <label class="opt"><input type="checkbox" id="setStatus" checked> 저장 시 상태를 '예약확정'으로 변경</label>
+  <label class="opt"><input type="checkbox" id="setStatus"> 계약·예약금 완료 시 예약확정</label>
+  <label class="opt"><input type="checkbox" id="publishSchedule"> 고객 일정표 공개</label>
   <button class="barbtn danger" id="undoBtn">↩ 되돌리기</button>
   <button id="saveBtn">💾 예약 정보 저장</button>
 </div>
@@ -184,19 +185,21 @@ let SAVED_BK_JSON = "";
    (blankBooking / normBooking / daysFromQuote / seedBookingFromQuote) — admin 확정 트리거와 동일본 사용 */
 
 function init() {
-  BK = normBooking(PRE.booking);
-  const fin = PRE.finance || {};
-  const qm = quoteMoney(PRE);   // 엑셀 finance가 없으면 발행 견적(quote.price)에서 금액 환산
+  BK = PRE.booking ? normBooking(PRE.booking) : seedBookingFromQuote(PRE);
+  if (PRE.booking && PRE.booking.publishStatus == null && PRE.status === "예약확정") {
+    BK.publishStatus = "published";   // 공개 상태 필드 도입 전 확정 예약 호환
+  }
+  const qm = quoteMoney(PRE);
   BK.contractInfo = {
     ...BK.contractInfo,
     productName: BK.contractInfo.productName || PRE.destination || "",
     region: BK.contractInfo.region || PRE.destination || "",
-    totalAmount: BK.contractInfo.totalAmount || fin.salesAmount || qm.totalAmount,
-    depositAmount: BK.contractInfo.depositAmount || fin.depositAmount || qm.depositAmount,
-    depositStatus: BK.contractInfo.depositStatus || fin.depositStatus || (BK.checklist.deposit ? "입금완료" : "미입금"),
-    balanceAmount: BK.contractInfo.balanceAmount || fin.balanceAmount || qm.balanceAmount,
-    balanceStatus: BK.contractInfo.balanceStatus || fin.balanceStatus || (BK.checklist.balance ? "입금완료" : "미수령"),
-    cashReceipt: BK.contractInfo.cashReceipt || fin.cashReceipt || "",
+    totalAmount: BK.contractInfo.totalAmount || qm.totalAmount,
+    depositAmount: BK.contractInfo.depositAmount || qm.depositAmount,
+    depositStatus: BK.contractInfo.depositStatus || (BK.checklist.deposit ? "입금완료" : "미입금"),
+    balanceAmount: BK.contractInfo.balanceAmount || qm.balanceAmount,
+    balanceStatus: BK.contractInfo.balanceStatus || (BK.checklist.balance ? "입금완료" : "미수령"),
+    cashReceipt: BK.contractInfo.cashReceipt || "",
   };
   BK.flight = {
     ...BK.flight,
@@ -217,7 +220,9 @@ function init() {
   $("copyLinkBtn").onclick = () => {
     copyCustomerLink();
   };
-  $("setStatus").checked = PRE.status !== "예약확정";
+  $("setStatus").checked = false;
+  $("setStatus").disabled = PRE.status === "예약확정";
+  $("publishSchedule").checked = BK.publishStatus === "published";
   $("savebar").style.display = "";
   render();
   /* 미저장 감지 기준(SAVED_BK_JSON)은 pullForm 정규형으로 — 원시 데이터와 폼 수집형의
@@ -236,6 +241,7 @@ function resetToSaved() {
   if (!SAVED_BK_JSON) return toast("되돌릴 저장본이 없어요");
   if (!confirm("저장하지 않은 변경을 마지막 저장 상태로 되돌릴까요?")) return;
   BK = normBooking(JSON.parse(SAVED_BK_JSON));
+  $("publishSchedule").checked = BK.publishStatus === "published";
   render();
   toast("마지막 저장 상태로 되돌렸어요");
 }
@@ -253,11 +259,14 @@ function assignStats() {
   const signed = !!(BK.contract && BK.contract.signedAt);
   const checklistDone = Object.values(BK.checklist || {}).filter(Boolean).length;
   const missing = [];
+  const accepted = !!(PRE.decision && PRE.decision.status === "accepted") || PRE.status === "예약확정";
+  if (!accepted) missing.push("고객 수락 미확인");
   if (!days.length) missing.push("확정 일정 없음");
   if (!guideOk) missing.push("가이드 미배정");
   if (!vehicleOk) missing.push("차량 미배정");
   if (lodgeNeeded && lodgeCount < lodgeNeeded) missing.push(`숙소 ${lodgeNeeded - lodgeCount}일 미배정`);
   if (!signed) missing.push("계약 미서명");
+  if (!BK.contractInfo || BK.contractInfo.depositStatus !== "입금완료") missing.push("예약금 미입금");
   return { guideOk, vehicleOk, lodgeCount, lodgeNeeded, signed, checklistDone, missing };
 }
 
@@ -279,9 +288,6 @@ function summaryHtml() {
     ${st.missing.length ? `<div class="miss">${st.missing.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : `<div class="miss"><span style="background:#f1fbf7;border-color:#bfe6d9;color:#0a6a5e;">필수 항목 완료</span></div>`}
   </section>`;
 }
-
-/* 엑셀 시트 원본 기록 섹션은 제거됨 (엑셀·Word에서 플랫폼으로 이관 중이라 대조용 정보 불필요) */
-function importedInfoHtml() { return ""; }
 
 function previewHtml(type, rec) {
   rec = rec || {};
@@ -514,8 +520,6 @@ function render() {
     </div>
   </section>
 
-  ${importedInfoHtml()}
-
   <section class="card">
     <div class="sec-h"><h2><span class="n">5</span>체크리스트 · 메모</h2></div>
     <label class="chk"><input type="checkbox" id="c_deposit" ${c.deposit ? "checked" : ""}> 예약금 입금 확인</label>
@@ -626,6 +630,7 @@ function pullForm() {
   BK.checklist.deposit = BK.contractInfo.depositStatus === "입금완료";
   BK.checklist.balance = ["입금완료", "현지현금전달", "현장현금전달"].includes(BK.contractInfo.balanceStatus);
   BK.notes = $("bk_notes").value; BK.adminMemo = $("bk_memo").value;
+  BK.publishStatus = $("publishSchedule").checked ? "published" : "draft";
 }
 
 function bindEvents() {
@@ -839,15 +844,26 @@ function updateLodgePreview(row) {
 /* ══════════ 저장 ══════════ */
 async function save(opts = {}) {
   pullForm();
-  if (!BK.confirmedAt) BK.confirmedAt = new Date().toISOString().slice(0, 10);
-  /* '예약확정' 전환 시 누락 항목 확인 — 취소하면 저장 중단 */
+  /* 예약확정은 고객 수락·계약 서명·예약금 입금이 모두 필요 */
   if ($("setStatus").checked) {
-    const miss = assignStats().missing.filter(m => m !== "계약 미서명" || !opts.resetContract);
-    if (miss.length && !confirm(`누락 항목이 있어요: ${miss.join(", ")}\n그래도 '예약확정'으로 저장할까요?`)) return;
+    const accepted = !!(PRE.decision && PRE.decision.status === "accepted") || PRE.status === "예약확정";
+    const confirmationMissing = [];
+    if (!accepted) confirmationMissing.push("고객 수락");
+    if (!(BK.contract && BK.contract.signedAt)) confirmationMissing.push("계약 서명");
+    if (BK.contractInfo.depositStatus !== "입금완료") confirmationMissing.push("예약금 입금");
+    if (confirmationMissing.length) return toast("⚠ 예약확정 전 확인: " + confirmationMissing.join(", "));
+    if (!BK.confirmedAt) BK.confirmedAt = new Date().toISOString().slice(0, 10);
+  }
+  const savedBooking = SAVED_BK_JSON ? JSON.parse(SAVED_BK_JSON) : {};
+  if (BK.publishStatus === "published" && savedBooking.publishStatus !== "published") {
+    const effectiveConfirmed = PRE.status === "예약확정" || $("setStatus").checked;
+    const opsMissing = assignStats().missing.filter(m => !["고객 수락 미확인", "계약 미서명", "예약금 미입금"].includes(m));
+    if (!effectiveConfirmed) return toast("⚠ 예약확정 후 고객 일정표를 공개할 수 있어요");
+    if (opsMissing.length) return toast("⚠ 일정표 공개 전 확인: " + opsMissing.join(", "));
   }
   BK.autoSeeded = false;   // 예약관리에서 직접 저장 = 수동 관리 시작 (확정 해제 시 자동삭제 대상에서 제외)
   const patch = { booking: BK };
-  /* 대표 고객명·여행 기간·인원을 booking과 함께 저장 — Word 가져오기로 갱신한 값이 목록·문서에 반영되게 */
+  /* 대표 고객명·여행 기간·인원을 booking과 함께 저장 */
   if (PRE.name) patch.name = PRE.name;
   if (PRE.depart) patch.depart = PRE.depart;
   if (PRE.return_) patch.return_ = PRE.return_;
@@ -864,13 +880,14 @@ async function save(opts = {}) {
     if (res.status === 401) throw new Error("관리자 인증이 만료됐어요 — 대시보드에서 다시 열어주세요");
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || "서버 오류");
-    if (patch.status) { PRE.status = patch.status; $("setStatus").checked = false; }
+    PRE.status = j.status || patch.status || PRE.status;
+    if (PRE.status === "예약확정") { $("setStatus").checked = false; $("setStatus").disabled = true; }
     PRE.booking = BK;
     SAVED_BK_JSON = JSON.stringify(BK);
     localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));
     const paxTot = (PRE.adult||0)+(PRE.child||0)+(PRE.infant||0);
     $("hMeta").textContent = `${PRE.destination || "-"} · ${PRE.depart || "?"} ~ ${PRE.return_ || "?"} · ${paxTot}명 · 현재상태 [${PRE.status}]`;
-    toast("✓ 저장됐어요" + (patch.status ? " — 상태: 예약확정" : ""));
+    toast("✓ 저장됐어요" + (PRE.status === "예약확정" ? " — 예약확정" : " — 예약 절차 진행 중"));
   } catch (e) {
     toast("⚠ " + e.message);
   } finally {

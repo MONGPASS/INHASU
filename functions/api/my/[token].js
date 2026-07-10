@@ -29,6 +29,9 @@ export async function onRequestGet({ env, params }) {
 
     // 예약 확정 정보 — 고객에게 보여줄 안전 서브셋만 (내부 메모·체크리스트·연락처 제외)
     const bk = rec.booking || null;
+    const publishStatus = bk
+      ? (bk.publishStatus || ((row.status || rec.status) === "예약확정" ? "published" : "draft"))
+      : "draft";
     const safeAssign = a => a ? {
       // 가이드: 고객 확정일정표에 노출되는 필드 전체 (영문이름·구분·전화·카톡QR 포함 — 관리자가 고객 노출용으로 입력)
       guide:   a.guide   ? { name: a.guide.name || "", nameEn: a.guide.nameEn || "", role: a.guide.role || "",
@@ -39,6 +42,8 @@ export async function onRequestGet({ env, params }) {
     } : null;
     const booking = bk ? {
       confirmedAt: bk.confirmedAt || "",
+      publishStatus,
+      publishedAt: bk.publishedAt || "",
       days: Array.isArray(bk.days) ? bk.days : [],
       travelers: Array.isArray(bk.travelers) ? bk.travelers.map(t => ({
         nameKo: t.nameKo || "",
@@ -59,12 +64,12 @@ export async function onRequestGet({ env, params }) {
       contractInfo: {
         productName: (bk.contractInfo && bk.contractInfo.productName) || rec.destination || "",
         region: (bk.contractInfo && bk.contractInfo.region) || rec.destination || "",
-        totalAmount: Number((bk.contractInfo && bk.contractInfo.totalAmount) || (rec.finance && rec.finance.salesAmount) || 0),
-        depositAmount: Number((bk.contractInfo && bk.contractInfo.depositAmount) || (rec.finance && rec.finance.depositAmount) || 0),
-        depositStatus: (bk.contractInfo && bk.contractInfo.depositStatus) || (rec.finance && rec.finance.depositStatus) || "",
-        balanceAmount: Number((bk.contractInfo && bk.contractInfo.balanceAmount) || (rec.finance && rec.finance.balanceAmount) || 0),
-        balanceStatus: (bk.contractInfo && bk.contractInfo.balanceStatus) || (rec.finance && rec.finance.balanceStatus) || "",
-        cashReceipt: (bk.contractInfo && bk.contractInfo.cashReceipt) || (rec.finance && rec.finance.cashReceipt) || "",
+        totalAmount: Number((bk.contractInfo && bk.contractInfo.totalAmount) || 0),
+        depositAmount: Number((bk.contractInfo && bk.contractInfo.depositAmount) || 0),
+        depositStatus: (bk.contractInfo && bk.contractInfo.depositStatus) || "",
+        balanceAmount: Number((bk.contractInfo && bk.contractInfo.balanceAmount) || 0),
+        balanceStatus: (bk.contractInfo && bk.contractInfo.balanceStatus) || "",
+        cashReceipt: (bk.contractInfo && bk.contractInfo.cashReceipt) || "",
         note: (bk.contractInfo && bk.contractInfo.note) || "",
       },
       // notes(추가 메모)는 내부 참고용 — 고객에게 반환하지 않음
@@ -94,6 +99,11 @@ export async function onRequestGet({ env, params }) {
       child: rec.child || 0,
       infant: rec.infant || 0,
       receivedAt: rec.receivedAt || "",
+      decision: ((rec.decision && rec.decision.status === "accepted") || (row.status || rec.status) === "예약확정") ? {
+        status: "accepted",
+        acceptedAt: (rec.decision && rec.decision.acceptedAt) || "",
+        source: (rec.decision && rec.decision.source) || "legacy",
+      } : { status: "pending", acceptedAt: "", source: "" },
       quote: rec.quote || null,
       booking,
     });

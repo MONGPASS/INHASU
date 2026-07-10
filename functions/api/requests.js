@@ -22,10 +22,19 @@ const isAdmin = (request, env) => {
   return !!env.ADMIN_TOKEN && token === env.ADMIN_TOKEN;
 };
 
+const randomToken = () =>
+  [...crypto.getRandomValues(new Uint8Array(24))]
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+
+const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+
 // ── 고객 제출 저장 ──
 export async function onRequestPost(context) {
   const { request, env } = context;
   try {
+    const contentLength = Number(request.headers.get("content-length") || 0);
+    if (contentLength > 256_000) return json({ ok: false, error: "request too large" }, 413);
     const d = await request.json();
     const admin = isAdmin(request, env);
 
@@ -33,6 +42,15 @@ export async function onRequestPost(context) {
     // 봇이 채워서 제출하면 저장하지 않고 성공한 척 응답합니다.
     if (!admin && d.website) return json({ ok: true, id: "ok" });
     delete d.website;
+
+    if (!admin) {
+      d.name = String(d.name || "").trim().slice(0, 40);
+      d.phone = String(d.phone || "").replace(/\D/g, "").slice(0, 11);
+      d.email = String(d.email || "").trim().slice(0, 120);
+      d.kakaoId = String(d.kakaoId || "").trim().slice(0, 80);
+      d.request = String(d.request || "").trim().slice(0, 2000);
+      d.destSpots = Array.isArray(d.destSpots) ? d.destSpots.slice(0, 20).map(x => String(x).slice(0, 50)) : [];
+    }
 
     // 스팸 방어 2: 같은 전화번호로 60초 안에 또 제출하면 차단
     if (!admin && d.phone) {
@@ -43,7 +61,24 @@ export async function onRequestPost(context) {
       if (dup) return json({ ok: false, error: "too many requests" }, 429);
     }
 
-    const id = d.id || (Date.now() + "_" + (d.phone || ""));
+    // 공개 폼의 필수값은 서버에서도 검증합니다. 브라우저 검증만으로는 직접 API 호출을 막을 수 없습니다.
+    if (!admin) {
+      const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email);
+      const datesOk = validDate(d.depart) && validDate(d.return_) && d.depart < d.return_;
+      const choicesOk = d.tripType && d.destination && d.cityStay && d.gerStay && d.vehicle && d.flightIssued;
+      if (!d.name || !/^\d{9,11}$/.test(d.phone) || !emailOk || !datesOk || Number(d.adult) < 1 || !choicesOk || d.agree !== true) {
+        return json({ ok: false, error: "invalid request" }, 400);
+      }
+    }
+
+    // 고객 조회 토큰과 공개 폼의 ID는 서버에서 발급해 변조·형식 불일치를 방지합니다.
+    const token = randomToken();
+    const id = admin && d.id ? String(d.id) : crypto.randomUUID();
+    d.id = id;
+    d.token = token;
+    d.receivedAt = admin && d.receivedAt ? d.receivedAt : new Date().toISOString();
+    d.status = admin && d.status ? d.status : "신규";
+    d.memo = admin && d.memo ? d.memo : "";
 
     // INSERT OR IGNORE: 같은 id가 이미 있으면 무시 → 기존 문의·발행 견적을
     // 인증 없이 덮어쓸 수 없습니다. (중복이면 409, 고객 폼은 재시도 시 새 id로 성공)
@@ -53,11 +88,11 @@ export async function onRequestPost(context) {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       id,
-      d.receivedAt || new Date().toISOString(),
+      d.receivedAt,
       d.name || "", d.phone || "", d.destination || "", d.budget || "",
       d.status || "신규", d.memo || "",
       JSON.stringify(d),
-      d.token || null
+      token
     ).run();
     if (!r.meta || r.meta.changes === 0) return json({ ok: false, error: "duplicate" }, 409);
 
@@ -71,7 +106,7 @@ export async function onRequestPost(context) {
       );
     }
 
-    return json({ ok: true, id });
+    return json({ ok: true, id, token });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);
   }
