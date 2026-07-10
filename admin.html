@@ -614,7 +614,7 @@ function openDrawer(id) {
         ${r.kakaoId?`<div class="k">카톡 ID</div><div class="v">💬 ${esc(r.kakaoId)}</div>`:""}
         <div class="k">인원</div><div class="v">${esc(paxTxt(r))}</div>
         <div class="k">일정</div><div class="v">${esc(r.depart)||"?"} ~ ${esc(r.return_)||"?"} (${esc(nightTxt(r))})</div>
-        <div class="k">여행타입</div><div class="v">${esc(r.tripType)||"-"}</div>
+        <div class="k">여행타입</div><div class="v">${esc(r.tripType)||"-"}${r.travelStyles&&r.travelStyles.length?`<br><span style="font-weight:500;color:var(--gray);font-size:12.5px">취향: ${esc(r.travelStyles.join(", "))}</span>`:""}</div>
         <div class="k">희망투어</div><div class="v">${esc(r.destination)||"-"}${r.destSpots&&r.destSpots.length?`<br><span style="font-weight:500;color:var(--gray);font-size:12.5px">관심 지역: ${esc(r.destSpots.join(", "))}</span>`:""}</div>
         <div class="k">시내 숙소</div><div class="v">${esc(r.cityStay || r.stay)||"-"}</div>
         <div class="k">투어 게르</div><div class="v">${esc(r.gerStay)||"-"}</div>
@@ -670,7 +670,7 @@ function openDrawer(id) {
   $("memo").onblur = () => saveMemo(id, $("memo").value);
   $("makeBtn").onclick = () => {
     // 이미 발행된 견적이 있으면 편집기에서 그대로 복원해 수정할 수 있게 함께 넘깁니다.
-    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, destSpots:r.destSpots, budget:r.budget, flightIn:r.flightIn||"", flightOut:r.flightOut||"", quote:r.quote||null }));
+    localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, travelStyles:r.travelStyles, destSpots:r.destSpots, cityStay:r.cityStay||r.stay||"", gerStay:r.gerStay||"", budget:r.budget, request:r.request||"", flightIn:r.flightIn||"", flightOut:r.flightOut||"", quote:r.quote||null }));
     window.open("견적만들기.html","_blank");
   };
   const bookBtn = $("bookBtn");

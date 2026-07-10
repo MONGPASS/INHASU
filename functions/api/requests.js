@@ -50,6 +50,10 @@ export async function onRequestPost(context) {
       d.kakaoId = String(d.kakaoId || "").trim().slice(0, 80);
       d.request = String(d.request || "").trim().slice(0, 2000);
       d.destSpots = Array.isArray(d.destSpots) ? d.destSpots.slice(0, 20).map(x => String(x).slice(0, 50)) : [];
+      d.travelStyles = Array.isArray(d.travelStyles) ? d.travelStyles.slice(0, 10).map(x => String(x).slice(0, 50)) : [];
+      ["tripType", "destination", "cityStay", "gerStay", "vehicle", "budget", "flightIssued"].forEach(k => {
+        d[k] = String(d[k] || "").trim().slice(0, 100);
+      });
     }
 
     // 스팸 방어 2: 같은 전화번호로 60초 안에 또 제출하면 차단
@@ -65,8 +69,11 @@ export async function onRequestPost(context) {
     if (!admin) {
       const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email);
       const datesOk = validDate(d.depart) && validDate(d.return_) && d.depart < d.return_;
+      const totalPax = Number(d.adult || 0) + Number(d.child || 0) + Number(d.infant || 0);
+      const capMatch = String(d.vehicle || "").match(/\((\d+)인\)/);
+      const vehicleOk = !capMatch || Number(capMatch[1]) >= totalPax;
       const choicesOk = d.tripType && d.destination && d.cityStay && d.gerStay && d.vehicle && d.flightIssued;
-      if (!d.name || !/^\d{9,11}$/.test(d.phone) || !emailOk || !datesOk || Number(d.adult) < 1 || !choicesOk || d.agree !== true) {
+      if (!d.name || !/^\d{9,11}$/.test(d.phone) || !emailOk || !datesOk || Number(d.adult) < 1 || !choicesOk || !vehicleOk || d.agree !== true) {
         return json({ ok: false, error: "invalid request" }, 400);
       }
     }

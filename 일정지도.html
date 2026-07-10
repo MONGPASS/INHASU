@@ -49,7 +49,7 @@
     border: 1.5px solid var(--line); background: #fff; color: var(--gray);
     border-radius: 99px; padding: 6px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer;
   }
-  .daychip.on { background: var(--deep); border-color: var(--deep); color: #fff; }
+  .daychip.on { background: var(--day-color, var(--deep)); border-color: var(--day-color, var(--deep)); color: #fff; }
 
   .daylist { padding: 6px 14px 30px; }
   .dayhead { font-size: 13px; font-weight: 800; color: var(--deep); padding: 14px 8px 6px; }
@@ -71,6 +71,14 @@
   /* ── 지도 ── */
   main { flex: 1; position: relative; }
   #map { width: 100%; height: 100%; }
+  .map-note {
+    position: absolute; z-index: 500; left: 16px; bottom: 16px; max-width: 420px;
+    background: rgba(255,255,255,.94); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; color: #586B67; font-size: 11.5px; line-height: 1.5;
+    box-shadow: 0 5px 18px rgba(22,53,49,.12); pointer-events: none;
+  }
+  .map-fallback { height:100%; display:flex; align-items:center; justify-content:center; padding:30px; background:#F5F8F7; text-align:center; color:#5B6D69; line-height:1.7; }
+  .route-alert { margin:8px 8px 2px; padding:10px 12px; border-radius:9px; background:#FFF8ED; border:1px solid #F0D8AA; color:#8A651D; font-size:11.5px; line-height:1.5; }
   .marker-pin {
     width: 28px; height: 28px; border-radius: 50%; color: #fff;
     display: flex; align-items: center; justify-content: center;
@@ -84,6 +92,7 @@
     #app { flex-direction: column-reverse; }
     aside { width: 100%; flex: 1; }
     main { flex: 0 0 45%; }
+    .map-note { left:10px; right:10px; bottom:10px; max-width:none; font-size:10.5px; }
   }
 </style>
 </head>
@@ -104,7 +113,7 @@
     <div class="daybar" id="daybar"></div>
     <div class="daylist" id="daylist"></div>
   </aside>
-  <main><div id="map"></div></main>
+  <main><div id="map"></div><div class="map-note">연결선은 방문 순서를 나타내는 안내선입니다. 실제 도로와 주행 경로·시간은 현지 상황에 따라 달라질 수 있습니다.</div></main>
 </div>
 
 <script type="module">
@@ -188,7 +197,7 @@ function resolveSpot(raw) {
   return null;
 }
 
-const DAY_COLORS = ["#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0", "#06c4a0"];
+const DAY_COLORS = ["#06A889", "#3578C9", "#D4932F", "#D65F50", "#7B61B5", "#2F8B9B", "#8A6A3D"];
 
 /* ── 헤더 채우기 ── */
 document.getElementById("brandName").textContent = Q.brand.companyEn;
@@ -211,6 +220,7 @@ Q.days.forEach((d, di) => {
 });
 
 /* ── 지도 ── */
+function initMap() {
 const map = L.map("map", { zoomControl: true });
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: '© OpenStreetMap contributors',
@@ -218,21 +228,28 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 const markers = {};
 const latlngs = [];
+const locatedStops = [];
 stops.forEach(s => {
   if (!s.spot) return;
   const ll = [s.spot.lat, s.spot.lng];
   latlngs.push(ll);
+  locatedStops.push(s);
   const icon = L.divIcon({
     className: "", iconSize: [28, 28], iconAnchor: [14, 14],
     html: `<div class="marker-pin" style="background:${DAY_COLORS[s.di % DAY_COLORS.length]}">${s.n}</div>`,
   });
   const popImg = s.spot.img ? `<img src="${s.spot.img}" alt="${s.name}" style="width:100%;height:104px;object-fit:cover;border-radius:9px;margin-bottom:7px;display:block">` : "";
   markers[s.n] = L.marker(ll, { icon }).addTo(map)
-    .bindPopup(`${popImg}<b>${s.n}. ${s.name}</b><br>${s.day}일차 · ${s.spot.desc || ""}`, { minWidth: s.spot.img ? 190 : 100 });
+    .bindPopup(`${popImg}<b>${s.n}. ${s.name}</b><br>${s.day}일차 · ${s.spot.desc || ""}<br><span style="color:#71817d;font-size:11px">${s.move || ""}</span>`, { minWidth: s.spot.img ? 190 : 140 });
 });
 
 if (latlngs.length) {
-  L.polyline(latlngs, { color: "#06c4a0", weight: 3, dashArray: "7 7", opacity: .85 }).addTo(map);
+  for (let i = 1; i < locatedStops.length; i++) {
+    const prev = locatedStops[i - 1], cur = locatedStops[i];
+    L.polyline([[prev.spot.lat, prev.spot.lng], [cur.spot.lat, cur.spot.lng]], {
+      color: DAY_COLORS[cur.di % DAY_COLORS.length], weight: 3, dashArray: "7 7", opacity: .88,
+    }).addTo(map);
+  }
   map.fitBounds(latlngs, { padding: [60, 60] });
 } else {
   map.setView([46.8, 103.8], 5);
@@ -241,14 +258,20 @@ if (latlngs.length) {
 /* ── 왼쪽 리스트 ── */
 const daybar = document.getElementById("daybar");
 const daylist = document.getElementById("daylist");
+const missingCount = stops.filter(s => !s.spot).length;
+if (missingCount) daylist.insertAdjacentHTML("beforeend", `<div class="route-alert">세부 장소 ${missingCount}곳은 위치 확인 후 지도에 추가됩니다. 일정표의 방문 순서는 그대로 확인할 수 있습니다.</div>`);
 
 Q.days.forEach((d, di) => {
   const chip = document.createElement("button");
   chip.className = "daychip" + (di === 0 ? " on" : "");
+  chip.style.setProperty("--day-color", DAY_COLORS[di % DAY_COLORS.length]);
+  chip.style.borderColor = DAY_COLORS[di % DAY_COLORS.length];
+  if (di !== 0) chip.style.color = DAY_COLORS[di % DAY_COLORS.length];
   chip.textContent = `day${d.d}`;
   chip.onclick = () => {
-    document.querySelectorAll(".daychip").forEach(c => c.classList.remove("on"));
+    document.querySelectorAll(".daychip").forEach(c => { c.classList.remove("on"); c.style.color = c.style.getPropertyValue("--day-color"); });
     chip.classList.add("on");
+    chip.style.color = "#fff";
     const first = stops.find(s => s.di === di && s.spot);
     if (first) focusStop(first.n, true);
     document.getElementById(`dayhead-${di}`).scrollIntoView({ behavior: "smooth", block: "start" });
@@ -269,7 +292,7 @@ Q.days.forEach((d, di) => {
       <span class="num" style="background:${DAY_COLORS[di % DAY_COLORS.length]}">${s.n}</span>
       <div style="display:flex;align-items:center;gap:10px;min-width:0">
         ${thumb}
-        <div style="min-width:0"><b>${s.name}</b><div class="sub">${s.spot ? (s.spot.desc || "") : "좌표 미등록 (SPOTS에 추가하세요)"}</div></div>
+        <div style="min-width:0"><b>${s.name}</b><div class="sub">${s.spot ? (s.spot.desc || "") : "세부 위치 확인 중"}</div></div>
       </div>`;
     el.onclick = () => focusStop(s.n);
     daylist.appendChild(el);
@@ -289,6 +312,13 @@ function focusStop(n, soft = false) {
     map.flyTo([s.spot.lat, s.spot.lng], 9, { duration: .8 });
     markers[n].openPopup();
   }
+}
+}
+
+if (window.L) {
+  initMap();
+} else {
+  document.querySelector("main").innerHTML = `<div class="map-fallback"><div><b style="display:block;color:#1B3531;font-size:17px;margin-bottom:6px">지도를 불러오지 못했어요</b>네트워크 연결을 확인한 뒤 새로고침해 주세요.<br>왼쪽 일정표는 그대로 확인할 수 있습니다.</div></div>`;
 }
 </script>
 </body>

@@ -139,6 +139,21 @@
 
   .group-lbl { font-size: 14px; font-weight: 700; color: #1B1D1F; margin: 2px 0 10px; }
   .group-lbl.mt { margin-top: 24px; }
+  .choice-help { margin-top: 9px; color: #7B838B; font-size: 12.5px; line-height: 1.55; }
+  .advice-box { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #F5FBF9; border: 1px solid #D8EEE7; color: #35615A; font-size: 13px; line-height: 1.55; }
+  .advice-box.warn { background: #FFF8ED; border-color: #F0D7A8; color: #8B641C; }
+  .selection-summary { margin-top: 12px; padding: 10px 13px; border-radius: 10px; background: #fff; border: 1px solid rgba(6,196,160,.24); color: #0A6A5E; font-size: 12.5px; font-weight: 700; line-height: 1.5; }
+  .recommend-card { border: 1.5px solid var(--accent); background: var(--accent-soft); border-radius: 16px; padding: 18px; margin-bottom: 18px; }
+  .recommend-kicker { color: var(--accent); font-size: 11.5px; font-weight: 800; }
+  .recommend-title { color: #1B1D1F; font-size: 18px; font-weight: 800; line-height: 1.35; margin-top: 6px; }
+  .recommend-desc { color: #58616A; font-size: 13px; line-height: 1.6; margin-top: 6px; }
+  .recommend-facts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+  .recommend-fact { background: #fff; border: 1px solid rgba(6,196,160,.22); border-radius: 99px; padding: 6px 10px; color: #35615A; font-size: 11.5px; font-weight: 700; }
+  .recommend-btn { width: 100%; border: 0; border-radius: 11px; padding: 13px; margin-top: 14px; background: var(--accent); color: #fff; font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+  .recommend-btn.selected { background: #0A6A5E; }
+  .recommend-secondary { display: block; width: 100%; border: 0; background: transparent; color: #5D6D69; text-decoration: underline; font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; margin-top: 11px; }
+  .choice-divider { display: flex; align-items: center; gap: 10px; color: #90979E; font-size: 12px; font-weight: 700; margin: 4px 0 14px; }
+  .choice-divider::before, .choice-divider::after { content: ""; height: 1px; background: #E7EAEE; flex: 1; }
 
   .file-lbl {
     display: flex; align-items: center; gap: 11px; padding: 15px 16px;
@@ -184,6 +199,22 @@
   .mylink-sub { font-size: 12px; color: #6B7178; margin: 4px 0 10px; line-height: 1.5; }
   .mylink-url { font-size: 12px; color: #1B1D1F; background: #fff; border-radius: 8px; padding: 9px 11px; word-break: break-all; border: 1px solid #E7EAEE; }
   .mylink-btn { margin-top: 9px; width: 100%; padding: 11px; border: none; border-radius: 10px; background: var(--accent); color: #fff; font-family: inherit; font-size: 13.5px; font-weight: 800; cursor: pointer; }
+  .done-status { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:16px 0; }
+  .done-step { position:relative; text-align:center; color:#9AA0A6; font-size:10.5px; line-height:1.35; padding-top:28px; }
+  .done-step::before { content:""; position:absolute; top:5px; left:50%; width:16px; height:16px; margin-left:-8px; border-radius:50%; background:#DDE2E7; z-index:1; }
+  .done-step::after { content:""; position:absolute; top:12px; left:-50%; width:100%; height:2px; background:#E5E9ED; }
+  .done-step:first-child::after { display:none; }
+  .done-step.on { color:#0A6A5E; font-weight:800; }
+  .done-step.on::before { background:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+  .done-primary { display:block; width:100%; padding:16px; border-radius:14px; background:var(--accent); color:#fff; text-align:center; text-decoration:none; font-size:16px; font-weight:800; margin-bottom:10px; }
+  .done-brief { background:#F7F8FA; border-radius:14px; padding:6px 16px; margin-top:14px; }
+  .done-brief .row { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid #E9ECEF; font-size:13px; }
+  .done-brief .row:last-child { border-bottom:0; }
+  .done-brief .k { color:#939AA1; font-weight:700; }
+  .done-brief .v { color:#25292D; font-weight:700; margin-left:auto; text-align:right; }
+  .done-details { margin-top:10px; }
+  .done-details summary { color:#80878E; font-size:12.5px; text-align:center; cursor:pointer; padding:8px; }
+  .private-note { color:#798580; font-size:11px; line-height:1.5; margin-top:8px; }
 
   .kakao-btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -262,7 +293,8 @@ const CONFIG = {
   /* 완료 화면 "상품 보러가기" 버튼 링크 (홈페이지) */
   productUrl: "https://www.mongoliasky.co.kr/",
 
-  types:    ["허니문", "가족 여행", "우정 여행", "나 홀로", "효도 여행", "단체·워크샵", "사진 출사", "오지 탐험"],
+  types:    ["허니문", "가족 여행", "우정 여행", "나 홀로", "효도 여행", "단체·워크샵"],
+  styles:   ["휴양·힐링", "사진·은하수", "승마·액티비티", "트레킹", "문화·역사", "오지 탐험"],
   /* 투어 지역 — 카테고리 4개, 클릭하면 소속 지역이 펼쳐집니다 */
   destCats: [
     { name:"중앙 몽골 투어", emoji:"🐎", badge:"인기 1위", tagline:"초원 승마·온천, 이동 짧고 여유로운 코스",
@@ -358,8 +390,8 @@ async function onSubmitRequest(data) {
 const META = {
   1: { icon: "👥", title: "여행 인원은 몇 명인가요?", sub: "함께 떠나실 인원을 알려주세요. (성인 1명 이상)" },
   2: { icon: "📅", title: "언제 몽골로 떠나시나요?", sub: "몽골 입국일과 귀국일을 선택해 주세요." },
-  3: { icon: "💍", title: "어떤 여행을 원하세요?", sub: "여행 타입을 선택해 주세요." },
-  4: { icon: "🗺️", title: "가고 싶은 몽골은 어디인가요?", sub: "잘 몰라도 괜찮아요. 어떤 곳인지 보고 골라주세요." },
+  3: { icon: "💍", title: "어떤 여행을 원하세요?", sub: "동행 형태와 관심 있는 여행 취향을 알려주세요." },
+  4: { icon: "🗺️", title: "가고 싶은 몽골은 어디인가요?", sub: "잘 몰라도 괜찮아요. 일정과 취향에 맞춰 먼저 추천해 드려요." },
   5: { icon: "🏨", title: "숙소와 차량을 골라주세요", sub: "여행 스타일에 맞게 선택해 주세요." },
   6: { icon: "✈️", title: "항공권을 발행하셨나요?", sub: "이미 발권하셨다면 도착·출발 일시를 알려주세요. 견적서와 픽업·드랍 안내에 반영됩니다." },
   7: { icon: "📝", title: "신청자 정보를 알려주세요", sub: "견적서를 받으실 연락처를 입력해 주세요." },
@@ -370,7 +402,7 @@ const S = {
   step: 1, done: false, submitting: false, submitError: "",
   adult: 2, child: 0, infant: 0,
   depart: "", return_: "",
-  tripType: "", destination: "", destSpots: [], cityStay: "", gerStay: "", vehicle: "",
+  tripType: "", travelStyles: [], destination: "", destSpots: [], cityStay: "", gerStay: "", vehicle: "",
   flightIssued: "", flightIn: "", flightOut: "",   // 항공권 발행 여부 + 도착/출발 일시
   name: "", phone: "", email: "", kakaoId: "",
   request: "", fileName: "", fileKey: "", fileState: "", agree: false,
@@ -383,6 +415,11 @@ try {
   if (draft && typeof draft === "object") {
     Object.assign(S, draft, { done: false, submitting: false, submitError: "" });
     if (!Array.isArray(S.destSpots)) S.destSpots = [];
+    if (!Array.isArray(S.travelStyles)) S.travelStyles = [];
+    if (["사진 출사", "오지 탐험"].includes(S.tripType)) {
+      S.travelStyles.push(S.tripType === "사진 출사" ? "사진·은하수" : S.tripType);
+      S.tripType = "";
+    }
     if (S.fileState === "uploading") { S.fileState = ""; S.fileName = ""; S.fileKey = ""; }
   }
 } catch (e) {}
@@ -407,6 +444,49 @@ const nights = () => {
 const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const todayStr = () => fmtDate(new Date());
 const plusDays = (ymd, n) => { const d = new Date(ymd); d.setDate(d.getDate() + n); return fmtDate(d); };
+const totalPax = () => Number(S.adult || 0) + Number(S.child || 0) + Number(S.infant || 0);
+const vehicleCapacity = value => {
+  if (!value || value === "상관없음") return Infinity;
+  const m = String(value).match(/\((\d+)인\)/);
+  return m ? Number(m[1]) : Infinity;
+};
+const vehicleIssue = () => vehicleCapacity(S.vehicle) < totalPax()
+  ? `${totalPax()}명은 ${S.vehicle}에 탑승할 수 없어요. 더 큰 차량이나 상관없음을 선택해 주세요.`
+  : "";
+const recommendedVehicle = () => {
+  const p = totalPax();
+  if (p <= 4) return "랜드크루저(4인)";
+  if (p <= 6) return "푸르공·스타렉스·델리카(6인)";
+  return "대형 버스(25인)";
+};
+const routeAdvice = () => {
+  if (!S.destination || S.destination === CONFIG.destUnsure) return null;
+  const base = S.destination.includes("중앙") ? 3 : S.destination.includes("트레킹") ? 3 : 5;
+  const recommended = Math.max(base, (S.destSpots || []).length + 1);
+  const n = nights();
+  return { recommended, short: n !== null && n < recommended };
+};
+const RECOMMEND_META = {
+  "중앙 몽골 투어": { min:3, effort:"이동 비교적 짧음", best:"첫 몽골·가족·효도 여행", desc:"초원과 승마, 온천을 균형 있게 경험하기 좋아요." },
+  "고비사막 투어": { min:5, effort:"장거리 이동 많음", best:"은하수·사진·사막", desc:"거대한 모래언덕과 고비의 밤하늘을 중심으로 구성해요." },
+  "홉스굴 투어": { min:5, effort:"국내선 또는 긴 이동", best:"호수·숲·여름 피서", desc:"푸른 호수와 침엽수 숲에서 여유롭게 머무는 일정이에요." },
+  "몽골 트레킹 투어": { min:3, effort:"걷기·체력 필요", best:"트레킹·자연 탐험", desc:"체력에 맞춰 초원과 산의 걷기 코스를 조정해요." },
+};
+function destinationRecommendation() {
+  const n = nights() || 0, styles = S.travelStyles || [];
+  let name = "중앙 몽골 투어", reason = "이동 부담이 비교적 적어 첫 몽골 여행에 잘 맞아요.";
+  if (styles.includes("트레킹")) {
+    name = "몽골 트레킹 투어"; reason = "선택한 트레킹 취향을 가장 직접적으로 반영할 수 있어요.";
+  } else if (n >= 5 && (styles.includes("사진·은하수") || styles.includes("오지 탐험"))) {
+    name = "고비사막 투어"; reason = "충분한 일정과 은하수·오지 취향을 함께 반영할 수 있어요.";
+  } else if (n >= 5 && styles.includes("휴양·힐링")) {
+    name = "홉스굴 투어"; reason = "긴 일정에 호수와 숲에서 머무는 휴양 동선을 구성하기 좋아요.";
+  } else if (styles.includes("사진·은하수")) {
+    reason = "현재 일정에는 중앙 몽골의 초원·미니고비를 넣는 편이 이동 부담이 적어요.";
+  }
+  const meta = RECOMMEND_META[name];
+  return { name, reason, ...meta };
+}
 
 function canProceed() {
   switch (S.step) {
@@ -414,7 +494,7 @@ function canProceed() {
     case 2: { const n = nights(); return n !== null && n > 0; }
     case 3: return !!S.tripType;
     case 4: return !!S.destination;
-    case 5: return !!S.cityStay && !!S.gerStay && !!S.vehicle;
+    case 5: return !!S.cityStay && !!S.gerStay && !!S.vehicle && !vehicleIssue();
     case 6: return S.flightIssued === "아니요, 아직이에요" || (S.flightIssued && !!S.flightIn && !!S.flightOut);
     case 7: return S.name.trim().length > 0 && /^[0-9]{9,11}$/.test(S.phone) && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(S.email);
     case 8: return S.agree;
@@ -444,6 +524,7 @@ function summaryRows() {
     ["여행 인원", `성인 ${S.adult} · 아동 ${S.child} · 유아 ${S.infant}`],
     ["여행 일정", `${S.depart} ~ ${S.return_}${n > 0 ? ` (${n}박 ${n + 1}일)` : ""}`],
     ["여행 타입", S.tripType],
+    ...(S.travelStyles.length ? [["여행 취향", S.travelStyles.join(", ")]] : []),
     ["희망 투어", S.destination],
     ...(S.destSpots && S.destSpots.length ? [["관심 지역", S.destSpots.join(", ")]] : []),
     ["시내 숙소", S.cityStay],
@@ -463,29 +544,40 @@ function render() {
   const foot = document.getElementById("cardFoot");
 
   if (S.done) {
+    const myUrl = S.token ? location.origin + "/" + encodeURI("내견적.html") + "?t=" + S.token : "";
+    const phoneMasked = String(S.phone || "").replace(/^(\d{3})(\d+)(\d{4})$/, (_, a, b, c) => `${a}-${"*".repeat(Math.min(4, b.length))}-${c}`);
+    const n = nights();
     head.innerHTML = "";
     body.innerHTML = `
       <div class="step-anim" style="padding-top:6px">
         <div class="step-head" style="margin-bottom:20px">
-          <div class="done-badge">🎉</div>
-          <h1 class="step-title">견적 요청이 완료되었어요!</h1>
-          <div class="step-sub" style="line-height:1.5">담당자가 확인 후 남겨주신 연락처로 연락드려요.<br>(영업시간 기준 24시간 이내)</div>
+          <div class="done-badge">✓</div>
+          <h1 class="step-title">견적 요청이 접수됐어요</h1>
+          <div class="step-sub" style="line-height:1.6">담당자가 확인 후 영업시간 기준 24시간 이내 연락드릴게요.</div>
         </div>
-        <div class="summary">
-          ${summaryRows().map(([k, v]) => `<div class="row"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join("")}
+        <div class="done-status" aria-label="견적 진행 단계">
+          <div class="done-step on">요청<br>접수</div><div class="done-step">견적<br>작성 중</div><div class="done-step">견적<br>도착</div><div class="done-step">예약<br>진행</div>
         </div>
-        ${(S.token && !IS_LOCAL) ? `
+        ${S.token ? `
         <div class="mylink-box">
-          <div class="mylink-h">🔗 내 견적 확인 링크</div>
-          <div class="mylink-sub">진행 상황과 완성된 견적서를 여기서 볼 수 있어요. (담당자가 카톡으로도 보내드려요)</div>
-          <div class="mylink-url" id="myUrl">${esc(location.origin + "/" + encodeURI("내견적.html") + "?t=" + S.token)}</div>
-          <button class="mylink-btn" id="copyMyLink">링크 복사</button>
+          <div class="mylink-h">회원가입 없이 전용 링크로 확인</div>
+          <div class="mylink-sub">진행 상황과 완성된 견적서가 이 링크에 표시됩니다. 잃어버리지 않도록 보관해 주세요.</div>
+          <div class="mylink-url" id="myUrl">${esc(myUrl)}</div>
+          <button class="mylink-btn" id="copyMyLink">확인 링크 복사</button>
+          <div class="private-note">이 링크를 가진 사람은 견적 내용을 볼 수 있으니 다른 사람에게 공유하지 마세요.</div>
         </div>` : ""}
-        <span class="copy-link" id="copyBtn">요청 내용 복사하기 (카카오톡 상담 시 붙여넣기)</span>
+        <div class="done-brief">
+          <div class="row"><span class="k">여행</span><span class="v">${esc(n > 0 ? `${n}박 ${n + 1}일` : "일정 확인 중")} · ${esc(totalPax())}명</span></div>
+          <div class="row"><span class="k">희망 투어</span><span class="v">${esc(S.destination || "추천 요청")}</span></div>
+          <div class="row"><span class="k">연락처</span><span class="v">${esc(phoneMasked || "-")}</span></div>
+        </div>
+        <details class="done-details"><summary>요청 내용 자세히 보기</summary><div class="summary">${summaryRows().map(([k, v]) => `<div class="row"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join("")}</div></details>
+        <span class="copy-link" id="copyBtn">카카오톡 상담용 요청 내용 복사</span>
       </div>`;
     foot.innerHTML = `
-      ${CONFIG.kakao ? `<a class="kakao-btn" href="${esc(CONFIG.kakao)}" target="_blank">💬 카카오톡 채널로 빠른 상담</a>` : ""}
-      ${CONFIG.productUrl ? `<a class="ghost-btn" href="${esc(CONFIG.productUrl)}" target="_blank" rel="noopener">🛍 상품 보러가기</a>` : `<button class="ghost-btn" id="restartBtn">새 견적 요청하기</button>`}`;
+      ${myUrl ? `<a class="done-primary" href="${esc(myUrl)}">내 견적 진행상황 보기</a>` : ""}
+      ${CONFIG.kakao ? `<a class="kakao-btn" href="${esc(CONFIG.kakao)}" target="_blank">카카오톡으로 추가 요청 보내기</a>` : ""}
+      ${CONFIG.productUrl ? `<a class="ghost-btn" href="${esc(CONFIG.productUrl)}" target="_blank" rel="noopener">상품 둘러보기</a>` : `<button class="ghost-btn" id="restartBtn">새 견적 요청하기</button>`}`;
     const restartBtn = document.getElementById("restartBtn");
     if (restartBtn) restartBtn.onclick = () => {
       S.done = false; S.step = 1; S.submitError = "";
@@ -544,8 +636,17 @@ function render() {
       </div>
       <div class="nights" style="color:${n !== null && n <= 0 ? "#E0574B" : "var(--accent)"}">${nTxt}</div>`;
   } else if (S.step === 3) {
-    inner = chips(CONFIG.types, S.tripType, "tripType", "grid3");
+    inner = `
+      <div class="group-lbl">누구와 떠나시나요?</div>
+      ${chips(CONFIG.types, S.tripType, "tripType", "grid3")}
+      <div class="group-lbl mt">어떤 경험을 원하시나요? <span style="font-weight:500;color:#9AA0A6;font-size:12px">· 선택사항, 복수 가능</span></div>
+      <div class="grid3">${CONFIG.styles.map(v => {
+        const on = S.travelStyles.includes(v);
+        return `<button type="button" class="chip ${on ? "sel" : ""}" data-style="${esc(v)}" aria-pressed="${on}">${esc(v)}</button>`;
+      }).join("")}</div>`;
   } else if (S.step === 4) {
+    const reco = destinationRecommendation();
+    const recoSelected = S.destination === reco.name;
     const panelHtml = (c) => {
       const f = c.regions.find(r => r.name === spotFocus) || c.regions[0];
       return `
@@ -561,9 +662,19 @@ function render() {
           }).join("")}
         </div>
         ${f ? `<div class="region-desc"><b>${esc(f.name)}</b> — ${esc(f.desc)}</div>` : ""}
+        ${S.destSpots.length ? `<div class="selection-summary">선택 ${S.destSpots.length}곳 · ${esc(S.destSpots.join(" · "))}</div>` : ""}
       </div>`;
     };
     inner = `
+      <div class="recommend-card">
+        <div class="recommend-kicker">지역을 잘 모르겠다면 · 일정과 취향으로 추천</div>
+        <div class="recommend-title">${esc(reco.name)}</div>
+        <div class="recommend-desc">${esc(reco.reason)} ${esc(reco.desc)}</div>
+        <div class="recommend-facts"><span class="recommend-fact">권장 ${reco.min}박 이상</span><span class="recommend-fact">${esc(reco.effort)}</span><span class="recommend-fact">${esc(reco.best)}</span></div>
+        <button type="button" class="recommend-btn ${recoSelected ? "selected" : ""}" data-recommend="${esc(reco.name)}">${recoSelected ? "✓ 추천 코스로 선택됨" : "이 추천으로 선택"}</button>
+        <button type="button" class="recommend-secondary" data-unsure="1">${S.destination === CONFIG.destUnsure ? "✓ 여행사 최종 추천 요청으로 선택됨" : "지역 선택을 여행사에 완전히 맡길게요"}</button>
+      </div>
+      <div class="choice-divider">직접 지역을 고를 수도 있어요</div>
       <div class="dest-list">
         ${CONFIG.destCats.map(d => {
           const sel = d.name === S.destination;
@@ -576,14 +687,16 @@ function render() {
           ${sel ? panelHtml(d) : ""}`;
         }).join("")}
       </div>
-      <button type="button" class="chip dest-card dest-unsure ${CONFIG.destUnsure === S.destination ? "sel" : ""}" data-key="destination" data-val="${esc(CONFIG.destUnsure)}" aria-pressed="${CONFIG.destUnsure === S.destination}">
-        <div class="dc-name" style="text-align:center">🤔 아직 잘 모르겠어요 — 여행사가 추천해 주세요</div>
-      </button>`;
+      ${(() => { const a = routeAdvice(); return a ? `<div class="advice-box ${a.short ? "warn" : ""}">${a.short ? `현재 ${nights()}박 일정에는 선택한 지역이 많을 수 있어요.` : "선택한 지역을 여유 있게 둘러볼 수 있는 일정입니다."} 권장 일정은 약 ${a.recommended}박 이상이며, 최종 이동 동선은 담당자가 조정합니다.</div>` : ""; })()}`;
   } else if (S.step === 5) {
+    const issue = vehicleIssue();
     inner = `
       <div class="group-lbl">시내(울란바토르) 숙소</div>${chips(CONFIG.cityStays, S.cityStay, "cityStay", "grid2")}
+      <div class="choice-help">호텔 등급은 객실 상태와 조식·부대시설 수준을 기준으로 선택해 주세요.</div>
       <div class="group-lbl mt">투어지역 게르 등급 <span style="font-weight:500;color:#9AA0A6;font-size:12px">· 시내 외 지역은 게르만 가능해요</span></div>${chips(CONFIG.gerStays, S.gerStay, "gerStay", "grid3")}
-      <div class="group-lbl mt">차량</div>${chips(CONFIG.vehicles, S.vehicle, "vehicle", "grid3")}`;
+      <div class="choice-help">고급 게르는 전용 또는 개선된 편의시설을 우선 배정하며, 지역별 실제 시설은 견적서에서 확인할 수 있어요.</div>
+      <div class="group-lbl mt">차량</div>${chips(CONFIG.vehicles, S.vehicle, "vehicle", "grid3")}
+      <div class="advice-box ${issue ? "warn" : ""}">${issue || `${totalPax()}명 기준 추천: ${recommendedVehicle()}. 짐의 양과 도로 상황에 따라 담당자가 최종 차량을 조정합니다.`}</div>`;
   } else if (S.step === 6) {
     inner = `
       ${chips(["예, 발행했어요", "아니요, 아직이에요"], S.flightIssued, "flightIssued", "grid2")}
@@ -677,8 +790,21 @@ function render() {
     S[k] = Math.max(0, S[k] + d); render();
   });
   body.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+    if (c.dataset.style) return;
     if (c.dataset.key === "destination" && S.destination !== c.dataset.val) { S.destSpots = []; spotFocus = ""; }
     S[c.dataset.key] = c.dataset.val; render();
+  });
+  body.querySelectorAll("[data-recommend]").forEach(c => c.onclick = () => {
+    if (S.destination !== c.dataset.recommend) S.destSpots = [];
+    S.destination = c.dataset.recommend; spotFocus = ""; render();
+  });
+  body.querySelectorAll("[data-unsure]").forEach(c => c.onclick = () => {
+    S.destination = CONFIG.destUnsure; S.destSpots = []; spotFocus = ""; render();
+  });
+  body.querySelectorAll("[data-style]").forEach(c => c.onclick = () => {
+    const value = c.dataset.style, i = S.travelStyles.indexOf(value);
+    if (i >= 0) S.travelStyles.splice(i, 1); else S.travelStyles.push(value);
+    render();
   });
   body.querySelectorAll(".region-chip").forEach(c => c.onclick = () => {
     const name = c.dataset.spot, i = S.destSpots.indexOf(name);

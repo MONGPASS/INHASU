@@ -368,7 +368,7 @@ let ST = {
 };
 
 /* 관리자에서 넘어온 고객 정보 반영 */
-let REQ_ID = "", REQ_TOKEN = "", ADMIN_TOKEN = "", FROM_REQ = false, REQ_SPOTS = [], QUOTE_RESTORE = null, REQ_PAX0 = null;
+let REQ_ID = "", REQ_TOKEN = "", ADMIN_TOKEN = "", FROM_REQ = false, REQ_SPOTS = [], REQ_PROFILE = {}, QUOTE_RESTORE = null, REQ_PAX0 = null;
 try {
   const pre = JSON.parse(localStorage.getItem("leaders_prefill") || "null");
   if (pre) {
@@ -383,6 +383,14 @@ try {
     ST.flightIn = pre.flightIn || "";            // 고객이 알려준 항공 도착 (없으면 견적서에 "미정")
     ST.flightOut = pre.flightOut || "";
     REQ_SPOTS = Array.isArray(pre.destSpots) ? pre.destSpots : [];  // 관심 지역
+    REQ_PROFILE = {
+      tripType: pre.tripType || "",
+      travelStyles: Array.isArray(pre.travelStyles) ? pre.travelStyles : [],
+      cityStay: pre.cityStay || "",
+      gerStay: pre.gerStay || "",
+      request: pre.request || "",
+      preferredSpots: REQ_SPOTS,
+    };
     REQ_ID = pre.id || "";
     REQ_TOKEN = pre.token || "";
     ADMIN_TOKEN = pre.adminToken || sessionStorage.getItem("leaders_admin_token") || "";
@@ -426,6 +434,10 @@ function loadCourse(name, opts = {}) {
   if (!opts.keepCustomer || !ST.vehicle) ST.vehicle = c.vehicle || "";
   ST.intensity = c.intensity || 3;
   ST.spots = [...(c.highlights || [])];
+  if (opts.keepCustomer && REQ_SPOTS.length) {
+    const lib = getSpots();
+    ST.spots = [...new Set([...REQ_SPOTS.filter(name => lib[name]), ...ST.spots])];
+  }
   ST.days = structuredClone(c.days || []);
   // 요금(예약금·잔금·할인항목)은 기존 입력값을 유지합니다.
   document.querySelectorAll(".course-btn").forEach(b => b.classList.toggle("sel", b.dataset.c === name));
@@ -755,6 +767,10 @@ function buildQuote() {
   Q.images = { ...BASE.images, coverLabel: `${Q.destination} 대표 이미지` };
 
   Q.days = ST.days;
+  Q.requestProfile = {
+    ...REQ_PROFILE,
+    preferredSpots: REQ_SPOTS.slice(),
+  };
   const LIB = getSpots();
   Q.highlights = ST.spots.map(name => {
     const s = LIB[name] || {};
@@ -816,6 +832,10 @@ function restoreFromQuote(q) {
   }
   ST.days = structuredClone(q.days || []);
   ST.spots = (q.highlights || []).map(h => h && h.name).filter(Boolean);
+  if (q.requestProfile && typeof q.requestProfile === "object") {
+    REQ_PROFILE = structuredClone(q.requestProfile);
+    REQ_SPOTS = Array.isArray(REQ_PROFILE.preferredSpots) ? REQ_PROFILE.preferredSpots.slice() : [];
+  }
   return true;
 }
 
@@ -1014,7 +1034,11 @@ function toast(msg) {
     // 여행지에 맞는 코스가 있으면 일정·명소만 채우고, 여행지·차량 텍스트는 고객 값 유지.
     const matched = matchCourse(ST.destination);
     if (matched) loadCourse(matched, { keepCustomer: true, silent: true });
-    else { fillForm(); renderAll(); }
+    else {
+      const lib = getSpots();
+      ST.spots = REQ_SPOTS.filter(name => lib[name]);
+      fillForm(); renderAll();
+    }
   } else {
     // 일반 진입: 작성 중이던 초안이 있으면 자동 복원 (새로 시작하려면 [초기화])
     const draft = loadDraft();
