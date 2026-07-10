@@ -14,7 +14,7 @@
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #EDF0F4; font-family: Pretendard, system-ui, -apple-system, sans-serif; }
+  body { background: #E9EEF3; font-family: Pretendard, system-ui, -apple-system, sans-serif; color:#17243A; }
   @keyframes scaleIn { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   @keyframes fadeUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   input::placeholder, textarea::placeholder { color: #B4B9BF; }
@@ -24,52 +24,81 @@
   *::-webkit-scrollbar { width: 8px; }
   *::-webkit-scrollbar-thumb { background: #DDE1E6; border-radius: 99px; }
 
-  .wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 20px; }
-  .topbar { width: 100%; max-width: 720px; display: flex; align-items: center; gap: 9px; margin-bottom: 16px; }
+  .wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:10px; }
+  .app-shell { width:min(1380px,100%); min-height:780px; display:grid; grid-template-columns:360px minmax(0,1fr); overflow:hidden; border-radius:22px; background:#F9FBFC; box-shadow:0 22px 70px rgba(24,49,78,.14); border:1px solid rgba(255,255,255,.8); }
+  .promo { position:relative; min-height:780px; padding:38px 34px; color:#fff; overflow:hidden; background:linear-gradient(180deg,rgba(13,91,178,.86),rgba(5,77,139,.25) 46%,rgba(17,85,45,.25)),url('img/quote/cover.webp') center/cover; }
+  .promo::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(8,77,157,.15),transparent 45%,rgba(4,39,32,.22)); pointer-events:none; }
+  .promo > * { position:relative; z-index:1; }
+  .promo-brand { display:flex; align-items:center; min-height:84px; }
+  .promo-logo { width:94px; height:94px; object-fit:contain; filter:drop-shadow(0 5px 12px rgba(0,0,0,.16)); }
+  .promo-eyebrow { display:block; margin-top:48px; color:#92F0DD; font-size:10.5px; font-weight:800; letter-spacing:.18em; }
+  .promo h2 { margin-top:10px; font-size:29px; line-height:1.38; letter-spacing:-.045em; text-shadow:0 2px 12px rgba(0,0,0,.18); }
+  .promo h2 em { color:#B9F7EA; font-style:normal; }
+  .promo-copy { margin-top:13px; max-width:255px; color:rgba(255,255,255,.76); font-size:12px; line-height:1.65; }
+  .promo-list { display:grid; gap:25px; margin-top:42px; }
+  .promo-item { display:grid; grid-template-columns:54px 1fr; gap:15px; align-items:center; }
+  .promo-icon { width:54px; height:54px; display:grid; place-items:center; border-radius:16px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.48); color:#fff; font-size:14px; font-weight:800; letter-spacing:.08em; box-shadow:0 6px 18px rgba(0,0,0,.08); backdrop-filter:blur(6px); }
+  .promo-item b { display:block; font-size:15px; }
+  .promo-item span { display:block; font-size:11.5px; opacity:.76; margin-top:5px; }
+  .promo-help { position:absolute; left:34px; right:34px; bottom:30px; z-index:2; display:flex; align-items:center; gap:12px; padding:14px; border-radius:16px; background:rgba(255,255,255,.91); color:#253746; text-decoration:none; backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.74); box-shadow:0 12px 30px rgba(0,0,0,.16); transition:transform .18s ease,background .18s ease; }
+  .promo-help:hover { transform:translateY(-2px); background:#fff; }
+  .help-badge { width:42px; height:42px; flex:none; display:block; border-radius:12px; object-fit:cover; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+  .promo-help strong { display:block; font-size:12.5px; letter-spacing:-.015em; }
+  .promo-help small { display:block; color:#7C8B95; margin-top:4px; font-size:10.5px; }
+  .promo-help i { margin-left:auto; width:30px; height:30px; display:grid; place-items:center; border-radius:50%; background:#0CB99B; color:#fff; font-style:normal; font-size:18px; line-height:1; }
+  .workspace { min-width:0; padding:28px 38px 30px; display:flex; flex-direction:column; }
+  .topbar { display:none; }
   .topbar .mark {
     width: 26px; height: 26px; border-radius: 8px; background: var(--accent-deep);
     color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;
   }
+  .topbar .mark img { width:22px; height:22px; object-fit:contain; }
   .topbar b { font-weight: 800; font-size: 18px; color: #1B1D1F; letter-spacing: -.01em; }
   .topbar span.r { margin-left: auto; font-size: 13px; color: #9AA0A6; font-weight: 600; }
 
-  .card {
-    width: 100%; max-width: 720px; background: #fff; border-radius: 28px;
-    box-shadow: 0 14px 44px rgba(20, 40, 80, .09);
-    display: flex; flex-direction: column; min-height: 668px; overflow: hidden;
-  }
-  .card-head { padding: 22px 34px 0; }
+  .card { width:100%; max-width:900px; margin:0 auto; background:#fff; border-radius:24px; box-shadow:0 12px 36px rgba(34,65,91,.09); border:1px solid #E7EDF2; display:flex; flex-direction:column; min-height:650px; overflow:hidden; }
+  .card-head { padding:20px 28px 0; background:#fff; }
   .head-row { display: flex; align-items: center; height: 26px; }
   .back-btn {
     width: 30px; height: 30px; border: none; background: #F4F5F7; border-radius: 9px;
     color: #454A50; font-size: 20px; line-height: 1; cursor: pointer;
     display: flex; align-items: center; justify-content: center; padding: 0;
   }
-  .prog-txt { margin-left: auto; font-size: 14px; font-weight: 700; color: var(--accent); }
-  .prog-track { height: 5px; background: #EDF0F4; border-radius: 99px; margin-top: 14px; overflow: hidden; }
-  .prog-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .35s cubic-bezier(.4,0,.2,1); }
+  .prog-txt { margin-left:auto; padding:8px 12px; border-radius:10px; background:#E8FAF6; font-size:13px; font-weight:800; color:var(--accent); }
+  .prog-track { display:none; }
 
-  .card-body { flex: 1; overflow-y: auto; padding: 26px 34px 8px; display: flex; flex-direction: column; }
+  .card-body { flex:1; overflow-y:auto; padding:34px 34px 12px; display:flex; flex-direction:column; }
   .step-anim { animation: fadeUp .28s ease; display: flex; flex-direction: column; flex: 1; }
-  .step-head { text-align: center; margin-bottom: 24px; }
+  .step-head { text-align:center; margin-bottom:30px; }
   .badge {
-    width: 64px; height: 64px; border-radius: 20px; background: var(--accent-soft);
+    width:76px; height:76px; border-radius:50%; background:var(--accent-soft);
     display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 14px;
   }
-  .step-title { font-size: 24px; font-weight: 800; color: #1B1D1F; letter-spacing: -.02em; text-wrap: balance; }
+  .badge:has(.step-3d-icon) { background:radial-gradient(circle,rgba(224,250,245,.9) 0 52%,transparent 53%); overflow:visible; }
+  .step-3d-icon { width:108px; height:108px; display:block; object-fit:contain; transform-origin:50% 62%; filter:drop-shadow(0 10px 10px rgba(17,65,62,.17)); animation:stepIconFloat 3.2s ease-in-out infinite; will-change:transform; }
+  @keyframes stepIconFloat {
+    0%,100% { transform:translateY(1px) rotate(-1.5deg) scale(.98); }
+    50% { transform:translateY(-7px) rotate(1.5deg) scale(1.02); }
+  }
+  .step-title { font-size:28px; font-weight:800; color:#17243A; letter-spacing:-.035em; text-wrap:balance; }
   .step-sub { font-size: 15px; color: #9AA0A6; margin-top: 7px; }
 
-  .counter-row { display: flex; align-items: center; justify-content: space-between; padding: 20px 6px; border-bottom: 1px solid #F1F2F4; }
+  .counter-row { display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border:1px solid #E5EBEF; border-radius:14px; margin-bottom:10px; background:#fff; box-shadow:0 3px 10px rgba(40,70,92,.025); }
+  .counter-label { display:flex; align-items:center; gap:16px; }
+  .counter-icon { width:48px; height:48px; display:grid; place-items:center; flex:none; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:22px; }
   .counter-row .lbl { font-size: 17px; font-weight: 600; color: #1B1D1F; }
   .counter-row .sub { font-size: 13px; color: #9AA0A6; margin-top: 3px; }
-  .counter-ctrl { display: flex; align-items: center; gap: 18px; }
+  .counter-ctrl { display:flex; align-items:center; gap:17px; min-width:190px; justify-content:flex-end; border:1px solid #E8EDF1; border-radius:99px; padding:7px 10px; }
   .counter-ctrl .val { min-width: 22px; text-align: center; font-size: 19px; font-weight: 700; color: #1B1D1F; }
   .cbtn {
-    width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid #DBE0E6; background: #fff;
+    width:32px; height:32px; border-radius:50%; border:1.5px solid #DCE5E8; background:#fff;
     color: var(--accent); font-size: 20px; line-height: 1; padding: 0; cursor: pointer;
     display: flex; align-items: center; justify-content: center; font-family: inherit;
   }
   .cbtn:disabled { border-color: #EBEEF1; color: #CDD3DA; cursor: default; }
+  .unit { color:#9AA5AE; font-size:12px; }
+  .tip-box { display:flex; gap:9px; align-items:flex-start; margin-top:14px; padding:14px 16px; border-radius:12px; background:linear-gradient(90deg,#F2FBF9,#EAF8F6); color:#768B88; font-size:12px; line-height:1.55; }
+  .tip-box b { color:var(--accent); }
 
   .field-lbl { font-size: 14px; font-weight: 600; color: #454A50; margin-bottom: 8px; display: block; }
   .txt-input, .date-input, textarea.txt-area {
@@ -164,13 +193,13 @@
   .agree-txt { font-size: 14px; color: #454A50; line-height: 1.5; }
   .agree-txt small { color: #9AA0A6; font-size: 13px; }
 
-  .card-foot { padding: 16px 34px 26px; }
+  .card-foot { padding:16px 34px 24px; }
   .primary-btn {
-    width: 100%; padding: 17px; border-radius: 14px; background: #CBD2DA; color: #fff;
+    width:100%; padding:17px; border-radius:12px; background:#CBD2DA; color:#fff;
     font-size: 17px; font-weight: 700; border: none; cursor: not-allowed;
     font-family: inherit; transition: background .15s ease;
   }
-  .primary-btn.ok { background: var(--accent); cursor: pointer; }
+  .primary-btn.ok { background:linear-gradient(90deg,#08BE9D,#08C7A5); cursor:pointer; box-shadow:0 8px 20px rgba(6,196,160,.18); }
   .primary-btn:disabled { background: #CBD2DA; cursor: not-allowed; }
   .ghost-btn {
     display: block; width: 100%; padding: 17px; border-radius: 14px; background: #F4F5F7; color: #454A50;
@@ -226,8 +255,15 @@
   .file-lbl.up-err { border-color: #E0574B; color: #B5504A; background: #FDF0EE; }
 
   /* ── 모바일 (인스타 유입 대응) ── */
+  @media (max-width: 920px) {
+    .wrap { padding:0; align-items:flex-start; }
+    .app-shell { display:block; min-height:100vh; border-radius:0; }
+    .promo { display:none; }
+    .workspace { padding:16px 12px 24px; }
+    .topbar { width:100%; display:flex; align-items:center; gap:9px; margin:0 auto 12px; padding:0 4px; }
+    .card { border-radius:20px; min-height:0; }
+  }
   @media (max-width: 520px) {
-    .wrap { padding: 16px 12px 24px; }
     .topbar { margin-bottom: 12px; padding: 0 4px; }
     .topbar b { font-size: 16px; }
     .card { border-radius: 20px; min-height: 0; }
@@ -238,30 +274,51 @@
     .step-title { font-size: 21px; }
     .step-sub { font-size: 13.5px; }
     .badge { width: 54px; height: 54px; font-size: 26px; border-radius: 16px; }
+    .step-3d-icon { width:86px; height:86px; }
     .grid3 { grid-template-columns: repeat(2, 1fr); }
     .grid2, .grid3 { gap: 8px; }
     .dest-grid { grid-template-columns: 1fr; }
     .chip { padding: 14px 10px; font-size: 14px; }
     .dest-card { padding: 13px 14px; }
-    .counter-row { padding: 16px 2px; }
+    .counter-row { padding:15px 13px; }
+    .counter-label { gap:10px; }
+    .counter-icon { width:38px; height:38px; font-size:18px; }
+    .counter-ctrl { min-width:130px; gap:9px; padding:5px 7px; }
     .txt-input, .date-input, textarea.txt-area { padding: 13px 14px; font-size: 15px; }
     .date-grid { flex-direction: column; gap: 18px; }
     .primary-btn, .ghost-btn, .kakao-btn { padding: 15px; font-size: 16px; }
     .summary .k { min-width: 72px; font-size: 13px; }
     .summary .v { font-size: 13px; }
   }
+  @media (prefers-reduced-motion: reduce) { .step-3d-icon { animation:none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="topbar">
-    <span class="mark">▲</span><b id="brandName"></b>
-    <span class="r">맞춤 견적 요청서</span>
-  </div>
-  <div class="card">
-    <div class="card-head" id="cardHead"></div>
-    <div class="card-body" id="cardBody"></div>
-    <div class="card-foot" id="cardFoot"></div>
+  <div class="app-shell">
+    <aside class="promo">
+      <div class="promo-brand"><img class="promo-logo" src="img/brand/mongolia-milkyway-logo.png" alt="몽골리아 은하수"></div>
+      <span class="promo-eyebrow">YOUR JOURNEY, YOUR WAY</span>
+      <h2>나만의 몽골 여행,<br><em>취향대로 완성해드려요</em></h2>
+      <p class="promo-copy">원하는 여행의 모습을 알려주시면 몽골 전문가가 가장 잘 맞는 일정으로 설계합니다.</p>
+      <div class="promo-list">
+        <div class="promo-item"><span class="promo-icon" aria-hidden="true">01</span><div><b>맞춤 일정 제안</b><span>여행 목적과 인원에 맞춘 최적 일정</span></div></div>
+        <div class="promo-item"><span class="promo-icon" aria-hidden="true">02</span><div><b>전문 컨설팅</b><span>몽골 전문가가 직접 상담</span></div></div>
+        <div class="promo-item"><span class="promo-icon" aria-hidden="true">03</span><div><b>안전한 여행</b><span>검증된 가이드와 안전한 서비스</span></div></div>
+      </div>
+      <a class="promo-help" href="https://pf.kakao.com/_BSLaxl" target="_blank"><img class="help-badge" src="img/brand/kakaotalk-logo.svg" alt=""><div><strong>빠른 상담이 필요하신가요?</strong><small>카카오톡으로 바로 문의하세요</small></div><i>›</i></a>
+    </aside>
+    <main class="workspace">
+      <div class="topbar">
+        <span class="mark"><img src="img/brand/mongolia-milkyway-logo.png" alt=""></span><b id="brandName"></b>
+        <span class="r">맞춤 견적 요청서</span>
+      </div>
+      <div class="card">
+        <div class="card-head" id="cardHead"></div>
+        <div class="card-body" id="cardBody"></div>
+        <div class="card-foot" id="cardFoot"></div>
+      </div>
+    </main>
   </div>
 </div>
 
@@ -383,7 +440,7 @@ async function onSubmitRequest(data) {
 
 /* ═════════════ 상태 ═════════════ */
 const META = {
-  1: { icon: "👥", title: "여행 인원은 몇 명인가요?", sub: "함께 떠나실 인원을 알려주세요. (성인 1명 이상)" },
+  1: { icon: '<img class="step-3d-icon" src="img/step-icons/step-1-people.png" alt="">', title: "여행 인원은 몇 명인가요?", sub: "함께 떠나실 인원을 알려주세요. (성인 1명 이상)" },
   2: { icon: "📅", title: "언제 몽골로 떠나시나요?", sub: "몽골 입국일과 귀국일을 선택해 주세요." },
   3: { icon: "💍", title: "어떤 여행을 원하세요?", sub: "동행 형태와 관심 있는 여행 취향을 알려주세요." },
   4: { icon: "🗺️", title: "가고 싶은 몽골은 어디인가요?", sub: "가고 싶은 지역을 직접 고르거나 여행사에 선택을 맡겨주세요." },
@@ -584,19 +641,20 @@ function render() {
   let inner = "";
   if (S.step === 1) {
     const rows = [
-      ["adult", "성인", "만 12세 이상", S.adult],
-      ["child", "아동", "만 2~11세", S.child],
-      ["infant", "유아", "만 2세 미만", S.infant],
+      ["adult", "♙", "성인", "만 12세 이상", S.adult],
+      ["child", "☻", "아동", "만 2세~11세", S.child],
+      ["infant", "♙", "유아", "만 2세 미만", S.infant],
     ];
-    inner = rows.map(([k, l, sub, v]) => `
+    inner = rows.map(([k, icon, l, sub, v]) => `
       <div class="counter-row">
-        <div><div class="lbl">${l}</div><div class="sub">${sub}</div></div>
+        <div class="counter-label"><span class="counter-icon">${icon}</span><div><div class="lbl">${l}</div><div class="sub">${sub}</div></div></div>
         <div class="counter-ctrl">
           <button class="cbtn" data-cnt="${k}" data-d="-1" aria-label="${l} 1명 줄이기" ${v === 0 ? "disabled" : ""}>−</button>
           <div class="val">${v}</div>
+          <span class="unit">명</span>
           <button class="cbtn" data-cnt="${k}" data-d="1" aria-label="${l} 1명 늘리기">+</button>
         </div>
-      </div>`).join("");
+      </div>`).join("") + `<div class="tip-box"><b>♧ TIP</b><span>정확한 인원 정보는 맞춤 견적 제공에 도움이 됩니다.</span></div>`;
   } else if (S.step === 2) {
     const n = nights();
     const nTxt = n !== null && n > 0 ? `총 ${n}박 ${n + 1}일` : (n !== null && n <= 0 ? "귀국일은 입국일 이후로 선택해 주세요." : "");
@@ -721,7 +779,7 @@ function render() {
       ${inner}
     </div>`;
 
-  foot.innerHTML = `<button class="primary-btn" id="nextBtn" type="button">${S.step < 8 ? "다음" : "견적 요청하기"}</button>`;
+  foot.innerHTML = `<button class="primary-btn" id="nextBtn" type="button">${S.step < 8 ? "다음 단계로  ›" : "견적 요청하기"}</button>`;
   syncPrimary();
 
   /* ── 이벤트 연결 ── */
