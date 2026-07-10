@@ -9,164 +9,207 @@
 <script src="data.js"></script>
 <script src="presets.js"></script>
 <style>
-  :root { --accent:#06c4a0; --deep:#06c4a0; --deep2:#06c4a0; --soft:#eaf7f3;
-    --ink:#1b3531; --sub:#6b7c78; --gray:#97a5a1; --line:#e4ede9; --bg:#eef3f1; --red:#e2574c; }
+  :root {
+    --p:#06C4A0; --pd:#05A084; --pl:#E1F8F3; --pb:#9DE7D8;
+    --accent:var(--p); --deep:var(--p); --deep2:var(--pd); --soft:var(--pl);
+    --ink:#111827; --ink2:#1F2937; --sub:#667085; --gray:#98A2B3; --dim:#B6BCC6;
+    --line:#EAECF0; --line2:#EEF0F3; --hair:#F4F6F8; --bg:#F5F6F8; --red:#E07A7A;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Pretendard, system-ui, "Malgun Gothic", sans-serif; background: var(--bg); color: var(--ink); }
+  body { font-family: Pretendard, system-ui, "Malgun Gothic", sans-serif; background: var(--bg); color: var(--ink); -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:9px; height:9px; }
+  ::-webkit-scrollbar-thumb { background:#CBD1DA; border-radius:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
 
-  header { background:#fff; border-bottom:1px solid var(--line); height:60px; display:flex; align-items:center; gap:12px; padding:0 24px; position:sticky; top:0; z-index:20; }
-  header .logo { width:30px; height:30px; border-radius:8px; background:var(--deep); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:14px; }
-  header b { font-size:15.5px; font-weight:800; }
-  header .tag { font-size:12px; color:var(--gray); font-weight:600; }
-  header .sp { margin-left:auto; }
-  header a { text-decoration:none; }
-  header button { border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:9px; padding:9px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; margin-left:8px; }
-  header button.go { background:var(--deep); color:#fff; border-color:var(--deep); }
-  header button.map { background:var(--soft); color:var(--deep); border-color:transparent; }
+  /* ── 상단 툴바 ── */
+  header { background:#fff; border-bottom:1px solid var(--line); height:62px; display:flex; align-items:center; gap:10px; padding:0 22px; position:sticky; top:0; z-index:20; }
+  header .sp { flex:1; }
+  header button { height:38px; padding:0 14px; border:1px solid #E5E7EB; background:#fff; color:#475467; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
+  header button:hover { border-color:var(--dim); }
+  header button.go { padding:0 16px; border:none; background:var(--p); color:#fff; font-weight:700; }
+  header button.go:hover { background:var(--pd); }
 
-  /* 사이드바 */
+  /* ── 사이드바 ── */
   .shell { display:flex; min-height:100vh; }
-  .side { width:232px; flex:0 0 232px; background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; padding:20px 14px; position:sticky; top:0; height:100vh; z-index:25; }
-  .side-brand { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; }
-  .side-brand .logo2 { width:38px; height:38px; border-radius:11px; background:var(--deep); color:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; }
-  .side-brand b { font-size:15px; font-weight:800; display:block; line-height:1.2; }
-  .side-brand small { font-size:11.5px; color:var(--gray); font-weight:600; }
-  .menu-label { font-size:11px; font-weight:800; color:#b3bdba; letter-spacing:.05em; padding:16px 10px 7px; }
-  .mi { display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:11px; color:var(--sub); font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; margin-bottom:2px; transition:.12s; }
+  .side { width:236px; flex:0 0 236px; background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; padding:18px 16px; position:sticky; top:0; height:100vh; overflow-y:auto; z-index:25; }
+  .side-brand { display:flex; align-items:center; gap:11px; padding:6px 8px 16px; }
+  .side-brand .logo2 { width:38px; height:38px; flex:0 0 auto; border-radius:11px; background:var(--p); color:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800; }
+  .side-brand b { font-size:15px; font-weight:800; display:block; line-height:1.3; }
+  .side-brand small { font-size:11.5px; color:var(--gray); }
+  .menu-label { font-size:11px; font-weight:700; color:var(--dim); letter-spacing:.4px; padding:6px 12px 8px; }
+  nav { display:flex; flex-direction:column; gap:5px; }
+  .mi { display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px; color:#4B5563; font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; transition:.12s; }
   .mi svg { flex:0 0 auto; }
-  .mi:hover { background:var(--soft); color:var(--deep); }
-  .mi.on { background:var(--deep); color:#fff; }
+  .mi:hover { background:#F4F6F5; }
+  .mi.on { background:var(--p); color:#fff; font-weight:700; }
+  .side-foot { margin-top:auto; border-top:1px solid #F0F2F5; padding-top:12px; }
+  .side-user { display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:10px; background:#F7F8FA; }
+  .side-user .av { width:32px; height:32px; flex:0 0 auto; border-radius:50%; background:var(--p); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; }
+  .side-user b { font-size:13px; font-weight:700; color:#374151; display:block; line-height:1.3; }
+  .side-user small { font-size:11px; color:var(--gray); }
   .ecol { flex:1; min-width:0; display:flex; flex-direction:column; }
 
-  main { max-width:920px; margin:0 auto; padding:22px 22px 96px; width:100%; }
-  .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px 24px; margin-bottom:16px; }
-  .card h2 { font-size:16px; font-weight:800; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
-  .card h2 .n { width:22px; height:22px; border-radius:7px; background:var(--soft); color:var(--deep); font-size:12px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; }
-  .card .hint { font-size:12.5px; color:var(--gray); margin-bottom:16px; }
+  /* ── 스텝 탭 ── */
+  .stepwrap { background:#fff; border-bottom:1px solid var(--line); padding:20px 24px 18px; position:sticky; top:62px; z-index:18; }
+  .steps { position:relative; max-width:660px; margin:0 auto; }
+  .steps .track { position:absolute; top:16px; left:60px; right:60px; height:2px; background:#EEF1F4; }
+  .steps .fill { position:absolute; top:16px; left:60px; height:2px; background:var(--p); width:0; transition:width .3s; }
+  .steps .srow { position:relative; display:flex; justify-content:space-between; }
+  .step { width:120px; flex:none; display:flex; flex-direction:column; align-items:center; gap:9px; background:none; border:none; padding:0; cursor:pointer; font-family:inherit; }
+  .step .dot { width:30px; height:30px; border-radius:50%; border:3px solid #fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; background:#EEF1F4; color:var(--gray); transition:all .2s; }
+  .step .tx { font-size:12.5px; font-weight:600; color:var(--gray); white-space:nowrap; }
+  .step.done .dot { background:var(--pd); color:#fff; }
+  .step.done .tx { color:#475467; }
+  .step.on .dot { width:34px; height:34px; background:var(--p); color:#fff; outline:2px solid rgba(6,196,160,.35); }
+  .step.on .tx { font-weight:800; color:var(--ink); }
 
-  .row { display:grid; gap:12px; }
+  /* ── 본문 ── */
+  main { max-width:1000px; margin:0 auto; padding:26px 30px 110px; width:100%; }
+  .panel { display:none; }
+  .panel.on { display:block; }
+  .phead { margin-bottom:22px; }
+  .phead .kick { font-size:11.5px; font-weight:800; color:var(--p); letter-spacing:.6px; margin-bottom:5px; }
+  .phead h2 { font-size:21px; font-weight:800; letter-spacing:-.5px; color:var(--ink); }
+  .phead p { font-size:13.5px; color:var(--gray); margin-top:4px; }
+  .glabel { font-size:12px; font-weight:800; color:var(--gray); letter-spacing:.3px; margin-bottom:12px; }
+  .glabel.mt { margin-top:28px; }
+  .hint { font-size:12.5px; color:var(--gray); line-height:1.6; margin-bottom:16px; }
+  .hint b { color:var(--pd); }
+
+  .row { display:grid; gap:14px 16px; }
   .row.c2 { grid-template-columns:1fr 1fr; }
-  .row.c3 { grid-template-columns:1fr 1fr 1fr; }
+  .row.c3 { grid-template-columns:repeat(3,1fr); }
   label.f { display:block; }
-  label.f span { display:block; font-size:12.5px; font-weight:700; color:var(--sub); margin-bottom:6px; }
-  input, select, textarea { width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; font-family:inherit; color:var(--ink); outline:none; background:#fff; }
-  input:focus, select:focus, textarea:focus { border-color:var(--accent); }
-  textarea { resize:vertical; line-height:1.6; }
-  .calc-note { font-size:12px; color:var(--accent); font-weight:700; margin-top:6px; }
+  label.f span { display:block; font-size:12px; font-weight:700; color:var(--sub); margin-bottom:6px; }
+  label.f span span { display:inline; font-weight:500; color:var(--gray); }
+  input, select, textarea { width:100%; padding:10px 12px; border:1px solid #E5E7EB; border-radius:9px; font-size:14px; font-family:inherit; color:var(--ink); outline:none; background:#fff; }
+  input::placeholder, textarea::placeholder { color:var(--dim); }
+  input:focus, select:focus, textarea:focus { border-color:var(--p); box-shadow:0 0 0 3px rgba(6,196,160,.16); }
+  textarea { resize:vertical; line-height:1.7; }
+  .calc-note { font-size:12px; color:var(--pd); font-weight:700; margin-top:14px; }
 
   /* 코스 선택 */
-  .course-pick { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
-  .course-btn { border:1.5px solid var(--line); border-radius:12px; padding:14px 16px; cursor:pointer; text-align:left; background:#fff; transition:.12s; }
-  .course-btn:hover { border-color:var(--accent); }
-  .course-btn.sel { border-color:var(--accent); background:var(--soft); }
-  .course-btn b { font-size:14px; display:block; }
-  .course-btn small { font-size:12px; color:var(--sub); }
+  .course-pick { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; }
+  .course-btn { border:1px solid #EDEFF2; border-radius:11px; padding:12px 14px; cursor:pointer; text-align:left; background:#fff; transition:.12s; }
+  .course-btn:hover { background:#F5F7F8; }
+  .course-btn.sel { border:1.5px solid var(--p); background:var(--pl); }
+  .course-btn b { font-size:13.5px; font-weight:700; color:var(--ink2); display:block; }
+  .course-btn small { font-size:11.5px; color:var(--gray); margin-top:1px; display:block; }
 
-  /* 명소 체크 */
-  /* 이동강도 선택 */
+  /* 이동강도 */
   .intensity { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  .int-dots { display:flex; gap:6px; }
-  .int-dot { width:34px; height:34px; border-radius:9px; border:1.5px solid var(--line); background:#fff; color:var(--sub); font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; transition:.12s; }
-  .int-dot:hover { border-color:var(--accent); }
-  .int-dot.on { background:var(--deep); border-color:var(--deep); color:#fff; }
-  .int-desc { font-size:12.5px; color:var(--sub); font-weight:700; }
+  .int-dots { display:flex; gap:7px; }
+  .int-dot { width:34px; height:34px; border-radius:9px; border:1px solid #E5E7EB; background:#fff; color:var(--sub); font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; transition:.12s; }
+  .int-dot:hover { border-color:var(--p); }
+  .int-dot.on { background:var(--p); border-color:var(--p); color:#fff; }
+  .int-desc { font-size:12px; color:var(--gray); }
 
-  /* 대표 명소 — 카테고리별 그룹 */
-  .spot-cat { margin-top:16px; }
+  /* 대표 명소 */
+  .spot-cat { margin-top:20px; }
   .spot-cat:first-child { margin-top:0; }
-  .spot-cat-head { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:800; color:var(--deep); margin-bottom:9px; }
-  .spot-cat-head .ln { flex:1; height:1px; background:var(--line); }
-  .spot-cat-head .cc { font-size:11px; font-weight:700; color:var(--gray); }
-  .spot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:9px; }
-  .spot-chk { display:flex; align-items:center; gap:9px; border:1.5px solid var(--line); border-radius:11px; padding:11px 13px; cursor:pointer; transition:.12s; }
-  .spot-chk:hover { border-color:var(--accent); }
-  .spot-chk.on { border-color:var(--accent); background:var(--soft); }
-  .spot-chk .box { width:20px; height:20px; border-radius:6px; border:1.5px solid #c7d0cd; flex:0 0 auto; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; }
-  .spot-chk.on .box { background:var(--accent); border-color:var(--accent); }
-  .spot-chk b { font-size:13.5px; }
-  .spot-chk small { display:block; font-size:11px; color:var(--gray); }
-  .spot-order { margin-left:auto; font-size:11px; font-weight:800; color:var(--accent); }
+  .spot-cat-head { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:var(--gray); letter-spacing:.3px; margin-bottom:10px; }
+  .spot-cat-head .ln { flex:1; height:1px; background:var(--hair); }
+  .spot-cat-head .cc { font-size:11px; font-weight:700; color:var(--dim); }
+  .spot-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .spot-chk { display:flex; align-items:center; gap:9px; border:1px solid var(--line); border-radius:11px; padding:10px 11px; cursor:pointer; background:#fff; transition:.12s; }
+  .spot-chk:hover { border-color:var(--pb); }
+  .spot-chk.on { border:1.5px solid var(--p); background:var(--pl); padding:9.5px 10.5px; }
+  .spot-chk .box { width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:#EEF1F4; color:#C4CAD3; font-size:11px; font-weight:800; }
+  .spot-chk.on .box { background:var(--p); color:#fff; }
+  .spot-chk .nm { flex:1; min-width:0; }
+  .spot-chk b { font-size:13.5px; font-weight:700; color:var(--ink2); display:block; }
+  .spot-chk small { display:block; font-size:11px; color:var(--gray); margin-top:1px; }
 
-  /* 요금 옵션 */
-  .opt-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #f1f5f3; }
+  /* 요금 */
+  .seg { display:inline-flex; background:#F1F3F5; border-radius:9px; padding:3px; }
+  .seg button { padding:8px 14px; border:none; background:transparent; color:var(--gray); border-radius:7px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .seg button.on { background:#fff; color:var(--pd); }
+  .opt-list { border:1px solid var(--line2); border-radius:11px; overflow:hidden; }
+  .opt-row { display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--hair); }
   .opt-row:last-child { border-bottom:none; }
-  .opt-row .tgl { width:42px; height:24px; border-radius:99px; background:#d9e2df; position:relative; cursor:pointer; flex:0 0 auto; transition:.15s; }
-  .opt-row .tgl.on { background:var(--accent); }
-  .opt-row .tgl::after { content:""; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; transition:.15s; }
-  .opt-row .tgl.on::after { left:20px; }
-  .opt-row .lbl { font-size:14px; font-weight:600; }
-  .opt-row .amt { margin-left:auto; font-weight:700; font-size:13.5px; }
-  .opt-row .amt.plus { color:var(--accent); } .opt-row .amt.minus { color:var(--red); }
-  .opt-row .calc { font-size:11.5px; color:var(--gray); width:120px; text-align:right; }
-  .opt-row .del { border:none; background:none; color:var(--gray); cursor:pointer; font-size:16px; }
+  .opt-row .lbl { flex:1; min-width:0; font-size:13.5px; font-weight:600; color:var(--ink2); }
+  .opt-row .bal { font-size:13px; color:var(--sub); text-align:right; }
+  .opt-row .del { flex:0 0 auto; width:26px; height:26px; border:none; background:transparent; color:#C4CAD3; cursor:pointer; font-size:15px; font-family:inherit; }
+  .opt-row .del:hover { color:var(--red); }
+  .empty { font-size:12.5px; color:var(--gray); padding:16px 14px; text-align:center; }
+
+  .bal-head, .bal-row { display:grid; grid-template-columns:88px 1fr 1fr 40px; align-items:center; }
+  .bal-table { border:1px solid var(--line2); border-radius:12px; overflow:hidden; }
+  .bal-head { background:#F8FAFB; font-size:11.5px; font-weight:700; color:var(--gray); }
+  .bal-head div { padding:10px 14px; }
+  .bal-row { border-top:1px solid var(--hair); }
+  .bal-row .pax { justify-self:start; margin:0 14px; font-size:12px; font-weight:700; color:var(--pd); background:var(--pl); border-radius:7px; padding:4px 9px; }
+  .bal-row label { padding:6px 12px; }
+  .bal-row label b { display:none; }
+  .bal-row label input { padding:8px 10px; border-color:#E9EBEF; border-radius:8px; font-size:13.5px; }
+  .bal-row .del { border:none; background:transparent; color:#C4CAD3; cursor:pointer; font-size:15px; font-family:inherit; justify-self:center; }
+  .bal-row .del:hover { color:var(--red); }
+
   .add-opt { display:flex; gap:8px; margin-top:12px; }
   .add-opt input { flex:1; }
-  .add-opt input.amt-in { max-width:120px; }
-  .add-opt button { border:1.5px dashed var(--accent); color:var(--deep); background:#fff; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
-  .sec-lbl { font-size:13px; font-weight:800; color:var(--deep); margin:20px 0 8px; }
-  .opt-row .pax { flex:0 0 auto; font-size:13px; font-weight:800; color:var(--deep); background:var(--soft); border-radius:8px; padding:4px 10px; }
-  .bal-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f3; }
-  .bal-row:last-child { border-bottom:none; }
-  .bal-row .pax { flex:0 0 auto; font-size:13px; font-weight:800; color:var(--deep); background:var(--soft); border-radius:8px; padding:6px 11px; }
-  .bal-row label { flex:1; display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--sub); }
-  .bal-row label b { flex:0 0 auto; font-weight:700; }
-  .bal-row label input { flex:1; min-width:0; }
-  .bal-row .del { flex:0 0 auto; border:none; background:none; color:var(--gray); cursor:pointer; font-size:16px; }
-  .opt-row .bal { margin-left:auto; font-weight:800; font-size:14px; color:var(--ink); }
-  .opt-row .bal small { font-size:11px; color:var(--gray); font-weight:600; margin-left:2px; }
-
-  .total-bar { display:grid; grid-template-columns:repeat(4,1fr); gap:0; border-radius:12px; overflow:hidden; margin-top:16px; }
-  .total-bar .t { color:#fff; text-align:center; padding:13px 6px; }
-  .total-bar .t span { display:block; font-size:11px; opacity:.85; margin-bottom:4px; }
-  .total-bar .t b { font-size:18px; font-weight:800; }
-  .total-bar .t:nth-child(1){background:#06c4a0}.total-bar .t:nth-child(2){background:#257c71}
-  .total-bar .t:nth-child(3){background:#06c4a0}.total-bar .t:nth-child(4){background:#06c4a0}
+  .add-opt input.amt-in { max-width:130px; }
+  .add-opt button { height:40px; padding:0 16px; border:1px dashed var(--pb); background:#F8FAF9; color:var(--pd); border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .add-opt button:hover { background:var(--pl); }
+  .sec-lbl { font-size:12px; font-weight:700; color:var(--sub); margin:22px 0 8px; }
+  .sec-lbl span { font-weight:500; color:var(--gray); }
 
   /* 일정 편집 */
-  .day-edit { border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:10px; background:#fff; transition:box-shadow .12s, border-color .12s; }
+  .day-edit { border:1px solid var(--line2); border-radius:13px; padding:15px 16px; margin-bottom:12px; background:#FCFDFD; transition:box-shadow .12s, border-color .12s; }
   .day-edit.dragging { opacity:.45; }
-  .day-edit.drag-over { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent) inset; }
-  .day-edit .dh { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .day-edit .dh .drag-handle { cursor:grab; color:#c2ccc9; font-size:17px; line-height:1; padding:0 2px; user-select:none; flex:0 0 auto; }
+  .day-edit.drag-over { border-color:var(--p); box-shadow:0 0 0 2px var(--p) inset; }
+  .day-edit .dh { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .day-edit .dh .drag-handle { cursor:grab; color:#C4CAD3; font-size:15px; line-height:1; padding:0 2px; user-select:none; flex:0 0 auto; }
   .day-edit .dh .drag-handle:active { cursor:grabbing; }
-  .day-edit .dh .badge { background:var(--deep); color:#fff; border-radius:7px; padding:4px 10px; font-size:12.5px; font-weight:800; }
-  .day-edit .dh input.dest { flex:1; font-weight:700; }
-  .day-edit .dh input.move { max-width:150px; }
-  .day-edit .snip-row { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
-  .day-edit .snip-sel { width:auto; min-width:180px; padding:8px 12px; border:1.5px solid var(--accent); border-radius:9px; background:var(--soft); color:var(--deep); font-weight:700; font-size:12.5px; cursor:pointer; }
-  .day-edit .snip-hint { font-size:11px; color:var(--gray); }
-  .day-edit textarea.items { min-height:96px; font-size:13px; }
-  .day-edit .sub { font-size:11.5px; color:var(--gray); margin:6px 0; }
-  .day-edit .row.c2 input { font-size:13px; }
-  .day-edit .dh .day-del { border:none; background:#f6eeee; color:#c96a5e; width:28px; height:28px; border-radius:8px; font-size:14px; cursor:pointer; flex:0 0 auto; font-family:inherit; }
-  .day-edit .dh .day-del:hover { background:#f3d9d5; }
-  .day-add { width:100%; padding:13px; border:1.5px dashed var(--accent); background:#fff; color:var(--deep); border-radius:12px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; }
-  .day-add:hover { background:var(--soft); }
+  .day-edit .dh .badge { background:var(--p); color:#fff; border-radius:7px; padding:4px 10px; font-size:12px; font-weight:800; white-space:nowrap; }
+  .day-edit .dh input.dest { flex:1; padding:8px 11px; border-radius:8px; font-weight:700; }
+  .day-edit .dh input.move { max-width:130px; padding:8px 11px; border-radius:8px; font-size:13px; color:var(--sub); }
+  .day-edit .dh .day-del { border:1px solid #F0D2D2; background:#fff; color:var(--red); width:30px; height:30px; border-radius:8px; font-size:15px; cursor:pointer; flex:0 0 auto; font-family:inherit; }
+  .day-edit .dh .day-del:hover { background:#FDF5F5; }
+  .day-edit .snip-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .day-edit .snip-sel { width:250px; padding:8px 11px; border:1px solid var(--p); border-radius:8px; background:#fff; color:var(--ink); font-weight:600; font-size:13px; cursor:pointer; }
+  .day-edit .snip-hint { font-size:12px; color:var(--gray); }
+  .day-edit textarea.items { min-height:96px; font-size:13px; margin-bottom:10px; }
+  .day-edit .sub { display:none; }
+  .day-edit .row.c2 { gap:10px; }
+  .day-edit .row.c2 input { padding:9px 11px; border-radius:8px; font-size:13px; }
+  .day-add { width:100%; height:44px; border:1px dashed var(--pb); background:#F8FAF9; color:var(--pd); border-radius:11px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .day-add:hover { background:var(--pl); }
 
-  .bottom { position:fixed; left:232px; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); padding:14px 22px; display:flex; gap:10px; justify-content:center; z-index:15; }
-  @media (max-width:820px){ .side{display:none} .bottom{left:0} }
-  .bottom button { padding:14px 28px; border-radius:12px; font-size:15px; font-weight:800; border:none; cursor:pointer; font-family:inherit; }
-  .bottom .preview { background:var(--deep); color:#fff; }
-  .bottom .mapbtn { background:var(--soft); color:var(--deep); }
-  .bottom .reset { background:#f2f5f4; color:var(--sub); }
-  .bottom .publish { background:#16261f; color:#fff; }
-  .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--deep2); color:#fff; padding:12px 22px; border-radius:12px; font-size:14px; font-weight:600; opacity:0; transition:.25s; z-index:30; pointer-events:none; }
+  /* ── 하단 고정 바 ── */
+  .bottom { position:fixed; left:236px; right:0; bottom:0; height:72px; background:#fff; border-top:1px solid var(--line); padding:0 24px; display:flex; align-items:center; gap:16px; z-index:15; }
+  .bottom .sum { display:flex; align-items:center; gap:12px; }
+  .bottom .sum .ic { width:38px; height:38px; flex:0 0 auto; border-radius:10px; background:var(--pl); color:var(--pd); display:flex; align-items:center; justify-content:center; }
+  .bottom .sum .cap { font-size:11.5px; color:var(--gray); line-height:1.25; }
+  .bottom .sum .amt { font-size:19px; font-weight:800; color:var(--pd); letter-spacing:-.5px; line-height:1.25; }
+  .bottom .sum .amt i { font-style:normal; font-size:12px; color:var(--gray); font-weight:600; }
+  .bottom .sp { flex:1; }
+  .bottom button { height:42px; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:8px; }
+  .bottom .prev { padding:0 18px; border:1px solid #E5E7EB; background:#fff; color:#475467; }
+  .bottom .prev:hover { border-color:var(--dim); }
+  .bottom .next { padding:0 24px; border:none; background:var(--p); color:#fff; font-weight:700; }
+  .bottom .next:hover { background:var(--pd); }
+  .bottom .publish { padding:0 22px; border:none; background:var(--p); color:#fff; font-weight:800; }
+  .bottom .publish:hover { background:var(--pd); }
+  .bottom button[hidden] { display:none; }
+  @media (max-width:900px){ .side{display:none} .bottom{left:0} .row.c3{grid-template-columns:1fr 1fr} .spot-grid{grid-template-columns:1fr 1fr} }
+
+  .toast { position:fixed; bottom:88px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:12px 22px; border-radius:12px; font-size:14px; font-weight:600; opacity:0; transition:.25s; z-index:30; pointer-events:none; }
   .toast.on { opacity:1; }
 
   /* 발행 결과: 고객 링크 패널 */
-  .linkmask { position:fixed; inset:0; background:rgba(20,40,36,.45); z-index:60; display:none; align-items:center; justify-content:center; padding:20px; }
+  .linkmask { position:fixed; inset:0; background:rgba(16,24,40,.32); z-index:60; display:none; align-items:center; justify-content:center; padding:20px; }
   .linkmask.on { display:flex; }
-  .linkbox { background:#fff; border-radius:18px; max-width:480px; width:100%; padding:26px 24px; box-shadow:0 20px 60px rgba(20,40,36,.25); }
+  .linkbox { background:#fff; border-radius:18px; max-width:480px; width:100%; padding:26px 24px; box-shadow:0 20px 60px rgba(16,24,40,.25); }
   .linkbox h3 { font-size:18px; font-weight:800; margin-bottom:4px; }
   .linkbox p { font-size:13px; color:var(--sub); margin-bottom:16px; line-height:1.6; }
   .linkbox .urlrow { display:flex; gap:8px; }
-  .linkbox .urlrow input { flex:1; padding:12px 13px; border:1.5px solid var(--line); border-radius:10px; font-size:13px; font-family:inherit; color:var(--ink); background:#f7f8fa; }
-  .linkbox .urlrow button { padding:0 16px; border:none; border-radius:10px; background:var(--deep); color:#fff; font-weight:800; font-size:13.5px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .linkbox .urlrow input { flex:1; padding:12px 13px; border-radius:10px; font-size:13px; background:#F7F8FA; }
+  .linkbox .urlrow button { padding:0 16px; border:none; border-radius:10px; background:var(--p); color:#fff; font-weight:800; font-size:13.5px; cursor:pointer; font-family:inherit; white-space:nowrap; }
   .linkbox .acts { display:flex; gap:8px; margin-top:14px; }
   .linkbox .acts a, .linkbox .acts button { flex:1; text-align:center; padding:13px; border-radius:11px; font-size:14px; font-weight:800; text-decoration:none; cursor:pointer; border:none; font-family:inherit; }
   .linkbox .acts .kakao { background:#FEE500; color:#3C1E1E; }
-  .linkbox .acts .open { background:var(--soft); color:var(--deep); }
-  .linkbox .acts .close { background:#f2f5f4; color:var(--sub); }
+  .linkbox .acts .open { background:var(--pl); color:var(--pd); }
+  .linkbox .acts .close { background:#F2F4F5; color:var(--sub); }
 </style>
 </head>
 <body>
@@ -210,118 +253,171 @@
         리소스 관리
       </a>
     </nav>
+    <div class="side-foot">
+      <div class="side-user">
+        <span class="av" id="sideAv">볼</span>
+        <div><b id="sideName">담당자</b><small>담당 매니저</small></div>
+      </div>
+    </div>
   </aside>
   <div class="ecol">
 <header>
-  <span class="logo">▲</span><b>견적서 만들기</b><span class="tag">몽골리아 은하수</span>
   <span class="sp"></span>
-  <button class="map" id="hMapBtn">🗺 지도</button>
-  <button class="go" id="hGoBtn">견적서 미리보기 →</button>
+  <button id="resetBtn">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+    초기화
+  </button>
+  <button id="mapBtn">지도 미리보기</button>
+  <button id="previewBtn">견적서 미리보기</button>
+  <button class="go" id="publishBtn">저장 · 고객 링크</button>
 </header>
 
-<main>
-  <!-- 코스 -->
-  <div class="card">
-    <h2><span class="n">1</span>코스 불러오기</h2>
-    <div class="hint">코스를 고르면 일정·대표 명소·기본 요금이 한 번에 채워집니다. 이후 아래에서 자유롭게 수정하세요.</div>
-    <div class="course-pick" id="coursePick"></div>
-
-    <!-- 다른 고객 견적 복제 -->
-    <div style="margin-top:18px; border-top:1px solid var(--line); padding-top:16px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-        <div class="hint" style="margin:0; flex:1; min-width:220px;">이미 다른 고객에게 만든 견적을 그대로 복제합니다. <b style="color:var(--deep)">일정·명소·요금·차량·혜택</b>이 모두 복사되고, <b style="color:var(--deep)">고객명·날짜·인원</b>은 지금 값 그대로 유지됩니다.</div>
-        <button type="button" id="cloneBtn" style="border:1.5px solid var(--line); background:var(--soft); color:var(--deep); border-radius:10px; padding:10px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;">📋 다른 견적에서 복제</button>
-      </div>
-      <div id="clonePick" style="display:none; margin-top:12px; max-height:300px; overflow:auto; gap:8px;"></div>
-    </div>
+<div class="stepwrap">
+  <div class="steps">
+    <div class="track"></div>
+    <div class="fill" id="stepFill"></div>
+    <div class="srow" id="stepRow"></div>
   </div>
+</div>
 
-  <!-- 기본 정보 -->
-  <div class="card">
-    <h2><span class="n">2</span>기본 정보</h2>
+<main>
+  <!-- STEP 1 · 기본 정보 · 코스 -->
+  <section class="panel" data-s="0">
+    <div class="phead">
+      <div class="kick">STEP 1 / 5</div>
+      <h2>기본 정보 · 코스 불러오기</h2>
+      <p>고객·일정·항공 정보를 입력하고 저장된 코스를 불러옵니다.</p>
+    </div>
+
+    <div class="glabel">기본 정보</div>
     <div class="row c3">
       <label class="f"><span>고객명</span><input id="f_customer" placeholder="예) 강민지"></label>
       <label class="f"><span>여행지</span><input id="f_destination" placeholder="예) 고비"></label>
       <label class="f"><span>문서번호</span><input id="f_quoteNo"></label>
-    </div>
-    <div class="row c3" style="margin-top:12px">
       <label class="f"><span>몽골 입국일</span><input type="date" id="f_depart"></label>
       <label class="f"><span>귀국일</span><input type="date" id="f_return"></label>
       <label class="f"><span>인원(명)</span><input type="number" id="f_pax" min="1" value="6"></label>
-    </div>
-    <div class="row c3" style="margin-top:12px">
       <label class="f"><span>차량</span><input id="f_vehicle" placeholder="예) 하이에이스"></label>
       <label class="f"><span>항공 IN</span><input id="f_flightIn" placeholder="예) 08/06 - 04:30"></label>
       <label class="f"><span>항공 OUT</span><input id="f_flightOut" placeholder="예) 08/10 - 18:15"></label>
-    </div>
-    <div class="row c3" style="margin-top:12px">
       <label class="f"><span>담당자</span><input id="f_manager" placeholder="예) 볼라"></label>
       <label class="f"><span>픽업</span><input id="f_pickup" placeholder="비우면 '항공 IN + 공항' 자동"></label>
       <label class="f"><span>드랍</span><input id="f_drop" placeholder="비우면 '항공 OUT + 공항' 자동"></label>
     </div>
-    <div class="row c3" style="margin-top:12px">
-      <label class="f"><span>인원 표기 (선택)</span><input id="f_paxNote" placeholder="예) 6인 (남2/여4) — 비우면 '6인'"></label>
-      <label class="f" style="grid-column:span 2"><span>이동강도 (난이도) — 견적서에 점 5개로 표시</span>
+    <div class="row c3" style="margin-top:14px">
+      <label class="f"><span>인원 표기 <span>(비우면 'N인')</span></span><input id="f_paxNote" placeholder="예) 6인 (남2/여4)"></label>
+      <label class="f" style="grid-column:span 2"><span>여행강도 (난이도) <span>· 견적서에 점 5개로 표시</span></span>
         <div class="intensity"><div class="int-dots" id="intDots"></div><span class="int-desc" id="intDesc"></span></div>
       </label>
     </div>
     <div class="calc-note" id="nightsNote"></div>
-  </div>
 
-  <!-- 대표 명소 -->
-  <div class="card">
-    <h2><span class="n">3</span>대표 명소</h2>
-    <div class="hint">체크한 명소가 견적서 "대표 명소" 페이지와 지도에 순서대로 나옵니다. 지역(카테고리)별로 묶여 있어요. 설명·몽골어 지명은 자동으로 채워집니다.</div>
-    <div id="spotGroups"></div>
-  </div>
+    <div class="glabel mt">코스 불러오기</div>
+    <div class="hint">코스를 고르면 일정·대표 명소·기본 요금이 한 번에 채워집니다. 이후 각 단계에서 자유롭게 수정하세요.</div>
+    <div class="course-pick" id="coursePick"></div>
 
-  <!-- 요금 -->
-  <div class="card">
-    <h2><span class="n">4</span>요금 (1인 기준)</h2>
-    <div class="hint">예약금은 고정, 잔금은 인원별로 입력합니다. 금액은 원 단위로 넣으면 견적서엔 "만원"으로 표시됩니다.</div>
-    <label class="f" style="max-width:260px"><span>예약금 (1인)</span><input type="number" id="f_deposit" step="1000"></label>
+    <!-- 다른 고객 견적 복제 -->
+    <div style="margin-top:18px; border-top:1px solid var(--hair); padding-top:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div class="hint" style="margin:0; flex:1; min-width:220px;">이미 다른 고객에게 만든 견적을 그대로 복제합니다. <b>일정·명소·요금·차량·혜택</b>이 모두 복사되고, <b>고객명·날짜·인원</b>은 지금 값 그대로 유지됩니다.</div>
+        <button type="button" id="cloneBtn" style="height:38px; border:1px dashed var(--pb); background:#F8FAF9; color:var(--pd); border-radius:9px; padding:0 15px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap;">다른 견적에서 복제</button>
+      </div>
+      <div id="clonePick" style="display:none; margin-top:12px; max-height:300px; overflow:auto; gap:8px;"></div>
+    </div>
+  </section>
 
-    <div class="sec-lbl">추가 및 할인 사항 <span style="font-weight:500;color:var(--gray)">· 견적서에 안내로 표시 (자동계산 없음)</span></div>
-    <div id="optList"></div>
+  <!-- STEP 2 · 일자별 일정 -->
+  <section class="panel" data-s="1">
+    <div class="phead">
+      <div class="kick">STEP 2 / 5</div>
+      <h2>일자별 일정</h2>
+      <p>일차별 일정을 구성하고 프리셋으로 빠르게 채웁니다.</p>
+    </div>
+    <div class="hint">목적지·이동·세부 일정을 자유롭게 수정하세요. (한 줄에 하나씩. "*"로 시작하면 강조, "("로 시작하면 회색)</div>
+    <div id="dayCheck" style="font-size:12.5px; margin-bottom:12px"></div>
+    <div id="dayList"></div>
+  </section>
+
+  <!-- STEP 3 · 요금 -->
+  <section class="panel" data-s="2">
+    <div class="phead">
+      <div class="kick">STEP 3 / 5</div>
+      <h2>요금 (1인 기준)</h2>
+      <p>인원·숙소 타입별 단가와 추가 옵션을 설정합니다.</p>
+    </div>
+
+    <div style="display:flex; gap:22px; align-items:flex-end; flex-wrap:wrap; margin-bottom:20px;">
+      <label class="f"><span>예약금 (1인)</span><input type="number" id="f_deposit" step="1000" style="width:170px"></label>
+      <div>
+        <span style="font-size:12px;font-weight:700;color:var(--sub);display:block;margin-bottom:6px;">하단 총액 계산 기준 숙소</span>
+        <div class="seg" id="roomSeg">
+          <button type="button" data-r="eco" class="on">실속형</button>
+          <button type="button" data-r="full">풀패키지</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-lbl">추가 및 할인 사항 <span>· 견적서에 안내로 표시 (자동계산 없음)</span></div>
+    <div class="opt-list" id="optList"></div>
     <div class="add-opt">
       <input id="newOptLabel" placeholder="항목 (예: 게르 업그레이드)">
       <input id="newOptCalc" placeholder="금액 안내 (예: 50,000원*1박)">
-      <button id="addOptBtn">＋ 추가</button>
+      <button id="addOptBtn">＋ 옵션 추가</button>
     </div>
 
-    <div class="sec-lbl">인원별 잔금 (1인 기준) <span style="font-weight:500;color:var(--gray)">· 실속형=일반게르 / 풀패키지=고급게르</span></div>
-    <div id="balList"></div>
+    <div class="sec-lbl">인원별 잔금 (1인 기준) <span>· 실속형=일반게르 / 풀패키지=고급게르</span></div>
+    <div class="bal-table">
+      <div class="bal-head"><div>인원</div><div>실속형</div><div>풀패키지</div><div></div></div>
+      <div id="balList"></div>
+    </div>
     <div class="add-opt">
-      <input class="amt-in" id="newBalPax" type="number" placeholder="인원" style="max-width:80px">
+      <input class="amt-in" id="newBalPax" type="number" placeholder="인원" style="max-width:88px">
       <input class="amt-in" id="newBalEco" type="number" placeholder="실속형(원)">
       <input class="amt-in" id="newBalFull" type="number" placeholder="풀패키지(원)">
-      <button id="addBalBtn">＋ 추가</button>
+      <button id="addBalBtn">＋ 인원 추가</button>
     </div>
-  </div>
+  </section>
 
-  <!-- 안내 문구 -->
-  <div class="card">
-    <h2><span class="n">5</span>혜택 · 이벤트 · 비고</h2>
+  <!-- STEP 4 · 대표 명소 -->
+  <section class="panel" data-s="3">
+    <div class="phead">
+      <div class="kick">STEP 4 / 5</div>
+      <h2>대표 명소</h2>
+      <p>선택 순서대로 지도·견적서에 표시됩니다.</p>
+    </div>
+    <div class="hint">지역(카테고리)별로 묶여 있어요. 설명·몽골어 지명은 자동으로 채워집니다.</div>
+    <div id="spotGroups"></div>
+  </section>
+
+  <!-- STEP 5 · 혜택 · 비고 -->
+  <section class="panel" data-s="4">
+    <div class="phead">
+      <div class="kick">STEP 5 / 5</div>
+      <h2>혜택 · 이벤트 · 비고</h2>
+      <p>제공 혜택과 이벤트, 비고를 안내합니다.</p>
+    </div>
     <div class="hint">견적서 기본 정보 표에 그대로 표시됩니다. 비우면 견적서에 빈 칸으로 나옵니다.</div>
-    <label class="f" style="margin-bottom:12px"><span>여행사 혜택</span><input id="f_benefits" placeholder="예) 판초 1인1개, 캠핑의자 세트, 낙타양말 증정"></label>
-    <label class="f" style="margin-bottom:12px"><span>참여 가능 이벤트 <span style="font-weight:500;color:var(--gray)">· 한 줄에 하나씩</span></span><textarea id="f_events" style="min-height:90px" placeholder="❤️1번: 후기이벤트 참여시 1인 1만원할인&#10;❤️2번: 인스타 후기 작성시 1인 2만원할인"></textarea></label>
+    <label class="f" style="margin-bottom:16px"><span>여행사 혜택</span><input id="f_benefits" placeholder="예) 판초 1인1개, 캠핑의자 세트, 낙타양말 증정"></label>
+    <label class="f" style="margin-bottom:16px"><span>참여 가능 이벤트 <span>(한 줄에 하나씩)</span></span><textarea id="f_events" rows="5" placeholder="❤️1번: 후기이벤트 참여시 1인 1만원할인&#10;❤️2번: 인스타 후기 작성시 1인 2만원할인"></textarea></label>
     <label class="f"><span>비고</span><input id="f_remark" placeholder="특이사항 (비우면 '-')"></label>
-  </div>
-
-  <!-- 일정 -->
-  <div class="card">
-    <h2><span class="n">6</span>일자별 일정</h2>
-    <div class="hint">코스에서 채워진 일정입니다. 목적지·이동·세부 일정을 자유롭게 수정하세요. (한 줄에 하나씩. "*"로 시작하면 강조, "("로 시작하면 회색)</div>
-    <div id="dayCheck" style="font-size:12.5px; margin-bottom:12px"></div>
-    <div id="dayList"></div>
-  </div>
+  </section>
 </main>
 
 <div class="bottom">
-  <button class="reset" id="resetBtn">초기화</button>
-  <button class="mapbtn" id="mapBtn">🗺 지도 미리보기</button>
-  <button class="preview" id="previewBtn">📄 견적서 미리보기</button>
-  <button class="publish" id="publishBtn">📤 저장 · 고객 링크 만들기</button>
+  <div class="sum">
+    <span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+    <div>
+      <div class="cap" id="totalCap">예상 총액</div>
+      <div class="amt" id="totalAmt">—</div>
+    </div>
+  </div>
+  <span class="sp"></span>
+  <button class="prev" id="stepPrev">← 이전</button>
+  <button class="next" id="stepNext">다음 →</button>
+  <button class="publish" id="publishBtn2" hidden>
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    저장 · 고객 링크 생성
+  </button>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -365,6 +461,7 @@ let ST = {
   spots: [],              // 선택된 명소 이름(순서 유지)
   days: [],               // 일정
   intensity: 3,
+  roomType: "eco",        // 하단 총액 표시 기준 (eco=실속형 / full=풀패키지) — 견적서에는 반영되지 않음
 };
 
 /* 관리자에서 넘어온 고객 정보 반영 */
@@ -494,6 +591,8 @@ function updateNights() {
 const bind = (id, key, num) => $(id).oninput = e => {
   ST[key] = num ? (parseInt(e.target.value) || 0) : e.target.value;
   if (key === "depart" || key === "return_") updateNights();
+  if (key === "pax" || key === "deposit") renderTotal();
+  if (key === "manager") renderManagerChip();
 };
 bind("f_customer","customer"); bind("f_destination","destination"); bind("f_quoteNo","quoteNo");
 bind("f_depart","depart"); bind("f_return","return_"); bind("f_pax","pax",true);
@@ -508,9 +607,8 @@ function renderSpots() {
   const chip = (name, s) => {
     const idx = ST.spots.indexOf(name), on = idx >= 0;
     return `<div class="spot-chk ${on?"on":""}" data-s="${esc(name)}">
-      <div class="box">${on?"✓":""}</div>
-      <div><b>${esc(name)}</b><small>${esc(s.short||"")}</small></div>
-      ${on?`<span class="spot-order">${idx+1}</span>`:""}
+      <div class="box">${on?idx+1:""}</div>
+      <div class="nm"><b>${esc(name)}</b><small>${esc(s.short||"")}</small></div>
     </div>`;
   };
   // 카테고리(지역) 순서: 명소관리에서 정한 순서 우선, 나머지·미분류는 뒤로
@@ -541,7 +639,7 @@ function renderSpots() {
 /* ── 추가 및 할인 사항 (표시용 {label, calc}) ── */
 function renderOptions() {
   if (!ST.options.length) {
-    $("optList").innerHTML = `<div style="font-size:12.5px;color:var(--gray);padding:6px 0">등록된 추가·할인 안내가 없습니다.</div>`;
+    $("optList").innerHTML = `<div class="empty">등록된 추가·할인 안내가 없습니다.</div>`;
   } else {
     $("optList").innerHTML = ST.options.map((o, i) => `
       <div class="opt-row" data-i="${i}">
@@ -567,8 +665,9 @@ $("addOptBtn").onclick = () => {
 /* ── 인원별 잔금 ({pax, economy, full}) ── */
 function renderBalances() {
   ST.balances = ST.balances.slice().sort((a,b) => a.pax - b.pax);
+  renderTotal();
   if (!ST.balances.length) {
-    $("balList").innerHTML = `<div style="font-size:12.5px;color:var(--gray);padding:6px 0">인원별 잔금을 추가하세요.</div>`;
+    $("balList").innerHTML = `<div class="empty">인원별 잔금을 추가하세요.</div>`;
     return;
   }
   $("balList").innerHTML = ST.balances.map((b, i) => `
@@ -580,8 +679,8 @@ function renderBalances() {
     </div>`).join("");
   $("balList").querySelectorAll(".bal-row").forEach(row => {
     const i = +row.dataset.i;
-    row.querySelector(".be").oninput = e => { ST.balances[i].economy = parseInt(e.target.value) || 0; };
-    row.querySelector(".bf").oninput = e => { ST.balances[i].full = parseInt(e.target.value) || 0; };
+    row.querySelector(".be").oninput = e => { ST.balances[i].economy = parseInt(e.target.value) || 0; renderTotal(); };
+    row.querySelector(".bf").oninput = e => { ST.balances[i].full = parseInt(e.target.value) || 0; renderTotal(); };
     row.querySelector(".del").onclick = () => { ST.balances.splice(i, 1); renderBalances(); };
   });
 }
@@ -721,7 +820,64 @@ function renderIntensity() {
   });
 }
 
-function renderAll() { renderIntensity(); renderSpots(); renderOptions(); renderBalances(); renderDays(); }
+/* ── 스텝 마법사 ── */
+const STEP_LABELS = ["기본정보 · 코스", "일자별 일정", "요금", "대표 명소", "혜택 · 비고"];
+let curStep = 0;
+
+$("stepRow").innerHTML = STEP_LABELS.map((label, i) =>
+  `<button type="button" class="step" data-s="${i}"><span class="dot">${i+1}</span><span class="tx">${label}</span></button>`).join("");
+
+function setStep(i) {
+  curStep = Math.max(0, Math.min(STEP_LABELS.length - 1, i));
+  document.querySelectorAll("main .panel").forEach(p => p.classList.toggle("on", +p.dataset.s === curStep));
+  document.querySelectorAll(".step").forEach(el => {
+    const s = +el.dataset.s;
+    el.classList.toggle("on", s === curStep);
+    el.classList.toggle("done", s < curStep);
+    el.querySelector(".dot").textContent = s < curStep ? "✓" : String(s + 1);
+  });
+  const frac = curStep / (STEP_LABELS.length - 1);
+  $("stepFill").style.width = `calc((100% - 120px) * ${frac})`;
+  const last = curStep === STEP_LABELS.length - 1;
+  $("stepNext").hidden = last;
+  $("publishBtn2").hidden = !last;
+  $("stepPrev").disabled = curStep === 0;
+  $("stepPrev").style.opacity = curStep === 0 ? ".45" : "1";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+$("stepRow").querySelectorAll(".step").forEach(el => el.onclick = () => setStep(+el.dataset.s));
+$("stepPrev").onclick = () => setStep(curStep - 1);
+$("stepNext").onclick = () => setStep(curStep + 1);
+
+/* ── 하단 실시간 총액 ── */
+function renderTotal() {
+  const eco = ST.roomType !== "full";
+  const b = ST.balances.find(x => x.pax === ST.pax);
+  $("totalCap").textContent = `${ST.pax}인 · ${eco ? "실속형" : "풀패키지"} 기준 예상 총액`;
+  if (!b) {
+    $("totalAmt").innerHTML = `—<i> · ${ST.pax}인 잔금 미입력</i>`;
+    return;
+  }
+  const per = (ST.deposit || 0) + (eco ? balEco(b) : balFull(b));
+  $("totalAmt").innerHTML = `${(per * ST.pax).toLocaleString("ko-KR")}<i>원 · 1인 ${per.toLocaleString("ko-KR")}원</i>`;
+}
+$("roomSeg").querySelectorAll("button").forEach(el => el.onclick = () => {
+  ST.roomType = el.dataset.r;
+  $("roomSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === el));
+  renderTotal();
+});
+
+/* 사이드바 담당자 표시 */
+function renderManagerChip() {
+  const name = (ST.manager || "").trim();
+  $("sideName").textContent = name || "담당자";
+  $("sideAv").textContent = name ? name.slice(0, 1) : "매";
+}
+
+function renderAll() { renderIntensity(); renderSpots(); renderOptions(); renderBalances(); renderDays(); renderManagerChip(); syncRoomSeg(); }
+function syncRoomSeg() {
+  $("roomSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.r === (ST.roomType || "eco")));
+}
 
 /* 날짜 포맷 헬퍼 */
 const fmtDot = d => `${d.getFullYear()}. ${String(d.getMonth()+1).padStart(2,"0")}. ${String(d.getDate()).padStart(2,"0")}`;
@@ -915,8 +1071,8 @@ $("cloneBtn").onclick = async () => {
   }
 };
 
-$("previewBtn").onclick = $("hGoBtn").onclick = () => { save(); window.open("견적서.html", "_blank"); };
-$("mapBtn").onclick = $("hMapBtn").onclick = () => { save(); window.open("일정지도.html", "_blank"); };
+$("previewBtn").onclick = () => { save(); window.open("견적서.html", "_blank"); };
+$("mapBtn").onclick = () => { save(); window.open("일정지도.html", "_blank"); };
 
 /* ── 고객에게 발행 (저장 + 링크 생성) ──
    · 요청에서 열림  → 기존 요청 레코드에 견적을 붙여 저장(PATCH)
@@ -935,9 +1091,10 @@ $("linkClose").onclick = () => $("linkMask").classList.remove("on");
 $("linkMask").onclick = e => { if (e.target === $("linkMask")) $("linkMask").classList.remove("on"); };
 
 const pubBtn = $("publishBtn");
+$("publishBtn2").onclick = () => pubBtn.click();
 pubBtn.onclick = async () => {
   const q = buildQuote();
-  if (!ST.customer.trim()) { toast("먼저 고객명을 입력하세요"); $("f_customer").focus(); return; }
+  if (!ST.customer.trim()) { toast("먼저 고객명을 입력하세요"); setStep(0); $("f_customer").focus(); return; }
   if (!confirm("이 견적을 저장하고 고객에게 보낼 링크를 만들까요?")) return;
   pubBtn.disabled = true; const label = pubBtn.textContent; pubBtn.textContent = "저장 중…";
   try {
@@ -1010,8 +1167,8 @@ $("resetBtn").onclick = () => {
     deposit:(BASE.price && BASE.price.deposit) || 50000,
     options:structuredClone((BASE.price && BASE.price.options) || []),
     balances:structuredClone((BASE.price && BASE.price.balances) || []),
-    spots:[], days:[], intensity:3 };
-  fillForm(); renderAll();
+    spots:[], days:[], intensity:3, roomType:"eco" };
+  fillForm(); renderAll(); setStep(0);
   clearDraft();   // 초기화된 상태 기준으로 초안도 정리
   toast("초기화되었습니다");
 };
@@ -1053,6 +1210,7 @@ function toast(msg) {
       else { fillForm(); renderAll(); }
     }
   }
+  setStep(0);
   lastDraftJson = draftSnap();   // 부팅 직후 상태는 저장하지 않음 (수정할 때만 초안 기록)
   BOOTED = true;
 });
