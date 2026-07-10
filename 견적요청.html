@@ -143,17 +143,12 @@
   .advice-box { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #F5FBF9; border: 1px solid #D8EEE7; color: #35615A; font-size: 13px; line-height: 1.55; }
   .advice-box.warn { background: #FFF8ED; border-color: #F0D7A8; color: #8B641C; }
   .selection-summary { margin-top: 12px; padding: 10px 13px; border-radius: 10px; background: #fff; border: 1px solid rgba(6,196,160,.24); color: #0A6A5E; font-size: 12.5px; font-weight: 700; line-height: 1.5; }
-  .recommend-card { border: 1.5px solid var(--accent); background: var(--accent-soft); border-radius: 16px; padding: 18px; margin-bottom: 18px; }
-  .recommend-kicker { color: var(--accent); font-size: 11.5px; font-weight: 800; }
-  .recommend-title { color: #1B1D1F; font-size: 18px; font-weight: 800; line-height: 1.35; margin-top: 6px; }
-  .recommend-desc { color: #58616A; font-size: 13px; line-height: 1.6; margin-top: 6px; }
-  .recommend-facts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
-  .recommend-fact { background: #fff; border: 1px solid rgba(6,196,160,.22); border-radius: 99px; padding: 6px 10px; color: #35615A; font-size: 11.5px; font-weight: 700; }
-  .recommend-btn { width: 100%; border: 0; border-radius: 11px; padding: 13px; margin-top: 14px; background: var(--accent); color: #fff; font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
-  .recommend-btn.selected { background: #0A6A5E; }
-  .recommend-secondary { display: block; width: 100%; border: 0; background: transparent; color: #5D6D69; text-decoration: underline; font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; margin-top: 11px; }
-  .choice-divider { display: flex; align-items: center; gap: 10px; color: #90979E; font-size: 12px; font-weight: 700; margin: 4px 0 14px; }
-  .choice-divider::before, .choice-divider::after { content: ""; height: 1px; background: #E7EAEE; flex: 1; }
+  .unsure-card { width: 100%; display: flex; align-items: center; gap: 11px; margin-top: 12px; padding: 14px 15px; border: 1.5px dashed #C9CFD6; border-radius: 14px; background: #FAFBFC; color: #626A72; text-align: left; font-family: inherit; cursor: pointer; }
+  .unsure-card::before { content: "?"; display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 26px; border-radius: 50%; background: #ECEFF2; color: #69727B; font-size: 13px; font-weight: 800; }
+  .unsure-card b { display: block; color: #454B51; font-size: 13.5px; }
+  .unsure-card span { display: block; margin-top: 2px; color: #92999F; font-size: 11.5px; }
+  .unsure-card.selected { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
+  .unsure-card.selected::before { content: "✓"; background: var(--accent); color: #fff; }
 
   .file-lbl {
     display: flex; align-items: center; gap: 11px; padding: 15px 16px;
@@ -391,7 +386,7 @@ const META = {
   1: { icon: "👥", title: "여행 인원은 몇 명인가요?", sub: "함께 떠나실 인원을 알려주세요. (성인 1명 이상)" },
   2: { icon: "📅", title: "언제 몽골로 떠나시나요?", sub: "몽골 입국일과 귀국일을 선택해 주세요." },
   3: { icon: "💍", title: "어떤 여행을 원하세요?", sub: "동행 형태와 관심 있는 여행 취향을 알려주세요." },
-  4: { icon: "🗺️", title: "가고 싶은 몽골은 어디인가요?", sub: "잘 몰라도 괜찮아요. 일정과 취향에 맞춰 먼저 추천해 드려요." },
+  4: { icon: "🗺️", title: "가고 싶은 몽골은 어디인가요?", sub: "가고 싶은 지역을 직접 고르거나 여행사에 선택을 맡겨주세요." },
   5: { icon: "🏨", title: "숙소와 차량을 골라주세요", sub: "여행 스타일에 맞게 선택해 주세요." },
   6: { icon: "✈️", title: "항공권을 발행하셨나요?", sub: "이미 발권하셨다면 도착·출발 일시를 알려주세요. 견적서와 픽업·드랍 안내에 반영됩니다." },
   7: { icon: "📝", title: "신청자 정보를 알려주세요", sub: "견적서를 받으실 연락처를 입력해 주세요." },
@@ -466,28 +461,6 @@ const routeAdvice = () => {
   const n = nights();
   return { recommended, short: n !== null && n < recommended };
 };
-const RECOMMEND_META = {
-  "중앙 몽골 투어": { min:3, effort:"이동 비교적 짧음", best:"첫 몽골·가족·효도 여행", desc:"초원과 승마, 온천을 균형 있게 경험하기 좋아요." },
-  "고비사막 투어": { min:5, effort:"장거리 이동 많음", best:"은하수·사진·사막", desc:"거대한 모래언덕과 고비의 밤하늘을 중심으로 구성해요." },
-  "홉스굴 투어": { min:5, effort:"국내선 또는 긴 이동", best:"호수·숲·여름 피서", desc:"푸른 호수와 침엽수 숲에서 여유롭게 머무는 일정이에요." },
-  "몽골 트레킹 투어": { min:3, effort:"걷기·체력 필요", best:"트레킹·자연 탐험", desc:"체력에 맞춰 초원과 산의 걷기 코스를 조정해요." },
-};
-function destinationRecommendation() {
-  const n = nights() || 0, styles = S.travelStyles || [];
-  let name = "중앙 몽골 투어", reason = "이동 부담이 비교적 적어 첫 몽골 여행에 잘 맞아요.";
-  if (styles.includes("트레킹")) {
-    name = "몽골 트레킹 투어"; reason = "선택한 트레킹 취향을 가장 직접적으로 반영할 수 있어요.";
-  } else if (n >= 5 && (styles.includes("사진·은하수") || styles.includes("오지 탐험"))) {
-    name = "고비사막 투어"; reason = "충분한 일정과 은하수·오지 취향을 함께 반영할 수 있어요.";
-  } else if (n >= 5 && styles.includes("휴양·힐링")) {
-    name = "홉스굴 투어"; reason = "긴 일정에 호수와 숲에서 머무는 휴양 동선을 구성하기 좋아요.";
-  } else if (styles.includes("사진·은하수")) {
-    reason = "현재 일정에는 중앙 몽골의 초원·미니고비를 넣는 편이 이동 부담이 적어요.";
-  }
-  const meta = RECOMMEND_META[name];
-  return { name, reason, ...meta };
-}
-
 function canProceed() {
   switch (S.step) {
     case 1: return S.adult >= 1;   // 성인 최소 1명 (아동·유아만 예약 불가)
@@ -645,8 +618,6 @@ function render() {
         return `<button type="button" class="chip ${on ? "sel" : ""}" data-style="${esc(v)}" aria-pressed="${on}">${esc(v)}</button>`;
       }).join("")}</div>`;
   } else if (S.step === 4) {
-    const reco = destinationRecommendation();
-    const recoSelected = S.destination === reco.name;
     const panelHtml = (c) => {
       const f = c.regions.find(r => r.name === spotFocus) || c.regions[0];
       return `
@@ -666,15 +637,6 @@ function render() {
       </div>`;
     };
     inner = `
-      <div class="recommend-card">
-        <div class="recommend-kicker">지역을 잘 모르겠다면 · 일정과 취향으로 추천</div>
-        <div class="recommend-title">${esc(reco.name)}</div>
-        <div class="recommend-desc">${esc(reco.reason)} ${esc(reco.desc)}</div>
-        <div class="recommend-facts"><span class="recommend-fact">권장 ${reco.min}박 이상</span><span class="recommend-fact">${esc(reco.effort)}</span><span class="recommend-fact">${esc(reco.best)}</span></div>
-        <button type="button" class="recommend-btn ${recoSelected ? "selected" : ""}" data-recommend="${esc(reco.name)}">${recoSelected ? "✓ 추천 코스로 선택됨" : "이 추천으로 선택"}</button>
-        <button type="button" class="recommend-secondary" data-unsure="1">${S.destination === CONFIG.destUnsure ? "✓ 여행사 최종 추천 요청으로 선택됨" : "지역 선택을 여행사에 완전히 맡길게요"}</button>
-      </div>
-      <div class="choice-divider">직접 지역을 고를 수도 있어요</div>
       <div class="dest-list">
         ${CONFIG.destCats.map(d => {
           const sel = d.name === S.destination;
@@ -687,6 +649,9 @@ function render() {
           ${sel ? panelHtml(d) : ""}`;
         }).join("")}
       </div>
+      <button type="button" class="unsure-card ${S.destination === CONFIG.destUnsure ? "selected" : ""}" data-unsure="1">
+        <span><b>${S.destination === CONFIG.destUnsure ? "여행사 추천으로 선택됨" : "지역 선택을 여행사에 맡기기"}</b><span>상담 후 일정과 취향에 맞는 지역을 제안해 드려요.</span></span>
+      </button>
       ${(() => { const a = routeAdvice(); return a ? `<div class="advice-box ${a.short ? "warn" : ""}">${a.short ? `현재 ${nights()}박 일정에는 선택한 지역이 많을 수 있어요.` : "선택한 지역을 여유 있게 둘러볼 수 있는 일정입니다."} 권장 일정은 약 ${a.recommended}박 이상이며, 최종 이동 동선은 담당자가 조정합니다.</div>` : ""; })()}`;
   } else if (S.step === 5) {
     const issue = vehicleIssue();
@@ -793,10 +758,6 @@ function render() {
     if (c.dataset.style) return;
     if (c.dataset.key === "destination" && S.destination !== c.dataset.val) { S.destSpots = []; spotFocus = ""; }
     S[c.dataset.key] = c.dataset.val; render();
-  });
-  body.querySelectorAll("[data-recommend]").forEach(c => c.onclick = () => {
-    if (S.destination !== c.dataset.recommend) S.destSpots = [];
-    S.destination = c.dataset.recommend; spotFocus = ""; render();
   });
   body.querySelectorAll("[data-unsure]").forEach(c => c.onclick = () => {
     S.destination = CONFIG.destUnsure; S.destSpots = []; spotFocus = ""; render();
