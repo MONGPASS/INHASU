@@ -295,8 +295,8 @@
       <label class="f"><span>연락처 <span>(카톡 알림톡 발송용)</span></span><input id="f_phone" inputmode="numeric" placeholder="01012345678"></label>
       <label class="f"><span>여행지</span><input id="f_destination" placeholder="예) 고비"></label>
       <label class="f"><span>문서번호</span><input id="f_quoteNo"></label>
-      <label class="f"><span>몽골 입국일</span><input type="date" id="f_depart"></label>
-      <label class="f"><span>귀국일</span><input type="date" id="f_return"></label>
+      <label class="f"><span>투어 시작일 <span>(선택)</span></span><input type="date" id="f_depart"></label>
+      <label class="f"><span>투어 종료일 <span>(선택)</span></span><input type="date" id="f_return"></label>
       <label class="f"><span>인원(명)</span><input type="number" id="f_pax" min="1" value="6"></label>
       <label class="f"><span>차량</span><input id="f_vehicle" placeholder="예) 하이에이스"></label>
       <label class="f"><span>항공 IN</span><input id="f_flightIn" placeholder="예) 08/06 - 04:30"></label>
@@ -467,6 +467,13 @@ let ST = {
 
 /* 관리자에서 넘어온 고객 정보 반영 */
 let REQ_ID = "", REQ_TOKEN = "", ADMIN_TOKEN = "", FROM_REQ = false, REQ_SPOTS = [], REQ_PROFILE = {}, QUOTE_RESTORE = null, REQ_PAX0 = null;
+let ANONYMOUS_SHARE = new URLSearchParams(location.search).get("share") === "1";
+let SHARE_COURSE = new URLSearchParams(location.search).get("course") || "";
+try {
+  const share = JSON.parse(sessionStorage.getItem("leaders_course_share") || "null");
+  if (share && share.course) { SHARE_COURSE = share.course; ANONYMOUS_SHARE = !!share.anonymous; }
+  sessionStorage.removeItem("leaders_course_share");
+} catch (e) {}
 try {
   const pre = JSON.parse(localStorage.getItem("leaders_prefill") || "null");
   if (pre) {
@@ -538,7 +545,13 @@ function loadCourse(name, opts = {}) {
     ST.spots = [...new Set([...REQ_SPOTS.filter(name => lib[name]), ...ST.spots])];
   }
   ST.days = structuredClone(c.days || []);
-  // 요금(예약금·잔금·할인항목)은 기존 입력값을 유지합니다.
+  // 코스에 저장된 1인 견적금액이 있으면 현재 인원 요금표에도 반영합니다.
+  if (Number(c.base) > 0) {
+    const balance = Math.max(0, Number(c.base) - Number(ST.deposit || 0));
+    const found = ST.balances.find(b => Number(b.pax) === Number(ST.pax));
+    if (found) { found.economy = balance; found.full = balance; found.amount = balance; }
+    else ST.balances.push({ pax:Number(ST.pax), economy:balance, full:balance });
+  }
   document.querySelectorAll(".course-btn").forEach(b => b.classList.toggle("sel", b.dataset.c === name));
   fillForm(); renderAll();
   if (!opts.silent) toast(`"${name}" 코스를 불러왔습니다`);
@@ -1097,7 +1110,8 @@ const pubBtn = $("publishBtn");
 $("publishBtn2").onclick = () => pubBtn.click();
 pubBtn.onclick = async () => {
   const q = buildQuote();
-  if (!ST.customer.trim()) { toast("먼저 고객명을 입력하세요"); setStep(0); $("f_customer").focus(); return; }
+  if (!ST.customer.trim() && !ANONYMOUS_SHARE) { toast("먼저 고객명을 입력하세요"); setStep(0); $("f_customer").focus(); return; }
+  if (ANONYMOUS_SHARE && !ST.customer.trim()) { ST.customer = "여행 고객"; q.customer = "여행 고객"; }
   if (!confirm("이 견적을 저장하고 고객에게 보낼 링크를 만들까요?")) return;
   pubBtn.disabled = true; const label = pubBtn.textContent; pubBtn.textContent = "저장 중…";
   try {
@@ -1145,7 +1159,7 @@ pubBtn.onclick = async () => {
           nights: n && n > 0 ? n : null,
           adult: ST.pax || 0, child: 0, infant: 0,
           receivedAt: new Date().toISOString(),
-          source: "walkin", quote: q,
+          source: ANONYMOUS_SHARE ? "course-share" : "walkin", quote: q,
         }),
       });
       const j = await res.json().catch(() => ({}));
@@ -1202,6 +1216,12 @@ function toast(msg) {
       ST.spots = REQ_SPOTS.filter(name => lib[name]);
       fillForm(); renderAll();
     }
+  } else if (SHARE_COURSE && getCourses()[SHARE_COURSE]) {
+    ANONYMOUS_SHARE = true;
+    ST.customer = "";
+    loadCourse(SHARE_COURSE, { silent:true });
+    fillForm(); renderAll();
+    toast(`"${SHARE_COURSE}" 공유 견적 — 고객 정보 없이 발행할 수 있어요`);
   } else {
     // 일반 진입: 작성 중이던 초안이 있으면 자동 복원 (새로 시작하려면 [초기화])
     const draft = loadDraft();

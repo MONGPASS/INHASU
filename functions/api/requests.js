@@ -112,7 +112,7 @@ export async function onRequestPost(context) {
 
     const who = { name: d.name || "고객", phone: d.phone, origin, token };
 
-    if (d.source === "walkin") {
+    if (d.source === "walkin" || d.source === "course-share") {
       // 관리자가 견적서 만들기에서 바로 발행한 워크인 견적 → 고객에게 "견적서 도착"
       if (d.phone && d.quote) bg("alimtalk-quote", sendQuoteReady(env, who));
     } else {

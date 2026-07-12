@@ -32,6 +32,8 @@
   .page-head .add { margin-left:auto; background:var(--deep); color:#fff; border:none; border-radius:10px; padding:11px 18px; font-size:13.5px; font-weight:800; cursor:pointer; font-family:inherit; }
   .lead { font-size:13px; color:var(--sub); margin-bottom:20px; }
   .lead b { color:var(--deep); }
+  .filters { display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:10px; margin-bottom:16px; padding:14px; background:#fff; border:1px solid var(--line); border-radius:14px; }
+  .filters input, .filters select { margin:0; }
 
   .clist { display:flex; flex-direction:column; gap:12px; }
   .ccard { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 20px; cursor:pointer; display:flex; align-items:center; gap:16px; transition:.12s; }
@@ -42,6 +44,10 @@
   .ccard .meta { font-size:12.5px; color:var(--sub); margin-top:3px; }
   .ccard .meta .dot { color:var(--gray); margin:0 6px; }
   .ccard .days-badge { background:#eef2f1; color:var(--deep); border-radius:99px; padding:5px 12px; font-size:12px; font-weight:800; flex:0 0 auto; }
+  .card-actions { display:flex; gap:6px; flex:0 0 auto; }
+  .card-actions button { border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:9px; padding:7px 10px; font:700 12px inherit; cursor:pointer; }
+  .card-actions button:hover { border-color:var(--accent); color:var(--deep); background:var(--soft); }
+  .card-actions .share { background:var(--deep); border-color:var(--deep); color:#fff; }
 
   /* 드로어 */
   .overlay { position:fixed; inset:0; background:rgba(20,40,36,.4); z-index:40; opacity:0; pointer-events:none; transition:.2s; }
@@ -123,6 +129,11 @@
       <button class="add" id="addBtn">＋ 새 코스 추가</button>
     </div>
     <div class="lead">여기서 만든 코스가 <b>견적서 만들기 → 코스 불러오기</b>에 나타납니다. 클릭 한 번으로 일정·명소·기본가가 자동으로 채워져요.</div>
+    <div class="filters">
+      <input id="filterSpot" placeholder="명소 또는 코스명 검색">
+      <select id="filterDays"><option value="">전체 일정</option></select>
+      <select id="filterDest"><option value="">전체 여행지</option></select>
+    </div>
     <div class="clist" id="clist"></div>
   </main>
 </div>
@@ -142,7 +153,13 @@ function load() { COURSES = JSON.parse(JSON.stringify(getCourses())); renderList
 function persist() { saveCourses(COURSES); }
 
 function renderList() {
-  const entries = Object.entries(COURSES);
+  const q = ($("filterSpot")?.value || "").trim().toLowerCase();
+  const day = $("filterDays")?.value || "";
+  const dest = $("filterDest")?.value || "";
+  const entries = Object.entries(COURSES).filter(([name,c]) => {
+    const hay = [name,c.destination,c.nights,...(c.highlights||[])].join(" ").toLowerCase();
+    return (!q || hay.includes(q)) && (!day || String((c.days||[]).length) === day) && (!dest || c.destination === dest);
+  });
   $("clist").innerHTML = entries.length ? entries.map(([name, c]) => `
     <div class="ccard" data-k="${esc(name)}">
       <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l11 0M9 12l11 0M9 18l11 0"/><circle cx="4" cy="6" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="4" cy="18" r="1.5"/></svg></div>
@@ -151,9 +168,36 @@ function renderList() {
         <div class="meta">${esc(c.destination||"")}<span class="dot">·</span>${esc(c.nights||"")}<span class="dot">·</span>기본 ${won(c.base)}<span class="dot">·</span>명소 ${(c.highlights||[]).length}곳</div>
       </div>
       <div class="days-badge">${(c.days||[]).length}일 일정</div>
+      <div class="card-actions">
+        <button class="duplicate" data-k="${esc(name)}">복제</button>
+        <button class="share" data-k="${esc(name)}">공유 견적</button>
+      </div>
     </div>`).join("")
     : `<div style="text-align:center;padding:60px;color:var(--gray)">등록된 코스가 없습니다. 우측 상단 <b>＋ 새 코스 추가</b>로 만들어보세요.</div>`;
   $("clist").querySelectorAll(".ccard").forEach(el => el.onclick = () => openEdit(el.dataset.k));
+  $("clist").querySelectorAll(".card-actions button").forEach(btn => btn.onclick = e => {
+    e.stopPropagation();
+    if (btn.classList.contains("duplicate")) duplicateCourse(btn.dataset.k);
+    else shareCourse(btn.dataset.k);
+  });
+}
+
+function populateFilters() {
+  const days = [...new Set(Object.values(COURSES).map(c => (c.days||[]).length))].filter(Boolean).sort((a,b)=>a-b);
+  const dests = [...new Set(Object.values(COURSES).map(c => c.destination).filter(Boolean))].sort();
+  $("filterDays").innerHTML = `<option value="">전체 일정</option>` + days.map(n=>`<option value="${n}">${n}일 일정 (${Math.max(0,n-1)}박${n}일)</option>`).join("");
+  $("filterDest").innerHTML = `<option value="">전체 여행지</option>` + dests.map(v=>`<option>${esc(v)}</option>`).join("");
+}
+function duplicateCourse(name) {
+  const source = COURSES[name]; if (!source) return;
+  let copyName = `${name} 복사본`, n = 2;
+  while (COURSES[copyName]) copyName = `${name} 복사본 ${n++}`;
+  COURSES[copyName] = JSON.parse(JSON.stringify(source));
+  persist(); populateFilters(); renderList(); toast(`"${copyName}" 코스를 만들었습니다`);
+}
+function shareCourse(name) {
+  sessionStorage.setItem("leaders_course_share", JSON.stringify({ course:name, anonymous:true }));
+  location.href = "견적만들기.html?course=" + encodeURIComponent(name) + "&share=1";
 }
 
 /* ── 편집 드로어 ── */
@@ -176,7 +220,7 @@ function openEdit(key) {
       <div class="row3">
         <label class="f"><span>여행지</span><input id="f_dest" value="${esc(c.destination)}" placeholder="고비"></label>
         <label class="f"><span>기간</span><input id="f_nights" value="${esc(c.nights)}" placeholder="4박5일"></label>
-        <label class="f"><span>기본금(1인)</span><input id="f_base" type="number" step="1000" value="${esc(c.base)}"></label>
+        <label class="f"><span>견적금액 (1인)</span><input id="f_base" type="number" step="1000" value="${esc(c.base)}" placeholder="예) 620000"></label>
       </div>
       <div class="row2">
         <label class="f"><span>차량</span><input id="f_vehicle" value="${esc(c.vehicle)}" placeholder="하이에이스"></label>
@@ -306,7 +350,7 @@ function openEdit(key) {
     };
     if (!isNew && key !== name) delete COURSES[key];
     COURSES[name] = rec;
-    persist(); renderList(); closeDrawer();
+    persist(); populateFilters(); renderList(); closeDrawer();
     toast(isNew ? "코스가 추가되었습니다" : "저장되었습니다");
   };
   const delEl = $("delBtn");
@@ -315,12 +359,15 @@ function openEdit(key) {
 function closeDrawer(){ $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); }
 $("overlay").onclick = closeDrawer;
 $("addBtn").onclick = () => openEdit(null);
+$("filterSpot").oninput = renderList;
+$("filterDays").onchange = renderList;
+$("filterDest").onchange = renderList;
 
 let toastT;
 function toast(m){ $("toast").textContent=m; $("toast").classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>$("toast").classList.remove("on"),1900); }
 
 /* 서버(D1)에서 최신 코스·명소를 받아온 뒤 렌더링 */
-(window.cloudReady || Promise.resolve()).then(load);
+(window.cloudReady || Promise.resolve()).then(() => { load(); populateFilters(); renderList(); });
 </script>
 </body>
 </html>
