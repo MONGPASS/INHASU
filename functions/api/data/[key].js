@@ -35,7 +35,7 @@ async function ensureTable(env) {
 }
 
 // ── 읽기 (공개) ──
-export async function onRequestGet({ params, env }) {
+export async function onRequestGet({ request, params, env }) {
   const key = params.key;
   if (!ALLOWED.includes(key)) return json({ ok: false, error: "unknown key" }, 404);
   try {
@@ -44,6 +44,23 @@ export async function onRequestGet({ params, env }) {
     if (!row) return json({ ok: true, key, data: null, updatedAt: null });
     let data = null;
     try { data = JSON.parse(row.v); } catch (e) {}
+    // 가이드·기사 원본 연락처와 QR은 관리자에게만 반환합니다.
+    // 공개 화면에는 소개용 필드만 필요하므로 민감 키를 재귀적으로 제거합니다.
+    const adminToken = request.headers.get("x-admin-token") || "";
+    const isAdmin = !!env.ADMIN_TOKEN && adminToken === env.ADMIN_TOKEN;
+    if (!isAdmin && ["guides", "drivers"].includes(key) && data) {
+      const stripPrivate = value => {
+        if (Array.isArray(value)) return value.map(stripPrivate);
+        if (!value || typeof value !== "object") return value;
+        const out = {};
+        for (const [k, v] of Object.entries(value)) {
+          if (["phone", "tel", "mobile", "email", "kakao", "kakaoId", "qr", "memo", "note", "passportNo", "birth"].includes(k)) continue;
+          out[k] = stripPrivate(v);
+        }
+        return out;
+      };
+      data = stripPrivate(data);
+    }
     return json({ ok: true, key, data, updatedAt: row.updated_at });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);

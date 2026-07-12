@@ -40,6 +40,21 @@ export async function onRequestGet({ env, params }) {
       vehicle: a.vehicle ? { model: a.vehicle.model || "", seats: a.vehicle.seats || "", img: a.vehicle.img || "", imgs: Array.isArray(a.vehicle.imgs) ? a.vehicle.imgs : [], desc: a.vehicle.desc || "" } : null,
       lodges:  Array.isArray(a.lodges) ? a.lodges.map(l => ({ day: l.day, name: l.name || "", grade: l.grade || "", img: l.img || "", imgs: Array.isArray(l.imgs) ? l.imgs : [], tags: l.tags || "", desc: l.desc || "" })) : [],
     } : null;
+    const maskPassport = value => {
+      const v = String(value || "").replace(/\s/g, "");
+      if (!v) return "";
+      if (v.length <= 4) return "****";
+      return v.slice(0, 2) + "*".repeat(Math.max(4, v.length - 4)) + v.slice(-2);
+    };
+    const maskBirth = value => {
+      const v = String(value || "");
+      const m = v.match(/^(\d{4})[-./]?(\d{2})[-./]?(\d{2})$/);
+      return m ? `${m[1]}-**-**` : (v ? "****-**-**" : "");
+    };
+    const maskPhone = value => {
+      const v = String(value || "").replace(/\D/g, "");
+      return v ? `***-****-${v.slice(-4).padStart(4, "*")}` : "";
+    };
     const booking = bk ? {
       confirmedAt: bk.confirmedAt || "",
       publishStatus,
@@ -48,10 +63,10 @@ export async function onRequestGet({ env, params }) {
       travelers: Array.isArray(bk.travelers) ? bk.travelers.map(t => ({
         nameKo: t.nameKo || "",
         passportName: t.passportName || "",
-        birth: t.birth || "",
-        phone: t.phone || "",
+        birth: maskBirth(t.birth),
+        phone: maskPhone(t.phone),
         gender: t.gender || "",
-        passportNo: t.passportNo || "",
+        passportNo: maskPassport(t.passportNo),
       })) : [],
       flight: bk.flight ? {
         inDate: bk.flight.inDate || "",
@@ -77,7 +92,8 @@ export async function onRequestGet({ env, params }) {
       // 계약 서명 상태 — 본인 서명 이미지·서명 시각만 (IP·기기 정보는 반환 안 함)
       contract: (bk.contract && bk.contract.signedAt) ? {
         signedAt: bk.contract.signedAt,
-        signImg: bk.contract.signImg || "",
+        // 서명 원본은 내부 계약 증빙으로만 보관하고 공개 링크 응답에는 포함하지 않음.
+        signImg: "",
         signerName: bk.contract.signerName || "",
         termsVersion: bk.contract.termsVersion || "",
         snapshot: bk.contract.snapshot || null,

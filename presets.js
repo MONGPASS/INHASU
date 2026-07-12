@@ -335,7 +335,11 @@ window.cloudPull = async function (key) {
   const lsKey = window.CLOUD_KEYS[key];
   if (!lsKey) return null;
   try {
-    const r = await fetch("/api/data/" + key, { cache: "no-store" });
+    const adminToken = sessionStorage.getItem("leaders_admin_token") || "";
+    const r = await fetch("/api/data/" + key, {
+      cache: "no-store",
+      headers: adminToken ? { "x-admin-token": adminToken } : {},
+    });
     if (!r.ok) return null;
     const j = await r.json();
     if (j && j.ok) {

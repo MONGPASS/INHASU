@@ -253,8 +253,8 @@ const secSign = signed ? card(`
   <div class="blk" style="text-align:center;">
     <div class="sec-eyebrow">SIGNATURE</div>
     <div class="sec-title">서명 완료</div>
-    <div style="margin-top:16px; border:1.5px solid #BFE6D9; border-radius:14px; background:#FAFDFC; padding:10px;">
-      <img src="${BK.contract.signImg}" alt="서명" style="max-width:100%; height:120px; object-fit:contain;">
+    <div style="margin-top:16px; border:1.5px solid #BFE6D9; border-radius:14px; background:#FAFDFC; padding:18px 10px; min-height:120px; display:flex; align-items:center; justify-content:center;">
+      ${BK.contract.signImg ? `<img src="${BK.contract.signImg}" alt="서명" style="max-width:100%; height:100px; object-fit:contain;">` : `<div style="color:#0A6A5E;font-size:13px;font-weight:800;">✓ 전자서명 원본은 안전하게 보관되어 있습니다.</div>`}
     </div>
     <div style="margin-top:12px; font-size:13px; color:#354B46; font-weight:700;">${esc(BK.contract.signerName || S.name || R.name)} <span style="color:#8CA39D; font-weight:600;">· ${fmtDT(BK.contract.signedAt)}</span></div>
     <div style="margin-top:6px; font-size:10.5px; color:#8CA39D;">약관 버전 ${esc(BK.contract.termsVersion)} · 본 계약서는 서명 시점의 내용으로 보관됩니다.</div>
