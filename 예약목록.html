@@ -433,7 +433,7 @@ function render() {
     <button class="mini green wide" data-open="${esc(r.id)}">배정 관리</button>
     <div class="row-sub-actions">
       ${token ? `<a class="mini" href="확정일정표.html?t=${encodeURIComponent(token)}&v=assign3" target="_blank">일정표</a>` : ""}
-      ${token ? `<a class="mini" href="계약서.html?t=${encodeURIComponent(token)}&adminId=${encodeURIComponent(r.id)}" target="_blank">${signed(r) ? "서명 원본" : "계약서"}</a>` : ""}
+      ${token ? `<a class="mini" href="계약서.html?t=${encodeURIComponent(token)}&adminId=${encodeURIComponent(r.id)}&return=list">${signed(r) ? "서명 원본" : "계약서"}</a>` : ""}
     </div>
   </div>`;
   const arrow = k => sortKey === k ? (sortDir > 0 ? " ▲" : " ▼") : "";
