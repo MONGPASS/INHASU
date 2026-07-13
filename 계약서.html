@@ -78,13 +78,27 @@
 
 <script type="module">
 const KAKAO = "https://pf.kakao.com/_BSLaxl";
-const _token = new URLSearchParams(location.search).get("t");
+const _params = new URLSearchParams(location.search);
+const _token = _params.get("t");
+const _adminId = _params.get("adminId");
+const _adminToken = sessionStorage.getItem("leaders_admin_token") || "";
+const _adminView = !!(_adminId && _adminToken);
+let _adminLoaded = false;
 const root = document.getElementById("root");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 let toastT;
 const toast = m => { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); };
 
 const R = await (async () => {
+  if (_adminView) {
+    try {
+      const res = await fetch("/api/requests/" + encodeURIComponent(_adminId), {
+        cache:"no-store", headers:{ "x-admin-token":_adminToken },
+      });
+      const j = await res.json();
+      if (j.ok && j.item) { _adminLoaded = true; return j.item; }
+    } catch (e) {}
+  }
   if (!_token) return null;
   try {
     const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
@@ -261,14 +275,15 @@ const secSign = signed ? card(`
   <div class="blk" style="text-align:center;">
     <div class="sec-eyebrow">SIGNATURE</div>
     <div class="sec-title">서명 완료</div>
+    ${_adminLoaded ? `<div style="display:inline-block;margin-top:9px;padding:5px 10px;border-radius:999px;background:#EAF7F3;color:#0A6A5E;font-size:10.5px;font-weight:800;">관리자 원본 확인</div>` : ""}
     <div style="margin-top:16px; border:1.5px solid #BFE6D9; border-radius:14px; background:#FAFDFC; padding:18px 10px; min-height:120px; display:flex; align-items:center; justify-content:center;">
-      ${BK.contract.signImg ? `<img src="${BK.contract.signImg}" alt="서명" style="max-width:100%; height:100px; object-fit:contain;">` : `<div style="color:#0A6A5E;font-size:13px;font-weight:800;">✓ 전자서명 원본은 안전하게 보관되어 있습니다.</div>`}
+      ${BK.contract.signImg ? `<img src="${BK.contract.signImg}" alt="서명" style="max-width:100%; height:100px; object-fit:contain;">` : _adminView && !_adminLoaded ? `<div style="color:#9A5B24;font-size:13px;font-weight:800;line-height:1.6;">관리자 인증이 만료되어 원본을 불러오지 못했습니다.<br>대시보드에 다시 로그인한 뒤 열어 주세요.</div>` : `<div style="color:#0A6A5E;font-size:13px;font-weight:800;">✓ 전자서명 원본은 안전하게 보관되어 있습니다.</div>`}
     </div>
     <div style="margin-top:12px; font-size:13px; color:#354B46; font-weight:700;">${esc(BK.contract.signerName || S.name || R.name)} <span style="color:#8CA39D; font-weight:600;">· ${fmtDT(BK.contract.signedAt)}</span></div>
     <div style="margin-top:6px; font-size:10.5px; color:#8CA39D;">약관 버전 ${esc(BK.contract.termsVersion)} · 본 계약서는 서명 시점의 내용으로 보관됩니다.</div>
     <div class="no-print">
       <button class="btn ghost" onclick="window.print()">📄 계약서 PDF 저장</button>
-      <a class="btn ghost" href="내견적.html?t=${encodeURIComponent(_token)}">← 내 견적 화면으로</a>
+      <a class="btn ghost" href="${_adminView ? "예약목록.html" : `내견적.html?t=${encodeURIComponent(_token)}`}">${_adminView ? "← 예약 목록으로" : "← 내 견적 화면으로"}</a>
     </div>
   </div>`) : card(`
   <div class="blk">

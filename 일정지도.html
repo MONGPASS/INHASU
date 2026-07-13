@@ -71,6 +71,32 @@
   /* ── 지도 ── */
   main { flex: 1; position: relative; }
   #map { width: 100%; height: 100%; }
+  .view-switch {
+    position:absolute; z-index:1150; top:18px; right:18px; display:flex; gap:4px; padding:4px;
+    border:1px solid rgba(123,91,71,.14); border-radius:13px; background:rgba(255,255,255,.92);
+    box-shadow:0 8px 26px rgba(62,47,37,.12); backdrop-filter:blur(10px);
+  }
+  .view-switch button { border:0; background:transparent; color:#7c6d63; border-radius:9px; padding:9px 13px; font:750 12px Pretendard,sans-serif; cursor:pointer; }
+  .view-switch button.on { background:#7b5b47; color:#fff; box-shadow:0 4px 10px rgba(123,91,71,.22); }
+
+  /* 여행 안내형 지도 — 고객이 처음 보는 기본 화면 */
+  .guide-view { position:absolute; inset:0; z-index:1100; overflow:auto; padding:26px; background:#f3f1ed; transition:.22s; }
+  .guide-view.off { opacity:0; visibility:hidden; pointer-events:none; }
+  .guide-poster { min-height:100%; max-width:980px; margin:0 auto; position:relative; overflow:hidden; border-radius:26px;
+    background:#fffdf9; border:1px solid #eee7dd; box-shadow:0 18px 60px rgba(77,59,46,.13); }
+  .guide-title { position:relative; z-index:2; text-align:center; padding:34px 32px 4px; }
+  .guide-kicker { color:#a38a78; font-size:11px; font-weight:850; letter-spacing:.16em; }
+  .guide-title h2 { margin-top:8px; color:#765744; font-size:clamp(31px,4vw,52px); line-height:.98; font-weight:950; letter-spacing:-.055em; }
+  .guide-title h2 span { display:block; color:#262626; font-size:.78em; margin-top:8px; }
+  .guide-dests { max-width:760px; margin:17px auto 0; color:#3b3734; font-size:clamp(13px,1.65vw,20px); line-height:1.45; font-weight:800; word-break:keep-all; }
+  .route-wrap { position:relative; min-height:470px; padding:0 18px; }
+  #routeGraphic { display:block; width:100%; height:auto; min-height:430px; }
+  .guide-foot { position:relative; z-index:2; margin:0 34px 28px; padding:18px 20px; border-radius:15px; background:rgba(255,255,255,.82); border:1px solid #eee6da; color:#62564e; }
+  .guide-foot b { display:block; color:#765744; font-size:13px; margin-bottom:7px; }
+  .guide-foot ul { list-style:none; display:grid; gap:5px; font-size:12px; line-height:1.5; }
+  .guide-foot li::before { content:"·"; margin-right:7px; color:#b28667; font-weight:900; }
+  .guide-mini { position:absolute; left:18px; top:18px; z-index:2; display:flex; align-items:center; gap:7px; color:#8b786a; font-size:11px; font-weight:800; }
+  .guide-mini i { width:25px; height:25px; border-radius:8px; background:#7b5b47; color:#fff; display:flex; align-items:center; justify-content:center; font-style:normal; font-size:10px; }
   .map-note {
     position: absolute; z-index: 500; left: 16px; bottom: 16px; max-width: 420px;
     background: rgba(255,255,255,.94); border: 1px solid var(--line); border-radius: 8px;
@@ -91,8 +117,19 @@
   @media (max-width: 760px) {
     #app { flex-direction: column-reverse; }
     aside { width: 100%; flex: 1; }
-    main { flex: 0 0 45%; }
+    main { flex: 0 0 68%; min-height:540px; }
     .map-note { left:10px; right:10px; bottom:10px; max-width:none; font-size:10.5px; }
+    .guide-view { padding:10px; }
+    .guide-poster { border-radius:18px; }
+    .guide-title { padding:58px 15px 0; }
+    .guide-title h2 { font-size:31px; }
+    .guide-dests { font-size:12px; margin-top:12px; padding:0 5px; }
+    .route-wrap { min-height:330px; padding:0; }
+    #routeGraphic { min-height:320px; }
+    .guide-foot { margin:0 14px 16px; padding:14px; }
+    .guide-foot li { font-size:10.5px; }
+    .view-switch { top:12px; right:12px; }
+    .view-switch button { padding:8px 10px; font-size:11px; }
   }
 </style>
 </head>
@@ -113,7 +150,33 @@
     <div class="daybar" id="daybar"></div>
     <div class="daylist" id="daylist"></div>
   </aside>
-  <main><div id="map"></div><div class="map-note">연결선은 방문 순서를 나타내는 안내선입니다. 실제 도로와 주행 경로·시간은 현지 상황에 따라 달라질 수 있습니다.</div></main>
+  <main>
+    <div id="map"></div>
+    <div class="guide-view" id="guideView">
+      <article class="guide-poster">
+        <div class="guide-mini"><i>▲</i><span id="guideBrand"></span></div>
+        <header class="guide-title">
+          <div class="guide-kicker">CUSTOM MONGOLIA JOURNEY</div>
+          <h2 id="guideTitle"></h2>
+          <div class="guide-dests" id="guideDests"></div>
+        </header>
+        <div class="route-wrap"><svg id="routeGraphic" viewBox="0 0 900 500" role="img" aria-label="여행 방문 순서 안내 지도"></svg></div>
+        <footer class="guide-foot">
+          <b>여행 전 확인해 주세요</b>
+          <ul>
+            <li>표시된 이동시간은 일정 이해를 돕기 위한 예상 시간입니다.</li>
+            <li>현지 도로·날씨·항공편 상황에 따라 이동 순서와 시간이 조정될 수 있습니다.</li>
+            <li>정확한 도로 위치가 필요하면 오른쪽 위 ‘실제 지도’를 눌러 확인하세요.</li>
+          </ul>
+        </footer>
+      </article>
+    </div>
+    <div class="view-switch" aria-label="지도 보기 방식">
+      <button type="button" class="on" id="guideModeBtn">여행 안내</button>
+      <button type="button" id="realModeBtn">실제 지도</button>
+    </div>
+    <div class="map-note">연결선은 방문 순서를 나타내는 안내선입니다. 실제 도로와 주행 경로·시간은 현지 상황에 따라 달라질 수 있습니다.</div>
+  </main>
 </div>
 
 <script type="module">
@@ -219,9 +282,105 @@ Q.days.forEach((d, di) => {
   });
 });
 
+/* ── 여행 안내형 지도 ──
+   실제 좌표가 있으면 지리적 방향을 반영하고, 좌표가 없는 장소도 일정 순서에 맞춰 배치합니다. */
+const svgEsc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const guideBrand = document.getElementById("guideBrand");
+guideBrand.textContent = Q.brand.companyEn || Q.brand.company || "MONGOLIA MILKY WAY";
+document.getElementById("guideTitle").innerHTML = `${svgEsc(`몽골 ${Q.destination}`)}<span>${svgEsc(Q.nights)}</span>`;
+const destNames = [...new Set(stops.map(s => s.name).filter(Boolean))];
+document.getElementById("guideDests").textContent = destNames.join(" / ");
+
+function guidePoints(items) {
+  const located = items.filter(s => s.spot);
+  const lngs = located.map(s => s.spot.lng), lats = located.map(s => s.spot.lat);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs), minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const usableGeo = located.length >= 2 && isFinite(minLng) && ((maxLng - minLng) > .15 || (maxLat - minLat) > .15);
+  const seen = [];
+  return items.map((s, i) => {
+    let x, y;
+    if (usableGeo && s.spot) {
+      x = 145 + ((s.spot.lng - minLng) / Math.max(maxLng - minLng, .1)) * 610;
+      y = 145 + ((maxLat - s.spot.lat) / Math.max(maxLat - minLat, .1)) * 230;
+    } else {
+      const angle = (-18 + i * (310 / Math.max(items.length - 1, 1))) * Math.PI / 180;
+      x = 450 + Math.cos(angle) * 280;
+      y = 270 + Math.sin(angle) * 125;
+    }
+    const near = seen.filter(p => Math.hypot(p.x - x, p.y - y) < 46).length;
+    if (near) { x += near * 34; y += (i % 2 ? 1 : -1) * near * 30; }
+    x = Math.max(105, Math.min(795, x)); y = Math.max(125, Math.min(405, y));
+    const p = { ...s, x, y }; seen.push(p); return p;
+  });
+}
+
+function shortMove(text) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  if (!clean) return "이동";
+  const time = clean.match(/(?:약\s*)?\d+(?:\s*[~-]\s*\d+)?\s*(?:시간|분)(?:\s*\d+\s*분)?/);
+  return time ? `약 ${time[0].replace(/^약\s*/, "")}` : clean.slice(0, 12);
+}
+
+let focusStopOnMap = () => {};
+function renderGuideMap() {
+  const svg = document.getElementById("routeGraphic");
+  const points = guidePoints(stops);
+  const bg = `
+    <defs>
+      <marker id="routeArrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#c9a77f" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
+      <filter id="nodeShadow" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#7b5b47" flood-opacity=".2"/></filter>
+    </defs>
+    <path d="M58 205 C84 170 96 112 153 108 C192 54 265 76 304 102 C354 86 421 92 452 122 C510 86 574 99 613 129 C671 109 735 142 767 177 C812 179 846 213 830 253 C854 294 815 335 787 352 C774 402 706 425 660 410 C614 446 548 429 511 411 C456 439 388 427 354 401 C302 434 244 415 211 389 C162 410 106 374 100 335 C60 317 47 264 67 234 Z" fill="#fcfaf6" stroke="#eee7dd" stroke-width="2"/>
+    <g fill="none" stroke="#eee8de" stroke-width="1.7" opacity=".85">
+      <path d="M145 112 C172 176 136 228 169 283 C189 319 165 362 186 390"/><path d="M275 91 C289 145 260 191 287 237 C318 289 278 341 301 412"/>
+      <path d="M421 99 C406 151 437 194 415 242 C394 291 425 348 407 422"/><path d="M560 108 C545 158 578 206 552 251 C523 304 556 358 537 421"/>
+      <path d="M690 129 C664 179 704 221 681 269 C654 324 686 366 659 411"/><path d="M75 235 C181 222 253 253 349 232 C448 210 533 237 620 221 C708 204 770 234 834 222"/>
+      <path d="M93 325 C174 303 265 331 344 311 C436 288 521 320 607 301 C688 283 752 314 809 295"/>
+    </g>`;
+  const segments = points.slice(1).map((p, i) => {
+    const a = points[i], bend = (i % 2 ? -1 : 1) * 22;
+    const mx = (a.x + p.x) / 2, my = (a.y + p.y) / 2;
+    const len = Math.max(Math.hypot(p.x - a.x, p.y - a.y), 1);
+    const cx = mx - ((p.y - a.y) / len) * bend, cy = my + ((p.x - a.x) / len) * bend;
+    const lx = (a.x + 2 * cx + p.x) / 4, ly = (a.y + 2 * cy + p.y) / 4 - 10;
+    return `<path d="M ${a.x} ${a.y} Q ${cx} ${cy} ${p.x} ${p.y}" fill="none" stroke="#ead0ad" stroke-width="5" stroke-linecap="round" marker-end="url(#routeArrow)"/>
+      <text x="${lx}" y="${ly}" text-anchor="middle" fill="#a99b90" font-size="11" font-weight="650">${svgEsc(shortMove(p.move))}</text>`;
+  }).join("");
+  const nodes = points.map((p, i) => {
+    const placeRight = p.x < 490;
+    const labelX = p.x + (placeRight ? 28 : -28), anchor = placeRight ? "start" : "end";
+    const labelY = p.y + (i % 2 ? 6 : 25);
+    const dayText = `${p.day}일차`;
+    return `<g class="guide-node" tabindex="0" role="button" aria-label="${svgEsc(`${p.n}. ${p.name}`)}" data-stop="${p.n}" style="cursor:pointer">
+      <circle cx="${p.x}" cy="${p.y}" r="18" fill="#7b5b47" stroke="#fffdf9" stroke-width="3" filter="url(#nodeShadow)"/>
+      <text x="${p.x}" y="${p.y + 5}" text-anchor="middle" fill="#fff" font-size="14" font-weight="850">${p.n}</text>
+      <text x="${labelX}" y="${labelY}" text-anchor="${anchor}" fill="#805f4b" font-size="15" font-weight="850">${svgEsc(p.name)}</text>
+      <text x="${labelX}" y="${labelY + 16}" text-anchor="${anchor}" fill="#b09d90" font-size="10.5" font-weight="650">${dayText}</text>
+    </g>`;
+  }).join("");
+  svg.innerHTML = bg + segments + nodes;
+  svg.querySelectorAll(".guide-node").forEach(node => {
+    const open = () => { setMapMode("real"); setTimeout(() => focusStopOnMap(Number(node.dataset.stop)), 260); };
+    node.addEventListener("click", open);
+    node.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") open(); });
+  });
+}
+renderGuideMap();
+
+let leafletMap = null;
+function setMapMode(mode) {
+  const guide = mode !== "real";
+  document.getElementById("guideView").classList.toggle("off", !guide);
+  document.getElementById("guideModeBtn").classList.toggle("on", guide);
+  document.getElementById("realModeBtn").classList.toggle("on", !guide);
+  if (!guide && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 240);
+}
+document.getElementById("guideModeBtn").onclick = () => setMapMode("guide");
+document.getElementById("realModeBtn").onclick = () => setMapMode("real");
+
 /* ── 지도 ── */
 function initMap() {
-const map = L.map("map", { zoomControl: true });
+const map = leafletMap = L.map("map", { zoomControl: true });
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: '© OpenStreetMap contributors',
 }).addTo(map);
@@ -313,6 +472,7 @@ function focusStop(n, soft = false) {
     markers[n].openPopup();
   }
 }
+focusStopOnMap = focusStop;
 }
 
 if (window.L) {

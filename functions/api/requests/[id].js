@@ -38,6 +38,21 @@ const isPublishReady = rec => {
     lodges.length >= (stayDays || Math.max(days.length - 1, 0));
 };
 
+// 관리자 단건 조회 — 계약서 원본 서명 등 공개 API에서 제외한 내부 자료 확인용
+export async function onRequestGet({ request, env, params }) {
+  if (!isAdmin(request, env)) return json({ ok:false, error:"unauthorized" }, 401);
+  try {
+    const row = await env.DB.prepare("SELECT data, status, memo FROM requests WHERE id = ?").bind(params.id).first();
+    if (!row) return json({ ok:false, error:"not found" }, 404);
+    const item = JSON.parse(row.data || "{}");
+    item.status = row.status || item.status || "신규";
+    item.memo = row.memo || item.memo || "";
+    return json({ ok:true, item });
+  } catch (e) {
+    return json({ ok:false, error:String(e) }, 500);
+  }
+}
+
 export async function onRequestPatch(context) {
   const { request, env, params } = context;
   if (!isAdmin(request, env)) {
