@@ -17,7 +17,10 @@ function blankBooking() {
     travelers: [],
     travelerSubmission: { status:"not_requested", requestedAt:"", submittedAt:"", expectedCount:0, submittedCount:0 },
     flight: { inDate:"", inTime:"", inNo:"", outDate:"", outTime:"", outNo:"" },
-    contractInfo: { productName:"", region:"", totalAmount:0, depositAmount:0, depositStatus:"미입금", balanceAmount:0, balanceStatus:"미수령", cashReceipt:"", note:"" },
+    contractInfo: { productName:"", region:"", totalAmount:0, depositAmount:0, depositStatus:"미입금", balanceAmount:0, balanceStatus:"미수령", cashReceipt:"", bankName:"", accountNumber:"", accountHolder:"", note:"" },
+    preparedAt: "",
+    depositRequest: { status:"not_sent", requestedAt:"" },
+    contractRequest: { status:"not_sent", requestedAt:"" },
     checklist: { deposit:false, balance:false, flight:false, insurance:false, contract:false },
     contract: null,   // 고객 서명 시 서버(/api/sign)가 채움 — {signedAt, signImg, snapshot…}
     highlights: [],   // 대표 명소 — 확정일정표 "대표 명소" 페이지에 노출 {nameMn,name,desc,img,subImgs}
@@ -39,6 +42,8 @@ function normBooking(b) {
     travelerSubmission: { ...base.travelerSubmission, ...(b.travelerSubmission || {}) },
     flight: { ...base.flight, ...(b.flight || {}) },
     contractInfo: { ...base.contractInfo, ...(b.contractInfo || {}) },
+    depositRequest: { ...base.depositRequest, ...(b.depositRequest || {}) },
+    contractRequest: { ...base.contractRequest, ...(b.contractRequest || {}) },
     checklist: { ...base.checklist, ...(b.checklist || {}) },
     highlights: Array.isArray(b.highlights) ? b.highlights : [],
   };

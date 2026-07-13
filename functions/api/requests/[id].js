@@ -4,7 +4,7 @@
    DELETE : 관리자가 문의 삭제 (x-admin-token 헤더 필요)
    ═══════════════════════════════════════════════════════════ */
 
-import { sendQuoteReady, sendBookingConfirmed, sendItineraryPublished, sendTravelerInfoRequest } from "../_solapi.js";
+import { sendQuoteReady, sendBookingConfirmed, sendItineraryPublished, sendTravelerInfoRequest, sendDepositRequest, sendContractRequest } from "../_solapi.js";
 import { workflowStatus, defaultQuoteExpiry } from "../_workflow.mjs";
 
 const json = (obj, status = 200) =>
@@ -54,6 +54,10 @@ export async function onRequestPatch(context) {
     delete patch.rotateCustomerLink;
     const requestTravelerInfo = patch.notifyTravelers === true;
     delete patch.notifyTravelers;
+    const requestDeposit = patch.notifyDeposit === true;
+    delete patch.notifyDeposit;
+    const requestContract = patch.notifyContract === true;
+    delete patch.notifyContract;
 
     // 현재 레코드 읽기 (status 컬럼도 함께 — 상태 보존용)
     const row = await env.DB.prepare("SELECT data, status FROM requests WHERE id = ?").bind(id).first();
@@ -61,6 +65,14 @@ export async function onRequestPatch(context) {
 
     const rec = JSON.parse(row.data);
     if (requestTravelerInfo && !rec.booking) return json({ ok:false, error:"예약관리를 먼저 시작해 주세요" }, 409);
+    if ((requestDeposit || requestContract) && !rec.booking) return json({ ok:false, error:"예약정보를 먼저 저장해 주세요" }, 409);
+    if (requestDeposit) {
+      const ci = rec.booking.contractInfo || {};
+      if (!(Number(ci.depositAmount) > 0) || !ci.bankName || !ci.accountNumber || !ci.accountHolder)
+        return json({ ok:false, error:"예약금과 입금 계좌 정보를 먼저 저장해 주세요" }, 409);
+    }
+    if (requestContract && (!rec.booking.contractInfo || rec.booking.contractInfo.depositStatus !== "입금완료"))
+      return json({ ok:false, error:"예약금 입금 확인 후 계약서 서명을 요청할 수 있습니다" }, 409);
     const hadBooking = !!rec.booking;
     const hadQuote = !!rec.quote;
     const prevStatus = row.status || rec.status || "신규";
@@ -89,10 +101,7 @@ export async function onRequestPatch(context) {
     delete patch.resetContract;   // 플래그가 rec에 저장되지 않게
     delete patch.activities;      // 활동 이력은 서버에서만 추가
     const next = { ...rec, ...patch };
-    if (patch.booking && patch.status === undefined && ["신규", "진행중"].includes(prevStatus) && isConfirmationReady(next)) {
-      patch.status = "예약확정";
-      next.status = "예약확정";
-    }
+    // 예약정보 저장만으로 자동 확정하지 않습니다. 예약확정은 관리자가 명시적으로 선택해야 합니다.
     if (patch.status === "예약확정" && !isConfirmationReady(next)) {
       return json({ ok: false, error: "고객 수락·계약 서명·예약금 입금이 모두 필요합니다", code: "confirmation_not_ready" }, 409);
     }
@@ -109,6 +118,7 @@ export async function onRequestPatch(context) {
     if (patch.status === undefined) rec.status = row.status || rec.status || "신규";
 
     const now = new Date().toISOString();
+    if (!hadBooking && rec.booking && !rec.booking.preparedAt) rec.booking.preparedAt = now;
     if (rec.quote && (!hadQuote || forceNotifyQuote)) {
       rec.quoteIssuedAt = now;
       rec.quoteExpiresAt = defaultQuoteExpiry(new Date(now));
@@ -129,6 +139,14 @@ export async function onRequestPatch(context) {
         expectedCount, submittedCount:Array.isArray(rec.booking.travelers) ? rec.booking.travelers.length : 0,
       };
       rec.activities.push({ at:now, type:"travelers_requested", detail:`고객에게 여행자 정보 ${expectedCount}명 ${alreadySubmitted ? "확인·수정" : "입력"} 요청` });
+    }
+    if (requestDeposit) {
+      rec.booking.depositRequest = { status:"requested", requestedAt:now };
+      rec.activities.push({ at:now, type:"deposit_requested", detail:`고객에게 예약금 ${Number(rec.booking.contractInfo.depositAmount).toLocaleString("ko-KR")}원 입금 안내` });
+    }
+    if (requestContract) {
+      rec.booking.contractRequest = { status:"requested", requestedAt:now };
+      rec.activities.push({ at:now, type:"contract_requested", detail:"예약금 확인 후 고객에게 계약서 서명 요청" });
     }
     if (rotateCustomerLink) {
       rec.token = randomToken();
@@ -180,6 +198,16 @@ export async function onRequestPatch(context) {
       rec.activities.push({ at:now, type:"notify_sent", detail:"고객에게 여행자 정보 입력 요청 알림톡 발송" });
       bg("alimtalk-travelers", sendTravelerInfoRequest(env, who));
     }
+    if (requestDeposit && rec.phone && rec.token) {
+      rec.notify.depositRequestedAt = now;
+      rec.activities.push({ at:now, type:"notify_sent", detail:"고객에게 예약금 입금 안내 알림톡 발송" });
+      bg("alimtalk-deposit", sendDepositRequest(env, who));
+    }
+    if (requestContract && rec.phone && rec.token) {
+      rec.notify.contractRequestedAt = now;
+      rec.activities.push({ at:now, type:"notify_sent", detail:"고객에게 계약서 서명 요청 알림톡 발송" });
+      bg("alimtalk-contract", sendContractRequest(env, who));
+    }
 
     // ② 예약 확정 — 상태가 예약확정으로 넘어간 순간 한 번만
     if (prevStatus !== "예약확정" && rec.status === "예약확정" && !rec.notify.confirmSentAt && rec.phone && rec.token) {
@@ -198,7 +226,8 @@ export async function onRequestPatch(context) {
       "UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ?"
     ).bind(rec.status || "신규", rec.memo || "", JSON.stringify(rec), rec.token || "", id).run();
 
-    return json({ ok: true, status: rec.status || "신규", token:rotateCustomerLink ? rec.token : undefined, workflowStatus:rec.workflowStatus, quoteExpiresAt:rec.quoteExpiresAt || "", publishStatus: (rec.booking && rec.booking.publishStatus) || "draft", travelerSubmission:rec.booking && rec.booking.travelerSubmission, activities: rec.activities });
+    const notificationConfigured = requestDeposit ? !!env.SOLAPI_TEMPLATE_DEPOSIT_ID : requestContract ? !!env.SOLAPI_TEMPLATE_CONTRACT_ID : requestTravelerInfo ? !!env.SOLAPI_TEMPLATE_TRAVELERS_ID : undefined;
+    return json({ ok: true, status: rec.status || "신규", token:rotateCustomerLink ? rec.token : undefined, workflowStatus:rec.workflowStatus, quoteExpiresAt:rec.quoteExpiresAt || "", publishStatus: (rec.booking && rec.booking.publishStatus) || "draft", preparedAt:rec.booking && rec.booking.preparedAt, travelerSubmission:rec.booking && rec.booking.travelerSubmission, depositRequest:rec.booking && rec.booking.depositRequest, contractRequest:rec.booking && rec.booking.contractRequest, notificationConfigured, activities: rec.activities });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);
   }

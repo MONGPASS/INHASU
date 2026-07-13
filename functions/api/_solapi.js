@@ -169,21 +169,21 @@ export async function sendBookingConfirmed(env, { name, phone, origin, token }) 
   });
 }
 
-/* ④ 고객이 견적을 수락한 순간 → 계약서 확인 안내 */
+/* ④ 고객이 견적을 수락한 순간 → 예약 진행 요청 접수 안내 */
 export async function sendQuoteAccepted(env, { name, phone, origin, token }) {
   return sendCustomer(env, {
     templateId: env.SOLAPI_TEMPLATE_ACCEPT_ID,
     name, phone, origin, token,
-    smsText: `[${company(env)}] ${name || "고객"}님, 견적 수락이 완료되었습니다. 여행계약서를 확인해 주세요.`,
+    smsText: `[${company(env)}] ${name || "고객"}님, 견적 수락이 접수되었습니다. 담당자가 예약정보와 예약금 안내를 준비합니다.`,
   });
 }
 
-/* ⑤ 고객이 계약서에 서명한 순간 → 예약금 안내 */
+/* ⑤ 고객이 계약서에 서명한 순간 → 서명 접수 안내 */
 export async function sendContractSigned(env, { name, phone, origin, token }) {
   return sendCustomer(env, {
     templateId: env.SOLAPI_TEMPLATE_SIGN_ID,
     name, phone, origin, token,
-    smsText: `[${company(env)}] ${name || "고객"}님, 계약서 서명이 완료되었습니다. 예약금 안내를 확인해 주세요.`,
+    smsText: `[${company(env)}] ${name || "고객"}님, 계약서 서명이 접수되었습니다. 담당자 확인 후 예약 확정을 안내드립니다.`,
   });
 }
 
@@ -211,5 +211,23 @@ export async function sendTravelerInfoRequest(env, { name, phone, origin, token 
     templateId: env.SOLAPI_TEMPLATE_TRAVELERS_ID,
     name, phone, origin, token,
     smsText: `[${company(env)}] ${name || "고객"}님, 예약 진행을 위해 여행자 정보를 입력해 주세요.`,
+  });
+}
+
+/* ⑨ 관리자가 예약정보를 저장한 뒤 예약금 입금을 요청한 순간 */
+export async function sendDepositRequest(env, { name, phone, origin, token }) {
+  return sendCustomer(env, {
+    templateId: env.SOLAPI_TEMPLATE_DEPOSIT_ID,
+    name, phone, origin, token,
+    smsText: `[${company(env)}] ${name || "고객"}님, 예약금 입금 안내가 준비되었습니다. 고객 페이지에서 금액과 계좌를 확인해 주세요.`,
+  });
+}
+
+/* ⑩ 관리자가 예약금 입금을 확인한 뒤 계약서 서명을 요청한 순간 */
+export async function sendContractRequest(env, { name, phone, origin, token }) {
+  return sendCustomer(env, {
+    templateId: env.SOLAPI_TEMPLATE_CONTRACT_ID,
+    name, phone, origin, token,
+    smsText: `[${company(env)}] ${name || "고객"}님, 예약금 입금이 확인되었습니다. 여행계약서를 확인하고 서명해 주세요.`,
   });
 }

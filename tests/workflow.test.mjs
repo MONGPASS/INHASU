@@ -9,10 +9,14 @@ test("workflow follows the customer booking sequence", () => {
   assert.equal(workflowStatus(rec), WORKFLOW.QUOTE_SENT);
   rec.decision = { status:"accepted" };
   assert.equal(workflowStatus(rec), WORKFLOW.QUOTE_ACCEPTED);
-  rec.booking = { contract:{ signedAt:"2026-07-13" }, contractInfo:{ depositStatus:"미입금" }, publishStatus:"draft" };
-  assert.equal(workflowStatus(rec), WORKFLOW.CONTRACT_SIGNED);
+  rec.booking = { contract:null, contractInfo:{ depositStatus:"미입금" }, publishStatus:"draft" };
+  assert.equal(workflowStatus(rec), WORKFLOW.BOOKING_PREPARED);
+  rec.booking.depositRequest = { status:"requested" };
+  assert.equal(workflowStatus(rec), WORKFLOW.DEPOSIT_REQUESTED);
   rec.booking.contractInfo.depositStatus = "입금완료";
   assert.equal(workflowStatus(rec), WORKFLOW.DEPOSIT_PAID);
+  rec.booking.contract = { signedAt:"2026-07-13" };
+  assert.equal(workflowStatus(rec), WORKFLOW.CONTRACT_SIGNED);
   rec.status = "예약확정";
   assert.equal(workflowStatus(rec), WORKFLOW.BOOKING_CONFIRMED);
   rec.booking.publishStatus = "published";

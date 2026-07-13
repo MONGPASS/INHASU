@@ -92,8 +92,14 @@ export async function onRequestGet({ env, params }) {
         balanceAmount: Number((bk.contractInfo && bk.contractInfo.balanceAmount) || 0),
         balanceStatus: (bk.contractInfo && bk.contractInfo.balanceStatus) || "",
         cashReceipt: (bk.contractInfo && bk.contractInfo.cashReceipt) || "",
+        bankName: (bk.contractInfo && bk.contractInfo.bankName) || "",
+        accountNumber: (bk.contractInfo && bk.contractInfo.accountNumber) || "",
+        accountHolder: (bk.contractInfo && bk.contractInfo.accountHolder) || "",
         note: (bk.contractInfo && bk.contractInfo.note) || "",
       },
+      preparedAt: bk.preparedAt || "",
+      depositRequest: bk.depositRequest ? { status:bk.depositRequest.status || "not_sent", requestedAt:bk.depositRequest.requestedAt || "" } : { status:"not_sent", requestedAt:"" },
+      contractRequest: bk.contractRequest ? { status:bk.contractRequest.status || "not_sent", requestedAt:bk.contractRequest.requestedAt || "" } : { status:"not_sent", requestedAt:"" },
       // notes(추가 메모)는 내부 참고용 — 고객에게 반환하지 않음
       assign: safeAssign(bk.assign),
       // 계약 서명 상태 — 본인 서명 이미지·서명 시각만 (IP·기기 정보는 반환 안 함)
