@@ -19,6 +19,8 @@
   .who { font-size:13px; color:var(--sub); font-weight:600; }
   .who b { color:var(--ink); }
   .hd-acts { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  .hd-group { display:flex; align-items:center; gap:7px; padding-left:10px; border-left:1px solid var(--line); }
+  .hd-label { color:var(--sub); font-size:10.5px; font-weight:800; white-space:nowrap; }
   .hbtn { border:1px solid var(--line); background:#fff; border-radius:10px; padding:9px 14px;
     font:700 13px Pretendard; cursor:pointer; color:var(--ink); text-decoration:none; }
   .hbtn.blue { background:var(--book); border-color:var(--book); color:#fff; }
@@ -28,8 +30,41 @@
   section.card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; }
   .sec-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
   .sec-h h2 { font-size:15.5px; font-weight:800; display:flex; align-items:center; gap:8px; }
-  .sec-h h2 .n { width:24px; height:24px; border-radius:8px; background:var(--book); color:#fff; font-size:13px;
+  .sec-h h2 .n { min-width:24px; height:24px; padding:0 8px; border-radius:8px; background:var(--book); color:#fff; font-size:11px;
     display:inline-flex; align-items:center; justify-content:center; }
+
+  /* 예약 업무 진행 단계 */
+  .workflow-card { padding:0 !important; overflow:hidden; border-color:#d9e5f8 !important; box-shadow:0 8px 28px rgba(34,73,125,.07); }
+  .workflow-head { padding:20px 22px 17px; display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; }
+  .workflow-eyebrow { color:var(--book); font-size:11.5px; font-weight:900; margin-bottom:5px; }
+  .workflow-head h2 { font-size:19px; letter-spacing:-.025em; }
+  .workflow-count { padding:7px 11px; border-radius:999px; background:var(--bookSoft); color:var(--book); font-size:12px; font-weight:900; }
+  .workflow-steps { display:grid; grid-template-columns:repeat(6,1fr); padding:0 22px 20px; }
+  .workflow-step { position:relative; min-width:0; text-align:center; color:#9aa8a4; }
+  .workflow-step::before { content:""; position:absolute; top:17px; left:-50%; width:100%; height:2px; background:#e6ecea; z-index:0; }
+  .workflow-step:first-child::before { display:none; }
+  .workflow-step.done::before, .workflow-step.current::before { background:#80d8c6; }
+  .workflow-dot { position:relative; z-index:1; width:34px; height:34px; margin:0 auto 8px; border:2px solid #e0e7e5; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; background:#fff; font-size:12px; font-weight:900; }
+  .workflow-step.done { color:#08745f; }
+  .workflow-step.done .workflow-dot { border-color:var(--accent); background:var(--accent); color:#fff; }
+  .workflow-step.current { color:var(--book); }
+  .workflow-step.current .workflow-dot { border-color:var(--book); background:var(--book); color:#fff; box-shadow:0 0 0 5px var(--bookSoft); }
+  .workflow-label { display:block; font-size:11.5px; line-height:1.35; font-weight:850; white-space:nowrap; }
+  .workflow-state { display:block; margin-top:3px; font-size:10px; font-weight:700; color:var(--sub); white-space:nowrap; }
+  .next-task { margin:0 22px 22px; border-radius:14px; padding:16px 17px; background:linear-gradient(110deg,#f2f7ff,#f8fbff);
+    border:1px solid #d7e4fb; display:flex; align-items:center; gap:14px; }
+  .next-task-icon { width:44px; height:44px; border-radius:13px; background:#fff; color:var(--book); display:flex; align-items:center; justify-content:center;
+    flex:none; font-size:21px; box-shadow:0 5px 15px rgba(61,127,240,.12); }
+  .next-task-copy { flex:1; min-width:0; }
+  .next-task-copy small { display:block; color:var(--book); font-size:11px; font-weight:900; margin-bottom:4px; }
+  .next-task-copy b { display:block; font-size:15px; line-height:1.35; }
+  .next-task-copy p { margin-top:4px; color:var(--sub); font-size:12px; line-height:1.45; }
+  .next-task button { flex:none; border:0; border-radius:11px; padding:11px 16px; background:var(--book); color:#fff; font:800 13px Pretendard; cursor:pointer; }
+  .next-task.waiting { background:#fff9ef; border-color:#f0dac0; }
+  .next-task.waiting .next-task-icon, .next-task.waiting small { color:#a46219; }
+  .next-task.complete { background:#f1fbf7; border-color:#bfe6d9; }
+  .next-task.complete .next-task-icon, .next-task.complete small { color:#08745f; }
   .sec-h .tip { font-size:12px; color:var(--sub); }
 
   label.f { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:700; color:var(--sub); }
@@ -90,19 +125,53 @@
     padding:10px; font:700 13px Pretendard; cursor:pointer; width:100%; }
 
   /* 하단 저장 바 */
-  .savebar { position:fixed; left:0; right:0; bottom:0; z-index:30; background:#fff; border-top:1px solid var(--line);
-    padding:12px 18px; display:flex; align-items:center; gap:14px; justify-content:center; flex-wrap:wrap; }
+  .savebar { position:fixed; left:0; right:0; bottom:0; z-index:30; background:rgba(255,255,255,.97); border-top:1px solid var(--line);
+    padding:10px 18px; display:flex; align-items:center; gap:16px; justify-content:center; box-shadow:0 -8px 28px rgba(22,38,31,.06); backdrop-filter:blur(10px); }
+  .save-context { width:220px; line-height:1.35; }
+  .save-context small { display:block; color:var(--book); font-size:10.5px; font-weight:900; }
+  .save-context b { display:block; margin-top:2px; font-size:12px; }
+  .save-actions { display:flex; align-items:center; gap:9px; }
   .savebar .opt { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:700; color:var(--sub); cursor:pointer; }
   .savebar .opt input { accent-color:var(--book); width:16px; height:16px; }
   #saveBtn { background:var(--book); color:#fff; border:none; border-radius:12px; padding:13px 34px;
     font:800 15px Pretendard; cursor:pointer; box-shadow:0 8px 20px rgba(61,127,240,.28); }
+  #saveBtn.secondary { background:#fff; color:var(--book); border:1px solid #c9dafb; box-shadow:none; }
   .savebar .barbtn { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:11px; padding:12px 15px; font:800 13px Pretendard; cursor:pointer; text-decoration:none; }
+  .savebar .barbtn.primary { background:var(--book); border-color:var(--book); color:#fff; box-shadow:0 8px 20px rgba(61,127,240,.22); }
+  .savebar .barbtn:disabled { opacity:.48; cursor:not-allowed; box-shadow:none; }
   .savebar .barbtn.danger { color:#c75b52; }
+  .bar-more { position:relative; }
+  .bar-more summary { width:42px; height:42px; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:11px; cursor:pointer; font-size:19px; list-style:none; }
+  .bar-more summary::-webkit-details-marker { display:none; }
+  .bar-more-menu { position:absolute; right:0; bottom:52px; width:150px; padding:8px; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 12px 30px rgba(22,38,31,.15); }
+  .bar-more-menu .barbtn { width:100%; }
+  #bookingInfoSection, #assignmentSection { scroll-margin-top:82px; }
+  .focus-pulse { animation:focusPulse 1.15s ease; }
+  @keyframes focusPulse { 0%,100% { box-shadow:none; } 45% { box-shadow:0 0 0 5px rgba(61,127,240,.18); } }
 
   #toast { position:fixed; bottom:86px; left:50%; transform:translateX(-50%) translateY(16px);
     background:var(--ink); color:#fff; font-size:13.5px; font-weight:700; padding:11px 20px; border-radius:12px;
     opacity:0; pointer-events:none; transition:.25s; z-index:40; }
   #toast.on { opacity:1; transform:translateX(-50%); }
+
+  /* 브라우저 기본 confirm 대신 사용하는 예약관리 공통 확인창 */
+  .confirm-layer { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(17,35,45,.46); backdrop-filter:blur(3px); opacity:0; visibility:hidden; transition:.18s; }
+  .confirm-layer.on { opacity:1; visibility:visible; }
+  .confirm-card { width:min(420px,100%); padding:28px; border:1px solid rgba(255,255,255,.75); border-radius:22px;
+    background:#fff; box-shadow:0 24px 70px rgba(17,35,45,.24); text-align:center; transform:translateY(10px) scale(.98); transition:.18s; }
+  .confirm-layer.on .confirm-card { transform:none; }
+  .confirm-icon { width:52px; height:52px; margin:0 auto 16px; border-radius:16px; display:flex; align-items:center;
+    justify-content:center; background:#eef5ff; color:var(--book); font-size:24px; font-weight:900; }
+  .confirm-card.danger .confirm-icon { background:#fff0ee; color:#c75b52; }
+  .confirm-title { margin:0; color:var(--ink); font-size:20px; line-height:1.35; letter-spacing:-.02em; }
+  .confirm-message { margin:10px 0 24px; color:var(--sub); font-size:14px; line-height:1.65; white-space:pre-line; word-break:keep-all; }
+  .confirm-actions { display:grid; grid-template-columns:1fr 1.35fr; gap:10px; }
+  .confirm-actions button { min-height:46px; border-radius:12px; font:800 14px Pretendard; cursor:pointer; }
+  .confirm-cancel { border:1px solid var(--line); background:#fff; color:var(--sub); }
+  .confirm-ok { border:0; background:var(--book); color:#fff; box-shadow:0 8px 20px rgba(61,127,240,.22); }
+  .confirm-card.danger .confirm-ok { background:#c75b52; box-shadow:0 8px 20px rgba(199,91,82,.22); }
+  .confirm-actions button:focus-visible { outline:3px solid rgba(61,127,240,.25); outline-offset:2px; }
 
   .empty { text-align:center; padding:60px 20px; color:var(--sub); }
   .empty h2 { font-size:19px; color:var(--ink); margin-bottom:8px; }
@@ -133,8 +202,16 @@
     .summary { grid-template-columns:1fr 1fr; }
     .lodge-fields { grid-template-columns:56px 1fr auto; }
     .lodge-fields label:nth-of-type(3) { grid-column:1 / -1; }
-    .savebar { justify-content:stretch; }
-    #saveBtn, .savebar .barbtn { flex:1; text-align:center; padding-left:10px; padding-right:10px; }
+    .hd-group { width:100%; padding:8px 0 0; border-left:0; border-top:1px solid var(--line); overflow-x:auto; }
+    .workflow-steps { overflow-x:auto; grid-template-columns:repeat(6,100px); padding-bottom:18px; }
+    .next-task { align-items:flex-start; flex-wrap:wrap; }
+    .next-task button { width:100%; }
+    .savebar { justify-content:stretch; gap:8px; padding:9px 10px; }
+    .save-context { display:none; }
+    .save-actions { flex:1; min-width:0; }
+    #saveBtn, .savebar .barbtn:not(.danger) { flex:1; text-align:center; padding-left:8px; padding-right:8px; }
+    .savebar .barbtn[style*="display: none"] { display:none !important; }
+    .confirm-card { padding:24px 20px 20px; border-radius:18px; }
   }
 </style>
 </head>
@@ -145,26 +222,41 @@
   <span class="who" id="hMeta"></span>
   <span class="hd-acts">
     <a class="hbtn" href="예약목록.html">← 예약 목록</a>
-    <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 고객 확정일정표</a>
-    <a class="hbtn" id="contractLink" href="#" target="_blank">📜 여행계약서</a>
-    <button class="hbtn" id="copyLinkBtn">🔗 고객 링크 복사</button>
+    <span class="hd-group"><span class="hd-label">고객 화면·공유</span>
+      <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 확정일정표</a>
+      <a class="hbtn" id="contractLink" href="#" target="_blank">📜 여행계약서</a>
+      <button class="hbtn" id="copyLinkBtn">🔗 링크 복사</button>
+    </span>
   </span>
 </header>
 
 <main id="main"></main>
 
 <div class="savebar" id="savebar" style="display:none">
-  <span style="font-size:11.5px;color:var(--sub);font-weight:700;max-width:190px;line-height:1.4;">저장은 내부 기록만 하며<br>고객에게 자동 발송되지 않습니다.</span>
+  <span class="save-context"><small id="bottomStep">현재 단계</small><b id="bottomTask">예약정보를 확인해 주세요</b></span>
   <input type="checkbox" id="setStatus" hidden>
   <input type="checkbox" id="publishSchedule" hidden>
-  <button class="barbtn" id="depositRequestBtn">💳 예약금 안내</button>
-  <button class="barbtn" id="contractRequestBtn">✍ 계약서 요청</button>
-  <button class="barbtn" id="confirmBookingBtn">✓ 예약 확정</button>
-  <button class="barbtn" id="publishBtn">🎫 일정표 공개</button>
-  <button class="barbtn danger" id="undoBtn">↩ 되돌리기</button>
-  <button id="saveBtn">💾 예약정보 저장</button>
+  <span class="save-actions">
+    <button class="barbtn" id="depositRequestBtn">💳 예약금 안내</button>
+    <button class="barbtn" id="contractRequestBtn">✍ 계약서 요청</button>
+    <button class="barbtn" id="confirmBookingBtn">✓ 예약 확정</button>
+    <button class="barbtn" id="publishBtn">🎫 일정표 공개</button>
+    <button id="saveBtn">💾 임시 저장</button>
+    <details class="bar-more"><summary title="기타 작업">⋯</summary><div class="bar-more-menu"><button class="barbtn danger" id="undoBtn">↩ 되돌리기</button></div></details>
+  </span>
 </div>
 <div id="toast"></div>
+<div class="confirm-layer" id="confirmLayer" aria-hidden="true">
+  <div class="confirm-card" id="confirmCard" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+    <div class="confirm-icon" id="confirmIcon" aria-hidden="true">?</div>
+    <h2 class="confirm-title" id="confirmTitle">확인해 주세요</h2>
+    <p class="confirm-message" id="confirmMessage"></p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-cancel" id="confirmCancel">취소</button>
+      <button type="button" class="confirm-ok" id="confirmOk">확인</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -172,6 +264,36 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&l
 const noBr = s => String(s ?? "").replace(/<br\s*\/?>/gi, " ").trim();
 let toastT;
 const toast = m => { $("toast").textContent = m; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(()=>$("toast").classList.remove("on"), 2400); };
+let confirmDone = null;
+function askConfirm({ title="확인해 주세요", message="", confirmText="확인", cancelText="취소", icon="?", tone="primary" } = {}) {
+  if (confirmDone) confirmDone(false);
+  const layer = $("confirmLayer"), card = $("confirmCard");
+  $("confirmTitle").textContent = title;
+  $("confirmMessage").textContent = message;
+  $("confirmIcon").textContent = icon;
+  $("confirmOk").textContent = confirmText;
+  $("confirmCancel").textContent = cancelText;
+  card.classList.toggle("danger", tone === "danger");
+  layer.classList.add("on"); layer.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+  return new Promise(resolve => {
+    const finish = answer => {
+      if (confirmDone !== finish) return;
+      confirmDone = null;
+      layer.classList.remove("on"); layer.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+      resolve(answer);
+    };
+    const onKey = e => { if (e.key === "Escape") finish(false); };
+    confirmDone = finish;
+    $("confirmCancel").onclick = () => finish(false);
+    $("confirmOk").onclick = () => finish(true);
+    layer.onclick = e => { if (e.target === layer) finish(false); };
+    document.addEventListener("keydown", onKey);
+    requestAnimationFrame(() => $("confirmOk").focus());
+  });
+}
 const moneyTxt = n => Number(n || 0) ? `₩${Number(n).toLocaleString("ko-KR")}` : "-";
 const infoCell = (k, v) => `<div class="sum-card"><div class="k">${esc(k)}</div><div class="v" style="font-size:15px;line-height:1.35;word-break:break-word;">${esc(v || "-")}</div></div>`;
 
@@ -244,9 +366,9 @@ function copyCustomerLink() {
   navigator.clipboard.writeText(link).then(()=>toast("고객 링크 복사 — 카톡으로 보내세요")).catch(()=>toast("복사 실패"));
 }
 
-function resetToSaved() {
+async function resetToSaved() {
   if (!SAVED_BK_JSON) return toast("되돌릴 저장본이 없어요");
-  if (!confirm("저장하지 않은 변경을 마지막 저장 상태로 되돌릴까요?")) return;
+  if (!await askConfirm({ title:"변경 내용을 되돌릴까요?", message:"저장하지 않은 변경은 사라지고 마지막 저장 상태로 돌아갑니다.", confirmText:"되돌리기", icon:"↩", tone:"danger" })) return;
   BK = normBooking(JSON.parse(SAVED_BK_JSON));
   $("publishSchedule").checked = BK.publishStatus === "published";
   render();
@@ -277,25 +399,62 @@ function assignStats() {
   return { guideOk, vehicleOk, lodgeCount, lodgeNeeded, signed, checklistDone, missing };
 }
 
+function workflowUi() {
+  const ci = BK.contractInfo || {};
+  const st = assignStats();
+  const accepted = !!(PRE.decision && PRE.decision.status === "accepted") || PRE.status === "예약확정";
+  const prepared = !!BK.preparedAt;
+  const depositSent = !!(BK.depositRequest && BK.depositRequest.status === "requested");
+  const paid = ci.depositStatus === "입금완료";
+  const contractSent = !!(BK.contractRequest && BK.contractRequest.status === "requested");
+  const signed = !!(BK.contract && BK.contract.signedAt);
+  const confirmed = PRE.status === "예약확정";
+  const published = BK.publishStatus === "published";
+  const operationsReady = !!BK.days.length && st.guideOk && st.vehicleOk && (!st.lodgeNeeded || st.lodgeCount >= st.lodgeNeeded);
+  const steps = [
+    { label:"고객 수락", done:accepted, detail:accepted ? "완료" : "대기" },
+    { label:"예약정보", done:prepared, detail:prepared ? "저장됨" : "작성" },
+    { label:"예약금", done:paid, detail:paid ? "입금완료" : (depositSent ? "입금 대기" : "안내 전") },
+    { label:"계약서", done:signed, detail:signed ? "서명완료" : (contractSent ? "서명 대기" : "요청 전") },
+    { label:"예약 확정", done:confirmed, detail:confirmed ? "완료" : "확정 전" },
+    { label:"일정표", done:published, detail:published ? "공개됨" : (operationsReady ? "공개 준비" : "배정 필요") },
+  ];
+  let active = published ? 6 : !accepted ? 1 : !prepared ? 2 : !paid ? 3 : !signed ? 4 : !confirmed ? 5 : 6;
+  let task;
+  if (!accepted) task = { icon:"⏳", title:"고객의 견적 수락을 기다리고 있습니다", desc:"고객이 ‘이 견적으로 예약 진행하기’를 누르면 다음 단계가 열립니다.", action:"none", button:"", tone:"waiting" };
+  else if (!prepared) task = { icon:"📝", title:"예약 기본정보를 작성해 주세요", desc:"여행자·항공·금액 정보를 확인하고 먼저 내부 저장해 주세요.", action:"bookingInfo", button:"예약정보 작성하기", tone:"" };
+  else if (!paid && !depositSent) task = { icon:"💳", title:"고객에게 예약금 안내를 보내 주세요", desc:"저장된 예약금과 계좌정보를 확인한 뒤 알림톡을 발송합니다.", action:"deposit", button:"예약금 안내 보내기", tone:"" };
+  else if (!paid) task = { icon:"⏳", title:"예약금 입금을 확인해 주세요", desc:"안내 발송이 완료되었습니다. 입금 후 예약금 상태를 ‘입금완료’로 저장해 주세요.", action:"payment", button:"입금 상태 확인하기", tone:"waiting" };
+  else if (!signed && !contractSent) task = { icon:"✍", title:"고객에게 계약서 서명을 요청해 주세요", desc:"예약금 입금이 확인되어 계약서 요청을 보낼 수 있습니다.", action:"contract", button:"계약서 요청 보내기", tone:"" };
+  else if (!signed) task = { icon:"⏳", title:"고객의 계약서 서명을 기다리고 있습니다", desc:"서명 요청이 발송되었습니다. 필요하면 계약서 요청을 다시 보낼 수 있습니다.", action:"contract", button:"계약서 요청 재전송", tone:"waiting" };
+  else if (!confirmed) task = { icon:"✓", title:"예약을 최종 확정해 주세요", desc:"예약금 입금과 계약서 서명이 모두 확인되었습니다.", action:"confirm", button:"예약 확정하기", tone:"" };
+  else if (!published && !operationsReady) task = { icon:"🧭", title:"확정 일정과 배정 정보를 완성해 주세요", desc:"일정표 공개 전 가이드·차량·숙소 배정을 모두 확인해야 합니다.", action:"assign", button:"배정 정보 확인하기", tone:"waiting" };
+  else if (!published) task = { icon:"🎫", title:"고객에게 확정 일정표를 공개해 주세요", desc:"운영 배정이 완료되어 최종 일정표를 공개할 수 있습니다.", action:"publish", button:"일정표 공개하기", tone:"" };
+  else task = { icon:"✓", title:"예약 절차가 모두 완료되었습니다", desc:"고객이 확정 일정표를 확인할 수 있습니다. 변경 사항은 저장 후 다시 확인해 주세요.", action:"openSchedule", button:"고객 일정표 보기", tone:"complete" };
+  return { steps, active, task, accepted, prepared, depositSent, paid, contractSent, signed, confirmed, published, operationsReady };
+}
+
 function summaryHtml() {
   const st = assignStats();
+  const wf = workflowUi();
   const days = BK.days.length;
   const lodgeTotal = st.lodgeNeeded || st.lodgeCount;
   const ci = BK.contractInfo || {};
   const depositRequested = BK.depositRequest && BK.depositRequest.status === "requested";
   const depositPaid = ci.depositStatus === "입금완료";
   const contractRequested = BK.contractRequest && BK.contractRequest.status === "requested";
-  const flow = [
-    ["1", "예약정보 저장", !!BK.preparedAt || !!PRE.booking], ["2", "예약금 안내", depositRequested || depositPaid],
-    ["3", "입금 확인", depositPaid], ["4", "계약서 서명", st.signed],
-    ["5", "예약 확정", PRE.status === "예약확정"], ["6", "일정표 공개", BK.publishStatus === "published"],
-  ];
-  return `<section class="card">
-    <div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:14px;margin-bottom:16px;border-bottom:1px solid var(--line);">
-      ${flow.map(([n,label,done]) => `<div style="flex:1;min-width:112px;padding:10px;border-radius:10px;background:${done?"#e8f8f3":"#f5f7f7"};color:${done?"#08745f":"var(--sub)"};font-size:11.5px;font-weight:900;text-align:center;">${done?"✓":n} ${label}</div>`).join("")}
+  return `<section class="card workflow-card">
+    <div class="workflow-head"><div><div class="workflow-eyebrow">예약 진행 순서</div><h2>지금 해야 할 작업을 순서대로 진행하세요</h2></div><span class="workflow-count">${wf.published ? "모든 단계 완료" : `${wf.active}/6단계 진행 중`}</span></div>
+    <div class="workflow-steps">
+      ${wf.steps.map((step, i) => `<div class="workflow-step ${step.done ? "done" : (i + 1 === wf.active ? "current" : "locked")}">
+        <span class="workflow-dot">${step.done ? "✓" : i + 1}</span><span class="workflow-label">${esc(step.label)}</span><span class="workflow-state">${esc(step.detail)}</span>
+      </div>`).join("")}
     </div>
+    <div class="next-task ${wf.task.tone}"><span class="next-task-icon">${wf.task.icon}</span><div class="next-task-copy"><small>${wf.published ? "진행 완료" : "지금 할 일"}</small><b>${esc(wf.task.title)}</b><p>${esc(wf.task.desc)}</p></div>${wf.task.button ? `<button type="button" id="nextActionBtn" data-action="${wf.task.action}">${esc(wf.task.button)}</button>` : ""}</div>
+  </section>
+  <section class="card">
     <div class="sec-h">
-      <h2><span class="n">✓</span>운영 상태</h2>
+      <h2><span class="n">현황</span>운영 준비 상태</h2>
       <span class="tip">출발 전 누락 항목을 먼저 확인하세요</span>
     </div>
     <div class="summary">
@@ -429,7 +588,7 @@ function render() {
   $("main").innerHTML = summaryHtml() + `
   <section class="card">
     <div class="sec-h">
-      <h2><span class="n">1</span>확정 일정표</h2>
+      <h2><span class="n">일정</span>확정 일정표</h2>
       <span style="display:flex; gap:8px;">
         ${PRE.quote ? `<button class="hbtn" id="pullQuote">↺ 견적 일정 불러오기</button>` : ""}
         <button class="hbtn" id="addDay">＋ 일차 추가</button>
@@ -441,13 +600,13 @@ function render() {
   </section>
 
   <section class="card">
-    <div class="sec-h"><h2><span class="n">2</span>대표 명소</h2>
+    <div class="sec-h"><h2><span class="n">명소</span>대표 명소</h2>
       <span class="tip">체크한 명소가 고객 확정일정표의 "대표 명소" 페이지에 순서대로 나와요 · 명소관리에 등록한 목록</span></div>
     <div id="spotGroups"><div style="font-size:12.5px;color:var(--sub)">명소 목록을 불러오는 중…</div></div>
   </section>
 
-  <section class="card">
-    <div class="sec-h"><h2><span class="n">3</span>배정 (가이드 · 차량 · 숙소)</h2>
+  <section class="card" id="assignmentSection">
+    <div class="sec-h"><h2><span class="n">배정</span>가이드 · 차량 · 숙소</h2>
       <span class="tip">이름·소개는 고객 확정안내에 보여요 · 연락처/차량번호는 내부용</span></div>
 
     <div class="assign-box">
@@ -499,8 +658,8 @@ function render() {
     </div>
   </section>
 
-  <section class="card">
-    <div class="sec-h"><h2><span class="n">4</span>예약·계약 기본정보</h2>
+  <section class="card" id="bookingInfoSection">
+    <div class="sec-h"><h2><span class="n">정보</span>예약·계약 기본정보</h2>
       <span class="tip">저장하면 내부 초안으로 보관됩니다 · 고객 발송은 하단 단계 버튼을 누를 때만 진행됩니다</span></div>
     <div class="assign-box">
       <div class="subtt" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -560,7 +719,7 @@ function render() {
   </section>
 
   <section class="card">
-    <div class="sec-h"><h2><span class="n">5</span>체크리스트 · 메모</h2></div>
+    <div class="sec-h"><h2><span class="n">점검</span>체크리스트 · 메모</h2></div>
     <label class="chk"><input type="checkbox" id="c_deposit" ${c.deposit ? "checked" : ""}> 예약금 입금 확인</label>
     <label class="chk"><input type="checkbox" id="c_balance" ${c.balance ? "checked" : ""}> 잔금 수령 (현장)</label>
     <label class="chk"><input type="checkbox" id="c_flight" ${c.flight ? "checked" : ""}> 항공권 발권 확인</label>
@@ -673,9 +832,11 @@ function pullForm() {
 }
 
 function bindEvents() {
-  if ($("pullQuote")) $("pullQuote").onclick = () => {
+  const nextAction = $("nextActionBtn");
+  if (nextAction) nextAction.onclick = () => runWorkflowAction(nextAction.dataset.action);
+  if ($("pullQuote")) $("pullQuote").onclick = async () => {
     if (!PRE.quote) return toast("발행된 견적이 없어요 — 먼저 견적서를 만들어 주세요");
-    if (BK.days.length && !confirm("현재 확정 일정을 견적서 일정으로 교체할까요?")) return;
+    if (BK.days.length && !await askConfirm({ title:"견적 일정으로 교체할까요?", message:"현재 작성한 확정 일정은 견적서의 일정으로 바뀝니다.", confirmText:"일정 교체하기", icon:"📋" })) return;
     pullForm(); BK.days = daysFromQuote(PRE.quote); render(); toast("견적 일정을 가져왔어요 — 수정 후 저장하세요");
   };
   $("addDay").onclick = () => { pullForm(); BK.days.push({ d:BK.days.length+1, dest:"", move:"", dist:"", items:[], stay:{name:"",tags:[]}, meals:[] }); render(); };
@@ -710,14 +871,14 @@ function bindEvents() {
   $("depositRequestBtn").onclick = () => sendStageRequest("deposit");
   $("contractRequestBtn").onclick = () => sendStageRequest("contract");
   $("confirmBookingBtn").onclick = async () => {
-    if (!confirm("예약금 입금과 계약서 서명을 확인했습니다. 예약을 확정하고 고객에게 알릴까요?")) return;
+    if (!await askConfirm({ title:"예약을 확정할까요?", message:"예약금 입금과 계약서 서명을 확인한 뒤 고객에게 예약 확정 알림을 보냅니다.", confirmText:"예약 확정하기", icon:"✓" })) return;
     $("setStatus").checked = true;
     await save({ action:"confirm" });
     $("setStatus").checked = false;
     updateActionBar();
   };
   $("publishBtn").onclick = async () => {
-    if (!confirm("가이드·차량·숙소 배정을 포함한 확정 일정표를 고객에게 공개할까요?")) return;
+    if (!await askConfirm({ title:"확정 일정표를 공개할까요?", message:"가이드·차량·숙소 배정을 포함한 최종 일정표가 고객에게 공개됩니다.", confirmText:"일정표 공개하기", icon:"🎫" })) return;
     $("publishSchedule").checked = true;
     const ok = await save({ action:"publish" });
     if (!ok) { $("publishSchedule").checked = false; BK.publishStatus = "draft"; }
@@ -726,7 +887,7 @@ function bindEvents() {
   const rtb = $("requestTravelers");
   if (rtb) rtb.onclick = async () => {
     if (!PRE.token) return toast("고객 링크가 없는 요청이에요");
-    if (!confirm("고객에게 여행자 정보 입력 요청을 보낼까요?\n현재 예약정보를 먼저 저장한 뒤 알림톡을 발송합니다.")) return;
+    if (!await askConfirm({ title:"여행자 정보 입력을 요청할까요?", message:"현재 예약정보를 먼저 저장한 뒤 고객에게 입력 알림톡을 발송합니다.", confirmText:"입력 요청 보내기", icon:"👥" })) return;
     const saved = await save();
     if (!saved) return;
     rtb.disabled = true; rtb.textContent = "발송 중…";
@@ -754,7 +915,7 @@ function bindEvents() {
   };
   const rsb = $("resetSignBtn");
   if (rsb) rsb.onclick = async () => {
-    if (!confirm("서명을 초기화할까요?\n고객이 계약서에 다시 서명해야 합니다. (기존 서명 기록은 삭제됩니다)")) return;
+    if (!await askConfirm({ title:"서명을 초기화할까요?", message:"기존 서명 기록이 삭제되며 고객이 계약서에 다시 서명해야 합니다.", confirmText:"서명 초기화", icon:"↺", tone:"danger" })) return;
     $("c_contract").checked = false;   // save()의 pullForm이 체크박스를 읽으므로 DOM 먼저 해제
     BK.contract = null;                // pullForm은 contract를 건드리지 않음 → null 유지된 채 저장
     await save({ resetContract: true });   // 서버의 서명 보존 로직에 명시적 초기화임을 알림
@@ -767,6 +928,26 @@ function bindEvents() {
   updateActionBar();
 }
 
+function focusWorkflowSection(sectionId, fieldId) {
+  const section = $(sectionId);
+  if (!section) return;
+  section.scrollIntoView({ behavior:"smooth", block:"start" });
+  section.classList.remove("focus-pulse");
+  requestAnimationFrame(() => section.classList.add("focus-pulse"));
+  if (fieldId && $(fieldId)) setTimeout(() => $(fieldId).focus(), 450);
+}
+
+function runWorkflowAction(action) {
+  if (action === "bookingInfo") return focusWorkflowSection("bookingInfoSection", "ci_productName");
+  if (action === "deposit") return $("depositRequestBtn").click();
+  if (action === "payment") return focusWorkflowSection("bookingInfoSection", "ci_depositStatus");
+  if (action === "contract") return $("contractRequestBtn").click();
+  if (action === "confirm") return $("confirmBookingBtn").click();
+  if (action === "assign") return focusWorkflowSection("assignmentSection", "g_pick");
+  if (action === "publish") return $("publishBtn").click();
+  if (action === "openSchedule" && PRE.token) window.open("확정일정표.html?t=" + encodeURIComponent(PRE.token), "_blank");
+}
+
 function updateActionBar() {
   const ci = BK.contractInfo || {};
   const paid = ci.depositStatus === "입금완료";
@@ -775,6 +956,7 @@ function updateActionBar() {
   const published = BK.publishStatus === "published";
   const depositSent = BK.depositRequest && BK.depositRequest.status === "requested";
   const contractSent = BK.contractRequest && BK.contractRequest.status === "requested";
+  const wf = workflowUi();
   $("depositRequestBtn").textContent = paid ? "✓ 예약금 확인" : (depositSent ? "💳 예약금 안내 재전송" : "💳 예약금 안내 보내기");
   $("depositRequestBtn").disabled = paid;
   $("contractRequestBtn").textContent = signed ? "✓ 계약 서명완료" : (contractSent ? "✍ 계약서 요청 재전송" : "✍ 계약서 요청 보내기");
@@ -783,6 +965,20 @@ function updateActionBar() {
   $("confirmBookingBtn").disabled = confirmed || !paid || !signed;
   $("publishBtn").textContent = published ? "✓ 일정표 공개됨" : "🎫 일정표 공개하기";
   $("publishBtn").disabled = published || !confirmed;
+  const stageButtons = {
+    deposit: $("depositRequestBtn"), contract: $("contractRequestBtn"),
+    confirm: $("confirmBookingBtn"), publish: $("publishBtn"),
+  };
+  Object.entries(stageButtons).forEach(([action, btn]) => {
+    const show = wf.task.action === action;
+    btn.style.display = show ? "" : "none";
+    btn.classList.toggle("primary", show);
+  });
+  $("bottomStep").textContent = wf.published ? "예약 절차 완료" : `${wf.active}/6단계 · ${wf.steps[wf.active - 1].label}`;
+  $("bottomTask").textContent = wf.task.title;
+  const hasStageAction = ["deposit", "contract", "confirm", "publish"].includes(wf.task.action);
+  $("saveBtn").classList.toggle("secondary", hasStageAction);
+  $("saveBtn").textContent = wf.task.action === "payment" ? "💾 입금 상태 저장" : wf.task.action === "assign" ? "💾 배정정보 저장" : wf.task.action === "bookingInfo" ? "💾 예약정보 저장" : "💾 임시 저장";
 }
 
 async function sendStageRequest(kind) {
@@ -795,7 +991,7 @@ async function sendStageRequest(kind) {
   if (kind === "contract" && BK.contractInfo.depositStatus !== "입금완료")
     return toast("⚠ 예약금 입금 확인 후 계약서 요청이 가능합니다");
   const label = kind === "deposit" ? "예약금 입금 안내" : "계약서 서명 요청";
-  if (!confirm(`${label}를 고객에게 보낼까요?\n현재 입력 내용도 함께 저장됩니다.`)) return;
+  if (!await askConfirm({ title:`${label}를 보낼까요?`, message:"현재 입력한 예약정보를 저장한 뒤 고객에게 알림톡을 발송합니다.", confirmText:`${label} 보내기`, icon:kind === "deposit" ? "💳" : "✍" })) return;
   const saved = await save({ quiet:true });
   if (!saved) return;
   const btn = kind === "deposit" ? $("depositRequestBtn") : $("contractRequestBtn");
