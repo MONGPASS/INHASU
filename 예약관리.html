@@ -387,7 +387,8 @@ function assignStats() {
   /* 필요 숙소 수: 일정표에서 숙소가 지정된 일수 기준 (마지막 날은 보통 귀국이라 숙소 없음).
      일정표에 숙소가 하나도 지정 안 됐으면 (일수 - 1) 폴백 */
   const stayDays = days.filter(d => { const n = noBr((d.stay || {}).name); return n && n !== "숙소미포함"; }).length;
-  const lodgeNeeded = days.length ? (stayDays || Math.max(days.length - 1, 0)) : 0;
+  const maxNights = Math.max(days.length - 1, 0);
+  const lodgeNeeded = days.length ? Math.min(stayDays || maxNights, maxNights) : 0;
   const signed = !!(BK.contract && BK.contract.signedAt);
   const checklistDone = Object.values(BK.checklist || {}).filter(Boolean).length;
   const missing = [];
@@ -737,6 +738,10 @@ function render() {
         const dt = String(ct.signedAt).replace("T", " ").slice(0, 16);
         return `<div class="assign-box" style="margin-top:12px; background:#F1FBF7; border-color:#BFE6D9;">
           <div class="subtt" style="color:#0A6A5E;">📜 여행계약서 — <b>✓ ${esc(dt)} 서명 완료</b> (${esc(ct.signerName || PRE.name)})</div>
+          ${ct.signImg ? `<div style="margin:10px 0 12px;padding:12px;border:1px solid #BFE6D9;border-radius:12px;background:#fff;text-align:center;">
+            <div style="font-size:11px;font-weight:800;color:#0A6A5E;margin-bottom:8px;">고객 서명 원본</div>
+            <img src="${esc(ct.signImg)}" alt="${esc(ct.signerName || PRE.name)} 고객 서명" style="display:block;max-width:100%;height:90px;object-fit:contain;margin:auto;">
+          </div>` : `<div style="font-size:12px;color:#9A5B24;margin:8px 0 12px;">서명 기록은 있으나 원본 이미지가 없습니다. 계약서 화면에서 관리자 인증 상태를 확인해 주세요.</div>`}
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <a class="hbtn" href="계약서.html?t=${encodeURIComponent(PRE.token || "")}&adminId=${encodeURIComponent(PRE.id)}" target="_blank">📜 서명 원본 확인</a>
             <button class="hbtn" id="resetSignBtn" style="color:#c66;">서명 초기화</button>
@@ -1100,11 +1105,12 @@ function fillDatalists() {
   // 선택형 불러오기 드롭다운 — 리소스관리에 등록된 이름 목록
   const pick = (key, pickId) => {
     const el = $(pickId); if (!el) return;
-    const cur = el.value;
-    el.innerHTML = `<option value="">📥 리소스에서 선택…</option>` +
+    const assigned = key === "guides" ? (BK.assign.guide.name || "") : (BK.assign.vehicle.model || "");
+    const names = Object.keys(LIBS[key]);
+    el.innerHTML = `<option value="">${assigned ? "📥 다른 리소스로 변경…" : "📥 리소스에서 선택…"}</option>` +
       Object.keys(LIBS[key]).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
-    el.value = cur;
-    if (!Object.keys(LIBS[key]).length) el.innerHTML = `<option value="">리소스관리에 등록된 항목 없음</option>`;
+    el.value = names.includes(assigned) ? assigned : "";
+    if (!names.length) el.innerHTML = `<option value="">리소스관리에 등록된 항목 없음</option>`;
   };
   pick("guides", "g_pick"); pick("vehicles", "v_pick");
 }

@@ -82,7 +82,9 @@ const _params = new URLSearchParams(location.search);
 const _token = _params.get("t");
 const _adminId = _params.get("adminId");
 const _adminToken = sessionStorage.getItem("leaders_admin_token") || "";
-const _adminView = !!(_adminId && _adminToken);
+// adminId가 있으면 인증 토큰이 새 탭에 전달되지 않은 경우도 관리자 진입으로 구분해
+// 고객용 "안전하게 보관" 문구로 조용히 대체하지 않고 재로그인 안내를 표시합니다.
+const _adminView = !!_adminId;
 let _adminLoaded = false;
 const root = document.getElementById("root");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));

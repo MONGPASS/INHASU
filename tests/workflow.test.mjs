@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { WORKFLOW, workflowStatus, defaultQuoteExpiry, isQuoteExpired } from "../functions/api/_workflow.mjs";
+import { WORKFLOW, workflowStatus, defaultQuoteExpiry, isQuoteExpired, requiredLodgeCount } from "../functions/api/_workflow.mjs";
 
 test("workflow follows the customer booking sequence", () => {
   const rec = {};
@@ -28,4 +28,16 @@ test("quote expiry defaults to seven days and blocks past quotes", () => {
   assert.equal(defaultQuoteExpiry(now), "2026-07-20T00:00:00.000Z");
   assert.equal(isQuoteExpired({ quoteExpiresAt:"2026-07-12T23:59:59Z" }, now), true);
   assert.equal(isQuoteExpired({ quoteExpiresAt:"2026-07-14T00:00:00Z" }, now), false);
+});
+
+test("숙소 배정 수는 귀국일을 제외한 총 박수를 넘지 않는다", () => {
+  const sixDays = Array.from({ length:6 }, (_, i) => ({ d:i + 1, stay:{ name:`숙소 ${i + 1}` } }));
+  assert.equal(requiredLodgeCount(sixDays), 5);
+  assert.equal(requiredLodgeCount(sixDays.slice(0, 1)), 0);
+  assert.equal(requiredLodgeCount([
+    { stay:{ name:"게르" } },
+    { stay:{ name:"숙소미포함" } },
+    { stay:{ name:"호텔" } },
+    { stay:{ name:"" } },
+  ]), 2);
 });

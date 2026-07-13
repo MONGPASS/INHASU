@@ -11,6 +11,18 @@ export const WORKFLOW = Object.freeze({
   TRIP_COMPLETED: "TRIP_COMPLETED",
 });
 
+export function requiredLodgeCount(days = []) {
+  const list = Array.isArray(days) ? days : [];
+  if (!list.length) return 0;
+  const maxNights = Math.max(list.length - 1, 0);
+  const stayDays = list.filter(day => {
+    const name = String(day && day.stay && day.stay.name || "").replace(/<br\s*\/?>/gi, " ").trim();
+    return name && name !== "숙소미포함";
+  }).length;
+  // 마지막 날은 귀국일이므로 일정에 숙소가 잘못 남아 있어도 총 박수를 넘지 않습니다.
+  return Math.min(stayDays || maxNights, maxNights);
+}
+
 export function workflowStatus(rec = {}, rowStatus = "") {
   const booking = rec.booking || {};
   if (rowStatus === "완료" || rec.status === "완료") return WORKFLOW.TRIP_COMPLETED;

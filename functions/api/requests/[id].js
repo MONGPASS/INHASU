@@ -5,7 +5,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 import { sendQuoteReady, sendBookingConfirmed, sendItineraryPublished, sendTravelerInfoRequest, sendDepositRequest, sendContractRequest } from "../_solapi.js";
-import { workflowStatus, defaultQuoteExpiry } from "../_workflow.mjs";
+import { workflowStatus, defaultQuoteExpiry, requiredLodgeCount } from "../_workflow.mjs";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -32,10 +32,10 @@ const isPublishReady = rec => {
   const days = Array.isArray(booking.days) ? booking.days : [];
   const assign = booking.assign || {};
   const lodges = Array.isArray(assign.lodges) ? assign.lodges.filter(x => x && x.name) : [];
-  const stayDays = days.filter(d => d && d.stay && d.stay.name && d.stay.name !== "숙소미포함").length;
+  const lodgeNeeded = requiredLodgeCount(days);
   return rec.status === "예약확정" && days.length > 0 &&
     !!(assign.guide && assign.guide.name) && !!(assign.vehicle && assign.vehicle.model) &&
-    lodges.length >= (stayDays || Math.max(days.length - 1, 0));
+    lodges.length >= lodgeNeeded;
 };
 
 // 관리자 단건 조회 — 계약서 원본 서명 등 공개 API에서 제외한 내부 자료 확인용
