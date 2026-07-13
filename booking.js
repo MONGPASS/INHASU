@@ -6,6 +6,12 @@
      - daysFromQuote              : 발행 견적의 일정(days)을 확정 일정으로 복사
      - seedBookingFromQuote       : 예약확정 순간, 견적에서 booking 스켈레톤을 만들어 승계 */
 
+const DEFAULT_DEPOSIT_ACCOUNT = Object.freeze({
+  bankName: "우리은행",
+  accountNumber: "1002-245-516496",
+  accountHolder: "DAVAASUREN (헬로볼라)",
+});
+
 function blankBooking() {
   return {
     confirmedAt: "",
@@ -17,7 +23,7 @@ function blankBooking() {
     travelers: [],
     travelerSubmission: { status:"not_requested", requestedAt:"", submittedAt:"", expectedCount:0, submittedCount:0 },
     flight: { inDate:"", inTime:"", inNo:"", outDate:"", outTime:"", outNo:"" },
-    contractInfo: { productName:"", region:"", totalAmount:0, depositAmount:0, depositStatus:"미입금", balanceAmount:0, balanceStatus:"미수령", cashReceipt:"", bankName:"", accountNumber:"", accountHolder:"", note:"" },
+    contractInfo: { productName:"", region:"", totalAmount:0, depositAmount:0, depositStatus:"미입금", balanceAmount:0, balanceStatus:"미수령", cashReceipt:"", ...DEFAULT_DEPOSIT_ACCOUNT, note:"" },
     preparedAt: "",
     depositRequest: { status:"not_sent", requestedAt:"" },
     contractRequest: { status:"not_sent", requestedAt:"" },

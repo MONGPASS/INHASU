@@ -205,9 +205,9 @@ function init() {
     balanceAmount: BK.contractInfo.balanceAmount || qm.balanceAmount,
     balanceStatus: BK.contractInfo.balanceStatus || (BK.checklist.balance ? "입금완료" : "미수령"),
     cashReceipt: BK.contractInfo.cashReceipt || "",
-    bankName: BK.contractInfo.bankName || "",
-    accountNumber: BK.contractInfo.accountNumber || "",
-    accountHolder: BK.contractInfo.accountHolder || "",
+    bankName: BK.contractInfo.bankName || DEFAULT_DEPOSIT_ACCOUNT.bankName,
+    accountNumber: BK.contractInfo.accountNumber || DEFAULT_DEPOSIT_ACCOUNT.accountNumber,
+    accountHolder: BK.contractInfo.accountHolder || DEFAULT_DEPOSIT_ACCOUNT.accountHolder,
   };
   BK.flight = {
     ...BK.flight,
