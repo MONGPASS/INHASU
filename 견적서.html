@@ -37,6 +37,17 @@
     color: #A9BCB6; font-size: 12px; overflow: hidden; }
   .ph img { width: 100%; height: 100%; object-fit: cover; }
   .logo-mark { display: inline-flex; }
+  .customer-bar { position: sticky; top: 0; z-index: 40; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 18px; background:rgba(21,44,40,.96); color:#fff; box-shadow:0 8px 24px rgba(6,65,58,.16); }
+  .customer-bar a { color:#fff; text-decoration:none; font-size:13px; font-weight:800; }
+  .customer-bar .next { background:#06c4a0; padding:8px 14px; border-radius:999px; }
+  .quote-actions { width:min(794px, calc(100% - 40px)); margin:0 auto 48px; padding:28px; border-radius:20px; background:#fff; box-shadow:0 18px 44px rgba(6,65,58,.14); text-align:center; color:#152c28; }
+  .quote-actions h2 { font-size:22px; margin-bottom:8px; }
+  .quote-actions p { color:#6b7c78; font-size:14px; line-height:1.6; }
+  .quote-actions .buttons { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px; }
+  .quote-actions a { display:block; padding:15px; border-radius:12px; text-decoration:none; font-size:15px; font-weight:800; }
+  .quote-actions .accept { grid-column:1/-1; background:#152c28; color:#fff; }
+  .quote-actions .change { background:#fee500; color:#3c1e1e; }
+  .quote-actions .back { border:1px solid #dfe7e4; color:#526762; }
 
   @page { size: A4; margin: 0; }
 
@@ -50,7 +61,7 @@
 
   @media print {
     body { background: #fff; }
-    .hint { display: none; }
+    .hint, .customer-bar, .quote-actions { display: none !important; }
     .wrap { gap: 0; padding: 0; }
     .page { box-shadow: none; page-break-after: always;
       transform: none !important; margin-bottom: 0 !important; }  /* 인쇄는 항상 원본 크기 */
@@ -60,11 +71,21 @@
 </head>
 <body>
 <div class="hint" id="printHint" style="display:none">💡 <b>Ctrl + P</b> → 대상 <b>"PDF로 저장"</b> → 여백 <b>없음</b>, 배경 그래픽 <b>켜기</b>로 인쇄하면 고객용 PDF가 됩니다.</div>
+<nav class="customer-bar" id="customerBar" style="display:none"><a id="customerBackTop" href="#">← 내 견적</a><span style="font-size:13px;font-weight:700;opacity:.82">맞춤 견적서</span><a class="next" id="customerAcceptTop" href="#">진행하기</a></nav>
 <div class="wrap" id="root"></div>
+<section class="quote-actions" id="quoteActions" style="display:none"><h2>견적서를 모두 확인하셨나요?</h2><p>이 견적으로 진행하거나, 변경이 필요한 내용을 담당자와 상담해 주세요.</p><div class="buttons"><a class="accept" id="customerAcceptBottom" href="#">이 견적으로 진행하기</a><a class="change" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">일정 변경 상담</a><a class="back" id="customerBackBottom" href="#">내 견적으로 돌아가기</a></div></section>
 
 <script type="module">
 /* 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 */
 const _token = new URLSearchParams(location.search).get("t");
+if (_token) {
+  const portal = "내견적.html?t=" + encodeURIComponent(_token);
+  const accept = portal + "&action=accept";
+  document.getElementById("customerBackTop").href = portal;
+  document.getElementById("customerBackBottom").href = portal;
+  document.getElementById("customerAcceptTop").href = accept;
+  document.getElementById("customerAcceptBottom").href = accept;
+}
 /* 인쇄 안내는 관리자용 — 기본 숨김, 고객 링크(?t=)가 아닐 때만 표시 */
 if (!_token) { const _ph = document.getElementById("printHint"); if (_ph) _ph.style.display = ""; }
 const Q = await (async () => {
@@ -105,6 +126,10 @@ if (!Q) {
       <a href="내견적.html?t=${encodeURIComponent(_token || "")}" style="display:inline-block;margin-top:22px;color:#06c4a0;font-weight:800;text-decoration:none">← 내 견적 확인으로 돌아가기</a>
     </div>`;
 } else {
+if (_token) {
+  document.getElementById("customerBar").style.display = "flex";
+  document.getElementById("quoteActions").style.display = "block";
+}
 
 const won = n => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("ko-KR") + "원";
 const wonMan = n => Math.round(n / 10000).toLocaleString("ko-KR") + "만원";

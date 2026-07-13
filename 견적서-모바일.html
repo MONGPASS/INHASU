@@ -48,7 +48,7 @@
   @page { size: 420px 760px; margin: 0; }
   @media print {
     body { background: #fff; }
-    .topbar, .fab { display: none !important; }
+    .topbar, .fab, .customer-nav, .customer-actions { display: none !important; }
     .print-only { display: block; }
     .doc { max-width: none; margin: 0; padding: 0; gap: 0; display: block; }
     .card { border-radius: 0; box-shadow: none; break-before: page; }
@@ -60,9 +60,20 @@
   .fab { position: fixed; right: 16px; bottom: 18px; z-index: 40; background: #152C28; color: #fff;
     border: none; border-radius: 26px; padding: 13px 20px; font: 800 14.5px 'Pretendard', sans-serif;
     box-shadow: 0 10px 26px rgba(6,65,58,0.32); cursor: pointer; }
+  .customer-nav { position:sticky; top:0; z-index:45; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; background:rgba(21,44,40,.97); color:#fff; }
+  .customer-nav a { color:#fff; text-decoration:none; font-size:12.5px; font-weight:800; }
+  .customer-nav .next { background:#06c4a0; padding:8px 12px; border-radius:999px; }
+  .customer-actions { text-align:center; padding:24px 20px 22px; }
+  .customer-actions h2 { font-size:20px; margin-bottom:7px; }
+  .customer-actions p { color:#6b7c78; font-size:13px; line-height:1.6; }
+  .customer-actions a { display:block; margin-top:10px; padding:14px; border-radius:12px; text-decoration:none; font-size:14px; font-weight:800; }
+  .customer-actions .accept { margin-top:18px; background:#152c28; color:#fff; }
+  .customer-actions .change { background:#fee500; color:#3c1e1e; }
+  .customer-actions .back { border:1px solid #dfe7e4; color:#526762; }
 </style>
 </head>
 <body>
+<nav class="customer-nav" id="customerNav" style="display:none"><a id="customerBackTop" href="#">← 내 견적</a><span style="font-size:12px;font-weight:700;opacity:.8">맞춤 견적서</span><a class="next" id="customerAcceptTop" href="#">진행하기</a></nav>
 <div class="topbar" id="topbar" style="display:none">
   <span id="tbHint">💡 저장 버튼으로 모바일 PDF를 받으세요</span>
   <span class="tb-links">
@@ -78,6 +89,11 @@
 /* ── 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 ── */
 const params = new URLSearchParams(location.search);
 const _token = params.get("t");
+if (_token) {
+  const portal = "내견적.html?t=" + encodeURIComponent(_token);
+  document.getElementById("customerBackTop").href = portal;
+  document.getElementById("customerAcceptTop").href = portal + "&action=accept";
+}
 
 /* PC 버전 링크(같은 파라미터 유지, 강제 PC = m=0) */
 (() => {
@@ -126,6 +142,7 @@ if (!Q) {
       <a href="내견적.html?t=${encodeURIComponent(_token || "")}" style="display:inline-block;margin-top:20px;color:#06c4a0;font-weight:800;text-decoration:none">← 내 견적 확인으로 돌아가기</a>
     </div>`;
 } else {
+if (_token) document.getElementById("customerNav").style.display = "flex";
 
 /* 편집기/샘플(고객 링크 아님)일 때만 상단 도구바 표시 */
 if (!_token) { document.getElementById("topbar").style.display = ""; }
@@ -522,7 +539,8 @@ const secCert = card(`
   <div class="blk" style="margin-top:18px; background:#EAF7F3; border-radius:12px; padding:14px 16px; font-size:11px; color:#40544F; line-height:1.75; text-align:center;">${esc(B.companyFull)}는 <b style="color:#0A6A5E;">대한민국과 몽골 양국 정부에 정식 인허가</b>를 받고 등록된 여행사입니다. 여행업 보증보험 가입, 몽골 현지 법인 설립 및 몽골여행협회(MATA) 등록까지 모든 안전장치를 갖추고 있습니다.</div>`);
 
 /* ── 렌더 (디자인 순서) ── */
-root.innerHTML = secCover + secQuote + secSchedule + secInclusions + secSpots + secLodge + secTeam + secMeals + secInsurance + secArrival + secCert;
+const customerActions = _token ? `<section class="card customer-actions"><h2>견적서를 모두 확인하셨나요?</h2><p>이 견적으로 진행하거나, 변경이 필요한 내용을 담당자와 상담해 주세요.</p><a class="accept" href="내견적.html?t=${encodeURIComponent(_token)}&action=accept">이 견적으로 진행하기</a><a class="change" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">일정 변경 상담</a><a class="back" href="내견적.html?t=${encodeURIComponent(_token)}">내 견적으로 돌아가기</a></section>` : "";
+root.innerHTML = secCover + secQuote + secSchedule + secInclusions + secSpots + secLodge + secTeam + secMeals + secInsurance + secArrival + secCert + customerActions;
 document.title = `${B.company}_${esc(Q.customer)}님_맞춤견적서_${esc(Q.quoteNo)}`;
 }
 </script>

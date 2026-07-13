@@ -168,6 +168,12 @@
           alert("예약 진행 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.");
         }
       };
+      if (acceptBtn && new URLSearchParams(location.search).get("action") === "accept") {
+        const clean = new URL(location.href);
+        clean.searchParams.delete("action");
+        history.replaceState(null, "", clean.pathname + clean.search);
+        setTimeout(() => acceptBtn.click(), 0);
+      }
     } else {
       card.innerHTML = `
         <div class="emoji">✅</div>
