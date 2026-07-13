@@ -7,19 +7,19 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <style>
-  :root { --accent:#06c4a0; --deep:#06c4a0; --soft:#eaf7f3; --ink:#1b2b28; --sub:#6b7c78; --gray:#9aa5a2; --line:#eceef1; --bg:#f6f8f9; --book:#3d7ff0; --warn:#e0913a; --red:#d96a5e; }
+  :root { --accent:#06c4a0; --deep:#06c4a0; --soft:#edf5f2; --ink:#0f2e27; --sub:#5a716b; --gray:#8aa39c; --line:#eaf0ee; --bg:#f6faf9; --book:#3d7ff0; --warn:#e0913a; --red:#d96a5e; }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:Pretendard, system-ui, "Malgun Gothic", sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
   svg { display:block; }
   .shell { display:flex; min-height:100vh; }
   .side { width:232px; flex:0 0 232px; background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; padding:20px 14px; position:sticky; top:0; height:100vh; }
   .side-brand { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; }
-  .side-brand .logo { width:38px; height:38px; border-radius:11px; background:var(--deep); color:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .side-brand .logo { width:38px; height:38px; border-radius:11px; background:linear-gradient(150deg,#06c4a0,#037a64); color:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow:0 6px 14px rgba(6,196,160,.3); }
   .side-brand b { font-size:15px; font-weight:800; display:block; line-height:1.2; }
   .side-brand small { font-size:11.5px; color:var(--gray); font-weight:600; }
   .mi { display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:11px; color:var(--sub); font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; margin-bottom:2px; border:none; background:none; width:100%; font-family:inherit; transition:.12s; }
   .mi:hover { background:var(--soft); color:var(--deep); }
-  .mi.on { background:var(--deep); color:#fff; }
+  .mi.on { background:var(--deep); color:#fff; box-shadow:0 6px 14px rgba(6,196,160,.24); }
   .content { flex:1; min-width:0; width:calc(100vw - 232px); padding:26px 24px 60px; max-width:none; }
   .page-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
   .page-head h1 { font-size:22px; font-weight:800; }
@@ -27,7 +27,7 @@
   .btn { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:10px; padding:10px 14px; font:800 13px Pretendard; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
   .btn.primary { background:var(--deep); color:#fff; border-color:var(--deep); }
   .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
-  .stat { position:relative; background:#fff; border:1px solid var(--line); border-radius:16px; padding:15px 16px 13px 18px; overflow:hidden; }
+  .stat { position:relative; background:#fff; border:1px solid var(--line); border-radius:16px; padding:15px 16px 13px 18px; overflow:hidden; box-shadow:0 4px 14px rgba(15,46,39,.04); }
   .stat::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--c,#06c4a0); }
   .stat-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .stat-ico { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:var(--cs,#eaf7f3); color:var(--c,#06c4a0); }
@@ -67,7 +67,7 @@
   .col-actions { text-align:right; }
   .pay-sel { border:none; background:none; color:inherit; font:inherit; cursor:pointer; padding:0 0 0 1px; margin:0; appearance:none; -webkit-appearance:none; }
   .pay-sel:focus { outline:none; }
-  .table-card { background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; max-width:100%; }
+  .table-card { background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; max-width:100%; box-shadow:0 4px 14px rgba(15,46,39,.04); }
   table { width:100%; border-collapse:collapse; }
   th { background:#fafbfc; text-align:left; color:var(--sub); font-size:12.5px; font-weight:800; padding:13px 16px; border-bottom:1px solid var(--line); white-space:nowrap; }
   td { padding:14px 16px; border-bottom:1px solid #f2f5f4; vertical-align:middle; }
