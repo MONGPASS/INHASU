@@ -4,7 +4,7 @@
    DELETE : 관리자가 문의 삭제 (x-admin-token 헤더 필요)
    ═══════════════════════════════════════════════════════════ */
 
-import { sendQuoteReady, sendBookingConfirmed, sendItineraryPublished } from "../_solapi.js";
+import { sendQuoteReady, sendBookingConfirmed, sendItineraryPublished, sendTravelerInfoRequest } from "../_solapi.js";
 import { workflowStatus, defaultQuoteExpiry } from "../_workflow.mjs";
 
 const json = (obj, status = 200) =>
@@ -52,12 +52,15 @@ export async function onRequestPatch(context) {
     delete patch.notifyQuote;
     const rotateCustomerLink = patch.rotateCustomerLink === true;
     delete patch.rotateCustomerLink;
+    const requestTravelerInfo = patch.notifyTravelers === true;
+    delete patch.notifyTravelers;
 
     // 현재 레코드 읽기 (status 컬럼도 함께 — 상태 보존용)
     const row = await env.DB.prepare("SELECT data, status FROM requests WHERE id = ?").bind(id).first();
     if (!row) return json({ ok: false, error: "not found" }, 404);
 
     const rec = JSON.parse(row.data);
+    if (requestTravelerInfo && !rec.booking) return json({ ok:false, error:"예약관리를 먼저 시작해 주세요" }, 409);
     const hadBooking = !!rec.booking;
     const hadQuote = !!rec.quote;
     const prevStatus = row.status || rec.status || "신규";
@@ -74,6 +77,13 @@ export async function onRequestPatch(context) {
           !(patch.booking.contract && patch.booking.contract.signedAt)) {
         patch.booking.contract = prev.contract;
         patch.booking.checklist = { ...(patch.booking.checklist || {}), contract: true };
+      }
+      // 고객이 이 화면을 연 뒤 여행자 정보를 제출했다면, 오래된 관리자 화면 저장으로 덮어쓰지 않습니다.
+      const prevSubmitted = prev && prev.travelerSubmission && prev.travelerSubmission.submittedAt;
+      const incomingSubmitted = patch.booking.travelerSubmission && patch.booking.travelerSubmission.submittedAt;
+      if (prevSubmitted && prevSubmitted !== incomingSubmitted) {
+        patch.booking.travelers = prev.travelers;
+        patch.booking.travelerSubmission = prev.travelerSubmission;
       }
     }
     delete patch.resetContract;   // 플래그가 rec에 저장되지 않게
@@ -111,6 +121,15 @@ export async function onRequestPatch(context) {
     }
 
     rec.activities = Array.isArray(rec.activities) ? rec.activities : [];
+    if (requestTravelerInfo) {
+      const expectedCount = (Number(rec.adult)||0) + (Number(rec.child)||0) + (Number(rec.infant)||0);
+      const alreadySubmitted = rec.booking.travelerSubmission && rec.booking.travelerSubmission.status === "submitted";
+      rec.booking.travelerSubmission = {
+        ...(rec.booking.travelerSubmission || {}), status:alreadySubmitted ? "submitted" : "requested", requestedAt:now,
+        expectedCount, submittedCount:Array.isArray(rec.booking.travelers) ? rec.booking.travelers.length : 0,
+      };
+      rec.activities.push({ at:now, type:"travelers_requested", detail:`고객에게 여행자 정보 ${expectedCount}명 ${alreadySubmitted ? "확인·수정" : "입력"} 요청` });
+    }
     if (rotateCustomerLink) {
       rec.token = randomToken();
       rec.activities.push({ at:now, type:"customer_link_rotated", detail:"고객 링크를 재발급하고 이전 링크를 폐기함" });
@@ -156,6 +175,11 @@ export async function onRequestPatch(context) {
       rec.activities.push({ at: now, type: "notify_sent", detail: "고객에게 견적서 도착 알림톡 발송" });
       bg("alimtalk-quote", sendQuoteReady(env, who));
     }
+    if (requestTravelerInfo && rec.phone && rec.token) {
+      rec.notify.travelersRequestedAt = now;
+      rec.activities.push({ at:now, type:"notify_sent", detail:"고객에게 여행자 정보 입력 요청 알림톡 발송" });
+      bg("alimtalk-travelers", sendTravelerInfoRequest(env, who));
+    }
 
     // ② 예약 확정 — 상태가 예약확정으로 넘어간 순간 한 번만
     if (prevStatus !== "예약확정" && rec.status === "예약확정" && !rec.notify.confirmSentAt && rec.phone && rec.token) {
@@ -174,7 +198,7 @@ export async function onRequestPatch(context) {
       "UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ?"
     ).bind(rec.status || "신규", rec.memo || "", JSON.stringify(rec), rec.token || "", id).run();
 
-    return json({ ok: true, status: rec.status || "신규", token:rotateCustomerLink ? rec.token : undefined, workflowStatus:rec.workflowStatus, quoteExpiresAt:rec.quoteExpiresAt || "", publishStatus: (rec.booking && rec.booking.publishStatus) || "draft", activities: rec.activities });
+    return json({ ok: true, status: rec.status || "신규", token:rotateCustomerLink ? rec.token : undefined, workflowStatus:rec.workflowStatus, quoteExpiresAt:rec.quoteExpiresAt || "", publishStatus: (rec.booking && rec.booking.publishStatus) || "draft", travelerSubmission:rec.booking && rec.booking.travelerSubmission, activities: rec.activities });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);
   }

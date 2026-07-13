@@ -97,8 +97,9 @@
     const depositPaid = !!(booking.contractInfo && booking.contractInfo.depositStatus === "입금완료");
     const confirmed = r.status === "예약확정";
     const published = booking.publishStatus === "published";
+    const travelersDone = booking.travelerSubmission && booking.travelerSubmission.status === "submitted";
     return `<div class="steps">
-      ${[["견적 수락",accepted],["계약서 서명",signed],["예약금 확인",depositPaid],["예약 확정",confirmed],["확정일정표 공개",published]].map(([label,done]) =>
+      ${[["견적 수락",accepted],["여행자 정보",travelersDone],["계약서 서명",signed],["예약금 확인",depositPaid],["예약 확정",confirmed],["확정일정표 공개",published]].map(([label,done]) =>
         `<div class="step ${done ? "done" : ""}"><span class="dot">${done ? "✓" : ""}</span>${label}</div>`).join("")}
     </div>`;
   };
@@ -133,6 +134,8 @@
       const signed = r.booking.contract && r.booking.contract.signedAt;
       const confirmed = r.status === "예약확정";
       const published = r.booking.publishStatus === "published";
+      const travelerSubmission = r.booking.travelerSubmission || {};
+      const travelersDone = travelerSubmission.status === "submitted";
       card.innerHTML = `
         <div class="emoji">${confirmed ? "🎫" : "🧾"}</div>
         <h1>${confirmed ? "예약이 확정됐어요!" : "예약 절차를 진행하고 있어요"}</h1>
@@ -140,6 +143,7 @@
         <span class="badge ${confirmed ? "done" : "wait"}" ${confirmed ? 'style="background:#e8effc;color:#2b5cc4;"' : ""}>${confirmed ? "✓ 예약 확정" : "⏳ 예약 진행 중"}</span>
         ${sumHtml(r)}
         ${progressHtml(r)}
+        <a class="btn ${travelersDone ? "ghost" : "primary"}" href="${esc("여행자정보.html?t=" + encodeURIComponent(token))}">${travelersDone ? "✅ 여행자 정보 확인·수정" : "👥 여행자 정보 입력하기"}</a>
         ${signed
           ? `<a class="btn ghost" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank">📜 여행계약서 보기 (서명완료)</a>`
           : `<a class="btn accent" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank">✍️ 여행계약서 확인·서명하기</a>`}

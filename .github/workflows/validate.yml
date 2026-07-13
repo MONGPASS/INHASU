@@ -13,8 +13,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Workflow tests
-        run: node --test tests/workflow.test.mjs
+      - name: Automated tests
+        run: node --test tests/*.test.mjs
       - name: Function syntax
         shell: bash
         run: |

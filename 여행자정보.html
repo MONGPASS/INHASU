@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>여행자 정보 입력 · 몽골리아 은하수</title>
+  <style>
+    :root{--mint:#08c5a0;--ink:#112d25;--sub:#6f817b;--line:#dce8e4;--bg:#effaf7;--danger:#d9473f}
+    *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#e8faf5,#f7faf9);color:var(--ink);font-family:Pretendard,"Noto Sans KR",Arial,sans-serif}
+    .wrap{width:min(760px,calc(100% - 28px));margin:28px auto 70px}.head,.card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 12px 35px rgba(28,76,64,.07)}
+    .head{padding:28px}.brand{font-weight:900;letter-spacing:.12em;color:#00a98b;font-size:13px}.head h1{font-size:26px;margin:15px 0 8px}.desc{color:var(--sub);line-height:1.65;font-size:14px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}.sum{padding:12px;background:#f6f9f8;border-radius:12px}.sum b{display:block;font-size:11px;color:#8a9a95;margin-bottom:5px}.sum span{font-size:14px;font-weight:800}
+    .card{padding:22px;margin-top:16px}.traveler-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.traveler-title h2{font-size:18px;margin:0}.type{background:#e7f8f4;color:#008d75;border-radius:999px;padding:6px 10px;font-weight:800;font-size:12px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.full{grid-column:1/-1}label span{display:block;font-size:12px;color:#667873;font-weight:800;margin:0 0 7px}input,select{width:100%;height:47px;border:1px solid #cfddd9;border-radius:11px;padding:0 12px;background:#fff;font:inherit;color:var(--ink)}input:focus,select:focus{outline:3px solid rgba(8,197,160,.14);border-color:var(--mint)}.help{font-size:11px;color:#8a9894;margin-top:6px;line-height:1.5}
+    .consent{display:flex;gap:10px;align-items:flex-start}.consent input{width:18px;height:18px;margin-top:2px;flex:none}.consent label{font-size:13px;line-height:1.55;color:#536660}.actions{position:sticky;bottom:0;margin-top:16px;padding:14px 0;background:linear-gradient(180deg,rgba(239,250,247,0),#effaf7 28%)}button,.back{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;border:0;border-radius:14px;font-size:15px;font-weight:900;text-decoration:none;cursor:pointer}.submit{background:var(--ink);color:#fff}.submit:disabled{opacity:.5;cursor:not-allowed}.back{margin-top:9px;background:#fff;color:#50635d;border:1px solid var(--line)}.state{text-align:center;padding:50px 20px}.state .icon{font-size:42px}.state h2{margin:15px 0 8px}.error{color:var(--danger);font-size:13px;font-weight:700;margin-top:12px;text-align:center}
+    @media(max-width:600px){.wrap{margin-top:14px}.head{padding:22px}.head h1{font-size:22px}.summary{grid-template-columns:1fr}.card{padding:18px}.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+  </style>
+</head>
+<body><main class="wrap" id="app"><section class="head state"><div class="icon">⏳</div><h2>정보를 불러오고 있어요</h2></section></main>
+<script>
+(() => {
+  const app=document.getElementById("app"), token=new URLSearchParams(location.search).get("t")||"";
+  const esc=s=>String(s??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c]));
+  const fmt=d=>d?String(d).slice(0,10):"-";
+  const showState=(icon,title,desc)=>app.innerHTML=`<section class="head state"><div class="icon">${icon}</div><h2>${esc(title)}</h2><div class="desc">${esc(desc)}</div><a class="back" href="내견적.html?t=${encodeURIComponent(token)}">내 견적으로 돌아가기</a></section>`;
+  const row=(type,t,i)=>`<section class="card traveler" data-index="${i}"><div class="traveler-title"><h2>여행자 ${i+1}</h2><span class="type">${esc(type)}</span></div><div class="grid">
+    <label><span>한글 이름</span><input data-k="nameKo" maxlength="40" autocomplete="name" value="${esc(t.nameKo||"")}" placeholder="홍길동" required></label>
+    <label><span>여권 영문명</span><input data-k="passportName" maxlength="60" autocapitalize="characters" value="${esc(t.passportName||"")}" placeholder="HONG GILDONG" required><div class="help">여권에 적힌 영문명과 띄어쓰기까지 같게 입력해 주세요.</div></label>
+    <label><span>생년월일</span><input data-k="birth" type="date" value="${esc(t.birth||"")}" required></label>
+    <label><span>성별</span><select data-k="gender" required><option value="">선택</option><option ${t.gender==="남"?"selected":""}>남</option><option ${t.gender==="여"?"selected":""}>여</option></select></label>
+    <label><span>연락처${type!=="성인"?" (선택)":""}</span><input data-k="phone" inputmode="tel" maxlength="20" value="${esc(t.phone||"")}" placeholder="010-1234-5678" ${type==="성인"?"required":""}></label>
+    <label><span>여권번호</span><input data-k="passportNo" maxlength="20" autocapitalize="characters" value="${esc(t.passportNo||"")}" placeholder="M12345678" required><div class="help">영문과 숫자만 입력해 주세요.</div></label>
+  </div></section>`;
+
+  async function load(){
+    if(!token) return showState("🔗","링크를 확인해 주세요","담당자에게 받은 고객 전용 링크로 접속해 주세요.");
+    try{
+      const res=await fetch("/api/travelers/"+encodeURIComponent(token),{cache:"no-store"});
+      const j=await res.json(); if(!res.ok||!j.ok) throw new Error(j.error||"정보를 불러오지 못했습니다.");
+      const current=Array.isArray(j.travelers)?j.travelers:[];
+      const done=j.submission&&j.submission.status==="submitted";
+      app.innerHTML=`<section class="head"><div class="brand">MONGOLIA MILKY WAY</div><h1>${done?"여행자 정보 확인·수정":"여행자 정보 입력"}</h1><div class="desc">항공권 발권과 현지 예약에 필요한 정보입니다. <b>여권을 보면서 정확히</b> 입력해 주세요.${done?" 수정한 뒤 다시 제출하면 최신 정보로 반영됩니다.":""}</div><div class="summary"><div class="sum"><b>대표 고객</b><span>${esc(j.name||"-")}</span></div><div class="sum"><b>여행지</b><span>${esc(j.destination||"-")}</span></div><div class="sum"><b>일정</b><span>${esc(fmt(j.depart))} ~ ${esc(fmt(j.return_))}</span></div></div></section>
+        <form id="form">${j.types.map((type,i)=>row(type,current[i]||{},i)).join("")}<section class="card"><div class="consent"><input id="consent" type="checkbox"><label for="consent"><b>개인정보 수집·이용에 동의합니다.</b><br>여행 예약, 항공·숙박 등 서비스 제공을 위해 여행자 이름, 생년월일, 연락처, 성별, 여권정보를 수집·이용합니다. 관련 법령 및 여행 종료 후 필요한 보관기간이 지나면 파기합니다.</label></div><div class="error" id="error"></div></section><div class="actions"><button class="submit" id="submit" type="submit">${done?"수정 정보 저장하기":"여행자 정보 제출하기"}</button><a class="back" href="내견적.html?t=${encodeURIComponent(token)}">내 견적으로 돌아가기</a></div></form>`;
+      document.getElementById("form").onsubmit=submit;
+    }catch(e){showState("⚠️","정보를 불러오지 못했어요",e.message||"잠시 후 다시 시도해 주세요.");}
+  }
+  async function submit(e){
+    e.preventDefault(); const btn=document.getElementById("submit"), error=document.getElementById("error"); error.textContent="";
+    if(!document.getElementById("consent").checked){error.textContent="개인정보 수집·이용에 동의해 주세요.";return;}
+    const travelers=[...document.querySelectorAll(".traveler")].map(el=>Object.fromEntries([...el.querySelectorAll("[data-k]")].map(x=>[x.dataset.k,x.value.trim()])));
+    btn.disabled=true;btn.textContent="안전하게 저장하는 중…";
+    try{const res=await fetch("/api/travelers/"+encodeURIComponent(token),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({consent:true,travelers})});const j=await res.json();if(!res.ok||!j.ok)throw new Error(j.error||"저장하지 못했습니다.");showState("✅","여행자 정보가 제출됐어요","담당자가 확인한 뒤 예약과 발권 절차를 이어서 진행합니다. 변경이 생기면 이 링크에서 다시 수정할 수 있습니다.");}
+    catch(err){error.textContent=err.message||"잠시 후 다시 시도해 주세요.";btn.disabled=false;btn.textContent="여행자 정보 제출하기";error.scrollIntoView({behavior:"smooth",block:"center"});}
+  }
+  load();
+})();
+</script></body></html>

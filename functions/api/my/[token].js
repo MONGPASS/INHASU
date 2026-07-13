@@ -63,6 +63,7 @@ export async function onRequestGet({ env, params }) {
       publishedAt: bk.publishedAt || "",
       days: Array.isArray(bk.days) ? bk.days : [],
       travelers: Array.isArray(bk.travelers) ? bk.travelers.map(t => ({
+        type: t.type || "",
         nameKo: t.nameKo || "",
         passportName: t.passportName || "",
         birth: maskBirth(t.birth),
@@ -70,6 +71,10 @@ export async function onRequestGet({ env, params }) {
         gender: t.gender || "",
         passportNo: maskPassport(t.passportNo),
       })) : [],
+      travelerSubmission: (() => {
+        const s = bk.travelerSubmission && typeof bk.travelerSubmission === "object" ? bk.travelerSubmission : {};
+        return { status:s.status || "not_requested", requestedAt:s.requestedAt || "", submittedAt:s.submittedAt || "", expectedCount:Number(s.expectedCount)||0, submittedCount:Number(s.submittedCount)||0 };
+      })(),
       flight: bk.flight ? {
         inDate: bk.flight.inDate || "",
         inTime: bk.flight.inTime || "",
