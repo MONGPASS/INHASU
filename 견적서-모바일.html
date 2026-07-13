@@ -48,7 +48,7 @@
   @page { size: 420px 760px; margin: 0; }
   @media print {
     body { background: #fff; }
-    .topbar, .fab, .customer-nav, .customer-actions { display: none !important; }
+    .topbar, .fab, .customer-nav, .customer-actions, .web-only { display: none !important; }
     .print-only { display: block; }
     .doc { max-width: none; margin: 0; padding: 0; gap: 0; display: block; }
     .card { border-radius: 0; box-shadow: none; break-before: page; }
@@ -63,13 +63,15 @@
   .customer-nav { position:sticky; top:0; z-index:45; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; background:rgba(21,44,40,.97); color:#fff; }
   .customer-nav a { color:#fff; text-decoration:none; font-size:12.5px; font-weight:800; }
   .customer-nav .next { background:#06c4a0; padding:8px 12px; border-radius:999px; }
-  .customer-actions { text-align:center; padding:24px 20px 22px; }
-  .customer-actions h2 { font-size:20px; margin-bottom:7px; }
-  .customer-actions p { color:#6b7c78; font-size:13px; line-height:1.6; }
-  .customer-actions a { display:block; margin-top:10px; padding:14px; border-radius:12px; text-decoration:none; font-size:14px; font-weight:800; }
-  .customer-actions .accept { margin-top:18px; background:#152c28; color:#fff; }
-  .customer-actions .change { background:#fee500; color:#3c1e1e; }
-  .customer-actions .back { border:1px solid #dfe7e4; color:#526762; }
+  .customer-actions { text-align:center; padding:28px 20px 24px; border:1px solid #cbeadf; background:linear-gradient(145deg,#f8fffc 0%,#eaf7f3 100%); }
+  .customer-actions .eyebrow { color:#06a889; font-size:10px; font-weight:900; letter-spacing:.16em; }
+  .customer-actions h2 { font-size:20px; margin:7px 0; letter-spacing:-.03em; }
+  .customer-actions p { color:#60736e; font-size:12.5px; line-height:1.65; }
+  .customer-actions a { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:10px; padding:14px; border-radius:12px; text-decoration:none; font-size:14px; font-weight:800; }
+  .customer-actions .accept { margin-top:18px; background:#06c4a0; color:#fff; box-shadow:0 8px 20px rgba(6,196,160,.2); }
+  .customer-actions .change { background:#fff; border:1px solid #9ddfce; color:#087664; }
+  .customer-actions .consult { display:inline-flex; margin-top:17px; padding:0; color:#60736e; font-size:12px; text-decoration:underline; text-underline-offset:3px; }
+  .schedule-map-link { display:flex; align-items:center; justify-content:center; gap:7px; margin-top:12px; padding:12px; border-radius:12px; background:#152c28; color:#fff; text-decoration:none; font-size:13px; font-weight:800; }
 </style>
 </head>
 <body>
@@ -89,6 +91,7 @@
 /* ── 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 ── */
 const params = new URLSearchParams(location.search);
 const _token = params.get("t");
+const mapHref = "일정지도.html" + (_token ? "?t=" + encodeURIComponent(_token) : "");
 if (_token) {
   const portal = "내견적.html?t=" + encodeURIComponent(_token);
   document.getElementById("customerBackTop").href = portal;
@@ -310,11 +313,12 @@ const secSchedule = card(`
       <span style="color:#0A6A5E; font-size:11px; font-weight:700;">이동강도</span>
       <span class="row" style="gap:4px;">${[1,2,3,4,5].map(i => `<span style="width:8px;height:8px;border-radius:50%;background:${i <= (Q.intensity || 0) ? '#06C4A0' : '#CFE3DD'};"></span>`).join("")}</span>
     </div>
+    <a class="schedule-map-link web-only" href="${mapHref}">🗺 제안 일정 지도에서 전체 동선 보기</a>
   </div>
   <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
     ${(Q.days || []).map(dayCard).join("")}
   </div>
-  ${(Q.scheduleNotes && Q.scheduleNotes.length) ? `<div class="blk" style="margin-top:16px; font-size:9.5px; color:#40544F; line-height:1.75;">${Q.scheduleNotes.filter(Boolean).map(n => "* " + esc(n)).join("<br>")}</div>` : ""}`);
+  ${(Q.scheduleNotes && Q.scheduleNotes.length) ? `<div class="blk" style="margin-top:16px; font-size:9.5px; color:#40544F; line-height:1.75;">${Q.scheduleNotes.filter(Boolean).map(n => "* " + esc(n)).join("<br>")}</div>` : ""}`).replace('<div class="card">', '<div class="card" id="schedule">');
 
 /* ══════════ 4) 포함/불포함 (webp 아이콘) ══════════ */
 const INCLUSIONS = [["stay","전일정 숙박"],["meals","전일정 현지 맛집 식사"],["special","특식 2회"],["pickup","픽업 & 샌딩"],["vehicle","전일정 차량"],["guide","전문 가이드"],["entrance","여행지 입장료"],["water","1일 1생수 제공"],["activity","액티비티 비용"],["custom","맞춤형 투어"],["coffee","모카포트 커피"],["chair","캠핑 의자·테이블"],["socks","몽골 낙타양말"],["poncho","판초 제공"],["galaxy","새벽 은하수 헌팅"]];
@@ -539,7 +543,7 @@ const secCert = card(`
   <div class="blk" style="margin-top:18px; background:#EAF7F3; border-radius:12px; padding:14px 16px; font-size:11px; color:#40544F; line-height:1.75; text-align:center;">${esc(B.companyFull)}는 <b style="color:#0A6A5E;">대한민국과 몽골 양국 정부에 정식 인허가</b>를 받고 등록된 여행사입니다. 여행업 보증보험 가입, 몽골 현지 법인 설립 및 몽골여행협회(MATA) 등록까지 모든 안전장치를 갖추고 있습니다.</div>`);
 
 /* ── 렌더 (디자인 순서) ── */
-const customerActions = _token ? `<section class="card customer-actions"><h2>견적서를 모두 확인하셨나요?</h2><p>이 견적으로 진행하거나, 변경이 필요한 내용을 담당자와 상담해 주세요.</p><a class="accept" href="내견적.html?t=${encodeURIComponent(_token)}&action=accept">이 견적으로 진행하기</a><a class="change" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">일정 변경 상담</a><a class="back" href="내견적.html?t=${encodeURIComponent(_token)}">내 견적으로 돌아가기</a></section>` : "";
+const customerActions = _token ? `<section class="card customer-actions"><div class="eyebrow">NEXT STEP</div><h2>이 일정으로 여행을 준비할까요?</h2><p>견적을 수락해도 예약금 확인 전에는 최종 확정되지 않습니다.<br>조정이 필요한 부분은 담당자에게 요청할 수 있어요.</p><a class="accept" href="내견적.html?t=${encodeURIComponent(_token)}&action=accept">예약 절차 시작하기 <span>→</span></a><a class="change" href="내견적.html?t=${encodeURIComponent(_token)}&action=change">일정 조정 요청</a><a class="consult" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">💬 먼저 담당자에게 문의하기</a></section>` : "";
 root.innerHTML = secCover + secQuote + secSchedule + secInclusions + secSpots + secLodge + secTeam + secMeals + secInsurance + secArrival + secCert + customerActions;
 document.title = `${B.company}_${esc(Q.customer)}님_맞춤견적서_${esc(Q.quoteNo)}`;
 }

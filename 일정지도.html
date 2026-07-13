@@ -107,7 +107,7 @@
       <div class="tags" id="tripTags"></div>
     </div>
     <div class="actions">
-      <a class="btn primary" id="quoteLink" href="견적서.html" target="_blank">📄 견적서 전체 보기</a>
+      <a class="btn primary" id="quoteLink" href="견적서.html#schedule">← 견적서 일정으로 돌아가기</a>
       <a class="btn ghost" href="https://pf.kakao.com/_BSLaxl" target="_blank">💬 카톡 문의</a>
     </div>
     <div class="daybar" id="daybar"></div>
@@ -147,7 +147,7 @@ if (!Q) {
 }
 
 /* 견적서 링크에 토큰 전달 (고객이 지도→견적서로 이동해도 자기 견적을 보도록) */
-if (_token) document.getElementById("quoteLink").href = "견적서.html?t=" + encodeURIComponent(_token);
+if (_token) document.getElementById("quoteLink").href = "견적서.html?t=" + encodeURIComponent(_token) + "#schedule";
 
 /* ─────────────────────────────────────────────
    장소 사전 — presets.js의 명소 라이브러리에서 좌표를 가져옵니다.

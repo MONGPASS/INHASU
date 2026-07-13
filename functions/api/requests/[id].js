@@ -1,10 +1,11 @@
 /* ═══════════════════════════════════════════════════════════
    Cloudflare Pages Function · /api/requests/:id
-   PATCH  : 관리자가 상태/메모/견적 변경 (?token=… 필요)
-   DELETE : 관리자가 문의 삭제 (?token=… 필요)
+   PATCH  : 관리자가 상태/메모/견적 변경 (x-admin-token 헤더 필요)
+   DELETE : 관리자가 문의 삭제 (x-admin-token 헤더 필요)
    ═══════════════════════════════════════════════════════════ */
 
-import { sendQuoteReady, sendBookingConfirmed } from "../_solapi.js";
+import { sendQuoteReady, sendBookingConfirmed, sendItineraryPublished } from "../_solapi.js";
+import { workflowStatus, defaultQuoteExpiry } from "../_workflow.mjs";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -12,12 +13,12 @@ const json = (obj, status = 200) =>
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 
-// 관리자 토큰: 헤더(x-admin-token) 우선, 쿼리(?token=)도 호환용으로 허용
+// 관리자 토큰은 URL·브라우저 기록에 남지 않도록 헤더로만 받습니다.
 const isAdmin = (request, env) => {
-  const url = new URL(request.url);
-  const token = request.headers.get("x-admin-token") || url.searchParams.get("token") || "";
+  const token = request.headers.get("x-admin-token") || "";
   return !!env.ADMIN_TOKEN && token === env.ADMIN_TOKEN;
 };
+const randomToken = () => [...crypto.getRandomValues(new Uint8Array(24))].map(b => b.toString(16).padStart(2, "0")).join("");
 
 const isAccepted = rec => !!(rec.decision && rec.decision.status === "accepted");
 const isConfirmationReady = rec => {
@@ -49,6 +50,8 @@ export async function onRequestPatch(context) {
     // 견적 재발행 시에도 고객에게 다시 알리고 싶을 때 관리자가 보내는 플래그
     const forceNotifyQuote = patch.notifyQuote === true;
     delete patch.notifyQuote;
+    const rotateCustomerLink = patch.rotateCustomerLink === true;
+    delete patch.rotateCustomerLink;
 
     // 현재 레코드 읽기 (status 컬럼도 함께 — 상태 보존용)
     const row = await env.DB.prepare("SELECT data, status FROM requests WHERE id = ?").bind(id).first();
@@ -62,6 +65,7 @@ export async function onRequestPatch(context) {
     const prevPublish = (rec.booking && rec.booking.publishStatus) || (prevStatus === "예약확정" ? "published" : "draft");
     const prevDeposit = rec.booking && rec.booking.contractInfo ? rec.booking.contractInfo.depositStatus || "미입금" : "미입금";
     const prevBalance = rec.booking && rec.booking.contractInfo ? rec.booking.contractInfo.balanceStatus || "미수령" : "미수령";
+    const prevWorkflow = workflowStatus(rec, prevStatus);
     // booking 저장 시 기존 계약 서명은 보존 — 관리자가 예약관리를 열어둔 사이 고객이 서명해도
     // 구스냅샷 저장으로 서명이 지워지지 않게. 명시적 초기화(resetContract)일 때만 삭제 허용.
     if (patch.booking && !patch.resetContract) {
@@ -95,6 +99,10 @@ export async function onRequestPatch(context) {
     if (patch.status === undefined) rec.status = row.status || rec.status || "신규";
 
     const now = new Date().toISOString();
+    if (rec.quote && (!hadQuote || forceNotifyQuote)) {
+      rec.quoteIssuedAt = now;
+      rec.quoteExpiresAt = defaultQuoteExpiry(new Date(now));
+    }
     if (rec.status === "예약확정" && rec.booking && !rec.booking.confirmedAt) {
       rec.booking.confirmedAt = now.slice(0, 10);
     }
@@ -103,6 +111,10 @@ export async function onRequestPatch(context) {
     }
 
     rec.activities = Array.isArray(rec.activities) ? rec.activities : [];
+    if (rotateCustomerLink) {
+      rec.token = randomToken();
+      rec.activities.push({ at:now, type:"customer_link_rotated", detail:"고객 링크를 재발급하고 이전 링크를 폐기함" });
+    }
     if (!hadBooking && rec.booking) {
       rec.activities.push({ at: now, type: "booking_started", detail: "예약 준비를 시작함" });
     }
@@ -121,6 +133,11 @@ export async function onRequestPatch(context) {
     const nextBalance = rec.booking && rec.booking.contractInfo ? rec.booking.contractInfo.balanceStatus || "미수령" : "미수령";
     if (prevDeposit !== nextDeposit) rec.activities.push({ at: now, type: "payment_changed", detail: `예약금: ${prevDeposit} → ${nextDeposit}` });
     if (prevBalance !== nextBalance) rec.activities.push({ at: now, type: "payment_changed", detail: `잔금: ${prevBalance} → ${nextBalance}` });
+    const nextWorkflow = workflowStatus(rec, rec.status);
+    if (prevWorkflow !== nextWorkflow) {
+      rec.workflowStatus = nextWorkflow;
+      rec.activities.push({ at:now, type:"workflow_changed", detail:`예약 단계: ${prevWorkflow} → ${nextWorkflow}` });
+    } else rec.workflowStatus = nextWorkflow;
     rec.activities = rec.activities.slice(-100);
 
     /* ── 고객 카톡 알림톡 ──
@@ -146,13 +163,18 @@ export async function onRequestPatch(context) {
       rec.activities.push({ at: now, type: "notify_sent", detail: "고객에게 예약 확정 알림톡 발송" });
       bg("alimtalk-confirm", sendBookingConfirmed(env, who));
     }
+    if (prevPublish !== "published" && nextPublish === "published" && !rec.notify.itinerarySentAt && rec.phone && rec.token) {
+      rec.notify.itinerarySentAt = now;
+      rec.activities.push({ at:now, type:"notify_sent", detail:"고객에게 확정 일정표 공개 알림톡 발송" });
+      bg("alimtalk-itinerary", sendItineraryPublished(env, who));
+    }
     rec.activities = rec.activities.slice(-100);
 
     await env.DB.prepare(
-      "UPDATE requests SET status = ?, memo = ?, data = ? WHERE id = ?"
-    ).bind(rec.status || "신규", rec.memo || "", JSON.stringify(rec), id).run();
+      "UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ?"
+    ).bind(rec.status || "신규", rec.memo || "", JSON.stringify(rec), rec.token || "", id).run();
 
-    return json({ ok: true, status: rec.status || "신규", publishStatus: (rec.booking && rec.booking.publishStatus) || "draft", activities: rec.activities });
+    return json({ ok: true, status: rec.status || "신규", token:rotateCustomerLink ? rec.token : undefined, workflowStatus:rec.workflowStatus, quoteExpiresAt:rec.quoteExpiresAt || "", publishStatus: (rec.booking && rec.booking.publishStatus) || "draft", activities: rec.activities });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);
   }

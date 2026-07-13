@@ -639,7 +639,8 @@ function openDrawer(id) {
   const cur = r.status || "신규";
   const accepted = !!(r.decision && r.decision.status === "accepted") || cur === "예약확정";
   const published = !!(r.booking && r.booking.publishStatus === "published");
-  const recentActivities = Array.isArray(r.activities) ? r.activities.slice(-5).reverse() : [];
+  const recentActivities = Array.isArray(r.activities) ? r.activities.slice(-20).reverse() : [];
+  const pendingChanges = Array.isArray(r.changeRequests) ? r.changeRequests.filter(x => x && x.status === "requested") : [];
   $("drawer").innerHTML = `
     <div class="dh"><div><h2>${esc(r.name)||"-"}</h2><div class="sub">${dateOnly(r.receivedAt)} 접수 · ${esc(r.tripType)||""}</div></div><button class="x" id="closeX">✕</button></div>
     <div class="db">
@@ -664,10 +665,12 @@ function openDrawer(id) {
         }</div>`:""}
       </div>
       ${r.quote && r.token ? `
-      <div class="pub-box">✓ 견적서 발행됨
+      <div class="pub-box">✓ 견적서 발행됨${r.quoteExpiresAt ? ` · 유효기간 ${esc(new Date(r.quoteExpiresAt).toLocaleDateString("ko-KR"))}` : ""}
         <span class="acts">
           <a class="pb" href="견적서.html?t=${encodeURIComponent(r.token)}" target="_blank">📄 견적서 보기</a>
           <button class="pb" id="pubLinkBtn">🔗 고객 링크 복사</button>
+          <button class="pb" id="extendQuoteBtn">유효기간 7일 연장</button>
+          <button class="pb" id="rotateLinkBtn">고객 링크 재발급</button>
         </span>
       </div>` : ""}
       ${r.quote ? `
@@ -683,7 +686,8 @@ function openDrawer(id) {
         </span>
       </div>` : ""}
       ${r.request?`<div class="req-box">${esc(r.request)}</div>`:""}
-      ${recentActivities.length ? `<div class="req-box" style="background:#f7f8fa;"><b style="display:block;margin-bottom:7px;">최근 활동</b>${recentActivities.map(a => `<div style="font-size:12px;color:var(--sub);margin-top:5px;">${esc(dateOnly(a.at))} · ${esc(a.detail || a.type || "")}</div>`).join("")}</div>` : ""}
+      ${pendingChanges.length ? `<div class="req-box" style="background:#fff7e8;border-color:#f0d9a7;color:#6b5018;"><b style="display:block;margin-bottom:8px;">고객 변경 요청 ${pendingChanges.length}건</b>${pendingChanges.map(x => `<div style="font-size:12.5px;line-height:1.55;margin-top:7px;"><b>${esc((x.categories || []).join(", "))}</b><br>${esc(x.message || "")}<br><button class="pb resolve-change" data-change-id="${esc(x.id || "")}" style="margin-top:6px;">처리 완료</button></div>`).join("")}</div>` : ""}
+      ${recentActivities.length ? `<details class="req-box" style="background:#f7f8fa;"><summary style="cursor:pointer;font-weight:800;">활동 타임라인 (${recentActivities.length})</summary>${recentActivities.map(a => `<div style="font-size:12px;color:var(--sub);margin-top:7px;">${esc(new Date(a.at).toLocaleString("ko-KR"))} · ${esc(a.detail || a.type || "")}</div>`).join("")}</details>` : ""}
       <textarea class="memo" id="memo" placeholder="상담 메모 (예: 7/2 통화, 홉스골 추가 원함)">${esc(r.memo)||""}</textarea>
     </div>
     <div class="df">
@@ -704,6 +708,12 @@ function openDrawer(id) {
     else { r.decision = prevDecision; render(); openDrawer(id); toast("⚠ 수락 기록 저장 실패: " + saved.error); }
   };
   $("memo").onblur = () => saveMemo(id, $("memo").value);
+  $("drawer").querySelectorAll(".resolve-change").forEach(btn => btn.onclick = async () => {
+    const next = (r.changeRequests || []).map(x => x.id === btn.dataset.changeId ? { ...x, status:"resolved", resolvedAt:new Date().toISOString() } : x);
+    const saved = await persist(id, { changeRequests:next });
+    if (saved.ok) { r.changeRequests = next; render(); openDrawer(id); toast("변경 요청을 처리 완료로 표시했어요"); }
+    else toast("⚠ 변경 요청 상태 저장 실패: " + saved.error);
+  });
   $("makeBtn").onclick = () => {
     // 이미 발행된 견적이 있으면 편집기에서 그대로 복원해 수정할 수 있게 함께 넘깁니다.
     localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, phone:r.phone||"", depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, travelStyles:r.travelStyles, destSpots:r.destSpots, cityStay:r.cityStay||r.stay||"", gerStay:r.gerStay||"", budget:r.budget, request:r.request||"", flightIn:r.flightIn||"", flightOut:r.flightOut||"", quote:r.quote||null }));
@@ -728,6 +738,21 @@ function openDrawer(id) {
     const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + r.token;
     navigator.clipboard.writeText(link).then(() => toast("고객 링크가 복사됐어요 — 카톡으로 보내세요"))
       .catch(() => toast("복사 실패 — 주소를 직접 복사해 주세요"));
+  };
+  const extendQuoteBtn = $("extendQuoteBtn");
+  if (extendQuoteBtn) extendQuoteBtn.onclick = async () => {
+    const base = r.quoteExpiresAt && new Date(r.quoteExpiresAt) > new Date() ? new Date(r.quoteExpiresAt) : new Date();
+    const quoteExpiresAt = new Date(base.getTime() + 7 * 86400000).toISOString();
+    const saved = await persist(id, { quoteExpiresAt });
+    if (saved.ok) { r.quoteExpiresAt = quoteExpiresAt; render(); openDrawer(id); toast("견적 유효기간을 7일 연장했어요"); }
+    else toast("⚠ 유효기간 연장 실패: " + saved.error);
+  };
+  const rotateLinkBtn = $("rotateLinkBtn");
+  if (rotateLinkBtn) rotateLinkBtn.onclick = async () => {
+    if (!confirm("기존 고객 링크는 즉시 사용할 수 없게 됩니다. 새 링크를 발급할까요?")) return;
+    const saved = await persist(id, { rotateCustomerLink:true });
+    if (saved.ok && saved.token) { r.token = saved.token; render(); openDrawer(id); toast("새 고객 링크를 발급했어요"); }
+    else toast("⚠ 고객 링크 재발급 실패: " + (saved.error || "응답 오류"));
   };
   $("delReqBtn").onclick = () => deleteRequest(r);
   $("copyBtn").onclick = () => {
@@ -774,7 +799,6 @@ async function updateStatus(id,s){
     if (!(r.booking.contract && r.booking.contract.signedAt)) { toast("⚠ 고객 계약서 서명이 필요합니다"); return; }
     if (!r.booking.contractInfo || r.booking.contractInfo.depositStatus !== "입금완료") { toast("⚠ 예약금 입금 확인이 필요합니다"); return; }
   }
-
   r.status = s;
   render(); openDrawer(id);
   const res = await persist(id, patch);

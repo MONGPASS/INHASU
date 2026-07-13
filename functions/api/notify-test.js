@@ -10,7 +10,7 @@
      ?token=…&phone=010…&type=confirm  예약 확정 알림톡
      ?token=…&type=admin               관리자 문자 (ADMIN_PHONE으로 발송)
    ═══════════════════════════════════════════════════════════ */
-import { sendAlimtalk, sendQuoteReady, sendBookingConfirmed, notifyAdmin, customerPath } from "./_solapi.js";
+import { sendAlimtalk, sendQuoteReady, sendBookingConfirmed, sendQuoteAccepted, sendContractSigned, sendItineraryPublished, sendChangeRequested, notifyAdmin, customerPath } from "./_solapi.js";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj, null, 2), {
@@ -33,6 +33,10 @@ export async function onRequestGet({ request, env }) {
     SOLAPI_TEMPLATE_ID: env.SOLAPI_TEMPLATE_ID || null,
     SOLAPI_TEMPLATE_QUOTE_ID: env.SOLAPI_TEMPLATE_QUOTE_ID || null,
     SOLAPI_TEMPLATE_CONFIRM_ID: env.SOLAPI_TEMPLATE_CONFIRM_ID || null,
+    SOLAPI_TEMPLATE_ACCEPT_ID: env.SOLAPI_TEMPLATE_ACCEPT_ID || null,
+    SOLAPI_TEMPLATE_SIGN_ID: env.SOLAPI_TEMPLATE_SIGN_ID || null,
+    SOLAPI_TEMPLATE_ITINERARY_ID: env.SOLAPI_TEMPLATE_ITINERARY_ID || null,
+    SOLAPI_TEMPLATE_CHANGE_ID: env.SOLAPI_TEMPLATE_CHANGE_ID || null,
     ADMIN_PHONE: env.ADMIN_PHONE || null,
     NOTIFY_COMPANY: env.NOTIFY_COMPANY || "(기본값 몽골리아 은하수 여행사)",
     SITE_URL: env.SITE_URL || "(요청 origin 사용)",
@@ -62,6 +66,10 @@ export async function onRequestGet({ request, env }) {
   let result;
   if (type === "quote") result = await sendQuoteReady(env, who);
   else if (type === "confirm") result = await sendBookingConfirmed(env, who);
+  else if (type === "accept") result = await sendQuoteAccepted(env, who);
+  else if (type === "sign") result = await sendContractSigned(env, who);
+  else if (type === "itinerary") result = await sendItineraryPublished(env, who);
+  else if (type === "change") result = await sendChangeRequested(env, who);
   else result = await sendAlimtalk(env, who);
 
   return json({ ok: result.ok, type, envState, buttonLinkPath: customerPath(who.token), solapiResponse: result });

@@ -69,6 +69,10 @@
     SOLAPI_TEMPLATE_ID         "맞춤여행접수" 템플릿 ID
     SOLAPI_TEMPLATE_QUOTE_ID   "견적서 도착" 템플릿 ID
     SOLAPI_TEMPLATE_CONFIRM_ID "예약 확정" 템플릿 ID
+    SOLAPI_TEMPLATE_ACCEPT_ID  "견적 수락·계약서 안내" 템플릿 ID
+    SOLAPI_TEMPLATE_SIGN_ID    "계약서 서명·예약금 안내" 템플릿 ID
+    SOLAPI_TEMPLATE_ITINERARY_ID "확정 일정표 공개" 템플릿 ID
+    SOLAPI_TEMPLATE_CHANGE_ID  "일정 변경 요청 접수" 템플릿 ID
 
   [담당자 문자 — 템플릿 승인 불필요]
     ADMIN_PHONE                담당자 휴대폰. 쉼표로 여러 명 (01011112222,01033334444)

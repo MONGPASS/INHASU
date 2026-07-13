@@ -44,6 +44,12 @@
   .step.done .dot { background:var(--accent); color:#fff; }
   .notice { margin-top:16px; padding:13px 14px; border-radius:12px; background:#fff7e8; color:#8a651e; font-size:13px; line-height:1.55; }
   .hint { margin-top:14px; font-size:12px; color:#9AA0A6; line-height:1.5; }
+  .change-box { display:none; margin-top:14px; padding:16px; border:1px solid var(--line); border-radius:14px; text-align:left; background:#f8fbfa; }
+  .change-box.open { display:block; }
+  .change-box h2 { font-size:15px; margin-bottom:10px; }
+  .change-options { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .change-options label { display:flex; align-items:center; gap:7px; font-size:12.5px; color:#40544f; }
+  .change-box textarea { width:100%; min-height:92px; margin-top:12px; padding:11px; border:1px solid var(--line); border-radius:10px; resize:vertical; font:inherit; font-size:13px; }
 </style>
 </head>
 <body>
@@ -143,6 +149,8 @@
         <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡 상담</a>`;
     } else if (r.quote) {
       const accepted = r.decision && r.decision.status === "accepted";
+      const expired = !!r.quoteExpired && !accepted;
+      const expireLabel = r.quoteExpiresAt ? new Date(r.quoteExpiresAt).toLocaleDateString("ko-KR") : "";
       card.innerHTML = `
         <div class="emoji">${accepted ? "🧾" : "🎉"}</div>
         <h1>${accepted ? "예약 준비를 시작했어요" : "견적서가 도착했어요!"}</h1>
@@ -150,9 +158,16 @@
         <span class="badge ${accepted ? "wait" : "done"}">${accepted ? "⏳ 예약 준비 중" : "✓ 견적 완료"}</span>
         ${sumHtml(r)}
         ${progressHtml(r)}
+        ${expired ? `<div class="notice">이 견적의 유효기간이 만료되었습니다. 담당자에게 연장을 요청해 주세요.</div>` : (expireLabel ? `<div class="hint">견적 유효기간: ${esc(expireLabel)}까지</div>` : "")}
         <a class="btn accent" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>
-        ${!accepted ? `<button class="btn primary" id="acceptQuoteBtn">이 견적으로 예약 진행하기</button>` : ""}
-        <a class="btn ghost" href="${esc("일정지도.html?t=" + encodeURIComponent(token))}" target="_blank">🗺 제안 일정 지도 보기</a>
+        ${!accepted && !expired ? `<button class="btn primary" id="acceptQuoteBtn">이 견적으로 예약 진행하기</button>` : ""}
+        ${!accepted ? `<button class="btn ghost" id="changeRequestBtn">일정 변경 요청</button>
+        <form class="change-box" id="changeRequestForm">
+          <h2>어떤 부분을 변경하고 싶으신가요?</h2>
+          <div class="change-options">${["일정","방문 장소","숙소","이동시간","여행 인원·날짜","견적금액","기타"].map(x => `<label><input type="checkbox" name="category" value="${x}">${x}</label>`).join("")}</div>
+          <textarea id="changeMessage" maxlength="1500" placeholder="원하시는 변경 내용을 구체적으로 적어 주세요."></textarea>
+          <button class="btn accent" type="submit" id="changeSubmitBtn">변경 요청 보내기</button>
+        </form>` : ""}
         <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡 상담</a>`;
       const acceptBtn = document.getElementById("acceptQuoteBtn");
       if (acceptBtn) acceptBtn.onclick = async () => {
@@ -161,11 +176,41 @@
         try {
           const res = await fetch("/api/accept/" + encodeURIComponent(token), { method:"POST" });
           const j = await res.json();
-          if (!j.ok) throw new Error(j.error || "처리 실패");
+          if (!j.ok) {
+            if (j.code === "quote_expired") throw new Error("견적 유효기간이 만료되었습니다. 담당자에게 연장을 요청해 주세요.");
+            throw new Error(j.error || "처리 실패");
+          }
           await load();
         } catch (e) {
           acceptBtn.disabled = false; acceptBtn.textContent = "이 견적으로 예약 진행하기";
-          alert("예약 진행 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+          alert(e.message || "예약 진행 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        }
+      };
+      const changeBtn = document.getElementById("changeRequestBtn");
+      const changeForm = document.getElementById("changeRequestForm");
+      if (changeBtn && changeForm) changeBtn.onclick = () => changeForm.classList.toggle("open");
+      if (changeForm && new URLSearchParams(location.search).get("action") === "change") {
+        const clean = new URL(location.href);
+        clean.searchParams.delete("action");
+        history.replaceState(null, "", clean.pathname + clean.search);
+        changeForm.classList.add("open");
+        setTimeout(() => changeForm.scrollIntoView({ behavior:"smooth", block:"center" }), 0);
+      }
+      if (changeForm) changeForm.onsubmit = async e => {
+        e.preventDefault();
+        const categories = [...changeForm.querySelectorAll('input[name="category"]:checked')].map(x => x.value);
+        const message = document.getElementById("changeMessage").value.trim();
+        if (!categories.length || !message) return alert("변경 항목과 요청 내용을 입력해 주세요.");
+        const submit = document.getElementById("changeSubmitBtn");
+        submit.disabled = true; submit.textContent = "전송 중…";
+        try {
+          const res = await fetch("/api/change/" + encodeURIComponent(token), { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ categories, message }) });
+          const j = await res.json();
+          if (!j.ok) throw new Error(j.error || "전송 실패");
+          changeForm.innerHTML = `<h2>✓ 변경 요청이 접수되었습니다</h2><div class="desc">담당자가 내용을 확인한 후 연락드리겠습니다.</div>`;
+        } catch (err) {
+          submit.disabled = false; submit.textContent = "변경 요청 보내기";
+          alert("변경 요청을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
         }
       };
       if (acceptBtn && new URLSearchParams(location.search).get("action") === "accept") {

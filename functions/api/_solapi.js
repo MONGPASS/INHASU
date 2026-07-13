@@ -168,3 +168,39 @@ export async function sendBookingConfirmed(env, { name, phone, origin, token }) 
     smsText: `[${company(env)}] ${name || "고객"}님, 예약이 확정되었습니다. 확정 일정표를 아래 링크에서 확인해 주세요.`,
   });
 }
+
+/* ④ 고객이 견적을 수락한 순간 → 계약서 확인 안내 */
+export async function sendQuoteAccepted(env, { name, phone, origin, token }) {
+  return sendCustomer(env, {
+    templateId: env.SOLAPI_TEMPLATE_ACCEPT_ID,
+    name, phone, origin, token,
+    smsText: `[${company(env)}] ${name || "고객"}님, 견적 수락이 완료되었습니다. 여행계약서를 확인해 주세요.`,
+  });
+}
+
+/* ⑤ 고객이 계약서에 서명한 순간 → 예약금 안내 */
+export async function sendContractSigned(env, { name, phone, origin, token }) {
+  return sendCustomer(env, {
+    templateId: env.SOLAPI_TEMPLATE_SIGN_ID,
+    name, phone, origin, token,
+    smsText: `[${company(env)}] ${name || "고객"}님, 계약서 서명이 완료되었습니다. 예약금 안내를 확인해 주세요.`,
+  });
+}
+
+/* ⑥ 관리자가 확정 일정표를 공개한 순간 */
+export async function sendItineraryPublished(env, { name, phone, origin, token }) {
+  return sendCustomer(env, {
+    templateId: env.SOLAPI_TEMPLATE_ITINERARY_ID,
+    name, phone, origin, token,
+    smsText: `[${company(env)}] ${name || "고객"}님, 확정 일정표가 준비되었습니다. 아래 링크에서 확인해 주세요.`,
+  });
+}
+
+/* ⑦ 고객 일정 변경 요청 접수 확인 */
+export async function sendChangeRequested(env, { name, phone, origin, token }) {
+  return sendCustomer(env, {
+    templateId: env.SOLAPI_TEMPLATE_CHANGE_ID,
+    name, phone, origin, token,
+    smsText: `[${company(env)}] ${name || "고객"}님, 일정 변경 요청이 접수되었습니다. 담당자가 확인 후 안내드리겠습니다.`,
+  });
+}

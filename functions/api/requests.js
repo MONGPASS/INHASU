@@ -4,7 +4,7 @@
    POST : 고객이 견적요청 폼에서 제출 → D1에 저장 (인증 없음)
           · honeypot / 같은 번호 60초 제한으로 스팸 방어
           · 신규 id만 저장 (기존 문의 덮어쓰기 불가)
-   GET  : 관리자 페이지에서 목록 조회 (토큰 필요 — x-admin-token 헤더 또는 ?token=)
+   GET  : 관리자 페이지에서 목록 조회 (x-admin-token 헤더 필요)
    ═══════════════════════════════════════════════════════════ */
 
 import { sendAlimtalk, sendQuoteReady, notifyAdmin } from "./_solapi.js";
@@ -15,10 +15,9 @@ const json = (obj, status = 200) =>
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 
-// 관리자 토큰: 헤더(x-admin-token) 우선, 쿼리(?token=)도 호환용으로 허용
+// 관리자 토큰은 URL·브라우저 기록에 남지 않도록 헤더로만 받습니다.
 const isAdmin = (request, env) => {
-  const url = new URL(request.url);
-  const token = request.headers.get("x-admin-token") || url.searchParams.get("token") || "";
+  const token = request.headers.get("x-admin-token") || "";
   return !!env.ADMIN_TOKEN && token === env.ADMIN_TOKEN;
 };
 

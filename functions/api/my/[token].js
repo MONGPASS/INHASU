@@ -5,6 +5,8 @@
    - 링크 유출 대비, 전화·이메일·카톡ID·첨부키 등 민감정보는 반환하지 않음.
    ═══════════════════════════════════════════════════════════ */
 
+import { workflowStatus, quoteExpiry, isQuoteExpired } from "../_workflow.mjs";
+
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
     status,
@@ -115,6 +117,13 @@ export async function onRequestGet({ env, params }) {
       child: rec.child || 0,
       infant: rec.infant || 0,
       receivedAt: rec.receivedAt || "",
+      workflowStatus: workflowStatus(rec, row.status || rec.status),
+      quoteExpiresAt: quoteExpiry(rec),
+      quoteExpired: isQuoteExpired(rec),
+      latestChangeRequest: Array.isArray(rec.changeRequests) && rec.changeRequests.length ? (() => {
+        const x = rec.changeRequests[rec.changeRequests.length - 1];
+        return { at:x.at || "", categories:Array.isArray(x.categories) ? x.categories : [], status:x.status || "requested" };
+      })() : null,
       decision: ((rec.decision && rec.decision.status === "accepted") || (row.status || rec.status) === "예약확정") ? {
         status: "accepted",
         acceptedAt: (rec.decision && rec.decision.acceptedAt) || "",

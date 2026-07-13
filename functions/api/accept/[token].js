@@ -1,7 +1,8 @@
 /* 고객 견적 수락 · /api/accept/<token>
    POST: 고객이 발행 견적을 확인하고 예약 진행 의사를 확정합니다. */
 
-import { notifyAdmin } from "../_solapi.js";
+import { notifyAdmin, sendQuoteAccepted } from "../_solapi.js";
+import { isQuoteExpired } from "../_workflow.mjs";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -26,6 +27,7 @@ export async function onRequestPost(context) {
 
     const rec = JSON.parse(row.data || "{}");
     if (!rec.quote) return json({ ok: false, error: "quote not ready" }, 409);
+    if (isQuoteExpired(rec)) return json({ ok:false, error:"quote expired", code:"quote_expired" }, 410);
     if (rec.decision && rec.decision.status === "accepted") {
       return json({ ok: true, acceptedAt: rec.decision.acceptedAt, alreadyAccepted: true });
     }
@@ -49,6 +51,11 @@ export async function onRequestPost(context) {
         `고객이 견적을 수락했습니다. 예약 준비를 시작해 주세요.`
       ).then(res => console.log("notify-admin-accept", JSON.stringify(res)))
        .catch(e => console.log("notify-admin-accept-err", String(e)))
+    );
+    if (rec.phone && rec.token) context.waitUntil(
+      sendQuoteAccepted(env, { name:rec.name || "고객", phone:rec.phone, origin:new URL(context.request.url).origin, token:rec.token })
+        .then(res => console.log("alimtalk-accept", JSON.stringify(res)))
+        .catch(e => console.log("alimtalk-accept-err", String(e)))
     );
 
     return json({ ok: true, acceptedAt: now });
