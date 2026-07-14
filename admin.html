@@ -403,9 +403,10 @@ $("navList").onclick = () => setView("list");
 $("previewFormBtn").onclick = () => window.open("견적요청.html", "_blank");
 
 /* ═══════════════ 데이터 ═══════════════ */
+const IS_LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
 async function loadData() {
   try {
-    const res = await fetch(CFG.apiBase, { headers: { "x-admin-token": ADMIN_TOKEN } });
+    const res = await fetch(CFG.apiBase, { headers: { "x-admin-token": ADMIN_TOKEN }, cache: "no-store" });
     if (res.status === 401) {   // 저장된 토큰이 무효(비번 변경 등) → 재로그인 요구
       sessionStorage.removeItem("leaders_admin_token"); ADMIN_TOKEN = "";
       $("dash").style.display = "none"; $("login").style.display = "";
@@ -416,8 +417,15 @@ async function loadData() {
       if (j.ok && Array.isArray(j.items)) { RECORDS = j.items; mode = "server";
         $("modeTag").textContent = "● 서버 연결됨 (전체 기기 공유)"; checkNewArrivals(); render(); return; } }
   } catch (e) {}
-  RECORDS = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
-  mode = "local"; $("modeTag").textContent = "○ 로컬 모드 (이 브라우저 · 배포 전)"; render();
+  if (IS_LOCAL) {   // 로컬 개발(배포 전)에서만 이 브라우저의 데이터로 동작
+    RECORDS = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
+    mode = "local"; $("modeTag").textContent = "○ 로컬 모드 (이 브라우저 · 배포 전)"; render();
+    return;
+  }
+  // 배포 환경에서 서버 연결 실패 — 가짜(로컬) 데이터를 보여주지 않고 명확히 알림
+  mode = "offline"; $("modeTag").textContent = "⚠ 서버 연결 실패 — 최신 문의가 보이지 않습니다";
+  render();
+  toast("⚠ 서버에 연결하지 못했어요. 잠시 후 새로고침 해 주세요.");
 }
 $("navRefresh").onclick = loadData;
 
@@ -938,18 +946,6 @@ async function deleteRequest(r) {
   } catch (e) { toast("⚠ 삭제 실패 — 서버 연결을 확인하세요"); }
 }
 
-/* 데모 샘플 */
-(function seedDemo(){
-  if (JSON.parse(localStorage.getItem("leaders_requests")||"[]").length) return;
-  const now = Date.now(), day = 86400e3;
-  localStorage.setItem("leaders_requests", JSON.stringify([
-    { id:now+"_a", receivedAt:new Date(now-1*3600e3).toISOString(), status:"신규", memo:"", name:"강민지", phone:"01012345678", email:"minji@example.com", adult:6,child:0,infant:0, depart:"2026-08-06", return_:"2026-08-10", nights:4, tripType:"우정 여행", destination:"고비사막 투어", cityStay:"호텔(4성급)", gerStay:"고급 여행자 게르", vehicle:"푸르공(6인)", budget:"1인 100~150만원", request:"승마 체험과 별 관측을 꼭 넣고 싶어요.\n여성 6명이라 안전한 일정이면 좋겠습니다.", fileName:"" },
-    { id:now+"_b", receivedAt:new Date(now-8*3600e3).toISOString(), status:"진행중", memo:"7/1 통화 완료. 홉스골 추가 견적 요청.", name:"김철수", phone:"01098765432", email:"chulsoo@example.com", adult:2,child:1,infant:0, depart:"2026-07-20", return_:"2026-07-26", nights:6, tripType:"가족 여행", destination:"홉스골 호수 투어", cityStay:"호텔(4성급)", gerStay:"일반 여행자 게르", vehicle:"스타렉스(6인)", budget:"1인 150~200만원", request:"아이(8세)와 함께라 이동시간이 짧았으면 합니다.", fileName:"항공권.pdf" },
-    { id:now+"_c", receivedAt:new Date(now-2*day).toISOString(), status:"완료", memo:"견적서 발송 완료.", name:"이영희", phone:"01055556666", email:"younghee@example.com", adult:2,child:0,infant:0, depart:"2026-09-01", return_:"2026-09-04", nights:3, tripType:"허니문", destination:"중앙 몽골 투어", cityStay:"호텔(5성급)", gerStay:"고급 여행자 게르", vehicle:"랜드크루저(4인)", budget:"1인 200~300만원", request:"조용하고 프라이빗한 일정 원해요.", fileName:"" },
-    { id:now+"_d", receivedAt:new Date(now-4*day).toISOString(), status:"완료", memo:"", name:"박서준", phone:"01033334444", email:"seojun@example.com", adult:4,child:0,infant:0, depart:"2026-08-15", return_:"2026-08-19", nights:4, tripType:"단체·워크샵", destination:"고비사막 투어", cityStay:"상관없음", gerStay:"일반 여행자 게르", vehicle:"델리카(6인)", budget:"1인 100~150만원", request:"회사 워크샵입니다.", fileName:"" },
-    { id:now+"_e", receivedAt:new Date(now-6*day).toISOString(), status:"보류", memo:"예산 재검토 요청.", name:"최유나", phone:"01077778888", email:"yuna@example.com", adult:2,child:0,infant:0, depart:"2026-10-02", return_:"2026-10-06", nights:4, tripType:"나 홀로", destination:"서부 몽골(알타이)", cityStay:"게스트하우스", gerStay:"일반 여행자 게르", vehicle:"랜드크루저(4인)", budget:"100만원 이하", request:"알타이 트레킹 위주로 부탁드려요.", fileName:"" },
-  ]));
-})();
 </script>
 </body>
 </html>

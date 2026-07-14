@@ -1,0 +1,5 @@
+# Cloudflare Pages 응답 헤더 — 배포 후 이전 버전 화면이 캐시로 남지 않게
+# no-cache: 저장은 허용하되 매 요청마다 서버에 최신 여부를 확인(304면 빠르게 재사용)
+/*
+  Cache-Control: no-cache, must-revalidate
+  X-Content-Type-Options: nosniff
