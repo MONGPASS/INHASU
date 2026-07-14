@@ -577,7 +577,7 @@ function nextAction(r) {
   const b = r.booking, ci = b.contractInfo || {}, paid = ci.depositStatus === "입금완료";
   const signed = !!(b.contract && b.contract.signedAt), confirmed = r.status === "예약확정";
   if (!paid && !(b.depositRequest && b.depositRequest.status === "requested")) return { label:"예약금 안내 필요", detail:"예약정보를 확인하고 예약금 안내를 보내세요" };
-  if (!paid && b.depositReport && b.depositReport.status === "reported") return { label:"입금 신고 확인", detail:`고객이 입금 완료를 알렸습니다 (입금자명 ${b.depositReport.name || "-"}) · 확인 후 입금완료로 변경하세요` };
+  if (!paid && b.depositReport && b.depositReport.status === "reported") return { label:"입금 신고 확인", detail:`고객이 입금 완료를 알렸습니다 (입금자명 ${b.depositReport.name || "-"}) · 예약관리에서 입금 확인을 누르면 계약서·여행자 정보 요청까지 자동 발송됩니다` };
   if (!paid) return { label:"예약금 입금 대기", detail:"고객이 입금하면 입금 신고 알림이 도착합니다" };
   if (!signed && !(b.contractRequest && b.contractRequest.status === "requested")) return { label:"계약서 요청 필요", detail:"예약금 확인 완료 · 고객에게 서명을 요청하세요" };
   if (!signed) return { label:"계약서 서명 대기", detail:"고객에게 서명 요청을 보냈습니다" };
