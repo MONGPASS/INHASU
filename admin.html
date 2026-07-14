@@ -581,8 +581,6 @@ function sparkline(vals, w, h, color) {
     <path d="${area}" fill="url(#${gid})"/><path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 function nextAction(r) {
-  const changes = Array.isArray(r.changeRequests) && r.changeRequests.some(x => x && x.status === "requested");
-  if (changes) return { label:"일정 변경 요청", detail:"고객이 변경 내용을 보냈습니다" };
   const accepted = !!(r.decision && r.decision.status === "accepted");
   if (accepted && !r.booking) return { label:"예약 진행 요청", detail:"고객이 견적을 수락했습니다 · 예약관리를 시작하세요" };
   if (!r.booking) return null;
@@ -746,8 +744,6 @@ function openDrawer(id) {
   const cur = r.status || "신규";
   const accepted = !!(r.decision && r.decision.status === "accepted") || cur === "예약확정";
   const published = !!(r.booking && r.booking.publishStatus === "published");
-  const recentActivities = Array.isArray(r.activities) ? r.activities.slice(-20).reverse() : [];
-  const pendingChanges = Array.isArray(r.changeRequests) ? r.changeRequests.filter(x => x && x.status === "requested") : [];
   const action = nextAction(r);
   $("drawer").innerHTML = `
     <div class="dh"><div><h2>${esc(r.name)||"-"}</h2><div class="sub">${dateOnly(r.receivedAt)} 접수 · ${esc(r.tripType)||""}</div></div><button class="x" id="closeX">✕</button></div>
@@ -791,13 +787,10 @@ function openDrawer(id) {
           <button class="pb" id="rotateLinkBtn">고객 링크 재발급</button>
         </span>
       </div>` : ""}
-      ${r.quote ? `
-      <div class="pub-box" style="background:${accepted ? "#edfbf7" : "#f1f9f7"}; border-color:#d9eee9; color:${accepted ? "#037a64" : "#05a184"};">
-        ${accepted ? `🔔 ${r.decision && r.decision.source === "customer" ? "고객이 이 견적으로 예약 진행을 요청했습니다" : "고객 수락 기록"} · ${dateOnly((r.decision && r.decision.acceptedAt) || "") || "기록됨"}` : "⏳ 고객 수락 대기"}
-        ${!accepted ? `<span class="acts"><button class="pb" id="acceptBtn">전화·카톡 수락 기록</button></span>` : ""}
+      ${r.quote && !accepted ? `
+      <div class="pub-box" style="background:#f1f9f7; border-color:#d9eee9; color:#05a184;">⏳ 고객 수락 대기
+        <span class="acts"><button class="pb" id="acceptBtn">전화·카톡 수락 기록</button></span>
       </div>` : ""}
-      ${pendingChanges.length ? `<div class="req-box" style="background:#f1f9f7;border:1px solid #d9eee9;border-radius:14px;color:#213a34;"><b style="display:block;margin-bottom:8px;">고객 변경 요청 ${pendingChanges.length}건</b>${pendingChanges.map(x => `<div style="font-size:12.5px;line-height:1.55;margin-top:7px;"><b style="color:#4a615b;">${esc((x.categories || []).join(", "))}</b><br><span style="color:#9db2ac;">${esc(x.message || "")}</span><br><button class="pb resolve-change" data-change-id="${esc(x.id || "")}" style="margin-top:8px;border-color:#d6e1dd;color:#5a716b;">처리 완료</button></div>`).join("")}</div>` : ""}
-      ${recentActivities.length ? `<details class="req-box" style="background:#f7f8fa;"><summary style="cursor:pointer;font-weight:800;">활동 타임라인 (${recentActivities.length})</summary>${recentActivities.map(a => `<div style="font-size:12px;color:var(--sub);margin-top:7px;">${esc(new Date(a.at).toLocaleString("ko-KR"))} · ${esc(a.detail || a.type || "")}</div>`).join("")}</details>` : ""}
     </div>
     <div class="df">
       <button class="danger" id="delReqBtn" title="문의 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c938c" stroke-width="2" style="display:inline-block;vertical-align:middle;"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg></button>
@@ -817,12 +810,6 @@ function openDrawer(id) {
     else { r.decision = prevDecision; render(); openDrawer(id); toast("⚠ 수락 기록 저장 실패: " + saved.error); }
   };
   $("memo").onblur = () => saveMemo(id, $("memo").value);
-  $("drawer").querySelectorAll(".resolve-change").forEach(btn => btn.onclick = async () => {
-    const next = (r.changeRequests || []).map(x => x.id === btn.dataset.changeId ? { ...x, status:"resolved", resolvedAt:new Date().toISOString() } : x);
-    const saved = await persist(id, { changeRequests:next });
-    if (saved.ok) { r.changeRequests = next; render(); openDrawer(id); toast("변경 요청을 처리 완료로 표시했어요"); }
-    else toast("⚠ 변경 요청 상태 저장 실패: " + saved.error);
-  });
   $("makeBtn").onclick = () => {
     // 이미 발행된 견적이 있으면 편집기에서 그대로 복원해 수정할 수 있게 함께 넘깁니다.
     localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, phone:r.phone||"", depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, travelStyles:r.travelStyles, destSpots:r.destSpots, cityStay:r.cityStay||r.stay||"", gerStay:r.gerStay||"", budget:r.budget, request:r.request||"", flightIn:r.flightIn||"", flightOut:r.flightOut||"", quote:r.quote||null }));
