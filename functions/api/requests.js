@@ -7,7 +7,7 @@
    GET  : 관리자 페이지에서 목록 조회 (x-admin-token 헤더 필요)
    ═══════════════════════════════════════════════════════════ */
 
-import { sendAlimtalk, sendQuoteReady, notifyAdmin } from "./_solapi.js";
+import { notifyAdmin } from "./_solapi.js";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -102,22 +102,13 @@ export async function onRequestPost(context) {
     ).run();
     if (!r.meta || r.meta.changes === 0) return json({ ok: false, error: "duplicate" }, 409);
 
-    // 알림 발송 — 응답을 막지 않게 백그라운드로.
-    // 발송 실패해도 접수 저장에는 영향 없음. 결과는 CF 함수 로그에서 확인.
-    const origin = new URL(request.url).origin;
+    // 관리자 문자 알림 — 응답을 막지 않게 백그라운드로.
+    // 고객 카톡 알림톡은 사용하지 않습니다 (고객 안내는 페이지 표시 + 카카오 채널 수동 응대).
     const bg = (tag, p) => context.waitUntil(
       p.then(res => console.log(tag, JSON.stringify(res))).catch(e => console.log(tag + "-err", String(e)))
     );
 
-    const who = { name: d.name || "고객", phone: d.phone, origin, token };
-
-    if (d.source === "walkin" || d.source === "course-share") {
-      // 관리자가 견적서 만들기에서 바로 발행한 워크인 견적 → 고객에게 "견적서 도착"
-      if (d.phone && d.quote) bg("alimtalk-quote", sendQuoteReady(env, who));
-    } else {
-      // 고객 견적요청 접수 → 고객에게 "맞춤여행접수", 관리자에게 문자
-      if (d.phone) bg("alimtalk", sendAlimtalk(env, who));
-
+    if (d.source !== "walkin" && d.source !== "course-share") {
       const pax = Number(d.adult || 0) + Number(d.child || 0) + Number(d.infant || 0);
       bg("notify-admin-request", notifyAdmin(env,
         `[새 견적요청] ${d.name || "고객"} · ${d.destination || "여행지 미정"}\n` +

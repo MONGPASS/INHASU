@@ -5,7 +5,7 @@
    - 서명 시점의 계약 스냅샷(고객·여행 정보·약관 버전)을 함께 동결 저장
    ═══════════════════════════════════════════════════════════ */
 
-import { notifyAdmin, sendContractSigned } from "../_solapi.js";
+import { notifyAdmin } from "../_solapi.js";
 
 const TERMS_VERSION = "v1-2026-07";       // 계약서.html 조항을 바꾸면 버전도 올려주세요
 const MAX_SIGN_BYTES = 300_000;           // 서명 PNG dataURL 최대 길이 (~220KB 이미지)
@@ -103,12 +103,6 @@ export async function onRequestPost(context) {
     const bg = (tag, p) => context.waitUntil(
       p.then(res => console.log(tag, JSON.stringify(res))).catch(e => console.log(tag + "-err", String(e)))
     );
-    if (rec.phone && rec.token) {
-      bg("alimtalk-sign", sendContractSigned(env, {
-        name:rec.name || "고객", phone:rec.phone,
-        origin:new URL(request.url).origin, token:rec.token,
-      }));
-    }
     bg("notify-admin-sign", notifyAdmin(env,
       `[계약서 서명] ${rec.name || "고객"} · ${rec.destination || "여행지 미정"}\n` +
       `고객이 여행계약서에 서명했습니다. 관리자 페이지에서 내용을 확인하고 예약을 확정해 주세요.`

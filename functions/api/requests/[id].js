@@ -4,7 +4,6 @@
    DELETE : 관리자가 문의 삭제 (x-admin-token 헤더 필요)
    ═══════════════════════════════════════════════════════════ */
 
-import { sendQuoteReady, sendBookingConfirmed, sendItineraryPublished, sendTravelerInfoRequest, sendDepositRequest, sendContractRequest } from "../_solapi.js";
 import { workflowStatus, defaultQuoteExpiry, requiredLodgeCount } from "../_workflow.mjs";
 
 const json = (obj, status = 200) =>
@@ -170,17 +169,13 @@ export async function onRequestPatch(context) {
       rec.booking.contractRequest = { status:"requested", requestedAt:now };
       rec.activities.push({ at:now, type:"contract_requested", detail:"예약금 확인 후 고객에게 계약서 서명 요청" });
     }
-    // 입금 확인 원클릭 — 입금완료 저장 + 계약서·여행자 정보 요청을 한 번에
-    let autoContractRequested = false, autoTravelersRequested = false;
+    // 입금 확인 원클릭 — 입금완료 저장 + 계약서·여행자 정보 요청을 한 번에 (고객 페이지에 표시)
     if (confirmDeposit) {
       rec.booking.contractInfo = rec.booking.contractInfo || {};
       rec.booking.contractInfo.depositStatus = "입금완료";
       rec.booking.checklist = { ...(rec.booking.checklist || {}), deposit: true };
       const signed = !!(rec.booking.contract && rec.booking.contract.signedAt);
-      if (!signed) {
-        rec.booking.contractRequest = { status:"requested", requestedAt:now };
-        autoContractRequested = true;
-      }
+      if (!signed) rec.booking.contractRequest = { status:"requested", requestedAt:now };
       const travelersDone = rec.booking.travelerSubmission && rec.booking.travelerSubmission.status === "submitted";
       if (!travelersDone) {
         const expectedCount = (Number(rec.adult)||0) + (Number(rec.child)||0) + (Number(rec.infant)||0);
@@ -188,7 +183,6 @@ export async function onRequestPatch(context) {
           ...(rec.booking.travelerSubmission || {}), status:"requested", requestedAt:now,
           expectedCount, submittedCount:Array.isArray(rec.booking.travelers) ? rec.booking.travelers.length : 0,
         };
-        autoTravelersRequested = true;
       }
       rec.activities.push({ at:now, type:"deposit_confirmed", detail:"관리자가 입금을 확인함 — 계약서 서명·여행자 정보 요청 자동 진행" });
     }
@@ -221,69 +215,15 @@ export async function onRequestPatch(context) {
     } else rec.workflowStatus = nextWorkflow;
     rec.activities = rec.activities.slice(-100);
 
-    /* ── 고객 카톡 알림톡 ──
-       발송 여부를 rec.notify에 남겨 같은 알림이 두 번 나가지 않게 합니다.
-       발송은 백그라운드(waitUntil)라 실패해도 저장·응답에는 영향이 없습니다. */
-    rec.notify = rec.notify && typeof rec.notify === "object" ? rec.notify : {};
-    const who = { name: rec.name || "고객", phone: rec.phone || "", origin: new URL(request.url).origin, token: rec.token || "" };
-    const bg = (tag, p) => context.waitUntil(
-      p.then(res => console.log(tag, JSON.stringify(res))).catch(e => console.log(tag + "-err", String(e)))
-    );
-
-    // ① 견적서 발행 — 처음 붙을 때, 또는 관리자가 재발송을 요청했을 때
-    const quotePublished = !!rec.quote && (!hadQuote || forceNotifyQuote);
-    if (quotePublished && rec.phone && rec.token) {
-      rec.notify.quoteSentAt = now;
-      rec.activities.push({ at: now, type: "notify_sent", detail: "고객에게 견적서 도착 알림톡 발송" });
-      bg("alimtalk-quote", sendQuoteReady(env, who));
-    }
-    if (requestTravelerInfo && rec.phone && rec.token) {
-      rec.notify.travelersRequestedAt = now;
-      rec.activities.push({ at:now, type:"notify_sent", detail:"고객에게 여행자 정보 입력 요청 알림톡 발송" });
-      bg("alimtalk-travelers", sendTravelerInfoRequest(env, who));
-    }
-    if (requestDeposit && rec.phone && rec.token) {
-      rec.notify.depositRequestedAt = now;
-      rec.activities.push({ at:now, type:"notify_sent", detail:"고객에게 예약금 입금 안내 알림톡 발송" });
-      bg("alimtalk-deposit", sendDepositRequest(env, who));
-    }
-    if (requestContract && rec.phone && rec.token) {
-      rec.notify.contractRequestedAt = now;
-      rec.activities.push({ at:now, type:"notify_sent", detail:"고객에게 계약서 서명 요청 알림톡 발송" });
-      bg("alimtalk-contract", sendContractRequest(env, who));
-    }
-    if (confirmDeposit && rec.phone && rec.token) {
-      if (autoContractRequested) {
-        rec.notify.contractRequestedAt = now;
-        bg("alimtalk-contract", sendContractRequest(env, who));
-      }
-      if (autoTravelersRequested) {
-        rec.notify.travelersRequestedAt = now;
-        bg("alimtalk-travelers", sendTravelerInfoRequest(env, who));
-      }
-      if (autoContractRequested || autoTravelersRequested)
-        rec.activities.push({ at:now, type:"notify_sent", detail:"입금 확인 — 고객에게 계약서 서명·여행자 정보 요청 알림톡 자동 발송" });
-    }
-
-    // ② 예약 확정 — 상태가 예약확정으로 넘어간 순간 한 번만
-    if (prevStatus !== "예약확정" && rec.status === "예약확정" && !rec.notify.confirmSentAt && rec.phone && rec.token) {
-      rec.notify.confirmSentAt = now;
-      rec.activities.push({ at: now, type: "notify_sent", detail: "고객에게 예약 확정 알림톡 발송" });
-      bg("alimtalk-confirm", sendBookingConfirmed(env, who));
-    }
-    if (prevPublish !== "published" && nextPublish === "published" && !rec.notify.itinerarySentAt && rec.phone && rec.token) {
-      rec.notify.itinerarySentAt = now;
-      rec.activities.push({ at:now, type:"notify_sent", detail:"고객에게 확정 일정표 공개 알림톡 발송" });
-      bg("alimtalk-itinerary", sendItineraryPublished(env, who));
-    }
+    /* 고객 카톡 알림톡은 사용하지 않습니다 — 각 단계는 고객 페이지(내견적)에 즉시 표시되고,
+       개별 연락은 카카오톡 채널에서 수동으로 합니다. 관리자 문자(notifyAdmin)만 유지. */
     rec.activities = rec.activities.slice(-100);
 
     await env.DB.prepare(
       "UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ?"
     ).bind(rec.status || "신규", rec.memo || "", JSON.stringify(rec), rec.token || "", id).run();
 
-    const notificationConfigured = requestDeposit ? !!env.SOLAPI_TEMPLATE_DEPOSIT_ID : requestContract ? !!env.SOLAPI_TEMPLATE_CONTRACT_ID : requestTravelerInfo ? !!env.SOLAPI_TEMPLATE_TRAVELERS_ID : confirmDeposit ? !!(env.SOLAPI_TEMPLATE_CONTRACT_ID && env.SOLAPI_TEMPLATE_TRAVELERS_ID) : undefined;
-    return json({ ok: true, status: rec.status || "신규", token:rotateCustomerLink ? rec.token : undefined, workflowStatus:rec.workflowStatus, quoteExpiresAt:rec.quoteExpiresAt || "", publishStatus: (rec.booking && rec.booking.publishStatus) || "draft", preparedAt:rec.booking && rec.booking.preparedAt, travelerSubmission:rec.booking && rec.booking.travelerSubmission, depositRequest:rec.booking && rec.booking.depositRequest, contractRequest:rec.booking && rec.booking.contractRequest, notificationConfigured, activities: rec.activities });
+    return json({ ok: true, status: rec.status || "신규", token:rotateCustomerLink ? rec.token : undefined, workflowStatus:rec.workflowStatus, quoteExpiresAt:rec.quoteExpiresAt || "", publishStatus: (rec.booking && rec.booking.publishStatus) || "draft", preparedAt:rec.booking && rec.booking.preparedAt, travelerSubmission:rec.booking && rec.booking.travelerSubmission, depositRequest:rec.booking && rec.booking.depositRequest, contractRequest:rec.booking && rec.booking.contractRequest, activities: rec.activities });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);
   }

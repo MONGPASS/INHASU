@@ -292,7 +292,7 @@
     <div class="glabel">기본 정보</div>
     <div class="row c3">
       <label class="f"><span>고객명</span><input id="f_customer" placeholder="예) 강민지"></label>
-      <label class="f"><span>연락처 <span>(카톡 알림톡 발송용)</span></span><input id="f_phone" inputmode="numeric" placeholder="01012345678"></label>
+      <label class="f"><span>연락처</span><input id="f_phone" inputmode="numeric" placeholder="01012345678"></label>
       <label class="f"><span>여행지</span><input id="f_destination" placeholder="예) 고비"></label>
       <label class="f"><span>문서번호</span><input id="f_quoteNo"></label>
       <label class="f"><span>투어 시작일 <span>(선택)</span></span><input type="date" id="f_depart"></label>
@@ -1161,7 +1161,7 @@ pubBtn.onclick = async () => {
       if (ST.depart && ST.return_) { patch.depart = ST.depart; patch.return_ = ST.return_; patch.nights = (nN && nN > 0) ? nN : null; }
       if (ST.destination) patch.destination = ST.destination;
       const tel = ST.phone.replace(/[^0-9]/g, "");
-      if (tel) patch.phone = tel;   // 알림톡 발송에 쓰이는 연락처 — 편집기에서 고친 값을 반영
+      if (tel) patch.phone = tel;   // 고객 연락처 — 편집기에서 고친 값을 반영
       const res = await fetch(`/api/requests/${encodeURIComponent(REQ_ID)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-token": ADMIN_TOKEN },
