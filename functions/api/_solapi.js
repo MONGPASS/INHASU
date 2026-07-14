@@ -169,14 +169,7 @@ export async function sendBookingConfirmed(env, { name, phone, origin, token }) 
   });
 }
 
-/* ④ 고객이 견적을 수락한 순간 → 예약 진행 요청 접수 안내 */
-export async function sendQuoteAccepted(env, { name, phone, origin, token }) {
-  return sendCustomer(env, {
-    templateId: env.SOLAPI_TEMPLATE_ACCEPT_ID,
-    name, phone, origin, token,
-    smsText: `[${company(env)}] ${name || "고객"}님, 견적 수락이 접수되었습니다. 담당자가 예약정보와 예약금 안내를 준비합니다.`,
-  });
-}
+/* ④ (삭제됨) 견적 수락 알림톡 — 수락 즉시 고객 화면에 예약금 안내가 표시되므로 보내지 않습니다 */
 
 /* ⑤ 고객이 계약서에 서명한 순간 → 서명 접수 안내 */
 export async function sendContractSigned(env, { name, phone, origin, token }) {
