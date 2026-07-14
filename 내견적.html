@@ -99,7 +99,7 @@
     const confirmed = r.status === "예약확정";
     const published = booking.publishStatus === "published";
     return `<div class="steps">
-      ${[["견적 수락",accepted],["예약금 입금",depositPaid],["예약 확정",confirmed],["일정표 공개",published]].map(([label,done]) =>
+      ${[["예약 접수",accepted],["예약금 입금",depositPaid],["예약 확정",confirmed],["일정표 공개",published]].map(([label,done]) =>
         `<div class="step ${done ? "done" : ""}"><span class="dot">${done ? "✓" : ""}</span>${label}</div>`).join("")}
     </div>`;
   };
@@ -184,7 +184,7 @@
         <div class="desc">${nm}${accepted ? "예약 진행이 확인되었습니다. 담당자가 예약정보와 예약금 안내를 준비하고 있습니다." : "견적서를 확인하시고, 수정하고 싶은 부분이나 예약 진행 의사는 카카오톡으로 편하게 말씀해 주세요."}</div>
         <span class="badge ${accepted ? "wait" : "done"}">${accepted ? "⏳ 예약 준비 중" : "✓ 견적 완료"}</span>
         ${sumHtml(r)}
-        ${progressHtml(r)}
+        ${accepted ? progressHtml(r) : ""}
         ${expired ? `<div class="notice">이 견적의 유효기간이 만료되었습니다. 카카오톡으로 연장을 요청해 주세요.</div>` : (expireLabel ? `<div class="hint">견적 유효기간: ${esc(expireLabel)}까지</div>` : "")}
         <a class="btn accent" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>
         <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡으로 예약 진행·수정 문의</a>`;

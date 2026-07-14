@@ -516,7 +516,7 @@ function lodgePreviewHtml(l, i) {
   const rec = { ...lib, ...l };
   const img = rec.img || (Array.isArray(rec.imgs) ? rec.imgs[0] : "");
   const imgs = Array.isArray(rec.imgs) ? rec.imgs.length : (img ? 1 : 0);
-  const title = rec.name ? `DAY${rec.day || i + 1} · ${rec.name}` : "숙소 미선택";
+  const title = rec.name || "숙소 미선택";
   const sub = [rec.grade, rec.region, rec.desc || rec.tags, imgs ? `이미지 ${imgs}장` : ""].filter(Boolean).join(" · ");
   return `<div class="preview" id="lodgePreview${i}">
     <div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(title)}">` : "🏕"}</div>
@@ -569,7 +569,7 @@ function lodgeRow(l, i) {
         </select></label>
       </div>
       <div class="edit-body" style="margin-top:8px;">
-        <label class="f"><span>숙소 설명 (고객 노출 — 비우면 리소스 설명 사용)</span><input data-lk="desc" value="${esc(l.descCustom || "")}" placeholder="게르 내부 화장실 / 샤워실 / 세면대 구비"></label>
+        <label class="f"><span>숙소 설명 (고객 노출 — 비우면 위 리소스 설명이 그대로 나갑니다)</span><input data-lk="desc" value="${esc(l.descCustom || "")}" placeholder="리소스 설명 대신 보여줄 문구 (선택)"></label>
       </div>
     </details>
   </div>`;
