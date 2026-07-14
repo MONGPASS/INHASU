@@ -546,10 +546,11 @@ function loadCourse(name, opts = {}) {
     ST.spots = [...new Set([...REQ_SPOTS.filter(name => lib[name]), ...ST.spots])];
   }
   ST.days = structuredClone(c.days || []);
-  // 코스에 저장된 요금표(1인 예약금 + 인원별 실속형/풀패키지 잔금)가 있으면 그대로 채웁니다.
+  // 코스에 저장된 요금표(1인 예약금 + 인원별 실속형/풀패키지 잔금 + 추가·할인 옵션)가 있으면 그대로 채웁니다.
   if (c.price && Array.isArray(c.price.balances) && c.price.balances.length) {
     if (Number(c.price.deposit) > 0) ST.deposit = Number(c.price.deposit);
     ST.balances = structuredClone(c.price.balances);
+    if (Array.isArray(c.price.options) && c.price.options.length) ST.options = structuredClone(c.price.options);
   }
   // 구버전 코스: 단일 1인 견적금액(base)만 있으면 현재 인원 요금표에 반영합니다.
   else if (Number(c.base) > 0) {

@@ -69,9 +69,31 @@
   .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
   .sec-title { font-size:14px; font-weight:800; margin:22px 0 10px; display:flex; align-items:center; gap:8px; }
   /* 요금표 (1인 기준 · 인원별 잔금) */
-  .price-head { display:grid; grid-template-columns:76px 1fr 1fr 32px; gap:8px; font-size:11px; font-weight:800; color:var(--gray); margin:10px 0 5px; }
-  .price-row { display:grid; grid-template-columns:76px 1fr 1fr 32px; gap:8px; margin-bottom:6px; align-items:center; }
-  .price-row button { border:none; background:#fff1f0; color:var(--red); border-radius:8px; padding:9px 0; cursor:pointer; font-weight:900; }
+  /* 요금 — 견적만들기 STEP 3와 동일한 UI */
+  .sec-lbl { font-size:12px; font-weight:700; color:var(--sub); margin:16px 0 8px; }
+  .sec-lbl span { font-weight:500; color:var(--gray); }
+  .opt-list { border:1px solid var(--line); border-radius:11px; overflow:hidden; }
+  .opt-row { display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid #f1f3f5; }
+  .opt-row:last-child { border-bottom:none; }
+  .opt-row .lbl { flex:1; min-width:0; font-size:13px; font-weight:600; color:var(--ink); }
+  .opt-row .bal { font-size:12.5px; color:var(--sub); text-align:right; }
+  .opt-row .del, .bal-row .del { border:none; background:transparent; color:#C4CAD3; cursor:pointer; font-size:15px; font-family:inherit; }
+  .opt-row .del:hover, .bal-row .del:hover { color:var(--red); }
+  .empty { font-size:12.5px; color:var(--gray); padding:14px; text-align:center; }
+  .bal-head, .bal-row { display:grid; grid-template-columns:70px 1fr 1fr 34px; align-items:center; }
+  .bal-table { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .bal-head { background:#F8FAFB; font-size:11.5px; font-weight:700; color:var(--gray); }
+  .bal-head div { padding:9px 12px; }
+  .bal-row { border-top:1px solid #f1f3f5; }
+  .bal-row .pax { justify-self:start; margin:0 9px; font-size:12px; font-weight:700; color:#0a6a5e; background:#eaf7f3; border-radius:7px; padding:4px 9px; white-space:nowrap; }
+  .bal-row label { padding:6px 8px; }
+  .bal-row label input { padding:8px 10px; border-radius:8px; font-size:13px; }
+  .bal-row .del { justify-self:center; }
+  .add-opt { display:flex; gap:8px; margin-top:10px; }
+  .add-opt input { flex:1; }
+  .add-opt input.amt-in { max-width:110px; }
+  .add-opt button { padding:0 13px; height:41px; border:1px dashed #b9e2d6; background:#f8faf9; color:#0a6a5e; border-radius:9px; font:600 12.5px inherit; cursor:pointer; white-space:nowrap; }
+  .add-opt button:hover { background:#eaf7f3; }
   .sec-title .n { width:20px; height:20px; border-radius:6px; background:var(--soft); color:var(--deep); font-size:11px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; }
 
   /* 명소 체크 */
@@ -253,8 +275,24 @@ function openEdit(key) {
       <div class="row3">
         <label class="f"><span>예약금 (1인)</span><input id="f_price_deposit" type="number" step="1000" value="${esc((c.price && c.price.deposit) || 50000)}" placeholder="예) 50000"></label>
       </div>
-      <div id="priceRows"></div>
-      <button class="day-add" id="priceAddBtn" type="button">＋ 인원별 잔금 추가</button>
+      <div class="sec-lbl">추가 및 할인 사항 <span>· 견적서에 안내로 표시 (자동계산 없음)</span></div>
+      <div class="opt-list" id="optList"></div>
+      <div class="add-opt">
+        <input id="newOptLabel" placeholder="항목 (예: 게르 업그레이드)">
+        <input id="newOptCalc" placeholder="금액 안내 (예: 50,000원*1박)">
+        <button type="button" id="addOptBtn">＋ 옵션 추가</button>
+      </div>
+      <div class="sec-lbl">인원별 잔금 (1인 기준) <span>· 실속형=일반게르 / 풀패키지=고급게르</span></div>
+      <div class="bal-table">
+        <div class="bal-head"><div>인원</div><div>실속형</div><div>풀패키지</div><div></div></div>
+        <div id="balList"></div>
+      </div>
+      <div class="add-opt">
+        <input class="amt-in" id="newBalPax" type="number" placeholder="인원" style="max-width:70px">
+        <input class="amt-in" id="newBalEco" type="number" placeholder="실속형(원)">
+        <input class="amt-in" id="newBalFull" type="number" placeholder="풀패키지(원)">
+        <button type="button" id="addBalBtn">＋ 인원 추가</button>
+      </div>
 
       <div class="sec-title"><span class="n">2</span>대표 명소 <span style="font-weight:500;color:var(--gray);font-size:12px">· 견적서 명소 페이지에 나옴</span></div>
       <div class="spot-grid" id="spotGrid"></div>
@@ -267,32 +305,67 @@ function openEdit(key) {
       <button class="save" id="saveBtn">${isNew ? "추가하기" : "저장하기"}</button>
     </div>`;
 
-  // 요금표 — 견적만들기의 balances({pax, economy, full})와 동일 구조
-  let draftPrice = c.price ? JSON.parse(JSON.stringify(c.price)) : { deposit:50000, balances:[] };
-  function renderPrice() {
-    const rows = draftPrice.balances;
-    $("priceRows").innerHTML = (rows.length
-      ? `<div class="price-head"><span>인원</span><span>실속형 잔금 (1인)</span><span>풀패키지 잔금 (1인)</span><span></span></div>`
-      : `<div style="font-size:12px;color:var(--gray);margin:6px 0;">인원별 잔금을 추가하세요.${Number(c.base) > 0 ? ` 비워두면 기존 1인 금액 ${won(c.base)}이 사용됩니다.` : ""}</div>`)
-      + rows.map((b, i) => `<div class="price-row" data-i="${i}">
-          <input type="number" class="pp" min="1" value="${esc(b.pax || "")}" placeholder="인원">
-          <input type="number" class="pe" step="1000" value="${esc(b.economy != null ? b.economy : (b.amount || ""))}" placeholder="예) 570000">
-          <input type="number" class="pf" step="1000" value="${esc(b.full != null ? b.full : (b.amount || ""))}" placeholder="예) 770000">
-          <button type="button" title="삭제">✕</button>
+  // 요금 — 견적만들기 STEP 3와 동일: 예약금 + 추가·할인 옵션 + 인원별 잔금({pax, economy, full})
+  let draftPrice = c.price ? JSON.parse(JSON.stringify(c.price)) : { deposit:50000, balances:[], options:[] };
+  draftPrice.balances = Array.isArray(draftPrice.balances) ? draftPrice.balances : [];
+  draftPrice.options = Array.isArray(draftPrice.options) ? draftPrice.options : [];
+  // 새 코스는 자주 쓰는 2~6인 행을 미리 깔아둠 (금액 0원 행은 저장 시 자동 제외)
+  if (!draftPrice.balances.length) draftPrice.balances = [2,3,4,5,6].map(pax => ({ pax, economy:0, full:0 }));
+  const balEco = b => (b.economy != null ? b.economy : (b.amount || 0));
+  const balFull = b => (b.full != null ? b.full : (b.amount || 0));
+  function renderOptions() {
+    if (!draftPrice.options.length) {
+      $("optList").innerHTML = `<div class="empty">등록된 추가·할인 안내가 없습니다.</div>`;
+    } else {
+      $("optList").innerHTML = draftPrice.options.map((o, i) => `
+        <div class="opt-row" data-i="${i}">
+          <div class="lbl">${esc(o.label)}</div>
+          <div class="bal">${esc(o.calc || "")}</div>
+          <button class="del" type="button">✕</button>
         </div>`).join("");
-    $("priceRows").querySelectorAll(".price-row").forEach(row => {
+      $("optList").querySelectorAll(".opt-row").forEach(row => {
+        const i = +row.dataset.i;
+        row.querySelector(".del").onclick = () => { draftPrice.options.splice(i, 1); renderOptions(); };
+      });
+    }
+  }
+  function renderBalances() {
+    draftPrice.balances = draftPrice.balances.slice().sort((a, b) => a.pax - b.pax);
+    $("balList").innerHTML = !draftPrice.balances.length
+      ? `<div class="empty">인원별 잔금을 추가하세요.${Number(c.base) > 0 ? ` 비워두면 기존 1인 금액 ${won(c.base)}이 사용됩니다.` : ""}</div>`
+      : draftPrice.balances.map((b, i) => `
+        <div class="bal-row" data-i="${i}">
+          <span class="pax">${esc(b.pax)}인</span>
+          <label><input type="number" class="be" step="1000" value="${esc(balEco(b))}"></label>
+          <label><input type="number" class="bf" step="1000" value="${esc(balFull(b))}"></label>
+          <button class="del" type="button">✕</button>
+        </div>`).join("");
+    $("balList").querySelectorAll(".bal-row").forEach(row => {
       const i = +row.dataset.i;
-      row.querySelector(".pp").oninput = e => draftPrice.balances[i].pax = parseInt(e.target.value) || 0;
-      row.querySelector(".pe").oninput = e => draftPrice.balances[i].economy = parseInt(e.target.value) || 0;
-      row.querySelector(".pf").oninput = e => draftPrice.balances[i].full = parseInt(e.target.value) || 0;
-      row.querySelector("button").onclick = () => { draftPrice.balances.splice(i, 1); renderPrice(); };
+      row.querySelector(".be").oninput = e => draftPrice.balances[i].economy = parseInt(e.target.value) || 0;
+      row.querySelector(".bf").oninput = e => draftPrice.balances[i].full = parseInt(e.target.value) || 0;
+      row.querySelector(".del").onclick = () => { draftPrice.balances.splice(i, 1); renderBalances(); };
     });
   }
-  renderPrice();
-  $("priceAddBtn").onclick = () => {
-    const maxPax = draftPrice.balances.reduce((m, b) => Math.max(m, Number(b.pax) || 0), 1);
-    draftPrice.balances.push({ pax: maxPax + 1, economy: 0, full: 0 });
-    renderPrice();
+  renderOptions(); renderBalances();
+  $("addOptBtn").onclick = () => {
+    const label = $("newOptLabel").value.trim();
+    const calc = $("newOptCalc").value.trim();
+    if (!label) { toast("항목 이름을 입력하세요"); return; }
+    draftPrice.options.push({ label, calc });
+    $("newOptLabel").value = ""; $("newOptCalc").value = "";
+    renderOptions();
+  };
+  $("addBalBtn").onclick = () => {
+    const pax = parseInt($("newBalPax").value);
+    const eco = parseInt($("newBalEco").value);
+    const full = parseInt($("newBalFull").value);
+    if (isNaN(pax) || (isNaN(eco) && isNaN(full))) { toast("인원과 금액을 입력하세요"); return; }
+    const ex = draftPrice.balances.find(b => Number(b.pax) === pax);
+    if (ex) { ex.economy = eco || 0; ex.full = full || 0; }
+    else draftPrice.balances.push({ pax, economy: eco || 0, full: full || 0 });
+    $("newBalPax").value = ""; $("newBalEco").value = ""; $("newBalFull").value = "";
+    renderBalances();
   };
 
   // 명소 그리드
@@ -397,16 +470,17 @@ function openEdit(key) {
     if (!name) { toast("코스 이름을 입력하세요"); return; }
     const priceDeposit = parseInt($("f_price_deposit").value) || 0;
     const priceBalances = draftPrice.balances
-      .map(b => ({ pax: Number(b.pax) || 0, economy: Number(b.economy) || 0, full: Number(b.full) || 0 }))
+      .map(b => ({ pax: Number(b.pax) || 0, economy: Number(b.economy != null ? b.economy : b.amount) || 0, full: Number(b.full != null ? b.full : b.amount) || 0 }))
       .filter(b => b.pax > 0 && (b.economy > 0 || b.full > 0))
       .sort((a, b) => a.pax - b.pax);
+    const priceOptions = draftPrice.options.filter(o => o && String(o.label || "").trim());
     const rec = {
       destination: $("f_dest").value.trim(),
       nights: $("f_nights").value.trim(),
       intensity: parseInt($("f_intensity").value) || 3,
       // base = 대표 1인 총액(예약금+최소 인원 실속형 잔금) — 목록·필터 표시와 구버전 호환용
       base: priceBalances.length ? priceDeposit + (priceBalances[0].economy || priceBalances[0].full) : (Number(c.base) || 0),
-      price: { deposit: priceDeposit, balances: priceBalances },
+      price: { deposit: priceDeposit, balances: priceBalances, options: priceOptions },
       vehicle: $("f_vehicle").value.trim(),
       highlights: draftSpots,
       days: draftDays.map((d,i) => ({ d:i+1, dest:d.dest||"", move:d.move||"", dist:d.dist||"", items:d.items||[], stay:{name:d.stay?.name||"", tags:d.stay?.tags||[]}, meals:d.meals||["","",""] })),
