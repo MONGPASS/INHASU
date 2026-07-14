@@ -114,9 +114,9 @@
   .edit-panel[open] summary::after { content:"닫기"; }
   .edit-body { padding:0 12px 12px; }
 
-  .lodge-row { border:1px solid var(--line); border-radius:13px; padding:12px; margin-bottom:10px; background:#fff; }
-  .lodge-fields { display:grid; grid-template-columns:64px 1fr 130px auto; gap:8px; align-items:end; }
-  .lodge-row .del-lodge { align-self:center; border:none; background:#fff1f0; color:#c75b52; border-radius:9px; padding:9px 10px; cursor:pointer; font-weight:900; }
+  .lodge-row { border:1px solid #e7f1ee; border-radius:14px; padding:16px; margin-bottom:12px; background:#fcfefd; }
+  .lodge-fields { display:grid; grid-template-columns:64px 1fr 130px; gap:8px; align-items:end; }
+  .del-lodge { border:none; background:#fff1f0; color:#c75b52; border-radius:9px; padding:7px 11px; cursor:pointer; font-weight:900; flex:none; }
 
   .chk { display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:600; padding:9px 0;
     border-bottom:1px dashed var(--line); cursor:pointer; }
@@ -202,7 +202,7 @@
     main { padding:14px 10px; }
     section.card { padding:16px; }
     .summary { grid-template-columns:1fr 1fr; }
-    .lodge-fields { grid-template-columns:56px 1fr auto; }
+    .lodge-fields { grid-template-columns:56px 1fr; }
     .lodge-fields label:nth-of-type(3) { grid-column:1 / -1; }
     .hd-group { width:100%; padding:8px 0 0; border-left:0; border-top:1px solid var(--line); overflow-x:auto; }
     .workflow-steps { overflow-x:auto; grid-template-columns:repeat(5,100px); padding-bottom:18px; }
@@ -516,11 +516,11 @@ function lodgePreviewHtml(l, i) {
   const rec = { ...lib, ...l };
   const img = rec.img || (Array.isArray(rec.imgs) ? rec.imgs[0] : "");
   const imgs = Array.isArray(rec.imgs) ? rec.imgs.length : (img ? 1 : 0);
-  const title = rec.name || `${i + 1}일차 숙소 미선택`;
+  const title = rec.name ? `DAY${rec.day || i + 1} · ${rec.name}` : "숙소 미선택";
   const sub = [rec.grade, rec.region, rec.desc || rec.tags, imgs ? `이미지 ${imgs}장` : ""].filter(Boolean).join(" · ");
-  return `<div class="preview" id="lodgePreview${i}" style="margin-top:0;">
+  return `<div class="preview" id="lodgePreview${i}">
     <div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(title)}">` : "🏕"}</div>
-    <div><b>DAY${esc(rec.day || i + 1)} · ${esc(title)}</b><p>${esc(sub || "숙소를 선택하면 고객에게 보일 이미지와 설명이 표시됩니다.")}</p></div>
+    <div><b>${esc(title)}</b><p>${esc(sub || "리소스를 선택하면 고객에게 보일 정보와 이미지 상태가 표시됩니다.")}</p></div>
   </div>`;
 }
 
@@ -552,6 +552,12 @@ function dayCard(d, i) {
 function lodgeRow(l, i) {
   return `
   <div class="lodge-row" data-li="${i}">
+    <div class="subtt"><span>🏕 ${esc(l.day || i + 1)}일차 숙소</span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        <select class="pick lodge-pick"><option value="">📥 리소스에서 선택…</option></select>
+        <button class="del-lodge" data-del-lodge="${i}" title="숙소 배정 삭제">×</button>
+      </span>
+    </div>
     ${lodgePreviewHtml(l, i)}
     <details class="edit-panel">
       <summary>세부정보 수정</summary>
@@ -561,7 +567,6 @@ function lodgeRow(l, i) {
         <label class="f"><span>등급</span><select data-lk="grade">
           ${["","일반게르","고급게르","호텔"].map(g => `<option value="${g}" ${l.grade === g ? "selected" : ""}>${g || "선택"}</option>`).join("")}
         </select></label>
-        <button class="del-lodge" data-del-lodge="${i}" title="숙소 배정 삭제">×</button>
       </div>
       <div class="edit-body" style="margin-top:8px;">
         <label class="f"><span>숙소 설명 (고객 노출 — 비우면 리소스 설명 사용)</span><input data-lk="desc" value="${esc(l.descCustom || "")}" placeholder="게르 내부 화장실 / 샤워실 / 세면대 구비"></label>
@@ -1143,6 +1148,16 @@ function fillDatalists() {
     if (!names.length) el.innerHTML = `<option value="">리소스관리에 등록된 항목 없음</option>`;
   };
   pick("guides", "g_pick"); pick("vehicles", "v_pick");
+  // 일차별 숙소 — 행마다 같은 드롭다운 (현재 배정된 숙소가 선택된 상태로)
+  document.querySelectorAll(".lodge-pick").forEach(el => {
+    const row = el.closest(".lodge-row");
+    const assigned = row?.querySelector('[data-lk="name"]')?.value.trim() || "";
+    const names = Object.keys(LIBS.lodges);
+    if (!names.length) { el.innerHTML = `<option value="">리소스관리에 등록된 항목 없음</option>`; return; }
+    el.innerHTML = `<option value="">${assigned ? "📥 다른 리소스로 변경…" : "📥 리소스에서 선택…"}</option>` +
+      names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    el.value = names.includes(assigned) ? assigned : "";
+  });
 }
 /* 라이브러리 레코드 → 폼 필드 채움 */
 function applyGuide(name) {
@@ -1171,6 +1186,18 @@ function bindAutofill() {
   const on = (id, fn) => { const el = $(id); if (el) el.addEventListener("change", () => fn(el)); };
   on("g_pick", el => { if (el.value) applyGuide(el.value); });
   on("v_pick", el => { if (el.value) applyVehicle(el.value); });
+  document.querySelectorAll(".lodge-pick").forEach(sel => sel.addEventListener("change", () => {
+    if (!sel.value) return;
+    const row = sel.closest(".lodge-row");
+    const inp = row?.querySelector('[data-lk="name"]');
+    if (!inp) return;
+    inp.value = sel.value;
+    const lib = LIBS.lodges[sel.value] || {};
+    const gsel = row.querySelector('[data-lk="grade"]');
+    if (lib.grade && gsel) gsel.value = lib.grade;
+    updateLodgePreview(row);
+    toast(`숙소 "${sel.value}" 정보를 불러왔어요`);
+  }));
   on("g_name", el => applyGuide(el.value.trim()));
   on("v_model", el => applyVehicle(el.value.trim()));
   document.querySelectorAll('.lodge-row [data-lk="name"]').forEach(inp => {

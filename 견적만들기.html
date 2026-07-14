@@ -335,7 +335,8 @@
       <p>일차별 일정을 구성하고 프리셋으로 빠르게 채웁니다.</p>
     </div>
     <div class="hint">목적지·이동·세부 일정을 자유롭게 수정하세요. (한 줄에 하나씩. "*"로 시작하면 강조, "("로 시작하면 회색)</div>
-    <div id="dayCheck" style="font-size:12.5px; margin-bottom:12px"></div>
+    <div id="dayCheck" style="font-size:12.5px; margin-bottom:8px"></div>
+    <div style="margin-bottom:12px;"><button type="button" id="fillDatesBtn" style="border:1px dashed #cfd6dd; background:#fff; color:#5a6a75; border-radius:9px; padding:8px 13px; font:700 12px inherit; cursor:pointer;">📅 출발일 기준 여행일자 자동 입력 (선택)</button></div>
     <div id="dayList"></div>
   </section>
 
@@ -545,8 +546,13 @@ function loadCourse(name, opts = {}) {
     ST.spots = [...new Set([...REQ_SPOTS.filter(name => lib[name]), ...ST.spots])];
   }
   ST.days = structuredClone(c.days || []);
-  // 코스에 저장된 1인 견적금액이 있으면 현재 인원 요금표에도 반영합니다.
-  if (Number(c.base) > 0) {
+  // 코스에 저장된 요금표(1인 예약금 + 인원별 실속형/풀패키지 잔금)가 있으면 그대로 채웁니다.
+  if (c.price && Array.isArray(c.price.balances) && c.price.balances.length) {
+    if (Number(c.price.deposit) > 0) ST.deposit = Number(c.price.deposit);
+    ST.balances = structuredClone(c.price.balances);
+  }
+  // 구버전 코스: 단일 1인 견적금액(base)만 있으면 현재 인원 요금표에 반영합니다.
+  else if (Number(c.base) > 0) {
     const balance = Math.max(0, Number(c.base) - Number(ST.deposit || 0));
     const found = ST.balances.find(b => Number(b.pax) === Number(ST.pax));
     if (found) { found.economy = balance; found.full = balance; found.amount = balance; }
@@ -714,6 +720,22 @@ $("addBalBtn").onclick = () => {
 
 /* ── 일정 편집 ── */
 function renumberDays() { ST.days.forEach((d, i) => d.d = i + 1); }
+$("fillDatesBtn").onclick = () => {
+  if (!ST.depart) return toast("기본 정보에서 출발일을 먼저 입력하세요");
+  ST.days.forEach((d, i) => d.date = dayDateStr(i));
+  renderDays();
+  toast("출발일 기준으로 여행일자를 채웠어요 — 각 칸에서 자유롭게 수정할 수 있어요");
+};
+
+/* 출발일 기준 i일차의 날짜 문자열 — "07.20(월)" (출발일 없으면 빈 값) */
+const DOW = ["일","월","화","수","목","금","토"];
+function dayDateStr(i) {
+  if (!ST.depart) return "";
+  const d = new Date(ST.depart);
+  if (isNaN(d)) return "";
+  d.setDate(d.getDate() + i);
+  return `${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}(${DOW[d.getDay()]})`;
+}
 
 function dayCountNote() {
   const n = nights();
@@ -747,6 +769,7 @@ function renderDays() {
       <div class="dh">
         <span class="drag-handle" title="드래그해서 순서 변경">⠿</span>
         <span class="badge">${d.d}일차</span>
+        <input class="ddate" value="${esc(d.date||"")}" placeholder="${esc(dayDateStr(i) || "날짜")} (선택)" title="고객 여행일자 (선택) — 입력하면 견적서 일정표에 함께 표시됩니다" style="flex:none; width:120px; font-size:12px; font-weight:600;">
         <input class="dest" value="${esc((d.dest||"").replace(/<br\s*\/?>/gi," / "))}" placeholder="목적지">
         <input class="move" value="${esc(d.move||"")} ${esc(d.dist||"")}" placeholder="이동 6시간 (300 km)">
         <button class="day-del" title="이 일자 삭제">✕</button>
@@ -772,12 +795,13 @@ function renderDays() {
     el.querySelector(".snip-sel").onchange = e => {
       const s = getSnippets()[e.target.value];
       if (!s) return;
-      const dNum = ST.days[i].d;
-      ST.days[i] = { d: dNum, dest: s.dest||"", move: s.move||"", dist: s.dist||"",
+      const dNum = ST.days[i].d, dDate = ST.days[i].date || "";
+      ST.days[i] = { d: dNum, date: dDate, dest: s.dest||"", move: s.move||"", dist: s.dist||"",
         items: [...(s.items||[])], stay: { name: s.stay?.name||"", tags: [...(s.stay?.tags||[])] }, meals: [...(s.meals||["","",""])] };
       renderDays();
       toast(`"${e.target.value}" 일정을 불러왔습니다`);
     };
+    el.querySelector(".ddate").oninput = e => ST.days[i].date = e.target.value.trim();
     el.querySelector(".dest").oninput = e => ST.days[i].dest = e.target.value.replace(/ \/ /g, "<br>");
     el.querySelector(".move").oninput = e => {
       const m = e.target.value.match(/^(.*?)(\(.*\))?\s*$/);

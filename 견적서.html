@@ -280,7 +280,7 @@ const pgQuote = `
 const dayRow = (d, i) => {
   const bg = i % 2 ? "#F5FBF9" : "#fff";
   return `
-    <div style="background:${bg}; padding:12px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;"><span style="width:12px;height:12px;border-radius:3px;background:${DAY_CUBE[i % DAY_CUBE.length]};"></span><b style="color:#152C28; font-size:12px;">${d.d}일차</b></div>
+    <div style="background:${bg}; padding:12px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;"><span style="width:12px;height:12px;border-radius:3px;background:${DAY_CUBE[i % DAY_CUBE.length]};"></span><b style="color:#152C28; font-size:12px;">${d.d}일차</b>${d.date ? `<span style="color:#8CA39D; font-size:10.5px; font-weight:700;">${esc(d.date)}</span>` : ""}</div>
     <div style="background:${bg}; padding:12px 8px; color:#152C28; line-height:1.5;"><b>${d.dest}</b><br><span style="color:#8CA39D;">${esc(d.move)}<br>${esc(d.dist)}</span></div>
     <div style="background:${bg}; padding:12px 10px; color:#354B46; line-height:1.85;">${d.items.map(itemHtml).join("<br>")}</div>
     <div style="background:${bg}; padding:12px 8px; color:#152C28; font-weight:600; line-height:1.6; text-align:center;">${d.stay.name}${d.stay.tags.length ? `<br><br><span style="color:#8CA39D; font-weight:500;">${d.stay.tags.join("<br>")}</span>` : ""}</div>

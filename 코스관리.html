@@ -68,6 +68,10 @@
   .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
   .sec-title { font-size:14px; font-weight:800; margin:22px 0 10px; display:flex; align-items:center; gap:8px; }
+  /* 요금표 (1인 기준 · 인원별 잔금) */
+  .price-head { display:grid; grid-template-columns:76px 1fr 1fr 32px; gap:8px; font-size:11px; font-weight:800; color:var(--gray); margin:10px 0 5px; }
+  .price-row { display:grid; grid-template-columns:76px 1fr 1fr 32px; gap:8px; margin-bottom:6px; align-items:center; }
+  .price-row button { border:none; background:#fff1f0; color:var(--red); border-radius:8px; padding:9px 0; cursor:pointer; font-weight:900; }
   .sec-title .n { width:20px; height:20px; border-radius:6px; background:var(--soft); color:var(--deep); font-size:11px; display:inline-flex; align-items:center; justify-content:center; font-weight:800; }
 
   /* 명소 체크 */
@@ -238,24 +242,58 @@ function openEdit(key) {
       <div class="row3">
         <label class="f"><span>여행지</span><input id="f_dest" value="${esc(c.destination)}" placeholder="고비"></label>
         <label class="f"><span>기간</span><input id="f_nights" value="${esc(c.nights)}" placeholder="4박5일"></label>
-        <label class="f"><span>견적금액 (1인)</span><input id="f_base" type="number" step="1000" value="${esc(c.base)}" placeholder="예) 620000"></label>
+        <label class="f"><span>차량</span><input id="f_vehicle" value="${esc(c.vehicle)}" placeholder="하이에이스"></label>
       </div>
       <div class="row2">
-        <label class="f"><span>차량</span><input id="f_vehicle" value="${esc(c.vehicle)}" placeholder="하이에이스"></label>
         <label class="f"><span>이동강도 (1~5)</span>
           <select id="f_intensity">${[1,2,3,4,5].map(i=>`<option value="${i}" ${i===(c.intensity||3)?"selected":""}>${i}</option>`).join("")}</select></label>
       </div>
 
-      <div class="sec-title"><span class="n">1</span>대표 명소 <span style="font-weight:500;color:var(--gray);font-size:12px">· 견적서 명소 페이지에 나옴</span></div>
+      <div class="sec-title"><span class="n">1</span>요금 (1인 기준) <span style="font-weight:500;color:var(--gray);font-size:12px">· 견적서 만들기에서 이 코스를 고르면 그대로 채워집니다</span></div>
+      <div class="row3">
+        <label class="f"><span>예약금 (1인)</span><input id="f_price_deposit" type="number" step="1000" value="${esc((c.price && c.price.deposit) || 50000)}" placeholder="예) 50000"></label>
+      </div>
+      <div id="priceRows"></div>
+      <button class="day-add" id="priceAddBtn" type="button">＋ 인원별 잔금 추가</button>
+
+      <div class="sec-title"><span class="n">2</span>대표 명소 <span style="font-weight:500;color:var(--gray);font-size:12px">· 견적서 명소 페이지에 나옴</span></div>
       <div class="spot-grid" id="spotGrid"></div>
 
-      <div class="sec-title"><span class="n">2</span>일자별 일정</div>
+      <div class="sec-title"><span class="n">3</span>일자별 일정</div>
       <div id="dayList"></div>
     </div>
     <div class="df">
       ${isNew ? "" : `<button class="del" id="delBtn">삭제</button>`}
       <button class="save" id="saveBtn">${isNew ? "추가하기" : "저장하기"}</button>
     </div>`;
+
+  // 요금표 — 견적만들기의 balances({pax, economy, full})와 동일 구조
+  let draftPrice = c.price ? JSON.parse(JSON.stringify(c.price)) : { deposit:50000, balances:[] };
+  function renderPrice() {
+    const rows = draftPrice.balances;
+    $("priceRows").innerHTML = (rows.length
+      ? `<div class="price-head"><span>인원</span><span>실속형 잔금 (1인)</span><span>풀패키지 잔금 (1인)</span><span></span></div>`
+      : `<div style="font-size:12px;color:var(--gray);margin:6px 0;">인원별 잔금을 추가하세요.${Number(c.base) > 0 ? ` 비워두면 기존 1인 금액 ${won(c.base)}이 사용됩니다.` : ""}</div>`)
+      + rows.map((b, i) => `<div class="price-row" data-i="${i}">
+          <input type="number" class="pp" min="1" value="${esc(b.pax || "")}" placeholder="인원">
+          <input type="number" class="pe" step="1000" value="${esc(b.economy != null ? b.economy : (b.amount || ""))}" placeholder="예) 570000">
+          <input type="number" class="pf" step="1000" value="${esc(b.full != null ? b.full : (b.amount || ""))}" placeholder="예) 770000">
+          <button type="button" title="삭제">✕</button>
+        </div>`).join("");
+    $("priceRows").querySelectorAll(".price-row").forEach(row => {
+      const i = +row.dataset.i;
+      row.querySelector(".pp").oninput = e => draftPrice.balances[i].pax = parseInt(e.target.value) || 0;
+      row.querySelector(".pe").oninput = e => draftPrice.balances[i].economy = parseInt(e.target.value) || 0;
+      row.querySelector(".pf").oninput = e => draftPrice.balances[i].full = parseInt(e.target.value) || 0;
+      row.querySelector("button").onclick = () => { draftPrice.balances.splice(i, 1); renderPrice(); };
+    });
+  }
+  renderPrice();
+  $("priceAddBtn").onclick = () => {
+    const maxPax = draftPrice.balances.reduce((m, b) => Math.max(m, Number(b.pax) || 0), 1);
+    draftPrice.balances.push({ pax: maxPax + 1, economy: 0, full: 0 });
+    renderPrice();
+  };
 
   // 명소 그리드
   function renderSpots() {
@@ -357,11 +395,18 @@ function openEdit(key) {
   $("saveBtn").onclick = () => {
     const name = $("f_name").value.trim();
     if (!name) { toast("코스 이름을 입력하세요"); return; }
+    const priceDeposit = parseInt($("f_price_deposit").value) || 0;
+    const priceBalances = draftPrice.balances
+      .map(b => ({ pax: Number(b.pax) || 0, economy: Number(b.economy) || 0, full: Number(b.full) || 0 }))
+      .filter(b => b.pax > 0 && (b.economy > 0 || b.full > 0))
+      .sort((a, b) => a.pax - b.pax);
     const rec = {
       destination: $("f_dest").value.trim(),
       nights: $("f_nights").value.trim(),
       intensity: parseInt($("f_intensity").value) || 3,
-      base: parseInt($("f_base").value) || 0,
+      // base = 대표 1인 총액(예약금+최소 인원 실속형 잔금) — 목록·필터 표시와 구버전 호환용
+      base: priceBalances.length ? priceDeposit + (priceBalances[0].economy || priceBalances[0].full) : (Number(c.base) || 0),
+      price: { deposit: priceDeposit, balances: priceBalances },
       vehicle: $("f_vehicle").value.trim(),
       highlights: draftSpots,
       days: draftDays.map((d,i) => ({ d:i+1, dest:d.dest||"", move:d.move||"", dist:d.dist||"", items:d.items||[], stay:{name:d.stay?.name||"", tags:d.stay?.tags||[]}, meals:d.meals||["","",""] })),
