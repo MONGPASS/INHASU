@@ -50,6 +50,19 @@
   .change-options { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .change-options label { display:flex; align-items:center; gap:7px; font-size:12.5px; color:#40544f; }
   .change-box textarea { width:100%; min-height:92px; margin-top:12px; padding:11px; border:1px solid var(--line); border-radius:10px; resize:vertical; font:inherit; font-size:13px; }
+  .dep { margin-top:16px; text-align:left; border:1px solid #cdeee6; background:#f1faf7; border-radius:14px; padding:18px 16px; }
+  .dep .amt { font-size:21px; font-weight:800; color:#0a6a5e; }
+  .dep .amt small { display:block; margin-top:3px; font-size:12.5px; color:#6b7c78; font-weight:600; }
+  .dep .acct { margin-top:12px; background:#fff; border:1px solid #d9eee9; border-radius:12px; padding:12px 14px; display:flex; align-items:center; gap:10px; }
+  .dep .acct .bank { font-size:12.5px; color:#6b7c78; margin-bottom:2px; }
+  .dep .acct .no { font-size:15.5px; font-weight:800; letter-spacing:.01em; }
+  .dep .copy { margin-left:auto; flex:none; border:1px solid var(--accent); background:#fff; color:#0a6a5e; border-radius:9px; padding:8px 12px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .dep label { display:block; margin-top:14px; font-size:12.5px; font-weight:700; color:#40544f; }
+  .dep input { width:100%; margin-top:6px; padding:12px 13px; border:1px solid #d9e4e0; border-radius:10px; font:inherit; font-size:14px; }
+  .dep .send { margin-top:10px; width:100%; padding:13px; border:none; border-radius:11px; background:var(--accent); color:#fff; font-size:14.5px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .dep .send:disabled { opacity:.6; cursor:default; }
+  .dep .sent { margin-top:14px; background:#e6f5ef; border-radius:10px; padding:12px; font-size:13px; color:#0a6a5e; font-weight:700; text-align:center; }
+  .dep .tip { margin-top:10px; font-size:11.5px; color:#9AA0A6; line-height:1.5; }
 </style>
 </head>
 <body>
@@ -62,6 +75,7 @@
     <h1>불러오는 중…</h1>
   </div>
 
+<script src="booking.js"></script>
 <script>
   const KAKAO = "https://pf.kakao.com/_BSLaxl";
   const IS_LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -83,6 +97,15 @@
   };
   const destTxt = r => (r.destination || "-") + (r.destSpots && r.destSpots.length ? ` · ${r.destSpots.join(", ")}` : "");
 
+  // 로컬 데모 모드: localStorage 레코드를 서버 대신 갱신 (배포 전 미리보기용)
+  const localPatch = fn => {
+    const list = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
+    const item = list.find(x => x.token === token);
+    if (!item) return;
+    fn(item);
+    localStorage.setItem("leaders_requests", JSON.stringify(list));
+  };
+
   const sumHtml = r => `
     <div class="sum">
       <div class="row"><span class="k">여행지</span><span class="v">${esc(destTxt(r))}</span></div>
@@ -93,12 +116,11 @@
   const progressHtml = r => {
     const booking = r.booking || {};
     const accepted = r.decision && r.decision.status === "accepted";
-    const signed = !!(booking.contract && booking.contract.signedAt);
     const depositPaid = !!(booking.contractInfo && booking.contractInfo.depositStatus === "입금완료");
     const confirmed = r.status === "예약확정";
     const published = booking.publishStatus === "published";
     return `<div class="steps">
-      ${[["견적 수락",accepted],["예약정보 준비",!!r.booking],["예약금 확인",depositPaid],["계약서 서명",signed],["예약 확정",confirmed],["일정표 공개",published]].map(([label,done]) =>
+      ${[["견적 수락",accepted],["예약금 입금",depositPaid],["예약 확정",confirmed],["일정표 공개",published]].map(([label,done]) =>
         `<div class="step ${done ? "done" : ""}"><span class="dot">${done ? "✓" : ""}</span>${label}</div>`).join("")}
     </div>`;
   };
@@ -138,10 +160,12 @@
       const ci = r.booking.contractInfo || {};
       const depositPaid = ci.depositStatus === "입금완료";
       const depositRequested = r.booking.depositRequest && r.booking.depositRequest.status === "requested";
+      const depositReport = r.booking.depositReport || {};
+      const depositReported = depositReport.status === "reported";
       const contractRequested = r.booking.contractRequest && r.booking.contractRequest.status === "requested";
       const money = n => Number(n || 0) ? Number(n).toLocaleString("ko-KR") + "원" : "-";
-      const title = confirmed ? "예약이 확정됐어요!" : signed ? "계약서 서명이 완료됐어요" : (depositPaid && contractRequested) ? "계약서를 확인해 주세요" : depositPaid ? "예약금 입금이 확인됐어요" : depositRequested ? "예약금 입금을 진행해 주세요" : "예약정보를 준비하고 있어요";
-      const description = confirmed ? (published ? "확정일정표가 준비되었습니다." : "예약은 확정됐으며 세부 일정과 배정을 준비하고 있습니다.") : signed ? "서명이 접수되었습니다. 담당자가 확인 후 예약을 확정합니다." : (depositPaid && contractRequested) ? "예약금 확인이 완료되었습니다. 여행계약서를 확인하고 서명해 주세요." : depositPaid ? "예약금 확인이 완료되었습니다. 담당자가 계약서를 준비하고 있습니다." : depositRequested ? "아래 예약금과 입금 계좌를 확인해 주세요. 입금 후 담당자가 확인합니다." : "담당자가 예약정보와 예약금 안내를 준비하고 있습니다.";
+      const title = confirmed ? "예약이 확정됐어요!" : signed ? "계약서 서명이 완료됐어요" : (depositPaid && contractRequested) ? "계약서를 확인해 주세요" : depositPaid ? "예약금 입금이 확인됐어요" : depositReported ? "입금 확인을 기다리고 있어요" : depositRequested ? "예약금 입금을 진행해 주세요" : "예약정보를 준비하고 있어요";
+      const description = confirmed ? (published ? "확정일정표가 준비되었습니다." : "예약은 확정됐으며 세부 일정과 배정을 준비하고 있습니다.") : signed ? "서명이 접수되었습니다. 담당자가 확인 후 예약을 확정합니다." : (depositPaid && contractRequested) ? "예약금 확인이 완료되었습니다. 여행계약서를 확인하고 서명해 주세요." : depositPaid ? "예약금 확인이 완료되었습니다. 담당자가 계약서를 준비하고 있습니다." : depositReported ? "입금 신고가 접수되었습니다. 담당자가 확인하면 다음 단계가 열립니다." : depositRequested ? "아래 예약금과 입금 계좌를 확인해 주세요. 입금 후 '입금 완료했어요'를 눌러 주세요." : "담당자가 예약정보와 예약금 안내를 준비하고 있습니다.";
       card.innerHTML = `
         <div class="emoji">${confirmed ? "🎫" : depositRequested && !depositPaid ? "💳" : "🧾"}</div>
         <h1>${title}</h1>
@@ -149,7 +173,19 @@
         <span class="badge ${confirmed ? "done" : "wait"}" ${confirmed ? 'style="background:#e8effc;color:#2b5cc4;"' : ""}>${confirmed ? "✓ 예약 확정" : "⏳ 예약 진행 중"}</span>
         ${sumHtml(r)}
         ${progressHtml(r)}
-        ${depositRequested && !depositPaid ? `<div class="notice" style="text-align:left;line-height:1.8;"><b style="display:block;color:#112d25;font-size:15px;margin-bottom:5px;">예약금 ${esc(money(ci.depositAmount))}</b>${esc(ci.bankName || "은행 확인 필요")} · ${esc(ci.accountNumber || "계좌 확인 필요")}<br>예금주 ${esc(ci.accountHolder || "-")}<br><span style="font-size:11.5px;">입금 후 담당자가 확인하면 계약서 서명 단계가 열립니다.</span></div>` : ""}
+        ${depositRequested && !depositPaid ? `<div class="dep">
+          <div class="amt">예약금 ${esc(money(ci.depositAmount))}<small>입금이 확인되면 예약이 진행됩니다</small></div>
+          <div class="acct">
+            <div><div class="bank">${esc(ci.bankName || "은행 확인 필요")} · 예금주 ${esc(ci.accountHolder || "-")}</div><div class="no">${esc(ci.accountNumber || "계좌 확인 필요")}</div></div>
+            <button class="copy" id="copyAcctBtn" type="button">📋 계좌번호 복사</button>
+          </div>
+          ${depositReported
+            ? `<div class="sent">✓ 입금 신고 완료 (입금자명 ${esc(depositReport.name || "-")})<br>담당자가 입금을 확인하고 있어요</div><div class="tip">확인이 끝나면 이 화면에서 다음 단계가 열립니다. 오래 걸리면 카카오톡으로 문의해 주세요.</div>`
+            : `<label for="depositorName">입금자명</label>
+               <input id="depositorName" maxlength="40" placeholder="입금하신 분 성함" value="${esc(r.name || "")}">
+               <button class="send" id="depositDoneBtn" type="button">입금 완료했어요</button>
+               <div class="tip">입금을 마친 뒤 눌러 주세요. 담당자가 확인하면 예약이 진행됩니다.</div>`}
+        </div>` : ""}
         <a class="btn ${travelersDone ? "ghost" : "primary"}" href="${esc("여행자정보.html?t=" + encodeURIComponent(token))}">${travelersDone ? "✅ 여행자 정보 확인·수정" : "👥 여행자 정보 입력하기"}</a>
         ${signed
           ? `<a class="btn ghost" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank">📜 여행계약서 보기 (서명완료)</a>`
@@ -159,6 +195,37 @@
         ${r.quote ? `<a class="btn ghost" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>` : ""}
         ${published ? `<a class="btn ghost" href="${esc("일정지도.html?t=" + encodeURIComponent(token))}" target="_blank">🗺 일정 지도 보기</a>` : ""}
         <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡 상담</a>`;
+      const copyBtn = document.getElementById("copyAcctBtn");
+      if (copyBtn) copyBtn.onclick = async () => {
+        const no = String(ci.accountNumber || "");
+        try { await navigator.clipboard.writeText(no); copyBtn.textContent = "✓ 복사됐어요"; }
+        catch (e) { prompt("계좌번호를 길게 눌러 복사하세요", no); }
+        setTimeout(() => { copyBtn.textContent = "📋 계좌번호 복사"; }, 1800);
+      };
+      const depBtn = document.getElementById("depositDoneBtn");
+      if (depBtn) depBtn.onclick = async () => {
+        const nameInput = document.getElementById("depositorName");
+        const depositor = nameInput.value.trim();
+        if (!depositor) { nameInput.focus(); return alert("입금자명을 입력해 주세요."); }
+        if (!confirm(`입금자명 '${depositor}'(으)로 입금 완료를 알릴까요?`)) return;
+        depBtn.disabled = true; depBtn.textContent = "전송 중…";
+        try {
+          if (IS_LOCAL) {
+            localPatch(rec => {
+              rec.booking = rec.booking || {};
+              rec.booking.depositReport = { status:"reported", name:depositor, reportedAt:new Date().toISOString() };
+            });
+          } else {
+            const res = await fetch("/api/deposit/" + encodeURIComponent(token), { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ name:depositor }) });
+            const j = await res.json();
+            if (!j.ok) throw new Error(j.error || "전송 실패");
+          }
+          await load();
+        } catch (e) {
+          depBtn.disabled = false; depBtn.textContent = "입금 완료했어요";
+          alert(e.message || "입금 신고를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        }
+      };
     } else if (r.quote) {
       const accepted = r.decision && r.decision.status === "accepted";
       const expired = !!r.quoteExpired && !accepted;
@@ -183,14 +250,30 @@
         <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡 상담</a>`;
       const acceptBtn = document.getElementById("acceptQuoteBtn");
       if (acceptBtn) acceptBtn.onclick = async () => {
-        if (!confirm("이 견적으로 예약 절차를 진행할까요?\n담당자가 계약과 예약금 안내를 이어서 도와드립니다.")) return;
+        if (!confirm("이 견적으로 예약을 진행할까요?\n다음 화면에서 예약금 입금 계좌를 바로 안내해 드립니다.")) return;
         acceptBtn.disabled = true; acceptBtn.textContent = "처리 중…";
         try {
-          const res = await fetch("/api/accept/" + encodeURIComponent(token), { method:"POST" });
-          const j = await res.json();
-          if (!j.ok) {
-            if (j.code === "quote_expired") throw new Error("견적 유효기간이 만료되었습니다. 담당자에게 연장을 요청해 주세요.");
-            throw new Error(j.error || "처리 실패");
+          if (IS_LOCAL) {
+            localPatch(rec => {
+              const nowIso = new Date().toISOString();
+              rec.decision = { status:"accepted", acceptedAt:nowIso, source:"customer" };
+              if (!rec.booking) {
+                const bk = seedBookingFromQuote(rec);   // booking.js — 서버(accept API)와 동일 규칙
+                if (Number(bk.contractInfo.depositAmount) > 0) {
+                  bk.preparedAt = nowIso;
+                  bk.depositRequest = { status:"requested", requestedAt:nowIso, source:"auto_accept" };
+                  rec.booking = bk;
+                }
+              }
+              if (!rec.status || rec.status === "신규") rec.status = "진행중";
+            });
+          } else {
+            const res = await fetch("/api/accept/" + encodeURIComponent(token), { method:"POST" });
+            const j = await res.json();
+            if (!j.ok) {
+              if (j.code === "quote_expired") throw new Error("견적 유효기간이 만료되었습니다. 담당자에게 연장을 요청해 주세요.");
+              throw new Error(j.error || "처리 실패");
+            }
           }
           await load();
         } catch (e) {

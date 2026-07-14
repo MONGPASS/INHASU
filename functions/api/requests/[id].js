@@ -112,6 +112,10 @@ export async function onRequestPatch(context) {
         patch.booking.travelers = prev.travelers;
         patch.booking.travelerSubmission = prev.travelerSubmission;
       }
+      // 고객의 입금 신고도 같은 방식으로 보존합니다.
+      const prevReported = prev && prev.depositReport && prev.depositReport.status === "reported";
+      const incomingReported = patch.booking.depositReport && patch.booking.depositReport.status === "reported";
+      if (prevReported && !incomingReported) patch.booking.depositReport = prev.depositReport;
     }
     delete patch.resetContract;   // 플래그가 rec에 저장되지 않게
     delete patch.activities;      // 활동 이력은 서버에서만 추가
