@@ -71,7 +71,6 @@
     SOLAPI_TEMPLATE_CONFIRM_ID "예약 확정" 템플릿 ID
     SOLAPI_TEMPLATE_SIGN_ID    "계약서 서명 접수" 템플릿 ID
     SOLAPI_TEMPLATE_ITINERARY_ID "확정 일정표 공개" 템플릿 ID
-    SOLAPI_TEMPLATE_CHANGE_ID  "일정 변경 요청 접수" 템플릿 ID
     SOLAPI_TEMPLATE_TRAVELERS_ID "여행자 정보 입력 요청" 템플릿 ID
     SOLAPI_TEMPLATE_DEPOSIT_ID  "예약금 입금 안내" 템플릿 ID
     SOLAPI_TEMPLATE_CONTRACT_ID "예약금 확인·계약서 서명 요청" 템플릿 ID

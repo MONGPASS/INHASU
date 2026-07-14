@@ -543,7 +543,7 @@ const secCert = card(`
   <div class="blk" style="margin-top:18px; background:#EAF7F3; border-radius:12px; padding:14px 16px; font-size:11px; color:#40544F; line-height:1.75; text-align:center;">${esc(B.companyFull)}는 <b style="color:#0A6A5E;">대한민국과 몽골 양국 정부에 정식 인허가</b>를 받고 등록된 여행사입니다. 여행업 보증보험 가입, 몽골 현지 법인 설립 및 몽골여행협회(MATA) 등록까지 모든 안전장치를 갖추고 있습니다.</div>`);
 
 /* ── 렌더 (디자인 순서) ── */
-const customerActions = _token ? `<section class="card customer-actions"><div class="eyebrow">NEXT STEP</div><h2>이 일정으로 여행을 준비할까요?</h2><p>견적을 수락해도 예약금 확인 전에는 최종 확정되지 않습니다.<br>조정이 필요한 부분은 담당자에게 요청할 수 있어요.</p><a class="accept" href="내견적.html?t=${encodeURIComponent(_token)}&action=accept">예약 절차 시작하기 <span>→</span></a><a class="change" href="내견적.html?t=${encodeURIComponent(_token)}&action=change">일정 조정 요청</a><a class="consult" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">💬 먼저 담당자에게 문의하기</a></section>` : "";
+const customerActions = _token ? `<section class="card customer-actions"><div class="eyebrow">NEXT STEP</div><h2>이 일정으로 여행을 준비할까요?</h2><p>견적을 수락해도 예약금 확인 전에는 최종 확정되지 않습니다.<br>조정이 필요한 부분은 카카오톡으로 문의해 주세요.</p><a class="accept" href="내견적.html?t=${encodeURIComponent(_token)}&action=accept">예약 절차 시작하기 <span>→</span></a><a class="consult" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">💬 먼저 담당자에게 문의하기</a></section>` : "";
 root.innerHTML = secCover + secQuote + secSchedule + secInclusions + secSpots + secLodge + secTeam + secMeals + secInsurance + secArrival + secCert + customerActions;
 document.title = `${B.company}_${esc(Q.customer)}님_맞춤견적서_${esc(Q.quoteNo)}`;
 }

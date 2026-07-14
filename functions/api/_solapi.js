@@ -189,14 +189,7 @@ export async function sendItineraryPublished(env, { name, phone, origin, token }
   });
 }
 
-/* ⑦ 고객 일정 변경 요청 접수 확인 */
-export async function sendChangeRequested(env, { name, phone, origin, token }) {
-  return sendCustomer(env, {
-    templateId: env.SOLAPI_TEMPLATE_CHANGE_ID,
-    name, phone, origin, token,
-    smsText: `[${company(env)}] ${name || "고객"}님, 일정 변경 요청이 접수되었습니다. 담당자가 확인 후 안내드리겠습니다.`,
-  });
-}
+/* ⑦ (삭제됨) 일정 변경 요청 — 기능 제거 (조정 문의는 카카오톡 채널로 받습니다) */
 
 /* ⑧ 관리자가 여행자 정보 입력을 요청한 순간 */
 export async function sendTravelerInfoRequest(env, { name, phone, origin, token }) {

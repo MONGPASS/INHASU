@@ -136,6 +136,18 @@
   .status-row { display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap; }
   .st-btn { flex:0 0 auto; padding:8px 16px; border:1px solid #e2ebe8; background:#fff; border-radius:999px; font-size:13px; font-weight:500; cursor:pointer; font-family:inherit; color:#4a615b; }
   .st-btn.sel { color:#fff; border-color:var(--deep); background:var(--deep); font-weight:700; }
+  /* 고객 진행 타임라인 */
+  .tl { margin-bottom:20px; border:1px solid #e1ede9; border-radius:14px; padding:14px 16px 4px; background:#fbfdfc; }
+  .tl-title { font-size:13px; font-weight:800; color:#0f2e27; margin-bottom:12px; }
+  .tl-item { position:relative; padding:0 0 14px 24px; }
+  .tl-item::before { content:""; position:absolute; left:6px; top:15px; bottom:-1px; width:2px; background:#e1ede9; }
+  .tl-item:last-child::before { display:none; }
+  .tl-dot { position:absolute; left:1px; top:3px; width:12px; height:12px; border-radius:50%; background:#d6e1dd; border:2px solid #fff; box-shadow:0 0 0 1.5px #d6e1dd; }
+  .tl-item.cust .tl-dot { background:var(--deep); box-shadow:0 0 0 1.5px var(--deep); }
+  .tl-item b { display:block; font-size:13px; color:#556b65; font-weight:600; line-height:1.45; }
+  .tl-item.cust b { color:#213a34; font-weight:700; }
+  .tl-item.latest b { color:#04836b; }
+  .tl-item small { font-size:11.5px; color:#9db2ac; }
   .info-grid { display:grid; grid-template-columns:88px 1fr; gap:15px 12px; font-size:14px; }
   .info-grid .k { color:#9db2ac; font-weight:500; font-size:13px; }
   .info-grid .v { font-weight:600; color:#213a34; word-break:break-word; }
@@ -585,6 +597,54 @@ function nextAction(r) {
   if (b.publishStatus !== "published") return { label:"일정표 공개 준비", detail:"배정을 완료한 뒤 확정 일정표를 공개하세요" };
   return null;
 }
+/* ── 고객 진행 타임라인 — 레코드에 남은 기록으로 "누가 · 언제 · 무엇을" 재구성 ── */
+function customerTimeline(r) {
+  const ev = [];
+  const b = r.booking || {};
+  const acts = Array.isArray(r.activities) ? r.activities : [];
+  if (r.receivedAt) ev.push({ at:r.receivedAt, who:"고객", label:"견적 문의 접수" });
+  const quoteSent = r.quoteIssuedAt || (r.notify && r.notify.quoteSentAt);
+  if (r.quote && quoteSent) ev.push({ at:quoteSent, who:"관리자", label:"견적서 발행 · 알림톡 발송" });
+  if (r.decision && r.decision.status === "accepted" && r.decision.acceptedAt) {
+    ev.push(r.decision.source === "customer"
+      ? { at:r.decision.acceptedAt, who:"고객", label:"🔔 '이 견적으로 예약 진행하기' 클릭" }
+      : { at:r.decision.acceptedAt, who:"관리자", label:"전화·카톡 수락 기록" });
+  }
+  if (b.depositRequest && b.depositRequest.status === "requested" && b.depositRequest.requestedAt)
+    ev.push({ at:b.depositRequest.requestedAt, who:"자동", label:"예약금·입금 계좌 안내 표시" });
+  if (b.depositReport && b.depositReport.status === "reported" && b.depositReport.reportedAt)
+    ev.push({ at:b.depositReport.reportedAt, who:"고객", label:`💳 입금 완료 신고 (입금자명 ${b.depositReport.name || "-"})` });
+  const paidAct = acts.filter(a => a && a.type === "payment_changed" && /예약금.*입금완료/.test(a.detail || "")).pop();
+  if (paidAct) ev.push({ at:paidAct.at, who:"관리자", label:"예약금 입금 확인" });
+  if (b.contractRequest && b.contractRequest.status === "requested" && b.contractRequest.requestedAt)
+    ev.push({ at:b.contractRequest.requestedAt, who:"자동", label:"계약서 서명·여행자 정보 요청 발송" });
+  if (b.contract && b.contract.signedAt) ev.push({ at:b.contract.signedAt, who:"고객", label:"✍ 계약서 서명 완료" });
+  if (b.travelerSubmission && b.travelerSubmission.submittedAt)
+    ev.push({ at:b.travelerSubmission.submittedAt, who:"고객", label:`👥 여행자 정보 제출 (${b.travelerSubmission.submittedCount || 0}명)` });
+  (Array.isArray(r.changeRequests) ? r.changeRequests : []).forEach(x => {
+    const at = x && (x.at || x.requestedAt);
+    if (at) ev.push({ at, who:"고객", label:`일정 변경 요청 (${(x.categories || []).join(", ") || "내용 확인"})${x.status === "resolved" ? " · 처리됨" : ""}` });
+  });
+  if (b.confirmedAt) ev.push({ at:b.confirmedAt, who:"관리자", label:"✓ 예약 확정" });
+  if (b.publishedAt) ev.push({ at:b.publishedAt, who:"관리자", label:"🎫 확정 일정표 공개" });
+  return ev.filter(e => e.at && !isNaN(new Date(e.at))).sort((a, b2) => new Date(a.at) - new Date(b2.at));
+}
+function timelineHtml(r) {
+  const ev = customerTimeline(r);
+  if (!ev.length) return "";
+  const fmt = t => {
+    const d = new Date(t);
+    const date = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+    const hasTime = String(t).length > 10;
+    return hasTime ? `${date} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : date;
+  };
+  return `<div class="tl"><div class="tl-title">고객 진행 타임라인</div>${ev.map((e, i) => `
+    <div class="tl-item ${e.who === "고객" ? "cust" : ""} ${i === ev.length - 1 ? "latest" : ""}">
+      <span class="tl-dot"></span>
+      <div><b>${esc(e.label)}</b><small>${fmt(e.at)} · ${e.who}</small></div>
+    </div>`).join("")}</div>`;
+}
+
 const ICON = {
   total: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06c4a0" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   new: `<svg width="20" height="20" viewBox="0 0 24 24" fill="#06c4a0"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>`,
@@ -693,6 +753,14 @@ function openDrawer(id) {
     <div class="dh"><div><h2>${esc(r.name)||"-"}</h2><div class="sub">${dateOnly(r.receivedAt)} 접수 · ${esc(r.tripType)||""}</div></div><button class="x" id="closeX">✕</button></div>
     <div class="db">
       <div class="status-row">${STATUSES.map(s=>`<button class="st-btn ${s===cur?"sel":""}" data-s="${s}">${s}</button>`).join("")}</div>
+      ${r.quote ? `
+      <div class="pub-box" style="background:#dcf4ee; border-color:#bfe9de; color:#036450; margin-top:0; margin-bottom:16px;"><span>${action ? `<b>지금 할 일: ${esc(action.label)}</b><br><span style="font-weight:600; color:#04836b;">${esc(action.detail)}</span>` : (r.booking ? "✓ 현재 처리할 필수 단계가 없습니다" : "고객 수락 후 예약관리를 시작할 수 있어요")}</span>
+        <span class="acts">
+          <button class="pb" id="bookBtn" ${!accepted ? "disabled title='고객 수락을 먼저 기록하세요'" : ""}>${r.booking ? "📋 예약관리 열기" : "📋 예약관리 시작"}</button>
+          ${published && r.token ? `<a class="pb" href="확정일정표.html?t=${encodeURIComponent(r.token)}" target="_blank">🎫 공개 일정표 보기</a>` : ""}
+        </span>
+      </div>` : ""}
+      ${timelineHtml(r)}
       <div class="info-grid">
         <div class="k">휴대폰</div><div class="v">${esc(r.phone)||"-"}</div>
         <div class="k">이메일</div><div class="v">${esc(r.email)||"-"}</div>
@@ -727,13 +795,6 @@ function openDrawer(id) {
       <div class="pub-box" style="background:${accepted ? "#edfbf7" : "#f1f9f7"}; border-color:#d9eee9; color:${accepted ? "#037a64" : "#05a184"};">
         ${accepted ? `🔔 ${r.decision && r.decision.source === "customer" ? "고객이 이 견적으로 예약 진행을 요청했습니다" : "고객 수락 기록"} · ${dateOnly((r.decision && r.decision.acceptedAt) || "") || "기록됨"}` : "⏳ 고객 수락 대기"}
         ${!accepted ? `<span class="acts"><button class="pb" id="acceptBtn">전화·카톡 수락 기록</button></span>` : ""}
-      </div>` : ""}
-      ${r.quote ? `
-      <div class="pub-box" style="background:#dcf4ee; border-color:#bfe9de; color:#036450;"><span>${action ? `<b>현재 할 일: ${esc(action.label)}</b><br><span style="font-weight:600; color:#04836b;">${esc(action.detail)}</span>` : (r.booking ? "✓ 현재 처리할 필수 단계가 없습니다" : "고객 수락 후 예약관리를 시작할 수 있어요")}</span>
-        <span class="acts">
-          <button class="pb" id="bookBtn" ${!accepted ? "disabled title='고객 수락을 먼저 기록하세요'" : ""}>${r.booking ? "📋 예약관리 열기" : "📋 예약관리 시작"}</button>
-          ${published && r.token ? `<a class="pb" href="확정일정표.html?t=${encodeURIComponent(r.token)}" target="_blank">🎫 공개 일정표 보기</a>` : ""}
-        </span>
       </div>` : ""}
       ${pendingChanges.length ? `<div class="req-box" style="background:#f1f9f7;border:1px solid #d9eee9;border-radius:14px;color:#213a34;"><b style="display:block;margin-bottom:8px;">고객 변경 요청 ${pendingChanges.length}건</b>${pendingChanges.map(x => `<div style="font-size:12.5px;line-height:1.55;margin-top:7px;"><b style="color:#4a615b;">${esc((x.categories || []).join(", "))}</b><br><span style="color:#9db2ac;">${esc(x.message || "")}</span><br><button class="pb resolve-change" data-change-id="${esc(x.id || "")}" style="margin-top:8px;border-color:#d6e1dd;color:#5a716b;">처리 완료</button></div>`).join("")}</div>` : ""}
       ${recentActivities.length ? `<details class="req-box" style="background:#f7f8fa;"><summary style="cursor:pointer;font-weight:800;">활동 타임라인 (${recentActivities.length})</summary>${recentActivities.map(a => `<div style="font-size:12px;color:var(--sub);margin-top:7px;">${esc(new Date(a.at).toLocaleString("ko-KR"))} · ${esc(a.detail || a.type || "")}</div>`).join("")}</details>` : ""}

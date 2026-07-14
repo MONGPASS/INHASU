@@ -75,7 +75,7 @@
 <div class="hint" id="printHint" style="display:none">💡 <b>Ctrl + P</b> → 대상 <b>"PDF로 저장"</b> → 여백 <b>없음</b>, 배경 그래픽 <b>켜기</b>로 인쇄하면 고객용 PDF가 됩니다.</div>
 <nav class="customer-bar" id="customerBar" style="display:none"><a id="customerBackTop" href="#">← 내 견적</a><span style="font-size:13px;font-weight:700;opacity:.82">맞춤 견적서</span><a class="next" id="customerAcceptTop" href="#">진행하기</a></nav>
 <div class="wrap" id="root"></div>
-<section class="quote-actions" id="quoteActions" style="display:none"><div class="eyebrow">NEXT STEP</div><h2>이 일정으로 여행을 준비할까요?</h2><p>견적을 수락해도 예약금 확인 전에는 최종 확정되지 않습니다.<br>조정이 필요한 부분은 담당자에게 요청할 수 있어요.</p><div class="buttons"><a class="accept" id="customerAcceptBottom" href="#">예약 절차 시작하기 <span>→</span></a><a class="change" id="customerChangeBottom" href="#">일정 조정 요청</a></div><a class="consult" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">💬 먼저 담당자에게 문의하기</a></section>
+<section class="quote-actions" id="quoteActions" style="display:none"><div class="eyebrow">NEXT STEP</div><h2>이 일정으로 여행을 준비할까요?</h2><p>견적을 수락해도 예약금 확인 전에는 최종 확정되지 않습니다.<br>조정이 필요한 부분은 카카오톡으로 문의해 주세요.</p><div class="buttons"><a class="accept" id="customerAcceptBottom" href="#">예약 절차 시작하기 <span>→</span></a></div><a class="consult" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">💬 먼저 담당자에게 문의하기</a></section>
 
 <script type="module">
 /* 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 */
@@ -87,7 +87,6 @@ if (_token) {
   document.getElementById("customerBackTop").href = portal;
   document.getElementById("customerAcceptTop").href = accept;
   document.getElementById("customerAcceptBottom").href = accept;
-  document.getElementById("customerChangeBottom").href = portal + "&action=change";
 }
 /* 인쇄 안내는 관리자용 — 기본 숨김, 고객 링크(?t=)가 아닐 때만 표시 */
 if (!_token) { const _ph = document.getElementById("printHint"); if (_ph) _ph.style.display = ""; }
