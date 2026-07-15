@@ -523,7 +523,10 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 /* ── 코스 목록 ── */
 function renderCourses() {
   const courses = getCourses();
-  const entries = Object.entries(courses);
+  // 짧은 일정부터 오름차순 (코스관리 목록과 동일한 순서)
+  const dayCount = c => (Array.isArray(c.days) && c.days.length) ? c.days.length
+    : (Number(String(c.nights || "").match(/(\d+)\s*일/)?.[1]) || 99);
+  const entries = Object.entries(courses).sort((a, b) => dayCount(a[1]) - dayCount(b[1]) || a[0].localeCompare(b[0], "ko"));
   $("coursePick").innerHTML = entries.length
     ? entries.map(([name, c]) => `
         <div class="course-btn" data-c="${esc(name)}">

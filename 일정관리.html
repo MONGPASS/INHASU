@@ -133,7 +133,32 @@ function load() {
   if (activeCat !== "__all" && activeCat !== "__none" && !CATS.includes(activeCat)) activeCat = "__all";
   renderTabs(); renderList();
 }
-function persist() { saveSnippets(SNIPS); saveSnippetCats(CATS); }
+/* 관리자 로그인 정보가 없으면 비밀번호를 물어 즉시 서버 저장을 활성화 */
+async function ensureAdminToken() {
+  if (sessionStorage.getItem("leaders_admin_token")) return true;
+  const pw = prompt("서버 영구 저장을 위해 관리자 비밀번호를 입력하세요.\n(취소하면 이 브라우저에만 임시 저장됩니다)");
+  if (!pw) return false;
+  try {
+    const r = await fetch("/api/requests", { headers: { "x-admin-token": pw.trim() }, cache: "no-store" });
+    if (r.status === 401) { toast("⚠ 비밀번호가 올바르지 않습니다"); return false; }
+    if (!r.ok) throw new Error("http " + r.status);
+    sessionStorage.setItem("leaders_admin_token", pw.trim());
+    toast("☁ 서버 저장이 활성화되었습니다");
+    return true;
+  } catch (e) { toast("⚠ 서버에 연결하지 못했습니다 — 이 브라우저에만 저장됩니다"); return false; }
+}
+
+async function persist() {   // {ok:true}=서버저장 / {local:true}=로컬만 / {ok:false}=실패
+  if (!sessionStorage.getItem("leaders_admin_token")) await ensureAdminToken();
+  const a = await saveSnippets(SNIPS);
+  const b = await saveSnippetCats(CATS);
+  return (a && a.ok) ? b : a;   // 둘 중 실패한 쪽 결과를 우선 반환
+}
+function saveMsg(res, okMsg) {
+  if (res && res.ok) return "☁ 서버에 영구 저장됨 · " + okMsg;
+  if (res && res.local) return "⚠ " + okMsg + " (이 브라우저에만 저장 — 서버 저장하려면 관리자 페이지에서 로그인 후 다시 열어주세요)";
+  return "⚠ 로컬에는 저장됨, 서버 저장 실패: " + ((res && res.error) || "알 수 없는 오류");
+}
 
 function catOf(s){ return (s && s.cat ? String(s.cat).trim() : ""); }
 function countIn(cat){ return Object.values(SNIPS).filter(s => catOf(s) === cat).length; }
@@ -263,7 +288,7 @@ function openEdit(key) {
     catSel.value = name; prevCat = name;
   };
 
-  $("saveBtn").onclick = () => {
+  $("saveBtn").onclick = async () => {
     const name = $("f_name").value.trim();
     if (!name) { toast("일정 이름을 입력하세요"); return; }
     const moveRaw = $("f_move").value.trim();
@@ -282,11 +307,18 @@ function openEdit(key) {
     SNIPS[name] = rec;
     // 새 일정을 특정 카테고리에 넣었다면 그 탭이 보이도록 전환
     if (isNew && cat) activeCat = cat;
-    persist(); renderTabs(); renderList(); closeDrawer();
-    toast(isNew ? "일정이 추가되었습니다" : "저장되었습니다");
+    const res = await persist();
+    renderTabs(); renderList(); closeDrawer();
+    toast(saveMsg(res, isNew ? "일정이 추가되었습니다" : "저장되었습니다"));
   };
   const delEl = $("delBtn");
-  if (delEl) delEl.onclick = () => { if (!confirm(`"${key}" 일정을 삭제할까요?`)) return; delete SNIPS[key]; persist(); renderTabs(); renderList(); closeDrawer(); toast("삭제되었습니다"); };
+  if (delEl) delEl.onclick = async () => {
+    if (!confirm(`"${key}" 일정을 삭제할까요?`)) return;
+    delete SNIPS[key];
+    const res = await persist();
+    renderTabs(); renderList(); closeDrawer();
+    toast(saveMsg(res, "삭제되었습니다"));
+  };
 }
 function closeDrawer(){ $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); }
 $("overlay").onclick = closeDrawer;
@@ -296,7 +328,11 @@ let toastT;
 function toast(m){ $("toast").textContent=m; $("toast").classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>$("toast").classList.remove("on"),1900); }
 
 /* 서버(D1)에서 최신 일정·카테고리를 받아온 뒤 렌더링 */
-(window.cloudReady || Promise.resolve()).then(load);
+(window.cloudReady || Promise.resolve()).then(async () => {
+  load();
+  // 관리자 토큰이 없으면 저장이 이 브라우저에만 남음 — 비밀번호를 물어 서버 저장 활성화
+  await ensureAdminToken();
+});
 </script>
 </body>
 </html>

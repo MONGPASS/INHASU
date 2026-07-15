@@ -183,7 +183,40 @@ const won = n => (Number(n)||0).toLocaleString("ko-KR") + "원";
 let COURSES = {};
 
 function load() { COURSES = JSON.parse(JSON.stringify(getCourses())); renderList(); }
-function persist() { saveCourses(COURSES); }
+
+/* 관리자 로그인 정보가 없으면 비밀번호를 물어 즉시 서버 저장을 활성화 */
+async function ensureAdminToken() {
+  if (sessionStorage.getItem("leaders_admin_token")) return true;
+  const pw = prompt("서버 영구 저장을 위해 관리자 비밀번호를 입력하세요.\n(취소하면 이 브라우저에만 임시 저장됩니다)");
+  if (!pw) return false;
+  try {
+    const r = await fetch("/api/requests", { headers: { "x-admin-token": pw.trim() }, cache: "no-store" });
+    if (r.status === 401) { toast("⚠ 비밀번호가 올바르지 않습니다"); return false; }
+    if (!r.ok) throw new Error("http " + r.status);
+    sessionStorage.setItem("leaders_admin_token", pw.trim());
+    toast("☁ 서버 저장이 활성화되었습니다");
+    return true;
+  } catch (e) { toast("⚠ 서버에 연결하지 못했습니다 — 이 브라우저에만 저장됩니다"); return false; }
+}
+
+async function persist() {   // {ok:true}=서버저장 / {local:true}=로컬만 / {ok:false}=실패
+  if (!sessionStorage.getItem("leaders_admin_token")) await ensureAdminToken();
+  return saveCourses(COURSES);
+}
+function saveMsg(res, okMsg) {
+  if (res && res.ok) return "☁ 서버에 영구 저장됨 · " + okMsg;
+  if (res && res.local) return "⚠ " + okMsg + " (이 브라우저에만 저장 — 서버 저장하려면 관리자 페이지에서 로그인 후 다시 열어주세요)";
+  return "⚠ 로컬에는 저장됨, 서버 저장 실패: " + ((res && res.error) || "알 수 없는 오류");
+}
+
+/* 코스 일정 길이(일수) — 일자 배열 우선, 없으면 "4박5일" 문구에서 추출. 짧은 일정부터 정렬용 */
+function courseDayCount(c) {
+  if (Array.isArray(c.days) && c.days.length) return c.days.length;
+  const m = String(c.nights || "").match(/(\d+)\s*일/);
+  if (m) return Number(m[1]);
+  const n = parseInt(c.nights);
+  return Number.isFinite(n) ? n + 1 : 99;
+}
 
 function renderList() {
   const q = ($("filterSpot")?.value || "").trim().toLowerCase();
@@ -200,7 +233,7 @@ function renderList() {
     return (!q || hay.includes(q)) && (!day || String((c.days||[]).length) === day) && (!dest || c.destination === dest)
       && (!highlight || (c.highlights||[]).includes(highlight)) && (!price || (amount>=pMin && amount<=pMax))
       && (!intensity || (level>=iMin && level<=(iMax||iMin)));
-  });
+  }).sort((a, b) => courseDayCount(a[1]) - courseDayCount(b[1]) || a[0].localeCompare(b[0], "ko"));
   if ($("filterCount")) $("filterCount").textContent = `전체 ${Object.keys(COURSES).length}개 중 ${entries.length}개 코스`;
   $("clist").innerHTML = entries.length ? entries.map(([name, c]) => `
     <div class="ccard" data-k="${esc(name)}">
@@ -232,12 +265,14 @@ function populateFilters() {
   $("filterDest").innerHTML = `<option value="">전체 여행지</option>` + dests.map(v=>`<option>${esc(v)}</option>`).join("");
   $("filterHighlight").innerHTML = `<option value="">전체 명소</option>` + highlights.map(v=>`<option>${esc(v)}</option>`).join("");
 }
-function duplicateCourse(name) {
+async function duplicateCourse(name) {
   const source = COURSES[name]; if (!source) return;
   let copyName = `${name} 복사본`, n = 2;
   while (COURSES[copyName]) copyName = `${name} 복사본 ${n++}`;
   COURSES[copyName] = JSON.parse(JSON.stringify(source));
-  persist(); populateFilters(); renderList(); toast(`"${copyName}" 코스를 만들었습니다`);
+  const res = await persist();
+  populateFilters(); renderList();
+  toast(saveMsg(res, `"${copyName}" 코스를 만들었습니다`));
 }
 function shareCourse(name) {
   sessionStorage.setItem("leaders_course_share", JSON.stringify({ course:name, anonymous:true }));
@@ -465,7 +500,7 @@ function openEdit(key) {
   $("drawer").classList.add("on"); $("overlay").classList.add("on");
   $("closeX").onclick = closeDrawer;
 
-  $("saveBtn").onclick = () => {
+  $("saveBtn").onclick = async () => {
     const name = $("f_name").value.trim();
     if (!name) { toast("코스 이름을 입력하세요"); return; }
     const priceDeposit = parseInt($("f_price_deposit").value) || 0;
@@ -487,11 +522,19 @@ function openEdit(key) {
     };
     if (!isNew && key !== name) delete COURSES[key];
     COURSES[name] = rec;
-    persist(); populateFilters(); renderList(); closeDrawer();
-    toast(isNew ? "코스가 추가되었습니다" : "저장되었습니다");
+    const btn = $("saveBtn"); btn.disabled = true; btn.textContent = "저장 중…";
+    const res = await persist();
+    populateFilters(); renderList(); closeDrawer();
+    toast(saveMsg(res, isNew ? "코스가 추가되었습니다" : "저장되었습니다"));
   };
   const delEl = $("delBtn");
-  if (delEl) delEl.onclick = () => { if (!confirm(`"${key}" 코스를 삭제할까요?`)) return; delete COURSES[key]; persist(); renderList(); closeDrawer(); toast("삭제되었습니다"); };
+  if (delEl) delEl.onclick = async () => {
+    if (!confirm(`"${key}" 코스를 삭제할까요?`)) return;
+    delete COURSES[key];
+    const res = await persist();
+    renderList(); closeDrawer();
+    toast(saveMsg(res, "삭제되었습니다"));
+  };
 }
 function closeDrawer(){ $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); }
 $("overlay").onclick = closeDrawer;
@@ -511,7 +554,11 @@ let toastT;
 function toast(m){ $("toast").textContent=m; $("toast").classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>$("toast").classList.remove("on"),1900); }
 
 /* 서버(D1)에서 최신 코스·명소를 받아온 뒤 렌더링 */
-(window.cloudReady || Promise.resolve()).then(() => { load(); populateFilters(); renderList(); });
+(window.cloudReady || Promise.resolve()).then(async () => {
+  load(); populateFilters(); renderList();
+  // 관리자 토큰이 없으면 저장이 이 브라우저에만 남음 — 비밀번호를 물어 서버 저장 활성화
+  await ensureAdminToken();
+});
 </script>
 </body>
 </html>
