@@ -39,8 +39,8 @@ export async function onRequestGet({ env, params }) {
       guide:   a.guide   ? { name: a.guide.name || "", nameEn: a.guide.nameEn || "", role: a.guide.role || "",
                              phone: a.guide.phone || "", qr: a.guide.qr || "",
                              career: a.guide.career || "",  korean: a.guide.korean || "", img: a.guide.img || "",  desc: a.guide.desc || "" } : null,
-      vehicle: a.vehicle ? { model: a.vehicle.model || "", seats: a.vehicle.seats || "", img: a.vehicle.img || "", imgs: Array.isArray(a.vehicle.imgs) ? a.vehicle.imgs : [], desc: a.vehicle.desc || "" } : null,
-      lodges:  Array.isArray(a.lodges) ? a.lodges.map(l => ({ day: l.day, name: l.name || "", grade: l.grade || "", img: l.img || "", imgs: Array.isArray(l.imgs) ? l.imgs : [], tags: l.tags || "", desc: l.desc || "" })) : [],
+      vehicle: a.vehicle ? { model: a.vehicle.model || "", seats: a.vehicle.seats || "", luggage: a.vehicle.luggage || "", img: a.vehicle.img || "", imgs: Array.isArray(a.vehicle.imgs) ? a.vehicle.imgs : [], desc: a.vehicle.desc || "" } : null,
+      lodges:  Array.isArray(a.lodges) ? a.lodges.map(l => ({ day: l.day, name: l.name || "", region: l.region || "", grade: l.grade || "", img: l.img || "", imgs: Array.isArray(l.imgs) ? l.imgs : [], tags: l.tags || "", desc: l.desc || "" })) : [],
     } : null;
     const maskPassport = value => {
       const v = String(value || "").replace(/\s/g, "");

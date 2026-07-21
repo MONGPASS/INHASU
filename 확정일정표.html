@@ -64,7 +64,10 @@
 
 <script type="module">
 /* 확정 일정표 출처: ?t=<token>이면 서버의 예약 확정 정보, 아니면 localStorage(편집기)/data.js 샘플 */
-const _token = new URLSearchParams(location.search).get("t");
+const _params = new URLSearchParams(location.search);
+const _token = _params.get("t");
+const _adminPrint = _params.get("adminPrint") === "1";
+const _autoPrint = _params.get("print") === "1";
 /* 인쇄 안내는 관리자용 — 기본 숨김, 고객 링크(?t=)가 아닐 때만 표시 */
 if (!_token) { const _ph = document.getElementById("printHint"); if (_ph) _ph.style.display = ""; }
 const clone = obj => JSON.parse(JSON.stringify(obj || {}));
@@ -120,6 +123,14 @@ const buildConfirmedQuote = j => {
   return q;
 };
 const Q = await (async () => {
+  if (_adminPrint) {
+    try {
+      const payload = JSON.parse(localStorage.getItem("leaders_confirmed_print") || "null");
+      localStorage.removeItem("leaders_confirmed_print");
+      if (payload && payload.booking && payload.quote) return buildConfirmedQuote(payload);
+    } catch (e) {}
+    return null;
+  }
   if (_token) {
     try {
       const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
@@ -195,6 +206,10 @@ const itemHtml = t => {
   return esc(t);
 };
 const imgsOf = obj => [...new Set([obj && obj.img, ...((obj && Array.isArray(obj.imgs)) ? obj.imgs : [])].filter(Boolean))];
+const seatsText = value => {
+  const text = String(value || "").trim();
+  return /^\d+$/.test(text) ? `${text}인` : text;
+};
 const ASSIGN_STYLE = {
   ink: "#152C28",
   body: "#354B46",
@@ -885,15 +900,23 @@ const pgBookingAssign = bookingAssign ? (() => {
   };
   const lodgeCard = (l, i) => {
     const imgs = imgsOf(l);
+    const tags = String(l.tags || "").split(",").map(x => x.trim()).filter(Boolean);
     return `<div data-assign-lodge-card style="${i ? `margin-top:20px; padding-top:20px; border-top:1px solid #EEF4F1;` : ""} break-inside:avoid;">
       <div style="display:flex; align-items:center; gap:12px;">
         <span style="background:${ASSIGN_STYLE.accent}; color:#fff; font-size:12px; font-weight:800; padding:5px 14px; border-radius:16px;">${esc(l.day || i + 1)}일차</span>
         <span style="color:${ASSIGN_STYLE.ink}; font-size:18px; font-weight:800;">${esc(l.name)}</span>
+        ${l.region ? `<span style="color:${ASSIGN_STYLE.accent}; font-size:12px; font-weight:700;">${esc(l.region)}</span>` : ""}
         ${l.grade ? `<span style="color:${ASSIGN_STYLE.muted}; font-size:12px;">${esc(l.grade)}</span>` : ""}
       </div>
       <div style="margin-top:14px;">${lodgeGrid(imgs, l.name)}</div>
-      <div style="margin-top:12px; color:${ASSIGN_STYLE.body}; font-size:12.5px; font-weight:600; line-height:1.5;">${esc(l.desc || l.tags || "편안한 휴식을 위해 엄선된 숙소입니다.")}</div>
+      ${tags.length ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px;">${tags.map(tag => `<span style="background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border-radius:12px; padding:4px 9px; font-size:11px; font-weight:700;">${esc(tag)}</span>`).join("")}</div>` : ""}
+      ${l.desc ? `<div style="margin-top:10px; color:${ASSIGN_STYLE.body}; font-size:12.5px; font-weight:600; line-height:1.5;">${esc(l.desc)}</div>` : ""}
     </div>`;
+  };
+  const vehicleGallery = imgs => {
+    const arr = imgs.slice(0, 3);
+    if (!arr.length) return `<div class="ph" style="width:300px; height:180px; flex:none; border-radius:12px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:12px; font-weight:700;">차량 사진</div>`;
+    return `<div style="width:300px; height:180px; flex:none; display:grid; grid-template-columns:repeat(${arr.length},1fr); gap:5px;">${arr.map(src => `<div class="ph" style="min-width:0; height:180px; border-radius:10px; background:#fff;"><img src="${src}" alt="${esc(vehicleName)}" style="object-fit:contain;"></div>`).join("")}</div>`;
   };
   return `<div class="page" data-assign-page style="padding:36px 40px 48px; background:#FCFEFD; display:flex; flex-direction:column; gap:16px;">
     <div style="${CARD} padding:26px 30px;">
@@ -917,14 +940,14 @@ const pgBookingAssign = bookingAssign ? (() => {
     <div style="${CARD} padding:26px 30px;">
       ${cardTitle("차량 정보", "여행 기간 동안 편안하고 안전하게 모시겠습니다.")}
       <div style="display:flex; gap:34px; margin-top:18px; align-items:center;">
-        ${vehicleImgs[0] ? `<div class="ph" style="width:300px; height:180px; flex:none; border-radius:12px; background:#fff;"><img src="${vehicleImgs[0]}" alt="${esc(vehicleName)}" style="object-fit:contain;"></div>` : `<div class="ph" style="width:300px; height:180px; flex:none; border-radius:12px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:12px; font-weight:700;">차량 사진</div>`}
+        ${vehicleGallery(vehicleImgs)}
         <div style="flex:1;">
           <div style="display:inline-block; background:${ASSIGN_STYLE.soft}; color:#0A6A5E; font-size:11px; font-weight:800; padding:4px 12px; border-radius:14px;">차종</div>
           <div style="color:${ASSIGN_STYLE.ink}; font-size:26px; font-weight:800; margin-top:8px;">${esc(vehicleName)}</div>
           <div style="margin-top:14px; display:flex; flex-direction:column;">
-            ${infoLine(VIC.seat, "탑승 인원", v.seats || "일정 인원에 맞춰 배정")}
-            ${infoLine(VIC.bag, "수하물", "대형 캐리어 적재 가능")}
-            ${infoLine(VIC.feat, "차량 특징", v.desc || "몽골 장거리 이동에 적합한 차량입니다.")}
+            ${infoLine(VIC.seat, "탑승 인원", seatsText(v.seats))}
+            ${infoLine(VIC.bag, "수하물", v.luggage)}
+            ${infoLine(VIC.feat, "차량 특징", v.desc)}
           </div>
         </div>
       </div>
@@ -948,6 +971,21 @@ const pgBookingAssign = bookingAssign ? (() => {
    ※ 견적 단계에선 안전정보/위험고지/약관(pgSafety·pgRisk·pgTerms) 제외 — 계약 단계에서 별도 안내 */
 document.getElementById("root").innerHTML =
   pgCover + pgQuote + pgBookingAssign + pgInclusions + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgArrival + pgCert;
+const waitForScheduleImages = () => Promise.all([...document.querySelectorAll("#root img")].map(img => img.complete
+  ? Promise.resolve()
+  : new Promise(resolve => {
+      const done = () => resolve();
+      img.addEventListener("load", done, { once:true });
+      img.addEventListener("error", done, { once:true });
+      setTimeout(done, 8000);
+    })));
+window.printSchedule = async () => { await waitForScheduleImages(); window.print(); };
+window.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === "p") {
+    e.preventDefault();
+    window.printSchedule();
+  }
+});
 /* 페이지 번호 자동 재부여 — 일정·명소 페이지가 늘어나도 번호가 이어지도록 (표지는 푸터 없음) */
 const renumberPages = () => document.querySelectorAll("#root .page .pfoot > span:last-child").forEach((el, i) => {
   el.textContent = String(i + 1).padStart(2, "0");
@@ -955,8 +993,10 @@ const renumberPages = () => document.querySelectorAll("#root .page .pfoot > span
 renumberPages(); // 폰트 로드 전 임시 번호
 /* 일정이 길어 한 장을 넘치면 자동으로 다음 장으로 분할. 웹폰트 로드 후 측정해야 행 높이가 정확 */
 const finalizeSchedule = () => { paginateAssignmentLodges(); paginateSchedule(); renumberPages(); fitPages(); };
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(finalizeSchedule);
-else finalizeSchedule();
+const scheduleLayoutReady = document.fonts && document.fonts.ready
+  ? document.fonts.ready.then(finalizeSchedule)
+  : Promise.resolve().then(finalizeSchedule);
+if (_autoPrint) scheduleLayoutReady.then(() => window.printSchedule());
 document.title = `${B.company}_${Q.customer}님_확정일정표_${Q.quoteNo}`;
 }
 

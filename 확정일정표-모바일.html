@@ -72,7 +72,7 @@
 </div>
 
 <div class="doc" id="root"></div>
-<button class="fab" id="fab" style="display:none" onclick="window.print()">📄 PDF 저장</button>
+<button class="fab" id="fab" style="display:none" onclick="window.printSchedule ? window.printSchedule() : window.print()">📄 PDF 저장</button>
 
 <script type="module">
 /* ── 확정 일정표 출처: ?t=<token>이면 서버의 예약 확정 정보, 아니면 localStorage(편집기)/data.js 샘플 ── */
@@ -181,7 +181,7 @@ if (!Q) {
 /* 편집기/샘플(고객 링크 아님)일 때만 상단 도구바 표시 */
 if (!_token) { document.getElementById("topbar").style.display = ""; }
 document.getElementById("fab").style.display = "";
-document.getElementById("tbSave")?.addEventListener("click", () => window.print());
+document.getElementById("tbSave")?.addEventListener("click", () => window.printSchedule ? window.printSchedule() : window.print());
 
 const won = n => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("ko-KR") + "원";
 const wonMan = n => Math.round(n / 10000).toLocaleString("ko-KR") + "만원";
@@ -222,6 +222,10 @@ const LOGO = (sz = 30) => `<svg width="${sz}" height="${sz}" viewBox="0 0 48 48"
 
 const card = (inner) => `<div class="card"><div class="pad">${inner}</div></div>`;
 const imgsOf = obj => [...new Set([obj && obj.img, ...((obj && Array.isArray(obj.imgs)) ? obj.imgs : [])].filter(Boolean))];
+const seatsText = value => {
+  const text = String(value || "").trim();
+  return /^\d+$/.test(text) ? `${text}인` : text;
+};
 const ASSIGN_STYLE = {
   ink: "#152C28",
   body: "#354B46",
@@ -644,15 +648,23 @@ const secBookingAssign = bookingAssign ? (() => {
   };
   const lodgeCard = (l, i) => {
     const imgs = imgsOf(l);
+    const tags = String(l.tags || "").split(",").map(x => x.trim()).filter(Boolean);
     return `<div style="${i ? `margin-top:16px; padding-top:16px; border-top:1px solid #EEF4F1;` : ""}">
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <span style="background:${ASSIGN_STYLE.accent}; color:#fff; border-radius:14px; padding:4px 11px; font-size:11px; font-weight:800;">${esc(l.day || i + 1)}일차</span>
         <span style="color:${ASSIGN_STYLE.ink}; font-size:16px; font-weight:800;">${esc(l.name)}</span>
+        ${l.region ? `<span style="color:${ASSIGN_STYLE.accent}; font-size:11px; font-weight:700;">${esc(l.region)}</span>` : ""}
         ${l.grade ? `<span style="color:${ASSIGN_STYLE.muted}; font-size:11px;">${esc(l.grade)}</span>` : ""}
       </div>
       <div style="margin-top:11px;">${lodgeGrid(imgs, l.name)}</div>
-      <div style="margin-top:9px; color:${ASSIGN_STYLE.body}; font-size:12px; font-weight:600; line-height:1.55;">${esc(l.desc || l.tags || "확정된 숙소 정보입니다.")}</div>
+      ${tags.length ? `<div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:9px;">${tags.map(tag => `<span style="background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border-radius:11px; padding:3px 8px; font-size:10px; font-weight:700;">${esc(tag)}</span>`).join("")}</div>` : ""}
+      ${l.desc ? `<div style="margin-top:8px; color:${ASSIGN_STYLE.body}; font-size:12px; font-weight:600; line-height:1.55;">${esc(l.desc)}</div>` : ""}
     </div>`;
+  };
+  const vehicleGallery = imgs => {
+    const arr = imgs.slice(0, 3);
+    if (!arr.length) return `<div class="ph" style="height:150px; border-radius:12px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:12px; font-weight:700;">차량 사진</div>`;
+    return `<div style="height:150px; display:grid; grid-template-columns:repeat(${arr.length},1fr); gap:4px;">${arr.map(src => `<div class="ph" style="min-width:0; height:150px; border-radius:9px; background:#fff;"><img src="${src}" alt="${esc(vehicleName)}" style="object-fit:contain;"></div>`).join("")}</div>`;
   };
   return card(`
     <div class="blk" style="${CARD} padding:20px 16px;">
@@ -676,13 +688,13 @@ const secBookingAssign = bookingAssign ? (() => {
 
     <div class="blk" style="${CARD} padding:20px 16px; margin-top:12px;">
       ${cardTitle("차량 정보", "안전한 이동")}
-      <div style="margin-top:14px;">${vehicleImgs[0] ? `<div class="ph" style="height:150px; border-radius:12px; background:#fff;"><img src="${vehicleImgs[0]}" alt="${esc(vehicleName)}" style="object-fit:contain;"></div>` : `<div class="ph" style="height:150px; border-radius:12px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:12px; font-weight:700;">차량 사진</div>`}</div>
+      <div style="margin-top:14px;">${vehicleGallery(vehicleImgs)}</div>
       <div style="display:inline-block; background:${ASSIGN_STYLE.soft}; color:#0A6A5E; font-size:11px; font-weight:800; padding:4px 11px; border-radius:13px; margin-top:14px;">차종</div>
       <div style="margin-top:7px; color:${ASSIGN_STYLE.ink}; font-size:23px; font-weight:800;">${esc(vehicleName)}</div>
       <div style="margin-top:10px;">
-        ${infoLine(VIC.seat, "탑승 인원", v.seats || "일정 인원에 맞춰 배정")}
-        ${infoLine(VIC.bag, "수하물", "대형 캐리어 적재 가능")}
-        ${infoLine(VIC.feat, "차량 특징", v.desc || "몽골 장거리 이동에 적합한 차량입니다.")}
+        ${infoLine(VIC.seat, "탑승 인원", seatsText(v.seats))}
+        ${infoLine(VIC.bag, "수하물", v.luggage)}
+        ${infoLine(VIC.feat, "차량 특징", v.desc)}
       </div>
     </div>
 
@@ -697,6 +709,15 @@ const secBookingAssign = bookingAssign ? (() => {
 
 /* ── 렌더 (디자인 순서) ── */
 root.innerHTML = secCover + secQuote + secBookingAssign + secSchedule + secInclusions + secSpots + secLodge + secTeam + secMeals + secInsurance + secArrival + secCert;
+const waitForScheduleImages = () => Promise.all([...root.querySelectorAll("img")].map(img => img.complete
+  ? Promise.resolve()
+  : new Promise(resolve => {
+      const done = () => resolve();
+      img.addEventListener("load", done, { once:true });
+      img.addEventListener("error", done, { once:true });
+      setTimeout(done, 8000);
+    })));
+window.printSchedule = async () => { await waitForScheduleImages(); window.print(); };
 document.title = `${B.company}_${esc(Q.customer)}님_확정일정표_${esc(Q.quoteNo)}`;
 }
 </script>

@@ -19,7 +19,7 @@ function blankBooking() {
     publishedAt: "",
     days: [],
     assign: { guide:{name:"",nameEn:"",role:"",phone:"",qr:"",img:"",desc:""},
-              vehicle:{model:"",seats:"",plate:"",img:"",imgs:[],desc:""}, lodges:[] },
+              vehicle:{model:"",seats:"",luggage:"",plate:"",img:"",imgs:[],desc:""}, lodges:[] },
     travelers: [],
     travelerSubmission: { status:"not_requested", requestedAt:"", submittedAt:"", expectedCount:0, submittedCount:0 },
     flight: { inDate:"", inTime:"", inNo:"", outDate:"", outTime:"", outNo:"" },

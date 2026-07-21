@@ -273,20 +273,21 @@ function fieldRows(type, r) {
         ${["","일반게르","고급게르","호텔"].map(g => `<option value="${g}" ${r.grade===g?"selected":""}>${g||"선택"}</option>`).join("")}
       </select></label>
     </div>
-    <label class="f"><span>시설 태그 (쉼표 — 예: 전기 O, 샤워 O, 와이파이 O)</span><input id="f_tags" value="${esc(r.tags||"")}"></label>
+    <label class="f"><span>시설 태그 (확정 일정표에 별도 노출 · 쉼표 — 예: 전기 O, 샤워 O, 와이파이 O)</span><input id="f_tags" value="${esc(r.tags||"")}"></label>
     <label class="f"><span>숙소 설명 (확정 일정표 사진 아래 노출 — 예: 게르 내부 화장실 / 샤워실 / 세면대 구비)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
   return `
     <div class="row2">
       <label class="f"><span>탑승 인원 (확정 일정표에 노출 — 예: 6인)</span><input id="f_seats" value="${esc(r.seats||"")}" placeholder="6인"></label>
       <label class="f"><span>차량번호 (내부용)</span><input id="f_plate" value="${esc(r.plate||"")}"></label>
     </div>
+    <label class="f"><span>수하물 (확정 일정표에 노출 — 예: 대형 캐리어 4개 적재 가능)</span><input id="f_luggage" value="${esc(r.luggage||"")}" placeholder="대형 캐리어 4개 적재 가능"></label>
     <label class="f"><span>차량 특징 (확정 일정표에 노출 — 예: 몽골 장거리 이동에 적합한 차량입니다.)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
 }
 function readFields(type, r) {
   const v = id => $(id) ? $(id).value.trim() : "";
   if (type === "guides") { r.nameEn=v("f_nameEn"); r.role=v("f_role"); r.phone=v("f_phone"); r.qr=v("f_qr"); r.desc=v("f_desc"); }
   else if (type === "lodges") { r.region=v("f_region"); r.grade=v("f_grade"); r.tags=v("f_tags"); r.desc=v("f_desc"); }
-  else { r.seats=v("f_seats"); r.plate=v("f_plate"); r.desc=v("f_desc"); }
+  else { r.seats=v("f_seats"); r.luggage=v("f_luggage"); r.plate=v("f_plate"); r.desc=v("f_desc"); }
   return r;
 }
 
@@ -327,7 +328,7 @@ function openEdit(key) {
         <div class="multi-list" id="multiList"></div>
       </div>
       <input type="file" id="fileMulti" accept="image/*" multiple style="display:none">
-      <div class="hintline">숙소와 차량은 고객 확정 일정표에서 옆으로 넘겨 볼 수 있습니다.</div>` : ""}
+      <div class="hintline">숙소와 차량의 확정 일정표에는 대표 사진을 포함해 최대 3장이 표시됩니다.</div>` : ""}
       <div style="height:14px"></div>
       ${fieldRows(activeType, r)}
     </div>

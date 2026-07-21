@@ -229,6 +229,9 @@
       <a class="hbtn" id="contractLink" href="#">📜 여행계약서</a>
       <button class="hbtn" id="copyLinkBtn">🔗 링크 복사</button>
     </span>
+    <span class="hd-group"><span class="hd-label">가이드 전달</span>
+      <button class="hbtn blue" id="guidePdfBtn">🖨 가이드용 PDF</button>
+    </span>
   </span>
 </header>
 
@@ -353,6 +356,7 @@ function init() {
   $("copyLinkBtn").onclick = () => {
     copyCustomerLink();
   };
+  $("guidePdfBtn").onclick = printGuideSchedule;
   $("setStatus").checked = false;
   $("publishSchedule").checked = BK.publishStatus === "published";
   $("savebar").style.display = "";
@@ -495,6 +499,7 @@ function previewHtml(type, rec) {
       ...rec,
       img: rec.img || lib.img || "",
       imgs: (Array.isArray(rec.imgs) && rec.imgs.length) ? rec.imgs : (Array.isArray(lib.imgs) ? lib.imgs : []),
+      luggage: rec.luggage || lib.luggage || "",
       desc: rec.desc || lib.desc || "",
     };
   }
@@ -504,7 +509,7 @@ function previewHtml(type, rec) {
   const title = name || (type === "guide" ? "가이드 미선택" : "차량 미선택");
   const sub = type === "guide"
     ? [rec.nameEn, rec.role, rec.desc].filter(Boolean).join(" · ")
-    : [rec.seats, rec.desc, imgs ? `이미지 ${imgs}장` : ""].filter(Boolean).join(" · ");
+    : [rec.seats, rec.luggage, rec.desc, imgs ? `이미지 ${imgs}장` : ""].filter(Boolean).join(" · ");
   const icon = type === "guide" ? "👤" : "🚐";
   return `<div class="preview" id="${type}Preview">
     <div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(title)}">` : icon}</div>
@@ -656,6 +661,7 @@ function render() {
         <div class="edit-body grid3">
           <label class="f"><span>차종</span><input id="v_model" list="vehicleList" value="${esc(a.vehicle.model)}" placeholder="하이스"></label>
           <label class="f"><span>탑승 인원 (고객 노출)</span><input id="v_seats" value="${esc(a.vehicle.seats)}" placeholder="6인"></label>
+          <label class="f"><span>수하물 (고객 노출)</span><input id="v_luggage" value="${esc(a.vehicle.luggage || "")}" placeholder="대형 캐리어 4개 적재 가능"></label>
           <label class="f"><span>차량번호 (내부용)</span><input id="v_plate" value="${esc(a.vehicle.plate)}"></label>
         </div>
         <div class="edit-body" style="margin-top:10px;">
@@ -807,7 +813,7 @@ function pullForm() {
   const g = id => $(id) ? $(id).value.trim() : "";
   BK.assign.guide = { name:g("g_name"), nameEn:g("g_nameEn"), role:g("g_role"),
                       phone:g("g_phone"), qr:g("g_qr"), img:g("g_img"), desc:g("g_desc") };
-  BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), plate:g("v_plate"), img:"", imgs:[], desc:"" };
+  BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), luggage:g("v_luggage"), plate:g("v_plate"), img:"", imgs:[], desc:"" };
   BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map(el => {
     const name = el.querySelector('[data-lk="name"]').value.trim();
     const lib = LIBS.lodges[name] || {};   // 라이브러리에 있으면 사진·태그를 고객 확정안내에 함께 노출
@@ -816,7 +822,7 @@ function pullForm() {
       day: Number(el.querySelector('[data-lk="day"]').value) || 0,
       name,
       grade: el.querySelector('[data-lk="grade"]').value,
-      img: lib.img || "", imgs: Array.isArray(lib.imgs) ? lib.imgs : (lib.img ? [lib.img] : []), tags: lib.tags || "",
+      region: lib.region || "", img: lib.img || "", imgs: Array.isArray(lib.imgs) ? lib.imgs : (lib.img ? [lib.img] : []), tags: lib.tags || "",
       descCustom, desc: descCustom || lib.desc || "",   // 관리자가 입력하면 우선, 비우면 리소스 설명
     };
   }).filter(l => l.name);
@@ -848,6 +854,25 @@ function pullForm() {
   BK.checklist.balance = ["입금완료", "현지현금전달", "현장현금전달"].includes(BK.contractInfo.balanceStatus);
   BK.notes = $("bk_notes").value; BK.adminMemo = $("bk_memo").value;
   BK.publishStatus = $("publishSchedule").checked ? "published" : "draft";
+}
+
+/* 현재 예약을 저장한 뒤 고객 공개 여부와 무관한 관리자용 확정일정표를 PDF 인쇄합니다. */
+async function printGuideSchedule() {
+  if (!PRE.quote) return toast("⚠ 발행된 견적이 없어 확정 일정표를 만들 수 없어요");
+  pullForm();
+  if (!BK.days.length) return toast("⚠ 확정 일정을 먼저 등록해 주세요");
+  const printWindow = window.open("about:blank", "_blank");
+  if (!printWindow) return toast("⚠ 팝업이 차단됐어요 — 이 사이트의 팝업을 허용해 주세요");
+  printWindow.document.write(`<p style="font-family:sans-serif;padding:24px">확정 일정표 PDF를 준비하고 있습니다…</p>`);
+  const saved = await save({ quiet:true });
+  if (!saved) { printWindow.close(); return; }
+  const payload = {
+    ...PRE,
+    quote: PRE.quote,
+    booking: { ...BK, publishStatus:"published" },
+  };
+  localStorage.setItem("leaders_confirmed_print", JSON.stringify(payload));
+  printWindow.location.replace(new URL("확정일정표.html?adminPrint=1&print=1&m=0", location.href).href);
 }
 
 function bindEvents() {
@@ -1063,13 +1088,26 @@ async function confirmDepositFlow() {
 let LIBS = { guides: {}, lodges: {}, vehicles: {} };
 let SNIPPETS = {}, SNIP_CATS = [], SPOTS = {}, SPOT_CATS = [];   // 코스관리(일정)·명소관리
 async function loadLibs() {
+  const adminToken = sessionStorage.getItem("leaders_admin_token") || "";
+  const adminHeaders = adminToken ? { "x-admin-token": adminToken } : {};
   await Promise.all(Object.keys(LIBS).map(async key => {
     try {
-      const r = await fetch("/api/data/" + key, { cache: "no-store" });
+      const r = await fetch("/api/data/" + key, { cache: "no-store", headers: adminHeaders });
       const j = await r.json();
       if (j.ok && j.data) LIBS[key] = j.data;
     } catch (e) {}
   }));
+  // 구버전 예약에서 인증 누락으로 비었던 고객 노출 필드만 최신 리소스로 보충합니다.
+  const fillEmpty = (id, value) => {
+    const el = $(id);
+    if (el && !el.value.trim() && value) el.value = value;
+  };
+  const assignedGuide = LIBS.guides[BK.assign.guide.name] || {};
+  fillEmpty("g_phone", assignedGuide.phone || "");
+  fillEmpty("g_qr", assignedGuide.qr || "");
+  const assignedVehicle = LIBS.vehicles[BK.assign.vehicle.model] || {};
+  fillEmpty("v_luggage", assignedVehicle.luggage || "");
+  fillEmpty("v_desc", assignedVehicle.desc || "");
   // 코스관리 스니펫 · 명소관리 명소 (일정 불러오기 / 대표 명소 기능용)
   const fetchData = async key => { try { const r = await fetch("/api/data/" + key, { cache:"no-store" }); const j = await r.json(); return (j.ok && j.data) ? j.data : null; } catch (e) { return null; } };
   const [sn, sc, sp, pc] = await Promise.all([fetchData("snippets"), fetchData("snippet_cats"), fetchData("spots"), fetchData("spot_cats")]);
@@ -1172,7 +1210,8 @@ function applyGuide(name) {
 function applyVehicle(name) {
   const r = LIBS.vehicles[name]; if (!r) return false;
   $("v_model").value = name;
-  $("v_seats").value = r.seats || ""; $("v_plate").value = r.plate || "";
+  $("v_seats").value = r.seats || ""; $("v_luggage").value = r.luggage || "";
+  $("v_plate").value = r.plate || ""; $("v_desc").value = r.desc || "";
   updateResourcePreview("vehicle", { model:name, ...r });
   toast(`차량 "${name}" 정보를 불러왔어요`); return true;
 }
@@ -1195,6 +1234,8 @@ function bindAutofill() {
     const lib = LIBS.lodges[sel.value] || {};
     const gsel = row.querySelector('[data-lk="grade"]');
     if (lib.grade && gsel) gsel.value = lib.grade;
+    const desc = row.querySelector('[data-lk="desc"]');
+    if (desc) desc.value = "";
     updateLodgePreview(row);
     toast(`숙소 "${sel.value}" 정보를 불러왔어요`);
   }));
