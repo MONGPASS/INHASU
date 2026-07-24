@@ -311,7 +311,7 @@ const pgQuote = `
   </div>
 
   <div style="display:grid; grid-template-columns:1fr 1.6fr; gap:1px; background:#DDEBE6; border:1px solid #DDEBE6; border-radius:10px; overflow:hidden; margin-top:16px; font-size:12.5px;">
-    <div style="background:#EAF7F3; color:#06c4a0; font-weight:700; padding:12px 14px; text-align:center;">예약금 (1인기준x인원수)</div>
+    <div style="background:#EAF7F3; color:#06c4a0; font-weight:700; padding:12px 14px; text-align:center;">예약금</div>
     <div style="background:#EAF7F3; color:#06c4a0; font-weight:700; padding:12px 14px; text-align:center;">추가 및 할인 사항</div>
     <div style="background:#fff; color:#152C28; font-weight:800; font-size:22px; padding:18px 14px; display:flex; flex-direction:column; gap:5px; align-items:center; justify-content:center;">
       <span>${wonMan(Q.price.deposit)}</span>
@@ -325,7 +325,7 @@ const pgQuote = `
   ${(() => {
     const pills = (tier) => Q.price.balances.map(b => {
       const amt = tier === "economy" ? balEco(b) : balFull(b);
-      return `<div style="background:#06c4a0; padding:9px 8px; text-align:center;"><div style="color:#DFF7EF; font-size:10px; font-weight:700;">${b.pax}인 잔금(1인기준)</div><div style="color:#fff; font-size:17px; font-weight:800; margin-top:4px;">${wonMan(amt)}</div>${Q.price.balanceStatus ? `<div style="color:#DFF7EF; font-size:10px; font-weight:800; margin-top:3px;">${esc(Q.price.balanceStatus)}</div>` : ""}</div>`;
+      return `<div style="background:#06c4a0; padding:9px 8px; text-align:center;"><div style="color:#DFF7EF; font-size:10px; font-weight:700;">${b.pax}인 잔금</div><div style="color:#fff; font-size:17px; font-weight:800; margin-top:4px;">${wonMan(amt)}</div>${Q.price.balanceStatus ? `<div style="color:#DFF7EF; font-size:10px; font-weight:800; margin-top:3px;">${esc(Q.price.balanceStatus)}</div>` : ""}</div>`;
     }).join("");
     const grid = (tier) => `<div style="display:grid; grid-template-columns:repeat(${Q.price.balances.length},1fr); gap:1px; background:#CDE8DF; border-radius:10px; overflow:hidden;">${pills(tier)}</div>`;
     return `
@@ -346,6 +346,14 @@ const pgQuote = `
     <div style="display:flex; gap:18px; margin-top:10px; flex-wrap:wrap; color:#40544F;">
       <span><b style="color:#06c4a0;">[결제]</b> ${esc(Q.price.payment)} <span style="color:#8CA39D;">${esc(Q.price.paymentNote)}</span></span>
       <span><b style="color:#06c4a0;">[입금]</b> ${esc(B.account)}</span>
+    </div>
+  </div>
+  <div style="margin-top:14px; background:#FFF8F5; border:1px solid #F3E0D8; border-radius:10px; padding:13px 16px;">
+    <div style="color:#C9604B; font-size:11.5px; font-weight:800;">[환불규정]</div>
+    <div style="margin-top:6px; font-size:10.5px; color:#5C4B47; line-height:1.75;">
+      · 본 상품은 항공권 선발권 및 현지 숙소/차량 예약이 완료되는 상품으로, 취소 시 국외여행 표준약관 제6조(특약)에 의거하여 표준약관보다 높은 취소 수수료가 부과될 수 있습니다.<br>
+      · 항공권 발권 이후 또는 현지 비용(숙소, 차량 등) 지불 이후 취소 시, 항공 및 현지 환불 불가 비용은 실비로 우선 공제되며, 이와 별도로 여행사 취소 수수료가 적용됩니다.<br>
+      · 여행 시작 30일 전 취소 시에도 예약금(또는 실비)은 환불되지 않습니다.
     </div>
   </div>
   <div class="pfoot"><span>${esc(B.companyFull)} 확정 일정표</span><span>01</span></div>
