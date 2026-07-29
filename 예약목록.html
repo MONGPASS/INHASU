@@ -434,6 +434,7 @@ function render() {
     <div class="row-sub-actions">
       ${token ? `<a class="mini" href="확정일정표.html?t=${encodeURIComponent(token)}&v=assign3" target="_blank">일정표</a>` : ""}
       ${token ? `<a class="mini" href="계약서.html?t=${encodeURIComponent(token)}&adminId=${encodeURIComponent(r.id)}&return=list">${signed(r) ? "서명 원본" : "계약서"}</a>` : ""}
+      <button class="mini" data-guide-sheet="${esc(r.id)}">가이드 시트 PDF</button>
     </div>
   </div>`;
   const arrow = k => sortKey === k ? (sortDir > 0 ? " ▲" : " ▼") : "";
@@ -488,6 +489,7 @@ function render() {
     };
   });
   $("list").querySelectorAll("[data-open]").forEach(btn => btn.onclick = () => openBooking(btn.dataset.open));
+  $("list").querySelectorAll("[data-guide-sheet]").forEach(btn => btn.onclick = () => openGuideSheet(btn.dataset.guideSheet));
   $("list").querySelectorAll("th.sortable").forEach(th => th.onclick = () => {
     const k = th.dataset.k;
     if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
@@ -608,6 +610,16 @@ async function deleteSelected() {
   SELECTED.clear();
   await load();
   toast(`✓ ${ok}건 삭제 완료${fail ? ` · 실패 ${fail}건` : ""}`);
+}
+
+/* 목록에서 바로 가이드 시트(담당 가이드 전달용 인쇄 페이지) 열기 —
+   목록 레코드 전체를 전달 payload로 저장 후 새 창에서 인쇄 대화상자까지 자동 실행 */
+function openGuideSheet(id) {
+  const r = RECORDS.find(x => String(x.id) === String(id));
+  if (!r) return;
+  if (!r.booking) return toast("아직 예약 확정 정보가 없어요 — 배정 관리에서 먼저 저장해 주세요");
+  localStorage.setItem("leaders_guide_sheet_print", JSON.stringify(r));
+  window.open("가이드시트.html?adminPrint=1&print=1", "_blank");
 }
 
 function openBooking(id) {
