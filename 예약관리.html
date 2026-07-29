@@ -230,6 +230,7 @@
       <button class="hbtn" id="copyLinkBtn">🔗 링크 복사</button>
     </span>
     <span class="hd-group"><span class="hd-label">가이드 전달</span>
+      <button class="hbtn blue" id="guideSheetBtn">📋 가이드 시트</button>
       <button class="hbtn blue" id="guidePdfBtn">🖨 가이드용 PDF</button>
     </span>
   </span>
@@ -357,6 +358,7 @@ function init() {
     copyCustomerLink();
   };
   $("guidePdfBtn").onclick = printGuideSchedule;
+  $("guideSheetBtn").onclick = printGuideSheet;
   $("setStatus").checked = false;
   $("publishSchedule").checked = BK.publishStatus === "published";
   $("savebar").style.display = "";
@@ -854,6 +856,18 @@ function pullForm() {
   BK.checklist.balance = ["입금완료", "현지현금전달", "현장현금전달"].includes(BK.contractInfo.balanceStatus);
   BK.notes = $("bk_notes").value; BK.adminMemo = $("bk_memo").value;
   BK.publishStatus = $("publishSchedule").checked ? "published" : "draft";
+}
+
+/* 현재 예약을 저장한 뒤 담당 가이드 전달용 "가이드 시트"(항공편·고객명단·일차별 숙소 1페이지 요약)를 인쇄합니다. */
+async function printGuideSheet() {
+  pullForm();
+  const printWindow = window.open("about:blank", "_blank");
+  if (!printWindow) return toast("⚠ 팝업이 차단됐어요 — 이 사이트의 팝업을 허용해 주세요");
+  printWindow.document.write(`<p style="font-family:sans-serif;padding:24px">가이드 시트를 준비하고 있습니다…</p>`);
+  const saved = await save({ quiet:true });
+  if (!saved) { printWindow.close(); return; }
+  localStorage.setItem("leaders_guide_sheet_print", JSON.stringify({ ...PRE, booking: { ...BK } }));
+  printWindow.location.replace(new URL("가이드시트.html?adminPrint=1&print=1", location.href).href);
 }
 
 /* 현재 예약을 저장한 뒤 고객 공개 여부와 무관한 관리자용 확정일정표를 PDF 인쇄합니다. */

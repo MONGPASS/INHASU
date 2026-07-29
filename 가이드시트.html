@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>가이드 시트 · 몽골리아 은하수</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+/* ══════════ 가이드 시트 — 담당 가이드 전달용 A4 인쇄 페이지 ══════════
+   항공편·고객명단·일차별 숙소를 1페이지에, 상세 일정을 2페이지부터 배치 */
+:root{
+  --brand:#06C4A0; --brand-dark:#0A6A5E; --ink:#152C28; --sub:#40544F; --mute:#8CA39D;
+  --bg:#F5FBF9; --line:#E3F0EB; --warn-bg:#FFF9E9; --warn-line:#F1E3B8; --warn-ink:#8A6D1B;
+}
+*{ margin:0; padding:0; box-sizing:border-box; }
+html,body{ background:#E9F0EE; }
+body{ font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif; color:var(--ink); -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+.hint{ max-width:860px; margin:14px auto 0; padding:11px 16px; background:#fff; border:1px solid var(--line); border-radius:12px; font-size:13px; color:var(--sub); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.hint button{ flex:none; background:var(--brand); color:#fff; border:0; border-radius:9px; padding:8px 18px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+.sheet{ width:860px; margin:14px auto; background:#fff; border-radius:14px; padding:34px 38px 30px; box-shadow:0 8px 30px rgba(21,44,40,.08); }
+
+/* 헤더 */
+.gs-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+.brand-row{ display:flex; align-items:center; gap:11px; }
+.brand-logo{ width:40px; height:40px; border-radius:11px; background:var(--brand); display:flex; align-items:center; justify-content:center; flex:none; }
+.brand-logo svg{ width:22px; height:22px; }
+.brand-name{ font-size:21px; font-weight:900; letter-spacing:-0.01em; }
+.brand-name b{ color:var(--brand); }
+
+/* 상품명 배너 */
+.banner{ margin-top:20px; background:var(--bg); border-radius:14px; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+.banner h2{ font-size:20px; font-weight:900; letter-spacing:-0.01em; }
+.badges{ display:flex; gap:8px; flex-wrap:wrap; }
+.badge{ background:#fff; border:1px solid var(--line); border-radius:999px; padding:6px 14px; font-size:12.5px; font-weight:700; color:var(--sub); }
+.badge b{ color:var(--ink); font-weight:800; }
+.badge .bk{ color:var(--brand-dark); font-weight:800; margin-right:6px; }
+
+/* 섹션 제목 */
+.sec{ margin-top:20px; }
+.sec-t{ display:flex; align-items:center; gap:10px; color:var(--brand-dark); font-size:13.5px; font-weight:900; }
+.sec-t:after{ content:""; flex:1; border-top:1px dashed var(--line); }
+
+/* 항공편 */
+.fl-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:11px; }
+.fl-card{ border:1px solid var(--line); border-radius:13px; padding:13px 17px; background:#fff; }
+.fl-card.in{ border:1.6px solid var(--brand); }
+.fl-card .k{ font-size:11.5px; font-weight:800; }
+.fl-card.in .k{ color:var(--brand-dark); }
+.fl-card.out .k{ color:var(--mute); }
+.fl-card .v{ margin-top:6px; font-size:17px; font-weight:900; letter-spacing:-0.01em; }
+.fl-card .v small{ font-weight:700; color:var(--sub); font-size:13px; }
+
+/* 표 공통 */
+table{ width:100%; border-collapse:collapse; margin-top:11px; font-size:13px; }
+th{ background:var(--bg); color:var(--sub); font-size:12px; font-weight:800; text-align:left; padding:9px 12px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+td{ padding:9px 12px; border-bottom:1px solid var(--line); font-weight:600; vertical-align:top; }
+td b{ font-weight:800; }
+.c{ text-align:center; }
+.nowrap{ white-space:nowrap; }
+
+/* 일차별 숙소 — 공간 절약을 위한 2열 그리드 (한 줄에 1일차·2일차) */
+.lodge-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-top:11px; }
+.lg-item{ display:flex; align-items:center; gap:11px; border:1px solid var(--line); border-radius:11px; padding:9px 12px; background:#fff; }
+.lg-day{ flex:none; width:58px; text-align:center; display:flex; flex-direction:column; gap:1px; }
+.lg-day b{ font-size:12.5px; font-weight:900; color:var(--brand-dark); white-space:nowrap; }
+.lg-day small{ font-size:10.5px; font-weight:700; color:var(--mute); white-space:nowrap; }
+.lg-body{ min-width:0; display:flex; flex-direction:column; gap:1px; border-left:1px solid var(--line); padding-left:11px; }
+.lg-body b{ font-size:12.5px; font-weight:800; line-height:1.35; }
+.lg-body small{ font-size:11px; font-weight:700; color:var(--mute); }
+.lodge-empty{ margin-top:11px; border:1px solid var(--line); border-radius:11px; padding:16px; text-align:center; color:var(--mute); font-size:13px; font-weight:600; }
+.num{ width:34px; color:var(--mute); font-weight:800; }
+.muted{ color:var(--mute); }
+.empty-row td{ color:var(--mute); text-align:center; padding:16px; }
+
+/* 수배·예약 정보 2단 */
+.two{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px; }
+.info-box{ background:var(--bg); border-radius:13px; padding:15px 18px; }
+.info-box .bt{ color:var(--brand-dark); font-size:13px; font-weight:900; }
+.kv{ display:flex; justify-content:space-between; gap:14px; margin-top:10px; font-size:13px; align-items:baseline; }
+.kv span{ color:var(--mute); font-weight:700; flex:none; font-size:12.5px; }
+.kv b{ font-weight:800; text-align:right; }
+
+/* 업무 메모 */
+.memo{ margin-top:14px; background:var(--warn-bg); border:1px solid var(--warn-line); border-radius:13px; padding:14px 18px; }
+.memo .bt{ color:var(--warn-ink); font-size:13px; font-weight:900; }
+.memo ul{ margin:8px 0 0 4px; list-style:none; }
+.memo li{ font-size:13px; font-weight:600; color:#5C4A12; padding-left:14px; position:relative; margin-top:4px; line-height:1.55; }
+.memo li:before{ content:"•"; position:absolute; left:0; color:var(--warn-ink); }
+
+/* 일정표 (2페이지) — 확정일정표·견적서와 같은 표 그리드 디자인 */
+.sched-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:14px; }
+.sched-head .lt{ display:flex; align-items:center; gap:12px; }
+.sched-head .eyebrow{ color:var(--brand); font-size:12px; font-weight:800; letter-spacing:0.16em; }
+.sched-head .big{ color:var(--ink); font-size:27px; font-weight:800; letter-spacing:-0.02em; margin-top:2px; }
+.intensity{ display:flex; align-items:center; gap:9px; background:#EAF7F3; padding:8px 14px; border-radius:22px; flex:none; }
+.intensity span{ color:var(--brand); font-size:12px; font-weight:700; }
+.intensity .dots{ display:flex; gap:4px; }
+.intensity .dots i{ width:8px; height:8px; border-radius:50%; background:#CFE3DD; }
+.intensity .dots i.on{ background:var(--brand); }
+.sched-grid{ display:grid; grid-template-columns:66px 128px 1fr 128px 86px; gap:1px; background:#DDEBE6; border:1px solid #DDEBE6; border-radius:10px; overflow:hidden; margin-top:18px; font-size:12px; }
+.sched-grid .h{ color:#EAFBF6; font-weight:700; padding:10px 8px; text-align:center; background:var(--brand); }
+.sg-day{ padding:12px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:7px; }
+.sg-day .cube{ width:12px; height:12px; border-radius:3px; background:var(--brand); }
+.sg-day b{ color:var(--ink); font-size:12px; }
+.sg-day small{ color:var(--mute); font-size:10.5px; font-weight:700; }
+.sg-dest{ padding:12px 8px; color:var(--ink); line-height:1.5; }
+.sg-dest span{ color:var(--mute); }
+.sg-items{ padding:12px 10px; color:#354B46; line-height:1.85; }
+.sg-items .em{ color:var(--brand); font-weight:600; }
+.sg-items .dim{ color:var(--mute); }
+.sg-stay{ padding:12px 8px; color:var(--ink); font-weight:800; line-height:1.8; text-align:center; border-left:1px solid #DDEBE6; border-right:1px solid #DDEBE6; }
+.sg-stay .tags{ color:var(--brand-dark); font-weight:700; }
+.sg-meals{ padding:12px 6px; color:#354B46; text-align:center; line-height:1.9; }
+.sched-grid .r0{ background:#fff; }
+.sched-grid .r1{ background:var(--bg); }
+.sched-grid .sg-stay.r0{ background:var(--bg); }
+.sched-grid .sg-stay.r1{ background:#EAF7F3; }
+
+.gs-foot{ margin-top:22px; padding-top:12px; border-top:1px solid var(--line); display:flex; justify-content:space-between; color:var(--mute); font-size:11.5px; font-weight:600; }
+
+@media print{
+  html,body{ background:#fff; }
+  .hint{ display:none !important; }
+  .sheet{ width:auto; margin:0; padding:10mm 12mm; box-shadow:none; border-radius:0; }
+  .sheet + .sheet{ page-break-before:always; }
+  @page{ size:A4; margin:0; }
+}
+</style>
+</head>
+<body>
+<div class="hint" id="printHint">
+  <span>💡 <b>인쇄하기</b>를 누르고 대상 <b>"PDF로 저장"</b> 또는 프린터 선택 → 여백 <b>없음</b>, 배경 그래픽 <b>켜기</b>로 출력하세요. 이 문서는 담당 가이드 전달용(내부용)입니다.</span>
+  <button onclick="window.print()">🖨 인쇄하기</button>
+</div>
+<div id="root"></div>
+
+<script type="module">
+/* ══════════ 데이터 로드 ══════════
+   출처 1) 예약관리 "📋 가이드 시트" 버튼 → localStorage(leaders_guide_sheet_print) + ?adminPrint=1
+   출처 2) ?id=<요청ID> 직접 접속 → /api/requests/:id (관리자 토큰 필요, 마스킹 없는 원본)
+   고객용 /api/my/:token 은 생년월일·연락처가 마스킹되어 가이드 시트에는 쓰지 않는다. */
+const P = new URLSearchParams(location.search);
+const _adminPrint = P.get("adminPrint") === "1";
+const _autoPrint = P.get("print") === "1";
+const _id = P.get("id") || "";
+const ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
+const adminHeaders = ADMIN_TOKEN ? { "x-admin-token": ADMIN_TOKEN } : {};
+
+const REC = await (async () => {
+  if (_id) {   // ?id= 직접 접속은 서버 원본을 우선 (이전 인쇄의 잔여 payload와 섞이지 않게)
+    try {
+      const res = await fetch("/api/requests/" + encodeURIComponent(_id), { cache:"no-store", headers:adminHeaders });
+      const j = await res.json();
+      if (j.ok && j.item) return { ...j.item, id:_id };
+    } catch (e) {}
+  }
+  try {
+    const payload = JSON.parse(localStorage.getItem("leaders_guide_sheet_print") || "null");
+    if (_adminPrint) localStorage.removeItem("leaders_guide_sheet_print");
+    if (payload && payload.booking) return payload;
+  } catch (e) {}
+  return null;
+})();
+
+/* 숙소 리소스 라이브러리 — 숙소의 지역(에어리어) 표시에 사용 (없어도 동작) */
+const LODGE_LIB = await (async () => {
+  try {
+    const r = await fetch("/api/data/lodges", { cache:"no-store", headers:adminHeaders });
+    const j = await r.json();
+    return (j.ok && j.data) ? j.data : {};
+  } catch (e) { return {}; }
+})();
+
+const root = document.getElementById("root");
+if (!REC || !REC.booking) {
+  root.innerHTML = `<div style="max-width:640px;margin:80px auto;padding:0 24px;text-align:center;color:#16261f">
+    <div style="font-size:46px">📋</div>
+    <h1 style="font-size:22px;margin:14px 0 8px;font-weight:800">가이드 시트를 만들 예약 정보가 없어요</h1>
+    <p style="color:#6b7c78;line-height:1.65;font-size:15px">예약관리 화면에서 <b>📋 가이드 시트</b> 버튼으로 열어 주세요.<br>직접 접속하려면 <b>?id=요청ID</b>와 관리자 로그인이 필요합니다.</p></div>`;
+  document.getElementById("printHint").style.display = "none";
+} else {
+
+/* ══════════ 헬퍼 ══════════ */
+const esc = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const noBr = s => String(s ?? "").replace(/<br\s*\/?>/gi, " ").trim();
+const WD = ["일","월","화","수","목","금","토"];
+const parseDate = s => {
+  const m = String(s || "").match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+};
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const fmtShort = d => d ? `${d.getMonth()+1}/${d.getDate()}(${WD[d.getDay()]})` : "—";
+const fmtFull = d => d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}` : "";
+const fmtKoWd = d => d ? `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}(${WD[d.getDay()]})` : "";
+const dash = v => { const s = noBr(v); return s ? esc(s) : `<span class="muted">—</span>`; };
+const won = n => Number(n) ? Number(n).toLocaleString("ko-KR") + "원" : "";
+
+const BK = REC.booking;
+const days = Array.isArray(BK.days) ? BK.days : [];
+const fl = BK.flight || {};
+const assign = BK.assign || {};
+const guide = assign.guide || {};
+const vehicle = assign.vehicle || {};
+const travelers = Array.isArray(BK.travelers) ? BK.travelers : [];
+const ci = BK.contractInfo || {};
+
+const departDate = parseDate(fl.inDate || REC.depart);
+const returnDate = parseDate(fl.outDate || REC.return_);
+const totalDays = days.length
+  || (departDate && returnDate ? Math.round((returnDate - departDate) / 864e5) + 1 : 0)
+  || (REC.nights != null && REC.nights !== "" ? Number(REC.nights) + 1 : 0);
+const nightsTxt = totalDays ? `${totalDays - 1}박${totalDays}일` : "—";
+const paxTotal = (Number(REC.adult)||0) + (Number(REC.child)||0) + (Number(REC.infant)||0) || travelers.length;
+const dayDate = i => departDate ? addDays(departDate, i) : null;   // i = 0부터 (1일차)
+const periodTxt = departDate && returnDate ? `${fmtKoWd(departDate)} ~ ${fmtKoWd(returnDate)}` : "—";
+const productName = noBr(ci.productName || REC.destination || "몽골 투어");
+
+/* 일차별 숙소: 배정 목록(assign.lodges) 우선, 없으면 일정표의 stay를 사용. 마지막 날(귀국일)은 "—" */
+const lodgeByDay = {};
+(Array.isArray(assign.lodges) ? assign.lodges : []).forEach((l, i) => {
+  if (l && (l.name || l.grade)) lodgeByDay[Number(l.day) || i + 1] = l;
+});
+const lodgeRows = Array.from({ length: totalDays }, (_, i) => {
+  const n = i + 1;
+  const assigned = lodgeByDay[n];
+  const stayName = noBr((days[i] && days[i].stay && days[i].stay.name) || "");
+  const name = assigned ? noBr(assigned.name) : (n < totalDays ? stayName : "");
+  const lib = LODGE_LIB[name] || {};
+  const grade = (assigned && assigned.grade) || lib.grade || "";
+  const region = lib.region || (assigned && assigned.region) || "";
+  return { n, date: dayDate(i), name, grade, region };
+});
+
+/* 항공편 카드 문구 */
+const flightTxt = (date, time, no) => {
+  const d = parseDate(date);
+  const parts = [d ? `${fmtFull(d)}(${WD[d.getDay()]})` : "", time || "", no || ""].filter(Boolean);
+  return parts.length ? parts.map(esc).join(" · ") : "—";
+};
+
+/* 업무 메모: 예약관리 "추가 메모(내부 참고용 — 가이드에게 전달)" 항목 줄 단위 표시 */
+const memoLines = String(BK.notes || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
+
+/* ══════════ 1페이지: 항공편 · 고객명단 · 일차별 숙소 · 수배정보 ══════════ */
+const page1 = `
+<div class="sheet">
+  <div class="gs-head">
+    <div class="brand-row">
+      <span class="brand-logo"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 6.2L21 9.3l-5 4.4 1.5 6.6L12 16.9 6.5 20.3 8 13.7 3 9.3l6.6-1.1L12 2z" fill="#fff"/></svg></span>
+      <span class="brand-name">몽골리아 <b>은하수</b></span>
+    </div>
+  </div>
+
+  <div class="banner">
+    <h2>${esc(productName)}</h2>
+    <div class="badges">
+      <span class="badge"><span class="bk">일정</span><b>${esc(nightsTxt)}</b>${departDate && returnDate ? ` (${fmtShort(departDate)}~${fmtShort(returnDate)})` : ""}</span>
+      <span class="badge"><span class="bk">인원</span><b>${paxTotal || "—"}명</b></span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">✈ 항공편 정보</div>
+    <div class="fl-grid">
+      <div class="fl-card in"><div class="k">몽골 도착 (공항 픽업)</div>
+        <div class="v">${flightTxt(fl.inDate || REC.depart, fl.inTime, fl.inNo)}</div></div>
+      <div class="fl-card out"><div class="k">몽골 출발 · 귀국 (공항 샌딩)</div>
+        <div class="v">${flightTxt(fl.outDate || REC.return_, fl.outTime, fl.outNo)}</div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">👥 고객 명단 (${travelers.length || paxTotal || 0}명)</div>
+    <table>
+      <thead><tr><th class="c">№</th><th>여권명</th><th>한글명</th><th>생년월일</th><th class="c">성별</th><th>연락처</th></tr></thead>
+      <tbody>
+        ${travelers.length ? travelers.map((t, i) => `<tr>
+          <td class="num c">${i + 1}</td>
+          <td><b>${dash(t.passportName)}</b></td>
+          <td>${dash(t.nameKo)}</td>
+          <td>${dash(t.birth)}</td>
+          <td class="c">${dash(t.gender)}</td>
+          <td>${dash(t.phone)}</td></tr>`).join("")
+        : `<tr class="empty-row"><td colspan="6">여행자 정보 미입력 — 예약관리에서 고객 입력 요청 후 다시 출력하세요 (예정 인원 ${paxTotal || "?"}명)</td></tr>`}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">🏕 일차별 숙소 리스트</div>
+    ${lodgeRows.length ? `<div class="lodge-grid">
+      ${lodgeRows.map(r => `<div class="lg-item">
+        <span class="lg-day"><b>${r.n}일차</b><small>${r.date ? fmtShort(r.date) : "—"}</small></span>
+        <span class="lg-body">${r.name ? `<b>${esc(r.name)}</b><small>${[r.grade, r.region].filter(Boolean).map(esc).join(" · ")}</small>` : `<b class="muted">—</b>`}</span>
+      </div>`).join("")}
+    </div>` : `<div class="lodge-empty">확정 일정·숙소 배정이 아직 없습니다</div>`}
+  </div>
+
+  <div class="two">
+    <div class="info-box">
+      <div class="bt">현지 수배 정보</div>
+      <div class="kv"><span>담당 가이드</span><b>${[noBr(guide.name), noBr(guide.phone)].filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
+      <div class="kv"><span>차량</span><b>${[noBr(vehicle.model) + (vehicle.seats ? ` (${noBr(vehicle.seats)})` : ""), noBr(vehicle.plate)].map(s => s.trim()).filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
+    </div>
+    <div class="info-box">
+      <div class="bt">잔금 정보</div>
+      <div class="kv"><span>예약금</span><b>${[won(ci.depositAmount), noBr(ci.depositStatus)].filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
+      <div class="kv"><span>잔금</span><b>${[won(ci.balanceAmount), noBr(ci.balanceStatus)].filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
+    </div>
+  </div>
+
+  ${memoLines.length ? `<div class="memo">
+    <div class="bt">⚠ 중요 요청 · 업무 메모</div>
+    <ul>${memoLines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>
+  </div>` : ""}
+
+  <div class="gs-foot"><span>몽골리아 은하수 · 가이드용 일정표 (내부용 — 고객 배포 금지)</span><span>01</span></div>
+</div>`;
+
+/* ══════════ 2페이지~: 상세 일정 — 확정일정표와 같은 표 그리드 ══════════ */
+const itemHtml = t => {
+  if (t.startsWith("*")) return `<span class="em">${esc(t)}</span>`;
+  if (t.startsWith("(")) return `<span class="dim">${esc(t)}</span>`;
+  return esc(t);
+};
+const dayRow = (d, i) => {
+  const z = i % 2 ? "r1" : "r0";
+  const date = dayDate(i);
+  const items = Array.isArray(d.items) ? d.items.map(noBr).filter(Boolean) : [];
+  const meals = Array.isArray(d.meals) ? d.meals.filter(Boolean) : [];
+  const stay = d.stay || {};
+  const tags = Array.isArray(stay.tags) ? stay.tags.filter(Boolean) : [];
+  return `
+    <div class="sg-day ${z}"><span class="cube"></span><b>${d.d || i + 1}일차</b>${date ? `<small>${fmtShort(date)}</small>` : ""}</div>
+    <div class="sg-dest ${z}"><b>${esc(noBr(d.dest)) || "—"}</b><br><span>${esc(noBr(d.move))}${d.dist ? `<br>${esc(noBr(d.dist))}` : ""}</span></div>
+    <div class="sg-items ${z}">${items.map(itemHtml).join("<br>") || `<span class="dim">—</span>`}</div>
+    <div class="sg-stay ${z}">${esc(noBr(stay.name)) || "숙소x"}${tags.length ? `<br><span class="tags">${tags.map(esc).join("<br>")}</span>` : ""}</div>
+    <div class="sg-meals ${z}">${meals.map(esc).join("<br>") || "—"}</div>`;
+};
+
+const intensity = Number(REC.quote && REC.quote.intensity) || 0;
+const page2 = days.length ? `
+<div class="sheet">
+  <div class="sched-head">
+    <div class="lt">
+      <span class="brand-logo"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 6.2L21 9.3l-5 4.4 1.5 6.6L12 16.9 6.5 20.3 8 13.7 3 9.3l6.6-1.1L12 2z" fill="#fff"/></svg></span>
+      <div>
+        <div class="eyebrow">MONGOLIA INHASU</div>
+        <div class="big">${esc(productName)}</div>
+      </div>
+    </div>
+    ${intensity ? `<div class="intensity"><span>이동강도</span><span class="dots">${[1,2,3,4,5].map(n => `<i class="${n <= intensity ? "on" : ""}"></i>`).join("")}</span></div>` : ""}
+  </div>
+  <div class="sched-grid">
+    ${["날짜","목적지","일정","숙소","식사"].map(h => `<div class="h">${h}</div>`).join("")}
+    ${days.map(dayRow).join("")}
+  </div>
+  <div class="gs-foot"><span>몽골리아 은하수 · 가이드용 일정표 (내부용 — 고객 배포 금지)</span><span>02</span></div>
+</div>` : "";
+
+root.innerHTML = page1 + page2;
+document.title = `가이드시트_${(REC.name || "예약").replace(/\s+/g, "")}_${fmtFull(departDate) || ""}`;
+
+if (_autoPrint) setTimeout(() => window.print(), 350);
+}
+</script>
+</body>
+</html>
