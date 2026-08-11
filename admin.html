@@ -611,6 +611,16 @@ function customerTimeline(r) {
   if (r.receivedAt) ev.push({ at:r.receivedAt, who:"고객", label:"견적 문의 접수" });
   const quoteSent = r.quoteIssuedAt || (r.notify && r.notify.quoteSentAt);
   if (r.quote && quoteSent) ev.push({ at:quoteSent, who:"관리자", label:"견적서 발행" });
+  acts.filter(a => a && ["quote_notification_queued", "quote_notification_skipped", "itinerary_notification_queued", "itinerary_notification_skipped"].includes(a.type))
+    .forEach(a => {
+      const labels = {
+        quote_notification_queued:"💬 견적 확인 알림톡 발송 요청",
+        quote_notification_skipped:"⚠ 견적 알림톡 미발송 · 설정/전화번호 확인",
+        itinerary_notification_queued:"💬 확정일정표 확인 알림톡 발송 요청",
+        itinerary_notification_skipped:"⚠ 일정표 알림톡 미발송 · 설정/전화번호 확인",
+      };
+      ev.push({ at:a.at, who:"자동", label:labels[a.type] });
+    });
   if (r.decision && r.decision.status === "accepted" && r.decision.acceptedAt) {
     ev.push(r.decision.source === "customer"
       ? { at:r.decision.acceptedAt, who:"고객", label:"🔔 '이 견적으로 예약 진행하기' 클릭" }

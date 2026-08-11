@@ -1144,13 +1144,14 @@ pubBtn.onclick = async () => {
   pubBtn.disabled = true; const label = pubBtn.textContent; pubBtn.textContent = "저장 중…";
   try {
     let token = REQ_TOKEN;
+    let quoteNotification = null;
     if (REQ_ID && REQ_TOKEN) {
       // 기존 고객 요청에 발행
       if (!ADMIN_TOKEN) throw new Error("관리자 로그인이 필요합니다");
       // 견적서에서 확정한 인원·일정·여행지를 요청 레코드에도 반영 →
       // 대시보드·고객 "견적서 도착" 요약이 견적서와 항상 일치하도록 (인원만 바꿔도 함께 갱신)
       // ※ 상태(status)는 건드리지 않음 — 완료/진행중 등은 관리자가 대시보드에서 직접 변경
-      const patch = { quote: q };
+      const patch = { quote: q, notifyQuote:true };
       const totalNow = ST.pax || 0;
       if (totalNow > 0) {
         const o = REQ_PAX0 || {};
@@ -1171,7 +1172,9 @@ pubBtn.onclick = async () => {
         body: JSON.stringify(patch),
       });
       if (res.status === 401) throw new Error("관리자 인증이 만료됐어요. 관리자 페이지에서 다시 로그인해 주세요.");
-      if (!res.ok) throw new Error("http " + res.status);
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(j.error || "http " + res.status);
+      quoteNotification = (j.notifications || []).find(x => x.type === "quote") || null;
     } else {
       // 워크인: 새 견적 레코드 생성
       if (!ADMIN_TOKEN) throw new Error("관리자 로그인이 필요합니다");
@@ -1192,6 +1195,7 @@ pubBtn.onclick = async () => {
       });
       const j = await res.json().catch(() => ({}));
       if (!j.ok) throw new Error(j.error || "저장 실패");
+      quoteNotification = (j.notifications || []).find(x => x.type === "quote") || null;
       token = j.token || "";
       if (!token) throw new Error("고객 링크 토큰을 받지 못했습니다");
     }
@@ -1199,7 +1203,9 @@ pubBtn.onclick = async () => {
     try { await navigator.clipboard.writeText(link); } catch (e) {}
     clearDraft();   // 발행 완료 → 초안 정리
     showLinkBox(link);
-    toast("✓ 저장 완료 — 링크가 복사됐어요");
+    toast(quoteNotification && quoteNotification.status === "queued"
+      ? "✓ 견적 저장 완료 · 고객 알림톡 발송을 요청했어요"
+      : "✓ 저장 완료 — 링크가 복사됐어요 (알림톡 설정·전화번호 확인)");
   } catch (e) {
     toast("⚠ 저장 실패: " + (e.message || "서버 연결을 확인하세요"));
   } finally {
