@@ -7,6 +7,9 @@ node_modules/
 # Local Claude Code tooling (settings, plans, scratch)
 .claude/
 
+# Local Codex/PDF inspection artifacts (not deployed)
+work/
+
 # OS
 Thumbs.db
 .DS_Store

@@ -5,6 +5,10 @@
    ═══════════════════════════════════════════════════════════ */
 
 import { workflowStatus, defaultQuoteExpiry, requiredLodgeCount } from "../_workflow.mjs";
+import {
+  canSendKakao,
+  notifyCustomerQuoteReady, notifyCustomerItineraryReady, quoteTemplateId, itineraryTemplateId,
+} from "../_solapi.js";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -140,7 +144,8 @@ export async function onRequestPatch(context) {
 
     const now = new Date().toISOString();
     if (!hadBooking && rec.booking && !rec.booking.preparedAt) rec.booking.preparedAt = now;
-    if (rec.quote && (!hadQuote || forceNotifyQuote)) {
+    const shouldNotifyQuote = !!rec.quote && (!hadQuote || forceNotifyQuote);
+    if (shouldNotifyQuote) {
       rec.quoteIssuedAt = now;
       rec.quoteExpiresAt = defaultQuoteExpiry(new Date(now));
     }
@@ -150,6 +155,7 @@ export async function onRequestPatch(context) {
     if (rec.booking && rec.booking.publishStatus === "published" && prevPublish !== "published") {
       rec.booking.publishedAt = now;
     }
+    const shouldNotifyItinerary = !!(rec.booking && rec.booking.publishStatus === "published" && prevPublish !== "published");
 
     rec.activities = Array.isArray(rec.activities) ? rec.activities : [];
     if (requestTravelerInfo) {
@@ -215,15 +221,36 @@ export async function onRequestPatch(context) {
     } else rec.workflowStatus = nextWorkflow;
     rec.activities = rec.activities.slice(-100);
 
-    /* 고객 카톡 알림톡은 사용하지 않습니다 — 각 단계는 고객 페이지(내견적)에 즉시 표시되고,
-       개별 연락은 카카오톡 채널에서 수동으로 합니다. 관리자 문자(notifyAdmin)만 유지. */
+    const notifications = [];
+    if (shouldNotifyQuote) {
+      const ready = canSendKakao(env, { phone:rec.phone, templateId:quoteTemplateId(env) });
+      notifications.push({ type:"quote", status:ready ? "queued" : "skipped" });
+      rec.activities.push({ at:now, type:ready ? "quote_notification_queued" : "quote_notification_skipped", detail:ready ? "고객 견적 준비 알림톡 발송 요청" : "견적은 발행됐지만 고객 알림톡 설정 또는 전화번호를 확인해야 함" });
+    }
+    if (shouldNotifyItinerary) {
+      const ready = canSendKakao(env, { phone:rec.phone, templateId:itineraryTemplateId(env) });
+      notifications.push({ type:"itinerary", status:ready ? "queued" : "skipped" });
+      rec.activities.push({ at:now, type:ready ? "itinerary_notification_queued" : "itinerary_notification_skipped", detail:ready ? "고객 확정일정표 확인 알림톡 발송 요청" : "일정표는 공개됐지만 고객 알림톡 설정 또는 전화번호를 확인해야 함" });
+    }
     rec.activities = rec.activities.slice(-100);
 
     await env.DB.prepare(
       "UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ?"
     ).bind(rec.status || "신규", rec.memo || "", JSON.stringify(rec), rec.token || "", id).run();
 
-    return json({ ok: true, status: rec.status || "신규", token:rotateCustomerLink ? rec.token : undefined, workflowStatus:rec.workflowStatus, quoteExpiresAt:rec.quoteExpiresAt || "", publishStatus: (rec.booking && rec.booking.publishStatus) || "draft", preparedAt:rec.booking && rec.booking.preparedAt, travelerSubmission:rec.booking && rec.booking.travelerSubmission, depositRequest:rec.booking && rec.booking.depositRequest, contractRequest:rec.booking && rec.booking.contractRequest, activities: rec.activities });
+    const bg = (tag, promise) => {
+      const task = promise.then(result => console.log(tag, JSON.stringify(result)))
+        .catch(error => console.log(tag + "-err", String(error)));
+      if (typeof context.waitUntil === "function") context.waitUntil(task);
+    };
+    if (shouldNotifyQuote && notifications.find(x => x.type === "quote" && x.status === "queued")) {
+      bg("notify-customer-quote", notifyCustomerQuoteReady(env, { phone:rec.phone, name:rec.name, token:rec.token }));
+    }
+    if (shouldNotifyItinerary && notifications.find(x => x.type === "itinerary" && x.status === "queued")) {
+      bg("notify-customer-itinerary", notifyCustomerItineraryReady(env, { phone:rec.phone, name:rec.name, token:rec.token }));
+    }
+
+    return json({ ok: true, status: rec.status || "신규", token:rotateCustomerLink ? rec.token : undefined, workflowStatus:rec.workflowStatus, quoteExpiresAt:rec.quoteExpiresAt || "", publishStatus: (rec.booking && rec.booking.publishStatus) || "draft", preparedAt:rec.booking && rec.booking.preparedAt, travelerSubmission:rec.booking && rec.booking.travelerSubmission, depositRequest:rec.booking && rec.booking.depositRequest, contractRequest:rec.booking && rec.booking.contractRequest, notifications, activities: rec.activities });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);
   }

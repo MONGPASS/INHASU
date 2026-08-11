@@ -1340,7 +1340,12 @@ async function save(opts = {}) {
     render();
     if (!opts.quiet) {
       if (opts.action === "confirm") toast("✓ 예약이 확정되고 고객에게 안내됐어요");
-      else if (opts.action === "publish") toast("✓ 확정 일정표를 고객에게 공개했어요");
+      else if (opts.action === "publish") {
+        const notice = (j.notifications || []).find(x => x.type === "itinerary");
+        toast(notice && notice.status === "queued"
+          ? "✓ 확정 일정표 공개 · 고객 알림톡 발송을 요청했어요"
+          : "✓ 일정표는 공개됐어요 — 알림톡 설정·전화번호를 확인해 주세요");
+      }
       else toast("✓ 예약정보를 내부 저장했습니다 — 고객에게는 아직 발송되지 않았어요");
     }
     return true;

@@ -30,7 +30,11 @@
 1. 고객이 위 고객용 링크에서 견적을 요청
 2. 관리자 페이지 "견적 문의"에 자동으로 뜸 (어느 기기에서 접속해도 동일)
 3. 문의 클릭 → "견적서 만들기"로 견적서 제작
-4. [저장 · 고객 링크] 후 고객 링크를 복사해 카카오톡 채널 등으로 직접 전달
+4. [저장 · 고객 링크] 후 고객에게 견적 확인 카카오 알림톡 자동 발송
+5. 예약관리에서 가이드·차량·숙소 배정을 완료하고 일정표를 공개하면
+   고객에게 확정일정표 확인 카카오 알림톡 자동 발송
+6. 예약확정 고객의 출발 7일 전이 되면
+   고객에게 2026 몽골 여행 가이드북 PDF 알림톡 자동 발송
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -45,8 +49,20 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   담당자 문자 자동 알림
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-※ 고객 카카오 알림톡은 모두 제거했습니다. 고객 안내는 고객 페이지(내견적)에
-   단계별로 자동 표시되고, 개별 연락은 카카오톡 채널에서 수동으로 합니다.
+고객 카카오 알림톡
+  ① 견적서를 최초 발행하거나 재발행 → 고객 견적서 직링크 발송
+  ② 가이드·차량·숙소 배정 후 확정일정표 최초 공개 → 고객 일정표 직링크 발송
+  ③ 예약확정 고객의 출발 7일 전 → 투어 가이드북 PDF 링크 발송
+
+  가이드북 자동 발송 기준
+    · 예약 상태가 "예약확정"
+    · 출발일이 정상 입력됨
+    · 출발 7일 전부터 출발일까지이며 해당 출발일에 미발송 상태
+    · 매일 오전 9시(한국시간) 확인. 일시 실패 시 다음 날 재시도
+    · 발송 완료 시 notify.guidebookDepartureDate에 출발일을 저장해 중복 발송 방지
+
+  ※ 카카오 알림톡은 사전 승인된 템플릿만 발송할 수 있습니다.
+  ※ 발송 실패나 설정 누락이 있어도 견적·일정표 저장은 정상 완료됩니다.
 
 언제 나가나요? (전부 담당자에게 가는 문자입니다)
   ① 고객이 견적요청 접수     → 접수 요약 문자
@@ -65,10 +81,65 @@
     SOLAPI_SENDER              등록된 발신 전화번호 (숫자만)
     ADMIN_PHONE                담당자 휴대폰. 쉼표로 여러 명 (01011112222,01033334444)
 
+  [고객 카카오 알림톡 — 없으면 고객 알림만 건너뜀]
+    SOLAPI_PF_ID                    연동한 카카오 비즈니스 채널 pfId
+    SOLAPI_TEMPLATE_QUOTE_ID        기존 승인된 "견적서 도착" 템플릿 ID
+    SOLAPI_TEMPLATE_ITINERARY_ID    승인된 확정일정표 알림 템플릿 ID
+    SOLAPI_TEMPLATE_GUIDEBOOK_ID     승인된 출발 7일 전 가이드북 템플릿 ID
+    SITE_URL                        https://mongolia-milkyway.com
+    SOLAPI_DISABLE_SMS              N
+    GUIDEBOOK_CRON_SECRET            긴 임의 문자열(예: 32자 이상). 아래 Worker에도 동일하게 설정
+
+알림톡 승인 템플릿 문안
+  [견적 준비 — 기존 "견적서가 도착했습니다" 템플릿 재사용]
+    변수: #{고객명}, #{회사명}, #{링크}
+    승인된 버튼: 내 요청 확인하기 / 내 견적 확인하기
+    버튼 URL: https://mongolia-milkyway.com/#{링크}
+    ※ 버튼은 발송 API에서 새로 만들지 않고 승인 템플릿의 버튼을 그대로 사용합니다.
+
+  [확정일정표 준비]
+    #{고객명}님, 가이드와 숙소가 반영된 확정일정표가 준비되었습니다.
+    아래 버튼에서 확정일정표를 확인해 주세요.
+    변수: #{고객명}, #{회사명}, #{링크}
+    버튼 URL: https://mongolia-milkyway.com/#{링크}
+
+  [출발 7일 전 투어 가이드북]
+    #{고객명}님, #{출발일} 출발 예정인 몽골 여행을 위한
+    투어 가이드북이 준비되었습니다.
+    아래 버튼에서 출발 전 필수 준비사항을 확인해 주세요.
+    - #{회사명}
+    변수: #{고객명}, #{출발일}, #{회사명}, #{링크}
+    버튼명: 투어 가이드북 보기
+    버튼 URL: https://mongolia-milkyway.com/#{링크}
+    템플릿 카테고리: 커머스 > 주문/예약 (001001), 기본형
+
+가이드북 PDF 공개 주소 (배포 후)
+    https://mongolia-milkyway.com/guidebooks/mongolia-travel-guidebook-2026.pdf
+
 설정 확인 · 발송 테스트
     /api/notify-test?token=<ADMIN_TOKEN>                     설정 상태만 확인
     /api/notify-test?token=…&type=admin                      담당자 문자 테스트
     /api/notify-test?token=…&phone=01012345678               해당 번호로 테스트 문자
+    /api/notify-test?token=…&type=quote&phone=01012345678    견적 알림톡 테스트
+    /api/notify-test?token=…&type=itinerary&phone=01012345678 일정표 알림톡 테스트
+    /api/notify-test?token=…&type=guidebook&phone=01012345678&depart=2026-08-18 가이드북 알림톡 테스트
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  가이드북 자동 발송 Worker 최초 1회 설정
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Solapi에 위 가이드북 템플릿을 승인받고 ID를 Pages의
+   SOLAPI_TEMPLATE_GUIDEBOOK_ID에 저장
+2. 충분히 긴 비밀번호를 만들어 Pages의 GUIDEBOOK_CRON_SECRET에 저장
+3. Pages 다시 배포
+    npx wrangler pages deploy . --project-name=milkway-mongolia
+4. 자동 실행 Worker에 같은 비밀번호 저장
+    npx wrangler secret put GUIDEBOOK_CRON_SECRET --config wrangler.guidebook.toml
+5. Worker 배포 (wrangler.guidebook.toml의 매일 00:00 UTC = 09:00 KST 스케줄)
+    npx wrangler deploy --config wrangler.guidebook.toml
+
+※ GUIDEBOOK_CRON_SECRET은 Pages와 Worker에 반드시 동일한 값으로 넣습니다.
+※ /api/guidebook-reminders는 이 비밀번호 또는 ADMIN_TOKEN 헤더 없이 실행되지 않습니다.
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

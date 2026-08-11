@@ -7,7 +7,8 @@
    GET  : 관리자 페이지에서 목록 조회 (x-admin-token 헤더 필요)
    ═══════════════════════════════════════════════════════════ */
 
-import { notifyAdmin } from "./_solapi.js";
+import { notifyAdmin, canSendKakao, notifyCustomerQuoteReady, quoteTemplateId } from "./_solapi.js";
+import { defaultQuoteExpiry } from "./_workflow.mjs";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -85,6 +86,14 @@ export async function onRequestPost(context) {
     d.receivedAt = admin && d.receivedAt ? d.receivedAt : new Date().toISOString();
     d.status = admin && d.status ? d.status : "신규";
     d.memo = admin && d.memo ? d.memo : "";
+    const quoteCreated = !!(admin && d.quote);
+    if (quoteCreated) {
+      d.quoteIssuedAt = d.receivedAt;
+      d.quoteExpiresAt = defaultQuoteExpiry(new Date(d.receivedAt));
+      d.activities = Array.isArray(d.activities) ? d.activities : [];
+      const ready = canSendKakao(env, { phone:d.phone, templateId:quoteTemplateId(env) });
+      d.activities.push({ at:d.receivedAt, type:ready ? "quote_notification_queued" : "quote_notification_skipped", detail:ready ? "고객 견적 준비 알림톡 발송 요청" : "견적은 발행됐지만 고객 알림톡 설정 또는 전화번호를 확인해야 함" });
+    }
 
     // INSERT OR IGNORE: 같은 id가 이미 있으면 무시 → 기존 문의·발행 견적을
     // 인증 없이 덮어쓸 수 없습니다. (중복이면 409, 고객 폼은 재시도 시 새 id로 성공)
@@ -102,8 +111,7 @@ export async function onRequestPost(context) {
     ).run();
     if (!r.meta || r.meta.changes === 0) return json({ ok: false, error: "duplicate" }, 409);
 
-    // 관리자 문자 알림 — 응답을 막지 않게 백그라운드로.
-    // 고객 카톡 알림톡은 사용하지 않습니다 (고객 안내는 페이지 표시 + 카카오 채널 수동 응대).
+    // 관리자 문자와 고객 알림톡 — 응답을 막지 않게 백그라운드로.
     const bg = (tag, p) => context.waitUntil(
       p.then(res => console.log(tag, JSON.stringify(res))).catch(e => console.log(tag + "-err", String(e)))
     );
@@ -117,7 +125,14 @@ export async function onRequestPost(context) {
       ));
     }
 
-    return json({ ok: true, id, token });
+    const quoteNotification = quoteCreated
+      ? (canSendKakao(env, { phone:d.phone, templateId:quoteTemplateId(env) }) ? "queued" : "skipped")
+      : null;
+    if (quoteNotification === "queued") {
+      bg("notify-customer-quote", notifyCustomerQuoteReady(env, { phone:d.phone, name:d.name, token }));
+    }
+
+    return json({ ok: true, id, token, notifications:quoteCreated ? [{ type:"quote", status:quoteNotification }] : [] });
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500);
   }
