@@ -22,7 +22,10 @@ function blankBooking() {
               vehicle:{model:"",seats:"",luggage:"",plate:"",img:"",imgs:[],desc:""}, lodges:[] },
     travelers: [],
     travelerSubmission: { status:"not_requested", requestedAt:"", submittedAt:"", expectedCount:0, submittedCount:0 },
-    flight: { inDate:"", inTime:"", inNo:"", outDate:"", outTime:"", outNo:"" },
+    // inDepTime/outArrTime = 고객이 여행자 정보 입력 때 적는 출발지 출발시간·귀국 도착시간 (24시간)
+    flight: { inDate:"", inDepTime:"", inTime:"", inNo:"", outDate:"", outTime:"", outArrTime:"", outNo:"" },
+    pickupLodge: "",   // 울란바타르 출발·도착 팀의 픽업/샌딩 숙소명 (고객 입력)
+    travelerNote: "",  // 여행자 특이사항 — 고혈압·거동 불편·채식 등 (고객 입력)
     contractInfo: { productName:"", region:"", totalAmount:0, depositAmount:0, depositStatus:"미입금", balanceAmount:0, balanceStatus:"미수령", cashReceipt:"", ...DEFAULT_DEPOSIT_ACCOUNT, note:"" },
     preparedAt: "",
     depositRequest: { status:"not_sent", requestedAt:"" },

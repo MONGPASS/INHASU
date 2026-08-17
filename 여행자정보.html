@@ -11,7 +11,8 @@
     .wrap{width:min(760px,calc(100% - 28px));margin:28px auto 70px}.head,.card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 12px 35px rgba(28,76,64,.07)}
     .head{padding:28px}.brand{font-weight:900;letter-spacing:.12em;color:#00a98b;font-size:13px}.head h1{font-size:26px;margin:15px 0 8px}.desc{color:var(--sub);line-height:1.65;font-size:14px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}.sum{padding:12px;background:#f6f9f8;border-radius:12px}.sum b{display:block;font-size:11px;color:#8a9a95;margin-bottom:5px}.sum span{font-size:14px;font-weight:800}
     .card{padding:22px;margin-top:16px}.traveler-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.traveler-title h2{font-size:18px;margin:0}.type{background:#e7f8f4;color:#008d75;border-radius:999px;padding:6px 10px;font-weight:800;font-size:12px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.full{grid-column:1/-1}label span{display:block;font-size:12px;color:#667873;font-weight:800;margin:0 0 7px}input,select{width:100%;height:47px;border:1px solid #cfddd9;border-radius:11px;padding:0 12px;background:#fff;font:inherit;color:var(--ink)}input:focus,select:focus{outline:3px solid rgba(8,197,160,.14);border-color:var(--mint)}.help{font-size:11px;color:#8a9894;margin-top:6px;line-height:1.5}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.full{grid-column:1/-1}label span{display:block;font-size:12px;color:#667873;font-weight:800;margin:0 0 7px}input,select{width:100%;height:47px;border:1px solid #cfddd9;border-radius:11px;padding:0 12px;background:#fff;font:inherit;color:var(--ink)}textarea{width:100%;min-height:96px;border:1px solid #cfddd9;border-radius:11px;padding:11px 12px;background:#fff;font:inherit;line-height:1.6;color:var(--ink);resize:vertical}input:focus,select:focus,textarea:focus{outline:3px solid rgba(8,197,160,.14);border-color:var(--mint)}.help{font-size:11px;color:#8a9894;margin-top:6px;line-height:1.5}
+    .sec-note{font-size:12.5px;color:#61736e;line-height:1.6;margin:-4px 0 14px}.subhead{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#f1faf7;border:1px solid #dcefe9;border-radius:11px;padding:10px 12px;font-size:13px;font-weight:900;color:#00806b;margin-top:4px}.subhead small{font-size:11px;font-weight:700;color:#7e938d}
     .consent{display:flex;gap:10px;align-items:flex-start}.consent input{width:18px;height:18px;margin-top:2px;flex:none}.consent label{font-size:13px;line-height:1.55;color:#536660}.actions{position:sticky;bottom:0;margin-top:16px;padding:14px 0;background:linear-gradient(180deg,rgba(239,250,247,0),#effaf7 28%)}button,.back{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;border:0;border-radius:14px;font-size:15px;font-weight:900;text-decoration:none;cursor:pointer}.submit{background:var(--ink);color:#fff}.submit:disabled{opacity:.5;cursor:not-allowed}.back{margin-top:9px;background:#fff;color:#50635d;border:1px solid var(--line)}.state{text-align:center;padding:50px 20px}.state .icon{font-size:42px}.state h2{margin:15px 0 8px}.error{color:var(--danger);font-size:13px;font-weight:700;margin-top:12px;text-align:center}
     @media(max-width:600px){.wrap{margin-top:14px}.head{padding:22px}.head h1{font-size:22px}.summary{grid-template-columns:1fr}.card{padding:18px}.grid{grid-template-columns:1fr}.full{grid-column:auto}}
   </style>
@@ -32,6 +33,26 @@
     <label><span>여권번호</span><input data-k="passportNo" maxlength="20" autocapitalize="characters" value="${esc(t.passportNo||"")}" placeholder="M12345678" required><div class="help">영문과 숫자만 입력해 주세요.</div></label>
   </div></section>`;
 
+  // 항공권 정보 — 여행자 카드 위. 발권 전일 수 있어 선택 입력이며, 적으면 24시간 형식으로 검사합니다.
+  const tripCard=(fl,pickupLodge)=>`<section class="card"><div class="traveler-title"><h2>항공권 정보</h2><span class="type">선택 입력</span></div>
+  <div class="sec-note">발권하셨다면 아래 정보를 적어 주세요. 공항 픽업·샌딩 시간을 맞추는 데 사용됩니다. <b>시간은 24시간 기준</b>으로 입력해 주세요. (예: 오후 8시 30분 → 20:30)</div>
+  <div class="grid">
+    <div class="subhead">✈️ 몽골 도착 항공권${fl.inDate?`<small>${esc(fl.inDate)} 도착 예정</small>`:""}</div>
+    <label><span>출발시간 (24시간)</span><input data-f="inDepTime" type="time" value="${esc(fl.inDepTime||"")}"></label>
+    <label><span>도착시간 (24시간)</span><input data-f="inTime" type="time" value="${esc(fl.inTime||"")}"></label>
+    <label class="full"><span>항공편명</span><input data-f="inNo" maxlength="12" autocapitalize="characters" value="${esc(fl.inNo||"")}" placeholder="OM310"></label>
+    <div class="subhead">🛫 몽골 출발 항공권${fl.outDate?`<small>${esc(fl.outDate)} 출발 예정</small>`:""}</div>
+    <label><span>출발시간 (24시간)</span><input data-f="outTime" type="time" value="${esc(fl.outTime||"")}"></label>
+    <label><span>도착시간 (24시간)</span><input data-f="outArrTime" type="time" value="${esc(fl.outArrTime||"")}"></label>
+    <label class="full"><span>항공편명</span><input data-f="outNo" maxlength="12" autocapitalize="characters" value="${esc(fl.outNo||"")}" placeholder="OM309"></label>
+    <label class="full"><span>픽업·샌딩 숙소명 (선택)</span><input data-x="pickupLodge" maxlength="80" value="${esc(pickupLodge||"")}" placeholder="예: 샹그릴라 울란바타르 호텔"><div class="help">울란바타르에서 출발·도착하는 일정이라면 픽업과 샌딩을 해드릴 숙소명을 적어 주세요.</div></label>
+  </div></section>`;
+
+  // 특이사항 — 개인정보 동의 바로 위
+  const noteCard=note=>`<section class="card"><div class="traveler-title"><h2>특이사항</h2><span class="type">선택 입력</span></div>
+  <label><span>여행 중 참고할 내용</span><textarea data-x="travelerNote" maxlength="500" placeholder="예: 고혈압, 다리 불편, 채식주의 등">${esc(note||"")}</textarea>
+  <div class="help">건강 상태·식단·거동 등 미리 알아야 할 내용을 적어 주세요. 여행자가 여러 명이면 이름과 함께 적어 주시면 좋아요. (예: 홍길동 — 고혈압 / 김민지 — 채식)</div></label></section>`;
+
   async function load(){
     if(!token) return showState("🔗","링크를 확인해 주세요","담당자에게 받은 고객 전용 링크로 접속해 주세요.");
     try{
@@ -40,7 +61,7 @@
       const current=Array.isArray(j.travelers)?j.travelers:[];
       const done=j.submission&&j.submission.status==="submitted";
       app.innerHTML=`<section class="head"><div class="brand">MONGOLIA MILKY WAY</div><h1>${done?"여행자 정보 확인·수정":"여행자 정보 입력"}</h1><div class="desc">항공권 발권과 현지 예약에 필요한 정보입니다. <b>여권을 보면서 정확히</b> 입력해 주세요.${done?" 수정한 뒤 다시 제출하면 최신 정보로 반영됩니다.":""}</div><div class="summary"><div class="sum"><b>대표 고객</b><span>${esc(j.name||"-")}</span></div><div class="sum"><b>여행지</b><span>${esc(j.destination||"-")}</span></div><div class="sum"><b>일정</b><span>${esc(fmt(j.depart))} ~ ${esc(fmt(j.return_))}</span></div></div></section>
-        <form id="form">${j.types.map((type,i)=>row(type,current[i]||{},i)).join("")}<section class="card"><div class="consent"><input id="consent" type="checkbox"><label for="consent"><b>개인정보 수집·이용에 동의합니다.</b><br>여행 예약, 항공·숙박 등 서비스 제공을 위해 여행자 이름, 생년월일, 연락처, 성별, 여권정보를 수집·이용합니다. 관련 법령 및 여행 종료 후 필요한 보관기간이 지나면 파기합니다.</label></div><div class="error" id="error"></div></section><div class="actions"><button class="submit" id="submit" type="submit">${done?"수정 정보 저장하기":"여행자 정보 제출하기"}</button><a class="back" href="내견적.html?t=${encodeURIComponent(token)}">내 견적으로 돌아가기</a></div></form>`;
+        <form id="form">${tripCard(j.flight||{},j.pickupLodge)}${j.types.map((type,i)=>row(type,current[i]||{},i)).join("")}${noteCard(j.travelerNote)}<section class="card"><div class="consent"><input id="consent" type="checkbox"><label for="consent"><b>개인정보 수집·이용에 동의합니다.</b><br>여행 예약, 항공·숙박 등 서비스 제공을 위해 여행자 이름, 생년월일, 연락처, 성별, 여권정보를 수집·이용합니다. 관련 법령 및 여행 종료 후 필요한 보관기간이 지나면 파기합니다.</label></div><div class="error" id="error"></div></section><div class="actions"><button class="submit" id="submit" type="submit">${done?"수정 정보 저장하기":"여행자 정보 제출하기"}</button><a class="back" href="내견적.html?t=${encodeURIComponent(token)}">내 견적으로 돌아가기</a></div></form>`;
       document.getElementById("form").onsubmit=submit;
     }catch(e){showState("⚠️","정보를 불러오지 못했어요",e.message||"잠시 후 다시 시도해 주세요.");}
   }
@@ -48,8 +69,10 @@
     e.preventDefault(); const btn=document.getElementById("submit"), error=document.getElementById("error"); error.textContent="";
     if(!document.getElementById("consent").checked){error.textContent="개인정보 수집·이용에 동의해 주세요.";return;}
     const travelers=[...document.querySelectorAll(".traveler")].map(el=>Object.fromEntries([...el.querySelectorAll("[data-k]")].map(x=>[x.dataset.k,x.value.trim()])));
+    const pick=attr=>Object.fromEntries([...document.querySelectorAll(`[data-${attr}]`)].map(x=>[x.dataset[attr],x.value.trim()]));
+    const flight=pick("f"), extra=pick("x");
     btn.disabled=true;btn.textContent="안전하게 저장하는 중…";
-    try{const res=await fetch("/api/travelers/"+encodeURIComponent(token),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({consent:true,travelers})});const j=await res.json();if(!res.ok||!j.ok)throw new Error(j.error||"저장하지 못했습니다.");showState("✅","여행자 정보가 제출됐어요","담당자가 확인한 뒤 예약과 발권 절차를 이어서 진행합니다. 변경이 생기면 이 링크에서 다시 수정할 수 있습니다.");}
+    try{const res=await fetch("/api/travelers/"+encodeURIComponent(token),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({consent:true,travelers,flight,pickupLodge:extra.pickupLodge||"",travelerNote:extra.travelerNote||""})});const j=await res.json();if(!res.ok||!j.ok)throw new Error(j.error||"저장하지 못했습니다.");showState("✅","여행자 정보가 제출됐어요","담당자가 확인한 뒤 예약과 발권 절차를 이어서 진행합니다. 변경이 생기면 이 링크에서 다시 수정할 수 있습니다.");}
     catch(err){error.textContent=err.message||"잠시 후 다시 시도해 주세요.";btn.disabled=false;btn.textContent="여행자 정보 제출하기";error.scrollIntoView({behavior:"smooth",block:"center"});}
   }
   load();

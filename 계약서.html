@@ -139,6 +139,8 @@ const fmtDT = iso => { try { const d = new Date(iso); return `${d.getFullYear()}
 const money = n => Number(n || 0) ? `₩${Number(n).toLocaleString("ko-KR")}` : "-";
 const travelers = signed && S.travelers ? S.travelers : (Array.isArray(BK.travelers) ? BK.travelers : []);
 const flight = (signed && S.flight) ? S.flight : (BK.flight || {});
+const pickupLodge = (signed && S.pickupLodge != null) ? S.pickupLodge : (BK.pickupLodge || "");
+const travelerNote = (signed && S.travelerNote != null) ? S.travelerNote : (BK.travelerNote || "");
 const contractInfo = (signed && S.contractInfo) ? S.contractInfo : (BK.contractInfo || {});
 
 const card = inner => `<div class="card"><div class="pad">${inner}</div></div>`;
@@ -198,8 +200,9 @@ const secContractDetail = card(`
   <div class="blk" style="margin-top:14px;">
     <div class="h-bar"><span class="bar"></span>항공 정보</div>
     ${simpleTable([
-      ["몽골 도착", `${esc(flight.inDate || S.depart || "-")} ${esc(flight.inTime || "")} · ${esc(flight.inNo || "-")}`],
-      ["몽골 출발", `${esc(flight.outDate || S.return_ || "-")} ${esc(flight.outTime || "")} · ${esc(flight.outNo || "-")}`],
+      ["몽골 도착", `${esc(flight.inDate || S.depart || "-")} ${flight.inDepTime ? `출발 ${esc(flight.inDepTime)} → ` : ""}도착 ${esc(flight.inTime || "-")} · ${esc(flight.inNo || "-")}`],
+      ["몽골 출발", `${esc(flight.outDate || S.return_ || "-")} 출발 ${esc(flight.outTime || "-")}${flight.outArrTime ? ` → 도착 ${esc(flight.outArrTime)}` : ""} · ${esc(flight.outNo || "-")}`],
+      ["픽업·샌딩 숙소", esc(pickupLodge || "-")],
     ])}
   </div>
   <div class="blk" style="margin-top:14px;">
@@ -219,6 +222,8 @@ const secContractDetail = card(`
         </tr>`).join("")}</tbody>
       </table>
     </div>` : `<div style="font-size:12px; color:#8CA39D; border:1px solid #DDEBE6; border-radius:14px; padding:14px;">등록된 여행자 상세 정보가 없습니다.</div>`}
+    ${travelerNote ? `<div style="margin-top:10px; border:1px solid #DDEBE6; border-radius:14px; padding:12px 14px; font-size:11.5px; line-height:1.75; color:#152C28;">
+      <b style="color:#0A6A5E;">특이사항</b><br>${esc(travelerNote).replace(/\n/g, "<br>")}</div>` : ""}
   </div>`);
 
 /* ── 2) 위험 고지 ── */

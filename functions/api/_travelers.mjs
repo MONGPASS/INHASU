@@ -18,6 +18,51 @@ const validDate = value => {
   return normalized;
 };
 
+/* "4:30" "0430" "04:30:00" → "04:30" (24시간). 형식이 틀리면 null */
+const time24 = value => {
+  const v = text(value, 8).replace(/[.시\s]/g, ":").replace(/:+/g, ":").replace(/:$/, "");
+  const m = v.match(/^(\d{1,2}):?(\d{2})(?::\d{2})?$/) || v.match(/^(\d{2})(\d{2})$/);
+  if (!m) return null;
+  const hour = Number(m[1]), minute = Number(m[2]);
+  if (hour > 23 || minute > 59) return null;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+};
+
+const TIME_FIELDS = {
+  inDepTime: "몽골 도착 항공권의 출발시간",
+  inTime: "몽골 도착 항공권의 도착시간",
+  outTime: "몽골 출발 항공권의 출발시간",
+  outArrTime: "몽골 출발 항공권의 도착시간",
+};
+const NO_FIELDS = { inNo: "몽골 도착 항공편명", outNo: "몽골 출발 항공편명" };
+
+/* 고객이 여행자 정보와 함께 적는 항공권·픽업 숙소·특이사항.
+   전부 선택 입력(발권 전일 수 있음) — 적었을 때만 형식을 검사한다. */
+export function sanitizeTripInfo(input = {}) {
+  const raw = input && typeof input === "object" ? input : {};
+  const rawFlight = raw.flight && typeof raw.flight === "object" ? raw.flight : {};
+  const flight = {};
+
+  for (const [key, label] of Object.entries(TIME_FIELDS)) {
+    const value = text(rawFlight[key], 8);
+    if (!value) { flight[key] = ""; continue; }
+    const parsed = time24(value);
+    if (!parsed) return { ok:false, error:`${label}을 24시간 기준으로 입력해 주세요. (예: 04:30, 20:30)` };
+    flight[key] = parsed;
+  }
+  for (const [key, label] of Object.entries(NO_FIELDS)) {
+    const value = text(rawFlight[key], 12).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (value && !/^[A-Z0-9]{3,8}$/.test(value)) return { ok:false, error:`${label}을 확인해 주세요. (예: OM310)` };
+    flight[key] = value;
+  }
+  return {
+    ok: true,
+    flight,
+    pickupLodge: text(raw.pickupLodge, 80),
+    travelerNote: text(raw.travelerNote, 500),
+  };
+}
+
 export function sanitizeTravelers(input, counts = {}) {
   const types = travelerTypes(counts);
   if (!types.length) return { ok:false, error:"예약 인원 정보가 없습니다." };
