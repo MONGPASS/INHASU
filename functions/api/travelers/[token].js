@@ -1,5 +1,5 @@
 import { notifyAdmin } from "../_solapi.js";
-import { sanitizeTravelers, travelerTypes } from "../_travelers.mjs";
+import { sanitizeTravelers, sanitizeTripInfo, travelerTypes } from "../_travelers.mjs";
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), {
   status,
@@ -7,6 +7,13 @@ const json = (obj, status = 200) => new Response(JSON.stringify(obj), {
 });
 
 const getToken = params => Array.isArray(params.token) ? params.token[0] : params.token;
+const publicFlight = value => {
+  const f = value && typeof value === "object" ? value : {};
+  return {
+    inDate:f.inDate || "", inDepTime:f.inDepTime || "", inTime:f.inTime || "", inNo:f.inNo || "",
+    outDate:f.outDate || "", outTime:f.outTime || "", outArrTime:f.outArrTime || "", outNo:f.outNo || "",
+  };
+};
 const publicSubmission = value => {
   const s = value && typeof value === "object" ? value : {};
   return {
@@ -34,6 +41,9 @@ export async function onRequestGet({ env, params }) {
         type:t.type || "", nameKo:t.nameKo || "", passportName:t.passportName || "", birth:t.birth || "",
         phone:t.phone || "", gender:t.gender || "", passportNo:t.passportNo || "",
       })) : [],
+      flight:publicFlight(rec.booking.flight),
+      pickupLodge:rec.booking.pickupLodge || "",
+      travelerNote:rec.booking.travelerNote || "",
       submission:publicSubmission(rec.booking.travelerSubmission),
     });
   } catch (e) {
@@ -53,9 +63,15 @@ export async function onRequestPost(context) {
     if (body.consent !== true) return json({ ok:false, error:"개인정보 수집·이용에 동의해 주세요." }, 400);
     const checked = sanitizeTravelers(body.travelers, rec);
     if (!checked.ok) return json(checked, 400);
+    const trip = sanitizeTripInfo(body);
+    if (!trip.ok) return json(trip, 400);
 
     const now = new Date().toISOString();
     rec.booking.travelers = checked.travelers;
+    // 날짜(inDate/outDate)는 관리자가 관리하므로 고객이 적은 시간·편명만 덮어씁니다
+    rec.booking.flight = { ...(rec.booking.flight || {}), ...trip.flight };
+    rec.booking.pickupLodge = trip.pickupLodge;
+    rec.booking.travelerNote = trip.travelerNote;
     rec.booking.travelerSubmission = {
       ...(rec.booking.travelerSubmission || {}), status:"submitted", submittedAt:now,
       expectedCount:checked.travelers.length, submittedCount:checked.travelers.length, source:"customer",

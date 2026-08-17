@@ -70,6 +70,8 @@ export async function onRequestPost(context) {
           phone: t.phone || "", gender: t.gender || "", passportNo: t.passportNo || "",
         })) : [],
         flight: bk.flight || null,
+        pickupLodge: bk.pickupLodge || "",
+        travelerNote: bk.travelerNote || "",
         contractInfo: {
           productName: ci.productName || rec.destination || "",
           region: ci.region || rec.destination || "",

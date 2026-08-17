@@ -234,14 +234,18 @@ const lodgeRows = Array.from({ length: totalDays }, (_, i) => {
 });
 
 /* 항공편 카드 문구 */
-const flightTxt = (date, time, no) => {
+const flightTxt = (date, no, ...times) => {
   const d = parseDate(date);
-  const parts = [d ? `${fmtFull(d)}(${WD[d.getDay()]})` : "", time || "", no || ""].filter(Boolean);
+  const parts = [d ? `${fmtFull(d)}(${WD[d.getDay()]})` : "", ...times.filter(Boolean), no || ""].filter(Boolean);
   return parts.length ? parts.map(esc).join(" · ") : "—";
 };
+const timeTxt = (label, value) => value ? `${label} ${value}` : "";
 
 /* 업무 메모: 예약관리 "추가 메모(내부 참고용 — 가이드에게 전달)" 항목 줄 단위 표시 */
 const memoLines = String(BK.notes || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
+
+/* 여행자 특이사항: 고객이 여행자 정보 입력 화면에서 적은 건강·식단 등 참고사항 */
+const noteLines = String(BK.travelerNote || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
 
 /* ══════════ 1페이지: 항공편 · 고객명단 · 일차별 숙소 · 수배정보 ══════════ */
 const page1 = `
@@ -265,10 +269,11 @@ const page1 = `
     <div class="sec-t">✈ 항공편 정보</div>
     <div class="fl-grid">
       <div class="fl-card in"><div class="k">몽골 도착 (공항 픽업)</div>
-        <div class="v">${flightTxt(fl.inDate || REC.depart, fl.inTime, fl.inNo)}</div></div>
+        <div class="v">${flightTxt(fl.inDate || REC.depart, fl.inNo, timeTxt("출발", fl.inDepTime), timeTxt("도착", fl.inTime))}</div></div>
       <div class="fl-card out"><div class="k">몽골 출발 · 귀국 (공항 샌딩)</div>
-        <div class="v">${flightTxt(fl.outDate || REC.return_, fl.outTime, fl.outNo)}</div></div>
+        <div class="v">${flightTxt(fl.outDate || REC.return_, fl.outNo, timeTxt("출발", fl.outTime), timeTxt("도착", fl.outArrTime))}</div></div>
     </div>
+    ${BK.pickupLodge ? `<div class="kv" style="margin-top:8px;"><span>픽업·샌딩 숙소</span><b>${esc(noBr(BK.pickupLodge))}</b></div>` : ""}
   </div>
 
   <div class="sec">
@@ -310,6 +315,11 @@ const page1 = `
       <div class="kv"><span>잔금</span><b>${[won(ci.balanceAmount), noBr(ci.balanceStatus)].filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
     </div>
   </div>
+
+  ${noteLines.length ? `<div class="memo">
+    <div class="bt">🩺 여행자 특이사항 (고객 입력)</div>
+    <ul>${noteLines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>
+  </div>` : ""}
 
   ${memoLines.length ? `<div class="memo">
     <div class="bt">⚠ 중요 요청 · 업무 메모</div>

@@ -77,12 +77,16 @@ export async function onRequestGet({ env, params }) {
       })(),
       flight: bk.flight ? {
         inDate: bk.flight.inDate || "",
+        inDepTime: bk.flight.inDepTime || "",
         inTime: bk.flight.inTime || "",
         inNo: bk.flight.inNo || "",
         outDate: bk.flight.outDate || "",
         outTime: bk.flight.outTime || "",
+        outArrTime: bk.flight.outArrTime || "",
         outNo: bk.flight.outNo || "",
       } : null,
+      pickupLodge: bk.pickupLodge || "",
+      travelerNote: bk.travelerNote || "",
       contractInfo: {
         productName: (bk.contractInfo && bk.contractInfo.productName) || rec.destination || "",
         region: (bk.contractInfo && bk.contractInfo.region) || rec.destination || "",

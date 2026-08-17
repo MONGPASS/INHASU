@@ -698,19 +698,23 @@ function render() {
       </div>
       <div id="travelerWrap">${(BK.travelers || []).map(travelerRow).join("")}</div>
       <button class="addbtn" id="addTraveler">＋ 관리자 직접 입력 (예외 처리)</button>
+      <label class="f" style="margin-top:12px;"><span>특이사항 (고객 입력 — 고혈압·거동 불편·채식 등)</span><textarea id="bk_travelerNote" rows="3" placeholder="고객이 여행자 정보 입력 화면에서 적은 내용이 표시됩니다">${esc(BK.travelerNote || "")}</textarea></label>
     </div>
     <div class="assign-box">
-      <div class="subtt">✈️ 항공 정보</div>
-      <div class="grid3">
+      <div class="subtt">✈️ 항공 정보 <span style="font-size:11px;font-weight:700;color:var(--sub);">— 시간은 24시간 기준 (고객이 여행자 정보 입력 때 함께 작성)</span></div>
+      <div class="grid4">
         <label class="f"><span>몽골 도착일</span><input id="fl_inDate" value="${esc(fl.inDate || PRE.depart || "")}" placeholder="2026-08-25"></label>
+        <label class="f"><span>도착편 출발시간</span><input id="fl_inDepTime" value="${esc(fl.inDepTime || "")}" placeholder="20:30"></label>
         <label class="f"><span>몽골 도착시간</span><input id="fl_inTime" value="${esc(fl.inTime || "")}" placeholder="04:30"></label>
         <label class="f"><span>도착 항공편명</span><input id="fl_inNo" value="${esc(fl.inNo || "")}" placeholder="OM310"></label>
       </div>
-      <div class="grid3" style="margin-top:10px;">
+      <div class="grid4" style="margin-top:10px;">
         <label class="f"><span>몽골 출발일</span><input id="fl_outDate" value="${esc(fl.outDate || PRE.return_ || "")}" placeholder="2026-08-31"></label>
         <label class="f"><span>몽골 출발시간</span><input id="fl_outTime" value="${esc(fl.outTime || "")}" placeholder="20:30"></label>
+        <label class="f"><span>출발편 도착시간</span><input id="fl_outArrTime" value="${esc(fl.outArrTime || "")}" placeholder="06:15"></label>
         <label class="f"><span>출발 항공편명</span><input id="fl_outNo" value="${esc(fl.outNo || "")}" placeholder="OM309"></label>
       </div>
+      <label class="f" style="margin-top:10px;"><span>픽업·샌딩 숙소명 (울란바타르 출발·도착 팀 — 고객 입력)</span><input id="bk_pickupLodge" value="${esc(BK.pickupLodge || "")}" placeholder="예: 샹그릴라 울란바타르 호텔"></label>
     </div>
     <div class="assign-box">
       <div class="subtt">💳 계약·정산 정보</div>
@@ -842,8 +846,10 @@ function pullForm() {
     gender: (el.querySelector('[data-tk="gender"]') || {}).value || "",
     passportNo: (el.querySelector('[data-tk="passportNo"]') || {}).value?.trim() || "",
   })).filter(t => t.nameKo || t.passportName || t.phone || t.passportNo);
-  BK.flight = { inDate:g("fl_inDate"), inTime:g("fl_inTime"), inNo:g("fl_inNo"),
-                outDate:g("fl_outDate"), outTime:g("fl_outTime"), outNo:g("fl_outNo") };
+  BK.flight = { inDate:g("fl_inDate"), inDepTime:g("fl_inDepTime"), inTime:g("fl_inTime"), inNo:g("fl_inNo"),
+                outDate:g("fl_outDate"), outTime:g("fl_outTime"), outArrTime:g("fl_outArrTime"), outNo:g("fl_outNo") };
+  BK.pickupLodge = $("bk_pickupLodge") ? $("bk_pickupLodge").value.trim() : (BK.pickupLodge || "");
+  BK.travelerNote = $("bk_travelerNote") ? $("bk_travelerNote").value.trim() : (BK.travelerNote || "");
   BK.contractInfo = {
     productName:g("ci_productName"), region:g("ci_region"), cashReceipt:g("ci_cashReceipt"), bankName:g("ci_bankName"), accountNumber:g("ci_accountNumber"), accountHolder:g("ci_accountHolder"), note:$("ci_note") ? $("ci_note").value : "",
     totalAmount:Number(g("ci_totalAmount")) || 0, depositAmount:Number(g("ci_depositAmount")) || 0, depositStatus:g("ci_depositStatus") || "미입금",
