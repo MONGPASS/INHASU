@@ -257,3 +257,78 @@ test("고객이 예약금 입금 완료를 알리면 depositReport와 관리자 
   assert.ok(savedData.activities.some(a => a.type === "deposit_reported"));
 });
 
+test("관리자가 입금확인완료를 누르면 고객에게 계약서 안내 메시지와 링크가 발송된다", async () => {
+  const booking = {
+    contractInfo: { depositAmount: 200000, depositStatus: "미입금" },
+    publishStatus: "draft",
+  };
+  const rec = {
+    id: "req-1",
+    token: "test-token-abcdef123456",
+    name: "홍길동",
+    phone: "01099998888",
+    quote: {},
+    decision: { status: "accepted" },
+    status: "신규",
+    booking,
+  };
+  const pending = [];
+  let sentBody = null;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    sentBody = JSON.parse(init.body);
+    return new Response(JSON.stringify({ groupId: "group-contract-1" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  const env = {
+    ADMIN_TOKEN: "admin-secret",
+    SOLAPI_API_KEY: "api-key",
+    SOLAPI_API_SECRET: "api-secret",
+    SOLAPI_SENDER: "0212345678",
+    SITE_URL: "https://mongolia-milkyway.com",
+    DB: {
+      prepare() {
+        return {
+          bind() {
+            return {
+              async first() { return { data: JSON.stringify(rec), status: "신규" }; },
+              async run() { return { success: true }; },
+            };
+          },
+        };
+      },
+    },
+  };
+
+  try {
+    const response = await onRequestPatch({
+      request: new Request("https://preview.pages.dev/api/requests/req-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-token": "admin-secret" },
+        body: JSON.stringify({ confirmDeposit: true }),
+      }),
+      env,
+      params: { id: "req-1" },
+      waitUntil(task) { pending.push(task); },
+    });
+
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.deepEqual(body.notifications, [{ type: "contract", status: "queued" }]);
+    await Promise.all(pending);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.ok(sentBody);
+  assert.equal(sentBody.message.to, "01099998888");
+  assert.ok(sentBody.message.text.includes("입금확인이 완료되었습니다."));
+  assert.ok(sentBody.message.text.includes("1. 여행자정보 입력하기"));
+  assert.ok(sentBody.message.text.includes("2. 여행계약서 확인 및 서명하기"));
+  assert.ok(sentBody.message.text.includes("https://mongolia-milkyway.com/%EB%82%B4%EA%B2%AC%EC%A0%81.html?t=test-token-abcdef123456"));
+});
+
+

@@ -36,6 +36,7 @@ const sender = env => normPhone(env.SOLAPI_SENDER) || undefined;
 const company = env => env.NOTIFY_COMPANY || "몽골리아 은하수 여행사";
 const pfId = env => env.SOLAPI_PF_ID || env.SOLAPI_KAKAO_PF_ID || "";
 export const quoteTemplateId = env => env.SOLAPI_TEMPLATE_QUOTE_ID || env.SOLAPI_KAKAO_QUOTE_TEMPLATE_ID || "";
+export const contractTemplateId = env => env.SOLAPI_TEMPLATE_CONTRACT_ID || env.SOLAPI_KAKAO_CONTRACT_TEMPLATE_ID || "";
 export const itineraryTemplateId = env => env.SOLAPI_TEMPLATE_ITINERARY_ID || env.SOLAPI_KAKAO_ITINERARY_TEMPLATE_ID || "";
 export const guidebookTemplateId = env => env.SOLAPI_TEMPLATE_GUIDEBOOK_ID || "";
 export const GUIDEBOOK_PATH = "guidebooks/mongolia-travel-guidebook-2026.pdf";
@@ -140,6 +141,40 @@ export function notifyCustomerItineraryReady(env, { phone, name, token }) {
       "#{링크}": customerPath(token),
     },
   });
+}
+
+export async function notifyCustomerContractReady(env, { phone, name, token, requestUrl }) {
+  const url = customerPageUrl(env, requestUrl, "내견적.html", token);
+  const templateId = contractTemplateId(env);
+  if (canSendKakao(env, { phone, templateId })) {
+    return sendKakaoAlimtalk(env, {
+      phone,
+      templateId,
+      variables: {
+        "#{고객명}": name || "고객",
+        "#{회사명}": company(env),
+        "#{링크}": customerPath(token),
+      },
+      buttonName: "계약서 확인하기",
+      link: url,
+    });
+  }
+
+  const text =
+`[${company(env)}]
+${name ? name + "님, " : ""}입금확인이 완료되었습니다.
+투어 계약서 보내드립니다.
+확인하시고 작성해주세요😊
+
+1. 여행자정보 입력하기
+2. 여행계약서 확인 및 서명하기
+
+완료하고 저희한테 말씀해주시면 되겠습니다.
+
+▶ 투어 계약서 확인하기:
+${url}`;
+
+  return sendSms(env, { phone, text });
 }
 
 export function notifyCustomerGuidebook(env, { phone, name, depart }) {
