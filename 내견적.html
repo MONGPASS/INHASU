@@ -178,11 +178,8 @@
           ? `<a class="btn ghost" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank">📜 여행계약서 보기 (서명완료)</a>
              <a class="btn ghost" href="${esc("여행자정보.html?t=" + encodeURIComponent(token))}">👥 여행자 정보 + 항공권 정보 확인·수정</a>`
           : depositPaid && contractRequested
-            ? `<a class="btn accent" href="${esc("계약서.html?t=" + encodeURIComponent(token))}">✍️ 여행계약서 확인·서명하기</a>
-               <a class="btn primary" href="${esc("여행자정보.html?t=" + encodeURIComponent(token))}">${travelersDone ? "✅ 여행자 정보 + 항공권 정보 확인·수정" : "👥 여행자 정보 + 항공권 정보 입력하기"}</a>`
-            : depositPaid
-              ? `<a class="btn primary" href="${esc("여행자정보.html?t=" + encodeURIComponent(token))}">${travelersDone ? "✅ 여행자 정보 + 항공권 정보 확인·수정" : "👥 여행자 정보 + 항공권 정보 입력하기"}</a>`
-              : ""}
+            ? `<a class="btn accent" href="${esc("계약서.html?t=" + encodeURIComponent(token))}">✍️ 여행계약서 확인·서명하기 (여행자·항공 정보 입력)</a>`
+            : ""}
         ${depositPaid && !signed && !contractRequested ? `<div class="notice">담당자가 계약서를 준비하고 있습니다. 서명 요청 알림을 받으면 이 화면에서 진행할 수 있습니다.</div>` : ""}
         ${published ? `<a class="btn accent" style="background:#3d7ff0;" href="${esc("확정일정표.html?t=" + encodeURIComponent(token))}" target="_blank">🎫 확정일정표 보기</a>` : confirmed ? `<div class="notice">가이드·차량·숙소 배정이 끝나면 확정일정표가 공개됩니다.</div>` : ""}
         ${r.quote ? `<a class="btn ghost" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>` : ""}
