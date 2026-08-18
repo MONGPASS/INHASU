@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { onRequestGet, onRequestPatch } from "../functions/api/requests/[id].js";
+import { onRequestPost as onSignPost } from "../functions/api/sign/[token].js";
+import { onRequestPost as onDepositPost } from "../functions/api/deposit/[token].js";
 
 const makeEnv = () => ({
   ADMIN_TOKEN: "admin-secret",
@@ -132,3 +134,126 @@ test("확정일정표 최초 공개 시 고객 직링크 알림톡을 한 번 �
   assert.equal(sentBody.message.kakaoOptions.buttons, undefined);
   assert.equal(sentBody.message.kakaoOptions.variables["#{링크}"], "%EB%82%B4%EA%B2%AC%EC%A0%81.html?t=customer-token");
 });
+
+test("여행서명 시 여행자 정보를 함께 제출하면 booking과 스냅샷에 저장된다", async () => {
+  const rec = {
+    id: "req-1",
+    token: "token-1234567890123456",
+    name: "홍길동",
+    adult: 2, child: 0, infant: 0,
+    booking: {
+      contractInfo: { depositStatus: "입금완료", totalAmount: 2000000, depositAmount: 200000 },
+    },
+  };
+  let savedData = null;
+  const env = {
+    DB: {
+      prepare() {
+        return {
+          bind() {
+            return {
+              async first() { return { id: "req-1", status: "진행중", data: JSON.stringify(rec) }; },
+              async run() { return { success: true }; },
+            };
+          },
+          run() { return { success: true }; },
+        };
+      },
+    },
+  };
+  env.DB.prepare = (sql) => ({
+    bind(...args) {
+      if (sql.includes("UPDATE")) {
+        savedData = JSON.parse(args[1] || "{}");
+      }
+      return {
+        async first() { return { id: "req-1", status: "진행중", data: JSON.stringify(rec) }; },
+        async run() { return { success: true }; },
+      };
+    },
+  });
+
+  const signImg = "data:image/png;base64," + "A".repeat(300);
+  const travelers = [
+    { nameKo: "홍길동", passportName: "HONG GILDONG", birth: "1990-01-01", phone: "01012345678", gender: "남", passportNo: "M12345678" },
+    { nameKo: "김영희", passportName: "KIM YOUNGHEE", birth: "1992-02-02", phone: "01087654321", gender: "여", passportNo: "M87654321" },
+  ];
+
+  const response = await onSignPost({
+    request: new Request("https://example.com/api/sign/token-1234567890123456", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agree: true,
+        signImg,
+        signerName: "홍길동",
+        travelers,
+        flight: { inNo: "OM310" },
+        pickupLodge: "샹그릴라 호텔",
+        travelerNote: "채식주의",
+      }),
+    }),
+    env,
+    params: { token: "token-1234567890123456" },
+    waitUntil() {},
+  });
+
+  assert.equal(response.status, 200);
+  assert.ok(savedData);
+  assert.equal(savedData.booking.travelers.length, 2);
+  assert.equal(savedData.booking.travelerSubmission.status, "submitted");
+  assert.equal(savedData.booking.contract.snapshot.travelers.length, 2);
+  assert.equal(savedData.booking.contract.snapshot.pickupLodge, "샹그릴라 호텔");
+  assert.equal(savedData.booking.contract.snapshot.travelerNote, "채식주의");
+});
+
+test("고객이 예약금 입금 완료를 알리면 depositReport와 관리자 알림이 발송된다", async () => {
+  const rec = {
+    id: "req-1",
+    token: "token-deposit-123456",
+    name: "김철수",
+    booking: {
+      contractInfo: { depositAmount: 200000, bankName: "우리은행" },
+    },
+  };
+  let savedData = null;
+  const env = {
+    ADMIN_PHONE: "01012345678",
+    SOLAPI_API_KEY: "key",
+    SOLAPI_API_SECRET: "secret",
+    SOLAPI_SENDER: "0212345678",
+    DB: {
+      prepare(sql) {
+        return {
+          bind(...args) {
+            if (sql.includes("UPDATE")) {
+              savedData = JSON.parse(args[0] || "{}");
+            }
+            return {
+              async first() { return { id: "req-1", status: "신규", data: JSON.stringify(rec) }; },
+              async run() { return { success: true }; },
+            };
+          },
+        };
+      },
+    },
+  };
+
+  const response = await onDepositPost({
+    request: new Request("https://example.com/api/deposit/token-deposit-123456", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "김철수(실입금자)" }),
+    }),
+    env,
+    params: { token: "token-deposit-123456" },
+    waitUntil() {},
+  });
+
+  assert.equal(response.status, 200);
+  assert.ok(savedData);
+  assert.equal(savedData.booking.depositReport.status, "reported");
+  assert.equal(savedData.booking.depositReport.name, "김철수(실입금자)");
+  assert.ok(savedData.activities.some(a => a.type === "deposit_reported"));
+});
+

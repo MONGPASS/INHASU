@@ -6,6 +6,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 import { notifyAdmin } from "../_solapi.js";
+import { sanitizeTravelers, sanitizeTripInfo } from "../_travelers.mjs";
 
 const TERMS_VERSION = "v1-2026-07";       // 계약서.html 조항을 바꾸면 버전도 올려주세요
 const MAX_SIGN_BYTES = 300_000;           // 서명 PNG dataURL 최대 길이 (~220KB 이미지)
@@ -48,11 +49,34 @@ export async function onRequestPost(context) {
     if (rec.booking.contract && rec.booking.contract.signedAt)
       return json({ ok: false, error: "already signed" }, 409);
 
+    const now = new Date().toISOString();
+
+    // 서명 시 여행자 정보 및 항공/특이사항 입력이 함께 제출된 경우 저장
+    if (body.travelers && Array.isArray(body.travelers)) {
+      const checked = sanitizeTravelers(body.travelers, rec);
+      if (!checked.ok) return json(checked, 400);
+      const trip = sanitizeTripInfo(body);
+      if (!trip.ok) return json(trip, 400);
+
+      rec.booking.travelers = checked.travelers;
+      rec.booking.flight = { ...(rec.booking.flight || {}), ...trip.flight };
+      rec.booking.pickupLodge = trip.pickupLodge;
+      rec.booking.travelerNote = trip.travelerNote;
+      rec.booking.travelerSubmission = {
+        ...(rec.booking.travelerSubmission || {}),
+        status: "submitted",
+        submittedAt: now,
+        expectedCount: checked.travelers.length,
+        submittedCount: checked.travelers.length,
+        source: "contract_sign",
+      };
+    }
+
     // 서명 시점의 계약 내용 동결 — 이후 예약 정보가 바뀌어도 서명 당시 내용이 남습니다
     const bk = rec.booking || {};
     const ci = bk.contractInfo || {};
     const contract = {
-      signedAt: new Date().toISOString(),
+      signedAt: now,
       signImg: sig,
       signerName: String(body.signerName || rec.name || "").slice(0, 40),
       termsVersion: TERMS_VERSION,
@@ -91,9 +115,9 @@ export async function onRequestPost(context) {
     rec.booking.contract = contract;
     rec.booking.checklist = { ...(rec.booking.checklist || {}), contract: true };
 
-    const now = contract.signedAt;
     rec.activities = Array.isArray(rec.activities) ? rec.activities : [];
-    rec.activities.push({ at: now, type: "contract_signed", detail: "고객이 여행계약서에 서명함" });
+    const tCount = Array.isArray(bk.travelers) && bk.travelers.length ? ` (여행자 ${bk.travelers.length}명 등록)` : "";
+    rec.activities.push({ at: now, type: "contract_signed", detail: `고객이 여행계약서에 서명함${tCount}` });
     let status = row.status || rec.status || "진행중";
     /* ── 알림 ── 백그라운드 발송이라 실패해도 서명 저장에는 영향 없음 */
     rec.notify = rec.notify && typeof rec.notify === "object" ? rec.notify : {};

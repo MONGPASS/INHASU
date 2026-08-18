@@ -104,6 +104,11 @@ export async function onRequestGet({ env, params }) {
       preparedAt: bk.preparedAt || "",
       depositRequest: bk.depositRequest ? { status:bk.depositRequest.status || "not_sent", requestedAt:bk.depositRequest.requestedAt || "" } : { status:"not_sent", requestedAt:"" },
       contractRequest: bk.contractRequest ? { status:bk.contractRequest.status || "not_sent", requestedAt:bk.contractRequest.requestedAt || "" } : { status:"not_sent", requestedAt:"" },
+      depositReport: bk.depositReport ? {
+        status: bk.depositReport.status || "none",
+        name: bk.depositReport.name || "",
+        reportedAt: bk.depositReport.reportedAt || "",
+      } : { status: "none", name: "", reportedAt: "" },
       // notes(추가 메모)는 내부 참고용 — 고객에게 반환하지 않음
       assign: safeAssign(bk.assign),
       // 계약 서명 상태 — 본인 서명 이미지·서명 시각만 (IP·기기 정보는 반환 안 함)

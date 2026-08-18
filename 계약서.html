@@ -40,6 +40,25 @@
   .btn.ghost { background:#fff; color:#6b7c78; border:1px solid #E3F0EB; font-weight:700; }
   .btn:disabled { opacity:.45; cursor:not-allowed; }
 
+  /* ── 여행자 정보 입력 폼 ── */
+  .t-card { background:#FAFDFC; border:1px solid #DDEBE6; border-radius:14px; padding:16px; margin-top:10px; }
+  .t-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .t-head h4 { font-size:14.5px; font-weight:800; color:#152C28; margin:0; }
+  .t-badge { background:#EAF7F3; color:#0A6A5E; border-radius:999px; padding:3px 9px; font-size:11.5px; font-weight:800; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid-full { grid-column:1/-1; }
+  .f-label { display:block; font-size:11.5px; font-weight:700; color:#40544F; margin-bottom:5px; }
+  .f-input, .f-select, .f-textarea { width:100%; height:42px; border:1px solid #CFDDD9; border-radius:10px; padding:0 11px; background:#fff; font:inherit; font-size:13px; color:#152C28; }
+  .f-textarea { height:auto; min-height:80px; padding:9px 11px; resize:vertical; line-height:1.5; }
+  .f-input:focus, .f-select:focus, .f-textarea:focus { outline:none; border-color:#06C4A0; box-shadow:0 0 0 3px rgba(6,196,160,0.15); }
+  .f-help { font-size:10.5px; color:#8CA39D; margin-top:3px; line-height:1.4; }
+  .sub-box { background:#F4FAF7; border:1px solid #DCEDE7; border-radius:10px; padding:8px 10px; font-size:12px; font-weight:800; color:#0A6A5E; margin-top:4px; }
+
+  @media screen and (max-width: 600px) {
+    .grid-2 { grid-template-columns:1fr; }
+    .grid-full { grid-column:auto; }
+  }
+
   .print-only { display:none; }
 
   /* ── PC(넓은 화면): 문서를 넓게 — 모바일은 기존 그대로 ── */
@@ -92,23 +111,35 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&l
 let toastT;
 const toast = m => { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); };
 
-const R = await (async () => {
+const IS_LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
+
+const [R, TR] = await (async () => {
   if (_adminView) {
     try {
       const res = await fetch("/api/requests/" + encodeURIComponent(_adminId), {
         cache:"no-store", headers:{ "x-admin-token":_adminToken },
       });
       const j = await res.json();
-      if (j.ok && j.item) { _adminLoaded = true; return j.item; }
+      if (j.ok && j.item) { _adminLoaded = true; return [j.item, null]; }
     } catch (e) {}
   }
-  if (!_token) return null;
+  if (!_token) return [null, null];
+  if (IS_LOCAL) {
+    try {
+      const item = JSON.parse(localStorage.getItem("leaders_requests") || "[]").find(x => x.token === _token);
+      if (item) return [{ ok: true, ...item }, null];
+    } catch(e) {}
+  }
   try {
-    const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
-    const j = await res.json();
-    if (j.ok) return j;
+    const [resR, resTR] = await Promise.all([
+      fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" }),
+      fetch("/api/travelers/" + encodeURIComponent(_token), { cache: "no-store" }).catch(() => null),
+    ]);
+    const jR = await resR.json();
+    const jTR = resTR && resTR.ok ? await resTR.json() : null;
+    if (jR.ok) return [jR, jTR];
   } catch (e) {}
-  return null;
+  return [null, null];
 })();
 
 if (!R || !R.booking) {
@@ -137,10 +168,22 @@ const paxTxt = [S.adult ? `성인 ${S.adult}` : "", S.child ? `아동 ${S.child}
 const period = S.depart ? `${S.depart}${S.return_ ? " ~ " + S.return_ : ""}${S.nights ? ` (${S.nights}박 ${S.nights + 1}일)` : ""}` : "-";
 const fmtDT = iso => { try { const d = new Date(iso); return `${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; } catch(e){ return iso; } };
 const money = n => Number(n || 0) ? `₩${Number(n).toLocaleString("ko-KR")}` : "-";
+
+const calcTypes = r => {
+  const out = [];
+  [["성인", r.adult], ["아동", r.child], ["유아", r.infant]].forEach(([type, count]) => {
+    const n = Math.max(0, Math.min(30, Number(count) || 0));
+    for (let i = 0; i < n; i += 1) out.push(type);
+  });
+  if (!out.length) out.push("성인");
+  return out;
+};
+const types = (TR && Array.isArray(TR.types) && TR.types.length) ? TR.types : calcTypes(S);
+
 const travelers = signed && S.travelers ? S.travelers : (Array.isArray(BK.travelers) ? BK.travelers : []);
-const flight = (signed && S.flight) ? S.flight : (BK.flight || {});
-const pickupLodge = (signed && S.pickupLodge != null) ? S.pickupLodge : (BK.pickupLodge || "");
-const travelerNote = (signed && S.travelerNote != null) ? S.travelerNote : (BK.travelerNote || "");
+const flight = (signed && S.flight) ? S.flight : ((TR && TR.flight) || BK.flight || {});
+const pickupLodge = (signed && S.pickupLodge != null) ? S.pickupLodge : ((TR && TR.pickupLodge) || BK.pickupLodge || "");
+const travelerNote = (signed && S.travelerNote != null) ? S.travelerNote : ((TR && TR.travelerNote) || BK.travelerNote || "");
 const contractInfo = (signed && S.contractInfo) ? S.contractInfo : (BK.contractInfo || {});
 
 const card = inner => `<div class="card"><div class="pad">${inner}</div></div>`;
@@ -178,10 +221,11 @@ const simpleTable = rows => `<div style="border:1px solid #DDEBE6; border-radius
   </div>`).join("")}
 </div>`;
 
+/* ── 2) 계약 세부 정보 (서명 전/후 공통) ── */
 const secContractDetail = card(`
   <div class="blk">
     <div class="sec-eyebrow">CONTRACT DETAILS</div>
-    <div class="sec-title">여행자 · 항공 · 금액 정보</div>
+    <div class="sec-title">${signed ? "여행자 · 항공 · 금액 정보" : "여행상품 및 경비 정보"}</div>
   </div>
   <div class="blk" style="margin-top:14px;">
     <div class="h-bar"><span class="bar"></span>여행상품 정보</div>
@@ -197,6 +241,7 @@ const secContractDetail = card(`
       ["비고", esc(contractInfo.note || "-")],
     ])}
   </div>
+  ${signed ? `
   <div class="blk" style="margin-top:14px;">
     <div class="h-bar"><span class="bar"></span>항공 정보</div>
     ${simpleTable([
@@ -224,9 +269,117 @@ const secContractDetail = card(`
     </div>` : `<div style="font-size:12px; color:#8CA39D; border:1px solid #DDEBE6; border-radius:14px; padding:14px;">등록된 여행자 상세 정보가 없습니다.</div>`}
     ${travelerNote ? `<div style="margin-top:10px; border:1px solid #DDEBE6; border-radius:14px; padding:12px 14px; font-size:11.5px; line-height:1.75; color:#152C28;">
       <b style="color:#0A6A5E;">특이사항</b><br>${esc(travelerNote).replace(/\n/g, "<br>")}</div>` : ""}
+  </div>` : ""}`);
+
+/* ── 3) 서명 전 여행자 정보 입력 폼 ── */
+const secTravelerForm = signed ? "" : card(`
+  <div class="blk">
+    <div class="sec-eyebrow">TRAVELER INFORMATION</div>
+    <div class="sec-title">여행자 정보 입력</div>
+    <div style="font-size:12px; color:#35534C; line-height:1.65; margin-top:8px; background:#F0FAF7; border:1px solid #CDEEE6; border-radius:12px; padding:12px 14px;">
+      ✈️ <b>항공권 발권 및 현지 예약</b>에 필요한 정보입니다.<br>여권을 보면서 한글명, 여권 영문명, 생년월일, 여권번호를 정확히 입력해 주세요.
+    </div>
+  </div>
+  ${types.map((type, i) => {
+    const t = (TR && Array.isArray(TR.travelers) && TR.travelers[i]) || (Array.isArray(BK.travelers) && BK.travelers[i]) || {};
+    return `
+    <div class="blk" style="margin-top:12px;">
+      <div class="t-card traveler-item" data-index="${i}">
+        <div class="t-head">
+          <h4>여행자 ${i + 1}</h4>
+          <span class="t-badge">${esc(type)}</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label class="f-label">한글 이름 <b style="color:#C9604B;">*</b></label>
+            <input class="f-input" data-k="nameKo" maxlength="40" value="${esc(t.nameKo || (i === 0 ? (S.name || R.name || "") : ""))}" placeholder="홍길동" required>
+          </div>
+          <div>
+            <label class="f-label">여권 영문명 <b style="color:#C9604B;">*</b></label>
+            <input class="f-input" data-k="passportName" maxlength="60" style="text-transform:uppercase;" value="${esc(t.passportName || "")}" placeholder="HONG GILDONG" required>
+          </div>
+          <div class="grid-full f-help" style="margin-top:-4px; margin-bottom:4px;">여권에 적힌 영문명과 띄어쓰기까지 동일하게 입력해 주세요.</div>
+          <div>
+            <label class="f-label">생년월일 <b style="color:#C9604B;">*</b></label>
+            <input class="f-input" data-k="birth" type="date" value="${esc(t.birth || "")}" required>
+          </div>
+          <div>
+            <label class="f-label">성별 <b style="color:#C9604B;">*</b></label>
+            <select class="f-select" data-k="gender" required>
+              <option value="">선택</option>
+              <option value="남" ${t.gender === "남" ? "selected" : ""}>남</option>
+              <option value="여" ${t.gender === "여" ? "selected" : ""}>여</option>
+            </select>
+          </div>
+          <div>
+            <label class="f-label">연락처${type === "성인" ? ` <b style="color:#C9604B;">*</b>` : ` <span style="font-weight:normal;color:#8CA39D;">(선택)</span>`}</label>
+            <input class="f-input" data-k="phone" type="tel" inputmode="tel" maxlength="20" value="${esc(t.phone || "")}" placeholder="010-1234-5678" ${type === "성인" ? "required" : ""}>
+          </div>
+          <div>
+            <label class="f-label">여권번호 <b style="color:#C9604B;">*</b></label>
+            <input class="f-input" data-k="passportNo" maxlength="20" style="text-transform:uppercase;" value="${esc(t.passportNo || "")}" placeholder="M12345678" required>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join("")}
+  <div class="blk" style="margin-top:12px;">
+    <div class="t-card">
+      <div class="t-head">
+        <h4>항공권 정보</h4>
+        <span class="t-badge" style="background:#F2F4F7;color:#667085;">선택 입력</span>
+      </div>
+      <div style="font-size:11.5px; color:#6B7C78; line-height:1.55; margin-bottom:12px;">
+        발권하셨다면 적어 주세요. 공항 픽업·샌딩에 활용됩니다. (24시간 형식: 20:30)
+      </div>
+      <div class="grid-2">
+        <div class="grid-full sub-box">✈️ 몽골 도착 항공편${(TR && TR.flight && TR.flight.inDate) || S.depart ? ` (${esc((TR && TR.flight && TR.flight.inDate) || S.depart)} 도착)` : ""}</div>
+        <div>
+          <label class="f-label">출발시간 (24시간)</label>
+          <input class="f-input" data-f="inDepTime" type="time" value="${esc((TR && TR.flight && TR.flight.inDepTime) || (BK.flight && BK.flight.inDepTime) || "")}">
+        </div>
+        <div>
+          <label class="f-label">도착시간 (24시간)</label>
+          <input class="f-input" data-f="inTime" type="time" value="${esc((TR && TR.flight && TR.flight.inTime) || (BK.flight && BK.flight.inTime) || "")}">
+        </div>
+        <div class="grid-full">
+          <label class="f-label">항공편명</label>
+          <input class="f-input" data-f="inNo" maxlength="12" style="text-transform:uppercase;" value="${esc((TR && TR.flight && TR.flight.inNo) || (BK.flight && BK.flight.inNo) || "")}" placeholder="OM310">
+        </div>
+
+        <div class="grid-full sub-box" style="margin-top:6px;">🛫 몽골 출발 항공편${(TR && TR.flight && TR.flight.outDate) || S.return_ ? ` (${esc((TR && TR.flight && TR.flight.outDate) || S.return_)} 출발)` : ""}</div>
+        <div>
+          <label class="f-label">출발시간 (24시간)</label>
+          <input class="f-input" data-f="outTime" type="time" value="${esc((TR && TR.flight && TR.flight.outTime) || (BK.flight && BK.flight.outTime) || "")}">
+        </div>
+        <div>
+          <label class="f-label">도착시간 (24시간)</label>
+          <input class="f-input" data-f="outArrTime" type="time" value="${esc((TR && TR.flight && TR.flight.outArrTime) || (BK.flight && BK.flight.outArrTime) || "")}">
+        </div>
+        <div class="grid-full">
+          <label class="f-label">항공편명</label>
+          <input class="f-input" data-f="outNo" maxlength="12" style="text-transform:uppercase;" value="${esc((TR && TR.flight && TR.flight.outNo) || (BK.flight && BK.flight.outNo) || "")}" placeholder="OM309">
+        </div>
+
+        <div class="grid-full" style="margin-top:4px;">
+          <label class="f-label">픽업·샌딩 숙소명 (선택)</label>
+          <input class="f-input" data-x="pickupLodge" maxlength="80" value="${esc((TR && TR.pickupLodge) || BK.pickupLodge || "")}" placeholder="예: 샹그릴라 울란바타르 호텔">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="blk" style="margin-top:12px;">
+    <div class="t-card">
+      <div class="t-head">
+        <h4>특이사항</h4>
+        <span class="t-badge" style="background:#F2F4F7;color:#667085;">선택 입력</span>
+      </div>
+      <label class="f-label">여행 중 참고할 건강 상태 · 식단 등</label>
+      <textarea class="f-textarea" data-x="travelerNote" maxlength="500" placeholder="예: 홍길동 — 고혈압 / 김민지 — 채식주의">${esc((TR && TR.travelerNote) || BK.travelerNote || "")}</textarea>
+    </div>
   </div>`);
 
-/* ── 2) 위험 고지 ── */
+/* ── 4) 위험 고지 ── */
 const secRisk = card(`
   <div class="blk">
     <div class="sec-eyebrow">HEALTH &amp; RISK NOTICE</div>
@@ -247,7 +400,7 @@ const secRisk = card(`
     <div><b style="color:#C9604B;">3</b> 생명에 이상이 발생할 수 있는 약물을 투여 중인 환자 / 임신하신 분</div>
   </div>`);
 
-/* ── 3) 확인 사항 · 약관 ── */
+/* ── 5) 확인 사항 · 약관 ── */
 const secTerms = card(`
   <div class="blk">
     <div class="sec-eyebrow">PRE-CONTRACT &amp; TERMS</div>
@@ -286,7 +439,7 @@ const secTerms = card(`
     ✓ 본인은 위의 고지사항을 안내받고, 충분히 본 여행의 특수성을 확인했음을 인정하며, 위 내용에 대하여 고지받았으므로 이에 대한 책임은 본인에게 있음을 인지하고 계약을 진행합니다.
   </div>`);
 
-/* ── 4) 서명 ── */
+/* ── 6) 서명 ── */
 const secSign = signed ? card(`
   <div class="blk" style="text-align:center;">
     <div class="sec-eyebrow">SIGNATURE</div>
@@ -305,7 +458,8 @@ const secSign = signed ? card(`
   <div class="blk">
     <div class="sec-eyebrow">SIGNATURE</div>
     <div class="sec-title">동의 및 서명</div>
-    <div style="margin-top:8px;">
+    <div style="margin-top:10px;">
+      <label class="agree"><input type="checkbox" id="agree_privacy"><span><b>개인정보 수집·이용 동의:</b> 여행 예약 및 항공·숙박 서비스 제공을 위해 여행자 이름, 생년월일, 성별, 연락처, 여권정보를 수집·이용함에 동의합니다. <b style="color:#C9604B;">(필수)</b></span></label>
       <label class="agree"><input type="checkbox" id="agree1"><span>위 <b>질병·건강 위험도 고지</b>와 <b>계약 전 확인 사항</b>을 모두 읽고 이해했으며 이에 동의합니다. <b style="color:#C9604B;">(필수)</b></span></label>
       <label class="agree" style="border-bottom:none;"><input type="checkbox" id="agree2"><span>본 전자 서명이 서면 서명과 동일한 효력을 가짐에 동의합니다. <b style="color:#C9604B;">(필수)</b></span></label>
     </div>
@@ -319,7 +473,7 @@ const secSign = signed ? card(`
     <div style="margin-top:10px; font-size:10.5px; color:#8CA39D; line-height:1.6; text-align:center;">서명 후에는 계약 내용이 동결 보관되며, 수정이 필요하면 카카오톡으로 문의해 주세요.</div>
   </div>`);
 
-root.innerHTML = secHead + secContractDetail + secRisk + secTerms + secSign;
+root.innerHTML = secHead + secContractDetail + secTravelerForm + secRisk + secTerms + secSign;
 document.getElementById("fab").style.display = signed ? "" : "none";
 document.title = `몽골리아 은하수_${esc(S.name || R.name)}님_여행계약서`;
 
@@ -354,9 +508,11 @@ if (!signed) {
   const stop = () => { drawing = false; last = null; };
   pad.addEventListener("pointerup", stop); pad.addEventListener("pointercancel", stop);
 
+  const aP = document.getElementById("agree_privacy");
   const a1 = document.getElementById("agree1"), a2 = document.getElementById("agree2");
   const submitBtn = document.getElementById("submitBtn");
-  const refresh = () => { submitBtn.disabled = !(a1.checked && a2.checked && drawn); };
+  const refresh = () => { submitBtn.disabled = !(aP && aP.checked && a1.checked && a2.checked && drawn); };
+  if (aP) aP.onchange = refresh;
   a1.onchange = a2.onchange = refresh;
 
   document.getElementById("clearBtn").onclick = () => {
@@ -366,12 +522,128 @@ if (!signed) {
 
   submitBtn.onclick = async () => {
     if (submitBtn.disabled) return;
-    submitBtn.disabled = true; submitBtn.textContent = "제출 중…";
+
+    if (aP && !aP.checked) { toast("개인정보 수집·이용에 동의해 주세요."); return; }
+    if (!a1.checked) { toast("위험도 고지 및 확인 사항에 동의해 주세요."); return; }
+    if (!a2.checked) { toast("전자서명 효력 동의에 체크해 주세요."); return; }
+    if (!drawn) { toast("서명란에 서명해 주세요."); return; }
+
+    // 여행자 정보 수집 및 유효성 검사
+    const travelerEls = [...document.querySelectorAll(".traveler-item")];
+    const travelersData = [];
+    for (let i = 0; i < travelerEls.length; i++) {
+      const el = travelerEls[i];
+      const type = types[i] || "성인";
+      const nameKo = el.querySelector('[data-k="nameKo"]')?.value.trim() || "";
+      const passportName = (el.querySelector('[data-k="passportName"]')?.value.trim() || "").toUpperCase();
+      const birth = el.querySelector('[data-k="birth"]')?.value.trim() || "";
+      const gender = el.querySelector('[data-k="gender"]')?.value.trim() || "";
+      const phone = (el.querySelector('[data-k="phone"]')?.value.trim() || "").replace(/\D/g, "");
+      const passportNo = (el.querySelector('[data-k="passportNo"]')?.value.trim() || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+      const label = `여행자 ${i + 1}(${type})`;
+      if (nameKo.length < 2) {
+        toast(`${label}의 한글 이름을 2자 이상 입력해 주세요.`);
+        el.querySelector('[data-k="nameKo"]')?.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (!/^[A-Z][A-Z '\-]{1,59}$/.test(passportName)) {
+        toast(`${label}의 여권 영문명을 영문 대문자로 정확히 입력해 주세요. (예: HONG GILDONG)`);
+        el.querySelector('[data-k="passportName"]')?.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (!birth || !/^\d{4}-\d{2}-\d{2}$/.test(birth)) {
+        toast(`${label}의 생년월일을 선택해 주세요.`);
+        el.querySelector('[data-k="birth"]')?.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (!["남", "여"].includes(gender)) {
+        toast(`${label}의 성별을 선택해 주세요.`);
+        el.querySelector('[data-k="gender"]')?.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (type === "성인" && (!phone || phone.length < 9 || phone.length > 11)) {
+        toast(`${label}의 연락처를 올바르게 입력해 주세요.`);
+        el.querySelector('[data-k="phone"]')?.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (!passportNo || passportNo.length < 5) {
+        toast(`${label}의 여권번호를 정확히 입력해 주세요.`);
+        el.querySelector('[data-k="passportNo"]')?.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
+      travelersData.push({ type, nameKo, passportName, birth, phone, gender, passportNo });
+    }
+
+    const pick = attr => Object.fromEntries([...document.querySelectorAll(`[data-${attr}]`)].map(x => [x.dataset[attr], x.value.trim()]));
+    const flightData = pick("f");
+    const extraData = pick("x");
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "계약서 서명 제출 중…";
+
+    if (IS_LOCAL) {
+      try {
+        const list = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
+        const idx = list.findIndex(x => x.token === _token);
+        if (idx >= 0) {
+          const now = new Date().toISOString();
+          const rec = list[idx];
+          rec.booking = rec.booking || {};
+          rec.booking.travelers = travelersData;
+          rec.booking.flight = { ...(rec.booking.flight || {}), ...flightData };
+          rec.booking.pickupLodge = extraData.pickupLodge || "";
+          rec.booking.travelerNote = extraData.travelerNote || "";
+          rec.booking.travelerSubmission = { status:"submitted", submittedAt:now, expectedCount:travelersData.length, submittedCount:travelersData.length, source:"contract_sign" };
+          rec.booking.contract = {
+            signedAt: now,
+            signImg: pad.toDataURL("image/png"),
+            signerName: String(R.name || "").slice(0, 40),
+            termsVersion: "v1-2026-07",
+            snapshot: {
+              name: rec.name || "",
+              destination: rec.destination || "",
+              depart: rec.depart || "",
+              return_: rec.return_ || "",
+              nights: rec.nights || null,
+              adult: rec.adult || 0, child: rec.child || 0, infant: rec.infant || 0,
+              confirmedAt: rec.booking.confirmedAt || "",
+              dayCount: Array.isArray(rec.booking.days) ? rec.booking.days.length : 0,
+              travelers: travelersData,
+              flight: rec.booking.flight,
+              pickupLodge: rec.booking.pickupLodge,
+              travelerNote: rec.booking.travelerNote,
+              contractInfo: rec.booking.contractInfo || {},
+            }
+          };
+          localStorage.setItem("leaders_requests", JSON.stringify(list));
+          toast("✓ 서명이 완료됐어요!");
+          setTimeout(() => location.reload(), 900);
+          return;
+        }
+      } catch(e) {}
+    }
+
     try {
       const res = await fetch("/api/sign/" + encodeURIComponent(_token), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agree: true, signImg: pad.toDataURL("image/png"), signerName: R.name || "" }),
+        body: JSON.stringify({
+          agree: true,
+          signImg: pad.toDataURL("image/png"),
+          signerName: R.name || "",
+          travelers: travelersData,
+          flight: flightData,
+          pickupLodge: extraData.pickupLodge || "",
+          travelerNote: extraData.travelerNote || "",
+        }),
       });
       const j = await res.json();
       if (j.code === "deposit_required") { toast("예약금 입금 확인 후 서명할 수 있어요"); setTimeout(() => location.reload(), 1200); return; }
@@ -381,7 +653,8 @@ if (!signed) {
       setTimeout(() => location.reload(), 900);
     } catch (e) {
       toast("⚠ 제출 실패: " + e.message + " — 다시 시도해 주세요");
-      submitBtn.disabled = false; submitBtn.textContent = "✍️ 서명하고 계약 완료하기";
+      submitBtn.disabled = false;
+      submitBtn.textContent = "✍️ 서명하고 계약 완료하기";
     }
   };
 }
