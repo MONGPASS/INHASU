@@ -19,10 +19,12 @@
      SOLAPI_PF_ID                    연동한 카카오 비즈니스 채널 pfId
      SOLAPI_TEMPLATE_QUOTE_ID        승인된 "견적서 도착" 템플릿 ID
      SOLAPI_TEMPLATE_ITINERARY_ID    승인된 확정일정표 템플릿 ID
-     SOLAPI_TEMPLATE_GUIDEBOOK_ID     (사용 안 함) 기존 출발 7일 전 가이드북 템플릿 ID
-     SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID 여행 주의사항 알림톡 템플릿 ID
+     SOLAPI_TEMPLATE_GUIDEBOOK_ID     가이드북(투어 준비물) 템플릿 ID
+                                     · 여행 주의사항 발송의 예비 템플릿으로 쓰입니다.
+     SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID 여행 주의사항 전용 템플릿 ID (선택)
                                      · 여행 주의사항은 카카오 알림톡으로만 발송합니다.
-                                     · 없으면 발송되지 않습니다 (문자로 대체하지 않음).
+                                     · 이 값이 없으면 위 GUIDEBOOK_ID를 대신 씁니다.
+                                     · 둘 다 없으면 발송되지 않습니다 (문자 대체 없음).
      SITE_URL                        고객 링크 기준 주소(선택, 예: https://mongolia-milkyway.com)
      NOTIFY_COMPANY                  #{회사명} 값(기본: 몽골리아 은하수 여행사)
      SOLAPI_DISABLE_SMS              Y면 알림톡 실패 시 문자 대체발송 안 함
@@ -43,9 +45,13 @@ export const quoteTemplateId = env => env.SOLAPI_TEMPLATE_QUOTE_ID || env.SOLAPI
 export const contractTemplateId = env => env.SOLAPI_TEMPLATE_CONTRACT_ID || env.SOLAPI_KAKAO_CONTRACT_TEMPLATE_ID || "";
 export const itineraryTemplateId = env => env.SOLAPI_TEMPLATE_ITINERARY_ID || env.SOLAPI_KAKAO_ITINERARY_TEMPLATE_ID || "";
 export const guidebookTemplateId = env => env.SOLAPI_TEMPLATE_GUIDEBOOK_ID || "";
-/* 여행 주의사항(가이드북) 전용 템플릿 — 계약서 서명 직후 문구로 승인받은 템플릿을 넣습니다.
-   여행 주의사항은 카카오 알림톡으로만 나가므로, 이 값이 비어 있으면 발송되지 않습니다. */
-export const travelNoticeTemplateId = env => env.SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID || "";
+/* 여행 주의사항 템플릿 —
+   전용 템플릿(SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID)이 있으면 그것을 쓰고,
+   없으면 기존 가이드북 템플릿(SOLAPI_TEMPLATE_GUIDEBOOK_ID)을 그대로 씁니다.
+   두 템플릿은 쓰는 변수(#{고객명}·#{출발일}·#{회사명}·#{링크})와 링크에 들어가는
+   PDF가 같아 서로 바꿔 써도 문제가 없습니다. 둘 다 없으면 발송하지 않습니다. */
+export const travelNoticeTemplateId = env =>
+  env.SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID || env.SOLAPI_TEMPLATE_GUIDEBOOK_ID || "";
 export const GUIDEBOOK_PATH = "guidebooks/mongolia-travel-guidebook-2026.pdf";
 
 async function hmacHex(secret, data) {

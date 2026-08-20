@@ -62,6 +62,26 @@ test("전용 템플릿이 설정되면 알림톡으로 보낸다", async () => {
   assert.equal(body.message.text, undefined, "문자 본문이 함께 나가면 안 된다");
 });
 
+test("전용 템플릿이 없으면 기존 가이드북 템플릿으로 보낸다", async () => {
+  let body;
+  const env = { ...BASE_ENV, SOLAPI_TEMPLATE_GUIDEBOOK_ID:"KA01TP-guidebook" };
+  await withFetch(async (_url, init) => { body = JSON.parse(init.body); return okResponse(); }, () =>
+    notifyCustomerTravelNotice(env, { phone:"010-1234-5678", name:"홍길동", depart:"2026-08-18" }));
+
+  assert.equal(body.message.kakaoOptions.templateId, "KA01TP-guidebook");
+  assert.equal(body.message.kakaoOptions.disableSms, true);
+  assert.equal(body.message.kakaoOptions.variables["#{링크}"], "guidebooks/mongolia-travel-guidebook-2026.pdf");
+});
+
+test("전용 템플릿이 있으면 가이드북 템플릿보다 우선한다", async () => {
+  let body;
+  const env = { ...BASE_ENV, SOLAPI_TEMPLATE_GUIDEBOOK_ID:"KA01TP-guidebook", SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID:"KA01TP-notice" };
+  await withFetch(async (_url, init) => { body = JSON.parse(init.body); return okResponse(); }, () =>
+    notifyCustomerTravelNotice(env, { phone:"010-1234-5678", name:"홍길동", depart:"2026-08-18" }));
+
+  assert.equal(body.message.kakaoOptions.templateId, "KA01TP-notice");
+});
+
 test("SOLAPI_DISABLE_SMS가 N이어도 여행 주의사항은 문자 대체를 하지 않는다", async () => {
   let body;
   const env = { ...KAKAO_ENV, SOLAPI_DISABLE_SMS:"N" };
