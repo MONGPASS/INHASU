@@ -268,7 +268,8 @@ function fieldRows(type, r) {
     <label class="f"><span>한 줄 소개 (확정 일정표에 노출)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
   if (type === "lodges") return `
     <div class="row2">
-      <label class="f"><span>지역 (예: 홍고린엘스)</span><input id="f_region" value="${esc(r.region||"")}"></label>
+      <label class="f"><span>지역 (예약관리 숙소 배정에서 이 지역으로 묶여 보입니다)</span>
+        <select id="f_region">${lodgeRegionOptions(r.region)}</select></label>
       <label class="f"><span>등급 (확정 일정표에 노출)</span><select id="f_grade">
         ${["","일반게르","고급게르","호텔"].map(g => `<option value="${g}" ${r.grade===g?"selected":""}>${g||"선택"}</option>`).join("")}
       </select></label>
@@ -283,10 +284,24 @@ function fieldRows(type, r) {
     <label class="f"><span>수하물 (확정 일정표에 노출 — 예: 대형 캐리어 4개 적재 가능)</span><input id="f_luggage" value="${esc(r.luggage||"")}" placeholder="대형 캐리어 4개 적재 가능"></label>
     <label class="f"><span>차량 특징 (확정 일정표에 노출 — 예: 몽골 장거리 이동에 적합한 차량입니다.)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
 }
+/* 숙소 지역 선택지 — 대표 지역 + 이미 등록된 숙소들이 쓰고 있는 지역을 함께 보여줍니다.
+   예약관리의 숙소 배정 드롭다운이 이 값으로 묶이므로 자유 입력 대신 골라 쓰게 했습니다.
+   ※ 대표 지역 목록은 예약관리.html의 LODGE_REGIONS와 같게 유지해 주세요. */
+const LODGE_REGIONS = ["중앙몽골", "남고비", "홉스골"];
+function lodgeRegionOptions(current) {
+  const cur = String(current || "").trim();
+  const used = Object.values(TYPES.lodges.get())
+    .map(r => String((r && r.region) || "").trim()).filter(Boolean);
+  const list = [...new Set([...LODGE_REGIONS, ...used, ...(cur ? [cur] : [])])];
+  return `<option value="" ${cur ? "" : "selected"}>지역 미지정</option>` +
+    list.map(v => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(v)}</option>`).join("") +
+    `<option value="__new">＋ 새 지역 추가…</option>`;
+}
+
 function readFields(type, r) {
   const v = id => $(id) ? $(id).value.trim() : "";
   if (type === "guides") { r.nameEn=v("f_nameEn"); r.role=v("f_role"); r.phone=v("f_phone"); r.qr=v("f_qr"); r.desc=v("f_desc"); }
-  else if (type === "lodges") { r.region=v("f_region"); r.grade=v("f_grade"); r.tags=v("f_tags"); r.desc=v("f_desc"); }
+  else if (type === "lodges") { r.region=v("f_region") === "__new" ? "" : v("f_region"); r.grade=v("f_grade"); r.tags=v("f_tags"); r.desc=v("f_desc"); }
   else { r.seats=v("f_seats"); r.luggage=v("f_luggage"); r.plate=v("f_plate"); r.desc=v("f_desc"); }
   return r;
 }
@@ -338,6 +353,21 @@ function openEdit(key) {
     </div>`;
   $("drawer").classList.add("on"); $("overlay").classList.add("on");
   $("dX").onclick = closeDrawer;
+
+  /* 숙소 지역: "＋ 새 지역 추가…"를 고르면 바로 이름을 입력받아 목록에 넣습니다 */
+  const regionSel = $("f_region");
+  if (regionSel) {
+    let lastRegion = regionSel.value;
+    regionSel.onchange = () => {
+      if (regionSel.value !== "__new") { lastRegion = regionSel.value; return; }
+      const name = (prompt("새 지역 이름을 입력하세요 (예: 서부몽골)") || "").trim();
+      if (!name) { regionSel.value = lastRegion; return; }
+      if (![...regionSel.options].some(o => o.value === name)) {
+        regionSel.add(new Option(name, name), regionSel.options.length - 1);
+      }
+      regionSel.value = name; lastRegion = name;
+    };
+  }
 
   $("upMain").onclick = () => $("fileMain").click();
   $("fileMain").onchange = async (e) => {

@@ -1251,15 +1251,40 @@ function fillDatalists() {
     if (!names.length) el.innerHTML = `<option value="">리소스관리에 등록된 항목 없음</option>`;
   };
   pick("guides", "g_pick"); pick("vehicles", "v_pick");
-  // 일차별 숙소 — 행마다 같은 드롭다운 (현재 배정된 숙소가 선택된 상태로)
+  // 일차별 숙소 — 행마다 같은 드롭다운 (지역별로 묶고, 현재 배정된 숙소가 선택된 상태로)
   document.querySelectorAll(".lodge-pick").forEach(el => {
     const row = el.closest(".lodge-row");
     const assigned = row?.querySelector('[data-lk="name"]')?.value.trim() || "";
     const names = Object.keys(LIBS.lodges);
     if (!names.length) { el.innerHTML = `<option value="">리소스관리에 등록된 항목 없음</option>`; return; }
-    el.innerHTML = `<option value="">${assigned ? "📥 다른 리소스로 변경…" : "📥 리소스에서 선택…"}</option>` +
-      names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    const groups = lodgeRegionGroups();
+    const options = ([, items]) => items.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    // 지역을 지정한 숙소가 하나도 없으면 굳이 묶지 않고 예전처럼 평면 목록으로 보여줍니다
+    const body = groups.length === 1 && groups[0][0] === LODGE_REGION_UNSET
+      ? options(groups[0])
+      : groups.map(g => `<optgroup label="${esc(g[0])} (${g[1].length})">${options(g)}</optgroup>`).join("");
+    el.innerHTML = `<option value="">${assigned ? "📥 다른 리소스로 변경…" : "📥 리소스에서 선택…"}</option>` + body;
     el.value = names.includes(assigned) ? assigned : "";
+  });
+}
+/* 숙소를 지역(리소스관리에서 입력한 값)별로 묶어 드롭다운에 보여줍니다.
+   대표 지역을 먼저, 그 밖에 직접 만든 지역은 가나다순, 지역 미지정은 맨 뒤에 둡니다.
+   ※ 대표 지역 목록은 리소스관리.html의 LODGE_REGIONS와 같게 유지해 주세요. */
+const LODGE_REGIONS = ["중앙몽골", "남고비", "홉스골"];
+const LODGE_REGION_UNSET = "지역 미지정";
+function lodgeRegionGroups() {
+  const groups = new Map();
+  Object.entries(LIBS.lodges).forEach(([name, r]) => {
+    const region = String((r && r.region) || "").trim() || LODGE_REGION_UNSET;
+    if (!groups.has(region)) groups.set(region, []);
+    groups.get(region).push(name);
+  });
+  const rank = r => (r === LODGE_REGION_UNSET ? 2 : LODGE_REGIONS.includes(r) ? 0 : 1);
+  return [...groups.entries()].sort(([a], [b]) => {
+    const ra = rank(a), rb = rank(b);
+    if (ra !== rb) return ra - rb;
+    if (ra === 0) return LODGE_REGIONS.indexOf(a) - LODGE_REGIONS.indexOf(b);
+    return a.localeCompare(b, "ko");
   });
 }
 /* 라이브러리 레코드 → 폼 필드 채움 */
