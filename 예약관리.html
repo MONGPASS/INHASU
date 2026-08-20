@@ -1080,9 +1080,8 @@ function updateActionBar() {
   const tnSentAt = tn.travelNoticeSentAt || "";
   const tnCount = Number(tn.travelNoticeSentCount) || 0;
   tnBtn.textContent = tnSentAt ? "📘 주의사항 재발송" : "📘 주의사항 발송";
-  tnBtn.disabled = !PRE.phone;
-  tnBtn.title = !PRE.phone ? "고객 연락처가 없어 발송할 수 없습니다"
-    : tnSentAt ? `마지막 발송 ${tnSentAt.slice(0, 10)} · 총 ${tnCount}회 — 다시 보낼 수 있습니다`
+  tnBtn.disabled = false;
+  tnBtn.title = tnSentAt ? `마지막 발송 ${tnSentAt.slice(0, 10)} · 총 ${tnCount}회 — 다시 보낼 수 있습니다`
     : "여행 주의사항 PDF를 고객에게 지금 보냅니다";
   $("bottomStep").textContent = wf.published ? "예약 절차 완료" : `${wf.active}/${wf.steps.length}단계 · ${wf.steps[wf.active - 1].label}`;
   $("bottomTask").textContent = wf.task.title;
@@ -1125,14 +1124,28 @@ async function sendStageRequest(kind) {
 
 /* 여행 주의사항 수동 발송 — 계약서 서명 직후 자동 발송과 같은 안내를 관리자가 직접 다시 보냅니다 */
 async function sendTravelNotice() {
-  if (!PRE.phone) return toast("⚠ 고객 연락처가 없어 발송할 수 없어요");
+  /* 예약목록에서 넘어온 스냅샷에 연락처가 없을 수 있어(예전 화면에서 연 경우 등)
+     서버의 실제 예약 정보로 한 번 보충한 뒤 안내 문구를 만듭니다. */
+  if (!PRE.phone) {
+    try {
+      const r = await fetch(`/api/requests/${encodeURIComponent(PRE.id)}`, { headers:{ "x-admin-token":ADMIN_TOKEN }, cache:"no-store" });
+      const j = await r.json();
+      if (j.ok && j.item) {
+        PRE.phone = j.item.phone || "";
+        PRE.notify = j.item.notify || PRE.notify;
+        localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));
+        updateActionBar();
+      }
+    } catch (e) {}
+  }
   const tn = PRE.notify || {};
   const before = tn.travelNoticeSentAt
     ? `이미 ${tn.travelNoticeSentAt.slice(0, 10)}에 보냈어요. 다시 보낼까요?`
     : "고객에게 여행 주의사항 안내를 지금 보냅니다.";
+  const who = PRE.phone ? `${PRE.name || "고객"}님(${PRE.phone})` : `${PRE.name || "고객"}님`;
   if (!await askConfirm({
     title:"여행 주의사항을 보낼까요?",
-    message:`${before}\n${PRE.name || "고객"}님(${PRE.phone})에게 여행 주의사항 PDF 링크가 발송됩니다.`,
+    message:`${before}\n${who}에게 여행 주의사항 PDF 링크가 발송됩니다.`,
     confirmText:"주의사항 발송", icon:"📘",
   })) return;
   const btn = $("travelNoticeBtn");
@@ -1145,7 +1158,12 @@ async function sendTravelNotice() {
     });
     const j = await res.json();
     if (!res.ok || !j.ok) throw new Error(j.error || "발송 실패");
-    if (!j.travelNotice || !j.travelNotice.ok) throw new Error(j.travelNotice?.reason || "발송 실패");
+    if (!j.travelNotice || !j.travelNotice.ok) {
+      const reason = j.travelNotice?.reason || "발송 실패";
+      throw new Error(/invalid phone/i.test(reason)
+        ? "고객 연락처가 등록되어 있지 않아요 — 예약 정보에서 연락처를 먼저 채워주세요"
+        : reason);
+    }
     PRE.notify = j.notify || PRE.notify;
     localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));
     updateActionBar();
