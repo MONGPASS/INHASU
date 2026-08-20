@@ -213,8 +213,9 @@ export async function notifyCustomerTravelNotice(env, { phone, name, depart, req
       "#{회사명}": company(env),
       "#{링크}": GUIDEBOOK_PATH,
     },
-    buttonName: "여행 주의사항 보기",
-    link: guidebookUrl(env, requestUrl),
+    // 버튼은 승인된 템플릿의 버튼(https://mongolia-milkyway.com/#{링크})을 그대로 사용합니다.
+    // 견적·일정표·가이드북 템플릿과 같은 방식이며, API로 버튼을 새로 만들면
+    // 승인 내용과 달라져 반려될 수 있습니다.
   });
 }
 

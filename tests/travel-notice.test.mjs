@@ -57,7 +57,7 @@ test("전용 템플릿이 설정되면 알림톡으로 보낸다", async () => {
 
   assert.equal(body.message.kakaoOptions.templateId, "KA01TP-notice");
   assert.equal(body.message.kakaoOptions.variables["#{링크}"], "guidebooks/mongolia-travel-guidebook-2026.pdf");
-  assert.equal(body.message.kakaoOptions.buttons[0].buttonName, "여행 주의사항 보기");
+  assert.equal(body.message.kakaoOptions.buttons, undefined, "버튼은 승인된 템플릿 것을 그대로 쓴다");
   assert.equal(body.message.kakaoOptions.disableSms, true, "알림톡 실패 시 문자로 대체하면 안 된다");
   assert.equal(body.message.text, undefined, "문자 본문이 함께 나가면 안 된다");
 });
