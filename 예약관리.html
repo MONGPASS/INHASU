@@ -1160,6 +1160,10 @@ async function sendTravelNotice() {
     if (!res.ok || !j.ok) throw new Error(j.error || "발송 실패");
     if (!j.travelNotice || !j.travelNotice.ok) {
       const reason = j.travelNotice?.reason || "발송 실패";
+      if (/template not set/i.test(reason))
+        throw new Error("알림톡 템플릿이 설정되지 않았어요 — 승인된 템플릿 ID를 SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID에 등록해 주세요");
+      if (/pf_id/i.test(reason))
+        throw new Error("카카오 채널(SOLAPI_PF_ID) 설정이 필요해요");
       throw new Error(/invalid phone/i.test(reason)
         ? "고객 연락처가 등록되어 있지 않아요 — 예약 정보에서 연락처를 먼저 채워주세요"
         : reason);

@@ -19,10 +19,14 @@
      SOLAPI_PF_ID                    연동한 카카오 비즈니스 채널 pfId
      SOLAPI_TEMPLATE_QUOTE_ID        승인된 "견적서 도착" 템플릿 ID
      SOLAPI_TEMPLATE_ITINERARY_ID    승인된 확정일정표 템플릿 ID
-     SOLAPI_TEMPLATE_GUIDEBOOK_ID     승인된 출발 7일 전 가이드북 템플릿 ID
+     SOLAPI_TEMPLATE_GUIDEBOOK_ID     (사용 안 함) 기존 출발 7일 전 가이드북 템플릿 ID
+     SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID 여행 주의사항 알림톡 템플릿 ID
+                                     · 여행 주의사항은 카카오 알림톡으로만 발송합니다.
+                                     · 없으면 발송되지 않습니다 (문자로 대체하지 않음).
      SITE_URL                        고객 링크 기준 주소(선택, 예: https://mongolia-milkyway.com)
      NOTIFY_COMPANY                  #{회사명} 값(기본: 몽골리아 은하수 여행사)
      SOLAPI_DISABLE_SMS              Y면 알림톡 실패 시 문자 대체발송 안 함
+                                     (여행 주의사항은 이 값과 무관하게 항상 대체발송 없음)
 
    기존 템플릿은 #{고객명}, #{회사명}, #{링크} 변수를 사용하며,
    승인된 버튼은 템플릿 자체의 버튼을 그대로 사용합니다.
@@ -39,8 +43,8 @@ export const quoteTemplateId = env => env.SOLAPI_TEMPLATE_QUOTE_ID || env.SOLAPI
 export const contractTemplateId = env => env.SOLAPI_TEMPLATE_CONTRACT_ID || env.SOLAPI_KAKAO_CONTRACT_TEMPLATE_ID || "";
 export const itineraryTemplateId = env => env.SOLAPI_TEMPLATE_ITINERARY_ID || env.SOLAPI_KAKAO_ITINERARY_TEMPLATE_ID || "";
 export const guidebookTemplateId = env => env.SOLAPI_TEMPLATE_GUIDEBOOK_ID || "";
-/* 여행 주의사항(가이드북) 전용 템플릿 — 계약서 서명 직후 문구로 새로 승인받은 템플릿을 넣습니다.
-   비워두면 아래 notifyCustomerTravelNotice가 문자(LMS)로 같은 내용을 보냅니다. */
+/* 여행 주의사항(가이드북) 전용 템플릿 — 계약서 서명 직후 문구로 승인받은 템플릿을 넣습니다.
+   여행 주의사항은 카카오 알림톡으로만 나가므로, 이 값이 비어 있으면 발송되지 않습니다. */
 export const travelNoticeTemplateId = env => env.SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID || "";
 export const GUIDEBOOK_PATH = "guidebooks/mongolia-travel-guidebook-2026.pdf";
 
@@ -81,7 +85,7 @@ export function canSendKakao(env, { phone, templateId } = {}) {
 }
 
 /* 승인된 카카오 알림톡 단건 발송. text를 함께 보내면 알림톡이 실패하므로 넣지 않습니다. */
-export async function sendKakaoAlimtalk(env, { phone, templateId, variables, buttonName, link }) {
+export async function sendKakaoAlimtalk(env, { phone, templateId, variables, buttonName, link, disableSms }) {
   const tel = normPhone(phone);
   if (!isPhone(tel)) return SKIP("invalid phone");
   if (!pfId(env)) return SKIP("SOLAPI_PF_ID not set");
@@ -90,7 +94,8 @@ export async function sendKakaoAlimtalk(env, { phone, templateId, variables, but
   const kakaoOptions = {
     pfId: pfId(env),
     templateId,
-    disableSms: env.SOLAPI_DISABLE_SMS === "Y" || envBool(env.SOLAPI_KAKAO_DISABLE_SMS),
+    // disableSms를 명시로 넘기면(카톡 전용 발송) 환경변수와 무관하게 문자 대체를 막습니다.
+    disableSms: disableSms === true || env.SOLAPI_DISABLE_SMS === "Y" || envBool(env.SOLAPI_KAKAO_DISABLE_SMS),
     variables: Object.fromEntries(
       Object.entries(variables || {}).map(([key, value]) => [String(key), String(value ?? "")])
     ),
@@ -187,37 +192,30 @@ export function guidebookUrl(env, requestUrl) {
 }
 
 /* 여행 주의사항 안내 — 계약서 서명 직후 자동 발송과 관리자 수동 발송에 함께 사용합니다.
-   전용 알림톡 템플릿(SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID)이 승인·설정되어 있으면 알림톡으로,
-   없으면 같은 내용을 문자(LMS)로 보냅니다. 기존 "출발 7일 전" 가이드북 템플릿은
-   승인된 문구가 시점과 맞지 않으므로 재사용하지 않습니다. */
+   ── 카카오 알림톡으로만 발송합니다 ──
+   문자로는 절대 나가지 않도록 대체발송(disableSms)을 끄고, 승인된 전용 템플릿
+   (SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID)이 없으면 아예 보내지 않고 이유를 돌려줍니다.
+   ※ 기존 "출발 7일 전" 가이드북 템플릿을 그대로 쓰시려면 그 템플릿 ID를
+      SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID에 넣으시면 됩니다(코드 수정 불필요). */
 export async function notifyCustomerTravelNotice(env, { phone, name, depart, requestUrl }) {
-  const url = guidebookUrl(env, requestUrl);
   const templateId = travelNoticeTemplateId(env);
-  if (canSendKakao(env, { phone, templateId })) {
-    return sendKakaoAlimtalk(env, {
-      phone,
-      templateId,
-      variables: {
-        "#{고객명}": name || "고객",
-        "#{출발일}": String(depart || ""),
-        "#{회사명}": company(env),
-        "#{링크}": GUIDEBOOK_PATH,
-      },
-      buttonName: "여행 주의사항 보기",
-      link: url,
-    });
-  }
+  if (!templateId) return SKIP("travel notice kakao template not set");
+  if (!pfId(env)) return SKIP("SOLAPI_PF_ID not set");
+  if (!isPhone(normPhone(phone))) return SKIP("invalid phone");
 
-  const text =
-`[${company(env)}]
-${name ? name + "님, " : ""}여행계약서 작성이 완료되었습니다.
-
-여행 주의사항을 보내드리니 여행 준비에 참고해 주세요😊
-
-▶ 여행 주의사항 확인하기:
-${url}`;
-
-  return sendSms(env, { phone, text });
+  return sendKakaoAlimtalk(env, {
+    phone,
+    templateId,
+    disableSms: true,          // 알림톡이 실패해도 문자로 대체하지 않습니다
+    variables: {
+      "#{고객명}": name || "고객",
+      "#{출발일}": String(depart || ""),
+      "#{회사명}": company(env),
+      "#{링크}": GUIDEBOOK_PATH,
+    },
+    buttonName: "여행 주의사항 보기",
+    link: guidebookUrl(env, requestUrl),
+  });
 }
 
 export function notifyCustomerGuidebook(env, { phone, name, depart }) {

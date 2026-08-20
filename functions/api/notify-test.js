@@ -11,9 +11,8 @@
      ?token=…&type=quote&phone=010…  견적 준비 알림톡 테스트
      ?token=…&type=itinerary&phone=010… 확정일정표 알림톡 테스트
      ?token=…&type=guidebook&phone=010…&depart=2026-08-18 가이드북 알림톡 테스트
-     ?token=…&type=travelnotice&phone=010… 여행 주의사항 테스트
-        (전용 템플릿이 설정돼 있으면 알림톡, 없으면 문자로 나갑니다 —
-         응답의 channel 값으로 어느 쪽으로 나갔는지 확인할 수 있습니다)
+     ?token=…&type=travelnotice&phone=010… 여행 주의사항 알림톡 테스트
+        (카카오 알림톡 전용 — 템플릿이 없으면 발송되지 않고 ready:false로 알려줍니다)
    ═══════════════════════════════════════════════════════════ */
 import {
   sendSms, notifyAdmin, canSendKakao, travelNoticeTemplateId,
@@ -46,10 +45,9 @@ export async function onRequestGet({ request, env }) {
     SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID: !!env.SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID,
     SITE_URL: env.SITE_URL || env.CUSTOMER_BASE_URL || null,
   };
-  /* 여행 주의사항이 알림톡으로 나갈지 문자로 나갈지 — 전용 템플릿 설정 여부로 갈립니다 */
-  const travelNoticeChannel = phoneForChannel =>
-    canSendKakao(env, { phone: phoneForChannel || "01000000000", templateId: travelNoticeTemplateId(env) })
-      ? "kakao" : "sms";
+  /* 여행 주의사항은 카카오 알림톡으로만 나갑니다 — 템플릿이 없으면 발송되지 않습니다 */
+  const travelNoticeReady = phoneForChannel =>
+    canSendKakao(env, { phone: phoneForChannel || "01000000000", templateId: travelNoticeTemplateId(env) });
 
   const type = url.searchParams.get("type") || "";
   const phone = url.searchParams.get("phone");
@@ -77,7 +75,7 @@ export async function onRequestGet({ request, env }) {
     const result = await notifyCustomerTravelNotice(env, {
       phone, name:"테스트 고객", depart:url.searchParams.get("depart") || "2026-08-18", requestUrl:request.url,
     });
-    return json({ ok:result.ok, type, channel:travelNoticeChannel(phone), envState, solapiResponse:result });
+    return json({ ok:result.ok, type, channel:"kakao", ready:travelNoticeReady(phone), envState, solapiResponse:result });
   }
 
   if (phone) {
@@ -89,10 +87,11 @@ export async function onRequestGet({ request, env }) {
     ok: true,
     note: "설정 상태만 확인. 관리자 문자는 &type=admin, 일반 문자는 &phone=010…, 알림톡은 &type=quote|itinerary|guidebook|travelnotice&phone=010…",
     travelNotice: {
-      channel: travelNoticeChannel(),
-      설명: travelNoticeChannel() === "kakao"
-        ? "여행 주의사항은 카카오 알림톡으로 발송됩니다."
-        : "여행 주의사항은 문자(LMS)로 발송됩니다 — 알림톡으로 보내려면 전용 템플릿을 승인받아 SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID에 넣어주세요.",
+      channel: "kakao",
+      ready: travelNoticeReady(),
+      설명: travelNoticeReady()
+        ? "여행 주의사항은 카카오 알림톡으로만 발송됩니다 (문자 대체발송 없음)."
+        : "SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID가 없어 지금은 발송되지 않습니다 — 승인된 알림톡 템플릿 ID를 넣어주세요.",
     },
     envState,
   });

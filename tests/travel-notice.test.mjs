@@ -19,6 +19,9 @@ const BASE_ENV = {
   ADMIN_TOKEN:"admin-secret",
 };
 
+/* 여행 주의사항은 카카오 알림톡 전용 — 템플릿이 설정된 환경 */
+const KAKAO_ENV = { ...BASE_ENV, SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID:"KA01TP-notice" };
+
 const withFetch = async (handler, run) => {
   const original = globalThis.fetch;
   globalThis.fetch = handler;
@@ -36,16 +39,14 @@ test("여행 주의사항 PDF 링크는 배포 주소 기준 절대경로로 만
   );
 });
 
-test("전용 템플릿이 없으면 계약 완료 문구를 문자로 보낸다", async () => {
-  let body;
-  await withFetch(async (_url, init) => { body = JSON.parse(init.body); return okResponse(); }, () =>
+test("전용 템플릿이 없으면 문자로 대체하지 않고 아예 보내지 않는다", async () => {
+  let calls = 0;
+  const result = await withFetch(async () => { calls += 1; return okResponse(); }, () =>
     notifyCustomerTravelNotice(BASE_ENV, { phone:"010-1234-5678", name:"홍길동", depart:"2026-08-18" }));
 
-  assert.equal(body.message.kakaoOptions, undefined);
-  assert.equal(body.message.to, "01012345678");
-  assert.match(body.message.text, /여행계약서 작성이 완료되었습니다/);
-  assert.match(body.message.text, /여행 주의사항을 보내드리니/);
-  assert.match(body.message.text, /https:\/\/mongolia-milkyway\.com\/guidebooks\/mongolia-travel-guidebook-2026\.pdf/);
+  assert.equal(calls, 0, "발송 요청 자체가 나가면 안 된다");
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /template not set/);
 });
 
 test("전용 템플릿이 설정되면 알림톡으로 보낸다", async () => {
@@ -57,6 +58,16 @@ test("전용 템플릿이 설정되면 알림톡으로 보낸다", async () => {
   assert.equal(body.message.kakaoOptions.templateId, "KA01TP-notice");
   assert.equal(body.message.kakaoOptions.variables["#{링크}"], "guidebooks/mongolia-travel-guidebook-2026.pdf");
   assert.equal(body.message.kakaoOptions.buttons[0].buttonName, "여행 주의사항 보기");
+  assert.equal(body.message.kakaoOptions.disableSms, true, "알림톡 실패 시 문자로 대체하면 안 된다");
+  assert.equal(body.message.text, undefined, "문자 본문이 함께 나가면 안 된다");
+});
+
+test("SOLAPI_DISABLE_SMS가 N이어도 여행 주의사항은 문자 대체를 하지 않는다", async () => {
+  let body;
+  const env = { ...KAKAO_ENV, SOLAPI_DISABLE_SMS:"N" };
+  await withFetch(async (_url, init) => { body = JSON.parse(init.body); return okResponse(); }, () =>
+    notifyCustomerTravelNotice(env, { phone:"010-1234-5678", name:"홍길동", depart:"2026-08-18" }));
+  assert.equal(body.message.kakaoOptions.disableSms, true);
 });
 
 test("자동 발송은 서명 1건당 한 번, 수동 발송은 제한 없이 기록된다", () => {
@@ -110,7 +121,7 @@ test("관리자 수동 발송은 실제로 보낸 뒤 결과와 기록을 함께
   });
   let sends = 0;
   const res = await withFetch(async () => { sends += 1; return okResponse(); }, () =>
-    onRequestPatch({ request:patchRequest({ notifyTravelNotice:true }), env:{ ...BASE_ENV, DB }, params:{ id:"req-1" } }));
+    onRequestPatch({ request:patchRequest({ notifyTravelNotice:true }), env:{ ...KAKAO_ENV, DB }, params:{ id:"req-1" } }));
 
   const body = await res.json();
   assert.equal(res.status, 200);
@@ -130,7 +141,7 @@ test("발송이 실패하면 기록을 남기지 않고 실패를 알린다", as
     async () => new Response(JSON.stringify({ errorMessage:"quota exceeded" }), {
       status:500, headers:{ "Content-Type":"application/json" },
     }),
-    () => onRequestPatch({ request:patchRequest({ notifyTravelNotice:true }), env:{ ...BASE_ENV, DB }, params:{ id:"req-1" } }));
+    () => onRequestPatch({ request:patchRequest({ notifyTravelNotice:true }), env:{ ...KAKAO_ENV, DB }, params:{ id:"req-1" } }));
 
   const body = await res.json();
   assert.equal(body.ok, true);
@@ -143,11 +154,27 @@ test("연락처가 없으면 발송을 건너뛰고 실패로 알린다", async 
   const DB = mockDb({ id:"req-1", status:"예약확정", name:"홍길동", phone:"", booking:{}, activities:[] });
   let sends = 0;
   const res = await withFetch(async () => { sends += 1; return okResponse(); }, () =>
+    onRequestPatch({ request:patchRequest({ notifyTravelNotice:true }), env:{ ...KAKAO_ENV, DB }, params:{ id:"req-1" } }));
+
+  const body = await res.json();
+  assert.equal(sends, 0);
+  assert.equal(body.travelNotice.ok, false);
+});
+
+test("알림톡 템플릿이 없으면 수동 발송이 이유와 함께 실패한다", async () => {
+  const DB = mockDb({
+    id:"req-1", status:"예약확정", name:"홍길동", phone:"01012345678",
+    booking:{ contractInfo:{} }, activities:[],
+  });
+  let sends = 0;
+  const res = await withFetch(async () => { sends += 1; return okResponse(); }, () =>
     onRequestPatch({ request:patchRequest({ notifyTravelNotice:true }), env:{ ...BASE_ENV, DB }, params:{ id:"req-1" } }));
 
   const body = await res.json();
   assert.equal(sends, 0);
   assert.equal(body.travelNotice.ok, false);
+  assert.match(body.travelNotice.reason, /template not set/);
+  assert.equal(DB.record.notify?.travelNoticeSentAt, undefined);
 });
 
 /* 서명 저장 후 CAS(이전 값 일치 시에만 갱신) 업데이트까지 재현하는 DB 목 */
@@ -184,7 +211,7 @@ const runSign = async (DB, fetchHandler) => {
   const pending = [];
   const res = await withFetch(fetchHandler, async () => {
     const response = await onSignPost({
-      request:signRequest(), env:{ ...BASE_ENV, DB }, params:{ token:"token-1234567890123456" },
+      request:signRequest(), env:{ ...KAKAO_ENV, DB }, params:{ token:"token-1234567890123456" },
       waitUntil(p) { pending.push(p); },
     });
     await Promise.all(pending);
@@ -202,9 +229,9 @@ test("계약서 서명 직후 여행 주의사항이 자동 발송되고 기록�
   const res = await runSign(DB, async (_url, init) => { sent.push(JSON.parse(init.body)); return okResponse(); });
 
   assert.equal(res.status, 200);
-  const notices = sent.filter(b => /여행 주의사항/.test(b.message.text || ""));
-  assert.equal(notices.length, 1, "여행 주의사항이 한 번 발송되어야 한다");
-  assert.match(notices[0].message.text, /여행계약서 작성이 완료되었습니다/);
+  const notices = sent.filter(b => (b.message.kakaoOptions || {}).templateId === "KA01TP-notice");
+  assert.equal(notices.length, 1, "여행 주의사항 알림톡이 한 번 발송되어야 한다");
+  assert.equal(notices[0].message.kakaoOptions.disableSms, true);
 
   const saved = DB.record;
   assert.equal(saved.booking.contract.signedAt !== undefined, true);
@@ -237,7 +264,7 @@ test("이미 자동 발송된 예약은 재서명해도 다시 자동 발송하�
   const sent = [];
   await runSign(DB, async (_url, init) => { sent.push(JSON.parse(init.body)); return okResponse(); });
 
-  assert.equal(sent.filter(b => /여행 주의사항/.test(b.message.text || "")).length, 0);
+  assert.equal(sent.filter(b => (b.message.kakaoOptions || {}).templateId === "KA01TP-notice").length, 0);
   assert.equal(DB.record.notify.travelNoticeSentCount, 1);
 });
 
