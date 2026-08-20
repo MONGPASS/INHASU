@@ -24,37 +24,44 @@
   .page-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
   .page-head h1 { font-size:22px; font-weight:800; }
   .page-head p { color:var(--sub); font-size:13px; margin-top:5px; }
+  .head-meta { color:var(--gray); font-size:12px; font-weight:700; white-space:nowrap; }
   .btn { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:10px; padding:10px 14px; font:800 13px Pretendard; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
   .btn.primary { background:var(--deep); color:#fff; border-color:var(--deep); }
-  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
-  .stat { position:relative; background:#fff; border:1px solid var(--line); border-radius:16px; padding:15px 16px 13px 18px; overflow:hidden; box-shadow:0 4px 14px rgba(15,46,39,.04); }
-  .stat::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--c,#06c4a0); }
-  .stat-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-  .stat-ico { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:var(--cs,#eaf7f3); color:var(--c,#06c4a0); }
-  .stat-ico svg { width:18px; height:18px; }
-  .stat-pill { font-size:11px; font-weight:800; padding:4px 10px; border-radius:99px; background:var(--cs,#eaf7f3); color:var(--c,#06c4a0); white-space:nowrap; }
-  .stat-k { color:var(--sub); font-weight:800; font-size:12.5px; }
-  .stat-v { font-size:28px; font-weight:800; margin-top:5px; line-height:1; display:flex; align-items:baseline; gap:3px; }
-  .stat-v .unit { font-size:13px; font-weight:800; color:var(--gray); }
-  .stat-bot { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:11px; }
-  .stat-sub { color:var(--gray); font-size:12px; font-weight:700; }
-  .stat-act { font-size:12px; font-weight:800; color:var(--c,#06c4a0); cursor:pointer; border:none; background:none; font-family:inherit; padding:0; white-space:nowrap; }
-  .stat-act:hover { text-decoration:underline; }
-  .stat.c-teal  { --c:#06c4a0; --cs:#e4f6f1; }
-  .stat.c-red   { --c:#d96a5e; --cs:#fbeceb; }
-  .stat.c-amber { --c:#d9932f; --cs:#fbf1e2; }
-  .stat.c-green { --c:#1f9d76; --cs:#e6f5ef; }
-  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
-  .search { flex:1; min-width:300px; max-width:560px; }
-  .search input { width:100%; border:1px solid var(--line); border-radius:11px; padding:11px 13px; font:600 14px Pretendard; outline:none; }
+  /* 통계 카드 — 옅은 틴트 배경 + 원형 아이콘 + 상태 배지 + 실제 데이터 미니 차트 */
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:12px; }
+  .stat { background:var(--cs,#eaf7f3); border:1px solid var(--cb,#d9efe8); border-radius:16px; padding:14px 16px 13px; cursor:pointer; transition:.12s; text-align:left; font-family:inherit; display:block; width:100%; }
+  .stat:hover { border-color:var(--c,#06c4a0); }
+  .stat.on { border-color:var(--c,#06c4a0); box-shadow:0 0 0 1px var(--c,#06c4a0) inset; }
+  .stat-top { display:flex; align-items:center; gap:9px; margin-bottom:13px; }
+  .stat-ico { width:30px; height:30px; flex:none; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#fff; color:var(--c,#06c4a0); }
+  .stat-ico svg { width:16px; height:16px; }
+  .stat-k { color:var(--ink); font-weight:800; font-size:13.5px; }
+  .stat-pill { margin-left:auto; display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; padding:4px 9px; border-radius:99px; background:#fff; color:var(--c,#06c4a0); white-space:nowrap; }
+  .stat-pill i { width:5px; height:5px; border-radius:50%; background:currentColor; display:block; flex:none; }
+  .stat-bot { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
+  .stat-v { font-size:30px; font-weight:800; line-height:1; display:flex; align-items:baseline; gap:3px; color:var(--ink); }
+  .stat-v .unit { font-size:12.5px; font-weight:800; color:var(--gray); }
+  .stat-sub { color:var(--gray); font-size:11.5px; font-weight:700; margin-top:9px; }
+  .stat-chart { flex:none; display:block; margin-bottom:2px; }
+  .stat.c-teal  { --c:#06c4a0; --cs:#eaf7f3; --cb:#cfeae1; }
+  .stat.c-red   { --c:#d96a5e; --cs:#fdeeed; --cb:#f4d8d4; }
+  .stat.c-amber { --c:#d9932f; --cs:#fdf5e8; --cb:#f1e0c2; }
+  .stat.c-green { --c:#1f9d76; --cs:#eaf6f1; --cb:#d0e8dd; }
+  /* 검색·정렬·상태 필터를 한 카드로 통합 */
+  .toolcard { background:#fff; border:1px solid var(--line); border-radius:16px; padding:11px 13px; margin-bottom:12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .search { flex:1 1 300px; min-width:220px; position:relative; display:flex; align-items:center; }
+  .search .ico { position:absolute; left:12px; width:15px; height:15px; color:var(--gray); pointer-events:none; }
+  .search input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px 10px 34px; font:600 13.5px Pretendard; outline:none; background:#fff; color:var(--ink); }
   .search input:focus { border-color:var(--accent); }
   .sortbox { display:flex; align-items:center; gap:7px; }
-  .sortbox label { color:var(--sub); font-size:12.5px; font-weight:800; }
-  .sortbox select, .sortbox button { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:10px; padding:10px 11px; font:800 12.5px Pretendard; cursor:pointer; }
+  .sortbox select, .sortbox button { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:10px; padding:9px 11px; font:800 12.5px Pretendard; cursor:pointer; }
   .sortbox select:focus { outline:none; border-color:var(--accent); }
-  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
-  .chip { border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:99px; padding:8px 13px; font:800 12.5px Pretendard; cursor:pointer; }
-  .chip.on { background:var(--deep); border-color:var(--deep); color:#fff; }
+  .seg { display:flex; gap:2px; background:#f1f6f4; border-radius:11px; padding:3px; flex-wrap:wrap; }
+  .chip { border:none; background:none; color:var(--sub); border-radius:9px; padding:7px 11px; font:800 12.5px Pretendard; cursor:pointer; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+  .chip b { font-size:11px; font-weight:800; color:var(--gray); }
+  .chip:hover { color:var(--ink); }
+  .chip.on { background:var(--deep); color:#fff; box-shadow:0 2px 6px rgba(6,196,160,.26); }
+  .chip.on b { color:rgba(255,255,255,.82); }
   /* 월별 예약 필터 — 연도 이동 + 12개월 고정 그리드 (연도가 늘어도 폭이 일정) */
   .mbar { display:flex; align-items:center; gap:11px; flex-wrap:wrap; background:#fff; border:1px solid var(--line); border-radius:14px; padding:10px 13px; margin:0 0 14px; box-shadow:0 4px 14px rgba(15,46,39,.04); }
   .mbar-label { display:inline-flex; align-items:center; gap:6px; color:var(--sub); font-size:12.5px; font-weight:800; white-space:nowrap; }
@@ -77,8 +84,8 @@
   /* 12개월은 남은 폭을 균등 분할 — 화면 폭이 달라져도 항상 한 줄에 12칸 */
   .mcells { flex:1 1 430px; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:4px; }
   .mcell { border:1px solid var(--line); background:#fff; border-radius:10px; padding:5px 2px 6px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:1px; min-width:0; }
-  .mcell .m { font-size:12px; font-weight:800; color:var(--ink); line-height:1.25; }
-  .mcell .n { font-size:11px; font-weight:900; color:var(--accent); line-height:1.25; }
+  .mcell .m { font-size:12px; font-weight:800; color:var(--ink); line-height:1.3; }
+  .mcell .n { font-size:10.5px; font-weight:800; color:var(--accent); line-height:1.3; }
   .mcell:hover:not(:disabled) { border-color:var(--accent); background:#f6fdfb; }
   .mcell.on { background:var(--deep); border-color:var(--deep); box-shadow:0 4px 10px rgba(6,196,160,.26); }
   .mcell.on .m, .mcell.on .n { color:#fff; }
@@ -183,15 +190,18 @@
   <main class="content">
     <div class="page-head">
       <div><h1>예약 관리</h1><p>예약확정 고객의 계약·배정·차량·숙소 상태를 한눈에 확인해요.</p></div>
-      <div style="display:flex; gap:8px;">
+      <div style="display:flex; gap:10px; align-items:center;">
+        <span class="head-meta" id="updatedAt"></span>
         <button class="btn" id="refreshBtn">↻ 새로고침</button>
       </div>
     </div>
     <div class="stats" id="stats"></div>
-    <div class="toolbar">
-      <div class="search"><input id="q" placeholder="고객명, 여행지, 날짜, 인원, 차량, 숙소, 가이드, 입금상태 검색"></div>
+    <div class="toolcard">
+      <div class="search">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="q" placeholder="고객명, 여행지, 날짜, 인원, 차량, 숙소, 가이드, 입금상태 검색">
+      </div>
       <div class="sortbox">
-        <label for="sortSelect">정렬</label>
         <select id="sortSelect" title="정렬 기준">
           <option value="book">예약일순</option>
           <option value="depart">몽골 도착순</option>
@@ -204,7 +214,7 @@
         </select>
         <button id="sortDirBtn" type="button" title="정렬 방향">오름차순</button>
       </div>
-      <div class="chips" id="chips"></div>
+      <div class="seg" id="chips"></div>
     </div>
     <div class="mbar" id="monthTabs"></div>
     <div class="bulkbar" id="bulkbar"></div>
@@ -269,6 +279,52 @@ const PAY_OPTS = {
   depositStatus: ["미입금", "입금완료"],
   balanceStatus: ["미수령", "입금완료", "현지현금전달", "계좌입금", "카드결제"],
 };
+/* ── 통계 카드 미니 차트 ──
+   수치는 모두 실제 예약에서 집계한 값입니다 (임의의 예시값을 그리지 않습니다).
+   추이는 영역 스파크라인, 시점별 건수는 막대로 구분합니다. */
+const ymKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+const monthSpan = (count, offset) => {
+  const now = new Date(), out = [];
+  for (let i = 0; i < count; i++) out.push(ymKey(new Date(now.getFullYear(), now.getMonth() + offset + i, 1)));
+  return out;
+};
+const countByMonth = (list, monthOfRec, months) => months.map(m => list.filter(r => monthOfRec(r) === m).length);
+const sparkArea = (vals, color) => {
+  const w = 78, h = 34, pad = 3, n = vals.length;
+  if (!n) return "";
+  const max = Math.max(...vals, 1);
+  const x = i => (n === 1 ? w - pad : pad + (i / (n - 1)) * (w - pad * 2));
+  const y = v => h - pad - (v / max) * (h - pad - 5);
+  const pts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  return `<svg class="stat-chart" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+    <polygon points="${x(0).toFixed(1)},${h - pad} ${pts} ${x(n - 1).toFixed(1)},${h - pad}" fill="${color}" opacity=".15"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${x(n - 1).toFixed(1)}" cy="${y(vals[n - 1]).toFixed(1)}" r="2.4" fill="${color}"/>
+  </svg>`;
+};
+const barChart = (vals, color) => {
+  const w = 78, h = 34, pad = 3, n = vals.length;
+  if (!n) return "";
+  const max = Math.max(...vals, 1);
+  const gap = 3;
+  const bw = Math.max(3, (w - pad * 2 - (n - 1) * gap) / n);
+  const bars = vals.map((v, i) => {
+    const bh = v > 0 ? Math.max(3, (v / max) * (h - pad * 2)) : 2;
+    return `<rect x="${(pad + i * (bw + gap)).toFixed(1)}" y="${(h - pad - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.6" fill="${color}" opacity="${v === 0 ? .16 : i === n - 1 ? 1 : .38}"/>`;
+  }).join("");
+  return `<svg class="stat-chart" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${bars}</svg>`;
+};
+/* 마지막 새로고침 시각 — "3분 전 업데이트" */
+let LOADED_AT = null;
+function renderUpdatedAt() {
+  const el = $("updatedAt");
+  if (!el) return;
+  if (!LOADED_AT) { el.textContent = ""; return; }
+  const min = Math.floor((Date.now() - LOADED_AT) / 60000);
+  el.textContent = min < 1 ? "방금 업데이트" : min < 60 ? `${min}분 전 업데이트` : `${Math.floor(min / 60)}시간 전 업데이트`;
+}
+setInterval(renderUpdatedAt, 30000);
+
 /* 정렬 상태 — 기본: 예약일 오름차순 (번호가 위→아래 증가) */
 let sortKey = "book", sortDir = 1;
 const SORT_VALS = {
@@ -294,6 +350,7 @@ async function load() {
       if (!j.ok) throw new Error(j.error || "목록을 불러오지 못했어요");
       RECORDS = j.items || [];
     }
+    LOADED_AT = Date.now();
     render();
   } catch (e) {
     $("list").innerHTML = `<div class="empty">⚠ ${esc(e.message)}</div>`;
@@ -384,22 +441,41 @@ function render() {
     users: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
     clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>`,
   };
+  /* 카드별 미니 차트 데이터 — 모두 현재 예약에서 집계한 실제 값 */
+  const past6 = monthSpan(6, -5);          // 지난 5개월 + 이번 달
+  const next6 = monthSpan(6, 0);           // 이번 달 + 앞으로 5개월
+  const bookMonth = r => bookDate(r).slice(0, 7);
+  const soonBuckets = [0, 0, 0, 0, 0, 0, 0];   // 향후 14일을 2일 단위로
+  all.forEach(r => { const dd = dDay(r); if (dd !== null && dd >= 0 && dd <= 13) soonBuckets[Math.floor(dd / 2)] += 1; });
   const statDefs = [
-    { c:"c-teal",  ico:ICO.clip,  pill:"전체",      k:"예약 확정",    v:all.length, sub:"전체 확정 고객",       act:"",          f:"전체" },
-    { c:"c-red",   ico:ICO.pen,   pill:"조치 필요", k:"계약 미서명",  v:unsigned,   sub:"서명 요청 필요",       act:"서명 요청 →", f:"계약미서명" },
-    { c:"c-amber", ico:ICO.users, pill:"조치 필요", k:"배정 미완료",  v:incomplete, sub:"가이드·차량·숙소 확인", act:"배정 확인 →", f:"배정미완료" },
-    { c:"c-green", ico:ICO.clock, pill:"임박",      k:"14일 내 출발", v:soon,       sub:"출발 전 최종 점검",     act:"점검 →",     f:"출발임박" },
+    { c:"c-teal", ico:ICO.clip, pill:"전체", dot:false, k:"예약 확정", v:all.length, sub:"전체 확정 고객", f:"전체",
+      chart:sparkArea(countByMonth(all, bookMonth, past6), "#06c4a0"), tip:"최근 6개월 예약 확정 추이" },
+    { c:"c-red", ico:ICO.pen, pill:"조치 필요", dot:true, k:"계약 미서명", v:unsigned, sub:"서명 요청 필요", f:"계약미서명",
+      chart:barChart(countByMonth(all.filter(r => !signed(r)), ymOf, next6), "#d96a5e"), tip:"출발월별 미서명 건수 (이번 달부터 6개월)" },
+    { c:"c-amber", ico:ICO.users, pill:"조치 필요", dot:true, k:"배정 미완료", v:incomplete, sub:"가이드·차량·숙소 확인", f:"배정미완료",
+      chart:sparkArea(countByMonth(all.filter(r => !assignDone(r)), ymOf, next6), "#d9932f"), tip:"출발월별 배정 미완료 건수 (이번 달부터 6개월)" },
+    { c:"c-green", ico:ICO.clock, pill:"임박", dot:true, k:"14일 내 출발", v:soon, sub:"출발 전 최종 점검", f:"출발임박",
+      chart:barChart(soonBuckets, "#1f9d76"), tip:"향후 14일 출발 건수 (2일 단위)" },
   ];
-  $("stats").innerHTML = statDefs.map(s => `<div class="stat ${s.c}">
-    <div class="stat-top"><div class="stat-ico">${s.ico}</div><span class="stat-pill">${s.pill}</span></div>
-    <div class="stat-k">${s.k}</div>
-    <div class="stat-v">${s.v}<span class="unit">건</span></div>
-    <div class="stat-bot"><span class="stat-sub">${s.sub}</span>${s.act ? `<button class="stat-act" data-f="${s.f}">${s.act}</button>` : ""}</div>
-  </div>`).join("");
-  $("stats").querySelectorAll(".stat-act").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
+  $("stats").innerHTML = statDefs.map(s => `<button type="button" class="stat ${s.c} ${filter === s.f ? "on" : ""}" data-f="${s.f}" title="${esc(s.tip)} · 눌러서 ${esc(s.k)}만 보기">
+    <div class="stat-top">
+      <span class="stat-ico">${s.ico}</span>
+      <span class="stat-k">${s.k}</span>
+      <span class="stat-pill">${s.dot ? "<i></i>" : ""}${s.pill}</span>
+    </div>
+    <div class="stat-bot">
+      <span>
+        <span class="stat-v">${s.v}<span class="unit">건</span></span>
+        <span class="stat-sub" style="display:block">${s.sub}</span>
+      </span>
+      ${s.chart}
+    </div>
+  </button>`).join("");
+  $("stats").querySelectorAll(".stat").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
   const chipDefs = [["전체", all.length], ["계약미서명", unsigned], ["배정미완료", incomplete], ["출발임박", soon]];
-  $("chips").innerHTML = chipDefs.map(([k, n]) => `<button class="chip ${filter===k?"on":""}" data-f="${k}">${k} ${n}</button>`).join("");
+  $("chips").innerHTML = chipDefs.map(([k, n]) => `<button class="chip ${filter===k?"on":""}" data-f="${k}">${k}<b>${n}</b></button>`).join("");
   $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
+  renderUpdatedAt();
 
   /* 월별 필터 — 출발월 기준. 연도는 ‹ › 로 넘기고 12개월은 항상 고정 그리드로 표시해
      예약 연도가 몇 년치로 늘어나도 필터 영역의 폭·높이가 그대로 유지된다. */
@@ -426,7 +502,7 @@ function render() {
     const ym = `${viewYear}-${String(i + 1).padStart(2, "0")}`;
     const n = monthCounts[ym] || 0;
     return `<button class="mcell ${monthFilter === ym ? "on" : ""}" data-m="${ym}" ${n ? "" : "disabled"} title="${viewYear}년 ${i + 1}월 출발 ${n}건">
-      <span class="m">${i + 1}월</span><span class="n">${n || "·"}</span></button>`;
+      <span class="m">${i + 1}월</span><span class="n">${n ? n + "건" : "–"}</span></button>`;
   }).join("");
   $("monthTabs").innerHTML = `
     <span class="mbar-label">${calIco}출발월</span>
