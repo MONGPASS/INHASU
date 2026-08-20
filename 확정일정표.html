@@ -113,6 +113,7 @@ const buildConfirmedQuote = j => {
     ? q.price.balances
     : [{ pax: q.pax || 1, economy: Number(ci.balanceAmount) || 0, full: Number(ci.balanceAmount) || 0 }];
   if (ci.balanceAmount) q.price.balances = [{ pax: q.pax || 1, economy: Number(ci.balanceAmount), full: Number(ci.balanceAmount) }];
+  q.price.balanceFinal = Number(ci.balanceAmount) || 0;   // 관리자가 확정한 팀 잔금
   q.price.validUntil = q.price.validUntil || q.issueDate;
   q.price.payment = q.price.payment || "예약금: 계좌이체 · 잔금: 현장결제";
   q.price.paymentNote = q.price.paymentNote || "";
@@ -172,9 +173,17 @@ if (!Q) {
 const won = n => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("ko-KR") + "원";
 const wonMan = n => Math.round(n / 10000).toLocaleString("ko-KR") + "만원";
 const esc = s => String(s ?? "");
-// 잔금 2단계 요금: economy=실속형(일반게르), full=풀패키지(고급게르). 구버전 {amount} 호환.
-const balEco = b => (b.economy != null ? b.economy : (b.amount || 0));
-const balFull = b => (b.full != null ? b.full : (b.amount || 0));
+/* 확정 일정표에는 등급별·인원별 견적이 아니라 팀 잔금 하나만 노출합니다.
+   관리자가 확정한 최종 잔금을 쓰고, 아직 없으면(견적 미리보기 등) 견적 단계 금액 중
+   실제 인원에 해당하는 값으로 대신합니다. */
+const teamBalance = () => {
+  const p = (Q && Q.price) || {};
+  if (Number(p.balanceFinal)) return Number(p.balanceFinal);
+  const list = Array.isArray(p.balances) ? p.balances : [];
+  const hit = list.find(b => Number(b.pax) === Number(Q.pax)) || list[list.length - 1];
+  if (!hit) return 0;
+  return Number(hit.full != null ? hit.full : (hit.amount != null ? hit.amount : hit.economy)) || 0;
+};
 const B = Q.brand;
 
 /* 디자인 자산 이미지(게르·식사·아이콘·허가증 등)는 data.js 최신본으로 보충 —
@@ -322,27 +331,16 @@ const pgQuote = `
     </div>
   </div>
 
-  ${(() => {
-    const pills = (tier) => Q.price.balances.map(b => {
-      const amt = tier === "economy" ? balEco(b) : balFull(b);
-      return `<div style="background:#06c4a0; padding:9px 8px; text-align:center;"><div style="color:#DFF7EF; font-size:10px; font-weight:700;">${b.pax}인 잔금</div><div style="color:#fff; font-size:17px; font-weight:800; margin-top:4px;">${wonMan(amt)}</div>${Q.price.balanceStatus ? `<div style="color:#DFF7EF; font-size:10px; font-weight:800; margin-top:3px;">${esc(Q.price.balanceStatus)}</div>` : ""}</div>`;
-    }).join("");
-    const grid = (tier) => `<div style="display:grid; grid-template-columns:repeat(${Q.price.balances.length},1fr); gap:1px; background:#CDE8DF; border-radius:10px; overflow:hidden;">${pills(tier)}</div>`;
-    return `
-    <div style="margin-top:14px;">
-      <div>
-        <div class="bal-grid-label">🏕 풀패키지 (4성급호텔+고급게르) · 인원별 잔금</div>
-        ${grid("full")}
-      </div>
-      <div style="margin-top:10px;">
-        <div class="bal-grid-label">⛺ 실속형 (3성급호텔+일반게르) · 인원별 잔금</div>
-        ${grid("economy")}
-      </div>
-    </div>`;
-  })()}
+  <div style="margin-top:14px;">
+    <div class="bal-grid-label">💰 팀 잔금</div>
+    <div style="background:#06c4a0; border-radius:10px; padding:17px 14px; text-align:center;">
+      <div style="color:#fff; font-size:27px; font-weight:800; line-height:1.2;">${wonMan(teamBalance())}</div>
+      ${Q.price.balanceStatus ? `<div style="color:#DFF7EF; font-size:11px; font-weight:800; margin-top:6px;">${esc(Q.price.balanceStatus)}</div>` : ""}
+    </div>
+  </div>
 
   <div style="margin-top:20px; font-size:11px; color:#8CA39D; line-height:1.7;">
-    견적서 내 금액은 모두 1인 기준 견적입니다. 해당 견적은 ${esc(Q.price.validUntil)}까지 유효합니다.
+    팀 잔금은 여행 인원 전체 기준 확정 금액입니다.
     <div style="display:flex; gap:18px; margin-top:10px; flex-wrap:wrap; color:#40544F;">
       <span><b style="color:#06c4a0;">[결제]</b> ${esc(Q.price.payment)} <span style="color:#8CA39D;">${esc(Q.price.paymentNote)}</span></span>
       <span><b style="color:#06c4a0;">[입금]</b> ${esc(B.account)}</span>

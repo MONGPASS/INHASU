@@ -130,6 +130,7 @@ const buildConfirmedQuote = j => {
     ? q.price.balances
     : [{ pax: q.pax || 1, economy: Number(ci.balanceAmount) || 0, full: Number(ci.balanceAmount) || 0 }];
   if (ci.balanceAmount) q.price.balances = [{ pax: q.pax || 1, economy: Number(ci.balanceAmount), full: Number(ci.balanceAmount) }];
+  q.price.balanceFinal = Number(ci.balanceAmount) || 0;   // 관리자가 확정한 팀 잔금
   q.price.validUntil = q.price.validUntil || q.issueDate;
   q.price.payment = q.price.payment || "예약금: 계좌이체 · 잔금: 현장결제";
   q.price.paymentNote = q.price.paymentNote || "";
@@ -187,8 +188,17 @@ const won = n => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("ko-KR") + "원
 const wonMan = n => Math.round(n / 10000).toLocaleString("ko-KR") + "만원";
 const esc = s => String(s ?? "");
 const noBr = s => String(s ?? "").replace(/<br\s*\/?>/gi, " ");
-const balEco = b => (b.economy != null ? b.economy : (b.amount || 0));
-const balFull = b => (b.full != null ? b.full : (b.amount || 0));
+/* 확정 일정표에는 등급별·인원별 견적이 아니라 팀 잔금 하나만 노출합니다.
+   관리자가 확정한 최종 잔금을 쓰고, 아직 없으면(견적 미리보기 등) 견적 단계 금액 중
+   실제 인원에 해당하는 값으로 대신합니다. */
+const teamBalance = () => {
+  const p = (Q && Q.price) || {};
+  if (Number(p.balanceFinal)) return Number(p.balanceFinal);
+  const list = Array.isArray(p.balances) ? p.balances : [];
+  const hit = list.find(b => Number(b.pax) === Number(Q.pax)) || list[list.length - 1];
+  if (!hit) return 0;
+  return Number(hit.full != null ? hit.full : (hit.amount != null ? hit.amount : hit.economy)) || 0;
+};
 const B = Q.brand;
 
 /* 디자인 자산 이미지(게르·식사·아이콘·허가증 등)는 data.js 최신본으로 보충 */
@@ -290,12 +300,12 @@ const secCover = card(`
 
 /* ══════════ 2) 견적서 ══════════ */
 const infoRow = (k, v, kb) => `<div style="display:grid; grid-template-columns:82px 1fr; border-bottom:1px solid #EAF3EF;"><div style="background:#EAF7F3; color:#0A6A5E; font-weight:700; padding:11px 12px;">${k}</div><div style="padding:11px 12px; color:#152C28; font-weight:600; line-height:1.5;">${v}</div></div>`;
-const balCard = (bg, sub, title, tier) => `
-  <div class="blk" style="background:${bg}; border-radius:12px; padding:14px 16px;">
-    <div style="color:#EAFBF6; font-size:11px; font-weight:700;">${title}</div>
-    <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
-      ${Q.price.balances.map(b => `<div class="row" style="justify-content:space-between; gap:8px;"><span style="color:${sub}; font-size:12px;">${b.pax}인 잔금${Q.price.balanceStatus ? `<br><b style="font-size:10px;">${esc(Q.price.balanceStatus)}</b>` : ""}</span><span style="color:#fff; font-size:19px; font-weight:800;">${wonMan(tier === "full" ? balFull(b) : balEco(b))}</span></div>`).join("")}
-    </div>
+/* 확정 일정표에는 관리자가 확정한 팀 잔금 하나만 노출합니다 */
+const balCard = () => `
+  <div class="blk" style="background:#06C4A0; border-radius:12px; padding:14px 16px; text-align:center;">
+    <div style="color:#EAFBF6; font-size:11px; font-weight:700;">💰 팀 잔금</div>
+    <div style="color:#fff; font-size:24px; font-weight:800; margin-top:7px; line-height:1.2;">${wonMan(teamBalance())}</div>
+    ${Q.price.balanceStatus ? `<div style="color:#CDEDE4; font-size:10.5px; font-weight:800; margin-top:5px;">${esc(Q.price.balanceStatus)}</div>` : ""}
   </div>`;
 
 const secQuote = card(`
@@ -341,10 +351,9 @@ const secQuote = card(`
       ${Q.price.options.map(o => `<div class="row" style="justify-content:space-between; gap:10px;"><span style="color:#354B46; font-weight:600;">${esc(o.label)}</span><span style="color:#8CA39D; white-space:nowrap;">${esc(o.calc)}</span></div>`).join("")}
     </div></div>` : ""}
   <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
-    ${balCard("#06C4A0", "#EAFBF6", "🏨 풀패키지 · 4성급호텔+고급게르", "full")}
-    ${balCard("#0A6A5E", "#CDEDE4", "⛺ 실속형 · 3성급호텔+일반게르", "economy")}
+    ${balCard()}
   </div>
-  <div class="blk" style="margin-top:14px; font-size:10px; color:#8CA39D; line-height:1.7;">견적서 내 금액은 모두 1인 기준이며, 해당 견적은 ${esc(Q.price.validUntil)}까지 유효합니다.<br><b style="color:#0A6A5E;">[결제]</b> ${esc(Q.price.payment)} <span style="color:#B0C2BC;">${esc(Q.price.paymentNote)}</span><br><b style="color:#0A6A5E;">[입금]</b> ${esc(B.account)}${Q.remark && Q.remark !== "-" ? `<br><b style="color:#0A6A5E;">[비고]</b> ${esc(Q.remark)}` : ""}</div>
+  <div class="blk" style="margin-top:14px; font-size:10px; color:#8CA39D; line-height:1.7;">팀 잔금은 여행 인원 전체 기준 확정 금액입니다.<br><b style="color:#0A6A5E;">[결제]</b> ${esc(Q.price.payment)} <span style="color:#B0C2BC;">${esc(Q.price.paymentNote)}</span><br><b style="color:#0A6A5E;">[입금]</b> ${esc(B.account)}${Q.remark && Q.remark !== "-" ? `<br><b style="color:#0A6A5E;">[비고]</b> ${esc(Q.remark)}` : ""}</div>
   <div class="blk" style="margin-top:10px; background:#FFF8F5; border:1px solid #F3E0D8; border-radius:12px; padding:12px 14px;">
     <div style="color:#C9604B; font-size:11px; font-weight:800;">[환불규정]</div>
     <div style="margin-top:5px; font-size:10px; color:#5C4B47; line-height:1.75;">
