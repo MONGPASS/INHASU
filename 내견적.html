@@ -139,7 +139,7 @@
   function showError(msg) {
     card.innerHTML = `${heroEmoji("🔗")}<h1>링크를 확인해 주세요</h1>
       <div class="desc">${esc(msg)}</div>
-      <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡으로 문의하기</a>`;
+      <a class="btn kakao" href="${KAKAO}" target="_blank">카카오톡으로 문의하기</a>`;
   }
 
   async function load() {
@@ -202,21 +202,21 @@
               <button id="reportDepositBtn" type="button" style="margin-top:8px; background:none; border:none; color:#0a6a5e; font-size:11.5px; font-weight:700; text-decoration:underline; cursor:pointer; padding:0;">입금자명이 다른가요? 다시 알리기</button>
             </div>` : `
             <div style="margin-top:14px;">
-              <button class="btn accent" id="reportDepositBtn" type="button" style="margin-top:0; background:#06c4a0; color:#fff;">💳 예약금 입금 완료했어요</button>
+              <button class="btn accent" id="reportDepositBtn" type="button" style="margin-top:0; background:#06c4a0; color:#fff;">예약금 입금 완료했어요</button>
             </div>
             <div class="tip">입금 후 위 버튼을 누르시면 담당자가 확인 후 계약서 서명을 안내해 드립니다. 카카오톡 상담으로 알려주셔도 됩니다.</div>`}
         </div>` : ""}
         ${signed
-          ? `<a class="btn ghost" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank">📜 여행계약서 보기 (서명완료)</a>
-             <a class="btn ghost" href="${esc("여행자정보.html?t=" + encodeURIComponent(token))}">👥 여행자 정보 + 항공권 정보 확인·수정</a>`
+          ? `<a class="btn ghost" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank">여행계약서 보기 (서명완료)</a>
+             <a class="btn ghost" href="${esc("여행자정보.html?t=" + encodeURIComponent(token))}">여행자 정보 + 항공권 정보 확인·수정</a>`
           : depositPaid && contractRequested
-            ? `<a class="btn accent" href="${esc("계약서.html?t=" + encodeURIComponent(token))}">✍️ 여행계약서 확인·서명하기 (여행자·항공 정보 입력)</a>`
+            ? `<a class="btn accent" href="${esc("계약서.html?t=" + encodeURIComponent(token))}">여행계약서 확인·서명하기 (여행자·항공 정보 입력)</a>`
             : ""}
         ${depositPaid && !signed && !contractRequested ? `<div class="notice">담당자가 계약서를 준비하고 있습니다. 서명 요청 알림을 받으면 이 화면에서 진행할 수 있습니다.</div>` : ""}
-        ${published ? `<a class="btn accent" style="background:#3d7ff0;" href="${esc("확정일정표.html?t=" + encodeURIComponent(token))}" target="_blank">🎫 확정일정표 보기</a>` : confirmed ? `<div class="notice">가이드·차량·숙소 배정이 끝나면 확정일정표가 공개됩니다.</div>` : ""}
-        ${r.quote ? `<a class="btn ghost" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>` : ""}
-        ${published ? `<a class="btn ghost" href="${esc("일정지도.html?t=" + encodeURIComponent(token))}" target="_blank">🗺 일정 지도 보기</a>` : ""}
-        <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡 상담</a>`;
+        ${published ? `<a class="btn accent" style="background:#3d7ff0;" href="${esc("확정일정표.html?t=" + encodeURIComponent(token))}" target="_blank">확정일정표 보기</a>` : confirmed ? `<div class="notice">가이드·차량·숙소 배정이 끝나면 확정일정표가 공개됩니다.</div>` : ""}
+        ${r.quote ? `<a class="btn ghost" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">견적서 보기</a>` : ""}
+        ${published ? `<a class="btn ghost" href="${esc("일정지도.html?t=" + encodeURIComponent(token))}" target="_blank">일정 지도 보기</a>` : ""}
+        <a class="btn kakao" href="${KAKAO}" target="_blank">카카오톡 상담</a>`;
       const copyBtn = document.getElementById("copyAcctBtn");
       if (copyBtn) copyBtn.onclick = async () => {
         const no = String(ci.accountNumber || "");
@@ -266,7 +266,7 @@
         } catch(e) {
           alert("오류: " + (e.message || "잠시 후 다시 시도해 주세요."));
           reportBtn.disabled = false;
-          reportBtn.textContent = "💳 예약금 입금 완료했어요";
+          reportBtn.textContent = "예약금 입금 완료했어요";
         }
       };
     } else if (r.quote) {
@@ -282,8 +282,8 @@
         ${accepted ? progressHtml(r) : ""}
         ${expired ? `<div class="notice">이 견적의 유효기간이 만료되었습니다. 카카오톡으로 연장을 요청해 주세요.</div>`
           : (expireLabel ? `<div class="validity">${CLOCK_SVG}견적 유효기간: ${esc(expireLabel)}까지</div>` : "")}
-        <a class="btn accent" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>
-        <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡으로 예약 진행·수정 문의</a>`;
+        <a class="btn accent" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">견적서 보기</a>
+        <a class="btn kakao" href="${KAKAO}" target="_blank">카카오톡으로 예약 진행·수정 문의</a>`;
     } else {
       card.innerHTML = `
         ${heroEmoji("✅")}
@@ -291,7 +291,7 @@
         <h1>견적 요청이 접수됐어요</h1>
         <div class="desc">${nm}담당자가 확인 후 남겨주신 연락처로 연락드려요.<br>빠르게 견적서를 준비해 드릴게요.<br>견적서가 준비되면 이 화면에서 바로 확인할 수 있어요.</div>
         ${sumHtml(r)}
-        <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡으로 빠른 상담</a>
+        <a class="btn kakao" href="${KAKAO}" target="_blank">카카오톡으로 빠른 상담</a>
         <button class="btn ghost" onclick="location.reload()">새로고침</button>
         <div class="hint">이 링크를 저장해 두시면 언제든 진행 상황을 확인할 수 있어요.</div>`;
     }
