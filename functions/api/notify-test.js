@@ -11,10 +11,14 @@
      ?token=…&type=quote&phone=010…  견적 준비 알림톡 테스트
      ?token=…&type=itinerary&phone=010… 확정일정표 알림톡 테스트
      ?token=…&type=guidebook&phone=010…&depart=2026-08-18 가이드북 알림톡 테스트
+     ?token=…&type=travelnotice&phone=010… 여행 주의사항 테스트
+        (전용 템플릿이 설정돼 있으면 알림톡, 없으면 문자로 나갑니다 —
+         응답의 channel 값으로 어느 쪽으로 나갔는지 확인할 수 있습니다)
    ═══════════════════════════════════════════════════════════ */
 import {
-  sendSms, notifyAdmin,
+  sendSms, notifyAdmin, canSendKakao, travelNoticeTemplateId,
   notifyCustomerQuoteReady, notifyCustomerItineraryReady, notifyCustomerGuidebook,
+  notifyCustomerTravelNotice,
 } from "./_solapi.js";
 
 const json = (obj, status = 200) =>
@@ -39,8 +43,13 @@ export async function onRequestGet({ request, env }) {
     SOLAPI_TEMPLATE_QUOTE_ID: !!env.SOLAPI_TEMPLATE_QUOTE_ID,
     SOLAPI_TEMPLATE_ITINERARY_ID: !!env.SOLAPI_TEMPLATE_ITINERARY_ID,
     SOLAPI_TEMPLATE_GUIDEBOOK_ID: !!env.SOLAPI_TEMPLATE_GUIDEBOOK_ID,
+    SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID: !!env.SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID,
     SITE_URL: env.SITE_URL || env.CUSTOMER_BASE_URL || null,
   };
+  /* 여행 주의사항이 알림톡으로 나갈지 문자로 나갈지 — 전용 템플릿 설정 여부로 갈립니다 */
+  const travelNoticeChannel = phoneForChannel =>
+    canSendKakao(env, { phone: phoneForChannel || "01000000000", templateId: travelNoticeTemplateId(env) })
+      ? "kakao" : "sms";
 
   const type = url.searchParams.get("type") || "";
   const phone = url.searchParams.get("phone");
@@ -64,6 +73,13 @@ export async function onRequestGet({ request, env }) {
     return json({ ok:result.ok, type, envState, solapiResponse:result });
   }
 
+  if (type === "travelnotice" && phone) {
+    const result = await notifyCustomerTravelNotice(env, {
+      phone, name:"테스트 고객", depart:url.searchParams.get("depart") || "2026-08-18", requestUrl:request.url,
+    });
+    return json({ ok:result.ok, type, channel:travelNoticeChannel(phone), envState, solapiResponse:result });
+  }
+
   if (phone) {
     const result = await sendSms(env, { phone, text: "[알림 테스트] 몽골리아 은하수 문자 발송이 정상 동작합니다." });
     return json({ ok: result.ok, envState, solapiResponse: result });
@@ -71,7 +87,13 @@ export async function onRequestGet({ request, env }) {
 
   return json({
     ok: true,
-    note: "설정 상태만 확인. 관리자 문자는 &type=admin, 일반 문자는 &phone=010…, 알림톡은 &type=quote|itinerary|guidebook&phone=010…",
+    note: "설정 상태만 확인. 관리자 문자는 &type=admin, 일반 문자는 &phone=010…, 알림톡은 &type=quote|itinerary|guidebook|travelnotice&phone=010…",
+    travelNotice: {
+      channel: travelNoticeChannel(),
+      설명: travelNoticeChannel() === "kakao"
+        ? "여행 주의사항은 카카오 알림톡으로 발송됩니다."
+        : "여행 주의사항은 문자(LMS)로 발송됩니다 — 알림톡으로 보내려면 전용 템플릿을 승인받아 SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID에 넣어주세요.",
+    },
     envState,
   });
 }
