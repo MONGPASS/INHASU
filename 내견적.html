@@ -18,24 +18,35 @@
   .brand b { font-size:16px; font-weight:800; letter-spacing:-.02em; }
   .brand b i { font-style:normal; color:var(--accent); }
   .card { width:100%; max-width:440px; background:#fff; border:1px solid var(--line); border-radius:20px;
-    box-shadow:0 12px 40px rgba(20,50,45,.07); padding:28px 24px; text-align:center; }
-  .emoji { font-size:44px; }
-  h1 { font-size:21px; font-weight:800; letter-spacing:-.03em; margin:12px 0 6px; }
-  .desc { font-size:14px; color:var(--sub); line-height:1.6; }
-  .badge { display:inline-block; margin-top:14px; font-size:12.5px; font-weight:800; padding:6px 14px; border-radius:999px; }
-  .badge.wait { background:var(--soft); color:#0a6a5e; }
-  .badge.done { background:#e6f5ef; color:#0a6a5e; }
-  .sum { margin-top:20px; text-align:left; background:#F7F8FA; border-radius:14px; padding:6px 16px; }
-  .sum .row { display:flex; gap:14px; padding:11px 0; border-bottom:1px solid #ECEEF1; font-size:13.5px; }
-  .sum .row:last-child { border-bottom:none; }
-  .sum .k { color:#9AA0A6; font-weight:600; min-width:64px; }
-  .sum .v { color:var(--ink); font-weight:600; margin-left:auto; text-align:right; }
-  .btn { display:block; width:100%; margin-top:16px; padding:15px; border:none; border-radius:13px; font-family:inherit;
+    box-shadow:0 12px 40px rgba(20,50,45,.07); padding:30px 24px 26px; text-align:center; }
+  /* 히어로 — 아이콘 · 상태 칩 · 제목은 가운데, 설명 문구는 읽기 편하게 좌측 정렬 */
+  .hero-ico { width:76px; height:76px; margin:0 auto 14px; display:block; }
+  .hero-ico.emoji { font-size:58px; line-height:76px; text-align:center; }
+  .chip { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:800;
+    padding:6px 13px; border-radius:999px; background:var(--soft); color:#0a6a5e; }
+  .chip.blue  { background:#e8effc; color:#2b5cc4; }
+  .chip.amber { background:#fff4e2; color:#96631a; }
+  h1 { font-size:23px; font-weight:800; letter-spacing:-.03em; margin:11px 0 0; line-height:1.35; }
+  .desc { font-size:14px; color:var(--sub); line-height:1.65; text-align:left; margin-top:12px; }
+  .divider { height:1px; background:var(--line); margin:20px 0 2px; }
+  /* 여행 정보 — 점으로 잇는 타임라인 */
+  .facts { text-align:left; position:relative; padding:6px 0 0 19px; }
+  .facts::before { content:""; position:absolute; left:3.5px; top:18px; bottom:18px; width:1.5px; background:#dceee8; }
+  .fact { position:relative; padding:9px 0; }
+  .fact::before { content:""; position:absolute; left:-19px; top:13px; width:8px; height:8px; border-radius:50%;
+    background:var(--accent); box-shadow:0 0 0 3px #fff; }
+  .fact .k { font-size:12px; color:#9AA0A6; font-weight:700; }
+  .fact .v { font-size:15.5px; font-weight:800; margin-top:3px; letter-spacing:-.01em; word-break:keep-all; }
+  .fact .s { font-size:12.5px; color:var(--sub); font-weight:600; margin-top:2px; }
+  .validity { display:inline-flex; align-items:center; gap:6px; margin-top:16px; font-size:12.5px;
+    font-weight:700; color:var(--sub); background:#F4F6F8; border-radius:999px; padding:7px 14px; }
+  .validity svg { width:14px; height:14px; flex:none; }
+  .btn { display:block; width:100%; margin-top:12px; padding:16px; border:none; border-radius:14px; font-family:inherit;
     font-size:15.5px; font-weight:800; cursor:pointer; text-decoration:none; text-align:center; }
   .btn.primary { background:var(--ink); color:#fff; }
-  .btn.accent { background:var(--accent); color:#fff; }
+  .btn.accent { background:var(--accent); color:#fff; box-shadow:0 6px 16px rgba(6,196,160,.26); }
   .btn.kakao { background:#FEE500; color:#3C1E1E; }
-  .btn.ghost { background:#fff; color:var(--sub); border:1px solid var(--line); font-weight:700; }
+  .btn.ghost { background:#fff; color:var(--sub); border:1px solid var(--line); font-weight:700; box-shadow:none; }
   .steps { margin-top:18px; text-align:left; border:1px solid var(--line); border-radius:14px; overflow:hidden; }
   .step { display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--line); color:#9AA0A6; font-size:13px; font-weight:700; }
   .step:last-child { border-bottom:none; }
@@ -60,7 +71,7 @@
     <b>몽골리아 <i>은하수</i></b>
   </div>
   <div class="card" id="card">
-    <div class="emoji">⏳</div>
+    <div class="hero-ico emoji">⏳</div>
     <h1>불러오는 중…</h1>
   </div>
 
@@ -85,12 +96,33 @@
   };
   const destTxt = r => (r.destination || "-") + (r.destSpots && r.destSpots.length ? ` · ${r.destSpots.join(", ")}` : "");
 
-  const sumHtml = r => `
-    <div class="sum">
-      <div class="row"><span class="k">여행지</span><span class="v">${esc(destTxt(r))}</span></div>
-      <div class="row"><span class="k">일정</span><span class="v">${esc(periodTxt(r))}</span></div>
-      <div class="row"><span class="k">인원</span><span class="v">${esc(paxTxt(r))}</span></div>
+  /* 견적 도착 화면의 축하 아이콘 — 평면 SVG (이모지 대신 또렷하게 보이도록) */
+  const PARTY_SVG = `<svg class="hero-ico" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+    <path d="M7 57 22.5 28.5 35.5 41.5z" fill="#F58C82"/>
+    <path d="M7 57 14.5 43.2 20.8 49.5z" fill="#E4655B"/>
+    <path d="M25.5 25.5c3.4-3.7 8.2-3.4 11 .6" stroke="#3FBF97" stroke-width="3" stroke-linecap="round"/>
+    <path d="M31 40.5c4.3-1.6 6.2 1.4 10.6-.4" stroke="#F5B841" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="45.5" cy="13.5" r="3.4" fill="#F5B841"/>
+    <circle cx="56" cy="27" r="2.7" fill="#5AA9F0"/>
+    <circle cx="34.5" cy="8.5" r="2.4" fill="#3FBF97"/>
+    <circle cx="52.5" cy="45" r="2.4" fill="#F58C82"/>
+    <rect x="45.5" y="34" width="6" height="6" rx="1.5" transform="rotate(22 45.5 34)" fill="#5AA9F0"/>
+    <rect x="24.5" y="14" width="5.2" height="5.2" rx="1.4" transform="rotate(-28 24.5 14)" fill="#F5B841"/>
+  </svg>`;
+  const heroEmoji = e => `<div class="hero-ico emoji">${e}</div>`;
+  const CLOCK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>`;
+
+  /* 여행지·일정·인원을 점으로 잇는 타임라인으로 보여줍니다 */
+  const factsHtml = r => {
+    const period = r.depart ? `${r.depart}${r.return_ ? " ~ " + r.return_ : ""}` : "-";
+    const nights = r.nights ? `${r.nights}박 ${r.nights + 1}일` : "";
+    return `<div class="facts">
+      <div class="fact"><div class="k">여행지</div><div class="v">${esc(destTxt(r))}</div></div>
+      <div class="fact"><div class="k">일정</div><div class="v">${esc(period)}</div>${nights ? `<div class="s">${esc(nights)}</div>` : ""}</div>
+      <div class="fact"><div class="k">인원</div><div class="v">${esc(paxTxt(r))}</div></div>
     </div>`;
+  };
+  const sumHtml = r => `<div class="divider"></div>${factsHtml(r)}`;
 
   const progressHtml = r => {
     const booking = r.booking || {};
@@ -105,7 +137,7 @@
   };
 
   function showError(msg) {
-    card.innerHTML = `<div class="emoji">🔗</div><h1>링크를 확인해 주세요</h1>
+    card.innerHTML = `${heroEmoji("🔗")}<h1>링크를 확인해 주세요</h1>
       <div class="desc">${esc(msg)}</div>
       <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡으로 문의하기</a>`;
   }
@@ -146,10 +178,10 @@
       const title = confirmed ? "예약이 확정됐어요!" : signed ? "계약서 서명이 완료됐어요" : (depositPaid && contractRequested) ? "계약서를 확인해 주세요" : depositPaid ? "예약금 입금이 확인됐어요" : depositRequested ? (isReported ? "입금 내역을 확인하고 있어요" : "예약금 입금을 진행해 주세요") : "예약정보를 준비하고 있어요";
       const description = confirmed ? (published ? "확정일정표가 준비되었습니다." : "예약은 확정됐으며 세부 일정과 배정을 준비하고 있습니다.") : signed ? "서명이 접수되었습니다. 담당자가 확인 후 예약을 확정합니다." : (depositPaid && contractRequested) ? "예약금 확인이 완료되었습니다. 여행계약서를 확인하고 서명해 주세요." : depositPaid ? "예약금 확인이 완료되었습니다. 담당자가 계약서를 준비하고 있습니다." : depositRequested ? (isReported ? "고객님의 입금 완료 요청이 접수되었습니다. 담당자가 입금 확인 후 계약서 서명을 안내해 드립니다." : "아래 예약금과 입금 계좌를 확인해 주세요. 입금 완료 후 아래 버튼을 누르시면 담당자가 확인 후 예약을 진행합니다.") : "담당자가 예약정보와 예약금 안내를 준비하고 있습니다.";
       card.innerHTML = `
-        <div class="emoji">${confirmed ? "🎫" : depositRequested && !depositPaid ? (isReported ? "⏳" : "💳") : "🧾"}</div>
+        ${heroEmoji(confirmed ? "🎫" : depositRequested && !depositPaid ? (isReported ? "⏳" : "💳") : "🧾")}
+        <span class="chip ${confirmed ? "blue" : ""}">${confirmed ? "✓ 예약 확정" : isReported && !depositPaid ? "⏳ 입금 확인 중" : "⏳ 예약 진행 중"}</span>
         <h1>${title}</h1>
         <div class="desc">${nm}${description}</div>
-        <span class="badge ${confirmed ? "done" : "wait"}" ${confirmed ? 'style="background:#e8effc;color:#2b5cc4;"' : ""}>${confirmed ? "✓ 예약 확정" : isReported && !depositPaid ? "⏳ 입금 확인 중" : "⏳ 예약 진행 중"}</span>
         ${sumHtml(r)}
         ${progressHtml(r)}
         ${depositRequested && !depositPaid ? `<div class="dep">
@@ -242,21 +274,22 @@
       const expired = !!r.quoteExpired && !accepted;
       const expireLabel = r.quoteExpiresAt ? new Date(r.quoteExpiresAt).toLocaleDateString("ko-KR") : "";
       card.innerHTML = `
-        <div class="emoji">${accepted ? "🧾" : "🎉"}</div>
+        ${accepted ? heroEmoji("🧾") : PARTY_SVG}
+        <span class="chip ${accepted ? "amber" : ""}">${accepted ? "⏳ 예약 준비 중" : "✓ 견적 완료"}</span>
         <h1>${accepted ? "예약 준비를 시작했어요" : "견적서가 도착했어요!"}</h1>
         <div class="desc">${nm}${accepted ? "예약 진행이 확인되었습니다. 담당자가 예약정보와 예약금 안내를 준비하고 있습니다." : "견적서를 확인하시고, 수정하고 싶은 부분이나 예약 진행 의사는 카카오톡으로 편하게 말씀해 주세요."}</div>
-        <span class="badge ${accepted ? "wait" : "done"}">${accepted ? "⏳ 예약 준비 중" : "✓ 견적 완료"}</span>
         ${sumHtml(r)}
         ${accepted ? progressHtml(r) : ""}
-        ${expired ? `<div class="notice">이 견적의 유효기간이 만료되었습니다. 카카오톡으로 연장을 요청해 주세요.</div>` : (expireLabel ? `<div class="hint">견적 유효기간: ${esc(expireLabel)}까지</div>` : "")}
+        ${expired ? `<div class="notice">이 견적의 유효기간이 만료되었습니다. 카카오톡으로 연장을 요청해 주세요.</div>`
+          : (expireLabel ? `<div class="validity">${CLOCK_SVG}견적 유효기간: ${esc(expireLabel)}까지</div>` : "")}
         <a class="btn accent" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">📄 견적서 보기</a>
         <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡으로 예약 진행·수정 문의</a>`;
     } else {
       card.innerHTML = `
-        <div class="emoji">✅</div>
+        ${heroEmoji("✅")}
+        <span class="chip">⏳ ${esc(r.status || "확인 중")}</span>
         <h1>견적 요청이 접수됐어요</h1>
         <div class="desc">${nm}담당자가 확인 후 남겨주신 연락처로 연락드려요.<br>빠르게 견적서를 준비해 드릴게요.<br>견적서가 준비되면 이 화면에서 바로 확인할 수 있어요.</div>
-        <span class="badge wait">⏳ ${esc(r.status || "확인 중")}</span>
         ${sumHtml(r)}
         <a class="btn kakao" href="${KAKAO}" target="_blank">💬 카카오톡으로 빠른 상담</a>
         <button class="btn ghost" onclick="location.reload()">새로고침</button>
