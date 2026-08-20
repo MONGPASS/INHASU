@@ -1,86 +1,39 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { onRequestPost } from "../functions/api/guidebook-reminders.js";
-import { kstDateString } from "../functions/api/_guidebook-reminder.mjs";
 import { runGuidebookReminder } from "../workers/guidebook-reminder-cron.js";
 
-const addDays = (iso, days) => {
-  const [year, month, day] = iso.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
-};
+/* 여행 주의사항은 출발 7일 전이 아니라 계약서 서명 직후·관리자 수동 발송으로 나갑니다.
+   (발송 동작 자체는 tests/travel-notice.test.mjs 참고)
+   Cloudflare에 남아 있는 스케줄 Worker가 호출하더라도 아무것도 보내지 않아야 합니다. */
 
-function mockDb(initialRecord) {
-  let data = JSON.stringify(initialRecord);
-  return {
-    get data() { return data; },
-    prepare(sql) {
-      return {
-        bind(...args) {
-          return {
-            async all() {
-              assert.match(sql, /WHERE status = \?/);
-              return { results:[{ id:"req-guidebook", data, status:args[0] }] };
-            },
-            async run() {
-              assert.match(sql, /UPDATE requests SET data/);
-              const [nextData, id, expectedData] = args;
-              if (id !== "req-guidebook" || expectedData !== data) return { meta:{ changes:0 } };
-              data = nextData;
-              return { meta:{ changes:1 } };
-            },
-          };
-        },
-      };
-    },
-  };
-}
-
-test("가이드북 API는 발송 성공을 기록하고 다음 실행에서 중복 발송하지 않는다", async () => {
-  const today = kstDateString();
-  const depart = addDays(today, 7);
-  const DB = mockDb({
-    id:"req-guidebook", status:"예약확정", name:"홍길동", phone:"01012345678", depart, activities:[],
-  });
-  const env = {
-    DB, ADMIN_TOKEN:"admin-secret", SOLAPI_API_KEY:"api-key", SOLAPI_API_SECRET:"api-secret",
-    SOLAPI_PF_ID:"pf-id", SOLAPI_TEMPLATE_GUIDEBOOK_ID:"guidebook-template",
-  };
+test("출발 7일 전 자동 발송은 중단되어 예약을 조회하지도 발송하지도 않는다", async () => {
   const originalFetch = globalThis.fetch;
   let sends = 0;
-  globalThis.fetch = async (_url, init) => {
-    sends += 1;
-    const body = JSON.parse(init.body);
-    assert.equal(body.message.kakaoOptions.variables["#{출발일}"], depart);
-    return new Response(JSON.stringify({ groupId:"group-1" }), {
-      status:200, headers:{ "Content-Type":"application/json" },
-    });
-  };
+  globalThis.fetch = async () => { sends += 1; return new Response("{}", { status:200 }); };
+  const DB = { prepare() { throw new Error("예약을 조회하면 안 됩니다"); } };
   try {
     const request = new Request("https://example.com/api/guidebook-reminders", {
       method:"POST", headers:{ "x-admin-token":"admin-secret" },
     });
-    const first = await onRequestPost({ request, env });
-    const firstBody = await first.json();
-    assert.equal(first.status, 200);
-    assert.equal(firstBody.sent, 1);
-    assert.equal(JSON.parse(DB.data).notify.guidebookDepartureDate, depart);
-
-    const second = await onRequestPost({ request, env });
-    const secondBody = await second.json();
-    assert.equal(secondBody.sent, 0);
-    assert.equal(secondBody.results[0].reason, "already_sent");
-    assert.equal(sends, 1);
+    const response = await onRequestPost({ request, env:{ DB, ADMIN_TOKEN:"admin-secret" } });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.ok, true);
+    assert.equal(body.disabled, true);
+    assert.equal(body.sent, 0);
+    assert.equal(sends, 0);
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test("예약 Worker는 비밀 헤더로 Pages API를 호출한다", async () => {
+test("남아 있는 예약 Worker가 호출해도 중단 응답을 정상으로 받는다", async () => {
   const originalFetch = globalThis.fetch;
   let called;
   globalThis.fetch = async (url, init) => {
     called = { url, init };
-    return new Response(JSON.stringify({ ok:true, sent:0 }), {
+    return new Response(JSON.stringify({ ok:true, disabled:true, sent:0 }), {
       status:200, headers:{ "Content-Type":"application/json" },
     });
   };

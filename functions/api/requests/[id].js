@@ -8,8 +8,9 @@ import { workflowStatus, defaultQuoteExpiry, requiredLodgeCount } from "../_work
 import {
   canSendKakao,
   notifyCustomerQuoteReady, notifyCustomerItineraryReady, notifyCustomerContractReady,
-  quoteTemplateId, itineraryTemplateId,
+  notifyCustomerTravelNotice, quoteTemplateId, itineraryTemplateId,
 } from "../_solapi.js";
+import { MANUAL_TRIGGER, recordTravelNoticeSent, travelNoticeState } from "../_travel-notice.mjs";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -70,6 +71,7 @@ export async function onRequestPatch(context) {
     const requestDeposit = !!patch.notifyDeposit; delete patch.notifyDeposit;
     const requestContract = !!patch.notifyContract; delete patch.notifyContract;
     const confirmDeposit = !!patch.confirmDeposit; delete patch.confirmDeposit;
+    const sendTravelNotice = !!patch.notifyTravelNotice; delete patch.notifyTravelNotice;
 
     const row = await env.DB.prepare("SELECT data, status FROM requests WHERE id = ?").bind(id).first();
     if (!row) return json({ ok: false, error: "not found" }, 404);
@@ -177,6 +179,24 @@ export async function onRequestPatch(context) {
       rec.activities.push({ at:now, type:ready ? "itinerary_notification_queued" : "itinerary_notification_skipped", detail:ready ? "고객 확정일정표 확인 알림톡 발송 요청" : "확정일정표 알림 건너뜀" });
     }
 
+    /* 여행 주의사항 수동 발송 — 결과를 바로 알려줘야 하므로 저장 전에 실제 발송까지 마칩니다.
+       성공한 경우에만 발송 기록을 남기며, 횟수 제한 없이 다시 보낼 수 있습니다. */
+    let travelNotice;
+    if (sendTravelNotice) {
+      const result = await notifyCustomerTravelNotice(env, {
+        phone: rec.phone, name: rec.name, depart: rec.depart, requestUrl: request.url,
+      }).catch(e => ({ ok: false, error: String(e?.message || e) }));
+      if (result?.ok) {
+        const at = new Date().toISOString();
+        recordTravelNoticeSent(rec, { at, trigger: MANUAL_TRIGGER });
+        travelNotice = { ok: true, sentAt: at, sentCount: travelNoticeState(rec).sentCount };
+      } else {
+        travelNotice = { ok: false, reason: result?.reason || result?.error || "send_failed" };
+        rec.activities.push({ at: now, type: "travel_notice_failed", detail: `여행 주의사항 발송 실패 (${travelNotice.reason})` });
+      }
+      rec.activities = rec.activities.slice(-100);
+    }
+
     await env.DB.prepare("UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ?").bind(rec.status, rec.memo || "", JSON.stringify(rec), rec.token || "", id).run();
 
     const bg = (tag, promise) => {
@@ -205,6 +225,8 @@ export async function onRequestPatch(context) {
       travelerSubmission: rec.booking && rec.booking.travelerSubmission,
       depositRequest: rec.booking && rec.booking.depositRequest,
       contractRequest: rec.booking && rec.booking.contractRequest,
+      travelNotice,
+      notify: rec.notify,
       notifications,
       activities: rec.activities,
     });

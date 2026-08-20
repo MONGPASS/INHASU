@@ -5,8 +5,9 @@
    - 서명 시점의 계약 스냅샷(고객·여행 정보·약관 버전)을 함께 동결 저장
    ═══════════════════════════════════════════════════════════ */
 
-import { notifyAdmin } from "../_solapi.js";
+import { notifyAdmin, notifyCustomerTravelNotice } from "../_solapi.js";
 import { sanitizeTravelers, sanitizeTripInfo } from "../_travelers.mjs";
+import { AUTO_TRIGGER, recordTravelNoticeSent, shouldAutoSendTravelNotice } from "../_travel-notice.mjs";
 
 const TERMS_VERSION = "v1-2026-07";       // 계약서.html 조항을 바꾸면 버전도 올려주세요
 const MAX_SIGN_BYTES = 300_000;           // 서명 PNG dataURL 최대 길이 (~220KB 이미지)
@@ -123,8 +124,9 @@ export async function onRequestPost(context) {
     rec.notify = rec.notify && typeof rec.notify === "object" ? rec.notify : {};
     rec.activities = rec.activities.slice(-100);
 
+    const savedData = JSON.stringify(rec);
     await env.DB.prepare("UPDATE requests SET status = ?, data = ? WHERE id = ?")
-      .bind(status, JSON.stringify(rec), row.id).run();
+      .bind(status, savedData, row.id).run();
 
     const bg = (tag, p) => context.waitUntil(
       p.then(res => console.log(tag, JSON.stringify(res))).catch(e => console.log(tag + "-err", String(e)))
@@ -133,6 +135,24 @@ export async function onRequestPost(context) {
       `[계약서 서명] ${rec.name || "고객"} · ${rec.destination || "여행지 미정"}\n` +
       `고객이 여행계약서에 서명했습니다. 관리자 페이지에서 내용을 확인하고 예약을 확정해 주세요.`
     ));
+
+    /* 서명 완료 즉시 여행 주의사항 안내 — 발송에 성공했을 때만 기록을 남기고,
+       기록 저장은 서명 저장본이 그대로일 때만 반영해 다른 저장과 충돌하지 않게 합니다. */
+    if (shouldAutoSendTravelNotice(rec)) {
+      bg("notify-customer-travel-notice", (async () => {
+        const result = await notifyCustomerTravelNotice(env, {
+          phone: rec.phone, name: rec.name, depart: rec.depart, requestUrl: request.url,
+        });
+        if (!result?.ok) return { ok: false, reason: result?.reason || result?.error || "send_failed" };
+        const updated = recordTravelNoticeSent(JSON.parse(savedData), {
+          at: new Date().toISOString(), trigger: AUTO_TRIGGER,
+        });
+        const saved = await env.DB.prepare("UPDATE requests SET data = ? WHERE id = ? AND data = ?")
+          .bind(JSON.stringify(updated), row.id, savedData).run();
+        const changes = Number(saved?.meta?.changes ?? saved?.changes ?? 0);
+        return { ok: true, marked: changes === 1 };
+      })());
+    }
 
     return json({ ok: true, signedAt: contract.signedAt, status });
   } catch (e) {

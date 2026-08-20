@@ -247,6 +247,7 @@
     <button class="barbtn" id="contractRequestBtn">✍ 계약서 요청</button>
     <button class="barbtn" id="confirmBookingBtn">✓ 예약 확정</button>
     <button class="barbtn" id="publishBtn">🎫 일정표 공개</button>
+    <button class="barbtn" id="travelNoticeBtn">📘 주의사항 발송</button>
     <button id="saveBtn">💾 임시 저장</button>
     <details class="bar-more"><summary title="기타 작업">⋯</summary><div class="bar-more-menu"><button class="barbtn danger" id="undoBtn">↩ 되돌리기</button></div></details>
   </span>
@@ -934,6 +935,7 @@ function bindEvents() {
   $("saveBtn").onclick = () => save();
   $("depositRequestBtn").onclick = () => sendStageRequest("deposit");
   $("contractRequestBtn").onclick = () => sendStageRequest("contract");
+  $("travelNoticeBtn").onclick = sendTravelNotice;
   $("confirmBookingBtn").onclick = async () => {
     if (!await askConfirm({ title:"예약을 확정할까요?", message:"예약금 입금과 계약서 서명을 확인한 뒤 고객에게 예약 확정 알림을 보냅니다.", confirmText:"예약 확정하기", icon:"✓" })) return;
     $("setStatus").checked = true;
@@ -1039,6 +1041,16 @@ function updateActionBar() {
     btn.style.display = show ? "" : "none";
     btn.classList.toggle("primary", show);
   });
+  /* 여행 주의사항 수동 발송 — 단계와 무관하게 항상 눌러 보낼 수 있습니다 */
+  const tn = PRE.notify || {};
+  const tnBtn = $("travelNoticeBtn");
+  const tnSentAt = tn.travelNoticeSentAt || "";
+  const tnCount = Number(tn.travelNoticeSentCount) || 0;
+  tnBtn.textContent = tnSentAt ? "📘 주의사항 재발송" : "📘 주의사항 발송";
+  tnBtn.disabled = !PRE.phone;
+  tnBtn.title = !PRE.phone ? "고객 연락처가 없어 발송할 수 없습니다"
+    : tnSentAt ? `마지막 발송 ${tnSentAt.slice(0, 10)} · 총 ${tnCount}회 — 다시 보낼 수 있습니다`
+    : "여행 주의사항 PDF를 고객에게 지금 보냅니다";
   $("bottomStep").textContent = wf.published ? "예약 절차 완료" : `${wf.active}/${wf.steps.length}단계 · ${wf.steps[wf.active - 1].label}`;
   $("bottomTask").textContent = wf.task.title;
   const hasStageAction = ["deposit", "contract", "confirm", "publish"].includes(wf.task.action);
@@ -1075,6 +1087,39 @@ async function sendStageRequest(kind) {
     render(); toast(`✓ ${label} 단계가 고객 페이지에 표시됩니다`);
   } catch (e) {
     updateActionBar(); toast("⚠ " + e.message);
+  }
+}
+
+/* 여행 주의사항 수동 발송 — 계약서 서명 직후 자동 발송과 같은 안내를 관리자가 직접 다시 보냅니다 */
+async function sendTravelNotice() {
+  if (!PRE.phone) return toast("⚠ 고객 연락처가 없어 발송할 수 없어요");
+  const tn = PRE.notify || {};
+  const before = tn.travelNoticeSentAt
+    ? `이미 ${tn.travelNoticeSentAt.slice(0, 10)}에 보냈어요. 다시 보낼까요?`
+    : "고객에게 여행 주의사항 안내를 지금 보냅니다.";
+  if (!await askConfirm({
+    title:"여행 주의사항을 보낼까요?",
+    message:`${before}\n${PRE.name || "고객"}님(${PRE.phone})에게 여행 주의사항 PDF 링크가 발송됩니다.`,
+    confirmText:"주의사항 발송", icon:"📘",
+  })) return;
+  const btn = $("travelNoticeBtn");
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = "발송 중…";
+  try {
+    const res = await fetch(`/api/requests/${encodeURIComponent(PRE.id)}`, {
+      method:"PATCH", headers:{ "Content-Type":"application/json", "x-admin-token":ADMIN_TOKEN },
+      body:JSON.stringify({ notifyTravelNotice:true }),
+    });
+    const j = await res.json();
+    if (!res.ok || !j.ok) throw new Error(j.error || "발송 실패");
+    if (!j.travelNotice || !j.travelNotice.ok) throw new Error(j.travelNotice?.reason || "발송 실패");
+    PRE.notify = j.notify || PRE.notify;
+    localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));
+    updateActionBar();
+    toast("✓ 여행 주의사항을 고객에게 발송했어요");
+  } catch (e) {
+    btn.textContent = label; updateActionBar();
+    toast("⚠ " + e.message);
   }
 }
 

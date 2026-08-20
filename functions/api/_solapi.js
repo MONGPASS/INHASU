@@ -39,6 +39,9 @@ export const quoteTemplateId = env => env.SOLAPI_TEMPLATE_QUOTE_ID || env.SOLAPI
 export const contractTemplateId = env => env.SOLAPI_TEMPLATE_CONTRACT_ID || env.SOLAPI_KAKAO_CONTRACT_TEMPLATE_ID || "";
 export const itineraryTemplateId = env => env.SOLAPI_TEMPLATE_ITINERARY_ID || env.SOLAPI_KAKAO_ITINERARY_TEMPLATE_ID || "";
 export const guidebookTemplateId = env => env.SOLAPI_TEMPLATE_GUIDEBOOK_ID || "";
+/* 여행 주의사항(가이드북) 전용 템플릿 — 계약서 서명 직후 문구로 새로 승인받은 템플릿을 넣습니다.
+   비워두면 아래 notifyCustomerTravelNotice가 문자(LMS)로 같은 내용을 보냅니다. */
+export const travelNoticeTemplateId = env => env.SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID || "";
 export const GUIDEBOOK_PATH = "guidebooks/mongolia-travel-guidebook-2026.pdf";
 
 async function hmacHex(secret, data) {
@@ -172,6 +175,46 @@ ${name ? name + "님, " : ""}입금확인이 완료되었습니다.
 완료하고 저희한테 말씀해주시면 되겠습니다.
 
 ▶ 투어 계약서 확인하기:
+${url}`;
+
+  return sendSms(env, { phone, text });
+}
+
+export function guidebookUrl(env, requestUrl) {
+  const configured = String(env.SITE_URL || env.CUSTOMER_BASE_URL || "").trim();
+  const base = new URL(configured || requestUrl || "https://mongolia-milkyway.com");
+  return new URL(`/${GUIDEBOOK_PATH}`, base.origin).toString();
+}
+
+/* 여행 주의사항 안내 — 계약서 서명 직후 자동 발송과 관리자 수동 발송에 함께 사용합니다.
+   전용 알림톡 템플릿(SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID)이 승인·설정되어 있으면 알림톡으로,
+   없으면 같은 내용을 문자(LMS)로 보냅니다. 기존 "출발 7일 전" 가이드북 템플릿은
+   승인된 문구가 시점과 맞지 않으므로 재사용하지 않습니다. */
+export async function notifyCustomerTravelNotice(env, { phone, name, depart, requestUrl }) {
+  const url = guidebookUrl(env, requestUrl);
+  const templateId = travelNoticeTemplateId(env);
+  if (canSendKakao(env, { phone, templateId })) {
+    return sendKakaoAlimtalk(env, {
+      phone,
+      templateId,
+      variables: {
+        "#{고객명}": name || "고객",
+        "#{출발일}": String(depart || ""),
+        "#{회사명}": company(env),
+        "#{링크}": GUIDEBOOK_PATH,
+      },
+      buttonName: "여행 주의사항 보기",
+      link: url,
+    });
+  }
+
+  const text =
+`[${company(env)}]
+${name ? name + "님, " : ""}여행계약서 작성이 완료되었습니다.
+
+여행 주의사항을 보내드리니 여행 준비에 참고해 주세요😊
+
+▶ 여행 주의사항 확인하기:
 ${url}`;
 
   return sendSms(env, { phone, text });
