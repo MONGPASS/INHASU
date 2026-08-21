@@ -109,26 +109,39 @@
   .tl-cell:hover { background:#f4f9f7; }
   .tl-cell .step { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#04836b; line-height:1.35; }
   .tl-cell .step i { width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none; display:block; }
+  .tl-cell .step.bad { color:#e5484d; }
+  .tl-cell .step.bad i { background:#e5484d; }
   .tl-cell .step span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .tl-cell .meta { font-size:11px; font-weight:700; color:var(--gray); margin-top:3px; padding-left:13px; white-space:nowrap; }
   .tl-cell .none { font-size:12px; font-weight:700; color:var(--gray); }
   .tl-mask { position:fixed; inset:0; background:rgba(15,46,39,.34); display:none; align-items:center; justify-content:center; z-index:90; padding:20px; }
   .tl-mask.on { display:flex; }
-  .tl-panel { background:#fff; border-radius:16px; width:100%; max-width:440px; max-height:80vh; overflow:auto; padding:20px 22px 8px; box-shadow:0 20px 50px rgba(15,46,39,.25); }
-  .tl-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
-  .tl-head b { font-size:15px; font-weight:800; display:block; }
-  .tl-head small { font-size:12px; color:var(--gray); font-weight:700; }
-  .tl-close { border:none; background:none; font-size:20px; line-height:1; color:var(--gray); cursor:pointer; padding:0 2px; }
-  .tl-item { position:relative; padding:0 0 15px 24px; }
-  .tl-item::before { content:""; position:absolute; left:6px; top:15px; bottom:-1px; width:2px; background:#e1ede9; }
-  .tl-item:last-child::before { display:none; }
-  .tl-dot { position:absolute; left:1px; top:3px; width:12px; height:12px; border-radius:50%; background:#d6e1dd; border:2px solid #fff; box-shadow:0 0 0 1.5px #d6e1dd; }
-  .tl-item.cust .tl-dot { background:var(--deep); box-shadow:0 0 0 1.5px var(--deep); }
-  .tl-item b { display:block; font-size:13px; color:#556b65; font-weight:600; line-height:1.45; }
-  .tl-item.cust b { color:#213a34; font-weight:700; }
-  .tl-item.latest b { color:#04836b; }
-  .tl-item small { font-size:11.5px; color:#9db2ac; }
-  .tl-empty { padding:18px 0 26px; text-align:center; color:var(--gray); font-size:13px; font-weight:700; }
+  .tl-panel { background:#fff; border-radius:16px; width:100%; max-width:440px; max-height:82vh; overflow:auto; box-shadow:0 20px 50px rgba(15,46,39,.25); }
+  .tl-head { position:sticky; top:0; background:#fff; z-index:1; display:flex; align-items:flex-start; justify-content:space-between;
+    gap:12px; padding:20px 22px 15px; border-bottom:1px solid #eef1f0; }
+  .tl-head b { font-size:17px; font-weight:800; display:block; letter-spacing:-.02em; }
+  .tl-head small { font-size:13px; color:#8b9a96; font-weight:600; display:block; margin-top:4px; }
+  .tl-close { border:none; background:none; font-size:21px; line-height:1; color:#9aa8a4; cursor:pointer; padding:0 2px; flex:none; }
+  .tl-close:hover { color:var(--ink); }
+  .tl-body { padding:2px 22px 20px; }
+  /* 날짜로 묶고, 지난 날짜는 흐리게 — 최근 흐름이 먼저 눈에 들어오도록 */
+  .tl-date { display:flex; align-items:center; gap:10px; font-size:12.5px; font-weight:800; color:#3f4b48; padding:16px 0 6px; }
+  .tl-date::after { content:""; flex:1; height:1px; background:#eef1f0; }
+  .tl-group.past { opacity:.5; }
+  .tl-item { position:relative; padding:7px 0 7px 26px; }
+  /* 점은 회색(기본)·검정(사람이 한 일)·빨강(실패) 세 가지만 씁니다 */
+  .tl-dot { position:absolute; left:2px; top:11px; width:10px; height:10px; border-radius:50%;
+    background:#fff; border:1.5px solid #cfd6d4; box-sizing:border-box; }
+  .tl-item.person .tl-dot { background:#25302d; border-color:#25302d; }
+  .tl-item.bad .tl-dot { background:#e5484d; border-color:#e5484d; }
+  .tl-item b { display:block; font-size:13.5px; font-weight:600; color:#6c7a76; line-height:1.5; }
+  .tl-item.person b { color:#1c2b27; font-weight:700; }
+  .tl-item.bad b { color:#e5484d; font-weight:700; }
+  .tl-meta { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .tl-meta time { font-size:11.5px; color:#9aa8a4; font-weight:600; }
+  .tl-meta i { width:1px; height:10px; background:#e3e8e6; display:block; flex:none; }
+  .tl-meta span { font-size:11px; font-weight:700; color:#7c8a86; background:#f1f4f3; border-radius:5px; padding:2px 6px; }
+  .tl-empty { padding:26px 0 30px; text-align:center; color:var(--gray); font-size:13px; font-weight:700; }
   .col-actions { text-align:right; }
   .pay-sel { border:none; background:none; color:inherit; font:inherit; cursor:pointer; padding:0 0 0 1px; margin:0; appearance:none; -webkit-appearance:none; }
   .pay-sel:focus { outline:none; }
@@ -249,12 +262,12 @@
 </div>
 <div class="toast" id="toast"></div>
 <div class="tl-mask" id="tlMask">
-  <div class="tl-panel">
+  <div class="tl-panel" id="tlPanel">
     <div class="tl-head">
       <div><b>고객 진행 타임라인</b><small id="tlWho"></small></div>
       <button class="tl-close" id="tlClose" type="button" title="닫기">×</button>
     </div>
-    <div id="tlBody"></div>
+    <div class="tl-body" id="tlBody"></div>
   </div>
 </div>
 
@@ -445,15 +458,16 @@ function customerTimeline(r) {
   if (r.quote && quoteSent) ev.push({ at:quoteSent, who:"관리자", label:"견적서 발행" });
   const NOTI = {
     quote_notification_queued:"견적 확인 알림톡 발송 요청",
-    quote_notification_skipped:"⚠ 견적 알림톡 미발송 · 설정/전화번호 확인",
+    quote_notification_skipped:"견적 알림톡 미발송 · 설정/전화번호 확인",
     itinerary_notification_queued:"확정일정표 확인 알림톡 발송 요청",
-    itinerary_notification_skipped:"⚠ 일정표 알림톡 미발송 · 설정/전화번호 확인",
+    itinerary_notification_skipped:"일정표 알림톡 미발송 · 설정/전화번호 확인",
     contract_notification_queued:"계약서 서명 안내 발송 요청",
-    contract_notification_skipped:"⚠ 계약서 안내 미발송 · 설정/전화번호 확인",
+    contract_notification_skipped:"계약서 안내 미발송 · 설정/전화번호 확인",
     travel_notice_sent:"여행 주의사항 발송",
-    travel_notice_failed:"⚠ 여행 주의사항 발송 실패",
+    travel_notice_failed:"여행 주의사항 발송 실패",
   };
-  acts.filter(a => a && NOTI[a.type]).forEach(a => ev.push({ at:a.at, who:"자동", label:NOTI[a.type] }));
+  acts.filter(a => a && NOTI[a.type]).forEach(a =>
+    ev.push({ at:a.at, who:"자동", label:NOTI[a.type], bad:/skipped|failed/.test(a.type) }));
   if (r.decision && r.decision.status === "accepted" && r.decision.acceptedAt) {
     ev.push(r.decision.source === "customer"
       ? { at:r.decision.acceptedAt, who:"고객", label:"'이 견적으로 예약 진행하기' 클릭" }
@@ -478,33 +492,49 @@ function customerTimeline(r) {
   if (b.publishedAt) ev.push({ at:b.publishedAt, who:"관리자", label:"확정 일정표 공개" });
   return ev.filter(e => e.at && !isNaN(new Date(e.at))).sort((a, b2) => new Date(a.at) - new Date(b2.at));
 }
-const tlTime = t => {
+const tlDate = t => {
   const d = new Date(t);
-  const date = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
-  return String(t).length > 10 ? `${date} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : date;
+  return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
 };
+const tlClock = t => {
+  const d = new Date(t);
+  return String(t).length > 10 ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : "";
+};
+const tlTime = t => `${tlDate(t)}${tlClock(t) ? " " + tlClock(t) : ""}`;
 /* 표 안에는 마지막 단계만 요약해서 보여주고, 누르면 전체를 패널로 펼칩니다 */
 function timelineCell(r) {
   const ev = customerTimeline(r);
   if (!ev.length) return `<span class="none" style="font-size:12px;color:var(--gray);font-weight:700">기록 없음</span>`;
   const last = ev[ev.length - 1];
   return `<button type="button" class="tl-cell" data-tl="${esc(r.id)}" title="눌러서 전체 진행 기록 보기">
-    <span class="step"><i></i><span>${esc(last.label)}</span></span>
+    <span class="step ${last.bad ? "bad" : ""}"><i></i><span>${esc(last.label)}</span></span>
     <span class="meta">${tlTime(last.at)} · ${esc(last.who)} · 총 ${ev.length}단계</span>
   </button>`;
 }
+/* 전체 기록 — 날짜로 묶고, 마지막 날짜만 진하게 (지난 날짜는 흐리게) */
 function openTimeline(id) {
   const r = RECORDS.find(x => String(x.id) === String(id));
   if (!r) return;
   const ev = customerTimeline(r);
-  $("tlBody").innerHTML = ev.length
-    ? ev.map((e, i) => `<div class="tl-item ${e.who === "고객" ? "cust" : ""} ${i === ev.length - 1 ? "latest" : ""}">
-        <span class="tl-dot"></span>
-        <div><b>${esc(e.label)}</b><small>${tlTime(e.at)} · ${esc(e.who)}</small></div>
+  const groups = [];
+  ev.forEach(e => {
+    const day = tlDate(e.at);
+    const g = groups.length && groups[groups.length - 1].day === day ? groups[groups.length - 1] : (groups.push({ day, items:[] }), groups[groups.length - 1]);
+    g.items.push(e);
+  });
+  $("tlBody").innerHTML = groups.length
+    ? groups.map((g, gi) => `<div class="tl-group ${gi < groups.length - 1 ? "past" : ""}">
+        <div class="tl-date">${g.day}</div>
+        ${g.items.map(e => `<div class="tl-item ${e.bad ? "bad" : e.who !== "자동" ? "person" : ""}">
+          <span class="tl-dot"></span>
+          <b>${esc(e.label)}</b>
+          <span class="tl-meta"><time>${tlClock(e.at) || g.day}</time><i></i><span>${esc(e.who)}</span></span>
+        </div>`).join("")}
       </div>`).join("")
     : `<div class="tl-empty">아직 남은 진행 기록이 없습니다.</div>`;
   $("tlWho").textContent = `${r.name || "고객"} · ${r.destination || "여행지 미정"}`;
   $("tlMask").classList.add("on");
+  $("tlPanel").scrollTop = $("tlPanel").scrollHeight;   // 최근 기록이 먼저 보이도록
 }
 const closeTimeline = () => $("tlMask").classList.remove("on");
 
