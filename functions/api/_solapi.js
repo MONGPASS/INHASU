@@ -99,6 +99,35 @@ async function solapiSend(env, message) {
   return { ok: r.ok, httpStatus: r.status, ...j };
 }
 
+/* Solapi GET 호출 (HMAC 인증은 발송과 동일) */
+async function solapiGet(env, path) {
+  if (!env.SOLAPI_API_KEY || !env.SOLAPI_API_SECRET) return SKIP("solapi keys not set");
+  const date = new Date().toISOString();
+  const salt = crypto.randomUUID().replace(/-/g, "");
+  const signature = await hmacHex(env.SOLAPI_API_SECRET, date + salt);
+  const r = await fetch("https://api.solapi.com" + path, {
+    headers: { "Authorization": `HMAC-SHA256 apiKey=${env.SOLAPI_API_KEY}, date=${date}, salt=${salt}, signature=${signature}` },
+  });
+  const j = await r.json().catch(() => ({ errorMessage: "invalid response" }));
+  return { ok: r.ok, httpStatus: r.status, ...j };
+}
+
+/* 계정에 등록된 카카오 알림톡 템플릿 목록 —
+   "유효한 템플릿 아이디가 아닙니다" 오류가 날 때 어떤 ID를 넣어야 하는지 확인용입니다. */
+export async function listKakaoTemplates(env) {
+  let res = await solapiGet(env, "/kakao/v2/templates?limit=100");
+  if (!res.ok && res.httpStatus === 404) res = await solapiGet(env, "/kakao/v1/templates?limit=100");
+  if (!res.ok) return { ok: false, reason: sendFailReason(res), raw: res };
+  const list = res.templateList || res.list || res.data || [];
+  const items = (Array.isArray(list) ? list : Object.values(list)).map(t => ({
+    templateId: t.templateId || t.id || "",
+    name: t.name || t.templateName || "",
+    status: t.status || t.inspectionStatus || "",
+    pfId: t.channelId || t.pfId || "",
+  })).filter(t => t.templateId);
+  return { ok: true, count: items.length, templates: items };
+}
+
 const envBool = value => /^(1|true|yes|on)$/i.test(String(value || ""));
 
 export function canSendKakao(env, { phone, templateId } = {}) {

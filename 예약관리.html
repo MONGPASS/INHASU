@@ -1162,6 +1162,8 @@ async function sendTravelNotice() {
       const reason = j.travelNotice?.reason || "발송 실패";
       if (/template not set/i.test(reason))
         throw new Error("알림톡 템플릿이 설정되지 않았어요 — 승인된 템플릿 ID를 SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID에 등록해 주세요");
+      if (/유효한 템플릿|template.*(not found|invalid)|invalid.*template/i.test(reason))
+        throw new Error("템플릿 ID가 올바르지 않아요 — Solapi에 등록된 템플릿 ID(KA01TP…)인지 확인해 주세요");
       if (/pf_id/i.test(reason))
         throw new Error("카카오 채널(SOLAPI_PF_ID) 설정이 필요해요");
       throw new Error(/invalid phone/i.test(reason)

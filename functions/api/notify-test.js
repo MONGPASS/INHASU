@@ -13,11 +13,13 @@
      ?token=…&type=guidebook&phone=010…&depart=2026-08-18 가이드북 알림톡 테스트
      ?token=…&type=travelnotice&phone=010… 여행 주의사항 알림톡 테스트
         (카카오 알림톡 전용 — 템플릿이 없으면 발송되지 않고 ready:false로 알려줍니다)
+     ?token=…&type=templates          Solapi에 등록된 알림톡 템플릿 목록
+        ("유효한 템플릿 아이디가 아닙니다" 오류가 날 때 올바른 ID를 확인하세요)
    ═══════════════════════════════════════════════════════════ */
 import {
   sendSms, notifyAdmin, canSendKakao, travelNoticeTemplateId,
   notifyCustomerQuoteReady, notifyCustomerItineraryReady, notifyCustomerGuidebook,
-  notifyCustomerTravelNotice,
+  notifyCustomerTravelNotice, listKakaoTemplates,
 } from "./_solapi.js";
 
 const json = (obj, status = 200) =>
@@ -71,6 +73,19 @@ export async function onRequestGet({ request, env }) {
     return json({ ok:result.ok, type, envState, solapiResponse:result });
   }
 
+  /* 계정에 등록된 템플릿 목록 — 환경변수에 넣은 ID가 실제로 있는지 대조할 수 있습니다 */
+  if (type === "templates") {
+    const result = await listKakaoTemplates(env);
+    const inUse = travelNoticeTemplateId(env);
+    const match = result.ok ? result.templates.find(t => t.templateId === inUse) : null;
+    return json({
+      ok: result.ok,
+      현재_설정된_여행주의사항_템플릿ID: inUse || "(없음)",
+      설정값이_목록에_있나요: result.ok ? (match ? "예 — " + (match.name || "이름 없음") + " / 상태 " + (match.status || "?") : "아니오 — 아래 목록의 templateId 중 하나로 바꿔주세요") : "확인 불가",
+      ...result,
+    }, result.ok ? 200 : 502);
+  }
+
   if (type === "travelnotice" && phone) {
     const result = await notifyCustomerTravelNotice(env, {
       phone, name:"테스트 고객", depart:url.searchParams.get("depart") || "2026-08-18", requestUrl:request.url,
@@ -92,6 +107,8 @@ export async function onRequestGet({ request, env }) {
       설명: travelNoticeReady()
         ? "여행 주의사항은 카카오 알림톡으로만 발송됩니다 (문자 대체발송 없음)."
         : "SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID가 없어 지금은 발송되지 않습니다 — 승인된 알림톡 템플릿 ID를 넣어주세요.",
+      설정된_템플릿ID: travelNoticeTemplateId(env) || "(없음)",
+      "ID가_맞는지_확인": "?type=templates 로 계정에 등록된 템플릿 목록과 대조하세요",
     },
     envState,
   });
