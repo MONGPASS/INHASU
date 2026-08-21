@@ -86,6 +86,10 @@ export async function onRequestPost(context) {
     d.receivedAt = admin && d.receivedAt ? d.receivedAt : new Date().toISOString();
     d.status = admin && d.status ? d.status : "신규";
     d.memo = admin && d.memo ? d.memo : "";
+    /* 견적서 편집기의 [저장하기]는 고객 알림 없이 내부 저장만 합니다.
+       고객에게 보내는 것은 [링크 공유하기]에서만 일어납니다. */
+    const silentQuote = !!(admin && d.silentQuote);
+    delete d.silentQuote;
     const quoteCreated = !!(admin && d.quote);
     if (quoteCreated) {
       d.quoteIssuedAt = d.receivedAt;
@@ -126,7 +130,8 @@ export async function onRequestPost(context) {
     }
 
     const quoteNotification = quoteCreated
-      ? (canSendKakao(env, { phone:d.phone, templateId:quoteTemplateId(env) }) ? "queued" : "skipped")
+      ? (silentQuote ? "silent"
+        : canSendKakao(env, { phone:d.phone, templateId:quoteTemplateId(env) }) ? "queued" : "skipped")
       : null;
     if (quoteNotification === "queued") {
       bg("notify-customer-quote", notifyCustomerQuoteReady(env, { phone:d.phone, name:d.name, token }));

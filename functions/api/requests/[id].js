@@ -66,6 +66,8 @@ export async function onRequestPatch(context) {
     const id = params.id;
 
     const forceNotifyQuote = !!patch.notifyQuote; delete patch.notifyQuote;
+    /* [저장하기]는 고객 알림 없이 내부 저장만 — [링크 공유하기]에서만 발송합니다 */
+    const silentQuote = !!patch.silentQuote; delete patch.silentQuote;
     const rotateCustomerLink = !!patch.rotateCustomerLink; delete patch.rotateCustomerLink;
     const requestTravelerInfo = !!patch.notifyTravelers; delete patch.notifyTravelers;
     const requestDeposit = !!patch.notifyDeposit; delete patch.notifyDeposit;
@@ -159,7 +161,7 @@ export async function onRequestPatch(context) {
     const nextWorkflow = workflowStatus(rec, rec.status);
     rec.workflowStatus = nextWorkflow;
     const notifications = [];
-    const shouldNotifyQuote = !!rec.quote && (!hadQuote || forceNotifyQuote);
+    const shouldNotifyQuote = !silentQuote && !!rec.quote && (!hadQuote || forceNotifyQuote);
     const shouldNotifyContract = confirmDeposit || requestContract;
     const shouldNotifyItinerary = !!(rec.booking && rec.booking.publishStatus === "published" && prevPublish !== "published");
 

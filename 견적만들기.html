@@ -269,7 +269,8 @@
   </button>
   <button id="mapBtn">지도 미리보기</button>
   <button id="previewBtn">견적서 미리보기</button>
-  <button class="go" id="publishBtn">저장 · 고객 링크</button>
+  <button id="saveQuoteBtn">저장하기</button>
+  <button class="go" id="publishBtn">링크 공유하기</button>
 </header>
 
 <div class="stepwrap">
@@ -416,9 +417,10 @@
   <span class="sp"></span>
   <button class="prev" id="stepPrev">← 이전</button>
   <button class="next" id="stepNext">다음 →</button>
+  <button class="prev" id="saveQuoteBtn2" hidden>저장하기</button>
   <button class="publish" id="publishBtn2" hidden>
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-    저장 · 고객 링크 생성
+    링크 공유하기
   </button>
 </div>
 <div class="toast" id="toast"></div>
@@ -885,6 +887,7 @@ function setStep(i) {
   const last = curStep === STEP_LABELS.length - 1;
   $("stepNext").hidden = last;
   $("publishBtn2").hidden = !last;
+  $("saveQuoteBtn2").hidden = !last;
   $("stepPrev").disabled = curStep === 0;
   $("stepPrev").style.opacity = curStep === 0 ? ".45" : "1";
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1135,13 +1138,23 @@ $("linkClose").onclick = () => $("linkMask").classList.remove("on");
 $("linkMask").onclick = e => { if (e.target === $("linkMask")) $("linkMask").classList.remove("on"); };
 
 const pubBtn = $("publishBtn");
+const saveBtn = $("saveQuoteBtn");
 $("publishBtn2").onclick = () => pubBtn.click();
-pubBtn.onclick = async () => {
+$("saveQuoteBtn2").onclick = () => saveBtn.click();
+saveBtn.onclick = () => runSave({ share:false });
+pubBtn.onclick = () => runSave({ share:true });
+
+/* 저장하기 = 내부 저장만 (고객에게 알림 없음)
+   링크 공유하기 = 저장 + 고객 알림톡 발송 + 고객 링크 안내 */
+async function runSave({ share }) {
   const q = buildQuote();
   if (!ST.customer.trim() && !ANONYMOUS_SHARE) { toast("먼저 고객명을 입력하세요"); setStep(0); $("f_customer").focus(); return; }
   if (ANONYMOUS_SHARE && !ST.customer.trim()) { ST.customer = "여행 고객"; q.customer = "여행 고객"; }
-  if (!confirm("이 견적을 저장하고 고객에게 보낼 링크를 만들까요?")) return;
-  pubBtn.disabled = true; const label = pubBtn.textContent; pubBtn.textContent = "저장 중…";
+  if (share && !confirm("이 견적을 고객에게 보낼까요?\n고객에게 견적서 도착 알림톡이 발송되고, 보낼 링크가 만들어집니다.")) return;
+  const btn = share ? pubBtn : saveBtn;
+  const others = [pubBtn, saveBtn, $("publishBtn2"), $("saveQuoteBtn2")];
+  others.forEach(b => b.disabled = true);
+  const label = btn.textContent; btn.textContent = "저장 중…";
   try {
     let token = REQ_TOKEN;
     let quoteNotification = null;
@@ -1151,7 +1164,7 @@ pubBtn.onclick = async () => {
       // 견적서에서 확정한 인원·일정·여행지를 요청 레코드에도 반영 →
       // 대시보드·고객 "견적서 도착" 요약이 견적서와 항상 일치하도록 (인원만 바꿔도 함께 갱신)
       // ※ 상태(status)는 건드리지 않음 — 완료/진행중 등은 관리자가 대시보드에서 직접 변경
-      const patch = { quote: q, notifyQuote:true };
+      const patch = share ? { quote: q, notifyQuote:true } : { quote: q, silentQuote:true };
       const totalNow = ST.pax || 0;
       if (totalNow > 0) {
         const o = REQ_PAX0 || {};
@@ -1191,6 +1204,7 @@ pubBtn.onclick = async () => {
           adult: ST.pax || 0, child: 0, infant: 0,
           receivedAt: new Date().toISOString(),
           source: ANONYMOUS_SHARE ? "course-share" : "walkin", quote: q,
+          silentQuote: !share,
         }),
       });
       const j = await res.json().catch(() => ({}));
@@ -1198,20 +1212,29 @@ pubBtn.onclick = async () => {
       quoteNotification = (j.notifications || []).find(x => x.type === "quote") || null;
       token = j.token || "";
       if (!token) throw new Error("고객 링크 토큰을 받지 못했습니다");
+      /* 새로 만든 레코드를 기억해 둡니다 — 다시 저장할 때 새 건이 또 생기지 않도록 */
+      REQ_ID = j.id || REQ_ID;
+      REQ_TOKEN = token;
+    }
+    if (!share) {
+      /* 초안(localStorage)은 그대로 두어 이어서 편집할 수 있게 합니다 */
+      toast("✓ 저장했어요 — 고객에게는 아직 보내지 않았어요");
+      return;
     }
     const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + token;
     try { await navigator.clipboard.writeText(link); } catch (e) {}
     clearDraft();   // 발행 완료 → 초안 정리
     showLinkBox(link);
     toast(quoteNotification && quoteNotification.status === "queued"
-      ? "✓ 견적 저장 완료 · 고객 알림톡 발송을 요청했어요"
-      : "✓ 저장 완료 — 링크가 복사됐어요 (알림톡 설정·전화번호 확인)");
+      ? "✓ 고객에게 보냈어요 · 알림톡 발송을 요청했어요"
+      : "✓ 링크가 복사됐어요 (알림톡 설정·전화번호 확인)");
   } catch (e) {
     toast("⚠ 저장 실패: " + (e.message || "서버 연결을 확인하세요"));
   } finally {
-    pubBtn.disabled = false; pubBtn.textContent = label;
+    [pubBtn, saveBtn, $("publishBtn2"), $("saveQuoteBtn2")].forEach(b => b.disabled = false);
+    btn.textContent = label;
   }
-};
+}
 $("resetBtn").onclick = () => {
   if (!confirm("입력한 내용을 모두 지울까요?")) return;
   localStorage.removeItem("leaders_quote");
