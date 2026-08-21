@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { notifyCustomerTravelNotice, guidebookUrl } from "../functions/api/_solapi.js";
+import { notifyCustomerTravelNotice, guidebookUrl, sendFailReason } from "../functions/api/_solapi.js";
 import {
   AUTO_TRIGGER, MANUAL_TRIGGER, recordTravelNoticeSent,
   shouldAutoSendTravelNotice, travelNoticeState,
@@ -88,6 +88,34 @@ test("SOLAPI_DISABLE_SMS가 N이어도 여행 주의사항은 문자 대체를 �
   await withFetch(async (_url, init) => { body = JSON.parse(init.body); return okResponse(); }, () =>
     notifyCustomerTravelNotice(env, { phone:"010-1234-5678", name:"홍길동", depart:"2026-08-18" }));
   assert.equal(body.message.kakaoOptions.disableSms, true);
+});
+
+test("발송 실패 사유는 Solapi가 돌려준 메시지까지 남긴다", () => {
+  assert.match(sendFailReason({ ok:false, skipped:true, reason:"invalid phone" }), /invalid phone/);
+  /* errorMessage만 오는 경우 — 예전에는 send_failed로만 남아 원인을 알 수 없었다 */
+  assert.match(sendFailReason({ ok:false, httpStatus:400, errorCode:"ValidationError", errorMessage:"template not found" }), /template not found/);
+  assert.match(sendFailReason({ ok:false, httpStatus:400, errorCode:"ValidationError", errorMessage:"template not found" }), /HTTP 400/);
+  /* 요청은 200이지만 건별로 실패한 경우 */
+  assert.match(sendFailReason({ ok:true, httpStatus:200, failedMessageList:[{ statusCode:"3035", statusMessage:"변수 불일치" }] }), /변수 불일치/);
+  assert.equal(sendFailReason(null), "no response");
+  assert.equal(sendFailReason({ ok:false }), "send_failed");
+});
+
+test("수동 발송이 실패하면 실제 사유가 기록에 남는다", async () => {
+  const DB = mockDb({
+    id:"req-1", status:"예약확정", name:"홍길동", phone:"01012345678",
+    booking:{ contractInfo:{} }, activities:[],
+  });
+  const res = await withFetch(
+    async () => new Response(JSON.stringify({ errorCode:"TemplateNotApproved", errorMessage:"승인되지 않은 템플릿입니다" }), {
+      status:400, headers:{ "Content-Type":"application/json" },
+    }),
+    () => onRequestPatch({ request:patchRequest({ notifyTravelNotice:true }), env:{ ...KAKAO_ENV, DB }, params:{ id:"req-1" } }));
+
+  const body = await res.json();
+  assert.equal(body.travelNotice.ok, false);
+  assert.match(body.travelNotice.reason, /승인되지 않은 템플릿입니다/);
+  assert.match(DB.record.activities.at(-1).detail, /승인되지 않은 템플릿입니다/);
 });
 
 test("자동 발송은 서명 1건당 한 번, 수동 발송은 제한 없이 기록된다", () => {

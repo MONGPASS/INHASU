@@ -5,7 +5,7 @@
    - 서명 시점의 계약 스냅샷(고객·여행 정보·약관 버전)을 함께 동결 저장
    ═══════════════════════════════════════════════════════════ */
 
-import { notifyAdmin, notifyCustomerTravelNotice } from "../_solapi.js";
+import { notifyAdmin, notifyCustomerTravelNotice, sendFailReason } from "../_solapi.js";
 import { sanitizeTravelers, sanitizeTripInfo } from "../_travelers.mjs";
 import { AUTO_TRIGGER, recordTravelNoticeSent, shouldAutoSendTravelNotice } from "../_travel-notice.mjs";
 
@@ -143,7 +143,7 @@ export async function onRequestPost(context) {
         const result = await notifyCustomerTravelNotice(env, {
           phone: rec.phone, name: rec.name, depart: rec.depart, requestUrl: request.url,
         });
-        if (!result?.ok) return { ok: false, reason: result?.reason || result?.error || "send_failed" };
+        if (!result?.ok) return { ok: false, reason: sendFailReason(result) };
         const updated = recordTravelNoticeSent(JSON.parse(savedData), {
           at: new Date().toISOString(), trigger: AUTO_TRIGGER,
         });

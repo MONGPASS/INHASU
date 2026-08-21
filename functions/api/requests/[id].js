@@ -8,7 +8,7 @@ import { workflowStatus, defaultQuoteExpiry, requiredLodgeCount } from "../_work
 import {
   canSendKakao,
   notifyCustomerQuoteReady, notifyCustomerItineraryReady, notifyCustomerContractReady,
-  notifyCustomerTravelNotice, quoteTemplateId, itineraryTemplateId,
+  notifyCustomerTravelNotice, quoteTemplateId, itineraryTemplateId, sendFailReason,
 } from "../_solapi.js";
 import { MANUAL_TRIGGER, recordTravelNoticeSent, travelNoticeState } from "../_travel-notice.mjs";
 
@@ -193,7 +193,7 @@ export async function onRequestPatch(context) {
         recordTravelNoticeSent(rec, { at, trigger: MANUAL_TRIGGER });
         travelNotice = { ok: true, sentAt: at, sentCount: travelNoticeState(rec).sentCount };
       } else {
-        travelNotice = { ok: false, reason: result?.reason || result?.error || "send_failed" };
+        travelNotice = { ok: false, reason: sendFailReason(result) };
         rec.activities.push({ at: now, type: "travel_notice_failed", detail: `여행 주의사항 발송 실패 (${travelNotice.reason})` });
       }
       rec.activities = rec.activities.slice(-100);

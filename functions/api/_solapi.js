@@ -36,6 +36,22 @@
 
 const SKIP = reason => ({ ok: false, skipped: true, reason });
 
+/* 발송 실패 사유 — Solapi가 돌려준 메시지까지 끌어내 기록에 남깁니다.
+   (errorMessage를 놓치면 "send_failed"로만 남아 원인을 알 수 없습니다) */
+export function sendFailReason(result) {
+  if (!result) return "no response";
+  const parts = [
+    result.reason,
+    result.error,
+    result.errorMessage,
+    result.errorCode && !result.errorMessage ? result.errorCode : "",
+    Array.isArray(result.failedMessageList) && result.failedMessageList.length
+      ? result.failedMessageList.map(m => m.statusMessage || m.statusCode).filter(Boolean).join(", ") : "",
+  ].filter(Boolean);
+  if (result.httpStatus && result.httpStatus >= 400) parts.push("HTTP " + result.httpStatus);
+  return parts.join(" · ") || "send_failed";
+}
+
 const normPhone = p => String(p || "").replace(/[^0-9]/g, "");
 const isPhone = tel => /^0[0-9]{8,10}$/.test(tel);
 const sender = env => normPhone(env.SOLAPI_SENDER) || undefined;

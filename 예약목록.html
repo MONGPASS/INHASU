@@ -466,8 +466,12 @@ function customerTimeline(r) {
     travel_notice_sent:"여행 주의사항 발송",
     travel_notice_failed:"여행 주의사항 발송 실패",
   };
-  acts.filter(a => a && NOTI[a.type]).forEach(a =>
-    ev.push({ at:a.at, who:"자동", label:NOTI[a.type], bad:/skipped|failed/.test(a.type) }));
+  acts.filter(a => a && NOTI[a.type]).forEach(a => {
+    const bad = /skipped|failed/.test(a.type);
+    /* 실패는 기록에 남은 실제 사유(괄호 안)까지 함께 보여줍니다 */
+    const why = bad ? (String(a.detail || "").match(/\(([^)]+)\)\s*$/) || [])[1] : "";
+    ev.push({ at:a.at, who:"자동", label:NOTI[a.type] + (why ? " — " + why : ""), bad });
+  });
   if (r.decision && r.decision.status === "accepted" && r.decision.acceptedAt) {
     ev.push(r.decision.source === "customer"
       ? { at:r.decision.acceptedAt, who:"고객", label:"'이 견적으로 예약 진행하기' 클릭" }
