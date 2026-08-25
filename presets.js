@@ -369,7 +369,11 @@ window.cloudPush = async function (key, obj) {
     const base = window.CLOUD_META[key];
     let r = await put(base !== undefined ? "base=" + encodeURIComponent(base) : "");
     if (r.status === 409) {
-      const ow = confirm("다른 기기(또는 다른 탭)에서 먼저 저장한 내용이 있어요.\n\n[확인] 지금 화면의 내용으로 덮어쓰기\n[취소] 저장 중단 — 새로고침해서 최신 내용을 확인하세요");
+      // 앱이 자체 다이얼로그를 제공하면(모바일 관리자) 그걸 쓰고, 없으면 브라우저 기본 confirm
+      const msg = "다른 기기(또는 다른 탭)에서 먼저 저장한 내용이 있어요.\n\n[확인] 지금 화면의 내용으로 덮어쓰기\n[취소] 저장 중단 — 새로고침해서 최신 내용을 확인하세요";
+      const ow = window.appConfirm
+        ? await window.appConfirm(msg, { title: "먼저 저장된 내용이 있어요", ok: "덮어쓰기", danger: true })
+        : confirm(msg);
       if (!ow) return { ok: false, conflict: true, error: "다른 기기에서 먼저 저장했어요. 새로고침 후 다시 작업해 주세요." };
       r = await put("force=1");
     }
