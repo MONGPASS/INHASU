@@ -75,6 +75,8 @@ nav.tabbar { position: sticky; bottom: 0; z-index: 30; display: grid; grid-templ
 .f input, .f select { min-width: 0; height: 46px; padding: 0 12px; border: 1px solid var(--g300); border-radius: 10px; background: #fff; }
 .f textarea { padding: 12px; border: 1px solid var(--g300); border-radius: 10px; line-height: 160%; resize: vertical; }
 .f2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; }
+.f2 .span2 { grid-column: 1 / -1; }
+.f textarea { min-width: 0; }
 .searchbox { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px; border: 1px solid var(--g300); border-radius: 999px; color: var(--g500); }
 .searchbox input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; }
 .statgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -88,12 +90,18 @@ nav.tabbar { position: sticky; bottom: 0; z-index: 30; display: grid; grid-templ
 
 /* 시트 · 오버레이 */
 .dim { position: fixed; inset: 0; background: var(--overlay); animation: fadeIn 180ms var(--enter); }
-.sheet-b { position: fixed; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; bottom: 0; background: #fff; border-radius: 20px 20px 0 0; animation: sheetUp 240ms var(--enter); display: flex; flex-direction: column; }
-.sheet-full { position: fixed; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; top: 0; bottom: 0; background: #fff; animation: sheetUp 240ms var(--enter); display: flex; flex-direction: column; }
+/* left:0/right:0 + auto 마진으로 중앙 정렬 — transform은 sheetUp 키프레임 전용으로 비워 둔다 */
+.sheet-b { position: fixed; left: 0; right: 0; margin-left: auto; margin-right: auto; width: 100%; max-width: 430px; bottom: 0; background: #fff; border-radius: 20px 20px 0 0; animation: sheetUp 240ms var(--enter); display: flex; flex-direction: column; }
+.sheet-full { position: fixed; left: 0; right: 0; margin-left: auto; margin-right: auto; width: 100%; max-width: 430px; top: 0; bottom: 0; background: #fff; animation: sheetUp 240ms var(--enter); display: flex; flex-direction: column; }
+/* 시트가 열린 채로 다시 그려질 때는 등장 애니메이션을 재생하지 않는다 */
+#ovl.noanim .dim, #ovl.noanim .sheet-b, #ovl.noanim .sheet-full, #ovl.noanim aside.drawer { animation: none; }
 .sheet-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 14px 12px 14px 16px; border-bottom: 1px solid var(--g200); background: #fff; }
 .sheet-head .t { flex: 1; font-size: 18px; font-weight: bold; min-width: 0; }
 .xbtn { flex: none; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: none; border-radius: 999px; background: var(--g100); color: var(--g700); }
 .sheet-body { flex: 1; overflow-y: auto; }
+/* flex 세로 컨테이너에서 자식이 overflow:visible이 아니면 자동 최소 높이가 0이 되어
+   내용만큼 늘지 않고 찌그러진다. 스크롤은 .sheet-body가 담당하므로 자식은 줄지 않게 고정. */
+.sheet-body > * { flex-shrink: 0; }
 .sheet-foot { flex: none; padding: 10px 12px 14px; border-top: 1px solid var(--g200); background: #fff; }
 
 /* 문의 카드 */
@@ -165,9 +173,10 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 .ready-cell { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 10px; background: var(--brand-bg); }
 .ready-cell .l { font-size: 11px; color: var(--g600); }
 .ready-cell .v { font-size: 17px; font-weight: bold; }
-.mini-f { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--g600); }
-.mini-f input, .mini-f select { height: 42px; padding: 0 10px; border: 1px solid var(--g300); border-radius: 6px; background: #fff; font-size: 13px; }
-.mini-f textarea { padding: 10px; border: 1px solid var(--g300); border-radius: 6px; font-size: 13px; line-height: 155%; resize: vertical; }
+/* min-width:0 이 없으면 input의 기본 폭(size=20 ≈ 200px)이 그리드 열을 밀어내 가로 스크롤이 생긴다 */
+.mini-f { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 11px; color: var(--g600); }
+.mini-f input, .mini-f select { min-width: 0; height: 42px; padding: 0 10px; border: 1px solid var(--g300); border-radius: 6px; background: #fff; font-size: 13px; }
+.mini-f textarea { min-width: 0; padding: 10px; border: 1px solid var(--g300); border-radius: 6px; font-size: 13px; line-height: 155%; resize: vertical; }
 .daycard { border: 1px solid var(--g200); border-radius: 10px; overflow: hidden; }
 .daycard .dh { display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--brand-bg); }
 .daycard .db { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
@@ -1574,15 +1583,20 @@ function secInfo(r, bk) {
     : ts.status === "requested"
       ? `<div style="padding:10px 12px; border-radius:8px; background:var(--y50); font-size:12px; font-weight:bold; color:var(--y800);">고객 입력 대기 중 · ${dateOnly(ts.requestedAt)} 요청</div>`
       : `<div style="padding:10px 12px; border-radius:8px; background:var(--g50); font-size:12px; color:var(--g600);">아직 여행자 정보를 요청하지 않았어요</div>`;
-  const tFields = [["type", "구분"], ["nameKo", "한글명"], ["passportName", "여권명"], ["birth", "생년월일"], ["phone", "연락처"], ["gender", "성별"], ["passportNo", "여권번호"]];
+  /* span2 = 값이 길어 한 줄을 다 쓰는 편이 읽기 좋은 항목 */
+  const tFields = [
+    ["nameKo", "한글명", ""], ["birth", "생년월일", ""],
+    ["phone", "연락처", ""], ["gender", "성별", ""],
+    ["passportName", "여권명", "span2"], ["passportNo", "여권번호", "span2"],
+  ];
   const travelerCard = (t, i) => `
-  <div style="display:flex; flex-direction:column; gap:10px; padding:12px; border:1px solid var(--g200); border-radius:10px;">
-    <div style="display:flex; align-items:center;">
-      <span style="font-size:12px; font-weight:bold; color:var(--brand-deep);">여행자 ${i + 1} · ${esc(t.type || "성인")}</span>
-      <button type="button" style="margin-left:auto; width:26px; height:26px; border:none; border-radius:6px; background:var(--red50); color:var(--danger); font-size:13px;" onclick="App.travelerRemove(${i})">×</button>
+  <div style="display:flex; flex-direction:column; gap:12px; padding:14px; border:1px solid var(--g200); border-radius:12px; background:var(--g50);">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="pill">여행자 ${i + 1} · ${esc(t.type || "성인")}</span>
+      <button type="button" style="margin-left:auto; flex:none; width:30px; height:30px; border:none; border-radius:8px; background:var(--red50); color:var(--danger); font-size:14px;" onclick="App.travelerRemove(${i})">×</button>
     </div>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-      ${tFields.slice(1).map(([k, label]) => `<label class="mini-f">${label}<input data-bk="travelers.${i}.${k}" value="${esc(t[k] || "")}"></label>`).join("")}
+    <div class="f2">
+      ${tFields.map(([k, label, cls]) => `<label class="f ${cls}">${label}<input data-bk="travelers.${i}.${k}" value="${esc(t[k] || "")}" style="font-weight:normal;"></label>`).join("")}
     </div>
   </div>`;
   const flightFields = [
@@ -1591,51 +1605,54 @@ function secInfo(r, bk) {
   ];
   const ci = bk.contractInfo || {};
   const ciFields = [
-    ["productName", "여행상품명", "text"], ["region", "여행지역", "text"], ["cashReceipt", "현금영수증", "text"],
-    ["totalAmount", "여행경비", "num"], ["depositAmount", "예약금", "num"], ["balanceAmount", "잔금", "num"],
-    ["bankName", "입금 은행", "text"], ["accountNumber", "입금 계좌번호", "text"], ["accountHolder", "예금주", "text"],
+    ["productName", "여행상품명", "text", "span2"], ["region", "여행지역", "text", ""], ["cashReceipt", "현금영수증", "text", ""],
+    ["totalAmount", "여행경비", "num", ""], ["depositAmount", "예약금", "num", ""], ["balanceAmount", "잔금", "num", ""],
+    ["bankName", "입금 은행", "text", ""], ["accountNumber", "입금 계좌번호", "text", "span2"], ["accountHolder", "예금주", "text", ""],
   ];
+  const cardHead = (ic, title, sub) => `
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="display:flex; color:var(--brand);">${icon(ic, 18)}</span>
+        <span style="font-size:16px; font-weight:bold;">${title}</span>
+      </div>
+      ${sub ? `<span style="font-size:11px; line-height:150%; color:var(--g500);">${sub}</span>` : ""}
+    </div>`;
+  const card = inner => `<section style="padding:18px 16px; border-radius:14px; background:#fff; display:flex; flex-direction:column; gap:14px;">${inner}</section>`;
   return `
-  <section class="asec" style="display:flex; flex-direction:column; gap:14px;">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span class="abadge">정보</span><span style="font-size:15px; font-weight:bold;">예약 · 계약 기본정보</span>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span style="font-size:13px; font-weight:bold;">여행자 정보</span>
-      <button type="button" class="btn" style="margin-left:auto; height:36px; font-size:12px;" onclick="App.requestTravelers()">고객에게 입력 요청</button>
-    </div>
+  ${card(`
+    ${cardHead("profile", "여행자 정보", "여권명·여권번호는 여권 표기 그대로 입력해 주세요")}
+    <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.requestTravelers()">고객에게 입력 요청</button>
     ${tBanner}
     ${(bk.travelers || []).map(travelerCard).join("")}
-    <button type="button" class="btn" style="height:40px; border-style:dashed; font-size:12px;" onclick="App.travelerAdd()">+ 여행자 직접 추가</button>
-    <label class="mini-f">특이사항 (고객 입력 — 고혈압·거동 불편·채식 등)
+    <button type="button" class="btn" style="height:44px; border-style:dashed; font-size:12px;" onclick="App.travelerAdd()">+ 여행자 직접 추가</button>
+    <label class="f">특이사항 (고객 입력 — 고혈압·거동 불편·채식 등)
       <textarea rows="3" data-bk="travelerNote" placeholder="고객이 여행자 정보 입력 화면에서 적은 내용이 표시됩니다">${esc(bk.travelerNote || "")}</textarea>
     </label>
-    <div style="display:flex; flex-direction:column; gap:10px; padding-top:4px;">
-      <span style="font-size:13px; font-weight:bold;">항공 정보</span>
-      <span style="font-size:11px; color:var(--g500);">시간은 24시간 기준 (고객이 여행자 정보 입력 때 함께 작성)</span>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        ${flightFields.map(([k, label]) => `<label class="mini-f">${label}<input data-bk="flight.${k}" value="${esc(bk.flight[k] || "")}"></label>`).join("")}
-      </div>
-      <label class="mini-f">픽업·샌딩 숙소명 (울란바타르 출발·도착 팀 — 고객 입력)
-        <textarea rows="2" data-bk="pickupLodge">${esc(bk.pickupLodge || "")}</textarea>
+  `)}
+  ${card(`
+    ${cardHead("calendar", "항공 정보", "시간은 24시간 기준 (고객이 여행자 정보 입력 때 함께 작성)")}
+    <div class="f2">
+      ${flightFields.map(([k, label]) => `<label class="f">${label}<input data-bk="flight.${k}" value="${esc(bk.flight[k] || "")}" style="font-weight:normal;"></label>`).join("")}
+    </div>
+    <label class="f">픽업·샌딩 숙소명 (울란바타르 출발·도착 팀 — 고객 입력)
+      <textarea rows="2" data-bk="pickupLodge">${esc(bk.pickupLodge || "")}</textarea>
+    </label>
+  `)}
+  ${card(`
+    ${cardHead("note", "계약 · 정산 정보", "")}
+    <div class="f2">
+      ${ciFields.map(([k, label, ty, cls]) => `<label class="f ${cls}">${label}<input data-bk="contractInfo.${k}" ${ty === "num" ? 'data-num="1" inputmode="numeric"' : ""} value="${esc(ci[k] != null ? ci[k] : "")}" style="font-weight:normal;"></label>`).join("")}
+      <label class="f">예약금 상태
+        <select data-bk="contractInfo.depositStatus">${["미입금", "입금완료"].map(x => `<option ${ci.depositStatus === x ? "selected" : ""}>${x}</option>`).join("")}</select>
+      </label>
+      <label class="f">잔금 상태
+        <select data-bk="contractInfo.balanceStatus">${["미수령", "입금완료", "현지현금전달", "계좌입금", "카드결제"].map(x => `<option ${ci.balanceStatus === x ? "selected" : ""}>${x}</option>`).join("")}</select>
       </label>
     </div>
-    <div style="display:flex; flex-direction:column; gap:10px; padding-top:4px;">
-      <span style="font-size:13px; font-weight:bold;">계약 · 정산 정보</span>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        ${ciFields.map(([k, label, ty]) => `<label class="mini-f">${label}<input data-bk="contractInfo.${k}" ${ty === "num" ? 'data-num="1" inputmode="numeric"' : ""} value="${esc(ci[k] != null ? ci[k] : "")}"></label>`).join("")}
-        <label class="mini-f">예약금 상태
-          <select data-bk="contractInfo.depositStatus">${["미입금", "입금완료"].map(x => `<option ${ci.depositStatus === x ? "selected" : ""}>${x}</option>`).join("")}</select>
-        </label>
-        <label class="mini-f">잔금 상태
-          <select data-bk="contractInfo.balanceStatus">${["미수령", "입금완료", "현지현금전달", "계좌입금", "카드결제"].map(x => `<option ${ci.balanceStatus === x ? "selected" : ""}>${x}</option>`).join("")}</select>
-        </label>
-      </div>
-      <label class="mini-f">계약서 비고/기타사항
-        <textarea rows="3" data-bk="contractInfo.note">${esc(ci.note || "")}</textarea>
-      </label>
-    </div>
-  </section>`;
+    <label class="f">계약서 비고/기타사항
+      <textarea rows="3" data-bk="contractInfo.note">${esc(ci.note || "")}</textarea>
+    </label>
+  `)}`;
 }
 document.addEventListener("change", e => {
   const el = e.target;
@@ -2205,7 +2222,7 @@ function qeStep4() {
     ${chips}
   </div>
   ${Object.entries(byRegion).map(([rg, items]) => `
-  <section style="border-radius:12px; background:#fff; overflow:hidden; padding:14px 12px;">
+  <section style="border-radius:12px; background:#fff; padding:14px 12px;">
     <div style="display:flex; align-items:center; gap:10px; padding:0 2px 10px;">
       <span style="font-size:15px; font-weight:bold; color:var(--brand-deep);">${esc(rg)}</span>
       <span style="margin-left:auto; font-size:12px; color:var(--g600);">${items.filter(it => QE.spots.includes(it.name)).length}/${items.length}</span>
@@ -2696,7 +2713,7 @@ function spotFormSheet() {
       </label>
       <div style="display:flex; flex-direction:column; gap:6px;">
         <span style="font-size:12px; font-weight:bold; color:var(--g700);">대표 사진</span>
-        <button type="button" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:150px; border:1.5px dashed var(--g300); border-radius:12px; background:var(--g50); background-size:cover; background-position:center; ${d.img ? `background-image:url('${esc(d.img)}')` : ""} font-size:13px; color:var(--g500);" onclick="App.uploadImg(v => { PGS.spotForm.draft.img = v; renderOverlays(); })">
+        <button type="button" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:150px; border:1.5px dashed var(--g300); border-radius:12px; background:var(--g50); background-size:cover; background-position:center; ${d.img ? `background-image:url('${esc(d.img)}');` : ""} font-size:13px; color:var(--g500);" onclick="App.uploadImg(v => { PGS.spotForm.draft.img = v; renderOverlays(); })">
           ${d.img ? "" : icon("photo", 22) + "사진 업로드 (탭)"}
         </button>
         <span style="font-size:11px; color:var(--g500);">사진은 자동으로 줄여서(WebP) 서버에 저장돼요.</span>
@@ -2790,7 +2807,7 @@ function resFormSheet() {
     <div style="display:flex; flex-direction:column; gap:6px;">
       <span style="font-size:12px; font-weight:bold; color:var(--g700);">카카오톡 QR (선택)</span>
       <div style="display:flex; align-items:center; gap:10px;">
-        <button type="button" style="flex:none; width:84px; height:84px; border:1.5px dashed #cfe3dc; border-radius:10px; background:#f5fbf9; background-size:cover; background-position:center; ${d.qr ? `background-image:url('${esc(d.qr)}')` : ""} font-size:11px; font-weight:bold; color:#8ca39d;" onclick="App.uploadImg(v => { PGS.resForm.draft.qr = v; renderOverlays(); })">${d.qr ? "" : "QR 업로드<br>(탭)"}</button>
+        <button type="button" style="flex:none; width:84px; height:84px; border:1.5px dashed #cfe3dc; border-radius:10px; background:#f5fbf9; background-size:cover; background-position:center; ${d.qr ? `background-image:url('${esc(d.qr)}');` : ""} font-size:11px; font-weight:bold; color:#8ca39d;" onclick="App.uploadImg(v => { PGS.resForm.draft.qr = v; renderOverlays(); })">${d.qr ? "" : "QR 업로드<br>(탭)"}</button>
         <input data-rf="qr" value="${esc(d.qr || "")}" placeholder="또는 이미지 URL 직접 입력" style="flex:1; min-width:0; height:44px; padding:0 10px; border:1px solid var(--g300); border-radius:8px; font-size:12px;">
       </div>
     </div>` : t === "lodges" ? `
@@ -2819,7 +2836,7 @@ function resFormSheet() {
       <label class="f" style="font-weight:bold;">이름<input data-rf="name" value="${esc(d.name || "")}" placeholder="${esc(M.namePh)}" style="font-weight:normal;"></label>
       <div style="display:flex; flex-direction:column; gap:6px;">
         <span style="font-size:12px; font-weight:bold; color:var(--g700);">대표 사진</span>
-        <button type="button" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:150px; border:1.5px dashed var(--g300); border-radius:12px; background:var(--g50); background-size:cover; background-position:center; ${d.img ? `background-image:url('${esc(d.img)}')` : ""} font-size:13px; color:var(--g500);" onclick="App.uploadImg(v => { PGS.resForm.draft.img = v; renderOverlays(); })">
+        <button type="button" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:150px; border:1.5px dashed var(--g300); border-radius:12px; background:var(--g50); background-size:cover; background-position:center; ${d.img ? `background-image:url('${esc(d.img)}');` : ""} font-size:13px; color:var(--g500);" onclick="App.uploadImg(v => { PGS.resForm.draft.img = v; renderOverlays(); })">
           ${d.img ? "" : icon("photo", 22) + "사진 업로드 (탭)"}
         </button>
         <span style="font-size:11px; color:var(--g500);">사진은 자동으로 줄여서(WebP) 서버에 저장돼요.</span>
@@ -2954,20 +2971,28 @@ App.refresh = async () => {
 };
 
 /* ═══ 오버레이 렌더러 ═══ */
+let PREV_OVL_KEY = "";
 function renderOverlays() {
   let html = "";
-  if (S.page === "quote" && QE) html += quoteEditorScreen();
-  if (S.page && S.page !== "quote") html += pageScreen();
-  if (PGS.courseEdit) html += courseEditSheet();
-  if (PGS.planForm) html += planFormSheet();
-  if (PGS.spotForm) html += spotFormSheet();
-  if (PGS.resForm) html += resFormSheet();
-  if (S.assign && ASSIGN) { const r = recById(S.assign); if (r) html += assignScreen(r); }
-  if (S.inquiry) { const r = recById(S.inquiry); if (r) html += inquirySheet(r); else S.inquiry = null; }
-  if (S.timelineFull) { const r = recById(S.timelineFull); if (r) html += timelineSheet(r); else S.timelineFull = null; }
-  if (S.sheet) html += moreSheetHtml();
-  if (S.drawer) html += drawerHtml();
-  $("ovl").innerHTML = html;
+  const keys = [];
+  if (S.page === "quote" && QE) { html += quoteEditorScreen(); keys.push("quote"); }
+  if (S.page && S.page !== "quote") { html += pageScreen(); keys.push("page:" + S.page); }
+  if (PGS.courseEdit) { html += courseEditSheet(); keys.push("courseEdit"); }
+  if (PGS.planForm) { html += planFormSheet(); keys.push("planForm"); }
+  if (PGS.spotForm) { html += spotFormSheet(); keys.push("spotForm"); }
+  if (PGS.resForm) { html += resFormSheet(); keys.push("resForm"); }
+  if (S.assign && ASSIGN) { const r = recById(S.assign); if (r) { html += assignScreen(r); keys.push("assign:" + S.assign); } }
+  if (S.inquiry) { const r = recById(S.inquiry); if (r) { html += inquirySheet(r); keys.push("inquiry:" + S.inquiry); } else S.inquiry = null; }
+  if (S.timelineFull) { const r = recById(S.timelineFull); if (r) { html += timelineSheet(r); keys.push("timeline:" + S.timelineFull); } else S.timelineFull = null; }
+  if (S.sheet) { html += moreSheetHtml(); keys.push("sheet"); }
+  if (S.drawer) { html += drawerHtml(); keys.push("drawer"); }
+  /* 열려 있는 오버레이 구성이 그대로면 단순 재렌더 — 등장 애니메이션을 다시 재생하지 않는다.
+     (클래스를 innerHTML 교체 전에 걸어야 새 노드가 애니메이션 없이 생성된다) */
+  const key = keys.join("|");
+  const ovl = $("ovl");
+  ovl.classList.toggle("noanim", key !== "" && key === PREV_OVL_KEY);
+  PREV_OVL_KEY = key;
+  ovl.innerHTML = html;
 }
 
 /* ═══ 로그인 · 부팅 ═══ */
