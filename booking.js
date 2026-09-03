@@ -89,6 +89,45 @@ function quoteMoney(rec) {
   return { totalAmount: depositAmount + balanceAmount, depositAmount, balanceAmount };
 }
 
+/* 예약 데이터 → 현지 잔금 현금영수증 출력 데이터. PC·모바일 관리자가 같은 번호와 필드를 사용합니다. */
+function cashReceiptPayload(rec, booking, now = new Date()) {
+  rec = rec || {};
+  booking = normBooking(booking || {});
+  const ci = booking.contractInfo || {};
+  const guide = (booking.assign && booking.assign.guide) || {};
+  const countedPax = Number(rec.adult || 0) + Number(rec.child || 0) + Number(rec.infant || 0);
+  const pax = countedPax || booking.travelers.length || 0;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone:"Asia/Seoul", year:"numeric", month:"2-digit", day:"2-digit",
+  }).formatToParts(now);
+  const part = type => (parts.find(p => p.type === type) || {}).value || "";
+  const issueDate = `${part("year")}-${part("month")}-${part("day")}`;
+  const idPart = String(rec.id || "receipt").replace(/[^a-z0-9]/gi, "").slice(-8).toUpperCase() || "RECEIPT";
+  const productName = ci.productName || rec.destination || "몽골 투어";
+  return {
+    customerName: rec.name || "",
+    pax,
+    receiptNo: `R-${part("year")}-${idPart}`,
+    issueDate,
+    amount: Number(ci.balanceAmount || 0),
+    productName,
+    depart: booking.flight.inDate || rec.depart || "",
+    returnDate: booking.flight.outDate || rec.return_ || "",
+    description: `${productName} 투어 잔금 현금 수령`,
+    guideName: guide.name || "",
+    guideNameEn: guide.nameEn || "",
+  };
+}
+
+function storeCashReceiptPayload(payload) {
+  const nonce = globalThis.crypto && globalThis.crypto.randomUUID
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const key = `leaders_cash_receipt_print_${nonce}`;
+  localStorage.setItem(key, JSON.stringify(payload));
+  return key;
+}
+
 /* 예약확정 순간 호출 — 발행된 견적(rec.quote)과 문의 레코드 기본정보에서 booking 스켈레톤 생성.
    예약관리 init()의 승계 규칙과 동일하되, 견적 일정·대표명소를 자동으로 끌어온다
    (예약관리에서 "↺ 견적 일정 불러오기"를 누르지 않아도 확정 시점에 일정이 채워지게).
