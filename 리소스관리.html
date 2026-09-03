@@ -37,15 +37,14 @@
   .tab.on { background:var(--deep); border-color:var(--deep); color:#fff; }
   .tab .cnt { font-size:11px; font-weight:800; opacity:.85; }
 
-  .lodge-cats { margin-top:-8px; padding:12px 14px; background:var(--soft); border:1px solid #dceee9; border-radius:14px; }
+  .lodge-cats { margin-top:-8px; }
   .lodge-cats[hidden] { display:none; }
-  .cat-label { color:var(--deep); font-size:12px; font-weight:800; margin-right:2px; }
-  .cat-tab { border:1.5px solid #d7e8e3; background:#fff; color:var(--sub); border-radius:999px; padding:7px 12px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; transition:.12s; }
+  .cat-tab { border:1.5px solid var(--line); background:#fff; color:var(--sub); border-radius:999px; padding:8px 15px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:7px; transition:.12s; }
   .cat-tab:hover { border-color:var(--accent); color:var(--deep); }
   .cat-tab.on { background:var(--deep); border-color:var(--deep); color:#fff; }
   .cat-tab.addcat { color:var(--deep); border-style:dashed; border-color:var(--accent); }
-  .cat-tab .cnt { font-size:10.5px; font-weight:800; opacity:.82; }
-  .cat-tab .edit { display:inline-flex; margin-left:1px; opacity:.75; }
+  .cat-tab .cnt { font-size:11px; font-weight:800; opacity:.85; }
+  .cat-tab .edit { display:inline-flex; margin-left:2px; opacity:.75; }
   .cat-tab .edit:hover { opacity:1; }
 
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; }
@@ -232,16 +231,15 @@ function renderLodgeCats() {
   bar.hidden = false;
   const total = Object.keys(LIB).length;
   const noneCnt = Object.values(LIB).filter(r => !lodgeCatOf(r)).length;
-  let html = `<span class="cat-label">숙소 지역</span>` +
-    `<button class="cat-tab ${activeLodgeCat === "__all" ? "on" : ""}" data-cat="__all">전체 <span class="cnt">${total}</span></button>`;
+  let html = `<button class="cat-tab ${activeLodgeCat === "__all" ? "on" : ""}" data-cat="__all">전체 <span class="cnt">${total}</span></button>`;
   LODGE_CATS.forEach(cat => {
     const on = activeLodgeCat === cat;
     html += `<button class="cat-tab ${on ? "on" : ""}" data-cat="${esc(cat)}">${esc(cat)} <span class="cnt">${lodgeCatCount(cat)}</span>` +
-      (on ? `<span class="edit" data-act="ren" title="지역 이름 변경">✎</span><span class="edit" data-act="del" title="지역 삭제">🗑</span>` : "") +
+      (on ? `<span class="edit" data-act="ren" title="카테고리 이름 변경">✎</span><span class="edit" data-act="del" title="카테고리 삭제">🗑</span>` : "") +
       `</button>`;
   });
   if (noneCnt) html += `<button class="cat-tab ${activeLodgeCat === "__none" ? "on" : ""}" data-cat="__none">${LODGE_UNCAT} <span class="cnt">${noneCnt}</span></button>`;
-  html += `<button class="cat-tab addcat" id="addLodgeCatBtn">＋ 지역</button>`;
+  html += `<button class="cat-tab addcat" id="addLodgeCatBtn">＋ 카테고리</button>`;
   bar.innerHTML = html;
   bar.querySelectorAll(".cat-tab[data-cat]").forEach(el => {
     el.onclick = e => {
@@ -255,20 +253,20 @@ function renderLodgeCats() {
 }
 
 async function addLodgeCat() {
-  const name = (prompt("새 숙소 지역 이름을 입력하세요 (예: 테를지)") || "").trim();
+  const name = (prompt("새 카테고리(숙소 지역) 이름을 입력하세요 (예: 테를지)") || "").trim();
   if (!name) return;
   if (name === LODGE_UNCAT) return toast(`"${LODGE_UNCAT}"은(는) 사용할 수 없는 이름입니다`);
   if (LODGE_CATS.includes(name)) {
-    activeLodgeCat = name; renderLodgeCats(); renderGrid(); return toast("이미 있는 지역입니다");
+    activeLodgeCat = name; renderLodgeCats(); renderGrid(); return toast("이미 있는 카테고리입니다");
   }
   LODGE_CATS.push(name);
   await window.saveLodgeCats(LODGE_CATS);
   activeLodgeCat = name; renderLodgeCats(); renderGrid();
-  toast(`"${name}" 지역이 추가되었습니다`);
+  toast(`"${name}" 카테고리가 추가되었습니다`);
 }
 
 async function renameLodgeCat(cat) {
-  const name = (prompt("숙소 지역 이름 변경", cat) || "").trim();
+  const name = (prompt("카테고리(숙소 지역) 이름 변경", cat) || "").trim();
   if (!name || name === cat) return;
   if (name === LODGE_UNCAT || LODGE_CATS.includes(name)) return toast("사용할 수 없거나 이미 있는 이름입니다");
   LODGE_CATS = LODGE_CATS.map(c => c === cat ? name : c);
@@ -276,18 +274,18 @@ async function renameLodgeCat(cat) {
   activeLodgeCat = name;
   const res = await persist();
   renderLodgeCats(); renderGrid();
-  toast(res.ok ? "지역 이름이 변경되었습니다" : "지역 이름 변경 — 이 브라우저에만 반영됨");
+  toast(res.ok ? "카테고리 이름이 변경되었습니다" : "카테고리 이름 변경 — 이 브라우저에만 반영됨");
 }
 
 async function deleteLodgeCat(cat) {
   const count = lodgeCatCount(cat);
-  if (!confirm(`"${cat}" 지역을 삭제할까요?` + (count ? `\n이 지역의 숙소 ${count}개는 "${LODGE_UNCAT}"로 이동합니다. (숙소는 삭제되지 않습니다)` : ""))) return;
+  if (!confirm(`"${cat}" 카테고리를 삭제할까요?` + (count ? `\n이 카테고리의 숙소 ${count}개는 "${LODGE_UNCAT}"로 이동합니다. (숙소는 삭제되지 않습니다)` : ""))) return;
   LODGE_CATS = LODGE_CATS.filter(c => c !== cat);
   Object.values(LIB).forEach(r => { if (lodgeCatOf(r) === cat) r.region = ""; });
   activeLodgeCat = "__all";
   const res = await persist();
   renderLodgeCats(); renderGrid();
-  toast(res.ok ? "지역이 삭제되었습니다" : "지역 삭제 — 이 브라우저에만 반영됨");
+  toast(res.ok ? "카테고리가 삭제되었습니다" : "카테고리 삭제 — 이 브라우저에만 반영됨");
 }
 
 /* ── 카드 그리드 ── */
@@ -312,7 +310,7 @@ function renderGrid() {
     </div>`).join("")
   || `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--gray)">${
     activeType === "lodges" && activeLodgeCat !== "__all"
-      ? `이 지역에 숙소가 없습니다. <b>＋ 새 ${T.one} 추가</b>로 등록해보세요.`
+      ? `이 카테고리에 숙소가 없습니다. <b>＋ 새 ${T.one} 추가</b>로 등록해보세요.`
       : `등록된 ${T.one}이(가) 없습니다. 우측 상단 <b>＋ 새 ${T.one} 추가</b>로 만들어보세요.`
   }</div>`;
   $("grid").querySelectorAll(".res-card").forEach(el => el.onclick = () => openEdit(el.dataset.k));
