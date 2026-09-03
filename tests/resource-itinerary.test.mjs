@@ -44,27 +44,29 @@ test("예약관리는 인증된 리소스를 읽고 차량·숙소의 PDF 필드
   assert.match(admin, /fillEmpty\("g_qr", assignedGuide\.qr/);
 });
 
-test("숙소를 영구 저장되는 지역 카테고리로 분류하고 예약 선택기에 같은 순서를 사용한다", async () => {
+test("숙소를 중앙몽골·고비사막·홉스굴 고정 카테고리로 분류한다", () => {
   const resources = read("리소스관리.html");
   const presets = read("presets.js");
   const admin = read("예약관리.html");
+  const window = {};
+  const localStorage = { getItem:() => null, setItem:() => {} };
+  new Function("window", "localStorage", presets)(window, localStorage);
 
   assert.match(resources, /id="lodgeCats"/);
   assert.match(resources, /function renderLodgeCats\(\)/);
-  assert.match(resources, /function renameLodgeCat\(cat\)/);
-  assert.match(resources, /function deleteLodgeCat\(cat\)/);
-  assert.match(resources, /activeLodgeCat === "__none"/);
+  assert.match(resources, /const LODGE_CATS = window\.DEFAULT_LODGE_CATS\.slice\(\)/);
+  assert.doesNotMatch(resources, /function addLodgeCat\(/);
+  assert.doesNotMatch(resources, /function renameLodgeCat\(/);
+  assert.doesNotMatch(resources, /function deleteLodgeCat\(/);
+  assert.doesNotMatch(resources, /data-cat="__none"/);
+  assert.deepEqual(window.getLodgeCats(), ["중앙몽골", "고비사막", "홉스굴"]);
+  assert.equal(window.normalizeLodgeRegion("테를지"), "중앙몽골");
+  assert.equal(window.normalizeLodgeRegion("남고비"), "고비사막");
+  assert.equal(window.normalizeLodgeRegion("홉스골"), "홉스굴");
+  assert.equal(window.normalizeLodgeRegion("", "Captain Baaz Huvsgul"), "홉스굴");
   assert.match(presets, /window\.getLodgeCats/);
-  assert.match(presets, /lodge_cats: "leaders_lodge_cats"/);
   assert.match(admin, /const savedOrder = window\.getLodgeCats/);
-
-  const res = await getData({
-    request:new Request("https://example.com/api/data/lodge_cats"),
-    params:{ key:"lodge_cats" },
-    env:dataEnv(["테를지", "울란바토르"]),
-  });
-  assert.equal(res.status, 200);
-  assert.deepEqual((await res.json()).data, ["테를지", "울란바토르"]);
+  assert.match(admin, /window\.normalizeLodgeRegion/);
 });
 
 test("PC와 모바일 확정일정표는 등록 필드를 사용하고 인쇄 전 이미지를 기다린다", () => {
