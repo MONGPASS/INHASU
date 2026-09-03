@@ -1325,10 +1325,7 @@ function fillDatalists() {
   });
   mountResourcePickers();
 }
-/* 숙소를 지역(리소스관리에서 입력한 값)별로 묶어 드롭다운에 보여줍니다.
-   대표 지역을 먼저, 그 밖에 직접 만든 지역은 가나다순, 지역 미지정은 맨 뒤에 둡니다.
-   ※ 대표 지역 목록은 리소스관리.html의 LODGE_REGIONS와 같게 유지해 주세요. */
-const LODGE_REGIONS = ["중앙몽골", "남고비", "홉스골"];
+/* 숙소를 리소스관리에서 만든 지역 카테고리 순서대로 묶어 보여줍니다. */
 const LODGE_REGION_UNSET = "지역 미지정";
 function lodgeRegionGroups() {
   const groups = new Map();
@@ -1337,11 +1334,14 @@ function lodgeRegionGroups() {
     if (!groups.has(region)) groups.set(region, []);
     groups.get(region).push(name);
   });
-  const rank = r => (r === LODGE_REGION_UNSET ? 2 : LODGE_REGIONS.includes(r) ? 0 : 1);
+  const savedOrder = window.getLodgeCats ? window.getLodgeCats() : [];
+  const usedOrder = Object.values(LIBS.lodges).map(r => String((r && r.region) || "").trim()).filter(Boolean);
+  const regionOrder = [...new Set([...savedOrder, ...usedOrder])];
+  const rank = r => (r === LODGE_REGION_UNSET ? 2 : regionOrder.includes(r) ? 0 : 1);
   return [...groups.entries()].sort(([a], [b]) => {
     const ra = rank(a), rb = rank(b);
     if (ra !== rb) return ra - rb;
-    if (ra === 0) return LODGE_REGIONS.indexOf(a) - LODGE_REGIONS.indexOf(b);
+    if (ra === 0) return regionOrder.indexOf(a) - regionOrder.indexOf(b);
     return a.localeCompare(b, "ko");
   });
 }
