@@ -37,6 +37,17 @@
   .tab.on { background:var(--deep); border-color:var(--deep); color:#fff; }
   .tab .cnt { font-size:11px; font-weight:800; opacity:.85; }
 
+  .lodge-cats { margin-top:-8px; padding:12px 14px; background:var(--soft); border:1px solid #dceee9; border-radius:14px; }
+  .lodge-cats[hidden] { display:none; }
+  .cat-label { color:var(--deep); font-size:12px; font-weight:800; margin-right:2px; }
+  .cat-tab { border:1.5px solid #d7e8e3; background:#fff; color:var(--sub); border-radius:999px; padding:7px 12px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; transition:.12s; }
+  .cat-tab:hover { border-color:var(--accent); color:var(--deep); }
+  .cat-tab.on { background:var(--deep); border-color:var(--deep); color:#fff; }
+  .cat-tab.addcat { color:var(--deep); border-style:dashed; border-color:var(--accent); }
+  .cat-tab .cnt { font-size:10.5px; font-weight:800; opacity:.82; }
+  .cat-tab .edit { display:inline-flex; margin-left:1px; opacity:.75; }
+  .cat-tab .edit:hover { opacity:1; }
+
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; }
   .res-card { background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; cursor:pointer; transition:.12s; }
   .res-card:hover { border-color:var(--accent); box-shadow:0 8px 24px rgba(20,50,45,.06); }
@@ -136,6 +147,7 @@
     </div>
     <div class="lead">여기서 등록한 <b>가이드·숙소·차량</b>이 <b>예약관리 배정</b>에서 자동완성되고, 사진·소개가 <b>고객 확정안내</b>에 그대로 반영됩니다.</div>
     <div class="tabs" id="tabs"></div>
+    <div class="tabs lodge-cats" id="lodgeCats" hidden></div>
     <div class="grid" id="grid"></div>
   </main>
 </div>
@@ -172,15 +184,32 @@ const TYPES = {
 let activeType = "guides";
 let LIB = {};        // 현재 탭의 라이브러리 (작업 사본)
 let editKey = null;
+let LODGE_CATS = [];           // 숙소 지역 카테고리 목록 (순서·빈 카테고리 보존)
+let activeLodgeCat = "__all"; // "__all" | "__none" | 카테고리명
+const LODGE_UNCAT = "미분류";
 
 let toastT;
 function toast(m){ $("toast").textContent = m; $("toast").classList.add("on"); clearTimeout(toastT); toastT = setTimeout(()=>$("toast").classList.remove("on"), 2600); }
 
 function load() {
   LIB = JSON.parse(JSON.stringify(TYPES[activeType].get()));
+  if (activeType === "lodges") {
+    LODGE_CATS = window.getLodgeCats().slice();
+    // 예전에 지역만 저장된 숙소도 카테고리 목록에 자동으로 포함합니다.
+    Object.values(LIB).forEach(r => {
+      const cat = lodgeCatOf(r);
+      if (cat && !LODGE_CATS.includes(cat)) LODGE_CATS.push(cat);
+    });
+    if (activeLodgeCat !== "__all" && activeLodgeCat !== "__none" && !LODGE_CATS.includes(activeLodgeCat)) activeLodgeCat = "__all";
+  }
   renderTabs(); renderGrid();
 }
-function persist() { return TYPES[activeType].save(LIB); }
+async function persist() {
+  const saves = [TYPES[activeType].save(LIB)];
+  if (activeType === "lodges") saves.push(window.saveLodgeCats(LODGE_CATS));
+  const results = await Promise.all(saves);
+  return results.find(r => r && !r.ok) || results[0];
+}
 
 /* ── 탭 ── */
 function renderTabs() {
@@ -190,12 +219,86 @@ function renderTabs() {
   }).join("");
   $("tabs").querySelectorAll(".tab").forEach(el => el.onclick = () => { activeType = el.dataset.t; load(); });
   $("addBtn").textContent = `＋ 새 ${TYPES[activeType].one} 추가`;
+  renderLodgeCats();
+}
+
+/* ── 숙소 지역 카테고리 ── */
+function lodgeCatOf(r) { return String((r && r.region) || "").trim(); }
+function lodgeCatCount(cat) { return Object.values(LIB).filter(r => lodgeCatOf(r) === cat).length; }
+
+function renderLodgeCats() {
+  const bar = $("lodgeCats");
+  if (activeType !== "lodges") { bar.hidden = true; bar.innerHTML = ""; return; }
+  bar.hidden = false;
+  const total = Object.keys(LIB).length;
+  const noneCnt = Object.values(LIB).filter(r => !lodgeCatOf(r)).length;
+  let html = `<span class="cat-label">숙소 지역</span>` +
+    `<button class="cat-tab ${activeLodgeCat === "__all" ? "on" : ""}" data-cat="__all">전체 <span class="cnt">${total}</span></button>`;
+  LODGE_CATS.forEach(cat => {
+    const on = activeLodgeCat === cat;
+    html += `<button class="cat-tab ${on ? "on" : ""}" data-cat="${esc(cat)}">${esc(cat)} <span class="cnt">${lodgeCatCount(cat)}</span>` +
+      (on ? `<span class="edit" data-act="ren" title="지역 이름 변경">✎</span><span class="edit" data-act="del" title="지역 삭제">🗑</span>` : "") +
+      `</button>`;
+  });
+  if (noneCnt) html += `<button class="cat-tab ${activeLodgeCat === "__none" ? "on" : ""}" data-cat="__none">${LODGE_UNCAT} <span class="cnt">${noneCnt}</span></button>`;
+  html += `<button class="cat-tab addcat" id="addLodgeCatBtn">＋ 지역</button>`;
+  bar.innerHTML = html;
+  bar.querySelectorAll(".cat-tab[data-cat]").forEach(el => {
+    el.onclick = e => {
+      const act = e.target.closest(".edit")?.dataset.act;
+      if (act === "ren") { renameLodgeCat(el.dataset.cat); return; }
+      if (act === "del") { deleteLodgeCat(el.dataset.cat); return; }
+      activeLodgeCat = el.dataset.cat; renderLodgeCats(); renderGrid();
+    };
+  });
+  $("addLodgeCatBtn").onclick = addLodgeCat;
+}
+
+async function addLodgeCat() {
+  const name = (prompt("새 숙소 지역 이름을 입력하세요 (예: 테를지)") || "").trim();
+  if (!name) return;
+  if (name === LODGE_UNCAT) return toast(`"${LODGE_UNCAT}"은(는) 사용할 수 없는 이름입니다`);
+  if (LODGE_CATS.includes(name)) {
+    activeLodgeCat = name; renderLodgeCats(); renderGrid(); return toast("이미 있는 지역입니다");
+  }
+  LODGE_CATS.push(name);
+  await window.saveLodgeCats(LODGE_CATS);
+  activeLodgeCat = name; renderLodgeCats(); renderGrid();
+  toast(`"${name}" 지역이 추가되었습니다`);
+}
+
+async function renameLodgeCat(cat) {
+  const name = (prompt("숙소 지역 이름 변경", cat) || "").trim();
+  if (!name || name === cat) return;
+  if (name === LODGE_UNCAT || LODGE_CATS.includes(name)) return toast("사용할 수 없거나 이미 있는 이름입니다");
+  LODGE_CATS = LODGE_CATS.map(c => c === cat ? name : c);
+  Object.values(LIB).forEach(r => { if (lodgeCatOf(r) === cat) r.region = name; });
+  activeLodgeCat = name;
+  const res = await persist();
+  renderLodgeCats(); renderGrid();
+  toast(res.ok ? "지역 이름이 변경되었습니다" : "지역 이름 변경 — 이 브라우저에만 반영됨");
+}
+
+async function deleteLodgeCat(cat) {
+  const count = lodgeCatCount(cat);
+  if (!confirm(`"${cat}" 지역을 삭제할까요?` + (count ? `\n이 지역의 숙소 ${count}개는 "${LODGE_UNCAT}"로 이동합니다. (숙소는 삭제되지 않습니다)` : ""))) return;
+  LODGE_CATS = LODGE_CATS.filter(c => c !== cat);
+  Object.values(LIB).forEach(r => { if (lodgeCatOf(r) === cat) r.region = ""; });
+  activeLodgeCat = "__all";
+  const res = await persist();
+  renderLodgeCats(); renderGrid();
+  toast(res.ok ? "지역이 삭제되었습니다" : "지역 삭제 — 이 브라우저에만 반영됨");
 }
 
 /* ── 카드 그리드 ── */
 function renderGrid() {
   const T = TYPES[activeType];
-  $("grid").innerHTML = Object.entries(LIB).map(([name, r]) => `
+  let entries = Object.entries(LIB);
+  if (activeType === "lodges") {
+    if (activeLodgeCat === "__none") entries = entries.filter(([, r]) => !lodgeCatOf(r));
+    else if (activeLodgeCat !== "__all") entries = entries.filter(([, r]) => lodgeCatOf(r) === activeLodgeCat);
+  }
+  $("grid").innerHTML = entries.map(([name, r]) => `
     <div class="res-card" data-k="${esc(name)}">
       <div class="thumb">
         ${(r.img || (Array.isArray(r.imgs) && r.imgs[0])) ? `<img src="${r.img || r.imgs[0]}" alt="${esc(name)}">` : `<div class="noimg"><span style="font-size:30px">${T.icon}</span><span>이미지 없음</span></div>`}
@@ -207,7 +310,11 @@ function renderGrid() {
         <p>${esc(r.desc || "설명을 추가하세요")}</p>
       </div>
     </div>`).join("")
-  || `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--gray)">등록된 ${T.one}이(가) 없습니다. 우측 상단 <b>＋ 새 ${T.one} 추가</b>로 만들어보세요.</div>`;
+  || `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--gray)">${
+    activeType === "lodges" && activeLodgeCat !== "__all"
+      ? `이 지역에 숙소가 없습니다. <b>＋ 새 ${T.one} 추가</b>로 등록해보세요.`
+      : `등록된 ${T.one}이(가) 없습니다. 우측 상단 <b>＋ 새 ${T.one} 추가</b>로 만들어보세요.`
+  }</div>`;
   $("grid").querySelectorAll(".res-card").forEach(el => el.onclick = () => openEdit(el.dataset.k));
 }
 
@@ -284,15 +391,12 @@ function fieldRows(type, r) {
     <label class="f"><span>수하물 (확정 일정표에 노출 — 예: 대형 캐리어 4개 적재 가능)</span><input id="f_luggage" value="${esc(r.luggage||"")}" placeholder="대형 캐리어 4개 적재 가능"></label>
     <label class="f"><span>차량 특징 (확정 일정표에 노출 — 예: 몽골 장거리 이동에 적합한 차량입니다.)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>`;
 }
-/* 숙소 지역 선택지 — 대표 지역 + 이미 등록된 숙소들이 쓰고 있는 지역을 함께 보여줍니다.
-   예약관리의 숙소 배정 드롭다운이 이 값으로 묶이므로 자유 입력 대신 골라 쓰게 했습니다.
-   ※ 대표 지역 목록은 예약관리.html의 LODGE_REGIONS와 같게 유지해 주세요. */
-const LODGE_REGIONS = ["중앙몽골", "남고비", "홉스골"];
+/* 숙소 지역 선택지 — 지역 카테고리 목록과 기존 숙소의 지역을 함께 보여줍니다. */
 function lodgeRegionOptions(current) {
   const cur = String(current || "").trim();
   const used = Object.values(TYPES.lodges.get())
     .map(r => String((r && r.region) || "").trim()).filter(Boolean);
-  const list = [...new Set([...LODGE_REGIONS, ...used, ...(cur ? [cur] : [])])];
+  const list = [...new Set([...LODGE_CATS, ...used, ...(cur ? [cur] : [])])];
   return `<option value="" ${cur ? "" : "selected"}>지역 미지정</option>` +
     list.map(v => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(v)}</option>`).join("") +
     `<option value="__new">＋ 새 지역 추가…</option>`;
@@ -310,7 +414,8 @@ function openEdit(key) {
   editKey = key;
   const T = TYPES[activeType];
   const isNew = key === null;
-  const r = isNew ? { img:"" } : JSON.parse(JSON.stringify(LIB[key]));
+  const defaultRegion = isNew && activeType === "lodges" && !["__all", "__none"].includes(activeLodgeCat) ? activeLodgeCat : "";
+  const r = isNew ? { img:"", region:defaultRegion } : JSON.parse(JSON.stringify(LIB[key]));
   let draftImg = r.img || "";
   let draftImgs = Array.isArray(r.imgs) ? [...r.imgs] : (draftImg ? [draftImg] : []);
   const multiEnabled = activeType === "lodges" || activeType === "vehicles";
@@ -354,14 +459,15 @@ function openEdit(key) {
   $("drawer").classList.add("on"); $("overlay").classList.add("on");
   $("dX").onclick = closeDrawer;
 
-  /* 숙소 지역: "＋ 새 지역 추가…"를 고르면 바로 이름을 입력받아 목록에 넣습니다 */
+  /* 숙소 지역: "＋ 새 지역 추가…"를 고르면 바로 카테고리를 만들어 선택합니다. */
   const regionSel = $("f_region");
   if (regionSel) {
     let lastRegion = regionSel.value;
     regionSel.onchange = () => {
       if (regionSel.value !== "__new") { lastRegion = regionSel.value; return; }
       const name = (prompt("새 지역 이름을 입력하세요 (예: 서부몽골)") || "").trim();
-      if (!name) { regionSel.value = lastRegion; return; }
+      if (!name || name === LODGE_UNCAT) { regionSel.value = lastRegion; if (name === LODGE_UNCAT) toast(`"${LODGE_UNCAT}"은(는) 사용할 수 없는 이름입니다`); return; }
+      if (!LODGE_CATS.includes(name)) { LODGE_CATS.push(name); window.saveLodgeCats(LODGE_CATS); renderLodgeCats(); }
       if (![...regionSel.options].some(o => o.value === name)) {
         regionSel.add(new Option(name, name), regionSel.options.length - 1);
       }
@@ -439,6 +545,7 @@ function openEdit(key) {
     if (!isNew && name !== editKey) delete LIB[editKey];
     LIB[name] = rec;
     const res = await persist();
+    if (isNew && activeType === "lodges" && rec.region) activeLodgeCat = rec.region;
     renderTabs(); renderGrid(); closeDrawer();
     toast(res.ok ? `✓ "${name}" 저장 완료 (서버 반영)` : res.local ? `"${name}" 저장 — 이 브라우저에만 저장됨` : "⚠ 저장 실패: " + (res.error || ""));
   };

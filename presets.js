@@ -299,6 +299,20 @@ window.saveLodges = (obj) => {
   localStorage.setItem("leaders_lodges", JSON.stringify(obj));
   return window.cloudPush ? window.cloudPush("lodges", obj) : Promise.resolve({ ok: false, local: true });
 };
+/* 숙소 지역 카테고리: 순서와 비어 있는 지역도 별도로 보존합니다. */
+window.DEFAULT_LODGE_CATS = ["중앙몽골", "남고비", "홉스골"];
+window.getLodgeCats = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem("leaders_lodge_cats") || "null");
+    if (Array.isArray(saved)) return saved;
+  } catch (e) {}
+  return window.DEFAULT_LODGE_CATS.slice();
+};
+window.saveLodgeCats = (arr) => {
+  const cats = Array.isArray(arr) ? arr : [];
+  localStorage.setItem("leaders_lodge_cats", JSON.stringify(cats));
+  return window.cloudPush ? window.cloudPush("lodge_cats", cats) : Promise.resolve({ ok: false, local: true });
+};
 window.getVehicles = () => _libGet("leaders_vehicles");
 window.saveVehicles = (obj) => {
   localStorage.setItem("leaders_vehicles", JSON.stringify(obj));
@@ -324,6 +338,7 @@ window.CLOUD_KEYS = {
   guides: "leaders_guides",
   drivers: "leaders_drivers",
   lodges: "leaders_lodges",
+  lodge_cats: "leaders_lodge_cats",
   vehicles: "leaders_vehicles",
 };
 

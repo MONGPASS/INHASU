@@ -9,7 +9,7 @@
    PUT  /api/data/:key?token=…    → JSON 저장 (관리자 토큰 필요)
 
    허용 key: spots, spot_cats, courses, snippets, snippet_cats,
-             guides, lodges, vehicles (예약관리 리소스)
+             guides, lodges, lodge_cats, vehicles (예약관리 리소스)
    ═══════════════════════════════════════════════════════════ */
 
 const json = (obj, status = 200) =>
@@ -21,7 +21,7 @@ const json = (obj, status = 200) =>
     },
   });
 
-const ALLOWED = ["spots", "spot_cats", "courses", "snippets", "snippet_cats", "guides", "drivers", "lodges", "vehicles"];
+const ALLOWED = ["spots", "spot_cats", "courses", "snippets", "snippet_cats", "guides", "drivers", "lodges", "lodge_cats", "vehicles"];
 
 // kv 테이블은 없으면 자동으로 만듭니다(별도 마이그레이션 불필요).
 async function ensureTable(env) {
