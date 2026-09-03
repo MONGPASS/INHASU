@@ -562,7 +562,8 @@ function lodgePreviewHtml(l, i) {
   const img = rec.img || (Array.isArray(rec.imgs) ? rec.imgs[0] : "");
   const imgs = Array.isArray(rec.imgs) ? rec.imgs.length : (img ? 1 : 0);
   const title = rec.name || "숙소 미선택";
-  const sub = [rec.grade, rec.region, rec.desc || rec.tags, imgs ? `이미지 ${imgs}장` : ""].filter(Boolean).join(" · ");
+  const region = window.normalizeLodgeRegion ? window.normalizeLodgeRegion(rec.region, l.name) : rec.region;
+  const sub = [rec.grade, region, rec.desc || rec.tags, imgs ? `이미지 ${imgs}장` : ""].filter(Boolean).join(" · ");
   return `<div class="preview" id="lodgePreview${i}">
     <div class="thumb">${img ? `<img src="${esc(img)}" alt="${esc(title)}">` : "🏕"}</div>
     <div><b>${esc(title)}</b><p>${esc(sub || "리소스를 선택하면 고객에게 보일 정보와 이미지 상태가 표시됩니다.")}</p></div>
@@ -1352,12 +1353,12 @@ const LODGE_REGION_UNSET = "지역 미지정";
 function lodgeRegionGroups() {
   const groups = new Map();
   Object.entries(LIBS.lodges).forEach(([name, r]) => {
-    const region = String((r && r.region) || "").trim() || LODGE_REGION_UNSET;
+    const region = (window.normalizeLodgeRegion ? window.normalizeLodgeRegion((r && r.region) || "", name) : String((r && r.region) || "").trim()) || LODGE_REGION_UNSET;
     if (!groups.has(region)) groups.set(region, []);
     groups.get(region).push(name);
   });
   const savedOrder = window.getLodgeCats ? window.getLodgeCats() : [];
-  const usedOrder = Object.values(LIBS.lodges).map(r => String((r && r.region) || "").trim()).filter(Boolean);
+  const usedOrder = Object.entries(LIBS.lodges).map(([name, r]) => window.normalizeLodgeRegion ? window.normalizeLodgeRegion((r && r.region) || "", name) : String((r && r.region) || "").trim()).filter(Boolean);
   const regionOrder = [...new Set([...savedOrder, ...usedOrder])];
   const rank = r => (r === LODGE_REGION_UNSET ? 2 : regionOrder.includes(r) ? 0 : 1);
   return [...groups.entries()].sort(([a], [b]) => {
