@@ -266,6 +266,9 @@
       <button class="hbtn blue" id="guideSheetBtn">📋 가이드 시트</button>
       <button class="hbtn blue" id="guidePdfBtn">🖨 가이드용 PDF</button>
     </span>
+    <span class="hd-group"><span class="hd-label">현장 정산</span>
+      <button class="hbtn" id="cashReceiptBtn">🧾 현금영수증</button>
+    </span>
   </span>
 </header>
 
@@ -393,6 +396,7 @@ function init() {
   };
   $("guidePdfBtn").onclick = printGuideSchedule;
   $("guideSheetBtn").onclick = printGuideSheet;
+  $("cashReceiptBtn").onclick = printCashReceipt;
   $("setStatus").checked = false;
   $("publishSchedule").checked = BK.publishStatus === "published";
   $("savebar").style.display = "";
@@ -927,6 +931,24 @@ async function printGuideSchedule() {
   };
   localStorage.setItem("leaders_confirmed_print", JSON.stringify(payload));
   printWindow.location.replace(new URL("확정일정표.html?adminPrint=1&print=1&m=0", location.href).href);
+}
+
+/* 현재 예약 데이터로 현지 잔금 현금영수증(고객용·회사 보관용)을 만들고 인쇄합니다. */
+async function printCashReceipt() {
+  pullForm();
+  const preview = cashReceiptPayload(PRE, BK);
+  if (!preview.customerName) return toast("⚠ 고객명이 없어 영수증을 만들 수 없어요");
+  if (!(preview.amount > 0)) return toast("⚠ 계약·정산 정보의 잔금을 먼저 입력해 주세요");
+  if (!preview.guideName) return toast("⚠ 담당 가이드를 먼저 배정해 주세요");
+
+  const printWindow = window.open("about:blank", "_blank");
+  if (!printWindow) return toast("⚠ 팝업이 차단됐어요 — 이 사이트의 팝업을 허용해 주세요");
+  printWindow.document.write(`<p style="font-family:sans-serif;padding:24px">현금영수증을 준비하고 있습니다…</p>`);
+  const saved = await save({ quiet:true });
+  if (!saved) { printWindow.close(); return; }
+  const payload = cashReceiptPayload(PRE, BK);
+  const storageKey = storeCashReceiptPayload(payload);
+  printWindow.location.replace(new URL(`현금영수증.html?print=1&key=${encodeURIComponent(storageKey)}`, location.href).href);
 }
 
 function bindEvents() {

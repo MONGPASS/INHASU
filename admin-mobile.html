@@ -1154,10 +1154,11 @@ function bookingCard(r) {
     </button>` : ""}
     <div style="display:flex; flex-direction:column; gap:8px;">
       <button type="button" class="btn mint" style="height:44px; font-size:14px;" onclick="App.openAssign('${esc(r.id)}')">배정 관리</button>
-      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
+      <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:8px;">
         <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docSchedule('${esc(r.id)}')">일정표</button>
         <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docContract('${esc(r.id)}')">${signed ? "서명 원본" : "계약서"}</button>
         <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docGuideSheet('${esc(r.id)}')">가이드 시트</button>
+        <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docCashReceipt('${esc(r.id)}')">현금영수증</button>
       </div>
     </div>
   </div>`;
@@ -1188,6 +1189,24 @@ App.docGuideSheet = id => {
   const bk = ASSIGN && ASSIGN.id === id ? ASSIGN.bk : normBooking(r.booking || {});
   localStorage.setItem("leaders_guide_sheet_print", JSON.stringify({ ...r, adminToken: ADMIN_TOKEN, booking: { ...bk } }));
   window.open("가이드시트.html?adminPrint=1&print=1", "_blank");
+};
+App.docCashReceipt = async id => {
+  const r = recById(id); if (!r) return;
+  let bk = ASSIGN && ASSIGN.id === id ? ASSIGN.bk : normBooking(r.booking || {});
+  const preview = cashReceiptPayload(r, bk);
+  if (!preview.customerName) return toast("고객명이 없어 영수증을 만들 수 없어요");
+  if (!(preview.amount > 0)) return toast("계약·정산 정보의 잔금을 먼저 입력해 주세요");
+  if (!preview.guideName) return toast("담당 가이드를 먼저 배정해 주세요");
+  const printWindow = window.open("about:blank", "_blank");
+  if (!printWindow) return toast("팝업이 차단됐어요");
+  printWindow.document.write(`<p style="font-family:sans-serif;padding:24px">현금영수증을 준비하고 있습니다…</p>`);
+  if (ASSIGN && ASSIGN.id === id && ASSIGN.dirty) {
+    const saved = await App.assignSave({ silent:true });
+    if (!saved) { printWindow.close(); return; }
+    bk = ASSIGN.bk;
+  }
+  const storageKey = storeCashReceiptPayload(cashReceiptPayload(r, bk));
+  printWindow.location.replace(new URL(`현금영수증.html?print=1&key=${encodeURIComponent(storageKey)}`, location.href).href);
 };
 App.docCopyLink = async id => {
   const r = recById(id); if (!r || !r.token) { toast("고객 링크 토큰이 없어요"); return; }
@@ -1250,6 +1269,7 @@ function assignScreen(r) {
     ["여행계약서", `App.docContract('${esc(r.id)}')`],
     ["링크 복사", `App.docCopyLink('${esc(r.id)}')`],
     ["가이드 시트", `App.docGuideSheet('${esc(r.id)}')`],
+    ["현금영수증", `App.docCashReceipt('${esc(r.id)}')`],
   ].map(([l, fn]) => `<button type="button" class="btn" style="flex:none; height:34px; font-size:12px;" onclick="${fn}">${l}</button>`).join("");
   const secTabs = ASSIGN_SECTIONS.map(s2 => `<button type="button" class="chip ${s2 === sec ? "on" : ""}" onclick="App.assignSection('${s2}')">${s2}</button>`).join("");
   const cta = assignCta(r, bk, wf);
