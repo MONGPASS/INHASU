@@ -118,6 +118,49 @@ td b{ font-weight:800; }
 .sched-grid .sg-stay.r0{ background:var(--bg); }
 .sched-grid .sg-stay.r1{ background:#EAF7F3; }
 
+/* 마지막 페이지: 현장 잔금 현금영수증 — 고객용·회사 보관용 2부 */
+.cash-page{ width:860px; min-height:1216px; margin:14px auto; padding:9mm 11mm; background:#fff; box-shadow:0 8px 30px rgba(21,44,40,.08); display:flex; flex-direction:column; gap:3mm; }
+.cash-receipt{ height:132mm; border:1.2px solid #0bb7ad; border-radius:2mm; padding:4mm 5mm 3.3mm; display:flex; flex-direction:column; gap:2.3mm; overflow:hidden; }
+.cr-head{ display:flex; align-items:flex-end; justify-content:space-between; border-bottom:1.3px solid #0bb7ad; padding-bottom:2.5mm; }
+.cr-brand{ display:flex; align-items:center; gap:3mm; }
+.cr-logo{ width:13mm; height:13mm; border-radius:50%; background:#101516; display:flex; align-items:center; justify-content:center; flex:none; }
+.cr-logo img{ width:11mm; height:11mm; object-fit:contain; }
+.cr-brand-name{ color:#0bb7ad; font-size:9px; font-weight:900; }
+.cr-brand-sub{ margin-top:1mm; color:#697078; font-size:7px; }
+.cr-title{ text-align:right; }
+.cr-copy{ display:inline-block; margin-bottom:1.2mm; color:#078b84; font-size:7px; font-weight:900; letter-spacing:.03em; }
+.cr-title h1{ margin:0; color:#0bb7ad; font-size:19px; line-height:1; letter-spacing:.28em; }
+.cr-title small{ color:#788187; font-size:6.5px; letter-spacing:.18em; }
+.cr-summary{ display:grid; grid-template-columns:1fr 1fr; background:#f5f8f8; }
+.cr-summary-block{ min-height:16mm; padding:2.3mm 3mm; }
+.cr-summary-block + .cr-summary-block{ border-left:1.2px solid #0bb7ad; }
+.cr-eyebrow{ margin-bottom:1.4mm; color:#078b84; font-size:6.5px; font-weight:900; letter-spacing:.035em; }
+.cr-row{ display:grid; grid-template-columns:17mm 1fr; gap:2mm; margin-top:.8mm; font-size:7.2px; align-items:end; }
+.cr-row .key{ color:#6e777c; }
+.cr-row .value{ min-height:3.5mm; padding:0 1mm .5mm; border-bottom:1px solid #bcc7ca; font-weight:800; text-align:right; white-space:nowrap; }
+.cr-row .value.left{ text-align:left; }
+.cr-amount{ border:1.2px solid #0bb7ad; border-radius:2mm; background:#edf9f8; padding:2.2mm 4mm 1.8mm; text-align:center; }
+.cr-amount .cr-eyebrow{ color:#374347; letter-spacing:.28em; }
+.cr-amount-line{ display:flex; align-items:baseline; justify-content:center; gap:2mm; color:#0bb7ad; }
+.cr-amount-line b{ font-size:16px; letter-spacing:.04em; }
+.cr-amount-line span{ font-size:8px; font-weight:800; }
+.cr-amount-note{ margin-top:1mm; color:#3f494d; font-size:6.8px; }
+.cr-details{ display:grid; grid-template-columns:27mm 1fr; border-top:1px solid #d9dfe2; font-size:7px; }
+.cr-details > div{ min-height:5.1mm; display:flex; align-items:center; padding:1mm 2mm; border-bottom:1px solid #d9dfe2; }
+.cr-details .key{ background:#f7faf9; color:#078b84; font-weight:800; }
+.cr-details .value{ font-weight:700; }
+.cr-description{ min-height:13mm; padding:1.6mm 2mm; background:#f7f9f9; }
+.cr-description .value{ margin-top:1.6mm; color:#3e464b; font-size:7px; font-weight:700; }
+.cr-signatures{ margin-top:auto; display:grid; grid-template-columns:1fr 1fr; gap:3mm; }
+.cr-signature{ min-height:13mm; border:1px solid #c9d0d2; border-radius:1.3mm; padding:2mm 2.6mm; display:flex; flex-direction:column; justify-content:space-between; }
+.cr-signature .title{ color:#4f595e; font-size:6.8px; font-weight:900; }
+.cr-signature .line{ display:flex; justify-content:space-between; gap:2mm; padding-top:1mm; border-top:1px dashed #bec6c8; color:#697277; font-size:6.7px; }
+.cr-signature .person{ color:#30383c; font-weight:800; }
+.cr-footer{ display:flex; justify-content:space-between; align-items:center; gap:3mm; padding-top:1.3mm; border-top:1px solid #d9dfe2; color:#667176; font-size:5.8px; white-space:nowrap; }
+.cr-footer b{ color:#078b84; font-size:6.4px; }
+.cr-cut{ height:7mm; display:flex; align-items:center; gap:3mm; color:#9ba5a8; font-size:6px; letter-spacing:.14em; }
+.cr-cut:before,.cr-cut:after{ content:""; flex:1; border-top:1px dashed #9ba5a8; }
+
 .gs-foot{ margin-top:22px; padding-top:12px; border-top:1px solid var(--line); display:flex; justify-content:space-between; color:var(--mute); font-size:11.5px; font-weight:600; }
 
 @media print{
@@ -125,17 +168,19 @@ td b{ font-weight:800; }
   .hint{ display:none !important; }
   .sheet{ width:auto; margin:0; padding:10mm 12mm; box-shadow:none; border-radius:0; }
   .sheet + .sheet{ page-break-before:always; }
+  .cash-page{ width:auto; height:297mm; min-height:0; margin:0; box-shadow:none; overflow:hidden; page-break-before:always; }
   @page{ size:A4; margin:0; }
 }
 </style>
 </head>
 <body>
 <div class="hint" id="printHint">
-  <span>💡 <b>인쇄하기</b>를 누르고 대상 <b>"PDF로 저장"</b> 또는 프린터 선택 → 여백 <b>없음</b>, 배경 그래픽 <b>켜기</b>로 출력하세요. 이 문서는 담당 가이드 전달용(내부용)입니다.</span>
+  <span>💡 <b>인쇄하기</b>를 누르고 대상 <b>"PDF로 저장"</b> 또는 프린터 선택 → 여백 <b>없음</b>, 배경 그래픽 <b>켜기</b>로 출력하세요. 잔금이 등록된 예약은 마지막 페이지에 현금영수증 2부가 포함됩니다.</span>
   <button onclick="window.print()">🖨 인쇄하기</button>
 </div>
 <div id="root"></div>
 
+<script src="booking.js"></script>
 <script type="module">
 /* ══════════ 데이터 로드 ══════════
    출처 1) 예약관리 "📋 가이드 시트" 버튼 → localStorage(leaders_guide_sheet_print) + ?adminPrint=1
@@ -370,10 +415,42 @@ const page2 = days.length ? `
   <div class="gs-foot"><span>몽골리아 은하수 · 가이드용 일정표 (내부용 — 고객 배포 금지)</span><span>02</span></div>
 </div>` : "";
 
-root.innerHTML = page1 + page2;
+/* ══════════ 마지막 페이지: 현장 잔금 현금영수증 ══════════ */
+const cash = cashReceiptPayload(REC, BK);
+const cashDate = value => {
+  const m = String(value || "").match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+  return m ? `${m[1]}년 ${Number(m[2])}월 ${Number(m[3])}일` : (value || "—");
+};
+const cashCopy = copy => {
+  const guideName = [cash.guideName, cash.guideNameEn].filter(Boolean).join(" / ") || "—";
+  return `<section class="cash-receipt">
+    <div class="cr-head">
+      <div class="cr-brand"><div class="cr-logo"><img src="img/brand/mongolia-milkyway-logo.png" alt="몽골리아 은하수"></div><div><div class="cr-brand-name">몽골리아 은하수 여행</div><div class="cr-brand-sub">Mongolia Milky Way · 몽골 현지 전문 여행사</div></div></div>
+      <div class="cr-title"><div class="cr-copy">${esc(copy)}</div><h1>현금영수증</h1><small>CASH RECEIPT</small></div>
+    </div>
+    <div class="cr-summary">
+      <div class="cr-summary-block"><div class="cr-eyebrow">고객 정보 / CLIENT</div><div class="cr-row"><span class="key">성명</span><span class="value">${esc(cash.customerName || "—")} 님</span></div><div class="cr-row"><span class="key">인원</span><span class="value">${esc(cash.pax || "—")} 명</span></div></div>
+      <div class="cr-summary-block"><div class="cr-eyebrow">영수증 정보 / RECEIPT INFO</div><div class="cr-row"><span class="key">영수증 번호</span><span class="value left">${esc(cash.receiptNo)}</span></div><div class="cr-row"><span class="key">발행일</span><span class="value left">${esc(cashDate(cash.issueDate))}</span></div></div>
+    </div>
+    <div class="cr-amount"><div class="cr-eyebrow">영수 금액 / AMOUNT RECEIVED</div><div class="cr-amount-line"><b>₩ ${Number(cash.amount).toLocaleString("ko-KR")}</b><span>원</span></div><div class="cr-amount-note">위 금액을 현금으로 정히 영수하였습니다</div></div>
+    <div class="cr-details"><div class="key">상품명</div><div class="value">${esc(cash.productName)}</div><div class="key">투어 기간</div><div class="value">${esc(cashDate(cash.depart))} ~ ${esc(cashDate(cash.returnDate))}</div><div class="key">결제 방법</div><div class="value">현금 (대한민국 원화 / KRW)</div><div class="key">결제 장소</div><div class="value">몽골 현지</div></div>
+    <div class="cr-description"><div class="cr-eyebrow">■ 적요 / DESCRIPTION</div><div class="value">${esc(cash.description)}</div></div>
+    <div class="cr-signatures"><div class="cr-signature"><div class="title">고객 서명 / CLIENT SIGNATURE</div><div class="line"><span>서명일: ${esc(cashDate(cash.issueDate))}</span><span>(서명)</span></div></div><div class="cr-signature"><div class="title">수령인 서명 / RECEIVED BY</div><div class="line"><span>담당 가이드: <span class="person">${esc(guideName)}</span></span><span>(서명)</span></div></div></div>
+    <div class="cr-footer"><b>몽골리아 은하수 여행 / Mongolia Milky Way</b><span>mongoliasky.co.kr</span><span>bolor1@hanmail.net</span><span>Tel: +976 8010 7766</span></div>
+  </section>`;
+};
+const cashPage = Number(cash.amount) > 0 ? `<div class="cash-page">${cashCopy("고객용 / CUSTOMER COPY")}<div class="cr-cut">✂ 절취선 / CUT HERE</div>${cashCopy("회사 보관용 / COMPANY COPY")}</div>` : "";
+
+root.innerHTML = page1 + page2 + cashPage;
 document.title = `가이드시트_${(REC.name || "예약").replace(/\s+/g, "")}_${fmtFull(departDate) || ""}`;
 
-if (_autoPrint) setTimeout(() => window.print(), 350);
+if (_autoPrint) {
+  const imagesReady = Promise.all([...document.images].map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
+    img.addEventListener("load", resolve, { once:true });
+    img.addEventListener("error", resolve, { once:true });
+  })));
+  imagesReady.then(() => setTimeout(() => window.print(), 150));
+}
 }
 </script>
 </body>

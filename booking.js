@@ -119,15 +119,6 @@ function cashReceiptPayload(rec, booking, now = new Date()) {
   };
 }
 
-function storeCashReceiptPayload(payload) {
-  const nonce = globalThis.crypto && globalThis.crypto.randomUUID
-    ? globalThis.crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const key = `leaders_cash_receipt_print_${nonce}`;
-  localStorage.setItem(key, JSON.stringify(payload));
-  return key;
-}
-
 /* 예약확정 순간 호출 — 발행된 견적(rec.quote)과 문의 레코드 기본정보에서 booking 스켈레톤 생성.
    예약관리 init()의 승계 규칙과 동일하되, 견적 일정·대표명소를 자동으로 끌어온다
    (예약관리에서 "↺ 견적 일정 불러오기"를 누르지 않아도 확정 시점에 일정이 채워지게).
