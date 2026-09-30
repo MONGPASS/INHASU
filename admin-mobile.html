@@ -277,6 +277,7 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 <script src="data.js"></script>
 <script src="presets.js"></script>
 <script src="booking.js"></script>
+<script src="lodging.js"></script>
 <script>
 "use strict";
 /* ═══════════════════════════════════════════════════════════════
@@ -1417,6 +1418,10 @@ App.assignSave = async opts => {
   const r = recById(ASSIGN.id); if (!r) return false;
   const bk = ASSIGN.bk;
   bk.autoSeeded = false;
+  bk.assign.lodges = (bk.assign.lodges || []).map(l => {
+    const lib = Lodging.snapshot(getLodges()[l.name], l);
+    return { ...l, ...Lodging.publicData(lib), day:l.day, name:l.name, grade:l.grade || lib.grade || "", desc:l.descCustom || lib.desc || "" };
+  });
   const patch = { booking: bk, name: r.name, depart: r.depart, return_: r.return_, adult: r.adult, child: r.child, infant: r.infant };
   if (opts.status) patch.status = opts.status;
   try {
@@ -1641,7 +1646,7 @@ App.lodgePick = (i, name) => {
   if (!ASSIGN) return;
   const lib = getLodges()[name] || {};
   const cur = ASSIGN.bk.assign.lodges[i] || {};
-  ASSIGN.bk.assign.lodges[i] = { day: cur.day || i + 1, name, grade: lib.grade || "", descCustom: cur.descCustom || "" };
+  ASSIGN.bk.assign.lodges[i] = { ...Lodging.publicData(lib), day: cur.day || i + 1, name, grade: lib.grade || "", descCustom: cur.descCustom || "" };
   ASSIGN.dirty = true; renderOverlays();
 };
 App.lodgesFromDays = () => {
@@ -1653,7 +1658,7 @@ App.lodgesFromDays = () => {
   if (!names.length) { toast("일정에 숙소가 없어요"); return; }
   bk.assign.lodges = names.map((n, i) => {
     const hit = Object.keys(lib).find(k => n.includes(k) || k.includes(n));
-    return { day: i + 1, name: hit || n, grade: (lib[hit] || {}).grade || "" };
+    return { ...Lodging.publicData(lib[hit] || {}), day: i + 1, name: hit || n, grade: (lib[hit] || {}).grade || "" };
   });
   ASSIGN.dirty = true; renderOverlays(); toast(`일정에서 숙소 ${names.length}건을 가져왔어요`);
 };
@@ -2835,10 +2840,11 @@ function pgRes() {
   const lib = M.getter();
   const tabs = [["guides", "가이드"], ["lodges", "숙소"], ["vehicles", "차량"]]
     .map(([k, label]) => `<button type="button" class="chip ${PGS.resTab === k ? "on" : ""}" onclick="PGS.resTab='${k}'; renderOverlays();">${label} ${Object.keys(RES_META[k].getter()).length}</button>`).join("");
+  const coverOf = r => t === "lodges" ? (Lodging.photos(r)[0] || "") : Lodging.imageUrl(r.img || (r.imgs || [])[0]);
   const cards = Object.entries(lib).map(([name, r]) => `
   <button type="button" class="res-card" onclick="App.resEdit('${esc(name).replace(/'/g, "\\'")}')">
-    <span class="img" style="${(r.img || (r.imgs || [])[0]) ? `background-image:url('${esc(r.img || r.imgs[0])}')` : ""}">
-      ${(r.img || (r.imgs || [])[0]) ? "" : icon("photo", 26)}
+    <span class="img" style="${coverOf(r) ? `background-image:url('${esc(coverOf(r).replace(/\x27/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29"))}')` : ""}">
+      ${coverOf(r) ? "" : icon("photo", 26)}
       ${M.sub(r) ? `<span class="bdg">${esc(M.sub(r))}</span>` : ""}
     </span>
     <span class="bd">
@@ -2864,22 +2870,59 @@ App.resDelete = async () => {
   const lib = { ...M.getter() }; delete lib[rf.orig];
   M.saver(lib); PGS.resForm = null; renderOverlays(); toast("삭제했어요");
 };
-App.resSave = () => {
-  const rf = PGS.resForm; if (!rf) return;
+App.resSave = async () => {
+  const rf = PGS.resForm; if (!rf || rf.saving) return;
   const M = RES_META[PGS.resTab];
   const d = rf.draft, name = (d.name || "").trim();
   if (!name) { toast("이름을 입력하세요"); return; }
   const lib = { ...M.getter() };
+  if (name !== rf.orig && lib[name]) { toast("이미 같은 이름이 있어요"); return; }
   if (rf.orig && rf.orig !== name) delete lib[rf.orig];
   const obj = clone(d); delete obj.name;
   if (Array.isArray(obj.imgs)) obj.imgs = [...new Set([obj.img, ...obj.imgs].filter(Boolean))];
+  if (PGS.resTab === "lodges") {
+    if (String(obj.officialSources || "").split(/\r?\n/).some(u => u.trim() && !Lodging.webUrl(u))) { toast("공식 출처는 http/https URL을 한 줄에 하나씩 입력해 주세요."); return; }
+    obj.representativePhotos = Lodging.photos(obj);
+    obj.imgs = [...new Set([obj.img, ...(obj.imgs || []), ...obj.representativePhotos].filter(Boolean))];
+    obj.img = obj.representativePhotos[0] || "";
+  }
+  const beforeSave = clone(M.getter());
   lib[name] = obj;
-  M.saver(lib); PGS.resForm = null; renderOverlays(); toast("저장했어요");
+  rf.saving = true;
+  const result = await M.saver(lib);
+  rf.saving = false;
+  if (!result.ok && !result.local) { localStorage.setItem("leaders_" + PGS.resTab, JSON.stringify(beforeSave)); toast("저장 실패: " + (result.error || "")); return; }
+  PGS.resForm = null; renderOverlays(); toast(result.ok ? "저장했어요" : "이 브라우저에만 저장됐어요");
 };
 document.addEventListener("input", e => {
   const el = e.target; if (!el || !el.dataset || el.dataset.rf == null || !PGS.resForm) return;
   PGS.resForm.draft[el.dataset.rf] = el.value;
 });
+function mobileLodgePhotos(d) {
+  const selected = Lodging.photos(d);
+  const pool = [...new Set([d.img, ...(d.imgs || []), ...selected].filter(Boolean))];
+  return `<b>고객 대표 사진 (최대 3장 · 표시 순서)</b>${selected.map((u,i) => `<div><img src="${esc(u)}" alt="대표 사진 ${i+1}" style="width:90px;height:65px;object-fit:cover"> ${i+1}번 <button type="button" onclick="App.lodgePhoto('up',${i})" ${i===0?'disabled':''}>앞으로</button> <button type="button" onclick="App.lodgePhoto('off',${i})">선택 해제</button></div>`).join('')}
+  <button type="button" class="btn" onclick="App.lodgePhotoUpload()" ${selected.length>=3?'disabled':''}>＋ 대표 사진 업로드</button>
+  <small>선택·순서가 고객 일정표와 PDF에 반영됩니다. 선택 해제해도 원본은 보관합니다.</small>
+  <details><summary>보관 사진에서 선택</summary>${pool.map((u,i) => !selected.includes(u) && Lodging.imageUrl(u) ? `<button type="button" onclick="App.lodgePhoto('add',${i})" ${selected.length>=3?'disabled':''}><img src="${esc(Lodging.imageUrl(u))}" alt="보관 사진" style="width:75px;height:55px;object-fit:cover"></button>` : '').join('')}</details>`;
+}
+App.lodgePhoto = (action,i) => {
+  const d = PGS.resForm.draft, selected = Lodging.photos(d);
+  d.imgs = [...new Set([d.img, ...(d.imgs || []), ...selected].filter(Boolean))];
+  if (action === 'off') selected.splice(i,1);
+  if (action === 'up' && i>0) [selected[i-1],selected[i]]=[selected[i],selected[i-1]];
+  if (action === 'add' && selected.length<3) selected.push(d.imgs[i]);
+  d.representativePhotos=selected; d.img=selected[0] || ''; renderOverlays();
+};
+App.lodgePhotoUpload = () => {
+  const rf=PGS.resForm; if (!rf || Lodging.photos(rf.draft).length>=3) return;
+  App.uploadImg(v => {
+    if (PGS.resForm!==rf) return;
+    const d=rf.draft, selected=Lodging.photos(d); if(selected.length>=3) return;
+    d.imgs=[...new Set([d.img,...(d.imgs || []),v].filter(Boolean))];
+    d.representativePhotos=[...selected,v]; d.img=d.representativePhotos[0]; renderOverlays();
+  });
+};
 function resFormSheet() {
   const t = PGS.resTab, M = RES_META[t];
   const rf = PGS.resForm, d = rf.draft;
@@ -2904,11 +2947,13 @@ function resFormSheet() {
         ${["", "일반게르", "고급게르", "호텔"].map(g => `<option value="${esc(g)}" ${d.grade === g ? "selected" : ""}>${esc(g || "선택")}</option>`).join("")}
       </select>
     </label>
-    <label class="f" style="font-weight:bold;">시설 태그 (쉼표 — 예: 전기 O, 샤워 O, 와이파이 O)<input data-rf="tags" value="${esc(d.tags || "")}" style="font-weight:normal;"></label>` : `
+    <label class="f" style="font-weight:bold;">기존 시설 태그 (고객 공개 · 확인된 내용만)<input data-rf="tags" value="${esc(d.tags || "")}" style="font-weight:normal;"></label>
+    <p style="font-size:12px">기존 설명에서 직접 옮겨 편집하세요. 자동 추출·제공품 추정은 하지 않습니다. 모두 고객 공개용이며 내부 메모·원가는 입력하지 마세요.</p>
+    ${[['address','주소'],['phone','숙소 대표 전화번호'],['roomAmenities','객실 비치용품 (확인된 제공품만)'],['sharedFacilities','호텔 공용시설'],['operatingNotes','고객 안내용 운영 참고'],['officialSources','공식 출처 URL (한 줄에 하나)']].map(([k,label]) => `<label class="f">${label}<textarea rows="2" data-rf="${k}">${esc(d[k] || '')}</textarea></label>`).join('')}` : `
     <label class="f" style="font-weight:bold;">탑승 인원 (확정 일정표에 노출)<input data-rf="seats" value="${esc(d.seats || "")}" placeholder="6인" style="font-weight:normal;"></label>
     <label class="f" style="font-weight:bold;">차량번호 (내부용)<input data-rf="plate" value="${esc(d.plate || "")}" style="font-weight:normal;"></label>
     <label class="f" style="font-weight:bold;">수하물 (확정 일정표에 노출)<input data-rf="luggage" value="${esc(d.luggage || "")}" placeholder="대형 캐리어 4개 적재 가능" style="font-weight:normal;"></label>`;
-  const multi = t !== "guides";
+  const multi = t === "vehicles";
   const imgs = Array.isArray(d.imgs) ? d.imgs : [];
   return `
   <div class="sheet-full z58">
@@ -2918,13 +2963,14 @@ function resFormSheet() {
     </header>
     <div class="sheet-body" style="padding:16px; display:flex; flex-direction:column; gap:14px;">
       <label class="f" style="font-weight:bold;">이름<input data-rf="name" value="${esc(d.name || "")}" placeholder="${esc(M.namePh)}" style="font-weight:normal;"></label>
-      <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="display:${t === 'lodges' ? 'none' : 'flex'}; flex-direction:column; gap:6px;">
         <span style="font-size:12px; font-weight:bold; color:var(--g700);">대표 사진</span>
         <button type="button" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:150px; border:1.5px dashed var(--g300); border-radius:12px; background:var(--g50); background-size:cover; background-position:center; ${d.img ? `background-image:url('${esc(d.img)}');` : ""} font-size:13px; color:var(--g500);" onclick="App.uploadImg(v => { PGS.resForm.draft.img = v; renderOverlays(); })">
           ${d.img ? "" : icon("photo", 22) + "사진 업로드 (탭)"}
         </button>
         <span style="font-size:11px; color:var(--g500);">사진은 자동으로 줄여서(WebP) 서버에 저장돼요.</span>
       </div>
+      ${t === "lodges" ? mobileLodgePhotos(d) : ""}
       ${multi ? `
       <div style="display:flex; flex-direction:column; gap:10px; padding:12px; border:1.5px dashed var(--g300); border-radius:12px; background:var(--g50);">
         <div style="display:flex; align-items:center; gap:8px;">
