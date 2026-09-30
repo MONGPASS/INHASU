@@ -1,3 +1,4 @@
+import { publicLodge } from "../_lodging.mjs";
 /* ═══════════════════════════════════════════════════════════
    Cloudflare Pages Function · /api/data/:key
    ---------------------------------------------------------------
@@ -60,6 +61,9 @@ export async function onRequestGet({ request, params, env }) {
         return out;
       };
       data = stripPrivate(data);
+    }
+    if (!isAdmin && key === "lodges" && data && typeof data === "object") {
+      data = Object.fromEntries(Object.entries(data).map(([name, lodge]) => [name, publicLodge(lodge || {})]));
     }
     return json({ ok: true, key, data, updatedAt: row.updated_at });
   } catch (e) {

@@ -249,6 +249,7 @@
     .confirm-card { padding:24px 20px 20px; border-radius:18px; }
   }
 </style>
+<script src="lodging.js"></script>
 </head>
 <body>
 
@@ -555,8 +556,8 @@ function previewHtml(type, rec) {
 function lodgePreviewHtml(l, i) {
   const lib = LIBS.lodges[l.name] || {};
   const rec = { ...lib, ...l };
-  const img = rec.img || (Array.isArray(rec.imgs) ? rec.imgs[0] : "");
-  const imgs = Array.isArray(rec.imgs) ? rec.imgs.length : (img ? 1 : 0);
+  const img = Lodging.photos(rec)[0] || "";
+  const imgs = Lodging.photos(rec).length;
   const title = rec.name || "숙소 미선택";
   const sub = [rec.grade, rec.region, rec.desc || rec.tags, imgs ? `이미지 ${imgs}장` : ""].filter(Boolean).join(" · ");
   return `<div class="preview" id="lodgePreview${i}">
@@ -854,11 +855,13 @@ function pullForm() {
   BK.assign.guide = { name:g("g_name"), nameEn:g("g_nameEn"), role:g("g_role"),
                       phone:g("g_phone"), qr:g("g_qr"), img:g("g_img"), desc:g("g_desc") };
   BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), luggage:g("v_luggage"), plate:g("v_plate"), img:"", imgs:[], desc:"" };
-  BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map(el => {
+  BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map((el, index) => {
     const name = el.querySelector('[data-lk="name"]').value.trim();
-    const lib = LIBS.lodges[name] || {};   // 라이브러리에 있으면 사진·태그를 고객 확정안내에 함께 노출
+    const previous = (BK.assign.lodges || [])[index] || {};
+    const lib = Lodging.snapshot(LIBS.lodges[name], previous.name === name ? previous : {});   // 라이브러리에 있으면 사진·태그를 고객 확정안내에 함께 노출
     const descCustom = (el.querySelector('[data-lk="desc"]') || {}).value?.trim() || "";
     return {
+      ...Lodging.publicData(lib),
       day: Number(el.querySelector('[data-lk="day"]').value) || 0,
       name,
       grade: el.querySelector('[data-lk="grade"]').value,

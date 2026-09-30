@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <script src="data.js"></script>
+<script src="lodging.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Pretendard', -apple-system, sans-serif; -webkit-font-smoothing: antialiased;
@@ -200,11 +201,11 @@ if (window.QUOTE && window.QUOTE.images) {
 
 /* 이미지 자리표시자/사진 */
 const ph = (src, label, style) => src
-  ? `<div class="ph" style="${style}"><img src="${src}" alt="${esc(label)}"></div>`
+  ? `<div class="ph" style="${style}"><img src="${esc(src)}" alt="${esc(label)}"></div>`
   : `<div class="ph" style="${style}">${esc(label) || ""}</div>`;
 // 문서·안내 이미지: 잘리지 않게 전체 표시(contain), 흰 배경
 const phC = (src, label, style) => src
-  ? `<div class="ph" style="${style}; background:#fff;"><img src="${src}" alt="${esc(label)}" style="object-fit:contain;"></div>`
+  ? `<div class="ph" style="${style}; background:#fff;"><img src="${esc(src)}" alt="${esc(label)}" style="object-fit:contain;"></div>`
   : `<div class="ph" style="${style}">${esc(label) || ""}</div>`;
 
 const LOGO = `<svg width="34" height="34" viewBox="0 0 48 48" fill="none"><rect x="1.5" y="1.5" width="45" height="45" rx="13" stroke="#06c4a0" stroke-width="1.6"></rect><path d="M9 33 L19 18 L26 28 L32 20 L39 33 Z" fill="#06c4a0"></path></svg>`;
@@ -246,7 +247,7 @@ const photoStrip = (imgs, label, h = 132) => {
   while (arr.length < 3) arr.push("");
   return `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px;">
     ${arr.map((src, i) => src
-      ? `<div class="ph" style="height:${h}px; background:#fff; border:1px solid ${ASSIGN_STYLE.line};"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`
+      ? `<div class="ph" style="height:${h}px; background:#fff; border:1px solid ${ASSIGN_STYLE.line};"><img src="${esc(src)}" alt="${esc(label)} ${i + 1}"></div>`
       : `<div class="ph" style="height:${h}px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; border:1px solid ${ASSIGN_STYLE.line}; font-family:${ASSIGN_STYLE.font}; font-size:12px; font-weight:700;">${esc(label)}</div>`).join("")}
   </div>`;
 };
@@ -900,12 +901,12 @@ const pgBookingAssign = bookingAssign ? (() => {
     while (arr.length < 3) arr.push("");
     return `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
       ${arr.map((src, i) => src
-        ? `<div class="ph" style="width:100%; height:150px; border-radius:10px;"><img src="${src}" alt="${esc(label)} ${i + 1}"></div>`
+        ? `<div class="ph" style="width:100%; height:150px; border-radius:10px;"><img src="${esc(src)}" alt="${esc(label)} ${i + 1}"></div>`
         : `<div class="ph" style="width:100%; height:150px; border-radius:10px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-family:${ASSIGN_STYLE.font}; font-size:12px; font-weight:700;">${esc(label)}</div>`).join("")}
     </div>`;
   };
   const lodgeCard = (l, i) => {
-    const imgs = imgsOf(l);
+    const imgs = Lodging.photos(l);
     const tags = String(l.tags || "").split(",").map(x => x.trim()).filter(Boolean);
     return `<div data-assign-lodge-card style="${i ? `margin-top:20px; padding-top:20px; border-top:1px solid #EEF4F1;` : ""} break-inside:avoid;">
       <div style="display:flex; align-items:center; gap:12px;">
@@ -916,7 +917,7 @@ const pgBookingAssign = bookingAssign ? (() => {
       </div>
       <div style="margin-top:14px;">${lodgeGrid(imgs, l.name)}</div>
       ${tags.length ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px;">${tags.map(tag => `<span style="background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border-radius:12px; padding:4px 9px; font-size:11px; font-weight:700;">${esc(tag)}</span>`).join("")}</div>` : ""}
-      ${l.desc ? `<div style="margin-top:10px; color:${ASSIGN_STYLE.body}; font-size:12.5px; font-weight:600; line-height:1.5;">${esc(l.desc)}</div>` : ""}
+      ${Lodging.render(l)}
     </div>`;
   };
   const vehicleGallery = imgs => {

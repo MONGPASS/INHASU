@@ -1,3 +1,4 @@
+import { publicLodge } from "../_lodging.mjs";
 /* ═══════════════════════════════════════════════════════════
    Cloudflare Pages Function · /api/my/<token>
    GET : 고객이 매직 링크로 자기 요청·견적서 조회 (로그인/토큰 인증 없음)
@@ -40,7 +41,7 @@ export async function onRequestGet({ env, params }) {
                              phone: a.guide.phone || "", qr: a.guide.qr || "",
                              career: a.guide.career || "",  korean: a.guide.korean || "", img: a.guide.img || "",  desc: a.guide.desc || "" } : null,
       vehicle: a.vehicle ? { model: a.vehicle.model || "", seats: a.vehicle.seats || "", luggage: a.vehicle.luggage || "", img: a.vehicle.img || "", imgs: Array.isArray(a.vehicle.imgs) ? a.vehicle.imgs : [], desc: a.vehicle.desc || "" } : null,
-      lodges:  Array.isArray(a.lodges) ? a.lodges.map(l => ({ day: l.day, name: l.name || "", region: l.region || "", grade: l.grade || "", img: l.img || "", imgs: Array.isArray(l.imgs) ? l.imgs : [], tags: l.tags || "", desc: l.desc || "" })) : [],
+      lodges:  Array.isArray(a.lodges) ? a.lodges.map(publicLodge) : [],
     } : null;
     const maskPassport = value => {
       const v = String(value || "").replace(/\s/g, "");
