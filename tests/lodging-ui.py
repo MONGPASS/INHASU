@@ -7,7 +7,7 @@ base=os.environ.get('INHASU_UI_BASE', 'http://127.0.0.1:8765/')
 evidence=Path(os.environ.get('INHASU_UI_EVIDENCE', '/tmp/inh-lodging-evidence'))
 evidence.mkdir(parents=True, exist_ok=True)
 photos=['/img/quote/lodge-std.webp','/img/quote/lodge-lux.webp','/img/quote/lodge-tent.webp','/img/quote/lodge-nomad.webp','/img/quote/lodge-note.webp']
-legacy={'img':photos[0],'imgs':photos,'desc':'기존 소개\n전화: +97670101188\n공식 출처: https://hotel.example/info','region':'울란바타르','grade':'호텔','internalNotes':'SECRET','cost':123}
+legacy={'img':photos[0],'imgs':photos,'desc':'전화: +976 7010 1188 Novotel Ulaanbaatar 숙소 소개입니다. 주소: Baga toiruu, 6th khoroo, Sukhbaatar District, Ulaanbaatar 14201 객실 비품(객실 유형에 따라 차이가 있을 수 있음): 생수, TV. 수건 제공 여부 확인 필요. 2026-09-30 공식 안내 기준 수영장은 공사 중입니다. 숙소 정보·사진 출처: Accor 공식 Novotel Ulaanbaatar 페이지 https://all.accor.com/hotel/B1D8/index.en.shtml','region':'울란바타르','grade':'호텔','internalNotes':'SECRET','cost':123}
 store={'lodges':{'검증 호텔':legacy},'lodge_cats':['울란바타르']}
 errors=[]
 patches=[]
@@ -66,6 +66,13 @@ with sync_playwright() as p:
  page.evaluate('(q)=>localStorage.setItem("leaders_quote",JSON.stringify(q))',q);page.reload();page.locator('.lodging-details').wait_for()
  assert page.locator('.lodging-details').locator('..').locator('img').count()==3
  assert len(page.evaluate('JSON.parse(localStorage.leaders_quote).booking.assign.lodges[0].imgs'))==5
+ assert page.locator('.lodging-details a[href^="tel:"]').count()==1
+ assert page.locator('.lodging-details strong').all_text_contents()==['숙소 소개','주소','전화번호','객실 비치용품','운영 참고']
+ page.locator('.lodging-details').scroll_into_view_if_needed();page.screenshot(path=str(evidence / 'legacy-customer-mobile.png'))
+ page.set_viewport_size({'width':1280,'height':960});page.goto(base+'확정일정표.html');page.locator('.lodging-details').wait_for()
+ assert page.locator('.lodging-details strong').all_text_contents()==['숙소 소개','주소','전화번호','객실 비치용품','운영 참고']
+ page.locator('.lodging-details').scroll_into_view_if_needed();page.screenshot(path=str(evidence / 'legacy-customer-desktop.png'))
+ page.pdf(path=str(evidence / 'legacy-confirmed-itinerary.pdf'),format='A4',print_background=True)
  # Actual booking editor -> PATCH capture, including preservation of old 5-image snapshot.
  fixture={'id':'local-test','name':'검증 고객','adult':2,'quote':q,'booking':{'assign':{'lodges':[dict(legacy,name='검증 호텔',day=1)]},'days':q['days']}}
  page.evaluate('(f)=>localStorage.setItem("leaders_booking_prefill",JSON.stringify(f))',fixture)

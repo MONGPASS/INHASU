@@ -57,3 +57,17 @@ test('customer booking API returns new lodging fields and selected photos, exclu
  const out=(await res.json()).booking.assign.lodges[0];
  assert.deepEqual(out,publicLodge(lodge));assert.equal(out.imgs.length,5);
 });
+test('single-paragraph Novotel legacy snapshot separates explicit labels without modifying source or guessing amenities', () => {
+ const prose='전화: +976 7010 1188 Novotel Ulaanbaatar 숙소 소개입니다. 주소: Baga toiruu, 6th khoroo, Sukhbaatar District, Ulaanbaatar 14201 객실 비품(객실 유형에 따라 차이가 있을 수 있음): 생수, TV. 수건 제공 여부 확인 필요. 2026-09-30 공식 안내 기준 수영장은 공사 중입니다. 숙소 정보·사진 출처: Accor 공식 Novotel Ulaanbaatar 페이지 https://all.accor.com/hotel/B1D8/index.en.shtml';
+ const snapshot={desc:prose,imgs:['/1','/2','/3','/4','/5']};
+ const d=L.displayDetails(snapshot), html=L.render(snapshot);
+ assert.equal(d.phone,'+976 7010 1188');assert.equal(d.desc,'Novotel Ulaanbaatar 숙소 소개입니다.');
+ assert.equal(d.address,'Baga toiruu, 6th khoroo, Sukhbaatar District, Ulaanbaatar 14201');
+ assert.match(d.roomAmenities,/객실 유형에 따라 차이가 있을 수 있음/);assert.match(d.roomAmenities,/수건 제공 여부 확인 필요/);
+ assert.match(d.operatingNotes,/2026-09-30 공식 안내 기준 수영장은 공사 중/);
+ assert.match(html,/href="tel:\+97670101188"/);assert.match(html,/href="https:\/\/all.accor.com\/hotel\/B1D8\/index.en.shtml"/);
+ assert.doesNotMatch(html,/>https:\/\/all.accor/);assert.equal(snapshot.desc,prose);assert.equal(snapshot.imgs.length,5);
+ assert.doesNotMatch(html,/헤어드라이어|슬리퍼/);
+ const conflict=L.displayDetails({...snapshot,address:'새로 확인한 주소'});
+ assert.equal(conflict.address,'새로 확인한 주소');assert.match(conflict.desc,/주소: Baga toiruu/);
+});
