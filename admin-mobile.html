@@ -278,6 +278,8 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 <script src="presets.js"></script>
 <script src="booking.js"></script>
 <script src="lodging.js"></script>
+<link rel="stylesheet" href="itinerary-notice.css">
+<script src="itinerary-notice.js"></script>
 <script>
 "use strict";
 /* ═══════════════════════════════════════════════════════════════
@@ -1181,6 +1183,7 @@ function bookingCard(r) {
     </button>` : ""}
     <div style="display:flex; flex-direction:column; gap:8px;">
       <button type="button" class="btn mint" style="height:44px; font-size:14px;" onclick="App.openAssign('${esc(r.id)}')">배정 관리</button>
+      <button type="button" class="btn" style="height:40px; font-size:13px;" onclick="App.itineraryNotice('${esc(r.id)}')">확정일정표 알림</button>
       <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
         <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docSchedule('${esc(r.id)}')">일정표</button>
         <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docContract('${esc(r.id)}')">${signed ? "서명 원본" : "계약서"}</button>
@@ -1208,6 +1211,7 @@ function bookingCard(r) {
 }
 App.toggleBk = id => { S.bookingOpen[id] = !S.bookingOpen[id]; renderMain(); };
 App.cardTab = (id, t) => { S.cardTab[id] = t; renderMain(); };
+App.itineraryNotice = id => ItineraryNotice.open({ id, token:ADMIN_TOKEN });
 App.docSchedule = id => { const r = recById(id); if (r && r.token) window.open("확정일정표.html?t=" + encodeURIComponent(r.token), "_blank"); else toast("고객 링크 토큰이 없어요"); };
 App.docContract = id => { const r = recById(id); if (r && r.token) window.open("계약서.html?t=" + encodeURIComponent(r.token) + "&adminId=" + encodeURIComponent(r.id) + "&return=manage", "_blank"); else toast("고객 링크 토큰이 없어요"); };
 App.docGuideSheet = id => {
@@ -1273,6 +1277,7 @@ function assignScreen(r) {
   const sec = S.assignSection;
   const meta = `${rowDays(r)} · ${r.depart ? r.depart + " ~ " + r.return_ : "일정 미정"} · ${paxTotal(r) || "?"}명 · ${esc(r.status || "신규")}`;
   const docChips = [
+    ["확정일정표 알림", `App.itineraryNotice('${esc(r.id)}')`],
     ["확정일정표", `App.docSchedule('${esc(r.id)}')`],
     ["여행계약서", `App.docContract('${esc(r.id)}')`],
     ["링크 복사", `App.docCopyLink('${esc(r.id)}')`],

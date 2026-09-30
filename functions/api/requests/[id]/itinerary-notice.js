@@ -1,7 +1,7 @@
 /* Published itinerary notices: GET previews without sending; POST claims one attempt
    per booking/key before contacting Solapi. An uncertain response must not be retried
    with a new key: inspect the provider result first. Booking stages are never changed. */
-import { canSendKakao, itineraryNoticePayload, listKakaoTemplates, notifyCustomerItineraryReady } from "../../_solapi.js";
+import { canSendKakao, quoteTemplateId, itineraryNoticePayload, listKakaoTemplates, notifyCustomerItineraryReady } from "../../_solapi.js";
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
@@ -19,10 +19,23 @@ export async function onRequestGet({ request, env, params }) {
   if (!rec) return json({ ok: false, error: "not found" }, 404);
   const payload = itineraryNoticePayload(env, rec);
   const templates = await listKakaoTemplates(env);
+  const configuredItineraryId = env.SOLAPI_TEMPLATE_ITINERARY_ID || env.SOLAPI_KAKAO_ITINERARY_TEMPLATE_ID || "";
+  const key = new URL(request.url).searchParams.get("idempotencyKey");
+  let dispatch = null;
+  if (key && /^[a-zA-Z0-9_-]{16,100}$/.test(key)) {
+    const table = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'itinerary_notice_dispatches'").first();
+    if (table) {
+      const previous = await env.DB.prepare("SELECT state, result FROM itinerary_notice_dispatches WHERE request_id = ? AND dispatch_key = ?").bind(params.id, key).first();
+      if (previous) dispatch = { state: previous.state, result: previous.result ? JSON.parse(previous.result) : null };
+    }
+  }
   return json({
     ok: true, eligible: eligible(rec), ready: eligible(rec) && canSendKakao(env, payload),
     booking: { id: params.id, name: rec.name, phoneLast4: String(rec.phone || "").replace(/\D/g, "").slice(-4), depart: rec.depart, return_: rec.return_, adult: rec.adult, child: rec.child, infant: rec.infant, status: rec.status },
-    payload, template: templates.templates?.find(t => t.templateId === payload.templateId) || null,
+    payload, template: templates.templates?.find(t => t.templateId === configuredItineraryId) || null,
+    configuration: { itineraryTemplateId: configuredItineraryId, quoteTemplateId: quoteTemplateId(env), sameTemplate: !!configuredItineraryId && configuredItineraryId === quoteTemplateId(env) },
+    quoteTemplate: templates.templates?.find(t => t.templateId === quoteTemplateId(env)) || null,
+    dispatch,
     templatesError: templates.ok ? undefined : templates.reason,
     templateError: payload.templateId ? undefined : "Missing itinerary template or same ID as quote template",
   });
@@ -32,7 +45,7 @@ export async function onRequestPost({ request, env, params }) {
   if (!authorized(request, env)) return json({ ok: false, error: "unauthorized" }, 401);
   let input;
   try { input = await request.json(); } catch { return json({ ok: false, error: "invalid JSON" }, 400); }
-  if (!/^[a-zA-Z0-9_-]{16,100}$/.test(input.idempotencyKey || ""))
+  if (!input || !/^[a-zA-Z0-9_-]{16,100}$/.test(input.idempotencyKey || ""))
     return json({ ok: false, error: "idempotencyKey required (16–100 letters, digits, - or _)" }, 400);
   const rec = await booking(env, params.id);
   if (!rec) return json({ ok: false, error: "not found" }, 404);

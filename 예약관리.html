@@ -250,6 +250,8 @@
   }
 </style>
 <script src="lodging.js"></script>
+<link rel="stylesheet" href="itinerary-notice.css">
+<script src="itinerary-notice.js"></script>
 </head>
 <body>
 
@@ -259,6 +261,7 @@
   <span class="hd-acts">
     <a class="hbtn" href="예약목록.html">← 예약 목록</a>
     <span class="hd-group"><span class="hd-label">고객 화면·공유</span>
+      <button class="hbtn" type="button" id="itineraryNoticeBtn">확정일정표 알림</button>
       <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 확정일정표</a>
       <a class="hbtn" id="contractLink" href="#">📜 여행계약서</a>
       <button class="hbtn" id="copyLinkBtn">🔗 링크 복사</button>
@@ -972,6 +975,7 @@ function bindEvents() {
   $("depositRequestBtn").onclick = () => sendStageRequest("deposit");
   $("contractRequestBtn").onclick = () => sendStageRequest("contract");
   $("travelNoticeBtn").onclick = sendTravelNotice;
+  $("itineraryNoticeBtn").onclick = () => ItineraryNotice.open({ id:PRE.id, token:ADMIN_TOKEN });
   $("confirmBookingBtn").onclick = async () => {
     if (!await askConfirm({ title:"예약을 확정할까요?", message:"예약금 입금과 계약서 서명을 확인한 뒤 고객에게 예약 확정 알림을 보냅니다.", confirmText:"예약 확정하기", icon:"✓" })) return;
     $("setStatus").checked = true;

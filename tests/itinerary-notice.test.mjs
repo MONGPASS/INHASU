@@ -9,6 +9,7 @@ function setup({ published = true, fail = false } = {}) {
     const stmt = args => ({
       async first() {
         if (sql.startsWith("SELECT data")) return { data:JSON.stringify(rec), status:rec.status };
+        if (sql.includes("sqlite_master")) return ledger.size ? { name:"itinerary_notice_dispatches" } : null;
         return ledger.get(args[1]);
       },
       async run() {
@@ -25,7 +26,7 @@ function setup({ published = true, fail = false } = {}) {
   } };
   const ctx = (method, body = {}, auth = true) => ({
     env:{ ...ENV, DB }, params:{ id:"test-booking" },
-    request:new Request("https://site.test/api/requests/test-booking/itinerary-notice", { method, headers:auth ? { "x-admin-token":"admin" } : {}, ...(method === "POST" ? { body:JSON.stringify(body) } : {}) }),
+    request:new Request(`https://site.test/api/requests/test-booking/itinerary-notice${method === "GET" ? "?idempotencyKey=test-itinerary-send-20260930" : ""}`, { method, headers:auth ? { "x-admin-token":"admin" } : {}, ...(method === "POST" ? { body:JSON.stringify(body) } : {}) }),
   });
   const sends = [];
   const fetch = async (_url, init) => {
@@ -60,6 +61,9 @@ test("one attempt survives concurrent and later retries without changing booking
   assert.equal(retry.duplicate, true);
   assert.equal(retry.state, "accepted");
   assert.equal(s.sends.length, 1);
+  const preview = await (await onRequestGet(s.ctx("GET"))).json();
+  assert.equal(preview.dispatch.state, "accepted");
+  assert.equal(s.sends.length, 1);
   assert.equal(s.rec.status, "완료");
   assert.equal(s.rec.booking.publishStatus, "published");
 }));
@@ -83,3 +87,16 @@ test("authorization, publication, key and template guards prevent sends", async 
     assert.equal(s.sends.length, 0);
   });
 });
+
+test("preview exposes a quote-template collision without sending or hiding its configured ID", () => withMock({}, async s => {
+  const ctx = s.ctx("GET");
+  ctx.env.SOLAPI_TEMPLATE_ITINERARY_ID = "quote";
+  const result = await (await onRequestGet(ctx)).json();
+  assert.equal(result.ready, false);
+  assert.equal(result.configuration.sameTemplate, true);
+  assert.equal(result.configuration.itineraryTemplateId, "quote");
+  assert.equal(result.configuration.quoteTemplateId, "quote");
+  assert.equal(result.payload.templateId, "");
+  assert.equal(result.dispatch, null);
+  assert.equal(s.sends.length, 0);
+}));
