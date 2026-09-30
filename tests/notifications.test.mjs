@@ -82,5 +82,20 @@ test("견적과 확정일정표 알림톡은 승인 템플릿 변수와 기존 �
   });
   assert.equal(quote.kakaoOptions.buttons, undefined);
   assert.equal(bodies[1].message.kakaoOptions.templateId, "KA01TP-itinerary");
-  assert.equal(bodies[1].message.kakaoOptions.variables["#{링크}"], "%EB%82%B4%EA%B2%AC%EC%A0%81.html?t=itinerary-token");
+  assert.equal(bodies[1].message.kakaoOptions.variables["#{링크}"], `${encodeURI("확정일정표.html")}?t=itinerary-token`);
+});
+
+test("itinerary never falls back to a quote template, including aliases", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("must not contact provider"); };
+  try {
+    for (const env of [
+      { ...ENV, SOLAPI_TEMPLATE_ITINERARY_ID: ENV.SOLAPI_TEMPLATE_QUOTE_ID },
+      { ...ENV, SOLAPI_TEMPLATE_ITINERARY_ID: "", SOLAPI_KAKAO_ITINERARY_TEMPLATE_ID: ENV.SOLAPI_TEMPLATE_QUOTE_ID },
+      { ...ENV, SOLAPI_TEMPLATE_ITINERARY_ID: "" },
+    ]) {
+      const result = await notifyCustomerItineraryReady(env, { phone:"01012345678", token:"token" });
+      assert.equal(result.ok, false);
+    }
+  } finally { globalThis.fetch = originalFetch; }
 });

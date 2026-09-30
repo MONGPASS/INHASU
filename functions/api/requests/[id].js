@@ -161,9 +161,10 @@ export async function onRequestPatch(context) {
     const nextWorkflow = workflowStatus(rec, rec.status);
     rec.workflowStatus = nextWorkflow;
     const notifications = [];
-    const shouldNotifyQuote = !silentQuote && !!rec.quote && (!hadQuote || forceNotifyQuote);
+    const publishingItinerary = !!(rec.booking && rec.booking.publishStatus === "published" && prevPublish !== "published");
+    const shouldNotifyQuote = !publishingItinerary && !silentQuote && !!rec.quote && (!hadQuote || forceNotifyQuote);
     const shouldNotifyContract = confirmDeposit || requestContract;
-    const shouldNotifyItinerary = !!(rec.booking && rec.booking.publishStatus === "published" && prevPublish !== "published");
+    const shouldNotifyItinerary = publishingItinerary;
 
     if (shouldNotifyQuote) {
       const ready = canSendKakao(env, { phone:rec.phone, templateId:quoteTemplateId(env) });

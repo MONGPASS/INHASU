@@ -138,3 +138,21 @@ test("저장하기를 여러 번 해도 알림톡은 한 번도 나가지 않는
   assert.equal(total, 0);
   assert.equal(DB.record.quote.rev, 2, "마지막 저장 내용이 남아야 한다");
 });
+
+test("publishing assignments sends only an itinerary notice, never a simultaneous quote", async () => {
+  const booking = {
+    publishStatus:"published", days:[{ d:1 }, { d:2 }],
+    assign:{ guide:{ name:"Guide" }, vehicle:{ model:"Van" }, lodges:[{ name:"Lodge" }] },
+  };
+  const DB = patchDb({ status:"예약확정", phone:"01012345678", token:"published-token", booking:{ publishStatus:"draft" } });
+  const env = { ...ENV, DB, SOLAPI_TEMPLATE_ITINERARY_ID:"itinerary" };
+  const { result, sent } = await withSolapi(collect => onRequestPatch({
+    request:adminPatch({ booking, quote:newQuote, notifyQuote:true }), env, params:{ id:"req-1" }, waitUntil:collect,
+  }));
+  assert.equal(result.status, 200);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].kakaoOptions.templateId, "itinerary");
+  assert.equal(sent[0].kakaoOptions.variables["#{링크}"], `${encodeURI("확정일정표.html")}?t=published-token`);
+  const repeat = await withSolapi(collect => onRequestPatch({ request:adminPatch({ booking }), env, params:{ id:"req-1" }, waitUntil:collect }));
+  assert.equal(repeat.sent.length, 0);
+});

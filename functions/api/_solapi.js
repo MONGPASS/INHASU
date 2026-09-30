@@ -59,7 +59,11 @@ const company = env => env.NOTIFY_COMPANY || "몽골리아 은하수 여행사";
 const pfId = env => env.SOLAPI_PF_ID || env.SOLAPI_KAKAO_PF_ID || "";
 export const quoteTemplateId = env => env.SOLAPI_TEMPLATE_QUOTE_ID || env.SOLAPI_KAKAO_QUOTE_TEMPLATE_ID || "";
 export const contractTemplateId = env => env.SOLAPI_TEMPLATE_CONTRACT_ID || env.SOLAPI_KAKAO_CONTRACT_TEMPLATE_ID || "";
-export const itineraryTemplateId = env => env.SOLAPI_TEMPLATE_ITINERARY_ID || env.SOLAPI_KAKAO_ITINERARY_TEMPLATE_ID || "";
+// Never send a quote template as an itinerary notice, even if deployment settings collide.
+export const itineraryTemplateId = env => {
+  const id = env.SOLAPI_TEMPLATE_ITINERARY_ID || env.SOLAPI_KAKAO_ITINERARY_TEMPLATE_ID || "";
+  return id && id !== quoteTemplateId(env) ? id : "";
+};
 export const guidebookTemplateId = env => env.SOLAPI_TEMPLATE_GUIDEBOOK_ID || "";
 /* 여행 주의사항 템플릿 —
    전용 템플릿(SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID)이 있으면 그것을 쓰고,
@@ -124,6 +128,8 @@ export async function listKakaoTemplates(env) {
     name: t.name || t.templateName || "",
     status: t.status || t.inspectionStatus || "",
     pfId: t.channelId || t.pfId || "",
+    content: t.content || "",
+    buttons: t.buttons || [],
   })).filter(t => t.templateId);
   return { ok: true, count: items.length, templates: items };
 }
@@ -190,16 +196,20 @@ export function notifyCustomerQuoteReady(env, { phone, name, token }) {
   });
 }
 
-export function notifyCustomerItineraryReady(env, { phone, name, token }) {
-  return sendKakaoAlimtalk(env, {
+export function itineraryNoticePayload(env, { phone, name, token }) {
+  return {
     phone,
     templateId: itineraryTemplateId(env),
     variables: {
       "#{고객명}": name || "고객",
       "#{회사명}": company(env),
-      "#{링크}": customerPath(token),
+      "#{링크}": `${encodeURI("확정일정표.html")}?t=${encodeURIComponent(token || "")}`,
     },
-  });
+  };
+}
+
+export function notifyCustomerItineraryReady(env, customer) {
+  return sendKakaoAlimtalk(env, itineraryNoticePayload(env, customer));
 }
 
 export async function notifyCustomerContractReady(env, { phone, name, token, requestUrl }) {

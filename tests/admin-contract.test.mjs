@@ -132,7 +132,7 @@ test("확정일정표 최초 공개 시 고객 직링크 알림톡을 한 번 �
   }
   assert.equal(sentBody.message.kakaoOptions.templateId, "KA01TP-itinerary");
   assert.equal(sentBody.message.kakaoOptions.buttons, undefined);
-  assert.equal(sentBody.message.kakaoOptions.variables["#{링크}"], "%EB%82%B4%EA%B2%AC%EC%A0%81.html?t=customer-token");
+  assert.equal(sentBody.message.kakaoOptions.variables["#{링크}"], `${encodeURI("확정일정표.html")}?t=customer-token`);
 });
 
 test("여행서명 시 여행자 정보를 함께 제출하면 booking과 스냅샷에 저장된다", async () => {
