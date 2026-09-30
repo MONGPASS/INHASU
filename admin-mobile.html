@@ -2830,7 +2830,7 @@ const RES_META = {
     descLabel: "한 줄 소개 (확정 일정표에 노출)" },
   lodges: { one: "숙소(캠프장·호텔)", getter: () => getLodges(), saver: o => saveLodges(o), namePh: "고비 오아시스 캠프",
     sub: r => [r.region, r.grade].filter(Boolean).join(" · "),
-    descLabel: "숙소 설명 (확정 일정표 사진 아래 노출)" },
+    descLabel: "숙소 소개" },
   vehicles: { one: "차량", getter: () => getVehicles(), saver: o => saveVehicles(o), namePh: "하이스 1호",
     sub: r => [r.seats, r.plate].filter(Boolean).join(" · "),
     descLabel: "차량 특징 (확정 일정표에 노출)" },
@@ -2901,9 +2901,9 @@ document.addEventListener("input", e => {
 function mobileLodgePhotos(d) {
   const selected = Lodging.photos(d);
   const pool = [...new Set([d.img, ...(d.imgs || []), ...selected].filter(Boolean))];
-  return `<b>고객 대표 사진 (최대 3장 · 표시 순서)</b>${selected.map((u,i) => `<div><img src="${esc(u)}" alt="대표 사진 ${i+1}" style="width:90px;height:65px;object-fit:cover"> ${i+1}번 <button type="button" onclick="App.lodgePhoto('up',${i})" ${i===0?'disabled':''}>앞으로</button> <button type="button" onclick="App.lodgePhoto('off',${i})">선택 해제</button></div>`).join('')}
+  return `<b>대표 사진</b>${selected.map((u,i) => `<div><img src="${esc(u)}" alt="대표 사진 ${i+1}" style="width:90px;height:65px;object-fit:cover"> ${i+1}번 <button type="button" onclick="App.lodgePhoto('up',${i})" ${i===0?'disabled':''}>앞으로</button> <button type="button" onclick="App.lodgePhoto('off',${i})">선택 해제</button></div>`).join('')}
   <button type="button" class="btn" onclick="App.lodgePhotoUpload()" ${selected.length>=3?'disabled':''}>＋ 대표 사진 업로드</button>
-  <small>선택·순서가 고객 일정표와 PDF에 반영됩니다. 선택 해제해도 원본은 보관합니다.</small>
+  <small>대표 사진은 최대 3장까지 선택할 수 있어요.</small>
   <details><summary>보관 사진에서 선택</summary>${pool.map((u,i) => !selected.includes(u) && Lodging.imageUrl(u) ? `<button type="button" onclick="App.lodgePhoto('add',${i})" ${selected.length>=3?'disabled':''}><img src="${esc(Lodging.imageUrl(u))}" alt="보관 사진" style="width:75px;height:55px;object-fit:cover"></button>` : '').join('')}</details>`;
 }
 App.lodgePhoto = (action,i) => {
@@ -2947,9 +2947,8 @@ function resFormSheet() {
         ${["", "일반게르", "고급게르", "호텔"].map(g => `<option value="${esc(g)}" ${d.grade === g ? "selected" : ""}>${esc(g || "선택")}</option>`).join("")}
       </select>
     </label>
-    <label class="f" style="font-weight:bold;">기존 시설 태그 (고객 공개 · 확인된 내용만)<input data-rf="tags" value="${esc(d.tags || "")}" style="font-weight:normal;"></label>
-    <p style="font-size:12px">기존 설명에서 직접 옮겨 편집하세요. 자동 추출·제공품 추정은 하지 않습니다. 모두 고객 공개용이며 내부 메모·원가는 입력하지 마세요.</p>
-    ${[['address','주소'],['phone','숙소 대표 전화번호'],['roomAmenities','객실 비치용품 (확인된 제공품만)'],['sharedFacilities','호텔 공용시설'],['operatingNotes','고객 안내용 운영 참고'],['officialSources','공식 출처 URL (한 줄에 하나)']].map(([k,label]) => `<label class="f">${label}<textarea rows="2" data-rf="${k}">${esc(d[k] || '')}</textarea></label>`).join('')}` : `
+    <label class="f" style="font-weight:bold;">시설 태그<input data-rf="tags" value="${esc(d.tags || "")}" style="font-weight:normal;"></label>
+    ${[['address','주소'],['phone','숙소 대표 전화번호'],['roomAmenities','객실 비품'],['sharedFacilities','호텔 공용시설'],['operatingNotes','운영 참고 (고객 안내)'],['officialSources','공식 출처']].map(([k,label]) => `<label class="f">${label}<textarea rows="2" data-rf="${k}" placeholder="${k === 'roomAmenities' ? '객실 비품을 입력해 주세요' : k === 'officialSources' ? '웹사이트 주소를 한 줄에 하나씩 입력해 주세요' : ''}">${esc(d[k] || '')}</textarea></label>`).join('')}` : `
     <label class="f" style="font-weight:bold;">탑승 인원 (확정 일정표에 노출)<input data-rf="seats" value="${esc(d.seats || "")}" placeholder="6인" style="font-weight:normal;"></label>
     <label class="f" style="font-weight:bold;">차량번호 (내부용)<input data-rf="plate" value="${esc(d.plate || "")}" style="font-weight:normal;"></label>
     <label class="f" style="font-weight:bold;">수하물 (확정 일정표에 노출)<input data-rf="luggage" value="${esc(d.luggage || "")}" placeholder="대형 캐리어 4개 적재 가능" style="font-weight:normal;"></label>`;

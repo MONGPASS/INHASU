@@ -381,10 +381,9 @@ function fieldRows(type, r) {
         ${["","일반게르","고급게르","호텔"].map(g => `<option value="${g}" ${r.grade===g?"selected":""}>${g||"선택"}</option>`).join("")}
       </select></label>
     </div>
-    <label class="f"><span>기존 시설 태그 (고객 공개 · 확인된 내용만 입력)</span><input id="f_tags" value="${esc(r.tags||"")}"></label>
-    <label class="f"><span>숙소 소개 (고객 공개 · 기존 설명은 보존됩니다)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>
-    <p class="hintline">기존 설명의 주소·연락처·비품은 아래 칸으로 직접 옮겨 편집하세요. 자동 추출하거나 제공 여부를 추정하지 않습니다. 아래 항목은 모두 고객 공개용이며 내부 메모·원가를 입력하지 마세요.</p>
-    ${[['address','주소'],['phone','숙소 대표 전화번호'],['roomAmenities','객실 비치용품 (확인된 제공품만 · 수건/드라이어/슬리퍼 등)'],['sharedFacilities','호텔 공용시설 (객실 비품과 구분)'],['operatingNotes','고객 안내용 운영 참고'],['officialSources','공식 출처 URL (http/https, 한 줄에 하나)']].map(([k,label]) => `<label class="f"><span>${label}</span><textarea id="f_${k}" rows="2">${esc(r[k]||"")}</textarea></label>`).join('')}`;
+    <label class="f"><span>시설 태그</span><input id="f_tags" value="${esc(r.tags||"")}"></label>
+    <label class="f"><span>숙소 소개</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>
+    ${[['address','주소'],['phone','숙소 대표 전화번호'],['roomAmenities','객실 비품'],['sharedFacilities','호텔 공용시설'],['operatingNotes','운영 참고 (고객 안내)'],['officialSources','공식 출처']].map(([k,label]) => `<label class="f"><span>${label}</span><textarea id="f_${k}" rows="2" placeholder="${k === 'roomAmenities' ? '객실 비품을 입력해 주세요' : k === 'officialSources' ? '웹사이트 주소를 한 줄에 하나씩 입력해 주세요' : ''}">${esc(r[k]||"")}</textarea></label>`).join('')}`;
   return `
     <div class="row2">
       <label class="f"><span>탑승 인원 (확정 일정표에 노출 — 예: 6인)</span><input id="f_seats" value="${esc(r.seats||"")}" placeholder="6인"></label>
@@ -455,7 +454,7 @@ function openEdit(key) {
       </div>
       <input type="file" id="fileMain" accept="image/*" style="display:none">
       <div class="hintline">사진은 자동으로 줄여서(WebP) 서버에 저장돼요.</div></div>
-      ${isLodge ? `<b>고객 대표 사진 (최대 3장 · 표시 순서)</b><div id="lodgePhotos"></div><button type="button" id="lodgePhotoUpload">＋ 대표 사진 업로드</button><input type="file" id="lodgePhotoFile" accept="image/*" multiple hidden><p class="hintline">선택과 순서가 고객 일정표·PDF에 반영됩니다. 선택 해제한 원본은 아래에 보관됩니다.</p><details><summary>보관 사진에서 선택 (원본 삭제 없음)</summary><div id="lodgeArchive"></div></details>` : ""}
+      ${isLodge ? `<b>대표 사진</b><div id="lodgePhotos"></div><button type="button" id="lodgePhotoUpload">＋ 대표 사진 업로드</button><input type="file" id="lodgePhotoFile" accept="image/*" multiple hidden><p class="hintline">대표 사진은 최대 3장까지 선택할 수 있어요.</p><details><summary>보관 사진에서 선택</summary><div id="lodgeArchive"></div></details>` : ""}
       ${multiEnabled ? `
       <div style="height:14px"></div>
       <div class="multi-upload">
