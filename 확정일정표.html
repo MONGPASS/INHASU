@@ -20,7 +20,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <script src="data.js"></script>
-<script src="lodging.js"></script>
+<script src="/lodging.f3c00aad8ec7.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Pretendard', -apple-system, sans-serif; -webkit-font-smoothing: antialiased;
@@ -144,6 +144,8 @@ const Q = await (async () => {
   try { const s = JSON.parse(localStorage.getItem("leaders_quote") || "null"); if (s) return s; } catch (e) {}
   return window.QUOTE;
 })();
+
+const lodgingCatalog = await Lodging.loadCatalog(Q?.booking?.assign?.lodges);
 
 /* 명소 사진은 항상 명소관리 최신본을 우선 반영 —
    견적 발행 뒤 명소관리에서 이미지를 바꿔도 이미 만든 견적서에 바로 나타나도록 */
@@ -916,7 +918,7 @@ const pgBookingAssign = bookingAssign ? (() => {
       </div>
       <div style="margin-top:14px;">${lodgeGrid(imgs, l.name)}</div>
       ${tags.length ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px;">${tags.map(tag => `<span style="background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border-radius:12px; padding:4px 9px; font-size:11px; font-weight:700;">${esc(tag)}</span>`).join("")}</div>` : ""}
-      ${Lodging.render(l)}
+      ${Lodging.render(Lodging.forDisplay(l, lodgingCatalog[l.name]))}
     </div>`;
   };
   const vehicleGallery = imgs => {

@@ -24,3 +24,14 @@ test('both admin pages pin identical root-relative content-hashed notice assets'
     assert.doesNotMatch(html, /(?:src|href)="\/?itinerary-notice\.(?:js|css)(?:\?|" )/);
   }
 });
+
+test('lodging renderers and editors share the current content-hashed lodging asset', () => {
+ for (const page of ['확정일정표.html','확정일정표-모바일.html','예약관리.html','리소스관리.html','admin-mobile.html']) {
+  const html=readFileSync(new URL(`../${page}`,import.meta.url),'utf8');
+  const match=html.match(/src="(\/lodging\.([a-f0-9]{12})\.js)"/);
+  assert.ok(match,page);
+  const content=readFileSync(new URL(`..${match[1]}`,import.meta.url));
+  assert.equal(createHash('sha256').update(content).digest('hex').slice(0,12),match[2]);
+  assert.deepEqual(content,readFileSync(new URL('../lodging.js',import.meta.url)));
+ }
+});

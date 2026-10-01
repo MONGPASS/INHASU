@@ -98,7 +98,7 @@
   .toast.on { opacity:1; }
   @media (max-width:820px){ .side{display:none} .content{padding:20px} }
 </style>
-<script src="lodging.js"></script>
+<script src="/lodging.f3c00aad8ec7.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -307,7 +307,7 @@ function renderGrid() {
       <div class="body">
         <div class="sub">${T.icon} ${T.label}</div>
         <h3>${esc(name)}</h3>
-        <p>${esc(r.desc || "설명을 추가하세요")}</p>
+        <p>${esc(activeType === "lodges" ? Lodging.summary(r) : (r.desc || "설명을 추가하세요"))}</p>
       </div>
     </div>`).join("")
   || `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--gray)">${

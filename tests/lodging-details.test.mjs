@@ -89,3 +89,37 @@ test('registered lodging type/grade replaces introduction; operating notes stay 
  const legacy=L.render({grade:'호텔',desc:'소개. 운영 참고: 수영장 공사 중. 출처: https://hotel.example/'});
  assert.doesNotMatch(legacy,/소개|운영 참고|공사 중/);assert.match(legacy,/hotel.example/);
 });
+
+test('old booking display fills only absent structured fields from exact catalog record, preserving all booking choices', () => {
+ const saved={name:'Hotel',grade:'일반게르',day:2,desc:'예약 전용 소개',imgs:['/old'],price:500,phone:'',address:'예약 지정 주소',operatingNotes:'저장된 참고'};
+ const catalog={grade:'고급게르',name:'Different',day:8,desc:'새 소개',price:900,imgs:['/new'],address:'다른 주소',phone:'+97611111111',roomAmenities:'확인된 생수',sharedFacilities:'등록된 로비',officialSources:'https://hotel.example/source',internalNotes:'SECRET'};
+ const before=JSON.stringify(saved), libBefore=JSON.stringify(catalog);
+ const view=L.forDisplay(saved,catalog);
+ assert.equal(view.roomAmenities,catalog.roomAmenities);assert.equal(view.sharedFacilities,catalog.sharedFacilities);
+ for (const key of Object.keys(saved)) assert.deepEqual(view[key],saved[key]);
+ assert.equal(view.internalNotes,undefined);
+ assert.equal(view.officialSources,catalog.officialSources);
+ assert.equal(JSON.stringify(saved),before);assert.equal(JSON.stringify(catalog),libBefore);
+ const legacy=L.forDisplay({desc:'전화: +976 7010 1188 주소: 기존 주소 객실 비품: 기존 비품'},catalog);
+ assert.equal(legacy.phone,undefined);assert.equal(legacy.address,undefined);assert.equal(legacy.roomAmenities,undefined);
+ assert.equal(L.displayDetails(legacy).phone,'+976 7010 1188');
+});
+
+test('catalog display lookup is no-store, exact-name, read-only and degrades safely', async () => {
+ let calls=0;
+ context.fetch=async (url,options) => {
+  calls++;assert.equal(url,'/api/data/lodges');assert.equal(options.cache,'no-store');assert.equal(options.method,undefined);
+  return {ok:true,json:async()=>({ok:true,data:{Hotel:{address:'UB'},Other:{address:'OTHER'}}})};
+ };
+ assert.equal(JSON.stringify(await L.loadCatalog([{name:'Hotel'},{name:'hotel'}])),JSON.stringify({Hotel:{address:'UB'}}));
+ assert.equal(JSON.stringify(await L.loadCatalog([])),'{}');assert.equal(calls,1);
+ context.fetch=async()=>{throw Error('offline')};
+ assert.equal(JSON.stringify(await L.loadCatalog([{name:'Hotel'}])),'{}');
+});
+
+test('catalog cards summarize registered details instead of archived introduction', () => {
+ const summary=L.summary({desc:'보관용 소개',grade:'고급게르',address:'등록 주소',phone:'+97670150550',sharedFacilities:'레스토랑'});
+ assert.match(summary,/등록 주소/);assert.match(summary,/70150550/);assert.match(summary,/레스토랑/);
+ assert.doesNotMatch(summary,/보관용|설명을 추가/);
+ assert.equal(L.summary({grade:'호텔'}),'유형·등급: 호텔');
+});

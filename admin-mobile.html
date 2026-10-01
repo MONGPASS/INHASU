@@ -277,7 +277,7 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 <script src="data.js"></script>
 <script src="presets.js"></script>
 <script src="booking.js"></script>
-<script src="lodging.js"></script>
+<script src="/lodging.f3c00aad8ec7.js"></script>
 <link rel="stylesheet" href="/itinerary-notice.36de4a44e653.css">
 <script src="/itinerary-notice.0dbcc5abaf3b.js"></script>
 <script>
@@ -2854,7 +2854,7 @@ function pgRes() {
     </span>
     <span class="bd">
       <span class="nm">${esc(name)}</span>
-      <span class="dc">${esc(r.desc || "설명을 추가하세요")}</span>
+      <span class="dc">${esc(t === "lodges" ? Lodging.summary(r) : (r.desc || "설명을 추가하세요"))}</span>
       <span class="kd">${t === "guides" ? "가이드" : t === "lodges" ? "숙소" : "차량"}</span>
     </span>
   </button>`).join("");
