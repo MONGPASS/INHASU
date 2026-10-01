@@ -25,6 +25,7 @@ with sync_playwright() as p:
     def route(r):
         u = r.request.url
         if not u.startswith(base): r.abort(); return
+        if u.endswith('/itinerary-notice.js'): raise AssertionError('unversioned stale script requested')
         if '/api/' in u:
             if r.request.method not in ('GET','HEAD'): mutations.append(r.request.method)
             if '/itinerary-notice' in u:
@@ -42,12 +43,12 @@ with sync_playwright() as p:
     ctx.route('**/*',route)
     ctx.add_init_script("sessionStorage.setItem('leaders_admin_token','local-fixture');localStorage.setItem('leaders_booking_prefill'," + json.dumps(json.dumps(fixture)) + ")")
     page=ctx.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto(base+'예약관리.html')
+    page.goto(base+os.environ.get('INHASU_BOOKING_PATH','예약관리.html'))
     page.get_by_role('button',name='확정일정표 알림',exact=True).click()
     dialog=page.get_by_role('dialog')
     dialog.get_by_text('발송 준비 완료',exact=False).wait_for()
     assert posts==[] and mutations==[]
-    dialog.get_by_text('현재 채널 템플릿 조회 (읽기 전용)',exact=True).click()
+    assert dialog.locator('[data-notice=discovery]').get_attribute('open') is not None
     dialog.get_by_text('확정일정표 · APPROVED · approved-itinerary',exact=True).click()
     assert 'exact-profile' in dialog.locator('[data-notice="discovery-status"]').inner_text()
     assert '전체 목록임을 보장하지 않습니다' in dialog.locator('[data-notice="discovery-status"]').inner_text()
