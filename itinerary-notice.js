@@ -18,6 +18,9 @@
         <p data-notice="template"></p>
         <a data-notice="link" target="_blank" rel="noopener">저장된 확정일정표 보기</a>
         <details><summary>템플릿·링크 설정 확인</summary><pre data-notice="config"></pre></details>
+        <details data-notice="discovery"><summary>현재 채널 템플릿 조회 (읽기 전용)</summary>
+          <p data-notice="discovery-status"></p><div data-notice="discovery-list"></div>
+        </details>
         <p>저장된 예약 정보로 발송합니다. 예약 단계는 바뀌지 않습니다.</p>
         <label><input type="checkbox" data-notice="review" disabled>수신자와 확정일정표 안내 문구를 확인했습니다.</label>
         <button type="button" data-notice="send" disabled>확정일정표 알림 1회 발송</button>
@@ -76,6 +79,24 @@
       if (link.startsWith(`${encodeURI("확정일정표.html")}?t=`)) el("link").href = `/${link}`;
       else el("link").hidden = true;
       el("config").textContent = JSON.stringify({ configuration:preview.configuration, itineraryTemplate:template, quoteTemplate:preview.quoteTemplate, variables:preview.payload.variables, templateError:preview.templateError, templatesError:preview.templatesError }, null, 2);
+      const discovery = preview.discovery;
+      const items = discovery?.templates || [];
+      el("discovery-status").textContent = !discovery?.ok
+        ? "템플릿 목록을 불러오지 못했어요. Solapi에서 확인해 주세요."
+        : `채널: ${discovery.profileId || "설정 없음"} · 일치 ${items.length}건 / 조회 ${discovery.fetchedCount}건. 최대 ${discovery.limit}건의 첫 조회 결과이며 전체 목록임을 보장하지 않습니다. 다른 채널·채널 미확인 템플릿 ${discovery.excludedCount}건은 제외했습니다. 목록에 없으면 Solapi에서 추가 확인해 주세요. 설정이나 발송은 변경되지 않습니다.`;
+      for (const item of items) {
+        const card = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = `${item.name || "이름 없음"} · ${item.status || "상태 미확인"} · ${item.templateId}`;
+        const content = document.createElement("pre");
+        content.textContent = JSON.stringify({
+          "템플릿 ID":item.templateId, "채널 ID":item.pfId, "상태":item.status,
+          "제목":item.title, "부제목":item.subtitle, "등록 본문":item.content,
+          "본문·버튼에서 확인한 변수":item.variables, "등록 버튼":item.buttons,
+        }, null, 2);
+        card.append(summary, content);
+        el("discovery-list").append(card);
+      }
       el("preview").hidden = false;
       ready = !!(preview.ready && template?.content && !preview.configuration?.sameTemplate);
       attempted = !!preview.dispatch;

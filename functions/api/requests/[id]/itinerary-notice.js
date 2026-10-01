@@ -19,6 +19,8 @@ export async function onRequestGet({ request, env, params }) {
   if (!rec) return json({ ok: false, error: "not found" }, 404);
   const payload = itineraryNoticePayload(env, rec);
   const templates = await listKakaoTemplates(env);
+  const profileId = env.SOLAPI_PF_ID || env.SOLAPI_KAKAO_PF_ID || "";
+  const profileTemplates = profileId ? (templates.templates || []).filter(t => t.pfId === profileId) : [];
   const configuredItineraryId = env.SOLAPI_TEMPLATE_ITINERARY_ID || env.SOLAPI_KAKAO_ITINERARY_TEMPLATE_ID || "";
   const key = new URL(request.url).searchParams.get("idempotencyKey");
   let dispatch = null;
@@ -36,6 +38,14 @@ export async function onRequestGet({ request, env, params }) {
     configuration: { itineraryTemplateId: configuredItineraryId, quoteTemplateId: quoteTemplateId(env), sameTemplate: !!configuredItineraryId && configuredItineraryId === quoteTemplateId(env) },
     quoteTemplate: templates.templates?.find(t => t.templateId === quoteTemplateId(env)) || null,
     dispatch,
+    discovery: {
+      ok: !!templates.ok, profileId, complete: false, limit: 100,
+      fetchedCount: templates.count || 0,
+      excludedCount: (templates.count || 0) - profileTemplates.length,
+      templates: profileTemplates.map(t => ({ ...t,
+        variables: [...new Set(JSON.stringify([t.content, t.title, t.subtitle, t.buttons]).match(/#\{[^}]+\}/g) || [])],
+      })),
+    },
     templatesError: templates.ok ? undefined : templates.reason,
     templateError: payload.templateId ? undefined : "Missing itinerary template or same ID as quote template",
   });

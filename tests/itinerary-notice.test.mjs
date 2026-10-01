@@ -100,3 +100,26 @@ test("preview exposes a quote-template collision without sending or hiding its c
   assert.equal(result.dispatch, null);
   assert.equal(s.sends.length, 0);
 }));
+
+test("read-only discovery restricts templates to exact profile, exposes metadata not secrets, and declares incompleteness", () => withMock({}, async s => {
+  globalThis.fetch = async (_url, init) => {
+    assert.equal(init.method, undefined, "discovery must never send a POST");
+    return Response.json({ templateList:[
+      { templateId:"approved-itinerary", pfId:"pf", name:"확정일정표", status:"APPROVED", title:"여행 안내", content:"#{고객명}님 확정일정표입니다.", buttons:[{ buttonType:"WL", linkMo:"https://example.test/#{링크}" }], privateField:"DO_NOT_EXPOSE" },
+      { templateId:"pending", channelId:"pf", status:"PENDING", content:"검토 중" },
+      { templateId:"other", pfId:"other-channel", content:"OTHER_CHANNEL" },
+      { templateId:"no-profile", content:"UNKNOWN_CHANNEL" },
+    ] });
+  };
+  const response = await onRequestGet(s.ctx("GET"));
+  const result = await response.json();
+  assert.deepEqual(result.discovery.templates.map(t=>t.templateId), ["approved-itinerary","pending"]);
+  assert.deepEqual(result.discovery.templates[0].variables, ["#{고객명}","#{링크}"]);
+  assert.equal(result.discovery.templates[0].title,"여행 안내");
+  assert.equal(result.discovery.templates[0].buttons[0].linkMo,"https://example.test/#{링크}");
+  assert.equal(result.discovery.excludedCount,2);
+  assert.equal(result.discovery.complete,false);
+  assert.equal(result.discovery.limit,100);
+  assert.doesNotMatch(JSON.stringify(result.discovery),/DO_NOT_EXPOSE|OTHER_CHANNEL|UNKNOWN_CHANNEL|apiKey|Authorization|secret/);
+  assert.equal(s.sends.length,0);
+}));

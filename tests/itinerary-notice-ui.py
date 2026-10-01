@@ -1,9 +1,10 @@
 """Local browser regression. All APIs/provider traffic are mocked; no real sends."""
 import json
+import os
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-base = 'http://127.0.0.1:8765/'
+base = os.environ.get('INHASU_UI_BASE', 'http://127.0.0.1:8765/')
 evidence = Path('/tmp/task3-ui-evidence')
 evidence.mkdir(exist_ok=True)
 fixture = {'id':'local-test', 'name':'TEST', 'phone':'01000007901', 'status':'완료', 'depart':'2026-09-12', 'return_':'2026-09-15', 'adult':4, 'token':'local-token', 'booking':{'publishStatus':'published','days':[{'d':1}], 'assign':{'guide':{'name':'Guide'}, 'vehicle':{'model':'Van'}, 'lodges':[]}}}
@@ -15,6 +16,7 @@ def preview():
         'payload':{'phone':fixture['phone'],'templateId':'itinerary', 'variables':{'#{고객명}':'TEST','#{회사명}':'은하수','#{링크}':'%ED%99%95%EC%A0%95%EC%9D%BC%EC%A0%95%ED%91%9C.html?t=local-token'}},
         'template':{'name':'확정일정표 안내','status':'APPROVED','content':'#{고객명}님, 확정일정표가 준비되었습니다.\n#{회사명}\n<img src=x onerror=alert(1)>'},
         'configuration':{'itineraryTemplateId':'quote' if state['collision'] else 'itinerary', 'quoteTemplateId':'quote','sameTemplate':state['collision']},
+        'discovery':{'ok':True,'profileId':'exact-profile','fetchedCount':2,'excludedCount':1,'limit':100,'complete':False,'templates':[{'templateId':'approved-itinerary','pfId':'exact-profile','name':'확정일정표','status':'APPROVED','content':'#{고객명}님, 여행 일정표 안내 <script>bad()</script>','variables':['#{고객명}','#{링크}'],'buttons':[{'buttonType':'WL','linkMo':'https://example.test/#{링크}'}]}]},
         'quoteTemplate':{'name':'견적서 안내','content':'견적서가 도착했습니다.'}, 'dispatch':state['dispatch']}
 
 with sync_playwright() as p:
@@ -45,6 +47,17 @@ with sync_playwright() as p:
     dialog=page.get_by_role('dialog')
     dialog.get_by_text('발송 준비 완료',exact=False).wait_for()
     assert posts==[] and mutations==[]
+    dialog.get_by_text('현재 채널 템플릿 조회 (읽기 전용)',exact=True).click()
+    dialog.get_by_text('확정일정표 · APPROVED · approved-itinerary',exact=True).click()
+    assert 'exact-profile' in dialog.locator('[data-notice="discovery-status"]').inner_text()
+    assert '전체 목록임을 보장하지 않습니다' in dialog.locator('[data-notice="discovery-status"]').inner_text()
+    metadata=dialog.locator('[data-notice="discovery-list"]').inner_text()
+    assert '#{고객명}' in metadata and 'https://example.test/#{링크}' in metadata
+    assert dialog.locator('script').count()==0
+    assert posts==[] and mutations==[]
+    assert dialog.get_by_role('button',name='확정일정표 알림 1회 발송').is_disabled()
+    page.screenshot(path=str(evidence/'template-discovery.png'))
+    dialog.get_by_text('현재 채널 템플릿 조회 (읽기 전용)',exact=True).click()
     assert '01000007901' in dialog.locator('[data-notice="recipient"]').inner_text()
     assert '4명' in dialog.locator('[data-notice="trip"]').inner_text()
     assert 'TEST님, 확정일정표가 준비되었습니다.' in dialog.locator('pre').first.inner_text()
@@ -80,7 +93,7 @@ with sync_playwright() as p:
     page.get_by_role('button',name='확정일정표 알림',exact=True).click()
     dialog.get_by_text('견적서와 같은 템플릿',exact=False).wait_for()
     assert dialog.get_by_role('checkbox').is_disabled()
-    dialog.locator('summary').click()
+    dialog.get_by_text('템플릿·링크 설정 확인',exact=True).click()
     assert '견적서가 도착했습니다.' in dialog.locator('[data-notice="config"]').inner_text()
     page.screenshot(path=str(evidence/'mobile-template-collision.png'))
     dialog.get_by_role('button',name='닫기',exact=True).click()

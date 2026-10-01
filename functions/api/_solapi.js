@@ -129,9 +129,11 @@ export async function listKakaoTemplates(env) {
     status: t.status || t.inspectionStatus || "",
     pfId: t.channelId || t.pfId || "",
     content: t.content || "",
+    title: t.title || "",
+    subtitle: t.subtitle || "",
     buttons: t.buttons || [],
   })).filter(t => t.templateId);
-  return { ok: true, count: items.length, templates: items };
+  return { ok: true, count: items.length, templates: items, limit: 100, complete: false };
 }
 
 const envBool = value => /^(1|true|yes|on)$/i.test(String(value || ""));
