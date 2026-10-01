@@ -377,13 +377,13 @@ function fieldRows(type, r) {
     <div class="row2">
       <label class="f"><span>지역 (예약관리 숙소 배정에서 이 지역으로 묶여 보입니다)</span>
         <select id="f_region">${lodgeRegionOptions(r.region)}</select></label>
-      <label class="f"><span>등급 (확정 일정표에 노출)</span><select id="f_grade">
-        ${["","일반게르","고급게르","호텔"].map(g => `<option value="${g}" ${r.grade===g?"selected":""}>${g||"선택"}</option>`).join("")}
+      <label class="f"><span>호텔·게르 유형/등급 (확정 일정표에 노출)</span><select id="f_grade">
+        ${[...new Set(["","일반게르","고급게르","호텔",r.grade].filter(g => typeof g === "string"))].map(g => `<option value="${esc(g)}" ${r.grade===g?"selected":""}>${esc(g||"선택")}</option>`).join("")}
       </select></label>
     </div>
     <label class="f"><span>시설 태그</span><input id="f_tags" value="${esc(r.tags||"")}"></label>
-    <label class="f"><span>숙소 소개</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>
-    ${[['address','주소'],['phone','숙소 대표 전화번호'],['roomAmenities','객실 비품'],['sharedFacilities','호텔 공용시설'],['operatingNotes','운영 참고 (고객 안내)'],['officialSources','공식 출처']].map(([k,label]) => `<label class="f"><span>${label}</span><textarea id="f_${k}" rows="2" placeholder="${k === 'roomAmenities' ? '객실 비품을 입력해 주세요' : k === 'officialSources' ? '웹사이트 주소를 한 줄에 하나씩 입력해 주세요' : ''}">${esc(r[k]||"")}</textarea></label>`).join('')}`;
+    <label class="f"><span>기존 소개 (보관용·일정표 미표시)</span><textarea id="f_desc" rows="3">${esc(r.desc||"")}</textarea></label>
+    ${[['address','주소'],['phone','숙소 대표 전화번호'],['roomAmenities','객실 비품'],['sharedFacilities','호텔 공용시설'],['operatingNotes','운영 참고 (보관용·일정표 미표시)'],['officialSources','공식 출처']].map(([k,label]) => `<label class="f"><span>${label}</span><textarea id="f_${k}" rows="2" placeholder="${k === 'roomAmenities' ? '객실 비품을 입력해 주세요' : k === 'officialSources' ? '웹사이트 주소를 한 줄에 하나씩 입력해 주세요' : ''}">${esc(r[k]||"")}</textarea></label>`).join('')}`;
   return `
     <div class="row2">
       <label class="f"><span>탑승 인원 (확정 일정표에 노출 — 예: 6인)</span><input id="f_seats" value="${esc(r.seats||"")}" placeholder="6인"></label>

@@ -75,11 +75,12 @@
     const address = typeof l.address === 'string' ? l.address : '';
     const map = address ? `${esc(address)} <a href="https://www.google.com/maps/search/?api=1&amp;query=${esc(encodeURIComponent(address))}" target="_blank" rel="noopener noreferrer">지도 보기</a>` : '';
     const sources = String(l.officialSources || '').split(/\r?\n/);
-    const desc = String(l.desc || '');
+    const grade = typeof l.grade === 'string' ? l.grade.trim() : '';
+    // Display only the registered type/grade; preserve introduction and operating notes in storage.
     const links = [...new Set(sources.map(webUrl).filter(Boolean))];
     return `<div class="lodging-details" style="font-size:12px;line-height:1.65;color:#40544f;margin-top:10px">` +
-      row('숙소 소개', desc) + row('주소', address, map) + row('전화번호', phone, phoneLink) +
-      row('객실 비치용품', l.roomAmenities) + row('공용시설', l.sharedFacilities) + row('운영 참고', l.operatingNotes) +
+      row('유형·등급', grade) + row('주소', address, map) + row('전화번호', phone, phoneLink) +
+      row('객실 비치용품', l.roomAmenities) + row('공용시설', l.sharedFacilities) +
       (links.length ? `<div style="font-size:11px;margin-top:10px;line-height:1.8">공식 출처${l.sourceNotes ? ` · ${esc(l.sourceNotes)}` : ''} · ${links.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(new URL(u).hostname)}${links.length > 1 ? ` (${i + 1})` : ''}</a>`).join(' · ')}</div>` : '') + '</div>';
   }
   root.Lodging = { fields, publicData, snapshot, photos, displayDetails, render, webUrl, imageUrl };

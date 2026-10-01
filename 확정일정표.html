@@ -913,7 +913,6 @@ const pgBookingAssign = bookingAssign ? (() => {
         <span style="background:${ASSIGN_STYLE.accent}; color:#fff; font-size:12px; font-weight:800; padding:5px 14px; border-radius:16px;">${esc(l.day || i + 1)}일차</span>
         <span style="color:${ASSIGN_STYLE.ink}; font-size:18px; font-weight:800;">${esc(l.name)}</span>
         ${l.region ? `<span style="color:${ASSIGN_STYLE.accent}; font-size:12px; font-weight:700;">${esc(l.region)}</span>` : ""}
-        ${l.grade ? `<span style="color:${ASSIGN_STYLE.muted}; font-size:12px;">${esc(l.grade)}</span>` : ""}
       </div>
       <div style="margin-top:14px;">${lodgeGrid(imgs, l.name)}</div>
       ${tags.length ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:12px;">${tags.map(tag => `<span style="background:${ASSIGN_STYLE.soft}; color:#0A6A5E; border-radius:12px; padding:4px 9px; font-size:11px; font-weight:700;">${esc(tag)}</span>`).join("")}</div>` : ""}

@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 # Start the repository HTTP server separately. Every API request is intercepted.
@@ -33,6 +34,8 @@ with sync_playwright() as p:
  fields={'address':'울란바타르 시내 1번지','phone':'+976 7010 1188','roomAmenities':'생수 (제공 확인)\n수건·슬리퍼: 확인 필요','sharedFacilities':'호텔 로비','operatingNotes':'수영장 공사 중','officialSources':'https://hotel.example/official/long/path'}
  for k,v in fields.items():page.locator('#f_'+k).fill(v)
  page.locator('#f_desc').fill('고객용 숙소 소개')
+ assert '보관용·일정표 미표시' in page.locator('#f_desc').locator('..').inner_text()
+ assert '보관용·일정표 미표시' in page.locator('#f_operatingNotes').locator('..').inner_text()
  page.locator('[data-photo-up="2"]').click()
  selected=page.locator('#lodgePhotos img').evaluate_all('(els)=>els.map(e=>e.getAttribute("src"))')
  page.locator('#dSave').click();page.wait_for_function("!document.getElementById('drawer').classList.contains('on')")
@@ -53,26 +56,42 @@ with sync_playwright() as p:
  for filename,mobile in [('확정일정표.html',False),('확정일정표-모바일.html',True)]:
   page.set_viewport_size({'width':390 if mobile else 1280,'height':844 if mobile else 960})
   page.goto(base+filename);page.locator('.lodging-details').wait_for();detail=page.locator('.lodging-details')
-  for text in ['고객용 숙소 소개','울란바타르 시내','생수','호텔 로비','수영장 공사 중']:assert text in detail.inner_text()
+  for text in ['유형·등급','호텔','울란바타르 시내','생수','호텔 로비']:assert text in detail.inner_text()
   assert 'SECRET' not in page.locator('body').inner_text()
+  for hidden in ['고객용 숙소 소개','숙소 소개','운영 참고','수영장 공사 중']: assert hidden not in detail.inner_text()
   assert detail.locator('a[href^="tel:"]').count()==1
   card=detail.locator('..');assert card.locator('img').count()==3
   assert card.locator('img').evaluate_all('(els)=>els.map(e=>e.getAttribute("src"))')==selected
   detail.scroll_into_view_if_needed();page.screenshot(path=str(evidence / ('customer-mobile.png' if mobile else 'customer-desktop.png')))
-  if not mobile:
-   page.emulate_media(media='print');page.pdf(path=str(evidence / 'confirmed-itinerary.pdf'),format='A4',print_background=True);page.emulate_media(media='screen')
+  page.emulate_media(media='print');page.pdf(path=str(evidence / ('confirmed-itinerary-mobile.pdf' if mobile else 'confirmed-itinerary.pdf')),format='A4',print_background=True);page.emulate_media(media='screen')
  # Legacy five-photo snapshot with no new fields must show three, preserving stored data.
  q['booking']['assign']['lodges']=[dict(legacy,name='구형 호텔',day=1)]
  page.evaluate('(q)=>localStorage.setItem("leaders_quote",JSON.stringify(q))',q);page.reload();page.locator('.lodging-details').wait_for()
  assert page.locator('.lodging-details').locator('..').locator('img').count()==3
  assert len(page.evaluate('JSON.parse(localStorage.leaders_quote).booking.assign.lodges[0].imgs'))==5
  assert page.locator('.lodging-details a[href^="tel:"]').count()==1
- assert page.locator('.lodging-details strong').all_text_contents()==['숙소 소개','주소','전화번호','객실 비치용품','운영 참고']
+ assert page.locator('.lodging-details strong').all_text_contents()==['유형·등급','주소','전화번호','객실 비치용품']
  page.locator('.lodging-details').scroll_into_view_if_needed();page.screenshot(path=str(evidence / 'legacy-customer-mobile.png'))
  page.set_viewport_size({'width':1280,'height':960});page.goto(base+'확정일정표.html');page.locator('.lodging-details').wait_for()
- assert page.locator('.lodging-details strong').all_text_contents()==['숙소 소개','주소','전화번호','객실 비치용품','운영 참고']
+ assert page.locator('.lodging-details strong').all_text_contents()==['유형·등급','주소','전화번호','객실 비치용품']
  page.locator('.lodging-details').scroll_into_view_if_needed();page.screenshot(path=str(evidence / 'legacy-customer-desktop.png'))
  page.pdf(path=str(evidence / 'legacy-confirmed-itinerary.pdf'),format='A4',print_background=True)
+ # Actual exported desktop/mobile PDFs omit prose/operations but retain registered grade and details.
+ for name in ['confirmed-itinerary.pdf','confirmed-itinerary-mobile.pdf','legacy-confirmed-itinerary.pdf']:
+  pdf_text=subprocess.check_output(['pdftotext',str(evidence/name),'-']).decode()
+  compact=''.join(pdf_text.split())
+  assert '유형·등급' in compact and '호텔' in compact
+  for hidden in ['숙소소개','운영참고','수영장공사중','수영장은공사중']: assert hidden not in compact
+ # Both customer renderers use only a registered grade; no guessed hotel stars for empty records.
+ for filename in ['확정일정표.html','확정일정표-모바일.html']:
+  for grade in ['일반게르','고급게르','등록된 4성 호텔','']:
+   q['booking']['assign']['lodges']=[dict(legacy,name='등급 검증',grade=grade,day=1)]
+   page.evaluate('(q)=>localStorage.setItem("leaders_quote",JSON.stringify(q))',q)
+   page.goto(base+filename);page.locator('.lodging-details').wait_for()
+   detail=page.locator('.lodging-details')
+   assert ('유형·등급' in detail.inner_text())==bool(grade)
+   if grade: assert grade in detail.inner_text()
+   assert '운영 참고' not in detail.inner_text() and '공사 중' not in detail.inner_text()
  # Actual booking editor -> PATCH capture, including preservation of old 5-image snapshot.
  fixture={'id':'local-test','name':'검증 고객','adult':2,'quote':q,'booking':{'assign':{'lodges':[dict(legacy,name='검증 호텔',day=1)]},'days':q['days']}}
  page.evaluate('(f)=>localStorage.setItem("leaders_booking_prefill",JSON.stringify(f))',fixture)
@@ -81,6 +100,12 @@ with sync_playwright() as p:
  assert patches[-1]['booking']['assign']['lodges'][0]['address']==fields['address']
  assert patches[-1]['booking']['assign']['lodges'][0]['representativePhotos']==selected
  assert len(patches[-1]['booking']['assign']['lodges'][0]['imgs'])==5
+ # An existing custom registered grade survives both admin editors without guessing a new one.
+ store['lodges']['검증 호텔']['grade']='등록된 4성 호텔'
+ page.goto(base+'리소스관리.html');page.locator('[data-t=lodges]').click();page.locator('.res-card').click()
+ assert page.locator('#f_grade').input_value()=='등록된 4성 호텔'
+ page.locator('#dSave').click();page.wait_for_function("!document.getElementById('drawer').classList.contains('on')")
+ assert store['lodges']['검증 호텔']['grade']=='등록된 4성 호텔'
  # Mobile administrator edits use the same fields without discarding archived photos.
  page.goto(base+'admin-mobile.html');page.wait_for_function('typeof App !== "undefined"')
  page.evaluate("PGS.resTab='lodges'; App.openPage('res'); App.resEdit('검증 호텔')")
@@ -92,6 +117,10 @@ with sync_playwright() as p:
  page.evaluate("App.resEdit('검증 호텔')")
  assert page.locator('[data-rf="address"]').input_value()=='모바일에서 수정한 주소'
  page.locator('[data-rf="address"]').scroll_into_view_if_needed();page.screenshot(path=str(evidence / 'admin-mobile-fields.png'))
+ assert '보관용·일정표 미표시' in page.locator('[data-rf=operatingNotes]').locator('..').inner_text()
+ assert store['lodges']['검증 호텔']['grade']=='등록된 4성 호텔'
+ assert store['lodges']['검증 호텔']['desc']=='고객용 숙소 소개'
+ assert store['lodges']['검증 호텔']['operatingNotes']=='수영장 공사 중'
  assert not errors, errors
  browser.close()
 print('PASS: save/reload/re-edit/repeat/cancel/back, 3-photo order/archive, desktop/mobile, PDF and legacy snapshot; no page errors; localhost-only fixtures.')

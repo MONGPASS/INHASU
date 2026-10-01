@@ -16,7 +16,7 @@ test('three selected photos retain order; legacy five-image snapshots are not mu
  assert.equal(L.photos({imgs:['img/quote/lodge-std.webp']}).length,1);
 });
 test('lodging presentation escapes markup and only uses safe URL protocols', () => {
- const html=L.render({desc:'<img src=x onerror=alert(1)>',address:'"><script>alert(1)</script>',phone:'javascript:alert(1)',officialSources:'javascript:alert(1)\nhttps://hotel.example/info',roomAmenities:'미확인'});
+ const html=L.render({grade:'<img src=x onerror=alert(1)>',address:'"><script>alert(1)</script>',phone:'javascript:alert(1)',officialSources:'javascript:alert(1)\nhttps://hotel.example/info',roomAmenities:'미확인'});
  assert.doesNotMatch(html, /<script|<img|href="javascript:|href="tel:/);
  assert.match(html,/&lt;img/); assert.match(html,/hotel.example/);
  assert.match(L.render({phone:'+976 7010-1188'}), /href="tel:\+97670101188"/);
@@ -27,7 +27,7 @@ test('no assumed room amenities, internal notes or costs; labelled source links 
  const lodge={desc:'기존 소개\n공식 출처: https://hotel.example/long/path',memo:'INTERNAL',cost:900,notes:'PRIVATE'};
  const html=L.render(lodge);
  assert.doesNotMatch(html,/수건|드라이어|슬리퍼|INTERNAL|PRIVATE|>https:/);
- assert.match(html,/기존 소개/);
+ assert.doesNotMatch(html,/기존 소개|숙소 소개|운영 참고/);
  assert.match(lodge.desc,/공식 출처:/);
  assert.equal(publicLodge(lodge).memo,undefined);
 });
@@ -70,4 +70,22 @@ test('single-paragraph Novotel legacy snapshot separates explicit labels without
  assert.doesNotMatch(html,/헤어드라이어|슬리퍼/);
  const conflict=L.displayDetails({...snapshot,address:'새로 확인한 주소'});
  assert.equal(conflict.address,'새로 확인한 주소');assert.match(conflict.desc,/주소: Baga toiruu/);
+});
+
+test('registered lodging type/grade replaces introduction; operating notes stay stored but never render', () => {
+ for (const grade of ['호텔','일반게르','고급게르','등록된 4성 호텔']) {
+  const record={grade,desc:'보존할 소개',operatingNotes:'보존할 운영참고',address:'UB',phone:'+97670101188',roomAmenities:'생수'};
+  const before=JSON.stringify(record), html=L.render(record);
+  assert.match(html,/유형·등급/); assert.ok(html.includes(grade));
+  assert.doesNotMatch(html,/보존할|숙소 소개|운영 참고/);
+  assert.equal(JSON.stringify(record),before);
+  assert.equal(L.snapshot(record).desc,record.desc);
+  assert.equal(L.snapshot(record).operatingNotes,record.operatingNotes);
+ }
+ for (const grade of [undefined,'','   ']) {
+  const html=L.render({name:'호텔 이름',grade,desc:'5성급처럼 보이는 소개',operatingNotes:'공사 중'});
+  assert.doesNotMatch(html,/유형·등급|5성|공사 중/);
+ }
+ const legacy=L.render({grade:'호텔',desc:'소개. 운영 참고: 수영장 공사 중. 출처: https://hotel.example/'});
+ assert.doesNotMatch(legacy,/소개|운영 참고|공사 중/);assert.match(legacy,/hotel.example/);
 });
