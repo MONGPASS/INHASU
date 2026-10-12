@@ -1,192 +1,306 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" class="light">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>몽골리아 은하수 · 몽골 단독 프라이빗 투어</title>
-<!-- 카톡·인스타 링크 공유 미리보기 -->
-<meta property="og:title" content="몽골에서만 만나는 특별한 순간 | 몽골리아 은하수">
-<meta property="og:description" content="사막의 은하수, 유목민 게르, 대초원 승마까지 — 몇 가지 질문에 답하면 현지 전문가가 당신만의 일정과 견적을 설계해 드려요.">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://milkway-mongolia.pages.dev">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
-<style>
-  @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
-  :root {
-    --accent: #06c4a0; --deep: #06c4a0; --ink: #16261f; --gray5: #6b7c78; --gray4: #9aa8a3;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
-  body {
-    font-family: "Pretendard Variable", Pretendard, system-ui, "Malgun Gothic", sans-serif;
-    color: var(--ink);
-    background: radial-gradient(125% 90% at 50% -5%, #DFF6EC 0%, #EFFBF6 42%, #FFFFFF 100%);
-    border-top: 3px solid var(--accent);
-    min-height: 100%;
-  }
-  .wrap {
-    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-    padding: 26px 20px 34px; overflow-x: hidden;
-  }
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>몽골 여행·몽골 투어 전문 | 현지 여행사 몽골리아 은하수</title>
+  <meta name="google-site-verification" content="tFf7lK_rJphVOSYaVqrYLIlkxEfV2caPjkHtOMfbvcQ" />
+  <meta name="description"
+    content="몽골 투어·몽골 여행 전문 현지 여행사 몽골리아 은하수. 몽골 승마 여행, 고비사막 투어, 테를지 국립공원 투어 등 한국어 가이드가 동행하는 다양한 몽골 투어를 안내합니다." />
+  <meta name="keywords"
+    content="몽골 투어, 몽골 여행, 몽골 승마 여행, 고비사막 투어, 몽골 관광, 몽골 현지 여행사, 몽골 전문 여행사, 테를지 투어, 몽골 별밤 투어, 울란바토르 관광, 게르 숙박, 몽골 여행 경비, 몽골리아 은하수" />
 
-  /* ── 브랜드 ── */
-  .brand { display: flex; flex-direction: column; align-items: center; gap: 9px; text-align: center; }
-  .brand .tagchip {
-    display: inline-flex; align-items: center; gap: 6px; padding: 5px 13px; border-radius: 999px;
-    background: rgba(255,255,255,.72); border: 1px solid color-mix(in srgb, var(--accent) 22%, #fff);
-    font-size: 11.5px; font-weight: 800; letter-spacing: .08em; color: var(--accent);
+  <!-- Canonical & Hreflang -->
+  <link rel="canonical" href="https://mongolia-milkyway.com/" />
+  <link rel="alternate" hreflang="ko" href="https://mongolia-milkyway.com/" />
+  <link rel="alternate" hreflang="x-default" href="https://mongolia-milkyway.com/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ko_KR" />
+  <meta property="og:site_name" content="몽골리아 은하수" />
+  <meta property="og:url" content="https://mongolia-milkyway.com/" />
+  <meta property="og:title" content="몽골 여행·몽골 투어 전문 | 현지 여행사 몽골리아 은하수" />
+  <meta property="og:description" content="몽골 투어·몽골 여행 전문 현지 여행사. 몽골 승마 여행, 고비사막 투어, 테를지 국립공원 투어 등을 한국어 가이드와 함께 안내합니다." />
+  <meta property="og:image" content="https://mongolia-milkyway.com/og-image.jpg" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="몽골 여행·몽골 투어 전문 | 몽골리아 은하수" />
+  <meta name="twitter:description" content="몽골 승마 여행, 고비사막 투어, 테를지 투어 등 한국어 가이드가 동행하는 현지 여행사." />
+  <meta name="twitter:image" content="https://mongolia-milkyway.com/og-image.jpg" />
+
+  <!-- JSON-LD: TravelAgency -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TravelAgency",
+    "name": "몽골리아 은하수",
+    "alternateName": "Mongolia Milky Way",
+    "url": "https://mongolia-milkyway.com",
+    "logo": "https://mongolia-milkyway.com/favicon.png",
+    "image": "https://mongolia-milkyway.com/og-image.jpg",
+    "description": "몽골 투어·몽골 여행 전문 현지 여행사. 몽골 승마 여행, 고비사막 투어, 테를지 국립공원 투어, 홉스굴 호수 투어 등 다양한 몽골 투어를 한국어 가이드와 함께 안내합니다.",
+    "telephone": "+976-9594-5838",
+    "email": "bolor1@hanmail.net",
+    "priceRange": "780,000원~2,500,000원",
+    "currenciesAccepted": "KRW",
+    "paymentAccepted": "계좌이체, 현금",
+    "areaServed": { "@type": "Country", "name": "몽골" },
+    "geo": { "@type": "GeoCoordinates", "latitude": 47.9184676, "longitude": 106.9177016 },
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "바양주르흐구 13동 DACO센터 3층 306호",
+      "addressLocality": "울란바토르",
+      "addressCountry": "MN"
+    },
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "몽골 투어 상품 목록",
+      "itemListElement": [
+        { "@type": "OfferCatalog", "name": "몽골 승마 여행", "description": "몽골 대초원에서 즐기는 승마 투어" },
+        { "@type": "OfferCatalog", "name": "고비사막 투어", "description": "쏟아지는 별빛과 광활한 사막을 체험하는 고비사막 투어" },
+        { "@type": "OfferCatalog", "name": "테를지 대자연 투어", "description": "테를지 국립공원에서 게르 숙박과 대자연을 만끽" },
+        { "@type": "OfferCatalog", "name": "홉스굴 호수 투어", "description": "몽골의 푸른 진주 홉스굴 호수를 찾아가는 투어" }
+      ]
+    }
   }
-  .brand .logo { display: inline-flex; align-items: center; gap: 9px; }
-  .brand .logo b { font-size: 27px; font-weight: 800; letter-spacing: -.04em; color: var(--ink); }
-  .brand .logo b i { font-style: normal; color: var(--accent); }
-  .brand .sub { font-size: 13.5px; font-weight: 600; letter-spacing: -.01em; color: var(--gray5); }
-
-  /* ── 캐러셀 ── */
-  .carousel { position: relative; width: 100%; max-width: 640px; height: 384px; margin: 8px 0 2px; perspective: 1400px; }
-  .card {
-    position: absolute; left: 50%; top: 30px; width: 240px; height: 320px; margin-left: -120px;
-    border-radius: 22px; overflow: hidden; cursor: pointer; background: #10201b;
-    transition: transform .55s cubic-bezier(.4,.1,.2,1), opacity .55s ease;
-    box-shadow: 0 20px 44px rgba(20,40,34,.28);
+  </script>
+  <!-- JSON-LD: WebSite with SearchAction -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "몽골리아 은하수",
+    "alternateName": "Mongolia Milky Way",
+    "url": "https://mongolia-milkyway.com",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": { "@type": "EntryPoint", "urlTemplate": "https://mongolia-milkyway.com/products?q={search_term_string}" },
+      "query-input": "required name=search_term_string"
+    }
   }
-  .card .bg { position: absolute; inset: 0; background-size: cover; background-position: center; }
-  .card .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,18,30,0) 38%, rgba(20,18,30,.82) 100%); }
-  .card .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 20px 22px; text-align: center; }
-  .card .cap .cat { font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
-  .card .cap .ttl { margin-top: 5px; font-size: 21px; font-weight: 800; letter-spacing: -.03em; color: #fff; line-height: 1.25; }
+  </script>
 
-  /* ── dots ── */
-  .dots { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 18px 0 6px; }
-  .dots button { height: 7px; width: 7px; border-radius: 999px; border: none; background: #cfe3dc; cursor: pointer; padding: 0; transition: all .3s; }
-  .dots button.on { width: 22px; background: var(--accent); }
+  <!-- Preconnect to the domains that serve render-blocking resources only.
+       Google Fonts CSS comes from fonts.googleapis.com, fonts files from gstatic.com.
+       Extra preconnects (>4) slow handshakes more than they save. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-  /* ── 카피 + CTA ── */
-  .copy { text-align: center; max-width: 540px; margin-top: 6px; }
-  .copy .kick { font-size: 13.5px; font-weight: 800; letter-spacing: .04em; color: var(--accent); }
-  .copy h1 { margin-top: 9px; font-size: 30px; font-weight: 800; letter-spacing: -.035em; line-height: 1.22; color: var(--ink); }
-  .copy p { margin: 12px auto 0; max-width: 520px; font-size: 15px; line-height: 1.6; color: var(--gray5); letter-spacing: -.01em; }
-  .cta {
-    margin-top: 26px; height: 58px; padding: 0 40px; border: none; border-radius: 15px;
-    background: var(--ink); color: #fff; font-family: inherit; font-size: 17px; font-weight: 800; letter-spacing: -.02em;
-    cursor: pointer; display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
-    box-shadow: 0 10px 26px rgba(20,40,34,.24); transition: transform .12s, background .14s;
-  }
-  .cta:hover { background: #0a1512; }
-  .cta:active { transform: scale(.98); }
+  <!-- Pretendard — 사이트의 모든 글자. 동적 서브셋이라 화면에 쓰인 글자 조각만 내려받는다.
+       (견적 페이지 public/*.html 도 같은 CDN의 Pretendard 를 쓴다) -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preload" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" as="style" />
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" rel="stylesheet">
 
-  .foot { margin-top: 22px; font-size: 12px; color: var(--gray4); text-align: center; line-height: 1.6; }
-  .foot a { color: var(--gray5); font-weight: 700; text-decoration: none; }
+  <!-- Material Symbols — SUBSET via icon_names: only the icons actually used in src/
+       (full font = 3.9MB → subset ≈ 80KB; the 4s FOUT-guard timeout below used to fire
+       on mobile before the full font arrived, exposing raw ligature text like "ch"/"ca").
+       Axes trimmed to what the app uses: FILL 0..1, wght 400..600 (GRAD/opsz stay default).
+       ⚠ When adding a NEW icon to the code, add its name to icon_names in BOTH links —
+       otherwise that icon renders as raw text. Verify with: node scripts/check-icon-subset.mjs -->
 
-  /* 인트로 애니메이션 */
-  @keyframes cineUp { 0% { opacity: 0; transform: translateY(26px); filter: blur(8px); } 100% { opacity: 1; transform: none; filter: blur(0); } }
-  .kick { animation: cineUp .9s ease .1s both; }
-  .copy h1 { animation: cineUp 1.05s cubic-bezier(.2,.7,.2,1) .3s both; }
-  .copy p { animation: cineUp 1s ease .6s both; }
-  .cta { animation: cineUp .9s cubic-bezier(.2,.7,.2,1) .9s both; }
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL,wght@0..1,400..600&icon_names=account_balance,account_balance_wallet,ad_units,add,add_a_photo,add_circle,add_location,add_location_alt,add_photo_alternate,airport_shuttle,apartment,arrow_back,arrow_back_ios,arrow_back_ios_new,arrow_downward,arrow_forward,arrow_outward,arrow_upward,article,assignment,assignment_ind,assignment_turned_in,attach_money,auto_awesome,auto_stories,badge,bed,bedroom_baby,block,bungalow,business,cabin,cake,calendar_add_on,calendar_month,calendar_today,calendar_view_day,call,campaign,camping,cancel,category,chat,chat_bubble,chat_bubble_outline,check,check_box,check_circle,checklist,checkroom,chevron_left,chevron_right,class,close,cloud_upload,comment,confirmation_number,content_copy,content_paste,contract,cottage,credit_card,credit_score,dark_mode,dashboard,delete,delete_outline,description,desktop_windows,details,diamond,directions,directions_bus,directions_car,diversity_3,do_not_disturb_on,done,done_all,download,drag_indicator,edit,edit_calendar,edit_document,edit_note,edit_square,egg_alt,email,emergency,error,event,event_available,event_busy,event_note,event_upcoming,expand_less,expand_more,explore,explore_off,eyebrow,fact_check,favorite,favorite_border,female,fiber_new,filter_list_off,flag,flight_land,flight_takeoff,folder,folder_managed,folder_special,format_list_bulleted,format_list_numbered,forum,forward_to_inbox,function,g_translate,gavel,grade,grid_view,group,group_add,groups,handshake,healing,help,help_outline,hiking,history,holiday_village,home,horizontal_rule,hotel,hourglass_empty,hourglass_top,http,image,inbox,info,input,inventory_2,label,landscape,light,light_mode,lightbulb,link,list,list_alt,local_fire_department,local_offer,local_police,local_shipping,local_taxi,location_on,lock,login,logout,luggage,mail,male,manage_search,map,mark_email_read,mark_email_unread,menu,menu_book,mobile,more_horiz,more_vert,move,night_shelter,nights_stay,notes,notification_important,notifications,notifications_off,open_in_new,outgoing_mail,overview,pageview,paid,park,partly_cloudy_day,password,payments,pending,pending_actions,people,person,person_add,person_off,pets,phone,photo,photo_camera,photo_library,picture_as_pdf,place,play_arrow,preview,priority_high,progress_activity,qr_code_2,radio,radio_button_checked,radio_button_unchecked,ramen_dining,rate_review,receipt_long,redeem,refresh,remove,remove_circle_outline,remove_shopping_cart,report,request_quote,resize,restart_alt,restaurant,restaurant_menu,reviews,route,save,schedule,script,search,search_off,select,send,settings,share,shield_person,smartphone,source,sports_handball,stack,star,star_border,stars,start,sticky_note_2,style,sunny,support,support_agent,swap_horiz,sync,sync_alt,tab,table_view,tabs,tag,target,task_alt,thumb_up,timeline,tips_and_updates,title,today,toolbar,tour,translate,travel_explore,tune,upcoming,update,upload,uppercase,verified,verified_user,view_carousel,view_list,visibility,warning,water,wb_sunny,web,width,workspace_premium&display=block" />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL,wght@0..1,400..600&icon_names=account_balance,account_balance_wallet,ad_units,add,add_a_photo,add_circle,add_location,add_location_alt,add_photo_alternate,airport_shuttle,apartment,arrow_back,arrow_back_ios,arrow_back_ios_new,arrow_downward,arrow_forward,arrow_outward,arrow_upward,article,assignment,assignment_ind,assignment_turned_in,attach_money,auto_awesome,auto_stories,badge,bed,bedroom_baby,block,bungalow,business,cabin,cake,calendar_add_on,calendar_month,calendar_today,calendar_view_day,call,campaign,camping,cancel,category,chat,chat_bubble,chat_bubble_outline,check,check_box,check_circle,checklist,checkroom,chevron_left,chevron_right,class,close,cloud_upload,comment,confirmation_number,content_copy,content_paste,contract,cottage,credit_card,credit_score,dark_mode,dashboard,delete,delete_outline,description,desktop_windows,details,diamond,directions,directions_bus,directions_car,diversity_3,do_not_disturb_on,done,done_all,download,drag_indicator,edit,edit_calendar,edit_document,edit_note,edit_square,egg_alt,email,emergency,error,event,event_available,event_busy,event_note,event_upcoming,expand_less,expand_more,explore,explore_off,eyebrow,fact_check,favorite,favorite_border,female,fiber_new,filter_list_off,flag,flight_land,flight_takeoff,folder,folder_managed,folder_special,format_list_bulleted,format_list_numbered,forum,forward_to_inbox,function,g_translate,gavel,grade,grid_view,group,group_add,groups,handshake,healing,help,help_outline,hiking,history,holiday_village,home,horizontal_rule,hotel,hourglass_empty,hourglass_top,http,image,inbox,info,input,inventory_2,label,landscape,light,light_mode,lightbulb,link,list,list_alt,local_fire_department,local_offer,local_police,local_shipping,local_taxi,location_on,lock,login,logout,luggage,mail,male,manage_search,map,mark_email_read,mark_email_unread,menu,menu_book,mobile,more_horiz,more_vert,move,night_shelter,nights_stay,notes,notification_important,notifications,notifications_off,open_in_new,outgoing_mail,overview,pageview,paid,park,partly_cloudy_day,password,payments,pending,pending_actions,people,person,person_add,person_off,pets,phone,photo,photo_camera,photo_library,picture_as_pdf,place,play_arrow,preview,priority_high,progress_activity,qr_code_2,radio,radio_button_checked,radio_button_unchecked,ramen_dining,rate_review,receipt_long,redeem,refresh,remove,remove_circle_outline,remove_shopping_cart,report,request_quote,resize,restart_alt,restaurant,restaurant_menu,reviews,route,save,schedule,script,search,search_off,select,send,settings,share,shield_person,smartphone,source,sports_handball,stack,star,star_border,stars,start,sticky_note_2,style,sunny,support,support_agent,swap_horiz,sync,sync_alt,tab,table_view,tabs,tag,target,task_alt,thumb_up,timeline,tips_and_updates,title,today,toolbar,tour,translate,travel_explore,tune,upcoming,update,upload,uppercase,verified,verified_user,view_carousel,view_list,visibility,warning,water,wb_sunny,web,width,workspace_premium&display=block" />
 
-  @media (max-width: 520px) {
-    .carousel { height: 350px; }
-    .card { width: 216px; height: 292px; margin-left: -108px; }
-    .card .cap .ttl { font-size: 19px; }
-    .copy h1 { font-size: 25px; }
-    .copy p { font-size: 14px; }
-    .cta { height: 56px; width: 100%; max-width: 340px; justify-content: center; }
-  }
-</style>
+  <!-- Critical CSS Inline -->
+  <style>
+    /* FOUT GUARD for Material Symbols
+       ─────────────────────────────────────────────────────────────────
+       Material Symbols Outlined uses ligatures — class names like 'search',
+       'chevron_right', 'home' resolve to icon glyphs ONLY after the font
+       loads. font-display: block hides text for ~3 s, then falls back to
+       the system font and shows the raw ligature names (FOUT) on slow
+       mobile networks. We register a zero-sized fallback font so even if
+       the icon font hasn't arrived after 3 s, the literal ligature text
+       collapses to invisible width / height instead of flashing letters. */
+    @font-face {
+      font-family: 'MSO-fallback';
+      src: local('Arial'), local('Helvetica'), local('sans-serif');
+      size-adjust: 0%;
+      ascent-override: 0%;
+      descent-override: 0%;
+      line-gap-override: 0%;
+    }
+    .material-symbols-outlined,
+    .material-symbols-rounded,
+    .material-symbols-sharp {
+      font-family: 'Material Symbols Outlined', 'MSO-fallback' !important;
+      /* Hide raw ligature characters until the document.fonts.ready event
+         confirms the icon font is loaded (set by the inline script below).
+         Layered defense on top of the size-adjust fallback above. */
+      visibility: hidden;
+    }
+    html.mso-ready .material-symbols-outlined,
+    html.mso-ready .material-symbols-rounded,
+    html.mso-ready .material-symbols-sharp {
+      visibility: visible;
+    }
+
+    :root {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      --primary: #0f766e;
+    }
+
+    body {
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 0;
+    }
+
+    .dark body {
+      background-color: #0f172a;
+    }
+
+    #root {
+      min-height: 100vh;
+    }
+
+    /* Pre-render SEO content: accessible to crawlers + screen readers,
+       but visually hidden so users don't see a flash of unstyled text
+       before React mounts. */
+    #root .pre-render-seo {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Loading skeleton shown while React boots */
+    #root .pre-render-loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    #root .pre-render-loader .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #0f766e;
+      border-radius: 50%;
+      animation: prl-spin 0.8s linear infinite;
+    }
+    @keyframes prl-spin { to { transform: rotate(360deg); } }
+  </style>
+
+  <!-- Tag <html> once the Material Symbols font is fully loaded so the
+       CSS above can un-hide icons. Pairs with the .mso-ready CSS rules
+       — without this script, icons stay invisible. -->
+  <script>
+    (function () {
+      var done = function () { document.documentElement.classList.add('mso-ready'); };
+      // Safety: never leave icons hidden longer than ~4s even if fonts.ready
+      // hangs on a flaky network — better to show an icon than nothing.
+      var timer = setTimeout(done, 4000);
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('24px "Material Symbols Outlined"').then(function () {
+          clearTimeout(timer);
+          done();
+        }).catch(function () { /* fall through to timer */ });
+      } else {
+        clearTimeout(timer);
+        done();
+      }
+    })();
+  </script>
+
+  <!-- Channel Talk — stub only. The real SDK (~400KB) is loaded lazily after the
+       page is fully interactive (5s after 'load') OR on the first click that calls
+       window.openChannelTalk(). This keeps Channel Talk out of the LCP/TBT budget. -->
+  <script>
+    (function () {
+      var w = window;
+      if (w.ChannelIO) return;
+      // Queue calls so ChannelIO('boot', ...) before the SDK arrives still works.
+      var ch = function () { ch.c(arguments); };
+      ch.q = [];
+      ch.c = function (args) { ch.q.push(args); };
+      w.ChannelIO = ch;
+
+      var loaded = false;
+      function loadChannelTalk() {
+        if (loaded || w.ChannelIOInitialized) return Promise.resolve();
+        loaded = true;
+        w.ChannelIOInitialized = true;
+        return new Promise(function (resolve) {
+          var s = document.createElement('script');
+          s.type = 'text/javascript';
+          s.async = true;
+          s.src = 'https://cdn.channel.io/plugin/ch-plugin-web.js';
+          s.onload = function () {
+            // 채널톡 기본 버튼(분홍색 원)은 띄우지 않는다 — 화면의 상담 버튼은 카카오톡 채널 하나만.
+            // 메신저 자체는 화면 안의 "채팅 상담" 버튼(window.openChannelTalk)으로 계속 열 수 있다.
+            ChannelIO('boot', { pluginKey: '64f569ac-a282-48c8-85c5-c8263bc2ba57', language: 'ko', hideChannelButtonOnBoot: true });
+            resolve();
+          };
+          var x = document.getElementsByTagName('script')[0];
+          if (x.parentNode) x.parentNode.insertBefore(s, x);
+        });
+      }
+
+      // Expose for explicit click (footer / floating consultation button can call this
+      // with a small delay to avoid blocking the interaction).
+      w.openChannelTalk = function () {
+        loadChannelTalk().then(function () {
+          if (w.ChannelIO && typeof w.ChannelIO === 'function') {
+            try { w.ChannelIO('showMessenger'); } catch (e) {}
+          }
+        });
+      };
+
+      // Fallback: load ~5 seconds after the page is fully interactive so returning
+      // visitors still see the floating button without tanking first-load perf.
+      function scheduleBackgroundLoad() {
+        if ('requestIdleCallback' in w) {
+          w.requestIdleCallback(loadChannelTalk, { timeout: 8000 });
+        } else {
+          setTimeout(loadChannelTalk, 5000);
+        }
+      }
+      if (document.readyState === 'complete') {
+        setTimeout(scheduleBackgroundLoad, 5000);
+      } else {
+        w.addEventListener('load', function () { setTimeout(scheduleBackgroundLoad, 5000); }, { once: true });
+      }
+    })();
+  </script>
 </head>
-<body>
-<div class="wrap">
 
-  <div class="brand">
-    <span class="tagchip">몽골 단독 프라이빗 투어</span>
-    <span class="logo">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#06c4a0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.3 5.7L20 11l-5.7 2.3L12 19l-2.3-5.7L4 11l5.7-2.3z"></path></svg>
-      <b>Milky<i>Way</i></b>
-    </span>
-    <span class="sub">몽골리아 은하수 현지 전문 여행사</span>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased">
+  <!-- React will replace all #root children on mount -->
+  <div id="root">
+    <div class="pre-render-loader" aria-hidden="true"><div class="spinner"></div></div>
+    <div class="pre-render-seo">
+      <h1>몽골 투어·몽골 여행은 현지 여행사 몽골리아 은하수</h1>
+      <p>한국어 가이드가 동행하는 안심 몽골 투어를 제공합니다. 몽골 승마 여행, 고비사막 투어, 테를지 국립공원 투어 등 다양한 플랜 중에서 고르실 수 있습니다.</p>
+      <nav>
+        <ul>
+          <li><a href="/products">몽골 투어 상품 목록</a></li>
+          <li><a href="/travel-guide">몽골 여행 완벽 가이드</a></li>
+          <li><a href="/products">몽골 투어 종류별 비교</a></li>
+          <li><a href="/category/horse-riding-tour">몽골 승마 여행</a></li>
+          <li><a href="/category/gobi-desert">고비사막 투어</a></li>
+          <li><a href="/travel-guide">몽골 여행 가이드</a></li>
+          <li><a href="/reviews">고객 여행 후기</a></li>
+          <li><a href="/faq">자주 묻는 질문</a></li>
+          <li><a href="/custom-estimate">맞춤 견적</a></li>
+          <li><a href="/about">회사 소개</a></li>
+        </ul>
+      </nav>
+    </div>
   </div>
-
-  <div class="carousel" id="carousel"></div>
-
-  <div class="dots" id="dots"></div>
-
-  <div class="copy">
-    <div class="kick">ONLY IN MONGOLIA</div>
-    <h1>몽골에서만 만나는<br>특별한 순간</h1>
-    <p>사막의 은하수, 유목민 게르, 대초원 승마까지 — 몇 가지 질문에 답하면 현지 전문가가 당신만의 일정과 견적을 설계해 드려요.</p>
-    <a class="cta" id="startBtn" href="#">
-      견적 요청 시작하기
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
-    </a>
-  </div>
-
-  <div class="foot">
-    몽골리아 은하수 현지 여행사 · <a href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">카카오톡 상담</a><br>
-    당신의 삶을 우러러 볼 시간
-  </div>
-
-</div>
-
-<script>
-  document.getElementById("startBtn").href = encodeURI("견적요청.html");
-
-  const SLIDES = [
-    { cat: "은하수", title: "사막 위 은하수 캠프", emoji: "🌌", bg: "linear-gradient(160deg,#1b2a4d,#0c1220)", cat_col: "#8fd6ff" },
-    { cat: "게르",   title: "유목민 게르 스테이", emoji: "⛺", bg: "linear-gradient(160deg,#5a4326,#2e2013)", cat_col: "#ffd79a" },
-    { cat: "승마",   title: "초원 승마 트레킹",   emoji: "🐎", bg: "linear-gradient(160deg,#2f6b4a,#123524)", cat_col: "#9bf0c9" },
-    { cat: "사막",   title: "낙타 사파리",       emoji: "🐫", bg: "linear-gradient(160deg,#b98a4e,#6b4a24)", cat_col: "#ffe6b8" },
-    { cat: "식사",   title: "허르헉 화덕 요리",   emoji: "🍖", bg: "linear-gradient(160deg,#7a3a2c,#3f1c15)", cat_col: "#ffc0ad" },
-    { cat: "온천",   title: "쳉헤르 노천 온천",   emoji: "♨️", bg: "linear-gradient(160deg,#2f5f6b,#123037)", cat_col: "#a6e8f0" },
-    { cat: "축제",   title: "나담 축제",         emoji: "🏹", bg: "linear-gradient(160deg,#6b2f4a,#341524)", cat_col: "#f0a6c8" },
-  ];
-
-  const N = SLIDES.length;
-  let active = 0, timer = null;
-  const carousel = document.getElementById("carousel");
-  const dotsBox = document.getElementById("dots");
-
-  carousel.innerHTML = SLIDES.map((s, i) => `
-    <div class="card" data-i="${i}">
-      <div class="bg" style="background-image:url('img/home/${i + 1}.webp')"></div>
-      <div class="shade"></div>
-      <div class="cap">
-        <div class="cat" style="color:${s.cat_col}">${s.cat}</div>
-        <div class="ttl">${s.title}</div>
-      </div>
-    </div>`).join("");
-
-  dotsBox.innerHTML = SLIDES.map((_, i) => `<button data-i="${i}" aria-label="슬라이드 ${i + 1}"></button>`).join("");
-
-  const cards = [...carousel.querySelectorAll(".card")];
-  const dots = [...dotsBox.querySelectorAll("button")];
-
-  function layout() {
-    cards.forEach((card, i) => {
-      let off = i - active;
-      if (off > N / 2) off -= N;
-      if (off < -N / 2) off += N;
-      const a = Math.abs(off);
-      let tx, scale, opacity, z, rot;
-      if (off === 0) { tx = 0; scale = 1; opacity = 1; z = 30; rot = 0; }
-      else if (a === 1) { tx = off * 158; scale = .82; opacity = .58; z = 20; rot = off * -18; }
-      else if (a === 2) { tx = off * 232; scale = .66; opacity = .22; z = 10; rot = off * -22; }
-      else { tx = off * 260; scale = .6; opacity = 0; z = 0; rot = 0; }
-      card.style.transform = `translateX(${tx}px) scale(${scale}) rotateY(${rot}deg)`;
-      card.style.opacity = opacity;
-      card.style.zIndex = z;
-      card.style.pointerEvents = opacity > .2 ? "auto" : "none";
-    });
-    dots.forEach((d, i) => d.classList.toggle("on", i === active));
-  }
-
-  function go(i) { active = (i + N) % N; layout(); }
-  function restart() { clearInterval(timer); timer = setInterval(() => go(active + 1), 3600); }
-
-  cards.forEach(c => c.onclick = () => { go(+c.dataset.i); restart(); });
-  dots.forEach(d => d.onclick = () => { go(+d.dataset.i); restart(); });
-
-  layout();
-  restart();
-</script>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
+
 </html>

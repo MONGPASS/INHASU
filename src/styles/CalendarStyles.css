@@ -1,0 +1,86 @@
+/* CalendarStyles.css */
+/* FullCalendar Customization */
+
+.fc {
+    font-family: "Pretendard", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --fc-border-color: #e2e8f0;
+    --fc-button-text-color: #475569;
+    --fc-button-bg-color: #fff;
+    --fc-button-border-color: #e2e8f0;
+    --fc-button-hover-bg-color: #f8fafc;
+    --fc-button-hover-border-color: #cbd5e1;
+    --fc-button-active-bg-color: #f1f5f9;
+    --fc-button-active-border-color: #cbd5e1;
+    --fc-event-bg-color: #6366f1;
+    --fc-event-border-color: #4f46e5;
+    --fc-today-bg-color: #f8fafc;
+    --fc-neutral-bg-color: #f8fafc;
+    --fc-page-bg-color: #fff;
+}
+
+/* Dark mode support */
+.dark .fc {
+    --fc-border-color: #334155;
+    --fc-button-text-color: #cbd5e1;
+    --fc-button-bg-color: #1e293b;
+    --fc-button-border-color: #334155;
+    --fc-button-hover-bg-color: #334155;
+    --fc-button-hover-border-color: #475569;
+    --fc-button-active-bg-color: #334155;
+    --fc-button-active-border-color: #475569;
+    --fc-event-bg-color: #818cf8;
+    --fc-event-border-color: #6366f1;
+    --fc-today-bg-color: #1e293b;
+    --fc-neutral-bg-color: #1e293b;
+    --fc-page-bg-color: #0f172a;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.fc .fc-button {
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    text-transform: capitalize;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.fc .fc-button:focus {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.fc .fc-col-header-cell-cushion {
+    padding: 12px 0;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.dark .fc .fc-col-header-cell-cushion {
+    color: #94a3b8;
+}
+
+.fc-daygrid-event {
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.fc-daygrid-day-number {
+    font-size: 0.875rem;
+    padding: 8px 8px 0 0;
+    color: #475569;
+}
+
+.dark .fc-daygrid-day-number {
+    color: #cbd5e1;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+    border-color: var(--fc-border-color);
+}

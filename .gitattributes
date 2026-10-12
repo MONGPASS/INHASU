@@ -1,0 +1,11 @@
+# 줄바꿈을 LF로 고정 — 해시 파일명 자산(lodging.<hash>.js 등)의 내용이 OS에 따라 달라지지 않게
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.pdf binary
+*.woff2 binary
+*.mp4 binary
+*.sqlite binary

@@ -1,8 +1,33 @@
-# Cloudflare Wrangler build cache / temp
-.wrangler/
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Node
+# Node / build output
 node_modules/
+dist
+dist-ssr
+*.local
+
+# Cloudflare Wrangler build cache / local dev state
+.wrangler/
+.dev.vars
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Local Claude Code tooling (settings, plans, scratch)
 .claude/
@@ -10,6 +35,12 @@ node_modules/
 # Local Codex/PDF inspection artifacts (not deployed)
 work/
 
-# OS
-Thumbs.db
-.DS_Store
+# Environment variables
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# Supabase
+supabase/.temp/

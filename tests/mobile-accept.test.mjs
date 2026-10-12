@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
-const html = readFileSync(new URL("../admin-mobile.html", import.meta.url), "utf8");
+const html = readFileSync(new URL("../public/견적관리-모바일.html", import.meta.url), "utf8");
 const source = html.slice(html.indexOf("function inquirySheet(r)"), html.indexOf("App.setStatus ="));
 function screen(record, options = {}) {
   const calls = [];

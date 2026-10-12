@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>내 견적 확인 · 몽골리아 은하수</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" rel="stylesheet">
+<link rel="stylesheet" href="/quote-theme.css">
+<style>
+  /* 사이트(몽골리아 은하수) 예약 상세 화면과 같은 톤 — 토큰은 /quote-theme.css */
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:var(--mw-font); color:var(--mw-navy); background:var(--mw-paper); min-height:100vh;
+    display:flex; flex-direction:column; -webkit-font-smoothing:antialiased; }
+  .hub { flex:1; width:100%; max-width:520px; margin:0 auto; padding:20px 16px 44px; }
+  .card { display:flex; flex-direction:column; gap:12px; }
+  .hub-eyebrow { display:block; font-family:var(--mw-font-en); font-size:10px; font-weight:600; letter-spacing:.08em; color:var(--mw-mint-deep); }
+
+  /* 상태 카드 — 아이콘 · 상태 칩 · 제목 · 설명 */
+  .hub-status { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; background:#fff;
+    border:1px solid var(--mw-line); border-radius:24px; padding:22px 20px; text-align:left; }
+  .hub-status > * { grid-column:1 / -1; }
+  .hub-status > .hero-ico { grid-column:1; }
+  .hub-status > .chip { grid-column:2; justify-self:end; }
+  .hero-ico { width:52px; height:52px; border-radius:16px; background:var(--mw-mint-bg); display:flex; align-items:center; justify-content:center; }
+  svg.hero-ico { padding:9px; }
+  .hero-ico.emoji { font-size:26px; line-height:1; }
+  .chip { display:inline-flex; align-items:center; gap:5px; height:30px; padding:0 12px; border-radius:999px;
+    background:var(--mw-mint-tint); color:var(--mw-mint-deep); font-size:12px; font-weight:700; white-space:nowrap; }
+  .chip.blue  { background:var(--mw-navy); color:#fff; }
+  .chip.amber { background:var(--mw-warn-bg); color:var(--mw-warn-fg); }
+  .hub-status .hub-eyebrow { margin-top:16px; }
+  h1 { font-size:23px; font-weight:800; letter-spacing:-.02em; line-height:1.4; margin-top:6px; color:var(--mw-navy); word-break:keep-all; }
+  .hub-status > .hero-ico + h1 { margin-top:14px; }
+  .desc { font-size:14px; color:var(--mw-mute); line-height:1.7; margin-top:8px; word-break:keep-all; }
+  .divider { display:none; }
+
+  /* 여행 정보 — 티켓 카드 */
+  .facts { position:relative; overflow:hidden; display:grid; grid-template-columns:auto minmax(0,1fr); text-align:left;
+    border-radius:24px; padding:20px; color:#fff;
+    background:linear-gradient(160deg, var(--mw-mint-deep) 0%, var(--mw-navy-soft) 100%); }
+  .facts::before { content:"MONGOLIA MILKY WAY"; grid-column:1 / -1; position:relative; margin-bottom:12px;
+    font-family:var(--mw-font-en); font-size:10px; font-weight:600; letter-spacing:.1em; color:var(--mw-mint-tint); }
+  .facts::after { content:""; position:absolute; right:-60px; top:-60px; width:180px; height:180px; border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.12); box-shadow:0 0 0 22px rgba(255,255,255,.04), 0 0 0 44px rgba(255,255,255,.03); pointer-events:none; }
+  .fact { position:relative; min-width:0; }
+  .fact .k { font-size:11px; color:var(--mw-mint-tint); font-weight:500; }
+  .fact .v { font-size:14.5px; font-weight:800; margin-top:2px; line-height:1.45; word-break:keep-all; }
+  .fact .s { font-size:12px; color:rgba(255,255,255,.8); font-weight:500; margin-top:1px; }
+  .fact:first-child { grid-column:1 / -1; padding-bottom:16px; }
+  .fact:first-child .v { font-size:21px; line-height:1.35; letter-spacing:-.01em; }
+  .fact:nth-child(n+2) { padding-top:14px; border-top:1px dashed rgba(255,255,255,.35); }
+  .fact:nth-child(2) { padding-right:16px; }
+  .fact:nth-child(2) .v { white-space:nowrap; letter-spacing:-.01em; }   /* 날짜 범위가 하이픈에서 끊기지 않게 */
+  .fact:nth-child(3) { text-align:right; }
+  @media (max-width:339px) {
+    .facts { grid-template-columns:minmax(0,1fr); }
+    .fact:nth-child(2) .v { white-space:normal; }
+    .fact:nth-child(3) { text-align:left; border-top:0; padding-top:10px; }
+  }
+
+  /* 섹션 카드 + 진행 단계 */
+  .hub-sec { background:#fff; border:1px solid var(--mw-line); border-radius:20px; padding:18px 14px 20px; text-align:left; }
+  .hub-h { display:flex; flex-direction:column; gap:3px; margin:0 4px 16px; }
+  .hub-h b { font-size:16px; font-weight:800; line-height:1.4; color:var(--mw-navy); }
+  .steps { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); counter-reset:step; }
+  .step { position:relative; display:flex; flex-direction:column; align-items:center; gap:8px; counter-increment:step;
+    font-size:12px; font-weight:700; line-height:1.35; color:var(--mw-mute2); text-align:center; word-break:keep-all; }
+  .step + .step::before { content:""; position:absolute; top:15px; right:calc(50% + 22px); width:calc(100% - 44px); height:2px;
+    border-radius:2px; background:var(--mw-line); }
+  .step.done + .step::before { background:var(--mw-mint); }
+  .step .dot { position:relative; z-index:1; flex:none; width:32px; height:32px; border-radius:50%; border:1.5px solid var(--mw-line2);
+    background:#fff; color:var(--mw-navy); display:flex; align-items:center; justify-content:center;
+    font-family:var(--mw-font-en); font-size:11px; font-weight:600; }
+  .step:not(.done) .dot::before { content:counter(step); }
+  .step.done { color:var(--mw-ink3); }
+  .step.done .dot { background:var(--mw-mint); border-color:var(--mw-mint); font-family:var(--mw-font); font-size:14px; font-weight:800; }
+  /* 지금 진행 중인 단계 */
+  .step:first-child:not(.done), .step.done + .step:not(.done) { color:var(--mw-navy); font-weight:800; }
+  .step:first-child:not(.done) .dot, .step.done + .step:not(.done) .dot { background:var(--mw-navy); border-color:var(--mw-navy); color:#fff; }
+
+  /* 예약금 · 입금 계좌 */
+  .dep { background:#fff; border:1px solid var(--mw-line); border-radius:20px; padding:18px; text-align:left; }
+  .dep .amt { margin-top:3px; font-size:22px; font-weight:800; letter-spacing:-.01em; line-height:1.4; color:var(--mw-navy); }
+  .dep .amt small { display:block; margin-top:3px; font-size:12.5px; font-weight:500; letter-spacing:0; color:var(--mw-mute); }
+  .dep .acct { margin-top:14px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px; padding:14px 16px;
+    background:var(--mw-mint-bg); border:1px solid var(--mw-mint-tint); border-radius:16px; }
+  .dep .acct > div { flex:1 1 190px; min-width:0; }
+  .dep .acct .bank { font-size:12px; color:var(--mw-mute); margin-bottom:3px; word-break:keep-all; }
+  .dep .acct .no { font-size:17px; font-weight:800; letter-spacing:.01em; color:var(--mw-navy); overflow-wrap:anywhere; }
+  .dep .copy { flex:none; height:36px; padding:0 14px; border:1px solid var(--mw-line); border-radius:999px; background:#fff;
+    color:var(--mw-navy); font-family:inherit; font-size:12.5px; font-weight:700; white-space:nowrap; cursor:pointer; }
+  .dep .copy:hover { border-color:var(--mw-mint); color:var(--mw-mint-deep); }
+  .dep .dep-act { margin-top:14px; }
+  .dep .tip { margin-top:10px; font-size:12px; color:var(--mw-mute); line-height:1.6; word-break:keep-all; }
+  .dep-done { margin-top:14px; padding:14px 16px; border-radius:16px; background:var(--mw-paper); border:1px solid var(--mw-line); text-align:left; }
+  .dep-done-t { display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:800; color:var(--mw-mint-deep); }
+  .dep-done-d { margin-top:5px; font-size:12.5px; color:var(--mw-ink3); line-height:1.6; word-break:keep-all; }
+  .dep-redo { margin-top:8px; padding:0; border:none; background:none; color:var(--mw-mint-deep); font-family:inherit; font-size:12px; font-weight:700;
+    text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+
+  /* 버튼 — 사이트의 pill 버튼 */
+  .btn { display:flex; align-items:center; justify-content:center; width:100%; min-height:52px; padding:12px 22px; border:none; border-radius:999px;
+    font-family:inherit; font-size:15px; font-weight:700; line-height:1.4; text-align:center; text-decoration:none; word-break:keep-all; cursor:pointer; }
+  .btn.primary { background:var(--mw-navy); color:#fff; }
+  .btn.primary:hover { background:var(--mw-navy-soft); }
+  .btn.accent { background:var(--mw-mint); color:var(--mw-navy); }
+  .btn.accent:hover { background:var(--mw-mint-hover); }
+  .btn.kakao { background:var(--mw-kakao); color:var(--mw-kakao-ink); }
+  .btn.ghost { background:#fff; color:var(--mw-navy); border:1px solid var(--mw-line); }
+  .btn.ghost:hover { border-color:var(--mw-mint); color:var(--mw-mint-deep); }
+  .btn:disabled { opacity:.55; cursor:default; }
+
+  /* 문서 링크 타일 */
+  .doc-tile { display:flex; align-items:center; gap:14px; min-height:74px; padding:14px 16px; border-radius:20px; background:#fff;
+    border:1px solid var(--mw-line); color:var(--mw-navy); font-size:14.5px; font-weight:700; line-height:1.45; text-align:left;
+    text-decoration:none; word-break:keep-all; }
+  .doc-tile:hover { border-color:var(--mw-mint); }
+  .doc-tile::before { content:""; flex:none; width:44px; height:44px; border-radius:14px;
+    background:var(--mw-mint-bg) var(--doc-ico) center / 22px 22px no-repeat; }
+  .doc-tile::after { content:""; flex:none; margin-left:auto; width:16px; height:16px;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238A9895' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .doc-tile > span { min-width:0; }
+  .doc-tile small { display:block; margin-top:2px; font-size:11.5px; font-weight:500; line-height:1.5; color:var(--mw-mute); }
+  .doc-quote    { --doc-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C8571' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5'/%3E%3C/svg%3E"); }
+  .doc-contract { --doc-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C8571' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3h7l4 4v14H7zM14 3v4h4M9.5 14.5l2 2 3.5-4'/%3E%3C/svg%3E"); }
+  .doc-traveler { --doc-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C8571' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-4.4 3.6-8 8-8s8 3.6 8 8'/%3E%3C/svg%3E"); }
+  .doc-map      { --doc-ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C8571' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14'/%3E%3C/svg%3E"); }
+
+  .notice { padding:14px 16px; border-radius:16px; background:var(--mw-warn-bg); color:var(--mw-warn-fg); font-size:13px; line-height:1.6;
+    text-align:left; word-break:keep-all; }
+  .validity { align-self:flex-start; display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:5px 14px; border-radius:999px;
+    background:#fff; border:1px solid var(--mw-line); font-size:12.5px; font-weight:700; color:var(--mw-ink3); }
+  .validity svg { width:14px; height:14px; flex:none; }
+  .hint { padding:2px 8px 0; font-size:12px; color:var(--mw-mute2); line-height:1.6; text-align:center; }
+
+  @media (min-width:720px) {
+    .hub { padding:36px 16px 72px; }
+    .card { gap:14px; }
+    .hub-status { padding:28px; }
+    h1 { font-size:26px; }
+    .facts { padding:24px 28px; }
+    .hub-sec { padding:22px 18px 24px; }
+    .dep { padding:24px; }
+  }
+</style>
+</head>
+<body>
+  <header class="mw-header">
+    <div class="mw-header-in">
+      <a class="mw-brand" href="/" aria-label="몽골리아 은하수 홈"><img src="/favicon.png" alt="" width="30" height="30"><span>몽골리아<b> 은하수</b></span></a>
+      <nav class="mw-nav" aria-label="사이트 메뉴">
+        <a href="/products">투어 상품</a>
+        <a class="mw-nav-talk" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">카카오톡 상담</a>
+      </nav>
+    </div>
+  </header>
+  <main class="hub">
+    <div class="card" id="card">
+      <section class="hub-status">
+        <div class="hero-ico emoji">⏳</div>
+        <h1>불러오는 중…</h1>
+      </section>
+    </div>
+  </main>
+  <footer class="mw-footer">
+    <div class="mw-footer-in">
+      <span class="mw-wordmark">몽골리아<b> 은하수</b></span>
+      <p>몽골 여행·몽골 투어 전문 현지 여행사 · Mongolia Milky Way</p>
+      <p>문의 · <a href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">카카오톡 채널 상담</a></p>
+      <p class="mw-copy">© 2026 Mongolia Milky Way. All rights reserved.</p>
+    </div>
+  </footer>
+
+<script>
+  const KAKAO = "https://pf.kakao.com/_BSLaxl";
+  const IS_LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const card = document.getElementById("card");
+  const token = new URLSearchParams(location.search).get("t");
+
+  const paxTxt = r => {
+    const p = [];
+    if (r.adult) p.push(`성인 ${r.adult}`);
+    if (r.child) p.push(`아동 ${r.child}`);
+    if (r.infant) p.push(`유아 ${r.infant}`);
+    return p.join(" · ") || "-";
+  };
+  const periodTxt = r => {
+    if (!r.depart) return "-";
+    const n = r.nights ? ` (${r.nights}박 ${r.nights + 1}일)` : "";
+    return `${r.depart}${r.return_ ? " ~ " + r.return_ : ""}${n}`;
+  };
+  const destTxt = r => (r.destination || "-") + (r.destSpots && r.destSpots.length ? ` · ${r.destSpots.join(", ")}` : "");
+
+  /* 견적 도착 화면의 축하 아이콘 — 평면 SVG (이모지 대신 또렷하게 보이도록) */
+  const PARTY_SVG = `<svg class="hero-ico" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+    <path d="M7 57 22.5 28.5 35.5 41.5z" fill="#F58C82"/>
+    <path d="M7 57 14.5 43.2 20.8 49.5z" fill="#E4655B"/>
+    <path d="M25.5 25.5c3.4-3.7 8.2-3.4 11 .6" stroke="#27AB8F" stroke-width="3" stroke-linecap="round"/>
+    <path d="M31 40.5c4.3-1.6 6.2 1.4 10.6-.4" stroke="#F5B841" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="45.5" cy="13.5" r="3.4" fill="#F5B841"/>
+    <circle cx="56" cy="27" r="2.7" fill="#5AA9F0"/>
+    <circle cx="34.5" cy="8.5" r="2.4" fill="#27AB8F"/>
+    <circle cx="52.5" cy="45" r="2.4" fill="#F58C82"/>
+    <rect x="45.5" y="34" width="6" height="6" rx="1.5" transform="rotate(22 45.5 34)" fill="#5AA9F0"/>
+    <rect x="24.5" y="14" width="5.2" height="5.2" rx="1.4" transform="rotate(-28 24.5 14)" fill="#F5B841"/>
+  </svg>`;
+  const heroEmoji = e => `<div class="hero-ico emoji">${e}</div>`;
+  const CLOCK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>`;
+
+  /* 여행지·일정·인원을 점으로 잇는 타임라인으로 보여줍니다 */
+  const factsHtml = r => {
+    const period = r.depart ? `${r.depart}${r.return_ ? " ~ " + r.return_ : ""}` : "-";
+    const nights = r.nights ? `${r.nights}박 ${r.nights + 1}일` : "";
+    return `<div class="facts">
+      <div class="fact"><div class="k">여행지</div><div class="v">${esc(destTxt(r))}</div></div>
+      <div class="fact"><div class="k">일정</div><div class="v">${esc(period)}</div>${nights ? `<div class="s">${esc(nights)}</div>` : ""}</div>
+      <div class="fact"><div class="k">인원</div><div class="v">${esc(paxTxt(r))}</div></div>
+    </div>`;
+  };
+  const sumHtml = r => `<div class="divider"></div>${factsHtml(r)}`;
+
+  const progressHtml = r => {
+    const booking = r.booking || {};
+    const accepted = r.decision && r.decision.status === "accepted";
+    const depositPaid = !!(booking.contractInfo && booking.contractInfo.depositStatus === "입금완료");
+    const confirmed = r.status === "예약확정";
+    const published = booking.publishStatus === "published";
+    return `<section class="hub-sec"><div class="hub-h"><span class="hub-eyebrow">PROGRESS</span><b>진행 단계</b></div><div class="steps">
+      ${[["예약 접수",accepted],["예약금 입금",depositPaid],["예약 확정",confirmed],["일정표 공개",published]].map(([label,done]) =>
+        `<div class="step ${done ? "done" : ""}"><span class="dot">${done ? "✓" : ""}</span>${label}</div>`).join("")}
+    </div></section>`;
+  };
+
+  function showError(msg) {
+    card.innerHTML = `<section class="hub-status">${heroEmoji("🔗")}<h1>링크를 확인해 주세요</h1>
+      <div class="desc">${esc(msg)}</div></section>
+      <a class="btn kakao" href="${KAKAO}" target="_blank">카카오톡으로 문의하기</a>`;
+  }
+
+  async function load() {
+    if (!token) return showError("올바른 접속 링크가 아닙니다. 담당자에게 받은 링크로 접속해 주세요.");
+    let r;
+    try {
+      if (IS_LOCAL) {
+        const item = JSON.parse(localStorage.getItem("leaders_requests") || "[]").find(x => x.token === token);
+        if (!item) return showError("존재하지 않거나 만료된 링크입니다.");
+        r = { ok:true, ...item };
+      } else {
+        const res = await fetch("/api/my/" + encodeURIComponent(token), { cache: "no-store" });
+        if (res.status === 404) return showError("존재하지 않거나 만료된 링크입니다.");
+        if (!res.ok) throw new Error("http " + res.status);
+        r = await res.json();
+        if (!r.ok) throw new Error(r.error || "error");
+      }
+    } catch (e) {
+      return showError("일시적으로 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+    }
+
+    const nm = r.name ? `${esc(r.name)}님, ` : "";
+    if (r.booking) {
+      const signed = r.booking.contract && r.booking.contract.signedAt;
+      const confirmed = r.status === "예약확정";
+      const published = r.booking.publishStatus === "published";
+      const travelerSubmission = r.booking.travelerSubmission || {};
+      const travelersDone = travelerSubmission.status === "submitted";
+      const ci = r.booking.contractInfo || {};
+      const depositPaid = ci.depositStatus === "입금완료";
+      const depositRequested = r.booking.depositRequest && r.booking.depositRequest.status === "requested";
+      const contractRequested = r.booking.contractRequest && r.booking.contractRequest.status === "requested";
+      const depositReport = r.booking.depositReport || {};
+      const isReported = depositReport.status === "reported";
+      const money = n => Number(n || 0) ? Number(n).toLocaleString("ko-KR") + "원" : "-";
+      const title = confirmed ? "예약이 확정됐어요!" : signed ? "계약서 서명이 완료됐어요" : (depositPaid && contractRequested) ? "계약서를 확인해 주세요" : depositPaid ? "예약금 입금이 확인됐어요" : depositRequested ? (isReported ? "입금 내역을 확인하고 있어요" : "예약금 입금을 진행해 주세요") : "예약정보를 준비하고 있어요";
+      const description = confirmed ? (published ? "확정일정표가 준비되었습니다." : "예약은 확정됐으며 세부 일정과 배정을 준비하고 있습니다.") : signed ? "서명이 접수되었습니다. 담당자가 확인 후 예약을 확정합니다." : (depositPaid && contractRequested) ? "예약금 확인이 완료되었습니다. 여행계약서를 확인하고 서명해 주세요." : depositPaid ? "예약금 확인이 완료되었습니다. 담당자가 계약서를 준비하고 있습니다." : depositRequested ? (isReported ? "고객님의 입금 완료 요청이 접수되었습니다. 담당자가 입금 확인 후 계약서 서명을 안내해 드립니다." : "아래 예약금과 입금 계좌를 확인해 주세요. 입금 완료 후 아래 버튼을 누르시면 담당자가 확인 후 예약을 진행합니다.") : "담당자가 예약정보와 예약금 안내를 준비하고 있습니다.";
+      card.innerHTML = `
+        <section class="hub-status">
+        ${heroEmoji(confirmed ? "🎫" : depositRequested && !depositPaid ? (isReported ? "⏳" : "💳") : "🧾")}
+        <span class="chip ${confirmed ? "blue" : ""}">${confirmed ? "✓ 예약 확정" : isReported && !depositPaid ? "⏳ 입금 확인 중" : "⏳ 예약 진행 중"}</span>
+        <span class="hub-eyebrow">MY BOOKING</span>
+        <h1>${title}</h1>
+        <div class="desc">${nm}${description}</div>
+        </section>
+        ${sumHtml(r)}
+        ${progressHtml(r)}
+        ${depositRequested && !depositPaid ? `<div class="dep">
+          <span class="hub-eyebrow">DEPOSIT</span>
+          <div class="amt">예약금 ${esc(money(ci.depositAmount))}<small>입금이 확인되면 예약이 진행됩니다</small></div>
+          <div class="acct">
+            <div><div class="bank">${esc(ci.bankName || "은행 확인 필요")} · 예금주 ${esc(ci.accountHolder || "-")}</div><div class="no">${esc(ci.accountNumber || "계좌 확인 필요")}</div></div>
+            <button class="copy" id="copyAcctBtn" type="button">📋 계좌번호 복사</button>
+          </div>
+          ${isReported ? `
+            <div class="dep-done">
+              <div class="dep-done-t">
+                <span>✅</span><span>입금 확인 요청 완료</span>
+              </div>
+              <div class="dep-done-d">
+                입금자명 <b>${esc(depositReport.name || r.name || "-")}</b>(으)로 입금 완료를 알렸습니다.<br>
+                담당자가 입금 내역을 확인하는 대로 계약서 서명 안내를 진행해 드립니다.
+              </div>
+              <button id="reportDepositBtn" type="button" class="dep-redo">입금자명이 다른가요? 다시 알리기</button>
+            </div>` : `
+            <div class="dep-act">
+              <button class="btn accent" id="reportDepositBtn" type="button">예약금 입금 완료했어요</button>
+            </div>
+            <div class="tip">입금 후 위 버튼을 누르시면 담당자가 확인 후 계약서 서명을 안내해 드립니다. 카카오톡 상담으로 알려주셔도 됩니다.</div>`}
+        </div>` : ""}
+        ${signed
+          ? `<a class="doc-tile doc-contract" href="${esc("계약서.html?t=" + encodeURIComponent(token))}" target="_blank"><span>여행계약서 보기 (서명완료)<small>서명한 계약 내용 확인 · PDF 저장</small></span></a>
+             <a class="doc-tile doc-traveler" href="${esc("여행자정보.html?t=" + encodeURIComponent(token))}"><span>여행자 정보 + 항공권 정보 확인·수정<small>여권·항공편 정보가 바뀌면 수정해 주세요</small></span></a>`
+          : depositPaid && contractRequested
+            ? `<a class="btn accent" href="${esc("계약서.html?t=" + encodeURIComponent(token))}">여행계약서 확인·서명하기 (여행자·항공 정보 입력)</a>`
+            : ""}
+        ${depositPaid && !signed && !contractRequested ? `<div class="notice">담당자가 계약서를 준비하고 있습니다. 서명 요청 알림을 받으면 이 화면에서 진행할 수 있습니다.</div>` : ""}
+        ${published ? `<a class="btn primary" href="${esc("확정일정표.html?t=" + encodeURIComponent(token))}" target="_blank">확정일정표 보기</a>` : confirmed ? `<div class="notice">가이드·차량·숙소 배정이 끝나면 확정일정표가 공개됩니다.</div>` : ""}
+        ${r.quote ? `<a class="doc-tile doc-quote" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank"><span>견적서 보기<small>일정 · 포함 사항 · 견적 금액</small></span></a>` : ""}
+        ${published ? `<a class="doc-tile doc-map" href="${esc("일정지도.html?t=" + encodeURIComponent(token))}" target="_blank"><span>일정 지도 보기<small>지도에서 여행 동선 확인</small></span></a>` : ""}
+        <a class="btn kakao" href="${KAKAO}" target="_blank">카카오톡 상담</a>`;
+      const copyBtn = document.getElementById("copyAcctBtn");
+      if (copyBtn) copyBtn.onclick = async () => {
+        const no = String(ci.accountNumber || "");
+        try { await navigator.clipboard.writeText(no); copyBtn.textContent = "✓ 복사됐어요"; }
+        catch (e) { prompt("계좌번호를 길게 눌러 복사하세요", no); }
+        setTimeout(() => { copyBtn.textContent = "📋 계좌번호 복사"; }, 1800);
+      };
+      const reportBtn = document.getElementById("reportDepositBtn");
+      if (reportBtn) reportBtn.onclick = async () => {
+        const currentName = depositReport.name || r.name || "";
+        const name = prompt("입금자명을 입력해 주세요 (실제 계좌 이체 시 보낸 분 성함)", currentName);
+        if (name === null) return;
+        const trimmed = name.trim();
+        if (!trimmed) { alert("입금자명을 입력해 주세요."); return; }
+
+        reportBtn.disabled = true;
+        reportBtn.textContent = "입금 확인 요청 중…";
+
+        if (IS_LOCAL) {
+          try {
+            const list = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
+            const idx = list.findIndex(x => x.token === token);
+            if (idx >= 0) {
+              const now = new Date().toISOString();
+              list[idx].booking = list[idx].booking || {};
+              list[idx].booking.depositReport = { status: "reported", name: trimmed, reportedAt: now };
+              list[idx].activities = list[idx].activities || [];
+              list[idx].activities.push({ at: now, type: "deposit_reported", detail: `고객이 예약금 입금 완료를 알림 (입금자명: ${trimmed})` });
+              localStorage.setItem("leaders_requests", JSON.stringify(list));
+            }
+          } catch(e) {}
+          alert("✓ 입금 확인 요청이 전달되었습니다. 담당자가 확인 후 안내해 드립니다.");
+          location.reload();
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/deposit/" + encodeURIComponent(token), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: trimmed }),
+          });
+          const j = await res.json();
+          if (!res.ok || !j.ok) throw new Error(j.error || "요청에 실패했습니다.");
+          alert("✓ 입금 확인 요청이 전달되었습니다. 담당자가 확인 후 계약서 서명을 안내해 드립니다.");
+          location.reload();
+        } catch(e) {
+          alert("오류: " + (e.message || "잠시 후 다시 시도해 주세요."));
+          reportBtn.disabled = false;
+          reportBtn.textContent = "예약금 입금 완료했어요";
+        }
+      };
+    } else if (r.quote) {
+      const accepted = r.decision && r.decision.status === "accepted";
+      const expired = !!r.quoteExpired && !accepted;
+      const expireLabel = r.quoteExpiresAt ? new Date(r.quoteExpiresAt).toLocaleDateString("ko-KR") : "";
+      card.innerHTML = `
+        <section class="hub-status">
+        ${accepted ? heroEmoji("🧾") : PARTY_SVG}
+        <span class="chip ${accepted ? "amber" : ""}">${accepted ? "⏳ 예약 준비 중" : "✓ 견적 완료"}</span>
+        <span class="hub-eyebrow">MY ESTIMATE</span>
+        <h1>${accepted ? "예약 준비를 시작했어요" : "견적서가 도착했어요!"}</h1>
+        <div class="desc">${nm}${accepted ? "예약 진행이 확인되었습니다. 담당자가 예약정보와 예약금 안내를 준비하고 있습니다." : "견적서를 확인하시고, 수정하고 싶은 부분이나 예약 진행 의사는 카카오톡으로 편하게 말씀해 주세요."}</div>
+        </section>
+        ${sumHtml(r)}
+        ${accepted ? progressHtml(r) : ""}
+        ${expired ? `<div class="notice">이 견적의 유효기간이 만료되었습니다. 카카오톡으로 연장을 요청해 주세요.</div>`
+          : (expireLabel ? `<div class="validity">${CLOCK_SVG}견적 유효기간: ${esc(expireLabel)}까지</div>` : "")}
+        <a class="btn accent" href="${esc("견적서.html?t=" + encodeURIComponent(token))}" target="_blank">견적서 보기</a>
+        <a class="btn kakao" href="${KAKAO}" target="_blank">카카오톡으로 예약 진행·수정 문의</a>`;
+    } else {
+      card.innerHTML = `
+        <section class="hub-status">
+        ${heroEmoji("✅")}
+        <span class="chip">⏳ ${esc(r.status || "확인 중")}</span>
+        <span class="hub-eyebrow">MY REQUEST</span>
+        <h1>견적 요청이 접수됐어요</h1>
+        <div class="desc">${nm}담당자가 확인 후 남겨주신 연락처로 연락드려요.<br>빠르게 견적서를 준비해 드릴게요.<br>견적서가 준비되면 이 화면에서 바로 확인할 수 있어요.</div>
+        </section>
+        ${sumHtml(r)}
+        <a class="btn kakao" href="${KAKAO}" target="_blank">카카오톡으로 빠른 상담</a>
+        <button class="btn ghost" onclick="location.reload()">새로고침</button>
+        <div class="hint">이 링크를 저장해 두시면 언제든 진행 상황을 확인할 수 있어요.</div>`;
+    }
+  }
+  load();
+</script>
+</body>
+</html>

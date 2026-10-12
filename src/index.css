@@ -1,0 +1,421 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Pretendard 는 index.html 에서 CDN 동적 서브셋으로 불러온다. */
+
+/* ============================================================
+   Desktop design tokens (from milky-way-pc handoff)
+   Used by *.desktop.tsx components only — mobile components
+   continue to use existing Tailwind classes.
+   ============================================================ */
+:root {
+    --primary-dark: #115e59;
+    --primary-soft: #ccfbf1;
+    --primary-tint: rgba(15, 118, 110, 0.06);
+    --primary-ring: rgba(15, 118, 110, 0.20);
+    --bg-muted: #f8fafc;
+    --fg-1: #0e1a18;
+    --fg-2: #191f28;
+    --fg-3: #334155;
+    --fg-4: #64748b;
+    --fg-5: #8b95a1;
+    --fg-6: #9ca3af;
+    --border-subtle: #f1f5f9;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --shadow-toss: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
+    --shadow-review: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+body {
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif !important;
+    -webkit-tap-highlight-color: transparent;
+    margin: 0;
+    padding: 0;
+}
+
+/*
+  App Layout styling
+  Applied to the root wrapper in App.tsx for non-admin routes.
+  Below 1024px → 480px "phone frame" with shadow (existing mobile experience).
+  At 1024px+ → full-width desktop canvas (PC handoff design).
+*/
+.mobile-app-wrapper {
+    width: 100%;
+    min-height: 100dvh;
+    margin: 0 auto;
+    position: relative;
+    overflow-x: clip;
+}
+
+@media (max-width: 1023px) {
+    .mobile-app-wrapper {
+        max-width: 480px;
+        background-color: #ffffff;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.08);
+    }
+    .dark .mobile-app-wrapper {
+        background-color: #0f172a;
+    }
+}
+
+@media (min-width: 1024px) {
+    .mobile-app-wrapper {
+        background-color: #ffffff;
+    }
+}
+
+.admin-app-wrapper {
+    width: 100%;
+    min-height: 100dvh;
+    position: relative;
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", sans-serif;
+}
+
+/* Standalone printable documents must not inherit the 480px mobile frame. */
+.guide-document-wrapper {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    overflow: visible;
+    background: #ffffff;
+}
+
+@media print {
+    .guide-document-wrapper {
+        width: auto !important;
+        min-height: 0;
+        margin: 0 !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+    }
+}
+
+.admin-app-wrapper .font-sans,
+.admin-app-wrapper input,
+.admin-app-wrapper button,
+.admin-app-wrapper select,
+.admin-app-wrapper textarea {
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", sans-serif !important;
+}
+
+.magazine-card {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+/* Magazine slider in prose content: eliminate gap with preceding paragraph.
+   Prose p gets margin-bottom (1.14em~1.33em depending on size). Kill it when
+   the next sibling is our slider — and reset the slider's own top margin. */
+.prose > *:has(+ .magazine-slider-container) {
+    margin-bottom: 0 !important;
+}
+
+.prose > *:has(+ .magazine-slider-container) > *:last-child {
+    margin-bottom: 0 !important;
+}
+
+.prose > .magazine-slider-container {
+    margin-top: 0 !important;
+}
+
+.text-shadow-sm {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.review-card {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Material Symbols — FOUT prevention.
+   The @font-face is served from Google Fonts with display=block (see index.html),
+   which hides the text for ~3s while the font loads instead of showing the
+   ligature literal (e.g. "menu", "close"). Below we additionally hide the text
+   visually until the font is confirmed loaded via font-display detection. */
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    /* Hide the literal ligature text while font is still downloading.
+       Browser replaces this color once the icon glyphs render. */
+    color: inherit;
+    font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24;
+
+    /* FOUT 방지 및 Layout Shift 방지 */
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    word-wrap: normal;
+    vertical-align: middle;
+}
+
+/* Prevent image download */
+img {
+    -webkit-touch-callout: none;
+    /* iOS Safari */
+    -webkit-user-drag: none;
+    /* Safari */
+    -khtml-user-drag: none;
+    /* Konqueror */
+    -moz-user-drag: none;
+    /* Firefox */
+    -o-user-drag: none;
+    /* Opera */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Move Channel Talk floating launcher above the Bottom Navigation Bar.
+   BottomNav is h-[84px] + iPhone home indicator safe-area (~34px) → need ~100px clearance.
+   IMPORTANT: target ONLY the launcher button. A wildcard like [id^="ch-plugin"] also
+   matches the messenger window container, which pushes the chat panel up by 100px on
+   open and clips the header (close button) off-screen on mobile. */
+@media (max-width: 768px) {
+    #ch-plugin-entry,
+    #ch-plugin-launcher {
+        bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+}
+
+/* LINE quick-chat floating button (FloatingConsultation) — stacks directly ABOVE the
+   Channel Talk launcher so the two never overlap.
+   Launcher: ~54px tall, sits at bottom:24px (desktop) / bottom:100px (mobile, see above).
+   So offset = launcher-bottom + launcher-height(54) + gap(14). */
+.floating-line-btn {
+    position: fixed;
+    right: 20px;
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    z-index: 9999;
+}
+@media (max-width: 768px) {
+    .floating-line-btn {
+        bottom: calc(168px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* PC header: hide the rotating HOT keyword when the logo/search row gets tight. */
+@media (max-width: 1100px) {
+    .mw-hide-narrow {
+        display: none !important;
+    }
+}
+
+/* PC magazine article body (admin-authored HTML) — Claude Design typography. */
+.mw-article {
+    counter-reset: mwsec;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    font-size: 16px;
+    line-height: 2.05;
+    color: #23323D;
+    overflow-wrap: anywhere;
+}
+.mw-article > div {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+.mw-article p {
+    margin: 0;
+}
+.mw-article h2 {
+    counter-increment: mwsec;
+    margin: 28px 0 0;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    font-size: 26px;
+    font-weight: 900;
+    line-height: 1.4;
+    color: #0A1F2E;
+    scroll-margin-top: 90px;
+}
+.mw-article h2::before {
+    content: counter(mwsec, decimal-leading-zero);
+    font-family: 'Pretendard', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1C8571;
+    flex-shrink: 0;
+}
+.mw-article h3 {
+    margin: 4px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.5;
+    color: #0A1F2E;
+    scroll-margin-top: 90px;
+}
+.mw-article h3::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #27AB8F;
+    flex-shrink: 0;
+}
+.mw-article h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0A1F2E;
+}
+.mw-article strong,
+.mw-article b {
+    color: #0A1F2E;
+}
+.mw-article a {
+    color: #1C8571;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.mw-article img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 20px;
+}
+.mw-article ul,
+.mw-article ol {
+    margin: 0;
+    padding-left: 1.4em;
+}
+.mw-article ul {
+    list-style: disc;
+}
+.mw-article ol {
+    list-style: decimal;
+}
+.mw-article li::marker {
+    color: #27AB8F;
+}
+.mw-article blockquote {
+    margin: 0;
+    padding: 18px 22px;
+    border-radius: 20px;
+    background: #F1FCF8;
+    border: 1px solid #D1F6EA;
+    color: #0A1F2E;
+}
+.mw-article table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    line-height: 1.7;
+}
+.mw-article th,
+.mw-article td {
+    padding: 12px 16px;
+    border-top: 1px solid #D1F6EA;
+    text-align: left;
+    vertical-align: top;
+}
+.mw-article th {
+    color: #1C8571;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.mw-article hr {
+    border: 0;
+    border-top: 1px solid #E3E6E2;
+    margin: 12px 0;
+}
+
+.mw-faq summary::-webkit-details-marker {
+    display: none;
+}
+.mw-faq[open] .mw-faq-mark {
+    transform: rotate(45deg);
+}
+.mw-faq-mark {
+    transition: transform 0.2s;
+}
+
+/* Quote page boarding pass: plane flying NRT → UBN. */
+@keyframes mwPlane {
+    0% { left: 0; opacity: 0; }
+    8% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { left: 100%; opacity: 0; }
+}
+@keyframes mwTrail {
+    0% { width: 0; }
+    85% { width: 100%; opacity: 1; }
+    100% { width: 100%; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mw-plane,
+    .mw-trail {
+        animation: none !important;
+    }
+    .mw-plane {
+        left: 50% !important;
+        opacity: 1 !important;
+    }
+}
+
+/* Mobile redesign (Claude Design: "Milkyway Japan Mobile"): horizontal scrollers without a scrollbar. */
+[data-noscroll]::-webkit-scrollbar {
+    display: none;
+}
+
+/* Mobile magazine article body: the PC .mw-article typography scaled for phone widths. */
+.mw-article.mw-article-m { gap: 20px; font-size: 15px; line-height: 1.95; }
+.mw-article.mw-article-m > div { gap: 20px; }
+.mw-article.mw-article-m h2 { margin: 14px 0 0; gap: 10px; font-size: 20px; }
+.mw-article.mw-article-m h2::before { font-size: 12px; }
+.mw-article.mw-article-m h3 { margin: 0; gap: 8px; font-size: 16px; align-items: flex-start; }
+.mw-article.mw-article-m h3::before { width: 7px; height: 7px; margin-top: calc(0.75em - 3.5px); }
+.mw-article.mw-article-m h4 { font-size: 15px; }
+.mw-article.mw-article-m img { border-radius: 16px; }
+.mw-article.mw-article-m iframe, .mw-article.mw-article-m video { max-width: 100%; }
+.mw-article.mw-article-m blockquote { padding: 14px 16px; border-radius: 16px; font-size: 14px; line-height: 1.7; }
+.mw-article.mw-article-m table { font-size: 14px; }
+.mw-article.mw-article-m th, .mw-article.mw-article-m td { padding: 10px 12px; }
+.mw-article.mw-article-m th { white-space: normal; }
+.mw-article.mw-article-m .not-prose { margin: 6px 0; }
+.mw-article.mw-article-m .not-prose h3::before { content: none; }
+.mw-article.mw-article-m .magazine-slider-container { margin: 0; }
+
+/* Mobile redesign: the floating chat buttons step aside while a sheet / drawer is open
+   and on screens whose bottom edge is a sticky action bar (quote form, mate detail). */
+body:has([data-mw-overlay]) .floating-line-btn,
+body:has([data-mw-overlay]) #ch-plugin-entry,
+body:has([data-mw-overlay]) #ch-plugin-launcher,
+body:has([data-mw-actionbar]) .floating-line-btn,
+body:has([data-mw-actionbar]) #ch-plugin-entry,
+body:has([data-mw-actionbar]) #ch-plugin-launcher {
+    display: none !important;
+}

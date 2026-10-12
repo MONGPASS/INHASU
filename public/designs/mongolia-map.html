@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>몽골 여정 지도</title>
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<style>
+  html, body { margin:0; padding:0; background:transparent; overflow:hidden; }
+  body { font-family:"Pretendard", -apple-system, sans-serif; }
+  #stage { position:relative; width:760px; height:990px; transform-origin:top left; }
+  #stage svg { position:absolute; inset:0; width:760px; height:990px; }
+  .bubble { position:absolute; transform:translate(-50%,-50%); width:112px; height:112px;
+            border-radius:50%; overflow:hidden; border:4px solid #06C4A0; box-sizing:border-box;
+            background:#C8FFEF; display:flex; align-items:center; justify-content:center;
+            color:#00332E; font-size:19px; font-weight:800; letter-spacing:-0.03em; text-align:center; }
+  .bubble img { width:100%; height:100%; object-fit:cover; display:block; }
+  .cap { position:absolute; transform:translateX(-50%); display:flex; flex-direction:column;
+         align-items:center; gap:12px; white-space:nowrap; }
+  .pill { padding:9px 22px; border-radius:999px; background:#06C4A0; color:#fff;
+          font-size:19px; font-weight:800; letter-spacing:-0.03em; }
+  .desc { font-size:17px; font-weight:600; color:#029F85; letter-spacing:-0.02em; }
+  .miss { position:absolute; left:0; right:0; bottom:8px; text-align:center; font-size:15px;
+          font-weight:600; color:#0A6558; }
+  .hud { position:absolute; left:0; right:0; top:22px; display:flex; align-items:baseline;
+          justify-content:center; gap:18px; }
+  .hud-km { font-size:40px; font-weight:800; letter-spacing:-0.04em; color:#00332E; line-height:1; }
+  .hud-sub { font-size:17px; font-weight:600; color:#029F85; letter-spacing:-0.02em; }
+  @keyframes popIn { from { opacity:0; transform:scale(0.4); } to { opacity:1; transform:scale(1); } }
+  @keyframes bubIn { from { opacity:0; transform:translate(-50%,-50%) scale(0.86); }
+                     to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  @keyframes lineIn { from { opacity:0; } to { opacity:0.55; } }
+  @keyframes dash { from { stroke-dashoffset:var(--len); } to { stroke-dashoffset:0; } }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+/* 관리자 입력 → 지도 자동 표시
+   ?stops=지역명|설명|사진URL|위도,경도 ; 지역명|설명 ; ...
+   - 등록된 지역명은 이름만으로 자동 표시됩니다 (한국어/일본어 별칭 지원)
+   - 미등록 지역은 마지막 필드에 위도,경도를 직접 입력하면 그 위치에 표시됩니다 */
+const GAZETTEER = {
+  // ── 울란바토르 근교 ──
+  "울란바토르": [106.917, 47.921], "ウランバートル": [106.917, 47.921], "ulaanbaatar": [106.917, 47.921],
+  "칭기스칸공항": [106.767, 47.653],
+  "촌진볼독": [107.530, 47.808], "칭기스칸동상": [107.530, 47.808], "チンギスハーン騎馬像": [107.530, 47.808],
+  "테를지": [107.470, 47.980], "고르키테를지": [107.470, 47.980], "테를지국립공원": [107.470, 47.980],
+  "テレルジ": [107.470, 47.980], "terelj": [107.470, 47.980],
+  "거북바위": [107.455, 47.905], "亀岩": [107.455, 47.905],
+  "아리야발사원": [107.460, 47.950],
+  "만주시리": [106.995, 47.757], "만주시르": [106.995, 47.757],
+  "후스타이": [105.880, 47.780], "호스타이": [105.880, 47.780], "フスタイ": [105.880, 47.780],
+  "자이산": [106.914, 47.887], "ザイサン": [106.914, 47.887], "zaisan": [106.914, 47.887],
+  "간단사원": [106.894, 47.922], "ガンダン寺": [106.894, 47.922],
+  "수흐바타르광장": [106.918, 47.919], "スフバートル広場": [106.918, 47.919],
+  "복드칸궁전": [106.909, 47.899], "ボグドハーン宮殿": [106.909, 47.899],
+  "국립백화점": [106.906, 47.917], "国営百貨店": [106.906, 47.917],
+  // ── 중앙몽골 ──
+  "엘승타사르해": [103.660, 47.330], "미니사막": [103.660, 47.330], "미니고비": [103.660, 47.330], "エルセンタサルハイ": [103.660, 47.330],
+  "카라코룸": [102.845, 47.197], "하르허링": [102.845, 47.197], "하르호린": [102.845, 47.197],
+  "カラコルム": [102.845, 47.197], "ハラホリン": [102.845, 47.197], "kharkhorin": [102.845, 47.197],
+  "에르덴조": [102.845, 47.200], "エルデネゾー": [102.845, 47.200],
+  "어기호수": [102.770, 47.790], "우기호수": [102.770, 47.790], "オギー湖": [102.770, 47.790],
+  "체체를렉": [101.454, 47.475], "아르항가이": [101.454, 47.475], "ツェツェルレグ": [101.454, 47.475],
+  "쳉헤르": [101.730, 47.190], "쳉헤르온천": [101.730, 47.190], "ツェンヘル": [101.730, 47.190], "ツェンヘル温泉": [101.730, 47.190],
+  "타이하르촐로": [101.440, 47.680],
+  "테르힝차강": [99.720, 48.170], "테르힌차강": [99.720, 48.170], "テルヒーンツァガーン湖": [99.720, 48.170],
+  "호르고": [99.850, 48.190], "ホルゴ火山": [99.850, 48.190],
+  "어르헝폭포": [101.960, 46.790], "오르혼폭포": [101.960, 46.790], "オルホン滝": [101.960, 46.790],
+  "톱흥사원": [102.253, 47.013], "투브흥사원": [102.253, 47.013],
+  // ── 북부 ──
+  "홉스굴": [100.170, 51.020], "홉스굴호수": [100.170, 51.020], "フブスグル": [100.170, 51.020], "ホブスグル": [100.170, 51.020], "khuvsgul": [100.170, 51.020],
+  "하트갈": [100.160, 50.440],
+  "무릉": [100.160, 49.640], "므룬": [100.160, 49.640],
+  "아마르바야스갈란트": [105.060, 49.480],
+  "다르항": [105.920, 49.490],
+  "에르데넷": [104.080, 49.030],
+  // ── 고비 ──
+  "바가가즈링촐로": [106.050, 46.200], "바가가즈링출로": [106.050, 46.200], "バガガズリンチョロー": [106.050, 46.200],
+  "만들고비": [106.270, 45.760], "マンダルゴビ": [106.270, 45.760],
+  "옹기사원": [104.030, 45.340], "옹긴사원": [104.030, 45.340],
+  "차강소브라가": [105.780, 44.600], "ツァガーンスワルガ": [105.780, 44.600],
+  "달란자드가드": [104.420, 43.570], "ダランザドガド": [104.420, 43.570],
+  "욜링암": [104.060, 43.490], "욜린암": [104.060, 43.490], "ヨリンアム": [104.060, 43.490], "ヨリーンアム": [104.060, 43.490],
+  "바양작": [103.730, 44.140], "バヤンザグ": [103.730, 44.140], "bayanzag": [103.730, 44.140],
+  "홍고린엘스": [102.150, 43.760], "ホンゴリンエルス": [102.150, 43.760],
+  "고비사막": [103.500, 43.600], "고비": [103.500, 43.600], "ゴビ": [103.500, 43.600], "gobi": [103.500, 43.600],
+  "사인샨드": [110.130, 44.890], "サインシャンド": [110.130, 44.890],
+  "하마린사원": [110.070, 44.600], "하마린히드": [110.070, 44.600],
+  // ── 서부 ──
+  "홉드": [91.640, 48.000],
+  "울기": [89.970, 48.970], "바양울기": [89.970, 48.970],
+  "타왕복드": [87.980, 49.150], "알타이타왕복드": [87.980, 49.150],
+  // ── 추가 별칭: 공식 한국어 표기 + 옛 일본어 표기 (mapDestinations.ts의 ja / jaLegacy와 일치) ──
+  // 기존 상품 데이터에 일본어 지명이 저장돼 있을 수 있어 일본어 키는 지우지 않는다.
+  "칭기스칸국제공항": [106.767, 47.653], "칭기즈칸공항": [106.767, 47.653], "칭기즈칸국제공항": [106.767, 47.653],
+  "チンギスハーン国際空港": [106.767, 47.653], "チンギス・ハーン国際空港": [106.767, 47.653],
+  "칭기스칸기마상": [107.530, 47.808], "칭기즈칸기마상": [107.530, 47.808],
+  "テレルジ国立公園": [107.470, 47.980],
+  "アリヤバル寺院": [107.460, 47.950],
+  "만주시르사원": [106.995, 47.757], "マンズシル寺院": [106.995, 47.757],
+  "후스타이국립공원": [105.880, 47.780], "フスタイ国立公園": [105.880, 47.780],
+  "자이산전망대": [106.914, 47.887], "자이산언덕": [106.914, 47.887], "ザイサンの丘": [106.914, 47.887],
+  "복드칸궁전박물관": [106.909, 47.899], "ボグドハーン宮殿博物館": [106.909, 47.899],
+  "국영백화점": [106.906, 47.917],
+  "에르덴조사원": [102.845, 47.200], "エルデネゾー寺院": [102.845, 47.200],
+  "タイハルチョロー": [101.440, 47.680],
+  "테르힝차강호수": [99.720, 48.170],
+  "호르고화산": [99.850, 48.190],
+  "トゥブフン寺院": [102.253, 47.013],
+  "フブスグル湖": [100.170, 51.020],
+  "ハトガル": [100.160, 50.440],
+  "ムルン": [100.160, 49.640],
+  "아마르바야스갈란트사원": [105.060, 49.480], "アマルバヤスガラント寺院": [105.060, 49.480],
+  "ダルハン": [105.920, 49.490],
+  "エルデネト": [104.080, 49.030],
+  "만달고비": [106.270, 45.760],
+  "オンギ寺院": [104.030, 45.340],
+  "ゴビ砂漠": [103.500, 43.600],
+  "ハマリン寺院": [110.070, 44.600],
+  "ホブド": [91.640, 48.000],
+  "ウルギー": [89.970, 48.970],
+  "タワンボグド": [87.980, 49.150]
+};
+/* 옛 일본어 라벨 → 한국어 표시 라벨.
+   예전에 저장된 경유지(지역명|일본어 라벨)도 지도에는 한국어로 표시한다. */
+const LABEL_KO = {
+  "ウランバートル": "울란바토르", "チンギスハーン国際空港": "칭기스칸 국제공항", "チンギス・ハーン国際空港": "칭기스칸 국제공항",
+  "チンギスハーン騎馬像": "칭기스칸 기마상", "テレルジ国立公園": "테를지 국립공원", "テレルジ": "테를지",
+  "亀岩": "거북바위", "アリヤバル寺院": "아리야발 사원", "マンズシル寺院": "만주시르 사원",
+  "フスタイ国立公園": "후스타이 국립공원", "フスタイ": "후스타이", "ザイサンの丘": "자이산 전망대", "ザイサン": "자이산",
+  "ガンダン寺": "간단 사원", "スフバートル広場": "수흐바타르 광장",
+  "ボグドハーン宮殿博物館": "복드칸 궁전 박물관", "ボグドハーン宮殿": "복드칸 궁전", "国営百貨店": "국영백화점",
+  "エルセンタサルハイ": "엘승타사르해", "カラコルム": "카라코룸", "ハラホリン": "하르호린",
+  "エルデネゾー寺院": "에르덴조 사원", "エルデネゾー": "에르덴조", "オギー湖": "어기 호수",
+  "ツェツェルレグ": "체체를렉", "ツェツェルレグ草原": "체체를렉 초원", "ツェンヘル温泉": "쳉헤르 온천", "ツェンヘル": "쳉헤르",
+  "タイハルチョロー": "타이하르 촐로", "テルヒーンツァガーン湖": "테르힝 차강 호수", "ホルゴ火山": "호르고 화산",
+  "オルホン滝": "어르헝 폭포", "トゥブフン寺院": "톱흥 사원",
+  "フブスグル湖": "홉스굴 호수", "フブスグル": "홉스굴", "ホブスグル": "홉스굴", "ハトガル": "하트갈", "ムルン": "무릉",
+  "アマルバヤスガラント寺院": "아마르바야스갈란트 사원", "ダルハン": "다르항", "エルデネト": "에르데넷",
+  "バガガズリンチョロー": "바가가즈링 촐로", "マンダルゴビ": "만달고비", "オンギ寺院": "옹기 사원",
+  "ツァガーンスワルガ": "차강소브라가", "ダランザドガド": "달란자드가드", "ヨリンアム": "욜링암", "ヨリーンアム": "욜링암",
+  "バヤンザグ": "바양작", "ホンゴリンエルス": "홍고린엘스", "ゴビ砂漠": "고비사막", "ゴビ": "고비",
+  "サインシャンド": "사인샨드", "ハマリン寺院": "하마린 사원",
+  "ホブド": "홉드", "ウルギー": "울기", "タワンボグド": "타왕복드"
+};
+const labelKo = s => LABEL_KO[(s || "").trim()] || s;
+const norm = s => s.replace(/[\s·,]/g, "").toLowerCase();
+function lookup(name) {
+  const k = norm(name);
+  if (GAZETTEER[k]) return GAZETTEER[k];
+  const hit = Object.keys(GAZETTEER).find(g => k.includes(g) || g.includes(k));
+  return hit ? GAZETTEER[hit] : null;
+}
+
+const params = new URLSearchParams(location.search);
+const raw = (params.get("stops") || "울란바토르|울란바토르;체체를렉 초원|체체를렉 초원;쳉헤르 온천|쳉헤르 온천;테를지 국립공원|테를지 국립공원").split(";");
+const missing = [];
+const stops = [];
+const COORD_RE = /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/;
+raw.map(s => s.trim()).filter(Boolean).forEach(entry => {
+  const parts = entry.split("|").map(x => (x || "").trim());
+  const name = parts[0] || "", desc = parts[1] || "";
+  let img = parts[2] || "", coordStr = parts[3] || "";
+  // 사진 없이 좌표만 넣은 경우 (지역명|설명|위도,경도)
+  if (!coordStr && COORD_RE.test(img)) { coordStr = img; img = ""; }
+  let coords = null;
+  if (COORD_RE.test(coordStr)) {
+    const [a, b] = coordStr.split(",").map(Number);
+    // 위도,경도 / 경도,위도 어느 순서로 넣어도 몽골 범위(위도 41~53)로 자동 판별
+    coords = (a >= 41 && a <= 53) ? [b, a] : [a, b];
+  } else {
+    coords = lookup(name);
+  }
+  if (!coords) { missing.push(name); return; }
+  stops.push({ name, desc, img, lon: coords[0], lat: coords[1] });
+});
+stops.forEach((s, i) => { s.no = String(i + 1).padStart(2, "0"); });
+
+const W = 760, H = 990, R = 56, PIN = 17;
+const MAP_TOP = 358, MAP_BOTTOM = 702;
+const stage = d3.select("#stage");
+
+d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json").then(topology => {
+  const countries = topojson.feature(topology, topology.objects.countries).features;
+  const mongolia = countries.find(f => f.properties.name === "Mongolia");
+
+  const projection = d3.geoMercator().fitExtent([[60, MAP_TOP + 6], [700, MAP_BOTTOM - 6]], mongolia);
+  const path = d3.geoPath(projection);
+
+  const svg = stage.append("svg").attr("viewBox", `0 0 ${W} ${H}`)
+    .attr("role", "img").attr("aria-label", "몽골 지도와 여정 경로");
+
+  const defs = svg.append("defs");
+  defs.append("clipPath").attr("id", "band").append("rect")
+    .attr("x", 0).attr("y", MAP_TOP).attr("width", W).attr("height", MAP_BOTTOM - MAP_TOP);
+
+  const geo = svg.append("g").attr("clip-path", "url(#band)");
+  geo.append("g").selectAll("path")
+    .data(countries.filter(f => f.properties.name !== "Mongolia"))
+    .join("path").attr("d", path)
+    .attr("fill", "#F5FFFC").attr("stroke", "#DFFFF4").attr("stroke-width", 1);
+  geo.append("path").datum(mongolia).attr("d", path)
+    .attr("fill", "#C8FFEF").attr("stroke", "#91FEE0").attr("stroke-width", 1.5);
+
+  stops.forEach(s => {
+    const [px, py] = projection([s.lon, s.lat]);
+    s.px = px; s.py = py;
+  });
+
+  // 겹치는 핀은 서로 밀어내 자리 확보 (번호는 각각 유지)
+  // MIN은 핀이 겹쳐 읽기 어려울 때만 최소한으로 밀어내는 거리 —
+  // 크게 잡으면 실제 지리 위치가 왜곡되므로 핀 크기(직경 34px)보다 약간 큰 값 유지
+  const pins = stops.map(s => { const p = { x: s.px, y: s.py, label: s.no, members: [s] }; s.pin = p; return p; });
+  const MIN = 46;
+  for (let it = 0; it < 300; it++) {
+    for (let a = 0; a < pins.length; a++) {
+      for (let b = a + 1; b < pins.length; b++) {
+        const A = pins[a], B = pins[b];
+        let dx = B.x - A.x, dy = B.y - A.y;
+        let d = Math.hypot(dx, dy);
+        if (d < 0.01) { dx = 1; dy = 0.4; d = 1.08; }
+        if (d < MIN) {
+          const push = (MIN - d) / 2 / d;
+          A.x -= dx * push; A.y -= dy * push;
+          B.x += dx * push; B.y += dy * push;
+        }
+      }
+    }
+  }
+
+  // 카드는 지도 위/아래 슬롯에 배치 — 연결선이 경로와 교차하지 않도록 핀의 상하 위치를 따름
+  const midY = (MAP_TOP + MAP_BOTTOM) / 2;
+  const top = stops.filter(s => s.pin.y <= midY).sort((a, b) => a.pin.x - b.pin.x);
+  const bottom = stops.filter(s => s.pin.y > midY).sort((a, b) => a.pin.x - b.pin.x);
+  while (top.length > 3 && bottom.length < 3) bottom.push(top.pop());
+  while (bottom.length > 3 && top.length < 3) top.push(bottom.pop());
+  const colsFor = n => n <= 1 ? [W / 2] : n === 2 ? [210, 550] : [150, 380, 610];
+  const place = (row, y) => {
+    const xs = colsFor(row.length);
+    row.forEach((s, i) => { s.bx = xs[i]; s.by = y; });
+  };
+  place(top, 202);
+  place(bottom, 790);
+
+  // 카드 ↔ 핀 얇은 연결선
+  svg.append("g").selectAll("line").data(stops).join("line").attr("class", "connector")
+    .each(function (d) {
+      const vx = d.bx - d.pin.x, vy = d.by - d.pin.y, len = Math.hypot(vx, vy) || 1;
+      d3.select(this)
+        .attr("x1", d.pin.x + (vx / len) * (PIN + 6)).attr("y1", d.pin.y + (vy / len) * (PIN + 6))
+        .attr("x2", d.bx - (vx / len) * (R + 5)).attr("y2", d.by - (vy / len) * (R + 5));
+    })
+    .attr("stroke", "#06C4A0").attr("stroke-width", 1.2).attr("opacity", 0.55);
+
+  // 이동 경로: 베지어 곡선 + 중간 화살표
+  const legs = [];
+  stops.forEach(s => { if (!legs.length || legs[legs.length - 1] !== s.pin) legs.push(s.pin); });
+
+  const route = svg.append("g");
+  const segs = [];
+  for (let i = 0; i < legs.length - 1; i++) {
+    const a = legs[i], b = legs[i + 1];
+    const dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy) || 1;
+    const ux0 = dx / dist, uy0 = dy / dist;
+    const trim = PIN + 4;
+    const x1 = a.x + ux0 * trim, y1 = a.y + uy0 * trim;
+    const x2 = b.x - ux0 * trim, y2 = b.y - uy0 * trim;
+    const L = Math.hypot(x2 - x1, y2 - y1) || 1;
+    const ux = (x2 - x1) / L, uy = (y2 - y1) / L, nx = -uy, ny = ux;
+    const bow = Math.min(Math.max(L * 0.3, 22), 80);
+    const c1x = x1 + ux * L * 0.28 + nx * bow, c1y = y1 + uy * L * 0.28 + ny * bow;
+    const c2x = x2 - ux * L * 0.28 + nx * bow, c2y = y2 - uy * L * 0.28 + ny * bow;
+
+    const seg = route.append("path")
+      .attr("d", `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`)
+      .attr("fill", "none").attr("stroke", "#029F85").attr("stroke-width", 2.4)
+      .attr("stroke-linecap", "round");
+
+    const node = seg.node(), total = node.getTotalLength();
+    const pm = node.getPointAtLength(total / 2);
+    const pn = node.getPointAtLength(Math.min(total, total / 2 + 1));
+    const ang = Math.atan2(pn.y - pm.y, pn.x - pm.x) * 180 / Math.PI;
+    const arrow = route.append("path")
+      .attr("d", "M-6,-6 L7,0 L-6,6 Z")
+      .attr("fill", "#029F85")
+      .attr("transform", `translate(${pm.x},${pm.y}) rotate(${ang})`);
+    segs.push({ seg, arrow, total });
+  }
+
+  // 이동 거리(지표면 거리 기준)
+  let totalKm = 0;
+  for (let i = 0; i < stops.length - 1; i++) {
+    totalKm += d3.geoDistance([stops[i].lon, stops[i].lat], [stops[i + 1].lon, stops[i + 1].lat]) * 6371;
+  }
+
+  // 민트 원형 핀
+  const pinOuter = svg.append("g").selectAll("g").data(pins).join("g")
+    .attr("transform", d => `translate(${d.x},${d.y})`);
+  const pin = pinOuter.append("g")
+    .style("transform-box", "fill-box").style("transform-origin", "center");
+  pin.append("rect")
+    .attr("x", d => -(Math.max(d.label.length * 9 + 18, PIN * 2)) / 2).attr("y", -PIN)
+    .attr("width", d => Math.max(d.label.length * 9 + 18, PIN * 2)).attr("height", PIN * 2)
+    .attr("rx", PIN)
+    .attr("fill", "#06C4A0").attr("stroke", "#fff").attr("stroke-width", 3);
+  pin.append("text").attr("y", 6).attr("text-anchor", "middle")
+    .attr("font-size", 15).attr("font-weight", 800).attr("fill", "#fff")
+    .text(d => d.label);
+
+  const bub = stage.selectAll(".bubble").data(stops).join("div").attr("class", "bubble")
+    .style("left", d => d.bx + "px").style("top", d => d.by + "px");
+  bub.filter(d => d.img).append("img").attr("src", d => d.img).attr("alt", d => d.name);
+  bub.filter(d => !d.img).append("div").text(d => d.no);
+
+  const cap = stage.selectAll(".cap").data(stops).join("div").attr("class", "cap")
+    .style("left", d => d.bx + "px").style("top", d => (d.by + R + 12) + "px");
+  cap.append("div").attr("class", "pill").text(d => labelKo(d.desc || d.name));
+
+
+  if (missing.length) {
+    stage.append("div").attr("class", "miss")
+      .text("좌표를 찾지 못한 지역: " + missing.join(", ") + " — 「지역명|표시문구|사진URL|위도,경도」 형식으로 좌표를 직접 입력하세요");
+  }
+
+  // 상단 HUD: 이동 거리 · 구간 수
+  const hud = stage.append("div").attr("class", "hud");
+  const kmEl = hud.append("div").attr("class", "hud-km")
+    .text(Math.round(totalKm).toLocaleString("ko-KR") + " km");
+  hud.append("div").attr("class", "hud-sub")
+    .text(`방문지 ${stops.length}곳 · 이동 ${Math.max(stops.length - 1, 0)}구간`);
+
+  // 루트 드로잉 애니메이션 — CSS 애니메이션(초기 상태는 항상 완성된 지도)
+  const STEP = 1.15, DRAW = 1.6;
+  segs.forEach((s, i) => {
+    s.seg.style("--len", s.total).style("stroke-dasharray", s.total);
+    s.delay = i * STEP + 0.55;
+  });
+  let kmTimer = null;
+  function animate() {
+    segs.forEach(s => {
+      s.seg.style("animation", "none");
+      s.arrow.style("animation", "none");
+    });
+    pin.style("animation", "none");
+    bub.style("animation", "none");
+    cap.style("animation", "none");
+    svg.selectAll(".connector").style("animation", "none");
+    void document.getElementById("stage").offsetWidth;
+
+    pin.style("animation", (d, i) => `popIn 0.7s cubic-bezier(.2,1.5,.4,1) ${i * STEP}s both`);
+    bub.style("animation", (d, i) => `bubIn 0.75s ease-out ${i * STEP + 0.3}s both`);
+    cap.style("animation", (d, i) => `fadeIn 0.7s ease-out ${i * STEP + 0.48}s both`);
+    svg.selectAll(".connector").style("animation", (d, i) => `lineIn 0.7s ease-out ${i * STEP + 0.38}s both`);
+    segs.forEach(s => {
+      s.seg.style("animation", `dash ${DRAW}s ease-in-out ${s.delay}s both`);
+      s.arrow.style("animation", `fadeIn 0.5s ease-out ${s.delay + DRAW * 0.6}s both`);
+    });
+
+    const span = (Math.max(segs.length, 1) * STEP + DRAW) * 1000;
+    const t0 = Date.now();
+    if (kmTimer) clearInterval(kmTimer);
+    const write = v => { kmEl.node().textContent = Math.round(v).toLocaleString("ko-KR") + " km"; };
+    write(0);
+    kmTimer = setInterval(() => {
+      const t = Math.min((Date.now() - t0) / span, 1);
+      write(totalKm * (1 - Math.pow(1 - t, 3)));
+      if (t >= 1) { clearInterval(kmTimer); kmTimer = null; }
+    }, 40);
+    setTimeout(() => { if (kmTimer) { clearInterval(kmTimer); kmTimer = null; } write(totalKm); }, span + 300);
+  }
+  animate();
+  const cycle = (Math.max(segs.length, 1) * STEP + DRAW) * 1000 + 3200;
+  setInterval(animate, cycle);
+
+  const fit = () => {
+    const s = document.documentElement.clientWidth / W;
+    const el = document.getElementById("stage");
+    el.style.transform = `scale(${s})`;
+    document.body.style.height = (H * s) + "px";
+  };
+  fit();
+  window.addEventListener("resize", fit);
+});
+</script>
+</body>
+</html>
