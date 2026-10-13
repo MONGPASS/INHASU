@@ -7,10 +7,12 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { BRAND, KAKAO_CHANNEL_CHAT_URL, KAKAO_CHANNEL_URL } from '../../constants/company';
 import { MW, MW_FONT, MW_FONT_EN, isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { useMe } from '../mypage-desktop/useMyPageData';
+import { useProductCategories } from '../../hooks/useProductCategories';
+import { durationLabel } from '../tours-mobile/tourListFilters';
 import { MobileShellContext } from './mobileShellContext';
 import { MobileTabBar } from './MobileTabBar';
 import { D, KAKAO_BUBBLE, KAKAO_INK, KAKAO_YELLOW, M_GRADIENT, M_HAIR, M_TILE, QUICK_MENU } from './mobileTheme';
-import { Ico, QuickMenuBadge, TravellerAvatar } from './mobileUi';
+import { Ico, MPhoto, QuickMenuBadge, TravellerAvatar } from './mobileUi';
 
 /**
  * Mobile app shell (Claude Design: "Milkyway Japan Mobile").
@@ -51,14 +53,15 @@ const NAV_ROW: { label: string; path: string; match: (p: string) => boolean; dot
     { label: '여행 기획전', path: '/promotions', match: (p) => p.startsWith('/promotions'), dot: true },
 ];
 
-const FOOT_GROUPS: { title: string; links: { label: string; path?: string; line?: boolean }[] }[] = [
+/** `word`: 카테고리 랜딩으로 가는 링크 — 그 카테고리가 없으면 이 검색어로 투어 목록을 연다. */
+const FOOT_GROUPS: { title: string; links: { label: string; path: string; word?: string }[] }[] = [
     {
         title: '서비스',
         links: [
             { label: '몽골 여행 가이드', path: '/travel-guide' },
             { label: '몽골 투어 상품 목록', path: '/products' },
-            { label: '몽골 승마 여행', path: '/category/horse-riding-tour' },
-            { label: '고비사막 투어', path: '/category/gobi-desert' },
+            { label: '몽골 승마 여행', path: '/category/horse-riding-tour', word: '승마' },
+            { label: '고비사막 투어', path: '/category/gobi-desert', word: '고비' },
             { label: '동행 찾기', path: '/travel-mates' },
             { label: '맞춤 견적 요청', path: '/custom-estimate' },
         ],
@@ -114,6 +117,24 @@ const writeRecent = (list: string[]) => {
 
 const tokens = (q: string) => q.toLowerCase().split(/\s+/).filter(Boolean);
 
+/** /api/products sends the photo list as an array or a JSON string, in camelCase or snake_case. */
+const firstImage = (v: unknown): string => {
+    if (Array.isArray(v)) return typeof v[0] === 'string' ? v[0] : '';
+    if (typeof v !== 'string' || !v) return '';
+    try {
+        const parsed: unknown = JSON.parse(v);
+        return Array.isArray(parsed) && typeof parsed[0] === 'string' ? parsed[0] : '';
+    } catch {
+        return v.startsWith('/') || v.startsWith('http') ? v : '';
+    }
+};
+
+/** Same haystack as the tour list's ?q= match, so the panel's count equals the list it opens. */
+const searchText = (p: SearchProduct) => {
+    const days = durationLabel(p.duration);
+    return `${p.name} ${p.tags.join(' ')} ${p.category} ${p.duration} ${days} ${days.replace(/\s+/g, '')}`.toLowerCase();
+};
+
 export function MobileShell({ children, home = false, title, onBack, bottomBar, tabBar = true, footer = true }: MobileShellProps) {
     const navigate = useNavigate();
     const location = useLocation();
@@ -148,10 +169,12 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
         return () => ro.disconnect();
     }, []);
 
+    // The HOT word rotates only while the search panel is closed.
     useEffect(() => {
+        if (panelOpen) return;
         const t = window.setInterval(() => setHotIdx((i) => i + 1), 3000);
         return () => window.clearInterval(t);
-    }, []);
+    }, [panelOpen]);
 
     // Tapping anywhere outside the search box closes its panel.
     useEffect(() => {
@@ -182,23 +205,39 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
             if (!Array.isArray(data)) return [];
             return data
                 .filter((p: { status?: string }) => p.status === 'active' || !p.status)
-                .map((p: { id: string; name: string; category?: string; duration?: string; price?: number; tags?: string[]; mainImages?: string[] }) => ({
+                .map((p: { id: string; name: string; category?: string; duration?: string; price?: number; tags?: string[]; mainImages?: unknown; main_images?: unknown }) => ({
                     id: p.id,
                     name: (p.name || '').trim(),
                     category: p.category || '',
                     duration: p.duration || '',
                     price: p.price || 0,
                     tags: Array.isArray(p.tags) ? p.tags : [],
-                    image: p.mainImages?.[0] || '',
+                    image: firstImage(p.mainImages) || firstImage(p.main_images),
                 }));
         },
     });
+
+    // Footer links to a category landing fall back to a tour search when that category is not set up.
+    const categories = useProductCategories(footer && foot === 0);
+    const categoriesLoaded = queryClient.getQueryState(['productCategories'])?.status === 'success';
+    const footPath = (l: { path: string; word?: string }) => {
+        const word = l.word;
+        if (!word) return l.path;
+        const slug = l.path.split('/').pop();
+        const hit = categories.find((c) => c.id === slug) || categories.find((c) => c.name.includes(word));
+        if (hit) return `/category/${hit.id}`;
+        return categoriesLoaded ? `/products?q=${encodeURIComponent(word)}` : l.path;
+    };
 
     const q = text.trim();
     const fix = FIXES[q.toLowerCase()] || '';
     const results = useMemo(() => {
         const toks = tokens(fix || q);
-        return toks.length ? products.filter((p) => toks.every((k) => `${p.name} ${p.category} ${p.duration} ${p.tags.join(' ')}`.toLowerCase().includes(k))) : [];
+        if (!toks.length) return [];
+        return products.filter((p) => {
+            const hay = searchText(p);
+            return toks.every((k) => hay.includes(k));
+        });
     }, [products, q, fix]);
     const hot = HOT_WORDS[hotIdx % HOT_WORDS.length];
 
@@ -210,14 +249,26 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
         window.scrollTo(0, 0);
     };
 
-    const runSearch = (raw: string) => {
+    const remember = (raw: string) => {
         const word = raw.trim();
-        if (!word) return;
+        if (!word) return '';
         const next = [word, ...recent.filter((x) => x !== word)].slice(0, 6);
         setRecent(next);
         writeRecent(next);
+        return word;
+    };
+
+    const runSearch = (raw: string) => {
+        const word = remember(raw);
+        if (!word) return;
         setText(word);
         go(`/products?q=${encodeURIComponent(word)}`);
+    };
+
+    /** A suggested tour opens directly; the word that found it is kept as a recent search. */
+    const openResult = (id: string) => {
+        remember(fix || text);
+        go(`/products/${id}`);
     };
 
     const onSubmit = (e: FormEvent) => {
@@ -359,13 +410,13 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                                                 </button>
                                             )}
                                             {results.slice(0, 5).map((t) => (
-                                                <button key={t.id} type="button" onClick={() => go(`/products/${t.id}`)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
-                                                    <span style={{ width: 48, height: 48, borderRadius: 12, overflow: 'hidden', flexShrink: 0, background: MW.chip }}>
-                                                        {isUsableImage(t.image) && <img src={t.image} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+                                                <button key={t.id} type="button" onClick={() => openResult(t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
+                                                    <span style={{ position: 'relative', width: 48, height: 48, borderRadius: 12, overflow: 'hidden', flexShrink: 0, pointerEvents: 'none' }}>
+                                                        <MPhoto src={isUsableImage(t.image) ? t.image : undefined} sizes="48px" />
                                                     </span>
                                                     <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                         <span style={{ fontSize: 14, fontWeight: 700, color: MW.navy, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-                                                        <span style={{ fontSize: 12, color: MW.mute }}>{[t.duration, t.price > 0 ? `${won(t.price)}~` : ''].filter(Boolean).join(' · ')}</span>
+                                                        <span style={{ fontSize: 12, color: MW.mute }}>{[durationLabel(t.duration), t.price > 0 ? `${won(t.price)}~` : ''].filter(Boolean).join(' · ')}</span>
                                                     </span>
                                                 </button>
                                             ))}
@@ -434,9 +485,10 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                                         </button>
                                         {open && (
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '12px 16px', padding: '0 0 18px' }}>
-                                                {g.links.map((l) => (
-                                                    <a key={l.label} href={l.path} onClick={(e) => { e.preventDefault(); if (l.path) go(l.path); }} style={{ fontSize: 13, color: MW.mute, textDecoration: 'none' }}>{l.label}</a>
-                                                ))}
+                                                {g.links.map((l) => {
+                                                    const to = footPath(l);
+                                                    return <a key={l.label} href={to} onClick={(e) => { e.preventDefault(); go(to); }} style={{ fontSize: 13, color: MW.mute, textDecoration: 'none' }}>{l.label}</a>;
+                                                })}
                                             </div>
                                         )}
                                     </div>

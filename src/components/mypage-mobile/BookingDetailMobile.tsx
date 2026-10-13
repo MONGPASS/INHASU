@@ -15,7 +15,7 @@ import { ICON, TONE } from '../mypage-desktop/myPageTheme';
 import { daysUntil } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
 import { D, M_HAIR, M_PAPER } from '../mobile/mobileTheme';
-import { Ico, MLoading, SubPageBar } from '../mobile/mobileUi';
+import { Ico, MLoading, MPhoto, SubPageBar } from '../mobile/mobileUi';
 import { DETAIL_ICON, HISTORY_ICON, softTone } from './tripFormat';
 
 /** Timeline rows shown before "전체 보기". */
@@ -181,8 +181,8 @@ export function BookingDetailMobile() {
                 <Block d={DETAIL_ICON.guide} title="담당 가이드" sub={guide?.name ? undefined : '출발 2주 전까지 확정됩니다'}>
                     {guide?.name ? (
                         <button type="button" onClick={() => setGuideOpen(true)} style={{ ...tile, padding: 16, cursor: 'pointer' }}>
-                            <span style={{ width: 52, height: 52, borderRadius: '50%', overflow: 'hidden', background: `linear-gradient(135deg,${MW.mintDeep} 0%,#3FC2A4 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MW_FONT_EN, fontSize: 17, fontWeight: 600, color: '#FFFFFF', flexShrink: 0 }}>
-                                {isUsableImage(guide.image) ? <img src={guide.image} alt={guide.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : guide.name.charAt(0)}
+                            <span style={{ position: 'relative', width: 52, height: 52, borderRadius: '50%', overflow: 'hidden', background: `linear-gradient(135deg,${MW.mintDeep} 0%,#3FC2A4 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MW_FONT_EN, fontSize: 17, fontWeight: 600, color: '#FFFFFF', flexShrink: 0 }}>
+                                {isUsableImage(guide.image) ? <MPhoto src={guide.image} alt={guide.name} sizes="52px" /> : guide.name.charAt(0)}
                             </span>
                             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 <span style={{ fontSize: 16, fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{guide.name}</span>
@@ -206,7 +206,7 @@ export function BookingDetailMobile() {
                                     <button key={s.day} type="button" onClick={() => acc && setAccModal({ accommodation: acc, day: s.day })} style={{ ...tile, padding: 12, cursor: 'pointer' }}>
                                         <span style={{ position: 'relative', width: 80, height: 80, borderRadius: 14, overflow: 'hidden', background: MW.chip, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             {isUsableImage(img)
-                                                ? <img src={img} alt={acc?.name || ''} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                                ? <MPhoto src={img} alt={acc?.name || ''} sizes="80px" />
                                                 : <Ico d={DETAIL_ICON.bed} size={28} color={MW.mute2} />}
                                         </span>
                                         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>

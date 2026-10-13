@@ -247,7 +247,8 @@ export const TravelGuideDetail: React.FC = () => {
             <>
                 {/* Empty slot where <SEO> sits once loaded: same tree shape, so the shell is not remounted. */}
                 {null}
-                <MobileShell title="여행 매거진">
+                {/* No back bar on the article screen (design): the article carries its own "뒤로" pill. */}
+                <MobileShell>
                     {loading ? (
                         <MLoading />
                     ) : (
@@ -392,7 +393,7 @@ export const TravelGuideDetail: React.FC = () => {
     return (
         <>
             {seo}
-            <MobileShell title="여행 매거진">
+            <MobileShell>
                 <MagazineArticleMobile
                     magazine={magazine}
                     body={renderContent(magazine.content || '')}

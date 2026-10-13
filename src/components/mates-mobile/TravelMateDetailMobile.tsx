@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { KAKAO_CHANNEL_CHAT_URL } from '../../constants/company';
 import { useSpotImages } from '../../hooks/useSpotImages';
 import { MW, MW_FONT_EN, cleanTitle } from '../desktop-primitives/mwTokens';
 import { JoinRequesterList } from '../mates-desktop/JoinRequesterList';
@@ -101,9 +102,15 @@ function MateDetailBody({ p, detail }: { p: MatePost; detail: ReturnType<typeof 
             copyTimer.current = window.setTimeout(() => setCopied(false), 1800);
         }).catch(() => undefined);
     };
+    const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
     const shareMore = () => {
-        if (navigator.share) navigator.share({ title, url: url() }).catch(() => undefined);
+        if (canShare) navigator.share({ title, url: url() }).catch(() => undefined);
         else copy();
+    };
+    // Channel Talk messenger when it has loaded, otherwise the 카카오톡 채널 chat — the button always does something.
+    const consult = () => {
+        if (typeof window.openChannelTalk === 'function') window.openChannelTalk();
+        else window.open(KAKAO_CHANNEL_CHAT_URL, '_blank', 'noopener,noreferrer');
     };
 
     const canPost = !!draft.trim() && !posting;
@@ -168,7 +175,7 @@ function MateDetailBody({ p, detail }: { p: MatePost; detail: ReturnType<typeof 
                     </>
                 )}
                 {join.requesters && <JoinRequesterList count={join.count} requesters={join.requesters} />}
-                <button type="button" onClick={() => window.openChannelTalk?.()} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, border: '1px solid rgba(255,255,255,0.35)', borderRadius: 999, background: 'transparent', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: '#FFFFFF', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <button type="button" onClick={consult} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, border: '1px solid rgba(255,255,255,0.35)', borderRadius: 999, background: 'transparent', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: '#FFFFFF', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                     <Ico d={MATE_ICON.chat} size={16} color="#FFFFFF" />
                     몽골리아 은하수에 여행 상담하기
                 </button>
@@ -290,6 +297,8 @@ function MateDetailBody({ p, detail }: { p: MatePost; detail: ReturnType<typeof 
             <div style={{ margin: '0 16px', padding: '14px 16px', borderRadius: 18, background: M_PAPER, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 14, fontWeight: 900 }}>공유</span>
                 <div style={{ display: 'flex', gap: 6 }}>
+                    {/* The design's LINE button → the phone's own share sheet (카카오톡 등). */}
+                    {canShare && <button type="button" onClick={shareMore} style={shareBtn}>공유하기</button>}
                     <button type="button" onClick={copy} style={{ ...shareBtn, border: `1px solid ${copied ? MW.mint : MW.line}`, background: copied ? MW.mintTint : '#fff', color: copied ? MW.mintDeep : MW.navy }}>{copied ? '✓ 복사됨' : '링크 복사'}</button>
                 </div>
             </div>

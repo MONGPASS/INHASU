@@ -87,6 +87,24 @@ export interface PaymentStepProps {
     onBack: () => void;
 }
 
+/**
+ * What the customer picked in STEP 1 · 2, kept for the summary card of the 완료 screen
+ * (mobile shows it under the confirmation card, as in the design). Amounts are not part of it:
+ * they always come from the saved reservation.
+ */
+export interface BookingSummarySnapshot {
+    product: BookingProduct;
+    isQuote: boolean;
+    start: Date | null;
+    end: Date | null;
+    nights: number;
+    days: number;
+    people: number;
+    baseOption: TourPricingOption | null;
+    accom?: AccommodationOption;
+    vehicle?: VehicleOption;
+}
+
 /** 완료 (/reservation-complete): values read from the saved reservation. */
 export interface CompleteStepProps {
     /** Reservation row id: the 완료 screen links to its My Page detail, where the deposit is reported. */
@@ -97,6 +115,8 @@ export interface CompleteStepProps {
     total: number;
     deposit: number;
     local: number;
+    /** Mobile only: the booking summary card shown under the confirmation card. */
+    summary?: BookingSummarySnapshot;
 }
 
 export const BK_PAGE_BG = '#F4F6F5';

@@ -18,7 +18,7 @@ export function ReviewCardsMobile({ reviews }: { reviews: HomeReview[] }) {
                 {items.map((r, i) => (
                     <a
                         key={r.id || i}
-                        {...linkTo(go, `/reviews/${r.id}`)}
+                        {...linkTo(go, r.id ? `/reviews/${r.id}` : '/reviews')}
                         style={{ flex: '0 0 80%', minWidth: 0, scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column', gap: 12, padding: 20, border: `1px solid ${MW.line}`, borderRadius: 22, background: '#fff', color: MW.navy, boxSizing: 'border-box', textDecoration: 'none' }}
                     >
                         <span style={{ color: MW.star, fontSize: 14, letterSpacing: 2 }} aria-label={`평점 ${r.rating} / 5`}>
