@@ -79,7 +79,7 @@ export function BookingDetailDesktop() {
     const paidPercent = pb && pb.total > 0 ? Math.round((paidAmount / pb.total) * 100) : 0;
 
     // Document links always use the reservation UUID; stored URLs only flag that a document was issued.
-    const itineraryUrl = reservation.itineraryUrl || reservation.itineraryTemplateId ? `/documents/itinerary/${reservation.id}` : '';
+    const itineraryUrl = reservation.itineraryUrl && ['confirmed', 'paid', 'completed'].includes(reservation.status) ? `/documents/itinerary/${reservation.id}` : '';
     const contractUrl = reservation.contractUrl ? `/documents/contract/${reservation.id}` : '';
 
     const guide = reservation.assignedGuide;

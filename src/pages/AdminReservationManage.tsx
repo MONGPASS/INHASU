@@ -133,6 +133,7 @@ const formatReportTime = (iso?: string) => {
 };
 
 interface ProductSummary {
+    hasItinerary?: boolean;
     id?: string;
     name?: string;
     category?: string;
@@ -588,10 +589,23 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
     const reservationNumber = (reservation as any).reservationNumber || reservation.id;
     // 보안: 고객 문서 링크는 추측 가능한 예약번호(MNxxx)가 아닌 UUID(reservation.id)로 생성
     const itineraryUrl = `${window.location.origin}/documents/itinerary/${reservation.id}`;
+    const itineraryPreviewUrl = `${itineraryUrl}?preview=1`;
     const contractUrl = `${window.location.origin}/documents/contract/${reservation.id}`;
     const selectedTemplate = templatesList.find((t: any) => t.id === editForm.itineraryTemplateId);
     // 일정표 준비됨 = 템플릿 선택 OR 편집기로 직접 작성·저장된 문서 보유
-    const itineraryReady = !!editForm.itineraryTemplateId || !!reservation.documentContent;
+    const reservationProduct = reservation.productId ? products.find(p => p.id === reservation.productId) : products.find(p => p.name === reservation.productName);
+    const itineraryReady = !!editForm.itineraryTemplateId || !!reservation.documentContent || !!reservationProduct?.hasItinerary;
+    const itineraryCanPublish = ['confirmed', 'paid', 'completed'].includes(reservation.status);
+    const publishItinerary = () => api.documents.itinerary.publish(reservation.id);
+    const copyItineraryLink = async () => {
+        try {
+            await publishItinerary();
+            await navigator.clipboard.writeText(itineraryUrl);
+            onUpdate({ ...reservation, itineraryUrl });
+            setCopiedDocId('itinerary');
+            setTimeout(() => setCopiedDocId(null), 1500);
+        } catch (e: any) { alert(`공유 실패: ${e.message || e}`); }
+    };
     const contractTravelers = editForm.contractData?.travelers || [];
     const contractHasTravelers = contractTravelers.length > 0 && !!contractTravelers[0]?.name;
     const contractAgreement = editForm.contractData?.agreement;
@@ -707,12 +721,16 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
     };
 
     const copyCustomerMessage = async (kind: 'itinerary' | 'contract' | 'final') => {
-        const url = kind === 'contract' ? contractUrl : itineraryUrl;
-        const title = kind === 'contract' ? '해외여행 계약서' : kind === 'itinerary' ? '확정 일정표' : '출발 전 최종 안내';
-        const body = `${reservation.customerName || '고객'} 님\n\n안녕하세요. ${BRAND.name}입니다.\n${reservation.productName}의 ${title}를 준비했습니다.\n아래 링크에서 내용을 확인해 주세요.\n\n${url}\n\n궁금한 점이나 수정을 원하시는 부분이 있으면 이 메시지에 바로 회신해 주세요.`;
-        await navigator.clipboard.writeText(body);
-        setCopiedDocId(`${kind}-message`);
-        setTimeout(() => setCopiedDocId(null), 1500);
+        try {
+            if (kind !== 'contract') await publishItinerary();
+            const url = kind === 'contract' ? contractUrl : kind === 'final' ? `확정 일정표: ${itineraryUrl}\n계약서: ${contractUrl}` : itineraryUrl;
+            const title = kind === 'contract' ? '해외여행 계약서' : kind === 'itinerary' ? '확정 일정표' : '출발 전 최종 안내';
+            const body = `${reservation.customerName || '고객'} 님\n\n안녕하세요. ${BRAND.name}입니다.\n${reservation.productName}의 ${title}를 준비했습니다.\n아래 링크에서 내용을 확인해 주세요.\n\n${url}\n\n궁금한 점이나 수정을 원하시는 부분이 있으면 이 메시지에 바로 회신해 주세요.`;
+            await navigator.clipboard.writeText(body);
+            if (kind !== 'contract') onUpdate({ ...reservation, itineraryUrl });
+            setCopiedDocId(`${kind}-message`);
+            setTimeout(() => setCopiedDocId(null), 1500);
+        } catch (e: any) { alert(`공유 실패: ${e.message || e}`); }
     };
 
     // ── 숙소 수배 의뢰서 (담당자에게 보낼 여행자·항공편·상품 요약) ──
@@ -1091,7 +1109,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
         }
         setSendingItinerary(true);
         try {
-            await sendNotificationEmail(reservation.email, 'ITINERARY_READY', {
+            await publishItinerary();
+            const result = await sendNotificationEmail(reservation.email, 'ITINERARY_READY', {
                 customerName: reservation.customerName,
                 productName: reservation.productName,
                 reservationId: reservationNumber,
@@ -1101,6 +1120,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
                 travelDates: reservation.date,
                 itineraryUrl,
             });
+            if (!result.success) throw result.error || new Error('이메일 발송에 실패했습니다.');
             // 발송됨 플래그 저장 → 고객 마이페이지에서 확정 일정표가 "발송됨"으로 표시됨(itineraryUrl을 플래그로 사용)
             onUpdate({ ...addHistory({ type: 'email', description: '확정 일정표를 고객님께 발송했습니다.', detail: itineraryUrl }), itineraryUrl });
             alert('일정표 안내를 고객에게 발송했습니다.');
@@ -1118,7 +1138,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
         }
         setSendingContract(true);
         try {
-            await sendNotificationEmail(reservation.email, 'CONTRACT_READY', {
+            const result = await sendNotificationEmail(reservation.email, 'CONTRACT_READY', {
                 customerName: reservation.customerName,
                 productName: reservation.productName,
                 reservationId: reservationNumber,
@@ -1128,6 +1148,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
                 travelDates: reservation.date,
                 contractUrl,
             });
+            if (!result.success) throw result.error || new Error('이메일 발송에 실패했습니다.');
             // 발송됨 플래그 저장 → 고객 마이페이지에서 해외여행 계약서가 "발송됨"으로 표시됨(contractUrl을 플래그로 사용)
             onUpdate({ ...addHistory({ type: 'email', description: '해외여행 계약서를 고객님께 발송했습니다.', detail: contractUrl }), contractUrl });
             alert('계약서 안내를 고객에게 발송했습니다.');
@@ -1149,13 +1170,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
             title: string;
             ready: boolean;
             sent: boolean;
-            send: () => Promise<void>;
+            send: () => ReturnType<typeof sendNotificationEmail>;
             history: { type: string; description: string; detail: string };
         }> = [
             {
                 key: 'itinerary',
                 title: '일정표',
-                ready: itineraryReady,
+                ready: itineraryReady && itineraryCanPublish,
                 sent: itinerarySent,
                 send: () => sendNotificationEmail(reservation.email!, 'ITINERARY_READY', {
                     customerName: reservation.customerName,
@@ -1199,14 +1220,17 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
         setSendingContract(readyJobs.some((job) => job.key === 'contract'));
 
         const sentHistories: Array<{ timestamp: string; type: string; description: string; detail: string }> = [];
+        const sentKeys: string[] = [];
         try {
             for (const job of readyJobs) {
-                await job.send();
+                if (job.key === 'itinerary') await publishItinerary();
+                const result = await job.send();
+                if (!result.success) throw result.error || new Error(`${job.title} 이메일 발송에 실패했습니다.`);
+                sentKeys.push(job.key);
                 sentHistories.push({ timestamp: new Date().toISOString(), ...job.history });
             }
 
             // 발송한 문서만 "발송됨" 플래그 저장 → 고객 마이페이지에 발송됨으로 표시
-            const sentKeys = readyJobs.map((job) => job.key);
             onUpdate({
                 ...reservation,
                 ...(sentKeys.includes('itinerary') ? { itineraryUrl } : {}),
@@ -1218,6 +1242,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
             });
             alert(`${readyJobs.map((job) => job.title).join(', ')} 안내를 고객에게 발송했습니다.`);
         } catch (e: any) {
+            if (sentKeys.length) onUpdate({ ...reservation,
+                ...(sentKeys.includes('itinerary') ? { itineraryUrl } : {}),
+                ...(sentKeys.includes('contract') ? { contractUrl } : {}),
+                history: [...(reservation.history || []), ...sentHistories] });
             alert(`통합 발송 실패: ${e.message || e}`);
         } finally {
             setSendingAllDocs(false);
@@ -1996,34 +2024,36 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
                                     ))}
                                 </select>
                             )}
+                            {!itineraryCanPublish && <small>고객 발송과 링크 공유는 예약금 확인 후 예약을 확정하면 가능합니다.</small>}
                             <div className="action-doc-buttons">
+                                <button className="btn btn-sm btn-ghost" disabled={!itineraryReady} onClick={() => window.open(itineraryPreviewUrl + '&autoprint=1', '_blank')}><Icon name="print" />PDF 저장</button>
                                 {!itinerarySent ? (
                                     <>
-                                        <button className="btn btn-sm btn-blue" disabled={!itineraryReady || sendingItinerary} onClick={sendItineraryToCustomer}>
+                                        <button className="btn btn-sm btn-blue" disabled={!itineraryReady || !itineraryCanPublish || sendingItinerary} onClick={sendItineraryToCustomer}>
                                             <Icon name="send" />{sendingItinerary ? '발송 중' : '고객에게 발송'}
                                         </button>
                                         <button className="btn btn-sm btn-ghost" onClick={() => { setActiveDocument('itinerary'); setDocEditorOpen(true); }}>
                                             <Icon name="edit_document" />{reservation.documentContent ? '편집' : '일정표 만들기'}
                                         </button>
-                                        <button className="btn btn-sm btn-ghost" disabled={!itineraryReady} onClick={() => window.open(itineraryUrl, '_blank')}>
+                                        <button className="btn btn-sm btn-ghost" disabled={!itineraryReady} onClick={() => window.open(itineraryPreviewUrl, '_blank')}>
                                             <Icon name="visibility" />미리보기
                                         </button>
-                                        <button className="btn btn-sm btn-ghost" disabled={!itineraryReady} onClick={() => { navigator.clipboard.writeText(itineraryUrl); setCopiedDocId('itinerary'); setTimeout(() => setCopiedDocId(null), 1500); }}>
+                                        <button className="btn btn-sm btn-ghost" disabled={!itineraryReady || !itineraryCanPublish} onClick={copyItineraryLink}>
                                             <Icon name={copiedDocId === 'itinerary' ? 'check' : 'content_copy'} />{copiedDocId === 'itinerary' ? '복사됨' : '링크'}
                                         </button>
                                     </>
                                 ) : (
                                     <>
-                                        <button className="btn btn-sm btn-blue" onClick={() => window.open(itineraryUrl, '_blank')}>
+                                        <button className="btn btn-sm btn-blue" onClick={() => window.open(itineraryPreviewUrl, '_blank')}>
                                             <Icon name="visibility" />미리보기
                                         </button>
                                         <button className="btn btn-sm btn-ghost" onClick={() => { setActiveDocument('itinerary'); setDocEditorOpen(true); }}>
                                             <Icon name="edit_document" />편집
                                         </button>
-                                        <button className="btn btn-sm btn-ghost" onClick={() => { navigator.clipboard.writeText(itineraryUrl); setCopiedDocId('itinerary'); setTimeout(() => setCopiedDocId(null), 1500); }}>
+                                        <button className="btn btn-sm btn-ghost" onClick={copyItineraryLink}>
                                             <Icon name={copiedDocId === 'itinerary' ? 'check' : 'content_copy'} />{copiedDocId === 'itinerary' ? '복사됨' : '링크'}
                                         </button>
-                                        <button className="btn btn-sm btn-ghost" disabled={sendingItinerary} onClick={sendItineraryToCustomer}>
+                                        <button className="btn btn-sm btn-ghost" disabled={!itineraryCanPublish || sendingItinerary} onClick={sendItineraryToCustomer}>
                                             <Icon name="forward_to_inbox" />{sendingItinerary ? '발송 중' : '재발송'}
                                         </button>
                                     </>
@@ -2098,9 +2128,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
                             <span><b>고객 안내문 복사</b><small>일정표와 계약서 링크를 함께 복사합니다.</small></span>
                             <Icon name="chevron_right" />
                         </button>
-                        <button className="action-link" onClick={() => { navigator.clipboard.writeText(itineraryUrl); setCopiedDocId('itinerary'); }}>
+                        <button className="action-link" onClick={copyItineraryLink}>
                             <Icon name="link" />
-                            <span><b>고객 페이지 링크</b><small>마이페이지에서 동일한 문서를 확인합니다.</small></span>
+                            <span><b>공개하고 고객 링크 복사</b><small>고객 마이페이지에서 같은 일정표를 확인합니다.</small></span>
                             <Icon name="chevron_right" />
                         </button>
                     </div>
@@ -2303,6 +2333,9 @@ export const AdminReservationManage: React.FC = () => {
                     category: p.category,
                     thumbnail: p.thumbnail,
                     mainImages: p.mainImages ?? p.main_images,
+                    hasItinerary: [p.itineraryBlocks ?? p.itinerary_blocks, p.itineraryImages ?? p.itinerary_images].some(value => {
+                        try { return (typeof value === 'string' ? JSON.parse(value) : value)?.length > 0; } catch { return false; }
+                    }),
                 })));
             }
 

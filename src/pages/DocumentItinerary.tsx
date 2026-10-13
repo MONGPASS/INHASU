@@ -99,7 +99,22 @@ interface GuideExtra {
     memos?: string[];
 }
 
+// 이미 발송한 고객 링크도 기존 INHASU A4 문서로 연결한다. 가이드용 사본은 유지한다.
 export const DocumentItinerary: React.FC = () => {
+    const { reservationId } = useParams();
+    const [params] = useSearchParams();
+    const guideMode = params.get('guide') === '1';
+    useEffect(() => {
+        if (guideMode || !reservationId) return;
+        const query = new URLSearchParams({ reservationId });
+        if (params.get('preview') === '1') query.set('preview', '1');
+        if (params.get('autoprint') === '1') { query.set('m', '0'); query.set('print', '1'); }
+        window.location.replace(`/확정일정표?${query}`);
+    }, [reservationId, params, guideMode]);
+    return guideMode ? <GuideDocumentItinerary /> : <p style={{ padding: 40, textAlign: 'center' }}>확정 일정표를 여는 중…</p>;
+};
+
+const GuideDocumentItinerary: React.FC = () => {
     const { reservationId } = useParams();
     const [searchParams] = useSearchParams();
     const guideMode = searchParams.get('guide') === '1';
