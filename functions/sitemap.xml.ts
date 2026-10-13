@@ -135,10 +135,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         let magazinesResult;
         try {
             magazinesResult = await context.env.DB.prepare(
-                "SELECT id, updated_at, thumbnail FROM magazines WHERE is_published = 1 OR is_active = 1"
+                "SELECT id, updated_at, thumbnail FROM magazines WHERE is_published = 1"
             ).all();
         } catch (e) {
-            // column 'is_published' or 'is_active' may differ depending on migrations, fallback to all:
+            // 표가 아직 준비되지 않은 환경이면 조건 없이 다시 시도한다:
             try {
                 magazinesResult = await context.env.DB.prepare("SELECT id, updated_at, thumbnail FROM magazines").all();
             } catch (err) {

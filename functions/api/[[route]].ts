@@ -1,7 +1,16 @@
 import { Hono } from 'hono';
 import { handle } from 'hono/cloudflare-pages';
+import { siteSchemaReady } from '../lib/siteSchema';
 
 const app = new Hono().basePath('/api');
+
+// 사이트 표(상품·예약·배너 등)가 준비됐는지 서버 인스턴스마다 한 번 확인한다.
+// 처음 배포한 데이터베이스면 이때 표가 만들어진다 — functions/lib/siteSchema.ts
+app.use('*', async (c, next) => {
+    const db = (c.env as any)?.DB;
+    if (db) await siteSchemaReady(db);
+    await next();
+});
 
 app.get('/', (c) => {
     return c.json({ message: 'Mongolia Milkyway API' });

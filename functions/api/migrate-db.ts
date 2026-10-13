@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAdmin } from '../lib/adminAuth';
+import { ensureSiteSchema } from '../lib/siteSchema';
 
 type Env = {
     DB: any;
@@ -10,6 +11,14 @@ const app = new Hono<{ Bindings: Env }>();
 // Stays a GET so a signed-in admin can run it by opening /api/migrate-db in the browser.
 app.get('/', requireAdmin, async (c) => {
     let migrationResults: string[] = [];
+
+    // 사이트 표가 없으면 만들고, 빠진 칸을 더한다(functions/lib/siteSchema.ts 가 원본).
+    // 아래의 개별 ALTER/CREATE 는 옛 환경용으로 남겨 둔 것이며, 이 단계가 끝나면 모두 "이미 있음"으로 건너뛴다.
+    try {
+        migrationResults.push(...(await ensureSiteSchema(c.env.DB)));
+    } catch (e: any) {
+        migrationResults.push(`Site schema failed: ${e.message}`);
+    }
 
     // Add reservation_number column to reservations table
     try {
