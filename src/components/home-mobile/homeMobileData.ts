@@ -1,28 +1,9 @@
 import { useCallback, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { useHeroBanners } from '../../hooks/useHeroBanners';
 import { BRAND } from '../../constants/company';
 import { won } from '../desktop-primitives/mwTokens';
 import type { HomeProduct } from '../home-desktop/homeDesktopData';
-
-interface ApiBanner {
-    id: string;
-    image?: string;
-    image_url?: string;
-    pc_image?: string;
-    pcImage?: string;
-    tag?: string;
-    title?: string;
-    subtitle?: string;
-    link?: string;
-    pc_title?: string;
-    pcTitle?: string;
-    pc_subtitle?: string;
-    pcSubtitle?: string;
-    pc_tag?: string;
-    pcTag?: string;
-}
 
 export interface HeroSlide {
     key: string;
@@ -90,18 +71,9 @@ const FALLBACK: HeroSlide = {
 
 /** Hero slides from the admin's main banners (mobile copy first, PC copy as a fallback). */
 export function useHeroSlides(products: HomeProduct[]) {
-    const { data: banners, isLoading } = useQuery<ApiBanner[]>({
-        queryKey: ['heroBannersMobile'],
-        queryFn: async () => {
-            const data = await api.banners.get();
-            return Array.isArray(data?.banners) ? data.banners : [];
-        },
-        staleTime: 1000 * 60 * 5,
-        refetchOnWindowFocus: 'always',
-        refetchInterval: 60_000,
-    });
+    const { data: banners, isPending, isError, refetch } = useHeroBanners();
 
-    const slides: HeroSlide[] = !banners || banners.length === 0
+    const slides: HeroSlide[] = !banners ? [] : banners.length === 0
         ? [FALLBACK]
         : banners.slice(0, 6).map((b, i) => {
             const path = toPath(b.link);
@@ -123,5 +95,5 @@ export function useHeroSlides(products: HomeProduct[]) {
             };
         });
 
-    return { slides, isLoading };
+    return { slides, isLoading: isPending, isError: isError && !banners, refetch };
 }
