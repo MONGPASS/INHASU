@@ -5,19 +5,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
-import { build } from 'esbuild';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-async function loadSiteSchema() {
-    const out = await build({
-        entryPoints: [path.join(root, 'functions/lib/siteSchema.ts')],
-        bundle: true, format: 'esm', write: false, logLevel: 'silent',
-    });
-    return import('data:text/javascript;base64,' + Buffer.from(out.outputFiles[0].text).toString('base64'));
-}
+// Node 가 타입 표기를 걷어 내고 .ts 를 바로 읽는다(22.18+). 그래서 siteSchema.ts 는 npm 패키지를 import 하지 않는다.
+let loads = 0;
+const loadSiteSchema = () => import(pathToFileURL(path.join(root, 'functions/lib/siteSchema.ts')).href + '?' + (loads += 1));
 
 // node:sqlite 위의 최소 D1 흉내 (prepare/bind/first/all/run/batch)
 function makeD1() {
