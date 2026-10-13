@@ -104,7 +104,7 @@ export const CategoryPage: React.FC = () => {
     // ─── Structured Data (JSON-LD) for SEO ──────────────────────────
     const seoDescription = category.landing_hero_subtitle || category.description || `${category.name} 몽골 투어를 안내합니다.`;
     const seoUrl = `${SITE_URL}/category/${slug}`;
-    const heroOgImage = heroImages[0]?.startsWith('http') ? heroImages[0] : undefined;
+    const heroOgImage = heroImages[0] || undefined;
 
     const breadcrumbLd = {
         '@context': 'https://schema.org',
@@ -141,9 +141,10 @@ export const CategoryPage: React.FC = () => {
     return (
         <>
             <SEO
-                title={category.name}
+                title={`${category.name} 몽골 여행·투어`}
                 description={seoDescription}
                 canonical={`/category/${slug}`}
+                robots={!isLoadingProducts && products.length === 0 ? 'noindex, follow' : undefined}
                 image={heroOgImage}
                 structuredData={[collectionLd, breadcrumbLd, itemListLd]}
             />

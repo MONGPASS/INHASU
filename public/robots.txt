@@ -1,7 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /*.cm
-Disallow: /admin/
+# Account and customer documents send noindex through their HTML/HTTP headers.
+# Allow crawling those pages so search engines can actually read that rule.
 Disallow: /shop_view
 Disallow: /*?idx=
 

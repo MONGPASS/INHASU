@@ -15,6 +15,7 @@ export function useProductCategories(enabled = true) {
         queryKey: ['productCategories'],
         enabled,
         staleTime: 1000 * 60 * 60,
+        refetchOnWindowFocus: 'always',
         queryFn: async () => {
             const data = await api.categories.list();
             const rows: CategoryRow[] = Array.isArray(data) ? data : [];
