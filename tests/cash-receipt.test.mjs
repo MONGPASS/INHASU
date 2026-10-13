@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const read = name => readFileSync(new URL(`../${name}`, import.meta.url), "utf8");
+const read = name => readFileSync(new URL(`../public/${name}`, import.meta.url), "utf8");
 
 const { cashReceiptPayload } = new Function(`${read("booking.js")}\nreturn { cashReceiptPayload };`)();
 
@@ -39,7 +39,7 @@ test("PC 예약관리의 가이드 시트 PDF가 저장된 최신 예약을 사�
 });
 
 test("모바일 관리자도 별도 버튼 없이 가이드 시트 PDF에서 영수증을 출력한다", () => {
-  const mobile = read("admin-mobile.html");
+  const mobile = read("견적관리-모바일.html");
   assert.match(mobile, />가이드 시트 PDF<\/button>/);
   assert.match(mobile, /App\.docGuideSheet = id/);
   assert.match(mobile, /leaders_guide_sheet_print/);

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { onRequestGet as getData } from "../functions/api/data/[key].js";
 
-const read = name => readFileSync(new URL(`../${name}`, import.meta.url), "utf8");
+const read = name => readFileSync(new URL(`../public/${name}`, import.meta.url), "utf8");
 
 function dataEnv(data) {
   return {

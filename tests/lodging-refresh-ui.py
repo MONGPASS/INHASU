@@ -63,7 +63,7 @@ with sync_playwright() as p:
  assert '등록된 Birga 주소' in page.locator('.res-card').inner_text()
  assert '설명을 추가하세요' not in page.locator('.res-card').inner_text()
  page.screenshot(path=str(out/'catalog-desktop.png'))
- page.goto(base+'admin-mobile.html');page.wait_for_function('typeof App !== "undefined"')
+ page.goto(base+'견적관리-모바일.html');page.wait_for_function('typeof App !== "undefined"')
  page.evaluate("PGS.resTab='lodges';App.openPage('res')")
  page.locator('.res-card').wait_for();assert '등록된 Birga 주소' in page.locator('.res-card').inner_text()
  assert '설명을 추가하세요' not in page.locator('.res-card').inner_text()

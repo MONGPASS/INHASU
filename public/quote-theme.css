@@ -1,0 +1,118 @@
+/* ═══════════════════════════════════════════════════════════
+   몽골리아 은하수 · 견적 고객 화면 공용 테마
+   - 사이트(React) 디자인 토큰과 같은 값: src/components/desktop-primitives/mwTokens.ts
+   - 내견적 / 계약서 / 여행자정보 / 견적서 / 확정일정표 / 일정지도 / 확정안내가 함께 씁니다.
+   - 각 페이지의 <style> 보다 먼저 로드되므로, 페이지 고유 규칙이 이 파일을 덮어쓸 수 있습니다.
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --mw-navy: #0A1F2E;
+  --mw-navy-soft: #0F2A3B;
+  --mw-ink2: #23323D;
+  --mw-ink3: #33434F;
+  --mw-mute: #5C6B75;
+  --mw-mute2: #8A9895;
+  --mw-line: #E3E6E2;
+  --mw-line2: #D6DBD8;
+  --mw-line3: #EEF0EC;
+  --mw-chip: #F1F3F2;
+  --mw-paper: #F7FAF9;
+  --mw-page: #F4F6F5;
+  --mw-mint: #27AB8F;
+  --mw-mint-hover: #3FC2A4;
+  --mw-mint-deep: #1C8571;
+  --mw-mint-light: #6DDBBE;
+  --mw-mint-tint: #D1F6EA;
+  --mw-mint-bd: #A6E8D4;
+  --mw-mint-bg: #F1FCF8;
+  --mw-red: #D93A2B;
+  --mw-red-deep: #B3261E;
+  --mw-red-bg: #FDECEA;
+  --mw-warn-bg: #FFF2DC;
+  --mw-warn-fg: #9A5B00;
+  --mw-kakao: #FEE500;
+  --mw-kakao-ink: #191919;
+  --mw-font: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --mw-font-en: 'Pretendard', sans-serif;
+}
+
+/* ── 사이트 헤더 (얇은 한 줄: 워드마크 + 투어 상품 · 카카오톡 상담) ── */
+.mw-header { background: #fff; border-bottom: 1px solid var(--mw-line); font-family: var(--mw-font); }
+.mw-header-in { max-width: 1200px; margin: 0 auto; height: 56px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mw-brand { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: var(--mw-navy); text-decoration: none; font-family: var(--mw-font); font-size: 17px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.2; white-space: nowrap; }
+.mw-brand img { width: 30px; height: 30px; border-radius: 9px; object-fit: contain; flex: none; display: block; }
+.mw-brand b, .mw-wordmark b { font-weight: inherit; color: var(--mw-mint); }
+.mw-nav { display: flex; align-items: center; gap: 4px; flex: none; }
+.mw-nav a { display: inline-flex; align-items: center; height: 36px; padding: 0 10px; border-radius: 999px; color: var(--mw-ink3); font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.mw-nav a:hover { color: var(--mw-mint-deep); }
+.mw-nav a.mw-nav-talk { margin-left: 2px; padding: 0 14px; border: 1px solid var(--mw-line); color: var(--mw-navy); background: #fff; }
+.mw-nav a.mw-nav-talk:hover { border-color: var(--mw-mint); color: var(--mw-mint-deep); }
+@media (min-width: 720px) {
+  .mw-header-in { padding: 0 24px; }
+  .mw-brand { font-size: 19px; }
+  .mw-nav a { font-size: 14px; padding: 0 14px; }
+}
+@media (max-width: 359px) {
+  .mw-brand img { display: none; }
+  .mw-nav a { padding: 0 8px; font-size: 12.5px; }
+  .mw-nav a.mw-nav-talk { padding: 0 11px; }
+}
+
+/* ── 사이트 푸터 (상호 · 문의 채널) ── */
+.mw-footer { background: #fff; border-top: 1px solid var(--mw-line); color: var(--mw-mute); font-family: var(--mw-font); font-size: 12px; line-height: 1.8; }
+.mw-footer-in { max-width: 1200px; margin: 0 auto; padding: 26px 16px 32px; display: flex; flex-direction: column; gap: 6px; }
+.mw-wordmark { font-family: var(--mw-font); font-size: 16px; font-weight: 800; letter-spacing: -0.04em; color: var(--mw-navy); white-space: nowrap; }
+.mw-footer p { margin: 0; }
+.mw-footer a { color: var(--mw-ink3); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.mw-footer a:hover { color: var(--mw-mint-deep); }
+.mw-footer .mw-copy { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--mw-line); font-size: 11.5px; color: var(--mw-mute2); }
+@media (min-width: 720px) { .mw-footer-in { padding: 32px 24px 40px; } }
+
+/* ── 문서 화면 상단 조작 바 (견적서 PC · 모바일) ── */
+.customer-bar, .customer-nav {
+  position: sticky; top: 0; z-index: 45; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 14px; background: rgba(255,255,255,.97); border-bottom: 1px solid var(--mw-line); color: var(--mw-navy);
+  font-family: var(--mw-font);
+}
+.customer-bar a, .customer-nav a {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 38px; padding: 0 15px; border-radius: 999px;
+  border: 1px solid var(--mw-line); background: #fff; color: var(--mw-navy); font-size: 13px; font-weight: 700;
+  text-decoration: none; white-space: nowrap; box-sizing: border-box;
+}
+.customer-bar a:hover, .customer-nav a:hover { border-color: var(--mw-mint); color: var(--mw-mint-deep); }
+.customer-bar a.next, .customer-nav a.next { border-color: var(--mw-mint); background: var(--mw-mint); color: var(--mw-navy); }
+.customer-bar a.next:hover, .customer-nav a.next:hover { background: var(--mw-mint-hover); border-color: var(--mw-mint-hover); color: var(--mw-navy); }
+.customer-bar .cb-title, .customer-nav .cb-title { display: inline-flex; align-items: center; gap: 10px; min-width: 0; font-size: 13.5px; font-weight: 800; color: var(--mw-navy); white-space: nowrap; }
+.customer-bar .cb-title a, .customer-nav .cb-title a { height: auto; padding: 0; border: 0; background: none; }
+.customer-bar .cb-title .mw-wordmark, .customer-nav .cb-title .mw-wordmark { display: none; }
+.customer-bar .cb-title .cb-doc, .customer-nav .cb-title .cb-doc { color: var(--mw-ink3); }
+@media (min-width: 640px) {
+  .customer-bar, .customer-nav { padding: 10px 24px; }
+  .customer-bar .cb-title .mw-wordmark, .customer-nav .cb-title .mw-wordmark { display: inline; }
+  .customer-bar .cb-title .cb-doc::before, .customer-nav .cb-title .cb-doc::before { content: ""; display: inline-block; width: 1px; height: 12px; margin-right: 10px; background: var(--mw-line2); vertical-align: -1px; }
+}
+
+/* 관리자·샘플 미리보기 전용 안내 바 (고객 링크에서는 숨김) */
+#printHint { position: sticky; top: 0; z-index: 30; background: var(--mw-mint-bg); border-bottom: 1px solid var(--mw-mint-tint); color: var(--mw-ink3);
+  padding: 10px 18px; font-size: 13px; text-align: center; font-family: var(--mw-font); }
+#printHint b { color: var(--mw-mint-deep); }
+.topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 14px; background: rgba(255,255,255,.97); border-bottom: 1px solid var(--mw-line); color: var(--mw-ink3); font-size: 12.5px; font-family: var(--mw-font); }
+.topbar .tb-links { display: flex; gap: 8px; }
+.topbar a, .topbar button { font: inherit; font-weight: 700; display: inline-flex; align-items: center; height: 34px; padding: 0 13px; border-radius: 999px;
+  border: 1px solid var(--mw-navy); background: var(--mw-navy); color: #fff; cursor: pointer; text-decoration: none; white-space: nowrap; box-sizing: border-box; }
+.topbar .tb-pc { background: #fff; border-color: var(--mw-line); color: var(--mw-navy); }
+
+/* 플로팅 PDF 저장 버튼 */
+.fab { position: fixed; right: 16px; bottom: 18px; z-index: 40; display: inline-flex; align-items: center; gap: 6px; height: 48px; padding: 0 22px;
+  border: none; border-radius: 999px; background: var(--mw-navy); color: #fff; font: 700 14.5px/1 var(--mw-font);
+  box-shadow: 0 8px 20px rgba(10,31,46,0.22); cursor: pointer; }
+.fab:hover { background: var(--mw-navy-soft); }
+
+/* 인쇄(PDF)에는 화면용 장식이 끼어들지 않게 */
+@media print {
+  .mw-header, .mw-footer, .customer-bar, .customer-nav, #printHint, .topbar, .fab { display: none !important; }
+}
+
+/* 숙소 상세(lodging.js 가 그리는 표) — 라벨·링크 색을 사이트 민트로 */
+.lodging-details strong { color: var(--mw-mint-deep) !important; }
+.lodging-details a { color: var(--mw-mint-deep); }

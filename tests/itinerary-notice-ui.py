@@ -80,7 +80,7 @@ with sync_playwright() as p:
     dialog.get_by_role('button',name='닫기',exact=True).click()
     # Mobile entry via normal booking UI; same ledger prevents another send.
     page.set_viewport_size({'width':390,'height':844})
-    page.goto(base+'admin-mobile.html')
+    page.goto(base+'견적관리-모바일.html')
     page.get_by_role('button',name='예약관리',exact=True).click()
     page.locator('.bk-head').first.click()
     page.get_by_role('button',name='확정일정표 알림',exact=True).click()

@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {publicLodge} from '../functions/api/_lodging.mjs';
 import {onRequestGet, onRequestPut} from '../functions/api/data/[key].js';
 const context = vm.createContext({ URL });
-vm.runInContext(readFileSync(new URL('../lodging.js', import.meta.url), 'utf8'), context);
+vm.runInContext(readFileSync(new URL('../public/lodging.js', import.meta.url), 'utf8'), context);
 const L = context.Lodging;
 test('three selected photos retain order; legacy five-image snapshots are not mutated', () => {
  const legacy={img:'/1.jpg',imgs:['/1.jpg','/2.jpg','/3.jpg','/4.jpg','/5.jpg']};

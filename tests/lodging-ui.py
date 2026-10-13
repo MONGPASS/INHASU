@@ -107,7 +107,7 @@ with sync_playwright() as p:
  page.locator('#dSave').click();page.wait_for_function("!document.getElementById('drawer').classList.contains('on')")
  assert store['lodges']['검증 호텔']['grade']=='등록된 4성 호텔'
  # Mobile administrator edits use the same fields without discarding archived photos.
- page.goto(base+'admin-mobile.html');page.wait_for_function('typeof App !== "undefined"')
+ page.goto(base+'견적관리-모바일.html');page.wait_for_function('typeof App !== "undefined"')
  page.evaluate("PGS.resTab='lodges'; App.openPage('res'); App.resEdit('검증 호텔')")
  page.locator('[data-rf="address"]').fill('모바일에서 수정한 주소')
  page.locator('button[onclick="App.lodgePhoto(\'up\',1)"]').click()

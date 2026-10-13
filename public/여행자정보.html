@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>여행자 정보 입력 · 몽골리아 은하수</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/quote-theme.css">
+  <style>
+    /* 사이트(몽골리아 은하수) 예약 입력 화면과 같은 톤 — 토큰·헤더·푸터는 /quote-theme.css */
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--mw-paper);color:var(--mw-navy);font-family:var(--mw-font);-webkit-font-smoothing:antialiased}
+    .wrap{flex:1 0 auto;width:min(720px,calc(100% - 32px));margin:20px auto 56px}
+    .head,.card{background:#fff;border:1px solid var(--mw-line);border-radius:24px}
+    .head{padding:28px}
+    .brand{font-family:var(--mw-font-en);font-weight:600;letter-spacing:.08em;color:var(--mw-mint-deep);font-size:10px}
+    .head h1{font-size:25px;font-weight:800;line-height:1.4;letter-spacing:-.02em;margin:8px 0 8px}
+    .desc{color:var(--mw-mute);line-height:1.7;font-size:14px;word-break:keep-all}
+    .desc b{color:var(--mw-ink3)}
+    .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}
+    .sum{padding:12px 14px;background:var(--mw-paper);border-radius:14px}
+    .sum b{display:block;font-size:11px;font-weight:700;color:var(--mw-mute);margin-bottom:4px}
+    .sum span{font-size:14px;font-weight:800;word-break:keep-all}
+    .card{padding:24px;margin-top:12px;border-radius:20px}
+    .traveler-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+    .traveler-title h2{font-size:17px;font-weight:800;line-height:1.4;margin:0}
+    .type{background:var(--mw-mint-tint);color:var(--mw-mint-deep);border-radius:999px;padding:5px 11px;font-weight:700;font-size:12px;white-space:nowrap}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .full{grid-column:1/-1}
+    label span{display:block;font-size:12px;color:var(--mw-mute);font-weight:700;margin:0 0 7px}
+    input,select{width:100%;height:50px;border:1.5px solid var(--mw-line2);border-radius:14px;padding:0 14px;background:#fff;font:inherit;font-size:15px;color:var(--mw-navy)}
+    textarea{width:100%;min-height:104px;border:1.5px solid var(--mw-line2);border-radius:14px;padding:13px 14px;background:#fff;font:inherit;font-size:15px;line-height:1.7;color:var(--mw-navy);resize:vertical}
+    input::placeholder,textarea::placeholder{color:var(--mw-mute2)}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--mw-mint);box-shadow:0 0 0 3px rgba(39,171,143,.16)}
+    .help{font-size:11.5px;color:var(--mw-mute);margin-top:6px;line-height:1.55}
+    .sec-note{font-size:13px;color:var(--mw-mute);line-height:1.7;margin:-6px 0 14px;word-break:keep-all}
+    .sec-note b{color:var(--mw-ink3)}
+    .subhead{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--mw-mint-bg);border:1px solid var(--mw-mint-tint);border-radius:14px;padding:11px 14px;font-size:13px;font-weight:800;color:var(--mw-mint-deep);margin-top:4px}
+    .subhead small{font-size:11.5px;font-weight:500;color:var(--mw-mute)}
+    .consent{display:flex;gap:12px;align-items:flex-start}
+    .consent input{width:22px;height:22px;margin-top:1px;padding:0;flex:none;accent-color:var(--mw-mint)}
+    .consent label{font-size:13px;line-height:1.65;color:var(--mw-ink3)}
+    .consent label b{color:var(--mw-navy)}
+    .actions{position:sticky;bottom:0;margin-top:14px;padding:14px 0;background:linear-gradient(180deg,rgba(247,250,249,0),#F7FAF9 28%)}
+    button,.back{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;border:0;border-radius:999px;font-family:inherit;font-size:15px;font-weight:700;text-decoration:none;cursor:pointer}
+    .submit{background:var(--mw-navy);color:#fff}
+    .submit:hover{background:var(--mw-navy-soft)}
+    .submit:disabled{opacity:.5;cursor:not-allowed}
+    .back{margin-top:9px;background:#fff;color:var(--mw-navy);border:1px solid var(--mw-line)}
+    .back:hover{border-color:var(--mw-mint);color:var(--mw-mint-deep)}
+    .state{text-align:center;padding:48px 24px}
+    .state .icon{width:64px;height:64px;margin:0 auto;border-radius:20px;background:var(--mw-mint-bg);display:flex;align-items:center;justify-content:center;font-size:30px;line-height:1}
+    .state h2{margin:16px 0 8px;font-size:20px;font-weight:800;line-height:1.4}
+    .state .back{max-width:320px;margin:22px auto 0}
+    .error{color:var(--mw-red-deep);font-size:13px;font-weight:700;margin-top:12px;text-align:center}
+    @media(max-width:600px){.wrap{margin-top:16px}.head{padding:22px 20px}.head h1{font-size:22px}.summary{grid-template-columns:1fr}.card{padding:18px 16px}.grid{grid-template-columns:1fr}.full{grid-column:auto}input,select,textarea{font-size:16px}}
+  </style>
+</head>
+<body>
+<header class="mw-header">
+  <div class="mw-header-in">
+    <a class="mw-brand" href="/" aria-label="몽골리아 은하수 홈"><img src="/favicon.png" alt="" width="30" height="30"><span>몽골리아<b> 은하수</b></span></a>
+    <nav class="mw-nav" aria-label="사이트 메뉴">
+      <a href="/products">투어 상품</a>
+      <a class="mw-nav-talk" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">카카오톡 상담</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="app"><section class="head state"><div class="icon">⏳</div><h2>정보를 불러오고 있어요</h2></section></main>
+<footer class="mw-footer">
+  <div class="mw-footer-in">
+    <span class="mw-wordmark">몽골리아<b> 은하수</b></span>
+    <p>몽골 여행·몽골 투어 전문 현지 여행사 · Mongolia Milky Way</p>
+    <p>문의 · <a href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">카카오톡 채널 상담</a></p>
+    <p class="mw-copy">© 2026 Mongolia Milky Way. All rights reserved.</p>
+  </div>
+</footer>
+<script>
+(() => {
+  const app=document.getElementById("app"), token=new URLSearchParams(location.search).get("t")||"";
+  const esc=s=>String(s??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c]));
+  const fmt=d=>d?String(d).slice(0,10):"-";
+  const showState=(icon,title,desc)=>app.innerHTML=`<section class="head state"><div class="icon">${icon}</div><h2>${esc(title)}</h2><div class="desc">${esc(desc)}</div><a class="back" href="내견적.html?t=${encodeURIComponent(token)}">내 견적으로 돌아가기</a></section>`;
+  const row=(type,t,i)=>`<section class="card traveler" data-index="${i}"><div class="traveler-title"><h2>여행자 ${i+1}</h2><span class="type">${esc(type)}</span></div><div class="grid">
+    <label><span>한글 이름</span><input data-k="nameKo" maxlength="40" autocomplete="name" value="${esc(t.nameKo||"")}" placeholder="홍길동" required></label>
+    <label><span>여권 영문명</span><input data-k="passportName" maxlength="60" autocapitalize="characters" value="${esc(t.passportName||"")}" placeholder="HONG GILDONG" required><div class="help">여권에 적힌 영문명과 띄어쓰기까지 같게 입력해 주세요.</div></label>
+    <label><span>생년월일</span><input data-k="birth" type="date" value="${esc(t.birth||"")}" required></label>
+    <label><span>성별</span><select data-k="gender" required><option value="">선택</option><option ${t.gender==="남"?"selected":""}>남</option><option ${t.gender==="여"?"selected":""}>여</option></select></label>
+    <label><span>연락처${type!=="성인"?" (선택)":""}</span><input data-k="phone" inputmode="tel" maxlength="20" value="${esc(t.phone||"")}" placeholder="010-1234-5678" ${type==="성인"?"required":""}></label>
+    <label><span>여권번호</span><input data-k="passportNo" maxlength="20" autocapitalize="characters" value="${esc(t.passportNo||"")}" placeholder="M12345678" required><div class="help">영문과 숫자만 입력해 주세요.</div></label>
+  </div></section>`;
+
+  // 항공권 정보 — 여행자 카드 위. 발권 전일 수 있어 선택 입력이며, 적으면 24시간 형식으로 검사합니다.
+  const tripCard=(fl,pickupLodge)=>`<section class="card"><div class="traveler-title"><h2>항공권 정보</h2><span class="type">선택 입력</span></div>
+  <div class="sec-note">발권하셨다면 아래 정보를 적어 주세요. 공항 픽업·샌딩 시간을 맞추는 데 사용됩니다. <b>시간은 24시간 기준</b>으로 입력해 주세요. (예: 오후 8시 30분 → 20:30)</div>
+  <div class="grid">
+    <div class="subhead">✈️ 몽골 도착 항공권${fl.inDate?`<small>${esc(fl.inDate)} 도착 예정</small>`:""}</div>
+    <label><span>출발시간 (24시간)</span><input data-f="inDepTime" type="time" value="${esc(fl.inDepTime||"")}"></label>
+    <label><span>도착시간 (24시간)</span><input data-f="inTime" type="time" value="${esc(fl.inTime||"")}"></label>
+    <label class="full"><span>항공편명</span><input data-f="inNo" maxlength="12" autocapitalize="characters" value="${esc(fl.inNo||"")}" placeholder="OM310"></label>
+    <div class="subhead">🛫 몽골 출발 항공권${fl.outDate?`<small>${esc(fl.outDate)} 출발 예정</small>`:""}</div>
+    <label><span>출발시간 (24시간)</span><input data-f="outTime" type="time" value="${esc(fl.outTime||"")}"></label>
+    <label><span>도착시간 (24시간)</span><input data-f="outArrTime" type="time" value="${esc(fl.outArrTime||"")}"></label>
+    <label class="full"><span>항공편명</span><input data-f="outNo" maxlength="12" autocapitalize="characters" value="${esc(fl.outNo||"")}" placeholder="OM309"></label>
+    <label class="full"><span>픽업·샌딩 숙소명 (선택)</span><input data-x="pickupLodge" maxlength="80" value="${esc(pickupLodge||"")}" placeholder="예: 샹그릴라 울란바타르 호텔"><div class="help">울란바타르에서 출발·도착하는 일정이라면 픽업과 샌딩을 해드릴 숙소명을 적어 주세요.</div></label>
+  </div></section>`;
+
+  // 특이사항 — 개인정보 동의 바로 위
+  const noteCard=note=>`<section class="card"><div class="traveler-title"><h2>특이사항</h2><span class="type">선택 입력</span></div>
+  <label><span>여행 중 참고할 내용</span><textarea data-x="travelerNote" maxlength="500" placeholder="예: 고혈압, 다리 불편, 채식주의 등">${esc(note||"")}</textarea>
+  <div class="help">건강 상태·식단·거동 등 미리 알아야 할 내용을 적어 주세요. 여행자가 여러 명이면 이름과 함께 적어 주시면 좋아요. (예: 홍길동 — 고혈압 / 김민지 — 채식)</div></label></section>`;
+
+  async function load(){
+    if(!token) return showState("🔗","링크를 확인해 주세요","담당자에게 받은 고객 전용 링크로 접속해 주세요.");
+    try{
+      const res=await fetch("/api/travelers/"+encodeURIComponent(token),{cache:"no-store"});
+      const j=await res.json(); if(!res.ok||!j.ok) throw new Error(j.error||"정보를 불러오지 못했습니다.");
+      const current=Array.isArray(j.travelers)?j.travelers:[];
+      const done=j.submission&&j.submission.status==="submitted";
+      app.innerHTML=`<section class="head"><div class="brand">MONGOLIA MILKY WAY</div><h1>${done?"여행자 정보 확인·수정":"여행자 정보 입력"}</h1><div class="desc">항공권 발권과 현지 예약에 필요한 정보입니다. <b>여권을 보면서 정확히</b> 입력해 주세요.${done?" 수정한 뒤 다시 제출하면 최신 정보로 반영됩니다.":""}</div><div class="summary"><div class="sum"><b>대표 고객</b><span>${esc(j.name||"-")}</span></div><div class="sum"><b>여행지</b><span>${esc(j.destination||"-")}</span></div><div class="sum"><b>일정</b><span>${esc(fmt(j.depart))} ~ ${esc(fmt(j.return_))}</span></div></div></section>
+        <form id="form">${tripCard(j.flight||{},j.pickupLodge)}${j.types.map((type,i)=>row(type,current[i]||{},i)).join("")}${noteCard(j.travelerNote)}<section class="card"><div class="consent"><input id="consent" type="checkbox"><label for="consent"><b>개인정보 수집·이용에 동의합니다.</b><br>여행 예약, 항공·숙박 등 서비스 제공을 위해 여행자 이름, 생년월일, 연락처, 성별, 여권정보를 수집·이용합니다. 관련 법령 및 여행 종료 후 필요한 보관기간이 지나면 파기합니다.</label></div><div class="error" id="error"></div></section><div class="actions"><button class="submit" id="submit" type="submit">${done?"수정 정보 저장하기":"여행자 정보 제출하기"}</button><a class="back" href="내견적.html?t=${encodeURIComponent(token)}">내 견적으로 돌아가기</a></div></form>`;
+      document.getElementById("form").onsubmit=submit;
+    }catch(e){showState("⚠️","정보를 불러오지 못했어요",e.message||"잠시 후 다시 시도해 주세요.");}
+  }
+  async function submit(e){
+    e.preventDefault(); const btn=document.getElementById("submit"), error=document.getElementById("error"); error.textContent="";
+    if(!document.getElementById("consent").checked){error.textContent="개인정보 수집·이용에 동의해 주세요.";return;}
+    const travelers=[...document.querySelectorAll(".traveler")].map(el=>Object.fromEntries([...el.querySelectorAll("[data-k]")].map(x=>[x.dataset.k,x.value.trim()])));
+    const pick=attr=>Object.fromEntries([...document.querySelectorAll(`[data-${attr}]`)].map(x=>[x.dataset[attr],x.value.trim()]));
+    const flight=pick("f"), extra=pick("x");
+    btn.disabled=true;btn.textContent="안전하게 저장하는 중…";
+    try{const res=await fetch("/api/travelers/"+encodeURIComponent(token),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({consent:true,travelers,flight,pickupLodge:extra.pickupLodge||"",travelerNote:extra.travelerNote||""})});const j=await res.json();if(!res.ok||!j.ok)throw new Error(j.error||"저장하지 못했습니다.");showState("✅","여행자 정보가 제출됐어요","담당자가 확인한 뒤 예약과 발권 절차를 이어서 진행합니다. 변경이 생기면 이 링크에서 다시 수정할 수 있습니다.");}
+    catch(err){error.textContent=err.message||"잠시 후 다시 시도해 주세요.";btn.disabled=false;btn.textContent="여행자 정보 제출하기";error.scrollIntoView({behavior:"smooth",block:"center"});}
+  }
+  load();
+})();
+</script></body></html>

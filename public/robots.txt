@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /*.cm
+Disallow: /admin/
+Disallow: /shop_view
+Disallow: /*?idx=
+
+Sitemap: https://mongolia-milkyway.com/sitemap.xml

@@ -1,0 +1,74 @@
+{
+  "provider": "Higgsfield",
+  "project_id": "aeab66ed-e811-472f-87ca-777807f8b14e",
+  "created": "2026-09-28",
+  "source_policy": "Original high-resolution images generated from text descriptions. User attachments were visual direction only; their pixels are not inputs to these image jobs or the final video.",
+  "images": [
+    {
+      "index": 0,
+      "job_id": "4a230a6e-3a3e-4dd1-bb86-aac86a7ee02a"
+    },
+    {
+      "index": 1,
+      "job_id": "6395f624-a0b2-4be3-b995-09185281fe94"
+    },
+    {
+      "index": 2,
+      "job_id": "e6224bd4-217e-4d2a-89d7-8931057c0250"
+    },
+    {
+      "index": 3,
+      "job_id": "9f5c2163-b6e8-4e02-979e-579b97595597"
+    },
+    {
+      "index": 4,
+      "job_id": "eef7be09-6d85-4230-8e55-2b97e560d44c"
+    },
+    {
+      "index": 5,
+      "job_id": "657ab7f2-b2a6-4efd-9057-e4f13de1ff48"
+    }
+  ],
+  "video": {
+    "job_id": "bbf87cf9-f70d-433c-bdbb-9a306abd6a46",
+    "model": "seedance_2_5",
+    "params": {
+      "model": "seedance_2_5",
+      "mode": "omni_reference",
+      "duration": 24,
+      "aspect_ratio": "21:9",
+      "resolution": "1080p",
+      "generate_audio": false,
+      "count": 1,
+      "folder_id": "aeab66ed-e811-472f-87ca-777807f8b14e",
+      "medias": [
+        {
+          "role": "image",
+          "value": "4a230a6e-3a3e-4dd1-bb86-aac86a7ee02a"
+        },
+        {
+          "role": "image",
+          "value": "6395f624-a0b2-4be3-b995-09185281fe94"
+        },
+        {
+          "role": "image",
+          "value": "e6224bd4-217e-4d2a-89d7-8931057c0250"
+        },
+        {
+          "role": "image",
+          "value": "9f5c2163-b6e8-4e02-979e-579b97595597"
+        },
+        {
+          "role": "image",
+          "value": "eef7be09-6d85-4230-8e55-2b97e560d44c"
+        },
+        {
+          "role": "image",
+          "value": "657ab7f2-b2a6-4efd-9057-e4f13de1ff48"
+        }
+      ],
+      "prompt": "Create a beautiful premium 24-second 3D animated travel film using ONLY these six NEW high-resolution production stills as visual references, in the supplied order. Preserve their sharp clean quality, detailed textures, cinematic lighting and polished 3D animated-film look. NO typography, letters, numbers, captions, subtitles, logos, UI, watermarks or labels of ANY language at any time. Images contain no text; do not invent any. FULL BLEED ultrawide 21:9, no borders. Gentle true character/object motion, not a static slideshow. Keep action primarily on right two-thirds, left side calmer. Six scenes exactly 4 seconds each with clean elegant cuts: 0-4 seconds blue unmarked plane flies gently past a miniature Mongolia globe, clouds drift and globe slowly turns, no giant close-up; 4-8 seconds two horseback travelers ride slowly across Terelj grassland, natural articulated horse walking, swaying grass, subtle camera dolly; 8-12 seconds tan-clad adult sandboards over golden sand, delicate sand spray, distant camels walk, stable face and anatomy; 12-16 seconds Mongolian hosts beside a ger gently welcome visitors with tea, warm smiles, small natural gestures, no body warping; 16-20 seconds travelers sit by flickering campfire, softly glowing gers under the Milky Way, very slow stars and gentle camera drift; 20-24 seconds miniature travel world with blue plane, ger, horse and camels, subtle animal motion and aerial camera. Retain crisp sharp focus, avoid blur, melting, distortion, duplicated limbs, warping or abrupt zoom. Do not reuse any screenshot, advertisement or text-based card. No audio.",
+      "bitrate_mode": "high"
+    }
+  }
+}
