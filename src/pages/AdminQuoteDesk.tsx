@@ -129,6 +129,11 @@ export const AdminQuoteDesk: React.FC = () => {
             flush
             actions={
                 <>
+                    {tool.key === 'inbox' && (
+                        <button type="button" className="btn btn-blue" onClick={() => navigate(quoteDeskHref('builder'))}>
+                            <Icon name="add" />견적 작성
+                        </button>
+                    )}
                     <button type="button" className="btn btn-ghost" onClick={() => navigate('/admin/reservations?type=quote_booking')}>
                         <Icon name="arrow_back" />통합 예약 목록
                     </button>

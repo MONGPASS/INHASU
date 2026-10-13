@@ -2,6 +2,15 @@ import { Context, Next } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { initializeLucia } from './auth';
 
+/** Public catalog reads may include drafts only for a verified admin session. */
+export const hasAdminSession = async (c: Context<{ Bindings: any }>): Promise<boolean> => {
+    const lucia = initializeLucia(c.env.DB);
+    const sessionId = getCookie(c, lucia.sessionCookieName);
+    if (!sessionId) return false;
+    const { session, user } = await lucia.validateSession(sessionId);
+    return !!session && user?.role === 'admin';
+};
+
 /**
  * Admin authentication middleware for Hono.
  * Verifies the session cookie and checks that the user has 'admin' role.

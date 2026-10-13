@@ -9,7 +9,7 @@ import { MagazineListDesktop } from '../components/magazine-desktop/MagazineList
 import { MobileShell } from '../components/mobile/MobileShell';
 import { MagazineListMobile } from '../components/magazine-mobile/MagazineListMobile';
 import { BRAND } from '../constants/company';
-import { SEO_CONSTANTS } from '../constants/seo';
+import { SEO_CONSTANTS, isPublishedMagazine } from '../constants/seo';
 
 const SITE_URL = SEO_CONSTANTS.SITE_URL;
 
@@ -46,6 +46,7 @@ interface RawMagazine {
     tag?: string;
     is_featured: boolean;
     is_active: boolean;
+    is_published?: boolean | number;
     order: number;
 }
 
@@ -73,7 +74,7 @@ export const TravelGuide: React.FC = () => {
                 const magData = await api.magazines.list();
                 if (Array.isArray(magData)) {
                     setMagazines(magData
-                        .filter((m: RawMagazine) => m.is_active ?? true)
+                        .filter(isPublishedMagazine)
                         .sort((a: RawMagazine, b: RawMagazine) => (a.order || 0) - (b.order || 0))
                         .map((m: RawMagazine) => ({
                             id: m.id,

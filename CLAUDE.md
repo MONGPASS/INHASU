@@ -27,7 +27,7 @@
 | SEO 메타 주입 | `functions/[[path]].ts` | SPA 화면에만. 루트의 한글 이름 문서(견적 페이지)는 `isQuoteStaticPage`로 통과 |
 | DB | D1 `DB` = `leaders-requests` 하나 | 견적: `requests`·`kv`·`itinerary_notice_dispatches` / 사이트: `products`·`reservations`·`users` … |
 | 파일 | R2 `FILES`(견적: `uploads/` 비공개, `images/` 공개) · R2 `BUCKET`(사이트 이미지, `/api/images/*` 공개) | **두 버킷을 같은 것으로 묶지 말 것** — 고객 첨부가 공개된다 |
-| 테스트 | `tests/*.test.mjs` (`npm test`, 83건) | 견적 HTML·함수를 문자열/실행으로 검사 |
+| 테스트 | `tests/*.test.mjs` (`npm test`, 121건) | 견적 문서·예약·이미지·SEO와 실제 Cloudflare HTMLRewriter/D1을 검사 |
 
 - 업로드 주소가 둘: 견적은 `/api/upload`(JS), 사이트 이미지는 `/api/site-upload`(Hono, `functions/api/site-upload.ts`).
 - 견적 요청 화면은 React `/custom-estimate` 하나다(`src/components/estimate-desktop/quoteForm.ts`가 선택지·검증·payload의 정본). 접수는 `POST /api/requests`로 들어가 견적 파이프라인을 탄다. 옛 `public/견적요청.html`은 리다이렉트 문서.
@@ -63,7 +63,9 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 사이트 API 응답은 snake_case와 camelCase가 섞여 내려간다(예: `mainImages`와 `main_images`).
 - Channel Talk는 `index.html`의 stub + 지연 로딩. main bundle에 넣지 말 것.
 - 모바일 화면의 사진은 `<img>` 대신 `MPhoto`(`mobile/mobileUi.tsx`)를 쓴다.
-- 이미지 축소(`src/utils/productImage.ts`)는 기본 꺼짐. 은하수 도메인 존에서 Cloudflare Image Transformations를 켠 뒤 `VITE_IMAGE_TRANSFORM=1`로 빌드해야 켜진다(그 전에는 원본 주소 사용).
+- 새 사이트 이미지 업로드는 WebP와 320/640/960/1280px 사본을 R2에 함께 저장한다. URL에 저장된 실제 크기가 들어가며 `productImage.ts`가 그 사본만 srcset에 넣는다. 기존 이미지는 재업로드 전까지 원본을 쓴다. 별도 Cloudflare Image Transformations는 존에서 활성화·검증한 뒤 `VITE_IMAGE_TRANSFORM=1`로만 켠다.
+- 상품의 대표·본문 이미지는 업로드 후 **상품 저장 + 판매중**일 때 공개된다(본문 이미지는 상세에만 표시). 배너는 **변경사항 저장** 후 공개된다. 같은 출처의 열린 홈은 저장 이벤트로 갱신하며, 다른 브라우저는 포커스/최대 60초 조회로 갱신한다.
+- 공개 이미지 `/api/images/*`·`/api/img/images/*`만 immutable 캐시를 허용한다. 견적 고객 첨부 `FILES/uploads/*`와 JSON·관리자 API의 no-store를 풀지 말 것.
 
 ## 4. 화면 구조 메모
 
@@ -79,6 +81,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 
 ## 5. 관리자 (하나로 통합)
 
+- 사이드바는 **대시보드 / 예약 관리 / 견적 관리 / 상품 관리 / 배정·자원 / 여행 자료 / 고객·콘텐츠 / 사이트 관리** 8개 업무로 묶는다. 현재 업무만 펼치며 원래 라우트는 유지한다. 새 견적 작성은 견적 문의 화면의 **견적 작성** 버튼으로 들어간다.
 - **실제 예약 목록** `/admin/reservations`는 상품·수동 예약(`reservations`)과 INHASU 견적 예약(`requests.booking`이 있거나 `status=예약확정`)을 함께 보여 준다. 단순 견적 문의는 예약 건수에 포함하지 않는다. 이전 MILKYWAY 견적 문의는 별도 필터로 유지한다.
 - 견적 예약 요약은 `GET /api/admin/bookings/quote`(Lucia 관리자 세션 필수, no-store)로 읽는다. 금액·예약금·잔금·서명 여부·출발일을 공통 표시 형식으로 바꾸지만 DB 데이터를 복사하거나 이관하지 않는다. 고객 토큰·서명 이미지·여권 정보는 요약에서 제외한다.
 - 견적 예약 상세는 `/admin/quote-desk/bookings?id=...` → `/예약관리?id=...`로 최신 원본을 읽는다. 기존 localStorage 전달 방식과 고객 문서 링크도 유지한다. 새 ID 진입이 실패하면 이전 고객 데이터를 대신 열지 않는다.
@@ -91,6 +94,8 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - **최초 1회**: 통합 DB에는 관리자 계정이 없으므로 `/admin/login`이 "처음 설정" 폼을 띄운다 — 기존 견적 관리자 비밀번호(`ADMIN_TOKEN`) + 새 이메일·비밀번호(`POST /api/auth/admin-setup`, 관리자가 0명일 때만 동작).
 - 휴대폰에서는 React 관리자가 반응형이 아니어서 `/견적관리-모바일`(공유 비밀번호)을 쓴다.
 - 관리자 UI는 한국어. `AdminAccommodationOps`만 몽골어(현지 스태프용).
+- 이미지·홈 공개 검증: `node scripts/check-admin-media.mjs`(npm ci 필요). 로컬 Lucia/SQLite/메모리 R2로 관리자 업로드·상품/배너 저장·초안 비노출·작은 이미지·ETag·Cache API를 검사한다. `--serve`는 8793번 포트의 테스트 관리자 화면을 연다. 운영 DB·R2·발송 서비스에 연결하지 않는다.
+- 검색 기준은 **몽골 여행·몽골 투어**. 공개 상품·매거진·카테고리·기획전은 서버가 메타와 읽을 수 있는 본문을 주입한다. 실제 공개 데이터만 sitemap/상품 schema에 넣고, 숨김·없는 상세는 404, 일시 DB 실패는 재시도 가능한 503으로 응답한다. 관리자·고객 문서·미리보기 호스트는 noindex다. `tests/public-seo.test.mjs`는 Miniflare의 실제 HTMLRewriter/D1도 검증하므로 로컬 루프백 연결이 필요하다.
 
 ## 6. 결제
 
@@ -120,9 +125,9 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - **마이페이지 견적 내역**: 새 견적 요청은 사용자 계정과 연결되지 않는다(매직링크 방식). 브라우저에 저장한 `mw_quote_links`(`estimate-desktop/quoteLinks.ts`)로만 "내 견적" 링크를 다시 보여 준다.
 - **보안 보완**: 견적 문서 페이지의 `esc()`가 이스케이프를 하지 않는다(`견적서*.html`, `확정일정표*.html`, `확정안내.html`, `일정지도.html` — 고객 입력 이름이 innerHTML로 들어감). 견적 API는 공유 토큰 하나 + 시도 제한 없음, 토큰이 URL 쿼리에 실리는 곳이 있다(`/api/file`, `/api/notify-test`).
 - **메일 발신 도메인**: 발신 주소가 아직 `noreply@mongolryokou.com`(Resend 인증 도메인). 새 도메인 인증 후 교체.
-- **SEO**: Search Console에 새 도메인 등록·sitemap 제출, `public/og-image.jpg` 없음, `index.html`의 google-site-verification 재발급.
+- **SEO 운영**: Search Console에 새 도메인 등록·`/sitemap.xml` 제출, `index.html`의 google-site-verification을 실제 소유자 값으로 재발급. OG 기본 이미지는 존재하는 `/img/home/1.webp`를 사용한다. 기술 개선만으로 순위는 보장되지 않으며 실제 상품·일정·여행 정보 등록이 필요하다.
 - `functions/api/auth.ts`는 `ENVIRONMENT !== 'production'`이면 고정 로컬 관리자를 시드한다 — 미리보기 배포에 이 변수가 빠지지 않게 주의.
 
 ---
 
-마지막 업데이트: 2026-10-12 (INHASU 기준으로 MILKYWAY 한국어 버전 병합, 원화·계좌이체·카카오톡·몽골리아 은하수로 전환, 관리자 통합, 견적 요청 화면 통합)
+마지막 업데이트: 2026-10-13 (상품 일정표·실제 예약 통합, 관리자 업무 메뉴 정리, 이미지 업로드·홈 갱신·캐시와 몽골 여행·몽골 투어 SEO 보완)

@@ -1,7 +1,22 @@
 import { Hono } from 'hono';
-import { requireAdmin } from '../lib/adminAuth';
+import { requireAdmin, hasAdminSession } from '../lib/adminAuth';
+import { isPublishedMagazine } from '../../src/constants/seo';
 
 const app = new Hono<{ Bindings: Env }>();
+
+// New articles start as drafts. A flag-free edit keeps the stored publication
+// decision, including a hidden legacy flag; an explicit publish updates both flags.
+const publicationValue = (input: any, existing?: any): 0 | 1 => {
+    const decision = input.is_published != null ? { is_published: input.is_published }
+        : input.is_active != null ? { is_active: input.is_active }
+        : (existing || {});
+    return isPublishedMagazine(decision) ? 1 : 0;
+};
+
+const hasLegacyPublicationColumn = async (db: any): Promise<boolean> => {
+    const columns = await db.prepare('PRAGMA table_info(magazines)').all();
+    return (columns.results || []).some((column: any) => column.name === 'is_active');
+};
 
 /**
  * Extract `src` from a pasted Google Maps iframe HTML, or pass through
@@ -23,7 +38,9 @@ app.get('/', async (c) => {
     const db = c.env.DB;
     try {
         const result = await db.prepare('SELECT * FROM magazines ORDER BY created_at DESC').all();
-        return c.json(result.results);
+        const admin = await hasAdminSession(c);
+        c.header('Cache-Control', 'private, no-store');
+        return c.json(admin ? result.results : (result.results || []).filter(isPublishedMagazine));
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
     }
@@ -36,6 +53,8 @@ app.get('/:id', async (c) => {
     try {
         const result = await db.prepare('SELECT * FROM magazines WHERE id=?').bind(id).first();
         if (!result) return c.json({ error: 'Not found' }, 404);
+        if (!isPublishedMagazine(result) && !(await hasAdminSession(c))) return c.json({ error: 'Not found' }, 404);
+        c.header('Cache-Control', 'private, no-store');
         return c.json(result);
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
@@ -52,12 +71,14 @@ app.post('/', requireAdmin, async (c) => {
         ? data.location_hours
         : (data.location_hours ? JSON.stringify(data.location_hours) : null);
     try {
+        const published = publicationValue(data);
+        const legacy = await hasLegacyPublicationColumn(db);
         await db.prepare(
             `INSERT INTO magazines
                 (id, title, subtitle, content, thumbnail, category, author, author_image, is_published,
                  location_name, location_address, location_phone, location_website,
-                 location_hours, map_embed_url, map_query)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                 location_hours, map_embed_url, map_query${legacy ? ', is_active' : ''})
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${legacy ? ', ?' : ''})`
         ).bind(
             id,
             data.title,
@@ -67,7 +88,7 @@ app.post('/', requireAdmin, async (c) => {
             data.category || '',
             data.author || '',
             data.author_image ?? data.authorImage ?? null,
-            data.is_published ?? 1,
+            published,
             data.location_name ?? data.locationName ?? null,
             data.location_address ?? data.locationAddress ?? null,
             data.location_phone ?? data.locationPhone ?? null,
@@ -75,8 +96,9 @@ app.post('/', requireAdmin, async (c) => {
             locationHours,
             mapEmbedUrl,
             data.map_query ?? data.mapQuery ?? null,
+            ...(legacy ? [published] : []),
         ).run();
-        return c.json({ id, ...data });
+        return c.json({ id, ...data, is_published: published, ...(legacy ? { is_active: published } : {}) });
     } catch (e: any) {
         return c.json({ error: e.message }, 500);
     }
@@ -92,11 +114,15 @@ app.put('/:id', requireAdmin, async (c) => {
         ? data.location_hours
         : (data.location_hours ? JSON.stringify(data.location_hours) : null);
     try {
+        const existing: any = await db.prepare('SELECT * FROM magazines WHERE id=?').bind(id).first();
+        if (!existing) return c.json({ error: 'Not found' }, 404);
+        const published = publicationValue(data, existing);
+        const legacy = Object.prototype.hasOwnProperty.call(existing, 'is_active');
         await db.prepare(
             `UPDATE magazines SET
                 title=?, subtitle=?, content=?, thumbnail=?, category=?, author=?, author_image=?, is_published=?,
                 location_name=?, location_address=?, location_phone=?, location_website=?,
-                location_hours=?, map_embed_url=?, map_query=?,
+                location_hours=?, map_embed_url=?, map_query=?${legacy ? ', is_active=?' : ''},
                 updated_at=datetime('now')
              WHERE id=?`
         ).bind(
@@ -107,7 +133,7 @@ app.put('/:id', requireAdmin, async (c) => {
             data.category || '',
             data.author || '',
             data.author_image ?? data.authorImage ?? null,
-            data.is_published ?? 1,
+            published,
             data.location_name ?? data.locationName ?? null,
             data.location_address ?? data.locationAddress ?? null,
             data.location_phone ?? data.locationPhone ?? null,
@@ -115,6 +141,7 @@ app.put('/:id', requireAdmin, async (c) => {
             locationHours,
             mapEmbedUrl,
             data.map_query ?? data.mapQuery ?? null,
+            ...(legacy ? [published] : []),
             id,
         ).run();
         return c.json({ success: true });

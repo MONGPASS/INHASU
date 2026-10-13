@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import type { HomeData } from '../../hooks/useHomeData';
 import { BRAND } from '../../constants/company';
 import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 
 interface ApiBanner {
     id: string;
@@ -84,6 +85,8 @@ export function HeroCarouselDesktop({ products }: Props) {
             return Array.isArray(data?.banners) ? data.banners : [];
         },
         staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: 'always',
+        refetchInterval: 60_000,
     });
 
     const slides: Slide[] = banners.length === 0
@@ -196,13 +199,12 @@ export function HeroCarouselDesktop({ products }: Props) {
                                 }}
                             >
                                 {isUsableImage(s.img) && (
-                                    <img
+                                    <ResponsiveProductImage
                                         src={s.img}
+                                        sizes="(max-width: 976px) calc(100vw - 96px), 880px"
                                         alt={isPrimary ? `${s.title.replace(/\n/g, ' ')} | ${BRAND.tagline} ${BRAND.name}` : ''}
-                                        // Copies share URLs, so eager loading costs one fetch per banner
-                                        // and neighbours are already painted when they slide in.
-                                        loading="eager"
-                                        fetchPriority={isPrimary && k === 0 ? 'high' : 'auto'}
+                                        loading={isCurrent || pos === offset + 1 ? 'eager' : 'lazy'}
+                                        fetchPriority={isCurrent && k === 0 ? 'high' : 'auto'}
                                         decoding="async"
                                         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                                     />

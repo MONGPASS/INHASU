@@ -20,7 +20,8 @@ export const AdminCategoryManage: React.FC = () => {
                 const productCats = data.filter((c: any) => c.type === 'product' || !c.type);
                 setCategories(productCats.map((c: any) => ({
                     id: c.id,
-                    icon: c.icon,
+                    // Older categories can have no icon; rendering and the edit form need a string.
+                    icon: typeof c.icon === 'string' && c.icon.trim() ? c.icon.trim() : 'category',
                     name: c.name,
                     description: c.description,
                     isActive: c.is_active,

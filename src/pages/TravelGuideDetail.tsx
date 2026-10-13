@@ -15,7 +15,7 @@ import { MobileShell } from '../components/mobile/MobileShell';
 import { MEmpty, MLoading } from '../components/mobile/mobileUi';
 import { MagazineArticleMobile } from '../components/magazine-mobile/MagazineArticleMobile';
 import { BRAND } from '../constants/company';
-import { SEO_CONSTANTS } from '../constants/seo';
+import { SEO_CONSTANTS, isPublishedMagazine } from '../constants/seo';
 
 const SITE_URL = SEO_CONSTANTS.SITE_URL;
 
@@ -43,6 +43,7 @@ interface RawMagazine {
     thumbnail?: string;
     image?: string;
     is_active?: boolean | number | null;
+    is_published?: boolean | number | null;
     order?: number;
 }
 
@@ -89,7 +90,7 @@ export const TravelGuideDetail: React.FC = () => {
                 // 1. Fetch current magazine
                 const magData = await api.magazines.get(id);
 
-                if (!magData) {
+                if (!magData || !isPublishedMagazine(magData)) {
                     console.error('Magazine not found');
                     setLoading(false);
                     return;
@@ -114,7 +115,7 @@ export const TravelGuideDetail: React.FC = () => {
                 const allMagazines = await api.magazines.list();
                 if (Array.isArray(allMagazines)) {
                     setAllMagazines(allMagazines
-                        .filter((m: RawMagazine) => m.is_active ?? true)
+                        .filter(isPublishedMagazine)
                         .sort((a: RawMagazine, b: RawMagazine) => (a.order || 0) - (b.order || 0))
                         .map((m: RawMagazine) => ({
                             id: m.id,

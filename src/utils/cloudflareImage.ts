@@ -1,5 +1,5 @@
 
-import { optimizeImage } from './imageOptimizer';
+import { productImageSet, productImageUrl } from './productImage';
 
 // 전체 사이트의 이미지 용도별 프리셋 정의
 export const IMAGE_PRESETS = {
@@ -54,25 +54,14 @@ export function getOptimizedImageUrl(
         return `${baseUrl}=${params.join('-')}`;
     }
 
-    // Cloudflare Image Resizing 사용
-    // 형식: /cdn-cgi/image/width=X,quality=Y,format=webp/URL
-    // Requires "Image Transformations" to be enabled in the Cloudflare zone.
-    // If disabled, these URLs return 400 and the browser will still attempt the origin
-    // request — meaning a graceful degrade to the original URL is not automatic.
     const options = IMAGE_PRESETS[preset];
 
     // 만약 original 프리셋 등 아무 옵션도 없으면 원본 반환
     if (Object.keys(options).length === 0) return url;
 
-    const quality = (options as any).quality || 80;
-    const fit = (options as any).fit || 'cover';
-    const widthParam = 'width' in options ? `width=${(options as any).width},` : '';
-
-    // Cloudflare expects the source path WITHOUT a leading slash after the options
-    // (otherwise `/cdn-cgi/image/OPT/` + `/api/...` becomes `/cdn-cgi/image/OPT//api/...`
-    // with a double slash and Cloudflare returns 415).
-    const sourcePath = url.startsWith('/') ? url.slice(1) : url;
-    return `/cdn-cgi/image/${widthParam}quality=${quality},format=webp,fit=${fit}/${sourcePath}`;
+    // Use saved sizes for new uploads. Do not send old assets through a disabled
+    // /cdn-cgi/image endpoint; productImageUrl guards the zone's optional service.
+    return productImageUrl(url, 'width' in options ? Number(options.width) : 1720);
 }
 
 /**
@@ -100,15 +89,9 @@ export function getResponsiveImageProps(
     };
 
     const config = configs[type];
-    const srcSetParts = config.presets.map(preset => {
-        const optimizedUrl = getOptimizedImageUrl(url, preset);
-        const width = (IMAGE_PRESETS[preset] as any).width || 1920;
-        return `${optimizedUrl} ${width}w`;
-    });
-
     return {
         src: getOptimizedImageUrl(url, config.presets[1]), // 중간 크기를 기본 src로
-        srcSet: srcSetParts.join(', '),
-        sizes: config.sizes
+        srcSet: productImageSet(url),
+        sizes: productImageSet(url) ? config.sizes : undefined
     };
 }

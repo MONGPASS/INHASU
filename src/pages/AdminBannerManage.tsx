@@ -342,7 +342,7 @@ export const AdminBannerManage: React.FC = () => {
                 <div className="sec-head">
                     <div>
                         <h3>메인 배너</h3>
-                        <div className="cell-muted" style={{ fontSize: 13 }}>홈 상단 슬라이드 배너 · 모바일/PC 이미지 및 문구 설정</div>
+                        <div className="cell-muted" style={{ fontSize: 13 }}>홈 상단 슬라이드 배너 · 이미지와 문구를 수정한 뒤 ‘변경사항 저장’을 누르면 공개됩니다.</div>
                     </div>
                     <div className="spacer" />
                     <button className="btn btn-ink" onClick={addBanner}>
