@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import logoSquare from '../../assets/logo_horizontal.webp';
 import { api } from '../../lib/api';
+import { openKakaoConsultation } from '../../lib/consultation';
 import { useWishlist } from '../../hooks/useWishlist';
 import { useProductCategories } from '../../hooks/useProductCategories';
 import { BRAND } from '../../constants/company';
@@ -158,10 +159,7 @@ export function DesktopHeader() {
         search(text);
     };
 
-    const onConsult = () => {
-        if (typeof window.openChannelTalk === 'function') window.openChannelTalk();
-        else navigate('/custom-estimate');
-    };
+    const onConsult = openKakaoConsultation;
 
     const go = (path: string) => {
         setMenuOpen(false);

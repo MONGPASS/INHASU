@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSpotImages } from '../../hooks/useSpotImages';
+import { openKakaoConsultation } from '../../lib/consultation';
 import { MW, MW_FONT_EN, MW_GRADIENT, MW_STICKY_TOP, cleanTitle, isUsableImage } from '../desktop-primitives/mwTokens';
 import { JoinRequesterList } from './JoinRequesterList';
 import { joinNote, type JoinRequestState } from './joinRequest';
@@ -333,7 +334,7 @@ export function TravelMateDetailDesktop({ post, comments, userId, userName, isOw
                         {join.requesters && <JoinRequesterList count={join.count} requesters={join.requesters} />}
                         <button
                             type="button"
-                            onClick={() => window.openChannelTalk?.()}
+                            onClick={openKakaoConsultation}
                             onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
                             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                             style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, border: '1px solid rgba(255,255,255,0.35)', borderRadius: 999, background: 'transparent', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: '#FFFFFF', cursor: 'pointer' }}

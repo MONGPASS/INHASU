@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { openKakaoConsultation } from '../../lib/consultation';
 import { GuideDetailModal, AccommodationDetailModal } from '../common/DetailModals';
 import { toTourDateKey } from '../../utils/formatDate';
 import {
@@ -304,7 +305,7 @@ export function BookingDetailDesktop() {
                             <span style={{ fontSize: 12, color: MW.mute }}>한국어 담당 직원이 24시간 응대</span>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                            <ContactBtn d={ICON.chat} label="채팅 상담" onClick={() => window.openChannelTalk?.()} />
+                            <ContactBtn d={ICON.chat} label="카카오톡 상담" onClick={openKakaoConsultation} />
                             <ContactBtn d={ICON.mail} label="메일로 문의" href={`mailto:${COMPANY_INFO.email}`} />
                         </div>
                     </div>

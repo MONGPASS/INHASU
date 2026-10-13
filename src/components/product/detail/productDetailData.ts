@@ -440,8 +440,7 @@ export function useRecentlyViewedTours(excludeId: string): RecentlyViewedTour[] 
 
 // ───────────────────────── consultation ─────────────────────────
 
-/** 무료 상담: the Channel Talk messenger when it has loaded, otherwise the 카카오톡 채널 chat. */
+/** 무료 상담: the registered 카카오톡 채널 chat. */
 export function openConsult() {
-    if (typeof window.openChannelTalk === 'function') window.openChannelTalk();
-    else window.open(KAKAO_CHANNEL_CHAT_URL, '_blank', 'noopener,noreferrer');
+    window.open(KAKAO_CHANNEL_CHAT_URL, '_blank', 'noopener,noreferrer');
 }

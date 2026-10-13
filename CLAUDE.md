@@ -61,7 +61,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - `categories` 테이블에는 `updated_at`/`created_at`이 없다 — 시간 기준 정렬/조회 금지.
 - `magazines`는 환경에 따라 `is_published` 또는 `is_active` 컬럼(sitemap이 둘 다 시도).
 - 사이트 API 응답은 snake_case와 camelCase가 섞여 내려간다(예: `mainImages`와 `main_images`).
-- Channel Talk는 `index.html`의 stub + 지연 로딩. main bundle에 넣지 말 것.
+- 고객 상담은 `KAKAO_CHANNEL_CHAT_URL`로 연결한다. Channel Talk SDK는 제거했으므로 다시 로드하지 말 것.
 - 모바일 화면의 사진은 `<img>` 대신 `MPhoto`(`mobile/mobileUi.tsx`)를 쓴다.
 - 새 사이트 이미지 업로드는 WebP와 320/640/960/1280px 사본을 R2에 함께 저장한다. URL에 저장된 실제 크기가 들어가며 `productImage.ts`가 그 사본만 srcset에 넣는다. 기존 이미지는 재업로드 전까지 원본을 쓴다. 별도 Cloudflare Image Transformations는 존에서 활성화·검증한 뒤 `VITE_IMAGE_TRANSFORM=1`로만 켠다.
 - 상품의 대표·본문 이미지는 업로드 후 **상품 저장 + 판매중**일 때 공개된다(본문 이미지는 상세에만 표시). 배너는 **변경사항 저장** 후 공개된다. 같은 출처의 열린 홈은 저장 이벤트로 갱신하며, 다른 브라우저는 포커스/최대 60초 조회로 갱신한다.

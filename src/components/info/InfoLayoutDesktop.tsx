@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { DesktopLayout } from '../layout-desktop/DesktopLayout';
 import { MW, MW_FONT_EN, MW_STICKY_TOP } from '../desktop-primitives/mwTokens';
 import { M_HAIR, M_PAPER } from '../mobile/mobileTheme';
-import { INFO_GROUPS, INFO_PAGES, activeInfoKey, infoEntry, type InfoKey } from './infoNav';
+import { INFO_GROUPS, INFO_NAV_PAGES, activeInfoKey, infoEntry, type InfoKey } from './infoNav';
 
 interface InfoLayoutDesktopProps {
     page: InfoKey;
@@ -49,7 +49,7 @@ export function InfoLayoutDesktop({ page, heading, children }: InfoLayoutDesktop
                     {INFO_GROUPS.map((group) => (
                         <div key={group} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <span style={{ padding: '0 14px 6px', fontSize: 11, fontWeight: 700, color: MW.mute2 }}>{group}</span>
-                            {INFO_PAGES.filter((p) => p.group === group).map((p) => {
+                            {INFO_NAV_PAGES.filter((p) => p.group === group).map((p) => {
                                 const on = p.key === active;
                                 return (
                                     <a
