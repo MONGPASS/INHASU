@@ -6,7 +6,7 @@ import { useMe } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
 import { D } from '../mobile/mobileTheme';
 import { Ico, TravellerAvatar } from '../mobile/mobileUi';
-import { googleLoginUrl, loginReturnPath } from './googleLogin';
+import { googleLoginUrl, loginErrorMessage, loginReturnPath } from './googleLogin';
 
 const PERKS: Array<[string, string]> = [
     ['예약 현황을 언제든 확인', D.calendar],
@@ -25,6 +25,7 @@ export function LoginMobile() {
     const { data: me } = useMe();
     // Back to the page that asked for a login, otherwise on to the my page.
     const target = loginReturnPath(location.state) ?? '/mypage';
+    const errorMessage = loginErrorMessage(location.search);
 
     // Coming back from the OAuth round trip (or the back/forward cache) must not reuse a
     // "logged out" answer cached before the login, so the tab bar can switch to the avatar.
@@ -69,6 +70,12 @@ export function LoginMobile() {
                         </span>
                     ))}
                 </div>
+
+                {errorMessage && (
+                    <div role="alert" style={{ padding: '12px 14px', borderRadius: 14, background: '#FDECEA', border: '1px solid #F5C6C0', fontSize: 13, fontWeight: 700, lineHeight: 1.6, color: MW.redDeep }}>
+                        {errorMessage}
+                    </div>
+                )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <button

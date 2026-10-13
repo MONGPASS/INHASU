@@ -122,8 +122,16 @@ app.post('/login', async (c) => {
     }
 });
 
+/** Google 로그인 중 문제가 생기면 날것의 오류 대신 로그인 화면으로 돌려보내 안내한다. */
+const loginError = (c: any, code: string) => c.redirect(`/login?error=${code}`);
+
 // GET /api/auth/login/google
 app.get('/login/google', async (c) => {
+    // 키가 없으면 Google 쪽 오류 화면(client_id=undefined)으로 가 버리므로 여기서 막는다.
+    if (!c.env.GOOGLE_CLIENT_ID || !c.env.GOOGLE_CLIENT_SECRET) {
+        console.error('Google OAuth is not configured: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing');
+        return loginError(c, 'google_setup');
+    }
     const origin = new URL(c.req.url).origin;
     const callbackUrl = `${origin}/api/auth/login/google/callback`;
     const google = new Google(c.env.GOOGLE_CLIENT_ID, c.env.GOOGLE_CLIENT_SECRET, callbackUrl);
@@ -173,8 +181,10 @@ app.get('/login/google/callback', async (c) => {
     const storedState = getCookie(c, "google_oauth_state");
     const storedCodeVerifier = getCookie(c, "google_code_verifier");
 
+    if (!c.env.GOOGLE_CLIENT_ID || !c.env.GOOGLE_CLIENT_SECRET) return loginError(c, 'google_setup');
+    // 사용자가 Google 화면에서 취소했거나(code 없음), 로그인 시작 후 10분이 지났거나, 다른 브라우저에서 돌아온 경우
     if (!code || !state || !storedState || !storedCodeVerifier || state !== storedState) {
-        return c.json({ error: "Invalid state" }, 400);
+        return loginError(c, c.req.query("error") ? 'google_cancelled' : 'google_state');
     }
 
     const origin = new URL(c.req.url).origin;
@@ -190,6 +200,11 @@ app.get('/login/google/callback', async (c) => {
             }
         });
         const googleUser: any = await response.json();
+
+        if (!googleUser?.sub) return loginError(c, 'google_failed');
+
+        // 첫 고객 로그인이 관리자 계정 설정보다 먼저일 수 있다 — 계정 표가 없으면 만든다.
+        await ensureAuthTables(c.env);
 
         const lucia = initializeLucia(c.env.DB);
         const db = drizzle(c.env.DB);
@@ -210,10 +225,7 @@ app.get('/login/google/callback', async (c) => {
                 if (byEmail.googleId && byEmail.googleId !== googleUser.sub) {
                     // The email is already bound to a different Google identity.
                     // Refuse to silently re-link to avoid account takeover.
-                    return c.json({
-                        error: 'Authentication failed',
-                        detail: '이 이메일 주소는 이미 다른 Google 계정으로 등록되어 있습니다.'
-                    }, 409);
+                    return loginError(c, 'google_linked');
                 }
                 await db.update(users)
                     .set({
@@ -259,7 +271,7 @@ app.get('/login/google/callback', async (c) => {
         return c.redirect(safeTarget);
     } catch (e: any) {
         console.error('Google OAuth callback error:', e);
-        return c.json({ error: "Authentication failed", detail: e?.message || String(e) }, 500);
+        return loginError(c, 'google_failed');
     }
 });
 

@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { LoginMobile } from '../components/mypage-mobile/LoginMobile';
-import { googleLoginUrl, loginReturnPath } from '../components/mypage-mobile/googleLogin';
+import { googleLoginUrl, loginErrorMessage, loginReturnPath } from '../components/mypage-mobile/googleLogin';
 
 import loginBg2 from '../assets/login_bg_2.jpg';
 import logo from '../assets/new_logo_2026.png';
@@ -48,6 +48,7 @@ export const Login: React.FC = () => {
 const LoginDesktop: React.FC = () => {
     const location = useLocation();
     const { t } = useTranslation();
+    const errorMessage = loginErrorMessage(location.search);
 
     const handleGoogleLogin = () => {
         // Forward the original page (set by AuthGuard via location.state.from) to the
@@ -81,6 +82,12 @@ const LoginDesktop: React.FC = () => {
                         {t('auth.subtitle')}
                     </p>
                 </div>
+
+                {errorMessage && (
+                    <div role="alert" className="relative z-30 w-full max-w-xs mb-4 px-4 py-3 rounded-2xl bg-white/95 text-sm font-semibold text-red-700 leading-relaxed shadow-lg">
+                        {errorMessage}
+                    </div>
+                )}
 
                 {/* Google Login Button */}
                 <button
