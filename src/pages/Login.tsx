@@ -6,7 +6,7 @@ import { LoginMobile } from '../components/mypage-mobile/LoginMobile';
 import { googleLoginUrl, loginErrorMessage, loginReturnPath } from '../components/mypage-mobile/googleLogin';
 
 import loginBg2 from '../assets/login_bg_2.jpg';
-import logo from '../assets/new_logo_2026.png';
+import logo from '../assets/logo_white_full.webp';
 import loginBg3 from '../assets/login_bg_3.jpg';
 import loginBg4 from '../assets/login_bg_4.jpg';
 import loginBg5 from '../assets/login_bg_5.jpg';

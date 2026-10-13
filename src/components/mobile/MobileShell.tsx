@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import logoSquare from '../../assets/new_logo_2026.png';
+import logoSquare from '../../assets/logo_horizontal.webp';
 import { api } from '../../lib/api';
 import { useNotification } from '../../contexts/NotificationContext';
 import { BRAND, KAKAO_CHANNEL_CHAT_URL, KAKAO_CHANNEL_URL } from '../../constants/company';
