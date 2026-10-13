@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { D1PreparedStatement } from '@cloudflare/workers-types';
-import { requireAdmin } from '../lib/adminAuth';
+import { hasAdminSession, requireAdmin } from '../lib/adminAuth';
 
 type Env = {
     DB: any; // Using any for simplicity or you can use D1Database if imported
@@ -20,7 +20,8 @@ app.get('/', async (c) => {
             result = await db.prepare('SELECT * FROM categories ORDER BY sort_order ASC').all();
         }
         // Parse JSON landing_highlights / landing_hero_images if present
-        const rows = (result.results || []).map((r: any) => ({
+        const adminView = await hasAdminSession(c);
+        const rows = (result.results || []).filter((r: any) => adminView || (r.is_active !== 0 && r.is_active !== false)).map((r: any) => ({
             ...r,
             landing_highlights: (() => {
                 if (!r.landing_highlights) return [];
@@ -45,7 +46,7 @@ app.get('/:slug', async (c) => {
     const db = c.env.DB;
     try {
         const row: any = await db.prepare('SELECT * FROM categories WHERE id = ? LIMIT 1').bind(slug).first();
-        if (!row) return c.json({ error: 'Not found' }, 404);
+        if (!row || ((row.is_active === 0 || row.is_active === false) && !await hasAdminSession(c))) return c.json({ error: 'Not found' }, 404);
         row.landing_highlights = (() => {
             if (!row.landing_highlights) return [];
             if (typeof row.landing_highlights !== 'string') return row.landing_highlights;

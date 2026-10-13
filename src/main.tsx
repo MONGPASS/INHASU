@@ -15,6 +15,7 @@ import { UserProvider } from './contexts/UserContext'
 import { HelmetProvider } from 'react-helmet-async'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { isPublicContentQuery, subscribeContentSaved } from './lib/publicContent'
 
 
 
@@ -29,6 +30,10 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+subscribeContentSaved(() => {
+  void queryClient.invalidateQueries({ predicate: query => isPublicContentQuery(query.queryKey) });
+});
 
 import { ToastProvider } from './components/ui/Toast'
 

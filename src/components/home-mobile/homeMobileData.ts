@@ -97,6 +97,8 @@ export function useHeroSlides(products: HomeProduct[]) {
             return Array.isArray(data?.banners) ? data.banners : [];
         },
         staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: 'always',
+        refetchInterval: 60_000,
     });
 
     const slides: HeroSlide[] = !banners || banners.length === 0

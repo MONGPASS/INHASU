@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Category } from '../types/category';
+import { isPublishedMagazine } from '../constants/seo';
 
 /**
  * Safely ensures a value is always a string array.
@@ -66,7 +67,7 @@ export const useHomeData = () => {
         queryFn: async () => {
             // Fetch all data in parallel using Promise.all
             const [productsData, bannersData, magazinesData, categoriesData] = await Promise.all([
-                api.products.list(),
+                api.products.summary(),
                 api.banners.get(),
                 api.magazines.list(),
                 api.categories.list()
@@ -87,35 +88,35 @@ export const useHomeData = () => {
                 tags: p.tags || []
             }));
 
-            const tabsArray = Array.isArray(bannersData) ? bannersData.filter((b: any) => b.type === 'category') : [];
+            const tabsArray = Array.isArray(bannersData?.categoryTabs) ? bannersData.categoryTabs : [];
             const tabs: CategoryTab[] = tabsArray.map((t: any) => ({
                 id: t.id,
                 name: t.name,
                 title: t.title,
                 subtitle: t.subtitle,
-                bannerImage: t.image_url
+                bannerImage: t.image_url || t.bannerImage || ''
             }));
 
-            const magazines: Magazine[] = (Array.isArray(magazinesData) ? magazinesData.filter((m: any) => m.is_active || m.is_published) : []).map((m: any) => ({
+            const magazines: Magazine[] = (Array.isArray(magazinesData) ? magazinesData.filter(isPublishedMagazine) : []).map((m: any) => ({
                 id: m.id,
                 title: m.title,
                 description: m.subtitle || m.description || '', // mapped from subtitle
                 category: m.category,
                 image: m.thumbnail || m.image || '', // mapped from thumbnail
-                isActive: !!(m.is_active || m.is_published)
+                isActive: isPublishedMagazine(m)
             }));
 
             // Process categories (filter out magazines or 'all')
             const categories: Category[] = (Array.isArray(categoriesData) ? categoriesData : [])
-                .filter((c: any) => c.is_active !== false && c.id !== 'all' && (!c.type || c.type === 'product'))
-                .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+                .filter((c: any) => c.is_active !== false && c.is_active !== 0 && c.id !== 'all' && (!c.type || c.type === 'product'))
+                .sort((a: any, b: any) => (a.sort_order ?? a.order ?? 0) - (b.sort_order ?? b.order ?? 0))
                 .map((c: any) => ({
                     id: c.id,
                     name: c.name,
                     icon: c.icon,
                     description: c.description || '',
-                    order: c.order || 0,
-                    isActive: c.is_active !== false,
+                    order: c.sort_order ?? c.order ?? 0,
+                    isActive: c.is_active !== false && c.is_active !== 0,
                     type: c.type || 'product',
                     landing_hero_images: ensureStringArray(c.landing_hero_images),
                     landing_hero_image: c.landing_hero_image || undefined
@@ -125,7 +126,8 @@ export const useHomeData = () => {
         },
         staleTime: 1000 * 30, // 30 seconds
         gcTime: 1000 * 60 * 30,   // 30 minutes
-        refetchOnWindowFocus: true,
+        refetchOnWindowFocus: 'always',
+        refetchInterval: 60_000,
     });
 
     // Provide default empty values to match previous interface

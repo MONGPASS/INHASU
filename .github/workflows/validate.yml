@@ -13,8 +13,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install dependencies
+        run: npm ci
       - name: Automated tests
         run: node --test tests/*.test.mjs
+      - name: Admin image integration
+        run: node scripts/check-admin-media.mjs
       - name: Function syntax
         shell: bash
         run: |

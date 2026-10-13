@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import type { Category } from '../../types/category';
 import { useWishlist } from '../../hooks/useWishlist';
 import { MW, MW_EYEBROW as eyebrow, MW_SEE_ALL as seeAll, isUsableImage, won } from '../desktop-primitives/mwTokens';
@@ -132,8 +133,9 @@ function TourCard({ p }: { p: HomeProduct }) {
         >
             <div style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 20, overflow: 'hidden', background: MW.mintTint }}>
                 {isUsableImage(img) && (
-                    <img
+                    <ResponsiveProductImage
                         src={img}
+                        sizes="(max-width: 700px) 50vw, 280px"
                         alt={`${p.name} | ${p.category}`}
                         loading="lazy"
                         decoding="async"

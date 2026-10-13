@@ -6,6 +6,7 @@ import { uploadImage } from '../utils/upload';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { SimpleSlider } from '../components/ui/SimpleSlider';
+import { isPublishedMagazine } from '../constants/seo';
 
 interface Magazine {
     id: string;
@@ -270,7 +271,7 @@ export const AdminMagazineManage: React.FC = () => {
         author: '',
         authorImage: '',
         isFeatured: false,
-        isActive: true,
+        isActive: false,
         order: 0,
     });
 
@@ -441,7 +442,7 @@ export const AdminMagazineManage: React.FC = () => {
                     author: m.author || '',
                     authorImage: m.author_image || m.authorImage || '',
                     isFeatured: m.is_featured,
-                    isActive: m.is_active,
+                    isActive: isPublishedMagazine(m),
                     order: m.order,
                     createdAt: m.created_at,
                     updatedAt: m.updated_at,
@@ -544,7 +545,7 @@ export const AdminMagazineManage: React.FC = () => {
             author: '',
             authorImage: '',
             isFeatured: false,
-            isActive: true,
+            isActive: false,
             order: 0
         });
         setEditorContent('');
@@ -597,7 +598,7 @@ export const AdminMagazineManage: React.FC = () => {
                 author: formData.author || '',
                 author_image: formData.authorImage || '',
                 is_featured: formData.isFeatured || false,
-                is_active: formData.isActive ?? true,
+                is_published: formData.isActive === true,
                 order: editingMagazine ? formData.order! : maxOrder + 1,
                 updated_at: new Date().toISOString()
             };
@@ -694,7 +695,7 @@ export const AdminMagazineManage: React.FC = () => {
                 <Icon name="arrow_back" />목록
             </button>
             <button className="btn btn-ink" onClick={handleSubmit}>
-                <Icon name="check" />{editingMagazine ? '수정 완료' : '발행하기'}
+                <Icon name="check" />{formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장'}
             </button>
         </>
     ) : (
@@ -1041,7 +1042,7 @@ export const AdminMagazineManage: React.FC = () => {
 
                                 <div className="row" style={{ gap: 10 }}>
                                     <button className="btn btn-ghost" style={{ flex: 1 }} onClick={resetForm}>작성 취소</button>
-                                    <button className="btn btn-ink" style={{ flex: 1 }} onClick={handleSubmit}>{editingMagazine ? '수정 완료' : '발행하기'}</button>
+                                    <button className="btn btn-ink" style={{ flex: 1 }} onClick={handleSubmit}>{formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장'}</button>
                                 </div>
                             </div>
 

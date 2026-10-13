@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireAdmin } from '../lib/adminAuth';
+import { hasAdminSession, requireAdmin } from '../lib/adminAuth';
 
 type Env = {
     DB: any;
@@ -47,12 +47,18 @@ const savePackageType = async (db: any, id: string, data: any) => {
 app.get('/', async (c) => {
     const db = c.env.DB;
     try {
+        const adminView = await hasAdminSession(c);
+        const published = adminView ? '' : " WHERE status = 'active'";
+        // Home cards need no long itinerary/detail JSON; keep the initial response small.
+        const fields = c.req.query('summary') === '1'
+            ? 'id, name, category, price, original_price, is_popular, is_featured, popular, featured, status, package_type, main_images, duration, tags, sort_order, created_at'
+            : '*';
         let result;
         try {
-            result = await db.prepare('SELECT * FROM products ORDER BY sort_order ASC, created_at DESC').all();
+            result = await db.prepare(`SELECT ${fields} FROM products${published} ORDER BY sort_order ASC, created_at DESC`).all();
         } catch {
             // Fallback if sort_order column doesn't exist
-            result = await db.prepare('SELECT * FROM products ORDER BY created_at DESC').all();
+            result = await db.prepare(`SELECT ${fields} FROM products${published} ORDER BY created_at DESC`).all();
         }
         const parsed = (result.results || []).map((p: any) => ({
             ...p,
@@ -90,7 +96,7 @@ app.get('/:id', async (c) => {
     const db = c.env.DB;
     try {
         const result = await db.prepare('SELECT * FROM products WHERE id = ?').bind(id).first();
-        if (!result) return c.json({ error: 'Product not found' }, 404);
+        if (!result || (!['active', 'soldout'].includes(result.status) && !await hasAdminSession(c))) return c.json({ error: 'Product not found' }, 404);
 
         const parsed = {
             ...result,
