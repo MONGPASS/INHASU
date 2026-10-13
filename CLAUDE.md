@@ -93,12 +93,13 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 `배포안내.txt` 맨 위 "통합 플랫폼" 절이 정본. 요약:
 
 - 빌드: `npm run build` → `dist/`. 배포: `npx wrangler pages deploy dist --project-name=milkway-mongolia`(또는 Git 연동 시 빌드 명령 `npm run build`, 출력 `dist`).
-- **통합 후 처음 배포할 때 한 번**: ① R2 버킷 `milkyway-assets` 생성 ② 환경변수 추가(Google 로그인·Resend 등) ③ 배포 후 관리자 로그인 → `/api/migrate-db` 한 번 열기(사이트 테이블·컬럼 생성) ④ `/admin/login`에서 관리자 계정 만들기.
+- **통합 후 처음 배포할 때 한 번**: ① R2 버킷 `milkyway-assets` 생성 ② 환경변수 추가(Google 로그인·Resend 등) ③ `/admin/login`에서 관리자 계정 만들기. 사이트 테이블은 첫 요청 때 자동으로 만들어진다(아래).
 - 규칙: `main`에 직접 푸시하지 말고 feature 브랜치 → PR → 미리보기 확인 → 머지(`DEPLOYMENT.md`). 커밋 메시지는 한국어 `[영역]: 설명`.
-- 운영 데이터·스키마 변경은 `functions/api/migrate-db.ts`를 통해서만.
+- **사이트 표·칸의 원본은 `functions/lib/siteSchema.ts`** 다. 새 표나 칸을 쓰게 되면 거기에 적고 `SITE_SCHEMA_VERSION`을 올린다 — `[[route]].ts`의 미들웨어가 서버 인스턴스마다 한 번 확인해 없는 표는 만들고 없는 칸은 더한다(추가만, 견적 표는 다루지 않음). `tests/site-schema.test.mjs`가 "견적 표만 있는 DB"에서 코드의 모든 SQL이 맞는지 검사하므로, 정의를 빠뜨리면 테스트가 실패한다.
+- 그 밖의 운영 데이터 변경(값 옮기기·정리)은 `functions/api/migrate-db.ts`를 통해서만.
 
 ### 로컬 실행
-- `npm run build` 후 `npx wrangler pages dev dist --port 8788`. 로컬 변수는 `.dev.vars`(gitignore) — `ENVIRONMENT=development`면 로컬 관리자 시드가 동작한다. 로컬 D1 초기화: `npx wrangler d1 execute leaders-requests --local --file=schema.sql`, 이어서 `--file=migration_sql/create_all_tables.sql`.
+- `npm run build` 후 `npx wrangler pages dev dist --port 8788`. 로컬 변수는 `.dev.vars`(gitignore) — `ENVIRONMENT=development`면 로컬 관리자 시드가 동작한다. 로컬 D1 초기화: `npx wrangler d1 execute leaders-requests --local --file=schema.sql` (사이트 표는 첫 요청 때 자동 생성).
 - 로컬 wrangler는 `/견적서.html`처럼 `.html`이 붙은 한글 주소에서 502가 난다(리다이렉트 헤더 문제, 운영은 정상). **확장자 없는 주소**(`/견적서?t=…`)로 열 것. `내견적`은 localhost에서 API 대신 `localStorage.leaders_requests`를 읽는 데모 분기가 있다.
 - ⚠ **Windows + 한글이 들어간 폴더 경로 + Node 24**에서는 `fs.rmSync`가 네이티브 충돌(0xC0000409)을 내서 두 번째 `vite build`와 `wrangler dev`가 조용히 죽는다. 영문 경로에 클론하거나(권장), 영문 경로의 디렉터리 정션을 만들어 그 경로에서 실행할 것.
 
