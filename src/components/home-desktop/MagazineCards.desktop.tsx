@@ -24,7 +24,7 @@ export function MagazineCardsDesktop({ magazines }: Props) {
                     전체 보기 →
                 </a>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,280px),1fr))', gap: 20 }}>
                 {items.map((m) => {
                     const title = cleanTitle(m.title);
                     return (
