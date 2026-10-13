@@ -102,8 +102,21 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         return context.next();
     }
 
+    // 통합 전 견적 플랫폼의 admin.html·admin-mobile.html 은 새 배포에서 없어졌지만(견적관리*.html 로 이름 변경),
+    // Cloudflare Pages 는 지워진 파일을 엣지에 캐시된 채로 최대 1주일 더 내보낸다(asset preservation).
+    // 그래서 /admin 이 옛 관리자 화면으로 열릴 수 있다 — 이름이 겹치는 옛 주소는 자산 조회에 맡기지 않고 직접 처리한다.
+    if (path === '/admin-mobile' || path === '/admin-mobile.html') {
+        return Response.redirect(`${url.origin}/${encodeURIComponent('견적관리-모바일')}${url.search}`, 302);
+    }
+    if (path === '/admin.html') {
+        return Response.redirect(`${url.origin}/admin${url.search}`, 302);
+    }
+    const serveAppShell = path === '/admin' || path === '/admin/';
+
     // 1. Get the original response from the asset (usually index.html for unknown routes in an SPA)
-    const response = await context.next();
+    const response = serveAppShell
+        ? await (context.env as any).ASSETS.fetch(new Request(new URL('/', url), { headers: context.request.headers }))
+        : await context.next();
 
     // Only process responses that are HTML. We don't want to rewrite assets, images, API JSON, etc.
     const contentType = response.headers.get('content-type');
