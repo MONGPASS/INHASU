@@ -79,6 +79,12 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 
 ## 5. 관리자 (하나로 통합)
 
+- **실제 예약 목록** `/admin/reservations`는 상품·수동 예약(`reservations`)과 INHASU 견적 예약(`requests.booking`이 있거나 `status=예약확정`)을 함께 보여 준다. 단순 견적 문의는 예약 건수에 포함하지 않는다. 이전 MILKYWAY 견적 문의는 별도 필터로 유지한다.
+- 견적 예약 요약은 `GET /api/admin/bookings/quote`(Lucia 관리자 세션 필수, no-store)로 읽는다. 금액·예약금·잔금·서명 여부·출발일을 공통 표시 형식으로 바꾸지만 DB 데이터를 복사하거나 이관하지 않는다. 고객 토큰·서명 이미지·여권 정보는 요약에서 제외한다.
+- 견적 예약 상세는 `/admin/quote-desk/bookings?id=...` → `/예약관리?id=...`로 최신 원본을 읽는다. 기존 localStorage 전달 방식과 고객 문서 링크도 유지한다. 새 ID 진입이 실패하면 이전 고객 데이터를 대신 열지 않는다.
+- 같은 ID가 두 표에 있어도 목록의 키·편집·삭제·캘린더 연결은 예약 종류까지 구분한다. 출발 예정·캘린더·예약확정 Excel도 견적 예약을 포함한다. 일부 조회 실패 시 이전 목록을 유지하고 누락 경고를 표시한다.
+- 통합 예약 검증: `npm test`, `npm run build`, `node scripts/check-admin-bookings.mjs`. 마지막 검사는 로컬 SQLite·실제 Lucia 로그인만 사용하며 운영 DB/알림에 접근하지 않는다. `--serve`로 8792번 포트의 테스트 관리자 화면을 확인할 수 있다.
+
 - `/admin` = React 관리자(`src/components/admin/AdminLayout.tsx`·`AdminSidebar.tsx`). 이메일·비밀번호 로그인(Lucia 세션).
 - **맞춤 견적 메뉴** = INHASU 관리 도구를 같은 출처 iframe으로 끼운 것: `/admin/quote-desk/:tool`(`src/pages/AdminQuoteDesk.tsx`, `src/components/admin/quoteDesk.ts`). 진입 시 `GET /api/auth/quote-desk`로 `ADMIN_TOKEN`을 받아 `sessionStorage['leaders_admin_token']`에 넣는다(견적 도구가 원래 쓰던 자리). 견적 도구는 `public/admin-embed.js`로 임베드 상태에서 자체 메뉴를 숨긴다.
 - INHASU의 `admin.html`은 `public/견적관리.html`(+`견적관리-모바일.html`)로 이름을 바꿨다. `/admin`은 React 관리자다.

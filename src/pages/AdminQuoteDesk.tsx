@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import {
@@ -27,17 +27,20 @@ type Phase = 'connecting' | 'linked' | 'unset' | 'failed';
 
 export const AdminQuoteDesk: React.FC = () => {
     const { tool: toolParam } = useParams<{ tool?: string }>();
+    const [searchParams] = useSearchParams();
+    const bookingId = toolParam === 'bookings' ? searchParams.get('id') || undefined : undefined;
     const navigate = useNavigate();
     const tool = findQuoteDeskTool(toolParam);
 
     const [phase, setPhase] = useState<Phase>('connecting');
     // seq 가 바뀌면 iframe 을 새로 만든다(같은 주소를 다시 불러와야 할 때).
-    const [frame, setFrame] = useState(() => ({ src: quoteDeskFrameSrc(tool), seq: 0 }));
+    const [frame, setFrame] = useState(() => ({ src: quoteDeskFrameSrc(tool, bookingId), seq: 0 }));
     const [frameLoading, setFrameLoading] = useState(true);
     const frameRef = useRef<HTMLIFrameElement>(null);
     // 안쪽 화면이 스스로 옮겨 간 메뉴. 이때는 주소만 맞추고 iframe 은 다시 불러오지 않는다.
     const followedKeyRef = useRef<string | null>(null);
-    const shownKeyRef = useRef(tool.key);
+    const frameKey = `${tool.key}:${bookingId || ''}`;
+    const shownKeyRef = useRef(frameKey);
 
     // 1) 관리자 세션으로 견적 도구를 연결한다(sessionStorage 에 관리자 값 저장).
     const connect = useCallback(async () => {
@@ -53,17 +56,17 @@ export const AdminQuoteDesk: React.FC = () => {
 
     // 2) 주소의 메뉴가 바뀌면(관리자 메뉴에서 다른 화면을 고르면) 그 문서를 불러온다.
     useEffect(() => {
-        if (shownKeyRef.current === tool.key) return;
-        shownKeyRef.current = tool.key;
+        if (shownKeyRef.current === frameKey) return;
+        shownKeyRef.current = frameKey;
         if (followedKeyRef.current === tool.key) {
             followedKeyRef.current = null;
             return;
         }
-        setFrame((prev) => ({ src: quoteDeskFrameSrc(tool), seq: prev.seq + 1 }));
+        setFrame((prev) => ({ src: quoteDeskFrameSrc(tool, bookingId), seq: prev.seq + 1 }));
         setFrameLoading(true);
         // tool 은 tool.key 로 정해진다.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tool.key]);
+    }, [frameKey]);
 
     // 3) 안쪽 화면이 다른 견적 화면으로 넘어가면(예: 문의 → 견적서 만들기) 메뉴 표시와 주소를 맞춘다.
     const handleFrameLoad = () => {
@@ -108,7 +111,7 @@ export const AdminQuoteDesk: React.FC = () => {
     // 새 창으로 열기: 지금 안쪽에 떠 있는 화면을 단독으로 연다.
     // noopener 를 붙이지 않는다 — 새 창이 이 탭의 sessionStorage(관리자 값)를 이어받아야 자체 로그인 화면이 뜨지 않는다.
     const openStandalone = () => {
-        let url = tool.doc;
+        let url = quoteDeskFrameSrc(tool, bookingId);
         try {
             const inner = frameRef.current?.contentWindow?.location;
             if (inner && inner.origin === window.location.origin) url = `${inner.pathname}${inner.search}`;
@@ -120,12 +123,15 @@ export const AdminQuoteDesk: React.FC = () => {
         <AdminLayout
             activePage={quoteDeskPageId(tool.key)}
             eyebrow="맞춤 견적"
-            title={tool.label}
-            description={tool.description}
+            title={bookingId ? '견적 예약 상세' : tool.label}
+            description={bookingId ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.description}
             showSearch={false}
             flush
             actions={
                 <>
+                    <button type="button" className="btn btn-ghost" onClick={() => navigate('/admin/reservations?type=quote_booking')}>
+                        <Icon name="arrow_back" />통합 예약 목록
+                    </button>
                     {phase === 'linked' && (
                         <button type="button" className="btn btn-ghost" onClick={reloadFrame}>
                             <Icon name="refresh" />새로고침

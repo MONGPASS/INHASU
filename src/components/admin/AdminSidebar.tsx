@@ -31,7 +31,7 @@ const quoteDeskItems: NavItem[] = QUOTE_DESK_TOOLS.map((tool) => ({
     id: quoteDeskPageId(tool.key),
     icon: tool.icon,
     label: tool.label,
-    href: quoteDeskHref(tool.key),
+    href: tool.key === 'bookings' ? '/admin/reservations?type=quote_booking' : quoteDeskHref(tool.key),
 }));
 
 const catalogItems: NavItem[] = [

@@ -72,6 +72,9 @@ export const QUOTE_DESK_TOOLS: QuoteDeskTool[] = [
 
 export const quoteDeskHref = (key: string): string => `${QUOTE_DESK_BASE}/${key}`;
 
+/** ID로 서버의 최신 예약을 연다. 다른 고객의 localStorage 전달값에 의존하지 않는다. */
+export const quoteBookingHref = (id: string): string => `${quoteDeskHref('bookings')}?id=${encodeURIComponent(id)}`;
+
 /** AdminLayout / AdminSidebar 의 activePage 값 */
 export const quoteDeskPageId = (key: string): string => `quote-desk-${key}`;
 
@@ -100,7 +103,8 @@ export function isDesktopViewport(): boolean {
 }
 
 /** iframe 에 넣을 주소. 바깥 창이 데스크톱 폭이면 모바일 화면으로 넘어가지 않게 `?m=0` 을 붙인다. */
-export function quoteDeskFrameSrc(tool: QuoteDeskTool): string {
+export function quoteDeskFrameSrc(tool: QuoteDeskTool, bookingId?: string): string {
+    if (tool.key === 'bookings' && bookingId) return `/예약관리?id=${encodeURIComponent(bookingId)}`;
     return tool.mobileDoc && isDesktopViewport() ? `${tool.doc}?m=0` : tool.doc;
 }
 

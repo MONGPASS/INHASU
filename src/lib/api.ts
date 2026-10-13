@@ -1,4 +1,5 @@
 import type { Promotion } from '../components/promotions/promotionTypes';
+import type { QuoteBookingSummary } from '../../functions/lib/quoteBookings';
 import { INQUIRY_REQUEST_FAILED, type InquiryInput, type InquiryRecord, type InquiryStatus } from '../types/inquiry';
 
 const API_BASE = '/api';
@@ -26,6 +27,10 @@ async function request(url: string, options?: RequestInit) {
 }
 
 export const api = {
+    adminBookings: {
+        quote: async (): Promise<{ items: QuoteBookingSummary[]; skipped: number }> =>
+            request(`${API_BASE}/admin/bookings/quote`, { cache: 'no-store' }),
+    },
     auth: {
         me: async () => {
             try {

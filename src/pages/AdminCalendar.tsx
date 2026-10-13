@@ -2,12 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
+import { quoteBookingHref } from '../components/admin/quoteDesk';
 import { toTourDateKey } from '../utils/formatDate';
 
-type CalendarItemType = 'reservation' | 'quote';
+type CalendarItemType = 'reservation' | 'quote' | 'quote_booking';
 
 interface CalendarItem {
     id: string;
+    bookingLabel?: string;
+    bookingHint?: string;
     itemType: CalendarItemType;
     reservationNumber?: string;
     productName: string;
@@ -30,6 +33,7 @@ interface CalendarItem {
 }
 
 const STATUS_LABEL: Record<string, string> = {
+    completed: '여행 완료', on_hold: '보류',
     new: '신규 견적',
     processing: '견적 작성 중',
     answered: '견적 발송 완료',
@@ -105,6 +109,7 @@ const getEventTone = (item: CalendarItem): 'blue' | 'green' | 'amber' => {
 };
 
 const getNextAction = (item: CalendarItem): { label: string; tone: string; icon: string } => {
+    if (item.itemType === 'quote_booking') return { label: item.bookingHint || item.bookingLabel || '견적 예약 관리', tone: item.status === 'confirmed' ? 'b-green' : 'b-amber', icon: 'event_note' };
     if (item.itemType === 'quote') {
         if (item.status === 'new') return { label: '요청 검토', tone: 'b-red', icon: 'fiber_new' };
         if (item.status === 'processing') return { label: '견적 작성', tone: 'b-amber', icon: 'edit_note' };
@@ -145,7 +150,7 @@ const CalendarDetailModal = ({ item, onClose }: { item: CalendarItem | null; onC
                     <div style={{ minWidth: 0 }}>
                         <div className="row" style={{ gap: 6, marginBottom: 6 }}>
                             <span className={`tag-type ${item.itemType === 'quote' ? 'quote' : 'reservation'}`}>
-                                {item.itemType === 'quote' ? '맞춤 견적' : '예약'}
+                                {item.itemType === 'quote_booking' ? '견적 예약' : item.itemType === 'quote' ? '이전 견적 문의' : '상품 예약'}
                             </span>
                             <span className={`badge ${action.tone}`}>{STATUS_LABEL[item.status] || item.status}</span>
                         </div>
@@ -215,8 +220,8 @@ const CalendarDetailModal = ({ item, onClose }: { item: CalendarItem | null; onC
                 <div className="drawer-foot">
                     <button className="btn btn-ghost" onClick={onClose} type="button">닫기</button>
                     <div className="spacer" style={{ flex: 1 }} />
-                    <a className="btn btn-ink" href="/admin/reservations">
-                        <Icon name="open_in_new" />통합 관리로 이동
+                    <a className="btn btn-ink" href={item.itemType === 'quote_booking' ? quoteBookingHref(item.id) : `/admin/reservations?open=${encodeURIComponent(item.id)}&kind=${item.itemType === 'quote' ? 'quote' : 'product'}`}>
+                        <Icon name="open_in_new" />예약 상세로 이동
                     </a>
                 </div>
             </div>
@@ -230,13 +235,16 @@ export const AdminCalendar: React.FC = () => {
     const [items, setItems] = useState<CalendarItem[]>([]);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [isLoading, setIsLoading] = useState(false);
+    const [loadWarnings, setLoadWarnings] = useState<string[]>([]);
+    const [includeLegacyQuotes, setIncludeLegacyQuotes] = useState(false);
 
     const fetchCalendarItems = async () => {
         setIsLoading(true);
         try {
-            const [reservationSettled, quoteSettled] = await Promise.allSettled([
+            const [reservationSettled, quoteSettled, bookingSettled] = await Promise.allSettled([
                 api.reservations.list(),
                 api.quotes.list(),
+                api.adminBookings.quote(),
             ]);
 
             const reservationData = reservationSettled.status === 'fulfilled' && Array.isArray(reservationSettled.value)
@@ -266,7 +274,7 @@ export const AdminCalendar: React.FC = () => {
                         depositStatus: reservation.depositStatus || reservation.deposit_status || (reservation.status === 'pending_payment' ? 'unpaid' : 'paid'),
                         balance: reservation.balance || reservation.balanceAmount || reservation.balance_amount || Math.max(totalAmount - deposit, 0),
                         balanceStatus: reservation.balanceStatus || reservation.balance_status || 'unpaid',
-                        headcount: reservation.headcount || (reservation.totalPeople || reservation.total_people ? `${reservation.totalPeople || reservation.total_people}명` : '인원 미정'),
+                        headcount: reservation.headcount || (reservation.travelers || reservation.totalPeople || reservation.total_people ? `${reservation.travelers || reservation.totalPeople || reservation.total_people}명` : '인원 미정'),
                         phone: reservation.phone || reservation.customerPhone || reservation.customer_phone || reservation.customer_info?.phone || '',
                         email: reservation.email || reservation.customerEmail || reservation.customer_email || reservation.customer_info?.email || '',
                         assignedGuide,
@@ -306,9 +314,24 @@ export const AdminCalendar: React.FC = () => {
                     };
                 });
 
-            setItems([...mappedReservations, ...mappedQuotes].filter(item => item.startDate));
+            const mappedBookings: CalendarItem[] = bookingSettled.status === 'fulfilled'
+                ? bookingSettled.value.items.filter(b => !['cancelled', 'on_hold'].includes(b.status)).map(b => ({
+                    ...b, itemType: 'quote_booking', bookingLabel: b.quoteBooking.label, bookingHint: b.quoteBooking.hint,
+                    dateSource: 'confirmed',
+                })) : [];
+            const warnings: string[] = [];
+            if (reservationSettled.status === 'rejected') warnings.push('상품 예약을 불러오지 못했습니다. 이전 일정을 표시합니다.');
+            if (quoteSettled.status === 'rejected') warnings.push('이전 견적 문의를 불러오지 못했습니다. 이전 일정을 표시합니다.');
+            if (bookingSettled.status === 'rejected') warnings.push('견적 예약을 불러오지 못했습니다. 이전 일정을 표시합니다.');
+            else if (bookingSettled.value.skipped) warnings.push(`견적 데이터 ${bookingSettled.value.skipped}건을 읽지 못했습니다.`);
+            setLoadWarnings(warnings);
+            setItems(prev => [...mappedReservations, ...mappedQuotes, ...mappedBookings, ...prev.filter(item =>
+                (item.itemType === 'reservation' && reservationSettled.status === 'rejected')
+                || (item.itemType === 'quote' && quoteSettled.status === 'rejected')
+                || (item.itemType === 'quote_booking' && bookingSettled.status === 'rejected'))].filter(item => item.startDate));
         } catch (error) {
             console.error('Calendar fetch error:', error);
+            setLoadWarnings(['일정을 불러오지 못했습니다. 다시 시도해 주세요.']);
         } finally {
             setIsLoading(false);
         }
@@ -318,29 +341,30 @@ export const AdminCalendar: React.FC = () => {
         fetchCalendarItems();
     }, []);
 
-    const monthItems = useMemo(() => items.filter(item => isInMonth(item, currentMonth)), [items, currentMonth]);
+    const visibleItems = useMemo(() => items.filter(item => includeLegacyQuotes || item.itemType !== 'quote'), [items, includeLegacyQuotes]);
+    const monthItems = useMemo(() => visibleItems.filter(item => isInMonth(item, currentMonth)), [visibleItems, currentMonth]);
 
     const monthStats = useMemo(() => ({
         total: monthItems.length,
         quotes: monthItems.filter(item => item.itemType === 'quote').length,
-        confirmed: monthItems.filter(item => item.itemType === 'reservation' && ['confirmed', 'paid'].includes(item.status)).length,
+        confirmed: monthItems.filter(item => item.itemType !== 'quote' && ['confirmed', 'paid'].includes(item.status)).length,
         needsAction: monthItems.filter(item => {
             if (item.itemType === 'quote') return ['new', 'processing', 'reservation_requested'].includes(item.status);
-            return item.status === 'pending_payment' || !item.assignedGuide;
+            return !['cancelled', 'completed', 'on_hold'].includes(item.status) && (item.status === 'pending_payment' || !item.assignedGuide || (item.itemType === 'quote_booking' && item.status !== 'confirmed'));
         }).length,
         people: monthItems.reduce((sum, item) => sum + parsePeople(item.headcount), 0),
     }), [monthItems]);
 
     const selectedDateItems = useMemo(
-        () => items.filter(item => isOnDate(item, selectedDate)).sort((a, b) => a.itemType.localeCompare(b.itemType)),
-        [items, selectedDate],
+        () => visibleItems.filter(item => isOnDate(item, selectedDate)).sort((a, b) => a.itemType.localeCompare(b.itemType)),
+        [visibleItems, selectedDate],
     );
 
     const actionItems = useMemo(
         () => monthItems
             .filter(item => {
                 if (item.itemType === 'quote') return ['new', 'processing', 'reservation_requested'].includes(item.status);
-                return item.status === 'pending_payment' || !item.assignedGuide;
+                return !['cancelled', 'completed', 'on_hold'].includes(item.status) && (item.status === 'pending_payment' || !item.assignedGuide || (item.itemType === 'quote_booking' && item.status !== 'confirmed'));
             })
             .slice(0, 5),
         [monthItems],
@@ -360,11 +384,11 @@ export const AdminCalendar: React.FC = () => {
             const dayNum = i - startOffset + 1;
             const valid = dayNum >= 1 && dayNum <= daysInMonth;
             const dateKey = valid ? `${year}-${`${month + 1}`.padStart(2, '0')}-${`${dayNum}`.padStart(2, '0')}` : '';
-            const events = valid ? items.filter(item => isOnDate(item, dateKey)) : [];
+            const events = valid ? visibleItems.filter(item => isOnDate(item, dateKey)) : [];
             cells.push({ valid, dayNum, dateKey, events });
         }
         return cells;
-    }, [currentMonth, items]);
+    }, [currentMonth, visibleItems]);
 
     const dow = ['일', '월', '화', '수', '목', '금', '토'];
     const monthTitle = `${currentMonth.getFullYear()}년 ${currentMonth.getMonth() + 1}월`;
@@ -382,9 +406,10 @@ export const AdminCalendar: React.FC = () => {
         <AdminLayout
             activePage="calendar"
             title="투어 캘린더"
-            description="확정 예약과 맞춤 견적 요청을 날짜 기준으로 함께 확인합니다."
+            description="상품 예약과 실제 견적 예약을 날짜 기준으로 함께 확인합니다."
+            showSearch={false}
             actions={(
-                <button className="btn btn-ghost btn-sm" onClick={fetchCalendarItems} type="button">
+                <button className="btn btn-ghost btn-sm" onClick={fetchCalendarItems} disabled={isLoading} type="button">
                     <Icon name="refresh" className={isLoading ? 'spin' : ''} />새로고침
                 </button>
             )}
@@ -416,6 +441,11 @@ export const AdminCalendar: React.FC = () => {
                 </a>
             </div>
 
+            {loadWarnings.length > 0 && <div className="card card-pad" role="alert" style={{ marginBottom: 14, borderColor: '#D99635' }}>
+                {loadWarnings.map(message => <div key={message}>{message}</div>)}
+                <button className="btn btn-sm btn-ghost" disabled={isLoading} onClick={fetchCalendarItems}>다시 불러오기</button>
+            </div>}
+            <label className="row" style={{ marginBottom: 14, fontSize: 13 }}><input type="checkbox" checked={includeLegacyQuotes} onChange={e => setIncludeLegacyQuotes(e.target.checked)} />이전 견적 문의도 표시</label>
             <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 18 }}>
                 <div className="metric" style={{ padding: '16px 18px' }}>
                     <div className="row" style={{ gap: 12 }}>
@@ -477,7 +507,7 @@ export const AdminCalendar: React.FC = () => {
                                         setSelectedEvent(e);
                                     }}
                                 >
-                                    <b>{e.itemType === 'quote' ? '견적' : '예약'} · {e.customerName}</b>
+                                    <b>{e.itemType === 'quote_booking' ? '견적예약' : e.itemType === 'quote' ? '이전견적' : '상품예약'} · {e.customerName}</b>
                                     <div style={{ opacity: 0.85, fontWeight: 600 }}>
                                         {e.headcount} · {e.assignedGuide?.name || '미배정'}
                                     </div>
