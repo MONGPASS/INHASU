@@ -3,7 +3,7 @@
 const CHANGE_KEY = 'mw_public_content_changed';
 const CHANGE_EVENT = 'mw-public-content-changed';
 const RESOURCES = new Set(['products', 'categories', 'banners', 'magazines', 'promotions', 'settings', 'tourist-spots', 'design-spots', 'hotels', 'faqs', 'tour-faqs', 'reviews', 'quick-links', 'event-banners']);
-const CONTENT_QUERIES = new Set(['homeData', 'heroBannersDesktop', 'heroBannersMobile', 'productCategories', 'category', 'products-by-category', 'headerSearch', 'products', 'quickLinks', 'touristSpots', 'settings', 'hotel', 'tourFaqs', 'promotions', 'homeReviewsDesktop', 'userReviews', 'reviewTourProducts']);
+const CONTENT_QUERIES = new Set(['homeData', 'heroBanners', 'heroBannersDesktop', 'heroBannersMobile', 'productCategories', 'category', 'products-by-category', 'headerSearch', 'products', 'quickLinks', 'touristSpots', 'settings', 'hotel', 'tourFaqs', 'promotions', 'homeReviewsDesktop', 'userReviews', 'reviewTourProducts']);
 
 export function changedContentResource(url: string, method = 'GET'): string | null {
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())) return null;

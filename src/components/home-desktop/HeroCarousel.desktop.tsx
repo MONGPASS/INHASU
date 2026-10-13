@@ -1,29 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { useHeroBanners } from '../../hooks/useHeroBanners';
 import type { HomeData } from '../../hooks/useHomeData';
 import { BRAND } from '../../constants/company';
 import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
-
-interface ApiBanner {
-    id: string;
-    image?: string;
-    image_url?: string;
-    pc_image?: string;
-    pcImage?: string;
-    tag?: string;
-    title?: string;
-    subtitle?: string;
-    link?: string;
-    pc_title?: string;
-    pcTitle?: string;
-    pc_subtitle?: string;
-    pcSubtitle?: string;
-    pc_tag?: string;
-    pcTag?: string;
-}
+import { HeroBannerStatus } from '../common/HeroBannerStatus';
 
 interface Slide {
     key: string;
@@ -78,18 +60,9 @@ interface Props {
 export function HeroCarouselDesktop({ products }: Props) {
     const navigate = useNavigate();
 
-    const { data: banners = [] } = useQuery<ApiBanner[]>({
-        queryKey: ['heroBannersDesktop'],
-        queryFn: async () => {
-            const data = await api.banners.get();
-            return Array.isArray(data?.banners) ? data.banners : [];
-        },
-        staleTime: 1000 * 60 * 5,
-        refetchOnWindowFocus: 'always',
-        refetchInterval: 60_000,
-    });
+    const { data: banners, isError, refetch } = useHeroBanners();
 
-    const slides: Slide[] = banners.length === 0
+    const slides: Slide[] = !banners ? [] : banners.length === 0
         ? [FALLBACK]
         : banners.slice(0, 6).map((b, i) => {
             const path = toPath(b.link);
@@ -161,6 +134,11 @@ export function HeroCarouselDesktop({ products }: Props) {
             onMouseLeave={() => { paused.current = false; }}
         >
             <div style={{ position: 'relative', height: 'clamp(300px,36vw,400px)' }}>
+                {!banners ? (
+                    <div style={{ width: W, height: '100%', margin: '0 auto', borderRadius: 28, overflow: 'hidden' }}>
+                        <HeroBannerStatus error={isError} onRetry={() => { void refetch(); }} />
+                    </div>
+                ) : (
                 <div
                     style={{
                         position: 'absolute',
@@ -235,6 +213,7 @@ export function HeroCarouselDesktop({ products }: Props) {
                         );
                     })}
                 </div>
+                )}
             </div>
             {looping && (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, padding: '16px 0 0' }}>

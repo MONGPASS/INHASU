@@ -27,7 +27,7 @@
 | SEO 메타 주입 | `functions/[[path]].ts` | SPA 화면에만. 루트의 한글 이름 문서(견적 페이지)는 `isQuoteStaticPage`로 통과 |
 | DB | D1 `DB` = `leaders-requests` 하나 | 견적: `requests`·`kv`·`itinerary_notice_dispatches` / 사이트: `products`·`reservations`·`users` … |
 | 파일 | R2 `FILES`(견적: `uploads/` 비공개, `images/` 공개) · R2 `BUCKET`(사이트 이미지, `/api/images/*` 공개) | **두 버킷을 같은 것으로 묶지 말 것** — 고객 첨부가 공개된다 |
-| 테스트 | `tests/*.test.mjs` (`npm test`, 121건) | 견적 문서·예약·이미지·SEO와 실제 Cloudflare HTMLRewriter/D1을 검사 |
+| 테스트 | `tests/*.test.mjs` (`npm test`, 133건) | 견적 문서·예약·이미지·홈 배너·SEO와 실제 Cloudflare HTMLRewriter/D1을 검사 |
 
 - 업로드 주소가 둘: 견적은 `/api/upload`(JS), 사이트 이미지는 `/api/site-upload`(Hono, `functions/api/site-upload.ts`).
 - 견적 요청 화면은 React `/custom-estimate` 하나다(`src/components/estimate-desktop/quoteForm.ts`가 선택지·검증·payload의 정본). 접수는 `POST /api/requests`로 들어가 견적 파이프라인을 탄다. 옛 `public/견적요청.html`은 리다이렉트 문서.
@@ -65,6 +65,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 모바일 화면의 사진은 `<img>` 대신 `MPhoto`(`mobile/mobileUi.tsx`)를 쓴다.
 - 새 사이트 이미지 업로드는 WebP와 320/640/960/1280px 사본을 R2에 함께 저장한다. URL에 저장된 실제 크기가 들어가며 `productImage.ts`가 그 사본만 srcset에 넣는다. 기존 이미지는 재업로드 전까지 원본을 쓴다. 별도 Cloudflare Image Transformations는 존에서 활성화·검증한 뒤 `VITE_IMAGE_TRANSFORM=1`로만 켠다.
 - 상품의 대표·본문 이미지는 업로드 후 **상품 저장 + 판매중**일 때 공개된다(본문 이미지는 상세에만 표시). 배너는 **변경사항 저장** 후 공개된다. 같은 출처의 열린 홈은 저장 이벤트로 갱신하며, 다른 브라우저는 포커스/최대 60초 조회로 갱신한다.
+- PC·모바일 홈 메인 배너는 `useHeroBanners`의 `heroBanners` 조회를 공유한다. 조회 전에는 같은 크기의 로딩 화면, 처음 조회 실패 시에는 재시도를 표시한다. 기본 견적 배너는 정상 응답에서 등록 배너가 실제로 없을 때만 표시하며, 재조회 실패 시 이미 받은 배너는 유지한다.
 - 공개 이미지 `/api/images/*`·`/api/img/images/*`만 immutable 캐시를 허용한다. 견적 고객 첨부 `FILES/uploads/*`와 JSON·관리자 API의 no-store를 풀지 말 것.
 
 ## 4. 화면 구조 메모
