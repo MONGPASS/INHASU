@@ -258,6 +258,7 @@ export const api = {
     documents: {
         itinerary: {
             get: async (reservationId: string) => request(`${API_BASE}/documents/itinerary/${reservationId}`),
+            publish: async (reservationId: string) => request(`${API_BASE}/documents/itinerary/${reservationId}/publish`, { method: 'POST' }),
         },
         contract: {
             get: async (reservationId: string) => request(`${API_BASE}/documents/contract/${reservationId}`),
