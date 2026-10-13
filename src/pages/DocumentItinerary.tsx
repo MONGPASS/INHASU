@@ -446,7 +446,7 @@ const GuideDocumentItinerary: React.FC = () => {
                     .doc-card { box-shadow:none !important; max-width:100% !important; width:100% !important; border-radius:0 !important; }
                     .print-break { break-inside:avoid; page-break-inside:avoid; }
                     /* 인쇄 시 떠 있는 채팅 위젯 숨김 (PDF에 찍히지 않도록) */
-                    .floating-line-btn, #ch-plugin-entry, #ch-plugin-launcher { display:none !important; }
+                    .floating-line-btn { display:none !important; }
                     /* 브라우저 "배경 그래픽" 옵션이 꺼져 있어도 타임라인 라인·DAY 포인트·
                        식사 칩·섹션 배경색이 그대로 인쇄되도록 강제 */
                     .doc-card, .doc-card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }

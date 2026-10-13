@@ -89,6 +89,32 @@
 }
 .admin-app-wrapper .nav-item.active .nav-count { background: rgba(255,255,255,0.22); }
 
+.admin-app-wrapper .nav-group { margin-top: 3px; }
+.admin-app-wrapper .nav-group-toggle {
+  display: flex; align-items: center; gap: 11px; width: 100%; min-height: 44px;
+  padding: 10px 12px; border: none; border-radius: 11px; background: none;
+  color: var(--text-secondary); font: inherit; font-size: 14px; font-weight: 700;
+  text-align: left; cursor: pointer; transition: background var(--dur-fast), color var(--dur-fast);
+}
+.admin-app-wrapper .nav-group-toggle > .material-symbols-outlined { font-size: 21px; color: var(--mrt-gray-500); }
+.admin-app-wrapper .nav-group-toggle:hover { background: var(--mrt-gray-50); color: var(--text-strong); }
+.admin-app-wrapper .nav-group-toggle.is-current { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
+.admin-app-wrapper .nav-group-toggle.is-current > .material-symbols-outlined { color: var(--mrt-blue-strong); }
+.admin-app-wrapper .nav-chevron { margin-left: auto; flex: none; color: var(--mrt-gray-400); transition: transform var(--dur-fast); }
+.admin-app-wrapper .nav-group-toggle.is-current .nav-chevron { color: var(--mrt-blue-strong); }
+.admin-app-wrapper .nav-group.is-open .nav-chevron { transform: rotate(90deg); }
+.admin-app-wrapper .nav-submenu { margin: 5px 0 9px 21px; padding-left: 8px; border-left: 1px solid var(--border-default); }
+.admin-app-wrapper .nav-submenu[hidden] { display: none; }
+.admin-app-wrapper .nav-submenu .nav-item { gap: 8px; min-height: 38px; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 600; }
+.admin-app-wrapper .nav-submenu .nav-item > .material-symbols-outlined { font-size: 18px; }
+.admin-app-wrapper .nav-item:focus-visible,
+.admin-app-wrapper .nav-group-toggle:focus-visible,
+.admin-app-wrapper .side-brand:focus-visible,
+.admin-app-wrapper .side-account .out:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .admin-app-wrapper .nav-chevron { transition: none; }
+}
+
 .admin-app-wrapper .side-foot { padding: 12px; border-top: 1px solid var(--border-subtle); }
 .admin-app-wrapper .side-account {
   display: flex; align-items: center; gap: 10px; padding: 9px 10px;

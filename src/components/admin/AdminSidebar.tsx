@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
 import { Icon } from './console/Icon';
 import { QUOTE_DESK_TOOLS, disconnectQuoteDesk, quoteDeskHref, quoteDeskPageId } from './quoteDesk';
@@ -16,41 +16,81 @@ interface NavItem {
     icon: string;
     label: string;
     href: string;
-    count?: number;
 }
 
-const primaryItems: NavItem[] = [
-    { id: 'dashboard', icon: 'dashboard', label: '대시보드', href: '/admin' },
-    { id: 'reservations', icon: 'assignment', label: '통합 예약 관리', href: '/admin/reservations' },
-    { id: 'accommodation-ops', icon: 'night_shelter', label: 'Байр захиалга · 숙소배정', href: '/admin/accommodation-ops' },
-    { id: 'calendar', icon: 'calendar_today', label: '투어 캘린더', href: '/admin/calendar' },
-];
+interface NavGroup {
+    id: string;
+    icon: string;
+    label: string;
+    items: NavItem[];
+    /** 상세·작성 화면도 관련 업무 메뉴 안에 표시한다. */
+    relatedPages?: string[];
+}
 
-// 맞춤 견적 — 견적 관리 도구(public/*.html)를 관리자 안에 끼워 넣은 화면들 (pages/AdminQuoteDesk)
-const quoteDeskItems: NavItem[] = QUOTE_DESK_TOOLS.map((tool) => ({
-    id: quoteDeskPageId(tool.key),
-    icon: tool.icon,
-    label: tool.label,
-    href: quoteDeskHref(tool.key),
-}));
+const dashboardItem: NavItem = { id: 'dashboard', icon: 'dashboard', label: '대시보드', href: '/admin' };
 
-const catalogItems: NavItem[] = [
-    { id: 'products', icon: 'inventory_2', label: '상품 관리', href: '/admin/products' },
-    { id: 'magazines', icon: 'menu_book', label: '매거진 관리', href: '/admin/magazines' },
-    { id: 'templates', icon: 'folder_special', label: '템플릿 관리', href: '/admin/templates' },
-    { id: 'reviews', icon: 'reviews', label: '후기 관리', href: '/admin/reviews' },
-    { id: 'faq', icon: 'help', label: 'FAQ 관리', href: '/admin/faq' },
-    { id: 'inquiries', icon: 'mail', label: '문의 관리', href: '/admin/inquiries' },
-];
+const quoteItem = (key: string, label?: string): NavItem => {
+    const tool = QUOTE_DESK_TOOLS.find((entry) => entry.key === key)!;
+    return { id: quoteDeskPageId(key), icon: tool.icon, label: label ?? tool.label, href: quoteDeskHref(key) };
+};
 
-const settingItems: NavItem[] = [
-    { id: 'banners', icon: 'ad_units', label: '홈 화면 관리', href: '/admin/banners' },
-    { id: 'promotions', icon: 'campaign', label: '여행기획전 관리', href: '/admin/promotions' },
-    { id: 'categories', icon: 'category', label: '카테고리 관리', href: '/admin/categories' },
-    { id: 'hotels', icon: 'hotel', label: '호텔 마스터', href: '/admin/hotels' },
-    { id: 'tourist-spots', icon: 'location_on', label: '관광지 마스터', href: '/admin/tourist-spots' },
-    { id: 'design-spots', icon: 'photo_library', label: '여행지 사진', href: '/admin/design-spots' },
-    { id: 'guide-intro', icon: 'translate', label: '가이드 소개 (공통)', href: '/admin/guide-intro' },
+const navGroups: NavGroup[] = [
+    {
+        id: 'booking-work', icon: 'assignment', label: '예약 관리',
+        relatedPages: [quoteDeskPageId('bookings')],
+        items: [
+            { id: 'reservations', icon: 'assignment', label: '통합 예약 목록', href: '/admin/reservations' },
+            { id: 'calendar', icon: 'calendar_today', label: '투어 캘린더', href: '/admin/calendar' },
+        ],
+    },
+    {
+        id: 'quote-work', icon: 'request_quote', label: '견적 관리',
+        relatedPages: [quoteDeskPageId('builder')],
+        items: [quoteItem('inbox')],
+    },
+    {
+        id: 'product-work', icon: 'inventory_2', label: '상품 관리',
+        items: [
+            { id: 'products', icon: 'inventory_2', label: '상품 목록', href: '/admin/products' },
+            { id: 'categories', icon: 'category', label: '상품 카테고리', href: '/admin/categories' },
+        ],
+    },
+    {
+        id: 'assignment-work', icon: 'groups', label: '배정·자원',
+        items: [
+            { id: 'accommodation-ops', icon: 'night_shelter', label: '숙소 배정 · 현지 운영', href: '/admin/accommodation-ops' },
+            quoteItem('resources', '가이드·견적숙소·차량'),
+            { id: 'hotels', icon: 'hotel', label: '상품용 호텔', href: '/admin/hotels' },
+            { id: 'guide-intro', icon: 'translate', label: '가이드 소개', href: '/admin/guide-intro' },
+        ],
+    },
+    {
+        id: 'travel-material', icon: 'route', label: '여행 자료',
+        items: [
+            quoteItem('courses'),
+            quoteItem('itinerary'),
+            quoteItem('spots', '견적용 명소'),
+            { id: 'tourist-spots', icon: 'location_on', label: '상품용 관광지', href: '/admin/tourist-spots' },
+            { id: 'design-spots', icon: 'photo_library', label: '여행지 사진', href: '/admin/design-spots' },
+            { id: 'templates', icon: 'folder_special', label: '문서 템플릿', href: '/admin/templates' },
+        ],
+    },
+    {
+        id: 'customer-content', icon: 'mail', label: '고객·콘텐츠',
+        items: [
+            { id: 'inquiries', icon: 'mail', label: '일반 문의', href: '/admin/inquiries' },
+            { id: 'reviews', icon: 'reviews', label: '후기 관리', href: '/admin/reviews' },
+            { id: 'faq', icon: 'help', label: 'FAQ 관리', href: '/admin/faq' },
+            { id: 'magazines', icon: 'menu_book', label: '매거진 관리', href: '/admin/magazines' },
+        ],
+    },
+    {
+        id: 'site-management', icon: 'ad_units', label: '사이트 관리',
+        items: [
+            { id: 'banners', icon: 'ad_units', label: '홈 화면 관리', href: '/admin/banners' },
+            { id: 'promotions', icon: 'campaign', label: '여행기획전 관리', href: '/admin/promotions' },
+        ],
+    },
 ];
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
@@ -58,11 +98,20 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
     let logout: undefined | (() => void | Promise<void>);
     try { logout = useUser().logout; } catch { logout = undefined; }
 
-    // 메뉴가 길어 스크롤되므로, 현재 메뉴가 가려져 있으면 보이는 곳까지만 옮긴다.
+    const activeGroupId = navGroups.find((group) => (
+        group.items.some((item) => item.id === activePage) || group.relatedPages?.includes(activePage)
+    ))?.id ?? null;
+    const [expandedGroup, setExpandedGroup] = useState<string | null>(activeGroupId);
     const navRef = useRef<HTMLElement>(null);
+
+    // 현재 업무만 먼저 펼친다. 다른 화면으로 이동하면 해당 업무 메뉴를 자동으로 연다.
     useEffect(() => {
-        navRef.current?.querySelector('.nav-item.active')?.scrollIntoView({ block: 'nearest' });
-    }, [activePage]);
+        setExpandedGroup(activeGroupId);
+        const frame = window.requestAnimationFrame(() => {
+            navRef.current?.querySelector('.nav-item.active, .nav-group-toggle.is-current')?.scrollIntoView({ block: 'nearest' });
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [activePage, activeGroupId]);
 
     const handleLogout = async () => {
         // 견적 도구가 쓰는 관리자 값(sessionStorage)도 함께 지운다.
@@ -74,32 +123,50 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
     const renderItem = (item: NavItem) => {
         const isActive = activePage === item.id;
         return (
-            <a key={item.id} href={item.href} className={`nav-item${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined}>
+            <Link key={item.id} to={item.href} className={`nav-item${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined}>
                 <Icon name={item.icon} fill={isActive} />
                 <span>{item.label}</span>
-                {item.count ? <span className="nav-count">{item.count}</span> : null}
-            </a>
+            </Link>
         );
     };
 
     return (
         <aside className="side">
-            <a href="/admin" className="side-brand" aria-label="몽골리아 은하수 관리자 홈">
+            <Link to="/admin" className="side-brand" aria-label="몽골리아 은하수 관리자 홈">
                 <span className="brand-mark"><Icon name="flight_takeoff" /></span>
                 <div>
                     <div className="brand-name">몽골리아 은하수</div>
                     <div className="brand-sub">통합 관리자</div>
                 </div>
-            </a>
+            </Link>
 
-            <nav className="side-nav" ref={navRef}>
-                {primaryItems.map(renderItem)}
-                <div className="nav-group-label">맞춤 견적</div>
-                {quoteDeskItems.map(renderItem)}
-                <div className="nav-group-label">상품 · 콘텐츠</div>
-                {catalogItems.map(renderItem)}
-                <div className="nav-group-label">사이트 설정</div>
-                {settingItems.map(renderItem)}
+            <nav className="side-nav" ref={navRef} aria-label="관리자 업무 메뉴">
+                {renderItem(dashboardItem)}
+                {navGroups.map((group) => {
+                    const isOpen = expandedGroup === group.id;
+                    const isCurrent = activeGroupId === group.id;
+                    const panelId = `admin-nav-${group.id}`;
+                    return (
+                        <div className={`nav-group${isOpen ? ' is-open' : ''}`} key={group.id}>
+                            <button
+                                type="button"
+                                className={`nav-group-toggle${isCurrent ? ' is-current' : ''}`}
+                                aria-expanded={isOpen}
+                                aria-controls={panelId}
+                                onClick={() => setExpandedGroup(isOpen ? null : group.id)}
+                            >
+                                <Icon name={group.icon} fill={isCurrent} />
+                                <span>{group.label}</span>
+                                <svg className="nav-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                            <div className="nav-submenu" id={panelId} hidden={!isOpen}>
+                                {group.items.map(renderItem)}
+                            </div>
+                        </div>
+                    );
+                })}
             </nav>
 
             <div className="side-foot">
@@ -109,7 +176,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
                         <b>관리자</b>
                         <span>운영 계정 · 마스터</span>
                     </div>
-                    <button className="out" title="로그아웃" onClick={handleLogout}>
+                    <button type="button" className="out" title="로그아웃" aria-label="로그아웃" onClick={handleLogout}>
                         <Icon name="logout" />
                     </button>
                 </div>

@@ -4,7 +4,7 @@ import { MW, MW_FONT_EN } from '../desktop-primitives/mwTokens';
 import { MobileShell } from '../mobile/MobileShell';
 import { useMobileShell } from '../mobile/mobileShellContext';
 import { M_HAIR, M_PAPER } from '../mobile/mobileTheme';
-import { INFO_PAGES, activeInfoKey, infoEntry, type InfoKey } from './infoNav';
+import { INFO_NAV_PAGES, activeInfoKey, infoEntry, type InfoKey } from './infoNav';
 
 interface InfoLayoutMobileProps {
     page: InfoKey;
@@ -55,7 +55,7 @@ function InfoScreen({ page, heading, children }: InfoLayoutMobileProps) {
 
             <div style={{ position: 'sticky', top: stickyTop, zIndex: 9, background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(10px)', borderTop: `1px solid ${M_HAIR}`, borderBottom: `1px solid ${M_HAIR}` }}>
                 <nav ref={row} aria-label="이용 안내·회사 정보" data-noscroll="" style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', padding: '10px 16px' }}>
-                    {INFO_PAGES.map((p) => {
+                    {INFO_NAV_PAGES.map((p) => {
                         const on = p.key === active;
                         return (
                             <a

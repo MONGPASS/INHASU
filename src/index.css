@@ -193,31 +193,16 @@ img {
     -webkit-user-select: none;
 }
 
-/* Move Channel Talk floating launcher above the Bottom Navigation Bar.
-   BottomNav is h-[84px] + iPhone home indicator safe-area (~34px) → need ~100px clearance.
-   IMPORTANT: target ONLY the launcher button. A wildcard like [id^="ch-plugin"] also
-   matches the messenger window container, which pushes the chat panel up by 100px on
-   open and clips the header (close button) off-screen on mobile. */
-@media (max-width: 768px) {
-    #ch-plugin-entry,
-    #ch-plugin-launcher {
-        bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
-    }
-}
-
-/* LINE quick-chat floating button (FloatingConsultation) — stacks directly ABOVE the
-   Channel Talk launcher so the two never overlap.
-   Launcher: ~54px tall, sits at bottom:24px (desktop) / bottom:100px (mobile, see above).
-   So offset = launcher-bottom + launcher-height(54) + gap(14). */
+/* Kakao consultation button; leave room for the mobile bottom navigation. */
 .floating-line-btn {
     position: fixed;
     right: 20px;
-    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
     z-index: 9999;
 }
-@media (max-width: 768px) {
+@media (max-width: 1023px) {
     .floating-line-btn {
-        bottom: calc(168px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     }
 }
 
@@ -409,13 +394,9 @@ img {
 .mw-article.mw-article-m .not-prose h3::before { content: none; }
 .mw-article.mw-article-m .magazine-slider-container { margin: 0; }
 
-/* Mobile redesign: the floating chat buttons step aside while a sheet / drawer is open
+/* Mobile redesign: the floating chat button steps aside while a sheet / drawer is open
    and on screens whose bottom edge is a sticky action bar (quote form, mate detail). */
 body:has([data-mw-overlay]) .floating-line-btn,
-body:has([data-mw-overlay]) #ch-plugin-entry,
-body:has([data-mw-overlay]) #ch-plugin-launcher,
-body:has([data-mw-actionbar]) .floating-line-btn,
-body:has([data-mw-actionbar]) #ch-plugin-entry,
-body:has([data-mw-actionbar]) #ch-plugin-launcher {
+body:has([data-mw-actionbar]) .floating-line-btn {
     display: none !important;
 }

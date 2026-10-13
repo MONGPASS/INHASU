@@ -1,25 +1,17 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { KAKAO_CHANNEL_URL } from '../../constants/company';
+import { KAKAO_CHANNEL_CHAT_URL, KAKAO_CHANNEL_URL } from '../../constants/company';
 import { MW, MW_FONT, MW_FONT_EN, MW_GRADIENT } from '../desktop-primitives/mwTokens';
 
 interface FooterLink {
     label: string;
     path?: string;
-    onClick?: () => void;
+    href?: string;
 }
 
 export function DesktopFooter() {
     const navigate = useNavigate();
     // The quote page is itself the CTA target, so it skips the band.
     const showCta = !useLocation().pathname.startsWith('/custom-estimate');
-
-    const onConsult = () => {
-        if (typeof window.openChannelTalk === 'function') {
-            window.openChannelTalk();
-        } else {
-            navigate('/custom-estimate');
-        }
-    };
 
     const cols: { h: string; items: FooterLink[] }[] = [
         {
@@ -47,10 +39,9 @@ export function DesktopFooter() {
             h: '회사 정보',
             items: [
                 { label: '회사 소개', path: '/about' },
-                { label: '가이드 모집', path: '/guide-apply' },
                 { label: '여행 후기', path: '/reviews' },
                 { label: '마이페이지', path: '/mypage' },
-                { label: '문의', onClick: onConsult },
+                { label: '카카오톡 문의', href: KAKAO_CHANNEL_CHAT_URL },
             ],
         },
     ];
@@ -83,15 +74,16 @@ export function DesktopFooter() {
                             >
                                 맞춤 견적
                             </button>
-                            <button
-                                type="button"
-                                onClick={onConsult}
-                                style={{ border: `1.5px solid ${MW.navy}`, background: 'transparent', color: MW.navy, fontWeight: 700, fontSize: 15, padding: '14px 30px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit' }}
+                            <a
+                                href={KAKAO_CHANNEL_CHAT_URL}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ border: `1.5px solid ${MW.navy}`, background: 'transparent', color: MW.navy, fontWeight: 700, fontSize: 15, padding: '14px 30px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}
                                 onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(10,31,46,0.08)')}
                                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                             >
-                                상담
-                            </button>
+                                카카오톡 상담
+                            </a>
                         </div>
                     </div>
                 </section>
@@ -113,16 +105,23 @@ export function DesktopFooter() {
                             <div key={c.h} style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
                                 <span style={{ fontSize: 14, fontWeight: 700, color: MW.navy, marginBottom: 4 }}>{c.h}</span>
                                 {c.items.map((item) => (
-                                    <button
+                                    <a
                                         key={item.label}
-                                        type="button"
-                                        onClick={item.onClick ? item.onClick : () => item.path && navigate(item.path)}
-                                        style={linkBtn}
+                                        href={item.href ?? item.path}
+                                        target={item.href ? '_blank' : undefined}
+                                        rel={item.href ? 'noopener noreferrer' : undefined}
+                                        onClick={(e) => {
+                                            if (item.path && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+                                                e.preventDefault();
+                                                navigate(item.path);
+                                            }
+                                        }}
+                                        style={{ ...linkBtn, textDecoration: 'none' }}
                                         onMouseEnter={(e) => (e.currentTarget.style.color = MW.mintDeep)}
                                         onMouseLeave={(e) => (e.currentTarget.style.color = MW.ink3)}
                                     >
                                         {item.label}
-                                    </button>
+                                    </a>
                                 ))}
                             </div>
                         ))}

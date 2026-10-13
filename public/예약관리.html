@@ -343,7 +343,11 @@ const infoCell = (k, v) => `<div class="sum-card"><div class="k">${esc(k)}</div>
 
 /* ── 진입 정보 (대시보드에서 전달) ── */
 let PRE = null;
-try { PRE = JSON.parse(localStorage.getItem("leaders_booking_prefill") || "null"); } catch (e) {}
+const bookingId = new URLSearchParams(location.search).get("id");
+// ID 진입은 저장소의 이전 고객을 절대 열지 않는다. 기존 대시보드 전달 방식도 계속 지원한다.
+if (!bookingId) {
+  try { PRE = JSON.parse(localStorage.getItem("leaders_booking_prefill") || "null"); } catch (e) {}
+}
 const ADMIN_TOKEN = (PRE && PRE.adminToken) || sessionStorage.getItem("leaders_admin_token") || "";
 if (ADMIN_TOKEN) sessionStorage.setItem("leaders_admin_token", ADMIN_TOKEN);
 
@@ -1616,12 +1620,30 @@ async function save(opts = {}) {
 }
 
 /* ── 진입 ── */
-if (!PRE || !PRE.id) {
-  $("main").innerHTML = `<div class="empty"><h2>열 예약이 없어요</h2>
-    통합 대시보드에서 고객을 선택한 뒤 <b>📋 예약관리</b> 버튼으로 열어주세요.<br><br>
-    <a class="hbtn" href="견적관리.html">← 대시보드로</a></div>`;
-} else {
-  init();
+async function openInitialBooking() {
+  if (bookingId) {
+    $("main").innerHTML = `<div class="empty">예약을 불러오는 중…</div>`;
+    try {
+      const res = await fetch(`/api/requests/${encodeURIComponent(bookingId)}`, {
+        headers: { "x-admin-token": ADMIN_TOKEN }, cache: "no-store",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok || String(data.item?.id) !== bookingId) throw new Error("예약을 불러올 수 없습니다. 관리자 로그인과 예약번호를 확인해 주세요.");
+      PRE = data.item;
+      init();
+    } catch (error) {
+      PRE = null;
+      $("main").innerHTML = `<div class="empty"><h2>예약을 불러오지 못했어요</h2>${esc(error.message)}<br><br><a class="hbtn" href="/admin/reservations?type=quote_booking">통합 예약 목록으로</a></div>`;
+      return;
+    }
+  } else if (!PRE || !PRE.id) {
+    $("main").innerHTML = `<div class="empty"><h2>열 예약이 없어요</h2>
+      통합 예약 목록에서 고객을 선택해 주세요.<br><br>
+      <a class="hbtn" href="/admin/reservations">← 통합 예약 목록으로</a></div>`;
+    return;
+  } else {
+    init();
+  }
   /* 미저장 변경이 있으면 탭 닫기/이동 전에 경고 */
   window.addEventListener("beforeunload", e => {
     if (!BK) return;
@@ -1629,6 +1651,7 @@ if (!PRE || !PRE.id) {
     if (JSON.stringify(BK) !== SAVED_BK_JSON) { e.preventDefault(); e.returnValue = ""; }
   });
 }
+openInitialBooking();
 </script>
 </body>
 </html>

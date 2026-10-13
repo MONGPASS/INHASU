@@ -1,4 +1,6 @@
 import type { Promotion } from '../components/promotions/promotionTypes';
+import { changedContentResource, notifyContentSaved } from './publicContent';
+import type { QuoteBookingSummary } from '../../functions/lib/quoteBookings';
 import { INQUIRY_REQUEST_FAILED, type InquiryInput, type InquiryRecord, type InquiryStatus } from '../types/inquiry';
 
 const API_BASE = '/api';
@@ -22,10 +24,17 @@ async function request(url: string, options?: RequestInit) {
         const err = await res.json().catch(() => ({ error: 'Request failed' }));
         throw new Error(err.error || `HTTP ${res.status}`);
     }
-    return res.json();
+    const data = await res.json();
+    const resource = changedContentResource(url, options?.method);
+    if (resource) notifyContentSaved(resource);
+    return data;
 }
 
 export const api = {
+    adminBookings: {
+        quote: async (): Promise<{ items: QuoteBookingSummary[]; skipped: number }> =>
+            request(`${API_BASE}/admin/bookings/quote`, { cache: 'no-store' }),
+    },
     auth: {
         me: async () => {
             try {
@@ -89,6 +98,7 @@ export const api = {
     },
     products: {
         list: async () => request(`${API_BASE}/products`),
+        summary: async () => request(`${API_BASE}/products?summary=1`),
         get: async (id: string) => request(`${API_BASE}/products/${id}`),
         create: async (data: any) => request(`${API_BASE}/products`, {
             method: 'POST',

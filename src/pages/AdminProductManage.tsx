@@ -1772,7 +1772,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         className="inp"
                                         style={{ paddingTop: 10, height: 'auto' }}
                                     />
-                                    <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>여러 메인 이미지를 업로드하세요 (슬라이드로 표시됩니다)</p>
+                                    <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>대표 사진은 홈 상품 카드와 상품 상세 슬라이드에 사용됩니다. 업로드 후 상품을 저장하고 ‘판매중’으로 설정해야 공개됩니다.</p>
 
                                     {/* Main Images Grid */}
                                     {formData.mainImages && formData.mainImages.length > 0 && (
@@ -1848,7 +1848,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                             <div className="toggle-row">
                                                 <div>
                                                     <div className="cell-strong">추천 상품</div>
-                                                    <div className="cell-muted" style={{ fontSize: 12 }}>홈 추천 영역에 노출</div>
+                                                    <div className="cell-muted" style={{ fontSize: 12 }}>홈 상품 목록에서 우선 정렬</div>
                                                 </div>
                                                 <div className="spacer" style={{ flex: 1 }} />
                                                 <button

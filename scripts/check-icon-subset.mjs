@@ -70,7 +70,12 @@ for (const f of files) {
         />([a-z][a-z0-9_]{2,40})</g,            // JSX 자식 텍스트
         /^\s*([a-z][a-z0-9_]{2,40})\s*$/gm,     // 한 줄짜리 토큰
     ]) {
-        for (const hit of text.matchAll(re)) tokens.add(hit[1]);
+        for (const hit of text.matchAll(re)) {
+            // DOM event names such as 'storage' are not icon props.
+            const before = text.slice(Math.max(0, hit.index - 50), hit.index);
+            if (/(?:add|remove)EventListener\(\s*$/.test(before)) continue;
+            tokens.add(hit[1]);
+        }
     }
 }
 

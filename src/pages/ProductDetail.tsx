@@ -187,7 +187,7 @@ export const ProductDetail: React.FC = () => {
     // Pre-process images for JSON-LD (exclude data URIs as Google prefers absolute URLs)
     const validImages = safeMainImages
         .filter(img => !img.startsWith('data:'))
-        .map(img => img.startsWith('http') ? img : `${window.location.origin}${img}`);
+        .map(img => new URL(img, `${SITE_URL}/`).href);
 
     // Enhanced Product description for meta
     const productMetaDescription = [
@@ -199,7 +199,9 @@ export const ProductDetail: React.FC = () => {
     ].filter(Boolean).join(' ').substring(0, 160);
 
     // ── Aggregate rating + sample reviews from approved user reviews ──
-    const approvedReviews = productReviews.filter((r: any) => r.is_approved === 1 || r.is_approved === true);
+    const approvedReviews = productReviews.filter((r: any) =>
+        (r.is_approved === 1 || r.is_approved === true) && Number(r.rating) >= 1 && Number(r.rating) <= 5
+    );
     const ratingSum = approvedReviews.reduce((sum: number, r: any) => sum + (Number(r.rating) || 0), 0);
     const avgRating = approvedReviews.length > 0 ? Number((ratingSum / approvedReviews.length).toFixed(1)) : 0;
     // Google requires a minimum to show rich rating snippets; be conservative.
@@ -216,48 +218,20 @@ export const ProductDetail: React.FC = () => {
         "@type": "Review",
         "author": { "@type": "Person", "name": r.user_name || r.author_name || '익명' },
         "datePublished": r.created_at ? String(r.created_at).split(' ')[0] : undefined,
-        "reviewRating": { "@type": "Rating", "ratingValue": Number(r.rating) || 5, "bestRating": 5, "worstRating": 1 },
+        "reviewRating": { "@type": "Rating", "ratingValue": Number(r.rating), "bestRating": 5, "worstRating": 1 },
         "reviewBody": r.content || r.title || '',
         "name": r.title || undefined,
     }));
 
     const availability = product.status === 'active' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
-    const priceValidUntil = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0];
-
-    // Tour bookings are digital: no shipping, so declare free/instant. Satisfies Google's
-    // Merchant Listing "shippingDetails missing" warning.
-    const shippingDetails = {
-        "@type": "OfferShippingDetails",
-        "shippingRate": { "@type": "MonetaryAmount", "value": 0, "currency": "KRW" },
-        "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "KR" },
-        "deliveryTime": {
-            "@type": "ShippingDeliveryTime",
-            "handlingTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 0, "unitCode": "DAY" },
-            "transitTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 0, "unitCode": "DAY" },
-        },
-    };
-    // The deposit is non-refundable (it prepays the hotels and camps), so the policy is "not permitted".
-    // Declaring a policy at all is what satisfies Google's "hasMerchantReturnPolicy missing" check.
-    const merchantReturnPolicy = {
-        "@type": "MerchantReturnPolicy",
-        "applicableCountry": "KR",
-        "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
-    };
-
-    // One Offer at the tour's "from" price. An AggregateOffer branch used to sit here but read a field
-    // that does not exist, so it never ran; a single Offer is also what Google's merchant listing
-    // (shipping / return policy below) is defined on, and it matches the server-rendered JSON-LD.
+    // Only the actual displayed tour price and availability belong in an offer.
     const offersLd = {
         "@type": "Offer",
-        "url": window.location.href,
+        "url": `${SITE_URL}/products/${encodeURIComponent(id || product.id)}`,
         "priceCurrency": "KRW",
         "price": product.price,
-        "priceValidUntil": priceValidUntil,
-        "itemCondition": "https://schema.org/NewCondition",
         "availability": availability,
         "seller": { "@type": "Organization", "name": BRAND.name },
-        "shippingDetails": shippingDetails,
-        "hasMerchantReturnPolicy": merchantReturnPolicy,
     };
 
     // Create JSON-LD Product Schema (enhanced) — dual-typed for travel rich results.
@@ -275,7 +249,7 @@ export const ProductDetail: React.FC = () => {
         ...(product.duration ? { "additionalProperty": [
             { "@type": "PropertyValue", "name": "소요 기간", "value": product.duration }
         ]} : {}),
-        "offers": offersLd,
+        ...(Number(product.price) > 0 ? { "offers": offersLd } : {}),
         ...(aggregateRating ? { "aggregateRating": aggregateRating } : {}),
         ...(reviewLd.length > 0 ? { "review": reviewLd } : {}),
     };

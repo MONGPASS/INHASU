@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import { useWishlist } from '../../hooks/useWishlist';
 import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { TypePill } from '../desktop-primitives/TypePill';
@@ -56,7 +57,7 @@ export function ThemeRowSectionDesktop({ title, subtitle, products, stats, image
             style={{ flex: '0 1 300px', minWidth: 240, aspectRatio: '1/1', borderRadius: 28, overflow: 'hidden', display: 'block', background: MW.mintTint }}
         >
             {isUsableImage(image) && (
-                <img src={image} alt={imageAlt} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <ResponsiveProductImage src={image} alt={imageAlt} sizes="300px" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             )}
         </a>
     );
@@ -109,7 +110,7 @@ function MiniCard({ p, stat }: { p: HomeProduct; stat?: ReviewStat }) {
         >
             <div style={{ position: 'relative', aspectRatio: '16/10', borderRadius: 18, overflow: 'hidden', background: MW.mintTint }}>
                 {isUsableImage(img) && (
-                    <img src={img} alt={`${p.name} | ${p.category}`} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <ResponsiveProductImage src={img} alt={`${p.name} | ${p.category}`} sizes="220px" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 )}
                 <FavButton variant="ghost" on={wishlist.has(p.id)} onToggle={() => wishlist.toggle(p)} />
             </div>

@@ -51,7 +51,7 @@ const NAV_ROW: { label: string; path: string; match: (p: string) => boolean; dot
     { label: '여행 기획전', path: '/promotions', match: (p) => p.startsWith('/promotions'), dot: true },
 ];
 
-const FOOT_GROUPS: { title: string; links: { label: string; path?: string; line?: boolean }[] }[] = [
+const FOOT_GROUPS: { title: string; links: { label: string; path: string; external?: boolean }[] }[] = [
     {
         title: '서비스',
         links: [
@@ -77,10 +77,9 @@ const FOOT_GROUPS: { title: string; links: { label: string; path?: string; line?
         title: '회사 정보',
         links: [
             { label: '회사 소개', path: '/about' },
-            { label: '가이드 모집', path: '/guide-apply' },
             { label: '여행 후기', path: '/reviews' },
             { label: '마이페이지', path: '/mypage' },
-            { label: '문의', path: '/contact' },
+            { label: '카카오톡 문의', path: KAKAO_CHANNEL_CHAT_URL, external: true },
         ],
     },
 ];
@@ -435,7 +434,7 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                                         {open && (
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '12px 16px', padding: '0 0 18px' }}>
                                                 {g.links.map((l) => (
-                                                    <a key={l.label} href={l.path} onClick={(e) => { e.preventDefault(); if (l.path) go(l.path); }} style={{ fontSize: 13, color: MW.mute, textDecoration: 'none' }}>{l.label}</a>
+                                                    <a key={l.label} href={l.path} target={l.external ? '_blank' : undefined} rel={l.external ? 'noopener noreferrer' : undefined} onClick={(e) => { if (l.external || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return; e.preventDefault(); go(l.path); }} style={{ fontSize: 13, color: MW.mute, textDecoration: 'none' }}>{l.label}</a>
                                                 ))}
                                             </div>
                                         )}
