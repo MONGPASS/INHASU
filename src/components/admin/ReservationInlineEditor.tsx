@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReservationDocContent } from './ReservationDocumentEditor';
 import type { Activity, DocumentSettings, TemplateDay } from '../../pages/AdminTemplateManage';
-import { createInlineDocument, applyQuoteSnippet, groupQuoteLibrary } from '../../utils/reservationInline';
+import { createInlineDocument, applyQuoteSnippet, groupQuoteLibrary, quoteDayFields, updateQuoteDay, fillQuoteDayDates } from '../../utils/reservationInline';
 import { uploadImage } from '../../utils/upload';
+import { QuoteDayEditor } from './QuoteDayEditor';
 
 interface Props {
     reservationId: string;
@@ -31,16 +32,6 @@ const textValue = (value: unknown) => typeof value === 'string' ? value : '';
 const photoList = (value: unknown): string[] => Array.isArray(value) ? value.filter(item => typeof item === 'string' && item) : [];
 const cloneContent = (content: ReservationDocContent) => createInlineDocument(content, null, content.name);
 const renumber = (days: TemplateDay[]) => days.map((day, index) => ({ ...day, day: index + 1 }));
-const hasDayPhotos = (day: TemplateDay) => !!(photoList(day.images).length || photoList(day.accommodation?.images).length || day.activities.some(activity => photoList(activity.images).length));
-
-function dateForDay(start: string, index: number) {
-    if (!start) return '';
-    const date = new Date(`${start}T00:00:00Z`);
-    if (!Number.isFinite(date.getTime())) return '';
-    date.setUTCDate(date.getUTCDate() + index);
-    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-    return `${String(date.getUTCMonth() + 1).padStart(2, '0')}.${String(date.getUTCDate()).padStart(2, '0')}(${weekdays[date.getUTCDay()]})`;
-}
 
 /** 일정과 계약 조건을 현재 예약 상세 본문 안에서 편집한다. */
 export function ReservationInlineEditor(p: Props) {
@@ -111,17 +102,23 @@ export function ReservationInlineEditor(p: Props) {
     const editActivity = (dayIndex: number, index: number, change: (activity: Activity) => Activity) => editDay(dayIndex, day => ({ ...day, activities: day.activities.map((activity, i) => i === index ? change(activity) : activity) }));
     const editContract = <K extends keyof DocumentSettings['contract'],>(key: K, value: DocumentSettings['contract'][K]) => edit(current => ({ ...current, documentSettings: { ...current.documentSettings, contract: { ...current.documentSettings.contract, [key]: value } } }));
     const setDate = (key: keyof typeof dates, value: string) => { if (locked) return; touch(); setDates(current => ({ ...current, [key]: value })); };
-    const moveDay = (index: number, offset: number) => edit(current => {
+    const moveDay = (index: number, target: number) => edit(current => {
         const days = [...current.days];
-        const target = index + offset;
         if (target < 0 || target >= days.length) return current;
-        [days[index], days[target]] = [days[target], days[index]];
+        const [moved] = days.splice(index, 1);
+        days.splice(target, 0, moved);
         return { ...current, days: renumber(days) };
     });
     const removeDay = (index: number) => {
         if (locked) return;
-        if (hasDayPhotos(draft.days[index]) && !window.confirm('이 일차의 일정과 사진을 모두 삭제할까요?')) return;
+        if (draft.days.length <= 1) { setNotice('최소 1일은 필요합니다.'); setNoticeFailed(true); return; }
         edit(current => ({ ...current, days: renumber(current.days.filter((_, i) => i !== index)) }));
+    };
+    const fillDates = () => {
+        if (locked) return;
+        if (!dates.startDate) { setNotice('여행 시작일을 먼저 입력하세요.'); setNoticeFailed(true); return; }
+        edit(current => ({ ...current, days: fillQuoteDayDates(current.days, dates.startDate) }));
+        setNotice('출발일 기준으로 여행일자를 채웠어요 — 각 칸에서 자유롭게 수정할 수 있어요.');
     };
     const loadSnippet = (index: number, name: string) => {
         if (locked || !name || !libraries.snippets[name]) return;
@@ -164,7 +161,6 @@ export function ReservationInlineEditor(p: Props) {
         if (dirty && !window.confirm('저장하지 않은 문서 변경사항을 버리고 편집을 닫을까요?')) return;
         p.onClose();
     };
-    const snippetGroups = groupQuoteLibrary(libraries.snippets, libraries.snippet_cats);
     const spotGroups = groupQuoteLibrary(libraries.spots, libraries.spot_cats);
     const contract = draft.documentSettings.contract;
     const expectedDays = dates.startDate && dates.endDate ? Math.round((Date.parse(dates.endDate) - Date.parse(dates.startDate)) / 86400000) + 1 : null;
@@ -177,26 +173,41 @@ export function ReservationInlineEditor(p: Props) {
         <fieldset className="ri-form" disabled={locked} inert={locked}>
             <div className="ri-basics"><label className="ri-field ri-wide"><span>여행명</span><input value={draft.name} onChange={e => edit(current => ({ ...current, name: e.target.value }))} /></label><label className="ri-field"><span>여행 시작일</span><input type="date" value={dates.startDate} onChange={e => setDate('startDate', e.target.value)} /></label><label className="ri-field"><span>여행 종료일</span><input type="date" value={dates.endDate} min={dates.startDate || undefined} onChange={e => setDate('endDate', e.target.value)} /></label></div>
             {activeMode === 'itinerary' ? <>
-                <div className="ri-section-title"><div><h3>하루별 확정 일정</h3><p>{expectedDays && expectedDays > 0 ? `${expectedDays}일 여행 · 일정 ${draft.days.length}일${expectedDays !== draft.days.length ? ' · 일차 수를 확인하세요' : ''}` : '일차를 추가하고 일정 조각을 불러오거나 직접 작성하세요.'}</p></div><button type="button" className="btn btn-ghost" onClick={() => edit(current => ({ ...current, days: [...current.days, { day: current.days.length + 1, title: '', region: '', summary: '', activities: [], meals: {}, accommodation: null }] }))}>＋ 일차 추가</button></div>
-                {libraryLoading && <p className="ri-library-note" role="status">저장된 일정 조각과 명소를 불러오고 있습니다.</p>}
-                {libraryError && <div className="ri-library-error" role="alert">{libraryError}<button type="button" onClick={() => setLibraryAttempt(current => current + 1)}>다시 시도</button></div>}
-                <div className="ri-days">{draft.days.map((day, dayIndex) => {
-                    const assigned = p.dailyAccommodations?.find(stay => stay.day === dayIndex + 1)?.accommodation.name;
-                    return <article className="ri-day" key={dayIndex}>
-                        <div className="ri-day-heading"><b>{dayIndex + 1}일차</b><span>{dateForDay(dates.startDate, dayIndex) || '여행 시작일을 입력하세요'}</span><div><button type="button" disabled={dayIndex === 0} onClick={() => moveDay(dayIndex, -1)} aria-label={`${dayIndex + 1}일차 위로 이동`}>↑</button><button type="button" disabled={dayIndex === draft.days.length - 1} onClick={() => moveDay(dayIndex, 1)} aria-label={`${dayIndex + 1}일차 아래로 이동`}>↓</button><button type="button" onClick={() => removeDay(dayIndex)}>일차 삭제</button></div></div>
-                        <div className="ri-day-body">
-                            <label className="ri-field ri-snippet"><span>저장된 일정 조각 불러오기</span><select value="" disabled={libraryLoading || !snippetGroups.length} onChange={e => loadSnippet(dayIndex, e.target.value)}><option value="">일정 조각 선택</option>{snippetGroups.map(group => <optgroup key={group.name} label={group.name}>{group.items.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</optgroup>)}</select></label>
-                            <div className="ri-day-fields"><label className="ri-field ri-destination"><span>목적지 · 일정 제목</span><input value={day.title} onChange={e => editDay(dayIndex, current => ({ ...current, title: e.target.value }))} /></label><label className="ri-field"><span>이동 시간</span><input value={day.move || ''} placeholder="예: 이동 4시간" onChange={e => editDay(dayIndex, current => ({ ...current, move: e.target.value }))} /></label><label className="ri-field"><span>이동 거리</span><input value={day.dist || ''} placeholder="예: 280 km" onChange={e => editDay(dayIndex, current => ({ ...current, dist: e.target.value }))} /></label><label className="ri-field"><span>지역</span><input value={day.region || ''} onChange={e => editDay(dayIndex, current => ({ ...current, region: e.target.value }))} /></label></div>
-                            <label className="ri-field"><span>일정 요약</span><textarea rows={2} value={day.summary || ''} onChange={e => editDay(dayIndex, current => ({ ...current, summary: e.target.value }))} /></label>
-                            <div className="ri-activities"><div className="ri-small-heading"><h4>상세 일정</h4><button type="button" onClick={() => editDay(dayIndex, current => ({ ...current, activities: [...current.activities, { time: '', title: '', description: '', images: [] }] }))}>＋ 일정 항목 추가</button></div>{day.activities.map((activity, activityIndex) => <div className="ri-activity" key={activityIndex}><div className="ri-activity-line"><label className="ri-field ri-time"><span>시간</span><input value={activity.time || ''} placeholder="09:00" onChange={e => editActivity(dayIndex, activityIndex, current => ({ ...current, time: e.target.value }))} /></label><label className="ri-field ri-activity-title"><span>일정</span><input value={activity.title} onChange={e => editActivity(dayIndex, activityIndex, current => ({ ...current, title: e.target.value }))} /></label><button type="button" className="ri-remove" onClick={() => { if (photoList(activity.images).length && !window.confirm('이 일정 항목과 사진을 삭제할까요?')) return; editDay(dayIndex, current => ({ ...current, activities: current.activities.filter((_, index) => index !== activityIndex) })); }}>삭제</button></div><label className="ri-field"><span>상세 설명</span><textarea rows={2} value={activity.description} onChange={e => editActivity(dayIndex, activityIndex, current => ({ ...current, description: e.target.value }))} /></label>{photos(photoList(activity.images), index => editActivity(dayIndex, activityIndex, current => ({ ...current, images: photoList(current.images).filter((_, i) => i !== index) })))}<label className="ri-upload">＋ 항목 사진 추가<input type="file" accept="image/*" multiple onChange={e => { void addPhotos(dayIndex, activityIndex, e.target.files); e.target.value = ''; }} /></label></div>)}</div>
-                            {photos(photoList(day.images), index => editDay(dayIndex, current => ({ ...current, images: photoList(current.images).filter((_, i) => i !== index) })))}<label className="ri-upload">＋ 일차 사진 추가<input type="file" accept="image/*" multiple onChange={e => { void addPhotos(dayIndex, null, e.target.files); e.target.value = ''; }} /></label>
-                            <div className="ri-stay-fields"><label className="ri-field"><span>기본 숙소명</span><input value={day.accommodation?.name || ''} onChange={e => editDay(dayIndex, current => ({ ...current, accommodation: { ...(current.accommodation || {}), name: e.target.value } }))} /></label><label className="ri-field"><span>숙소 태그</span><input value={day.accommodation?.tags || ''} placeholder="전기, 샤워 등" onChange={e => editDay(dayIndex, current => ({ ...current, accommodation: { ...(current.accommodation || { name: '' }), tags: e.target.value } }))} /></label></div>
-                            {assigned && <p className="ri-assigned-stay"><b>실제 배정 숙소 · {assigned}</b><span>고객 일정표에는 배정 숙소가 우선 표시됩니다. 배정 변경은 가이드·숙소 영역에서 진행하세요.</span></p>}
-                            <div className="ri-meals">{(['breakfast', 'lunch', 'dinner'] as const).map((meal, index) => <label key={meal} className="ri-field"><span>{['아침', '점심', '저녁'][index]}</span><input value={day.meals?.[meal] || ''} onChange={e => editDay(dayIndex, current => ({ ...current, meals: { ...current.meals, [meal]: e.target.value } }))} /></label>)}</div>
-                        </div>
-                    </article>;
-                })}</div>
-                {!draft.days.length && <div className="ri-empty">작성된 일차가 없습니다. 위의 ‘일차 추가’를 눌러 시작하세요.</div>}
+                <div className="ri-quote-section quote-day-editor">
+                    <div className="ri-quote-head"><h3>일자별 일정</h3><p>일차별 일정을 구성하고 프리셋으로 빠르게 채웁니다.</p></div>
+                    <p className="ri-quote-hint">목적지·이동·세부 일정을 자유롭게 수정하세요. (한 줄에 하나씩. "*"로 시작하면 강조, "("로 시작하면 회색)</p>
+                    {expectedDays != null && expectedDays > 0 && <p className={expectedDays === draft.days.length ? 'ri-day-count is-matched' : 'ri-day-count is-mismatched'}>{expectedDays === draft.days.length ? '✓ 여행 기간과 일정 칸 수가 맞습니다.' : '여행 기간에 맞춰 일자를 추가·삭제하세요.'} {expectedDays}일 여행 · 일정 {draft.days.length}일</p>}
+                    <button type="button" className="ri-fill-dates" onClick={fillDates}>📅 출발일 기준 여행일자 자동 입력 (선택)</button>
+                    {libraryLoading && <p className="ri-library-note" role="status">저장된 일정과 명소를 불러오고 있습니다.</p>}
+                    {libraryError && <div className="ri-library-error" role="alert">{libraryError}<button type="button" onClick={() => setLibraryAttempt(current => current + 1)}>다시 시도</button></div>}
+                    <QuoteDayEditor syncKey={appliedFingerprint.current} days={draft.days.map((day, index) => ({ ...quoteDayFields(day), d: index + 1 }))}
+                        startDate={dates.startDate} endDate={dates.endDate} snippets={libraries.snippets} snippetCats={libraries.snippet_cats} disabled={locked}
+                        onField={(index, field, value) => editDay(index, day => updateQuoteDay(day, field === 'move' ? value : { [field]: value }))}
+                        onSnippet={loadSnippet} onDelete={removeDay} onReorder={moveDay}
+                        onAdd={() => edit(current => ({ ...current, days: [...current.days, { day: current.days.length + 1, date: '', dateMode: 'manual', title: '', items: [], activities: [], meals: {}, accommodation: null }] }))}
+                        onNotice={message => { setNotice(message); setNoticeFailed(false); }}
+                        renderDetails={dayIndex => {
+                            const day = draft.days[dayIndex];
+                            if (!day) return null;
+                            const assigned = p.dailyAccommodations?.find(stay => stay.day === dayIndex + 1)?.accommodation.name;
+                            return <>
+                                {assigned && <p className="ri-assigned-stay"><b>실제 배정 숙소 · {assigned}</b><span>고객 일정표에는 배정 숙소가 우선 표시됩니다.</span></p>}
+                                <details className="ri-rich-details"><summary>사진·상세 설명</summary><div className="ri-rich-body">
+                                    <label className="ri-field"><span>지역</span><input value={day.region || ''} onChange={e => editDay(dayIndex, current => ({ ...current, region: e.target.value }))} /></label>
+                                    {day.retainedSummary && <p className="ri-library-note">기존 상품 안내 · {day.retainedSummary}</p>}
+                                    {photos(photoList(day.images), index => editDay(dayIndex, current => ({ ...current, images: photoList(current.images).filter((_, i) => i !== index) })))}
+                                    <label className="ri-upload">＋ 일차 사진 추가<input type="file" accept="image/*" multiple onChange={e => { void addPhotos(dayIndex, null, e.target.files); e.target.value = ''; }} /></label>
+                                    {day.activities.map((activity, activityIndex) => <div className="ri-activity" key={activityIndex}>
+                                        <strong className="ri-rich-title">{[activity.time, activity.title].filter(Boolean).join(' ') || '사진 일정'}</strong>
+                                        <label className="ri-field"><span>상세 설명</span><textarea rows={2} value={activity.description || ''} onChange={e => editActivity(dayIndex, activityIndex, current => ({ ...current, description: e.target.value }))} /></label>
+                                        {photos(photoList(activity.images), index => editActivity(dayIndex, activityIndex, current => ({ ...current, images: photoList(current.images).filter((_, i) => i !== index) })))}
+                                        <label className="ri-upload">＋ 항목 사진 추가<input type="file" accept="image/*" multiple onChange={e => { void addPhotos(dayIndex, activityIndex, e.target.files); e.target.value = ''; }} /></label>
+                                    </div>)}
+                                    <label className="ri-field"><span>숙소 태그</span><input value={day.accommodation?.tags || ''} onChange={e => editDay(dayIndex, current => ({ ...current, accommodation: { ...(current.accommodation || { name: '' }), tags: e.target.value } }))} /></label>
+                                </div></details>
+                            </>;
+                        }} />
+                </div>
                 <div className="ri-spots"><div className="ri-section-title"><div><h3>대표 명소</h3><p>선택한 순서대로 고객 일정표에 표시합니다.</p></div></div>{(draft.highlights || []).length > 0 && <div className="ri-selected-spots">{draft.highlights!.map((spot, index) => <button type="button" key={`${spot.name}-${index}`} onClick={() => edit(current => ({ ...current, highlights: current.highlights?.filter((_, i) => i !== index) }))}>{index + 1}. {spot.name} ×</button>)}</div>}{spotGroups.map(group => <div className="ri-spot-group" key={group.name}><h4>{group.name}</h4><div>{group.items.map(({ name, value }) => { const position = (draft.highlights || []).findIndex(spot => spot.name === name); return <button type="button" key={name} aria-pressed={position >= 0} className={position >= 0 ? 'is-selected' : ''} onClick={() => toggleSpot(name, value)}><span className="ri-spot-indicator">{position >= 0 ? position + 1 : '＋'}</span><span><b>{name}</b><small>{textValue(value.short)}</small></span></button>; })}</div></div>)}{!libraryLoading && !libraryError && !spotGroups.length && <p className="ri-library-note">등록된 명소가 없습니다. 명소 관리에서 추가할 수 있습니다.</p>}</div>
             </> : <div className="ri-contract"><h3>여행 계약 조건</h3><p className="ri-library-note">현재 문서의 원문을 확인하고 필요한 내용을 수정하세요.</p><label className="ri-field"><span>계약서 서문</span><textarea rows={4} value={contract.intro} onChange={e => editContract('intro', e.target.value)} /></label><div className="ri-contract-fields"><label className="ri-field"><span>지급 방법</span><input value={contract.paymentMethod} onChange={e => editContract('paymentMethod', e.target.value)} /></label><label className="ri-field"><span>지급 기한</span><input value={contract.paymentDeadline} onChange={e => editContract('paymentDeadline', e.target.value)} /></label><label className="ri-field"><span>포함 사항</span><textarea rows={4} value={contract.includedText} onChange={e => editContract('includedText', e.target.value)} /></label><label className="ri-field"><span>불포함 사항</span><textarea rows={4} value={contract.excludedText} onChange={e => editContract('excludedText', e.target.value)} /></label></div><div className="ri-small-heading"><h4>취소 규정</h4><button type="button" onClick={() => editContract('cancellationRows', [...contract.cancellationRows, { period: '', fee: '' }])}>＋ 규정 행 추가</button></div>{contract.cancellationRows.map((row, index) => <div className="ri-cancellation-row" key={index}><label className="ri-field"><span>취소 시점</span><input value={row.period} onChange={e => editContract('cancellationRows', contract.cancellationRows.map((item, i) => i === index ? { ...item, period: e.target.value } : item))} /></label><label className="ri-field"><span>취소 요금</span><input value={row.fee} onChange={e => editContract('cancellationRows', contract.cancellationRows.map((item, i) => i === index ? { ...item, fee: e.target.value } : item))} /></label><button type="button" className="ri-remove" onClick={() => editContract('cancellationRows', contract.cancellationRows.filter((_, i) => i !== index))}>삭제</button></div>)}<label className="ri-field"><span>동의 문구</span><textarea rows={3} value={contract.signatureNote} onChange={e => editContract('signatureNote', e.target.value)} /></label></div>}
         </fieldset>

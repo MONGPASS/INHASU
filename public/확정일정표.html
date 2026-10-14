@@ -385,7 +385,7 @@ ${Q.source === "product" ? Q.refundRows.map(r => "· " + esc(r.period) + ": " + 
 const dayRow = (d, i) => {
   const bg = i % 2 ? "#F7FAF9" : "#fff";
   return `
-    <div style="background:${bg}; padding:12px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;"><span style="width:12px;height:12px;border-radius:3px;background:${DAY_CUBE[i % DAY_CUBE.length]};"></span><b style="color:#0A1F2E; font-size:12px;">${d.d}일차</b></div>
+    <div style="background:${bg}; padding:12px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;"><span style="width:12px;height:12px;border-radius:3px;background:${DAY_CUBE[i % DAY_CUBE.length]};"></span><b style="color:#0A1F2E; font-size:12px;">${d.d}일차</b>${Q.source === "product" && d.date ? `<small style="max-width:100%;font-size:9px;line-height:1.4;overflow-wrap:anywhere;color:#5C6B75;">${esc(d.date)}</small>` : ""}</div>
     <div style="background:${bg}; padding:12px 8px; color:#0A1F2E; line-height:1.5;"><b>${Q.source === "product" ? esc(d.dest) : d.dest}</b><br><span style="color:#8A9895;">${esc(d.move)}<br>${esc(d.dist)}</span></div>
     <div style="background:${bg}; padding:12px 10px; color:#23323D; line-height:1.85;">${d.items.map(itemHtml).join("<br>")}</div>
     <div style="background:${i % 2 ? '#F1FCF8' : '#F7FAF9'}; padding:12px 8px; color:#0A1F2E; font-weight:800; line-height:1.9; text-align:center; border-left:1px solid #E3E6E2; border-right:1px solid #E3E6E2;">${Q.source === "product" ? esc(d.stay.name) : d.stay.name}${d.stay.tags.length ? `<br><br><span style="color:#1C8571; font-weight:700;">${d.stay.tags.join("<br>")}</span>` : ""}</div>

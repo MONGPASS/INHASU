@@ -19,6 +19,10 @@ export interface Activity { time?: string; type?: ActivityType; title: string; d
 export interface TemplateDay {
     day: number;
     date?: string;
+    dateMode?: 'manual' | 'auto';
+    items?: string[];
+    retainedActivities?: Activity[];
+    retainedSummary?: string;
     title: string;
     region?: string;
     summary?: string;

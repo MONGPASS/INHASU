@@ -73,7 +73,7 @@ export function mergeProductDays(reservation: any, template: any, product: any) 
     const days = source.map((d: any, i: number) => {
         const day = Number(d.day) || i + 1;
         const stay = assigned.find((a: any) => Number(a.day) === day)?.accommodation;
-        return { ...d, day, date: dayDate(dateKey(reservation.start_date), day - 1),
+        return { ...d, day, date: d.dateMode === 'manual' ? text(d.date) : dayDate(dateKey(reservation.start_date), day - 1),
             activities: array(d.activities), meals: d.meals || {},
             accommodation: stay || (typeof d.accommodation === 'string' ? { name: d.accommodation } : d.accommodation) || null };
     });
@@ -87,7 +87,7 @@ export function mergeProductDays(reservation: any, template: any, product: any) 
 }
 
 export function hasProductSchedule(days: any[]) {
-    return days.some(d => text(d.title).trim() || text(d.summary).trim() || photos(d.images).length
+    return days.some(d => text(d.title).trim() || text(d.summary).trim() || array(d.items).some(item => text(item).trim()) || photos(d.images).length
         || array(d.activities).some(a => text(a.title).trim() || text(a.description).trim() || photos(a.images).length));
 }
 
@@ -140,7 +140,8 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
     const excluded = typeof overview.excludedText === 'string' ? lines(overview.excludedText) : array(product?.excluded).map(text).filter(Boolean);
     const itineraryDays = days.map((d: any) => ({
         d: d.day, date: d.date, dest: (text(d.title) || text(d.region) || `${d.day}일차`).slice(0, 80), move: text(d.move), dist: text(d.dist),
-        items: [...lines(d.summary), ...array(d.activities).map(a => [text(a.time), text(a.title)].filter(Boolean).join(' '))].filter(Boolean).slice(0, 5).map(s => s.slice(0, 100)),
+        items: Array.isArray(d.items) ? d.items.filter((item: any) => typeof item === 'string')
+            : [...lines(d.summary), ...array(d.activities).map(a => [text(a.time), text(a.title)].filter(Boolean).join(' '))].filter(Boolean).slice(0, 5).map(s => s.slice(0, 100)),
         stay: { name: (text(d.accommodation?.name) || '일정표 참조').slice(0, 80), tags: [] },
         meals: ['breakfast', 'lunch', 'dinner'].map(k => (text(d.meals?.[k]) || '-').slice(0, 60)),
     }));

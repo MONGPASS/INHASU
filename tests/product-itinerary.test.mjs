@@ -37,6 +37,22 @@ test('고객별 저장 일정은 템플릿과 상품보다 우선하며 빈 일�
     assert.equal(hasProductSchedule([{ accommodation: { name: '숙소만 있음' } }]), false);
 });
 
+test('수동 DAY 날짜와 raw 견적 항목은 빈 값도 그대로이며 옛 자동 날짜는 예약일 기준이다', () => {
+    const custom = { days: [
+        { day: 1, title: '첫날', dateMode: 'manual', date: '10.21 수요일', items: ['*강조', '(회색 안내)'], activities: [] },
+        { day: 2, title: '둘째날', dateMode: 'manual', date: '', items: [], activities: [{ title: '기존 rich 정보', images: ['/img/keep.webp'] }] },
+        { day: 3, title: '옛 자동 날짜', date: '2000-01-01' },
+    ] };
+    const r = { ...reservation, document_content: JSON.stringify(custom) };
+    const days = mergeProductDays(r, null, product);
+    assert.deepEqual(days.map(day => day.date), ['10.21 수요일', '', '2026-10-22']);
+    const q = buildProductQuote({ reservation: r, product, days, assignmentsVisible: false });
+    assert.deepEqual(q.days[0].items, ['*강조', '(회색 안내)']);
+    assert.deepEqual(q.days[1].items, []);
+    assert.deepEqual(q.detailDays[1].activities[0].images, ['/img/keep.webp']);
+    assert.ok(hasProductSchedule([{ items: ['초원 탐방'] }]));
+});
+
 test('동명 상품 조회 대신 예약된 상품 ID로 일정·포함사항을 가져온다', async () => {
     const raw = new DatabaseSync(':memory:');
     raw.exec('CREATE TABLE products (id TEXT, name TEXT, itinerary_blocks TEXT); CREATE TABLE itinerary_templates (id TEXT, days TEXT, description TEXT);');
@@ -130,6 +146,13 @@ const declaration = (source, name) => {
     assert.ok(end >= 0);
     return source.slice(start, start + end + 1);
 };
+const blockDeclaration = (source, name) => {
+    const start = source.indexOf(`const ${name} =`);
+    assert.ok(start >= 0, `${name} declaration missing`);
+    const end = source.slice(start).search(/\r?\n\};/);
+    assert.ok(end >= 0);
+    return source.slice(start, start + end).trimEnd() + '\n};';
+};
 
 for (const [device, filename, spotsVariable] of [
     ['PC', '확정일정표.html', 'pgSpots'], ['모바일', '확정일정표-모바일.html', 'secSpots'],
@@ -177,5 +200,22 @@ for (const [device, filename, spotsVariable] of [
         await hydrate(legacyQuote, libraryFetch);
         assert.equal(calls, 1);
         assert.equal(legacyQuote.highlights[0].img, '/img/new-library.webp');
+    });
+
+    test(`${device} 상품 일정표에 수동 날짜와 강조·회색 일정을 안전하게 표시한다`, () => {
+        const source = htmlSource(filename);
+        const dayRenderer = device === 'PC' ? 'dayRow' : 'dayCard';
+        const helpers = device === 'PC' ? declaration(source, 'DAY_CUBE') : declaration(source, 'noBr');
+        const render = new Function('Q', 'escapeDocumentText', `${declaration(source, 'esc')} ${helpers}
+            ${blockDeclaration(source, 'itemHtml')} ${blockDeclaration(source, dayRenderer)} return ${dayRenderer};`);
+        const day = { d: 1, date: '10.21 <img src=x onerror=alert(1)>', dest: '초원 여행', move: '', dist: '',
+            items: ['*확정 픽업', '(현지 상황에 따라 조정)'], stay: { name: '', tags: [] }, meals: ['', '', ''] };
+        const html = render({ source: 'product' }, escapeDocumentText)(day, 0);
+        assert.ok(html.includes('10.21 &lt;img src=x onerror=alert(1)&gt;'));
+        assert.ok(!html.includes('<img src=x'));
+        assert.ok(html.includes('color:#1C8571; font-weight:600;'));
+        assert.ok(html.includes('color:#8A9895;'));
+        assert.ok(!render({ source: 'product' }, escapeDocumentText)({ ...day, date: '' }, 0).includes('10.21'));
+        assert.ok(!render({ source: 'quote' }, escapeDocumentText)(day, 0).includes('10.21'), 'legacy quote renderer is unchanged');
     });
 }

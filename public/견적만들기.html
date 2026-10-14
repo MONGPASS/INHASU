@@ -8,6 +8,8 @@
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <script src="data.js"></script>
 <script src="presets.js"></script>
+<script src="/quote-day-editor.js"></script>
+<link rel="stylesheet" href="/quote-day-editor.css">
 <style>
   :root {
     --p:#06C4A0; --pd:#05A084; --pl:#E1F8F3; --pb:#9DE7D8;
@@ -752,108 +754,48 @@ function dayCountNote() {
   return `<span style="color:#d98a3a;font-weight:700">⚠ 여행 기간은 ${n}박 ${need}일인데 일정 칸은 ${ST.days.length}개입니다. 아래에서 일자를 추가/삭제해 맞춰주세요.</span>`;
 }
 
+let quoteDayWidget = null;
 function renderDays() {
-  let dragIdx = null;   // 드래그 중인 일자 인덱스
   $("dayCheck").innerHTML = dayCountNote();
-  const snips = getSnippets();
-  // 카테고리(지역)별로 optgroup 그룹핑 — 일정관리의 cat 필드 사용
-  const snipCats = (window.getSnippetCats ? getSnippetCats() : []);
-  const byCat = {};
-  Object.entries(snips).forEach(([name, s]) => {
-    const c = (s && s.cat ? String(s.cat).trim() : "") || "기타";
-    (byCat[c] = byCat[c] || []).push(name);
-  });
-  const ordered = [
-    ...snipCats.filter(c => byCat[c]),                                    // 등록된 카테고리 순서
-    ...Object.keys(byCat).filter(c => !snipCats.includes(c) && c !== "기타"), // 목록에 없는 카테고리
-  ];
-  if (byCat["기타"]) ordered.push("기타");                                 // 미분류는 맨 뒤
-  const snipOptions = ordered.map(c =>
-    `<optgroup label="${esc(c)}">${byCat[c].map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join("")}</optgroup>`
-  ).join("");
-  $("dayList").innerHTML = ST.days.map((d, i) => `
-    <div class="day-edit" data-i="${i}">
-      <div class="dh">
-        <span class="drag-handle" title="드래그해서 순서 변경">⠿</span>
-        <span class="badge">${d.d}일차</span>
-        <input class="ddate" value="${esc(d.date||"")}" placeholder="${esc(dayDateStr(i) || "날짜")} (선택)" title="고객 여행일자 (선택) — 입력하면 견적서 일정표에 함께 표시됩니다" style="flex:none; width:120px; font-size:12px; font-weight:600;">
-        <input class="dest" value="${esc((d.dest||"").replace(/<br\s*\/?>/gi," / "))}" placeholder="목적지">
-        <input class="move" value="${esc(d.move||"")} ${esc(d.dist||"")}" placeholder="이동 6시간 (300 km)">
-        <button class="day-del" title="이 일자 삭제">✕</button>
-      </div>
-      <div class="snip-row">
-        <select class="snip-sel">
-          <option value="">📋 일정 불러오기…</option>
-          ${snipOptions}
-        </select>
-        <span class="snip-hint">클릭 한 번에 이 일자를 채웁니다. 없으면 아래에 직접 작성하세요.</span>
-      </div>
-      <textarea class="items">${esc((d.items||[]).join("\n"))}</textarea>
-      <div class="sub">숙소 / 식사(조·중·석)</div>
-      <div class="row c2">
-        <input class="stay" value="${esc((d.stay?.name||"").replace(/<br\s*\/?>/gi," "))}" placeholder="숙소명">
-        <input class="meals" value="${esc((d.meals||[]).join(", "))}" placeholder="캠프식, 현지식당, 캠프식">
-      </div>
-    </div>`).join("") + `
-    <button class="day-add" id="dayAddBtn">＋ 일자 추가</button>`;
-
-  $("dayList").querySelectorAll(".day-edit").forEach(el => {
-    const i = +el.dataset.i;
-    el.querySelector(".snip-sel").onchange = e => {
-      const s = getSnippets()[e.target.value];
+  const options = {
+    days: ST.days,
+    startDate: ST.depart,
+    endDate: ST.return_,
+    snippets: getSnippets(),
+    snippetCats: window.getSnippetCats ? getSnippetCats() : [],
+    addButtonId: "dayAddBtn",
+    forceValues: true,
+    onField(i, field, value) {
+      if (field === "move") { ST.days[i].move = value.move; ST.days[i].dist = value.dist; }
+      else ST.days[i][field] = value;
+    },
+    onSnippet(i, name) {
+      const s = getSnippets()[name];
       if (!s) return;
       const dNum = ST.days[i].d, dDate = ST.days[i].date || "";
       ST.days[i] = { d: dNum, date: dDate, dest: s.dest||"", move: s.move||"", dist: s.dist||"",
         items: [...(s.items||[])], stay: { name: s.stay?.name||"", tags: [...(s.stay?.tags||[])] }, meals: [...(s.meals||["","",""])] };
       renderDays();
-      toast(`"${e.target.value}" 일정을 불러왔습니다`);
-    };
-    el.querySelector(".ddate").oninput = e => ST.days[i].date = e.target.value.trim();
-    el.querySelector(".dest").oninput = e => ST.days[i].dest = e.target.value.replace(/ \/ /g, "<br>");
-    el.querySelector(".move").oninput = e => {
-      const m = e.target.value.match(/^(.*?)(\(.*\))?\s*$/);
-      ST.days[i].move = (m[1]||"").trim(); ST.days[i].dist = (m[2]||"").trim();
-    };
-    el.querySelector(".items").oninput = e => ST.days[i].items = e.target.value.split("\n").filter(x => x.trim());
-    el.querySelector(".stay").oninput = e => ST.days[i].stay = { name: e.target.value, tags: ST.days[i].stay?.tags||[] };
-    el.querySelector(".meals").oninput = e => ST.days[i].meals = e.target.value.split(",").map(x => x.trim());
-    el.querySelector(".day-del").onclick = () => {
+      toast('"' + name + '" 일정을 불러왔습니다');
+    },
+    onDelete(i) {
       if (ST.days.length <= 1) { toast("최소 1일은 필요합니다"); return; }
       ST.days.splice(i, 1); renumberDays(); renderDays();
-    };
-    // ── 드래그앤드랍 순서 변경 (핸들로만 시작) ──
-    const _h = el.querySelector(".drag-handle");
-    _h.addEventListener("mousedown", () => { el.draggable = true; });
-    _h.addEventListener("mouseup", () => { el.draggable = false; });
-    el.addEventListener("dragstart", e => {
-      dragIdx = i; el.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-      try { e.dataTransfer.setData("text/plain", String(i)); } catch (_) {}
-    });
-    el.addEventListener("dragend", () => {
-      el.draggable = false; el.classList.remove("dragging");
-      $("dayList").querySelectorAll(".day-edit").forEach(x => x.classList.remove("drag-over"));
-    });
-    el.addEventListener("dragover", e => {
-      e.preventDefault(); e.dataTransfer.dropEffect = "move";
-      if (dragIdx !== null && dragIdx !== i) el.classList.add("drag-over");
-    });
-    el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
-    el.addEventListener("drop", e => {
-      e.preventDefault(); el.classList.remove("drag-over");
-      if (dragIdx === null || dragIdx === i) return;
-      const [moved] = ST.days.splice(dragIdx, 1);
-      ST.days.splice(i, 0, moved);
-      dragIdx = null; renumberDays(); renderDays();
-    });
-  });
-  $("dayAddBtn").onclick = () => {
-    ST.days.push({ d: ST.days.length + 1, dest: "", move: "", dist: "", items: [], stay: { name: "", tags: [] }, meals: ["", "", ""] });
-    renumberDays(); renderDays();
-    // 새 칸으로 스크롤
-    const cards = $("dayList").querySelectorAll(".day-edit");
-    cards[cards.length - 1]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    },
+    onReorder(from, to) {
+      const [moved] = ST.days.splice(from, 1);
+      ST.days.splice(to, 0, moved);
+      renumberDays(); renderDays();
+    },
+    onAdd() {
+      ST.days.push({ d: ST.days.length + 1, dest: "", move: "", dist: "", items: [], stay: { name: "", tags: [] }, meals: ["", "", ""] });
+      renumberDays(); renderDays();
+      const cards = $("dayList").querySelectorAll(".day-edit");
+      cards[cards.length - 1]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    },
   };
+  if (quoteDayWidget) quoteDayWidget.update(options);
+  else quoteDayWidget = window.QuoteDayEditor.mount($("dayList"), options);
 }
 
 /* ── 이동강도(난이도) 선택 ── */

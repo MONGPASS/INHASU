@@ -305,6 +305,54 @@ const emptyDaysResponse = await apiRequest('/api/documents/itinerary/workspace-e
 assert.equal(emptyDaysResponse.status, 200);
 assert.deepEqual((await emptyDaysResponse.json()).days, []);
 assert.equal((await apiRequest('/api/documents/itinerary/workspace-empty?format=quote&preview=1', { headers: admin })).status, 409);
+
+// The shared quote STEP 2 stores compact text independently of rich activity
+// metadata. A manual free-text date or deliberately blank date is authoritative.
+const compactDocument = structuredClone(partialDocument);
+const compactItems = ['*확정 픽업 안내*', '(날씨에 따라 초원 산책 장소가 조정됩니다)', '10:45 고객별 확정 픽업 시간'];
+const compactMeals = '조식, 현지식당, 캠프식'.split(',').map(value => value.trim());
+compactDocument.days[0].dateMode = 'manual';
+compactDocument.days[0].date = '10.21 수요일';
+compactDocument.days[0].items = compactItems;
+compactDocument.days[0].accommodation.name = '한 칸에 입력한 테를지 게르 숙소';
+compactDocument.days[0].meals = { breakfast: compactMeals[0], lunch: compactMeals[1], dinner: compactMeals[2] };
+compactDocument.days[1].dateMode = 'manual';
+compactDocument.days[1].date = '';
+assert.equal((await write('/api/reservations/workspace-check', 'PUT', { document_content: compactDocument })).status, 200);
+const compactDetail = await (await apiRequest('/api/reservations/workspace-check', { headers: admin })).json();
+const savedCompact = JSON.parse(compactDetail.documentContent);
+assert.deepEqual(savedCompact, compactDocument);
+assert.deepEqual(savedCompact.days[0].activities, partialDocument.days[0].activities);
+assert.deepEqual(savedCompact.days[0].images, partialDocument.days[0].images);
+assert.deepEqual(savedCompact.days[0].accommodation, { ...partialDocument.days[0].accommodation, name: compactDocument.days[0].accommodation.name });
+assert.deepEqual(savedCompact.documentSettings, originalContractSettings);
+const compactPreview = await apiRequest('/api/documents/itinerary/workspace-check?format=quote&preview=1', { headers: admin });
+assert.equal(compactPreview.status, 200);
+const compactPdf = (await compactPreview.json()).quote;
+assert.equal(compactPdf.days[0].date, '10.21 수요일');
+assert.equal(compactPdf.days[1].date, '');
+assert.equal(compactPdf.detailDays[0].date, '10.21 수요일');
+assert.equal(compactPdf.detailDays[1].date, '');
+assert.deepEqual(compactPdf.days[0].items, compactItems);
+assert.equal(compactPdf.days[0].stay.name, compactDocument.days[0].accommodation.name);
+assert.deepEqual(compactPdf.days[0].meals, compactMeals);
+assert.deepEqual(compactPdf.detailDays[0].activities, latestPdf.detailDays[0].activities);
+assert.deepEqual(compactPdf.detailDays[0].images, latestPdf.detailDays[0].images);
+assert.deepEqual(compactPdf.detailDays[0].accommodation, { ...latestPdf.detailDays[0].accommodation, name: compactDocument.days[0].accommodation.name });
+assert.deepEqual(compactPdf.highlights, latestPdf.highlights);
+const contractAfterCompact = await (await apiRequest('/api/documents/contract/workspace-check')).json();
+assert.deepEqual(contractAfterCompact.productIncluded, customerContract.productIncluded);
+assert.deepEqual(contractAfterCompact.productExcluded, customerContract.productExcluded);
+const blankCompactItems = structuredClone(compactDocument);
+blankCompactItems.days[0].items = [];
+assert.equal((await write('/api/reservations/workspace-check', 'PUT', { document_content: blankCompactItems })).status, 200);
+const blankItemsPreview = await apiRequest('/api/documents/itinerary/workspace-check?format=quote&preview=1', { headers: admin });
+assert.equal(blankItemsPreview.status, 200);
+const blankItemsPdf = (await blankItemsPreview.json()).quote;
+assert.deepEqual(blankItemsPdf.days[0].items, []);
+assert.deepEqual(blankItemsPdf.detailDays[0].activities, compactPdf.detailDays[0].activities);
+assert.equal((await write('/api/reservations/workspace-check', 'PUT', { document_content: compactDocument })).status, 200);
+
 assert.equal((await apiRequest('/api/documents/itinerary/workspace-check?format=quote')).status, 409);
 assert.equal((await apiRequest('/api/documents/itinerary/workspace-check/publish', { method: 'POST', headers: admin })).status, 200);
 assert.equal((await apiRequest('/api/documents/itinerary/workspace-check?format=quote')).status, 200);
@@ -331,6 +379,14 @@ for (const route of ['/api/reservations', '/api/reservations/workspace-check']) 
 assert.equal((await apiRequest('/api/reservations/workspace-check', { headers: other })).status, 403);
 const publicPdf = await (await apiRequest('/api/documents/itinerary/workspace-check?format=quote')).text();
 assert.ok(!publicPdf.includes('LOCAL-PRIVATE-'));
+const publicCompactQuote = JSON.parse(publicPdf).quote;
+assert.equal(publicCompactQuote.days[0].date, '10.21 수요일');
+assert.equal(publicCompactQuote.days[1].date, '');
+assert.deepEqual(publicCompactQuote.days[0].items, compactItems);
+assert.equal(publicCompactQuote.days[0].stay.name, compactDocument.days[0].accommodation.name);
+assert.deepEqual(publicCompactQuote.days[0].meals, compactMeals);
+assert.deepEqual(publicCompactQuote.detailDays[0].activities, compactPdf.detailDays[0].activities);
+assert.deepEqual(publicCompactQuote.detailDays[0].images, compactPdf.detailDays[0].images);
 const mail = await write('/api/notifications/email', 'POST', { to: 'customer@example.invalid', type: 'ITINERARY_READY',
     data: { customerName: '로컬 검증 고객', reservationDbId: 'workspace-check', userId: 'workspace-owner', itineraryUrl: `${localOrigin}/documents/itinerary/workspace-check` } });
 assert.equal(mail.status, 200);
@@ -338,7 +394,7 @@ assert.equal(outbound.length, 1);
 raw.prepare('DELETE FROM reservations WHERE id=?').run('workspace-check');
 raw.exec('DELETE FROM notifications');
 outbound.length = 0;
-console.log('예약 작업 API 검증 통과: 실제 로그인 · 상품 ID · 공개 코스/명소 라이브러리 · 인라인 일정 저장/재조회 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 관리자 운영정보 보호 · 외부 발송 차단');
+console.log('예약 작업 API 검증 통과: 실제 로그인 · 상품 ID · 공개 코스/명소 라이브러리 · STEP 2 문서 저장/재조회 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 관리자 운영정보 보호 · 외부 발송 차단');
 
 if (process.argv.includes('--serve')) {
     const types = { '.html': 'text/html;charset=utf-8', '.js': 'text/javascript;charset=utf-8', '.css': 'text/css;charset=utf-8',

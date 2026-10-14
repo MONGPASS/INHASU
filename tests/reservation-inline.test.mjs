@@ -15,7 +15,7 @@ const bundle = buildSync({
 }).outputFiles[0].text;
 const module = { exports: {} };
 new Function('require', 'module', 'exports', bundle)(createRequire(import.meta.url), module, module.exports);
-const { createInlineDocument, applyQuoteSnippet, groupQuoteLibrary } = module.exports;
+const { createInlineDocument, applyQuoteSnippet, groupQuoteLibrary, quoteDayFields, updateQuoteDay, quoteDateForStart, fillQuoteDayDates, parseQuoteMove } = module.exports;
 
 const product = { name: '정확히 예약한 상품', description: '실제 상품 소개', price: 1200000,
     included: JSON.stringify(['한국어 가이드', '예약 숙소']), excluded: ['국제선 항공권'],
@@ -36,6 +36,8 @@ test('최초 inline 문서만 실제 상품 일정·시간·사진·포함조건
     assert.equal(doc.documentSettings.contract.includedText, '한국어 가이드\n예약 숙소');
     assert.equal(doc.documentSettings.contract.excludedText, '국제선 항공권');
     assert.deepEqual(doc.highlights, []);
+    assert.equal(doc.days[0].date, '');
+    assert.equal(doc.days[0].dateMode, 'manual');
 });
 
 test('기존 고객 문서는 의도적으로 빈 일정·포함조건·명소와 추가 설정까지 그대로 복사한다', () => {
@@ -143,4 +145,110 @@ test('inline 이동·거리·선택 명소와 전체 사진·시간은 실제 �
     doc.highlights = [];
     reservation.document_content = JSON.stringify(doc);
     assert.deepEqual(buildProductQuote({ reservation, product, days: doc.days, assignmentsVisible: true }).highlights, []);
+});
+
+test('견적 DAY 필드에는 기존 일정 설명·시간과 명시적인 빈 항목을 정확히 표시한다', () => {
+    const day = createInlineDocument(null, product, product.name).days[0];
+    day.summary = '안내 한 줄\n둘째 줄';
+    assert.deepEqual(quoteDayFields(day).items, ['안내 한 줄', '둘째 줄', '09:30 공항 픽업', '은하수']);
+    day.items = [];
+    assert.deepEqual(quoteDayFields(day).items, []);
+    day.dateMode = undefined;
+    day.date = '2000-01-01';
+    assert.equal(quoteDayFields(day).date, '', 'legacy automatic date is a placeholder, not a manual input value');
+});
+
+test('한줄씩 일정 수정은 강조·회색 문법과 기존 rich 설명·시간·사진을 함께 보존한다', () => {
+    const day = createInlineDocument(null, product, product.name).days[0];
+    day.summary = '이전 일정 안내';
+    const lines = ['*09:45 공항 픽업', '(상황에 따라 이동시간이 달라집니다)', '은하수'];
+    const edited = updateQuoteDay(day, { items: lines });
+    assert.deepEqual(quoteDayFields(edited).items, lines);
+    assert.equal(edited.summary, '');
+    assert.equal(edited.retainedSummary, '이전 일정 안내');
+    assert.equal(edited.activities[0].time, '09:45');
+    assert.equal(edited.activities[0].description, '원본 픽업 설명');
+    assert.deepEqual(edited.activities[0].images, ['/img/pickup.webp']);
+    assert.equal(edited.activities[2].description, '원본 밤하늘 설명');
+    assert.deepEqual(edited.activities[2].images, ['/img/night.webp']);
+    assert.equal(day.activities[0].time, '09:30');
+});
+
+test('직접 입력에서 시간 접두사를 지우면 상세 PDF 시간도 지우고 조각 적용만 기존 시간을 유지한다', () => {
+    const day = createInlineDocument(null, product, product.name).days[0];
+    const lines = ['공항 픽업', '은하수'];
+    const edited = updateQuoteDay(day, { items: lines });
+    assert.deepEqual(edited.items, lines);
+    assert.equal(edited.activities[0].time, '');
+    assert.equal(edited.activities[0].description, '원본 픽업 설명');
+    assert.deepEqual(edited.activities[0].images, ['/img/pickup.webp']);
+    const reservation = { id: 'time-cleared-check', product_name: product.name, start_date: '2026-10-20',
+        document_content: JSON.stringify({ days: [edited] }) };
+    const quote = buildProductQuote({ reservation, product, days: mergeProductDays(reservation, null, product), assignmentsVisible: true });
+    assert.deepEqual(quote.days[0].items, lines);
+    assert.equal(quote.detailDays[0].activities[0].time, '');
+    const imported = applyQuoteSnippet(day, { dest: day.title, items: lines });
+    assert.equal(imported.activities[0].time, '09:30');
+    assert.equal(day.activities[0].time, '09:30');
+});
+
+test('삭제한 일정 행은 고객에게 다시 노출되지 않고 원본 metadata로 복구할 수 있다', () => {
+    const day = createInlineDocument(null, product, product.name).days[0];
+    const cleared = updateQuoteDay(day, { items: [] });
+    assert.deepEqual(cleared.items, []);
+    assert.deepEqual(cleared.activities, []);
+    assert.deepEqual(cleared.retainedActivities, day.activities);
+    assert.ok(cleared.images.includes('/img/pickup.webp'));
+    assert.ok(cleared.images.includes('/img/night.webp'));
+    const restored = updateQuoteDay(cleared, { items: ['09:30 공항 픽업'] });
+    assert.equal(restored.activities[0].time, '09:30');
+    assert.equal(restored.activities[0].description, '원본 픽업 설명');
+    assert.deepEqual(restored.activities[0].images, ['/img/pickup.webp']);
+    assert.equal(restored.retainedActivities[0].title, '은하수');
+});
+
+test('숙소 한칸과 조·중·석 comma 필드는 순서대로 기존숙소 사진을 유지하며 저장한다', () => {
+    const day = createInlineDocument(null, product, product.name).days[0];
+    const edited = updateQuoteDay(day, { stay: { name: '변경된 캠프' }, meals: ['', '현지식', '한식'] });
+    assert.deepEqual(edited.meals, { breakfast: '', lunch: '현지식', dinner: '한식' });
+    assert.deepEqual(quoteDayFields(edited).meals, ['', '현지식', '한식']);
+    assert.deepEqual(edited.accommodation.images, ['/img/lodge.webp']);
+    assert.equal(quoteDayFields(edited).stay.name, '변경된 캠프');
+    assert.deepEqual(edited.activities, day.activities);
+    assert.deepEqual(parseQuoteMove('이동 6시간 (300 km)'), { move: '이동 6시간', dist: '(300 km)' });
+    assert.deepEqual(parseQuoteMove(' 이동 30분 '), { move: '이동 30분', dist: '' });
+    assert.deepEqual(parseQuoteMove(''), { move: '', dist: '' });
+});
+
+test('자유 날짜는 명시적으로 수정·자동 채우기 할 때만 문서에 반영된다', () => {
+    const day = createInlineDocument(null, product, product.name).days[0];
+    assert.equal(quoteDateForStart('2026-10-20', 0), '10.20(화)');
+    assert.equal(quoteDateForStart('2026-10-20', 1), '10.21(수)');
+    assert.equal(quoteDateForStart('2026-02-30', 0), '');
+    assert.equal(day.date, '');
+    const filled = fillQuoteDayDates([day, { ...day, day: 2 }], '2026-10-20');
+    assert.deepEqual(filled.map(row => row.date), ['10.20(화)', '10.21(수)']);
+    assert.ok(filled.every(row => row.dateMode === 'manual'));
+    assert.equal(day.date, '');
+    const manual = updateQuoteDay(filled[0], { date: '10.21 수요일 · 오전 출발' });
+    assert.equal(quoteDayFields(manual).date, '10.21 수요일 · 오전 출발');
+    assert.equal(updateQuoteDay(manual, { date: '' }).date, '');
+    assert.deepEqual(fillQuoteDayDates([manual], ''), [manual]);
+});
+
+test('수동 날짜·빈 날짜·전체 raw 일정 행은 고객 PDF에서 재추론하거나 자르지 않는다', () => {
+    const day = createInlineDocument(null, product, product.name).days[0];
+    const lines = ['*확정 픽업 안내', '(날씨에 따라 장소 조정)', ...Array.from({ length: 8 }, (_, index) => `일정 ${index + 1}`)];
+    const edited = updateQuoteDay(day, { date: '10.21 수요일', items: lines });
+    const blank = updateQuoteDay(day, { date: '', items: [] });
+    blank.day = 2;
+    const doc = { days: [edited, blank] };
+    const reservation = { id: 'compact-check', product_name: product.name, start_date: '2026-10-20', end_date: '2026-10-22', document_content: JSON.stringify(doc) };
+    const days = mergeProductDays(reservation, null, product);
+    const quote = buildProductQuote({ reservation, product, days, assignmentsVisible: true });
+    assert.deepEqual(quote.days.map(row => row.date), ['10.21 수요일', '']);
+    assert.deepEqual(quote.days[0].items, lines);
+    assert.deepEqual(quote.days[1].items, []);
+    assert.equal(quote.detailDays[0].date, '10.21 수요일');
+    assert.equal(quote.detailDays[1].date, '');
 });
