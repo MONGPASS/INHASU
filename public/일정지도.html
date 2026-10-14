@@ -122,8 +122,10 @@
 </div>
 
 <script type="module">
+import { escapeDocumentText as escapeQuoteDocumentText, sanitizeDocumentHTML, documentUrl, documentImageAttribute, documentTextWithoutBreaks } from "/document-safe.js";
 /* 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 */
 const _token = new URLSearchParams(location.search).get("t");
+const esc = escapeQuoteDocumentText;
 const Q = await (async () => {
   if (_token) {
     try {
@@ -210,7 +212,7 @@ document.getElementById("customerCap").textContent = `${Q.customer}님 맞춤 �
 document.getElementById("tripTitle").textContent = `몽골 ${Q.destination} ${Q.nights}`;
 document.getElementById("tripPeriod").textContent = Q.periodShort;
 document.getElementById("tripTags").innerHTML =
-  [`여행지 · ${Q.destination}`, Q.nights, `${Q.pax}인`].map(t => `<span class="tag">${t}</span>`).join("");
+  [`여행지 · ${Q.destination}`, Q.nights, `${Q.pax}인`].map(t => `<span class="tag">${esc(t)}</span>`).join("");
 document.title = `${Q.customer}님 일정 지도 · ${Q.brand.company}`;
 
 /* ── 일정 → 스팟 목록 변환 ── */
@@ -243,9 +245,9 @@ stops.forEach(s => {
     className: "", iconSize: [28, 28], iconAnchor: [14, 14],
     html: `<div class="marker-pin" style="background:${DAY_COLORS[s.di % DAY_COLORS.length]}">${s.n}</div>`,
   });
-  const popImg = s.spot.img ? `<img src="${s.spot.img}" alt="${s.name}" style="width:100%;height:104px;object-fit:cover;border-radius:9px;margin-bottom:7px;display:block">` : "";
+  const popImg = s.spot.img ? `<img src="${documentImageAttribute(s.spot.img)}" alt="${esc(s.name)}" style="width:100%;height:104px;object-fit:cover;border-radius:9px;margin-bottom:7px;display:block">` : "";
   markers[s.n] = L.marker(ll, { icon }).addTo(map)
-    .bindPopup(`${popImg}<b>${s.n}. ${s.name}</b><br>${s.day}일차 · ${s.spot.desc || ""}<br><span style="color:#5C6B75;font-size:11px">${s.move || ""}</span>`, { minWidth: s.spot.img ? 190 : 140 });
+    .bindPopup(`${popImg}<b>${s.n}. ${esc(s.name)}</b><br>${esc(s.day)}일차 · ${sanitizeDocumentHTML(s.spot.desc || "")}<br><span style="color:#5C6B75;font-size:11px">${esc(s.move || "")}</span>`, { minWidth: s.spot.img ? 190 : 140 });
 });
 
 if (latlngs.length) {
@@ -292,12 +294,12 @@ Q.days.forEach((d, di) => {
   dayStops.forEach(s => {
     const el = document.createElement("div");
     el.className = "spot-item"; el.id = `stop-${s.n}`;
-    const thumb = (s.spot && s.spot.img) ? `<img src="${s.spot.img}" alt="${s.name}" style="width:42px;height:42px;border-radius:9px;object-fit:cover;flex:none">` : "";
+    const thumb = (s.spot && s.spot.img) ? `<img src="${documentImageAttribute(s.spot.img)}" alt="${esc(s.name)}" style="width:42px;height:42px;border-radius:9px;object-fit:cover;flex:none">` : "";
     el.innerHTML = `
       <span class="num" style="background:${DAY_COLORS[di % DAY_COLORS.length]}">${s.n}</span>
       <div style="display:flex;align-items:center;gap:10px;min-width:0">
         ${thumb}
-        <div style="min-width:0"><b>${s.name}</b><div class="sub">${s.spot ? (s.spot.desc || "") : "세부 위치 확인 중"}</div></div>
+        <div style="min-width:0"><b>${esc(s.name)}</b><div class="sub">${s.spot ? sanitizeDocumentHTML(s.spot.desc || "") : "세부 위치 확인 중"}</div></div>
       </div>`;
     el.onclick = () => focusStop(s.n);
     daylist.appendChild(el);

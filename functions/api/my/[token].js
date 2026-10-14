@@ -58,20 +58,26 @@ export async function onRequestGet({ env, params }) {
       const v = String(value || "").replace(/\D/g, "");
       return v ? `***-****-${v.slice(-4).padStart(4, "*")}` : "";
     };
+    const publicTraveler = t => ({
+      type: t.type || "",
+      nameKo: t.nameKo || "",
+      passportName: t.passportName || "",
+      birth: maskBirth(t.birth),
+      phone: maskPhone(t.phone),
+      gender: t.gender || "",
+      passportNo: maskPassport(t.passportNo),
+    });
+    // A signed snapshot contains the same private identity fields as the live
+    // traveler list. Project it for the public link without changing evidence.
+    const publicContractSnapshot = value => value && typeof value === "object" && !Array.isArray(value)
+      ? { ...value, travelers: Array.isArray(value.travelers) ? value.travelers.map(publicTraveler) : [] }
+      : null;
     const booking = bk ? {
       confirmedAt: bk.confirmedAt || "",
       publishStatus,
       publishedAt: bk.publishedAt || "",
       days: Array.isArray(bk.days) ? bk.days : [],
-      travelers: Array.isArray(bk.travelers) ? bk.travelers.map(t => ({
-        type: t.type || "",
-        nameKo: t.nameKo || "",
-        passportName: t.passportName || "",
-        birth: maskBirth(t.birth),
-        phone: maskPhone(t.phone),
-        gender: t.gender || "",
-        passportNo: maskPassport(t.passportNo),
-      })) : [],
+      travelers: Array.isArray(bk.travelers) ? bk.travelers.map(publicTraveler) : [],
       travelerSubmission: (() => {
         const s = bk.travelerSubmission && typeof bk.travelerSubmission === "object" ? bk.travelerSubmission : {};
         return { status:s.status || "not_requested", requestedAt:s.requestedAt || "", submittedAt:s.submittedAt || "", expectedCount:Number(s.expectedCount)||0, submittedCount:Number(s.submittedCount)||0 };
@@ -119,7 +125,7 @@ export async function onRequestGet({ env, params }) {
         signImg: "",
         signerName: bk.contract.signerName || "",
         termsVersion: bk.contract.termsVersion || "",
-        snapshot: bk.contract.snapshot || null,
+        snapshot: publicContractSnapshot(bk.contract.snapshot),
       } : null,
     } : null;
 

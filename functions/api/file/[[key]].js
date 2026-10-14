@@ -7,12 +7,14 @@
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8" },
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" },
   });
 
 export async function onRequestGet({ request, env, params }) {
   const url = new URL(request.url);
-  if (url.searchParams.get("token") !== env.ADMIN_TOKEN) {
+  // Existing attachment links keep working; fetch clients can avoid a secret in the URL.
+  const token = request.headers.get("x-admin-token") || url.searchParams.get("token") || "";
+  if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
     return json({ ok: false, error: "unauthorized" }, 401);
   }
   try {
@@ -24,6 +26,8 @@ export async function onRequestGet({ request, env, params }) {
     const name = (obj.customMetadata && obj.customMetadata.originalName) || key.split("/").pop();
     const headers = new Headers();
     headers.set("Content-Type", obj.httpMetadata?.contentType || "application/octet-stream");
+    headers.set("Cache-Control", "private, no-store");
+    headers.set("X-Content-Type-Options", "nosniff");
     headers.set("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(name)}`);
     return new Response(obj.body, { headers });
   } catch (e) {

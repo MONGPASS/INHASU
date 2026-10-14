@@ -11,6 +11,7 @@ import {
   notifyCustomerTravelNotice, quoteTemplateId, itineraryTemplateId, sendFailReason,
 } from "../_solapi.js";
 import { MANUAL_TRIGGER, recordTravelNoticeSent, travelNoticeState } from "../_travel-notice.mjs";
+import { trackedDelivery } from '../../lib/adminDelivery.ts';
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -202,19 +203,20 @@ export async function onRequestPatch(context) {
 
     await env.DB.prepare("UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ?").bind(rec.status, rec.memo || "", JSON.stringify(rec), rec.token || "", id).run();
 
-    const bg = (tag, promise) => {
-      const task = promise.then(r => console.log(tag, JSON.stringify(r))).catch(e => console.log(tag + "-err", String(e)));
+    const bg = (kind, work) => {
+      const task = trackedDelivery(env.DB, { source:'quote_booking', bookingId:id, kind, channel:kind === 'contract' ? 'message' : 'kakao' }, work)
+        .then(r => console.log('customer-delivery', kind, r.state)).catch(() => console.log('customer-delivery', kind, 'history unavailable; not sent'));
       if (typeof context.waitUntil === "function") context.waitUntil(task);
     };
 
     if (shouldNotifyQuote && notifications.find(x => x.type === "quote" && x.status === "queued")) {
-      bg("notify-customer-quote", notifyCustomerQuoteReady(env, { phone:rec.phone, name:rec.name, token:rec.token }));
+      bg('quote', () => notifyCustomerQuoteReady(env, { phone:rec.phone, name:rec.name, token:rec.token }));
     }
     if (shouldNotifyContract && notifications.find(x => x.type === "contract" && x.status === "queued")) {
-      bg("notify-customer-contract", notifyCustomerContractReady(env, { phone:rec.phone, name:rec.name, token:rec.token, requestUrl:request.url }));
+      bg('contract', () => notifyCustomerContractReady(env, { phone:rec.phone, name:rec.name, token:rec.token, requestUrl:request.url }));
     }
     if (shouldNotifyItinerary && notifications.find(x => x.type === "itinerary" && x.status === "queued")) {
-      bg("notify-customer-itinerary", notifyCustomerItineraryReady(env, { phone:rec.phone, name:rec.name, token:rec.token }));
+      bg('itinerary', () => notifyCustomerItineraryReady(env, { phone:rec.phone, name:rec.name, token:rec.token }));
     }
 
     return json({

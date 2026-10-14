@@ -2,21 +2,22 @@ import { Hono } from 'hono';
 import { createNotification } from './index';
 import { getSessionUser } from '../../lib/userAuth';
 import { BRAND, COMPANY_INFO, DEPOSIT_ACCOUNT, DEPOSIT_PAYMENT_METHOD, KAKAO_CHANNEL_URL } from '../../../src/constants/company';
+import { trackedDelivery, type DeliveryOutcome } from '../../lib/adminDelivery';
+import { resolveMailFrom, type MailFromEnv } from '../../lib/mailConfig';
 
 interface Env {
     DB: any;
     RESEND_API_KEY: string;
     ADMIN_EMAIL: string;
+    MAIL_FROM?: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
 
-// 발신 주소(noreply@mongolryokou.com)는 Resend에서 인증된 도메인이라 그대로 둔다. 표시 이름만 브랜드에 맞춘다.
-const FROM = `${BRAND.name} <noreply@mongolryokou.com>`;
 const SITE_URL = BRAND.siteUrl;
 const CONTACT_EMAIL = COMPANY_INFO.email;
 
-async function sendEmail(apiKey: string, to: string | string[], subject: string, html: string) {
+async function sendEmail(apiKey: string, to: string | string[], subject: string, html: string, env: MailFromEnv = {}) {
     const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -24,7 +25,7 @@ async function sendEmail(apiKey: string, to: string | string[], subject: string,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            from: FROM,
+            from: resolveMailFrom(env),
             to: Array.isArray(to) ? to : [to],
             subject,
             html,
@@ -37,6 +38,17 @@ async function sendEmail(apiKey: string, to: string | string[], subject: string,
     }
 
     return res.json();
+}
+
+async function documentEmail(apiKey: string, to: string, subject: string, html: string, env: MailFromEnv = {}) {
+    if (!apiKey) return { ok: false, skipped: true };
+    let from: string;
+    try { from = resolveMailFrom(env); } catch { return { ok: false, skipped: true }; }
+    const res = await fetch('https://api.resend.com/emails', { method: 'POST', headers: {
+        Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to: [to], subject, html }) });
+    const receipt = await res.json().catch(() => ({})) as any;
+    return { ok: res.ok, httpStatus: res.status, id: typeof receipt.id === 'string' ? receipt.id : undefined };
 }
 
 function escapeHtml(value: unknown) {
@@ -452,6 +464,16 @@ app.post('/', async (c) => {
         let data = body.data && typeof body.data === 'object' ? body.data : {};
 
         const sessionUser = await getSessionUser(c);
+        const trackedDocument = sessionUser?.role === 'admin' && ['ITINERARY_READY', 'CONTRACT_READY'].includes(type);
+        if (trackedDocument) {
+            if (typeof data.reservationDbId !== 'string' || !data.reservationDbId.trim()) return c.json({ error: '문서를 발송할 예약 ID가 필요합니다.' }, 400);
+            const row = await c.env.DB.prepare('SELECT id,customer_email,status,itinerary_url FROM reservations WHERE id=?').bind(data.reservationDbId).first();
+            if (!row) return c.json({ error: '예약이 삭제되었거나 없습니다.' }, 404);
+            if (row.status === 'cancelled') return c.json({ error: '취소된 예약에는 문서를 발송할 수 없습니다.' }, 409);
+            if (type === 'ITINERARY_READY' && !row.itinerary_url) return c.json({ error: '일정표를 먼저 공개한 뒤 발송해 주세요.' }, 409);
+            if (typeof to !== 'string' || to.trim().toLowerCase() !== String(row.customer_email || '').trim().toLowerCase()) return c.json({ error: '예약에 저장된 고객 이메일을 확인해 주세요.' }, 400);
+            if (body.idempotencyKey !== undefined && (typeof body.idempotencyKey !== 'string' || !/^[a-zA-Z0-9_-]{16,100}$/.test(body.idempotencyKey))) return c.json({ error: '발송 요청 키를 확인해 주세요.' }, 400);
+        }
         if (sessionUser?.role !== 'admin') {
             let recipient: Recipient | null = null;
             if (type === 'RESERVATION_REQUESTED') {
@@ -525,9 +547,15 @@ app.post('/', async (c) => {
         }
 
         let emailFailure = apiKey ? '' : '이메일 발송 설정이 없습니다. 관리자에게 문의해 주세요.';
-        if (apiKey) {
+        let delivery: DeliveryOutcome | undefined;
+        if (trackedDocument) {
+            delivery = await trackedDelivery(c.env.DB, { source: 'product', bookingId: data.reservationDbId,
+                kind: type === 'CONTRACT_READY' ? 'contract' : 'itinerary', channel: 'email', key: body.idempotencyKey },
+                () => documentEmail(apiKey, to, subject, html, c.env));
+            emailFailure = delivery.ok ? '' : delivery.error || '발송 결과를 확인해 주세요.';
+        } else if (apiKey) {
             try {
-                await sendEmail(apiKey, to, subject, html);
+                await sendEmail(apiKey, to, subject, html, c.env);
             } catch (mailErr) {
                 console.error('Email send failed (continuing to create in-app notification):', mailErr);
                 emailFailure = '이메일 발송에 실패했습니다. 다시 시도해 주세요.';
@@ -535,7 +563,7 @@ app.post('/', async (c) => {
         }
 
         const targetUserId = data.userId || data.user_id;
-        if (targetUserId && c.env.DB) {
+        if (targetUserId && c.env.DB && !delivery?.duplicate) {
             // 메일 제목 끝의 ' | 브랜드명'은 사이트 알림 제목에서는 뺀다.
             const brandSuffix = ` | ${BRAND.name}`;
             const inAppTitle = subject.endsWith(brandSuffix) ? subject.slice(0, -brandSuffix.length) : subject;
@@ -564,15 +592,15 @@ app.post('/', async (c) => {
         }
 
         if (adminSubject && adminHtml) {
-            await sendEmail(apiKey, adminEmail, adminSubject, adminHtml);
+            await sendEmail(apiKey, adminEmail, adminSubject, adminHtml, c.env);
         }
 
         // 문서 공개/사이트 알림과 이메일 성공은 별개다. 관리자에게 실패를 알려 재발송할 수 있게 한다.
         if ((type === 'ITINERARY_READY' || type === 'CONTRACT_READY') && emailFailure) {
-            return c.json({ error: emailFailure }, 502);
+            return c.json({ error: emailFailure, delivery }, 502);
         }
 
-        return c.json({ success: true });
+        return c.json({ success: true, ...(delivery ? { delivery } : {}) });
     } catch (e: any) {
         console.error('Email send error:', e);
         return c.json({ error: e.message || 'Failed to send email' }, 500);

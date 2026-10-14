@@ -5,6 +5,7 @@ import { BRAND, COMPANY_INFO, KAKAO_CHANNEL_URL } from '../../../src/constants/c
 interface Env {
     DB: D1Database;
     RESEND_API_KEY: string;
+    MAIL_FROM?: string;
     CRON_SECRET: string;
 }
 
@@ -172,6 +173,7 @@ app.post('/', async (c) => {
                     endDate: formatJapaneseDate(reservation.end_date),
                     reviewUrl,
                 }),
+                { env: c.env },
             );
 
             const completedHistory = claimedHistory

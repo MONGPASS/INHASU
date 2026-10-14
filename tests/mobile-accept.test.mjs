@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
 const html = readFileSync(new URL("../public/견적관리-모바일.html", import.meta.url), "utf8");
+const safe = vm.createContext({});
+vm.runInContext(readFileSync(new URL('../public/quote-editor-state.js', import.meta.url), 'utf8'), safe);
 const source = html.slice(html.indexOf("function inquirySheet(r)"), html.indexOf("App.setStatus ="));
 function screen(record, options = {}) {
   const calls = [];
@@ -11,6 +13,7 @@ function screen(record, options = {}) {
     App: {}, STATUSES: [], recById: () => record,
     customerTimeline: () => [], nextAction: () => null, paxTotal: () => 1,
     rowDays: () => "일정 미정", esc: v => String(v ?? ""), dotDate: v => v,
+    jsArg: safe.QuoteEditorState.jsArgument,
     icon: () => "", isAccepted: r => r.decision?.status === "accepted",
     appConfirm: async () => options.confirm !== false,
     seedBookingFromQuote: () => ({ contractInfo: { depositAmount: options.deposit ?? 50000 } }),

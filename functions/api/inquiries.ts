@@ -7,7 +7,7 @@ import { getSessionUser } from '../lib/userAuth';
 
 // 문의 (/contact form) intake. Guests may post; reading and managing is admin only.
 
-type Bindings = Env & { RESEND_API_KEY?: string; ADMIN_EMAIL?: string };
+type Bindings = Env & { RESEND_API_KEY?: string; ADMIN_EMAIL?: string; MAIL_FROM?: string };
 type Ctx = Context<{ Bindings: Bindings }>;
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -214,7 +214,7 @@ app.post('/', async (c) => {
             c.env.ADMIN_EMAIL || COMPANY_INFO.email,
             `[문의] ${kind}${name ? ` ${name} 님` : ''}`,
             notificationHtml({ id, name, email, kind, reservationNumber, message, member: !!userId }),
-            { replyTo: email },
+            { replyTo: email, env: c.env },
         ).catch((e: unknown) => {
             console.error('[inquiries] notification mail failed', errorMessage(e));
         });

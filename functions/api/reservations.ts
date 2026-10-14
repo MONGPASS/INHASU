@@ -27,6 +27,7 @@ interface Env {
     /** 'true'일 때만 예약 생성 시 PayPal 인보이스를 보낸다 (기본 꺼짐). */
     PAYPAL_ENABLED?: string;
     RESEND_API_KEY?: string;
+    MAIL_FROM?: string;
     ADMIN_EMAIL?: string;
 }
 
@@ -216,6 +217,7 @@ async function notifyStaffOfDepositReport(env: Env, info: {
             env.ADMIN_EMAIL || COMPANY_INFO.email,
             `[입금 신고] ${info.reservationNumber} · ${info.customerName} · 입금자명 ${info.depositorName} · 예약금 ${amount}`,
             tplAdminDepositReported({ ...info, reportedAtLabel }),
+            { env },
         ));
     } else {
         console.warn('[Deposit Report] RESEND_API_KEY not set — admin mail skipped');

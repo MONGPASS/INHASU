@@ -13,6 +13,7 @@ interface Env {
     PAYPAL_WEBHOOK_ID: string;
     PAYPAL_ENVIRONMENT?: string;
     RESEND_API_KEY: string;
+    MAIL_FROM?: string;
 }
 
 const PAYPAL_LIVE_API = 'https://api-m.paypal.com';
@@ -205,6 +206,7 @@ app.post('/', async (c) => {
                         paymentAmount,
                         balanceAmount: reservation.balanceAmount || 0,
                     }),
+                    { env: c.env },
                 );
 
                 history.push({

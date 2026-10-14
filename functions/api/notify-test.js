@@ -25,12 +25,12 @@ import {
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj, null, 2), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8" },
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "private, no-store" },
   });
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
-  const token = url.searchParams.get("token") || request.headers.get("x-admin-token") || "";
+  const token = request.headers.get("x-admin-token") || url.searchParams.get("token") || "";
   if (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
     return json({ ok: false, error: "unauthorized — ?token=<관리자토큰> 필요" }, 401);
   }

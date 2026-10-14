@@ -23,7 +23,10 @@ async function request(url: string, options?: RequestInit) {
     const res = await fetch(url, { credentials: 'include', ...options });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        const failure = new Error(err.error || `HTTP ${res.status}`) as Error & { delivery?: { state: string }; status?: number };
+        failure.status = res.status;
+        if (err.delivery && typeof err.delivery.state === 'string') failure.delivery = { state: err.delivery.state };
+        throw failure;
     }
     const data = await res.json();
     const resource = changedContentResource(url, options?.method);
@@ -76,8 +79,8 @@ export const api = {
          * 맞춤 견적 도구(public/견적관리.html 등)가 쓰는 관리자 값. 관리자 세션이 있어야 받을 수 있고,
          * 서버에 ADMIN_TOKEN 이 설정되어 있지 않으면 null 이 온다.
          */
-        quoteDesk: async (): Promise<{ token: string | null }> => {
-            return request(`${API_BASE}/auth/quote-desk`, { cache: 'no-store' });
+        quoteDesk: async (signal?: AbortSignal): Promise<{ token: string | null; userId?: string }> => {
+            return request(`${API_BASE}/auth/quote-desk`, { cache: 'no-store', signal });
         },
         /** 관리자 계정이 아직 하나도 없으면 true (로그인 화면이 "처음 설정" 폼을 보여 준다). 확인 실패 시 false. */
         adminSetupStatus: async (): Promise<{ needsSetup: boolean }> => {
@@ -429,11 +432,11 @@ export const api = {
         }),
     },
     notifications: {
-        sendEmail: async (to: string, type: string, data: any) => {
+        sendEmail: async (to: string, type: string, data: any, idempotencyKey?: string) => {
             return request('/api/notifications/email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ to, type, data })
+                body: JSON.stringify({ to, type, data, ...(idempotencyKey ? { idempotencyKey } : {}) })
             });
         },
         list: async () => request(`${API_BASE}/notifications`),
