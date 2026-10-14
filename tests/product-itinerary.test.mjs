@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
+import fs from 'node:fs';
 import { productScheduleDays, mergeProductDays, loadProductDocument, buildProductQuote, hasProductSchedule, productItineraryPublished, documentImage } from '../functions/lib/productItinerary.ts';
 import { productDocumentSections, escapeDocumentText } from '../public/product-itinerary.js';
 
@@ -103,3 +104,78 @@ test('문서의 고객 입력은 HTML로 실행되지 않고 위험한 이미지
     assert.equal(documentImage('//bad.example/a'), '');
     assert.equal(escapeDocumentText('"<&'), '&quot;&lt;&amp;');
 });
+
+test('상품 PDF는 저장한 이동·거리·명소 사진을 사용하며 빈 명소 선택을 재생성하지 않는다', () => {
+    const custom = { days: [{ day: 1, title: '초원', move: '이동 2시간', dist: '(120 km)' }], highlights: [
+        { name: '거북바위', nameMn: 'Мэлхий хад', desc: '<script>내용</script>', img: '/img/spot.webp',
+            subImgs: ['/img/detail.webp', 'javascript:alert(1)', '/img/second.webp'] },
+        { name: '', img: '/img/empty.webp' }, null,
+    ] };
+    const q = quote({ document_content: JSON.stringify(custom) }, { days: custom.days });
+    assert.equal(q.days[0].move, '이동 2시간');
+    assert.equal(q.days[0].dist, '(120 km)');
+    assert.deepEqual(q.highlights, [{ name: '거북바위', nameMn: 'Мэлхий хад', desc: '<script>내용</script>',
+        img: '/img/spot.webp', subImgs: ['/img/detail.webp', '/img/second.webp'] }]);
+    custom.highlights = [];
+    assert.deepEqual(quote({ document_content: JSON.stringify(custom) }, { product: { highlights: [{ name: '상품 기본 명소' }] } }).highlights, []);
+});
+
+// Execute the actual customer HTML's small render functions and assembly
+// expression. This checks the shipped templates without a duplicate renderer.
+const htmlSource = filename => fs.readFileSync(new URL(`../public/${filename}`, import.meta.url), 'utf8');
+const declaration = (source, name) => {
+    const start = source.indexOf(`const ${name} =`);
+    assert.ok(start >= 0, `${name} declaration missing`);
+    const end = source.slice(start).search(/;\r?\n/);
+    assert.ok(end >= 0);
+    return source.slice(start, start + end + 1);
+};
+
+for (const [device, filename, spotsVariable] of [
+    ['PC', '확정일정표.html', 'pgSpots'], ['모바일', '확정일정표-모바일.html', 'secSpots'],
+]) {
+    test(`${device} 고객 PDF 명소 렌더러가 상품 설명을 텍스트로 표시하고 사진을 보존한다`, () => {
+        const source = htmlSource(filename);
+        const renderer = new Function('Q', 'escapeDocumentText',
+            `${declaration(source, 'esc')} ${declaration(source, 'ph')} ${declaration(source, 'spotBlock')} return spotBlock;`);
+        const spot = { name: '<b>명소</b>', nameMn: '현지 이름', desc: '<img src=x onerror=alert(1)>\n두 번째 설명',
+            img: '/img/spot.webp', subImgs: ['/img/one.webp', '/img/two.webp', '/img/three.webp'] };
+        const productHtml = renderer({ source: 'product' }, escapeDocumentText)(spot);
+        assert.ok(productHtml.includes('&lt;img src=x onerror=alert(1)&gt;<br>두 번째 설명'));
+        assert.ok(!productHtml.includes('<img src=x'));
+        assert.ok(productHtml.includes('&lt;b&gt;명소&lt;/b&gt;'));
+        for (const photo of [spot.img, ...spot.subImgs]) assert.ok(productHtml.includes(photo));
+        const quoteHtml = renderer({ source: 'quote' }, escapeDocumentText)({ ...spot, name: '기존 명소', desc: '<b>기존 견적 서식</b>' });
+        assert.ok(quoteHtml.includes('<b>기존 견적 서식</b>'), 'existing quote formatting stays compatible');
+    });
+
+    test(`${device} 상품 PDF 조립에도 실제 선택 명소 화면이 포함된다`, () => {
+        const source = htmlSource(filename);
+        const assembly = source.match(/(?:document\.getElementById\("root"\)|root)\.innerHTML = productSections([\s\S]*?);\r?\n/);
+        assert.ok(assembly);
+        const expression = 'productSections' + assembly[1];
+        const sections = [...new Set(expression.match(/\b(?:pg|sec)[A-Z]\w*/g))];
+        const assemble = new Function(...sections, 'productSections', `return ${expression};`);
+        const values = sections.map(name => name === spotsVariable ? '<section>선택한 명소 화면</section>' : '');
+        assert.ok(assemble(...values, { details: '전체 일정 사진', inclusions: '포함 조건' }).includes('선택한 명소 화면'));
+        assert.ok(assemble(...values, null).includes('선택한 명소 화면'));
+    });
+
+    test(`${device} 상품에 저장한 명소 사진과 빈 갤러리를 최신 라이브러리로 덮어쓰지 않는다`, async () => {
+        const source = htmlSource(filename);
+        const hydration = source.match(/if \(Q[^\n]*Array\.isArray\(Q\.highlights\)[^\n]*\) \{[\s\S]*?\n\}/);
+        assert.ok(hydration);
+        const hydrate = new Function('Q', 'fetch', `return (async () => { ${hydration[0]} })();`);
+        let calls = 0;
+        const libraryFetch = async () => { calls++; return Response.json({ ok: true, data: { '선택 명소': { img: '/img/new-library.webp', subImgs: ['/img/new-detail.webp'] } } }); };
+        const savedProduct = { source: 'product', highlights: [{ name: '선택 명소', img: '/img/saved.webp', subImgs: [] }] };
+        await hydrate(savedProduct, libraryFetch);
+        assert.equal(calls, 0);
+        assert.equal(savedProduct.highlights[0].img, '/img/saved.webp');
+        assert.deepEqual(savedProduct.highlights[0].subImgs, []);
+        const legacyQuote = { source: 'quote', highlights: [{ name: '선택 명소', img: '/img/old.webp', subImgs: [] }] };
+        await hydrate(legacyQuote, libraryFetch);
+        assert.equal(calls, 1);
+        assert.equal(legacyQuote.highlights[0].img, '/img/new-library.webp');
+    });
+}

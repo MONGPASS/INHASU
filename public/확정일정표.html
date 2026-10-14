@@ -166,9 +166,9 @@ const Q = await (async () => {
 
 const lodgingCatalog = await Lodging.loadCatalog(Q?.booking?.assign?.lodges);
 
-/* 명소 사진은 항상 명소관리 최신본을 우선 반영 —
-   견적 발행 뒤 명소관리에서 이미지를 바꿔도 이미 만든 견적서에 바로 나타나도록 */
-if (Q && Array.isArray(Q.highlights) && Q.highlights.length) {
+/* 견적 명소 사진은 명소관리 최신본을 우선 반영한다.
+   상품 예약은 고객별로 저장한 명소 사진·빈 갤러리를 그대로 유지한다. */
+if (Q && Q.source !== "product" && Array.isArray(Q.highlights) && Q.highlights.length) {
   try {
     const r = await fetch("/api/data/spots", { cache: "no-store" });
     const j = await r.json();
@@ -533,7 +533,7 @@ const spotBlock = h => `
     <div style="flex:1; display:flex; flex-direction:column;">
       <div style="color:#1C8571; font-size:12px; font-weight:700;">📍 ${esc(h.nameMn)}</div>
       <div style="color:#0A1F2E; font-size:24px; font-weight:800; margin-top:2px;">${esc(h.name)}</div>
-      <div style="color:#33434F; font-size:11.5px; line-height:1.75; margin:10px 0 0;">${h.desc}</div>
+      <div style="color:#33434F; font-size:11.5px; line-height:1.75; margin:10px 0 0;">${Q.source === "product" ? esc(h.desc).replace(/\n/g, "<br>") : h.desc}</div>
       <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:auto; padding-top:14px;">
         ${h.subImgs.map(s => ph(s, "", "width:100%; height:78px; border-radius:8px;")).join("")}
       </div>
@@ -1000,7 +1000,7 @@ const pgBookingAssign = bookingAssign ? (() => {
    ※ 견적 단계에선 안전정보/위험고지/약관(pgSafety·pgRisk·pgTerms) 제외 — 계약 단계에서 별도 안내 */
 const productSections = Q.source === "product" ? productDocumentSections(Q) : null;
 document.getElementById("root").innerHTML = productSections
-  ? pgCover + pgQuote + pgBookingAssign + productSections.inclusions + pgSchedule + productSections.details + pgArrival + pgCert
+  ? pgCover + pgQuote + pgBookingAssign + productSections.inclusions + pgSchedule + pgSpots + productSections.details + pgArrival + pgCert
   : pgCover + pgQuote + pgBookingAssign + pgInclusions + pgSchedule + pgSpots + pgLodge + pgTeam + pgMeals + pgInsurance + pgArrival + pgCert;
 const waitForScheduleImages = () => Promise.all([...document.querySelectorAll("#root img")].map(img => img.complete
   ? Promise.resolve()

@@ -22,6 +22,8 @@ export interface TemplateDay {
     title: string;
     region?: string;
     summary?: string;
+    move?: string;
+    dist?: string;
     images?: string[];
     activities: Activity[];
     meals?: { breakfast?: string; lunch?: string; dinner?: string };

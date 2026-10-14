@@ -23,6 +23,7 @@ export interface ReservationDocContent {
     description: string;
     days: TemplateDay[];
     documentSettings: DocumentSettings;
+    highlights?: Array<{ name: string; nameMn?: string; desc?: string; img?: string; subImgs?: string[] }>;
 }
 
 interface Props {

@@ -139,7 +139,7 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
     const included = typeof overview.includedText === 'string' ? lines(overview.includedText) : array(product?.included).map(text).filter(Boolean);
     const excluded = typeof overview.excludedText === 'string' ? lines(overview.excludedText) : array(product?.excluded).map(text).filter(Boolean);
     const itineraryDays = days.map((d: any) => ({
-        d: d.day, date: d.date, dest: (text(d.title) || text(d.region) || `${d.day}일차`).slice(0, 80), move: '', dist: '',
+        d: d.day, date: d.date, dest: (text(d.title) || text(d.region) || `${d.day}일차`).slice(0, 80), move: text(d.move), dist: text(d.dist),
         items: [...lines(d.summary), ...array(d.activities).map(a => [text(a.time), text(a.title)].filter(Boolean).join(' '))].filter(Boolean).slice(0, 5).map(s => s.slice(0, 100)),
         stay: { name: (text(d.accommodation?.name) || '일정표 참조').slice(0, 80), tags: [] },
         meals: ['breakfast', 'lunch', 'dinner'].map(k => (text(d.meals?.[k]) || '-').slice(0, 60)),
@@ -154,6 +154,12 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
     const total = amount(r.total_price ?? breakdown.total);
     const deposit = amount(r.deposit_amount ?? breakdown.deposit);
     const balance = amount(r.balance_amount ?? breakdown.local ?? Math.max(0, total - deposit));
+    // Only the customer's saved selections appear. An explicit empty selection
+    // must not be repopulated from a product or the live spot library.
+    const highlights = array(custom.highlights).filter(h => h && typeof h === 'object' && !Array.isArray(h) && text(h.name).trim()).map(h => ({
+        name: text(h.name), nameMn: text(h.nameMn), desc: text(h.desc),
+        img: documentImage(h.img), subImgs: photos(h.subImgs),
+    }));
     return {
         source: 'product', brand, productName: text(r.product_name), quoteNo: text(r.reservation_number) || r.id,
         issueDate: dateKey(r.updated_at) || dateKey(r.created_at), manager: text(contract.manager) || '몽골리아 은하수',
@@ -166,7 +172,7 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
             depositStatus: r.deposit_status === 'paid' ? '입금 확인 완료' : '입금 확인 중',
             balanceStatus: r.balance_status === 'paid' ? '결제 완료' : '현지 결제 예정',
             payment: '예약금: 계좌이체 · 잔금: 현지 현금 결제', paymentNote: '' },
-        included, excluded, intensity: 0, days: itineraryDays, detailDays: days, highlights: [],
+        included, excluded, intensity: 0, days: itineraryDays, detailDays: days, highlights,
         scheduleNotes: lines(settings.detail?.note),
         images: { cover: mainImages[0] || scheduleImages[0] || '', coverLabel: text(r.product_name) },
         booking: { assign: { guide: { name: text(guide.name), phone: text(guide.phone), img: documentImage(guide.image || guide.img),

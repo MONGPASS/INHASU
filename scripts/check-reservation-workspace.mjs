@@ -1,5 +1,5 @@
 // Actual Hono/Lucia/D1-shaped SQLite routes for local reservation workspace QA.
-// node scripts/check-reservation-workspace.mjs [--serve] — no production data or outbound network.
+// node scripts/check-reservation-workspace.mjs [--serve] [--port=8796] — no production data or outbound network.
 import { build } from 'esbuild';
 import { DatabaseSync } from 'node:sqlite';
 import assert from 'node:assert/strict';
@@ -12,8 +12,13 @@ import { hashPassword } from '../functions/lib/password.ts';
 import { productScheduleDays } from '../functions/lib/productItinerary.ts';
 import { productDocumentSections } from '../public/product-itinerary.js';
 import { onRequestGet as quoteGet } from '../functions/api/requests/[id].js';
+import { onRequestGet as libraryGet } from '../functions/api/data/[key].js';
 
 const root = path.resolve(import.meta.dirname, '..');
+const portArgument = process.argv.find(argument => argument.startsWith('--port='));
+const port = portArgument ? Number(portArgument.slice('--port='.length)) : 8795;
+if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('--port는 1~65535 사이의 정수여야 합니다.');
+const localOrigin = `http://localhost:${port}`;
 const scratch = path.join(root, 'work/reservation-workspace');
 fs.mkdirSync(scratch, { recursive: true });
 const entry = path.join(scratch, 'entry.ts');
@@ -98,6 +103,34 @@ const write = (route, method, data, headers = admin) => apiRequest(route, {
 const productName = '테렐지 초원 여행 2박 3일';
 const image = '/img/regions/terelj.webp';
 const lodgeImage = '/img/quote/lodge-lux.webp';
+// Only safe, public course/spot content lives in this library. Every photo is a
+// bundled local asset; no private uploads, contact details or live data are used.
+const publicLibraryFixtures = {
+    snippets: {
+        '테를지 초원 코스': {
+            cat: '중앙몽골', dest: '테를지 일정 조각 확인', move: '2시간', dist: '120km',
+            items: ['09:30 공항 픽업', '거북바위 산책'],
+            stay: { name: '테를지 로컬 게르 캠프', tags: ['게르', '초원'], img: lodgeImage,
+                imgs: [lodgeImage], desc: '로컬 검증용 게르 숙소 사진입니다.' },
+            meals: ['조식', '현지식', '캠프식'], images: [image, '/img/home/1.webp'],
+        },
+    },
+    snippet_cats: ['중앙몽골'],
+    spots: {
+        '거북바위': {
+            name: '거북바위', nameMn: 'Мэлхий хад', region: '중앙몽골', short: '테를지 국립공원의 대표 명소',
+            desc: '거북 모양의 바위와 주변 초원을 둘러보는 로컬 검증용 명소 안내입니다.',
+            img: image, subImgs: ['/img/home/1.webp', lodgeImage, '/img/quote/cover.webp'],
+        },
+    },
+    spot_cats: ['중앙몽골'],
+};
+for (const [key, data] of Object.entries(publicLibraryFixtures)) {
+    raw.prepare('INSERT INTO kv (k,v,updated_at) VALUES (?,?,?)').run(key, JSON.stringify(data), '2026-10-14T00:00:00Z');
+}
+const libraryResponse = (key, headers = {}) => libraryGet({
+    request: new Request(`${localOrigin}/api/data/${encodeURIComponent(key)}`, { headers }), params: { key }, env,
+});
 const blocks = [
     { type: 'dayInfo', content: { title: '테렐지 초원 도착', description: '공항 픽업 후 국립공원으로 이동합니다.',
         heroImage: image, galleryImages: ['/img/home/1.webp'], meals: { lunch: '현지식', dinner: '캠프식' },
@@ -144,12 +177,12 @@ for (const [id, status, document, signed] of [
         signed ? JSON.stringify({ travelers: [{ name: '로컬 테스트 여행자', passportName: 'LOCAL TEST', gender: '남성' }],
             agreement: { agreed: true, name: '로컬 테스트 여행자', agreedAt: '2026-10-14T00:00:00Z' }, customerSubmittedAt: '2026-10-14T00:00:00Z' }) : null,
         JSON.stringify({ id: 'workspace-guide', name: '로컬 한국어 가이드', image: '/img/quote/guide.webp', phone: 'LOCAL-GUIDE-PHONE' }),
-        '[]', signed ? 1 : 0, signed ? `http://localhost:8795/documents/itinerary/${id}` : null,
-        signed ? `http://localhost:8795/documents/contract/${id}` : null, 'workspace-owner', '2026-10-14T00:00:00Z', 'website');
+        '[]', signed ? 1 : 0, signed ? `${localOrigin}/documents/itinerary/${id}` : null,
+        signed ? `${localOrigin}/documents/contract/${id}` : null, 'workspace-owner', '2026-10-14T00:00:00Z', 'website');
 }
 raw.prepare('UPDATE reservations SET history=? WHERE id=?').run(JSON.stringify([
-    { timestamp: '2026-10-14T00:00:00Z', type: 'email', description: '확정 일정표를 고객님께 발송했습니다.', detail: 'http://localhost:8795/documents/itinerary/workspace-signed' },
-    { timestamp: '2026-10-14T00:01:00Z', type: 'email', description: '해외여행 계약서를 고객님께 발송했습니다.', detail: 'http://localhost:8795/documents/contract/workspace-signed' },
+    { timestamp: '2026-10-14T00:00:00Z', type: 'email', description: '확정 일정표를 고객님께 발송했습니다.', detail: `${localOrigin}/documents/itinerary/workspace-signed` },
+    { timestamp: '2026-10-14T00:01:00Z', type: 'email', description: '해외여행 계약서를 고객님께 발송했습니다.', detail: `${localOrigin}/documents/contract/workspace-signed` },
 ]), 'workspace-signed');
 
 // A real quote-backed row lets the unified list distinguish product bookings.
@@ -174,6 +207,17 @@ const loginHeaders = { cookie: login.headers.get('set-cookie').split(';')[0] };
 assert.equal((await apiRequest('/api/auth/me', { headers: loginHeaders })).status, 200);
 assert.equal((await apiRequest('/api/admin/bookings/quote', { headers: admin })).status, 200);
 assert.equal((await apiRequest('/api/quotes', { headers: admin })).status, 200);
+for (const [key, data] of Object.entries(publicLibraryFixtures)) {
+    const response = await libraryResponse(key);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    const body = await response.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.key, key);
+    assert.deepEqual(body.data, data);
+    assert.ok(!/LOCAL-PRIVATE-|passport|adminOperations|local-workspace-quote-token/.test(JSON.stringify(body)));
+}
+assert.equal((await libraryResponse('unsupported-local-key')).status, 404);
 const catalog = await (await apiRequest('/api/products', { headers: admin })).json();
 assert.equal(catalog.filter(product => product.name === productName).length, 2);
 const before = await (await apiRequest('/api/reservations/workspace-product', { headers: admin })).json();
@@ -185,8 +229,13 @@ assert.ok(!(await previewBefore.text()).includes('잘못 선택하면 안 되는
 
 const checkDocument = structuredClone(savedDocument);
 checkDocument.documentSettings = { contract: { includedText: '고객별 포함 조건', excludedText: '' } };
+const originalDay = structuredClone(checkDocument.days[0]);
+const originalContractSettings = structuredClone(checkDocument.documentSettings);
 checkDocument.days[0].activities[0].time = '10:45';
 checkDocument.days[0].activities[0].title = '고객별 확정 픽업 시간';
+checkDocument.days[0].move = '2시간';
+checkDocument.days[0].dist = '120km';
+checkDocument.highlights = [structuredClone(publicLibraryFixtures.spots['거북바위'])];
 assert.equal((await write('/api/reservations/workspace-check', 'PUT', { document_content: checkDocument })).status, 200);
 const detail = await (await apiRequest('/api/reservations/workspace-check', { headers: admin })).json();
 assert.deepEqual(JSON.parse(detail.documentContent), checkDocument);
@@ -204,11 +253,58 @@ assert.equal(pdf.price.balanceFinal, 2970000);
 assert.equal(pdf.pax, 3);
 assert.equal(pdf.detailDays[0].activities[0].time, '10:45');
 assert.equal(pdf.detailDays[0].activities[0].title, '고객별 확정 픽업 시간');
+assert.equal(pdf.days[0].move, '2시간');
+assert.equal(pdf.days[0].dist, '120km');
+assert.equal(pdf.highlights[0].name, '거북바위');
+assert.equal(pdf.highlights[0].nameMn, 'Мэлхий хад');
+assert.equal(pdf.highlights[0].desc, checkDocument.highlights[0].desc);
+assert.equal(pdf.highlights[0].img, image);
+assert.deepEqual(pdf.highlights[0].subImgs, checkDocument.highlights[0].subImgs);
+assert.equal(pdf.detailDays[0].activities[0].description, originalDay.activities[0].description);
+assert.deepEqual(pdf.detailDays[0].activities[0].images, originalDay.activities[0].images);
+assert.deepEqual(pdf.detailDays[0].activities.slice(1), originalDay.activities.slice(1));
+assert.deepEqual(pdf.detailDays[0].images, originalDay.images);
 assert.deepEqual(pdf.detailDays[0].images, ['/img/home/1.webp', image]);
 assert.deepEqual(pdf.detailDays[0].activities[2].images, [lodgeImage]);
 const sections = productDocumentSections(pdf);
 assert.match(sections.details, /10:45|고객별 확정 픽업 시간/);
 assert.ok(sections.details.includes(lodgeImage));
+// Simulate a later inline edit of only travel time/distance. The exact document
+// saved by the admin must remain authoritative for every customer PDF read.
+const partialDocument = structuredClone(JSON.parse(detail.documentContent));
+partialDocument.days[0].move = '3시간';
+partialDocument.days[0].dist = '150km';
+partialDocument.highlights[0].desc = '관리자가 수정한 최신 대표 명소 안내입니다.';
+assert.equal((await write('/api/reservations/workspace-check', 'PUT', { document_content: partialDocument })).status, 200);
+const savedPartial = await (await apiRequest('/api/reservations/workspace-check', { headers: admin })).json();
+const parsedPartial = JSON.parse(savedPartial.documentContent);
+assert.deepEqual(parsedPartial, partialDocument);
+assert.deepEqual(parsedPartial.documentSettings, originalContractSettings);
+assert.deepEqual(parsedPartial.days[0].activities, checkDocument.days[0].activities);
+assert.deepEqual(parsedPartial.days[0].images, originalDay.images);
+assert.deepEqual(parsedPartial.days[0].accommodation, originalDay.accommodation);
+const latestPdf = (await (await apiRequest('/api/documents/itinerary/workspace-check?format=quote&preview=1', { headers: admin })).json()).quote;
+assert.equal(latestPdf.days[0].move, '3시간');
+assert.equal(latestPdf.days[0].dist, '150km');
+assert.equal(latestPdf.highlights[0].desc, partialDocument.highlights[0].desc);
+assert.deepEqual(latestPdf.highlights[0].subImgs, checkDocument.highlights[0].subImgs);
+assert.deepEqual(latestPdf.detailDays[0].activities, pdf.detailDays[0].activities);
+assert.deepEqual(latestPdf.detailDays[0].images, pdf.detailDays[0].images);
+const contractAfterPartial = await (await apiRequest('/api/documents/contract/workspace-check')).json();
+assert.deepEqual(contractAfterPartial.productIncluded, customerContract.productIncluded);
+assert.deepEqual(contractAfterPartial.productExcluded, customerContract.productExcluded);
+// Deliberately clearing the list is a saved choice, never a request to restore
+// sample spots or the booked product's original days.
+const emptyHighlights = { ...structuredClone(partialDocument), highlights: [] };
+assert.equal((await write('/api/reservations/workspace-check', 'PUT', { document_content: emptyHighlights })).status, 200);
+const noSpotsPdf = (await (await apiRequest('/api/documents/itinerary/workspace-check?format=quote&preview=1', { headers: admin })).json()).quote;
+assert.deepEqual(noSpotsPdf.highlights, []);
+assert.deepEqual(noSpotsPdf.detailDays[0].activities, latestPdf.detailDays[0].activities);
+assert.equal((await write('/api/reservations/workspace-check', 'PUT', { document_content: partialDocument })).status, 200);
+const emptyDaysResponse = await apiRequest('/api/documents/itinerary/workspace-empty?preview=1', { headers: admin });
+assert.equal(emptyDaysResponse.status, 200);
+assert.deepEqual((await emptyDaysResponse.json()).days, []);
+assert.equal((await apiRequest('/api/documents/itinerary/workspace-empty?format=quote&preview=1', { headers: admin })).status, 409);
 assert.equal((await apiRequest('/api/documents/itinerary/workspace-check?format=quote')).status, 409);
 assert.equal((await apiRequest('/api/documents/itinerary/workspace-check/publish', { method: 'POST', headers: admin })).status, 200);
 assert.equal((await apiRequest('/api/documents/itinerary/workspace-check?format=quote')).status, 200);
@@ -236,13 +332,13 @@ assert.equal((await apiRequest('/api/reservations/workspace-check', { headers: o
 const publicPdf = await (await apiRequest('/api/documents/itinerary/workspace-check?format=quote')).text();
 assert.ok(!publicPdf.includes('LOCAL-PRIVATE-'));
 const mail = await write('/api/notifications/email', 'POST', { to: 'customer@example.invalid', type: 'ITINERARY_READY',
-    data: { customerName: '로컬 검증 고객', reservationDbId: 'workspace-check', userId: 'workspace-owner', itineraryUrl: 'http://localhost:8795/documents/itinerary/workspace-check' } });
+    data: { customerName: '로컬 검증 고객', reservationDbId: 'workspace-check', userId: 'workspace-owner', itineraryUrl: `${localOrigin}/documents/itinerary/workspace-check` } });
 assert.equal(mail.status, 200);
 assert.equal(outbound.length, 1);
 raw.prepare('DELETE FROM reservations WHERE id=?').run('workspace-check');
 raw.exec('DELETE FROM notifications');
 outbound.length = 0;
-console.log('예약 작업 API 검증 통과: 실제 로그인 · 상품 ID · 문서 저장/재조회 · 금액/시간/사진 PDF · 공개 제한 · 관리자 운영정보 보호 · 외부 발송 차단');
+console.log('예약 작업 API 검증 통과: 실제 로그인 · 상품 ID · 공개 코스/명소 라이브러리 · 인라인 일정 저장/재조회 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 관리자 운영정보 보호 · 외부 발송 차단');
 
 if (process.argv.includes('--serve')) {
     const types = { '.html': 'text/html;charset=utf-8', '.js': 'text/javascript;charset=utf-8', '.css': 'text/css;charset=utf-8',
@@ -254,7 +350,7 @@ if (process.argv.includes('--serve')) {
     };
     const server = http.createServer(async (req, res) => {
         try {
-            const url = new URL(req.url, 'http://localhost:8795');
+            const url = new URL(req.url, localOrigin);
             if (url.pathname === '/__local-admin') {
                 res.writeHead(302, { Location: '/admin/reservations', 'Set-Cookie': `${admin.cookie}; Path=/; HttpOnly; SameSite=Lax; Secure`, 'Cache-Control': 'no-store' });
                 res.end(); return;
@@ -273,7 +369,7 @@ if (process.argv.includes('--serve')) {
                 } else if (url.pathname.startsWith('/api/requests/') && req.method === 'GET') {
                     response = await quoteGet({ request: new Request(url, options), env, params: { id: decodeURIComponent(url.pathname.slice('/api/requests/'.length)) } });
                 } else if (url.pathname.startsWith('/api/data/') && req.method === 'GET') {
-                    response = Response.json({ ok: true, data: [] });
+                    response = await libraryResponse(decodeURIComponent(url.pathname.slice('/api/data/'.length)), req.headers);
                 } else response = await apiRequest(url.pathname + url.search, options);
                 res.writeHead(response.status, { ...Object.fromEntries(response.headers), 'Cache-Control': 'no-store' });
                 res.end(Buffer.from(await response.arrayBuffer())); return;
@@ -289,5 +385,5 @@ if (process.argv.includes('--serve')) {
             res.end(fs.readFileSync(file));
         } catch (error) { res.writeHead(500, { 'Content-Type': 'text/plain;charset=utf-8' }); res.end(String(error)); }
     });
-    server.listen(8795, '127.0.0.1', () => console.log('예약 작업 로컬 검증: http://localhost:8795/__local-admin · admin@example.invalid / local-workspace-test-2026'));
+    server.listen(port, '127.0.0.1', () => console.log(`예약 작업 로컬 검증: ${localOrigin}/__local-admin · admin@example.invalid / local-workspace-test-2026`));
 } else raw.close();
