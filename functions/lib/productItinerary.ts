@@ -1,5 +1,7 @@
 // 상품 예약을 기존 INHASU 확정 일정표의 데이터 형식으로 연결한다.
 // 샘플 견적을 복제하지 않는다. 누락된 고객 정보·금액은 실제 예약 값만 사용한다.
+import type { RepresentativeSpotSnapshot } from '../../src/types/product';
+
 export function parseDocumentJson(value: any, fallback: any = null) {
     let result = value;
     for (let i = 0; i < 3 && typeof result === 'string'; i++) {
@@ -29,6 +31,16 @@ export const documentImage = (value: any) => {
     return /^(https?:\/\/|\/(?!\/)|img\/)/i.test(url) ? url.replace(/["'<>\s]/g, c => c === "'" ? '%27' : encodeURIComponent(c)) : '';
 };
 const photos = (value: any) => array(value).map(documentImage).filter(Boolean);
+
+/** Registered spot snapshots only; never infer spots from sales highlights. */
+export function normalizeRepresentativeSpots(value: any): RepresentativeSpotSnapshot[] {
+    return array(value).filter(spot => spot && typeof spot === 'object' && !Array.isArray(spot) && text(spot.name).trim()).map(spot => ({
+        name: text(spot.name),
+        ...Object.fromEntries(['nameMn', 'short', 'region', 'desc'].filter(key => typeof spot[key] === 'string').map(key => [key, spot[key]])),
+        ...(typeof spot.img === 'string' ? { img: documentImage(spot.img) } : {}),
+        ...(Array.isArray(spot.subImgs) ? { subImgs: photos(spot.subImgs) } : {}),
+    }));
+}
 
 /** 상품 관리의 DAY/타임라인/이미지/슬라이드형 일정도 원본 사진과 함께 가져온다. */
 export function productScheduleDays(product: any) {
@@ -155,11 +167,15 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
     const total = amount(r.total_price ?? breakdown.total);
     const deposit = amount(r.deposit_amount ?? breakdown.deposit);
     const balance = amount(r.balance_amount ?? breakdown.local ?? Math.max(0, total - deposit));
-    // Only the customer's saved selections appear. An explicit empty selection
-    // must not be repopulated from a product or the live spot library.
-    const highlights = array(custom.highlights).filter(h => h && typeof h === 'object' && !Array.isArray(h) && text(h.name).trim()).map(h => ({
+    // Saved customer selections (including []) are authoritative. Only a document
+    // without a selection field inherits the product's separate spot snapshots.
+    const selectedSpots = Object.hasOwn(custom, 'highlights') ? custom.highlights
+        : product?.representative_spots ?? product?.representativeSpots;
+    const highlights = normalizeRepresentativeSpots(selectedSpots).map(h => ({
         name: text(h.name), nameMn: text(h.nameMn), desc: text(h.desc),
         img: documentImage(h.img), subImgs: photos(h.subImgs),
+        ...(typeof h.short === 'string' ? { short: h.short } : {}),
+        ...(typeof h.region === 'string' ? { region: h.region } : {}),
     }));
     return {
         source: 'product', brand, productName: text(r.product_name), quoteNo: text(r.reservation_number) || r.id,

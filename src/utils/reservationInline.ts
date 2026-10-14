@@ -1,21 +1,28 @@
 import type { ReservationDocContent } from '../components/admin/ReservationDocumentEditor';
 import { mergeDocumentSettings, type TemplateDay } from '../pages/AdminTemplateManage';
 import { reservationProductDays, reservationProductTerms } from './reservationDocument';
+import { normalizeRepresentativeSpots } from '../../functions/lib/productItinerary';
 
 const text = (value: unknown): string => typeof value === 'string' ? value : '';
 const record = (value: unknown): value is Record<string, any> => !!value && typeof value === 'object' && !Array.isArray(value);
 const strings = (value: unknown): string[] => Array.isArray(value) ? value.filter(item => typeof item === 'string') : [];
 
-/** An existing saved document is authoritative; defaults are only for a new one. */
+/** Saved fields are authoritative; old documents without a spot selection inherit it once. */
 export function createInlineDocument(initial: ReservationDocContent | null, product: any, productName: string): ReservationDocContent {
-    if (initial != null) return structuredClone(initial);
+    if (initial != null) {
+        const saved = structuredClone(initial);
+        if (!Object.hasOwn(saved, 'highlights')) {
+            saved.highlights = normalizeRepresentativeSpots(product?.representative_spots ?? product?.representativeSpots);
+        }
+        return saved;
+    }
     const settings = mergeDocumentSettings(null);
     const { included, excluded } = reservationProductTerms(product);
     return {
         name: productName || text(product?.name),
         description: text(product?.description),
         days: reservationProductDays(product).map(day => ({ ...day, date: '', dateMode: 'manual' as const })),
-        highlights: [],
+        highlights: normalizeRepresentativeSpots(product?.representative_spots ?? product?.representativeSpots),
         documentSettings: {
             ...settings,
             overview: {

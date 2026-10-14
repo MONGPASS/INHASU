@@ -11,19 +11,20 @@ import {
 import { api } from '../../lib/api';
 import { DEPOSIT_PAYMENT_METHOD } from '../../constants/company';
 import { uploadImage } from '../../utils/upload';
-import type { TourProduct } from '../../types/product';
+import type { TourProduct, RepresentativeSpotSnapshot } from '../../types/product';
 import { canAutoImportReservationDocument, reservationProductDays, reservationProductTerms, selectReservationProduct } from '../../utils/reservationDocument';
 import { TouristSpotPickerModal } from './TouristSpotPickerModal';
 import { HotelPickerModal } from './HotelPickerModal';
 import type { TouristSpot } from '../../types/touristSpot';
 import type { Hotel } from '../../types/hotel';
+import { normalizeRepresentativeSpots } from '../../../functions/lib/productItinerary';
 
 export interface ReservationDocContent {
     name: string;
     description: string;
     days: TemplateDay[];
     documentSettings: DocumentSettings;
-    highlights?: Array<{ name: string; nameMn?: string; desc?: string; img?: string; subImgs?: string[] }>;
+    highlights?: RepresentativeSpotSnapshot[];
 }
 
 interface Props {
@@ -152,6 +153,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                     itineraryImages: parse(item.itineraryImages || item.itinerary_images),
                     itineraryBlocks: parse(item.itineraryBlocks || item.itinerary_blocks),
                     highlights: parse(item.highlights),
+                    representativeSpots: normalizeRepresentativeSpots(item.representativeSpots ?? item.representative_spots),
                     included: parse(item.included),
                     excluded: parse(item.excluded),
                     pricingOptions: parse(item.pricingOptions || item.pricing_options),

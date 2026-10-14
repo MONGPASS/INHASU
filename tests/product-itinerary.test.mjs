@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
-import { productScheduleDays, mergeProductDays, loadProductDocument, buildProductQuote, hasProductSchedule, productItineraryPublished, documentImage } from '../functions/lib/productItinerary.ts';
+import { productScheduleDays, mergeProductDays, loadProductDocument, buildProductQuote, hasProductSchedule, productItineraryPublished, documentImage, normalizeRepresentativeSpots } from '../functions/lib/productItinerary.ts';
 import { productDocumentSections, escapeDocumentText } from '../public/product-itinerary.js';
 
 const reservation = { id: 'booking-uuid', product_id: 'tour-a', product_name: '고비 3일', customer_name: '테스트 고객',
@@ -134,6 +134,34 @@ test('상품 PDF는 저장한 이동·거리·명소 사진을 사용하며 빈 
         img: '/img/spot.webp', subImgs: ['/img/detail.webp', '/img/second.webp'] }]);
     custom.highlights = [];
     assert.deepEqual(quote({ document_content: JSON.stringify(custom) }, { product: { highlights: [{ name: '상품 기본 명소' }] } }).highlights, []);
+});
+
+test('대표 명소 정규화는 순서·설명·지역·사진을 보존하고 판매 포인트·손상된 자료를 추정하지 않는다', () => {
+    const snapshots = [{ name: '거북바위', nameMn: 'Мэлхий хад', short: '초원 명소', region: '중앙', desc: '설명\n두 번째 줄',
+        img: '/img/spot.webp', subImgs: ['/img/first.webp', 'javascript:alert(1)', '/img/second.webp'], ignored: 'discard' },
+        { name: '고비 사막', img: 'javascript:alert(1)', subImgs: [] },
+        { icon: 'star', title: '판매 포인트', description: '명소가 아님' }, null, { name: '  ' }];
+    assert.deepEqual(normalizeRepresentativeSpots(JSON.stringify(snapshots)), [
+        { name: '거북바위', nameMn: 'Мэлхий хад', short: '초원 명소', region: '중앙', desc: '설명\n두 번째 줄',
+            img: '/img/spot.webp', subImgs: ['/img/first.webp', '/img/second.webp'] },
+        { name: '고비 사막', img: '', subImgs: [] },
+    ]);
+    assert.equal(snapshots[0].subImgs.length, 3, 'source snapshot is never mutated');
+    for (const value of [undefined, null, '{}', '{broken', 'failed', { name: '단일 객체' }]) assert.deepEqual(normalizeRepresentativeSpots(value), []);
+});
+
+test('미작성 고객 PDF만 상품 대표 명소를 상속하고 확정한 고객 snapshot과 빈 선택을 유지한다', () => {
+    const selected = [{ name: '거북바위', nameMn: 'Мэлхий хад', short: '초원 명소', region: '중앙', desc: '상품 선택 설명',
+        img: '/img/product-spot.webp', subImgs: ['/img/product-detail.webp'] }];
+    const selectedProduct = { ...product, representative_spots: JSON.stringify(selected),
+        highlights: [{ icon: 'star', title: '판매 포인트', description: '기존 홍보 문구' }] };
+    assert.deepEqual(quote({}, { product: selectedProduct }).highlights, selected);
+    assert.deepEqual(quote({}, { product: { ...product, representativeSpots: selected } }).highlights, selected);
+    assert.deepEqual(quote({ document_content: JSON.stringify({ highlights: [] }) }, { product: selectedProduct }).highlights, []);
+    assert.deepEqual(quote({ document_content: JSON.stringify({ highlights: null }) }, { product: selectedProduct }).highlights, [], 'an existing invalid selection field is not inferred from current product');
+    const saved = [{ name: '고객 확정 명소', nameMn: '', desc: '확정 당시 설명', img: '/img/customer.webp', subImgs: [] }];
+    assert.deepEqual(quote({ document_content: JSON.stringify({ highlights: saved }) }, { product: selectedProduct }).highlights, saved);
+    assert.deepEqual(quote({}, { product: { ...product, highlights: selectedProduct.highlights } }).highlights, []);
 });
 
 // Execute the actual customer HTML's small render functions and assembly

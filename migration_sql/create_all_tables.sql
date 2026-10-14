@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS products (
     popular INTEGER DEFAULT 0,
     tags TEXT DEFAULT '[]',
     faqs TEXT DEFAULT '[]',                    -- per-product Q&A: [{q, a}]
+    representative_spots TEXT DEFAULT '[]',   -- selected spot snapshots, separate from sales highlights
     sort_order INTEGER DEFAULT 0,
     view_count INTEGER DEFAULT 0,
     reservation_count INTEGER DEFAULT 0,

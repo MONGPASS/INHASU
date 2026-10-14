@@ -122,8 +122,23 @@ const publicLibraryFixtures = {
             desc: '거북 모양의 바위와 주변 초원을 둘러보는 로컬 검증용 명소 안내입니다.',
             img: image, subImgs: ['/img/home/1.webp', lodgeImage, '/img/quote/cover.webp'],
         },
+        '테를지 전망대': {
+            name: '테를지 전망대', nameMn: 'Тэрэлж', region: '중앙몽골', short: '초원 전망을 보는 로컬 검증 명소',
+            desc: '같은 지역의 두 번째 명소를 선택할 때 순서와 선택 수를 확인하는 자료입니다.',
+            img: '/img/home/1.webp', subImgs: [image, '/img/quote/cover.webp', lodgeImage],
+        },
+        '홍고린 엘스': {
+            name: '홍고린 엘스', nameMn: 'Хонгорын элс', region: '고비사막', short: '모래언덕 사진과 안내를 확인하는 명소',
+            desc: '고비사막 그룹에서 선택한 사진과 설명을 저장하는 로컬 검증 자료입니다.',
+            img: '/img/regions/khongor.webp', subImgs: ['/img/regions/bayanzag.webp', '/img/regions/els.webp', '/img/quote/cover.webp'],
+        },
+        '로컬 미분류 명소': {
+            name: '로컬 미분류 명소', nameMn: 'LOCAL SPOT', region: '', short: '미분류 그룹과 선택 순서 확인',
+            desc: '지역이 비어 있는 명소도 선택할 수 있는지 확인하는 자료입니다.',
+            img: '/img/quote/cover.webp', subImgs: [image, '/img/home/1.webp', lodgeImage],
+        },
     },
-    spot_cats: ['중앙몽골'],
+    spot_cats: ['중앙몽골', '고비사막'],
 };
 for (const [key, data] of Object.entries(publicLibraryFixtures)) {
     raw.prepare('INSERT INTO kv (k,v,updated_at) VALUES (?,?,?)').run(key, JSON.stringify(data), '2026-10-14T00:00:00Z');
@@ -218,6 +233,70 @@ for (const [key, data] of Object.entries(publicLibraryFixtures)) {
     assert.ok(!/LOCAL-PRIVATE-|passport|adminOperations|local-workspace-quote-token/.test(JSON.stringify(body)));
 }
 assert.equal((await libraryResponse('unsupported-local-key')).status, 404);
+
+// Product-selected representative spots are independent of marketing highlights.
+// Exercise actual registration, update and reservation/document routes rather
+// than adding a raw DB column fixture that could bypass a missing API mapping.
+const selectedSpots = ['홍고린 엘스', '거북바위', '로컬 미분류 명소'].map(name => structuredClone(publicLibraryFixtures.spots[name]));
+const legacyHighlights = [{ icon: 'star', title: '판매 상품의 기존 안내', description: '대표 명소와 별도로 유지할 판매 포인트입니다.' }];
+const spotProductInput = { id: 'workspace-spots-product', name: '대표 명소 통합 검증 상품', description: '공통 명소 선택기의 저장과 상속을 확인하는 로컬 상품',
+    category: '중앙몽골', duration: '2박 3일', price: 1100000, status: 'active', mainImages: [image],
+    included: ['전용 차량', '현지 가이드'], excluded: ['국제선 항공권'], itineraryBlocks: blocks,
+    representativeSpots: selectedSpots, highlights: legacyHighlights };
+assert.equal((await write('/api/products', 'POST', spotProductInput, {})).status, 401);
+assert.equal((await write('/api/products', 'POST', spotProductInput, owner)).status, 403);
+assert.equal((await write('/api/products', 'POST', spotProductInput)).status, 200);
+const createdSpotProduct = await (await apiRequest('/api/products/workspace-spots-product', { headers: admin })).json();
+assert.deepEqual(createdSpotProduct.representativeSpots, selectedSpots);
+assert.deepEqual(JSON.parse(createdSpotProduct.representative_spots), selectedSpots);
+assert.deepEqual(createdSpotProduct.highlights, legacyHighlights);
+const publicSpotProduct = await (await apiRequest('/api/products/workspace-spots-product')).json();
+assert.deepEqual(publicSpotProduct.representativeSpots, selectedSpots);
+const revisedSpots = [structuredClone(selectedSpots[2]), structuredClone(selectedSpots[0])];
+revisedSpots[0].desc = '선택 순서를 바꾸고 수정한 최신 미분류 명소 설명입니다.';
+revisedSpots[0].img = '/img/home/1.webp';
+revisedSpots[0].subImgs = [lodgeImage, image, '/img/quote/cover.webp'];
+assert.equal((await write('/api/products/workspace-spots-product', 'PUT', { representative_spots: JSON.stringify(revisedSpots) }, owner)).status, 403);
+assert.deepEqual((await (await apiRequest('/api/products/workspace-spots-product')).json()).representativeSpots, selectedSpots);
+assert.equal((await write('/api/products/workspace-spots-product', 'PUT', { representative_spots: JSON.stringify(revisedSpots) })).status, 200);
+const updatedSpotProduct = await (await apiRequest('/api/products/workspace-spots-product', { headers: admin })).json();
+assert.deepEqual(updatedSpotProduct.representativeSpots, revisedSpots);
+assert.deepEqual(JSON.parse(updatedSpotProduct.representative_spots), revisedSpots);
+assert.deepEqual(updatedSpotProduct.highlights, legacyHighlights);
+assert.deepEqual(updatedSpotProduct.itineraryBlocks, blocks);
+const productList = await (await apiRequest('/api/products', { headers: admin })).json();
+assert.deepEqual(productList.find(product => product.id === spotProductInput.id).representativeSpots, revisedSpots);
+
+const spotBookingInput = { id: 'workspace-spots-check', product_id: spotProductInput.id, productName: spotProductInput.name,
+    customerName: '로컬 대표 명소 예약', email: 'customer@example.invalid', phone: '01000000000', user_id: 'workspace-owner',
+    status: 'confirmed', total_people: 3, start_date: '2026-10-20', end_date: '2026-10-22',
+    price_breakdown: { total: 3300000, deposit: 330000, local: 2970000 } };
+assert.equal((await write('/api/reservations', 'POST', spotBookingInput)).status, 201);
+const quoteForSpotBooking = async () => {
+    const response = await apiRequest('/api/documents/itinerary/workspace-spots-check?format=quote&preview=1', { headers: admin });
+    assert.equal(response.status, 200);
+    return (await response.json()).quote;
+};
+assert.deepEqual((await quoteForSpotBooking()).highlights, revisedSpots);
+const inheritedDays = productScheduleDays(updatedSpotProduct);
+const savedSpotDocument = { name: spotProductInput.name, description: '예약별 대표 명소 스냅샷', days: inheritedDays,
+    highlights: structuredClone(updatedSpotProduct.representativeSpots), documentSettings: {} };
+assert.equal((await write('/api/reservations/workspace-spots-check', 'PUT', { document_content: savedSpotDocument })).status, 200);
+assert.deepEqual(JSON.parse((await (await apiRequest('/api/reservations/workspace-spots-check', { headers: admin })).json()).documentContent), savedSpotDocument);
+assert.deepEqual((await quoteForSpotBooking()).highlights, revisedSpots);
+assert.equal((await write('/api/products/workspace-spots-product', 'PUT', { representativeSpots: [selectedSpots[1]] })).status, 200);
+assert.deepEqual((await quoteForSpotBooking()).highlights, revisedSpots); // saved customer snapshot stays unchanged
+const noCustomerSpots = { ...structuredClone(savedSpotDocument), highlights: [] };
+assert.equal((await write('/api/reservations/workspace-spots-check', 'PUT', { document_content: noCustomerSpots })).status, 200);
+assert.deepEqual((await quoteForSpotBooking()).highlights, []); // explicit empty beats nonempty product defaults
+assert.equal((await write('/api/reservations/workspace-spots-check', 'PUT', { document_content: { ...noCustomerSpots, highlights: undefined } })).status, 200);
+assert.deepEqual((await quoteForSpotBooking()).highlights, [selectedSpots[1]]); // older saved docs missing the field inherit
+assert.equal((await write('/api/products/workspace-spots-product', 'PUT', { representativeSpots: [] })).status, 200);
+assert.deepEqual((await (await apiRequest('/api/products/workspace-spots-product')).json()).representativeSpots, []);
+assert.deepEqual((await quoteForSpotBooking()).highlights, []);
+assert.equal((await write('/api/products/workspace-spots-product', 'PUT', { representativeSpots: revisedSpots })).status, 200);
+raw.prepare('DELETE FROM reservations WHERE id=?').run('workspace-spots-check');
+
 const catalog = await (await apiRequest('/api/products', { headers: admin })).json();
 assert.equal(catalog.filter(product => product.name === productName).length, 2);
 const before = await (await apiRequest('/api/reservations/workspace-product', { headers: admin })).json();
@@ -394,7 +473,7 @@ assert.equal(outbound.length, 1);
 raw.prepare('DELETE FROM reservations WHERE id=?').run('workspace-check');
 raw.exec('DELETE FROM notifications');
 outbound.length = 0;
-console.log('예약 작업 API 검증 통과: 실제 로그인 · 상품 ID · 공개 코스/명소 라이브러리 · STEP 2 문서 저장/재조회 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 관리자 운영정보 보호 · 외부 발송 차단');
+console.log('예약 작업 API 검증 통과: 실제 로그인 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 관리자 운영정보 보호 · 외부 발송 차단');
 
 if (process.argv.includes('--serve')) {
     const types = { '.html': 'text/html;charset=utf-8', '.js': 'text/javascript;charset=utf-8', '.css': 'text/css;charset=utf-8',

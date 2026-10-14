@@ -10,6 +10,8 @@
 <script src="presets.js"></script>
 <script src="/quote-day-editor.js"></script>
 <link rel="stylesheet" href="/quote-day-editor.css">
+<script src="/quote-spot-selector.js"></script>
+<link rel="stylesheet" href="/quote-spot-selector.css">
 <style>
   :root {
     --p:#06C4A0; --pd:#05A084; --pl:#E1F8F3; --pb:#9DE7D8;
@@ -106,21 +108,7 @@
   .int-dot.on { background:var(--p); border-color:var(--p); color:#fff; }
   .int-desc { font-size:12px; color:var(--gray); }
 
-  /* 대표 명소 */
-  .spot-cat { margin-top:20px; }
-  .spot-cat:first-child { margin-top:0; }
-  .spot-cat-head { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:var(--gray); letter-spacing:.3px; margin-bottom:10px; }
-  .spot-cat-head .ln { flex:1; height:1px; background:var(--hair); }
-  .spot-cat-head .cc { font-size:11px; font-weight:700; color:var(--dim); }
-  .spot-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-  .spot-chk { display:flex; align-items:center; gap:9px; border:1px solid var(--line); border-radius:11px; padding:10px 11px; cursor:pointer; background:#fff; transition:.12s; }
-  .spot-chk:hover { border-color:var(--pb); }
-  .spot-chk.on { border:1.5px solid var(--p); background:var(--pl); padding:9.5px 10.5px; }
-  .spot-chk .box { width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:#EEF1F4; color:#C4CAD3; font-size:11px; font-weight:800; }
-  .spot-chk.on .box { background:var(--p); color:#fff; }
-  .spot-chk .nm { flex:1; min-width:0; }
-  .spot-chk b { font-size:13.5px; font-weight:700; color:var(--ink2); display:block; }
-  .spot-chk small { display:block; font-size:11px; color:var(--gray); margin-top:1px; }
+  /* 대표 명소: /quote-spot-selector.css 공통 스타일 */
 
   /* 요금 */
   .seg { display:inline-flex; background:#F1F3F5; border-radius:9px; padding:3px; }
@@ -633,38 +621,20 @@ bind("f_benefits","benefits"); bind("f_events","events"); bind("f_remark","remar
 bind("f_deposit","deposit",true);
 
 /* ── 명소 그리드 ── */
+let quoteSpotWidget = null;
 function renderSpots() {
-  const spots = getSpots();
-  const chip = (name, s) => {
-    const idx = ST.spots.indexOf(name), on = idx >= 0;
-    return `<div class="spot-chk ${on?"on":""}" data-s="${esc(name)}">
-      <div class="box">${on?idx+1:""}</div>
-      <div class="nm"><b>${esc(name)}</b><small>${esc(s.short||"")}</small></div>
-    </div>`;
+  const options = {
+    spots: getSpots(),
+    categories: window.getSpotCats ? getSpotCats() : [],
+    selected: ST.spots,
+    onToggle(name) {
+      const i = ST.spots.indexOf(name);
+      if (i >= 0) ST.spots.splice(i, 1); else ST.spots.push(name);
+      renderSpots();
+    },
   };
-  // 카테고리(지역) 순서: 명소관리에서 정한 순서 우선, 나머지·미분류는 뒤로
-  const catOf = s => (s && s.region ? String(s.region).trim() : "");
-  const order = (window.getSpotCats ? getSpotCats() : []).slice();
-  Object.values(spots).forEach(s => { const c = catOf(s); if (c && !order.includes(c)) order.push(c); });
-  const groups = [...order.map(c => [c, c]), ["", "미분류"]];
-
-  let html = "";
-  groups.forEach(([cat, label]) => {
-    const items = Object.entries(spots).filter(([, s]) => catOf(s) === cat);
-    if (!items.length) return;
-    const sel = items.filter(([n]) => ST.spots.includes(n)).length;
-    html += `<div class="spot-cat">
-      <div class="spot-cat-head">${esc(label)}<span class="ln"></span><span class="cc">${sel?`${sel}개 선택 · `:""}${items.length}곳</span></div>
-      <div class="spot-grid">${items.map(([name, s]) => chip(name, s)).join("")}</div>
-    </div>`;
-  });
-  $("spotGroups").innerHTML = html || `<div style="font-size:12.5px;color:var(--gray)">등록된 명소가 없습니다. 명소 관리에서 추가하세요.</div>`;
-
-  $("spotGroups").querySelectorAll(".spot-chk").forEach(el => el.onclick = () => {
-    const name = el.dataset.s, i = ST.spots.indexOf(name);
-    if (i >= 0) ST.spots.splice(i, 1); else ST.spots.push(name);
-    renderSpots();
-  });
+  if (quoteSpotWidget) quoteSpotWidget.update(options);
+  else quoteSpotWidget = window.QuoteSpotSelector.mount($("spotGroups"), options);
 }
 
 /* ── 추가 및 할인 사항 (표시용 {label, calc}) ── */

@@ -1,6 +1,17 @@
 /** 여행 타입: full = 풀패키지(4성급 호텔 + 디럭스 게르), value = 실속형(3성급 호텔 + 스탠다드 게르) */
 export type PackageType = 'full' | 'value';
 
+/** 선택 시점의 명소 정보. 라이브러리 수정·삭제 후에도 상품과 고객 문서에서 보존한다. */
+export interface RepresentativeSpotSnapshot {
+    name: string;
+    nameMn?: string;
+    short?: string;
+    region?: string;
+    desc?: string;
+    img?: string;
+    subImgs?: string[];
+}
+
 export interface TourProduct {
     id: string;
 
@@ -37,6 +48,7 @@ export interface TourProduct {
         title: string;
         description: string;
     }[];
+    representativeSpots?: RepresentativeSpotSnapshot[]; // 대표 명소: 판매 포인트 highlights와 별도 저장
 
     // 포함/불포함
     included: string[];

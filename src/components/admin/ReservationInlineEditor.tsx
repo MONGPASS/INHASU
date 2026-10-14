@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReservationDocContent } from './ReservationDocumentEditor';
 import type { Activity, DocumentSettings, TemplateDay } from '../../pages/AdminTemplateManage';
-import { createInlineDocument, applyQuoteSnippet, groupQuoteLibrary, quoteDayFields, updateQuoteDay, fillQuoteDayDates } from '../../utils/reservationInline';
+import { createInlineDocument, applyQuoteSnippet, quoteDayFields, updateQuoteDay, fillQuoteDayDates } from '../../utils/reservationInline';
 import { uploadImage } from '../../utils/upload';
 import { QuoteDayEditor } from './QuoteDayEditor';
+import { QuoteSpotSelector, toggleRepresentativeSpot } from './QuoteSpotSelector';
 
 interface Props {
     reservationId: string;
@@ -28,7 +29,6 @@ interface Libraries {
 }
 
 const emptyLibraries = (): Libraries => ({ snippets: {}, snippet_cats: [], spots: {}, spot_cats: [] });
-const textValue = (value: unknown) => typeof value === 'string' ? value : '';
 const photoList = (value: unknown): string[] => Array.isArray(value) ? value.filter(item => typeof item === 'string' && item) : [];
 const cloneContent = (content: ReservationDocContent) => createInlineDocument(content, null, content.name);
 const renumber = (days: TemplateDay[]) => days.map((day, index) => ({ ...day, day: index + 1 }));
@@ -124,13 +124,7 @@ export function ReservationInlineEditor(p: Props) {
         if (locked || !name || !libraries.snippets[name]) return;
         editDay(index, day => applyQuoteSnippet(day, libraries.snippets[name]));
     };
-    const toggleSpot = (name: string, value: any) => edit(current => {
-        const selected = current.highlights || [];
-        if (selected.some(spot => spot.name === name)) return { ...current, highlights: selected.filter(spot => spot.name !== name) };
-        return { ...current, highlights: [...selected, {
-            name, nameMn: textValue(value.nameMn), desc: textValue(value.desc), img: textValue(value.img), subImgs: [...photoList(value.subImgs)],
-        }] };
-    });
+    const toggleSpot = (name: string, value: any) => edit(current => ({ ...current, highlights: toggleRepresentativeSpot(current.highlights || [], name, value) }));
     const addPhotos = async (dayIndex: number, activityIndex: number | null, files: FileList | null) => {
         if (locked || !files?.length) return;
         touch(); setUploading(true);
@@ -161,7 +155,6 @@ export function ReservationInlineEditor(p: Props) {
         if (dirty && !window.confirm('저장하지 않은 문서 변경사항을 버리고 편집을 닫을까요?')) return;
         p.onClose();
     };
-    const spotGroups = groupQuoteLibrary(libraries.spots, libraries.spot_cats);
     const contract = draft.documentSettings.contract;
     const expectedDays = dates.startDate && dates.endDate ? Math.round((Date.parse(dates.endDate) - Date.parse(dates.startDate)) / 86400000) + 1 : null;
     const photos = (urls: string[], remove: (index: number) => void) => urls.length > 0 && <div className="ri-photos">{urls.map((url, i) => <figure key={`${url}-${i}`}><img src={url} alt={`일정 사진 ${i + 1}`} loading="lazy" /><button type="button" disabled={locked} onClick={() => remove(i)} aria-label={`사진 ${i + 1} 삭제`}>×</button></figure>)}</div>;
@@ -208,7 +201,10 @@ export function ReservationInlineEditor(p: Props) {
                             </>;
                         }} />
                 </div>
-                <div className="ri-spots"><div className="ri-section-title"><div><h3>대표 명소</h3><p>선택한 순서대로 고객 일정표에 표시합니다.</p></div></div>{(draft.highlights || []).length > 0 && <div className="ri-selected-spots">{draft.highlights!.map((spot, index) => <button type="button" key={`${spot.name}-${index}`} onClick={() => edit(current => ({ ...current, highlights: current.highlights?.filter((_, i) => i !== index) }))}>{index + 1}. {spot.name} ×</button>)}</div>}{spotGroups.map(group => <div className="ri-spot-group" key={group.name}><h4>{group.name}</h4><div>{group.items.map(({ name, value }) => { const position = (draft.highlights || []).findIndex(spot => spot.name === name); return <button type="button" key={name} aria-pressed={position >= 0} className={position >= 0 ? 'is-selected' : ''} onClick={() => toggleSpot(name, value)}><span className="ri-spot-indicator">{position >= 0 ? position + 1 : '＋'}</span><span><b>{name}</b><small>{textValue(value.short)}</small></span></button>; })}</div></div>)}{!libraryLoading && !libraryError && !spotGroups.length && <p className="ri-library-note">등록된 명소가 없습니다. 명소 관리에서 추가할 수 있습니다.</p>}</div>
+                <div className="ri-spots"><div className="ri-section-title"><div><h3>대표 명소</h3><p>견적서와 같은 화면에서 선택합니다. 선택한 순서대로 고객 일정표에 표시합니다.</p></div></div>
+                    {!libraryLoading && !libraryError && <QuoteSpotSelector spots={libraries.spots} categories={libraries.spot_cats}
+                        selected={(draft.highlights || []).map(spot => spot.name)} disabled={locked} onToggle={toggleSpot} />}
+                </div>
             </> : <div className="ri-contract"><h3>여행 계약 조건</h3><p className="ri-library-note">현재 문서의 원문을 확인하고 필요한 내용을 수정하세요.</p><label className="ri-field"><span>계약서 서문</span><textarea rows={4} value={contract.intro} onChange={e => editContract('intro', e.target.value)} /></label><div className="ri-contract-fields"><label className="ri-field"><span>지급 방법</span><input value={contract.paymentMethod} onChange={e => editContract('paymentMethod', e.target.value)} /></label><label className="ri-field"><span>지급 기한</span><input value={contract.paymentDeadline} onChange={e => editContract('paymentDeadline', e.target.value)} /></label><label className="ri-field"><span>포함 사항</span><textarea rows={4} value={contract.includedText} onChange={e => editContract('includedText', e.target.value)} /></label><label className="ri-field"><span>불포함 사항</span><textarea rows={4} value={contract.excludedText} onChange={e => editContract('excludedText', e.target.value)} /></label></div><div className="ri-small-heading"><h4>취소 규정</h4><button type="button" onClick={() => editContract('cancellationRows', [...contract.cancellationRows, { period: '', fee: '' }])}>＋ 규정 행 추가</button></div>{contract.cancellationRows.map((row, index) => <div className="ri-cancellation-row" key={index}><label className="ri-field"><span>취소 시점</span><input value={row.period} onChange={e => editContract('cancellationRows', contract.cancellationRows.map((item, i) => i === index ? { ...item, period: e.target.value } : item))} /></label><label className="ri-field"><span>취소 요금</span><input value={row.fee} onChange={e => editContract('cancellationRows', contract.cancellationRows.map((item, i) => i === index ? { ...item, fee: e.target.value } : item))} /></label><button type="button" className="ri-remove" onClick={() => editContract('cancellationRows', contract.cancellationRows.filter((_, i) => i !== index))}>삭제</button></div>)}<label className="ri-field"><span>동의 문구</span><textarea rows={3} value={contract.signatureNote} onChange={e => editContract('signatureNote', e.target.value)} /></label></div>}
         </fieldset>
         <div className="ri-savebar"><span className={noticeFailed ? 'ri-save-error' : ''} role={noticeFailed ? 'alert' : 'status'}>{uploading ? '사진 업로드 중입니다…' : saving ? '문서를 저장하고 있습니다…' : notice || (dirty ? '변경사항을 저장하세요.' : '현재 예약의 문서를 편집합니다.')}</span><button type="submit" className="btn btn-ink" disabled={locked}>{saving ? '저장 중…' : activeMode === 'contract' ? '계약 조건 저장' : '일정 저장'}</button></div>

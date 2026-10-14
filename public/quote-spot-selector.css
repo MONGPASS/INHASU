@@ -1,0 +1,21 @@
+/* 견적만들기 STEP 4의 지역별 카드와 선택 순서를 그대로 공유합니다. */
+.quote-spot-selector { --p:#06C4A0; --pl:#E1F8F3; --pb:#9DE7D8; --ink2:#1F2937; --gray:#98A2B3; --dim:#B6BCC6; --line:#EAECF0; --hair:#F4F6F8; min-width:0; font-family:inherit; }
+.quote-spot-selector *, .quote-spot-selector *::before, .quote-spot-selector *::after { box-sizing:border-box; }
+.quote-spot-selector .spot-cat { margin-top:20px; }
+.quote-spot-selector .spot-cat:first-child { margin-top:0; }
+.quote-spot-selector .spot-cat-head { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:var(--gray); letter-spacing:.3px; margin-bottom:10px; }
+.quote-spot-selector .spot-cat-head .ln { flex:1; height:1px; background:var(--hair); }
+.quote-spot-selector .spot-cat-head .cc { font-size:11px; font-weight:700; color:var(--dim); }
+.quote-spot-selector .spot-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.quote-spot-selector .spot-chk { display:flex; align-items:center; gap:9px; width:100%; min-width:0; border:1px solid var(--line); border-radius:11px; padding:10px 11px; cursor:pointer; background:#fff; transition:.12s; font-family:inherit; line-height:normal; text-align:left; }
+.quote-spot-selector .spot-chk:hover:not(:disabled) { border-color:var(--pb); }
+.quote-spot-selector .spot-chk.on { border:1.5px solid var(--p); background:var(--pl); padding:9.5px 10.5px; }
+.quote-spot-selector .spot-chk .box { width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:#EEF1F4; color:#C4CAD3; font-size:11px; font-weight:800; }
+.quote-spot-selector .spot-chk.on .box { background:var(--p); color:#fff; }
+.quote-spot-selector .spot-chk .nm { flex:1; min-width:0; }
+.quote-spot-selector .spot-chk b { font-size:13.5px; font-weight:700; color:var(--ink2); display:block; overflow-wrap:anywhere; }
+.quote-spot-selector .spot-chk small { display:block; font-size:11px; color:var(--gray); margin-top:1px; overflow-wrap:anywhere; }
+.quote-spot-selector .spot-chk:focus-visible { outline:3px solid var(--pb); outline-offset:3px; }
+.quote-spot-selector .spot-chk:disabled { opacity:.55; cursor:default; }
+.quote-spot-selector .spot-empty { color:var(--gray); font-size:12.5px; }
+@media (max-width:900px) { .quote-spot-selector .spot-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }

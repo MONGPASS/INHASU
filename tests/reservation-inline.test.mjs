@@ -63,6 +63,44 @@ test('상품이 없으면 샘플 가격·포함조건·가짜 일정을 보충�
     assert.equal(doc.documentSettings.contract.includedText, '');
 });
 
+test('신규 예약 문서만 상품 대표 명소 snapshot을 가져오고 저장된 빈 선택은 그대로 유지한다', () => {
+    const selected = [{ name: '거북바위', nameMn: 'Мэлхий хад', short: '초원의 상징', region: '중앙',
+        desc: '상품에 선택된 설명\n상세 안내', img: '/img/spot.webp', subImgs: ['/img/spot-detail.webp'] }];
+    const selectedProduct = { ...product, representative_spots: JSON.stringify(selected),
+        highlights: [{ icon: 'star', title: '한국어 가이드', description: '기존 판매 포인트' }] };
+    const seeded = createInlineDocument(null, selectedProduct, product.name);
+    assert.deepEqual(seeded.highlights, selected);
+    seeded.highlights[0].desc = '고객별 편집';
+    assert.deepEqual(JSON.parse(selectedProduct.representative_spots), selected);
+    assert.deepEqual(createInlineDocument(null, { ...product, representativeSpots: selected }, product.name).highlights, selected);
+    const savedEmpty = { name: product.name, description: '', days: [], highlights: [] };
+    assert.deepEqual(createInlineDocument(savedEmpty, selectedProduct, product.name), savedEmpty);
+    const savedSelected = { ...savedEmpty, highlights: [{ name: '고객 확정 명소', img: '/img/customer.webp', subImgs: [] }] };
+    assert.deepEqual(createInlineDocument(savedSelected, selectedProduct, product.name), savedSelected);
+    assert.deepEqual(createInlineDocument(null, { ...product, highlights: selectedProduct.highlights }, product.name).highlights, []);
+});
+
+test('명소 필드가 없는 옛 고객 문서는 상품 snapshot만 복사하고 기존 일정·조건은 바꾸지 않는다', () => {
+    const selected = [{ name: '거북바위', nameMn: 'Мэлхий хад', short: '초원의 상징', region: '중앙',
+        desc: '상품에 저장된 설명', img: '/img/product.webp', subImgs: ['/img/product-detail.webp'] }];
+    const oldDocument = { name: '고객 문서', description: '', days: [],
+        documentSettings: { overview: { includedText: '', excludedText: '' }, contract: { intro: '고객 특약' } } };
+    const selectedProduct = { ...product, representativeSpots: selected };
+    const seeded = createInlineDocument(oldDocument, selectedProduct, product.name);
+    assert.deepEqual(seeded, { ...oldDocument, highlights: selected });
+    assert.equal(Object.hasOwn(oldDocument, 'highlights'), false);
+    assert.notEqual(seeded.highlights, selected);
+    assert.notEqual(seeded.highlights[0], selected[0]);
+    assert.notEqual(seeded.highlights[0].subImgs, selected[0].subImgs);
+    seeded.highlights[0].desc = '고객 확정 설명';
+    seeded.highlights[0].subImgs.push('/img/customer-detail.webp');
+    assert.equal(selected[0].desc, '상품에 저장된 설명');
+    assert.deepEqual(selected[0].subImgs, ['/img/product-detail.webp']);
+    assert.deepEqual(createInlineDocument({ ...oldDocument, highlights: [] }, selectedProduct, product.name).highlights, []);
+    const r = { id: 'old-selection-check', document_content: JSON.stringify(seeded) };
+    assert.deepEqual(buildProductQuote({ reservation: r, product: selectedProduct, days: [], assignmentsVisible: false }).highlights, seeded.highlights);
+});
+
 test('일정 조각 적용은 동일 활동의 시간·설명·사진과 DAY 사진을 보존한다', () => {
     const original = createInlineDocument(null, product, product.name).days[0];
     const applied = applyQuoteSnippet(original, { dest: '초원 탐방', move: '이동 2시간', dist: '(100 km)',
