@@ -15,6 +15,12 @@ import { copyText } from '../utils/copyText';
 import { readDepositReport, type DepositReport } from '../utils/reservationDetail';
 import { BRAND, DEPOSIT_ACCOUNT } from '../constants/company';
 import { won } from '../components/desktop-primitives/mwTokens';
+import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
+import { ReservationDocuments } from '../components/admin/ReservationDocuments';
+import { ReservationOperations } from '../components/admin/ReservationOperations';
+import { reservationWorkspaceStatus, type ReservationOperations as Operations } from '../utils/reservationWorkspace';
+import { productScheduleDays } from '../../functions/lib/productItinerary';
+import '../styles/reservation-workspace.css';
 
 // Reservation Interface
 interface Reservation {
@@ -100,6 +106,7 @@ interface Reservation {
     email: string;
     manager?: string;
     source?: string; // 주문 경로: kakao | email | phone | website | visit | other (옛 저장값: line)
+    adminOperations?: Operations;
 
     // Quote Specific
     quoteDetail?: QuoteRequest;
@@ -144,6 +151,8 @@ interface ProductSummary {
     category?: string;
     thumbnail?: string;
     mainImages?: any; // API가 mainImages/main_images 두 표기를 모두 내려줌 (배열 또는 JSON 문자열)
+    itineraryBlocks?: any;
+    itineraryImages?: any;
 }
 
 const quoteWorkflowMeta: Record<string, { label: string; hint: string; icon: string }> = {
@@ -303,7 +312,7 @@ const BOOKING_STATUS_KO: Record<string, { label: string; bg: string; fg: string 
     'Баталгаажсан': { label: '수배 확정', bg: '#E4F7EC', fg: '#0F7A43' },
 };
 
-const StatusDropdown = ({ status, onChange }: { status: string, onChange: (s: Reservation['status']) => void }) => {
+const StatusDropdown = ({ status, onChange, disabled = false }: { status: string, onChange: (s: Reservation['status']) => void, disabled?: boolean }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = React.useRef<HTMLDivElement>(null);
 
@@ -331,6 +340,7 @@ const StatusDropdown = ({ status, onChange }: { status: string, onChange: (s: Re
         <div className="statusdd" ref={dropdownRef}>
             <button
                 type="button"
+                disabled={disabled}
                 onClick={() => setIsOpen(!isOpen)}
                 className={`badge statusdd-btn ${tone}`}
             >
@@ -359,7 +369,7 @@ const StatusDropdown = ({ status, onChange }: { status: string, onChange: (s: Re
     );
 };
 
-const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation) => void, products?: ProductSummary[] }) => {
+const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, updating = false, products = [] }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation, silent?: boolean) => Promise<boolean>, onRefresh: () => void, updating?: boolean, products?: ProductSummary[] }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<Reservation | null>(null);
     const [showGuideModal, setShowGuideModal] = useState(false);
@@ -377,10 +387,18 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
     const [sendingAllDocs, setSendingAllDocs] = useState(false);
     const [docEditorOpen, setDocEditorOpen] = useState(false);
     const [activeDocument, setActiveDocument] = useState<'itinerary' | 'contract'>('itinerary');
+    const [applyingTemplate, setApplyingTemplate] = useState(false);
+    const [publishing, setPublishing] = useState(false);
+    const [operationsDirty, setOperationsDirty] = useState(false);
+    const closeWorkspace = () => {
+        if (updating || publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs) return;
+        if ((isEditing || operationsDirty) && !window.confirm('저장하지 않은 변경사항이 있습니다. 예약 상세를 닫을까요?')) return;
+        onClose();
+    };
     // Trip.com식 원페이지: 탭 대신 섹션 앵커 스크롤
-    const [activeSec, setActiveSec] = useState<'info' | 'pay' | 'assign' | 'log'>('info');
+    const [activeSec, setActiveSec] = useState<'docs' | 'ops' | 'info' | 'pay' | 'assign' | 'log'>('docs');
     const bodyRef = useRef<HTMLDivElement | null>(null);
-    const scrollToSec = (id: 'info' | 'pay' | 'assign' | 'log') => {
+    const scrollToSec = (id: 'docs' | 'ops' | 'info' | 'pay' | 'assign' | 'log') => {
         setActiveSec(id);
         bodyRef.current?.querySelector(`#sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
@@ -461,14 +479,16 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
         if (!isEditing) onUpdate(updated);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (editForm) {
+            if (!editForm.customerName.trim()) { alert('고객 이름을 입력하세요.'); return; }
+            if (editForm.totalAmount < 0 || editForm.deposit < 0 || editForm.deposit > editForm.totalAmount) { alert('예약금은 0원부터 총 여행 금액 사이로 입력하세요.'); return; }
+            if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) { alert('고객 이메일을 확인하세요.'); return; }
             const finalData = {
                 ...editForm,
                 balance: editForm.totalAmount - editForm.deposit
             };
-            onUpdate(finalData);
-            setIsEditing(false);
+            if (await onUpdate(finalData)) setIsEditing(false);
         }
     };
 
@@ -602,19 +622,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
     const contractUrl = `${window.location.origin}/documents/contract/${reservation.id}`;
     const selectedTemplate = templatesList.find((t: any) => t.id === editForm.itineraryTemplateId);
     // 일정표 준비됨 = 템플릿 선택 OR 편집기로 직접 작성·저장된 문서 보유
-    const reservationProduct = reservation.productId ? products.find(p => p.id === reservation.productId) : products.find(p => p.name === reservation.productName);
-    const itineraryReady = !!editForm.itineraryTemplateId || !!reservation.documentContent || !!reservationProduct?.hasItinerary;
+    const exactProducts = products.filter(p => p.name === reservation.productName);
+    const reservationProduct = reservation.productId ? products.find(p => p.id === reservation.productId) : exactProducts.length === 1 ? exactProducts[0] : undefined;
     const itineraryCanPublish = ['confirmed', 'paid', 'completed'].includes(reservation.status);
     const publishItinerary = () => api.documents.itinerary.publish(reservation.id);
-    const copyItineraryLink = async () => {
-        try {
-            await publishItinerary();
-            await navigator.clipboard.writeText(itineraryUrl);
-            onUpdate({ ...reservation, itineraryUrl });
-            setCopiedDocId('itinerary');
-            setTimeout(() => setCopiedDocId(null), 1500);
-        } catch (e: any) { alert(`공유 실패: ${e.message || e}`); }
-    };
     const contractTravelers = editForm.contractData?.travelers || [];
     const contractHasTravelers = contractTravelers.length > 0 && !!contractTravelers[0]?.name;
     const contractAgreement = editForm.contractData?.agreement;
@@ -629,7 +640,6 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
     // 발송 기록 판별 — 옛 일본어 기록('日程'/'契約')과 새 한국어 기록('일정'/'계약')을 모두 인식한다.
     const itinerarySent = timelineEvents.some((e: any) => e.type === 'email' && (e.detail === itineraryUrl || String(e.description || '').includes('日程') || String(e.description || '').includes('일정')));
     const contractSent = timelineEvents.some((e: any) => e.type === 'email' && (e.detail === contractUrl || String(e.description || '').includes('契約') || String(e.description || '').includes('계약')));
-    const guideReady = !!reservation.assignedGuide || !!reservation.areAssignmentsVisibleToUser;
 
     // ── 문서 편집기(예약/견적 자동 채움) ──
     const isQuoteRes = (reservation as any).type === 'quote';
@@ -665,8 +675,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
     })();
     // 일자별 숙소 배정이 비어 있어도 일정표에는 "상품 일정의 기본 숙소"가 적용된다.
     // 그 기본 숙소(문서/템플릿 일자 숙소)를 빈 칸에 회색으로 보여줘 혼동을 없앤다.
-    const defaultAccomForDay = (day: number): { name?: string; location?: string; images?: string[] } | null => {
-        const days = (docInitialContent?.days as any[] | undefined);
+    const defaultAccomForDay = (day: number): { name?: string; type?: string; location?: string; images?: string[] } | null => {
+        const days = docInitialContent?.days ?? productScheduleDays(reservationProduct);
         if (!days || !days.length) return null;
         const d = days.find((x: any) => Number(x?.day) === day) || days[day - 1];
         const acc = d?.accommodation;
@@ -674,18 +684,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
         if (typeof acc === 'string') return { name: acc };
         return {
             name: acc.name,
+            type: acc.type,
             location: acc.location,
             images: Array.isArray(acc.images) ? acc.images : (acc.images ? [acc.images] : []),
         };
     };
     const saveDocContent = async (content: ReservationDocContent, tourDates?: { startDate: string; endDate: string }) => {
-        const payload = {
-            document_content: JSON.stringify(content),
-            ...(tourDates ? { start_date: tourDates.startDate || null, end_date: tourDates.endDate || null } : {}),
-        };
-        if (isQuoteRes) await (api.quotes as any).update(reservation.id, payload);
-        else await (api.reservations as any).update(reservation.id, payload);
-        onUpdate({
+        const saved = await onUpdate({
             ...reservation,
             documentContent: content,
             ...(tourDates ? {
@@ -693,7 +698,44 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
                 endDate: tourDates.endDate,
                 date: tourDates.startDate && tourDates.endDate ? `${tourDates.startDate} ~ ${tourDates.endDate}` : '날짜 미정',
             } : {}),
-        });
+            history: [...(reservation.history || []), { timestamp: new Date().toISOString(), type: 'modification', description: `${activeDocument === 'contract' ? '계약 조건' : '확정 일정표'}를 저장했습니다.` }],
+        }, true);
+        if (!saved) throw new Error('문서를 저장하지 못했습니다. 입력한 내용은 편집기에 남아 있습니다.');
+    };
+
+    const applyDocumentTemplate = async (id: string) => {
+        if (!id) return;
+        const template = templatesList.find(t => t.id === id);
+        if (!template) return;
+        if (reservation.documentContent && !window.confirm('저장된 고객 문서의 일정과 조건을 선택한 템플릿으로 교체할까요?')) return;
+        const decoded = decodeTemplateDescription(template.description || '');
+        let days = template.days || [];
+        if (typeof days === 'string') { try { days = JSON.parse(days); } catch { alert('템플릿 일정을 읽을 수 없습니다.'); return; } }
+        if (!Array.isArray(days)) { alert('템플릿 일정을 읽을 수 없습니다.'); return; }
+        setApplyingTemplate(true);
+        try {
+            await onUpdate({ ...reservation, itineraryTemplateId: id,
+                documentContent: { name: template.name || '', description: decoded.description, days, documentSettings: decoded.documentSettings },
+                history: [...(reservation.history || []), { timestamp: new Date().toISOString(), type: 'modification', description: '문서 템플릿을 적용했습니다.', detail: template.name }],
+            });
+        } finally { setApplyingTemplate(false); }
+    };
+
+    const openDocumentEditor = (kind: 'itinerary' | 'contract') => {
+        if (reservation.status === 'cancelled' || updating) return;
+        if (isEditing) { alert('주문 정보 변경사항을 먼저 저장하세요.'); return; }
+        setActiveDocument(kind); setDocEditorOpen(true);
+    };
+    const scheduleDays = docInitialContent?.days ?? productScheduleDays(reservationProduct);
+    const workspace = reservationWorkspaceStatus({ ...reservation, days: scheduleDays, agreement: contractAgreement, travelers: contractTravelers });
+    const itineraryReady = workspace.scheduleReady;
+    const publishCustomerItinerary = async () => {
+        setPublishing(true);
+        try {
+            await publishItinerary();
+            if (await onUpdate({ ...reservation, itineraryUrl }, true)) alert('확정 일정표를 고객에게 공개했습니다. 메일이나 안내문으로 전달할 수 있습니다.');
+        } catch (e: any) { alert(`공개 실패: ${e.message || e}`); }
+        finally { setPublishing(false); }
     };
 
     const addHistory = (entry: { type: string; description: string; detail?: string }) => ({
@@ -736,7 +778,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
             const title = kind === 'contract' ? '해외여행 계약서' : kind === 'itinerary' ? '확정 일정표' : '출발 전 최종 안내';
             const body = `${reservation.customerName || '고객'} 님\n\n안녕하세요. ${BRAND.name}입니다.\n${reservation.productName}의 ${title}를 준비했습니다.\n아래 링크에서 내용을 확인해 주세요.\n\n${url}\n\n궁금한 점이나 수정을 원하시는 부분이 있으면 이 메시지에 바로 회신해 주세요.`;
             await navigator.clipboard.writeText(body);
-            if (kind !== 'contract') onUpdate({ ...reservation, itineraryUrl });
+            if (kind !== 'contract') await onUpdate({ ...reservation, itineraryUrl }, true);
             setCopiedDocId(`${kind}-message`);
             setTimeout(() => setCopiedDocId(null), 1500);
         } catch (e: any) { alert(`공유 실패: ${e.message || e}`); }
@@ -755,7 +797,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
             product: reservation.productName || '',
             period: reservation.date || '',
             nights,
-            people: `${reservation.travelers || contractTravelers.length || ''}명`,
+            people: `${reservation.totalPeople || contractTravelers.length || ''}명`,
             arrival: fmtFlightLine(cd.arrival),
             departure: fmtFlightLine(cd.departure),
             travelers: contractTravelers,
@@ -807,7 +849,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
             return s || '-';
         };
         const nightsMn = tripDays > 1 ? `${tripDays - 1} шөнө ${tripDays} өдөр` : '';
-        const peopleCount = reservation.travelers || contractTravelers.length || '';
+        const peopleCount = reservation.totalPeople || contractTravelers.length || '';
         const peopleMn = peopleCount ? `${peopleCount} хүн` : '-';
         const signedMn = contractAgreement?.agreed
             ? `${contractAgreement.name || ''}${contractAgreement.agreedAt ? ` (${contractAgreement.agreedAt.split('T')[0]})` : ''}`
@@ -1013,7 +1055,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
         const endDate = String((reservation as any).endDate || '').slice(0, 10);
         const arrivalDate = editForm.contractData?.arrival?.date || startDate;
         const departureDate = editForm.contractData?.departure?.date || endDate;
-        const days = (docInitialContent?.days as any[] | undefined) || [];
+        const days = scheduleDays;
         const dayByNumber = (day: number) => days.find((item: any) => Number(item?.day) === day) || days[day - 1] || {};
         const uniqueText = (items: any[]) => Array.from(new Set(items.map((item) => String(item || '').trim()).filter(Boolean))).join(', ');
         const inferTravelRegion = () => {
@@ -1131,8 +1173,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
             });
             if (!result.success) throw result.error || new Error('이메일 발송에 실패했습니다.');
             // 발송됨 플래그 저장 → 고객 마이페이지에서 확정 일정표가 "발송됨"으로 표시됨(itineraryUrl을 플래그로 사용)
-            onUpdate({ ...addHistory({ type: 'email', description: '확정 일정표를 고객님께 발송했습니다.', detail: itineraryUrl }), itineraryUrl });
-            alert('일정표 안내를 고객에게 발송했습니다.');
+            const recorded = await onUpdate({ ...addHistory({ type: 'email', description: '확정 일정표를 고객님께 발송했습니다.', detail: itineraryUrl }), itineraryUrl }, true);
+            alert(recorded ? '일정표 안내를 고객에게 발송했습니다.' : '메일은 발송했지만 발송 이력을 저장하지 못했습니다. 새로고침하여 확인하세요.');
         } catch (e: any) {
             alert(`발송 실패: ${e.message || e}`);
         } finally {
@@ -1159,8 +1201,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
             });
             if (!result.success) throw result.error || new Error('이메일 발송에 실패했습니다.');
             // 발송됨 플래그 저장 → 고객 마이페이지에서 해외여행 계약서가 "발송됨"으로 표시됨(contractUrl을 플래그로 사용)
-            onUpdate({ ...addHistory({ type: 'email', description: '해외여행 계약서를 고객님께 발송했습니다.', detail: contractUrl }), contractUrl });
-            alert('계약서 안내를 고객에게 발송했습니다.');
+            const recorded = await onUpdate({ ...addHistory({ type: 'email', description: '해외여행 계약서를 고객님께 발송했습니다.', detail: contractUrl }), contractUrl }, true);
+            alert(recorded ? '계약서 안내를 고객에게 발송했습니다.' : '메일은 발송했지만 발송 이력을 저장하지 못했습니다. 새로고침하여 확인하세요.');
         } catch (e: any) {
             alert(`발송 실패: ${e.message || e}`);
         } finally {
@@ -1240,7 +1282,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
             }
 
             // 발송한 문서만 "발송됨" 플래그 저장 → 고객 마이페이지에 발송됨으로 표시
-            onUpdate({
+            const recorded = await onUpdate({
                 ...reservation,
                 ...(sentKeys.includes('itinerary') ? { itineraryUrl } : {}),
                 ...(sentKeys.includes('contract') ? { contractUrl } : {}),
@@ -1248,13 +1290,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
                     ...(reservation.history || []),
                     ...sentHistories,
                 ],
-            });
-            alert(`${readyJobs.map((job) => job.title).join(', ')} 안내를 고객에게 발송했습니다.`);
+            }, true);
+            alert(recorded ? `${readyJobs.map((job) => job.title).join(', ')} 안내를 고객에게 발송했습니다.` : '메일은 발송했지만 발송 이력을 저장하지 못했습니다. 새로고침하여 확인하세요.');
         } catch (e: any) {
-            if (sentKeys.length) onUpdate({ ...reservation,
+            if (sentKeys.length) await onUpdate({ ...reservation,
                 ...(sentKeys.includes('itinerary') ? { itineraryUrl } : {}),
                 ...(sentKeys.includes('contract') ? { contractUrl } : {}),
-                history: [...(reservation.history || []), ...sentHistories] });
+                history: [...(reservation.history || []), ...sentHistories] }, true);
             alert(`통합 발송 실패: ${e.message || e}`);
         } finally {
             setSendingAllDocs(false);
@@ -1262,49 +1304,6 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
             setSendingContract(false);
         }
     };
-
-    const operationSteps = [
-        {
-            title: '예약 접수',
-            description: '주문 내용 확인 및 고객 정보 확보',
-            icon: 'assignment_turned_in',
-            done: true,
-            actionLabel: '상세 확인',
-            onAction: undefined as (() => void) | undefined,
-        },
-        {
-            title: '결제 확인',
-            description: editForm.depositStatus === 'paid' ? '예약금 입금 확인 완료' : '예약금 입금 확인 필요',
-            icon: 'payments',
-            done: editForm.depositStatus === 'paid',
-            actionLabel: editForm.depositStatus === 'paid' ? '완료' : '입금 확인',
-            onAction: editForm.depositStatus === 'paid' ? () => scrollToSec('pay') : () => { scrollToSec('pay'); toggleDepositStatus(); },
-        },
-        {
-            title: '일정표',
-            description: itinerarySent ? '고객 발송 완료' : itineraryReady ? `${selectedTemplate?.name || (reservation.documentContent ? '작성된 문서' : '선택한 템플릿')} 발송 가능` : '템플릿 선택 또는 문서 작성 필요',
-            icon: 'map',
-            done: itinerarySent,
-            actionLabel: itineraryReady ? '문서 확인' : '일정표 작성',
-            onAction: () => setActiveDocument('itinerary'),
-        },
-        {
-            title: '계약서',
-            description: contractSent ? '고객 발송 완료' : contractHasTravelers ? `${contractTravelers.length}명 입력됨 · 재발송 가능` : '발송하면 고객이 직접 작성',
-            icon: 'description',
-            done: contractSent,
-            actionLabel: contractReady ? '문서 확인' : '이메일 없음',
-            onAction: () => setActiveDocument('contract'),
-        },
-        {
-            title: '현지 안내',
-            description: guideReady ? '가이드/숙소 안내 가능' : '가이드와 숙소 배정 필요',
-            icon: 'support_agent',
-            done: !!reservation.areAssignmentsVisibleToUser,
-            actionLabel: guideReady ? '안내문 복사' : '가이드 배정',
-            onAction: guideReady ? () => copyCustomerMessage('final') : () => { scrollToSec('assign'); setShowGuideModal(true); },
-        },
-    ];
 
     const addMemo = () => {
         const text = memoDraft.trim();
@@ -1341,22 +1340,21 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
     };
 
     // Trip.com식 섹션 앵커 (탭 대신 원페이지 스크롤)
-    const SECTION_ANCHORS: Array<{ id: 'info' | 'pay' | 'assign' | 'log'; label: string }> = [
+    const SECTION_ANCHORS: Array<{ id: 'docs' | 'ops' | 'info' | 'pay' | 'assign' | 'log'; label: string }> = [
+        { id: 'docs', label: '일정표·계약서' },
         { id: 'info', label: '주문 정보' },
         { id: 'pay', label: '결제' },
         { id: 'assign', label: '가이드·숙소' },
+        { id: 'ops', label: '운영·영수증' },
         { id: 'log', label: '메모·이력' },
     ];
 
-    // NEXT 바 — 운영 단계 중 첫 미완료 1개만 제시 (개요 탭의 5단계 카드 그리드 대체)
-    const doneCount = operationSteps.filter(s => s.done).length;
-    const nextStep = operationSteps.find(s => !s.done);
     // 여행 일수 — 시작/종료일 차이를 1순위로(가장 정확), 없으면 "n박"(옛 데이터 "n泊") 문자열, 그래도 없으면 일정 일수/배정 수
     const tripDays = (() => {
         if (!Number.isNaN(_nights) && _nights >= 1) return _nights + 1;
         const m = String(reservation.date || '').match(/(\d+)\s*[박泊]/);
         if (m) return parseInt(m[1]) + 1;
-        const docDays = (docInitialContent?.days as any[] | undefined)?.length || 0;
+        const docDays = scheduleDays.length;
         if (docDays > 0) return docDays;
         return Math.max((reservation.dailyAccommodations || []).length, 1);
     })();
@@ -1366,7 +1364,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
         if (!Number.isNaN(_nights) && _nights >= 1) return _nights;
         const m = String(reservation.date || '').match(/(\d+)\s*[박泊]/);
         if (m) return parseInt(m[1]);
-        const docDays = (docInitialContent?.days as any[] | undefined)?.length || 0;
+        const docDays = scheduleDays.length;
         if (docDays > 1) return docDays - 1;
         return Math.max((reservation.dailyAccommodations || []).length, 1);
     })();
@@ -1414,7 +1412,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
             });
         }
         // 이 상품 일정에 들어있는 숙소(마스터에 없을 수도)
-        const days = (docInitialContent?.days as any[] | undefined) || [];
+        const days = scheduleDays;
         for (const d of days) {
             const acc = d?.accommodation;
             if (!acc || typeof acc === 'string') continue;
@@ -1445,6 +1443,19 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
     // 옛 일본어 기록('日程'/'契約')과 새 한국어 기록('일정'/'계약')을 모두 인식
     const itinerarySentAt = lastEmailAt(itineraryUrl, ['日程', '일정']);
     const contractSentAt = lastEmailAt(contractUrl, ['契約', '계약']);
+    const steps = [
+        { id: 'accepted', title: '예약 접수', description: '주문 내용 확인', done: true, actionLabel: '주문 확인', onAction: () => scrollToSec('info') },
+        { id: 'deposit', title: '예약금 확인', description: workspace.depositPaid ? '입금 확인 완료' : '입금 내역 확인 필요', done: workspace.depositPaid, actionLabel: '입금 확인하기', onAction: () => scrollToSec('pay') },
+        { id: 'contract', title: '계약 동의', description: workspace.signed ? '고객 동의 완료' : contractSent ? '서명 요청됨 · 고객 동의 대기' : '계약서 전달 필요', done: workspace.signed, actionLabel: '계약서 확인하기', onAction: () => { scrollToSec('docs'); setActiveDocument('contract'); } },
+        { id: 'schedule', title: '일정 준비', description: itineraryReady ? `${scheduleDays.length}일 일정 준비됨` : '상품 일정 불러와 작성', done: itineraryReady, actionLabel: '일정 작성하기', onAction: () => openDocumentEditor('itinerary') },
+        { id: 'published', title: '일정표 공개', description: workspace.published ? itinerarySent ? '공개됨 · 메일 발송 완료' : '공개됨 · 고객 전달 가능' : '내용 확인 후 고객에게 공개', done: workspace.published, actionLabel: '공개·전달하기', onAction: () => scrollToSec('docs') },
+    ];
+    const readiness = [
+        { title: '확정 일정', value: itineraryReady ? `${scheduleDays.length}일` : '작성 필요', description: reservation.documentContent ? '고객별 저장 일정' : selectedTemplate ? '선택한 템플릿 일정' : reservationProduct ? '예약한 상품의 일정' : '일정을 작성하세요', ready: itineraryReady, onAction: () => openDocumentEditor('itinerary') },
+        { title: '가이드·차량', value: workspace.guideReady ? reservation.assignedGuide?.name || '배정됨' : '가이드 미배정', description: reservation.adminOperations?.vehicle ? `차량 · ${reservation.adminOperations.vehicle}` : '차량 배정 기록 필요', ready: workspace.guideReady && !!reservation.adminOperations?.vehicle, onAction: () => scrollToSec(workspace.guideReady ? 'ops' : 'assign') },
+        { title: '일자별 숙소', value: workspace.nights ? `${workspace.stayCount}/${workspace.nights}박` : '당일 투어', description: workspace.accommodationsReady ? '필요한 숙박일 준비됨' : '귀국일을 제외한 숙소 확인', ready: workspace.accommodationsReady, onAction: () => scrollToSec('assign') },
+        { title: '계약·여행자', value: workspace.signed ? '동의 완료' : '동의 대기', description: `여행자 ${workspace.travelerCount}/${reservation.totalPeople || 0}명 입력`, ready: workspace.signed && workspace.travelersReady, onAction: () => scrollToSec('info') },
+    ];
 
     // 예약된 상품의 대표 이미지.
     // 1순위: 예약에 저장된 상품 ID 정확 매칭 (신규 예약부터 저장됨).
@@ -1468,8 +1479,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
     })();
 
     return (<>
-        <div className="drawer-scrim reservation-workspace-scrim" onClick={onClose}>
-            <div className="drawer reservation-workspace tcom" onClick={e => e.stopPropagation()}>
+        <div className="drawer-scrim reservation-workspace-scrim" onClick={closeWorkspace}>
+            <div className="drawer reservation-workspace product-workspace tcom" role="dialog" aria-modal="true" aria-label="상품 예약 상세 작업" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="drawer-head">
@@ -1485,33 +1496,15 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
                             <span className="cell-mono" style={{ fontSize: 13 }}>#{(reservation as any).reservationNumber || reservation.id.slice(0, 8).toUpperCase()}</span>
                         </div>
                         <div className="page-title" style={{ fontSize: 18, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reservation.productName}</div>
+                        <p className="rw-customer-line">{reservation.customerName} · {reservation.date} · {reservation.headcount}</p>
                     </div>
                     <StatusDropdown
                         status={editForm.status}
+                        disabled={updating}
                         onChange={(s) => { setEditForm({ ...editForm, status: s }); if (!isEditing) onUpdate({ ...editForm, status: s }); }}
                     />
-                    <button className="icon-btn" style={{ width: 36, height: 36 }} onClick={onClose}><Icon name="close" /></button>
-                </div>
-
-                {/* NEXT — 다음 할 일 1개 + 진행 점 스텝퍼 (개요의 5단계 카드 대체) */}
-                <div className={`next-bar${nextStep ? '' : ' all-done'}`}>
-                    <span className="nb-label">{nextStep ? '다음 할 일' : '처리 완료'}</span>
-                    {nextStep ? (
-                        <>
-                            <button className="btn btn-sm btn-ink" onClick={nextStep.onAction} disabled={!nextStep.onAction}>
-                                <Icon name={nextStep.icon} />{nextStep.title} · {nextStep.actionLabel}
-                            </button>
-                            <span className="nb-desc">{nextStep.description}</span>
-                        </>
-                    ) : (
-                        <span className="row" style={{ gap: 6, fontSize: 13, fontWeight: 800, color: 'var(--mrt-green)' }}>
-                            <Icon name="check_circle" fill />모든 운영 단계가 완료되었습니다
-                        </span>
-                    )}
-                    <span className="step-dots">
-                        {operationSteps.map((s) => <span key={s.title} className={`sd${s.done ? ' on' : ''}`} title={`${s.title} — ${s.description}`} />)}
-                        <span className="sd-n">{doneCount}/{operationSteps.length}</span>
-                    </span>
+                    <button type="button" className="btn btn-sm btn-ghost" onClick={onRefresh} disabled={updating || isEditing || operationsDirty}>고객 제출 정보 새로고침</button>
+                    <button className="icon-btn" aria-label="예약 상세 닫기" style={{ width: 36, height: 36 }} onClick={closeWorkspace}><Icon name="close" /></button>
                 </div>
 
                 {/* 섹션 앵커 — Trip.com식 원페이지 내비게이션 */}
@@ -1526,8 +1519,19 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
 
                 <div className="reservation-workspace-main">
                 {/* Body */}
-                <div className="drawer-body reservation-workspace-body" ref={bodyRef}>
+                <div className="drawer-body reservation-workspace-body" ref={bodyRef} inert={updating} aria-busy={updating}>
                     <div className="stack" style={{ gap: 18 }}>
+                    <ReservationWorkflow steps={steps} readiness={readiness} cancelled={workspace.cancelled} />
+                    <ReservationDocuments days={scheduleDays} source={reservation.documentContent ? '고객별 작성 일정' : selectedTemplate?.name || (reservationProduct ? '예약 상품 일정' : '아직 작성된 일정이 없습니다')}
+                        ready={itineraryReady} published={workspace.published} canPublish={itineraryCanPublish}
+                        itinerarySent={itinerarySent} itinerarySentAt={itinerarySentAt} signed={workspace.signed}
+                        contractSent={contractSent} contractSentAt={contractSentAt} travelerCount={workspace.travelerCount}
+                        email={reservation.email} sending={sendingItinerary || sendingContract || sendingAllDocs || publishing || updating} copied={copiedDocId}
+                        templates={templatesList} templateId={editForm.itineraryTemplateId || ''} applyingTemplate={applyingTemplate}
+                        onTemplate={applyDocumentTemplate} onEdit={openDocumentEditor} onPublish={publishCustomerItinerary}
+                        onPreview={(kind, print) => window.open(kind === 'itinerary' ? itineraryPreviewUrl + (print ? '&autoprint=1' : '') : contractUrl + (print ? '?autoprint=1' : ''), '_blank', 'noopener,noreferrer')}
+                        onSend={kind => kind === 'itinerary' ? sendItineraryToCustomer() : sendContractToCustomer()} onCopy={copyCustomerMessage}
+                        onSendAll={sendReadyDocumentsToCustomer} onGuidePdf={printGuideSheet} disabled={workspace.cancelled || isEditing} />
                     <section id="sec-info" style={{ scrollMarginTop: 8 }}>
                         {/* 주문 정보 — 여행/예약자 */}
                         <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'stretch' }}>
@@ -1559,9 +1563,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
                             <div className="card">
                                 <div className="card-head"><Icon name="person" style={{ color: 'var(--mrt-gray-600)' }} /><h2>예약자 정보</h2></div>
                                 <div className="card-pad" style={{ paddingTop: 14 }}>
-                                    <div className="kv"><span>이름</span><b>{reservation.customerName}</b></div>
-                                    <div className="kv"><span>연락처</span><b style={{ fontVariantNumeric: 'tabular-nums' }}>{reservation.phone || '—'}</b></div>
-                                    <div className="kv" style={{ borderBottom: 'none' }}><span>이메일</span><b style={{ textAlign: 'right' }}>{reservation.email || '—'}</b></div>
+                                    <div className="kv"><span>이름</span>{isEditing ? <input className="inp" aria-label="예약자 이름" value={editForm.customerName} onChange={e => setEditForm({ ...editForm, customerName: e.target.value })}/> : <b>{reservation.customerName}</b>}</div>
+                                    <div className="kv"><span>연락처</span>{isEditing ? <input className="inp" type="tel" aria-label="예약자 연락처" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })}/> : <b style={{ fontVariantNumeric: 'tabular-nums' }}>{reservation.phone || '—'}</b>}</div>
+                                    <div className="kv" style={{ borderBottom: 'none' }}><span>이메일</span>{isEditing ? <input className="inp" type="email" aria-label="예약자 이메일" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })}/> : <b style={{ textAlign: 'right' }}>{reservation.email || '—'}</b>}</div>
                                 </div>
                             </div>
                         </div>
@@ -1630,6 +1634,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
                         )}
                     </section>
 
+                    <ReservationOperations reservationId={reservation.id} value={reservation.adminOperations} onSave={next => onUpdate({ ...reservation, adminOperations: next }, true)} disabled={updating || isEditing} onDirtyChange={setOperationsDirty}/>
                     <section id="sec-pay" style={{ scrollMarginTop: 8 }}>
                     <div className="stack" style={{ gap: 14 }}>
                             {/* Payment with Progress Ring */}
@@ -1994,184 +1999,21 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
                     </div>
                 </div>
 
-                <aside className="reservation-action-rail">
-                    <div className="action-rail-head">
-                        <div>
-                            <span className="action-rail-eyebrow">DOCUMENTS</span>
-                            <h2>문서와 고객 발송</h2>
-                        </div>
-                        <span className={`badge ${itinerarySent && contractSent ? 'b-green' : 'b-blue'}`}>
-                            {[itinerarySent, contractSent].filter(Boolean).length}/2 완료
-                        </span>
-                    </div>
-
-                    <div className="action-rail-stack">
-                        <section className={`action-doc ${activeDocument === 'itinerary' ? 'active' : ''}`}>
-                            <button type="button" className="action-doc-title" onClick={() => setActiveDocument('itinerary')}>
-                                <span className="action-doc-icon tint-blue"><Icon name="map" /></span>
-                                <span>
-                                    <b>확정 일정표</b>
-                                    <small>{itinerarySent ? `발송 완료${itinerarySentAt ? ` · ${itinerarySentAt}` : ''}` : itineraryReady ? '작성됨 · 발송 대기' : '템플릿 선택 또는 문서 작성 필요'}</small>
-                                </span>
-                                <Icon name={itinerarySent ? 'check_circle' : 'chevron_right'} />
-                            </button>
-                            {!itinerarySent && (
-                                <select
-                                    className="inp"
-                                    value={editForm.itineraryTemplateId || ''}
-                                    onChange={e => {
-                                        const newId = e.target.value || undefined;
-                                        const updated = { ...reservation, itineraryTemplateId: newId } as Reservation;
-                                        setEditForm(prev => prev ? { ...prev, itineraryTemplateId: newId } : prev);
-                                        onUpdate(updated);
-                                        setActiveDocument('itinerary');
-                                    }}
-                                >
-                                    <option value="">일정표 템플릿 선택</option>
-                                    {templatesList.map((template: any) => (
-                                        <option key={template.id} value={template.id}>{template.name}</option>
-                                    ))}
-                                </select>
-                            )}
-                            {!itineraryCanPublish && <small>고객 발송과 링크 공유는 예약금 확인 후 예약을 확정하면 가능합니다.</small>}
-                            <div className="action-doc-buttons">
-                                <button className="btn btn-sm btn-ghost" disabled={!itineraryReady} onClick={() => window.open(itineraryPreviewUrl + '&autoprint=1', '_blank')}><Icon name="print" />PDF 저장</button>
-                                {!itinerarySent ? (
-                                    <>
-                                        <button className="btn btn-sm btn-blue" disabled={!itineraryReady || !itineraryCanPublish || sendingItinerary} onClick={sendItineraryToCustomer}>
-                                            <Icon name="send" />{sendingItinerary ? '발송 중' : '고객에게 발송'}
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" onClick={() => { setActiveDocument('itinerary'); setDocEditorOpen(true); }}>
-                                            <Icon name="edit_document" />{reservation.documentContent ? '편집' : '일정표 만들기'}
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" disabled={!itineraryReady} onClick={() => window.open(itineraryPreviewUrl, '_blank')}>
-                                            <Icon name="visibility" />미리보기
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" disabled={!itineraryReady || !itineraryCanPublish} onClick={copyItineraryLink}>
-                                            <Icon name={copiedDocId === 'itinerary' ? 'check' : 'content_copy'} />{copiedDocId === 'itinerary' ? '복사됨' : '링크'}
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button className="btn btn-sm btn-blue" onClick={() => window.open(itineraryPreviewUrl, '_blank')}>
-                                            <Icon name="visibility" />미리보기
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" onClick={() => { setActiveDocument('itinerary'); setDocEditorOpen(true); }}>
-                                            <Icon name="edit_document" />편집
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" onClick={copyItineraryLink}>
-                                            <Icon name={copiedDocId === 'itinerary' ? 'check' : 'content_copy'} />{copiedDocId === 'itinerary' ? '복사됨' : '링크'}
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" disabled={!itineraryCanPublish || sendingItinerary} onClick={sendItineraryToCustomer}>
-                                            <Icon name="forward_to_inbox" />{sendingItinerary ? '발송 중' : '재발송'}
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </section>
-
-                        <section className={`action-doc ${activeDocument === 'contract' ? 'active' : ''}`}>
-                            <button type="button" className="action-doc-title" onClick={() => setActiveDocument('contract')}>
-                                <span className="action-doc-icon tint-purple"><Icon name="contract" /></span>
-                                <span>
-                                    <b>여행 계약서</b>
-                                    <small>
-                                        {contractHasTravelers
-                                            ? `여행자 ${contractTravelers.length}명 작성 완료`
-                                            : contractSent
-                                                ? `고객 작성 대기${contractSentAt ? ` · 발송 ${contractSentAt}` : ''}`
-                                                : contractReady ? '작성·발송 가능' : '고객 이메일 필요'}
-                                    </small>
-                                </span>
-                                <Icon name={contractHasTravelers ? 'check_circle' : contractSent ? 'hourglass_top' : 'chevron_right'} />
-                            </button>
-                            <div className="action-doc-buttons">
-                                {!contractSent ? (
-                                    <>
-                                        <button className="btn btn-sm btn-blue" disabled={!contractReady || sendingContract} onClick={sendContractToCustomer}>
-                                            <Icon name="send" />{sendingContract ? '발송 중' : '고객에게 발송'}
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" onClick={() => { setActiveDocument('contract'); setDocEditorOpen(true); }}>
-                                            <Icon name="edit_document" />{reservation.documentContent ? '편집' : '계약서 만들기'}
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" onClick={() => window.open(contractUrl, '_blank')}>
-                                            <Icon name="visibility" />미리보기
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" onClick={() => { navigator.clipboard.writeText(contractUrl); setCopiedDocId('contract'); setTimeout(() => setCopiedDocId(null), 1500); }}>
-                                            <Icon name={copiedDocId === 'contract' ? 'check' : 'content_copy'} />{copiedDocId === 'contract' ? '복사됨' : '링크'}
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button className="btn btn-sm btn-blue" onClick={() => window.open(contractUrl, '_blank')}>
-                                            <Icon name="visibility" />{contractHasTravelers ? '작성 내용 확인' : '미리보기'}
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" onClick={() => { setActiveDocument('contract'); setDocEditorOpen(true); }}>
-                                            <Icon name="edit_document" />편집
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" onClick={() => { navigator.clipboard.writeText(contractUrl); setCopiedDocId('contract'); setTimeout(() => setCopiedDocId(null), 1500); }}>
-                                            <Icon name={copiedDocId === 'contract' ? 'check' : 'content_copy'} />{copiedDocId === 'contract' ? '복사됨' : '링크'}
-                                        </button>
-                                        <button className="btn btn-sm btn-ghost" disabled={sendingContract} onClick={sendContractToCustomer}>
-                                            <Icon name="forward_to_inbox" />{sendingContract ? '발송 중' : '재발송'}
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </section>
-
-                        <button
-                            className="btn btn-blue action-send-all"
-                            onClick={sendReadyDocumentsToCustomer}
-                            disabled={sendingAllDocs || (!itineraryReady && !contractReady) || (itinerarySent && contractSent)}
-                        >
-                            <Icon name={sendingAllDocs ? 'hourglass_top' : 'outgoing_mail'} />
-                            {sendingAllDocs ? '발송 중' : '준비 문서 일괄 발송'}
-                        </button>
-                    </div>
-
-                    <div className="action-rail-group">
-                        <h3>고객 공유</h3>
-                        <button className="action-link" onClick={() => copyCustomerMessage('final')}>
-                            <Icon name="content_copy" />
-                            <span><b>고객 안내문 복사</b><small>일정표와 계약서 링크를 함께 복사합니다.</small></span>
-                            <Icon name="chevron_right" />
-                        </button>
-                        <button className="action-link" onClick={copyItineraryLink}>
-                            <Icon name="link" />
-                            <span><b>공개하고 고객 링크 복사</b><small>고객 마이페이지에서 같은 일정표를 확인합니다.</small></span>
-                            <Icon name="chevron_right" />
-                        </button>
-                    </div>
-
-                    <div className="action-rail-group">
-                        <h3>최근 활동</h3>
-                        {timelineEvents.length > 0 ? [...timelineEvents].reverse().slice(0, 3).map((event: any, index: number) => (
-                            <div className="action-history" key={`${event.timestamp}-${index}`}>
-                                <span className="action-history-dot" />
-                                <div>
-                                    <b>{event.description}</b>
-                                    <small>{event.timestamp ? new Date(event.timestamp).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</small>
-                                </div>
-                            </div>
-                        )) : <p className="action-rail-empty">아직 처리 이력이 없습니다.</p>}
-                    </div>
-                </aside>
                 </div>
 
                 {/* Footer */}
                 <div className="drawer-foot">
                     {isEditing ? (
                         <>
-                            <button onClick={handleCancel} className="btn btn-ghost">취소</button>
+                            <button onClick={handleCancel} className="btn btn-ghost" disabled={updating}>취소</button>
                             <div className="spacer" style={{ flex: 1 }} />
-                            <button onClick={handleSave} className="btn btn-ink"><Icon name="check" />저장</button>
+                            <button onClick={handleSave} className="btn btn-ink" disabled={updating}><Icon name="check" />{updating ? '저장 중…' : '저장'}</button>
                         </>
                     ) : (
                         <>
-                            <button onClick={onClose} className="btn btn-ghost">닫기</button>
+                            <button onClick={closeWorkspace} className="btn btn-ghost" disabled={updating}>예약 목록으로</button>
                             <div className="spacer" style={{ flex: 1 }} />
-                            <button onClick={() => setIsEditing(true)} className="btn btn-ink"><Icon name="edit" />수정</button>
+                            <button onClick={() => setIsEditing(true)} className="btn btn-ink" disabled={updating}><Icon name="edit" />수정</button>
                         </>
                     )}
                 </div>
@@ -2267,8 +2109,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, products = [] 
         <ReservationDocumentEditor
             open={docEditorOpen}
             onClose={() => setDocEditorOpen(false)}
-            title={`${reservation.customerName || '고객'} · ${isQuoteRes ? '견적 제안서' : '확정 일정표'}`}
+            title={`${reservation.customerName || '고객'} · ${activeDocument === 'contract' ? '여행 계약서' : isQuoteRes ? '견적 제안서' : '확정 일정표'}`}
             documentType={activeDocument}
+            reservationId={reservation.id}
+            productId={reservation.productId}
             customer={docCustomer}
             initialContent={docInitialContent}
             onSave={saveDocContent}
@@ -2290,6 +2134,7 @@ export const AdminReservationManage: React.FC = () => {
     const [sortOrder, setSortOrder] = useState('recent');
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+    const [updatingCount, setUpdatingCount] = useState(0);
 
     // Filter States
     const [searchTerm, setSearchTerm] = useState('');
@@ -2347,6 +2192,8 @@ export const AdminReservationManage: React.FC = () => {
                     category: p.category,
                     thumbnail: p.thumbnail,
                     mainImages: p.mainImages ?? p.main_images,
+                    itineraryBlocks: p.itineraryBlocks ?? p.itinerary_blocks,
+                    itineraryImages: p.itineraryImages ?? p.itinerary_images,
                     hasItinerary: [p.itineraryBlocks ?? p.itinerary_blocks, p.itineraryImages ?? p.itinerary_images].some(value => {
                         try { return (typeof value === 'string' ? JSON.parse(value) : value)?.length > 0; } catch { return false; }
                     }),
@@ -2432,6 +2279,7 @@ export const AdminReservationManage: React.FC = () => {
                     email: r.email || r.customerEmail || r.customer_email || r.customer_info?.email || '',
                     manager: r.manager || r.assignedAdmin || r.assigned_admin || 'Admin',
                     source: r.source || undefined, // 주문 경로 — 목록의 경로 배지와 「경로」 필터가 이 값을 쓴다
+                    adminOperations: r.adminOperations,
                     userId: r.userId || r.user_id,
                     };
                 });
@@ -2521,8 +2369,22 @@ export const AdminReservationManage: React.FC = () => {
                 dailyAccommodations: fresh.dailyAccommodations ?? x.dailyAccommodations,
                 assignedGuide: fresh.assignedGuide ?? x.assignedGuide,
                 contractData: fresh.contractData ?? x.contractData,
+                documentContent: (() => { let value = fresh.documentContent; for (let i = 0; i < 3 && typeof value === 'string'; i++) { try { value = JSON.parse(value); } catch { return x.documentContent; } } return value === undefined ? x.documentContent : value; })(),
+                adminOperations: fresh.adminOperations ?? x.adminOperations,
                 history: fresh.history ?? x.history,
                 status: fresh.status ?? x.status,
+                depositStatus: fresh.depositStatus ?? x.depositStatus,
+                balanceStatus: fresh.balanceStatus ?? x.balanceStatus,
+                totalAmount: fresh.totalAmount ?? x.totalAmount,
+                deposit: fresh.deposit ?? x.deposit,
+                balance: fresh.balance ?? x.balance,
+                itineraryUrl: fresh.itineraryUrl ?? x.itineraryUrl,
+                contractUrl: fresh.contractUrl ?? x.contractUrl,
+                areAssignmentsVisibleToUser: fresh.areAssignmentsVisibleToUser ?? x.areAssignmentsVisibleToUser,
+                itineraryTemplateId: fresh.itineraryTemplateId ?? x.itineraryTemplateId,
+                customerName: fresh.customerName ?? x.customerName,
+                email: fresh.email ?? x.email,
+                phone: fresh.phone ?? x.phone,
                 depositReport: readDepositReport(fresh) ?? x.depositReport, // 목록을 불러온 뒤에 들어온 입금 신고
             });
             setSelectedReservation(prev => (prev && prev.id === res.id && prev.type === res.type) ? merge(prev) : prev);
@@ -2545,8 +2407,9 @@ export const AdminReservationManage: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [reservations]);
 
-    const handleUpdateReservation = async (updated: Reservation) => {
-        if (updated.type === 'quote_booking') return;
+    const handleUpdateReservation = async (updated: Reservation, silent = false): Promise<boolean> => {
+        if (updated.type === 'quote_booking') return false;
+        setUpdatingCount(count => count + 1);
         try {
             // Find old reservation from local state instead of fetching
             // (Assuming local state has full history, which it does from fetchReservations)
@@ -2579,7 +2442,7 @@ export const AdminReservationManage: React.FC = () => {
                 history.push({
                     timestamp: new Date().toISOString(),
                     type: 'document_added',
-                    description: '확정 일정표가 업로드되었습니다',
+                    description: '확정 일정표를 고객에게 공개했습니다.',
                     detail: updated.itineraryUrl
                 });
             }
@@ -2608,6 +2471,8 @@ export const AdminReservationManage: React.FC = () => {
                 ...(updated.startDate !== oldReservation.startDate ? { start_date: updated.startDate || null } : {}),
                 ...(updated.endDate !== oldReservation.endDate ? { end_date: updated.endDate || null } : {}),
                 ...(updated.contractData !== oldReservation.contractData ? { contract_data: updated.contractData } : {}),
+                ...(updated.documentContent !== oldReservation.documentContent ? { document_content: updated.documentContent } : {}),
+                ...(updated.adminOperations !== oldReservation.adminOperations ? { admin_operations: updated.adminOperations } : {}),
                 ...(updated.assignedGuide !== oldReservation.assignedGuide ? { assigned_guide: updated.assignedGuide } : {}),
                 ...(updated.dailyAccommodations !== oldReservation.dailyAccommodations ? { daily_accommodations: updated.dailyAccommodations } : {}),
                 history: history,
@@ -2624,7 +2489,7 @@ export const AdminReservationManage: React.FC = () => {
             // If backend handles partial updates, good.
             // If we want to update price_breakdown, we need to construct it.
             if (updated.totalAmount !== oldReservation.totalAmount || updated.deposit !== oldReservation.deposit) {
-                updatePayload.price_breakdown = {
+                updatePayload.priceBreakdown = {
                     total: updated.totalAmount,
                     deposit: updated.deposit,
                     local: updated.totalAmount - updated.deposit
@@ -2634,6 +2499,10 @@ export const AdminReservationManage: React.FC = () => {
             // Also update flat amount fields if DB has them
             updatePayload.total_amount = updated.totalAmount;
             updatePayload.deposit_amount = updated.deposit;
+            updatePayload.balance_amount = Math.max(0, updated.totalAmount - updated.deposit);
+            if (updated.customerName !== oldReservation.customerName) updatePayload.customerName = updated.customerName;
+            if (updated.email !== oldReservation.email) updatePayload.customerEmail = updated.email;
+            if (updated.phone !== oldReservation.phone) updatePayload.customerPhone = updated.phone;
 
 
             // Call API
@@ -2651,7 +2520,7 @@ export const AdminReservationManage: React.FC = () => {
 
             // Optimistic update locally
             setReservations(prev => prev.map(r => r.id === updated.id && r.type === updated.type ? { ...updated, history } : r));
-            setSelectedReservation({ ...updated, history });
+            setSelectedReservation(prev => prev?.id === updated.id && prev.type === updated.type ? { ...updated, history } : prev);
 
             // Notification Logic
             if (oldReservation.status !== updated.status && updated.userId) {
@@ -2702,16 +2571,18 @@ export const AdminReservationManage: React.FC = () => {
                         : '입금 확인 메일은 보내지 못했습니다. 고객에게 따로 알려 주세요.';
                 }
                 alert(`예약금 입금을 확인했습니다. 예약이 확정되었습니다.\n${mailNote}`);
-                return;
+                return true;
             }
 
-            alert('예약 정보가 업데이트되었습니다.');
+            if (!silent) alert('예약 정보가 업데이트되었습니다.');
+            return true;
             // Only fetch if strictly necessary, otherwise optimistic is fine.
             // fetchReservations(); 
         } catch (error) {
             console.error('Error updating reservation:', error);
-            alert('예약 정보 수정에 실패했습니다.');
-        }
+            if (!silent) alert('예약 정보 수정에 실패했습니다.');
+            return false;
+        } finally { setUpdatingCount(count => Math.max(0, count - 1)); }
     };
 
     const handleStatusChange = async (id: string, newStatus: string, type: string) => {
@@ -3496,6 +3367,8 @@ export const AdminReservationManage: React.FC = () => {
                     reservation={selectedReservation}
                     onClose={() => setSelectedReservation(null)}
                     onUpdate={handleUpdateReservation}
+                    onRefresh={() => selectedReservation && openReservation(selectedReservation)}
+                    updating={updatingCount > 0}
                     products={products}
                 />
             )}

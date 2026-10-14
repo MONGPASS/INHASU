@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     TemplatePreview,
     mergeDocumentSettings,
@@ -11,7 +11,8 @@ import {
 import { api } from '../../lib/api';
 import { DEPOSIT_PAYMENT_METHOD } from '../../constants/company';
 import { uploadImage } from '../../utils/upload';
-import type { DayInfoContent, DetailContentBlock, TimelineContent, TourProduct } from '../../types/product';
+import type { TourProduct } from '../../types/product';
+import { canAutoImportReservationDocument, reservationProductDays, reservationProductTerms, selectReservationProduct } from '../../utils/reservationDocument';
 import { TouristSpotPickerModal } from './TouristSpotPickerModal';
 import { HotelPickerModal } from './HotelPickerModal';
 import type { TouristSpot } from '../../types/touristSpot';
@@ -28,6 +29,10 @@ interface Props {
     open: boolean;
     onClose: () => void;
     title: string;
+    /** Stable booking identity; parent refreshes must not reset an open draft. */
+    reservationId?: string;
+    /** Exact product booked by this customer (legacy bookings may have none). */
+    productId?: string;
     documentType?: 'itinerary' | 'contract';
     /** 템플릿(프리셋) 편집 모드 — 고객 없이 샘플 표시, 전체 문서 페이지 탭 노출 */
     templateMode?: boolean;
@@ -59,7 +64,7 @@ interface Props {
     onUnassignAccommodation?: (day: number) => void;
 }
 
-export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, title, documentType = 'itinerary', templateMode = false, customer, initialContent, onSave, tourStartDate, tourEndDate, assignedGuide, dailyAccommodations, onAssignGuide, onAssignAccommodation, onUnassignAccommodation }) => {
+export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, title, reservationId, productId, documentType = 'itinerary', templateMode = false, customer, initialContent, onSave, tourStartDate, tourEndDate, assignedGuide, dailyAccommodations, onAssignGuide, onAssignAccommodation, onUnassignAccommodation }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [days, setDays] = useState<TemplateDay[]>([]);
@@ -72,6 +77,15 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
     const [products, setProducts] = useState<TourProduct[]>([]);
     const [selectedProductId, setSelectedProductId] = useState('');
     const [loadingProducts, setLoadingProducts] = useState(false);
+    const [productsLoaded, setProductsLoaded] = useState(false);
+    const [productsError, setProductsError] = useState('');
+    const [productsRetry, setProductsRetry] = useState(0);
+    const [editorSession, setEditorSession] = useState(0);
+    const sessionRef = useRef(0);
+    const autoImportRef = useRef(false);
+    const seededSessionRef = useRef(0);
+    const targetProductRef = useRef<{ id?: string; name?: string }>({});
+    const editorIdentity = reservationId || customer?.tripNumber || productId || title;
     // 예약 상품 일정을 자동으로 불러왔을 때 안내 배너에 표시할 상품명
     const [autoLoadedName, setAutoLoadedName] = useState<string | null>(null);
     // 마스터 픽커 — 관광지(항목 채움) / 호텔(일차 숙박정보 채움)
@@ -80,6 +94,10 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
 
     useEffect(() => {
         if (!open) return;
+        sessionRef.current += 1;
+        setEditorSession(sessionRef.current);
+        autoImportRef.current = canAutoImportReservationDocument(initialContent, templateMode);
+        targetProductRef.current = { id: productId, name: customer?.tripType };
         setName(initialContent?.name || customer?.tripType || '');
         setDescription(initialContent?.description || '');
         setDays(Array.isArray(initialContent?.days) ? initialContent!.days : []);
@@ -88,19 +106,42 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
         setEndDate(tourEndDate || '');
         setSelectedDayIndex(0);
         setAutoLoadedName(null);
-    }, [open, initialContent, tourStartDate, tourEndDate]);
+        setSelectedProductId('');
+        setSpotTarget(null);
+        setHotelDayIdx(null);
+        // Take a snapshot once per opening/booking. Fresh parent objects and
+        // guide/hotel assignment updates must leave the current draft intact.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, editorIdentity]);
 
     useEffect(() => {
-        if (!open || products.length > 0) return;
+        if (!open || !editorSession || editorSession !== sessionRef.current) return;
+        const seedProduct = (items: TourProduct[]) => {
+            if (seededSessionRef.current === editorSession) return;
+            seededSessionRef.current = editorSession;
+            const matched = selectReservationProduct(items, targetProductRef.current.id, targetProductRef.current.name);
+            if (!matched) return;
+            setSelectedProductId(matched.id);
+            if (autoImportRef.current && (getProductScheduleStats(matched).days > 0 || documentType === 'contract')) applyProduct(matched, { auto: true });
+            autoImportRef.current = false;
+        };
+        if (productsLoaded) {
+            setLoadingProducts(false);
+            seedProduct(products);
+            return;
+        }
+        let current = true;
         setLoadingProducts(true);
+        setProductsError('');
         api.products.list()
             .then((data: any) => {
-                if (!Array.isArray(data)) return;
+                if (!current) return;
+                if (!Array.isArray(data)) throw new Error('상품 목록 응답을 확인할 수 없습니다.');
                 const parse = (value: any, fallback: any = []) => {
                     if (typeof value === 'string') {
-                        try { return JSON.parse(value); } catch { return fallback; }
+                        try { value = JSON.parse(value); } catch { return fallback; }
                     }
-                    return value || fallback;
+                    return Array.isArray(value) ? value : fallback;
                 };
                 const mapped = data.map((item: any) => ({
                     ...item,
@@ -117,120 +158,36 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                     vehicleOptions: parse(item.vehicleOptions || item.vehicle_options),
                 })) as TourProduct[];
                 setProducts(mapped);
-                const target = (customer?.tripType || '').replace(/\s+/g, '').toLowerCase();
-                // 예약 기간(일수) — "3박 4일"(옛 데이터 "3泊4日")→4. 동명/유사명 상품이 여러 개일 때 예약과 같은 일정의 상품을 고르기 위해 사용
-                const targetDays = (() => {
-                    const tl = customer?.tripLength || '';
-                    const md = tl.match(/(\d+)\s*(?:日|일)/);
-                    if (md) return parseInt(md[1], 10);
-                    const mn = tl.match(/(\d+)\s*(?:泊|박)/);
-                    return mn ? parseInt(mn[1], 10) + 1 : null;
-                })();
-                const matched = mapped.filter(product => {
-                    const productName = (product.name || '').replace(/\s+/g, '').toLowerCase();
-                    return productName === target || productName.includes(target) || target.includes(productName);
-                }).sort((a, b) => {
-                    const an = (a.name || '').replace(/\s+/g, '').toLowerCase();
-                    const bn = (b.name || '').replace(/\s+/g, '').toLowerCase();
-                    // 1) 예약 상품명과 정확히 일치하는 상품 우선
-                    const aExact = an === target ? 1 : 0;
-                    const bExact = bn === target ? 1 : 0;
-                    if (aExact !== bExact) return bExact - aExact;
-                    // 2) 예약 기간(일수)과 같은 상품 우선 (4일 예약에 5일 상품이 잡히는 문제 방지)
-                    if (targetDays != null) {
-                        const aDay = getProductScheduleStats(a).days === targetDays ? 1 : 0;
-                        const bDay = getProductScheduleStats(b).days === targetDays ? 1 : 0;
-                        if (aDay !== bDay) return bDay - aDay;
-                    }
-                    // 3) 그 외에는 일정이 풍부한 상품 우선
-                    const aStats = getProductScheduleStats(a);
-                    const bStats = getProductScheduleStats(b);
-                    return (bStats.days * 1000 + bStats.activities) - (aStats.days * 1000 + aStats.activities);
-                })[0];
-                if (matched) {
-                    setSelectedProductId(matched.id);
-                    // 예약 일정표를 처음 여는 경우(저장된 문서 없음) 예약 상품 일정을 자동으로 불러옴
-                    const freshDoc = !initialContent || !Array.isArray(initialContent.days) || initialContent.days.length === 0;
-                    if (!templateMode && documentType === 'itinerary' && freshDoc && getProductScheduleStats(matched).days > 0) {
-                        applyProduct(matched, { auto: true });
-                    }
-                }
+                setLoadingProducts(false);
+                setProductsLoaded(true);
+                seedProduct(mapped);
             })
-            .finally(() => setLoadingProducts(false));
-    }, [open, documentType, customer?.tripType, products.length]);
-
-    const textFromProductItem = (item: any) => {
-        if (typeof item === 'string') return item;
-        return item?.label || item?.title || item?.name || item?.description || '';
-    };
-
-    const parseBlockContent = <T,>(content: T | string): T => {
-        if (typeof content !== 'string') return content as T;
-        try { return JSON.parse(content) as T; } catch { return content as T; }
-    };
+            .catch((error: any) => { if (current) setProductsError(error?.message || '상품 목록을 불러오지 못했습니다.'); })
+            .finally(() => { if (current) setLoadingProducts(false); });
+        return () => { current = false; };
+        // Each session seeds from either fresh data or the existing catalog.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, editorSession, productsLoaded, productsRetry]);
 
     const getProductScheduleStats = (product: TourProduct) => {
-        const blocks = product.itineraryBlocks || [];
+        const converted = reservationProductDays(product);
         return {
-            days: blocks.filter(block => block.type === 'dayInfo').length,
-            activities: blocks.filter(block => block.type === 'timeline').length,
+            days: converted.length,
+            activities: converted.reduce((total, day) => total + day.activities.length, 0),
         };
-    };
-
-    const productBlocksToDays = (blocks: DetailContentBlock[] = []): TemplateDay[] => {
-        const converted: TemplateDay[] = [];
-        let current: TemplateDay | null = null;
-        for (const block of blocks) {
-            if (block.type === 'dayInfo') {
-                const info = parseBlockContent<DayInfoContent>(block.content as DayInfoContent | string);
-                current = {
-                    day: converted.length + 1,
-                    date: info.dayDate || '',
-                    title: info.title || '',
-                    region: '',
-                    summary: info.description || '',
-                    activities: [],
-                    meals: info.meals || {},
-                    accommodation: info.accommodation ? {
-                        id: info.accommodationHotelId,
-                        name: info.accommodation,
-                        location: info.accommodationAddress,
-                        images: info.accommodationImages || [],
-                        description: info.accommodationDescription,
-                    } : null,
-                };
-                converted.push(current);
-                continue;
-            }
-            if (block.type === 'timeline') {
-                if (!current) {
-                    current = { day: 1, title: '', region: '', summary: '', activities: [], meals: {}, accommodation: null };
-                    converted.push(current);
-                }
-                const timeline = parseBlockContent<TimelineContent>(block.content as TimelineContent | string);
-                current.activities.push({
-                    time: '',
-                    type: 'sightseeing',
-                    title: timeline.title || '',
-                    description: timeline.description || '',
-                    images: timeline.images || [],
-                });
-            }
-        }
-        return converted;
     };
 
     // 상품의 일정·포함/불포함·가격을 편집기에 적용. auto=true 면 빈 일정일 때만 조용히 적용(경고·확인창 없음)
     const applyProduct = (product: TourProduct, opts?: { auto?: boolean }) => {
-        const importedDays = productBlocksToDays(product.itineraryBlocks || []);
-        const isEmpty = importedDays.length === 0 || importedDays.every(day => !day.title && !day.summary && day.activities.length === 0);
-        if (isEmpty) {
-            if (!opts?.auto) window.alert('이 상품은 예전 이미지형 일정만 등록되어 있어 DAY 일정으로 불러올 수 없습니다. 목록에서 DAY 개수가 표시된 동일 이름 상품을 선택해 주세요.');
+        const importedDays = reservationProductDays(product);
+        const isEmpty = importedDays.length === 0 || importedDays.every(day => !day.title && !day.summary && !(day.images?.length) && day.activities.length === 0);
+        if (isEmpty && documentType === 'itinerary') {
+            if (!opts?.auto) window.alert('이 상품에는 등록된 일정이나 일정 사진이 없습니다. 다른 상품을 선택하거나 DAY 일정을 직접 작성해 주세요.');
             return;
         }
         if (!opts?.auto && days.length > 0 && !window.confirm('현재 작성 중인 일정과 문서 설정을 상품 정보로 교체할까요?')) return;
-        const included = (product.included || []).map(textFromProductItem).filter(Boolean);
-        const excluded = (product.excluded || []).map(textFromProductItem).filter(Boolean);
+        autoImportRef.current = false;
+        const { included, excluded } = reservationProductTerms(product);
         const defaultPricing = product.pricingOptions?.find(option => option.people === customer?.peopleCount)
             || product.pricingOptions?.[0];
 
@@ -251,10 +208,15 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                     label,
                 })),
             },
+            contract: {
+                ...current.contract,
+                includedText: included.join('\n'),
+                excludedText: excluded.join('\n'),
+            },
             guide: {
                 ...current.guide,
                 paymentInfo: defaultPricing
-                    ? `예약금(${DEPOSIT_PAYMENT_METHOD}): 1인 ${defaultPricing.depositPerPerson.toLocaleString('ko-KR')}원\n현지 잔금(현금): 1인 ${defaultPricing.localPaymentPerPerson.toLocaleString('ko-KR')}원`
+                    ? `예약금(${DEPOSIT_PAYMENT_METHOD}): 1인 ${Number(defaultPricing.depositPerPerson || 0).toLocaleString('ko-KR')}원\n현지 잔금(현금): 1인 ${Number(defaultPricing.localPaymentPerPerson || 0).toLocaleString('ko-KR')}원`
                     : current.guide.paymentInfo,
             },
         }));
@@ -271,10 +233,13 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
     // ── Day / activity 핸들러 ──
     const updateDay = (idx: number, field: keyof TemplateDay, value: any) =>
         setDays(d => d.map((x, i) => i === idx ? { ...x, [field]: value } : x));
-    const addDay = () => setDays(d => {
-        setSelectedDayIndex(d.length);
-        return [...d, { day: d.length + 1, title: '', region: '', summary: '', activities: [], meals: {}, accommodation: null }];
-    });
+    const addDay = () => {
+        autoImportRef.current = false;
+        setDays(d => {
+            setSelectedDayIndex(d.length);
+            return [...d, { day: d.length + 1, title: '', region: '', summary: '', activities: [], meals: {}, accommodation: null }];
+        });
+    };
     const removeDay = (idx: number) => setDays(d => {
         const next = d.filter((_, i) => i !== idx).map((x, i) => ({ ...x, day: i + 1 }));
         setSelectedDayIndex(current => Math.max(0, Math.min(current > idx ? current - 1 : current, next.length - 1)));
@@ -354,6 +319,10 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
         setDocSettings(s => ({ ...s, guide: { ...s.guide, notices: s.guide.notices.map((n, i) => i === idx ? { ...n, [field]: value } : n) } }));
 
     const handleSave = async () => {
+        if (!productsLoaded && productId && canAutoImportReservationDocument(initialContent, templateMode)) {
+            alert(productsError ? '예약 상품을 불러오지 못했습니다. 다시 시도한 뒤 저장해 주세요.' : '예약 상품의 일정과 포함조건을 불러오고 있습니다. 잠시 후 저장해 주세요.');
+            return;
+        }
         // 빈 일정 저장 방지 — 이대로 저장되면 고객 화면에 '일정은 현재 준비 중입니다'만 떠서
         // "저장했는데 일정표가 안 나온다"로 이어진다.
         if (!templateMode && documentType === 'itinerary' && days.length === 0) {
@@ -407,7 +376,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
 
     return (
         <div className="fixed inset-0 z-[210] bg-slate-900/50 backdrop-blur-sm p-3 sm:p-6">
-            <div className="bg-[#F5F7FA] dark:bg-slate-900 rounded-2xl w-full h-full flex flex-col overflow-hidden shadow-2xl">
+            <div className="bg-[#F5F7FA] dark:bg-slate-900 rounded-2xl w-full h-full flex flex-col overflow-hidden shadow-2xl" inert={saving} aria-busy={saving}>
                 <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-center gap-3 min-w-0">
                         <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
@@ -488,7 +457,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                         </button>
                     </div>
                 )}
-                <div className="flex-1 overflow-hidden bg-[#F5F7FA] dark:bg-slate-900">
+                <div className="flex-1 overflow-hidden bg-[#F5F7FA] dark:bg-slate-900" onInputCapture={() => { autoImportRef.current = false; }}>
                     {(
                     <div className="grid h-full grid-cols-[240px_minmax(560px,1fr)_280px] overflow-hidden max-xl:grid-cols-[210px_minmax(520px,1fr)] max-lg:block max-lg:overflow-y-auto">
                         <aside className="overflow-y-auto border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 max-lg:border-b max-lg:border-r-0">
@@ -503,19 +472,8 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                 <select
                                     value={selectedProductId}
                                     onChange={event => {
-                                        const v = event.target.value;
-                                        setSelectedProductId(v);
-                                        // 일정이 비어 있으면 선택 즉시 자동 적용 — "선택하고 저장"만 해도
-                                        // 일정이 들어가도록. (기존엔 「선택 상품 적용」을 따로 눌러야 해서
-                                        // 빈 일정이 저장되고 고객 화면에 '준비 중'만 뜨는 실수가 잦았다)
-                                        if (v) {
-                                            const p = products.find(item => item.id === v);
-                                            const empty = days.length === 0 || days.every(d => !d.title && !(d.activities?.length));
-                                            if (p && empty && getProductScheduleStats(p).days > 0) {
-                                                setAutoLoadedName(null);
-                                                applyProduct(p, { auto: true });
-                                            }
-                                        }
+                                        autoImportRef.current = false;
+                                        setSelectedProductId(event.target.value);
                                     }}
                                     className="mt-3 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#287DFA]"
                                     disabled={loadingProducts}
@@ -526,6 +484,12 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                         return <option key={product.id} value={product.id}>{product.name} ({stats.days}일 · 일정 {stats.activities}개)</option>;
                                     })}
                                 </select>
+                                {productsError && (
+                                    <div role="alert" className="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-700">
+                                        <p>{productsError}</p>
+                                        <button type="button" onClick={() => setProductsRetry(value => value + 1)} className="mt-1 font-black underline">다시 시도</button>
+                                    </div>
+                                )}
                                 <button
                                     type="button"
                                     onClick={importSelectedProduct}

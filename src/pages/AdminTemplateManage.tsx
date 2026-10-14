@@ -22,6 +22,7 @@ export interface TemplateDay {
     title: string;
     region?: string;
     summary?: string;
+    images?: string[];
     activities: Activity[];
     meals?: { breakfast?: string; lunch?: string; dinner?: string };
     accommodation?: {
@@ -31,6 +32,7 @@ export interface TemplateDay {
         location?: string;
         images?: string[];
         description?: string;
+        tags?: string;
     } | null;
 }
 export interface DocumentSettings {

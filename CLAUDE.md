@@ -27,7 +27,7 @@
 | SEO 메타 주입 | `functions/[[path]].ts` | SPA 화면에만. 루트의 한글 이름 문서(견적 페이지)는 `isQuoteStaticPage`로 통과 |
 | DB | D1 `DB` = `leaders-requests` 하나 | 견적: `requests`·`kv`·`itinerary_notice_dispatches` / 사이트: `products`·`reservations`·`users` … |
 | 파일 | R2 `FILES`(견적: `uploads/` 비공개, `images/` 공개) · R2 `BUCKET`(사이트 이미지, `/api/images/*` 공개) | **두 버킷을 같은 것으로 묶지 말 것** — 고객 첨부가 공개된다 |
-| 테스트 | `tests/*.test.mjs` (`npm test`, 133건) | 견적 문서·예약·이미지·홈 배너·SEO와 실제 Cloudflare HTMLRewriter/D1을 검사 |
+| 테스트 | `tests/*.test.mjs` (`npm test`, 159건) | 견적 문서·예약·이미지·홈 배너·SEO와 실제 Cloudflare HTMLRewriter/D1을 검사 |
 
 - 업로드 주소가 둘: 견적은 `/api/upload`(JS), 사이트 이미지는 `/api/site-upload`(Hono, `functions/api/site-upload.ts`).
 - 견적 요청 화면은 React `/custom-estimate` 하나다(`src/components/estimate-desktop/quoteForm.ts`가 선택지·검증·payload의 정본). 접수는 `POST /api/requests`로 들어가 견적 파이프라인을 탄다. 옛 `public/견적요청.html`은 리다이렉트 문서.
@@ -88,6 +88,9 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 견적 예약 상세는 `/admin/quote-desk/bookings?id=...` → `/예약관리?id=...`로 최신 원본을 읽는다. 기존 localStorage 전달 방식과 고객 문서 링크도 유지한다. 새 ID 진입이 실패하면 이전 고객 데이터를 대신 열지 않는다.
 - 같은 ID가 두 표에 있어도 목록의 키·편집·삭제·캘린더 연결은 예약 종류까지 구분한다. 출발 예정·캘린더·예약확정 Excel도 견적 예약을 포함한다. 일부 조회 실패 시 이전 목록을 유지하고 누락 경고를 표시한다.
 - 통합 예약 검증: `npm test`, `npm run build`, `node scripts/check-admin-bookings.mjs`. 마지막 검사는 로컬 SQLite·실제 Lucia 로그인만 사용하며 운영 DB/알림에 접근하지 않는다. `--serve`로 8792번 포트의 테스트 관리자 화면을 확인할 수 있다.
+- 상품 예약 상세는 진행 순서 → 운영 준비 상태 → 일정표·계약서 작업 → 주문·배정·운영 정보로 구성한다. 계약서 메일 발송과 고객 동의, 일정표 공개와 메일 발송을 각각 구분한다. 예약 상품 ID로 문서를 초기화하며 저장된 빈 일정도 상품으로 덮어쓰지 않는다. 편집·가이드 배정 중 부모 갱신은 초안을 초기화하지 않는다.
+- `reservations.admin_operations`는 조인 여부·지역·차량·기사 연락처·현금영수증 기록·내부 운영 메모 JSON이며 관리자에게만 노출한다. 고객 예약 조회에서는 이 필드와 `admin_memo` 이력을 제외한다. 현금영수증 기능은 발급 이력 기록이며 외부 발급 서비스와 연결하지 않는다.
+- 예약 작업 검증: `node scripts/check-reservation-workspace.mjs` (`--serve`는 8795번 포트 `/__local-admin`). 로컬 SQLite와 실제 상품·문서 API로 저장/재조회·금액·사진·시간·권한을 확인하며 이메일은 로컬 응답으로 대체하고 외부 호출을 차단한다.
 
 - `/admin` = React 관리자(`src/components/admin/AdminLayout.tsx`·`AdminSidebar.tsx`). 이메일·비밀번호 로그인(Lucia 세션).
 - **맞춤 견적 메뉴** = INHASU 관리 도구를 같은 출처 iframe으로 끼운 것: `/admin/quote-desk/:tool`(`src/pages/AdminQuoteDesk.tsx`, `src/components/admin/quoteDesk.ts`). 진입 시 `GET /api/auth/quote-desk`로 `ADMIN_TOKEN`을 받아 `sessionStorage['leaders_admin_token']`에 넣는다(견적 도구가 원래 쓰던 자리). 견적 도구는 `public/admin-embed.js`로 임베드 상태에서 자체 메뉴를 숨긴다.

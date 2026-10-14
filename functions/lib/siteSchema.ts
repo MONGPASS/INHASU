@@ -23,7 +23,7 @@ interface TableDef {
 }
 
 /** 표·칸 정의를 바꾸면 올린다. 올리면 각 서버 인스턴스가 한 번씩 다시 맞춘다. */
-export const SITE_SCHEMA_VERSION = 1;
+export const SITE_SCHEMA_VERSION = 2;
 
 const NOW = "DEFAULT (datetime('now'))";
 
@@ -103,6 +103,7 @@ export const SITE_TABLES: TableDef[] = [
             'itinerary_url TEXT',
             'source TEXT',                                // 주문 경로
             'notes TEXT',
+            'admin_operations TEXT',                      // JSON: 관리자에게만 노출하는 예약 운영 정보
             "history TEXT DEFAULT '[]'",
             'user_id TEXT',
             `created_at TEXT ${NOW}`,

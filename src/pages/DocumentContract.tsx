@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { SEO } from '../components/seo/SEO';
@@ -62,6 +62,8 @@ interface ContractPageData {
     guide: { name?: string; phone?: string; languages?: any; specialties?: any } | null;
     productIncluded?: string[];
     productExcluded?: string[];
+    contractIncludedOverride?: boolean;
+    contractExcludedOverride?: boolean;
 }
 
 const fallbackContract: Required<ContractSettings> = {
@@ -282,6 +284,16 @@ export const DocumentContract: React.FC = () => {
     const [signerName, setSignerName] = useState('');
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const printedRef = useRef(false);
+    useEffect(() => {
+        if (loading || error || !data || printedRef.current || new URLSearchParams(window.location.search).get('autoprint') !== '1') return;
+        let stopped = false;
+        requestAnimationFrame(() => { requestAnimationFrame(async () => {
+            try { await document.fonts.ready; } catch { /* 시스템 폰트로 출력 */ }
+            if (!stopped && !printedRef.current) { printedRef.current = true; window.print(); }
+        }); });
+        return () => { stopped = true; };
+    }, [loading, error, data]);
 
     useEffect(() => {
         if (!reservationId) return;
@@ -388,10 +400,10 @@ export const DocumentContract: React.FC = () => {
     const contractNumber = reservation.reservationNumber || reservation.id.slice(0, 8).toUpperCase();
     const cancellationRows = resolveCancellationRows(contractSettings.cancellationRows);
     const depositMethod = resolveDepositMethod(contractSettings.paymentMethod);
-    const includedItems = (data.productIncluded && data.productIncluded.length) ? data.productIncluded : splitLines(contractSettings.includedText);
-    const excludedItems = (data.productExcluded && data.productExcluded.length) ? data.productExcluded : splitLines(contractSettings.excludedText);
-    const includedDisplay = includedItems.length ? includedItems : splitLines(fallbackContract.includedText);
-    const excludedDisplay = excludedItems.length ? excludedItems : splitLines(fallbackContract.excludedText);
+    const includedItems = data.contractIncludedOverride ? data.productIncluded || [] : (data.productIncluded && data.productIncluded.length) ? data.productIncluded : splitLines(contractSettings.includedText);
+    const excludedItems = data.contractExcludedOverride ? data.productExcluded || [] : (data.productExcluded && data.productExcluded.length) ? data.productExcluded : splitLines(contractSettings.excludedText);
+    const includedDisplay = data.contractIncludedOverride ? includedItems : includedItems.length ? includedItems : splitLines(fallbackContract.includedText);
+    const excludedDisplay = data.contractExcludedOverride ? excludedItems : excludedItems.length ? excludedItems : splitLines(fallbackContract.excludedText);
     const balance = reservation.balanceAmount ?? (reservation.totalPrice - (reservation.depositAmount || 0));
 
     const tripRows: Array<{ label: string; value: string }> = [
