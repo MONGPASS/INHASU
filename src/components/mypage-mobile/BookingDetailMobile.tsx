@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { openKakaoConsultation } from '../../lib/consultation';
 import { GuideDetailModal, AccommodationDetailModal } from '../common/DetailModals';
 import { toTourDateKey } from '../../utils/formatDate';
 import {
@@ -85,7 +86,7 @@ export function BookingDetailMobile() {
     const statusLabel = reservationStatusLabel(reservation.status, depositReported);
 
     // Document links always use the reservation UUID; stored URLs only flag that a document was issued.
-    const itineraryUrl = reservation.itineraryUrl || reservation.itineraryTemplateId ? `/documents/itinerary/${reservation.id}` : '';
+    const itineraryUrl = reservation.itineraryUrl && ['confirmed', 'paid', 'completed'].includes(reservation.status) ? `/documents/itinerary/${reservation.id}` : '';
     const contractUrl = reservation.contractUrl ? `/documents/contract/${reservation.id}` : '';
 
     const guide = reservation.assignedGuide;
@@ -260,9 +261,9 @@ export function BookingDetailMobile() {
                         </span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-                        <button type="button" onClick={() => window.openChannelTalk?.()} style={contactBtn}>
+                        <button type="button" onClick={openKakaoConsultation} style={contactBtn}>
                             <Ico d={DETAIL_ICON.chat} size={18} />
-                            채팅 상담
+                            카카오톡 상담
                         </button>
                         <a href={`mailto:${COMPANY_INFO.email}`} style={contactBtn}>
                             <Ico d={D.mail} size={18} />

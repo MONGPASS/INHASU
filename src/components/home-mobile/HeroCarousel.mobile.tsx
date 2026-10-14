@@ -3,6 +3,7 @@ import { BRAND } from '../../constants/company';
 import { MW, isUsableImage } from '../desktop-primitives/mwTokens';
 import type { HomeProduct } from '../home-desktop/homeDesktopData';
 import { MPhoto } from '../mobile/mobileUi';
+import { HeroBannerStatus } from '../common/HeroBannerStatus';
 import { linkTo, useGo, useHeroSlides } from './homeMobileData';
 
 const GAP = 10;
@@ -22,7 +23,7 @@ const slideBox = {
 /** Swipeable hero banners; advances on its own until the visitor touches it. */
 export function HeroCarouselMobile({ products }: { products: HomeProduct[] }) {
     const go = useGo();
-    const { slides, isLoading } = useHeroSlides(products);
+    const { slides, isLoading, isError, refetch } = useHeroSlides(products);
     const n = slides.length;
 
     const rowRef = useRef<HTMLDivElement>(null);
@@ -69,8 +70,10 @@ export function HeroCarouselMobile({ products }: { products: HomeProduct[] }) {
                 data-noscroll=""
                 style={{ position: 'relative', display: 'flex', gap: GAP, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none', padding: `0 ${SIDE}px`, scrollPadding: `0 ${SIDE}px` }}
             >
-                {isLoading ? (
-                    <div aria-hidden="true" style={{ ...slideBox, flex: '0 0 100%', background: MW.chip }} />
+                {isLoading || isError ? (
+                    <div style={{ ...slideBox, flex: '0 0 100%', background: MW.chip }}>
+                        <HeroBannerStatus error={isError} onRetry={() => { void refetch(); }} />
+                    </div>
                 ) : (
                     slides.map((s, k) => (
                         <a

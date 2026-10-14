@@ -1,6 +1,7 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { openKakaoConsultation } from '../../lib/consultation';
 import { useNotification, type Notification } from '../../contexts/NotificationContext';
 import { useToast } from '../ui/Toast';
 import { formatRelativeTime } from '../../utils/formatDate';
@@ -704,9 +705,9 @@ export function SupportCard({ go }: { go: Go }) {
                 >
                     FAQ 보기
                 </a>
-                <button type="button" onClick={() => window.openChannelTalk?.()} style={{ ...mintBtn, height: 48, padding: '0 22px', fontSize: 14, gap: 8 }} {...mintHover}>
+                <button type="button" onClick={openKakaoConsultation} style={{ ...mintBtn, height: 48, padding: '0 22px', fontSize: 14, gap: 8 }} {...mintHover}>
                     <Ico d={ICON.chat} size={18} color={MW.navy} />
-                    문의하기
+                    카카오톡 문의
                 </button>
             </div>
         </div>

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { KAKAO_CHANNEL_CHAT_URL } from '../../constants/company';
 import { MW } from '../desktop-primitives/mwTokens';
-import { ICON } from '../mypage-desktop/myPageTheme';
 import { useMe } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
 import { KAKAO_BUBBLE, KAKAO_INK, KAKAO_YELLOW, M_GRADIENT } from '../mobile/mobileTheme';
@@ -46,7 +45,7 @@ const FAILURE_TEXT: Record<string, string> = {
 const FAILURE_DEFAULT = '전송하지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도해 주세요.';
 
 /**
- * Instant channels (KakaoTalk channel / Channel Talk) and the inquiry form. The form is received by
+ * KakaoTalk consultation and the inquiry form. The form is received by
  * /api/inquiries; when that fails, the same content can be sent from the visitor's mail app.
  */
 export function ContactPanel() {
@@ -111,17 +110,12 @@ export function ContactPanel() {
 
     return (
         <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
+            <div style={{ display: 'grid', gap: 8 }}>
                 <a href={KAKAO_CHANNEL_CHAT_URL} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, borderRadius: 18, background: KAKAO_YELLOW, color: KAKAO_INK, textDecoration: 'none', minWidth: 0 }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}><path fill={KAKAO_INK} d={KAKAO_BUBBLE} /></svg>
                     <span style={{ fontSize: 14, fontWeight: 900, whiteSpace: 'nowrap' }}>카카오톡으로 상담</span>
                     <span style={{ fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>평균 3시간 이내 답변</span>
                 </a>
-                <button type="button" onClick={() => window.openChannelTalk?.()} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, borderRadius: 18, background: '#FFFFFF', border: `1px solid ${MW.line}`, color: MW.navy, fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer', minWidth: 0 }}>
-                    <Ico d={ICON.chat} size={20} color={MW.mintDeep} />
-                    <span style={{ fontSize: 14, fontWeight: 900, whiteSpace: 'nowrap' }}>채팅으로 상담</span>
-                    <span style={{ maxWidth: '100%', fontSize: 11, color: MW.mute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>이 화면에서 바로 상담</span>
-                </button>
             </div>
 
             {state !== 'sent' ? (

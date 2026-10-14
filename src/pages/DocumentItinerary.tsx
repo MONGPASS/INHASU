@@ -99,7 +99,22 @@ interface GuideExtra {
     memos?: string[];
 }
 
+// 이미 발송한 고객 링크도 기존 INHASU A4 문서로 연결한다. 가이드용 사본은 유지한다.
 export const DocumentItinerary: React.FC = () => {
+    const { reservationId } = useParams();
+    const [params] = useSearchParams();
+    const guideMode = params.get('guide') === '1';
+    useEffect(() => {
+        if (guideMode || !reservationId) return;
+        const query = new URLSearchParams({ reservationId });
+        if (params.get('preview') === '1') query.set('preview', '1');
+        if (params.get('autoprint') === '1') { query.set('m', '0'); query.set('print', '1'); }
+        window.location.replace(`/확정일정표?${query}`);
+    }, [reservationId, params, guideMode]);
+    return guideMode ? <GuideDocumentItinerary /> : <p style={{ padding: 40, textAlign: 'center' }}>확정 일정표를 여는 중…</p>;
+};
+
+const GuideDocumentItinerary: React.FC = () => {
     const { reservationId } = useParams();
     const [searchParams] = useSearchParams();
     const guideMode = searchParams.get('guide') === '1';
@@ -431,7 +446,7 @@ export const DocumentItinerary: React.FC = () => {
                     .doc-card { box-shadow:none !important; max-width:100% !important; width:100% !important; border-radius:0 !important; }
                     .print-break { break-inside:avoid; page-break-inside:avoid; }
                     /* 인쇄 시 떠 있는 채팅 위젯 숨김 (PDF에 찍히지 않도록) */
-                    .floating-line-btn, #ch-plugin-entry, #ch-plugin-launcher { display:none !important; }
+                    .floating-line-btn { display:none !important; }
                     /* 브라우저 "배경 그래픽" 옵션이 꺼져 있어도 타임라인 라인·DAY 포인트·
                        식사 칩·섹션 배경색이 그대로 인쇄되도록 강제 */
                     .doc-card, .doc-card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }

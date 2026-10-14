@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
-import { productImageSet, productImageUrl } from '../../utils/productImage';
+import { productImageSet, productImageUrl, uploadedImageDimensions } from '../../utils/productImage';
 import { MW, MW_FONT_EN } from '../desktop-primitives/mwTokens';
 import { useMobileShell } from './mobileShellContext';
 import { D, M_AMBER, type QuickMenuItem } from './mobileTheme';
@@ -206,7 +206,7 @@ export function MLoading({ pad = 60 }: { pad?: number }) {
 
 /**
  * Photo that fills its (relatively positioned) parent; neutral tile when there is no image.
- * Uploaded photos are requested at the displayed size through the zone's image service
+ * New uploaded photos use the sizes stored in R2; older photos use an enabled zone service.
  * (`sizes` = how wide the photo is shown; the default suits a two-column card). Other
  * sources, and an uploaded photo whose resized variant fails, load as they are.
  */
@@ -216,8 +216,10 @@ export function MPhoto({
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
     if (!src) return <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: MW.chip, ...style }} />;
     const srcSet = failedSrc === src ? undefined : productImageSet(src);
+    const dimensions = uploadedImageDimensions(src);
     return (
         <img
+            width={dimensions?.width} height={dimensions?.height}
             src={srcSet ? productImageUrl(src, 640) : src}
             srcSet={srcSet}
             sizes={srcSet ? sizes : undefined}

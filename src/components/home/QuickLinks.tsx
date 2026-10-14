@@ -5,6 +5,7 @@ import { getOptimizedImageUrl } from '../../utils/cloudflareImage';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { KAKAO_CHANNEL_CHAT_URL } from '../../constants/company';
+import { openKakaoConsultation } from '../../lib/consultation';
 
 import productsIcon from '../../assets/products_icon_v2.png';
 import estimateIcon from '../../assets/custom_estimate_icon_v2.png';
@@ -21,19 +22,24 @@ interface QuickLink {
 }
 
 const KAKAO_ICON = '/assets/icons/kakaotalk.webp';
-/** 예전에 관리자 화면에서 등록한 LINE 상담 링크(옛 저장값). 카카오톡 채널로 바꿔 보여 준다. */
-const isLegacyLineLink = (path?: string) => /line\.(me|ee)|lin\.ee/i.test(String(path || ''));
+/** Preserve old saved consultation shortcuts while moving them to Kakao. */
+const isLegacyConsultationLink = (path?: string) => {
+    const value = String(path || '').trim();
+    return /line\.(me|ee)|lin\.ee/i.test(value)
+        || /^(channeltalk|channel-talk)$/i.test(value)
+        || /^https?:\/\/[^/]*\.channel\.io(?:\/|$)/i.test(value);
+};
 
 export const QuickLinks: React.FC = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
 
-    // 퀵메뉴 클릭 — 외부 URL/전화/채널톡은 채팅을 바로 열고, 나머지는 라우팅
+    // 퀵메뉴 클릭 — 상담·외부 URL·전화는 새 창으로 열고, 나머지는 라우팅
     const handleClick = (path?: string) => {
         const p = (path || '').trim();
         if (!p || p === '#') return;
+        if (isLegacyConsultationLink(p)) { openKakaoConsultation(); return; }
         if (/^(https?:|tel:|mailto:)/i.test(p)) { window.open(p, '_blank', 'noopener,noreferrer'); return; }
-        if (p === 'channeltalk' || p === 'channel-talk') { window.openChannelTalk?.(); return; }
         navigate(p);
     };
 
@@ -73,10 +79,17 @@ export const QuickLinks: React.FC = () => {
     // 카카오톡 상담 바로가기 — 이미 등록돼 있지 않으면 마지막에 추가 (누르면 카카오톡 채널 채팅이 바로 열림)
     const displayLinks = useMemo(() => {
         const kakaoLabel = t('home.quick_links.line', '카카오톡 상담');
-        // DB에 남아 있는 옛 LINE 링크는 카카오톡 채널 링크로 바꿔 보여 준다.
-        const mapped = (links as QuickLink[]).map((l) => (isLegacyLineLink(l.path)
+        // DB에 남아 있는 옛 상담 링크도 작동하며, 같은 카카오 채널은 한 번만 표시한다.
+        const seenKakao = new Set<string>();
+        const mapped = (links as QuickLink[]).map((l) => (isLegacyConsultationLink(l.path)
             ? { ...l, image: KAKAO_ICON, label: kakaoLabel, path: KAKAO_CHANNEL_CHAT_URL }
-            : l));
+            : l)).filter((l) => {
+                if (!/pf\.kakao\.com/i.test(l.path)) return true;
+                const channel = l.path.replace(/\/chat\/?$/i, '').replace(/\/$/, '');
+                if (seenKakao.has(channel)) return false;
+                seenKakao.add(channel);
+                return true;
+            });
         const hasKakao = mapped.some((l) => /pf\.kakao\.com/i.test(String(l.path || '')));
         if (hasKakao) return mapped;
         return [

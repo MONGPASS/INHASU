@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { openKakaoConsultation } from '../../lib/consultation';
 import { GuideDetailModal, AccommodationDetailModal } from '../common/DetailModals';
 import { toTourDateKey } from '../../utils/formatDate';
 import {
@@ -79,7 +80,7 @@ export function BookingDetailDesktop() {
     const paidPercent = pb && pb.total > 0 ? Math.round((paidAmount / pb.total) * 100) : 0;
 
     // Document links always use the reservation UUID; stored URLs only flag that a document was issued.
-    const itineraryUrl = reservation.itineraryUrl || reservation.itineraryTemplateId ? `/documents/itinerary/${reservation.id}` : '';
+    const itineraryUrl = reservation.itineraryUrl && ['confirmed', 'paid', 'completed'].includes(reservation.status) ? `/documents/itinerary/${reservation.id}` : '';
     const contractUrl = reservation.contractUrl ? `/documents/contract/${reservation.id}` : '';
 
     const guide = reservation.assignedGuide;
@@ -304,7 +305,7 @@ export function BookingDetailDesktop() {
                             <span style={{ fontSize: 12, color: MW.mute }}>한국어 담당 직원이 24시간 응대</span>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                            <ContactBtn d={ICON.chat} label="채팅 상담" onClick={() => window.openChannelTalk?.()} />
+                            <ContactBtn d={ICON.chat} label="카카오톡 상담" onClick={openKakaoConsultation} />
                             <ContactBtn d={ICON.mail} label="메일로 문의" href={`mailto:${COMPANY_INFO.email}`} />
                         </div>
                     </div>

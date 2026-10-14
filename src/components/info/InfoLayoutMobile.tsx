@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { MW, MW_FONT_EN } from '../desktop-primitives/mwTokens';
 import { MobileShell } from '../mobile/MobileShell';
 import { M_HAIR, M_PAPER } from '../mobile/mobileTheme';
-import { INFO_PAGES, activeInfoKey, infoEntry, type InfoKey } from './infoNav';
+import { INFO_NAV_PAGES, activeInfoKey, infoEntry, type InfoKey } from './infoNav';
 
 interface InfoLayoutMobileProps {
     page: InfoKey;
@@ -53,7 +53,7 @@ function InfoScreen({ page, heading, children }: InfoLayoutMobileProps) {
 
             <section style={{ padding: '20px 16px 40px', display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
                 <nav ref={row} aria-label="이용 안내·회사 정보" data-noscroll="" style={{ position: 'relative', minWidth: 0, display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', margin: '0 -16px', padding: '0 16px' }}>
-                    {INFO_PAGES.map((p) => {
+                    {INFO_NAV_PAGES.map((p) => {
                         const on = p.key === active;
                         return (
                             <a

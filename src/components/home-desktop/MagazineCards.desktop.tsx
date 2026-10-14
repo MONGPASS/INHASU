@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import type { HomeData } from '../../hooks/useHomeData';
 import { MW, MW_EYEBROW, MW_FONT_EN, MW_SEE_ALL, cleanTitle, isUsableImage } from '../desktop-primitives/mwTokens';
 
@@ -23,7 +24,7 @@ export function MagazineCardsDesktop({ magazines }: Props) {
                     전체 보기 →
                 </a>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,280px),1fr))', gap: 20 }}>
                 {items.map((m) => {
                     const title = cleanTitle(m.title);
                     return (
@@ -36,7 +37,7 @@ export function MagazineCardsDesktop({ magazines }: Props) {
                             onMouseLeave={(e) => (e.currentTarget.style.transform = '')}
                         >
                             {isUsableImage(m.image) && (
-                                <img src={m.image} alt={title} loading="lazy" decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <ResponsiveProductImage src={m.image} alt={title} sizes="(max-width: 640px) calc(100vw - 48px), 384px" loading="lazy" decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                             )}
                             <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '30%', pointerEvents: 'none', background: 'linear-gradient(180deg,rgba(10,31,46,0.35) 0%,rgba(10,31,46,0) 100%)' }} />
                             {/* Partial gradient behind the text only — the photo above stays sharp. */}

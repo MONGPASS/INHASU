@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { initializeLucia } from '../lib/auth';
+import { MAX_IMAGE_UPLOAD_BYTES, PUBLIC_IMAGE_CACHE, parseImageManifest, rasterContentType, variantMatches, webpDimensions } from '../lib/imageVariants';
 
 type Env = {
     BUCKET: any;
@@ -38,6 +39,10 @@ app.post('/', async (c) => {
         if (!file || typeof file === 'string') {
             return c.json({ error: 'No file uploaded' }, 400);
         }
+        if (!/^[a-z0-9][a-z0-9-]*(\/[a-z0-9][a-z0-9-]*)*$/.test(folder)) {
+            return c.json({ error: '올바른 이미지 폴더를 선택해 주세요.' }, 400);
+        }
+        if (file.size > MAX_IMAGE_UPLOAD_BYTES) return c.json({ error: '이미지는 10MB 이하로 업로드해 주세요.' }, 413);
 
         // ---- Auth: any logged-in session ----
         const lucia = initializeLucia(c.env.DB);
@@ -82,11 +87,33 @@ app.post('/', async (c) => {
             ext = Object.keys(MEMBER_IMAGE_TYPES).find((key) => MEMBER_IMAGE_TYPES[key] === imageType) || 'webp';
             targetFolder = folderRoot;
         }
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}.${ext}`;
-        const filePath = `${targetFolder}/${fileName}`;
-
         // Convert the file to an ArrayBuffer
         const arrayBuffer = await file.arrayBuffer();
+        // All uploads are publicly served; verify raster bytes even for admin uploads.
+        const verifiedType = rasterContentType(contentType, arrayBuffer);
+        if (!verifiedType) return c.json({ error: 'JPG, PNG, WebP 등 사진 파일만 업로드할 수 있습니다.' }, 415);
+        contentType = verifiedType;
+        ext = Object.keys(MEMBER_IMAGE_TYPES).find(key => MEMBER_IMAGE_TYPES[key] === verifiedType) || 'webp';
+        let manifest;
+        try { manifest = parseImageManifest(body['imageManifest'], webpDimensions(arrayBuffer)); }
+        catch (error: any) { return c.json({ error: error.message }, 400); }
+        const copies: { width: number; buffer: ArrayBuffer }[] = [];
+        for (const width of manifest?.widths || []) {
+            const copy = body[`variant_${width}`];
+            if (!copy || typeof copy === 'string' || copy.size > MAX_IMAGE_UPLOAD_BYTES || copy.type !== 'image/webp') {
+                return c.json({ error: '이미지 축소본이 올바르지 않습니다.' }, 400);
+            }
+            const buffer = await copy.arrayBuffer();
+            if (!variantMatches(webpDimensions(buffer), width, manifest!)) {
+                return c.json({ error: '이미지 축소본 크기가 실제 파일과 일치하지 않습니다.' }, 400);
+            }
+            copies.push({ width, buffer });
+        }
+        if (arrayBuffer.byteLength + copies.reduce((sum, copy) => sum + copy.buffer.byteLength, 0) > 20 * 1024 * 1024) {
+            return c.json({ error: '이미지 파일의 합계는 20MB 이하여야 합니다.' }, 413);
+        }
+        const suffix = manifest ? `_v1_${manifest.width}x${manifest.height}_${manifest.widths.join('-') || 'none'}` : '';
+        const filePath = `${targetFolder}/${crypto.randomUUID()}${suffix}.${ext}`;
 
         // Ensure R2 bucket is bound
         if (!c.env.BUCKET) {
@@ -95,11 +122,20 @@ app.post('/', async (c) => {
         }
 
         // Upload to Cloudflare R2
-        await c.env.BUCKET.put(filePath, arrayBuffer, {
-            httpMetadata: {
-                contentType,
-            },
-        });
+        const stored: string[] = [];
+        try {
+            for (const copy of copies) {
+                const copyPath = filePath.replace(/\.webp$/, `.w${copy.width}.webp`);
+                await c.env.BUCKET.put(copyPath, copy.buffer, { httpMetadata: { contentType: 'image/webp', cacheControl: PUBLIC_IMAGE_CACHE } });
+                stored.push(copyPath);
+            }
+            await c.env.BUCKET.put(filePath, arrayBuffer, { httpMetadata: { contentType, cacheControl: PUBLIC_IMAGE_CACHE } });
+            stored.push(filePath);
+        } catch (error) {
+            // Never return a manifest that advertises missing sizes after a partial upload.
+            if (c.env.BUCKET.delete) await Promise.allSettled(stored.map(path => c.env.BUCKET.delete(path)));
+            throw error;
+        }
 
         // The public URL requires a custom domain or a dev URL for R2 if not using workers.dev.
         // Assuming we serve them directly from the bucket via Cloudflare Pages or a custom subdomain
@@ -107,7 +143,7 @@ app.post('/', async (c) => {
         // If the user hasn't set up an R2 Custom Domain, returning a path that the Pages can intercept:
         const publicUrl = `/api/images/${filePath}`;
 
-        return c.json({ success: true, url: publicUrl });
+        return c.json({ success: true, url: publicUrl, ...(manifest ? { width: manifest.width, height: manifest.height } : {}) });
 
     } catch (e: any) {
         console.error('File upload API error:', e);

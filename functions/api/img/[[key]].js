@@ -5,10 +5,11 @@
    - 장기 캐시
    ═══════════════════════════════════════════════════════════ */
 
-export async function onRequestGet({ env, params }) {
+export async function onRequestGet({ env, params, request }) {
   try {
     const sub = Array.isArray(params.key) ? params.key.join("/") : params.key;
     if (!sub) return new Response("bad request", { status: 400 });
+    if (String(sub).split('/').some(part => !part || part === '.' || part === '..')) return new Response("bad request", { status: 400 });
     const key = "images/" + sub;   // 항상 images/ 접두 — 비공개 영역 접근 차단
 
     const obj = await env.FILES.get(key);
@@ -18,6 +19,9 @@ export async function onRequestGet({ env, params }) {
     headers.set("Content-Type", obj.httpMetadata?.contentType || "image/webp");
     headers.set("Cache-Control", "public, max-age=31536000, immutable");
     if (obj.httpEtag) headers.set("ETag", obj.httpEtag);
+    if (obj.httpEtag && request?.headers.get('If-None-Match')?.split(',').map(value => value.trim().replace(/^W\//, '')).includes(obj.httpEtag)) {
+      return new Response(null, { status: 304, headers });
+    }
     return new Response(obj.body, { headers });
   } catch (e) {
     return new Response("error", { status: 500 });

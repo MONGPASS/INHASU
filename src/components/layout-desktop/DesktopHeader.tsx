@@ -3,9 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import logoSquare from '../../assets/logo_horizontal.webp';
 import { api } from '../../lib/api';
+import { openKakaoConsultation } from '../../lib/consultation';
 import { useWishlist } from '../../hooks/useWishlist';
 import { useProductCategories } from '../../hooks/useProductCategories';
 import { BRAND } from '../../constants/company';
+import { isPublishedMagazine } from '../../constants/seo';
 import { MW, MW_FONT, MW_FONT_EN, isUsableImage, won } from '../desktop-primitives/mwTokens';
 
 const NAV_ITEMS: { id: string; label: string; path: string; match: (p: string) => boolean }[] = [
@@ -111,7 +113,7 @@ export function DesktopHeader() {
             const data = await api.magazines.list();
             if (!Array.isArray(data)) return [];
             return data
-                .filter((m: { is_active?: unknown; is_published?: unknown }) => m.is_active || m.is_published)
+                .filter(isPublishedMagazine)
                 .map((m: { id: string; title?: string; subtitle?: string; description?: string; category?: string }) => ({
                     id: m.id,
                     title: m.title || '',
@@ -157,10 +159,7 @@ export function DesktopHeader() {
         search(text);
     };
 
-    const onConsult = () => {
-        if (typeof window.openChannelTalk === 'function') window.openChannelTalk();
-        else navigate('/custom-estimate');
-    };
+    const onConsult = openKakaoConsultation;
 
     const go = (path: string) => {
         setMenuOpen(false);

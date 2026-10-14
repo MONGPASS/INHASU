@@ -53,8 +53,8 @@ const NAV_ROW: { label: string; path: string; match: (p: string) => boolean; dot
     { label: '여행 기획전', path: '/promotions', match: (p) => p.startsWith('/promotions'), dot: true },
 ];
 
-/** `word`: 카테고리 랜딩으로 가는 링크 — 그 카테고리가 없으면 이 검색어로 투어 목록을 연다. */
-const FOOT_GROUPS: { title: string; links: { label: string; path: string; word?: string }[] }[] = [
+/** `word`: 카테고리 랜딩으로 가는 링크 — 그 카테고리가 없으면 이 검색어로 투어 목록을 연다. `external`: 새 탭으로 여는 바깥 주소. */
+const FOOT_GROUPS: { title: string; links: { label: string; path: string; word?: string; external?: boolean }[] }[] = [
     {
         title: '서비스',
         links: [
@@ -80,10 +80,9 @@ const FOOT_GROUPS: { title: string; links: { label: string; path: string; word?:
         title: '회사 정보',
         links: [
             { label: '회사 소개', path: '/about' },
-            { label: '가이드 모집', path: '/guide-apply' },
             { label: '여행 후기', path: '/reviews' },
             { label: '마이페이지', path: '/mypage' },
-            { label: '문의', path: '/contact' },
+            { label: '카카오톡 문의', path: KAKAO_CHANNEL_CHAT_URL, external: true },
         ],
     },
 ];
@@ -486,8 +485,8 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                                         {open && (
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '12px 16px', padding: '0 0 18px' }}>
                                                 {g.links.map((l) => {
-                                                    const to = footPath(l);
-                                                    return <a key={l.label} href={to} onClick={(e) => { e.preventDefault(); go(to); }} style={{ fontSize: 13, color: MW.mute, textDecoration: 'none' }}>{l.label}</a>;
+                                                    const to = l.external ? l.path : footPath(l);
+                                                    return <a key={l.label} href={to} target={l.external ? '_blank' : undefined} rel={l.external ? 'noopener noreferrer' : undefined} onClick={(e) => { if (l.external || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return; e.preventDefault(); go(to); }} style={{ fontSize: 13, color: MW.mute, textDecoration: 'none' }}>{l.label}</a>;
                                                 })}
                                             </div>
                                         )}

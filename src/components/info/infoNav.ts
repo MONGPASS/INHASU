@@ -27,6 +27,9 @@ export const INFO_PAGES: InfoEntry[] = [
     { key: 'contactUs', path: '/contact', group: '회사 정보', en: 'CONTACT', title: '문의', lead: '여행 상담·질문은 편하게 남겨 주세요. 한국어 스태프가 24시간 이내에 답변해 드립니다.' },
 ];
 
+// Keep existing page metadata for direct links, without advertising recruitment.
+export const INFO_NAV_PAGES = INFO_PAGES.filter((p) => p.key !== 'guideRecruit');
+
 export const infoEntry = (key: InfoKey): InfoEntry => INFO_PAGES.find((p) => p.key === key) ?? INFO_PAGES[0];
 
 /** The entry whose route matches the current location; falls back to the page's own key. */

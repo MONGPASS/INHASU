@@ -1,4 +1,8 @@
 import { Hono } from 'hono';
+import { BRAND, COMPANY_INFO, DEPOSIT_ACCOUNT, resolveCancellationRows } from '../../src/constants/company';
+import { getSessionUser } from '../lib/userAuth';
+import { requireAdmin } from '../lib/adminAuth';
+import { buildProductQuote, hasProductSchedule, loadProductDocument, mergeProductDays, productItineraryPublished } from '../lib/productItinerary';
 
 type Env = {
     DB: any;
@@ -50,8 +54,9 @@ const loadProductIncExc = async (db: any, productName?: string | null): Promise<
 };
 
 // GET /api/documents/itinerary/:reservationId
-// Public endpoint — no auth. Returns everything the itinerary page needs.
+// 기존 가이드 API는 호환 유지. format=quote는 공개된 고객 문서 또는 관리자 미리보기만 반환한다.
 app.get('/itinerary/:reservationId', async (c) => {
+    c.header('Cache-Control', 'private, no-store');
     const reservationId = c.req.param('reservationId');
     const db = c.env.DB;
 
@@ -65,73 +70,37 @@ app.get('/itinerary/:reservationId', async (c) => {
     }
 
     // Parse JSON fields
-    let dailyAccommodations: any[] = [];
-    try {
-        dailyAccommodations = reservation.daily_accommodations ? JSON.parse(reservation.daily_accommodations) : [];
-    } catch { dailyAccommodations = []; }
-
     let assignedGuide: any = null;
     try {
         assignedGuide = reservation.assigned_guide ? JSON.parse(reservation.assigned_guide) : null;
     } catch { assignedGuide = null; }
 
-    // Fetch itinerary template (if selected)
-    let template: any = null;
-    if (reservation.itinerary_template_id) {
-        const t: any = await db.prepare(
-            'SELECT * FROM itinerary_templates WHERE id = ?'
-        ).bind(reservation.itinerary_template_id).first();
-        if (t) {
-            let days: any[] = [];
-            try { days = t.days ? JSON.parse(t.days) : []; } catch { days = []; }
-            const decoded = decodeTemplateDescription(t.description || '');
-            template = {
-                id: t.id,
-                name: t.name,
-                description: decoded.description,
-                documentSettings: decoded.documentSettings,
-                days,
-            };
-        }
+    const { product, template, days: mergedDays } = await loadProductDocument(db, reservation);
+    const pdfFormat = c.req.query("format") === "quote";
+    const preview = c.req.query("preview") === "1";
+    let isAdmin = false;
+    if (pdfFormat && preview) {
+        isAdmin = (await getSessionUser(c))?.role === "admin";
+        if (!isAdmin) return c.json({ error: "관리자 미리보기에는 로그인이 필요합니다." }, 403);
     }
-
-    // 고객별로 편집·저장된 문서 내용이 있으면 템플릿보다 우선 사용
-    const dc = parseNestedJson(reservation.document_content);
-    if (dc && (Array.isArray(dc.days) || dc.documentSettings)) {
-        template = {
-            id: template?.id || 'custom',
-            name: dc.name || template?.name || '',
-            description: dc.description || template?.description || '',
-            documentSettings: dc.documentSettings || template?.documentSettings || null,
-            days: Array.isArray(dc.days) ? dc.days : (template?.days || []),
-        };
+    if (pdfFormat && !isAdmin && !productItineraryPublished(reservation)) {
+        return c.json({ error: "확정 일정표 준비 중이에요. 담당자가 공개하면 확인할 수 있습니다." }, 409);
     }
+    if (pdfFormat && !hasProductSchedule(mergedDays)) {
+        return c.json({ error: "저장된 여행 일정이 없습니다. 담당자에게 문의해 주세요." }, 409);
+    }
+    const assignmentsVisible = isAdmin || !!reservation.are_assignments_visible_to_user;
+    const customerDays = assignmentsVisible ? mergedDays : mergeProductDays({ ...reservation, daily_accommodations: null }, template, product);
+    const quote = pdfFormat ? buildProductQuote({ reservation, template, product, days: customerDays,
+        assignmentsVisible,
+        brand: { company: BRAND.name, companyEn: BRAND.nameEn.toUpperCase(), companyFull: BRAND.name + " 현지 여행사",
+            slogan: "당신의 삶을 우러러 볼 시간", instagram: "@mongolia_inhasu", kakao: "mongol247",
+            bizMn: "몽골 현지 사업자 등록번호: " + COMPANY_INFO.registrationNumber + "(SUUNZAM)",
+            bizKr: "국내 대행사 사업자 등록 번호: 730-54-00614(헬로볼라)",
+            account: DEPOSIT_ACCOUNT.number + " " + DEPOSIT_ACCOUNT.bank + " " + DEPOSIT_ACCOUNT.holder } }) : undefined;
 
-    // Compute day-by-day merged view
-    const mergedDays = (template?.days || []).map((tday: any, idx: number) => {
-        const dayNumber = tday.day || idx + 1;
-        const assignedAccommodation = dailyAccommodations.find((d: any) => d.day === dayNumber)?.accommodation || null;
-        const templateAccommodation = tday.accommodation
-            ? (typeof tday.accommodation === 'string' ? { name: tday.accommodation } : tday.accommodation)
-            : null;
-        return {
-            day: dayNumber,
-            date: tday.date || '',
-            title: tday.title || '',
-            region: tday.region || '',
-            summary: tday.summary || '',
-            activities: Array.isArray(tday.activities) ? tday.activities : [],
-            meals: tday.meals || {},
-            accommodation: assignedAccommodation || templateAccommodation,
-        };
-    });
-
-    // If template has fewer days than accommodations, pad with accommodation-only rows
-    if (dailyAccommodations.length > mergedDays.length) {
-        for (let d = mergedDays.length + 1; d <= dailyAccommodations.length; d++) {
-            const accommodation = dailyAccommodations.find((x: any) => x.day === d)?.accommodation || null;
-            if (accommodation) mergedDays.push({ day: d, date: dailyAccommodations.find((x: any) => x.day === d)?.date || '', title: '', activities: [], accommodation });
-        }
+    if (quote) {
+        return c.json({ quote: { ...quote, refundRows: resolveCancellationRows(template?.documentSettings?.contract?.cancellationRows) } });
     }
 
     const productIncExc = await loadProductIncExc(db, reservation.product_name);
@@ -153,7 +122,25 @@ app.get('/itinerary/:reservationId', async (c) => {
         days: mergedDays,
         productIncluded: productIncExc.included,
         productExcluded: productIncExc.excluded,
+        ...(quote ? { quote } : {}),
     });
+});
+
+// 링크 공유도 이메일 발송도 먼저 문서를 공개한다. 읽기/미리보기로 공개 상태를 바꾸지 않는다.
+app.post('/itinerary/:reservationId/publish', requireAdmin, async (c) => {
+    const id = c.req.param('reservationId');
+    const db = c.env.DB;
+    const reservation = await db.prepare('SELECT * FROM reservations WHERE id = ?').bind(id).first();
+    if (!reservation) return c.json({ error: 'Reservation not found' }, 404);
+    if (!['confirmed', 'paid', 'completed'].includes(reservation.status)) {
+        return c.json({ error: '예약금 확인 후 예약을 확정해야 확정 일정표를 공개할 수 있습니다.' }, 409);
+    }
+    const { days } = await loadProductDocument(db, reservation);
+    if (!hasProductSchedule(days)) return c.json({ error: '여행 일정을 작성하고 저장해 주세요.' }, 409);
+    const itineraryUrl = `${BRAND.siteUrl}/documents/itinerary/${id}`;
+    await db.prepare("UPDATE reservations SET itinerary_url = ?, updated_at = datetime('now') WHERE id = ?")
+        .bind(itineraryUrl, id).run();
+    return c.json({ itineraryUrl });
 });
 
 // GET /api/documents/contract/:reservationId — public

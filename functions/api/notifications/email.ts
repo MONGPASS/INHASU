@@ -524,11 +524,13 @@ app.post('/', async (c) => {
                 return c.json({ error: `Unknown email type: ${type}` }, 400);
         }
 
+        let emailFailure = apiKey ? '' : '이메일 발송 설정이 없습니다. 관리자에게 문의해 주세요.';
         if (apiKey) {
             try {
                 await sendEmail(apiKey, to, subject, html);
             } catch (mailErr) {
                 console.error('Email send failed (continuing to create in-app notification):', mailErr);
+                emailFailure = '이메일 발송에 실패했습니다. 다시 시도해 주세요.';
             }
         }
 
@@ -563,6 +565,11 @@ app.post('/', async (c) => {
 
         if (adminSubject && adminHtml) {
             await sendEmail(apiKey, adminEmail, adminSubject, adminHtml);
+        }
+
+        // 문서 공개/사이트 알림과 이메일 성공은 별개다. 관리자에게 실패를 알려 재발송할 수 있게 한다.
+        if ((type === 'ITINERARY_READY' || type === 'CONTRACT_READY') && emailFailure) {
+            return c.json({ error: emailFailure }, 502);
         }
 
         return c.json({ success: true });

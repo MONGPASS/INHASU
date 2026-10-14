@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
 <title>확정 일정표 · 몽골리아 은하수</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -78,9 +79,13 @@
 <button class="fab" id="fab" style="display:none" onclick="window.printSchedule ? window.printSchedule() : window.print()">📄 PDF 저장</button>
 
 <script type="module">
+import { loadProductItinerary, escapeDocumentText, productDocumentSections, paginateProductPages, productDocumentToolbar } from "/product-itinerary.js";
 /* ── 확정 일정표 출처: ?t=<token>이면 서버의 예약 확정 정보, 아니면 localStorage(편집기)/data.js 샘플 ── */
 const params = new URLSearchParams(location.search);
 const _token = params.get("t");
+const productParams = params;
+const productId = productParams.get("reservationId");
+let productError = "";
 
 /* PC 버전 링크(같은 파라미터 유지, 강제 PC = m=0) */
 (() => {
@@ -142,6 +147,10 @@ const buildConfirmedQuote = j => {
   return q;
 };
 const Q = await (async () => {
+  if (productId) {
+    try { return await loadProductItinerary(productParams); }
+    catch (e) { productError = e.message || "일정표를 불러오지 못했습니다."; return null; }
+  }
   if (_token) {
     try {
       const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
@@ -179,26 +188,26 @@ if (!Q) {
     `<div class="card"><div class="pad" style="text-align:center;">
       <div style="font-size:46px">🕓</div>
       <h1 style="font-size:21px;margin:14px 0 8px;font-weight:800">확정 일정표 준비 중이에요</h1>
-      <p style="color:#5C6B75;line-height:1.65;font-size:14.5px">예약이 확정되면 확정 일정표를 바로 확인하실 수 있습니다.</p>
-      <a href="내견적.html?t=${encodeURIComponent(_token || "")}" style="display:inline-block;margin-top:20px;color:#1C8571;font-weight:800;text-decoration:none">← 내 견적 확인으로 돌아가기</a>
+      <p style="color:#5C6B75;line-height:1.65;font-size:14.5px">${productId ? escapeDocumentText(productError) : "예약이 확정되면 확정 일정표를 바로 확인하실 수 있습니다."}</p>
+      <a href="${productId ? "/mypage/reservations/" + encodeURIComponent(productId) : "내견적.html?t=" + encodeURIComponent(_token || "")}" style="display:inline-block;margin-top:20px;color:#1C8571;font-weight:800;text-decoration:none">${productId ? "← 내 예약으로 돌아가기" : "← 내 견적 확인으로 돌아가기"}</a>
     </div>`;
 } else {
 
 /* 편집기/샘플(고객 링크 아님)일 때만 상단 도구바 표시 */
 if (!_token) { document.getElementById("topbar").style.display = ""; }
 document.getElementById("fab").style.display = "";
-document.getElementById("tbSave")?.addEventListener("click", () => window.printSchedule ? window.printSchedule() : window.print());
+if (!productId) document.getElementById("tbSave")?.addEventListener("click", () => window.printSchedule ? window.printSchedule() : window.print());
 
 const won = n => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("ko-KR") + "원";
 const wonMan = n => Math.round(n / 10000).toLocaleString("ko-KR") + "만원";
-const esc = s => String(s ?? "");
-const noBr = s => String(s ?? "").replace(/<br\s*\/?>/gi, " ");
+const esc = s => Q.source === "product" ? escapeDocumentText(s) : String(s ?? "");
+const noBr = s => esc(String(s ?? "").replace(/<br\s*\/?>/gi, " "));
 /* 확정 일정표에는 등급별·인원별 견적이 아니라 팀 잔금 하나만 노출합니다.
    관리자가 확정한 최종 잔금을 쓰고, 아직 없으면(견적 미리보기 등) 견적 단계 금액 중
    실제 인원에 해당하는 값으로 대신합니다. */
 const teamBalance = () => {
   const p = (Q && Q.price) || {};
-  if (Number(p.balanceFinal)) return Number(p.balanceFinal);
+  if (Q.source === "product" || Number(p.balanceFinal)) return Number(p.balanceFinal) || 0;
   const list = Array.isArray(p.balances) ? p.balances : [];
   const hit = list.find(b => Number(b.pax) === Number(Q.pax)) || list[list.length - 1];
   if (!hit) return 0;
@@ -207,7 +216,7 @@ const teamBalance = () => {
 const B = Q.brand;
 
 /* 디자인 자산 이미지(게르·식사·아이콘·허가증 등)는 data.js 최신본으로 보충 */
-if (window.QUOTE && window.QUOTE.images) {
+if (Q.source !== "product" && window.QUOTE && window.QUOTE.images) {
   const cur = Q.images || {};
   const merged = { ...window.QUOTE.images };
   for (const [k, v] of Object.entries(cur)) {
@@ -309,7 +318,7 @@ const infoRow = (k, v, kb) => `<div style="display:grid; grid-template-columns:8
 const balCard = () => `
   <div class="blk" style="background:#27AB8F; border-radius:12px; padding:14px 16px; text-align:center;">
     <div style="color:#FFFFFF; font-size:11px; font-weight:700;">💰 팀 잔금</div>
-    <div style="color:#fff; font-size:24px; font-weight:800; margin-top:7px; line-height:1.2;">${wonMan(teamBalance())}</div>
+    <div style="color:#fff; font-size:24px; font-weight:800; margin-top:7px; line-height:1.2;">${Q.source === "product" ? won(teamBalance()) : wonMan(teamBalance())}</div>
     ${Q.price.balanceStatus ? `<div style="color:#D1F6EA; font-size:10.5px; font-weight:800; margin-top:5px;">${esc(Q.price.balanceStatus)}</div>` : ""}
   </div>`;
 
@@ -325,6 +334,7 @@ const secQuote = card(`
     <div style="height:1px; background:#E3E6E2; margin:14px 0;"></div>
   </div>
   <div class="blk" style="border:1px solid #E3E6E2; border-radius:12px; overflow:hidden; font-size:12px;">
+    ${Q.source === "product" ? infoRow("상품명", esc(Q.productName)) : ""}
     ${infoRow("고객명", esc(Q.customer))}
     ${infoRow("문서번호", esc(Q.quoteNo))}
     ${infoRow("여행지", esc(Q.destination))}
@@ -347,8 +357,8 @@ const secQuote = card(`
     <div style="margin-top:6px; font-size:10.5px; color:#33434F; line-height:1.75;">${(Q.events || []).map(e => esc(e)).join("<br>")}</div>
   </div>
   <div class="blk" style="margin-top:12px; row; display:flex; gap:10px; align-items:center; background:#F1FCF8; border-radius:12px; padding:14px 16px;">
-    <div style="color:#1C8571; font-size:12px; font-weight:800; flex:none;">예약금</div>
-    <div style="flex:1; text-align:right; color:#0A1F2E; font-size:24px; font-weight:800;">${wonMan(Q.price.deposit)}${Q.price.depositStatus ? `<div style="font-size:11px; color:#1C8571; font-weight:800; margin-top:3px;">${esc(Q.price.depositStatus)}</div>` : ""}</div>
+    <div style="color:#1C8571; font-size:12px; font-weight:800; flex:none;">${Q.source === "product" ? "팀 예약금" : "예약금"}</div>
+    <div style="flex:1; text-align:right; color:#0A1F2E; font-size:24px; font-weight:800;">${Q.source === "product" ? won(Q.price.deposit) : wonMan(Q.price.deposit)}${Q.price.depositStatus ? `<div style="font-size:11px; color:#1C8571; font-weight:800; margin-top:3px;">${esc(Q.price.depositStatus)}</div>` : ""}</div>
   </div>
   ${(Q.price.options && Q.price.options.length) ? `<div class="blk" style="margin-top:10px; background:#F7FAF9; border:1px solid #E3E6E2; border-radius:12px; padding:12px 15px;">
     <div style="color:#1C8571; font-size:11.5px; font-weight:800;">추가 및 할인 사항</div>
@@ -358,13 +368,13 @@ const secQuote = card(`
   <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
     ${balCard()}
   </div>
-  <div class="blk" style="margin-top:14px; font-size:10px; color:#8A9895; line-height:1.7;">팀 잔금은 여행 인원 전체 기준 확정 금액입니다.<br><b style="color:#1C8571;">[결제]</b> ${esc(Q.price.payment)} <span style="color:#8A9895;">${esc(Q.price.paymentNote)}</span><br><b style="color:#1C8571;">[입금]</b> ${esc(B.account)}${Q.remark && Q.remark !== "-" ? `<br><b style="color:#1C8571;">[비고]</b> ${esc(Q.remark)}` : ""}</div>
+  <div class="blk" style="margin-top:14px; font-size:10px; color:#8A9895; line-height:1.7;">${Q.source === "product" ? "팀 총 여행금액: " + won(Q.price.total) + "<br>" : ""}팀 잔금은 여행 인원 전체 기준 확정 금액입니다.<br><b style="color:#1C8571;">[결제]</b> ${esc(Q.price.payment)} <span style="color:#8A9895;">${esc(Q.price.paymentNote)}</span><br><b style="color:#1C8571;">[입금]</b> ${esc(B.account)}${Q.remark && Q.remark !== "-" ? `<br><b style="color:#1C8571;">[비고]</b> ${esc(Q.remark)}` : ""}</div>
   <div class="blk" style="margin-top:10px; background:#FEF6F5; border:1px solid #F6CFCA; border-radius:12px; padding:12px 14px;">
     <div style="color:#B3261E; font-size:11px; font-weight:800;">[환불규정]</div>
     <div style="margin-top:5px; font-size:10px; color:#33434F; line-height:1.75;">
-      · 본 상품은 항공권 선발권 및 현지 숙소/차량 예약이 완료되는 상품으로, 취소 시 국외여행 표준약관 제6조(특약)에 의거하여 표준약관보다 높은 취소 수수료가 부과될 수 있습니다.<br>
+${Q.source === "product" ? Q.refundRows.map(r => "· " + esc(r.period) + ": " + esc(r.fee)).join("<br>") : `      · 본 상품은 항공권 선발권 및 현지 숙소/차량 예약이 완료되는 상품으로, 취소 시 국외여행 표준약관 제6조(특약)에 의거하여 표준약관보다 높은 취소 수수료가 부과될 수 있습니다.<br>
       · 항공권 발권 이후 또는 현지 비용(숙소, 차량 등) 지불 이후 취소 시, 항공 및 현지 환불 불가 비용은 실비로 우선 공제되며, 이와 별도로 여행사 취소 수수료가 적용됩니다.<br>
-      · 여행 시작 30일 전 취소 시에도 예약금(또는 실비)은 환불되지 않습니다.
+      · 여행 시작 30일 전 취소 시에도 예약금(또는 실비)은 환불되지 않습니다.`}
     </div>
   </div>`);
 
@@ -387,7 +397,7 @@ const dayCard = (d) => {
       <div style="display:flex; gap:8px; margin-top:11px; flex-wrap:wrap;">
         <span style="color:#1C8571; font-size:10.5px; font-weight:800;">${noBr(d.stay.name)}</span>${stayTags}
       </div>
-      <div style="margin-top:8px; font-size:10.5px; color:#8A9895;">🍽 ${(d.meals || []).join(" · ")}</div>
+      <div style="margin-top:8px; font-size:10.5px; color:#8A9895;">🍽 ${(d.meals || []).map(x => Q.source === "product" ? esc(x) : x).join(" · ")}</div>
     </div>
   </div>`;
 };
@@ -729,7 +739,10 @@ const secBookingAssign = bookingAssign ? (() => {
 })() : "";
 
 /* ── 렌더 (디자인 순서) ── */
-root.innerHTML = secCover + secQuote + secBookingAssign + secSchedule + secInclusions + secSpots + secLodge + secTeam + secMeals + secInsurance + secArrival + secCert;
+const productSections = Q.source === "product" ? productDocumentSections(Q, true) : null;
+root.innerHTML = productSections
+  ? secCover + secQuote + secBookingAssign + secSchedule + productSections.details + productSections.inclusions + secArrival + secCert
+  : secCover + secQuote + secBookingAssign + secSchedule + secInclusions + secSpots + secLodge + secTeam + secMeals + secInsurance + secArrival + secCert;
 const waitForScheduleImages = () => Promise.all([...root.querySelectorAll("img")].map(img => img.complete
   ? Promise.resolve()
   : new Promise(resolve => {
@@ -739,6 +752,7 @@ const waitForScheduleImages = () => Promise.all([...root.querySelectorAll("img")
       setTimeout(done, 8000);
     })));
 window.printSchedule = async () => { await waitForScheduleImages(); window.print(); };
+if (Q.source === "product") productDocumentToolbar(productParams, true);
 document.title = `${B.company}_${esc(Q.customer)}님_확정일정표_${esc(Q.quoteNo)}`;
 }
 </script>
