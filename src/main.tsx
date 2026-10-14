@@ -6,7 +6,7 @@ if (typeof window !== 'undefined') {
 }
 
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import './i18n';
@@ -37,17 +37,18 @@ subscribeContentSaved(() => {
 
 import { ToastProvider } from './components/ui/Toast'
 
+// A data router allows editors to protect both normal navigation and browser Back.
+// The existing App route tree and provider order remain the same.
+const router = createBrowserRouter([{
+  path: '*',
+  element: <UserProvider><ToastProvider><App /></ToastProvider></UserProvider>,
+}]);
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <HelmetProvider>
-        <BrowserRouter>
-          <UserProvider>
-            <ToastProvider>
-              <App />
-            </ToastProvider>
-          </UserProvider>
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </HelmetProvider>
     </QueryClientProvider>
   </StrictMode>,

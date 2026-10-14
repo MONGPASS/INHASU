@@ -1,10 +1,13 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, useBlocker } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
+import { adminProductFromApi, adminProductNavigationDecision, updateAdminProductEditorForm, readAdminProductDraft, writeAdminProductDraft, removeAdminProductDraft, finishAdminProductSave, runAdminProductSaveOnce, productDraftFingerprint, type AdminProductDraft, type AdminProductDraftScope, type AdminProductNavigationDecision, type DraftResult } from '../utils/adminProductDraft';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { DesignTemplateBlockEditor } from '../components/admin/DesignTemplateBlockEditor';
 import { designTemplates } from '../components/product/designTemplates/registry';
 import { api } from '../lib/api';
-import { uploadImage } from '../utils/upload';
+import { uploadImage as uploadProductImage } from '../utils/upload';
 import { optimizeImage } from '../utils/imageOptimizer';
 import { getOptimizedImageUrl } from '../utils/cloudflareImage';
 import type { TourProduct, PackageType, TourPricingOption, AccommodationOption, VehicleOption, DetailSlide, DetailContentBlock, DividerContent, TimelineContent, DayInfoContent, DesignBlockContent } from '../types/product';
@@ -17,11 +20,17 @@ import { ItineraryImportModal } from '../components/admin/ItineraryImportModal';
 import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '../components/admin/itineraryImport';
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
-import { normalizeRepresentativeSpots } from '../../functions/lib/productItinerary';
 
 
 
 export const AdminProductManage: React.FC = () => {
+    const { user, loading: userLoading } = useUser();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const openProductId = searchParams.get('open');
+    const handledOpenProduct = useRef<string | null>(null);
+    const editorOpenRequest = useRef(0);
+    const [productsLoaded, setProductsLoaded] = useState(false);
+    const [productOpenNotice, setProductOpenNotice] = useState('');
     const [products, setProducts] = useState<TourProduct[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<TourProduct | null>(null);
@@ -43,47 +52,16 @@ export const AdminProductManage: React.FC = () => {
         try {
             const data = await api.products.list();
             if (Array.isArray(data)) {
-                const parse = (v: any, fallback: any = []) => {
-                    if (typeof v === 'string') try { return JSON.parse(v); } catch { return fallback; }
-                    return v || fallback;
-                };
-                const mappedProducts: TourProduct[] = data.map((item: any) => ({
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    originalPrice: item.original_price || item.originalPrice,
-                    duration: item.duration,
-                    category: item.category,
-                    mainImages: parse(item.main_images || item.mainImages),
-                    isPopular: item.is_popular || item.isPopular,
-                    tags: parse(item.tags),
-                    description: item.description,
-                    galleryImages: parse(item.gallery_images || item.galleryImages),
-                    detailImages: parse(item.detail_images || item.detailImages),
-                    itineraryImages: parse(item.itinerary_images || item.itineraryImages),
-                    detailSlides: parse(item.detail_slides || item.detailSlides),
-                    detailBlocks: parse(item.detail_blocks || item.detailBlocks),
-                    itineraryBlocks: parse(item.itinerary_blocks || item.itineraryBlocks),
-                    status: item.status,
-                    isFeatured: item.is_featured || item.isFeatured,
-                    packageType: item.packageType ?? item.package_type ?? null,
-                    highlights: parse(item.highlights),
-                    representativeSpots: normalizeRepresentativeSpots(item.representativeSpots ?? item.representative_spots),
-                    included: parse(item.included),
-                    excluded: parse(item.excluded),
-                    faqs: parse(item.faqs),
-                    viewCount: item.view_count || item.viewCount,
-                    bookingCount: item.booking_count || item.bookingCount,
-                    pricingOptions: parse(item.pricing_options || item.pricingOptions),
-                    accommodationOptions: parse(item.accommodation_options || item.accommodationOptions),
-                    vehicleOptions: parse(item.vehicle_options || item.vehicleOptions),
-                    createdAt: item.created_at || item.createdAt,
-                    updatedAt: item.updated_at || item.updatedAt
-                }));
+                const mappedProducts = data.map(adminProductFromApi);
                 setProducts(mappedProducts);
+                return mappedProducts;
             }
+            return null;
         } catch (error) {
             console.error('Error fetching products:', error);
+            return null;
+        } finally {
+            setProductsLoaded(true);
         }
     };
 
@@ -110,6 +88,59 @@ export const AdminProductManage: React.FC = () => {
         fetchProducts();
         fetchCategories();
     }, []);
+
+    useEffect(() => {
+        if (!openProductId) {
+            const wasDeepLinked = handledOpenProduct.current !== null;
+            handledOpenProduct.current = null;
+            if (wasDeepLinked) { setIsModalOpen(false); setSelectedProduct(null); }
+            return;
+        }
+        if (!productsLoaded || handledOpenProduct.current === openProductId) return;
+        handledOpenProduct.current = openProductId;
+        const request = ++editorOpenRequest.current;
+        const requestedId = openProductId;
+        let active = true;
+        void (async () => {
+            // Search can navigate within this same mounted page; refresh the server version too.
+            const latest = await fetchProducts();
+            if (!active || request !== editorOpenRequest.current) return;
+            const target = latest?.find(item => item.id === requestedId);
+            if (!target) {
+                setProductOpenNotice(latest ? '검색한 상품이 없거나 삭제되었습니다. 상품 목록에서 다시 확인해 주세요.' : '상품 정보를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+                return;
+            }
+            setProductOpenNotice('');
+            setSelectedProduct(target);
+            setIsModalOpen(true);
+        })();
+        return () => { active = false; };
+    }, [openProductId, productsLoaded]);
+
+    const closeProductEditor = () => {
+        editorOpenRequest.current += 1;
+        setIsModalOpen(false);
+        setSelectedProduct(null);
+        if (openProductId) {
+            const next = new URLSearchParams(searchParams);
+            next.delete('open');
+            setSearchParams(next, { replace: true });
+        }
+    };
+
+    const editProduct = async (product: TourProduct) => {
+        const request = ++editorOpenRequest.current;
+        const latest = await fetchProducts();
+        if (request !== editorOpenRequest.current) return;
+        const target = latest?.find(item => item.id === product.id);
+        if (!latest || !target) {
+            setProductOpenNotice(latest ? '이 상품이 삭제되었습니다. 목록을 다시 확인해 주세요.' : '상품의 최신 정보를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+            return;
+        }
+        setProductOpenNotice('');
+        setSelectedProduct(target);
+        setIsModalOpen(true);
+    };
 
     // Save via API (Upsert)
     const saveProducts = async (updatedProducts: TourProduct[], productToSave?: TourProduct): Promise<boolean> => {
@@ -360,6 +391,7 @@ export const AdminProductManage: React.FC = () => {
                 </button>
             )}
         >
+            {productOpenNotice && <div className="card-pad" role="status" style={{ background: '#fff5e8', borderRadius: 12, marginBottom: 16 }}>{productOpenNotice}</div>}
             <div className="route-anim" style={{ display: isModalOpen ? 'none' : undefined }}>
                 {/* Statistics Cards */}
                 <div className="prod-stats">
@@ -508,10 +540,7 @@ export const AdminProductManage: React.FC = () => {
                                                     <Icon name="content_copy" />
                                                 </button>
                                                 <button
-                                                    onClick={() => {
-                                                        setSelectedProduct(product);
-                                                        setIsModalOpen(true);
-                                                    }}
+                                                    onClick={() => { void editProduct(product); }}
                                                     className="act-btn"
                                                     title="수정"
                                                 >
@@ -573,12 +602,11 @@ export const AdminProductManage: React.FC = () => {
             {/* Add/Edit Modal */}
             {isModalOpen && (
                 <ProductModal
+                    key={`${user?.id || 'unverified'}:${selectedProduct?.id || 'new'}`}
+                    adminUserId={userLoading ? null : user?.id || null}
                     product={selectedProduct}
                     categories={categories}
-                    onClose={() => {
-                        setIsModalOpen(false);
-                        setSelectedProduct(null);
-                    }}
+                    onClose={closeProductEditor}
                     onSave={async (product) => {
                         let success = false;
                         if (selectedProduct) {
@@ -598,10 +626,7 @@ export const AdminProductManage: React.FC = () => {
                             success = await saveProducts([], newProduct);
                         }
 
-                        if (success) {
-                            setIsModalOpen(false);
-                            setSelectedProduct(null);
-                        }
+                        return success;
                     }}
                 />
             )}
@@ -614,7 +639,8 @@ interface ProductModalProps {
     product: TourProduct | null;
     categories: Category[];
     onClose: () => void;
-    onSave: (product: TourProduct) => void;
+    onSave: (product: TourProduct) => Promise<boolean>;
+    adminUserId?: string | null;
 }
 
 /** 예전 골격이 저장한 후리가나 붙은 라벨('1日目（いちにちめ）')에서 괄호를 뗀다 — 폼에 올릴 때 한 번 정리 */
@@ -628,9 +654,9 @@ const cleanDayLabels = (p: TourProduct): TourProduct => ({
     }),
 });
 
-export const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClose, onSave }) => {
-    const [formData, setFormData] = useState<Partial<TourProduct>>(
-        product ? cleanDayLabels(product) : {
+export const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClose, onSave, adminUserId = null }) => {
+    const [formData, setFormDataState] = useState<Partial<TourProduct>>(() =>
+        product ? structuredClone(cleanDayLabels(product)) : {
             name: '',
             category: categories.length > 0 ? categories[0].name : '',
             duration: '',
@@ -657,6 +683,194 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         }
     );
 
+    const formRef = useRef(formData);
+    const [initialBaseline] = useState(() => structuredClone(formData));
+    const baselineRef = useRef(initialBaseline);
+    const mountedRef = useRef(true);
+    const savedRef = useRef(false);
+    const savingRef = useRef(false);
+    const uploadsRef = useRef(0);
+    const designUploadsRef = useRef(new Set<string>());
+    const scopeRef = useRef<AdminProductDraftScope | null>(null);
+    const draftReadyRef = useRef(false);
+    const pendingDraftRef = useRef(false);
+    const closingRef = useRef(false);
+    const approvedExternalNavigation = useRef(false);
+    const navigationDecisionRef = useRef<AdminProductNavigationDecision>({ blocked: false });
+    const handledBlockedAttempt = useRef<string | null>(null);
+    const lastStoredFingerprint = useRef('');
+    const [saving, setSaving] = useState(false);
+    const [uploadCount, setUploadCount] = useState(0);
+    const [designUploading, setDesignUploading] = useState(false);
+    const [draftReady, setDraftReady] = useState(false);
+    const [pendingDraft, setPendingDraft] = useState<{ draft: AdminProductDraft; conflict: boolean } | null>(null);
+    const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+    const [draftError, setDraftError] = useState('');
+    const [saveNotice, setSaveNotice] = useState('');
+    const fingerprint = useMemo(() => productDraftFingerprint(formData), [formData]);
+    const dirty = fingerprint !== productDraftFingerprint(baselineRef.current);
+
+    // Update the ref synchronously so a navigation in the same turn flushes the latest input.
+    const setFormData = useCallback<React.Dispatch<React.SetStateAction<Partial<TourProduct>>>>(next => {
+        const value = updateAdminProductEditorForm(formRef, { mounted: mountedRef.current, saving: savingRef.current, saved: savedRef.current }, next);
+        if (value) setFormDataState(value);
+    }, []);
+
+    const flushDraft = useCallback((notify = true): DraftResult => {
+        if (savedRef.current || pendingDraftRef.current || !draftReadyRef.current) return { ok: true };
+        const scope = scopeRef.current;
+        if (!scope) return { ok: false, error: '관리자 계정을 확인할 수 없어 초안을 보관하지 못했습니다.' };
+        const current = productDraftFingerprint(formRef.current);
+        if (current === productDraftFingerprint(baselineRef.current) || current === lastStoredFingerprint.current) return { ok: true };
+        let result: DraftResult & { savedAt?: string };
+        try { result = writeAdminProductDraft(window.localStorage, scope, baselineRef.current, formRef.current); }
+        catch { result = { ok: false, error: '브라우저 저장소를 사용할 수 없어 초안을 보관하지 못했습니다.' }; }
+        if (result.ok) {
+            lastStoredFingerprint.current = current;
+            if (notify && mountedRef.current) { setDraftSavedAt(result.savedAt || null); setDraftError(''); }
+        } else if (notify && mountedRef.current) setDraftError(result.error);
+        return result;
+    }, []);
+
+    useEffect(() => {
+        if (!adminUserId || scopeRef.current) return;
+        const scope = { userId: adminUserId, productId: product?.id || null };
+        scopeRef.current = scope;
+        let loaded: ReturnType<typeof readAdminProductDraft>;
+        try { loaded = readAdminProductDraft(window.localStorage, scope, baselineRef.current); }
+        catch { loaded = { kind: 'error', error: '브라우저 저장소를 사용할 수 없어 초안을 보관하지 못했습니다.' }; }
+        if (loaded.kind === 'draft') {
+            pendingDraftRef.current = true;
+            setPendingDraft({ draft: loaded.draft, conflict: loaded.conflict });
+            setDraftSavedAt(loaded.draft.savedAt);
+        } else if (loaded.kind === 'error') setDraftError(loaded.error);
+        draftReadyRef.current = true;
+        setDraftReady(true);
+    }, [adminUserId, product?.id]);
+
+    useEffect(() => {
+        if (!dirty || !draftReady || pendingDraft || saving) return;
+        const timer = window.setTimeout(() => flushDraft(), 650);
+        return () => window.clearTimeout(timer);
+    }, [fingerprint, dirty, draftReady, pendingDraft, saving, flushDraft]);
+
+    const blocker = useBlocker(useCallback(({ currentLocation, nextLocation }) => {
+        if (closingRef.current || savedRef.current) return false;
+        const busy = savingRef.current || uploadsRef.current > 0 || designUploadsRef.current.size > 0;
+        const decision = adminProductNavigationDecision(currentLocation, nextLocation, busy, flushDraft);
+        navigationDecisionRef.current = decision;
+        return decision.blocked;
+    }, [flushDraft]));
+
+    useEffect(() => {
+        if (blocker.state === 'unblocked') { handledBlockedAttempt.current = null; return; }
+        if (blocker.state !== 'blocked') return;
+        const attempt = blocker.location.key + blocker.location.pathname + blocker.location.search;
+        if (handledBlockedAttempt.current === attempt) return;
+        handledBlockedAttempt.current = attempt;
+        const decision = navigationDecisionRef.current;
+        if (savingRef.current || uploadsRef.current > 0 || designUploadsRef.current.size > 0 || (decision.blocked && decision.reason === 'busy')) {
+            setSaveNotice('저장 또는 사진 업로드가 끝난 뒤 다른 메뉴로 이동해 주세요.');
+            blocker.reset();
+            return;
+        }
+        if (decision.blocked && decision.reason === 'draft_storage_failure') {
+            if (window.confirm(decision.error + '\n\n초안을 보관하지 못한 상태로 이동할까요?')) blocker.proceed();
+            else blocker.reset();
+        } else blocker.proceed();
+    }, [blocker]);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        const isBusy = () => savingRef.current || uploadsRef.current > 0 || designUploadsRef.current.size > 0;
+        const beforeUnload = (event: BeforeUnloadEvent) => {
+            const result = flushDraft(false);
+            const alreadyApproved = approvedExternalNavigation.current;
+            approvedExternalNavigation.current = false;
+            if (isBusy() || (!result.ok && !alreadyApproved)) { event.preventDefault(); event.returnValue = ''; }
+        };
+        const pageHide = () => { flushDraft(false); };
+        const beforeNavigate = (event: MouseEvent) => {
+            if (event.defaultPrevented || !(event.target instanceof Element)) return;
+            const anchor = event.target.closest<HTMLAnchorElement>('a[href]');
+            if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download') || anchor.getAttribute('href')?.startsWith('#')) return;
+            // Internal SPA navigation is handled by useBlocker; native same-origin exits by beforeunload.
+            if (!['http:', 'https:'].includes(anchor.protocol) || anchor.origin === window.location.origin) return;
+            if (isBusy()) {
+                event.preventDefault(); event.stopPropagation();
+                setSaveNotice('저장 또는 사진 업로드가 끝난 뒤 다른 메뉴로 이동해 주세요.');
+                return;
+            }
+            const result = flushDraft();
+            if (!result.ok && !window.confirm(result.error + '\n\n초안을 보관하지 못한 상태로 이동할까요?')) {
+                event.preventDefault(); event.stopPropagation();
+            } else approvedExternalNavigation.current = true;
+        };
+        window.addEventListener('beforeunload', beforeUnload);
+        window.addEventListener('pagehide', pageHide);
+        document.addEventListener('click', beforeNavigate, true);
+        return () => {
+            flushDraft(false);
+            mountedRef.current = false;
+            window.removeEventListener('beforeunload', beforeUnload);
+            window.removeEventListener('pagehide', pageHide);
+            document.removeEventListener('click', beforeNavigate, true);
+        };
+    }, [flushDraft]);
+
+    const uploadImage = async (file: File, folder?: string) => {
+        if (savingRef.current || savedRef.current) throw new Error('상품 저장 중에는 사진을 변경할 수 없습니다.');
+        uploadsRef.current += 1;
+        if (mountedRef.current) setUploadCount(uploadsRef.current);
+        try { return await uploadProductImage(file, folder); }
+        finally {
+            uploadsRef.current -= 1;
+            if (mountedRef.current) setUploadCount(uploadsRef.current);
+        }
+    };
+
+    const reportDesignBusy = (id: string, busy: boolean) => {
+        if (busy) designUploadsRef.current.add(id);
+        else designUploadsRef.current.delete(id);
+        if (mountedRef.current) setDesignUploading(designUploadsRef.current.size > 0);
+    };
+
+    const restoreDraft = () => {
+        if (!pendingDraft || savingRef.current) return;
+        const base = baselineRef.current;
+        const restored = { ...structuredClone(base), ...structuredClone(pendingDraft.draft.form), id: base.id, createdAt: base.createdAt, updatedAt: base.updatedAt, viewCount: base.viewCount, bookingCount: base.bookingCount };
+        lastStoredFingerprint.current = productDraftFingerprint(restored);
+        pendingDraftRef.current = false;
+        setPendingDraft(null);
+        setFormData(restored);
+        setSaveNotice('보관된 초안을 복원했습니다. 상품 저장 버튼을 눌러야 공개 상품에 반영됩니다.');
+    };
+
+    const discardDraft = () => {
+        if (!scopeRef.current || savingRef.current) return;
+        let result: DraftResult;
+        try { result = removeAdminProductDraft(window.localStorage, scopeRef.current); }
+        catch { result = { ok: false, error: '브라우저 저장소에서 초안을 삭제하지 못했습니다.' }; }
+        if (!result.ok) { setDraftError(result.error); return; }
+        pendingDraftRef.current = false;
+        setPendingDraft(null);
+        setDraftSavedAt(null);
+        setDraftError('');
+        lastStoredFingerprint.current = '';
+        setSaveNotice('보관된 초안을 버렸습니다. 현재 서버에 저장된 상품으로 시작합니다.');
+    };
+
+    const closeEditor = () => {
+        if (savingRef.current || uploadsRef.current > 0 || designUploadsRef.current.size > 0) {
+            setSaveNotice('저장 또는 사진 업로드가 끝난 뒤 편집을 닫아 주세요.');
+            return;
+        }
+        const result = flushDraft();
+        if (!result.ok && !window.confirm(result.error + '\n\n초안을 보관하지 못한 상태로 편집을 닫을까요?')) return;
+        closingRef.current = true;
+        onClose();
+    };
+
     const [currentTab, setCurrentTab] = useState<'basic' | 'details' | 'itinerary' | 'spots' | 'options' | 'includes'>('basic');
 
     // 페이지형 편집 화면 — 목록에서 진입할 때 스크롤을 맨 위로
@@ -668,9 +882,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     const [draggedDetailIndex, setDraggedDetailIndex] = useState<number | null>(null);
 
     // Handlers
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Form submitted', formData);
+        if (savingRef.current || uploadsRef.current > 0 || designUploadsRef.current.size > 0 || !draftReadyRef.current || pendingDraftRef.current || savedRef.current) return;
 
         // Validate required fields
         if (!formData.name || !formData.name.trim()) {
@@ -686,9 +900,33 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             return;
         }
 
-        console.log('Calling onSave');
-        onSave(formData as TourProduct);
-        console.log('onSave called');
+        await runAdminProductSaveOnce(savingRef, async () => {
+            flushDraft();
+            setSaving(true);
+            setSaveNotice('상품을 저장하고 있습니다.');
+            try {
+                const success = await onSave(formRef.current as TourProduct);
+                if (!success) {
+                    flushDraft();
+                    if (mountedRef.current) setSaveNotice('상품을 저장하지 못했습니다. 작성한 내용은 유지되며 다시 저장할 수 있습니다.');
+                    return;
+                }
+                // Mark success before any close/unmount flush can recreate the deleted draft.
+                savedRef.current = true;
+                baselineRef.current = structuredClone(formRef.current);
+                let cleared: DraftResult = { ok: true };
+                try { if (scopeRef.current) cleared = finishAdminProductSave(window.localStorage, scopeRef.current, true); }
+                catch { cleared = { ok: false, error: '상품은 저장됐지만 브라우저의 초안을 삭제하지 못했습니다.' }; }
+                if (!cleared.ok) {
+                    if (mountedRef.current) { setDraftError(cleared.error); setSaveNotice('상품 저장 완료. 이전 초안은 초안 버리기로 정리해 주세요.'); }
+                } else if (mountedRef.current) onClose();
+            } catch (error) {
+                flushDraft();
+                if (mountedRef.current) setSaveNotice('상품 저장에 실패했습니다. 작성한 내용은 유지됩니다. ' + (error instanceof Error ? error.message : '다시 시도해 주세요.'));
+            } finally {
+                if (mountedRef.current) setSaving(false);
+            }
+        });
     };
 
     const addHighlight = () => {
@@ -1643,11 +1881,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         setFormData({ ...formData, excluded: formData.excluded?.filter((_, i) => i !== index) });
     };
 
+    const busy = saving || uploadCount > 0 || itineraryBulkUploading || designUploading;
+    const locked = busy || !draftReady || !!pendingDraft || savedRef.current;
+
     return (
-        <div className="card" style={{ width: '100%' }}>
+        <div className="card product-draft-editor" style={{ width: '100%' }}>
                 {/* Header */}
                 <div className="card-head">
-                    <button onClick={onClose} className="act-btn" title="목록으로" type="button">
+                    <button onClick={closeEditor} disabled={busy} className="act-btn" title="목록으로" type="button">
                         <Icon name="arrow_back" />
                     </button>
                     <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-strong)', margin: 0 }}>
@@ -1670,6 +1911,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                             <button
                                 key={tab.id}
                                 type="button"
+                                disabled={busy || !!pendingDraft}
                                 onClick={() => setCurrentTab(tab.id as any)}
                                 className={`tab${currentTab === tab.id ? ' active' : ''}`}
                             >
@@ -1679,7 +1921,23 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit}>
+                <div role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 12, background: draftError || pendingDraft?.conflict ? '#fff5e8' : '#edfaf6', border: '1px solid ' + (draftError || pendingDraft?.conflict ? '#f3d5a3' : '#c8eee3'), fontSize: 13, lineHeight: 1.7 }}>
+                    {!adminUserId ? '관리자 계정을 확인하고 있습니다. 확인이 끝난 뒤 편집할 수 있습니다.' : pendingDraft ? <>
+                        <strong>{pendingDraft.conflict ? '상품이 변경된 뒤 남아 있는 초안입니다.' : '이 브라우저에 저장하지 않은 상품 초안이 있습니다.'}</strong>
+                        <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')}{pendingDraft.conflict ? ' · 서버 상품과 다른 버전입니다. 내용을 복원해 검토하거나 초안을 버리고 최신 상품으로 시작하세요.' : ' · 복원하거나 버린 뒤 편집을 계속하세요.'}</div>
+                        <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                            <button type="button" className="btn btn-ink btn-sm" onClick={restoreDraft}>초안 복원</button>
+                            <button type="button" className="btn btn-ghost btn-sm" onClick={discardDraft}>초안 버리기</button>
+                        </div>
+                    </> : <>
+                        <strong>{saving ? '상품 저장 중…' : busy ? '사진 업로드 또는 자료 저장 중…' : dirty ? '변경 내용을 이 브라우저에 자동 보관합니다.' : '현재 저장된 상품 기준입니다.'}</strong>
+                        <div>{draftSavedAt ? '마지막 초안 보관: ' + new Date(draftSavedAt).toLocaleString('ko-KR') + ' · ' : ''}초안은 현재 관리자 계정과 이 상품에서만 복원됩니다. 상품 저장 전에는 공개 상품에 반영되지 않습니다.</div>
+                    </>}
+                    {draftError && <div role="alert" style={{ color: '#9f4d13', marginTop: 6 }}>{draftError}<button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { if (savedRef.current) discardDraft(); else flushDraft(); }} style={{ marginLeft: 8 }}>다시 시도</button>{!pendingDraft && !dirty && <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={discardDraft}>초안 버리기</button>}</div>}
+                    {saveNotice && <div style={{ marginTop: 6 }}>{saveNotice}</div>}
+                </div>
+                <form onSubmit={handleSubmit} aria-busy={busy}>
+                    <fieldset disabled={locked} inert={locked || undefined} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                     <div className="card-pad">
                         {/* Basic Info Tab */}
                         {currentTab === 'basic' && (
@@ -2198,6 +2456,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                 content={block.content as DesignBlockContent}
                                                                 onChange={(next) => updateBlockContent(index, next)}
                                                                 pricingOptions={formData.pricingOptions}
+                                                                onBusyChange={busy => reportDesignBusy(block.id, busy)}
                                                             />
                                                         ) : (
                                                             // DIVIDER BLOCK
@@ -2715,13 +2974,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                     {/* Footer — 페이지 스크롤 중에도 항상 보이는 저장 바 */}
                     <div className="card-pad row" style={{ justifyContent: 'flex-end', gap: 10, borderTop: '1px solid var(--border-subtle)', position: 'sticky', bottom: 0, background: 'var(--bg-card, #fff)', zIndex: 5 }}>
-                        <button type="button" onClick={onClose} className="btn btn-ghost">
+                        <button type="button" onClick={closeEditor} disabled={busy} className="btn btn-ghost">
                             취소
                         </button>
-                        <button type="submit" className="btn btn-ink">
-                            <Icon name="check" />{product ? '수정 완료' : '추가 완료'}
+                        <button type="submit" className="btn btn-ink" disabled={locked}>
+                            <Icon name="check" />{saving ? '저장 중…' : product ? '수정 완료' : '추가 완료'}
                         </button>
                     </div>
+                    </fieldset>
                 </form>
 
                 {/* Master pickers — open from either dayInfo or timeline buttons. */}

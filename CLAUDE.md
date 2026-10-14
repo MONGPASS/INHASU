@@ -27,7 +27,7 @@
 | SEO 메타 주입 | `functions/[[path]].ts` | SPA 화면에만. 루트의 한글 이름 문서(견적 페이지)는 `isQuoteStaticPage`로 통과 |
 | DB | D1 `DB` = `leaders-requests` 하나 | 견적: `requests`·`kv`·`itinerary_notice_dispatches` / 사이트: `products`·`reservations`·`users` … |
 | 파일 | R2 `FILES`(견적: `uploads/` 비공개, `images/` 공개) · R2 `BUCKET`(사이트 이미지, `/api/images/*` 공개) | **두 버킷을 같은 것으로 묶지 말 것** — 고객 첨부가 공개된다 |
-| 테스트 | `tests/*.test.mjs` (`npm test`, 185건) | 견적 문서·예약·이미지·홈 배너·SEO와 실제 Cloudflare HTMLRewriter/D1을 검사 |
+| 테스트 | `tests/*.test.mjs` (`npm test`, 234건) | 견적 문서·예약·이미지·홈 배너·SEO와 실제 Cloudflare HTMLRewriter/D1을 검사 |
 
 - 업로드 주소가 둘: 견적은 `/api/upload`(JS), 사이트 이미지는 `/api/site-upload`(Hono, `functions/api/site-upload.ts`).
 - 견적 요청 화면은 React `/custom-estimate` 하나다(`src/components/estimate-desktop/quoteForm.ts`가 선택지·검증·payload의 정본). 접수는 `POST /api/requests`로 들어가 견적 파이프라인을 탄다. 옛 `public/견적요청.html`은 리다이렉트 문서.
@@ -92,6 +92,8 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 상품 일정·계약 조건은 예약 상세 본문에서 `ReservationInlineEditor`로 편집한다. 일자별 카드는 원본 견적 STEP 2에서 추출한 `public/quote-day-editor.js`·CSS를 견적만들기와 React `QuoteDayEditor`가 함께 사용한다. 날짜·목적지·이동 한 줄, 줄별 일정 textarea, 숙소·식사 두 칸과 드래그 순서를 유지한다. 날짜 자동 채우기는 선택 버튼이며 자유 입력·빈 날짜·`items:[]`도 고객 PDF에서 정본이다. `*` 강조와 `(` 회색 안내를 그대로 저장한다. 시간·상세 설명·사진을 보존하며 사진 편집은 접힌 추가 영역에서 한다. 입력 중 커서·끝 개행을 유지하고, 외부 문서 교체는 강제로 동기화한다. 하단 고정 ‘문서 저장’으로 저장 후 계속 편집하며 저장 전 미리보기·공개·전달은 막는다. 실제 배정 숙소가 기본 숙소보다 우선함을 표시한다.
 - `reservations.admin_operations`는 조인 여부·지역·차량·기사 연락처·현금영수증 기록·내부 운영 메모 JSON이며 관리자에게만 노출한다. 고객 예약 조회에서는 이 필드와 `admin_memo` 이력을 제외한다. 현금영수증 기능은 발급 이력 기록이며 외부 발급 서비스와 연결하지 않는다.
 - 대표 명소는 원본 견적 STEP 4에서 추출한 `public/quote-spot-selector.js`·CSS를 견적·상품 등록 ‘대표 명소’ 탭·예약 일정표 편집이 함께 사용한다. 견적의 `spots`/`spot_cats` 자료를 같은 지역별 카드와 순서 번호로 선택한다. 상품은 판매 포인트 `highlights`와 별개인 `representative_spots`에 이름·사진·설명·지역 스냅샷을 저장한다(자동 스키마 v3). 상품에서 예약 문서를 처음 만들거나 옛 문서에 명소 필드가 없을 때만 상속하며, 저장된 고객 선택과 빈 배열은 우선한다. 목록에서 없어진 선택도 ‘저장된 명소’로 표시해 해제할 수 있다.
+- 상품 등록·수정의 자동 저장은 **현재 브라우저의 관리자 계정·상품별 초안**이다. 650ms 뒤 보관하고 재진입 시 복원/버리기를 고른다. 서버 상품 버전이 달라지면 충돌 안내를 표시한다. 공개 상품은 저장 버튼으로 확정하며, 성공할 때만 초안을 지운다. 실패·취소·새로고침·화면 이동 시 복구용 초안을 유지하고 저장/사진 업로드 중 중복 저장과 이동을 막는다. 파일 바이트와 임시 사진 URL은 초안에 보관하지 않는다.
+- `GET /api/admin/workspace`는 관리자 세션 전용이며 상품 예약·실제 견적 예약·양쪽 견적 문의·상품 목록의 최소 필드만 제공한다. `AdminWorkspaceProvider`를 대시보드·통합 검색·업무 알림이 공유한다. 한국시간 오늘과 실제 투어 기간, 팀 총액(0 포함)을 사용하고 단순 문의는 예약/매출에서 제외한다. 일부 조회 실패 시 해당 합계는 미확인으로 표시한다. 고객 토큰·서명·여권·내부 메모는 보내지 않는다. 조회는 60초/창 포커스와 관련 저장 후 갱신하며 계정 변경·로그아웃 시 이전 자료를 차단한다. 업무 알림은 입금 신고·계약 동의·출발 전 배정·견적 답변 목록이고 해당 상세에서 처리하면 사라진다. 알림 패널을 여는 행위는 고객에게 메시지를 발송하지 않는다.
 - 예약 작업 검증: `node scripts/check-reservation-workspace.mjs` (`--serve`는 기본 8795번 포트 `/__local-admin`, `--port=8796`으로 변경 가능). 로컬 SQLite와 실제 상품·문서·공개 자료 API로 저장/재조회·금액·사진·시간·이동 정보·명소·권한을 확인하며 이메일은 로컬 응답으로 대체하고 외부 호출을 차단한다.
 
 - `/admin` = React 관리자(`src/components/admin/AdminLayout.tsx`·`AdminSidebar.tsx`). 이메일·비밀번호 로그인(Lucia 세션).

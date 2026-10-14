@@ -56,6 +56,7 @@ import documents from './documents';
 import promotions from './promotions';
 import inquiries from './inquiries';
 import adminBookings from './admin-bookings';
+import adminWorkspace from './admin-workspace';
 
 // Register routes
 app.route('/products', products);
@@ -97,5 +98,6 @@ app.route('/documents', documents);
 app.route('/promotions', promotions);
 app.route('/inquiries', inquiries);
 app.route('/admin/bookings', adminBookings);
+app.route('/admin/workspace', adminWorkspace);
 
 export const onRequest = handle(app);

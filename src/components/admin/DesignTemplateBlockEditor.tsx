@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import type { DesignBlockContent, TourPricingOption } from '../../types/product';
 import type { DesignPreset, DesignTemplateField } from '../product/designTemplates/types';
 import { getDesignTemplate } from '../product/designTemplates/registry';
@@ -17,7 +17,7 @@ import { useDesignSpots } from '../product/designTemplates/designSpots';
  * 지도/템플릿 쪽은 그대로 동작하고, 직접 입력(좌표·사진)도 그대로 지원한다.
  */
 /** 방문 여행지 카드 목록 — 「여행지 사진」 페이지에 등록한 목록에서 골라 담고, 이름·사진을 줄 단위로 관리한다 */
-function SpotCardsField({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+function SpotCardsField({ value, onChange, onBusyChange }: { value: string; onChange: (next: string) => void; onBusyChange?: (busy: boolean) => void }) {
     const registered = useDesignSpots();
     const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
     const lines = value.split('\n').map(s => s.trim()).filter(Boolean);
@@ -45,6 +45,7 @@ function SpotCardsField({ value, onChange }: { value: string; onChange: (next: s
     };
     const handleUpload = async (i: number, file: File | undefined) => {
         if (!file) return;
+        onBusyChange?.(true);
         try {
             setUploadingIdx(i);
             patch(i, { img: await uploadImage(file, 'product-details') });
@@ -53,6 +54,7 @@ function SpotCardsField({ value, onChange }: { value: string; onChange: (next: s
             alert('이미지 업로드 실패');
         } finally {
             setUploadingIdx(null);
+            onBusyChange?.(false);
         }
     };
 
@@ -109,7 +111,7 @@ function SpotCardsField({ value, onChange }: { value: string; onChange: (next: s
     );
 }
 
-function MapStopsField({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+function MapStopsField({ value, onChange, onBusyChange }: { value: string; onChange: (next: string) => void; onBusyChange?: (busy: boolean) => void }) {
     const [advanced, setAdvanced] = useState(false);
     const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
     const lines = value.split('\n').map(s => s.trim()).filter(Boolean);
@@ -148,6 +150,7 @@ function MapStopsField({ value, onChange }: { value: string; onChange: (next: st
 
     const handleStopImageUpload = async (i: number, file: File | undefined) => {
         if (!file) return;
+        onBusyChange?.(true);
         try {
             setUploadingIdx(i);
             const url = await uploadImage(file, 'product-details');
@@ -157,6 +160,7 @@ function MapStopsField({ value, onChange }: { value: string; onChange: (next: st
             alert('이미지 업로드 실패');
         } finally {
             setUploadingIdx(null);
+            onBusyChange?.(false);
         }
     };
 
@@ -339,12 +343,23 @@ export function DesignTemplateBlockEditor({
     content,
     onChange,
     pricingOptions,
+    onBusyChange,
 }: {
     content: DesignBlockContent;
     onChange: (next: DesignBlockContent) => void;
     /** 상품 「가격/옵션」 탭의 인원별 가격 — 있으면 디자인 가격표에 자동 반영된다 */
     pricingOptions?: TourPricingOption[];
+    /** Prevent the containing product form from saving before image/shared-data work completes. */
+    onBusyChange?: (busy: boolean) => void;
 }) {
+    const pendingWork = useRef(0);
+    const busyCallback = useRef(onBusyChange);
+    busyCallback.current = onBusyChange;
+    const changeBusy = useCallback((busy: boolean) => {
+        pendingWork.current = Math.max(0, pendingWork.current + (busy ? 1 : -1));
+        busyCallback.current?.(pendingWork.current > 0);
+    }, []);
+    useEffect(() => () => { if (pendingWork.current > 0) busyCallback.current?.(false); }, []);
     const def = getDesignTemplate(content?.templateId);
     // 가격/옵션 탭 값이 있으면 가격표는 자동 반영 (직접 입력 불가)
     const autoPriceRows = priceRowsFromOptions(pricingOptions);
@@ -501,6 +516,7 @@ export function DesignTemplateBlockEditor({
             '이 상품 화면은 그대로이고, 앞으로 새로 만드는 상품에도 같은 사진이 자동으로 들어갑니다.',
         );
         if (!ok) return;
+        changeBusy(true);
         setSavingShared(true);
         try {
             const nextShared = { ...sharedAssets };
@@ -515,6 +531,7 @@ export function DesignTemplateBlockEditor({
             alert('공통 사진 저장에 실패했습니다');
         } finally {
             setSavingShared(false);
+            changeBusy(false);
         }
     };
 
@@ -524,6 +541,7 @@ export function DesignTemplateBlockEditor({
 
     const handleImageUpload = async (key: string, file: File | undefined) => {
         if (!file) return;
+        changeBusy(true);
         try {
             setUploadingKey(key);
             const url = await uploadImage(file, 'product-details');
@@ -533,6 +551,7 @@ export function DesignTemplateBlockEditor({
             alert('이미지 업로드 실패');
         } finally {
             setUploadingKey(null);
+            changeBusy(false);
         }
     };
 
@@ -728,6 +747,7 @@ export function DesignTemplateBlockEditor({
                                             ) : f.type === 'spot-cards' ? (
                                                 <div ref={el => { if (el) fieldRefs.current.set(fk, el); else fieldRefs.current.delete(fk); }}>
                                                     <SpotCardsField
+                                                        onBusyChange={changeBusy}
                                                         value={values[fk] ?? f.default ?? ''}
                                                         onChange={(next) => setValue(fk, next)}
                                                     />
@@ -735,6 +755,7 @@ export function DesignTemplateBlockEditor({
                                             ) : f.type === 'map-stops' ? (
                                                 <div ref={el => { if (el) fieldRefs.current.set(fk, el); else fieldRefs.current.delete(fk); }}>
                                                     <MapStopsField
+                                                        onBusyChange={changeBusy}
                                                         value={values[fk] ?? f.default ?? ''}
                                                         onChange={(next) => setValue(fk, next)}
                                                     />

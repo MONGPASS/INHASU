@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
 import { ensureSiteSchema } from '../functions/lib/siteSchema.ts';
+import { adminProductFromApi, writeAdminProductDraft, readAdminProductDraft, productDraftFingerprint, finishAdminProductSave } from '../src/utils/adminProductDraft.ts';
 
 const bundle = await build({ entryPoints: [fileURLToPath(new URL('../functions/api/products.ts', import.meta.url))],
     bundle: true, platform: 'node', format: 'esm', write: false });
@@ -42,6 +43,63 @@ const spots = [
     { name: '고비 모래언덕', region: '고비', desc: '일몰 감상', img: '/img/gobi.webp', subImgs: [] },
 ];
 const sellingPoints = [{ icon: 'star', title: '한국어 가이드', description: '기존 판매 포인트' }];
+
+test('편집 중 삭제된 상품은 저장 성공을 반환하지 않고 복원할 초안을 보존한다', async t => {
+    const { raw, request } = await fixture(t);
+    await request('/', { method: 'POST', admin: true, body: { id: 'removed-product', name: '편집 중 상품', price: 1000, duration: '1일', category: '중앙몽골' } });
+    const form = adminProductFromApi((await (await request('/')).json()).find(p => p.id === 'removed-product'));
+    const storageValues = new Map();
+    const storage = { getItem: key => storageValues.get(key) ?? null, setItem: (key, value) => storageValues.set(key, value), removeItem: key => storageValues.delete(key) };
+    const scope = { userId: 'admin', productId: form.id };
+    writeAdminProductDraft(storage, scope, form, { ...form, name: '삭제 전 작성 내용' });
+    raw.exec("DELETE FROM products WHERE id='removed-product'");
+    const response = await request('/removed-product', { method: 'PUT', admin: true, body: { name: '삭제 전 작성 내용', price: 1000 } });
+    assert.equal(response.status, 404);
+    finishAdminProductSave(storage, scope, response.ok);
+    assert.equal(readAdminProductDraft(storage, scope, form).draft.form.name, '삭제 전 작성 내용');
+    assert.equal((await request('/removed-product', { method: 'PUT', admin: true, body: { packageType: 'budget' } })).status, 404);
+});
+
+test('실제 상품 API→관리자 화면 mapper→초안 저장·복원은 ID 없는 레거시 일정과 0/false/null 값을 지원한다', async t => {
+    const { raw, request } = await fixture(t);
+    const legacyBlocks = [
+        { type: 'dayInfo', content: { title: '초원 도착', meals: { lunch: '현지식' }, heroImage: '/img/hero.webp' } },
+        { type: 'timeline', content: { time: '09:30', title: '공항 픽업', images: ['/img/pickup.webp'] } },
+        { type: 'image', content: '/img/camp.webp' },
+        { type: 'slide', content: { title: '캠프', description: '사진과 설명 보존', images: ['/img/night.webp'] } },
+        { type: 'divider', content: { style: 'space', height: 20 } },
+        { type: 'design', content: { templateId: 'legacy-template', values: { photo: '/img/template.webp' }, sections: [{ id: 'overview', def: 'overview', hidden: false }] } },
+    ];
+    assert.equal((await request('/', { method: 'POST', admin: true, body: { id: 'draft-legacy', name: '초안 회귀 상품',
+        duration: '2박 3일', price: 1100000, status: 'active', category: '중앙몽골', mainImages: ['/img/main.webp'],
+        itineraryBlocks: legacyBlocks, representativeSpots: spots, highlights: sellingPoints, isFeatured: false, isPopular: false } })).status, 200);
+    // Existing SQL rows can have nullable optional metadata even though new writes have defaults.
+    raw.exec("UPDATE products SET description=NULL,original_price=NULL,created_at=NULL,updated_at=NULL,is_featured=0,is_popular=0 WHERE id='draft-legacy'");
+    const listed = await (await request('/')).json();
+    const response = listed.find(product => product.id === 'draft-legacy');
+    assert.ok(response);
+    const form = adminProductFromApi(response);
+    assert.equal(form.isFeatured, false);
+    assert.equal(form.isPopular, false);
+    assert.equal(form.price, 1100000);
+    assert.equal(form.description, '');
+    assert.equal(form.originalPrice, undefined);
+    assert.equal(form.viewCount, 0);
+    assert.equal(form.updatedAt, '');
+    assert.deepEqual(form.itineraryBlocks, legacyBlocks);
+    const values = new Map();
+    const storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
+    const scope = { userId: 'admin', productId: form.id };
+    const edited = { ...form, name: '다시 진입해 복원할 이름' };
+    assert.equal(writeAdminProductDraft(storage, scope, form, edited).ok, true);
+    const restored = readAdminProductDraft(storage, scope, form);
+    assert.equal(restored.kind, 'draft', restored.kind === 'error' ? restored.error : undefined);
+    assert.equal(restored.conflict, false);
+    assert.equal(productDraftFingerprint(restored.draft.form), productDraftFingerprint(edited));
+    assert.deepEqual(restored.draft.form.itineraryBlocks, legacyBlocks);
+    assert.deepEqual(restored.draft.form.representativeSpots, spots);
+    assert.deepEqual(restored.draft.form.highlights, sellingPoints);
+});
 
 test('상품 등록·목록·상세는 대표 명소와 기존 판매 포인트를 각각 저장한다', async t => {
     const { raw, request } = await fixture(t);
