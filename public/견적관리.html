@@ -416,6 +416,14 @@ $("previewFormBtn").onclick = () => window.open("/custom-estimate", "_blank");
 
 /* ═══════════════ 데이터 ═══════════════ */
 const IS_LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
+let requestedInquiryId = new URLSearchParams(location.search).get("id");
+function openRequestedInquiry() {
+  if (!requestedInquiryId) return;
+  const id = requestedInquiryId;
+  requestedInquiryId = null;
+  if (RECORDS.some(record => String(record.id) === id)) { setView("list"); openDrawer(id); }
+  else toast("요청한 견적 문의를 찾을 수 없습니다.");
+}
 async function loadData() {
   try {
     const res = await fetch(CFG.apiBase, { headers: { "x-admin-token": ADMIN_TOKEN }, cache: "no-store" });
@@ -427,11 +435,11 @@ async function loadData() {
     }
     if (res.ok) { const j = await res.json();
       if (j.ok && Array.isArray(j.items)) { RECORDS = j.items; mode = "server";
-        $("modeTag").textContent = "● 서버 연결됨 (전체 기기 공유)"; checkNewArrivals(); render(); return; } }
+        $("modeTag").textContent = "● 서버 연결됨 (전체 기기 공유)"; checkNewArrivals(); render(); openRequestedInquiry(); return; } }
   } catch (e) {}
   if (IS_LOCAL) {   // 로컬 개발(배포 전)에서만 이 브라우저의 데이터로 동작
     RECORDS = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
-    mode = "local"; $("modeTag").textContent = "○ 로컬 모드 (이 브라우저 · 배포 전)"; render();
+    mode = "local"; $("modeTag").textContent = "○ 로컬 모드 (이 브라우저 · 배포 전)"; render(); openRequestedInquiry();
     return;
   }
   // 배포 환경에서 서버 연결 실패 — 가짜(로컬) 데이터를 보여주지 않고 명확히 알림

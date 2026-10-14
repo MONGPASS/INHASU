@@ -3143,6 +3143,11 @@ function showLogin(msg) {
   $("loginMsg").textContent = msg || "";
 }
 async function enterApp(items) {
+  const requestedId = new URLSearchParams(location.search).get('id');
+  if (requestedId) {
+    if (items.some(record => String(record.id) === requestedId)) S.inquiry = requestedId;
+    else toast('요청한 견적 문의를 찾을 수 없습니다.');
+  }
   $("login").classList.remove("on"); $("app").classList.add("on");
   RECORDS = items; LOADED = true;
   render();

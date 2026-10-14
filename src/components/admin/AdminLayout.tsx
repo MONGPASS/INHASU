@@ -1,6 +1,6 @@
 import React from 'react';
 import { AdminSidebar } from './AdminSidebar';
-import { Icon } from './console/Icon';
+import { AdminToolbar } from './AdminToolbar';
 import '../../styles/admin-console.css';
 
 interface AdminLayoutProps {
@@ -9,7 +9,7 @@ interface AdminLayoutProps {
     description?: string;
     /** small uppercase label above the title; defaults from the page section */
     eyebrow?: string;
-    /** show the decorative header search pill (default true) */
+    /** 검색은 선택적으로 표시하며 업무 알림은 항상 제공한다. */
     showSearch?: boolean;
     /** kept for backward-compat with existing call sites; redesign is light-only */
     isDarkMode?: boolean;
@@ -51,15 +51,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                         </div>
                         <div className="header-spacer" />
                         <div className="header-tools">
-                            {showSearch && (
-                                <label className="search-pill">
-                                    <Icon name="search" />
-                                    <input placeholder="예약번호, 고객명, 상품 검색" />
-                                </label>
-                            )}
-                            <button className="icon-btn" title="알림" type="button">
-                                <Icon name="notifications" /><span className="badge-dot" />
-                            </button>
+                            <AdminToolbar showSearch={showSearch} />
                             {actions}
                         </div>
                     </div>

@@ -280,6 +280,11 @@ app.put('/:id', requireAdmin, async (c) => {
         const data = await c.req.json();
         const db = c.env.DB;
 
+        // A stale editor must not report success and erase its recovery draft after deletion.
+        if (!await db.prepare('SELECT id FROM products WHERE id = ?').bind(id).first()) {
+            return c.json({ error: '상품이 삭제되어 저장할 수 없습니다. 작성한 초안은 보관됩니다.' }, 404);
+        }
+
         const updateFields: string[] = [];
         const updateValues: any[] = [];
 
@@ -391,9 +396,10 @@ app.put('/:id', requireAdmin, async (c) => {
             updateValues.push(id);
             
             try {
-                await db.prepare(
+                const updated = await db.prepare(
                     `UPDATE products SET ${updateFields.join(', ')} WHERE id = ?`
                 ).bind(...updateValues).run();
+                if (updated.meta?.changes === 0) return c.json({ error: '상품이 삭제되어 저장할 수 없습니다. 작성한 초안은 보관됩니다.' }, 404);
             } catch {
                 // Remove sort_order from fields if column doesn't exist
                 const filteredFields = [];
@@ -408,9 +414,10 @@ app.put('/:id', requireAdmin, async (c) => {
                 filteredValues.push(id);
                 
                 if (filteredFields.length > 1) { // > 1 because updated_at is always there
-                    await db.prepare(
+                    const updated = await db.prepare(
                         `UPDATE products SET ${filteredFields.join(', ')} WHERE id = ?`
                     ).bind(...filteredValues).run();
+                    if (updated.meta?.changes === 0) return c.json({ error: '상품이 삭제되어 저장할 수 없습니다. 작성한 초안은 보관됩니다.' }, 404);
                 }
             }
         }

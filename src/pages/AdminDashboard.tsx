@@ -1,283 +1,145 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { AdminLayout } from '../components/admin/AdminLayout';
+import { useAdminWorkspace } from '../components/admin/AdminWorkspaceContext';
 import { Icon } from '../components/admin/console/Icon';
-import { fetchQuoteDeskRequests, quoteDeskHref, type QuoteDeskRequest } from '../components/admin/quoteDesk';
+import type { AdminWorkspaceData, AdminWorkTask } from '../types/adminWorkspace';
+import { dashboardAvailability, dashboardDate, dashboardNumber, dashboardPeriod, dashboardStatusTone, dashboardTimestamp } from '../utils/adminDashboard';
+import styles from './AdminDashboard.module.css';
 
-type Reservation = {
-    id: string;
-    status?: string;
-    createdAt?: string;
-    customerName?: string;
-    productName?: string;
-    confirmedPrice?: number;
+interface DashboardState {
+    data: AdminWorkspaceData | null;
+    loading: boolean;
+    error: string;
+    refresh: () => Promise<void>;
+}
+
+const taskIcons: Record<AdminWorkTask['kind'], string> = {
+    deposit_report: 'account_balance', contract: 'description', assignment: 'groups', quote: 'request_quote',
 };
 
-type Quote = {
-    id: string;
-    status?: string;
-    name?: string;
-    destination?: string;
-    createdAt?: string;
-    created_at?: string;
-};
+function SectionState({ loading, complete, error, empty }: { loading: boolean; complete: boolean; error: string; empty: string }) {
+    return <div className={`empty ${styles.empty}`} role={loading ? 'status' : undefined}>
+        <Icon name={loading ? 'hourglass_empty' : complete ? 'inbox' : 'warning'} />
+        <p>{loading ? '자료를 불러오고 있습니다.' : complete ? empty : error || '일부 자료를 불러오지 못했습니다. 다시 조회해 주세요.'}</p>
+    </div>;
+}
 
-type Guide = {
-    id: string;
-    name?: string;
-    status?: string;
-    image?: string;
-};
-
-const STATUS_BADGE: Record<string, { label: string; tone: string }> = {
-    new: { label: '신규 견적', tone: 'b-purple' },
-    processing: { label: '견적 작성중', tone: 'b-amber' },
-    answered: { label: '견적 발송됨', tone: 'b-blue' },
-    reservation_requested: { label: '예약 요청됨', tone: 'b-purple' },
-    pending_payment: { label: '입금 대기', tone: 'b-amber' },
-    paid: { label: '결제 완료', tone: 'b-blue' },
-    confirmed: { label: '예약 확정', tone: 'b-green' },
-    completed: { label: '여행 완료', tone: 'b-gray' },
-    cancelled: { label: '취소됨', tone: 'b-gray' },
-};
-
-const AV_TONES = ['tint-blue', 'tint-purple', 'tint-green', 'tint-amber', 'tint-ink'];
-const avTone = (name: string) => AV_TONES[(name.charCodeAt(0) || 0) % AV_TONES.length];
-
-const formatDate = (value?: string) => {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-};
-const formatNumber = (value: number) => new Intl.NumberFormat('ko-KR').format(value);
-
-export const AdminDashboard: React.FC = () => {
-    const navigate = useNavigate();
-    const [isLoading, setIsLoading] = useState(true);
-    const [errorMessage, setErrorMessage] = useState('');
-    const [reservations, setReservations] = useState<Reservation[]>([]);
-    const [quotes, setQuotes] = useState<Quote[]>([]);
-    const [guides, setGuides] = useState<Guide[]>([]);
-    // 맞춤 견적(견적 데스크) 문의 — 설정되지 않았거나 불러오지 못하면 null 로 두고 카드를 숨긴다.
-    const [deskRequests, setDeskRequests] = useState<QuoteDeskRequest[] | null>(null);
-
-    useEffect(() => {
-        let cancelled = false;
-        fetchQuoteDeskRequests().then((items) => {
-            if (!cancelled) setDeskRequests(items);
-        });
-        return () => { cancelled = true; };
-    }, []);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            setErrorMessage('');
-            try {
-                const [reservationData, quoteData, guideData] = await Promise.all([
-                    api.reservations.list(),
-                    api.quotes.list(),
-                    api.guides.list(),
-                ]);
-                setReservations((reservationData || []).map((item: any) => ({
-                    ...item,
-                    createdAt: item.createdAt || item.created_at,
-                    customerName: item.customerName || item.customer_name || '이름 없음',
-                    productName: item.productName || item.product_name || '상품 미정',
-                    confirmedPrice: item.confirmedPrice || item.confirmed_price || 0,
-                })));
-                setQuotes(quoteData || []);
-                setGuides(guideData || []);
-            } catch (error) {
-                console.error('Failed to fetch dashboard data', error);
-                setErrorMessage('대시보드 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
-
-    const metrics = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        const todayReservations = reservations.filter((item) => item.createdAt?.startsWith(today)).length;
-        const unpaidReservations = reservations.filter((item) => item.status === 'pending_payment').length;
-        const newQuotes = quotes.filter((item) => item.status === 'pending' || item.status === 'new').length;
-        const ongoingTours = reservations.filter((item) => item.status === 'confirmed').length;
-        const confirmedSales = reservations
-            .filter((item) => item.status === 'confirmed' || item.status === 'completed' || item.status === 'paid')
-            .reduce((sum, item) => sum + Number(item.confirmedPrice || 0), 0);
-        return { todayReservations, unpaidReservations, newQuotes, ongoingTours, confirmedSales };
-    }, [reservations, quotes]);
-
-    const recentReservations = reservations.slice(0, 6);
-    const recentQuotes = quotes.slice(0, 3);
-    // 견적 문의는 서버가 접수 최신순으로 내려 준다. 상태가 비어 있으면 신규로 본다(견적 관리 화면과 같은 기준).
-    const isNewDeskRequest = (item: QuoteDeskRequest) => (item.status || '신규') === '신규';
-    const deskNewCount = (deskRequests || []).filter(isNewDeskRequest).length;
-    const deskRecent = (deskRequests || []).slice(0, 3);
-    const deskInboxHref = quoteDeskHref('inbox');
-
+/** Shared workspace data is presented as received; counts are never recalculated here. */
+export function AdminDashboardBody({ data, loading, error, refresh }: DashboardState) {
+    const availability = dashboardAvailability(data);
+    const initialLoading = loading && !data;
+    const metrics = data?.metrics;
+    const bookings = data?.bookings.slice(0, 6) || [];
+    const inquiries = data?.inquiries.filter(inquiry => inquiry.pending).slice(0, 5) || [];
+    const tasks = data?.tasks.slice(0, 7) || [];
     const metricCards = [
-        { ico: 'today', tint: 'tint-blue', label: '오늘 신규 예약', value: `${metrics.todayReservations}`, unit: '건' },
-        { ico: 'request_quote', tint: 'tint-purple', label: '새 견적 요청', value: `${metrics.newQuotes}`, unit: '건' },
-        { ico: 'payments', tint: 'tint-amber', label: '입금 대기', value: `${metrics.unpaidReservations}`, unit: '건' },
-        { ico: 'paid', tint: 'tint-green', label: '확정 매출', value: formatNumber(metrics.confirmedSales), unit: '원' },
+        { icon: 'today', tint: 'tint-blue', label: '오늘 신규 예약', value: metrics?.todayReservations, unit: '건', note: '한국시간 접수 · 상품 + 견적 예약' },
+        { icon: 'request_quote', tint: 'tint-purple', label: '답변 대기 견적', value: metrics?.newQuotes, unit: '건', note: '신규·작성 중·상담 중 문의' },
+        { icon: 'payments', tint: 'tint-amber', label: '입금 대기', value: metrics?.unpaidReservations, unit: '건', note: '상품 + 견적 예약' },
+        { icon: 'paid', tint: 'tint-green', label: '확정 매출', value: metrics?.confirmedSales, unit: '원', note: '확정·결제·완료 예약의 팀 전체 금액' },
     ];
     const quickLinks = [
-        { t: '견적 응답 대기', s: '신규·작성중 견적', v: metrics.newQuotes, ico: 'mark_email_unread', tint: 'tint-purple', go: '/admin/quotes' },
-        { t: '입금 확인 필요', s: '예약금 미입금', v: metrics.unpaidReservations, ico: 'account_balance', tint: 'tint-amber', go: '/admin/reservations' },
-        { t: '투어 캘린더', s: '확정 투어 일정', v: metrics.ongoingTours, ico: 'calendar_today', tint: 'tint-blue', go: '/admin/calendar' },
+        { title: '입금 신고 확인', note: '고객이 입금을 알린 예약', value: metrics?.depositReports, icon: 'account_balance', tint: 'tint-amber',
+            href: data?.tasks.find(task => task.kind === 'deposit_report')?.href || '/admin/reservations' },
+        { title: '오늘 진행 중 투어', note: '여행 시작일·종료일 기준', value: metrics?.ongoingTours, icon: 'calendar_today', tint: 'tint-blue', href: '/admin/calendar' },
+        { title: '오늘 확인할 업무', note: availability.tasks ? '입금 · 계약 · 배정 · 견적' : '확인된 자료의 업무',
+            value: data && availability.tasks ? data.tasks.length : null, icon: 'task_alt', tint: 'tint-purple', href: data?.tasks[0]?.href || '/admin/reservations' },
     ];
-
-    return (
-        <AdminLayout
-            activePage="dashboard"
-            title="대시보드"
-            actions={
-                <button type="button" className="btn btn-ink" onClick={() => navigate('/admin/quotes')}>
-                    <Icon name="request_quote" />견적 확인
-                </button>
-            }
-        >
-            <div className="stack route-anim">
-                {errorMessage && (
-                    <div style={{
-                        padding: '12px 16px', borderRadius: 'var(--r-md)', background: 'var(--mrt-red-soft)',
-                        color: 'var(--mrt-red)', fontSize: 13, fontWeight: 600,
-                    }}>{errorMessage}</div>
-                )}
-
-                <section className="metric-grid">
-                    {metricCards.map((m, i) => (
-                        <div className="metric" key={i}>
-                            <div className="metric-top">
-                                <span className={`metric-ico ${m.tint}`}><Icon name={m.ico} fill /></span>
-                            </div>
-                            <div className="metric-label">{m.label}</div>
-                            <div className="metric-value">{isLoading ? '-' : m.value}{m.unit && <small>{m.unit}</small>}</div>
-                        </div>
-                    ))}
-                </section>
-
-                <section className="grid-3">
-                    {quickLinks.map((q, i) => (
-                        <button className="qlink" key={i} onClick={() => navigate(q.go)}>
-                            <span className={`qi ${q.tint}`}><Icon name={q.ico} fill /></span>
-                            <span className="qtext"><span className="qt">{q.t}</span><span className="qs">{q.s}</span></span>
-                            <span className="qv">{q.v}</span>
-                            <Icon name="chevron_right" className="arr" />
-                        </button>
-                    ))}
-                </section>
-
-                <section className="grid-2">
-                    <div className="card">
-                        <div className="card-head">
-                            <h2>최근 예약</h2><div className="spacer" />
-                            <button className="link-action" onClick={() => navigate('/admin/reservations')}>전체 보기<Icon name="chevron_right" /></button>
-                        </div>
-                        <div className="tbl-wrap">
-                            <table className="tbl">
-                                <thead><tr><th>예약번호</th><th>고객</th><th>상품</th><th>상태</th><th className="r">금액</th></tr></thead>
-                                <tbody>
-                                    {recentReservations.map((r) => {
-                                        const s = STATUS_BADGE[r.status || ''] || { label: r.status || '-', tone: 'b-gray' };
-                                        return (
-                                            <tr key={r.id} onClick={() => navigate('/admin/reservations')}>
-                                                <td className="cell-mono">#{r.id.slice(0, 6)}</td>
-                                                <td>
-                                                    <div className="av-cell">
-                                                        <span className={`avatar round ${avTone(r.customerName || '?')}`}>{(r.customerName || '?').slice(0, 2)}</span>
-                                                        <span className="cell-strong">{r.customerName}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="cell-muted" style={{ maxWidth: 240 }}>
-                                                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.productName}</div>
-                                                </td>
-                                                <td><span className={`badge ${s.tone}`}>{s.label}</span></td>
-                                                <td className="r cell-price">{r.confirmedPrice ? `${formatNumber(r.confirmedPrice)}원` : '–'}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                            {!isLoading && recentReservations.length === 0 && (
-                                <div className="empty"><Icon name="inbox" /><p>최근 예약이 없습니다.</p></div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="stack">
-                        {deskRequests && (
-                            <div className="card">
-                                <div className="card-head">
-                                    <h2>맞춤 견적</h2>
-                                    <span className={`badge ${deskNewCount > 0 ? 'b-purple' : 'b-gray'}`}>신규 {deskNewCount}건</span>
-                                    <div className="spacer" />
-                                    <button className="link-action" onClick={() => navigate(deskInboxHref)}>견적 문의<Icon name="chevron_right" /></button>
-                                </div>
-                                <div style={{ padding: 12 }}>
-                                    {deskRecent.map((q) => (
-                                        <button key={q.id} className="qlink" style={{ marginBottom: 8, padding: '13px 14px', width: '100%' }} onClick={() => navigate(deskInboxHref)}>
-                                            <span className="qi tint-green" style={{ width: 40, height: 40 }}><Icon name="request_quote" fill /></span>
-                                            <span className="qtext"><span className="qt">{q.name || '이름 없음'}</span>
-                                                <span className="qs">{q.destination || '희망 투어 미정'} · {formatDate(q.receivedAt)} 접수</span></span>
-                                            {isNewDeskRequest(q) && <span className="badge b-purple">신규</span>}
-                                            <Icon name="chevron_right" className="arr" />
-                                        </button>
-                                    ))}
-                                    {deskRecent.length === 0 && (
-                                        <div className="empty" style={{ padding: '28px 20px' }}><Icon name="inbox" /><p>접수된 견적 문의가 없습니다.</p></div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="card">
-                            <div className="card-head"><h2>새 견적 요청</h2><div className="spacer" />
-                                <button className="link-action" onClick={() => navigate('/admin/quotes')}>견적 관리<Icon name="chevron_right" /></button></div>
-                            <div style={{ padding: 12 }}>
-                                {recentQuotes.map((q) => (
-                                    <button key={q.id} className="qlink" style={{ marginBottom: 8, padding: '13px 14px' }} onClick={() => navigate('/admin/quotes')}>
-                                        <span className="qi tint-purple" style={{ width: 40, height: 40 }}><Icon name="request_quote" fill /></span>
-                                        <span className="qtext"><span className="qt">{q.name || '이름 없음'}</span>
-                                            <span className="qs">{q.destination || '목적지 미정'} · {formatDate(q.createdAt || q.created_at)}</span></span>
-                                        <Icon name="chevron_right" className="arr" />
-                                    </button>
-                                ))}
-                                {!isLoading && recentQuotes.length === 0 && (
-                                    <div className="empty" style={{ padding: '28px 20px' }}><Icon name="inbox" /><p>대기 중인 견적 요청이 없습니다.</p></div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="card">
-                            <div className="card-head"><h2>가이드 현황</h2><div className="spacer" />
-                                <button className="link-action" onClick={() => navigate('/admin/guides')}>가이드 관리<Icon name="chevron_right" /></button></div>
-                            <div style={{ padding: '8px 18px 14px' }}>
-                                {guides.slice(0, 5).map((g, i) => (
-                                    <div key={g.id} className="row" style={{ padding: '9px 0', borderBottom: i < Math.min(guides.length, 5) - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                                        {g.image
-                                            ? <img className="avatar round" src={g.image} alt={g.name || '가이드'} />
-                                            : <span className={`avatar round ${avTone(g.name || '?')}`}>{(g.name || '?').slice(0, 2)}</span>}
-                                        <div style={{ minWidth: 0 }}>
-                                            <div className="cell-strong">{g.name || '이름 없음'}</div>
-                                        </div>
-                                        <div className="spacer" style={{ flex: 1 }} />
-                                        <span className={`badge ${g.status === '활동중' ? 'b-green' : 'b-gray'}`}>{g.status || '대기'}</span>
-                                    </div>
-                                ))}
-                                {!isLoading && guides.length === 0 && (
-                                    <div className="empty" style={{ padding: '28px 20px' }}><Icon name="person_off" /><p>등록된 가이드가 없습니다.</p></div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </section>
+    return <div className={`stack route-anim ${styles.dashboard}`}>
+        <div className={styles.refreshbar}>
+            <div>
+                <strong>{data ? `${dashboardDate(data.today)} · 한국시간 기준` : '오늘의 운영 현황'}</strong>
+                <span>{data ? `최근 조회 ${dashboardTimestamp(data.generatedAt)}` : initialLoading ? '상품·견적 자료를 확인하고 있습니다.' : '운영 자료를 다시 조회해 주세요.'}</span>
             </div>
-        </AdminLayout>
-    );
+            <button type="button" className="btn btn-ghost" disabled={loading} onClick={() => { void refresh(); }}>
+                <Icon name="refresh" />{loading ? '조회 중…' : '새로고침'}
+            </button>
+        </div>
+
+        {error && <div className={styles.warning} role="alert">{error}{data && <span>마지막으로 불러온 자료를 표시하고 있습니다.</span>}</div>}
+        {!!data?.warnings.length && <div className={styles.warning} role="status">
+            <strong>일부 자료를 확인할 수 없습니다.</strong>
+            <ul>{data.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>
+            <span>확인되지 않은 집계는 —로 표시합니다.</span>
+        </div>}
+
+        <section className={`metric-grid ${styles.metrics}`} aria-label="통합 운영 집계" aria-busy={initialLoading}>
+            {metricCards.map(card => <div className="metric" key={card.label}>
+                <div className="metric-top"><span className={`metric-ico ${card.tint}`}><Icon name={card.icon} fill /></span></div>
+                <div className="metric-label">{card.label}</div>
+                <div className="metric-value" aria-label={`${card.label}: ${dashboardNumber(card.value)}${card.value != null ? card.unit : ''}`}>
+                    {dashboardNumber(card.value)}{card.value != null && <small>{card.unit}</small>}
+                </div>
+                <p className={styles.metricNote}>{card.value == null ? initialLoading ? '집계 중…' : '자료 확인 필요' : card.note}</p>
+            </div>)}
+        </section>
+
+        <section className={`grid-3 ${styles.quicklinks}`} aria-label="업무 바로가기">
+            {quickLinks.map(link => <Link key={link.title} className={`qlink ${styles.quicklink}`} to={link.href}>
+                <span className={`qi ${link.tint}`}><Icon name={link.icon} fill /></span>
+                <span className="qtext"><span className="qt">{link.title}</span><span className="qs">{link.note}</span></span>
+                <span className="qv">{dashboardNumber(link.value)}</span><Icon name="chevron_right" className="arr" />
+            </Link>)}
+        </section>
+
+        <section className={`grid-2 ${styles.mainGrid}`}>
+            <div className="card">
+                <div className="card-head"><h2>최근 통합 예약</h2><span className={`badge b-gray ${styles.sourceHint}`}>상품 · 견적</span><div className="spacer" />
+                    <Link className="link-action" to="/admin/reservations">전체 보기<Icon name="chevron_right" /></Link></div>
+                {!availability.bookings && data && <p className={styles.partial}>불러온 예약만 표시합니다. 일부 예약 자료는 확인이 필요합니다.</p>}
+                <div className="tbl-wrap"><table className="tbl">
+                    <thead><tr><th>예약</th><th>고객 · 상품</th><th>여행 기간</th><th>상태</th><th className="r">팀 금액</th></tr></thead>
+                    <tbody>{bookings.map(booking => <tr key={booking.key}>
+                        <td><span className={`badge ${booking.type === 'quote_booking' ? 'b-purple' : 'b-blue'}`}>{booking.type === 'quote_booking' ? '견적 예약' : '상품 예약'}</span>
+                            <Link className={styles.bookingNumber} to={booking.href}>{booking.reservationNumber || `#${booking.id.slice(0, 8)}`}</Link></td>
+                        <td className={styles.customerCell}><Link to={booking.href} className={styles.customerName}>{booking.customerName || '이름 미정'}</Link>
+                            <span className={styles.productName}>{booking.productName || '상품 미정'}</span></td>
+                        <td><span className={styles.period}>{dashboardPeriod(booking.startDate, booking.endDate)}</span></td>
+                        <td><span className={`badge ${dashboardStatusTone(booking.status)}`}>{booking.statusLabel || booking.status || '상태 미정'}</span></td>
+                        <td className="r cell-price">{dashboardNumber(booking.totalAmount)}{booking.totalAmount != null && '원'}</td>
+                    </tr>)}</tbody>
+                </table>
+                    {!bookings.length && <SectionState loading={initialLoading} complete={availability.bookings} error={error} empty="접수된 예약이 없습니다." />}
+                </div>
+            </div>
+
+            <div className="stack">
+                <div className="card" id="dashboard-tasks">
+                    <div className="card-head"><h2>오늘 확인할 업무</h2>{data && <span className="badge b-gray">{availability.tasks ? `${data.tasks.length}건` : '일부 자료'}</span>}</div>
+                    {!availability.tasks && data && <p className={styles.partial}>확인된 업무만 표시합니다. 불러오지 못한 자료에 추가 업무가 있을 수 있습니다.</p>}
+                    <div className={styles.list}>{tasks.map(task => <Link key={task.key} className={styles.listItem} to={task.href}>
+                        <span className={`qi ${task.priority === 'urgent' ? 'tint-amber' : 'tint-blue'}`}><Icon name={taskIcons[task.kind]} /></span>
+                        <span className={styles.listText}><strong>{task.title}</strong><span>{task.description}</span></span>
+                        {task.priority === 'urgent' && <span className="badge b-amber">우선 확인</span>}<Icon name="chevron_right" />
+                    </Link>)}
+                        {!tasks.length && <SectionState loading={initialLoading} complete={availability.tasks} error={error} empty="확인이 필요한 업무가 없습니다." />}
+                    </div>
+                    {data && data.tasks.length > tasks.length && <p className={styles.more}>{tasks.length}건 표시 · 총 {data.tasks.length}건</p>}
+                </div>
+
+                <div className="card">
+                    <div className="card-head"><h2>답변 대기 문의</h2><div className="spacer" />
+                        <Link className="link-action" to="/admin/quotes">전체 문의<Icon name="chevron_right" /></Link></div>
+                    {!availability.inquiries && data && <p className={styles.partial}>불러온 문의만 표시합니다. 일부 문의 자료는 확인이 필요합니다.</p>}
+                    <div className={styles.list}>{inquiries.map(inquiry => <Link key={inquiry.key} className={styles.listItem} to={inquiry.href}>
+                        <span className="qi tint-purple"><Icon name="request_quote" /></span>
+                        <span className={styles.listText}><strong>{inquiry.name || '이름 미정'}</strong>
+                            <span>{inquiry.destination || '희망 여행 미정'}</span><small>{dashboardTimestamp(inquiry.createdAt)} · {inquiry.type === 'quote_request' ? '맞춤 견적' : '기존 견적'} · {inquiry.statusLabel || inquiry.status}</small></span>
+                        <Icon name="chevron_right" />
+                    </Link>)}
+                        {!inquiries.length && <SectionState loading={initialLoading} complete={availability.inquiries} error={error} empty="답변을 기다리는 문의가 없습니다." />}
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>;
+}
+
+export const AdminDashboard: React.FC = () => {
+    const workspace = useAdminWorkspace();
+    return <AdminLayout activePage="dashboard" title="대시보드" description="상품과 견적 예약의 오늘 업무를 함께 확인합니다."
+        actions={<Link className="btn btn-ink" to="/admin/reservations"><Icon name="event_note" />예약 관리</Link>}>
+        <AdminDashboardBody {...workspace} />
+    </AdminLayout>;
 };

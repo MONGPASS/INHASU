@@ -15,6 +15,7 @@ import { SEO } from './components/seo/SEO'
 
 import { NotificationProvider } from './contexts/NotificationContext'
 import { FloatingConsultation } from './components/common/FloatingConsultation'
+import { AdminWorkspaceProvider } from './components/admin/AdminWorkspaceContext'
 
 // Lazy Load Pages - Handling Named Exports
 const Reservation = lazy(() => import('./pages/Reservation').then(module => ({ default: module.Reservation })))
@@ -114,6 +115,7 @@ function App() {
     <div className={appWrapperClass}>
       <SEO />
       <NotificationProvider>
+        <AdminWorkspaceProvider enabled={isAdminRoute && location.pathname !== '/admin/login'}>
         {!isAdminRoute && !isGuidePrintRoute && <FloatingConsultation />}
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -195,6 +197,7 @@ function App() {
             <Route path="/documents/contract/:reservationId" element={<DocumentContract />} />
           </Routes>
         </Suspense>
+        </AdminWorkspaceProvider>
       </NotificationProvider>
     </div>
   )

@@ -13,6 +13,7 @@ import { productScheduleDays } from '../functions/lib/productItinerary.ts';
 import { productDocumentSections } from '../public/product-itinerary.js';
 import { onRequestGet as quoteGet } from '../functions/api/requests/[id].js';
 import { onRequestGet as libraryGet } from '../functions/api/data/[key].js';
+import { onRequestGet as quoteListGet } from '../functions/api/requests.js';
 
 const root = path.resolve(import.meta.dirname, '..');
 const portArgument = process.argv.find(argument => argument.startsWith('--port='));
@@ -28,6 +29,8 @@ import reservations from '../../functions/api/reservations';
 import products from '../../functions/api/products';
 import quotes from '../../functions/api/quotes';
 import bookings from '../../functions/api/admin-bookings';
+import workspace from '../../functions/api/admin-workspace';
+import categories from '../../functions/api/categories';
 import documents from '../../functions/api/documents';
 import templates from '../../functions/api/itinerary-templates';
 import guides from '../../functions/api/tour-guides';
@@ -40,6 +43,7 @@ import settings from '../../functions/api/settings';
 const app = new Hono().basePath('/api');
 app.route('/auth', auth); app.route('/reservations', reservations); app.route('/products', products);
 app.route('/quotes', quotes); app.route('/admin/bookings', bookings); app.route('/documents', documents);
+app.route('/admin/workspace', workspace); app.route('/categories', categories);
 app.route('/itinerary-templates', templates); app.route('/tour-guides', guides);
 app.route('/accommodations', accommodations); app.route('/hotels', hotels); app.route('/tourist-spots', spots);
 app.route('/notifications/email', email); app.route('/notifications', notifications); app.route('/settings', settings);
@@ -80,6 +84,8 @@ for (const [id, role, email] of [
     raw.prepare('INSERT INTO sessions VALUES (?,?,?)').run(`local-${id}-session`, id, Date.now() + 86400000);
 }
 const admin = { cookie: 'auth_session=local-workspace-admin-session' };
+raw.prepare('INSERT INTO categories (id,name,type) VALUES (?,?,?)').run('local-central', '중앙몽골', 'product');
+raw.prepare('INSERT INTO categories (id,name,type) VALUES (?,?,?)').run('local-gobi', '고비사막', 'product');
 const owner = { cookie: 'auth_session=local-workspace-owner-session' };
 const other = { cookie: 'auth_session=local-workspace-other-session' };
 const env = { DB, ENVIRONMENT: 'production', ADMIN_TOKEN: 'local-workspace-quote-fixture',
@@ -473,6 +479,16 @@ assert.equal(outbound.length, 1);
 raw.prepare('DELETE FROM reservations WHERE id=?').run('workspace-check');
 raw.exec('DELETE FROM notifications');
 outbound.length = 0;
+const workspaceResponse = await apiRequest('/api/admin/workspace', { headers: admin });
+assert.equal(workspaceResponse.status, 200);
+const workspaceData = await workspaceResponse.json();
+assert.equal(workspaceData.bookings.filter(booking => booking.type === 'product').length, 4);
+assert.equal(workspaceData.bookings.filter(booking => booking.type === 'quote_booking').length, 1);
+assert.equal(workspaceData.metrics.confirmedSales, 13200000);
+assert.ok(Object.values(workspaceData.availability).every(Boolean));
+assert.ok(workspaceData.searchItems.some(item => item.category === 'product'));
+assert.equal((await apiRequest('/api/admin/workspace', { headers: owner })).status, 403);
+assert.equal((await apiRequest('/api/admin/workspace')).status, 401);
 console.log('예약 작업 API 검증 통과: 실제 로그인 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 관리자 운영정보 보호 · 외부 발송 차단');
 
 if (process.argv.includes('--serve')) {
@@ -501,6 +517,8 @@ if (process.argv.includes('--serve')) {
                     const who = await apiRequest('/api/auth/me', { headers: req.headers });
                     const session = await who.json();
                     response = session.user?.role === 'admin' ? Response.json({ emailStubCalls: outbound.length, liveCalls: 0 }) : Response.json({ error: 'Unauthorized' }, { status: 401 });
+                } else if (url.pathname === '/api/requests' && req.method === 'GET') {
+                    response = await quoteListGet({ request: new Request(url, options), env });
                 } else if (url.pathname.startsWith('/api/requests/') && req.method === 'GET') {
                     response = await quoteGet({ request: new Request(url, options), env, params: { id: decodeURIComponent(url.pathname.slice('/api/requests/'.length)) } });
                 } else if (url.pathname.startsWith('/api/data/') && req.method === 'GET') {
@@ -517,6 +535,11 @@ if (process.argv.includes('--serve')) {
             if (!file && path.extname(relative)) { res.writeHead(404); res.end('Local asset not found'); return; }
             file ||= path.join(distRoot, 'index.html');
             res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+            // Opt-in local browser fault test; this script never serves production traffic.
+            if (file === path.join(distRoot, 'index.html') && url.searchParams.get('localDraftStorage') === 'blocked') {
+                const storageFault = `<script>const originalSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(String(key).startsWith('inhasu:admin-product-draft:'))throw new DOMException('Local draft storage fault','QuotaExceededError');return originalSetItem.call(this,key,value);};</script>`;
+                res.end(fs.readFileSync(file, 'utf8').replace('<head>', '<head>' + storageFault)); return;
+            }
             res.end(fs.readFileSync(file));
         } catch (error) { res.writeHead(500, { 'Content-Type': 'text/plain;charset=utf-8' }); res.end(String(error)); }
     });

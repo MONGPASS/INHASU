@@ -105,6 +105,7 @@ export function isDesktopViewport(): boolean {
 /** iframe 에 넣을 주소. 바깥 창이 데스크톱 폭이면 모바일 화면으로 넘어가지 않게 `?m=0` 을 붙인다. */
 export function quoteDeskFrameSrc(tool: QuoteDeskTool, bookingId?: string): string {
     if (tool.key === 'bookings' && bookingId) return `/예약관리?id=${encodeURIComponent(bookingId)}`;
+    if (tool.key === 'inbox' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}${isDesktopViewport() ? '&m=0' : ''}`;
     return tool.mobileDoc && isDesktopViewport() ? `${tool.doc}?m=0` : tool.doc;
 }
 

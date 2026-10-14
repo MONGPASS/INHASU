@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { keysToCamel, keysToSnake } from '../utils/mapKeys';
 import { AdminLayout } from '../components/admin/AdminLayout';
@@ -16,6 +16,7 @@ import { won } from '../components/desktop-primitives/mwTokens';
 
 export const AdminQuoteManage: React.FC = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     // Filter States
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('전체 상태');
@@ -52,6 +53,15 @@ export const AdminQuoteManage: React.FC = () => {
     useEffect(() => {
         fetchQuotes();
     }, []);
+
+    useEffect(() => {
+        const id = searchParams.get('open');
+        if (!id || loading) return;
+        const found = requests.find(request => String(request.id) === id);
+        if (found) setSelectedRequest(found);
+        else alert('요청한 견적 문의를 찾을 수 없습니다.');
+        setSearchParams(current => { const next = new URLSearchParams(current); next.delete('open'); return next; }, { replace: true });
+    }, [loading, requests, searchParams, setSearchParams]);
 
     // Handle Status Change
     const handleStatusChange = async (id: string, newStatus: string) => {

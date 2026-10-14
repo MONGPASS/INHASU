@@ -28,7 +28,7 @@ type Phase = 'connecting' | 'linked' | 'unset' | 'failed';
 export const AdminQuoteDesk: React.FC = () => {
     const { tool: toolParam } = useParams<{ tool?: string }>();
     const [searchParams] = useSearchParams();
-    const bookingId = toolParam === 'bookings' ? searchParams.get('id') || undefined : undefined;
+    const bookingId = ['bookings', 'inbox'].includes(toolParam || '') ? searchParams.get('id') || undefined : undefined;
     const navigate = useNavigate();
     const tool = findQuoteDeskTool(toolParam);
 
@@ -123,9 +123,8 @@ export const AdminQuoteDesk: React.FC = () => {
         <AdminLayout
             activePage={quoteDeskPageId(tool.key)}
             eyebrow="맞춤 견적"
-            title={bookingId ? '견적 예약 상세' : tool.label}
-            description={bookingId ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.description}
-            showSearch={false}
+            title={bookingId && tool.key === 'bookings' ? '견적 예약 상세' : tool.label}
+            description={bookingId && tool.key === 'bookings' ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.description}
             flush
             actions={
                 <>

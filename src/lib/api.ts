@@ -1,6 +1,7 @@
 import type { Promotion } from '../components/promotions/promotionTypes';
 import { changedContentResource, notifyContentSaved } from './publicContent';
 import type { QuoteBookingSummary } from '../../functions/lib/quoteBookings';
+import type { AdminWorkspaceData } from '../types/adminWorkspace';
 import { INQUIRY_REQUEST_FAILED, type InquiryInput, type InquiryRecord, type InquiryStatus } from '../types/inquiry';
 
 const API_BASE = '/api';
@@ -27,10 +28,15 @@ async function request(url: string, options?: RequestInit) {
     const data = await res.json();
     const resource = changedContentResource(url, options?.method);
     if (resource) notifyContentSaved(resource);
+    if (typeof window !== 'undefined' && options?.method && !['GET', 'HEAD'].includes(options.method.toUpperCase())
+        && /^\/api\/(reservations|quotes|products|documents)(\/|$)/.test(url)) {
+        window.dispatchEvent(new Event('admin-workspace-changed'));
+    }
     return data;
 }
 
 export const api = {
+    adminWorkspace: { get: async (): Promise<AdminWorkspaceData> => request(`${API_BASE}/admin/workspace`, { cache: 'no-store' }) },
     adminBookings: {
         quote: async (): Promise<{ items: QuoteBookingSummary[]; skipped: number }> =>
             request(`${API_BASE}/admin/bookings/quote`, { cache: 'no-store' }),
