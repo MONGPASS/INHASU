@@ -8,6 +8,10 @@
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <script src="data.js"></script>
 <script src="presets.js"></script>
+<script src="/quote-day-editor.js"></script>
+<link rel="stylesheet" href="/quote-day-editor.css">
+<script src="/quote-spot-selector.js"></script>
+<link rel="stylesheet" href="/quote-spot-selector.css">
 <style>
   :root {
     --p:#06C4A0; --pd:#05A084; --pl:#E1F8F3; --pb:#9DE7D8;
@@ -104,21 +108,7 @@
   .int-dot.on { background:var(--p); border-color:var(--p); color:#fff; }
   .int-desc { font-size:12px; color:var(--gray); }
 
-  /* 대표 명소 */
-  .spot-cat { margin-top:20px; }
-  .spot-cat:first-child { margin-top:0; }
-  .spot-cat-head { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:var(--gray); letter-spacing:.3px; margin-bottom:10px; }
-  .spot-cat-head .ln { flex:1; height:1px; background:var(--hair); }
-  .spot-cat-head .cc { font-size:11px; font-weight:700; color:var(--dim); }
-  .spot-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-  .spot-chk { display:flex; align-items:center; gap:9px; border:1px solid var(--line); border-radius:11px; padding:10px 11px; cursor:pointer; background:#fff; transition:.12s; }
-  .spot-chk:hover { border-color:var(--pb); }
-  .spot-chk.on { border:1.5px solid var(--p); background:var(--pl); padding:9.5px 10.5px; }
-  .spot-chk .box { width:22px; height:22px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:#EEF1F4; color:#C4CAD3; font-size:11px; font-weight:800; }
-  .spot-chk.on .box { background:var(--p); color:#fff; }
-  .spot-chk .nm { flex:1; min-width:0; }
-  .spot-chk b { font-size:13.5px; font-weight:700; color:var(--ink2); display:block; }
-  .spot-chk small { display:block; font-size:11px; color:var(--gray); margin-top:1px; }
+  /* 대표 명소: /quote-spot-selector.css 공통 스타일 */
 
   /* 요금 */
   .seg { display:inline-flex; background:#F1F3F5; border-radius:9px; padding:3px; }
@@ -631,38 +621,20 @@ bind("f_benefits","benefits"); bind("f_events","events"); bind("f_remark","remar
 bind("f_deposit","deposit",true);
 
 /* ── 명소 그리드 ── */
+let quoteSpotWidget = null;
 function renderSpots() {
-  const spots = getSpots();
-  const chip = (name, s) => {
-    const idx = ST.spots.indexOf(name), on = idx >= 0;
-    return `<div class="spot-chk ${on?"on":""}" data-s="${esc(name)}">
-      <div class="box">${on?idx+1:""}</div>
-      <div class="nm"><b>${esc(name)}</b><small>${esc(s.short||"")}</small></div>
-    </div>`;
+  const options = {
+    spots: getSpots(),
+    categories: window.getSpotCats ? getSpotCats() : [],
+    selected: ST.spots,
+    onToggle(name) {
+      const i = ST.spots.indexOf(name);
+      if (i >= 0) ST.spots.splice(i, 1); else ST.spots.push(name);
+      renderSpots();
+    },
   };
-  // 카테고리(지역) 순서: 명소관리에서 정한 순서 우선, 나머지·미분류는 뒤로
-  const catOf = s => (s && s.region ? String(s.region).trim() : "");
-  const order = (window.getSpotCats ? getSpotCats() : []).slice();
-  Object.values(spots).forEach(s => { const c = catOf(s); if (c && !order.includes(c)) order.push(c); });
-  const groups = [...order.map(c => [c, c]), ["", "미분류"]];
-
-  let html = "";
-  groups.forEach(([cat, label]) => {
-    const items = Object.entries(spots).filter(([, s]) => catOf(s) === cat);
-    if (!items.length) return;
-    const sel = items.filter(([n]) => ST.spots.includes(n)).length;
-    html += `<div class="spot-cat">
-      <div class="spot-cat-head">${esc(label)}<span class="ln"></span><span class="cc">${sel?`${sel}개 선택 · `:""}${items.length}곳</span></div>
-      <div class="spot-grid">${items.map(([name, s]) => chip(name, s)).join("")}</div>
-    </div>`;
-  });
-  $("spotGroups").innerHTML = html || `<div style="font-size:12.5px;color:var(--gray)">등록된 명소가 없습니다. 명소 관리에서 추가하세요.</div>`;
-
-  $("spotGroups").querySelectorAll(".spot-chk").forEach(el => el.onclick = () => {
-    const name = el.dataset.s, i = ST.spots.indexOf(name);
-    if (i >= 0) ST.spots.splice(i, 1); else ST.spots.push(name);
-    renderSpots();
-  });
+  if (quoteSpotWidget) quoteSpotWidget.update(options);
+  else quoteSpotWidget = window.QuoteSpotSelector.mount($("spotGroups"), options);
 }
 
 /* ── 추가 및 할인 사항 (표시용 {label, calc}) ── */
@@ -752,108 +724,48 @@ function dayCountNote() {
   return `<span style="color:#d98a3a;font-weight:700">⚠ 여행 기간은 ${n}박 ${need}일인데 일정 칸은 ${ST.days.length}개입니다. 아래에서 일자를 추가/삭제해 맞춰주세요.</span>`;
 }
 
+let quoteDayWidget = null;
 function renderDays() {
-  let dragIdx = null;   // 드래그 중인 일자 인덱스
   $("dayCheck").innerHTML = dayCountNote();
-  const snips = getSnippets();
-  // 카테고리(지역)별로 optgroup 그룹핑 — 일정관리의 cat 필드 사용
-  const snipCats = (window.getSnippetCats ? getSnippetCats() : []);
-  const byCat = {};
-  Object.entries(snips).forEach(([name, s]) => {
-    const c = (s && s.cat ? String(s.cat).trim() : "") || "기타";
-    (byCat[c] = byCat[c] || []).push(name);
-  });
-  const ordered = [
-    ...snipCats.filter(c => byCat[c]),                                    // 등록된 카테고리 순서
-    ...Object.keys(byCat).filter(c => !snipCats.includes(c) && c !== "기타"), // 목록에 없는 카테고리
-  ];
-  if (byCat["기타"]) ordered.push("기타");                                 // 미분류는 맨 뒤
-  const snipOptions = ordered.map(c =>
-    `<optgroup label="${esc(c)}">${byCat[c].map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join("")}</optgroup>`
-  ).join("");
-  $("dayList").innerHTML = ST.days.map((d, i) => `
-    <div class="day-edit" data-i="${i}">
-      <div class="dh">
-        <span class="drag-handle" title="드래그해서 순서 변경">⠿</span>
-        <span class="badge">${d.d}일차</span>
-        <input class="ddate" value="${esc(d.date||"")}" placeholder="${esc(dayDateStr(i) || "날짜")} (선택)" title="고객 여행일자 (선택) — 입력하면 견적서 일정표에 함께 표시됩니다" style="flex:none; width:120px; font-size:12px; font-weight:600;">
-        <input class="dest" value="${esc((d.dest||"").replace(/<br\s*\/?>/gi," / "))}" placeholder="목적지">
-        <input class="move" value="${esc(d.move||"")} ${esc(d.dist||"")}" placeholder="이동 6시간 (300 km)">
-        <button class="day-del" title="이 일자 삭제">✕</button>
-      </div>
-      <div class="snip-row">
-        <select class="snip-sel">
-          <option value="">📋 일정 불러오기…</option>
-          ${snipOptions}
-        </select>
-        <span class="snip-hint">클릭 한 번에 이 일자를 채웁니다. 없으면 아래에 직접 작성하세요.</span>
-      </div>
-      <textarea class="items">${esc((d.items||[]).join("\n"))}</textarea>
-      <div class="sub">숙소 / 식사(조·중·석)</div>
-      <div class="row c2">
-        <input class="stay" value="${esc((d.stay?.name||"").replace(/<br\s*\/?>/gi," "))}" placeholder="숙소명">
-        <input class="meals" value="${esc((d.meals||[]).join(", "))}" placeholder="캠프식, 현지식당, 캠프식">
-      </div>
-    </div>`).join("") + `
-    <button class="day-add" id="dayAddBtn">＋ 일자 추가</button>`;
-
-  $("dayList").querySelectorAll(".day-edit").forEach(el => {
-    const i = +el.dataset.i;
-    el.querySelector(".snip-sel").onchange = e => {
-      const s = getSnippets()[e.target.value];
+  const options = {
+    days: ST.days,
+    startDate: ST.depart,
+    endDate: ST.return_,
+    snippets: getSnippets(),
+    snippetCats: window.getSnippetCats ? getSnippetCats() : [],
+    addButtonId: "dayAddBtn",
+    forceValues: true,
+    onField(i, field, value) {
+      if (field === "move") { ST.days[i].move = value.move; ST.days[i].dist = value.dist; }
+      else ST.days[i][field] = value;
+    },
+    onSnippet(i, name) {
+      const s = getSnippets()[name];
       if (!s) return;
       const dNum = ST.days[i].d, dDate = ST.days[i].date || "";
       ST.days[i] = { d: dNum, date: dDate, dest: s.dest||"", move: s.move||"", dist: s.dist||"",
         items: [...(s.items||[])], stay: { name: s.stay?.name||"", tags: [...(s.stay?.tags||[])] }, meals: [...(s.meals||["","",""])] };
       renderDays();
-      toast(`"${e.target.value}" 일정을 불러왔습니다`);
-    };
-    el.querySelector(".ddate").oninput = e => ST.days[i].date = e.target.value.trim();
-    el.querySelector(".dest").oninput = e => ST.days[i].dest = e.target.value.replace(/ \/ /g, "<br>");
-    el.querySelector(".move").oninput = e => {
-      const m = e.target.value.match(/^(.*?)(\(.*\))?\s*$/);
-      ST.days[i].move = (m[1]||"").trim(); ST.days[i].dist = (m[2]||"").trim();
-    };
-    el.querySelector(".items").oninput = e => ST.days[i].items = e.target.value.split("\n").filter(x => x.trim());
-    el.querySelector(".stay").oninput = e => ST.days[i].stay = { name: e.target.value, tags: ST.days[i].stay?.tags||[] };
-    el.querySelector(".meals").oninput = e => ST.days[i].meals = e.target.value.split(",").map(x => x.trim());
-    el.querySelector(".day-del").onclick = () => {
+      toast('"' + name + '" 일정을 불러왔습니다');
+    },
+    onDelete(i) {
       if (ST.days.length <= 1) { toast("최소 1일은 필요합니다"); return; }
       ST.days.splice(i, 1); renumberDays(); renderDays();
-    };
-    // ── 드래그앤드랍 순서 변경 (핸들로만 시작) ──
-    const _h = el.querySelector(".drag-handle");
-    _h.addEventListener("mousedown", () => { el.draggable = true; });
-    _h.addEventListener("mouseup", () => { el.draggable = false; });
-    el.addEventListener("dragstart", e => {
-      dragIdx = i; el.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-      try { e.dataTransfer.setData("text/plain", String(i)); } catch (_) {}
-    });
-    el.addEventListener("dragend", () => {
-      el.draggable = false; el.classList.remove("dragging");
-      $("dayList").querySelectorAll(".day-edit").forEach(x => x.classList.remove("drag-over"));
-    });
-    el.addEventListener("dragover", e => {
-      e.preventDefault(); e.dataTransfer.dropEffect = "move";
-      if (dragIdx !== null && dragIdx !== i) el.classList.add("drag-over");
-    });
-    el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
-    el.addEventListener("drop", e => {
-      e.preventDefault(); el.classList.remove("drag-over");
-      if (dragIdx === null || dragIdx === i) return;
-      const [moved] = ST.days.splice(dragIdx, 1);
-      ST.days.splice(i, 0, moved);
-      dragIdx = null; renumberDays(); renderDays();
-    });
-  });
-  $("dayAddBtn").onclick = () => {
-    ST.days.push({ d: ST.days.length + 1, dest: "", move: "", dist: "", items: [], stay: { name: "", tags: [] }, meals: ["", "", ""] });
-    renumberDays(); renderDays();
-    // 새 칸으로 스크롤
-    const cards = $("dayList").querySelectorAll(".day-edit");
-    cards[cards.length - 1]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    },
+    onReorder(from, to) {
+      const [moved] = ST.days.splice(from, 1);
+      ST.days.splice(to, 0, moved);
+      renumberDays(); renderDays();
+    },
+    onAdd() {
+      ST.days.push({ d: ST.days.length + 1, dest: "", move: "", dist: "", items: [], stay: { name: "", tags: [] }, meals: ["", "", ""] });
+      renumberDays(); renderDays();
+      const cards = $("dayList").querySelectorAll(".day-edit");
+      cards[cards.length - 1]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    },
   };
+  if (quoteDayWidget) quoteDayWidget.update(options);
+  else quoteDayWidget = window.QuoteDayEditor.mount($("dayList"), options);
 }
 
 /* ── 이동강도(난이도) 선택 ── */

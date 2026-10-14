@@ -118,4 +118,25 @@ test('siteSchemaReady 는 버전이 맞으면 다시 만들지 않는다', async
     await siteSchemaReady(db);
     assert.equal(db.raw.prepare("SELECT v FROM schema_meta WHERE k = 'site'").get().v, String(SITE_SCHEMA_VERSION));
     assert.ok(columnsOf(db.raw, 'products').includes('package_type'));
+    assert.ok(columnsOf(db.raw, 'products').includes('representative_spots'));
+});
+
+test('v2 상품 표는 대표 명소 칸을 자동 추가하고 기존 판매 포인트와 고객 문서를 보존한다', async () => {
+    const { siteSchemaReady, ensureSiteSchema, SITE_SCHEMA_VERSION } = await loadSiteSchema();
+    const db = quoteOnlyDatabase();
+    db.raw.exec(`CREATE TABLE products (id TEXT PRIMARY KEY, name TEXT, highlights TEXT);
+        INSERT INTO products VALUES ('old-product', '기존 상품', '[{"icon":"star","title":"기존 판매 포인트","description":"보존"}]');
+        CREATE TABLE reservations (id TEXT PRIMARY KEY, document_content TEXT);
+        INSERT INTO reservations VALUES ('old-booking', '{"highlights":[],"days":[]}');
+        CREATE TABLE schema_meta (k TEXT PRIMARY KEY, v TEXT);
+        INSERT INTO schema_meta VALUES ('site', '2');`);
+    const productBefore = db.raw.prepare('SELECT id,name,highlights FROM products').get();
+    const documentBefore = db.raw.prepare('SELECT document_content FROM reservations').get().document_content;
+    await siteSchemaReady(db);
+    assert.equal(SITE_SCHEMA_VERSION, 3);
+    assert.equal(db.raw.prepare("SELECT v FROM schema_meta WHERE k = 'site'").get().v, '3');
+    assert.deepEqual(db.raw.prepare('SELECT id,name,highlights FROM products').get(), productBefore);
+    assert.equal(db.raw.prepare('SELECT representative_spots FROM products').get().representative_spots, '[]');
+    assert.equal(db.raw.prepare('SELECT document_content FROM reservations').get().document_content, documentBefore);
+    assert.deepEqual(await ensureSiteSchema(db), []);
 });

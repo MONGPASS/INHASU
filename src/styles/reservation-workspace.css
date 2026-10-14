@@ -1,0 +1,936 @@
+/* 상품 예약 상세 전용. 견적 데스크의 정적 페이지와 일반 관리자 화면에는 적용하지 않는다. */
+.reservation-workspace.product-workspace {
+    --rw-mint: #16987d;
+    --rw-mint-strong: #08765f;
+    --rw-mint-soft: #eef9f5;
+    --rw-ink: #172b33;
+    --rw-muted: #64767b;
+    display: flex;
+    flex-direction: column;
+    width: min(1240px, 100%);
+    min-height: 0;
+    height: calc(100dvh - 36px);
+    max-height: calc(100dvh - 36px);
+    background: #f5f8f6;
+}
+
+.reservation-workspace.product-workspace .drawer-head {
+    flex: none;
+    padding: 16px 24px;
+    background: #fff;
+}
+
+.reservation-workspace.product-workspace .rw-customer-line {
+    margin: 6px 0 0;
+    color: #6a7b74;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.reservation-workspace.product-workspace .tc-anchors {
+    flex: none;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 0 24px;
+    scrollbar-width: thin;
+}
+
+.reservation-workspace.product-workspace .tc-anchors button {
+    flex: none;
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+.reservation-workspace.product-workspace .tc-anchors button.active {
+    color: var(--rw-mint-strong);
+    border-bottom-color: var(--rw-mint);
+}
+
+.reservation-workspace.product-workspace .reservation-workspace-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: #f5f8f6;
+}
+
+.reservation-workspace.product-workspace .reservation-workspace-body.drawer-body {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding: 22px 24px 30px;
+}
+
+.reservation-workspace.product-workspace .reservation-workspace-body > .stack {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.reservation-workspace.product-workspace .drawer-foot {
+    flex: none;
+    flex-wrap: wrap;
+    padding: 12px 24px;
+}
+
+.reservation-workspace.product-workspace .card {
+    min-width: 0;
+    border-color: #e2ebe8;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.reservation-workspace.product-workspace .btn {
+    min-height: 38px;
+    height: auto;
+    padding: 9px 12px;
+    border-radius: 9px;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: normal;
+}
+
+.reservation-workspace.product-workspace .btn.btn-blue,
+.reservation-workspace.product-workspace .btn.btn-ink {
+    border-color: var(--rw-mint);
+    background: var(--rw-mint);
+    color: #fff;
+    box-shadow: none;
+}
+
+.reservation-workspace.product-workspace .btn.btn-blue:hover:not(:disabled),
+.reservation-workspace.product-workspace .btn.btn-ink:hover:not(:disabled) {
+    border-color: var(--rw-mint-strong);
+    background: var(--rw-mint-strong);
+    box-shadow: none;
+}
+
+.reservation-workspace.product-workspace .btn.btn-ghost {
+    border-color: #dbe7e0;
+    background: #fff;
+    color: #3b6256;
+}
+
+.reservation-workspace.product-workspace .btn.btn-ghost:hover:not(:disabled) {
+    border-color: #95c9b3;
+    background: #f1f9f5;
+}
+
+.reservation-workspace.product-workspace .btn:disabled {
+    cursor: default;
+    opacity: .5;
+}
+
+.reservation-workspace.product-workspace .rw-overview {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+    margin-bottom: 20px;
+}
+
+.reservation-workspace.product-workspace .rw-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #eaf0ec;
+}
+
+.reservation-workspace.product-workspace .rw-kicker {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    line-height: 1.5;
+    font-weight: 750;
+    color: var(--rw-mint-strong);
+}
+
+.reservation-workspace.product-workspace .rw-section-head h2 {
+    color: var(--rw-ink);
+    font-size: 18px;
+    line-height: 1.5;
+    letter-spacing: -.03em;
+}
+
+.reservation-workspace.product-workspace .rw-section-head p {
+    margin: 5px 0 0;
+    color: var(--rw-muted);
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.reservation-workspace.product-workspace .rw-document-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 16px;
+    padding: 22px 24px;
+}
+
+.reservation-workspace.product-workspace .rw-document-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid #dfe9e3;
+    border-radius: 14px;
+    background: #fcfefd;
+}
+
+.reservation-workspace.product-workspace .rw-document-card > .row {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.reservation-workspace.product-workspace .rw-document-card h3 {
+    margin: 0;
+    color: var(--rw-ink);
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.5;
+}
+
+.reservation-workspace.product-workspace .rw-document-card > p {
+    margin: 9px 0 18px;
+    color: var(--rw-muted);
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.reservation-workspace.product-workspace .rw-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 700;
+    color: #4f665c;
+}
+
+.reservation-workspace.product-workspace .rw-field .inp {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    border-color: #dce5df;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--rw-ink);
+}
+
+.reservation-workspace.product-workspace .rw-field textarea.inp {
+    height: auto;
+    min-height: 90px;
+    resize: vertical;
+    padding: 10px 12px;
+    line-height: 1.6;
+}
+
+.reservation-workspace.product-workspace .rw-field .inp:focus {
+    border-color: #68ba9e;
+    box-shadow: 0 0 0 3px #e8f7ef;
+}
+
+.reservation-workspace.product-workspace .rw-primary-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.reservation-workspace.product-workspace .rw-secondary-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin-top: 12px;
+}
+
+.reservation-workspace.product-workspace .rw-secondary-actions button {
+    min-height: 32px;
+    padding: 4px 0;
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: var(--rw-mint-strong);
+    font-size: 12px;
+    line-height: 1.6;
+    font-weight: 650;
+    text-align: left;
+    cursor: pointer;
+}
+
+.reservation-workspace.product-workspace .rw-secondary-actions button:hover:not(:disabled) {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.reservation-workspace.product-workspace .rw-secondary-actions button:disabled {
+    opacity: .45;
+    cursor: default;
+}
+
+.reservation-workspace.product-workspace .rw-contract-summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px 16px;
+    margin-top: 3px;
+    padding: 15px;
+    border: 1px solid #e6eee8;
+    border-radius: 10px;
+    background: #f3f8f5;
+    color: #596e62;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.reservation-workspace.product-workspace .rw-contract-summary strong {
+    justify-self: end;
+    color: #264b3b;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+}
+
+.reservation-workspace.product-workspace .rw-document-card > .rw-inline-note {
+    margin: 12px 0;
+    color: #6a7e73;
+    font-size: 11px;
+    line-height: 1.65;
+}
+
+.reservation-workspace.product-workspace .rw-delivery {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 18px;
+    border-top: 1px solid #e4ece6;
+    color: var(--rw-muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.reservation-workspace.product-workspace .rw-document-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    padding: 18px 24px;
+    border-top: 1px solid #e6ede8;
+    background: #f7faf8;
+}
+
+.reservation-workspace.product-workspace .rw-document-footer p {
+    min-width: 0;
+    margin: 0;
+    color: #62776b;
+    font-size: 11px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.reservation-workspace.product-workspace .rw-schedule-summary {
+    margin: 0 24px 22px;
+    border: 1px solid #dfe8e2;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.reservation-workspace.product-workspace .rw-schedule-summary > summary {
+    padding: 14px 16px;
+    color: #355b49;
+    font-size: 12px;
+    line-height: 1.6;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.reservation-workspace.product-workspace .rw-schedule-summary > div {
+    padding: 0 16px 6px;
+}
+
+.reservation-workspace.product-workspace .rw-day-summary {
+    display: grid;
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px 0;
+    border-top: 1px solid #edf1ee;
+    color: #395443;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.reservation-workspace.product-workspace .rw-day-summary > b {
+    color: var(--rw-mint-strong);
+}
+
+.reservation-workspace.product-workspace .rw-day-summary p {
+    margin: 3px 0;
+    color: var(--rw-muted);
+    overflow-wrap: anywhere;
+}
+
+.reservation-workspace.product-workspace .rw-day-summary small {
+    color: #6d8172;
+    font-size: 11px;
+}
+
+.reservation-workspace.product-workspace .rw-operations-fields {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px 16px;
+    min-width: 0;
+    margin: 0;
+    padding: 22px 24px;
+    border: none;
+}
+
+.reservation-workspace.product-workspace .rw-operations-fields .rw-wide {
+    grid-column: 1 / -1;
+}
+
+.reservation-workspace.product-workspace .rw-operations-note {
+    padding: 0 24px 20px;
+    color: #728377;
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+.reservation-workspace.product-workspace .rw-secondary-actions button:focus-visible,
+.reservation-workspace.product-workspace .rw-schedule-summary > summary:focus-visible,
+.reservation-workspace.product-workspace .btn:focus-visible {
+    outline: 3px solid #8bd7bd;
+    outline-offset: 3px;
+}
+
+.reservation-workspace.product-workspace .rw-workflow-card,
+.reservation-workspace.product-workspace .rw-readiness-card {
+    min-width: 0;
+    border: 1px solid #e2ebe8;
+    border-radius: 18px;
+    padding: 24px;
+    background: #fff;
+    color: var(--rw-ink);
+    box-shadow: 0 4px 20px #18382b04;
+}
+
+.reservation-workspace.product-workspace .rw-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.reservation-workspace.product-workspace .rw-card-heading h2 {
+    margin: 3px 0 0;
+    font-size: 18px;
+    line-height: 1.45;
+    font-weight: 800;
+    letter-spacing: -.04em;
+    color: var(--rw-ink);
+}
+
+.reservation-workspace.product-workspace .rw-eyebrow {
+    display: block;
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    font-weight: 750;
+    color: var(--rw-mint-strong);
+}
+
+.reservation-workspace.product-workspace .rw-progress-label {
+    flex: none;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f3f6f5;
+    color: #62736f;
+    font-size: 11px;
+    line-height: 1.5;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.reservation-workspace.product-workspace .rw-progress-label.is-complete {
+    color: var(--rw-mint-strong);
+    background: var(--rw-mint-soft);
+}
+
+.reservation-workspace.product-workspace .rw-steps {
+    display: grid;
+    grid-template-columns: repeat(var(--rw-step-count), minmax(0, 1fr));
+    gap: 0;
+    list-style: none;
+    margin: 24px 0;
+    padding: 0;
+}
+
+.reservation-workspace.product-workspace .rw-step-item {
+    position: relative;
+    min-width: 0;
+}
+
+.reservation-workspace.product-workspace .rw-step-item:not(:last-child)::after {
+    position: absolute;
+    top: 19px;
+    left: calc(50% + 23px);
+    width: calc(100% - 46px);
+    height: 2px;
+    background: #e4ece8;
+    content: '';
+    pointer-events: none;
+}
+
+.reservation-workspace.product-workspace .rw-step-item.is-done:not(:last-child)::after {
+    background: #7dccb6;
+}
+
+.reservation-workspace.product-workspace .rw-step-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 2px 7px 6px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--rw-muted);
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+}
+
+.reservation-workspace.product-workspace .rw-step-button:hover:not(:disabled) {
+    background: #f6faf8;
+}
+
+.reservation-workspace.product-workspace .rw-step-number {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #dce7e1;
+    border-radius: 50%;
+    background: #f7faf8;
+    color: #86998f;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.reservation-workspace.product-workspace .rw-step-number svg {
+    width: 20px;
+    height: 20px;
+}
+
+.reservation-workspace.product-workspace .rw-step-item.is-done .rw-step-number {
+    border-color: var(--rw-mint);
+    background: var(--rw-mint);
+    color: #fff;
+}
+
+.reservation-workspace.product-workspace .rw-step-item.is-next .rw-step-number {
+    border: 2px solid var(--rw-mint);
+    background: #fff;
+    color: var(--rw-mint-strong);
+    box-shadow: 0 0 0 4px #e9f8f2;
+}
+
+.reservation-workspace.product-workspace .rw-step-title {
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.reservation-workspace.product-workspace .rw-step-item.is-done .rw-step-title,
+.reservation-workspace.product-workspace .rw-step-item.is-next .rw-step-title {
+    color: var(--rw-mint-strong);
+}
+
+.reservation-workspace.product-workspace .rw-step-description {
+    display: block;
+    max-width: 100%;
+    font-size: 11px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.reservation-workspace.product-workspace .rw-next-task {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid #cfe8dc;
+    border-radius: 12px;
+    background: var(--rw-mint-soft);
+}
+
+.reservation-workspace.product-workspace .rw-next-marker {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #d2ebdf;
+    border-radius: 12px;
+    background: #fff;
+    color: var(--rw-mint-strong);
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.reservation-workspace.product-workspace .rw-next-marker svg {
+    width: 22px;
+    height: 22px;
+}
+
+.reservation-workspace.product-workspace .rw-next-copy {
+    flex: 1;
+    min-width: 0;
+}
+
+.reservation-workspace.product-workspace .rw-next-copy h3 {
+    margin: 2px 0 0;
+    color: var(--rw-ink);
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.5;
+}
+
+.reservation-workspace.product-workspace .rw-next-copy p {
+    margin: 4px 0 0;
+    color: #5d7770;
+    font-size: 12px;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+}
+
+.reservation-workspace.product-workspace .rw-primary-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    gap: 8px;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1px solid var(--rw-mint);
+    border-radius: 9px;
+    background: var(--rw-mint);
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    line-height: 1.45;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.reservation-workspace.product-workspace .rw-primary-action:hover:not(:disabled) {
+    background: var(--rw-mint-strong);
+    border-color: var(--rw-mint-strong);
+}
+
+.reservation-workspace.product-workspace .rw-primary-action svg,
+.reservation-workspace.product-workspace .rw-readiness-link svg {
+    flex: none;
+    width: 16px;
+    height: 16px;
+}
+
+.reservation-workspace.product-workspace .rw-step-button:disabled,
+.reservation-workspace.product-workspace .rw-primary-action:disabled {
+    cursor: default;
+    opacity: .6;
+}
+
+.reservation-workspace.product-workspace .rw-next-task.is-cancelled {
+    border-color: #e3e8e5;
+    background: #f6f8f7;
+}
+
+.reservation-workspace.product-workspace .rw-heading-note {
+    margin: 0;
+    color: var(--rw-muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.reservation-workspace.product-workspace .rw-readiness-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.reservation-workspace.product-workspace .rw-readiness-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid #eee1c5;
+    border-radius: 12px;
+    background: #fffdf7;
+    color: var(--rw-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.reservation-workspace.product-workspace .rw-readiness-item.is-ready {
+    border-color: #dce9e2;
+    background: #f8fcfa;
+}
+
+.reservation-workspace.product-workspace .rw-readiness-item:hover {
+    border-color: #81bea6;
+    background: #f0f9f4;
+}
+
+.reservation-workspace.product-workspace .rw-readiness-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 11px;
+    line-height: 1.5;
+    font-weight: 750;
+    color: #65756f;
+}
+
+.reservation-workspace.product-workspace .rw-readiness-state {
+    display: inline-flex;
+    align-items: center;
+    color: #966e24;
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.reservation-workspace.product-workspace .rw-readiness-state svg {
+    width: 16px;
+    height: 16px;
+    color: var(--rw-mint-strong);
+}
+
+.reservation-workspace.product-workspace .rw-readiness-value {
+    font-size: 20px;
+    line-height: 1.35;
+    font-weight: 850;
+    letter-spacing: -.03em;
+    overflow-wrap: anywhere;
+}
+
+.reservation-workspace.product-workspace .rw-readiness-description {
+    margin-bottom: 4px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--rw-muted);
+    overflow-wrap: anywhere;
+}
+
+.reservation-workspace.product-workspace .rw-readiness-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: auto;
+    color: var(--rw-mint-strong);
+    font-size: 11px;
+    line-height: 1.5;
+    font-weight: 750;
+}
+
+.reservation-workspace.product-workspace .rw-step-button:focus-visible,
+.reservation-workspace.product-workspace .rw-primary-action:focus-visible,
+.reservation-workspace.product-workspace .rw-readiness-item:focus-visible {
+    outline: 3px solid #8bd7bd;
+    outline-offset: 3px;
+}
+
+@media (max-width: 1100px) {
+    .reservation-workspace.product-workspace {
+        width: 100%;
+        height: 100dvh;
+        max-height: 100dvh;
+        border-radius: 0;
+    }
+
+    .reservation-workspace.product-workspace .rw-readiness-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .reservation-workspace.product-workspace .rw-operations-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .reservation-workspace.product-workspace .rw-document-grid {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 16px;
+    }
+
+    .reservation-workspace.product-workspace .rw-section-head,
+    .reservation-workspace.product-workspace .rw-document-footer {
+        padding: 18px 16px;
+    }
+
+    .reservation-workspace.product-workspace .rw-document-card {
+        padding: 16px;
+    }
+
+    .reservation-workspace.product-workspace .rw-schedule-summary {
+        margin: 0 16px 18px;
+    }
+
+    .reservation-workspace.product-workspace .rw-operations-fields {
+        padding: 18px 16px;
+        gap: 16px 12px;
+    }
+
+    .reservation-workspace.product-workspace .rw-operations-note {
+        padding: 0 16px 18px;
+    }
+
+    .reservation-workspace.product-workspace .drawer-head {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px 14px;
+    }
+
+    .reservation-workspace.product-workspace .tc-anchors {
+        padding: 0 10px;
+    }
+
+    .reservation-workspace.product-workspace .tc-anchors button {
+        padding-right: 10px;
+        padding-left: 10px;
+        font-size: 12px;
+    }
+
+    .reservation-workspace.product-workspace .reservation-workspace-body.drawer-body {
+        padding: 16px 12px 24px;
+    }
+
+    .reservation-workspace.product-workspace .reservation-workspace-body .grid-2 {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .reservation-workspace.product-workspace .drawer-foot {
+        padding: 10px 14px;
+    }
+
+    .reservation-workspace.product-workspace .rw-workflow-card,
+    .reservation-workspace.product-workspace .rw-readiness-card {
+        padding: 18px;
+        border-radius: 15px;
+    }
+
+    .reservation-workspace.product-workspace .rw-card-heading {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .reservation-workspace.product-workspace .rw-card-heading h2 {
+        font-size: 16px;
+    }
+
+    .reservation-workspace.product-workspace .rw-next-task {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+    }
+
+    .reservation-workspace.product-workspace .rw-primary-action {
+        width: 100%;
+        min-height: 44px;
+    }
+}
+
+@media (max-width: 640px) {
+    .reservation-workspace.product-workspace .rw-steps {
+        margin: 22px -8px 20px;
+    }
+
+    .reservation-workspace.product-workspace .rw-step-button {
+        gap: 7px;
+        padding: 2px 3px 6px;
+    }
+
+    .reservation-workspace.product-workspace .rw-step-number {
+        width: 30px;
+        height: 30px;
+        font-size: 11px;
+    }
+
+    .reservation-workspace.product-workspace .rw-step-item:not(:last-child)::after {
+        top: 16px;
+        left: calc(50% + 19px);
+        width: calc(100% - 38px);
+    }
+
+    .reservation-workspace.product-workspace .rw-step-title {
+        font-size: 10.5px;
+        line-height: 1.5;
+    }
+
+    .reservation-workspace.product-workspace .rw-step-description {
+        display: none;
+    }
+
+    .reservation-workspace.product-workspace .rw-readiness-grid {
+        gap: 8px;
+    }
+
+    .reservation-workspace.product-workspace .rw-readiness-item {
+        padding: 12px;
+    }
+
+    .reservation-workspace.product-workspace .rw-readiness-value {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 380px) {
+    .reservation-workspace.product-workspace .rw-readiness-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 520px) {
+    .reservation-workspace.product-workspace .rw-operations-fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .reservation-workspace.product-workspace .rw-primary-actions .btn {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .reservation-workspace.product-workspace .rw-document-footer > .row {
+        width: 100%;
+    }
+
+    .reservation-workspace.product-workspace .rw-document-footer > .row .btn {
+        flex: 1;
+        min-width: 160px;
+    }
+}

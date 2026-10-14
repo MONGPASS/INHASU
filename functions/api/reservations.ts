@@ -32,6 +32,100 @@ interface Env {
 
 const app = new Hono<{ Bindings: Env }>();
 
+// 고객 정보와 내부 운영 정보가 브라우저·공유 프록시 캐시에 남지 않게 한다.
+app.use('*', async (c, next) => {
+    c.header('Cache-Control', 'private, no-store');
+    await next();
+});
+
+interface ReservationAdminOperations {
+    joining: 'private' | 'join' | 'undecided';
+    region: string;
+    category: string;
+    vehicle: string;
+    driverPhone: string;
+    receipt: {
+        status: 'not_requested' | 'pending' | 'issued';
+        number: string;
+        issuedDate: string;
+    };
+    opsNote: string;
+}
+
+type OperationsUpdate = Partial<Omit<ReservationAdminOperations, 'receipt'>> & {
+    receipt?: Partial<ReservationAdminOperations['receipt']>;
+};
+
+const emptyAdminOperations = (): ReservationAdminOperations => ({
+    joining: 'undecided', region: '', category: '', vehicle: '', driverPhone: '',
+    receipt: { status: 'not_requested', number: '', issuedDate: '' }, opsNote: '',
+});
+
+const record = (value: unknown): value is Record<string, unknown> =>
+    !!value && typeof value === 'object' && !Array.isArray(value);
+
+/** 운영 정보는 정해진 필드만 허용한다. 문자열 JSON을 보내는 기존 TEXT 클라이언트도 검증한다. */
+const validateAdminOperations = (input: unknown): OperationsUpdate | null => {
+    let value = input;
+    if (typeof value === 'string') {
+        try { value = JSON.parse(value); } catch { return null; }
+    }
+    if (!record(value)) return null;
+    const fields = new Set(['joining', 'region', 'category', 'vehicle', 'driverPhone', 'receipt', 'opsNote']);
+    if (Object.keys(value).some((key) => !fields.has(key))) return null;
+    const update: OperationsUpdate = {};
+    if ('joining' in value) {
+        if (typeof value.joining !== 'string' || !['private', 'join', 'undecided'].includes(value.joining)) return null;
+        update.joining = value.joining as ReservationAdminOperations['joining'];
+    }
+    for (const key of ['region', 'category', 'vehicle', 'driverPhone', 'opsNote'] as const) {
+        if (!(key in value)) continue;
+        const text = value[key];
+        const max = key === 'opsNote' ? 5000 : key === 'driverPhone' ? 100 : 200;
+        if (typeof text !== 'string' || text.length > max) return null;
+        update[key] = text.trim();
+    }
+    if ('receipt' in value) {
+        if (!record(value.receipt) || Object.keys(value.receipt).some((key) => !['status', 'number', 'issuedDate'].includes(key))) return null;
+        const receipt = value.receipt;
+        update.receipt = {};
+        if ('status' in receipt) {
+            if (typeof receipt.status !== 'string' || !['not_requested', 'pending', 'issued'].includes(receipt.status)) return null;
+            update.receipt.status = receipt.status as ReservationAdminOperations['receipt']['status'];
+        }
+        for (const key of ['number', 'issuedDate'] as const) {
+            if (!(key in receipt)) continue;
+            const text = receipt[key];
+            if (typeof text !== 'string' || text.length > (key === 'number' ? 100 : 10)) return null;
+            if (key === 'issuedDate' && text) {
+                const date = new Date(text);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== text) return null;
+            }
+            update.receipt[key] = text.trim();
+        }
+    }
+    return update;
+};
+
+const mergeAdminOperations = (current: ReservationAdminOperations, update: OperationsUpdate): ReservationAdminOperations => ({
+    ...current, ...update, receipt: { ...current.receipt, ...update.receipt },
+});
+
+const parseAdminOperations = (value: unknown): ReservationAdminOperations => {
+    const update = validateAdminOperations(value);
+    return update ? mergeAdminOperations(emptyAdminOperations(), update) : emptyAdminOperations();
+};
+
+/** 내부 JSON을 그대로 펼치지 않는다. 게스트 예약도 조회자의 관리자 권한을 확인한다. */
+const reservationForRole = <T extends { adminOperations?: unknown }>(row: T, isAdmin: boolean) => {
+    const { adminOperations, ...visible } = row;
+    return isAdmin ? { ...visible, adminOperations: parseAdminOperations(adminOperations) } : visible;
+};
+
+/** 관리자 메모는 조회 응답에서만 제외한다. 원본 이력과 일반 진행 이력은 그대로 둔다. */
+const customerVisibleHistory = (history: unknown) =>
+    Array.isArray(history) ? history.filter((entry) => !(record(entry) && entry.type === 'admin_memo')) : history;
+
 // ── 예약금 입금 신고 (계좌이체 → 고객이 '입금 완료' 신고 → 담당자 확인) ──────────────
 // reservations.deposit_report 는 JSON 문자열 { status: 'reported', name, reportedAt }, 미신고는 NULL.
 
@@ -179,7 +273,7 @@ app.get('/', async (c) => {
 
     // Parse JSON fields and map to legacy frontend schema interface
     const parsed = result.map((r: any) => ({
-        ...r,
+        ...reservationForRole(r, user.role === 'admin'),
         email: r.customerEmail,
         phone: r.customerPhone,
         date: r.startDate,
@@ -204,7 +298,7 @@ app.get('/', async (c) => {
         deposit_report: parseDepositReport(r.depositReport),
     }));
 
-    return c.json(parsed);
+    return c.json(user.role === 'admin' ? parsed : parsed.map((row) => ({ ...row, history: customerVisibleHistory(row.history) })));
 });
 
 // GET /api/reservations/:id
@@ -215,19 +309,10 @@ app.get('/:id', async (c) => {
 
     if (!result) return c.json({ error: 'Reservation not found' }, 404);
 
-    // If the reservation belongs to a specific user, enforce auth
+    // 게스트 예약(userId=null)도 관리자 세션인지 확인해야 내부 운영 정보를 반환할 수 있다.
+    const user = await getSessionUser(c);
     if (result.userId !== null) {
-        const lucia = initializeLucia(c.env.DB);
-        const sessionId = getCookie(c, lucia.sessionCookieName);
-        
-        if (!sessionId) {
-            return c.json({ error: "Unauthorized" }, 401);
-        }
-
-        const { session, user } = await lucia.validateSession(sessionId);
-        if (!session) {
-            return c.json({ error: "Unauthorized" }, 401);
-        }
+        if (!user) return c.json({ error: "Unauthorized" }, 401);
 
         // Same visibility as the list: the owner, or the account whose e-mail the booking carries.
         const sameEmail = !!user.email && !!result.customerEmail
@@ -239,7 +324,7 @@ app.get('/:id', async (c) => {
     // If userId is null (guest reservation), allow public access since the UUID is practically unguessable.
 
     const parsed = {
-        ...result,
+        ...reservationForRole(result, user?.role === 'admin'),
         email: result.customerEmail,
         phone: result.customerPhone,
         date: result.startDate,
@@ -260,7 +345,7 @@ app.get('/:id', async (c) => {
         deposit_report: parseDepositReport(result.depositReport),
     };
 
-    return c.json(parsed);
+    return c.json(user?.role === 'admin' ? parsed : { ...parsed, history: customerVisibleHistory(parsed.history) });
 });
 
 // PUT /api/reservations/:id
@@ -285,7 +370,9 @@ app.put('/:id', async (c) => {
     }
 
     const db = drizzle(c.env.DB);
-    const body = await c.req.json();
+    let body: unknown;
+    try { body = await c.req.json(); } catch { return c.json({ error: 'Invalid JSON body' }, 400); }
+    if (!record(body)) return c.json({ error: 'Invalid reservation update' }, 400);
 
     // Validate body?
     // We expect partial updates or full updates.
@@ -304,22 +391,34 @@ app.put('/:id', async (c) => {
         total_people: 'travelers',
         total_amount: 'totalPrice',
         deposit_amount: 'depositAmount',
+        balance_amount: 'balanceAmount',
         itinerary_template_id: 'itineraryTemplateId',
         contract_data: 'contractData',
         document_content: 'documentContent',
         start_date: 'startDate',
         end_date: 'endDate',
         updated_at: 'updatedAt',
+        admin_operations: 'adminOperations',
     };
     const normalized: any = {};
     for (const [k, v] of Object.entries(body)) {
         normalized[snakeToCamel[k] || k] = v;
     }
 
+    const existing = await db.select().from(reservations).where(eq(reservations.id, id)).get();
+    if (!existing) return c.json({ error: 'Reservation not found' }, 404);
+    if ('adminOperations' in normalized) {
+        const operations = validateAdminOperations(normalized.adminOperations);
+        if (!operations) return c.json({ error: 'Invalid admin operations' }, 400);
+        normalized.adminOperations = mergeAdminOperations(parseAdminOperations(existing.adminOperations), operations);
+    }
+
     // Serialize nested objects/arrays to JSON strings for TEXT columns
     const updateData: any = {};
     for (const [k, v] of Object.entries(normalized)) {
-        if (v !== undefined && typeof v === 'object' && v !== null) {
+        if (k === 'areAssignmentsVisibleToUser') {
+            updateData[k] = v === true || v === 1 ? 1 : 0;
+        } else if (v !== undefined && typeof v === 'object' && v !== null) {
             updateData[k] = JSON.stringify(v);
         } else {
             updateData[k] = v;
@@ -335,6 +434,7 @@ app.put('/:id', async (c) => {
         'assignedGuide', 'contractUrl', 'itineraryUrl',
         'depositStatus', 'balanceStatus', 'areAssignmentsVisibleToUser', 'priceBreakdown',
         'documentContent', 'source', 'productId',
+        'adminOperations',
         'createdAt', 'updatedAt',
     ]);
     const filtered: any = {};
@@ -350,7 +450,7 @@ app.put('/:id', async (c) => {
     const updated = await db.select().from(reservations).where(eq(reservations.id, id)).get();
 
     const parsed = {
-        ...updated!,
+        ...reservationForRole(updated!, true),
         email: updated?.customerEmail,
         phone: updated?.customerPhone,
         date: updated?.startDate,
@@ -383,6 +483,14 @@ app.post('/', async (c) => {
 
     const body = await c.req.json();
     const db = drizzle(c.env.DB);
+
+    // 고객 예약 요청으로는 내부 메모·영수증 정보를 설정할 수 없다.
+    let adminOperations: ReservationAdminOperations | null = null;
+    if (isAdmin && (Object.hasOwn(body, 'adminOperations') || Object.hasOwn(body, 'admin_operations'))) {
+        const operations = validateAdminOperations(Object.hasOwn(body, 'adminOperations') ? body.adminOperations : body.admin_operations);
+        if (!operations) return c.json({ error: 'Invalid admin operations' }, 400);
+        adminOperations = mergeAdminOperations(emptyAdminOperations(), operations);
+    }
 
     // Basic validation (can be improved with Zod)
     const productName = body.product_name || body.productName;
@@ -437,6 +545,7 @@ app.post('/', async (c) => {
             balanceAmount: Number(body.price_breakdown?.local ?? body.balance ?? 0),
             paymentMethod: body.paymentMethod ? String(body.paymentMethod) : null,
             notes: body.notes ? String(body.notes) : null,
+            adminOperations: adminOperations ? JSON.stringify(adminOperations) : null,
             dailyAccommodations: body.dailyAccommodations ? JSON.stringify(body.dailyAccommodations) : null,
             history: isAdmin && body.history ? JSON.stringify(body.history) : null,
             itineraryTemplateId: isAdmin && (body.itinerary_template_id || body.itineraryTemplateId)

@@ -165,8 +165,8 @@ const Q = await (async () => {
 
 const lodgingCatalog = await Lodging.loadCatalog(Q?.booking?.assign?.lodges);
 
-/* 명소 사진은 항상 명소관리 최신본을 우선 반영 */
-if (Q && Array.isArray(Q.highlights) && Q.highlights.length) {
+/* 견적은 명소관리 최신 사진을 사용하고, 상품 예약은 고객별 저장본을 유지한다. */
+if (Q && Q.source !== "product" && Array.isArray(Q.highlights) && Q.highlights.length) {
   try {
     const r = await fetch("/api/data/spots", { cache: "no-store" });
     const j = await r.json();
@@ -387,7 +387,7 @@ const dayCard = (d) => {
   return `
   <div class="blk" style="border:1px solid #E3E6E2; border-radius:14px; overflow:hidden;">
     <div class="row" style="justify-content:space-between; background:#27AB8F; padding:11px 15px;">
-      <div class="row" style="gap:9px;"><span style="color:#fff; font-size:12px; font-weight:800;">${d.d}일차</span><b style="color:#fff; font-size:14px;">${noBr(d.dest)}</b></div>
+      <div class="row" style="gap:9px;"><span style="color:#fff; font-size:12px; font-weight:800;">${d.d}일차${Q.source === "product" && d.date ? `<small style="display:block;max-width:90px;margin-top:3px;font-size:9px;line-height:1.4;overflow-wrap:anywhere;font-weight:500;">${esc(d.date)}</small>` : ""}</span><b style="color:#fff; font-size:14px;">${noBr(d.dest)}</b></div>
       ${meta ? `<span style="color:#FFFFFF; font-size:10.5px; white-space:nowrap;">${esc(meta)}</span>` : ""}
     </div>
     <div style="padding:13px 15px;">
@@ -444,7 +444,7 @@ const spotBlock = (h) => `
     ${ph(h.img, h.name, "width:100%; height:180px; border-radius:12px;")}
     <div style="color:#1C8571; font-size:11px; font-weight:700; margin-top:12px;">📍 ${esc(h.nameMn)}</div>
     <div style="color:#0A1F2E; font-size:20px; font-weight:800; margin-top:2px;">${esc(h.name)}</div>
-    <p style="color:#33434F; font-size:11.5px; line-height:1.7; margin:8px 0 0;">${h.desc}</p>
+    <p style="color:#33434F; font-size:11.5px; line-height:1.7; margin:8px 0 0;">${Q.source === "product" ? esc(h.desc).replace(/\n/g, "<br>") : h.desc}</p>
     ${(h.subImgs && h.subImgs.some(x => x)) ? `<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:12px;">${h.subImgs.map(s => ph(s, "", "width:100%; height:56px; border-radius:7px;")).join("")}</div>` : ""}
   </div>`;
 const secSpots = (Q.highlights && Q.highlights.length) ? card(`
@@ -741,7 +741,7 @@ const secBookingAssign = bookingAssign ? (() => {
 /* ── 렌더 (디자인 순서) ── */
 const productSections = Q.source === "product" ? productDocumentSections(Q, true) : null;
 root.innerHTML = productSections
-  ? secCover + secQuote + secBookingAssign + secSchedule + productSections.details + productSections.inclusions + secArrival + secCert
+  ? secCover + secQuote + secBookingAssign + secSchedule + secSpots + productSections.details + productSections.inclusions + secArrival + secCert
   : secCover + secQuote + secBookingAssign + secSchedule + secInclusions + secSpots + secLodge + secTeam + secMeals + secInsurance + secArrival + secCert;
 const waitForScheduleImages = () => Promise.all([...root.querySelectorAll("img")].map(img => img.complete
   ? Promise.resolve()

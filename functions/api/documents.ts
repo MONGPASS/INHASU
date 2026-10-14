@@ -37,11 +37,13 @@ const decodeTemplateDescription = (raw = '') => {
 
 // 예약 상품명으로 products 테이블의 포함/불포함(상품관리 입력값)을 로드.
 // 일정표·계약서가 동일한 상품 기준 포함/불포함을 노출하도록 단일 출처로 사용.
-const loadProductIncExc = async (db: any, productName?: string | null): Promise<{ included: string[]; excluded: string[] }> => {
+const loadProductIncExc = async (db: any, productName?: string | null, productId?: string | null): Promise<{ included: string[]; excluded: string[] }> => {
     const empty = { included: [], excluded: [] };
-    if (!productName) return empty;
+    if (!productName && !productId) return empty;
     try {
-        const prod: any = await db.prepare('SELECT included, excluded FROM products WHERE name = ? LIMIT 1').bind(productName).first();
+        const prod: any = productId
+            ? await db.prepare('SELECT included, excluded FROM products WHERE id = ?').bind(productId).first()
+            : await db.prepare('SELECT included, excluded FROM products WHERE name = ? LIMIT 1').bind(productName).first();
         if (!prod) return empty;
         const arr = (v: any) => {
             try { const p = JSON.parse(v || '[]'); return Array.isArray(p) ? p.filter((x: any) => typeof x === 'string' && x.trim()) : []; }
@@ -103,7 +105,7 @@ app.get('/itinerary/:reservationId', async (c) => {
         return c.json({ quote: { ...quote, refundRows: resolveCancellationRows(template?.documentSettings?.contract?.cancellationRows) } });
     }
 
-    const productIncExc = await loadProductIncExc(db, reservation.product_name);
+    const productIncExc = await loadProductIncExc(db, reservation.product_name, reservation.product_id);
 
     return c.json({
         reservation: {
@@ -204,7 +206,14 @@ app.get('/contract/:reservationId', async (c) => {
             accommodation: typeof day.accommodation === 'string' ? { name: day.accommodation } : day.accommodation,
         }));
 
-    const productIncExc = await loadProductIncExc(db, reservation.product_name);
+    const productIncExc = await loadProductIncExc(db, reservation.product_name, reservation.product_id);
+    // 고객별로 저장한 계약 조건은 편집기와 고객 계약서가 같은 값을 사용한다.
+    const savedContractSettings = dcc?.documentSettings?.contract;
+    for (const [key, field] of [['included', 'includedText'], ['excluded', 'excludedText']] as const) {
+        if (typeof savedContractSettings?.[field] === 'string') {
+            productIncExc[key] = savedContractSettings[field].split(/\r?\n/).map((s: string) => s.trim()).filter(Boolean);
+        }
+    }
 
     return c.json({
         reservation: {
@@ -224,6 +233,8 @@ app.get('/contract/:reservationId', async (c) => {
             createdAt: reservation.created_at,
         },
         contract: contractData,
+        contractIncludedOverride: typeof savedContractSettings?.includedText === 'string',
+        contractExcludedOverride: typeof savedContractSettings?.excludedText === 'string',
         template,
         accommodations: dailyAccommodations.length > 0 ? dailyAccommodations : templateAccommodations,
         guide: assignedGuide,

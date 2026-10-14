@@ -1,5 +1,8 @@
 -- 리더스투어 몽골리아 · 견적 문의 데이터베이스 (Cloudflare D1)
 -- 배포 설정 때 한 번 실행합니다 (배포안내.txt 참고).
+-- 상품·예약 등 사이트 표는 functions/lib/siteSchema.ts가 요청 시 자동으로 준비합니다.
+-- 상품 대표 명소는 products.representative_spots JSON에 별도 저장됩니다 (schema v3).
+-- 기존 상품 판매 포인트(highlights)와 고객별 확정 명소는 변경하지 않습니다.
 
 CREATE TABLE IF NOT EXISTS requests (
   id           TEXT PRIMARY KEY,   -- 고유 ID (접수시각_전화번호)

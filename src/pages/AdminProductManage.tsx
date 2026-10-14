@@ -16,6 +16,8 @@ import { TouristSpotPickerModal } from '../components/admin/TouristSpotPickerMod
 import { ItineraryImportModal } from '../components/admin/ItineraryImportModal';
 import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '../components/admin/itineraryImport';
 import { stripDayLabelReading } from '../utils/dayLabel';
+import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
+import { normalizeRepresentativeSpots } from '../../functions/lib/productItinerary';
 
 
 
@@ -66,6 +68,7 @@ export const AdminProductManage: React.FC = () => {
                     isFeatured: item.is_featured || item.isFeatured,
                     packageType: item.packageType ?? item.package_type ?? null,
                     highlights: parse(item.highlights),
+                    representativeSpots: normalizeRepresentativeSpots(item.representativeSpots ?? item.representative_spots),
                     included: parse(item.included),
                     excluded: parse(item.excluded),
                     faqs: parse(item.faqs),
@@ -134,6 +137,7 @@ export const AdminProductManage: React.FC = () => {
                 is_featured: productToSave.isFeatured,
                 package_type: productToSave.packageType ?? null,
                 highlights: productToSave.highlights,
+                representative_spots: productToSave.representativeSpots || [],
                 included: productToSave.included,
                 excluded: productToSave.excluded,
                 faqs: productToSave.faqs,
@@ -643,6 +647,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             isPopular: false,
             tags: [],
             highlights: [],
+            representativeSpots: [],
             included: [],
             excluded: [],
             faqs: [],
@@ -652,7 +657,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         }
     );
 
-    const [currentTab, setCurrentTab] = useState<'basic' | 'details' | 'itinerary' | 'options' | 'includes'>('basic');
+    const [currentTab, setCurrentTab] = useState<'basic' | 'details' | 'itinerary' | 'spots' | 'options' | 'includes'>('basic');
 
     // 페이지형 편집 화면 — 목록에서 진입할 때 스크롤을 맨 위로
     useEffect(() => {
@@ -1659,6 +1664,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                             { id: 'details', label: '상세 정보', icon: 'description' },
                             { id: 'itinerary', label: '일정', icon: 'calendar_month' },
                             { id: 'options', label: '가격/옵션', icon: 'attach_money' },
+                            { id: 'spots', label: '대표 명소', icon: 'location_on' },
                             { id: 'includes', label: '포함/불포함', icon: 'checklist' }
                         ].map(tab => (
                             <button
@@ -2240,6 +2246,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                 </div>
                             </div>
                         )}
+
+                        {currentTab === 'spots' && <ProductRepresentativeSpots value={formData.representativeSpots || []}
+                            onChange={representativeSpots => setFormData(current => ({ ...current, representativeSpots }))} />}
 
                         {/* Itinerary Tab */}
                         {currentTab === 'itinerary' && (

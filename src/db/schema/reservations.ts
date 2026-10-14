@@ -21,6 +21,7 @@ export const reservations = sqliteTable('reservations', {
     paymentMethod: text('payment_method'),
     dailyAccommodations: text('daily_accommodations').default('[]'),
     notes: text('notes'),
+    adminOperations: text('admin_operations'), // JSON: 관리자 전용 운영 정보·현금영수증·내부 메모
     history: text('history').default('[]'),
     userId: text('user_id'),
     reservationNumber: text('reservation_number'),

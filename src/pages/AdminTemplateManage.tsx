@@ -19,9 +19,16 @@ export interface Activity { time?: string; type?: ActivityType; title: string; d
 export interface TemplateDay {
     day: number;
     date?: string;
+    dateMode?: 'manual' | 'auto';
+    items?: string[];
+    retainedActivities?: Activity[];
+    retainedSummary?: string;
     title: string;
     region?: string;
     summary?: string;
+    move?: string;
+    dist?: string;
+    images?: string[];
     activities: Activity[];
     meals?: { breakfast?: string; lunch?: string; dinner?: string };
     accommodation?: {
@@ -31,6 +38,7 @@ export interface TemplateDay {
         location?: string;
         images?: string[];
         description?: string;
+        tags?: string;
     } | null;
 }
 export interface DocumentSettings {

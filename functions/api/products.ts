@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { hasAdminSession, requireAdmin } from '../lib/adminAuth';
+import { normalizeRepresentativeSpots } from '../lib/productItinerary';
 
 type Env = {
     DB: any;
@@ -70,6 +71,7 @@ app.get('/', async (c) => {
             detailBlocks: safeParse(p.detail_blocks),
             itineraryBlocks: safeParse(p.itinerary_blocks),
             highlights: safeParse(p.highlights),
+            representativeSpots: normalizeRepresentativeSpots(p.representative_spots),
             pricingOptions: safeParse(p.pricing_options),
             accommodationOptions: safeParse(p.accommodation_options),
             vehicleOptions: safeParse(p.vehicle_options),
@@ -108,6 +110,7 @@ app.get('/:id', async (c) => {
             detailBlocks: safeParse(result.detail_blocks),
             itineraryBlocks: safeParse(result.itinerary_blocks),
             highlights: safeParse(result.highlights),
+            representativeSpots: normalizeRepresentativeSpots(result.representative_spots),
             pricingOptions: safeParse(result.pricing_options),
             accommodationOptions: safeParse(result.accommodation_options),
             vehicleOptions: safeParse(result.vehicle_options),
@@ -148,9 +151,9 @@ app.post('/', requireAdmin, async (c) => {
                     is_featured, is_popular, featured, popular,
                     tags, included, excluded, faqs,
                     detail_slides, detail_blocks, itinerary_blocks,
-                    highlights, pricing_options, accommodation_options, vehicle_options,
+                    highlights, representative_spots, pricing_options, accommodation_options, vehicle_options,
                     view_count, booking_count, sort_order
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).bind(
                 id,
                 data.name || '',
@@ -178,6 +181,7 @@ app.post('/', requireAdmin, async (c) => {
                 toJson(g(data, 'detail_blocks', 'detailBlocks', [])),
                 toJson(g(data, 'itinerary_blocks', 'itineraryBlocks', [])),
                 toJson(data.highlights || []),
+                JSON.stringify(normalizeRepresentativeSpots(g(data, 'representative_spots', 'representativeSpots', []))),
                 toJson(g(data, 'pricing_options', 'pricingOptions', [])),
                 toJson(g(data, 'accommodation_options', 'accommodationOptions', [])),
                 toJson(g(data, 'vehicle_options', 'vehicleOptions', [])),
@@ -195,9 +199,9 @@ app.post('/', requireAdmin, async (c) => {
                     is_featured, is_popular, featured, popular,
                     tags, included, excluded, faqs,
                     detail_slides, detail_blocks, itinerary_blocks,
-                    highlights, pricing_options, accommodation_options, vehicle_options,
+                    highlights, representative_spots, pricing_options, accommodation_options, vehicle_options,
                     view_count, booking_count
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).bind(
                 id,
                 data.name || '',
@@ -225,6 +229,7 @@ app.post('/', requireAdmin, async (c) => {
                 toJson(g(data, 'detail_blocks', 'detailBlocks', [])),
                 toJson(g(data, 'itinerary_blocks', 'itineraryBlocks', [])),
                 toJson(data.highlights || []),
+                JSON.stringify(normalizeRepresentativeSpots(g(data, 'representative_spots', 'representativeSpots', []))),
                 toJson(g(data, 'pricing_options', 'pricingOptions', [])),
                 toJson(g(data, 'accommodation_options', 'accommodationOptions', [])),
                 toJson(g(data, 'vehicle_options', 'vehicleOptions', [])),
@@ -319,6 +324,8 @@ app.put('/:id', requireAdmin, async (c) => {
             itineraryBlocks: { col: 'itinerary_blocks', format: toJson },
             
             highlights: { col: 'highlights', format: toJson },
+            representative_spots: { col: 'representative_spots', format: v => JSON.stringify(normalizeRepresentativeSpots(v)) },
+            representativeSpots: { col: 'representative_spots', format: v => JSON.stringify(normalizeRepresentativeSpots(v)) },
             pricing_options: { col: 'pricing_options', format: toJson },
             pricingOptions: { col: 'pricing_options', format: toJson },
             accommodation_options: { col: 'accommodation_options', format: toJson },
@@ -335,6 +342,14 @@ app.put('/:id', requireAdmin, async (c) => {
         };
 
         const processedCols = new Set<string>();
+
+        // As with creates, an explicit snake_case value takes precedence over
+        // its camelCase alias; omitted selections never clear a saved snapshot.
+        if (data.representative_spots !== undefined || data.representativeSpots !== undefined) {
+            updateFields.push('representative_spots = ?');
+            updateValues.push(JSON.stringify(normalizeRepresentativeSpots(g(data, 'representative_spots', 'representativeSpots', []))));
+            processedCols.add('representative_spots');
+        }
 
         // We also want to auto-sync 'featured' and 'popular' if their 'is_' counterparts are present
         if (data.is_featured !== undefined || data.isFeatured !== undefined) {

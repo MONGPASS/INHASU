@@ -1,5 +1,7 @@
 // 상품 예약을 기존 INHASU 확정 일정표의 데이터 형식으로 연결한다.
 // 샘플 견적을 복제하지 않는다. 누락된 고객 정보·금액은 실제 예약 값만 사용한다.
+import type { RepresentativeSpotSnapshot } from '../../src/types/product';
+
 export function parseDocumentJson(value: any, fallback: any = null) {
     let result = value;
     for (let i = 0; i < 3 && typeof result === 'string'; i++) {
@@ -29,6 +31,16 @@ export const documentImage = (value: any) => {
     return /^(https?:\/\/|\/(?!\/)|img\/)/i.test(url) ? url.replace(/["'<>\s]/g, c => c === "'" ? '%27' : encodeURIComponent(c)) : '';
 };
 const photos = (value: any) => array(value).map(documentImage).filter(Boolean);
+
+/** Registered spot snapshots only; never infer spots from sales highlights. */
+export function normalizeRepresentativeSpots(value: any): RepresentativeSpotSnapshot[] {
+    return array(value).filter(spot => spot && typeof spot === 'object' && !Array.isArray(spot) && text(spot.name).trim()).map(spot => ({
+        name: text(spot.name),
+        ...Object.fromEntries(['nameMn', 'short', 'region', 'desc'].filter(key => typeof spot[key] === 'string').map(key => [key, spot[key]])),
+        ...(typeof spot.img === 'string' ? { img: documentImage(spot.img) } : {}),
+        ...(Array.isArray(spot.subImgs) ? { subImgs: photos(spot.subImgs) } : {}),
+    }));
+}
 
 /** 상품 관리의 DAY/타임라인/이미지/슬라이드형 일정도 원본 사진과 함께 가져온다. */
 export function productScheduleDays(product: any) {
@@ -73,7 +85,7 @@ export function mergeProductDays(reservation: any, template: any, product: any) 
     const days = source.map((d: any, i: number) => {
         const day = Number(d.day) || i + 1;
         const stay = assigned.find((a: any) => Number(a.day) === day)?.accommodation;
-        return { ...d, day, date: dayDate(dateKey(reservation.start_date), day - 1),
+        return { ...d, day, date: d.dateMode === 'manual' ? text(d.date) : dayDate(dateKey(reservation.start_date), day - 1),
             activities: array(d.activities), meals: d.meals || {},
             accommodation: stay || (typeof d.accommodation === 'string' ? { name: d.accommodation } : d.accommodation) || null };
     });
@@ -87,7 +99,7 @@ export function mergeProductDays(reservation: any, template: any, product: any) 
 }
 
 export function hasProductSchedule(days: any[]) {
-    return days.some(d => text(d.title).trim() || text(d.summary).trim() || photos(d.images).length
+    return days.some(d => text(d.title).trim() || text(d.summary).trim() || array(d.items).some(item => text(item).trim()) || photos(d.images).length
         || array(d.activities).some(a => text(a.title).trim() || text(a.description).trim() || photos(a.images).length));
 }
 
@@ -139,8 +151,9 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
     const included = typeof overview.includedText === 'string' ? lines(overview.includedText) : array(product?.included).map(text).filter(Boolean);
     const excluded = typeof overview.excludedText === 'string' ? lines(overview.excludedText) : array(product?.excluded).map(text).filter(Boolean);
     const itineraryDays = days.map((d: any) => ({
-        d: d.day, date: d.date, dest: (text(d.title) || text(d.region) || `${d.day}일차`).slice(0, 80), move: '', dist: '',
-        items: [...lines(d.summary), ...array(d.activities).map(a => [text(a.time), text(a.title)].filter(Boolean).join(' '))].filter(Boolean).slice(0, 5).map(s => s.slice(0, 100)),
+        d: d.day, date: d.date, dest: (text(d.title) || text(d.region) || `${d.day}일차`).slice(0, 80), move: text(d.move), dist: text(d.dist),
+        items: Array.isArray(d.items) ? d.items.filter((item: any) => typeof item === 'string')
+            : [...lines(d.summary), ...array(d.activities).map(a => [text(a.time), text(a.title)].filter(Boolean).join(' '))].filter(Boolean).slice(0, 5).map(s => s.slice(0, 100)),
         stay: { name: (text(d.accommodation?.name) || '일정표 참조').slice(0, 80), tags: [] },
         meals: ['breakfast', 'lunch', 'dinner'].map(k => (text(d.meals?.[k]) || '-').slice(0, 60)),
     }));
@@ -154,6 +167,16 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
     const total = amount(r.total_price ?? breakdown.total);
     const deposit = amount(r.deposit_amount ?? breakdown.deposit);
     const balance = amount(r.balance_amount ?? breakdown.local ?? Math.max(0, total - deposit));
+    // Saved customer selections (including []) are authoritative. Only a document
+    // without a selection field inherits the product's separate spot snapshots.
+    const selectedSpots = Object.hasOwn(custom, 'highlights') ? custom.highlights
+        : product?.representative_spots ?? product?.representativeSpots;
+    const highlights = normalizeRepresentativeSpots(selectedSpots).map(h => ({
+        name: text(h.name), nameMn: text(h.nameMn), desc: text(h.desc),
+        img: documentImage(h.img), subImgs: photos(h.subImgs),
+        ...(typeof h.short === 'string' ? { short: h.short } : {}),
+        ...(typeof h.region === 'string' ? { region: h.region } : {}),
+    }));
     return {
         source: 'product', brand, productName: text(r.product_name), quoteNo: text(r.reservation_number) || r.id,
         issueDate: dateKey(r.updated_at) || dateKey(r.created_at), manager: text(contract.manager) || '몽골리아 은하수',
@@ -166,7 +189,7 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
             depositStatus: r.deposit_status === 'paid' ? '입금 확인 완료' : '입금 확인 중',
             balanceStatus: r.balance_status === 'paid' ? '결제 완료' : '현지 결제 예정',
             payment: '예약금: 계좌이체 · 잔금: 현지 현금 결제', paymentNote: '' },
-        included, excluded, intensity: 0, days: itineraryDays, detailDays: days, highlights: [],
+        included, excluded, intensity: 0, days: itineraryDays, detailDays: days, highlights,
         scheduleNotes: lines(settings.detail?.note),
         images: { cover: mainImages[0] || scheduleImages[0] || '', coverLabel: text(r.product_name) },
         booking: { assign: { guide: { name: text(guide.name), phone: text(guide.phone), img: documentImage(guide.image || guide.img),
