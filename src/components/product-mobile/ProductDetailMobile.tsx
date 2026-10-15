@@ -9,7 +9,7 @@ import { useMobileShell } from '../mobile/mobileShellContext';
 import { D, M_GRADIENT } from '../mobile/mobileTheme';
 import { Ico, MPhoto, TypeBadge } from '../mobile/mobileUi';
 import {
-    BookingCard, CancelNote, DetailBlocks, DetailSection, DetailTabsBar, FaqList, IncludedCards, OverviewBody, PhotoOverlay, ReviewsBlock,
+    CancelNote, DetailBlocks, DetailSection, DetailTabsBar, FaqList, IncludedCards, OverviewBody, PhotoOverlay,
     SaveShareButtons, SectionHead, TourTitleBlock,
 } from '../product/detail/DetailParts';
 import { ItineraryAccordion } from '../product/detail/ItineraryAccordion';
@@ -17,7 +17,9 @@ import {
     detailFlags, detailTabs, summariseReviews, tourFacts, tourGallery, tourImageAlt, useRecentlyViewedTours, useRelatedTours, useSectionTabs,
     useTourFaqItems, useTourPricing, type RecentlyViewedTour, type TourDetailViewProps, type TourFact, type TourPricing,
 } from '../product/detail/productDetailData';
+import { readBookingDraft, saveBookingDraft } from '../reservation-shared/bookingShared';
 import { TourCardMobile } from '../tours-mobile/TourCardMobile';
+import { BookingCardMobile, TourReviewsMobile } from './TourDetailMobileParts';
 
 const TAB_ROW_H = 55;
 
@@ -32,14 +34,29 @@ export function ProductDetailMobile(props: TourDetailViewProps) {
     const fav = wishlist.has(product.id);
     const toggleFav = () => wishlist.toggle(product);
 
+    // The headcount picked here opens as the booking page's headcount: that page restores its
+    // STEP 1 choices from this draft (and ignores a headcount that is not one of the tour's tiers).
+    const book = () => {
+        if (pricing.options.length > 0) {
+            const draft = readBookingDraft(product.id);
+            saveBookingDraft(product.id, {
+                startDate: draft?.startDate ?? null,
+                selectedAccomId: draft?.selectedAccomId ?? '',
+                selectedVehicleId: draft?.selectedVehicleId ?? '',
+                totalPeople: pricing.people,
+            });
+        }
+        onBook();
+    };
+
     // A tour opened from another tour's page starts at the top.
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
 
     return (
-        <MobileShell title="투어 상세" bottomBar={<TourActionBar fav={fav} onFav={toggleFav} people={pricing.people} total={pricing.total} onBook={onBook} />}>
-            <TourDetailBody {...props} pricing={pricing} fav={fav} onFav={toggleFav} />
+        <MobileShell title="투어 상세" bottomBar={<TourActionBar fav={fav} onFav={toggleFav} people={pricing.people} total={pricing.total} onBook={book} />}>
+            <TourDetailBody {...props} onBook={book} pricing={pricing} fav={fav} onFav={toggleFav} />
         </MobileShell>
     );
 }
@@ -79,51 +96,57 @@ function TourDetailBody({ product, reviews, onBook, onShare, pricing, fav, onFav
 
             <DetailTabsBar tabs={tabs} active={active} onPick={pick} top={stickyTop} padX={16} />
 
-            <section style={{ padding: '36px 16px 0', display: 'flex', flexDirection: 'column', gap: 52 }}>
-                <DetailSection>
-                    <SectionHead id="td-about" eyebrow="ABOUT THIS TOUR" title="투어 소개" compact />
-                    <OverviewBody product={product} compact />
-                </DetailSection>
-
-                {flags.hasDetail && (
+            {/* Design: 40px under the tab row, 64px between sections, 48px before the booking card. */}
+            <section style={{ padding: '40px 16px 40px', display: 'flex', flexDirection: 'column', gap: 48 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 64, minWidth: 0 }}>
                     <DetailSection>
-                        <SectionHead id="td-detail" eyebrow="TOUR DETAILS" title="상세 정보" compact />
-                        <DetailBlocks product={product} compact />
+                        <SectionHead id="td-about" eyebrow="ABOUT THIS TOUR" title="투어 소개" />
+                        <OverviewBody product={product} />
                     </DetailSection>
-                )}
 
-                {flags.hasItinerary && !flags.itineraryInDesign && (
+                    {flags.hasDetail && (
+                        <DetailSection>
+                            <SectionHead id="td-detail" eyebrow="TOUR DETAILS" title="상세 정보" />
+                            <DetailBlocks product={product} compact />
+                        </DetailSection>
+                    )}
+
+                    {flags.hasItinerary && !flags.itineraryInDesign && (
+                        <DetailSection>
+                            <SectionHead id="td-plan" eyebrow="ITINERARY" title="일정" />
+                            <ItineraryAccordion product={product} compact />
+                        </DetailSection>
+                    )}
+
+                    {flags.hasIncluded && (
+                        <DetailSection>
+                            <SectionHead id="td-incl" eyebrow="WHAT'S INCLUDED" title="포함 사항" />
+                            <IncludedCards product={product} />
+                        </DetailSection>
+                    )}
+
                     <DetailSection>
-                        <SectionHead id="td-plan" eyebrow="ITINERARY" title="일정" compact />
-                        <ItineraryAccordion product={product} compact />
+                        <SectionHead id="td-rev" eyebrow="REVIEWS" title="후기" right={<AllLink to="/reviews" />} />
+                        <TourReviewsMobile summary={summary} />
                     </DetailSection>
-                )}
 
-                {flags.hasIncluded && (
                     <DetailSection>
-                        <SectionHead id="td-incl" eyebrow="WHAT'S INCLUDED" title="포함 사항" compact />
-                        <IncludedCards product={product} />
+                        <SectionHead id="td-faq" eyebrow="NOTES & FAQ" title="유의 사항·FAQ" />
+                        <FaqList items={faq} />
                     </DetailSection>
-                )}
+                </div>
 
-                <DetailSection>
-                    <SectionHead id="td-rev" eyebrow="REVIEWS" title="후기" compact right={<AllLink to="/reviews" />} />
-                    <ReviewsBlock summary={summary} compact />
-                </DetailSection>
-
-                <DetailSection>
-                    <SectionHead id="td-faq" eyebrow="NOTES & FAQ" title="유의 사항·FAQ" compact />
-                    <FaqList items={faq} />
-                </DetailSection>
-
-                <aside style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <BookingCard product={product} pricing={pricing} onBook={onBook} />
+                <aside style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+                    <BookingCardMobile product={product} pricing={pricing} onBook={onBook} />
                     <CancelNote />
                 </aside>
             </section>
 
-            <RelatedTours productId={product.id} category={product.category} />
-            <RecentlyViewed productId={product.id} />
+            {/* Not in the design; follows the booking card with the section's own 40px + 12px. */}
+            <div style={{ paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 44 }}>
+                <RelatedTours productId={product.id} category={product.category} />
+                <RecentlyViewed productId={product.id} />
+            </div>
 
             {photosOpen && <PhotoOverlay title={title} images={gallery} onClose={() => setPhotosOpen(false)} />}
         </>
@@ -242,7 +265,7 @@ function RelatedTours({ productId, category }: { productId: string; category: st
     const wishlist = useWishlist();
     if (tours.length === 0) return null;
     return (
-        <section style={{ paddingTop: 52, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
             <h2 style={rowTitle}>이런 투어도 추천해요</h2>
             <div data-noscroll="" style={rowScroller}>
                 {tours.map((p) => (
@@ -262,7 +285,7 @@ function RecentlyViewed({ productId }: { productId: string }) {
     if (items.length === 0) return null;
     const price = (v: RecentlyViewedTour['price']) => (typeof v === 'number' ? `${won(v)}~` : `${v}원~`);
     return (
-        <section style={{ paddingTop: 44, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
             <h2 style={rowTitle}>최근 본 상품</h2>
             <div data-noscroll="" style={rowScroller}>
                 {items.map((item) => (

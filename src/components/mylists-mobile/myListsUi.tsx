@@ -1,9 +1,9 @@
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import type { ReviewStat } from '../home-desktop/homeDesktopData';
 import { MW, MW_FONT_EN, isUsableImage, won } from '../desktop-primitives/mwTokens';
-import type { TripCardData } from '../mypage-desktop/MyPageSections';
 import { M_PAPER } from '../mobile/mobileTheme';
 import { HeartButton, MPhoto } from '../mobile/mobileUi';
+import type { TripCardMData } from './myListsData';
 
 /**
  * Shared pieces of the mobile my-page sub screens (Claude Design: "M Recently Viewed",
@@ -30,11 +30,11 @@ export function TripGrid({ children }: { children: ReactNode }) {
 
 const ellipsis: CSSProperties = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 
-/** Square tour card: duration chip, heart (+ optional remove) on the photo, title / category / rating / price. */
+/** Square tour card: duration chip, heart (+ optional remove) on the photo, title / highlights / rating / price. */
 export function TripCardM({
     t, stat, fav, onFav, onRemove, removeLabel, go,
 }: {
-    t: TripCardData;
+    t: TripCardMData;
     stat?: ReviewStat;
     fav: boolean;
     onFav: () => void;
@@ -47,6 +47,8 @@ export function TripCardM({
         e.stopPropagation();
         onRemove?.();
     };
+    // 디자인의 둘째 줄은 투어 하이라이트(route) — 태그가 없는 상품은 카테고리를 보여 준다.
+    const route = t.route || t.category;
     return (
         <a
             href={`/products/${t.productId}`}
@@ -69,7 +71,7 @@ export function TripCardM({
             </span>
             <span style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                 <span style={{ fontSize: 13, fontWeight: 900, lineHeight: 1.4, ...ellipsis }}>{t.title}</span>
-                {t.category && <span style={{ fontSize: 11, color: MW.mute, ...ellipsis }}>{t.category}</span>}
+                {route && <span style={{ fontSize: 11, color: MW.mute, ...ellipsis }}>{route}</span>}
                 <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 4, marginTop: 2, whiteSpace: 'nowrap' }}>
                     <span style={{ fontSize: 11, color: MW.mute }}>
                         {stat && stat.count > 0 && (
@@ -99,8 +101,8 @@ export function CardPill({ children, onClick }: { children: ReactNode; onClick: 
 /** Rounded square thumbnail; mint tile when the tour has no usable photo. */
 export function Thumb({ src, size, radius = 12 }: { src?: string; size: number; radius?: number }) {
     return (
-        <span style={{ width: size, height: size, borderRadius: radius, overflow: 'hidden', flexShrink: 0, background: MW.mintTint, display: 'block' }}>
-            {isUsableImage(src) && <img src={src} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+        <span style={{ position: 'relative', width: size, height: size, borderRadius: radius, overflow: 'hidden', flexShrink: 0, background: MW.mintTint, display: 'block' }}>
+            {isUsableImage(src) && <MPhoto src={src} sizes={`${size}px`} />}
         </span>
     );
 }

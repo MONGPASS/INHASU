@@ -4,7 +4,7 @@ import { CategoryExperiences, CategoryHeader, CategoryHero, CategoryLineupEmpty,
 import { useHomeReviews } from '../home-desktop/homeDesktopData';
 import { useMobileShell } from '../mobile/mobileShellContext';
 import { MLoading } from '../mobile/mobileUi';
-import { TourCardMobile } from '../tours-mobile/TourCardMobile';
+import { CategoryTourCard } from './CategoryTourCard';
 
 /**
  * Mobile category landing (Claude Design: "Milkyway Japan Mobile" — Category
@@ -21,14 +21,15 @@ export function CategoryLandingMobile({ slug, content, products, isLoadingProduc
             <CategoryHero content={content} compact />
             <CategoryExperiences content={content} compact />
 
-            <section id={CATEGORY_LINEUP_ID} style={{ padding: '96px 16px 0', display: 'flex', flexDirection: 'column', gap: 24, scrollMarginTop: stickyTop + 16 }}>
-                <CategoryLineupHead title={content.productGridTitle || `${content.name} 투어`} count={isLoadingProducts ? undefined : products.length} compact />
+            <section id={CATEGORY_LINEUP_ID} style={{ padding: '96px 16px 0', display: 'flex', flexDirection: 'column', gap: 28, scrollMarginTop: stickyTop + 16 }}>
+                <CategoryLineupHead title={content.productGridTitle || `${content.name} 투어`} count={isLoadingProducts ? undefined : products.length} />
                 {isLoadingProducts ? (
                     <MLoading pad={40} />
                 ) : products.length > 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '24px 12px' }}>
-                        {products.map((p) => (
-                            <TourCardMobile key={p.id} p={p} fav={wishlist.has(p.id)} onFav={() => wishlist.toggle(p)} stat={stats[p.id]} />
+                    // Same grid rule as the design; inside the phone frame it resolves to one card per row.
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,260px),1fr))', gap: '36px 20px' }}>
+                        {products.map((p, i) => (
+                            <CategoryTourCard key={p.id} p={p} eager={i === 0} fav={wishlist.has(p.id)} onFav={() => wishlist.toggle(p)} stat={stats[p.id]} />
                         ))}
                     </div>
                 ) : (

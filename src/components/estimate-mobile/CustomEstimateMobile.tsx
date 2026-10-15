@@ -96,7 +96,7 @@ export function CustomEstimateMobile() {
                                     }}
                                 >
                                     <MPhoto src={isUsableImage(spotImg) ? spotImg : d.img} />
-                                    <span style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(180deg,rgba(0,0,0,0.06) 35%,rgba(0,0,0,0.7) 100%)' }} />
+                                    <span style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,0.65) 100%)' }} />
                                     {d.badge && (
                                         <span style={{ position: 'absolute', left: 8, top: 8, padding: '3px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.92)', color: MW.mintDeep, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>{d.badge}</span>
                                     )}
@@ -400,9 +400,9 @@ function Stepper({ label, sub, value, min, onChange }: { label: string; sub: str
     const btn = (primary: boolean, off: boolean): CSSProperties => ({ width: 44, height: 44, border: 0, borderRadius: '50%', background: primary ? MW.mint : '#F1F4F3', fontSize: 18, color: MW.navy, cursor: off ? 'default' : 'pointer', opacity: off ? 0.4 : 1, padding: 0, fontFamily: 'inherit' });
     const step = (d: number) => onChange(Math.min(MAX_PAX, Math.max(min, value + d)));
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, height: 64, boxSizing: 'border-box', border: `1.5px solid ${MW.line2}`, borderRadius: 14, padding: '0 8px 0 18px', background: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, height: 60, boxSizing: 'border-box', border: `1.5px solid ${MW.line2}`, borderRadius: 14, padding: '0 8px 0 18px', background: '#fff' }}>
             <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 14, fontWeight: 700 }}>{label}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: MW.mute }}>{label}</span>
                 <span style={{ fontSize: 11, color: MW.mute, whiteSpace: 'nowrap' }}>{sub}</span>
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

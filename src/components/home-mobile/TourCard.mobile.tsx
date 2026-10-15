@@ -1,6 +1,7 @@
 import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { discountPct, type HomeProduct, type ReviewStat } from '../home-desktop/homeDesktopData';
 import { HeartButton, MPhoto, TypeBadge } from '../mobile/mobileUi';
+import { durationLabel } from '../tours-mobile/tourListFilters';
 import { linkTo, useGo } from './homeMobileData';
 
 interface CardProps {
@@ -37,13 +38,14 @@ export function TourGridCardMobile(props: CardProps) {
     const { p, stat } = props;
     const go = useGo();
     const off = discountPct(p);
+    const duration = durationLabel(p.duration);
     return (
         <a {...linkTo(go, `/products/${p.id}`)} style={{ display: 'flex', flexDirection: 'column', gap: 6, color: MW.navy, minWidth: 0, textDecoration: 'none' }}>
             <div style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 18, overflow: 'hidden', background: MW.chip }}>
                 <Photo {...props} heart={36} icon={17} />
             </div>
             <h3 style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 700, lineHeight: 1.45, ...oneLine }}>
-                {p.duration ? `[${p.duration}] ` : ''}{p.name}
+                {duration ? `[${duration}] ` : ''}{p.name}
             </h3>
             <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
                 {off > 0 && <span style={{ fontSize: 14, fontWeight: 900, color: MW.red }}>{off}%OFF</span>}
@@ -59,13 +61,14 @@ export function TourRowCardMobile(props: CardProps) {
     const { p, stat } = props;
     const go = useGo();
     const off = discountPct(p);
+    const duration = durationLabel(p.duration);
     return (
         <a {...linkTo(go, `/products/${p.id}`)} style={{ flex: '0 0 62%', minWidth: 0, scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column', gap: 6, color: MW.navy, textDecoration: 'none' }}>
             <div style={{ position: 'relative', aspectRatio: '16/11', borderRadius: 16, overflow: 'hidden', background: MW.chip }}>
                 <Photo {...props} heart={34} icon={16} />
             </div>
             <h3 style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 500, lineHeight: 1.45, ...oneLine }}>
-                {p.duration ? `[${p.duration}] ` : ''}{p.name}
+                {duration ? `[${duration}] ` : ''}{p.name}
             </h3>
             <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 {off > 0 && <span style={{ fontSize: 11, color: MW.mute2, textDecoration: 'line-through' }}>{won(p.originalPrice!)}</span>}
