@@ -202,6 +202,7 @@
   .linkbox .acts .close { background:#F2F4F5; color:var(--sub); }
 </style>
 <script src="/admin-embed.js"></script>
+<script src="/quote-editor-state.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -902,21 +903,33 @@ function save() {
   localStorage.setItem("leaders_quote", JSON.stringify(buildQuote()));
 }
 
-/* ── 초안 자동저장 ──
-   작성 중 내용을 4초마다 이 브라우저에 저장해 두어,
-   실수로 창을 닫아도 다시 열면 이어서 작성할 수 있습니다. */
-const DRAFT_KEY = "leaders_quote_draft";
-let BOOTED = false, lastDraftJson = "";
-const draftSnap = () => JSON.stringify({ st: ST, reqId: REQ_ID, reqToken: REQ_TOKEN });
-function loadDraft() { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (e) { return null; } }
-function clearDraft() { localStorage.removeItem(DRAFT_KEY); lastDraftJson = draftSnap(); }
-setInterval(() => {
-  if (!BOOTED) return;
-  const snap = draftSnap();
-  if (snap === lastDraftJson) return;   // 변경 없음
-  lastDraftJson = snap;
-  localStorage.setItem(DRAFT_KEY, JSON.stringify({ st: ST, reqId: REQ_ID, reqToken: REQ_TOKEN, savedAt: new Date().toISOString() }));
-}, 4000);
+/* Account/request-scoped recovery. Credentials are never part of a draft. */
+let quoteRecovery = null, quoteEditorBooting = true;
+function quoteLock(locked) {
+  document.querySelectorAll('input,select,textarea,button').forEach(el => {
+    if (el.closest('[data-quote-recovery]')) return;
+    if (locked) { if (!el.hasAttribute('data-recovery-lock')) el.dataset.recoveryLock = el.disabled ? '1' : '0'; el.disabled = true; }
+    else if (el.hasAttribute('data-recovery-lock')) { el.disabled = el.dataset.recoveryLock === '1'; delete el.dataset.recoveryLock; }
+  });
+}
+quoteLock(true);
+function clearDraft() { quoteRecovery?.commit(REQ_ID); }
+async function readCurrentRequest(id) {
+  if (!id) return;
+  const response = await fetch('/api/requests/' + encodeURIComponent(id), { headers: { 'x-admin-token': ADMIN_TOKEN }, cache: 'no-store' });
+  const payload = await response.json();
+  if (!response.ok || !payload.ok || String(payload.item?.id) !== id) throw new Error('이 견적의 원본을 불러오지 못했습니다. 문의 목록에서 다시 열어 주세요.');
+  const pre = payload.item;
+  REQ_ID = pre.id; REQ_TOKEN = pre.token || ''; FROM_REQ = true; QUOTE_RESTORE = pre.quote || null;
+  Object.assign(ST, { customer: pre.name || '', phone: pre.phone || '', depart: pre.depart || '', return_: pre.return_ || '',
+    destination: pre.destination || '', vehicle: pre.vehicle || '', flightIn: pre.flightIn || '', flightOut: pre.flightOut || '',
+    pax: (pre.adult || 0) + (pre.child || 0) + (pre.infant || 0) || 6 });
+  REQ_PAX0 = { adult: pre.adult || 0, child: pre.child || 0, infant: pre.infant || 0 };
+  REQ_SPOTS = Array.isArray(pre.destSpots) ? pre.destSpots : [];
+  REQ_PROFILE = { tripType: pre.tripType || '', travelStyles: Array.isArray(pre.travelStyles) ? pre.travelStyles : [],
+    cityStay: pre.cityStay || '', gerStay: pre.gerStay || '', request: pre.request || '', preferredSpots: REQ_SPOTS };
+  const currentUrl = new URL(location.href); currentUrl.searchParams.set('id', REQ_ID); history.replaceState(null, '', currentUrl);
+}
 
 /* 발행된 견적(Q)을 편집 상태(ST)로 되돌립니다 — "견적서 수정"에서 사용 */
 function restoreFromQuote(q) {
@@ -1060,6 +1073,10 @@ pubBtn.onclick = () => runSave({ share:true });
 /* 저장하기 = 내부 저장만 (고객에게 알림 없음)
    링크 공유하기 = 저장 + 고객 알림톡 발송 + 고객 링크 안내 */
 async function runSave({ share }) {
+  if (quoteEditorBooting || !quoteRecovery) return toast('원본과 초안을 확인하고 있습니다. 잠시 후 다시 시도해 주세요.');
+  const release = quoteRecovery.begin();
+  if (!release) return;
+  try {
   const q = buildQuote();
   if (!ST.customer.trim() && !ANONYMOUS_SHARE) { toast("먼저 고객명을 입력하세요"); setStep(0); $("f_customer").focus(); return; }
   if (ANONYMOUS_SHARE && !ST.customer.trim()) { ST.customer = "여행 고객"; q.customer = "여행 고객"; }
@@ -1130,13 +1147,15 @@ async function runSave({ share }) {
       REQ_TOKEN = token;
     }
     if (!share) {
-      /* 초안(localStorage)은 그대로 두어 이어서 편집할 수 있게 합니다 */
+      clearDraft();
+      if (REQ_ID) { const url = new URL(location.href); url.searchParams.set('id', REQ_ID); history.replaceState(null, '', url); }
       toast("✓ 저장했어요 — 고객에게는 아직 보내지 않았어요");
       return;
     }
     const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + token;
     try { await navigator.clipboard.writeText(link); } catch (e) {}
     clearDraft();   // 발행 완료 → 초안 정리
+    if (REQ_ID) { const url = new URL(location.href); url.searchParams.set('id', REQ_ID); history.replaceState(null, '', url); }
     showLinkBox(link);
     toast(quoteNotification && quoteNotification.status === "queued"
       ? "✓ 고객에게 보냈어요 · 알림톡 발송을 요청했어요"
@@ -1147,6 +1166,7 @@ async function runSave({ share }) {
     [pubBtn, saveBtn, $("publishBtn2"), $("saveQuoteBtn2")].forEach(b => b.disabled = false);
     btn.textContent = label;
   }
+  } finally { release(); }
 }
 $("resetBtn").onclick = () => {
   if (!confirm("입력한 내용을 모두 지울까요?")) return;
@@ -1159,7 +1179,8 @@ $("resetBtn").onclick = () => {
     balances:structuredClone((BASE.price && BASE.price.balances) || []),
     spots:[], days:[], intensity:3, roomType:"eco" };
   fillForm(); renderAll(); setStep(0);
-  clearDraft();   // 초기화된 상태 기준으로 초안도 정리
+  quoteRecovery?.discard();
+  quoteRecovery?.changed();
   toast("초기화되었습니다");
 };
 
@@ -1170,7 +1191,22 @@ function toast(msg) {
 }
 
 /* ── 시작 ── 서버(D1)에서 최신 코스·명소·일정을 받아온 뒤 렌더링 */
-(window.cloudReady || Promise.resolve()).then(() => {
+async function initializeQuoteEditor() {
+  const queryId = new URLSearchParams(location.search).get('id');
+  let legacyId = '';
+  try { const legacy = JSON.parse(localStorage.getItem('leaders_quote_draft') || 'null'); if (!REQ_ID && !SHARE_COURSE && legacy?.st && window.QuoteEditorState.validQuote(legacy.st)) legacyId = String(legacy.reqId || ''); } catch (_) {}
+  try { if (queryId || REQ_ID || legacyId) await readCurrentRequest(queryId || REQ_ID || legacyId); }
+  catch (error) {
+    toast(error.message); quoteEditorBooting = true;
+    document.querySelector('[data-quote-source-error]')?.remove();
+    const alert = document.createElement('div');
+    alert.setAttribute('data-quote-source-error', ''); alert.setAttribute('data-quote-recovery', 'source'); alert.setAttribute('role', 'alert');
+    alert.style.cssText = 'position:fixed;top:12px;left:12px;right:12px;z-index:10000;padding:16px;border:1px solid #efcf94;border-radius:12px;background:#fff8e8;font:13px/1.7 sans-serif';
+    const message = document.createElement('p'); message.textContent = error.message; alert.appendChild(message);
+    const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = '원본 다시 불러오기';
+    retry.onclick = () => { alert.remove(); initializeQuoteEditor(); }; alert.appendChild(retry); document.body.appendChild(alert);
+    return;
+  }
   renderCourses();
   if (QUOTE_RESTORE && restoreFromQuote(QUOTE_RESTORE)) {
     // 이미 발행된 견적 수정: 발행 당시 내용을 그대로 복원
@@ -1193,23 +1229,16 @@ function toast(msg) {
     fillForm(); renderAll();
     toast(`"${SHARE_COURSE}" 공유 견적 — 고객 정보 없이 발행할 수 있어요`);
   } else {
-    // 일반 진입: 작성 중이던 초안이 있으면 자동 복원 (새로 시작하려면 [초기화])
-    const draft = loadDraft();
-    if (draft && draft.st) {
-      Object.assign(ST, draft.st);
-      if (!REQ_ID && draft.reqId) { REQ_ID = draft.reqId; REQ_TOKEN = draft.reqToken || ""; }
-      fillForm(); renderAll();
-      toast(`작성 중이던 초안(${String(draft.savedAt||"").slice(5,16).replace("T"," ")})을 복원했어요 — 새로 시작하려면 [초기화]`);
-    } else {
       const firstCourse = Object.keys(getCourses())[0];
       if (firstCourse) loadCourse(firstCourse);
       else { fillForm(); renderAll(); }
-    }
   }
   setStep(0);
-  lastDraftJson = draftSnap();   // 부팅 직후 상태는 저장하지 않음 (수정할 때만 초안 기록)
-  BOOTED = true;
-});
+  quoteRecovery = await window.QuoteEditorState.create({ kind: 'quote', requestId: REQ_ID, legacyKey: 'leaders_quote_draft',
+    get: () => ST, apply: value => { ST = { ...ST, ...value }; fillForm(); renderAll(); }, lock: quoteLock, notice: toast });
+  quoteEditorBooting = false;
+}
+(window.cloudReady || Promise.resolve()).then(initializeQuoteEditor);
 </script>
 </body>
 </html>

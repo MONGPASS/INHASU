@@ -22,10 +22,11 @@ interface EmailData {
 export const sendNotificationEmail = async (
     to: string,
     type: NotificationType,
-    data: EmailData
+    data: EmailData,
+    idempotencyKey?: string,
 ) => {
     try {
-        const response = await api.notifications.sendEmail(to, type, data);
+        const response = await api.notifications.sendEmail(to, type, data, idempotencyKey);
         console.log('Email sent successfully:', response);
         return { success: true, data: response };
     } catch (error) {

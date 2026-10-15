@@ -76,6 +76,7 @@
 <section class="quote-actions" id="quoteActions" style="display:none"><div class="eyebrow">NEXT STEP</div><h2>이 일정으로 여행을 준비할까요?</h2><p>수정하고 싶은 부분이나 예약 진행 의사를 카카오톡으로 말씀해 주시면<br>담당자가 예약 절차를 바로 도와드립니다.</p><div class="buttons"><a class="accept" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">💬 카카오톡으로 예약 진행하기 <span>→</span></a></div></section>
 
 <script type="module">
+import { escapeDocumentText as escapeQuoteDocumentText, sanitizeDocumentHTML, documentUrl, documentImageAttribute, documentTextWithoutBreaks } from "/document-safe.js";
 /* 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 */
 const _token = new URLSearchParams(location.search).get("t");
 const mapHref = "일정지도.html" + (_token ? "?t=" + encodeURIComponent(_token) : "");
@@ -129,7 +130,8 @@ if (_token) {
 
 const won = n => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("ko-KR") + "원";
 const wonMan = n => Math.round(n / 10000).toLocaleString("ko-KR") + "만원";
-const esc = s => String(s ?? "");
+const esc = escapeQuoteDocumentText;
+const rich = sanitizeDocumentHTML;
 // 잔금 2단계 요금: economy=실속형(일반게르), full=풀패키지(고급게르). 구버전 {amount} 호환.
 const balEco = b => (b.economy != null ? b.economy : (b.amount || 0));
 const balFull = b => (b.full != null ? b.full : (b.amount || 0));
@@ -148,20 +150,21 @@ if (window.QUOTE && window.QUOTE.images) {
 }
 
 /* 이미지 자리표시자/사진 */
-const ph = (src, label, style) => src
-  ? `<div class="ph" style="${style}"><img src="${src}" alt="${esc(label)}"></div>`
+const ph = (src, label, style) => documentUrl(src, true)
+  ? `<div class="ph" style="${style}"><img src="${documentImageAttribute(src)}" alt="${esc(label)}"></div>`
   : `<div class="ph" style="${style}">${esc(label) || ""}</div>`;
 // 문서·안내 이미지: 잘리지 않게 전체 표시(contain), 흰 배경
-const phC = (src, label, style) => src
-  ? `<div class="ph" style="${style}; background:#fff;"><img src="${src}" alt="${esc(label)}" style="object-fit:contain;"></div>`
+const phC = (src, label, style) => documentUrl(src, true)
+  ? `<div class="ph" style="${style}; background:#fff;"><img src="${documentImageAttribute(src)}" alt="${esc(label)}" style="object-fit:contain;"></div>`
   : `<div class="ph" style="${style}">${esc(label) || ""}</div>`;
 
 const LOGO = `<svg width="34" height="34" viewBox="0 0 48 48" fill="none"><rect x="1.5" y="1.5" width="45" height="45" rx="13" stroke="#27AB8F" stroke-width="1.6"></rect><path d="M9 33 L19 18 L26 28 L32 20 L39 33 Z" fill="#27AB8F"></path></svg>`;
 const DAY_CUBE = ["#27AB8F", "#27AB8F", "#27AB8F", "#27AB8F", "#27AB8F", "#27AB8F", "#27AB8F"];
 const itemHtml = t => {
-  if (t.startsWith("*")) return `<span style="color:#1C8571; font-weight:600;">${esc(t)}</span>`;
-  if (t.startsWith("(")) return `<span style="color:#8A9895;">${esc(t)}</span>`;
-  return esc(t);
+  t = String(t ?? "");
+  if (t.startsWith("*")) return `<span style="color:#1C8571; font-weight:600;">${rich(t)}</span>`;
+  if (t.startsWith("(")) return `<span style="color:#8A9895;">${rich(t)}</span>`;
+  return rich(t);
 };
 
 /* ══════════ 표지 ══════════ */
@@ -244,7 +247,7 @@ const pgQuote = `
   ${(() => {
     const pills = (tier) => Q.price.balances.map(b => {
       const amt = tier === "economy" ? balEco(b) : balFull(b);
-      return `<div style="background:#27AB8F; padding:9px 8px; text-align:center;"><div style="color:#D1F6EA; font-size:10px; font-weight:700;">${b.pax}인 잔금(1인기준)</div><div style="color:#fff; font-size:17px; font-weight:800; margin-top:4px;">${wonMan(amt)}</div></div>`;
+      return `<div style="background:#27AB8F; padding:9px 8px; text-align:center;"><div style="color:#D1F6EA; font-size:10px; font-weight:700;">${esc(b.pax)}인 잔금(1인기준)</div><div style="color:#fff; font-size:17px; font-weight:800; margin-top:4px;">${wonMan(amt)}</div></div>`;
     }).join("");
     const grid = (tier) => `<div style="display:grid; grid-template-columns:repeat(${Q.price.balances.length},1fr); gap:1px; background:#D1F6EA; border-radius:10px; overflow:hidden;">${pills(tier)}</div>`;
     return `
@@ -274,11 +277,11 @@ const pgQuote = `
 const dayRow = (d, i) => {
   const bg = i % 2 ? "#F7FAF9" : "#fff";
   return `
-    <div style="background:${bg}; padding:12px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;"><span style="width:12px;height:12px;border-radius:3px;background:${DAY_CUBE[i % DAY_CUBE.length]};"></span><b style="color:#0A1F2E; font-size:12px;">${d.d}일차</b>${d.date ? `<span style="color:#8A9895; font-size:10.5px; font-weight:700;">${esc(d.date)}</span>` : ""}</div>
-    <div style="background:${bg}; padding:12px 8px; color:#0A1F2E; line-height:1.5;"><b>${d.dest}</b><br><span style="color:#8A9895;">${esc(d.move)}<br>${esc(d.dist)}</span></div>
+    <div style="background:${bg}; padding:12px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;"><span style="width:12px;height:12px;border-radius:3px;background:${DAY_CUBE[i % DAY_CUBE.length]};"></span><b style="color:#0A1F2E; font-size:12px;">${esc(d.d)}일차</b>${d.date ? `<span style="color:#8A9895; font-size:10.5px; font-weight:700;">${esc(d.date)}</span>` : ""}</div>
+    <div style="background:${bg}; padding:12px 8px; color:#0A1F2E; line-height:1.5;"><b>${rich(d.dest)}</b><br><span style="color:#8A9895;">${esc(d.move)}<br>${esc(d.dist)}</span></div>
     <div style="background:${bg}; padding:12px 10px; color:#23323D; line-height:1.85;">${d.items.map(itemHtml).join("<br>")}</div>
-    <div style="background:${bg}; padding:12px 8px; color:#0A1F2E; font-weight:600; line-height:1.6; text-align:center;">${d.stay.name}${d.stay.tags.length ? `<br><br><span style="color:#8A9895; font-weight:500;">${d.stay.tags.join("<br>")}</span>` : ""}</div>
-    <div style="background:${bg}; padding:12px 6px; color:#23323D; text-align:center; line-height:1.9;">${d.meals.join("<br>")}</div>`;
+    <div style="background:${bg}; padding:12px 8px; color:#0A1F2E; font-weight:600; line-height:1.6; text-align:center;">${rich(d.stay.name)}${d.stay.tags.length ? `<br><br><span style="color:#8A9895; font-weight:500;">${d.stay.tags.map(rich).join("<br>")}</span>` : ""}</div>
+    <div style="background:${bg}; padding:12px 6px; color:#23323D; text-align:center; line-height:1.9;">${d.meals.map(rich).join("<br>")}</div>`;
 };
 // 일정 페이지 상단 헤더(로고·제목·이동강도) — 여러 장으로 나뉘어도 매 장 반복
 const schedHead = `
@@ -379,7 +382,7 @@ const spotBlock = h => `
     <div style="flex:1; display:flex; flex-direction:column;">
       <div style="color:#1C8571; font-size:12px; font-weight:700;">📍 ${esc(h.nameMn)}</div>
       <div style="color:#0A1F2E; font-size:24px; font-weight:800; margin-top:2px;">${esc(h.name)}</div>
-      <div style="color:#33434F; font-size:11.5px; line-height:1.75; margin:10px 0 0;">${h.desc}</div>
+      <div style="color:#33434F; font-size:11.5px; line-height:1.75; margin:10px 0 0;">${rich(h.desc)}</div>
       <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:auto; padding-top:14px;">
         ${h.subImgs.map(s => ph(s, "", "width:100%; height:78px; border-radius:8px;")).join("")}
       </div>

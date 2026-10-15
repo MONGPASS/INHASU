@@ -8,6 +8,7 @@ import { BRAND, COMPANY_INFO, DEPOSIT_ACCOUNT, DEPOSIT_PAYMENT_METHOD, KAKAO_CHA
 interface Env {
     DB: D1Database;
     RESEND_API_KEY: string;
+    MAIL_FROM?: string;
     ADMIN_EMAIL: string;
     CRON_SECRET: string;
 }
@@ -102,6 +103,7 @@ app.post('/', async (c) => {
                     productName: r.product_name || '투어',
                     depositAmount: Number(r.deposit_amount) || 0,
                 }),
+                { env: c.env },
             );
 
             history.push({ type: 'reminder_sent', date: new Date().toISOString() });

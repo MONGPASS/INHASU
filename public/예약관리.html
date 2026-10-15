@@ -7,6 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <script src="booking.js"></script>
+<script src="/quote-editor-state.js"></script>
 <style>
   :root { --accent:#06c4a0; --book:#06c4a0; --deep:#037a64; --ink:#0f2e27; --sub:#5a716b; --muted:#8aa39c; --line:#eaf0ee; --soft:#f1f9f7; --bookSoft:#dcf4ee; }
   * { box-sizing:border-box; margin:0; padding:0; }
@@ -356,11 +357,37 @@ if (ADMIN_TOKEN) sessionStorage.setItem("leaders_admin_token", ADMIN_TOKEN);
 /* ══════════ 편집 상태 ══════════ */
 let BK = null;   // booking 편집본
 let SAVED_BK_JSON = "";
+let bookingRecovery = null, bookingEditorBooting = true;
+function bookingLock(locked) {
+  document.querySelectorAll('#main input,#main select,#main textarea,#main button,#savebar button,header button').forEach(el => {
+    if (locked) { if (!el.hasAttribute('data-recovery-lock')) el.dataset.recoveryLock = el.disabled ? '1' : '0'; el.disabled = true; }
+    else if (el.hasAttribute('data-recovery-lock')) { el.disabled = el.dataset.recoveryLock === '1'; delete el.dataset.recoveryLock; }
+  });
+  if (!locked && BK) updateActionBar();
+}
+function bookingSnapshot() {
+  const { contract, ...editable } = BK;
+  return { ...editable, _requestFields: { name: PRE.name || '', depart: PRE.depart || '', return_: PRE.return_ || '',
+    adult: PRE.adult || 0, child: PRE.child || 0, infant: PRE.infant || 0 } };
+}
+async function runBookingAction(work) {
+  if (bookingEditorBooting || !bookingRecovery) return false;
+  const result = await bookingRecovery.run(work); return result === true;
+}
+async function save(opts = {}) { return opts._internal ? saveBookingBody(opts) : runBookingAction(() => saveBookingBody(opts)); }
+async function sendStageRequest(kind) { return runBookingAction(() => sendStageRequestBody(kind)); }
+async function sendTravelNotice() { return runBookingAction(sendTravelNoticeBody); }
+async function confirmDepositFlow() { return runBookingAction(confirmDepositBody); }
+window.focusDeliverySection = () => { document.getElementById('depositRequestBtn')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+document.addEventListener('click', event => {
+  if ((bookingEditorBooting || bookingRecovery?.isBusy()) && event.target?.closest?.('#main,#savebar')) { event.preventDefault(); event.stopImmediatePropagation(); }
+}, true);
 
 /* booking 표준 틀·정규화·견적 승계 로직은 booking.js에서 공유
    (blankBooking / normBooking / daysFromQuote / seedBookingFromQuote) — admin 확정 트리거와 동일본 사용 */
 
 function init() {
+  const currentUrl = new URL(location.href); currentUrl.searchParams.set('id', PRE.id); history.replaceState(null, '', currentUrl);
   BK = PRE.booking ? normBooking(PRE.booking) : seedBookingFromQuote(PRE);
   if (PRE.booking && PRE.booking.publishStatus == null && PRE.status === "예약확정") {
     BK.publishStatus = "published";   // 공개 상태 필드 도입 전 확정 예약 호환
@@ -370,10 +397,10 @@ function init() {
     ...BK.contractInfo,
     productName: BK.contractInfo.productName || PRE.destination || "",
     region: BK.contractInfo.region || PRE.destination || "",
-    totalAmount: BK.contractInfo.totalAmount || qm.totalAmount,
-    depositAmount: BK.contractInfo.depositAmount || qm.depositAmount,
+    totalAmount: PRE.booking?.contractInfo?.totalAmount ?? qm.totalAmount,
+    depositAmount: PRE.booking?.contractInfo?.depositAmount ?? qm.depositAmount,
     depositStatus: BK.contractInfo.depositStatus || (BK.checklist.deposit ? "입금완료" : "미입금"),
-    balanceAmount: BK.contractInfo.balanceAmount || qm.balanceAmount,
+    balanceAmount: PRE.booking?.contractInfo?.balanceAmount ?? qm.balanceAmount,
     balanceStatus: BK.contractInfo.balanceStatus || (BK.checklist.balance ? "입금완료" : "미수령"),
     cashReceipt: BK.contractInfo.cashReceipt || "",
     bankName: BK.contractInfo.bankName || DEFAULT_DEPOSIT_ACCOUNT.bankName,
@@ -386,7 +413,7 @@ function init() {
     outDate: BK.flight.outDate || PRE.return_ || "",
   };
   // 대표 명소: booking에 없으면 발행된 견적의 명소를 초기값으로 (선택기에 미리 체크됨)
-  if (!BK.highlights.length && PRE.quote && Array.isArray(PRE.quote.highlights)) {
+  if (!Array.isArray(PRE.booking?.highlights) && PRE.quote && Array.isArray(PRE.quote.highlights)) {
     BK.highlights = JSON.parse(JSON.stringify(PRE.quote.highlights));
   }
   SAVED_BK_JSON = JSON.stringify(BK);
@@ -408,7 +435,19 @@ function init() {
   /* 미저장 감지 기준(SAVED_BK_JSON)은 pullForm 정규형으로 — 원시 데이터와 폼 수집형의
      구조 차이(숙소 이미지 자동첨부·계약 체크 자동화 등)가 dirty로 오탐되지 않게 */
   pullForm(); SAVED_BK_JSON = JSON.stringify(BK);
-  loadLibs().then(() => { pullForm(); SAVED_BK_JSON = JSON.stringify(BK); });   // 라이브러리 폴백 반영 후 재스냅샷
+  bookingLock(true);
+  loadLibs().then(async () => {
+    pullForm(); SAVED_BK_JSON = JSON.stringify(BK);
+    bookingRecovery = await window.QuoteEditorState.create({ kind: 'booking', requestId: PRE.id, get: bookingSnapshot, pull: pullForm,
+      lock: bookingLock, notice: toast, validate: window.QuoteEditorState.validBooking,
+      apply: value => {
+        const liveContract = BK.contract, requestFields = value._requestFields;
+        BK = normBooking({ ...value, contract: liveContract }); delete BK._requestFields;
+        if (requestFields && typeof requestFields === 'object') Object.assign(PRE, requestFields);
+        $('publishSchedule').checked = BK.publishStatus === 'published'; render();
+      } });
+    bookingEditorBooting = false;
+  });
 }
 
 function copyCustomerLink() {
@@ -983,14 +1022,16 @@ function bindEvents() {
   $("confirmBookingBtn").onclick = async () => {
     if (!await askConfirm({ title:"예약을 확정할까요?", message:"예약금 입금과 계약서 서명을 확인한 뒤 고객에게 예약 확정 알림을 보냅니다.", confirmText:"예약 확정하기", icon:"✓" })) return;
     $("setStatus").checked = true;
-    await save({ action:"confirm" });
+    const ok = await save({ action:"confirm", _internal:true });
+    if (ok) bookingRecovery?.commit(PRE.id);
     $("setStatus").checked = false;
     updateActionBar();
   };
   $("publishBtn").onclick = async () => {
     if (!await askConfirm({ title:"확정 일정표를 공개할까요?", message:"가이드·차량·숙소 배정을 포함한 최종 일정표가 고객에게 공개됩니다.", confirmText:"일정표 공개하기", icon:"🎫" })) return;
     $("publishSchedule").checked = true;
-    const ok = await save({ action:"publish" });
+    const ok = await save({ action:"publish", _internal:true });
+    if (ok) bookingRecovery?.commit(PRE.id);
     if (!ok) { $("publishSchedule").checked = false; BK.publishStatus = "draft"; }
     updateActionBar();
   };
@@ -998,7 +1039,7 @@ function bindEvents() {
   if (rtb) rtb.onclick = async () => {
     if (!PRE.token) return toast("고객 링크가 없는 요청이에요");
     if (!await askConfirm({ title:"여행자 정보 입력을 요청할까요?", message:"현재 예약정보를 먼저 저장한 뒤 고객 페이지에 입력 안내를 표시합니다.", confirmText:"입력 요청 보내기", icon:"👥" })) return;
-    const saved = await save();
+    const saved = await save({ _internal:true });
     if (!saved) return;
     rtb.disabled = true; rtb.textContent = "발송 중…";
     try {
@@ -1010,6 +1051,7 @@ function bindEvents() {
       if (!res.ok || !j.ok) throw new Error(j.error || "요청 발송 실패");
       BK.travelerSubmission = j.travelerSubmission || BK.travelerSubmission;
       PRE.booking = BK; SAVED_BK_JSON = JSON.stringify(BK);
+      bookingRecovery?.commit(PRE.id);
       localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));
       render(); toast("✓ 고객에게 여행자 정보 입력 요청을 보냈어요");
     } catch (e) {
@@ -1028,7 +1070,8 @@ function bindEvents() {
     if (!await askConfirm({ title:"서명을 초기화할까요?", message:"기존 서명 기록이 삭제되며 고객이 계약서에 다시 서명해야 합니다.", confirmText:"서명 초기화", icon:"↺", tone:"danger" })) return;
     $("c_contract").checked = false;   // save()의 pullForm이 체크박스를 읽으므로 DOM 먼저 해제
     BK.contract = null;                // pullForm은 contract를 건드리지 않음 → null 유지된 채 저장
-    await save({ resetContract: true });   // 서버의 서명 보존 로직에 명시적 초기화임을 알림
+    const ok = await save({ resetContract: true, _internal:true });
+    if (ok) bookingRecovery?.commit(PRE.id);
     render();
   };
   fillDatalists();   // 리렌더 시 datalist·자동채움 다시 연결
@@ -1036,6 +1079,10 @@ function bindEvents() {
   renderSpots();     // 대표 명소 선택기 렌더
   bindAutofill();
   updateActionBar();
+  ['confirmBookingBtn', 'publishBtn', 'requestTravelers', 'resetSignBtn'].forEach(id => {
+    const el = $(id), handler = el?.onclick; if (handler) el.onclick = () => runBookingAction(handler);
+  });
+  if (bookingEditorBooting || bookingRecovery?.isBusy()) bookingLock(true);
 }
 
 function focusWorkflowSection(sectionId, fieldId) {
@@ -1101,7 +1148,7 @@ function updateActionBar() {
   $("saveBtn").textContent = wf.task.action === "payment" ? "💾 입금 상태 저장" : wf.task.action === "assign" ? "💾 배정정보 저장" : wf.task.action === "bookingInfo" ? "💾 예약정보 저장" : "💾 임시 저장";
 }
 
-async function sendStageRequest(kind) {
+async function sendStageRequestBody(kind) {
   pullForm();
   if (kind === "deposit") {
     const ci = BK.contractInfo || {};
@@ -1112,7 +1159,7 @@ async function sendStageRequest(kind) {
     return toast("⚠ 예약금 입금 확인 후 계약서 요청이 가능합니다");
   const label = kind === "deposit" ? "예약금 입금 안내" : "계약서 서명 요청";
   if (!await askConfirm({ title:`${label}를 진행할까요?`, message:"현재 입력한 예약정보를 저장한 뒤 고객 페이지에 해당 단계를 표시합니다.", confirmText:`${label} 진행`, icon:kind === "deposit" ? "💳" : "✍" })) return;
-  const saved = await save({ quiet:true });
+  const saved = await save({ quiet:true, _internal:true });
   if (!saved) return;
   const btn = kind === "deposit" ? $("depositRequestBtn") : $("contractRequestBtn");
   btn.disabled = true; btn.textContent = "발송 중…";
@@ -1126,6 +1173,7 @@ async function sendStageRequest(kind) {
     if (j.depositRequest) BK.depositRequest = j.depositRequest;
     if (j.contractRequest) BK.contractRequest = j.contractRequest;
     PRE.booking = BK; SAVED_BK_JSON = JSON.stringify(BK);
+    bookingRecovery?.commit(PRE.id);
     localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));
     render(); toast(`✓ ${label} 단계가 고객 페이지에 표시됩니다`);
   } catch (e) {
@@ -1134,7 +1182,7 @@ async function sendStageRequest(kind) {
 }
 
 /* 여행 주의사항 수동 발송 — 계약서 서명 직후 자동 발송과 같은 안내를 관리자가 직접 다시 보냅니다 */
-async function sendTravelNotice() {
+async function sendTravelNoticeBody() {
   /* 예약목록에서 넘어온 스냅샷에 연락처가 없을 수 있어(예전 화면에서 연 경우 등)
      서버의 실제 예약 정보로 한 번 보충한 뒤 안내 문구를 만듭니다. */
   if (!PRE.phone) {
@@ -1192,13 +1240,13 @@ async function sendTravelNotice() {
 }
 
 /* 입금 확인 원클릭 — 입금완료 저장 + 계약서 서명·여행자 정보 요청 자동 발송 */
-async function confirmDepositFlow() {
+async function confirmDepositBody() {
   pullForm();
   const who = (BK.depositReport && BK.depositReport.name) ? ` (입금자명 ${BK.depositReport.name})` : "";
   if (!await askConfirm({ title:"입금을 확인했나요?", message:`예약금이 입금완료로 저장되고${who ? who + "," : ""} 고객에게 계약서 서명과 여행자 정보 입력 요청이 함께 발송됩니다.`, confirmText:"입금 확인·자동 발송", icon:"💳" })) return;
   BK.contractInfo.depositStatus = "입금완료";
   BK.checklist = { ...(BK.checklist || {}), deposit:true };
-  const saved = await save({ quiet:true });
+  const saved = await save({ quiet:true, _internal:true });
   if (!saved) { render(); return; }
   try {
     const res = await fetch(`/api/requests/${encodeURIComponent(PRE.id)}`, {
@@ -1212,6 +1260,7 @@ async function confirmDepositFlow() {
     PRE.booking = BK; SAVED_BK_JSON = JSON.stringify(BK);
     localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));
     render(); toast("✓ 입금완료 처리 — 계약서 서명·여행자 정보 요청이 고객 페이지에 표시됩니다");
+    bookingRecovery?.commit(PRE.id);
   } catch (e) {
     render(); toast("⚠ " + e.message);
   }
@@ -1552,7 +1601,7 @@ function updateLodgePreview(row) {
 }
 
 /* ══════════ 저장 ══════════ */
-async function save(opts = {}) {
+async function saveBookingBody(opts = {}) {
   pullForm();
   /* 예약확정은 고객 수락·계약 서명·예약금 입금이 모두 필요 */
   if ($("setStatus").checked) {
@@ -1595,6 +1644,7 @@ async function save(opts = {}) {
     if (!BK.preparedAt) BK.preparedAt = j.preparedAt || new Date().toISOString();
     PRE.booking = BK;
     SAVED_BK_JSON = JSON.stringify(BK);
+    if (!opts._internal) bookingRecovery?.commit(PRE.id);
     localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));
     const paxTot = (PRE.adult||0)+(PRE.child||0)+(PRE.infant||0);
     $("hMeta").textContent = `${PRE.destination || "-"} · ${PRE.depart || "?"} ~ ${PRE.return_ || "?"} · ${paxTot}명 · 현재상태 [${PRE.status}]`;
@@ -1644,12 +1694,7 @@ async function openInitialBooking() {
   } else {
     init();
   }
-  /* 미저장 변경이 있으면 탭 닫기/이동 전에 경고 */
-  window.addEventListener("beforeunload", e => {
-    if (!BK) return;
-    try { pullForm(); } catch (_) { return; }
-    if (JSON.stringify(BK) !== SAVED_BK_JSON) { e.preventDefault(); e.returnValue = ""; }
-  });
+  /* Shared recovery flushes before refresh, browser Back and iframe navigation. */
 }
 openInitialBooking();
 </script>

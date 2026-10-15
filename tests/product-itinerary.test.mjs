@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import { productScheduleDays, mergeProductDays, loadProductDocument, buildProductQuote, hasProductSchedule, productItineraryPublished, documentImage, normalizeRepresentativeSpots } from '../functions/lib/productItinerary.ts';
 import { productDocumentSections, escapeDocumentText } from '../public/product-itinerary.js';
+import { documentUrl, documentImageAttribute, documentTextWithoutBreaks } from '../public/document-safe.js';
 
 const reservation = { id: 'booking-uuid', product_id: 'tour-a', product_name: '고비 3일', customer_name: '테스트 고객',
     start_date: '2026-10-20', end_date: '2026-10-22', travelers: 3, total_price: 1234567, deposit_amount: 234567,
@@ -181,22 +182,30 @@ const blockDeclaration = (source, name) => {
     assert.ok(end >= 0);
     return source.slice(start, start + end).trimEnd() + '\n};';
 };
+// These extraction tests exercise the product/plain-text branch and existing
+// trusted formatting. Actual rich-HTML sanitization is checked in browser QA.
+const documentBindings = {
+    escapeQuoteDocumentText: escapeDocumentText,
+    sanitizeDocumentHTML: value => String(value ?? ''),
+    documentUrl, documentImageAttribute, documentTextWithoutBreaks,
+};
+const documentRenderer = (code, q) => new Function('Q', ...Object.keys(documentBindings), code)(q, ...Object.values(documentBindings));
 
 for (const [device, filename, spotsVariable] of [
     ['PC', '확정일정표.html', 'pgSpots'], ['모바일', '확정일정표-모바일.html', 'secSpots'],
 ]) {
     test(`${device} 고객 PDF 명소 렌더러가 상품 설명을 텍스트로 표시하고 사진을 보존한다`, () => {
         const source = htmlSource(filename);
-        const renderer = new Function('Q', 'escapeDocumentText',
-            `${declaration(source, 'esc')} ${declaration(source, 'ph')} ${declaration(source, 'spotBlock')} return spotBlock;`);
+        const renderer = q => documentRenderer(
+            `${declaration(source, 'esc')} ${declaration(source, 'rich')} ${declaration(source, 'ph')} ${declaration(source, 'spotBlock')} return spotBlock;`, q);
         const spot = { name: '<b>명소</b>', nameMn: '현지 이름', desc: '<img src=x onerror=alert(1)>\n두 번째 설명',
             img: '/img/spot.webp', subImgs: ['/img/one.webp', '/img/two.webp', '/img/three.webp'] };
-        const productHtml = renderer({ source: 'product' }, escapeDocumentText)(spot);
+        const productHtml = renderer({ source: 'product' })(spot);
         assert.ok(productHtml.includes('&lt;img src=x onerror=alert(1)&gt;<br>두 번째 설명'));
         assert.ok(!productHtml.includes('<img src=x'));
         assert.ok(productHtml.includes('&lt;b&gt;명소&lt;/b&gt;'));
         for (const photo of [spot.img, ...spot.subImgs]) assert.ok(productHtml.includes(photo));
-        const quoteHtml = renderer({ source: 'quote' }, escapeDocumentText)({ ...spot, name: '기존 명소', desc: '<b>기존 견적 서식</b>' });
+        const quoteHtml = renderer({ source: 'quote' })({ ...spot, name: '기존 명소', desc: '<b>기존 견적 서식</b>' });
         assert.ok(quoteHtml.includes('<b>기존 견적 서식</b>'), 'existing quote formatting stays compatible');
     });
 
@@ -234,16 +243,16 @@ for (const [device, filename, spotsVariable] of [
         const source = htmlSource(filename);
         const dayRenderer = device === 'PC' ? 'dayRow' : 'dayCard';
         const helpers = device === 'PC' ? declaration(source, 'DAY_CUBE') : declaration(source, 'noBr');
-        const render = new Function('Q', 'escapeDocumentText', `${declaration(source, 'esc')} ${helpers}
-            ${blockDeclaration(source, 'itemHtml')} ${blockDeclaration(source, dayRenderer)} return ${dayRenderer};`);
+        const render = q => documentRenderer(`${declaration(source, 'esc')} ${declaration(source, 'rich')} ${helpers}
+            ${blockDeclaration(source, 'itemHtml')} ${blockDeclaration(source, dayRenderer)} return ${dayRenderer};`, q);
         const day = { d: 1, date: '10.21 <img src=x onerror=alert(1)>', dest: '초원 여행', move: '', dist: '',
             items: ['*확정 픽업', '(현지 상황에 따라 조정)'], stay: { name: '', tags: [] }, meals: ['', '', ''] };
-        const html = render({ source: 'product' }, escapeDocumentText)(day, 0);
+        const html = render({ source: 'product' })(day, 0);
         assert.ok(html.includes('10.21 &lt;img src=x onerror=alert(1)&gt;'));
         assert.ok(!html.includes('<img src=x'));
         assert.ok(html.includes('color:#1C8571; font-weight:600;'));
         assert.ok(html.includes('color:#8A9895;'));
-        assert.ok(!render({ source: 'product' }, escapeDocumentText)({ ...day, date: '' }, 0).includes('10.21'));
-        assert.ok(!render({ source: 'quote' }, escapeDocumentText)(day, 0).includes('10.21'), 'legacy quote renderer is unchanged');
+        assert.ok(!render({ source: 'product' })({ ...day, date: '' }, 0).includes('10.21'));
+        assert.ok(!render({ source: 'quote' })(day, 0).includes('10.21'), 'legacy quote renderer is unchanged');
     });
 }

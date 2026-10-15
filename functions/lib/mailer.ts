@@ -1,13 +1,13 @@
-// 발신 주소(noreply@mongolryokou.com)는 Resend에서 인증된 도메인이라 그대로 둔다. 표시 이름만 브랜드에 맞춘다.
-const FROM = '몽골리아 은하수 <noreply@mongolryokou.com>';
+import { resolveMailFrom, type MailFromEnv } from './mailConfig';
 
 export async function sendEmail(
     apiKey: string,
     to: string | string[],
     subject: string,
     html: string,
-    options: { replyTo?: string } = {},
+    options: { replyTo?: string; env?: MailFromEnv } = {},
 ) {
+    const from = resolveMailFrom(options.env);
     const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -15,7 +15,7 @@ export async function sendEmail(
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            from: FROM,
+            from,
             to: Array.isArray(to) ? to : [to],
             subject,
             html,

@@ -27,7 +27,7 @@
 | SEO 메타 주입 | `functions/[[path]].ts` | SPA 화면에만. 루트의 한글 이름 문서(견적 페이지)는 `isQuoteStaticPage`로 통과 |
 | DB | D1 `DB` = `leaders-requests` 하나 | 견적: `requests`·`kv`·`itinerary_notice_dispatches` / 사이트: `products`·`reservations`·`users` … |
 | 파일 | R2 `FILES`(견적: `uploads/` 비공개, `images/` 공개) · R2 `BUCKET`(사이트 이미지, `/api/images/*` 공개) | **두 버킷을 같은 것으로 묶지 말 것** — 고객 첨부가 공개된다 |
-| 테스트 | `tests/*.test.mjs` (`npm test`, 234건) | 견적 문서·예약·이미지·홈 배너·SEO와 실제 Cloudflare HTMLRewriter/D1을 검사 |
+| 테스트 | `tests/*.test.mjs` (`npm test`) | 견적 문서·초안 복구·발송 이력·권한·예약·이미지·SEO와 실제 Cloudflare HTMLRewriter/D1을 검사 |
 
 - 업로드 주소가 둘: 견적은 `/api/upload`(JS), 사이트 이미지는 `/api/site-upload`(Hono, `functions/api/site-upload.ts`).
 - 견적 요청 화면은 React `/custom-estimate` 하나다(`src/components/estimate-desktop/quoteForm.ts`가 선택지·검증·payload의 정본). 접수는 `POST /api/requests`로 들어가 견적 파이프라인을 탄다. 옛 `public/견적요청.html`은 리다이렉트 문서.
@@ -57,6 +57,8 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 ### 3.7 API 권한
 전역 인증 미들웨어가 없다. 사이트 API의 쓰기 라우트에는 `requireAdmin`(`functions/lib/adminAuth.ts`)을 반드시 붙일 것. 견적 API는 `x-admin-token` 헤더를 `env.ADMIN_TOKEN`과 비교한다(공유 비밀번호 하나).
 
+견적 비공개 첨부 `/api/file/*`도 `x-admin-token`을 지원한다. 기존 `?token=` 다운로드 링크는 호환을 위해 유지하며, 응답은 `private, no-store`·`nosniff`다. 새 호출은 헤더 인증을 사용한다. 고객 링크 `/api/my/:token`의 여행자 목록과 서명 snapshot 모두 연락처·생년월일·여권번호를 마스킹하고, 계약 증빙 원본은 DB에 보존한다.
+
 ### 3.8 그 밖의 함정
 - `categories` 테이블에는 `updated_at`/`created_at`이 없다 — 시간 기준 정렬/조회 금지.
 - `magazines`는 환경에 따라 `is_published` 또는 `is_active` 컬럼(sitemap이 둘 다 시도).
@@ -75,6 +77,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 리디자인되지 않은 옛 화면(후기/동행 작성, 채팅, 견적 상세 `/estimate/:id`, 문서 출력 일부)은 Tailwind + 틸 `#0f766e` 스타일 그대로. 옛 디자인 가이드는 `docs/design-system/`(일본어 사이트 시절 문서 — 카피·통화 규칙은 무시).
 - 고객 로그인은 Google OAuth뿐(이메일/비밀번호는 관리자 전용). 견적 흐름은 로그인 없이 매직링크(`?t=` 토큰).
 - 견적 고객 페이지(`내견적`·`계약서`·`여행자정보`·`견적서`·`확정일정표`·`일정지도`)는 `public/quote-theme.css`로 사이트 톤을 입혔다. 견적서·확정일정표는 A4 794px 고정 레이아웃 + 브라우저 인쇄(PDF).
+- 견적서·확정일정표 PC/모바일, 확정안내·일정지도는 `public/document-safe.js`를 공유한다. 고객 정보는 텍스트로 escape하고 관리자 작성 HTML은 번들 DOMPurify의 허용 서식만 유지한다. 굵게·줄바꿈·색상과 `*` 강조/`(` 회색 일정은 보존하며 스크립트·이벤트·위험한 사진/링크 URL을 제거한다. HTML 속성 escape와 모바일 `onclick`의 JS 인수 직렬화는 별도 처리한다(`QuoteEditorState.jsArgument`).
 - 상품 고객 일정표 `/documents/itinerary/:id`도 기존 `확정일정표` PC/모바일 디자인으로 연결된다(`?reservationId=`). `?t=` 견적 링크는 그대로 유지한다. 가이드용 `?guide=1`은 기존 출력 화면을 쓴다.
 - 상품 PDF는 `functions/lib/productItinerary.ts`가 고객별 저장 일정 → 선택한 템플릿 → 예약 상품 ID 순으로 읽는다. 상품별 일정·사진·포함/불포함과 원 단위 팀 금액을 사용하며 샘플 고객/일정으로 대체하지 않는다.
 - 관리자 미리보기는 `?preview=1` + 관리자 세션이 필요하다. 고객 이메일/링크 공유 전에 `POST /api/documents/itinerary/:id/publish`로 공개한다(확정·결제·완료 예약과 저장된 일정 필요). 마이페이지는 공개된 일정표만 연결한다. 실제 발송 실패는 발송 완료로 기록하지 않는다.
@@ -90,8 +93,11 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 통합 예약 검증: `npm test`, `npm run build`, `node scripts/check-admin-bookings.mjs`. 마지막 검사는 로컬 SQLite·실제 Lucia 로그인만 사용하며 운영 DB/알림에 접근하지 않는다. `--serve`로 8792번 포트의 테스트 관리자 화면을 확인할 수 있다.
 - 상품 예약 상세는 진행 순서 → 운영 준비 상태 → 일정표·계약서 작업 → 주문·배정·운영 정보로 구성한다. 계약서 메일 발송과 고객 동의, 일정표 공개와 메일 발송을 각각 구분한다. 예약 상품 ID로 문서를 초기화하며 저장된 빈 일정도 상품으로 덮어쓰지 않는다. 편집·가이드 배정 중 부모 갱신은 초안을 초기화하지 않는다.
 - 상품 일정·계약 조건은 예약 상세 본문에서 `ReservationInlineEditor`로 편집한다. 일자별 카드는 원본 견적 STEP 2에서 추출한 `public/quote-day-editor.js`·CSS를 견적만들기와 React `QuoteDayEditor`가 함께 사용한다. 날짜·목적지·이동 한 줄, 줄별 일정 textarea, 숙소·식사 두 칸과 드래그 순서를 유지한다. 날짜 자동 채우기는 선택 버튼이며 자유 입력·빈 날짜·`items:[]`도 고객 PDF에서 정본이다. `*` 강조와 `(` 회색 안내를 그대로 저장한다. 시간·상세 설명·사진을 보존하며 사진 편집은 접힌 추가 영역에서 한다. 입력 중 커서·끝 개행을 유지하고, 외부 문서 교체는 강제로 동기화한다. 하단 고정 ‘문서 저장’으로 저장 후 계속 편집하며 저장 전 미리보기·공개·전달은 막는다. 실제 배정 숙소가 기본 숙소보다 우선함을 표시한다.
+- 상품 예약 문서 초안은 `adminReservationDraft.ts`가 **관리자 계정·예약 ID별**로 650ms 뒤 현재 브라우저에 보관한다. 일정표·계약 조건·여행 날짜를 함께 복구하며 재진입 시 복원/버리기를 고른다. 서버와 달라졌으면 충돌을 알리고, 해당 저장이 실제 성공한 경우에만 초안을 정리한다. 저장 실패·이동·새로고침 시 초안을 유지하고 저장·업로드 중 이동/중복 작업을 막는다. 파일 바이트와 임시 `data:`/`blob:` 사진은 제외한다.
+- 견적 PC 작성·모바일 견적 편집·예약관리는 `public/quote-editor-state.js`로 **관리자 계정·요청 ID별** 초안을 보관한다. 복원/버리기는 서버 저장과 별개이며 토큰·서명 원본·파일 바이트·임시 URL을 제외한다. 새로고침 후에도 PC `id`·모바일 `qe`와 예약 `id`를 유지해 같은 고객을 다시 연다. 바깥 iframe의 메뉴 이동·Back·전체 새로고침도 안쪽 상태를 flush하고, 저장소 실패·저장/발송/업로드 중 이동을 보호한다. 계정 교체·로그아웃은 이전 연결 응답과 초안 scope를 무효화한다.
+- 공통 업무 순서는 **예약 접수 → 예약금 확인 → 계약 동의 → 일정 준비 → 일정표 공개**이며 발송 결과는 별도로 표시한다. `GET /api/admin/deliveries`는 관리자 세션 전용이고 상품·견적 예약을 source+ID로 구분한다. 스키마 v4는 `admin_delivery_attempts`를 추가만 하며 원래 예약·입금·계약 상태를 변경하지 않는다. `accepted`는 서비스 접수이고 수신 완료가 아니다. 명시적 `failed`는 확인 후 새 요청 키로 재시도할 수 있지만 `sending`/`unknown`은 새 키·다른 탭·다른 발송 경로에서도 차단한다. 기존 `itinerary_notice_dispatches`와 공통 이력이 함께 이 차단을 적용한다.
 - `reservations.admin_operations`는 조인 여부·지역·차량·기사 연락처·현금영수증 기록·내부 운영 메모 JSON이며 관리자에게만 노출한다. 고객 예약 조회에서는 이 필드와 `admin_memo` 이력을 제외한다. 현금영수증 기능은 발급 이력 기록이며 외부 발급 서비스와 연결하지 않는다.
-- 대표 명소는 원본 견적 STEP 4에서 추출한 `public/quote-spot-selector.js`·CSS를 견적·상품 등록 ‘대표 명소’ 탭·예약 일정표 편집이 함께 사용한다. 견적의 `spots`/`spot_cats` 자료를 같은 지역별 카드와 순서 번호로 선택한다. 상품은 판매 포인트 `highlights`와 별개인 `representative_spots`에 이름·사진·설명·지역 스냅샷을 저장한다(자동 스키마 v3). 상품에서 예약 문서를 처음 만들거나 옛 문서에 명소 필드가 없을 때만 상속하며, 저장된 고객 선택과 빈 배열은 우선한다. 목록에서 없어진 선택도 ‘저장된 명소’로 표시해 해제할 수 있다.
+- 대표 명소는 원본 견적 STEP 4에서 추출한 `public/quote-spot-selector.js`·CSS를 견적·상품 등록 ‘대표 명소’ 탭·예약 일정표 편집이 함께 사용한다. 견적의 `spots`/`spot_cats` 자료를 같은 지역별 카드와 순서 번호로 선택한다. 상품은 판매 포인트 `highlights`와 별개인 `representative_spots`에 이름·사진·설명·지역 스냅샷을 저장한다(v3에서 추가, 현재 스키마 v4). 상품에서 예약 문서를 처음 만들거나 옛 문서에 명소 필드가 없을 때만 상속하며, 저장된 고객 선택과 빈 배열은 우선한다. 목록에서 없어진 선택도 ‘저장된 명소’로 표시해 해제할 수 있다.
 - 상품 등록·수정의 자동 저장은 **현재 브라우저의 관리자 계정·상품별 초안**이다. 650ms 뒤 보관하고 재진입 시 복원/버리기를 고른다. 서버 상품 버전이 달라지면 충돌 안내를 표시한다. 공개 상품은 저장 버튼으로 확정하며, 성공할 때만 초안을 지운다. 실패·취소·새로고침·화면 이동 시 복구용 초안을 유지하고 저장/사진 업로드 중 중복 저장과 이동을 막는다. 파일 바이트와 임시 사진 URL은 초안에 보관하지 않는다.
 - `GET /api/admin/workspace`는 관리자 세션 전용이며 상품 예약·실제 견적 예약·양쪽 견적 문의·상품 목록의 최소 필드만 제공한다. `AdminWorkspaceProvider`를 대시보드·통합 검색·업무 알림이 공유한다. 한국시간 오늘과 실제 투어 기간, 팀 총액(0 포함)을 사용하고 단순 문의는 예약/매출에서 제외한다. 일부 조회 실패 시 해당 합계는 미확인으로 표시한다. 고객 토큰·서명·여권·내부 메모는 보내지 않는다. 조회는 60초/창 포커스와 관련 저장 후 갱신하며 계정 변경·로그아웃 시 이전 자료를 차단한다. 업무 알림은 입금 신고·계약 동의·출발 전 배정·견적 답변 목록이고 해당 상세에서 처리하면 사라진다. 알림 패널을 여는 행위는 고객에게 메시지를 발송하지 않는다.
 - 예약 작업 검증: `node scripts/check-reservation-workspace.mjs` (`--serve`는 기본 8795번 포트 `/__local-admin`, `--port=8796`으로 변경 가능). 로컬 SQLite와 실제 상품·문서·공개 자료 API로 저장/재조회·금액·사진·시간·이동 정보·명소·권한을 확인하며 이메일은 로컬 응답으로 대체하고 외부 호출을 차단한다.
@@ -131,11 +137,11 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - **상품 데이터**: 통합 DB에는 상품·카테고리·매거진이 없다. 관리자에서 한국어·원화로 등록해야 홈/목록이 채워진다. 코드에 박혀 있던 금액(가격대 필터 100만/150만 원, 1인 참가 추가 요금 180,000원, 템플릿 샘플 금액)은 엔 금액 ×10 임시값 — 오너 확인 필요.
 - **계약서 통일**: 상품 예약용 계약서(`src/pages/DocumentContract.tsx` + `company.ts`의 취소 규정·고지)가 견적 쪽 오너 원문(`public/계약서.html`: 환불규정 3조, 건강 위험 고지, 필수 동의 3개 + 캔버스 서명)과 내용이 다르다. 용어·서문만 맞춘 상태.
 - **마이페이지 견적 내역**: 새 견적 요청은 사용자 계정과 연결되지 않는다(매직링크 방식). 브라우저에 저장한 `mw_quote_links`(`estimate-desktop/quoteLinks.ts`)로만 "내 견적" 링크를 다시 보여 준다.
-- **보안 보완**: 견적 문서 페이지의 `esc()`가 이스케이프를 하지 않는다(`견적서*.html`, `확정일정표*.html`, `확정안내.html`, `일정지도.html` — 고객 입력 이름이 innerHTML로 들어감). 견적 API는 공유 토큰 하나 + 시도 제한 없음, 토큰이 URL 쿼리에 실리는 곳이 있다(`/api/file`, `/api/notify-test`).
-- **메일 발신 도메인**: 발신 주소가 아직 `noreply@mongolryokou.com`(Resend 인증 도메인). 새 도메인 인증 후 교체.
-- **SEO 운영**: Search Console에 새 도메인 등록·`/sitemap.xml` 제출, `index.html`의 google-site-verification을 실제 소유자 값으로 재발급. OG 기본 이미지는 존재하는 `/img/home/1.webp`를 사용한다. 기술 개선만으로 순위는 보장되지 않으며 실제 상품·일정·여행 정보 등록이 필요하다.
+- **남은 보안 보완**: 견적 API는 공유 관리자 토큰 하나를 사용하고 인증 시도 제한이 없다. 기존 호환용 URL 토큰 경로(`/api/file`, `/api/notify-test`)도 남아 있다. 계정별 권한·시도 제한·기존 링크 전환은 별도 작업이다.
+- **메일 발신 도메인**: `functions/lib/mailConfig.ts`의 `resolveMailFrom(env)`가 전체 메일의 `MAIL_FROM`을 읽는다. 새 발신 도메인을 Resend에서 인증 완료한 뒤 Cloudflare 환경 변수에 설정한다. 미설정이면 기존 `몽골리아 은하수 <noreply@mongolryokou.com>`을 유지하며 잘못된 주소·CRLF는 발송 전에 차단한다. 순서는 `DEPLOYMENT.md` 참조.
+- **SEO 운영**: 2026-10-14 확인 기준 Search Console에는 `www` URL 접두어 속성이 등록돼 있다. 대표 주소는 `https://mongolia-milkyway.com`이며 이번 `functions/_middleware.js`의 www→apex 308은 main 병합·운영 배포 후 적용된다. Domain 속성/DNS 인증 또는 apex URL 접두어 속성을 추가하고 `https://mongolia-milkyway.com/sitemap.xml`을 제출한다. 기존 DNS·`google-site-verification` 값은 소유권 확인 전 바꾸지 않는다. OG 기본 이미지는 `/img/home/1.webp`이며 검색 노출에는 실제 상품·여행 정보 등록도 필요하다.
 - `functions/api/auth.ts`는 `ENVIRONMENT !== 'production'`이면 고정 로컬 관리자를 시드한다 — 미리보기 배포에 이 변수가 빠지지 않게 주의.
 
 ---
 
-마지막 업데이트: 2026-10-13 (상품 일정표·실제 예약 통합, 관리자 업무 메뉴 정리, 이미지 업로드·홈 갱신·캐시와 몽골 여행·몽골 투어 SEO 보완)
+마지막 업데이트: 2026-10-14 (예약·견적 초안 복구, 공통 업무·발송 이력 v4, 문서 안전 렌더링, MAIL_FROM과 Search Console 설정 순서)

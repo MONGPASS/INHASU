@@ -231,7 +231,7 @@ test('기존 예약표에 운영 칸만 추가하며 고객 데이터와 이력�
     const DB = { prepare: statement, batch: async statements => Promise.all(statements.map(s => s.run())) };
     const before = raw.prepare('SELECT id,customer_name,history FROM reservations').get();
     await ensureSiteSchema(DB);
-    assert.equal(SITE_SCHEMA_VERSION, 3);
+    assert.equal(SITE_SCHEMA_VERSION, 4);
     assert.ok(raw.prepare('PRAGMA table_info(reservations)').all().some(c => c.name === 'admin_operations'));
     assert.deepEqual(raw.prepare('SELECT id,customer_name,history FROM reservations').get(), before);
     assert.deepEqual(await ensureSiteSchema(DB), []);

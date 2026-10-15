@@ -23,11 +23,22 @@ interface TableDef {
 }
 
 /** 표·칸 정의를 바꾸면 올린다. 올리면 각 서버 인스턴스가 한 번씩 다시 맞춘다. */
-export const SITE_SCHEMA_VERSION = 3;
+export const SITE_SCHEMA_VERSION = 4;
+
+/** Shared definition also used by legacy quote write routes outside the Hono middleware. */
+export const ADMIN_DELIVERY_TABLE: TableDef = {
+    name: 'admin_delivery_attempts',
+    columns: ['id TEXT PRIMARY KEY', 'source TEXT NOT NULL', 'booking_id TEXT NOT NULL', 'kind TEXT NOT NULL',
+        'channel TEXT NOT NULL', 'state TEXT NOT NULL', 'dispatch_key TEXT NOT NULL', 'error TEXT', 'provider_id TEXT',
+        'created_at TEXT NOT NULL', 'updated_at TEXT NOT NULL'],
+    constraints: ['UNIQUE(source, booking_id, kind, dispatch_key)'],
+    indexes: ['CREATE INDEX IF NOT EXISTS idx_admin_delivery_booking ON admin_delivery_attempts(source, booking_id, created_at)'],
+};
 
 const NOW = "DEFAULT (datetime('now'))";
 
 export const SITE_TABLES: TableDef[] = [
+    ADMIN_DELIVERY_TABLE,
     {
         name: 'products',
         columns: [

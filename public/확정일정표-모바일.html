@@ -79,6 +79,7 @@
 <button class="fab" id="fab" style="display:none" onclick="window.printSchedule ? window.printSchedule() : window.print()">📄 PDF 저장</button>
 
 <script type="module">
+import { escapeDocumentText as escapeQuoteDocumentText, sanitizeDocumentHTML, documentUrl, documentImageAttribute, documentTextWithoutBreaks } from "/document-safe.js";
 import { loadProductItinerary, escapeDocumentText, productDocumentSections, paginateProductPages, productDocumentToolbar } from "/product-itinerary.js";
 /* ── 확정 일정표 출처: ?t=<token>이면 서버의 예약 확정 정보, 아니면 localStorage(편집기)/data.js 샘플 ── */
 const params = new URLSearchParams(location.search);
@@ -200,8 +201,9 @@ if (!productId) document.getElementById("tbSave")?.addEventListener("click", () 
 
 const won = n => (n < 0 ? "-" : "") + Math.abs(n).toLocaleString("ko-KR") + "원";
 const wonMan = n => Math.round(n / 10000).toLocaleString("ko-KR") + "만원";
-const esc = s => Q.source === "product" ? escapeDocumentText(s) : String(s ?? "");
-const noBr = s => esc(String(s ?? "").replace(/<br\s*\/?>/gi, " "));
+const esc = escapeQuoteDocumentText;
+const rich = s => Q.source === "product" ? esc(s) : sanitizeDocumentHTML(s);
+const noBr = s => rich(String(s ?? "").replace(/<br\s*\/?>/gi, " "));
 /* 확정 일정표에는 등급별·인원별 견적이 아니라 팀 잔금 하나만 노출합니다.
    관리자가 확정한 최종 잔금을 쓰고, 아직 없으면(견적 미리보기 등) 견적 단계 금액 중
    실제 인원에 해당하는 값으로 대신합니다. */
@@ -229,17 +231,18 @@ const IMG = Q.images || {};
 const arr = IMG.arrival || {};
 
 /* 이미지 헬퍼 */
-const ph = (src, label, style) => src
-  ? `<div class="ph" style="${style}"><img src="${esc(src)}" alt="${esc(label)}"></div>`
+const ph = (src, label, style) => documentUrl(src, true)
+  ? `<div class="ph" style="${style}"><img src="${documentImageAttribute(src)}" alt="${esc(label)}"></div>`
   : `<div class="ph" style="${style}">${esc(label) || ""}</div>`;
-const phC = (src, label, style) => src
-  ? `<div class="ph contain" style="${style}"><img src="${esc(src)}" alt="${esc(label)}"></div>`
+const phC = (src, label, style) => documentUrl(src, true)
+  ? `<div class="ph contain" style="${style}"><img src="${documentImageAttribute(src)}" alt="${esc(label)}"></div>`
   : `<div class="ph" style="${style}">${esc(label) || ""}</div>`;
 
 const itemHtml = t => {
-  if (t.startsWith("*")) return `<span style="color:#1C8571; font-weight:600;">${esc(t)}</span>`;
-  if (t.startsWith("(")) return `<span style="color:#8A9895;">${esc(t)}</span>`;
-  return esc(t);
+  t = String(t ?? "");
+  if (t.startsWith("*")) return `<span style="color:#1C8571; font-weight:600;">${rich(t)}</span>`;
+  if (t.startsWith("(")) return `<span style="color:#8A9895;">${rich(t)}</span>`;
+  return rich(t);
 };
 
 const LOGO = (sz = 30) => `<svg width="${sz}" height="${sz}" viewBox="0 0 48 48" fill="none" class="logo-mark"><rect x="1.5" y="1.5" width="45" height="45" rx="13" stroke="#27AB8F" stroke-width="1.8"></rect><path d="M9 33 L19 18 L26 28 L32 20 L39 33 Z" fill="#27AB8F"></path></svg>`;
@@ -277,7 +280,7 @@ const photoStrip = (imgs, label, h = 78) => {
   while (arr.length < 3) arr.push("");
   return `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:4px;">
     ${arr.map((src, i) => src
-      ? `<div class="ph" style="height:${h}px; background:#fff; border:1px solid ${ASSIGN_STYLE.line};"><img src="${esc(src)}" alt="${esc(label)} ${i + 1}"></div>`
+      ? `<div class="ph" style="height:${h}px; background:#fff; border:1px solid ${ASSIGN_STYLE.line};"><img src="${documentImageAttribute(src)}" alt="${esc(label)} ${i + 1}"></div>`
       : `<div class="ph" style="height:${h}px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; border:1px solid ${ASSIGN_STYLE.line}; font-family:${ASSIGN_STYLE.font}; font-size:10px; font-weight:700;">${esc(label)}</div>`).join("")}
   </div>`;
 };
@@ -383,11 +386,11 @@ const dayCard = (d) => {
   const distTxt = String(d.dist || "").replace(/[()]/g, "").trim();
   const moveTxt = String(d.move || "").replace(/이동\s*/, "");
   const meta = [moveTxt, distTxt].filter(Boolean).join(" · ");
-  const stayTags = (d.stay.tags && d.stay.tags.length) ? `<span style="color:#1C8571; font-size:10.5px; font-weight:700;">${d.stay.tags.join(" · ")}</span>` : "";
+  const stayTags = (d.stay.tags && d.stay.tags.length) ? `<span style="color:#1C8571; font-size:10.5px; font-weight:700;">${d.stay.tags.map(rich).join(" · ")}</span>` : "";
   return `
   <div class="blk" style="border:1px solid #E3E6E2; border-radius:14px; overflow:hidden;">
     <div class="row" style="justify-content:space-between; background:#27AB8F; padding:11px 15px;">
-      <div class="row" style="gap:9px;"><span style="color:#fff; font-size:12px; font-weight:800;">${d.d}일차${Q.source === "product" && d.date ? `<small style="display:block;max-width:90px;margin-top:3px;font-size:9px;line-height:1.4;overflow-wrap:anywhere;font-weight:500;">${esc(d.date)}</small>` : ""}</span><b style="color:#fff; font-size:14px;">${noBr(d.dest)}</b></div>
+      <div class="row" style="gap:9px;"><span style="color:#fff; font-size:12px; font-weight:800;">${esc(d.d)}일차${Q.source === "product" && d.date ? `<small style="display:block;max-width:90px;margin-top:3px;font-size:9px;line-height:1.4;overflow-wrap:anywhere;font-weight:500;">${esc(d.date)}</small>` : ""}</span><b style="color:#fff; font-size:14px;">${noBr(d.dest)}</b></div>
       ${meta ? `<span style="color:#FFFFFF; font-size:10.5px; white-space:nowrap;">${esc(meta)}</span>` : ""}
     </div>
     <div style="padding:13px 15px;">
@@ -397,7 +400,7 @@ const dayCard = (d) => {
       <div style="display:flex; gap:8px; margin-top:11px; flex-wrap:wrap;">
         <span style="color:#1C8571; font-size:10.5px; font-weight:800;">${noBr(d.stay.name)}</span>${stayTags}
       </div>
-      <div style="margin-top:8px; font-size:10.5px; color:#8A9895;">🍽 ${(d.meals || []).map(x => Q.source === "product" ? esc(x) : x).join(" · ")}</div>
+      <div style="margin-top:8px; font-size:10.5px; color:#8A9895;">🍽 ${(d.meals || []).map(rich).join(" · ")}</div>
     </div>
   </div>`;
 };
@@ -444,7 +447,7 @@ const spotBlock = (h) => `
     ${ph(h.img, h.name, "width:100%; height:180px; border-radius:12px;")}
     <div style="color:#1C8571; font-size:11px; font-weight:700; margin-top:12px;">📍 ${esc(h.nameMn)}</div>
     <div style="color:#0A1F2E; font-size:20px; font-weight:800; margin-top:2px;">${esc(h.name)}</div>
-    <p style="color:#33434F; font-size:11.5px; line-height:1.7; margin:8px 0 0;">${Q.source === "product" ? esc(h.desc).replace(/\n/g, "<br>") : h.desc}</p>
+    <p style="color:#33434F; font-size:11.5px; line-height:1.7; margin:8px 0 0;">${Q.source === "product" ? esc(h.desc).replace(/\n/g, "<br>") : rich(h.desc)}</p>
     ${(h.subImgs && h.subImgs.some(x => x)) ? `<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:12px;">${h.subImgs.map(s => ph(s, "", "width:100%; height:56px; border-radius:7px;")).join("")}</div>` : ""}
   </div>`;
 const secSpots = (Q.highlights && Q.highlights.length) ? card(`
@@ -674,7 +677,7 @@ const secBookingAssign = bookingAssign ? (() => {
     while (arr.length < 3) arr.push("");
     return `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
       ${arr.map((src, i) => src
-        ? `<div class="ph" style="height:92px; border-radius:9px;"><img src="${esc(src)}" alt="${esc(label)} ${i + 1}"></div>`
+        ? `<div class="ph" style="height:92px; border-radius:9px;"><img src="${documentImageAttribute(src)}" alt="${esc(label)} ${i + 1}"></div>`
         : `<div class="ph" style="height:92px; border-radius:9px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-family:${ASSIGN_STYLE.font}; font-size:10px; font-weight:700;">${esc(label)}</div>`).join("")}
     </div>`;
   };
@@ -695,24 +698,24 @@ const secBookingAssign = bookingAssign ? (() => {
   const vehicleGallery = imgs => {
     const arr = imgs.slice(0, 3);
     if (!arr.length) return `<div class="ph" style="height:150px; border-radius:12px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:12px; font-weight:700;">차량 사진</div>`;
-    return `<div style="height:150px; display:grid; grid-template-columns:repeat(${arr.length},1fr); gap:4px;">${arr.map(src => `<div class="ph" style="min-width:0; height:150px; border-radius:9px; background:#fff;"><img src="${src}" alt="${esc(vehicleName)}" style="object-fit:contain;"></div>`).join("")}</div>`;
+    return `<div style="height:150px; display:grid; grid-template-columns:repeat(${arr.length},1fr); gap:4px;">${arr.map(src => `<div class="ph" style="min-width:0; height:150px; border-radius:9px; background:#fff;"><img src="${documentImageAttribute(src)}" alt="${esc(vehicleName)}" style="object-fit:contain;"></div>`).join("")}</div>`;
   };
   return card(`
     <div class="blk" style="${CARD} padding:20px 16px;">
       ${cardTitle("가이드 정보", "")}
       <div style="display:flex; gap:15px; align-items:flex-start; margin-top:14px;">
-        ${g.img ? `<div class="ph" style="width:100px; height:100px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; flex:none;"><img src="${g.img}" alt="${esc(g.name)}"></div>` : `<div class="ph" style="width:100px; height:100px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:11px; font-weight:700; flex:none;">가이드 사진</div>`}
+        ${g.img ? `<div class="ph" style="width:100px; height:100px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; flex:none;"><img src="${documentImageAttribute(g.img)}" alt="${esc(g.name)}"></div>` : `<div class="ph" style="width:100px; height:100px; border-radius:50%; border:2px solid ${ASSIGN_STYLE.accent}; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:11px; font-weight:700; flex:none;">가이드 사진</div>`}
         <div style="flex:1; min-width:0;">
           <div style="color:${ASSIGN_STYLE.ink}; font-size:21px; font-weight:800; letter-spacing:-0.01em;">${esc(g.name || "가이드")}</div>
-          <div style="color:${ASSIGN_STYLE.accent}; font-size:12.5px; font-weight:700; margin-top:2px;">${g.nameEn ? esc(g.nameEn) : `${guideRole}${g.career ? ` · 경력 ${esc(g.career)}` : ""}`}</div>
-          <div style="margin-top:9px; color:#33434F; font-size:12px; font-weight:600; line-height:1.75;">${esc(g.desc || "안전하고 편안한 몽골 여행을 위해 최선을 다하겠습니다.")}</div>
+          <div style="color:${ASSIGN_STYLE.accent}; font-size:12.5px; font-weight:700; margin-top:2px;">${g.nameEn ? esc(g.nameEn) : `${esc(guideRole)}${g.career ? ` · 경력 ${esc(g.career)}` : ""}`}</div>
+          <div style="margin-top:9px; color:#33434F; font-size:12px; font-weight:600; line-height:1.75;">${rich(g.desc || "안전하고 편안한 몽골 여행을 위해 최선을 다하겠습니다.")}</div>
         </div>
       </div>
       <div style="display:grid; grid-template-columns:1.2fr 1.1fr 0.9fr; gap:1px; background:#EEF0EC; border:1px solid #EEF0EC; border-radius:11px; overflow:hidden; margin-top:15px;">
         ${guideCell("가이드 구분", `<div style="display:inline-block; margin-top:6px; background:${ASSIGN_STYLE.accent}; color:#fff; font-size:10.5px; font-weight:800; padding:4px 9px; border-radius:12px; line-height:1.25;">${esc(guideType)}</div>`, ASSIGN_STYLE.panel)}
         ${guideCell("전화번호", `<div style="color:${ASSIGN_STYLE.ink}; font-size:12.5px; font-weight:700; margin-top:5px; word-break:keep-all;">${esc(guidePhone || "-")}</div>${guidePhone ? `<div style="color:${ASSIGN_STYLE.muted}; font-size:10px; margin-top:2px;">현지 연락 가능</div>` : ""}`)}
         ${guideCell("카카오톡 QR", guideQr
-          ? `<div class="ph" style="width:58px; height:58px; margin-top:5px; border-radius:7px; background:#fff; border:1px solid ${ASSIGN_STYLE.line};"><img src="${guideQr}" alt="카카오톡 QR" style="object-fit:contain;"></div>`
+          ? `<div class="ph" style="width:58px; height:58px; margin-top:5px; border-radius:7px; background:#fff; border:1px solid ${ASSIGN_STYLE.line};"><img src="${documentImageAttribute(guideQr)}" alt="카카오톡 QR" style="object-fit:contain;"></div>`
           : `<div class="ph" style="width:58px; height:58px; margin-top:5px; border-radius:7px; background:${ASSIGN_STYLE.soft}; color:${ASSIGN_STYLE.muted}; font-size:10px; font-weight:700; border:1px dashed ${ASSIGN_STYLE.line};">QR</div>`)}
       </div>
     </div>
@@ -753,7 +756,7 @@ const waitForScheduleImages = () => Promise.all([...root.querySelectorAll("img")
     })));
 window.printSchedule = async () => { await waitForScheduleImages(); window.print(); };
 if (Q.source === "product") productDocumentToolbar(productParams, true);
-document.title = `${B.company}_${esc(Q.customer)}님_확정일정표_${esc(Q.quoteNo)}`;
+document.title = `${B.company}_${Q.customer}님_확정일정표_${Q.quoteNo}`;
 }
 </script>
 </body>

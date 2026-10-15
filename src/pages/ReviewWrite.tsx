@@ -155,7 +155,7 @@ export const ReviewWrite: React.FC = () => {
                     const endDate = String(r.endDate || r.end_date || '').slice(0, 10);
                     const belongsToUser = (r.userId || r.user_id) === me.id
                         || (!!me.email && String(r.customerEmail || r.customer_email || r.email || '').toLowerCase() === me.email.toLowerCase());
-                    const eligibleStatus = ['confirmed', 'paid', 'completed'].includes(r.status);
+                    const eligibleStatus = ['confirmed', 'paid', 'completed'].includes(r.status || '');
                     const tourHasEnded = r.status === 'completed' || (!!endDate && endDate < today);
                     return belongsToUser && eligibleStatus && tourHasEnded;
                 });

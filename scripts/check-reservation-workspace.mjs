@@ -6,20 +6,37 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
+import vm from 'node:vm';
 import { pathToFileURL } from 'node:url';
 import { ensureSiteSchema } from '../functions/lib/siteSchema.ts';
 import { hashPassword } from '../functions/lib/password.ts';
 import { productScheduleDays } from '../functions/lib/productItinerary.ts';
 import { productDocumentSections } from '../public/product-itinerary.js';
-import { onRequestGet as quoteGet } from '../functions/api/requests/[id].js';
+import { onRequestGet as quoteGet, onRequestPatch as quotePatch, onRequestDelete as quoteDelete } from '../functions/api/requests/[id].js';
 import { onRequestGet as libraryGet } from '../functions/api/data/[key].js';
-import { onRequestGet as quoteListGet } from '../functions/api/requests.js';
+import { onRequestGet as quoteListGet, onRequestPost as quotePost } from '../functions/api/requests.js';
+import { onRequestGet as customerQuoteGet } from '../functions/api/my/[token].js';
+import { onRequestGet as noticeGet, onRequestPost as noticePost } from '../functions/api/requests/[id]/itinerary-notice.js';
+import { adminProductDraftKey } from '../src/utils/adminProductDraft.ts';
+import { reservationDraftKey, reservationDraftFingerprint, readReservationDraft, writeReservationDraft } from '../src/utils/adminReservationDraft.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
 const portArgument = process.argv.find(argument => argument.startsWith('--port='));
 const port = portArgument ? Number(portArgument.slice('--port='.length)) : 8795;
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('--port는 1~65535 사이의 정수여야 합니다.');
 const localOrigin = `http://localhost:${port}`;
+const draftStoragePrefixes = ['inhasu:admin-product-draft:', 'inhasu:admin-reservation-doc-draft:', 'inhasu:quote-editor:'];
+const draftStorageFaultSource = `(function(){const originalSetItem=Storage.prototype.setItem;const prefixes=${JSON.stringify(draftStoragePrefixes)};Storage.prototype.setItem=function(key,value){if(prefixes.some(prefix=>String(key).startsWith(prefix)))throw new DOMException('Local draft storage fault','QuotaExceededError');return originalSetItem.call(this,key,value);};})();`;
+const draftStorageFaultHtml = html => html.replace(/<head(?:\s[^>]*)?>/i, head => head + `<script>${draftStorageFaultSource}</script>`);
+function draftStorageBlocked(url, referer) {
+    if (url.searchParams.has('localDraftStorage')) return url.searchParams.get('localDraftStorage') === 'blocked';
+    // Same-origin quote iframes inherit the parent's explicit local QA option.
+    // A foreign referrer or a normal visit cannot enable this fault.
+    try {
+        const parentUrl = new URL(referer);
+        return parentUrl.origin === localOrigin && parentUrl.searchParams.get('localDraftStorage') === 'blocked';
+    } catch { return false; }
+}
 const scratch = path.join(root, 'work/reservation-workspace');
 fs.mkdirSync(scratch, { recursive: true });
 const entry = path.join(scratch, 'entry.ts');
@@ -30,6 +47,7 @@ import products from '../../functions/api/products';
 import quotes from '../../functions/api/quotes';
 import bookings from '../../functions/api/admin-bookings';
 import workspace from '../../functions/api/admin-workspace';
+import deliveries from '../../functions/api/admin-deliveries';
 import categories from '../../functions/api/categories';
 import documents from '../../functions/api/documents';
 import templates from '../../functions/api/itinerary-templates';
@@ -43,7 +61,7 @@ import settings from '../../functions/api/settings';
 const app = new Hono().basePath('/api');
 app.route('/auth', auth); app.route('/reservations', reservations); app.route('/products', products);
 app.route('/quotes', quotes); app.route('/admin/bookings', bookings); app.route('/documents', documents);
-app.route('/admin/workspace', workspace); app.route('/categories', categories);
+app.route('/admin/workspace', workspace); app.route('/admin/deliveries', deliveries); app.route('/categories', categories);
 app.route('/itinerary-templates', templates); app.route('/tour-guides', guides);
 app.route('/accommodations', accommodations); app.route('/hotels', hotels); app.route('/tourist-spots', spots);
 app.route('/notifications/email', email); app.route('/notifications', notifications); app.route('/settings', settings);
@@ -101,7 +119,28 @@ globalThis.fetch = async input => {
     const status = fs.existsSync(path.join(scratch, 'mail-unavailable')) ? 503 : 200;
     return Response.json({ id: 'local-email-' + outbound.length }, { status });
 };
-const apiRequest = (route, options = {}) => app.request(route, options, env);
+// CLI checks and the browser server use identical dispatch, including the Pages
+// functions used by quote editors instead of substituting a fake PATCH response.
+const apiRequest = async (route, options = {}) => {
+    const url = new URL(route, localOrigin);
+    const method = (options.method || 'GET').toUpperCase();
+    const request = new Request(url, options);
+    const pending = [];
+    const context = { request, env, waitUntil(task) { pending.push(Promise.resolve(task)); } };
+    const noticeMatch = url.pathname.match(/^\/api\/requests\/([^/]+)\/itinerary-notice$/);
+    const quoteMatch = url.pathname.match(/^\/api\/requests\/([^/]+)$/);
+    const customerMatch = url.pathname.match(/^\/api\/my\/([^/]+)$/);
+    const libraryMatch = url.pathname.match(/^\/api\/data\/([^/]+)$/);
+    let handler;
+    if (url.pathname === '/api/requests') handler = { GET: quoteListGet, POST: quotePost }[method];
+    else if (noticeMatch) { context.params = { id: decodeURIComponent(noticeMatch[1]) }; handler = { GET: noticeGet, POST: noticePost }[method]; }
+    else if (quoteMatch) { context.params = { id: decodeURIComponent(quoteMatch[1]) }; handler = { GET: quoteGet, PATCH: quotePatch, DELETE: quoteDelete }[method]; }
+    else if (customerMatch && method === 'GET') { context.params = { token: decodeURIComponent(customerMatch[1]) }; handler = customerQuoteGet; }
+    else if (libraryMatch && method === 'GET') { context.params = { key: decodeURIComponent(libraryMatch[1]) }; handler = libraryGet; }
+    const response = handler ? await handler(context) : await app.request(request, undefined, env);
+    await Promise.allSettled(pending);
+    return response;
+};
 const write = (route, method, data, headers = admin) => apiRequest(route, {
     method, headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(data),
 });
@@ -226,6 +265,70 @@ assert.equal(login.status, 200);
 assert.match(login.headers.get('set-cookie') || '', /auth_session=/);
 const loginHeaders = { cookie: login.headers.get('set-cookie').split(';')[0] };
 assert.equal((await apiRequest('/api/auth/me', { headers: loginHeaders })).status, 200);
+const quoteDeskResponse = await apiRequest('/api/auth/quote-desk', { headers: admin });
+assert.equal(quoteDeskResponse.status, 200);
+assert.equal(quoteDeskResponse.headers.get('cache-control'), 'no-store');
+const quoteDeskSession = await quoteDeskResponse.json();
+assert.equal(quoteDeskSession.userId, 'workspace-admin');
+assert.equal(quoteDeskSession.token, env.ADMIN_TOKEN);
+assert.equal((await apiRequest('/api/auth/quote-desk')).status, 401);
+assert.equal((await apiRequest('/api/auth/quote-desk', { headers: owner })).status, 403);
+const quoteAdmin = { 'x-admin-token': quoteDeskSession.token };
+// A disposable walk-in record exercises the editor's real POST/PATCH/GET path;
+// internal saves must neither publish a schedule nor call a delivery provider.
+const quoteEditorId = 'workspace-quote-editor-check';
+const quoteEditorDocument = { ...structuredClone(quoteFixture.quote),
+    days: [{ d: 1, date: '10.25(일)', dest: '로컬 견적 일정', move: '2시간', dist: '120km',
+        items: ['*확정 픽업 안내*', '(상황에 따라 조정)', '09:30 공항 픽업'], stay: { name: '로컬 게르 캠프', tags: ['게르'] },
+        meals: ['조식', '현지식', '캠프식'] }], highlights: [structuredClone(publicLibraryFixtures.spots['거북바위'])] };
+const quoteCreated = await write('/api/requests', 'POST', { id: quoteEditorId, name: '로컬 저장 검증',
+    phone: '01000000000', source: 'walkin', quote: quoteEditorDocument, status: '진행중', silentQuote: true }, quoteAdmin);
+assert.equal(quoteCreated.status, 200);
+const createdQuoteResponse = await quoteCreated.json();
+assert.equal(createdQuoteResponse.ok, true);
+assert.equal(createdQuoteResponse.notifications[0].status, 'silent');
+assert.equal((await write(`/api/requests/${quoteEditorId}`, 'PATCH', { memo: '인증 없이 저장' }, {})).status, 401);
+const editedQuoteDocument = { ...structuredClone(quoteEditorDocument), customer: '견적 저장 후 재조회 확인' };
+const editedBooking = { preparedAt: '2026-10-14', publishStatus: 'draft', days: structuredClone(quoteEditorDocument.days),
+    contractInfo: { productName: '직접 입력한 계약 조건', included: '등록된 안내 유지', excluded: '개인 경비' } };
+const quoteSaved = await write(`/api/requests/${quoteEditorId}`, 'PATCH', { quote: editedQuoteDocument, booking: editedBooking, silentQuote: true }, quoteAdmin);
+assert.equal(quoteSaved.status, 200);
+const quoteSaveResponse = await quoteSaved.json();
+assert.equal(quoteSaveResponse.ok, true);
+assert.equal(quoteSaveResponse.publishStatus, 'draft');
+assert.deepEqual(quoteSaveResponse.notifications, []);
+const quoteReloaded = await (await apiRequest(`/api/requests/${quoteEditorId}`, { headers: quoteAdmin })).json();
+assert.deepEqual(quoteReloaded.item.quote, editedQuoteDocument);
+assert.deepEqual(quoteReloaded.item.booking.days, editedBooking.days);
+assert.deepEqual(quoteReloaded.item.booking.contractInfo, editedBooking.contractInfo);
+const publicQuoteReloaded = await (await apiRequest(`/api/my/${createdQuoteResponse.token}`)).json();
+assert.equal(publicQuoteReloaded.ok, true);
+assert.deepEqual(publicQuoteReloaded.quote, editedQuoteDocument);
+assert.equal(publicQuoteReloaded.booking.publishStatus, 'draft');
+assert.equal((await apiRequest('/api/requests', { headers: quoteAdmin })).status, 200);
+assert.equal((await write('/api/requests/missing-local-request', 'PATCH', { silentQuote: true }, quoteAdmin)).status, 404);
+assert.equal((await write(`/api/requests/${quoteEditorId}`, 'DELETE', {}, quoteAdmin)).status, 200);
+assert.equal(outbound.length, 0);
+
+const deliveryRoute = '/api/admin/deliveries?source=product&id=workspace-signed';
+assert.equal((await apiRequest(deliveryRoute)).status, 401);
+assert.equal((await apiRequest(deliveryRoute, { headers: owner })).status, 403);
+const productDeliveriesResponse = await apiRequest(deliveryRoute, { headers: admin });
+assert.equal(productDeliveriesResponse.status, 200);
+assert.equal(productDeliveriesResponse.headers.get('cache-control'), 'private, no-store');
+const productDeliveries = await productDeliveriesResponse.json();
+assert.equal(productDeliveries.bookingId, 'workspace-signed');
+assert.equal(productDeliveries.workflow.contract, true);
+assert.equal(productDeliveries.workflow.published, true);
+assert.equal(productDeliveries.items.length, 2);
+assert.ok(productDeliveries.items.every(item => item.state === 'legacy'));
+const quoteDeliveriesResponse = await apiRequest('/api/admin/deliveries?source=quote_booking&id=workspace-quote', { headers: admin });
+assert.equal(quoteDeliveriesResponse.status, 200);
+const quoteDeliveries = await quoteDeliveriesResponse.json();
+assert.equal(quoteDeliveries.workflow.contract, false);
+assert.equal(quoteDeliveries.workflow.published, false);
+assert.equal((await apiRequest('/api/admin/deliveries?source=product&id=missing-local-reservation', { headers: admin })).status, 404);
+assert.equal((await apiRequest('/api/admin/deliveries?source=invalid&id=workspace-signed', { headers: admin })).status, 400);
 assert.equal((await apiRequest('/api/admin/bookings/quote', { headers: admin })).status, 200);
 assert.equal((await apiRequest('/api/quotes', { headers: admin })).status, 200);
 for (const [key, data] of Object.entries(publicLibraryFixtures)) {
@@ -411,6 +514,69 @@ assert.deepEqual(savedCompact.days[0].activities, partialDocument.days[0].activi
 assert.deepEqual(savedCompact.days[0].images, partialDocument.days[0].images);
 assert.deepEqual(savedCompact.days[0].accommodation, { ...partialDocument.days[0].accommodation, name: compactDocument.days[0].accommodation.name });
 assert.deepEqual(savedCompact.documentSettings, originalContractSettings);
+// Round-trip actual API document content through the production recovery helpers.
+// The VM runs the public quote helper without creating a browser or a server.
+class LocalDraftStorage {
+    values = new Map();
+    getItem(key) { return this.values.get(String(key)) ?? null; }
+    setItem(key, value) { this.values.set(String(key), String(value)); }
+    removeItem(key) { this.values.delete(String(key)); }
+}
+const draftStorage = new LocalDraftStorage();
+const draftContext = vm.createContext({ Storage: LocalDraftStorage, DOMException, Blob, URL, structuredClone,
+    localStorage: draftStorage, location: { origin: localOrigin }, fetch: route => apiRequest(route, { headers: admin }) });
+vm.runInContext(fs.readFileSync(path.join(root, 'public/quote-editor-state.js'), 'utf8'), draftContext);
+const quoteDraftState = draftContext.QuoteEditorState;
+assert.equal(await quoteDraftState.resolveAccount(), quoteDeskSession.userId);
+const draftScope = { userId: quoteDeskSession.userId, reservationId: 'workspace-check' };
+const documentSource = { content: savedCompact, dates: { startDate: compactDetail.startDate, endDate: compactDetail.endDate } };
+const documentDraft = structuredClone(documentSource);
+documentDraft.content.description = '로컬 문서 초안 복원 확인';
+assert.equal(writeReservationDraft(draftStorage, draftScope, documentDraft, reservationDraftFingerprint(documentSource), 'contract').ok, true);
+const restoredDocumentDraft = readReservationDraft(draftStorage, draftScope, documentSource);
+assert.equal(restoredDocumentDraft.kind, 'draft');
+assert.equal(restoredDocumentDraft.conflict, false);
+assert.equal(restoredDocumentDraft.draft.mode, 'contract');
+assert.deepEqual(restoredDocumentDraft.draft.content, documentDraft.content);
+assert.deepEqual(restoredDocumentDraft.draft.dates, documentDraft.dates);
+assert.equal(readReservationDraft(draftStorage, { ...draftScope, userId: 'workspace-other' }, documentSource).kind, 'empty');
+const newerDocumentSource = structuredClone(documentSource);
+newerDocumentSource.content.description = '서버의 다른 저장본';
+assert.equal(readReservationDraft(draftStorage, draftScope, newerDocumentSource).conflict, true);
+const quoteDraftScope = { account: quoteDeskSession.userId, kind: 'quote', requestId: 'workspace-quote' };
+const quoteDraftSource = { customer: quoteFixture.name, days: quoteEditorDocument.days, spots: ['거북바위'], options: [], balances: [] };
+const quoteDraft = { ...structuredClone(quoteDraftSource), customer: '로컬 견적 초안 복원 확인' };
+assert.equal(quoteDraftState.write(draftStorage, quoteDraftScope, quoteDraftSource, quoteDraft).ok, true);
+const restoredQuoteDraft = quoteDraftState.read(draftStorage, quoteDraftScope, quoteDraftSource, quoteDraftState.validQuote);
+assert.equal(restoredQuoteDraft.kind, 'draft');
+assert.equal(restoredQuoteDraft.conflict, false);
+assert.deepEqual(JSON.parse(JSON.stringify(restoredQuoteDraft.value)), quoteDraft);
+const bookingDraftScope = { ...quoteDraftScope, kind: 'booking' };
+const bookingDraftSource = structuredClone(quoteFixture.booking);
+const bookingDraft = { ...structuredClone(bookingDraftSource), days: structuredClone(quoteEditorDocument.days) };
+assert.equal(quoteDraftState.write(draftStorage, bookingDraftScope, bookingDraftSource, bookingDraft).ok, true);
+assert.equal(quoteDraftState.read(draftStorage, bookingDraftScope, bookingDraftSource, quoteDraftState.validBooking).kind, 'draft');
+
+const blockedDraftUrl = new URL('/admin/reservations?localDraftStorage=blocked', localOrigin);
+assert.equal(draftStorageBlocked(blockedDraftUrl), true);
+assert.equal(draftStorageBlocked(new URL('/견적만들기.html', localOrigin), blockedDraftUrl.href), true);
+assert.equal(draftStorageBlocked(new URL('/견적만들기.html', localOrigin), 'https://other.example.invalid/?localDraftStorage=blocked'), false);
+assert.equal(draftStorageBlocked(new URL('/admin/reservations', localOrigin)), false);
+assert.equal(draftStorageBlocked(new URL('/견적만들기.html?localDraftStorage=normal', localOrigin), blockedDraftUrl.href), false);
+assert.ok(draftStorageFaultHtml('<!doctype html><head><script src="editor.js"></script></head>').indexOf(draftStorageFaultSource) < draftStorageFaultHtml('<!doctype html><head><script src="editor.js"></script></head>').indexOf('editor.js'));
+vm.runInContext(draftStorageFaultSource, draftContext);
+const scopedDraftKeys = [adminProductDraftKey({ userId: quoteDeskSession.userId, productId: 'workspace-booked-tour' }),
+    reservationDraftKey(draftScope), quoteDraftState.keyFor(quoteDraftScope.account, quoteDraftScope.kind, quoteDraftScope.requestId),
+    quoteDraftState.keyFor(bookingDraftScope.account, bookingDraftScope.kind, bookingDraftScope.requestId)];
+for (const key of scopedDraftKeys) assert.throws(() => draftStorage.setItem(key, 'blocked'), { name: 'QuotaExceededError' });
+draftStorage.setItem('normal-site-setting', 'kept');
+assert.equal(draftStorage.getItem('normal-site-setting'), 'kept');
+assert.equal(writeReservationDraft(draftStorage, draftScope, documentDraft, reservationDraftFingerprint(documentSource), 'itinerary').ok, false);
+assert.equal(quoteDraftState.write(draftStorage, quoteDraftScope, quoteDraftSource, quoteDraft).ok, false);
+assert.equal(quoteDraftState.write(draftStorage, bookingDraftScope, bookingDraftSource, bookingDraft).ok, false);
+// A rejected update leaves the previously recoverable snapshot intact.
+assert.equal(readReservationDraft(draftStorage, draftScope, documentSource).kind, 'draft');
+assert.equal(quoteDraftState.read(draftStorage, quoteDraftScope, quoteDraftSource, quoteDraftState.validQuote).kind, 'draft');
 const compactPreview = await apiRequest('/api/documents/itinerary/workspace-check?format=quote&preview=1', { headers: admin });
 assert.equal(compactPreview.status, 200);
 const compactPdf = (await compactPreview.json()).quote;
@@ -476,6 +642,8 @@ const mail = await write('/api/notifications/email', 'POST', { to: 'customer@exa
     data: { customerName: '로컬 검증 고객', reservationDbId: 'workspace-check', userId: 'workspace-owner', itineraryUrl: `${localOrigin}/documents/itinerary/workspace-check` } });
 assert.equal(mail.status, 200);
 assert.equal(outbound.length, 1);
+const sentDocumentHistory = await (await apiRequest('/api/admin/deliveries?source=product&id=workspace-check', { headers: admin })).json();
+assert.ok(sentDocumentHistory.items.some(item => item.kind === 'itinerary' && item.state === 'accepted' && item.providerId === 'local-email-1'));
 raw.prepare('DELETE FROM reservations WHERE id=?').run('workspace-check');
 raw.exec('DELETE FROM notifications');
 outbound.length = 0;
@@ -489,7 +657,7 @@ assert.ok(Object.values(workspaceData.availability).every(Boolean));
 assert.ok(workspaceData.searchItems.some(item => item.category === 'product'));
 assert.equal((await apiRequest('/api/admin/workspace', { headers: owner })).status, 403);
 assert.equal((await apiRequest('/api/admin/workspace')).status, 401);
-console.log('예약 작업 API 검증 통과: 실제 로그인 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 관리자 운영정보 보호 · 외부 발송 차단');
+console.log('예약 작업 API 검증 통과: 실제 로그인/견적 계정 · 견적 POST/PATCH/재조회 · 상품/견적 발송 이력 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 계정별 예약/견적 초안 복원/충돌 · 세 종류 초안 저장 실패 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 관리자 운영정보 보호 · 외부 발송 차단');
 
 if (process.argv.includes('--serve')) {
     const types = { '.html': 'text/html;charset=utf-8', '.js': 'text/javascript;charset=utf-8', '.css': 'text/css;charset=utf-8',
@@ -517,12 +685,6 @@ if (process.argv.includes('--serve')) {
                     const who = await apiRequest('/api/auth/me', { headers: req.headers });
                     const session = await who.json();
                     response = session.user?.role === 'admin' ? Response.json({ emailStubCalls: outbound.length, liveCalls: 0 }) : Response.json({ error: 'Unauthorized' }, { status: 401 });
-                } else if (url.pathname === '/api/requests' && req.method === 'GET') {
-                    response = await quoteListGet({ request: new Request(url, options), env });
-                } else if (url.pathname.startsWith('/api/requests/') && req.method === 'GET') {
-                    response = await quoteGet({ request: new Request(url, options), env, params: { id: decodeURIComponent(url.pathname.slice('/api/requests/'.length)) } });
-                } else if (url.pathname.startsWith('/api/data/') && req.method === 'GET') {
-                    response = await libraryResponse(decodeURIComponent(url.pathname.slice('/api/data/'.length)), req.headers);
                 } else response = await apiRequest(url.pathname + url.search, options);
                 res.writeHead(response.status, { ...Object.fromEntries(response.headers), 'Cache-Control': 'no-store' });
                 res.end(Buffer.from(await response.arrayBuffer())); return;
@@ -536,9 +698,8 @@ if (process.argv.includes('--serve')) {
             file ||= path.join(distRoot, 'index.html');
             res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
             // Opt-in local browser fault test; this script never serves production traffic.
-            if (file === path.join(distRoot, 'index.html') && url.searchParams.get('localDraftStorage') === 'blocked') {
-                const storageFault = `<script>const originalSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(String(key).startsWith('inhasu:admin-product-draft:'))throw new DOMException('Local draft storage fault','QuotaExceededError');return originalSetItem.call(this,key,value);};</script>`;
-                res.end(fs.readFileSync(file, 'utf8').replace('<head>', '<head>' + storageFault)); return;
+            if (path.extname(file).toLowerCase() === '.html' && draftStorageBlocked(url, req.headers.referer)) {
+                res.end(draftStorageFaultHtml(fs.readFileSync(file, 'utf8'))); return;
             }
             res.end(fs.readFileSync(file));
         } catch (error) { res.writeHead(500, { 'Content-Type': 'text/plain;charset=utf-8' }); res.end(String(error)); }

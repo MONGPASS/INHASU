@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { onRequestGet, onRequestPatch } from "../functions/api/requests/[id].js";
 import { onRequestPost as onSignPost } from "../functions/api/sign/[token].js";
 import { onRequestPost as onDepositPost } from "../functions/api/deposit/[token].js";
+import { requestSQLite } from './helpers/request-sqlite.mjs';
 
 const makeEnv = () => ({
   ADMIN_TOKEN: "admin-secret",
@@ -84,7 +85,7 @@ test("5박 6일은 숙소 5개 배정 후 일정표를 공개할 수 있다", as
   assert.equal((await response.json()).publishStatus, "published");
 });
 
-test("확정일정표 최초 공개 시 고객 직링크 알림톡을 한 번 요청한다", async () => {
+test("확정일정표 최초 공개 시 고객 직링크 알림톡을 한 번 요청한다", async t => {
   const days = Array.from({ length:3 }, (_, i) => ({ d:i + 1, stay:{ name:`숙소 ${i + 1}` } }));
   const booking = {
     days,
@@ -100,19 +101,21 @@ test("확정일정표 최초 공개 시 고객 직링크 알림톡을 한 번 �
     quote:{}, decision:{ status:"accepted" }, status:"예약확정", booking,
   };
   const pending = [];
+  const DB = requestSQLite(t, rec);
   const env = {
     ADMIN_TOKEN:"admin-secret",
     SOLAPI_API_KEY:"api-key", SOLAPI_API_SECRET:"api-secret", SOLAPI_SENDER:"0212345678",
     SOLAPI_PF_ID:"KA01PF-test", SOLAPI_TEMPLATE_ITINERARY_ID:"KA01TP-itinerary",
     SITE_URL:"https://mongolia-milkyway.com",
-    DB:{ prepare() { return { bind() { return {
-      async first() { return { data:JSON.stringify(rec), status:"예약확정" }; },
-      async run() { return { success:true }; },
-    }; } }; } },
+    DB,
   };
   const originalFetch = globalThis.fetch;
   let sentBody = null;
-  globalThis.fetch = async (_url, init) => {
+  let sends = 0;
+  globalThis.fetch = async (url, init) => {
+    assert.equal(new URL(String(url)).hostname, 'api.solapi.com', 'unexpected outbound service');
+    assert.equal(DB.deliveries[0]?.state, 'sending', 'claim must be stored before contacting the provider');
+    sends++;
     sentBody = JSON.parse(init.body);
     return new Response(JSON.stringify({ groupId:"group-1" }), { status:200, headers:{ "Content-Type":"application/json" } });
   };
@@ -127,12 +130,29 @@ test("확정일정표 최초 공개 시 고객 직링크 알림톡을 한 번 �
     const body = await response.json();
     assert.deepEqual(body.notifications, [{ type:"itinerary", status:"queued" }]);
     await Promise.all(pending);
+    const repeat = await onRequestPatch({
+      request:new Request('https://preview.pages.dev/api/requests/req-1', {
+        method:'PATCH', headers:{ 'Content-Type':'application/json', 'x-admin-token':'admin-secret' },
+        body:JSON.stringify({ booking:DB.record.booking }),
+      }), env, params:{ id:'req-1' }, waitUntil(task) { pending.push(task); },
+    });
+    assert.equal(repeat.status, 200);
+    assert.deepEqual((await repeat.json()).notifications, []);
+    await Promise.all(pending);
   } finally {
     globalThis.fetch = originalFetch;
   }
   assert.equal(sentBody.message.kakaoOptions.templateId, "KA01TP-itinerary");
   assert.equal(sentBody.message.kakaoOptions.buttons, undefined);
   assert.equal(sentBody.message.kakaoOptions.variables["#{링크}"], `${encodeURI("확정일정표.html")}?t=customer-token`);
+  assert.equal(sends, 1);
+  assert.equal(DB.record.booking.publishStatus, 'published');
+  assert.deepEqual(DB.record.booking.contract, rec.booking.contract);
+  assert.equal(DB.deliveries.length, 1);
+  assert.equal(DB.deliveries[0].source, 'quote_booking');
+  assert.equal(DB.deliveries[0].booking_id, 'req-1');
+  assert.equal(DB.deliveries[0].kind, 'itinerary');
+  assert.equal(DB.deliveries[0].state, 'accepted');
 });
 
 test("여행서명 시 여행자 정보를 함께 제출하면 booking과 스냅샷에 저장된다", async () => {
@@ -239,7 +259,16 @@ test("고객이 예약금 입금 완료를 알리면 depositReport와 관리자 
     },
   };
 
-  const response = await onDepositPost({
+  const pending = [];
+  const originalFetch = globalThis.fetch;
+  const messages = [];
+  globalThis.fetch = async (url, init) => {
+    assert.equal(new URL(String(url)).hostname, 'api.solapi.com', 'unexpected outbound service');
+    messages.push(JSON.parse(init.body).message);
+    return Response.json({ groupId:'synthetic-admin-deposit' });
+  };
+  let response;
+  try { response = await onDepositPost({
     request: new Request("https://example.com/api/deposit/token-deposit-123456", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -247,17 +276,21 @@ test("고객이 예약금 입금 완료를 알리면 depositReport와 관리자 
     }),
     env,
     params: { token: "token-deposit-123456" },
-    waitUntil() {},
+    waitUntil(task) { pending.push(task); },
   });
+  await Promise.all(pending);
+  } finally { globalThis.fetch = originalFetch; }
 
   assert.equal(response.status, 200);
   assert.ok(savedData);
   assert.equal(savedData.booking.depositReport.status, "reported");
   assert.equal(savedData.booking.depositReport.name, "김철수(실입금자)");
   assert.ok(savedData.activities.some(a => a.type === "deposit_reported"));
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].to, env.ADMIN_PHONE);
 });
 
-test("관리자가 입금확인완료를 누르면 고객에게 계약서 안내 메시지와 링크가 발송된다", async () => {
+test("관리자가 입금확인완료를 누르면 고객에게 계약서 안내 메시지와 링크가 발송된다", async t => {
   const booking = {
     contractInfo: { depositAmount: 200000, depositStatus: "미입금" },
     publishStatus: "draft",
@@ -273,9 +306,14 @@ test("관리자가 입금확인완료를 누르면 고객에게 계약서 안내
     booking,
   };
   const pending = [];
+  const DB = requestSQLite(t, rec);
   let sentBody = null;
+  let sends = 0;
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (_url, init) => {
+  globalThis.fetch = async (url, init) => {
+    assert.equal(new URL(String(url)).hostname, 'api.solapi.com', 'unexpected outbound service');
+    assert.equal(DB.deliveries[0]?.state, 'sending', 'claim must be stored before contacting the provider');
+    sends++;
     sentBody = JSON.parse(init.body);
     return new Response(JSON.stringify({ groupId: "group-contract-1" }), {
       status: 200,
@@ -289,18 +327,7 @@ test("관리자가 입금확인완료를 누르면 고객에게 계약서 안내
     SOLAPI_API_SECRET: "api-secret",
     SOLAPI_SENDER: "0212345678",
     SITE_URL: "https://mongolia-milkyway.com",
-    DB: {
-      prepare() {
-        return {
-          bind() {
-            return {
-              async first() { return { data: JSON.stringify(rec), status: "신규" }; },
-              async run() { return { success: true }; },
-            };
-          },
-        };
-      },
-    },
+    DB,
   };
 
   try {
@@ -329,6 +356,14 @@ test("관리자가 입금확인완료를 누르면 고객에게 계약서 안내
   assert.ok(sentBody.message.text.includes("1. 여행자정보 입력하기"));
   assert.ok(sentBody.message.text.includes("2. 여행계약서 확인 및 서명하기"));
   assert.ok(sentBody.message.text.includes("https://mongolia-milkyway.com/%EB%82%B4%EA%B2%AC%EC%A0%81.html?t=test-token-abcdef123456"));
+  assert.equal(sends, 1);
+  assert.equal(DB.record.booking.contractInfo.depositStatus, '입금완료');
+  assert.equal(DB.record.booking.checklist.deposit, true);
+  assert.ok(DB.record.activities.some(activity => activity.type === 'deposit_confirmed'));
+  assert.equal(DB.deliveries.length, 1);
+  assert.equal(DB.deliveries[0].kind, 'contract');
+  assert.equal(DB.deliveries[0].channel, 'message');
+  assert.equal(DB.deliveries[0].state, 'accepted');
 });
 
 

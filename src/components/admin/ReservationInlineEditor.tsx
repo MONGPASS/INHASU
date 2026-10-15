@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { reservationDraftFingerprint, readReservationDraft, writeReservationDraft, discardReservationDraft, finishReservationDraftSave, type ReservationDraftSnapshot, type ReservationDraftScope, type ReservationDraftResult, type ReservationLocalDraft } from '../../utils/adminReservationDraft';
 import type { ReservationDocContent } from './ReservationDocumentEditor';
 import type { Activity, DocumentSettings, TemplateDay } from '../../pages/AdminTemplateManage';
 import { createInlineDocument, applyQuoteSnippet, quoteDayFields, updateQuoteDay, fillQuoteDayDates } from '../../utils/reservationInline';
@@ -6,7 +7,16 @@ import { uploadImage } from '../../utils/upload';
 import { QuoteDayEditor } from './QuoteDayEditor';
 import { QuoteSpotSelector, toggleRepresentativeSpot } from './QuoteSpotSelector';
 
+export interface ReservationInlineEditorControl {
+    prepareLeave: (reason?: 'close' | 'refresh') => boolean;
+    isBusy: () => boolean;
+    flush: (notify?: boolean) => ReservationDraftResult;
+    getState: () => { dirty: boolean; busy: boolean };
+}
+
 interface Props {
+    adminUserId?: string | null;
+    onControlChange?: (control: ReservationInlineEditorControl | null) => void;
     reservationId: string;
     initialContent: ReservationDocContent;
     mode: 'itinerary' | 'contract';
@@ -14,11 +24,13 @@ interface Props {
     startDate: string;
     endDate: string;
     dailyAccommodations?: Array<{ day: number; accommodation: { name: string } }>;
-    onSave: (content: ReservationDocContent, dates: { startDate: string; endDate: string }, kind: 'itinerary' | 'contract') => Promise<void>;
+    onSave: (content: ReservationDocContent, dates: { startDate: string; endDate: string }, kind: 'itinerary' | 'contract') => Promise<boolean | void>;
     onDirtyChange: (dirty: boolean) => void;
     onBusyChange?: (busy: boolean) => void;
+    onDraftStatusChange?: (pending: boolean) => void;
     onClose: () => void;
     disabled?: boolean;
+    externalBusy?: boolean;
 }
 
 interface Libraries {
@@ -35,38 +47,205 @@ const renumber = (days: TemplateDay[]) => days.map((day, index) => ({ ...day, da
 
 /** 일정과 계약 조건을 현재 예약 상세 본문 안에서 편집한다. */
 export function ReservationInlineEditor(p: Props) {
-    const [draft, setDraft] = useState(() => cloneContent(p.initialContent));
-    const [dates, setDates] = useState({ startDate: p.startDate, endDate: p.endDate });
+    const [draft, setDraftState] = useState(() => cloneContent(p.initialContent));
+    const [dates, setDatesState] = useState({ startDate: p.startDate, endDate: p.endDate });
     const [activeMode, setActiveMode] = useState(p.mode);
-    const [dirty, setDirty] = useState(false);
+    const [initialBaseline] = useState<ReservationDraftSnapshot>(() => ({ content: cloneContent(p.initialContent), dates: { startDate: p.startDate, endDate: p.endDate } }));
+    const baselineRef = useRef(initialBaseline);
+    const contentRef = useRef(draft);
+    const datesRef = useRef(dates);
+    const modeRef = useRef(p.mode);
+    const mountedRef = useRef(true);
+    const savingRef = useRef(false);
+    const uploadingRef = useRef(false);
+    const disabledRef = useRef(!!p.disabled);
+    disabledRef.current = !!p.disabled;
+    const externalBusyRef = useRef(!!p.externalBusy);
+    externalBusyRef.current = !!p.externalBusy;
+    const callbacks = useRef(p);
+    callbacks.current = p;
+    const scopeRef = useRef<ReservationDraftScope | null>(null);
+    const readyRef = useRef(false);
+    const pendingRef = useRef(false);
+    const ownedRevision = useRef<string | null>(null);
+    const storedDraftPendingRef = useRef(false);
+    const [storedDraftPending, setStoredDraftPending] = useState(false);
+    const lastStoredFingerprint = useRef('');
+    const baseFingerprint = useRef(reservationDraftFingerprint(initialBaseline));
+    const acceptedSourceFingerprint = useRef<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [draftReady, setDraftReady] = useState(false);
+    const [pendingDraft, setPendingDraft] = useState<{ draft: ReservationLocalDraft; conflict: boolean } | null>(null);
+    const [invalidDraft, setInvalidDraft] = useState(false);
+    const [savedAt, setSavedAt] = useState<string | null>(null);
+    const [draftError, setDraftError] = useState('');
+    const [sourceConflict, setSourceConflict] = useState(false);
     const [notice, setNotice] = useState('');
     const [noticeFailed, setNoticeFailed] = useState(false);
     const [libraries, setLibraries] = useState<Libraries>(emptyLibraries);
     const [libraryLoading, setLibraryLoading] = useState(true);
     const [libraryError, setLibraryError] = useState('');
     const [libraryAttempt, setLibraryAttempt] = useState(0);
-    const fingerprint = `${p.reservationId}:${JSON.stringify(p.initialContent)}:${p.startDate}:${p.endDate}`;
-    const appliedFingerprint = useRef(fingerprint);
-    const locked = !!p.disabled || saving || uploading;
+    const incomingSnapshot = { content: p.initialContent, dates: { startDate: p.startDate, endDate: p.endDate } };
+    const incomingFingerprint = reservationDraftFingerprint(incomingSnapshot);
+    const latestSourceFingerprint = useRef(incomingFingerprint);
+    latestSourceFingerprint.current = incomingFingerprint;
+    const fingerprint = useMemo(() => reservationDraftFingerprint({ content: draft, dates }), [draft, dates]);
+    const dirty = fingerprint !== reservationDraftFingerprint(baselineRef.current);
+    const appliedFingerprint = useRef(incomingFingerprint);
+    const locked = !!p.disabled || !!p.externalBusy || saving || uploading || !draftReady || !!pendingDraft || invalidDraft;
+    const isBusy = useCallback(() => savingRef.current || uploadingRef.current || externalBusyRef.current, []);
+    const isLocked = () => disabledRef.current || isBusy() || !readyRef.current || pendingRef.current;
 
-    useEffect(() => { setActiveMode(p.mode); }, [p.mode]);
+    const setDraft = (change: ReservationDocContent | ((current: ReservationDocContent) => ReservationDocContent)) => {
+        if (!mountedRef.current || savingRef.current) return;
+        const next = typeof change === 'function' ? change(contentRef.current) : change;
+        contentRef.current = next;
+        setDraftState(next);
+    };
+    const setDates = (change: { startDate: string; endDate: string } | ((current: { startDate: string; endDate: string }) => { startDate: string; endDate: string })) => {
+        if (!mountedRef.current || savingRef.current) return;
+        const next = typeof change === 'function' ? change(datesRef.current) : change;
+        datesRef.current = next;
+        setDatesState(next);
+    };
+    const flushDraft = useCallback((notify = true): ReservationDraftResult => {
+        if (!readyRef.current || pendingRef.current) return { ok: true };
+        const snapshot = { content: contentRef.current, dates: datesRef.current };
+        const current = reservationDraftFingerprint(snapshot);
+        if (current === reservationDraftFingerprint(baselineRef.current) || current === lastStoredFingerprint.current) return { ok: true };
+        if (!scopeRef.current) return { ok: false, error: '관리자 계정과 예약을 확인할 수 없어 문서 초안을 보관하지 못했습니다.' };
+        let result: ReservationDraftResult;
+        try { result = writeReservationDraft(window.localStorage, scopeRef.current, snapshot, baseFingerprint.current, modeRef.current); }
+        catch { result = { ok: false, error: '브라우저 저장소를 사용할 수 없어 문서 초안을 보관하지 못했습니다.' }; }
+        if (result.ok) {
+            lastStoredFingerprint.current = current;
+            if (result.revision) ownedRevision.current = result.revision;
+            storedDraftPendingRef.current = true;
+            if (mountedRef.current) callbacks.current.onDraftStatusChange?.(true);
+            if (notify && mountedRef.current) { setSavedAt(result.savedAt || null); setDraftError(''); setStoredDraftPending(true); }
+        } else if (notify && mountedRef.current) setDraftError(result.error);
+        return result;
+    }, []);
+
     useEffect(() => {
-        if (dirty || saving || uploading || appliedFingerprint.current === fingerprint) return;
-        appliedFingerprint.current = fingerprint;
-        const next = cloneContent(p.initialContent);
-        const sourceChanged = JSON.stringify(next) !== JSON.stringify(draft) || p.startDate !== dates.startDate || p.endDate !== dates.endDate;
-        setDraft(next);
-        setDates({ startDate: p.startDate, endDate: p.endDate });
-        if (sourceChanged) setNotice('');
-        // Refreshing assignments or switching between document modes must keep an open draft.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fingerprint, dirty, saving, uploading]);
+        if (!p.adminUserId || scopeRef.current) return;
+        const scope = { userId: p.adminUserId, reservationId: p.reservationId };
+        scopeRef.current = scope;
+        let loaded: ReturnType<typeof readReservationDraft>;
+        try { loaded = readReservationDraft(window.localStorage, scope, baselineRef.current); }
+        catch { loaded = { kind: 'unavailable', error: '브라우저 저장소를 사용할 수 없어 문서 초안을 보관하지 못했습니다.' }; }
+        if (loaded.kind === 'draft') {
+            pendingRef.current = true;
+            setPendingDraft({ draft: loaded.draft, conflict: loaded.conflict });
+            setSavedAt(loaded.draft.savedAt);
+            ownedRevision.current = loaded.draft.revision;
+            storedDraftPendingRef.current = true; setStoredDraftPending(true);
+        } else if (loaded.kind === 'invalid') {
+            pendingRef.current = true;
+            setInvalidDraft(true); setDraftError(loaded.error);
+        } else if (loaded.kind === 'unavailable') setDraftError(loaded.error);
+        readyRef.current = true; setDraftReady(true);
+    }, [p.adminUserId, p.reservationId]);
+
+    useEffect(() => {
+        if (isBusy()) return;
+        modeRef.current = p.mode; setActiveMode(p.mode);
+    }, [p.mode, saving, uploading, isBusy]);
+    useEffect(() => {
+        if (!draftReady || saving || uploading) return;
+        if (pendingRef.current) {
+            if (pendingDraft && reservationDraftFingerprint(pendingDraft.draft) === incomingFingerprint) {
+                pendingRef.current = false; ownedRevision.current = null; storedDraftPendingRef.current = false;
+                setPendingDraft(null); setStoredDraftPending(false); callbacks.current.onDraftStatusChange?.(false);
+            }
+            // A fresh booking fetch can finish while the recovery choice is open.
+            if (appliedFingerprint.current !== incomingFingerprint) {
+                const fresh = { content: cloneContent(p.initialContent), dates: { startDate: p.startDate, endDate: p.endDate } };
+                baselineRef.current = structuredClone(fresh);
+                contentRef.current = fresh.content; datesRef.current = fresh.dates;
+                setDraftState(fresh.content); setDatesState(fresh.dates);
+                appliedFingerprint.current = incomingFingerprint;
+                setPendingDraft(current => current ? { ...current, conflict: current.draft.baseFingerprint !== incomingFingerprint } : null);
+            }
+            return;
+        }
+        if (dirty) { setSourceConflict(incomingFingerprint !== baseFingerprint.current); return; }
+        if (appliedFingerprint.current === incomingFingerprint) return;
+        const next = { content: cloneContent(p.initialContent), dates: { startDate: p.startDate, endDate: p.endDate } };
+        const changed = reservationDraftFingerprint(next) !== fingerprint;
+        baselineRef.current = structuredClone(next);
+        baseFingerprint.current = incomingFingerprint;
+        appliedFingerprint.current = incomingFingerprint;
+        contentRef.current = next.content; datesRef.current = next.dates;
+        setDraftState(next.content); setDatesState(next.dates); setSourceConflict(false);
+        if (changed) setNotice('');
+    }, [incomingFingerprint, fingerprint, dirty, draftReady, saving, uploading]);
+    useEffect(() => {
+        if (!dirty || !draftReady || pendingDraft || invalidDraft || saving) return;
+        const timer = window.setTimeout(() => flushDraft(), 650);
+        return () => window.clearTimeout(timer);
+    }, [fingerprint, dirty, draftReady, pendingDraft, invalidDraft, saving, flushDraft]);
     useEffect(() => { p.onDirtyChange(dirty); }, [dirty, p.onDirtyChange]);
-    useEffect(() => () => p.onDirtyChange(false), [p.onDirtyChange]);
+    useEffect(() => { p.onDraftStatusChange?.(!!pendingDraft || dirty || storedDraftPending); }, [pendingDraft, dirty, storedDraftPending, p.onDraftStatusChange]);
     useEffect(() => { p.onBusyChange?.(saving || uploading); }, [saving, uploading, p.onBusyChange]);
-    useEffect(() => () => p.onBusyChange?.(false), [p.onBusyChange]);
+
+    const prepareLeave = useCallback((reason: 'close' | 'refresh' = 'close') => {
+        if (isBusy()) { setNotice('저장 또는 사진 업로드가 끝난 뒤 이동해 주세요.'); setNoticeFailed(true); return false; }
+        const result = flushDraft();
+        if (!result.ok && !window.confirm(result.error + '\n\n초안을 보관하지 못한 상태로 계속할까요?')) return false;
+        return true;
+    }, [flushDraft, isBusy]);
+    useLayoutEffect(() => {
+        mountedRef.current = true;
+        callbacks.current.onControlChange?.({ prepareLeave, isBusy, flush: flushDraft, getState: () => ({ dirty: reservationDraftFingerprint({ content: contentRef.current, dates: datesRef.current }) !== reservationDraftFingerprint(baselineRef.current), busy: isBusy() }) });
+        return () => {
+            flushDraft(false); mountedRef.current = false;
+            let remains = storedDraftPendingRef.current;
+            try {
+                if (scopeRef.current) {
+                    const saved = readReservationDraft(window.localStorage, scopeRef.current, { content: callbacks.current.initialContent, dates: { startDate: callbacks.current.startDate, endDate: callbacks.current.endDate } });
+                    if (saved.kind !== 'unavailable') remains = saved.kind === 'draft';
+                }
+            } catch { /* Keep the last known valid copy when storage access is temporarily blocked. */ }
+            callbacks.current.onDraftStatusChange?.(remains);
+            callbacks.current.onControlChange?.(null);
+            callbacks.current.onBusyChange?.(false);
+            callbacks.current.onDirtyChange(false);
+        };
+    }, [flushDraft, prepareLeave, isBusy]);
+
+    const restoreLocalDraft = () => {
+        if (!pendingDraft || isBusy() || disabledRef.current) return;
+        const saved = pendingDraft.draft;
+        contentRef.current = structuredClone(saved.content); datesRef.current = structuredClone(saved.dates);
+        setDraftState(contentRef.current); setDatesState(datesRef.current);
+        baseFingerprint.current = saved.baseFingerprint;
+        lastStoredFingerprint.current = reservationDraftFingerprint(saved);
+        acceptedSourceFingerprint.current = latestSourceFingerprint.current;
+        pendingRef.current = false; setPendingDraft(null);
+        setSourceConflict(pendingDraft.conflict);
+        appliedFingerprint.current = 'restored:' + saved.revision;
+        setNotice('일정표와 계약 조건 초안을 복원했습니다. 문서 저장 전에는 고객에게 반영되지 않습니다.'); setNoticeFailed(false);
+    };
+    const discardLocalDraft = () => {
+        if (!scopeRef.current || isBusy()) return;
+        let result: ReservationDraftResult;
+        try { result = discardReservationDraft(window.localStorage, scopeRef.current); }
+        catch { result = { ok: false, error: '보관된 문서 초안을 삭제하지 못했습니다.' }; }
+        if (!result.ok) { setDraftError(result.error); return; }
+        pendingRef.current = false; ownedRevision.current = null; lastStoredFingerprint.current = '';
+        storedDraftPendingRef.current = false; setStoredDraftPending(false); callbacks.current.onDraftStatusChange?.(false);
+        const currentSource = { content: cloneContent(callbacks.current.initialContent), dates: { startDate: callbacks.current.startDate, endDate: callbacks.current.endDate } };
+        baselineRef.current = structuredClone(currentSource);
+        contentRef.current = currentSource.content; datesRef.current = currentSource.dates;
+        baseFingerprint.current = reservationDraftFingerprint(currentSource);
+        appliedFingerprint.current = baseFingerprint.current;
+        setDraftState(currentSource.content); setDatesState(currentSource.dates); setSourceConflict(false);
+        setPendingDraft(null); setInvalidDraft(false); setSavedAt(null); setDraftError('');
+        setNotice('보관된 초안을 버렸습니다. 현재 서버 문서로 시작합니다.'); setNoticeFailed(false);
+    };
 
     useEffect(() => {
         const controller = new AbortController();
@@ -92,15 +271,15 @@ export function ReservationInlineEditor(p: Props) {
         return () => controller.abort();
     }, [libraryAttempt]);
 
-    const touch = () => { setDirty(true); setNotice(''); setNoticeFailed(false); };
+    const touch = () => { setNotice(''); setNoticeFailed(false); };
     const changeMode = (mode: 'itinerary' | 'contract') => {
-        if (locked) return;
-        setActiveMode(mode); p.onModeChange?.(mode);
+        if (isLocked()) return;
+        modeRef.current = mode; setActiveMode(mode); p.onModeChange?.(mode);
     };
-    const edit = (change: (current: ReservationDocContent) => ReservationDocContent) => { if (locked) return; touch(); setDraft(change); };
+    const edit = (change: (current: ReservationDocContent) => ReservationDocContent) => { if (isLocked()) return; touch(); setDraft(change); };
     const editDay = (index: number, change: (day: TemplateDay) => TemplateDay) => edit(current => ({ ...current, days: current.days.map((day, i) => i === index ? change(day) : day) }));
-    const editActivity = (dayIndex: number, index: number, change: (activity: Activity) => Activity) => editDay(dayIndex, day => ({ ...day, activities: day.activities.map((activity, i) => i === index ? change(activity) : activity) }));
-    const editContract = <K extends keyof DocumentSettings['contract'],>(key: K, value: DocumentSettings['contract'][K]) => edit(current => ({ ...current, documentSettings: { ...current.documentSettings, contract: { ...current.documentSettings.contract, [key]: value } } }));
+    const editActivity = (dayIndex: number, index: number, change: (activity: Activity) => Activity) => editDay(dayIndex, day => ({ ...day, activities: (day.activities || []).map((activity, i) => i === index ? change(activity) : activity) }));
+    const editContract = <K extends keyof DocumentSettings['contract'],>(key: K, value: DocumentSettings['contract'][K]) => edit(current => ({ ...current, documentSettings: { ...current.documentSettings, contract: { ...(current.documentSettings?.contract || {}), [key]: value } } }));
     const setDate = (key: keyof typeof dates, value: string) => { if (locked) return; touch(); setDates(current => ({ ...current, [key]: value })); };
     const moveDay = (index: number, target: number) => edit(current => {
         const days = [...current.days];
@@ -110,7 +289,7 @@ export function ReservationInlineEditor(p: Props) {
         return { ...current, days: renumber(days) };
     });
     const removeDay = (index: number) => {
-        if (locked) return;
+        if (isLocked()) return;
         if (draft.days.length <= 1) { setNotice('최소 1일은 필요합니다.'); setNoticeFailed(true); return; }
         edit(current => ({ ...current, days: renumber(current.days.filter((_, i) => i !== index)) }));
     };
@@ -121,46 +300,85 @@ export function ReservationInlineEditor(p: Props) {
         setNotice('출발일 기준으로 여행일자를 채웠어요 — 각 칸에서 자유롭게 수정할 수 있어요.');
     };
     const loadSnippet = (index: number, name: string) => {
-        if (locked || !name || !libraries.snippets[name]) return;
+        if (isLocked() || !name || !libraries.snippets[name]) return;
         editDay(index, day => applyQuoteSnippet(day, libraries.snippets[name]));
     };
     const toggleSpot = (name: string, value: any) => edit(current => ({ ...current, highlights: toggleRepresentativeSpot(current.highlights || [], name, value) }));
     const addPhotos = async (dayIndex: number, activityIndex: number | null, files: FileList | null) => {
-        if (locked || !files?.length) return;
+        if (isLocked() || !files?.length) return;
+        uploadingRef.current = true; callbacks.current.onBusyChange?.(true);
         touch(); setUploading(true);
         try {
             const urls = await Promise.all(Array.from(files).map(file => uploadImage(file, 'reservation-docs')));
+            if (!mountedRef.current) return;
             setDraft(current => ({ ...current, days: current.days.map((day, index) => index !== dayIndex ? day : activityIndex == null
                 ? { ...day, images: [...photoList(day.images), ...urls] }
-                : { ...day, activities: day.activities.map((activity, i) => i === activityIndex ? { ...activity, images: [...photoList(activity.images), ...urls] } : activity) }) }));
-        } catch (error: any) { setNotice(error?.message || '사진을 업로드하지 못했습니다. 다시 시도하세요.'); setNoticeFailed(true); }
-        finally { setUploading(false); }
+                : { ...day, activities: (day.activities || []).map((activity, i) => i === activityIndex ? { ...activity, images: [...photoList(activity.images), ...urls] } : activity) }) }));
+        } catch (error: any) { if (mountedRef.current) { setNotice(error?.message || '사진을 업로드하지 못했습니다. 다시 시도하세요.'); setNoticeFailed(true); } }
+        finally {
+            uploadingRef.current = false;
+            if (mountedRef.current) { setUploading(false); callbacks.current.onBusyChange?.(savingRef.current); }
+        }
     };
     const save = async () => {
-        if (locked) return;
-        if (!!dates.startDate !== !!dates.endDate) { setNotice('여행 시작일과 종료일을 함께 입력하세요.'); setNoticeFailed(true); return; }
-        if (dates.endDate && dates.endDate < dates.startDate) { setNotice('여행 종료일은 시작일보다 빠를 수 없습니다.'); setNoticeFailed(true); return; }
-        if (activeMode === 'itinerary' && !draft.days.length) { setNotice('일차를 추가하고 일정을 작성해 주세요.'); setNoticeFailed(true); return; }
+        if (isLocked()) return;
+        const currentDates = datesRef.current;
+        if (!!currentDates.startDate !== !!currentDates.endDate) { setNotice('여행 시작일과 종료일을 함께 입력하세요.'); setNoticeFailed(true); return; }
+        if (currentDates.endDate && currentDates.endDate < currentDates.startDate) { setNotice('여행 종료일은 시작일보다 빠를 수 없습니다.'); setNoticeFailed(true); return; }
+        if (modeRef.current === 'itinerary' && !contentRef.current.days.length) { setNotice('일차를 추가하고 일정을 작성해 주세요.'); setNoticeFailed(true); return; }
+        if (latestSourceFingerprint.current !== baseFingerprint.current && acceptedSourceFingerprint.current !== latestSourceFingerprint.current) {
+            if (!window.confirm('편집 중 서버의 문서가 변경되었습니다. 현재 초안으로 문서를 저장할까요?')) return;
+            acceptedSourceFingerprint.current = latestSourceFingerprint.current;
+        }
+        flushDraft();
+        const submitted = { content: cloneContent({ ...contentRef.current, days: renumber(contentRef.current.days) }), dates: { ...currentDates } };
+        const revision = ownedRevision.current;
+        savingRef.current = true; callbacks.current.onBusyChange?.(true);
         setSaving(true); setNotice(''); setNoticeFailed(false);
         try {
-            const content = cloneContent({ ...draft, days: renumber(draft.days) });
-            await p.onSave(content, dates, activeMode);
-            setDraft(content); setDirty(false);
-            setNotice('저장했습니다. 고객 공개와 전달은 문서 영역에서 진행하세요.');
-        } catch (error: any) { setNotice(error?.message || '저장하지 못했습니다. 입력한 내용은 남아 있습니다. 다시 시도하세요.'); setNoticeFailed(true); }
-        finally { setSaving(false); }
+            const result = await callbacks.current.onSave(submitted.content, submitted.dates, modeRef.current);
+            if (result === false) throw new Error('문서를 저장하지 못했습니다. 초안과 입력 내용은 유지됩니다.');
+            // Establish the saved baseline before cleanup can flush/recreate this recovery copy.
+            baselineRef.current = structuredClone(submitted);
+            baseFingerprint.current = reservationDraftFingerprint(submitted);
+            contentRef.current = submitted.content; datesRef.current = submitted.dates;
+            let cleared: ReservationDraftResult = { ok: true };
+            try { if (scopeRef.current) cleared = finishReservationDraftSave(window.localStorage, scopeRef.current, true, revision); }
+            catch { cleared = { ok: false, error: '문서는 저장했지만 보관된 초안을 삭제하지 못했습니다.' }; }
+            ownedRevision.current = null; lastStoredFingerprint.current = '';
+            let recoveryRemains = false;
+            try { if (scopeRef.current) recoveryRemains = readReservationDraft(window.localStorage, scopeRef.current, submitted).kind === 'draft'; }
+            catch { recoveryRemains = !cleared.ok; }
+            storedDraftPendingRef.current = recoveryRemains;
+            if (mountedRef.current) {
+                setStoredDraftPending(recoveryRemains); callbacks.current.onDraftStatusChange?.(recoveryRemains);
+                setDraftState(submitted.content); setDatesState(submitted.dates); setSavedAt(null); setSourceConflict(false);
+                setDraftError(cleared.ok ? '' : cleared.error);
+                setNotice('저장했습니다. 고객 공개와 전달은 문서 영역에서 진행하세요.');
+            }
+        } catch (error: any) {
+            if (mountedRef.current) { setNotice(error?.message || '저장하지 못했습니다. 입력한 내용은 남아 있습니다. 다시 시도하세요.'); setNoticeFailed(true); }
+        } finally {
+            savingRef.current = false;
+            if (mountedRef.current) { setSaving(false); callbacks.current.onBusyChange?.(uploadingRef.current); }
+        }
     };
-    const close = () => {
-        if (saving || uploading) return;
-        if (dirty && !window.confirm('저장하지 않은 문서 변경사항을 버리고 편집을 닫을까요?')) return;
-        p.onClose();
-    };
-    const contract = draft.documentSettings.contract;
+    const close = () => { if (prepareLeave()) callbacks.current.onClose(); };
+    const contract = draft.documentSettings?.contract || {} as DocumentSettings['contract'];
     const expectedDays = dates.startDate && dates.endDate ? Math.round((Date.parse(dates.endDate) - Date.parse(dates.startDate)) / 86400000) + 1 : null;
     const photos = (urls: string[], remove: (index: number) => void) => urls.length > 0 && <div className="ri-photos">{urls.map((url, i) => <figure key={`${url}-${i}`}><img src={url} alt={`일정 사진 ${i + 1}`} loading="lazy" /><button type="button" disabled={locked} onClick={() => remove(i)} aria-label={`사진 ${i + 1} 삭제`}>×</button></figure>)}</div>;
 
     return <section id="sec-inline-doc" className="card ri-editor" aria-label="예약 문서 본문 편집" aria-busy={saving || uploading}>
-        <div className="ri-heading"><div><span className="ri-kicker">예약 문서 작성</span><h2>예약 상세에서 바로 편집하세요</h2><p>저장한 일정과 계약 조건을 미리보기에서 확인할 수 있습니다.</p></div><button type="button" className="btn btn-ghost" onClick={close} disabled={saving || uploading}>편집 닫기</button></div>
+        <div className="ri-heading"><div><span className="ri-kicker">예약 문서 작성</span><h2>예약 상세에서 바로 편집하세요</h2><p>저장한 일정과 계약 조건을 미리보기에서 확인할 수 있습니다.</p></div><button type="button" className="btn btn-ghost" onClick={close} disabled={saving || uploading || !!p.externalBusy}>편집 닫기</button></div>
+        <div role="status" aria-live="polite" style={{ marginBottom: 14, padding: '12px 14px', borderRadius: 12, background: draftError || sourceConflict || pendingDraft?.conflict ? '#fff5e8' : '#edfaf6', border: '1px solid ' + (draftError || sourceConflict || pendingDraft?.conflict ? '#f3d5a3' : '#c8eee3'), fontSize: 13, lineHeight: 1.7 }}>
+            {!p.adminUserId ? '관리자 계정을 확인한 뒤 문서를 편집할 수 있습니다.' : pendingDraft ? <>
+                <strong>{pendingDraft.conflict ? '현재 서버 문서와 다른 초안이 있습니다.' : '저장하지 않은 일정표·계약서 초안이 있습니다.'}</strong>
+                <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')} · 일정·날짜·사진·계약 조건을 함께 복원합니다.{pendingDraft.conflict ? ' 복원 후 현재 문서와 비교해 저장하세요.' : ''}</div>
+                <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}><button type="button" className="btn btn-ink btn-sm" disabled={saving || uploading || !!p.externalBusy || !!p.disabled} onClick={restoreLocalDraft}>초안 복원</button><button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading || !!p.externalBusy} onClick={discardLocalDraft}>초안 버리기</button></div>
+            </> : <><strong>{invalidDraft ? '보관된 초안을 확인할 수 없습니다.' : sourceConflict ? '서버 문서가 변경되었습니다. 현재 초안은 유지됩니다.' : dirty ? '작성 중 문서를 이 브라우저에 자동 보관합니다.' : '서버에 저장된 문서를 편집합니다.'}</strong><div>{savedAt ? '마지막 초안 보관: ' + new Date(savedAt).toLocaleString('ko-KR') + ' · ' : ''}현재 관리자 계정과 이 예약에서만 복원됩니다. 문서 저장과 고객 공개·전달은 별도로 진행합니다.</div></>}
+            {draftError && <div role="alert" style={{ color: '#9f4d13', marginTop: 6 }}>{draftError}<button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading || !!p.externalBusy} onClick={() => { if (invalidDraft || !dirty) discardLocalDraft(); else flushDraft(); }} style={{ marginLeft: 8 }}>{invalidDraft || !dirty ? '초안 버리기' : '다시 보관'}</button></div>}
+            {!pendingDraft && !invalidDraft && (dirty || storedDraftPending) && <button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading || !!p.externalBusy} onClick={() => { if (window.confirm('작성 중 문서 변경사항과 보관된 초안을 버리고 서버 문서로 돌아갈까요?')) discardLocalDraft(); }}>초안 버리기</button>}
+        </div>
         <div className="ri-modes" aria-label="문서 편집 종류"><button type="button" className={activeMode === 'itinerary' ? 'is-selected' : ''} aria-pressed={activeMode === 'itinerary'} disabled={locked} onClick={() => changeMode('itinerary')}>확정 일정표</button><button type="button" className={activeMode === 'contract' ? 'is-selected' : ''} aria-pressed={activeMode === 'contract'} disabled={locked} onClick={() => changeMode('contract')}>여행 계약서</button><span>{dirty ? '저장하지 않은 변경사항' : '저장된 문서 기준'}</span></div>
         <form id={`reservation-inline-${p.reservationId}`} noValidate onSubmit={event => { event.preventDefault(); void save(); }}>
         <fieldset className="ri-form" disabled={locked} inert={locked}>
@@ -190,7 +408,7 @@ export function ReservationInlineEditor(p: Props) {
                                     {day.retainedSummary && <p className="ri-library-note">기존 상품 안내 · {day.retainedSummary}</p>}
                                     {photos(photoList(day.images), index => editDay(dayIndex, current => ({ ...current, images: photoList(current.images).filter((_, i) => i !== index) })))}
                                     <label className="ri-upload">＋ 일차 사진 추가<input type="file" accept="image/*" multiple onChange={e => { void addPhotos(dayIndex, null, e.target.files); e.target.value = ''; }} /></label>
-                                    {day.activities.map((activity, activityIndex) => <div className="ri-activity" key={activityIndex}>
+                                    {(day.activities || []).map((activity, activityIndex) => <div className="ri-activity" key={activityIndex}>
                                         <strong className="ri-rich-title">{[activity.time, activity.title].filter(Boolean).join(' ') || '사진 일정'}</strong>
                                         <label className="ri-field"><span>상세 설명</span><textarea rows={2} value={activity.description || ''} onChange={e => editActivity(dayIndex, activityIndex, current => ({ ...current, description: e.target.value }))} /></label>
                                         {photos(photoList(activity.images), index => editActivity(dayIndex, activityIndex, current => ({ ...current, images: photoList(current.images).filter((_, i) => i !== index) })))}
@@ -205,7 +423,7 @@ export function ReservationInlineEditor(p: Props) {
                     {!libraryLoading && !libraryError && <QuoteSpotSelector spots={libraries.spots} categories={libraries.spot_cats}
                         selected={(draft.highlights || []).map(spot => spot.name)} disabled={locked} onToggle={toggleSpot} />}
                 </div>
-            </> : <div className="ri-contract"><h3>여행 계약 조건</h3><p className="ri-library-note">현재 문서의 원문을 확인하고 필요한 내용을 수정하세요.</p><label className="ri-field"><span>계약서 서문</span><textarea rows={4} value={contract.intro} onChange={e => editContract('intro', e.target.value)} /></label><div className="ri-contract-fields"><label className="ri-field"><span>지급 방법</span><input value={contract.paymentMethod} onChange={e => editContract('paymentMethod', e.target.value)} /></label><label className="ri-field"><span>지급 기한</span><input value={contract.paymentDeadline} onChange={e => editContract('paymentDeadline', e.target.value)} /></label><label className="ri-field"><span>포함 사항</span><textarea rows={4} value={contract.includedText} onChange={e => editContract('includedText', e.target.value)} /></label><label className="ri-field"><span>불포함 사항</span><textarea rows={4} value={contract.excludedText} onChange={e => editContract('excludedText', e.target.value)} /></label></div><div className="ri-small-heading"><h4>취소 규정</h4><button type="button" onClick={() => editContract('cancellationRows', [...contract.cancellationRows, { period: '', fee: '' }])}>＋ 규정 행 추가</button></div>{contract.cancellationRows.map((row, index) => <div className="ri-cancellation-row" key={index}><label className="ri-field"><span>취소 시점</span><input value={row.period} onChange={e => editContract('cancellationRows', contract.cancellationRows.map((item, i) => i === index ? { ...item, period: e.target.value } : item))} /></label><label className="ri-field"><span>취소 요금</span><input value={row.fee} onChange={e => editContract('cancellationRows', contract.cancellationRows.map((item, i) => i === index ? { ...item, fee: e.target.value } : item))} /></label><button type="button" className="ri-remove" onClick={() => editContract('cancellationRows', contract.cancellationRows.filter((_, i) => i !== index))}>삭제</button></div>)}<label className="ri-field"><span>동의 문구</span><textarea rows={3} value={contract.signatureNote} onChange={e => editContract('signatureNote', e.target.value)} /></label></div>}
+            </> : <div className="ri-contract"><h3>여행 계약 조건</h3><p className="ri-library-note">현재 문서의 원문을 확인하고 필요한 내용을 수정하세요.</p><label className="ri-field"><span>계약서 서문</span><textarea rows={4} value={contract.intro || ''} onChange={e => editContract('intro', e.target.value)} /></label><div className="ri-contract-fields"><label className="ri-field"><span>지급 방법</span><input value={contract.paymentMethod || ''} onChange={e => editContract('paymentMethod', e.target.value)} /></label><label className="ri-field"><span>지급 기한</span><input value={contract.paymentDeadline || ''} onChange={e => editContract('paymentDeadline', e.target.value)} /></label><label className="ri-field"><span>포함 사항</span><textarea rows={4} value={contract.includedText || ''} onChange={e => editContract('includedText', e.target.value)} /></label><label className="ri-field"><span>불포함 사항</span><textarea rows={4} value={contract.excludedText || ''} onChange={e => editContract('excludedText', e.target.value)} /></label></div><div className="ri-small-heading"><h4>취소 규정</h4><button type="button" onClick={() => editContract('cancellationRows', [...(contract.cancellationRows || []), { period: '', fee: '' }])}>＋ 규정 행 추가</button></div>{(contract.cancellationRows || []).map((row, index) => <div className="ri-cancellation-row" key={index}><label className="ri-field"><span>취소 시점</span><input value={row.period} onChange={e => editContract('cancellationRows', (contract.cancellationRows || []).map((item, i) => i === index ? { ...item, period: e.target.value } : item))} /></label><label className="ri-field"><span>취소 요금</span><input value={row.fee} onChange={e => editContract('cancellationRows', (contract.cancellationRows || []).map((item, i) => i === index ? { ...item, fee: e.target.value } : item))} /></label><button type="button" className="ri-remove" onClick={() => editContract('cancellationRows', (contract.cancellationRows || []).filter((_, i) => i !== index))}>삭제</button></div>)}<label className="ri-field"><span>동의 문구</span><textarea rows={3} value={contract.signatureNote || ''} onChange={e => editContract('signatureNote', e.target.value)} /></label></div>}
         </fieldset>
         <div className="ri-savebar"><span className={noticeFailed ? 'ri-save-error' : ''} role={noticeFailed ? 'alert' : 'status'}>{uploading ? '사진 업로드 중입니다…' : saving ? '문서를 저장하고 있습니다…' : notice || (dirty ? '변경사항을 저장하세요.' : '현재 예약의 문서를 편집합니다.')}</span><button type="submit" className="btn btn-ink" disabled={locked}>{saving ? '저장 중…' : activeMode === 'contract' ? '계약 조건 저장' : '일정 저장'}</button></div>
         </form>

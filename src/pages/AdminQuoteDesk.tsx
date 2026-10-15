@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
+import { AdminDeliveryHistory } from '../components/admin/AdminDeliveryHistory';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import {
@@ -26,33 +28,103 @@ import {
 type Phase = 'connecting' | 'linked' | 'unset' | 'failed';
 
 export const AdminQuoteDesk: React.FC = () => {
+    const { user } = useUser();
+    const accountId = user?.role === 'admin' ? user.id : '';
+    const activeAccount = useRef(accountId); activeAccount.current = accountId;
     const { tool: toolParam } = useParams<{ tool?: string }>();
     const [searchParams] = useSearchParams();
-    const bookingId = ['bookings', 'inbox'].includes(toolParam || '') ? searchParams.get('id') || undefined : undefined;
+    const bookingId = ['bookings', 'inbox', 'builder'].includes(toolParam || '') ? searchParams.get('id') || undefined : undefined;
+    const quoteEditorId = toolParam === 'inbox' ? searchParams.get('qe') || undefined : undefined;
     const navigate = useNavigate();
     const tool = findQuoteDeskTool(toolParam);
 
     const [phase, setPhase] = useState<Phase>('connecting');
+    const [linkedAccount, setLinkedAccount] = useState('');
+    const linked = phase === 'linked' && linkedAccount === accountId && !!accountId;
+    const connectionRequest = useRef(0);
+    const connectController = useRef<AbortController | null>(null);
     // seq 가 바뀌면 iframe 을 새로 만든다(같은 주소를 다시 불러와야 할 때).
-    const [frame, setFrame] = useState(() => ({ src: quoteDeskFrameSrc(tool, bookingId), seq: 0 }));
+    const [frame, setFrame] = useState(() => ({ src: quoteDeskFrameSrc(tool, bookingId, quoteEditorId), seq: 0 }));
     const [frameLoading, setFrameLoading] = useState(true);
     const frameRef = useRef<HTMLIFrameElement>(null);
     // 안쪽 화면이 스스로 옮겨 간 메뉴. 이때는 주소만 맞추고 iframe 은 다시 불러오지 않는다.
     const followedKeyRef = useRef<string | null>(null);
-    const frameKey = `${tool.key}:${bookingId || ''}`;
+    const followedHrefRef = useRef('');
+    const frameKey = `${tool.key}:${bookingId || ''}:${quoteEditorId || ''}`;
     const shownKeyRef = useRef(frameKey);
+    const [editorNotice, setEditorNotice] = useState('');
+    const [showDeliveries, setShowDeliveries] = useState(false);
+    const blockedReason = useRef({ busy: false, error: '' });
+    const handledAttempt = useRef('');
+    const syncFrameLocation = useRef<() => void>(() => {});
+    type EditorWindow = Window & { QuoteEditorState?: {
+        getState: () => { dirty: boolean; busy: boolean; error?: string };
+        flushAll: () => { ok: boolean; dirty?: boolean; busy: boolean; error?: string };
+        approveLeaveOnce?: () => void;
+    } };
+    const flushFrame = useCallback(() => {
+        try {
+            const inner = frameRef.current?.contentWindow as EditorWindow | null;
+            if (!inner || inner.location.origin !== window.location.origin) return { ok: true, busy: false };
+            return inner.QuoteEditorState?.flushAll() || { ok: true, busy: false };
+        } catch { return { ok: false, busy: false, error: '견적 편집 상태를 확인하지 못했습니다. 내용을 저장한 뒤 이동해 주세요.' }; }
+    }, []);
+    const sendAccount = useCallback(() => {
+        frameRef.current?.contentWindow?.postMessage({ type: 'inhasu-editor-account', version: 1,
+            userId: user?.role === 'admin' ? user.id : '' }, window.location.origin);
+    }, [user?.id, user?.role]);
+    useEffect(() => {
+        sendAccount();
+        const receive = (event: MessageEvent) => {
+            if (event.origin !== window.location.origin || event.source !== frameRef.current?.contentWindow) return;
+            if (event.data?.type === 'inhasu-editor-ready' && event.data.version === 1) sendAccount();
+            if (event.data?.type === 'inhasu-editor-state' && event.data.version === 1) {
+                if (!event.data.busy && !event.data.error) setEditorNotice('');
+                syncFrameLocation.current();
+            }
+        };
+        window.addEventListener('message', receive);
+        return () => window.removeEventListener('message', receive);
+    }, [sendAccount]);
+    const blocker = useBlocker(useCallback(({ currentLocation, nextLocation }) => {
+        if (currentLocation.pathname === nextLocation.pathname && currentLocation.search === nextLocation.search) return false;
+        if (followedKeyRef.current && nextLocation.pathname + nextLocation.search === followedHrefRef.current) return false; // Same child document, only synchronizing its address.
+        const result = flushFrame();
+        blockedReason.current = { busy: result.busy, error: result.error || '초안을 보관하지 못했습니다.' };
+        return result.busy || !result.ok;
+    }, [flushFrame]));
+    useEffect(() => {
+        if (blocker.state === 'unblocked') { handledAttempt.current = ''; return; }
+        if (blocker.state !== 'blocked' || handledAttempt.current === blocker.location.key) return;
+        handledAttempt.current = blocker.location.key;
+        if (blockedReason.current.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 이동해 주세요.'); blocker.reset(); }
+        else if (window.confirm(blockedReason.current.error + '\n\n초안을 보관하지 못한 상태로 이동할까요?')) blocker.proceed();
+        else blocker.reset();
+    }, [blocker]);
+    useEffect(() => {
+        const unload = (event: BeforeUnloadEvent) => {
+            const result = flushFrame();
+            if (result.busy || !result.ok) { event.preventDefault(); event.returnValue = ''; }
+        };
+        window.addEventListener('beforeunload', unload);
+        return () => window.removeEventListener('beforeunload', unload);
+    }, [flushFrame]);
 
     // 1) 관리자 세션으로 견적 도구를 연결한다(sessionStorage 에 관리자 값 저장).
     const connect = useCallback(async () => {
+        const request = ++connectionRequest.current;
+        connectController.current?.abort();
+        const controller = new AbortController(); connectController.current = controller;
+        if (!accountId) return;
         setPhase('connecting');
         try {
-            const value = await connectQuoteDesk();
-            setPhase(value ? 'linked' : 'unset');
+            const value = await connectQuoteDesk({ accountId, signal: controller.signal, isCurrent: () => activeAccount.current === accountId });
+            if (!controller.signal.aborted && request === connectionRequest.current && activeAccount.current === accountId) { setLinkedAccount(accountId); setPhase(value ? 'linked' : 'unset'); }
         } catch {
-            setPhase('failed');
+            if (!controller.signal.aborted && request === connectionRequest.current && activeAccount.current === accountId) setPhase('failed');
         }
-    }, []);
-    useEffect(() => { void connect(); }, [connect]);
+    }, [accountId]);
+    useEffect(() => { void connect(); return () => { connectionRequest.current++; connectController.current?.abort(); }; }, [connect]);
 
     // 2) 주소의 메뉴가 바뀌면(관리자 메뉴에서 다른 화면을 고르면) 그 문서를 불러온다.
     useEffect(() => {
@@ -60,9 +132,10 @@ export const AdminQuoteDesk: React.FC = () => {
         shownKeyRef.current = frameKey;
         if (followedKeyRef.current === tool.key) {
             followedKeyRef.current = null;
+            followedHrefRef.current = '';
             return;
         }
-        setFrame((prev) => ({ src: quoteDeskFrameSrc(tool, bookingId), seq: prev.seq + 1 }));
+        setFrame((prev) => ({ src: quoteDeskFrameSrc(tool, bookingId, quoteEditorId), seq: prev.seq + 1 }));
         setFrameLoading(true);
         // tool 은 tool.key 로 정해진다.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,9 +144,12 @@ export const AdminQuoteDesk: React.FC = () => {
     // 3) 안쪽 화면이 다른 견적 화면으로 넘어가면(예: 문의 → 견적서 만들기) 메뉴 표시와 주소를 맞춘다.
     const handleFrameLoad = () => {
         setFrameLoading(false);
-        let path = '';
+        sendAccount();
+        let path = '', innerId = '', innerEditor = '';
         try {
             path = frameRef.current?.contentWindow?.location.pathname ?? '';
+            innerId = new URLSearchParams(frameRef.current?.contentWindow?.location.search).get('id') || '';
+            innerEditor = new URLSearchParams(frameRef.current?.contentWindow?.location.search).get('qe') || '';
         } catch {
             return; // 다른 출처로 나간 경우 — 읽을 수 없으니 그대로 둔다
         }
@@ -81,7 +157,7 @@ export const AdminQuoteDesk: React.FC = () => {
         if (!current) return;
 
         // 바깥 창은 데스크톱 폭인데 안쪽(더 좁은 iframe)이 모바일 관리자로 넘어갔으면 데스크톱 화면으로 되돌린다.
-        if (current.mobileDoc && normalizeDocPath(path) === current.mobileDoc && isDesktopViewport()) {
+        if (current.mobileDoc && normalizeDocPath(path) === current.mobileDoc && isDesktopViewport() && !innerEditor) {
             try {
                 frameRef.current?.contentWindow?.location.replace(`${current.doc}?m=0`);
                 setFrameLoading(true);
@@ -89,14 +165,22 @@ export const AdminQuoteDesk: React.FC = () => {
             return;
         }
 
-        if (current.key !== tool.key) {
+        const detailId = (current.key === 'bookings' && normalizeDocPath(path) === '/예약관리') || current.key === 'builder' ? innerId : '';
+        const editorId = current.key === 'inbox' ? innerEditor : '';
+        if (current.key !== tool.key || (['bookings', 'builder'].includes(current.key) && detailId !== (bookingId || '')) || editorId !== (quoteEditorId || '')) {
             followedKeyRef.current = current.key;
-            navigate(quoteDeskHref(current.key), { replace: true });
+            followedHrefRef.current = quoteDeskHref(current.key) + (detailId ? `?id=${encodeURIComponent(detailId)}` : editorId ? `?qe=${encodeURIComponent(editorId)}` : '');
+            navigate(followedHrefRef.current, { replace: true });
         }
     };
+    syncFrameLocation.current = handleFrameLoad;
 
     // 안쪽 화면만 새로고침한다(안쪽 화면의 자체 새로고침 버튼은 메뉴와 함께 숨겨져 있다).
     const reloadFrame = () => {
+        const result = flushFrame();
+        if (result.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 새로고침해 주세요.'); return; }
+        if (!result.ok && !window.confirm((result.error || '초안을 보관하지 못했습니다.') + '\n\n초안을 보관하지 못한 상태로 새로고침할까요?')) return;
+        if (!result.ok) (frameRef.current?.contentWindow as EditorWindow | null)?.QuoteEditorState?.approveLeaveOnce?.();
         setFrameLoading(true);
         try {
             const inner = frameRef.current?.contentWindow;
@@ -111,7 +195,7 @@ export const AdminQuoteDesk: React.FC = () => {
     // 새 창으로 열기: 지금 안쪽에 떠 있는 화면을 단독으로 연다.
     // noopener 를 붙이지 않는다 — 새 창이 이 탭의 sessionStorage(관리자 값)를 이어받아야 자체 로그인 화면이 뜨지 않는다.
     const openStandalone = () => {
-        let url = quoteDeskFrameSrc(tool, bookingId);
+        let url = quoteDeskFrameSrc(tool, bookingId, quoteEditorId);
         try {
             const inner = frameRef.current?.contentWindow?.location;
             if (inner && inner.origin === window.location.origin) url = `${inner.pathname}${inner.search}`;
@@ -136,18 +220,20 @@ export const AdminQuoteDesk: React.FC = () => {
                     <button type="button" className="btn btn-ghost" onClick={() => navigate('/admin/reservations?type=quote_booking')}>
                         <Icon name="arrow_back" />통합 예약 목록
                     </button>
-                    {phase === 'linked' && (
+                    {linked && (
                         <button type="button" className="btn btn-ghost" onClick={reloadFrame}>
                             <Icon name="refresh" />새로고침
                         </button>
                     )}
+                    {linked && tool.key === 'bookings' && bookingId && <button type="button" className="btn btn-ghost" onClick={() => setShowDeliveries(v => !v)}>발송 이력</button>}
                     <button type="button" className="btn btn-ghost" onClick={openStandalone}>
                         <Icon name="open_in_new" />새 창으로 열기
                     </button>
                 </>
             }
         >
-            {phase === 'linked' ? (
+            {editorNotice && <div role="status" style={{ padding: '12px 20px', background: '#fff5e8', color: '#80521b' }}>{editorNotice}</div>}
+            {linked ? (
                 <div style={{ position: 'relative', flex: 1, minHeight: 0, background: '#fff' }}>
                     <iframe
                         key={frame.seq}
@@ -157,6 +243,18 @@ export const AdminQuoteDesk: React.FC = () => {
                         onLoad={handleFrameLoad}
                         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, display: 'block' }}
                     />
+                    {showDeliveries && tool.key === 'bookings' && bookingId && <aside className="quote-delivery-panel" aria-label="견적 예약 발송 이력">
+                        <button type="button" onClick={() => setShowDeliveries(false)}>이력 닫기</button>
+                        <AdminDeliveryHistory source="quote_booking" bookingId={bookingId} onOpenDocument={kind => {
+                            setShowDeliveries(false);
+                            try {
+                                const doc = frameRef.current?.contentDocument;
+                                const target = doc?.getElementById(kind === 'contract' ? 'requestContract' : kind === 'travel_notice' ? 'sendTravelNotice' : 'publishBtn') || doc?.querySelector('.action-bar');
+                                target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                (target as HTMLElement | null)?.focus();
+                            } catch { setEditorNotice('현재 예약 화면의 문서 발송 버튼에서 내용을 확인해 주세요.'); }
+                        }} />
+                    </aside>}
                     {frameLoading && (
                         <div
                             role="status"

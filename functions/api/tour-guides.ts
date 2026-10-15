@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
 import { requireAdmin } from '../lib/adminAuth';
 import { BRAND } from '../../src/constants/company';
+import { sendEmail } from '../lib/mailer';
 
 interface Env {
     DB: any;
     RESEND_API_KEY: string;
+    MAIL_FROM?: string;
     ADMIN_EMAIL: string;
 }
 
@@ -57,25 +59,18 @@ app.post('/apply', async (c) => {
         // Admin notification email
         if (c.env.RESEND_API_KEY) {
             const adminEmail = c.env.ADMIN_EMAIL || 'arvijixmeat@gmail.com';
-            await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${c.env.RESEND_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    // 발신 주소는 Resend 인증 도메인이라 그대로 둔다(표시 이름만 브랜드명).
-                    from: `${BRAND.name} <noreply@mongolryokou.com>`,
-                    to: [adminEmail],
-                    subject: `[가이드 지원] ${String(data.name).slice(0, 80)} 님`,
-                    html: `<p>새 가이드 지원서가 접수되었습니다.</p>
+            await sendEmail(
+                c.env.RESEND_API_KEY,
+                adminEmail,
+                `[가이드 지원] ${String(data.name).slice(0, 80)} 님`,
+                `<p>새 가이드 지원서가 접수되었습니다.</p>
                            <p><strong>이름:</strong> ${escapeHtml(data.name)}</p>
                            <p><strong>전화:</strong> ${escapeHtml(data.phone)}</p>
                            <p><strong>언어:</strong> ${escapeHtml(joinList(data.languages))}</p>
                            <p><strong>전문 분야:</strong> ${escapeHtml(joinList(data.specialties))}</p>
                            <p><a href="${BRAND.siteUrl}/admin/guides">관리 화면에서 확인하기</a></p>`,
-                }),
-            }).catch(() => {});
+                { env: c.env },
+            ).catch(() => {});
         }
 
         return c.json({ success: true, id });

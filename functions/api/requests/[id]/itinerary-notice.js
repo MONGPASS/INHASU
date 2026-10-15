@@ -2,6 +2,7 @@
    per booking/key before contacting Solapi. An uncertain response must not be retried
    with a new key: inspect the provider result first. Booking stages are never changed. */
 import { canSendKakao, quoteTemplateId, itineraryNoticePayload, listKakaoTemplates, notifyCustomerItineraryReady } from "../../_solapi.js";
+import { trackedDelivery } from '../../../lib/adminDelivery.ts';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
@@ -76,11 +77,11 @@ export async function onRequestPost({ request, env, params }) {
     const previous = await env.DB.prepare("SELECT state, result FROM itinerary_notice_dispatches WHERE request_id = ? AND dispatch_key = ?").bind(params.id, input.idempotencyKey).first();
     return json({ ok: previous?.state === "accepted", duplicate: true, state: previous?.state || "unknown", result: previous?.result ? JSON.parse(previous.result) : null });
   }
-  let result;
-  try { result = await notifyCustomerItineraryReady(env, rec); }
-  catch { result = { ok: false, error: "Provider outcome unknown; inspect Solapi before any further attempt" }; }
+  const delivery = await trackedDelivery(env.DB, { source:'quote_booking', bookingId:params.id, kind:'itinerary', channel:'kakao',
+      key:input.idempotencyKey, legacyNoticeKey:input.idempotencyKey }, () => notifyCustomerItineraryReady(env, rec));
+  const result = { ok:delivery.ok, ...(delivery.providerId ? { groupId:delivery.providerId } : {}), ...(delivery.error ? { error:delivery.error } : {}) };
   // HTTP acceptance is not proof of delivery; return the provider receipt for review.
-  const state = result.ok ? "accepted" : "unknown";
+  const state = result.ok ? "accepted" : delivery.duplicate || delivery.state === 'failed' ? 'failed' : "unknown";
   await env.DB.prepare("UPDATE itinerary_notice_dispatches SET state = ?, result = ? WHERE request_id = ? AND dispatch_key = ?").bind(state, JSON.stringify(result), params.id, input.idempotencyKey).run();
   return json({ ok: !!result.ok, state, result }, result.ok ? 200 : 502);
 }

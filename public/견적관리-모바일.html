@@ -236,6 +236,7 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 .z50 { z-index: 50; } .z52 { z-index: 52; } .z55 { z-index: 55; } .z56 { z-index: 56; } .z58 { z-index: 58; } .z59 { z-index: 59; } .z60 { z-index: 60; }
 </style>
 <script src="/admin-embed.js"></script>
+<script src="/quote-editor-state.js"></script>
 </head>
 <body>
 
@@ -291,6 +292,7 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
    ═══════════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const jsArg = s => window.QuoteEditorState.jsArgument(s);
 const noBr = s => String(s || "").replace(/<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "");
 const won = n => (Number(n) || 0).toLocaleString("ko-KR") + "원";
 const dateOnly = iso => String(iso || "").slice(0, 10);
@@ -576,6 +578,11 @@ function renderTabbar() {
   }).join("");
 }
 App.tabTo = key => {
+  if (key === 'quote' && S.page === 'quote' && QE) return;
+  if (S.page === 'quote' && QE && key !== 'quote') {
+    if (qeEditorOpening || !qeRecovery?.close()) return;
+    qeRecovery = null; QE = null; clearQuoteEditorUrl();
+  }
   if (key === "more") { S.sheet = true; renderOverlays(); return; }
   if (key === "quote") { openQuoteEditor(null); return; }
   S.tab = key; S.page = null; S.sheet = false;
@@ -588,7 +595,12 @@ App.dlgAnswer = ok => {
   DIALOG = null; renderDialog();
   d.resolve(answer);
 };
-App.logout = async () => { if (!await appConfirm("로그아웃할까요?")) return; logout(); };
+App.logout = async () => {
+  if (qeEditorOpening || qeRecovery?.isBusy()) return toast('진행 중인 작업이 끝난 뒤 로그아웃해 주세요.');
+  if (!await appConfirm("로그아웃할까요?")) return;
+  if (qeEditorOpening || qeRecovery?.isBusy() || (qeRecovery && !qeRecovery.close())) return;
+  qeRecovery = null; QE = null; S.page = null; clearQuoteEditorUrl(); logout();
+};
 App.openDrawer = () => { S.drawer = true; renderOverlays(); };
 App.closeDrawer = () => { S.drawer = false; renderOverlays(); };
 App.closeSheet = () => { S.sheet = false; renderOverlays(); };
@@ -644,7 +656,7 @@ function viewDash() {
   const st = calcStats();
   const alerts = RECORDS.map(r => ({ r, act: nextAction(r) })).filter(x => x.act);
   const alertRows = alerts.slice(0, 8).map(x => `
-    <button type="button" class="alert-row" onclick="App.openAlert('${esc(x.r.id)}')">
+    <button type="button" class="alert-row" onclick="App.openAlert(${jsArg(x.r.id)})">
       <span class="tx"><b>${esc(x.r.name || "고객")}${x.r.destination ? " · " + esc(x.r.destination) : ""} · ${esc(x.act.label)}</b><span>${esc(x.act.detail)}</span></span>
       <span class="go">확인 ${icon("chevron_right", 16)}</span>
     </button>`).join("");
@@ -720,7 +732,7 @@ function viewList() {
     const st = r.status || "신규";
     const rest = String(r.request || "").trim();
     return `
-    <div class="inq-card" onclick="App.openInquiry('${esc(r.id)}')">
+    <div class="inq-card" onclick="App.openInquiry(${jsArg(r.id)})">
       <div class="r1">
         <b>${esc(r.name || "이름 없음")}</b>
         ${r.phone ? `<span class="ph">${esc(r.phone)}</span>` : ""}
@@ -824,7 +836,7 @@ function inquirySheet(r) {
   const flightTxt = r.flightIssued === "발권 완료" || /완료/.test(r.flightIssued || "")
     ? `발권 완료${r.flightIn ? " · IN " + esc(r.flightIn) : ""}${r.flightOut ? " · OUT " + esc(r.flightOut) : ""}`
     : `${esc(r.flightIssued || "미발행")} · 견적서에 미정으로 표시`;
-  const chips = STATUSES.map(s => `<button type="button" class="chip ${s === st ? "on" : ""}" onclick="App.setStatus('${esc(r.id)}','${s}')">${s}</button>`).join("");
+  const chips = STATUSES.map(s => `<button type="button" class="chip ${s === st ? "on" : ""}" onclick="App.setStatus(${jsArg(r.id)},'${s}')">${s}</button>`).join("");
   const quoteBox = r.quote ? `
     <div style="display:flex; flex-direction:column; gap:10px; padding:16px 14px; border-radius:14px; background:var(--brand-bg2);">
       <span style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:bold; color:var(--brand-deep);">
@@ -832,10 +844,10 @@ function inquirySheet(r) {
         견적서 발행됨${r.quoteExpiresAt ? " · 유효기간 " + dotDate(r.quoteExpiresAt) : ""}
       </span>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-        <button type="button" class="btn" style="height:40px; border-color:#bfe9de; color:var(--brand-deep); font-size:12px;" onclick="App.inqQuoteView('${esc(r.id)}')">견적서 보기</button>
-        <button type="button" class="btn" style="height:40px; border-color:#bfe9de; color:var(--brand-deep); font-size:12px;" onclick="App.inqCopyLink('${esc(r.id)}')">고객 링크 복사</button>
-        <button type="button" class="btn" style="height:40px; border-color:#bfe9de; color:var(--brand-deep); font-size:12px;" onclick="App.inqExtend('${esc(r.id)}')">유효기간 7일 연장</button>
-        <button type="button" class="btn" style="height:40px; border-color:#bfe9de; color:var(--brand-deep); font-size:12px;" onclick="App.inqRotate('${esc(r.id)}')">고객 링크 재발급</button>
+        <button type="button" class="btn" style="height:40px; border-color:#bfe9de; color:var(--brand-deep); font-size:12px;" onclick="App.inqQuoteView(${jsArg(r.id)})">견적서 보기</button>
+        <button type="button" class="btn" style="height:40px; border-color:#bfe9de; color:var(--brand-deep); font-size:12px;" onclick="App.inqCopyLink(${jsArg(r.id)})">고객 링크 복사</button>
+        <button type="button" class="btn" style="height:40px; border-color:#bfe9de; color:var(--brand-deep); font-size:12px;" onclick="App.inqExtend(${jsArg(r.id)})">유효기간 7일 연장</button>
+        <button type="button" class="btn" style="height:40px; border-color:#bfe9de; color:var(--brand-deep); font-size:12px;" onclick="App.inqRotate(${jsArg(r.id)})">고객 링크 재발급</button>
       </div>
     </div>` : "";
   const actBox = act ? `
@@ -845,7 +857,7 @@ function inquirySheet(r) {
         <span style="font-size:15px; font-weight:bold; color:var(--brand-deep);">${esc(act.label)}</span>
         <span style="font-size:12px; line-height:150%; color:var(--g700);">${esc(act.detail)}</span>
       </span>
-      <button type="button" class="btn line-mint" style="flex:none; height:40px; font-size:12px;" onclick="App.inqOpenBooking('${esc(r.id)}')">예약관리 열기</button>
+      <button type="button" class="btn line-mint" style="flex:none; height:40px; font-size:12px;" onclick="App.inqOpenBooking(${jsArg(r.id)})">예약관리 열기</button>
     </div>` : "";
   return `
   <div class="dim z44" onclick="App.closeInquiry()"></div>
@@ -876,7 +888,7 @@ function inquirySheet(r) {
         </div>`).join("") || `<p class="empty" style="padding:14px 0;">기록이 아직 없어요</p>`}
         <div style="display:flex; align-items:center; gap:8px; padding-top:10px;">
           ${skipped ? `<span style="display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:8px; background:var(--y50); font-size:12px; font-weight:bold; color:var(--y800);">알림톡 미발송 ${skipped}건</span>` : ""}
-          <button type="button" style="margin-left:auto; display:inline-flex; align-items:center; gap:2px; border:none; background:transparent; font-size:12px; font-weight:bold; color:var(--brand-deep);" onclick="App.openTimeline('${esc(r.id)}')">전체 ${tl.length}건 보기 ${icon("chevron_right", 14)}</button>
+          <button type="button" style="margin-left:auto; display:inline-flex; align-items:center; gap:2px; border:none; background:transparent; font-size:12px; font-weight:bold; color:var(--brand-deep);" onclick="App.openTimeline(${jsArg(r.id)})">전체 ${tl.length}건 보기 ${icon("chevron_right", 14)}</button>
         </div>
       </div>
       <div style="display:flex; flex-direction:column; gap:10px; padding:16px 14px; border:1px solid var(--g200); border-radius:14px; background:#fff;">
@@ -894,19 +906,19 @@ function inquirySheet(r) {
         <span style="font-size:15px; font-weight:bold;">요청 내용 · 상담 메모</span>
         ${r.request ? `<p style="margin:0; padding:12px 14px; border-radius:10px; background:var(--g50); font-size:13px; line-height:165%; color:var(--g800);">${esc(r.request)}</p>` : ""}
         <textarea id="inqMemo" rows="2" placeholder="예: 7/2 통화, 홉스골 추가 원함" style="padding:12px 14px; border:1px solid var(--g300); border-radius:10px; font-size:13px; line-height:150%; resize:vertical;">${esc(r.memo || "")}</textarea>
-        <button type="button" class="btn line-mint" style="height:40px;" onclick="App.saveMemo('${esc(r.id)}')">메모 저장</button>
+        <button type="button" class="btn line-mint" style="height:40px;" onclick="App.saveMemo(${jsArg(r.id)})">메모 저장</button>
       </div>
       ${quoteBox}
       ${r.quote && !isAccepted(r) && st !== "예약확정" ? `
       <div style="display:flex; flex-direction:column; gap:12px; padding:16px 14px; border:1px solid #d9eee9; border-radius:14px; background:var(--brand-bg2);">
         <span style="font-size:13px; font-weight:bold; line-height:150%; color:var(--brand-deep);">💬 고객이 카톡·전화로 "예약 진행할게요" 하면 여기서 기록하세요</span>
-        <button type="button" class="btn line-mint" style="width:100%; height:48px; font-size:14px;" onclick="App.inqRecordAccept('${esc(r.id)}')">✅ 예약 진행 기록</button>
+        <button type="button" class="btn line-mint" style="width:100%; height:48px; font-size:14px;" onclick="App.inqRecordAccept(${jsArg(r.id)})">✅ 예약 진행 기록</button>
       </div>` : ""}
     </div>
     <div class="sheet-foot" style="display:grid; grid-template-columns:52px 1fr 1.4fr; gap:8px;">
-      <button type="button" class="btn" style="height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center;" onclick="App.delInquiry('${esc(r.id)}')">${icon("trash", 18)}</button>
-      <button type="button" class="btn line-mint" style="height:48px; border-radius:10px; font-size:14px;" onclick="App.copyInfo('${esc(r.id)}')">정보 복사</button>
-      <button type="button" class="btn mint" style="height:48px; border-radius:10px; font-size:15px;" onclick="App.editQuote('${esc(r.id)}')">${r.quote ? "견적서 수정" : "견적서 만들기"}</button>
+      <button type="button" class="btn" style="height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center;" onclick="App.delInquiry(${jsArg(r.id)})">${icon("trash", 18)}</button>
+      <button type="button" class="btn line-mint" style="height:48px; border-radius:10px; font-size:14px;" onclick="App.copyInfo(${jsArg(r.id)})">정보 복사</button>
+      <button type="button" class="btn mint" style="height:48px; border-radius:10px; font-size:15px;" onclick="App.editQuote(${jsArg(r.id)})">${r.quote ? "견적서 수정" : "견적서 만들기"}</button>
     </div>
   </div>`;
 }
@@ -1154,7 +1166,7 @@ function bookingCard(r) {
       <span style="font-size:12px; color:var(--g600);">${esc(nightsTx)} · ${esc(r.destination || "-")} · 예약일 ${dateOnly(bk.confirmedAt) || dateOnly(r.receivedAt)}</span>
     </div>
     <div style="display:flex; gap:8px;">
-      ${["배정", "결제", "진행"].map(t => `<button type="button" class="cardtab ${t === tab ? "on" : ""}" onclick="App.cardTab('${esc(r.id)}','${t}')">${t}</button>`).join("")}
+      ${["배정", "결제", "진행"].map(t => `<button type="button" class="cardtab ${t === tab ? "on" : ""}" onclick="App.cardTab(${jsArg(r.id)},'${t}')">${t}</button>`).join("")}
     </div>
     ${tab === "배정" ? `
     <div style="display:flex; flex-direction:column; gap:10px;">
@@ -1174,7 +1186,7 @@ function bookingCard(r) {
       ${ci.totalAmount ? `<div style="display:flex; gap:8px;"><span style="width:40px; color:var(--g600);">총액</span><span style="font-weight:bold;">${won(ci.totalAmount)}</span></div>` : ""}
     </div>` : ""}
     ${tab === "진행" && last ? `
-    <button type="button" style="display:flex; align-items:flex-start; gap:8px; width:100%; padding:10px 12px; border:1px solid var(--g200); border-radius:8px; background:#fff; text-align:left;" onclick="App.openTimeline('${esc(r.id)}')">
+    <button type="button" style="display:flex; align-items:flex-start; gap:8px; width:100%; padding:10px 12px; border:1px solid var(--g200); border-radius:8px; background:#fff; text-align:left;" onclick="App.openTimeline(${jsArg(r.id)})">
       <span style="margin-top:5px; width:6px; height:6px; flex:none; border-radius:999px; background:${/미발송|실패/.test(last.label) ? "var(--danger)" : "var(--brand-deep)"};"></span>
       <span style="flex:1; display:flex; flex-direction:column; gap:2px; min-width:0;">
         <span style="font-size:13px; font-weight:bold; color:${/미발송|실패/.test(last.label) ? "var(--danger)" : "var(--brand-deep)"};">${esc(last.label)}</span>
@@ -1183,18 +1195,18 @@ function bookingCard(r) {
       <span style="flex:none; display:flex; align-items:center; gap:2px; margin-top:2px; font-size:12px; color:var(--g600);">타임라인 ${icon("chevron_right", 14)}</span>
     </button>` : ""}
     <div style="display:flex; flex-direction:column; gap:8px;">
-      <button type="button" class="btn mint" style="height:44px; font-size:14px;" onclick="App.openAssign('${esc(r.id)}')">배정 관리</button>
-      <button type="button" class="btn" style="height:40px; font-size:13px;" onclick="App.itineraryNotice('${esc(r.id)}')">확정일정표 알림</button>
+      <button type="button" class="btn mint" style="height:44px; font-size:14px;" onclick="App.openAssign(${jsArg(r.id)})">배정 관리</button>
+      <button type="button" class="btn" style="height:40px; font-size:13px;" onclick="App.itineraryNotice(${jsArg(r.id)})">확정일정표 알림</button>
       <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
-        <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docSchedule('${esc(r.id)}')">일정표</button>
-        <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docContract('${esc(r.id)}')">${signed ? "서명 원본" : "계약서"}</button>
-        <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docGuideSheet('${esc(r.id)}')">가이드 시트 PDF</button>
+        <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docSchedule(${jsArg(r.id)})">일정표</button>
+        <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docContract(${jsArg(r.id)})">${signed ? "서명 원본" : "계약서"}</button>
+        <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docGuideSheet(${jsArg(r.id)})">가이드 시트 PDF</button>
       </div>
     </div>
   </div>`;
   return `
   <article style="display:flex; flex-direction:column; border-top:1px solid var(--g200);">
-    <button type="button" class="bk-head ${open ? "open" : ""}" onclick="App.toggleBk('${esc(r.id)}')">
+    <button type="button" class="bk-head ${open ? "open" : ""}" onclick="App.toggleBk(${jsArg(r.id)})">
       <span class="l1">
         <span class="nm">${esc(r.name || "이름 없음")}</span>
         <span class="pill" style="flex:none;">${paxTotal(r) || "?"}명</span>
@@ -1278,11 +1290,11 @@ function assignScreen(r) {
   const sec = S.assignSection;
   const meta = `${rowDays(r)} · ${r.depart ? r.depart + " ~ " + r.return_ : "일정 미정"} · ${paxTotal(r) || "?"}명 · ${esc(r.status || "신규")}`;
   const docChips = [
-    ["확정일정표 알림", `App.itineraryNotice('${esc(r.id)}')`],
-    ["확정일정표", `App.docSchedule('${esc(r.id)}')`],
-    ["여행계약서", `App.docContract('${esc(r.id)}')`],
-    ["링크 복사", `App.docCopyLink('${esc(r.id)}')`],
-    ["가이드 시트 PDF", `App.docGuideSheet('${esc(r.id)}')`],
+    ["확정일정표 알림", `App.itineraryNotice(${jsArg(r.id)})`],
+    ["확정일정표", `App.docSchedule(${jsArg(r.id)})`],
+    ["여행계약서", `App.docContract(${jsArg(r.id)})`],
+    ["링크 복사", `App.docCopyLink(${jsArg(r.id)})`],
+    ["가이드 시트 PDF", `App.docGuideSheet(${jsArg(r.id)})`],
   ].map(([l, fn]) => `<button type="button" class="btn" style="flex:none; height:34px; font-size:12px;" onclick="${fn}">${l}</button>`).join("");
   const secTabs = ASSIGN_SECTIONS.map(s2 => `<button type="button" class="chip ${s2 === sec ? "on" : ""}" onclick="App.assignSection('${s2}')">${s2}</button>`).join("");
   const cta = assignCta(r, bk, wf);
@@ -1324,11 +1336,11 @@ function assignCta(r, bk, wf) {
   }
   if (!wf.signed) {
     if (!(bk.contractRequest && bk.contractRequest.status === "requested")) return { hint: "계약서 서명을 요청하세요", btn: `<button type="button" class="btn mint" style="flex:none; height:44px;" onclick="App.sendStage('contract')">계약서 요청</button>` };
-    return { hint: "고객 서명을 기다리는 중이에요", btn: `<button type="button" class="btn" style="flex:none; height:44px;" onclick="App.docContract('${esc(r.id)}')">계약서 보기</button>` };
+    return { hint: "고객 서명을 기다리는 중이에요", btn: `<button type="button" class="btn" style="flex:none; height:44px;" onclick="App.docContract(${jsArg(r.id)})">계약서 보기</button>` };
   }
   if (!wf.confirmed) return { hint: "예약을 최종 확정해 주세요", btn: `<button type="button" class="btn mint" style="flex:none; height:44px;" onclick="App.assignConfirm()">예약 확정하기</button>` };
   if (!wf.published) return { hint: "배정 완료 후 일정표를 공개하세요", btn: `<button type="button" class="btn mint" style="flex:none; height:44px;" onclick="App.assignPublish()">일정표 공개</button>` };
-  return { hint: "모든 단계가 완료됐어요", btn: `<button type="button" class="btn" style="flex:none; height:44px;" onclick="App.docSchedule('${esc(r.id)}')">일정표 보기</button>` };
+  return { hint: "모든 단계가 완료됐어요", btn: `<button type="button" class="btn" style="flex:none; height:44px;" onclick="App.docSchedule(${jsArg(r.id)})">일정표 보기</button>` };
 }
 
 /* ── 섹션: 진행 ── */
@@ -1535,7 +1547,7 @@ function secPlaces(bk) {
       </div>
       ${byRegion[rg].map(sp => {
         const idx = selected.indexOf(sp.name);
-        return `<button type="button" class="spot-btn ${idx >= 0 ? "on" : ""}" onclick="App.toggleHighlight('${esc(sp.name).replace(/'/g, "\\'")}')">
+        return `<button type="button" class="spot-btn ${idx >= 0 ? "on" : ""}" onclick="App.toggleHighlight(${jsArg(sp.name)})">
           <span class="box">${idx >= 0 ? "✓" : ""}</span>
           <span style="flex:1; display:flex; flex-direction:column; gap:2px; min-width:0;">
             <span style="font-size:13px; font-weight:bold;">${esc(sp.name)}</span>
@@ -1600,7 +1612,7 @@ function secAssignRes(bk, st) {
         ${Object.keys(guides).map(n => `<option value="${esc(n)}" ${n === g.name ? "selected" : ""}>${esc(n)}</option>`).join("")}
       </select>
       <div class="res-pick">
-        <span class="thumb" style="${g.img ? `background-image:url('${esc(g.img)}')` : ""}"></span>
+        <span class="thumb" style="${g.img ? `background-image:url(${jsArg(g.img)})` : ""}"></span>
         <span style="display:flex; flex-direction:column; gap:3px; min-width:0;">
           <span style="font-size:13px; font-weight:bold;">${esc(g.name || "가이드 미선택")}</span>
           <span style="font-size:11px; line-height:140%; color:var(--g600);">${g.name ? esc([g.nameEn, g.role].filter(Boolean).join(" · ") || "고객 확정안내에 이름·소개가 표시돼요") : "리소스를 선택하면 고객에게 보일 정보와 이미지 상태가 표시됩니다."}</span>
@@ -1784,14 +1796,14 @@ function secCheck(r, bk) {
       ${bk.contract.signImg ? `<img src="${esc(bk.contract.signImg)}" alt="서명" style="max-width:180px; max-height:70px;">` : `<span style="font-size:26px; font-family:cursive;">${esc(bk.contract.signerName || r.name || "")}</span>`}
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-      <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docContract('${esc(r.id)}')">서명 원본 확인</button>
+      <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docContract(${jsArg(r.id)})">서명 원본 확인</button>
       <button type="button" class="btn" style="height:40px; font-size:12px; border-color:var(--red200); color:var(--danger);" onclick="App.resetContract()">서명 초기화</button>
     </div>
   </div>` : `
   <div style="display:flex; flex-direction:column; gap:10px; padding:12px; border-radius:10px; background:var(--g50);">
     <div style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:bold; color:var(--g700);">여행계약서<span style="margin-left:auto; color:var(--danger);">미서명</span></div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-      <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docContract('${esc(r.id)}')">계약서 미리보기</button>
+      <button type="button" class="btn" style="height:40px; font-size:12px;" onclick="App.docContract(${jsArg(r.id)})">계약서 미리보기</button>
       <button type="button" class="btn line-mint" style="height:40px; font-size:12px;" onclick="App.sendStage('contract')">서명 요청 보내기</button>
     </div>
   </div>`;
@@ -1838,6 +1850,17 @@ App.resetContract = async () => {
 /* ═══ 견적서 만들기 (5단계) ═══ */
 const BASE = window.QUOTE || {};
 let QE = null;   // 편집 상태
+let qeRecovery = null, qeEditorOpening = false;
+function qeLock(locked) {
+  document.querySelectorAll('#qeEditorRecoveryHost input,#qeEditorRecoveryHost select,#qeEditorRecoveryHost textarea,#qeEditorRecoveryHost button').forEach(el => {
+    if (locked) { if (!el.hasAttribute('data-recovery-lock')) el.dataset.recoveryLock = el.disabled ? '1' : '0'; el.disabled = true; }
+    else if (el.hasAttribute('data-recovery-lock')) { el.disabled = el.dataset.recoveryLock === '1'; delete el.dataset.recoveryLock; }
+  });
+}
+function clearQuoteEditorUrl() { const url = new URL(location.href); url.searchParams.delete('qe'); history.replaceState(null, '', url); }
+document.addEventListener('click', event => {
+  if ((qeEditorOpening || qeRecovery?.isBusy()) && event.target?.closest?.('#qeEditorRecoveryHost')) { event.preventDefault(); event.stopImmediatePropagation(); }
+}, true);
 const QE_STEP_NAMES = ["기본정보 · 코스", "일자별 일정", "요금", "대표 명소", "혜택 · 비고"];
 const autoQuoteNo = () => { const d = new Date(); return String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + "-" + String(d.getHours()).padStart(2, "0") + String(d.getMinutes()).padStart(2, "0"); };
 /* balEco / balFull은 booking.js가 전역으로 제공 */
@@ -1854,7 +1877,10 @@ function blankQE() {
     spots: [], days: [], intensity: 3, roomType: "eco",
   };
 }
-function openQuoteEditor(recId) {
+async function openQuoteEditor(recId) {
+  if (qeEditorOpening || qeRecovery?.isBusy()) return;
+  if (qeRecovery && !qeRecovery.close()) return;
+  qeRecovery = null; qeEditorOpening = true;
   QE = blankQE();
   if (recId) {
     const r = recById(recId);
@@ -1876,6 +1902,12 @@ function openQuoteEditor(recId) {
     }
   }
   S.page = "quote"; renderOverlays();
+  qeLock(true);
+  const liveId = QE.reqId, liveToken = QE.reqToken;
+  qeRecovery = await window.QuoteEditorState.create({ kind: 'quote', requestId: liveId, get: () => QE,
+    lock: qeLock, notice: toast, apply: value => { QE = { ...QE, ...value, reqId: liveId, reqToken: liveToken }; renderOverlays(); } });
+  qeEditorOpening = false;
+  const url = new URL(location.href); url.searchParams.set('qe', liveId || 'new'); history.replaceState(null, '', url);
 }
 function restoreQuote(q) {
   QE.quoteNo = q.quoteNo || "";
@@ -1978,7 +2010,8 @@ function qeTotal() {
 }
 
 App.closeQuote = async () => {
-  if (QE && !await appConfirm("저장하지 않은 내용은 사라집니다.", { title: "견적서 편집을 닫을까요?", ok: "닫기", danger: true })) return;
+  if (qeEditorOpening || (qeRecovery && !qeRecovery.close())) return;
+  qeRecovery = null; clearQuoteEditorUrl();
   QE = null; S.page = null; renderOverlays(); render();
 };
 App.qeStep = i => { QE.step = Math.max(0, Math.min(4, i)); renderOverlays(); };
@@ -2019,7 +2052,9 @@ App.qeDaySnippet = (i, name) => {
   QE.days[i] = { ...clone(sn), d: i + 1 }; renderOverlays();
 };
 App.qeSave = async share => {
-  if (!QE) return;
+  if (!QE || qeEditorOpening || !qeRecovery) return;
+  const release = qeRecovery.begin(); if (!release) return;
+  try {
   if (!QE.customer.trim() && !QE.shareAnon) { toast("먼저 고객명을 입력하세요"); QE.step = 0; renderOverlays(); return; }
   if (QE.shareAnon && !QE.customer.trim()) QE.customer = "여행 고객";
   if (share && !await appConfirm("이 견적을 고객에게 보낼까요?\n고객에게 견적서 도착 알림톡이 발송되고, 보낼 링크가 만들어집니다.", { ok: "보내기" })) return;
@@ -2061,12 +2096,15 @@ App.qeSave = async share => {
       QE.reqId = j.id || QE.reqId; QE.reqToken = token;
       try { RECORDS = await apiList(); } catch (e) {}
     }
+    qeRecovery.commit(QE.reqId);
+    const editorUrl = new URL(location.href); editorUrl.searchParams.set('qe', QE.reqId || 'new'); history.replaceState(null, '', editorUrl);
     if (!share) { toast("✓ 저장했어요 — 고객에게는 아직 보내지 않았어요"); renderTabbar(); return; }
     const link = location.origin + "/" + encodeURI("내견적.html") + "?t=" + token;
     await copyText(link);
     toast(quoteNotification && quoteNotification.status === "queued" ? "✓ 고객에게 보냈어요 · 알림톡 발송을 요청했어요" : "✓ 링크가 복사됐어요 (알림톡 설정·전화번호 확인)");
     renderTabbar();
   } catch (e) { toast("⚠ 저장 실패: " + (e.message || "서버 연결을 확인하세요")); }
+  } finally { release(); }
 };
 
 /* data-qe 바인딩 */
@@ -2119,7 +2157,7 @@ function quoteEditorScreen() {
     ["초기화", "App.qeReset()"], ["지도 미리보기", "App.qeMap()"], ["견적서 미리보기", "App.qePreview()"],
   ].map(([l, fn]) => `<button type="button" class="chip" style="height:32px; font-size:12px;" onclick="${fn}">${l}</button>`).join("");
   return `
-  <div class="sheet-full z52" style="background:var(--g50);">
+  <div class="sheet-full z52" id="qeEditorRecoveryHost" style="background:var(--g50);">
     <header style="flex:none; display:flex; align-items:center; gap:8px; padding:10px 12px; background:#fff; border-bottom:1px solid var(--g200);">
       <button type="button" style="flex:none; display:flex; align-items:center; justify-content:center; width:40px; height:40px; border:1px solid #cfeee4; border-radius:999px; background:#fff; font-size:17px; color:var(--brand-deep);" onclick="App.closeQuote()">←</button>
       <span style="flex:1; text-align:center; font-size:17px; font-weight:bold;">견적서 만들기${QE.customer ? " · " + esc(QE.customer) : ""}</span>
@@ -2158,14 +2196,14 @@ function qeStep1() {
   const regions = ["전체", ...new Set(Object.values(courses).map(c => c.destination).filter(Boolean))];
   const regionTabs = regions.map(rg => {
     const n = rg === "전체" ? Object.keys(courses).length : Object.values(courses).filter(c => c.destination === rg).length;
-    return `<button type="button" class="chip ${QE.pickRegion === rg ? "on" : ""}" onclick="App.qePickRegion('${esc(rg)}')">${esc(rg)} ${n}</button>`;
+    return `<button type="button" class="chip ${QE.pickRegion === rg ? "on" : ""}" onclick="App.qePickRegion(${jsArg(rg)})">${esc(rg)} ${n}</button>`;
   }).join("");
   const courseCards = Object.entries(courses).filter(([name, c]) => {
     if (QE.pickQuery.trim() && !name.includes(QE.pickQuery.trim())) return false;
     if (QE.pickRegion !== "전체" && c.destination !== QE.pickRegion) return false;
     return true;
   }).map(([name, c]) => `
-    <button type="button" class="course-btn ${QE.course === name ? "on" : ""}" onclick="App.qeCourse('${esc(name).replace(/'/g, "\\'")}')">
+    <button type="button" class="course-btn ${QE.course === name ? "on" : ""}" onclick="App.qeCourse(${jsArg(name)})">
       <span class="mk">✓</span>
       <span style="font-size:13px; font-weight:bold; line-height:140%; padding-right:18px;">${esc(name)}</span>
       <span style="display:flex; align-items:center; gap:6px; width:100%;">
@@ -2324,7 +2362,7 @@ function qeStep4() {
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
       ${items.map(sp => {
         const idx = QE.spots.indexOf(sp.name);
-        return `<button type="button" class="spot-btn ${idx >= 0 ? "on" : ""}" onclick="App.qeSpotToggle('${esc(sp.name).replace(/'/g, "\\'")}')">
+        return `<button type="button" class="spot-btn ${idx >= 0 ? "on" : ""}" onclick="App.qeSpotToggle(${jsArg(sp.name)})">
           <span class="box">${idx >= 0 ? "✓" : ""}</span>
           <span style="flex:1; display:flex; flex-direction:column; gap:3px; min-width:0;">
             <span style="font-size:13px; font-weight:bold; line-height:135%;">${esc(sp.name)}</span>
@@ -2361,8 +2399,14 @@ const PGS = {
   resTab: "guides", resForm: null,
 };
 const PAGE_TITLES = { course: "코스 관리", plan: "일정 관리", spot: "명소 관리", res: "리소스 관리" };
-App.openPage = p => { S.page = p; S.drawer = false; S.sheet = false; renderOverlays(); };
-App.closePage = () => { S.page = null; PGS.courseEdit = null; PGS.planForm = null; PGS.spotForm = null; PGS.resForm = null; renderOverlays(); render(); };
+App.openPage = p => {
+  if (S.page === 'quote' && QE) { if (qeEditorOpening || !qeRecovery?.close()) return; qeRecovery = null; QE = null; clearQuoteEditorUrl(); }
+  S.page = p; S.drawer = false; S.sheet = false; renderOverlays();
+};
+App.closePage = () => {
+  if (S.page === 'quote' && QE) { if (qeEditorOpening || !qeRecovery?.close()) return; qeRecovery = null; QE = null; clearQuoteEditorUrl(); }
+  S.page = null; PGS.courseEdit = null; PGS.planForm = null; PGS.spotForm = null; PGS.resForm = null; renderOverlays(); render();
+};
 
 function pageScreen() {
   const p = S.page;
@@ -2412,15 +2456,15 @@ function pgCourse() {
   <section style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border-radius:12px; background:#fff;">
     <span style="flex:none; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:8px; background:var(--brand-bg); color:var(--brand);">${icon("list", 18)}</span>
     <span style="flex:1; display:flex; flex-direction:column; gap:4px; min-width:0;">
-      <span style="display:flex; align-items:center; gap:8px;" onclick="App.courseEdit('${esc(name).replace(/'/g, "\\'")}')">
+      <span style="display:flex; align-items:center; gap:8px;" onclick="App.courseEdit(${jsArg(name)})">
         <span style="font-size:14px; font-weight:bold;">${esc(name)}</span>
         <span class="pill" style="margin-left:auto; flex:none;">${(c.days || []).length}일 일정</span>
       </span>
-      <span style="font-size:12px; line-height:150%; color:var(--g600);" onclick="App.courseEdit('${esc(name).replace(/'/g, "\\'")}')">${esc(c.destination || "-")} · ${esc(nightsOf(c))} · 명소 ${(c.highlights || []).length}곳${c.price && c.price.deposit ? " · 예약금 " + won(c.price.deposit) : ""}</span>
+      <span style="font-size:12px; line-height:150%; color:var(--g600);" onclick="App.courseEdit(${jsArg(name)})">${esc(c.destination || "-")} · ${esc(nightsOf(c))} · 명소 ${(c.highlights || []).length}곳${c.price && c.price.deposit ? " · 예약금 " + won(c.price.deposit) : ""}</span>
       <span style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding-top:6px;">
-        <button type="button" class="btn" style="height:38px; font-size:12px;" onclick="App.courseEdit('${esc(name).replace(/'/g, "\\'")}')">편집</button>
-        <button type="button" class="btn" style="height:38px; font-size:12px;" onclick="App.courseClone('${esc(name).replace(/'/g, "\\'")}')">복제</button>
-        <button type="button" class="btn mint" style="height:38px; font-size:12px;" onclick="App.courseShare('${esc(name).replace(/'/g, "\\'")}')">공유 견적</button>
+        <button type="button" class="btn" style="height:38px; font-size:12px;" onclick="App.courseEdit(${jsArg(name)})">편집</button>
+        <button type="button" class="btn" style="height:38px; font-size:12px;" onclick="App.courseClone(${jsArg(name)})">복제</button>
+        <button type="button" class="btn mint" style="height:38px; font-size:12px;" onclick="App.courseShare(${jsArg(name)})">공유 견적</button>
       </span>
     </span>
   </section>`).join("") || `<p class="empty">코스가 없어요</p>`}`;
@@ -2580,7 +2624,7 @@ function courseEditSheet() {
         </div>
         ${allSpots.map(n => {
           const idx = d.highlights.indexOf(n);
-          return `<button type="button" class="spot-btn ${idx >= 0 ? "on" : ""}" style="width:100%;" onclick="App.ceSpotToggle('${esc(n).replace(/'/g, "\\'")}')">
+          return `<button type="button" class="spot-btn ${idx >= 0 ? "on" : ""}" style="width:100%;" onclick="App.ceSpotToggle(${jsArg(n)})">
             <span class="box">${idx >= 0 ? "✓" : ""}</span>
             <span style="flex:1; font-size:13px; font-weight:bold;">${esc(n)}</span>
             <span class="ord">${idx >= 0 ? idx + 1 : ""}</span>
@@ -2633,7 +2677,7 @@ function pgPlan() {
   const cats = snipCats();
   const entries = Object.entries(snippets).filter(([n, s2]) => PGS.snipCat === "전체" || (s2.cat || "미분류") === PGS.snipCat);
   const catChips = [["전체", Object.keys(snippets).length], ...cats.map(c => [c, Object.values(snippets).filter(s2 => (s2.cat || "미분류") === c).length])]
-    .map(([c, n]) => `<button type="button" class="chip ${PGS.snipCat === c ? "on" : ""}" onclick="PGS.snipCat='${esc(c)}'; renderOverlays();">${esc(c)} ${n}</button>`).join("");
+    .map(([c, n]) => `<button type="button" class="chip ${PGS.snipCat === c ? "on" : ""}" onclick="PGS.snipCat=${jsArg(c)}; renderOverlays();">${esc(c)} ${n}</button>`).join("");
   return `
   <section style="padding:16px; border-radius:12px; background:#fff; display:flex; flex-direction:column; gap:10px;">
     <span style="font-size:12px; line-height:150%; color:var(--g600);">자주 쓰는 <b>하루 일정</b>을 미리 만들어 두면, <b>견적서 만들기 → 일자별 일정</b>의 각 일자에서 <b>일정 불러오기</b>로 클릭 한 번에 채워집니다.</span>
@@ -2643,7 +2687,7 @@ function pgPlan() {
     </div>
   </section>
   ${entries.map(([name, s2]) => `
-  <section style="flex:none; padding:14px 16px; border-radius:12px; background:#fff; display:flex; flex-direction:column; gap:10px;" onclick="App.planEdit('${esc(name).replace(/'/g, "\\'")}')">
+  <section style="flex:none; padding:14px 16px; border-radius:12px; background:#fff; display:flex; flex-direction:column; gap:10px;" onclick="App.planEdit(${jsArg(name)})">
     <div style="display:flex; align-items:flex-start; gap:10px;">
       <span style="flex:none; display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; background:var(--brand-bg); color:var(--brand);">${icon("coupon", 18)}</span>
       <span style="flex:1; display:flex; flex-direction:column; gap:3px; min-width:0;">
@@ -2746,7 +2790,7 @@ function pgSpot() {
   const spots = getSpots();
   const cats = spotCatsAll();
   const entries = Object.entries(spots).filter(([n, s2]) => PGS.spotCat === "전체" || s2.region === PGS.spotCat);
-  const chips = ["전체", ...cats].map(c => `<button type="button" class="chip ${PGS.spotCat === c ? "on" : ""}" onclick="PGS.spotCat='${esc(c)}'; renderOverlays();">${esc(c)}</button>`).join("");
+  const chips = ["전체", ...cats].map(c => `<button type="button" class="chip ${PGS.spotCat === c ? "on" : ""}" onclick="PGS.spotCat=${jsArg(c)}; renderOverlays();">${esc(c)}</button>`).join("");
   return `
   <section style="padding:16px; border-radius:12px; background:#fff; display:flex; flex-direction:column; gap:10px;">
     <span style="font-size:12px; line-height:150%; color:var(--g600);">등록한 명소는 <b>대표 명소 페이지</b>와 <b>지도 핀</b>에 자동으로 나와요.</span>
@@ -2754,8 +2798,8 @@ function pgSpot() {
     <div class="hscroll" style="padding-top:4px;">${chips}</div>
   </section>
   ${entries.map(([name, s2]) => `
-  <section style="display:flex; gap:12px; padding:14px 16px; border-radius:12px; background:#fff;" onclick="App.spotEdit('${esc(name).replace(/'/g, "\\'")}')">
-    <span style="flex:none; width:56px; height:56px; border-radius:8px; background:var(--g200); background-size:cover; background-position:center; ${s2.img ? `background-image:url('${esc(s2.img)}')` : ""}"></span>
+  <section style="display:flex; gap:12px; padding:14px 16px; border-radius:12px; background:#fff;" onclick="App.spotEdit(${jsArg(name)})">
+    <span style="flex:none; width:56px; height:56px; border-radius:8px; background:var(--g200); background-size:cover; background-position:center; ${s2.img ? `background-image:url(${jsArg(s2.img)})` : ""}"></span>
     <span style="flex:1; display:flex; flex-direction:column; gap:3px; min-width:0;">
       <span style="display:flex; align-items:center; gap:8px;">
         <span style="font-size:14px; font-weight:bold;">${esc(name)}</span>
@@ -2808,7 +2852,7 @@ function spotFormSheet() {
       </label>
       <div style="display:flex; flex-direction:column; gap:6px;">
         <span style="font-size:12px; font-weight:bold; color:var(--g700);">대표 사진</span>
-        <button type="button" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:150px; border:1.5px dashed var(--g300); border-radius:12px; background:var(--g50); background-size:cover; background-position:center; ${d.img ? `background-image:url('${esc(d.img)}');` : ""} font-size:13px; color:var(--g500);" onclick="App.uploadImg(v => { PGS.spotForm.draft.img = v; renderOverlays(); })">
+        <button type="button" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:150px; border:1.5px dashed var(--g300); border-radius:12px; background:var(--g50); background-size:cover; background-position:center; ${d.img ? `background-image:url(${jsArg(d.img)});` : ""} font-size:13px; color:var(--g500);" onclick="App.uploadImg(v => { PGS.spotForm.draft.img = v; renderOverlays(); })">
           ${d.img ? "" : icon("photo", 22) + "사진 업로드 (탭)"}
         </button>
         <span style="font-size:11px; color:var(--g500);">사진은 자동으로 줄여서(WebP) 서버에 저장돼요.</span>
@@ -2848,7 +2892,7 @@ function pgRes() {
     .map(([k, label]) => `<button type="button" class="chip ${PGS.resTab === k ? "on" : ""}" onclick="PGS.resTab='${k}'; renderOverlays();">${label} ${Object.keys(RES_META[k].getter()).length}</button>`).join("");
   const coverOf = r => t === "lodges" ? (Lodging.photos(r)[0] || "") : Lodging.imageUrl(r.img || (r.imgs || [])[0]);
   const cards = Object.entries(lib).map(([name, r]) => `
-  <button type="button" class="res-card" onclick="App.resEdit('${esc(name).replace(/'/g, "\\'")}')">
+  <button type="button" class="res-card" onclick="App.resEdit(${jsArg(name)})">
     <span class="img" style="${coverOf(r) ? `background-image:url('${esc(coverOf(r).replace(/\x27/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29"))}')` : ""}">
       ${coverOf(r) ? "" : icon("photo", 26)}
       ${M.sub(r) ? `<span class="bdg">${esc(M.sub(r))}</span>` : ""}
@@ -2940,7 +2984,7 @@ function resFormSheet() {
     <div style="display:flex; flex-direction:column; gap:6px;">
       <span style="font-size:12px; font-weight:bold; color:var(--g700);">카카오톡 QR (선택)</span>
       <div style="display:flex; align-items:center; gap:10px;">
-        <button type="button" style="flex:none; width:84px; height:84px; border:1.5px dashed #cfe3dc; border-radius:10px; background:#f5fbf9; background-size:cover; background-position:center; ${d.qr ? `background-image:url('${esc(d.qr)}');` : ""} font-size:11px; font-weight:bold; color:#8ca39d;" onclick="App.uploadImg(v => { PGS.resForm.draft.qr = v; renderOverlays(); })">${d.qr ? "" : "QR 업로드<br>(탭)"}</button>
+        <button type="button" style="flex:none; width:84px; height:84px; border:1.5px dashed #cfe3dc; border-radius:10px; background:#f5fbf9; background-size:cover; background-position:center; ${d.qr ? `background-image:url(${jsArg(d.qr)});` : ""} font-size:11px; font-weight:bold; color:#8ca39d;" onclick="App.uploadImg(v => { PGS.resForm.draft.qr = v; renderOverlays(); })">${d.qr ? "" : "QR 업로드<br>(탭)"}</button>
         <input data-rf="qr" value="${esc(d.qr || "")}" placeholder="또는 이미지 URL 직접 입력" style="flex:1; min-width:0; height:44px; padding:0 10px; border:1px solid var(--g300); border-radius:8px; font-size:12px;">
       </div>
     </div>` : t === "lodges" ? `
@@ -2970,7 +3014,7 @@ function resFormSheet() {
       <label class="f" style="font-weight:bold;">이름<input data-rf="name" value="${esc(d.name || "")}" placeholder="${esc(M.namePh)}" style="font-weight:normal;"></label>
       <div style="display:${t === 'lodges' ? 'none' : 'flex'}; flex-direction:column; gap:6px;">
         <span style="font-size:12px; font-weight:bold; color:var(--g700);">대표 사진</span>
-        <button type="button" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:150px; border:1.5px dashed var(--g300); border-radius:12px; background:var(--g50); background-size:cover; background-position:center; ${d.img ? `background-image:url('${esc(d.img)}');` : ""} font-size:13px; color:var(--g500);" onclick="App.uploadImg(v => { PGS.resForm.draft.img = v; renderOverlays(); })">
+        <button type="button" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:150px; border:1.5px dashed var(--g300); border-radius:12px; background:var(--g50); background-size:cover; background-position:center; ${d.img ? `background-image:url(${jsArg(d.img)});` : ""} font-size:13px; color:var(--g500);" onclick="App.uploadImg(v => { PGS.resForm.draft.img = v; renderOverlays(); })">
           ${d.img ? "" : icon("photo", 22) + "사진 업로드 (탭)"}
         </button>
         <span style="font-size:11px; color:var(--g500);">사진은 자동으로 줄여서(WebP) 서버에 저장돼요.</span>
@@ -2983,7 +3027,7 @@ function resFormSheet() {
           <button type="button" class="btn mint" style="margin-left:auto; height:34px; font-size:12px;" onclick="App.uploadImg(v => { const dd = PGS.resForm.draft; dd.imgs = Array.isArray(dd.imgs) ? dd.imgs : []; dd.imgs.push(v); renderOverlays(); })">＋ 사진 추가</button>
         </div>
         ${imgs.length ? `<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">${imgs.map((u, i) => `
-          <span style="position:relative; display:block; height:72px; border-radius:8px; background:var(--g200) url('${esc(u)}') center/cover;">
+          <span style="position:relative; display:block; height:72px; border-radius:8px; background:var(--g200) url(${jsArg(u)}) center/cover;">
             <button type="button" style="position:absolute; top:4px; right:4px; width:22px; height:22px; border:none; border-radius:999px; background:rgba(0,0,0,.55); color:#fff; font-size:12px;" onclick="PGS.resForm.draft.imgs.splice(${i},1); renderOverlays();">×</button>
           </span>`).join("")}</div>`
         : `<p style="margin:0; padding:12px; text-align:center; font-size:12px; color:var(--g500);">추가 사진이 없습니다.</p>`}
@@ -3003,9 +3047,13 @@ function resFormSheet() {
 
 /* ── 이미지 업로드 (WebP 변환 → R2) ── */
 App.uploadImg = cb => {
+  if (qeEditorOpening || qeRecovery?.isBusy()) return;
+  const editor = qeRecovery;
   const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*";
   inp.onchange = async () => {
     const f = inp.files && inp.files[0]; if (!f) return;
+    if (editor && editor !== qeRecovery) return;
+    const release = editor?.begin(); if (editor && !release) return;
     toast("사진 올리는 중…");
     try {
       const blob = await toWebp(f);
@@ -3017,6 +3065,7 @@ App.uploadImg = cb => {
       cb(j.url);
       toast("사진을 올렸어요");
     } catch (e) { toast("업로드 실패: " + (e.message || e)); }
+    finally { release?.(); }
   };
   inp.click();
 };
@@ -3097,6 +3146,9 @@ function moreSheetHtml() {
   </div>`;
 }
 App.refresh = async () => {
+  if (qeEditorOpening || qeRecovery?.isBusy()) return;
+  const recovery = window.QuoteEditorState.flushAll();
+  if (!recovery.ok && !await appConfirm(recovery.error + '\n초안을 보관하지 못한 상태로 다시 조회할까요?')) return;
   toast("새로고침 중…");
   try {
     await Promise.all(Object.keys(window.CLOUD_KEYS || {}).map(k => window.cloudPull ? window.cloudPull(k) : null));
@@ -3128,6 +3180,7 @@ function renderOverlays() {
   ovl.classList.toggle("noanim", key !== "" && key === PREV_OVL_KEY);
   PREV_OVL_KEY = key;
   ovl.innerHTML = html;
+  if (S.page === 'quote' && (qeEditorOpening || qeRecovery?.isBusy())) qeLock(true);
 }
 
 /* ═══ 로그인 · 부팅 ═══ */
@@ -3156,6 +3209,8 @@ async function enterApp(items) {
     await Promise.all(Object.keys(window.CLOUD_KEYS || {}).map(k => window.cloudPull ? window.cloudPull(k) : null));
     if (S.page || S.assign) renderOverlays();
   } catch (e) {}
+  const editorId = new URLSearchParams(location.search).get('qe');
+  if (editorId && (editorId === 'new' || RECORDS.some(record => String(record.id) === editorId))) await openQuoteEditor(editorId === 'new' ? null : editorId);
 }
 $("loginBtn").onclick = async () => {
   const pw = $("loginPw").value.trim();

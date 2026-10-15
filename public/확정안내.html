@@ -61,11 +61,13 @@ location.replace("확정일정표.html" + location.search);
 <button class="fab" id="fab" style="display:none" onclick="window.print()">📄 PDF 저장</button>
 
 <script type="module">
+import { escapeDocumentText as escapeQuoteDocumentText, sanitizeDocumentHTML, documentUrl, documentImageAttribute, documentTextWithoutBreaks } from "/document-safe.js";
 const KAKAO = "https://pf.kakao.com/_BSLaxl";
 const _token = new URLSearchParams(location.search).get("t");
 const root = document.getElementById("root");
-const esc = s => String(s ?? "");
-const noBr = s => String(s ?? "").replace(/<br\s*\/?>/gi, " ").trim();
+const esc = escapeQuoteDocumentText;
+const rich = sanitizeDocumentHTML;
+const noBr = s => rich(String(s ?? "").replace(/<br\s*\/?>/gi, " ").trim());
 
 const R = await (async () => {
   if (!_token) return null;
@@ -93,8 +95,8 @@ const paxTxt = [R.adult ? `성인 ${R.adult}` : "", R.child ? `아동 ${R.child}
 const period = R.depart ? `${R.depart}${R.return_ ? " ~ " + R.return_ : ""}${R.nights ? ` (${R.nights}박 ${R.nights + 1}일)` : ""}` : "-";
 
 const card = inner => `<div class="card"><div class="pad">${inner}</div></div>`;
-const ph = (src, label, style) => src
-  ? `<div class="ph" style="${style}"><img src="${src}" alt="${esc(label)}"></div>`
+const ph = (src, label, style) => documentUrl(src, true)
+  ? `<div class="ph" style="${style}"><img src="${documentImageAttribute(src)}" alt="${esc(label)}"></div>`
   : `<div class="ph" style="${style}">${esc(label) || ""}</div>`;
 const LOGO = `<svg width="30" height="30" viewBox="0 0 48 48" fill="none" style="flex:none;"><rect x="1.5" y="1.5" width="45" height="45" rx="13" stroke="#27AB8F" stroke-width="1.8"></rect><path d="M9 33 L19 18 L26 28 L32 20 L39 33 Z" fill="#27AB8F"></path></svg>`;
 
@@ -134,7 +136,7 @@ const gCard = (g && g.name) ? `
           ${g.career ? `<span style="background:#fff; color:#1C8571; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:12px; border:1px solid #D1F6EA;">경력 ${esc(g.career)}</span>` : ""}
           ${g.korean ? `<span style="background:#fff; color:#1C8571; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:12px; border:1px solid #D1F6EA;">한국어 ${esc(g.korean)}</span>` : ""}
         </div>
-        ${g.desc ? `<div style="margin-top:8px; font-size:11.5px; color:#33434F; line-height:1.6;">${esc(g.desc)}</div>` : ""}
+        ${g.desc ? `<div style="margin-top:8px; font-size:11.5px; color:#33434F; line-height:1.6;">${rich(g.desc)}</div>` : ""}
       </div>
     </div>
   </div>` : "";
@@ -174,13 +176,14 @@ const secAssign = (gCard || dCard || vCard || lodgeList) ? card(`
 
 /* ── 3) 확정 일정표 ── */
 const itemHtml = t => {
-  if (String(t).startsWith("*")) return `<span style="color:#1C8571; font-weight:600;">${esc(t)}</span>`;
-  if (String(t).startsWith("(")) return `<span style="color:#8A9895;">${esc(t)}</span>`;
-  return esc(t);
+  t = String(t ?? "");
+  if (String(t).startsWith("*")) return `<span style="color:#1C8571; font-weight:600;">${rich(t)}</span>`;
+  if (String(t).startsWith("(")) return `<span style="color:#8A9895;">${rich(t)}</span>`;
+  return rich(t);
 };
 const dayCard = (d, i) => {
   const meta = [String(d.move || "").replace(/이동\s*/, ""), String(d.dist || "").replace(/[()]/g, "").trim()].filter(Boolean).join(" · ");
-  const tags = ((d.stay || {}).tags || []).length ? `<span style="background:#D1F6EA; color:#1C8571; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:14px;">${d.stay.tags.join(" · ")}</span>` : "";
+  const tags = ((d.stay || {}).tags || []).length ? `<span style="background:#D1F6EA; color:#1C8571; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:14px;">${d.stay.tags.map(rich).join(" · ")}</span>` : "";
   return `
   <div class="blk" style="border:1px solid #E3E6E2; border-radius:14px; overflow:hidden;">
     <div class="row" style="justify-content:space-between; background:#27AB8F; padding:11px 15px;">
@@ -194,7 +197,7 @@ const dayCard = (d, i) => {
       <div style="display:flex; gap:8px; margin-top:11px; flex-wrap:wrap;">
         ${(d.stay || {}).name ? `<span style="background:#D1F6EA; color:#1C8571; font-size:10.5px; font-weight:700; padding:5px 10px; border-radius:14px;">🛏 ${noBr(d.stay.name)}</span>` : ""}${tags}
       </div>
-      ${(d.meals || []).length ? `<div style="margin-top:8px; font-size:10.5px; color:#8A9895;">🍽 ${d.meals.join(" · ")}</div>` : ""}
+      ${(d.meals || []).length ? `<div style="margin-top:8px; font-size:10.5px; color:#8A9895;">🍽 ${d.meals.map(rich).join(" · ")}</div>` : ""}
     </div>
   </div>`;
 };
@@ -221,7 +224,7 @@ const secNotes = card(`
   </div>`);
 
 root.innerHTML = secCover + secAssign + secDays + secNotes;
-document.title = `몽골리아 은하수_${esc(R.name)}님_예약확정안내`;
+document.title = `몽골리아 은하수_${R.name}님_예약확정안내`;
 }
 </script>
 </body>

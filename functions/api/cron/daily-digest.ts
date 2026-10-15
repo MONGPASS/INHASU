@@ -8,6 +8,7 @@ import { BRAND } from '../../../src/constants/company';
 interface Env {
     DB: D1Database;
     RESEND_API_KEY: string;
+    MAIL_FROM?: string;
     ADMIN_EMAIL: string;
     CRON_SECRET: string;
 }
@@ -109,6 +110,7 @@ app.post('/', async (c) => {
         adminEmail,
         `[일일 리포트] ${today} 예약 현황 | ${BRAND.name}`,
         tplDailyDigest({ date: dateLabel, departures, unpaid, newToday }),
+        { env: c.env },
     );
 
     return c.json({

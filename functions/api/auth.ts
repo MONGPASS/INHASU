@@ -3,6 +3,7 @@ import { generateState, generateCodeVerifier, Google } from 'arctic';
 import { initializeLucia } from '../lib/auth';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { requireAdmin } from '../lib/adminAuth';
+import { getSessionUser } from '../lib/userAuth';
 import { setCookie, getCookie } from 'hono/cookie';
 import { drizzle } from 'drizzle-orm/d1';
 import { users } from '../../src/db/schema/auth';
@@ -372,9 +373,11 @@ async function countAdmins(env: Env): Promise<number> {
 // GET /api/auth/quote-desk
 // 관리자 세션이 있으면 맞춤 견적 도구(public/견적관리.html 등)가 쓰는 x-admin-token 값을 내려 준다.
 // 견적 도구는 원래도 이 값을 브라우저 sessionStorage에 두므로 노출 범위는 같다. 미설정이면 null.
-app.get('/quote-desk', requireAdmin, (c) => {
+app.get('/quote-desk', requireAdmin, async (c) => {
     c.header('Cache-Control', 'no-store');
-    return c.json({ token: c.env.ADMIN_TOKEN || null });
+    const user = await getSessionUser(c);
+    if (user?.role !== 'admin') return c.json({ error: 'Unauthorized' }, 401);
+    return c.json({ token: c.env.ADMIN_TOKEN || null, userId: user.id });
 });
 
 // GET /api/auth/admin-setup

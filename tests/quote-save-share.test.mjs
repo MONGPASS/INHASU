@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { onRequestPost as createRequest } from "../functions/api/requests.js";
 import { onRequestPatch } from "../functions/api/requests/[id].js";
+import { requestSQLite } from './helpers/request-sqlite.mjs';
 
 /* 견적서 편집기의 [저장하기]와 [링크 공유하기] 분리 검증
    · 저장하기      → silentQuote:true  → 고객 알림톡이 나가면 안 된다
@@ -20,7 +21,8 @@ const withSolapi = async run => {
   const sent = [];
   const pending = [];
   globalThis.fetch = async (url, init) => {
-    if (String(url).includes("solapi")) sent.push(JSON.parse(init.body).message);
+    assert.equal(new URL(String(url)).hostname, 'api.solapi.com', 'unexpected outbound service');
+    sent.push(JSON.parse(init.body).message);
     return new Response(JSON.stringify({ groupId:"g" }), { status:200, headers:{ "Content-Type":"application/json" } });
   };
   try {
@@ -39,22 +41,7 @@ const insertDb = () => ({
 });
 const insertDbLast = {};
 
-function patchDb(record) {
-  let data = JSON.stringify(record);
-  return {
-    get record() { return JSON.parse(data); },
-    prepare() {
-      return {
-        bind(...args) {
-          return {
-            async first() { return { data, status:JSON.parse(data).status || "신규" }; },
-            async run() { data = args[2]; return { meta:{ changes:1 } }; },
-          };
-        },
-      };
-    },
-  };
-}
+const patchDb = (t, record, options) => requestSQLite(t, record, options);
 
 const adminPost = body => new Request("https://mongolia-milkyway.com/api/requests", {
   method:"POST", headers:{ "Content-Type":"application/json", "x-admin-token":"admin-secret" },
@@ -101,8 +88,8 @@ test("silentQuote 플래그는 저장된 견적 데이터에 남지 않는다", 
   assert.equal(stored.silentQuote, undefined);
 });
 
-test("기존 문의에 저장하기 — 첫 견적이어도 알림톡을 보내지 않는다", async () => {
-  const DB = patchDb({ id:"req-1", name:"홍길동", phone:"01012345678", status:"진행중" });
+test("기존 문의에 저장하기 — 첫 견적이어도 알림톡을 보내지 않는다", async t => {
+  const DB = patchDb(t, { id:"req-1", name:"홍길동", phone:"01012345678", status:"진행중" });
   const { result, sent } = await withSolapi(collect => onRequestPatch({
     request: adminPatch({ quote:newQuote, silentQuote:true }),
     env:{ ...ENV, DB }, params:{ id:"req-1" }, waitUntil(p) { collect(p); },
@@ -111,10 +98,11 @@ test("기존 문의에 저장하기 — 첫 견적이어도 알림톡을 보내�
   assert.equal(body.ok, true);
   assert.equal(quoteSends(sent), 0, "저장만 했는데 고객에게 알림톡이 나갔다");
   assert.equal(DB.record.quote.customer, "테스트고객", "견적은 저장되어야 한다");
+  assert.equal(DB.deliveries.length, 0, 'silent save must not claim a delivery');
 });
 
-test("기존 문의에 링크 공유하기 — 알림톡을 보낸다", async () => {
-  const DB = patchDb({ id:"req-1", name:"홍길동", phone:"01012345678", status:"진행중", quote:{ old:true } });
+test("기존 문의에 링크 공유하기 — 알림톡을 보낸다", async t => {
+  const DB = patchDb(t, { id:"req-1", name:"홍길동", phone:"01012345678", status:"진행중", quote:{ old:true } });
   const { result, sent } = await withSolapi(collect => onRequestPatch({
     request: adminPatch({ quote:newQuote, notifyQuote:true }),
     env:{ ...ENV, DB }, params:{ id:"req-1" }, waitUntil(p) { collect(p); },
@@ -123,10 +111,15 @@ test("기존 문의에 링크 공유하기 — 알림톡을 보낸다", async ()
   assert.equal(body.ok, true);
   assert.equal(quoteSends(sent), 1);
   assert.equal(body.notifications.find(n => n.type === "quote").status, "queued");
+  assert.deepEqual(DB.record.quote, newQuote);
+  assert.equal(DB.deliveries.length, 1);
+  assert.equal(DB.deliveries[0].kind, 'quote');
+  assert.equal(DB.deliveries[0].state, 'accepted');
+  assert.equal(DB.deliveries[0].source, 'quote_booking');
 });
 
-test("저장하기를 여러 번 해도 알림톡은 한 번도 나가지 않는다", async () => {
-  const DB = patchDb({ id:"req-1", name:"홍길동", phone:"01012345678", status:"진행중" });
+test("저장하기를 여러 번 해도 알림톡은 한 번도 나가지 않는다", async t => {
+  const DB = patchDb(t, { id:"req-1", name:"홍길동", phone:"01012345678", status:"진행중" });
   let total = 0;
   for (let i = 0; i < 3; i++) {
     const { sent } = await withSolapi(collect => onRequestPatch({
@@ -137,14 +130,15 @@ test("저장하기를 여러 번 해도 알림톡은 한 번도 나가지 않는
   }
   assert.equal(total, 0);
   assert.equal(DB.record.quote.rev, 2, "마지막 저장 내용이 남아야 한다");
+  assert.equal(DB.deliveries.length, 0);
 });
 
-test("publishing assignments sends only an itinerary notice, never a simultaneous quote", async () => {
+test("publishing assignments sends only an itinerary notice, never a simultaneous quote", async t => {
   const booking = {
     publishStatus:"published", days:[{ d:1 }, { d:2 }],
     assign:{ guide:{ name:"Guide" }, vehicle:{ model:"Van" }, lodges:[{ name:"Lodge" }] },
   };
-  const DB = patchDb({ status:"예약확정", phone:"01012345678", token:"published-token", booking:{ publishStatus:"draft" } });
+  const DB = patchDb(t, { status:"예약확정", phone:"01012345678", token:"published-token", booking:{ publishStatus:"draft" } });
   const env = { ...ENV, DB, SOLAPI_TEMPLATE_ITINERARY_ID:"itinerary" };
   const { result, sent } = await withSolapi(collect => onRequestPatch({
     request:adminPatch({ booking, quote:newQuote, notifyQuote:true }), env, params:{ id:"req-1" }, waitUntil:collect,
@@ -153,6 +147,27 @@ test("publishing assignments sends only an itinerary notice, never a simultaneou
   assert.equal(sent.length, 1);
   assert.equal(sent[0].kakaoOptions.templateId, "itinerary");
   assert.equal(sent[0].kakaoOptions.variables["#{링크}"], `${encodeURI("확정일정표.html")}?t=published-token`);
+  assert.equal(DB.record.booking.publishStatus, 'published');
+  assert.deepEqual(DB.record.quote, newQuote);
+  assert.equal(DB.deliveries.length, 1);
+  assert.equal(DB.deliveries[0].kind, 'itinerary');
+  assert.equal(DB.deliveries[0].state, 'accepted');
   const repeat = await withSolapi(collect => onRequestPatch({ request:adminPatch({ booking }), env, params:{ id:"req-1" }, waitUntil:collect }));
   assert.equal(repeat.sent.length, 0);
+  assert.equal(DB.deliveries.length, 1, 're-saving a published itinerary must not create another attempt');
+});
+
+test('발송 이력 DB가 실패해도 견적 저장본을 유지하고 고객에게 발송하지 않는다', async t => {
+  for (const failLedger of [true, 'claim']) {
+    const DB = patchDb(t, { id:'req-1', name:'합성 고객', phone:'01012345678', status:'진행중', quote:{ old:true } }, { failLedger });
+    const { result, sent } = await withSolapi(collect => onRequestPatch({
+      request:adminPatch({ quote:newQuote, notifyQuote:true }), env:{ ...ENV, DB }, params:{ id:'req-1' }, waitUntil:collect,
+    }));
+    assert.equal(result.status, 200);
+    assert.equal((await result.json()).ok, true);
+    assert.deepEqual(DB.record.quote, newQuote, 'booking save succeeds independently from delivery history');
+    assert.equal(DB.requestWrites.length, 1);
+    assert.equal(sent.length, 0, 'a delivery without a persisted claim must not reach the provider');
+    assert.equal(DB.deliveries.length, 0);
+  }
 });

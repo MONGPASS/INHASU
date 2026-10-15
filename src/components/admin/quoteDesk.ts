@@ -10,6 +10,8 @@ import { api } from '../../lib/api';
 
 /** 견적 도구가 관리자 값을 읽는 sessionStorage 키 (public/견적관리.html 등과 같은 이름). */
 const STORAGE_KEY = 'leaders_admin_token';
+let connectionGeneration = 0;
+let connectionAccount = '';
 
 export const QUOTE_DESK_BASE = '/admin/quote-desk';
 
@@ -103,7 +105,9 @@ export function isDesktopViewport(): boolean {
 }
 
 /** iframe 에 넣을 주소. 바깥 창이 데스크톱 폭이면 모바일 화면으로 넘어가지 않게 `?m=0` 을 붙인다. */
-export function quoteDeskFrameSrc(tool: QuoteDeskTool, bookingId?: string): string {
+export function quoteDeskFrameSrc(tool: QuoteDeskTool, bookingId?: string, quoteEditorId?: string): string {
+    if (tool.key === 'builder' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}`;
+    if (tool.key === 'inbox' && quoteEditorId) return `/견적관리-모바일?qe=${encodeURIComponent(quoteEditorId)}`;
     if (tool.key === 'bookings' && bookingId) return `/예약관리?id=${encodeURIComponent(bookingId)}`;
     if (tool.key === 'inbox' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}${isDesktopViewport() ? '&m=0' : ''}`;
     return tool.mobileDoc && isDesktopViewport() ? `${tool.doc}?m=0` : tool.doc;
@@ -114,8 +118,12 @@ export function quoteDeskFrameSrc(tool: QuoteDeskTool, bookingId?: string): stri
  * 같은 탭·같은 출처의 iframe 은 sessionStorage 를 함께 쓰므로, 그 뒤에 끼워 넣은 견적 화면은
  * 자체 비밀번호 화면 없이 열린다. 서버에 ADMIN_TOKEN 이 설정되어 있지 않으면 null.
  */
-export async function connectQuoteDesk(): Promise<string | null> {
-    const data = await api.auth.quoteDesk();
+export async function connectQuoteDesk(options: { accountId?: string; signal?: AbortSignal; isCurrent?: () => boolean } = {}): Promise<string | null> {
+    if (options.accountId && options.accountId !== connectionAccount) { connectionGeneration++; connectionAccount = options.accountId; }
+    const generation = connectionGeneration;
+    const data = await api.auth.quoteDesk(options.signal);
+    if (options.signal?.aborted || options.isCurrent?.() === false || generation !== connectionGeneration || (options.accountId && options.accountId !== connectionAccount)) return null;
+    if (options.accountId && data.userId !== options.accountId) throw new Error('현재 관리자 계정으로 견적 데스크를 다시 연결해 주세요.');
     const value = typeof data?.token === 'string' && data.token ? data.token : null;
     if (value) {
         try { window.sessionStorage.setItem(STORAGE_KEY, value); } catch { /* 저장소를 쓸 수 없으면 견적 화면이 자체 로그인을 띄운다 */ }
@@ -134,6 +142,7 @@ const HANDOFF_KEYS = ['leaders_prefill', 'leaders_booking_prefill'];
  * (새 창으로 열어 둔 견적 화면은 탭마다 sessionStorage 가 따로라서 그 탭을 닫을 때까지 남는다.)
  */
 export function disconnectQuoteDesk(): void {
+    connectionGeneration++; connectionAccount = '';
     try { window.sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     try { HANDOFF_KEYS.forEach((key) => window.localStorage.removeItem(key)); } catch { /* ignore */ }
 }
