@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
-import { quoteBookingHref } from '../components/admin/quoteDesk';
+import { productCustomerHref, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 import type { AssignmentSource } from '../utils/reservationAssignment';
 import { assignmentFingerprint, editorAssignment, writeAssignmentDraft, readAssignmentDraft, discardAssignmentDraft, type AssignmentDraft, type AssignmentDraftResult } from '../utils/adminAssignmentDraft';
 import { AdminLayout } from '../components/admin/AdminLayout';
@@ -672,7 +672,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                             {/* ── Өдөр тутмын байр ── */}
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
                                                                 <b style={{ fontSize: 13 }}>Өдөр тутмын байрны захиалга</b>
-                                                                <a className="btn btn-sm" href={r.source === 'quote_booking' ? quoteBookingHref(r.bookingId) : `/admin/reservations?open=${encodeURIComponent(r.bookingId)}`} title="통합 예약 관리에서 이 예약 상세를 엽니다.">
+                                                                <a className="btn btn-sm" href={r.source === 'quote_booking' ? quoteCustomerHref(r.bookingId, '/admin/accommodation-ops') : productCustomerHref(r.bookingId, '/admin/accommodation-ops')} title="고객 통합 작업 화면에서 이 예약을 엽니다.">
                                                                     <Icon name="assignment" />Захиалгын дэлгэрэнгүй
                                                                 </a>
                                                                 <div style={{ flex: 1 }} />

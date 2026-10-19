@@ -89,6 +89,15 @@ GitHub 저장소의 Actions secret에도 Cloudflare와 동일한 이름과 값�
 7. 상품 예약의 미저장 일정·계약 조건을 관리자 초안 미리보기로 확인한다. 일정은 기존 확정일정표 PDF 디자인을 사용하며 사진·명소·금액·여행 기간을 실제 초안과 대조한다. 미리보기만으로 서버 문서/공개 상태/발송 이력/계약 동의가 바뀌지 않고 일반 사용자나 잘못된 nonce·출처에서 초안을 받지 못해야 한다.
 8. 매거진·숙소 보드 배정을 수정한 뒤 새로고침/재진입해 해당 관리자와 글 또는 출처별 예약의 초안만 복원/버리기할 수 있는지 확인한다. 원본 충돌·저장 실패·quota 오류와 저장/업로드 잠금을 확인하고, 다른 계정/탭의 최신 초안을 과거 저장 응답이 지우지 않아야 한다.
 
+### 고객 전용 통합 페이지 확인
+
+- 대표 관리자 주소는 상품 예약 `/admin/customer-workspace/product/:id`, 견적 문의·발행 견적·견적 예약 `/admin/customer-workspace/quote/:id`, 이전 MILKYWAY 견적 `/admin/customer-workspace/legacy-quote/:id`다. 같은 ID라도 `reservations`·`requests`·`quotes`를 구분한다. 관리자 세션 없이 내부 화면/자료를 열 수 없어야 한다.
+- 고객 정보·내부 상담 메모, 일정·문서, 결제·가이드·차량·숙소의 3열 요약과 좁은 화면의 열 전환을 확인한다. 수정 버튼에서 원래 업무 폼/견적 편집기를 펼쳐 기존 저장·고객 미리보기·공개·계약·발송·출력 기능을 사용할 수 있어야 한다. 원본 PC/모바일 PDF 디자인과 이미 보낸 고객 문서 주소를 유지한다.
+- 이름·전화번호가 같다는 이유로 고객을 합치지 않는다. 다른 예약 선택은 확인된 고객 계정의 `userId`가 같은 예약만 대상으로 하고, 선택 시 예약 ID·저장 문서·메모·초안이 바뀌어야 한다. 견적 매직링크를 이름/전화만으로 로그인 고객 계정에 연결하지 않는다.
+- 미예약 문의는 계약/입금/배정 완료로 표시하지 않는다. 저장된 견적과 발송 요청·서비스 접수·고객 동의를 구분하고 `quoteIssuedAt`만으로 발송 완료를 판단하지 않는다. 미확인 금액/입금 상태와 명시적 0원을 구분한다. 빈 일정/항목/배정은 그대로 보존하며 실제 여행 기간에 필요한 숙박 일수보다 부족한 배정을 완료로 표시하지 않는다.
+- 상담 메모는 내부 전용이며 고객 문서에 포함하거나 채팅/카카오 자동 연동 기능처럼 설명하지 않는다. 메모 수정 후 일정·금액·고객 토큰·서명 증빙·여행자 정보와 초안이 보존되는지 확인한다. 저장·업로드·발송 중 중복 실행과 화면 이탈 보호도 계속 적용한다.
+- 대시보드·공통 검색·오늘 할 일·달력·숙소 보드·통합 예약/이전 견적 목록에서 출처에 맞는 고객 화면을 연다. 이전 상세 링크도 같은 고객에게 연결되어야 한다. 상세의 목록 복귀와 브라우저 Back에서 검색·필터·페이지가 유지되고, 외부/임의 `returnTo`는 허용되지 않아야 한다.
+
 ### 로컬 합성 자료로 확인
 
 운영 DB·R2·고객 발송과 분리된 로컬 검증 명령이다. 아래 검사와 합성 관리자 화면을 확인하고 최종 실행 결과를 PR에 기록한다.
@@ -97,12 +106,15 @@ GitHub 저장소의 Actions secret에도 Cloudflare와 동일한 이름과 값�
 npm test
 npx tsc --noEmit
 npm run build
-node scripts/check-reservation-workspace.mjs --usability
+node scripts/check-reservation-workspace.mjs --usability --customer-workspace
 # 브라우저 확인용 합성 관리자/API 서버
-node scripts/check-reservation-workspace.mjs --serve --usability --port=8802
+node scripts/check-reservation-workspace.mjs --serve --usability --customer-workspace --port=8804
 ```
 
-- 브라우저 진입: `http://localhost:8802/__local-admin`. 합성 자료에는 출처별 같은 예약 ID·여러 필터/페이지·0원 팀·편집용 배너/카테고리/매거진이 포함된다. 서버를 실행하는 행위는 실제 배포가 아니다.
+- 브라우저 진입: `http://localhost:8804/__local-admin`. 합성 자료에는 출처별 같은 예약 ID·여러 필터/페이지·0원 팀·편집용 배너/카테고리/매거진이 포함된다. 서버를 실행하는 행위는 실제 배포가 아니다.
+- 고객 통합 화면용 ID: `workspace-customer-inquiry`는 미예약 문의, `requests`의 `workspace-customer-product-a`는 발행 견적·미예약이다. `reservations`의 `workspace-customer-product-a`·`workspace-customer-product-b`는 전용 `workspace-customer-account-a` 계정의 두 예약이며 첫 예약은 0원이다. `workspace-customer-other`는 같은 이름을 쓰는 `workspace-customer-account-b`의 예약이므로 분리되어야 한다. `--usability`의 `workspace-product`도 상품/견적 예약에 같은 ID가 있는 합성 자료다.
+- `quotes`에도 `workspace-customer-product-a`가 별도로 있다(`processing`, 0원, 실제 저장 일정·안내문). `/admin/customer-workspace/legacy-quote/workspace-customer-product-a`에서 확인한다. 같은 ID의 상품(`/product/…`)·현재 견적(`/quote/…`)·이전 견적(`/legacy-quote/…`)이 다른 원본을 읽고 검색에서도 분리되는지 확인한다.
+- 합성 데이터는 메모리 SQLite/버킷에만 있으며 서버 재실행 시 초기화된다. 기존 기본 API 자체 검증을 유지한 채 두 옵션을 추가한다. 경로 회귀 검사는 `tests/customer-workspace-routing.test.mjs`에서 실제 App 등록 경로와 관리자 보호·ID·목록 복귀 주소를 확인한다. 실행 결과와 PC/좁은 화면 확인 결과는 최종 PR 검증에 기록한다.
 - `?localDraftStorage=blocked`는 이 로컬 서버에서만 상품·예약 문서·견적·매거진·배정의 초안 저장에 `QuotaExceededError`를 발생시키는 선택 기능이다. 같은 출처 iframe도 부모의 명시 옵션을 이어받는다. 일반 사이트 설정 저장에는 적용하지 않는다.
 - 이메일은 로컬 응답으로 대체하고 그 밖의 외부 접속은 차단한다. 실제 수신 확인·Solapi/Resend 설정 검증은 승인된 검증 수신자와 별도의 배포 절차로 수행한다.
 

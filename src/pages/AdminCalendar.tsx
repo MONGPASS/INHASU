@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
-import { quoteBookingHref } from '../components/admin/quoteDesk';
 import { toTourDateKey } from '../utils/formatDate';
+import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 
 type CalendarItemType = 'reservation' | 'quote' | 'quote_booking';
 
@@ -220,7 +220,7 @@ const CalendarDetailModal = ({ item, onClose }: { item: CalendarItem | null; onC
                 <div className="drawer-foot">
                     <button className="btn btn-ghost" onClick={onClose} type="button">닫기</button>
                     <div className="spacer" style={{ flex: 1 }} />
-                    <a className="btn btn-ink" href={item.itemType === 'quote_booking' ? quoteBookingHref(item.id) : `/admin/reservations?open=${encodeURIComponent(item.id)}&kind=${item.itemType === 'quote' ? 'quote' : 'product'}`}>
+                    <a className="btn btn-ink" href={item.itemType === 'quote_booking' ? quoteCustomerHref(item.id, '/admin/calendar') : item.itemType === 'quote' ? legacyQuoteCustomerHref(item.id, '/admin/calendar') : productCustomerHref(item.id, '/admin/calendar')}>
                         <Icon name="open_in_new" />예약 상세로 이동
                     </a>
                 </div>

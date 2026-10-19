@@ -6,7 +6,9 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { createPortal } from 'react-dom';
 import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
-import { reservationReturnTo } from '../utils/adminReservationList';
+import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
+import { customerWorkspaceReturnTo, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
+import { loadQuoteCustomerRequest, quoteCustomerIsBooking, quoteCustomerWorkspaceModel } from '../utils/quoteCustomerWorkspace';
 import workspaceStyles from '../styles/reservation-workspace.css?inline';
 import nativeWorkspaceStyles from '../styles/quote-booking-workspace.css?inline';
 import deliveryStyles from '../components/admin/AdminDeliveryHistory.css?inline';
@@ -38,26 +40,48 @@ interface BookingWorkspaceState {
     schedule: boolean; published: boolean; dayCount: number; guideReady: boolean; vehicleReady: boolean;
     lodgeCount: number; lodgeNeeded: number; travelerCount: number; expectedTravelers: number;
 }
+const workspaceFrameSrc = (customerPage: boolean, tool: ReturnType<typeof findQuoteDeskTool>, id?: string, editorId?: string) => customerPage && tool.key === 'inbox' && id
+    ? `/견적관리?id=${encodeURIComponent(id)}&m=0&workspace=1` : quoteDeskFrameSrc(tool, id, editorId);
 
-export const AdminQuoteDesk: React.FC = () => {
+export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerPage = false }) => {
     const { user } = useUser();
     const accountId = user?.role === 'admin' ? user.id : '';
     const activeAccount = useRef(accountId); activeAccount.current = accountId;
-    const { tool: toolParam } = useParams<{ tool?: string }>();
+    const { tool: toolParam, id: customerId } = useParams<{ tool?: string; id?: string }>();
     const [searchParams] = useSearchParams();
-    const returnTo = reservationReturnTo(searchParams.get('returnTo'));
-    const bookingId = ['bookings', 'inbox', 'builder'].includes(toolParam || '') ? searchParams.get('id') || undefined : undefined;
+    const returnTo = customerWorkspaceReturnTo(searchParams.get('returnTo'), customerPage ? '/admin/quote-desk/inbox' : '/admin/reservations?type=quote_booking');
+    const bookingId = customerPage ? customerId : ['bookings', 'inbox', 'builder'].includes(toolParam || '') ? searchParams.get('id') || undefined : undefined;
     const quoteEditorId = toolParam === 'inbox' ? searchParams.get('qe') || undefined : undefined;
     const navigate = useNavigate();
-    const tool = findQuoteDeskTool(toolParam);
+    const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: any } | null>(null);
+    const customerRecord = customerResult?.accountId === accountId && customerResult.id === bookingId ? customerResult.record : null;
+    const [customerError, setCustomerError] = useState('');
+    const [customerRefreshing, setCustomerRefreshing] = useState(false);
+    const [customerRefresh, setCustomerRefresh] = useState(0);
+    const [customerEditor, setCustomerEditor] = useState<{ id: string; tool: string } | null>(null);
+    const [editorExpanded, setEditorExpanded] = useState(false);
+    // Mount the original editor on the first explicit task. Folding it afterwards
+    // retains the same browsing context and any recoverable, unsaved input.
+    const [editorMountScope, setEditorMountScope] = useState('');
+    const customerEditorScope = JSON.stringify([accountId, bookingId || '']);
+    const customerEditorMounted = editorMountScope === customerEditorScope;
+    const [pendingSection, setPendingSection] = useState('');
+    const pendingSectionRef = useRef(pendingSection); pendingSectionRef.current = pendingSection;
+    const activeCustomer = useRef({ accountId, id: bookingId }); activeCustomer.current = { accountId, id: bookingId };
+    const linkedToken = useRef('');
+    const customerController = useRef<AbortController | null>(null);
+    const lastEditorBusy = useRef(false);
+    const tool = findQuoteDeskTool(customerPage ? customerEditor && customerEditor.id === bookingId ? customerEditor.tool : customerRecord && quoteCustomerIsBooking(customerRecord) ? 'bookings' : 'inbox' : toolParam);
 
     const [phase, setPhase] = useState<Phase>('connecting');
     const [linkedAccount, setLinkedAccount] = useState('');
     const linked = phase === 'linked' && linkedAccount === accountId && !!accountId;
     const connectionRequest = useRef(0);
     const connectController = useRef<AbortController | null>(null);
+    const frameKey = `${accountId}:${customerPage ? 'customer-page' : 'quote-workspace'}:${tool.key}:${bookingId || ''}:${quoteEditorId || ''}`;
     // seq 가 바뀌면 iframe 을 새로 만든다(같은 주소를 다시 불러와야 할 때).
-    const [frame, setFrame] = useState(() => ({ src: quoteDeskFrameSrc(tool, bookingId, quoteEditorId), seq: 0 }));
+    const [frame, setFrame] = useState(() => ({ src: workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId), seq: 0, routeKey: frameKey }));
+    const recoverySrc = useRef(frame.src);
     const [frameLoading, setFrameLoading] = useState(true);
     const [frameDelayed, setFrameDelayed] = useState(false);
     const [reloadAttempt, setReloadAttempt] = useState(0);
@@ -65,9 +89,11 @@ export const AdminQuoteDesk: React.FC = () => {
     // 안쪽 화면이 스스로 옮겨 간 메뉴. 이때는 주소만 맞추고 iframe 은 다시 불러오지 않는다.
     const followedKeyRef = useRef<string | null>(null);
     const followedHrefRef = useRef('');
-    const frameKey = `${tool.key}:${bookingId || ''}:${quoteEditorId || ''}`;
+    const frameReady = frame.routeKey === frameKey || followedKeyRef.current === tool.key;
+    const frameIsMounted = linked && frameReady && (!customerPage || !!customerRecord && customerEditorMounted);
     const shownKeyRef = useRef(frameKey);
     const [editorNotice, setEditorNotice] = useState('');
+    const [editorBusy, setEditorBusy] = useState(false);
     const [showDeliveries, setShowDeliveries] = useState(false);
     const [bookingWorkspace, setBookingWorkspace] = useState<BookingWorkspaceState | null>(null);
     const [nativeHosts, setNativeHosts] = useState<{ bookingId: string; top: HTMLElement; navigation: HTMLElement; history: HTMLElement } | null>(null);
@@ -79,7 +105,8 @@ export const AdminQuoteDesk: React.FC = () => {
         getState: () => { dirty: boolean; busy: boolean; error?: string };
         flushAll: () => { ok: boolean; dirty?: boolean; busy: boolean; error?: string };
         approveLeaveOnce?: () => void;
-    }; InhasuQuoteBookingWorkspace?: { getState: () => BookingWorkspaceState | null; navigate: (section: string) => boolean } };
+    }; InhasuQuoteBookingWorkspace?: { getState: () => BookingWorkspaceState | null; navigate: (section: string) => boolean };
+        InhasuQuoteInquiryWorkspace?: { navigate: (section: string) => boolean; flushAll: () => { ok: boolean; busy: boolean; error?: string } }; setStep?: (step: number) => void };
     const navigateWorkspace = (section: string) => {
         setActiveSection(section);
         try { (frameRef.current?.contentWindow as EditorWindow | null)?.InhasuQuoteBookingWorkspace?.navigate(section); }
@@ -89,7 +116,7 @@ export const AdminQuoteDesk: React.FC = () => {
         try {
             const inner = frameRef.current?.contentWindow as EditorWindow | null;
             if (!inner || inner.location.origin !== window.location.origin) return { ok: true, busy: false };
-            return inner.QuoteEditorState?.flushAll() || { ok: true, busy: false };
+            return inner.QuoteEditorState?.flushAll() || inner.InhasuQuoteInquiryWorkspace?.flushAll() || { ok: true, busy: false };
         } catch { return { ok: false, busy: false, error: '견적 편집 상태를 확인하지 못했습니다. 내용을 저장한 뒤 이동해 주세요.' }; }
     }, []);
     const sendAccount = useCallback(() => {
@@ -103,13 +130,25 @@ export const AdminQuoteDesk: React.FC = () => {
             if (event.data?.type === 'inhasu-editor-ready' && event.data.version === 1) sendAccount();
             if (event.data?.type === 'inhasu-editor-state' && event.data.version === 1) {
                 if (!event.data.busy && !event.data.error) setEditorNotice('');
+                if (customerPage && lastEditorBusy.current && !event.data.busy) setCustomerRefresh(value => value + 1);
+                lastEditorBusy.current = !!event.data.busy;
+                setEditorBusy(!!event.data.busy);
+                const pending = pendingSectionRef.current;
+                if (pending) {
+                    const inner = frameRef.current?.contentWindow as EditorWindow | null;
+                    if (inner?.InhasuQuoteInquiryWorkspace?.navigate(pending) || inner?.InhasuQuoteBookingWorkspace?.navigate(pending)) setPendingSection('');
+                }
                 syncFrameLocation.current();
             }
+            if (event.data?.type === 'inhasu-quote-customer-open' && event.data.version === 1 && typeof event.data.id === 'string' && event.data.id) {
+                navigate(quoteCustomerHref(event.data.id, customerPage ? returnTo : quoteDeskHref(tool.key)));
+            }
+            if (event.data?.type === 'inhasu-quote-record-saved' && event.data.version === 1 && event.data.id === bookingId) setCustomerRefresh(value => value + 1);
             if (event.data?.type === 'inhasu-quote-booking-workspace' && event.data.version === 1 && event.data.state?.bookingId === bookingId) { setBookingWorkspace(event.data.state); syncFrameLocation.current(); }
         };
         window.addEventListener('message', receive);
         return () => window.removeEventListener('message', receive);
-    }, [sendAccount, bookingId]);
+    }, [sendAccount, bookingId, customerPage, navigate, returnTo, tool.key]);
     const blocker = useBlocker(useCallback(({ currentLocation, nextLocation }) => {
         if (currentLocation.pathname === nextLocation.pathname && currentLocation.search === nextLocation.search) return false;
         if (followedKeyRef.current && nextLocation.pathname + nextLocation.search === followedHrefRef.current) return false; // Same child document, only synchronizing its address.
@@ -143,17 +182,37 @@ export const AdminQuoteDesk: React.FC = () => {
         setPhase('connecting');
         try {
             const value = await connectQuoteDesk({ accountId, signal: controller.signal, isCurrent: () => activeAccount.current === accountId });
-            if (!controller.signal.aborted && request === connectionRequest.current && activeAccount.current === accountId) { setLinkedAccount(accountId); setPhase(value ? 'linked' : 'unset'); }
+            if (!controller.signal.aborted && request === connectionRequest.current && activeAccount.current === accountId) { linkedToken.current = value || ''; setLinkedAccount(accountId); setPhase(value ? 'linked' : 'unset'); }
         } catch {
             if (!controller.signal.aborted && request === connectionRequest.current && activeAccount.current === accountId) setPhase('failed');
         }
     }, [accountId]);
     useEffect(() => { void connect(); return () => { connectionRequest.current++; connectController.current?.abort(); }; }, [connect]);
     useEffect(() => {
+        if (!customerPage || !bookingId || !linked) return;
+        const controller = new AbortController(); customerController.current?.abort(); customerController.current = controller;
+        const id = bookingId; setCustomerError(''); setCustomerRefreshing(true);
+        void loadQuoteCustomerRequest(id, linkedToken.current, controller.signal).then(record => {
+            if (!controller.signal.aborted && activeCustomer.current.accountId === accountId && activeCustomer.current.id === id) setCustomerResult({ accountId, id, record });
+        }).catch(error => {
+            if (!controller.signal.aborted && activeCustomer.current.accountId === accountId && activeCustomer.current.id === id) setCustomerError(error instanceof Error ? error.message : '고객 정보를 불러오지 못했습니다.');
+        }).finally(() => { if (!controller.signal.aborted && activeCustomer.current.accountId === accountId && activeCustomer.current.id === id) setCustomerRefreshing(false); });
+        return () => controller.abort();
+    }, [customerPage, bookingId, linked, accountId, customerRefresh]);
+    useEffect(() => {
+        if (!customerPage && bookingId && !quoteEditorId && ['bookings', 'inbox'].includes(toolParam || '')) navigate(quoteCustomerHref(bookingId, searchParams.has('returnTo') ? returnTo : quoteDeskHref(toolParam!)), { replace: true });
+    }, [customerPage, bookingId, quoteEditorId, toolParam, returnTo, navigate, searchParams]);
+    useEffect(() => { setEditorExpanded(false); setEditorMountScope(''); setPendingSection(''); setCustomerEditor(null); lastEditorBusy.current = false; }, [customerPage, bookingId, accountId]);
+    useEffect(() => {
+        if (!customerPage) return;
+        const refresh = () => setCustomerRefresh(value => value + 1);
+        window.addEventListener('focus', refresh); return () => window.removeEventListener('focus', refresh);
+    }, [customerPage]);
+    useEffect(() => {
         setFrameDelayed(false);
-        if (!linked || !frameLoading) return;
+        if (!frameIsMounted || customerPage && !editorExpanded || !frameLoading) return;
         return scheduleQuoteFrameDelay(() => setFrameDelayed(true));
-    }, [linked, frameLoading, frame.seq, frame.src, reloadAttempt]);
+    }, [frameIsMounted, customerPage, editorExpanded, frameLoading, frame.seq, frame.src, reloadAttempt]);
 
     // 2) 주소의 메뉴가 바뀌면(관리자 메뉴에서 다른 화면을 고르면) 그 문서를 불러온다.
     useEffect(() => {
@@ -162,10 +221,13 @@ export const AdminQuoteDesk: React.FC = () => {
         if (followedKeyRef.current === tool.key) {
             followedKeyRef.current = null;
             followedHrefRef.current = '';
+            setFrame(prev => ({ ...prev, routeKey: frameKey }));
             return;
         }
         setNativeHosts(null); setBookingWorkspace(null); setActiveSection('docs');
-        setFrame((prev) => ({ src: quoteDeskFrameSrc(tool, bookingId, quoteEditorId), seq: prev.seq + 1 }));
+        setEditorBusy(false);
+        recoverySrc.current = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId);
+        setFrame((prev) => ({ src: recoverySrc.current, seq: prev.seq + 1, routeKey: frameKey }));
         setFrameLoading(true);
         // tool 은 tool.key 로 정해진다.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -179,6 +241,7 @@ export const AdminQuoteDesk: React.FC = () => {
             path = frameRef.current?.contentWindow?.location.pathname ?? '';
             innerId = new URLSearchParams(frameRef.current?.contentWindow?.location.search).get('id') || '';
             innerEditor = new URLSearchParams(frameRef.current?.contentWindow?.location.search).get('qe') || '';
+            recoverySrc.current = (frameRef.current?.contentWindow?.location.pathname || '') + (frameRef.current?.contentWindow?.location.search || '');
         } catch {
             return; // 다른 출처로 나간 경우 — 읽을 수 없으니 그대로 둔다
         }
@@ -211,6 +274,11 @@ export const AdminQuoteDesk: React.FC = () => {
 
         const detailId = (current.key === 'bookings' && normalizeDocPath(path) === '/예약관리') || current.key === 'builder' ? innerId : '';
         const editorId = current.key === 'inbox' ? innerEditor : '';
+        if (customerPage) {
+            if (innerId && innerId !== bookingId && ['bookings', 'inbox', 'builder'].includes(current.key)) { navigate(quoteCustomerHref(innerId, returnTo), { replace: true }); return; }
+            if (current.key !== tool.key) { followedKeyRef.current = current.key; setCustomerEditor({ id: bookingId || '', tool: current.key }); }
+            return;
+        }
         if (current.key !== tool.key || (['bookings', 'builder'].includes(current.key) && detailId !== (bookingId || '')) || editorId !== (quoteEditorId || '')) {
             followedKeyRef.current = current.key;
             followedHrefRef.current = quoteDeskHref(current.key) + (detailId ? `?id=${encodeURIComponent(detailId)}` : editorId ? `?qe=${encodeURIComponent(editorId)}` : '');
@@ -235,13 +303,13 @@ export const AdminQuoteDesk: React.FC = () => {
             }
         } catch { /* 아래에서 iframe 을 새로 만든다 */ }
         setNativeHosts(null); setBookingWorkspace(null);
-        setFrame((prev) => ({ ...prev, seq: prev.seq + 1 }));
+        setFrame((prev) => ({ src: recoverySrc.current || prev.src, seq: prev.seq + 1, routeKey: frameKey }));
     };
 
     // 새 창으로 열기: 지금 안쪽에 떠 있는 화면을 단독으로 연다.
     // noopener 를 붙이지 않는다 — 새 창이 이 탭의 sessionStorage(관리자 값)를 이어받아야 자체 로그인 화면이 뜨지 않는다.
     const openStandalone = () => {
-        let url = quoteDeskFrameSrc(tool, bookingId, quoteEditorId);
+        let url = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId);
         try {
             const inner = frameRef.current?.contentWindow?.location;
             if (inner && inner.origin === window.location.origin) url = `${inner.pathname}${inner.search}`;
@@ -249,29 +317,66 @@ export const AdminQuoteDesk: React.FC = () => {
         window.open(url, '_blank');
     };
 
+    const focusCustomerEditor = useCallback((section: string) => {
+        try {
+            const inner = frameRef.current?.contentWindow as EditorWindow | null;
+            if (tool.key === 'bookings') return !!inner?.InhasuQuoteBookingWorkspace?.navigate(section);
+            if (tool.key === 'inbox') return !!inner?.InhasuQuoteInquiryWorkspace?.navigate(section);
+            if (tool.key === 'builder' && inner?.setStep) { inner.setStep(section === 'quote-share' ? 4 : 1); return true; }
+        } catch { /* The loading state retains the requested section until the document is ready. */ }
+        return false;
+    }, [tool.key]);
+    useEffect(() => {
+        if (!customerPage || !editorExpanded || !pendingSection || frameLoading) return;
+        if (focusCustomerEditor(pendingSection)) setPendingSection('');
+    }, [customerPage, editorExpanded, pendingSection, frameLoading, bookingWorkspace, customerRecord, focusCustomerEditor]);
+    const openCustomerEditor = (editorTool: string, section: string) => {
+        const result = flushFrame();
+        if (result.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 작업을 선택해 주세요.'); return; }
+        if (!result.ok && !window.confirm((result.error || '초안을 보관하지 못했습니다.') + '\n\n초안을 보관하지 못한 상태로 다른 편집기를 열까요?')) return;
+        setPendingSection(section); setEditorExpanded(true); setEditorMountScope(customerEditorScope);
+        setCustomerEditor({ id: bookingId || '', tool: editorTool });
+        requestAnimationFrame(() => document.getElementById('quote-customer-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    };
+    const customerAction = (action: string) => {
+        if (action === 'back') { navigate(returnTo); return; }
+        if (!customerRecord) return;
+        if (['customer-link', 'quote-preview', 'itinerary-preview'].includes(action)) {
+            const token = typeof customerRecord.token === 'string' ? customerRecord.token : '';
+            if (!token) { setEditorNotice('고객 링크가 아직 발급되지 않았습니다. 먼저 견적서를 저장해 주세요.'); return; }
+            const page = action === 'quote-preview' ? '견적서' : action === 'itinerary-preview' ? '확정일정표' : '내견적';
+            window.open(`/${page}?t=${encodeURIComponent(token)}`, '_blank', 'noopener'); return;
+        }
+        const booked = quoteCustomerIsBooking(customerRecord);
+        if (action === 'edit-itinerary' || action === 'quote-share') { openCustomerEditor(booked && action !== 'quote-share' ? 'bookings' : 'builder', action === 'quote-share' ? 'quote-share' : 'docs'); return; }
+        const section = action === 'payments' ? 'pay' : ['guide', 'vehicle', 'stay'].includes(action) ? action : action === 'history' ? 'log' : action === 'notes' ? 'notes' : action === 'send-itinerary' ? 'send' : action === 'documents' ? 'docs' : 'info';
+        openCustomerEditor(booked ? 'bookings' : 'inbox', section);
+        if (!booked && ['payments', 'guide', 'vehicle', 'stay', 'contract'].includes(action)) setEditorNotice('예약 진행 의사를 기록하고 예약관리를 시작하면 결제·계약·배정을 관리할 수 있습니다.');
+    };
+
     return (
         <><AdminLayout
             activePage={quoteDeskPageId(tool.key)}
             eyebrow="맞춤 견적"
-            title={bookingId && tool.key === 'bookings' ? '견적 예약 상세' : tool.label}
-            description={bookingId && tool.key === 'bookings' ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.description}
+            title={customerPage ? '고객 통합 작업' : bookingId && tool.key === 'bookings' ? '견적 예약 상세' : tool.label}
+            description={customerPage ? '선택한 문의·견적의 고객 정보와 일정·문서·예약 업무를 한곳에서 확인합니다.' : bookingId && tool.key === 'bookings' ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.description}
             flush
             actions={
                 <>
-                    {tool.key === 'inbox' && (
-                        <button type="button" className="btn btn-blue" onClick={() => navigate(quoteDeskHref('builder'))}>
-                            <Icon name="add" />견적 작성
+                    {(tool.key === 'inbox' || customerPage) && (
+                        <button type="button" className="btn btn-blue" disabled={customerPage && !customerRecord} onClick={() => customerPage ? openCustomerEditor('builder', 'docs') : navigate(quoteDeskHref('builder'))}>
+                            <Icon name="edit_document" />{customerPage && customerRecord?.quote ? '견적 수정' : '견적 작성'}
                         </button>
                     )}
                     <button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>
-                        <Icon name="arrow_back" />통합 예약 목록
+                        <Icon name="arrow_back" />{customerPage ? '목록으로' : '통합 예약 목록'}
                     </button>
                     {linked && (
-                        <button type="button" className="btn btn-ghost" onClick={reloadFrame}>
+                        <button type="button" className="btn btn-ghost" onClick={() => { reloadFrame(); if (customerPage) setCustomerRefresh(value => value + 1); }}>
                             <Icon name="refresh" />새로고침
                         </button>
                     )}
-                    {linked && tool.key === 'bookings' && bookingId && <button type="button" className="btn btn-ghost" onClick={() => nativeHosts ? navigateWorkspace('log') : setShowDeliveries(v => !v)}>발송 이력</button>}
+                    {linked && tool.key === 'bookings' && bookingId && <button type="button" className="btn btn-ghost" onClick={() => customerPage ? customerAction('history') : nativeHosts ? navigateWorkspace('log') : setShowDeliveries(v => !v)}>발송 이력</button>}
                     <button type="button" className="btn btn-ghost" onClick={openStandalone}>
                         <Icon name="open_in_new" />새 창으로 열기
                     </button>
@@ -280,15 +385,26 @@ export const AdminQuoteDesk: React.FC = () => {
         >
             {editorNotice && <div role="status" style={{ padding: '12px 20px', background: '#fff5e8', color: '#80521b' }}>{editorNotice}</div>}
             {linked ? (
-                <div style={{ position: 'relative', flex: 1, minHeight: 0, background: '#fff' }}>
-                    <iframe
+                <div style={customerPage ? { flex: 1, minHeight: 0, overflow: 'auto', background: '#f5f7f6' } : { position: 'relative', flex: 1, minHeight: 0, background: '#fff' }}>
+                    {customerPage && <>
+                        {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 12, background: '#fff5e8' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
+                        {customerRecord ? <><CustomerWorkspaceOverview model={quoteCustomerWorkspaceModel(customerRecord)} onAction={customerAction} busy={editorBusy} />
+                            <div style={{ padding: '0 24px 20px', color: '#65756c', fontSize: 12 }}>서버에 저장된 현재 문의·견적의 현황입니다. 편집 중인 초안은 아래 편집기에서 저장한 후 반영됩니다.
+                                <button type="button" className="btn btn-ghost" style={{ marginLeft: 10 }} onClick={() => openCustomerEditor(quoteCustomerIsBooking(customerRecord) ? 'bookings' : 'inbox', 'info')}>업무 편집기 열기</button></div>
+                        </> : !customerError && <div role="status" style={{ padding: 32 }}>고객 정보를 불러오는 중입니다.</div>}
+                    </>}
+                    {(!customerPage || customerRecord) && <div id={customerPage ? 'quote-customer-editor' : undefined} inert={customerPage && !editorExpanded} aria-hidden={customerPage && !editorExpanded ? true : undefined} style={customerPage ? { position: 'relative', height: editorExpanded ? 'min(900px, 85vh)' : 0, minHeight: editorExpanded ? 600 : 0, overflow: 'hidden', borderTop: editorExpanded ? '1px solid #dfe9e3' : 0, background: '#fff', scrollMarginTop: 12 } : { position: 'absolute', inset: 0 }}>
+                    {customerPage && editorExpanded && <div style={{ position: 'absolute', inset: '0 0 auto', zIndex: 3, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', background: '#edf6f2' }}><strong>{tool.key === 'builder' ? '견적 작성 · 원본 편집기' : tool.key === 'bookings' ? '예약 업무 · 원본 편집기' : '문의 · 상담 편집기'}</strong><button type="button" className="btn btn-ghost" disabled={editorBusy} onClick={() => { const result = flushFrame(); if (result.busy) return; if (!result.ok) { setEditorNotice(result.error || '초안을 보관하지 못했습니다. 저장 후 접어 주세요.'); return; } setEditorExpanded(false); }}>편집기 접기</button></div>}
+                    {frameIsMounted && <iframe
                         key={frame.seq}
                         ref={frameRef}
                         src={frame.src}
+                        loading="eager"
+                        tabIndex={customerPage && !editorExpanded ? -1 : undefined}
                         title={`맞춤 견적 · ${tool.label}`}
                         onLoad={handleFrameLoad}
-                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, display: 'block' }}
-                    />
+                        style={{ position: 'absolute', inset: customerPage ? '48px 0 0' : 0, width: '100%', height: customerPage ? 'calc(100% - 48px)' : '100%', border: 0, display: 'block' }}
+                    />}
                     {showDeliveries && !nativeHosts && tool.key === 'bookings' && bookingId && <aside className="quote-delivery-panel" aria-label="견적 예약 발송 이력">
                         <button type="button" onClick={() => setShowDeliveries(false)}>이력 닫기</button>
                         <AdminDeliveryHistory source="quote_booking" bookingId={bookingId} onOpenDocument={kind => {
@@ -301,7 +417,7 @@ export const AdminQuoteDesk: React.FC = () => {
                             } catch { setEditorNotice('현재 예약 화면의 문서 발송 버튼에서 내용을 확인해 주세요.'); }
                         }} />
                     </aside>}
-                    {frameLoading && (
+                    {frameIsMounted && frameLoading && (
                         <div
                             role="status"
                             aria-live="polite"
@@ -318,6 +434,7 @@ export const AdminQuoteDesk: React.FC = () => {
                             </div>
                         </div>
                     )}
+                    </div>}
                 </div>
             ) : (
                 <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: 32 }}>
@@ -369,7 +486,7 @@ export const AdminQuoteDesk: React.FC = () => {
             )}
         </AdminLayout>
         {linked && tool.key === 'bookings' && bookingId && nativeHosts?.bookingId === bookingId && bookingWorkspace?.bookingId === bookingId && <>
-            {createPortal(<div className="reservation-workspace product-workspace quote-native-workspace">
+            {!customerPage && createPortal(<div className="reservation-workspace product-workspace quote-native-workspace">
                 <ReservationWorkflow cancelled={bookingWorkspace.cancelled} steps={[
                     { id: 'accepted', title: '예약 접수', description: bookingWorkspace.accepted ? '고객 예약 진행 의사 확인됨' : '고객의 예약 진행 의사를 확인하세요', done: bookingWorkspace.accepted, actionLabel: '주문 확인', onAction: () => navigateWorkspace('info') },
                     { id: 'deposit', title: '예약금 확인', description: bookingWorkspace.deposit ? '입금 확인 완료' : '입금 내역 확인 필요', done: bookingWorkspace.deposit, actionLabel: '입금 확인하기', onAction: () => navigateWorkspace('pay') },

@@ -22,11 +22,23 @@ test('공개 링크가 있어도 취소·입금 대기·빈 일정이면 공개 
         assert.equal(reservationWorkspaceStatus(fixture({ itineraryUrl: '/documents/itinerary/fixture', ...patch })).published, false);
     }
 });
-test('귀국일 숙소와 중복 배정은 필요한 숙박 수에 더하지 않는다', () => {
+test('기본 일정 숙소를 실제 배정으로 세지 않고 귀국일·중복 배정을 제외한다', () => {
     const state = reservationWorkspaceStatus(fixture({ dailyAccommodations: [
         { day: 1, accommodation: { name: '호텔' } }, { day: 3, accommodation: { name: '마지막날 호텔' } },
     ] }));
-    assert.equal(state.nights, 2); assert.equal(state.stayCount, 2); assert.equal(state.accommodationsReady, true);
+    assert.equal(state.nights, 2); assert.equal(state.stayCount, 1); assert.equal(state.accommodationsReady, false);
+    const assigned = reservationWorkspaceStatus(fixture({ dailyAccommodations: [
+        { day: 1, accommodation: { name: '호텔' } }, { day: 1, accommodation: { name: '중복 호텔' } },
+        { day: 2, accommodation: { name: '게르' } }, { day: 3, accommodation: { name: '귀국일' } },
+    ] }));
+    assert.equal(assigned.stayCount, 2); assert.equal(assigned.accommodationsReady, true);
+});
+
+test('배정을 명시적으로 해제하거나 아직 배정하지 않은 상품 기본 숙소는 완료로 표시하지 않는다', () => {
+    for (const patch of [{ dailyAccommodations: [] }, {}]) {
+        const state = reservationWorkspaceStatus(fixture(patch));
+        assert.equal(state.stayCount, 0); assert.equal(state.accommodationsReady, false);
+    }
 });
 test('빠진 숙박일과 미입력 여행자를 준비 완료로 표시하지 않는다', () => {
     const state = reservationWorkspaceStatus(fixture({ days: [{ day: 1, title: '도착', accommodation: { name: '게르' } }], travelers: [{ name: '김여행' }, { name: ' ' }] }));

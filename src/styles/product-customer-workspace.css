@@ -1,0 +1,21 @@
+.product-customer-page { width:100%; min-width:0; }
+.product-customer-page .product-customer-fullpage.drawer { position:static; inset:auto; transform:none; display:block; width:100%; max-width:none; min-height:0; height:auto; max-height:none; border:0; border-radius:0; box-shadow:none; overflow:visible; background:transparent; }
+.product-customer-fullpage .product-customer-detail { margin-top:12px; border:1px solid #e2e8ec; border-radius:18px; overflow:hidden; background:#f5f8f6; }
+.product-customer-fullpage .product-customer-detail[hidden] { display:none; }
+.product-customer-page .product-customer-fullpage .reservation-workspace-main { min-height:0; height:auto; overflow:visible; }
+.product-customer-page .product-customer-fullpage .reservation-workspace-body.drawer-body { min-height:0; max-height:none; height:auto; overflow:visible; overscroll-behavior:auto; }
+.product-customer-page .product-customer-fullpage .drawer-foot { position:sticky; bottom:0; z-index:4; border-top:1px solid #e2e8ec; background:#fff; }
+.product-customer-page .product-customer-fullpage .tc-anchors { position:sticky; top:0; z-index:3; background:#fff; }
+.product-customer-controls { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin:20px 0 0; }
+.product-customer-note { display:grid; gap:8px; margin-top:14px; }
+.product-customer-note textarea { width:100%; resize:vertical; min-height:80px; border:1px solid #dbe3e8; border-radius:10px; padding:10px; font:inherit; font-size:12px; }
+.product-customer-note button { justify-self:end; }
+.product-customer-bookings { border:0; margin:0; padding:0; min-width:0; max-width:100%; }
+.product-customer-bookings label { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.product-customer-bookings select { max-width:360px; width:100%; border:1px solid #dbe3e8; border-radius:8px; background:#fff; padding:7px; font:inherit; }
+.product-customer-loading { padding:32px; margin:12px 0; }
+.product-customer-loading p { margin:12px 0 20px; }
+.product-customer-warning { padding:12px 16px; margin-bottom:12px; background:#fff5e8; color:#8f4c13; border-radius:10px; font-size:13px; }
+.product-customer-page .legacy-customer-fullpage .reservation-workspace-main { display:grid; grid-template-columns:minmax(0,1fr) 320px; align-items:start; }
+@media(max-width:1000px) { .product-customer-page .legacy-customer-fullpage .reservation-workspace-main { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:640px) { .product-customer-page .product-customer-fullpage .drawer-head { padding:14px; flex-wrap:wrap; } .product-customer-page .product-customer-fullpage .reservation-workspace-body.drawer-body { padding:14px; } .product-customer-page .product-customer-fullpage .grid-2 { grid-template-columns:minmax(0,1fr)!important; } }

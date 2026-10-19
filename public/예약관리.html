@@ -1713,6 +1713,7 @@ async function saveBookingBody(opts = {}) {
     if (PRE.status === "예약확정") $("setStatus").checked = false;
     if (!BK.preparedAt) BK.preparedAt = j.preparedAt || new Date().toISOString();
     PRE.booking = BK;
+    window.QuoteBookingWorkspace?.notifySaved(PRE.id);
     SAVED_BK_JSON = JSON.stringify(BK);
     if (!opts._internal) bookingRecovery?.commit(PRE.id);
     localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));

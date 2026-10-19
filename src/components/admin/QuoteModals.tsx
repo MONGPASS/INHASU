@@ -4,6 +4,9 @@ import { api } from '../../lib/api';
 import { BRAND } from '../../constants/company';
 import { ReservationDocumentEditor, type ReservationDocContent } from './ReservationDocumentEditor';
 import { decodeTemplateDescription, mergeDocumentSettings } from '../../pages/AdminTemplateManage';
+import { useBlocker } from 'react-router-dom';
+import { CustomerWorkspaceOverview } from './CustomerWorkspaceOverview';
+import { legacyCustomerOverview } from '../../utils/productCustomerWorkspace';
 
 export interface QuoteRequest {
     id: string;
@@ -268,7 +271,8 @@ export const QuoteDetailModal: React.FC<{
     onSendEstimate: (url: string, note: string, priceDetail: any, startDate: string, endDate: string, itineraryTemplateId?: string) => void;
     onOpenConvert: () => void;
     onUpdateQuote: (id: string, updates: Partial<QuoteRequest>) => Promise<boolean | void>;
-}> = ({ request, onClose, onSendEstimate, onOpenConvert, onUpdateQuote }) => {
+    fullPage?: boolean;
+}> = ({ request, onClose, onSendEstimate, onOpenConvert, onUpdateQuote, fullPage = false }) => {
     const [estimateUrl, setEstimateUrl] = useState(request?.estimateUrl || '');
     const [adminNote, setAdminNote] = useState(request?.adminNote || '');
     const [copiedEstimateUrl, setCopiedEstimateUrl] = useState(false);
@@ -281,11 +285,17 @@ export const QuoteDetailModal: React.FC<{
         normalizeDocumentContent(request?.documentContent || request?.document_content)
     );
     const [docEditorOpen, setDocEditorOpen] = useState(false);
+    const [workflowOpen, setWorkflowOpen] = useState(!fullPage);
+    const [workspaceDirty, setWorkspaceDirty] = useState(false);
+    const [workspaceSaving, setWorkspaceSaving] = useState(false);
+    const savingLock = useRef(false);
+    const [workspaceNotice, setWorkspaceNotice] = useState('');
     const [activeSec, setActiveSec] = useState<'info' | 'quote'>('info');
     const bodyRef = useRef<HTMLDivElement | null>(null);
     const scrollToSec = (id: 'info' | 'quote') => {
         setActiveSec(id);
-        bodyRef.current?.querySelector(`#qsec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setWorkflowOpen(true);
+        requestAnimationFrame(() => bodyRef.current?.querySelector(`#qsec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     };
     useEffect(() => {
         api.itineraryTemplates.list().then((d: any) => { if (Array.isArray(d)) setTemplatesList(d); }).catch(() => {});
@@ -293,13 +303,13 @@ export const QuoteDetailModal: React.FC<{
 
     // --- Added for Centralized UI Integration ---
     const [priceDetail, setPriceDetail] = useState({
-        totalAmount: request?.confirmed_price || ((parseDocumentPricePerPerson(normalizeDocumentContent(request?.documentContent || request?.document_content)) || 0) * parsePeopleCount(request?.headcount)),
+        totalAmount: request?.confirmed_price ?? ((parseDocumentPricePerPerson(normalizeDocumentContent(request?.documentContent || request?.document_content)) || 0) * parsePeopleCount(request?.headcount)),
         deposit: request?.deposit || 0,
         depositStatus: request?.deposit_status || 'unpaid',
         balanceStatus: request?.balance_status || 'unpaid',
         pricePerPerson: parseDocumentPricePerPerson(normalizeDocumentContent(request?.documentContent || request?.document_content)) || 0,
         peopleCount: parsePeopleCount(request?.headcount),
-        manualTotal: Boolean(request?.confirmed_price)
+        manualTotal: request?.confirmed_price !== null && request?.confirmed_price !== undefined
     });
 
     // Confirmed Dates
@@ -319,6 +329,30 @@ export const QuoteDetailModal: React.FC<{
         confirmedPrice: 0,
         deposit: 0
     });
+    const workspaceBusy = workspaceSaving || previewSaving;
+    const navigationBlocker = useBlocker(({ currentLocation, nextLocation }) => fullPage && (workspaceBusy || workspaceDirty || isEditing || docEditorOpen)
+        && `${currentLocation.pathname}${currentLocation.search}` !== `${nextLocation.pathname}${nextLocation.search}`);
+    useEffect(() => {
+        if (navigationBlocker.state !== 'blocked') return;
+        if (workspaceBusy) { setWorkspaceNotice('견적 저장·고객 전달을 마친 뒤 이동해 주세요.'); navigationBlocker.reset(); return; }
+        if (window.confirm('저장하지 않은 견적 내용이 있을 수 있습니다. 변경사항을 버리고 이동할까요?')) navigationBlocker.proceed();
+        else navigationBlocker.reset();
+    }, [navigationBlocker, workspaceBusy]);
+    useEffect(() => {
+        if (!fullPage) return;
+        const protect = (event: BeforeUnloadEvent) => { if (workspaceBusy || workspaceDirty || isEditing || docEditorOpen) { event.preventDefault(); event.returnValue = ''; } };
+        window.addEventListener('beforeunload', protect); return () => window.removeEventListener('beforeunload', protect);
+    }, [fullPage, workspaceBusy, workspaceDirty, isEditing, docEditorOpen]);
+    const closeWorkspace = () => {
+        if (workspaceBusy) { setWorkspaceNotice('견적 저장·고객 전달을 마친 뒤 이동해 주세요.'); return; }
+        onClose(); // The data router applies the same guard to back buttons and browser history.
+    };
+    const updateQuote = async (id: string, updates: Partial<QuoteRequest>, clearDirty = false) => {
+        if (savingLock.current) return false;
+        savingLock.current = true; setWorkspaceSaving(true);
+        try { const saved = await onUpdateQuote(id, updates); if (saved !== false && clearDirty) setWorkspaceDirty(false); return saved; }
+        finally { savingLock.current = false; setWorkspaceSaving(false); }
+    };
 
     useEffect(() => {
         if (request) {
@@ -341,25 +375,25 @@ export const QuoteDetailModal: React.FC<{
             const calculatedTotal = pricePerPerson * peopleCount;
             // Reset priceDetail when request changes
             setPriceDetail({
-                totalAmount: request.confirmed_price || calculatedTotal,
+                totalAmount: request.confirmed_price ?? calculatedTotal,
                 deposit: request.deposit || 0,
                 depositStatus: request.deposit_status || 'unpaid',
                 balanceStatus: request.balance_status || 'unpaid',
                 pricePerPerson,
                 peopleCount,
-                manualTotal: Boolean(request.confirmed_price && calculatedTotal && request.confirmed_price !== calculatedTotal)
+                manualTotal: request.confirmed_price !== null && request.confirmed_price !== undefined && request.confirmed_price !== calculatedTotal
             });
             setConfirmedStartDate(request.confirmed_start_date || '');
             setConfirmedEndDate(request.confirmed_end_date || '');
             setItineraryTemplateId(request.itineraryTemplateId || request.itinerary_template_id || '');
             setQuoteDocumentContent(content);
         }
-    }, [request]);
+    }, [request?.id]);
 
     const handleSaveEdit = async () => {
         if (!request) return;
 
-        const saved = await onUpdateQuote(request.id, {
+        const saved = await updateQuote(request.id, {
             ...editForm
         } as any);
         if (saved !== false) setIsEditing(false);
@@ -452,7 +486,7 @@ export const QuoteDetailModal: React.FC<{
         const nextTotal = incomingPricePerPerson > 0 && !priceDetail.manualTotal
             ? incomingPricePerPerson * peopleCount
             : priceDetail.totalAmount;
-        const nextDeposit = priceDetail.deposit || Math.floor(nextTotal * 0.1);
+        const nextDeposit = priceDetail.deposit;
         if (incomingPricePerPerson > 0 && incomingPricePerPerson !== priceDetail.pricePerPerson) {
             setPriceDetail(prev => ({
                 ...prev,
@@ -462,7 +496,7 @@ export const QuoteDetailModal: React.FC<{
             }));
         }
         setQuoteDocumentContent(syncedContent);
-        const saved = await onUpdateQuote(request.id, {
+        const saved = await updateQuote(request.id, {
             itineraryTemplateId,
             documentContent: syncedContent,
             confirmed_price: nextTotal,
@@ -483,7 +517,8 @@ export const QuoteDetailModal: React.FC<{
     const saveQuoteBasics = async (): Promise<boolean> => {
         const syncedContent = syncDocumentPrice(quoteDocumentContent, priceDetail.pricePerPerson);
         if (syncedContent) setQuoteDocumentContent(syncedContent);
-        const saved = await onUpdateQuote(request.id, {
+        const saved = await updateQuote(request.id, {
+            ...(isEditing ? editForm : {}), adminNote, estimateUrl,
             headcount: quoteHeadcount,
             confirmed_price: priceDetail.totalAmount,
             deposit: priceDetail.deposit,
@@ -491,7 +526,8 @@ export const QuoteDetailModal: React.FC<{
             confirmed_end_date: confirmedEndDate,
             itineraryTemplateId,
             documentContent: syncedContent,
-        } as any);
+        } as any, true);
+        if (saved !== false) setIsEditing(false);
         return saved !== false;
     };
     const handleTemplateChange = async (templateId: string) => {
@@ -509,7 +545,7 @@ export const QuoteDetailModal: React.FC<{
             }));
         }
         setQuoteDocumentContent(syncedContent);
-        const saved = await onUpdateQuote(request.id, {
+        const saved = await updateQuote(request.id, {
             itineraryTemplateId: templateId,
             documentContent: syncedContent,
         } as any);
@@ -538,8 +574,8 @@ export const QuoteDetailModal: React.FC<{
     const hasQuoteItinerary = (docInitialContent?.days?.length ?? 0) > 0;
     const hasQuoteSchedule = hasQuoteItinerary || Boolean(confirmedStartDate && confirmedEndDate);
     const effectivePricePerPerson = priceDetail.pricePerPerson || parseDocumentPricePerPerson(docInitialContent);
-    const effectiveTotalAmount = priceDetail.totalAmount || (effectivePricePerPerson * (priceDetail.peopleCount || quotePeople || 1));
-    const effectiveDeposit = priceDetail.deposit || (effectiveTotalAmount > 0 ? Math.floor(effectiveTotalAmount * 0.1) : 0);
+    const effectiveTotalAmount = priceDetail.totalAmount;
+    const effectiveDeposit = priceDetail.deposit;
     const missingSendItems = [
         !request.destination || !request.headcount || !request.period ? '여행 조건' : '',
         !hasQuoteSchedule ? '제안 일정 또는 시작/종료일' : '',
@@ -580,7 +616,7 @@ export const QuoteDetailModal: React.FC<{
         };
         const syncedContent = syncDocumentPrice(quoteDocumentContent, normalizedPriceDetail.pricePerPerson);
         if (syncedContent) setQuoteDocumentContent(syncedContent);
-        const saved = await onUpdateQuote(request.id, {
+        const saved = await updateQuote(request.id, {
             headcount: quoteHeadcount,
             confirmed_price: normalizedPriceDetail.totalAmount,
             deposit: normalizedPriceDetail.deposit,
@@ -590,7 +626,9 @@ export const QuoteDetailModal: React.FC<{
             documentContent: syncedContent,
         } as any);
         if (saved === false) return;
-        onSendEstimate(estimateUrl, adminNote, normalizedPriceDetail, confirmedStartDate, confirmedEndDate, itineraryTemplateId);
+        savingLock.current = true; setWorkspaceSaving(true);
+        try { await onSendEstimate(estimateUrl, adminNote, normalizedPriceDetail, confirmedStartDate, confirmedEndDate, itineraryTemplateId); }
+        finally { savingLock.current = false; setWorkspaceSaving(false); }
     };
     const estimatePageUrl = `${window.location.origin}/estimate/${request.id}`;
     const quoteSent = request.status === 'answered';
@@ -664,9 +702,22 @@ export const QuoteDetailModal: React.FC<{
         return { label: '재발송 · 고객 응답 대기', desc: '발송 완료 — 예약 요청을 기다리는 중입니다.', icon: 'mark_email_read', onClick: handleSend };
     })();
 
+    const overview = legacyCustomerOverview(request, docInitialContent);
+    const overviewAction = (action: string) => {
+        if (workspaceBusy) return;
+        if (action === 'back') { closeWorkspace(); return; }
+        if (action === 'customer-link') { void copyEstimatePageUrl(); return; }
+        if (action === 'edit-itinerary') { setWorkflowOpen(true); setDocEditorOpen(true); return; }
+        if (action === 'edit-info') { setIsEditing(true); scrollToSec('info'); return; }
+        if (action === 'convert') { onOpenConvert(); return; }
+        scrollToSec(action === 'history' || action === 'notes' ? 'info' : 'quote');
+    };
     return (<>
-        <div className="drawer-scrim reservation-workspace-scrim" style={{ zIndex: 100 }} onClick={onClose}>
-            <div className="drawer reservation-workspace tcom" onClick={e => e.stopPropagation()}>
+        <div className={fullPage ? 'product-customer-page' : 'drawer-scrim reservation-workspace-scrim'} style={fullPage ? undefined : { zIndex: 100 }} onClick={fullPage ? undefined : closeWorkspace}>
+            <div className={`drawer reservation-workspace tcom${fullPage ? ' product-customer-fullpage legacy-customer-fullpage' : ''}`} onClick={e => e.stopPropagation()}>
+                {workspaceNotice && <div className="product-customer-warning" role="status">{workspaceNotice}</div>}
+                {fullPage && <><CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceBusy} /><div className="product-customer-controls"><button type="button" className="btn btn-ghost" aria-expanded={workflowOpen} aria-controls="legacy-customer-detail" disabled={workspaceBusy || (workflowOpen && (workspaceDirty || isEditing))} onClick={() => setWorkflowOpen(value => !value)}>{workflowOpen ? '상세 업무 접기' : '요청 정보·견적 작성·고객 전달 펼치기'}</button></div></>}
+                <div id="legacy-customer-detail" className="product-customer-detail" hidden={fullPage && !workflowOpen} onChangeCapture={() => setWorkspaceDirty(true)} inert={workspaceBusy} aria-busy={workspaceBusy}>
 
                 {/* Header */}
                 <div className="drawer-head">
@@ -678,7 +729,7 @@ export const QuoteDetailModal: React.FC<{
                         <div className="page-title" style={{ fontSize: 17, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{request.destination || '맞춤 견적'} · {request.name}</div>
                     </div>
                     <span className={`badge ${statusTone[request.status] || 'b-gray'}`}>{statusMeta.label}</span>
-                    <button className="icon-btn" style={{ width: 36, height: 36 }} onClick={onClose}><span className="material-symbols-outlined">close</span></button>
+                    <button className="icon-btn" style={{ width: 36, height: 36 }} onClick={closeWorkspace}><span className="material-symbols-outlined">close</span></button>
                 </div>
 
                 {/* NEXT — 견적 워크플로의 다음 할 일 */}
@@ -912,7 +963,7 @@ export const QuoteDetailModal: React.FC<{
                         <h3>고객 안내문 <span style={{ fontWeight: 600, color: 'var(--text-tertiary)' }}>(선택)</span></h3>
                         <div className="row" style={{ gap: 5, marginBottom: 6, flexWrap: 'wrap' }}>
                             {quickNotes.map((note) => (
-                                <button key={note.label} className="btn btn-sm btn-ghost" onClick={() => setAdminNote(note.text)}>{note.label}</button>
+                                <button key={note.label} className="btn btn-sm btn-ghost" onClick={() => { setAdminNote(note.text); setWorkspaceDirty(true); }}>{note.label}</button>
                             ))}
                         </div>
                         <textarea className="inp" style={{ height: 84, padding: '8px 10px', resize: 'vertical' }} value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="고객 화면에 그대로 보이므로 한국어 안내문을 입력하세요." />
@@ -934,7 +985,8 @@ export const QuoteDetailModal: React.FC<{
                 <div className="drawer-foot">
                     <span className="cell-muted" style={{ fontSize: 12 }}>요청 일시: {request.date} ({request.createdAt})</span>
                     <div className="spacer" style={{ flex: 1 }} />
-                    <button className="btn btn-ghost" onClick={onClose}>닫기</button>
+                    <button className="btn btn-ghost" onClick={closeWorkspace}>닫기</button>
+                </div>
                 </div>
             </div>
         </div>

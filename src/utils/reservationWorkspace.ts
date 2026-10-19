@@ -33,7 +33,8 @@ export function reservationWorkspaceStatus(input: {
     const duration = input.startDate && input.endDate
         ? Math.round((Date.parse(input.endDate.slice(0, 10)) - Date.parse(input.startDate.slice(0, 10))) / 86400000) : NaN;
     const nights = Number.isFinite(duration) && duration >= 0 ? duration : Math.max(0, input.days.length - 1);
-    const accommodationDays = new Set(input.days.filter(d => d.accommodation?.name).map((d, i) => Number(d.day) || i + 1));
+    // Product/template lodging describes the plan; only saved booking assignments confirm rooms.
+    const accommodationDays = new Set<number>();
     for (const stay of input.dailyAccommodations || []) if (stay.accommodation?.name) accommodationDays.add(Number(stay.day));
     const stayCount = Array.from(accommodationDays).filter(day => day >= 1 && day <= nights).length;
     const travelerCount = (input.travelers || []).filter(t => t.name?.trim()).length;

@@ -78,7 +78,8 @@ test('단순 문의는 예약·매출에서 제외하고 이전 문의와 새 �
     assert.equal(data.metrics.newQuotes, 2);
     assert.deepEqual(data.inquiries.map(i => i.type).sort(), ['legacy_quote', 'quote_request']);
     assert.ok(data.tasks.every(t => t.kind === 'quote'));
-    assert.equal(data.inquiries.find(i => i.id === 'new').href, '/admin/quote-desk/inbox?id=new');
+    assert.equal(data.inquiries.find(i => i.id === 'new').href, '/admin/customer-workspace/quote/new');
+    assert.equal(data.inquiries.find(i => i.id === 'legacy').href, '/admin/customer-workspace/legacy-quote/legacy');
 });
 
 test('부분 조회 실패와 손상된 문의는 해당 집계를 미확인으로 표시한다', async t => {

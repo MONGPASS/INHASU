@@ -1,5 +1,5 @@
 // Actual Hono/Lucia/D1-shaped SQLite routes for local reservation workspace QA.
-// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--port=8796]
+// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--customer-workspace] [--port=8796]
 // Uses only synthetic, in-memory data; never reaches a live delivery or storage service.
 import { build } from 'esbuild';
 import { DatabaseSync } from 'node:sqlite';
@@ -29,6 +29,7 @@ const port = portArgument ? Number(portArgument.slice('--port='.length)) : 8795;
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('--port는 1~65535 사이의 정수여야 합니다.');
 const localOrigin = `http://localhost:${port}`;
 const usability = process.argv.includes('--usability');
+const customerWorkspace = process.argv.includes('--customer-workspace');
 const draftStoragePrefixes = ['inhasu:admin-product-draft:', 'inhasu:admin-reservation-doc-draft:', 'inhasu:quote-editor:',
     'inhasu:admin-magazine-draft:', 'inhasu:admin-assignment:'];
 const draftStorageFaultSource = `(function(){const originalSetItem=Storage.prototype.setItem;const prefixes=${JSON.stringify(draftStoragePrefixes)};Storage.prototype.setItem=function(key,value){if(prefixes.some(prefix=>String(key).startsWith(prefix)))throw new DOMException('Local draft storage fault','QuotaExceededError');return originalSetItem.call(this,key,value);};})();`;
@@ -977,6 +978,137 @@ if (usability) {
     assert.ok(usabilityWorkspace.searchItems.some(row => row.title === inquiry.name));
     assert.equal(outbound.length, 0);
     console.log('사용성 합성 데이터 검증 통과: 상품 예약 14건(추가 10건) · 견적 예약 2건 · 동일 ID 출처 분리 · 중복 가이드 · 견적 숙소 배정 · 매거진 공개/비공개 · 배너/카테고리 · 0원 정본');
+}
+
+if (customerWorkspace) {
+    // Identity comes from account/source/record IDs, never a customer's name.
+    // Two bookings belong to one account; a different account intentionally has
+    // the same display name. One quote also reuses the first product booking ID.
+    const customerName = '동명이인 로컬 고객';
+    // Dedicated accounts keep this two-booking case independent of the older
+    // baseline customer's four reservations and optional usability rows.
+    const customerAccounts = [
+        { id: 'workspace-customer-account-a', email: 'customer-a@example.invalid' },
+        { id: 'workspace-customer-account-b', email: 'customer-b@example.invalid' },
+    ];
+    for (const account of customerAccounts) {
+        raw.prepare('INSERT INTO users(id,name,email,role,password_hash) VALUES(?,?,?,?,?)')
+            .run(account.id, customerName, account.email, 'user', passwordHash);
+        raw.prepare('INSERT INTO sessions VALUES(?,?,?)').run(`local-${account.id}-session`, account.id, Date.now() + 86400000);
+    }
+    const customerOwner = { cookie: 'auth_session=local-workspace-customer-account-a-session' };
+    const namesakeOwner = { cookie: 'auth_session=local-workspace-customer-account-b-session' };
+    const productCustomerRows = [
+        { id: 'workspace-customer-product-a', userId: customerAccounts[0].id, email: customerAccounts[0].email, total: 0, doc: null },
+        { id: 'workspace-customer-product-b', userId: customerAccounts[0].id, email: customerAccounts[0].email, total: 2200000, doc: savedDocument },
+        { id: 'workspace-customer-other', userId: customerAccounts[1].id, email: customerAccounts[1].email, total: 4400000, doc: null },
+    ];
+    for (const [index, row] of productCustomerRows.entries()) {
+        insertReservation.run(row.id, 'workspace-booked-tour', productName, customerName, row.email, '01000000000', index + 1,
+            '2026-10-25', '2026-10-27', 'confirmed', row.total, 0, row.total, 'paid', 'unpaid', `LOCAL-CUSTOMER-${index + 1}`,
+            row.doc ? JSON.stringify(row.doc) : null, JSON.stringify({ travelers: [], manager: '로컬 담당자' }), null, '[]', 0,
+            null, null, row.userId, '2026-10-19T02:00:00Z', 'website');
+        assert.equal((await write(`/api/reservations/${row.id}`, 'PUT', { admin_operations: {
+            opsNote: `LOCAL-PRIVATE-CUSTOMER-${index + 1}`, vehicle: '', driverPhone: '',
+        } })).status, 200);
+    }
+    const ownerCustomerRows = await (await apiRequest('/api/reservations', { headers: customerOwner })).json();
+    assert.deepEqual(new Set(ownerCustomerRows.map(row => row.id)),
+        new Set(['workspace-customer-product-a', 'workspace-customer-product-b']));
+    for (const id of ['workspace-customer-product-a', 'workspace-customer-product-b']) {
+        const customerRead = await apiRequest(`/api/reservations/${id}`, { headers: customerOwner });
+        assert.equal(customerRead.status, 200); assert.ok(!(await customerRead.text()).includes('LOCAL-PRIVATE-CUSTOMER-'));
+        assert.equal((await apiRequest(`/api/reservations/${id}`, { headers: namesakeOwner })).status, 403);
+    }
+    assert.equal((await apiRequest('/api/reservations/workspace-customer-other', { headers: customerOwner })).status, 403);
+    assert.equal((await apiRequest('/api/reservations/workspace-customer-other', { headers: namesakeOwner })).status, 200);
+    assert.equal((await apiRequest('/api/reservations/workspace-customer-product-a')).status, 401);
+    const zeroProduct = await (await apiRequest('/api/reservations/workspace-customer-product-a', { headers: admin })).json();
+    assert.equal(zeroProduct.totalAmount, 0); assert.equal(zeroProduct.adminOperations.opsNote, 'LOCAL-PRIVATE-CUSTOMER-1');
+    const productCustomerPreview = await apiRequest('/api/documents/itinerary/workspace-customer-product-a?preview=1&format=quote', { headers: admin });
+    assert.equal(productCustomerPreview.status, 200);
+    assert.equal((await productCustomerPreview.json()).quote.price.total, 0);
+
+    const customerQuoteFixtures = [
+        { id: 'workspace-customer-inquiry', name: '예약 전 로컬 문의 고객', status: '신규', quote: null },
+        { id: 'workspace-customer-product-a', name: customerName, status: '진행중',
+            quote: { ...structuredClone(quoteEditorDocument), customer: customerName, pax: 2, price: { total: 0, deposit: 0, balances: [{ pax: 2, economy: 0, full: 0 }] } } },
+    ];
+    for (const [index, fixture] of customerQuoteFixtures.entries()) {
+        const memo = `LOCAL-PRIVATE-CUSTOMER-QUOTE-MEMO-${index + 1}`;
+        const created = await write('/api/requests', 'POST', { ...fixture, source: 'walkin', phone: '01000000000',
+            email: `local-workspace-quote-${index + 1}@example.invalid`, adult: 2, depart: '2026-11-01', return_: '2026-11-03',
+            destination: '중앙몽골', memo, request: '고객 전용 화면에서 기존 문의·견적·문서 연결을 확인하는 합성 자료',
+            receivedAt: '2026-10-19T03:00:00Z', silentQuote: true,
+        }, quoteAdmin);
+        assert.equal(created.status, 200); const createdData = await created.json(); assert.equal(createdData.ok, true);
+        if (fixture.quote) assert.equal(createdData.notifications[0].status, 'silent');
+        else assert.deepEqual(createdData.notifications, []);
+        const route = `/api/requests/${fixture.id}`;
+        for (const headers of [{}, owner, admin, { 'x-admin-token': 'wrong-local-token' }]) {
+            assert.equal((await apiRequest(route, { headers })).status, 401);
+        }
+        const before = (await (await apiRequest(route, { headers: quoteAdmin })).json()).item;
+        assert.equal(before.memo, memo); assert.equal(before.booking, undefined);
+        // A consultation memo save must not accept a booking, lose the issued
+        // quote, rotate its customer token, or notify anyone.
+        const saved = await write(route, 'PATCH', { memo: `${memo}-SAVED`, silentQuote: true }, quoteAdmin);
+        assert.equal(saved.status, 200); assert.deepEqual((await saved.json()).notifications, []);
+        const after = (await (await apiRequest(route, { headers: quoteAdmin })).json()).item;
+        assert.equal(after.memo, `${memo}-SAVED`); assert.deepEqual(after.quote, before.quote);
+        assert.equal(after.token, before.token); assert.equal(after.status, before.status); assert.equal(after.booking, undefined);
+        const customerRead = await apiRequest(`/api/my/${createdData.token}`);
+        assert.equal(customerRead.status, 200); const text = await customerRead.text(), safe = JSON.parse(text);
+        assert.ok(!text.includes('LOCAL-PRIVATE-CUSTOMER-QUOTE-MEMO'));
+        assert.equal(safe.booking, null); assert.deepEqual(safe.quote, fixture.quote);
+        if (fixture.quote) assert.equal(safe.quote.price.total, 0);
+        assert.equal((await apiRequest(`/api/admin/deliveries?source=quote_booking&id=${encodeURIComponent(fixture.id)}`, { headers: admin })).status, 404);
+    }
+    const rawQuoteList = await (await apiRequest('/api/requests', { headers: quoteAdmin })).json();
+    const quoteBookingList = await (await apiRequest('/api/admin/bookings/quote', { headers: admin })).json();
+    for (const fixture of customerQuoteFixtures) {
+        assert.ok(rawQuoteList.items.some(row => row.id === fixture.id));
+        assert.ok(!quoteBookingList.items.some(row => row.id === fixture.id));
+    }
+    const legacyCustomerId = 'workspace-customer-product-a';
+    const legacyNote = '로컬 이전 견적 안내 · 저장 원문 보존';
+    const legacyDocument = { ...structuredClone(savedDocument), name: '이전 견적 저장 일정', description: '별도 quotes 원본 확인' };
+    raw.prepare(`INSERT INTO quotes(id,user_id,type,name,phone,email,destination,headcount,period,status,admin_note,
+        confirmed_price,deposit,confirmed_start_date,confirmed_end_date,document_content,created_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(legacyCustomerId, customerAccounts[0].id, 'personal',
+            '이전 견적 고객 · 분리 확인', '01000000000', customerAccounts[0].email, '중앙몽골', '2명',
+            '2026-10-25 ~ 2026-10-27', 'processing', legacyNote, 0, 0, '2026-10-25', '2026-10-27',
+            JSON.stringify(legacyDocument), '2026-10-19T04:00:00Z');
+    const legacyRead = await apiRequest(`/api/quotes/${legacyCustomerId}`, { headers: admin });
+    assert.equal(legacyRead.status, 200);
+    const legacySaved = await legacyRead.json();
+    assert.equal(legacySaved.id, legacyCustomerId); assert.equal(legacySaved.status, 'processing');
+    assert.equal(legacySaved.confirmedPrice, 0); assert.equal(legacySaved.deposit, 0); assert.equal(legacySaved.adminNote, legacyNote);
+    assert.deepEqual(legacySaved.documentContent, legacyDocument);
+    assert.deepEqual(legacySaved.itinerary.days, legacyDocument.days);
+    assert.equal((await apiRequest('/api/quotes')).status, 401);
+    const ownedLegacy = await (await apiRequest('/api/quotes', { headers: customerOwner })).json();
+    assert.equal(ownedLegacy.filter(row => row.id === legacyCustomerId).length, 1);
+    assert.equal((await (await apiRequest('/api/quotes', { headers: namesakeOwner })).json()).filter(row => row.id === legacyCustomerId).length, 0);
+    const customerWorkspaceData = await (await apiRequest('/api/admin/workspace', { headers: admin })).json();
+    assert.equal(customerWorkspaceData.bookings.filter(row => row.id.startsWith('workspace-customer-')).length, 3);
+    assert.equal(customerWorkspaceData.inquiries.filter(row => row.type === 'quote_request' && customerQuoteFixtures.some(fixture => fixture.id === row.id)).length, 2);
+    const legacyInquiry = customerWorkspaceData.inquiries.find(row => row.type === 'legacy_quote' && row.id === legacyCustomerId);
+    assert.equal(legacyInquiry.status, 'processing');
+    assert.equal(legacyInquiry.href, `/admin/customer-workspace/legacy-quote/${legacyCustomerId}`);
+    assert.equal(customerWorkspaceData.inquiries.find(row => row.type === 'quote_request' && row.id === legacyCustomerId).href,
+        `/admin/customer-workspace/quote/${legacyCustomerId}`);
+    assert.equal(customerWorkspaceData.bookings.find(row => row.id === legacyCustomerId).href,
+        `/admin/customer-workspace/product/${legacyCustomerId}`);
+    assert.equal(customerWorkspaceData.bookings.find(row => row.id === 'workspace-customer-product-a').totalAmount, 0);
+    assert.ok(customerWorkspaceData.searchItems.some(row => row.key === 'product:workspace-customer-product-a'));
+    assert.ok(customerWorkspaceData.searchItems.some(row => row.key === 'quote_request:workspace-customer-product-a'));
+    assert.ok(customerWorkspaceData.searchItems.some(row => row.key === 'legacy_quote:workspace-customer-product-a'));
+    const customerAssignments = await (await apiRequest('/api/admin/assignments', { headers: admin })).json();
+    assert.ok(customerAssignments.items.some(row => row.key === 'product:workspace-customer-product-a'));
+    assert.ok(!customerAssignments.items.some(row => row.key === 'quote_booking:workspace-customer-product-a'));
+    assert.equal(outbound.length, 0);
+    console.log('고객 통합 작업 데이터 검증 통과: 예약 전 문의 · 견적 발행/미예약 · 동일 계정 상품 예약 2건 · 다른 계정 동명이인 · 상품/견적/이전 견적 같은 ID · 이전 견적 저장 일정·0원 · 상담 메모/권한/고객 링크 보존');
 }
 console.log('예약 작업 API 검증 통과: 실제 로그인/견적 계정 · 견적 POST/PATCH/재조회 · 상품/견적 발송 이력·v5 문서 버전 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 계정별 예약/견적 초안 복원/충돌 · 상품·예약·견적·매거진·배정 초안 저장 실패 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 배정 버전 충돌/서명·여행자 보존/기사 연락처 보호 · 실제 이미지 업로드/조회 · 배너·카테고리 부분 수정/순서/매거진 공개 · 외부 발송 차단');
 

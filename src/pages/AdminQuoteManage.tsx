@@ -8,6 +8,7 @@ import { sendNotificationEmail } from '../lib/email';
 import type { QuoteRequest } from '../components/admin/QuoteModals';
 import { QuoteDetailModal, ConvertSelectionModal } from '../components/admin/QuoteModals';
 import { won } from '../components/desktop-primitives/mwTokens';
+import { legacyQuoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 
 
 
@@ -16,12 +17,12 @@ import { won } from '../components/desktop-primitives/mwTokens';
 
 export const AdminQuoteManage: React.FC = () => {
     const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     // Filter States
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('전체 상태');
+    const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
+    const [filterStatus, setFilterStatus] = useState(() => searchParams.get('status') || '전체 상태');
     // Pagination State
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(() => Math.max(1, Math.min(100000, Math.floor(Number(searchParams.get('page')) || 1))));
     const itemsPerPage = 8;
     // Modal State
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -30,6 +31,12 @@ export const AdminQuoteManage: React.FC = () => {
     // Data State
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        for (const [key, value] of [['q', searchTerm], ['status', filterStatus === '전체 상태' ? '' : filterStatus], ['page', currentPage > 1 ? String(currentPage) : '']]) value ? params.set(key, value) : params.delete(key);
+        window.history.replaceState(window.history.state, '', window.location.pathname + (params.size ? '?' + params : ''));
+    }, [searchTerm, filterStatus, currentPage]);
+    const openCustomer = (request: any) => navigate(legacyQuoteCustomerHref(request.id, window.location.pathname + window.location.search));
 
     // Fetch quotes from API
     const fetchQuotes = async () => {
@@ -57,11 +64,9 @@ export const AdminQuoteManage: React.FC = () => {
     useEffect(() => {
         const id = searchParams.get('open');
         if (!id || loading) return;
-        const found = requests.find(request => String(request.id) === id);
-        if (found) setSelectedRequest(found);
-        else alert('요청한 견적 문의를 찾을 수 없습니다.');
-        setSearchParams(current => { const next = new URLSearchParams(current); next.delete('open'); return next; }, { replace: true });
-    }, [loading, requests, searchParams, setSearchParams]);
+        const next = new URLSearchParams(searchParams); next.delete('open');
+        navigate(legacyQuoteCustomerHref(id, '/admin/quotes' + (next.size ? '?' + next : '')), { replace: true });
+    }, [loading, searchParams, navigate]);
 
     // Handle Status Change
     const handleStatusChange = async (id: string, newStatus: string) => {
@@ -82,7 +87,7 @@ export const AdminQuoteManage: React.FC = () => {
     // Filter Logic
     const filteredRequests = useMemo(() => {
         return requests.filter(req => {
-            const matchesSearch = req.name.includes(searchTerm) || req.destination.includes(searchTerm);
+            const matchesSearch = String(req.name || '').includes(searchTerm) || String(req.destination || '').includes(searchTerm);
             const matchesStatus = filterStatus === '전체 상태' ||
                 (filterStatus === '답변 대기' && req.status === 'new') ||
                 (filterStatus === '상담 중' && req.status === 'processing') ||
@@ -96,6 +101,9 @@ export const AdminQuoteManage: React.FC = () => {
 
     // Pagination Logic
     const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+    useEffect(() => {
+        if (!loading) setCurrentPage(page => Math.min(page, Math.max(1, totalPages)));
+    }, [loading, totalPages]);
     const displayedRequests = filteredRequests.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
@@ -476,7 +484,7 @@ export const AdminQuoteManage: React.FC = () => {
                             {displayedRequests.map((request) => {
                                 const price = request.confirmed_price ?? request.confirmedPrice;
                                 return (
-                                    <tr key={request.id} onClick={() => setSelectedRequest(request)}>
+                                    <tr key={request.id} onClick={() => openCustomer(request)}>
                                         <td>
                                             <div className="cell-mono">#{String(request.id).slice(0, 6)}</div>
                                             <div style={{ fontSize: 11, marginTop: 3 }}>
@@ -500,14 +508,14 @@ export const AdminQuoteManage: React.FC = () => {
                                                 onChange={(newStatus) => handleStatusChange(request.id, newStatus)}
                                             />
                                         </td>
-                                        <td className="r cell-price">{price ? won(Number(price)) : '–'}</td>
+                                        <td className="r cell-price">{price !== null && price !== undefined && price !== '' && Number.isFinite(Number(price)) ? won(Number(price)) : '–'}</td>
                                         <td className="r" onClick={(e) => e.stopPropagation()}>
                                             <span className="row-actions">
                                                 <button
                                                     type="button"
                                                     className="act-btn"
                                                     title="상세"
-                                                    onClick={() => setSelectedRequest(request)}
+                                                    onClick={() => openCustomer(request)}
                                                 >
                                                     <Icon name="visibility" />
                                                 </button>

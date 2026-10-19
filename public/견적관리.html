@@ -19,6 +19,9 @@
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <script src="presets.js"></script>
 <script src="booking.js"></script>
+<script src="/quote-booking-workspace.js"></script>
+<link rel="stylesheet" href="/quote-customer-inquiry.css">
+<script>if (new URLSearchParams(location.search).get("workspace") === "1") document.documentElement.classList.add("customer-inquiry-inline");</script>
 <style>
   :root { --accent:#06c4a0; --deep:#06c4a0; --deep2:#037a64; --soft:#edf5f2;
     --ink:#0f2e27; --sub:#5a716b; --gray:#8aa39c; --line:#eaf0ee; --bg:#f6faf9;
@@ -425,8 +428,9 @@ function openRequestedInquiry() {
   else toast("요청한 견적 문의를 찾을 수 없습니다.");
 }
 async function loadData() {
+  const detailId = new URLSearchParams(location.search).get("workspace") === "1" ? new URLSearchParams(location.search).get("id") : "";
   try {
-    const res = await fetch(CFG.apiBase, { headers: { "x-admin-token": ADMIN_TOKEN }, cache: "no-store" });
+    const res = await fetch(detailId ? CFG.apiBase + "/" + encodeURIComponent(detailId) : CFG.apiBase, { headers: { "x-admin-token": ADMIN_TOKEN }, cache: "no-store" });
     if (res.status === 401) {   // 저장된 토큰이 무효(비번 변경 등) → 재로그인 요구
       sessionStorage.removeItem("leaders_admin_token"); ADMIN_TOKEN = "";
       $("dash").style.display = "none"; $("login").style.display = "";
@@ -434,9 +438,14 @@ async function loadData() {
       $("pw").value = ""; return;
     }
     if (res.ok) { const j = await res.json();
-      if (j.ok && Array.isArray(j.items)) { RECORDS = j.items; mode = "server";
+      const items = detailId ? (j.item && String(j.item.id) === detailId ? [j.item] : null) : j.items;
+      if (j.ok && Array.isArray(items)) { RECORDS = items; mode = "server";
         $("modeTag").textContent = "● 서버 연결됨 (전체 기기 공유)"; checkNewArrivals(); render(); openRequestedInquiry(); return; } }
   } catch (e) {}
+  if (detailId) {
+    mode = "offline"; $("drawer").innerHTML = '<div class="db" role="alert">선택한 고객의 최신 문의를 불러오지 못했습니다. 위의 새로고침으로 다시 시도해 주세요.</div>';
+    $("drawer").classList.add("on"); return;
+  }
   if (IS_LOCAL) {   // 로컬 개발(배포 전)에서만 이 브라우저의 데이터로 동작
     RECORDS = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
     mode = "local"; $("modeTag").textContent = "○ 로컬 모드 (이 브라우저 · 배포 전)"; render(); openRequestedInquiry();
@@ -720,7 +729,7 @@ function render() {
     </div>`).join("");
   $("actionCenter").style.display = actionRows.length ? "" : "none";
   $("actionCenter").innerHTML = actionRows.length ? `<div class="action-head"><span>🔔 고객·예약 행동 알림</span><span>${actionRows.length}건</span></div>${actionRows.slice(0,6).map(({r,action}) => `<button class="action-item" data-action-id="${esc(r.id)}"><div><b>${esc(r.name || "고객")} · ${esc(action.label)}</b><small>${esc(action.detail)}</small></div><span class="go">확인 →</span></button>`).join("")}` : "";
-  $("actionCenter").querySelectorAll("[data-action-id]").forEach(b => b.onclick = () => openDrawer(b.dataset.actionId));
+  $("actionCenter").querySelectorAll("[data-action-id]").forEach(b => b.onclick = () => window.QuoteBookingWorkspace.openCustomer(b.dataset.actionId, "/admin/quote-desk/inbox"));
 
   // 상태 칩
   const chipDefs = [["전체", total], ...STATUSES.map(s => [s, cnt[s]])];
@@ -764,7 +773,7 @@ function render() {
       </tbody>
     </table>
     ${rows.length > showLimit ? `<div class="more-row"><button id="moreBtn">더보기 (남은 ${rows.length - showLimit}건)</button></div>` : ""}`;
-  $("list").querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = () => openDrawer(tr.dataset.id));
+  $("list").querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = () => window.QuoteBookingWorkspace.openCustomer(tr.dataset.id, "/admin/quote-desk/inbox"));
   $("list").querySelectorAll("th.sortable").forEach(th => th.onclick = () => {
     const k = th.dataset.sort;
     if (sortKey === k) sortDir *= -1;
@@ -776,9 +785,38 @@ function render() {
 }
 
 /* ═══════════════ 상세 드로어 ═══════════════ */
+let inquirySaving = 0, inquirySaveError = "";
+function inquiryState() {
+  const id = new URLSearchParams(location.search).get("id"), input = $("memo"), record = RECORDS.find(row => String(row.id) === id);
+  const dirty = !!(input && record && input.value !== (memoLast[id] === undefined ? record.memo || "" : memoLast[id]));
+  return { dirty, busy:inquirySaving > 0, error:dirty ? inquirySaveError : "" };
+}
+function inquiryLock(locked) {
+  $("drawer").querySelectorAll("button,input,textarea,select").forEach(control => {
+    if (locked) { if (!control.hasAttribute("data-inquiry-lock")) control.dataset.inquiryLock = control.disabled ? "1" : "0"; control.disabled = true; }
+    else if (control.hasAttribute("data-inquiry-lock")) { control.disabled = control.dataset.inquiryLock === "1"; delete control.dataset.inquiryLock; }
+  });
+}
+function publishInquiryState() { if (window.parent !== window) window.parent.postMessage({ type:"inhasu-editor-state", version:1, ...inquiryState() }, location.origin); }
+window.InhasuQuoteInquiryWorkspace = {
+  navigate(section) {
+    if (!$("drawer").classList.contains("on")) return false;
+    const target = section === "notes" ? $("memo") : section === "log" ? $("drawer").querySelector(".tl") || $("drawer") : section === "docs" ? $("makeBtn") : $("drawer").querySelector(".info-grid");
+    if (!target) return false; target.scrollIntoView({ behavior:"smooth", block:"start" }); target.focus?.({preventScroll:true}); return true;
+  },
+  getState:inquiryState,
+  flushAll() {
+    const state = inquiryState();
+    if (state.error) return {ok:false,...state};
+    if (!state.busy && state.dirty) { const id = new URLSearchParams(location.search).get("id"); void saveMemo(id, $("memo").value); return {ok:false,busy:true}; }
+    return { ok:!state.busy, ...state };
+  }
+};
+window.addEventListener("beforeunload", event => { const state = inquiryState(); if (state.busy || state.dirty) { event.preventDefault(); event.returnValue = ""; } });
 function openDrawer(id) {
   const r = RECORDS.find(x => String(x.id) === String(id));
   if (!r) return;
+  if (memoLast[id] === undefined) memoLast[id] = r.memo || "";
   const cur = r.status || "신규";
   const accepted = !!(r.decision && r.decision.status === "accepted") || cur === "예약확정";
   const published = !!(r.booking && r.booking.publishStatus === "published");
@@ -836,6 +874,7 @@ function openDrawer(id) {
       <button class="primary" id="makeBtn">${r.quote ? "✎ 견적서 수정" : "📄 견적서 만들기"}</button>
     </div>`;
   $("drawer").classList.add("on"); $("overlay").classList.add("on");
+  publishInquiryState();
   $("closeX").onclick = closeDrawer;
   $("drawer").querySelectorAll(".st-btn").forEach(b => b.onclick = () => updateStatus(id, b.dataset.s));
   const acceptBtn = $("acceptBtn");
@@ -861,13 +900,16 @@ function openDrawer(id) {
     else { r.decision = prevDecision; r.booking = prevBooking; render(); openDrawer(id); toast("⚠ 수락 기록 저장 실패: " + saved.error); }
   };
   $("memo").onblur = () => saveMemo(id, $("memo").value);
+  $("memo").oninput = () => { inquirySaveError = ""; publishInquiryState(); };
   $("makeBtn").onclick = () => {
+    if (new URLSearchParams(location.search).get("workspace") === "1") { location.assign("/견적만들기?id=" + encodeURIComponent(r.id)); return; }
     // 이미 발행된 견적이 있으면 편집기에서 그대로 복원해 수정할 수 있게 함께 넘깁니다.
     localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, phone:r.phone||"", depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, travelStyles:r.travelStyles, destSpots:r.destSpots, cityStay:r.cityStay||r.stay||"", gerStay:r.gerStay||"", budget:r.budget, request:r.request||"", flightIn:r.flightIn||"", flightOut:r.flightOut||"", quote:r.quote||null }));
     window.open("견적만들기.html","_blank");
   };
   const bookBtn = $("bookBtn");
   if (bookBtn) bookBtn.onclick = () => {
+    if (new URLSearchParams(location.search).get("workspace") === "1") { location.assign("/예약관리?id=" + encodeURIComponent(r.id)); return; }
     // 예약관리 화면에 필요한 정보를 함께 넘김 (견적만들기와 같은 방식)
     localStorage.setItem("leaders_booking_prefill", JSON.stringify({
       id: r.id, token: r.token || "", adminToken: ADMIN_TOKEN, status: r.status || "신규",
@@ -916,6 +958,10 @@ function toast(m){ $("toast").textContent = m; $("toast").classList.add("on"); c
 
 /* ═══════════════ 상태·메모 저장 ═══════════════ */
 async function persist(id, patch) {
+  inquirySaving++; inquiryLock(true); publishInquiryState();
+  try { return await persistBody(id, patch); } finally { inquirySaving--; inquiryLock(inquirySaving > 0); publishInquiryState(); }
+}
+async function persistBody(id, patch) {
   const r = RECORDS.find(x => String(x.id) === String(id));
   if (r) Object.assign(r, patch);
   if (mode === "local") { localStorage.setItem("leaders_requests", JSON.stringify(RECORDS)); return { ok: true, local: true }; }
@@ -928,6 +974,7 @@ async function persist(id, patch) {
       if (j.status) r.status = j.status;
       if (Array.isArray(j.activities)) r.activities = j.activities;
     }
+    window.QuoteBookingWorkspace.notifySaved(id);
     return { ok: true, ...j };
   } catch(e){ return { ok: false, error: "서버에 연결할 수 없어요" }; }
 }
@@ -965,9 +1012,11 @@ async function saveMemo(id, m) {
     memoLast[id] = (r && r.memo) || "";
   }
   if (m === memoLast[id]) return;   // 변경 없음
+  inquirySaveError = "";
   const res = await persist(id, { memo: m });
   if (res.ok) { memoLast[id] = m; toast("메모가 저장됐어요"); }
-  else toast("⚠ 메모 저장 실패: " + res.error);
+  else { inquirySaveError = "메모 저장 실패: " + res.error; toast("⚠ " + inquirySaveError); }
+  publishInquiryState();
 }
 
 /* ═══════════════ 문의 삭제 ═══════════════ */

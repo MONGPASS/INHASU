@@ -3,8 +3,7 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { useUser } from '../contexts/UserContext';
-import { useNavigate, useBlocker } from 'react-router-dom';
-import { quoteBookingHref } from '../components/admin/quoteDesk';
+import { useNavigate, useBlocker, useParams, useLocation } from 'react-router-dom';
 import type { QuoteBookingSummary } from '../../functions/lib/quoteBookings';
 import { type QuoteRequest, ConvertSelectionModal, QuoteDetailModal } from '../components/admin/QuoteModals';
 import { sendNotificationEmail } from '../lib/email';
@@ -31,6 +30,10 @@ import '../styles/reservation-inline.css';
 import { readReservationList, reservationListSearch, reservationExportRows, reservationSelectionKey } from '../utils/adminReservationList';
 import { readProductVehicle } from '../utils/reservationAssignment';
 import { guideAssignmentConflicts, validAssignmentPeriod } from '../utils/assignmentAvailability';
+import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
+import { productWorkspaceReservation, legacyWorkspaceReservation, productCustomerOverview, sameAccountProductBookings } from '../utils/productCustomerWorkspace';
+import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref, customerWorkspaceReturnTo } from '../utils/customerWorkspaceRoutes';
+import '../styles/product-customer-workspace.css';
 
 // Reservation Interface
 interface Reservation {
@@ -380,7 +383,7 @@ const StatusDropdown = ({ status, onChange, disabled = false }: { status: string
     );
 };
 
-const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, updating = false, products = [] }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation, silent?: boolean) => Promise<boolean>, onRefresh: () => void, updating?: boolean, products?: ProductSummary[] }) => {
+const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, updating = false, products = [], fullPage = false, bookingSelector }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation, silent?: boolean) => Promise<boolean>, onRefresh: () => void, updating?: boolean, products?: ProductSummary[], fullPage?: boolean, bookingSelector?: React.ReactNode }) => {
     const { user, loading: userLoading } = useUser();
     const inlineControlRef = useRef<ReservationInlineEditorControl | null>(null);
     const docDraftSourceRef = useRef<ReservationDraftSnapshot | null>(null);
@@ -418,6 +421,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const [applyingTemplate, setApplyingTemplate] = useState(false);
     const [publishing, setPublishing] = useState(false);
     const [operationsDirty, setOperationsDirty] = useState(false);
+    const [workflowOpen, setWorkflowOpen] = useState(!fullPage);
     useEffect(() => {
         if (userLoading || !user?.id || !reservation?.id || !docDraftSourceRef.current) { setDocDraftPending(false); return; }
         try {
@@ -434,10 +438,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     useEffect(() => { approvedWorkspaceClose.current = false; setNavigationNotice(''); }, [reservation?.id]);
     const workspaceBlocker = useBlocker(React.useCallback(({ currentLocation, nextLocation }) => {
         if (approvedWorkspaceClose.current) return false;
-        const decision = reservationDraftNavigationDecision(currentLocation, nextLocation, workspaceIsBusy(), () => inlineControlRef.current?.flush() || { ok: true }, isEditing || operationsDirty);
+        const decision = reservationDraftNavigationDecision(currentLocation, nextLocation, workspaceIsBusy(), () => inlineControlRef.current?.flush() || { ok: true }, isEditing || operationsDirty || !!memoDraft.trim());
         workspaceDecision.current = decision;
         return decision.blocked;
-    }, [workspaceIsBusy, isEditing, operationsDirty]));
+    }, [workspaceIsBusy, isEditing, operationsDirty, memoDraft]));
     useEffect(() => {
         if (workspaceBlocker.state === 'unblocked') { handledWorkspaceNavigation.current = null; return; }
         if (workspaceBlocker.state !== 'blocked') return;
@@ -460,21 +464,21 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     useEffect(() => {
         const beforeUnload = (event: BeforeUnloadEvent) => {
             const result = inlineControlRef.current?.flush(false) || { ok: true };
-            if (!approvedWorkspaceClose.current && (workspaceIsBusy() || !result.ok || isEditing || operationsDirty)) { event.preventDefault(); event.returnValue = ''; }
+            if (!approvedWorkspaceClose.current && (workspaceIsBusy() || !result.ok || isEditing || operationsDirty || memoDraft.trim())) { event.preventDefault(); event.returnValue = ''; }
         };
         const pageHide = () => { inlineControlRef.current?.flush(false); };
         window.addEventListener('beforeunload', beforeUnload); window.addEventListener('pagehide', pageHide);
         return () => { window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('pagehide', pageHide); };
-    }, [workspaceIsBusy, isEditing, operationsDirty]);
+    }, [workspaceIsBusy, isEditing, operationsDirty, memoDraft]);
     const closeWorkspace = () => {
         if (workspaceIsBusy()) { setNavigationNotice('처리 중인 작업이 끝난 뒤 예약 상세를 닫아 주세요.'); return; }
-        if ((isEditing || operationsDirty || (!inlineControlRef.current && inlineDirty)) && !window.confirm('저장하지 않은 변경사항이 있습니다. 예약 상세를 닫을까요?')) return;
+        if ((isEditing || operationsDirty || memoDraft.trim() || (!inlineControlRef.current && inlineDirty)) && !window.confirm('저장하지 않은 변경사항이 있습니다. 예약 상세를 닫을까요?')) return;
         if (inlineControlRef.current && !inlineControlRef.current.prepareLeave()) return;
         approvedWorkspaceClose.current = true;
         onClose();
     };
     const refreshWorkspace = () => {
-        if (workspaceIsBusy() || isEditing || operationsDirty) return;
+        if (workspaceIsBusy() || isEditing || operationsDirty || memoDraft.trim()) return;
         if (inlineControlRef.current && !inlineControlRef.current.prepareLeave('refresh')) return;
         onRefresh();
     };
@@ -483,7 +487,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const bodyRef = useRef<HTMLDivElement | null>(null);
     const scrollToSec = (id: 'docs' | 'inline-doc' | 'ops' | 'info' | 'pay' | 'assign' | 'log') => {
         setActiveSec(id);
-        bodyRef.current?.querySelector(`#sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setWorkflowOpen(true);
+        requestAnimationFrame(() => bodyRef.current?.querySelector(`#sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     };
 
     useEffect(() => {
@@ -823,6 +828,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     };
 
     const openInlineDocument = (kind: 'itinerary' | 'contract') => {
+        setWorkflowOpen(true);
         if (reservation.status === 'cancelled' || workspaceIsBusy()) return;
         if (isEditing) { alert('주문 정보 변경사항을 먼저 저장하세요.'); return; }
         setActiveDocument(kind); setInlineEditorOpen(true);
@@ -1444,9 +1450,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         }
     };
 
-    const addMemo = () => {
+    const addMemo = async () => {
         const text = memoDraft.trim();
-        if (!text) return;
+        if (!text || workspaceIsBusy()) return;
+        if (isEditing || operationsDirty || inlineDirty) { setNavigationNotice('작성 중인 주문·운영·문서 내용을 먼저 저장한 뒤 메모를 저장해 주세요.'); return; }
         const updated = {
             ...reservation,
             history: [
@@ -1454,9 +1461,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 { timestamp: new Date().toISOString(), type: 'admin_memo', description: text }
             ]
         };
-        onUpdate(updated);
-        setMemoDraft('');
-        setMemoFocused(false);
+        if (await onUpdate(updated, true)) {
+            setMemoDraft(current => current.trim() === text ? '' : current);
+            setMemoFocused(false);
+        }
     };
 
     const deleteMemo = (ts: string) => {
@@ -1627,11 +1635,37 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         return p.thumbnail || (Array.isArray(imgs) && imgs.length ? imgs[0] : undefined);
     })();
 
+    const overview = productCustomerOverview(reservation, scheduleDays, workspace, {
+        vehicle: readProductVehicle(reservation.adminOperations, reservation.contractData).type,
+        itineraryReady, itinerarySent, contractSent, itineraryChanged, contractChanged,
+    });
+    const overviewAction = (action: string) => {
+        if (workspaceIsBusy()) return;
+        if (action === 'back') { closeWorkspace(); return; }
+        if (action === 'customer-link') { void copyCustomerMessage(workspace.published ? 'itinerary' : 'contract'); return; }
+        if (action === 'send-itinerary') { void sendItineraryToCustomer(); return; }
+        if (action === 'edit-itinerary') { openInlineDocument('itinerary'); return; }
+        if (action === 'contract') { openInlineDocument('contract'); return; }
+        if (action === 'itinerary' || action === 'contract-preview') { if (canStartDelivery()) window.open(action === 'itinerary' ? itineraryPreviewUrl : contractUrl, '_blank', 'noopener,noreferrer'); return; }
+        if (action === 'guide-pdf') { printGuideSheet(); return; }
+        if (action === 'edit-info') { if (inlineDirty || operationsDirty) { setNavigationNotice('작성 중인 문서·운영 정보를 먼저 저장해 주세요.'); return; } setIsEditing(true); scrollToSec('info'); return; }
+        if ((action === 'guide' || action === 'stay') && isEditing) { setNavigationNotice('주문 정보 변경사항을 먼저 저장한 뒤 배정해 주세요.'); return; }
+        const section = { payments: 'pay', guide: 'assign', stay: 'assign', vehicle: 'ops', history: 'log', notes: 'log', documents: 'docs' }[action] as 'pay' | 'assign' | 'ops' | 'log' | 'docs' | undefined;
+        if (section) scrollToSec(section);
+    };
+
     return (<>
-        <div className="drawer-scrim reservation-workspace-scrim" onClick={closeWorkspace}>
-            <div className="drawer reservation-workspace product-workspace tcom" role="dialog" aria-modal="true" aria-label="상품 예약 상세 작업" onClick={e => e.stopPropagation()}>
+        <div className={fullPage ? 'product-customer-page' : 'drawer-scrim reservation-workspace-scrim'} onClick={fullPage ? undefined : closeWorkspace}>
+            <div className={`drawer reservation-workspace product-workspace tcom${fullPage ? ' product-customer-fullpage' : ''}`} role={fullPage ? 'region' : 'dialog'} aria-modal={fullPage ? undefined : true} aria-label="상품 예약 상세 작업" onClick={e => e.stopPropagation()}>
                 {navigationNotice && <div role="status" aria-live="polite" style={{ padding: '10px 16px', background: '#fff5e8', color: '#8f4c13', fontSize: 13 }}>{navigationNotice}</div>}
                 {docDraftPending && <div role="status" style={{ padding: '10px 16px', background: '#edfaf6', color: '#145c4c', fontSize: 13, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><button type="button" className="btn btn-ghost btn-sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</button></div>}
+
+                {fullPage && <>
+                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
+                    <div className="product-customer-controls"><button type="button" className="btn btn-ghost" aria-expanded={workflowOpen} aria-controls="product-customer-detail" disabled={workspaceIsBusy() || (workflowOpen && (isEditing || operationsDirty || inlineDirty))} onClick={() => setWorkflowOpen(value => !value)}><Icon name={workflowOpen ? 'expand_less' : 'expand_more'} />{workflowOpen ? '상세 업무 접기' : '일정·계약·결제·운영 상세 업무 펼치기'}</button><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || isEditing || operationsDirty || !!memoDraft.trim()} onClick={refreshWorkspace}><Icon name="refresh" />최신 정보 확인</button></div>
+                </>}
+
+                <div id="product-customer-detail" className="product-customer-detail" hidden={fullPage && !workflowOpen}>
 
                 {/* Header */}
                 <div className="drawer-head">
@@ -1654,7 +1688,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         disabled={workspaceIsBusy()}
                         onChange={(s) => { if (workspaceIsBusy()) return; setEditForm({ ...editForm, status: s }); if (!isEditing) onUpdate({ ...editForm, status: s }); }}
                     />
-                    <button type="button" className="btn btn-sm btn-ghost" onClick={refreshWorkspace} disabled={workspaceIsBusy() || isEditing || operationsDirty}>고객 제출 정보 새로고침</button>
+                    <button type="button" className="btn btn-sm btn-ghost" onClick={refreshWorkspace} disabled={workspaceIsBusy() || isEditing || operationsDirty || !!memoDraft.trim()}>고객 제출 정보 새로고침</button>
                     <button className="icon-btn" aria-label="예약 상세 닫기" style={{ width: 36, height: 36 }} onClick={closeWorkspace}><Icon name="close" /></button>
                 </div>
 
@@ -2188,6 +2222,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 {copiedDocId === 'final-message' && (
                     <div className="drawer-toast"><Icon name="check_circle" fill />고객 안내문이 복사되었습니다</div>
                 )}
+                </div>
             </div>
         </div>
 
@@ -2281,14 +2316,25 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     </>);
 };
 
-export const AdminReservationManage: React.FC = () => {
+export const AdminReservationManage: React.FC<{ customerPage?: boolean; customerSource?: 'product' | 'quote' }> = ({ customerPage = false, customerSource = 'product' }) => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { id: customerReservationId = '' } = useParams<{ id: string }>();
+    const { user, loading: userLoading } = useUser();
+    const customerScope = `${userLoading ? 'loading' : user?.id || 'anonymous'}:${user?.role || ''}:${customerSource}:${customerReservationId}`;
+    const currentScope = useRef(customerScope); currentScope.current = customerScope;
+    const fetchSequence = useRef(0);
+    const [loadedCustomerScope, setLoadedCustomerScope] = useState('');
+    const [customerLoadError, setCustomerLoadError] = useState('');
+    const [sameBookings, setSameBookings] = useState<{ scope: string; items: Array<{ id: string; label: string }>; warning: string }>({ scope: '', items: [], warning: '' });
+    const returnTo = customerWorkspaceReturnTo(new URLSearchParams(location.search).get('returnTo'));
     const [isLoading, setIsLoading] = useState(false);
     const [loadWarnings, setLoadWarnings] = useState<string[]>([]);
     const [sortOrder, setSortOrder] = useState(() => readReservationList(window.location.search).sortOrder);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
     const [updatingCount, setUpdatingCount] = useState(0);
+    useEffect(() => { setUpdatingCount(0); }, [customerScope]);
 
     // Filter States
     const [searchTerm, setSearchTerm] = useState(() => readReservationList(window.location.search).searchTerm);
@@ -2313,23 +2359,41 @@ export const AdminReservationManage: React.FC = () => {
     // Reservations State
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [products, setProducts] = useState<ProductSummary[]>([]);
+    useEffect(() => {
+        if (!customerPage || customerSource !== 'product' || userLoading || user?.role !== 'admin' || loadedCustomerScope !== customerScope || !selectedReservation?.userId) return;
+        let cancelled = false;
+        const scope = customerScope, customerUserId = selectedReservation.userId;
+        const currentBooking = { id: selectedReservation.id, label: [selectedReservation.reservationNumber || selectedReservation.id, selectedReservation.productName, selectedReservation.date, selectedReservation.headcount].filter(Boolean).join(' · ') };
+        api.reservations.list().then(rows => {
+            if (!cancelled && currentScope.current === scope) {
+                const items = sameAccountProductBookings(Array.isArray(rows) ? rows : [], customerUserId);
+                if (!items.some(item => item.id === currentBooking.id)) items.unshift(currentBooking);
+                setSameBookings({ scope, items, warning: '' });
+            }
+        }).catch(() => {
+            if (!cancelled && currentScope.current === scope) setSameBookings({ scope, items: [], warning: '같은 계정의 다른 예약을 확인하지 못했습니다. 현재 예약은 계속 관리할 수 있습니다.' });
+        });
+        return () => { cancelled = true; };
+    }, [customerPage, customerSource, customerScope, loadedCustomerScope, selectedReservation?.userId, userLoading, user?.role]);
     useEffect(() => { if (!loadedOnce || isLoading) return;
         const valid = new Set(reservations.map(reservationSelectionKey));
         setSelectedRows(prev => { const next = new Set([...prev].filter(key => valid.has(key))); return next.size === prev.size ? prev : next; });
     }, [reservations, loadedOnce, isLoading]);
 
     useEffect(() => {
+        if (customerPage) return;
         // Replace this list's URL without creating one browser-history entry per keystroke.
         const search = reservationListSearch({ searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, sortOrder, currentPage }, window.location.search);
         if (search !== window.location.search) window.history.replaceState(window.history.state, '', window.location.pathname + search + window.location.hash);
-    }, [searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, sortOrder, currentPage]);
+    }, [customerPage, searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, sortOrder, currentPage]);
     useEffect(() => {
+        if (customerPage) return;
         const restore = () => { const state = readReservationList(window.location.search);
             setSearchTerm(state.searchTerm); setFilterStatus(state.filterStatus); setFilterPayment(state.filterPayment); setFilterType(state.filterType);
             setFilterDeparture(state.filterDeparture); setFilterSource(state.filterSource); setSortOrder(state.sortOrder); setCurrentPage(state.currentPage);
         };
         window.addEventListener('popstate', restore); return () => window.removeEventListener('popstate', restore);
-    }, []);
+    }, [customerPage]);
 
     const toTime = (value: any) => {
         if (!value) return 0;
@@ -2343,6 +2407,33 @@ export const AdminReservationManage: React.FC = () => {
     };
 
     const fetchReservations = async () => {
+        if (customerPage) {
+            const scope = customerScope, sequence = ++fetchSequence.current;
+            const active = () => currentScope.current === scope && fetchSequence.current === sequence;
+            if (userLoading || user?.role !== 'admin' || !customerReservationId) { setSelectedReservation(null); setLoadedCustomerScope(''); return; }
+            setIsLoading(true); setCustomerLoadError('');
+            try {
+                const [result, productResult] = await Promise.allSettled([
+                    customerSource === 'quote' ? api.quotes.get(customerReservationId) : api.reservations.get(customerReservationId),
+                    customerSource === 'product' ? api.products.list() : Promise.resolve([]),
+                ]);
+                if (!active()) return;
+                if (result.status === 'rejected') throw result.reason;
+                if (!result.value || String(result.value.id) !== customerReservationId) throw new Error('선택한 고객의 예약을 찾지 못했습니다.');
+                const row = customerSource === 'quote' ? legacyWorkspaceReservation(result.value) : productWorkspaceReservation(result.value);
+                setProducts(productResult.status === 'fulfilled' && Array.isArray(productResult.value) ? productResult.value.map((p: any) => ({
+                    id: p.id, name: p.name, category: p.category, thumbnail: p.thumbnail, mainImages: p.mainImages ?? p.main_images,
+                    itineraryBlocks: p.itineraryBlocks ?? p.itinerary_blocks, itineraryImages: p.itineraryImages ?? p.itinerary_images, documentProduct: p,
+                })) : []);
+                setLoadWarnings(productResult.status === 'rejected' ? ['상품 원본 정보를 불러오지 못했습니다. 저장된 고객 문서는 그대로 확인할 수 있습니다.'] : []);
+                setReservations([row]); setSelectedReservation(row); setLoadedCustomerScope(scope);
+            } catch (error: any) {
+                if (!active()) return;
+                setReservations([]); setSelectedReservation(null); setLoadedCustomerScope(scope);
+                setCustomerLoadError(error?.status === 404 ? '선택한 예약 또는 견적 문의가 없습니다. 삭제되었거나 주소가 변경되었을 수 있습니다.' : error?.status === 403 ? '이 고객 정보를 조회할 관리자 권한이 없습니다.' : '고객 정보를 불러오지 못했습니다. 다시 시도해 주세요.');
+            } finally { if (active()) { setIsLoading(false); setLoadedOnce(true); } }
+            return;
+        }
         setIsLoading(true);
         try {
 
@@ -2534,9 +2625,12 @@ export const AdminReservationManage: React.FC = () => {
 
     // 상세를 열 때 해당 예약을 서버에서 재조회 — 숙소 배정 보드 등 다른 화면에서
     // 방금 저장한 배정·가이드·계약 데이터가 목록 로드 시점보다 새것일 수 있다.
-    const openReservation = (res: Reservation) => {
-        if (res.type === 'quote_booking') { const p = new URLSearchParams(window.location.search); p.delete('open'); p.delete('kind');
-            navigate(quoteBookingHref(res.id) + `&returnTo=${encodeURIComponent('/admin/reservations' + (p.toString() ? '?' + p.toString() : ''))}`); return; }
+    const openReservation = (res: Reservation, replace = false) => {
+        const p = new URLSearchParams(window.location.search); p.delete('open'); p.delete('kind');
+        const listReturnTo = '/admin/reservations' + (p.toString() ? '?' + p.toString() : '');
+        if (!customerPage && res.type === 'product') { navigate(productCustomerHref(res.id, listReturnTo), { replace }); return; }
+        if (!customerPage && res.type === 'quote') { navigate(legacyQuoteCustomerHref(res.id, listReturnTo), { replace }); return; }
+        if (res.type === 'quote_booking') { navigate(quoteCustomerHref(res.id, listReturnTo), { replace }); return; }
         setSelectedReservation(res);
         if (res.type === 'quote') return;
         api.reservations.get(res.id).then((fresh: any) => {
@@ -2574,20 +2668,25 @@ export const AdminReservationManage: React.FC = () => {
 
     // ?open=<reservationId> — 숙소 보드(Байр захиалга)의 「Захиалгын дэлгэрэнгүй」 링크로
     // 진입 시 해당 예약 상세를 자동으로 연다.
-    const openedFromUrl = React.useRef(false);
+    const openedFromUrl = React.useRef('');
     useEffect(() => {
-        if (openedFromUrl.current || reservations.length === 0) return;
+        if (customerPage) return;
         const openId = new URLSearchParams(window.location.search).get('open');
-        if (!openId) return;
+        if (!openId) { openedFromUrl.current = ''; return; }
         const openType = new URLSearchParams(window.location.search).get('kind') || 'product';
+        const key = `${openType}:${openId}`;
+        if (openedFromUrl.current === key || reservations.length === 0) return;
         const target = reservations.find(r => r.id === openId && r.type === openType);
         if (!target) return;
-        openedFromUrl.current = true;
-        openReservation(target);
+        openedFromUrl.current = key;
+        openReservation(target, true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [reservations]);
+    }, [customerPage, location.search, reservations]);
 
     const handleUpdateReservation = async (updated: Reservation, silent = false): Promise<boolean> => {
+        const operationScope = customerScope;
+        const active = () => currentScope.current === operationScope;
+        if (!active() || userLoading || user?.role !== 'admin') return false;
         if (updated.type === 'quote_booking') return false;
         setUpdatingCount(count => count + 1);
         try {
@@ -2697,10 +2796,12 @@ export const AdminReservationManage: React.FC = () => {
             } else {
                 await api.reservations.update(updated.id, updatePayload);
             }
+            if (!active()) return false;
 
             // Optimistic update locally
-            setReservations(prev => prev.map(r => r.id === updated.id && r.type === updated.type ? { ...updated, history } : r));
-            setSelectedReservation(prev => prev?.id === updated.id && prev.type === updated.type ? { ...updated, history } : prev);
+            const saved = { ...updated, history, paymentKnown: { total: updated.totalAmount, deposit: updated.deposit, balance: Math.max(0, updated.totalAmount - updated.deposit) } };
+            setReservations(prev => prev.map(r => r.id === updated.id && r.type === updated.type ? saved : r));
+            setSelectedReservation(prev => prev?.id === updated.id && prev.type === updated.type ? saved : prev);
 
             // Notification Logic
             if (oldReservation.status !== updated.status && updated.userId) {
@@ -2721,6 +2822,7 @@ export const AdminReservationManage: React.FC = () => {
             }
 
             if (updated.areAssignmentsVisibleToUser && !oldReservation.areAssignmentsVisibleToUser && updated.userId) {
+                if (!active()) return false;
                 await sendNotification({
                     userId: updated.userId,
                     type: 'reservation',
@@ -2736,6 +2838,7 @@ export const AdminReservationManage: React.FC = () => {
                 && oldReservation.depositStatus !== 'paid' && updated.depositStatus === 'paid'
                 && oldReservation.status === 'pending_payment' && updated.status === 'confirmed';
             if (depositConfirmed) {
+                if (!active()) return false;
                 let mailNote = '고객 이메일이 없어 입금 확인 메일은 보내지 않았습니다.';
                 if (updated.email) {
                     const mail = await sendNotificationEmail(updated.email, 'PAYMENT_CONFIRMED', {
@@ -2746,6 +2849,7 @@ export const AdminReservationManage: React.FC = () => {
                         paymentAmount: updated.deposit,
                         balanceAmount: Math.max(0, updated.totalAmount - updated.deposit),
                     });
+                    if (!active()) return false;
                     mailNote = mail.success
                         ? '고객에게 입금 확인 메일을 보냈습니다.'
                         : '입금 확인 메일은 보내지 못했습니다. 고객에게 따로 알려 주세요.';
@@ -2754,6 +2858,7 @@ export const AdminReservationManage: React.FC = () => {
                 return true;
             }
 
+            if (!active()) return false;
             if (!silent) alert('예약 정보가 업데이트되었습니다.');
             return true;
             // Only fetch if strictly necessary, otherwise optimistic is fine.
@@ -2762,7 +2867,7 @@ export const AdminReservationManage: React.FC = () => {
             console.error('Error updating reservation:', error);
             if (!silent) alert('예약 정보 수정에 실패했습니다.');
             return false;
-        } finally { setUpdatingCount(count => Math.max(0, count - 1)); }
+        } finally { if (active()) setUpdatingCount(count => Math.max(0, count - 1)); }
     };
 
     const handleStatusChange = async (id: string, newStatus: string, type: string) => {
@@ -2840,7 +2945,8 @@ export const AdminReservationManage: React.FC = () => {
 
     useEffect(() => {
         fetchReservations();
-    }, []);
+        return () => { fetchSequence.current += 1; };
+    }, [customerPage, customerPage ? customerScope : 'list']);
 
     // Filter Logic
     const handleCreateReservation = async () => {
@@ -3181,10 +3287,188 @@ export const AdminReservationManage: React.FC = () => {
         URL.revokeObjectURL(url);
     };
 
+    const detailWorkspaces = <>
+            {selectedReservation && selectedReservation.type === 'product' && (
+                <ReservationDetailModal
+                    key={`${customerScope}:${selectedReservation.id}`} fullPage={customerPage} reservation={selectedReservation}
+                    onClose={() => customerPage ? navigate(returnTo) : setSelectedReservation(null)}
+                    onUpdate={handleUpdateReservation}
+                    onRefresh={() => customerPage ? void fetchReservations() : selectedReservation && openReservation(selectedReservation)}
+                    updating={updatingCount > 0}
+                    products={products}
+                    bookingSelector={customerPage && sameBookings.scope === customerScope ? sameBookings.items.length > 1 ? <label>같은 고객의 예약 <select aria-label="같은 계정의 다른 상품 예약" value={selectedReservation.id} onChange={event => navigate(productCustomerHref(event.target.value, returnTo))}>{sameBookings.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label> : sameBookings.warning ? <span role="status">{sameBookings.warning}</span> : undefined : undefined}
+                />
+            )}
+
+
+
+            {selectedReservation && selectedReservation.type === 'quote' && selectedReservation.quoteDetail && (
+                <QuoteDetailModal
+                    key={`${customerScope}:${selectedReservation.id}`} fullPage={customerPage} request={selectedReservation.quoteDetail}
+                    onClose={() => customerPage ? navigate(returnTo) : setSelectedReservation(null)}
+                    onUpdateQuote={async (id, updates) => {
+                        const active = () => currentScope.current === customerScope && user?.role === 'admin';
+                        if (!active()) return false;
+                        try {
+                            await api.quotes.update(id, {
+                                destination: updates.destination,
+                                headcount: updates.headcount,
+                                period: updates.period,
+                                budget: updates.budget,
+                                travel_types: updates.travelTypes,
+                                accommodations: updates.accommodations,
+                                vehicle: updates.vehicle,
+                                confirmed_price: updates.confirmed_price ?? (updates as any).confirmedPrice,
+                                confirmed_start_date: updates.confirmed_start_date,
+                                confirmed_end_date: updates.confirmed_end_date,
+                                deposit: updates.deposit,
+                                itinerary_template_id: updates.itineraryTemplateId,
+                                document_content: updates.documentContent,
+                                ...(updates.adminNote !== undefined ? { admin_note: updates.adminNote } : {}),
+                                ...(updates.estimateUrl !== undefined ? { estimate_url: updates.estimateUrl } : {}),
+                                updated_at: new Date().toISOString()
+                            });
+                            if (!active()) return false;
+                            await fetchReservations();
+                            return true;
+                        } catch (e) {
+                            console.error(e);
+                            alert('견적 수정 실패');
+                            return false;
+                        }
+                    }}
+                    onSendEstimate={async (url, note, priceDetail, confirmedStartDate, confirmedEndDate, itineraryTemplateId) => {
+                        const active = () => currentScope.current === customerScope && user?.role === 'admin';
+                        if (!active()) return;
+                        // Handle Send Estimate
+                        try {
+                            // 1. Update Database
+                            await api.quotes.update(selectedReservation.id, {
+                                status: 'answered',
+                                admin_note: note,
+                                estimate_url: url,
+                                confirmed_price: priceDetail.totalAmount ?? null,
+                                deposit: priceDetail.deposit ?? null,
+                                confirmed_start_date: confirmedStartDate || null,
+                                confirmed_end_date: confirmedEndDate || null,
+                                itinerary_template_id: itineraryTemplateId || null,
+                                updated_at: new Date().toISOString()
+                            });
+                            if (!active()) return;
+
+                            // 2. Send Email (Separate try-catch to not block UI success if email fails)
+                            try {
+                                const emailResult = await sendNotificationEmail(
+                                    selectedReservation.email,
+                                    'ESTIMATE_COMPLETED',
+                                    {
+                                        customerName: selectedReservation.customerName,
+                                        destination: selectedReservation.productName.replace(' 맞춤 견적', ''),
+                                        estimateUrl: url,
+                                        adminNote: note,
+                                        quoteId: selectedReservation.id,
+                                        totalAmount: priceDetail.totalAmount,
+                                        userId: selectedReservation.userId,
+                                    }
+                                );
+                                if (!active()) return;
+
+                                if (!emailResult.success) {
+                                    console.error('Email Send Error:', emailResult.error);
+                                    alert('견적 정보는 저장되었으나, 이메일 발송에 실패했습니다.');
+                                } else {
+                                    alert(`견적서가 발송되었습니다. (이메일 알림 포함)\n확정 금액: ${priceDetail.totalAmount ? won(priceDetail.totalAmount) : '미입력'}`);
+                                }
+                            } catch (emailError) {
+                                console.error('Email Unexpected Error:', emailError);
+                                alert('견적 정보는 저장되었으나, 이메일 발송 중 오류가 발생했습니다.');
+                            }
+
+                            if (!active()) return;
+                            await fetchReservations();
+                            if (!customerPage) setSelectedReservation(null);
+
+                        } catch (e: any) {
+                            console.error(e);
+                            alert(`견적서 발송 실패: ${e.message}`);
+                        }
+                    }}
+                    onOpenConvert={() => {
+                        if (selectedReservation.quoteDetail) {
+                            setConvertTarget(selectedReservation.quoteDetail);
+                        }
+                    }}
+                />
+            )}
+            {convertTarget && (
+                <ConvertSelectionModal
+                    request={convertTarget}
+                    onClose={() => setConvertTarget(null)}
+                    onConvert={async (data) => {
+                        const active = () => currentScope.current === customerScope && user?.role === 'admin';
+                        if (!active()) return;
+                        try {
+                            // 1. Create Reservation
+                            const reservationPayload = {
+                                type: 'quote',
+                                product_name: `${convertTarget.destination} 맞춤 견적`,
+                                customer_name: convertTarget.name,
+                                customer_phone: convertTarget.phone,
+                                customer_email: convertTarget.email,
+                                total_people: parseInt(convertTarget.headcount.replace(/[^0-9]/g, '')) || 0,
+                                start_date: data.startDate,
+                                end_date: data.endDate,
+                                status: 'pending_payment',
+                                price_breakdown: {
+                                    total: data.totalAmount,
+                                    deposit: data.deposit,
+                                    local: data.totalAmount - data.deposit
+                                },
+                                user_id: convertTarget.userId
+                            };
+
+                            await api.reservations.create(reservationPayload);
+                            if (!active()) return;
+
+                            // 2. Update Quote Status
+                            await api.quotes.update(convertTarget.id, {
+                                status: 'converted',
+                                updated_at: new Date().toISOString()
+                            });
+                            if (!active()) return;
+
+                            alert('예약이 성공적으로 생성되었습니다.');
+
+                            // Optionally send email here too?
+                            // await sendNotificationEmail(...)
+
+                            setConvertTarget(null);
+                            if (!customerPage) setSelectedReservation(null);
+                            fetchReservations();
+
+                        } catch (e: any) {
+                            console.error(e);
+                            alert(`예약 생성 실패: ${e.message}`);
+                        }
+                    }}
+                />
+            )}
+    </>;
+
     const toggleTheme = () => {
         setIsDarkMode(!isDarkMode);
         document.documentElement.classList.toggle('dark');
     };
+
+    if (customerPage) {
+        const validScope = loadedCustomerScope === customerScope;
+        const loading = userLoading || !validScope || (isLoading && !selectedReservation);
+        return <AdminLayout activePage="reservations" title="고객 예약 관리" description="선택한 고객의 일정·계약·결제·배정을 한 화면에서 관리합니다." showSearch={false}>
+            {loading ? <div className="card product-customer-loading" role="status">고객 정보를 불러오고 있습니다…</div>
+                : customerLoadError || !selectedReservation ? <div className="card product-customer-loading" role="alert"><h2>고객 정보를 확인해 주세요</h2><p>{customerLoadError || '선택한 예약을 찾지 못했습니다.'}</p><div className="row"><button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>목록으로</button><button type="button" className="btn btn-ink" onClick={() => void fetchReservations()}>다시 불러오기</button></div></div>
+                    : <>{isLoading && <div role="status">최신 고객 정보를 확인하고 있습니다…</div>}{loadWarnings.map((warning, i) => <div className="product-customer-warning" role="status" key={i}>{warning}</div>)}{detailWorkspaces}</>}
+        </AdminLayout>;
+    }
 
     return (
         <>
@@ -3449,7 +3733,7 @@ export const AdminReservationManage: React.FC = () => {
                                                     )}
                                                 </td>
                                                 <td className="r cell-price">
-                                                    {typeof res.totalAmount === 'number' && !isNaN(res.totalAmount) && res.totalAmount > 0 ? won(res.totalAmount) : '–'}
+                                                    {typeof res.totalAmount === 'number' && Number.isFinite(res.totalAmount) && res.totalAmount >= 0 ? won(res.totalAmount) : '–'}
                                                     {res.type !== 'quote' && <div className="cell-muted" style={{ fontSize: 11, fontWeight: 500, marginTop: 4 }}>
                                                         예약금 {res.depositStatus === 'paid' ? '확인' : '대기'} · 잔금 {res.balanceStatus === 'paid' ? '확인' : '대기'}
                                                     </div>}
@@ -3551,156 +3835,7 @@ export const AdminReservationManage: React.FC = () => {
                 </div>
             )}
 
-            {selectedReservation && selectedReservation.type === 'product' && (
-                <ReservationDetailModal
-                    reservation={selectedReservation}
-                    onClose={() => setSelectedReservation(null)}
-                    onUpdate={handleUpdateReservation}
-                    onRefresh={() => selectedReservation && openReservation(selectedReservation)}
-                    updating={updatingCount > 0}
-                    products={products}
-                />
-            )}
-
-
-
-            {selectedReservation && selectedReservation.type === 'quote' && selectedReservation.quoteDetail && (
-                <QuoteDetailModal
-                    request={selectedReservation.quoteDetail}
-                    onClose={() => setSelectedReservation(null)}
-                    onUpdateQuote={async (id, updates) => {
-                        try {
-                            await api.quotes.update(id, {
-                                destination: updates.destination,
-                                headcount: updates.headcount,
-                                period: updates.period,
-                                budget: updates.budget,
-                                travel_types: updates.travelTypes,
-                                accommodations: updates.accommodations,
-                                vehicle: updates.vehicle,
-                                confirmed_price: updates.confirmed_price,
-                                confirmed_start_date: updates.confirmed_start_date,
-                                confirmed_end_date: updates.confirmed_end_date,
-                                deposit: updates.deposit,
-                                itinerary_template_id: updates.itineraryTemplateId,
-                                document_content: updates.documentContent,
-                                updated_at: new Date().toISOString()
-                            });
-                            fetchReservations();
-                            return true;
-                        } catch (e) {
-                            console.error(e);
-                            alert('견적 수정 실패');
-                            return false;
-                        }
-                    }}
-                    onSendEstimate={async (url, note, priceDetail, confirmedStartDate, confirmedEndDate, itineraryTemplateId) => {
-                        // Handle Send Estimate
-                        try {
-                            // 1. Update Database
-                            await api.quotes.update(selectedReservation.id, {
-                                status: 'answered',
-                                admin_note: note,
-                                estimate_url: url,
-                                confirmed_price: priceDetail.totalAmount || null,
-                                deposit: priceDetail.deposit || null,
-                                confirmed_start_date: confirmedStartDate || null,
-                                confirmed_end_date: confirmedEndDate || null,
-                                itinerary_template_id: itineraryTemplateId || null,
-                                updated_at: new Date().toISOString()
-                            });
-
-                            // 2. Send Email (Separate try-catch to not block UI success if email fails)
-                            try {
-                                const emailResult = await sendNotificationEmail(
-                                    selectedReservation.email,
-                                    'ESTIMATE_COMPLETED',
-                                    {
-                                        customerName: selectedReservation.customerName,
-                                        destination: selectedReservation.productName.replace(' 맞춤 견적', ''),
-                                        estimateUrl: url,
-                                        adminNote: note,
-                                        quoteId: selectedReservation.id,
-                                        totalAmount: priceDetail.totalAmount,
-                                        userId: selectedReservation.userId,
-                                    }
-                                );
-
-                                if (!emailResult.success) {
-                                    console.error('Email Send Error:', emailResult.error);
-                                    alert('견적 정보는 저장되었으나, 이메일 발송에 실패했습니다.');
-                                } else {
-                                    alert(`견적서가 발송되었습니다. (이메일 알림 포함)\n확정 금액: ${priceDetail.totalAmount ? won(priceDetail.totalAmount) : '미입력'}`);
-                                }
-                            } catch (emailError) {
-                                console.error('Email Unexpected Error:', emailError);
-                                alert('견적 정보는 저장되었으나, 이메일 발송 중 오류가 발생했습니다.');
-                            }
-
-                            fetchReservations();
-                            setSelectedReservation(null);
-
-                        } catch (e: any) {
-                            console.error(e);
-                            alert(`견적서 발송 실패: ${e.message}`);
-                        }
-                    }}
-                    onOpenConvert={() => {
-                        if (selectedReservation.quoteDetail) {
-                            setConvertTarget(selectedReservation.quoteDetail);
-                        }
-                    }}
-                />
-            )}
-            {convertTarget && (
-                <ConvertSelectionModal
-                    request={convertTarget}
-                    onClose={() => setConvertTarget(null)}
-                    onConvert={async (data) => {
-                        try {
-                            // 1. Create Reservation
-                            const reservationPayload = {
-                                type: 'quote',
-                                product_name: `${convertTarget.destination} 맞춤 견적`,
-                                customer_name: convertTarget.name,
-                                customer_phone: convertTarget.phone,
-                                customer_email: convertTarget.email,
-                                total_people: parseInt(convertTarget.headcount.replace(/[^0-9]/g, '')) || 0,
-                                start_date: data.startDate,
-                                end_date: data.endDate,
-                                status: 'pending_payment',
-                                price_breakdown: {
-                                    total: data.totalAmount,
-                                    deposit: data.deposit,
-                                    local: data.totalAmount - data.deposit
-                                },
-                                user_id: convertTarget.userId
-                            };
-
-                            await api.reservations.create(reservationPayload);
-
-                            // 2. Update Quote Status
-                            await api.quotes.update(convertTarget.id, {
-                                status: 'converted',
-                                updated_at: new Date().toISOString()
-                            });
-
-                            alert('예약이 성공적으로 생성되었습니다.');
-
-                            // Optionally send email here too?
-                            // await sendNotificationEmail(...)
-
-                            setConvertTarget(null);
-                            setSelectedReservation(null);
-                            fetchReservations();
-
-                        } catch (e: any) {
-                            console.error(e);
-                            alert(`예약 생성 실패: ${e.message}`);
-                        }
-                    }}
-                />
-            )}
+            {!customerPage && detailWorkspaces}
         </>
     );
 };
