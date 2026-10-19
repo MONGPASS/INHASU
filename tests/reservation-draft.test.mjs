@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildSync } from 'esbuild';
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
@@ -191,14 +192,56 @@ test('실제 편집기는 data router에서 nullable legacy 일정·빈 계약 �
     const { ReservationInlineEditor } = module.exports;
     const content = { name: '레거시 문서', description: '', days: [{ title: '기존 일차', date: '', activities: null, meals: null, accommodation: null }],
         documentSettings: { contract: { intro: null, cancellationRows: null } }, highlights: null };
-    for (const mode of ['itinerary', 'contract']) {
+    for (const mode of ['itinerary', 'contract']) for (const externalActions of [false, true]) {
         const router = createMemoryRouter([{ path: '*', element: React.createElement(ReservationInlineEditor, { reservationId: scope.reservationId,
-            adminUserId: scope.userId, initialContent: content, mode, startDate: '', endDate: '', onSave: async () => true, onDirtyChange() {}, onClose() {} }) }],
+            adminUserId: scope.userId, initialContent: content, mode, externalActions, startDate: '', endDate: '', onSave: async () => true, onDirtyChange() {}, onClose() {} }) }],
             { initialEntries: ['/admin/reservations?open=' + scope.reservationId] });
         const html = renderToString(React.createElement(RouterProvider, { router }));
         assert.ok(html.includes('reservation-inline-' + scope.reservationId));
         assert.ok(!html.includes('본 여행 조건서'));
         assert.ok(html.includes('inert=""'));
+        assert.ok(html.includes('ri-draft-status'));
+        assert.equal(html.includes('type="submit"'), !externalActions, '외부 작업 도구를 쓰면 내부 저장 버튼을 중복 표시하지 않는다');
+        assert.equal(html.includes('편집 닫기'), !externalActions);
+        assert.equal(html.includes('저장 전 초안 미리보기'), !externalActions);
+        if (externalActions && mode === 'itinerary') {
+            assert.ok(html.includes('일정 편집 바로가기'));
+            assert.ok(html.includes('ri-spots-collapsible'));
+            assert.match(html, /0(?:<!-- -->)?개 선택/);
+        }
         router.dispose();
     }
+});
+
+test('같은 일차를 다시 요청하면 실제 편집기 effect가 revision마다 이동하고 잠금 해제·위젯 로드를 기다린다', () => {
+    const source = readFileSync(new URL('../src/components/admin/ReservationInlineEditor.tsx', import.meta.url), 'utf8');
+    const start = source.search(/useEffect\(\(\) => \{\r?\n\s*const requestedDay = p.requestedDay;/);
+    assert.notEqual(start, -1);
+    const actualEffect = new Function('context', `const {p,locked,activeMode,draft,jumpToDay,editorRef,requestedDayApplied,useEffect,MutationObserver}=context;\n${source.slice(start, source.indexOf('    const contract =', start))}`);
+    const jumps = [], requestedDayApplied = { current: null };
+    let previousDeps, cleanup, observer, ready = true;
+    const jumpToDay = index => { if (!ready) return false; jumps.push(index); return true; };
+    const render = (revision, locked = false) => actualEffect({
+        p: { reservationId: scope.reservationId, externalActions: true, requestedDay: 2, requestedDayRevision: revision },
+        locked, activeMode: 'itinerary', draft: { days: [{}, {}, {}] }, editorRef: { current: {} }, requestedDayApplied,
+        jumpToDay,
+        useEffect: (run, deps) => {
+            if (previousDeps?.every((value, index) => Object.is(value, deps[index]))) return;
+            cleanup?.(); previousDeps = deps; cleanup = run();
+        },
+        MutationObserver: class {
+            constructor(callback) { this.callback = callback; observer = this; }
+            observe() { this.observing = true; }
+            disconnect() { this.observing = false; }
+        },
+    });
+    render(0); render(0); render(1);
+    assert.deepEqual(jumps, [1, 1], '일반 재렌더에는 유지하고 같은 일차의 새 요청에는 다시 이동한다');
+    render(2, true); assert.equal(jumps.length, 2);
+    ready = false; render(2);
+    assert.equal(observer.observing, true);
+    ready = true; observer.callback();
+    assert.deepEqual(jumps, [1, 1, 1]);
+    assert.equal(observer.observing, false);
+    cleanup?.();
 });

@@ -101,3 +101,63 @@
     .rw-operations-group-fields { grid-template-columns: minmax(0,1fr); gap: 16px; }
     .product-customer-page .cw-detail-workspace .drawer-foot { padding: 12px 16px; }
 }
+
+/* Keep customer context, work navigation and actions in place while only the form scrolls. */
+.admin-app-wrapper .content:has(.cw-is-working) { padding: 0 20px 12px; min-height: 0; }
+.product-customer-page #product-customer-overview[hidden] { display: none!important; }
+.cw-resume-work { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 16px 32px 0; padding: 14px 20px; border: 1px solid #cbe8df; border-radius: 14px; background: #edf8f3; }
+.cw-resume-work > div { display: grid; gap: 4px; min-width: 0; }
+.cw-resume-work strong { color: #176b55; font-size: 14px; }
+.cw-resume-work span { font-size: 12px; color: #5b776b; }
+.product-customer-page .cw-focus-workspace { display: flex; flex-direction: column; height: calc(100dvh - var(--header-h, 72px) - 28px); min-height: 0; margin: 12px auto 0; overflow: hidden; border-radius: 18px; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-detail-toolbar { flex: none; gap: 16px; padding: 14px 20px; min-height: 82px; flex-wrap: nowrap; }
+.cw-focus-workspace .cw-overview-back { flex: none; }
+.cw-focus-workspace .cw-detail-identity h2 { font-size: 18px; }
+.cw-focus-workspace .cw-detail-identity h2 > span { margin-left: 8px; font-size: 12px; font-weight: 500; color: #6b7684; }
+.cw-focus-workspace .cw-detail-identity p { margin-top: 4px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs { position: static; display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); flex: none; gap: 6px; padding: 8px 16px; overflow-x: auto; min-height: 74px; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs > button { min-height: 56px; padding: 8px 12px; gap: 8px; }
+.cw-focus-workspace .cw-work-tab-copy { gap: 2px; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .reservation-workspace-main { display: flex; flex-direction: column; flex: 1; min-height: 0; height: auto; overflow: hidden; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .reservation-workspace-body.drawer-body { flex: 1; min-height: 0; height: auto; max-height: none; padding: 20px!important; overflow-y: auto; overscroll-behavior-y: contain; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .reservation-workspace-body section[id] { scroll-margin-top: 12px!important; }
+.cw-focus-workspace .cw-detail-notice { flex: none; margin: 8px 20px; padding: 10px 14px; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .drawer-foot { position: static; display: flex; align-items: center; justify-content: space-between; flex: none; gap: 20px; min-height: 76px; padding: 12px 20px; }
+.cw-action-status { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.cw-action-status strong { color: #333d4b; font-size: 13px; }
+.cw-action-status span { color: #6b7684; font-size: 12px; line-height: 1.6; }
+.cw-action-status[role=alert] span { color: #a15219; }
+.cw-action-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
+.product-customer-page .cw-focus-workspace .rw-documents:has(.ri-editor) { border: 0; background: transparent; overflow: visible; }
+.product-customer-page .cw-focus-workspace .rw-documents:has(.ri-editor) > .rw-section-head { display: none; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow { margin: 0; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-draft-status.is-idle { display: none; }
+.product-customer-page .cw-focus-workspace .ri-editor-tools { position: sticky; top: 0; z-index: 3; background: white; box-shadow: 0 3px 8px #19242e05; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow :is(.day-edit, .ri-spots, .ri-spots-collapsible) { scroll-margin-top: 136px!important; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation { flex-wrap: nowrap; overflow-x: auto; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation > * { flex-shrink: 0; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow :is(.ri-modes, .ri-day-navigation) { padding: 10px 20px; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-basics { padding: 16px; margin-bottom: 20px; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-savebar { border: 0; padding: 12px 24px; background: transparent; }
+@media (max-width: 1280px) {
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs { display: flex; }
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs > button { flex: 1 0 auto; min-width: 144px; }
+    .cw-focus-workspace .cw-work-tab-copy small { display: none; }
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs { min-height: 62px; }
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs > button { min-height: 44px; }
+}
+@media (max-width: 760px) {
+    .admin-app-wrapper .content:has(.cw-is-working) { padding: 0 8px 8px; }
+    .product-customer-page .cw-focus-workspace { height: calc(100dvh - var(--header-h, 72px) - 20px); margin-top: 8px; }
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-detail-toolbar { min-height: 76px; padding: 12px; gap: 10px; }
+    .cw-focus-workspace .cw-detail-toolbar > .btn:last-child { display: none; }
+    .cw-focus-workspace .cw-detail-identity h2 { font-size: 16px; }
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .drawer-foot { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+    .cw-action-status { flex-basis: 100%; }
+    .cw-action-status span { display: none; }
+    .cw-action-status[role=alert] span { display: block; }
+    .cw-action-buttons { flex: 1; flex-wrap: wrap; }
+    .product-customer-page .cw-focus-workspace .ri-editor-workflow :is(.day-edit, .ri-spots, .ri-spots-collapsible) { scroll-margin-top: 176px!important; }
+    .product-customer-page .cw-focus-workspace .cw-action-buttons .btn { font-size: 13px; padding: 9px 10px; }
+    .cw-resume-work { margin: 12px; flex-wrap: wrap; }
+}

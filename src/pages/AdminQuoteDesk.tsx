@@ -61,6 +61,9 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const [customerRefresh, setCustomerRefresh] = useState(0);
     const [customerEditor, setCustomerEditor] = useState<{ id: string; tool: string } | null>(null);
     const [editorExpanded, setEditorExpanded] = useState(false);
+    const customerPageRef = useRef<HTMLDivElement>(null);
+    const overviewScrollRef = useRef(0);
+    const customerEditorTitleRef = useRef<HTMLHeadingElement>(null);
     // Mount the original editor on the first explicit task. Folding it afterwards
     // retains the same browsing context and any recoverable, unsaved input.
     const [editorMountScope, setEditorMountScope] = useState('');
@@ -203,7 +206,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     useEffect(() => {
         if (!customerPage && bookingId && !quoteEditorId && ['bookings', 'inbox'].includes(toolParam || '')) navigate(quoteCustomerHref(bookingId, searchParams.has('returnTo') ? returnTo : quoteDeskHref(toolParam!)), { replace: true });
     }, [customerPage, bookingId, quoteEditorId, toolParam, returnTo, navigate, searchParams]);
-    useEffect(() => { setEditorExpanded(false); setEditorMountScope(''); setPendingSection(''); setCustomerEditor(null); lastEditorBusy.current = false; }, [customerPage, bookingId, accountId]);
+    useEffect(() => { setEditorExpanded(false); setEditorMountScope(''); setPendingSection(''); setCustomerEditor(null); overviewScrollRef.current = 0; lastEditorBusy.current = false; }, [customerPage, bookingId, accountId]);
     useEffect(() => {
         if (!customerPage) return;
         const refresh = () => setCustomerRefresh(value => value + 1);
@@ -338,10 +341,23 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         const result = flushFrame();
         if (result.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 작업을 선택해 주세요.'); return; }
         if (!result.ok && !window.confirm((result.error || '초안을 보관하지 못했습니다.') + '\n\n초안을 보관하지 못한 상태로 다른 편집기를 열까요?')) return;
+        if (!editorExpanded) overviewScrollRef.current = customerPageRef.current?.scrollTop || 0;
         setActiveSection(['guide', 'vehicle', 'stay'].includes(section) ? 'assign' : section === 'send' ? 'docs' : section);
         setPendingSection(section); setEditorExpanded(true); setEditorMountScope(customerEditorScope);
         setCustomerEditor({ id: bookingId || '', tool: editorTool });
-        requestAnimationFrame(() => document.getElementById('quote-customer-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        requestAnimationFrame(() => {
+            if (customerPageRef.current) customerPageRef.current.scrollTop = 0;
+            customerEditorTitleRef.current?.focus({ preventScroll: true });
+        });
+    };
+    const closeCustomerEditor = () => {
+        const result = flushFrame();
+        if (result.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 고객 현황으로 돌아가 주세요.'); return; }
+        if (!result.ok) { setEditorNotice(result.error || '초안을 보관하지 못했습니다. 저장 후 고객 현황으로 돌아가 주세요.'); return; }
+        setEditorExpanded(false);
+        requestAnimationFrame(() => {
+            if (customerPageRef.current) customerPageRef.current.scrollTop = overviewScrollRef.current;
+        });
     };
     const customerAction = (action: string) => {
         if (action === 'back') { navigate(returnTo); return; }
@@ -373,6 +389,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         : tool.key === 'inbox'
             ? { title: activeSection === 'notes' ? '상담 · 내부 메모' : '문의 · 고객 정보', description: '문의 내용과 상담 기록을 확인하고 다음 업무를 이어가세요.' }
             : customerEditorLabels[activeSection] || customerEditorLabels.info;
+    const customerModel = customerRecord ? quoteCustomerWorkspaceModel(customerRecord) : null;
 
     return (
         <><AdminLayout
@@ -405,16 +422,21 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         >
             {editorNotice && <div role="status" style={{ padding: '12px 20px', background: '#fff5e8', color: '#80521b' }}>{editorNotice}</div>}
             {linked ? (
-                <div className={customerPage ? 'quote-customer-page' : undefined} style={customerPage ? { flex: 1, minHeight: 0, overflow: 'auto', background: '#f5f7fa' } : { position: 'relative', flex: 1, minHeight: 0, background: '#fff' }}>
+                <div ref={customerPageRef} className={customerPage ? `quote-customer-page${editorExpanded ? ' is-editing' : ''}` : undefined} style={customerPage ? { flex: 1, minHeight: 0, overflow: editorExpanded ? 'hidden' : 'auto', background: '#f5f7fa' } : { position: 'relative', flex: 1, minHeight: 0, background: '#fff' }}>
                     {customerPage && <>
                         {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 12, background: '#fff5e8' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
-                        {customerRecord ? <><CustomerWorkspaceOverview model={quoteCustomerWorkspaceModel(customerRecord)} onAction={customerAction} busy={editorBusy} />
-                            <div className="quote-customer-editor-entry"><p>수정할 업무를 선택하면 아래에서 바로 편집할 수 있어요. 저장한 내용이 고객 현황에 반영됩니다.</p>
-                                <button type="button" className="btn btn-ghost" onClick={() => openCustomerEditor(quoteCustomerIsBooking(customerRecord) ? 'bookings' : 'inbox', 'info')}>상세 업무 열기 <span aria-hidden="true">↓</span></button></div>
-                        </> : !customerError && <div role="status" style={{ padding: 32 }}>고객 정보를 불러오는 중입니다.</div>}
+                        {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
+                            <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy} />
+                            <div className="quote-customer-editor-entry"><p>필요한 업무를 선택해 편집하고, 고객 현황에서 전체 진행 상태를 확인하세요.</p>
+                                <button type="button" className="btn btn-ghost" onClick={() => openCustomerEditor(quoteCustomerIsBooking(customerRecord) ? 'bookings' : 'inbox', 'info')}>상세 업무 열기 <Icon name="arrow_forward" /></button></div>
+                        </div> : !customerError && <div role="status" style={{ padding: 32 }}>고객 정보를 불러오는 중입니다.</div>}
                     </>}
                     {(!customerPage || customerRecord) && <div id={customerPage ? 'quote-customer-editor' : undefined} className={customerPage ? `quote-customer-editor-shell${editorExpanded ? ' is-expanded' : ''}` : undefined} inert={customerPage && !editorExpanded} aria-hidden={customerPage && !editorExpanded ? true : undefined} aria-labelledby={customerPage && editorExpanded ? 'quote-customer-editor-title' : undefined} style={customerPage ? undefined : { position: 'absolute', inset: 0 }}>
-                    {customerPage && editorExpanded && <div className="quote-customer-editor-heading"><div><span className="quote-customer-editor-eyebrow">고객 업무 편집</span><h2 id="quote-customer-editor-title">{customerEditorLabel.title}</h2><p>{customerEditorLabel.description}</p></div><button type="button" className="btn btn-ghost" disabled={editorBusy} onClick={() => { const result = flushFrame(); if (result.busy) return; if (!result.ok) { setEditorNotice(result.error || '초안을 보관하지 못했습니다. 저장 후 접어 주세요.'); return; } setEditorExpanded(false); }}>편집기 접기 <span aria-hidden="true">↑</span></button></div>}
+                    {customerPage && editorExpanded && customerModel && <div className="quote-customer-editor-heading">
+                        <button type="button" className="btn btn-ghost quote-customer-return" disabled={editorBusy} onClick={closeCustomerEditor}><Icon name="arrow_back" />고객 현황</button>
+                        <div className="quote-customer-focus-identity"><h2 ref={customerEditorTitleRef} tabIndex={-1} id="quote-customer-editor-title">{customerModel.customerName}<span>{customerEditorLabel.title}</span></h2><p>{customerModel.partyLabel}<span aria-hidden="true">·</span>{customerModel.period}</p></div>
+                        <span className="quote-customer-focus-status" role="status">{editorBusy ? '작업 처리 중' : customerModel.statusLabel}</span>
+                    </div>}
                     {frameIsMounted && <iframe
                         key={frame.seq}
                         ref={frameRef}

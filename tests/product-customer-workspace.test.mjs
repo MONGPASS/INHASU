@@ -55,13 +55,13 @@ const execute = (code, context) => {
 const pending = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 test('업무 패널 전환은 결제·주문·문서·운영의 작성 중 입력을 보호하고 현재 업무의 저장 경로를 유지한다', () => {
     const calls = [];
-    const context = { fullPage: true, activeSec: 'pay', isEditing: true, inlineDirty: false, operationsDirty: false, quickAssignmentDirty: false,
+    const context = { fullPage: true, workflowOpen: false, overviewScrollPosition: {current: 0}, window: {scrollY: 123}, activeSec: 'pay', isEditing: true, inlineDirty: false, operationsDirty: false, quickAssignmentDirty: false,
         workspaceIsBusy: () => false, requestAnimationFrame: callback => callback(),
-        bodyRef: { current: { querySelector: selector => ({ scrollIntoView: () => calls.push(['scroll', selector]) }) } },
+        bodyRef: { current: { scrollTo: options => calls.push(['scroll', options.top]), querySelector: selector => ({ scrollIntoView: () => calls.push(['scroll', selector]) }) } },
         setActiveSec: value => calls.push(['section', value]), setWorkflowOpen: value => calls.push(['open', value]), setNavigationNotice: value => calls.push(['notice', value]) };
     const start = source.indexOf('    const scrollToSec = ('), end = source.indexOf('\n    useEffect(', start);
     execute(source.slice(start, end) + '\nglobalThis.navigate = scrollToSec;', context);
-    context.navigate('pay'); assert.ok(calls.some(call => call[0] === 'section' && call[1] === 'pay'));
+    context.navigate('pay'); assert.ok(calls.some(call => call[0] === 'section' && call[1] === 'pay')); assert.equal(context.overviewScrollPosition.current, 123);
     calls.length = 0; context.navigate('info'); assert.equal(calls.length, 1); assert.match(calls[0][1], /저장/);
     for (const [field, current, allowed] of [['isEditing', 'info', 'info'], ['inlineDirty', 'inline-doc', 'docs'], ['operationsDirty', 'ops', 'ops']]) {
         context.isEditing = context.inlineDirty = context.operationsDirty = false; context[field] = true; context.activeSec = current;
@@ -72,6 +72,79 @@ test('업무 패널 전환은 결제·주문·문서·운영의 작성 중 입�
     context.quickAssignmentDirty = false; context.workspaceIsBusy = () => true; calls.length = 0; context.navigate('pay'); assert.equal(calls.length, 0);
     context.fullPage = false; context.isEditing = true; context.navigate('log'); assert.ok(calls.some(call => call[0] === 'section' && call[1] === 'log'));
 });
+
+test('고객 현황 복귀는 처리 중·초안 보관 실패를 차단하고 성공 때 입력과 편집 상태를 유지하며 기존 스크롤을 복원한다', () => {
+    const calls = [], draft = { name: '작성 중 일정' }, order = { customerName: '작성 중 주문자' }, operations = { opsNote: '작성 중 운영 메모' };
+    const context = {
+        workspaceIsBusy: () => true, overviewScrollPosition: { current: 612 }, workflowOpen: true,
+        isEditing: true, operationsDirty: true, inlineDirty: true, quickAssignmentDirty: true, inlineEditorOpen: true,
+        draft, editForm: order, operationsDraft: operations,
+        inlineControlRef: { current: { flush: () => { calls.push(['flush']); return { ok: true }; } } },
+        setNavigationNotice: value => calls.push(['notice', value]),
+        setWorkflowOpen: value => { context.workflowOpen = value; calls.push(['open', value]); },
+        requestAnimationFrame: callback => callback(), window: { scrollTo: options => calls.push(['scroll', options.top]) },
+    };
+    for (const name of ['setIsEditing', 'setOperationsDirty', 'setInlineDirty', 'setQuickAssignmentDirty', 'setInlineEditorOpen', 'setEditForm', 'setActiveSec']) {
+        context[name] = () => assert.fail('returning to the overview must not clear or close editing state');
+    }
+    const start = source.indexOf('    const returnToCustomerOverview = () => {'), end = source.indexOf('\n\n    useEffect(', start);
+    execute(source.slice(start, end) + '\nglobalThis.returnToOverview = returnToCustomerOverview;', context);
+    context.returnToOverview();
+    assert.equal(calls.length, 1); assert.match(calls[0][1], /끝난 뒤/); assert.equal(context.workflowOpen, true);
+    calls.length = 0; context.workspaceIsBusy = () => false;
+    context.inlineControlRef.current.flush = () => { calls.push(['flush']); return { ok: false, error: '브라우저 보관 실패' }; };
+    context.returnToOverview();
+    assert.deepEqual(calls, [['flush'], ['notice', '브라우저 보관 실패']]); assert.equal(context.workflowOpen, true);
+    calls.length = 0; context.inlineControlRef.current.flush = () => { calls.push(['flush']); return { ok: true }; };
+    context.returnToOverview();
+    assert.deepEqual(calls, [['flush'], ['notice', ''], ['open', false], ['scroll', 612]]);
+    assert.equal(context.draft, draft); assert.equal(context.editForm, order); assert.equal(context.operationsDraft, operations);
+    for (const key of ['isEditing', 'operationsDirty', 'inlineDirty', 'quickAssignmentDirty', 'inlineEditorOpen']) assert.equal(context[key], true, key);
+    calls.length = 0; context.inlineControlRef.current = null; context.workflowOpen = true;
+    context.returnToOverview();
+    assert.deepEqual(calls, [['notice', ''], ['open', false], ['scroll', 612]], 'overview return also works when no document editor is mounted');
+});
+
+test('고객 일정 행은 해당 일차 편집을 열고 집중 작업 이동은 본문을 처음부터 보여주며 요약 위치를 덮지 않는다', () => {
+    const calls = [];
+    const context = {
+        fullPage: true, workflowOpen: false, isEditing: false, inlineDirty: false, operationsDirty: false, quickAssignmentDirty: false,
+        reservation: { status: 'confirmed' }, workspaceIsBusy: () => false, overviewScrollPosition: { current: 0 }, documentFocusRevision: 0,
+        overview: { days: [{ id: 'saved-day-one', day: 1 }, { id: 'saved-day-three', day: 3 }] },
+        window: { scrollY: 420 }, requestAnimationFrame: callback => callback(),
+        bodyRef: { current: { scrollTo: options => calls.push(['scroll', options.top]), querySelector: () => assert.fail('full-page work must not jump through the old overview to an anchor') } },
+        setWorkflowOpen: value => { context.workflowOpen = value; calls.push(['open', value]); },
+        setDocumentFocusRevision: value => { context.documentFocusRevision = typeof value === 'function' ? value(context.documentFocusRevision) : value; },
+        setRequestedDocumentDay: value => calls.push(['day', value]), setActiveDocument: value => calls.push(['mode', value]),
+        setInlineEditorOpen: value => calls.push(['editor', value]), setActiveSec: value => calls.push(['section', value]),
+        setNavigationNotice: value => calls.push(['notice', value]), alert: value => calls.push(['alert', value]),
+    };
+    const openStart = source.indexOf('    const openInlineDocument = ('), openEnd = source.indexOf('    const closeInlineDocument =', openStart);
+    const actionStart = source.indexOf('    const overviewAction = ('), actionEnd = source.indexOf('\n\n    return (<>', actionStart);
+    const navigationStart = source.indexOf('    const scrollToSec = ('), navigationEnd = source.indexOf('    const returnToCustomerOverview =', navigationStart);
+    execute(source.slice(openStart, openEnd) + source.slice(actionStart, actionEnd) + source.slice(navigationStart, navigationEnd)
+        + '\nglobalThis.action = overviewAction; globalThis.navigate = scrollToSec;', context);
+    context.action('edit-itinerary', 'saved-day-three');
+    assert.deepEqual(calls, [['open', true], ['day', 3], ['mode', 'itinerary'], ['editor', true], ['section', 'inline-doc'], ['scroll', 0]]);
+    assert.equal(context.overviewScrollPosition.current, 420);
+    assert.equal(context.documentFocusRevision, 1);
+    calls.length = 0; context.workflowOpen = false;
+    context.action('edit-itinerary', 'saved-day-three');
+    assert.ok(calls.some(call => call[0] === 'day' && call[1] === 3));
+    assert.equal(context.documentFocusRevision, 2, 'opening the same mounted editor and day again still requests focus');
+    calls.length = 0; context.window.scrollY = 999;
+    context.action('edit-itinerary', 'unknown-day');
+    assert.ok(calls.some(call => call[0] === 'day' && call[1] === undefined)); assert.equal(context.overviewScrollPosition.current, 420);
+    calls.length = 0; context.action('contract');
+    assert.ok(calls.some(call => call[0] === 'mode' && call[1] === 'contract')); assert.ok(calls.some(call => call[0] === 'day' && call[1] === undefined));
+    calls.length = 0; context.navigate('log');
+    assert.deepEqual(calls, [['notice', ''], ['section', 'log'], ['open', true], ['scroll', 0]]);
+    assert.equal(context.overviewScrollPosition.current, 420, 'switching work sections retains the original overview scroll position');
+    calls.length = 0; context.reservation.status = 'cancelled'; context.action('edit-itinerary', 'saved-day-one'); assert.deepEqual(calls, []);
+    context.reservation.status = 'confirmed'; context.workspaceIsBusy = () => true; context.action('edit-itinerary', 'saved-day-one'); assert.deepEqual(calls, []);
+    assert.equal(context.documentFocusRevision, 4, 'blocked editor entries do not create focus requests');
+});
+
 function customerLoader(get) {
     const state = {};
     const context = { customerPage: true, customerSource: 'product', customerScope: 'admin-a:product:a', customerReservationId: 'a', userLoading: false, user: { id: 'admin-a', role: 'admin' }, currentScope: { current: 'admin-a:product:a' }, fetchSequence: { current: 0 }, api: { reservations: { get }, quotes: { get }, products: { list: async () => [] } }, productWorkspaceReservation, legacyWorkspaceReservation, String, Array };
@@ -107,7 +180,7 @@ test('요약 버튼들은 실제 기존 업무 제어에 연결되고 저장 중
     const calls = [];
     const context = { workspaceIsBusy: () => false, workspace: { published: true }, canStartDelivery: () => true, inlineDirty: false, operationsDirty: false, isEditing: false, quickAssignmentDirty: false, fullPage: false, itineraryPreviewUrl: '/preview', contractUrl: '/contract', window: { open: (...args) => calls.push(['open', ...args]) } };
     for (const name of ['closeWorkspace', 'copyCustomerMessage', 'sendItineraryToCustomer', 'openInlineDocument', 'printGuideSheet', 'setIsEditing', 'scrollToSec', 'setNavigationNotice']) context[name] = (...args) => calls.push([name, ...args]);
-    const start = source.indexOf('    const overviewAction = (action: string) => {');
+    const start = source.indexOf('    const overviewAction = (');
     const end = source.indexOf('\n\n    return (<>', start);
     execute(source.slice(start, end) + '\nglobalThis.action = overviewAction;', context);
     for (const action of ['back', 'customer-link', 'send-itinerary', 'edit-itinerary', 'contract', 'itinerary', 'contract-preview', 'guide-pdf', 'edit-info', 'payments', 'guide', 'stay', 'vehicle', 'history', 'notes', 'documents']) context.action(action);
@@ -123,7 +196,7 @@ test('고객 카드 배정은 기존 상세로 이동하지 않고 바로 선택
     const context = { fullPage: true, quickAssignmentDirty: false, inlineDirty: false, operationsDirty: false, isEditing: false,
         reservation: { id: 'local-product', status: 'confirmed' }, workspaceIsBusy: () => false };
     for (const name of ['setNavigationNotice', 'setQuickAssignment', 'setShowGuideModal', 'setWorkflowOpen', 'scrollToSec', 'closeWorkspace']) context[name] = (...args) => calls.push([name, ...args]);
-    const start = source.indexOf('    const overviewAction = (action: string) => {'), end = source.indexOf('\n\n    return (<>', start);
+    const start = source.indexOf('    const overviewAction = ('), end = source.indexOf('\n\n    return (<>', start);
     execute(source.slice(start, end) + '\nglobalThis.action = overviewAction;', context);
     for (const action of ['guide', 'stay', 'vehicle']) context.action(action);
     assert.deepEqual(calls.filter(call => call[0] !== 'setNavigationNotice'), [['setWorkflowOpen', false], ['setQuickAssignment', null], ['setShowGuideModal', true], ['setWorkflowOpen', false], ['setQuickAssignment', 'stay'], ['setWorkflowOpen', false], ['setQuickAssignment', 'vehicle']]);

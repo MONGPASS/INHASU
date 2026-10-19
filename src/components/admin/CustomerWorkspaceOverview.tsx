@@ -28,7 +28,7 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
     const next = m.tasks[0];
     const name = m.customerName || '고객 정보 확인 필요';
     const action = (name: string, id?: string) => () => onAction(name, id);
-    const edit = (label: string, name: string) => <button type="button" className="cw-text-button" aria-label={label} disabled={busy} onClick={action(name)}><Icon name="edit" />수정</button>;
+    const edit = (label: string, name: string, text = '수정') => <button type="button" className="cw-text-button" aria-label={label} disabled={busy} onClick={action(name)}><Icon name="edit" />{text}</button>;
 
     return <section className="cw-overview" aria-label="고객 통합 작업 현황" aria-busy={busy}>
         <div className="cw-breadcrumb">
@@ -50,6 +50,13 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
             </div>
         </header>
         {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}
+
+        <nav className="cw-shortcuts" aria-label="고객 빠른 업무">
+            <button type="button" disabled={busy} onClick={action('edit-itinerary')}><Icon name="edit_calendar" /><span>일정표 편집</span><Icon name="chevron_right" /></button>
+            <button type="button" disabled={busy} onClick={action('contract')}><Icon name="description" /><span>계약서 관리</span><Icon name="chevron_right" /></button>
+            <button type="button" disabled={busy} onClick={action('payments')}><Icon name="payments" /><span>입금 관리</span><Icon name="chevron_right" /></button>
+            <button type="button" disabled={busy} onClick={action('documents')}><Icon name="send" /><span>문서 확인·전달</span><Icon name="chevron_right" /></button>
+        </nav>
 
         {!!m.steps.length && <div className="cw-progress-card">
             <div className="cw-progress-caption"><strong>업무 진행</strong><span>{m.steps.filter(item => item.done).length}<span> / {m.steps.length} 완료</span></span></div>
@@ -87,7 +94,7 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
             </div>
 
             <article className="cw-card cw-itinerary-card">
-                <header><div className="cw-section-title"><span className="cw-section-icon"><Icon name="route" /></span><h2>여행 일정</h2>{!!m.days.length && <span className="cw-section-count">{m.days.length}일</span>}</div>{edit('여행 일정 편집', 'edit-itinerary')}</header>
+                <header><div className="cw-section-title"><span className="cw-section-icon"><Icon name="route" /></span><h2>여행 일정</h2>{!!m.days.length && <span className="cw-section-count">{m.days.length}일</span>}</div>{edit('여행 일정 편집', 'edit-itinerary', '일정표 편집')}</header>
                 {m.days.length ? <ol className="cw-day-list">{m.days.map(day => <li key={day.id}><button type="button" disabled={busy} onClick={action('edit-itinerary', day.id)}>
                     <span className="cw-day-image"><Icon name="landscape" />{day.image && <img key={day.image} loading="lazy" decoding="async" src={day.image} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />}</span>
                     <span className="cw-day-content"><span className="cw-day-date"><b>DAY {day.day}</b><small>{day.date || '날짜 확인 필요'}</small></span><span className="cw-day-copy"><strong>{day.title || `${day.day}일차 일정 작성`}</strong><small>{day.summary || '상세 일정을 확인하세요.'}</small></span></span>
