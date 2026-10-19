@@ -152,6 +152,8 @@ test('고객 GET은 선택한 ID·관리자 헤더·최신 응답만 사용하�
     assert.equal(calls[0].options.headers['x-admin-token'], 'verified-connection'); assert.equal(calls[0].options.cache, 'no-store'); assert.equal(calls[0].options.signal, controller.signal);
     for (const payload of [{ ok: true, item: { id: 'someone-else' } }, { ok: true, items: [inquiry] }, { ok: false, item: inquiry }]) await assert.rejects(load(inquiry.id, 'verified-connection', undefined, async () => ({ ok: true, status: 200, json: async () => payload })));
     await assert.rejects(load(inquiry.id, 'verified-connection', undefined, async () => ({ ok: false, status: 404, json: async () => ({ ok: false }) })), /찾을 수 없습니다/);
+    for (const status of [401, 403]) await assert.rejects(load(inquiry.id, 'verified-connection', undefined, async () => ({ ok: false, status, json: async () => ({ ok: false }) })), error => error.status === status && /관리자 인증/.test(error.message));
+    await assert.rejects(load(inquiry.id, 'verified-connection', undefined, async () => ({ ok: true, status: 200, json: async () => ({ ok: true, item: { id: 'another-customer' } }) })), error => error.status === 404);
 });
 test('견적·예약 목록은 고객 전용 페이지로 연결하고 기존 상세·편집 API는 유지한다', () => {
     const inbox = fs.readFileSync(new URL('../public/견적관리.html', import.meta.url), 'utf8');

@@ -1,9 +1,16 @@
 import type { ReactNode } from 'react';
 import { Icon } from './console/Icon';
+import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import './CustomerWorkspaceOverview.css';
 
 export interface CustomerWorkspaceOverviewModel {
     customerName: string; sourceLabel: string; bookingNumber?: string; statusLabel: string;
+    bookedProduct?: { name: string; href?: string; image?: string };
+    documentLabel?: string;
+    documentHint?: string;
+    disabledActions?: string[];
+    disabledActionReason?: string;
+    workLabels?: Record<string, string>;
     period: string; partyLabel: string;
     facts: Array<{ label: string; value: string }>;
     preferences?: string[];
@@ -21,9 +28,9 @@ export interface CustomerWorkspaceOverviewModel {
     customerLinkAvailable?: boolean; canSendItinerary?: boolean;
 }
 
-export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, noteComposer, bookingSelector, assignmentEditor, directAssignments = false }: {
+export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, noteComposer, bookingSelector, assignmentEditor, refreshControl, directAssignments = false }: {
     model: CustomerWorkspaceOverviewModel; onAction: (action: string, id?: string) => void;
-    busy?: boolean; noteComposer?: ReactNode; bookingSelector?: ReactNode; assignmentEditor?: ReactNode; directAssignments?: boolean;
+    busy?: boolean; noteComposer?: ReactNode; bookingSelector?: ReactNode; assignmentEditor?: ReactNode; refreshControl?: ReactNode; directAssignments?: boolean;
 }) {
     const money = (value: number | null) => value === null || !Number.isFinite(value) ? '확인 필요' : `${value.toLocaleString('ko-KR')}원`;
     const progressKnown = m.payment.total !== null && Number.isFinite(m.payment.total) && m.payment.depositPaid !== null && m.payment.balancePaid !== null && (!m.payment.depositPaid || (m.payment.deposit !== null && Number.isFinite(m.payment.deposit))) && (!m.payment.balancePaid || (m.payment.balance !== null && Number.isFinite(m.payment.balance)));
@@ -36,6 +43,10 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
     const name = m.customerName || '고객 정보 확인 필요';
     const action = (name: string, id?: string) => () => onAction(name, id);
     const edit = (label: string, name: string, text = '수정') => <button type="button" className="cw-text-button" aria-label={label} disabled={busy} onClick={action(name)}><Icon name="edit" />{text}</button>;
+    const productContent = m.bookedProduct && <><span className="cw-booked-product-image"><Icon name="landscape" />{m.bookedProduct.image && <ResponsiveProductImage src={m.bookedProduct.image} sizes="56px" alt="" onError={event => { event.currentTarget.style.display = 'none'; }} />}</span><span className="cw-booked-product-copy"><small>예약 상품</small><strong>{m.bookedProduct.name}</strong><span>{m.bookedProduct.href ? '상품 페이지 새 창으로 보기' : '연결된 상품을 확인해 주세요.'}</span></span>{m.bookedProduct.href && <Icon name="open_in_new" />}</>;
+    const workShortcuts = [{ name: 'edit-itinerary', label: '일정표 편집', icon: 'edit_calendar' }, { name: 'view-info', label: '고객·항공편', icon: 'person' },
+        { name: 'payments', label: '결제·입금', icon: 'payments' }, { name: 'assignments', label: '가이드·숙소', icon: 'hotel' },
+        { name: 'operations', label: '운영·영수증', icon: 'receipt_long' }, { name: 'history', label: '메모·이력', icon: 'history' }];
 
     return <section className="cw-overview" aria-label="고객 통합 작업 현황" aria-busy={busy}>
         <div className="cw-breadcrumb">
@@ -49,20 +60,19 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                     <div className="cw-customer-title"><h1>{name}</h1><span className="cw-status">{m.statusLabel}</span></div>
                     <p className="cw-trip-meta">{m.partyLabel && <span><Icon name="groups" />{m.partyLabel}</span>}{m.period && <span>{m.period}</span>}</p>
                     <div className="cw-record"><span className="cw-source-label">{m.sourceLabel}</span>{m.bookingNumber && <span>#{m.bookingNumber}</span>}</div>
+                    {m.bookedProduct && (m.bookedProduct.href ? <a className="cw-booked-product" href={m.bookedProduct.href} target="_blank" rel="noopener noreferrer" aria-label={`예약 상품 ${m.bookedProduct.name} 새 창으로 보기`}>{productContent}</a> : <div className="cw-booked-product">{productContent}</div>)}
                 </div>
             </div>
             <div className="cw-header-actions">
-                <button type="button" className="cw-button" disabled={busy || !m.customerLinkAvailable} onClick={action('customer-link')}><Icon name="link" />고객용 링크</button>
-                <button type="button" className="cw-button cw-primary" disabled={busy || !m.canSendItinerary} onClick={action('send-itinerary')}><Icon name="send" />일정표 보내기</button>
+                <button type="button" className="cw-button cw-primary" disabled={busy} onClick={action('documents')}><Icon name="description" />{m.documentLabel || '고객 문서 확인·전달'}</button>
+                <p>{m.documentHint || '일정표·계약서의 미리보기·안내문 복사·발송을 선택합니다.'}</p>
+                {refreshControl && <div className="cw-overview-refresh">{refreshControl}</div>}
             </div>
         </header>
         {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}
 
         <nav className="cw-shortcuts" aria-label="고객 빠른 업무">
-            <button type="button" disabled={busy} onClick={action('edit-itinerary')}><Icon name="edit_calendar" /><span>일정표 편집</span><Icon name="chevron_right" /></button>
-            <button type="button" disabled={busy} onClick={action('contract')}><Icon name="description" /><span>계약서 관리</span><Icon name="chevron_right" /></button>
-            <button type="button" disabled={busy} onClick={action('payments')}><Icon name="payments" /><span>입금 관리</span><Icon name="chevron_right" /></button>
-            <button type="button" disabled={busy} onClick={action('documents')}><Icon name="send" /><span>문서 확인·전달</span><Icon name="chevron_right" /></button>
+            {workShortcuts.map(shortcut => <button type="button" key={shortcut.name} disabled={busy || m.disabledActions?.includes(shortcut.name)} title={m.disabledActions?.includes(shortcut.name) ? m.disabledActionReason || '예약 진행 후 사용할 수 있습니다.' : undefined} onClick={action(shortcut.name)}><Icon name={shortcut.icon} /><span>{m.workLabels?.[shortcut.name] || shortcut.label}</span><Icon name="chevron_right" /></button>)}
         </nav>
 
         <section className="cw-workflow" aria-label="업무 진행과 다음 할 일">
@@ -163,14 +173,14 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                     <div className="cw-payment-progress"><div role="progressbar" aria-label="입금 확인 비율" aria-valuemin={0} aria-valuemax={100} aria-valuenow={paidPercent ?? undefined} aria-valuetext={paidPercent === null ? '확인 필요' : undefined}><span style={{ width: `${paidPercent ?? 0}%` }} /></div></div>
                     </div>
                     <dl className="cw-payment-lines">{([{ label: '예약금', value: m.payment.deposit, paid: m.payment.depositPaid }, { label: '잔금', value: m.payment.balance, paid: m.payment.balancePaid }]).map(item => <div key={item.label}><dt>{item.label}</dt><dd><strong>{money(item.value)}</strong><span className={`cw-pill ${item.paid === true ? 'is-ready' : item.paid === null ? 'is-unknown' : 'is-pending'}`}>{item.paid === true ? '입금 확인' : item.paid === null ? '확인 필요' : '미입금'}</span></dd></div>)}</dl>
-                    <div className="cw-payment-footer"><span><Icon name="info" />실제 입금 확인 기준</span><button type="button" className="cw-button" disabled={busy} onClick={action('payments')}>입금·잔금 관리<Icon name="chevron_right" /></button></div>
+                    <div className="cw-payment-footer"><span><Icon name="info" />실제 입금 확인 기준</span><button type="button" className="cw-button" disabled={busy || m.disabledActions?.includes('payments')} title={m.disabledActions?.includes('payments') ? m.disabledActionReason : undefined} onClick={action('payments')}>입금·잔금 관리<Icon name="chevron_right" /></button></div>
                 </article>
                 <article className="cw-card cw-assignments">
                     <header><div className="cw-section-title"><span className="cw-section-icon is-neutral"><Icon name="hotel" /></span><h2>숙소 · 차량 · 가이드</h2></div><span className="cw-assignment-count">{assignedResources}/{m.assignments.length} 배정</span></header>
                     <ul className="cw-assignment-list">{m.assignments.map(item => <li key={item.id}>
                         <span className={`cw-resource-icon is-${item.id}`}><Icon name={item.id === 'stay' ? 'hotel' : item.id === 'vehicle' ? 'directions_car' : 'person'} /></span>
                         <div className="cw-assignment-copy"><span className="cw-assignment-label">{item.label}</span><strong>{item.value || '미배정'}</strong>{item.detail && <small>{item.detail}</small>}<span className={`cw-pill is-${item.state}`}>{item.statusLabel}</span></div>
-                        <button type="button" className="cw-button" aria-label={`${item.label} 관리`} disabled={busy} onClick={action(item.id)}>{item.state === 'ready' ? '변경' : directAssignments && item.state !== 'unknown' ? '배정하기' : '확인하기'}</button>
+                        <button type="button" className="cw-button" aria-label={`${item.label} 관리`} disabled={busy || m.disabledActions?.includes('assignments')} title={m.disabledActions?.includes('assignments') ? m.disabledActionReason : undefined} onClick={action(item.id)}>{item.state === 'ready' ? '변경' : directAssignments && item.state !== 'unknown' ? '배정하기' : '확인하기'}</button>
                     </li>)}</ul>
                     {assignmentEditor}
                     <button type="button" className="cw-history-link" disabled={busy} onClick={action('history')}><Icon name="history" />예약 변경 · 발송 이력<Icon name="chevron_right" /></button>

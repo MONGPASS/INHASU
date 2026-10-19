@@ -702,13 +702,16 @@ export const QuoteDetailModal: React.FC<{
         return { label: '재발송 · 고객 응답 대기', desc: '발송 완료 — 예약 요청을 기다리는 중입니다.', icon: 'mark_email_read', onClick: handleSend };
     })();
 
-    const overview = legacyCustomerOverview(request, docInitialContent);
+    const overview = { ...legacyCustomerOverview(request, docInitialContent), documentLabel: '견적서 확인·전달', documentHint: '견적 내용을 확인한 뒤 안내문 복사·발송을 선택합니다.',
+        disabledActions: ['payments', 'assignments', 'operations'], disabledActionReason: '예약으로 전환한 뒤 결제·배정·운영을 관리합니다.' };
     const overviewAction = (action: string) => {
         if (workspaceBusy) return;
         if (action === 'back') { closeWorkspace(); return; }
         if (action === 'customer-link') { void copyEstimatePageUrl(); return; }
         if (action === 'edit-itinerary') { setWorkflowOpen(true); setDocEditorOpen(true); return; }
         if (action === 'edit-info') { setIsEditing(true); scrollToSec('info'); return; }
+        if (['view-info', 'flights', 'travelers'].includes(action)) { scrollToSec('info'); return; }
+        if (overview.disabledActions.includes(action)) return;
         if (action === 'convert') { onOpenConvert(); return; }
         scrollToSec(action === 'history' || action === 'notes' ? 'info' : 'quote');
     };
@@ -716,7 +719,7 @@ export const QuoteDetailModal: React.FC<{
         <div className={fullPage ? 'product-customer-page' : 'drawer-scrim reservation-workspace-scrim'} style={fullPage ? undefined : { zIndex: 100 }} onClick={fullPage ? undefined : closeWorkspace}>
             <div className={`drawer reservation-workspace tcom${fullPage ? ' product-customer-fullpage legacy-customer-fullpage' : ''}`} onClick={e => e.stopPropagation()}>
                 {workspaceNotice && <div className="product-customer-warning" role="status">{workspaceNotice}</div>}
-                {fullPage && <><CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceBusy} /><div className="product-customer-controls"><button type="button" className="btn btn-ghost" aria-expanded={workflowOpen} aria-controls="legacy-customer-detail" disabled={workspaceBusy || (workflowOpen && (workspaceDirty || isEditing))} onClick={() => setWorkflowOpen(value => !value)}>{workflowOpen ? '상세 업무 접기' : '요청 정보·견적 작성·고객 전달 펼치기'}</button></div></>}
+                {fullPage && <><CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceBusy} />{workflowOpen && <div className="product-customer-controls"><button type="button" className="btn btn-ghost" aria-controls="legacy-customer-detail" disabled={workspaceBusy || workspaceDirty || isEditing} onClick={() => setWorkflowOpen(false)}>고객 현황으로 돌아가기</button></div>}</>}
                 <div id="legacy-customer-detail" className="product-customer-detail" hidden={fullPage && !workflowOpen} onChangeCapture={() => setWorkspaceDirty(true)} inert={workspaceBusy} aria-busy={workspaceBusy}>
 
                 {/* Header */}

@@ -112,6 +112,13 @@
 .product-customer-page .cw-focus-workspace { display: flex; flex-direction: column; height: calc(100dvh - var(--header-h, 72px) - 28px); min-height: 0; margin: 12px auto 0; overflow: hidden; border-radius: 18px; }
 .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-detail-toolbar { flex: none; gap: 16px; padding: 14px 20px; min-height: 82px; flex-wrap: nowrap; }
 .cw-focus-workspace .cw-overview-back { flex: none; }
+.cw-focus-workspace .cw-refresh-control { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: 0 1 230px; min-width: 0; }
+.cw-focus-workspace .cw-refresh-control > button { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 6px 8px; border: 0; border-radius: 8px; background: #f7f9fb; color: #4e5968; font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; }
+.cw-focus-workspace .cw-refresh-control > button:disabled { opacity: .45; cursor: default; }
+.cw-focus-workspace .cw-refresh-control > button .material-symbols-outlined { font-size: 16px; }
+.cw-focus-workspace .cw-refresh-status { color: #8b95a1; font-size: 11px; text-align: right; }
+.cw-focus-workspace .cw-refresh-hint { display: none; }
+.cw-focus-workspace .cw-refresh-notice { margin: 0; color: #94672c; font-size: 12px; }
 .cw-focus-workspace .cw-detail-identity h2 { font-size: 18px; }
 .cw-focus-workspace .cw-detail-identity h2 > span { margin-left: 8px; font-size: 12px; font-weight: 500; color: #6b7684; }
 .cw-focus-workspace .cw-detail-identity p { margin-top: 4px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
@@ -152,6 +159,7 @@
     .product-customer-page .cw-focus-workspace { height: calc(100dvh - var(--header-h, 72px) - 20px); margin-top: 8px; }
     .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-detail-toolbar { min-height: 76px; padding: 12px; gap: 10px; }
     .cw-focus-workspace .cw-detail-toolbar > .btn:last-child { display: none; }
+    .cw-focus-workspace .cw-refresh-control { display: none; }
     .cw-focus-workspace .cw-detail-identity h2 { font-size: 16px; }
     .product-customer-page .product-customer-fullpage .cw-focus-workspace .drawer-foot { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
     .cw-action-status { flex-basis: 100%; }

@@ -149,9 +149,9 @@ test('고객 일정 행은 해당 일차 편집을 열고 집중 작업 이동�
 });
 
 function customerLoader(get) {
-    const state = {};
-    const context = { customerPage: true, customerSource: 'product', customerScope: 'admin-a:product:a', customerReservationId: 'a', userLoading: false, user: { id: 'admin-a', role: 'admin' }, currentScope: { current: 'admin-a:product:a' }, fetchSequence: { current: 0 }, api: { reservations: { get }, quotes: { get }, products: { list: async () => [] } }, productWorkspaceReservation, legacyWorkspaceReservation, String, Array };
-    for (const key of ['isLoading', 'customerLoadError', 'selectedReservation', 'loadedCustomerScope', 'products', 'loadWarnings', 'reservations', 'loadedOnce']) context['set' + key[0].toUpperCase() + key.slice(1)] = value => { state[key] = value; };
+    const state = { loadedCustomerScope: '', selectedReservation: null, products: [], customerSync: { scope: '' } };
+    const context = { ...state, customerPage: true, customerSource: 'product', customerScope: 'admin-a:product:a', customerReservationId: 'a', userLoading: false, user: { id: 'admin-a', role: 'admin' }, currentScope: { current: 'admin-a:product:a' }, fetchSequence: { current: 0 }, api: { reservations: { get }, quotes: { get }, products: { list: async () => [] } }, productWorkspaceReservation, legacyWorkspaceReservation, String, Array };
+    for (const key of ['isLoading', 'customerLoadError', 'customerSync', 'selectedReservation', 'loadedCustomerScope', 'products', 'loadWarnings', 'reservations', 'loadedOnce']) context['set' + key[0].toUpperCase() + key.slice(1)] = value => { state[key] = typeof value === 'function' ? value(state[key]) : value; context[key] = state[key]; };
     const start = source.indexOf('    const fetchReservations = async () => {');
     const end = source.indexOf('    // End of fetchReservations', start);
     execute(source.slice(start, end) + '\nglobalThis.load = fetchReservations;', context);
@@ -179,6 +179,60 @@ test('계정·예약 변경 전의 늦은 조회 응답은 고객 상세와 로�
     assert.equal(state.selectedReservation.id, 'b'); assert.equal(state.loadedCustomerScope, context.customerScope); assert.equal(state.isLoading, false);
 });
 
+test('일시적 새로고침 실패는 현재 고객과 마지막 조회 시각을 보존하고 재시도 성공 때만 갱신한다', async () => {
+    const { context, state } = customerLoader(async id => ({ ...base, id }));
+    context.api.products.list = async () => [{ id: 'tour-a', name: '원본 상품' }];
+    await context.load();
+    const previous = state.selectedReservation, previousAt = state.customerSync.at, previousProducts = state.products;
+    assert.ok(previousAt); assert.equal(state.customerSync.error, undefined);
+    const request = pending(); context.api.reservations.get = () => request.promise;
+    context.api.products.list = async () => { throw new Error('temporary products failure'); };
+    const refresh = context.load();
+    assert.equal(state.isLoading, true); assert.equal(state.selectedReservation, previous);
+    request.reject(new Error('temporary network failure')); await refresh;
+    assert.equal(state.selectedReservation, previous); assert.equal(state.products, previousProducts);
+    assert.equal(state.customerSync.at, previousAt); assert.match(state.customerSync.error, /이전에 불러온 정보/);
+    assert.equal(state.customerLoadError, ''); assert.equal(state.isLoading, false);
+    context.api.reservations.get = async id => ({ ...base, id, customer_name: '서버 최신 고객' });
+    await context.load();
+    assert.equal(state.selectedReservation.customerName, '서버 최신 고객');
+    assert.equal(state.products, previousProducts, 'a partial product lookup failure must retain the same customer’s product references');
+    assert.equal(state.customerSync.error, undefined); assert.ok(state.customerSync.at);
+});
+
+test('첫 조회 실패·권한 상실·다른 고객의 오류는 이전 고객 정보를 남기지 않는다', async () => {
+    const { context, state } = customerLoader(async () => { throw new Error('offline'); });
+    await context.load();
+    assert.equal(state.selectedReservation, null); assert.match(state.customerLoadError, /불러오지 못했습니다/); assert.equal(state.customerSync.at, undefined);
+    context.api.reservations.get = async id => ({ ...base, id }); await context.load();
+    context.api.reservations.get = async () => { throw Object.assign(new Error('forbidden'), { status: 403 }); }; await context.load();
+    assert.equal(state.selectedReservation, null); assert.deepEqual(Array.from(state.products), []); assert.equal(state.customerSync.at, undefined); assert.match(state.customerLoadError, /권한/);
+    context.api.reservations.get = async id => ({ ...base, id }); await context.load();
+    context.api.reservations.get = async () => { throw Object.assign(new Error('expired'), { status: 401 }); }; await context.load();
+    assert.equal(state.selectedReservation, null); assert.deepEqual(Array.from(state.products), []); assert.equal(state.customerSync.at, undefined); assert.match(state.customerLoadError, /다시 로그인/);
+    context.api.reservations.get = async id => ({ ...base, id }); await context.load();
+    context.customerScope = 'admin-a:product:b'; context.currentScope.current = context.customerScope; context.customerReservationId = 'b';
+    context.api.reservations.get = async () => { throw new Error('offline for different customer'); }; await context.load();
+    assert.equal(state.selectedReservation, null); assert.equal(state.customerSync.at, undefined);
+    context.user = null; await context.load();
+    assert.equal(state.selectedReservation, null); assert.equal(state.loadedCustomerScope, ''); assert.equal(state.isLoading, false);
+});
+
+test('예약 새로고침 중에는 편집·배정·전달 작업과 중복 새로고침을 잠근다', () => {
+    const calls = [];
+    const context = { React: { useCallback: callback => callback }, refreshing: true, deliveryLock: { current: false }, updating: false, inlineBusy: false, operationsUiStatus: { busy: false }, inlineControlRef: { current: { isBusy: () => false, prepareLeave: () => { calls.push('draft-preserved'); return true; } } }, publishing: false, applyingTemplate: false, sendingItinerary: false, sendingContract: false, sendingAllDocs: false, isEditing: false, operationsDirty: false, quickAssignmentDirty: false, memoDraft: '', onRefresh: () => calls.push('fetch'), workspace: { published: true }, fullPage: true };
+    const busyStart = source.indexOf('    const workspaceIsBusy = '), busyEnd = source.indexOf('    useEffect(', busyStart);
+    const refreshStart = source.indexOf('    const refreshWorkspace = '), refreshEnd = source.indexOf('    // 고객 전용 화면', refreshStart);
+    const actionStart = source.indexOf('    const overviewAction = '), actionEnd = source.indexOf('\n\n    return (<>', actionStart);
+    execute(source.slice(busyStart, busyEnd) + source.slice(refreshStart, refreshEnd) + source.slice(actionStart, actionEnd)
+        + '\nglobalThis.busy = workspaceIsBusy; globalThis.refresh = refreshWorkspace; globalThis.action = overviewAction;', context);
+    assert.equal(context.busy(), true); context.refresh();
+    for (const action of ['edit-itinerary', 'edit-info', 'assignments', 'operations', 'documents', 'send-itinerary', 'customer-link']) context.action(action);
+    assert.deepEqual(calls, [], 'the shared busy guard must return before any update, navigation, clipboard, or send action');
+    context.refreshing = false; assert.equal(context.busy(), false); context.refresh();
+    assert.deepEqual(calls, ['draft-preserved', 'fetch'], 'refresh preserves the pending document draft rather than saving or clearing it');
+});
+
 test('요약 버튼들은 실제 기존 업무 제어에 연결되고 저장 중에는 어떤 동작도 실행하지 않는다', () => {
     const calls = [];
     const context = { workspaceIsBusy: () => false, workspace: { published: true }, canStartDelivery: () => true, inlineDirty: false, docDraftPending: false, operationsDirty: false, isEditing: false, activeSec: 'docs', quickAssignmentDirty: false, fullPage: false, itineraryPreviewUrl: '/preview', contractUrl: '/contract', window: { open: (...args) => calls.push(['open', ...args]) } };
@@ -186,7 +240,7 @@ test('요약 버튼들은 실제 기존 업무 제어에 연결되고 저장 중
     const start = source.indexOf('    const overviewAction = (');
     const end = source.indexOf('\n\n    return (<>', start);
     execute(source.slice(start, end) + '\nglobalThis.action = overviewAction;', context);
-    for (const action of ['back', 'customer-link', 'send-itinerary', 'edit-itinerary', 'contract', 'itinerary', 'contract-preview', 'guide-pdf', 'edit-info', 'payments', 'guide', 'stay', 'vehicle', 'history', 'notes', 'documents']) context.action(action);
+    for (const action of ['back', 'customer-link', 'send-itinerary', 'edit-itinerary', 'contract', 'itinerary', 'contract-preview', 'guide-pdf', 'edit-info', 'payments', 'assignments', 'operations', 'guide', 'stay', 'vehicle', 'history', 'notes', 'documents']) context.action(action);
     for (const expected of [['closeWorkspace'], ['copyCustomerMessage', 'itinerary'], ['sendItineraryToCustomer'], ['openInlineDocument', 'itinerary'], ['openInlineDocument', 'contract'], ['printGuideSheet'], ['scrollToSec', 'pay'], ['scrollToSec', 'assign'], ['scrollToSec', 'ops'], ['scrollToSec', 'log'], ['scrollToSec', 'docs']]) assert.ok(calls.some(call => JSON.stringify(call) === JSON.stringify(expected)), JSON.stringify(expected));
     const count = calls.length; context.workspaceIsBusy = () => true;
     for (const action of ['back', 'customer-link', 'send-itinerary', 'edit-info', 'guide', 'itinerary']) context.action(action);

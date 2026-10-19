@@ -58,6 +58,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const customerRecord = customerResult?.accountId === accountId && customerResult.id === bookingId ? customerResult.record : null;
     const [customerError, setCustomerError] = useState('');
     const [customerRefreshing, setCustomerRefreshing] = useState(false);
+    const [customerChecked, setCustomerChecked] = useState<{ accountId: string; id: string; at: string } | null>(null);
     const [customerRefresh, setCustomerRefresh] = useState(0);
     const [customerEditor, setCustomerEditor] = useState<{ id: string; tool: string } | null>(null);
     const [editorExpanded, setEditorExpanded] = useState(false);
@@ -197,9 +198,15 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         const controller = new AbortController(); customerController.current?.abort(); customerController.current = controller;
         const id = bookingId; setCustomerError(''); setCustomerRefreshing(true);
         void loadQuoteCustomerRequest(id, linkedToken.current, controller.signal).then(record => {
-            if (!controller.signal.aborted && activeCustomer.current.accountId === accountId && activeCustomer.current.id === id) setCustomerResult({ accountId, id, record });
+            if (!controller.signal.aborted && activeCustomer.current.accountId === accountId && activeCustomer.current.id === id) {
+                setCustomerResult({ accountId, id, record });
+                setCustomerChecked({ accountId, id, at: new Date().toISOString() });
+            }
         }).catch(error => {
-            if (!controller.signal.aborted && activeCustomer.current.accountId === accountId && activeCustomer.current.id === id) setCustomerError(error instanceof Error ? error.message : '고객 정보를 불러오지 못했습니다.');
+            if (!controller.signal.aborted && activeCustomer.current.accountId === accountId && activeCustomer.current.id === id) {
+                if ([401, 403, 404].includes(error?.status)) { setCustomerResult(null); setCustomerChecked(null); }
+                setCustomerError(error instanceof Error ? error.message : '고객 정보를 불러오지 못했습니다.');
+            }
         }).finally(() => { if (!controller.signal.aborted && activeCustomer.current.accountId === accountId && activeCustomer.current.id === id) setCustomerRefreshing(false); });
         return () => controller.abort();
     }, [customerPage, bookingId, linked, accountId, customerRefresh]);
@@ -360,6 +367,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         });
     };
     const customerAction = (action: string) => {
+        if (editorBusy || customerRefreshing) return;
         if (action === 'back') { navigate(returnTo); return; }
         if (!customerRecord) return;
         if (['customer-link', 'quote-preview', 'itinerary-preview'].includes(action)) {
@@ -369,9 +377,11 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
             window.open(`/${page}?t=${encodeURIComponent(token)}`, '_blank', 'noopener'); return;
         }
         const booked = quoteCustomerIsBooking(customerRecord);
+        if (!booked && ['payments', 'assignments', 'operations'].includes(action)) { setEditorNotice('예약 진행 의사를 기록하고 예약관리를 시작하면 결제·배정·운영을 관리할 수 있습니다.'); return; }
         if (['flights', 'travelers', 'view-info'].includes(action)) { openCustomerEditor(booked ? 'bookings' : 'inbox', booked ? action : 'info'); return; }
         if (action === 'edit-itinerary' || action === 'quote-share') { openCustomerEditor(booked && action !== 'quote-share' ? 'bookings' : 'builder', action === 'quote-share' ? 'quote-share' : 'docs'); return; }
-        const section = action === 'payments' ? 'pay' : ['guide', 'vehicle', 'stay'].includes(action) ? action : action === 'contract' ? 'contract' : action === 'history' ? 'log' : action === 'notes' ? 'notes' : action === 'send-itinerary' ? 'send' : action === 'documents' ? 'docs' : 'info';
+        if (!booked && action === 'documents') { openCustomerEditor('builder', customerRecord.quote ? 'quote-share' : 'docs'); return; }
+        const section = action === 'payments' ? 'pay' : action === 'assignments' ? 'assign' : ['guide', 'vehicle', 'stay'].includes(action) ? action : action === 'contract' ? 'contract' : action === 'history' ? 'log' : ['notes', 'operations'].includes(action) ? 'notes' : action === 'send-itinerary' ? 'send' : action === 'documents' ? 'docs' : 'info';
         openCustomerEditor(booked ? 'bookings' : 'inbox', section);
         if (!booked && ['payments', 'guide', 'vehicle', 'stay', 'contract'].includes(action)) setEditorNotice('예약 진행 의사를 기록하고 예약관리를 시작하면 결제·계약·배정을 관리할 수 있습니다.');
     };
@@ -390,7 +400,14 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         : tool.key === 'inbox'
             ? { title: activeSection === 'notes' ? '상담 · 내부 메모' : '문의 · 고객 정보', description: '문의 내용과 상담 기록을 확인하고 다음 업무를 이어가세요.' }
             : customerEditorLabels[activeSection] || customerEditorLabels.info;
-    const customerModel = customerRecord ? quoteCustomerWorkspaceModel(customerRecord) : null;
+    const customerModel = customerRecord ? { ...quoteCustomerWorkspaceModel(customerRecord),
+        documentLabel: quoteCustomerIsBooking(customerRecord) ? '고객 문서 확인·전달' : '견적서 확인·전달',
+        documentHint: quoteCustomerIsBooking(customerRecord) ? '일정표·계약서를 확인한 뒤 전달 방법을 선택합니다.' : '견적서를 확인한 뒤 고객 안내와 공유를 진행합니다.',
+        disabledActions: quoteCustomerIsBooking(customerRecord) ? [] : ['payments', 'assignments', 'operations'],
+        disabledActionReason: '예약 진행 후 결제·배정·운영을 관리할 수 있습니다.',
+        workLabels: { payments: '결제·영수증', operations: '운영·메모' },
+    } : null;
+    const customerCheckedAt = customerChecked?.accountId === accountId && customerChecked.id === bookingId ? customerChecked.at : '';
 
     return (
         <><AdminLayout
@@ -409,9 +426,9 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                     <button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>
                         <Icon name="arrow_back" />{customerPage ? '목록으로' : '통합 예약 목록'}
                     </button>
-                    {linked && (
+                    {linked && (!customerPage || editorExpanded) && (
                         <button type="button" className="btn btn-ghost" onClick={() => { reloadFrame(); if (customerPage) setCustomerRefresh(value => value + 1); }}>
-                            <Icon name="refresh" />새로고침
+                            <Icon name="refresh" />{customerPage ? '작업 화면 다시 불러오기' : '새로고침'}
                         </button>
                     )}
                     {linked && tool.key === 'bookings' && bookingId && <button type="button" className="btn btn-ghost" onClick={() => customerPage ? customerAction('history') : nativeHosts ? navigateWorkspace('log') : setShowDeliveries(v => !v)}>발송 이력</button>}
@@ -427,9 +444,11 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                     {customerPage && <>
                         {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 12, background: '#fff5e8' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
                         {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
-                            <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy} />
-                            <div className="quote-customer-editor-entry"><p>필요한 업무를 선택해 편집하고, 고객 현황에서 전체 진행 상태를 확인하세요.</p>
-                                <button type="button" className="btn btn-ghost" onClick={() => openCustomerEditor(quoteCustomerIsBooking(customerRecord) ? 'bookings' : 'inbox', 'info')}>상세 업무 열기 <Icon name="arrow_forward" /></button></div>
+                            <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing} refreshControl={<div className="cw-refresh-control">
+                                <span role="status">{customerRefreshing ? '저장된 문의·견적 정보를 조회 중입니다.' : customerCheckedAt ? `마지막 조회 ${new Date(customerCheckedAt).toLocaleTimeString('ko-KR')}` : '아직 조회하지 않았습니다.'}</span>
+                                <button type="button" className="btn btn-ghost" disabled={editorBusy || customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}><Icon name="refresh" />문의·견적 정보 새로고침</button>
+                                <p className="cw-refresh-hint">고객이 제출한 정보와 저장된 견적·예약 상태를 다시 불러옵니다.</p>
+                            </div>} />
                         </div> : !customerError && <div role="status" style={{ padding: 32 }}>고객 정보를 불러오는 중입니다.</div>}
                     </>}
                     {(!customerPage || customerRecord) && <div id={customerPage ? 'quote-customer-editor' : undefined} className={customerPage ? `quote-customer-editor-shell${editorExpanded ? ' is-expanded' : ''}` : undefined} inert={customerPage && !editorExpanded} aria-hidden={customerPage && !editorExpanded ? true : undefined} aria-labelledby={customerPage && editorExpanded ? 'quote-customer-editor-title' : undefined} style={customerPage ? undefined : { position: 'absolute', inset: 0 }}>

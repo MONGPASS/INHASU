@@ -64,3 +64,38 @@ test('저장·발송 중 또는 초안 보관 실패 때 고객 현황 복귀를
     context.open('builder', 'docs'); flushAnimation();
     assert.ok(calls.every(call => call[0] === 'notice'), '처리 중 다른 편집기를 마운트하지 않는다');
 });
+
+const actions = source.slice(source.indexOf('    const customerAction = '), source.indexOf('    const customerEditorLabels:'));
+const actionCode = (await transform(actions + '\nglobalThis.action = customerAction;', { loader: 'ts' })).code;
+function actionHarness(booked) {
+    const calls = [];
+    const context = vm.createContext({ editorBusy: false, customerRefreshing: false, customerRecord: { token: 'local-test', quote: { days: [] } }, returnTo: '/admin/reservations',
+        navigate: href => calls.push(['navigate', href]), quoteCustomerIsBooking: () => booked,
+        openCustomerEditor: (...args) => calls.push(['editor', ...args]), setEditorNotice: message => calls.push(['notice', message]),
+        window: { open: () => assert.fail('Opening a work panel must not open a customer token link') } });
+    vm.runInContext(actionCode, context);
+    return { calls, context };
+}
+
+test('견적 예약 바로가기는 각 기존 업무를 열고 문서 확인은 발송·복사·고객 링크 열기를 실행하지 않는다', () => {
+    const { calls, context } = actionHarness(true);
+    const expected = { 'edit-itinerary': 'docs', 'view-info': 'view-info', payments: 'pay', assignments: 'assign', operations: 'notes', history: 'log', documents: 'docs' };
+    for (const [action, section] of Object.entries(expected)) {
+        calls.length = 0; context.action(action); assert.deepEqual(calls, [['editor', 'bookings', section]]);
+    }
+    for (const field of ['editorBusy', 'customerRefreshing']) {
+        context[field] = true; calls.length = 0;
+        for (const action of Object.keys(expected)) context.action(action);
+        assert.deepEqual(calls, []); context[field] = false;
+    }
+});
+
+test('예약 전 문의의 문서 버튼은 저장된 견적 공유 단계 또는 새 견적 작성을 열고 배정·운영을 실행하지 않는다', () => {
+    const { calls, context } = actionHarness(false);
+    context.action('documents'); assert.deepEqual(calls, [['editor', 'builder', 'quote-share']]);
+    calls.length = 0; context.customerRecord.quote = null; context.action('documents');
+    assert.deepEqual(calls, [['editor', 'builder', 'docs']]);
+    calls.length = 0;
+    for (const action of ['payments', 'assignments', 'operations']) context.action(action);
+    assert.equal(calls.length, 3); assert.ok(calls.every(call => call[0] === 'notice'));
+});

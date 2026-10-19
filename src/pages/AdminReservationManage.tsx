@@ -32,6 +32,7 @@ import { readProductVehicle } from '../utils/reservationAssignment';
 import { guideAssignmentConflicts, validAssignmentPeriod } from '../utils/assignmentAvailability';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
 import { CustomerVehicleAssignment } from '../components/admin/CustomerVehicleAssignment';
+import { customerProductReference } from '../utils/customerProductReference';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
 import { productWorkspaceReservation, legacyWorkspaceReservation, productCustomerOverview, sameAccountProductBookings } from '../utils/productCustomerWorkspace';
 import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref, customerWorkspaceReturnTo } from '../utils/customerWorkspaceRoutes';
@@ -389,7 +390,7 @@ const StatusDropdown = ({ status, onChange, disabled = false }: { status: string
     );
 };
 
-const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, updating = false, products = [], fullPage = false, bookingSelector }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation, silent?: boolean) => Promise<boolean>, onRefresh: () => void, updating?: boolean, products?: ProductSummary[], fullPage?: boolean, bookingSelector?: React.ReactNode }) => {
+const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, updating = false, refreshing = false, refreshedAt, refreshError, products = [], fullPage = false, bookingSelector }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation, silent?: boolean) => Promise<boolean>, onRefresh: () => void, updating?: boolean, refreshing?: boolean, refreshedAt?: string, refreshError?: string, products?: ProductSummary[], fullPage?: boolean, bookingSelector?: React.ReactNode }) => {
     const { user, loading: userLoading } = useUser();
     const inlineControlRef = useRef<ReservationInlineEditorControl | null>(null);
     const docDraftSourceRef = useRef<ReservationDraftSnapshot | null>(null);
@@ -469,8 +470,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const approvedWorkspaceClose = useRef(false);
     const workspaceDecision = useRef<ReservationDraftNavigationDecision>({ blocked: false });
     const handledWorkspaceNavigation = useRef<string | null>(null);
-    const workspaceIsBusy = React.useCallback(() => deliveryLock.current || updating || inlineBusy || operationsUiStatus.busy || !!inlineControlRef.current?.isBusy() || publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs,
-        [updating, inlineBusy, operationsUiStatus.busy, publishing, applyingTemplate, sendingItinerary, sendingContract, sendingAllDocs]);
+    const workspaceIsBusy = React.useCallback(() => refreshing || deliveryLock.current || updating || inlineBusy || operationsUiStatus.busy || !!inlineControlRef.current?.isBusy() || publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs,
+        [refreshing, updating, inlineBusy, operationsUiStatus.busy, publishing, applyingTemplate, sendingItinerary, sendingContract, sendingAllDocs]);
     useEffect(() => { approvedWorkspaceClose.current = false; setNavigationNotice(''); }, [reservation?.id]);
     const workspaceBlocker = useBlocker(React.useCallback(({ currentLocation, nextLocation }) => {
         if (approvedWorkspaceClose.current) return false;
@@ -1701,26 +1702,24 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const stayRegion = (stay: any) => String(stay.region || stay.location || '지역 미정');
     const accommodationRegions = [...new Set(pickerAccommodations.map(stayRegion))].sort();
     const visibleAccommodations = rankRecent(pickerAccommodations.filter(stay => (!accommodationRegion || stayRegion(stay) === accommodationRegion) && [stay.name, stay.location, stay.type].join(' ').toLowerCase().includes(accommodationSearch.toLowerCase().trim())), recentAssignments.stays);
-    const productImage = (() => {
-        let p = reservation.productId ? products.find(x => x.id === reservation.productId) : undefined;
-        if (!p) {
-            const norm = (v: any) => String(v || '').replace(/\s+/g, '').toLowerCase();
-            const rn = norm(reservation.productName);
-            if (rn) {
-                const exact = products.filter(x => norm(x.name) === rn);
-                if (exact.length === 1) p = exact[0];
-            }
-        }
-        if (!p) return undefined;
-        let imgs: any = p.mainImages;
-        if (typeof imgs === 'string') { try { imgs = JSON.parse(imgs || '[]'); } catch { imgs = []; } }
-        return p.thumbnail || (Array.isArray(imgs) && imgs.length ? imgs[0] : undefined);
-    })();
+    const bookedProduct = customerProductReference(reservation, products);
+    const productImage = bookedProduct?.image;
 
     const overview = productCustomerOverview(reservation, scheduleDays, workspace, {
         vehicle: readProductVehicle(reservation.adminOperations, reservation.contractData).type,
         itineraryReady, itinerarySent, contractSent, itineraryChanged, contractChanged,
     });
+    overview.bookedProduct = bookedProduct;
+    const refreshHint = '고객 제출·결제·배정·문서의 저장된 정보를 다시 불러옵니다. 고객에게 발송하지 않습니다.';
+    const refreshControl = <div className="cw-refresh-control">
+        <button type="button" className="cw-text-button" title={refreshHint} disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()} aria-busy={refreshing} onClick={refreshWorkspace}><Icon name="refresh" />예약 정보 새로고침</button>
+        <span className="cw-refresh-status" role="status" aria-live="polite">{refreshing ? '저장된 예약 정보를 불러오는 중…' : refreshedAt ? `불러온 시각 ${new Date(refreshedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '고객 제출·결제·배정·문서 다시 불러오기'}</span>
+        <p className="cw-refresh-hint">고객 제출·결제·배정·문서의 저장된 정보를 불러옵니다.</p>
+        {refreshError && <p className="cw-refresh-notice" role="alert">{refreshError}</p>}
+    </div>;
+    const orderDirty = isEditing && JSON.stringify(editForm) !== JSON.stringify(reservation);
+    const resumeWorkLabel = inlineDirty ? activeDocument === 'contract' ? '여행 계약서 편집' : '일정표 편집'
+        : operationsDirty ? '운영·영수증 작성' : orderDirty ? detailSection === 'pay' ? '결제 정보 수정' : '주문자 정보 수정' : '';
     const closeQuickAssignment = () => {
         if (workspaceIsBusy()) return;
         if (quickAssignmentDirty && !window.confirm('저장하지 않은 차량 정보를 버리고 닫을까요?')) return;
@@ -1785,7 +1784,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         }
         if (action === 'edit-info') { if (inlineDirty || operationsDirty) { setNavigationNotice('작성 중인 문서·운영 정보를 먼저 저장해 주세요.'); return; } setIsEditing(true); scrollToSec('info'); return; }
         if ((action === 'guide' || action === 'stay') && isEditing) { setNavigationNotice('주문 정보 변경사항을 먼저 저장한 뒤 배정해 주세요.'); return; }
-        const section = { payments: 'pay', guide: 'assign', stay: 'assign', vehicle: 'ops', history: 'log', notes: 'log', documents: 'docs' }[action] as 'pay' | 'assign' | 'ops' | 'log' | 'docs' | undefined;
+        const section = { payments: 'pay', assignments: 'assign', operations: 'ops', guide: 'assign', stay: 'assign', vehicle: 'ops', history: 'log', notes: 'log', documents: 'docs' }[action] as 'pay' | 'assign' | 'ops' | 'log' | 'docs' | undefined;
         if (section) scrollToSec(section);
     };
 
@@ -1797,9 +1796,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
                 {fullPage && <>
                     <div id="product-customer-overview" hidden={workflowOpen}>
-                    {(inlineEditorOpen || isEditing || operationsDirty) && <div className="cw-resume-work"><div><strong>작성하던 업무가 열려 있습니다.</strong><span>입력한 내용은 그대로 유지됩니다.</span></div><button type="button" className="btn btn-ink" disabled={workspaceIsBusy()} onClick={() => setWorkflowOpen(true)}>이어서 작업하기<Icon name="arrow_forward" /></button></div>}
-                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
-                    <div className="product-customer-controls"><button type="button" className="btn btn-ghost" aria-expanded={false} aria-controls="product-customer-detail" disabled={workspaceIsBusy() || quickAssignmentDirty} onClick={() => scrollToSec(activeSec)}><Icon name="edit" />상세 업무 열기</button><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()} onClick={refreshWorkspace}><Icon name="refresh" />최신 정보 확인</button></div>
+                    {resumeWorkLabel && <div className="cw-resume-work"><div><strong>{resumeWorkLabel} 내용이 저장되지 않았습니다.</strong><span>입력한 내용을 이어서 확인하고 저장하세요.</span></div><button type="button" className="btn btn-ink" disabled={workspaceIsBusy()} onClick={() => setWorkflowOpen(true)}>{resumeWorkLabel} 이어서 하기<Icon name="arrow_forward" /></button></div>}
+                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} refreshControl={refreshControl} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
+
                     </div>
                 </>}
 
@@ -1828,7 +1827,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         disabled={workspaceIsBusy()}
                         onChange={(s) => { if (workspaceIsBusy()) return; setEditForm({ ...editForm, status: s }); if (!isEditing) onUpdate({ ...editForm, status: s }); }}
                     />
-                    <button type="button" className="btn btn-sm btn-ghost" onClick={refreshWorkspace} disabled={workspaceIsBusy() || isEditing || operationsDirty || !!memoDraft.trim()}><Icon name="refresh" />{fullPage ? '최신 정보 확인' : '고객 제출 정보 새로고침'}</button>
+                    {fullPage ? refreshControl : <button type="button" className="btn btn-sm btn-ghost" title={refreshHint} onClick={refreshWorkspace} disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()}><Icon name="refresh" />예약 정보 새로고침</button>}
                     {!fullPage && <button className="icon-btn" aria-label="예약 상세 닫기" style={{ width: 36, height: 36 }} onClick={closeWorkspace}><Icon name="close" /></button>}
                 </div>
 
@@ -2503,6 +2502,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
     const fetchSequence = useRef(0);
     const [loadedCustomerScope, setLoadedCustomerScope] = useState('');
     const [customerLoadError, setCustomerLoadError] = useState('');
+    const [customerSync, setCustomerSync] = useState<{ scope: string; at?: string; error?: string }>({ scope: '' });
     const [sameBookings, setSameBookings] = useState<{ scope: string; items: Array<{ id: string; label: string }>; warning: string }>({ scope: '', items: [], warning: '' });
     const returnTo = customerWorkspaceReturnTo(new URLSearchParams(location.search).get('returnTo'));
     const [isLoading, setIsLoading] = useState(false);
@@ -2587,8 +2587,10 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         if (customerPage) {
             const scope = customerScope, sequence = ++fetchSequence.current;
             const active = () => currentScope.current === scope && fetchSequence.current === sequence;
-            if (userLoading || user?.role !== 'admin' || !customerReservationId) { setSelectedReservation(null); setLoadedCustomerScope(''); return; }
+            if (userLoading || user?.role !== 'admin' || !customerReservationId) { setReservations([]); setSelectedReservation(null); setProducts([]); setLoadedCustomerScope(''); setCustomerSync({ scope: '' }); setIsLoading(false); return; }
+            const hasCurrentRecord = loadedCustomerScope === scope && selectedReservation?.id === customerReservationId;
             setIsLoading(true); setCustomerLoadError('');
+            setCustomerSync(previous => previous.scope === scope ? { ...previous, error: undefined } : { scope });
             try {
                 const [result, productResult] = await Promise.allSettled([
                     customerSource === 'quote' ? api.quotes.get(customerReservationId) : api.reservations.get(customerReservationId),
@@ -2596,18 +2598,24 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                 ]);
                 if (!active()) return;
                 if (result.status === 'rejected') throw result.reason;
-                if (!result.value || String(result.value.id) !== customerReservationId) throw new Error('선택한 고객의 예약을 찾지 못했습니다.');
+                if (!result.value || String(result.value.id) !== customerReservationId) throw Object.assign(new Error('선택한 고객의 예약을 찾지 못했습니다.'), { status: 404 });
                 const row = customerSource === 'quote' ? legacyWorkspaceReservation(result.value) : productWorkspaceReservation(result.value);
                 setProducts(productResult.status === 'fulfilled' && Array.isArray(productResult.value) ? productResult.value.map((p: any) => ({
                     id: p.id, name: p.name, category: p.category, thumbnail: p.thumbnail, mainImages: p.mainImages ?? p.main_images,
                     itineraryBlocks: p.itineraryBlocks ?? p.itinerary_blocks, itineraryImages: p.itineraryImages ?? p.itinerary_images, documentProduct: p,
-                })) : []);
+                })) : hasCurrentRecord ? products : []);
                 setLoadWarnings(productResult.status === 'rejected' ? ['상품 원본 정보를 불러오지 못했습니다. 저장된 고객 문서는 그대로 확인할 수 있습니다.'] : []);
                 setReservations([row]); setSelectedReservation(row); setLoadedCustomerScope(scope);
+                setCustomerSync({ scope, at: new Date().toISOString() });
             } catch (error: any) {
                 if (!active()) return;
-                setReservations([]); setSelectedReservation(null); setLoadedCustomerScope(scope);
-                setCustomerLoadError(error?.status === 404 ? '선택한 예약 또는 견적 문의가 없습니다. 삭제되었거나 주소가 변경되었을 수 있습니다.' : error?.status === 403 ? '이 고객 정보를 조회할 관리자 권한이 없습니다.' : '고객 정보를 불러오지 못했습니다. 다시 시도해 주세요.');
+                if (hasCurrentRecord && ![401, 403, 404].includes(error?.status)) {
+                    setCustomerSync(previous => ({ scope, at: previous.scope === scope ? previous.at : undefined, error: '새로고침에 실패해 이전에 불러온 정보를 표시합니다. 예약 정보 새로고침을 다시 눌러 주세요.' }));
+                } else {
+                    setReservations([]); setSelectedReservation(null); setProducts([]); setLoadedCustomerScope(scope);
+                    setCustomerSync({ scope });
+                    setCustomerLoadError(error?.status === 404 ? '선택한 예약 또는 견적 문의가 없습니다. 삭제되었거나 주소가 변경되었을 수 있습니다.' : error?.status === 401 ? '관리자 로그인이 만료되었습니다. 다시 로그인해 주세요.' : error?.status === 403 ? '이 고객 정보를 조회할 관리자 권한이 없습니다.' : '고객 정보를 불러오지 못했습니다. 다시 시도해 주세요.');
+                }
             } finally { if (active()) { setIsLoading(false); setLoadedOnce(true); } }
             return;
         }
@@ -3474,6 +3482,9 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                     onUpdate={handleUpdateReservation}
                     onRefresh={() => customerPage ? void fetchReservations() : selectedReservation && openReservation(selectedReservation)}
                     updating={updatingCount > 0}
+                    refreshing={customerPage && isLoading}
+                    refreshedAt={customerSync.scope === customerScope ? customerSync.at : undefined}
+                    refreshError={customerSync.scope === customerScope ? customerSync.error : undefined}
                     products={products}
                     bookingSelector={customerPage && sameBookings.scope === customerScope ? sameBookings.items.length > 1 ? <label>같은 고객의 예약 <select aria-label="같은 계정의 다른 상품 예약" value={selectedReservation.id} onChange={event => navigate(productCustomerHref(event.target.value, returnTo))}>{sameBookings.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label> : sameBookings.warning ? <span role="status">{sameBookings.warning}</span> : undefined : undefined}
                 />
@@ -3645,7 +3656,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         return <AdminLayout activePage="reservations" title="고객 예약 관리" description="선택한 고객의 일정·계약·결제·배정을 한 화면에서 관리합니다." showSearch={false}>
             {loading ? <div className="card product-customer-loading" role="status">고객 정보를 불러오고 있습니다…</div>
                 : customerLoadError || !selectedReservation ? <div className="card product-customer-loading" role="alert"><h2>고객 정보를 확인해 주세요</h2><p>{customerLoadError || '선택한 예약을 찾지 못했습니다.'}</p><div className="row"><button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>목록으로</button><button type="button" className="btn btn-ink" onClick={() => void fetchReservations()}>다시 불러오기</button></div></div>
-                    : <>{isLoading && <div role="status">최신 고객 정보를 확인하고 있습니다…</div>}{loadWarnings.map((warning, i) => <div className="product-customer-warning" role="status" key={i}>{warning}</div>)}{detailWorkspaces}</>}
+                    : <>{customerSource === 'quote' && isLoading && <div role="status">저장된 문의·견적 정보를 불러오고 있습니다…</div>}{customerSource === 'quote' && customerSync.scope === customerScope && customerSync.error && <div className="product-customer-warning" role="alert">{customerSync.error}</div>}{loadWarnings.map((warning, i) => <div className="product-customer-warning" role="status" key={i}>{warning}</div>)}{detailWorkspaces}</>}
         </AdminLayout>;
     }
 

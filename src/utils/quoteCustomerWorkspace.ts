@@ -32,7 +32,7 @@ export async function loadQuoteCustomerRequest(id: string, token: string, signal
     const response = await fetcher(`/api/requests/${encodeURIComponent(id)}`, { headers: { 'x-admin-token': token }, cache: 'no-store', signal });
     const payload = await response.json().catch(() => null);
     if (!response.ok || payload?.ok !== true || !payload.item || typeof payload.item !== 'object' || Array.isArray(payload.item) || String(payload.item.id) !== id) {
-        throw new Error(response.status === 404 ? '선택한 견적 문의를 찾을 수 없습니다.' : response.status === 401 ? '관리자 인증을 다시 확인해 주세요.' : '고객 정보를 불러오지 못했습니다. 다시 시도해 주세요.');
+        throw Object.assign(new Error(response.status === 404 ? '선택한 견적 문의를 찾을 수 없습니다.' : response.status === 401 || response.status === 403 ? '관리자 인증을 다시 확인해 주세요.' : '고객 정보를 불러오지 못했습니다. 다시 시도해 주세요.'), { status: response.ok ? 404 : response.status });
     }
     return payload.item;
 }
