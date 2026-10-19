@@ -36,6 +36,7 @@ import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources }
 import { productWorkspaceReservation, legacyWorkspaceReservation, productCustomerOverview, sameAccountProductBookings } from '../utils/productCustomerWorkspace';
 import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref, customerWorkspaceReturnTo } from '../utils/customerWorkspaceRoutes';
 import '../styles/product-customer-workspace.css';
+import '../styles/customer-workspace-editor.css';
 
 // Reservation Interface
 interface Reservation {
@@ -508,10 +509,19 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (inlineControlRef.current && !inlineControlRef.current.prepareLeave('refresh')) return;
         onRefresh();
     };
-    // Trip.com식 원페이지: 탭 대신 섹션 앵커 스크롤
+    // 고객 전용 화면은 업무별 패널, 기존 모달은 원페이지 앵커를 유지한다.
     const [activeSec, setActiveSec] = useState<'docs' | 'inline-doc' | 'ops' | 'info' | 'pay' | 'assign' | 'log'>('docs');
     const bodyRef = useRef<HTMLDivElement | null>(null);
     const scrollToSec = (id: 'docs' | 'inline-doc' | 'ops' | 'info' | 'pay' | 'assign' | 'log') => {
+        const group = id === 'inline-doc' ? 'docs' : id;
+        if (fullPage) {
+            if (workspaceIsBusy()) return;
+            if (quickAssignmentDirty || (isEditing && group !== (activeSec === 'pay' ? 'pay' : 'info')) || (inlineDirty && group !== 'docs') || (operationsDirty && group !== 'ops')) {
+                setNavigationNotice('현재 작성 중인 내용을 저장하거나 취소한 뒤 다른 업무를 열어 주세요.');
+                return;
+            }
+            setNavigationNotice('');
+        }
         setActiveSec(id);
         setWorkflowOpen(true);
         requestAnimationFrame(() => bodyRef.current?.querySelector(`#sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -867,9 +877,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     };
 
     const openInlineDocument = (kind: 'itinerary' | 'contract') => {
-        setWorkflowOpen(true);
         if (reservation.status === 'cancelled' || workspaceIsBusy()) return;
+        if (fullPage && (operationsDirty || quickAssignmentDirty)) { setNavigationNotice('작성 중인 운영·배정 정보를 먼저 저장하거나 취소해 주세요.'); return; }
         if (isEditing) { alert('주문 정보 변경사항을 먼저 저장하세요.'); return; }
+        setWorkflowOpen(true);
         setActiveDocument(kind); setInlineEditorOpen(true);
         setActiveSec('inline-doc');
         requestAnimationFrame(() => bodyRef.current?.querySelector('#sec-inline-doc')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -877,6 +888,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const closeInlineDocument = () => {
         if (workspaceIsBusy()) return;
         setInlineEditorOpen(false); setInlineDirty(false);
+        if (fullPage) setActiveSec('docs');
     };
     const inlineSeed = createInlineDocument(docInitialContent, reservationProduct?.documentProduct, reservation.productName);
     docDraftSourceRef.current = { content: inlineSeed, dates: { startDate: reservation.startDate || '', endDate: reservation.endDate || '' } };
@@ -1525,16 +1537,17 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         assignment: 'assignment_ind',
     };
 
-    // Trip.com식 섹션 앵커 (탭 대신 원페이지 스크롤)
-    const SECTION_ANCHORS: Array<{ id: 'docs' | 'inline-doc' | 'ops' | 'info' | 'pay' | 'assign' | 'log'; label: string }> = [
-        { id: 'docs', label: '일정표·계약서' },
-        ...(inlineEditorOpen ? [{ id: 'inline-doc' as const, label: '문서 작성' }] : []),
-        { id: 'info', label: '주문 정보' },
-        { id: 'pay', label: '결제' },
-        { id: 'assign', label: '가이드·숙소' },
-        { id: 'ops', label: '운영·영수증' },
-        { id: 'log', label: '메모·이력' },
+    const SECTION_ANCHORS: Array<{ id: 'docs' | 'inline-doc' | 'ops' | 'info' | 'pay' | 'assign' | 'log'; label: string; hint: string; icon: string }> = [
+        { id: 'docs', label: '일정표·계약서', hint: '편집 · 미리보기 · 전달', icon: 'description' },
+        ...(!fullPage && inlineEditorOpen ? [{ id: 'inline-doc' as const, label: '문서 작성', hint: '작성 중인 문서', icon: 'edit' }] : []),
+        { id: 'info', label: '주문자 정보', hint: '예약자 · 여행자 · 항공편', icon: 'person' },
+        { id: 'pay', label: '결제', hint: '여행금액 · 예약금 · 잔금', icon: 'payments' },
+        { id: 'assign', label: '가이드·숙소', hint: '등록 자원 선택 · 배정', icon: 'hotel' },
+        { id: 'ops', label: '운영·영수증', hint: '차량 · 수배 · 발급 기록', icon: 'receipt_long' },
+        { id: 'log', label: '메모·이력', hint: '상담 메모 · 변경 · 발송', icon: 'history' },
     ];
+    const detailSection = activeSec === 'inline-doc' ? 'docs' : activeSec;
+    const currentSection = SECTION_ANCHORS.find(item => item.id === detailSection)!;
 
     // 여행 일수 — 시작/종료일 차이를 1순위로(가장 정확), 없으면 "n박"(옛 데이터 "n泊") 문자열, 그래도 없으면 일정 일수/배정 수
     const tripDays = (() => {
@@ -1737,7 +1750,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     return (<>
         <div className={fullPage ? 'product-customer-page' : 'drawer-scrim reservation-workspace-scrim'} onClick={fullPage ? undefined : closeWorkspace}>
             <div className={`drawer reservation-workspace product-workspace tcom${fullPage ? ' product-customer-fullpage' : ''}`} role={fullPage ? 'region' : 'dialog'} aria-modal={fullPage ? undefined : true} aria-label="상품 예약 상세 작업" onClick={e => e.stopPropagation()}>
-                {navigationNotice && <div role="status" aria-live="polite" style={{ padding: '10px 16px', background: '#fff5e8', color: '#8f4c13', fontSize: 13 }}>{navigationNotice}</div>}
+                {navigationNotice && (!fullPage || !workflowOpen) && <div role="status" aria-live="polite" style={{ padding: '10px 16px', background: '#fff5e8', color: '#8f4c13', fontSize: 13 }}>{navigationNotice}</div>}
                 {docDraftPending && <div role="status" style={{ padding: '10px 16px', background: '#edfaf6', color: '#145c4c', fontSize: 13, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><button type="button" className="btn btn-ghost btn-sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</button></div>}
 
                 {fullPage && <>
@@ -1745,10 +1758,11 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     <div className="product-customer-controls"><button type="button" className="btn btn-ghost" aria-expanded={workflowOpen} aria-controls="product-customer-detail" disabled={workspaceIsBusy() || quickAssignmentDirty || (workflowOpen && (isEditing || operationsDirty || inlineDirty))} onClick={() => setWorkflowOpen(value => !value)}><Icon name={workflowOpen ? 'expand_less' : 'expand_more'} />{workflowOpen ? '상세 업무 접기' : '일정·계약·결제·운영 상세 업무 펼치기'}</button><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()} onClick={refreshWorkspace}><Icon name="refresh" />최신 정보 확인</button></div>
                 </>}
 
-                <div id="product-customer-detail" className="product-customer-detail" hidden={fullPage && !workflowOpen}>
+                <div id="product-customer-detail" className={`product-customer-detail${fullPage ? ' cw-detail-workspace' : ''}`} hidden={fullPage && !workflowOpen}>
 
                 {/* Header */}
-                <div className="drawer-head">
+                <div className={`drawer-head${fullPage ? ' cw-detail-toolbar' : ''}`}>
+                    {fullPage ? <div className="cw-detail-identity"><span className="cw-detail-eyebrow">상세 업무</span><h2>{reservation.customerName || '고객'}의 예약 관리</h2><p>{reservation.productName} · #{(reservation as any).reservationNumber || reservation.id.slice(0, 8).toUpperCase()}</p></div> : <>
                     {productImage && (
                         <img src={productImage} alt={reservation.productName} loading="lazy"
                             style={{ width: 52, height: 52, flex: 'none', borderRadius: 12, objectFit: 'cover', border: '1px solid var(--mrt-gray-200, #E6E8EC)' }} />
@@ -1763,30 +1777,40 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         <div className="page-title" style={{ fontSize: 18, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reservation.productName}</div>
                         <p className="rw-customer-line">{reservation.customerName} · {reservation.date} · {reservation.headcount}</p>
                     </div>
+                    </>}
                     <StatusDropdown
                         status={editForm.status}
                         disabled={workspaceIsBusy()}
                         onChange={(s) => { if (workspaceIsBusy()) return; setEditForm({ ...editForm, status: s }); if (!isEditing) onUpdate({ ...editForm, status: s }); }}
                     />
-                    <button type="button" className="btn btn-sm btn-ghost" onClick={refreshWorkspace} disabled={workspaceIsBusy() || isEditing || operationsDirty || !!memoDraft.trim()}>고객 제출 정보 새로고침</button>
-                    <button className="icon-btn" aria-label="예약 상세 닫기" style={{ width: 36, height: 36 }} onClick={closeWorkspace}><Icon name="close" /></button>
+                    <button type="button" className="btn btn-sm btn-ghost" onClick={refreshWorkspace} disabled={workspaceIsBusy() || isEditing || operationsDirty || !!memoDraft.trim()}><Icon name="refresh" />{fullPage ? '최신 정보 확인' : '고객 제출 정보 새로고침'}</button>
+                    {!fullPage && <button className="icon-btn" aria-label="예약 상세 닫기" style={{ width: 36, height: 36 }} onClick={closeWorkspace}><Icon name="close" /></button>}
                 </div>
 
-                {/* 섹션 앵커 — Trip.com식 원페이지 내비게이션 */}
-                <div className="tc-anchors">
+                <div className={`tc-anchors${fullPage ? ' cw-work-tabs' : ''}`} role={fullPage ? 'tablist' : undefined} aria-label="예약 상세 업무">
                     {SECTION_ANCHORS.map(a => (
-                        <button key={a.id} type="button" className={activeSec === a.id ? 'active' : ''} onClick={() => scrollToSec(a.id)}>
-                            {a.label}
+                        <button key={a.id} id={`customer-work-${a.id}`} type="button" role={fullPage ? 'tab' : undefined} aria-selected={fullPage ? detailSection === a.id : undefined} aria-controls={fullPage ? a.id === 'docs' ? 'customer-documents-panel' : a.id === 'ops' ? 'customer-operations-panel' : `sec-${a.id}` : undefined} tabIndex={fullPage && detailSection !== a.id ? -1 : undefined} disabled={workspaceIsBusy()} className={(fullPage ? detailSection : activeSec) === a.id ? 'active' : ''} onClick={() => scrollToSec(a.id)} onKeyDown={event => {
+                            if (!fullPage || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                            event.preventDefault();
+                            const index = SECTION_ANCHORS.findIndex(item => item.id === a.id);
+                            const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? SECTION_ANCHORS.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + SECTION_ANCHORS.length) % SECTION_ANCHORS.length;
+                            const target = SECTION_ANCHORS[nextIndex];
+                            document.getElementById(`customer-work-${target.id}`)?.focus();
+                        }}>
+                            {fullPage && <Icon name={a.icon} />}<span className="cw-work-tab-copy"><strong>{a.label}</strong>{fullPage && <small>{a.hint}</small>}</span>
                             {a.id === 'log' && memos.length > 0 && <span className="dtab-ct">{memos.length}</span>}
                         </button>
                     ))}
                 </div>
 
+                {fullPage && navigationNotice && <div className="cw-detail-notice" role="status" aria-live="polite">{navigationNotice}</div>}
                 <div className="reservation-workspace-main">
                 {/* Body */}
                 <div className="drawer-body reservation-workspace-body" ref={bodyRef} inert={workspaceIsBusy()} aria-busy={workspaceIsBusy()}>
                     <div className="stack" style={{ gap: 18 }}>
-                    <ReservationWorkflow steps={steps} readiness={readiness} cancelled={workspace.cancelled} />
+                    {fullPage && <div className="cw-panel-heading"><div><h2>{currentSection.label}</h2><p>{currentSection.hint}</p></div><span>{inlineDirty && detailSection === 'docs' || operationsDirty && detailSection === 'ops' || isEditing && (detailSection === 'info' || detailSection === 'pay') ? '저장하지 않은 변경사항' : '선택한 업무만 표시됩니다'}</span></div>}
+                    {!fullPage && <ReservationWorkflow steps={steps} readiness={readiness} cancelled={workspace.cancelled} />}
+                    <div id="customer-documents-panel" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-docs' : undefined} hidden={fullPage && detailSection !== 'docs'}>
                     <ReservationDocuments days={scheduleDays} source={reservation.documentContent ? '고객별 작성 일정' : selectedTemplate?.name || (reservationProduct ? '예약 상품 일정' : '아직 작성된 일정이 없습니다')}
                         ready={itineraryReady} published={workspace.published} canPublish={itineraryCanPublish}
                         itinerarySent={itinerarySent} itinerarySentAt={itinerarySentAt} signed={workspace.signed}
@@ -1807,12 +1831,15 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                             onBusyChange={setInlineBusy} onDraftStatusChange={setDocDraftPending} externalBusy={publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs || updating}
                             onControlChange={control => { inlineControlRef.current = control; }}
                             onClose={closeInlineDocument} disabled={workspace.cancelled || updating || isEditing} /> : null} />
+                    </div>
+                    <div hidden={fullPage && detailSection !== 'log'}>
                     <AdminDeliveryHistory source="product" bookingId={reservation.id} revision={JSON.stringify([deliveryRevision, reservation.documentContent, reservation.startDate, reservation.endDate, reservation.totalPeople, reservation.totalAmount, reservation.deposit, reservation.balance, reservation.assignedGuide, reservation.dailyAccommodations, reservation.contractData, reservation.adminOperations, reservation.areAssignmentsVisibleToUser])}
                         busy={sendingItinerary || sendingContract || sendingAllDocs || updating || inlineBusy || publishing}
                         onData={data => setRecordedDelivery(data)} onOpenDocument={kind => {
                             scrollToSec('docs'); setActiveDocument(kind === 'contract' ? 'contract' : 'itinerary');
                         }} />
-                    <section id="sec-info" style={{ scrollMarginTop: 8 }}>
+                    </div>
+                    <section id="sec-info" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-info' : undefined} hidden={fullPage && detailSection !== 'info'} style={{ scrollMarginTop: 8 }}>
                         {/* 주문 정보 — 여행/예약자 */}
                         <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'stretch' }}>
                             <div className="card">
@@ -1914,8 +1941,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         )}
                     </section>
 
-                    <ReservationOperations reservationId={reservation.id} value={{ ...(reservation.adminOperations || emptyReservationOperations()), vehicle: readProductVehicle(reservation.adminOperations, reservation.contractData).type, driverPhone: readProductVehicle(reservation.adminOperations, reservation.contractData).phone } as Operations} onSave={next => workspaceIsBusy() ? Promise.resolve(false) : onUpdate({ ...reservation, adminOperations: next }, true)} disabled={workspaceIsBusy() || isEditing} onDirtyChange={setOperationsDirty}/>
-                    <section id="sec-pay" style={{ scrollMarginTop: 8 }}>
+                    <div id="customer-operations-panel" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-ops' : undefined} hidden={fullPage && detailSection !== 'ops'}><ReservationOperations reservationId={reservation.id} value={{ ...(reservation.adminOperations || emptyReservationOperations()), vehicle: readProductVehicle(reservation.adminOperations, reservation.contractData).type, driverPhone: readProductVehicle(reservation.adminOperations, reservation.contractData).phone } as Operations} onSave={next => workspaceIsBusy() ? Promise.resolve(false) : onUpdate({ ...reservation, adminOperations: next }, true)} disabled={workspaceIsBusy() || isEditing} onDirtyChange={setOperationsDirty}/></div>
+                    <section id="sec-pay" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-pay' : undefined} hidden={fullPage && detailSection !== 'pay'} style={{ scrollMarginTop: 8 }}>
                     <div className="stack" style={{ gap: 14 }}>
                             {/* Payment with Progress Ring */}
                             <div className="card card-pad">
@@ -1940,6 +1967,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                             {isEditing ? (
                                                 <input
                                                     type="number"
+                                                    aria-label="총 여행금액"
                                                     value={editForm.totalAmount}
                                                     onChange={(e) => setEditForm({ ...editForm, totalAmount: Number(e.target.value), balance: Number(e.target.value) - editForm.deposit })}
                                                     className="inp"
@@ -1973,6 +2001,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                         {isEditing ? (
                                             <input
                                                 type="number"
+                                                aria-label="예약금 금액"
                                                 value={editForm.deposit}
                                                 onChange={(e) => setEditForm({ ...editForm, deposit: Number(e.target.value), balance: editForm.totalAmount - Number(e.target.value) })}
                                                 className="inp"
@@ -2043,7 +2072,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     </div>
                     </section>
 
-                    <section id="sec-assign" style={{ scrollMarginTop: 8 }}>
+                    <section id="sec-assign" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-assign' : undefined} hidden={fullPage && detailSection !== 'assign'} style={{ scrollMarginTop: 8 }}>
                     <div className="stack" style={{ gap: 14 }}>
                             {/* 담당 가이드 */}
                             <div className="card">
@@ -2200,7 +2229,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     </div>
                     </section>
 
-                    <section id="sec-log" style={{ scrollMarginTop: 8 }}>
+                    <section id="sec-log" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-log' : undefined} hidden={fullPage && detailSection !== 'log'} style={{ scrollMarginTop: 8 }}>
                     <div className="stack" style={{ gap: 14 }}>
                             {/* Admin Memo */}
                             <div className="card">
@@ -2293,8 +2322,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         <>
                             <button onClick={closeWorkspace} className="btn btn-ghost" disabled={workspaceIsBusy()}>예약 목록으로</button>
                             <div className="spacer" style={{ flex: 1 }} />
-                            {inlineEditorOpen ? <button type="submit" form={`reservation-inline-${reservation.id}`} className="btn btn-ink" disabled={workspaceIsBusy() || workspace.cancelled}><Icon name="save" />{workspaceIsBusy() ? '처리 중…' : '문서 저장'}</button>
-                                : <button onClick={() => setIsEditing(true)} className="btn btn-ink" disabled={workspaceIsBusy()}><Icon name="edit" />수정</button>}
+                            {inlineEditorOpen && (!fullPage || detailSection === 'docs') ? <button type="submit" form={`reservation-inline-${reservation.id}`} className="btn btn-ink" disabled={workspaceIsBusy() || workspace.cancelled}><Icon name="save" />{workspaceIsBusy() ? '처리 중…' : '문서 저장'}</button>
+                                : !fullPage || detailSection === 'info' || detailSection === 'pay' ? <button onClick={() => setIsEditing(true)} className="btn btn-ink" disabled={workspaceIsBusy()}><Icon name="edit" />{fullPage ? detailSection === 'pay' ? '결제 금액 수정' : '주문자 정보 수정' : '수정'}</button>
+                                : fullPage && detailSection === 'docs' ? <button type="button" onClick={() => openInlineDocument('itinerary')} className="btn btn-ink" disabled={workspaceIsBusy() || workspace.cancelled}><Icon name="edit" />일정표 편집</button> : null}
                         </>
                     )}
                 </div>

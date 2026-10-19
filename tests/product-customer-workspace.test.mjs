@@ -53,6 +53,25 @@ const execute = (code, context) => {
     return context;
 };
 const pending = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
+test('업무 패널 전환은 결제·주문·문서·운영의 작성 중 입력을 보호하고 현재 업무의 저장 경로를 유지한다', () => {
+    const calls = [];
+    const context = { fullPage: true, activeSec: 'pay', isEditing: true, inlineDirty: false, operationsDirty: false, quickAssignmentDirty: false,
+        workspaceIsBusy: () => false, requestAnimationFrame: callback => callback(),
+        bodyRef: { current: { querySelector: selector => ({ scrollIntoView: () => calls.push(['scroll', selector]) }) } },
+        setActiveSec: value => calls.push(['section', value]), setWorkflowOpen: value => calls.push(['open', value]), setNavigationNotice: value => calls.push(['notice', value]) };
+    const start = source.indexOf('    const scrollToSec = ('), end = source.indexOf('\n    useEffect(', start);
+    execute(source.slice(start, end) + '\nglobalThis.navigate = scrollToSec;', context);
+    context.navigate('pay'); assert.ok(calls.some(call => call[0] === 'section' && call[1] === 'pay'));
+    calls.length = 0; context.navigate('info'); assert.equal(calls.length, 1); assert.match(calls[0][1], /저장/);
+    for (const [field, current, allowed] of [['isEditing', 'info', 'info'], ['inlineDirty', 'inline-doc', 'docs'], ['operationsDirty', 'ops', 'ops']]) {
+        context.isEditing = context.inlineDirty = context.operationsDirty = false; context[field] = true; context.activeSec = current;
+        calls.length = 0; context.navigate(allowed); assert.ok(calls.some(call => call[0] === 'section' && call[1] === allowed));
+        calls.length = 0; context.navigate('log'); assert.equal(calls.length, 1); assert.equal(calls[0][0], 'notice');
+    }
+    context.operationsDirty = false; context.quickAssignmentDirty = true; calls.length = 0; context.navigate('docs'); assert.equal(calls.length, 1);
+    context.quickAssignmentDirty = false; context.workspaceIsBusy = () => true; calls.length = 0; context.navigate('pay'); assert.equal(calls.length, 0);
+    context.fullPage = false; context.isEditing = true; context.navigate('log'); assert.ok(calls.some(call => call[0] === 'section' && call[1] === 'log'));
+});
 function customerLoader(get) {
     const state = {};
     const context = { customerPage: true, customerSource: 'product', customerScope: 'admin-a:product:a', customerReservationId: 'a', userLoading: false, user: { id: 'admin-a', role: 'admin' }, currentScope: { current: 'admin-a:product:a' }, fetchSequence: { current: 0 }, api: { reservations: { get }, quotes: { get }, products: { list: async () => [] } }, productWorkspaceReservation, legacyWorkspaceReservation, String, Array };

@@ -23,9 +23,31 @@ test('취소 예약과 가이드·차량·숙소 상태를 원본에서 읽고 �
 test('공통 작업 탭은 기존 예약 폼의 실제 섹션에만 연결된다', () => {
     const calls = [];
     const doc = { getElementById(id) { return { scrollIntoView() { calls.push(id); }, focus() { calls.push('focus:' + id); } }; } };
-    for (const section of ['docs', 'info', 'pay', 'assign', 'log']) assert.equal(workspace.navigate(section, doc), true);
-    assert.deepEqual(calls, ['documentsSection', 'bookingInfoSection', 'paymentSection', 'focus:ci_depositStatus', 'assignmentSection', 'focus:g_pick', 'admin-booking-history']);
+    for (const section of ['docs', 'contract', 'info', 'pay', 'assign', 'log']) assert.equal(workspace.navigate(section, doc), true);
+    assert.deepEqual(calls, ['documentsSection', 'c_contract', 'bookingInfoSection', 'paymentSection', 'focus:ci_depositStatus', 'assignmentSection', 'focus:g_pick', 'admin-booking-history']);
     assert.equal(workspace.navigate('customer-send', doc), false);
+});
+test('고객 전용 편집기는 원본 폼을 보존하고 다시 렌더해도 선택 업무를 루트에 유지한다', () => {
+    const root = { classList: { contains: value => value === 'customer-booking-editor' }, dataset: {} };
+    const fields = { paymentSection: { value: '저장 전 금액', scrollIntoView() {} }, ci_depositStatus: { focus() {} },
+        c_contract: { checked: true, scrollIntoView() {} }, g_pick: { scrollIntoView() {} } };
+    const doc = { documentElement: root, getElementById: id => fields[id] };
+    assert.equal(workspace.navigate('pay', doc), true);
+    assert.equal(root.dataset.customerSection, 'pay');
+    assert.equal(fields.paymentSection.value, '저장 전 금액');
+    // The original editor replaces its main children, not the document root.
+    fields.paymentSection = { value: '다시 그린 금액', scrollIntoView() {} };
+    assert.equal(root.dataset.customerSection, 'pay');
+    assert.equal(workspace.navigate('contract', doc), true);
+    assert.equal(root.dataset.customerSection, 'contract');
+    assert.equal(fields.c_contract.checked, true);
+    assert.equal(workspace.navigate('guide', doc), true);
+    assert.equal(root.dataset.customerSection, 'assign');
+    assert.equal(workspace.navigate('unsupported-section', doc), false);
+    assert.equal(root.dataset.customerSection, 'assign');
+    root.classList.contains = () => false;
+    assert.equal(workspace.navigate('pay', doc), true);
+    assert.equal(root.dataset.customerSection, 'assign', '원본 단독 예약 편집기는 업무 필터를 적용하지 않는다');
 });
 test('기존 예약 관리가 공유 일정 카드 위젯을 사용하고 원래 저장 API를 유지한다', () => {
     const html = fs.readFileSync(new URL('../public/예약관리.html', import.meta.url), 'utf8');

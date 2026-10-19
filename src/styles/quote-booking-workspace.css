@@ -1,18 +1,112 @@
-.reservation-workspace.product-workspace.quote-native-workspace{width:100%;height:auto;max-height:none;display:block;background:transparent;margin:0 auto 18px;font-family:Pretendard,system-ui,sans-serif}
-.quote-native-workspace .rw-workflow-card,.quote-native-workspace .rw-readiness-card{background:white;border:1px solid #e4ece7;border-radius:18px;overflow:hidden}
-.quote-native-workspace .rw-overview{display:grid;gap:16px}
-.quote-native-tabs{display:flex;gap:4px;overflow:auto;background:white;border:1px solid #e4ece7;border-radius:14px;margin-bottom:18px;padding:4px 8px;box-shadow:0 4px 16px #17392a08}
-.native-booking-workspace #admin-booking-navigation{position:sticky;top:0;z-index:30;max-width:1100px;margin:auto;padding:0 20px}
-.native-booking-workspace .quote-day-extra details{margin-top:12px;color:#667085;font-size:12px}
-.native-booking-workspace .quote-day-extra label{display:block;margin-top:10px}
-.quote-native-tabs button{flex:none;border:0;border-bottom:3px solid transparent;background:white;color:#6b7a72;padding:13px 18px;font:700 13px Pretendard,sans-serif;cursor:pointer}
-.quote-native-tabs button.active{color:#08765f;border-bottom-color:#16987d}
-.quote-native-tabs button:focus-visible{outline:2px solid #16987d;outline-offset:-3px}
-.quote-native-info{font-size:12px;line-height:1.7;color:#64766b;margin:12px 3px}
+/* Outside-frame shell; native rules are also injected into the original editor. */
+.admin-app-wrapper:has(.quote-customer-page){--content-max:1880px}
+.quote-customer-editor-entry{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1880px;margin:0 auto;padding:0 32px 24px;color:#697586;font-size:13px;line-height:1.65}
+.quote-customer-editor-entry p{margin:0}
+.quote-customer-editor-entry>button{flex:none}
+.quote-customer-editor-shell{position:relative;display:flex;flex-direction:column;min-width:0;height:0;overflow:hidden;background:#fff;scroll-margin-top:16px}
+.quote-customer-editor-shell.is-expanded{height:min(1040px,88vh);min-height:680px;max-width:1816px;margin:0 32px 32px;border:1px solid #e2e7ed;border-radius:20px}
+.quote-customer-editor-heading{position:relative;z-index:3;display:flex;flex:none;align-items:center;justify-content:space-between;gap:24px;padding:24px 28px;border-bottom:1px solid #e9edf2;background:#fff}
+.quote-customer-editor-heading>div{min-width:0}
+.quote-customer-editor-eyebrow{display:block;margin-bottom:6px;color:#168b75;font-size:12px;font-weight:700}
+.quote-customer-editor-heading h2{margin:0;color:#182b3c;font-size:22px;font-weight:750;letter-spacing:-.035em;line-height:1.4}
+.quote-customer-editor-heading p{margin:8px 0 0;color:#697586;font-size:13px;line-height:1.6}
+.quote-customer-editor-heading>button{flex:none;min-height:40px}
+.quote-customer-editor-frame{display:block;flex:1;width:100%;min-height:0;border:0;background:#f5f7fa}
+
+.reservation-workspace.product-workspace.quote-native-workspace{display:block;width:100%;height:auto;max-height:none;margin:0 auto 24px;background:transparent;font-family:Pretendard,system-ui,sans-serif}
+.quote-native-workspace .rw-workflow-card,.quote-native-workspace .rw-readiness-card{overflow:hidden;border:1px solid #e2e7ed;border-radius:20px;background:#fff}
+.quote-native-workspace .rw-overview{display:grid;gap:24px}
+.quote-native-info{margin:16px 3px;color:#697586;font-size:13px;line-height:1.7}
+.quote-native-tabs{display:flex;gap:4px;overflow-x:auto;margin-bottom:24px;padding:6px;border:1px solid #e2e7ed;border-radius:14px;background:#fff;scrollbar-width:thin}
+.quote-native-tabs button{flex:none;min-height:44px;padding:11px 16px;border:0;border-radius:9px;background:transparent;color:#697586;font:650 14px/1.5 Pretendard,sans-serif;white-space:nowrap;cursor:pointer}
+.quote-native-tabs button:hover{background:#f5f7fa;color:#26374a}
+.quote-native-tabs button.active{background:#e8f7f2;color:#087960}
+.quote-native-tabs button:focus-visible{outline:2px solid #16987d;outline-offset:-2px}
+
+.native-booking-workspace{--accent:#16987d;--book:#16987d;--deep:#087960;--ink:#182b3c;--sub:#697586;--muted:#8491a2;--line:#e9edf2;--soft:#f5f7fa}
+.native-booking-workspace body{background:#f5f7fa;font-size:14px;line-height:1.6}
 .native-booking-workspace #main>.workflow-card,.native-booking-workspace #main>.workflow-card+section{display:none}
-.native-booking-workspace body>header{position:static;max-width:1100px;margin:0 auto;background:transparent;border:0;padding:18px 20px}
-.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history{max-width:1100px;margin-left:auto;margin-right:auto;padding-left:20px;padding-right:20px;box-sizing:border-box}
-.native-booking-workspace #admin-booking-history{padding-bottom:24px}
-.native-booking-workspace #documentsSection,.native-booking-workspace #bookingInfoSection,.native-booking-workspace #paymentSection,.native-booking-workspace #assignmentSection,.native-booking-workspace #admin-booking-history{scroll-margin-top:68px}
-.native-booking-workspace #dayWrap{margin-top:10px}
-@media(max-width:700px){.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history,.native-booking-workspace #admin-booking-navigation{padding-left:12px;padding-right:12px}.quote-native-tabs button{padding:12px}.quote-native-workspace .rw-card-heading{padding:18px}}
+.native-booking-workspace body>header{position:static;max-width:1240px;margin:0 auto;padding:24px 28px 16px;border:0;background:transparent}
+.native-booking-workspace header h1{font-size:18px;line-height:1.5}
+.native-booking-workspace header .who{color:#697586;font-size:13px}
+.native-booking-workspace .hd-acts{gap:12px}
+.native-booking-workspace .hd-group{gap:8px}
+.native-booking-workspace .hd-label{font-size:12px}
+.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history{box-sizing:border-box;max-width:1240px;margin-right:auto;margin-left:auto;padding-right:28px;padding-left:28px}
+.native-booking-workspace main{gap:24px;padding-top:0;padding-bottom:32px}
+.native-booking-workspace #admin-booking-navigation{position:sticky;top:0;z-index:30;box-sizing:border-box;max-width:1240px;margin:auto;padding:8px 28px 0;background:#f5f7fa}
+.native-booking-workspace #admin-booking-history{padding-bottom:32px}
+.native-booking-workspace #documentsSection,.native-booking-workspace #bookingInfoSection,.native-booking-workspace #paymentSection,.native-booking-workspace #assignmentSection,.native-booking-workspace #admin-booking-history,.native-booking-workspace #c_contract,.native-booking-workspace #bk_memo{scroll-margin-top:88px}
+.native-booking-workspace section.card{min-width:0;padding:28px;border-color:#e2e7ed;border-radius:18px;box-shadow:none}
+.native-booking-workspace .sec-h{align-items:flex-start;gap:16px;margin-bottom:24px}
+.native-booking-workspace .sec-h h2{gap:10px;font-size:20px;line-height:1.45;letter-spacing:-.025em}
+.native-booking-workspace .sec-h h2 .n{min-width:30px;height:30px;padding:0 9px;border-radius:9px;background:#e8f7f2;color:#087960;font-size:12px}
+.native-booking-workspace .sec-h .tip{max-width:580px;color:#697586;font-size:13px;line-height:1.7}
+.native-booking-workspace .assign-box,.native-booking-workspace .lodge-row{min-width:0;padding:20px;border-color:#e5eaf0;border-radius:14px;background:#fff}
+.native-booking-workspace .assign-box+.assign-box{margin-top:20px}
+.native-booking-workspace .subtt{gap:16px;margin-bottom:16px;font-size:16px;line-height:1.5}
+.native-booking-workspace .grid2{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.native-booking-workspace .grid3{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.native-booking-workspace .grid4{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.native-booking-workspace label.f{min-width:0;gap:8px;color:#536175;font-size:13px;line-height:1.5}
+.native-booking-workspace label.f input,.native-booking-workspace label.f select,.native-booking-workspace label.f textarea{min-width:0;min-height:44px;padding:11px 12px;border-color:#dce3eb;border-radius:10px;color:#182b3c;font-size:14px;font-weight:500;line-height:1.5}
+.native-booking-workspace label.f textarea{min-height:100px;line-height:1.7}
+.native-booking-workspace .hbtn,.native-booking-workspace .addbtn,.native-booking-workspace .rp-trigger{min-height:42px;padding:10px 14px;font-size:14px;line-height:1.5}
+.native-booking-workspace .rp{width:300px}
+.native-booking-workspace .rp-panel{min-width:260px}
+.native-booking-workspace .rp-item{min-height:42px;padding:10px 14px;font-size:14px}
+.native-booking-workspace .rp-search{padding:10px 14px}
+.native-booking-workspace .rp-search input{min-height:30px;font-size:14px}
+.native-booking-workspace .rp-group{padding:12px 14px 6px;font-size:12px}
+.native-booking-workspace .preview{gap:16px;margin-top:16px;padding:16px;border-color:#e5eaf0;background:#f8fafc}
+.native-booking-workspace .preview .thumb{width:64px;height:64px;border-radius:12px;background:#edf2f7}
+.native-booking-workspace .preview b{font-size:15px}
+.native-booking-workspace .preview p{color:#697586;font-size:13px;line-height:1.65}
+.native-booking-workspace .edit-panel{margin-top:16px;border-color:#e5eaf0}
+.native-booking-workspace .edit-panel summary{min-height:44px;padding:12px 16px;color:#536175;font-size:13px}
+.native-booking-workspace .edit-body{padding:0 16px 16px}
+.native-booking-workspace .chk{gap:12px;min-height:48px;padding:12px 0;font-size:14px;line-height:1.5}
+.native-booking-workspace .chk input{width:18px;height:18px;flex:none}
+.native-booking-workspace #dayWrap{margin-top:16px}
+.native-booking-workspace .quote-day-extra details{margin-top:16px;color:#697586;font-size:13px}
+.native-booking-workspace .quote-day-extra label{display:block;margin-top:12px}
+.native-booking-workspace .quote-day-editor .day-edit{margin-bottom:16px;padding:20px;border-color:#e5eaf0;background:#fafbfd}
+.native-booking-workspace .quote-day-editor .day-edit .dh{gap:12px;margin-bottom:16px}
+.native-booking-workspace .quote-day-editor .day-edit input,.native-booking-workspace .quote-day-editor .day-edit select{min-height:42px}
+.native-booking-workspace .quote-day-editor .day-edit textarea.items{font-size:14px;line-height:1.8}
+.native-booking-workspace .quote-day-editor .day-edit .snip-hint{color:#697586;font-size:12px}
+.native-booking-workspace .savebar{gap:24px;padding:14px 24px;border-color:#e2e7ed;box-shadow:0 -4px 20px #172b3306}
+.native-booking-workspace .save-context small{font-size:12px}
+.native-booking-workspace .save-context b{margin-top:4px;font-size:13px}
+.native-booking-workspace .savebar .barbtn{min-height:44px;padding:11px 16px;font-size:14px}
+.native-booking-workspace #saveBtn{min-height:44px;padding:12px 28px;font-size:14px;box-shadow:none}
+
+/* Only the canonical customer frame uses task views. Existing input nodes stay
+   mounted for pullForm(), drafts and saves, including after main is re-rendered. */
+.customer-booking-editor #main>section.card{display:none}
+.customer-booking-editor[data-customer-section="docs"] #main>#documentsSection,
+.customer-booking-editor[data-customer-section="docs"] #main>#documentsSection+section.card,
+.customer-booking-editor[data-customer-section="assign"] #main>#assignmentSection,
+.customer-booking-editor[data-customer-section="info"] #main>#bookingInfoSection,
+.customer-booking-editor[data-customer-section="pay"] #main>#bookingInfoSection,
+.customer-booking-editor[data-customer-section="contract"] #main>section.card:has(#c_contract),
+.customer-booking-editor[data-customer-section="notes"] #main>section.card:has(#bk_memo){display:block}
+.customer-booking-editor[data-customer-section="info"] #paymentSection,
+.customer-booking-editor[data-customer-section="pay"] #bookingInfoSection>.sec-h,
+.customer-booking-editor[data-customer-section="pay"] #bookingInfoSection>.assign-box:not(#paymentSection),
+.customer-booking-editor[data-customer-section="contract"] #main>section.card:has(#c_contract)>.sec-h,
+.customer-booking-editor[data-customer-section="contract"] #main>section.card:has(#c_contract)>.chk:not(:has(#c_contract)),
+.customer-booking-editor[data-customer-section="contract"] #main>section.card:has(#c_contract)>.grid2,
+.customer-booking-editor[data-customer-section="notes"] #main>section.card:has(#bk_memo)>.assign-box,
+.customer-booking-editor[data-customer-section="notes"] #main>section.card:has(#bk_memo)>.chk:has(#c_contract),
+.customer-booking-editor:not([data-customer-section="log"]) #admin-booking-history{display:none}
+.customer-booking-editor[data-customer-section="log"] #main{display:none}
+.customer-booking-editor body>header h1,.customer-booking-editor body>header .who{display:none}
+.customer-booking-editor .hd-acts{margin-left:0}
+.customer-booking-editor:not([data-customer-section="docs"]) body>header,
+.customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) .save-context{display:none}
+.customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) #contractRequestBtn,
+.customer-booking-editor:not([data-customer-section="docs"]) #travelNoticeBtn{display:none!important}
+@media(min-width:1700px){.quote-customer-editor-shell.is-expanded{margin-right:auto;margin-left:auto}}
+@media(max-width:900px){.native-booking-workspace .grid3,.native-booking-workspace .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.native-booking-workspace .save-context{display:none}.native-booking-workspace .savebar{gap:12px;padding:12px}.native-booking-workspace .savebar .barbtn{padding-right:10px;padding-left:10px}}
+@media(max-width:700px){.quote-customer-editor-entry{align-items:flex-start;flex-direction:column;gap:12px;padding:0 16px 20px}.quote-customer-editor-shell.is-expanded{min-height:620px;height:88vh;margin:0 12px 24px;border-radius:16px}.quote-customer-editor-heading{align-items:flex-start;gap:12px;padding:20px 16px}.quote-customer-editor-heading h2{font-size:19px}.quote-customer-editor-heading p{font-size:12px}.quote-customer-editor-heading>button{padding-right:10px;padding-left:10px;font-size:12px}.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history,.native-booking-workspace #admin-booking-navigation{padding-right:12px;padding-left:12px}.native-booking-workspace body>header{padding:20px 16px 12px}.native-booking-workspace main{gap:16px}.native-booking-workspace section.card{padding:20px 16px;border-radius:16px}.native-booking-workspace .sec-h h2{font-size:18px}.native-booking-workspace .sec-h{margin-bottom:20px}.native-booking-workspace .assign-box,.native-booking-workspace .lodge-row{padding:16px}.native-booking-workspace .subtt{font-size:15px}.native-booking-workspace .quote-day-editor .day-edit{padding:16px 12px}.native-booking-workspace .quote-day-editor .day-edit .dh{gap:8px;flex-wrap:wrap}.native-booking-workspace .quote-day-editor .day-edit .dh input.move{max-width:100%;flex:1}.native-booking-workspace .grid2,.native-booking-workspace .grid3,.native-booking-workspace .grid4{gap:12px}.quote-native-tabs{gap:2px;margin-bottom:16px;padding:4px}.quote-native-tabs button{min-height:42px;padding:10px 12px;font-size:13px}.quote-native-workspace .rw-card-heading{padding:20px}}
