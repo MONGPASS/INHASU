@@ -10,6 +10,7 @@ import { reservationReturnTo } from '../utils/adminReservationList';
 import workspaceStyles from '../styles/reservation-workspace.css?inline';
 import nativeWorkspaceStyles from '../styles/quote-booking-workspace.css?inline';
 import deliveryStyles from '../components/admin/AdminDeliveryHistory.css?inline';
+import { quoteFrameNeedsRemount, scheduleQuoteFrameDelay } from '../utils/quoteFrameRecovery';
 import {
     connectQuoteDesk,
     findQuoteDeskTool,
@@ -58,6 +59,8 @@ export const AdminQuoteDesk: React.FC = () => {
     // seq 가 바뀌면 iframe 을 새로 만든다(같은 주소를 다시 불러와야 할 때).
     const [frame, setFrame] = useState(() => ({ src: quoteDeskFrameSrc(tool, bookingId, quoteEditorId), seq: 0 }));
     const [frameLoading, setFrameLoading] = useState(true);
+    const [frameDelayed, setFrameDelayed] = useState(false);
+    const [reloadAttempt, setReloadAttempt] = useState(0);
     const frameRef = useRef<HTMLIFrameElement>(null);
     // 안쪽 화면이 스스로 옮겨 간 메뉴. 이때는 주소만 맞추고 iframe 은 다시 불러오지 않는다.
     const followedKeyRef = useRef<string | null>(null);
@@ -146,6 +149,11 @@ export const AdminQuoteDesk: React.FC = () => {
         }
     }, [accountId]);
     useEffect(() => { void connect(); return () => { connectionRequest.current++; connectController.current?.abort(); }; }, [connect]);
+    useEffect(() => {
+        setFrameDelayed(false);
+        if (!linked || !frameLoading) return;
+        return scheduleQuoteFrameDelay(() => setFrameDelayed(true));
+    }, [linked, frameLoading, frame.seq, frame.src, reloadAttempt]);
 
     // 2) 주소의 메뉴가 바뀌면(관리자 메뉴에서 다른 화면을 고르면) 그 문서를 불러온다.
     useEffect(() => {
@@ -165,16 +173,17 @@ export const AdminQuoteDesk: React.FC = () => {
 
     // 3) 안쪽 화면이 다른 견적 화면으로 넘어가면(예: 문의 → 견적서 만들기) 메뉴 표시와 주소를 맞춘다.
     const handleFrameLoad = () => {
-        setFrameLoading(false);
-        sendAccount();
         let path = '', innerId = '', innerEditor = '';
         try {
+            if (quoteFrameNeedsRemount(frameRef.current?.contentWindow?.location.href, window.location.origin)) return;
             path = frameRef.current?.contentWindow?.location.pathname ?? '';
             innerId = new URLSearchParams(frameRef.current?.contentWindow?.location.search).get('id') || '';
             innerEditor = new URLSearchParams(frameRef.current?.contentWindow?.location.search).get('qe') || '';
         } catch {
             return; // 다른 출처로 나간 경우 — 읽을 수 없으니 그대로 둔다
         }
+        setFrameLoading(false); setFrameDelayed(false);
+        sendAccount();
         const current = quoteDeskToolForPath(path);
         if (!current) return;
         if (current.key === 'bookings' && normalizeDocPath(path) === '/예약관리' && innerId) {
@@ -217,14 +226,15 @@ export const AdminQuoteDesk: React.FC = () => {
         if (result.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 새로고침해 주세요.'); return; }
         if (!result.ok && !window.confirm((result.error || '초안을 보관하지 못했습니다.') + '\n\n초안을 보관하지 못한 상태로 새로고침할까요?')) return;
         if (!result.ok) (frameRef.current?.contentWindow as EditorWindow | null)?.QuoteEditorState?.approveLeaveOnce?.();
-        setFrameLoading(true);
+        setFrameLoading(true); setFrameDelayed(false); setReloadAttempt(value => value + 1);
         try {
             const inner = frameRef.current?.contentWindow;
-            if (inner) {
+            if (inner && !quoteFrameNeedsRemount(inner.location.href, window.location.origin)) {
                 inner.location.reload();
                 return;
             }
         } catch { /* 아래에서 iframe 을 새로 만든다 */ }
+        setNativeHosts(null); setBookingWorkspace(null);
         setFrame((prev) => ({ ...prev, seq: prev.seq + 1 }));
     };
 
@@ -300,9 +310,12 @@ export const AdminQuoteDesk: React.FC = () => {
                                 background: 'rgba(247,248,250,0.82)', pointerEvents: 'none',
                             }}
                         >
-                            <span className="row" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-tertiary)' }}>
-                                <Icon name="progress_activity" className="spin" />화면을 불러오는 중
-                            </span>
+                            <div style={{ display: 'grid', gap: 12, justifyItems: 'center', padding: 20 }}>
+                                <span className="row" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-tertiary)' }}>
+                                    <Icon name="progress_activity" className="spin" />{frameDelayed ? '불러오기가 지연되고 있습니다' : '화면을 불러오는 중'}
+                                </span>
+                                {frameDelayed && <button type="button" className="btn btn-ink" style={{ pointerEvents: 'auto' }} onClick={reloadFrame}>다시 불러오기</button>}
+                            </div>
                         </div>
                     )}
                 </div>
