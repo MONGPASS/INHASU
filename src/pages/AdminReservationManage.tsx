@@ -31,6 +31,8 @@ import { readReservationList, reservationListSearch, reservationExportRows, rese
 import { readProductVehicle } from '../utils/reservationAssignment';
 import { guideAssignmentConflicts, validAssignmentPeriod } from '../utils/assignmentAvailability';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
+import { CustomerVehicleAssignment } from '../components/admin/CustomerVehicleAssignment';
+import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
 import { productWorkspaceReservation, legacyWorkspaceReservation, productCustomerOverview, sameAccountProductBookings } from '../utils/productCustomerWorkspace';
 import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref, customerWorkspaceReturnTo } from '../utils/customerWorkspaceRoutes';
 import '../styles/product-customer-workspace.css';
@@ -391,6 +393,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<Reservation | null>(null);
     const [showGuideModal, setShowGuideModal] = useState(false);
+    const [guideConfirmation, setGuideConfirmation] = useState<{ guide: any; message: string } | null>(null);
+    const [pickerSaveError, setPickerSaveError] = useState('');
     const [showAccommodationModal, setShowAccommodationModal] = useState(false);
     const [selectedDay, setSelectedDay] = useState(1);
     const [guideList, setGuideList] = useState<any[]>([]);
@@ -421,6 +425,28 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const [applyingTemplate, setApplyingTemplate] = useState(false);
     const [publishing, setPublishing] = useState(false);
     const [operationsDirty, setOperationsDirty] = useState(false);
+    const [quickAssignment, setQuickAssignment] = useState<'stay' | 'vehicle' | null>(null);
+    const [quickAssignmentDirty, setQuickAssignmentDirty] = useState(false);
+    const [registeredResources, setRegisteredResources] = useState<{ scope: string; data: RegisteredAssignmentResources } | null>(null);
+    const [registeredLoading, setRegisteredLoading] = useState(false);
+    const [registeredNotice, setRegisteredNotice] = useState('');
+    const [registeredRevision, setRegisteredRevision] = useState(0);
+    const registeredScope = `${user?.role || ''}:${user?.id || ''}:${reservation?.id || ''}`;
+    const activeRegisteredScope = useRef(registeredScope); activeRegisteredScope.current = registeredScope;
+    const needsRegisteredResources = showGuideModal || showAccommodationModal || quickAssignment === 'vehicle';
+    const registered = registeredResources?.scope === registeredScope ? registeredResources.data : null;
+    const registeredPending = needsRegisteredResources && (registeredLoading || (!registered && !registeredNotice));
+    useEffect(() => {
+        if (!needsRegisteredResources || user?.role !== 'admin' || !user.id) return;
+        const controller = new AbortController(), scope = registeredScope;
+        setRegisteredLoading(true); setRegisteredNotice('');
+        const isCurrent = () => !controller.signal.aborted && activeRegisteredScope.current === scope;
+        loadRegisteredAssignmentResources({ accountId: user.id, signal: controller.signal, isCurrent })
+            .then(data => { if (isCurrent()) { setRegisteredResources({ scope, data }); setRegisteredNotice(data.warnings.join(' ')); } })
+            .catch(() => { if (isCurrent()) { setRegisteredResources(null); setRegisteredNotice('등록된 배정 자원을 불러오지 못했습니다. 자원 목록을 다시 불러와 주세요.'); } })
+            .finally(() => { if (isCurrent()) setRegisteredLoading(false); });
+        return () => controller.abort();
+    }, [needsRegisteredResources, registeredScope, registeredRevision, user?.id, user?.role]);
     const [workflowOpen, setWorkflowOpen] = useState(!fullPage);
     useEffect(() => {
         if (userLoading || !user?.id || !reservation?.id || !docDraftSourceRef.current) { setDocDraftPending(false); return; }
@@ -438,10 +464,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     useEffect(() => { approvedWorkspaceClose.current = false; setNavigationNotice(''); }, [reservation?.id]);
     const workspaceBlocker = useBlocker(React.useCallback(({ currentLocation, nextLocation }) => {
         if (approvedWorkspaceClose.current) return false;
-        const decision = reservationDraftNavigationDecision(currentLocation, nextLocation, workspaceIsBusy(), () => inlineControlRef.current?.flush() || { ok: true }, isEditing || operationsDirty || !!memoDraft.trim());
+        const decision = reservationDraftNavigationDecision(currentLocation, nextLocation, workspaceIsBusy(), () => inlineControlRef.current?.flush() || { ok: true }, isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim());
         workspaceDecision.current = decision;
         return decision.blocked;
-    }, [workspaceIsBusy, isEditing, operationsDirty, memoDraft]));
+    }, [workspaceIsBusy, isEditing, operationsDirty, quickAssignmentDirty, memoDraft]));
     useEffect(() => {
         if (workspaceBlocker.state === 'unblocked') { handledWorkspaceNavigation.current = null; return; }
         if (workspaceBlocker.state !== 'blocked') return;
@@ -464,21 +490,21 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     useEffect(() => {
         const beforeUnload = (event: BeforeUnloadEvent) => {
             const result = inlineControlRef.current?.flush(false) || { ok: true };
-            if (!approvedWorkspaceClose.current && (workspaceIsBusy() || !result.ok || isEditing || operationsDirty || memoDraft.trim())) { event.preventDefault(); event.returnValue = ''; }
+            if (!approvedWorkspaceClose.current && (workspaceIsBusy() || !result.ok || isEditing || operationsDirty || quickAssignmentDirty || memoDraft.trim())) { event.preventDefault(); event.returnValue = ''; }
         };
         const pageHide = () => { inlineControlRef.current?.flush(false); };
         window.addEventListener('beforeunload', beforeUnload); window.addEventListener('pagehide', pageHide);
         return () => { window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('pagehide', pageHide); };
-    }, [workspaceIsBusy, isEditing, operationsDirty, memoDraft]);
+    }, [workspaceIsBusy, isEditing, operationsDirty, quickAssignmentDirty, memoDraft]);
     const closeWorkspace = () => {
         if (workspaceIsBusy()) { setNavigationNotice('처리 중인 작업이 끝난 뒤 예약 상세를 닫아 주세요.'); return; }
-        if ((isEditing || operationsDirty || memoDraft.trim() || (!inlineControlRef.current && inlineDirty)) && !window.confirm('저장하지 않은 변경사항이 있습니다. 예약 상세를 닫을까요?')) return;
+        if ((isEditing || operationsDirty || quickAssignmentDirty || memoDraft.trim() || (!inlineControlRef.current && inlineDirty)) && !window.confirm('저장하지 않은 변경사항이 있습니다. 예약 상세를 닫을까요?')) return;
         if (inlineControlRef.current && !inlineControlRef.current.prepareLeave()) return;
         approvedWorkspaceClose.current = true;
         onClose();
     };
     const refreshWorkspace = () => {
-        if (workspaceIsBusy() || isEditing || operationsDirty || memoDraft.trim()) return;
+        if (workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || memoDraft.trim()) return;
         if (inlineControlRef.current && !inlineControlRef.current.prepareLeave('refresh')) return;
         onRefresh();
     };
@@ -505,6 +531,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         }
     }, [showGuideModal]);
     useEffect(() => { setGuideSearch(''); setAccommodationSearch(''); setAccommodationRegion(''); }, [reservation?.id]);
+    useEffect(() => { if (!showGuideModal) setGuideConfirmation(null); }, [showGuideModal]);
+    useEffect(() => { setPickerSaveError(''); }, [showGuideModal, showAccommodationModal]);
     useEffect(() => {
         try { const value = JSON.parse(sessionStorage.getItem(`inhasu:recent-assignments:${user?.id || 'none'}`) || '{}');
             setRecentAssignments({ guides: Array.isArray(value.guides) ? value.guides.filter((id: unknown) => typeof id === 'string').slice(0, 8) : [], stays: Array.isArray(value.stays) ? value.stays.filter((id: unknown) => typeof id === 'string').slice(0, 8) : [] });
@@ -607,12 +635,19 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (!id || !user?.id) return;
         setRecentAssignments(prev => { const next = { ...prev, [kind]: [id, ...prev[kind].filter(value => value !== id)].slice(0, 8) }; try { sessionStorage.setItem(`inhasu:recent-assignments:${user.id}`, JSON.stringify(next)); } catch { /* recent choices are optional */ } return next; });
     };
-    const handleGuideAssign = async (guide: any) => {
-        if (!reservation || workspaceIsBusy() || resourceLoading) return;
+    const handleGuideAssign = async (guide: any, confirmed = false) => {
+        if (!reservation || workspaceIsBusy() || resourceLoading || registeredPending) return;
+        setPickerSaveError('');
         const conflicts = guideConflicts(guide);
-        if (conflicts.length && !window.confirm(`같은 기간에 ${conflicts.length}건의 배정이 있습니다.\n${conflicts.map(row => `${row.customerName} · ${row.startDate} ~ ${row.endDate}`).join('\n')}\n\n겹치는 일정을 확인했고 이 가이드를 배정할까요?`)) return;
         const periodUnknown = !validAssignmentPeriod(reservation) || resourceBookings.some(row => !['cancelled', 'on_hold'].includes(row.status) && !validAssignmentPeriod(row));
-        if ((resourceNotice || periodUnknown) && !window.confirm('배정 일정 전체를 확인하지 못했습니다. 가이드에게 직접 확인한 뒤 배정할까요?')) return;
+        const overlapMessage = conflicts.length ? `같은 기간에 ${conflicts.length}건의 배정이 있습니다.\n${conflicts.map(row => `${row.customerName} · ${row.startDate} ~ ${row.endDate}`).join('\n')}` : '';
+        const unknownMessage = resourceNotice || periodUnknown ? '배정 일정 전체를 확인하지 못했습니다. 가이드에게 직접 확인해 주세요.' : '';
+        if (!confirmed && fullPage && (overlapMessage || unknownMessage)) { setGuideConfirmation({ guide, message: [overlapMessage, unknownMessage].filter(Boolean).join('\n\n') }); return; }
+        if (!confirmed && !fullPage) {
+            if (overlapMessage && !window.confirm(overlapMessage + '\n\n겹치는 일정을 확인했고 이 가이드를 배정할까요?')) return;
+            if (unknownMessage && !window.confirm(unknownMessage + '\n직접 확인한 뒤 배정할까요?')) return;
+        }
+        setGuideConfirmation(null);
 
         const parseArr = (v: any) => {
             if (Array.isArray(v)) return v;
@@ -631,7 +666,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 phone: guide.phone,
                 kakaoId: guide.kakaoId,
                 languages: parseArr(guide.languages),
-                specialties: parseArr(guide.specialties)
+                specialties: parseArr(guide.specialties),
+                ...(guide._fromResources ? { qr: guide.qr || '', nameEn: guide.nameEn || '', role: guide.role || '' } : {})
             },
             history: [
                 ...(reservation.history || []),
@@ -644,11 +680,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             ]
         };
 
-        if (await onUpdate(updated)) { rememberAssignment('guides', guide.id); setShowGuideModal(false); }
+        if (await onUpdate(updated, fullPage)) { rememberAssignment('guides', guide.id); setShowGuideModal(false); if (fullPage) setNavigationNotice(`담당 가이드를 배정했습니다. (${guide.name})`); }
+        else setPickerSaveError(`${guide.name} 가이드 배정을 저장하지 못했습니다. 선택창에서 다시 시도해 주세요.`);
     };
 
     const handleAccommodationAssign = async (accommodation: any) => {
-        if (!reservation || workspaceIsBusy()) return;
+        if (!reservation || workspaceIsBusy() || registeredPending) return;
+        setPickerSaveError('');
 
         const dailyAccommodations = reservation.dailyAccommodations || [];
         const existingIndex = dailyAccommodations.findIndex(d => d.day === selectedDay);
@@ -699,7 +737,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             ]
         };
 
-        if (await onUpdate(updated)) { rememberAssignment('stays', accommodation.id); setShowAccommodationModal(false); }
+        if (await onUpdate(updated, fullPage)) { rememberAssignment('stays', accommodation.id); setShowAccommodationModal(false); if (fullPage) setNavigationNotice(`${selectedDay}일차에 ${accommodation.name} 숙소를 배정했습니다.`); }
+        else setPickerSaveError(`${selectedDay}일차 ${accommodation.name} 숙소 배정을 저장하지 못했습니다. 선택창에서 다시 시도해 주세요.`);
     };
 
     // 확정 숙소 배정 해제 — 해당 일차의 dailyAccommodations 항목 제거 (문서 편집기의 "선택 해제")
@@ -1284,7 +1323,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     };
     const canStartDelivery = () => {
         if (deliveryLock.current || updating || inlineBusy || publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs) return false;
-        if (inlineDirty || docDraftPending || isEditing || operationsDirty) { alert('작성 중인 내용이나 보관된 초안을 먼저 확인하고 저장한 뒤 고객에게 발송해 주세요.'); return false; }
+        if (inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty) { alert('작성 중인 내용이나 보관된 초안을 먼저 확인하고 저장한 뒤 고객에게 발송해 주세요.'); return false; }
         return true;
     };
     const sendItineraryToCustomer = async () => {
@@ -1530,7 +1569,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         return `${dt.getMonth() + 1}/${dt.getDate()}(${wd})`;
     };
 
-    // 숙소 선택 모달 후보 = 숙소 관리(accommodations) + 호텔 마스터(hotels) + 이 상품 일정에 들어있는 숙소.
+    // 배정 자원에 등록된 숙소를 우선하고 기존 숙소·호텔·상품 일정도 유지한다.
     // 이미지가 출처마다 JSON 문자열/배열로 달라 _thumb로 안전하게 통일.
     const firstAccImage = (a: any): string | undefined => {
         if (a?.thumbnail) return a.thumbnail;
@@ -1539,7 +1578,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         return Array.isArray(imgs) ? imgs.find((x: any) => typeof x === 'string' && x) : undefined;
     };
     const pickerAccommodations = (() => {
-        const out: any[] = (accommodationList || []).map((a: any) => ({ ...a, _thumb: firstAccImage(a) }));
+        const resourceStays = registered?.lodges || [];
+        const registeredNames = new Set(resourceStays.map((a: any) => String(a.name || '').trim()));
+        const out: any[] = [...resourceStays, ...(accommodationList || []).filter(a => !registeredNames.has(String(a.name || '').trim()))].map((a: any) => ({ ...a, _thumb: firstAccImage(a) }));
         const seen = new Set(out.map((a: any) => String(a.name || '').trim()).filter(Boolean));
         // 호텔 마스터(hotels 테이블) — 상품관리 일정탭의 「호텔 마스터 선택」과 동일한 출처
         for (const h of (hotelList || [])) {
@@ -1615,7 +1656,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         const rank = (id: string) => recent.includes(id) ? recent.indexOf(id) : 999;
         return rank(a.id) - rank(b.id);
     });
-    const visibleGuides = rankRecent(guideList.filter(guide => [guide.name, guide.phone, guide.languages].join(' ').toLowerCase().includes(guideSearch.toLowerCase().trim())), recentAssignments.guides);
+    const registeredGuideNames = new Set((registered?.guides || []).map(guide => String(guide.name || '').trim()));
+    const pickerGuides = [...(registered?.guides || []), ...guideList.filter(guide => !registeredGuideNames.has(String(guide.name || '').trim()))];
+    const visibleGuides = rankRecent(pickerGuides.filter(guide => [guide.name, guide.phone, guide.languages].join(' ').toLowerCase().includes(guideSearch.toLowerCase().trim())), recentAssignments.guides);
     const stayRegion = (stay: any) => String(stay.region || stay.location || '지역 미정');
     const accommodationRegions = [...new Set(pickerAccommodations.map(stayRegion))].sort();
     const visibleAccommodations = rankRecent(pickerAccommodations.filter(stay => (!accommodationRegion || stayRegion(stay) === accommodationRegion) && [stay.name, stay.location, stay.type].join(' ').toLowerCase().includes(accommodationSearch.toLowerCase().trim())), recentAssignments.stays);
@@ -1639,9 +1682,46 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         vehicle: readProductVehicle(reservation.adminOperations, reservation.contractData).type,
         itineraryReady, itinerarySent, contractSent, itineraryChanged, contractChanged,
     });
+    const closeQuickAssignment = () => {
+        if (workspaceIsBusy()) return;
+        if (quickAssignmentDirty && !window.confirm('저장하지 않은 차량 정보를 버리고 닫을까요?')) return;
+        setQuickAssignment(null); setQuickAssignmentDirty(false);
+    };
+    const saveQuickVehicle = async (vehicle: { type: string; phone: string; resource?: Record<string, any> }) => {
+        if (workspaceIsBusy() || isEditing || inlineDirty || operationsDirty) return false;
+        const currentVehicle = readProductVehicle(reservation.adminOperations, reservation.contractData);
+        const saved = await onUpdate({ ...reservation,
+            adminOperations: { ...emptyReservationOperations(), ...(reservation.adminOperations || {}), vehicle: vehicle.type, driverPhone: vehicle.phone },
+            ...(vehicle.resource ? { contractData: { ...(reservation.contractData || {}), vehicle: { ...vehicle.resource, type: vehicle.type, model: vehicle.type, phone: vehicle.phone } } } : {}),
+            history: [...(reservation.history || []), { timestamp: new Date().toISOString(), type: 'modification',
+                description: vehicle.type ? '배정 차량 정보를 저장했습니다.' : '차량 배정을 해제했습니다.',
+                detail: vehicle.type || currentVehicle.type }],
+        }, true);
+        if (saved) setNavigationNotice(vehicle.type ? '차량 배정을 저장했습니다.' : '차량 배정을 해제했습니다.');
+        return saved;
+    };
+    const quickAssignmentEditor = quickAssignment === 'vehicle'
+        ? <CustomerVehicleAssignment key={reservation.id} value={readProductVehicle(reservation.adminOperations, reservation.contractData)} vehicles={registered?.vehicles || []} loading={registeredPending} resourceNotice={registeredNotice} onRetry={() => setRegisteredRevision(value => value + 1)} disabled={workspaceIsBusy()} onSave={saveQuickVehicle} onDirtyChange={setQuickAssignmentDirty} onClose={closeQuickAssignment} onSaved={() => { setQuickAssignmentDirty(false); setQuickAssignment(null); }} />
+        : quickAssignment === 'stay' ? <section className="cw-quick-assignment" aria-label="숙소 바로 배정">
+            <header><strong>일자별 숙소 바로 배정</strong><button type="button" className="cw-text-button" disabled={workspaceIsBusy()} onClick={closeQuickAssignment}>닫기</button></header>
+            {workspace.nights > 0 ? <><p>귀국일을 제외한 {workspace.nights}박의 숙소를 선택하세요.</p><ol className="cw-quick-stays">{Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => {
+                const day = index + 1, assigned = reservation.dailyAccommodations?.find(stay => Number(stay.day) === day)?.accommodation;
+                return <li key={day}><div><strong>{day}일차</strong><span>{assigned?.name || '미배정'}</span></div><button type="button" className="cw-button" aria-label={`${day}일차 숙소 ${assigned?.name ? '변경' : '배정'}`} disabled={workspaceIsBusy()} onClick={() => { setSelectedDay(day); setShowAccommodationModal(true); }}>{assigned?.name ? '변경' : '숙소 선택'}</button></li>;
+            })}</ol></> : <p>{validAssignmentPeriod(reservation) ? '당일 투어는 숙소 배정이 필요하지 않습니다.' : '여행 시작일과 종료일을 먼저 확인해 주세요.'}</p>}
+        </section> : null;
     const overviewAction = (action: string) => {
         if (workspaceIsBusy()) return;
         if (action === 'back') { closeWorkspace(); return; }
+        if (quickAssignmentDirty) { setNavigationNotice('입력 중인 차량 정보를 먼저 저장하거나 차량 편집을 닫아 주세요.'); return; }
+        if (fullPage && ['guide', 'stay', 'vehicle'].includes(action)) {
+            if (reservation.status === 'cancelled') { setNavigationNotice('취소된 예약의 배정은 변경할 수 없습니다.'); return; }
+            if (isEditing || inlineDirty || operationsDirty) { setNavigationNotice('작성 중인 주문·일정·운영 정보를 먼저 저장한 뒤 배정해 주세요.'); return; }
+            setNavigationNotice('');
+            setWorkflowOpen(false);
+            if (action === 'guide') { setQuickAssignment(null); setShowGuideModal(true); }
+            else setQuickAssignment(action as 'stay' | 'vehicle');
+            return;
+        }
         if (action === 'customer-link') { void copyCustomerMessage(workspace.published ? 'itinerary' : 'contract'); return; }
         if (action === 'send-itinerary') { void sendItineraryToCustomer(); return; }
         if (action === 'edit-itinerary') { openInlineDocument('itinerary'); return; }
@@ -1661,8 +1741,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 {docDraftPending && <div role="status" style={{ padding: '10px 16px', background: '#edfaf6', color: '#145c4c', fontSize: 13, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><button type="button" className="btn btn-ghost btn-sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</button></div>}
 
                 {fullPage && <>
-                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
-                    <div className="product-customer-controls"><button type="button" className="btn btn-ghost" aria-expanded={workflowOpen} aria-controls="product-customer-detail" disabled={workspaceIsBusy() || (workflowOpen && (isEditing || operationsDirty || inlineDirty))} onClick={() => setWorkflowOpen(value => !value)}><Icon name={workflowOpen ? 'expand_less' : 'expand_more'} />{workflowOpen ? '상세 업무 접기' : '일정·계약·결제·운영 상세 업무 펼치기'}</button><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || isEditing || operationsDirty || !!memoDraft.trim()} onClick={refreshWorkspace}><Icon name="refresh" />최신 정보 확인</button></div>
+                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
+                    <div className="product-customer-controls"><button type="button" className="btn btn-ghost" aria-expanded={workflowOpen} aria-controls="product-customer-detail" disabled={workspaceIsBusy() || quickAssignmentDirty || (workflowOpen && (isEditing || operationsDirty || inlineDirty))} onClick={() => setWorkflowOpen(value => !value)}><Icon name={workflowOpen ? 'expand_less' : 'expand_more'} />{workflowOpen ? '상세 업무 접기' : '일정·계약·결제·운영 상세 업무 펼치기'}</button><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()} onClick={refreshWorkspace}><Icon name="refresh" />최신 정보 확인</button></div>
                 </>}
 
                 <div id="product-customer-detail" className="product-customer-detail" hidden={fullPage && !workflowOpen}>
@@ -2229,13 +2309,16 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         {/* Guide Selection Modal */}
         {showGuideModal && (
             <div className="picker-scrim" onClick={() => { if (!workspaceIsBusy()) setShowGuideModal(false); }}>
-                <div className="picker" onClick={e => e.stopPropagation()}>
+                <div className="picker" role="dialog" aria-modal="true" aria-label="등록된 가이드 선택" onClick={e => e.stopPropagation()}>
                     <div className="card-head">
                         <h2>가이드 선택</h2>
                         <div className="spacer" style={{ flex: 1 }} />
                         <button className="icon-btn" aria-label="가이드 선택 닫기" disabled={workspaceIsBusy()} style={{ width: 34, height: 34 }} onClick={() => setShowGuideModal(false)}><Icon name="close" /></button>
                     </div>
-                    <div style={{ padding: '12px 18px' }}><input className="inp" aria-label="가이드 이름·연락처 검색" placeholder="가이드 이름·연락처 검색" value={guideSearch} onChange={e => setGuideSearch(e.target.value)} /><p role="status" className="cell-muted">{resourceLoading ? '최신 배정 일정을 확인하고 있습니다…' : resourceNotice || '최근 선택한 가이드를 먼저 표시합니다. 기간이 겹치는 배정을 함께 확인하세요.'}</p></div>
+                    <div style={{ padding: '12px 18px' }}><input className="inp" aria-label="가이드 이름·연락처 검색" placeholder="가이드 이름·연락처 검색" value={guideSearch} onChange={e => setGuideSearch(e.target.value)} /><p role="status" className="cell-muted">{registeredLoading ? '등록된 가이드 목록을 불러오는 중입니다…' : resourceLoading ? '최신 배정 일정을 확인하고 있습니다…' : resourceNotice || '배정·자원에 등록된 가이드를 선택하세요. 기간이 겹치는 배정도 함께 확인할 수 있습니다.'}</p></div>
+                    {registeredNotice && <div className="product-customer-warning" role="status">{registeredNotice}<button type="button" className="cw-text-button" disabled={registeredLoading} onClick={() => setRegisteredRevision(value => value + 1)}>자원 목록 다시 불러오기</button></div>}
+                    {guideConfirmation && <div className="product-customer-warning" role="alert"><strong>{guideConfirmation.guide.name} 배정 확인</strong><p style={{ whiteSpace: 'pre-line' }}>{guideConfirmation.message}</p><div className="row" style={{ gap: 8 }}><button type="button" className="btn btn-sm btn-ink" disabled={workspaceIsBusy() || registeredLoading || resourceLoading} onClick={() => void handleGuideAssign(guideConfirmation.guide, true)}>일정 확인 후 배정</button><button type="button" className="btn btn-sm btn-ghost" disabled={workspaceIsBusy()} onClick={() => setGuideConfirmation(null)}>취소</button></div></div>}
+                    {pickerSaveError && <div className="product-customer-warning" role="alert">{pickerSaveError}</div>}
                     <div className="picker-list">
                         {visibleGuides.length === 0 ? (
                             <div className="empty"><Icon name="person_off" /><p>조건에 맞는 가이드가 없습니다</p></div>
@@ -2243,7 +2326,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                             <button
                                 key={guide.id}
                                 className="picker-item"
-                                disabled={workspaceIsBusy() || resourceLoading}
+                                disabled={workspaceIsBusy() || resourceLoading || registeredLoading}
                                 onClick={() => { void handleGuideAssign(guide); }}
                             >
                                 {guide.image ? (
@@ -2252,7 +2335,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     <span className="avatar round tint-blue"><Icon name="person" /></span>
                                 )}
                                 <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div className="cell-strong">{guide.name}</div>
+                                    <div className="cell-strong">{guide.name}{guide._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}</div>
                                     {!!guideConflicts(guide).length && <div className="badge b-amber">같은 기간 배정 {guideConflicts(guide).length}건</div>}
                                     <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{guide.phone}</div>
                                     {guide.languages && (
@@ -2274,13 +2357,15 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         {/* Accommodation Selection Modal */}
         {showAccommodationModal && (
             <div className="picker-scrim" onClick={() => { if (!workspaceIsBusy()) setShowAccommodationModal(false); }}>
-                <div className="picker" onClick={e => e.stopPropagation()}>
+                <div className="picker" role="dialog" aria-modal="true" aria-label={`${selectedDay}일차 등록된 숙소 선택`} onClick={e => e.stopPropagation()}>
                     <div className="card-head">
                         <h2>{selectedDay}일차 숙소 선택</h2>
                         <div className="spacer" style={{ flex: 1 }} />
                         <button className="icon-btn" aria-label="숙소 선택 닫기" disabled={workspaceIsBusy()} style={{ width: 34, height: 34 }} onClick={() => setShowAccommodationModal(false)}><Icon name="close" /></button>
                     </div>
                     <div style={{ padding: '12px 18px', display: 'grid', gap: 8 }}><input className="inp" aria-label="숙소 이름·지역 검색" placeholder="숙소 이름·지역 검색" value={accommodationSearch} onChange={e => setAccommodationSearch(e.target.value)}/><select className="inp" aria-label="숙소 지역" value={accommodationRegion} onChange={e => setAccommodationRegion(e.target.value)}><option value="">전체 지역</option>{accommodationRegions.map(region => <option key={region} value={region}>{region}</option>)}</select><small>최근 선택한 숙소를 먼저 표시합니다.</small></div>
+                    {(registeredLoading || registeredNotice) && <div className="product-customer-warning" role="status">{registeredLoading ? '등록된 숙소 목록을 불러오는 중입니다…' : registeredNotice}{!registeredLoading && <button type="button" className="cw-text-button" onClick={() => setRegisteredRevision(value => value + 1)}>자원 목록 다시 불러오기</button>}</div>}
+                    {pickerSaveError && <div className="product-customer-warning" role="alert">{pickerSaveError}</div>}
                     <div className="picker-list">
                         {visibleAccommodations.length === 0 ? (
                             <div className="empty"><Icon name="hotel" /><p>조건에 맞는 숙소가 없습니다</p></div>
@@ -2288,7 +2373,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                             <button
                                 key={acc.id}
                                 className="picker-item"
-                                disabled={workspaceIsBusy()}
+                                disabled={workspaceIsBusy() || registeredLoading}
                                 onClick={() => { void handleAccommodationAssign(acc); }}
                             >
                                 {acc._thumb ? (
@@ -2299,7 +2384,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                 <div style={{ minWidth: 0, flex: 1 }}>
                                     <div className="cell-strong">
                                         {acc.name}
-                                        {acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#eef4ff', color: '#1656d6' }}>호텔 마스터</span>}
+                                        {acc._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}{acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#eef4ff', color: '#1656d6' }}>호텔 마스터</span>}
                                         {acc._fromItinerary && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>이 상품 일정</span>}
                                     </div>
                                     {acc.type && <div className="cell-muted" style={{ fontSize: 12 }}>{acc.type}</div>}

@@ -10,6 +10,25 @@
 .product-customer-note { display:grid; gap:8px; margin-top:14px; }
 .product-customer-note textarea { width:100%; resize:vertical; min-height:80px; border:1px solid #dbe3e8; border-radius:10px; padding:10px; font:inherit; font-size:12px; }
 .product-customer-note button { justify-self:end; }
+.cw-quick-assignment { margin:8px 0 16px; padding:14px; border:1px solid #bce7dd; border-radius:9px; background:#f4fcf9; }
+.cw-quick-assignment header { display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:12px; }
+.cw-quick-assignment header strong { font-size:13px; }
+.cw-quick-assignment fieldset { padding:0; margin:0; border:0; display:grid; gap:10px; min-width:0; }
+.cw-quick-assignment label { display:grid; gap:5px; color:#5a6c76; font-size:12px; }
+.cw-quick-assignment input,.cw-quick-assignment select { width:100%; min-width:0; padding:9px; background:#fff; border:1px solid #d7e2df; border-radius:7px; font:inherit; color:#142039; }
+.cw-quick-resource-preview { display:flex; gap:10px; align-items:center; padding:10px 0; }
+.cw-quick-resource-preview img { width:64px; height:48px; object-fit:cover; border-radius:6px; }
+.cw-quick-resource-preview>div { display:grid; gap:3px; min-width:0; }
+.cw-quick-resource-preview strong { font-size:12px; overflow-wrap:anywhere; }
+.cw-quick-resource-preview small { font-size:11px; color:#6d7b82; }
+.cw-quick-assignment p { margin:10px 0; font-size:11px; color:#6d7b82; }
+.cw-quick-assignment p[role=alert] { color:#a64e21; }
+.cw-quick-stays { margin:0; padding:0; list-style:none; }
+.cw-assignments .cw-quick-stays li { display:flex; align-items:center; gap:8px; padding:10px 0; border-top:1px solid #dcece6; }
+.cw-quick-stays li>div { display:grid; flex:1; min-width:0; gap:3px; }
+.cw-quick-stays li strong { font-size:12px; }
+.cw-quick-stays li span { font-size:11px; color:#6d7b82; overflow-wrap:anywhere; }
+.cw-quick-stays .cw-button { font-size:11px; min-height:30px; padding:5px 9px; }
 .product-customer-bookings { border:0; margin:0; padding:0; min-width:0; max-width:100%; }
 .product-customer-bookings label { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .product-customer-bookings select { max-width:360px; width:100%; border:1px solid #dbe3e8; border-radius:8px; background:#fff; padding:7px; font:inherit; }
