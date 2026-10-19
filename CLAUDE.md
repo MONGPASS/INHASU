@@ -185,7 +185,7 @@ node scripts/check-reservation-workspace.mjs --serve --usability --customer-work
 ## 8. 다음에 이어 할 작업 (오픈된 스레드)
 
 - **상품 데이터**: 통합 DB에는 상품·카테고리·매거진이 없다. 관리자에서 한국어·원화로 등록해야 홈/목록이 채워진다. 코드에 박혀 있던 금액(가격대 필터 100만/150만 원, 1인 참가 추가 요금 180,000원, 템플릿 샘플 금액)은 엔 금액 ×10 임시값 — 오너 확인 필요.
-- **계약서 통일**: 상품 예약용 계약서(`src/pages/DocumentContract.tsx` + `company.ts`의 취소 규정·고지)가 견적 쪽 오너 원문(`public/계약서.html`: 환불규정 3조, 건강 위험 고지, 필수 동의 3개 + 캔버스 서명)과 내용이 다르다. 용어·서문만 맞춘 상태.
+- **계약서 내용·서명 통일**: 상품 예약용 계약서(`src/pages/DocumentContract.tsx` + `company.ts`의 취소 규정·고지)가 견적 쪽 오너 원문(`public/계약서.html`: 환불규정 3조, 건강 위험 고지, 필수 동의 3개 + 캔버스 서명)과 내용이 다르다. 상품 고객 화면은 기존 견적과 같은 민트 카드·계약 요약·여행자/항공/금액 정보 순서로 정리했으나, 약관과 성명 전자 동의 API는 기존대로다. 상품의 `agreement.agreed === true`만 ‘전자 동의 완료’와 실제 저장 시각으로 표시하며 견적의 `signedAt`/캔버스 서명과 혼용하지 않는다. 약관·서명 방식 통일은 별도 과제다.
 - **마이페이지 견적 내역**: 새 견적 요청은 사용자 계정과 연결되지 않는다(매직링크 방식). 브라우저에 저장한 `mw_quote_links`(`estimate-desktop/quoteLinks.ts`)로만 "내 견적" 링크를 다시 보여 준다.
 - **남은 보안 보완**: 견적 API는 공유 관리자 토큰 하나를 사용하고 인증 시도 제한이 없다. 기존 호환용 URL 토큰 경로(`/api/file`, `/api/notify-test`)도 남아 있다. 계정별 권한·시도 제한·기존 링크 전환은 별도 작업이다.
 - **메일 발신 도메인**: `functions/lib/mailConfig.ts`의 `resolveMailFrom(env)`가 전체 메일의 `MAIL_FROM`을 읽는다. 새 발신 도메인을 Resend에서 인증 완료한 뒤 Cloudflare 환경 변수에 설정한다. 미설정이면 기존 `몽골리아 은하수 <noreply@mongolryokou.com>`을 유지하며 잘못된 주소·CRLF는 발송 전에 차단한다. 순서는 `DEPLOYMENT.md` 참조.
