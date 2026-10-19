@@ -107,11 +107,12 @@ test('고객 현황 복귀는 처리 중·초안 보관 실패를 차단하고 �
 
 test('고객 일정 행은 해당 일차 편집을 열고 집중 작업 이동은 본문을 처음부터 보여주며 요약 위치를 덮지 않는다', () => {
     const calls = [];
+    let scheduledFrames = 0;
     const context = {
         fullPage: true, workflowOpen: false, isEditing: false, inlineDirty: false, operationsDirty: false, quickAssignmentDirty: false,
         reservation: { status: 'confirmed' }, workspaceIsBusy: () => false, overviewScrollPosition: { current: 0 }, documentFocusRevision: 0,
         overview: { days: [{ id: 'saved-day-one', day: 1 }, { id: 'saved-day-three', day: 3 }] },
-        window: { scrollY: 420 }, requestAnimationFrame: callback => callback(),
+        window: { scrollY: 420 }, requestAnimationFrame: callback => { scheduledFrames++; callback(); },
         bodyRef: { current: { scrollTo: options => calls.push(['scroll', options.top]), querySelector: () => assert.fail('full-page work must not jump through the old overview to an anchor') } },
         setWorkflowOpen: value => { context.workflowOpen = value; calls.push(['open', value]); },
         setDocumentFocusRevision: value => { context.documentFocusRevision = typeof value === 'function' ? value(context.documentFocusRevision) : value; },
@@ -125,7 +126,8 @@ test('고객 일정 행은 해당 일차 편집을 열고 집중 작업 이동�
     execute(source.slice(openStart, openEnd) + source.slice(actionStart, actionEnd) + source.slice(navigationStart, navigationEnd)
         + '\nglobalThis.action = overviewAction; globalThis.navigate = scrollToSec;', context);
     context.action('edit-itinerary', 'saved-day-three');
-    assert.deepEqual(calls, [['open', true], ['day', 3], ['mode', 'itinerary'], ['editor', true], ['section', 'inline-doc'], ['scroll', 0]]);
+    assert.deepEqual(calls, [['scroll', 0], ['open', true], ['day', 3], ['mode', 'itinerary'], ['editor', true], ['section', 'inline-doc']]);
+    assert.equal(scheduledFrames, 0, 'a delayed parent reset must not cancel the child widget’s requested day jump');
     assert.equal(context.overviewScrollPosition.current, 420);
     assert.equal(context.documentFocusRevision, 1);
     calls.length = 0; context.workflowOpen = false;

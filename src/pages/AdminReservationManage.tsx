@@ -899,15 +899,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (fullPage && (operationsDirty || quickAssignmentDirty)) { setNavigationNotice('작성 중인 운영·배정 정보를 먼저 저장하거나 취소해 주세요.'); return; }
         if (isEditing) { alert('주문 정보 변경사항을 먼저 저장하세요.'); return; }
         if (fullPage && !workflowOpen) overviewScrollPosition.current = window.scrollY;
+        if (fullPage) bodyRef.current?.scrollTo({ top: 0 });
         setWorkflowOpen(true);
         setRequestedDocumentDay(day);
         setDocumentFocusRevision(value => value + 1);
         setActiveDocument(kind); setInlineEditorOpen(true);
         setActiveSec('inline-doc');
-        requestAnimationFrame(() => {
-            if (fullPage) bodyRef.current?.scrollTo({ top: 0 });
-            else bodyRef.current?.querySelector('#sec-inline-doc')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
+        if (!fullPage) requestAnimationFrame(() => bodyRef.current?.querySelector('#sec-inline-doc')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     };
     const closeInlineDocument = () => {
         if (workspaceIsBusy()) return;

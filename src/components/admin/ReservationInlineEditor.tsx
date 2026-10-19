@@ -400,9 +400,9 @@ export function ReservationInlineEditor(p: Props) {
         }
     };
     const close = () => { if (prepareLeave()) callbacks.current.onClose(); };
-    const jumpToDay = useCallback((index: number) => {
+    const jumpToDay = useCallback((index: number, behavior: ScrollBehavior = 'smooth') => {
         const day = editorRef.current?.querySelectorAll<HTMLElement>('.day-edit')[index];
-        day?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        day?.scrollIntoView({ behavior, block: 'start' });
         day?.querySelector<HTMLInputElement>('input.dest')?.focus({ preventScroll: true });
         return !!day;
     }, []);
@@ -412,15 +412,31 @@ export function ReservationInlineEditor(p: Props) {
         if (!p.externalActions || locked || activeMode !== 'itinerary' || requestedDay == null || !Number.isInteger(requestedDay) || requestedDay < 1 || requestedDay > draft.days.length) return;
         const requestKey = `${p.reservationId}:${requestedDay}:${p.requestedDayRevision ?? 0}`;
         if (requestedDayApplied.current === requestKey) return;
-        const apply = () => {
-            if (!jumpToDay(requestedDay - 1)) return false;
-            requestedDayApplied.current = requestKey;
-            return true;
+        if (!editorRef.current) return;
+        let disposed = false, firstFrame = 0, settledFrame = 0;
+        // The shared widget adds cards before its portals and layout finish settling.
+        // Wait for two paint frames, then place the requested day without a competing animation.
+        const schedule = () => {
+            if (disposed || firstFrame || settledFrame || !editorRef.current?.querySelectorAll('.day-edit')[requestedDay - 1]) return;
+            firstFrame = requestAnimationFrame(() => {
+                firstFrame = 0;
+                settledFrame = requestAnimationFrame(() => {
+                    settledFrame = 0;
+                    if (disposed || !jumpToDay(requestedDay - 1, 'auto')) return;
+                    requestedDayApplied.current = requestKey;
+                    observer.disconnect();
+                });
+            });
         };
-        if (apply() || !editorRef.current) return;
-        const observer = new MutationObserver(() => { if (apply()) observer.disconnect(); });
+        const observer = new MutationObserver(schedule);
         observer.observe(editorRef.current, { childList: true, subtree: true });
-        return () => observer.disconnect();
+        schedule();
+        return () => {
+            disposed = true;
+            observer.disconnect();
+            if (firstFrame) cancelAnimationFrame(firstFrame);
+            if (settledFrame) cancelAnimationFrame(settledFrame);
+        };
     }, [p.externalActions, p.requestedDay, p.requestedDayRevision, p.reservationId, activeMode, draft.days.length, locked, jumpToDay]);
     const contract = draft.documentSettings?.contract || {} as DocumentSettings['contract'];
     const expectedDays = dates.startDate && dates.endDate ? Math.round((Date.parse(dates.endDate) - Date.parse(dates.startDate)) / 86400000) + 1 : null;

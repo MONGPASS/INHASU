@@ -217,14 +217,19 @@ test('같은 일차를 다시 요청하면 실제 편집기 effect가 revision�
     const source = readFileSync(new URL('../src/components/admin/ReservationInlineEditor.tsx', import.meta.url), 'utf8');
     const start = source.search(/useEffect\(\(\) => \{\r?\n\s*const requestedDay = p.requestedDay;/);
     assert.notEqual(start, -1);
-    const actualEffect = new Function('context', `const {p,locked,activeMode,draft,jumpToDay,editorRef,requestedDayApplied,useEffect,MutationObserver}=context;\n${source.slice(start, source.indexOf('    const contract =', start))}`);
+    const actualEffect = new Function('context', `const {p,locked,activeMode,draft,jumpToDay,editorRef,requestedDayApplied,useEffect,MutationObserver,requestAnimationFrame,cancelAnimationFrame}=context;\n${source.slice(start, source.indexOf('    const contract =', start))}`);
     const jumps = [], requestedDayApplied = { current: null };
-    let previousDeps, cleanup, observer, ready = true;
-    const jumpToDay = index => { if (!ready) return false; jumps.push(index); return true; };
-    const render = (revision, locked = false) => actualEffect({
+    const frames = new Map();
+    let previousDeps, cleanup, observer, ready = true, nextFrame = 0;
+    const paint = () => { const pending = [...frames.entries()]; frames.clear(); pending.forEach(([, run]) => run()); };
+    const jumpToDay = (index, behavior) => { if (!ready) return false; jumps.push({ index, behavior }); return true; };
+    const render = (revision, locked = false, count = 3) => actualEffect({
         p: { reservationId: scope.reservationId, externalActions: true, requestedDay: 2, requestedDayRevision: revision },
-        locked, activeMode: 'itinerary', draft: { days: [{}, {}, {}] }, editorRef: { current: {} }, requestedDayApplied,
+        locked, activeMode: 'itinerary', draft: { days: Array.from({ length: count }, () => ({})) },
+        editorRef: { current: { querySelectorAll: () => ready ? [{}, {}, {}] : [] } }, requestedDayApplied,
         jumpToDay,
+        requestAnimationFrame: run => { const id = ++nextFrame; frames.set(id, run); return id; },
+        cancelAnimationFrame: id => frames.delete(id),
         useEffect: (run, deps) => {
             if (previousDeps?.every((value, index) => Object.is(value, deps[index]))) return;
             cleanup?.(); previousDeps = deps; cleanup = run();
@@ -235,13 +240,22 @@ test('같은 일차를 다시 요청하면 실제 편집기 effect가 revision�
             disconnect() { this.observing = false; }
         },
     });
-    render(0); render(0); render(1);
-    assert.deepEqual(jumps, [1, 1], '일반 재렌더에는 유지하고 같은 일차의 새 요청에는 다시 이동한다');
+    render(0); render(0);
+    assert.equal(jumps.length, 0);
+    paint(); assert.equal(jumps.length, 0, '첫 프레임에는 DOM과 포털 레이아웃을 기다린다');
+    paint(); assert.deepEqual(jumps, [{ index: 1, behavior: 'auto' }]);
+    render(0, false, 4); paint(); paint();
+    assert.equal(jumps.length, 1, '내부 일정 편집으로 재렌더되어도 사용자 위치를 되돌리지 않는다');
+    render(1); paint(); paint();
+    assert.deepEqual(jumps, [{ index: 1, behavior: 'auto' }, { index: 1, behavior: 'auto' }], '같은 일차의 새 요청에는 다시 이동한다');
     render(2, true); assert.equal(jumps.length, 2);
     ready = false; render(2);
     assert.equal(observer.observing, true);
     ready = true; observer.callback();
-    assert.deepEqual(jumps, [1, 1, 1]);
+    paint(); assert.equal(jumps.length, 2);
+    paint(); assert.equal(jumps.length, 3);
     assert.equal(observer.observing, false);
+    render(3); paint(); cleanup?.(); paint();
+    assert.equal(jumps.length, 3, '이탈하면 대기 중인 두 번째 프레임을 취소한다');
     cleanup?.();
 });

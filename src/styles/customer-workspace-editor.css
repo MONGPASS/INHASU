@@ -133,6 +133,7 @@
 .product-customer-page .cw-focus-workspace .ri-editor-workflow { margin: 0; }
 .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-draft-status.is-idle { display: none; }
 .product-customer-page .cw-focus-workspace .ri-editor-tools { position: sticky; top: 0; z-index: 3; background: white; box-shadow: 0 3px 8px #19242e05; }
+.product-customer-page .cw-focus-workspace .ri-editor-tools::before { content: ''; position: absolute; inset: -20px 0 auto; height: 20px; background: white; pointer-events: none; }
 .product-customer-page .cw-focus-workspace .ri-editor-workflow :is(.day-edit, .ri-spots, .ri-spots-collapsible) { scroll-margin-top: 136px!important; }
 .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation { flex-wrap: nowrap; overflow-x: auto; }
 .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation > * { flex-shrink: 0; }
