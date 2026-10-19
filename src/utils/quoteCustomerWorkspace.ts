@@ -173,7 +173,7 @@ export function quoteCustomerWorkspaceModel(record: any): CustomerWorkspaceOverv
                 summary: Array.isArray(day.items) ? strings(day.items).join('\n') : text(day.summary) || activities.map(activity => [activity.time, activity.title].filter(Boolean).join(' ')).join('\n'),
                 stay: text(assigned?.name) || text(day.stay?.name) || (typeof day.stay === 'string' ? day.stay : ''), stayAssigned: !!assigned,
                 stayRequired: expectedDays !== null ? index < expectedDays - 1 : text(day.stay?.name) === '숙소미포함' ? false : undefined,
-                meals: strings(day.meals).join(' · ') || text(day.meals), travel: [text(day.move), distance && `${distance}km`].filter(Boolean).join(' · '),
+                meals: strings(day.meals).join(' · ') || text(day.meals), travel: [text(day.move), distance && `${distance}${/km|㎞|킬로/i.test(distance) ? '' : 'km'}`].filter(Boolean).join(' · '),
                 image: text(day.img) || text(day.images?.[0]) || undefined };
         }),
         documents: [

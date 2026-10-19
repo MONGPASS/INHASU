@@ -127,6 +127,7 @@ test('발권 확인 체크만으로 누락된 항공편 정보를 완료 처리�
     const result = model(record), flightTask = result.tasks.find(task => task.id === 'flights');
     assert.ok(flightTask); assert.match(flightTask.detail, /도착시간 · 도착편명 · 출발시간 · 출발편명 미입력/);
     assert.equal(result.days[0].travel, '도보 · 0km'); assert.equal(result.days[1].travel, '85km'); assert.equal(result.days[2].travel, '');
+    record.booking.days[1].dist = '120km'; assert.equal(model(record).days[1].travel, '120km');
     record.booking.flight = { ...record.booking.flight, inTime: '08:20', inNo: 'OM310', outTime: '12:30', outNo: 'OM309' };
     assert.equal(model(record).tasks.some(task => task.id === 'flights'), false);
 });
