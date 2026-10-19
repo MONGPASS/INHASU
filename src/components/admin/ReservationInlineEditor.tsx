@@ -68,6 +68,10 @@ export function ReservationInlineEditor(p: Props) {
     const [draft, setDraftState] = useState(() => cloneContent(p.initialContent));
     const [dates, setDatesState] = useState({ startDate: p.startDate, endDate: p.endDate });
     const [activeMode, setActiveMode] = useState(p.mode);
+    const [tripSettingsOpen, setTripSettingsOpen] = useState(!p.initialContent.name || !p.startDate || !p.endDate);
+    useEffect(() => {
+        if (p.externalActions && (!draft.name || !dates.startDate || !dates.endDate)) setTripSettingsOpen(true);
+    }, [p.externalActions, draft.name, dates.startDate, dates.endDate]);
     useEffect(() => {
         if (p.externalActions) editorRef.current?.closest<HTMLElement>('.reservation-workspace-body')?.scrollTo({ top: 0 });
     }, [p.externalActions, activeMode]);
@@ -329,9 +333,13 @@ export function ReservationInlineEditor(p: Props) {
         if (draft.days.length <= 1) { setNotice('최소 1일은 필요합니다.'); setNoticeFailed(true); return; }
         edit(current => ({ ...current, days: renumber(current.days.filter((_, i) => i !== index)) }));
     };
+    const revealTripSettings = () => {
+        setTripSettingsOpen(true);
+        if (p.externalActions) requestAnimationFrame(() => editorRef.current?.querySelector('.ri-trip-settings')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    };
     const fillDates = () => {
         if (locked) return;
-        if (!dates.startDate) { setNotice('여행 시작일을 먼저 입력하세요.'); setNoticeFailed(true); return; }
+        if (!dates.startDate) { revealTripSettings(); setNotice('여행 시작일을 먼저 입력하세요.'); setNoticeFailed(true); return; }
         edit(current => ({ ...current, days: fillQuoteDayDates(current.days, dates.startDate) }));
         setNotice('출발일 기준으로 여행일자를 채웠어요 — 각 칸에서 자유롭게 수정할 수 있어요.');
     };
@@ -359,8 +367,8 @@ export function ReservationInlineEditor(p: Props) {
     const save = async () => {
         if (isLocked()) return;
         const currentDates = datesRef.current;
-        if (!!currentDates.startDate !== !!currentDates.endDate) { setNotice('여행 시작일과 종료일을 함께 입력하세요.'); setNoticeFailed(true); return; }
-        if (currentDates.endDate && currentDates.endDate < currentDates.startDate) { setNotice('여행 종료일은 시작일보다 빠를 수 없습니다.'); setNoticeFailed(true); return; }
+        if (!!currentDates.startDate !== !!currentDates.endDate) { revealTripSettings(); setNotice('여행 시작일과 종료일을 함께 입력하세요.'); setNoticeFailed(true); return; }
+        if (currentDates.endDate && currentDates.endDate < currentDates.startDate) { revealTripSettings(); setNotice('여행 종료일은 시작일보다 빠를 수 없습니다.'); setNoticeFailed(true); return; }
         if (modeRef.current === 'itinerary' && !contentRef.current.days.length) { setNotice('일차를 추가하고 일정을 작성해 주세요.'); setNoticeFailed(true); return; }
         if (latestSourceFingerprint.current !== baseFingerprint.current && acceptedSourceFingerprint.current !== latestSourceFingerprint.current) {
             if (!window.confirm('편집 중 서버의 문서가 변경되었습니다. 현재 초안으로 문서를 저장할까요?')) return;
@@ -460,14 +468,17 @@ export function ReservationInlineEditor(p: Props) {
             <button type="button" onClick={() => { const spots = editorRef.current?.querySelector<HTMLDetailsElement>('.ri-spots-collapsible'); if (spots) { spots.open = true; spots.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }}>대표 명소</button>
         </nav>}</div>
         <form id={`reservation-inline-${p.reservationId}`} noValidate onSubmit={event => { event.preventDefault(); void save(); }}>
-        <fieldset className="ri-form" disabled={locked} inert={locked}>
+        <fieldset className={`ri-form${p.externalActions ? ' ri-composer' : ''}`} disabled={locked} inert={locked}>
+            <section className="ri-trip-settings" aria-label="여행 기본 정보">
+            {p.externalActions && <header className="ri-settings-heading"><span className="ri-settings-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" /><path d="M8 3v4m8-4v4M4 10h16m-11 5h2m3 0h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg></span><div className="ri-settings-title"><h3>{draft.name || '여행 기본 정보'}</h3><p>{dates.startDate || '출발일 미정'}<span>—</span>{dates.endDate || '도착일 미정'}{expectedDays != null && expectedDays > 0 && <b>{expectedDays}일 여행</b>}</p></div><button type="button" className="ri-settings-toggle" aria-expanded={tripSettingsOpen} aria-controls={`reservation-trip-settings-${p.reservationId}`} onClick={() => setTripSettingsOpen(value => !value)}>{tripSettingsOpen ? '접기' : '기본 정보 수정'}<svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 8 5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></button></header>}
+            <div id={`reservation-trip-settings-${p.reservationId}`} hidden={p.externalActions && !tripSettingsOpen}>
             <div className="ri-basics"><label className="ri-field ri-wide"><span>여행명</span><input value={draft.name} onChange={e => edit(current => ({ ...current, name: e.target.value }))} /></label><label className="ri-field"><span>여행 시작일</span><input type="date" value={dates.startDate} onChange={e => setDate('startDate', e.target.value)} /></label><label className="ri-field"><span>여행 종료일</span><input type="date" value={dates.endDate} min={dates.startDate || undefined} onChange={e => setDate('endDate', e.target.value)} /></label></div>
+            </div>
+            </section>
             {activeMode === 'itinerary' ? <>
                 <div className="ri-quote-section quote-day-editor">
-                    <div className="ri-quote-head"><h3>일자별 일정</h3><p>일차별 일정을 구성하고 프리셋으로 빠르게 채웁니다.</p></div>
-                    <p className="ri-quote-hint">목적지·이동·세부 일정을 자유롭게 수정하세요. (한 줄에 하나씩. "*"로 시작하면 강조, "("로 시작하면 회색)</p>
-                    {expectedDays != null && expectedDays > 0 && <p className={expectedDays === draft.days.length ? 'ri-day-count is-matched' : 'ri-day-count is-mismatched'}>{expectedDays === draft.days.length ? '✓ 여행 기간과 일정 칸 수가 맞습니다.' : '여행 기간에 맞춰 일자를 추가·삭제하세요.'} {expectedDays}일 여행 · 일정 {draft.days.length}일</p>}
-                    <button type="button" className="ri-fill-dates" onClick={fillDates}>📅 출발일 기준 여행일자 자동 입력 (선택)</button>
+                    <div className="ri-schedule-heading"><div className="ri-quote-head"><h3>일자별 일정 <span className="ri-schedule-count">{draft.days.length}일</span></h3><p>저장된 일정을 불러오거나, 고객에게 맞게 직접 작성하세요.</p></div><button type="button" className="ri-fill-dates" onClick={fillDates}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" /><path d="M8 3v4m8-4v4M4 10h16m-8 4v4m-2-2h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>날짜 자동 입력</button></div>
+                    <div className="ri-schedule-meta">{expectedDays != null && expectedDays > 0 && <p className={expectedDays === draft.days.length ? 'ri-day-count is-matched' : 'ri-day-count is-mismatched'}>{expectedDays === draft.days.length ? '✓ 여행 기간과 일정이 일치해요' : '여행 기간에 맞춰 일자를 추가·삭제하세요.'}<span>{expectedDays}일 여행 · {draft.days.length}일 작성</span></p>}<details className="ri-format-help"><summary>작성 방법</summary><p>상세 일정은 한 줄에 하나씩 작성하세요. 줄 앞에 *를 붙이면 강조되고, (로 시작하면 회색으로 표시됩니다.</p></details></div>
                     {libraryLoading && <p className="ri-library-note" role="status">저장된 일정과 명소를 불러오고 있습니다.</p>}
                     {libraryError && <div className="ri-library-error" role="alert">{libraryError}<button type="button" onClick={() => setLibraryAttempt(current => current + 1)}>다시 시도</button></div>}
                     <QuoteDayEditor syncKey={appliedFingerprint.current} days={draft.days.map((day, index) => ({ ...quoteDayFields(day), d: index + 1 }))}
@@ -481,7 +492,7 @@ export function ReservationInlineEditor(p: Props) {
                             if (!day) return null;
                             const assigned = p.dailyAccommodations?.find(stay => stay.day === dayIndex + 1)?.accommodation.name;
                             return <>
-                                {assigned && <p className="ri-assigned-stay"><b>실제 배정 숙소 · {assigned}</b><span>고객 일정표에는 배정 숙소가 우선 표시됩니다.</span></p>}
+                                {assigned && <p className="ri-assigned-stay"><span className="ri-stay-state">배정 완료</span><b>{assigned}</b><span>고객 일정표에 우선 반영됩니다.</span></p>}
                                 <details className="ri-rich-details"><summary>사진·상세 설명</summary><div className="ri-rich-body">
                                     <label className="ri-field"><span>지역</span><input value={day.region || ''} onChange={e => editDay(dayIndex, current => ({ ...current, region: e.target.value }))} /></label>
                                     {day.retainedSummary && <p className="ri-library-note">기존 상품 안내 · {day.retainedSummary}</p>}

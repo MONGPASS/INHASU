@@ -37,6 +37,7 @@ import { productWorkspaceReservation, legacyWorkspaceReservation, productCustome
 import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref, customerWorkspaceReturnTo } from '../utils/customerWorkspaceRoutes';
 import '../styles/product-customer-workspace.css';
 import '../styles/customer-workspace-editor.css';
+import '../styles/reservation-itinerary-designer.css';
 
 // Reservation Interface
 interface Reservation {

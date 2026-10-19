@@ -1,6 +1,7 @@
 /* 견적만들기 STEP 2의 원본 크기·색상. 공유 위젯 밖의 폼에는 적용하지 않습니다. */
 .quote-day-editor { --p:#06C4A0; --pd:#05A084; --pl:#E1F8F3; --pb:#9DE7D8; --ink:#111827; --sub:#667085; --gray:#98A2B3; --dim:#B6BCC6; --line2:#EEF0F3; --red:#E07A7A; min-width:0; font-family:inherit; }
 .quote-day-editor *, .quote-day-editor *::before, .quote-day-editor *::after { box-sizing:border-box; }
+.quote-day-editor .qde-field-label { display:none; }
 .quote-day-editor input, .quote-day-editor select, .quote-day-editor textarea { width:100%; padding:10px 12px; border:1px solid #E5E7EB; border-radius:9px; font-size:14px; font-family:inherit; color:var(--ink); outline:none; background:#fff; }
 .quote-day-editor input::placeholder, .quote-day-editor textarea::placeholder { color:var(--dim); }
 .quote-day-editor input:focus, .quote-day-editor select:focus, .quote-day-editor textarea:focus { border-color:var(--p); box-shadow:0 0 0 3px rgba(6,196,160,.16); }

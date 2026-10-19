@@ -1,6 +1,7 @@
 /* 견적만들기 STEP 2의 일자별 카드. 정적 견적 화면과 React 예약 화면이 함께 사용합니다. */
 (function (global) {
   "use strict";
+  let mountSequence = 0;
   const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
   const strings = value => Array.isArray(value) ? value.filter(item => typeof item === "string") : [];
   const datePlaceholder = (start, index) => {
@@ -30,6 +31,7 @@
 
   function mount(root, initialOptions) {
     if (!root || typeof root.querySelectorAll !== "function") throw new Error("일정 카드를 표시할 영역이 필요합니다.");
+    const fieldPrefix = `qde-${++mountSequence}`;
     let options = initialOptions || {};
     let cards = [];
     let listeners = null;
@@ -65,20 +67,27 @@
             <div class="dh">
               <span class="drag-handle" title="드래그해서 순서 변경" role="button" tabindex="0" aria-label="${index + 1}일차 순서 변경 · 위아래 화살표 키">⠿</span>
               <span class="badge">${esc(day.d || index + 1)}일차</span>
-              <input class="ddate" aria-label="${index + 1}일차 날짜" title="고객 여행일자 (선택) — 입력하면 견적서 일정표에 함께 표시됩니다">
-              <input class="dest" aria-label="${index + 1}일차 목적지" placeholder="목적지">
-              <input class="move" aria-label="${index + 1}일차 이동 시간과 거리" placeholder="이동 6시간 (300 km)">
+              <label class="qde-field-label qde-label-date" for="${fieldPrefix}-${index}-date">날짜</label>
+              <input id="${fieldPrefix}-${index}-date" class="ddate" aria-label="${index + 1}일차 날짜" title="고객 여행일자 (선택) — 입력하면 견적서 일정표에 함께 표시됩니다">
+              <label class="qde-field-label qde-label-dest" for="${fieldPrefix}-${index}-dest">방문 지역</label>
+              <input id="${fieldPrefix}-${index}-dest" class="dest" aria-label="${index + 1}일차 목적지" placeholder="목적지">
+              <label class="qde-field-label qde-label-move" for="${fieldPrefix}-${index}-move">이동 시간·거리</label>
+              <input id="${fieldPrefix}-${index}-move" class="move" aria-label="${index + 1}일차 이동 시간과 거리" placeholder="이동 6시간 (300 km)">
               <button type="button" class="day-del" title="이 일자 삭제" aria-label="${index + 1}일차 삭제">✕</button>
             </div>
             <div class="snip-row">
-              <select class="snip-sel" aria-label="${index + 1}일차 일정 불러오기"></select>
+              <label class="qde-field-label qde-label-snip" for="${fieldPrefix}-${index}-snip">저장된 일정 불러오기</label>
+              <select id="${fieldPrefix}-${index}-snip" class="snip-sel" aria-label="${index + 1}일차 일정 불러오기"></select>
               <span class="snip-hint">클릭 한 번에 이 일자를 채웁니다. 없으면 아래에 직접 작성하세요.</span>
             </div>
-            <textarea class="items" aria-label="${index + 1}일차 세부 일정"></textarea>
+            <label class="qde-field-label qde-label-items" for="${fieldPrefix}-${index}-items">상세 일정</label>
+            <textarea id="${fieldPrefix}-${index}-items" class="items" aria-label="${index + 1}일차 세부 일정"></textarea>
             <div class="sub">숙소 / 식사(조·중·석)</div>
             <div class="row c2">
-              <input class="stay" aria-label="${index + 1}일차 숙소" placeholder="숙소명">
-              <input class="meals" aria-label="${index + 1}일차 식사" placeholder="캠프식, 현지식당, 캠프식">
+              <label class="qde-field-label qde-label-stay" for="${fieldPrefix}-${index}-stay">일정표 숙소</label>
+              <input id="${fieldPrefix}-${index}-stay" class="stay" aria-label="${index + 1}일차 숙소" placeholder="숙소명">
+              <label class="qde-field-label qde-label-meals" for="${fieldPrefix}-${index}-meals">식사</label>
+              <input id="${fieldPrefix}-${index}-meals" class="meals" aria-label="${index + 1}일차 식사" placeholder="캠프식, 현지식당, 캠프식">
             </div>
             ${extras ? '<div class="quote-day-extra"></div>' : ""}
           </div>`).join("") + `<button type="button" class="day-add"${options.addButtonId ? ` id="${esc(options.addButtonId)}"` : ""}>＋ 일자 추가</button>`;
