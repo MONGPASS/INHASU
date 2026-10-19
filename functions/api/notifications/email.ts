@@ -4,6 +4,7 @@ import { getSessionUser } from '../../lib/userAuth';
 import { BRAND, COMPANY_INFO, DEPOSIT_ACCOUNT, DEPOSIT_PAYMENT_METHOD, KAKAO_CHANNEL_URL } from '../../../src/constants/company';
 import { trackedDelivery, type DeliveryOutcome } from '../../lib/adminDelivery';
 import { resolveMailFrom, type MailFromEnv } from '../../lib/mailConfig';
+import { productDocumentRevisions } from '../../lib/adminDocumentRevision';
 
 interface Env {
     DB: any;
@@ -465,9 +466,11 @@ app.post('/', async (c) => {
 
         const sessionUser = await getSessionUser(c);
         const trackedDocument = sessionUser?.role === 'admin' && ['ITINERARY_READY', 'CONTRACT_READY'].includes(type);
+        let documentRow: any;
         if (trackedDocument) {
             if (typeof data.reservationDbId !== 'string' || !data.reservationDbId.trim()) return c.json({ error: '문서를 발송할 예약 ID가 필요합니다.' }, 400);
-            const row = await c.env.DB.prepare('SELECT id,customer_email,status,itinerary_url FROM reservations WHERE id=?').bind(data.reservationDbId).first();
+            const row = await c.env.DB.prepare('SELECT * FROM reservations WHERE id=?').bind(data.reservationDbId).first();
+            documentRow = row;
             if (!row) return c.json({ error: '예약이 삭제되었거나 없습니다.' }, 404);
             if (row.status === 'cancelled') return c.json({ error: '취소된 예약에는 문서를 발송할 수 없습니다.' }, 409);
             if (type === 'ITINERARY_READY' && !row.itinerary_url) return c.json({ error: '일정표를 먼저 공개한 뒤 발송해 주세요.' }, 409);
@@ -549,8 +552,10 @@ app.post('/', async (c) => {
         let emailFailure = apiKey ? '' : '이메일 발송 설정이 없습니다. 관리자에게 문의해 주세요.';
         let delivery: DeliveryOutcome | undefined;
         if (trackedDocument) {
+            const versions = await productDocumentRevisions(c.env.DB, documentRow);
             delivery = await trackedDelivery(c.env.DB, { source: 'product', bookingId: data.reservationDbId,
-                kind: type === 'CONTRACT_READY' ? 'contract' : 'itinerary', channel: 'email', key: body.idempotencyKey },
+                kind: type === 'CONTRACT_READY' ? 'contract' : 'itinerary', channel: 'email', key: body.idempotencyKey,
+                revision: type === 'CONTRACT_READY' ? versions.contract : versions.itinerary },
                 () => documentEmail(apiKey, to, subject, html, c.env));
             emailFailure = delivery.ok ? '' : delivery.error || '발송 결과를 확인해 주세요.';
         } else if (apiKey) {

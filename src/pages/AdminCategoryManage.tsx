@@ -1,7 +1,9 @@
 // Migrated to API
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
+import { useAdminContentGuard, type AdminContentState } from '../hooks/useAdminContentGuard';
+import { createAdminContentTask, moveAdminRow } from '../utils/adminContentWorkflow';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { DEFAULT_CATEGORIES, DEFAULT_MAGAZINE_CATEGORIES, type Category } from '../types/category';
@@ -10,11 +12,25 @@ export const AdminCategoryManage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
+    const task = useRef(createAdminContentTask()), mounted = useRef(true), reading = useRef(false);
+    const modalState = useRef<AdminContentState>({ busy: false, dirty: false });
+    const [actionBusy, setActionBusy] = useState(false), [modalBusy, setModalBusy] = useState(false), [loading, setLoading] = useState(true);
+    const [notice, setNotice] = useState(''), [loadError, setLoadError] = useState('');
+    const busy = actionBusy || modalBusy;
+    useAdminContentGuard(() => ({ busy: task.current.busy() || modalState.current.busy, dirty: modalState.current.dirty }), setNotice);
+    const handleEditorState = useCallback((state: AdminContentState) => { modalState.current = state; setModalBusy(state.busy); }, []);
+    const closeModal = () => { setIsModalOpen(false); setSelectedCategory(null); modalState.current = { busy: false, dirty: false }; setModalBusy(false); };
+    useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
     // Fetch categories from API
     const fetchCategories = async () => {
+        if (reading.current) return;
+        reading.current = true; setLoading(true); setLoadError('');
         try {
-            const data = await api.categories.list();
+            let data = await api.categories.list();
+            if (!Array.isArray(data)) throw new Error('카테고리 응답을 확인해 주세요.');
+            if (!data.length) { await seedDefaultCategories(); data = await api.categories.list(); }
+            if (!mounted.current) return;
 
             if (Array.isArray(data) && data.length > 0) {
                 const productCats = data.filter((c: any) => c.type === 'product' || !c.type);
@@ -36,13 +52,10 @@ export const AdminCategoryManage: React.FC = () => {
                     landing_highlights: Array.isArray(c.landing_highlights) ? c.landing_highlights : [],
                     landing_product_grid_title: c.landing_product_grid_title,
                 })));
-            } else {
-                // Seed default categories if empty
-                await seedDefaultCategories();
-            }
+            } else setCategories([]);
         } catch (error) {
-            console.error('Error fetching categories:', error);
-        }
+            if (mounted.current) setLoadError('카테고리를 불러오지 못했습니다. 다시 시도해 주세요.');
+        } finally { reading.current = false; if (mounted.current) setLoading(false); }
     };
 
     const seedDefaultCategories = async () => {
@@ -73,7 +86,6 @@ export const AdminCategoryManage: React.FC = () => {
             await api.categories.create(cat);
         }
 
-        fetchCategories();
     };
 
     useEffect(() => {
@@ -82,49 +94,31 @@ export const AdminCategoryManage: React.FC = () => {
 
     const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
 
-    // Toggle active status
-    const toggleActive = async (id: string, currentStatus: boolean) => {
-        try {
-            await api.categories.update(id, { is_active: !currentStatus });
-            fetchCategories();
-        } catch (error) {
-            alert('업데이트 실패: ' + error);
-        }
+    const runAction = async (work: () => Promise<void>) => {
+        if (loading || modalState.current.busy) return;
+        const release = task.current.begin('list'); if (!release) return;
+        setActionBusy(true); setNotice('');
+        try { await work(); await fetchCategories(); }
+        catch (error: any) { if (mounted.current) setNotice(error?.message || '변경 내용을 저장하지 못했습니다. 다시 시도해 주세요.'); }
+        finally { release(); if (mounted.current) setActionBusy(false); }
     };
-
-    // Delete category
-    const deleteCategory = async (id: string) => {
-        if (id === 'all') {
-            alert('"전체" 카테고리는 삭제할 수 없습니다.');
-            return;
-        }
-        if (confirm('정말 이 카테고리를 삭제하시겠습니까?')) {
-            try {
-                await api.categories.delete(id);
-                fetchCategories();
-            } catch (error) {
-                alert('삭제 실패: ' + error);
-            }
-        }
+    const toggleActive = (id: string, currentStatus: boolean) => runAction(async () => {
+        await api.categories.update(id, { is_active: !currentStatus });
+    });
+    const deleteCategory = (id: string) => {
+        if (task.current.busy() || modalState.current.busy) return;
+        if (id === 'all') { setNotice('전체 카테고리는 삭제할 수 없습니다.'); return; }
+        if (confirm('정말 이 카테고리를 삭제하시겠습니까?')) return runAction(async () => { await api.categories.delete(id); });
     };
+    const moveCategory = (index: number, direction: 'up' | 'down') => runAction(async () => {
+        const next = moveAdminRow(sortedCategories, index, direction === 'up' ? -1 : 1);
+        if (next === sortedCategories) return;
+        await api.categories.reorder(next.map((category, order) => ({ id: category.id, sort_order: order })), 'product');
+    });
 
-    // Move category up/down
-    const moveCategory = async (index: number, direction: 'up' | 'down') => {
-        if (!sortedCategories) return;
-
-        const newIndex = direction === 'up' ? index - 1 : index + 1;
-        if (newIndex < 0 || newIndex >= sortedCategories.length) return;
-
-        const currentCat = sortedCategories[index];
-        const targetCat = sortedCategories[newIndex];
-
-        // Swap orders
-        await api.categories.update(currentCat.id, { order: targetCat.order });
-        await api.categories.update(targetCat.id, { order: currentCat.order });
-        fetchCategories();
-    };
-
-    const handleSaveCategory = async (category: Category) => {
+    const handleSaveCategory = async (category: Category): Promise<boolean> => {
+        const release = task.current.begin('save'); if (!release) return false;
+        setActionBusy(true);
         try {
             const heroImages = Array.isArray(category.landing_hero_images)
                 ? category.landing_hero_images.filter(Boolean)
@@ -149,13 +143,14 @@ export const AdminCategoryManage: React.FC = () => {
                     const newId = (category.id || '').trim();
                     if (!newId || !/^[a-z0-9][a-z0-9-]*$/.test(newId)) {
                         alert('URL 슬러그는 영문 소문자/숫자/하이픈으로, 문자나 숫자로 시작해야 합니다.');
-                        return;
+                        return false;
                     }
                     if (!confirm(`URL 슬러그를 "${selectedCategory.id}" → "${newId}" 로 변경하시겠습니까?\n기존 /category/${selectedCategory.id} 링크는 더이상 열리지 않습니다.`)) {
-                        return;
+                        return false;
                     }
                     await api.categories.rename(selectedCategory.id, newId);
                     effectiveId = newId;
+                    if (mounted.current) setSelectedCategory(previous => previous ? { ...previous, id: newId } : previous);
                 }
 
                 // Update
@@ -180,13 +175,11 @@ export const AdminCategoryManage: React.FC = () => {
                 };
                 await api.categories.create(newCategory);
             }
-            setIsModalOpen(false);
-            setSelectedCategory(null);
-            fetchCategories();
+            await fetchCategories();
+            return true;
         } catch (error: any) {
-            console.error(error);
-            alert('저장 중 오류가 발생했습니다.');
-        }
+            throw new Error(error?.message || '저장하지 못했습니다. 입력한 내용은 유지됩니다. 다시 시도해 주세요.');
+        } finally { release(); if (mounted.current) setActionBusy(false); }
     };
 
     return (
@@ -200,12 +193,17 @@ export const AdminCategoryManage: React.FC = () => {
                         setIsModalOpen(true);
                     }}
                     className="btn btn-ink"
+                    disabled={busy || loading || !!loadError || isModalOpen}
                 >
                     <Icon name="add" />
                     카테고리 추가
                 </button>
             }
         >
+            {notice && <p role="alert" className="card card-pad">{notice}</p>}
+            {loadError && <div role="alert" className="card card-pad">{loadError}<button type="button" className="btn btn-ghost" onClick={fetchCategories} disabled={busy || loading}>다시 불러오기</button></div>}
+            {(loading || actionBusy) && <p role="status">{loading ? '카테고리를 불러오는 중…' : '카테고리 변경 내용을 저장하는 중…'}</p>}
+            <fieldset disabled={busy || loading || !!loadError || isModalOpen} inert={busy || loading || !!loadError || isModalOpen} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
             <div className="route-anim">
                 <div className="toolbar">
                     <div className="cell-muted" style={{ fontSize: 13.5, fontWeight: 600 }}>
@@ -329,15 +327,14 @@ export const AdminCategoryManage: React.FC = () => {
                 </div>
             </div>
 
+            </fieldset>
             {/* Modal */}
             {isModalOpen && (
                 <CategoryModal
                     category={selectedCategory}
                     type="product"
-                    onClose={() => {
-                        setIsModalOpen(false);
-                        setSelectedCategory(null);
-                    }}
+                    onClose={closeModal}
+                    onEditorState={handleEditorState}
                     onSave={handleSaveCategory}
                 />
             )}
@@ -350,11 +347,12 @@ interface CategoryModalProps {
     category: Category | null;
     type: 'product' | 'magazine';
     onClose: () => void;
-    onSave: (category: Category) => void;
+    onSave: (category: Category) => Promise<boolean>;
+    onEditorState?: (state: AdminContentState) => void;
 }
 
-const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, onClose, onSave }) => {
-    const [formData, setFormData] = useState<Partial<Category>>(
+export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, onClose, onSave, onEditorState }) => {
+    const [formData, setFormDataState] = useState<Partial<Category>>(
         category || {
             name: '',
             icon: 'category',
@@ -365,28 +363,54 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, onClose, 
         }
     );
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!formData.name || !formData.icon) {
-            alert('필수 항목을 입력해주세요.');
-            return;
-        }
-        // Ensure type matches the current tab if creating new
-        if (!category) {
-            formData.type = type;
-        }
-        onSave(formData as Category);
+    const formRef = useRef(formData), baseline = useRef(JSON.stringify(formData)), saved = useRef(false), mounted = useRef(true);
+    const task = useRef(createAdminContentTask());
+    const [busy, setBusy] = useState<'upload' | 'save' | null>(null), [error, setError] = useState('');
+    const report = useRef(onEditorState); report.current = onEditorState;
+    const dirty = () => !saved.current && JSON.stringify(formRef.current) !== baseline.current;
+    const setFormData: React.Dispatch<React.SetStateAction<Partial<Category>>> = change => {
+        if (!mounted.current) return;
+        const next = typeof change === 'function' ? change(formRef.current) : change;
+        formRef.current = next; setFormDataState(next);
+        report.current?.({ busy: task.current.busy(), dirty: dirty() });
+    };
+    useEffect(() => { mounted.current = true; report.current?.({ busy: false, dirty: dirty() }); return () => { mounted.current = false; report.current?.({ busy: false, dirty: false }); }; }, []);
+    const close = () => {
+        if (task.current.busy()) { setError('저장·이미지 업로드가 끝난 뒤 닫아 주세요.'); return; }
+        if (dirty() && !window.confirm('저장하지 않은 카테고리 변경사항을 버리고 닫을까요?')) return;
         onClose();
+    };
+    const uploadImageTo = async (file: File, apply: (url: string) => void): Promise<boolean> => {
+        const release = task.current.begin('upload'); if (!release) return false;
+        setBusy('upload'); setError(''); report.current?.({ busy: true, dirty: dirty() });
+        try { const url = await uploadImage(file, 'categories'); if (!mounted.current) return false; apply(url); return true; }
+        catch (reason: any) { if (mounted.current) setError(reason?.message || '이미지 업로드에 실패했습니다. 기존 입력은 유지됩니다. 다시 선택해 주세요.'); return false; }
+        finally { release(); if (mounted.current) { setBusy(null); report.current?.({ busy: false, dirty: dirty() }); } }
+    };
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const release = task.current.begin('save'); if (!release) return;
+        if (!formRef.current.name?.trim() || !formRef.current.icon) { release(); setError('카테고리 이름과 아이콘을 입력해 주세요.'); return; }
+        setBusy('save'); setError(''); report.current?.({ busy: true, dirty: dirty() });
+        try {
+            const success = await onSave({ ...formRef.current, type } as Category);
+            if (!success) return;
+            saved.current = true; report.current?.({ busy: false, dirty: false }); onClose();
+        } catch (reason: any) { if (mounted.current) setError(reason?.message || '저장에 실패했습니다. 입력을 확인한 뒤 다시 시도해 주세요.'); }
+        finally { release(); if (mounted.current) { setBusy(null); report.current?.({ busy: false, dirty: dirty() }); } }
     };
 
     return (
-        <div className="picker-scrim" onClick={onClose}>
+        <div className="picker-scrim" onClick={close}>
             <div
                 className="picker"
                 style={{ width: 680, maxHeight: '90vh' }}
                 onClick={(e) => e.stopPropagation()}
             >
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    {error && <p role="alert" style={{ padding: '12px 20px', color: '#9f4d13' }}>{error}</p>}
+                    {busy && <p role="status" style={{ padding: '12px 20px' }}>{busy === 'upload' ? '이미지 업로드 중…' : '카테고리 저장 중…'}</p>}
+                    <fieldset disabled={!!busy} inert={!!busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, display: 'contents' }}>
                     {/* Header */}
                     <div className="card-head">
                         <h2>
@@ -395,7 +419,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, onClose, 
                         <div className="spacer" />
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={close}
                             className="act-btn"
                             title="닫기"
                         >
@@ -472,17 +496,9 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, onClose, 
                                 accept="image/*"
                                 className="inp"
                                 style={{ paddingTop: 9 }}
-                                onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                        try {
-                                            const url = await uploadImage(file, 'categories');
-                                            setFormData({ ...formData, icon: url });
-                                        } catch (error) {
-                                            console.error('Category image upload failed:', error);
-                                            alert('이미지 업로드 실패');
-                                        }
-                                    }
+                                onChange={e => {
+                                    const input = e.target, file = input.files?.[0];
+                                    if (file) void uploadImageTo(file, url => setFormData(previous => ({ ...previous, icon: url }))).finally(() => { input.value = ''; });
                                 }}
                             />
                             <p className="cell-muted" style={{ fontSize: 12, marginTop: 8 }}>
@@ -507,6 +523,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, onClose, 
                             <LandingPageEditor
                                 formData={formData}
                                 setFormData={setFormData}
+                                uploadImageTo={uploadImageTo}
                             />
                         )}
                     </div>
@@ -516,7 +533,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, onClose, 
                         <div className="spacer" style={{ flex: 1 }} />
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={close}
                             className="btn btn-ghost"
                         >
                             취소
@@ -528,6 +545,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, onClose, 
                             {category ? '수정 완료' : '추가 완료'}
                         </button>
                     </div>
+                    </fieldset>
                 </form>
             </div>
         </div>
@@ -538,9 +556,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, onClose, 
 interface LandingEditorProps {
     formData: Partial<Category>;
     setFormData: React.Dispatch<React.SetStateAction<Partial<Category>>>;
+    uploadImageTo: (file: File, apply: (url: string) => void) => Promise<boolean>;
 }
 
-const LandingPageEditor: React.FC<LandingEditorProps> = ({ formData, setFormData }) => {
+const LandingPageEditor: React.FC<LandingEditorProps> = ({ formData, setFormData, uploadImageTo }) => {
     const [expanded, setExpanded] = useState(false);
     const highlights = formData.landing_highlights || [];
 
@@ -562,24 +581,16 @@ const LandingPageEditor: React.FC<LandingEditorProps> = ({ formData, setFormData
         next[sectionIdx] = { ...next[sectionIdx], cards: [...(next[sectionIdx].cards || []), { image: '', tags: [], title: '', description: '' }] };
         updateHighlights(next);
     };
-    const updateCard = (sectionIdx: number, cardIdx: number, patch: any) => {
-        const next = [...highlights];
-        const cards = [...next[sectionIdx].cards];
-        cards[cardIdx] = { ...cards[cardIdx], ...patch };
-        next[sectionIdx] = { ...next[sectionIdx], cards };
-        updateHighlights(next);
-    };
+    const updateCard = (sectionIdx: number, cardIdx: number, patch: any) => setFormData(previous => {
+        const next = [...(previous.landing_highlights || [])];
+        if (!next[sectionIdx]?.cards?.[cardIdx]) return previous;
+        const cards = [...next[sectionIdx].cards]; cards[cardIdx] = { ...cards[cardIdx], ...patch };
+        next[sectionIdx] = { ...next[sectionIdx], cards }; return { ...previous, landing_highlights: next };
+    });
     const removeCard = (sectionIdx: number, cardIdx: number) => {
         const next = [...highlights];
         next[sectionIdx] = { ...next[sectionIdx], cards: next[sectionIdx].cards.filter((_: any, i: number) => i !== cardIdx) };
         updateHighlights(next);
-    };
-
-    const uploadImageTo = async (file: File, cb: (url: string) => void) => {
-        try {
-            const url = await uploadImage(file, 'categories');
-            cb(url);
-        } catch (e) { alert('이미지 업로드 실패'); }
     };
 
     return (
@@ -609,11 +620,11 @@ const LandingPageEditor: React.FC<LandingEditorProps> = ({ formData, setFormData
                                 if (imgs.length === 0 && formData.landing_hero_image) return [formData.landing_hero_image];
                                 return imgs;
                             })()}
-                            onChange={(next) => setFormData({
-                                ...formData,
+                            onChange={(next) => setFormData(previous => ({
+                                ...previous,
                                 landing_hero_images: next,
                                 landing_hero_image: next[0] || '',
-                            })}
+                            }))}
                             uploadImageTo={uploadImageTo}
                         />
 
@@ -738,8 +749,8 @@ const LandingPageEditor: React.FC<LandingEditorProps> = ({ formData, setFormData
                                                                 accept="image/*"
                                                                 style={{ fontSize: 11, width: 112 }}
                                                                 onChange={(e) => {
-                                                                    const file = e.target.files?.[0];
-                                                                    if (file) uploadImageTo(file, (url) => updateCard(sIdx, cIdx, { image: url }));
+                                                                    const input = e.target, file = input.files?.[0];
+                                                                    if (file) void uploadImageTo(file, url => updateCard(sIdx, cIdx, { image: url })).finally(() => { input.value = ''; });
                                                                 }}
                                                             />
                                                             <input
@@ -797,7 +808,7 @@ const LandingPageEditor: React.FC<LandingEditorProps> = ({ formData, setFormData
 interface HeroImagesEditorProps {
     images: string[];
     onChange: (next: string[]) => void;
-    uploadImageTo: (file: File, cb: (url: string) => void) => void;
+    uploadImageTo: (file: File, cb: (url: string) => void) => Promise<boolean>;
 }
 
 const HeroImagesEditor: React.FC<HeroImagesEditorProps> = ({ images, onChange, uploadImageTo }) => {
@@ -805,13 +816,8 @@ const HeroImagesEditor: React.FC<HeroImagesEditorProps> = ({ images, onChange, u
         // Upload sequentially so we can keep a reliable running list
         let current = [...images];
         for (const file of files) {
-            await new Promise<void>((resolve) => {
-                uploadImageTo(file, (url) => {
-                    current = [...current, url];
-                    onChange(current);
-                    resolve();
-                });
-            });
+            const ok = await uploadImageTo(file, url => { current = [...current, url]; onChange(current); });
+            if (!ok) break;
         }
     };
     const removeImage = (idx: number) => onChange(images.filter((_, i) => i !== idx));

@@ -1,5 +1,6 @@
 // Actual Hono/Lucia/D1-shaped SQLite routes for local reservation workspace QA.
-// node scripts/check-reservation-workspace.mjs [--serve] [--port=8796] — no production data or outbound network.
+// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--port=8796]
+// Uses only synthetic, in-memory data; never reaches a live delivery or storage service.
 import { build } from 'esbuild';
 import { DatabaseSync } from 'node:sqlite';
 import assert from 'node:assert/strict';
@@ -13,19 +14,23 @@ import { hashPassword } from '../functions/lib/password.ts';
 import { productScheduleDays } from '../functions/lib/productItinerary.ts';
 import { productDocumentSections } from '../public/product-itinerary.js';
 import { onRequestGet as quoteGet, onRequestPatch as quotePatch, onRequestDelete as quoteDelete } from '../functions/api/requests/[id].js';
-import { onRequestGet as libraryGet } from '../functions/api/data/[key].js';
+import { onRequestGet as libraryGet, onRequestPut as libraryPut } from '../functions/api/data/[key].js';
 import { onRequestGet as quoteListGet, onRequestPost as quotePost } from '../functions/api/requests.js';
 import { onRequestGet as customerQuoteGet } from '../functions/api/my/[token].js';
 import { onRequestGet as noticeGet, onRequestPost as noticePost } from '../functions/api/requests/[id]/itinerary-notice.js';
 import { adminProductDraftKey } from '../src/utils/adminProductDraft.ts';
 import { reservationDraftKey, reservationDraftFingerprint, readReservationDraft, writeReservationDraft } from '../src/utils/adminReservationDraft.ts';
+import { magazineDraftKey, magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft } from '../src/utils/adminMagazineDraft.ts';
+import { assignmentDraftKey, readAssignmentDraft, writeAssignmentDraft } from '../src/utils/adminAssignmentDraft.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
 const portArgument = process.argv.find(argument => argument.startsWith('--port='));
 const port = portArgument ? Number(portArgument.slice('--port='.length)) : 8795;
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('--port는 1~65535 사이의 정수여야 합니다.');
 const localOrigin = `http://localhost:${port}`;
-const draftStoragePrefixes = ['inhasu:admin-product-draft:', 'inhasu:admin-reservation-doc-draft:', 'inhasu:quote-editor:'];
+const usability = process.argv.includes('--usability');
+const draftStoragePrefixes = ['inhasu:admin-product-draft:', 'inhasu:admin-reservation-doc-draft:', 'inhasu:quote-editor:',
+    'inhasu:admin-magazine-draft:', 'inhasu:admin-assignment:'];
 const draftStorageFaultSource = `(function(){const originalSetItem=Storage.prototype.setItem;const prefixes=${JSON.stringify(draftStoragePrefixes)};Storage.prototype.setItem=function(key,value){if(prefixes.some(prefix=>String(key).startsWith(prefix)))throw new DOMException('Local draft storage fault','QuotaExceededError');return originalSetItem.call(this,key,value);};})();`;
 const draftStorageFaultHtml = html => html.replace(/<head(?:\s[^>]*)?>/i, head => head + `<script>${draftStorageFaultSource}</script>`);
 function draftStorageBlocked(url, referer) {
@@ -48,7 +53,12 @@ import quotes from '../../functions/api/quotes';
 import bookings from '../../functions/api/admin-bookings';
 import workspace from '../../functions/api/admin-workspace';
 import deliveries from '../../functions/api/admin-deliveries';
+import assignments from '../../functions/api/admin-assignments';
 import categories from '../../functions/api/categories';
+import magazines from '../../functions/api/magazines';
+import banners from '../../functions/api/banners';
+import upload from '../../functions/api/site-upload';
+import images from '../../functions/api/images/[...path]';
 import documents from '../../functions/api/documents';
 import templates from '../../functions/api/itinerary-templates';
 import guides from '../../functions/api/tour-guides';
@@ -62,6 +72,8 @@ const app = new Hono().basePath('/api');
 app.route('/auth', auth); app.route('/reservations', reservations); app.route('/products', products);
 app.route('/quotes', quotes); app.route('/admin/bookings', bookings); app.route('/documents', documents);
 app.route('/admin/workspace', workspace); app.route('/admin/deliveries', deliveries); app.route('/categories', categories);
+app.route('/admin/assignments', assignments); app.route('/magazines', magazines); app.route('/banners', banners);
+app.route('/site-upload', upload); app.route('/images', images);
 app.route('/itinerary-templates', templates); app.route('/tour-guides', guides);
 app.route('/accommodations', accommodations); app.route('/hotels', hotels); app.route('/tourist-spots', spots);
 app.route('/notifications/email', email); app.route('/notifications', notifications); app.route('/settings', settings);
@@ -88,6 +100,7 @@ const DB = { prepare: sql => stmt(sql), batch: async statements => {
     } catch (error) { raw.exec('ROLLBACK'); throw error; }
 } };
 await ensureSiteSchema(DB);
+assert.ok(raw.prepare('PRAGMA table_info(admin_delivery_attempts)').all().some(column => column.name === 'document_revision'));
 raw.exec(fs.readFileSync(path.join(root, 'schema.sql'), 'utf8'));
 raw.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, google_id TEXT, email TEXT, name TEXT, role TEXT, avatar_url TEXT, password_hash TEXT);
 CREATE TABLE sessions (id TEXT PRIMARY KEY, user_id TEXT, expires_at INTEGER);`);
@@ -106,7 +119,27 @@ raw.prepare('INSERT INTO categories (id,name,type) VALUES (?,?,?)').run('local-c
 raw.prepare('INSERT INTO categories (id,name,type) VALUES (?,?,?)').run('local-gobi', '고비사막', 'product');
 const owner = { cookie: 'auth_session=local-workspace-owner-session' };
 const other = { cookie: 'auth_session=local-workspace-other-session' };
-const env = { DB, ENVIRONMENT: 'production', ADMIN_TOKEN: 'local-workspace-quote-fixture',
+// Exercise the actual upload/image routes with R2-shaped memory objects. Nothing
+// is written to cloud storage, and uploaded photos disappear when this process exits.
+const imageObjects = new Map();
+const BUCKET = {
+    async put(key, bytes, options = {}) {
+        const body = new Uint8Array(bytes).slice();
+        const digest = await crypto.subtle.digest('SHA-256', body);
+        const httpEtag = '"' + Buffer.from(digest).toString('hex') + '"';
+        imageObjects.set(key, { body, httpMetadata: { ...options.httpMetadata }, httpEtag });
+    },
+    async delete(key) { imageObjects.delete(key); },
+    async get(key) {
+        const stored = imageObjects.get(key);
+        return stored ? { body: stored.body.slice(), size: stored.body.byteLength, httpEtag: stored.httpEtag,
+            writeHttpMetadata(headers) {
+                if (stored.httpMetadata.contentType) headers.set('Content-Type', stored.httpMetadata.contentType);
+                if (stored.httpMetadata.cacheControl) headers.set('Cache-Control', stored.httpMetadata.cacheControl);
+            } } : null;
+    },
+};
+const env = { DB, BUCKET, ENVIRONMENT: 'production', ADMIN_TOKEN: 'local-workspace-quote-fixture',
     RESEND_API_KEY: 'local-stub-key', ADMIN_EMAIL: 'admin@example.invalid', PAYPAL_ENABLED: 'false' };
 
 // Never delegate to the real fetch. Local mail success/failure is deterministic;
@@ -136,7 +169,7 @@ const apiRequest = async (route, options = {}) => {
     else if (noticeMatch) { context.params = { id: decodeURIComponent(noticeMatch[1]) }; handler = { GET: noticeGet, POST: noticePost }[method]; }
     else if (quoteMatch) { context.params = { id: decodeURIComponent(quoteMatch[1]) }; handler = { GET: quoteGet, PATCH: quotePatch, DELETE: quoteDelete }[method]; }
     else if (customerMatch && method === 'GET') { context.params = { token: decodeURIComponent(customerMatch[1]) }; handler = customerQuoteGet; }
-    else if (libraryMatch && method === 'GET') { context.params = { key: decodeURIComponent(libraryMatch[1]) }; handler = libraryGet; }
+    else if (libraryMatch) { context.params = { key: decodeURIComponent(libraryMatch[1]) }; handler = { GET: libraryGet, PUT: libraryPut, POST: libraryPut }[method]; }
     const response = handler ? await handler(context) : await app.request(request, undefined, env);
     await Promise.allSettled(pending);
     return response;
@@ -556,6 +589,19 @@ const bookingDraftSource = structuredClone(quoteFixture.booking);
 const bookingDraft = { ...structuredClone(bookingDraftSource), days: structuredClone(quoteEditorDocument.days) };
 assert.equal(quoteDraftState.write(draftStorage, bookingDraftScope, bookingDraftSource, bookingDraft).ok, true);
 assert.equal(quoteDraftState.read(draftStorage, bookingDraftScope, bookingDraftSource, quoteDraftState.validBooking).kind, 'draft');
+const magazineDraftScope = { userId: quoteDeskSession.userId, magazineId: null };
+const magazineDraftSource = { title: '', content: '', image: '', isActive: false };
+const magazineDraft = { ...magazineDraftSource, title: '로컬 매거진 초안', content: '<p>저장 실패 후 복원</p>', image };
+const magazineBase = magazineDraftFingerprint(magazineDraftSource);
+assert.equal(writeMagazineDraft(draftStorage, magazineDraftScope, magazineDraft, magazineBase).ok, true);
+assert.equal(readMagazineDraft(draftStorage, magazineDraftScope, magazineDraftSource).kind, 'draft');
+assert.equal(readMagazineDraft(draftStorage, { ...magazineDraftScope, userId: 'workspace-other' }, magazineDraftSource).kind, 'empty');
+const assignmentDraftScope = { userId: quoteDeskSession.userId, source: 'product', id: 'workspace-product' };
+const assignmentDraft = { guide: { id: 'workspace-guide', name: '로컬 가이드' }, vehicle: { type: '하이스', phone: 'LOCAL-PRIVATE-DRAFT-DRIVER' },
+    accommodations: [{ day: 1, date: '2026-10-20', accommodation: { name: '로컬 숙소', images: [lodgeImage, 'blob:temporary'] } }] };
+assert.equal(writeAssignmentDraft(draftStorage, assignmentDraftScope, 'local-base-version', assignmentDraft).ok, true);
+assert.deepEqual(readAssignmentDraft(draftStorage, assignmentDraftScope, 'local-base-version').draft.assignment.accommodations[0].accommodation.images, [lodgeImage]);
+assert.deepEqual(readAssignmentDraft(draftStorage, { ...assignmentDraftScope, source: 'quote_booking' }, 'local-base-version'), {});
 
 const blockedDraftUrl = new URL('/admin/reservations?localDraftStorage=blocked', localOrigin);
 assert.equal(draftStorageBlocked(blockedDraftUrl), true);
@@ -567,16 +613,21 @@ assert.ok(draftStorageFaultHtml('<!doctype html><head><script src="editor.js"></
 vm.runInContext(draftStorageFaultSource, draftContext);
 const scopedDraftKeys = [adminProductDraftKey({ userId: quoteDeskSession.userId, productId: 'workspace-booked-tour' }),
     reservationDraftKey(draftScope), quoteDraftState.keyFor(quoteDraftScope.account, quoteDraftScope.kind, quoteDraftScope.requestId),
-    quoteDraftState.keyFor(bookingDraftScope.account, bookingDraftScope.kind, bookingDraftScope.requestId)];
+    quoteDraftState.keyFor(bookingDraftScope.account, bookingDraftScope.kind, bookingDraftScope.requestId),
+    magazineDraftKey(magazineDraftScope), assignmentDraftKey(assignmentDraftScope)];
 for (const key of scopedDraftKeys) assert.throws(() => draftStorage.setItem(key, 'blocked'), { name: 'QuotaExceededError' });
 draftStorage.setItem('normal-site-setting', 'kept');
 assert.equal(draftStorage.getItem('normal-site-setting'), 'kept');
 assert.equal(writeReservationDraft(draftStorage, draftScope, documentDraft, reservationDraftFingerprint(documentSource), 'itinerary').ok, false);
 assert.equal(quoteDraftState.write(draftStorage, quoteDraftScope, quoteDraftSource, quoteDraft).ok, false);
 assert.equal(quoteDraftState.write(draftStorage, bookingDraftScope, bookingDraftSource, bookingDraft).ok, false);
+assert.equal(writeMagazineDraft(draftStorage, magazineDraftScope, { ...magazineDraft, title: '저장 실패 입력' }, magazineBase).ok, false);
+assert.equal(writeAssignmentDraft(draftStorage, assignmentDraftScope, 'local-base-version', assignmentDraft).ok, false);
 // A rejected update leaves the previously recoverable snapshot intact.
 assert.equal(readReservationDraft(draftStorage, draftScope, documentSource).kind, 'draft');
 assert.equal(quoteDraftState.read(draftStorage, quoteDraftScope, quoteDraftSource, quoteDraftState.validQuote).kind, 'draft');
+assert.equal(readMagazineDraft(draftStorage, magazineDraftScope, magazineDraftSource).draft.form.title, '로컬 매거진 초안');
+assert.equal(readAssignmentDraft(draftStorage, assignmentDraftScope, 'local-base-version').draft.assignment.guide.name, '로컬 가이드');
 const compactPreview = await apiRequest('/api/documents/itinerary/workspace-check?format=quote&preview=1', { headers: admin });
 assert.equal(compactPreview.status, 200);
 const compactPdf = (await compactPreview.json()).quote;
@@ -644,6 +695,24 @@ assert.equal(mail.status, 200);
 assert.equal(outbound.length, 1);
 const sentDocumentHistory = await (await apiRequest('/api/admin/deliveries?source=product&id=workspace-check', { headers: admin })).json();
 assert.ok(sentDocumentHistory.items.some(item => item.kind === 'itinerary' && item.state === 'accepted' && item.providerId === 'local-email-1'));
+assert.match(sentDocumentHistory.documents.itinerary.revision, /^[a-f0-9]{64}$/);
+assert.equal(sentDocumentHistory.documents.itinerary.lastSentRevision, sentDocumentHistory.documents.itinerary.revision);
+assert.equal(sentDocumentHistory.documents.itinerary.verified, true);
+assert.equal(sentDocumentHistory.documents.itinerary.needsResend, false);
+assert.match(raw.prepare('SELECT document_revision FROM admin_delivery_attempts WHERE booking_id=?').get('workspace-check').document_revision, /^[a-f0-9]{64}$/);
+assert.equal((await write('/api/reservations/workspace-check', 'PUT', { admin_operations: { opsNote: 'LOCAL-PRIVATE-REVISION-NOTE' } })).status, 200);
+const privateRevision = await (await apiRequest('/api/admin/deliveries?source=product&id=workspace-check', { headers: admin })).json();
+assert.equal(privateRevision.documents.itinerary.revision, sentDocumentHistory.documents.itinerary.revision);
+const changedDocument = { ...structuredClone(compactDocument), description: '발송 후 수정한 고객 일정 안내' };
+assert.equal((await write('/api/reservations/workspace-check', 'PUT', { document_content: changedDocument })).status, 200);
+const changedRevision = await (await apiRequest('/api/admin/deliveries?source=product&id=workspace-check', { headers: admin })).json();
+assert.notEqual(changedRevision.documents.itinerary.revision, sentDocumentHistory.documents.itinerary.revision);
+assert.equal(changedRevision.documents.itinerary.needsResend, true);
+assert.equal(changedRevision.documents.itinerary.lastSentRevision, sentDocumentHistory.documents.itinerary.revision);
+assert.equal((await write('/api/reservations/workspace-check', 'PUT', { total_amount: 0, deposit_amount: 0, balance_amount: 0, total_people: 4 })).status, 200);
+const amountRevision = await (await apiRequest('/api/admin/deliveries?source=product&id=workspace-check', { headers: admin })).json();
+assert.notEqual(amountRevision.documents.contract.revision, changedRevision.documents.contract.revision);
+assert.notEqual(amountRevision.documents.itinerary.revision, changedRevision.documents.itinerary.revision);
 raw.prepare('DELETE FROM reservations WHERE id=?').run('workspace-check');
 raw.exec('DELETE FROM notifications');
 outbound.length = 0;
@@ -657,7 +726,259 @@ assert.ok(Object.values(workspaceData.availability).every(Boolean));
 assert.ok(workspaceData.searchItems.some(item => item.category === 'product'));
 assert.equal((await apiRequest('/api/admin/workspace', { headers: owner })).status, 403);
 assert.equal((await apiRequest('/api/admin/workspace')).status, 401);
-console.log('예약 작업 API 검증 통과: 실제 로그인/견적 계정 · 견적 POST/PATCH/재조회 · 상품/견적 발송 이력 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 계정별 예약/견적 초안 복원/충돌 · 세 종류 초안 저장 실패 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 관리자 운영정보 보호 · 외부 발송 차단');
+
+// The new assignment board talks to both original sources, never copying a
+// booking into the other table. Check overlapping IDs and signed source safety.
+assert.equal((await apiRequest('/api/admin/assignments')).status, 401);
+assert.equal((await apiRequest('/api/admin/assignments', { headers: owner })).status, 403);
+const originalSignedRow = raw.prepare('SELECT * FROM reservations WHERE id=?').get('workspace-signed');
+const signedContract = { ...JSON.parse(originalSignedRow.contract_data),
+    signature: 'LOCAL-PRIVATE-SIGNATURE', travelers: [{ name: '로컬 여행자', passportNo: 'LOCAL-PRIVATE-PASSPORT' }],
+    vehicle: { type: '기존 로컬 차량', phone: 'LOCAL-PRIVATE-OLD-DRIVER' }, retained: '계약 추가 항목 보존' };
+raw.prepare('UPDATE reservations SET contract_data=?,admin_operations=?,daily_accommodations=? WHERE id=?').run(
+    JSON.stringify(signedContract), JSON.stringify({ opsNote: 'LOCAL-PRIVATE-ASSIGNMENT-NOTE' }),
+    JSON.stringify([{ day: 1, date: '2026-10-20', accommodation: { name: '기존 숙소', images: [lodgeImage], privateNote: 'LOCAL-PRIVATE-LODGE-NOTE' } }]), 'workspace-signed');
+const assignmentQuote = { ...structuredClone(quoteFixture), id: 'workspace-signed', token: 'local-assignment-quote-token',
+    booking: { ...structuredClone(quoteFixture.booking), days: structuredClone(quoteEditorDocument.days),
+        travelers: [{ name: '로컬 여행자', passportNo: 'LOCAL-PRIVATE-QUOTE-PASSPORT' }],
+        contract: { signedAt: '2026-10-18T00:00:00Z', signImg: 'LOCAL-PRIVATE-QUOTE-SIGNATURE',
+            snapshot: { travelers: [{ passportNo: 'LOCAL-PRIVATE-SNAPSHOT' }] } },
+        assign: { guide: { id: 'workspace-guide', name: '기존 견적 가이드', img: '/img/quote/guide.webp' },
+            vehicle: { model: '기존 견적 차량', plate: 'LOCAL-PRIVATE-PLATE', phone: 'LOCAL-PRIVATE-QUOTE-DRIVER' },
+            lodges: [{ day: 1, date: '2026-10-25', name: '기존 견적 숙소', img: lodgeImage, imgs: [lodgeImage], tags: '샤워 가능',
+                desc: '예약 당시 숙소 설명', bookingStatus: 'Баталгаажсан' }] } } };
+raw.prepare('INSERT INTO requests (id,received_at,name,status,data,token) VALUES (?,?,?,?,?,?)')
+    .run(assignmentQuote.id, quoteFixture.receivedAt, assignmentQuote.name, assignmentQuote.status, JSON.stringify(assignmentQuote), assignmentQuote.token);
+const assignmentResponse = await apiRequest('/api/admin/assignments', { headers: admin });
+assert.equal(assignmentResponse.status, 200);
+assert.equal(assignmentResponse.headers.get('cache-control'), 'private, no-store');
+const assignmentText = await assignmentResponse.text(), assignmentData = JSON.parse(assignmentText);
+assert.deepEqual(assignmentData.warnings, []);
+assert.deepEqual(assignmentData.availability, { product: true, quote_booking: true });
+assert.deepEqual(new Set(assignmentData.items.filter(item => item.id === 'workspace-signed').map(item => item.key)),
+    new Set(['product:workspace-signed', 'quote_booking:workspace-signed']));
+assert.ok(!/LOCAL-PRIVATE-(SIGNATURE|PASSPORT|QUOTE-PASSPORT|QUOTE-SIGNATURE|SNAPSHOT|ASSIGNMENT-NOTE|LODGE-NOTE|PLATE)|local-assignment-quote-token/.test(assignmentText));
+for (const source of ['product', 'quote_booking']) {
+    const item = assignmentData.items.find(row => row.id === 'workspace-signed' && row.source === source);
+    const updated = structuredClone(item.assignment);
+    updated.guide.name = source === 'product' ? '새 상품 가이드' : '새 견적 가이드';
+    updated.vehicle = { type: '새 로컬 검증 차량', phone: 'LOCAL-PRIVATE-NEW-DRIVER' };
+    updated.accommodations[0].accommodation.roomCount = 2;
+    const route = `/api/admin/assignments/${source}/workspace-signed`;
+    assert.equal((await write(route, 'PATCH', { expectedVersion: item.version, assignment: updated })).status, 200);
+    assert.equal((await write(route, 'PATCH', { expectedVersion: item.version, assignment: updated })).status, 409);
+}
+const updatedSignedRow = raw.prepare('SELECT * FROM reservations WHERE id=?').get('workspace-signed');
+const updatedSignedContract = JSON.parse(updatedSignedRow.contract_data);
+assert.deepEqual({ ...updatedSignedContract, vehicle: undefined }, { ...signedContract, vehicle: undefined });
+assert.equal(updatedSignedContract.vehicle.type, '새 로컬 검증 차량');
+assert.equal(updatedSignedContract.vehicle.phone, JSON.parse(updatedSignedRow.admin_operations).driverPhone);
+assert.equal(JSON.parse(updatedSignedRow.daily_accommodations)[0].accommodation.privateNote, 'LOCAL-PRIVATE-LODGE-NOTE');
+assert.equal(updatedSignedRow.document_content, originalSignedRow.document_content);
+const updatedAssignmentQuote = JSON.parse(raw.prepare('SELECT data FROM requests WHERE id=?').get('workspace-signed').data);
+const immutableQuote = rec => ({ ...rec, booking: { ...rec.booking, assign: undefined } });
+assert.deepEqual(immutableQuote(updatedAssignmentQuote), immutableQuote(assignmentQuote));
+assert.equal(updatedAssignmentQuote.booking.assign.guide.img, assignmentQuote.booking.assign.guide.img);
+assert.equal(updatedAssignmentQuote.booking.assign.lodges[0].tags, '샤워 가능');
+assert.equal(updatedAssignmentQuote.booking.assign.lodges[0].roomCount, 2);
+for (const route of ['/api/reservations/workspace-signed', '/api/documents/itinerary/workspace-signed?format=quote', '/api/documents/contract/workspace-signed']) {
+    const response = await apiRequest(route, { headers: owner });
+    assert.equal(response.status, 200);
+    assert.ok(!(await response.text()).includes('LOCAL-PRIVATE-NEW-DRIVER'), `기사 개인 연락처는 고객 응답에서 제외: ${route}`);
+}
+const assignmentPublicQuote = await apiRequest(`/api/my/${assignmentQuote.token}`);
+assert.equal(assignmentPublicQuote.status, 200);
+assert.ok(!(await assignmentPublicQuote.text()).includes('LOCAL-PRIVATE-NEW-DRIVER'));
+const productAssignment = (await (await apiRequest('/api/admin/assignments', { headers: admin })).json()).items.find(item => item.key === 'product:workspace-signed');
+assert.equal((await write('/api/admin/assignments/product/workspace-signed', 'PATCH', {
+    expectedVersion: productAssignment.version, assignment: { ...productAssignment.assignment, vehicle: { type: '', phone: '' }, accommodations: [] },
+})).status, 200);
+const clearedProduct = raw.prepare('SELECT * FROM reservations WHERE id=?').get('workspace-signed');
+assert.equal(JSON.parse(clearedProduct.contract_data).vehicle.type, '');
+assert.equal(JSON.parse(clearedProduct.admin_operations).vehicle, '');
+assert.deepEqual(JSON.parse(clearedProduct.daily_accommodations), []);
+raw.prepare('UPDATE reservations SET contract_data=?,admin_operations=?,daily_accommodations=?,assigned_guide=? WHERE id=?')
+    .run(originalSignedRow.contract_data, originalSignedRow.admin_operations, originalSignedRow.daily_accommodations, originalSignedRow.assigned_guide, 'workspace-signed');
+raw.prepare('DELETE FROM requests WHERE id=?').run('workspace-signed');
+assert.equal(outbound.length, 0, '배정 조회와 저장은 발송을 실행하지 않아야 한다');
+
+// Actual image bytes and actual Hono auth/validation, backed solely by memory.
+const uploadImageFixture = async (headers = admin, folder = 'banners', bytes = fs.readFileSync(path.join(root, 'public', image))) => {
+    const form = new FormData(); form.set('folder', folder);
+    form.set('file', new Blob([bytes], { type: 'image/webp' }), 'local-photo.webp');
+    return apiRequest('/api/site-upload', { method: 'POST', headers, body: form });
+};
+assert.equal((await uploadImageFixture({})).status, 401);
+assert.equal((await uploadImageFixture(owner)).status, 403);
+assert.equal((await uploadImageFixture(admin, 'banners', Buffer.from('<html>not an image</html>'))).status, 415);
+const uploaded = await uploadImageFixture(); assert.equal(uploaded.status, 200);
+const uploadedImage = await uploaded.json(); assert.match(uploadedImage.url, /^\/api\/images\/banners\//);
+const imageRead = await apiRequest(uploadedImage.url);
+assert.equal(imageRead.status, 200); assert.equal(imageRead.headers.get('content-type'), 'image/webp');
+assert.deepEqual(Buffer.from(await imageRead.arrayBuffer()), fs.readFileSync(path.join(root, 'public', image)));
+assert.equal((await apiRequest(uploadedImage.url, { method: 'HEAD' })).status, 200);
+assert.equal((await apiRequest(uploadedImage.url, { headers: { 'If-None-Match': imageRead.headers.get('etag') } })).status, 304);
+
+const bannerFixture = {
+    banners: [{ id: 'local-banner-terelj', image: uploadedImage.url, pcImage: image, title: '로컬 몽골 여행', subtitle: '테를지 초원', tag: 'LOCAL', link: '/products/workspace-booked-tour' },
+        { id: 'local-banner-gobi', image: '/img/regions/khongor.webp', title: '로컬 고비사막 여행', subtitle: '배너 순서 확인', tag: 'LOCAL', link: '/products' }],
+    quickLinks: [{ id: 'local-link', icon: 'travel_explore', label: '몽골 여행', path: '/products', image }],
+    eventBanners: [{ id: 'local-promo', image, backgroundColor: '#0F766E', tag: '몽골 여행', title: '관리자 이미지 저장·새로고침 확인', link: '/custom-estimate', location: 'all' }],
+    categoryTabs: [{ id: 'local-tab', name: '중앙몽골', title: '테를지 여행', subtitle: '지역별 여행', bannerImage: image }],
+};
+assert.equal((await write('/api/banners', 'PUT', bannerFixture, owner)).status, 403);
+assert.equal((await write('/api/banners', 'PUT', bannerFixture)).status, 200);
+const bannerReload = await (await apiRequest('/api/banners')).json();
+assert.deepEqual(bannerReload.banners.map(row => row.id), bannerFixture.banners.map(row => row.id));
+assert.equal(bannerReload.banners[0].image, uploadedImage.url);
+assert.equal(bannerReload.eventBanners[0].image, image);
+
+assert.equal((await write('/api/categories/local-central', 'PUT', { description: '부분 수정 보존 확인', image,
+    landing_hero_images: [image, lodgeImage], landing_hero_title: '중앙몽골 여행', is_active: 1 })).status, 200);
+assert.equal((await write('/api/categories/local-central', 'PUT', { is_active: 0, order: 0 })).status, 200);
+const categoryReload = await (await apiRequest('/api/categories', { headers: admin })).json();
+const preservedCategory = categoryReload.find(row => row.id === 'local-central');
+assert.equal(preservedCategory.name, '중앙몽골'); assert.equal(preservedCategory.description, '부분 수정 보존 확인');
+assert.deepEqual(preservedCategory.landing_hero_images, [image, lodgeImage]);
+assert.equal(preservedCategory.is_active, 0); assert.equal(preservedCategory.sort_order, 0);
+assert.equal((await write('/api/categories/missing-local-category', 'PUT', { is_active: 1 })).status, 404);
+assert.equal((await write('/api/categories/reorder', 'PUT', { type: 'product', items: [{ id: 'local-central', sort_order: 0 }] })).status, 409);
+const categoryOrder = { type: 'product', items: [{ id: 'local-gobi', sort_order: 0 }, { id: 'local-central', sort_order: 1 }] };
+assert.equal((await write('/api/categories/reorder', 'PUT', categoryOrder, owner)).status, 403);
+assert.equal((await write('/api/categories/reorder', 'PUT', categoryOrder)).status, 200);
+assert.deepEqual((await (await apiRequest('/api/categories?type=product', { headers: admin })).json()).map(row => row.id), ['local-gobi', 'local-central']);
+assert.equal((await write('/api/categories/local-central', 'PUT', { is_active: 1 })).status, 200);
+
+const magazineFixture = { id: 'workspace-magazine-check', title: '로컬 매거진 검증', subtitle: '발행 상태 보존 확인',
+    content: '<p>합성 콘텐츠입니다. 실제 고객 자료를 포함하지 않습니다.</p>', thumbnail: image, category: '중앙몽골', author: '로컬 검증' };
+assert.equal((await write('/api/magazines', 'POST', magazineFixture, owner)).status, 403);
+assert.equal((await write('/api/magazines', 'POST', magazineFixture)).status, 200);
+assert.equal((await apiRequest('/api/magazines/workspace-magazine-check')).status, 404);
+assert.equal((await apiRequest('/api/magazines/workspace-magazine-check', { headers: admin })).status, 200);
+assert.equal((await write('/api/magazines/workspace-magazine-check', 'PUT', { ...magazineFixture, is_published: true })).status, 200);
+const publishedMagazine = await (await apiRequest('/api/magazines/workspace-magazine-check')).json();
+assert.equal(publishedMagazine.is_published, 1); assert.equal(publishedMagazine.thumbnail, image);
+assert.equal((await apiRequest('/api/magazines/workspace-magazine-check', { method: 'DELETE', headers: admin })).status, 200);
+
+if (usability) {
+    // Add after the exact baseline assertions so the original regression checks
+    // stay unchanged. All names, contacts, signatures and images are synthetic.
+    const guideRows = [
+        { id: 'workspace-guide', name: '로컬 한국어 가이드', phone: 'LOCAL-GUIDE-PHONE', image: '/img/quote/guide.webp' },
+        { id: 'workspace-guide-duplicate', name: '로컬 한국어 가이드', phone: 'LOCAL-GUIDE-DUPLICATE', image: '/img/quote/guide.webp' },
+        { id: 'workspace-guide-gobi', name: '로컬 고비 가이드', phone: 'LOCAL-GOBI-GUIDE', image: '/img/quote/guide.webp' },
+    ];
+    for (const guide of guideRows) assert.equal((await write('/api/tour-guides', 'POST', {
+        ...guide, bio: '중복 이름과 예약 날짜 겹침을 확인하는 로컬 가이드', languages: ['한국어', '몽골어'],
+        specialties: ['중앙몽골'], experience_years: 5,
+    })).status, 200);
+    assert.equal((await apiRequest('/api/tour-guides')).status, 401);
+    assert.equal((await apiRequest('/api/tour-guides', { headers: owner })).status, 403);
+    const guideList = await (await apiRequest('/api/tour-guides', { headers: admin })).json();
+    assert.equal(guideList.filter(guide => guide.name === '로컬 한국어 가이드').length, 2);
+
+    const lodgeRows = [
+        { id: 'workspace-lodge-terelj', name: '로컬 테를지 게르 캠프', location: '중앙몽골', type: '게르',
+            images: [lodgeImage, image], description: '사진·객실·예약 상태 보존 확인 숙소', facilities: ['샤워', '전기'], is_active: 1 },
+        { id: 'workspace-lodge-gobi', name: '로컬 고비 게르 캠프', location: '고비사막', type: '게르',
+            images: [lodgeImage], description: '견적 예약 숙소 배정 확인용', facilities: ['공용 샤워'], is_active: 1 },
+    ];
+    assert.equal((await write('/api/accommodations/bulk', 'POST', { accommodations: lodgeRows })).status, 200);
+    const libraryResources = {
+        guides: {
+            '로컬 한국어 가이드': { id: 'workspace-guide', name: '로컬 한국어 가이드', phone: 'LOCAL-KV-GUIDE-PHONE',
+                img: '/img/quote/guide.webp', desc: '상품 가이드 목록과 동일한 이름의 견적 리소스', role: '한국어 가이드' },
+            '로컬 고비 가이드': { id: 'workspace-guide-gobi', name: '로컬 고비 가이드', phone: 'LOCAL-KV-GOBI-PHONE',
+                img: '/img/quote/guide.webp', desc: '고비사막 가이드 소개' },
+        },
+        lodges: Object.fromEntries(lodgeRows.map(lodge => [lodge.name, { id: lodge.id, name: lodge.name, region: lodge.location,
+            grade: lodge.type, img: lodge.images[0], imgs: lodge.images, desc: lodge.description,
+            tags: lodge.facilities.join(', '), facilities: lodge.facilities, contact: 'LOCAL-PRIVATE-LODGE-CONTACT' }])),
+        lodge_cats: ['중앙몽골', '고비사막'],
+        vehicles: { '로컬 하이스': { model: '로컬 하이스', seats: '6인', luggage: '캐리어 4개', img: image,
+            desc: '로컬 차량 사진과 안내' } },
+    };
+    for (const [key, value] of Object.entries(libraryResources)) {
+        assert.equal((await write(`/api/data/${key}`, 'PUT', value, quoteAdmin)).status, 200);
+        const loaded = await (await apiRequest(`/api/data/${key}`, { headers: quoteAdmin })).json();
+        assert.deepEqual(loaded.data, value);
+    }
+    const publicGuides = await (await apiRequest('/api/data/guides')).text();
+    assert.ok(!publicGuides.includes('LOCAL-KV-GUIDE-PHONE'));
+
+    for (let index = 1; index <= 10; index++) {
+        const id = `workspace-usability-${String(index).padStart(2, '0')}`;
+        const status = index === 3 ? 'pending_payment' : index === 7 ? 'cancelled' : index === 10 ? 'completed' : 'confirmed';
+        const start = index <= 4 ? '2026-10-20' : index <= 8 ? '2026-10-25' : '2026-10-16';
+        const end = index <= 4 ? '2026-10-22' : index <= 8 ? '2026-10-27' : '2026-10-18';
+        const assigned = index % 3 !== 0;
+        const guide = guideRows[index === 2 ? 1 : index % 3 === 2 ? 2 : 0];
+        const signed = index === 2 || index === 8;
+        const contract = { travelers: [{ name: `합성 여행자 ${index}`, passportName: `LOCAL TRAVELER ${index}`, gender: '남성' }],
+            vehicle: { type: assigned ? '로컬 하이스' : '', phone: assigned ? 'LOCAL-PRIVATE-USABILITY-DRIVER' : '' },
+            ...(signed ? { agreement: { agreed: true, name: `합성 여행자 ${index}`, agreedAt: '2026-10-18T00:00:00Z' },
+                customerSubmittedAt: '2026-10-18T00:00:00Z' } : {}) };
+        const lodges = assigned ? [{ day: 1, date: start, accommodation: { ...lodgeRows[0], roomCount: 2,
+            occupancy: '2인실', bookingStatus: index % 2 ? 'Баталгаажсан' : 'Шалгаж байна' } }] : [];
+        insertReservation.run(id, 'workspace-booked-tour', productName, `합성 예약 고객 ${String(index).padStart(2, '0')}`,
+            `local-${index}@example.invalid`, '01000000000', index % 4 + 1, start, end, status,
+            index === 4 ? 0 : 3300000, index === 4 ? 0 : 330000, index === 4 ? 0 : 2970000,
+            status === 'pending_payment' ? 'unpaid' : 'paid', status === 'completed' ? 'paid' : 'unpaid', `LOCAL-QA-${index}`,
+            index % 2 === 0 ? JSON.stringify(savedDocument) : null, JSON.stringify(contract),
+            assigned ? JSON.stringify(guide) : null, JSON.stringify(lodges), 0, null, null, 'workspace-owner',
+            `2026-10-${String(index + 8).padStart(2, '0')}T01:00:00Z`, 'website');
+    }
+    // Same source ID in reservations and requests is intentional. Both rows must
+    // remain separately searchable and editable in the unified list/assignment board.
+    const assignedQuote = { ...structuredClone(quoteFixture),
+        booking: { ...structuredClone(quoteFixture.booking), days: structuredClone(quoteEditorDocument.days),
+            assign: { guide: { id: 'workspace-guide', name: guideRows[0].name, phone: 'LOCAL-KV-GUIDE-PHONE', img: guideRows[0].image },
+                vehicle: { model: '로컬 하이스', phone: 'LOCAL-PRIVATE-USABILITY-QUOTE-DRIVER', plate: 'LOCAL-PRIVATE-USABILITY-PLATE' },
+                lodges: [{ ...libraryResources.lodges[lodgeRows[1].name], day: 1, date: '2026-10-25',
+                    roomCount: 2, occupancy: '2인실', bookingStatus: 'Баталгаажсан' }] } } };
+    raw.prepare('UPDATE requests SET data=? WHERE id=?').run(JSON.stringify(assignedQuote), assignedQuote.id);
+    const sameIdQuote = { ...structuredClone(assignedQuote), id: 'workspace-product', name: '동일 ID 견적 예약 고객',
+        token: 'local-same-id-quote-token', depart: '2026-10-20', return_: '2026-10-22' };
+    sameIdQuote.booking.assign.lodges[0].date = sameIdQuote.depart;
+    raw.prepare('INSERT INTO requests (id,received_at,name,phone,destination,status,data,token) VALUES (?,?,?,?,?,?,?,?)')
+        .run(sameIdQuote.id, '2026-10-18T12:00:00Z', sameIdQuote.name, sameIdQuote.phone, sameIdQuote.destination,
+            sameIdQuote.status, JSON.stringify(sameIdQuote), sameIdQuote.token);
+    const inquiry = { id: 'workspace-usability-inquiry', name: '합성 신규 견적 문의', status: '신규', destination: '중앙몽골',
+        depart: '2026-11-01', return_: '2026-11-03', adult: 2, receivedAt: '2026-10-19T00:00:00Z', token: 'local-inquiry-fixture-token' };
+    raw.prepare('INSERT INTO requests(id,received_at,name,destination,status,data,token) VALUES(?,?,?,?,?,?,?)')
+        .run(inquiry.id, inquiry.receivedAt, inquiry.name, inquiry.destination, inquiry.status, JSON.stringify(inquiry), inquiry.token);
+
+    for (const [id, name, type, active] of [
+        ['local-khuvsgul', '홉스골', 'product', 1], ['local-hidden', '비공개 테스트 지역', 'product', 0],
+        ['local-mag-travel', '여행 이야기', 'magazine', 1], ['local-mag-spot', '명소 이야기', 'magazine', 1],
+    ]) assert.equal((await write('/api/categories', 'POST', { id, name, type, is_active: active,
+        image, landing_hero_image: image, landing_hero_images: [image, lodgeImage], landing_hero_title: `${name} 로컬 여행`,
+        description: '저장·활성화·순서 변경 검증용 카테고리', sort_order: type === 'product' ? (active ? 2 : 3) : (id.endsWith('travel') ? 0 : 1),
+    })).status, 200);
+    for (const [index, published] of [[1, true], [2, false], [3, true]]) {
+        assert.equal((await write('/api/magazines', 'POST', { ...magazineFixture, id: `workspace-magazine-${index}`,
+            title: published ? `로컬 몽골 여행 매거진 ${index}` : '로컬 작성 중 매거진', category: index === 3 ? '명소 이야기' : '여행 이야기',
+            content: '<p>로컬 QA 합성 콘텐츠입니다.</p><p>발행 여부와 카테고리 저장 후 재조회합니다.</p>', is_published: published,
+        })).status, 200);
+    }
+    const adminMagazines = await (await apiRequest('/api/magazines', { headers: admin })).json();
+    const publicMagazines = await (await apiRequest('/api/magazines')).json();
+    assert.equal(adminMagazines.length, 3); assert.equal(publicMagazines.length, 2);
+    assert.ok(!publicMagazines.some(row => row.id === 'workspace-magazine-2'));
+    const usabilityWorkspace = await (await apiRequest('/api/admin/workspace', { headers: admin })).json();
+    assert.equal(usabilityWorkspace.bookings.filter(row => row.type === 'product').length, 14);
+    assert.equal(usabilityWorkspace.bookings.filter(row => row.type === 'quote_booking').length, 2);
+    assert.equal(usabilityWorkspace.bookings.find(row => row.id === 'workspace-usability-04').totalAmount, 0);
+    const usabilityAssignments = await (await apiRequest('/api/admin/assignments', { headers: admin })).json();
+    assert.equal(usabilityAssignments.items.length, 16);
+    assert.equal(usabilityAssignments.items.filter(row => row.id === 'workspace-product').length, 2);
+    assert.equal(usabilityAssignments.items.find(row => row.key === 'quote_booking:workspace-quote').assignment.accommodations[0].accommodation.name, lodgeRows[1].name);
+    assert.ok(usabilityWorkspace.searchItems.some(row => row.title === '합성 예약 고객 01'));
+    assert.ok(usabilityWorkspace.searchItems.some(row => row.title === inquiry.name));
+    assert.equal(outbound.length, 0);
+    console.log('사용성 합성 데이터 검증 통과: 상품 예약 14건(추가 10건) · 견적 예약 2건 · 동일 ID 출처 분리 · 중복 가이드 · 견적 숙소 배정 · 매거진 공개/비공개 · 배너/카테고리 · 0원 정본');
+}
+console.log('예약 작업 API 검증 통과: 실제 로그인/견적 계정 · 견적 POST/PATCH/재조회 · 상품/견적 발송 이력·v5 문서 버전 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 계정별 예약/견적 초안 복원/충돌 · 상품·예약·견적·매거진·배정 초안 저장 실패 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 배정 버전 충돌/서명·여행자 보존/기사 연락처 보호 · 실제 이미지 업로드/조회 · 배너·카테고리 부분 수정/순서/매거진 공개 · 외부 발송 차단');
 
 if (process.argv.includes('--serve')) {
     const types = { '.html': 'text/html;charset=utf-8', '.js': 'text/javascript;charset=utf-8', '.css': 'text/css;charset=utf-8',
@@ -678,8 +999,26 @@ if (process.argv.includes('--serve')) {
                 const chunks = []; for await (const chunk of req) chunks.push(chunk);
                 const options = { method: req.method, headers: req.headers };
                 if (chunks.length) options.body = Buffer.concat(chunks);
+                // Optional local files let browser QA hold uploads in flight or
+                // return a retryable failure without replacing the success routes.
+                if (url.pathname === '/api/site-upload' && fs.existsSync(path.join(scratch, 'uploads-slow'))) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                }
+                const writeMethod = !['GET', 'HEAD'].includes(req.method);
+                const faults = [
+                    ['uploads-unavailable', url.pathname === '/api/site-upload'],
+                    ['banners-unavailable', url.pathname === '/api/banners'],
+                    ['banner-save-unavailable', url.pathname === '/api/banners' && writeMethod],
+                    ['categories-unavailable', url.pathname.startsWith('/api/categories')],
+                    ['category-save-unavailable', url.pathname.startsWith('/api/categories') && writeMethod],
+                    ['magazines-unavailable', url.pathname.startsWith('/api/magazines')],
+                    ['assignments-unavailable', url.pathname.startsWith('/api/admin/assignments')],
+                ];
+                const fault = faults.find(([name, applies]) => applies && fs.existsSync(path.join(scratch, name)));
                 let response;
-                if (url.pathname === '/api/products' && fs.existsSync(path.join(scratch, 'products-unavailable'))) {
+                if (fault) {
+                    response = Response.json({ error: '로컬 검증: 일시적 조회·저장 실패' }, { status: 503 });
+                } else if (url.pathname === '/api/products' && fs.existsSync(path.join(scratch, 'products-unavailable'))) {
                     response = Response.json({ error: '로컬 검증: 상품 조회 실패' }, { status: 503 });
                 } else if (url.pathname === '/api/__local-metrics') {
                     const who = await apiRequest('/api/auth/me', { headers: req.headers });

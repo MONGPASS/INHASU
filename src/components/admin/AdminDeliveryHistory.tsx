@@ -10,7 +10,7 @@ const steps = [{ key: 'accepted', label: '예약 접수' }, { key: 'deposit', la
 
 /** The same workflow and delivery receipts accompany both product and quote bookings. */
 export function AdminDeliveryHistory({ source, bookingId, revision = 0, busy = false, onOpenDocument, onData }: {
-    source: 'product' | 'quote_booking'; bookingId: string; revision?: number; busy?: boolean;
+    source: 'product' | 'quote_booking'; bookingId: string; revision?: number | string; busy?: boolean;
     onOpenDocument?: (kind: AdminDeliveryKind) => void;
     onData?: (data: AdminDeliveryData) => void;
 }) {
@@ -49,6 +49,8 @@ export function AdminDeliveryHistory({ source, bookingId, revision = 0, busy = f
         {error && <p role="alert" className="delivery-error">{error}{data ? ' 마지막 확인한 자료입니다.' : ''}</p>}
         {data?.warnings.map(warning => <p key={warning} role="status" className="delivery-error">{warning}</p>)}
         {data && <>
+            {Object.entries(data.documents || {}).map(([kind, state]) => state.needsResend ? <p key={kind} role="status" className="delivery-error">{names[kind as AdminDeliveryKind] || '문서'}: 마지막 발송 뒤 내용이 변경되었습니다. 수정본을 확인하고 다시 안내하세요.</p> : null)}
+            {Object.entries(data.documents || {}).map(([kind, state]) => state.hasPriorDelivery && !state.verified && !state.needsResend ? <p key={kind} className="delivery-hint">{names[kind as AdminDeliveryKind] || '문서'}: 기존 발송에는 문서 버전 정보가 없어 현재 내용까지 안내됐는지 확인이 필요합니다.</p> : null)}
             <ol className="delivery-workflow" aria-label="공통 예약 진행 순서">{steps.map(step => <li key={step.key} className={data.workflow[step.key] ? 'is-done' : ''}><span>{data.workflow[step.key] ? '✓' : '○'}</span>{step.label}</li>)}</ol>
             <p className="delivery-hint">서비스 접수는 실제 수신 완료와 다릅니다. 결과가 불확실한 발송은 서비스에서 확인한 뒤 처리하세요.</p>
             {!data.items.length ? <p className="delivery-empty">발송 이력이 없습니다.</p> : <ul className="delivery-list">{data.items.slice(0, 20).map(item => <li key={item.id}>

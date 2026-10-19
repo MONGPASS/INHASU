@@ -3,12 +3,14 @@ import { BRAND, COMPANY_INFO, DEPOSIT_ACCOUNT, resolveCancellationRows } from '.
 import { getSessionUser } from '../lib/userAuth';
 import { requireAdmin } from '../lib/adminAuth';
 import { buildProductQuote, hasProductSchedule, loadProductDocument, mergeProductDays, productItineraryPublished } from '../lib/productItinerary';
+import { publicAssignmentContract } from '../../src/utils/reservationAssignment';
 
 type Env = {
     DB: any;
 };
 
 const app = new Hono<{ Bindings: Env }>();
+app.use('*', async (c, next) => { c.header('Cache-Control', 'private, no-store'); await next(); });
 
 const DOC_SETTINGS_MARKER = '\n\n__MILKYWAY_DOCUMENT_SETTINGS__=';
 
@@ -215,6 +217,8 @@ app.get('/contract/:reservationId', async (c) => {
         }
     }
 
+    const isAdmin = (await getSessionUser(c))?.role === 'admin';
+
     return c.json({
         reservation: {
             id: reservation.id,
@@ -232,7 +236,7 @@ app.get('/contract/:reservationId', async (c) => {
             balanceAmount: reservation.balance_amount,
             createdAt: reservation.created_at,
         },
-        contract: contractData,
+        contract: isAdmin ? contractData : publicAssignmentContract(contractData),
         contractIncludedOverride: typeof savedContractSettings?.includedText === 'string',
         contractExcludedOverride: typeof savedContractSettings?.excludedText === 'string',
         template,
@@ -295,7 +299,7 @@ app.post('/contract/:reservationId/customer', async (c) => {
         'UPDATE reservations SET contract_data = ? WHERE id = ?'
     ).bind(JSON.stringify(contractData), reservation.id).run();
 
-    return c.json({ success: true, contract: contractData });
+    return c.json({ success: true, contract: publicAssignmentContract(contractData) });
 });
 
 export default app;

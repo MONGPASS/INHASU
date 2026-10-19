@@ -58,10 +58,12 @@ import inquiries from './inquiries';
 import adminBookings from './admin-bookings';
 import adminWorkspace from './admin-workspace';
 import adminDeliveries from './admin-deliveries';
+import adminAssignments from './admin-assignments';
 
 // Register routes
 app.route('/products', products);
 app.route('/admin/deliveries', adminDeliveries);
+app.route('/admin/assignments', adminAssignments);
 app.route('/reservations', reservations);
 app.route('/auth', auth);
 app.route('/notifications/email', emailNotifications);

@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { drizzle } from 'drizzle-orm/d1';
 import { reservations } from '../../src/db/schema/reservations';
-import { eq, desc, or } from 'drizzle-orm';
+import { eq, desc, or, and, isNull } from 'drizzle-orm';
+import { assignmentRecord, readProductVehicle, syncProductVehicle, publicAssignmentContract } from '../../src/utils/reservationAssignment';
 import { initializeLucia } from '../lib/auth';
 import { getCookie } from 'hono/cookie';
 import { sendPayPalInvoice } from '../lib/paypal';
@@ -120,7 +121,8 @@ const parseAdminOperations = (value: unknown): ReservationAdminOperations => {
 /** 내부 JSON을 그대로 펼치지 않는다. 게스트 예약도 조회자의 관리자 권한을 확인한다. */
 const reservationForRole = <T extends { adminOperations?: unknown }>(row: T, isAdmin: boolean) => {
     const { adminOperations, ...visible } = row;
-    return isAdmin ? { ...visible, adminOperations: parseAdminOperations(adminOperations) } : visible;
+    const vehicle = readProductVehicle(adminOperations, (row as any).contractData);
+    return isAdmin ? { ...visible, adminOperations: { ...parseAdminOperations(adminOperations), vehicle: vehicle.type, driverPhone: vehicle.phone } } : visible;
 };
 
 /** 관리자 메모는 조회 응답에서만 제외한다. 원본 이력과 일반 진행 이력은 그대로 둔다. */
@@ -300,7 +302,7 @@ app.get('/', async (c) => {
         deposit_report: parseDepositReport(r.depositReport),
     }));
 
-    return c.json(user.role === 'admin' ? parsed : parsed.map((row) => ({ ...row, history: customerVisibleHistory(row.history) })));
+    return c.json(user.role === 'admin' ? parsed : parsed.map((row) => ({ ...row, contractData: publicAssignmentContract(row.contractData), history: customerVisibleHistory(row.history) })));
 });
 
 // GET /api/reservations/:id
@@ -347,7 +349,7 @@ app.get('/:id', async (c) => {
         deposit_report: parseDepositReport(result.depositReport),
     };
 
-    return c.json(user?.role === 'admin' ? parsed : { ...parsed, history: customerVisibleHistory(parsed.history) });
+    return c.json(user?.role === 'admin' ? parsed : { ...parsed, contractData: publicAssignmentContract(parsed.contractData), history: customerVisibleHistory(parsed.history) });
 });
 
 // PUT /api/reservations/:id
@@ -409,10 +411,18 @@ app.put('/:id', async (c) => {
 
     const existing = await db.select().from(reservations).where(eq(reservations.id, id)).get();
     if (!existing) return c.json({ error: 'Reservation not found' }, 404);
+    let operationsPatch: OperationsUpdate | undefined;
     if ('adminOperations' in normalized) {
         const operations = validateAdminOperations(normalized.adminOperations);
         if (!operations) return c.json({ error: 'Invalid admin operations' }, 400);
+        operationsPatch = operations;
         normalized.adminOperations = mergeAdminOperations(parseAdminOperations(existing.adminOperations), operations);
+    }
+    const syncVehicle = 'adminOperations' in normalized || 'contractData' in normalized;
+    if (syncVehicle) {
+        const synced = syncProductVehicle(existing.adminOperations, existing.contractData, { operations: operationsPatch, contractData: normalized.contractData });
+        normalized.adminOperations = mergeAdminOperations(parseAdminOperations(existing.adminOperations), synced.operations);
+        normalized.contractData = synced.contractData;
     }
 
     // Serialize nested objects/arrays to JSON strings for TEXT columns
@@ -445,7 +455,10 @@ app.put('/:id', async (c) => {
     }
 
     if (Object.keys(filtered).length > 0) {
-        await db.update(reservations).set(filtered).where(eq(reservations.id, id)).run();
+        const result = await db.update(reservations).set(filtered).where(syncVehicle ? and(eq(reservations.id, id),
+            existing.contractData == null ? isNull(reservations.contractData) : eq(reservations.contractData, existing.contractData),
+            existing.adminOperations == null ? isNull(reservations.adminOperations) : eq(reservations.adminOperations, existing.adminOperations)) : eq(reservations.id, id)).run();
+        if (result.meta?.changes !== 1) return c.json({ error: '예약이 변경되었습니다. 최신 정보를 확인한 뒤 다시 저장해 주세요.' }, 409);
     }
 
     // Fetch updated
@@ -485,6 +498,15 @@ app.post('/', async (c) => {
 
     const body = await c.req.json();
     const db = drizzle(c.env.DB);
+
+    const selectedProductId = body.product_id ?? body.productId;
+    let productId: string | null = null;
+    if (selectedProductId !== undefined && selectedProductId !== null && selectedProductId !== '') {
+        if (typeof selectedProductId !== 'string' || selectedProductId.length > 150) return c.json({ error: '상품 ID를 확인해 주세요.' }, 400);
+        const selectedProduct = await c.env.DB.prepare('SELECT id FROM products WHERE id=?').bind(selectedProductId).first();
+        if (!selectedProduct) return c.json({ error: '선택한 상품을 찾을 수 없습니다.' }, 400);
+        productId = selectedProduct.id;
+    }
 
     // 고객 예약 요청으로는 내부 메모·영수증 정보를 설정할 수 없다.
     let adminOperations: ReservationAdminOperations | null = null;
@@ -529,7 +551,7 @@ app.post('/', async (c) => {
             id,
             type: body.type ? String(body.type) : 'tour',
             productName: String(productName),
-            productId: (body.product_id || body.productId) ? String(body.product_id || body.productId) : null,
+            productId,
             userId: isAdmin
                 ? ((body.user_id || body.userId) ? String(body.user_id || body.userId) : null)
                 : user.id,
@@ -548,6 +570,7 @@ app.post('/', async (c) => {
             paymentMethod: body.paymentMethod ? String(body.paymentMethod) : null,
             notes: body.notes ? String(body.notes) : null,
             adminOperations: adminOperations ? JSON.stringify(adminOperations) : null,
+            contractData: adminOperations ? JSON.stringify(syncProductVehicle(adminOperations, {}, { operations: adminOperations }).contractData) : null,
             dailyAccommodations: body.dailyAccommodations ? JSON.stringify(body.dailyAccommodations) : null,
             history: isAdmin && body.history ? JSON.stringify(body.history) : null,
             itineraryTemplateId: isAdmin && (body.itinerary_template_id || body.itineraryTemplateId)

@@ -1,0 +1,18 @@
+.reservation-workspace.product-workspace.quote-native-workspace{width:100%;height:auto;max-height:none;display:block;background:transparent;margin:0 auto 18px;font-family:Pretendard,system-ui,sans-serif}
+.quote-native-workspace .rw-workflow-card,.quote-native-workspace .rw-readiness-card{background:white;border:1px solid #e4ece7;border-radius:18px;overflow:hidden}
+.quote-native-workspace .rw-overview{display:grid;gap:16px}
+.quote-native-tabs{display:flex;gap:4px;overflow:auto;background:white;border:1px solid #e4ece7;border-radius:14px;margin-bottom:18px;padding:4px 8px;box-shadow:0 4px 16px #17392a08}
+.native-booking-workspace #admin-booking-navigation{position:sticky;top:0;z-index:30;max-width:1100px;margin:auto;padding:0 20px}
+.native-booking-workspace .quote-day-extra details{margin-top:12px;color:#667085;font-size:12px}
+.native-booking-workspace .quote-day-extra label{display:block;margin-top:10px}
+.quote-native-tabs button{flex:none;border:0;border-bottom:3px solid transparent;background:white;color:#6b7a72;padding:13px 18px;font:700 13px Pretendard,sans-serif;cursor:pointer}
+.quote-native-tabs button.active{color:#08765f;border-bottom-color:#16987d}
+.quote-native-tabs button:focus-visible{outline:2px solid #16987d;outline-offset:-3px}
+.quote-native-info{font-size:12px;line-height:1.7;color:#64766b;margin:12px 3px}
+.native-booking-workspace #main>.workflow-card,.native-booking-workspace #main>.workflow-card+section{display:none}
+.native-booking-workspace body>header{position:static;max-width:1100px;margin:0 auto;background:transparent;border:0;padding:18px 20px}
+.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history{max-width:1100px;margin-left:auto;margin-right:auto;padding-left:20px;padding-right:20px;box-sizing:border-box}
+.native-booking-workspace #admin-booking-history{padding-bottom:24px}
+.native-booking-workspace #documentsSection,.native-booking-workspace #bookingInfoSection,.native-booking-workspace #paymentSection,.native-booking-workspace #assignmentSection,.native-booking-workspace #admin-booking-history{scroll-margin-top:68px}
+.native-booking-workspace #dayWrap{margin-top:10px}
+@media(max-width:700px){.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history,.native-booking-workspace #admin-booking-navigation{padding-left:12px;padding-right:12px}.quote-native-tabs button{padding:12px}.quote-native-workspace .rw-card-heading{padding:18px}}

@@ -12,6 +12,7 @@ import {
 } from "../_solapi.js";
 import { MANUAL_TRIGGER, recordTravelNoticeSent, travelNoticeState } from "../_travel-notice.mjs";
 import { trackedDelivery } from '../../lib/adminDelivery.ts';
+import { quoteDocumentRevisions } from '../../lib/adminDocumentRevision.ts';
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -38,7 +39,7 @@ const isPublishReady = rec => {
   const days = Array.isArray(booking.days) ? booking.days : [];
   const assign = booking.assign || {};
   const lodges = Array.isArray(assign.lodges) ? assign.lodges.filter(x => x && x.name) : [];
-  const lodgeNeeded = requiredLodgeCount(days);
+  const lodgeNeeded = requiredLodgeCount(days, rec);
   return rec.status === "예약확정" && days.length > 0 &&
     !!(assign.guide && assign.guide.name) && !!(assign.vehicle && assign.vehicle.model) &&
     lodges.length >= lodgeNeeded;
@@ -80,6 +81,7 @@ export async function onRequestPatch(context) {
     if (!row) return json({ ok: false, error: "not found" }, 404);
 
     const rec = JSON.parse(row.data);
+    const previousDocumentVersions = await quoteDocumentRevisions(rec);
     if ((requestTravelerInfo || requestDeposit || requestContract || confirmDeposit) && !rec.booking) 
       return json({ ok:false, error:"예약관리를 먼저 시작해 주세요" }, 409);
     
@@ -162,6 +164,10 @@ export async function onRequestPatch(context) {
     const nextWorkflow = workflowStatus(rec, rec.status);
     rec.workflowStatus = nextWorkflow;
     const notifications = [];
+    const currentDocumentVersions = await quoteDocumentRevisions(rec);
+    for (const kind of ['quote', 'itinerary', 'contract']) {
+      if (previousDocumentVersions[kind] !== currentDocumentVersions[kind]) rec.activities.push({ at:now, type:`${kind}_document_changed`, detail:'관리자가 고객 문서 내용을 변경했습니다.' });
+    }
     const publishingItinerary = !!(rec.booking && rec.booking.publishStatus === "published" && prevPublish !== "published");
     const shouldNotifyQuote = !publishingItinerary && !silentQuote && !!rec.quote && (!hadQuote || forceNotifyQuote);
     const shouldNotifyContract = confirmDeposit || requestContract;
@@ -201,10 +207,11 @@ export async function onRequestPatch(context) {
       rec.activities = rec.activities.slice(-100);
     }
 
+    rec.activities = rec.activities.slice(-100);
     await env.DB.prepare("UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ?").bind(rec.status, rec.memo || "", JSON.stringify(rec), rec.token || "", id).run();
 
     const bg = (kind, work) => {
-      const task = trackedDelivery(env.DB, { source:'quote_booking', bookingId:id, kind, channel:kind === 'contract' ? 'message' : 'kakao' }, work)
+      const task = trackedDelivery(env.DB, { source:'quote_booking', bookingId:id, kind, channel:kind === 'contract' ? 'message' : 'kakao', revision:currentDocumentVersions[kind] }, work)
         .then(r => console.log('customer-delivery', kind, r.state)).catch(() => console.log('customer-delivery', kind, 'history unavailable; not sent'));
       if (typeof context.waitUntil === "function") context.waitUntil(task);
     };

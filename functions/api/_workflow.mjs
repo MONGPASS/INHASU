@@ -11,16 +11,19 @@ export const WORKFLOW = Object.freeze({
   TRIP_COMPLETED: "TRIP_COMPLETED",
 });
 
-export function requiredLodgeCount(days = []) {
+export function requiredLodgeCount(days = [], period = {}) {
   const list = Array.isArray(days) ? days : [];
-  if (!list.length) return 0;
-  const maxNights = Math.max(list.length - 1, 0);
-  const stayDays = list.filter(day => {
-    const name = String(day && day.stay && day.stay.name || "").replace(/<br\s*\/?>/gi, " ").trim();
-    return name && name !== "숙소미포함";
-  }).length;
-  // 마지막 날은 귀국일이므로 일정에 숙소가 잘못 남아 있어도 총 박수를 넘지 않습니다.
-  return Math.min(stayDays || maxNights, maxNights);
+  const dateStamp = value => {
+    const key = String(value || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return NaN;
+    const stamp = Date.parse(key + 'T00:00:00Z');
+    return Number.isFinite(stamp) && new Date(stamp).toISOString().slice(0, 10) === key ? stamp : NaN;
+  };
+  const departure = dateStamp(period?.depart), returning = dateStamp(period?.return_);
+  // Incomplete itinerary cards cannot shorten the actual booking. Keep this
+  // identical to 예약관리.html assignStats, including an explicit same-day trip.
+  return Number.isFinite(departure) && Number.isFinite(returning) && returning >= departure
+    ? Math.round((returning - departure) / 86400000) : Math.max(list.length - 1, 0);
 }
 
 export function workflowStatus(rec = {}, rowStatus = "") {

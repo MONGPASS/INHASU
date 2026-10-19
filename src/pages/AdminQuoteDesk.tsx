@@ -4,6 +4,12 @@ import { useUser } from '../contexts/UserContext';
 import { AdminDeliveryHistory } from '../components/admin/AdminDeliveryHistory';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
+import { createPortal } from 'react-dom';
+import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
+import { reservationReturnTo } from '../utils/adminReservationList';
+import workspaceStyles from '../styles/reservation-workspace.css?inline';
+import nativeWorkspaceStyles from '../styles/quote-booking-workspace.css?inline';
+import deliveryStyles from '../components/admin/AdminDeliveryHistory.css?inline';
 import {
     connectQuoteDesk,
     findQuoteDeskTool,
@@ -26,6 +32,11 @@ import {
 
 // connecting: 관리자 세션으로 연결 중 · linked: iframe 표시 · unset: 서버에 ADMIN_TOKEN 없음 · failed: 연결 실패
 type Phase = 'connecting' | 'linked' | 'unset' | 'failed';
+interface BookingWorkspaceState {
+    bookingId: string; cancelled: boolean; accepted: boolean; deposit: boolean; signed: boolean; confirmed: boolean;
+    schedule: boolean; published: boolean; dayCount: number; guideReady: boolean; vehicleReady: boolean;
+    lodgeCount: number; lodgeNeeded: number; travelerCount: number; expectedTravelers: number;
+}
 
 export const AdminQuoteDesk: React.FC = () => {
     const { user } = useUser();
@@ -33,6 +44,7 @@ export const AdminQuoteDesk: React.FC = () => {
     const activeAccount = useRef(accountId); activeAccount.current = accountId;
     const { tool: toolParam } = useParams<{ tool?: string }>();
     const [searchParams] = useSearchParams();
+    const returnTo = reservationReturnTo(searchParams.get('returnTo'));
     const bookingId = ['bookings', 'inbox', 'builder'].includes(toolParam || '') ? searchParams.get('id') || undefined : undefined;
     const quoteEditorId = toolParam === 'inbox' ? searchParams.get('qe') || undefined : undefined;
     const navigate = useNavigate();
@@ -54,6 +66,9 @@ export const AdminQuoteDesk: React.FC = () => {
     const shownKeyRef = useRef(frameKey);
     const [editorNotice, setEditorNotice] = useState('');
     const [showDeliveries, setShowDeliveries] = useState(false);
+    const [bookingWorkspace, setBookingWorkspace] = useState<BookingWorkspaceState | null>(null);
+    const [nativeHosts, setNativeHosts] = useState<{ bookingId: string; top: HTMLElement; navigation: HTMLElement; history: HTMLElement } | null>(null);
+    const [activeSection, setActiveSection] = useState('docs');
     const blockedReason = useRef({ busy: false, error: '' });
     const handledAttempt = useRef('');
     const syncFrameLocation = useRef<() => void>(() => {});
@@ -61,7 +76,12 @@ export const AdminQuoteDesk: React.FC = () => {
         getState: () => { dirty: boolean; busy: boolean; error?: string };
         flushAll: () => { ok: boolean; dirty?: boolean; busy: boolean; error?: string };
         approveLeaveOnce?: () => void;
-    } };
+    }; InhasuQuoteBookingWorkspace?: { getState: () => BookingWorkspaceState | null; navigate: (section: string) => boolean } };
+    const navigateWorkspace = (section: string) => {
+        setActiveSection(section);
+        try { (frameRef.current?.contentWindow as EditorWindow | null)?.InhasuQuoteBookingWorkspace?.navigate(section); }
+        catch { setEditorNotice('예약 화면을 새로고침한 뒤 다시 선택해 주세요.'); }
+    };
     const flushFrame = useCallback(() => {
         try {
             const inner = frameRef.current?.contentWindow as EditorWindow | null;
@@ -82,10 +102,11 @@ export const AdminQuoteDesk: React.FC = () => {
                 if (!event.data.busy && !event.data.error) setEditorNotice('');
                 syncFrameLocation.current();
             }
+            if (event.data?.type === 'inhasu-quote-booking-workspace' && event.data.version === 1 && event.data.state?.bookingId === bookingId) { setBookingWorkspace(event.data.state); syncFrameLocation.current(); }
         };
         window.addEventListener('message', receive);
         return () => window.removeEventListener('message', receive);
-    }, [sendAccount]);
+    }, [sendAccount, bookingId]);
     const blocker = useBlocker(useCallback(({ currentLocation, nextLocation }) => {
         if (currentLocation.pathname === nextLocation.pathname && currentLocation.search === nextLocation.search) return false;
         if (followedKeyRef.current && nextLocation.pathname + nextLocation.search === followedHrefRef.current) return false; // Same child document, only synchronizing its address.
@@ -135,6 +156,7 @@ export const AdminQuoteDesk: React.FC = () => {
             followedHrefRef.current = '';
             return;
         }
+        setNativeHosts(null); setBookingWorkspace(null); setActiveSection('docs');
         setFrame((prev) => ({ src: quoteDeskFrameSrc(tool, bookingId, quoteEditorId), seq: prev.seq + 1 }));
         setFrameLoading(true);
         // tool 은 tool.key 로 정해진다.
@@ -155,6 +177,19 @@ export const AdminQuoteDesk: React.FC = () => {
         }
         const current = quoteDeskToolForPath(path);
         if (!current) return;
+        if (current.key === 'bookings' && normalizeDocPath(path) === '/예약관리' && innerId) {
+            try {
+                const doc = frameRef.current?.contentDocument;
+                const top = doc?.getElementById('admin-booking-workspace'), navigation = doc?.getElementById('admin-booking-navigation'), history = doc?.getElementById('admin-booking-history');
+                const state = (frameRef.current?.contentWindow as EditorWindow | null)?.InhasuQuoteBookingWorkspace?.getState();
+                if (doc && top && navigation && history && state?.bookingId === innerId) {
+                    doc.documentElement.classList.add('native-booking-workspace');
+                    if (!doc.getElementById('native-booking-workspace-style')) { const style = doc.createElement('style'); style.id = 'native-booking-workspace-style'; style.textContent = workspaceStyles + nativeWorkspaceStyles + deliveryStyles; doc.head.appendChild(style); }
+                    setNativeHosts(old => old?.top === top && old.navigation === navigation && old.history === history ? old : { bookingId: innerId, top, navigation, history });
+                    setBookingWorkspace(state);
+                }
+            } catch { /* A standalone or older document retains its existing workflow. */ }
+        } else { setNativeHosts(null); setBookingWorkspace(null); }
 
         // 바깥 창은 데스크톱 폭인데 안쪽(더 좁은 iframe)이 모바일 관리자로 넘어갔으면 데스크톱 화면으로 되돌린다.
         if (current.mobileDoc && normalizeDocPath(path) === current.mobileDoc && isDesktopViewport() && !innerEditor) {
@@ -170,6 +205,7 @@ export const AdminQuoteDesk: React.FC = () => {
         if (current.key !== tool.key || (['bookings', 'builder'].includes(current.key) && detailId !== (bookingId || '')) || editorId !== (quoteEditorId || '')) {
             followedKeyRef.current = current.key;
             followedHrefRef.current = quoteDeskHref(current.key) + (detailId ? `?id=${encodeURIComponent(detailId)}` : editorId ? `?qe=${encodeURIComponent(editorId)}` : '');
+            if (searchParams.has('returnTo')) followedHrefRef.current += (followedHrefRef.current.includes('?') ? '&' : '?') + 'returnTo=' + encodeURIComponent(returnTo);
             navigate(followedHrefRef.current, { replace: true });
         }
     };
@@ -204,7 +240,7 @@ export const AdminQuoteDesk: React.FC = () => {
     };
 
     return (
-        <AdminLayout
+        <><AdminLayout
             activePage={quoteDeskPageId(tool.key)}
             eyebrow="맞춤 견적"
             title={bookingId && tool.key === 'bookings' ? '견적 예약 상세' : tool.label}
@@ -217,7 +253,7 @@ export const AdminQuoteDesk: React.FC = () => {
                             <Icon name="add" />견적 작성
                         </button>
                     )}
-                    <button type="button" className="btn btn-ghost" onClick={() => navigate('/admin/reservations?type=quote_booking')}>
+                    <button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>
                         <Icon name="arrow_back" />통합 예약 목록
                     </button>
                     {linked && (
@@ -225,7 +261,7 @@ export const AdminQuoteDesk: React.FC = () => {
                             <Icon name="refresh" />새로고침
                         </button>
                     )}
-                    {linked && tool.key === 'bookings' && bookingId && <button type="button" className="btn btn-ghost" onClick={() => setShowDeliveries(v => !v)}>발송 이력</button>}
+                    {linked && tool.key === 'bookings' && bookingId && <button type="button" className="btn btn-ghost" onClick={() => nativeHosts ? navigateWorkspace('log') : setShowDeliveries(v => !v)}>발송 이력</button>}
                     <button type="button" className="btn btn-ghost" onClick={openStandalone}>
                         <Icon name="open_in_new" />새 창으로 열기
                     </button>
@@ -243,7 +279,7 @@ export const AdminQuoteDesk: React.FC = () => {
                         onLoad={handleFrameLoad}
                         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, display: 'block' }}
                     />
-                    {showDeliveries && tool.key === 'bookings' && bookingId && <aside className="quote-delivery-panel" aria-label="견적 예약 발송 이력">
+                    {showDeliveries && !nativeHosts && tool.key === 'bookings' && bookingId && <aside className="quote-delivery-panel" aria-label="견적 예약 발송 이력">
                         <button type="button" onClick={() => setShowDeliveries(false)}>이력 닫기</button>
                         <AdminDeliveryHistory source="quote_booking" bookingId={bookingId} onOpenDocument={kind => {
                             setShowDeliveries(false);
@@ -319,5 +355,29 @@ export const AdminQuoteDesk: React.FC = () => {
                 </div>
             )}
         </AdminLayout>
+        {linked && tool.key === 'bookings' && bookingId && nativeHosts?.bookingId === bookingId && bookingWorkspace?.bookingId === bookingId && <>
+            {createPortal(<div className="reservation-workspace product-workspace quote-native-workspace">
+                <ReservationWorkflow cancelled={bookingWorkspace.cancelled} steps={[
+                    { id: 'accepted', title: '예약 접수', description: bookingWorkspace.accepted ? '고객 예약 진행 의사 확인됨' : '고객의 예약 진행 의사를 확인하세요', done: bookingWorkspace.accepted, actionLabel: '주문 확인', onAction: () => navigateWorkspace('info') },
+                    { id: 'deposit', title: '예약금 확인', description: bookingWorkspace.deposit ? '입금 확인 완료' : '입금 내역 확인 필요', done: bookingWorkspace.deposit, actionLabel: '입금 확인하기', onAction: () => navigateWorkspace('pay') },
+                    { id: 'contract', title: '계약 동의', description: bookingWorkspace.signed ? '고객 서명 완료' : '고객 서명 확인 필요', done: bookingWorkspace.signed, actionLabel: '계약서 확인하기', onAction: () => navigateWorkspace('info') },
+                    { id: 'schedule', title: '일정 준비', description: bookingWorkspace.schedule ? `${bookingWorkspace.dayCount}일 일정 준비됨` : '견적 일정 불러와 작성', done: bookingWorkspace.schedule, actionLabel: '일정 작성하기', onAction: () => navigateWorkspace('docs') },
+                    { id: 'published', title: '일정표 공개', description: bookingWorkspace.published ? '고객에게 공개됨' : bookingWorkspace.confirmed ? '배정과 일정 확인 후 공개하세요' : '고객 수락·입금·서명 후 예약을 확정하세요', done: bookingWorkspace.published, actionLabel: '공개·전달하기', onAction: () => navigateWorkspace('docs') },
+                ]} readiness={[
+                    { title: '확정 일정', value: bookingWorkspace.schedule ? `${bookingWorkspace.dayCount}일` : '작성 필요', description: '견적의 일정과 같은 카드로 편집합니다', ready: bookingWorkspace.schedule, onAction: () => navigateWorkspace('docs') },
+                    { title: '가이드·차량', value: bookingWorkspace.guideReady && bookingWorkspace.vehicleReady ? '배정 완료' : '배정 필요', description: `가이드 ${bookingWorkspace.guideReady ? '완료' : '미정'} · 차량 ${bookingWorkspace.vehicleReady ? '완료' : '미정'}`, ready: bookingWorkspace.guideReady && bookingWorkspace.vehicleReady, onAction: () => navigateWorkspace('assign') },
+                    { title: '일자별 숙소', value: bookingWorkspace.lodgeNeeded ? `${bookingWorkspace.lodgeCount}/${bookingWorkspace.lodgeNeeded}박` : '당일 투어', description: '귀국일을 제외한 숙소 확인', ready: bookingWorkspace.lodgeCount >= bookingWorkspace.lodgeNeeded, onAction: () => navigateWorkspace('assign') },
+                    { title: '계약·여행자', value: bookingWorkspace.signed ? '동의 완료' : '동의 대기', description: `여행자 ${bookingWorkspace.travelerCount}/${bookingWorkspace.expectedTravelers}명 입력`, ready: bookingWorkspace.signed && bookingWorkspace.travelerCount >= bookingWorkspace.expectedTravelers, onAction: () => navigateWorkspace('info') },
+                ]} />
+                <p className="quote-native-info">일정·주문·결제·배정은 아래 예약 편집기에 연결됩니다. 저장·고객 공개·발송은 각각의 작업 버튼으로 진행하세요.</p>
+            </div>, nativeHosts.top)}
+            {createPortal(<nav className="quote-native-tabs" aria-label="예약 상세 작업">{[['docs', '고객 문서'], ['info', '주문 정보'], ['pay', '결제'], ['assign', '배정'], ['log', '이력']].map(([id, label]) => <button key={id} type="button" className={activeSection === id ? 'active' : ''} aria-current={activeSection === id ? 'location' : undefined} onClick={() => navigateWorkspace(id)}>{label}</button>)}</nav>, nativeHosts.navigation)}
+            {createPortal(<AdminDeliveryHistory source="quote_booking" bookingId={bookingId} onOpenDocument={kind => {
+                navigateWorkspace(kind === 'contract' ? 'info' : 'docs');
+                const buttonId = kind === 'contract' ? 'contractRequestBtn' : kind === 'travel_notice' ? 'travelNoticeBtn' : 'itineraryNoticeBtn';
+                frameRef.current?.contentDocument?.getElementById(buttonId)?.focus({ preventScroll: false });
+            }} />, nativeHosts.history)}
+        </>}
+        </>
     );
 };

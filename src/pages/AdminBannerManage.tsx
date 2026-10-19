@@ -3,6 +3,8 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
+import { useAdminContentGuard } from '../hooks/useAdminContentGuard';
+import { createAdminContentTask, withUploadedImage, moveAdminRow } from '../utils/adminContentWorkflow';
 
 interface Banner {
     id: string;
@@ -138,13 +140,25 @@ export const AdminBannerManage: React.FC = () => {
     const eventFileInputRef = useRef<HTMLInputElement>(null);
     const categoryFileInputRef = useRef<HTMLInputElement>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const task = useRef(createAdminContentTask());
+    const mounted = useRef(true), dirty = useRef(false);
+    const [busy, setBusy] = useState<'upload' | 'save' | null>(null);
+    const [notice, setNotice] = useState(''), [loadError, setLoadError] = useState(''), [loadAttempt, setLoadAttempt] = useState(0);
+    const dataRef = useRef({ banners, quickLinks: links, eventBanners, categoryTabs });
+    dataRef.current = { banners, quickLinks: links, eventBanners, categoryTabs };
+    useAdminContentGuard(() => ({ busy: task.current.busy(), dirty: dirty.current }), setNotice);
+    useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
     // Initial Load from API
     useEffect(() => {
+        let current = true;
+        setIsLoading(true); setLoadError('');
         const fetchData = async () => {
             try {
                 const data = await api.banners.get();
-                if (data.banners && data.banners.length > 0) {
+                if (!current) return;
+                if (!data || ['banners', 'quickLinks', 'eventBanners', 'categoryTabs'].some(key => !Array.isArray((data as any)[key]))) throw new Error('홈 화면 자료의 형식을 확인해 주세요.');
+                if (data.banners) {
                     setBanners(data.banners.map((b: any) => ({
                         id: b.id, image: b.image, pcImage: b.pc_image || b.pcImage || '',
                         tag: b.tag || 'Premium Trip',
@@ -154,38 +168,39 @@ export const AdminBannerManage: React.FC = () => {
                         pcTag: b.pc_tag || b.pcTag || '',
                     })));
                 }
-                if (data.quickLinks && data.quickLinks.length > 0) {
+                if (data.quickLinks) {
                     setLinks(data.quickLinks.map((l: any) => ({
                         id: l.id, icon: l.icon, image: l.image, label: l.label, path: l.path
                     })));
                 }
-                if (data.eventBanners && data.eventBanners.length > 0) {
+                if (data.eventBanners) {
                     setEventBanners(data.eventBanners.map((e: any) => ({
                         id: e.id, image: e.image, backgroundColor: e.background_color,
                         tag: e.tag, title: e.title, icon: e.icon, link: e.link, location: e.location
                     })));
                 }
-                if (data.categoryTabs && data.categoryTabs.length > 0) {
+                if (data.categoryTabs) {
                     setCategoryTabs(data.categoryTabs.map((c: any) => ({
                         id: c.id, name: c.name, title: c.title, subtitle: c.subtitle, bannerImage: c.banner_image
                     })));
                 }
             } catch (error) {
-                console.error('Error fetching admin banner data:', error);
+                if (current) setLoadError('홈 화면 자료를 불러오지 못했습니다. 다시 불러온 뒤 편집해 주세요.');
             } finally {
-                setIsLoading(false);
+                if (current) setIsLoading(false);
             }
         };
         fetchData();
-    }, []);
+        return () => { current = false; };
+    }, [loadAttempt]);
 
     // Change Detection
-    const markUnsaved = () => setHasUnsavedChanges(true);
+    const markUnsaved = () => { dirty.current = true; setHasUnsavedChanges(true); setNotice(''); };
 
     // CRUD - Banners
     const addBanner = () => {
         const newId = `banner-${Date.now()}`;
-        setBanners([...banners, {
+        setBanners(previous => [...previous, {
             id: newId, image: "", pcImage: "",
             tag: "", title: "", subtitle: "", link: "",
             pcTitle: "", pcSubtitle: "", pcTag: "",
@@ -195,26 +210,26 @@ export const AdminBannerManage: React.FC = () => {
 
     const deleteBanner = (id: string) => {
         if (confirm('정말 삭제하시겠습니까?')) {
-            setBanners(banners.filter(b => b.id !== id));
+            setBanners(previous => previous.filter(b => b.id !== id));
             markUnsaved();
         }
     };
 
     const handleBannerChange = (id: string, field: keyof Banner, value: string) => {
-        setBanners(banners.map(b => b.id === id ? { ...b, [field]: value } : b));
+        setBanners(previous => previous.map(b => b.id === id ? { ...b, [field]: value } : b));
         markUnsaved();
     };
 
     // CRUD - Links
     const addLink = () => {
         const newId = `link-${Date.now()}`;
-        setLinks([...links, { id: newId, icon: 'star', label: '새 메뉴', path: '#' }]);
+        setLinks(previous => [...previous, { id: newId, icon: 'star', label: '새 메뉴', path: '#' }]);
         markUnsaved();
     };
 
     const deleteLink = (id: string) => {
         if (confirm('정말 삭제하시겠습니까?')) {
-            setLinks(links.filter(l => l.id !== id));
+            setLinks(previous => previous.filter(l => l.id !== id));
             markUnsaved();
         }
     };
@@ -233,21 +248,21 @@ export const AdminBannerManage: React.FC = () => {
     };
 
     const handleLinkChange = (id: string, field: keyof QuickLink, value: string) => {
-        setLinks(links.map(l => l.id === id ? { ...l, [field]: value } : l));
+        setLinks(previous => previous.map(l => l.id === id ? { ...l, [field]: value } : l));
         markUnsaved();
     };
 
     // CRUD - Event Banners
     const addEventBanner = () => {
         const newId = `event-${Date.now()}`;
-        setEventBanners([...eventBanners, {
+        setEventBanners(previous => [...previous, {
             id: newId, backgroundColor: '#0F766E', tag: 'NEW', title: '새로운 이벤트', icon: 'campaign', link: '#', location: 'all'
         }]);
         markUnsaved();
     };
     const deleteEventBanner = (id: string) => {
         if (confirm('정말 삭제하시겠습니까?')) {
-            setEventBanners(eventBanners.filter(e => e.id !== id));
+            setEventBanners(previous => previous.filter(e => e.id !== id));
             markUnsaved();
         }
     };
@@ -258,64 +273,58 @@ export const AdminBannerManage: React.FC = () => {
         setEventBanners(newEvents); markUnsaved();
     };
     const handleEventChange = (id: string, field: keyof EventBanner, value: string) => {
-        setEventBanners(eventBanners.map(e => e.id === id ? { ...e, [field]: value } : e));
+        setEventBanners(previous => previous.map(e => e.id === id ? { ...e, [field]: value } : e));
         markUnsaved();
     };
 
     // CRUD - Category Tabs
     const handleCategoryChange = (id: string, field: keyof CategoryTab, value: string) => {
-        setCategoryTabs(categoryTabs.map(c => c.id === id ? { ...c, [field]: value } : c));
+        setCategoryTabs(previous => previous.map(c => c.id === id ? { ...c, [field]: value } : c));
         markUnsaved();
     };
 
 
 
-    // Images
+    const moveBanner = (index: number, step: number) => {
+        if (task.current.busy()) return;
+        setBanners(previous => moveAdminRow(previous, index, step)); markUnsaved();
+    };
+    // Capture the target once and apply only its image to the latest form state.
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'banner' | 'pcBanner' | 'icon' | 'event' | 'category') => {
-        const file = e.target.files?.[0];
-        if (file && selectedId) {
-            try {
-                // Upload to Cloudflare R2
-                // Use different folders for organization
-                let folder = 'banners';
-                if (type === 'pcBanner') folder = 'banners';
-                if (type === 'icon') folder = 'icons';
-                if (type === 'event') folder = 'events';
-                if (type === 'category') folder = 'categories';
-
-                const publicUrl = await uploadImage(file, folder);
-
-                if (type === 'banner') setBanners(banners.map(b => b.id === selectedId ? { ...b, image: publicUrl } : b));
-                if (type === 'pcBanner') setBanners(banners.map(b => b.id === selectedId ? { ...b, pcImage: publicUrl } : b));
-                if (type === 'icon') setLinks(links.map(l => l.id === selectedId ? { ...l, image: publicUrl } : l));
-                if (type === 'event') setEventBanners(eventBanners.map(ev => ev.id === selectedId ? { ...ev, image: publicUrl } : ev));
-                if (type === 'category') setCategoryTabs(categoryTabs.map(c => c.id === selectedId ? { ...c, bannerImage: publicUrl } : c));
-                // Reset input so picking the same file twice still triggers onChange.
-                e.target.value = '';
-                markUnsaved();
-            } catch (error) {
-                console.error('Image upload failed:', error);
-                alert('이미지 업로드 중 오류가 발생했습니다.');
-            }
-        }
+        const input = e.target, file = input.files?.[0], id = selectedId;
+        if (!file || !id || isLoading || loadError) return;
+        const release = task.current.begin('upload'); if (!release) return;
+        setBusy('upload'); setNotice('');
+        try {
+            const folder = type === 'icon' ? 'icons' : type === 'event' ? 'events' : type === 'category' ? 'categories' : 'banners';
+            const url = await uploadImage(file, folder);
+            if (!mounted.current) return;
+            if (type === 'banner' || type === 'pcBanner') setBanners(previous => withUploadedImage(previous, id, type === 'banner' ? 'image' : 'pcImage', url));
+            if (type === 'icon') setLinks(previous => withUploadedImage(previous, id, 'image', url));
+            if (type === 'event') setEventBanners(previous => withUploadedImage(previous, id, 'image', url));
+            if (type === 'category') setCategoryTabs(previous => withUploadedImage(previous, id, 'bannerImage', url));
+            markUnsaved();
+        } catch (error: any) { if (mounted.current) setNotice(error?.message || '이미지를 업로드하지 못했습니다. 입력한 내용은 유지됩니다. 다시 선택해 주세요.'); }
+        finally { input.value = ''; release(); if (mounted.current) setBusy(null); }
     };
 
     const clearPcImage = (id: string) => {
-        setBanners(banners.map(b => b.id === id ? { ...b, pcImage: '' } : b));
+        setBanners(previous => previous.map(b => b.id === id ? { ...b, pcImage: '' } : b));
         markUnsaved();
     };
 
     // Save Action via API
     const saveAll = async () => {
+        if (isLoading || loadError || !dirty.current) return;
+        const release = task.current.begin('save'); if (!release) return;
+        setBusy('save'); setNotice('');
         try {
-            await api.banners.save({ banners, quickLinks: links, eventBanners, categoryTabs });
-            setHasUnsavedChanges(false);
-            setShowToast(true);
-            setTimeout(() => setShowToast(false), 3000);
-        } catch (error: any) {
-            console.error('Save failed:', error);
-            alert('저장 중 오류가 발생했습니다:\n\n' + (error.message || '알 수 없는 오류'));
-        }
+            await api.banners.save(dataRef.current);
+            if (!mounted.current) return;
+            dirty.current = false; setHasUnsavedChanges(false); setShowToast(true);
+            setTimeout(() => { if (mounted.current) setShowToast(false); }, 3000);
+        } catch (error: any) { if (mounted.current) setNotice('저장하지 못했습니다. 입력한 내용은 유지됩니다. ' + (error?.message || '다시 시도해 주세요.')); }
+        finally { release(); if (mounted.current) setBusy(null); }
     };
 
     // Preview tone for the main-banner thumbnail when no image is set.
@@ -329,13 +338,17 @@ export const AdminBannerManage: React.FC = () => {
                 <button
                     className="btn btn-ink"
                     onClick={saveAll}
-                    disabled={!hasUnsavedChanges}
+                    disabled={!hasUnsavedChanges || !!busy || isLoading || !!loadError}
                 >
-                    <Icon name="save" />변경사항 저장
+                    <Icon name="save" />{busy === 'save' ? '저장 중…' : '변경사항 저장'}
                     {hasUnsavedChanges && <span className="badge b-amber" style={{ padding: '0 6px', marginLeft: 2 }}>•</span>}
                 </button>
             }
         >
+            {notice && <p role="alert" className="card card-pad">{notice}</p>}
+            {loadError && <div role="alert" className="card card-pad">{loadError}<button type="button" className="btn btn-ghost" onClick={() => setLoadAttempt(value => value + 1)}>다시 불러오기</button></div>}
+            {(isLoading || busy) && <p role="status" aria-live="polite">{isLoading ? '홈 화면 자료를 불러오는 중…' : busy === 'upload' ? '이미지 업로드 중… 완료 후 변경사항을 저장해 주세요.' : '홈 화면 저장 중…'}</p>}
+            <fieldset disabled={!!busy || isLoading || !!loadError} inert={!!busy || isLoading || !!loadError} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
             <div className="route-anim">
 
                 {/* ============ Main Banners ============ */}
@@ -400,6 +413,8 @@ export const AdminBannerManage: React.FC = () => {
                             <div style={{ minWidth: 0, flex: 1 }}>
                                 <div className="row" style={{ gap: 8, marginBottom: 12 }}>
                                     <span className="badge b-gray">#{index + 1}</span>
+                                    <button type="button" className="act-btn" aria-label="메인 배너 위로" onClick={() => moveBanner(index, -1)} disabled={index === 0}><Icon name="arrow_upward" /></button>
+                                    <button type="button" className="act-btn" aria-label="메인 배너 아래로" onClick={() => moveBanner(index, 1)} disabled={index === banners.length - 1}><Icon name="arrow_downward" /></button>
                                     <span className="cell-strong" style={{ fontSize: 15 }}>{banner.title?.split('\n')[0] || '제목 없음'}</span>
                                 </div>
 
@@ -763,6 +778,7 @@ export const AdminBannerManage: React.FC = () => {
 
             </div>
 
+            </fieldset>
             {/* Toast Notification */}
             {showToast && (
                 <div className="page-toast">

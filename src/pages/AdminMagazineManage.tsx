@@ -7,6 +7,9 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { SimpleSlider } from '../components/ui/SimpleSlider';
 import { isPublishedMagazine } from '../constants/seo';
+import { useBlocker } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
+import { magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft, removeMagazineDraft, type MagazineDraftScope, type MagazineDraftRead, type MagazineDraftResult, type MagazineDraftForm } from '../utils/adminMagazineDraft';
 
 interface Magazine {
     id: string;
@@ -32,6 +35,9 @@ interface MagazineCategory {
     isActive: boolean;
     type: string;
 }
+const magazineFromApi = (m: any): Magazine => ({ id: m.id, title: m.title || '', description: m.subtitle || m.description || '', content: m.content || '',
+    category: m.category || '', image: m.thumbnail || m.image || '', tag: m.tag || '', author: m.author || '', authorImage: m.author_image || m.authorImage || '',
+    isFeatured: !!m.is_featured, isActive: isPublishedMagazine(m), order: Number(m.order) || 0, createdAt: m.created_at, updatedAt: m.updated_at });
 
 // Custom Blot Definitions
 const BlockEmbed = ReactQuill.Quill.import('blots/block/embed') as any;
@@ -222,6 +228,8 @@ icons['location'] = '<svg viewBox="0 0 18 18"> <path class="ql-stroke" d="M9,1 C
 
 
 export const AdminMagazineManage: React.FC = () => {
+    const { user } = useUser();
+    const accountRef = useRef(user?.id); accountRef.current = user?.id;
     const [editorContent, setEditorContent] = useState('');
 
     const quillRef = useRef<ReactQuill>(null);
@@ -274,6 +282,98 @@ export const AdminMagazineManage: React.FC = () => {
         isActive: false,
         order: 0,
     });
+    const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [recovery, setRecovery] = useState<MagazineDraftRead>({ kind: 'empty' });
+    const [draftNotice, setDraftNotice] = useState('');
+    const [draftSavedAt, setDraftSavedAt] = useState('');
+    const activeRef = useRef(false), mountedRef = useRef(true), savedRef = useRef(false);
+    const saveLock = useRef(false), uploadLock = useRef(false), sessionRef = useRef(0);
+    const pendingRef = useRef(false), scopeRef = useRef<MagazineDraftScope | null>(null);
+    const baselineRef = useRef<MagazineDraftForm>({});
+    const revisionRef = useRef<string | undefined>(undefined), storedRef = useRef('');
+    const formRef = useRef<MagazineDraftForm>({});
+    formRef.current = { ...formData, content: editorContent };
+    activeRef.current = viewMode === 'edit';
+    const dirty = activeRef.current && magazineDraftFingerprint(formRef.current) !== magazineDraftFingerprint(baselineRef.current);
+    const editorLocked = saving || uploading || pendingRef.current || !scopeRef.current || scopeRef.current.userId !== user?.id;
+    const flushMagazineDraft = React.useCallback((notify = true): MagazineDraftResult => {
+        if (!activeRef.current || savedRef.current || pendingRef.current) return { ok: true };
+        const fingerprint = magazineDraftFingerprint(formRef.current), base = magazineDraftFingerprint(baselineRef.current);
+        if (fingerprint === base) {
+            if (scopeRef.current && revisionRef.current) {
+                let removed: MagazineDraftResult;
+                try { removed = removeMagazineDraft(window.localStorage, scopeRef.current, revisionRef.current); } catch { removed = { ok: false, error: '이전 매거진 초안을 정리하지 못했습니다.' }; }
+                if (!removed.ok) { if (notify && mountedRef.current) setDraftNotice(removed.error); return removed; }
+                revisionRef.current = undefined; storedRef.current = '';
+                if (notify && mountedRef.current) setDraftSavedAt('');
+            }
+            return { ok: true };
+        }
+        if (fingerprint === storedRef.current) return { ok: true };
+        if (!scopeRef.current) return { ok: false, error: '관리자 계정 확인 후 매거진 초안을 보관할 수 있습니다.' };
+        let result: MagazineDraftResult;
+        try { result = writeMagazineDraft(window.localStorage, scopeRef.current, formRef.current, base); }
+        catch { result = { ok: false, error: '브라우저 저장소를 사용할 수 없어 매거진 초안을 보관하지 못했습니다.' }; }
+        if (result.ok) {
+            storedRef.current = fingerprint; revisionRef.current = result.revision || revisionRef.current;
+            if (notify && mountedRef.current && result.savedAt) { setDraftSavedAt(result.savedAt); setDraftNotice(''); }
+        } else if (notify && mountedRef.current) setDraftNotice(result.error);
+        return result;
+    }, []);
+    const canLeaveEditor = () => {
+        if (saveLock.current || uploadLock.current) { setDraftNotice('저장·사진 업로드가 끝난 뒤 이동해 주세요.'); return false; }
+        const result = flushMagazineDraft();
+        return result.ok || window.confirm(result.error + '\n초안을 보관하지 못한 상태로 이동할까요?');
+    };
+    const blockedReason = useRef({ busy: false, error: '' });
+    const handledNavigation = useRef('');
+    const blocker = useBlocker(React.useCallback(({ currentLocation, nextLocation }) => {
+        if (!activeRef.current || (currentLocation.pathname === nextLocation.pathname && currentLocation.search === nextLocation.search)) return false;
+        const result = flushMagazineDraft();
+        blockedReason.current = { busy: saveLock.current || uploadLock.current, error: result.ok ? '' : result.error };
+        return blockedReason.current.busy || !result.ok;
+    }, [flushMagazineDraft]));
+    useEffect(() => {
+        if (blocker.state === 'unblocked') { handledNavigation.current = ''; return; }
+        if (blocker.state !== 'blocked' || handledNavigation.current === blocker.location.key) return;
+        handledNavigation.current = blocker.location.key;
+        if (blockedReason.current.busy) { setDraftNotice('저장·사진 업로드가 끝난 뒤 이동해 주세요.'); blocker.reset(); }
+        else if (window.confirm(blockedReason.current.error + '\n초안을 보관하지 못한 상태로 이동할까요?')) blocker.proceed();
+        else blocker.reset();
+    }, [blocker]);
+    useEffect(() => {
+        mountedRef.current = true;
+        const unload = (event: BeforeUnloadEvent) => { const result = flushMagazineDraft(false); if (activeRef.current && (saveLock.current || uploadLock.current || !result.ok)) { event.preventDefault(); event.returnValue = ''; } };
+        window.addEventListener('beforeunload', unload);
+        const pageHide = () => { flushMagazineDraft(false); }; window.addEventListener('pagehide', pageHide);
+        return () => { flushMagazineDraft(false); mountedRef.current = false; sessionRef.current++; window.removeEventListener('beforeunload', unload); window.removeEventListener('pagehide', pageHide); };
+    }, [flushMagazineDraft]);
+    const formFingerprint = magazineDraftFingerprint(formRef.current);
+    useEffect(() => { if (viewMode !== 'edit') return; const timer = window.setTimeout(() => flushMagazineDraft(), 650); return () => window.clearTimeout(timer); }, [viewMode, formFingerprint, flushMagazineDraft]);
+    const beginEditor = (form: MagazineDraftForm, magazineId: string | null) => {
+        if (!user?.id || user.role !== 'admin') { setDraftNotice('관리자 로그인 상태를 확인해 주세요.'); return; }
+        sessionRef.current++; savedRef.current = false; storedRef.current = ''; revisionRef.current = undefined;
+        baselineRef.current = structuredClone(form); scopeRef.current = { userId: user.id, magazineId };
+        let loaded: MagazineDraftRead;
+        try { loaded = readMagazineDraft(window.localStorage, scopeRef.current, form); }
+        catch { loaded = { kind: 'error', error: '브라우저 저장소에서 매거진 초안을 확인하지 못했습니다.' }; }
+        pendingRef.current = loaded.kind !== 'empty'; setRecovery(loaded); setDraftSavedAt(''); setDraftNotice('');
+        setFormData(structuredClone(form)); setEditorContent(form.content || ''); setViewMode('edit');
+    };
+    const discardRecovery = () => {
+        if (saveLock.current || uploadLock.current || !scopeRef.current) return;
+        let result: MagazineDraftResult;
+        try { result = removeMagazineDraft(window.localStorage, scopeRef.current); } catch { result = { ok: false, error: '초안을 삭제하지 못했습니다.' }; }
+        if (!result.ok) { setDraftNotice(result.error); return; }
+        pendingRef.current = false; storedRef.current = ''; revisionRef.current = undefined; setRecovery({ kind: 'empty' }); setDraftSavedAt(''); setDraftNotice('');
+        setFormData(structuredClone(baselineRef.current)); setEditorContent(baselineRef.current.content || '');
+    };
+    const runUpload = async (work: () => Promise<void>) => {
+        if (saveLock.current || uploadLock.current || pendingRef.current || !activeRef.current || scopeRef.current?.userId !== accountRef.current) return;
+        uploadLock.current = true; setUploading(true);
+        try { await work(); } finally { uploadLock.current = false; if (mountedRef.current) setUploading(false); }
+    };
 
     // Editor Handlers
     const handleImageHandler = React.useCallback(() => {
@@ -285,8 +385,11 @@ export const AdminMagazineManage: React.FC = () => {
         input.onchange = async () => {
             const file = input.files?.[0];
             if (file) {
+                await runUpload(async () => {
+                const session = sessionRef.current;
                 try {
                     const url = await uploadImage(file, 'magazine-content');
+                    if (!mountedRef.current || sessionRef.current !== session || (scopeRef.current && scopeRef.current.userId !== accountRef.current)) return;
                     const quill = quillRef.current?.getEditor();
                     if (quill) {
                         const range = quill.getSelection();
@@ -296,11 +399,13 @@ export const AdminMagazineManage: React.FC = () => {
                     console.error('Image upload failed:', error);
                     alert('이미지 업로드 실패');
                 }
+                });
             }
         };
     }, []);
 
     const handleDivider = () => {
+        if (saveLock.current || uploadLock.current || pendingRef.current) return;
         const quill = quillRef.current?.getEditor();
         if (quill) {
             const range = quill.getSelection();
@@ -312,6 +417,7 @@ export const AdminMagazineManage: React.FC = () => {
     };
 
     const handleSlider = () => {
+        if (saveLock.current || uploadLock.current || pendingRef.current) return;
         const quill = quillRef.current?.getEditor();
         if (quill) {
             // Save current selection before losing focus to file input
@@ -323,6 +429,8 @@ export const AdminMagazineManage: React.FC = () => {
     const handleSliderFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files && files.length > 0) {
+            await runUpload(async () => {
+            const session = sessionRef.current;
             try {
                 const uploadedUrls: string[] = [];
                 for (let i = 0; i < files.length; i++) {
@@ -331,6 +439,7 @@ export const AdminMagazineManage: React.FC = () => {
                 }
 
                 const quill = quillRef.current?.getEditor();
+                if (!mountedRef.current || sessionRef.current !== session || (scopeRef.current && scopeRef.current.userId !== accountRef.current)) return;
                 if (quill) {
                     // Use saved selection or fall back to end of document
                     const range = savedRange.current || { index: quill.getLength(), length: 0 };
@@ -359,6 +468,7 @@ export const AdminMagazineManage: React.FC = () => {
                 console.error('Slider images upload failed:', error);
                 alert('슬라이더 이미지 업로드 실패');
             }
+            });
         }
         // Reset input
         if (sliderInputRef.current) sliderInputRef.current.value = '';
@@ -366,6 +476,7 @@ export const AdminMagazineManage: React.FC = () => {
 
     // Open location modal — saves cursor position so we can insert at the right spot
     const handleLocation = () => {
+        if (saveLock.current || uploadLock.current || pendingRef.current) return;
         const quill = quillRef.current?.getEditor();
         if (quill) {
             savedRange.current = quill.getSelection();
@@ -383,6 +494,7 @@ export const AdminMagazineManage: React.FC = () => {
     };
 
     const insertLocationBlot = () => {
+        if (saveLock.current || uploadLock.current || pendingRef.current) return;
         if (!locationModalForm.name && !locationModalForm.address && !locationModalForm.mapEmbedUrl) {
             alert('장소 이름 / 주소 / 지도 임베드 중 하나는 입력해주세요.');
             return;
@@ -480,10 +592,10 @@ export const AdminMagazineManage: React.FC = () => {
 
     // Sync default category
     useEffect(() => {
-        if (categories.length > 0 && !categories.includes(formData.category || '')) {
+        if (viewMode !== 'edit' && categories.length > 0 && !categories.includes(formData.category || '')) {
             setFormData(prev => ({ ...prev, category: categories[0] }));
         }
-    }, [categories, formData.category]);
+    }, [categories, formData.category, viewMode]);
 
     // Filter Logic
     const filteredMagazines = magazines?.filter(magazine => {
@@ -512,29 +624,40 @@ export const AdminMagazineManage: React.FC = () => {
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            await runUpload(async () => {
+            const session = sessionRef.current;
             try {
                 const url = await uploadImage(file, 'magazines');
+                if (!mountedRef.current || sessionRef.current !== session || (scopeRef.current && scopeRef.current.userId !== accountRef.current)) return;
                 setFormData(prev => ({ ...prev, image: url }));
             } catch (error) {
                 console.error('Magazine image upload failed:', error);
                 alert('이미지 업로드 실패');
             }
+            });
         }
     };
 
     const handleAuthorImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        await runUpload(async () => {
+        const session = sessionRef.current;
         try {
             const url = await uploadImage(file, 'magazine-authors');
+            if (!mountedRef.current || sessionRef.current !== session || accountRef.current !== user?.id) return;
             setFormData(prev => ({ ...prev, authorImage: url }));
         } catch (error) {
             console.error('Magazine author image upload failed:', error);
             alert('저자 사진 업로드 실패');
         }
+        });
     };
 
-    const resetForm = () => {
+    const resetForm = (saved = false) => {
+        if (!saved && !canLeaveEditor()) return false;
+        sessionRef.current++; activeRef.current = false; scopeRef.current = null; pendingRef.current = false;
+        setRecovery({ kind: 'empty' }); setDraftNotice(''); setDraftSavedAt('');
         setFormData({
             title: '',
             description: '',
@@ -551,18 +674,24 @@ export const AdminMagazineManage: React.FC = () => {
         setEditorContent('');
         setEditingMagazine(null);
         setViewMode('list');
+        return true;
     };
 
     const handleCreateNew = () => {
-        resetForm();
-        setViewMode('edit');
+        if (!canLeaveEditor()) return;
+        setEditingMagazine(null);
+        beginEditor({ title: '', description: '', content: '', category: categories[0] || '여행 팁', image: '', tag: '', author: '', authorImage: '', isFeatured: false, isActive: false, order: 0 }, null);
     };
 
-    const handleEdit = (magazine: Magazine) => {
-        setEditingMagazine(magazine);
-        setFormData(magazine);
-        setEditorContent(magazine.content || '');
-        setViewMode('edit');
+    const handleEdit = async (magazine: Magazine) => {
+        if (!canLeaveEditor()) return;
+        const session = ++sessionRef.current;
+        try {
+            const fresh = magazineFromApi(await api.magazines.get(magazine.id));
+            if (accountRef.current !== user?.id) return;
+            if (!mountedRef.current || sessionRef.current !== session || (scopeRef.current && scopeRef.current.userId !== accountRef.current)) return;
+            setEditingMagazine(fresh); beginEditor(fresh, fresh.id);
+        } catch { if (mountedRef.current) setDraftNotice('매거진 원본을 불러오지 못했습니다. 목록을 새로고침한 뒤 다시 선택해 주세요.'); }
     };
 
     const handleDelete = async (id: string) => {
@@ -578,8 +707,20 @@ export const AdminMagazineManage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
+        if (saveLock.current || uploadLock.current || pendingRef.current || !scopeRef.current || scopeRef.current.userId !== user?.id) return;
+        if (!formRef.current.title?.trim()) { alert('제목을 입력해주세요.'); return; }
+        saveLock.current = true; setSaving(true);
+        const session = sessionRef.current;
+        const scope = { ...scopeRef.current };
+        flushMagazineDraft();
+        const ownedRevision = revisionRef.current;
         try {
-            const content = editorContent || formData.content || '';
+            if (editingMagazine) {
+                const latest = magazineFromApi(await api.magazines.get(editingMagazine.id));
+                if (!mountedRef.current || sessionRef.current !== session || accountRef.current !== scope.userId) return;
+                if (magazineDraftFingerprint(latest) !== magazineDraftFingerprint(baselineRef.current) && !window.confirm('편집 중 서버의 매거진 원본이 변경되었습니다. 현재 작성 내용으로 덮어쓸까요?')) return;
+            }
+            const content = editorContent;
 
             if (!formData.title?.trim()) {
                 alert('제목을 입력해주세요.');
@@ -613,13 +754,18 @@ export const AdminMagazineManage: React.FC = () => {
                 });
             }
 
-            alert('저장되었습니다!');
+            if (!mountedRef.current || sessionRef.current !== session || (scopeRef.current && scopeRef.current.userId !== accountRef.current)) return;
+            savedRef.current = true;
+            const removed = ownedRevision ? removeMagazineDraft(window.localStorage, scope, ownedRevision) : { ok: true as const };
+            if (!removed.ok) setDraftNotice(removed.error);
+            alert(removed.ok ? '저장되었습니다!' : '저장되었습니다. 브라우저 초안 정리에는 실패했습니다.');
             fetchMagazines();
-            resetForm();
+            resetForm(true);
         } catch (error: any) {
             console.error('Error saving magazine:', error);
             alert(`저장 실패: ${error.message || '저장 중 오류가 발생했습니다.'}`);
-        }
+            flushMagazineDraft();
+        } finally { saveLock.current = false; if (mountedRef.current && sessionRef.current === session) setSaving(false); else if (mountedRef.current) setSaving(false); }
     };
 
     // Update editor content when formData loaded
@@ -691,11 +837,11 @@ export const AdminMagazineManage: React.FC = () => {
     // Header actions differ between list and edit views
     const headerActions = viewMode === 'edit' ? (
         <>
-            <button className="btn btn-ghost btn-sm" onClick={resetForm}>
+            <button className="btn btn-ghost btn-sm" onClick={() => resetForm()} disabled={saving || uploading}>
                 <Icon name="arrow_back" />목록
             </button>
-            <button className="btn btn-ink" onClick={handleSubmit}>
-                <Icon name="check" />{formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장'}
+            <button className="btn btn-ink" onClick={handleSubmit} disabled={editorLocked}>
+                <Icon name="check" />{saving ? '저장 중…' : uploading ? '사진 업로드 중…' : formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장'}
             </button>
         </>
     ) : (
@@ -716,9 +862,16 @@ export const AdminMagazineManage: React.FC = () => {
 
             {/* Tabs */}
             <div className="seg" style={{ marginBottom: 22 }}>
-                <button className={activeTab === 'magazines' ? 'active' : ''} onClick={() => setActiveTab('magazines')}>매거진 목록</button>
-                <button className={activeTab === 'categories' ? 'active' : ''} onClick={() => setActiveTab('categories')}>카테고리 관리</button>
+                <button className={activeTab === 'magazines' ? 'active' : ''} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('magazines'); }}>매거진 목록</button>
+                <button className={activeTab === 'categories' ? 'active' : ''} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('categories'); }}>카테고리 관리</button>
             </div>
+            {draftNotice && <p role="alert" style={{ padding: '12px 16px', background: '#fff5e8', color: '#8f4c13', borderRadius: 12 }}>{draftNotice}</p>}
+            {viewMode === 'edit' && <div role="status" style={{ padding: '14px 18px', marginBottom: 16, borderRadius: 14, background: '#edfaf6', color: '#145c4c' }}>
+                <strong>이 브라우저에 관리자별 매거진 초안을 자동 보관합니다.</strong><p style={{ margin: '4px 0', fontSize: 13 }}>자동 보관은 사이트 발행·서버 임시 저장과 별도입니다. {draftSavedAt ? `마지막 초안 보관: ${new Date(draftSavedAt).toLocaleString('ko-KR')}` : dirty ? '입력 내용을 보관하고 있습니다.' : '변경사항이 생기면 자동 보관합니다.'}</p>
+                {recovery.kind === 'draft' && <><p>{recovery.conflict ? '보관 후 서버 원본이 변경되었습니다. 초안을 복원하면 저장 시 현재 작성 내용이 원본을 대체합니다.' : '이 문서의 보관된 초안이 있습니다.'} 보관 시각: {new Date(recovery.draft.savedAt).toLocaleString('ko-KR')}</p><button type="button" className="btn btn-ink btn-sm" onClick={() => { if (saveLock.current || uploadLock.current) return; const restored = recovery.draft; pendingRef.current = false; revisionRef.current = restored.revision; storedRef.current = magazineDraftFingerprint(restored.form); setFormData(structuredClone(restored.form)); setEditorContent(restored.form.content || ''); setDraftSavedAt(restored.savedAt); setRecovery({ kind: 'empty' }); }}>초안 복원</button>{' '}</>}
+                {recovery.kind === 'error' && <p role="alert">{recovery.error}</p>}
+                {(recovery.kind !== 'empty' || dirty || draftSavedAt) && <button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading} onClick={() => { if (recovery.kind !== 'empty' || window.confirm('매거진 변경사항과 보관된 초안을 버릴까요?')) discardRecovery(); }}>초안 버리기</button>}
+            </div>}
 
             {activeTab === 'categories' && (
                 <div className="card">
@@ -892,7 +1045,7 @@ export const AdminMagazineManage: React.FC = () => {
                         </>
                     )}
                     {viewMode === 'edit' && (
-                        <div className="grid-2" style={{ gridTemplateColumns: '340px 1fr', alignItems: 'start' }}>
+                        <fieldset className="grid-2" disabled={editorLocked} inert={editorLocked} style={{ gridTemplateColumns: '340px 1fr', alignItems: 'start', border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                             <div className="stack" style={{ gap: 16 }}>
                                 <div className="card card-pad">
                                     <h3 className="sec-head" style={{ marginBottom: 16 }}>기본 설정</h3>
@@ -1041,8 +1194,8 @@ export const AdminMagazineManage: React.FC = () => {
                                 </div>
 
                                 <div className="row" style={{ gap: 10 }}>
-                                    <button className="btn btn-ghost" style={{ flex: 1 }} onClick={resetForm}>작성 취소</button>
-                                    <button className="btn btn-ink" style={{ flex: 1 }} onClick={handleSubmit}>{formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장'}</button>
+                                    <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => resetForm()}>작성 취소</button>
+                                    <button className="btn btn-ink" style={{ flex: 1 }} onClick={handleSubmit}>{saving ? '저장 중…' : formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장'}</button>
                                 </div>
                             </div>
 
@@ -1061,6 +1214,7 @@ export const AdminMagazineManage: React.FC = () => {
                                         ref={quillRef}
                                         theme="snow"
                                         value={editorContent}
+                                        readOnly={editorLocked}
                                         onChange={setEditorContent}
                                         modules={modules}
                                         className="bg-white rounded-xl overflow-hidden flex flex-col"
@@ -1068,7 +1222,7 @@ export const AdminMagazineManage: React.FC = () => {
                                     <input type="file" ref={sliderInputRef} onChange={handleSliderFiles} multiple accept="image/*" className="hidden" style={{ display: 'none' }} />
                                 </div>
                             </div>
-                        </div>
+                        </fieldset>
                     )}
                 </>
             )}

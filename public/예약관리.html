@@ -8,6 +8,9 @@
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <script src="booking.js"></script>
 <script src="/quote-editor-state.js"></script>
+<script src="/quote-day-editor.js"></script>
+<script src="/quote-booking-workspace.js"></script>
+<link rel="stylesheet" href="/quote-day-editor.css">
 <style>
   :root { --accent:#06c4a0; --book:#06c4a0; --deep:#037a64; --ink:#0f2e27; --sub:#5a716b; --muted:#8aa39c; --line:#eaf0ee; --soft:#f1f9f7; --bookSoft:#dcf4ee; }
   * { box-sizing:border-box; margin:0; padding:0; }
@@ -274,7 +277,10 @@
   </span>
 </header>
 
+<div id="admin-booking-workspace"></div>
+<div id="admin-booking-navigation"></div>
 <main id="main"></main>
+<div id="admin-booking-history"></div>
 
 <div class="savebar" id="savebar" style="display:none">
   <span class="save-context"><small id="bottomStep">현재 단계</small><b id="bottomTask">예약정보를 확인해 주세요</b></span>
@@ -356,6 +362,20 @@ if (ADMIN_TOKEN) sessionStorage.setItem("leaders_admin_token", ADMIN_TOKEN);
 
 /* ══════════ 편집 상태 ══════════ */
 let BK = null;   // booking 편집본
+let quoteDayEditor = null, nativeWorkspaceFingerprint = '';
+function quoteWorkspaceState() { return PRE && BK && window.QuoteBookingWorkspace ? window.QuoteBookingWorkspace.snapshot(PRE, BK, assignStats()) : null; }
+function publishQuoteWorkspace() {
+  const state = quoteWorkspaceState(); if (!state || window.parent === window) return;
+  const fingerprint = JSON.stringify(state); if (fingerprint === nativeWorkspaceFingerprint) return;
+  nativeWorkspaceFingerprint = fingerprint;
+  window.parent.postMessage({ type:'inhasu-quote-booking-workspace', version:1, state }, location.origin);
+}
+window.InhasuQuoteBookingWorkspace = {
+  getState() { if (BK) pullForm(); return quoteWorkspaceState(); },
+  navigate(section) { return window.QuoteBookingWorkspace.navigate(section, document); },
+};
+document.addEventListener('input', () => { if (BK && !bookingEditorBooting) queueMicrotask(() => { pullForm(); publishQuoteWorkspace(); }); });
+document.addEventListener('change', () => { if (BK && !bookingEditorBooting) queueMicrotask(() => { pullForm(); publishQuoteWorkspace(); }); });
 let SAVED_BK_JSON = "";
 let bookingRecovery = null, bookingEditorBooting = true;
 function bookingLock(locked) {
@@ -363,6 +383,9 @@ function bookingLock(locked) {
     if (locked) { if (!el.hasAttribute('data-recovery-lock')) el.dataset.recoveryLock = el.disabled ? '1' : '0'; el.disabled = true; }
     else if (el.hasAttribute('data-recovery-lock')) { el.disabled = el.dataset.recoveryLock === '1'; delete el.dataset.recoveryLock; }
   });
+  // The widget owns its disabled state, including controls replaced during render.
+  // Apply it after restoring the generic lock so temporary boot/save locks cannot stick.
+  quoteDayEditor?.update({ disabled:locked || /취소|cancelled/i.test(PRE?.status || '') });
   if (!locked && BK) updateActionBar();
 }
 function bookingSnapshot() {
@@ -447,6 +470,8 @@ function init() {
         $('publishSchedule').checked = BK.publishStatus === 'published'; render();
       } });
     bookingEditorBooting = false;
+    // Extra controls read the boot/recovery flags from afterRender as well.
+    bookingLock(bookingRecovery.isBusy());
   });
 }
 
@@ -471,11 +496,17 @@ function assignStats() {
   const guideOk = !!(a.guide && a.guide.name);
   const vehicleOk = !!(a.vehicle && a.vehicle.model);
   const lodgeCount = (a.lodges || []).filter(l => l && l.name).length;
-  /* 필요 숙소 수: 일정표에서 숙소가 지정된 일수 기준 (마지막 날은 보통 귀국이라 숙소 없음).
-     일정표에 숙소가 하나도 지정 안 됐으면 (일수 - 1) 폴백 */
-  const stayDays = days.filter(d => { const n = noBr((d.stay || {}).name); return n && n !== "숙소미포함"; }).length;
-  const maxNights = Math.max(days.length - 1, 0);
-  const lodgeNeeded = days.length ? Math.min(stayDays || maxNights, maxNights) : 0;
+  // A partially written itinerary does not shorten the booked trip. Use valid
+  // departure/return dates first; only missing/invalid periods fall back to cards.
+  const dateStamp = value => {
+    const key = String(value || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return NaN;
+    const stamp = Date.parse(key + 'T00:00:00Z');
+    return Number.isFinite(stamp) && new Date(stamp).toISOString().slice(0, 10) === key ? stamp : NaN;
+  };
+  const departure = dateStamp(PRE?.depart), returning = dateStamp(PRE?.return_);
+  const lodgeNeeded = Number.isFinite(departure) && Number.isFinite(returning) && returning >= departure
+    ? Math.round((returning - departure) / 86400000) : Math.max(days.length - 1, 0);
   const signed = !!(BK.contract && BK.contract.signedAt);
   const checklistDone = Object.values(BK.checklist || {}).filter(Boolean).length;
   const missing = [];
@@ -682,6 +713,7 @@ function travelerRow(t, i) {
 }
 
 function render() {
+  quoteDayEditor?.destroy(); quoteDayEditor = null;
   const a = BK.assign, c = BK.checklist;
   const fl = BK.flight || {};
   const ci = BK.contractInfo || {};
@@ -689,7 +721,7 @@ function render() {
   const expectedTravelers = (Number(PRE.adult)||0) + (Number(PRE.child)||0) + (Number(PRE.infant)||0);
   const travelerDone = ts.status === "submitted";
   $("main").innerHTML = summaryHtml() + `
-  <section class="card">
+  <section class="card" id="documentsSection">
     <div class="sec-h">
       <h2><span class="n">일정</span>확정 일정표</h2>
       <span style="display:flex; gap:8px;">
@@ -697,9 +729,9 @@ function render() {
         <button class="hbtn" id="addDay">＋ 일차 추가</button>
       </span>
     </div>
-    ${BK.days.length ? `<div id="dayWrap">${BK.days.map(dayCard).join("")}</div>`
+    ${BK.days.length ? `<div id="dayWrap">${window.QuoteDayEditor ? "" : BK.days.map(dayCard).join("")}</div>`
       : `<div style="text-align:center; padding:28px; color:var(--sub); font-size:13.5px;">
-           아직 확정 일정이 없어요. <b>↺ 견적 일정 불러오기</b>를 누르면 발행한 견적서의 일정을 그대로 가져와 수정할 수 있어요.</div>`}
+           아직 확정 일정이 없어요. <b>↺ 견적 일정 불러오기</b>를 누르면 발행한 견적서의 일정을 그대로 가져와 수정할 수 있어요.</div><div id="dayWrap"></div>`}
   </section>
 
   <section class="card">
@@ -797,7 +829,7 @@ function render() {
       </div>
       <label class="f" style="margin-top:10px;"><span>픽업·샌딩 숙소명 (울란바타르 출발·도착 팀 — 고객 입력)</span><input id="bk_pickupLodge" value="${esc(BK.pickupLodge || "")}" placeholder="예: 샹그릴라 울란바타르 호텔"></label>
     </div>
-    <div class="assign-box">
+    <div class="assign-box" id="paymentSection">
       <div class="subtt">💳 계약·정산 정보</div>
       <div class="grid3">
         <label class="f"><span>여행상품명</span><input id="ci_productName" list="productNameList" value="${esc(ci.productName || PRE.destination || "")}" placeholder="선택 또는 직접 입력"></label>
@@ -882,6 +914,43 @@ function render() {
   </datalist>`;
 
   bindEvents();
+  mountQuoteDays();
+  publishQuoteWorkspace();
+}
+function mountQuoteDays() {
+  const host = $('dayWrap'); if (!host || !window.QuoteDayEditor) return;
+  const renumber = () => { BK.days = BK.days.map((day, i) => ({ ...day, d:i+1 })); };
+  const options = () => ({ days:BK.days, startDate:PRE.depart || '', endDate:PRE.return_ || '', snippets:SNIPPETS, snippetCats:SNIP_CATS, extras:true,
+    afterRender(cards) { cards.forEach((card,index) => {
+      const stay = card.querySelector(".stay"); if (stay) stay.setAttribute("list","lodgeList");
+      const slot = card.querySelector(".quote-day-extra"); if (!slot) return;
+      if (!slot.firstChild) { const details = document.createElement("details"), summary = document.createElement("summary"), label = document.createElement("label"), input = document.createElement("input"); summary.textContent = "숙소 시설 태그 편집"; label.textContent = "숙소 태그 (쉼표로 구분)"; input.setAttribute("aria-label", "숙소 시설 태그"); input.oninput = () => { const day = BK.days[index]; if (!day || bookingRecovery?.isBusy()) return; day.stay = { ...(day.stay || {}), tags:input.value.split(",").map(value => value.trim()).filter(Boolean) }; bookingRecovery?.changed(); }; label.appendChild(input); details.append(summary,label); slot.appendChild(details); }
+      const input = slot.querySelector("input"); input.disabled = bookingEditorBooting || !!bookingRecovery?.isBusy() || /취소|cancelled/i.test(PRE.status || ""); if (document.activeElement !== input) input.value = (BK.days[index]?.stay?.tags || []).join(", ");
+    }); },
+    disabled:bookingEditorBooting || !!bookingRecovery?.isBusy() || /취소|cancelled/i.test(PRE.status || ''),
+    onField(index, field, value) {
+      const day = BK.days[index]; if (!day) return;
+      if (field === 'move') Object.assign(day, value);
+      else if (field === 'stay') day.stay = { ...(day.stay || {}), ...value };
+      else day[field] = value;
+      updateActionBar(); publishQuoteWorkspace();
+    },
+    onSnippet(index, name) {
+      pullForm(); const snippet = SNIPPETS[name], day = BK.days[index]; if (!snippet || !day) return;
+      BK.days[index] = { ...day, dest:snippet.dest || '', move:snippet.move || '', dist:snippet.dist || '',
+        items:[...(snippet.items || [])], meals:[...(snippet.meals || [])], stay:{ ...(day.stay || {}), name:snippet.stay?.name || '', tags:[...(snippet.stay?.tags || [])] } };
+      quoteDayEditor.update(options()); bookingRecovery?.changed(); publishQuoteWorkspace(); toast('일정 조각을 초안에 적용했습니다');
+    },
+    async onDelete(index) {
+      pullForm(); const day = BK.days[index]; if (!day) return;
+      const photos = (day.images || []).length || (day.activities || []).some(item => item?.images?.length) || day.stay?.img || day.stay?.imgs?.length;
+      if (photos && !await askConfirm({ title:'사진이 포함된 일정을 삭제할까요?', message:'이 일차의 일정과 사진이 초안에서 삭제됩니다. 저장하기 전 원본은 유지됩니다.', confirmText:'일차 삭제' })) return;
+      BK.days.splice(index,1); renumber(); render(); bookingRecovery?.changed();
+    },
+    onReorder(from,to) { pullForm(); if (from < 0 || to < 0 || from >= BK.days.length || to >= BK.days.length) return; const moved = BK.days.splice(from,1)[0]; BK.days.splice(to,0,moved); renumber(); quoteDayEditor.update(options()); bookingRecovery?.changed(); publishQuoteWorkspace(); },
+    onAdd() { pullForm(); BK.days.push({ d:BK.days.length+1,date:'',dest:'',move:'',dist:'',items:[],stay:{name:'',tags:[]},meals:[] }); render(); bookingRecovery?.changed(); },
+  });
+  quoteDayEditor = window.QuoteDayEditor.mount(host, options());
 }
 
 /* ══════════ 폼 → BK 동기화 ══════════ */
@@ -1299,6 +1368,7 @@ async function loadLibs() {
   if (Array.isArray(pc)) SPOT_CATS = pc;
   fillDatalists();
   fillSnipSelects();
+  quoteDayEditor?.update({ snippets:SNIPPETS, snippetCats:SNIP_CATS });
   renderSpots();
   updateResourcePreview("guide", BK.assign.guide);
   updateResourcePreview("vehicle", BK.assign.vehicle);
