@@ -3440,7 +3440,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         URL.revokeObjectURL(url);
     };
 
-    const detailWorkspaces = <>
+    const detailWorkspaces = customerPage ? <>
             {selectedReservation && selectedReservation.type === 'product' && (
                 <ReservationDetailModal
                     key={`${customerScope}:${selectedReservation.id}`} fullPage={customerPage} reservation={selectedReservation}
@@ -3606,7 +3606,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                     }}
                 />
             )}
-    </>;
+    </> : null;
 
     const toggleTheme = () => {
         setIsDarkMode(!isDarkMode);
@@ -3988,7 +3988,6 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                 </div>
             )}
 
-            {!customerPage && detailWorkspaces}
         </>
     );
 };

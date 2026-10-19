@@ -19,13 +19,28 @@ const visit = node => {
         const attributes = node.attributes.properties;
         const path = attributes.find(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(appSource) === 'path');
         if (path?.initializer && ts.isStringLiteral(path.initializer)) {
-            let guarded = false;
+            let guarded = false, reservationPage;
             const findGuard = child => {
                 if (ts.isJsxOpeningElement(child) && child.tagName.getText(appSource) === 'AdminGuard') guarded = true;
+                if ((ts.isJsxSelfClosingElement(child) || ts.isJsxOpeningElement(child)) && child.tagName.getText(appSource) === 'AdminReservationManage') {
+                    reservationPage = {};
+                    for (const attribute of child.attributes.properties) {
+                        if (!ts.isJsxAttribute(attribute)) continue;
+                        const name = attribute.name.getText(appSource), initializer = attribute.initializer;
+                        if (!initializer) reservationPage[name] = true;
+                        else if (ts.isStringLiteral(initializer)) reservationPage[name] = initializer.text;
+                        else if (ts.isJsxExpression(initializer) && initializer.expression) {
+                            const value = initializer.expression;
+                            if (value.kind === ts.SyntaxKind.TrueKeyword) reservationPage[name] = true;
+                            else if (value.kind === ts.SyntaxKind.FalseKeyword) reservationPage[name] = false;
+                            else if (ts.isStringLiteral(value)) reservationPage[name] = value.text;
+                        }
+                    }
+                }
                 ts.forEachChild(child, findGuard);
             };
             ts.forEachChild(node, findGuard);
-            routes.push({ path: path.initializer.text, handle: { guarded } });
+            routes.push({ path: path.initializer.text, handle: { guarded, reservationPage } });
         }
     }
     ts.forEachChild(node, visit);
@@ -46,6 +61,30 @@ test('상품·견적 문의/예약·이전 견적은 같은 ID와 동명이인�
         assert.equal(match[0].params.id, id);
     }
     assert.notEqual(productCustomerHref('same-account-booking-a'), productCustomerHref('same-account-booking-b'));
+});
+
+test('실제 App의 목록·상품 고객·이전 견적 고객은 별도 페이지 key로 전환해 이전 선택 상태를 재사용하지 않는다', () => {
+    const listHref = '/admin/reservations?q=동명이인&page=2&type=quote_booking';
+    const hrefs = [listHref, productCustomerHref('same-booking-id', listHref), legacyQuoteCustomerHref('same-booking-id', listHref)];
+    const matched = hrefs.map(href => {
+        const url = new URL(href, origin), match = matchRoutes(routes, { pathname: url.pathname, search: url.search });
+        assert.equal(match.length, 1); assert.equal(match[0].route.handle.guarded, true);
+        const page = match[0].route.handle.reservationPage;
+        assert.ok(page, 'the matched route uses the actual AdminReservationManage element');
+        assert.equal(typeof page.key, 'string'); assert.ok(page.key.trim(), 'every reservation page mode has an explicit React key');
+        return { match: match[0], page };
+    });
+    assert.equal(new Set(matched.map(item => item.page.key)).size, 3, 'customer and list modes must unmount the previous selected-reservation state');
+    assert.equal(matched[0].page.customerPage ?? false, false);
+    assert.equal(matched[1].page.customerPage, true); assert.equal(matched[1].page.customerSource ?? 'product', 'product');
+    assert.equal(matched[2].page.customerPage, true); assert.equal(matched[2].page.customerSource, 'quote');
+    assert.equal(matched[1].match.params.id, 'same-booking-id'); assert.equal(matched[2].match.params.id, 'same-booking-id');
+    for (const href of [listHref, '/admin/reservations', '/admin/reservations?open=same-booking-id&kind=product']) {
+        const url = new URL(href, origin), page = matchRoutes(routes, { pathname: url.pathname, search: url.search })[0].route.handle.reservationPage;
+        assert.equal(page.key, matched[0].page.key, 'refresh and old list links use the isolated list instance');
+        assert.notEqual(page.key, matched[1].page.key); assert.notEqual(page.key, matched[2].page.key);
+        assert.equal(page.customerPage ?? false, false);
+    }
 });
 
 test('예약 목록 필터와 달력·숙소 목록 복귀 위치는 보존하며 외부/임의 경로는 허용하지 않는다', () => {
