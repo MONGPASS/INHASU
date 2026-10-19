@@ -41,6 +41,109 @@ test('빈 일정과 부족·중복 숙소는 준비 완료로 표시하지 않�
     record.booking.contract = { signedAt: '2026-10-19T00:00:00Z' };
     assert.equal(model(record).steps.find(step => step.id === 'contract').done, true);
 });
+
+test('견적 예약의 항공·여행자·서명 정보는 실제 저장 필드에서만 투영한다', () => {
+    const record = { ...inquiry, depart: '2026-10-20', return_: '2026-10-22', booking: {
+        flight: { inDate: '2026-10-19', inDepTime: '20:30', inTime: '23:10', inNo: 'OM310', outDate: '2026-10-23', outTime: '01:20', outArrTime: '05:30', outNo: 'OM309' },
+        travelers: [{ type: '성인', nameKo: '실제 여행자', passportName: 'ACTUAL PERSON', birth: '1990-01-02', gender: '여', phone: '01012345678', passportNo: 'M12345678' }],
+        travelerSubmission: { status: 'submitted', submittedAt: '2026-10-19T04:00:00Z', submittedCount: 2 }, pickupLodge: '실제 픽업 호텔', travelerNote: '식이 제한 있음',
+        contract: { signedAt: '2026-10-19T04:10:00Z', signImg: 'PRIVATE-SIGNATURE' }, checklist: { contract: true },
+    } };
+    const before = JSON.stringify(record), result = model(record);
+    assert.equal(result.flights[0].date, '2026-10-19'); assert.equal(result.flights[0].time, '23:10');
+    assert.equal(result.flights[0].flight, 'OM310'); assert.equal(result.flights[0].extra[0].value, '20:30');
+    assert.equal(result.flights[1].date, '2026-10-23'); assert.equal(result.flights[1].time, '01:20'); assert.equal(result.flights[1].extra[0].value, '05:30');
+    assert.equal(result.travelers.expected, 2); assert.equal(result.travelers.registered, 1);
+    assert.equal(result.travelers.people[0].name, '실제 여행자');
+    assert.equal(result.travelers.people[0].details.find(row => row.label === '여권 영문명').value, 'ACTUAL PERSON');
+    assert.equal(result.travelers.people[0].details.find(row => row.label === '여권번호').value, 'M12345678');
+    assert.match(result.tasks.find(task => task.id === 'travelers').detail, /1명 미등록/);
+    assert.match(result.travelers.status, /고객 제출 기록/);
+    assert.equal(result.agreement.at, record.booking.contract.signedAt);
+    assert.equal(result.facts.find(row => row.label === '픽업·샌딩 숙소').value, '실제 픽업 호텔');
+    assert.equal(result.facts.find(row => row.label === '여행자 특이사항').value, '식이 제한 있음');
+    assert.ok(!JSON.stringify(result).includes('PRIVATE-SIGNATURE')); assert.equal(JSON.stringify(record), before);
+    const empty = model({ ...record, booking: { days: [], travelers: [], checklist: { contract: true } } });
+    assert.equal(empty.flights[0].date, ''); assert.equal(empty.flights[1].date, '');
+    assert.equal(empty.travelers.registered, 0); assert.equal(empty.travelers.people.length, 0); assert.equal(empty.agreement.at, undefined);
+    assert.match(empty.agreement.label, /미요청/); assert.match(empty.tasks.find(task => task.id === 'flights').detail, /도착편명/);
+});
+
+test('시간별 일정·이동·식사·실제 배정 숙소를 표시하고 귀국일 숙박은 요구하지 않는다', () => {
+    const result = model({ ...inquiry, depart: '2026-10-20', return_: '2026-10-21', booking: {
+        days: [{ dest: '테를지', regions: ['중앙몽골'], move: '2시간', dist: '80', items: ['09:30 공항 픽업', '거북바위 방문'], stay: { name: '계획 숙소' }, meals: ['조식', '중식', '석식'] },
+            { dest: '울란바토르', items: [], activities: [{ title: '삭제한 관광지' }], stay: { name: '' }, meals: [] }],
+        assign: { lodges: [{ day: 1, name: '확정 호텔' }] },
+    } });
+    const first = result.days[0];
+    assert.equal(first.activities[0].time, '09:30'); assert.equal(first.activities[0].title, '공항 픽업');
+    assert.equal(first.activities[1].title, '거북바위 방문'); assert.equal(first.region, '중앙몽골');
+    assert.equal(first.travel, '2시간 · 80km'); assert.equal(first.meals, '조식 · 중식 · 석식');
+    assert.equal(first.stay, '확정 호텔'); assert.equal(first.stayAssigned, true); assert.equal(first.stayRequired, true);
+    assert.equal(result.days[1].summary, ''); assert.equal(result.days[1].activities.length, 0); assert.equal(result.days[1].stayRequired, false);
+    assert.equal(result.tasks.some(task => task.id === 'stay'), false);
+    assert.equal(model({ ...inquiry, depart: '2026-10-20', return_: '2026-10-20', booking: { days: [{ dest: '시내 투어' }] } }).days[0].stayRequired, false);
+});
+
+test('남은 업무는 실제 입금 신고·서명 요청·일정 부족·배정 누락을 설명하고 검토 화면만 연다', () => {
+    const record = { ...inquiry, status: '예약확정', depart: '2026-10-20', return_: '2026-10-22', booking: {
+        days: [{ dest: '첫날' }], contractInfo: { totalAmount: 3000000, depositAmount: 900000, depositStatus: '미입금', balanceAmount: 2100000, balanceStatus: '미수령' },
+        depositReport: { status: 'reported', name: '입금 신고자' }, contractRequest: { status: 'requested', requestedAt: '2026-10-19T05:00:00Z' },
+        travelers: [{ nameKo: '이름만 입력' }], assign: { lodges: [{ day: 1, name: '호텔' }] },
+    } };
+    const result = model(record), tasks = result.tasks;
+    assert.match(tasks.find(task => task.id === 'deposit').label, /입금 신고/); assert.match(tasks.find(task => task.id === 'deposit').detail, /900,000원.*입금 신고자/);
+    const contract = tasks.find(task => task.id === 'contract');
+    assert.equal(contract.waiting, true); assert.match(contract.label, /서명 확인/); assert.match(contract.detail, /고객 서명 기록이 없습니다/);
+    assert.match(tasks.find(task => task.id === 'travelers').detail, /1명 미등록.*1명 필수 정보 누락/);
+    assert.match(tasks.find(task => task.id === 'schedule').detail, /여행 3일 · 저장된 일정 1일/);
+    assert.match(tasks.find(task => task.id === 'stay').detail, /1\/2박 배정 · 1박 미배정/);
+    assert.equal(tasks.find(task => task.id === 'published').action, 'documents');
+    assert.match(tasks.find(task => task.id === 'balance-review').detail, /2,100,000원.*미수령/);
+    assert.ok(tasks.every(task => task.actionLabel && task.detail));
+    assert.equal(result.steps.find(step => step.id === 'published').done, false);
+    assert.equal(result.steps.find(step => step.id === 'schedule').done, false);
+    record.booking.contractInfo.depositStatus = '입금완료'; record.booking.contract = { signedAt: '2026-10-19' };
+    const paid = model(record); assert.equal(paid.tasks.some(task => ['deposit', 'contract'].includes(task.id)), false);
+});
+
+test('금액 0원·빈 결제 상태·취소 진행·희망 기간은 완료로 추정하지 않는다', () => {
+    const record = { ...inquiry, booking: { contractInfo: { totalAmount: 0, depositAmount: 0, balanceAmount: 0 }, travelers: [] } };
+    const result = model(record);
+    assert.equal(result.payment.total, 0); assert.equal(result.payment.depositPaid, null); assert.equal(result.payment.balancePaid, null);
+    assert.equal(result.steps.find(step => step.id === 'deposit').done, false); assert.match(result.tasks.find(task => task.id === 'deposit').detail, /0원.*기록 없음/);
+    assert.equal(result.tasks.some(task => task.id === 'period'), true);
+    assert.equal(model({ ...record, progress: '예약취소' }).tasks.length, 0);
+    assert.equal(model({ ...record, progress: '예약취소' }).canSendItinerary, false);
+    assert.equal(model({ ...record, booking: { contractInfo: { balanceStatus: '현지현금전달' } } }).payment.balancePaid, true);
+    assert.equal(model({ ...record, booking: { contractInfo: { balanceStatus: '알 수 없는 상태' } } }).payment.balancePaid, null);
+    const unknownParty = model({ id: 'no-requested-party', booking: { travelers: [{ nameKo: '이름' }] } });
+    assert.equal(unknownParty.travelers.expected, null); assert.match(unknownParty.tasks.find(task => task.id === 'travelers').detail, /1\/미정명 등록/);
+});
+
+test('발권 확인 체크만으로 누락된 항공편 정보를 완료 처리하지 않고 숫자 이동 거리를 보존한다', () => {
+    const record = { ...inquiry, booking: { checklist: { flight: true }, flight: { inDate: '2026-10-20', outDate: '2026-10-22' },
+        days: [{ dest: '시내', move: '도보', dist: 0 }, { dest: '테를지', dist: 85 }, { dest: '귀국', dist: Number.NaN }] } };
+    const result = model(record), flightTask = result.tasks.find(task => task.id === 'flights');
+    assert.ok(flightTask); assert.match(flightTask.detail, /도착시간 · 도착편명 · 출발시간 · 출발편명 미입력/);
+    assert.equal(result.days[0].travel, '도보 · 0km'); assert.equal(result.days[1].travel, '85km'); assert.equal(result.days[2].travel, '');
+    record.booking.flight = { ...record.booking.flight, inTime: '08:20', inNo: 'OM310', outTime: '12:30', outNo: 'OM309' };
+    assert.equal(model(record).tasks.some(task => task.id === 'flights'), false);
+});
+
+test('미예약 문의에는 예약 배정·항공·여행자·잔금 업무를 만들지 않고 실제 견적 단계를 안내한다', () => {
+    const stages = [model(inquiry), model({ ...inquiry, quote: { days: [] } }),
+        model({ ...inquiry, quote: { days: [] }, activities: [{ type: 'quote_notification_queued' }] }),
+        model({ ...inquiry, quote: { days: [] }, activities: [{ type: 'quote_sent' }], decision: { status: 'accepted' } })];
+    assert.equal(stages[0].tasks[0].action, 'edit-itinerary'); assert.match(stages[0].tasks[0].label, /견적서 작성/);
+    assert.equal(stages[1].tasks[0].action, 'quote-share'); assert.match(stages[1].tasks[0].detail, /발송 요청 기록이 없습니다/);
+    assert.equal(stages[2].tasks[0].waiting, true); assert.match(stages[2].tasks[0].label, /진행 의사/);
+    assert.equal(stages[3].tasks[0].id, 'prepare');
+    for (const result of stages) {
+        assert.equal(result.flights, undefined); assert.equal(result.travelers, undefined); assert.equal(result.agreement, undefined);
+        assert.ok(result.tasks.every(task => !['deposit', 'balance-review', 'guide', 'vehicle', 'stay', 'flights', 'travelers', 'published'].includes(task.id)));
+    }
+});
 test('고객 GET은 선택한 ID·관리자 헤더·최신 응답만 사용하고 다른 ID·실패·표본을 거절한다', async () => {
     const calls = [], controller = new AbortController();
     const record = await load('quote/a', 'verified-connection', controller.signal, async (url, options) => { calls.push({ url, options }); return { ok: true, status: 200, json: async () => ({ ok: true, item: { ...inquiry, id: 'quote/a' } }) }; });

@@ -29,11 +29,12 @@ test('고객 요약은 관리자 메모·실제 배정·변경 후 재안내·�
     const model = overview(row, days, { itineraryChanged: true, contractChanged: true, vehicle: '차량A' });
     assert.equal(model.customerName, base.customer_name); assert.equal(model.bookingNumber, base.id);
     assert.equal(model.days[0].date, ''); assert.equal(model.days[0].image, '/images/activity.webp');
-    assert.equal(model.days[0].summary, '*중요 방문 · (선택 활동)');
+    assert.equal(model.days[0].summary, '*중요 방문\n(선택 활동)');
     assert.deepEqual(model.notes.map(note => note.body), ['내부 상담 기록']);
     assert.ok(model.facts.some(fact => fact.label === '주문 경로' && fact.value === '카카오톡'));
     assert.equal(model.assignments.find(item => item.id === 'stay').state, 'pending');
-    assert.ok(model.tasks.some(task => task.id === 'changed'));
+    assert.ok(model.tasks.some(task => task.id === 'itinerary-changed'));
+    assert.ok(model.tasks.some(task => task.id === 'contract-changed'));
     assert.equal(model.documents[0].action, 'itinerary');
     assert.deepEqual(row.dailyAccommodations, []);
 });
@@ -180,8 +181,8 @@ test('계정·예약 변경 전의 늦은 조회 응답은 고객 상세와 로�
 
 test('요약 버튼들은 실제 기존 업무 제어에 연결되고 저장 중에는 어떤 동작도 실행하지 않는다', () => {
     const calls = [];
-    const context = { workspaceIsBusy: () => false, workspace: { published: true }, canStartDelivery: () => true, inlineDirty: false, operationsDirty: false, isEditing: false, quickAssignmentDirty: false, fullPage: false, itineraryPreviewUrl: '/preview', contractUrl: '/contract', window: { open: (...args) => calls.push(['open', ...args]) } };
-    for (const name of ['closeWorkspace', 'copyCustomerMessage', 'sendItineraryToCustomer', 'openInlineDocument', 'printGuideSheet', 'setIsEditing', 'scrollToSec', 'setNavigationNotice']) context[name] = (...args) => calls.push([name, ...args]);
+    const context = { workspaceIsBusy: () => false, workspace: { published: true }, canStartDelivery: () => true, inlineDirty: false, docDraftPending: false, operationsDirty: false, isEditing: false, activeSec: 'docs', quickAssignmentDirty: false, fullPage: false, itineraryPreviewUrl: '/preview', contractUrl: '/contract', window: { open: (...args) => calls.push(['open', ...args]) } };
+    for (const name of ['closeWorkspace', 'copyCustomerMessage', 'sendItineraryToCustomer', 'openInlineDocument', 'printGuideSheet', 'setIsEditing', 'setInlineEditorOpen', 'setActiveDocument', 'scrollToSec', 'setNavigationNotice']) context[name] = (...args) => calls.push([name, ...args]);
     const start = source.indexOf('    const overviewAction = (');
     const end = source.indexOf('\n\n    return (<>', start);
     execute(source.slice(start, end) + '\nglobalThis.action = overviewAction;', context);
@@ -191,6 +192,55 @@ test('요약 버튼들은 실제 기존 업무 제어에 연결되고 저장 중
     for (const action of ['back', 'customer-link', 'send-itinerary', 'edit-info', 'guide', 'itinerary']) context.action(action);
     assert.equal(calls.length, count);
     context.workspaceIsBusy = () => false; context.canStartDelivery = () => false; context.action('itinerary'); assert.equal(calls.length, count);
+});
+
+test('남은 문서 업무는 일정을 편집하거나 즉시 발송하지 않고 실제 문서 확인·전달 패널을 연다', () => {
+    const calls = [];
+    const context = { workspaceIsBusy: () => false, inlineDirty: false, docDraftPending: false, operationsDirty: false, isEditing: false, quickAssignmentDirty: false, fullPage: true };
+    for (const name of ['setInlineEditorOpen', 'setActiveDocument', 'scrollToSec', 'setNavigationNotice']) context[name] = (...args) => calls.push([name, ...args]);
+    for (const name of ['openInlineDocument', 'sendItineraryToCustomer', 'copyCustomerMessage', 'setIsEditing']) context[name] = () => assert.fail(`${name} must not run while opening document review`);
+    const start = source.indexOf('    const overviewAction = ('), end = source.indexOf('\n\n    return (<>', start);
+    execute(source.slice(start, end) + '\nglobalThis.action = overviewAction;', context);
+    for (const [task, expected] of [['deliver-contract', 'contract'], ['contract-changed', 'contract'], ['itinerary-changed', 'itinerary'], ['publish', 'itinerary'], ['deliver-itinerary', 'itinerary']]) {
+        calls.length = 0; context.action('documents', task);
+        assert.deepEqual(calls, [['setInlineEditorOpen', false], ['setActiveDocument', expected], ['scrollToSec', 'docs']]);
+    }
+    for (const field of ['inlineDirty', 'docDraftPending', 'operationsDirty', 'isEditing', 'quickAssignmentDirty']) {
+        calls.length = 0; context[field] = true; context.action('documents', 'deliver-contract');
+        assert.equal(calls.length, 1); assert.equal(calls[0][0], 'setNavigationNotice'); assert.match(calls[0][1], /저장|닫아/);
+        context[field] = false;
+    }
+    calls.length = 0; context.workspaceIsBusy = () => true; context.action('documents', 'contract-changed'); assert.deepEqual(calls, []);
+});
+
+test('항공편·여행자·계약 동의 확인 업무는 주문 수정 모드를 켜지 않고 정보 위치를 연다', () => {
+    const calls = [], frames = [];
+    let hidden = false;
+    const context = { workspaceIsBusy: () => false, inlineDirty: false, docDraftPending: false, operationsDirty: false, isEditing: false, activeSec: 'docs', quickAssignmentDirty: false, fullPage: true,
+        requestAnimationFrame: callback => { frames.push(callback); },
+        bodyRef: { current: { querySelector: selector => { calls.push(['target', selector]); return { closest: () => hidden ? {} : null, scrollIntoView: options => calls.push(['scroll', options.behavior, options.block]) }; } } },
+        scrollToSec: section => calls.push(['section', section]), setNavigationNotice: message => calls.push(['notice', message]),
+        setIsEditing: () => assert.fail('reading customer-submitted fields must not enter order editing'),
+    };
+    const start = source.indexOf('    const overviewAction = ('), end = source.indexOf('\n\n    return (<>', start);
+    execute(source.slice(start, end) + '\nglobalThis.action = overviewAction;', context);
+    for (const field of ['flights', 'travelers']) {
+        calls.length = 0; context.action(field);
+        assert.deepEqual(calls, [['section', 'info']]);
+        while (frames.length) frames.shift()();
+        assert.deepEqual(calls, [['section', 'info'], ['target', `#product-customer-${field}`], ['scroll', 'smooth', 'start']]);
+    }
+    calls.length = 0; context.action('view-info'); assert.deepEqual(calls, [['section', 'info']]); assert.equal(frames.length, 0);
+    hidden = true; calls.length = 0; context.action('flights'); while (frames.length) frames.shift()();
+    assert.equal(calls.some(call => call[0] === 'scroll'), false, 'a still-hidden tab must not trigger a page jump');
+    for (const field of ['inlineDirty', 'docDraftPending', 'operationsDirty', 'quickAssignmentDirty']) {
+        calls.length = 0; context[field] = true; context.action('travelers');
+        assert.equal(calls.length, 1); assert.equal(calls[0][0], 'notice'); assert.equal(frames.length, 0); context[field] = false;
+    }
+    calls.length = 0; context.isEditing = true; context.activeSec = 'pay'; context.action('flights');
+    assert.equal(calls.length, 1); assert.equal(calls[0][0], 'notice');
+    calls.length = 0; context.activeSec = 'info'; context.action('view-info'); assert.deepEqual(calls, [['section', 'info']]);
+    calls.length = 0; context.workspaceIsBusy = () => true; context.action('flights'); assert.deepEqual(calls, []);
 });
 
 test('고객 카드 배정은 기존 상세로 이동하지 않고 바로 선택하며 미저장 차량·문서·운영·취소·처리 중을 보호한다', () => {

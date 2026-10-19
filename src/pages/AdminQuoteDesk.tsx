@@ -324,7 +324,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     };
 
     const focusCustomerEditor = useCallback((section: string) => {
-        setActiveSection(['guide', 'vehicle', 'stay'].includes(section) ? 'assign' : section === 'send' ? 'docs' : section);
+        setActiveSection(['guide', 'vehicle', 'stay'].includes(section) ? 'assign' : section === 'send' ? 'docs' : ['flights', 'travelers', 'view-info'].includes(section) ? 'info' : section);
         try {
             const inner = frameRef.current?.contentWindow as EditorWindow | null;
             if (tool.key === 'bookings') return !!inner?.InhasuQuoteBookingWorkspace?.navigate(section);
@@ -342,7 +342,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         if (result.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 작업을 선택해 주세요.'); return; }
         if (!result.ok && !window.confirm((result.error || '초안을 보관하지 못했습니다.') + '\n\n초안을 보관하지 못한 상태로 다른 편집기를 열까요?')) return;
         if (!editorExpanded) overviewScrollRef.current = customerPageRef.current?.scrollTop || 0;
-        setActiveSection(['guide', 'vehicle', 'stay'].includes(section) ? 'assign' : section === 'send' ? 'docs' : section);
+        setActiveSection(['guide', 'vehicle', 'stay'].includes(section) ? 'assign' : section === 'send' ? 'docs' : ['flights', 'travelers', 'view-info'].includes(section) ? 'info' : section);
         setPendingSection(section); setEditorExpanded(true); setEditorMountScope(customerEditorScope);
         setCustomerEditor({ id: bookingId || '', tool: editorTool });
         requestAnimationFrame(() => {
@@ -369,6 +369,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
             window.open(`/${page}?t=${encodeURIComponent(token)}`, '_blank', 'noopener'); return;
         }
         const booked = quoteCustomerIsBooking(customerRecord);
+        if (['flights', 'travelers', 'view-info'].includes(action)) { openCustomerEditor(booked ? 'bookings' : 'inbox', booked ? action : 'info'); return; }
         if (action === 'edit-itinerary' || action === 'quote-share') { openCustomerEditor(booked && action !== 'quote-share' ? 'bookings' : 'builder', action === 'quote-share' ? 'quote-share' : 'docs'); return; }
         const section = action === 'payments' ? 'pay' : ['guide', 'vehicle', 'stay'].includes(action) ? action : action === 'contract' ? 'contract' : action === 'history' ? 'log' : action === 'notes' ? 'notes' : action === 'send-itinerary' ? 'send' : action === 'documents' ? 'docs' : 'info';
         openCustomerEditor(booked ? 'bookings' : 'inbox', section);

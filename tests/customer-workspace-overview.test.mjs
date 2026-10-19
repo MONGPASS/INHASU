@@ -31,3 +31,28 @@ test('요약의 고객·일정·결제·배정·문서 버튼은 선택한 업�
     for(const action of ['edit-info','edit-itinerary','guide'])assert.ok(calls.some(call=>call[0]===action));
     const send=buttons.find(b=>String(b.props.children).includes('일정표 보내기'));assert.ok(send?.props.disabled);
 });
+
+test('현황은 실제 항공편·여행자 상세·시간별 활동·별도 안내·배정 숙소를 생략하거나 HTML로 실행하지 않는다',()=>{
+    const html=renderToStaticMarkup(React.createElement(CustomerWorkspaceOverview,{model:{...model,
+        flights:[{id:'arrival',label:'몽골 도착편',date:'2026-10-24',time:'15:30',flight:'LOCAL-AIR',extra:[{label:'픽업 장소',value:'공항 출구'}]}],
+        travelers:{expected:2,registered:1,people:[{id:'p1',name:'저장된 여행자',details:[{label:'여권 영문명',value:'LOCAL TRAVELER'},{label:'생년월일',value:'<script>PRIVATE</script>'}]}]},
+        days:[{id:'d1',day:1,title:'저장된 첫날',date:'10.24',activities:[{time:'15:30',title:'픽업',description:'공항 출구 미팅'}],summary:'도착 후 입국 수속\n15:30 픽업\n수하물 확인\n저장된 별도 안내',stay:'예약 게르',stayAssigned:true,meals:'중식 현지식 · 석식 캠프식'}],
+    },onAction(){}}));
+    for(const value of ['LOCAL-AIR','15:30','공항 출구','저장된 여행자','LOCAL TRAVELER','&lt;script&gt;PRIVATE&lt;/script&gt;','수하물 확인','저장된 별도 안내','예약 게르','실제 배정','중식 현지식']) assert.ok(html.includes(value),value);
+    assert.equal((html.match(/>픽업<\/span>/g)||[]).length,1);
+    assert.ok(html.indexOf('도착 후 입국 수속')<html.indexOf('>픽업</span>'));
+    assert.ok(!html.includes('<script>PRIVATE'));
+});
+
+test('남은 업무는 구체적 이유와 처리 버튼을 노출하고 고객 대기보다 관리자 처리 항목을 먼저 안내한다',()=>{
+    const calls=[]; const tasks=[{id:'signature',label:'고객 동의 대기',detail:'고객 실제 동의 기록 없음',action:'view-info',actionLabel:'동의 상태 확인',waiting:true},
+        {id:'flights',label:'항공 정보 확인',detail:'도착편명 미입력',action:'flights',actionLabel:'항공편 확인'},
+        {id:'travelers',label:'여행자 명단 확인',detail:'1/2명 입력',action:'travelers',actionLabel:'명단 확인'}];
+    const tree=CustomerWorkspaceOverview({model:{...model,tasks},onAction:(...args)=>calls.push(args)});
+    const buttons=[];const visit=node=>{if(Array.isArray(node)){node.forEach(visit);return;}if(!React.isValidElement(node))return;if(node.type==='button')buttons.push(node);visit(node.props.children);};visit(tree);
+    const label=node=>Array.isArray(node)?node.map(label).join(''):typeof node==='string'?node:React.isValidElement(node)?label(node.props.children):'';
+    for(const task of tasks){const button=buttons.find(button=>label(button.props.children).includes(task.actionLabel));assert.ok(button,task.actionLabel);button.props.onClick();assert.ok(calls.some(call=>call[0]===task.action&&call[1]===task.id));}
+    const html=renderToStaticMarkup(tree);
+    assert.ok(html.indexOf('항공 정보 확인')<html.indexOf('고객 동의 대기'));assert.ok(!html.includes('<details class="cw-task'));
+    for(const task of tasks)assert.ok(html.includes(task.detail));
+});

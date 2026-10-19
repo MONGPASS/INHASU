@@ -49,6 +49,8 @@ interface Reservation {
     productName: string;
     productId?: string; // 예약한 상품 ID (신규 예약부터 저장 — 동명 상품 혼동 방지)
     customerName: string;
+    notes?: string;
+    peopleKnown?: number | null;
     startDate?: string;
     endDate?: string;
     departureMs?: number;
@@ -812,7 +814,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const contractHasTravelers = contractTravelers.length > 0 && !!contractTravelers[0]?.name;
     const contractAgreement = editForm.contractData?.agreement;
     // 고객이 계약서에서 직접 제출한 내용(여권·항공편·동의)이 있으면 이 페이지에 바로 요약 표시
-    const contractSubmitted = contractHasTravelers || !!editForm.contractData?.customerSubmittedAt;
+    const contractSubmitted = contractHasTravelers || !!editForm.contractData?.customerSubmittedAt || !!contractAgreement?.agreed
+        || [editForm.contractData?.arrival, editForm.contractData?.departure].some(flight => flight?.date || flight?.time || flight?.flight);
     const fmtFlightLine = (f?: { date?: string; time?: string; flight?: string }) => {
         const parts = [f?.date, f?.time, f?.flight].filter(Boolean);
         return parts.length ? parts.join(' · ') : '미입력';
@@ -1764,6 +1767,22 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (action === 'contract') { openInlineDocument('contract'); return; }
         if (action === 'itinerary' || action === 'contract-preview') { if (canStartDelivery()) window.open(action === 'itinerary' ? itineraryPreviewUrl : contractUrl, '_blank', 'noopener,noreferrer'); return; }
         if (action === 'guide-pdf') { printGuideSheet(); return; }
+        if (['view-info', 'flights', 'travelers'].includes(action)) {
+            if (inlineDirty || docDraftPending || operationsDirty || isEditing && activeSec === 'pay') { setNavigationNotice('작성 중인 내용을 먼저 저장하거나 취소한 뒤 고객 정보를 확인해 주세요.'); return; }
+            scrollToSec('info');
+            if (action !== 'view-info') requestAnimationFrame(() => requestAnimationFrame(() => {
+                const target = bodyRef.current?.querySelector(`#product-customer-${action}`);
+                if (target && !target.closest('[hidden]')) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }));
+            return;
+        }
+        if (action === 'documents') {
+            if (inlineDirty || docDraftPending || operationsDirty || isEditing) { setNavigationNotice('작성 중인 내용을 먼저 저장하거나 취소한 뒤 문서를 확인하고 전달해 주세요.'); return; }
+            setInlineEditorOpen(false);
+            setActiveDocument(id?.includes('contract') ? 'contract' : 'itinerary');
+            scrollToSec('docs');
+            return;
+        }
         if (action === 'edit-info') { if (inlineDirty || operationsDirty) { setNavigationNotice('작성 중인 문서·운영 정보를 먼저 저장해 주세요.'); return; } setIsEditing(true); scrollToSec('info'); return; }
         if ((action === 'guide' || action === 'stay') && isEditing) { setNavigationNotice('주문 정보 변경사항을 먼저 저장한 뒤 배정해 주세요.'); return; }
         const section = { payments: 'pay', guide: 'assign', stay: 'assign', vehicle: 'ops', history: 'log', notes: 'log', documents: 'docs' }[action] as 'pay' | 'assign' | 'ops' | 'log' | 'docs' | undefined;
@@ -1905,11 +1924,11 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         </div>
 
                         {/* 고객이 계약서에서 직접 작성·제출한 내용(여권·항공편·동의)을 이 페이지에 바로 표시 */}
-                        {contractSubmitted && (
+                        {(fullPage || contractSubmitted) && (
                             <div className="card" style={{ marginTop: 14 }}>
                                 <div className="card-head">
                                     <Icon name="assignment_ind" style={{ color: 'var(--mrt-gray-600)' }} />
-                                    <h2>고객 제출 정보</h2>
+                                    <h2>여행자·항공편 정보</h2>
                                     <div style={{ flex: 1 }} />
                                     <button type="button" className="btn btn-sm btn-ghost" style={{ flex: 'none' }} onClick={copyBookingText} title="여행자·항공편 정보를 텍스트로 복사 (카톡·메일에 붙여넣기)">
                                         <Icon name={copiedDocId === 'booking' ? 'check' : 'content_copy'} />{copiedDocId === 'booking' ? '복사됨' : '복사'}
@@ -1931,8 +1950,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                         : <span className="badge b-amber" style={{ flex: 'none' }}>미동의</span>}
                                 </div>
                                 <div className="card-pad" style={{ paddingTop: 14 }}>
+                                    {!contractSubmitted && <div style={{ marginBottom: 16, padding: 16, background: '#f6f8fa', borderRadius: 12 }}><p style={{ fontSize: 13, color: '#6b7684', margin: '0 0 12px' }}>고객이 계약서에서 여행자와 항공편을 입력하면 이곳에 반영됩니다. 계약서 전달 후 고객 입력 내용을 확인해 주세요.</p><button type="button" className="btn btn-sm btn-ghost" disabled={workspaceIsBusy()} onClick={() => overviewAction('documents', 'contract')}>계약서 전달 관리</button></div>}
                                     {/* 항공편 — 픽업·샌딩 수배용, 가장 중요 */}
-                                    <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                                    <div id="product-customer-flights" className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14, scrollMarginTop: 20 }}>
                                         <div className="pay-cell">
                                             <div className="row" style={{ gap: 6, marginBottom: 6, color: 'var(--text-secondary)' }}>
                                                 <Icon name="flight_land" /><span style={{ fontSize: 12.5, fontWeight: 700 }}>도착편 (몽골 도착)</span>
@@ -1948,6 +1968,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     </div>
 
                                     {/* 여행자별 여권 정보 */}
+                                    <div id="product-customer-travelers" style={{ scrollMarginTop: 20 }}>
+                                    {!contractTravelers.length && <p style={{ padding: 16, margin: 0, borderRadius: 12, background: '#f6f8fa', color: '#6b7684', fontSize: 13 }}>등록된 여행자가 없습니다. 예약 인원 {reservation.totalPeople || '미정'}명과 고객 제출 내용을 확인해 주세요.</p>}
                                     {contractTravelers.map((t, i) => (
                                         <div key={i} style={{ paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0, borderTop: i ? '1px solid var(--mrt-gray-100)' : 'none' }}>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 4 }}>여행자 {i + 1}</div>
@@ -1957,6 +1979,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                             <div className="kv" style={{ borderBottom: 'none' }}><span>연락처</span><b style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{t.phone || '—'}</b></div>
                                         </div>
                                     ))}
+                                    </div>
 
                                     {contractAgreement?.agreed && (
                                         <div className="kv" style={{ borderBottom: 'none', borderTop: '1px solid var(--mrt-gray-100)', marginTop: 10, paddingTop: 10 }}>
@@ -2655,6 +2678,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                     productName: r.productName || r.product_name,
                     productId: r.productId || r.product_id,
                     customerName: r.customerName || r.customer_name || r.customer_info?.name || 'Unknown',
+                    notes: typeof r.notes === 'string' ? r.notes : '',
                     country: r.country || r.customerCountry || r.customer_country || r.customer_info?.country || '한국',
                     startDate,
                     endDate,
@@ -2813,6 +2837,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                 customerName: fresh.customerName ?? x.customerName,
                 email: fresh.email ?? x.email,
                 phone: fresh.phone ?? x.phone,
+                notes: fresh.notes ?? x.notes,
                 depositReport: readDepositReport(fresh) ?? x.depositReport, // 목록을 불러온 뒤에 들어온 입금 신고
             });
             setSelectedReservation(prev => (prev && prev.id === res.id && prev.type === res.type) ? merge(prev) : prev);

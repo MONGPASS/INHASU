@@ -7,13 +7,17 @@ export interface CustomerWorkspaceOverviewModel {
     period: string; partyLabel: string;
     facts: Array<{ label: string; value: string }>;
     preferences?: string[];
+    flights?: Array<{ id: string; label: string; date?: string; time?: string; flight?: string; extra?: Array<{ label: string; value: string }> }>;
+    travelers?: { expected: number | null; registered: number; people: Array<{ id: string; name: string; details: Array<{ label: string; value: string }> }>; status?: string };
+    agreement?: { label: string; at?: string };
     notes: Array<{ id: string; body: string; at?: string; author?: string }>;
-    days: Array<{ id: string; day: number; title: string; date?: string; summary?: string; image?: string }>;
+    days: Array<{ id: string; day: number; title: string; date?: string; summary?: string; image?: string; region?: string;
+        activities?: Array<{ time?: string; title: string; description?: string }>; stay?: string; stayAssigned?: boolean; stayRequired?: boolean; meals?: string; travel?: string }>;
     documents: Array<{ id: string; label: string; detail?: string; status?: string; action?: string; disabled?: boolean }>;
     payment: { total: number | null; deposit: number | null; balance: number | null; depositPaid: boolean | null; balancePaid: boolean | null };
     assignments: Array<{ id: 'guide' | 'vehicle' | 'stay'; label: string; value: string; detail?: string; statusLabel: string; state: 'ready' | 'pending' | 'unknown' }>;
     steps: Array<{ id: string; label: string; done: boolean; current?: boolean }>;
-    tasks: Array<{ id: string; label: string; action: string }>;
+    tasks: Array<{ id: string; label: string; action: string; detail?: string; actionLabel?: string; waiting?: boolean }>;
     customerLinkAvailable?: boolean; canSendItinerary?: boolean;
 }
 
@@ -25,7 +29,8 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
     const progressKnown = m.payment.total !== null && Number.isFinite(m.payment.total) && m.payment.depositPaid !== null && m.payment.balancePaid !== null && (!m.payment.depositPaid || (m.payment.deposit !== null && Number.isFinite(m.payment.deposit))) && (!m.payment.balancePaid || (m.payment.balance !== null && Number.isFinite(m.payment.balance)));
     const paidAmount = (m.payment.depositPaid ? m.payment.deposit || 0 : 0) + (m.payment.balancePaid ? m.payment.balance || 0 : 0);
     const paidPercent = progressKnown ? (m.payment.total! > 0 ? Math.min(100, Math.max(0, Math.round(paidAmount / m.payment.total! * 100))) : m.payment.depositPaid && m.payment.balancePaid ? 100 : 0) : null;
-    const next = m.tasks[0];
+    const orderedTasks = [...m.tasks.filter(task => !task.waiting), ...m.tasks.filter(task => task.waiting)];
+    const next = orderedTasks[0];
     const completedSteps = m.steps.filter(item => item.done).length;
     const assignedResources = m.assignments.filter(item => item.state === 'ready').length;
     const name = m.customerName || '고객 정보 확인 필요';
@@ -71,13 +76,14 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
         <div className={`cw-task-card${next ? '' : ' is-complete'}`}>
             <div className="cw-next-task" role="status">
                 <span className="cw-task-symbol"><Icon name={next ? 'assignment' : 'check_circle'} /></span>
-                <div className="cw-task-copy"><div><strong>{next ? '지금 할 일' : '업무 확인 완료'}</strong>{next && <span className="cw-task-count">{m.tasks.length}건 남음</span>}</div><p>{next?.label || '현재 확인된 미완료 업무가 없습니다.'}</p></div>
-                <button type="button" className="cw-button cw-primary" disabled={busy} onClick={action(next?.action || 'history', next?.id)}>{next ? '업무 열기' : '이력 확인'}<Icon name="arrow_forward" /></button>
+                <div className="cw-task-copy"><div><strong>{next ? next.waiting ? '고객 확인 대기' : '지금 할 일' : '업무 확인 완료'}</strong>{next && <span className="cw-task-count">{m.tasks.length}건 남음</span>}</div><p>{next?.label || '현재 확인된 미완료 업무가 없습니다.'}</p></div>
+                <button type="button" className="cw-button cw-primary" disabled={busy} onClick={action(next?.action || 'history', next?.id)}>{next ? next.actionLabel || '내용 확인' : '이력 확인'}<Icon name="arrow_forward" /></button>
             </div>
-            {m.tasks.length > 1 && <details className="cw-task-disclosure">
-                <summary>다른 할 일 {m.tasks.length - 1}건<Icon name="chevron_right" /></summary>
-                <div className="cw-task-list" aria-label="남은 고객 업무">{m.tasks.slice(1).map(task => <button type="button" key={task.id} disabled={busy} onClick={action(task.action, task.id)}><span className="cw-task-marker" /><span>{task.label}</span><Icon name="arrow_forward" /></button>)}</div>
-            </details>}
+            {next?.detail && <p className="cw-next-task-detail">{next.detail}</p>}
+            {orderedTasks.length > 1 && <div className="cw-task-list" aria-label="남은 고객 업무">{orderedTasks.slice(1).map(task => <div className={`cw-task-item${task.waiting ? ' is-waiting' : ''}`} key={task.id}>
+                <span className="cw-task-marker" aria-hidden="true" /><div><strong>{task.label}</strong>{task.detail && <p>{task.detail}</p>}{task.waiting && <span className="cw-task-waiting">고객 확인 대기</span>}</div>
+                <button type="button" className="cw-button" disabled={busy} onClick={action(task.action, task.id)}>{task.actionLabel || '내용 확인'}<Icon name="chevron_right" /></button>
+            </div>)}</div>}
         </div>
         </section>
 
@@ -86,6 +92,22 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                 <article className="cw-card cw-customer-info">
                     <header><div className="cw-section-title"><span className="cw-section-icon is-neutral"><Icon name="person" /></span><h2>고객 정보</h2></div>{edit('고객 정보 수정', 'edit-info')}</header>
                     <dl className="cw-facts">{m.facts.map((fact, index) => <div key={`${fact.label}-${index}`}><dt>{fact.label}</dt><dd>{fact.value || '미등록'}</dd></div>)}</dl>
+                    {!!m.flights?.length && <section className="cw-customer-section" aria-label="고객 항공편 정보">
+                        <header><h3>항공편</h3><button type="button" className="cw-text-button" disabled={busy} onClick={action('flights')}>항공편 확인<Icon name="chevron_right" /></button></header>
+                        <div className="cw-flights">{m.flights.map(flight => <article className="cw-flight" key={flight.id}>
+                            <div className="cw-flight-heading"><Icon name={flight.id === 'departure' ? 'flight_takeoff' : 'flight_land'} /><strong>{flight.label}</strong><span className={`cw-pill ${flight.date && flight.time && flight.flight ? 'is-ready' : 'is-pending'}`}>{flight.date && flight.time && flight.flight ? '등록됨' : '입력 필요'}</span></div>
+                            <strong className={`cw-flight-number${flight.flight ? '' : ' is-missing'}`}>{flight.flight || '항공편명 미입력'}</strong>
+                            <dl><div><dt>날짜</dt><dd>{flight.date || '미입력'}</dd></div><div><dt>{flight.id === 'departure' ? '몽골 출발' : '몽골 도착'}</dt><dd>{flight.time || '시각 미입력'}</dd></div>{flight.extra?.map((fact, index) => <div key={`${fact.label}-${index}`}><dt>{fact.label}</dt><dd>{fact.value || '미입력'}</dd></div>)}</dl>
+                        </article>)}</div>
+                    </section>}
+                    {m.travelers && <section className="cw-customer-section" aria-label="예약 여행자 정보">
+                        <header><div><h3>여행자 정보 <span>{m.travelers.registered}{m.travelers.expected !== null ? `/${m.travelers.expected}` : ''}명 등록</span></h3>{m.travelers.status && <p>{m.travelers.status}</p>}</div><button type="button" className="cw-text-button" disabled={busy} onClick={action('travelers')}>정보 확인<Icon name="chevron_right" /></button></header>
+                        {m.travelers.people.length ? <ol className="cw-travelers">{m.travelers.people.map((person, index) => <li key={person.id}><details>
+                            <summary><span className="cw-traveler-number">{index + 1}</span><strong>{person.name || '이름 미입력'}</strong><Icon name="expand_more" /></summary>
+                            <dl>{person.details.map((fact, i) => <div key={`${fact.label}-${i}`}><dt>{fact.label}</dt><dd>{fact.value || '미입력'}</dd></div>)}</dl>
+                        </details></li>)}</ol> : <p className="cw-information-empty">등록된 여행자가 없습니다. 고객이 제출한 정보를 확인해 주세요.</p>}
+                        {m.agreement && <div className="cw-agreement"><span>계약 동의</span><strong>{m.agreement.label}</strong>{m.agreement.at && <small>{m.agreement.at}</small>}</div>}
+                    </section>}
                     <div className="cw-preferences"><h3>고객 요청 사항</h3>{m.preferences?.length ? <div className="cw-chips">{m.preferences.map((value, index) => <span key={index}>{value}</span>)}</div> : <p>등록된 요청 사항이 없습니다.</p>}</div>
                 </article>
                 <article className="cw-card cw-notes">
@@ -99,11 +121,32 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
 
             <article className="cw-card cw-itinerary-card">
                 <header><div className="cw-section-title"><span className="cw-section-icon"><Icon name="route" /></span><h2>여행 일정</h2>{!!m.days.length && <span className="cw-section-count">{m.days.length}일</span>}</div>{edit('여행 일정 편집', 'edit-itinerary', '일정표 편집')}</header>
-                {m.days.length ? <ol className="cw-day-list">{m.days.map(day => <li key={day.id}><button type="button" disabled={busy} onClick={action('edit-itinerary', day.id)}>
-                    <span className="cw-day-image"><Icon name="landscape" />{day.image && <img key={day.image} loading="lazy" decoding="async" src={day.image} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />}</span>
-                    <span className="cw-day-content"><span className="cw-day-date"><b>{day.day}일차</b><small>{day.date || '날짜 확인 필요'}</small></span><span className="cw-day-copy"><strong>{day.title || `${day.day}일차 일정 작성`}</strong><small>{day.summary || '상세 일정을 확인하세요.'}</small></span></span>
-                    <Icon name="chevron_right" />
-                </button></li>)}</ol> : <div className="cw-empty cw-empty-itinerary"><span className="cw-empty-graphic"><Icon name="route" /></span><strong>어떤 여행을 준비할까요?</strong><p>기존 견적·상품 일정을 불러와 편집할 수 있습니다.</p><button type="button" className="cw-button" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</button></div>}
+                {m.days.length ? <ol className="cw-day-list cw-operational-days">{m.days.map(day => {
+                    const storedActivities = day.activities || [];
+                    const activities: NonNullable<typeof day.activities> = [];
+                    const lineKey = (line: string) => line.trim().replace(/^\*\s*/, '').replace(/\s+/g, ' ');
+                    const usedActivities = new Set<number>();
+                    const shownLines = new Set<string>();
+                    for (const title of day.summary?.split('\n').filter(line => line.trim()) || []) {
+                        const key = lineKey(title);
+                        const storedIndex = storedActivities.findIndex(item => [lineKey(item.title), lineKey([item.time, item.title].filter(Boolean).join(' '))].includes(key));
+                        if (storedIndex >= 0) {
+                            if (!usedActivities.has(storedIndex)) { activities.push(storedActivities[storedIndex]); usedActivities.add(storedIndex); }
+                        } else if (!shownLines.has(key) && !storedActivities.some(item => lineKey(item.description || '') === key)) activities.push({ title });
+                        shownLines.add(key);
+                    }
+                    storedActivities.forEach((item, index) => { if (!usedActivities.has(index)) activities.push(item); });
+                    const activityList = (items: typeof activities) => <ul className="cw-activity-list">{items.map((item, index) => <li key={index}>{item.time && <time>{item.time}</time>}<div><span>{item.title}</span>{item.description && <small>{item.description}</small>}</div></li>)}</ul>;
+                    return <li key={day.id}>
+                        <div className="cw-day-heading">
+                            {day.image && <span className="cw-day-image"><Icon name="landscape" /><img key={day.image} loading="lazy" decoding="async" src={day.image} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} /></span>}
+                            <div className="cw-day-content"><div className="cw-day-date"><b>{day.day}일차</b><small>{day.date || '날짜 확인 필요'}</small></div><h3>{day.title || `${day.day}일차 일정 작성`}</h3>{day.region && day.region !== day.title && <p>{day.region}</p>}</div>
+                            <button type="button" className="cw-text-button" aria-label={`${day.day}일차 일정 편집`} disabled={busy} onClick={action('edit-itinerary', day.id)}><Icon name="edit" />편집</button>
+                        </div>
+                        {activities.length ? <>{activityList(activities.slice(0, 3))}{activities.length > 3 && <details className="cw-more-activities"><summary>일정 {activities.length - 3}개 더 보기<Icon name="expand_more" /></summary>{activityList(activities.slice(3))}</details>}</> : <p className="cw-information-empty">상세 일정이 입력되지 않았습니다.</p>}
+                        <dl className="cw-day-logistics"><div><dt><Icon name="hotel" />숙소</dt><dd>{day.stayRequired === false ? '숙박 없음' : day.stay || '미입력'}{day.stayRequired !== false && day.stay && <span className={`cw-pill ${day.stayAssigned ? 'is-ready' : 'is-unknown'}`}>{day.stayAssigned ? '실제 배정' : '일정상 숙소'}</span>}</dd></div><div><dt><Icon name="restaurant" />식사</dt><dd>{day.meals || '미입력'}</dd></div>{day.travel && <div><dt><Icon name="directions_car" />이동</dt><dd>{day.travel}</dd></div>}</dl>
+                    </li>;
+                })}</ol> : <div className="cw-empty cw-empty-itinerary"><span className="cw-empty-graphic"><Icon name="route" /></span><strong>어떤 여행을 준비할까요?</strong><p>기존 견적·상품 일정을 불러와 편집할 수 있습니다.</p><button type="button" className="cw-button" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</button></div>}
                 <section className="cw-files" aria-label="고객 문서와 파일">
                     <header><div><h2>고객 문서</h2><p className="cw-card-caption">내용을 확인하고 고객에게 전달하세요.</p></div><button type="button" className="cw-text-button" disabled={busy} onClick={action('documents')}>모두 보기<Icon name="chevron_right" /></button></header>
                     <div className="cw-file-list">{m.documents.map(doc => <button type="button" key={doc.id} disabled={busy || doc.disabled} onClick={action(doc.action || doc.id, doc.id)}><span className="cw-file-icon"><Icon name="description" /></span><span className="cw-file-copy"><strong>{doc.label}</strong><small>{doc.status || doc.detail || '내용 확인'}</small>{doc.status && doc.detail && <small>{doc.detail}</small>}</span><Icon name="chevron_right" /></button>)}</div>

@@ -13,6 +13,7 @@
       travelerCount: travelers.filter(person => person && (person.nameKo || person.passportName)).length, expectedTravelers: expected };
   }
   const sections = { docs: ['documentsSection'], contract: ['c_contract'], info: ['bookingInfoSection'], pay: ['paymentSection', 'ci_depositStatus'],
+    flights: ['fl_inDate', 'fl_inNo'], travelers: ['travelerWrap', 'requestTravelers'], 'view-info': ['bookingInfoSection'],
     assign: ['assignmentSection', 'g_pick'], guide: ['g_pick'], vehicle: ['v_pick'], stay: ['lodgeWrap'],
     send: ['itineraryNoticeBtn'], log: ['admin-booking-history'], notes: ['bk_memo'] };
   function navigate(section, document) {
@@ -21,7 +22,7 @@
     // The canonical customer page keeps every form mounted while showing only
     // the selected job. The root survives the original editor's main re-render.
     if (document.documentElement?.classList.contains('customer-booking-editor')) {
-      document.documentElement.dataset.customerSection = ['guide', 'vehicle', 'stay'].includes(section) ? 'assign' : section === 'send' ? 'docs' : section;
+      document.documentElement.dataset.customerSection = ['guide', 'vehicle', 'stay'].includes(section) ? 'assign' : section === 'send' ? 'docs' : ['flights', 'travelers', 'view-info'].includes(section) ? 'info' : section;
     }
     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (target[1]) document.getElementById(target[1])?.focus({ preventScroll: true });

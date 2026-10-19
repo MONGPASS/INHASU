@@ -27,6 +27,15 @@ test('공통 작업 탭은 기존 예약 폼의 실제 섹션에만 연결된다
     assert.deepEqual(calls, ['documentsSection', 'c_contract', 'bookingInfoSection', 'paymentSection', 'focus:ci_depositStatus', 'assignmentSection', 'focus:g_pick', 'admin-booking-history']);
     assert.equal(workspace.navigate('customer-send', doc), false);
 });
+
+test('항공편·여행자 업무는 정보 패널의 실제 입력 위치로 이동하며 요청 버튼을 실행하지 않는다', () => {
+    const calls=[];
+    const root={classList:{contains:()=>true},dataset:{}};
+    const doc={documentElement:root,getElementById(id){return {scrollIntoView(){calls.push('scroll:'+id);},focus(){calls.push('focus:'+id);},click(){assert.fail('이동으로 고객 입력 요청을 발송하면 안 됩니다.');}};}};
+    assert.equal(workspace.navigate('flights',doc),true);assert.equal(root.dataset.customerSection,'info');
+    assert.equal(workspace.navigate('travelers',doc),true);assert.equal(root.dataset.customerSection,'info');
+    assert.deepEqual(calls,['scroll:fl_inDate','focus:fl_inNo','scroll:travelerWrap','focus:requestTravelers']);
+});
 test('고객 전용 편집기는 원본 폼을 보존하고 다시 렌더해도 선택 업무를 루트에 유지한다', () => {
     const root = { classList: { contains: value => value === 'customer-booking-editor' }, dataset: {} };
     const fields = { paymentSection: { value: '저장 전 금액', scrollIntoView() {} }, ci_depositStatus: { focus() {} },
