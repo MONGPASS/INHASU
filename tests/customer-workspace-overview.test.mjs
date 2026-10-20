@@ -151,6 +151,94 @@ test('현황은 실제 항공편·여행자 상세·시간별 활동·별도 안
     assert.ok(!html.includes('<script>PRIVATE'));
 });
 
+const disclosureDays = () => [
+    { id: 'saved-day-5', day: 5, title: '저장된 고비 일정', date: '10.28(수)', region: '고비 남부', image: '/api/images/saved-day.webp',
+        summary: '09:00 공항 픽업\n저장된 개별 안내\n저장된 개별 안내',
+        activities: [
+            { time: '09:00', title: '공항 픽업', description: '입국장 출구에서 만납니다.' },
+            { time: '10:30', title: '초원 산책', description: '강변을 따라 걷습니다.' },
+            { time: '12:00', title: '게르 방문', description: '유목민의 생활을 살펴봅니다.' },
+            { time: '15:00', title: '승마 체험', description: '안전 교육 후 진행합니다.' },
+            { time: '21:00', title: '별 관측', description: '마지막 활동 설명도 보존합니다.' },
+        ], stay: '실제 배정 캠프', stayAssigned: true, meals: '조식 호텔식 · 석식 캠프식', travel: '4시간 · 250km' },
+    { id: 'saved-return-day', day: 6, title: '귀국일', date: '', activities: [], stayRequired: false, stay: '숙박하지 않는 날의 이전 값' },
+];
+
+test('일차별 일정은 기본 접힘 요약과 독립된 편집 버튼으로 표시하고 요약 안에 중첩 버튼을 만들지 않는다', () => {
+    const days = disclosureDays();
+    const tree = CustomerWorkspaceOverview({ model: { ...model, days }, onAction() {} });
+    const disclosures = elements(tree, node => node.type === 'details' && node.props.className === 'cw-day-disclosure');
+    assert.equal(disclosures.length, days.length);
+    disclosures.forEach((disclosure, index) => {
+        assert.equal(Object.hasOwn(disclosure.props, 'open'), false, 'Browser details must start collapsed');
+        const children = React.Children.toArray(disclosure.props.children);
+        const summary = children.find(node => React.isValidElement(node) && node.type === 'summary' && node.props.className === 'cw-day-summary');
+        const body = children.find(node => React.isValidElement(node) && node.type === 'div' && node.props.className === 'cw-day-details');
+        assert.ok(summary); assert.ok(body);
+        const summaryText = childrenText(summary);
+        assert.ok(summaryText.includes(String(days[index].day) + '일차'));
+        assert.ok(summaryText.includes(days[index].title));
+        assert.ok(summaryText.includes(days[index].date || '날짜 확인 필요'));
+        assert.equal(elements(summary, node => ['button', 'a', 'input', 'select', 'textarea'].includes(node.type)).length, 0);
+        assert.equal(elements(summary, node => node.type === 'span' && node.props.className === 'cw-day-detail-label').length, 1);
+        assert.equal(childrenText(summary).includes('실제 배정 캠프'), false, 'Full logistics belong inside the expandable body');
+        const row = elements(tree, node => node.type === 'li' && elements(node, child => child === disclosure).length === 1)[0];
+        assert.ok(row, 'The disclosure and edit button share their day list item');
+        const directButtons = React.Children.toArray(row.props.children).filter(node => React.isValidElement(node) && node.type === 'button');
+        assert.equal(directButtons.length, 1);
+        assert.equal(directButtons[0].props['aria-label'], String(days[index].day) + '일차 일정 편집');
+    });
+    const html = renderToStaticMarkup(tree);
+    assert.equal((html.match(/class="cw-day-disclosure"/g) || []).length, days.length);
+    assert.equal(/<details[^>]*class="cw-day-disclosure"[^>]*\sopen(?:[\s=>])/.test(html), false);
+});
+
+test('일차를 한 번 펼치면 전체 활동·시간·설명과 숙소·식사·이동이 보존되며 별도 더보기는 없다', () => {
+    const days = disclosureDays();
+    const tree = CustomerWorkspaceOverview({ model: { ...model, days }, onAction() {} });
+    const disclosures = elements(tree, node => node.type === 'details' && node.props.className === 'cw-day-disclosure');
+    const body = elements(disclosures[0], node => node.type === 'div' && node.props.className === 'cw-day-details')[0];
+    const bodyText = childrenText(body);
+    for (const activity of days[0].activities) {
+        for (const value of [activity.time, activity.title, activity.description]) assert.ok(bodyText.includes(value), value);
+        assert.equal(elements(body, node => node.type === 'span' && childrenText(node) === activity.title).length, 1, 'Original activity is not duplicated from its summary line');
+    }
+    assert.equal(elements(body, node => node.type === 'span' && childrenText(node) === '저장된 개별 안내').length, 1);
+    for (const value of ['실제 배정 캠프', '실제 배정', '조식 호텔식 · 석식 캠프식', '4시간 · 250km']) assert.ok(bodyText.includes(value), value);
+    assert.equal(elements(body, node => node.type === 'details').length, 0, 'All activities use the same day disclosure');
+    assert.equal(elements(body, node => node.props.className === 'cw-more-activities').length, 0);
+    const returnBody = elements(disclosures[1], node => node.type === 'div' && node.props.className === 'cw-day-details')[0];
+    assert.ok(childrenText(returnBody).includes('상세 일정이 입력되지 않았습니다.'));
+    assert.ok(childrenText(returnBody).includes('숙박 없음'));
+    assert.equal(childrenText(returnBody).includes('숙박하지 않는 날의 이전 값'), false);
+});
+
+test('상세 보기에는 업무·전달 핸들러가 없고 편집만 정확한 저장 일차 ID로 연결되며 처리 중에는 잠긴다', () => {
+    const days = disclosureDays(), calls = [];
+    const tree = CustomerWorkspaceOverview({ model: { ...model, days }, onAction: (...args) => calls.push(args) });
+    const disclosures = elements(tree, node => node.type === 'details' && node.props.className === 'cw-day-disclosure');
+    for (const disclosure of disclosures) {
+        assert.equal(disclosure.props.onToggle, undefined);
+        assert.equal(disclosure.props.onClick, undefined);
+        const summary = elements(disclosure, node => node.type === 'summary')[0];
+        assert.equal(summary.props.onClick, undefined);
+        assert.equal(summary.props.onKeyDown, undefined);
+    }
+    renderToStaticMarkup(tree);
+    assert.deepEqual(calls, [], 'Rendering or native disclosure must not send or copy customer documents');
+    for (const day of days) {
+        const button = elements(tree, node => node.type === 'button' && node.props['aria-label'] === String(day.day) + '일차 일정 편집')[0];
+        assert.ok(button); assert.equal(button.props.disabled, false); button.props.onClick();
+    }
+    assert.deepEqual(calls, days.map(day => ['edit-itinerary', day.id]));
+    const busy = CustomerWorkspaceOverview({ model: { ...model, days }, busy: true, onAction() {} });
+    for (const day of days) {
+        const button = elements(busy, node => node.type === 'button' && node.props['aria-label'] === String(day.day) + '일차 일정 편집')[0];
+        assert.equal(button.props.disabled, true);
+    }
+    assert.equal(elements(busy, node => node.type === 'details' && node.props.className === 'cw-day-disclosure').length, days.length);
+});
+
 test('남은 업무는 구체적 이유와 처리 버튼을 노출하고 고객 대기보다 관리자 처리 항목을 먼저 안내한다',()=>{
     const calls=[]; const tasks=[{id:'signature',label:'고객 동의 대기',detail:'고객 실제 동의 기록 없음',action:'view-info',actionLabel:'동의 상태 확인',waiting:true},
         {id:'flights',label:'항공 정보 확인',detail:'도착편명 미입력',action:'flights',actionLabel:'항공편 확인'},

@@ -191,22 +191,29 @@ a.cw-booked-product:hover { border-color: #9bd6c5; background: #fbfefd; }
 .cw-day-date { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cw-day-date b { color: #00866e; background: #eaf7f0; border-radius: 6px; padding: 1px 7px; font-size: 12px; font-weight: 700; }
 .cw-day-date small { color: var(--cw-muted); font-size: 13px; }
-.cw-operational-days > li { padding: 22px 0; }
-.cw-day-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
-.cw-day-heading h3 { font-size: 17px; line-height: 1.5; font-weight: 700; overflow-wrap: anywhere; }
-.cw-day-heading p { color: var(--cw-muted); font-size: 12px; }
-.cw-day-heading > .cw-text-button { align-self: center; flex-shrink: 0; }
+.cw-operational-days > li { position: relative; padding: 0; }
+.cw-day-summary { display: grid; grid-template-columns: 52px minmax(0,1fr) auto; align-items: center; gap: 12px; min-height: 100px; margin: 0; padding: 18px 66px 18px 0; list-style: none; cursor: pointer; border-radius: 10px; }
+.cw-day-summary::-webkit-details-marker { display: none; }
+.cw-day-summary::marker { content: ''; }
+.cw-day-summary:hover { background: #f8fbfa; }
+.cw-day-summary .cw-day-image { width: 52px; height: 52px; }
+.cw-day-summary .cw-day-content { gap: 5px; }
+.cw-day-title { font-size: 15px; line-height: 1.6; font-weight: 700; overflow-wrap: anywhere; }
+.cw-day-detail-label { display: inline-flex; align-items: center; gap: 3px; color: #7b8793; font-size: 12px; white-space: nowrap; }
+.cw-day-detail-label .material-symbols-outlined { font-size: 17px; }
+.cw-day-hide { display: none; }
+.cw-day-disclosure[open] > summary .cw-day-show { display: none; }
+.cw-day-disclosure[open] > summary .cw-day-hide { display: inline; }
+.cw-day-disclosure[open] > summary .cw-day-detail-label .material-symbols-outlined { transform: rotate(180deg); }
+.cw-operational-days > li > .cw-day-edit { position: absolute; top: 30px; right: 0; margin: 0; padding: 6px 8px; font-size: 12px!important; color: #00846f; background: #f1f8f5; }
+.cw-day-details { padding: 18px; margin-bottom: 18px; border: 1px solid #e4eee9; border-radius: 12px; background: #fbfdfc; }
+.cw-day-details > h3 { color: #333d4b; font-size: 13px; font-weight: 700; margin-bottom: 14px; }
+.cw-day-region { color: var(--cw-muted); font-size: 12px; margin: -6px 0 14px!important; }
 .cw-activity-list { display: grid; gap: 10px; list-style: none; padding: 0; margin: 0 0 18px; }
 .cw-activity-list > li { display: flex; align-items: baseline; gap: 12px; color: #4e5968; font-size: 14px; line-height: 1.7; }
 .cw-activity-list time { min-width: 42px; color: #00846f; font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .cw-activity-list > li > div { min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .cw-activity-list > li small { display: block; color: #8b95a1; font-size: 12px; white-space: pre-wrap; }
-.cw-more-activities { margin: -8px 0 18px; }
-.cw-more-activities summary { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; color: #778996; font-size: 12px; cursor: pointer; list-style: none; }
-.cw-more-activities summary::-webkit-details-marker { display: none; }
-.cw-more-activities summary .material-symbols-outlined { font-size: 17px; }
-.cw-more-activities[open] summary .material-symbols-outlined { transform: rotate(180deg); }
-.cw-more-activities .cw-activity-list { margin-top: 8px; }
 .cw-day-logistics { display: grid; gap: 10px; margin: 0; padding: 14px 16px; border-radius: 12px; background: #f6f8fa; }
 .cw-day-logistics > div { display: grid; grid-template-columns: 56px minmax(0,1fr); gap: 12px; font-size: 13px; line-height: 1.7; }
 .cw-day-logistics dt { display: flex; align-items: baseline; gap: 6px; color: #8794a0; }
@@ -331,11 +338,12 @@ a.cw-booked-product:hover { border-color: #9bd6c5; background: #fbfefd; }
     .cw-total { font-size: 29px; }
 }
 @container itinerary-summary (min-width: 500px) { .cw-file-list { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-@container itinerary-summary (max-width: 310px) {
-    .cw-day-image { width: 48px; height: 52px; flex-basis: 48px; }
-    .cw-day-heading { gap: 10px; }
-    .cw-day-heading h3 { font-size: 15px; }
-    .cw-day-heading > .cw-text-button { font-size: 12px!important; padding: 6px 4px; }
+@container itinerary-summary (max-width: 480px) {
+    .cw-day-summary { grid-template-columns: 48px minmax(0,1fr); column-gap: 10px; row-gap: 3px; padding-right: 58px; }
+    .cw-day-summary .cw-day-image { width: 48px; height: 52px; grid-row: 1 / 3; }
+    .cw-day-detail-label { grid-column: 2; justify-self: start; font-size: 11px; }
+    .cw-day-summary .cw-day-date small { font-size: 12px; }
+    .cw-day-details { padding: 14px; }
     .cw-day-logistics { padding: 12px; }
 }
 @media (max-width: 900px) { .cw-overview { padding: 20px; } }

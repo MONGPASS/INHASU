@@ -148,13 +148,19 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                     storedActivities.forEach((item, index) => { if (!usedActivities.has(index)) activities.push(item); });
                     const activityList = (items: typeof activities) => <ul className="cw-activity-list">{items.map((item, index) => <li key={index}>{item.time && <time>{item.time}</time>}<div><span>{item.title}</span>{item.description && <small>{item.description}</small>}</div></li>)}</ul>;
                     return <li key={day.id}>
-                        <div className="cw-day-heading">
-                            {day.image && <span className="cw-day-image"><Icon name="landscape" /><img key={day.image} loading="lazy" decoding="async" src={day.image} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} /></span>}
-                            <div className="cw-day-content"><div className="cw-day-date"><b>{day.day}일차</b><small>{day.date || '날짜 확인 필요'}</small></div><h3>{day.title || `${day.day}일차 일정 작성`}</h3>{day.region && day.region !== day.title && <p>{day.region}</p>}</div>
-                            <button type="button" className="cw-text-button" aria-label={`${day.day}일차 일정 편집`} disabled={busy} onClick={action('edit-itinerary', day.id)}><Icon name="edit" />편집</button>
-                        </div>
-                        {activities.length ? <>{activityList(activities.slice(0, 3))}{activities.length > 3 && <details className="cw-more-activities"><summary>일정 {activities.length - 3}개 더 보기<Icon name="expand_more" /></summary>{activityList(activities.slice(3))}</details>}</> : <p className="cw-information-empty">상세 일정이 입력되지 않았습니다.</p>}
-                        <dl className="cw-day-logistics"><div><dt><Icon name="hotel" />숙소</dt><dd>{day.stayRequired === false ? '숙박 없음' : day.stay || '미입력'}{day.stayRequired !== false && day.stay && <span className={`cw-pill ${day.stayAssigned ? 'is-ready' : 'is-unknown'}`}>{day.stayAssigned ? '실제 배정' : '일정상 숙소'}</span>}</dd></div><div><dt><Icon name="restaurant" />식사</dt><dd>{day.meals || '미입력'}</dd></div>{day.travel && <div><dt><Icon name="directions_car" />이동</dt><dd>{day.travel}</dd></div>}</dl>
+                        <details className="cw-day-disclosure">
+                            <summary className="cw-day-summary" aria-label={`${day.day}일차 ${day.title || '일정'} 상세 일정`}>
+                                <span className="cw-day-image"><Icon name="landscape" />{day.image && <img key={day.image} loading="lazy" decoding="async" src={day.image} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />}</span>
+                                <span className="cw-day-content"><span className="cw-day-date"><b>{day.day}일차</b><small>{day.date || '날짜 확인 필요'}</small></span><strong className="cw-day-title">{day.title || `${day.day}일차 일정 작성`}</strong></span>
+                                <span className="cw-day-detail-label" aria-hidden="true"><span className="cw-day-show">상세 보기</span><span className="cw-day-hide">접기</span><Icon name="expand_more" /></span>
+                            </summary>
+                            <div className="cw-day-details">
+                                <h3>{day.day}일차 상세 일정</h3>{day.region && day.region !== day.title && <p className="cw-day-region">{day.region}</p>}
+                                {activities.length ? activityList(activities) : <p className="cw-information-empty">상세 일정이 입력되지 않았습니다.</p>}
+                                <dl className="cw-day-logistics"><div><dt><Icon name="hotel" />숙소</dt><dd>{day.stayRequired === false ? '숙박 없음' : day.stay || '미입력'}{day.stayRequired !== false && day.stay && <span className={`cw-pill ${day.stayAssigned ? 'is-ready' : 'is-unknown'}`}>{day.stayAssigned ? '실제 배정' : '일정상 숙소'}</span>}</dd></div><div><dt><Icon name="restaurant" />식사</dt><dd>{day.meals || '미입력'}</dd></div>{day.travel && <div><dt><Icon name="directions_car" />이동</dt><dd>{day.travel}</dd></div>}</dl>
+                            </div>
+                        </details>
+                        <button type="button" className="cw-text-button cw-day-edit" aria-label={`${day.day}일차 일정 편집`} disabled={busy} onClick={action('edit-itinerary', day.id)}><Icon name="edit" />편집</button>
                     </li>;
                 })}</ol> : <div className="cw-empty cw-empty-itinerary"><span className="cw-empty-graphic"><Icon name="route" /></span><strong>어떤 여행을 준비할까요?</strong><p>기존 견적·상품 일정을 불러와 편집할 수 있습니다.</p><button type="button" className="cw-button" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</button></div>}
                 <section className="cw-files" aria-label="고객 문서와 파일">
