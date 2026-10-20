@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAdmin } from '../lib/adminAuth';
+import { publicResourceLodgeHotel, RESOURCE_LODGE_PREFIX } from '../lib/resourceLodgeHotel.ts';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -57,6 +58,21 @@ app.get('/', async (c) => {
 app.get('/:id', async (c) => {
     const id = c.req.param('id');
     const db = c.env.DB;
+    if (id.startsWith(RESOURCE_LODGE_PREFIX)) {
+        // The resource library remains the sole source for new selections. This public alias
+        // only supports historical id-only itinerary rendering; it never creates hotel rows.
+        c.header('Cache-Control', 'no-store');
+        try {
+            const row = await db.prepare('SELECT v FROM kv WHERE k = ?').bind('lodges').first<{ v: string | null }>();
+            if (!row?.v) return c.json({ error: 'Not found' }, 404);
+            const catalog: unknown = JSON.parse(row.v);
+            if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog)) return c.json({ error: '숙소 자료를 읽지 못했습니다.' }, 500);
+            const hotel = publicResourceLodgeHotel(id, catalog);
+            return hotel ? c.json(hotel) : c.json({ error: 'Not found' }, 404);
+        } catch {
+            return c.json({ error: '숙소 자료를 읽지 못했습니다.' }, 500);
+        }
+    }
     try {
         const row = await db.prepare('SELECT * FROM hotels WHERE id = ?').bind(id).first();
         if (!row) return c.json({ error: 'Not found' }, 404);

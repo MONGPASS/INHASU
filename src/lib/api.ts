@@ -356,16 +356,16 @@ export const api = {
         delete: async (id: string) => request(`${API_BASE}/magazines/${id}`, { method: 'DELETE' }),
     },
     touristSpots: {
-        // Reusable master library — admin picks from this when filling out
-        // a timeline event in the itinerary editor.
-        list: async (params?: { q?: string; active?: boolean }) => {
+        // Shared quote travel library, also projected for product timeline consumers.
+        list: async (params?: { q?: string; active?: boolean; region?: string }, options?: { signal?: AbortSignal; cache?: RequestCache }) => {
             const qs = new URLSearchParams();
             if (params?.q) qs.set('q', params.q);
             if (params?.active === false) qs.set('active', '0');
+            if (params?.region) qs.set('region', params.region);
             const tail = qs.toString();
-            return request(`${API_BASE}/tourist-spots${tail ? '?' + tail : ''}`);
+            return request(`${API_BASE}/tourist-spots${tail ? '?' + tail : ''}`, { cache: options?.cache ?? 'no-store', signal: options?.signal });
         },
-        get: async (id: string) => request(`${API_BASE}/tourist-spots/${id}`),
+        get: async (id: string) => request(`${API_BASE}/tourist-spots/${encodeURIComponent(id)}`, { cache: 'no-store' }),
         create: async (data: any) => request(`${API_BASE}/tourist-spots`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -391,7 +391,7 @@ export const api = {
             const tail = qs.toString();
             return request(`${API_BASE}/hotels${tail ? '?' + tail : ''}`);
         },
-        get: async (id: string) => request(`${API_BASE}/hotels/${id}`),
+        get: async (id: string) => request(`${API_BASE}/hotels/${encodeURIComponent(id)}`),
         create: async (data: any) => request(`${API_BASE}/hotels`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

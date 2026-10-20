@@ -132,7 +132,7 @@
       </a>
       <a class="mi" href="명소관리.html">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        명소 관리
+        여행지 관리
       </a>
       <a class="mi on" href="리소스관리.html">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -146,7 +146,7 @@
       <h1>리소스 관리</h1>
       <button class="add" id="addBtn">＋ 새 리소스 추가</button>
     </div>
-    <div class="lead">여기서 등록한 <b>가이드·숙소·차량</b>이 <b>예약관리 배정</b>에서 자동완성되고, 사진·소개가 <b>고객 확정안내</b>에 그대로 반영됩니다.</div>
+    <div class="lead"><b>가이드·숙소·차량</b>을 한 곳에서 등록합니다. 등록한 숙소는 <b>상품·예약 일정표와 숙소 배정</b>에서 사진·주소·시설과 함께 불러올 수 있습니다.</div>
     <div class="tabs" id="tabs"></div>
     <div class="tabs lodge-cats" id="lodgeCats" hidden></div>
     <div class="grid" id="grid"></div>
@@ -182,7 +182,8 @@ const TYPES = {
     get: () => window.getVehicles(), save: o => window.saveVehicles(o),
   },
 };
-let activeType = "guides";
+const requestedResourceType = new URLSearchParams(location.search).get("resourceType");
+let activeType = ["guides", "lodges", "vehicles"].includes(requestedResourceType) ? requestedResourceType : "guides";
 let LIB = {};        // 현재 탭의 라이브러리 (작업 사본)
 let editKey = null;
 let LODGE_CATS = [];           // 숙소 지역 카테고리 목록 (순서·빈 카테고리 보존)

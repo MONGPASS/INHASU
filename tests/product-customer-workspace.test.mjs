@@ -6,6 +6,8 @@ import ts from 'typescript';
 import { productWorkspaceReservation, legacyWorkspaceReservation, productCustomerOverview, legacyCustomerOverview, sameAccountProductBookings } from '../src/utils/productCustomerWorkspace.ts';
 import { reservationWorkspaceStatus, emptyReservationOperations } from '../src/utils/reservationWorkspace.ts';
 import { readProductVehicle } from '../src/utils/reservationAssignment.ts';
+import { accommodationOpsHref } from '../src/utils/accommodationOpsRoutes.ts';
+import { consumedCalendarWorkspaceSearch } from '../src/utils/calendarWorkspaceAction.ts';
 
 const source = readFileSync(new URL('../src/pages/AdminReservationManage.tsx', import.meta.url), 'utf8');
 const base = { id: 'reservation-same', user_id: 'customer-account', customer_name: '동명이인', customer_email: 'fixture@example.invalid', product_name: '테를지', total_price: 0, deposit_amount: 0, balance_amount: 0, status: 'confirmed', deposit_status: 'paid', balance_status: 'unpaid', total_people: 2, start_date: '2026-10-20', end_date: '2026-10-22' };
@@ -302,17 +304,25 @@ test('항공편·여행자·계약 동의 확인 업무는 주문 수정 모드�
     calls.length = 0; context.workspaceIsBusy = () => true; context.action('flights'); assert.deepEqual(calls, []);
 });
 
-test('고객 카드 배정은 기존 상세로 이동하지 않고 바로 선택하며 미저장 차량·문서·운영·취소·처리 중을 보호한다', () => {
+test('고객 카드의 숙소는 통합 보드로 이동하고 가이드·차량 선택과 미저장·취소·처리 중 보호를 유지한다', () => {
     const calls = [];
-    const context = { fullPage: true, quickAssignmentDirty: false, inlineDirty: false, operationsDirty: false, isEditing: false, workspace: { nights: 2 },
+    const context = { fullPage: true, quickAssignmentDirty: false, inlineDirty: false, operationsDirty: false, isEditing: false, docDraftPending: false, memoDraft: '', workspace: { nights: 2 },
+        accommodationOpsHref, consumedCalendarWorkspaceSearch, workspaceLocation: { pathname: '/admin/customer-workspace/product/local-product', search: '?returnTo=%2Fadmin%2Fcalendar', hash: '#assign' }, workspaceNavigate: href => calls.push(['navigate', href]),
         reservation: { id: 'local-product', status: 'confirmed', dailyAccommodations: [{ day: 1, accommodation: { name: '첫날 확정 숙소' } }] }, workspaceIsBusy: () => false };
     for (const name of ['setNavigationNotice', 'setQuickAssignment', 'setShowGuideModal', 'setWorkflowOpen', 'setPickerSaveError', 'setGuideConfirmation', 'setSelectedDay', 'setShowAccommodationModal', 'scrollToSec', 'closeWorkspace']) context[name] = (...args) => calls.push([name, ...args]);
     const start = source.indexOf('    const overviewAction = ('), end = source.indexOf('\n\n    return (<>', start);
     execute(source.slice(start, end) + '\nglobalThis.action = overviewAction;', context);
     for (const action of ['guide', 'stay', 'vehicle']) context.action(action);
-    assert.deepEqual(calls.filter(call => call[0] !== 'setNavigationNotice'), [['setWorkflowOpen', false], ['setQuickAssignment', null], ['setPickerSaveError', ''], ['setGuideConfirmation', null], ['setShowGuideModal', true], ['setWorkflowOpen', false], ['setQuickAssignment', 'stay'], ['setSelectedDay', 2], ['setPickerSaveError', ''], ['setShowAccommodationModal', true], ['setWorkflowOpen', false], ['setQuickAssignment', 'vehicle']]);
+    const stayHref = accommodationOpsHref('product', 'local-product', context.workspaceLocation.pathname + context.workspaceLocation.search + '#assign', 2);
+    assert.deepEqual(calls.filter(call => call[0] !== 'setNavigationNotice'), [['setWorkflowOpen', false], ['setQuickAssignment', null], ['setPickerSaveError', ''], ['setGuideConfirmation', null], ['setShowGuideModal', true], ['setWorkflowOpen', false], ['navigate', stayHref], ['setWorkflowOpen', false], ['setQuickAssignment', 'vehicle']]);
     calls.length = 0; context.workspace.nights = 0; context.action('stay');
-    assert.ok(calls.some(call => call[0] === 'setQuickAssignment' && call[1] === 'stay')); assert.equal(calls.some(call => call[0] === 'setShowAccommodationModal'), false); context.workspace.nights = 2;
+    assert.ok(calls.some(call => call[0] === 'navigate')); assert.equal(calls.some(call => call[0] === 'setShowAccommodationModal'), false); context.workspace.nights = 2;
+    for (const patch of [{ docDraftPending: true }, { memoDraft: '미저장 메모' }]) {
+        calls.length = 0; Object.assign(context, patch); context.action('stay');
+        assert.equal(calls.some(call => call[0] === 'navigate'), false);
+        assert.ok(calls.some(call => call[0] === 'setNavigationNotice' && /저장/.test(call[1])));
+        context.docDraftPending = false; context.memoDraft = '';
+    }
     for (const blockedField of ['quickAssignmentDirty', 'inlineDirty', 'operationsDirty', 'isEditing']) {
         calls.length = 0; context[blockedField] = true;
         for (const action of ['guide', 'stay', 'vehicle']) context.action(action);
@@ -419,6 +429,10 @@ test('등록 숙소 배정 실패는 선택창을 유지하고 성공 후 닫으
     calls.length = 0; context.onUpdate = async (...args) => { payloads.push(args); return true; }; await context.assign(stay);
     assert.ok(calls.some(call => call[0] === 'setShowAccommodationModal' && call[1] === false)); assert.ok(calls.some(call => call[0] === 'rememberAssignment' && call[1] === 'stays' && call[2] === stay.id));
     assert.ok(calls.some(call => call[0] === 'setNavigationNotice' && /1일차/.test(call[1])));
+    // 같은 표시명의 옛 호텔을 공통 등록 자원으로 바꿔도 이전 업체 확정을 물려받지 않는다.
+    payloads.length = 0;
+    await context.assign({ ...stay, name: previous.accommodation.name, id: 'resource-lodge:동명 숙소' });
+    assert.equal(payloads[0][0].dailyAccommodations[0].accommodation.bookingStatus, 'Илгээгээгүй');
 });
 
 test('실제 메모 저장은 실패 때 입력을 보존하고 성공 때만 비우며 원래 이력을 변경하지 않는다', async () => {

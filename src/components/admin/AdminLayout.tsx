@@ -29,8 +29,8 @@ const EYEBROW: Record<string, string> = {
     reservations: '운영', calendar: '운영', guides: '운영',
     products: '카탈로그',
     magazines: '콘텐츠', templates: '콘텐츠', reviews: '콘텐츠', faq: '콘텐츠',
-    banners: '사이트 설정', categories: '사이트 설정', hotels: '사이트 설정',
-    'tourist-spots': '사이트 설정', 'design-spots': '사이트 설정', accommodations: '사이트 설정', 'guide-intro': '사이트 설정',
+    banners: '사이트 설정', categories: '사이트 설정',
+    'design-spots': '사이트 설정', accommodations: '사이트 설정',
 };
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({

@@ -8,6 +8,7 @@ import { adaptCalendarTours, calendarDateKey, calendarMonthDays, toursOnDate, to
     type CalendarTour, type CalendarConflict } from '../utils/adminTourCalendar';
 import { readAdminCalendarView, adminCalendarSearch, adminCalendarMonth, type AdminCalendarView } from '../utils/adminCalendarView';
 import type { CalendarWorkspaceAction } from '../utils/calendarWorkspaceAction';
+import { accommodationOpsHref } from '../utils/accommodationOpsRoutes';
 import './AdminCalendar.css';
 
 const paths = {
@@ -25,10 +26,11 @@ const actionable = (tour: CalendarTour) => tour.issues.filter(issue => issue.kin
 const money = (value: number | null) => value === null ? '금액 미등록' : `${value.toLocaleString('ko-KR')}원`;
 const peopleSummary = (stats: ReturnType<typeof calendarStats>) => stats.unknownPeople ? stats.people ? `${stats.people}명 + 미정 ${stats.unknownPeople}팀` : '인원 미등록' : `${stats.people}명`;
 const dateLabel = (date: string, year = false) => new Intl.DateTimeFormat('ko-KR', { ...(year ? { year: 'numeric' as const } : {}), month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Seoul' }).format(new Date(`${date}T12:00:00+09:00`));
-function workspaceHref(tour: CalendarTour, returnTo: string, action?: CalendarWorkspaceAction) {
+function workspaceHref(tour: CalendarTour, returnTo: string, action?: CalendarWorkspaceAction, day?: number) {
     const returnUrl = new URL(returnTo, 'https://calendar.invalid');
     returnUrl.searchParams.set('open', tour.key);
-    const calendarReturn = `${returnUrl.pathname}${returnUrl.search}`;
+    const calendarReturn = `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`;
+    if (action === 'stay' && tour.source !== 'legacy_quote') return accommodationOpsHref(tour.source, tour.id, calendarReturn, day);
     const href = tour.source === 'product' ? productCustomerHref(tour.id, calendarReturn) : tour.source === 'quote_booking' ? quoteCustomerHref(tour.id, calendarReturn) : legacyQuoteCustomerHref(tour.id, calendarReturn);
     if (!action || tour.source === 'legacy_quote') return href;
     const url = new URL(href, 'https://calendar.invalid'); url.searchParams.set('action', action);
@@ -40,7 +42,7 @@ function TourCard({ tour, date, conflicts, returnTo, selected }: { tour: Calenda
     const working = tour.source !== 'legacy_quote' && !['on_hold', 'completed'].includes(tour.status);
     const resource = (icon: GlyphName, label: string, value: string, detail: string, missing: boolean, action: CalendarWorkspaceAction) => <div className={`tc-resource${missing ? ' is-missing' : ''}`}>
         <span className="tc-resource-label"><Glyph name={icon} />{label}</span><strong className="tc-resource-value" title={value}>{value}</strong>
-        <span className="tc-resource-detail" title={detail}>{detail}</span>{working && <a className="tc-resource-action" href={workspaceHref(tour, returnTo, action)} aria-label={`${tour.customerName} ${label} ${missing && action !== 'payments' ? '선택' : '관리'}`}>{missing && action !== 'payments' ? '선택' : '관리'}<Glyph name="next" /></a>}
+        <span className="tc-resource-detail" title={detail}>{detail}</span>{working && <a className="tc-resource-action" href={workspaceHref(tour, returnTo, action, action === 'stay' ? day?.night ?? undefined : undefined)} aria-label={`${tour.customerName} ${label} ${missing && action !== 'payments' ? '선택' : '관리'}`}>{missing && action !== 'payments' ? '선택' : '관리'}<Glyph name="next" /></a>}
     </div>;
     const stay = day?.night ? day.stay || '숙소 미배정' : tour.nights === 0 ? '당일 투어' : '마지막 날 · 숙박 없음';
     return <article id={`tc-tour-${encodeURIComponent(tour.key)}`} className={`tc-tour-card${selected ? ' is-selected' : ''}${conflicts.length ? ' is-conflict' : ''}`}>

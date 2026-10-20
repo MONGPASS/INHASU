@@ -1,5 +1,5 @@
 // Actual Hono/Lucia/D1-shaped SQLite routes for local reservation workspace QA.
-// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--customer-workspace] [--customer-notices] [--calendar] [--port=8796]
+// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--customer-workspace] [--customer-notices] [--calendar] [--lodging] [--port=8796]
 // Uses only synthetic, in-memory data; never reaches a live delivery or storage service.
 import { build } from 'esbuild';
 import { DatabaseSync } from 'node:sqlite';
@@ -22,6 +22,7 @@ import { adminProductDraftKey } from '../src/utils/adminProductDraft.ts';
 import { reservationDraftKey, reservationDraftFingerprint, readReservationDraft, writeReservationDraft } from '../src/utils/adminReservationDraft.ts';
 import { magazineDraftKey, magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft } from '../src/utils/adminMagazineDraft.ts';
 import { assignmentDraftKey, readAssignmentDraft, writeAssignmentDraft } from '../src/utils/adminAssignmentDraft.ts';
+import { travelSpotSnapshot } from '../src/utils/travelSpotSnapshot.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
 const portArgument = process.argv.find(argument => argument.startsWith('--port='));
@@ -32,6 +33,7 @@ const usability = process.argv.includes('--usability');
 const customerWorkspace = process.argv.includes('--customer-workspace');
 const customerNotices = process.argv.includes('--customer-notices');
 const calendar = process.argv.includes('--calendar');
+const lodging = process.argv.includes('--lodging');
 const draftStoragePrefixes = ['inhasu:admin-product-draft:', 'inhasu:admin-reservation-doc-draft:', 'inhasu:quote-editor:',
     'inhasu:admin-magazine-draft:', 'inhasu:admin-assignment:'];
 const draftStorageFaultSource = `(function(){const originalSetItem=Storage.prototype.setItem;const prefixes=${JSON.stringify(draftStoragePrefixes)};Storage.prototype.setItem=function(key,value){if(prefixes.some(prefix=>String(key).startsWith(prefix)))throw new DOMException('Local draft storage fault','QuotaExceededError');return originalSetItem.call(this,key,value);};})();`;
@@ -407,6 +409,24 @@ for (const [key, data] of Object.entries(publicLibraryFixtures)) {
 }
 assert.equal((await libraryResponse('unsupported-local-key')).status, 404);
 
+// Product timeline pickers and quote representative selectors read one saved catalog.
+raw.prepare('INSERT INTO tourist_spots(id,name_kr,description,images,is_active) VALUES(?,?,?,?,?)')
+    .run('workspace-legacy-spot', '이전 상품 관광지', '기존 일정 참조를 보존합니다.', '["/img/home/1.webp"]', 1);
+const travelPickerResponse = await apiRequest('/api/tourist-spots', { headers: admin });
+assert.equal(travelPickerResponse.status, 200);
+assert.equal(travelPickerResponse.headers.get('cache-control'), 'no-store');
+const travelPicker = await travelPickerResponse.json();
+assert.deepEqual(travelPicker.map(spot => spot.name_kr).sort(), Object.keys(publicLibraryFixtures.spots).sort());
+assert.ok(!travelPicker.some(spot => spot.id === 'workspace-legacy-spot'));
+const pickedTravelSpot = travelPicker.find(spot => spot.name_kr === '거북바위');
+assert.equal(pickedTravelSpot.description, publicLibraryFixtures.spots['거북바위'].desc);
+assert.equal(pickedTravelSpot.region, publicLibraryFixtures.spots['거북바위'].region);
+assert.deepEqual(pickedTravelSpot.images, [image, ...publicLibraryFixtures.spots['거북바위'].subImgs]);
+assert.deepEqual(await (await apiRequest('/api/tourist-spots/' + encodeURIComponent(pickedTravelSpot.id))).json(), pickedTravelSpot);
+assert.equal((await apiRequest('/api/tourist-spots/workspace-legacy-spot')).status, 200);
+const sharedTravelBlocks = blocks.map((block, index) => index === 1
+    ? { ...block, content: { ...block.content, ...travelSpotSnapshot(pickedTravelSpot) } } : structuredClone(block));
+
 // Product-selected representative spots are independent of marketing highlights.
 // Exercise actual registration, update and reservation/document routes rather
 // than adding a raw DB column fixture that could bypass a missing API mapping.
@@ -414,7 +434,7 @@ const selectedSpots = ['홍고린 엘스', '거북바위', '로컬 미분류 명
 const legacyHighlights = [{ icon: 'star', title: '판매 상품의 기존 안내', description: '대표 명소와 별도로 유지할 판매 포인트입니다.' }];
 const spotProductInput = { id: 'workspace-spots-product', name: '대표 명소 통합 검증 상품', description: '공통 명소 선택기의 저장과 상속을 확인하는 로컬 상품',
     category: '중앙몽골', duration: '2박 3일', price: 1100000, status: 'active', mainImages: [image],
-    included: ['전용 차량', '현지 가이드'], excluded: ['국제선 항공권'], itineraryBlocks: blocks,
+    included: ['전용 차량', '현지 가이드'], excluded: ['국제선 항공권'], itineraryBlocks: sharedTravelBlocks,
     representativeSpots: selectedSpots, highlights: legacyHighlights };
 assert.equal((await write('/api/products', 'POST', spotProductInput, {})).status, 401);
 assert.equal((await write('/api/products', 'POST', spotProductInput, owner)).status, 403);
@@ -423,6 +443,7 @@ const createdSpotProduct = await (await apiRequest('/api/products/workspace-spot
 assert.deepEqual(createdSpotProduct.representativeSpots, selectedSpots);
 assert.deepEqual(JSON.parse(createdSpotProduct.representative_spots), selectedSpots);
 assert.deepEqual(createdSpotProduct.highlights, legacyHighlights);
+assert.deepEqual(createdSpotProduct.itineraryBlocks, sharedTravelBlocks);
 const publicSpotProduct = await (await apiRequest('/api/products/workspace-spots-product')).json();
 assert.deepEqual(publicSpotProduct.representativeSpots, selectedSpots);
 const revisedSpots = [structuredClone(selectedSpots[2]), structuredClone(selectedSpots[0])];
@@ -436,7 +457,7 @@ const updatedSpotProduct = await (await apiRequest('/api/products/workspace-spot
 assert.deepEqual(updatedSpotProduct.representativeSpots, revisedSpots);
 assert.deepEqual(JSON.parse(updatedSpotProduct.representative_spots), revisedSpots);
 assert.deepEqual(updatedSpotProduct.highlights, legacyHighlights);
-assert.deepEqual(updatedSpotProduct.itineraryBlocks, blocks);
+assert.deepEqual(updatedSpotProduct.itineraryBlocks, sharedTravelBlocks);
 const productList = await (await apiRequest('/api/products', { headers: admin })).json();
 assert.deepEqual(productList.find(product => product.id === spotProductInput.id).representativeSpots, revisedSpots);
 
@@ -452,6 +473,9 @@ const quoteForSpotBooking = async () => {
 };
 assert.deepEqual((await quoteForSpotBooking()).highlights, revisedSpots);
 const inheritedDays = productScheduleDays(updatedSpotProduct);
+assert.equal(inheritedDays[0].activities[0].title, pickedTravelSpot.name_kr);
+assert.equal(inheritedDays[0].activities[0].description, pickedTravelSpot.description);
+assert.deepEqual(inheritedDays[0].activities[0].images, pickedTravelSpot.images);
 const savedSpotDocument = { name: spotProductInput.name, description: '예약별 대표 명소 스냅샷', days: inheritedDays,
     highlights: structuredClone(updatedSpotProduct.representativeSpots), documentSettings: {} };
 assert.equal((await write('/api/reservations/workspace-spots-check', 'PUT', { document_content: savedSpotDocument })).status, 200);
@@ -1315,6 +1339,126 @@ if (calendar) {
     assert.equal(outbound.length, outboundBeforeCalendar, 'Calendar fixture reads never send customer notifications');
     console.log('캘린더 합성 데이터 검증 통과: 월 경계 · 동일 가이드 ID 중복 · 동명 다른 가이드 · 동일 기사 연락처 · 같은 차종 다른 기사 · 3박 중 2박 배정 · 0원 · 미정/잘못된/역전 날짜 · 취소 · 세 출처 동일 ID · 외부 발송 0건');
 }
+if (lodging) {
+    // Isolated lodging cases are appended after all existing exact-count checks.
+    // They remain synthetic, source-qualified and available for browser QA.
+    const outboundBeforeLodging = outbound.length;
+    const lodge = { id: 'lodging-local-camp', name: '숙소 보드 로컬 게르 캠프', type: '게르', location: '중앙몽골',
+        images: [lodgeImage], roomCount: 2, occupancy: '2인실', bookingStatus: 'Баталгаажсан' };
+    const lodgingFixtures = [
+        { id: 'lodging-partial', name: '숙소 보드 · 2박 중 1박 확정팀', rows: [{ day: 1, date: '2026-10-20', accommodation: lodge }] },
+        { id: 'lodging-confirmed', name: '숙소 보드 · 전 숙박 확정팀', rows: [
+            { day: 1, date: '2026-10-20', accommodation: lodge }, { day: 2, date: '2026-10-21', accommodation: lodge }] },
+        { id: 'lodging-room-unknown', name: '숙소 보드 · 방 수 미입력과 0 구분팀', rows: [
+            { day: 1, date: '2026-10-20', accommodation: { ...lodge, roomCount: null } },
+            { day: 2, date: '2026-10-21', accommodation: { ...lodge, roomCount: 0 } }] },
+        { id: 'lodging-date-mismatch', name: '숙소 보드 · 같은 숙박일 중복 확인팀', rows: [
+            { day: 1, date: '2026-10-21', accommodation: lodge }, { day: 2, date: '2026-10-21', accommodation: lodge }] },
+        { id: 'lodging-cancelled', name: '숙소 보드 · 취소 운영 제외팀', status: 'cancelled', rows: [{ day: 1, date: '2026-10-20', accommodation: lodge }] },
+        { id: 'lodging-invalid-date', name: '숙소 보드 · 날짜 확인 필요팀', start: '2026-02-30', end: '2026-03-02', rows: [] },
+    ];
+    for (const fixture of lodgingFixtures) insertReservation.run(fixture.id, 'workspace-booked-tour', productName, fixture.name,
+        `${fixture.id}@example.invalid`, '01000000000', 3, fixture.start || '2026-10-20', fixture.end || '2026-10-22', fixture.status || 'confirmed',
+        3600000, 360000, 3240000, 'paid', 'unpaid', `LOCAL-${fixture.id.toUpperCase()}`, JSON.stringify(savedDocument),
+        JSON.stringify({ travelers: [], vehicle: {} }), null, JSON.stringify(fixture.rows), 0, null, null,
+        'workspace-owner', '2026-10-19T02:00:00Z', 'website');
+    const lodgingQuote = { ...structuredClone(quoteFixture), id: 'lodging-partial', name: '숙소 보드 · 같은 ID 견적팀',
+        token: 'local-lodging-partial-quote-token', depart: '2026-10-20', return_: '2026-10-22',
+        booking: { ...structuredClone(quoteFixture.booking), assign: { guide: {}, vehicle: {}, lodges: [
+            { id: lodge.id, name: lodge.name, grade: lodge.type, region: lodge.location, imgs: lodge.images,
+                day: 1, date: '2026-10-20', roomCount: 1, occupancy: '3인실', bookingStatus: 'Баталгаажсан' }] } } };
+    raw.prepare('INSERT INTO requests (id,received_at,name,phone,destination,status,data,token) VALUES (?,?,?,?,?,?,?,?)')
+        .run(lodgingQuote.id, lodgingQuote.receivedAt, lodgingQuote.name, lodgingQuote.phone, lodgingQuote.destination,
+            lodgingQuote.status, JSON.stringify(lodgingQuote), lodgingQuote.token);
+    const lodgingResponse = await apiRequest('/api/admin/assignments', { headers: admin });
+    assert.equal(lodgingResponse.status, 200);
+    const lodgingRows = (await lodgingResponse.json()).items.filter(row => row.id.startsWith('lodging-'));
+    assert.equal(lodgingRows.length, lodgingFixtures.length + 1);
+    const lodgingByKey = key => lodgingRows.find(row => row.key === key);
+    assert.equal(lodgingByKey('product:lodging-partial').assignment.accommodations.length, 1, '2박 여행의 기존 1박 행을 조회 중 임의로 채우지 않는다');
+    assert.equal(lodgingByKey('product:lodging-confirmed').assignment.accommodations.length, 2);
+    assert.equal(lodgingByKey('product:lodging-room-unknown').assignment.accommodations[0].accommodation.roomCount, null);
+    assert.equal(lodgingByKey('product:lodging-room-unknown').assignment.accommodations[1].accommodation.roomCount, 0);
+    assert.equal(lodgingByKey('product:lodging-cancelled').status, 'cancelled');
+    assert.equal(lodgingByKey('quote_booking:lodging-partial').assignment.accommodations[0].accommodation.roomCount, 1);
+
+    // Use the real common-resource adapter and product routes, retaining an old
+    // hotel row as a separate read-compatible source. No catalog migration runs.
+    const sharedLodgeName = '로컬 공통숙소 / 테를지';
+    const sharedLodgeEmptyName = '로컬 대표사진 비운 숙소';
+    const sharedLodge = { grade: '고급게르', region: '테를지', address: '공통 숙소에 등록된 로컬 주소',
+        facilities: ['전기'], roomAmenities: '온수\n생수', sharedFacilities: ['식당', '온수'], occupancy: '2인실',
+        representativePhotos: [lodgeImage, 'javascript:LOCAL-PRIVATE-UNSAFE-PHOTO', image], imgs: ['/LOCAL-PRIVATE-ARCHIVED-PHOTO.webp'],
+        desc: 'LOCAL-PRIVATE-ARCHIVED-INTRO', operatingNotes: 'LOCAL-PRIVATE-OPERATING-NOTE', phone: 'LOCAL-PRIVATE-SUPPLIER-PHONE',
+        contact: 'LOCAL-PRIVATE-SUPPLIER-CONTACT', memo: 'LOCAL-PRIVATE-LODGE-MEMO', cost: 987654 };
+    const priorLodgeCatalogResponse = await apiRequest('/api/data/lodges', { headers: quoteAdmin });
+    assert.equal(priorLodgeCatalogResponse.status, 200);
+    const priorLodgeCatalog = await priorLodgeCatalogResponse.json();
+    const sharedLodgeCatalog = { ...(priorLodgeCatalog.data || {}), [sharedLodgeName]: sharedLodge,
+        [sharedLodgeEmptyName]: { ...sharedLodge, representativePhotos: [] } };
+    assert.equal((await write(`/api/data/lodges?base=${encodeURIComponent(priorLodgeCatalog.updatedAt || '')}`, 'PUT', sharedLodgeCatalog, quoteAdmin)).status, 200);
+    const resourceBundle = await build({ stdin: { resolveDir: root, sourcefile: 'local-common-lodge-adapter.ts', loader: 'ts',
+        contents: `export { loadRegisteredAssignmentResources, registeredLodgeAsHotel } from './src/utils/registeredAssignmentResources.ts';
+export { productLodgingSnapshot } from './src/utils/lodgingItinerarySnapshot.ts';` },
+        bundle: true, format: 'esm', platform: 'node', write: false, plugins: [{ name: 'local-common-lodge-connection', setup(builder) {
+            builder.onResolve({ filter: /\/components\/admin\/quoteDesk$/ }, () => ({ path: 'local-connection', namespace: 'local-common-lodge' }));
+            builder.onLoad({ filter: /.*/, namespace: 'local-common-lodge' }, () => ({ loader: 'js',
+                contents: 'export const connectQuoteDesk = () => { throw new Error("Inject local admin connection"); };' }));
+        } }] });
+    const { loadRegisteredAssignmentResources, registeredLodgeAsHotel, productLodgingSnapshot } = await import(`data:text/javascript;base64,${Buffer.from(resourceBundle.outputFiles[0].contents).toString('base64')}`);
+    const commonResourceCalls = [];
+    const commonResources = await loadRegisteredAssignmentResources({ accountId: 'local-common-lodge-admin', kinds: ['lodges'], isCurrent: () => true }, {
+        connect: async () => env.ADMIN_TOKEN,
+        fetch: async (route, options) => { commonResourceCalls.push(route); return apiRequest(route, options); },
+    });
+    assert.deepEqual(commonResourceCalls, ['/api/data/lodges']);
+    assert.deepEqual(commonResources.warnings, []);
+    const chosenLodge = registeredLodgeAsHotel(commonResources.lodges.find(item => item.name === sharedLodgeName));
+    assert.equal(chosenLodge.id, `resource-lodge:${sharedLodgeName}`);
+    assert.deepEqual(chosenLodge.images, [lodgeImage, image]);
+    assert.equal(chosenLodge.description, '', '공통 숙소의 보관용 소개를 공개 상품 본문에 복사하지 않는다');
+    assert.ok(!JSON.stringify(chosenLodge).includes('LOCAL-PRIVATE-'));
+    const commonDay = { id: 'local-common-lodge-day', type: 'dayInfo', content: { title: '공통 숙소에서의 첫날', ...productLodgingSnapshot(chosenLodge) } };
+    const legacyHotelId = 'lodging-legacy-hotel';
+    assert.equal((await write('/api/hotels', 'POST', { id: legacyHotelId, name_kr: '기존 호텔 원본', name_local: 'Saved Legacy Hotel',
+        address: '기존 호텔 주소', description: '기존 공개 소개 보존', images: [image], amenities: ['기존 등록 시설'] })).status, 200);
+    const legacyHotelBefore = raw.prepare('SELECT * FROM hotels WHERE id=?').get(legacyHotelId);
+    const legacyDay = { id: 'local-legacy-lodge-day', type: 'dayInfo', content: { title: '기존 호텔 연결도 보존',
+        accommodation: '기존 호텔 원본', accommodationHotelId: legacyHotelId } };
+    const commonProductInput = { ...spotProductInput, id: 'lodging-common-itinerary-product', name: '공통 숙소 선택 검증 상품',
+        itineraryBlocks: [commonDay, legacyDay], representativeSpots: [], highlights: [] };
+    assert.equal((await write('/api/products', 'POST', commonProductInput)).status, 200);
+    const commonProductResponse = await apiRequest(`/api/products/${commonProductInput.id}`);
+    assert.equal(commonProductResponse.status, 200);
+    const commonProduct = await commonProductResponse.json();
+    assert.deepEqual(commonProduct.itineraryBlocks, [commonDay, legacyDay]);
+    assert.equal(commonProduct.itineraryBlocks[0].content.accommodationType, '고급게르');
+    assert.equal(commonProduct.itineraryBlocks[0].content.accommodationOccupancy, '2인실');
+    assert.deepEqual(commonProduct.itineraryBlocks[0].content.accommodationRoomAmenities, ['온수', '생수']);
+    assert.deepEqual(commonProduct.itineraryBlocks[0].content.accommodationSharedFacilities, ['식당', '온수']);
+    assert.ok(!JSON.stringify(commonProduct).includes('LOCAL-PRIVATE-'));
+    assert.deepEqual(productScheduleDays(commonProduct)[0].accommodation.images, [lodgeImage, image]);
+    const catalogBeforeAlias = raw.prepare('SELECT v,updated_at FROM kv WHERE k=?').get('lodges');
+    const publicAliasResponse = await apiRequest(`/api/hotels/${encodeURIComponent(chosenLodge.id)}`);
+    assert.equal(publicAliasResponse.status, 200, '한국어·공백·슬래시가 있는 공통 숙소 ID를 실제 공개 hotels 라우트에서 읽는다');
+    const publicAlias = await publicAliasResponse.json();
+    assert.equal(publicAlias.id, chosenLodge.id); assert.equal(publicAlias.name_kr, sharedLodgeName);
+    assert.equal(publicAlias.description, ''); assert.equal(publicAlias.address, chosenLodge.address);
+    assert.deepEqual(publicAlias.images, chosenLodge.images);
+    assert.deepEqual(new Set(publicAlias.amenities), new Set(chosenLodge.amenities));
+    assert.ok(!JSON.stringify(publicAlias).includes('LOCAL-PRIVATE-'));
+    for (const privateKey of ['phone','contact','memo','desc','operatingNotes','cost','bookingStatus']) assert.equal(Object.hasOwn(publicAlias, privateKey), false);
+    const emptyAliasResponse = await apiRequest(`/api/hotels/${encodeURIComponent(`resource-lodge:${sharedLodgeEmptyName}`)}`);
+    assert.equal(emptyAliasResponse.status, 200); assert.deepEqual((await emptyAliasResponse.json()).images, [], '명시적으로 비운 대표 사진은 보관 사진으로 대체하지 않는다');
+    const legacyHotelResponse = await apiRequest(`/api/hotels/${legacyHotelId}`);
+    assert.equal(legacyHotelResponse.status, 200);
+    const legacyHotel = await legacyHotelResponse.json();
+    assert.equal(legacyHotel.description, '기존 공개 소개 보존'); assert.deepEqual(legacyHotel.images, [image]);
+    assert.deepEqual(raw.prepare('SELECT * FROM hotels WHERE id=?').get(legacyHotelId), legacyHotelBefore);
+    assert.deepEqual(raw.prepare('SELECT v,updated_at FROM kv WHERE k=?').get('lodges'), catalogBeforeAlias, '공통·기존 호텔 조회가 라이브러리를 이관하거나 수정하지 않는다');
+    assert.equal(outbound.length, outboundBeforeLodging, '숙소 운영 보드 조회는 업체 메일·고객 알림을 발송하지 않는다');
+    console.log('숙소 보드 합성 데이터 검증 통과: 2박 중 1박 확정 · 전박 확정 · 객실 수 미입력/0 · 같은 숙박일 중복 · 취소/잘못된 날짜 · 두 출처 동일 ID · 공통 숙소 선택/상품 저장/공개 alias · 기존 호텔 원본 보존 · 보관 정보 비노출 · 외부 발송 0건');
+}
 console.log('예약 작업 API 검증 통과: 실제 로그인/견적 계정 · 견적 POST/PATCH/재조회 · 상품/견적 발송 이력·v5 문서 버전 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 계정별 예약/견적 초안 복원/충돌 · 상품·예약·견적·매거진·배정 초안 저장 실패 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 배정 버전 충돌/서명·여행자 보존/기사 연락처 보호 · 실제 이미지 업로드/조회 · 배너·카테고리 부분 수정/순서/매거진 공개 · 외부 발송 차단');
 
 if (process.argv.includes('--serve')) {
@@ -1377,8 +1521,9 @@ if (process.argv.includes('--serve')) {
                         liveCalls: 0,
                     }) : Response.json({ error: 'Unauthorized' }, { status: 401 });
                 } else response = await apiRequest(url.toString(), options);
+                const responseBytes = Buffer.from(await response.arrayBuffer());
                 res.writeHead(response.status, { ...Object.fromEntries(response.headers), 'Cache-Control': 'no-store' });
-                res.end(Buffer.from(await response.arrayBuffer())); return;
+                res.end(responseBytes); return;
             }
             let relative = decodeURIComponent(url.pathname).replace(/^\/+/, '');
             const publicRoot = path.join(root, 'public');
@@ -1387,13 +1532,17 @@ if (process.argv.includes('--serve')) {
             let file = findFile(publicRoot, relative) || findFile(distRoot, relative);
             if (!file && path.extname(relative)) { res.writeHead(404); res.end('Local asset not found'); return; }
             file ||= path.join(distRoot, 'index.html');
-            res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+            let fileBytes = fs.readFileSync(file);
             // Opt-in local browser fault test; this script never serves production traffic.
             if (path.extname(file).toLowerCase() === '.html' && draftStorageBlocked(url, req.headers.referer)) {
-                res.end(draftStorageFaultHtml(fs.readFileSync(file, 'utf8'))); return;
+                fileBytes = Buffer.from(draftStorageFaultHtml(fileBytes.toString('utf8')));
             }
-            res.end(fs.readFileSync(file));
-        } catch (error) { res.writeHead(500, { 'Content-Type': 'text/plain;charset=utf-8' }); res.end(String(error)); }
+            res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+            res.end(fileBytes);
+        } catch (error) {
+            if (res.headersSent) { res.end(); return; }
+            res.writeHead(500, { 'Content-Type': 'text/plain;charset=utf-8' }); res.end(String(error));
+        }
     });
     server.listen(port, '127.0.0.1', () => console.log(`예약 작업 로컬 검증: ${localOrigin}/__local-admin · admin@example.invalid / local-workspace-test-2026`));
 } else raw.close();

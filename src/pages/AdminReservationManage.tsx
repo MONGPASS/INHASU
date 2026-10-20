@@ -37,6 +37,7 @@ import { customerProductReference } from '../utils/customerProductReference';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
 import { productWorkspaceReservation, legacyWorkspaceReservation, productCustomerOverview, sameAccountProductBookings } from '../utils/productCustomerWorkspace';
 import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref, customerWorkspaceReturnTo } from '../utils/customerWorkspaceRoutes';
+import { accommodationOpsHref } from '../utils/accommodationOpsRoutes';
 import { consumedCalendarWorkspaceSearch, readCalendarWorkspaceAction } from '../utils/calendarWorkspaceAction';
 import '../styles/product-customer-workspace.css';
 import '../styles/customer-workspace-editor.css';
@@ -397,7 +398,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const { user, loading: userLoading } = useUser();
     const workspaceLocation = useLocation();
     const workspaceNavigate = useNavigate();
-    const calendarActionHandler = useRef<((action: string) => void) | null>(null);
+    const calendarActionHandler = useRef<((action: string) => boolean | void) | null>(null);
     const handledCalendarAction = useRef('');
     const inlineControlRef = useRef<ReservationInlineEditorControl | null>(null);
     const docDraftSourceRef = useRef<ReservationDraftSnapshot | null>(null);
@@ -410,8 +411,6 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const [showAccommodationModal, setShowAccommodationModal] = useState(false);
     const [selectedDay, setSelectedDay] = useState(1);
     const [guideList, setGuideList] = useState<any[]>([]);
-    const [accommodationList, setAccommodationList] = useState<any[]>([]);
-    const [hotelList, setHotelList] = useState<any[]>([]);
     const [guideSearch, setGuideSearch] = useState('');
     const [accommodationSearch, setAccommodationSearch] = useState('');
     const [accommodationRegion, setAccommodationRegion] = useState('');
@@ -591,20 +590,6 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     }, [showGuideModal, user?.id, user?.role]);
 
     useEffect(() => {
-        if (!showAccommodationModal) return;
-        if (accommodationList.length === 0) {
-            api.accommodations.list().then((data: any) => {
-                if (Array.isArray(data)) setAccommodationList(data);
-            }).catch(() => {});
-        }
-        if (hotelList.length === 0) {
-            api.hotels.list({ active: true }).then((data: any) => {
-                if (Array.isArray(data)) setHotelList(data);
-            }).catch(() => {});
-        }
-    }, [showAccommodationModal]);
-
-    useEffect(() => {
         setEditForm(reservation);
     }, [reservation]);
 
@@ -615,7 +600,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         const key = JSON.stringify([user.id, reservation.id, workspaceLocation.key, action]);
         if (handledCalendarAction.current === key) return;
         handledCalendarAction.current = key;
-        calendarActionHandler.current(action);
+        if (calendarActionHandler.current(action) === true) return;
         workspaceNavigate({ pathname: workspaceLocation.pathname, search: consumedCalendarWorkspaceSearch(workspaceLocation.search), hash: workspaceLocation.hash }, { replace: true });
     }, [fullPage, userLoading, user?.role, user?.id, reservation?.id, editForm?.id, workspaceLocation, workspaceNavigate, workspaceIsBusy, isEditing, inlineDirty, operationsDirty, quickAssignmentDirty, docDraftPending, memoDraft]);
 
@@ -744,7 +729,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         const prevEntry: any = existingIndex >= 0 ? dailyAccommodations[existingIndex] : null;
         const prevAcc: any = prevEntry?.accommodation || {};
         // 숙소가 실제로 바뀌면 수배(예약 요청)는 다시 해야 하므로 수배 상태를 초기화한다.
-        const hotelChanged = !!prevAcc.name && prevAcc.name !== accommodation.name;
+        const hotelChanged = !!prevAcc.name && ['id', 'name', 'type', 'location'].some(key => String(prevAcc[key] || '') !== String(accommodation[key] || ''));
 
         const newDaily = {
             ...(prevEntry || {}), // day·date 등 메타 유지
@@ -757,6 +742,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 name: accommodation.name,
                 type: accommodation.type,
                 location: accommodation.location,
+                address: accommodation.address || '',
                 images: accommodation.images,
                 description: accommodation.description,
                 facilities: accommodation.facilities,
@@ -1637,7 +1623,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         return `${dt.getMonth() + 1}/${dt.getDate()}(${wd})`;
     };
 
-    // 배정 자원에 등록된 숙소를 우선하고 기존 숙소·호텔·상품 일정도 유지한다.
+    // 새 숙소 선택은 공통 등록 자원만 사용한다. 현재 배정은 선택 전까지 그대로 유지한다.
     // 이미지가 출처마다 JSON 문자열/배열로 달라 _thumb로 안전하게 통일.
     const firstAccImage = (a: any): string | undefined => {
         if (a?.thumbnail) return a.thumbnail;
@@ -1645,53 +1631,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (typeof imgs === 'string') { try { imgs = JSON.parse(imgs || '[]'); } catch { imgs = []; } }
         return Array.isArray(imgs) ? imgs.find((x: any) => typeof x === 'string' && x) : undefined;
     };
-    const pickerAccommodations = (() => {
-        const resourceStays = registered?.lodges || [];
-        const registeredNames = new Set(resourceStays.map((a: any) => String(a.name || '').trim()));
-        const out: any[] = [...resourceStays, ...(accommodationList || []).filter(a => !registeredNames.has(String(a.name || '').trim()))].map((a: any) => ({ ...a, _thumb: firstAccImage(a) }));
-        const seen = new Set(out.map((a: any) => String(a.name || '').trim()).filter(Boolean));
-        // 호텔 마스터(hotels 테이블) — 상품관리 일정탭의 「호텔 마스터 선택」과 동일한 출처
-        for (const h of (hotelList || [])) {
-            const name = String(h.name_kr || h.name_local || '').trim();
-            if (!name || seen.has(name)) continue;
-            seen.add(name);
-            const images = Array.isArray(h.images) ? h.images : [];
-            out.push({
-                id: h.id,
-                name,
-                region: h.region || h.city || '',
-                type: h.star_rating ? `${h.star_rating}성급` : (h.city || h.region || ''),
-                location: h.address || [h.city, h.region].filter(Boolean).join(', '),
-                images,
-                description: h.description || '',
-                facilities: Array.isArray(h.amenities) ? h.amenities : [],
-                _thumb: firstAccImage({ images }),
-                _fromHotelMaster: true,
-            });
-        }
-        // 이 상품 일정에 들어있는 숙소(마스터에 없을 수도)
-        const days = scheduleDays;
-        for (const d of days) {
-            const acc = d?.accommodation;
-            if (!acc || typeof acc === 'string') continue;
-            const name = String(acc.name || '').trim();
-            if (!name || seen.has(name)) continue;
-            seen.add(name);
-            const images = Array.isArray(acc.images) ? acc.images : (acc.images ? [acc.images] : []);
-            out.push({
-                id: acc.id || `itinerary-${name}`,
-                name,
-                type: acc.type,
-                location: acc.location,
-                images,
-                description: acc.description,
-                facilities: acc.facilities,
-                _thumb: firstAccImage({ images }),
-                _fromItinerary: true,
-            });
-        }
-        return out;
-    })();
+    const pickerAccommodations = (registered?.lodges || []).map(a => ({ ...a, _thumb: firstAccImage(a) }));
 
     // 문서별 마지막 발송 일시 (history의 email 이벤트에서)
     const lastEmailAt = (url: string, keywords: string[]) => {
@@ -1795,11 +1735,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             setWorkflowOpen(false);
             if (action === 'guide') { setQuickAssignment(null); setPickerSaveError(''); setGuideConfirmation(null); setShowGuideModal(true); }
             else if (action === 'stay') {
-                setQuickAssignment('stay');
-                if (workspace.nights > 0) {
-                    const nextDay = Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => index + 1).find(day => !reservation.dailyAccommodations?.some(stay => Number(stay.day) === day && stay.accommodation?.name?.trim())) || 1;
-                    setSelectedDay(nextDay); setPickerSaveError(''); setShowAccommodationModal(true);
-                }
+                if (docDraftPending || memoDraft.trim()) { setNavigationNotice('작성 중인 문서 초안·메모를 먼저 저장한 뒤 숙소를 관리해 주세요.'); return; }
+                const nextDay = Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => index + 1).find(day => !reservation.dailyAccommodations?.some(stay => Number(stay.day) === day && stay.accommodation?.name?.trim())) || 1;
+                workspaceNavigate(accommodationOpsHref('product', reservation.id, workspaceLocation.pathname + consumedCalendarWorkspaceSearch(workspaceLocation.search) + workspaceLocation.hash, nextDay));
+                return true;
             } else setQuickAssignment('vehicle');
             return;
         }
@@ -2203,7 +2142,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                 <div className="card-head">
                                     <Icon name="hotel" style={{ color: 'var(--mrt-gray-600)' }} /><h2>일자별 숙소 배정</h2>
                                     <div className="spacer" style={{ flex: 1 }} />
-                                    <a className="link-action" href={`/admin/accommodation-ops?open=${reservation.id}`} title="숙소 배정 보드(Байр захиалга)에서 이 예약의 수배 상태·방·인실을 관리합니다.">
+                                    <a className="link-action" href={accommodationOpsHref('product', reservation.id, workspaceLocation.pathname + consumedCalendarWorkspaceSearch(workspaceLocation.search) + workspaceLocation.hash)} title="숙소 배정 보드에서 이 예약의 수배 상태·방·인실을 관리합니다.">
                                         <Icon name="night_shelter" />숙소 보드에서 수배 관리
                                     </a>
                                     <button
@@ -2528,8 +2467,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     <div className="cell-strong">
                                         {acc.name}
                                         {isCurrentAccommodation(acc) && <span className="crp-current-badge">현재 배정</span>}
-                                        {acc._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}{acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#eef4ff', color: '#1656d6' }}>호텔 마스터</span>}
-                                        {acc._fromItinerary && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>이 상품 일정</span>}
+                                        {acc._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>공통 등록 숙소</span>}
                                     </div>
                                     {acc.type && <div className="cell-muted" style={{ fontSize: 12 }}>{acc.type}</div>}
                                     {acc.location && <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.location}</div>}

@@ -16,7 +16,9 @@ import { canAutoImportReservationDocument, reservationProductDays, reservationPr
 import { TouristSpotPickerModal } from './TouristSpotPickerModal';
 import { HotelPickerModal } from './HotelPickerModal';
 import type { TouristSpot } from '../../types/touristSpot';
+import { travelSpotSnapshot } from '../../utils/travelSpotSnapshot';
 import type { Hotel } from '../../types/hotel';
+import { documentLodgingSnapshot } from '../../utils/lodgingItinerarySnapshot';
 import { normalizeRepresentativeSpots } from '../../../functions/lib/productItinerary';
 
 export interface ReservationDocContent {
@@ -297,19 +299,19 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
     const removeActivityImage = (dayIdx: number, actIdx: number, imgIdx: number) =>
         setDays(d => d.map((x, i) => i === dayIdx ? { ...x, activities: x.activities.map((a, j) => j === actIdx ? { ...a, images: (a.images || []).filter((_, k) => k !== imgIdx) } : a) } : x));
 
-    // 관광지 마스터 → 해당 항목의 제목(비었을 때만)·설명·사진 채움
+    // 공통 여행지 → 해당 항목의 설명·사진을 복사하고 직접 쓴 제목은 보존한다.
     const fillItemFromSpot = (d: number, a: number, spot: TouristSpot) => setDays(prev => prev.map((day, i) => {
         if (i !== d) return day;
         const acts = day.activities.map((act, j) => {
             if (j !== a) return act;
             const keepTitle = (act.title || '').trim().length > 0;
-            const desc = [spot.description, spot.address].filter(Boolean).join('\n' + '\n');
-            return { ...act, title: keepTitle ? act.title : spot.name_kr, description: desc || act.description, images: (spot.images && spot.images.length > 0) ? [...spot.images] : act.images };
+            const snapshot = travelSpotSnapshot(spot);
+            return { ...act, ...snapshot, title: keepTitle ? act.title : snapshot.title };
         });
         return { ...day, activities: acts };
     }));
-    // 호텔 마스터 → 해당 일차의 숙박 정보 채움
-    const fillDayFromHotel = (d: number, hotel: Hotel) => setDays(prev => prev.map((day, i) => i === d ? { ...day, accommodation: { id: hotel.id, name: hotel.name_kr, location: hotel.address || '', images: hotel.images || [], description: hotel.description || '' } } : day));
+    // 공통 등록 숙소 → 해당 일차의 숙박 정보를 스냅샷으로 보관한다.
+    const fillDayFromHotel = (d: number, hotel: Hotel) => setDays(prev => prev.map((day, i) => i === d ? { ...day, accommodation: documentLodgingSnapshot(hotel) } : day));
 
     // ── documentSettings 핸들러 ──
     const updateDocSection = <K extends keyof DocumentSettings>(section: K, patch: Partial<DocumentSettings[K]>) =>
