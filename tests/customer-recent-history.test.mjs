@@ -95,6 +95,23 @@ test('상품 고객 요약은 typed 동의와 실제 이미지가 있는 손서�
     assert.notEqual(overview({ ...fixture(), contractData: { signature: { signedAt: at(3), hasImage: true } } }).agreement.label, '손서명 완료', 'admin reservation records require actual pixels, not a copied public metadata flag');
 });
 
+test('시각 없는 실제 손서명 원본은 완료로 표시하거나 성명동의 시각을 빌려 이력을 만들지 않는다', () => {
+    for (const signature of [{ signImg: image }, { signedAt: '', signImg: image }, { signedAt: 'invalid', signImg: image }]) {
+        const row = { ...fixture(), contractData: { agreement: { agreed: true, name: '기존 동의', agreedAt: at(2) }, customerSubmittedAt: at(3), signature } };
+        const before = JSON.stringify(row), result = overview(row);
+        assert.equal(result.agreement.label, '서명 시각 확인 필요');
+        assert.equal(result.agreement.at, undefined, 'A typed agreement timestamp is not a signature timestamp');
+        assert.equal(result.documents.find(item => item.id === 'contract').status, '서명 시각 확인 필요');
+        assert.ok(!result.recentHistory.some(item => /손서명 저장|손서명 완료/.test(item.title)));
+        assert.ok(result.recentHistory.some(item => item.title === '계약서 성명 동의 저장'));
+        assert.ok(result.recentHistory.some(item => item.title === '고객 여행자·항공 정보 제출'));
+        assert.equal(JSON.stringify(row), before, 'The stored signature evidence is left intact');
+        assert.ok(!JSON.stringify(result).includes(image));
+    }
+    const legacy = overview({ ...fixture(), contractData: { signImg: image } });
+    assert.equal(legacy.agreement.label, '서명 시각 확인 필요'); assert.equal(legacy.agreement.at, undefined);
+});
+
 test('현재 단계는 별도의 상태 요약이며 취소·완료·고객대기와 미완료 업무를 구분한다', () => {
     assert.deepEqual(stage({ status: 'cancelled', steps: [], tasks: [], booking: true }), { label: '예약 취소', tone: 'cancelled' });
     assert.deepEqual(stage({ status: 'completed', steps: [], tasks: [], booking: true }), { label: '여행 완료', tone: 'complete' });

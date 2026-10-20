@@ -140,6 +140,20 @@ test('서명 없는 성명 동의를 손서명으로 표시하지 않으며 관�
     typed.contract.signature.signedAt = ''; const missingTimestamp = render(typed); assert.ok(missingTimestamp.includes(drawnSignature)); assert.ok(missingTimestamp.includes('서명 시각 확인 필요')); assert.ok(!missingTimestamp.includes('손서명 완료'));
 });
 
+test('legacy 손서명에 시각이 없으면 원본과 변경 잠금은 유지하고 문서 완료 배지를 표시하지 않는다', () => {
+    for (const signedAt of [undefined, '', 'invalid']) {
+        const data = base(); data.contract.agreement = { agreed: true, name: '성명 동의자', agreedAt: '2026-10-20T08:20:00Z' };
+        data.contract.signature = { signedAt, signerName: '저장된 실제 서명자', signImg: drawnSignature };
+        const before = JSON.stringify(data);
+        const html = render(data, { signaturePad: React.createElement('canvas', { 'aria-label': '덮어쓰기용 새 서명' }) });
+        assert.ok(html.includes('서명 시각 확인 필요')); assert.ok(html.includes(drawnSignature));
+        assert.ok(!html.includes('손서명 완료')); assert.ok(!html.includes('덮어쓰기용 새 서명'));
+        assert.equal(JSON.stringify(data), before);
+        const customer = render({ ...data, contract: publicProductContract(data.contract) });
+        assert.ok(customer.includes('서명 시각 확인 필요')); assert.ok(!customer.includes('손서명 완료')); assert.ok(!customer.includes(drawnSignature));
+    }
+});
+
 test('서명 원본 인쇄는 서명 당시 snapshot을 사용하고 이후 입력 수정은 별도 고객 폼에만 반영한다', () => {
     const current = base(), original = base(); original.reservation.productName = '서명 당시 여행상품'; original.contract.travelers[0].name = '서명 당시 여행자'; original.contract.arrival.flight = 'SAVED-IN';
     current.reservation.productName = '나중에 변경된 여행상품'; current.contract.travelers[0].name = '현재 여행자'; current.contract.arrival.flight = 'CURRENT-IN';

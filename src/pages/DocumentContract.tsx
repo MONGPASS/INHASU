@@ -86,6 +86,8 @@ export interface ContractDocumentViewProps {
 export function ContractDocumentView(p: ContractDocumentViewProps) {
     const { data, saving = false, onPrint } = p;
     const signature = productSignatureStatus(data.contract);
+    const signatureAt = signature?.signedAt && Number.isFinite(Date.parse(signature.signedAt)) ? signature.signedAt : undefined;
+    const signatureComplete = !!signature?.hasImage && !!signatureAt;
     const stored = productSignatureRecord(data.contract)?.snapshot;
     const frozen = stored?.version === 1 && stored.document?.reservation?.id === data.reservation.id ? stored.document as ContractPageData : undefined;
     const displayData = frozen || data;
@@ -139,7 +141,7 @@ export function ContractDocumentView(p: ContractDocumentViewProps) {
         <div className="product-contract-document">
             <section className="pc-card pc-contract-cover" aria-label="여행 계약 요약">
                 <div className="pc-brand-row"><div className="pc-brand"><BrandMark /><span>MONGOLIA<br />MILKY WAY</span></div><span className="pc-document-kind">TRAVEL CONTRACT</span></div>
-                <div className="pc-contract-title"><p>MONGOLIA MILKY WAY</p><h1>여행계약서</h1>{signature?.hasImage && signature.signedAt ? <div className="pc-agreement-badge">✓ 손서명 완료<time dateTime={signature.signedAt}>{fmtMoment(signature.signedAt)}</time></div> : submitted && <div className="pc-agreement-badge">✓ 전자 동의 완료{contract.agreement?.agreedAt && <time dateTime={contract.agreement.agreedAt}>{fmtMoment(contract.agreement.agreedAt)}</time>}</div>}</div>
+                <div className="pc-contract-title"><p>MONGOLIA MILKY WAY</p><h1>여행계약서</h1>{signatureComplete ? <div className="pc-agreement-badge">✓ 손서명 완료<time dateTime={signatureAt}>{fmtMoment(signatureAt!)}</time></div> : signature?.hasImage ? <div className="pc-agreement-badge">서명 시각 확인 필요</div> : submitted && <div className="pc-agreement-badge">✓ 전자 동의 완료{contract.agreement?.agreedAt && <time dateTime={contract.agreement.agreedAt}>{fmtMoment(contract.agreement.agreedAt)}</time>}</div>}</div>
                 <DetailRows rows={[
                     { label: '계약자(여행자)', value: reservation.customerName },
                     { label: '여행지', value: reviewContract.region || reservation.productName },
@@ -186,7 +188,7 @@ export function ContractDocumentView(p: ContractDocumentViewProps) {
                     { label: 'Web', value: company.website },
                 ]} />
                 <div className={'pc-agreement-record' + (submitted ? ' is-complete' : '')}><span>{submitted ? '전자 동의 완료' : '전자 동의 대기'}</span><strong>{submitted ? contract.agreement?.name || '동의자 이름 미등록' : '아래에서 내용을 확인하고 동의해 주세요.'}</strong>{submitted && contract.agreement?.agreedAt && <time dateTime={contract.agreement.agreedAt}>{fmtMoment(contract.agreement.agreedAt)}</time>}</div>
-                <section className="pc-stored-signature" aria-label="고객 손서명 기록"><h3>{signature?.hasImage ? '고객 손서명' : signature ? '서명 원본 확인 필요' : '고객 손서명 미등록'}</h3>{signature?.signImg ? <img src={signature.signImg} alt="고객이 직접 작성한 계약서 서명 원본" /> : <p>{signature?.hasImage ? '손서명 원본은 안전하게 보관되어 있습니다. 인증된 관리자만 원본 이미지를 확인할 수 있습니다.' : signature ? '저장된 서명 기록은 있으나 이미지 원본을 확인할 수 없습니다. 담당자에게 확인해 주세요.' : submitted ? '기존 성명 동의 기록은 보존되어 있습니다. 아래에서 손서명을 추가할 수 있습니다.' : '아래 서명란에 직접 서명해 주세요.'}</p>}{signature && <p className="pc-signature-meta">{signature.signerName} · {signature.signedAt ? fmtMoment(signature.signedAt) : '서명 시각 확인 필요'}{signature.termsVersion && <span>약관 버전 {signature.termsVersion}</span>}</p>}</section>
+                <section className="pc-stored-signature" aria-label="고객 손서명 기록"><h3>{signature?.hasImage ? signatureComplete ? '고객 손서명' : '서명 시각 확인 필요' : signature ? '서명 원본 확인 필요' : '고객 손서명 미등록'}</h3>{signature?.signImg ? <img src={signature.signImg} alt="고객이 직접 작성한 계약서 서명 원본" /> : <p>{signature?.hasImage ? '손서명 원본은 안전하게 보관되어 있습니다. 인증된 관리자만 원본 이미지를 확인할 수 있습니다.' : signature ? '저장된 서명 기록은 있으나 이미지 원본을 확인할 수 없습니다. 담당자에게 확인해 주세요.' : submitted ? '기존 성명 동의 기록은 보존되어 있습니다. 아래에서 손서명을 추가할 수 있습니다.' : '아래 서명란에 직접 서명해 주세요.'}</p>}{signature && <p className="pc-signature-meta">{signature.signerName} · {signatureAt ? fmtMoment(signatureAt) : '서명 시각 확인 필요'}{signature.termsVersion && <span>약관 버전 {signature.termsVersion}</span>}</p>}</section>
                 <button className="pc-button pc-button-secondary pc-no-print" type="button" onClick={onPrint}>인쇄 / PDF 저장</button>
             </section>
 

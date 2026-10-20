@@ -38,7 +38,8 @@ function contractCustomerDetails(contract: any, expected: number | null, sent: b
     const registered = people.filter(person => populated(person.name)).length;
     const agreement = object(contract.agreement, {});
     const signature = productSignatureStatus(contract, false);
-    const signatureLabel = signature?.hasImage ? '손서명 완료' : agreement.agreed === true ? '성명 동의 완료 · 손서명 미등록' : signature ? '서명 원본 확인 필요' : sent ? '계약서 전달됨 · 고객 동의 대기' : '계약서 전달 전';
+    const signatureAt = signature?.signedAt && Number.isFinite(Date.parse(signature.signedAt)) ? signature.signedAt : undefined;
+    const signatureLabel = signature?.hasImage ? signatureAt ? '손서명 완료' : '서명 시각 확인 필요' : agreement.agreed === true ? '성명 동의 완료 · 손서명 미등록' : signature ? '서명 원본 확인 필요' : sent ? '계약서 전달됨 · 고객 동의 대기' : '계약서 전달 전';
     return {
         flights: [
             { id: 'arrival', label: '몽골 도착편', date: text(contract.arrival?.date), time: text(contract.arrival?.time), flight: text(contract.arrival?.flight),
@@ -48,7 +49,7 @@ function contractCustomerDetails(contract: any, expected: number | null, sent: b
         ],
         travelers: { expected, registered, people, status: expected === null ? `예약 인원 미등록 · 여행자 ${registered}명 입력` : expected > 0 ? `${registered}/${expected}명 입력` : `예약 인원 0명 · 확인 필요` },
         agreement: { label: signatureLabel, ...((signature?.signerName || agreement.agreed === true && populated(agreement.name)) ? { name: signature?.signerName || text(agreement.name) } : {}),
-            ...(signature?.signedAt ? { at: signature.signedAt } : agreement.agreed === true && populated(agreement.agreedAt) ? { at: text(agreement.agreedAt) } : {}) },
+            ...(signatureAt ? { at: signatureAt } : !signature?.hasImage && agreement.agreed === true && populated(agreement.agreedAt) ? { at: text(agreement.agreedAt) } : {}) },
     };
 }
 
@@ -140,6 +141,7 @@ export function productCustomerOverview(r: any, days: any[], workflow: any, opti
     const expected = r.peopleKnown === null ? null : count(r.peopleKnown ?? r.totalPeople);
     const customerDetails = contractCustomerDetails(contract, expected, options.contractSent);
     const signature = productSignatureStatus(contract, false);
+    const signatureComplete = !!signature?.hasImage && !!signature.signedAt && Number.isFinite(Date.parse(signature.signedAt));
     const canPublish = !cancelled && ['confirmed', 'paid', 'completed'].includes(r.status);
     const tasks: CustomerWorkspaceOverviewModel['tasks'] = [];
     if (!cancelled) {
@@ -181,7 +183,7 @@ export function productCustomerOverview(r: any, days: any[], workflow: any, opti
         preferences: [], notes: (r.history || []).filter((h: any) => h.type === 'admin_memo').map((h: any, i: number) => ({ id: `${h.timestamp}:${i}`, body: h.description, at: h.timestamp ? new Date(h.timestamp).toLocaleString('ko-KR') : undefined })),
         days: overviewDays(days, r.dailyAccommodations || [], workflow.nights),
         documents: [{ id: 'itinerary', label: '확정 일정표', action: options.itineraryReady ? 'itinerary' : 'edit-itinerary', status: options.itineraryChanged ? '변경 후 재안내 필요' : workflow.published ? options.itinerarySent ? '공개 · 발송됨' : '공개됨' : options.itineraryReady ? '작성됨 · 공개 전' : '작성 필요' },
-            { id: 'contract', label: '여행 계약서', action: 'contract-preview', status: signature?.hasImage ? '손서명 완료' : contract.agreement?.agreed === true ? '성명 동의 완료 · 손서명 미등록' : signature ? '서명 원본 확인 필요' : options.contractChanged ? '변경 후 재안내 필요' : options.contractSent ? '전달됨 · 동의 대기' : '내용 확인', ...(options.contractChanged ? { detail: '마지막 안내 후 계약서가 변경되어 재안내가 필요합니다.' } : {}) },
+            { id: 'contract', label: '여행 계약서', action: 'contract-preview', status: signatureComplete ? '손서명 완료' : signature?.hasImage ? '서명 시각 확인 필요' : contract.agreement?.agreed === true ? '성명 동의 완료 · 손서명 미등록' : signature ? '서명 원본 확인 필요' : options.contractChanged ? '변경 후 재안내 필요' : options.contractSent ? '전달됨 · 동의 대기' : '내용 확인', ...(options.contractChanged ? { detail: '마지막 안내 후 계약서가 변경되어 재안내가 필요합니다.' } : {}) },
             { id: 'guide-pdf', label: '가이드 시트 PDF', action: 'guide-pdf', detail: '기존 가이드용 출력 기능' }],
         payment: { total: r.paymentKnown?.total === null ? null : r.totalAmount, deposit: r.paymentKnown?.deposit === null ? null : r.deposit, balance: r.paymentKnown?.balance === null ? null : r.balance, depositPaid: r.depositStatus === 'paid', balancePaid: r.balanceStatus === 'paid' },
         assignments: [{ id: 'guide', label: '담당 가이드', value: r.assignedGuide?.name || '미배정', statusLabel: workflow.guideReady ? '배정됨' : '확인 필요', state: workflow.guideReady ? 'ready' : 'pending' },

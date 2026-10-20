@@ -71,7 +71,8 @@ export function customerRecentHistory(input: { source: 'product' | 'quote' | 'le
         const agreement = record(contract.agreement);
         if (agreement.agreed === true) add('contract-agreement', agreement.agreedAt, 'contract', '계약서 성명 동의 저장');
         const signature = productSignatureStatus(contract, false);
-        if (signature) add('contract_signed', signature.signedAt, 'contract', signature.hasImage ? '계약서 손서명 저장' : '계약서 서명 시각 기록 · 원본 확인 필요');
+        const signatureAt = stamp(signature?.signedAt);
+        if (signature && signatureAt) add('contract_signed', signatureAt, 'contract', signature.hasImage ? '계약서 손서명 저장' : '계약서 서명 시각 기록 · 원본 확인 필요');
     } else {
         add('inquiry-created', r.receivedAt ?? r.createdAt ?? r.created_at, 'inquiry', '견적 문의 접수');
         addNativeEvents([...list(r.activities), ...list(r.history), ...list(booking.history)]);
