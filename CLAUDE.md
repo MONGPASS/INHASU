@@ -15,7 +15,7 @@
   - **MILKYWAY-JAPAN** (`arvijixmeat-maker/MILKYWAY-JAPAN`): 여행상품·예약·후기·매거진 사이트. React 19 + TS + Vite + Hono. 원래 일본인 대상 일본어 사이트였고, 한국어로 번역해 이 저장소에 넣었다.
 - 오너 방침: 양쪽 기능 모두 유지, **관리자는 `/admin` 하나**, 고객 플랫폼은 MILKYWAY 디자인(민트 `#27AB8F` + 네이비 `#0A1F2E`)으로 통일.
 
-## 2. 구조 — 한 Cloudflare Pages 프로젝트(`milkway-mongolia`)에 둘이 함께 산다
+## 2. 구조 — 한 Cloudflare Pages 프로젝트(`inhasu`)에 둘이 함께 산다
 
 | 무엇 | 어디 | 비고 |
 |---|---|---|
@@ -174,7 +174,9 @@ node scripts/check-reservation-workspace.mjs --serve --usability --customer-work
 
 `배포안내.txt` 맨 위 "통합 플랫폼" 절이 정본. 요약:
 
-- 빌드: `npm run build` → `dist/`. 배포: `npx wrangler pages deploy dist --project-name=milkway-mongolia`(또는 Git 연동 시 빌드 명령 `npm run build`, 출력 `dist`).
+- 빌드: `npm run build` → `dist/`. 배포: `npx wrangler pages deploy dist --project-name=inhasu`(또는 Git 연동 시 빌드 명령 `npm run build`, 출력 `dist`). 실제 Pages 프로젝트는 `inhasu`이며 `MONGPASS/INHASU`와 운영 도메인이 연결되어 있다. 과거 `milkway-mongolia` 배포 예시는 사용하지 않는다.
+- 2026-10-20 Cloudflare 확인 시 Production은 `main`의 `c93f978`, 최근 Preview는 `c69dd9b`였다. 새 자동 알림 코드 `8f1430d`는 로컬에만 반영되어 운영 배포되지 않았고, 이 설정 확인 작업에서 Production 재배포를 실행하지 않았다. Production에 신규 알림 템플릿 Secret 7종을 추가한 이력과 현재 설정 정책은 `docs/customer-notifications.md`가 정본이다.
+- Preview에는 텍스트 변수가 있지만 고객 발송 API 키 등 Secret은 등록되어 있지 않았다. D1·R2는 Production과 같은 운영 리소스를 사용하므로 Preview를 격리된 테스트 환경으로 취급하지 말고, 고객 쓰기·업로드·서명·발송 검증은 별도의 로컬 합성 자료에서 수행한다.
 - **통합 후 처음 배포할 때 한 번**: ① R2 버킷 `milkyway-assets` 생성 ② 환경변수 추가(Google 로그인·Resend 등) ③ `/admin/login`에서 관리자 계정 만들기. 사이트 테이블은 첫 요청 때 자동으로 만들어진다(아래).
 - 규칙: `main`에 직접 푸시하지 말고 feature 브랜치 → PR → 미리보기 확인 → 머지(`DEPLOYMENT.md`). 커밋 메시지는 한국어 `[영역]: 설명`.
 - **사이트 표·칸의 원본은 `functions/lib/siteSchema.ts`** 다. 새 표나 칸을 쓰게 되면 거기에 적고 `SITE_SCHEMA_VERSION`을 올린다 — `[[route]].ts`의 미들웨어가 서버 인스턴스마다 한 번 확인해 없는 표는 만들고 없는 칸은 더한다(추가만, 견적 표는 다루지 않음). `tests/site-schema.test.mjs`가 "견적 표만 있는 DB"에서 코드의 모든 SQL이 맞는지 검사하므로, 정의를 빠뜨리면 테스트가 실패한다.

@@ -2,6 +2,32 @@
 
 2026-10-20 로그인된 Solapi 콘솔의 승인 템플릿과 기존 견적 코드를 비교했다. 채널 `KA01PF260709023307591VCu6JTR2UNU`의 아래 템플릿은 발송 사용 가능 상태였다. 콘솔의 별도 워크플로우는 0개였다. 자동 발송은 플랫폼 서버가 저장된 업무 이벤트를 처리한 뒤 요청한다.
 
+## Cloudflare 설정 확인 기록 (2026-10-20)
+
+실제 Pages 프로젝트는 `inhasu`이며 `MONGPASS/INHASU` 저장소와 `mongolia-milkyway.com`·`www.mongolia-milkyway.com` 도메인이 연결되어 있었다. 과거 `milkway-mongolia` 프로젝트명·배포 명령은 사용하지 않는다. 빌드 결과는 `dist`이며 로컬 배포 설정도 `wrangler.toml`의 `inhasu`를 사용한다.
+
+확인 시 Production은 `main`의 `c93f978`, 최근 Preview는 `c69dd9b`였다. 새 자동 알림 코드 `8f1430d`는 로컬 반영 상태로 아직 운영 배포되지 않았다. 이번 설정 확인에서는 Production 재배포를 실행하지 않았다. 환경변수 추가 완료와 새 기능 운영 반영 완료를 구분한다.
+
+Production의 Variables and Secrets에서 아래 **키 이름과 존재 여부만** 확인했다. 기존 Secret 값은 열람하거나 문서에 기록하지 않았고, 기존 자격증명·기존 템플릿 override는 변경하지 않았다.
+
+| 구분 | 확인된 키 이름 | 조치 |
+|---|---|---|
+| 발송 자격증명 | `SOLAPI_API_KEY`, `SOLAPI_API_SECRET` | 기존 Secret 존재 확인, 값 미열람·미변경 |
+| 채널·관리자 문자 발신 | `SOLAPI_PF_ID`, `SOLAPI_SENDER` | 기존 Secret 존재 확인, 값 미열람·미변경 |
+| 기존 종류별 템플릿 | `SOLAPI_TEMPLATE_QUOTE_ID`, `SOLAPI_TEMPLATE_CONTRACT_ID`, `SOLAPI_KAKAO_CONTRACT_TEMPLATE_ID`, `SOLAPI_TEMPLATE_ITINERARY_ID`, `SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID` | 기존 Secret 존재 확인, 값 미열람·미변경 |
+| 과거 별칭·generic 설정 | `SOLAPI_TEMPLATE_ACCEPT_ID`, `SOLAPI_TEMPLATE_CHANGE_ID`, `SOLAPI_TEMPLATE_CONFIRM_ID`, `SOLAPI_TEMPLATE_DEPOSIT_ID`, `SOLAPI_TEMPLATE_SIGN_ID`, `SOLAPI_TEMPLATE_TRAVELERS_ID`, `SOLAPI_TEMPLATE_ID` | 기존 Secret 보존. 새 registry의 별칭으로 추정 연결하지 않음 |
+| 견적 요청 접수 | `SOLAPI_TEMPLATE_REQUEST_RECEIVED_ID` | 승인 ID로 신규 Secret 저장 후 암호화된 키 이름 존재 확인 |
+| 일정 변경 요청 | `SOLAPI_TEMPLATE_CHANGE_REQUESTED_ID` | 승인 ID로 신규 Secret 저장 후 암호화된 키 이름 존재 확인 |
+| 예약 진행 요청 | `SOLAPI_TEMPLATE_RESERVATION_REQUESTED_ID` | 승인 ID로 신규 Secret 저장 후 암호화된 키 이름 존재 확인 |
+| 예약금 안내 | `SOLAPI_TEMPLATE_DEPOSIT_REQUESTED_ID` | 승인 ID로 신규 Secret 저장 후 암호화된 키 이름 존재 확인 |
+| 여행자 정보 요청 | `SOLAPI_TEMPLATE_TRAVELERS_REQUESTED_ID` | 승인 ID로 신규 Secret 저장 후 암호화된 키 이름 존재 확인 |
+| 계약서 서명 접수 | `SOLAPI_TEMPLATE_CONTRACT_SIGNED_ID` | 승인 ID로 신규 Secret 저장 후 암호화된 키 이름 존재 확인 |
+| 예약 확정 | `SOLAPI_TEMPLATE_BOOKING_CONFIRMED_ID` | 승인 ID로 신규 Secret 저장 후 암호화된 키 이름 존재 확인 |
+
+위 7개 신규 Secret은 저장 후 이름·암호화 상태를 확인했으며 값을 다시 열지 않았다. 기존 암호화된 채널·템플릿 ID 값이 승인 목록과 일치하는지까지 확인한 것은 아니다. 실제 고객에게 발송하여 설정을 검증하지 않았다.
+
+Preview에는 텍스트 변수가 있었지만 고객 발송 API 키 등 **Secret은 등록되어 있지 않았다**. Production의 발송 키를 복제하지 않았다. 그러나 Preview의 D1·R2 바인딩은 Production과 **같은 운영 리소스**에 연결되어 있었다. 따라서 Preview에서 실제 고객의 견적·예약·입금·서명·업로드를 생성하거나 수정하는 테스트를 하지 않는다. 고객 알림과 업무 저장 검증은 별도 로컬 SQLite·메모리 R2·외부 발송 스텁·합성 고객 자료로 수행한다.
+
 ## 연결된 업무
 
 | 알림 | 현재 견적 `requests` | 상품·수동 예약 `reservations` | 승인 템플릿 ID |
