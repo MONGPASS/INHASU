@@ -1,9 +1,10 @@
 import { publicLodge } from "../_lodging.mjs";
+import { requireResourceAccess } from "../../lib/customerAccess.ts";
 /* ═══════════════════════════════════════════════════════════
    Cloudflare Pages Function · /api/my/<token>
-   GET : 고객이 매직 링크로 자기 요청·견적서 조회 (로그인/토큰 인증 없음)
-   - token 은 제출 시 발급된 122-bit 랜덤값. 정확히 일치할 때만 반환.
-   - 링크 유출 대비, 전화·이메일·카톡ID·첨부키 등 민감정보는 반환하지 않음.
+   GET : 기존 고객 링크를 유지하면서 로그인·확인된 소유자만 조회
+   - 링크 주소만으로 개인 자료를 열 수 없으며 미연결 기록은 본인 인증 필요.
+   - 응답에서도 전화·이메일·카톡ID·첨부키 등 민감정보는 제외.
    ═══════════════════════════════════════════════════════════ */
 
 import { workflowStatus, quoteExpiry, isQuoteExpired } from "../_workflow.mjs";
@@ -17,10 +18,12 @@ const json = (obj, status = 200) =>
     },
   });
 
-export async function onRequestGet({ env, params }) {
+export async function onRequestGet({ request, env, params }) {
   try {
     const token = Array.isArray(params.token) ? params.token[0] : params.token;
     if (!token || String(token).length < 16) return json({ ok: false, error: "invalid" }, 400);
+    const denied = await requireResourceAccess(request, env, "request", token);
+    if (denied) return denied;
 
     const row = await env.DB
       .prepare("SELECT data, status FROM requests WHERE token = ?")

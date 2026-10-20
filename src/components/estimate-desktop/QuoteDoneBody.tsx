@@ -58,8 +58,8 @@ export function QuoteDoneBody({ done, go, compact = false }: { done: QuoteDoneSt
             </ol>
 
             <section aria-label="내 견적 전용 링크" style={{ border: `1px solid ${MW.mintTint}`, borderRadius: 16, background: MW.mintBg, padding: compact ? 16 : 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <span style={{ fontSize: compact ? 14 : 15, fontWeight: 900 }}>회원가입 없이 전용 링크로 확인</span>
-                <span style={{ fontSize: small, lineHeight: 1.7, color: MW.mute }}>진행 상황과 완성된 견적서가 이 링크에 표시됩니다. 잃어버리지 않도록 보관해 주세요.</span>
+                <span style={{ fontSize: compact ? 14 : 15, fontWeight: 900 }}>내 Google 계정으로 안전하게 확인</span>
+                <span style={{ fontSize: small, lineHeight: 1.7, color: MW.mute }}>진행 상황과 완성된 견적서를 이 링크와 마이페이지에서 확인할 수 있습니다.</span>
                 <span title={url} style={{ padding: '10px 12px', borderRadius: 10, border: `1px solid ${MW.line}`, background: '#FFFFFF', fontSize: 12, color: MW.ink3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{url}</span>
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr)', gap: 8 }}>
                     <a href={myQuotePath(done.token)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: compact ? 50 : 54, borderRadius: 14, background: MW_GRADIENT, color: MW.navy, fontSize: compact ? 15 : 16, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
@@ -69,7 +69,7 @@ export function QuoteDoneBody({ done, go, compact = false }: { done: QuoteDoneSt
                         <span aria-live="polite">{linkCopied === true ? '✓ 복사됨' : linkCopied === false ? '복사 실패' : '링크 복사'}</span>
                     </button>
                 </div>
-                <span style={{ fontSize: 11, lineHeight: 1.6, color: MW.mute }}>이 링크를 가진 사람은 견적 내용을 볼 수 있으니 다른 사람에게 공유하지 마세요.</span>
+                <span style={{ fontSize: 11, lineHeight: 1.6, color: MW.mute }}>견적을 요청한 Google 계정으로 로그인해야 내용을 확인할 수 있습니다.</span>
             </section>
 
             {done.brief ? (

@@ -4,7 +4,7 @@ import { quotes } from '../../src/db/schema';
 import { initializeLucia } from '../lib/auth';
 import { getCookie } from 'hono/cookie';
 import { eq, desc } from 'drizzle-orm';
-import { getSessionUser } from '../lib/userAuth';
+import { customerAdminToken, customerSession, customerWriteOrigin, requireResourceAccess } from '../lib/customerAccess';
 
 // Define Env locally if global scope is not picked up
 interface Env {
@@ -16,6 +16,7 @@ interface Env {
 }
 
 const app = new Hono<{ Bindings: Env }>();
+app.use('*', async (c, next) => { c.header('Cache-Control', 'private, no-store'); await next(); });
 
 // Fields stored as JSON strings — parse for client convenience.
 const JSON_ARRAY_FIELDS = ['travelTypes', 'travel_types', 'accommodations'] as const;
@@ -42,19 +43,19 @@ const parseQuoteRow = (q: any) => {
     return out;
 };
 
+const quoteForCustomer = (q: any, isAdmin: boolean) => {
+    const out = parseQuoteRow(q);
+    if (!isAdmin) {
+        delete out.adminNote;
+        delete out.admin_note;
+    }
+    return out;
+};
+
 // GET /api/quotes
 app.get('/', async (c) => {
-    const lucia = initializeLucia(c.env.DB);
-    const sessionId = getCookie(c, lucia.sessionCookieName);
-
-    if (!sessionId) {
-        return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const { session, user } = await lucia.validateSession(sessionId);
-    if (!session) {
-        return c.json({ error: "Unauthorized" }, 401);
-    }
+    const user = await customerSession(c.req.raw, c.env);
+    if (!user) return c.json({ ok: false, error: '로그인이 필요합니다.', code: 'login_required' }, 401);
 
     const db = drizzle(c.env.DB);
 
@@ -66,12 +67,14 @@ app.get('/', async (c) => {
         result = await db.select().from(quotes).where(eq(quotes.userId, user.id)).orderBy(desc(quotes.createdAt)).all();
     }
 
-    return c.json(result.map(parseQuoteRow));
+    return c.json(result.map(row => quoteForCustomer(row, user.role === 'admin')));
 });
 
-// GET /api/quotes/:id (public — no auth required so users can view own quotes from email link)
+// Existing e-mail links retain their IDs, but only the verified owner or an admin can open them.
 app.get('/:id', async (c) => {
     const id = c.req.param('id');
+    const denied = await requireResourceAccess(c.req.raw, c.env, 'quote', id);
+    if (denied) return denied;
     const db = drizzle(c.env.DB);
 
     const result: any = await db.select().from(quotes).where(eq(quotes.id, id)).get();
@@ -79,7 +82,8 @@ app.get('/:id', async (c) => {
         return c.json({ error: 'Not found' }, 404);
     }
 
-    const parsed = parseQuoteRow(result);
+    const user = await customerSession(c.req.raw, c.env);
+    const parsed = quoteForCustomer(result, user?.role === 'admin' || customerAdminToken(c.req.raw, c.env));
 
     // 맞춤 일정표가 연결돼 있으면 템플릿의 일정(사진 포함)을 함께 내려줌 (고객 견적 페이지용)
     const tplId = result.itinerary_template_id ?? result.itineraryTemplateId;
@@ -118,18 +122,21 @@ app.get('/:id', async (c) => {
     return c.json(parsed);
 });
 
-// POST /api/quotes (Create new quote — no auth required, guests can submit)
+// POST /api/quotes — the authenticated customer owns every new request.
 app.post('/', async (c) => {
     try {
+        const user = await customerSession(c.req.raw, c.env);
+        if (!user) return c.json({ ok: false, error: '로그인이 필요합니다.', code: 'login_required' }, 401);
+        const originDenied = customerWriteOrigin(c.req.raw);
+        if (originDenied) return originDenied;
         const body = await c.req.json();
 
         if (!body.name || !body.type) {
             return c.json({ error: 'Missing required fields: name, type' }, 400);
         }
 
-        // Guests may ask for a quote. The owner, status and timestamp come from the
-        // server unless an admin is entering the quote on someone's behalf.
-        const user = await getSessionUser(c);
+        // The owner, status and timestamp come from the server unless an admin
+        // is entering the quote on someone's behalf.
         const isAdmin = user?.role === 'admin';
 
         const db = drizzle(c.env.DB);
@@ -137,7 +144,7 @@ app.post('/', async (c) => {
 
         await db.insert(quotes).values({
             id,
-            userId: isAdmin ? (body.user_id || null) : (user?.id ?? null),
+            userId: isAdmin ? (body.user_id || null) : user.id,
             type: body.type,
             name: body.name,
             phone: body.phone || null,

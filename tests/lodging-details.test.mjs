@@ -4,6 +4,8 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {publicLodge} from '../functions/api/_lodging.mjs';
 import {onRequestGet, onRequestPut} from '../functions/api/data/[key].js';
+import { requestSQLite } from './helpers/request-sqlite.mjs';
+import { customerIdentity } from './helpers/customer-session.mjs';
 const context = vm.createContext({ URL });
 vm.runInContext(readFileSync(new URL('../public/lodging.js', import.meta.url), 'utf8'), context);
 const L = context.Lodging;
@@ -48,11 +50,12 @@ test('refreshing an assignment preserves older archived photos and absent fields
  assert.equal(JSON.stringify(L.photos(next)),JSON.stringify(['/new']));
  assert.equal(L.snapshot(undefined,old).imgs.length,5);
 });
-test('customer booking API returns new lodging fields and selected photos, excluding private data', async () => {
+test('customer booking API returns new lodging fields and selected photos, excluding private data', async t => {
  const {onRequestGet:getCustomer}=await import('../functions/api/my/[token].js');
  const lodge={day:1,name:'Hotel',address:'UB',phone:'+97670101188',roomAmenities:'water',sharedFacilities:'lobby',operatingNotes:'pool closed',officialSources:'https://hotel.example',representativePhotos:['/3','/1','/2'],imgs:['/1','/2','/3','/4','/5'],internalNotes:'private',cost:500};
- const env={DB:{prepare(){return {bind(){return {first:async()=>({status:'예약확정',data:JSON.stringify({booking:{assign:{lodges:[lodge]}}})})};}};}}};
- const res=await getCustomer({env,params:{token:'1234567890123456'}});
+ const DB=requestSQLite(t,{id:'req-1',token:'1234567890123456',status:'예약확정',booking:{assign:{lodges:[lodge]}}});
+ const customer=customerIdentity(DB,{resourceId:'req-1'}),env={DB};
+ const res=await getCustomer({request:new Request('https://example.invalid/api/my/1234567890123456',{headers:customer}),env,params:{token:'1234567890123456'}});
  assert.equal(res.status,200);
  const out=(await res.json()).booking.assign.lodges[0];
  assert.deepEqual(out,publicLodge(lodge));assert.equal(out.imgs.length,5);

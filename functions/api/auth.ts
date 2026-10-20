@@ -8,6 +8,7 @@ import { setCookie, getCookie } from 'hono/cookie';
 import { drizzle } from 'drizzle-orm/d1';
 import { users } from '../../src/db/schema/auth';
 import { eq } from 'drizzle-orm';
+import { customerWriteOrigin, safeCustomerReturn } from '../lib/customerAccess';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -124,7 +125,10 @@ app.post('/login', async (c) => {
 });
 
 /** Google 로그인 중 문제가 생기면 날것의 오류 대신 로그인 화면으로 돌려보내 안내한다. */
-const loginError = (c: any, code: string) => c.redirect(`/login?error=${code}`);
+const loginError = (c: any, code: string) => {
+    const returnTo = safeCustomerReturn(c.req.query('redirect') || getCookie(c, 'post_login_redirect'), '');
+    return c.redirect(`/login?${new URLSearchParams({ error: code, ...(returnTo ? { returnTo } : {}) })}`);
+};
 
 // GET /api/auth/login/google
 app.get('/login/google', async (c) => {
@@ -162,15 +166,16 @@ app.get('/login/google', async (c) => {
     // callback can land the user back on the page they were originally trying
     // to reach. Only same-origin absolute paths are accepted (no //external).
     const requestedRedirect = c.req.query('redirect');
-    if (requestedRedirect && requestedRedirect.startsWith('/') && !requestedRedirect.startsWith('//')) {
-        setCookie(c, "post_login_redirect", requestedRedirect, {
+    const redirect = safeCustomerReturn(requestedRedirect, '');
+    if (redirect) {
+        setCookie(c, "post_login_redirect", redirect, {
             path: "/",
             secure: c.env.ENVIRONMENT === "production",
             httpOnly: true,
             maxAge: 60 * 10,
             sameSite: "Lax"
         });
-    }
+    } else setCookie(c, 'post_login_redirect', '', { path: '/', maxAge: 0 });
 
     return c.redirect(url.toString());
 });
@@ -181,6 +186,9 @@ app.get('/login/google/callback', async (c) => {
     const state = c.req.query("state");
     const storedState = getCookie(c, "google_oauth_state");
     const storedCodeVerifier = getCookie(c, "google_code_verifier");
+    // OAuth state and PKCE values are single use, even when the callback fails.
+    setCookie(c, 'google_oauth_state', '', { path: '/', maxAge: 0 });
+    setCookie(c, 'google_code_verifier', '', { path: '/', maxAge: 0 });
 
     if (!c.env.GOOGLE_CLIENT_ID || !c.env.GOOGLE_CLIENT_SECRET) return loginError(c, 'google_setup');
     // 사용자가 Google 화면에서 취소했거나(code 없음), 로그인 시작 후 10분이 지났거나, 다른 브라우저에서 돌아온 경우
@@ -202,7 +210,8 @@ app.get('/login/google/callback', async (c) => {
         });
         const googleUser: any = await response.json();
 
-        if (!googleUser?.sub) return loginError(c, 'google_failed');
+        if (!response.ok || !googleUser?.sub || googleUser.email_verified !== true || !googleUser.email) return loginError(c, 'google_failed');
+        googleUser.email = String(googleUser.email).trim().toLowerCase();
 
         // 첫 고객 로그인이 관리자 계정 설정보다 먼저일 수 있다 — 계정 표가 없으면 만든다.
         await ensureAuthTables(c.env);
@@ -213,30 +222,12 @@ app.get('/login/google/callback', async (c) => {
         // Check if user already exists for this Google account.
         let existingUser = await db.select().from(users).where(eq(users.googleId, googleUser.sub)).get();
 
-        // Fallback: if no Google-linked record was found, match by email and
-        // auto-link this Google identity to the existing record. This handles:
-        //   - users created by an admin (no googleId set yet)
-        //   - users that signed up before the current OAuth flow
-        //   - schema migrations that changed/cleared googleId values
-        // Without this, the INSERT below would fail the email UNIQUE constraint
-        // and the user would be permanently locked out.
+        // The Google subject is the identity. Email equality must never transfer
+        // an older account (and all its reservations) into a different Google identity.
         if (!existingUser && googleUser.email) {
             const byEmail = await db.select().from(users).where(eq(users.email, googleUser.email)).get();
             if (byEmail) {
-                if (byEmail.googleId && byEmail.googleId !== googleUser.sub) {
-                    // The email is already bound to a different Google identity.
-                    // Refuse to silently re-link to avoid account takeover.
-                    return loginError(c, 'google_linked');
-                }
-                await db.update(users)
-                    .set({
-                        googleId: googleUser.sub,
-                        name: byEmail.name || googleUser.name,
-                        avatarUrl: byEmail.avatarUrl || googleUser.picture,
-                    })
-                    .where(eq(users.id, byEmail.id))
-                    .run();
-                existingUser = { ...byEmail, googleId: googleUser.sub };
+                return loginError(c, 'google_linked');
             }
         }
 
@@ -265,7 +256,7 @@ app.get('/login/google/callback', async (c) => {
         // here. Validate it's a same-origin path before honoring it (defense
         // against open-redirect via crafted cookie). Default to home.
         const stashed = getCookie(c, "post_login_redirect");
-        const safeTarget = stashed && stashed.startsWith('/') && !stashed.startsWith('//') ? stashed : '/';
+        const safeTarget = safeCustomerReturn(stashed);
         // Clear the one-shot redirect cookie regardless of whether it was used.
         setCookie(c, "post_login_redirect", "", { path: "/", maxAge: 0 });
 
@@ -274,6 +265,21 @@ app.get('/login/google/callback', async (c) => {
         console.error('Google OAuth callback error:', e);
         return loginError(c, 'google_failed');
     }
+});
+
+// The standalone mobile quote desk still authenticates with the legacy admin
+// header. Verify it without issuing a session or returning any credentials.
+app.post('/legacy-admin/check', async (c) => {
+    c.header('Cache-Control', 'no-store');
+    c.header('Vary', 'Cookie');
+    const invalidOrigin = customerWriteOrigin(c.req.raw);
+    if (invalidOrigin) return invalidOrigin;
+    const supplied = c.req.header('x-admin-token');
+    if (supplied && c.env.ADMIN_TOKEN && await timingSafeEqualText(supplied, c.env.ADMIN_TOKEN)) {
+        return c.json({ ok: true, legacyAdmin: true });
+    }
+    if ((await getSessionUser(c))?.role === 'admin') return c.json({ ok: true, legacyAdmin: false });
+    return c.json({ ok: false, code: 'access_denied' }, 401);
 });
 
 // GET /api/auth/me

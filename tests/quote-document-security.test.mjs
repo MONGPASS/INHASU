@@ -6,6 +6,8 @@ import { escapeDocumentText, documentUrl, documentImageAttribute, documentTextWi
 import { onRequestGet as download } from '../functions/api/file/[[key]].js';
 import { onRequestGet as diagnose } from '../functions/api/notify-test.js';
 import { onRequestGet as customerQuote } from '../functions/api/my/[token].js';
+import { requestSQLite } from './helpers/request-sqlite.mjs';
+import { customerIdentity } from './helpers/customer-session.mjs';
 
 test('고객 텍스트와 사진 속성의 태그·따옴표를 안전하게 표시한다', () => {
   assert.equal(escapeDocumentText('<img src=x onerror="alert(1)"> & \'고객\''), '&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; &#39;고객&#39;');
@@ -105,13 +107,13 @@ test('알림 진단 권한 실패는 발송하지 않고 설정 조회는 관리
   } finally { globalThis.fetch = original; }
 });
 
-test('공개 견적 링크는 서명 snapshot의 신원 정보도 마스킹하고 계약 원본은 보존한다', async () => {
+test('소유자가 연 견적 링크도 서명 snapshot의 신원 정보는 마스킹하고 계약 원본은 보존한다', async t => {
   const traveler = { nameKo: '합성 고객', passportName: 'SYNTHETIC CUSTOMER', birth: '1990-01-23', phone: '01012345678', passportNo: 'AB1234567', gender: '여성' };
   const snapshot = { name: '합성 고객', destination: '고비', travelers: [{ ...traveler }], contractInfo: { totalAmount: 1230000, note: '합성 특약' } };
   const raw = JSON.stringify({ name: '합성 고객', status: '예약확정', booking: { travelers: [{ ...traveler }], contract: { signedAt: '2026-10-14T00:00:00Z', signImg: 'private-signature-evidence', snapshot } } });
-  let writes = 0;
-  const DB = { prepare() { return { bind: () => ({ first: async () => ({ data: raw, status: '예약확정' }), run: async () => { writes++; } }) }; } };
-  const res = await customerQuote({ env: { DB }, params: { token: 'synthetic-customer-link-token' } });
+  const DB = requestSQLite(t,{id:'req-1',token:'synthetic-customer-link-token',...JSON.parse(raw)});
+  const customer = customerIdentity(DB,{resourceId:'req-1'});
+  const res = await customerQuote({ request:new Request('https://example.invalid/api/my/synthetic-customer-link-token',{headers:customer}), env: { DB }, params: { token: 'synthetic-customer-link-token' } });
   assert.equal(res.status, 200);
   const text = await res.text(); const body = JSON.parse(text);
   for (const secret of [traveler.birth, traveler.phone, traveler.passportNo, 'private-signature-evidence']) assert.ok(!text.includes(secret), secret);
@@ -121,5 +123,5 @@ test('공개 견적 링크는 서명 snapshot의 신원 정보도 마스킹하�
   assert.deepEqual(body.booking.contract.snapshot.travelers, body.booking.travelers);
   assert.deepEqual(body.booking.contract.snapshot.contractInfo, snapshot.contractInfo);
   assert.equal(JSON.parse(raw).booking.contract.snapshot.travelers[0].passportNo, traveler.passportNo);
-  assert.equal(writes, 0);
+  assert.equal(DB.requestWrites.length, 0);
 });

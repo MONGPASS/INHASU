@@ -1,13 +1,13 @@
 import { Hono } from 'hono';
 import { drizzle } from 'drizzle-orm/d1';
 import { reservations } from '../../src/db/schema/reservations';
-import { eq, desc, or, and, isNull } from 'drizzle-orm';
+import { eq, desc, and, isNull } from 'drizzle-orm';
 import { assignmentRecord, readProductVehicle, syncProductVehicle } from '../../src/utils/reservationAssignment';
 import { preserveProductCustomerEvidence, publicProductContract } from '../../src/utils/productContractSignature';
 import { initializeLucia } from '../lib/auth';
 import { getCookie } from 'hono/cookie';
 import { sendPayPalInvoice } from '../lib/paypal';
-import { getSessionUser } from '../lib/userAuth';
+import { customerSession, customerWriteOrigin, requireResourceAccess } from '../lib/customerAccess';
 import { sendEmail } from '../lib/mailer';
 import { tplAdminDepositReported } from './notifications/email';
 import { COMPANY_INFO } from '../../src/constants/company';
@@ -200,9 +200,6 @@ const oneLine = (value: unknown): string =>
         ? Array.from(value, (ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? ' ' : ch)).join('').replace(/\s+/g, ' ').trim()
         : '';
 
-const sameEmail = (a: unknown, b: unknown) =>
-    typeof a === 'string' && typeof b === 'string' && !!a.trim() && a.trim().toLowerCase() === b.trim().toLowerCase();
-
 const wonText = (n: number) => `${Math.round(n).toLocaleString('ko-KR')}원`;
 
 /** 담당자에게 입금 신고를 알린다: 관리자 메일 + 담당자 문자. 어느 쪽이 실패해도 예외를 던지지 않는다. */
@@ -251,17 +248,8 @@ async function notifyStaffOfDepositReport(env: Env, info: {
 
 // GET /api/reservations
 app.get('/', async (c) => {
-    const lucia = initializeLucia(c.env.DB);
-    const sessionId = getCookie(c, lucia.sessionCookieName);
-
-    if (!sessionId) {
-        return c.json({ error: "Unauthorized" }, 401);
-    }
-
-    const { session, user } = await lucia.validateSession(sessionId);
-    if (!session) {
-        return c.json({ error: "Unauthorized" }, 401);
-    }
+    const user = await customerSession(c.req.raw, c.env);
+    if (!user) return c.json({ ok: false, error: '로그인이 필요합니다.', code: 'login_required' }, 401);
 
     const db = drizzle(c.env.DB);
     let result;
@@ -269,12 +257,9 @@ app.get('/', async (c) => {
     if (user.role === 'admin') {
         result = await db.select().from(reservations).orderBy(desc(reservations.createdAt)).all();
     } else {
-        // Match by userId primarily, but also by customerEmail so guest-made
-        // reservations (userId=null) with the same email appear after login.
-        const conditions = user.email
-            ? or(eq(reservations.userId, user.id), eq(reservations.customerEmail, user.email))
-            : eq(reservations.userId, user.id);
-        result = await db.select().from(reservations).where(conditions).orderBy(desc(reservations.createdAt)).all();
+        // A shared e-mail address never grants access to another person's booking.
+        // Legacy reservations enter this list only after one-time verification links user_id.
+        result = await db.select().from(reservations).where(eq(reservations.userId, user.id)).orderBy(desc(reservations.createdAt)).all();
     }
 
     // Helper: safe JSON.parse
@@ -317,24 +302,14 @@ app.get('/', async (c) => {
 // GET /api/reservations/:id
 app.get('/:id', async (c) => {
     const id = c.req.param('id');
+    const denied = await requireResourceAccess(c.req.raw, c.env, 'reservation', id);
+    if (denied) return denied;
     const db = drizzle(c.env.DB);
     const result = await db.select().from(reservations).where(eq(reservations.id, id)).get();
 
     if (!result) return c.json({ error: 'Reservation not found' }, 404);
 
-    // 게스트 예약(userId=null)도 관리자 세션인지 확인해야 내부 운영 정보를 반환할 수 있다.
-    const user = await getSessionUser(c);
-    if (result.userId !== null) {
-        if (!user) return c.json({ error: "Unauthorized" }, 401);
-
-        // Same visibility as the list: the owner, or the account whose e-mail the booking carries.
-        const sameEmail = !!user.email && !!result.customerEmail
-            && user.email.trim().toLowerCase() === result.customerEmail.trim().toLowerCase();
-        if (user.role !== 'admin' && result.userId !== user.id && !sameEmail) {
-            return c.json({ error: "Forbidden" }, 403);
-        }
-    }
-    // If userId is null (guest reservation), allow public access since the UUID is practically unguessable.
+    const user = await customerSession(c.req.raw, c.env);
 
     const parsed = {
         ...reservationForRole(result, user?.role === 'admin'),
@@ -517,8 +492,10 @@ app.put('/:id', async (c) => {
 
 // POST /api/reservations — signed-in customers (booking flow) and admins (manual entry)
 app.post('/', async (c) => {
-    const user = await getSessionUser(c);
-    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    const user = await customerSession(c.req.raw, c.env);
+    if (!user) return c.json({ ok: false, error: '로그인이 필요합니다.', code: 'login_required' }, 401);
+    const originDenied = customerWriteOrigin(c.req.raw);
+    if (originDenied) return originDenied;
     const isAdmin = user.role === 'admin';
 
     const body = await c.req.json();
@@ -670,8 +647,8 @@ app.post('/', async (c) => {
 // POST /api/reservations/:id/deposit-report — 고객이 예약금을 입금했다고 알린다 (입금자명 정정 재신고 가능).
 // 예약 상태는 바꾸지 않는다: 담당자가 입금을 확인하고 관리 화면에서 '입금 확인'을 눌러야 확정된다.
 app.post('/:id/deposit-report', async (c) => {
-    const user = await getSessionUser(c);
-    if (!user) return c.json({ error: '로그인이 필요합니다.', code: 'UNAUTHORIZED' }, 401);
+    const denied = await requireResourceAccess(c.req.raw, c.env, 'reservation', c.req.param('id'), { write: true });
+    if (denied) return denied;
 
     let body: any = null;
     try { body = await c.req.json(); } catch { body = null; }
@@ -685,12 +662,6 @@ app.post('/:id/deposit-report', async (c) => {
         // SELECT * 는 deposit_report 컬럼이 아직 없어도 실패하지 않는다.
         const row: any = await c.env.DB.prepare('SELECT * FROM reservations WHERE id = ?').bind(id).first();
         if (!row) return c.json({ error: '예약을 찾을 수 없습니다.', code: 'NOT_FOUND' }, 404);
-
-        // 본인 예약(user_id)만. user_id 가 없는 예약은 예약자 이메일이 로그인 계정과 같아야 한다.
-        const isOwner = row.user_id ? row.user_id === user.id : sameEmail(row.customer_email, user.email);
-        if (user.role !== 'admin' && !isOwner) {
-            return c.json({ error: '본인의 예약만 입금 신고를 할 수 있습니다.', code: 'FORBIDDEN' }, 403);
-        }
 
         if (row.status === 'cancelled') {
             return c.json({ error: '취소된 예약은 입금 신고를 할 수 없습니다.', code: 'CANCELLED' }, 409);

@@ -38,6 +38,7 @@ export function MyTripsMobile({ tab }: { tab: TripsTab }) {
     const loading = !me || (tab === 'bookings' ? reservations.isPending : quotes.isPending);
 
     const go = (path: string) => {
+        if (/\.html(?:[?#]|$)/i.test(path)) { window.location.assign(path); return; }
         navigate(path);
         window.scrollTo(0, 0);
     };
@@ -71,6 +72,7 @@ export function MyTripsMobile({ tab }: { tab: TripsTab }) {
             </SubPageBar>
 
             <section style={{ background: M_PAPER, minHeight: '60vh', padding: '16px 16px 36px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {tab === 'quote' && <a href="/customer-link" onClick={event => { event.preventDefault(); go('/customer-link'); }} style={{ padding: '12px 14px', background: MW.mintBg, borderRadius: 12, color: MW.mintDeep, fontSize: 13, lineHeight: 1.7, fontWeight: 700, textDecoration: 'none' }}>예전에 받은 견적이 보이지 않나요? 기존 견적 연결 →</a>}
                 {loading ? (
                     <MLoading />
                 ) : tab === 'bookings' ? (
@@ -83,7 +85,7 @@ export function MyTripsMobile({ tab }: { tab: TripsTab }) {
                     <>
                         {quoteList.map((q) => (
                             // Same target as the PC list: a converted quote lives on as a reservation.
-                            <QuoteCard key={q.id} q={q} href={q.status === 'converted' ? '/mypage/reservations' : `/estimate/${q.id}`} go={go} />
+                            <QuoteCard key={q.id} q={q} href={q.href} go={go} />
                         ))}
                         <button
                             type="button"

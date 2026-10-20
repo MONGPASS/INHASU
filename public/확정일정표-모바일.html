@@ -79,13 +79,17 @@
 <button class="fab" id="fab" style="display:none" onclick="window.printSchedule ? window.printSchedule() : window.print()">📄 PDF 저장</button>
 
 <script type="module">
+import { requireCustomerDocumentAccess as requireCustomerAccess, requireAdminDocumentAccess, customerDocumentFetch } from "/customer-access.js";
 import { escapeDocumentText as escapeQuoteDocumentText, sanitizeDocumentHTML, documentUrl, documentImageAttribute, documentTextWithoutBreaks } from "/document-safe.js";
 import { loadProductItinerary, escapeDocumentText, productDocumentSections, paginateProductPages, productDocumentToolbar } from "/product-itinerary.js";
 /* ── 확정 일정표 출처: ?t=<token>이면 서버의 예약 확정 정보, 아니면 localStorage(편집기)/data.js 샘플 ── */
 const params = new URLSearchParams(location.search);
 const _token = params.get("t");
+if (_token) await requireCustomerAccess('request', _token);
+const customerFetch = (url, options) => customerDocumentFetch(url, options, { source: 'request', key: _token });
 const productParams = params;
 const productId = productParams.get("reservationId");
+if (!_token && !productId) await requireAdminDocumentAccess();
 let productError = "";
 
 /* PC 버전 링크(같은 파라미터 유지, 강제 PC = m=0) */
@@ -154,7 +158,7 @@ const Q = await (async () => {
   }
   if (_token) {
     try {
-      const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
+      const res = await customerFetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
       const j = await res.json();
       if (j.ok && j.booking) return buildConfirmedQuote(j);
     } catch (e) {}

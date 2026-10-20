@@ -71,6 +71,7 @@ export const QUOTE_STATUS: Record<string, { label: string; tone: BadgeTone }> = 
     reservation_requested: { label: '예약 요청 중', tone: TONE.tint },
     converted: { label: '예약 확정', tone: TONE.solid },
     completed: { label: '완료', tone: TONE.done },
+    paused: { label: '보류', tone: TONE.plain },
     cancelled: { label: '취소', tone: TONE.red },
 };
 

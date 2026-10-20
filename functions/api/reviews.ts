@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../lib/userAuth';
+import { requireResourceAccess } from '../lib/customerAccess';
 
 type Variables = { user: { id: string; name?: string; email?: string; avatarUrl?: string; role?: string } };
 
@@ -56,6 +57,8 @@ app.get('/', async (c) => {
 // the same reservation from being reviewed twice through the invitation flow.
 app.post('/reservation/:reservationId', requireAuth, async (c) => {
     const reservationId = c.req.param('reservationId');
+    const denied = await requireResourceAccess(c.req.raw, c.env, 'reservation', reservationId, { write: true });
+    if (denied) return denied;
     const data = await c.req.json();
     const db = c.env.DB;
     const sessionUser = c.get('user');
@@ -79,13 +82,6 @@ app.post('/reservation/:reservationId', requireAuth, async (c) => {
     }>();
 
     if (!reservation) return c.json({ error: 'Reservation not found' }, 404);
-
-    const sessionEmail = sessionUser.email?.trim().toLowerCase();
-    const reservationEmail = reservation.customer_email?.trim().toLowerCase();
-    const ownsReservation = sessionUser.role === 'admin'
-        || reservation.user_id === sessionUser.id
-        || (!!sessionEmail && !!reservationEmail && sessionEmail === reservationEmail);
-    if (!ownsReservation) return c.json({ error: 'Forbidden' }, 403);
 
     const endDate = reservation.end_date?.slice(0, 10) || '';
     const eligibleStatus = ['confirmed', 'paid', 'completed'].includes(reservation.status || '');

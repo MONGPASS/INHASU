@@ -54,7 +54,7 @@ const LoginDesktop: React.FC = () => {
         // Forward the original page (set by AuthGuard via location.state.from) to the
         // OAuth start endpoint so the callback can redirect the user back after login.
         // Only same-origin paths are accepted; other inputs fall back to "/".
-        window.location.href = googleLoginUrl(loginReturnPath(location.state));
+        window.location.href = googleLoginUrl(loginReturnPath(location.state, location.search));
     };
 
     return (

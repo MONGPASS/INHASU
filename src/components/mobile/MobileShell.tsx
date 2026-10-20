@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import logoSquare from '../../assets/logo_horizontal.webp';
 import { api } from '../../lib/api';
+import { clearCustomerSessionCache } from '../../lib/customerSessionCache';
+import { useUser } from '../../contexts/UserContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { BRAND, KAKAO_CHANNEL_CHAT_URL, KAKAO_CHANNEL_URL } from '../../constants/company';
 import { MW, MW_FONT, MW_FONT_EN, isUsableImage, won } from '../desktop-primitives/mwTokens';
@@ -118,6 +120,7 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
     const location = useLocation();
     const path = location.pathname;
     const queryClient = useQueryClient();
+    const { setUser } = useUser();
     const { unreadCount } = useNotification();
     const { data: me } = useMe();
     const logged = !!me;
@@ -236,9 +239,8 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
         } catch {
             // ignore
         }
-        queryClient.removeQueries({ queryKey: ['authMe'] });
-        queryClient.removeQueries({ queryKey: ['myPage'] });
-        queryClient.removeQueries({ queryKey: ['wishlistIds'] });
+        await clearCustomerSessionCache(queryClient);
+        setUser(null);
         go('/');
     };
 

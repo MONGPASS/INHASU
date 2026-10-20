@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { clearCustomerSessionCache } from '../../lib/customerSessionCache';
+import { useUser } from '../../contexts/UserContext';
 import { useHomeData } from '../../hooks/useHomeData';
 import { useWishlist } from '../../hooks/useWishlist';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -33,6 +35,7 @@ const MENU: Array<{ tab: MyTab; label: string; d: string; path: string }> = [
 export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { setUser } = useUser();
     const meQuery = useMe();
     const me = meQuery.data;
     const { reservations, quotes, mates, reviews, recent } = useMyPageData(me);
@@ -59,6 +62,7 @@ export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
     );
 
     const go = (path: string) => {
+        if (/\.html(?:[?#]|$)/i.test(path)) { window.location.assign(path); return; }
         navigate(path);
         window.scrollTo(0, 0);
     };
@@ -69,8 +73,8 @@ export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
         } catch {
             // ignore
         }
-        queryClient.removeQueries({ queryKey: ['authMe'] });
-        queryClient.removeQueries({ queryKey: ['myPage'] });
+        await clearCustomerSessionCache(queryClient);
+        setUser(null);
         navigate('/login');
     };
 

@@ -36,7 +36,7 @@ async function fixture(t) {
     raw.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, google_id TEXT, email TEXT, name TEXT, role TEXT, avatar_url TEXT, password_hash TEXT);
         CREATE TABLE sessions (id TEXT PRIMARY KEY, user_id TEXT, expires_at INTEGER);`);
     for (const [id, role] of [['admin', 'admin'], ['owner', 'user'], ['other', 'user']]) {
-        raw.prepare('INSERT INTO users (id,email,name,role) VALUES (?,?,?,?)').run(id, `${id}@example.invalid`, '로컬 테스트', role);
+        raw.prepare('INSERT INTO users (id,email,name,role,google_id) VALUES (?,?,?,?,?)').run(id, `${id}@example.invalid`, '로컬 테스트', role, role === 'user' ? `google-${id}` : null);
         raw.prepare('INSERT INTO sessions VALUES (?,?,?)').run(`test-${id}-session`, id, Date.now() + 86400000);
     }
     const insert = raw.prepare('INSERT INTO reservations (id,product_name,customer_name,customer_email,user_id,history,admin_operations,total_price) VALUES (?,?,?,?,?,?,?,?)');
@@ -84,26 +84,30 @@ test('관리자는 회원·게스트 예약 목록과 상세에서 운영 정보
     }
 });
 
-test('본인 회원과 이메일로 연결된 게스트 예약에도 내부 메모·영수증 번호를 노출하지 않는다', async t => {
+test('본인 예약에만 접근하고 같은 이메일의 미연결 게스트 예약을 자동으로 합치지 않는다', async t => {
     const { request } = await fixture(t);
     const list = await request('/', { role: 'owner' });
     assert.equal(list.status, 200);
     const rows = await list.json();
-    assert.equal(rows.length, 2);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].id, 'owned-booking');
     rows.forEach(noInternalData);
-    for (const path of ['/owned-booking', '/guest-booking']) {
+    for (const path of ['/owned-booking']) {
         const response = await request(path, { role: 'owner' });
         assert.equal(response.status, 200);
         noInternalData(await response.json());
     }
+    const unlinked = await request('/guest-booking', { role: 'owner' });
+    assert.equal(unlinked.status, 403);
+    assert.equal((await unlinked.json()).code, 'claim_required');
 });
 
-test('게스트 공개 링크·일반 타계정·유효하지 않은 세션에도 운영 정보 키를 제거한다', async t => {
+test('게스트 링크·일반 타계정·유효하지 않은 세션은 예약 조회를 허용하지 않는다', async t => {
     const { request } = await fixture(t);
     for (const options of [{}, { role: 'other' }, { headers: { cookie: 'auth_session=expired-session' } }]) {
         const response = await request('/guest-booking', options);
-        assert.equal(response.status, 200);
-        assert.equal(response.headers.get('cache-control'), 'private, no-store');
+        assert.equal(response.status, options.role ? 403 : 401);
+        assert.match(response.headers.get('cache-control'), /no-store/);
         noInternalData(await response.json());
     }
     assert.equal((await request('/owned-booking')).status, 401);
@@ -121,8 +125,7 @@ test('고객·게스트 조회는 관리자 메모만 숨기고 관리자와 DB�
     }
     const before = raw.prepare('SELECT id,history FROM reservations ORDER BY id').all();
     const visibleHistory = completeHistory.filter(entry => entry.type !== 'admin_memo');
-    for (const [path, options] of [['/', { role: 'owner' }], ['/owned-booking', { role: 'owner' }],
-        ['/guest-booking', { role: 'owner' }], ['/guest-booking', {}], ['/guest-booking', { role: 'other' }]]) {
+    for (const [path, options] of [['/', { role: 'owner' }], ['/owned-booking', { role: 'owner' }]]) {
         const response = await request(path, options);
         assert.equal(response.status, 200);
         const body = await response.json();
@@ -216,7 +219,9 @@ test('기존 예약의 빈 운영 정보와 손상된 JSON도 안전한 관리�
         const { adminOperations } = await response.json();
         assert.equal(adminOperations.joining, 'undecided');
         assert.deepEqual(adminOperations.receipt, { status: 'not_requested', number: '', issuedDate: '' });
-        noInternalData(await (await request('/guest-booking')).json());
+        const denied = await request('/guest-booking');
+        assert.equal(denied.status, 401);
+        noInternalData(await denied.json());
     }
 });
 

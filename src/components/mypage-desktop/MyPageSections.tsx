@@ -66,7 +66,7 @@ function QuoteRows({ quotes, go }: { quotes: MyQuote[]; go: Go }) {
                         title={q.destination ? `맞춤 견적 (${q.destination})` : '맞춤 견적'}
                         meta={[q.period, q.headcount, requested].filter(Boolean).join(' · ')}
                         badge={<Badge label={st.label} tone={st.tone} />}
-                        onClick={() => go(q.status === 'converted' ? '/mypage/reservations' : `/estimate/${q.id}`)}
+                        onClick={() => go(q.href)}
                     />
                 );
             })}
@@ -254,6 +254,7 @@ export function EstimatesSection({ quotes, loading, go }: { quotes: MyQuote[]; l
                     action={<button type="button" onClick={() => go('/custom-estimate')} style={mintBtn} {...mintHover}>+ 새로 요청하기</button>}
                 />
             </div>
+            <a href="/customer-link" onClick={event => { event.preventDefault(); go('/customer-link'); }} style={{ color: MW.mintDeep, fontSize: 13, lineHeight: 1.7, fontWeight: 700 }}>예전에 받은 견적이 보이지 않나요? 기존 견적 연결 →</a>
             {loading ? <Loading /> : quotes.length > 0 ? (
                 <QuoteRows quotes={quotes} go={go} />
             ) : (

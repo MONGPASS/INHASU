@@ -6,6 +6,7 @@ import { onRequestPost as createRequest } from '../functions/api/requests.js';
 import { onRequestPatch as patchRequest } from '../functions/api/requests/[id].js';
 import { onRequestPost as signRequest } from '../functions/api/sign/[token].js';
 import { requestSQLite } from './helpers/request-sqlite.mjs';
+import { customerIdentity } from './helpers/customer-session.mjs';
 
 const kinds = ['request_received','quote','reservation_requested','change_requested','deposit_requested','travelers_requested','contract','contract_signed','booking_confirmed','itinerary','travel_notice'];
 const config = { ADMIN_TOKEN:'local-admin', SOLAPI_API_KEY:'local-key', SOLAPI_API_SECRET:'local-secret', SOLAPI_PF_ID:'local-profile',
@@ -17,6 +18,7 @@ const booking = () => ({ days:[{ d:1, dest:'울란바토르', items:['공항 픽
   assign:{ guide:{name:'등록 가이드'},vehicle:{model:'등록 차량'},lodges:[{day:1,name:'등록 숙소'}] } });
 function fixture(t, record = basic(), options) {
   const DB = requestSQLite(t, record, options), env = { ...config, DB }, sent = [];
+  const customer = customerIdentity(DB, { resourceId:record?.id });
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, init) => {
     assert.equal(url, 'https://api.solapi.com/messages/v4/send');
@@ -29,15 +31,15 @@ function fixture(t, record = basic(), options) {
   const patch = (body, context = {}) => patchRequest({ request:new Request('https://local.example.invalid/api/requests/req-1', {
     method:'PATCH',headers:{'Content-Type':'application/json','x-admin-token':'local-admin'},body:JSON.stringify(body) }),env,params:{id:'req-1'},...context });
   const sign = (context = {}) => signRequest({ request:new Request('https://local.example.invalid/api/sign/' + record.token, {
-    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agree:true,signerName:'저장된 고객',signImg:'data:image/png;base64,' + 'A'.repeat(300)}) }),env,params:{token:record.token},...context });
-  return { DB,env,sent,patch,sign };
+    method:'POST',headers:{'Content-Type':'application/json',...customer},body:JSON.stringify({agree:true,signerName:'저장된 고객',signImg:'data:image/png;base64,' + 'A'.repeat(300)}) }),env,params:{token:record.token},...context });
+  return { DB,env,sent,patch,sign,customer };
 }
 
-test('비회원 정상 요청 저장 후 접수 안내 1건이며 관리자 silent 저장·honeypot·거절은 발송하지 않는다', async t => {
+test('Google 고객 요청 저장 후 접수 안내 1건이며 관리자 silent 저장·honeypot·거절은 발송하지 않는다', async t => {
   const f = fixture(t, null, {skipInsert:true});
   const body = {name:'새 고객',phone:'01098765432',email:'local@example.invalid',depart:'2026-11-01',return_:'2026-11-03',adult:2,agree:true,
     tripType:'맞춤',destination:'고비',cityStay:'호텔',gerStay:'게르',vehicle:'전용 차량(4인)',flightIssued:'미발권'};
-  const post = (data, admin = false) => createRequest({ request:new Request('https://local.example.invalid/api/requests', {method:'POST',headers:{'Content-Type':'application/json',...(admin?{'x-admin-token':'local-admin'}:{})},body:JSON.stringify(data)}),env:f.env });
+  const post = (data, admin = false) => createRequest({ request:new Request('https://local.example.invalid/api/requests', {method:'POST',headers:{'Content-Type':'application/json',...(admin?{'x-admin-token':'local-admin'}:f.customer)},body:JSON.stringify(data)}),env:f.env });
   const response = await post(body); assert.equal(response.status,200); const saved = await response.json();
   assert.deepEqual(f.sent.map(message=>message.kakaoOptions.templateId),['local-request_received']);
   assert.equal(f.sent[0].to,'01098765432'); assert.ok(f.sent[0].kakaoOptions.variables['#{링크}'].includes(saved.token));

@@ -9,6 +9,7 @@ import { onRequestPatch } from "../functions/api/requests/[id].js";
 import { onRequestPost as onSignPost } from "../functions/api/sign/[token].js";
 import { onRequestPost as guidebookCron } from "../functions/api/guidebook-reminders.js";
 import { requestSQLite } from './helpers/request-sqlite.mjs';
+import { customerIdentity } from './helpers/customer-session.mjs';
 
 const BASE_ENV = {
   SOLAPI_API_KEY:"api-key",
@@ -136,7 +137,11 @@ test("자동 발송은 서명 1건당 한 번, 수동 발송은 제한 없이 �
   assert.equal(shouldAutoSendTravelNotice(rec), false);
 });
 
-const mockDb = (t, record) => requestSQLite(t, { token:'token-1234567890123456', depart:'2026-08-18', ...record });
+const mockDb = (t, record) => {
+  const DB = requestSQLite(t, { token:'token-1234567890123456', depart:'2026-08-18', ...record });
+  customerIdentity(DB, { resourceId:record.id });
+  return DB;
+};
 
 const patchRequest = body => new Request("https://mongolia-milkyway.com/api/requests/req-1", {
   method:"PATCH",
@@ -211,7 +216,7 @@ test("알림톡 템플릿이 없으면 수동 발송이 이유와 함께 실패�
 const signDb = mockDb;
 
 const signRequest = () => new Request("https://mongolia-milkyway.com/api/sign/token-1234567890123456", {
-  method:"POST", headers:{ "Content-Type":"application/json" },
+  method:"POST", headers:{ "Content-Type":"application/json", cookie:'auth_session=customer-session-fixture-customer' },
   body:JSON.stringify({ agree:true, signImg:"data:image/png;base64," + "A".repeat(300), signerName:"홍길동" }),
 });
 

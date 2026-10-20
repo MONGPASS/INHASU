@@ -17,7 +17,7 @@ export async function onRequest(context) {
   headers.set("X-Frame-Options", "SAMEORIGIN");
   headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   const pathname = requestUrl.pathname;
-  if (/^\/api\/(file|my|documents|requests|admin|auth|reservations|travelers|sign|deposit)(?:\/|$)/.test(pathname)) {
+  if (/^\/api\/(file|my|documents|requests|admin|auth|customer-access|quotes|reservations|travelers|sign|deposit)(?:\/|$)/.test(pathname)) {
     headers.set("X-Robots-Tag", "noindex, nofollow");
   }
   // Keep cache headers only for successful public raster-image responses. This never

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { useAdminWorkspace } from '../components/admin/AdminWorkspaceContext';
+import { Admin3DIcon } from '../components/admin/Admin3DIcon';
 import { Icon } from '../components/admin/console/Icon';
 import type { AdminWorkspaceData, AdminWorkTask } from '../types/adminWorkspace';
 import { dashboardAvailability, dashboardDate, dashboardNumber, dashboardPeriod, dashboardStatusTone, dashboardTimestamp } from '../utils/adminDashboard';
@@ -34,18 +35,18 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
     const inquiries = data?.inquiries.filter(inquiry => inquiry.pending).slice(0, 5) || [];
     const tasks = data?.tasks.slice(0, 7) || [];
     const metricCards = [
-        { icon: 'today', tint: 'tint-blue', label: '오늘 신규 예약', value: metrics?.todayReservations, unit: '건', note: '한국시간 접수 · 상품 + 견적 예약' },
-        { icon: 'request_quote', tint: 'tint-purple', label: '답변 대기 견적', value: metrics?.newQuotes, unit: '건', note: '신규·작성 중·상담 중 문의' },
-        { icon: 'payments', tint: 'tint-amber', label: '입금 대기', value: metrics?.unpaidReservations, unit: '건', note: '상품 + 견적 예약' },
-        { icon: 'paid', tint: 'tint-green', label: '확정 매출', value: metrics?.confirmedSales, unit: '원', note: '확정·결제·완료 예약의 팀 전체 금액' },
-    ];
+        { icon: 'reservation', fallback: 'today', label: '오늘 신규 예약', value: metrics?.todayReservations, unit: '건', note: '한국시간 접수 · 상품 + 견적 예약' },
+        { icon: 'message', fallback: 'request_quote', label: '답변 대기 견적', value: metrics?.newQuotes, unit: '건', note: '신규·작성 중·상담 중 문의' },
+        { icon: 'payment', fallback: 'payments', label: '입금 대기', value: metrics?.unpaidReservations, unit: '건', note: '상품 + 견적 예약' },
+        { icon: 'achievement', fallback: 'paid', label: '확정 매출', value: metrics?.confirmedSales, unit: '원', note: '확정·결제·완료 예약의 팀 전체 금액' },
+    ] as const;
     const quickLinks = [
-        { title: '입금 신고 확인', note: '고객이 입금을 알린 예약', value: metrics?.depositReports, icon: 'account_balance', tint: 'tint-amber',
+        { title: '입금 신고 확인', note: '고객이 입금을 알린 예약', value: metrics?.depositReports, icon: 'payment', fallback: 'account_balance',
             href: data?.tasks.find(task => task.kind === 'deposit_report')?.href || '/admin/reservations' },
-        { title: '오늘 진행 중 투어', note: '여행 시작일·종료일 기준', value: metrics?.ongoingTours, icon: 'calendar_today', tint: 'tint-blue', href: '/admin/calendar' },
+        { title: '오늘 진행 중 투어', note: '여행 시작일·종료일 기준', value: metrics?.ongoingTours, icon: 'calendar', fallback: 'calendar_today', href: '/admin/calendar' },
         { title: '오늘 확인할 업무', note: availability.tasks ? '입금 · 계약 · 배정 · 견적' : '확인된 자료의 업무',
-            value: data && availability.tasks ? data.tasks.length : null, icon: 'task_alt', tint: 'tint-purple', href: data?.tasks[0]?.href || '/admin/reservations' },
-    ];
+            value: data && availability.tasks ? data.tasks.length : null, icon: 'reservation', fallback: 'task_alt', href: data?.tasks[0]?.href || '/admin/reservations' },
+    ] as const;
     return <div className={`stack route-anim ${styles.dashboard}`}>
         <div className={styles.refreshbar}>
             <div>
@@ -66,7 +67,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
 
         <section className={`metric-grid ${styles.metrics}`} aria-label="통합 운영 집계" aria-busy={initialLoading}>
             {metricCards.map(card => <div className="metric" key={card.label}>
-                <div className="metric-top"><span className={`metric-ico ${card.tint}`}><Icon name={card.icon} fill /></span></div>
+                <div className="metric-top"><span className={`metric-ico ${styles.artworkSlot}`}><Admin3DIcon name={card.icon} fallback={card.fallback} size={44} /></span></div>
                 <div className="metric-label">{card.label}</div>
                 <div className="metric-value" aria-label={`${card.label}: ${dashboardNumber(card.value)}${card.value != null ? card.unit : ''}`}>
                     {dashboardNumber(card.value)}{card.value != null && <small>{card.unit}</small>}
@@ -77,7 +78,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
 
         <section className={`grid-3 ${styles.quicklinks}`} aria-label="업무 바로가기">
             {quickLinks.map(link => <Link key={link.title} className={`qlink ${styles.quicklink}`} to={link.href}>
-                <span className={`qi ${link.tint}`}><Icon name={link.icon} fill /></span>
+                <span className={`qi ${styles.artworkSlot}`}><Admin3DIcon name={link.icon} fallback={link.fallback} size={40} /></span>
                 <span className="qtext"><span className="qt">{link.title}</span><span className="qs">{link.note}</span></span>
                 <span className="qv">{dashboardNumber(link.value)}</span><Icon name="chevron_right" className="arr" />
             </Link>)}

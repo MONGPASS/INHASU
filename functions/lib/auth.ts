@@ -1,8 +1,8 @@
 import { Lucia } from 'lucia';
 import { DrizzleSQLiteAdapter } from '@lucia-auth/adapter-drizzle';
 import { drizzle } from 'drizzle-orm/d1';
-import { users, sessions } from '../../src/db/schema/auth';
-import { D1Database } from '@cloudflare/workers-types';
+import { users, sessions } from '../../src/db/schema/auth.ts';
+import type { D1Database } from '@cloudflare/workers-types';
 
 // This function needs to be called within the request handler where we have access to Env
 export function initializeLucia(D1: D1Database) {

@@ -31,18 +31,19 @@ async function fixture(t) {
     raw.exec(`CREATE TABLE users(id TEXT PRIMARY KEY,google_id TEXT,email TEXT,name TEXT,role TEXT,avatar_url TEXT,password_hash TEXT);
         CREATE TABLE sessions(id TEXT PRIMARY KEY,user_id TEXT,expires_at INTEGER);
         INSERT INTO users(id,name,role) VALUES('admin','원본 확인 관리자','admin');
-        INSERT INTO users(id,name,role,email) VALUES('member','예약 고객','user','fixture@example.invalid');`);
+        INSERT INTO users(id,name,role,email,google_id) VALUES('member','예약 고객','user','fixture@example.invalid','google-member');`);
     raw.prepare('INSERT INTO sessions VALUES(?,?,?)').run('signature-admin', 'admin', Date.now() + 86400000);
     raw.prepare('INSERT INTO sessions VALUES(?,?,?)').run('signature-member', 'member', Date.now() + 86400000);
     raw.prepare('INSERT INTO products(id,name,included,excluded) VALUES(?,?,?,?)').run('tour-a', '서명 당시 상품', '["상품 포함"]', '["상품 불포함"]');
     raw.prepare(`INSERT INTO reservations(id,contract_data,document_content,product_id,product_name,start_date,end_date,total_price,deposit_amount,balance_amount,assigned_guide,daily_accommodations,status,travelers,customer_name,customer_phone,customer_email,created_at)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run('signature-booking', JSON.stringify({ agreement: { agreed: true, name: '기존 성명 동의', agreedAt: '2026-10-01T00:00:00Z' }, vehicle: { type: '등록 차량', phone: 'PRIVATE-DRIVER' }, extra: '보존' }),
         JSON.stringify({ documentSettings: { contract: { intro: '서명 당시 원문', includedText: '고객별 포함' } } }), 'tour-a', '서명 당시 상품', '2026-10-25', '2026-10-27', 3000000, 900000, 2100000, '{"name":"등록 가이드"}', '[{"day":1,"accommodation":{"name":"등록 숙소"}}]', 'confirmed', 1, '예약 고객', '01012345678', 'fixture@example.invalid', '2026-10-01');
+    raw.prepare('UPDATE reservations SET user_id=? WHERE id=?').run('member', 'signature-booking');
     const app = new Hono(); app.route('/documents', documents); app.route('/reservations', reservations);
     const request = async (method = 'GET', body, admin = false) => {
         if (body?.signature && body.signature.expectedRevision === undefined) body = { ...body, signature: { ...body.signature, expectedRevision: (await (await request()).json()).signatureRevision } };
         return app.request('/documents/contract/signature-booking' + (method === 'POST' ? '/customer' : ''), {
-        method, headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(admin ? { cookie: 'auth_session=signature-admin' } : {}), 'CF-Connecting-IP': 'PRIVATE-IP', 'User-Agent': 'PRIVATE-AGENT' }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        method, headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), cookie: admin ? 'auth_session=signature-admin' : 'auth_session=signature-member', 'CF-Connecting-IP': 'PRIVATE-IP', 'User-Agent': 'PRIVATE-AGENT' }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
         }, { DB, ENVIRONMENT: 'production' });
     };
     const reservationRequest = (method = 'GET', body, admin = true, path = '/signature-booking') => app.request('/reservations' + path, { method, headers: { ...(admin ? { cookie: 'auth_session=signature-' + (typeof admin === 'string' ? admin : 'admin') } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) }, { DB, ENVIRONMENT: 'production' });
@@ -123,7 +124,7 @@ test('고객이 서명한 뒤 오래 열린 관리자 차량 저장은 최신 �
     const saved = f.stored();
     for (const key of ['signature', 'travelers', 'arrival', 'departure', 'agreement', 'customerSubmittedAt']) assert.deepEqual(saved[key], actual[key], key);
     assert.equal(saved.vehicle.type, '새 차량'); assert.equal(saved.vehicle.phone, 'PRIVATE-NEW-DRIVER');
-    const guest = await f.reservationRequest('GET', undefined, false); assert.equal(guest.status, 200);
+    const guest = await f.reservationRequest('GET', undefined, false); assert.equal(guest.status, 401);
     const exposed = await guest.text(); assert.ok(!exposed.includes('data:image')); assert.ok(!exposed.includes('PRIVATE-')); assert.ok(!exposed.includes('snapshot'));
     const ownList = await f.reservationRequest('GET', undefined, 'member', ''); assert.equal(ownList.status, 200);
     const owned = await ownList.text(); assert.ok(!owned.includes('data:image')); assert.ok(!owned.includes('PRIVATE-')); assert.ok(!owned.includes('snapshot')); assert.ok(owned.includes('"hasImage":true'));

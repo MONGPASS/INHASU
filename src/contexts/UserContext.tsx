@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from '../lib/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { clearCustomerSessionCache } from '../lib/customerSessionCache';
 
 interface User {
     id: string;
@@ -19,6 +21,7 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const queryClient = useQueryClient();
     const [user, setUserState] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -49,14 +52,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const logout = async () => {
-        await api.auth.logout();
-        setUserState(null);
-        window.location.href = '/';
+        try { await api.auth.logout(); }
+        finally {
+            await clearCustomerSessionCache(queryClient);
+            setUserState(null);
+            window.location.href = '/';
+        }
     };
 
-    const setUser = (newUser: User | null) => {
+    const setUser = useCallback((newUser: User | null) => {
         setUserState(newUser);
-    };
+    }, []);
 
     return (
         <UserContext.Provider value={{ user, setUser, logout, loading }}>

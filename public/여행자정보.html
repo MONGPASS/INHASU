@@ -78,9 +78,12 @@
     <p class="mw-copy">© 2026 Mongolia Milky Way. All rights reserved.</p>
   </div>
 </footer>
-<script>
-(() => {
+<script type="module">
+import { requireCustomerDocumentAccess as requireCustomerAccess, customerDocumentFetch } from "/customer-access.js";
+await (async () => {
   const app=document.getElementById("app"), token=new URLSearchParams(location.search).get("t")||"";
+  if (token) await requireCustomerAccess('request', token);
+  const customerFetch = (url, options) => customerDocumentFetch(url, options, { source: 'request', key: token });
   const esc=s=>String(s??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c]));
   const fmt=d=>d?String(d).slice(0,10):"-";
   const showState=(icon,title,desc)=>app.innerHTML=`<section class="head state"><div class="icon">${icon}</div><h2>${esc(title)}</h2><div class="desc">${esc(desc)}</div><a class="back" href="내견적.html?t=${encodeURIComponent(token)}">내 견적으로 돌아가기</a></section>`;
@@ -116,7 +119,7 @@
   async function load(){
     if(!token) return showState("🔗","링크를 확인해 주세요","담당자에게 받은 고객 전용 링크로 접속해 주세요.");
     try{
-      const res=await fetch("/api/travelers/"+encodeURIComponent(token),{cache:"no-store"});
+      const res=await customerFetch("/api/travelers/"+encodeURIComponent(token),{cache:"no-store"});
       const j=await res.json(); if(!res.ok||!j.ok) throw new Error(j.error||"정보를 불러오지 못했습니다.");
       const current=Array.isArray(j.travelers)?j.travelers:[];
       const done=j.submission&&j.submission.status==="submitted";
@@ -132,7 +135,7 @@
     const pick=attr=>Object.fromEntries([...document.querySelectorAll(`[data-${attr}]`)].map(x=>[x.dataset[attr],x.value.trim()]));
     const flight=pick("f"), extra=pick("x");
     btn.disabled=true;btn.textContent="안전하게 저장하는 중…";
-    try{const res=await fetch("/api/travelers/"+encodeURIComponent(token),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({consent:true,travelers,flight,pickupLodge:extra.pickupLodge||"",travelerNote:extra.travelerNote||""})});const j=await res.json();if(!res.ok||!j.ok)throw new Error(j.error||"저장하지 못했습니다.");showState("✅","여행자 정보가 제출됐어요","담당자가 확인한 뒤 예약과 발권 절차를 이어서 진행합니다. 변경이 생기면 이 링크에서 다시 수정할 수 있습니다.");}
+    try{const res=await customerFetch("/api/travelers/"+encodeURIComponent(token),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({consent:true,travelers,flight,pickupLodge:extra.pickupLodge||"",travelerNote:extra.travelerNote||""})});const j=await res.json();if(!res.ok||!j.ok)throw new Error(j.error||"저장하지 못했습니다.");showState("✅","여행자 정보가 제출됐어요","담당자가 확인한 뒤 예약과 발권 절차를 이어서 진행합니다. 변경이 생기면 이 링크에서 다시 수정할 수 있습니다.");}
     catch(err){error.textContent=err.message||"잠시 후 다시 시도해 주세요.";btn.disabled=false;btn.textContent="여행자 정보 제출하기";error.scrollIntoView({behavior:"smooth",block:"center"});}
   }
   load();

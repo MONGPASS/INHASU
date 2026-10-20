@@ -61,9 +61,12 @@ location.replace("확정일정표.html" + location.search);
 <button class="fab" id="fab" style="display:none" onclick="window.print()">📄 PDF 저장</button>
 
 <script type="module">
+import { requireCustomerDocumentAccess as requireCustomerAccess, customerDocumentFetch } from "/customer-access.js";
 import { escapeDocumentText as escapeQuoteDocumentText, sanitizeDocumentHTML, documentUrl, documentImageAttribute, documentTextWithoutBreaks } from "/document-safe.js";
 const KAKAO = "https://pf.kakao.com/_BSLaxl";
 const _token = new URLSearchParams(location.search).get("t");
+if (_token) await requireCustomerAccess('request', _token);
+const customerFetch = (url, options) => customerDocumentFetch(url, options, { source: 'request', key: _token });
 const root = document.getElementById("root");
 const esc = escapeQuoteDocumentText;
 const rich = sanitizeDocumentHTML;
@@ -72,7 +75,7 @@ const noBr = s => rich(String(s ?? "").replace(/<br\s*\/?>/gi, " ").trim());
 const R = await (async () => {
   if (!_token) return null;
   try {
-    const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
+    const res = await customerFetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
     const j = await res.json();
     if (j.ok) return j;
   } catch (e) {}

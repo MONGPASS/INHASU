@@ -82,6 +82,7 @@ interface Reservation {
         departure?: { date?: string; time?: string; flight?: string };
         region?: string;
         category?: string;
+        vehicle?: Record<string, unknown>;
         issuedDate?: string;
         agreement?: { agreed?: boolean; name?: string; agreedAt?: string };
         customerSubmittedAt?: string;

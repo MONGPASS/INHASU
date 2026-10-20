@@ -3,6 +3,7 @@ import { api } from '../../lib/api';
 import { useToast } from '../ui/Toast';
 import { toTourDateKey } from '../../utils/formatDate';
 import { parseArr, paymentSummary, readBreakdown } from '../../utils/reservationDetail';
+import { safeCustomerReturnPath } from '../../../public/customer-access.js';
 
 export interface MeUser {
     id: string;
@@ -37,6 +38,8 @@ export interface MyQuote {
     period: string;
     headcount: string;
     createdAt: string;
+    href: string;
+    source: 'request' | 'quote';
 }
 
 export interface MyMatePost {
@@ -115,14 +118,13 @@ export function useMe() {
  */
 export function useMyPageData(me: MeUser | null | undefined) {
     const uid = me?.id;
-    const email = (me?.email || '').toLowerCase();
     const enabled = !!uid;
 
     const reservations = useQuery<MyReservation[]>({
         queryKey: ['myPage', 'reservations', uid],
         enabled,
         queryFn: async () => rows(await api.reservations.list())
-            .filter((r) => str(r, 'userId', 'user_id') === uid || (!!email && str(r, 'customerEmail', 'customer_email', 'email').toLowerCase() === email))
+            .filter((r) => str(r, 'userId', 'user_id') === uid)
             .map((r) => ({
                 id: str(r, 'id'),
                 number: str(r, 'reservationNumber', 'reservation_number'),
@@ -144,15 +146,13 @@ export function useMyPageData(me: MeUser | null | undefined) {
     const quotes = useQuery<MyQuote[]>({
         queryKey: ['myPage', 'quotes', uid],
         enabled,
-        queryFn: async () => rows(await api.quotes.list())
-            .filter((q) => str(q, 'userId', 'user_id') === uid && ['personal', 'custom', 'business'].includes(str(q, 'type')))
-            .map((q) => ({
-                id: str(q, 'id'),
-                status: str(q, 'status') || 'new',
-                destination: str(q, 'destination'),
-                period: str(q, 'period', 'travel_dates', 'travelDates'),
-                headcount: str(q, 'headcount', 'travelers'),
-                createdAt: str(q, 'createdAt', 'created_at'),
+        queryFn: async () => (await api.customerAccess.history()).items
+            .map((q): MyQuote => ({
+                ...q,
+                id: `${q.source}:${q.id}`,
+                status: ({ '신규': 'new', '견적발송': 'answered', '예약확정': 'converted', '상담중': 'processing', '진행중': 'processing', '완료': 'completed', '보류': 'paused', '취소': 'cancelled' } as Record<string, string>)[q.status] || q.status || 'new',
+                headcount: /^\d+$/.test(String(q.headcount)) ? Number(q.headcount) > 0 ? `${q.headcount}명` : '' : String(q.headcount || ''),
+                href: safeCustomerReturnPath(q.href),
             }))
             .sort(byNewest),
     });

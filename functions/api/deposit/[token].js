@@ -7,6 +7,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 import { notifyAdmin } from "../_solapi.js";
+import { requireResourceAccess } from "../../lib/customerAccess.ts";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -22,6 +23,8 @@ export async function onRequestPost(context) {
   try {
     const token = Array.isArray(params.token) ? params.token[0] : params.token;
     if (!token || String(token).length < 16) return json({ ok: false, error: "invalid token" }, 400);
+    const denied = await requireResourceAccess(request, env, "request", token, { write:true });
+    if (denied) return denied;
 
     let body = {};
     try { body = await request.json(); } catch (e) { body = {}; }

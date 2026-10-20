@@ -174,12 +174,14 @@
     </div>
   </footer>
 
-<script>
+<script type="module">
+  import { requireCustomerDocumentAccess as requireCustomerAccess, customerDocumentFetch } from "/customer-access.js";
   const KAKAO = "https://pf.kakao.com/_BSLaxl";
-  const IS_LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
   const card = document.getElementById("card");
   const token = new URLSearchParams(location.search).get("t");
+  if (token) await requireCustomerAccess('request', token);
+  const customerFetch = (url, options) => customerDocumentFetch(url, options, { source: 'request', key: token });
 
   const paxTxt = r => {
     const p = [];
@@ -245,12 +247,8 @@
     if (!token) return showError("올바른 접속 링크가 아닙니다. 담당자에게 받은 링크로 접속해 주세요.");
     let r;
     try {
-      if (IS_LOCAL) {
-        const item = JSON.parse(localStorage.getItem("leaders_requests") || "[]").find(x => x.token === token);
-        if (!item) return showError("존재하지 않거나 만료된 링크입니다.");
-        r = { ok:true, ...item };
-      } else {
-        const res = await fetch("/api/my/" + encodeURIComponent(token), { cache: "no-store" });
+      {
+        const res = await customerFetch("/api/my/" + encodeURIComponent(token), { cache: "no-store" });
         if (res.status === 404) return showError("존재하지 않거나 만료된 링크입니다.");
         if (!res.ok) throw new Error("http " + res.status);
         r = await res.json();
@@ -338,26 +336,8 @@
         reportBtn.disabled = true;
         reportBtn.textContent = "입금 확인 요청 중…";
 
-        if (IS_LOCAL) {
-          try {
-            const list = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
-            const idx = list.findIndex(x => x.token === token);
-            if (idx >= 0) {
-              const now = new Date().toISOString();
-              list[idx].booking = list[idx].booking || {};
-              list[idx].booking.depositReport = { status: "reported", name: trimmed, reportedAt: now };
-              list[idx].activities = list[idx].activities || [];
-              list[idx].activities.push({ at: now, type: "deposit_reported", detail: `고객이 예약금 입금 완료를 알림 (입금자명: ${trimmed})` });
-              localStorage.setItem("leaders_requests", JSON.stringify(list));
-            }
-          } catch(e) {}
-          alert("✓ 입금 확인 요청이 전달되었습니다. 담당자가 확인 후 안내해 드립니다.");
-          location.reload();
-          return;
-        }
-
         try {
-          const res = await fetch("/api/deposit/" + encodeURIComponent(token), {
+          const res = await customerFetch("/api/deposit/" + encodeURIComponent(token), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name: trimmed }),

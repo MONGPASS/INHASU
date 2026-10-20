@@ -21,6 +21,14 @@ export function requestSQLite(t, record, options = {}) {
       bind: (...bound) => statement(sql, bound),
       async first() { assertAvailable(); return raw.prepare(sql).get(...values) ?? null; },
       async all() { assertAvailable(); return { results: raw.prepare(sql).all(...values) }; },
+      async raw() { assertAvailable(); return raw.prepare(sql).all(...values).map(row => Object.values(row)); },
+      exec() {
+        assertAvailable();
+        if (/^\s*(SELECT|PRAGMA)/i.test(sql)) return { success:true, results:raw.prepare(sql).all(...values) };
+        const result = raw.prepare(sql).run(...values);
+        writes.push({ sql, values:[...values] });
+        return { success:true, meta:{ changes:Number(result.changes), last_row_id:Number(result.lastInsertRowid) } };
+      },
       async run() {
         assertAvailable();
         const result = raw.prepare(sql).run(...values);
@@ -32,6 +40,11 @@ export function requestSQLite(t, record, options = {}) {
   return {
     raw,
     prepare: sql => statement(sql),
+    async batch(statements) {
+      raw.exec('BEGIN');
+      try { const results = statements.map(statement => statement.exec()); raw.exec('COMMIT'); return results; }
+      catch (error) { raw.exec('ROLLBACK'); throw error; }
+    },
     get record() { return JSON.parse(raw.prepare('SELECT data FROM requests WHERE id=?').get(id).data); },
     get records() { return raw.prepare('SELECT data FROM requests ORDER BY received_at,id').all().map(row => JSON.parse(row.data)); },
     get deliveries() {

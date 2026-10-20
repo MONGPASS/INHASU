@@ -23,7 +23,7 @@ interface TableDef {
 }
 
 /** 표·칸 정의를 바꾸면 올린다. 올리면 각 서버 인스턴스가 한 번씩 다시 맞춘다. */
-export const SITE_SCHEMA_VERSION = 5;
+export const SITE_SCHEMA_VERSION = 6;
 
 /** Shared definition also used by legacy quote write routes outside the Hono middleware. */
 export const ADMIN_DELIVERY_TABLE: TableDef = {
@@ -37,8 +37,27 @@ export const ADMIN_DELIVERY_TABLE: TableDef = {
 
 const NOW = "DEFAULT (datetime('now'))";
 
+export const CUSTOMER_ACCESS_TABLES: TableDef[] = [
+    {
+        name: 'customer_resource_links',
+        columns: ['source TEXT NOT NULL', 'resource_id TEXT NOT NULL', 'user_id TEXT NOT NULL', 'created_at TEXT NOT NULL'],
+        constraints: ['PRIMARY KEY(source, resource_id)'],
+        indexes: ['CREATE INDEX IF NOT EXISTS idx_customer_resource_user ON customer_resource_links(user_id, source)'],
+    },
+    {
+        name: 'customer_link_challenges',
+        columns: ['id TEXT PRIMARY KEY', 'user_id TEXT NOT NULL', 'source TEXT NOT NULL', 'resource_id TEXT NOT NULL',
+            'resource_key TEXT NOT NULL', 'channel TEXT NOT NULL', 'contact_hash TEXT NOT NULL', 'code_hash TEXT NOT NULL',
+            'created_at INTEGER NOT NULL', 'expires_at INTEGER NOT NULL', 'attempts INTEGER NOT NULL DEFAULT 0',
+            'used_at INTEGER', 'ready INTEGER NOT NULL DEFAULT 0'],
+        indexes: ['CREATE INDEX IF NOT EXISTS idx_customer_challenge_resource ON customer_link_challenges(user_id, source, resource_id)'],
+    },
+    { name: 'customer_link_limits', columns: ['key TEXT PRIMARY KEY', 'window_start INTEGER NOT NULL', 'count INTEGER NOT NULL'] },
+];
+
 export const SITE_TABLES: TableDef[] = [
     ADMIN_DELIVERY_TABLE,
+    ...CUSTOMER_ACCESS_TABLES,
     {
         name: 'products',
         columns: [

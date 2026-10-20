@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
 import { Icon } from './console/Icon';
+import { Admin3DIcon } from './Admin3DIcon';
+import type { Admin3DIconName } from './Admin3DIcon';
 import { QUOTE_DESK_TOOLS, disconnectQuoteDesk, quoteDeskHref, quoteDeskPageId } from './quoteDesk';
 
 interface AdminSidebarProps {
@@ -28,6 +30,12 @@ interface NavGroup {
 }
 
 const dashboardItem: NavItem = { id: 'dashboard', icon: 'dashboard', label: '대시보드', href: '/admin' };
+
+const navArtwork: Record<string, Admin3DIconName> = {
+    dashboard: 'dashboard', 'booking-work': 'reservation', 'quote-work': 'idea',
+    'product-work': 'travel', 'assignment-work': 'customer', 'travel-material': 'route',
+    'customer-content': 'message', 'site-management': 'target',
+};
 
 const quoteItem = (key: string, label?: string): NavItem => {
     const tool = QUOTE_DESK_TOOLS.find((entry) => entry.key === key)!;
@@ -124,7 +132,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
         const isActive = activePage === item.id;
         return (
             <Link key={item.id} to={item.href} className={`nav-item${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined}>
-                <Icon name={item.icon} fill={isActive} />
+                {navArtwork[item.id] ? <Admin3DIcon name={navArtwork[item.id]} fallback={item.icon} size={28} className="admin-nav-art" /> : <Icon name={item.icon} fill={isActive} />}
                 <span>{item.label}</span>
             </Link>
         );
@@ -155,7 +163,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
                                 aria-controls={panelId}
                                 onClick={() => setExpandedGroup(isOpen ? null : group.id)}
                             >
-                                <Icon name={group.icon} fill={isCurrent} />
+                                <Admin3DIcon name={navArtwork[group.id]} fallback={group.icon} size={28} className="admin-nav-art" />
                                 <span>{group.label}</span>
                                 <svg className="nav-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                                     <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />

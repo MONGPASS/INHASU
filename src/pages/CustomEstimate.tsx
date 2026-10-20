@@ -10,7 +10,7 @@ import { SEO_CONSTANTS } from '../constants/seo';
 
 // 브랜드 접미(` | 몽골리아 은하수`)는 SEO 컴포넌트가 붙인다.
 const TITLE = '몽골 여행 맞춤 견적 요청';
-const DESCRIPTION = `인원·일정·가고 싶은 곳만 알려 주시면 몽골 현지 여행사 ${BRAND.name}가 24시간 이내에 맞춤 견적서를 준비해 카카오 알림톡으로 알려 드립니다. 회원가입 없이 무료로 요청하고, 전용 링크에서 견적 확인부터 예약까지 진행하세요.`;
+const DESCRIPTION = `인원·일정·가고 싶은 곳만 알려 주시면 몽골 현지 여행사 ${BRAND.name}가 24시간 이내에 맞춤 견적서를 준비해 카카오 알림톡으로 알려 드립니다. Google 로그인 후 무료로 요청하고, 마이페이지에서 견적 확인부터 예약까지 진행하세요.`;
 const KEYWORDS = `몽골 여행 견적, 몽골 맞춤 여행, 몽골 투어 견적, 몽골 프라이빗 투어, 몽골 자유여행, 고비사막 투어 견적, 홉스굴 여행 견적, ${BRAND.name}`;
 const PAGE_URL = `${SEO_CONSTANTS.SITE_URL}/custom-estimate`;
 

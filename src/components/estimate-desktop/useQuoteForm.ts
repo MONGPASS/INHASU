@@ -11,7 +11,7 @@ import { latestQuoteLink, saveQuoteLink } from './quoteLinks';
 /**
  * 견적 요청 폼의 상태 — PC·모바일 폼이 함께 쓴다.
  * 임시저장(sessionStorage) 복원, `?stay=` 프리필, 로그인 사용자 자동 채움, 첨부 업로드,
- * 제출(`POST /api/requests`) 후 완료 화면 이동까지 맡는다. 로그인 없이도 요청할 수 있다.
+ * 제출(`POST /api/requests`) 후 완료 화면 이동까지 맡는다. Google 로그인 후 요청할 수 있다.
  */
 export function useQuoteForm() {
     const navigate = useNavigate();
@@ -104,6 +104,11 @@ export function useQuoteForm() {
         const result = await submitQuote(form);
         if (!result.ok) {
             setSubmitting(false);
+            if (result.kind === 'login') {
+                saveQuoteDraft(form, fileState);
+                navigate('/login', { state: { from: window.location.pathname + window.location.search + window.location.hash } });
+                return;
+            }
             setError(result.message);
             return;
         }

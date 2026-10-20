@@ -133,7 +133,7 @@ test('v2 상품 표는 대표 명소 칸을 자동 추가하고 기존 판매 �
     const productBefore = db.raw.prepare('SELECT id,name,highlights FROM products').get();
     const documentBefore = db.raw.prepare('SELECT document_content FROM reservations').get().document_content;
     await siteSchemaReady(db);
-    assert.equal(SITE_SCHEMA_VERSION, 5);
+    assert.equal(SITE_SCHEMA_VERSION, 6);
     assert.equal(db.raw.prepare("SELECT v FROM schema_meta WHERE k = 'site'").get().v, String(SITE_SCHEMA_VERSION));
     assert.ok(columnsOf(db.raw, 'admin_delivery_attempts').includes('provider_id'));
     assert.deepEqual(db.raw.prepare('SELECT id,name,highlights FROM products').get(), productBefore);

@@ -9,6 +9,7 @@
 .metricNote { margin: 9px 0 0; color: var(--text-tertiary); font-size: 11px; line-height: 1.6; }
 .dashboard .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .dashboard .quicklinks { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dashboard .artworkSlot { background: #fff; }
 .quicklink { min-width: 0; text-decoration: none; }
 .quicklink :global(.qt), .quicklink :global(.qs) { display: block; }
 .dashboard .mainGrid { grid-template-columns: minmax(0, 1.6fr) minmax(350px, 1fr); align-items: start; }

@@ -19,6 +19,14 @@ jobs:
         run: node --test tests/*.test.mjs
       - name: Admin image integration
         run: node scripts/check-admin-media.mjs
+      - name: App type check
+        run: npx tsc --noEmit -p tsconfig.app.json
+      - name: Production build
+        run: npm run build
+      - name: Compile Pages Functions
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: npx wrangler pages functions build functions --outdir=work/ci-functions
       - name: Function syntax
         shell: bash
         run: |
