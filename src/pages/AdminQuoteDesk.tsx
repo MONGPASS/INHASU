@@ -407,7 +407,6 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
             : customerEditorLabels[activeSection] || customerEditorLabels.info;
     const customerModel = customerRecord ? { ...quoteCustomerWorkspaceModel(customerRecord),
         documentLabel: quoteCustomerIsBooking(customerRecord) ? '고객 문서 확인·전달' : '견적서 확인·전달',
-        documentHint: quoteCustomerIsBooking(customerRecord) ? '일정표·계약서를 확인한 뒤 전달 방법을 선택합니다.' : '견적서를 확인한 뒤 고객 안내와 공유를 진행합니다.',
         disabledActions: quoteCustomerIsBooking(customerRecord) ? [] : ['payments', 'assignments', 'operations'],
         disabledActionReason: '예약 진행 후 결제·배정·운영을 관리할 수 있습니다.',
         workLabels: { payments: '결제·영수증', operations: '운영·메모' },
@@ -462,12 +461,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                                 notificationActions={<CustomerKakaoActions key={`${accountId}:${bookingId}`} source="quote_booking" bookingId={bookingId!}
                                     revision={JSON.stringify([customerCheckedAt, customerRecord])} disabled={editorBusy || customerRefreshing || sendingKakao || editorDirty}
                                     disabledReason={editorDirty ? '편집 중인 내용을 먼저 저장한 뒤 고객에게 발송해 주세요.' : undefined}
-                                    beforeSend={canSendCustomerKakao} onBusyChange={setSendingKakao} onResult={() => setCustomerRefresh(value => value + 1)} onHistory={() => customerAction('history')} />}
-                                refreshControl={<div className="cw-refresh-control">
-                                <span role="status">{customerRefreshing ? '저장된 문의·견적 정보를 조회 중입니다.' : customerCheckedAt ? `마지막 조회 ${new Date(customerCheckedAt).toLocaleTimeString('ko-KR')}` : '아직 조회하지 않았습니다.'}</span>
-                                <button type="button" className="btn btn-ghost" disabled={editorBusy || customerRefreshing || sendingKakao} onClick={() => setCustomerRefresh(value => value + 1)}><Icon name="refresh" />문의·견적 정보 새로고침</button>
-                                <p className="cw-refresh-hint">고객이 제출한 정보와 저장된 견적·예약 상태를 다시 불러옵니다.</p>
-                            </div>} />
+                                    beforeSend={canSendCustomerKakao} onBusyChange={setSendingKakao} onResult={() => setCustomerRefresh(value => value + 1)} onHistory={() => customerAction('history')} />} />
                         </div> : !customerError && <div role="status" style={{ padding: 32 }}>고객 정보를 불러오는 중입니다.</div>}
                     </>}
                     {(!customerPage || customerRecord) && <div id={customerPage ? 'quote-customer-editor' : undefined} className={customerPage ? `quote-customer-editor-shell${editorExpanded ? ' is-expanded' : ''}` : undefined} inert={customerPage && !editorExpanded} aria-hidden={customerPage && !editorExpanded ? true : undefined} aria-labelledby={customerPage && editorExpanded ? 'quote-customer-editor-title' : undefined} style={customerPage ? undefined : { position: 'absolute', inset: 0 }}>

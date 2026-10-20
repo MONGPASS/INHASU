@@ -7,7 +7,6 @@ export interface CustomerWorkspaceOverviewModel {
     customerName: string; sourceLabel: string; bookingNumber?: string; statusLabel: string;
     bookedProduct?: { name: string; href?: string; image?: string };
     documentLabel?: string;
-    documentHint?: string;
     disabledActions?: string[];
     disabledActionReason?: string;
     workLabels?: Record<string, string>;
@@ -30,9 +29,9 @@ export interface CustomerWorkspaceOverviewModel {
     customerLinkAvailable?: boolean; canSendItinerary?: boolean;
 }
 
-export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, noteComposer, bookingSelector, assignmentEditor, refreshControl, notificationActions, directAssignments = false }: {
+export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, noteComposer, bookingSelector, assignmentEditor, notificationActions, directAssignments = false }: {
     model: CustomerWorkspaceOverviewModel; onAction: (action: string, id?: string) => void;
-    busy?: boolean; noteComposer?: ReactNode; bookingSelector?: ReactNode; assignmentEditor?: ReactNode; refreshControl?: ReactNode; notificationActions?: ReactNode; directAssignments?: boolean;
+    busy?: boolean; noteComposer?: ReactNode; bookingSelector?: ReactNode; assignmentEditor?: ReactNode; notificationActions?: ReactNode; directAssignments?: boolean;
 }) {
     const money = (value: number | null) => value === null || !Number.isFinite(value) ? '확인 필요' : `${value.toLocaleString('ko-KR')}원`;
     const progressKnown = m.payment.total !== null && Number.isFinite(m.payment.total) && m.payment.depositPaid !== null && m.payment.balancePaid !== null && (!m.payment.depositPaid || (m.payment.deposit !== null && Number.isFinite(m.payment.deposit))) && (!m.payment.balancePaid || (m.payment.balance !== null && Number.isFinite(m.payment.balance)));
@@ -69,8 +68,6 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
             </div>
             <div className="cw-header-actions">
                 <button type="button" className="cw-button cw-primary" disabled={busy} onClick={action('documents')}><Icon name="description" />{m.documentLabel || '고객 문서 확인·전달'}</button>
-                <p>{m.documentHint || '일정표·계약서의 미리보기·안내문 복사·발송을 선택합니다.'}</p>
-                {refreshControl && <div className="cw-overview-refresh">{refreshControl}</div>}
             </div>
         </header>
         {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}

@@ -63,7 +63,7 @@ test('상단 고객 문서는 확인·전달 영역만 열며 클릭 전이나 �
     assert.equal(buttons.length, 1);
     assert.equal(childrenText(buttons[0]), '고객 문서 확인·전달');
     assert.equal(buttons[0].props.disabled, false);
-    assert.match(childrenText(headerActions[0]), /일정표·계약서의 미리보기·안내문 복사·발송을 선택합니다\./);
+    assert.equal(elements(headerActions[0], node => node.type === 'p').length, 0);
     assert.deepEqual(calls, []);
     buttons[0].props.onClick();
     assert.deepEqual(calls, [['documents', undefined]]);
@@ -129,24 +129,6 @@ test('헤더에는 예약된 실제 상품 이름·이미지·공개 링크를 �
     assert.ok(childrenText(storedOnly).includes('연결된 상품을 확인해 주세요.'));
     const empty = renderToStaticMarkup(React.createElement(CustomerWorkspaceOverview, { model, onAction() {} }));
     assert.equal(empty.includes('cw-booked-product'), false);
-});
-
-test('수동 새로고침 슬롯은 한 번만 렌더하며 사용자 클릭으로만 전달된 콜백을 실행한다', () => {
-    const calls = [];
-    let refreshes = 0;
-    const refreshControl = React.createElement('button', { type: 'button', 'aria-label': '고객 제출·처리 내역 다시 불러오기', onClick: () => refreshes++ }, '처리 내역 새로고침');
-    const tree = CustomerWorkspaceOverview({ model, refreshControl, onAction: (...args) => calls.push(args) });
-    const slots = elements(tree, node => node.props.className === 'cw-overview-refresh');
-    assert.equal(slots.length, 1);
-    const buttons = elements(slots[0], node => node.type === 'button');
-    assert.equal(buttons.length, 1);
-    assert.equal(buttons[0], refreshControl);
-    renderToStaticMarkup(tree);
-    assert.equal(refreshes, 0);
-    assert.deepEqual(calls, []);
-    buttons[0].props.onClick();
-    assert.equal(refreshes, 1);
-    assert.deepEqual(calls, []);
 });
 
 test('현황은 실제 항공편·여행자 상세·시간별 활동·별도 안내·배정 숙소를 생략하거나 HTML로 실행하지 않는다',()=>{
