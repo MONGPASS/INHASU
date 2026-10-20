@@ -7,6 +7,7 @@ import { Icon } from '../components/admin/console/Icon';
 import { createPortal } from 'react-dom';
 import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
+import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
 import { customerWorkspaceReturnTo, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 import { loadQuoteCustomerRequest, quoteCustomerIsBooking, quoteCustomerWorkspaceModel } from '../utils/quoteCustomerWorkspace';
 import workspaceStyles from '../styles/reservation-workspace.css?inline';
@@ -99,6 +100,8 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const shownKeyRef = useRef(frameKey);
     const [editorNotice, setEditorNotice] = useState('');
     const [editorBusy, setEditorBusy] = useState(false);
+    const [sendingKakao, setSendingKakao] = useState(false);
+    const [editorDirty, setEditorDirty] = useState(false);
     const [showDeliveries, setShowDeliveries] = useState(false);
     const [bookingWorkspace, setBookingWorkspace] = useState<BookingWorkspaceState | null>(null);
     const [nativeHosts, setNativeHosts] = useState<{ bookingId: string; top: HTMLElement; navigation: HTMLElement; history: HTMLElement } | null>(null);
@@ -118,12 +121,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         catch { setEditorNotice('예약 화면을 새로고침한 뒤 다시 선택해 주세요.'); }
     };
     const flushFrame = useCallback(() => {
+        if (sendingKakao) return { ok: false, busy: true, error: '카카오 알림 발송이 끝난 뒤 이동해 주세요.' };
         try {
             const inner = frameRef.current?.contentWindow as EditorWindow | null;
             if (!inner || inner.location.origin !== window.location.origin) return { ok: true, busy: false };
             return inner.QuoteEditorState?.flushAll() || inner.InhasuQuoteInquiryWorkspace?.flushAll() || { ok: true, busy: false };
         } catch { return { ok: false, busy: false, error: '견적 편집 상태를 확인하지 못했습니다. 내용을 저장한 뒤 이동해 주세요.' }; }
-    }, []);
+    }, [sendingKakao]);
     const sendAccount = useCallback(() => {
         frameRef.current?.contentWindow?.postMessage({ type: 'inhasu-editor-account', version: 1,
             userId: user?.role === 'admin' ? user.id : '' }, window.location.origin);
@@ -138,6 +142,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                 if (customerPage && lastEditorBusy.current && !event.data.busy) setCustomerRefresh(value => value + 1);
                 lastEditorBusy.current = !!event.data.busy;
                 setEditorBusy(!!event.data.busy);
+                setEditorDirty(!!event.data.dirty);
                 const pending = pendingSectionRef.current;
                 if (pending) {
                     const inner = frameRef.current?.contentWindow as EditorWindow | null;
@@ -213,7 +218,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     useEffect(() => {
         if (!customerPage && bookingId && !quoteEditorId && ['bookings', 'inbox'].includes(toolParam || '')) navigate(quoteCustomerHref(bookingId, searchParams.has('returnTo') ? returnTo : quoteDeskHref(toolParam!)), { replace: true });
     }, [customerPage, bookingId, quoteEditorId, toolParam, returnTo, navigate, searchParams]);
-    useEffect(() => { setEditorExpanded(false); setEditorMountScope(''); setPendingSection(''); setCustomerEditor(null); overviewScrollRef.current = 0; lastEditorBusy.current = false; }, [customerPage, bookingId, accountId]);
+    useEffect(() => { setEditorExpanded(false); setEditorMountScope(''); setPendingSection(''); setCustomerEditor(null); setEditorDirty(false); overviewScrollRef.current = 0; lastEditorBusy.current = false; }, [customerPage, bookingId, accountId]);
     useEffect(() => {
         if (!customerPage) return;
         const refresh = () => setCustomerRefresh(value => value + 1);
@@ -367,7 +372,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         });
     };
     const customerAction = (action: string) => {
-        if (editorBusy || customerRefreshing) return;
+        if (editorBusy || customerRefreshing || sendingKakao) return;
         if (action === 'back') { navigate(returnTo); return; }
         if (!customerRecord) return;
         if (['customer-link', 'quote-preview', 'itinerary-preview'].includes(action)) {
@@ -408,6 +413,15 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         workLabels: { payments: '결제·영수증', operations: '운영·메모' },
     } : null;
     const customerCheckedAt = customerChecked?.accountId === accountId && customerChecked.id === bookingId ? customerChecked.at : '';
+    const canSendCustomerKakao = () => {
+        if (editorBusy || customerRefreshing || sendingKakao || customerEditorMounted && frameLoading) return false;
+        try {
+            const inner = frameRef.current?.contentWindow as EditorWindow | null;
+            const state = inner?.QuoteEditorState?.getState();
+            if (editorDirty || state?.dirty || state?.busy || state?.error) { setEditorNotice('편집 중인 내용을 먼저 저장한 뒤 고객에게 카카오 알림을 발송해 주세요.'); return false; }
+        } catch { setEditorNotice('편집 상태를 확인하지 못했습니다. 작업 화면에서 저장 상태를 확인해 주세요.'); return false; }
+        return true;
+    };
 
     return (
         <><AdminLayout
@@ -444,9 +458,14 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                     {customerPage && <>
                         {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 12, background: '#fff5e8' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
                         {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
-                            <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing} refreshControl={<div className="cw-refresh-control">
+                            <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao}
+                                notificationActions={<CustomerKakaoActions key={`${accountId}:${bookingId}`} source="quote_booking" bookingId={bookingId!}
+                                    revision={JSON.stringify([customerCheckedAt, customerRecord])} disabled={editorBusy || customerRefreshing || sendingKakao || editorDirty}
+                                    disabledReason={editorDirty ? '편집 중인 내용을 먼저 저장한 뒤 고객에게 발송해 주세요.' : undefined}
+                                    beforeSend={canSendCustomerKakao} onBusyChange={setSendingKakao} onResult={() => setCustomerRefresh(value => value + 1)} onHistory={() => customerAction('history')} />}
+                                refreshControl={<div className="cw-refresh-control">
                                 <span role="status">{customerRefreshing ? '저장된 문의·견적 정보를 조회 중입니다.' : customerCheckedAt ? `마지막 조회 ${new Date(customerCheckedAt).toLocaleTimeString('ko-KR')}` : '아직 조회하지 않았습니다.'}</span>
-                                <button type="button" className="btn btn-ghost" disabled={editorBusy || customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}><Icon name="refresh" />문의·견적 정보 새로고침</button>
+                                <button type="button" className="btn btn-ghost" disabled={editorBusy || customerRefreshing || sendingKakao} onClick={() => setCustomerRefresh(value => value + 1)}><Icon name="refresh" />문의·견적 정보 새로고침</button>
                                 <p className="cw-refresh-hint">고객이 제출한 정보와 저장된 견적·예약 상태를 다시 불러옵니다.</p>
                             </div>} />
                         </div> : !customerError && <div role="status" style={{ padding: 32 }}>고객 정보를 불러오는 중입니다.</div>}

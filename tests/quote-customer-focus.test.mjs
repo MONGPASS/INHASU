@@ -69,7 +69,7 @@ const actions = source.slice(source.indexOf('    const customerAction = '), sour
 const actionCode = (await transform(actions + '\nglobalThis.action = customerAction;', { loader: 'ts' })).code;
 function actionHarness(booked) {
     const calls = [];
-    const context = vm.createContext({ editorBusy: false, customerRefreshing: false, customerRecord: { token: 'local-test', quote: { days: [] } }, returnTo: '/admin/reservations',
+    const context = vm.createContext({ editorBusy: false, customerRefreshing: false, sendingKakao: false, customerRecord: { token: 'local-test', quote: { days: [] } }, returnTo: '/admin/reservations',
         navigate: href => calls.push(['navigate', href]), quoteCustomerIsBooking: () => booked,
         openCustomerEditor: (...args) => calls.push(['editor', ...args]), setEditorNotice: message => calls.push(['notice', message]),
         window: { open: () => assert.fail('Opening a work panel must not open a customer token link') } });
@@ -83,7 +83,7 @@ test('견적 예약 바로가기는 각 기존 업무를 열고 문서 확인은
     for (const [action, section] of Object.entries(expected)) {
         calls.length = 0; context.action(action); assert.deepEqual(calls, [['editor', 'bookings', section]]);
     }
-    for (const field of ['editorBusy', 'customerRefreshing']) {
+    for (const field of ['editorBusy', 'customerRefreshing', 'sendingKakao']) {
         context[field] = true; calls.length = 0;
         for (const action of Object.keys(expected)) context.action(action);
         assert.deepEqual(calls, []); context[field] = false;

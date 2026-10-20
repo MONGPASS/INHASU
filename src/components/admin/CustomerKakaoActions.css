@@ -1,0 +1,25 @@
+.cw-kakao { margin: 0 28px 24px; padding: 24px; border: 1px solid #deebe5; border-radius: 16px; background: #fff; }
+.cw-kakao > header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.cw-kakao-icon { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 12px; background: #fff5c7; color: #77652c; }
+.cw-kakao > header > div { flex: 1; min-width: 0; }
+.cw-kakao h3 { color: #243447; font-size: 15px; font-weight: 700; }
+.cw-kakao > header p { margin-top: 4px; font-size: 12px; color: #7a8794; overflow-wrap: anywhere; }
+.cw-kakao-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.cw-kakao-notice { display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid #e8ecf0; border-radius: 12px; background: #fcfdfd; min-width: 0; }
+.cw-kakao-notice > div { flex: 1; min-width: 0; }
+.cw-kakao h4 { color: #344356; font-size: 14px; font-weight: 650; }
+.cw-kakao-notice p { margin-top: 4px; color: #7b8794; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.cw-kakao-notice small { display: block; margin-top: 7px; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.cw-kakao-last { color: #708176; }
+.cw-kakao-reason, .cw-kakao-last.is-failed, .cw-kakao-last.is-unknown { color: #a16d37; }
+.cw-kakao-send { display: inline-flex; justify-content: center; align-items: center; gap: 6px; flex: 0 0 auto; min-height: 38px; padding: 8px 12px; border: 1px solid #e9d569; border-radius: 9px; background: #ffec91; color: #544511; font-size: 12px!important; font-weight: 650; }
+.cw-kakao-send:not(:disabled):hover { background: #ffe36a; border-color: #dbc04b; }
+.cw-kakao-send:disabled { background: #f2f4f6; color: #9aa5af; border-color: #e5e9ed; cursor: not-allowed; }
+.cw-kakao-send .material-symbols-outlined { font-size: 16px; }
+.cw-kakao-feedback { margin-bottom: 14px!important; border-radius: 10px; padding: 12px 14px; background: #edf8f2; color: #28765b; font-size: 13px; line-height: 1.7; }
+.cw-kakao-feedback.is-error { background: #fff6e9; color: #956332; }
+.cw-kakao-feedback button { margin-left: 12px; border: 0; background: none; text-decoration: underline; color: inherit; font: inherit; }
+.cw-kakao-blocked, .cw-kakao-loading { margin-bottom: 14px!important; color: #8c7350; font-size: 12px; line-height: 1.65; }
+.cw-kakao-hint { margin-top: 14px!important; color: #929ca6; font-size: 11px; line-height: 1.6; }
+@media(max-width:1100px) { .cw-kakao-notice { align-items: flex-start; flex-direction: column; gap: 12px; } .cw-kakao-send { align-self: flex-end; } }
+@media(max-width:700px) { .cw-kakao { margin: 0 16px 16px; padding: 16px; } .cw-kakao-list { grid-template-columns: minmax(0,1fr); } .cw-kakao-notice { align-items: center; flex-direction: row; } .cw-kakao > header { flex-wrap: wrap; } }

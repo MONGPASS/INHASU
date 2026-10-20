@@ -220,7 +220,7 @@ test('첫 조회 실패·권한 상실·다른 고객의 오류는 이전 고객
 
 test('예약 새로고침 중에는 편집·배정·전달 작업과 중복 새로고침을 잠근다', () => {
     const calls = [];
-    const context = { React: { useCallback: callback => callback }, refreshing: true, deliveryLock: { current: false }, updating: false, inlineBusy: false, operationsUiStatus: { busy: false }, inlineControlRef: { current: { isBusy: () => false, prepareLeave: () => { calls.push('draft-preserved'); return true; } } }, publishing: false, applyingTemplate: false, sendingItinerary: false, sendingContract: false, sendingAllDocs: false, isEditing: false, operationsDirty: false, quickAssignmentDirty: false, memoDraft: '', onRefresh: () => calls.push('fetch'), workspace: { published: true }, fullPage: true };
+    const context = { React: { useCallback: callback => callback }, refreshing: true, deliveryLock: { current: false }, updating: false, inlineBusy: false, operationsUiStatus: { busy: false }, inlineControlRef: { current: { isBusy: () => false, prepareLeave: () => { calls.push('draft-preserved'); return true; } } }, publishing: false, applyingTemplate: false, sendingItinerary: false, sendingContract: false, sendingAllDocs: false, sendingKakao: false, isEditing: false, operationsDirty: false, quickAssignmentDirty: false, memoDraft: '', onRefresh: () => calls.push('fetch'), workspace: { published: true }, fullPage: true };
     const busyStart = source.indexOf('    const workspaceIsBusy = '), busyEnd = source.indexOf('    useEffect(', busyStart);
     const refreshStart = source.indexOf('    const refreshWorkspace = '), refreshEnd = source.indexOf('    // 고객 전용 화면', refreshStart);
     const actionStart = source.indexOf('    const overviewAction = '), actionEnd = source.indexOf('\n\n    return (<>', actionStart);
@@ -231,6 +231,10 @@ test('예약 새로고침 중에는 편집·배정·전달 작업과 중복 새�
     assert.deepEqual(calls, [], 'the shared busy guard must return before any update, navigation, clipboard, or send action');
     context.refreshing = false; assert.equal(context.busy(), false); context.refresh();
     assert.deepEqual(calls, ['draft-preserved', 'fetch'], 'refresh preserves the pending document draft rather than saving or clearing it');
+    calls.length = 0; context.sendingKakao = true;
+    assert.equal(context.busy(), true); context.refresh();
+    for (const action of ['edit-itinerary', 'edit-info', 'documents', 'send-itinerary', 'customer-link']) context.action(action);
+    assert.deepEqual(calls, [], 'Kakao delivery uses the same lock as editing, refreshing, and email delivery');
 });
 
 test('요약 버튼들은 실제 기존 업무 제어에 연결되고 저장 중에는 어떤 동작도 실행하지 않는다', () => {

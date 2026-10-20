@@ -168,7 +168,7 @@ export function productCustomerOverview(r: any, days: any[], workflow: any, opti
         else if (options.itineraryReady && !workflow.published) tasks.push(canPublish
             ? { id: 'publish', label: '확정 일정표 확인·공개', detail: '일정은 작성되었으나 고객에게 공개되지 않았습니다.', action: 'documents', actionLabel: '공개·전달 관리' }
             : { id: 'publish-blocked', label: '일정표 공개 전 예약 상태 확인', detail: `현재 ${customerReservationStatus(r.status)} 상태입니다. 결제 완료·예약 확정·여행 완료 상태에서 공개할 수 있습니다.`, action: 'payments', actionLabel: '예약·입금 상태 확인' });
-        else if (workflow.published && !options.itinerarySent) tasks.push({ id: 'deliver-itinerary', label: '공개된 일정표 안내 전달', detail: '고객 공개는 완료되었으나 이메일 발송 기록이 없습니다.', action: 'documents', actionLabel: '일정표 전달 관리' });
+        else if (workflow.published && !options.itinerarySent) tasks.push({ id: 'deliver-itinerary', label: '공개된 일정표 안내 전달', detail: '고객 공개는 완료되었으나 안내 발송 접수 기록이 없습니다.', action: 'documents', actionLabel: '일정표 전달 관리' });
     }
     const steps = [{ id: 'accepted', label: '예약 접수', done: true }, { id: 'deposit', label: '예약금 확인', done: workflow.depositPaid },
         { id: 'contract', label: '계약 동의', done: workflow.signed }, { id: 'schedule', label: '일정 준비', done: options.itineraryReady },

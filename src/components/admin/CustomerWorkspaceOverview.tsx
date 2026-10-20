@@ -30,9 +30,9 @@ export interface CustomerWorkspaceOverviewModel {
     customerLinkAvailable?: boolean; canSendItinerary?: boolean;
 }
 
-export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, noteComposer, bookingSelector, assignmentEditor, refreshControl, directAssignments = false }: {
+export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, noteComposer, bookingSelector, assignmentEditor, refreshControl, notificationActions, directAssignments = false }: {
     model: CustomerWorkspaceOverviewModel; onAction: (action: string, id?: string) => void;
-    busy?: boolean; noteComposer?: ReactNode; bookingSelector?: ReactNode; assignmentEditor?: ReactNode; refreshControl?: ReactNode; directAssignments?: boolean;
+    busy?: boolean; noteComposer?: ReactNode; bookingSelector?: ReactNode; assignmentEditor?: ReactNode; refreshControl?: ReactNode; notificationActions?: ReactNode; directAssignments?: boolean;
 }) {
     const money = (value: number | null) => value === null || !Number.isFinite(value) ? '확인 필요' : `${value.toLocaleString('ko-KR')}원`;
     const progressKnown = m.payment.total !== null && Number.isFinite(m.payment.total) && m.payment.depositPaid !== null && m.payment.balancePaid !== null && (!m.payment.depositPaid || (m.payment.deposit !== null && Number.isFinite(m.payment.deposit))) && (!m.payment.balancePaid || (m.payment.balance !== null && Number.isFinite(m.payment.balance)));
@@ -98,6 +98,7 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                 <span className="cw-task-marker" aria-hidden="true" /><div><strong>{task.label}</strong>{task.detail && <p>{task.detail}</p>}{task.waiting && <span className="cw-task-waiting">고객 확인 대기</span>}</div>
                 <button type="button" className="cw-button" disabled={busy} onClick={action(task.action, task.id)}>{task.actionLabel || '내용 확인'}<Icon name="chevron_right" /></button>
             </div>)}</div>}
+            {notificationActions}
         </div>
         </section>
 

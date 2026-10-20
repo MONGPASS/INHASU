@@ -31,6 +31,7 @@ import { readReservationList, reservationListSearch, reservationExportRows, rese
 import { readProductVehicle } from '../utils/reservationAssignment';
 import { guideAssignmentConflicts, validAssignmentPeriod } from '../utils/assignmentAvailability';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
+import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
 import { CustomerVehicleAssignment } from '../components/admin/CustomerVehicleAssignment';
 import { customerProductReference } from '../utils/customerProductReference';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
@@ -419,6 +420,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const [sendingItinerary, setSendingItinerary] = useState(false);
     const [sendingContract, setSendingContract] = useState(false);
     const [sendingAllDocs, setSendingAllDocs] = useState(false);
+    const [sendingKakao, setSendingKakao] = useState(false);
     const deliveryLock = useRef(false);
     const deliveryKeys = useRef<Record<string, string>>({});
     const [deliveryRevision, setDeliveryRevision] = useState(0);
@@ -470,8 +472,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const approvedWorkspaceClose = useRef(false);
     const workspaceDecision = useRef<ReservationDraftNavigationDecision>({ blocked: false });
     const handledWorkspaceNavigation = useRef<string | null>(null);
-    const workspaceIsBusy = React.useCallback(() => refreshing || deliveryLock.current || updating || inlineBusy || operationsUiStatus.busy || !!inlineControlRef.current?.isBusy() || publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs,
-        [refreshing, updating, inlineBusy, operationsUiStatus.busy, publishing, applyingTemplate, sendingItinerary, sendingContract, sendingAllDocs]);
+    const workspaceIsBusy = React.useCallback(() => refreshing || deliveryLock.current || updating || inlineBusy || operationsUiStatus.busy || !!inlineControlRef.current?.isBusy() || publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs || sendingKakao,
+        [refreshing, updating, inlineBusy, operationsUiStatus.busy, publishing, applyingTemplate, sendingItinerary, sendingContract, sendingAllDocs, sendingKakao]);
     useEffect(() => { approvedWorkspaceClose.current = false; setNavigationNotice(''); }, [reservation?.id]);
     const workspaceBlocker = useBlocker(React.useCallback(({ currentLocation, nextLocation }) => {
         if (approvedWorkspaceClose.current) return false;
@@ -1361,7 +1363,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         return result;
     };
     const canStartDelivery = () => {
-        if (deliveryLock.current || updating || inlineBusy || publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs) return false;
+        if (workspaceIsBusy()) return false;
         if (inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty) { alert('작성 중인 내용이나 보관된 초안을 먼저 확인하고 저장한 뒤 고객에게 발송해 주세요.'); return false; }
         return true;
     };
@@ -1714,6 +1716,12 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         itineraryReady, itinerarySent, contractSent, itineraryChanged, contractChanged, deliveryHistory: recordedDelivery?.items,
     });
     overview.bookedProduct = bookedProduct;
+    const kakaoDirty = inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty;
+    const notificationActions = <CustomerKakaoActions key={reservation.id} source="product" bookingId={reservation.id}
+        revision={JSON.stringify([deliveryRevision, reservation])} disabled={workspaceIsBusy() || kakaoDirty}
+        disabledReason={kakaoDirty ? '변경사항과 보관된 초안을 먼저 저장한 뒤 고객에게 발송해 주세요.' : undefined}
+        beforeSend={canStartDelivery} onBusyChange={setSendingKakao} onResult={() => setDeliveryRevision(value => value + 1)}
+        onHistory={() => overviewAction('history')} />;
     const refreshHint = '고객 제출·결제·배정·문서의 저장된 정보를 다시 불러옵니다. 고객에게 발송하지 않습니다.';
     const refreshControl = <div className="cw-refresh-control">
         <button type="button" className="cw-text-button" title={refreshHint} disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()} aria-busy={refreshing} onClick={refreshWorkspace}><Icon name="refresh" />예약 정보 새로고침</button>
@@ -1804,7 +1812,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 {fullPage && <>
                     <div id="product-customer-overview" hidden={workflowOpen}>
                     {resumeWorkLabel && <div className="cw-resume-work"><div><strong>{resumeWorkLabel} 내용이 저장되지 않았습니다.</strong><span>입력한 내용을 이어서 확인하고 저장하세요.</span></div><button type="button" className="btn btn-ink" disabled={workspaceIsBusy()} onClick={() => setWorkflowOpen(true)}>{resumeWorkLabel} 이어서 하기<Icon name="arrow_forward" /></button></div>}
-                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} refreshControl={refreshControl} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
+                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} refreshControl={refreshControl} notificationActions={notificationActions} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
 
                     </div>
                 </>}

@@ -12,6 +12,16 @@ const model = {customerName:'합성 고객',sourceLabel:'상품 예약',bookingN
     payment:{total:0,deposit:0,balance:0,depositPaid:false,balancePaid:false},assignments:[{id:'guide',label:'가이드',value:'미배정',statusLabel:'배정 필요',state:'pending'}],
     steps:[{id:'request',label:'문의 접수',done:true},{id:'quote',label:'견적 준비',done:false,current:true}],tasks:[{id:'g',label:'가이드 배정이 필요합니다',action:'guide'}],canSendItinerary:false,customerLinkAvailable:true};
 
+test('카카오 발송 업무는 지금 할 일 안에서 한 번 표시되고 실제 클릭 전에 발송하지 않는다', () => {
+    let sent = 0;
+    const notificationActions = React.createElement('section', { 'aria-label': '고객 카카오 알림 발송' }, React.createElement('button', { type: 'button', onClick: () => sent++ }, '카카오 발송'));
+    const tree = CustomerWorkspaceOverview({ model, notificationActions, onAction() {} });
+    const task = elements(tree, node => node.props.className === 'cw-task-card')[0];
+    const groups = elements(task, node => node.props['aria-label'] === '고객 카카오 알림 발송');
+    assert.equal(groups.length, 1); renderToStaticMarkup(tree); assert.equal(sent, 0);
+    elements(groups[0], node => node.type === 'button')[0].props.onClick(); assert.equal(sent, 1);
+});
+
 function elements(tree, predicate) {
     const found = [];
     const visit = node => {

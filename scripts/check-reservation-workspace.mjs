@@ -1,5 +1,5 @@
 // Actual Hono/Lucia/D1-shaped SQLite routes for local reservation workspace QA.
-// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--customer-workspace] [--port=8796]
+// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--customer-workspace] [--customer-notices] [--port=8796]
 // Uses only synthetic, in-memory data; never reaches a live delivery or storage service.
 import { build } from 'esbuild';
 import { DatabaseSync } from 'node:sqlite';
@@ -30,6 +30,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('--port
 const localOrigin = `http://localhost:${port}`;
 const usability = process.argv.includes('--usability');
 const customerWorkspace = process.argv.includes('--customer-workspace');
+const customerNotices = process.argv.includes('--customer-notices');
 const draftStoragePrefixes = ['inhasu:admin-product-draft:', 'inhasu:admin-reservation-doc-draft:', 'inhasu:quote-editor:',
     'inhasu:admin-magazine-draft:', 'inhasu:admin-assignment:'];
 const draftStorageFaultSource = `(function(){const originalSetItem=Storage.prototype.setItem;const prefixes=${JSON.stringify(draftStoragePrefixes)};Storage.prototype.setItem=function(key,value){if(prefixes.some(prefix=>String(key).startsWith(prefix)))throw new DOMException('Local draft storage fault','QuotaExceededError');return originalSetItem.call(this,key,value);};})();`;
@@ -54,6 +55,7 @@ import quotes from '../../functions/api/quotes';
 import bookings from '../../functions/api/admin-bookings';
 import workspace from '../../functions/api/admin-workspace';
 import deliveries from '../../functions/api/admin-deliveries';
+import customerNotices from '../../functions/api/admin-customer-notices';
 import assignments from '../../functions/api/admin-assignments';
 import categories from '../../functions/api/categories';
 import magazines from '../../functions/api/magazines';
@@ -73,6 +75,7 @@ const app = new Hono().basePath('/api');
 app.route('/auth', auth); app.route('/reservations', reservations); app.route('/products', products);
 app.route('/quotes', quotes); app.route('/admin/bookings', bookings); app.route('/documents', documents);
 app.route('/admin/workspace', workspace); app.route('/admin/deliveries', deliveries); app.route('/categories', categories);
+app.route('/admin/customer-notices', customerNotices);
 app.route('/admin/assignments', assignments); app.route('/magazines', magazines); app.route('/banners', banners);
 app.route('/site-upload', upload); app.route('/images', images);
 app.route('/itinerary-templates', templates); app.route('/tour-guides', guides);
@@ -143,11 +146,28 @@ const BUCKET = {
 const env = { DB, BUCKET, ENVIRONMENT: 'production', ADMIN_TOKEN: 'local-workspace-quote-fixture',
     RESEND_API_KEY: 'local-stub-key', ADMIN_EMAIL: 'admin@example.invalid', PAYPAL_ENABLED: 'false' };
 
-// Never delegate to the real fetch. Local mail success/failure is deterministic;
-// every other outbound request fails closed and cannot reach a live service.
+// Never delegate to the real fetch. Local mail and opt-in Kakao outcomes are
+// deterministic; every other request fails closed and cannot reach a live service.
 const outbound = [];
-globalThis.fetch = async input => {
+globalThis.fetch = async (input, options = {}) => {
     const url = String(input instanceof Request ? input.url : input);
+    if (customerNotices && url === 'https://api.solapi.com/messages/v4/send') {
+        const body = JSON.parse(options.body || '{}'), message = body.message || {};
+        assert.equal(message.kakaoOptions?.disableSms, true, 'The local notification fixture never accepts an SMS fallback');
+        assert.ok(String(message.kakaoOptions?.templateId || '').startsWith('local-notice-'));
+        outbound.push({ provider: 'local-kakao-stub', templateId: message.kakaoOptions.templateId });
+        if (fs.existsSync(path.join(scratch, 'kakao-slow'))) await new Promise(resolve => setTimeout(resolve, 1500));
+        if (fs.existsSync(path.join(scratch, 'kakao-unavailable'))) return Response.json({ errorMessage: 'Local Kakao provider response unavailable' }, { status: 503 });
+        if (fs.existsSync(path.join(scratch, 'kakao-rejected'))) return Response.json({ failedMessageList: [{ statusCode: 'LOCAL-REJECTED', statusMessage: 'Local synthetic rejection' }] }, { status: 422 });
+        return Response.json({ groupId: `local-kakao-${outbound.filter(item => item.provider === 'local-kakao-stub').length}`, statusCode: '2000' });
+    }
+    if (customerNotices && /^https:\/\/api\.solapi\.com\/kakao\/v[12]\/templates\?limit=100$/.test(url)) {
+        return Response.json({ templateList: ['quote', 'contract', 'itinerary', 'guidebook'].map(kind => ({
+            templateId: `local-notice-${kind}`, name: `로컬 ${kind} 알림`, status: 'APPROVED', pfId: 'local-notice-profile',
+            content: '#{고객명}님, #{회사명}의 로컬 검증용 안내입니다. #{링크}',
+            buttons: [{ buttonType: 'WL', buttonName: '로컬 고객 문서 확인', linkMo: 'https://example.invalid/#{링크}', linkPc: 'https://example.invalid/#{링크}' }],
+        })) });
+    }
     if (url !== 'https://api.resend.com/emails') throw new Error('로컬 검증에서 외부 접속을 차단했습니다.');
     outbound.push({ provider: 'local-email-stub' });
     const status = fs.existsSync(path.join(scratch, 'mail-unavailable')) ? 503 : 200;
@@ -1110,6 +1130,79 @@ if (customerWorkspace) {
     assert.equal(outbound.length, 0);
     console.log('고객 통합 작업 데이터 검증 통과: 예약 전 문의 · 견적 발행/미예약 · 동일 계정 상품 예약 2건 · 다른 계정 동명이인 · 상품/견적/이전 견적 같은 ID · 이전 견적 저장 일정·0원 · 상담 메모/권한/고객 링크 보존');
 }
+
+if (customerNotices) {
+    assert.ok(customerWorkspace && usability, '--customer-notices requires --usability --customer-workspace');
+    // These deliberately fake values exist only inside this in-memory server.
+    // The global fetch above has no path to a real provider, even on rejection.
+    Object.assign(env, {
+        SOLAPI_API_KEY: 'local-customer-notice-key', SOLAPI_API_SECRET: 'local-customer-notice-secret',
+        SOLAPI_PF_ID: 'local-notice-profile', SOLAPI_TEMPLATE_QUOTE_ID: 'local-notice-quote',
+        SOLAPI_TEMPLATE_CONTRACT_ID: 'local-notice-contract', SOLAPI_TEMPLATE_ITINERARY_ID: 'local-notice-itinerary',
+        SOLAPI_TEMPLATE_GUIDEBOOK_ID: 'local-notice-guidebook', SOLAPI_DISABLE_SMS: 'Y',
+        SITE_URL: localOrigin,
+    });
+    // Prepare saved, published documents directly in the fixture database. No
+    // publishing endpoint or automatic notification runs while starting QA.
+    raw.prepare('UPDATE reservations SET document_content=?,itinerary_url=? WHERE id=?')
+        .run(JSON.stringify(savedDocument), `${localOrigin}/documents/itinerary/workspace-customer-other`, 'workspace-customer-other');
+    const readyQuote = JSON.parse(raw.prepare('SELECT data FROM requests WHERE id=?').get('workspace-quote').data);
+    readyQuote.booking = { ...readyQuote.booking, publishStatus: 'published', publishedAt: '2026-10-19T04:00:00Z' };
+    raw.prepare('UPDATE requests SET data=? WHERE id=?').run(JSON.stringify(readyQuote), readyQuote.id);
+    for (const [source, id, kinds] of [
+        ['product', 'workspace-customer-other', ['contract', 'itinerary', 'travel_notice']],
+        ['quote_booking', 'workspace-quote', ['quote', 'contract', 'itinerary', 'travel_notice']],
+    ]) {
+        const route = `/api/admin/customer-notices/${source}/${id}`;
+        assert.equal((await apiRequest(route)).status, 401);
+        assert.equal((await apiRequest(route, { headers: owner })).status, 403);
+        const calls = outbound.length;
+        const response = await apiRequest(route, { headers: admin });
+        assert.equal(response.status, 200);
+        const state = await response.json();
+        assert.deepEqual(state.notices.map(item => item.kind), kinds);
+        assert.ok(state.notices.every(item => item.available), JSON.stringify(state.notices));
+        assert.equal(state.recipient.phone, '***-****-0000');
+        assert.equal(outbound.length, calls, 'Reading notification availability must not dispatch anything');
+    }
+    // Smoke-test provider acceptance and idempotent receipt persistence on
+    // disposable clones. Main UI fixtures retain no cooldown or prior attempt.
+    const smokeProductId = 'workspace-notice-product-smoke';
+    const productClone = { ...raw.prepare('SELECT * FROM reservations WHERE id=?').get('workspace-customer-other'),
+        id: smokeProductId, reservation_number: 'LOCAL-NOTICE-SMOKE', user_id: null,
+        customer_name: '로컬 알림 검증 고객', customer_email: 'notice-smoke@example.invalid' };
+    const productColumns = Object.keys(productClone);
+    raw.prepare(`INSERT INTO reservations (${productColumns.join(',')}) VALUES (${productColumns.map(() => '?').join(',')})`)
+        .run(...productColumns.map(column => productClone[column]));
+    const smokeQuote = { ...structuredClone(readyQuote), id: 'workspace-notice-quote-smoke',
+        token: 'local-notice-quote-smoke-token', name: '로컬 견적 알림 검증 고객', email: 'quote-notice-smoke@example.invalid' };
+    raw.prepare('INSERT INTO requests (id,received_at,name,phone,destination,status,data,token) VALUES (?,?,?,?,?,?,?,?)')
+        .run(smokeQuote.id, smokeQuote.receivedAt, smokeQuote.name, smokeQuote.phone, smokeQuote.destination,
+            smokeQuote.status, JSON.stringify(smokeQuote), smokeQuote.token);
+    const smokeCalls = outbound.filter(item => item.provider === 'local-kakao-stub').length;
+    for (const [source, id] of [['product', smokeProductId], ['quote_booking', smokeQuote.id]]) {
+        const route = `/api/admin/customer-notices/${source}/${id}`;
+        const body = { kind: 'contract', idempotencyKey: `local-notice-smoke-${source}` };
+        const response = await write(route, 'POST', body, { ...admin, Origin: localOrigin });
+        assert.equal(response.status, 200);
+        const receipt = await response.json();
+        assert.equal(receipt.state, 'accepted'); assert.equal(receipt.ok, true);
+        assert.match(receipt.providerId, /^local-kakao-\d+$/);
+        const calls = outbound.length;
+        const repeated = await write(route, 'POST', body, { ...admin, Origin: localOrigin });
+        assert.equal(repeated.status, 200); assert.equal((await repeated.json()).duplicate, true);
+        assert.equal(outbound.length, calls, 'Retrying the same dispatch key must not call the provider');
+        const ledger = await (await apiRequest(`/api/admin/deliveries?source=${source}&id=${id}`, { headers: admin })).json();
+        assert.ok(ledger.items.some(item => item.id === receipt.id && item.state === 'accepted' && item.providerId === receipt.providerId));
+        const state = await (await apiRequest(route, { headers: admin })).json();
+        assert.equal(state.notices.find(item => item.kind === 'contract').lastAttempt.state, 'accepted');
+        raw.prepare('DELETE FROM admin_delivery_attempts WHERE source=? AND booking_id=?').run(source, id);
+    }
+    raw.prepare('DELETE FROM reservations WHERE id=?').run(smokeProductId);
+    raw.prepare('DELETE FROM requests WHERE id=?').run(smokeQuote.id);
+    assert.equal(outbound.filter(item => item.provider === 'local-kakao-stub').length - smokeCalls, 2);
+    console.log('고객 카카오 알림 검증 통과: 상품·견적 GET 발송 가능 · POST 모의 접수 2건 · 동일 키 중복 차단 · 발송 이력 재조회 · 실제 외부 접속 0건');
+}
 console.log('예약 작업 API 검증 통과: 실제 로그인/견적 계정 · 견적 POST/PATCH/재조회 · 상품/견적 발송 이력·v5 문서 버전 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 계정별 예약/견적 초안 복원/충돌 · 상품·예약·견적·매거진·배정 초안 저장 실패 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 배정 버전 충돌/서명·여행자 보존/기사 연락처 보호 · 실제 이미지 업로드/조회 · 배너·카테고리 부분 수정/순서/매거진 공개 · 외부 발송 차단');
 
 if (process.argv.includes('--serve')) {
@@ -1122,7 +1215,7 @@ if (process.argv.includes('--serve')) {
     };
     const server = http.createServer(async (req, res) => {
         try {
-            const url = new URL(req.url, localOrigin);
+            const url = new URL(req.url, `http://${req.headers.host || `localhost:${port}`}`);
             if (url.pathname === '/__local-admin') {
                 res.writeHead(302, { Location: '/admin/reservations', 'Set-Cookie': `${admin.cookie}; Path=/; HttpOnly; SameSite=Lax; Secure`, 'Cache-Control': 'no-store' });
                 res.end(); return;
@@ -1145,6 +1238,7 @@ if (process.argv.includes('--serve')) {
                     ['category-save-unavailable', url.pathname.startsWith('/api/categories') && writeMethod],
                     ['magazines-unavailable', url.pathname.startsWith('/api/magazines')],
                     ['assignments-unavailable', url.pathname.startsWith('/api/admin/assignments')],
+                    ['customer-notices-unavailable', url.pathname.startsWith('/api/admin/customer-notices/') && !writeMethod],
                 ];
                 const fault = faults.find(([name, applies]) => applies && fs.existsSync(path.join(scratch, name)));
                 let response;
@@ -1155,8 +1249,12 @@ if (process.argv.includes('--serve')) {
                 } else if (url.pathname === '/api/__local-metrics') {
                     const who = await apiRequest('/api/auth/me', { headers: req.headers });
                     const session = await who.json();
-                    response = session.user?.role === 'admin' ? Response.json({ emailStubCalls: outbound.length, liveCalls: 0 }) : Response.json({ error: 'Unauthorized' }, { status: 401 });
-                } else response = await apiRequest(url.pathname + url.search, options);
+                    response = session.user?.role === 'admin' ? Response.json({
+                        emailStubCalls: outbound.filter(item => item.provider === 'local-email-stub').length,
+                        kakaoStubCalls: outbound.filter(item => item.provider === 'local-kakao-stub').length,
+                        liveCalls: 0,
+                    }) : Response.json({ error: 'Unauthorized' }, { status: 401 });
+                } else response = await apiRequest(url.toString(), options);
                 res.writeHead(response.status, { ...Object.fromEntries(response.headers), 'Cache-Control': 'no-store' });
                 res.end(Buffer.from(await response.arrayBuffer())); return;
             }
