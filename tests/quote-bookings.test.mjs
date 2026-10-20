@@ -57,6 +57,13 @@ test('목록에는 고객 토큰·서명 원본·여권 정보를 보내지 않�
     assert.ok(!JSON.stringify(row).includes('PRIVATE-'));
 });
 
+test('통합 캘린더 충돌 검사에 실제 배정 차량 ID를 보존하고 모델명으로 ID를 추정하지 않는다', () => {
+    const saved = summarizeQuoteBooking(booking({ booking: { assign: { vehicle: { id: 'registered-vehicle-a', model: '하이에이스', driverPhone: 'fixture-phone' } } } }));
+    assert.deepEqual(saved.contractData.vehicle, { id: 'registered-vehicle-a', type: '하이에이스', phone: 'fixture-phone' });
+    const unnamedId = summarizeQuoteBooking(booking({ booking: { assign: { vehicle: { model: '하이에이스' } } } }));
+    assert.equal(unnamedId.contractData.vehicle.id, '');
+});
+
 test('requests의 최신 상태를 사용하고 깨진 한 건은 집계하며 원본 데이터는 수정하지 않는다', async () => {
     const raw = new DatabaseSync(':memory:');
     raw.exec(fs.readFileSync(new URL('../schema.sql', import.meta.url), 'utf8'));

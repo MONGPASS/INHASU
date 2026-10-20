@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useBlocker, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { AdminDeliveryHistory } from '../components/admin/AdminDeliveryHistory';
 import type { AdminDeliveryData } from '../types/adminDelivery';
@@ -10,6 +10,7 @@ import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
 import { customerWorkspaceReturnTo, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
+import { consumedCalendarWorkspaceSearch, readCalendarWorkspaceAction } from '../utils/calendarWorkspaceAction';
 import { loadQuoteCustomerRequest, quoteCustomerIsBooking, quoteCustomerWorkspaceModel } from '../utils/quoteCustomerWorkspace';
 import workspaceStyles from '../styles/reservation-workspace.css?inline';
 import nativeWorkspaceStyles from '../styles/quote-booking-workspace.css?inline';
@@ -52,6 +53,8 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const activeAccount = useRef(accountId); activeAccount.current = accountId;
     const { tool: toolParam, id: customerId } = useParams<{ tool?: string; id?: string }>();
     const [searchParams] = useSearchParams();
+    const workspaceLocation = useLocation();
+    const calendarActionRequest = useRef<{ key: string; scope: string; consumed: boolean } | null>(null);
     const returnTo = customerWorkspaceReturnTo(searchParams.get('returnTo'), customerPage ? '/admin/quote-desk/inbox' : '/admin/reservations?type=quote_booking');
     const bookingId = customerPage ? customerId : ['bookings', 'inbox', 'builder'].includes(toolParam || '') ? searchParams.get('id') || undefined : undefined;
     const quoteEditorId = toolParam === 'inbox' ? searchParams.get('qe') || undefined : undefined;
@@ -418,6 +421,25 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         workLabels: { payments: '결제·영수증', operations: '운영·메모' },
     } : null;
     const customerCheckedAt = customerChecked?.accountId === accountId && customerChecked.id === bookingId ? customerChecked.at : '';
+    useEffect(() => {
+        const action = readCalendarWorkspaceAction(workspaceLocation.search);
+        if (!customerPage || !action || !linked || !customerRecord || !bookingId || customerRefreshing || editorBusy || sendingKakao || editorDirty) return;
+        const scope = JSON.stringify([accountId, bookingId]);
+        const key = JSON.stringify([scope, workspaceLocation.key, action]);
+        if (calendarActionRequest.current?.key === key) return;
+        const state = flushFrame();
+        if (state.busy || !state.ok) return;
+        calendarActionRequest.current = { key, scope, consumed: false };
+        customerAction(action);
+    }, [customerPage, linked, customerRecord, bookingId, accountId, customerRefreshing, editorBusy, sendingKakao, editorDirty, workspaceLocation, flushFrame, customerAction]);
+    useEffect(() => {
+        const request = calendarActionRequest.current;
+        if (!request || request.consumed || request.scope !== JSON.stringify([accountId, bookingId]) || !readCalendarWorkspaceAction(workspaceLocation.search)) return;
+        // A successful existing iframe navigate callback clears pendingSection.
+        if (!editorExpanded || !customerEditorMounted || !frameIsMounted || frameLoading || pendingSection || editorBusy || sendingKakao) return;
+        request.consumed = true;
+        navigate({ pathname: workspaceLocation.pathname, search: consumedCalendarWorkspaceSearch(workspaceLocation.search), hash: workspaceLocation.hash }, { replace: true });
+    }, [accountId, bookingId, workspaceLocation, editorExpanded, customerEditorMounted, frameIsMounted, frameLoading, pendingSection, editorBusy, sendingKakao, navigate]);
     const canSendCustomerKakao = () => {
         if (editorBusy || customerRefreshing || sendingKakao || customerEditorMounted && frameLoading) return false;
         try {

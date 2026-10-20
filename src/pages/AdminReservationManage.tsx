@@ -37,6 +37,7 @@ import { customerProductReference } from '../utils/customerProductReference';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
 import { productWorkspaceReservation, legacyWorkspaceReservation, productCustomerOverview, sameAccountProductBookings } from '../utils/productCustomerWorkspace';
 import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref, customerWorkspaceReturnTo } from '../utils/customerWorkspaceRoutes';
+import { consumedCalendarWorkspaceSearch, readCalendarWorkspaceAction } from '../utils/calendarWorkspaceAction';
 import '../styles/product-customer-workspace.css';
 import '../styles/customer-workspace-editor.css';
 import '../styles/reservation-itinerary-designer.css';
@@ -394,6 +395,10 @@ const StatusDropdown = ({ status, onChange, disabled = false }: { status: string
 
 const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, updating = false, refreshing = false, refreshedAt, refreshError, products = [], fullPage = false, bookingSelector }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation, silent?: boolean) => Promise<boolean>, onRefresh: () => void, updating?: boolean, refreshing?: boolean, refreshedAt?: string, refreshError?: string, products?: ProductSummary[], fullPage?: boolean, bookingSelector?: React.ReactNode }) => {
     const { user, loading: userLoading } = useUser();
+    const workspaceLocation = useLocation();
+    const workspaceNavigate = useNavigate();
+    const calendarActionHandler = useRef<((action: string) => void) | null>(null);
+    const handledCalendarAction = useRef('');
     const inlineControlRef = useRef<ReservationInlineEditorControl | null>(null);
     const docDraftSourceRef = useRef<ReservationDraftSnapshot | null>(null);
     const [docDraftPending, setDocDraftPending] = useState(false);
@@ -602,6 +607,17 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     useEffect(() => {
         setEditForm(reservation);
     }, [reservation]);
+
+    useEffect(() => {
+        const action = readCalendarWorkspaceAction(workspaceLocation.search);
+        if (!fullPage || !action || userLoading || user?.role !== 'admin' || !reservation?.id || editForm?.id !== reservation.id || !calendarActionHandler.current) return;
+        if (workspaceIsBusy() || isEditing || inlineDirty || operationsDirty || quickAssignmentDirty || docDraftPending || memoDraft.trim()) return;
+        const key = JSON.stringify([user.id, reservation.id, workspaceLocation.key, action]);
+        if (handledCalendarAction.current === key) return;
+        handledCalendarAction.current = key;
+        calendarActionHandler.current(action);
+        workspaceNavigate({ pathname: workspaceLocation.pathname, search: consumedCalendarWorkspaceSearch(workspaceLocation.search), hash: workspaceLocation.hash }, { replace: true });
+    }, [fullPage, userLoading, user?.role, user?.id, reservation?.id, editForm?.id, workspaceLocation, workspaceNavigate, workspaceIsBusy, isEditing, inlineDirty, operationsDirty, quickAssignmentDirty, docDraftPending, memoDraft]);
 
     if (!reservation || !editForm) return null;
 
@@ -1814,6 +1830,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         const section = { payments: 'pay', assignments: 'assign', operations: 'ops', guide: 'assign', stay: 'assign', vehicle: 'ops', history: 'log', notes: 'log', documents: 'docs' }[action] as 'pay' | 'assign' | 'ops' | 'log' | 'docs' | undefined;
         if (section) scrollToSec(section);
     };
+    calendarActionHandler.current = overviewAction;
 
     return (<>
         <div className={fullPage ? `product-customer-page${workflowOpen ? ' cw-is-working' : ''}` : 'drawer-scrim reservation-workspace-scrim'} onClick={fullPage ? undefined : closeWorkspace}>

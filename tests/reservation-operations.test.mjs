@@ -57,6 +57,30 @@ const noInternalData = (value) => {
     assert.ok(!JSON.stringify(value).includes('fixture-driver-private'));
 };
 
+test('확정·여행 완료 상태를 입금 증빙으로 삼지 않고 누락된 입금 상태는 알 수 없음으로 반환한다', async t => {
+    const { raw, request } = await fixture(t);
+    for (const [status, deposit, balance, expected] of [
+        ['confirmed', null, null, ['unknown', 'unknown']],
+        ['completed', '', '', ['unknown', 'unknown']],
+        ['confirmed', 'unpaid', 'unpaid', ['unpaid', 'unpaid']],
+        ['pending_payment', 'paid', 'paid', ['paid', 'paid']],
+    ]) {
+        raw.prepare('UPDATE reservations SET status=?,deposit_status=?,balance_status=? WHERE id=?').run(status, deposit, balance, 'owned-booking');
+        for (const role of ['admin', 'owner']) for (const path of ['/', '/owned-booking']) {
+            const response = await request(path, { role });
+            assert.equal(response.status, 200);
+            const body = await response.json(), row = Array.isArray(body) ? body.find(item => item.id === 'owned-booking') : body;
+            assert.deepEqual([row.depositStatus, row.balanceStatus], expected, `${role} ${path} ${status}`);
+        }
+        const updated = await request('/owned-booking', { role: 'admin', method: 'PUT', body: { notes: '합성 관리자 메모' } });
+        assert.equal(updated.status, 200);
+        const row = await updated.json();
+        assert.deepEqual([row.depositStatus, row.balanceStatus], expected);
+        const persisted = raw.prepare('SELECT deposit_status,balance_status FROM reservations WHERE id=?').get('owned-booking');
+        assert.deepEqual([persisted.deposit_status, persisted.balance_status], [deposit, balance]);
+    }
+});
+
 test('상세 문서 저장은 공개 배정 플래그를 숫자로 저장하고 금액·잔금도 함께 유지한다', async t => {
     const { raw, request } = await fixture(t);
     const document = { name: '고객 일정', days: [{ day: 1, title: '도착', activities: [{ time: '09:30', title: '픽업' }] }] };

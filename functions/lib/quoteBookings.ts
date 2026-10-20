@@ -85,7 +85,7 @@ export function summarizeQuoteBooking(rec: any) {
                 bookingStatus: text(l.bookingStatus), roomCount: text(l.roomCount), roomType: text(l.roomType) },
         })),
         contractData: { region: text(ci.region),
-            vehicle: { type: text(assign.vehicle?.model ?? assign.vehicle?.type), phone: text(assign.vehicle?.phone ?? assign.vehicle?.driverPhone) },
+            vehicle: { id: text(assign.vehicle?.id), type: text(assign.vehicle?.model ?? assign.vehicle?.type), phone: text(assign.vehicle?.phone ?? assign.vehicle?.driverPhone) },
             arrival: { date: text(flight.inDate), time: text(flight.inTime), flight: text(flight.inNo) },
             departure: { date: text(flight.outDate), time: text(flight.outTime), flight: text(flight.outNo) } },
     };
