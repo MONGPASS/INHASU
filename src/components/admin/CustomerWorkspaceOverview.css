@@ -85,33 +85,6 @@ a.cw-booked-product:hover { border-color: #9bd6c5; background: #fbfefd; }
 .cw-journey .is-current .cw-step-copy > span { font-weight: 750; }
 .cw-journey .is-current .cw-step-copy > small { color: #00866f; }
 .cw-journey .is-current .cw-step-dot { background: var(--cw-green); color: white; box-shadow: 0 0 0 5px #e8f7f1; }
-.cw-task-card { border-top: 1px solid #e8edf0; background: #fff; overflow: hidden; }
-.cw-next-task { display: flex; align-items: center; gap: 14px; padding: 18px 24px; }
-.cw-task-symbol { display: grid; place-items: center; flex: 0 0 36px; height: 36px; background: #e9f7f1; border-radius: 11px; color: #00866f; }
-.cw-task-symbol .material-symbols-outlined { font-size: 24px; }
-.cw-task-copy { flex: 1; min-width: 0; }
-.cw-task-copy > div { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
-.cw-task-copy strong { font-size: 13px; color: #34826f; }
-.cw-task-copy p { margin-top: 3px; color: #333d4b; font-weight: 650; font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
-.cw-task-count { color: #7b8793; font-size: 12px; }
-.cw-task-disclosure { margin: 0 24px 12px 74px; }
-.cw-task-disclosure > summary { display: flex; align-items: center; gap: 8px; width: fit-content; min-height: 32px; color: #6b7684; cursor: pointer; font-size: 12px; list-style: none; }
-.cw-task-disclosure > summary::-webkit-details-marker { display: none; }
-.cw-task-disclosure > summary .material-symbols-outlined { font-size: 17px; transition: transform .15s; }
-.cw-task-disclosure[open] > summary .material-symbols-outlined { transform: rotate(180deg); }
-.cw-task-disclosure > summary:focus-visible { outline: 2px solid #00a890; outline-offset: 4px; border-radius: 4px; }
-.cw-task-disclosure-hint { color: #9aa5af; }
-.cw-task-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 28px; margin: 8px 0 0; padding: 0 0 6px; border-top: 1px solid #e8edf0; }
-.cw-task-item { display: grid; grid-template-columns: 5px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 16px 0; min-width: 0; border-bottom: 1px solid #dfeee6; }
-.cw-task-item:nth-last-child(-n+2) { border-bottom: 0; }
-.cw-task-item > div { min-width: 0; }
-.cw-task-item strong { display: block; color: #294d40; font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
-.cw-task-item p { margin-top: 4px; color: #647d72; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
-.cw-task-item > .cw-button { min-height: 36px; padding: 7px 10px; font-size: 12px; background: #ffffffb3; border-color: #d6e7dd; }
-.cw-task-marker { width: 5px; height: 5px; border-radius: 50%; background: #00a487; }
-.cw-task-item.is-waiting .cw-task-marker { background: #aab5ad; }
-.cw-task-waiting { display: inline-block; margin-top: 6px; color: #7b817c; font-size: 11px; }
-.cw-task-list .material-symbols-outlined { font-size: 16px; }
 .cw-columns { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(380px, 1.5fr) minmax(320px, 1.1fr); gap: var(--cw-space); align-items: start; }
 .cw-column { display: flex; flex-direction: column; gap: var(--cw-space); min-width: 0; }
 .cw-card { padding: 24px; min-width: 0; background: white; border: 1px solid #e2e8ee; border-radius: 20px; box-shadow: 0 3px 14px #19242e03; }
@@ -355,15 +328,6 @@ a.cw-booked-product:hover { border-color: #9bd6c5; background: #fbfefd; }
     .cw-step-copy { gap: 3px; }
     .cw-step-copy > small { font-size: 11px; }
     .cw-step-dot { z-index: 1; }
-    .cw-next-task { flex-wrap: wrap; gap: 12px; padding: 20px; }
-    .cw-next-task > .cw-button { margin-left: 56px; min-height: 42px; }
-    .cw-task-copy { flex-basis: calc(100% - 56px); }
-    .cw-task-copy p { font-size: 16px; }
-    .cw-task-disclosure { margin: 0 20px 12px; }
-    .cw-task-disclosure-hint { display: none; }
-    .cw-task-list { grid-template-columns: minmax(0,1fr); }
-    .cw-task-item:nth-last-child(2) { border-bottom: 1px solid #dfeee6; }
-    .cw-task-item > .cw-button { white-space: normal; word-break: keep-all; max-width: 116px; }
 }
 @container customer-workspace (max-width: 430px) {
     .cw-card { padding: 18px; }

@@ -12,13 +12,13 @@ const model = {customerName:'합성 고객',sourceLabel:'상품 예약',bookingN
     payment:{total:0,deposit:0,balance:0,depositPaid:false,balancePaid:false},assignments:[{id:'guide',label:'가이드',value:'미배정',statusLabel:'배정 필요',state:'pending'}],
     steps:[{id:'request',label:'문의 접수',done:true},{id:'quote',label:'견적 준비',done:false,current:true}],tasks:[{id:'g',label:'가이드 배정이 필요합니다',action:'guide'}],canSendItinerary:false,customerLinkAvailable:true};
 
-test('고객 알림은 업무 진행 영역에서 한 번 표시되며 관리자 처리 목록과 분리하고 클릭 전에 발송하지 않는다', () => {
+test('업무 진행과 고객 알림은 유지하고 중복된 지금 할 일 영역은 표시하지 않는다', () => {
     let sent = 0;
     const notificationActions = React.createElement('section', { 'aria-label': '고객 카카오 알림 발송' }, React.createElement('button', { type: 'button', onClick: () => sent++ }, '카카오 발송'));
     const tree = CustomerWorkspaceOverview({ model, notificationActions, onAction() {} });
     const workflow = elements(tree, node => node.props.className === 'cw-workflow')[0];
-    const task = elements(tree, node => node.props.className === 'cw-task-card')[0];
-    assert.equal(elements(task, node => node.props['aria-label'] === '고객 카카오 알림 발송').length, 0);
+    assert.equal(elements(workflow, node => node.props.className === 'cw-task-card').length, 0);
+    assert.equal(elements(workflow, node => node.props.className === 'cw-progress-card').length, 1);
     const groups = elements(workflow, node => node.props['aria-label'] === '고객 카카오 알림 발송');
     assert.equal(groups.length, 1); renderToStaticMarkup(tree); assert.equal(sent, 0);
     elements(groups[0], node => node.type === 'button')[0].props.onClick(); assert.equal(sent, 1);
@@ -289,24 +289,4 @@ test('상세 보기에는 업무·전달 핸들러가 없고 편집만 정확한
         assert.equal(button.props.disabled, true);
     }
     assert.equal(elements(busy, node => node.type === 'details' && node.props.className === 'cw-day-disclosure').length, days.length);
-});
-
-test('남은 업무는 구체적 이유와 처리 버튼을 노출하고 고객 대기보다 관리자 처리 항목을 먼저 안내한다',()=>{
-    const calls=[]; const tasks=[{id:'signature',label:'고객 동의 대기',detail:'고객 실제 동의 기록 없음',action:'view-info',actionLabel:'동의 상태 확인',waiting:true},
-        {id:'flights',label:'항공 정보 확인',detail:'도착편명 미입력',action:'flights',actionLabel:'항공편 확인'},
-        {id:'travelers',label:'여행자 명단 확인',detail:'1/2명 입력',action:'travelers',actionLabel:'명단 확인'}];
-    const tree=CustomerWorkspaceOverview({model:{...model,tasks},onAction:(...args)=>calls.push(args)});
-    const buttons=[];const visit=node=>{if(Array.isArray(node)){node.forEach(visit);return;}if(!React.isValidElement(node))return;if(node.type==='button')buttons.push(node);visit(node.props.children);};visit(tree);
-    const label=node=>Array.isArray(node)?node.map(label).join(''):typeof node==='string'?node:React.isValidElement(node)?label(node.props.children):'';
-    for(const task of tasks){const button=buttons.find(button=>label(button.props.children).includes(task.actionLabel));assert.ok(button,task.actionLabel);button.props.onClick();assert.ok(calls.some(call=>call[0]===task.action&&call[1]===task.id));}
-    const html=renderToStaticMarkup(tree);
-    assert.ok(html.indexOf('항공 정보 확인')<html.indexOf('고객 동의 대기'));
-    const disclosure=elements(tree,node=>node.type==='details'&&node.props.className==='cw-task-disclosure')[0];
-    assert.ok(disclosure);assert.equal(disclosure.props.open,undefined);assert.equal(disclosure.props.onClick,undefined);
-    const summary=elements(disclosure,node=>node.type==='summary')[0];assert.equal(summary.props.onClick,undefined);
-    assert.equal(elements(summary,node=>node.type==='button').length,0);
-    const representative=elements(tree,node=>node.props.className==='cw-next-task')[0];
-    assert.ok(childrenText(representative).includes('관리자 처리 2건 · 고객 대기 1건'));
-    assert.equal(childrenText(representative).includes('도착편명 미입력'),false,'긴 사유는 기본 접힌 상세 안에 보존');
-    for(const task of tasks)assert.ok(html.includes(task.detail));
 });
