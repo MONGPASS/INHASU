@@ -59,7 +59,7 @@ export const QUOTE_DESK_TOOLS: QuoteDeskTool[] = [
         description: '견적서에 불러오는 코스(일정·명소·기본가)',
     },
     {
-        key: 'itinerary', label: '일정 조각 관리', icon: 'timeline', doc: '/일정관리',
+        key: 'itinerary', label: '일정관리', icon: 'timeline', doc: '/일정관리',
         description: '코스와 일정표에 끼워 넣는 일정 문구',
     },
     {
