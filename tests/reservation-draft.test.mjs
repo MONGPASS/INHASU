@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildSync } from 'esbuild';
+import { buildSync, transformSync } from 'esbuild';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -258,4 +258,27 @@ test('같은 일차를 다시 요청하면 실제 편집기 effect가 revision�
     render(3); paint(); cleanup?.(); paint();
     assert.equal(jumps.length, 3, '이탈하면 대기 중인 두 번째 프레임을 취소한다');
     cleanup?.();
+});
+
+test('일차 바로가기는 접힌 편집 본문을 먼저 펼친 뒤 스크롤하고 해당 목적지에 포커스를 준다', () => {
+    const source = readFileSync(new URL('../src/components/admin/ReservationInlineEditor.tsx', import.meta.url), 'utf8');
+    const start = source.indexOf('    const jumpToDay = '), end = source.indexOf('    const requestedDayApplied', start);
+    assert.ok(start >= 0 && end > start);
+    const { code } = transformSync(source.slice(start, end), { loader: 'ts' });
+    const calls = []; let collapsed = true;
+    const day = {
+        querySelector(selector) {
+            if (selector === '.day-toggle[aria-expanded="false"]') return collapsed ? { click: () => { collapsed = false; calls.push('expand'); } } : null;
+            assert.equal(selector, 'input.dest');
+            return { focus: options => { assert.equal(collapsed, false); assert.deepEqual(options, { preventScroll: true }); calls.push('focus'); } };
+        },
+        scrollIntoView(options) { assert.equal(collapsed, false); calls.push(['scroll', options]); },
+    };
+    const ref = { current: { querySelectorAll: selector => { assert.equal(selector, '.day-edit'); return [{}, day]; } } };
+    const jump = new Function('useCallback', 'editorRef', code + '\nreturn jumpToDay;')(callback => callback, ref);
+    assert.equal(jump(1, 'auto'), true);
+    assert.deepEqual(calls, ['expand', ['scroll', { behavior: 'auto', block: 'start' }], 'focus']);
+    calls.length = 0; assert.equal(jump(1), true);
+    assert.deepEqual(calls, [['scroll', { behavior: 'smooth', block: 'start' }], 'focus']);
+    calls.length = 0; assert.equal(jump(8), false); assert.deepEqual(calls, []);
 });

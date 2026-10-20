@@ -410,6 +410,7 @@ export function ReservationInlineEditor(p: Props) {
     const close = () => { if (prepareLeave()) callbacks.current.onClose(); };
     const jumpToDay = useCallback((index: number, behavior: ScrollBehavior = 'smooth') => {
         const day = editorRef.current?.querySelectorAll<HTMLElement>('.day-edit')[index];
+        day?.querySelector<HTMLButtonElement>('.day-toggle[aria-expanded="false"]')?.click();
         day?.scrollIntoView({ behavior, block: 'start' });
         day?.querySelector<HTMLInputElement>('input.dest')?.focus({ preventScroll: true });
         return !!day;
@@ -477,8 +478,7 @@ export function ReservationInlineEditor(p: Props) {
             </section>
             {activeMode === 'itinerary' ? <>
                 <div className="ri-quote-section quote-day-editor">
-                    <div className="ri-schedule-heading"><div className="ri-quote-head"><h3>일자별 일정 <span className="ri-schedule-count">{draft.days.length}일</span></h3><p>저장된 일정을 불러오거나, 고객에게 맞게 직접 작성하세요.</p></div><button type="button" className="ri-fill-dates" onClick={fillDates}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" /><path d="M8 3v4m8-4v4M4 10h16m-8 4v4m-2-2h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>날짜 자동 입력</button></div>
-                    <div className="ri-schedule-meta">{expectedDays != null && expectedDays > 0 && <p className={expectedDays === draft.days.length ? 'ri-day-count is-matched' : 'ri-day-count is-mismatched'}>{expectedDays === draft.days.length ? '✓ 여행 기간과 일정이 일치해요' : '여행 기간에 맞춰 일자를 추가·삭제하세요.'}<span>{expectedDays}일 여행 · {draft.days.length}일 작성</span></p>}<details className="ri-format-help"><summary>작성 방법</summary><p>상세 일정은 한 줄에 하나씩 작성하세요. 줄 앞에 *를 붙이면 강조되고, (로 시작하면 회색으로 표시됩니다.</p></details></div>
+                    <div className="ri-schedule-heading"><div className="ri-quote-head"><h3>일자별 일정 <span className="ri-schedule-count">{draft.days.length}일</span></h3></div><button type="button" className="ri-fill-dates" onClick={fillDates}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" /><path d="M8 3v4m8-4v4M4 10h16m-8 4v4m-2-2h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>날짜 자동 입력</button></div>
                     {libraryLoading && <p className="ri-library-note" role="status">저장된 일정과 명소를 불러오고 있습니다.</p>}
                     {libraryError && <div className="ri-library-error" role="alert">{libraryError}<button type="button" onClick={() => setLibraryAttempt(current => current + 1)}>다시 시도</button></div>}
                     <QuoteDayEditor syncKey={appliedFingerprint.current} days={draft.days.map((day, index) => ({ ...quoteDayFields(day), d: index + 1 }))}

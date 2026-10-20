@@ -39,6 +39,9 @@
     let dragIndex = null;
     let keyboardTarget = null;
     let destroyed = false;
+    let expanded = [];
+    let firstPaint = true;
+    let pendingChange = null;
     root.classList.add("quote-day-editor");
     const listen = (element, event, callback) => element?.addEventListener(event, callback, { signal: listeners.signal });
     const field = (index, name, value) => { if (!options.disabled) options.onField?.(index, name, value); };
@@ -53,10 +56,37 @@
       const next = String(value ?? "");
       if (control.value !== next) control.value = next;
     };
+    const setExpanded = (index, open) => {
+      const card = cards[index];
+      if (!card) return false;
+      expanded[index] = open;
+      card.querySelector('.day-body').hidden = !open;
+      const toggle = card.querySelector('.day-toggle');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', `${index + 1}일차 상세 일정 ${open ? '접기' : '펼치기'}`);
+      toggle.textContent = open ? '접기 ▴' : '펼치기 ▾';
+      card.classList[open ? 'remove' : 'add']('is-collapsed');
+      return true;
+    };
+    const expandDay = index => !destroyed && !options.disabled && Number.isInteger(index) && setExpanded(index, true);
+    const requestReorder = (from, to) => {
+      pendingChange = { kind: 'reorder', from, to, count: cards.length, days: [...(options.days || [])] };
+      options.onReorder?.(from, to);
+    };
     const paint = () => {
       if (destroyed) return;
       const days = Array.isArray(options.days) ? options.days : [];
       const extras = !!options.extras;
+      // Expansion belongs to the editor UI, never the saved itinerary object.
+      if (pendingChange) {
+        const change = pendingChange; pendingChange = null;
+        if (change.kind === 'delete' && days.length === change.count - 1) expanded.splice(change.from, 1);
+        if (change.kind === 'reorder' && days.length === change.count && !change.days.every((day, index) => day === days[index])) {
+          const [open] = expanded.splice(change.from, 1); expanded.splice(change.to, 0, open);
+        }
+      }
+      expanded = days.map((_, index) => expanded[index] ?? (firstPaint ? index === 0 : true));
+      firstPaint = false;
       if (days.length !== cards.length || extras !== previousExtras || !listeners) {
         listeners?.abort();
         listeners = new AbortController();
@@ -73,8 +103,10 @@
               <input id="${fieldPrefix}-${index}-dest" class="dest" aria-label="${index + 1}일차 목적지" placeholder="목적지">
               <label class="qde-field-label qde-label-move" for="${fieldPrefix}-${index}-move">이동 시간·거리</label>
               <input id="${fieldPrefix}-${index}-move" class="move" aria-label="${index + 1}일차 이동 시간과 거리" placeholder="이동 6시간 (300 km)">
+              <button type="button" class="day-toggle" aria-expanded="${expanded[index] ? 'true' : 'false'}" aria-controls="${fieldPrefix}-${index}-body">상세 일정</button>
               <button type="button" class="day-del" title="이 일자 삭제" aria-label="${index + 1}일차 삭제">✕</button>
             </div>
+            <div class="day-body" id="${fieldPrefix}-${index}-body"${expanded[index] ? '' : ' hidden'}>
             <div class="snip-row">
               <label class="qde-field-label qde-label-snip" for="${fieldPrefix}-${index}-snip">저장된 일정 불러오기</label>
               <select id="${fieldPrefix}-${index}-snip" class="snip-sel" aria-label="${index + 1}일차 일정 불러오기"></select>
@@ -90,9 +122,11 @@
               <input id="${fieldPrefix}-${index}-meals" class="meals" aria-label="${index + 1}일차 식사" placeholder="캠프식, 현지식당, 캠프식">
             </div>
             ${extras ? '<div class="quote-day-extra"></div>' : ""}
+            </div>
           </div>`).join("") + `<button type="button" class="day-add"${options.addButtonId ? ` id="${esc(options.addButtonId)}"` : ""}>＋ 일자 추가</button>`;
         cards = [...root.querySelectorAll(".day-edit")];
         cards.forEach((card, index) => {
+          listen(card.querySelector('.day-toggle'), 'click', () => { if (!options.disabled) setExpanded(index, !expanded[index]); });
           listen(card.querySelector(".ddate"), "input", event => field(index, "date", event.target.value.trim()));
           listen(card.querySelector(".dest"), "input", event => field(index, "dest", event.target.value.replace(/ \/ /g, "<br>")));
           listen(card.querySelector(".move"), "input", event => field(index, "move", parseMove(event.target.value)));
@@ -104,7 +138,7 @@
             if (!options.disabled && name && options.snippets?.[name]) options.onSnippet?.(index, name);
             event.target.value = "";
           });
-          listen(card.querySelector(".day-del"), "click", () => { if (!options.disabled) options.onDelete?.(index); });
+          listen(card.querySelector(".day-del"), "click", () => { if (!options.disabled) { pendingChange = { kind: 'delete', from: index, count: cards.length }; options.onDelete?.(index); } });
           const handle = card.querySelector(".drag-handle");
           const arm = () => { if (!options.disabled) card.draggable = true; };
           const disarm = () => { if (dragIndex === null) card.draggable = false; };
@@ -118,7 +152,7 @@
             const target = index + (event.key === "ArrowUp" ? -1 : 1);
             if (target < 0 || target >= cards.length) return;
             keyboardTarget = target;
-            options.onReorder?.(index, target);
+            requestReorder(index, target);
           });
           listen(card, "dragstart", event => {
             if (options.disabled || !card.draggable) { event.preventDefault(); return; }
@@ -138,14 +172,16 @@
             event.preventDefault();
             const from = dragIndex;
             clearDrag();
-            if (!options.disabled && from !== null && from !== index) options.onReorder?.(from, index);
+            if (!options.disabled && from !== null && from !== index) requestReorder(from, index);
           });
         });
         listen(root.querySelector(".day-add"), "click", () => { if (!options.disabled) options.onAdd?.(); });
+        listen(root, 'quote-day-expand', event => expandDay(event.detail?.index));
       }
       const snippetHtml = snippetOptions(options);
       cards.forEach((card, index) => {
         const day = days[index] || {};
+        setExpanded(index, expanded[index]);
         card.querySelector(".badge").textContent = `${day.d || index + 1}일차`;
         const dateInput = card.querySelector(".ddate");
         dateInput.placeholder = `${datePlaceholder(options.startDate, index) || "날짜"} (선택)`;
@@ -170,6 +206,7 @@
     paint();
     return {
       update(nextOptions) { if (destroyed) return; options = { ...options, ...nextOptions }; paint(); },
+      expandDay,
       destroy() { if (destroyed) return; destroyed = true; listeners?.abort(); clearDrag(); root.replaceChildren(); root.classList.remove("quote-day-editor"); cards = []; },
     };
   }

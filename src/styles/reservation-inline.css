@@ -32,9 +32,6 @@
 .reservation-workspace.product-workspace .ri-quote-head h3 { margin:0; color:#111827; font-size:21px; font-weight:800; letter-spacing:-.5px; line-height:1.4; }
 .reservation-workspace.product-workspace .ri-quote-head p { margin:4px 0 0; color:#98a2b3; font-size:13.5px; line-height:1.6; }
 .reservation-workspace.product-workspace .ri-quote-hint { margin:0 0 16px; color:#98a2b3; font-size:12.5px; line-height:1.6; }
-.reservation-workspace.product-workspace .ri-day-count { margin:0 0 8px; font-size:12.5px; line-height:1.6; }
-.reservation-workspace.product-workspace .ri-day-count.is-matched { color:#05a084; }
-.reservation-workspace.product-workspace .ri-day-count.is-mismatched { color:#aa6a26; }
 .reservation-workspace.product-workspace .ri-fill-dates { margin-bottom:12px; padding:8px 13px; border:1px dashed #cfd6dd; border-radius:9px; background:#fff; color:#5a6a75; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-rich-details { margin-top:12px; border-top:1px solid #eef0f3; }
 .reservation-workspace.product-workspace .ri-rich-details > summary { padding-top:10px; color:#667085; font-size:11px; font-weight:600; cursor:pointer; }

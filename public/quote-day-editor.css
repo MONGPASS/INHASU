@@ -19,6 +19,10 @@
 .quote-day-editor .day-edit .dh input.move { max-width:130px; padding:8px 11px; border-radius:8px; font-size:13px; color:var(--sub); }
 .quote-day-editor .day-edit .dh .day-del { border:1px solid #F0D2D2; background:#fff; color:var(--red); width:30px; height:30px; border-radius:8px; font-size:15px; cursor:pointer; flex:0 0 auto; font-family:inherit; }
 .quote-day-editor .day-edit .dh .day-del:hover { background:#FDF5F5; }
+.quote-day-editor .day-edit .dh .day-toggle { display:inline-flex; align-items:center; justify-content:center; gap:5px; flex:0 0 auto; min-height:38px; padding:7px 10px; border:1px solid #d7e9e2; border-radius:8px; background:#f1faf5; color:#14836d; font:inherit; font-size:12px; font-weight:650; white-space:nowrap; cursor:pointer; }
+.quote-day-editor .day-edit .dh .day-toggle:hover:not(:disabled) { background:#e6f6ed; border-color:#a7d8c5; }
+.quote-day-editor .day-edit.is-collapsed .dh { margin-bottom:0; }
+.quote-day-editor .day-body[hidden] { display:none!important; }
 .quote-day-editor .day-edit .snip-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .quote-day-editor .day-edit .snip-sel { width:250px; padding:8px 11px; border:1px solid var(--p); border-radius:8px; background:#fff; color:var(--ink); font-weight:600; font-size:13px; cursor:pointer; }
 .quote-day-editor .day-edit .snip-hint { font-size:12px; color:var(--gray); }

@@ -21,32 +21,29 @@
 .product-customer-page .cw-focus-workspace .ri-composer .ri-field { gap: 9px; color: #596879; font-size: 13px; font-weight: 600; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-field :is(input, textarea) { min-height: 48px; padding: 12px 14px; border-color: #dce3e9; border-radius: 10px; color: #253344; font-size: 15px; font-weight: 500; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-quote-section { padding: 0; background: transparent; }
-.product-customer-page .cw-focus-workspace .ri-schedule-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.product-customer-page .cw-focus-workspace .ri-schedule-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-quote-head { margin: 0; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-quote-head h3 { display: flex; align-items: center; gap: 10px; color: #1f2d3d; font-size: 22px; font-weight: 750; letter-spacing: -.6px; }
 .product-customer-page .cw-focus-workspace .ri-schedule-count { padding: 4px 9px; border-radius: 7px; background: #e4f3ed; color: #13836c; font-size: 13px; font-weight: 650; letter-spacing: 0; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-quote-head p { margin-top: 7px; font-size: 13px; color: #71808d; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-fill-dates { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; margin: 0; padding: 9px 13px; border: 1px solid #dbe3e9; border-radius: 9px; color: #516172; background: white; font-size: 13px; font-weight: 600; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-fill-dates:hover { border-color: #a3cec2; color: #13836c; }
-.product-customer-page .cw-focus-workspace .ri-schedule-meta { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin: 14px 0 20px; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-day-count { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0; font-size: 12px; font-weight: 600; }
-.product-customer-page .cw-focus-workspace .ri-day-count span { color: #84909d; font-weight: 400; }
-.product-customer-page .cw-focus-workspace .ri-format-help { position: relative; max-width: 360px; color: #71808e; font-size: 12px; }
-.product-customer-page .cw-focus-workspace .ri-format-help summary { cursor: pointer; text-align: right; text-decoration: underline; text-underline-offset: 3px; list-style: none; }
-.product-customer-page .cw-focus-workspace .ri-format-help p { margin: 8px 0 0; padding: 12px 14px; border: 1px solid #e0e6ec; border-radius: 10px; background: white; line-height: 1.7; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit { padding: 24px; margin-bottom: 20px; border: 1px solid #dfe6ec; border-radius: 16px; background: white; box-shadow: 0 3px 8px #26334203; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit:focus-within { border-color: #a2d8c9; box-shadow: 0 0 0 3px #e4f3ed; }
 .product-customer-page .cw-focus-workspace .ri-composer .qde-field-label { display: block; color: #6b7888; font-size: 13px; font-weight: 600; line-height: 1.5; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { display: grid; grid-template-columns: 20px 70px 136px minmax(0,1fr) 174px 32px; grid-template-areas: 'drag day date-label dest-label move-label remove' 'drag day date dest move remove'; align-items: end; gap: 8px 14px; margin: 0 0 20px; padding-bottom: 20px; border-bottom: 1px solid #edf1f4; }
-.product-customer-page .cw-focus-workspace .ri-composer .dh .drag-handle { grid-area: drag; align-self: center; padding: 10px 0; color: #b0bbc5; font-size: 19px; }
-.product-customer-page .cw-focus-workspace .ri-composer .dh .badge { grid-area: day; display: grid; place-items: center; align-self: center; min-height: 46px; padding: 10px; border-radius: 10px; background: #e6f5ef; color: #12846d; font-size: 16px; font-weight: 750; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { display: grid; grid-template-columns: 20px 66px 128px minmax(160px,1fr) 160px 68px 36px; grid-template-rows: auto 46px; grid-template-areas: 'drag day date-label dest-label move-label toggle remove' 'drag day date dest move toggle remove'; align-items: end; gap: 8px 12px; margin: 0 0 20px; padding-bottom: 20px; border-bottom: 1px solid #edf1f4; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit.is-collapsed .dh { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
+.product-customer-page .cw-focus-workspace .ri-composer .dh .drag-handle { grid-area: drag; display: grid; place-items: center; align-self: end; height: 46px; padding: 0; color: #b0bbc5; font-size: 19px; }
+.product-customer-page .cw-focus-workspace .ri-composer .dh .badge { grid-area: day; display: grid; place-items: center; align-self: end; height: 46px; min-height: 46px; padding: 10px; border-radius: 10px; background: #e6f5ef; color: #12846d; font-size: 15px; font-weight: 750; }
 .product-customer-page .cw-focus-workspace .ri-composer .dh .qde-label-date { grid-area: date-label; }
 .product-customer-page .cw-focus-workspace .ri-composer .dh .qde-label-dest { grid-area: dest-label; }
 .product-customer-page .cw-focus-workspace .ri-composer .dh .qde-label-move { grid-area: move-label; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate { grid-area: date; width: 100%; font-size: 13px; font-weight: 500; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.dest { grid-area: dest; font-size: 15px; font-weight: 650; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.move { grid-area: move; width: 100%; max-width: none; color: #516172; font-size: 13px; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del { grid-area: remove; align-self: center; width: 32px; height: 32px; min-height: 32px; padding: 0; border: 0; color: #a4aeba; background: #f4f6f8; border-radius: 8px; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh > input { height: 46px; min-height: 46px; max-height: 46px; line-height: 22px; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle { grid-area: toggle; align-self: end; display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 46px; min-height: 46px; padding: 0 9px; border: 1px solid #dce7e2; border-radius: 9px; color: #16836e; background: #f3faf6; font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle:hover:not(:disabled) { border-color: #a2d8c9; background: #e9f6f0; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del { grid-area: remove; align-self: end; width: 36px; height: 46px; min-height: 46px; padding: 0; border: 0; color: #a4aeba; background: #f4f6f8; border-radius: 8px; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del:hover { color: #c75a5a; background: #fff0ef; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit :is(input, select) { min-height: 46px; padding: 11px 13px; border: 1px solid #dce3e9; border-radius: 9px; color: #2a3848; background: white; font-size: 14px; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit :is(input, select, textarea):focus { border-color: #27ab8f; box-shadow: 0 0 0 3px #e1f4ed; }
@@ -79,7 +76,8 @@
 @container itinerary-composer (max-width: 760px) {
   .product-customer-page .cw-focus-workspace .ri-composer .ri-basics { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
   .product-customer-page .cw-focus-workspace .ri-composer .ri-basics .ri-wide { grid-column: 1 / -1; }
-  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { grid-template-columns: 20px 70px minmax(0,1fr) 140px 32px; grid-template-areas: 'drag day date-label move-label remove' 'drag day date move remove' 'dest-label dest-label dest-label dest-label dest-label' 'dest dest dest dest dest'; gap: 8px 12px; }
+  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { grid-template-columns: 20px minmax(0,1fr) 68px 36px; grid-template-rows: auto auto 46px auto 46px; grid-template-areas: 'drag day toggle remove' 'date-label date-label move-label move-label' 'date date move move' 'dest-label dest-label dest-label dest-label' 'dest dest dest dest'; gap: 8px 12px; }
+  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .badge { justify-self: start; min-width: 66px; }
   .product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-row { grid-template-columns: minmax(0,1fr); gap: 8px; }
   .product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-sel { max-width: none; }
   .product-customer-page .cw-focus-workspace .ri-composer .ri-assigned-stay > span:last-child { flex-basis: 100%; }
@@ -92,12 +90,10 @@
   .product-customer-page .cw-focus-workspace .ri-settings-title h3 { white-space: normal; line-height: 1.5; }
   .product-customer-page .cw-focus-workspace .ri-settings-toggle { padding-left: 0; font-size: 11px; }
   .product-customer-page .cw-focus-workspace .ri-composer .day-edit { padding: 18px; }
-  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { grid-template-columns: 20px minmax(0,1fr) 32px; grid-template-areas: 'drag day remove' 'date-label date-label date-label' 'date date date' 'dest-label dest-label dest-label' 'dest dest dest' 'move-label move-label move-label' 'move move move'; }
+  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { grid-template-columns: 20px minmax(0,1fr) 68px 36px; grid-template-rows: auto auto 46px auto 46px auto 46px; grid-template-areas: 'drag day toggle remove' 'date-label date-label date-label date-label' 'date date date date' 'dest-label dest-label dest-label dest-label' 'dest dest dest dest' 'move-label move-label move-label move-label' 'move move move move'; }
   .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .badge { justify-self: start; min-width: 70px; }
   .product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 { grid-template-columns: minmax(0,1fr); grid-template-areas: 'stay-label' 'stay' 'meals-label' 'meals'; }
   .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate { max-width: none; }
-  .product-customer-page .cw-focus-workspace .ri-composer .ri-day-count { gap: 4px; }
-  .product-customer-page .cw-focus-workspace .ri-composer .ri-day-count span { flex-basis: 100%; }
 }
 @media (max-width: 760px) {
   .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-composer { padding: 16px; }
