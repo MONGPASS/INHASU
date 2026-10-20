@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AdminLayout } from '../components/admin/AdminLayout';
-import { Admin3DIcon } from '../components/admin/Admin3DIcon';
 import { api } from '../lib/api';
 import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 import { adaptCalendarTours, calendarDateKey, calendarMonthDays, toursOnDate, toursInMonth, calendarConflicts, calendarConflictsInRange, calendarStats, calendarTourDay,
@@ -10,6 +9,7 @@ import { readAdminCalendarView, adminCalendarSearch, adminCalendarMonth, type Ad
 import type { CalendarWorkspaceAction } from '../utils/calendarWorkspaceAction';
 import { accommodationOpsHref } from '../utils/accommodationOpsRoutes';
 import './AdminCalendar.css';
+import '../styles/admin-redesign-calendar.css';
 
 const paths = {
     previous: 'm14 6-6 6 6 6', next: 'm10 6 6 6-6 6', refresh: 'M20 7v5h-5M4 17v-5h5M6 8a7 7 0 0 1 12-2l2 3M4 15l2 3a7 7 0 0 0 12-2',
@@ -40,15 +40,16 @@ function workspaceHref(tour: CalendarTour, returnTo: string, action?: CalendarWo
 function TourCard({ tour, date, conflicts, returnTo, selected }: { tour: CalendarTour; date: string; conflicts: CalendarConflict[]; returnTo: string; selected: boolean }) {
     const day = calendarTourDay(tour, date), issues = actionable(tour);
     const working = tour.source !== 'legacy_quote' && !['on_hold', 'completed'].includes(tour.status);
-    const resource = (icon: GlyphName, label: string, value: string, detail: string, missing: boolean, action: CalendarWorkspaceAction) => <div className={`tc-resource${missing ? ' is-missing' : ''}`}>
-        <span className="tc-resource-label"><Glyph name={icon} />{label}</span><strong className="tc-resource-value" title={value}>{value}</strong>
-        <span className="tc-resource-detail" title={detail}>{detail}</span>{working && <a className="tc-resource-action" href={workspaceHref(tour, returnTo, action, action === 'stay' ? day?.night ?? undefined : undefined)} aria-label={`${tour.customerName} ${label} ${missing && action !== 'payments' ? '선택' : '관리'}`}>{missing && action !== 'payments' ? '선택' : '관리'}<Glyph name="next" /></a>}
-    </div>;
+    const resource = (icon: GlyphName, label: string, value: string, detail: string, missing: boolean, action: CalendarWorkspaceAction) => {
+        const content = <><span className="tc-resource-label"><Glyph name={icon} />{label}</span><strong className="tc-resource-value" title={value}>{value}</strong><span className="tc-resource-detail" title={detail}>{detail}</span>{working && <span className="tc-resource-action">{missing && action !== 'payments' ? '눌러서 선택' : '관리'}<Glyph name="next" /></span>}</>;
+        const className = `tc-resource${missing ? ' is-missing' : ''}`;
+        return working ? <a className={className} href={workspaceHref(tour, returnTo, action, action === 'stay' ? day?.night ?? undefined : undefined)} aria-label={`${tour.customerName} ${label} ${missing && action !== 'payments' ? '선택' : '관리'}`}>{content}</a> : <div className={className}>{content}</div>;
+    };
     const stay = day?.night ? day.stay || '숙소 미배정' : tour.nights === 0 ? '당일 투어' : '마지막 날 · 숙박 없음';
     return <article id={`tc-tour-${encodeURIComponent(tour.key)}`} className={`tc-tour-card${selected ? ' is-selected' : ''}${conflicts.length ? ' is-conflict' : ''}`}>
         <div className="tc-tour-heading"><div className="tc-tour-title"><span className="tc-source" data-source={tour.source}>{typeLabels[tour.source]}</span><h3>{tour.customerName}</h3></div><span className="tc-people"><Glyph name="people" />{tour.people === null ? '인원 미등록' : `${tour.people}명`}</span></div>
-        <p className="tc-product-name">{tour.productName || '여행명 미등록'}</p>
-        <div className="tc-tour-meta"><span>{tour.statusLabel}</span><span>{day?.day} / {tour.days}일차</span><span>{tour.reservationNumber || tour.id}</span></div>
+        <p className="tc-product-name">{tour.productName || '여행명 미등록'} · {day?.day} / {tour.days}일차</p>
+        <div className="tc-tour-meta"><span>{tour.statusLabel}</span><span>#{tour.reservationNumber || tour.id}</span></div>
         {conflicts.length > 0 && <div className="tc-conflict"><Glyph name="warning" /><span>{conflicts.map(conflict => `${conflict.resource === 'guide' ? '가이드' : '차량'} ${conflict.name}`).join(' · ')} 일정 겹침</span></div>}
         {tour.source === 'legacy_quote' ? <p className="tc-inquiry-note">고객이 문의한 희망 일정입니다. 확정 투어와 예약 인원에 포함하지 않습니다.</p> : <div className="tc-resources">
             {resource('guide', '담당 가이드', tour.guide?.name || '미배정', tour.guide?.phone || '연락처 미등록', !tour.guide, 'guide')}
@@ -58,7 +59,7 @@ function TourCard({ tour, date, conflicts, returnTo, selected }: { tour: Calenda
         </div>}
         {issues.length > 0 && <div className="tc-issues" aria-label="처리할 업무">{issues.slice(0, 3).map(issue => <span key={issue.id} className="tc-issue">{issue.label}</span>)}{issues.length > 3 && <span className="tc-issue" title={issues.slice(3).map(issue => issue.label).join(' · ')}>+{issues.length - 3}건</span>}</div>}
         <details className="tc-tour-details"><summary>여행·문서 정보</summary><dl><div><dt>여행 기간</dt><dd>{tour.startDate} ~ {tour.endDate}</dd></div><div><dt>총 여행금액</dt><dd>{money(tour.total)}</dd></div><div><dt>예약금 / 잔금</dt><dd>{money(tour.deposit)} / {money(tour.balance)}</dd></div><div><dt>여행 계약서</dt><dd>{tour.contract === 'signed' ? '고객 동의 완료' : tour.contract === 'waiting' ? '고객 동의 대기' : '동의 정보 확인 필요'}</dd></div><div><dt>확정 일정표</dt><dd>{tour.publication === 'published' ? '공개됨' : tour.publication === 'draft' ? '미공개' : '공개 상태 확인 필요'}</dd></div><div><dt>고객 연락처</dt><dd>{tour.phone || '미등록'}</dd></div>{tour.stays.missingDays.length > 0 && <div><dt>숙소 미배정</dt><dd>{tour.stays.missingDays.map(night => `${night}일차`).join(' · ')}</dd></div>}</dl></details>
-        <footer className="tc-tour-footer"><span>{tour.startDate.slice(5).replace('-', '.')} — {tour.endDate.slice(5).replace('-', '.')}</span><a href={workspaceHref(tour, returnTo)}>고객·예약 관리<Glyph name="arrow" /></a></footer>
+        <footer className="tc-tour-footer"><span>{tour.startDate.slice(5).replace('-', '.')} — {tour.endDate.slice(5).replace('-', '.')}</span><a href={workspaceHref(tour, returnTo)}>예약 관리<Glyph name="arrow" /></a></footer>
     </article>;
 }
 
@@ -131,17 +132,17 @@ export function AdminCalendar() {
     const unknown = !initialized || (warnings.length === 3 && all.length === 0);
     const metrics = [
         { label: '이번 달 투어', value: `${stats.tours}팀`, caption: '상품·견적 예약 · 보류 제외', icon: 'calendar' as const },
-        { label: '여행 인원', value: stats.people === 0 && stats.unknownPeople ? '인원 미등록' : `${stats.people}명`, caption: stats.unknownPeople ? `${stats.unknownPeople}팀 인원 확인 필요` : '확정 일정의 전체 예약 인원', icon: 'travelers' as const },
-        { label: '처리 필요', value: `${monthTours.filter(tour => actionable(tour).length || conflictKeys.has(tour.key)).length}팀`, caption: '미배정·입금·문서 확인', icon: 'reservation' as const, attention: 'needs' as const },
+        { label: '여행 인원', value: stats.people === 0 && stats.unknownPeople ? '인원 미등록' : `${stats.people}명`, caption: stats.unknownPeople ? `${stats.unknownPeople}팀 인원 확인 필요` : '확정 일정의 전체 예약 인원', icon: 'people' as const },
+        { label: '처리 필요', value: `${monthTours.filter(tour => actionable(tour).length || conflictKeys.has(tour.key)).length}팀`, caption: '미배정·입금·문서 확인', icon: 'warning' as const, attention: 'needs' as const },
         { label: '배정 일정 겹침', value: `${relevantConflicts.length}건`, caption: '등록된 가이드·차량 기준', icon: 'vehicle' as const, attention: 'conflicts' as const },
     ];
     return <AdminLayout activePage="calendar" title="투어 캘린더" description="날짜별 투어와 배정·입금·문서 업무를 함께 확인합니다." actions={<><button type="button" className="btn btn-ghost" onClick={() => void reload()} disabled={loading}><Glyph name="refresh" />{loading ? '불러오는 중' : '새로고침'}</button><a className="btn btn-ink" href="/admin/reservations">예약 관리<Glyph name="arrow" /></a></>}>
-        <div className="tour-calendar">
-            <div className="tc-metrics">{metrics.map(metric => <button key={metric.label} type="button" className={`tc-metric${metric.attention && view.attention === metric.attention ? ' is-active' : ''}`} disabled={!metric.attention} onClick={() => metric.attention && update({ attention: view.attention === metric.attention ? 'all' : metric.attention, open: '' })}><Admin3DIcon name={metric.icon} size={42} /><span><span className="tc-metric-label">{metric.label}</span><strong>{unknown ? '—' : metric.value}</strong><small>{metric.caption}</small></span>{metric.attention && <Glyph name="next" />}</button>)}</div>
+        <div className="tour-calendar tc-redesign">
+            <div className="tc-metrics">{metrics.map(metric => <button key={metric.label} type="button" className={`tc-metric${metric.attention && view.attention === metric.attention ? ' is-active' : ''}`} aria-pressed={metric.attention ? view.attention === metric.attention : undefined} disabled={!metric.attention} onClick={() => metric.attention && update({ attention: view.attention === metric.attention ? 'all' : metric.attention, open: '' })}><span className="tc-metric-icon"><Glyph name={metric.icon} /></span><span><span className="tc-metric-label">{metric.label}</span><strong>{unknown ? '—' : metric.value}</strong><small>{metric.caption}</small></span>{metric.attention && <Glyph name="next" />}</button>)}</div>
             {warnings.length > 0 && <div className="tc-warning" role="alert"><Glyph name="warning" /><span>{warnings.join(' · ')} 조회에 실패했습니다. 해당 출처는 마지막으로 불러온 정보를 유지합니다.</span><button type="button" className="tc-button" disabled={loading} onClick={() => void reload()}>다시 시도</button></div>}
             {skippedBookings > 0 && <div className="tc-warning" role="status"><Glyph name="warning" /><span>견적 예약 {skippedBookings}건의 저장 형식을 확인해야 합니다. 나머지 일정을 표시합니다.</span><a className="tc-button" href="/admin/reservations">예약 목록 확인</a></div>}
             <div className="tc-filters"><label className="tc-search"><Glyph name="search" /><input aria-label="고객·여행·예약번호·배정 검색" value={view.query} maxLength={120} placeholder="고객, 여행, 예약번호 검색" onChange={event => update({ query: event.target.value, open: '' }, true)} />{view.query && <button type="button" className="tc-icon-button" aria-label="검색 지우기" onClick={() => update({ query: '', open: '' })}><Glyph name="clear" /></button>}</label>
-                <select aria-label="예약 출처" value={view.source} onChange={event => update({ source: event.target.value as AdminCalendarView['source'], legacy: event.target.value === 'legacy_quote' || view.legacy, open: '' })}><option value="all">모든 예약</option><option value="product">상품 예약</option><option value="quote_booking">견적 예약</option><option value="legacy_quote">이전 문의</option></select>
+                <div className="tc-source-filters" aria-label="예약 출처">{([{ value: 'all', label: '전체' }, { value: 'product', label: '상품 예약' }, { value: 'quote_booking', label: '견적 예약' }, { value: 'legacy_quote', label: '이전 문의' }] as const).map(source => <button type="button" key={source.value} className={`tc-button${view.source === source.value ? ' is-active' : ''}`} aria-pressed={view.source === source.value} onClick={() => update({ source: source.value, legacy: source.value === 'legacy_quote' || view.legacy, open: '' })}>{source.label}</button>)}</div>
                 <div className="tc-filter-chips">{([{ value: 'all', label: '전체' }, { value: 'needs', label: '처리 필요' }, { value: 'conflicts', label: '배정 겹침' }] as const).map(filter => <button key={filter.value} type="button" className={`tc-button${view.attention === filter.value ? ' is-active' : ''}`} aria-pressed={view.attention === filter.value} onClick={() => update({ attention: filter.value, open: '' })}>{filter.label}</button>)}</div>
                 <label className="tc-check"><input type="checkbox" checked={view.legacy} onChange={event => update({ legacy: event.target.checked, source: !event.target.checked && view.source === 'legacy_quote' ? 'all' : view.source, open: '' })} />이전 문의 포함</label>{filtered && <button type="button" className="tc-reset" onClick={clear}>필터 초기화</button>}
             </div>
@@ -158,7 +159,14 @@ export function AdminCalendar() {
                             <div className="tc-events">{tours.slice(0, 2).map(tour => <button type="button" className={`tc-event${cellConflicts.has(tour.key) ? ' is-conflict' : ''}${['completed', 'on_hold'].includes(tour.status) ? ' is-muted' : ''}`} data-source={tour.source} key={tour.key} title={`${typeLabels[tour.source]} · ${tour.customerName} · ${tour.productName}`} onClick={() => choose(cell.dateKey, tour.key, true)}><span>{tour.customerName}</span><small>{tour.people === null ? '?명' : `${tour.people}명`}</small></button>)}</div>
                             {tours.length > 2 && <button type="button" className="tc-more" onClick={() => choose(cell.dateKey, '', true)}>+{tours.length - 2}건 모두 보기</button>}
                         </div>;
-                    })}</div></> : <div className="tc-table-wrap">{visibleMonth.length ? <table className="tc-table"><thead><tr><th>고객·여행</th><th>여행 기간</th><th>인원</th><th>가이드·차량</th><th>확인할 업무</th></tr></thead><tbody>{visibleMonth.map(tour => <tr key={tour.key}><td><button type="button" className="tc-table-customer" onClick={() => choose(view.date >= tour.startDate && view.date <= tour.endDate ? view.date : tour.startDate < `${view.month}-01` ? `${view.month}-01` : tour.startDate, tour.key, true)}><span className="tc-source" data-source={tour.source}>{typeLabels[tour.source]}</span><strong>{tour.customerName}</strong><small>{tour.productName}</small></button></td><td>{tour.startDate.slice(5)} ~ {tour.endDate.slice(5)}</td><td>{tour.people === null ? '미등록' : `${tour.people}명`}</td><td>{tour.guide?.name || '가이드 미배정'}<br />{tour.vehicle?.name || '차량 미배정'}</td><td>{conflictKeys.has(tour.key) ? '배정 겹침 · ' : ''}{actionable(tour).slice(0, 2).map(issue => issue.label).join(' · ') || tour.statusLabel}</td></tr>)}</tbody></table> : <div className="tc-empty"><Glyph name="calendar" /><strong>{unknown ? '일정을 불러오는 중입니다' : '표시할 일정이 없습니다'}</strong>{filtered && <button className="tc-button" onClick={clear}>필터 초기화</button>}</div>}</div>}
+                    })}</div></> : <div className="tc-list" aria-label="이달의 투어 목록">
+                        {visibleMonth.length ? visibleMonth.map(tour => <button type="button" className={`tc-list-row${view.open === tour.key ? ' is-selected' : ''}`} key={tour.key} onClick={() => choose(view.date >= tour.startDate && view.date <= tour.endDate ? view.date : tour.startDate < `${view.month}-01` ? `${view.month}-01` : tour.startDate, tour.key, true)}>
+                            <span className="tc-list-range">{tour.startDate.slice(5).replace('-', '.')} — {tour.endDate.slice(5).replace('-', '.')}</span>
+                            <span className="tc-list-customer"><span className="tc-list-name"><span className="tc-source" data-source={tour.source}>{typeLabels[tour.source]}</span><strong>{tour.customerName}</strong></span><span>{tour.productName} · {tour.people === null ? '인원 미등록' : `${tour.people}명`}</span><small>{tour.guide?.name || '가이드 미배정'} · {tour.vehicle?.name || '차량 미배정'}</small></span>
+                            <span className="tc-list-issue">{conflictKeys.has(tour.key) && <span className="tc-issue is-conflict">배정 겹침</span>}{actionable(tour).length ? actionable(tour).slice(0, 2).map(issue => <span className="tc-issue" key={issue.id}>{issue.label}</span>) : <span className="tc-list-status">{tour.statusLabel}</span>}</span>
+                            <Glyph name="next" />
+                        </button>) : <div className="tc-empty"><Glyph name="calendar" /><strong>{unknown ? '일정을 불러오는 중입니다' : '표시할 일정이 없습니다'}</strong>{filtered && <button className="tc-button" onClick={clear}>필터 초기화</button>}</div>}
+                    </div>}
                     <footer className="tc-month-footer"><div className="tc-legend"><span data-source="product">상품 예약</span><span data-source="quote_booking">견적 예약</span>{view.legacy && <span data-source="legacy_quote">이전 문의</span>}<span><i className="tc-attention-dot" />처리 필요</span></div><small>날짜를 선택하면 팀별 운영 정보를 확인할 수 있습니다.</small></footer>
                 </section>
                 <section className="tc-day-panel" ref={panelRef} aria-label="선택일 투어 상세"><header className="tc-panel-header"><div><span className="tc-eyebrow">선택한 날짜</span><h2>{dateLabel(view.date)}{view.date === today && <span className="tc-today-badge">오늘</span>}</h2></div><span className="tc-panel-count">{selected.length}건</span></header><div className="tc-panel-stats"><span>투어 <b>{dayStats.tours}팀</b></span><span>인원 <b>{peopleSummary(dayStats)}</b></span><span>처리 필요 <b>{selected.filter(tour => actionable(tour).length || dayConflicts.some(conflict => conflict.tourKeys.includes(tour.key))).length}팀</b></span>{dayStats.inquiries > 0 && <span>문의 <b>{dayStats.inquiries}건</b></span>}</div>

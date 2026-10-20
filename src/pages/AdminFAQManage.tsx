@@ -31,6 +31,7 @@ export const AdminFAQManage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [faqs, setFaqs] = useState<FAQ[]>([]);
     const [categories, setCategories] = useState<FAQCategory[]>([]);
+    const [openAnswers, setOpenAnswers] = useState<string[]>([]);
 
     // FAQ Form
     const [faqForm, setFaqForm] = useState({
@@ -52,8 +53,8 @@ export const AdminFAQManage: React.FC = () => {
             try {
                 const faqData = await api.faqs.list();
                 const catData = await api.faqCategories.list();
-                if (Array.isArray(faqData)) setFaqs(faqData.map((f: any) => ({ ...f, isActive: f.is_active, viewCount: f.view_count || 0 })));
-                if (Array.isArray(catData)) setCategories(catData.map((c: any) => ({ ...c, isActive: c.is_active })));
+                if (Array.isArray(faqData)) setFaqs(faqData.map((f: any) => ({ ...f, isActive: !!f.is_active, viewCount: f.view_count || 0 })));
+                if (Array.isArray(catData)) setCategories(catData.map((c: any) => ({ ...c, isActive: !!c.is_active })));
             } catch (e) { console.error('Failed to fetch FAQ data', e); }
         };
         fetchData();
@@ -62,7 +63,7 @@ export const AdminFAQManage: React.FC = () => {
     // Filter FAQs
     const filteredFaqs = faqs.filter(faq => {
         const matchesCategory = filterCategory === 'all' || faq.category === filterCategory;
-        const matchesSearch = faq.question.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = [faq.question, faq.answer].some(value => value.toLowerCase().includes(searchQuery.toLowerCase()));
         return matchesCategory && matchesSearch;
     });
 
@@ -285,7 +286,7 @@ export const AdminFAQManage: React.FC = () => {
 
     return (
         <AdminLayout activePage="faq" title="FAQ 관리" actions={headerActions}>
-            <div className="route-anim">
+            <div className="route-anim rd-content-page rd-faq-page">
                 {/* Tabs */}
                 <div className="toolbar">
                     <div className="seg">
@@ -318,104 +319,35 @@ export const AdminFAQManage: React.FC = () => {
                 ) : activeTab === 'faq' ? (
                     <>
                         {/* Filters */}
-                        <div className="toolbar">
+                        <div className="toolbar rd-content-filters">
                             <div className="tb-search">
                                 <Icon name="search" />
                                 <input
                                     type="text"
-                                    placeholder="질문 검색..."
+                                    placeholder="질문 · 답변 검색"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                            <select
-                                className="select"
-                                value={filterCategory}
-                                onChange={(e) => setFilterCategory(e.target.value)}
-                            >
-                                <option value="all">전체 카테고리</option>
-                                {categories.map(cat => (
-                                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                                ))}
-                            </select>
+                            <div className="rd-content-chips"><button type="button" className={filterCategory === 'all' ? 'is-selected' : ''} aria-pressed={filterCategory === 'all'} onClick={() => setFilterCategory('all')}>전체<span>{faqs.length}</span></button>{categories.map(cat => <button type="button" key={cat.id} className={filterCategory === cat.name ? 'is-selected' : ''} aria-pressed={filterCategory === cat.name} onClick={() => setFilterCategory(cat.name)}>{cat.name}<span>{faqs.filter(faq => faq.category === cat.name).length}</span></button>)}</div>
                         </div>
 
-                        {/* FAQ Table */}
-                        <div className="card">
-                            <div className="tbl-wrap">
-                                <table className="tbl">
-                                    <thead>
-                                        <tr>
-                                            <th style={{ width: 90 }}>순서</th>
-                                            <th>카테고리</th>
-                                            <th>질문</th>
-                                            <th className="c">조회</th>
-                                            <th className="c">노출</th>
-                                            <th className="r">관리</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredFaqs.map((faq, index) => (
-                                            <tr key={faq.id}>
-                                                <td>
-                                                    <span className="row" style={{ gap: 6 }}>
-                                                        <Icon name="drag_indicator" className="drag-handle" />
-                                                        <span className="edit-move">
-                                                            <button onClick={() => moveFAQOrder(faq, 'up')} disabled={index === 0} title="위로">
-                                                                <Icon name="arrow_upward" />
-                                                            </button>
-                                                            <button onClick={() => moveFAQOrder(faq, 'down')} disabled={index === filteredFaqs.length - 1} title="아래로">
-                                                                <Icon name="arrow_downward" />
-                                                            </button>
-                                                        </span>
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="badge b-blue">{faq.category}</span>
-                                                </td>
-                                                <td className="cell-strong" style={{ maxWidth: 420 }}>
-                                                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{faq.question}</div>
-                                                </td>
-                                                <td className="c cell-mono">{faq.viewCount}</td>
-                                                <td className="c">
-                                                    <button
-                                                        className={`switch${faq.isActive ? ' on' : ''}`}
-                                                        onClick={() => toggleFAQActive(faq)}
-                                                        title={faq.isActive ? '활성' : '비활성'}
-                                                    >
-                                                        <span className="knob" />
-                                                    </button>
-                                                </td>
-                                                <td className="r">
-                                                    <span className="row-actions">
-                                                        <button
-                                                            className="act-btn"
-                                                            title="수정"
-                                                            onClick={() => {
-                                                                setSelectedFAQ(faq);
-                                                                setFaqForm({ category: faq.category, question: faq.question, answer: faq.answer, isActive: faq.isActive });
-                                                                setIsModalOpen(true);
-                                                            }}
-                                                        >
-                                                            <Icon name="edit" />
-                                                        </button>
-                                                        <button className="act-btn danger" title="삭제" onClick={() => handleDeleteFAQ(faq.id)}>
-                                                            <Icon name="delete" />
-                                                        </button>
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {filteredFaqs.length === 0 && (
-                                <div className="empty">
-                                    <Icon name="inbox" />
-                                    <p>등록된 FAQ가 없습니다.</p>
+                        {/* FAQ accordion list */}
+                        <section className="rd-content-panel">
+                            {filteredFaqs.map((faq, index) => <article key={faq.id} className="rd-faq-row">
+                                <div className="rd-faq-heading">
+                                    <span className="rd-content-order"><button type="button" title="위로" aria-label={faq.question + ' 위로'} disabled={index === 0} onClick={() => moveFAQOrder(faq, 'up')}><Icon name="expand_less" /></button><button type="button" title="아래로" aria-label={faq.question + ' 아래로'} disabled={index === filteredFaqs.length - 1} onClick={() => moveFAQOrder(faq, 'down')}><Icon name="expand_more" /></button></span>
+                                    <span className="rd-faq-number">{index + 1}</span><span className="badge b-blue">{faq.category}</span>
+                                    <button type="button" className="rd-faq-question" aria-expanded={openAnswers.includes(faq.id)} aria-controls={'faq-answer-' + faq.id} onClick={() => setOpenAnswers(current => current.includes(faq.id) ? current.filter(id => id !== faq.id) : [...current, faq.id])}><b>Q</b><strong>{faq.question}</strong><Icon name={openAnswers.includes(faq.id) ? 'expand_less' : 'expand_more'} /></button>
+                                    <span className="rd-faq-views">조회 {faq.viewCount}</span>
+                                    <button type="button" className="rd-content-visibility" onClick={() => toggleFAQActive(faq)} aria-pressed={faq.isActive} title={faq.isActive ? '활성' : '비활성'}><span className={`switch${faq.isActive ? ' on' : ''}`}><span className="knob" /></span>{faq.isActive ? '노출' : '숨김'}</button>
+                                    <button type="button" className="act-btn" title="수정" onClick={() => { setSelectedFAQ(faq); setFaqForm({ category: faq.category, question: faq.question, answer: faq.answer, isActive: faq.isActive }); setIsModalOpen(true); }}><Icon name="edit" /></button>
+                                    <button type="button" className="act-btn danger" title="삭제" onClick={() => handleDeleteFAQ(faq.id)}><Icon name="delete" /></button>
                                 </div>
-                            )}
-                        </div>
+                                {openAnswers.includes(faq.id) && <div className="rd-faq-answer" id={'faq-answer-' + faq.id}><b>A</b><p>{faq.answer}</p></div>}
+                            </article>)}
+                            {!filteredFaqs.length && <div className="empty"><Icon name="inbox" /><p>조건에 맞는 FAQ가 없습니다.</p></div>}
+                        </section>
                     </>
                 ) : (
                     /* Category Management */
@@ -494,7 +426,7 @@ export const AdminFAQManage: React.FC = () => {
             {/* FAQ Modal */}
             {isModalOpen && (
                 <div className="picker-scrim" onClick={() => setIsModalOpen(false)}>
-                    <div className="picker" style={{ width: 560 }} onClick={(e) => e.stopPropagation()}>
+                    <div className="picker rd-content-dialog" style={{ width: 560 }} onClick={(e) => e.stopPropagation()}>
                         <div className="card-head">
                             <h2>{selectedFAQ ? 'FAQ 수정' : 'FAQ 추가'}</h2>
                             <div className="spacer" />

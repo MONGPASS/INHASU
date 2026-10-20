@@ -69,12 +69,18 @@ interface DrawerProps {
     onStatus: (status: InquiryStatus) => void;
     onSaveNote: (note: string) => Promise<boolean>;
     onDelete: () => void;
+    inline?: boolean;
+    registerCloseGuard?: (guard: (() => boolean) | null) => void;
 }
 
-const InquiryDrawer: React.FC<DrawerProps> = ({ inquiry, busy, onClose, onStatus, onSaveNote, onDelete }) => {
+const InquiryDrawer: React.FC<DrawerProps> = ({ inquiry, busy, onClose, onStatus, onSaveNote, onDelete, inline = false, registerCloseGuard }) => {
     const [note, setNote] = useState(inquiry.admin_note);
     const [savingNote, setSavingNote] = useState(false);
     const noteDirty = note !== inquiry.admin_note;
+    useEffect(() => {
+        registerCloseGuard?.(() => !busy && !savingNote && (!noteDirty || confirm('저장하지 않은 메모가 있습니다. 다른 문의를 열까요?')));
+        return () => registerCloseGuard?.(null);
+    }, [registerCloseGuard, busy, savingNote, noteDirty]);
 
     const close = () => {
         if (noteDirty && !confirm('저장하지 않은 메모가 있습니다. 닫으시겠습니까?')) return;
@@ -89,8 +95,8 @@ const InquiryDrawer: React.FC<DrawerProps> = ({ inquiry, busy, onClose, onStatus
     };
 
     return (
-        <div className="drawer-scrim" onClick={close}>
-            <div className="drawer" onClick={(e) => e.stopPropagation()}>
+        <div className={inline ? 'rd-inquiry-detail' : 'drawer-scrim'} onClick={inline ? undefined : close}>
+            <div className={inline ? 'rd-inquiry-detail-panel' : 'drawer'} onClick={(e) => e.stopPropagation()}>
                 <div className="drawer-head">
                     <div style={{ minWidth: 0, flex: 1 }}>
                         <div className="row" style={{ gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
@@ -99,6 +105,7 @@ const InquiryDrawer: React.FC<DrawerProps> = ({ inquiry, busy, onClose, onStatus
                             {inquiry.user_id && <span className="badge b-gray">회원</span>}
                         </div>
                         <div className="page-title" style={{ fontSize: 18, overflow: 'hidden', textOverflow: 'ellipsis' }}>{inquiry.name || '이름 없음'}</div>
+                        {inline && <div className="rd-inquiry-contact"><a href={replyHref(inquiry)}>{inquiry.email}</a><span>{formatReceived(inquiry.created_at)}</span>{inquiry.reservation_number && <span>예약번호 {inquiry.reservation_number}</span>}</div>}
                     </div>
                     <button type="button" className="act-btn" title="닫기" onClick={close}>
                         <Icon name="close" />
@@ -106,7 +113,7 @@ const InquiryDrawer: React.FC<DrawerProps> = ({ inquiry, busy, onClose, onStatus
                 </div>
 
                 <div className="drawer-body">
-                    <div className="card card-pad" style={{ marginBottom: 16 }}>
+                    {!inline && <div className="card card-pad" style={{ marginBottom: 16 }}>
                         <div className="kv"><span>종류</span><b>{inquiry.kind}</b></div>
                         <div className="kv"><span>이름</span><b>{inquiry.name || '-'}</b></div>
                         <div className="kv">
@@ -117,7 +124,7 @@ const InquiryDrawer: React.FC<DrawerProps> = ({ inquiry, busy, onClose, onStatus
                         </div>
                         <div className="kv"><span>예약번호</span><b>{inquiry.reservation_number || '-'}</b></div>
                         <div className="kv" style={{ borderBottom: 'none' }}><span>접수 시각</span><b>{formatReceived(inquiry.created_at)}</b></div>
-                    </div>
+                    </div>}
 
                     <div className="field">
                         <label>문의 내용</label>
@@ -190,6 +197,9 @@ export const AdminInquiryManage: React.FC = () => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [busyId, setBusyId] = useState<string | null>(null);
     const [toast, setToast] = useState('');
+    const detailGuard = useRef<(() => boolean) | null>(null);
+    const registerDetailGuard = useCallback((guard: (() => boolean) | null) => { detailGuard.current = guard; }, []);
+    const selectInquiry = (id: string) => { if (selectedId === id || (detailGuard.current && !detailGuard.current())) return; setSelectedId(id); };
     const toastTimer = useRef<number | undefined>(undefined);
 
     const load = useCallback(async () => {
@@ -286,8 +296,6 @@ export const AdminInquiryManage: React.FC = () => {
         }
     };
 
-    const stop = (e: React.MouseEvent) => e.stopPropagation();
-
     const headerActions = (
         <>
             <a className="btn btn-ghost" href="/contact" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
@@ -308,106 +316,24 @@ export const AdminInquiryManage: React.FC = () => {
                 : '조건에 맞는 문의가 없습니다.';
 
     return (
-        <AdminLayout activePage="inquiries" title="문의 관리" eyebrow="고객 지원" showSearch={false} actions={headerActions}>
-            <div className="route-anim">
+        <AdminLayout activePage="inquiries" title="일반 문의" eyebrow="고객 지원" showSearch={false} actions={headerActions}>
+            <div className="route-anim rd-content-page rd-inquiry-page">
                 {needsMigration && <MigrationNotice onRetry={() => void load()} />}
 
-                <div className="sec-head">
-                    <div>
-                        <h3>
-                            문의 목록
-                            {counts.new > 0 && <span className="badge b-red" style={{ marginLeft: 10, verticalAlign: 'middle' }}>미처리 {counts.new}건</span>}
-                        </h3>
-                        <div className="cell-muted" style={{ fontSize: 13 }}>고객 화면 '문의'(/contact) 폼으로 접수된 문의입니다. 최신순으로 표시됩니다.</div>
-                    </div>
-                </div>
-
-                <div className="toolbar">
-                    <div className="seg">
-                        {(['all', ...STATUS_ORDER] as StatusFilter[]).map((key) => (
-                            <button key={key} type="button" className={filter === key ? 'active' : ''} onClick={() => setFilter(key)}>
-                                {key === 'all' ? '전체' : STATUS_META[key].label} {counts[key]}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="spacer" />
-                    <div className="tb-search">
-                        <Icon name="search" />
-                        <input type="text" placeholder="이름 · 이메일 · 내용 검색" value={query} onChange={(e) => setQuery(e.target.value)} />
-                    </div>
-                </div>
-
-                <div className="card">
-                    {visible.length > 0 && (
-                        <div className="tbl-wrap">
-                            <table className="tbl">
-                                <thead>
-                                    <tr>
-                                        <th style={{ width: 96 }}>상태</th>
-                                        <th>종류</th>
-                                        <th>보낸 사람</th>
-                                        <th>내용</th>
-                                        <th>접수 시각</th>
-                                        <th className="r">관리</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {visible.map((inquiry) => (
-                                        <tr key={inquiry.id} onClick={() => setSelectedId(inquiry.id)}>
-                                            <td><StatusBadge status={inquiry.status} /></td>
-                                            <td><span className="badge b-blue">{inquiry.kind}</span></td>
-                                            <td>
-                                                <div className="cell-strong" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{inquiry.name || '이름 없음'}</div>
-                                                <div className="cell-muted" style={{ fontSize: 12.5, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{inquiry.email}</div>
-                                            </td>
-                                            <td style={{ maxWidth: 360 }}>
-                                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: inquiry.status === 'new' ? 700 : 400 }}>{inquiry.message}</div>
-                                                {inquiry.reservation_number && <div className="cell-muted" style={{ fontSize: 12.5 }}>예약번호 {inquiry.reservation_number}</div>}
-                                            </td>
-                                            <td className="cell-mono" style={{ whiteSpace: 'nowrap' }} title={`${inquiry.created_at} UTC`}>{formatReceived(inquiry.created_at)}</td>
-                                            <td className="r" onClick={stop}>
-                                                <span className="row-actions">
-                                                    <a className="act-btn" href={replyHref(inquiry)} title="메일로 답장">
-                                                        <Icon name="forward_to_inbox" />
-                                                    </a>
-                                                    {inquiry.status === 'new' && (
-                                                        <button type="button" className="act-btn" title="답변 완료로 변경" disabled={busyId === inquiry.id} onClick={() => void changeStatus(inquiry, 'answered')}>
-                                                            <Icon name="task_alt" />
-                                                        </button>
-                                                    )}
-                                                    <button type="button" className="act-btn danger" title="삭제" disabled={busyId === inquiry.id} onClick={() => void remove(inquiry)}>
-                                                        <Icon name="delete" />
-                                                    </button>
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {visible.length === 0 && (
-                        <div className="empty">
-                            <Icon name={loadError ? 'error' : 'inbox'} />
-                            <p>{emptyText}</p>
-                        </div>
-                    )}
+                <section className="rd-content-kpis">
+                    {(['all', ...STATUS_ORDER] as StatusFilter[]).map(key => <button type="button" key={key} className={'rd-content-kpi' + (filter === key ? ' is-selected' : '')} aria-pressed={filter === key} onClick={() => setFilter(key)}><span><i><Icon name={key === 'all' ? 'mail' : key === 'new' ? 'mail' : key === 'answered' ? 'check_circle' : 'inbox'} /></i><b>{key === 'all' ? '전체 문의' : STATUS_META[key].label}</b></span><strong>{loading && !rows.length ? '—' : counts[key]}<small>건</small></strong></button>)}
+                </section>
+                <div className="rd-inquiry-layout">
+                    <section className="rd-content-panel rd-inquiry-list">
+                        <div className="rd-inquiry-search"><label className="rd-content-search"><Icon name="search" /><input type="text" placeholder="이름 · 이메일 · 내용 검색" value={query} onChange={event => setQuery(event.target.value)} /></label></div>
+                        {visible.map(inquiry => <button type="button" key={inquiry.id} className={'rd-inquiry-item' + (selectedId === inquiry.id ? ' is-selected' : '')} aria-pressed={selectedId === inquiry.id} onClick={() => selectInquiry(inquiry.id)}>
+                            <span className="rd-content-avatar">{(inquiry.name || '문').slice(0, 1)}</span><span className="rd-inquiry-item-copy"><span><strong>{inquiry.name || '이름 없음'}</strong><small>{inquiry.kind}</small><time>{formatReceived(inquiry.created_at)}</time></span><span>{inquiry.message}</span></span><StatusBadge status={inquiry.status} />
+                        </button>)}
+                        {!visible.length && <div className="empty"><Icon name={loadError ? 'error' : 'inbox'} /><p>{emptyText}</p></div>}
+                    </section>
+                    {selected ? <InquiryDrawer key={selected.id} inline inquiry={selected} busy={busyId === selected.id} registerCloseGuard={registerDetailGuard} onClose={() => setSelectedId(null)} onStatus={status => void changeStatus(selected, status)} onSaveNote={note => saveNote(selected, note)} onDelete={() => void remove(selected)} /> : <section className="rd-content-panel rd-inquiry-placeholder"><Icon name="mail" /><strong>문의 내용을 선택해 주세요.</strong><p>목록에서 문의를 선택하면 내용과 처리 상태를 확인할 수 있어요.</p></section>}
                 </div>
             </div>
-
-            {selected && (
-                <InquiryDrawer
-                    key={selected.id}
-                    inquiry={selected}
-                    busy={busyId === selected.id}
-                    onClose={() => setSelectedId(null)}
-                    onStatus={(status) => void changeStatus(selected, status)}
-                    onSaveNote={(note) => saveNote(selected, note)}
-                    onDelete={() => void remove(selected)}
-                />
-            )}
-
             {toast && (
                 <div className="page-toast">
                     <Icon name="check_circle" />

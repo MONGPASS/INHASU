@@ -6,9 +6,11 @@ import { useAdminContentGuard, type AdminContentState } from '../hooks/useAdminC
 import { createAdminContentTask, moveAdminRow } from '../utils/adminContentWorkflow';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
+import { useAdminWorkspace } from '../components/admin/AdminWorkspaceContext';
 import { DEFAULT_CATEGORIES, DEFAULT_MAGAZINE_CATEGORIES, type Category } from '../types/category';
 
 export const AdminCategoryManage: React.FC = () => {
+    const workspace = useAdminWorkspace();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -40,7 +42,7 @@ export const AdminCategoryManage: React.FC = () => {
                     icon: typeof c.icon === 'string' && c.icon.trim() ? c.icon.trim() : 'category',
                     name: c.name,
                     description: c.description,
-                    isActive: c.is_active,
+                    isActive: !!c.is_active,
                     order: c.order ?? c.sort_order ?? 0,
                     type: c.type || 'product',
                     landing_hero_image: c.landing_hero_image,
@@ -185,7 +187,8 @@ export const AdminCategoryManage: React.FC = () => {
     return (
         <AdminLayout
             activePage="categories"
-            title="카테고리 관리"
+            title="상품 카테고리"
+            description="화살표로 노출 순서를 바꾸고, 스위치로 사이트 노출을 켜고 꺼요."
             actions={
                 <button
                     onClick={() => {
@@ -204,25 +207,8 @@ export const AdminCategoryManage: React.FC = () => {
             {loadError && <div role="alert" className="card card-pad">{loadError}<button type="button" className="btn btn-ghost" onClick={fetchCategories} disabled={busy || loading}>다시 불러오기</button></div>}
             {(loading || actionBusy) && <p role="status">{loading ? '카테고리를 불러오는 중…' : '카테고리 변경 내용을 저장하는 중…'}</p>}
             <fieldset disabled={busy || loading || !!loadError || isModalOpen} inert={busy || loading || !!loadError || isModalOpen} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-            <div className="route-anim">
-                <div className="toolbar">
-                    <div className="cell-muted" style={{ fontSize: 13.5, fontWeight: 600 }}>
-                        순서 버튼으로 노출 순서를 변경할 수 있습니다.
-                    </div>
-                    <div className="spacer" />
-                    <button
-                        onClick={() => {
-                            setSelectedCategory(null);
-                            setIsModalOpen(true);
-                        }}
-                        className="btn btn-ink"
-                    >
-                        <Icon name="add" />
-                        카테고리 추가
-                    </button>
-                </div>
-
-                <div className="card">
+            <div className="route-anim catalog-category-list">
+                <div className="card catalog-category-panel">
                     <div className="tbl-wrap">
                         <table className="tbl">
                             <thead>
@@ -231,6 +217,7 @@ export const AdminCategoryManage: React.FC = () => {
                                     <th style={{ width: 80 }}>아이콘</th>
                                     <th>이름</th>
                                     <th>설명</th>
+                                    <th className="r">상품</th>
                                     <th className="c">노출</th>
                                     <th className="r">관리</th>
                                 </tr>
@@ -238,7 +225,7 @@ export const AdminCategoryManage: React.FC = () => {
                             <tbody>
                                 {sortedCategories.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6}>
+                                        <td colSpan={7}>
                                             <div className="empty">
                                                 <Icon name="category" />
                                                 <p>등록된 카테고리가 없습니다.</p>
@@ -255,6 +242,8 @@ export const AdminCategoryManage: React.FC = () => {
                                                             type="button"
                                                             onClick={() => moveCategory(index, 'up')}
                                                             disabled={index === 0}
+                                                            aria-label={`${category.name} 위로`}
+                                                            title="위로"
                                                         >
                                                             <Icon name="arrow_upward" />
                                                         </button>
@@ -262,6 +251,8 @@ export const AdminCategoryManage: React.FC = () => {
                                                             type="button"
                                                             onClick={() => moveCategory(index, 'down')}
                                                             disabled={index === sortedCategories.length - 1}
+                                                            aria-label={`${category.name} 아래로`}
+                                                            title="아래로"
                                                         >
                                                             <Icon name="arrow_downward" />
                                                         </button>
@@ -282,13 +273,16 @@ export const AdminCategoryManage: React.FC = () => {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="cell-strong">{category.name}</td>
-                                            <td className="cell-muted">{category.description}</td>
+                                            <td className="cell-strong">{category.id === 'all' ? <>{category.name}<small className="catalog-category-fixed">기본 · 삭제 불가</small></> : category.name}</td>
+                                            <td className="cell-muted catalog-category-description" title={category.description}>{category.description}</td>
+                                            <td className="r catalog-category-count" title={workspace.data?.availability.products ? '업무 현황에서 확인한 실제 등록 상품 수' : '상품 수를 아직 확인하지 못했습니다.'}>{workspace.data?.availability.products ? workspace.data.products.filter(product => category.id === 'all' || product.category === category.name || product.category === category.id).length : '—'}</td>
                                             <td className="c">
                                                 <button
                                                     type="button"
                                                     className={`switch${category.isActive ? ' on' : ''}`}
                                                     onClick={() => toggleActive(category.id, category.isActive)}
+                                                    aria-label={`${category.name} 사이트 노출 ${category.isActive ? '끄기' : '켜기'}`}
+                                                    aria-pressed={category.isActive}
                                                 >
                                                     <span className="knob" />
                                                 </button>

@@ -101,7 +101,7 @@
 <script src="/lodging.f3c00aad8ec7.js"></script>
 <script src="/admin-embed.js"></script>
 </head>
-<body>
+<body class="qr-resources">
 <div class="shell">
   <aside class="side">
     <div class="side-brand">
@@ -143,11 +143,12 @@
 
   <main class="content">
     <div class="page-head">
-      <h1>리소스 관리</h1>
+      <div><span class="qr-page-kicker">배정·자원</span><h1>가이드 · 숙소 · 차량</h1></div>
       <button class="add" id="addBtn">＋ 새 리소스 추가</button>
     </div>
     <div class="lead"><b>가이드·숙소·차량</b>을 한 곳에서 등록합니다. 등록한 숙소는 <b>상품·예약 일정표와 숙소 배정</b>에서 사진·주소·시설과 함께 불러올 수 있습니다.</div>
-    <div class="tabs" id="tabs"></div>
+    <div class="qr-resource-toolbar"><div class="tabs" id="tabs"></div><div class="qr-resource-views" id="resourceViews" aria-label="자원 보기 방식"><button type="button" data-resource-view="card" aria-pressed="true">카드</button><button type="button" data-resource-view="gallery" aria-pressed="false">갤러리</button><button type="button" data-resource-view="list" aria-pressed="false">목록</button></div></div>
+    <div class="qr-resource-search"><label><span aria-hidden="true">⌕</span><input id="resourceSearch" type="search" placeholder="이름 · 소개 · 지역으로 검색" aria-label="등록 자원 검색"></label><span id="resourceCount"></span></div>
     <div class="tabs lodge-cats" id="lodgeCats" hidden></div>
     <div class="grid" id="grid"></div>
   </main>
@@ -186,6 +187,7 @@ const requestedResourceType = new URLSearchParams(location.search).get("resource
 let activeType = ["guides", "lodges", "vehicles"].includes(requestedResourceType) ? requestedResourceType : "guides";
 let LIB = {};        // 현재 탭의 라이브러리 (작업 사본)
 let editKey = null;
+let resourceView = "card", resourceSearch = "";
 let LODGE_CATS = [];           // 숙소 지역 카테고리 목록 (순서·빈 카테고리 보존)
 let activeLodgeCat = "__all"; // "__all" | "__none" | 카테고리명
 const LODGE_UNCAT = "미분류";
@@ -299,9 +301,13 @@ function renderGrid() {
     if (activeLodgeCat === "__none") entries = entries.filter(([, r]) => !lodgeCatOf(r));
     else if (activeLodgeCat !== "__all") entries = entries.filter(([, r]) => lodgeCatOf(r) === activeLodgeCat);
   }
+  const query = resourceSearch.trim().toLocaleLowerCase("ko");
+  if (query) entries = entries.filter(([name,r]) => [name,T.sub(r),r.desc,r.address,r.tags].some(value => String(value || "").toLocaleLowerCase("ko").includes(query)));
+  $("grid").dataset.resourceView = resourceView;
+  $("resourceCount").textContent = `${entries.length}개`;
   const coverOf = r => activeType === "lodges" ? (Lodging.photos(r)[0] || "") : Lodging.imageUrl(r.img || (r.imgs || [])[0]);
   $("grid").innerHTML = entries.map(([name, r]) => `
-    <div class="res-card" data-k="${esc(name)}">
+    <button type="button" class="res-card" data-k="${esc(name)}" aria-label="${esc(name)} 수정">
       <div class="thumb">
         ${coverOf(r) ? `<img src="${esc(coverOf(r))}" alt="${esc(name)}">` : `<div class="noimg"><span style="font-size:30px">${T.icon}</span><span>이미지 없음</span></div>`}
         ${T.sub(r) ? `<span class="badge">${esc(T.sub(r))}</span>` : ""}
@@ -311,13 +317,15 @@ function renderGrid() {
         <h3>${esc(name)}</h3>
         <p>${esc(activeType === "lodges" ? Lodging.summary(r) : (r.desc || "설명을 추가하세요"))}</p>
       </div>
-    </div>`).join("")
+    </button>`).join("")
   || `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--gray)">${
     activeType === "lodges" && activeLodgeCat !== "__all"
       ? `이 카테고리에 숙소가 없습니다. <b>＋ 새 ${T.one} 추가</b>로 등록해보세요.`
       : `등록된 ${T.one}이(가) 없습니다. 우측 상단 <b>＋ 새 ${T.one} 추가</b>로 만들어보세요.`
   }</div>`;
+  $("grid").insertAdjacentHTML("beforeend", `<button type="button" class="qr-resource-add" id="resourceAddTile"><span aria-hidden="true">＋</span>새 ${T.label} 추가</button>`);
   $("grid").querySelectorAll(".res-card").forEach(el => el.onclick = () => openEdit(el.dataset.k));
+  $("resourceAddTile").onclick = () => openEdit(null);
 }
 
 /* ── 이미지: 리사이즈 → WebP → (실서버)R2 업로드 / (로컬)base64 ── */
@@ -601,10 +609,52 @@ function openEdit(key) {
     renderTabs(); renderGrid(); closeDrawer();
     toast(res.ok ? "삭제됐어요 (서버 반영)" : "삭제됨 — 이 브라우저에만 반영");
   };
+  redesignResourceEditor(isLodge);
 }
-function closeDrawer(){ $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); }
+function redesignResourceEditor(isLodge) {
+  if (!document.documentElement.classList.contains("admin-redesigned")) return;
+  const drawer = $("drawer"), body = drawer.querySelector(".db");
+  drawer.classList.toggle("qr-resource-hotel-page", isLodge);
+  document.documentElement.classList.toggle("qr-resource-hotel-active", isLodge);
+  const section = title => { const node=document.createElement("section"); node.className="qr-resource-section"; const heading=document.createElement("h3"); heading.textContent=title; node.appendChild(heading); return node; };
+  const main=document.createElement("div"); main.className="qr-resource-edit-main";
+  const basic=section("기본 정보"), photos=section("사진"), facilities=section("시설 · 비품"), notes=section("운영 참고 · 보관 자료");
+  const moveField=(id,target) => { const node=$(id); if(node) target.appendChild(node.closest("label.f") || node); };
+  moveField("f_name",basic);
+  if (isLodge) {
+    const row=$("f_region")?.closest(".row2"); if(row) basic.appendChild(row);
+    ["f_address","f_phone"].forEach(id=>moveField(id,basic));
+    const archive=$("lodgeArchive")?.closest("details");
+    ["lodgePhotos","lodgePhotoUpload","lodgePhotoFile"].forEach(id=>{if($(id))photos.appendChild($(id));});
+    const photoHint=document.createElement("p"); photoHint.className="hintline"; photoHint.textContent="첫 장이 대표 사진입니다. 일정표에 사용할 사진을 최대 3장 선택하세요."; photos.appendChild(photoHint); if(archive)photos.appendChild(archive);
+    ["f_tags","f_roomAmenities","f_sharedFacilities"].forEach(id=>moveField(id,facilities));
+    ["f_operatingNotes","f_officialSources","f_desc"].forEach(id=>moveField(id,notes));
+    main.append(basic,photos,facilities,notes);
+    const preview=document.createElement("aside"); preview.className="qr-resource-preview";
+    const title=document.createElement("p"); title.textContent="고객 일정표 미리보기"; preview.appendChild(title);
+    const card=document.createElement("div"); card.className="qr-resource-preview-card"; preview.appendChild(card);
+    const refreshPreview=()=>{ card.replaceChildren(); const selected=[...drawer.querySelectorAll("#lodgePhotos img")].slice(0,3); const cover=selected[0]; if(cover){const image=document.createElement("img"); image.src=cover.src; image.alt="선택한 숙소 대표 사진";card.appendChild(image);}else{const empty=document.createElement("div");empty.className="qr-resource-preview-empty";empty.textContent="사진 없음";card.appendChild(empty);}
+      const content=document.createElement("div");content.className="qr-resource-preview-content";card.appendChild(content);const meta=document.createElement("small");meta.textContent=[$("f_region")?.value==="__new"?"":$("f_region")?.value,$("f_grade")?.value].filter(Boolean).join(" · ");content.appendChild(meta);const name=document.createElement("h3");name.textContent=$("f_name").value.trim()||"숙소 이름";content.appendChild(name);
+      for(const id of ["f_tags","f_roomAmenities","f_sharedFacilities","f_address"]){const value=$(id)?.value.trim();if(value){const line=document.createElement("p");line.textContent=value;content.appendChild(line);}}
+    };
+    body.replaceChildren(main,preview); body.classList.add("qr-resource-edit-layout");
+    body.addEventListener("input",refreshPreview);body.addEventListener("change",refreshPreview);
+    const observer=new MutationObserver(refreshPreview);observer.observe($("lodgePhotos"),{childList:true,subtree:true}); drawer._resourcePreviewObserver?.disconnect();drawer._resourcePreviewObserver=observer; refreshPreview();
+    $("dX").textContent="‹ 숙소 목록";$("dX").classList.add("qr-resource-back");
+  } else {
+    const photo=$("upMain")?.parentElement;if(photo)photos.appendChild(photo);
+    const multi=$("multiList")?.closest(".multi-upload");if(multi)photos.appendChild(multi);
+    const multiInput=$("fileMulti");if(multiInput)photos.appendChild(multiInput);
+    [...body.children].forEach(node=>{if(node!==basic&&node!==photos)basic.appendChild(node);});
+    main.append(basic,photos);body.replaceChildren(main);body.classList.add("qr-resource-edit-layout");
+  }
+  const cancel=document.createElement("button");cancel.type="button";cancel.className="qr-resource-cancel";cancel.textContent="취소";cancel.onclick=closeDrawer;drawer.querySelector(".df").insertBefore(cancel,$("dSave"));
+}
+function closeDrawer(){ $("drawer")._resourcePreviewObserver?.disconnect(); $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); document.documentElement.classList.remove("qr-resource-hotel-active"); }
 $("overlay").onclick = closeDrawer;
 $("addBtn").onclick = () => openEdit(null);
+$("resourceSearch").oninput=e=>{resourceSearch=e.target.value;renderGrid();};
+$("resourceViews").querySelectorAll("[data-resource-view]").forEach(button=>button.onclick=()=>{resourceView=button.dataset.resourceView;$("resourceViews").querySelectorAll("button").forEach(item=>item.setAttribute("aria-pressed",String(item===button)));renderGrid();});
 
 /* ── 시작: 서버 라이브러리 동기화 후 렌더 ── */
 (async () => { try { await window.cloudReady; } catch (e) {} load(); })();

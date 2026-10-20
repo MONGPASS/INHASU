@@ -83,11 +83,11 @@ export const api = {
                 return null;
             }
         },
-        login: async (email: string, password: string) => {
+        login: async (email: string, password: string, remember = true) => {
             return request(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, remember }),
             });
         },
         logout: async () => {

@@ -1,0 +1,128 @@
+.admin-home-manager { margin: -24px -28px 0; padding-bottom: 48px; background: #f6f7f9; min-height: 100%; color: #1a1b1e; }
+.admin-home-manager .hm-header { position: sticky; top: calc(16px + var(--header-h,72px)); z-index: 7; display: flex; align-items: center; flex-wrap: wrap; gap: 16px; padding: 18px 28px; border-bottom: 1px solid #e7eaf0; background: rgb(255 255 255 / 96%); backdrop-filter: blur(16px); }
+.admin-home-manager .hm-title { flex: none; display: flex; flex-direction: column; gap: 2px; }
+.admin-home-manager .hm-title > span { font-size: 12px; font-weight: 800; color: #1a8cff; }
+.admin-home-manager .hm-title h1 { margin: 0; font-size: 24px; line-height: 1.35; font-weight: 800; letter-spacing: -.03em; }
+.admin-home-manager .hm-areas { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.admin-home-manager .hm-areas a { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; color: #656c76; text-decoration: none; font-size: 13px; font-weight: 600; }
+.admin-home-manager .hm-areas a:hover { background: #f6f7f9; color: #1a1b1e; }
+.admin-home-manager .hm-areas a span { color: #9299a5; font-size: 12px; }
+.admin-home-manager .hm-status-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.admin-home-manager .hm-status { display: inline-flex; align-items: center; gap: 6px; color: #656c76; font-size: 12px; white-space: nowrap; }
+.admin-home-manager .hm-status i { width: 6px; height: 6px; border-radius: 50%; background: #adb4bf; }
+.admin-home-manager .hm-status-dirty { color: #b56910; }
+.admin-home-manager .hm-status-dirty i { background: #f3a83a; }
+.admin-home-manager .hm-content { display: flex; flex-direction: column; gap: 36px; border: 0; margin: 0; padding: 28px 28px 0; max-width: 1240px; min-width: 0; width: 100%; box-sizing: border-box; }
+.admin-home-manager .hm-area { display: flex; flex-direction: column; gap: 16px; min-width: 0; scroll-margin-top: calc(16px + var(--header-h,72px) + 130px); }
+.admin-home-manager .hm-area-heading { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.admin-home-manager .hm-area-heading h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
+.admin-home-manager .hm-area-heading h2 span { padding: 2px 8px; border-radius: 999px; background: #eef0f4; color: #656c76; font-size: 12px; line-height: 1.5; letter-spacing: 0; }
+.admin-home-manager .hm-area-heading p { margin: 4px 0 0; color: #9299a5; font-size: 13px; line-height: 1.6; }
+.admin-home-manager .hm-area-heading .btn { flex: none; }
+.admin-home-manager .hm-collapse-all { display: flex; justify-content: flex-end; margin-block: -8px; }
+.admin-home-manager .hm-collapse-all button { border: 0; padding: 4px 8px; background: transparent; color: #656c76; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.admin-home-manager .hm-editor-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 20px; border: 1px solid #e7eaf0; border-radius: 20px; background: #fff; }
+.admin-home-manager .hm-card-heading { display: flex; align-items: center; min-width: 0; gap: 10px; }
+.admin-home-manager .hm-card-toggle { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; font: inherit; cursor: pointer; color: #1a1b1e; }
+.admin-home-manager .hm-card-toggle > .material-symbols-outlined { flex: none; color: #9299a5; font-size: 20px; }
+.admin-home-manager .hm-thumb { display: flex; align-items: center; justify-content: center; width: 46px; height: 36px; flex: none; border-radius: 8px; background-size: cover; background-position: center; background-color: #eef0f4; }
+.admin-home-manager .hm-order { flex: none; padding: 3px 8px; border-radius: 8px; background: #eef0f4; color: #656c76; font-size: 12px; font-weight: 800; }
+.admin-home-manager .hm-card-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.admin-home-manager .hm-card-name strong { overflow: hidden; color: #1a1b1e; font-size: 15px; font-weight: 800; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
+.admin-home-manager .hm-card-name small { overflow: hidden; color: #9299a5; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.admin-home-manager .hm-card-tools { display: flex; align-items: center; gap: 6px; flex: none; }
+.admin-home-manager .hm-card-tools .act-btn { width: 32px; height: 32px; border: 1px solid #e7eaf0; border-radius: 10px; background: #fff; color: #656c76; }
+.admin-home-manager .hm-card-tools .act-btn:hover { background: #f6f7f9; color: #1a1b1e; }
+.admin-home-manager .hm-card-tools .act-btn.danger:hover { border-color: #ffd0d0; background: #fff0f0; color: #e45252; }
+.admin-home-manager .hm-card-body { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 20px; padding-top: 16px; border-top: 1px solid #eef0f4; }
+.admin-home-manager [hidden] { display: none !important; }
+.admin-home-manager .hm-previews { display: flex; flex: 0 0 220px; flex-direction: column; gap: 10px; min-width: 0; }
+.admin-home-manager .hm-preview-label { display: flex; align-items: center; gap: 6px; color: #656c76; font-size: 12px; font-weight: 700; }
+.admin-home-manager .hm-preview-label .material-symbols-outlined { font-size: 16px; }
+.admin-home-manager .hm-preview-label > span:last-child { margin-left: auto; color: #9299a5; font-weight: 500; }
+.admin-home-manager .hm-banner-preview { display: flex; align-items: flex-end; position: relative; width: 220px; height: 138px; padding: 0; overflow: hidden; border: 0; border-radius: 14px; background-size: cover; background-position: center; color: #fff; font: inherit; text-align: left; cursor: pointer; }
+.admin-home-manager .hm-preview-overlay { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 28px 14px 14px; background: linear-gradient(transparent, rgb(0 0 0 / 52%)); }
+.admin-home-manager .hm-preview-overlay small { font-size: 10px; font-weight: 700; }
+.admin-home-manager .hm-preview-overlay strong { font-size: 14px; line-height: 1.3; font-weight: 800; white-space: pre-line; }
+.admin-home-manager .hm-preview-overlay > span { font-size: 10px; opacity: .85; }
+.admin-home-manager .hm-upload-label { position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px; background: rgb(0 0 0 / 30%); color: #fff; font-size: 10px; font-weight: 700; }
+.admin-home-manager .hm-upload-label .material-symbols-outlined { font-size: 12px; }
+.admin-home-manager .hm-pc-preview { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 220px; height: 94px; border: 1.5px dashed #d7dce5; border-radius: 14px; background: #f6f7f9; background-size: cover; background-position: center; color: #9299a5; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.admin-home-manager .hm-pc-preview.hm-has-image { border: 0; color: #fff; text-shadow: 0 1px 5px rgb(0 0 0 / 60%); }
+.admin-home-manager .hm-pc-preview > span { max-width: 90%; overflow: hidden; text-overflow: ellipsis; }
+.admin-home-manager .hm-editor-fields { display: flex; flex: 1 1 420px; flex-direction: column; gap: 14px; min-width: 0; }
+.admin-home-manager .hm-basic-copy { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: #f6f7f9; }
+.admin-home-manager .hm-basic-copy h3 { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; font-size: 14px; font-weight: 800; }
+.admin-home-manager .hm-basic-copy h3 .material-symbols-outlined { font-size: 18px; }
+.admin-home-manager .hm-basic-copy h3 span:last-child { font-size: 12px; font-weight: 500; color: #9299a5; }
+.admin-home-manager .hm-field-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.admin-home-manager .hm-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin: 0; }
+.admin-home-manager .hm-field > span:first-child { color: #1a1b1e; font-size: 13px; font-weight: 700; }
+.admin-home-manager .hm-field .inp { width: 100%; height: 44px; min-width: 0; margin: 0; padding: 0 14px; border: 1px solid #e7eaf0; border-radius: 12px; background: #fff; font: inherit; font-size: 14px; box-sizing: border-box; }
+.admin-home-manager .hm-field textarea.inp { height: auto; min-height: 64px; padding: 12px 14px; line-height: 1.5; resize: vertical; }
+.admin-home-manager .hm-field .inp:focus { border-color: #1a8cff; outline: 2px solid #d3e9ff; outline-offset: 1px; }
+.admin-home-manager .hm-pc-copy { padding: 4px 16px; border: 1px solid #e7eaf0; border-radius: 16px; }
+.admin-home-manager .hm-pc-toggle { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; color: #1a1b1e; font: inherit; text-align: left; cursor: pointer; }
+.admin-home-manager .hm-pc-toggle > .material-symbols-outlined { font-size: 18px; }
+.admin-home-manager .hm-pc-toggle strong { font-size: 14px; font-weight: 800; }
+.admin-home-manager .hm-pc-toggle small { margin-left: auto; color: #9299a5; font-size: 12px; }
+.admin-home-manager .hm-pc-fields { display: flex; flex-direction: column; gap: 12px; padding-bottom: 16px; }
+.admin-home-manager .hm-icon-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+.admin-home-manager .hm-icon-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid #e7eaf0; border-radius: 20px; background: #fff; min-width: 0; }
+.admin-home-manager .hm-icon-preview { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; overflow: hidden; border: 0; border-radius: 14px; background: #edf6ff; color: #1a8cff; cursor: pointer; }
+.admin-home-manager .hm-icon-preview img { width: 100%; height: 100%; object-fit: cover; }
+.admin-home-manager .hm-icon-tools { display: flex; gap: 4px; }
+.admin-home-manager .hm-icon-tools .danger { margin-left: auto; }
+.admin-home-manager .hm-event-thumb { color: #fff; }
+.admin-home-manager .hm-event-preview { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 220px; min-height: 110px; padding: 18px; border: 0; border-radius: 14px; background-size: cover; background-position: center; color: #fff; font: inherit; cursor: pointer; text-align: left; }
+.admin-home-manager .hm-event-preview > span { display: flex; flex-direction: column; gap: 3px; }
+.admin-home-manager .hm-event-preview small { font-size: 10px; }
+.admin-home-manager .hm-event-preview strong { font-size: 14px; line-height: 1.4; white-space: pre-line; }
+.admin-home-manager .hm-hint { font-size: 12px; line-height: 1.5; color: #9299a5; }
+.admin-home-manager .hm-color-input { display: flex; align-items: center; gap: 8px; }
+.admin-home-manager .hm-color-input > input[type="color"] { width: 44px; height: 44px; flex: none; padding: 2px; border: 1px solid #e7eaf0; border-radius: 12px; background: #fff; cursor: pointer; }
+.admin-home-manager .hm-location-options { display: flex; gap: 2px; height: 44px; padding: 3px; border: 1px solid #e7eaf0; border-radius: 12px; box-sizing: border-box; }
+.admin-home-manager .hm-location-options button { flex: 1; padding: 0 10px; border: 0; border-radius: 9px; background: #fff; color: #656c76; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.admin-home-manager .hm-location-options button[aria-pressed="true"] { background: #1a1b1e; color: #fff; }
+.admin-home-manager .hm-link-input { display: flex; gap: 8px; }
+.admin-home-manager .hm-field .hm-link-input select.inp { width: 130px; flex: none; }
+.admin-home-manager .hm-field .hm-link-input input.inp { width: 0; flex: 1; }
+.admin-home-manager .hm-theme-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+.admin-home-manager .hm-theme-card { overflow: hidden; padding: 0; gap: 0; }
+.admin-home-manager .hm-theme-preview { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; height: 145px; padding: 16px; border: 0; background: #eef0f4; background-size: cover; background-position: center; text-align: left; font: inherit; cursor: pointer; }
+.admin-home-manager .hm-theme-preview > strong { padding: 4px 8px; border-radius: 8px; background: rgb(255 255 255 / 92%); font-size: 14px; }
+.admin-home-manager .hm-theme-preview > span { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 8px; background: rgb(255 255 255 / 92%); color: #656c76; font-size: 11px; }
+.admin-home-manager .hm-theme-preview .material-symbols-outlined { font-size: 14px; }
+.admin-home-manager .hm-theme-fields { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
+.admin-home-manager .hm-empty-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 130px; padding: 32px; border: 1.5px dashed #d7dce5; border-radius: 20px; background: #fff; color: #9299a5; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.admin-home-manager .hm-empty-add:hover { border-color: #1a8cff; color: #1376d8; }
+.admin-home-manager .hm-empty { margin: 0; padding: 32px; border: 1px solid #e7eaf0; border-radius: 20px; background: #fff; color: #9299a5; font-size: 14px; text-align: center; }
+.admin-home-manager > :is([role="alert"],[role="status"]) { margin: 16px 28px; }
+.admin-home-manager button:focus-visible, .admin-home-manager a:focus-visible { outline: 2px solid #1a8cff; outline-offset: 3px; }
+@media (max-width: 1100px) {
+  .admin-home-manager { margin-inline: -20px; }
+  .admin-home-manager .hm-header { gap: 10px; }
+  .admin-home-manager .hm-areas { order: 3; width: 100%; }
+  .admin-home-manager .hm-icon-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .admin-home-manager .hm-theme-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 760px) {
+  .admin-home-manager { margin: -20px -14px 0; }
+  .admin-home-manager .hm-header { position: static; padding: 18px 16px; }
+  .admin-home-manager .hm-title h1 { font-size: 22px; }
+  .admin-home-manager .hm-content { padding: 20px 16px 0; }
+  .admin-home-manager .hm-editor-card { padding: 16px; }
+  .admin-home-manager .hm-card-heading { flex-wrap: wrap; }
+  .admin-home-manager .hm-card-toggle { flex-basis: 70%; }
+  .admin-home-manager .hm-card-tools { margin-left: auto; }
+  .admin-home-manager .hm-thumb { display: none; }
+  .admin-home-manager .hm-previews { flex-basis: 100%; }
+  .admin-home-manager .hm-banner-preview, .admin-home-manager .hm-pc-preview, .admin-home-manager .hm-event-preview { width: 220px; max-width: 100%; }
+  .admin-home-manager .hm-field-grid { grid-template-columns: minmax(0,1fr); }
+  .admin-home-manager .hm-theme-grid { grid-template-columns: minmax(0,1fr); }
+  .admin-home-manager .hm-icon-grid { grid-template-columns: minmax(0,1fr); }
+  .admin-home-manager .hm-pc-toggle small { margin-left: 0; }
+  .admin-home-manager .hm-areas { flex-wrap: nowrap; overflow-x: auto; }
+  .admin-home-manager .hm-areas a { flex: none; }
+  .admin-home-manager .hm-area { scroll-margin-top: 100px; }
+}

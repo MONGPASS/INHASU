@@ -1,0 +1,46 @@
+/* Shared page primitives from the supplied administrator redesign. Public pages stay isolated. */
+.admin-app-wrapper .content { padding: 24px 28px 32px; }
+.admin-app-wrapper .content :is(.card, .metric) { border-radius: 20px; box-shadow: none; border-color: var(--border-default); }
+.admin-app-wrapper .content .card-head { min-height: 64px; padding: 18px 22px; gap: 10px; }
+.admin-app-wrapper .content .card-head h2 { font-size: 18px; font-weight: 800; letter-spacing: -.025em; }
+.admin-app-wrapper .content :is(.grid-2, .grid-3, .grid-4, .metric-grid) { gap: 16px; }
+.admin-app-wrapper .content .metric { padding: 20px 22px; }
+.admin-app-wrapper .content .metric-value { font-size: 34px; font-weight: 750; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.admin-app-wrapper .content .metric-value small { margin-left: 5px; font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+.admin-app-wrapper .content :is(.filter-bar, .toolbar, .filter-row) { gap: 10px; border-radius: 16px; }
+.admin-app-wrapper .content :is(.inp, input[type="search"], .search-input) { min-height: 40px; border-color: var(--border-default); border-radius: 10px; box-shadow: none; font: inherit; font-size: 13px; }
+.admin-app-wrapper .content textarea.inp { padding: 12px 14px; line-height: 1.65; }
+.admin-app-wrapper .content :is(.inp, .search-input):focus { border-color: var(--mrt-blue); box-shadow: 0 0 0 3px rgb(26 140 255 / 10%); }
+.admin-app-wrapper .content .field { min-width: 0; }
+.admin-app-wrapper .content .field > label { margin-bottom: 8px; color: var(--text-secondary); font-size: 12px; font-weight: 650; }
+.admin-app-wrapper .content .btn { min-height: 38px; border-radius: 10px; font-weight: 650; gap: 7px; }
+.admin-app-wrapper .content .btn-ink { background: var(--mrt-ink); border-color: var(--mrt-ink); }
+.admin-app-wrapper .content :is(.btn-primary, .btn-blue) { background: var(--mrt-blue); color: white; border-color: var(--mrt-blue); }
+.admin-app-wrapper .content :is(.btn-ghost, .btn-outline) { background: white; border-color: var(--border-default); }
+.admin-app-wrapper .content :is(.btn-ghost, .btn-outline):hover { background: var(--mrt-gray-50); border-color: var(--border-strong); }
+.admin-app-wrapper .content :is(.btn, .chip, .seg button, a):focus-visible { outline: 2px solid var(--mrt-blue); outline-offset: 3px; }
+.admin-app-wrapper .content .tbl-wrap { min-width: 0; overflow-x: auto; border-radius: 16px; }
+.admin-app-wrapper .content .tbl th { padding: 12px 18px; background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 12px; font-weight: 550; white-space: nowrap; }
+.admin-app-wrapper .content .tbl td { padding: 15px 18px; border-bottom-color: var(--border-subtle); vertical-align: middle; font-size: 13px; }
+.admin-app-wrapper .content .tbl tbody tr:hover { background: var(--mrt-gray-50); }
+.admin-app-wrapper .content .tbl tbody tr:last-child td { border-bottom: 0; }
+.admin-app-wrapper .content :is(.badge, .chip) { font-variant-numeric: tabular-nums; }
+.admin-app-wrapper .content .badge { border-radius: 999px; padding: 4px 9px; font-weight: 650; white-space: nowrap; }
+.admin-app-wrapper .content .seg { width: fit-content; max-width: 100%; padding: 4px; border: 1px solid var(--border-default); border-radius: 999px; overflow-x: auto; background: var(--mrt-gray-100); }
+.admin-app-wrapper .content .seg button { flex: none; min-height: 34px; padding: 7px 14px; border-radius: 999px; font-weight: 650; }
+.admin-app-wrapper .content .seg button.active { background: white; color: var(--text-strong); box-shadow: 0 1px 3px rgb(26 27 30 / 6%); }
+.admin-app-wrapper .content :is(.modal, .modal-panel, .modal-content) { border-radius: 20px; max-width: calc(100vw - 32px); }
+.admin-app-wrapper .content .qlink { border-radius: 16px; }
+.admin-app-wrapper .content .link-action { display: inline-flex; align-items: center; gap: 4px; color: var(--mrt-blue-strong); font-size: 12px; font-weight: 650; }
+.admin-app-wrapper .content .empty { min-height: 140px; color: var(--text-tertiary); }
+@media (max-width: 760px) {
+  .admin-app-wrapper .content { padding: 18px 16px 26px; }
+  .admin-app-wrapper .content .card-head { padding: 16px; flex-wrap: wrap; }
+  .admin-app-wrapper .content .card-head h2 { font-size: 16px; }
+  .admin-app-wrapper .content .metric { padding: 16px; }
+  .admin-app-wrapper .content .metric-value { font-size: 28px; }
+  .admin-app-wrapper .content .tbl td, .admin-app-wrapper .content .tbl th { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-app-wrapper .content *, .admin-app-wrapper .content *::before, .admin-app-wrapper .content *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

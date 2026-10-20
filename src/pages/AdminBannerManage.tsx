@@ -140,14 +140,21 @@ export const AdminBannerManage: React.FC = () => {
     const eventFileInputRef = useRef<HTMLInputElement>(null);
     const categoryFileInputRef = useRef<HTMLInputElement>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [collapsedBanners, setCollapsedBanners] = useState<Record<string, boolean>>({});
+    const [collapsedEvents, setCollapsedEvents] = useState<Record<string, boolean>>({});
+    const [pcOpen, setPcOpen] = useState<Record<string, boolean>>({});
     const task = useRef(createAdminContentTask());
     const mounted = useRef(true), dirty = useRef(false);
     const [busy, setBusy] = useState<'upload' | 'save' | null>(null);
     const [notice, setNotice] = useState(''), [loadError, setLoadError] = useState(''), [loadAttempt, setLoadAttempt] = useState(0);
     const dataRef = useRef({ banners, quickLinks: links, eventBanners, categoryTabs });
+    const savedData = useRef<typeof dataRef.current | null>(null);
     dataRef.current = { banners, quickLinks: links, eventBanners, categoryTabs };
     useAdminContentGuard(() => ({ busy: task.current.busy(), dirty: dirty.current }), setNotice);
     useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+    useEffect(() => {
+        if (!isLoading && !loadError && !hasUnsavedChanges && !busy) savedData.current = dataRef.current;
+    }, [isLoading, loadError, hasUnsavedChanges, busy]);
 
     // Initial Load from API
     useEffect(() => {
@@ -313,6 +320,13 @@ export const AdminBannerManage: React.FC = () => {
         markUnsaved();
     };
 
+    const revertChanges = () => {
+        if (task.current.busy() || !savedData.current || !dirty.current || !window.confirm('저장하지 않은 변경사항을 버리고 마지막으로 저장된 내용으로 되돌릴까요?')) return;
+        const saved = savedData.current;
+        setBanners(saved.banners); setLinks(saved.quickLinks); setEventBanners(saved.eventBanners); setCategoryTabs(saved.categoryTabs);
+        dirty.current = false; setHasUnsavedChanges(false); setNotice('');
+    };
+
     // Save Action via API
     const saveAll = async () => {
         if (isLoading || loadError || !dirty.current) return;
@@ -327,465 +341,119 @@ export const AdminBannerManage: React.FC = () => {
         finally { release(); if (mounted.current) setBusy(null); }
     };
 
-    // Preview tone for the main-banner thumbnail when no image is set.
     const bannerTone = (index: number) => ['bp-blue', 'bp-purple', 'bp-red'][index % 3];
+    const toggle = (setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>, id: string) => setter(previous => ({ ...previous, [id]: !previous[id] }));
+    const bannerField = (banner: Banner, field: keyof Banner, label: string, placeholder = '', multiline = false) => (
+        <label className="field hm-field">
+            <span>{label}</span>
+            {multiline ? <textarea className="inp" value={banner[field] || ''} placeholder={placeholder} onChange={event => handleBannerChange(banner.id, field, event.target.value)} />
+                : <input className="inp" type="text" value={banner[field] || ''} placeholder={placeholder} onChange={event => handleBannerChange(banner.id, field, event.target.value)} />}
+        </label>
+    );
+    const areas = [
+        { id: 'home-banners', label: '메인 배너', count: banners.length },
+        { id: 'home-icons', label: '바로가기 아이콘', count: links.length },
+        { id: 'home-events', label: '이벤트 배너', count: eventBanners.length },
+        { id: 'home-themes', label: '테마 배너', count: categoryTabs.length },
+    ];
+    const status = isLoading ? '불러오는 중' : loadError ? '자료 확인 필요' : busy === 'upload' ? '이미지 업로드 중' : busy === 'save' ? '저장 중' : hasUnsavedChanges ? '변경사항 있음' : '저장된 내용';
 
     return (
-        <AdminLayout
-            activePage="banners"
-            title="홈 화면 관리"
-            actions={
-                <button
-                    className="btn btn-ink"
-                    onClick={saveAll}
-                    disabled={!hasUnsavedChanges || !!busy || isLoading || !!loadError}
-                >
-                    <Icon name="save" />{busy === 'save' ? '저장 중…' : '변경사항 저장'}
-                    {hasUnsavedChanges && <span className="badge b-amber" style={{ padding: '0 6px', marginLeft: 2 }}>•</span>}
-                </button>
-            }
-        >
-            {notice && <p role="alert" className="card card-pad">{notice}</p>}
-            {loadError && <div role="alert" className="card card-pad">{loadError}<button type="button" className="btn btn-ghost" onClick={() => setLoadAttempt(value => value + 1)}>다시 불러오기</button></div>}
-            {(isLoading || busy) && <p role="status" aria-live="polite">{isLoading ? '홈 화면 자료를 불러오는 중…' : busy === 'upload' ? '이미지 업로드 중… 완료 후 변경사항을 저장해 주세요.' : '홈 화면 저장 중…'}</p>}
-            <fieldset disabled={!!busy || isLoading || !!loadError} inert={!!busy || isLoading || !!loadError} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-            <div className="route-anim">
-
-                {/* ============ Main Banners ============ */}
-                <div className="sec-head">
-                    <div>
-                        <h3>메인 배너</h3>
-                        <div className="cell-muted" style={{ fontSize: 13 }}>홈 상단 슬라이드 배너 · 이미지와 문구를 수정한 뒤 ‘변경사항 저장’을 누르면 공개됩니다.</div>
+        <AdminLayout activePage="banners" title="홈 화면 관리" hidePageHeading actions={
+            <button className="btn btn-ink" onClick={saveAll} disabled={!hasUnsavedChanges || !!busy || isLoading || !!loadError}>
+                <Icon name="save" />{busy === 'save' ? '저장 중…' : '변경사항 저장'}
+                {hasUnsavedChanges && <span className="badge b-amber" style={{ padding: '0 6px', marginLeft: 2 }}>•</span>}
+            </button>
+        }>
+            <div className="admin-home-manager">
+                <header className="hm-header">
+                    <div className="hm-title"><span>사이트 관리</span><h1>홈 화면 관리</h1></div>
+                    <nav aria-label="홈 화면 편집 영역" className="hm-areas">
+                        {areas.map(area => <a key={area.id} href={`#${area.id}`}>{area.label}<span>{area.count}</span></a>)}
+                    </nav>
+                    <div className="hm-status-actions">
+                        <span className={`hm-status ${hasUnsavedChanges ? 'hm-status-dirty' : ''}`}><i />{status}</span>
+                        {hasUnsavedChanges && <button type="button" className="btn btn-ghost" onClick={revertChanges} disabled={!!busy || isLoading || !!loadError}>되돌리기</button>}
                     </div>
-                    <div className="spacer" />
-                    <button className="btn btn-ink" onClick={addBanner}>
-                        <Icon name="add" />배너 추가
-                    </button>
-                </div>
+                </header>
+                {notice && <p role="alert" className="card card-pad">{notice}</p>}
+                {loadError && <div role="alert" className="card card-pad">{loadError}<button type="button" className="btn btn-ghost" onClick={() => setLoadAttempt(value => value + 1)}>다시 불러오기</button></div>}
+                {(isLoading || busy) && <p role="status" aria-live="polite">{isLoading ? '홈 화면 자료를 불러오는 중…' : busy === 'upload' ? '이미지 업로드 중… 완료 후 변경사항을 저장해 주세요.' : '홈 화면 저장 중…'}</p>}
+                <fieldset disabled={!!busy || isLoading || !!loadError} inert={!!busy || isLoading || !!loadError} className="hm-content">
+                    <input type="file" ref={bannerFileInputRef} className="hidden" style={{ display: 'none' }} accept="image/*" onChange={event => handleUpload(event, 'banner')} />
+                    <input type="file" ref={pcBannerFileInputRef} className="hidden" style={{ display: 'none' }} accept="image/*" onChange={event => handleUpload(event, 'pcBanner')} />
+                    <input type="file" ref={iconFileInputRef} className="hidden" style={{ display: 'none' }} accept="image/*" onChange={event => handleUpload(event, 'icon')} />
+                    <input type="file" ref={eventFileInputRef} className="hidden" style={{ display: 'none' }} accept="image/*" onChange={event => handleUpload(event, 'event')} />
+                    <input type="file" ref={categoryFileInputRef} className="hidden" style={{ display: 'none' }} accept="image/*" onChange={event => handleUpload(event, 'category')} />
 
-                <input type="file" ref={bannerFileInputRef} className="hidden" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleUpload(e, 'banner')} />
-                <input type="file" ref={pcBannerFileInputRef} className="hidden" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleUpload(e, 'pcBanner')} />
-
-                <div className="stack" style={{ gap: 12 }}>
-                    {banners.map((banner, index) => (
-                        <div className="banner-card" key={banner.id} style={{ alignItems: 'flex-start' }}>
-                            <div className="row" style={{ flexDirection: 'column', gap: 10, flex: 'none' }}>
-                                {/* Mobile image preview */}
-                                <div
-                                    className={`banner-prev ${banner.image ? '' : bannerTone(index)}`}
-                                    style={{ cursor: 'pointer', position: 'relative', backgroundImage: banner.image ? `url('${banner.image}')` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' }}
-                                    onClick={() => { setSelectedId(banner.id); bannerFileInputRef.current?.click(); }}
-                                    title="모바일 이미지 변경"
-                                >
-                                    {!banner.image && (
-                                        <>
-                                            <div className="bt">{banner.title || `배너 #${index + 1}`}</div>
-                                            <div className="bs">{banner.subtitle || '클릭하여 이미지 업로드'}</div>
-                                        </>
-                                    )}
-                                </div>
-                                <div className="cell-muted row" style={{ fontSize: 11, gap: 4, justifyContent: 'center' }}>
-                                    <Icon name="smartphone" style={{ fontSize: 14 }} />모바일 (16:10)
-                                </div>
-
-                                {/* PC wide image preview */}
-                                <div
-                                    className="banner-prev"
-                                    style={{ width: 150, height: 64, cursor: 'pointer', position: 'relative', border: '1.5px dashed var(--border-strong)', background: banner.pcImage ? `url('${banner.pcImage}') center/cover` : 'var(--mrt-gray-50)', color: 'var(--text-tertiary)' }}
-                                    onClick={() => { setSelectedId(banner.id); pcBannerFileInputRef.current?.click(); }}
-                                    title="PC 와이드 이미지 변경"
-                                >
-                                    {!banner.pcImage && (
-                                        <div className="bs" style={{ color: 'var(--text-tertiary)', textAlign: 'center', opacity: 1 }}>PC 와이드<br />(선택)</div>
-                                    )}
-                                </div>
-                                <div className="cell-muted row" style={{ fontSize: 11, gap: 4, justifyContent: 'center' }}>
-                                    <Icon name="desktop_windows" style={{ fontSize: 14 }} />PC (21:9)
-                                </div>
-                                {banner.pcImage && (
-                                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => clearPcImage(banner.id)}>
-                                        PC 이미지 제거
+                    <section id="home-banners" className="hm-area">
+                        <div className="hm-area-heading"><div><h2>메인 배너 <span>{banners.length}</span></h2><p>홈 상단 슬라이드 배너입니다. 이미지와 문구를 고친 뒤 ‘변경사항 저장’을 누르면 공개됩니다.</p></div><button className="btn btn-ink" onClick={addBanner}><Icon name="add" />배너 추가</button></div>
+                        {banners.length > 1 && <div className="hm-collapse-all"><button type="button" onClick={() => { const close = banners.some(banner => !collapsedBanners[banner.id]); setCollapsedBanners(Object.fromEntries(banners.map(banner => [banner.id, close]))); }}>{banners.some(banner => !collapsedBanners[banner.id]) ? '모두 접기' : '모두 펼치기'}</button></div>}
+                        {banners.map((banner, index) => (
+                            <article className="hm-editor-card" key={banner.id}>
+                                <div className="hm-card-heading">
+                                    <button type="button" className="hm-card-toggle" aria-expanded={!collapsedBanners[banner.id]} aria-controls={`home-banner-body-${banner.id}`} onClick={() => toggle(setCollapsedBanners, banner.id)}>
+                                        <Icon name={collapsedBanners[banner.id] ? 'chevron_right' : 'expand_more'} />
+                                        <span className={`hm-thumb ${bannerTone(index)}`} style={banner.image ? { backgroundImage: `url('${banner.image}')` } : undefined} />
+                                        <span className="hm-order">#{index + 1}</span><span className="hm-card-name"><strong>{banner.title?.split('\n')[0] || '제목 없음'}</strong><small>{banner.tag || '태그 없음'} · {banner.link || '연결 주소 없음'}</small></span>
                                     </button>
-                                )}
+                                    <span className="hm-card-tools"><button type="button" className="act-btn" aria-label="메인 배너 위로" onClick={() => moveBanner(index, -1)} disabled={index === 0}><Icon name="arrow_upward" /></button><button type="button" className="act-btn" aria-label="메인 배너 아래로" onClick={() => moveBanner(index, 1)} disabled={index === banners.length - 1}><Icon name="arrow_downward" /></button><button type="button" className="act-btn danger" title="삭제" aria-label={`${index + 1}번 메인 배너 삭제`} onClick={() => deleteBanner(banner.id)}><Icon name="delete" /></button></span>
+                                </div>
+                                <div className="hm-card-body" id={`home-banner-body-${banner.id}`} hidden={!!collapsedBanners[banner.id]}>
+                                    <div className="hm-previews">
+                                        <div className="hm-preview-label"><Icon name="smartphone" />모바일 · 16:10<span>기본 이미지</span></div>
+                                        <button type="button" className={`hm-banner-preview ${bannerTone(index)}`} style={banner.image ? { backgroundImage: `url('${banner.image}')` } : undefined} title="모바일 이미지 변경" onClick={() => { setSelectedId(banner.id); bannerFileInputRef.current?.click(); }}>
+                                            <span className="hm-preview-overlay"><small>{banner.tag}</small><strong>{banner.title || `배너 #${index + 1}`}</strong><span>{banner.subtitle}</span></span><span className="hm-upload-label"><Icon name="upload" />이미지 변경</span>
+                                        </button>
+                                        <div className="hm-preview-label"><Icon name="desktop_windows" />PC · 21:9<span>선택</span></div>
+                                        <button type="button" className={`hm-pc-preview ${banner.pcImage ? 'hm-has-image' : ''}`} style={banner.pcImage ? { backgroundImage: `url('${banner.pcImage}')` } : undefined} title="PC 와이드 이미지 변경" onClick={() => { setSelectedId(banner.id); pcBannerFileInputRef.current?.click(); }}>
+                                            {banner.pcImage ? <span>{banner.pcTitle || banner.title}</span> : <><Icon name="add_photo_alternate" /><span>없으면 모바일 이미지 사용</span></>}
+                                        </button>
+                                        {banner.pcImage && <button type="button" className="btn btn-ghost btn-sm" onClick={() => clearPcImage(banner.id)}>PC 이미지 제거</button>}
+                                    </div>
+                                    <div className="hm-editor-fields">
+                                        <section className="hm-basic-copy"><h3><Icon name="smartphone" />기본 문구 <span>모바일과 PC에 함께 사용합니다</span></h3><div className="hm-field-grid">{bannerField(banner, 'tag', '태그')}{bannerField(banner, 'link', '링크', '/products/...')}</div>{bannerField(banner, 'title', '제목 · 줄바꿈은 Enter', '', true)}{bannerField(banner, 'subtitle', '부제목')}</section>
+                                        <section className="hm-pc-copy"><button type="button" className="hm-pc-toggle" aria-expanded={!!pcOpen[banner.id]} aria-controls={`home-pc-copy-${banner.id}`} onClick={() => toggle(setPcOpen, banner.id)}><Icon name="desktop_windows" /><strong>PC 전용 문구</strong><span className="hm-order">{banner.pcTitle || banner.pcSubtitle || banner.pcTag ? '설정됨' : '선택'}</span><small>비우면 기본 문구를 사용합니다</small><Icon name={pcOpen[banner.id] ? 'expand_less' : 'expand_more'} /></button><div className="hm-pc-fields" id={`home-pc-copy-${banner.id}`} hidden={!pcOpen[banner.id]}>{bannerField(banner, 'pcTag', 'PC 태그', banner.tag || '모바일 값 사용')}{bannerField(banner, 'pcTitle', 'PC 제목', banner.title || '모바일 값 사용', true)}{bannerField(banner, 'pcSubtitle', 'PC 부제목', banner.subtitle || '모바일 값 사용')}</div></section>
+                                    </div>
+                                </div>
+                            </article>
+                        ))}
+                        {banners.length === 0 && <button type="button" className="hm-empty-add" onClick={addBanner}><Icon name="add_photo_alternate" />등록된 배너가 없습니다. 첫 배너를 추가하세요.</button>}
+                    </section>
+
+                    <section id="home-icons" className="hm-area">
+                        <div className="hm-area-heading"><div><h2>바로가기 아이콘 <span>{links.length}</span></h2><p>홈 화면 바로가기입니다. 이미지 또는 아이콘과 이름, 연결 주소로 구성합니다.</p></div><button className="btn btn-ink" onClick={addLink}><Icon name="add" />아이콘 추가</button></div>
+                        <div className="hm-icon-grid">{links.map((link, index) => <article className="hm-icon-card" key={link.id}>
+                            <button type="button" className="hm-icon-preview" title="이미지 변경" aria-label={`${link.label} 아이콘 이미지 변경`} onClick={() => { setSelectedId(link.id); iconFileInputRef.current?.click(); }}>{link.image ? <img src={link.image} alt={link.label} /> : <Icon name={link.icon} />}</button>
+                            <label className="field hm-field"><span>라벨</span><input type="text" className="inp" value={link.label} placeholder="라벨" onChange={event => handleLinkChange(link.id, 'label', event.target.value)} /></label><label className="field hm-field"><span>링크</span><input type="text" className="inp" value={link.path} placeholder="링크" onChange={event => handleLinkChange(link.id, 'path', event.target.value)} /></label>
+                            <div className="hm-icon-tools"><button type="button" className="act-btn" title="앞으로" onClick={() => moveLink(index, 'left')} disabled={index === 0}><Icon name="chevron_left" /></button><button type="button" className="act-btn" title="뒤로" onClick={() => moveLink(index, 'right')} disabled={index === links.length - 1}><Icon name="chevron_right" /></button><button type="button" className="act-btn danger" title="삭제" onClick={() => deleteLink(link.id)}><Icon name="delete" /></button></div>
+                        </article>)}</div>
+                        {links.length === 0 && <button type="button" className="hm-empty-add" onClick={addLink}><Icon name="grid_view" />등록된 아이콘이 없습니다. 바로가기를 추가하세요.</button>}
+                    </section>
+
+                    <section id="home-events" className="hm-area">
+                        <div className="hm-area-heading"><div><h2>이벤트 배너 <span>{eventBanners.length}</span></h2><p>가로로 넘겨 보는 이벤트 배너입니다. 노출 위치를 선택할 수 있습니다.</p></div><button className="btn btn-ink" onClick={addEventBanner}><Icon name="add" />이벤트 추가</button></div>
+                        {eventBanners.length > 1 && <div className="hm-collapse-all"><button type="button" onClick={() => { const close = eventBanners.some(banner => !collapsedEvents[banner.id]); setCollapsedEvents(Object.fromEntries(eventBanners.map(banner => [banner.id, close]))); }}>{eventBanners.some(banner => !collapsedEvents[banner.id]) ? '모두 접기' : '모두 펼치기'}</button></div>}
+                        {eventBanners.map((banner, index) => <article className="hm-editor-card" key={banner.id}>
+                            <div className="hm-card-heading"><button type="button" className="hm-card-toggle" aria-expanded={!collapsedEvents[banner.id]} aria-controls={`home-event-body-${banner.id}`} onClick={() => toggle(setCollapsedEvents, banner.id)}><Icon name={collapsedEvents[banner.id] ? 'chevron_right' : 'expand_more'} /><span className="hm-thumb hm-event-thumb" style={{ backgroundColor: banner.backgroundColor, ...(banner.image ? { backgroundImage: `url('${banner.image}')` } : {}) }}><Icon name={banner.icon} /></span><span className="hm-order">#{index + 1}</span><span className="hm-card-name"><strong>{banner.title?.split('\n')[0] || '제목 없음'}</strong><small>{banner.location === 'home' ? '홈 화면' : banner.location === 'products' ? '여행상품' : '전체 화면'} · {banner.link || '연결 주소 없음'}</small></span></button><span className="hm-card-tools"><button type="button" className="act-btn" title="위로" onClick={() => moveEventBanner(index, 'left')} disabled={index === 0}><Icon name="arrow_upward" /></button><button type="button" className="act-btn" title="아래로" onClick={() => moveEventBanner(index, 'right')} disabled={index === eventBanners.length - 1}><Icon name="arrow_downward" /></button><button type="button" className="act-btn danger" title="삭제" onClick={() => deleteEventBanner(banner.id)}><Icon name="delete" /></button></span></div>
+                            <div className="hm-card-body" id={`home-event-body-${banner.id}`} hidden={!!collapsedEvents[banner.id]}>
+                                <div className="hm-previews"><button type="button" className="hm-event-preview" title="이미지 변경" style={{ backgroundColor: banner.backgroundColor, ...(banner.image ? { backgroundImage: `url('${banner.image}')` } : {}) }} onClick={() => { setSelectedId(banner.id); eventFileInputRef.current?.click(); }}><span><small>{banner.tag}</small><strong>{banner.title}</strong></span><Icon name={banner.icon} /></button><small className="hm-hint">눌러서 배경 이미지를 변경합니다.</small></div>
+                                <div className="hm-editor-fields"><div className="hm-field-grid"><label className="field hm-field"><span>배경색 · 이미지가 없을 때</span><span className="hm-color-input"><input type="color" aria-label="이벤트 배경색 선택" value={banner.backgroundColor} onChange={event => handleEventChange(banner.id, 'backgroundColor', event.target.value)} /><input type="text" className="inp" aria-label="이벤트 배경색 코드" value={banner.backgroundColor} onChange={event => handleEventChange(banner.id, 'backgroundColor', event.target.value)} /></span></label><div className="field hm-field"><span>노출 위치</span><div className="hm-location-options">{[['all', '전체'], ['home', '홈 화면'], ['products', '여행상품']].map(([value, label]) => <button type="button" key={value} aria-pressed={(banner.location || 'all') === value} onClick={() => handleEventChange(banner.id, 'location', value)}>{label}</button>)}</div></div><label className="field hm-field"><span>태그</span><input type="text" className="inp" value={banner.tag} onChange={event => handleEventChange(banner.id, 'tag', event.target.value)} /></label><div className="field hm-field"><span>링크</span><div className="hm-link-input"><select className="inp" aria-label="이벤트 연결 화면" value={PREDEFINED_LINKS.some(link => link.value === banner.link) ? banner.link : ''} onChange={event => { if (event.target.value) handleEventChange(banner.id, 'link', event.target.value); }}>{PREDEFINED_LINKS.map(link => <option key={link.label} value={link.value}>{link.label}</option>)}</select><input type="text" className="inp" aria-label="이벤트 연결 주소" value={banner.link} placeholder="https://..." onChange={event => handleEventChange(banner.id, 'link', event.target.value)} /></div></div></div><label className="field hm-field"><span>제목 · 줄바꿈 가능</span><textarea className="inp" value={banner.title} onChange={event => handleEventChange(banner.id, 'title', event.target.value)} /></label></div>
                             </div>
+                        </article>)}
+                        {eventBanners.length === 0 && <button type="button" className="hm-empty-add" onClick={addEventBanner}><Icon name="campaign" />이벤트 배너가 없습니다. 이벤트를 추가하세요.</button>}
+                    </section>
 
-                            {/* Edit fields */}
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                                <div className="row" style={{ gap: 8, marginBottom: 12 }}>
-                                    <span className="badge b-gray">#{index + 1}</span>
-                                    <button type="button" className="act-btn" aria-label="메인 배너 위로" onClick={() => moveBanner(index, -1)} disabled={index === 0}><Icon name="arrow_upward" /></button>
-                                    <button type="button" className="act-btn" aria-label="메인 배너 아래로" onClick={() => moveBanner(index, 1)} disabled={index === banners.length - 1}><Icon name="arrow_downward" /></button>
-                                    <span className="cell-strong" style={{ fontSize: 15 }}>{banner.title?.split('\n')[0] || '제목 없음'}</span>
-                                </div>
-
-                                {/* Mobile (default) text */}
-                                <div className="edit-sec" style={{ marginBottom: 12 }}>
-                                    <div className="edit-sec-head">
-                                        <Icon name="smartphone" />
-                                        <h4>모바일 텍스트 (기본값 — PC에도 자동 적용)</h4>
-                                    </div>
-                                    <div className="field-row">
-                                        <div className="field" style={{ marginBottom: 0 }}>
-                                            <label>태그 (Tag)</label>
-                                            <input
-                                                type="text"
-                                                className="inp"
-                                                value={banner.tag}
-                                                onChange={(e) => handleBannerChange(banner.id, 'tag', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="field" style={{ marginBottom: 0 }}>
-                                            <label>링크 (Link)</label>
-                                            <input
-                                                type="text"
-                                                className="inp"
-                                                value={banner.link || ''}
-                                                placeholder="/products/..."
-                                                onChange={(e) => handleBannerChange(banner.id, 'link', e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-                                        <label>제목 (Title)</label>
-                                        <textarea
-                                            className="inp"
-                                            style={{ height: 60 }}
-                                            value={banner.title}
-                                            onChange={(e) => handleBannerChange(banner.id, 'title', e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-                                        <label>부제목 (Subtitle)</label>
-                                        <input
-                                            type="text"
-                                            className="inp"
-                                            value={banner.subtitle}
-                                            onChange={(e) => handleBannerChange(banner.id, 'subtitle', e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* PC-only override */}
-                                <div className="edit-sec">
-                                    <div className="edit-sec-head">
-                                        <Icon name="desktop_windows" />
-                                        <h4>PC 전용 텍스트 (선택)</h4>
-                                        <span className="muted cell-muted">비워두면 모바일 텍스트 사용</span>
-                                    </div>
-                                    <div className="field-row">
-                                        <div className="field" style={{ marginBottom: 0 }}>
-                                            <label>PC 태그</label>
-                                            <input
-                                                type="text"
-                                                className="inp"
-                                                value={banner.pcTag || ''}
-                                                placeholder={banner.tag || '(모바일 값 사용)'}
-                                                onChange={(e) => handleBannerChange(banner.id, 'pcTag', e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-                                        <label>PC 제목 (줄바꿈은 Enter로)</label>
-                                        <textarea
-                                            className="inp"
-                                            style={{ height: 60 }}
-                                            value={banner.pcTitle || ''}
-                                            placeholder={banner.title || '(모바일 값 사용)'}
-                                            onChange={(e) => handleBannerChange(banner.id, 'pcTitle', e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-                                        <label>PC 부제목</label>
-                                        <input
-                                            type="text"
-                                            className="inp"
-                                            value={banner.pcSubtitle || ''}
-                                            placeholder={banner.subtitle || '(모바일 값 사용)'}
-                                            onChange={(e) => handleBannerChange(banner.id, 'pcSubtitle', e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <span className="row-actions" style={{ flex: 'none' }}>
-                                <button className="act-btn danger" title="삭제" onClick={() => deleteBanner(banner.id)}>
-                                    <Icon name="delete" />
-                                </button>
-                            </span>
-                        </div>
-                    ))}
-
-                    {banners.length === 0 && (
-                        <div className="empty">
-                            <Icon name="ad_units" />
-                            <p>등록된 배너가 없습니다.</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* ============ Quick Icons ============ */}
-                <div className="sec-head" style={{ marginTop: 32 }}>
-                    <div>
-                        <h3>바로가기 아이콘</h3>
-                        <div className="cell-muted" style={{ fontSize: 13 }}>홈 화면 숏컷 행 · 이미지 또는 아이콘으로 구성</div>
-                    </div>
-                    <div className="spacer" />
-                    <button className="btn btn-ink" onClick={addLink}>
-                        <Icon name="add" />아이콘 추가
-                    </button>
-                </div>
-
-                <input type="file" ref={iconFileInputRef} className="hidden" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleUpload(e, 'icon')} />
-
-                <div className="grid-3">
-                    {links.map((link, index) => (
-                        <div className="card card-pad" key={link.id}>
-                            <div className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
-                                <div
-                                    className="metric-ico tint-ink"
-                                    style={{ width: 56, height: 56, borderRadius: 14, cursor: 'pointer', overflow: 'hidden', flex: 'none' }}
-                                    onClick={() => { setSelectedId(link.id); iconFileInputRef.current?.click(); }}
-                                    title="이미지 변경"
-                                >
-                                    {link.image
-                                        ? <img src={link.image} alt="icon" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                        : <Icon name={link.icon} />}
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div className="field" style={{ marginBottom: 10 }}>
-                                        <label>라벨</label>
-                                        <input
-                                            type="text"
-                                            className="inp"
-                                            value={link.label}
-                                            placeholder="라벨"
-                                            onChange={(e) => handleLinkChange(link.id, 'label', e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="field" style={{ marginBottom: 0 }}>
-                                        <label>링크</label>
-                                        <input
-                                            type="text"
-                                            className="inp"
-                                            value={link.path}
-                                            placeholder="링크"
-                                            onChange={(e) => handleLinkChange(link.id, 'path', e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="row" style={{ marginTop: 14 }}>
-                                <button className="act-btn" title="앞으로" onClick={() => moveLink(index, 'left')} disabled={index === 0}>
-                                    <Icon name="chevron_left" />
-                                </button>
-                                <button className="act-btn" title="뒤로" onClick={() => moveLink(index, 'right')} disabled={index === links.length - 1}>
-                                    <Icon name="chevron_right" />
-                                </button>
-                                <div className="spacer" style={{ flex: 1 }} />
-                                <button className="act-btn danger" title="삭제" onClick={() => deleteLink(link.id)}>
-                                    <Icon name="delete" />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-
-                    {links.length === 0 && (
-                        <div className="empty" style={{ gridColumn: '1 / -1' }}>
-                            <Icon name="grid_view" />
-                            <p>등록된 아이콘이 없습니다.</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* ============ Event Banners ============ */}
-                <div className="sec-head" style={{ marginTop: 32 }}>
-                    <div>
-                        <h3>이벤트 배너</h3>
-                        <div className="cell-muted" style={{ fontSize: 13 }}>가로 스크롤 이벤트 배너 · 노출 위치 설정 가능</div>
-                    </div>
-                    <div className="spacer" />
-                    <button className="btn btn-ink" onClick={addEventBanner}>
-                        <Icon name="add" />이벤트 추가
-                    </button>
-                </div>
-
-                <input type="file" ref={eventFileInputRef} className="hidden" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleUpload(e, 'event')} />
-
-                <div className="stack" style={{ gap: 12 }}>
-                    {eventBanners.map((banner, index) => (
-                        <div className="banner-card" key={banner.id} style={{ alignItems: 'flex-start' }}>
-                            <div className="row" style={{ flexDirection: 'column', gap: 8, flex: 'none' }}>
-                                {/* Preview */}
-                                <div
-                                    className="banner-prev"
-                                    style={{
-                                        cursor: 'pointer', position: 'relative',
-                                        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                                        background: banner.image ? `url('${banner.image}') center/cover` : banner.backgroundColor
-                                    }}
-                                    onClick={() => { setSelectedId(banner.id); eventFileInputRef.current?.click(); }}
-                                    title="이미지 변경"
-                                >
-                                    {!banner.image && (
-                                        <>
-                                            <div>
-                                                <div className="bs" style={{ textTransform: 'uppercase' }}>{banner.tag}</div>
-                                                <div className="bt">{banner.title}</div>
-                                            </div>
-                                            <Icon name={banner.icon} style={{ fontSize: 24, opacity: 0.6 }} />
-                                        </>
-                                    )}
-                                </div>
-                                <div className="row" style={{ gap: 4, justifyContent: 'center' }}>
-                                    <button className="act-btn" title="위로" onClick={() => moveEventBanner(index, 'left')} disabled={index === 0}>
-                                        <Icon name="arrow_upward" />
-                                    </button>
-                                    <button className="act-btn" title="아래로" onClick={() => moveEventBanner(index, 'right')} disabled={index === eventBanners.length - 1}>
-                                        <Icon name="arrow_downward" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Edit fields */}
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                                <div className="field-row" style={{ marginBottom: 14 }}>
-                                    <div className="field" style={{ marginBottom: 0 }}>
-                                        <label>배경색 (이미지 없을 때)</label>
-                                        <div className="row" style={{ gap: 8 }}>
-                                            <input type="color" value={banner.backgroundColor} onChange={(e) => handleEventChange(banner.id, 'backgroundColor', e.target.value)} style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', cursor: 'pointer', border: '1px solid var(--border-default)', padding: 2, flex: 'none' }} />
-                                            <input type="text" className="inp" value={banner.backgroundColor} onChange={(e) => handleEventChange(banner.id, 'backgroundColor', e.target.value)} />
-                                        </div>
-                                    </div>
-                                    <div className="field" style={{ marginBottom: 0 }}>
-                                        <label>표시 위치</label>
-                                        <select
-                                            className="inp"
-                                            value={banner.location || 'all'}
-                                            onChange={(e) => handleEventChange(banner.id, 'location', e.target.value)}
-                                        >
-                                            <option value="all">전체 (홈 + 여행상품)</option>
-                                            <option value="home">홈 화면만</option>
-                                            <option value="products">여행상품 페이지만</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="field-row" style={{ marginBottom: 14 }}>
-                                    <div className="field" style={{ marginBottom: 0 }}>
-                                        <label>태그</label>
-                                        <input type="text" className="inp" value={banner.tag} onChange={(e) => handleEventChange(banner.id, 'tag', e.target.value)} />
-                                    </div>
-                                    <div className="field" style={{ marginBottom: 0 }}>
-                                        <label>링크</label>
-                                        <div className="row" style={{ gap: 8 }}>
-                                            <select
-                                                className="inp"
-                                                style={{ width: 120, flex: 'none' }}
-                                                onChange={(e) => {
-                                                    if (e.target.value) handleEventChange(banner.id, 'link', e.target.value);
-                                                    // If selecting a predefined link that isn't empty, valid. If empty (direct input), handled by input.
-                                                }}
-                                                value={PREDEFINED_LINKS.some(l => l.value === banner.link) ? banner.link : ''}
-                                            >
-                                                {PREDEFINED_LINKS.map(l => (
-                                                    <option key={l.label} value={l.value}>{l.label}</option>
-                                                ))}
-                                            </select>
-                                            <input
-                                                type="text"
-                                                className="inp"
-                                                value={banner.link}
-                                                onChange={(e) => handleEventChange(banner.id, 'link', e.target.value)}
-                                                placeholder="https://..."
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="field" style={{ marginBottom: 0 }}>
-                                    <label>제목 (줄바꿈 가능)</label>
-                                    <textarea className="inp" style={{ height: 52 }} value={banner.title} onChange={(e) => handleEventChange(banner.id, 'title', e.target.value)} />
-                                </div>
-                            </div>
-
-                            <span className="row-actions" style={{ flex: 'none' }}>
-                                <button className="act-btn danger" title="삭제" onClick={() => deleteEventBanner(banner.id)}>
-                                    <Icon name="delete" />
-                                </button>
-                            </span>
-                        </div>
-                    ))}
-
-                    {eventBanners.length === 0 && (
-                        <div className="empty">
-                            <Icon name="campaign" />
-                            <p>등록된 이벤트 배너가 없습니다.</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* ============ Category Tabs ============ */}
-                <div className="sec-head" style={{ marginTop: 32 }}>
-                    <div>
-                        <h3>여행지 테마 배너</h3>
-                        <div className="cell-muted" style={{ fontSize: 13 }}>홈 화면 탭별 대표 이미지와 문구</div>
-                    </div>
-                </div>
-
-                <input type="file" ref={categoryFileInputRef} className="hidden" style={{ display: 'none' }} accept="image/*" onChange={(e) => handleUpload(e, 'category')} />
-
-                <div className="grid-3">
-                    {categoryTabs.map((tab) => (
-                        <div className="card" key={tab.id} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                            {/* Image preview */}
-                            <div
-                                style={{ width: '100%', aspectRatio: '4 / 3', background: `url('${tab.bannerImage}') center/cover, var(--mrt-gray-100)`, position: 'relative', cursor: 'pointer' }}
-                                onClick={() => { setSelectedId(tab.id); categoryFileInputRef.current?.click(); }}
-                                title="이미지 변경"
-                            >
-                                <span className="badge b-ink" style={{ position: 'absolute', top: 12, left: 12 }}>{tab.name}</span>
-                            </div>
-
-                            {/* Edit fields */}
-                            <div className="card-pad" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                <div className="field" style={{ marginBottom: 14 }}>
-                                    <label>제목</label>
-                                    <input
-                                        type="text"
-                                        className="inp"
-                                        value={tab.title}
-                                        onChange={(e) => handleCategoryChange(tab.id, 'title', e.target.value)}
-                                    />
-                                </div>
-                                <div className="field" style={{ marginBottom: 0, flex: 1 }}>
-                                    <label>부제목</label>
-                                    <textarea
-                                        className="inp"
-                                        style={{ height: 72 }}
-                                        value={tab.subtitle}
-                                        onChange={(e) => handleCategoryChange(tab.id, 'subtitle', e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-
-                    {categoryTabs.length === 0 && (
-                        <div className="empty" style={{ gridColumn: '1 / -1' }}>
-                            <Icon name="category" />
-                            <p>등록된 테마 배너가 없습니다.</p>
-                        </div>
-                    )}
-                </div>
-
+                    <section id="home-themes" className="hm-area">
+                        <div className="hm-area-heading"><div><h2>테마 배너 <span>{categoryTabs.length}</span></h2><p>여행 지역별 테마 배너의 이미지와 문구를 관리합니다.</p></div></div>
+                        <div className="hm-theme-grid">{categoryTabs.map(tab => <article className="hm-editor-card hm-theme-card" key={tab.id}>
+                            <button type="button" className="hm-theme-preview" title="이미지 변경" style={tab.bannerImage ? { backgroundImage: `url('${tab.bannerImage}')` } : undefined} onClick={() => { setSelectedId(tab.id); categoryFileInputRef.current?.click(); }}><strong>{tab.name}</strong><span><Icon name="upload" />이미지 변경</span></button><div className="hm-theme-fields"><label className="field hm-field"><span>제목</span><input className="inp" type="text" value={tab.title} onChange={event => handleCategoryChange(tab.id, 'title', event.target.value)} /></label><label className="field hm-field"><span>부제목</span><textarea className="inp" value={tab.subtitle} onChange={event => handleCategoryChange(tab.id, 'subtitle', event.target.value)} /></label></div>
+                        </article>)}</div>
+                        {categoryTabs.length === 0 && <p className="hm-empty">등록된 테마 배너가 없습니다.</p>}
+                    </section>
+                </fieldset>
             </div>
-
-            </fieldset>
-            {/* Toast Notification */}
-            {showToast && (
-                <div className="page-toast">
-                    <Icon name="check_circle" />
-                    <span>저장되었습니다!</span>
-                </div>
-            )}
+            {showToast && <div className="page-toast"><Icon name="check_circle" /><span>저장되었습니다!</span></div>}
         </AdminLayout>
     );
 };

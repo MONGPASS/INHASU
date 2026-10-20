@@ -523,7 +523,7 @@ function renderCourses() {
   const entries = Object.entries(courses).sort((a, b) => dayCount(a[1]) - dayCount(b[1]) || a[0].localeCompare(b[0], "ko"));
   $("coursePick").innerHTML = entries.length
     ? entries.map(([name, c]) => `
-        <div class="course-btn" data-c="${esc(name)}">
+        <div class="course-btn" data-c="${esc(name)}" data-region="${esc(c.destination || "")}">
           <b>${esc(name)}</b>
           <small>${esc(c.destination)} · ${esc(c.nights)}</small>
         </div>`).join("")

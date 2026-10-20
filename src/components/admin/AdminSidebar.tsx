@@ -2,12 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
 import { Icon } from './console/Icon';
-import { Admin3DIcon } from './Admin3DIcon';
-import type { Admin3DIconName } from './Admin3DIcon';
 import { QUOTE_DESK_TOOLS, disconnectQuoteDesk, quoteDeskHref, quoteDeskPageId } from './quoteDesk';
 
 interface AdminSidebarProps {
     activePage: string;
+    collapsed?: boolean;
+    onToggleCollapsed?: () => void;
+    onExpand?: () => void;
+    onLogoutConfirmChange?: (open: boolean) => void;
     /** kept for backward-compat with existing call sites; the redesign is light-only */
     isDarkMode?: boolean;
     toggleTheme?: () => void;
@@ -30,12 +32,6 @@ interface NavGroup {
 }
 
 const dashboardItem: NavItem = { id: 'dashboard', icon: 'dashboard', label: '대시보드', href: '/admin' };
-
-const navArtwork: Record<string, Admin3DIconName> = {
-    dashboard: 'dashboard', 'booking-work': 'reservation', 'quote-work': 'idea',
-    'product-work': 'travel', 'assignment-work': 'customer',
-    'customer-content': 'message', 'site-management': 'target',
-};
 
 const quoteItem = (key: string, label?: string): NavItem => {
     const tool = QUOTE_DESK_TOOLS.find((entry) => entry.key === key)!;
@@ -94,16 +90,26 @@ const navGroups: NavGroup[] = [
     },
 ];
 
-export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, collapsed = false, onToggleCollapsed, onExpand, onLogoutConfirmChange }) => {
     const navigate = useNavigate();
     let logout: undefined | (() => void | Promise<void>);
-    try { logout = useUser().logout; } catch { logout = undefined; }
+    let accountName = '관리자';
+    try { const account = useUser(); logout = account.logout; accountName = account.user?.name || '관리자'; } catch { logout = undefined; }
 
     const activeGroupId = navGroups.find((group) => (
         group.items.some((item) => item.id === activePage) || group.relatedPages?.includes(activePage)
     ))?.id ?? null;
     const [expandedGroup, setExpandedGroup] = useState<string | null>(activeGroupId);
     const navRef = useRef<HTMLElement>(null);
+    const [logoutConfirm, setLogoutConfirm] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
+    const logoutButton = useRef<HTMLButtonElement>(null);
+    const logoutPanel = useRef<HTMLDivElement>(null);
+    const cancelLogout = () => { setLogoutConfirm(false); requestAnimationFrame(() => logoutButton.current?.focus()); };
+    useEffect(() => {
+        onLogoutConfirmChange?.(logoutConfirm);
+        if (logoutConfirm) logoutPanel.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    }, [logoutConfirm, onLogoutConfirmChange]);
 
     // 현재 업무만 먼저 펼친다. 다른 화면으로 이동하면 해당 업무 메뉴를 자동으로 연다.
     useEffect(() => {
@@ -115,6 +121,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
     }, [activePage, activeGroupId]);
 
     const handleLogout = async () => {
+        if (loggingOut) return;
+        setLoggingOut(true);
         // 견적 도구가 쓰는 관리자 값(sessionStorage)도 함께 지운다.
         disconnectQuoteDesk();
         try { await logout?.(); } catch { /* ignore */ }
@@ -124,63 +132,73 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
     const renderItem = (item: NavItem) => {
         const isActive = activePage === item.id;
         return (
-            <Link key={item.id} to={item.href} className={`nav-item${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined}>
-                {navArtwork[item.id] ? <Admin3DIcon name={navArtwork[item.id]} fallback={item.icon} size={28} className="admin-nav-art" /> : <Icon name={item.icon} fill={isActive} />}
-                <span>{item.label}</span>
+            <Link key={item.id} to={item.href} className={`nav-item${isActive ? ' active' : ''}`} aria-label={collapsed ? item.label : undefined} title={item.label} aria-current={isActive ? 'page' : undefined}>
+                <Icon name={item.icon} />
+                <span className="nav-label">{item.label}</span>
             </Link>
         );
     };
 
-    return (
-        <aside className="side">
-            <Link to="/admin" className="side-brand" aria-label="몽골리아 은하수 관리자 홈">
-                <span className="brand-mark"><Icon name="flight_takeoff" /></span>
-                <div>
-                    <div className="brand-name">몽골리아 은하수</div>
-                    <div className="brand-sub">통합 관리자</div>
-                </div>
-            </Link>
+    const renderGroup = (group: NavGroup) => {
+        const isOpen = !collapsed && expandedGroup === group.id;
+        const isCurrent = activeGroupId === group.id;
+        const panelId = `admin-nav-${group.id}`;
+        return (
+            <div className={`nav-group${isOpen ? ' is-open' : ''}`} key={group.id}>
+                <button type="button" className={`nav-group-toggle${isCurrent ? ' is-current' : ''}`}
+                    aria-expanded={isOpen} aria-controls={panelId} aria-label={collapsed ? group.label : undefined} title={group.label}
+                    onClick={() => { if (collapsed) onExpand?.(); setExpandedGroup(isOpen ? null : group.id); }}>
+                    <Icon name={group.icon} />
+                    <span className="nav-label">{group.label}</span>
+                    <svg className="nav-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                </button>
+                <div className="nav-submenu" id={panelId} hidden={!isOpen}>{group.items.map(renderItem)}</div>
+            </div>
+        );
+    };
 
-            <nav className="side-nav" ref={navRef} aria-label="관리자 업무 메뉴">
-                {renderItem(dashboardItem)}
-                {navGroups.map((group) => {
-                    const isOpen = expandedGroup === group.id;
-                    const isCurrent = activeGroupId === group.id;
-                    const panelId = `admin-nav-${group.id}`;
-                    return (
-                        <div className={`nav-group${isOpen ? ' is-open' : ''}`} key={group.id}>
-                            <button
-                                type="button"
-                                className={`nav-group-toggle${isCurrent ? ' is-current' : ''}`}
-                                aria-expanded={isOpen}
-                                aria-controls={panelId}
-                                onClick={() => setExpandedGroup(isOpen ? null : group.id)}
-                            >
-                                <Admin3DIcon name={navArtwork[group.id]} fallback={group.icon} size={28} className="admin-nav-art" />
-                                <span>{group.label}</span>
-                                <svg className="nav-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                                    <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </button>
-                            <div className="nav-submenu" id={panelId} hidden={!isOpen}>
-                                {group.items.map(renderItem)}
-                            </div>
-                        </div>
-                    );
-                })}
+    return (
+        <aside className={`side${collapsed ? ' is-collapsed' : ''}`}>
+            {onToggleCollapsed && <div className="side-rail-control" inert={logoutConfirm}><button type="button" className="side-rail-toggle" aria-label={collapsed ? '관리자 메뉴 펼치기' : '관리자 메뉴 접기'} title={collapsed ? '관리자 메뉴 펼치기' : '관리자 메뉴 접기'} aria-expanded={!collapsed} onClick={onToggleCollapsed}><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d={collapsed ? 'm7 4 5 5-5 5' : 'm11 4-5 5 5 5'} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></button></div>}
+            <nav className="side-nav" ref={navRef} aria-label="관리자 업무 메뉴" inert={logoutConfirm}>
+                <section className="nav-section" aria-label="주요 메뉴">
+                    <div className="nav-section-title" aria-hidden="true">MAIN MENU</div>
+                    {renderItem(dashboardItem)}
+                    {navGroups.slice(0, 4).map(renderGroup)}
+                </section>
+                <section className="nav-section" aria-label="기타 메뉴">
+                    <div className="nav-section-title" aria-hidden="true">OTHER</div>
+                    {navGroups.slice(4).map(renderGroup)}
+                </section>
             </nav>
 
             <div className="side-foot">
-                <div className="side-account">
-                    <span className="av">관</span>
+                <div className="side-account" inert={logoutConfirm}>
+                    <span className="av" aria-hidden="true">{accountName.slice(0, 1)}</span>
                     <div className="who">
-                        <b>관리자</b>
-                        <span>운영 계정 · 마스터</span>
+                        <b title={accountName}>{accountName}</b>
+                        <span>관리자 계정</span>
                     </div>
-                    <button type="button" className="out" title="로그아웃" aria-label="로그아웃" onClick={handleLogout}>
+                    <button ref={logoutButton} type="button" className="out" title="로그아웃" aria-label="로그아웃" aria-haspopup="dialog" aria-expanded={logoutConfirm} onClick={() => setLogoutConfirm(true)}>
                         <Icon name="logout" />
                     </button>
                 </div>
+                {logoutConfirm && <>
+                    <button type="button" className="admin-logout-backdrop" aria-label="로그아웃 확인 닫기" tabIndex={-1} disabled={loggingOut} onClick={cancelLogout} />
+                    <div ref={logoutPanel} className="admin-logout-confirm" role="alertdialog" aria-modal="true" aria-labelledby="admin-logout-title" aria-describedby="admin-logout-description" onKeyDown={event => {
+                        if (event.key === 'Escape' && !loggingOut) { event.preventDefault(); event.stopPropagation(); cancelLogout(); }
+                        if (event.key !== 'Tab') return;
+                        const buttons = Array.from(logoutPanel.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') || []);
+                        if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons.at(-1)?.focus(); }
+                        else if (!event.shiftKey && document.activeElement === buttons.at(-1)) { event.preventDefault(); buttons[0]?.focus(); }
+                    }}>
+                        <strong id="admin-logout-title">로그아웃할까요?</strong>
+                        <p id="admin-logout-description">저장하지 않은 입력 내용은 사라질 수 있어요.</p>
+                        <div><button type="button" disabled={loggingOut} onClick={cancelLogout}>취소</button><button type="button" disabled={loggingOut} onClick={() => { void handleLogout(); }}>{loggingOut ? '로그아웃 중…' : '로그아웃'}</button></div>
+                    </div>
+                </>}
             </div>
         </aside>
     );

@@ -1,6 +1,7 @@
 import { Context, Next } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { initializeLucia } from './auth';
+import { ADMIN_SESSION_MODE_COOKIE, serializeAdminSessionCookie } from './adminSessionCookie';
 
 /**
  * Authenticated-user middleware for Hono.
@@ -27,7 +28,8 @@ export const requireAuth = async (c: Context<{ Bindings: any; Variables: { user:
     // Refresh session cookie if needed
     if (session.fresh) {
         const sessionCookie = lucia.createSessionCookie(session.id);
-        c.header('Set-Cookie', sessionCookie.serialize(), { append: true });
+        const browserSession = user.role === 'admin' && getCookie(c, ADMIN_SESSION_MODE_COOKIE) === 'session';
+        c.header('Set-Cookie', serializeAdminSessionCookie(sessionCookie, browserSession), { append: true });
     }
 
     c.set('user', user);

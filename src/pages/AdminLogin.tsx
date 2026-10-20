@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { BRAND } from '../constants/company';
 import { Icon } from '../components/admin/console/Icon';
 import '../styles/admin-console.css';
+import '../styles/admin-redesign-login.css';
 
 const ADMIN_BRAND = `${BRAND.name} 관리자`;
 const MIN_PASSWORD_LENGTH = 10;
@@ -22,6 +23,8 @@ export const AdminLogin: React.FC = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [remember, setRemember] = useState(true);
 
     // 처음 설정: 관리자 계정이 아직 하나도 없을 때만 보여 준다.
     const [needsSetup, setNeedsSetup] = useState(false);
@@ -48,7 +51,7 @@ export const AdminLogin: React.FC = () => {
         setNotice('');
         setLoading(true);
         try {
-            const response = await api.auth.login(email, password);
+            const response = await api.auth.login(email, password, remember);
             if (response.success) {
                 window.location.href = '/admin';
             } else {
@@ -117,27 +120,7 @@ export const AdminLogin: React.FC = () => {
     };
 
     return (
-        <div className="login-wrap">
-            <div className="login-brand">
-                <div className="login-brand-in">
-                    <div className="row" style={{ gap: 12 }}>
-                        <span className="brand-mark" style={{ width: 46, height: 46 }}><Icon name="flight_takeoff" /></span>
-                        <div>
-                            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em' }}>{ADMIN_BRAND}</div>
-                            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.7 }}>예약 · 맞춤 견적 · 상품 · 콘텐츠</div>
-                        </div>
-                    </div>
-                    <div style={{ flex: 1 }} />
-                    <h1 className="login-h">예약부터 가이드 배정까지,<br />몽골 여행 운영을 한 곳에서.</h1>
-                    <p className="login-p">여행 상품 예약과 맞춤 견적 문의·견적서·예약 배정을 하나의 관리자에서 한 번의 로그인으로 관리합니다.</p>
-                    <div className="login-stats">
-                        <div><b>예약</b><span>견적부터 확정까지</span></div>
-                        <div><b>상품</b><span>카탈로그 운영</span></div>
-                        <div><b>콘텐츠</b><span>매거진·후기·FAQ</span></div>
-                    </div>
-                </div>
-            </div>
-
+        <div className="login-wrap admin-redesign-login">
             <div className="login-form-side">
                 {showSetup ? (
                     <form className="login-card" onSubmit={handleSetup}>
@@ -189,9 +172,14 @@ export const AdminLogin: React.FC = () => {
                     </form>
                 ) : (
                     <form className="login-card" onSubmit={handleLogin}>
-                        <div className="eyebrow"><span className="dot" />관리자 로그인</div>
-                        <h2 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-strong)', margin: '6px 0 6px' }}>운영을 시작합니다</h2>
-                        <p style={{ fontSize: 14, color: 'var(--text-tertiary)', margin: '0 0 26px' }}>{ADMIN_BRAND} 계정으로 로그인해 주세요.</p>
+                        <header className="admin-login-heading">
+                            <span className="admin-login-shield" aria-hidden="true">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3 8 3v5c0 5-4.8 8.6-8 10-3.2-1.4-8-5-8-10V6l8-3Z" /><path d="m8.5 11.5 2.5 2.5 4.5-5" /></svg>
+                            </span>
+                            <span className="admin-login-brand">{ADMIN_BRAND}</span>
+                            <h1>로그인</h1>
+                            <p>관리자 계정으로 로그인해 주세요.</p>
+                        </header>
 
                         {notice && <div style={noticeStyle('green')} role="status">{notice}</div>}
                         {error && <div style={noticeStyle('red')} role="alert">{error}</div>}
@@ -200,14 +188,24 @@ export const AdminLogin: React.FC = () => {
                             <label htmlFor="login-email">이메일</label>
                             <input id="login-email" className="inp" type="text" inputMode="email" value={email}
                                 onChange={(e) => setEmail(e.target.value)} placeholder={`admin@${BRAND.domain}`}
-                                autoComplete="email" required />
+                                autoComplete="username" autoCapitalize="none" spellCheck={false} required />
                         </div>
                         <div className="field">
                             <label htmlFor="login-password">비밀번호</label>
-                            <input id="login-password" className="inp" type="password" value={password}
-                                onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호 입력"
-                                autoComplete="current-password" required />
+                            <div className="admin-login-password">
+                                <input id="login-password" className="inp" type={showPassword ? 'text' : 'password'} value={password}
+                                    onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호를 입력하세요"
+                                    autoComplete="current-password" required />
+                                <button type="button" className="admin-login-eye" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'} aria-pressed={showPassword}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" />{showPassword && <path d="m3 3 18 18" />}</svg>
+                                </button>
+                            </div>
                         </div>
+
+                        <label className="admin-login-remember">
+                            <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+                            로그인 상태 유지
+                        </label>
 
                         <button className="btn btn-ink btn-lg" style={{ width: '100%' }} type="submit" disabled={loading}>
                             {loading

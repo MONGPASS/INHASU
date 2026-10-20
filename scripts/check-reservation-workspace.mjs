@@ -63,6 +63,10 @@ import customerNotices from '../../functions/api/admin-customer-notices';
 import assignments from '../../functions/api/admin-assignments';
 import categories from '../../functions/api/categories';
 import magazines from '../../functions/api/magazines';
+import inquiries from '../../functions/api/inquiries';
+import reviews from '../../functions/api/reviews';
+import faqs from '../../functions/api/faqs';
+import faqCategories from '../../functions/api/faq-categories';
 import banners from '../../functions/api/banners';
 import upload from '../../functions/api/site-upload';
 import images from '../../functions/api/images/[...path]';
@@ -82,6 +86,7 @@ app.route('/quotes', quotes); app.route('/admin/bookings', bookings); app.route(
 app.route('/admin/workspace', workspace); app.route('/admin/deliveries', deliveries); app.route('/categories', categories);
 app.route('/admin/customer-notices', customerNotices);
 app.route('/admin/assignments', assignments); app.route('/magazines', magazines); app.route('/banners', banners);
+app.route('/inquiries', inquiries); app.route('/reviews', reviews); app.route('/faqs', faqs); app.route('/faq-categories', faqCategories);
 app.route('/site-upload', upload); app.route('/images', images);
 app.route('/itinerary-templates', templates); app.route('/tour-guides', guides);
 app.route('/accommodations', accommodations); app.route('/hotels', hotels); app.route('/tourist-spots', spots);
@@ -919,6 +924,60 @@ assert.equal((await apiRequest('/api/magazines/workspace-magazine-check', { meth
 if (usability) {
     // Add after the exact baseline assertions so the original regression checks
     // stay unchanged. All names, contacts, signatures and images are synthetic.
+    // Reuse the production table definitions rather than approximating the
+    // content APIs with mock handlers. These tables exist only in this process.
+    const contentSchema = fs.readFileSync(path.join(root, 'migration_sql/create_all_tables.sql'), 'utf8');
+    for (const table of ['inquiries', 'reviews', 'review_helpful', 'faqs', 'faq_categories']) {
+        const definition = contentSchema.match(new RegExp(`CREATE TABLE IF NOT EXISTS ${table} \\([\\s\\S]*?\\n\\);`));
+        assert.ok(definition, `The actual ${table} table definition must exist`);
+        raw.exec(definition[0]);
+    }
+    const insertInquiry = raw.prepare(`INSERT INTO inquiries
+        (id,user_id,name,email,kind,reservation_number,message,status,admin_note,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+    insertInquiry.run('workspace-general-inquiry-1', null, '합성 일반문의 고객 1', 'local-inquiry-1@example.invalid',
+        '예약', 'LOCAL-CONTENT-1', '로컬 검증용 일반문의입니다. 투어 예약 가능 일정을 확인하고 싶습니다.',
+        'new', '', '2026-10-19 09:30:00', null);
+    insertInquiry.run('workspace-general-inquiry-2', 'workspace-owner', '합성 일반문의 고객 2', 'local-inquiry-2@example.invalid',
+        '투어 내용', '', '로컬 검증용 일반문의입니다. 준비물 안내를 확인하고 싶습니다.',
+        'answered', '로컬 상담 메모 보존 확인', '2026-10-18 10:00:00', '2026-10-19 11:00:00');
+    assert.equal((await apiRequest('/api/inquiries')).status, 401);
+    assert.equal((await apiRequest('/api/inquiries', { headers: owner })).status, 403);
+    const generalInquiries = await (await apiRequest('/api/inquiries', { headers: admin })).json();
+    assert.equal(generalInquiries.length, 2);
+    assert.equal(generalInquiries[0].id, 'workspace-general-inquiry-1');
+    assert.equal((await write('/api/inquiries/workspace-general-inquiry-1', 'PUT', { status: 'closed' }, owner)).status, 403);
+
+    for (const [index, rating, approved] of [[1, 5, 1], [2, 4, 0]]) {
+        assert.equal((await write('/api/reviews', 'POST', {
+            id: `workspace-content-review-${index}`, user_name: `합성 후기 고객 ${index}`,
+            product_id: 'workspace-booked-tour', product_name: productName, rating,
+            title: `로컬 몽골 여행 후기 ${index}`, content: '실제 고객 자료가 아닌 로컬 디자인·필터 검증용 합성 후기입니다.',
+            images: index === 1 ? [image] : [], is_approved: approved, created_at: `2026-10-${20 - index} 12:00:00`,
+        })).status, 200);
+    }
+    const contentReviews = await (await apiRequest('/api/reviews', { headers: admin })).json();
+    const approvedReviews = await (await apiRequest('/api/reviews?approved=1')).json();
+    assert.equal(contentReviews.length, 2); assert.equal(approvedReviews.length, 1);
+    assert.equal(approvedReviews[0].rating, 5);
+    assert.equal((await apiRequest('/api/reviews/workspace-content-review-2', { headers: admin })).status, 200);
+
+    assert.equal((await write('/api/faq-categories', 'POST', { id: 'workspace-faq-category', name: '로컬 예약 안내', order: 0, is_active: 1 })).status, 200);
+    for (const [index, active] of [[1, 1], [2, 0]]) {
+        assert.equal((await write('/api/faqs', 'POST', { id: `workspace-content-faq-${index}`,
+            question: index === 1 ? '로컬 검증 예약은 어떻게 확인하나요?' : '로컬 검증 준비물은 어디서 확인하나요?',
+            answer: '실제 운영 안내가 아닌 로컬 디자인 검증용 합성 답변입니다.', category: '로컬 예약 안내', order: index - 1, is_active: active,
+        })).status, 200);
+    }
+    const faqCategories = await (await apiRequest('/api/faq-categories')).json();
+    const contentFaqs = await (await apiRequest('/api/faqs')).json();
+    assert.equal(faqCategories.length, 1); assert.equal(contentFaqs.length, 2);
+    assert.equal(contentFaqs[0].category, faqCategories[0].name);
+    assert.deepEqual(contentFaqs.map(row => row.is_active), [1, 0]);
+    assert.equal((await write('/api/faqs/workspace-content-faq-1', 'PUT', { is_active: 0 }, owner)).status, 403);
+    assert.equal(outbound.length, 0, 'Content fixtures must not send notifications');
+    console.log('콘텐츠 합성 데이터 검증 통과: 일반문의 2건 · 후기 2건(5/4점, 공개/비공개) · FAQ 2건 · FAQ 카테고리 1건 · 실제 API 권한 유지');
+
     const guideRows = [
         { id: 'workspace-guide', name: '로컬 한국어 가이드', phone: 'LOCAL-GUIDE-PHONE', image: '/img/quote/guide.webp' },
         { id: 'workspace-guide-duplicate', name: '로컬 한국어 가이드', phone: 'LOCAL-GUIDE-DUPLICATE', image: '/img/quote/guide.webp' },
@@ -1522,7 +1581,12 @@ if (process.argv.includes('--serve')) {
                     }) : Response.json({ error: 'Unauthorized' }, { status: 401 });
                 } else response = await apiRequest(url.toString(), options);
                 const responseBytes = Buffer.from(await response.arrayBuffer());
-                res.writeHead(response.status, { ...Object.fromEntries(response.headers), 'Cache-Control': 'no-store' });
+                const responseHeaders = { ...Object.fromEntries(response.headers), 'Cache-Control': 'no-store' };
+                // Node must receive separate Set-Cookie headers: joining the login
+                // cookie and its browser-session preference changes cookie expiry.
+                const responseCookies = response.headers.getSetCookie();
+                if (responseCookies.length) responseHeaders['set-cookie'] = responseCookies;
+                res.writeHead(response.status, responseHeaders);
                 res.end(responseBytes); return;
             }
             let relative = decodeURIComponent(url.pathname).replace(/^\/+/, '');

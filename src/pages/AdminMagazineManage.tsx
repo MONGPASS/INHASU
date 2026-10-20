@@ -851,7 +851,8 @@ export const AdminMagazineManage: React.FC = () => {
     );
 
     return (
-        <AdminLayout activePage="magazines" title="매거진 관리" actions={headerActions}>
+        <AdminLayout activePage="magazines" title={viewMode === 'edit' ? (editingMagazine ? '매거진 수정' : '매거진 작성') : '매거진 관리'} actions={headerActions}>
+            <div className="rd-content-page rd-magazine-page">
             {/* Custom Quill Styles for Sticky Toolbar */}
             <style>{`
                 .quill { display: flex; flex-direction: column; overflow: hidden; }
@@ -861,10 +862,10 @@ export const AdminMagazineManage: React.FC = () => {
             `}</style>
 
             {/* Tabs */}
-            <div className="seg" style={{ marginBottom: 22 }}>
-                <button className={activeTab === 'magazines' ? 'active' : ''} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('magazines'); }}>매거진 목록</button>
-                <button className={activeTab === 'categories' ? 'active' : ''} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('categories'); }}>카테고리 관리</button>
-            </div>
+            {viewMode === 'list' && <div className="seg" style={{ marginBottom: 16 }}>
+                <button className={activeTab === 'magazines' ? 'active' : ''} onClick={() => setActiveTab('magazines')}>매거진 목록</button>
+                <button className={activeTab === 'categories' ? 'active' : ''} onClick={() => setActiveTab('categories')}>카테고리 관리</button>
+            </div>}
             {draftNotice && <p role="alert" style={{ padding: '12px 16px', background: '#fff5e8', color: '#8f4c13', borderRadius: 12 }}>{draftNotice}</p>}
             {viewMode === 'edit' && <div role="status" style={{ padding: '14px 18px', marginBottom: 16, borderRadius: 14, background: '#edfaf6', color: '#145c4c' }}>
                 <strong>이 브라우저에 관리자별 매거진 초안을 자동 보관합니다.</strong><p style={{ margin: '4px 0', fontSize: 13 }}>자동 보관은 사이트 발행·서버 임시 저장과 별도입니다. {draftSavedAt ? `마지막 초안 보관: ${new Date(draftSavedAt).toLocaleString('ko-KR')}` : dirty ? '입력 내용을 보관하고 있습니다.' : '변경사항이 생기면 자동 보관합니다.'}</p>
@@ -951,7 +952,7 @@ export const AdminMagazineManage: React.FC = () => {
                 <>
                     {viewMode === 'list' && (
                         <>
-                            <div className="toolbar">
+                            <div className="toolbar rd-content-filters">
                                 <label className="tb-search">
                                     <Icon name="search" />
                                     <input
@@ -961,20 +962,7 @@ export const AdminMagazineManage: React.FC = () => {
                                         placeholder="매거진 제목 검색"
                                     />
                                 </label>
-                                <select
-                                    className="select"
-                                    value={filterCategory}
-                                    onChange={(e) => setFilterCategory(e.target.value)}
-                                >
-                                    <option value="all">전체 카테고리</option>
-                                    {categories.map(cat => (
-                                        <option key={cat} value={cat}>{cat}</option>
-                                    ))}
-                                </select>
-                                <div className="spacer" />
-                                <button className="btn btn-ink" onClick={handleCreateNew}>
-                                    <Icon name="add" />매거진 작성
-                                </button>
+                                <div className="rd-content-chips"><button type="button" className={filterCategory === 'all' ? 'is-selected' : ''} aria-pressed={filterCategory === 'all'} onClick={() => setFilterCategory('all')}>전체<span>{magazines.length}</span></button>{categories.map(cat => <button type="button" key={cat} className={filterCategory === cat ? 'is-selected' : ''} aria-pressed={filterCategory === cat} onClick={() => setFilterCategory(cat)}>{cat}<span>{magazines.filter(magazine => magazine.category === cat).length}</span></button>)}</div>
                             </div>
 
                             {filteredMagazines?.length === 0 ? (
@@ -990,12 +978,15 @@ export const AdminMagazineManage: React.FC = () => {
                                                 {magazine.image && (
                                                     <img src={magazine.image} alt={magazine.title} loading="lazy" />
                                                 )}
+                                                {!magazine.image && <Icon name="image" />}
                                                 <span className={`badge ${magazine.isActive ? 'b-green' : 'b-amber'}`}>
                                                     {magazine.isActive ? '게시중' : '임시저장'}
                                                 </span>
                                             </div>
                                             <div className="mag-body">
-                                                <h4>{magazine.title}</h4>
+                                                <span className="rd-magazine-category">{magazine.category}</span>
+                                                <h4><button type="button" onClick={event => { event.stopPropagation(); handleEdit(magazine); }}>{magazine.title}</button></h4>
+                                                <p className="rd-magazine-description">{magazine.description}</p>
                                                 <div className="mag-meta">
                                                     <span className="badge b-blue">{magazine.category}</span>
                                                     {magazine.isFeatured && (
@@ -1005,6 +996,7 @@ export const AdminMagazineManage: React.FC = () => {
                                                         </>
                                                     )}
                                                 </div>
+                                                <div className="rd-magazine-byline"><span>{magazine.author || '작성자 미입력'}</span><span>·</span><time>{magazine.createdAt ? new Date(magazine.createdAt).toLocaleDateString('ko-KR') : '날짜 미입력'}</time></div>
                                                 <div className="row" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
                                                     {isReorderable ? (
                                                         <span className="edit-move" style={{ flexDirection: 'row' }}>
@@ -1045,7 +1037,7 @@ export const AdminMagazineManage: React.FC = () => {
                         </>
                     )}
                     {viewMode === 'edit' && (
-                        <fieldset className="grid-2" disabled={editorLocked} inert={editorLocked} style={{ gridTemplateColumns: '340px 1fr', alignItems: 'start', border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+                        <fieldset className="grid-2 rd-magazine-editor" disabled={editorLocked} inert={editorLocked} style={{ gridTemplateColumns: '340px 1fr', alignItems: 'start', border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                             <div className="stack" style={{ gap: 16 }}>
                                 <div className="card card-pad">
                                     <h3 className="sec-head" style={{ marginBottom: 16 }}>기본 설정</h3>
@@ -1360,6 +1352,7 @@ export const AdminMagazineManage: React.FC = () => {
                     </div>
                 </div>
             )}
+            </div>
         </AdminLayout>
     );
 };
