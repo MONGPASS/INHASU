@@ -75,7 +75,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 페이지 파일(`src/pages/*`)은 `useIsDesktop()`으로 분기만 하고, 화면은 `*-desktop` / `*-mobile` 폴더에 있다. 스타일은 인라인 `style` + `MW` 토큰, 폰트는 **전부 Pretendard**(오너 지정, CDN 동적 서브셋 — `index.html`과 견적 페이지가 같은 jsDelivr 주소를 쓴다). 다른 웹폰트를 추가하지 말 것(아이콘용 Material Symbols만 예외). `MW_FONT_EN`은 `MW_FONT`와 같은 값이다.
 - 모바일 공통: `src/components/mobile/` — `MobileShell`(헤더·검색·푸터·하단 탭), `mobileUi.tsx`, `mobileTheme.ts`. 시트·드로어에는 `data-mw-overlay`, 하단 액션 바 화면에는 `data-mw-actionbar`(플로팅 상담 버튼 숨김, `index.css`).
 - 리디자인되지 않은 옛 화면(후기/동행 작성, 채팅, 견적 상세 `/estimate/:id`, 문서 출력 일부)은 Tailwind + 틸 `#0f766e` 스타일 그대로. 옛 디자인 가이드는 `docs/design-system/`(일본어 사이트 시절 문서 — 카피·통화 규칙은 무시).
-- 고객 로그인은 Google OAuth뿐(이메일/비밀번호는 관리자 전용). 견적 흐름은 로그인 없이 매직링크(`?t=` 토큰).
+- 고객 로그인은 Google OAuth뿐(이메일/비밀번호는 관리자 전용). 신규 견적은 로그인 계정에 서버에서 연결한다. 기존 `?t=` 고객 링크는 주소를 유지하되 로그인·소유권을 검사하고 미연결 기록은 등록된 연락처 인증번호로 확인한 뒤 연결한다. 이메일 일치나 JSON userId는 소유권 근거가 아니다. 상세: `docs/customer-account-linking.md`.
 - 고객 현황의 고객 알림 관리는 `GET/POST /api/admin/customer-notices/:source/:id`를 사용한다. GET은 외부 템플릿 조회·발송을 하지 않으며, POST만 저장된 고객에게 해당 종류의 설정 템플릿으로 발송한다. 상품/견적 링크를 구분하고 문자 대체 없이 `trackedDelivery`로 접수·실패·불명 결과를 보존한다. 설정이 없거나 문서가 준비되지 않으면 사유를 표시하며 자동으로 공개·입금 확인·서명하지 않는다. 견적 계약 안내 접수 성공 때만 기존 고객 페이지에서 서명 버튼이 열리도록 요청 메타데이터를 원자적으로 기록한다.
 - 자동 고객 알림은 `functions/lib/customerNotifications.ts`의 승인 목록과 원장을 공유한다. 현재 견적 11종·상품 5종을 업무 저장 뒤 실행하며 같은 이벤트·같은 문서의 중복을 차단한다. 여행 주의사항은 실제 서명 후만 발송하고 예전 D7 자동화를 되살리지 않는다. 승인 템플릿·조건·설정은 `docs/customer-notifications.md`가 정리한다. 고객 현황 상단의 ‘지금 할 일’ 대표 업무·건수·업무 상세 영역은 표시하지 않는다. 업무 진행 단계와 기본 접힌 ‘고객 알림 자동발송 · 이력/다시 보내기’, 아래 정보 카드의 조회·수정 버튼은 유지한다. 모델의 `tasks`는 최근 이력 옆 현재 단계 판단에 계속 사용하며 카카오 접수를 메일 완료로 표시하지 않는다.
 - 견적 고객 페이지(`내견적`·`계약서`·`여행자정보`·`견적서`·`확정일정표`·`일정지도`)는 `public/quote-theme.css`로 사이트 톤을 입혔다. 견적서·확정일정표는 A4 794px 고정 레이아웃 + 브라우저 인쇄(PDF).
@@ -184,19 +184,19 @@ node scripts/check-reservation-workspace.mjs --serve --usability --customer-work
 
 ### 로컬 실행
 - `npm run build` 후 `npx wrangler pages dev dist --port 8788`. 로컬 변수는 `.dev.vars`(gitignore) — `ENVIRONMENT=development`면 로컬 관리자 시드가 동작한다. 로컬 D1 초기화: `npx wrangler d1 execute leaders-requests --local --file=schema.sql` (사이트 표는 첫 요청 때 자동 생성).
-- 로컬 wrangler는 `/견적서.html`처럼 `.html`이 붙은 한글 주소에서 502가 난다(리다이렉트 헤더 문제, 운영은 정상). **확장자 없는 주소**(`/견적서?t=…`)로 열 것. `내견적`은 localhost에서 API 대신 `localStorage.leaders_requests`를 읽는 데모 분기가 있다.
+- 로컬 wrangler는 `/견적서.html`처럼 `.html`이 붙은 한글 주소에서 502가 난 이력이 있다(리다이렉트 헤더 문제, 운영은 정상). 이 환경에서는 **확장자 없는 주소**(`/견적서?t=…`)를 사용한다. 고객 `?t=` 문서는 localhost에서도 실제 로그인·소유권 API를 사용하며 브라우저 저장소로 우회하지 않는다. 합성 자료는 `scripts/check-reservation-workspace.mjs`의 별도 로컬 서버로 확인한다.
 - ⚠ **Windows + 한글이 들어간 폴더 경로 + Node 24**에서는 `fs.rmSync`가 네이티브 충돌(0xC0000409)을 내서 두 번째 `vite build`와 `wrangler dev`가 조용히 죽는다. 영문 경로에 클론하거나(권장), 영문 경로의 디렉터리 정션을 만들어 그 경로에서 실행할 것.
 
 ## 8. 다음에 이어 할 작업 (오픈된 스레드)
 
 - **상품 데이터**: 통합 DB에는 상품·카테고리·매거진이 없다. 관리자에서 한국어·원화로 등록해야 홈/목록이 채워진다. 코드에 박혀 있던 금액(가격대 필터 100만/150만 원, 1인 참가 추가 요금 180,000원, 템플릿 샘플 금액)은 엔 금액 ×10 임시값 — 오너 확인 필요.
 - **계약 약관 통일**: 상품 예약용 계약서(`src/pages/DocumentContract.tsx` + `company.ts`의 취소 규정·고지)가 견적 쪽 오너 원문(`public/계약서.html`: 환불규정 3조, 건강 위험 고지, 필수 동의 3개)과 내용이 다르다. 법적 문구 통일은 별도 과제다. 상품에도 직접 그리는 손서명을 추가했으며 `contractData.signature`에 서버 시각·서명자·약관 버전·서명 당시 원본을 보관한다. 기존 `agreement.agreed === true` 성명 동의는 보존하되 손서명 완료로 표시하지 않는다. 서명 당시 문서 revision이 달라지면 제출을 거절하고, 일반 관리자 저장으로 서명 원본을 덮어쓰지 않는다. 원본 이미지·snapshot·IP/UA는 관리자 문서 조회에만 제공하며 일반 고객 응답에는 상태만 보낸다. 견적 계약/서명 주소와 원문은 유지한다.
-- **마이페이지 견적 내역**: 새 견적 요청은 사용자 계정과 연결되지 않는다(매직링크 방식). 브라우저에 저장한 `mw_quote_links`(`estimate-desktop/quoteLinks.ts`)로만 "내 견적" 링크를 다시 보여 준다.
-- **남은 보안 보완**: 견적 API는 공유 관리자 토큰 하나를 사용하고 인증 시도 제한이 없다. 기존 호환용 URL 토큰 경로(`/api/file`, `/api/notify-test`)도 남아 있다. 계정별 권한·시도 제한·기존 링크 전환은 별도 작업이다.
+- **고객 계정 이력 연결**: 신규 견적은 로그인 계정의 서버 소유권과 함께 저장한다. 기존 미연결 견적·예약은 등록된 연락처로 1회 인증 후 연결하며 마이페이지에서 조회한다. `mw_quote_links`는 보조 링크 저장소이고 권한 근거가 아니다. 계정 전환·명시 로그아웃 시 이전 고객 캐시·알림·초안·보조 링크를 정리한다. 배포 전 실제 Google OAuth 복귀·인증번호 수신을 별도로 확인한다(`docs/customer-account-linking.md`).
+- **남은 관리자 보안 보완**: 견적 관리자 API는 공유 토큰 하나를 사용하고 관리자 인증 시도 제한이 없다. 기존 호환용 URL 토큰 경로(`/api/file`, `/api/notify-test`)도 남아 있다. 관리자 계정별 권한과 기존 관리자 토큰 전환은 별도 작업이다. 고객 인증번호에는 DB 기반 발급·오입력 제한과 만료·재사용 차단이 적용된다.
 - **메일 발신 도메인**: `functions/lib/mailConfig.ts`의 `resolveMailFrom(env)`가 전체 메일의 `MAIL_FROM`을 읽는다. 새 발신 도메인을 Resend에서 인증 완료한 뒤 Cloudflare 환경 변수에 설정한다. 미설정이면 기존 `몽골리아 은하수 <noreply@mongolryokou.com>`을 유지하며 잘못된 주소·CRLF는 발송 전에 차단한다. 순서는 `DEPLOYMENT.md` 참조.
 - **SEO 운영**: 2026-10-14 확인 기준 Search Console에는 `www` URL 접두어 속성이 등록돼 있다. 대표 주소는 `https://mongolia-milkyway.com`이며 이번 `functions/_middleware.js`의 www→apex 308은 main 병합·운영 배포 후 적용된다. Domain 속성/DNS 인증 또는 apex URL 접두어 속성을 추가하고 `https://mongolia-milkyway.com/sitemap.xml`을 제출한다. 기존 DNS·`google-site-verification` 값은 소유권 확인 전 바꾸지 않는다. OG 기본 이미지는 `/img/home/1.webp`이며 검색 노출에는 실제 상품·여행 정보 등록도 필요하다.
 - `functions/api/auth.ts`는 `ENVIRONMENT !== 'production'`이면 고정 로컬 관리자를 시드한다 — 미리보기 배포에 이 변수가 빠지지 않게 주의.
 
 ---
 
-마지막 업데이트: 2026-10-19 (고객 전용 통합 페이지, 출처별 예약/견적과 목록 복귀, 관리자 공통 예약 작업·문서 버전 v5·초안 복구)
+마지막 업데이트: 2026-10-20 (Google 고객 계정 이력 연결·기존 링크 접근 보호·계정 전환 개인정보 정리, 관리자 3D 아이콘)

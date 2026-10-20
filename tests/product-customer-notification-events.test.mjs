@@ -65,7 +65,7 @@ async function fixture(t) {
     globalThis.fetch = async () => { throw Error('External fetch is forbidden in product notification event tests'); };
     t.after(() => globalThis.fetch = originalFetch);
     const signedBody = async () => ({ agreement: { agreed: true, name: '서명 고객' }, travelers: [{ name: '서명 고객', passportName: 'LOCAL CUSTOMER' }], signature: {
-        agree: true, signerName: '서명 고객', signImg: signaturePng(), expectedRevision: (await (await request('/documents/contract/local-booking')).json()).signatureRevision } });
+        agree: true, signerName: '서명 고객', signImg: signaturePng(), expectedRevision: (await (await request('/documents/contract/local-booking','GET',undefined,'google-customer')).json()).signatureRevision } });
     return { raw, env, request, set, signedBody, intercept: callback => { intercept = callback; } };
 }
 
@@ -109,25 +109,25 @@ test('최초 고객 공개만 알리고 재클릭·저장·구버전 PUT 공개�
 
 test('성명 동의·정보 수정은 무발송이며 최초 손서명 CAS 성공 뒤 접수·여행 준비를 각각 한 번 요청한다', async t => {
     const f = await fixture(t); f.set({ status: 'confirmed', deposit_status: 'paid' });
-    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', { agreement: { agreed: true, name: '기존 성명 동의' }, travelers: [{ name: '기존 고객' }] }, '')).status, 200);
+    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', { agreement: { agreed: true, name: '기존 성명 동의' }, travelers: [{ name: '기존 고객' }] }, 'google-customer')).status, 200);
     assert.equal(f.env.localAttempts.length, 0);
     const body = await f.signedBody();
-    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', body, '')).status, 200);
+    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', body, 'google-customer')).status, 200);
     assert.deepEqual(f.env.localDelivered.map(event => event.kind), ['contract_signed', 'travel_notice']);
     for (const event of f.env.localAttempts) { const signature = JSON.parse(event.saved.contract_data).signature; assert.ok(signature.signedAt); assert.ok(event.eventKey.endsWith(signature.signedAt)); }
-    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', body, '')).status, 409);
-    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', { travelers: [{ name: '최신 여행자 정보' }] }, '')).status, 200);
+    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', body, 'google-customer')).status, 409);
+    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', { travelers: [{ name: '최신 여행자 정보' }] }, 'google-customer')).status, 200);
     assert.equal(f.env.localAttempts.length, 2);
 });
 
 test('저장 실패·서명 충돌·잘못된 서명과 공개 거부에서는 알림 엔진을 호출하지 않는다', async t => {
     const f = await fixture(t);
     assert.equal((await f.request('/documents/itinerary/local-booking/publish', 'POST')).status, 409);
-    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', { signature: { agree: true, signerName: '고객', signImg: 'broken' } }, '')).status, 400);
+    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', { signature: { agree: true, signerName: '고객', signImg: 'broken' } }, 'google-customer')).status, 400);
     f.set({ status: 'confirmed', deposit_status: 'paid' }); const signed = await f.signedBody();
     let changed = false;
     f.intercept(sql => { if (!changed && sql.startsWith('UPDATE reservations SET contract_data')) { changed = true; f.set({ contract_data: '{"concurrent":"saved"}' }); } });
-    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', signed, '')).status, 409);
+    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', signed, 'google-customer')).status, 409);
     f.intercept(sql => { if (/^update "reservations"/i.test(sql)) throw Error('Local save failure'); });
     assert.equal((await f.request('/reservations/local-booking', 'PUT', { deposit_status: 'paid', status: 'confirmed' })).status, 500);
     assert.equal(f.env.localAttempts.length, 0);
@@ -146,7 +146,7 @@ test('알림 오류는 저장 성공을 실패로 바꾸지 않으며 waitUntil�
 
 test('서명 후 알림이 모두 실패해도 원본 서명·고객 정보 제출은 성공으로 남는다', async t => {
     const f = await fixture(t); f.set({ status: 'confirmed', deposit_status: 'paid' }); f.env.localNotificationFailure = true;
-    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', await f.signedBody(), '')).status, 200);
+    assert.equal((await f.request('/documents/contract/local-booking/customer', 'POST', await f.signedBody(), 'google-customer')).status, 200);
     const saved = JSON.parse(f.raw.prepare('SELECT contract_data FROM reservations WHERE id=?').get('local-booking').contract_data);
     assert.ok(saved.signature.signedAt); assert.ok(saved.signature.signImg.startsWith('data:image/png;base64,')); assert.equal(saved.customerSubmittedAt, saved.signature.signedAt);
     assert.deepEqual(f.env.localAttempts.map(event => event.kind), ['contract_signed', 'travel_notice']); assert.equal(f.env.localDelivered.length, 0);

@@ -3,6 +3,7 @@ import { changedContentResource, notifyContentSaved } from './publicContent';
 import type { QuoteBookingSummary } from '../../functions/lib/quoteBookings';
 import type { AdminWorkspaceData } from '../types/adminWorkspace';
 import { INQUIRY_REQUEST_FAILED, type InquiryInput, type InquiryRecord, type InquiryStatus } from '../types/inquiry';
+import { customerLoginPath, customerLinkPath, type CustomerSource } from '../../public/customer-access.js';
 
 const API_BASE = '/api';
 
@@ -23,8 +24,22 @@ async function request(url: string, options?: RequestInit) {
     const res = await fetch(url, { credentials: 'include', ...options });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Request failed' }));
-        const failure = new Error(err.error || `HTTP ${res.status}`) as Error & { delivery?: { state: string }; status?: number };
+        if (typeof window !== 'undefined' && window.location?.pathname && !window.location.pathname.startsWith('/admin') && /^\/api\/(?:reservations|quotes|documents|customer-access\/history)(?:\/|$)/.test(url)) {
+            const returnTo = window.location.pathname + window.location.search + window.location.hash;
+            if (res.status === 401) window.location.replace(customerLoginPath(returnTo));
+            if (res.status === 403 && err.code === 'claim_required') {
+                const quote = url.match(/^\/api\/quotes\/([^/?]+)/);
+                const reservation = url.match(/^\/api\/(?:reservations|documents\/(?:itinerary|contract))\/([^/?]+)/);
+                const match = quote || reservation;
+                if (match) {
+                    const source: CustomerSource = quote ? 'quote' : 'reservation';
+                    window.location.replace(customerLinkPath(source, decodeURIComponent(match[1]), returnTo));
+                }
+            }
+        }
+        const failure = new Error(err.error || `HTTP ${res.status}`) as Error & { delivery?: { state: string }; status?: number; code?: string };
         failure.status = res.status;
+        if (typeof err.code === 'string') failure.code = err.code;
         if (err.delivery && typeof err.delivery.state === 'string') failure.delivery = { state: err.delivery.state };
         throw failure;
     }
@@ -39,6 +54,9 @@ async function request(url: string, options?: RequestInit) {
 }
 
 export const api = {
+    customerAccess: {
+        history: async (): Promise<{ ok: boolean; items: Array<{ id: string; source: 'request' | 'quote'; status: string; destination: string; period: string; headcount: string | number; createdAt: string; href: string }> }> => request(`${API_BASE}/customer-access/history`, { cache: 'no-store' }),
+    },
     adminWorkspace: { get: async (): Promise<AdminWorkspaceData> => request(`${API_BASE}/admin/workspace`, { cache: 'no-store' }) },
     adminBookings: {
         quote: async (): Promise<{ items: QuoteBookingSummary[]; skipped: number }> =>

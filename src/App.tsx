@@ -11,6 +11,7 @@ const CategoryPage = lazy(() => import('./pages/CategoryPage').then(module => ({
 const About = lazy(() => import('./pages/About').then(module => ({ default: module.About })))
 import { AdminGuard } from './components/auth/AdminGuard'
 import { AuthGuard } from './components/auth/AuthGuard'
+import { CustomerAccessGuard } from './components/auth/CustomerAccessGuard'
 import { SEO } from './components/seo/SEO'
 
 import { NotificationProvider } from './contexts/NotificationContext'
@@ -27,6 +28,7 @@ const ReviewDetail = lazy(() => import('./pages/ReviewDetail').then(module => ({
 const CustomEstimate = lazy(() => import('./pages/CustomEstimate').then(module => ({ default: module.CustomEstimate })))
 const EstimateDetail = lazy(() => import('./pages/EstimateDetail').then(module => ({ default: module.EstimateDetail })))
 const EstimateComplete = lazy(() => import('./pages/EstimateComplete').then(module => ({ default: module.EstimateComplete })))
+const CustomerLink = lazy(() => import('./pages/CustomerLink').then(module => ({ default: module.CustomerLink })))
 
 const TravelMates = lazy(() => import('./pages/TravelMates').then(module => ({ default: module.TravelMates })))
 const TravelMateDetail = lazy(() => import('./pages/TravelMateDetail').then(module => ({ default: module.TravelMateDetail })))
@@ -131,15 +133,16 @@ function App() {
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/reservation/:id" element={<Reservation />} />
             <Route path="/payment" element={<Payment />} />
-            <Route path="/reservation-complete" element={<ReservationComplete />} />
+            <Route path="/reservation-complete" element={<AuthGuard><ReservationComplete /></AuthGuard>} />
             {/* Old link: the real booking status lives in My Page (sign-in required). */}
             <Route path="/reservation-status" element={<Navigate to="/mypage/reservations" replace />} />
             <Route path="/reviews" element={<UserReviews />} />
             <Route path="/reviews/write" element={<AuthGuard><ReviewWrite /></AuthGuard>} />
             <Route path="/reviews/:id" element={<ReviewDetail />} />
-            <Route path="/custom-estimate" element={<CustomEstimate />} />
-            <Route path="/estimate/:id" element={<EstimateDetail />} />
-            <Route path="/estimate-complete" element={<EstimateComplete />} />
+            <Route path="/custom-estimate" element={<AuthGuard><CustomEstimate /></AuthGuard>} />
+            <Route path="/estimate/:id" element={<AuthGuard><CustomerAccessGuard source="quote"><EstimateDetail /></CustomerAccessGuard></AuthGuard>} />
+            <Route path="/customer-link" element={<AuthGuard><CustomerLink /></AuthGuard>} />
+            <Route path="/estimate-complete" element={<AuthGuard><EstimateComplete /></AuthGuard>} />
 
             <Route path="/travel-mates" element={<TravelMates />} />
             <Route path="/travel-mates/:id" element={<TravelMateDetail />} />
@@ -148,13 +151,13 @@ function App() {
             <Route path="/chats/:id" element={<ChatRoom />} />
             <Route path="/travel-guide" element={<TravelGuide />} />
             <Route path="/travel-guide/:id" element={<TravelGuideDetail />} />
-            <Route path="/mypage" element={<MyPage />} />
+            <Route path="/mypage" element={<AuthGuard><MyPage /></AuthGuard>} />
             <Route path="/mypage/travel-mates" element={<AuthGuard><MyTravelMates /></AuthGuard>} />
             <Route path="/mypage/estimates" element={<AuthGuard><MyEstimates /></AuthGuard>} />
 
             <Route path="/mypage/reservations" element={<AuthGuard><MyReservations /></AuthGuard>} />
-            <Route path="/mypage/reservations/:id" element={<AuthGuard><MyReservationDetail /></AuthGuard>} />
-            <Route path="/my-booking/:id" element={<AuthGuard><MyReservationDetail /></AuthGuard>} />
+            <Route path="/mypage/reservations/:id" element={<AuthGuard><CustomerAccessGuard source="reservation"><MyReservationDetail /></CustomerAccessGuard></AuthGuard>} />
+            <Route path="/my-booking/:id" element={<AuthGuard><CustomerAccessGuard source="reservation"><MyReservationDetail /></CustomerAccessGuard></AuthGuard>} />
             <Route path="/mypage/notifications" element={<AuthGuard><MyNotifications /></AuthGuard>} />
             <Route path="/mypage/reviews" element={<AuthGuard><MyReviews /></AuthGuard>} />
             <Route path="/mypage/recently-viewed" element={<AuthGuard><RecentlyViewed /></AuthGuard>} />
@@ -197,8 +200,8 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/guide-apply" element={<GuideApply />} />
             <Route path="/booking-flow" element={<BookingFlow />} />
-            <Route path="/documents/itinerary/:reservationId" element={<DocumentItinerary />} />
-            <Route path="/documents/contract/:reservationId" element={<DocumentContract />} />
+            <Route path="/documents/itinerary/:reservationId" element={<CustomerAccessGuard source="reservation"><DocumentItinerary /></CustomerAccessGuard>} />
+            <Route path="/documents/contract/:reservationId" element={<CustomerAccessGuard source="reservation"><DocumentContract /></CustomerAccessGuard>} />
           </Routes>
         </Suspense>
         </AdminWorkspaceProvider>

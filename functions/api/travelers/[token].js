@@ -1,5 +1,6 @@
 import { notifyAdmin } from "../_solapi.js";
 import { sanitizeTravelers, sanitizeTripInfo, travelerTypes } from "../_travelers.mjs";
+import { requireResourceAccess } from "../../lib/customerAccess.ts";
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), {
   status,
@@ -28,8 +29,10 @@ async function findRecord(env, token) {
   return env.DB.prepare("SELECT id, data, status FROM requests WHERE token = ?").bind(token).first();
 }
 
-export async function onRequestGet({ env, params }) {
+export async function onRequestGet({ request, env, params }) {
   try {
+    const denied = await requireResourceAccess(request, env, "request", getToken(params));
+    if (denied) return denied;
     const row = await findRecord(env, getToken(params));
     if (!row) return json({ ok:false, error:"존재하지 않거나 만료된 링크입니다." }, 404);
     const rec = JSON.parse(row.data || "{}");
@@ -54,6 +57,8 @@ export async function onRequestGet({ env, params }) {
 export async function onRequestPost(context) {
   const { request, env, params } = context;
   try {
+    const denied = await requireResourceAccess(request, env, "request", getToken(params), { write:true });
+    if (denied) return denied;
     if (Number(request.headers.get("content-length") || 0) > 50000) return json({ ok:false, error:"입력 내용이 너무 큽니다." }, 413);
     const row = await findRecord(env, getToken(params));
     if (!row) return json({ ok:false, error:"존재하지 않거나 만료된 링크입니다." }, 404);

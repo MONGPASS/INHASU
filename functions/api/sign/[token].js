@@ -6,6 +6,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 import { notifyAdmin } from "../_solapi.js";
+import { requireResourceAccess } from "../../lib/customerAccess.ts";
 import { sanitizeTravelers, sanitizeTripInfo } from "../_travelers.mjs";
 import { AUTO_TRIGGER, shouldAutoSendTravelNotice } from "../_travel-notice.mjs";
 import { backgroundCustomerEvent, recordTravelNoticeOutcome } from '../_customer-events.mjs';
@@ -27,6 +28,8 @@ export async function onRequestPost(context) {
   try {
     const token = Array.isArray(params.token) ? params.token[0] : params.token;
     if (!token || String(token).length < 16) return json({ ok: false, error: "invalid token" }, 400);
+    const denied = await requireResourceAccess(request, env, "request", token, { write:true });
+    if (denied) return denied;
 
     let body;
     try { body = await request.json(); } catch (e) { return json({ ok: false, error: "bad json" }, 400); }

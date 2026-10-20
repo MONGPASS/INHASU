@@ -78,10 +78,14 @@
 <button class="fab" id="fab" style="display:none" onclick="window.print()">📄 PDF 저장</button>
 
 <script type="module">
+import { requireCustomerDocumentAccess as requireCustomerAccess, requireAdminDocumentAccess, customerDocumentFetch } from "/customer-access.js";
 import { escapeDocumentText as escapeQuoteDocumentText, sanitizeDocumentHTML, documentUrl, documentImageAttribute, documentTextWithoutBreaks } from "/document-safe.js";
 /* ── 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 ── */
 const params = new URLSearchParams(location.search);
 const _token = params.get("t");
+if (_token) await requireCustomerAccess('request', _token);
+else await requireAdminDocumentAccess();
+const customerFetch = (url, options) => customerDocumentFetch(url, options, { source: 'request', key: _token });
 const mapHref = "일정지도.html" + (_token ? "?t=" + encodeURIComponent(_token) : "");
 if (_token) {
   document.getElementById("customerBackTop").href = "내견적.html?t=" + encodeURIComponent(_token);
@@ -97,7 +101,7 @@ if (_token) {
 const Q = await (async () => {
   if (_token) {
     try {
-      const res = await fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
+      const res = await customerFetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" });
       const j = await res.json();
       if (j.ok && j.quote) return j.quote;
     } catch (e) {}

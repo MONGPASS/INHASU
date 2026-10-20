@@ -4,6 +4,7 @@ import { onRequestGet, onRequestPatch } from "../functions/api/requests/[id].js"
 import { onRequestPost as onSignPost } from "../functions/api/sign/[token].js";
 import { onRequestPost as onDepositPost } from "../functions/api/deposit/[token].js";
 import { requestSQLite } from './helpers/request-sqlite.mjs';
+import { customerIdentity } from './helpers/customer-session.mjs';
 
 const makeEnv = () => ({
   ADMIN_TOKEN: "admin-secret",
@@ -159,6 +160,7 @@ test("여행서명 시 여행자 정보를 함께 제출하면 booking과 스냅
     },
   };
   const DB = requestSQLite(t, rec), env = { DB }, pending = [];
+  const customer = customerIdentity(DB, { resourceId:rec.id });
 
   const signImg = "data:image/png;base64," + "A".repeat(300);
   const travelers = [
@@ -169,7 +171,7 @@ test("여행서명 시 여행자 정보를 함께 제출하면 booking과 스냅
   const response = await onSignPost({
     request: new Request("https://example.com/api/sign/token-1234567890123456", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...customer },
       body: JSON.stringify({
         agree: true,
         signImg,
@@ -196,7 +198,7 @@ test("여행서명 시 여행자 정보를 함께 제출하면 booking과 스냅
   assert.equal(savedData.booking.contract.snapshot.travelerNote, "채식주의");
 });
 
-test("고객이 예약금 입금 완료를 알리면 depositReport와 관리자 알림이 발송된다", async () => {
+test("고객이 예약금 입금 완료를 알리면 depositReport와 관리자 알림이 발송된다", async t => {
   const rec = {
     id: "req-1",
     token: "token-deposit-123456",
@@ -205,27 +207,13 @@ test("고객이 예약금 입금 완료를 알리면 depositReport와 관리자 
       contractInfo: { depositAmount: 200000, bankName: "우리은행" },
     },
   };
-  let savedData = null;
+  const DB = requestSQLite(t, rec), customer = customerIdentity(DB, { resourceId:rec.id });
   const env = {
     ADMIN_PHONE: "01012345678",
     SOLAPI_API_KEY: "key",
     SOLAPI_API_SECRET: "secret",
     SOLAPI_SENDER: "0212345678",
-    DB: {
-      prepare(sql) {
-        return {
-          bind(...args) {
-            if (sql.includes("UPDATE")) {
-              savedData = JSON.parse(args[0] || "{}");
-            }
-            return {
-              async first() { return { id: "req-1", status: "신규", data: JSON.stringify(rec) }; },
-              async run() { return { success: true }; },
-            };
-          },
-        };
-      },
-    },
+    DB,
   };
 
   const pending = [];
@@ -240,7 +228,7 @@ test("고객이 예약금 입금 완료를 알리면 depositReport와 관리자 
   try { response = await onDepositPost({
     request: new Request("https://example.com/api/deposit/token-deposit-123456", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...customer },
       body: JSON.stringify({ name: "김철수(실입금자)" }),
     }),
     env,
@@ -251,6 +239,7 @@ test("고객이 예약금 입금 완료를 알리면 depositReport와 관리자 
   } finally { globalThis.fetch = originalFetch; }
 
   assert.equal(response.status, 200);
+  const savedData = DB.record;
   assert.ok(savedData);
   assert.equal(savedData.booking.depositReport.status, "reported");
   assert.equal(savedData.booking.depositReport.name, "김철수(실입금자)");

@@ -178,10 +178,10 @@ test('다른 알림 이력이 많아져도 오래된 미확인 요청은 조회�
 
 test('첫 계약 안내 접수 후 기존 고객 허브에 계약 확인·서명과 여행자 정보 요청이 실제로 열린다', async t => {
     const { request, raw, DB, quote } = await fixture(t);
-    const before = await (await readCustomerQuote({ env: { DB }, params: { token: quote.token } })).json();
+    const before = await (await readCustomerQuote({ request:new Request('https://admin.example.invalid/api/my/'+quote.token,{headers:{cookie:'auth_session=notice-admin'}}),env: { DB }, params: { token: quote.token } })).json();
     assert.equal(before.booking.contractRequest.status, 'not_sent');
     const response = await request('quote_booking', { body: body('contract') }); assert.equal(response.status, 200); assert.equal((await response.json()).state, 'accepted');
-    const after = await (await readCustomerQuote({ env: { DB }, params: { token: quote.token } })).json();
+    const after = await (await readCustomerQuote({ request:new Request('https://admin.example.invalid/api/my/'+quote.token,{headers:{cookie:'auth_session=notice-admin'}}),env: { DB }, params: { token: quote.token } })).json();
     assert.equal(after.booking.contractRequest.status, 'requested'); assert.match(after.booking.contractRequest.requestedAt, /^\d{4}-/);
     assert.equal(after.booking.travelerSubmission.status, 'requested'); assert.equal(after.booking.travelerSubmission.expectedCount, 3); assert.equal(after.booking.travelerSubmission.submittedCount, 0);
     assert.equal(after.booking.contractInfo.depositStatus, '입금완료'); assert.equal(after.booking.publishStatus, before.booking.publishStatus);

@@ -60,6 +60,7 @@ import adminWorkspace from './admin-workspace';
 import adminDeliveries from './admin-deliveries';
 import adminAssignments from './admin-assignments';
 import adminCustomerNotices from './admin-customer-notices';
+import customerAccess from './customer-access';
 
 // Register routes
 app.route('/products', products);
@@ -68,6 +69,7 @@ app.route('/admin/assignments', adminAssignments);
 app.route('/admin/customer-notices', adminCustomerNotices);
 app.route('/reservations', reservations);
 app.route('/auth', auth);
+app.route('/customer-access', customerAccess);
 app.route('/notifications/email', emailNotifications);
 app.route('/notifications', notifications);
 app.route('/banners', banners);

@@ -125,6 +125,7 @@
 <div id="toast"></div>
 
 <script type="module">
+import { requireCustomerDocumentAccess as requireCustomerAccess, customerDocumentFetch } from "/customer-access.js";
 const KAKAO = "https://pf.kakao.com/_BSLaxl";
 const _params = new URLSearchParams(location.search);
 const _token = _params.get("t");
@@ -140,7 +141,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&l
 let toastT;
 const toast = m => { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); };
 
-const IS_LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
+const customerFetch = (url, options) => customerDocumentFetch(url, options, { source: 'request', key: _token });
 
 const [R, TR] = await (async () => {
   if (_adminView) {
@@ -153,16 +154,11 @@ const [R, TR] = await (async () => {
     } catch (e) {}
   }
   if (!_token) return [null, null];
-  if (IS_LOCAL) {
-    try {
-      const item = JSON.parse(localStorage.getItem("leaders_requests") || "[]").find(x => x.token === _token);
-      if (item) return [{ ok: true, ...item }, null];
-    } catch(e) {}
-  }
+  await requireCustomerAccess('request', _token);
   try {
     const [resR, resTR] = await Promise.all([
-      fetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" }),
-      fetch("/api/travelers/" + encodeURIComponent(_token), { cache: "no-store" }).catch(() => null),
+      customerFetch("/api/my/" + encodeURIComponent(_token), { cache: "no-store" }),
+      customerFetch("/api/travelers/" + encodeURIComponent(_token), { cache: "no-store" }).catch(() => null),
     ]);
     const jR = await resR.json();
     const jTR = resTR && resTR.ok ? await resTR.json() : null;
@@ -618,50 +614,8 @@ if (!signed) {
     submitBtn.disabled = true;
     submitBtn.textContent = "계약서 서명 제출 중…";
 
-    if (IS_LOCAL) {
-      try {
-        const list = JSON.parse(localStorage.getItem("leaders_requests") || "[]");
-        const idx = list.findIndex(x => x.token === _token);
-        if (idx >= 0) {
-          const now = new Date().toISOString();
-          const rec = list[idx];
-          rec.booking = rec.booking || {};
-          rec.booking.travelers = travelersData;
-          rec.booking.flight = { ...(rec.booking.flight || {}), ...flightData };
-          rec.booking.pickupLodge = extraData.pickupLodge || "";
-          rec.booking.travelerNote = extraData.travelerNote || "";
-          rec.booking.travelerSubmission = { status:"submitted", submittedAt:now, expectedCount:travelersData.length, submittedCount:travelersData.length, source:"contract_sign" };
-          rec.booking.contract = {
-            signedAt: now,
-            signImg: pad.toDataURL("image/png"),
-            signerName: String(R.name || "").slice(0, 40),
-            termsVersion: "v1-2026-07",
-            snapshot: {
-              name: rec.name || "",
-              destination: rec.destination || "",
-              depart: rec.depart || "",
-              return_: rec.return_ || "",
-              nights: rec.nights || null,
-              adult: rec.adult || 0, child: rec.child || 0, infant: rec.infant || 0,
-              confirmedAt: rec.booking.confirmedAt || "",
-              dayCount: Array.isArray(rec.booking.days) ? rec.booking.days.length : 0,
-              travelers: travelersData,
-              flight: rec.booking.flight,
-              pickupLodge: rec.booking.pickupLodge,
-              travelerNote: rec.booking.travelerNote,
-              contractInfo: rec.booking.contractInfo || {},
-            }
-          };
-          localStorage.setItem("leaders_requests", JSON.stringify(list));
-          toast("✓ 서명이 완료됐어요!");
-          setTimeout(() => location.reload(), 900);
-          return;
-        }
-      } catch(e) {}
-    }
-
     try {
-      const res = await fetch("/api/sign/" + encodeURIComponent(_token), {
+      const res = await customerFetch("/api/sign/" + encodeURIComponent(_token), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

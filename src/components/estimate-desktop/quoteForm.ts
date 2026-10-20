@@ -446,13 +446,14 @@ export function buildQuotePayload(f: QuoteFormValues) {
 
 export type QuoteSubmitResult =
     | { ok: true; id: string; token: string }
-    | { ok: false; kind: 'duplicate' | 'rate' | 'invalid' | 'server' | 'network'; message: string };
+    | { ok: false; kind: 'login' | 'duplicate' | 'rate' | 'invalid' | 'server' | 'network'; message: string };
 
 /** 서버 저장이 확인된 경우에만 성공을 돌려준다(실패하면 완료 화면을 띄우지 않아 문의 유실을 막는다). */
 export async function submitQuote(f: QuoteFormValues): Promise<QuoteSubmitResult> {
     let res: Response;
     try {
         res = await fetch('/api/requests', {
+            credentials: 'same-origin',
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(buildQuotePayload(f)),
@@ -464,6 +465,7 @@ export async function submitQuote(f: QuoteFormValues): Promise<QuoteSubmitResult
     if (res.ok && data?.ok && typeof data.token === 'string' && data.token) {
         return { ok: true, id: typeof data.id === 'string' ? data.id : '', token: data.token };
     }
+    if (res.status === 401) return { ok: false, kind: 'login', message: '로그인 시간이 지났습니다. 다시 로그인하면 작성한 내용을 이어서 제출할 수 있습니다.' };
     if (res.status === 409) {
         return { ok: false, kind: 'duplicate', message: '접수 번호가 겹쳐 저장되지 않았어요. [견적 요청하기]를 한 번 더 눌러 주세요.' };
     }

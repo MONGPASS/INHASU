@@ -49,6 +49,7 @@ fs.mkdirSync(scratch, { recursive: true });
 const entry = path.join(scratch, 'entry.ts');
 fs.writeFileSync(entry, `import { Hono } from 'hono';
 import auth from '../../functions/api/auth';
+import customerAccess from '../../functions/api/customer-access';
 import reservations from '../../functions/api/reservations';
 import products from '../../functions/api/products';
 import quotes from '../../functions/api/quotes';
@@ -73,6 +74,7 @@ import email from '../../functions/api/notifications/email';
 import settings from '../../functions/api/settings';
 const app = new Hono().basePath('/api');
 app.route('/auth', auth); app.route('/reservations', reservations); app.route('/products', products);
+app.route('/customer-access', customerAccess);
 app.route('/quotes', quotes); app.route('/admin/bookings', bookings); app.route('/documents', documents);
 app.route('/admin/workspace', workspace); app.route('/admin/deliveries', deliveries); app.route('/categories', categories);
 app.route('/admin/customer-notices', customerNotices);
@@ -115,7 +117,7 @@ for (const [id, role, email] of [
     ['workspace-owner', 'user', 'customer@example.invalid'],
     ['workspace-other', 'user', 'other@example.invalid'],
 ]) {
-    raw.prepare('INSERT INTO users (id,name,email,role,password_hash) VALUES (?,?,?,?,?)').run(id, '로컬 검증 계정', email, role, passwordHash);
+    raw.prepare('INSERT INTO users (id,name,email,role,password_hash,google_id) VALUES (?,?,?,?,?,?)').run(id, '로컬 검증 계정', email, role, passwordHash, role === 'user' ? 'synthetic-google-' + id : null);
     raw.prepare('INSERT INTO sessions VALUES (?,?,?)').run(`local-${id}-session`, id, Date.now() + 86400000);
 }
 const admin = { cookie: 'auth_session=local-workspace-admin-session' };
@@ -144,6 +146,7 @@ const BUCKET = {
     },
 };
 const env = { DB, BUCKET, ENVIRONMENT: 'production', ADMIN_TOKEN: 'local-workspace-quote-fixture',
+    GOOGLE_CLIENT_SECRET: 'local-only-customer-link-fixture',
     RESEND_API_KEY: 'local-stub-key', ADMIN_EMAIL: 'admin@example.invalid', PAYPAL_ENABLED: 'false' };
 
 // Never delegate to the real fetch. Local mail and opt-in Kakao outcomes are
@@ -170,6 +173,11 @@ globalThis.fetch = async (input, options = {}) => {
     }
     if (url !== 'https://api.resend.com/emails') throw new Error('로컬 검증에서 외부 접속을 차단했습니다.');
     outbound.push({ provider: 'local-email-stub' });
+    // Synthetic provider only. This script never contacts a real provider or serves production.
+    const mail = JSON.parse(options.body || '{}');
+    if (String(mail.subject || '').includes('기존 여행 기록 연결')) {
+        console.log('LOCAL-MOCK-OTP:', String(mail.html || '').match(/>(\d{8})</)?.[1]);
+    }
     const status = fs.existsSync(path.join(scratch, 'mail-unavailable')) ? 503 : 200;
     return Response.json({ id: 'local-email-' + outbound.length }, { status });
 };
@@ -355,7 +363,8 @@ const quoteReloaded = await (await apiRequest(`/api/requests/${quoteEditorId}`, 
 assert.deepEqual(quoteReloaded.item.quote, editedQuoteDocument);
 assert.deepEqual(quoteReloaded.item.booking.days, editedBooking.days);
 assert.deepEqual(quoteReloaded.item.booking.contractInfo, editedBooking.contractInfo);
-const publicQuoteReloaded = await (await apiRequest(`/api/my/${createdQuoteResponse.token}`)).json();
+assert.equal((await apiRequest(`/api/my/${createdQuoteResponse.token}`)).status, 401);
+const publicQuoteReloaded = await (await apiRequest(`/api/my/${createdQuoteResponse.token}`, { headers: quoteAdmin })).json();
 assert.equal(publicQuoteReloaded.ok, true);
 assert.deepEqual(publicQuoteReloaded.quote, editedQuoteDocument);
 assert.equal(publicQuoteReloaded.booking.publishStatus, 'draft');
@@ -481,7 +490,7 @@ checkDocument.highlights = [structuredClone(publicLibraryFixtures.spots['거북�
 assert.equal((await write('/api/reservations/workspace-check', 'PUT', { document_content: checkDocument })).status, 200);
 const detail = await (await apiRequest('/api/reservations/workspace-check', { headers: admin })).json();
 assert.deepEqual(JSON.parse(detail.documentContent), checkDocument);
-const customerContract = await (await apiRequest('/api/documents/contract/workspace-check')).json();
+const customerContract = await (await apiRequest('/api/documents/contract/workspace-check', { headers: owner })).json();
 assert.deepEqual(customerContract.productIncluded, ['고객별 포함 조건']);
 assert.deepEqual(customerContract.productExcluded, []);
 assert.equal(customerContract.contractIncludedOverride, true);
@@ -532,7 +541,7 @@ assert.equal(latestPdf.highlights[0].desc, partialDocument.highlights[0].desc);
 assert.deepEqual(latestPdf.highlights[0].subImgs, checkDocument.highlights[0].subImgs);
 assert.deepEqual(latestPdf.detailDays[0].activities, pdf.detailDays[0].activities);
 assert.deepEqual(latestPdf.detailDays[0].images, pdf.detailDays[0].images);
-const contractAfterPartial = await (await apiRequest('/api/documents/contract/workspace-check')).json();
+const contractAfterPartial = await (await apiRequest('/api/documents/contract/workspace-check', { headers: owner })).json();
 assert.deepEqual(contractAfterPartial.productIncluded, customerContract.productIncluded);
 assert.deepEqual(contractAfterPartial.productExcluded, customerContract.productExcluded);
 // Deliberately clearing the list is a saved choice, never a request to restore
@@ -663,7 +672,7 @@ assert.deepEqual(compactPdf.detailDays[0].activities, latestPdf.detailDays[0].ac
 assert.deepEqual(compactPdf.detailDays[0].images, latestPdf.detailDays[0].images);
 assert.deepEqual(compactPdf.detailDays[0].accommodation, { ...latestPdf.detailDays[0].accommodation, name: compactDocument.days[0].accommodation.name });
 assert.deepEqual(compactPdf.highlights, latestPdf.highlights);
-const contractAfterCompact = await (await apiRequest('/api/documents/contract/workspace-check')).json();
+const contractAfterCompact = await (await apiRequest('/api/documents/contract/workspace-check', { headers: owner })).json();
 assert.deepEqual(contractAfterCompact.productIncluded, customerContract.productIncluded);
 assert.deepEqual(contractAfterCompact.productExcluded, customerContract.productExcluded);
 const blankCompactItems = structuredClone(compactDocument);
@@ -676,9 +685,9 @@ assert.deepEqual(blankItemsPdf.days[0].items, []);
 assert.deepEqual(blankItemsPdf.detailDays[0].activities, compactPdf.detailDays[0].activities);
 assert.equal((await write('/api/reservations/workspace-check', 'PUT', { document_content: compactDocument })).status, 200);
 
-assert.equal((await apiRequest('/api/documents/itinerary/workspace-check?format=quote')).status, 409);
+assert.equal((await apiRequest('/api/documents/itinerary/workspace-check?format=quote', { headers: owner })).status, 409);
 assert.equal((await apiRequest('/api/documents/itinerary/workspace-check/publish', { method: 'POST', headers: admin })).status, 200);
-assert.equal((await apiRequest('/api/documents/itinerary/workspace-check?format=quote')).status, 200);
+assert.equal((await apiRequest('/api/documents/itinerary/workspace-check?format=quote', { headers: owner })).status, 200);
 for (const id of ['workspace-pending', 'workspace-empty']) {
     assert.equal((await apiRequest(`/api/documents/itinerary/${id}/publish`, { method: 'POST', headers: admin })).status, 409);
 }
@@ -700,7 +709,7 @@ for (const route of ['/api/reservations', '/api/reservations/workspace-check']) 
     assert.ok(!/adminOperations|admin_operations|LOCAL-PRIVATE-/.test(text));
 }
 assert.equal((await apiRequest('/api/reservations/workspace-check', { headers: other })).status, 403);
-const publicPdf = await (await apiRequest('/api/documents/itinerary/workspace-check?format=quote')).text();
+const publicPdf = await (await apiRequest('/api/documents/itinerary/workspace-check?format=quote', { headers: owner })).text();
 assert.ok(!publicPdf.includes('LOCAL-PRIVATE-'));
 const publicCompactQuote = JSON.parse(publicPdf).quote;
 assert.equal(publicCompactQuote.days[0].date, '10.21 수요일');
@@ -807,7 +816,8 @@ for (const route of ['/api/reservations/workspace-signed', '/api/documents/itine
     assert.equal(response.status, 200);
     assert.ok(!(await response.text()).includes('LOCAL-PRIVATE-NEW-DRIVER'), `기사 개인 연락처는 고객 응답에서 제외: ${route}`);
 }
-const assignmentPublicQuote = await apiRequest(`/api/my/${assignmentQuote.token}`);
+raw.prepare('INSERT INTO customer_resource_links VALUES(?,?,?,?)').run('request', assignmentQuote.id, 'workspace-owner', new Date().toISOString());
+const assignmentPublicQuote = await apiRequest(`/api/my/${assignmentQuote.token}`, { headers: owner });
 assert.equal(assignmentPublicQuote.status, 200);
 assert.ok(!(await assignmentPublicQuote.text()).includes('LOCAL-PRIVATE-NEW-DRIVER'));
 const productAssignment = (await (await apiRequest('/api/admin/assignments', { headers: admin })).json()).items.find(item => item.key === 'product:workspace-signed');
@@ -1012,8 +1022,8 @@ if (customerWorkspace) {
         { id: 'workspace-customer-account-b', email: 'customer-b@example.invalid' },
     ];
     for (const account of customerAccounts) {
-        raw.prepare('INSERT INTO users(id,name,email,role,password_hash) VALUES(?,?,?,?,?)')
-            .run(account.id, customerName, account.email, 'user', passwordHash);
+        raw.prepare('INSERT INTO users(id,name,email,role,password_hash,google_id) VALUES(?,?,?,?,?,?)')
+            .run(account.id, customerName, account.email, 'user', passwordHash, 'synthetic-google-' + account.id);
         raw.prepare('INSERT INTO sessions VALUES(?,?,?)').run(`local-${account.id}-session`, account.id, Date.now() + 86400000);
     }
     const customerOwner = { cookie: 'auth_session=local-workspace-customer-account-a-session' };
@@ -1077,7 +1087,9 @@ if (customerWorkspace) {
         const after = (await (await apiRequest(route, { headers: quoteAdmin })).json()).item;
         assert.equal(after.memo, `${memo}-SAVED`); assert.deepEqual(after.quote, before.quote);
         assert.equal(after.token, before.token); assert.equal(after.status, before.status); assert.equal(after.booking, undefined);
-        const customerRead = await apiRequest(`/api/my/${createdData.token}`);
+        assert.equal((await apiRequest(`/api/my/${createdData.token}`)).status, 401);
+        raw.prepare('INSERT INTO customer_resource_links VALUES(?,?,?,?)').run('request', fixture.id, 'workspace-customer-account-a', new Date().toISOString());
+        const customerRead = await apiRequest(`/api/my/${createdData.token}`, { headers: customerOwner });
         assert.equal(customerRead.status, 200); const text = await customerRead.text(), safe = JSON.parse(text);
         assert.ok(!text.includes('LOCAL-PRIVATE-CUSTOMER-QUOTE-MEMO'));
         assert.equal(safe.booking, null); assert.deepEqual(safe.quote, fixture.quote);
@@ -1226,6 +1238,13 @@ if (process.argv.includes('--serve')) {
             const url = new URL(req.url, `http://${req.headers.host || `localhost:${port}`}`);
             if (url.pathname === '/__local-admin') {
                 res.writeHead(302, { Location: '/admin/reservations', 'Set-Cookie': `${admin.cookie}; Path=/; HttpOnly; SameSite=Lax; Secure`, 'Cache-Control': 'no-store' });
+                res.end(); return;
+            }
+            if (url.pathname === '/__local-customer' || url.pathname === '/__local-anonymous') {
+                const cookie = url.pathname === '/__local-customer'
+                    ? `${owner.cookie}; Path=/; HttpOnly; SameSite=Lax; Secure`
+                    : 'auth_session=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0';
+                res.writeHead(302, { Location: encodeURI('/내견적.html?t=local-workspace-quote-token'), 'Set-Cookie': cookie, 'Cache-Control': 'no-store' });
                 res.end(); return;
             }
             if (url.pathname.startsWith('/api/')) {

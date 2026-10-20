@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
    Cloudflare Pages Function · /api/requests
    ---------------------------------------------------------------
-   POST : 고객이 견적요청 폼에서 제출 → D1에 저장 (인증 없음)
+   POST : Google 로그인 고객이 견적요청 폼에서 제출 → 계정 소유권과 함께 D1 저장
           · honeypot / 같은 번호 60초 제한으로 스팸 방어
           · 신규 id만 저장 (기존 문의 덮어쓰기 불가)
    GET  : 관리자 페이지에서 목록 조회 (x-admin-token 헤더 필요)
@@ -11,6 +11,7 @@ import { notifyAdmin } from "./_solapi.js";
 import { resolveNotificationTemplate } from '../lib/customerNotifications.ts';
 import { backgroundCustomerEvent } from './_customer-events.mjs';
 import { defaultQuoteExpiry } from "./_workflow.mjs";
+import { customerSession, customerAdminToken, customerWriteOrigin, ensureCustomerAccessTables } from '../lib/customerAccess.ts';
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -35,10 +36,26 @@ const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
 export async function onRequestPost(context) {
   const { request, env } = context;
   try {
+    const invalidOrigin = customerWriteOrigin(request);
+    if (invalidOrigin) return invalidOrigin;
+    const user = await customerSession(request, env);
+    const admin = customerAdminToken(request, env) || user?.role === 'admin';
+    if (!admin && !user?.googleId) return json({ ok:false, code:'login_required', error:'Google 로그인 후 견적을 요청해 주세요.' }, 401);
     const contentLength = Number(request.headers.get("content-length") || 0);
     if (contentLength > 256_000) return json({ ok: false, error: "request too large" }, 413);
     const d = await request.json();
-    const admin = isAdmin(request, env);
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return json({ ok:false, error:'invalid request' }, 400);
+    if (!admin) {
+      // The customer form describes a request; only staff can issue a quote,
+      // create a booking, record payment or store signatures/operations history.
+      const fields = new Set(['adult','child','infant','depart','return_','tripType','travelStyles','destination','destSpots',
+        'cityStay','gerStay','vehicle','flightIssued','flightIn','flightOut','name','phone','email','kakaoId','request',
+        'fileName','fileKey','agree','nights','website']);
+      Object.keys(d).forEach(key => { if (!fields.has(key)) delete d[key]; });
+    }
+    // Historical JSON is not an ownership source. New ownership is recorded separately, server-side.
+    ['userId', 'user_id', 'ownerId', 'owner_id', 'googleId', 'customerId'].forEach(key => delete d[key]);
+    if (!admin) d.userId = user.id;
 
     // 스팸 방어 1: honeypot — 사람 눈에는 안 보이는 숨은 칸.
     // 봇이 채워서 제출하면 저장하지 않고 성공한 척 응답합니다.
@@ -103,7 +120,7 @@ export async function onRequestPost(context) {
 
     // INSERT OR IGNORE: 같은 id가 이미 있으면 무시 → 기존 문의·발행 견적을
     // 인증 없이 덮어쓸 수 없습니다. (중복이면 409, 고객 폼은 재시도 시 새 id로 성공)
-    const r = await env.DB.prepare(
+    const insert = env.DB.prepare(
       `INSERT OR IGNORE INTO requests
        (id, received_at, name, phone, destination, budget, status, memo, data, token)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -114,7 +131,18 @@ export async function onRequestPost(context) {
       d.status || "신규", d.memo || "",
       JSON.stringify(d),
       token
-    ).run();
+    );
+    let r;
+    if (!admin) {
+      await ensureCustomerAccessTables(env);
+      const results = await env.DB.batch([
+        insert,
+        env.DB.prepare(`INSERT INTO customer_resource_links(source,resource_id,user_id,created_at)
+          SELECT 'request',?,?,? WHERE EXISTS(SELECT 1 FROM requests WHERE id=? AND token=?)`)
+          .bind(id, user.id, new Date().toISOString(), id, token)
+      ]);
+      r = results[0];
+    } else r = await insert.run();
     if (!r.meta || r.meta.changes === 0) return json({ ok: false, error: "duplicate" }, 409);
 
     // 관리자 문자와 고객 알림톡 — 응답을 막지 않게 백그라운드로.

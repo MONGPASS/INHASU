@@ -1,4 +1,5 @@
 import { BRAND } from '../../constants/company';
+import { safeCustomerReturnPath } from '../../../public/customer-access.js';
 
 /**
  * Google OAuth is the only customer login. These helpers build the start URL for both the
@@ -9,9 +10,11 @@ import { BRAND } from '../../constants/company';
  * The page the visitor was heading to (AuthGuard passes it as `location.state.from`).
  * Only same-origin paths are accepted; anything else yields null.
  */
-export const loginReturnPath = (state: unknown): string | null => {
+export const loginReturnPath = (state: unknown, search = ''): string | null => {
     const from = (state as { from?: unknown } | null)?.from;
-    return typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') && from !== '/login' ? from : null;
+    const candidate = typeof from === 'string' ? from : new URLSearchParams(search).get('returnTo');
+    // The claim screen must survive the OAuth round trip too; its return target is checked separately.
+    return candidate ? safeCustomerReturnPath(candidate, '', true) || null : null;
 };
 
 /** 로그인에 실패해 돌아왔을 때(`/login?error=…`) 보여 줄 안내. 오류가 없으면 null. */
@@ -22,7 +25,7 @@ export const loginErrorMessage = (search: string): string | null => {
         google_setup: 'Google 로그인이 아직 준비되지 않았습니다. 잠시 후 다시 시도하시거나 카카오톡 채널로 문의해 주세요.',
         google_cancelled: 'Google 로그인이 취소되었습니다. 다시 시도해 주세요.',
         google_state: '로그인 시간이 지났습니다. 다시 한 번 시도해 주세요.',
-        google_linked: '이 이메일은 이미 다른 Google 계정으로 가입되어 있습니다. 처음 가입한 Google 계정으로 로그인해 주세요.',
+        google_linked: '기존 계정과 연결을 확인해야 합니다. 처음 이용한 Google 계정으로 로그인하거나 담당자에게 문의해 주세요.',
         account_disabled: '사용이 중지된 계정입니다. 문의해 주세요.',
         google_failed: 'Google 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.',
     };

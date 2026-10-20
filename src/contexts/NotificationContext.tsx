@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api'; 
+import { CUSTOMER_SESSION_CHANGED } from '../lib/customerSessionCache';
 
 export interface Notification {
     id: string;
@@ -24,10 +25,13 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
+    const identityGeneration = useRef(0);
 
     const fetchNotifications = async () => {
+        const generation = identityGeneration.current;
         try {
             const me = await api.auth.me();
+            if (generation !== identityGeneration.current) return;
             if (!me || me.error) {
                 setNotifications([]);
                 setLoading(false);
@@ -36,33 +40,27 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             const data = await api.notifications.list();
 
-            if (data) {
+            if (data && generation === identityGeneration.current) {
                 setNotifications(data);
             }
         } catch (error) {
             console.error('Error fetching notifications:', error);
         } finally {
-            setLoading(false);
+            if (generation === identityGeneration.current) setLoading(false);
         }
     };
 
     useEffect(() => {
-        // let subscription: any;
-
-        const setupRealtime = async () => {
-            // const { data: { user } } = await cloudflare.auth.getUser();
-            // if (!user) return;
-            const me = await api.auth.me();
-            if (!me || me.error) return;
-
-            // Initial fetch
-            fetchNotifications();
-
+        const changed = (event: Event) => {
+            identityGeneration.current += 1;
+            setNotifications([]);
+            const signedIn = !!(event as CustomEvent<{ userId: string | null }>).detail?.userId;
+            setLoading(signedIn);
+            if (signedIn) void fetchNotifications();
         };
-
-        setupRealtime();
-
-        return () => { };
+        window.addEventListener(CUSTOMER_SESSION_CHANGED, changed);
+        void fetchNotifications();
+        return () => { identityGeneration.current += 1; window.removeEventListener(CUSTOMER_SESSION_CHANGED, changed); };
     }, []);
 
     const markAsRead = async (id: string) => {

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { clearCustomerSessionCache } from '../../lib/customerSessionCache';
 import { useUser } from '../../contexts/UserContext';
 import { useHomeData } from '../../hooks/useHomeData';
 import { useWishlist } from '../../hooks/useWishlist';
@@ -55,9 +56,7 @@ export function MyPageMobile() {
         } catch {
             // ignore
         }
-        queryClient.removeQueries({ queryKey: ['authMe'] });
-        queryClient.removeQueries({ queryKey: ['myPage'] });
-        queryClient.removeQueries({ queryKey: ['wishlistIds'] });
+        await clearCustomerSessionCache(queryClient);
         setUser(null);
         go('/');
     };

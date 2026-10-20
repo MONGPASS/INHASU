@@ -29,7 +29,7 @@ async function fixture(t) {
     raw.exec(`CREATE TABLE users(id TEXT PRIMARY KEY,google_id TEXT,email TEXT,name TEXT,role TEXT,avatar_url TEXT,password_hash TEXT);
         CREATE TABLE sessions(id TEXT PRIMARY KEY,user_id TEXT,expires_at INTEGER);`);
     for(const [id,role] of [['admin','admin'],['member','user']]) {
-        raw.prepare('INSERT INTO users(id,email,name,role) VALUES(?,?,?,?)').run(id,`${id}@example.invalid`,id,role);
+        raw.prepare('INSERT INTO users(id,email,name,role,google_id) VALUES(?,?,?,?,?)').run(id,`${id}@example.invalid`,id,role,role==='user'?`google-${id}`:null);
         raw.prepare('INSERT INTO sessions VALUES(?,?,?)').run(`session-${id}`,id,Date.now()+86400000);
     }
     raw.prepare('INSERT INTO products(id,name) VALUES(?,?)').run('real-product','로컬 상품');
@@ -37,6 +37,7 @@ async function fixture(t) {
     raw.prepare(`INSERT INTO reservations(id,customer_name,customer_email,product_name,start_date,end_date,status,deposit_status,contract_data,assigned_guide,daily_accommodations,admin_operations,history)
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).run('same-id','상품 고객','member@example.invalid','상품','2026-10-20','2026-10-22','confirmed','paid',JSON.stringify(contract),
         JSON.stringify({id:'guide-old',name:'기존 가이드',image:'/guide.jpg'}),JSON.stringify([{day:1,accommodation:{name:'기존 호텔',images:['/hotel.jpg'],privateNote:'PRIVATE-DAY'}}]),JSON.stringify({opsNote:'PRIVATE-NOTE',receipt:{number:'PRIVATE-RECEIPT'}}),'[{"type":"created"}]');
+    raw.prepare('UPDATE reservations SET user_id=? WHERE id=?').run('member','same-id');
     const rec={id:'same-id',token:'PRIVATE-TOKEN',name:'견적 고객',status:'예약확정',depart:'2026-10-21',return_:'2026-10-24',adult:2,quote:{days:[{dest:'원래 견적'}]},memo:'PRIVATE-MEMO',
         booking:{days:[{d:1,dest:'원래 확정 일정'}],contract:{signedAt:'2026-10-01',signImg:'PRIVATE-SIGNATURE',snapshot:{travelers:[{passportNo:'PRIVATE-SNAPSHOT'}]}},
             contractInfo:{totalAmount:1234567,depositStatus:'입금완료'},publishStatus:'published',checklist:{deposit:true},
@@ -73,7 +74,7 @@ test('견적 배정 PATCH는 requests의 배정만 바꾸고 계약·서명·일
     assert.equal(updated.booking.assign.vehicle.model,'새 차량');assert.equal(updated.booking.assign.vehicle.plate,'PRIVATE-PLATE');
     assert.equal(updated.booking.assign.lodges[0].roomCount,2);assert.equal(updated.booking.assign.lodges[0].tags,'샤워 가능');assert.deepEqual(updated.booking.assign.lodges[0].imgs,['/q-hotel.jpg']);
     assert.equal(f.raw.prepare('SELECT product_name FROM reservations WHERE id=?').get('same-id').product_name,'상품');
-    const publicQuote=await getPublicQuote({env:{DB:f.DB},params:{token:'PRIVATE-TOKEN-FIXTURE'}});assert.equal(publicQuote.status,200);
+    const publicQuote=await getPublicQuote({request:new Request('https://fixture.invalid/api/my/PRIVATE-TOKEN-FIXTURE',{headers:{cookie:'auth_session=session-admin'}}),env:{DB:f.DB},params:{token:'PRIVATE-TOKEN-FIXTURE'}});assert.equal(publicQuote.status,200);
     assert.ok(!(await publicQuote.text()).includes('PRIVATE-QUOTE-DRIVER'));
 });
 

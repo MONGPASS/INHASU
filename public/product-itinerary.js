@@ -1,5 +1,6 @@
 /* 상품 예약도 기존 확정 일정표의 표지·요금·배정 디자인을 그대로 사용한다. */
 import { receiveAdminDocumentPreview } from './admin-document-preview.js';
+import { requireCustomerDocumentAccess as requireCustomerAccess, customerDocumentFetch } from './customer-access.js';
 export const escapeDocumentText = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const imageUrl = value => /^(https?:\/\/|\/(?!\/)|img\/)/i.test(String(value || '')) ? String(value) : '';
 const photos = values => (Array.isArray(values) ? values : []).map(imageUrl).filter(Boolean);
@@ -11,9 +12,10 @@ export async function loadProductItinerary(params) {
         return q;
     }
     const id = params.get('reservationId');
+    await requireCustomerAccess('reservation', id);
     const query = new URLSearchParams({ format: 'quote' });
     if (params.get('preview') === '1') query.set('preview', '1');
-    const res = await fetch(`/api/documents/itinerary/${encodeURIComponent(id)}?${query}`, { cache: 'no-store', credentials: 'same-origin' });
+    const res = await customerDocumentFetch(`/api/documents/itinerary/${encodeURIComponent(id)}?${query}`, { cache: 'no-store' }, { source: 'reservation', key: id });
     const result = await res.json();
     if (!res.ok || !result.quote || result.quote.source !== 'product') {
         throw new Error(result.error || '확정 일정표를 불러오지 못했습니다.');

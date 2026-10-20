@@ -1,14 +1,16 @@
 /* ═══════════════════════════════════════════════════════════
    Cloudflare Pages Function · /api/upload
    POST : 고객이 견적요청 폼에서 첨부파일(항공권 등) 업로드 → R2 저장
-   - 인증 없음(고객용)이지만 크기·형식 제한으로 방어
+   - Google 고객 로그인 또는 관리자 인증과 크기·형식 제한 적용
    - 파일은 비공개 R2에 저장, 다운로드는 관리자 토큰 필요(/api/file/…)
    ═══════════════════════════════════════════════════════════ */
+
+import { customerSession, customerWriteOrigin } from "../lib/customerAccess.ts";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8" },
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control":"no-store" },
   });
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
@@ -16,14 +18,20 @@ const ALLOWED_EXT = ["pdf", "jpg", "jpeg", "png", "webp", "heic", "gif"];
 
 export async function onRequestPost({ request, env }) {
   try {
+    const invalidOrigin = customerWriteOrigin(request);
+    if (invalidOrigin) return invalidOrigin;
     const url = new URL(request.url);
     // folder=images → 공개 이미지(명소·견적 사진). 관리자 인증 필요.
-    // 그 외 → uploads/ (고객 첨부, 비공개, 인증 없음)
+    // 그 외 → uploads/ (Google 고객·관리자만 올릴 수 있는 비공개 첨부)
     // 토큰은 x-admin-token 헤더 우선, ?token= 쿼리도 호환용으로 허용.
     const isPublic = url.searchParams.get("folder") === "images";
     const token = request.headers.get("x-admin-token") || url.searchParams.get("token") || "";
     if (isPublic && (!env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN)) {
       return json({ ok: false, error: "unauthorized" }, 401);
+    }
+    const legacyAdmin = !!env.ADMIN_TOKEN && token === env.ADMIN_TOKEN;
+    if (!isPublic && !legacyAdmin && !await customerSession(request, env)) {
+      return json({ ok:false, code:"login_required", error:"Google 로그인 후 첨부파일을 올려 주세요." }, 401);
     }
 
     const form = await request.formData();

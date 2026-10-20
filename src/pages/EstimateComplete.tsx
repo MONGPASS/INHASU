@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { SEO } from '../components/seo/SEO';
 import { useIsDesktop } from '../hooks/useIsDesktop';
@@ -8,6 +8,7 @@ import { MW } from '../components/desktop-primitives/mwTokens';
 import { QuoteDoneBody } from '../components/estimate-desktop/QuoteDoneBody';
 import { resolveQuoteDone } from '../components/estimate-desktop/quoteLinks';
 import { QuoteDoneSummary } from '../components/estimate-mobile/QuoteDone';
+import { CustomerAccessGuard } from '../components/auth/CustomerAccessGuard';
 
 /**
  * 견적 요청 완료(`/estimate-complete`): 접수 확인 + 내 견적 전용 링크(`/내견적.html?t=…`).
@@ -18,7 +19,7 @@ export const EstimateComplete: React.FC = () => {
     const isDesktop = useIsDesktop();
     const navigate = useNavigate();
     const { state } = useLocation();
-    const [done] = useState(() => resolveQuoteDone(state));
+    const done = useMemo(() => resolveQuoteDone(state), [state]);
 
     if (!done) return <Navigate to="/custom-estimate" replace />;
 
@@ -28,7 +29,7 @@ export const EstimateComplete: React.FC = () => {
     };
 
     return (
-        <>
+        <CustomerAccessGuard source="request" resourceKey={done.token}>
             {/* 개인 전용 링크가 있는 화면이므로 검색에 노출하지 않는다. */}
             <SEO title="견적 요청 접수 완료" description="견적 요청이 접수되었습니다. 내 견적 전용 링크에서 진행 상황과 견적서를 확인하세요." robots="noindex, nofollow" />
             {isDesktop ? (
@@ -44,6 +45,6 @@ export const EstimateComplete: React.FC = () => {
                     <QuoteDoneSummary done={done} go={go} />
                 </MobileShell>
             )}
-        </>
+        </CustomerAccessGuard>
     );
 };

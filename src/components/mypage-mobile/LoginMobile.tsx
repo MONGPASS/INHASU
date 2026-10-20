@@ -24,7 +24,7 @@ export function LoginMobile() {
     const queryClient = useQueryClient();
     const { data: me } = useMe();
     // Back to the page that asked for a login, otherwise on to the my page.
-    const target = loginReturnPath(location.state) ?? '/mypage';
+    const target = loginReturnPath(location.state, location.search) ?? '/mypage';
     const errorMessage = loginErrorMessage(location.search);
 
     // Coming back from the OAuth round trip (or the back/forward cache) must not reuse a

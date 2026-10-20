@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { BRAND, COMPANY_INFO, DEPOSIT_ACCOUNT, resolveCancellationRows } from '../../src/constants/company';
 import { getSessionUser } from '../lib/userAuth';
+import { requireResourceAccess } from '../lib/customerAccess';
 import { requireAdmin } from '../lib/adminAuth';
 import { buildProductQuote, hasProductSchedule, loadProductDocument, mergeProductDays, productItineraryPublished } from '../lib/productItinerary';
 import { PRODUCT_CONTRACT_TERMS_VERSION, productContractTerms, productSignatureRecord, publicProductContract, validateProductSignature } from '../../src/utils/productContractSignature';
@@ -70,6 +71,10 @@ const loadProductIncExc = async (db: any, productName?: string | null, productId
 app.get('/itinerary/:reservationId', async (c) => {
     c.header('Cache-Control', 'private, no-store');
     const reservationId = c.req.param('reservationId');
+    // The internal guide print client uses the default shape without a guide query.
+    // Customers use the published format=quote projection; only admins read the guide shape.
+    const denied = await requireResourceAccess(c.req.raw, c.env, 'reservation', reservationId, { adminOnly: c.req.query('guide') === '1' || c.req.query('format') !== 'quote' });
+    if (denied) return denied;
     const db = c.env.DB;
 
     const reservation = await db.prepare(
@@ -141,6 +146,8 @@ app.get('/itinerary/:reservationId', async (c) => {
 // 링크 공유도 이메일 발송도 먼저 문서를 공개한다. 읽기/미리보기로 공개 상태를 바꾸지 않는다.
 app.post('/itinerary/:reservationId/publish', requireAdmin, async (c) => {
     const id = c.req.param('reservationId');
+    const denied = await requireResourceAccess(c.req.raw, c.env, 'reservation', id, { write: true, adminOnly: true });
+    if (denied) return denied;
     const db = c.env.DB;
     const reservation = await db.prepare('SELECT * FROM reservations WHERE id = ?').bind(id).first();
     if (!reservation) return c.json({ error: 'Reservation not found' }, 404);
@@ -243,6 +250,8 @@ async function loadProductContractData(db: any, reservation: any, contractData: 
 
 // GET /api/documents/contract/:reservationId — existing private customer link
 app.get('/contract/:reservationId', async (c) => {
+    const denied = await requireResourceAccess(c.req.raw, c.env, 'reservation', c.req.param('reservationId'));
+    if (denied) return denied;
     const reservation = await c.env.DB.prepare('SELECT * FROM reservations WHERE id = ?').bind(c.req.param('reservationId')).first();
     if (!reservation) return c.json({ error: 'Reservation not found' }, 404);
     const contractData = parseNestedJson(reservation.contract_data, {}) || {};
@@ -254,6 +263,8 @@ app.get('/contract/:reservationId', async (c) => {
 
 // Existing typed agreements remain compatible; actual hand signatures are additive evidence.
 app.post('/contract/:reservationId/customer', async (c) => {
+    const denied = await requireResourceAccess(c.req.raw, c.env, 'reservation', c.req.param('reservationId'), { write: true });
+    if (denied) return denied;
     const db = c.env.DB;
     const reservation: any = await db.prepare('SELECT * FROM reservations WHERE id = ?').bind(c.req.param('reservationId')).first();
     if (!reservation) return c.json({ error: 'Reservation not found' }, 404);
