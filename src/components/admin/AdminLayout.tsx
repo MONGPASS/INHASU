@@ -27,10 +27,10 @@ interface AdminLayoutProps {
 const EYEBROW: Record<string, string> = {
     dashboard: '관리자 콘솔',
     reservations: '운영', calendar: '운영', guides: '운영',
-    products: '카탈로그',
-    magazines: '콘텐츠', templates: '콘텐츠', reviews: '콘텐츠', faq: '콘텐츠',
+    products: '카탈로그', templates: '카탈로그',
+    magazines: '콘텐츠', reviews: '콘텐츠', faq: '콘텐츠',
     banners: '사이트 설정', categories: '사이트 설정',
-    'design-spots': '사이트 설정', accommodations: '사이트 설정',
+    accommodations: '사이트 설정',
 };
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
