@@ -14,7 +14,9 @@ import type { TourProduct, PackageType, TourPricingOption, AccommodationOption, 
 import type { Category } from '../types/category';
 import type { Hotel } from '../types/hotel';
 import type { TouristSpot } from '../types/touristSpot';
+import { travelSpotSnapshot } from '../utils/travelSpotSnapshot';
 import { HotelPickerModal } from '../components/admin/HotelPickerModal';
+import { lodgingTimelineSnapshot, productLodgingSnapshot } from '../utils/lodgingItinerarySnapshot';
 import { TouristSpotPickerModal } from '../components/admin/TouristSpotPickerModal';
 import { ItineraryImportModal } from '../components/admin/ItineraryImportModal';
 import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '../components/admin/itineraryImport';
@@ -378,7 +380,9 @@ export const AdminProductManage: React.FC = () => {
     return (
         <AdminLayout
             activePage="products"
-            title={isModalOpen ? (selectedProduct ? '상품 수정' : '상품 추가') : '상품 관리'}
+            title={isModalOpen ? (selectedProduct ? '상품 수정' : '상품 추가') : '상품 목록'}
+            description={isModalOpen ? undefined : '판매 상태와 추천 노출을 한 화면에서 관리해요.'}
+            hidePageHeading={isModalOpen}
             actions={!isModalOpen && (
                 <button
                     className="btn btn-ink"
@@ -392,26 +396,29 @@ export const AdminProductManage: React.FC = () => {
             )}
         >
             {productOpenNotice && <div className="card-pad" role="status" style={{ background: '#fff5e8', borderRadius: 12, marginBottom: 16 }}>{productOpenNotice}</div>}
-            <div className="route-anim" style={{ display: isModalOpen ? 'none' : undefined }}>
+            <div className="route-anim catalog-product-list" style={{ display: isModalOpen ? 'none' : undefined }}>
                 {/* Statistics Cards */}
                 <div className="prod-stats">
                     {STAT_CARDS.map((s) => (
-                        <div className="metric" key={s.key} style={{ padding: '16px 18px' }}>
+                        <button type="button" className={`metric catalog-kpi${(s.key === 'featured' ? featuredFilter === 'featured' : featuredFilter === 'all' && statusFilter === (s.key === 'total' ? 'all' : s.key)) ? ' is-selected' : ''}`} key={s.key}
+                            aria-pressed={s.key === 'featured' ? featuredFilter === 'featured' : featuredFilter === 'all' && statusFilter === (s.key === 'total' ? 'all' : s.key)}
+                            onClick={() => { setStatusFilter(s.key === 'featured' || s.key === 'total' ? 'all' : s.key); setFeaturedFilter(s.key === 'featured' ? 'featured' : 'all'); setCurrentPage(1); }}>
                             <div className="row" style={{ gap: 12 }}>
                                 <span className={`metric-ico ${s.tint}`} style={{ width: 40, height: 40 }}>
-                                    <Icon name={s.ico} fill />
+                                    <Icon name={s.ico} />
                                 </span>
                                 <div>
                                     <div className="metric-label">{s.label}</div>
-                                    <div className="metric-value" style={{ fontSize: 22 }}>{s.value}</div>
+                                    <div className="metric-value">{productsLoaded ? s.value : '—'}</div>
                                 </div>
                             </div>
-                        </div>
+                        </button>
                     ))}
                 </div>
 
                 {/* Filters / Toolbar */}
-                <div className="toolbar" style={{ marginTop: 18 }}>
+                <section className="card catalog-product-panel">
+                <div className="toolbar catalog-product-toolbar">
                     <label className="tb-search">
                         <Icon name="search" />
                         <input
@@ -421,7 +428,13 @@ export const AdminProductManage: React.FC = () => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </label>
+                    <div className="catalog-category-chips" aria-label="상품 카테고리 필터">
+                        <button type="button" className={categoryFilter === 'all' ? 'is-selected' : ''} aria-pressed={categoryFilter === 'all'} onClick={() => { setCategoryFilter('all'); setCurrentPage(1); }}>전체 <span>{products.length}</span></button>
+                        {categories.filter(cat => cat.id !== 'all').map(cat => <button type="button" key={cat.id} className={categoryFilter === cat.name ? 'is-selected' : ''} aria-pressed={categoryFilter === cat.name} onClick={() => { setCategoryFilter(cat.name); setCurrentPage(1); }}>{cat.name} <span>{products.filter(product => product.category === cat.name).length}</span></button>)}
+                    </div>
+                    <details className="catalog-extra-filters"><summary>추가 필터</summary><div>
                     <select
+                        aria-label="상품 카테고리"
                         className="select"
                         value={categoryFilter}
                         onChange={(e) => setCategoryFilter(e.target.value)}
@@ -432,6 +445,7 @@ export const AdminProductManage: React.FC = () => {
                         ))}
                     </select>
                     <select
+                        aria-label="상품 판매 상태"
                         className="select"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
@@ -442,6 +456,7 @@ export const AdminProductManage: React.FC = () => {
                         <option value="soldout">품절</option>
                     </select>
                     <select
+                        aria-label="상품 추천 상태"
                         className="select"
                         value={featuredFilter}
                         onChange={(e) => setFeaturedFilter(e.target.value)}
@@ -450,10 +465,12 @@ export const AdminProductManage: React.FC = () => {
                         <option value="featured">추천 상품</option>
                         <option value="normal">일반 상품</option>
                     </select>
+                    </div></details>
+                    <span className="catalog-product-count"><b>{filteredProducts.length}</b>개 상품</span>
                 </div>
 
                 {/* Products Table */}
-                <div className="card">
+                <div className="catalog-product-table">
                     <div className="tbl-wrap">
                         <table className="tbl">
                             <thead>
@@ -461,12 +478,11 @@ export const AdminProductManage: React.FC = () => {
                                     <th>상품</th>
                                     <th>카테고리</th>
                                     <th>기간</th>
-                                    <th className="r">가격</th>
+                                    <th className="r">가격 (1인~)</th>
                                     <th>상태</th>
                                     <th className="c">추천</th>
-                                    <th className="c">인기</th>
                                     <th className="c">조회/예약</th>
-                                    <th className="r">액션</th>
+                                    <th className="r">관리</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -492,7 +508,7 @@ export const AdminProductManage: React.FC = () => {
                                                 </span>
                                                 <div style={{ minWidth: 0 }}>
                                                     <div className="cell-strong" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</div>
-                                                    <div className="cell-muted" style={{ fontSize: 11.5 }}>{product.id}</div>
+                                                    <button type="button" onClick={() => togglePopular(product.id)} className={`catalog-popular-control${product.isPopular ? ' is-popular' : ''}`} title="인기 노출 변경" aria-label={`${product.name} 인기 노출 ${product.isPopular ? '해제' : '설정'}`}><Icon name={product.isPopular ? 'favorite' : 'favorite_border'} />{product.isPopular ? '인기' : '인기 설정'}</button>
                                                 </div>
                                             </div>
                                         </td>
@@ -513,38 +529,28 @@ export const AdminProductManage: React.FC = () => {
                                             </button>
                                         </td>
                                         <td className="c">
-                                            <button onClick={() => toggleFeatured(product.id)} className="star-btn" title="추천">
+                                            <button onClick={() => toggleFeatured(product.id)} className={`star-btn catalog-recommend${product.isFeatured ? ' is-featured' : ''}`} title="추천" aria-label={`${product.name} 추천 ${product.isFeatured ? '해제' : '설정'}`}>
                                                 <Icon
                                                     name={product.isFeatured ? 'star' : 'star_border'}
                                                     fill={product.isFeatured}
-                                                    style={{ color: product.isFeatured ? 'var(--mrt-star)' : 'var(--mrt-gray-300)' }}
+                                                    style={{ color: product.isFeatured ? 'var(--mrt-purple-2)' : 'var(--mrt-gray-300)' }}
                                                 />
                                             </button>
                                         </td>
                                         <td className="c">
-                                            <button onClick={() => togglePopular(product.id)} className="star-btn" title="인기">
-                                                <Icon
-                                                    name={product.isPopular ? 'favorite' : 'favorite_border'}
-                                                    fill={product.isPopular}
-                                                    style={{ color: product.isPopular ? '#FF4F8B' : 'var(--mrt-gray-300)' }}
-                                                />
-                                            </button>
-                                        </td>
-                                        <td className="c">
-                                            <div className="cell-mono" style={{ fontSize: 12.5 }}>{typeof product.viewCount === 'number' ? product.viewCount.toLocaleString() : (product.viewCount || 0)}</div>
-                                            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--mrt-blue-strong)' }}>예약 {product.bookingCount || 0}</div>
+                                            <div className="catalog-product-traffic"><span><b>{typeof product.viewCount === 'number' ? product.viewCount.toLocaleString('ko-KR') : (product.viewCount || 0)}</b> · 예약 <b>{product.bookingCount || 0}</b></span><span className="catalog-traffic-track"><i style={{ width: `${Math.max(0, Number(product.bookingCount) || 0) / Math.max(1, ...products.map(item => Number(item.bookingCount) || 0)) * 100}%` }} /></span></div>
                                         </td>
                                         <td className="r">
                                             <div className="row-actions">
-                                                <button onClick={() => duplicateProduct(product)} className="act-btn" title="복제">
-                                                    <Icon name="content_copy" />
-                                                </button>
                                                 <button
                                                     onClick={() => { void editProduct(product); }}
                                                     className="act-btn"
                                                     title="수정"
                                                 >
                                                     <Icon name="edit" />
+                                                </button>
+                                                <button onClick={() => duplicateProduct(product)} className="act-btn" title="복제">
+                                                    <Icon name="content_copy" />
                                                 </button>
                                                 <button onClick={() => deleteProduct(product.id)} className="act-btn danger" title="삭제">
                                                     <Icon name="delete" />
@@ -559,6 +565,7 @@ export const AdminProductManage: React.FC = () => {
                             <div className="empty">
                                 <Icon name="inventory_2" />
                                 <p>조건에 맞는 상품이 없습니다.</p>
+                                <button type="button" className="link-action" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); setStatusFilter('all'); setFeaturedFilter('all'); setCurrentPage(1); }}>필터 지우기</button>
                             </div>
                         )}
                     </div>
@@ -597,6 +604,7 @@ export const AdminProductManage: React.FC = () => {
                         </div>
                     )}
                 </div>
+                </section>
             </div>
 
             {/* Add/Edit Modal */}
@@ -1205,24 +1213,15 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             // or deleted.
             updateItineraryBlockContent(index, {
                 ...(block.content as DayInfoContent),
-                accommodation: hotel.name_kr,
-                accommodationHotelId: hotel.id,
-                accommodationImages: hotel.images && hotel.images.length > 0 ? [...hotel.images] : [],
-                accommodationDescription: hotel.description || '',
-                accommodationAddress: hotel.address || '',
-                accommodationSubtitle: hotel.name_local || '',
-                accommodationAmenities: hotel.amenities && hotel.amenities.length > 0 ? [...hotel.amenities] : [],
+                ...productLodgingSnapshot(hotel),
             });
         } else if (kind === 'timeline' && block.type === 'timeline') {
             // For a TIMELINE block: push hotel data into title + description + images.
             // This is the "hotel as a timeline event" flow (e.g., 호텔 체크인).
             const current = block.content as TimelineContent;
-            const hotelDesc = [hotel.description, hotel.address].filter(Boolean).join('\n\n');
             updateItineraryBlockContent(index, {
                 ...current,
-                title: hotel.name_kr,
-                description: hotelDesc || current.description,
-                images: hotel.images && hotel.images.length > 0 ? [...hotel.images] : current.images,
+                ...lodgingTimelineSnapshot(hotel, current),
             });
         }
         setHotelPickerTarget(null);
@@ -1253,12 +1252,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         const block = formData.itineraryBlocks?.[spotPickerForIndex];
         if (block && block.type === 'timeline') {
             const current = block.content as TimelineContent;
-            const desc = [spot.description, spot.address].filter(Boolean).join('\n\n');
             updateItineraryBlockContent(spotPickerForIndex, {
                 ...current,
-                title: spot.name_kr,
-                description: desc || current.description,
-                images: spot.images && spot.images.length > 0 ? [...spot.images] : current.images,
+                ...travelSpotSnapshot(spot),
             });
         }
         setSpotPickerForIndex(null);
@@ -1883,17 +1879,23 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
     const busy = saving || uploadCount > 0 || itineraryBulkUploading || designUploading;
     const locked = busy || !draftReady || !!pendingDraft || savedRef.current;
+    const inputProgress = [
+        { label: '상품명', done: !!formData.name?.trim() },
+        { label: '카테고리', done: !!formData.category?.trim() },
+        { label: '기간', done: !!formData.duration?.trim() },
+        { label: '판매가', done: Number(formData.price) > 0 },
+        { label: '메인 이미지', done: !!formData.mainImages?.length },
+    ];
 
     return (
-        <div className="card product-draft-editor" style={{ width: '100%' }}>
+        <div className="card product-draft-editor catalog-product-editor" style={{ width: '100%' }}>
+                <div className="catalog-editor-top">
                 {/* Header */}
                 <div className="card-head">
-                    <button onClick={closeEditor} disabled={busy} className="act-btn" title="목록으로" type="button">
-                        <Icon name="arrow_back" />
+                    <button onClick={closeEditor} disabled={busy} className="catalog-editor-back" title="목록으로" type="button">
+                        <Icon name="chevron_left" />상품 목록
                     </button>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-strong)', margin: 0 }}>
-                        {product ? '상품 수정' : '상품 추가'}
-                    </h2>
+                    <div><span className="catalog-editor-eyebrow">카탈로그</span><h1>{product ? '상품 수정' : '상품 추가'}</h1></div>
                     <div className="spacer" />
                 </div>
 
@@ -1920,8 +1922,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                         ))}
                     </div>
                 </div>
+                </div>
 
-                <div role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 12, background: draftError || pendingDraft?.conflict ? '#fff5e8' : '#edfaf6', border: '1px solid ' + (draftError || pendingDraft?.conflict ? '#f3d5a3' : '#c8eee3'), fontSize: 13, lineHeight: 1.7 }}>
+                <div className="catalog-editor-layout"><div className="catalog-editor-main">
+
+                <div className="catalog-editor-draft-status" role="status" aria-live="polite" style={{ padding: '14px 16px', borderRadius: 14, background: draftError || pendingDraft?.conflict ? '#fff5e8' : 'var(--mrt-blue-50)', border: '1px solid ' + (draftError || pendingDraft?.conflict ? '#f3d5a3' : 'transparent'), fontSize: 13, lineHeight: 1.7 }}>
                     {!adminUserId ? '관리자 계정을 확인하고 있습니다. 확인이 끝난 뒤 편집할 수 있습니다.' : pendingDraft ? <>
                         <strong>{pendingDraft.conflict ? '상품이 변경된 뒤 남아 있는 초안입니다.' : '이 브라우저에 저장하지 않은 상품 초안이 있습니다.'}</strong>
                         <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')}{pendingDraft.conflict ? ' · 서버 상품과 다른 버전입니다. 내용을 복원해 검토하거나 초안을 버리고 최신 상품으로 시작하세요.' : ' · 복원하거나 버린 뒤 편집을 계속하세요.'}</div>
@@ -1975,28 +1980,19 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                 <div className="field-row">
                                     <div className="field">
                                         <label>카테고리 *</label>
-                                        <select
-                                            className="inp"
-                                            style={{ appearance: 'none' }}
-                                            value={formData.category}
-                                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                            required
-                                        >
-                                            <option value="" disabled>카테고리 선택</option>
-                                            {categories.map(cat => (
-                                                <option key={cat.id} value={cat.name}>{cat.name}</option>
-                                            ))}
-                                        </select>
+                                        <div className="catalog-editor-segments" aria-label="상품 카테고리 선택">{categories.filter(cat => cat.id !== 'all').map(cat => <button type="button" key={cat.id} className={formData.category === cat.name ? 'is-selected' : ''} aria-pressed={formData.category === cat.name} onClick={() => setFormData({ ...formData, category: cat.name })}>{cat.name}</button>)}</div>
+                                        <select className="catalog-required-category" aria-label="상품 카테고리" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} required><option value="" disabled>카테고리 선택</option>{categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}</select>
                                     </div>
 
                                     <div className="field">
                                         <label>기간 *</label>
+                                        <div className="catalog-editor-segments" aria-label="상품 기간 선택">{['2박 3일', '3박 4일', '4박 5일'].map(duration => <button type="button" key={duration} className={formData.duration === duration ? 'is-selected' : ''} aria-pressed={formData.duration === duration} onClick={() => setFormData({ ...formData, duration })}>{duration}</button>)}</div>
                                         <input
                                             type="text"
                                             className="inp"
                                             value={formData.duration}
                                             onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                                            placeholder="예: 4박 5일"
+                                            placeholder="직접 입력 · 예: 4박 5일"
                                             required
                                         />
                                     </div>
@@ -2531,7 +2527,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         <ul style={{ margin: '8px 0 0', paddingLeft: 20, listStyle: 'disc', lineHeight: 1.7 }}>
                                             <li>아래 <strong>DAY 추가</strong> 버튼으로 일차를 추가하면 번호가 자동으로 정리됩니다.</li>
                                             <li>각 카드에 <strong>제목·날짜·식사·숙소</strong>를 입력하고, <strong>일정 항목 추가</strong>로 관광·이동·체험을 순서대로 구성합니다.</li>
-                                            <li><strong>관광지·호텔 마스터</strong>에서 선택하면 제목·설명·사진을 자동으로 불러옵니다.</li>
+                                            <li><strong>여행지·등록 숙소</strong>에서 선택하면 제목·설명·사진을 자동으로 불러옵니다.</li>
                                             <li>단일 이미지·갤러리·구분선은 각 카드의 <strong>고급 항목</strong>에서 추가할 수 있습니다.</li>
                                         </ul>
                                     </div>
@@ -2546,8 +2542,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                 return (
                                                     <div className="stack" style={{ gap: 8 }}>
                                                         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                                                            <button type="button" onClick={() => setSpotPickerForIndex(flatIndex)} className="btn btn-blue btn-sm" title="관광지 마스터에서 정보를 불러옵니다"><Icon name="location_on" />관광지 선택</button>
-                                                            <button type="button" onClick={() => setHotelPickerTarget({ kind: 'timeline', index: flatIndex })} className="btn btn-ghost btn-sm" title="호텔 마스터에서 정보를 불러옵니다"><Icon name="hotel" />호텔 선택</button>
+                                                            <button type="button" onClick={() => setSpotPickerForIndex(flatIndex)} className="btn btn-blue btn-sm" title="여행지 관리에 등록된 사진과 설명을 불러옵니다"><Icon name="location_on" />여행지 선택</button>
+                                                            <button type="button" onClick={() => setHotelPickerTarget({ kind: 'timeline', index: flatIndex })} className="btn btn-ghost btn-sm" title="공통 등록 숙소에서 정보를 불러옵니다"><Icon name="hotel" />숙소 선택</button>
                                                         </div>
                                                         <div className="row" style={{ gap: 8 }}>
                                                             <input type="text" className="inp" style={{ width: 120 }} value={c.time || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'time', e.target.value)} placeholder="시간 (선택)" />
@@ -2693,13 +2689,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                         <div className="row" style={{ marginBottom: 6 }}>
                                                                             <label className="cell-strong" style={{ fontSize: 12.5 }}>숙소 정보</label>
                                                                             <div className="spacer" style={{ flex: 1 }} />
-                                                                            <button type="button" onClick={() => setHotelPickerForIndex(day.dayInfoFlatIndex)} className="btn btn-ghost btn-sm"><Icon name="hotel" />호텔 마스터 선택</button>
+                                                                            <button type="button" onClick={() => setHotelPickerForIndex(day.dayInfoFlatIndex)} className="btn btn-ghost btn-sm"><Icon name="hotel" />등록 숙소 선택</button>
                                                                         </div>
                                                                         <div className="inp-mini"><span className="pre"><Icon name="hotel" style={{ fontSize: 14 }} /></span>
-                                                                            <input value={dc.accommodation || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, accommodation: e.target.value, accommodationHotelId: undefined })} placeholder="숙소명을 입력하거나 호텔 마스터에서 선택" />
+                                                                            <input value={dc.accommodation || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, accommodation: e.target.value, accommodationHotelId: undefined })} placeholder="숙소명을 입력하거나 등록 숙소에서 선택" />
                                                                         </div>
                                                                         {dc.accommodationHotelId && (
-                                                                            <div className="row" style={{ gap: 4, marginTop: 6, fontSize: 11, color: 'var(--mrt-blue-strong)' }}><Icon name="link" style={{ fontSize: 14 }} />호텔 마스터와 연결되었습니다. 직접 입력하면 연결이 해제됩니다.</div>
+                                                                            <div className="row" style={{ gap: 4, marginTop: 6, fontSize: 11, color: 'var(--mrt-blue-strong)' }}><Icon name="link" style={{ fontSize: 14 }} />등록 숙소에서 복사한 정보입니다. 직접 입력하면 숙소 연결이 해제됩니다.</div>
                                                                         )}
                                                                     </div>
 
@@ -2973,7 +2969,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                     </div>
 
                     {/* Footer — 페이지 스크롤 중에도 항상 보이는 저장 바 */}
-                    <div className="card-pad row" style={{ justifyContent: 'flex-end', gap: 10, borderTop: '1px solid var(--border-subtle)', position: 'sticky', bottom: 0, background: 'var(--bg-card, #fff)', zIndex: 5 }}>
+                    <div className="card-pad row catalog-editor-savebar" style={{ justifyContent: 'flex-end', gap: 10, borderTop: '1px solid var(--border-subtle)', position: 'sticky', bottom: 0, background: 'var(--bg-card, #fff)', zIndex: 5 }}>
                         <button type="button" onClick={closeEditor} disabled={busy} className="btn btn-ghost">
                             취소
                         </button>
@@ -2983,6 +2979,23 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                     </div>
                     </fieldset>
                 </form>
+                </div>
+                <aside className="catalog-editor-preview" aria-label="상품 입력 미리보기">
+                    <section className="catalog-editor-preview-card">
+                        <div className="catalog-editor-preview-photo">{formData.mainImages?.[0] ? <img src={getOptimizedImageUrl(formData.mainImages[0], 'productThumbnail')} alt="상품 대표 이미지 미리보기" /> : <Icon name="image" />}</div>
+                        <div className="catalog-editor-preview-copy">
+                            <div><span className={`badge ${formData.status === 'active' ? 'b-green' : formData.status === 'soldout' ? 'b-red' : 'b-gray'}`}>{formData.status === 'active' ? '판매중' : formData.status === 'soldout' ? '품절' : '비활성'}</span>{formData.isFeatured && <span className="badge b-purple">추천</span>}</div>
+                            <strong>{formData.name?.trim() || '상품명을 입력하세요'}</strong>
+                            <span>{[formData.category, formData.duration].filter(Boolean).join(' · ') || '카테고리 · 기간'}</span>
+                            <b>{Number(formData.price || 0).toLocaleString('ko-KR')}원 <small>/ 1인</small></b>
+                        </div>
+                    </section>
+                    <section className="catalog-editor-checklist"><div><strong>입력 현황</strong><span>{inputProgress.filter(item => item.done).length} / {inputProgress.length}</span></div>
+                        {inputProgress.map(item => <div key={item.label} className={item.done ? 'is-complete' : ''}><Icon name={item.done ? 'check_circle' : 'schedule'} /><span>{item.label}</span><small>{item.done ? '입력됨' : '미입력'}</small></div>)}
+                        <p>저장하기 전 입력 상태를 확인해 주세요.</p>
+                    </section>
+                </aside>
+                </div>
 
                 {/* Master pickers — open from either dayInfo or timeline buttons. */}
                 <HotelPickerModal

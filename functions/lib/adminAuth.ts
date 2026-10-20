@@ -1,6 +1,7 @@
 import { Context, Next } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { initializeLucia } from './auth';
+import { ADMIN_SESSION_MODE_COOKIE, serializeAdminSessionCookie } from './adminSessionCookie';
 
 /** Public catalog reads may include drafts only for a verified admin session. */
 export const hasAdminSession = async (c: Context<{ Bindings: any }>): Promise<boolean> => {
@@ -37,7 +38,8 @@ export const requireAdmin = async (c: Context<{ Bindings: any }>, next: Next) =>
     // Refresh session cookie if needed
     if (session.fresh) {
         const sessionCookie = lucia.createSessionCookie(session.id);
-        c.header('Set-Cookie', sessionCookie.serialize(), { append: true });
+        c.header('Set-Cookie', serializeAdminSessionCookie(sessionCookie,
+            getCookie(c, ADMIN_SESSION_MODE_COOKIE) === 'session'), { append: true });
     }
 
     await next();

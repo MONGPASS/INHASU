@@ -1,0 +1,44 @@
+.admin-app-wrapper .login-wrap.admin-redesign-login {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100dvh;
+  padding: 24px;
+  background: #f7f8fa;
+}
+.admin-redesign-login .login-form-side { display: contents; }
+.admin-app-wrapper .admin-redesign-login .login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(400px, 100%);
+  max-width: 400px;
+  padding: 32px;
+  background: #fff;
+  border: 1px solid #e9ebef;
+  border-radius: 24px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, .08);
+}
+.admin-redesign-login .admin-login-heading { display: flex; flex-direction: column; gap: 6px; }
+.admin-redesign-login .admin-login-shield { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 6px; border-radius: 14px; background: #2b8cff; color: #fff; }
+.admin-redesign-login .admin-login-brand { font-size: 12px; font-weight: 800; color: #2b8cff; }
+.admin-redesign-login .admin-login-heading h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -.03em; color: #18191c; }
+.admin-redesign-login .admin-login-heading p { margin: 0; font-size: 14px; color: #9299a6; }
+.admin-app-wrapper .admin-redesign-login .field { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.admin-redesign-login .field label { font-size: 13px; font-weight: 700; color: #18191c; }
+.admin-app-wrapper .admin-redesign-login .inp { height: 48px; min-width: 0; width: 100%; padding: 0 14px; border: 1px solid #e0e3e9; border-radius: 12px; background: #fff; color: #18191c; font-size: 15px; box-shadow: none; }
+.admin-app-wrapper .admin-redesign-login .inp:focus { outline: 2px solid rgba(43, 140, 255, .24); outline-offset: 2px; border-color: #18191c; }
+.admin-redesign-login .admin-login-password { position: relative; }
+.admin-app-wrapper .admin-redesign-login .admin-login-password .inp { padding-right: 48px; }
+.admin-redesign-login .admin-login-eye { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 10px; color: #9299a6; background: transparent; cursor: pointer; }
+.admin-redesign-login .admin-login-eye:hover { background: #f7f8fa; color: #18191c; }
+.admin-redesign-login .admin-login-remember { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #586174; cursor: pointer; }
+.admin-redesign-login .admin-login-remember input { width: 16px; height: 16px; accent-color: #18191c; margin: 0; }
+.admin-app-wrapper .admin-redesign-login .btn[type="submit"] { width: 100%; height: 52px; min-height: 52px; margin: 0; justify-content: center; border: 1px solid #18191c; border-radius: 12px; background: #18191c; color: #fff; font-size: 15px; font-weight: 700; }
+.admin-redesign-login button:focus-visible { outline: 2px solid #2b8cff; outline-offset: 3px; }
+.admin-redesign-login .login-card > p:last-child { margin: 0 !important; }
+.admin-redesign-login .login-card > [role="alert"], .admin-redesign-login .login-card > [role="status"] { margin-bottom: 0 !important; border-radius: 12px !important; }
+@media (max-width: 440px) {
+  .admin-app-wrapper .login-wrap.admin-redesign-login { padding: 16px; }
+  .admin-app-wrapper .admin-redesign-login .login-card { padding: 24px; }
+}

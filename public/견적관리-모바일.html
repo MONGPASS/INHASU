@@ -238,7 +238,7 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 <script src="/admin-embed.js"></script>
 <script src="/quote-editor-state.js"></script>
 </head>
-<body>
+<body class="qr-mobile-inquiries">
 
 <!-- ═══ 로그인 ═══ -->
 <div id="login">
@@ -667,7 +667,7 @@ function viewDash() {
   ].map(([label, fn]) => `<button type="button" class="chip" style="height:36px;" onclick="${fn}">${label}</button>`).join("");
   return `
   <section class="sec" style="padding:20px 16px 16px;">
-    <h1 style="margin:0; font-size:24px; font-weight:bold; line-height:135%; letter-spacing:-0.02em;">안녕하세요 👋</h1>
+    <h1 style="margin:0; font-size:24px; font-weight:bold; line-height:135%; letter-spacing:-0.02em;">견적 문의</h1>
     <p style="margin:6px 0 0; font-size:13px; line-height:150%; color:var(--g600);">행동 필요 ${st.actions}건 · 오늘 접수 ${st.todayCnt}건 · 전체 ${st.total}건</p>
   </section>
   <section class="sec statgrid" style="padding:16px;">
@@ -753,7 +753,7 @@ function viewList() {
     </div>`;
   }).join("");
   return `
-  <section class="sec" style="margin-top:8px; padding-bottom:8px;">
+  <section class="sec qr-mobile-inquiry-list" style="margin-top:8px; padding-bottom:8px;">
     <h2 style="margin:0; padding:16px 16px 12px; font-size:18px; font-weight:bold; line-height:135%;">최근 견적 문의 <span style="color:var(--brand);">${RECORDS.length}건</span></h2>
     <div style="padding:0 16px 12px;">
       <label class="searchbox">${icon("search", 18)}<input type="search" id="listQ" value="${esc(S.query)}" placeholder="이름·연락처·요청내용·메모로 검색"></label>
@@ -2398,7 +2398,7 @@ const PGS = {
   spotCat: "전체", spotForm: null,
   resTab: "guides", resForm: null,
 };
-const PAGE_TITLES = { course: "코스 관리", plan: "일정 관리", spot: "명소 관리", res: "리소스 관리" };
+const PAGE_TITLES = { course: "코스 관리", plan: "일정 관리", spot: "여행지 관리", res: "리소스 관리" };
 App.openPage = p => {
   if (S.page === 'quote' && QE) { if (qeEditorOpening || !qeRecovery?.close()) return; qeRecovery = null; QE = null; clearQuoteEditorUrl(); }
   S.page = p; S.drawer = false; S.sheet = false; renderOverlays();
@@ -2779,7 +2779,7 @@ function planFormSheet() {
   </div>`;
 }
 
-/* ── 명소 관리 ── */
+/* ── 여행지 관리 ── */
 function spotCatsAll() {
   const fromData = [...new Set(Object.values(getSpots()).map(s2 => s2.region).filter(Boolean))];
   const saved = (typeof getSpotCats === "function" ? getSpotCats() : []) || [];
@@ -3094,7 +3094,7 @@ function drawerHtml() {
     { label: "견적서 만들기", icon: "note", act: "App.tabTo('quote')" },
     { label: "코스 관리", icon: "coupon", act: "App.openPage('course')" },
     { label: "일정 관리", icon: "calendar", act: "App.openPage('plan')" },
-    { label: "명소 관리", icon: "location", act: "App.openPage('spot')" },
+    { label: "여행지 관리", icon: "location", act: "App.openPage('spot')" },
     { label: "리소스 관리", icon: "profile", act: "App.openPage('res')" },
   ];
   return `
@@ -3130,7 +3130,7 @@ function moreSheetHtml() {
     ["견적서 만들기", "App.tabTo('quote')"],
     ["코스 관리", "App.openPage('course')"],
     ["일정 관리", "App.openPage('plan')"],
-    ["명소 관리", "App.openPage('spot')"],
+    ["여행지 관리", "App.openPage('spot')"],
     ["리소스 관리", "App.openPage('res')"],
     ["새로고침", "App.refresh()"],
     ["로그아웃", "App.logout()", true],

@@ -8,15 +8,20 @@ import { build } from 'esbuild';
 const result = await build({ stdin: { contents: `
     export { AdminBannerManage } from './src/pages/AdminBannerManage';
     export { AdminCategoryManage, CategoryModal } from './src/pages/AdminCategoryManage';
+    export { AdminInquiryManage } from './src/pages/AdminInquiryManage';
+    export { AdminFAQManage } from './src/pages/AdminFAQManage';
+    export { AdminReviewManage } from './src/pages/AdminReviewManage';
 `, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false,
     plugins: [{ name: 'content-event-fixture', setup(builder) {
         builder.onResolve({ filter: /^react$|^react\/jsx-runtime$|^react-router-dom$/ }, args => ({ path: args.path, namespace: 'fixture' }));
-        builder.onResolve({ filter: /\/(AdminLayout|Icon|api|upload)$/ }, args => ({ path: args.path.split('/').at(-1), namespace: 'fixture' }));
+        builder.onResolve({ filter: /\/(AdminLayout|AdminWorkspaceContext|TourFAQEditor|Icon|api|upload)$/ }, args => ({ path: args.path.split('/').at(-1), namespace: 'fixture' }));
         builder.onLoad({ filter: /.*/, namespace: 'fixture' }, ({ path }) => ({ loader: 'js', contents:
-            path === 'react' ? `export const useState=(...a)=>globalThis.h.useState(...a),useRef=(...a)=>globalThis.h.useRef(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useCallback=(...a)=>globalThis.h.useCallback(...a);export default {useState,useRef,useEffect,useCallback};`
+            path === 'react' ? `export const useState=(...a)=>globalThis.h.useState(...a),useRef=(...a)=>globalThis.h.useRef(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useCallback=(...a)=>globalThis.h.useCallback(...a),useMemo=(...a)=>globalThis.h.useMemo(...a);export default {useState,useRef,useEffect,useCallback,useMemo};`
             : path === 'react/jsx-runtime' ? `export const Fragment='fragment';export const jsx=(type,props,key)=>({type,props,key});export const jsxs=jsx;`
             : path === 'react-router-dom' ? `export const useBlocker=predicate=>{globalThis.h.predicate=predicate;return globalThis.h.blocker};`
             : path === 'AdminLayout' ? `export const AdminLayout='layout';`
+            : path === 'AdminWorkspaceContext' ? `export const useAdminWorkspace=()=>({data:globalThis.adapters.workspace||null});`
+            : path === 'TourFAQEditor' ? `export const TourFAQEditor='tour-faq-editor';`
             : path === 'Icon' ? `export const Icon='icon';`
             : path === 'api' ? `export const api=new Proxy({}, {get:(_,key)=>globalThis.adapters.api[key]});`
             : `export const uploadImage=(...args)=>globalThis.adapters.upload(...args);` }));
@@ -34,7 +39,7 @@ const initialBanner = () => ({ banners: [
 function setup(adapters) {
     const listeners = new Map(), module = { exports: {} };
     const context = vm.createContext({ module, exports: module.exports, adapters, structuredClone,
-        setTimeout: () => 1, window: { confirm: () => false, addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name) },
+        setTimeout: () => 1, window: { confirm: () => false, setTimeout: () => 1, clearTimeout() {}, addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name) },
         confirm: (...args) => context.window.confirm(...args), alert: () => {} });
     vm.runInContext(result.outputFiles[0].text, context);
     function mount(Component, props = {}) {
@@ -44,6 +49,7 @@ function setup(adapters) {
                 return [values[key], change => { values[key] = typeof change === 'function' ? change(values[key]) : change; }]; },
             useRef(initial) { const key = cursor++; if (!(key in values)) values[key] = { current: initial }; return values[key]; },
             useCallback(fn, deps) { const key = cursor++; if (!memo[key] || deps.some((value, i) => value !== memo[key].deps[i])) memo[key] = { deps, fn }; return memo[key].fn; },
+            useMemo(fn, deps) { const key = cursor++; if (!memo[key] || !deps || deps.some((value, i) => value !== memo[key].deps?.[i])) memo[key] = { deps, value: fn() }; return memo[key].value; },
             useEffect(fn, deps) { const key = cursor++, old = memo[key];
                 if (!old || !deps || deps.some((value, i) => value !== old.deps?.[i])) { memo[key] = { deps, cleanup: old?.cleanup }; effects.push(() => { old?.cleanup?.(); memo[key].cleanup = fn(); }); } },
             render() { cursor = 0; effects = []; context.h = harness; harness.tree = Component(props); effects.forEach(run => run()); return harness.tree; },
@@ -102,6 +108,28 @@ test('배너 읽기 실패에는 빈 자료를 저장하지 못하며 다시 읽
     app.context.adapters.api.banners.get = async () => initialBanner();
     find(h.tree, n => n.type === 'button' && n.props.children === '다시 불러오기').props.onClick(); h.render(); await tick(); h.render();
     assert.equal(find(h.tree, n => n.type === 'fieldset').props.disabled, false);
+});
+
+test('배너 접기와 PC 문구 펼치기는 문서를 바꾸지 않고 되돌리기는 마지막 저장본만 복원한다', async () => {
+    let saves = 0;
+    const app = setup({ api: { banners: { get: async () => initialBanner(), save: async () => { saves++; } } } });
+    const h = app.mount(app.AdminBannerManage); await tick(); h.render();
+    find(h.tree, n => n.props?.['aria-controls'] === 'home-banner-body-a').props.onClick(); h.render();
+    assert.equal(find(h.tree, n => n.props?.id === 'home-banner-body-a').props.hidden, true);
+    find(h.tree, n => n.props?.['aria-controls'] === 'home-pc-copy-a').props.onClick(); h.render();
+    assert.equal(find(h.tree, n => n.props?.id === 'home-pc-copy-a').props.hidden, false);
+    assert.equal(readBusy(h), false, 'presentation changes do not dirty the saved document');
+    find(h.tree, n => n.type === 'textarea' && n.props.value === '첫 배너').props.onChange({ target: { value: '저장한 제목' } }); h.render();
+    await h.tree.props.actions.props.onClick(); h.render(); assert.equal(saves, 1);
+    find(h.tree, n => n.type === 'textarea' && n.props.value === '저장한 제목').props.onChange({ target: { value: '버릴 제목' } }); h.render();
+    find(h.tree, n => n.type === 'button' && n.props.children === '되돌리기').props.onClick(); h.render();
+    assert.ok(nodes(h.tree).some(n => n.props?.value === '버릴 제목'), 'cancelled confirmation retains the edit');
+    app.context.window.confirm = () => true;
+    find(h.tree, n => n.type === 'button' && n.props.children === '되돌리기').props.onClick(); h.render();
+    assert.ok(nodes(h.tree).some(n => n.props?.value === '저장한 제목'));
+    assert.ok(!nodes(h.tree).some(n => n.props?.value === '버릴 제목'));
+    assert.equal(saves, 1, 'discarding an edit does not write or publish');
+    assert.equal(readBusy(h), false);
 });
 
 test('카테고리 모달은 실제 저장 성공 후에만 닫고 실패하면 최신 입력과 업로드 사진을 유지한다', async () => {
@@ -196,4 +224,106 @@ test('실제 이동 guard는 미저장 배너의 Back·메뉴 이동과 새로�
     h.render(); assert.equal(resets, 1); assert.equal(proceeds, 0);
     app.context.window.confirm = () => true;
     h.blocker = { ...h.blocker, location: { key: 'menu-2' } }; h.render(); assert.equal(proceeds, 1);
+});
+
+test('문의의 실제 부모·상세 연결은 미저장 메모의 행 이동을 취소하면 보존하고 확인하면 쓰기 없이 이동한다', async () => {
+    let reads = 0, writes = 0;
+    const rows = [
+        { id: 'first', user_id: null, name: '첫 고객', email: 'first@example.invalid', kind: '예약 문의', reservation_number: 'LOCAL-1', message: '첫 문의 내용', status: 'new', admin_note: '첫 저장 메모', created_at: '2026-10-19 09:30:00' },
+        { id: 'second', user_id: null, name: '둘째 고객', email: 'second@example.invalid', kind: '일정 문의', reservation_number: 'LOCAL-2', message: '둘째 문의 내용', status: 'answered', admin_note: '둘째 저장 메모', created_at: '2026-10-19 10:30:00' },
+    ];
+    const refuseWrite = () => { writes++; throw new Error('row navigation must not write'); };
+    const app = setup({ api: { inquiries: { list: async () => { reads++; return rows; }, update: refuseWrite, delete: refuseWrite } } });
+    const parent = app.mount(app.AdminInquiryManage); await tick(); parent.render();
+    const row = id => find(parent.tree, n => n.type === 'button' && n.key === id && n.props.className?.startsWith('rd-inquiry-item'));
+    const drawer = () => find(parent.tree, n => typeof n.type === 'function' && n.props?.inquiry);
+    row('first').props.onClick(); parent.render();
+    let detailNode = drawer();
+    assert.equal(detailNode.props.inquiry.id, 'first');
+    // Mount the private, shipped child from its JSX node so its effect registers
+    // the guard on the real parent's ref, rather than testing a copied predicate.
+    const detail = app.mount(detailNode.type, detailNode.props);
+    find(detail.tree, n => n.type === 'textarea').props.onChange({ target: { value: '아직 저장하지 않은 상담 메모' } }); detail.render();
+    const prompts = [];
+    app.context.window.confirm = message => { prompts.push(message); return false; };
+    row('second').props.onClick(); parent.render(); detail.render();
+    assert.equal(drawer().props.inquiry.id, 'first', 'cancel keeps the first detail selected');
+    assert.equal(row('first').props['aria-pressed'], true);
+    assert.equal(row('second').props['aria-pressed'], false);
+    assert.equal(find(detail.tree, n => n.type === 'textarea').props.value, '아직 저장하지 않은 상담 메모');
+    app.context.window.confirm = message => { prompts.push(message); return true; };
+    row('second').props.onClick(); parent.render();
+    detailNode = drawer();
+    assert.equal(detailNode.props.inquiry.id, 'second');
+    assert.equal(row('second').props['aria-pressed'], true);
+    detail.unmount();
+    const nextDetail = app.mount(detailNode.type, detailNode.props);
+    assert.equal(find(nextDetail.tree, n => n.type === 'textarea').props.value, '둘째 저장 메모', 'a new keyed detail reads its own stored note');
+    assert.equal(prompts.length, 2);
+    assert.ok(prompts.every(message => message.includes('저장하지 않은 메모')));
+    assert.equal(rows[0].admin_note, '첫 저장 메모', 'discarding does not mutate the server fixture');
+    assert.equal(reads, 1);
+    assert.equal(writes, 0);
+    nextDetail.unmount(); parent.unmount();
+});
+
+test('FAQ의 실제 질문 버튼은 답변을 접고 펼치며 답변 검색도 저장 요청 없이 작동한다', async () => {
+    let writes = 0;
+    const refuseWrite = () => { writes++; throw new Error('presentation controls must not write'); };
+    const app = setup({ api: {
+        faqs: { list: async () => [
+            { id: 'contract', category: '예약 안내', question: '계약서는 어디에서 보나요?', answer: '마이페이지에서 계약서를 확인합니다.', is_active: 1, view_count: 3, order: 0 },
+            { id: 'payment', category: '예약 안내', question: '입금 확인은 언제 하나요?', answer: '영업일 안에 처리합니다.', is_active: 1, view_count: 1, order: 1 },
+        ], update: refuseWrite, create: refuseWrite, delete: refuseWrite },
+        faqCategories: { list: async () => [{ id: 'booking', name: '예약 안내', is_active: 1, order: 0 }], update: refuseWrite, create: refuseWrite, delete: refuseWrite },
+    } });
+    const h = app.mount(app.AdminFAQManage); await tick(); h.render();
+    const question = () => find(h.tree, n => n.type === 'button' && n.props['aria-controls'] === 'faq-answer-contract');
+    assert.equal(question().props['aria-expanded'], false);
+    assert.ok(!nodes(h.tree).some(n => n.props?.id === 'faq-answer-contract'));
+    question().props.onClick(); h.render();
+    assert.equal(question().props['aria-expanded'], true);
+    const answer = find(h.tree, n => n.props?.id === 'faq-answer-contract');
+    assert.equal(find(answer, n => n.type === 'p').props.children, '마이페이지에서 계약서를 확인합니다.');
+    question().props.onClick(); h.render();
+    assert.equal(question().props['aria-expanded'], false);
+    assert.ok(!nodes(h.tree).some(n => n.props?.id === 'faq-answer-contract'));
+    find(h.tree, n => n.type === 'input' && typeof n.props.onChange === 'function').props.onChange({ target: { value: '마이페이지' } }); h.render();
+    assert.deepEqual(nodes(h.tree).filter(n => n.type === 'article' && n.props.className === 'rd-faq-row').map(n => n.key), ['contract']);
+    assert.equal(writes, 0);
+    h.unmount();
+});
+
+test('후기의 실제 평점·포토 필터는 API 자료에 맞는 행을 보여 주고 서로 전환할 때 이전 조건을 해제한다', async () => {
+    let reads = 0, writes = 0, uploads = 0;
+    const refuseWrite = () => { writes++; throw new Error('filter controls must not write'); };
+    const app = setup({ api: { reviews: { list: async () => { reads++; return [
+        { id: 'five-photo', author_name: '사진 고객', rating: 5, product_name: '초원 여행', content: '사진이 있는 후기', images: ['/img/review.webp'], is_approved: 1 },
+        { id: 'four-text', author_name: '글 고객', rating: 4, product_name: '사막 여행', content: '네 점 후기', images: [], is_approved: 0 },
+        { id: 'five-text', author_name: '별 고객', rating: 5, product_name: '호수 여행', content: '다섯 점 후기', images: '[]', is_approved: 1 },
+    ]; }, update: refuseWrite, create: refuseWrite, delete: refuseWrite } }, upload: () => { uploads++; throw new Error('filter controls must not upload'); } });
+    const h = app.mount(app.AdminReviewManage); await tick(); h.render();
+    const rowIds = () => nodes(h.tree).filter(n => n.type === 'article' && n.props.className === 'rd-review-row').map(n => n.key);
+    const kpi = label => find(h.tree, n => n.type === 'button' && n.key === label && n.props.className?.startsWith('rd-content-kpi'));
+    assert.deepEqual(rowIds(), ['five-photo', 'four-text', 'five-text']);
+    kpi('5점 후기').props.onClick(); h.render();
+    assert.deepEqual(rowIds(), ['five-photo', 'five-text']);
+    assert.equal(kpi('5점 후기').props['aria-pressed'], true);
+    kpi('포토 후기').props.onClick(); h.render();
+    assert.deepEqual(rowIds(), ['five-photo']);
+    assert.equal(kpi('포토 후기').props['aria-pressed'], true);
+    assert.equal(kpi('5점 후기').props['aria-pressed'], false);
+    kpi('전체 후기').props.onClick(); h.render();
+    const chips = find(h.tree, n => n.props?.className === 'rd-content-chips');
+    find(chips, n => n.type === 'button' && n.key === 4).props.onClick(); h.render();
+    assert.deepEqual(rowIds(), ['four-text']);
+    assert.equal(kpi('포토 후기').props['aria-pressed'], false);
+    find(h.tree, n => n.type === 'input' && n.props.placeholder === '작성자 · 내용 · 상품명 검색').props.onChange({ target: { value: '초원' } }); h.render();
+    assert.deepEqual(rowIds(), [], 'search is combined with the selected rating');
+    kpi('전체 후기').props.onClick(); h.render();
+    assert.deepEqual(rowIds(), ['five-photo']);
+    assert.equal(reads, 1);
+    assert.equal(writes, 0);
+    assert.equal(uploads, 0);
+    h.unmount();
 });

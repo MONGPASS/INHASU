@@ -1,4 +1,4 @@
-import { customerWorkspaceReturnTo } from './customerWorkspaceRoutes';
+import { customerWorkspaceReturnTo } from './customerWorkspaceRoutes.ts';
 
 export type CalendarWorkspaceAction = 'guide' | 'vehicle' | 'stay' | 'payments';
 const actions = new Set<CalendarWorkspaceAction>(['guide', 'vehicle', 'stay', 'payments']);

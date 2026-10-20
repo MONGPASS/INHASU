@@ -139,6 +139,8 @@ function StayTile({ info, onOpen }: { info: DayInfoContent; onOpen: OpenImages }
     const address = info.accommodationAddress || live?.address || '';
     const subtitle = info.accommodationSubtitle || live?.name_local || '';
     const name = info.accommodation || '';
+    const amenities = strings(info.accommodationAmenities ?? live?.amenities);
+    const lodgingFacts = [info.accommodationType || live?.type, info.accommodationRegion || live?.region, info.accommodationOccupancy].filter(Boolean);
 
     return (
         <div style={tile}>
@@ -147,7 +149,9 @@ function StayTile({ info, onOpen }: { info: DayInfoContent; onOpen: OpenImages }
                 {name}
                 {subtitle && <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, color: MW.mute }}>{subtitle}</span>}
             </span>
+            {lodgingFacts.length > 0 && <span style={{ fontSize: 12, color: MW.mintDeep, lineHeight: 1.6 }}>{lodgingFacts.join(' · ')}</span>}
             <PhotoPair images={images} alt={(i) => `${name} ${i + 1} | 몽골 여행·숙박`} label={name} onOpen={onOpen} />
+            {amenities.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }} aria-label="숙소 편의시설">{amenities.map(amenity => <span key={amenity} style={{ padding: '4px 9px', borderRadius: 8, background: '#FFFFFF', fontSize: 12, color: MW.ink3 }}>{amenity}</span>)}</div>}
             {description && <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: MW.ink3, whiteSpace: 'pre-wrap' }}>{description}</p>}
             {address && (
                 <span style={{ display: 'flex', alignItems: 'flex-start', gap: 4, fontSize: 12, lineHeight: 1.6, color: MW.mute }}>

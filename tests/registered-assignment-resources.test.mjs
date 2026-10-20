@@ -10,18 +10,19 @@ const bundled = await build({ entryPoints: [fileURLToPath(new URL('../src/utils/
         builder.onLoad({ filter: /.*/, namespace: 'registered-resources-test' }, () => ({ loader: 'js', contents: 'export const connectQuoteDesk = () => { throw new Error("Inject a local admin connection"); };' }));
     } }],
 });
-function setup() {
+function setupExports() {
     const module = { exports: {} };
     vm.runInNewContext(bundled.outputFiles[0].text, { module, exports: module.exports, URL });
-    return module.exports.loadRegisteredAssignmentResources;
+    return module.exports;
 }
+const setup = () => setupExports().loadRegisteredAssignmentResources;
 const plain = value => JSON.parse(JSON.stringify(value));
 const options = (accountId = 'local-admin') => ({ accountId, isCurrent: () => true });
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 const pending = () => { let resolve; const promise = new Promise(yes => { resolve = yes; }); return { promise, resolve }; };
 const libs = {
     guides: { '등록 가이드': { img: '/api/img/guide.webp', phone: 'PRIVATE-GUIDE-PHONE', qr: '/api/img/guide-qr.webp', nameEn: 'Saved Name', role: '전문 가이드', desc: '저장된 소개', languages: '["한국어","몽골어"]', specialties: ['고비', '테를지'], passportNo: 'PRIVATE-PASSPORT', memo: 'PRIVATE-MEMO', arbitrary: 'NOT-REQUESTED' } },
-    lodges: { '등록 숙소': { grade: '고급게르', region: '테를지', img: '/old-cover.webp', imgs: ['/photo-pool.webp'], representativePhotos: ['/selected-a.webp', '/selected-b.webp'], roomAmenities: '온수\n수건', sharedFacilities: '식당, 휴게실', desc: '원본 숙소 소개', operatingNotes: 'PRIVATE-LODGE-NOTE', phone: 'PRIVATE-LODGE-PHONE' } },
+    lodges: { '등록 숙소': { grade: '고급게르', region: '테를지', address: '저장된 숙소 주소', occupancy: '2인실', img: '/old-cover.webp', imgs: ['/photo-pool.webp'], representativePhotos: ['/selected-a.webp', '/selected-b.webp'], roomAmenities: '온수\n수건', sharedFacilities: '식당, 휴게실', desc: 'PRIVATE-ARCHIVED-LODGE-DESCRIPTION', operatingNotes: 'PRIVATE-LODGE-NOTE', phone: 'PRIVATE-LODGE-PHONE' } },
     vehicles: { '등록 하이이스': { img: '/car-cover.webp', imgs: ['/car-cover.webp', '/car-interior.webp'], desc: '저장된 차량 설명', seats: '6인', luggage: '캐리어 4개', plate: 'SAVED-PLATE', phone: 'PRIVATE-DRIVER-PHONE', memo: 'PRIVATE-VEHICLE-MEMO', contract: { secret: 'NOT-REQUESTED' } } },
 };
 
@@ -38,12 +39,28 @@ test('실제 저장 리소스만 인증 헤더로 읽고 전화·QR·사진·설
     assert.equal(guide.image, '/api/img/guide.webp'); assert.equal(guide.introduction, '저장된 소개'); assert.deepEqual(guide.languages, ['한국어', '몽골어']); assert.deepEqual(guide.specialties, ['고비', '테를지']);
     assert.equal(guide.nameEn, 'Saved Name'); assert.equal(guide.role, '전문 가이드'); assert.equal(guide._fromResources, true);
     assert.equal(lodge.id, 'resource-lodge:등록 숙소'); assert.equal(lodge.location, '테를지'); assert.equal(lodge.type, '고급게르');
+    assert.equal(lodge.address, '저장된 숙소 주소'); assert.equal(lodge.occupancy, '2인실'); assert.equal(lodge.description, '');
     assert.deepEqual(lodge.images, ['/selected-a.webp', '/selected-b.webp']); assert.deepEqual(lodge.facilities, ['온수', '수건', '식당', '휴게실']);
     assert.equal(vehicle.name, '등록 하이이스'); assert.equal(vehicle.type, '등록 하이이스'); assert.equal(vehicle.phone, 'PRIVATE-DRIVER-PHONE');
     assert.deepEqual(vehicle.snapshot, { model: '등록 하이이스', type: '등록 하이이스', img: '/car-cover.webp', images: ['/car-cover.webp', '/car-interior.webp'], imgs: ['/car-cover.webp', '/car-interior.webp'], description: '저장된 차량 설명', desc: '저장된 차량 설명', seats: '6인', luggage: '캐리어 4개', plate: 'SAVED-PLATE' });
     const serialized = JSON.stringify(result);
-    for (const privateValue of ['PRIVATE-PASSPORT', 'PRIVATE-MEMO', 'NOT-REQUESTED', 'PRIVATE-LODGE-NOTE', 'PRIVATE-LODGE-PHONE', 'PRIVATE-VEHICLE-MEMO', 'local-only-token']) assert.ok(!serialized.includes(privateValue));
+    for (const privateValue of ['PRIVATE-PASSPORT', 'PRIVATE-MEMO', 'NOT-REQUESTED', 'PRIVATE-ARCHIVED-LODGE-DESCRIPTION', 'PRIVATE-LODGE-NOTE', 'PRIVATE-LODGE-PHONE', 'PRIVATE-VEHICLE-MEMO', 'local-only-token']) assert.ok(!serialized.includes(privateValue));
     assert.deepEqual(result.warnings, []); assert.equal(libs.lodges['등록 숙소'].imgs.length, 1);
+});
+
+test('공통 숙소 선택은 숙소 라이브러리만 읽고 안전 필드만 기존 호텔 스냅샷 모양으로 변환한다', async () => {
+    const { loadRegisteredAssignmentResources: load, registeredLodgeAsHotel } = setupExports(), calls = [];
+    const result = await load({ ...options(), kinds: ['lodges'] }, { connect: async () => 'local', fetch: async path => {
+        calls.push(path); return json({ ok: true, data: libs.lodges });
+    } });
+    assert.deepEqual(calls, ['/api/data/lodges']);
+    const lodge = result.lodges[0], hotel = plain(registeredLodgeAsHotel({ ...lodge, description: 'PRIVATE-ARCHIVED-LODGE-DESCRIPTION', phone: 'PRIVATE-PHONE', operatingNotes: 'PRIVATE-NOTE' }));
+    assert.deepEqual(hotel, { id: 'resource-lodge:등록 숙소', name_kr: '등록 숙소', address: '저장된 숙소 주소', region: '테를지', grade: '고급게르', type: '고급게르', occupancy: '2인실', images: ['/selected-a.webp', '/selected-b.webp'], description: '', amenities: ['온수', '수건', '식당', '휴게실'], roomAmenities: ['온수', '수건'], sharedFacilities: ['식당', '휴게실'], is_active: true });
+    assert.equal(JSON.stringify(hotel).includes('PRIVATE'), false);
+    hotel.images.push('/changed.webp'); hotel.amenities.push('변경');
+    assert.deepEqual(plain(lodge.images), ['/selected-a.webp', '/selected-b.webp']); assert.equal(lodge.facilities.includes('변경'), false);
+    const failure = plain(await load({ ...options(), kinds: ['lodges'] }, { connect: async () => 'local', fetch: async path => { assert.equal(path, '/api/data/lodges'); return json({ ok: false }, 503); } }));
+    assert.deepEqual(failure.lodges, []); assert.equal(failure.warnings.length, 1); assert.match(failure.warnings[0], /숙소/);
 });
 
 test('미등록 라이브러리는 빈 목록이며 샘플·타 라이브러리·보관 사진·임의 필드를 추정하지 않는다', async () => {

@@ -53,7 +53,10 @@ export type AssignmentSource = 'product' | 'quote_booking';
 export interface AssignmentGuide { id?: string; name?: string; phone?: string; image?: string; [key: string]: unknown }
 export interface AssignmentAccommodation {
     day: number; date?: string;
-    accommodation: { id?: string; name?: string; type?: string; location?: string; images?: string[]; description?: string; facilities?: string[]; roomCount?: number; occupancy?: string; bookingStatus?: string; [key: string]: unknown };
+    /** Transient reference to this booking version's original lodging array. Never persisted. */
+    sourceIndex?: number;
+    sourceKey?: string;
+    accommodation: { id?: string; name?: string; type?: string; location?: string; images?: string[]; description?: string; facilities?: string[]; roomCount?: number | null; occupancy?: string; bookingStatus?: string; [key: string]: unknown };
 }
 export interface BookingAssignment { guide: AssignmentGuide; vehicle: AssignmentVehicle; accommodations: AssignmentAccommodation[] }
 export const assignmentKey = (source: AssignmentSource, id: string) => `${source}:${id}`;

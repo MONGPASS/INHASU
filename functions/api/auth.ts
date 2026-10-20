@@ -4,7 +4,8 @@ import { initializeLucia } from '../lib/auth';
 import { hashPassword, verifyPassword } from '../lib/password';
 import { requireAdmin } from '../lib/adminAuth';
 import { getSessionUser } from '../lib/userAuth';
-import { setCookie, getCookie } from 'hono/cookie';
+import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
+import { ADMIN_SESSION_MODE_COOKIE, serializeAdminSessionCookie } from '../lib/adminSessionCookie';
 import { drizzle } from 'drizzle-orm/d1';
 import { users } from '../../src/db/schema/auth';
 import { eq } from 'drizzle-orm';
@@ -58,7 +59,11 @@ async function ensureLocalAuthData(env: Env) {
 // POST /api/auth/login - Admin email/password login
 app.post('/login', async (c) => {
     try {
-        const { email, password } = await c.req.json();
+        const { email, password, remember = true } = await c.req.json();
+
+        if (typeof remember !== 'boolean') {
+            return c.json({ error: 'Invalid login preference' }, 400);
+        }
 
         if (!email || !password) {
             return c.json({ error: 'Email and password are required' }, 400);
@@ -111,7 +116,10 @@ app.post('/login', async (c) => {
             const session = await lucia.createSession(existingUser.id, {});
             const sessionCookie = lucia.createSessionCookie(session.id);
 
-            c.header("Set-Cookie", sessionCookie.serialize(), { append: true });
+            c.header('Set-Cookie', serializeAdminSessionCookie(sessionCookie, !remember), { append: true });
+            const modeAttributes = { path: '/', secure: true, httpOnly: true, sameSite: 'Lax' as const };
+            if (remember) deleteCookie(c, ADMIN_SESSION_MODE_COOKIE, modeAttributes);
+            else setCookie(c, ADMIN_SESSION_MODE_COOKIE, 'session', modeAttributes);
 
             return c.json({ success: true, user: { id: existingUser.id, email: existingUser.email, name: existingUser.name, role: existingUser.role } });
         } catch (sessionError: any) {
@@ -301,7 +309,8 @@ app.get('/me', async (c) => {
 
         if (session && session.fresh) {
             const sessionCookie = lucia.createSessionCookie(session.id);
-            c.header("Set-Cookie", sessionCookie.serialize(), { append: true });
+            const browserSession = user?.role === 'admin' && getCookie(c, ADMIN_SESSION_MODE_COOKIE) === 'session';
+            c.header('Set-Cookie', serializeAdminSessionCookie(sessionCookie, browserSession), { append: true });
         }
 
         if (!session) {
@@ -323,6 +332,7 @@ app.get('/me', async (c) => {
 app.post('/logout', async (c) => {
     const lucia = initializeLucia(c.env.DB);
     const sessionId = getCookie(c, lucia.sessionCookieName);
+    deleteCookie(c, ADMIN_SESSION_MODE_COOKIE, { path: '/', secure: true, httpOnly: true, sameSite: 'Lax' });
 
     if (!sessionId) {
         return c.json({ error: "Unauthorized" }, 401);

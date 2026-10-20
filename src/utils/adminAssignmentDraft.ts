@@ -14,7 +14,8 @@ export function editorAssignment(row: any): BookingAssignment {
             for (const k of ['id','name','type','location','images','description','facilities','roomCount','occupancy','bookingStatus']) if (acc[k] !== undefined) next[k] = acc[k];
             // Recovery copies never retain file bytes or temporary image URLs.
             if (Array.isArray(next.images)) next.images = next.images.filter((s: unknown) => typeof s === 'string' && !/^(data:|blob:)/i.test(s));
-            return { day: d.day, date: d.date || '', accommodation: next };
+            return { day: d.day, date: d.date || '', ...(d.sourceIndex === undefined ? {} : { sourceIndex: d.sourceIndex }),
+                ...(d.sourceKey === undefined ? {} : { sourceKey: d.sourceKey }), accommodation: next };
         }) };
 }
 export function writeAssignmentDraft(storage: Store, scope: AssignmentDraftScope, baseVersion: string, assignment: BookingAssignment): AssignmentDraftResult {

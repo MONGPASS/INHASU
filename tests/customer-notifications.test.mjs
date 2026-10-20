@@ -66,7 +66,11 @@ test('같은 자동 이벤트와 문서 버전은 반복·다른 eventKey·동�
     let result = await dispatch(env, input('request_received')); assert.equal(result.state, 'accepted');
     result = await dispatch(env, input('request_received')); assert.equal(result.duplicate, true); assert.equal(sent.length, 1);
     const [first, second] = await Promise.all([dispatch(env, input('contract')), dispatch(env, input('contract', 'quote_booking', 'different-trigger-same-document'))]);
-    assert.equal(first.ok, true); assert.equal(second.duplicate, true); assert.equal(sent.length, 2);
+    // WebCrypto completion order does not guarantee which concurrent call claims first.
+    const outcomes = [first, second];
+    assert.equal(outcomes.filter(outcome => outcome.ok && outcome.state === 'accepted' && outcome.duplicate !== true).length, 1);
+    const duplicates = outcomes.filter(outcome => outcome.duplicate === true);
+    assert.equal(duplicates.length, 1); assert.ok(['accepted', 'sending'].includes(duplicates[0].state)); assert.equal(sent.length, 2);
     result = await dispatch(env, input('contract', 'quote_booking', 'third-trigger-same-document')); assert.equal(result.duplicate, true); assert.equal(sent.length, 2);
     assert.equal(raw.prepare('SELECT count(*) n FROM admin_delivery_attempts').get().n, 2);
 });

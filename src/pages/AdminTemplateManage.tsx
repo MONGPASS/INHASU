@@ -8,6 +8,7 @@ import { uploadImage } from '../utils/upload';
 import { TouristSpotPickerModal } from '../components/admin/TouristSpotPickerModal';
 import { HotelPickerModal } from '../components/admin/HotelPickerModal';
 import type { TouristSpot } from '../types/touristSpot';
+import { travelSpotSnapshot } from '../utils/travelSpotSnapshot';
 import type { Hotel } from '../types/hotel';
 import mongoliaHero from '../assets/login_bg_3.jpg';
 import { DOC_BLUE, DOC_NAVY } from '../components/document/TripDocParts';
@@ -39,6 +40,7 @@ export interface TemplateDay {
         images?: string[];
         description?: string;
         tags?: string;
+        facilities?: string[];
     } | null;
 }
 export interface DocumentSettings {
@@ -675,7 +677,7 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ name, descript
                                                                 <input value={activity.time || ''} onChange={e => onActivityChange(dayIdx, index, 'time', e.target.value)} placeholder="10:00" className={`${fieldClass} text-center text-[11px] font-black text-[#1656D6]`} />
                                                             </div>
                                                             <input value={activity.title} onChange={e => onActivityChange(dayIdx, index, 'title', e.target.value)} placeholder="주요 일정 (예: 공항 도착 및 가이드 미팅)" className={`${fieldClass} flex-1 text-[12.5px] font-bold text-[#0B1B45]`} />
-                                                            {onPickSpot && <button onClick={() => onPickSpot(dayIdx, index)} className="h-7 flex-none rounded-lg border border-[#C7DCFF] bg-white px-2 text-[9px] font-black" style={{ color: '#1656D6' }}>관광지</button>}
+                                                            {onPickSpot && <button onClick={() => onPickSpot(dayIdx, index)} className="h-7 flex-none rounded-lg border border-[#C7DCFF] bg-white px-2 text-[9px] font-black" style={{ color: '#1656D6' }}>여행지</button>}
                                                             {onUploadActivityImages && (
                                                                 <label className="flex h-7 flex-none cursor-pointer items-center gap-0.5 rounded-lg border border-[#C7DCFF] bg-white px-2 text-[9px] font-black" style={{ color: '#1656D6' }} title="사진 추가">
                                                                     <span className="material-symbols-outlined text-[14px]">add_photo_alternate</span>사진
@@ -1013,7 +1015,7 @@ const ProductStyleItineraryEditor: React.FC<ProductStyleItineraryEditorProps> = 
                                                 </div>
                                                 <textarea value={activity.description || ''} onChange={event => onUpdateActivity(selectedDayIndex, activityIdx, 'description', event.target.value)} rows={2} placeholder="상세 설명 (선택)" className={`${inputClass} mt-2 resize-y text-xs leading-relaxed`} />
                                                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                                                    <button type="button" onClick={() => onPickSpot(selectedDayIndex, activityIdx)} className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#9CC5FF] bg-white px-2.5 text-[10px] font-black text-[#1656D6]"><Icon name="location_on" />관광지에서 선택</button>
+                                                    <button type="button" onClick={() => onPickSpot(selectedDayIndex, activityIdx)} className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#9CC5FF] bg-white px-2.5 text-[10px] font-black text-[#1656D6]"><Icon name="location_on" />여행지에서 선택</button>
                                                     <button type="button" onClick={() => onPickHotelActivity(selectedDayIndex, activityIdx)} className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-black text-slate-600"><Icon name="hotel" />호텔에서 선택</button>
                                                     <label className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-black text-slate-600">
                                                         <Icon name="add_photo_alternate" />사진 추가
@@ -1065,7 +1067,7 @@ const ProductStyleItineraryEditor: React.FC<ProductStyleItineraryEditorProps> = 
                                 <div className="rounded-2xl border border-slate-200 p-4">
                                     <div className="flex items-center justify-between gap-3">
                                         <p className="flex items-center gap-1.5 text-sm font-black text-slate-900"><Icon name="hotel" />숙소 정보</p>
-                                        <button type="button" onClick={() => onPickDayHotel(selectedDayIndex)} className="text-[10px] font-black text-[#1656D6]">호텔 마스터에서 선택</button>
+                                        <button type="button" onClick={() => onPickDayHotel(selectedDayIndex)} className="text-[10px] font-black text-[#1656D6]">등록 숙소에서 선택</button>
                                     </div>
                                     <input value={selectedDay.accommodation?.name || ''} onChange={event => onUpdateDay(selectedDayIndex, 'accommodation', { ...(selectedDay.accommodation || {}), name: event.target.value })} placeholder="호텔 또는 게르명" className={`${inputClass} mt-3`} />
                                     {selectedDay.accommodation?.location && <p className="mt-2 text-[10px] font-semibold text-slate-400">{selectedDay.accommodation.location}</p>}
@@ -1202,11 +1204,11 @@ const ProductDayInfoItineraryEditor: React.FC<ProductStyleItineraryEditorProps> 
                                         <div className="row mb-2">
                                             <label className="cell-strong text-xs"><Icon name="hotel" style={{ fontSize: 16 }} /> 숙소 정보</label>
                                             <span className="spacer" />
-                                            <button type="button" onClick={() => onPickDayHotel(dayIdx)} className="btn btn-ghost btn-sm"><Icon name="hotel" />호텔 마스터에서 선택</button>
+                                            <button type="button" onClick={() => onPickDayHotel(dayIdx)} className="btn btn-ghost btn-sm"><Icon name="hotel" />등록 숙소에서 선택</button>
                                         </div>
                                         <div className="inp-mini">
                                             <span className="pre"><Icon name="hotel" style={{ fontSize: 14 }} /></span>
-                                            <input value={day.accommodation?.name || ''} onChange={event => onUpdateDay(dayIdx, 'accommodation', { ...(day.accommodation || {}), name: event.target.value })} placeholder="숙소명 또는 호텔 마스터 선택" />
+                                            <input value={day.accommodation?.name || ''} onChange={event => onUpdateDay(dayIdx, 'accommodation', { ...(day.accommodation || {}), name: event.target.value })} placeholder="숙소명 또는 등록 숙소 선택" />
                                         </div>
                                     </div>
                                 </div>
@@ -1237,7 +1239,7 @@ const ProductDayInfoItineraryEditor: React.FC<ProductStyleItineraryEditorProps> 
                                                     <div className="row mb-3 flex-wrap" style={{ gap: 8 }}>
                                                         <span className="badge b-gray">일정 {activityIdx + 1}</span>
                                                         <span className="spacer" />
-                                                        <button type="button" onClick={() => onPickSpot(dayIdx, activityIdx)} className="btn btn-blue btn-sm"><Icon name="location_on" />관광지 선택</button>
+                                                        <button type="button" onClick={() => onPickSpot(dayIdx, activityIdx)} className="btn btn-blue btn-sm"><Icon name="location_on" />여행지 선택</button>
                                                         <button type="button" onClick={() => onPickHotelActivity(dayIdx, activityIdx)} className="btn btn-ghost btn-sm"><Icon name="hotel" />호텔 선택</button>
                                                         <label className="btn btn-ghost btn-sm cursor-pointer">
                                                             <Icon name="add_photo_alternate" />사진 추가
@@ -1387,24 +1389,23 @@ const TemplatesTab: React.FC = () => {
         d[dayIdx] = { ...d[dayIdx], activities: [...d[dayIdx].activities, { time: '', type, title: '', description: '' }] };
         return { ...f, days: d };
     });
-    // 관광지 마스터에서 선택 → 상세 설명을 채움. 직접 쓴 제목은 보존(비어 있을 때만 마스터명 사용)
+    // 공통 여행지의 설명·사진을 복사하며 직접 쓴 제목은 보존한다.
     const fillItemFromSpot = (d: number, a: number, spot: TouristSpot) => setForm(f => {
-        const desc = [spot.description, spot.address].filter(Boolean).join('\n\n');
+        const snapshot = travelSpotSnapshot(spot);
         const days = [...f.days];
         const acts = [...days[d].activities];
         const cur = acts[a];
         const keepTitle = (cur.title || '').trim().length > 0;
         acts[a] = {
             ...cur,
-            title: keepTitle ? cur.title : spot.name_kr,
-            description: desc || cur.description,
-            type: keepTitle ? cur.type : inferActivityType(`${spot.name_kr} ${desc}`),
-            images: (spot.images && spot.images.length > 0) ? [...spot.images] : cur.images,
+            ...snapshot,
+            title: keepTitle ? cur.title : snapshot.title,
+            type: keepTitle ? cur.type : inferActivityType(`${snapshot.title} ${snapshot.description}`),
         };
         days[d] = { ...days[d], activities: acts };
         return { ...f, days };
     });
-    // 호텔 마스터에서 선택 → 상세 설명을 채움. 직접 쓴 제목은 보존(비어 있을 때만 호텔명 사용)
+    // 등록 숙소에서 선택 → 상세 정보를 채움. 직접 쓴 제목은 보존(비어 있을 때만 숙소명 사용)
     const fillItemFromHotel = (d: number, a: number, hotel: Hotel) => setForm(f => {
         const desc = [hotel.description, hotel.address].filter(Boolean).join('\n\n');
         const days = [...f.days];

@@ -356,3 +356,188 @@ a.cw-booked-product:hover { border-color: #9bd6c5; background: #fbfefd; }
 @media (max-width: 900px) { .cw-overview { padding: 20px; } }
 @media (max-width: 600px) { .cw-overview { padding: 16px 12px 28px; --cw-space: 16px; } .cw-breadcrumb { margin-bottom: 20px; } }
 @media (prefers-reduced-motion: reduce) { .cw-overview button { transition: none; } }
+
+/* Dashboard v3 customer presentation. Existing workflow and disclosure states remain authoritative. */
+.admin-app-wrapper .cw-overview {
+    --cw-ink: var(--text-strong, #1a1b1e);
+    --cw-muted: var(--text-secondary, #4a4e55);
+    --cw-line: var(--border-default, #e6e8ec);
+    --cw-green: var(--mrt-blue, #1a8cff);
+    --cw-soft: var(--mrt-blue-50, #e8f2ff);
+    --cw-space: 20px;
+    max-width: none;
+    padding: 24px 0 40px;
+    background: transparent;
+    font-family: var(--font-sans, Pretendard, sans-serif);
+    letter-spacing: -.02em;
+}
+.admin-app-wrapper .cw-overview .cw-customer-header { margin-bottom: 24px; gap: 20px; }
+.admin-app-wrapper .cw-overview .cw-identity { gap: 16px; }
+.admin-app-wrapper .cw-overview .cw-avatar { border-radius: 20px; background: var(--cw-soft); color: var(--mrt-blue-strong, #0b6fe0); box-shadow: inset 0 0 0 1px #d6e8ff; }
+.admin-app-wrapper .cw-overview .cw-identity h1 { font-size: 28px; font-weight: 800; letter-spacing: -.04em; }
+.admin-app-wrapper .cw-overview .cw-status { color: var(--mrt-blue-strong, #0b6fe0); background: var(--cw-soft); border-radius: 8px; font-size: 12px; }
+.admin-app-wrapper .cw-overview .cw-button { min-height: 40px; border-color: var(--cw-line); border-radius: 12px; font-size: 13px; }
+.admin-app-wrapper .cw-overview .cw-primary { border-color: var(--cw-green); background: var(--cw-green); color: #fff; }
+.admin-app-wrapper .cw-overview .cw-primary:hover:not(:disabled) { background: var(--mrt-blue-strong, #0b6fe0); border-color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .cw-overview a.cw-booked-product:hover { border-color: #9dcaff; background: #f7fbff; }
+.admin-app-wrapper .cw-overview .cw-booked-product-copy > span { color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .cw-overview .cw-shortcuts { gap: 10px; }
+.admin-app-wrapper .cw-overview .cw-shortcuts > button { min-height: 48px; padding: 10px 14px; border-color: var(--cw-line); border-radius: 12px; }
+.admin-app-wrapper .cw-overview .cw-shortcuts > button > span:nth-child(2) { font-size: 13px; }
+.admin-app-wrapper .cw-overview .cw-shortcuts > button:hover:not(:disabled) { border-color: #9dcaff; background: #f7fbff; }
+.admin-app-wrapper .cw-overview .cw-card,
+.admin-app-wrapper .cw-overview .cw-workflow { border-color: var(--cw-line); border-radius: 20px; box-shadow: none; }
+.admin-app-wrapper .cw-overview .cw-card { padding: 22px; }
+.admin-app-wrapper .cw-overview .cw-card > header { margin-bottom: 18px; }
+.admin-app-wrapper .cw-overview .cw-card h2 { font-size: 16px; font-weight: 800; letter-spacing: -.03em; }
+.admin-app-wrapper .cw-overview .cw-section-icon { color: var(--mrt-blue-strong, #0b6fe0); background: var(--cw-soft); }
+.admin-app-wrapper .cw-overview .cw-section-icon.cw-3d-slot { background: #fff; }
+.admin-app-wrapper .cw-overview .cw-section-count { color: var(--mrt-blue-strong, #0b6fe0); background: var(--cw-soft); font-size: 11px; }
+.admin-app-wrapper .cw-overview .cw-progress-card { padding: 24px; gap: 24px; }
+.admin-app-wrapper .cw-overview .cw-journey .is-done .cw-step-dot { background: var(--cw-green); color: #fff; }
+.admin-app-wrapper .cw-overview .cw-journey .is-current { color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .cw-overview .cw-journey .is-current .cw-step-dot { background: #fff; color: var(--mrt-blue-strong, #0b6fe0); border: 2px solid var(--cw-green); box-shadow: 0 0 0 4px var(--cw-soft); }
+.admin-app-wrapper .cw-overview .cw-journey .is-current .cw-step-copy > small { color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .cw-overview .cw-journey .is-done + li::before { background: #9fcfff; }
+.admin-app-wrapper .cw-overview .cw-customer-disclosure > summary { min-height: 68px; padding: 14px 0; }
+.admin-app-wrapper .cw-overview .cw-customer-disclosure > summary:hover .cw-disclosure-copy > strong { color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .cw-overview .cw-disclosure-link { color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .cw-overview .cw-current-stage { background: var(--cw-soft); border-radius: 12px; }
+.admin-app-wrapper .cw-overview .cw-current-stage > strong { color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .cw-overview .cw-current-stage.is-waiting { background: #fff8eb; }
+.admin-app-wrapper .cw-overview .cw-current-stage.is-waiting > strong { color: #94631a; }
+.admin-app-wrapper .cw-overview .cw-day-image { background: #f1f4f8; color: #91a6bf; }
+.admin-app-wrapper .cw-overview .cw-day-date b { background: var(--cw-soft); color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .cw-overview .cw-day-summary { min-height: 92px; padding-top: 16px; padding-bottom: 16px; }
+.admin-app-wrapper .cw-overview .cw-day-summary:hover { background: #f7fbff; }
+.admin-app-wrapper .cw-overview .cw-day-details { background: #f8fbff; border-color: #dceaff; border-radius: 14px; }
+.admin-app-wrapper .cw-overview .cw-day-edit { color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .cw-overview .cw-file-list > button { border-color: var(--cw-line); border-radius: 12px; background: #fff; }
+.admin-app-wrapper .cw-overview .cw-file-list > button:hover:not(:disabled) { border-color: #9dcaff; background: #f7fbff; }
+.admin-app-wrapper .cw-overview .cw-payment-summary { background: #f7f8fa; border-radius: 16px; padding: 22px; }
+.admin-app-wrapper .cw-overview .cw-total { color: var(--cw-ink); font-weight: 800; letter-spacing: -.04em; }
+.admin-app-wrapper .cw-overview .cw-resource-select { min-height: 104px; padding: 14px; border-color: var(--cw-line); border-radius: 14px; }
+.admin-app-wrapper .cw-overview .cw-resource-select:hover:not(:disabled) { border-color: #9dcaff; background: #f7fbff; }
+.admin-app-wrapper .cw-overview .cw-resource-select-label { color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .cw-overview :is(button, summary):focus-visible { outline: 3px solid #1a8cff4d; outline-offset: 3px; }
+
+/* Product editor tabs use the same selected blue treatment as the overview shortcuts. */
+.admin-app-wrapper .product-customer-page .cw-detail-workspace .cw-work-tabs { border-color: var(--border-default, #e6e8ec); padding: 12px 20px; gap: 6px; }
+.admin-app-wrapper .product-customer-page .cw-detail-workspace .cw-work-tabs > button { min-height: 64px; border-radius: 12px; color: var(--text-secondary, #4a4e55); }
+.admin-app-wrapper .product-customer-page .cw-detail-workspace .cw-work-tabs > button.active,
+.admin-app-wrapper .product-customer-page .cw-detail-workspace .cw-work-tabs > button.active:hover:not(:disabled) { background: var(--mrt-blue-50, #e8f2ff); border-color: #bfddff; color: var(--mrt-blue-strong, #0b6fe0); }
+.admin-app-wrapper .product-customer-page .cw-detail-workspace .cw-work-tabs > button:focus-visible { outline-color: #1a8cff; }
+.admin-app-wrapper .product-customer-page .cw-detail-workspace .cw-work-tabs > button.active .cw-work-tab-copy small { color: #5180b4; }
+@media (max-width: 900px) {
+    .admin-app-wrapper .cw-overview { padding: 20px 0 32px; --cw-space: 16px; }
+    .admin-app-wrapper .cw-overview .cw-card { padding: 20px; }
+    .admin-app-wrapper .cw-overview .cw-progress-card { padding: 20px; }
+}
+@media (max-width: 600px) {
+    .admin-app-wrapper .cw-overview { padding-top: 16px; }
+    .admin-app-wrapper .cw-overview .cw-identity h1 { font-size: 24px; }
+    .admin-app-wrapper .cw-overview .cw-card { padding: 18px; }
+    .admin-app-wrapper .cw-overview .cw-progress-card { padding: 18px 14px; }
+}
+/* Customer summary matches the reference card hierarchy with existing source data. */
+.admin-app-wrapper .cw-overview .cw-breadcrumb { margin-bottom:16px; }
+.admin-app-wrapper .cw-overview .cw-breadcrumb > button { display:inline-flex; align-items:center; gap:4px; min-height:32px; padding:0 10px 0 6px; border:1px solid var(--cw-line); border-radius:10px; background:#fff; color:var(--cw-ink); font-weight:600; }
+.admin-app-wrapper .cw-overview .cw-customer-hero { overflow:hidden; border:1px solid var(--cw-line); border-radius:20px; background:#fff; margin-bottom:20px; }
+.admin-app-wrapper .cw-overview .cw-customer-hero .cw-customer-header { padding:24px; margin:0; align-items:flex-start; }
+.admin-app-wrapper .cw-overview .cw-avatar { width:56px; height:56px; flex-basis:56px; border-radius:16px; }
+.admin-app-wrapper .cw-overview .cw-identity h1 { font-size:30px; }
+.admin-app-wrapper .cw-overview .cw-booked-product { padding:6px 10px 6px 6px; gap:10px; margin-top:12px; }
+.admin-app-wrapper .cw-overview .cw-booked-product-image { width:40px; height:40px; flex-basis:40px; }
+.admin-app-wrapper .cw-overview .cw-booked-product-copy small { display:none; }
+.admin-app-wrapper .cw-overview .cw-booked-product-copy > span { font-size:11px; }
+.admin-app-wrapper .cw-overview .cw-booking-switcher { margin:0 24px 20px; }
+.admin-app-wrapper .cw-overview .cw-progress-card { display:block; padding:20px 24px; border-top:1px solid var(--cw-line); }
+.admin-app-wrapper .cw-overview .cw-progress-caption { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:20px; }
+.admin-app-wrapper .cw-overview .cw-progress-caption > strong { font-size:14px; }
+.admin-app-wrapper .cw-overview .cw-progress-caption > span { font-size:12px; }
+.admin-app-wrapper .cw-overview .cw-workflow-meter { display:block; width:100px; height:5px; margin-left:auto; border-radius:3px; overflow:hidden; background:#eef0f3; }
+.admin-app-wrapper .cw-overview .cw-workflow-meter > i { display:block; height:100%; border-radius:inherit; background:var(--cw-green); }
+.admin-app-wrapper .cw-overview .cw-journey li { flex-direction:column; gap:8px; font-size:12px; text-align:center; }
+.admin-app-wrapper .cw-overview .cw-step-dot { width:30px; height:30px; flex-basis:30px; font-size:12px; }
+.admin-app-wrapper .cw-overview .cw-step-copy { gap:2px; }
+.admin-app-wrapper .cw-overview .cw-step-copy > small { font-size:11px; }
+.admin-app-wrapper .cw-overview .cw-journey li + li::before { top:15px; right:calc(50% + 22px); left:auto; width:calc(100% - 44px); }
+.admin-app-wrapper .cw-overview .cw-workflow { margin-bottom:20px; border:0; border-radius:0; background:transparent; box-shadow:none; overflow:visible; }
+.admin-app-wrapper .cw-overview .cw-shortcuts { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin:0 0 20px; padding:0; }
+.admin-app-wrapper .cw-overview .cw-shortcuts > button { min-height:52px; padding:10px 14px; gap:8px; border-radius:16px; }
+.admin-app-wrapper .cw-overview .cw-shortcuts > button > span:nth-child(2) { font-size:13px; }
+.admin-app-wrapper .cw-overview .cw-shortcuts > button > .material-symbols-outlined:last-child { font-size:14px; }
+.admin-app-wrapper .cw-overview .cw-notification-section { margin-bottom:20px; }
+.admin-app-wrapper .cw-overview .cw-columns { grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.admin-app-wrapper .cw-overview .cw-card { padding:20px; }
+.admin-app-wrapper .cw-overview .cw-card > header { margin-bottom:16px; }
+.admin-app-wrapper .cw-overview .cw-facts > div { min-height:40px; padding:8px 0; }
+.admin-app-wrapper .cw-overview .cw-facts dd { overflow-wrap:anywhere; }
+.admin-app-wrapper .cw-overview .cw-card .cw-total { font-size:30px; }
+.admin-app-wrapper .product-customer-page .cw-detail-workspace .cw-work-tabs { display:flex; gap:18px; padding:0 24px; border-top:1px solid var(--border-default,#e6e8ec); border-bottom:1px solid var(--border-default,#e6e8ec); overflow-x:auto; }
+.admin-app-wrapper .product-customer-page .cw-detail-workspace .cw-work-tabs > button { flex:0 0 auto; min-height:56px; padding:0 2px; border:0; border-bottom:3px solid transparent; border-radius:0; background:none; }
+.admin-app-wrapper .product-customer-page .cw-detail-workspace .cw-work-tabs > button.active,
+.admin-app-wrapper .product-customer-page .cw-detail-workspace .cw-work-tabs > button.active:hover:not(:disabled) { border-color:var(--mrt-blue,#1a8cff); background:none; color:var(--mrt-blue-strong,#0b6fe0); }
+.admin-app-wrapper .product-customer-page .cw-work-tabs > button > .material-symbols-outlined,
+.admin-app-wrapper .product-customer-page .cw-work-tabs .cw-work-tab-copy > small { display:none; }
+.admin-app-wrapper .product-customer-page .cw-work-tabs .cw-work-tab-copy > strong { font-size:14px; font-weight:600; }
+.admin-app-wrapper .product-customer-page .cw-work-tabs > button.active .cw-work-tab-copy > strong { font-weight:800; }
+.admin-app-wrapper .product-customer-page .rw-document-selected .rw-document-grid { grid-template-columns:minmax(0,1fr); }
+.admin-app-wrapper .product-customer-page .rw-document-selected .rw-document-card[hidden] { display:none; }
+.admin-app-wrapper .product-customer-page .rw-documents { border-radius:20px; box-shadow:none; }
+.admin-app-wrapper .product-customer-page .cw-panel-heading { padding:0 0 4px; }
+@container customer-workspace (max-width:1080px) { .admin-app-wrapper .cw-overview .cw-shortcuts { grid-template-columns:repeat(3,minmax(0,1fr)); } .admin-app-wrapper .cw-overview .cw-columns { grid-template-columns:repeat(2,minmax(0,1fr)); } .admin-app-wrapper .cw-overview .cw-operations-column { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; } }
+@container customer-workspace (max-width:720px) { .admin-app-wrapper .cw-overview .cw-columns { display:flex; } .admin-app-wrapper .cw-overview .cw-operations-column { display:flex; } .admin-app-wrapper .cw-overview .cw-customer-hero .cw-customer-header { padding:20px; flex-wrap:wrap; } .admin-app-wrapper .cw-overview .cw-progress-card { padding:20px; } .admin-app-wrapper .cw-overview .cw-shortcuts { grid-template-columns:repeat(2,minmax(0,1fr)); } .admin-app-wrapper .cw-overview .cw-identity h1 { font-size:24px; } }
+/* Reference work navigation and content cards override the earlier editor layout. */
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .cw-work-tabs { display:flex; flex-wrap:nowrap; gap:20px; min-height:56px; padding:0 24px; overflow-x:auto; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .cw-work-tabs > button { flex:0 0 auto; min-width:0; min-height:56px; padding:0 2px; border:0; border-bottom:3px solid transparent; border-radius:0; background:transparent; white-space:nowrap; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .cw-work-tabs > button.active { color:var(--mrt-blue-strong,#0b6fe0); border-bottom-color:var(--mrt-blue,#1a8cff); background:transparent; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .card { border-radius:20px; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .card-head { padding:20px 22px; border-color:var(--border-subtle,#f1f2f4); }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .card-head h2 { font-size:18px; font-weight:800; color:var(--text-strong,#1a1b1e); }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .card-pad { padding:20px 22px!important; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .rw-document-grid { padding:22px; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .rw-document-card { border-radius:16px; padding:20px; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .inp { border-radius:12px; border-color:var(--border-default,#e6e8ec); }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .pay-cell { border-radius:16px; padding:18px; background:var(--mrt-gray-50,#f7f8fa); }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .pay-cell.paid { background:var(--mrt-blue-50,#e8f2ff); border-color:#c1deff; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .ring circle:nth-child(2) { stroke:var(--mrt-blue,#1a8cff); }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .btn { border-radius:12px; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .assign-row { border-radius:14px; background:var(--mrt-gray-50,#f7f8fa); padding:14px; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .rw-operations-group { border-radius:16px; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .timeline { padding:20px; border-radius:16px; background:#fff; }
+@media(max-width:760px) { .admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .cw-work-tabs { gap:16px; padding:0 16px; } .admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .cw-work-tabs > button { min-height:48px; } }
+.admin-app-wrapper .product-customer-page .cw-work-context { display:none; }
+.admin-app-wrapper .product-customer-page .cw-context-card { min-width:0; border:1px solid var(--border-default,#e6e8ec); border-radius:20px; padding:20px; background:#fff; }
+.admin-app-wrapper .product-customer-page .cw-context-card h3 { margin:0 0 16px; font-size:15px; font-weight:800; color:var(--text-strong,#1a1b1e); }
+.admin-app-wrapper .product-customer-page .cw-context-customer { display:block; color:var(--text-strong,#1a1b1e); font-size:18px; font-weight:800; }
+.admin-app-wrapper .product-customer-page .cw-context-card p { margin:4px 0 14px; color:var(--text-secondary,#4a4e55); font-size:12px; line-height:1.6; }
+.admin-app-wrapper .product-customer-page .cw-context-card dl { display:grid; gap:12px; margin:0; padding-top:14px; border-top:1px solid var(--border-subtle,#f1f2f4); }
+.admin-app-wrapper .product-customer-page .cw-context-card dl > div { display:grid; grid-template-columns:64px minmax(0,1fr); gap:10px; font-size:12px; }
+.admin-app-wrapper .product-customer-page .cw-context-card dt { color:var(--text-tertiary,#8a8f99); }
+.admin-app-wrapper .product-customer-page .cw-context-card dd { margin:0; text-align:right; color:var(--text-secondary,#4a4e55); font-weight:600; overflow-wrap:anywhere; }
+.admin-app-wrapper .product-customer-page .cw-context-card ol { display:grid; gap:16px; list-style:none; padding:0; margin:0; }
+.admin-app-wrapper .product-customer-page .cw-context-card li { display:flex; align-items:center; gap:10px; }
+.admin-app-wrapper .product-customer-page .cw-context-card li > span { display:grid; place-items:center; width:26px; height:26px; border-radius:50%; background:#f1f2f4; color:var(--text-tertiary,#8a8f99); font-size:11px; font-weight:700; }
+.admin-app-wrapper .product-customer-page .cw-context-card li > div { display:grid; gap:2px; }
+.admin-app-wrapper .product-customer-page .cw-context-card li strong { color:var(--text-secondary,#4a4e55); font-size:12px; font-weight:600; }
+.admin-app-wrapper .product-customer-page .cw-context-card li small { color:var(--text-tertiary,#8a8f99); font-size:11px; }
+.admin-app-wrapper .product-customer-page .cw-context-card .is-done > span { color:#fff; background:var(--mrt-blue,#1a8cff); }
+.admin-app-wrapper .product-customer-page .cw-context-card .is-current > span { color:var(--mrt-blue-strong,#0b6fe0); background:var(--mrt-blue-50,#e8f2ff); }
+@media(min-width:1400px) {
+    .admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .reservation-workspace-main { flex-direction:row; }
+    .admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .reservation-workspace-body { min-width:0; }
+    .admin-app-wrapper .product-customer-page .cw-work-context { display:flex; flex:0 0 280px; flex-direction:column; gap:16px; align-self:stretch; padding:20px 20px 20px 0; overflow-y:auto; }
+}
+.admin-app-wrapper .product-customer-page .cw-receipt-shortcut { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:14px 18px; border:1px solid var(--border-default,#e6e8ec); border-radius:16px; background:#fff; color:var(--text-secondary,#4a4e55); font-size:12px; }
+/* Keep the live editor controls in the same visual language as the supplied work screens. */
+.admin-app-wrapper .cw-overview .cw-notification-section { overflow:hidden; border:1px solid var(--cw-line); border-radius:20px; background:#fff; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .cw-work-tabs { height:56px; min-height:56px; overflow-y:hidden; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .cw-work-tabs > button { box-sizing:border-box; height:56px; margin-bottom:0; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace { --rw-mint:var(--mrt-blue,#1a8cff); --rw-mint-strong:var(--mrt-blue-strong,#0b6fe0); --rw-mint-soft:var(--mrt-blue-50,#e8f2ff); }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .btn.btn-ink { border-color:var(--mrt-ink,#1a1b1e); background:var(--mrt-ink,#1a1b1e); color:#fff; box-shadow:none; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .btn.btn-ink:hover:not(:disabled) { background:#000; border-color:#000; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .btn.btn-blue { border-color:var(--mrt-blue,#1a8cff); background:var(--mrt-blue,#1a8cff); color:#fff; box-shadow:none; }
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .rw-kicker,
+.admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .rw-secondary-actions > button { color:var(--mrt-blue-strong,#0b6fe0); }
+@media(max-width:760px) { .admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .cw-work-tabs { height:48px; min-height:48px; } .admin-app-wrapper .product-customer-page .product-customer-fullpage .cw-detail-workspace .cw-work-tabs > button { height:48px; min-height:48px; } }

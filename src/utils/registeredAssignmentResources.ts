@@ -1,5 +1,6 @@
 import { connectQuoteDesk } from '../components/admin/quoteDesk';
 import type { AssignmentVehicle } from './reservationAssignment';
+import type { Hotel } from '../types/hotel';
 
 export interface RegisteredVehicle extends AssignmentVehicle {
     name: string;
@@ -7,11 +8,27 @@ export interface RegisteredVehicle extends AssignmentVehicle {
 }
 export interface RegisteredAssignmentResources {
     guides: any[];
-    lodges: any[];
+    lodges: RegisteredLodge[];
     vehicles: RegisteredVehicle[];
     warnings: string[];
 }
-type ResourceOptions = { accountId: string; signal?: AbortSignal; isCurrent?: () => boolean };
+export interface RegisteredLodge {
+    id: string;
+    name: string;
+    type: string;
+    grade: string;
+    location: string;
+    address: string;
+    occupancy: string;
+    images: string[];
+    description: string;
+    facilities: string[];
+    roomAmenities: string[];
+    sharedFacilities: string[];
+    _fromResources: true;
+}
+type ResourceKind = 'guides' | 'lodges' | 'vehicles';
+type ResourceOptions = { accountId: string; signal?: AbortSignal; isCurrent?: () => boolean; kinds?: readonly ResourceKind[] };
 type ResourceDependencies = { fetch?: typeof fetch; connect?: typeof connectQuoteDesk };
 let resourceAccount = '';
 let resourceGeneration = 0;
@@ -40,13 +57,20 @@ function guides(data: unknown): any[] {
         languages: words(row.languages), specialties: words(row.specialties), _fromResources: true,
     }));
 }
-function lodges(data: unknown): any[] {
+function lodges(data: unknown): RegisteredLodge[] {
     return entries(data).map(([name, row]) => ({
-        id: `resource-lodge:${name}`, name, type: text(row.grade), location: text(row.region),
+        id: `resource-lodge:${name}`, name, type: text(row.grade), grade: text(row.grade), location: text(row.region), address: text(row.address), occupancy: text(row.occupancy),
         images: Array.isArray(row.representativePhotos) ? images(row.representativePhotos) : [...new Set([image(row.img), ...images(row.imgs)].filter(Boolean))],
-        description: text(row.desc), facilities: [...new Set([...words(row.facilities), ...words(row.roomAmenities), ...words(row.sharedFacilities)])],
-        _fromResources: true,
+        // The resource editor marks desc as an internal archive, excluded from customer documents.
+        description: '', facilities: [...new Set([...words(row.facilities), ...words(row.roomAmenities), ...words(row.sharedFacilities)])],
+        roomAmenities: words(row.roomAmenities), sharedFacilities: words(row.sharedFacilities), _fromResources: true as const,
     }));
+}
+/** Keep legacy Hotel consumers compatible while selecting only the common lodging library. */
+export function registeredLodgeAsHotel(lodge: RegisteredLodge): Hotel {
+    return { id: lodge.id, name_kr: lodge.name, address: lodge.address, region: lodge.location,
+        grade: lodge.grade, type: lodge.type, occupancy: lodge.occupancy, images: [...lodge.images], description: '',
+        amenities: [...lodge.facilities], roomAmenities: [...lodge.roomAmenities], sharedFacilities: [...lodge.sharedFacilities], is_active: true };
 }
 function vehicles(data: unknown): RegisteredVehicle[] {
     return entries(data).map(([name, row]) => {
@@ -72,7 +96,8 @@ export async function loadRegisteredAssignmentResources(options: ResourceOptions
     check();
     if (!token) { result.warnings.push('배정·자원 연결이 필요합니다. 관리자 연결 설정을 확인해 주세요.'); return result; }
     const request = dependencies.fetch || fetch;
-    const keys = ['guides', 'lodges', 'vehicles'] as const;
+    const allKeys = ['guides', 'lodges', 'vehicles'] as const;
+    const keys = options.kinds ? allKeys.filter(key => options.kinds!.includes(key)) : allKeys;
     const labels = { guides: '가이드', lodges: '숙소', vehicles: '차량' };
     const saved = await Promise.allSettled(keys.map(async key => {
         const response = await request(`/api/data/${key}`, { headers: { 'x-admin-token': token }, credentials: 'same-origin', cache: 'no-store', signal: options.signal });

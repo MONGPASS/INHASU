@@ -52,9 +52,11 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
 
     return <section className="cw-overview" aria-label="고객 통합 작업 현황" aria-busy={busy}>
         <div className="cw-breadcrumb">
-            <button type="button" disabled={busy} onClick={action('back')}>고객 관리</button>
+            <button type="button" disabled={busy} onClick={action('back')}><Icon name="chevron_left" />통합 예약 목록</button>
             <Icon name="chevron_right" /><span>{name}</span>
         </div>
+        <section className="cw-workflow" aria-label="업무 진행과 고객 알림">
+        <section className="cw-customer-hero" aria-label="고객 예약 요약과 업무 진행">
         <header className="cw-customer-header">
             <div className="cw-identity">
                 <span className="cw-avatar" aria-hidden="true">{m.customerName?.trim().slice(0, 1) || <Icon name="person" />}</span>
@@ -71,19 +73,17 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
         </header>
         {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}
 
-        <nav className="cw-shortcuts" aria-label="고객 빠른 업무">
-            {workShortcuts.map(shortcut => <button type="button" key={shortcut.name} disabled={busy || m.disabledActions?.includes(shortcut.name)} title={m.disabledActions?.includes(shortcut.name) ? m.disabledActionReason || '예약 진행 후 사용할 수 있습니다.' : undefined} onClick={action(shortcut.name)}><Admin3DIcon name={shortcut.icon} fallback={shortcut.fallback} size={28} /><span>{m.workLabels?.[shortcut.name] || shortcut.label}</span><Icon name="chevron_right" /></button>)}
-        </nav>
-
-        <section className="cw-workflow" aria-label="업무 진행과 고객 알림">
         {!!m.steps.length && <div className="cw-progress-card">
-            <div className="cw-progress-caption"><strong>업무 진행</strong><span><b>{completedSteps}</b> / {m.steps.length} 완료</span></div>
+            <div className="cw-progress-caption"><strong>업무 진행</strong><span><b>{completedSteps}</b> / {m.steps.length} 완료</span><span className="cw-workflow-meter" aria-label={`전체 ${m.steps.length}단계 중 ${completedSteps}단계 완료`}><i style={{ width: `${completedSteps / m.steps.length * 100}%` }} /></span></div>
             <ol className="cw-journey" aria-label="고객 업무 진행 단계">{m.steps.map((item, index) => <li key={item.id} className={`${item.done ? 'is-done' : ''} ${item.current ? 'is-current' : ''}`} aria-current={item.current || undefined}>
                 <span className="cw-step-dot" aria-hidden="true">{item.done ? '✓' : index + 1}</span><span className="cw-step-copy"><span>{item.label}</span><small>{item.done ? '완료' : item.current ? '진행 중' : '대기'}</small></span>
             </li>)}</ol>
         </div>}
-
-        {notificationActions}
+        </section>
+        <nav className="cw-shortcuts" aria-label="고객 빠른 업무">
+            {workShortcuts.map(shortcut => <button type="button" key={shortcut.name} disabled={busy || m.disabledActions?.includes(shortcut.name)} title={m.disabledActions?.includes(shortcut.name) ? m.disabledActionReason || '예약 진행 후 사용할 수 있습니다.' : undefined} onClick={action(shortcut.name)}><Admin3DIcon name={shortcut.icon} fallback={shortcut.fallback} size={28} /><span>{m.workLabels?.[shortcut.name] || shortcut.label}</span><Icon name="chevron_right" /></button>)}
+        </nav>
+        {notificationActions && <section className="cw-notification-section" aria-label="고객 알림 발송과 이력">{notificationActions}</section>}
         </section>
 
         <div className="cw-columns">

@@ -11,6 +11,7 @@ import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspace
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
 import { customerWorkspaceReturnTo, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 import { consumedCalendarWorkspaceSearch, readCalendarWorkspaceAction } from '../utils/calendarWorkspaceAction';
+import { accommodationOpsHref } from '../utils/accommodationOpsRoutes';
 import { loadQuoteCustomerRequest, quoteCustomerIsBooking, quoteCustomerWorkspaceModel } from '../utils/quoteCustomerWorkspace';
 import workspaceStyles from '../styles/reservation-workspace.css?inline';
 import nativeWorkspaceStyles from '../styles/quote-booking-workspace.css?inline';
@@ -44,8 +45,8 @@ interface BookingWorkspaceState {
     schedule: boolean; published: boolean; dayCount: number; guideReady: boolean; vehicleReady: boolean;
     lodgeCount: number; lodgeNeeded: number; travelerCount: number; expectedTravelers: number;
 }
-const workspaceFrameSrc = (customerPage: boolean, tool: ReturnType<typeof findQuoteDeskTool>, id?: string, editorId?: string) => customerPage && tool.key === 'inbox' && id
-    ? `/견적관리?id=${encodeURIComponent(id)}&m=0&workspace=1` : quoteDeskFrameSrc(tool, id, editorId);
+const workspaceFrameSrc = (customerPage: boolean, tool: ReturnType<typeof findQuoteDeskTool>, id?: string, editorId?: string, resourceType?: string) => customerPage && tool.key === 'inbox' && id
+    ? `/견적관리?id=${encodeURIComponent(id)}&m=0&workspace=1` : quoteDeskFrameSrc(tool, id, editorId, resourceType);
 
 export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerPage = false }) => {
     const { user } = useUser();
@@ -58,6 +59,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const returnTo = customerWorkspaceReturnTo(searchParams.get('returnTo'), customerPage ? '/admin/quote-desk/inbox' : '/admin/reservations?type=quote_booking');
     const bookingId = customerPage ? customerId : ['bookings', 'inbox', 'builder'].includes(toolParam || '') ? searchParams.get('id') || undefined : undefined;
     const quoteEditorId = toolParam === 'inbox' ? searchParams.get('qe') || undefined : undefined;
+    const resourceType = toolParam === 'resources' && ['guides', 'lodges', 'vehicles'].includes(searchParams.get('resourceType') || '') ? searchParams.get('resourceType') || undefined : undefined;
     const navigate = useNavigate();
     const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: any } | null>(null);
     const customerRecord = customerResult?.accountId === accountId && customerResult.id === bookingId ? customerResult.record : null;
@@ -90,9 +92,9 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const linked = phase === 'linked' && linkedAccount === accountId && !!accountId;
     const connectionRequest = useRef(0);
     const connectController = useRef<AbortController | null>(null);
-    const frameKey = `${accountId}:${customerPage ? 'customer-page' : 'quote-workspace'}:${tool.key}:${bookingId || ''}:${quoteEditorId || ''}`;
+    const frameKey = `${accountId}:${customerPage ? 'customer-page' : 'quote-workspace'}:${tool.key}:${bookingId || ''}:${quoteEditorId || ''}:${resourceType || ''}`;
     // seq 가 바뀌면 iframe 을 새로 만든다(같은 주소를 다시 불러와야 할 때).
-    const [frame, setFrame] = useState(() => ({ src: workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId), seq: 0, routeKey: frameKey }));
+    const [frame, setFrame] = useState(() => ({ src: workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId, resourceType), seq: 0, routeKey: frameKey }));
     const recoverySrc = useRef(frame.src);
     const [frameLoading, setFrameLoading] = useState(true);
     const [frameDelayed, setFrameDelayed] = useState(false);
@@ -248,7 +250,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         }
         setNativeHosts(null); setBookingWorkspace(null); setActiveSection('docs');
         setEditorBusy(false);
-        recoverySrc.current = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId);
+        recoverySrc.current = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId, resourceType);
         setFrame((prev) => ({ src: recoverySrc.current, seq: prev.seq + 1, routeKey: frameKey }));
         setFrameLoading(true);
         // tool 은 tool.key 로 정해진다.
@@ -333,7 +335,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     // 새 창으로 열기: 지금 안쪽에 떠 있는 화면을 단독으로 연다.
     // noopener 를 붙이지 않는다 — 새 창이 이 탭의 sessionStorage(관리자 값)를 이어받아야 자체 로그인 화면이 뜨지 않는다.
     const openStandalone = () => {
-        let url = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId);
+        let url = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId, resourceType);
         try {
             const inner = frameRef.current?.contentWindow?.location;
             if (inner && inner.origin === window.location.origin) url = `${inner.pathname}${inner.search}`;
@@ -389,6 +391,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         }
         const booked = quoteCustomerIsBooking(customerRecord);
         if (!booked && ['payments', 'assignments', 'operations'].includes(action)) { setEditorNotice('예약 진행 의사를 기록하고 예약관리를 시작하면 결제·배정·운영을 관리할 수 있습니다.'); return; }
+        if (action === 'stay' && booked && bookingId) {
+            if (['취소', '예약취소', 'cancelled'].includes(customerRecord.status) || customerRecord.progress === '예약취소' || bookingWorkspace?.bookingId === bookingId && bookingWorkspace.cancelled) { setEditorNotice('취소된 예약의 숙소 배정은 변경할 수 없습니다.'); return; }
+            const state = flushFrame();
+            if (editorDirty || state.busy || !state.ok) { setEditorNotice('편집 중인 내용을 먼저 저장한 뒤 숙소를 관리해 주세요.'); return; }
+            navigate(accommodationOpsHref('quote_booking', bookingId, workspaceLocation.pathname + consumedCalendarWorkspaceSearch(workspaceLocation.search) + workspaceLocation.hash));
+            return true;
+        }
         if (['flights', 'travelers', 'view-info', 'customer-detail'].includes(action)) { openCustomerEditor(booked ? 'bookings' : 'inbox', booked ? action === 'customer-detail' ? 'view-info' : action : 'info'); return; }
         if (action === 'edit-itinerary' || action === 'quote-share') { openCustomerEditor(booked && action !== 'quote-share' ? 'bookings' : 'builder', action === 'quote-share' ? 'quote-share' : 'docs'); return; }
         if (!booked && action === 'documents') { openCustomerEditor('builder', customerRecord.quote ? 'quote-share' : 'docs'); return; }
@@ -430,7 +439,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         const state = flushFrame();
         if (state.busy || !state.ok) return;
         calendarActionRequest.current = { key, scope, consumed: false };
-        customerAction(action);
+        if (customerAction(action) === true) calendarActionRequest.current.consumed = true;
     }, [customerPage, linked, customerRecord, bookingId, accountId, customerRefreshing, editorBusy, sendingKakao, editorDirty, workspaceLocation, flushFrame, customerAction]);
     useEffect(() => {
         const request = calendarActionRequest.current;
@@ -453,7 +462,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     return (
         <><AdminLayout
             activePage={quoteDeskPageId(tool.key)}
-            eyebrow="맞춤 견적"
+            eyebrow={tool.key === 'resources' ? '배정·자원' : '맞춤 견적'}
             title={customerPage ? '고객 통합 작업' : bookingId && tool.key === 'bookings' ? '견적 예약 상세' : tool.label}
             description={customerPage ? '선택한 문의·견적의 고객 정보와 일정·문서·예약 업무를 한곳에서 확인합니다.' : bookingId && tool.key === 'bookings' ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.description}
             flush

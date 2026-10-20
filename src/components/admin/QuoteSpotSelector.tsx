@@ -101,7 +101,7 @@ export function ProductRepresentativeSpots({ value, onChange, disabled = false }
     }, [attempt]);
     return <section style={{ maxWidth: 1000 }} aria-label="상품 대표 명소">
         <h3 style={{ margin: '0 0 6px', fontSize: 18 }}>대표 명소</h3>
-        <p style={{ margin: '0 0 18px', color: 'var(--text-muted)', fontSize: 13 }}>견적서와 같은 목록입니다. 선택한 순서·사진·설명이 이 상품의 예약 일정표에 이어집니다.</p>
+        <p style={{ margin: '0 0 18px', color: 'var(--text-muted)', fontSize: 13 }}>여행지 관리의 공통 목록입니다. 선택한 순서·사진·설명이 이 상품의 예약 일정표에 이어집니다.</p>
         {error ? <p role="alert">{error} <button type="button" className="btn btn-ghost btn-sm" disabled={disabled} onClick={() => setAttempt(current => current + 1)}>다시 시도</button></p>
             : !library ? <p role="status">등록된 명소를 불러오고 있습니다.</p>
             : <QuoteSpotSelector {...library} selected={value.map(spot => spot.name)} disabled={disabled}
