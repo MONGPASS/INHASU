@@ -79,7 +79,7 @@ function actionHarness(booked) {
 
 test('견적 예약 바로가기는 각 기존 업무를 열고 문서 확인은 발송·복사·고객 링크 열기를 실행하지 않는다', () => {
     const { calls, context } = actionHarness(true);
-    const expected = { 'edit-itinerary': 'docs', 'view-info': 'view-info', payments: 'pay', assignments: 'assign', operations: 'notes', history: 'log', documents: 'docs' };
+    const expected = { 'edit-itinerary': 'docs', 'view-info': 'view-info', 'customer-detail': 'view-info', payments: 'pay', assignments: 'assign', operations: 'notes', history: 'log', documents: 'docs' };
     for (const [action, section] of Object.entries(expected)) {
         calls.length = 0; context.action(action); assert.deepEqual(calls, [['editor', 'bookings', section]]);
     }

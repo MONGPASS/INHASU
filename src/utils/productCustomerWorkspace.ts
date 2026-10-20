@@ -1,6 +1,9 @@
 import { toTourDateKey } from './formatDate.ts';
 import { readDepositReport } from './reservationDetail.ts';
 import type { CustomerWorkspaceOverviewModel } from '../components/admin/CustomerWorkspaceOverview';
+import type { AdminDeliveryItem } from '../types/adminDelivery';
+import { customerRecentHistory, customerCurrentStage } from './customerRecentHistory.ts';
+import { productSignatureStatus } from './productContractSignature.ts';
 
 const object = (value: any, fallback: any = undefined) => {
     for (let i = 0; i < 3 && typeof value === 'string'; i++) { try { value = JSON.parse(value); } catch { return fallback; } }
@@ -34,6 +37,8 @@ function contractCustomerDetails(contract: any, expected: number | null, sent: b
     })).filter(person => populated(person.name) || person.details.some(field => populated(field.value)));
     const registered = people.filter(person => populated(person.name)).length;
     const agreement = object(contract.agreement, {});
+    const signature = productSignatureStatus(contract, false);
+    const signatureLabel = signature?.hasImage ? '손서명 완료' : agreement.agreed === true ? '성명 동의 완료 · 손서명 미등록' : signature ? '서명 원본 확인 필요' : sent ? '계약서 전달됨 · 고객 동의 대기' : '계약서 전달 전';
     return {
         flights: [
             { id: 'arrival', label: '몽골 도착편', date: text(contract.arrival?.date), time: text(contract.arrival?.time), flight: text(contract.arrival?.flight),
@@ -42,8 +47,8 @@ function contractCustomerDetails(contract: any, expected: number | null, sent: b
                 extra: populated(contract.drop) ? [{ label: '샌딩 장소', value: text(contract.drop) }] : [] },
         ],
         travelers: { expected, registered, people, status: expected === null ? `예약 인원 미등록 · 여행자 ${registered}명 입력` : expected > 0 ? `${registered}/${expected}명 입력` : `예약 인원 0명 · 확인 필요` },
-        agreement: { label: agreement.agreed === true ? [text(agreement.name), '동의 완료'].filter(Boolean).join(' · ') : sent ? '계약서 전달됨 · 고객 동의 대기' : '계약서 전달 전',
-            ...(agreement.agreed === true && populated(agreement.agreedAt) ? { at: text(agreement.agreedAt) } : {}) },
+        agreement: { label: signatureLabel, ...((signature?.signerName || agreement.agreed === true && populated(agreement.name)) ? { name: signature?.signerName || text(agreement.name) } : {}),
+            ...(signature?.signedAt ? { at: signature.signedAt } : agreement.agreed === true && populated(agreement.agreedAt) ? { at: text(agreement.agreedAt) } : {}) },
     };
 }
 
@@ -128,11 +133,13 @@ export function sameAccountProductBookings(rows: any[], userId: string | null | 
 /** Presentation only: no merging by name/phone, and no synthetic payment or assignment completion. */
 export function productCustomerOverview(r: any, days: any[], workflow: any, options: {
     vehicle: string; itineraryReady: boolean; itinerarySent: boolean; contractSent: boolean; itineraryChanged: boolean; contractChanged: boolean;
+    deliveryHistory?: readonly AdminDeliveryItem[];
 }): CustomerWorkspaceOverviewModel {
     const cancelled = r.status === 'cancelled';
     const contract = object(r.contractData ?? r.contract_data, {});
     const expected = r.peopleKnown === null ? null : count(r.peopleKnown ?? r.totalPeople);
     const customerDetails = contractCustomerDetails(contract, expected, options.contractSent);
+    const signature = productSignatureStatus(contract, false);
     const canPublish = !cancelled && ['confirmed', 'paid', 'completed'].includes(r.status);
     const tasks: CustomerWorkspaceOverviewModel['tasks'] = [];
     if (!cancelled) {
@@ -169,10 +176,12 @@ export function productCustomerOverview(r: any, days: any[], workflow: any, opti
         customerName: r.customerName, sourceLabel: '상품 예약', bookingNumber: r.reservationNumber || r.id, statusLabel: customerReservationStatus(r.status), period: r.date, partyLabel: r.headcount,
         facts: [{ label: '이메일', value: r.email }, { label: '연락처', value: r.phone }, { label: '예약 상품', value: r.productName }, { label: '예약 접수', value: r.bookedAt }, ...(r.source ? [{ label: '주문 경로', value: ({ website: '홈페이지', kakao: '카카오톡', email: '이메일', phone: '전화', visit: '방문', other: '기타' } as Record<string,string>)[r.source] || r.source }] : []), ...(populated(r.notes) ? [{ label: '주문 메모', value: text(r.notes) }] : []), ...(populated(contract.customerSubmittedAt) ? [{ label: '고객 정보 제출', value: text(contract.customerSubmittedAt) }] : [])],
         ...customerDetails,
+        recentHistory: customerRecentHistory({ source: 'product', record: r, deliveryHistory: options.deliveryHistory }, { includeInternal: true }),
+        currentStage: customerCurrentStage({ status: r.status, steps, tasks, booking: true }),
         preferences: [], notes: (r.history || []).filter((h: any) => h.type === 'admin_memo').map((h: any, i: number) => ({ id: `${h.timestamp}:${i}`, body: h.description, at: h.timestamp ? new Date(h.timestamp).toLocaleString('ko-KR') : undefined })),
         days: overviewDays(days, r.dailyAccommodations || [], workflow.nights),
         documents: [{ id: 'itinerary', label: '확정 일정표', action: options.itineraryReady ? 'itinerary' : 'edit-itinerary', status: options.itineraryChanged ? '변경 후 재안내 필요' : workflow.published ? options.itinerarySent ? '공개 · 발송됨' : '공개됨' : options.itineraryReady ? '작성됨 · 공개 전' : '작성 필요' },
-            { id: 'contract', label: '여행 계약서', action: 'contract-preview', status: options.contractChanged ? '변경 후 재안내 필요' : workflow.signed ? '고객 동의 완료' : options.contractSent ? '전달됨 · 동의 대기' : '내용 확인' },
+            { id: 'contract', label: '여행 계약서', action: 'contract-preview', status: signature?.hasImage ? '손서명 완료' : contract.agreement?.agreed === true ? '성명 동의 완료 · 손서명 미등록' : signature ? '서명 원본 확인 필요' : options.contractChanged ? '변경 후 재안내 필요' : options.contractSent ? '전달됨 · 동의 대기' : '내용 확인', ...(options.contractChanged ? { detail: '마지막 안내 후 계약서가 변경되어 재안내가 필요합니다.' } : {}) },
             { id: 'guide-pdf', label: '가이드 시트 PDF', action: 'guide-pdf', detail: '기존 가이드용 출력 기능' }],
         payment: { total: r.paymentKnown?.total === null ? null : r.totalAmount, deposit: r.paymentKnown?.deposit === null ? null : r.deposit, balance: r.paymentKnown?.balance === null ? null : r.balance, depositPaid: r.depositStatus === 'paid', balancePaid: r.balanceStatus === 'paid' },
         assignments: [{ id: 'guide', label: '담당 가이드', value: r.assignedGuide?.name || '미배정', statusLabel: workflow.guideReady ? '배정됨' : '확인 필요', state: workflow.guideReady ? 'ready' : 'pending' },
@@ -191,7 +200,7 @@ export function legacyCustomerOverview(q: any, content: any): CustomerWorkspaceO
     const contract = object(q.contractData ?? q.contract_data, null);
     const start = toTourDateKey(q.confirmed_start_date ?? q.confirmedStartDate), end = toTourDateKey(q.confirmed_end_date ?? q.confirmedEndDate);
     const nights = start && end ? Math.round((Date.parse(end) - Date.parse(start)) / 86400000) : undefined;
-    return { customerName: q.name, sourceLabel: '이전 견적 문의', bookingNumber: q.id, statusLabel: customerReservationStatus(q.status), period: q.period || '일정 미정', partyLabel: q.headcount || '인원 미정',
+    const model: CustomerWorkspaceOverviewModel = { customerName: q.name, sourceLabel: '이전 견적 문의', bookingNumber: q.id, statusLabel: customerReservationStatus(q.status), period: q.period || '일정 미정', partyLabel: q.headcount || '인원 미정',
         facts: [{ label: '이메일', value: q.email }, { label: '연락처', value: q.phone }, { label: '희망 여행지', value: q.destination }, { label: '예산', value: q.budget }],
         ...(contract ? contractCustomerDetails(contract, count(q.travelers ?? q.totalPeople ?? q.total_people), !!q.contractSent) : {}),
         preferences: [...(q.travelTypes || []), ...(q.accommodations || []), q.additionalRequest].filter((v: unknown) => typeof v === 'string' && v.trim()), notes: [],
@@ -203,4 +212,7 @@ export function legacyCustomerOverview(q: any, content: any): CustomerWorkspaceO
         tasks: transitioned || cancelled ? [] : q.status === 'reservation_requested'
             ? [{ id: 'convert', label: '고객 예약 요청 검토·전환', detail: '고객이 예약을 요청했습니다. 희망 조건과 금액을 확인한 후 예약으로 전환하세요.', action: 'convert', actionLabel: '예약 전환 확인' }]
             : [{ id: 'prepare', label: days.length ? '견적 금액·일정 확인·전달' : '맞춤 견적 일정 작성', detail: days.length ? '저장된 견적 내용을 확인하고 고객 전달 방법을 선택하세요.' : '저장된 견적 일정이 없습니다. 고객의 희망 조건을 반영해 작성하세요.', action: days.length ? 'documents' : 'edit-itinerary', actionLabel: days.length ? '견적 전달 관리' : '견적 일정 작성' }], customerLinkAvailable: !cancelled, canSendItinerary: false };
+    model.recentHistory = customerRecentHistory({ source: 'legacy', record: q }, { includeInternal: true });
+    model.currentStage = transitioned ? { label: '예약 전환 완료', tone: 'complete' } : customerCurrentStage({ status: q.status, steps: model.steps, tasks: model.tasks, booking: false });
+    return model;
 }

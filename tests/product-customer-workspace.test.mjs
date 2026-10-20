@@ -284,7 +284,7 @@ test('항공편·여행자·계약 동의 확인 업무는 주문 수정 모드�
         while (frames.length) frames.shift()();
         assert.deepEqual(calls, [['section', 'info'], ['target', `#product-customer-${field}`], ['scroll', 'smooth', 'start']]);
     }
-    calls.length = 0; context.action('view-info'); assert.deepEqual(calls, [['section', 'info']]); assert.equal(frames.length, 0);
+    for (const action of ['view-info', 'customer-detail']) { calls.length = 0; context.action(action); assert.deepEqual(calls, [['section', 'info']]); assert.equal(frames.length, 0); }
     hidden = true; calls.length = 0; context.action('flights'); while (frames.length) frames.shift()();
     assert.equal(calls.some(call => call[0] === 'scroll'), false, 'a still-hidden tab must not trigger a page jump');
     for (const field of ['inlineDirty', 'docDraftPending', 'operationsDirty', 'quickAssignmentDirty']) {
@@ -299,13 +299,15 @@ test('항공편·여행자·계약 동의 확인 업무는 주문 수정 모드�
 
 test('고객 카드 배정은 기존 상세로 이동하지 않고 바로 선택하며 미저장 차량·문서·운영·취소·처리 중을 보호한다', () => {
     const calls = [];
-    const context = { fullPage: true, quickAssignmentDirty: false, inlineDirty: false, operationsDirty: false, isEditing: false,
-        reservation: { id: 'local-product', status: 'confirmed' }, workspaceIsBusy: () => false };
-    for (const name of ['setNavigationNotice', 'setQuickAssignment', 'setShowGuideModal', 'setWorkflowOpen', 'scrollToSec', 'closeWorkspace']) context[name] = (...args) => calls.push([name, ...args]);
+    const context = { fullPage: true, quickAssignmentDirty: false, inlineDirty: false, operationsDirty: false, isEditing: false, workspace: { nights: 2 },
+        reservation: { id: 'local-product', status: 'confirmed', dailyAccommodations: [{ day: 1, accommodation: { name: '첫날 확정 숙소' } }] }, workspaceIsBusy: () => false };
+    for (const name of ['setNavigationNotice', 'setQuickAssignment', 'setShowGuideModal', 'setWorkflowOpen', 'setPickerSaveError', 'setGuideConfirmation', 'setSelectedDay', 'setShowAccommodationModal', 'scrollToSec', 'closeWorkspace']) context[name] = (...args) => calls.push([name, ...args]);
     const start = source.indexOf('    const overviewAction = ('), end = source.indexOf('\n\n    return (<>', start);
     execute(source.slice(start, end) + '\nglobalThis.action = overviewAction;', context);
     for (const action of ['guide', 'stay', 'vehicle']) context.action(action);
-    assert.deepEqual(calls.filter(call => call[0] !== 'setNavigationNotice'), [['setWorkflowOpen', false], ['setQuickAssignment', null], ['setShowGuideModal', true], ['setWorkflowOpen', false], ['setQuickAssignment', 'stay'], ['setWorkflowOpen', false], ['setQuickAssignment', 'vehicle']]);
+    assert.deepEqual(calls.filter(call => call[0] !== 'setNavigationNotice'), [['setWorkflowOpen', false], ['setQuickAssignment', null], ['setPickerSaveError', ''], ['setGuideConfirmation', null], ['setShowGuideModal', true], ['setWorkflowOpen', false], ['setQuickAssignment', 'stay'], ['setSelectedDay', 2], ['setPickerSaveError', ''], ['setShowAccommodationModal', true], ['setWorkflowOpen', false], ['setQuickAssignment', 'vehicle']]);
+    calls.length = 0; context.workspace.nights = 0; context.action('stay');
+    assert.ok(calls.some(call => call[0] === 'setQuickAssignment' && call[1] === 'stay')); assert.equal(calls.some(call => call[0] === 'setShowAccommodationModal'), false); context.workspace.nights = 2;
     for (const blockedField of ['quickAssignmentDirty', 'inlineDirty', 'operationsDirty', 'isEditing']) {
         calls.length = 0; context[blockedField] = true;
         for (const action of ['guide', 'stay', 'vehicle']) context.action(action);

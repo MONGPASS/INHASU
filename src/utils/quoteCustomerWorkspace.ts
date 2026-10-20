@@ -1,5 +1,7 @@
 import type { CustomerWorkspaceOverviewModel } from '../components/admin/CustomerWorkspaceOverview';
 import { isQuoteBooking, summarizeQuoteBooking } from '../../functions/lib/quoteBookings';
+import type { AdminDeliveryItem } from '../types/adminDelivery';
+import { customerRecentHistory, customerCurrentStage } from './customerRecentHistory.ts';
 
 const text = (value: unknown): string => typeof value === 'string' ? value : '';
 const list = (value: unknown): any[] => Array.isArray(value) ? value.filter(item => item && typeof item === 'object') : [];
@@ -38,7 +40,7 @@ export async function loadQuoteCustomerRequest(id: string, token: string, signal
 }
 
 /** Only the selected server request is projected. Names never identify or merge customers. */
-export function quoteCustomerWorkspaceModel(record: any): CustomerWorkspaceOverviewModel {
+export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHistory?: readonly AdminDeliveryItem[] } = {}): CustomerWorkspaceOverviewModel {
     const booked = isQuoteBooking(record), booking = booked ? record.booking || {} : {};
     const summary = summarizeQuoteBooking(record), ci = booking.contractInfo || {}, quote = record.quote;
     const days = Array.isArray(booking.days) ? list(booking.days) : list(quote?.days);
@@ -165,6 +167,8 @@ export function quoteCustomerWorkspaceModel(record: any): CustomerWorkspaceOverv
         } : {}),
         preferences: [...strings(record.travelStyles), ...strings(record.destSpots), ...[text(record.cityStay || record.stay), text(record.gerStay), text(record.vehicle)].filter(Boolean)],
         notes,
+        recentHistory: customerRecentHistory({ source: 'quote', record, deliveryHistory: options.deliveryHistory }, { includeInternal: true }),
+        currentStage: customerCurrentStage({ status: summary.status, steps, tasks, booking: booked }),
         days: days.map((day, index) => {
             const assigned = lodges.find(row => Number(row.day) === index + 1), activities = overviewActivities(day);
             const distance = typeof day.dist === 'number' && Number.isFinite(day.dist) ? String(day.dist) : nonempty(day.dist);

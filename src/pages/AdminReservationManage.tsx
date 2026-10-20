@@ -1699,15 +1699,19 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const registeredGuideNames = new Set((registered?.guides || []).map(guide => String(guide.name || '').trim()));
     const pickerGuides = [...(registered?.guides || []), ...guideList.filter(guide => !registeredGuideNames.has(String(guide.name || '').trim()))];
     const visibleGuides = rankRecent(pickerGuides.filter(guide => [guide.name, guide.phone, guide.languages].join(' ').toLowerCase().includes(guideSearch.toLowerCase().trim())), recentAssignments.guides);
+    const isCurrentGuide = (guide: any) => !!reservation.assignedGuide && ((guide.id && guide.id === reservation.assignedGuide.id) || guide.name === reservation.assignedGuide.name);
+    const guideLanguages = (value: any): string[] => { try { const parsed = typeof value === 'string' ? JSON.parse(value) : value; return Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string').slice(0, 3) : []; } catch { return []; } };
     const stayRegion = (stay: any) => String(stay.region || stay.location || '지역 미정');
     const accommodationRegions = [...new Set(pickerAccommodations.map(stayRegion))].sort();
     const visibleAccommodations = rankRecent(pickerAccommodations.filter(stay => (!accommodationRegion || stayRegion(stay) === accommodationRegion) && [stay.name, stay.location, stay.type].join(' ').toLowerCase().includes(accommodationSearch.toLowerCase().trim())), recentAssignments.stays);
+    const selectedAccommodation = reservation.dailyAccommodations?.find(stay => Number(stay.day) === selectedDay)?.accommodation;
+    const isCurrentAccommodation = (stay: any) => !!selectedAccommodation && ((stay.id && stay.id === selectedAccommodation.id) || stay.name === selectedAccommodation.name);
     const bookedProduct = customerProductReference(reservation, products);
     const productImage = bookedProduct?.image;
 
     const overview = productCustomerOverview(reservation, scheduleDays, workspace, {
         vehicle: readProductVehicle(reservation.adminOperations, reservation.contractData).type,
-        itineraryReady, itinerarySent, contractSent, itineraryChanged, contractChanged,
+        itineraryReady, itinerarySent, contractSent, itineraryChanged, contractChanged, deliveryHistory: recordedDelivery?.items,
     });
     overview.bookedProduct = bookedProduct;
     const refreshHint = '고객 제출·결제·배정·문서의 저장된 정보를 다시 불러옵니다. 고객에게 발송하지 않습니다.';
@@ -1740,12 +1744,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     };
     const quickAssignmentEditor = quickAssignment === 'vehicle'
         ? <CustomerVehicleAssignment key={reservation.id} value={readProductVehicle(reservation.adminOperations, reservation.contractData)} vehicles={registered?.vehicles || []} loading={registeredPending} resourceNotice={registeredNotice} onRetry={() => setRegisteredRevision(value => value + 1)} disabled={workspaceIsBusy()} onSave={saveQuickVehicle} onDirtyChange={setQuickAssignmentDirty} onClose={closeQuickAssignment} onSaved={() => { setQuickAssignmentDirty(false); setQuickAssignment(null); }} />
-        : quickAssignment === 'stay' ? <section className="cw-quick-assignment" aria-label="숙소 바로 배정">
+        : quickAssignment === 'stay' && workspace.nights <= 0 ? <section className="cw-quick-assignment" aria-label="숙소 바로 배정">
             <header><strong>일자별 숙소 바로 배정</strong><button type="button" className="cw-text-button" disabled={workspaceIsBusy()} onClick={closeQuickAssignment}>닫기</button></header>
-            {workspace.nights > 0 ? <><p>귀국일을 제외한 {workspace.nights}박의 숙소를 선택하세요.</p><ol className="cw-quick-stays">{Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => {
-                const day = index + 1, assigned = reservation.dailyAccommodations?.find(stay => Number(stay.day) === day)?.accommodation;
-                return <li key={day}><div><strong>{day}일차</strong><span>{assigned?.name || '미배정'}</span></div><button type="button" className="cw-button" aria-label={`${day}일차 숙소 ${assigned?.name ? '변경' : '배정'}`} disabled={workspaceIsBusy()} onClick={() => { setSelectedDay(day); setShowAccommodationModal(true); }}>{assigned?.name ? '변경' : '숙소 선택'}</button></li>;
-            })}</ol></> : <p>{validAssignmentPeriod(reservation) ? '당일 투어는 숙소 배정이 필요하지 않습니다.' : '여행 시작일과 종료일을 먼저 확인해 주세요.'}</p>}
+            <p>{validAssignmentPeriod(reservation) ? '당일 투어는 숙소 배정이 필요하지 않습니다.' : '여행 시작일과 종료일을 먼저 확인해 주세요.'}</p>
         </section> : null;
     const overviewAction = (action: string, id?: string) => {
         if (workspaceIsBusy()) return;
@@ -1756,8 +1757,14 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             if (isEditing || inlineDirty || operationsDirty) { setNavigationNotice('작성 중인 주문·일정·운영 정보를 먼저 저장한 뒤 배정해 주세요.'); return; }
             setNavigationNotice('');
             setWorkflowOpen(false);
-            if (action === 'guide') { setQuickAssignment(null); setShowGuideModal(true); }
-            else setQuickAssignment(action as 'stay' | 'vehicle');
+            if (action === 'guide') { setQuickAssignment(null); setPickerSaveError(''); setGuideConfirmation(null); setShowGuideModal(true); }
+            else if (action === 'stay') {
+                setQuickAssignment('stay');
+                if (workspace.nights > 0) {
+                    const nextDay = Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => index + 1).find(day => !reservation.dailyAccommodations?.some(stay => Number(stay.day) === day && stay.accommodation?.name?.trim())) || 1;
+                    setSelectedDay(nextDay); setPickerSaveError(''); setShowAccommodationModal(true);
+                }
+            } else setQuickAssignment('vehicle');
             return;
         }
         if (action === 'customer-link') { void copyCustomerMessage(workspace.published ? 'itinerary' : 'contract'); return; }
@@ -1766,10 +1773,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (action === 'contract') { openInlineDocument('contract'); return; }
         if (action === 'itinerary' || action === 'contract-preview') { if (canStartDelivery()) window.open(action === 'itinerary' ? itineraryPreviewUrl : contractUrl, '_blank', 'noopener,noreferrer'); return; }
         if (action === 'guide-pdf') { printGuideSheet(); return; }
-        if (['view-info', 'flights', 'travelers'].includes(action)) {
+        if (['view-info', 'customer-detail', 'flights', 'travelers'].includes(action)) {
             if (inlineDirty || docDraftPending || operationsDirty || isEditing && activeSec === 'pay') { setNavigationNotice('작성 중인 내용을 먼저 저장하거나 취소한 뒤 고객 정보를 확인해 주세요.'); return; }
             scrollToSec('info');
-            if (action !== 'view-info') requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (!['view-info', 'customer-detail'].includes(action)) requestAnimationFrame(() => requestAnimationFrame(() => {
                 const target = bodyRef.current?.querySelector(`#product-customer-${action}`);
                 if (target && !target.closest('[hidden]')) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }));
@@ -2400,24 +2407,25 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         {/* Guide Selection Modal */}
         {showGuideModal && (
             <div className="picker-scrim" onClick={() => { if (!workspaceIsBusy()) setShowGuideModal(false); }}>
-                <div className="picker" role="dialog" aria-modal="true" aria-label="등록된 가이드 선택" onClick={e => e.stopPropagation()}>
+                <div className="picker crp-picker" role="dialog" aria-modal="true" aria-label="등록된 가이드 선택" onClick={e => e.stopPropagation()}>
                     <div className="card-head">
-                        <h2>가이드 선택</h2>
+                        <div><h2>등록 가이드 선택</h2><span className="crp-current">현재 배정 · {reservation.assignedGuide?.name || '미배정'}</span></div>
                         <div className="spacer" style={{ flex: 1 }} />
                         <button className="icon-btn" aria-label="가이드 선택 닫기" disabled={workspaceIsBusy()} style={{ width: 34, height: 34 }} onClick={() => setShowGuideModal(false)}><Icon name="close" /></button>
                     </div>
-                    <div style={{ padding: '12px 18px' }}><input className="inp" aria-label="가이드 이름·연락처 검색" placeholder="가이드 이름·연락처 검색" value={guideSearch} onChange={e => setGuideSearch(e.target.value)} /><p role="status" className="cell-muted">{registeredLoading ? '등록된 가이드 목록을 불러오는 중입니다…' : resourceLoading ? '최신 배정 일정을 확인하고 있습니다…' : resourceNotice || '배정·자원에 등록된 가이드를 선택하세요. 기간이 겹치는 배정도 함께 확인할 수 있습니다.'}</p></div>
+                    <div className="crp-search"><input className="inp" aria-label="가이드 이름·연락처 검색" placeholder="이름·연락처·언어로 가이드 찾기" value={guideSearch} onChange={e => setGuideSearch(e.target.value)} /><div className="crp-results-caption"><span>가이드 {visibleGuides.length}명</span><small>이름을 누르면 배정이 저장됩니다.</small></div><p role="status" className="cell-muted">{registeredPending ? '등록된 가이드 목록을 불러오는 중입니다…' : resourceLoading ? '최신 배정 일정을 확인하고 있습니다…' : resourceNotice || '기간이 겹치는 가이드는 확인 후 배정할 수 있습니다.'}</p></div>
                     {registeredNotice && <div className="product-customer-warning" role="status">{registeredNotice}<button type="button" className="cw-text-button" disabled={registeredLoading} onClick={() => setRegisteredRevision(value => value + 1)}>자원 목록 다시 불러오기</button></div>}
                     {guideConfirmation && <div className="product-customer-warning" role="alert"><strong>{guideConfirmation.guide.name} 배정 확인</strong><p style={{ whiteSpace: 'pre-line' }}>{guideConfirmation.message}</p><div className="row" style={{ gap: 8 }}><button type="button" className="btn btn-sm btn-ink" disabled={workspaceIsBusy() || registeredLoading || resourceLoading} onClick={() => void handleGuideAssign(guideConfirmation.guide, true)}>일정 확인 후 배정</button><button type="button" className="btn btn-sm btn-ghost" disabled={workspaceIsBusy()} onClick={() => setGuideConfirmation(null)}>취소</button></div></div>}
                     {pickerSaveError && <div className="product-customer-warning" role="alert">{pickerSaveError}</div>}
                     <div className="picker-list">
                         {visibleGuides.length === 0 ? (
-                            <div className="empty"><Icon name="person_off" /><p>조건에 맞는 가이드가 없습니다</p></div>
+                            <div className="empty"><Icon name="person_off" /><p>{registeredPending ? '등록 가이드를 불러오고 있습니다…' : '조건에 맞는 가이드가 없습니다'}</p>{guideSearch && <button type="button" className="cw-text-button" onClick={() => setGuideSearch('')}>검색어 지우기</button>}</div>
                         ) : visibleGuides.map((guide: any) => (
                             <button
                                 key={guide.id}
-                                className="picker-item"
-                                disabled={workspaceIsBusy() || resourceLoading || registeredLoading}
+                                className={`picker-item${isCurrentGuide(guide) ? ' is-current' : ''}`}
+                                aria-label={`${guide.name} ${isCurrentGuide(guide) ? '현재 배정 · 다시 선택' : '가이드 배정'}`}
+                                disabled={workspaceIsBusy() || resourceLoading || registeredPending}
                                 onClick={() => { void handleGuideAssign(guide); }}
                             >
                                 {guide.image ? (
@@ -2426,18 +2434,19 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     <span className="avatar round tint-blue"><Icon name="person" /></span>
                                 )}
                                 <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div className="cell-strong">{guide.name}{guide._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}</div>
+                                    <div className="cell-strong">{guide.name}{isCurrentGuide(guide) && <span className="crp-current-badge">현재 배정</span>}{guide._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}</div>
                                     {!!guideConflicts(guide).length && <div className="badge b-amber">같은 기간 배정 {guideConflicts(guide).length}건</div>}
                                     <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{guide.phone}</div>
-                                    {guide.languages && (
+                                    {(guide.introduction || guide.bio) && <div className="crp-introduction">{guide.introduction || guide.bio}</div>}
+                                    {!!guideLanguages(guide.languages).length && (
                                         <div className="row" style={{ gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-                                            {(typeof guide.languages === 'string' ? JSON.parse(guide.languages) : guide.languages).slice(0, 3).map((l: string) => (
+                                            {guideLanguages(guide.languages).map((l: string) => (
                                                 <span key={l} className="badge b-blue" style={{ fontSize: 10, padding: '1px 7px' }}>{l}</span>
                                             ))}
                                         </div>
                                     )}
                                 </div>
-                                <Icon name="add_circle" style={{ color: 'var(--mrt-blue)' }} />
+                                <span className="crp-pick-action">{isCurrentGuide(guide) ? '선택됨' : '배정'}<Icon name={isCurrentGuide(guide) ? 'check' : 'add'} /></span>
                             </button>
                         ))}
                     </div>
@@ -2448,23 +2457,28 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         {/* Accommodation Selection Modal */}
         {showAccommodationModal && (
             <div className="picker-scrim" onClick={() => { if (!workspaceIsBusy()) setShowAccommodationModal(false); }}>
-                <div className="picker" role="dialog" aria-modal="true" aria-label={`${selectedDay}일차 등록된 숙소 선택`} onClick={e => e.stopPropagation()}>
+                <div className="picker crp-picker" role="dialog" aria-modal="true" aria-label={`${selectedDay}일차 등록된 숙소 선택`} onClick={e => e.stopPropagation()}>
                     <div className="card-head">
-                        <h2>{selectedDay}일차 숙소 선택</h2>
+                        <div><h2>{selectedDay}일차 등록 숙소 선택</h2><span className="crp-current">현재 배정 · {selectedAccommodation?.name || '미배정'}</span></div>
                         <div className="spacer" style={{ flex: 1 }} />
                         <button className="icon-btn" aria-label="숙소 선택 닫기" disabled={workspaceIsBusy()} style={{ width: 34, height: 34 }} onClick={() => setShowAccommodationModal(false)}><Icon name="close" /></button>
                     </div>
-                    <div style={{ padding: '12px 18px', display: 'grid', gap: 8 }}><input className="inp" aria-label="숙소 이름·지역 검색" placeholder="숙소 이름·지역 검색" value={accommodationSearch} onChange={e => setAccommodationSearch(e.target.value)}/><select className="inp" aria-label="숙소 지역" value={accommodationRegion} onChange={e => setAccommodationRegion(e.target.value)}><option value="">전체 지역</option>{accommodationRegions.map(region => <option key={region} value={region}>{region}</option>)}</select><small>최근 선택한 숙소를 먼저 표시합니다.</small></div>
+                    {workspace.nights > 1 && <div className="crp-day-tabs" aria-label="숙소 배정 일차 선택">{Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => {
+                        const day = index + 1, stay = reservation.dailyAccommodations?.find(item => Number(item.day) === day)?.accommodation;
+                        return <button type="button" key={day} aria-pressed={selectedDay === day} disabled={workspaceIsBusy()} onClick={() => { setSelectedDay(day); setPickerSaveError(''); }}><strong>{day}일차</strong><small>{stay?.name || '미배정 · 숙소 선택'}</small></button>;
+                    })}</div>}
+                    <div className="crp-search"><div className="crp-search-filters"><input className="inp" aria-label="숙소 이름·지역 검색" placeholder="이름·지역으로 숙소 찾기" value={accommodationSearch} onChange={e => setAccommodationSearch(e.target.value)}/><select className="inp" aria-label="숙소 지역" value={accommodationRegion} onChange={e => setAccommodationRegion(e.target.value)}><option value="">전체 지역</option>{accommodationRegions.map(region => <option key={region} value={region}>{region}</option>)}</select></div><div className="crp-results-caption"><span>숙소 {visibleAccommodations.length}곳</span><small>선택하면 {selectedDay}일차에 저장됩니다.</small></div></div>
                     {(registeredLoading || registeredNotice) && <div className="product-customer-warning" role="status">{registeredLoading ? '등록된 숙소 목록을 불러오는 중입니다…' : registeredNotice}{!registeredLoading && <button type="button" className="cw-text-button" onClick={() => setRegisteredRevision(value => value + 1)}>자원 목록 다시 불러오기</button>}</div>}
                     {pickerSaveError && <div className="product-customer-warning" role="alert">{pickerSaveError}</div>}
                     <div className="picker-list">
                         {visibleAccommodations.length === 0 ? (
-                            <div className="empty"><Icon name="hotel" /><p>조건에 맞는 숙소가 없습니다</p></div>
+                            <div className="empty"><Icon name="hotel" /><p>{registeredPending ? '등록 숙소를 불러오고 있습니다…' : '조건에 맞는 숙소가 없습니다'}</p>{(accommodationSearch || accommodationRegion) && <button type="button" className="cw-text-button" onClick={() => { setAccommodationSearch(''); setAccommodationRegion(''); }}>검색 조건 지우기</button>}</div>
                         ) : visibleAccommodations.map((acc: any) => (
                             <button
                                 key={acc.id}
-                                className="picker-item"
-                                disabled={workspaceIsBusy() || registeredLoading}
+                                className={`picker-item${isCurrentAccommodation(acc) ? ' is-current' : ''}`}
+                                aria-label={`${selectedDay}일차 ${acc.name} ${isCurrentAccommodation(acc) ? '현재 배정 · 다시 선택' : '숙소 배정'}`}
+                                disabled={workspaceIsBusy() || registeredPending}
                                 onClick={() => { void handleAccommodationAssign(acc); }}
                             >
                                 {acc._thumb ? (
@@ -2475,13 +2489,14 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                 <div style={{ minWidth: 0, flex: 1 }}>
                                     <div className="cell-strong">
                                         {acc.name}
+                                        {isCurrentAccommodation(acc) && <span className="crp-current-badge">현재 배정</span>}
                                         {acc._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}{acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#eef4ff', color: '#1656d6' }}>호텔 마스터</span>}
                                         {acc._fromItinerary && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>이 상품 일정</span>}
                                     </div>
                                     {acc.type && <div className="cell-muted" style={{ fontSize: 12 }}>{acc.type}</div>}
                                     {acc.location && <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.location}</div>}
                                 </div>
-                                <Icon name="add_circle" style={{ color: 'var(--mrt-blue)' }} />
+                                <span className="crp-pick-action">{isCurrentAccommodation(acc) ? '선택됨' : `${selectedDay}일차 배정`}<Icon name={isCurrentAccommodation(acc) ? 'check' : 'add'} /></span>
                             </button>
                         ))}
                     </div>

@@ -41,7 +41,7 @@ test('여행자 상세는 주문자와 분리하고 여권명·생년월일·0�
         { id: 'traveler-0', name: '동반 여행자', details: [{ label: '여권 영문명', value: 'SAVED PASSPORT' }, { label: '생년월일', value: '2026-10-01' }, { label: '나이', value: '0' }, { label: '성별', value: '여' }, { label: '연락처', value: '01099998888' }] },
         { id: 'traveler-1', name: '', details: [{ label: '여권 영문명', value: 'PARTIAL ONLY' }, { label: '생년월일', value: '' }, { label: '성별', value: '' }, { label: '연락처', value: '' }] },
     ] });
-    assert.deepEqual(model.agreement, { label: '실제 서명자 · 동의 완료', at: '2026-10-19T09:00:00Z' });
+    assert.deepEqual(model.agreement, { label: '성명 동의 완료 · 손서명 미등록', name: '실제 서명자', at: '2026-10-19T09:00:00Z' });
     assert.equal(model.facts.find(fact => fact.label === '연락처').value, '01011112222');
     assert.equal(model.facts.find(fact => fact.label === '고객 정보 제출').value, contract.customerSubmittedAt);
     assert.equal(model.tasks.find(task => task.id === 'travelers').detail, '1/2명 이름 입력 · 1명 이름 미입력 · 생년월일 1명 미입력 · 성별 1명 미입력 · 연락처 1명 미입력');

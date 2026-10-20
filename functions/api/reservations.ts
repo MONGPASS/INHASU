@@ -2,7 +2,8 @@ import { Hono } from 'hono';
 import { drizzle } from 'drizzle-orm/d1';
 import { reservations } from '../../src/db/schema/reservations';
 import { eq, desc, or, and, isNull } from 'drizzle-orm';
-import { assignmentRecord, readProductVehicle, syncProductVehicle, publicAssignmentContract } from '../../src/utils/reservationAssignment';
+import { assignmentRecord, readProductVehicle, syncProductVehicle } from '../../src/utils/reservationAssignment';
+import { preserveProductCustomerEvidence, publicProductContract } from '../../src/utils/productContractSignature';
 import { initializeLucia } from '../lib/auth';
 import { getCookie } from 'hono/cookie';
 import { sendPayPalInvoice } from '../lib/paypal';
@@ -302,7 +303,7 @@ app.get('/', async (c) => {
         deposit_report: parseDepositReport(r.depositReport),
     }));
 
-    return c.json(user.role === 'admin' ? parsed : parsed.map((row) => ({ ...row, contractData: publicAssignmentContract(row.contractData), history: customerVisibleHistory(row.history) })));
+    return c.json(user.role === 'admin' ? parsed : parsed.map((row) => ({ ...row, contractData: publicProductContract(row.contractData), history: customerVisibleHistory(row.history) })));
 });
 
 // GET /api/reservations/:id
@@ -349,7 +350,7 @@ app.get('/:id', async (c) => {
         deposit_report: parseDepositReport(result.depositReport),
     };
 
-    return c.json(user?.role === 'admin' ? parsed : { ...parsed, contractData: publicAssignmentContract(parsed.contractData), history: customerVisibleHistory(parsed.history) });
+    return c.json(user?.role === 'admin' ? parsed : { ...parsed, contractData: publicProductContract(parsed.contractData), history: customerVisibleHistory(parsed.history) });
 });
 
 // PUT /api/reservations/:id
@@ -420,6 +421,7 @@ app.put('/:id', async (c) => {
     }
     const syncVehicle = 'adminOperations' in normalized || 'contractData' in normalized;
     if (syncVehicle) {
+        if ('contractData' in normalized) normalized.contractData = preserveProductCustomerEvidence(existing.contractData, normalized.contractData);
         const synced = syncProductVehicle(existing.adminOperations, existing.contractData, { operations: operationsPatch, contractData: normalized.contractData });
         normalized.adminOperations = mergeAdminOperations(parseAdminOperations(existing.adminOperations), synced.operations);
         normalized.contractData = synced.contractData;

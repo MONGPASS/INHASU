@@ -4,6 +4,8 @@ import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { build, transform } from 'esbuild';
+import { productSignatureStatus, publicProductContract } from '../src/utils/productContractSignature.ts';
+const drawnSignature = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAA8CAYAAACtrX6oAAAAqUlEQVR4nO3RAQ3AMAzAsPIn/ROoBqBxpCDwzMy3rENtwKAP9QIGfSjQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JdCTQkUBHAh0JcqQV+AfAihANVHYDfgAAAABJRU5ErkJggg==';
 const require = createRequire(import.meta.url), React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const result = await build({ entryPoints: ['src/pages/DocumentContract.tsx'], bundle: true, format: 'cjs', platform: 'node', packages: 'external', jsx: 'automatic', write: false, loader: { '.css': 'empty' }, define: { 'import.meta.env': '{}' } });
@@ -11,6 +13,7 @@ const mod = { exports: {} };
 new Function('require', 'module', 'exports', result.outputFiles[0].text)(require, mod, mod.exports);
 const { ContractDocumentView } = mod.exports;
 const base = () => ({
+    signatureRevision: 'a'.repeat(64),
     reservation: { id: 'local-product-contract', reservationNumber: 'LOCAL-CONTRACT', productName: '저장된 상품', customerName: '합성 계약자', customerPhone: 'LOCAL-PHONE', travelers: 2,
         startDate: '2026-10-25', endDate: '2026-10-27', totalPrice: 0, depositAmount: 0, balanceAmount: 0, createdAt: '2026-10-19T00:00:00Z', status: 'confirmed' },
     contract: { region: '저장된 여행지', category: '저장된 여행 형태', travelers: [{ name: '합성 여행자', passportName: 'LOCAL TRAVELER', birthdate: '1990-01-01', phone: 'LOCAL-PHONE', gender: '여성' }, { name: '두번째 여행자', passportName: 'LOCAL SECOND', phone: 'LOCAL-SECOND' }],
@@ -80,7 +83,7 @@ test('고객 입력·여행자 추가·삭제·인쇄는 기존 콜백을 유지
     click(node => String(node.props['aria-label'] || '').includes('여행자 삭제'));
     click(node => /인쇄|PDF 저장/.test(text(node.props.children)));
     assert.equal(calls[0], 'add'); assert.deepEqual(calls[1], ['remove', 0]); assert.equal(calls[2], 'print'); assert.ok(!calls.includes('submit'));
-    const submit = buttons.find(node => /동의하고 제출/.test(text(node.props.children))); assert.ok(submit?.props.disabled);
+    const submit = buttons.find(node => /동의하고 서명 제출/.test(text(node.props.children))); assert.ok(submit?.props.disabled);
 });
 
 const source = fs.readFileSync(new URL('../src/pages/DocumentContract.tsx', import.meta.url), 'utf8');
@@ -90,7 +93,8 @@ function submitHarness(saveCustomer) {
     const events = [], data = base();
     const context = vm.createContext({ data, reservationId: data.reservation.id, identityRef: { current: data.reservation.id }, lifecycle: { current: 1 }, submitPending: { current: false }, saving: false,
         agreed: true, signerName: '  합성 동의자  ', formTravelers: data.contract.travelers, arrival: data.contract.arrival, departure: data.contract.departure,
-        api: { documents: { contract: { saveCustomer } } }, alert: message => events.push(['alert', message]),
+        api: { documents: { contract: { saveCustomer } } }, alert: message => events.push(['alert', message]), productSignatureStatus, signatureDraftRef: { current: drawnSignature },
+        setSignatureReady: value => events.push(['signature-ready', value]),
         setSaving: value => events.push(['saving', value]), setSaved: value => events.push(['saved', value]),
         setData: update => { context.data = update(context.data); events.push(['data']); }, Date });
     vm.runInContext(submitCode, context);
@@ -103,6 +107,7 @@ test('실제 계약 제출은 현재 예약에 입력 snapshot을 한 번만 보
     const first = context.submit(); await context.submit();
     assert.equal(payloads.length, 1); assert.equal(payloads[0][0], 'local-product-contract');
     const payload = payloads[0][1]; assert.equal(payload.agreement.agreed, true); assert.equal(payload.agreement.name, '합성 동의자'); assert.ok(Date.parse(payload.agreement.agreedAt));
+    assert.equal(payload.signature.signImg, drawnSignature); assert.equal(payload.signature.expectedRevision, context.data.signatureRevision); assert.equal(payload.signature.agree, true);
     assert.deepEqual(JSON.parse(JSON.stringify(payload.travelers)), context.formTravelers);
     assert.deepEqual(JSON.parse(JSON.stringify(payload.arrival)), context.arrival); assert.deepEqual(JSON.parse(JSON.stringify(payload.departure)), context.departure);
     assert.ok(!events.some(event => event[0] === 'saved' || event[0] === 'data'));
@@ -116,10 +121,39 @@ test('제출 실패·동의 미선택·공백 성명은 입력과 이전 동의�
     const { context, events } = submitHarness(async () => { saves++; throw new Error('로컬 저장 실패'); });
     const initial = context.data;
     await context.submit(); assert.equal(saves, 1); assert.equal(context.data, initial); assert.equal(context.formTravelers, initial.contract.travelers);
+    assert.equal(context.signatureDraftRef.current, drawnSignature);
     assert.ok(!events.some(event => event[0] === 'saved' || event[0] === 'data')); assert.ok(events.some(event => event[0] === 'alert' && event[1].includes('제출에 실패')));
     context.agreed = false; await context.submit(); context.agreed = true; context.signerName = '  '; await context.submit(); assert.equal(saves, 1);
     let resolve; const late = new Promise(done => { resolve = done; });
     const other = submitHarness(async () => late); const request = other.context.submit();
     other.context.identityRef.current = 'another-reservation'; other.context.lifecycle.current++;
     other.events.length = 0; resolve(); await request; assert.deepEqual(other.events, []);
+});
+
+test('서명 없는 성명 동의를 손서명으로 표시하지 않으며 관리자 원본과 고객용 보관 안내를 구분한다', () => {
+    const typed = base(); typed.contract.agreement = { agreed: true, name: '기존 성명 동의' };
+    const historical = render(typed); assert.ok(historical.includes('전자 동의 완료')); assert.ok(historical.includes('고객 손서명 미등록')); assert.ok(!historical.includes('손서명 완료'));
+    typed.contract.signature = { signedAt: '2026-10-20T08:20:00Z', signerName: '직접 서명자', signImg: drawnSignature, termsVersion: 'saved-version' };
+    const original = render(typed); assert.ok(original.includes('손서명 완료')); assert.ok(original.includes('고객이 직접 작성한 계약서 서명 원본')); assert.ok(original.includes(drawnSignature));
+    const publicData = { ...typed, contract: publicProductContract(typed.contract) };
+    const customer = render(publicData); assert.ok(customer.includes('손서명 완료')); assert.ok(customer.includes('손서명 원본은 안전하게 보관')); assert.ok(!customer.includes(drawnSignature));
+    typed.contract.signature.signedAt = ''; const missingTimestamp = render(typed); assert.ok(missingTimestamp.includes(drawnSignature)); assert.ok(missingTimestamp.includes('서명 시각 확인 필요')); assert.ok(!missingTimestamp.includes('손서명 완료'));
+});
+
+test('서명 원본 인쇄는 서명 당시 snapshot을 사용하고 이후 입력 수정은 별도 고객 폼에만 반영한다', () => {
+    const current = base(), original = base(); original.reservation.productName = '서명 당시 여행상품'; original.contract.travelers[0].name = '서명 당시 여행자'; original.contract.arrival.flight = 'SAVED-IN';
+    current.reservation.productName = '나중에 변경된 여행상품'; current.contract.travelers[0].name = '현재 여행자'; current.contract.arrival.flight = 'CURRENT-IN';
+    current.contract.signature = { signedAt: '2026-10-20T08:20:00Z', signerName: '직접 서명자', signImg: drawnSignature, snapshot: { version: 1, document: original } };
+    const html = render(current);
+    assert.ok(html.includes('서명 당시 여행상품')); assert.ok(!html.includes('나중에 변경된 여행상품'));
+    assert.ok(html.includes('서명 당시 여행자')); assert.ok(html.includes('value="현재 여행자"'));
+    assert.ok(html.includes('SAVED-IN')); assert.ok(html.includes('value="CURRENT-IN"'));
+});
+
+test('빈 손서명은 제출하지 않고 저장된 실제 서명이 있는 재제출은 원본을 다시 보내지 않는다', async () => {
+    const sent = []; const first = submitHarness(async (...args) => sent.push(args)); first.context.signatureDraftRef.current = '';
+    await first.context.submit(); assert.equal(sent.length, 0); assert.ok(first.events.some(event => event[0] === 'alert' && event[1].includes('직접 서명')));
+    const repeat = submitHarness(async (...args) => { sent.push(args); return { contract: publicProductContract(repeat.context.data.contract) }; });
+    repeat.context.data.contract.signature = { signedAt: '2026-10-20T08:20:00Z', signerName: '기존 직접 서명', signImg: drawnSignature };
+    await repeat.context.submit(); assert.equal(sent.length, 1); assert.equal(sent[0][1].signature, undefined); assert.equal(repeat.context.data.contract.signature.signerName, '기존 직접 서명'); assert.equal(repeat.context.data.contract.signature.signImg, drawnSignature);
 });

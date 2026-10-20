@@ -710,7 +710,7 @@ export const QuoteDetailModal: React.FC<{
         if (action === 'customer-link') { void copyEstimatePageUrl(); return; }
         if (action === 'edit-itinerary') { setWorkflowOpen(true); setDocEditorOpen(true); return; }
         if (action === 'edit-info') { setIsEditing(true); scrollToSec('info'); return; }
-        if (['view-info', 'flights', 'travelers'].includes(action)) { scrollToSec('info'); return; }
+        if (['view-info', 'customer-detail', 'flights', 'travelers'].includes(action)) { scrollToSec('info'); return; }
         if (overview.disabledActions.includes(action)) return;
         if (action === 'convert') { onOpenConvert(); return; }
         scrollToSec(action === 'history' || action === 'notes' ? 'info' : 'quote');

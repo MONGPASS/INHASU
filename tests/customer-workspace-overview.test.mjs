@@ -151,6 +151,64 @@ test('현황은 실제 항공편·여행자 상세·시간별 활동·별도 안
     assert.ok(!html.includes('<script>PRIVATE'));
 });
 
+test('고객 정보는 기본 접힘으로 모든 저장 항목을 보존하고 전체 상세보기는 편집 대신 조회 액션을 연다', () => {
+    const calls = [];
+    const detailed = { ...model,
+        facts: [...model.facts, { label: '이메일', value: 'local@example.invalid' }, { label: '상품', value: '실제 상품' }, { label: '접수일', value: '2026-10-19' }, { label: '주문 메모', value: '보존할 메모' }],
+        flights: [{ id: 'arrival', label: '도착편', flight: 'LOCAL-1', date: '2026-10-25', time: '12:30' }, { id: 'departure', label: '출발편' }],
+        travelers: { expected: 10, registered: 1, people: [{ id: 't1', name: '저장 여행자', details: [{ label: '여권 영문명', value: 'LOCAL PERSON' }] }] },
+        preferences: ['보존할 요청'], agreement: { label: '계약서 전달 전' },
+    };
+    const tree = CustomerWorkspaceOverview({ model: detailed, onAction: (...args) => calls.push(args) });
+    const customer = elements(tree, node => node.props.className === 'cw-card cw-customer-info')[0];
+    const disclosures = elements(customer, node => node.props.className === 'cw-customer-disclosure');
+    assert.equal(disclosures.length, 4);
+    for (const disclosure of disclosures) {
+        assert.equal(disclosure.type, 'details'); assert.notEqual(disclosure.props.open, true);
+        const summary = elements(disclosure, node => node.type === 'summary')[0];
+        assert.equal(elements(summary, node => node.type === 'button').length, 0);
+    }
+    const html = renderToStaticMarkup(tree);
+    for (const value of ['보존할 메모', 'LOCAL-1', 'LOCAL PERSON', '보존할 요청', '1/2편 정보 등록', '1/10명 등록']) assert.ok(html.includes(value), value);
+    assert.deepEqual(calls, []);
+    elements(customer, node => node.props['aria-label'] === '고객 정보 전체 상세보기')[0].props.onClick();
+    assert.deepEqual(calls, [['customer-detail', undefined]]);
+});
+
+test('최근 이력은 실제 전달된 기록 다섯 건과 현재 단계를 분리하고 전체보기로 연결한다', () => {
+    const calls = [];
+    const history = Array.from({ length: 7 }, (_, i) => ({ id: `history-${i}`, at: `2026-10-${20 - i}T03:00:00Z`, title: `저장된 업무 ${i}`, kind: i === 0 ? 'memo' : 'change', internal: i === 0, detail: i === 0 ? '<script>메모</script>' : undefined }));
+    const tree = CustomerWorkspaceOverview({ model: { ...model, recentHistory: history, currentStage: { label: '고객 서명 대기', detail: '계약서 전달 기록 있음', tone: 'waiting' } }, onAction: (...args) => calls.push(args) });
+    const card = elements(tree, node => node.props.className === 'cw-card cw-recent-history')[0];
+    const rows = elements(card, node => node.type === 'li');
+    assert.equal(rows.length, 5);
+    assert.equal(elements(rows[0], node => node.type === 'time')[0].props.dateTime, history[0].at);
+    const html = renderToStaticMarkup(card);
+    assert.ok(html.includes('현재 단계')); assert.ok(html.includes('고객 서명 대기')); assert.ok(html.includes('내부'));
+    assert.ok(html.includes('&lt;script&gt;메모&lt;/script&gt;')); assert.ok(!html.includes('저장된 업무 5'));
+    elements(card, node => node.type === 'button')[0].props.onClick();
+    assert.deepEqual(calls, [['history', undefined]]);
+    const empty = renderToStaticMarkup(React.createElement(CustomerWorkspaceOverview, { model, onAction() {} }));
+    assert.ok(empty.includes('저장된 처리 이력이 없습니다.'));
+});
+
+test('배정 자원 행 전체는 명확한 선택 버튼이고 클릭은 해당 선택기만 열며 저장을 실행하지 않는다', () => {
+    const calls = [];
+    const resources = ['guide', 'vehicle', 'stay'].map(id => ({ id, label: `${id} 자원`, value: '기존 선택', statusLabel: '배정됨', state: 'ready' }));
+    const tree = CustomerWorkspaceOverview({ model: { ...model, assignments: resources }, directAssignments: true, onAction: (...args) => calls.push(args) });
+    const buttons = elements(tree, node => node.props.className === 'cw-resource-select');
+    assert.equal(buttons.length, 3);
+    assert.deepEqual(calls, []);
+    for (const [i, button] of buttons.entries()) {
+        assert.equal(button.type, 'button'); assert.ok(button.props['aria-label'].includes(resources[i].label));
+        assert.equal(elements(button, node => node !== button && node.type === 'button').length, 0);
+        button.props.onClick();
+    }
+    assert.deepEqual(calls, [['guide', undefined], ['vehicle', undefined], ['stay', undefined]]);
+    const disabled = CustomerWorkspaceOverview({ model: { ...model, assignments: resources, disabledActions: ['assignments'] }, onAction() {} });
+    assert.ok(elements(disabled, node => node.props.className === 'cw-resource-select').every(node => node.props.disabled));
+});
+
 const disclosureDays = () => [
     { id: 'saved-day-5', day: 5, title: '저장된 고비 일정', date: '10.28(수)', region: '고비 남부', image: '/api/images/saved-day.webp',
         summary: '09:00 공항 픽업\n저장된 개별 안내\n저장된 개별 안내',

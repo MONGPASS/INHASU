@@ -3,7 +3,8 @@ import { BRAND, COMPANY_INFO, DEPOSIT_ACCOUNT, resolveCancellationRows } from '.
 import { getSessionUser } from '../lib/userAuth';
 import { requireAdmin } from '../lib/adminAuth';
 import { buildProductQuote, hasProductSchedule, loadProductDocument, mergeProductDays, productItineraryPublished } from '../lib/productItinerary';
-import { publicAssignmentContract } from '../../src/utils/reservationAssignment';
+import { PRODUCT_CONTRACT_TERMS_VERSION, productContractTerms, productSignatureRecord, publicProductContract, validateProductSignature } from '../../src/utils/productContractSignature';
+import { documentRevision } from '../lib/adminDocumentRevision';
 
 type Env = {
     DB: any;
@@ -147,23 +148,7 @@ app.post('/itinerary/:reservationId/publish', requireAdmin, async (c) => {
     return c.json({ itineraryUrl });
 });
 
-// GET /api/documents/contract/:reservationId — public
-app.get('/contract/:reservationId', async (c) => {
-    const reservationId = c.req.param('reservationId');
-    const db = c.env.DB;
-
-    const reservation = await db.prepare(
-        // 보안: 추측 가능한 예약번호(MNxxx)가 아닌 UUID(reservation.id)로만 조회 — 열거(enumeration) 공격 차단
-        'SELECT * FROM reservations WHERE id = ?'
-    ).bind(reservationId).first();
-
-    if (!reservation) {
-        return c.json({ error: 'Reservation not found' }, 404);
-    }
-
-    let contractData: any = {};
-    try { contractData = reservation.contract_data ? JSON.parse(reservation.contract_data) : {}; } catch { contractData = {}; }
-
+async function loadProductContractData(db: any, reservation: any, contractData: any) {
     let dailyAccommodations: any[] = [];
     try { dailyAccommodations = reservation.daily_accommodations ? JSON.parse(reservation.daily_accommodations) : []; } catch { dailyAccommodations = []; }
 
@@ -217,9 +202,7 @@ app.get('/contract/:reservationId', async (c) => {
         }
     }
 
-    const isAdmin = (await getSessionUser(c))?.role === 'admin';
-
-    return c.json({
+    return {
         reservation: {
             id: reservation.id,
             reservationNumber: reservation.reservation_number,
@@ -236,7 +219,7 @@ app.get('/contract/:reservationId', async (c) => {
             balanceAmount: reservation.balance_amount,
             createdAt: reservation.created_at,
         },
-        contract: isAdmin ? contractData : publicAssignmentContract(contractData),
+        contract: contractData,
         contractIncludedOverride: typeof savedContractSettings?.includedText === 'string',
         contractExcludedOverride: typeof savedContractSettings?.excludedText === 'string',
         template,
@@ -244,62 +227,86 @@ app.get('/contract/:reservationId', async (c) => {
         guide: assignedGuide,
         productIncluded: productIncExc.included,
         productExcluded: productIncExc.excluded,
-    });
+    };
+}
+
+// GET /api/documents/contract/:reservationId — existing private customer link
+app.get('/contract/:reservationId', async (c) => {
+    const reservation = await c.env.DB.prepare('SELECT * FROM reservations WHERE id = ?').bind(c.req.param('reservationId')).first();
+    if (!reservation) return c.json({ error: 'Reservation not found' }, 404);
+    const contractData = parseNestedJson(reservation.contract_data, {}) || {};
+    const document = await loadProductContractData(c.env.DB, reservation, contractData);
+    const isAdmin = (await getSessionUser(c))?.role === 'admin';
+    const signatureRevision = await documentRevision({ document: { ...document, contract: publicProductContract(contractData) }, terms: productContractTerms(), termsVersion: PRODUCT_CONTRACT_TERMS_VERSION });
+    return c.json({ ...document, contract: isAdmin ? contractData : publicProductContract(contractData), signatureRevision });
 });
 
-// POST /api/documents/contract/:reservationId/customer — public (link-based)
-// 고객이 계약서에서 직접 입력한 여권정보 + 온라인 동의를 저장
+// Existing typed agreements remain compatible; actual hand signatures are additive evidence.
 app.post('/contract/:reservationId/customer', async (c) => {
-    const reservationId = c.req.param('reservationId');
     const db = c.env.DB;
-
-    const reservation: any = await db.prepare(
-        // 보안: 추측 가능한 예약번호(MNxxx)가 아닌 UUID(reservation.id)로만 조회 — 열거(enumeration) 공격 차단
-        'SELECT * FROM reservations WHERE id = ?'
-    ).bind(reservationId).first();
-
-    if (!reservation) {
-        return c.json({ error: 'Reservation not found' }, 404);
+    const reservation: any = await db.prepare('SELECT * FROM reservations WHERE id = ?').bind(c.req.param('reservationId')).first();
+    if (!reservation) return c.json({ error: 'Reservation not found' }, 404);
+    let body: any;
+    try {
+        const raw = await c.req.text();
+        if (raw.length > 450_000) return c.json({ error: '계약 제출 내용이 너무 큽니다.' }, 413);
+        body = JSON.parse(raw);
+    } catch { return c.json({ error: '계약 제출 내용을 확인해 주세요.' }, 400); }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return c.json({ error: '계약 제출 내용을 확인해 주세요.' }, 400);
+    const original = parseNestedJson(reservation.contract_data, {}) || {};
+    const contractData = { ...original };
+    const cleanText = (value: any, max: number) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+    const fields = ['name', 'passportName', 'birthdate', 'gender', 'phone'] as const;
+    if (body.travelers !== undefined) {
+        if (!Array.isArray(body.travelers) || body.travelers.length > 60 || body.travelers.some((person: any) => !person || typeof person !== 'object' || Array.isArray(person) || fields.some(key => person[key] !== undefined && typeof person[key] !== 'string'))) {
+            return c.json({ error: '여행자 정보를 확인해 주세요.' }, 400);
+        }
+        contractData.travelers = body.travelers.map((person: any) => Object.fromEntries(fields.map(key => [key, cleanText(person[key], key === 'birthdate' ? 10 : 100)])));
     }
-
-    let body: any = {};
-    try { body = await c.req.json(); } catch { body = {}; }
-
-    let contractData: any = {};
-    try { contractData = reservation.contract_data ? JSON.parse(reservation.contract_data) : {}; } catch { contractData = {}; }
-
-    // 여행자 여권정보(고객 입력)와 동의 정보만 병합 — 관리자가 입력한 일정/항공편 등은 유지
-    if (Array.isArray(body.travelers)) {
-        contractData.travelers = body.travelers.map((t: any) => ({
-            name: t.name || '',
-            passportName: t.passportName || '',
-            birthdate: t.birthdate || '',
-            gender: t.gender || '',
-            phone: t.phone || '',
-        }));
+    const hasFlight = (flight: any) => flight && typeof flight === 'object' && !Array.isArray(flight) && (flight.date || flight.time || flight.flight);
+    const validDate = (value: string) => !value || (/^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value + 'T00:00:00Z')) && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value);
+    for (const key of ['arrival', 'departure']) {
+        const flight = body[key];
+        if (flight !== undefined && (!flight || typeof flight !== 'object' || Array.isArray(flight) || ['date', 'time', 'flight'].some(field => flight[field] !== undefined && typeof flight[field] !== 'string'))) return c.json({ error: '항공편 정보를 확인해 주세요.' }, 400);
+        if (hasFlight(flight)) {
+            const date = cleanText(flight.date, 30), time = cleanText(flight.time, 30);
+            if (!validDate(date) || (time && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))) return c.json({ error: '항공편 날짜와 24시간 기준 시각을 확인해 주세요.' }, 400);
+            contractData[key] = { date, time, flight: cleanText(flight.flight, 80) };
+        }
     }
-    // 고객이 입력한 왕복 항공편 정보 병합 — 공항 송영 수배용. 값이 있을 때만 덮어써서 관리자 입력 보존
-    const hasFlight = (f: any) => f && typeof f === 'object' && (f.date || f.time || f.flight);
-    if (hasFlight(body.arrival)) {
-        contractData.arrival = { date: body.arrival.date || '', time: body.arrival.time || '', flight: body.arrival.flight || '' };
+    const now = new Date().toISOString();
+    if (body.agreement !== undefined) {
+        if (!body.agreement || body.agreement.agreed !== true || !cleanText(body.agreement.name, 100)) return c.json({ error: '계약 내용 동의와 성명을 확인해 주세요.' }, 400);
+        contractData.agreement = { agreed: true, name: cleanText(body.agreement.name, 100), agreedAt: now };
     }
-    if (hasFlight(body.departure)) {
-        contractData.departure = { date: body.departure.date || '', time: body.departure.time || '', flight: body.departure.flight || '' };
-    }
-    if (body.agreement && body.agreement.agreed) {
-        contractData.agreement = {
-            agreed: true,
-            name: body.agreement.name || '',
-            agreedAt: body.agreement.agreedAt || new Date().toISOString(),
+    if (body.signature !== undefined) {
+        if (productSignatureRecord(original)) return c.json({ error: '이미 저장된 서명 원본은 다시 제출하여 변경할 수 없습니다. 새로고침 후 확인해 주세요.' }, 409);
+        if (contractData.agreement?.agreed !== true) return c.json({ error: '계약 내용에 동의해 주세요.' }, 400);
+        const checked = validateProductSignature(body.signature);
+        if (!checked.ok) return c.json({ error: checked.error }, checked.status);
+        if (checked.signerName !== contractData.agreement.name) return c.json({ error: '성명과 서명자 이름이 일치하지 않습니다.' }, 400);
+        if (['cancelled'].includes(reservation.status)) return c.json({ error: '취소된 예약은 서명할 수 없습니다.' }, 409);
+        const reviewed = await loadProductContractData(db, reservation, original);
+        const revision = await documentRevision({ document: { ...reviewed, contract: publicProductContract(original) }, terms: productContractTerms(), termsVersion: PRODUCT_CONTRACT_TERMS_VERSION });
+        if (typeof body.signature.expectedRevision !== 'string' || body.signature.expectedRevision !== revision) return c.json({ error: '계약 내용이 변경되었습니다. 작성한 정보를 보관한 뒤 새로고침하여 변경 내용을 확인하고 다시 서명해 주세요.' }, 409);
+        const snapshot = { ...reviewed };
+        snapshot.contract = publicProductContract(contractData);
+        (snapshot as any).contractTerms = productContractTerms();
+        contractData.signature = {
+            signedAt: now, signerName: checked.signerName, signImg: checked.signImg, termsVersion: PRODUCT_CONTRACT_TERMS_VERSION, reviewedRevision: revision,
+            snapshot: { version: 1, document: snapshot },
+            ip: c.req.header('CF-Connecting-IP') || '', ua: (c.req.header('User-Agent') || '').slice(0, 200),
         };
     }
-    contractData.customerSubmittedAt = new Date().toISOString();
-
-    await db.prepare(
-        'UPDATE reservations SET contract_data = ? WHERE id = ?'
-    ).bind(JSON.stringify(contractData), reservation.id).run();
-
-    return c.json({ success: true, contract: publicAssignmentContract(contractData) });
+    contractData.customerSubmittedAt = now;
+    // Compare the source read above: a concurrent signature or assignment must never be overwritten.
+    const guardedColumns = ['contract_data', ...(body.signature !== undefined ? ['document_content', 'product_id', 'product_name', 'start_date', 'end_date', 'total_price', 'deposit_amount', 'balance_amount', 'itinerary_template_id', 'assigned_guide', 'daily_accommodations', 'status', 'travelers', 'customer_name', 'customer_phone', 'customer_email'] : [])];
+    const guard = guardedColumns.map(key => key + ' IS ?').join(' AND ');
+    const updateSql = `UPDATE reservations SET contract_data = ? WHERE id = ? AND ${guard}`;
+    const result = await db.prepare(updateSql)
+        .bind(JSON.stringify(contractData), reservation.id, ...guardedColumns.map(key => reservation[key] ?? null)).run();
+    if (Number(result?.meta?.changes ?? result?.changes ?? 0) !== 1) return c.json({ error: '다른 화면에서 계약 정보가 변경되었습니다. 입력을 보관한 뒤 새로고침하여 확인해 주세요.' }, 409);
+    return c.json({ success: true, contract: publicProductContract(contractData) });
 });
 
 export default app;

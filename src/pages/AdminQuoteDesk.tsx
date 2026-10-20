@@ -378,7 +378,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         }
         const booked = quoteCustomerIsBooking(customerRecord);
         if (!booked && ['payments', 'assignments', 'operations'].includes(action)) { setEditorNotice('예약 진행 의사를 기록하고 예약관리를 시작하면 결제·배정·운영을 관리할 수 있습니다.'); return; }
-        if (['flights', 'travelers', 'view-info'].includes(action)) { openCustomerEditor(booked ? 'bookings' : 'inbox', booked ? action : 'info'); return; }
+        if (['flights', 'travelers', 'view-info', 'customer-detail'].includes(action)) { openCustomerEditor(booked ? 'bookings' : 'inbox', booked ? action === 'customer-detail' ? 'view-info' : action : 'info'); return; }
         if (action === 'edit-itinerary' || action === 'quote-share') { openCustomerEditor(booked && action !== 'quote-share' ? 'bookings' : 'builder', action === 'quote-share' ? 'quote-share' : 'docs'); return; }
         if (!booked && action === 'documents') { openCustomerEditor('builder', customerRecord.quote ? 'quote-share' : 'docs'); return; }
         const section = action === 'payments' ? 'pay' : action === 'assignments' ? 'assign' : ['guide', 'vehicle', 'stay'].includes(action) ? action : action === 'contract' ? 'contract' : action === 'history' ? 'log' : ['notes', 'operations'].includes(action) ? 'notes' : action === 'send-itinerary' ? 'send' : action === 'documents' ? 'docs' : 'info';
