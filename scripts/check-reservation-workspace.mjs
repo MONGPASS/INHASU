@@ -1,5 +1,5 @@
 // Actual Hono/Lucia/D1-shaped SQLite routes for local reservation workspace QA.
-// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--customer-workspace] [--customer-notices] [--port=8796]
+// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--customer-workspace] [--customer-notices] [--calendar] [--port=8796]
 // Uses only synthetic, in-memory data; never reaches a live delivery or storage service.
 import { build } from 'esbuild';
 import { DatabaseSync } from 'node:sqlite';
@@ -31,6 +31,7 @@ const localOrigin = `http://localhost:${port}`;
 const usability = process.argv.includes('--usability');
 const customerWorkspace = process.argv.includes('--customer-workspace');
 const customerNotices = process.argv.includes('--customer-notices');
+const calendar = process.argv.includes('--calendar');
 const draftStoragePrefixes = ['inhasu:admin-product-draft:', 'inhasu:admin-reservation-doc-draft:', 'inhasu:quote-editor:',
     'inhasu:admin-magazine-draft:', 'inhasu:admin-assignment:'];
 const draftStorageFaultSource = `(function(){const originalSetItem=Storage.prototype.setItem;const prefixes=${JSON.stringify(draftStoragePrefixes)};Storage.prototype.setItem=function(key,value){if(prefixes.some(prefix=>String(key).startsWith(prefix)))throw new DOMException('Local draft storage fault','QuotaExceededError');return originalSetItem.call(this,key,value);};})();`;
@@ -1223,6 +1224,97 @@ if (customerNotices) {
     assert.equal(outbound.filter(item => item.provider === 'local-kakao-stub').length - smokeCalls, 2);
     console.log('고객 카카오 알림 검증 통과: 상품·견적 GET 발송 가능 · POST 모의 접수 2건 · 동일 키 중복 차단 · 발송 이력 재조회 · 실제 외부 접속 0건');
 }
+if (calendar) {
+    // Added after every baseline/existing optional assertion: exact-count checks
+    // above keep exercising the same fixtures. These are local synthetic records
+    // only, and calendar reads must not create provider calls or mutate bookings.
+    const outboundBeforeCalendar = outbound.length;
+    const sharedGuide = { id: 'calendar-guide-shared', name: '캘린더 한국어 가이드', phone: 'LOCAL-CALENDAR-GUIDE-A' };
+    const namesakeGuide = { id: 'calendar-guide-namesake', name: sharedGuide.name, phone: 'LOCAL-CALENDAR-GUIDE-B' };
+    const calendarLodge = { id: 'calendar-lodge', name: '캘린더 초원 게르 캠프', type: '게르', location: '중앙몽골',
+        bookingStatus: 'confirmed', roomCount: 2, occupancy: '2인실', images: [lodgeImage] };
+    const calendarFixtures = [
+        { id: 'calendar-shared-id', name: '김캘린더 · 상품팀', start: '2026-10-20', end: '2026-10-22', guide: sharedGuide,
+            vehiclePhone: 'LOCAL-CALENDAR-SHARED-DRIVER', total: 3600000, deposit: 360000,
+            lodges: [{ day: 1, date: '2026-10-20', accommodation: calendarLodge }, { day: 2, date: '2026-10-21', accommodation: calendarLodge }] },
+        { id: 'calendar-lodge-gap', name: '숙소 중간 날짜 미배정팀', start: '2026-10-21', end: '2026-10-24', guide: namesakeGuide,
+            vehiclePhone: 'LOCAL-CALENDAR-SHARED-DRIVER', total: 4800000, deposit: 480000,
+            lodges: [{ day: 1, date: '2026-10-21', accommodation: calendarLodge }, { day: 3, date: '2026-10-23', accommodation: calendarLodge }] },
+        { id: 'calendar-month-boundary', name: '월말 출발 · 다음 달 귀환팀', start: '2026-10-30', end: '2026-11-02', guide: namesakeGuide,
+            vehiclePhone: 'LOCAL-CALENDAR-OTHER-DRIVER', total: 5100000, deposit: 510000,
+            lodges: [1, 2, 3].map((day, index) => ({ day, date: ['2026-10-30', '2026-10-31', '2026-11-01'][index], accommodation: calendarLodge })) },
+        { id: 'calendar-zero', name: '총액 0원 · 당일 투어', start: '2026-10-21', end: '2026-10-21', guide: null,
+            vehiclePhone: '', total: 0, deposit: 0, lodges: [] },
+        { id: 'calendar-no-date', name: '출발일 확인 필요팀', start: '', end: '', guide: null,
+            vehiclePhone: '', total: 1200000, deposit: 120000, lodges: [] },
+        { id: 'calendar-invalid-date', name: '잘못된 날짜 확인팀', start: '2026-02-30', end: '2026-03-02', guide: null,
+            vehiclePhone: '', total: 2400000, deposit: 240000, lodges: [] },
+        { id: 'calendar-reversed-date', name: '귀환일이 출발일보다 빠른 팀', start: '2026-10-24', end: '2026-10-22', guide: null,
+            vehiclePhone: '', total: 2400000, deposit: 240000, lodges: [] },
+        { id: 'calendar-cancelled', name: '취소 · 운영 건수 제외팀', start: '2026-10-20', end: '2026-10-22', guide: sharedGuide,
+            vehiclePhone: 'LOCAL-CALENDAR-SHARED-DRIVER', total: 3600000, deposit: 360000, status: 'cancelled', lodges: [] },
+    ];
+    for (const fixture of calendarFixtures) {
+        insertReservation.run(fixture.id, 'workspace-booked-tour', productName, fixture.name,
+            `${fixture.id}@example.invalid`, '01000000000', 3, fixture.start, fixture.end, fixture.status || 'confirmed',
+            fixture.total, fixture.deposit, Math.max(0, fixture.total - fixture.deposit),
+            fixture.total === 0 ? 'unpaid' : 'paid', 'unpaid', `LOCAL-${fixture.id.toUpperCase()}`, JSON.stringify(savedDocument),
+            JSON.stringify({ vehicle: { type: fixture.vehiclePhone ? '로컬 하이스' : '', phone: fixture.vehiclePhone }, travelers: [] }),
+            fixture.guide ? JSON.stringify(fixture.guide) : null, JSON.stringify(fixture.lodges), 0, null, null,
+            'workspace-owner', '2026-10-19T02:00:00Z', 'website');
+    }
+    // Both records deliberately share an ID, customer spelling and guide ID.
+    // Source-qualified keys must keep two teams and their links distinct.
+    const calendarQuote = { ...structuredClone(quoteFixture), id: 'calendar-shared-id', name: '김캘린더 · 견적팀',
+        token: 'local-calendar-shared-quote-token', depart: '2026-10-21', return_: '2026-10-23',
+        booking: { preparedAt: '2026-10-19', publishStatus: 'draft',
+            contractInfo: { productName: '중앙몽골 맞춤 2박 3일', totalAmount: 2700000, depositAmount: 270000,
+                balanceAmount: 2430000, depositStatus: '입금완료' }, days: [],
+            assign: { guide: sharedGuide, vehicle: { model: '로컬 하이스', phone: 'LOCAL-CALENDAR-DIFFERENT-DRIVER' },
+                lodges: [{ ...calendarLodge, day: 1, date: '2026-10-21' }] } } };
+    raw.prepare('INSERT INTO requests (id,received_at,name,phone,destination,status,data,token) VALUES (?,?,?,?,?,?,?,?)')
+        .run(calendarQuote.id, calendarQuote.receivedAt, calendarQuote.name, calendarQuote.phone, calendarQuote.destination,
+            calendarQuote.status, JSON.stringify(calendarQuote), calendarQuote.token);
+    raw.prepare(`INSERT INTO quotes(id,user_id,type,name,phone,email,destination,headcount,period,status,admin_note,created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`).run('calendar-shared-id', 'workspace-owner', 'custom', '김캘린더 · 이전 문의',
+        '01000000000', 'calendar-legacy@example.invalid', '중앙몽골', '2명', '2026-10-21 ~ 2026-10-23', 'processing',
+        '견적 문의는 확정 운영 팀과 분리해야 합니다.', '2026-10-19T02:00:00Z');
+
+    const productResponse = await apiRequest('/api/reservations', { headers: admin });
+    assert.equal(productResponse.status, 200);
+    const productRows = await productResponse.json();
+    const calendarProducts = productRows.filter(row => row.id.startsWith('calendar-'));
+    assert.equal(calendarProducts.length, calendarFixtures.length);
+    const byCalendarId = id => calendarProducts.find(row => row.id === id);
+    assert.equal(byCalendarId('calendar-zero').totalAmount, 0, 'A real zero total must reach the calendar unchanged');
+    assert.equal(byCalendarId('calendar-month-boundary').endDate, '2026-11-02');
+    assert.deepEqual(byCalendarId('calendar-lodge-gap').dailyAccommodations.map(day => day.day), [1, 3], 'A two-of-three-night gap remains explicit');
+    assert.equal(byCalendarId('calendar-lodge-gap').dailyAccommodations[1].date, '2026-10-23');
+    assert.notEqual(byCalendarId('calendar-shared-id').assignedGuide.id, byCalendarId('calendar-lodge-gap').assignedGuide.id,
+        'Equal guide names cannot imply equal resource identities');
+    assert.equal(byCalendarId('calendar-shared-id').assignedGuide.name, byCalendarId('calendar-lodge-gap').assignedGuide.name);
+    assert.equal(byCalendarId('calendar-shared-id').adminOperations.driverPhone, byCalendarId('calendar-lodge-gap').adminOperations.driverPhone);
+    assert.equal(byCalendarId('calendar-no-date').startDate, '');
+    assert.equal(byCalendarId('calendar-invalid-date').startDate, '2026-02-30');
+    assert.equal(byCalendarId('calendar-reversed-date').endDate, '2026-10-22');
+    assert.equal(byCalendarId('calendar-cancelled').status, 'cancelled');
+    const quoteResponse = await apiRequest('/api/admin/bookings/quote', { headers: admin });
+    assert.equal(quoteResponse.status, 200);
+    const calendarQuoteSummary = (await quoteResponse.json()).items.find(row => row.id === calendarQuote.id);
+    assert.ok(calendarQuoteSummary);
+    assert.equal(calendarQuoteSummary.assignedGuide.id, byCalendarId('calendar-shared-id').assignedGuide.id);
+    assert.notEqual(calendarQuoteSummary.contractData.vehicle.phone, byCalendarId('calendar-shared-id').adminOperations.driverPhone,
+        'The same vehicle model with another driver must not be labelled a proven vehicle clash');
+    assert.equal(calendarQuoteSummary.dailyAccommodations[0].day, 1);
+    const calendarAssignments = (await (await apiRequest('/api/admin/assignments', { headers: admin })).json()).items;
+    assert.equal(calendarAssignments.find(row => row.key === 'quote_booking:calendar-shared-id').assignment.accommodations[0].date, '2026-10-21');
+    assert.ok(calendarAssignments.some(row => row.key === 'product:calendar-shared-id'));
+    const legacyRows = await (await apiRequest('/api/quotes', { headers: admin })).json();
+    assert.ok(legacyRows.some(row => row.id === 'calendar-shared-id' && row.status === 'processing'));
+    assert.equal((await apiRequest('/api/admin/bookings/quote', { headers: owner })).status, 403);
+    assert.equal(outbound.length, outboundBeforeCalendar, 'Calendar fixture reads never send customer notifications');
+    console.log('캘린더 합성 데이터 검증 통과: 월 경계 · 동일 가이드 ID 중복 · 동명 다른 가이드 · 동일 기사 연락처 · 같은 차종 다른 기사 · 3박 중 2박 배정 · 0원 · 미정/잘못된/역전 날짜 · 취소 · 세 출처 동일 ID · 외부 발송 0건');
+}
 console.log('예약 작업 API 검증 통과: 실제 로그인/견적 계정 · 견적 POST/PATCH/재조회 · 상품/견적 발송 이력·v5 문서 버전 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 계정별 예약/견적 초안 복원/충돌 · 상품·예약·견적·매거진·배정 초안 저장 실패 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 배정 버전 충돌/서명·여행자 보존/기사 연락처 보호 · 실제 이미지 업로드/조회 · 배너·카테고리 부분 수정/순서/매거진 공개 · 외부 발송 차단');
 
 if (process.argv.includes('--serve')) {
@@ -1266,6 +1358,9 @@ if (process.argv.includes('--serve')) {
                     ['magazines-unavailable', url.pathname.startsWith('/api/magazines')],
                     ['assignments-unavailable', url.pathname.startsWith('/api/admin/assignments')],
                     ['customer-notices-unavailable', url.pathname.startsWith('/api/admin/customer-notices/') && !writeMethod],
+                    ['calendar-reservations-unavailable', url.pathname === '/api/reservations' && !writeMethod],
+                    ['calendar-quote-bookings-unavailable', url.pathname === '/api/admin/bookings/quote' && !writeMethod],
+                    ['calendar-legacy-quotes-unavailable', url.pathname === '/api/quotes' && !writeMethod],
                 ];
                 const fault = faults.find(([name, applies]) => applies && fs.existsSync(path.join(scratch, name)));
                 let response;

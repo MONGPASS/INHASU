@@ -1,605 +1,168 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Admin3DIcon } from '../components/admin/Admin3DIcon';
-import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
-import { toTourDateKey } from '../utils/formatDate';
 import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref } from '../utils/customerWorkspaceRoutes';
+import { adaptCalendarTours, calendarDateKey, calendarMonthDays, toursOnDate, toursInMonth, calendarConflicts, calendarConflictsInRange, calendarStats, calendarTourDay,
+    type CalendarTour, type CalendarConflict } from '../utils/adminTourCalendar';
+import { readAdminCalendarView, adminCalendarSearch, adminCalendarMonth, type AdminCalendarView } from '../utils/adminCalendarView';
+import type { CalendarWorkspaceAction } from '../utils/calendarWorkspaceAction';
+import './AdminCalendar.css';
 
-type CalendarItemType = 'reservation' | 'quote' | 'quote_booking';
-
-interface CalendarItem {
-    id: string;
-    bookingLabel?: string;
-    bookingHint?: string;
-    itemType: CalendarItemType;
-    reservationNumber?: string;
-    productName: string;
-    customerName: string;
-    startDate: string;
-    endDate?: string;
-    status: string;
-    totalAmount: number;
-    deposit: number;
-    depositStatus: string;
-    balance: number;
-    balanceStatus: string;
-    headcount: string;
-    phone: string;
-    email: string;
-    assignedGuide?: { name?: string; phone?: string; image?: string };
-    dailyAccommodations?: unknown[];
-    dateSource?: 'confirmed' | 'requested';
-    requestedPeriod?: string;
+const paths = {
+    previous: 'm14 6-6 6 6 6', next: 'm10 6 6 6-6 6', refresh: 'M20 7v5h-5M4 17v-5h5M6 8a7 7 0 0 1 12-2l2 3M4 15l2 3a7 7 0 0 0 12-2',
+    search: 'm21 21-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0', people: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.9M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
+    guide: 'M20 21v-2a7 7 0 0 0-14 0v2M17 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0', vehicle: 'm5 6 2-3h10l2 3M3 11l2-5h14l2 5v7H3v-7ZM3 11h18M6 18v3M18 18v3M6 15h2M16 15h2',
+    stay: 'M3 20V5M3 15h18v5M3 10h5v5M8 9h10a3 3 0 0 1 3 3v3M6 7h0', money: 'M3 5h18v14H3zM7 9h0M17 15h0M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
+    warning: 'm12 3 10 18H2L12 3ZM12 9v4M12 17h0', calendar: 'M8 2v4M16 2v4M3 10h18M3 4h18v17H3z', rows: 'M8 6h13M8 12h13M8 18h13M3 6h0M3 12h0M3 18h0',
+    clear: 'm6 6 12 12M18 6 6 18', arrow: 'M4 12h16m-6-6 6 6-6 6',
+};
+type GlyphName = keyof typeof paths;
+const Glyph = ({ name }: { name: GlyphName }) => <svg className="tc-glyph" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
+const typeLabels = { product: '상품 예약', quote_booking: '견적 예약', legacy_quote: '이전 문의' };
+const actionable = (tour: CalendarTour) => tour.issues.filter(issue => issue.kind !== 'waiting');
+const money = (value: number | null) => value === null ? '금액 미등록' : `${value.toLocaleString('ko-KR')}원`;
+const peopleSummary = (stats: ReturnType<typeof calendarStats>) => stats.unknownPeople ? stats.people ? `${stats.people}명 + 미정 ${stats.unknownPeople}팀` : '인원 미등록' : `${stats.people}명`;
+const dateLabel = (date: string, year = false) => new Intl.DateTimeFormat('ko-KR', { ...(year ? { year: 'numeric' as const } : {}), month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Seoul' }).format(new Date(`${date}T12:00:00+09:00`));
+function workspaceHref(tour: CalendarTour, returnTo: string, action?: CalendarWorkspaceAction) {
+    const returnUrl = new URL(returnTo, 'https://calendar.invalid');
+    returnUrl.searchParams.set('open', tour.key);
+    const calendarReturn = `${returnUrl.pathname}${returnUrl.search}`;
+    const href = tour.source === 'product' ? productCustomerHref(tour.id, calendarReturn) : tour.source === 'quote_booking' ? quoteCustomerHref(tour.id, calendarReturn) : legacyQuoteCustomerHref(tour.id, calendarReturn);
+    if (!action || tour.source === 'legacy_quote') return href;
+    const url = new URL(href, 'https://calendar.invalid'); url.searchParams.set('action', action);
+    return `${url.pathname}${url.search}${url.hash}`;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-    completed: '여행 완료', on_hold: '보류',
-    new: '신규 견적',
-    processing: '견적 작성 중',
-    answered: '견적 발송 완료',
-    reservation_requested: '예약 요청',
-    converted: '예약 전환 완료',
-    pending_payment: '입금 대기',
-    paid: '결제 완료',
-    confirmed: '예약 확정',
-    cancelled: '취소',
-};
+function TourCard({ tour, date, conflicts, returnTo, selected }: { tour: CalendarTour; date: string; conflicts: CalendarConflict[]; returnTo: string; selected: boolean }) {
+    const day = calendarTourDay(tour, date), issues = actionable(tour);
+    const working = tour.source !== 'legacy_quote' && !['on_hold', 'completed'].includes(tour.status);
+    const resource = (icon: GlyphName, label: string, value: string, detail: string, missing: boolean, action: CalendarWorkspaceAction) => <div className={`tc-resource${missing ? ' is-missing' : ''}`}>
+        <span className="tc-resource-label"><Glyph name={icon} />{label}</span><strong className="tc-resource-value" title={value}>{value}</strong>
+        <span className="tc-resource-detail" title={detail}>{detail}</span>{working && <a className="tc-resource-action" href={workspaceHref(tour, returnTo, action)} aria-label={`${tour.customerName} ${label} ${missing && action !== 'payments' ? '선택' : '관리'}`}>{missing && action !== 'payments' ? '선택' : '관리'}<Glyph name="next" /></a>}
+    </div>;
+    const stay = day?.night ? day.stay || '숙소 미배정' : tour.nights === 0 ? '당일 투어' : '마지막 날 · 숙박 없음';
+    return <article id={`tc-tour-${encodeURIComponent(tour.key)}`} className={`tc-tour-card${selected ? ' is-selected' : ''}${conflicts.length ? ' is-conflict' : ''}`}>
+        <div className="tc-tour-heading"><div className="tc-tour-title"><span className="tc-source" data-source={tour.source}>{typeLabels[tour.source]}</span><h3>{tour.customerName}</h3></div><span className="tc-people"><Glyph name="people" />{tour.people === null ? '인원 미등록' : `${tour.people}명`}</span></div>
+        <p className="tc-product-name">{tour.productName || '여행명 미등록'}</p>
+        <div className="tc-tour-meta"><span>{tour.statusLabel}</span><span>{day?.day} / {tour.days}일차</span><span>{tour.reservationNumber || tour.id}</span></div>
+        {conflicts.length > 0 && <div className="tc-conflict"><Glyph name="warning" /><span>{conflicts.map(conflict => `${conflict.resource === 'guide' ? '가이드' : '차량'} ${conflict.name}`).join(' · ')} 일정 겹침</span></div>}
+        {tour.source === 'legacy_quote' ? <p className="tc-inquiry-note">고객이 문의한 희망 일정입니다. 확정 투어와 예약 인원에 포함하지 않습니다.</p> : <div className="tc-resources">
+            {resource('guide', '담당 가이드', tour.guide?.name || '미배정', tour.guide?.phone || '연락처 미등록', !tour.guide, 'guide')}
+            {resource('vehicle', '투어 차량', tour.vehicle?.name || '미배정', tour.vehicle?.phone || '연락처 미등록', !tour.vehicle, 'vehicle')}
+            {resource('stay', '오늘 숙소', stay, `전체 ${tour.stays.assigned}/${tour.stays.expected}박 배정`, Boolean(day?.night && !day.stay), 'stay')}
+            {resource('money', '입금 현황', tour.paymentLabel, tour.depositReported && tour.depositStatus !== 'paid' ? '고객 입금 신고 · 확인 필요' : `잔금 ${money(tour.balance)}`, tour.depositStatus !== 'paid' && tour.deposit !== 0, 'payments')}
+        </div>}
+        {issues.length > 0 && <div className="tc-issues" aria-label="처리할 업무">{issues.slice(0, 3).map(issue => <span key={issue.id} className="tc-issue">{issue.label}</span>)}{issues.length > 3 && <span className="tc-issue" title={issues.slice(3).map(issue => issue.label).join(' · ')}>+{issues.length - 3}건</span>}</div>}
+        <details className="tc-tour-details"><summary>여행·문서 정보</summary><dl><div><dt>여행 기간</dt><dd>{tour.startDate} ~ {tour.endDate}</dd></div><div><dt>총 여행금액</dt><dd>{money(tour.total)}</dd></div><div><dt>예약금 / 잔금</dt><dd>{money(tour.deposit)} / {money(tour.balance)}</dd></div><div><dt>여행 계약서</dt><dd>{tour.contract === 'signed' ? '고객 동의 완료' : tour.contract === 'waiting' ? '고객 동의 대기' : '동의 정보 확인 필요'}</dd></div><div><dt>확정 일정표</dt><dd>{tour.publication === 'published' ? '공개됨' : tour.publication === 'draft' ? '미공개' : '공개 상태 확인 필요'}</dd></div><div><dt>고객 연락처</dt><dd>{tour.phone || '미등록'}</dd></div>{tour.stays.missingDays.length > 0 && <div><dt>숙소 미배정</dt><dd>{tour.stays.missingDays.map(night => `${night}일차`).join(' · ')}</dd></div>}</dl></details>
+        <footer className="tc-tour-footer"><span>{tour.startDate.slice(5).replace('-', '.')} — {tour.endDate.slice(5).replace('-', '.')}</span><a href={workspaceHref(tour, returnTo)}>고객·예약 관리<Glyph name="arrow" /></a></footer>
+    </article>;
+}
 
-const normalizeDate = (value: unknown): string => {
-    if (!value || typeof value !== 'string') return '';
-    const trimmed = value.trim();
-    if (!trimmed) return '';
-    // ISO 타임스탬프를 그대로 자르면 출발일이 하루 앞당겨진다 (toTourDateKey 주석 참고).
-    if (trimmed.includes('T')) return toTourDateKey(trimmed);
-    if (trimmed.includes('.')) return trimmed.replace(/\./g, '-').replace(/\s/g, '');
-    return trimmed;
-};
-
-const toDateKey = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, '0');
-    const day = `${date.getDate()}`.padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
-const parseDateRange = (period?: string): { startDate: string; endDate?: string } => {
-    if (!period) return { startDate: '' };
-    const matches = period.match(/\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/g) || [];
-    const normalized = matches.map(normalizeDate);
-    return {
-        startDate: normalized[0] || '',
-        endDate: normalized[1] || normalized[0] || undefined,
-    };
-};
-
-const parseMaybeJson = <T,>(value: unknown, fallback: T): T => {
-    if (!value) return fallback;
-    if (typeof value !== 'string') return value as T;
-    try {
-        return JSON.parse(value) as T;
-    } catch {
-        return fallback;
-    }
-};
-
-const isInMonth = (item: CalendarItem, month: Date) => {
-    if (!item.startDate) return false;
-    const start = new Date(`${item.startDate}T00:00:00`);
-    const end = new Date(`${item.endDate || item.startDate}T00:00:00`);
-    const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
-    const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
-    return start <= monthEnd && end >= monthStart;
-};
-
-const isOnDate = (item: CalendarItem, dateKey: string) => {
-    if (!item.startDate) return false;
-    const start = item.startDate;
-    const end = item.endDate || item.startDate;
-    return start <= dateKey && end >= dateKey;
-};
-
-// Calendar pill tone from real assignment/status data:
-// quote → amber (needs handling), assigned reservation → blue, unassigned reservation → amber, otherwise green.
-const getEventTone = (item: CalendarItem): 'blue' | 'green' | 'amber' => {
-    if (item.itemType === 'quote') return 'amber';
-    if (item.status === 'pending_payment' || item.depositStatus !== 'paid') return 'amber';
-    if (!item.assignedGuide) return 'amber';
-    if (item.status === 'confirmed' || item.status === 'paid') return 'blue';
-    return 'green';
-};
-
-const getNextAction = (item: CalendarItem): { label: string; tone: string; icon: string } => {
-    if (item.itemType === 'quote_booking') return { label: item.bookingHint || item.bookingLabel || '견적 예약 관리', tone: item.status === 'confirmed' ? 'b-green' : 'b-amber', icon: 'event_note' };
-    if (item.itemType === 'quote') {
-        if (item.status === 'new') return { label: '요청 검토', tone: 'b-red', icon: 'fiber_new' };
-        if (item.status === 'processing') return { label: '견적 작성', tone: 'b-amber', icon: 'edit_note' };
-        if (item.status === 'answered') return { label: '고객 확인 대기', tone: 'b-blue', icon: 'mark_email_read' };
-        if (item.status === 'reservation_requested') return { label: '예약 전환', tone: 'b-purple', icon: 'sync_alt' };
-        return { label: '견적 관리', tone: 'b-gray', icon: 'request_quote' };
-    }
-
-    if (item.status === 'pending_payment' || item.depositStatus !== 'paid') {
-        return { label: '입금 확인', tone: 'b-amber', icon: 'payments' };
-    }
-    if (!item.assignedGuide) {
-        return { label: '가이드 배정', tone: 'b-amber', icon: 'person_add' };
-    }
-    if (!item.dailyAccommodations || item.dailyAccommodations.length === 0) {
-        return { label: '숙소 확인', tone: 'b-blue', icon: 'hotel' };
-    }
-    return { label: '운영 체크', tone: 'b-green', icon: 'task_alt' };
-};
-
-const formatRange = (item: CalendarItem) => {
-    if (!item.startDate) return '일정 미정';
-    return item.endDate && item.endDate !== item.startDate ? `${item.startDate} ~ ${item.endDate}` : item.startDate;
-};
-
-const parsePeople = (headcount: string): number => {
-    const match = headcount.match(/\d+/);
-    return match ? Number(match[0]) : 0;
-};
-
-const CalendarDetailModal = ({ item, onClose }: { item: CalendarItem | null; onClose: () => void }) => {
-    if (!item) return null;
-    const action = getNextAction(item);
-    return (
-        <div className="picker-scrim" onClick={onClose}>
-            <div className="picker" style={{ width: 480 }} onClick={(e) => e.stopPropagation()}>
-                <div className="card-head">
-                    <div style={{ minWidth: 0 }}>
-                        <div className="row" style={{ gap: 6, marginBottom: 6 }}>
-                            <span className={`tag-type ${item.itemType === 'quote' ? 'quote' : 'reservation'}`}>
-                                {item.itemType === 'quote_booking' ? '견적 예약' : item.itemType === 'quote' ? '이전 견적 문의' : '상품 예약'}
-                            </span>
-                            <span className={`badge ${action.tone}`}>{STATUS_LABEL[item.status] || item.status}</span>
-                        </div>
-                        <h2>{item.productName}</h2>
-                        <div className="sub">No. {item.reservationNumber || item.id.slice(0, 8).toUpperCase()}</div>
-                    </div>
-                    <div className="spacer" />
-                    <button className="icon-btn" onClick={onClose} title="닫기" type="button">
-                        <Icon name="close" />
-                    </button>
-                </div>
-
-                <div className="picker-list" style={{ padding: 18 }}>
-                    <div className="card card-pad" style={{ marginBottom: 14 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                            <div>
-                                <div className="kv" style={{ borderBottom: 'none', padding: 0, display: 'block' }}>
-                                    <span style={{ display: 'block', marginBottom: 3 }}>고객</span>
-                                    <b>{item.customerName || '미입력'}</b>
-                                </div>
-                            </div>
-                            <div>
-                                <div className="kv" style={{ borderBottom: 'none', padding: 0, display: 'block' }}>
-                                    <span style={{ display: 'block', marginBottom: 3 }}>연락처</span>
-                                    <b>{item.phone || item.email || '미입력'}</b>
-                                </div>
-                            </div>
-                            <div>
-                                <div className="kv" style={{ borderBottom: 'none', padding: 0, display: 'block' }}>
-                                    <span style={{ display: 'block', marginBottom: 3 }}>일정</span>
-                                    <b>{formatRange(item)}</b>
-                                </div>
-                            </div>
-                            <div>
-                                <div className="kv" style={{ borderBottom: 'none', padding: 0, display: 'block' }}>
-                                    <span style={{ display: 'block', marginBottom: 3 }}>인원</span>
-                                    <b>{item.headcount || '미정'}</b>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                        <div className="card card-pad">
-                            <div className="cell-muted" style={{ fontSize: 12.5, marginBottom: 6 }}>금액</div>
-                            <div className="cell-price" style={{ fontSize: 18 }}>{(item.totalAmount || 0).toLocaleString('ko-KR')}원</div>
-                        </div>
-                        <div className="card card-pad">
-                            <div className="cell-muted" style={{ fontSize: 12.5, marginBottom: 6 }}>다음 처리</div>
-                            <div className="row" style={{ gap: 6 }}>
-                                <Icon name={action.icon} style={{ fontSize: 18 }} />
-                                <span className="cell-strong">{action.label}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {item.itemType === 'quote' && (
-                        <div className="card card-pad" style={{ marginTop: 14, background: 'var(--mrt-purple-soft)', borderColor: 'transparent' }}>
-                            <div className="cell-strong" style={{ color: 'var(--mrt-purple-2)' }}>견적 처리 포인트</div>
-                            <p style={{ margin: '6px 0 0', fontSize: 12.5, lineHeight: 1.6, color: 'var(--mrt-purple-2)' }}>
-                                이 일정은 아직 확정 예약이 아닙니다. 캘린더에서 다른 확정 일정과 겹치는지 확인한 뒤 견적 금액, 안내문, 견적서 링크를 입력하면 됩니다.
-                            </p>
-                        </div>
-                    )}
-                </div>
-
-                <div className="drawer-foot">
-                    <button className="btn btn-ghost" onClick={onClose} type="button">닫기</button>
-                    <div className="spacer" style={{ flex: 1 }} />
-                    <a className="btn btn-ink" href={item.itemType === 'quote_booking' ? quoteCustomerHref(item.id, '/admin/calendar') : item.itemType === 'quote' ? legacyQuoteCustomerHref(item.id, '/admin/calendar') : productCustomerHref(item.id, '/admin/calendar')}>
-                        <Icon name="open_in_new" />예약 상세로 이동
-                    </a>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export const AdminCalendar: React.FC = () => {
-    const [selectedEvent, setSelectedEvent] = useState<CalendarItem | null>(null);
-    const [selectedDate, setSelectedDate] = useState(toDateKey(new Date()));
-    const [items, setItems] = useState<CalendarItem[]>([]);
-    const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [isLoading, setIsLoading] = useState(false);
-    const [loadWarnings, setLoadWarnings] = useState<string[]>([]);
-    const [includeLegacyQuotes, setIncludeLegacyQuotes] = useState(false);
-
-    const fetchCalendarItems = async () => {
-        setIsLoading(true);
-        try {
-            const [reservationSettled, quoteSettled, bookingSettled] = await Promise.allSettled([
-                api.reservations.list(),
-                api.quotes.list(),
-                api.adminBookings.quote(),
-            ]);
-
-            const reservationData = reservationSettled.status === 'fulfilled' && Array.isArray(reservationSettled.value)
-                ? reservationSettled.value
-                : [];
-            const quoteData = quoteSettled.status === 'fulfilled' && Array.isArray(quoteSettled.value)
-                ? quoteSettled.value
-                : [];
-
-            const mappedReservations: CalendarItem[] = reservationData
-                .filter((reservation: any) => reservation.status !== 'cancelled')
-                .map((reservation: any) => {
-                    const totalAmount = reservation.totalAmount || reservation.total_amount || reservation.totalPrice || reservation.price_breakdown?.total || 0;
-                    const deposit = reservation.deposit || reservation.depositAmount || reservation.deposit_amount || reservation.price_breakdown?.deposit || 0;
-                    const assignedGuide = parseMaybeJson(reservation.assignedGuide || reservation.assigned_guide, undefined);
-                    return {
-                        id: reservation.id,
-                        itemType: 'reservation',
-                        reservationNumber: reservation.reservationNumber || reservation.reservation_number,
-                        productName: reservation.productName || reservation.product_name || '상품명 없음',
-                        customerName: reservation.customerName || reservation.customer_name || reservation.customer_info?.name || '고객명 없음',
-                        startDate: normalizeDate(reservation.startDate || reservation.start_date || reservation.date),
-                        endDate: normalizeDate(reservation.endDate || reservation.end_date),
-                        status: reservation.status || 'pending_payment',
-                        totalAmount,
-                        deposit,
-                        depositStatus: reservation.depositStatus || reservation.deposit_status || (reservation.status === 'pending_payment' ? 'unpaid' : 'paid'),
-                        balance: reservation.balance || reservation.balanceAmount || reservation.balance_amount || Math.max(totalAmount - deposit, 0),
-                        balanceStatus: reservation.balanceStatus || reservation.balance_status || 'unpaid',
-                        headcount: reservation.headcount || (reservation.travelers || reservation.totalPeople || reservation.total_people ? `${reservation.travelers || reservation.totalPeople || reservation.total_people}명` : '인원 미정'),
-                        phone: reservation.phone || reservation.customerPhone || reservation.customer_phone || reservation.customer_info?.phone || '',
-                        email: reservation.email || reservation.customerEmail || reservation.customer_email || reservation.customer_info?.email || '',
-                        assignedGuide,
-                        dailyAccommodations: parseMaybeJson(reservation.dailyAccommodations || reservation.daily_accommodations, []),
-                        dateSource: 'confirmed',
-                    };
-                });
-
-            const mappedQuotes: CalendarItem[] = quoteData
-                .filter((quote: any) => quote.status !== 'converted' && quote.status !== 'cancelled')
-                .map((quote: any) => {
-                    const requestedRange = parseDateRange(quote.period);
-                    const confirmedStart = normalizeDate(quote.confirmed_start_date || quote.confirmedStartDate);
-                    const confirmedEnd = normalizeDate(quote.confirmed_end_date || quote.confirmedEndDate);
-                    const startDate = confirmedStart || requestedRange.startDate;
-                    const endDate = confirmedEnd || requestedRange.endDate;
-                    const confirmedPrice = quote.confirmedPrice || quote.confirmed_price || 0;
-                    const deposit = quote.deposit || 0;
-                    return {
-                        id: quote.id,
-                        itemType: 'quote',
-                        productName: `${quote.destination || '맞춤 여행'} 맞춤 견적`,
-                        customerName: quote.name || '고객명 없음',
-                        startDate,
-                        endDate,
-                        status: quote.status || 'new',
-                        totalAmount: confirmedPrice,
-                        deposit,
-                        depositStatus: quote.deposit_status || quote.depositStatus || 'unpaid',
-                        balance: Math.max(confirmedPrice - deposit, 0),
-                        balanceStatus: quote.balance_status || quote.balanceStatus || 'unpaid',
-                        headcount: quote.headcount || '인원 미정',
-                        phone: quote.phone || '',
-                        email: quote.email || '',
-                        dateSource: confirmedStart ? 'confirmed' : 'requested',
-                        requestedPeriod: quote.period,
-                    };
-                });
-
-            const mappedBookings: CalendarItem[] = bookingSettled.status === 'fulfilled'
-                ? bookingSettled.value.items.filter(b => !['cancelled', 'on_hold'].includes(b.status)).map(b => ({
-                    ...b, itemType: 'quote_booking', bookingLabel: b.quoteBooking.label, bookingHint: b.quoteBooking.hint,
-                    dateSource: 'confirmed',
-                })) : [];
-            const warnings: string[] = [];
-            if (reservationSettled.status === 'rejected') warnings.push('상품 예약을 불러오지 못했습니다. 이전 일정을 표시합니다.');
-            if (quoteSettled.status === 'rejected') warnings.push('이전 견적 문의를 불러오지 못했습니다. 이전 일정을 표시합니다.');
-            if (bookingSettled.status === 'rejected') warnings.push('견적 예약을 불러오지 못했습니다. 이전 일정을 표시합니다.');
-            else if (bookingSettled.value.skipped) warnings.push(`견적 데이터 ${bookingSettled.value.skipped}건을 읽지 못했습니다.`);
-            setLoadWarnings(warnings);
-            setItems(prev => [...mappedReservations, ...mappedQuotes, ...mappedBookings, ...prev.filter(item =>
-                (item.itemType === 'reservation' && reservationSettled.status === 'rejected')
-                || (item.itemType === 'quote' && quoteSettled.status === 'rejected')
-                || (item.itemType === 'quote_booking' && bookingSettled.status === 'rejected'))].filter(item => item.startDate));
-        } catch (error) {
-            console.error('Calendar fetch error:', error);
-            setLoadWarnings(['일정을 불러오지 못했습니다. 다시 시도해 주세요.']);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchCalendarItems();
+export function AdminCalendar() {
+    const [params, setParams] = useSearchParams(), view = readAdminCalendarView(params.toString());
+    const [data, setData] = useState<{ reservations: unknown[]; bookings: unknown[]; quotes: unknown[] }>({ reservations: [], bookings: [], quotes: [] });
+    const [loading, setLoading] = useState(true), [initialized, setInitialized] = useState(false), [warnings, setWarnings] = useState<string[]>([]);
+    const [skippedBookings, setSkippedBookings] = useState(0);
+    const generation = useRef(0), panelRef = useRef<HTMLElement>(null);
+    const revealedTour = useRef('');
+    const reload = useCallback(async () => {
+        const request = ++generation.current; setLoading(true);
+        const results = await Promise.allSettled([api.reservations.list(), api.adminBookings.quote(), api.quotes.list()]);
+        if (request !== generation.current) return;
+        const nextWarnings: string[] = [];
+        const rows = results.map((result, index) => {
+            const raw = result.status === 'fulfilled' ? result.value : null;
+            const value = index === 1 && raw && typeof raw === 'object' && 'items' in raw ? raw.items : raw;
+            if (!Array.isArray(value)) { nextWarnings.push(['상품 예약', '견적 예약', '이전 문의'][index]); return null; }
+            return value;
+        });
+        setData(previous => ({ reservations: rows[0] ?? previous.reservations, bookings: rows[1] ?? previous.bookings, quotes: rows[2] ?? previous.quotes }));
+        if (results[1].status === 'fulfilled' && rows[1]) setSkippedBookings(Number(results[1].value.skipped) || 0);
+        setWarnings(nextWarnings); setInitialized(true); setLoading(false);
     }, []);
-
-    const visibleItems = useMemo(() => items.filter(item => includeLegacyQuotes || item.itemType !== 'quote'), [items, includeLegacyQuotes]);
-    const monthItems = useMemo(() => visibleItems.filter(item => isInMonth(item, currentMonth)), [visibleItems, currentMonth]);
-
-    const monthStats = useMemo(() => ({
-        total: monthItems.length,
-        quotes: monthItems.filter(item => item.itemType === 'quote').length,
-        confirmed: monthItems.filter(item => item.itemType !== 'quote' && ['confirmed', 'paid'].includes(item.status)).length,
-        needsAction: monthItems.filter(item => {
-            if (item.itemType === 'quote') return ['new', 'processing', 'reservation_requested'].includes(item.status);
-            return !['cancelled', 'completed', 'on_hold'].includes(item.status) && (item.status === 'pending_payment' || !item.assignedGuide || (item.itemType === 'quote_booking' && item.status !== 'confirmed'));
-        }).length,
-        people: monthItems.reduce((sum, item) => sum + parsePeople(item.headcount), 0),
-    }), [monthItems]);
-
-    const selectedDateItems = useMemo(
-        () => visibleItems.filter(item => isOnDate(item, selectedDate)).sort((a, b) => a.itemType.localeCompare(b.itemType)),
-        [visibleItems, selectedDate],
-    );
-
-    const actionItems = useMemo(
-        () => monthItems
-            .filter(item => {
-                if (item.itemType === 'quote') return ['new', 'processing', 'reservation_requested'].includes(item.status);
-                return !['cancelled', 'completed', 'on_hold'].includes(item.status) && (item.status === 'pending_payment' || !item.assignedGuide || (item.itemType === 'quote_booking' && item.status !== 'confirmed'));
-            })
-            .slice(0, 5),
-        [monthItems],
-    );
-
-    // Build the month grid from the real currentMonth + items state.
-    const todayKey = toDateKey(new Date());
-    const calendarCells = useMemo(() => {
-        const year = currentMonth.getFullYear();
-        const month = currentMonth.getMonth();
-        const first = new Date(year, month, 1);
-        const startOffset = first.getDay(); // Sunday = 0
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
-        const cells: Array<{ valid: boolean; dayNum: number; dateKey: string; events: CalendarItem[] }> = [];
-        for (let i = 0; i < totalCells; i++) {
-            const dayNum = i - startOffset + 1;
-            const valid = dayNum >= 1 && dayNum <= daysInMonth;
-            const dateKey = valid ? `${year}-${`${month + 1}`.padStart(2, '0')}-${`${dayNum}`.padStart(2, '0')}` : '';
-            const events = valid ? visibleItems.filter(item => isOnDate(item, dateKey)) : [];
-            cells.push({ valid, dayNum, dateKey, events });
-        }
-        return cells;
-    }, [currentMonth, visibleItems]);
-
-    const dow = ['일', '월', '화', '수', '목', '금', '토'];
-    const monthTitle = `${currentMonth.getFullYear()}년 ${currentMonth.getMonth() + 1}월`;
-
-    const goToMonth = (delta: number) => {
-        setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+    useEffect(() => { void reload(); const update = () => { void reload(); }; window.addEventListener('admin-workspace-changed', update); window.addEventListener('focus', update);
+        return () => { generation.current++; window.removeEventListener('admin-workspace-changed', update); window.removeEventListener('focus', update); }; }, [reload]);
+    const all = useMemo(() => adaptCalendarTours(data), [data]);
+    useEffect(() => {
+        const key = `${view.date}:${view.open}`;
+        if (!view.open) { revealedTour.current = ''; return; }
+        if (!initialized || key === revealedTour.current || !all.some(tour => tour.key === view.open)) return;
+        revealedTour.current = key;
+        const frame = requestAnimationFrame(() => document.getElementById(`tc-tour-${encodeURIComponent(view.open)}`)?.scrollIntoView({ block: 'nearest' }));
+        return () => cancelAnimationFrame(frame);
+    }, [all, initialized, view.date, view.open]);
+    const monthDate = new Date(Number(view.month.slice(0, 4)), Number(view.month.slice(5)) - 1, 1, 12), today = calendarDateKey(new Date());
+    const update = (patch: Partial<AdminCalendarView>, replace = false) => setParams(adminCalendarSearch({ ...view, ...patch }), { replace });
+    const monthStart = `${view.month}-01`, monthEnd = `${view.month}-${new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate()}`;
+    const conflicts = useMemo(() => calendarConflictsInRange(all, monthStart, monthEnd), [all, monthStart, monthEnd]), conflictKeys = new Set(conflicts.flatMap(conflict => conflict.tourKeys));
+    const query = view.query.trim().toLocaleLowerCase('ko-KR');
+    const matched = all.filter(tour => (view.legacy || tour.source !== 'legacy_quote') && (view.source === 'all' || tour.source === view.source)
+        && (!query || [tour.customerName, tour.productName, tour.reservationNumber, tour.phone, tour.guide?.name, tour.vehicle?.name].some(value => value?.toLocaleLowerCase('ko-KR').includes(query))));
+    const monthTours = toursInMonth(matched, monthDate), stats = calendarStats(monthTours);
+    const relevantConflicts = conflicts.filter(conflict => monthTours.some(tour => conflict.tourKeys.includes(tour.key)));
+    const visible = matched.filter(tour => view.attention === 'conflicts' ? conflictKeys.has(tour.key) : view.attention === 'needs' ? actionable(tour).length > 0 || conflictKeys.has(tour.key) : true);
+    const visibleMonth = toursInMonth(visible, monthDate);
+    const dayConflicts = calendarConflicts(toursOnDate(all, view.date)), dayConflictKeys = new Set(dayConflicts.flatMap(conflict => conflict.tourKeys));
+    const selected = toursOnDate(visible, view.date).filter(tour => view.attention !== 'conflicts' || dayConflictKeys.has(tour.key)).sort((a, b) => Number(dayConflictKeys.has(b.key)) - Number(dayConflictKeys.has(a.key)) || actionable(b).length - actionable(a).length || a.customerName.localeCompare(b.customerName, 'ko'));
+    const dayStats = calendarStats(selected);
+    const returnTo = `/admin/calendar?${adminCalendarSearch(view)}`;
+    const filtered = Boolean(query || view.source !== 'all' || view.attention !== 'all');
+    const clear = () => update({ query: '', source: 'all', attention: 'all', open: '' });
+    const choose = (date: string, open = '', scroll = false) => {
+        update({ month: date.slice(0, 7), date, open });
+        if (scroll) requestAnimationFrame(() => {
+            if (window.matchMedia('(max-width: 1359px)').matches) panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (open) document.getElementById(`tc-tour-${encodeURIComponent(open)}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
     };
-    const goToToday = () => {
-        const now = new Date();
-        setCurrentMonth(new Date(now.getFullYear(), now.getMonth(), 1));
-        setSelectedDate(toDateKey(now));
+    const keyboardDate = (event: KeyboardEvent<HTMLButtonElement>, date: string) => {
+        const change: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+        if (event.key === 'PageUp' || event.key === 'PageDown') { event.preventDefault(); setParams(adminCalendarSearch(adminCalendarMonth(view, event.key === 'PageUp' ? -1 : 1))); return; }
+        if (!(event.key in change)) return;
+        event.preventDefault(); const next = calendarDateKey(new Date(Date.parse(`${date}T12:00:00Z`) + change[event.key] * 86400000)); choose(next);
+        requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(`[data-calendar-date="${next}"]`)?.focus());
     };
-
-    return (
-        <AdminLayout
-            activePage="calendar"
-            title="투어 캘린더"
-            description="상품 예약과 실제 견적 예약을 날짜 기준으로 함께 확인합니다."
-            showSearch={false}
-            actions={(
-                <button className="btn btn-ghost btn-sm" onClick={fetchCalendarItems} disabled={isLoading} type="button">
-                    <Icon name="refresh" className={isLoading ? 'spin' : ''} />새로고침
-                </button>
-            )}
-        >
-            <div className="toolbar">
-                <div className="row" style={{ gap: 8 }}>
-                    <button className="icon-btn" onClick={() => goToMonth(-1)} title="이전 달" type="button">
-                        <Icon name="chevron_left" />
-                    </button>
-                    <div className="page-title" style={{ fontSize: 19 }}>{monthTitle}</div>
-                    <button className="icon-btn" onClick={() => goToMonth(1)} title="다음 달" type="button">
-                        <Icon name="chevron_right" />
-                    </button>
-                    <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6 }} onClick={goToToday} type="button">오늘</button>
-                </div>
-                <div className="spacer" />
-                <div className="row" style={{ gap: 14, marginRight: 8 }}>
-                    <span className="row" style={{ gap: 6 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--mrt-blue)' }} />
-                        <span className="cell-muted" style={{ fontSize: 12.5 }}>배정 완료</span>
-                    </span>
-                    <span className="row" style={{ gap: 6 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: 3, background: '#F5B544' }} />
-                        <span className="cell-muted" style={{ fontSize: 12.5 }}>처리 필요</span>
-                    </span>
-                </div>
-                <a className="btn btn-ink" href="/admin/reservations">
-                    <Icon name="add" />투어 일정 추가
-                </a>
+    let cells = calendarMonthDays(monthDate);
+    while (cells.length > 28 && cells.slice(-7).every(cell => !cell.inMonth)) cells = cells.slice(0, -7);
+    const unknown = !initialized || (warnings.length === 3 && all.length === 0);
+    const metrics = [
+        { label: '이번 달 투어', value: `${stats.tours}팀`, caption: '상품·견적 예약 · 보류 제외', icon: 'calendar' as const },
+        { label: '여행 인원', value: stats.people === 0 && stats.unknownPeople ? '인원 미등록' : `${stats.people}명`, caption: stats.unknownPeople ? `${stats.unknownPeople}팀 인원 확인 필요` : '확정 일정의 전체 예약 인원', icon: 'travelers' as const },
+        { label: '처리 필요', value: `${monthTours.filter(tour => actionable(tour).length || conflictKeys.has(tour.key)).length}팀`, caption: '미배정·입금·문서 확인', icon: 'reservation' as const, attention: 'needs' as const },
+        { label: '배정 일정 겹침', value: `${relevantConflicts.length}건`, caption: '등록된 가이드·차량 기준', icon: 'vehicle' as const, attention: 'conflicts' as const },
+    ];
+    return <AdminLayout activePage="calendar" title="투어 캘린더" description="날짜별 투어와 배정·입금·문서 업무를 함께 확인합니다." actions={<><button type="button" className="btn btn-ghost" onClick={() => void reload()} disabled={loading}><Glyph name="refresh" />{loading ? '불러오는 중' : '새로고침'}</button><a className="btn btn-ink" href="/admin/reservations">예약 관리<Glyph name="arrow" /></a></>}>
+        <div className="tour-calendar">
+            <div className="tc-metrics">{metrics.map(metric => <button key={metric.label} type="button" className={`tc-metric${metric.attention && view.attention === metric.attention ? ' is-active' : ''}`} disabled={!metric.attention} onClick={() => metric.attention && update({ attention: view.attention === metric.attention ? 'all' : metric.attention, open: '' })}><Admin3DIcon name={metric.icon} size={42} /><span><span className="tc-metric-label">{metric.label}</span><strong>{unknown ? '—' : metric.value}</strong><small>{metric.caption}</small></span>{metric.attention && <Glyph name="next" />}</button>)}</div>
+            {warnings.length > 0 && <div className="tc-warning" role="alert"><Glyph name="warning" /><span>{warnings.join(' · ')} 조회에 실패했습니다. 해당 출처는 마지막으로 불러온 정보를 유지합니다.</span><button type="button" className="tc-button" disabled={loading} onClick={() => void reload()}>다시 시도</button></div>}
+            {skippedBookings > 0 && <div className="tc-warning" role="status"><Glyph name="warning" /><span>견적 예약 {skippedBookings}건의 저장 형식을 확인해야 합니다. 나머지 일정을 표시합니다.</span><a className="tc-button" href="/admin/reservations">예약 목록 확인</a></div>}
+            <div className="tc-filters"><label className="tc-search"><Glyph name="search" /><input aria-label="고객·여행·예약번호·배정 검색" value={view.query} maxLength={120} placeholder="고객, 여행, 예약번호 검색" onChange={event => update({ query: event.target.value, open: '' }, true)} />{view.query && <button type="button" className="tc-icon-button" aria-label="검색 지우기" onClick={() => update({ query: '', open: '' })}><Glyph name="clear" /></button>}</label>
+                <select aria-label="예약 출처" value={view.source} onChange={event => update({ source: event.target.value as AdminCalendarView['source'], legacy: event.target.value === 'legacy_quote' || view.legacy, open: '' })}><option value="all">모든 예약</option><option value="product">상품 예약</option><option value="quote_booking">견적 예약</option><option value="legacy_quote">이전 문의</option></select>
+                <div className="tc-filter-chips">{([{ value: 'all', label: '전체' }, { value: 'needs', label: '처리 필요' }, { value: 'conflicts', label: '배정 겹침' }] as const).map(filter => <button key={filter.value} type="button" className={`tc-button${view.attention === filter.value ? ' is-active' : ''}`} aria-pressed={view.attention === filter.value} onClick={() => update({ attention: filter.value, open: '' })}>{filter.label}</button>)}</div>
+                <label className="tc-check"><input type="checkbox" checked={view.legacy} onChange={event => update({ legacy: event.target.checked, source: !event.target.checked && view.source === 'legacy_quote' ? 'all' : view.source, open: '' })} />이전 문의 포함</label>{filtered && <button type="button" className="tc-reset" onClick={clear}>필터 초기화</button>}
             </div>
-
-            {loadWarnings.length > 0 && <div className="card card-pad" role="alert" style={{ marginBottom: 14, borderColor: '#D99635' }}>
-                {loadWarnings.map(message => <div key={message}>{message}</div>)}
-                <button className="btn btn-sm btn-ghost" disabled={isLoading} onClick={fetchCalendarItems}>다시 불러오기</button>
-            </div>}
-            <label className="row" style={{ marginBottom: 14, fontSize: 13 }}><input type="checkbox" checked={includeLegacyQuotes} onChange={e => setIncludeLegacyQuotes(e.target.checked)} />이전 견적 문의도 표시</label>
-            <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 18 }}>
-                <div className="metric" style={{ padding: '16px 18px' }}>
-                    <div className="row" style={{ gap: 12 }}>
-                        <span className="metric-ico" style={{ width: 40, height: 40, background: '#fff' }}><Admin3DIcon name="calendar" fallback="event" size={36} /></span>
-                        <div>
-                            <div className="metric-label">이번 달 투어</div>
-                            <div className="metric-value" style={{ fontSize: 22 }}>{monthStats.total}건</div>
-                        </div>
-                    </div>
-                </div>
-                <div className="metric" style={{ padding: '16px 18px' }}>
-                    <div className="row" style={{ gap: 12 }}>
-                        <span className="metric-ico" style={{ width: 40, height: 40, background: '#fff' }}><Admin3DIcon name="reservation" fallback="priority_high" size={36} /></span>
-                        <div>
-                            <div className="metric-label">처리 필요</div>
-                            <div className="metric-value" style={{ fontSize: 22 }}>{monthStats.needsAction}건</div>
-                        </div>
-                    </div>
-                </div>
-                <div className="metric" style={{ padding: '16px 18px' }}>
-                    <div className="row" style={{ gap: 12 }}>
-                        <span className="metric-ico" style={{ width: 40, height: 40, background: '#fff' }}><Admin3DIcon name="travelers" fallback="groups" size={36} /></span>
-                        <div>
-                            <div className="metric-label">예약 인원</div>
-                            <div className="metric-value" style={{ fontSize: 22 }}>{monthStats.people}명</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="cal">
-                {dow.map((d, i) => (
-                    <div
-                        className="cal-dow"
-                        key={d}
-                        style={i === 0 ? { color: 'var(--mrt-red)' } : i === 6 ? { color: 'var(--mrt-blue)' } : undefined}
-                    >
-                        {d}
-                    </div>
-                ))}
-                {calendarCells.map((cell, i) => {
-                    const isToday = cell.valid && cell.dateKey === todayKey;
-                    const isSelected = cell.valid && cell.dateKey === selectedDate;
-                    return (
-                        <div
-                            className={`cal-cell${!cell.valid ? ' out' : ''}${isToday ? ' today' : ''}`}
-                            key={i}
-                            onClick={() => cell.valid && setSelectedDate(cell.dateKey)}
-                            style={isSelected && !isToday ? { boxShadow: 'inset 0 0 0 2px var(--mrt-blue)' } : undefined}
-                        >
-                            {cell.valid && <div className="cal-date">{cell.dayNum}</div>}
-                            {cell.events.map((e) => (
-                                <div
-                                    key={`${e.itemType}-${e.id}`}
-                                    className={`cal-ev ev-${getEventTone(e)}`}
-                                    title={`${e.customerName} | ${e.productName} | ${STATUS_LABEL[e.status] || e.status} | ${getNextAction(e).label}`}
-                                    onClick={(ev) => {
-                                        ev.stopPropagation();
-                                        setSelectedEvent(e);
-                                    }}
-                                >
-                                    <b>{e.itemType === 'quote_booking' ? '견적예약' : e.itemType === 'quote' ? '이전견적' : '상품예약'} · {e.customerName}</b>
-                                    <div style={{ opacity: 0.85, fontWeight: 600 }}>
-                                        {e.headcount} · {e.assignedGuide?.name || '미배정'}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    );
-                })}
-            </div>
-
-            <div className="grid-2" style={{ marginTop: 22 }}>
-                <div className="card">
-                    <div className="card-head">
-                        <Icon name="calendar_month" style={{ color: 'var(--mrt-blue-strong)' }} />
-                        <div>
-                            <h2>선택한 날짜</h2>
-                            <div className="sub">{selectedDate}</div>
-                        </div>
-                    </div>
-                    <div className="card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {selectedDateItems.length > 0 ? (
-                            selectedDateItems.map(item => {
-                                const action = getNextAction(item);
-                                return (
-                                    <button
-                                        key={`sel-${item.itemType}-${item.id}`}
-                                        className="qlink"
-                                        onClick={() => setSelectedEvent(item)}
-                                        type="button"
-                                    >
-                                        <span className={`qi tint-${getEventTone(item) === 'blue' ? 'blue' : getEventTone(item) === 'green' ? 'green' : 'amber'}`}>
-                                            <Icon name={item.itemType === 'quote' ? 'request_quote' : 'confirmation_number'} />
-                                        </span>
-                                        <div className="qtext">
-                                            <div className="qt">{item.productName}</div>
-                                            <div className="qs">{item.customerName} · {item.headcount} · {action.label}</div>
-                                        </div>
-                                        <Icon name="chevron_right" className="arr" />
-                                    </button>
-                                );
-                            })
-                        ) : (
-                            <div className="empty">
-                                <Icon name="event_busy" />
-                                <p>이 날짜에는 일정이 없습니다.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="card">
-                    <div className="card-head">
-                        <Icon name="notification_important" style={{ color: '#B7791F' }} />
-                        <div>
-                            <h2>이번 달 처리 목록</h2>
-                            <div className="sub">우선 확인이 필요한 일정</div>
-                        </div>
-                    </div>
-                    <div className="card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {actionItems.length > 0 ? (
-                            actionItems.map(item => {
-                                const action = getNextAction(item);
-                                return (
-                                    <button
-                                        key={`action-${item.itemType}-${item.id}`}
-                                        className="qlink"
-                                        onClick={() => setSelectedEvent(item)}
-                                        type="button"
-                                    >
-                                        <span className={`qi badge ${action.tone}`} style={{ borderRadius: 12 }}>
-                                            <Icon name={action.icon} />
-                                        </span>
-                                        <div className="qtext">
-                                            <div className="qt">{item.productName}</div>
-                                            <div className="qs">{item.customerName} · {item.headcount} · {action.label}</div>
-                                        </div>
-                                        <Icon name="chevron_right" className="arr" />
-                                    </button>
-                                );
-                            })
-                        ) : (
-                            <div className="empty">
-                                <Icon name="task_alt" />
-                                <p>현재 처리할 항목이 없습니다.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <CalendarDetailModal item={selectedEvent} onClose={() => setSelectedEvent(null)} />
-        </AdminLayout>
-    );
-};
+            <div className="tc-workspace">
+                <section className="tc-month-card" aria-label="월간 투어 일정" aria-busy={loading}>
+                    <header className="tc-month-header"><div className="tc-month-nav"><button type="button" className="tc-icon-button" aria-label="이전 달" onClick={() => setParams(adminCalendarSearch(adminCalendarMonth(view, -1)))}><Glyph name="previous" /></button><h2>{Number(view.month.slice(0, 4))}년 {Number(view.month.slice(5))}월</h2><button type="button" className="tc-icon-button" aria-label="다음 달" onClick={() => setParams(adminCalendarSearch(adminCalendarMonth(view, 1)))}><Glyph name="next" /></button><button type="button" className="tc-button" onClick={() => choose(today)}>오늘</button></div><div className="tc-view-switch">{(['calendar', 'list'] as const).map(mode => <button type="button" key={mode} className={`tc-button${view.mode === mode ? ' is-active' : ''}`} aria-pressed={view.mode === mode} onClick={() => update({ mode })}><Glyph name={mode === 'calendar' ? 'calendar' : 'rows'} />{mode === 'calendar' ? '월간' : '목록'}</button>)}</div></header>
+                    {view.mode === 'calendar' ? <><div className="tc-weekdays">{['일', '월', '화', '수', '목', '금', '토'].map(day => <span key={day}>{day}</span>)}</div><div className="tc-month-grid">{cells.map(cell => {
+                        const cellConflicts = new Set(calendarConflicts(toursOnDate(all, cell.dateKey)).flatMap(conflict => conflict.tourKeys));
+                        const tours = toursOnDate(visible, cell.dateKey).filter(tour => view.attention !== 'conflicts' || cellConflicts.has(tour.key)), cellStats = calendarStats(tours);
+                        const needs = tours.some(tour => actionable(tour).length > 0 || cellConflicts.has(tour.key));
+                        return <div className={`tc-day${!cell.inMonth ? ' is-outside' : ''}${view.date === cell.dateKey ? ' is-selected' : ''}${today === cell.dateKey ? ' is-today' : ''}`} key={cell.dateKey}>
+                            <button type="button" className="tc-day-heading" data-calendar-date={cell.dateKey} aria-label={`${dateLabel(cell.dateKey, true)}, 투어 ${cellStats.tours}팀${needs ? ', 처리 필요' : ''}`} aria-pressed={view.date === cell.dateKey} onKeyDown={event => keyboardDate(event, cell.dateKey)} onClick={() => choose(cell.dateKey, '', true)}><span>{cell.day}</span>{needs && <i className="tc-attention-dot" aria-label="처리 필요" />}</button>
+                            {tours.length > 0 && <span className="tc-day-count" title={peopleSummary(cellStats)}>{cellStats.tours}팀 · {peopleSummary(cellStats)}{cellStats.inquiries > 0 ? ` · 문의 ${cellStats.inquiries}` : ''}</span>}
+                            <div className="tc-events">{tours.slice(0, 2).map(tour => <button type="button" className={`tc-event${cellConflicts.has(tour.key) ? ' is-conflict' : ''}${['completed', 'on_hold'].includes(tour.status) ? ' is-muted' : ''}`} data-source={tour.source} key={tour.key} title={`${typeLabels[tour.source]} · ${tour.customerName} · ${tour.productName}`} onClick={() => choose(cell.dateKey, tour.key, true)}><span>{tour.customerName}</span><small>{tour.people === null ? '?명' : `${tour.people}명`}</small></button>)}</div>
+                            {tours.length > 2 && <button type="button" className="tc-more" onClick={() => choose(cell.dateKey, '', true)}>+{tours.length - 2}건 모두 보기</button>}
+                        </div>;
+                    })}</div></> : <div className="tc-table-wrap">{visibleMonth.length ? <table className="tc-table"><thead><tr><th>고객·여행</th><th>여행 기간</th><th>인원</th><th>가이드·차량</th><th>확인할 업무</th></tr></thead><tbody>{visibleMonth.map(tour => <tr key={tour.key}><td><button type="button" className="tc-table-customer" onClick={() => choose(view.date >= tour.startDate && view.date <= tour.endDate ? view.date : tour.startDate < `${view.month}-01` ? `${view.month}-01` : tour.startDate, tour.key, true)}><span className="tc-source" data-source={tour.source}>{typeLabels[tour.source]}</span><strong>{tour.customerName}</strong><small>{tour.productName}</small></button></td><td>{tour.startDate.slice(5)} ~ {tour.endDate.slice(5)}</td><td>{tour.people === null ? '미등록' : `${tour.people}명`}</td><td>{tour.guide?.name || '가이드 미배정'}<br />{tour.vehicle?.name || '차량 미배정'}</td><td>{conflictKeys.has(tour.key) ? '배정 겹침 · ' : ''}{actionable(tour).slice(0, 2).map(issue => issue.label).join(' · ') || tour.statusLabel}</td></tr>)}</tbody></table> : <div className="tc-empty"><Glyph name="calendar" /><strong>{unknown ? '일정을 불러오는 중입니다' : '표시할 일정이 없습니다'}</strong>{filtered && <button className="tc-button" onClick={clear}>필터 초기화</button>}</div>}</div>}
+                    <footer className="tc-month-footer"><div className="tc-legend"><span data-source="product">상품 예약</span><span data-source="quote_booking">견적 예약</span>{view.legacy && <span data-source="legacy_quote">이전 문의</span>}<span><i className="tc-attention-dot" />처리 필요</span></div><small>날짜를 선택하면 팀별 운영 정보를 확인할 수 있습니다.</small></footer>
+                </section>
+                <section className="tc-day-panel" ref={panelRef} aria-label="선택일 투어 상세"><header className="tc-panel-header"><div><span className="tc-eyebrow">선택한 날짜</span><h2>{dateLabel(view.date)}{view.date === today && <span className="tc-today-badge">오늘</span>}</h2></div><span className="tc-panel-count">{selected.length}건</span></header><div className="tc-panel-stats"><span>투어 <b>{dayStats.tours}팀</b></span><span>인원 <b>{peopleSummary(dayStats)}</b></span><span>처리 필요 <b>{selected.filter(tour => actionable(tour).length || dayConflicts.some(conflict => conflict.tourKeys.includes(tour.key))).length}팀</b></span>{dayStats.inquiries > 0 && <span>문의 <b>{dayStats.inquiries}건</b></span>}</div>
+                    <div className="tc-panel-body" aria-live="polite">{selected.length > 0 ? selected.map(tour => <TourCard key={tour.key} tour={tour} date={view.date} conflicts={dayConflicts.filter(conflict => conflict.tourKeys.includes(tour.key))} returnTo={returnTo} selected={view.open === tour.key} />) : <div className="tc-empty"><Glyph name="calendar" /><strong>{unknown ? '예약 정보를 불러오고 있습니다' : filtered ? '조건에 맞는 투어가 없습니다' : '이 날짜에 등록된 투어가 없습니다'}</strong><p>{filtered ? '검색어나 필터를 바꾸어 확인해 주세요.' : '다른 날짜를 선택하거나 예약 목록을 확인해 주세요.'}</p>{filtered ? <button type="button" className="tc-button" onClick={clear}>필터 초기화</button> : <a className="tc-button" href="/admin/reservations">예약 목록 보기</a>}</div>}</div>
+                </section>
+            </div><p className="tc-note">여행 날짜가 등록된 예약을 표시합니다. <a href="/admin/reservations">날짜 미정 예약은 예약 목록에서 확인<Glyph name="next" /></a></p>
+        </div>
+    </AdminLayout>;
+}

@@ -49,6 +49,7 @@ test('같은 고객 선택은 정확한 로그인 userId만 사용하고 이름�
 });
 
 const execute = (code, context) => {
+    context.calendarActionHandler ||= { current: null };
     vm.createContext(context);
     vm.runInContext(ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText, context);
     return context;
