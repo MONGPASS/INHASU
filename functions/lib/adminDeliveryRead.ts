@@ -1,11 +1,13 @@
 import type { AdminDeliveryData, AdminDeliveryItem, AdminDeliveryKind } from '../../src/types/adminDelivery';
-import { isQuoteBooking, summarizeQuoteBooking } from './quoteBookings';
+import { ADMIN_DELIVERY_NAMES } from '../../src/types/adminDelivery';
+import { summarizeQuoteBooking } from './quoteBookings';
 import { hasProductSchedule, loadProductDocument, productItineraryPublished } from './productItinerary';
 import { productDocumentRevisions, quoteDocumentRevisions } from './adminDocumentRevision';
 
 const parse = (value: any, fallback: any = {}) => { try { return typeof value === 'string' ? JSON.parse(value) : value || fallback; } catch { return fallback; } };
 const list = (value: any): any[] => Array.isArray(value) ? value : [];
-const kindFor = (value: string): AdminDeliveryKind | null => /contract|계약|契約/i.test(value) ? 'contract' : /itinerary|일정|日程/i.test(value) ? 'itinerary' : /travel_notice|주의사항/.test(value) ? 'travel_notice' : /quote|견적/.test(value) ? 'quote' : null;
+const kindFor = (value: string): AdminDeliveryKind | null => Object.hasOwn(ADMIN_DELIVERY_NAMES, value) ? value as AdminDeliveryKind
+    : /contract|계약|契約/i.test(value) ? 'contract' : /itinerary|일정|日程/i.test(value) ? 'itinerary' : /travel_notice|주의사항/.test(value) ? 'travel_notice' : /quote|견적/.test(value) ? 'quote' : null;
 
 /** Read both native sources without copying reservations or exposing customer document URLs. */
 export async function readAdminDeliveries(db: any, source: 'product' | 'quote_booking', bookingId: string): Promise<AdminDeliveryData | null> {
@@ -31,10 +33,9 @@ export async function readAdminDeliveries(db: any, source: 'product' | 'quote_bo
         const row = await db.prepare('SELECT id,status,data FROM requests WHERE id=?').bind(bookingId).first();
         if (!row) return null;
         const rec = { ...parse(row.data), id: row.id, status: row.status };
-        if (!isQuoteBooking(rec)) return null;
         revisions = await quoteDocumentRevisions(rec);
         const q = summarizeQuoteBooking(rec);
-        workflow = { accepted: true, deposit: q.depositStatus === 'paid', contract: q.quoteBooking.signed,
+        workflow = { accepted: !!rec.booking || rec.decision?.status === 'accepted', deposit: q.depositStatus === 'paid', contract: q.quoteBooking.signed,
             schedule: list(rec.booking?.days).length > 0,
             published: q.status !== 'cancelled' && q.quoteBooking.published };
         list(rec.activities).forEach((event, index) => {
@@ -61,8 +62,11 @@ export async function readAdminDeliveries(db: any, source: 'product' | 'quote_bo
     }
     try {
         const rows = await db.prepare('SELECT id,kind,channel,state,error,provider_id,created_at,dispatch_key,document_revision FROM admin_delivery_attempts WHERE source=? AND booking_id=? ORDER BY created_at DESC, rowid DESC LIMIT 100').bind(source, bookingId).all();
-        const tracked: AdminDeliveryItem[] = list(rows.results).map(r => ({ id: r.id, kind: kindFor(r.kind) || 'itinerary', channel: r.channel, state: r.state, at: r.created_at,
-            error: r.error || undefined, providerId: r.provider_id || undefined, revision: r.document_revision || undefined }));
+        const tracked: AdminDeliveryItem[] = list(rows.results).flatMap(r => {
+            const kind = kindFor(r.kind);
+            return kind ? [{ id: r.id, kind, channel: r.channel, state: r.state, at: r.created_at,
+                error: r.error || undefined, providerId: r.provider_id || undefined, revision: r.document_revision || undefined }] : [];
+        });
         // A legacy request and its newer provider receipt represent the same attempt.
         const legacy = items.filter(item => {
             const noticeKey = noticeKeys.get(item.id);

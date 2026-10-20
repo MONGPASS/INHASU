@@ -11,6 +11,7 @@ import { getSessionUser } from '../lib/userAuth';
 import { sendEmail } from '../lib/mailer';
 import { tplAdminDepositReported } from './notifications/email';
 import { COMPANY_INFO } from '../../src/constants/company';
+import { dispatchCustomerNotification, type CustomerNotificationKind } from '../lib/customerNotifications';
 // 견적 시스템의 문자 발송 모듈(JS, 타입 선언 없음). SOLAPI_*·ADMIN_PHONE 이 없으면 조용히 건너뛴다.
 // @ts-ignore
 import { notifyAdmin } from './_solapi.js';
@@ -34,6 +35,13 @@ interface Env {
 }
 
 const app = new Hono<{ Bindings: Env }>();
+
+/** Dispatch only after persistence; notification failure never undoes the customer's saved work. */
+async function queueCustomerNotification(c: any, bookingId: string, kind: CustomerNotificationKind, eventKey: string) {
+    const task = Promise.resolve().then(() => dispatchCustomerNotification(c.env, { source: 'product', bookingId, kind, eventKey }))
+        .catch(() => { console.error('[Customer Notification] outcome unavailable', kind); });
+    try { c.executionCtx.waitUntil(task); } catch { await task; }
+}
 
 // 고객 정보와 내부 운영 정보가 브라우저·공유 프록시 캐시에 남지 않게 한다.
 app.use('*', async (c, next) => {
@@ -466,6 +474,21 @@ app.put('/:id', async (c) => {
     // Fetch updated
     const updated = await db.select().from(reservations).where(eq(reservations.id, id)).get();
 
+    // Compare stored fields rather than status-derived display values. A normal
+    // note/assignment/document edit must not replay an earlier business event.
+    if (updated && Object.hasOwn(filtered, 'depositStatus') && existing.depositStatus !== 'paid' && updated.depositStatus === 'paid') {
+        await queueCustomerNotification(c, id, 'contract', `product:${id}:first-deposit-paid:v1`);
+    }
+    const alreadyConfirmed = ['confirmed', 'paid', 'completed'].includes(existing.status || '');
+    if (updated && Object.hasOwn(filtered, 'status') && !alreadyConfirmed && ['confirmed', 'paid'].includes(updated.status || '')) {
+        await queueCustomerNotification(c, id, 'booking_confirmed', `product:${id}:first-booking-confirmed:v1`);
+    }
+    if (updated && (Object.hasOwn(filtered, 'itineraryUrl') || Object.hasOwn(filtered, 'status'))
+        && !(existing.itineraryUrl && alreadyConfirmed)
+        && updated.itineraryUrl && ['confirmed', 'paid', 'completed'].includes(updated.status || '')) {
+        await queueCustomerNotification(c, id, 'itinerary', `product:${id}:first-itinerary-published:v1`);
+    }
+
     const parsed = {
         ...reservationForRole(updated!, true),
         email: updated?.customerEmail,
@@ -481,8 +504,8 @@ app.put('/:id', async (c) => {
             deposit: updated?.depositAmount,
             local: updated?.balanceAmount
         },
-        depositStatus: updated?.status === 'confirmed' ? 'paid' : 'unpaid',
-        balanceStatus: updated?.status === 'completed' ? 'paid' : 'unpaid',
+        depositStatus: updated?.depositStatus || (updated?.status === 'confirmed' ? 'paid' : 'unpaid'),
+        balanceStatus: updated?.balanceStatus || (updated?.status === 'completed' ? 'paid' : 'unpaid'),
         dailyAccommodations: updated?.dailyAccommodations ? JSON.parse(updated.dailyAccommodations) : undefined,
         history: updated?.history ? JSON.parse(updated.history) : undefined,
         depositReport: parseDepositReport(updated?.depositReport),

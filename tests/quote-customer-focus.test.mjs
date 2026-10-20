@@ -5,6 +5,18 @@ import vm from 'node:vm';
 import { transform } from 'esbuild';
 
 const source = fs.readFileSync(new URL('../src/pages/AdminQuoteDesk.tsx', import.meta.url), 'utf8');
+const deliveryHandler = source.slice(source.indexOf('    const receiveCustomerDelivery = '), source.indexOf('    const customerModel = '));
+const deliveryCode = (await transform(deliveryHandler + '\nglobalThis.receive=receiveCustomerDelivery;', { loader: 'ts' })).code;
+test('견적 고객 발송 원장은 현재 계정·예약의 응답만 모델에 연결하고 늦은 다른 고객 자료를 버린다',()=>{
+    const snapshots=[];const context=vm.createContext({accountId:'local-admin',bookingId:'local-quote',activeCustomer:{current:{accountId:'local-admin',id:'local-quote'}},setCustomerDelivery:data=>snapshots.push(data)});
+    vm.runInContext(deliveryCode,context);
+    context.receive({source:'quote_booking',bookingId:'local-quote',items:[{kind:'quote',channel:'kakao',state:'accepted'}]});assert.equal(snapshots.length,1);
+    assert.equal(snapshots[0].data.items[0].state,'accepted');
+    context.receive({source:'product',bookingId:'local-quote',items:[]});context.receive({source:'quote_booking',bookingId:'other-quote',items:[]});assert.equal(snapshots.length,1);
+    context.activeCustomer.current={accountId:'other-admin',id:'local-quote'};context.receive({source:'quote_booking',bookingId:'local-quote',items:[]});assert.equal(snapshots.length,1);
+    assert.match(source,/quoteCustomerWorkspaceModel\(customerRecord,\s*\{\s*deliveryHistory:\s*recordedDelivery\?\.items\s*\}\)/);
+    assert.match(source,/!editorExpanded && bookingId && <div hidden><AdminDeliveryHistory[^>]+onData=\{receiveCustomerDelivery\}/);
+});
 const handlers = source.slice(source.indexOf('    const openCustomerEditor = '), source.indexOf('    const customerAction = '));
 const { code } = await transform(handlers + '\nglobalThis.open = openCustomerEditor; globalThis.close = closeCustomerEditor;', { loader: 'ts' });
 

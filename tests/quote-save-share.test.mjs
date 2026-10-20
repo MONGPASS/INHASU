@@ -33,15 +33,9 @@ const withSolapi = async run => {
 };
 const quoteSends = sent => sent.filter(m => (m.kakaoOptions || {}).templateId === "KA01TP-quote").length;
 
-const insertDb = () => ({
-  saved: null,
-  prepare() {
-    return { bind: (...args) => ({ run: async () => { insertDbLast.saved = args; return { meta:{ changes:1 } }; } }) };
-  },
-});
-const insertDbLast = {};
+const insertDb = t => requestSQLite(t, null, { skipInsert:true });
 
-const patchDb = (t, record, options) => requestSQLite(t, record, options);
+const patchDb = (t, record, options) => requestSQLite(t, { token:'local-quote-token-123456789', ...record }, options);
 
 const adminPost = body => new Request("https://mongolia-milkyway.com/api/requests", {
   method:"POST", headers:{ "Content-Type":"application/json", "x-admin-token":"admin-secret" },
@@ -54,8 +48,8 @@ const adminPatch = body => new Request("https://mongolia-milkyway.com/api/reques
 
 const newQuote = { customer:"테스트고객", price:{} };
 
-test("새 견적 저장하기 — 고객 알림톡을 보내지 않는다", async () => {
-  const DB = insertDb();
+test("새 견적 저장하기 — 고객 알림톡을 보내지 않는다", async t => {
+  const DB = insertDb(t);
   const { result, sent } = await withSolapi(collect => createRequest({
     request: adminPost({ name:"홍길동", phone:"01012345678", quote:newQuote, silentQuote:true, source:"walkin" }),
     env:{ ...ENV, DB }, waitUntil(p) { collect(p); },
@@ -66,8 +60,8 @@ test("새 견적 저장하기 — 고객 알림톡을 보내지 않는다", asyn
   assert.equal(body.notifications[0].status, "silent");
 });
 
-test("새 견적 링크 공유하기 — 고객 알림톡을 보낸다", async () => {
-  const DB = insertDb();
+test("새 견적 링크 공유하기 — 고객 알림톡을 보낸다", async t => {
+  const DB = insertDb(t);
   const { result, sent } = await withSolapi(collect => createRequest({
     request: adminPost({ name:"홍길동", phone:"01012345678", quote:newQuote, source:"walkin" }),
     env:{ ...ENV, DB }, waitUntil(p) { collect(p); },
@@ -78,13 +72,13 @@ test("새 견적 링크 공유하기 — 고객 알림톡을 보낸다", async (
   assert.equal(body.notifications[0].status, "queued");
 });
 
-test("silentQuote 플래그는 저장된 견적 데이터에 남지 않는다", async () => {
-  const DB = insertDb();
+test("silentQuote 플래그는 저장된 견적 데이터에 남지 않는다", async t => {
+  const DB = insertDb(t);
   await withSolapi(collect => createRequest({
     request: adminPost({ name:"홍길동", phone:"01012345678", quote:newQuote, silentQuote:true, source:"walkin" }),
     env:{ ...ENV, DB }, waitUntil(p) { collect(p); },
   }));
-  const stored = JSON.parse(insertDbLast.saved[8]);
+  const stored = DB.records[0];
   assert.equal(stored.silentQuote, undefined);
 });
 
@@ -135,7 +129,7 @@ test("저장하기를 여러 번 해도 알림톡은 한 번도 나가지 않는
 
 test("publishing assignments sends only an itinerary notice, never a simultaneous quote", async t => {
   const booking = {
-    publishStatus:"published", days:[{ d:1 }, { d:2 }],
+    publishStatus:"published", days:[{ d:1, dest:'저장된 첫날 일정' }, { d:2, dest:'저장된 둘째날 일정' }],
     assign:{ guide:{ name:"Guide" }, vehicle:{ model:"Van" }, lodges:[{ name:"Lodge" }] },
   };
   const DB = patchDb(t, { status:"예약확정", phone:"01012345678", token:"published-token", booking:{ publishStatus:"draft" } });

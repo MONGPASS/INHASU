@@ -1,9 +1,29 @@
-.cw-kakao { margin: 0 28px 24px; padding: 24px; border: 1px solid #deebe5; border-radius: 16px; background: #fff; }
-.cw-kakao > header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.cw-kakao { border-top: 1px solid #e8edf0; background: #fff; }
+.cw-kakao > summary { display: flex; align-items: center; gap: 12px; padding: 16px 24px; cursor: pointer; list-style: none; }
+.cw-kakao > summary::-webkit-details-marker { display: none; }
+.cw-kakao > summary:focus-visible { outline: 2px solid #00a890; outline-offset: -4px; }
+.cw-kakao > summary > .material-symbols-outlined { margin-left: auto; color: #8b95a1; font-size: 20px; transition: transform .15s; }
+.cw-kakao[open] > summary > .material-symbols-outlined { transform: rotate(180deg); }
+.cw-kakao-summary-copy { display: grid; gap: 3px; min-width: 0; }
+.cw-kakao-summary-copy strong { color: #4e5968; font-size: 13px; font-weight: 650; }
+.cw-kakao-summary-copy small { color: #8b95a1; font-size: 12px; }
+.cw-kakao-body { padding: 0 24px 24px; }
+.cw-kakao-body > header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-top: 12px; border-top: 1px solid #edf0f3; }
 .cw-kakao-icon { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 12px; background: #fff5c7; color: #77652c; }
-.cw-kakao > header > div { flex: 1; min-width: 0; }
+.cw-kakao-body > header > div { flex: 1; min-width: 0; }
 .cw-kakao h3 { color: #243447; font-size: 15px; font-weight: 700; }
-.cw-kakao > header p { margin-top: 4px; font-size: 12px; color: #7a8794; overflow-wrap: anywhere; }
+.cw-kakao-body > header p { margin-top: 4px; font-size: 12px; color: #7a8794; overflow-wrap: anywhere; }
+.cw-automation { margin-bottom: 24px; }
+.cw-automation > p, .cw-kakao-manual-heading p { margin-top: 5px; font-size: 12px; line-height: 1.7; color: #8b95a1; }
+.cw-automation ul { list-style: none; padding: 0; margin: 12px 0 0; }
+.cw-automation li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #edf0f3; }
+.cw-automation li > div { flex: 1; min-width: 0; }
+.cw-automation li strong { color: #4e5968; font-size: 13px; font-weight: 600; }
+.cw-automation li small { display: block; margin-top: 3px; color: #8b95a1; font-size: 11px; overflow-wrap: anywhere; }
+.cw-automation-state { flex: 0 0 auto; padding: 4px 8px; border-radius: 6px; background: #f2f4f6; color: #7b8793; font-size: 11px; }
+.cw-automation-state.is-accepted { background: #eaf7f0; color: #21846d; }
+.cw-automation-state.is-failed, .cw-automation-state.is-unknown, .cw-automation-state.is-unavailable { background: #fff5e8; color: #a16d37; }
+.cw-kakao-manual-heading { margin-bottom: 12px; }
 .cw-kakao-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .cw-kakao-notice { display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid #e8ecf0; border-radius: 12px; background: #fcfdfd; min-width: 0; }
 .cw-kakao-notice > div { flex: 1; min-width: 0; }
@@ -22,4 +42,4 @@
 .cw-kakao-blocked, .cw-kakao-loading { margin-bottom: 14px!important; color: #8c7350; font-size: 12px; line-height: 1.65; }
 .cw-kakao-hint { margin-top: 14px!important; color: #929ca6; font-size: 11px; line-height: 1.6; }
 @media(max-width:1100px) { .cw-kakao-notice { align-items: flex-start; flex-direction: column; gap: 12px; } .cw-kakao-send { align-self: flex-end; } }
-@media(max-width:700px) { .cw-kakao { margin: 0 16px 16px; padding: 16px; } .cw-kakao-list { grid-template-columns: minmax(0,1fr); } .cw-kakao-notice { align-items: center; flex-direction: row; } .cw-kakao > header { flex-wrap: wrap; } }
+@media(max-width:700px) { .cw-kakao > summary { padding: 16px 20px; } .cw-kakao-body { padding: 0 20px 20px; } .cw-kakao-list { grid-template-columns: minmax(0,1fr); } .cw-kakao-notice { align-items: center; flex-direction: row; } .cw-kakao-body > header { flex-wrap: wrap; } }

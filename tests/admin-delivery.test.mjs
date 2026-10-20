@@ -37,6 +37,19 @@ async function fixture(t) {
 const scope = {source:'product',bookingId:'same-id',kind:'contract',channel:'email'};
 const mailBody = {to:'customer@example.invalid',type:'CONTRACT_READY',idempotencyKey:'repeat-key-123456',data:{reservationDbId:'same-id',customerName:'테스트 고객'}};
 
+test('문의 단계 자동 접수와 서명 접수 이력은 문서 안내로 잘못 집계하지 않는다', async t => {
+    const { raw, DB, request } = await fixture(t);
+    raw.prepare('UPDATE requests SET status=?,data=? WHERE id=?').run('접수', JSON.stringify({ name: '문의 고객', token: 'NEVER-TOKEN' }), 'same-id');
+    await trackedDelivery(DB, { ...scope, source: 'quote_booking', channel: 'kakao', kind: 'request_received', key: 'request-event' }, async () => ({ ok: true, groupId: 'request-receipt' }));
+    await trackedDelivery(DB, { ...scope, kind: 'contract_signed', channel: 'kakao', key: 'sign-event' }, async () => ({ ok: true, groupId: 'sign-receipt' }));
+    await trackedDelivery(DB, { ...scope, kind: 'future_event', channel: 'kakao', key: 'unknown-event' }, async () => ({ ok: true, groupId: 'unknown-receipt' }));
+    const quote = await (await request('/history?source=quote_booking&id=same-id')).json();
+    assert.equal(quote.workflow.accepted, false); assert.equal(quote.items[0].kind, 'request_received');
+    const product = await (await request('/history?source=product&id=same-id')).json();
+    assert.deepEqual(product.items.map(item => item.kind), ['contract_signed']);
+    assert.equal(product.documents.contract.hasPriorDelivery, false); assert.equal(product.documents.itinerary.hasPriorDelivery, false);
+});
+
 test('문서 수정은 재안내로 표시하고 새 발송 성공 뒤 현재 버전으로 기록한다', async t => {
     const {raw,request}=await fixture(t);const original=globalThis.fetch;let sends=0;
     globalThis.fetch=async()=>Response.json({id:`version-receipt-${++sends}`});t.after(()=>globalThis.fetch=original);

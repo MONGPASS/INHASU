@@ -1,25 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUser } from '../../contexts/UserContext';
-import type { AdminDeliveryKind } from '../../types/adminDelivery';
 import { Icon } from './console/Icon';
 import './CustomerKakaoActions.css';
 
+type CustomerNoticeKind = 'quote' | 'contract' | 'itinerary' | 'travel_notice';
 interface Notice {
-    kind: AdminDeliveryKind; label: string; available: boolean; reason?: string; description?: string;
+    kind: CustomerNoticeKind; label: string; available: boolean; reason?: string; description?: string;
     cooldownUntil?: string;
     lastAttempt?: { state: string; at: string; error?: string } | null;
 }
 interface Snapshot {
     source: 'product' | 'quote_booking'; bookingId: string;
     recipient: { name: string; phone: string }; notices: Notice[];
+    automation?: { enabled: boolean; notices: Array<{ kind: string; label: string; trigger: string; state: string; reason?: string; lastAttempt?: { state: string; at: string; error?: string } | null }> };
 }
-const descriptions: Record<AdminDeliveryKind, string> = {
+const descriptions: Record<CustomerNoticeKind, string> = {
     quote: '작성한 견적서를 확인할 수 있는 링크를 보냅니다.',
     contract: '계약서 확인·서명과 여행자 정보 입력을 안내합니다.',
     itinerary: '공개된 확정 일정표 링크를 보냅니다.',
     travel_notice: '여행 주의사항과 준비물 안내를 보냅니다.',
 };
 const states: Record<string, string> = { accepted: '발송 서비스 접수', failed: '발송 실패', unknown: '결과 확인 필요', sending: '발송 처리 중' };
+const automationStates: Record<string, string> = { ...states, not_triggered: '자동 발송 기록 없음', unavailable: '발송 설정 필요' };
 const noticeKinds = new Set(['quote', 'contract', 'itinerary', 'travel_notice']);
 const timeLabel = (at: string) => Number.isFinite(Date.parse(at)) ? new Date(at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
 
@@ -43,6 +45,8 @@ export function CustomerKakaoActions({ source, bookingId, disabled = false, disa
     const [now, setNow] = useState(Date.now());
     const data = snapshot?.scope === scope ? snapshot.data : null;
     const path = `/api/admin/customer-notices/${source}/${encodeURIComponent(bookingId)}`;
+    const automation = data?.automation;
+    const automationIssues = automation?.notices.filter(notice => ['failed', 'unknown', 'sending', 'unavailable'].includes(notice.state)).length || 0;
 
     useEffect(() => {
         const reportBusy = callbacks.current.onBusyChange;
@@ -60,7 +64,9 @@ export function CustomerKakaoActions({ source, bookingId, disabled = false, disa
                 const body = await response.json();
                 if (!response.ok) throw new Error(body.error || '카카오 알림 발송 상태를 불러오지 못했습니다.');
                 if (body.source !== source || body.bookingId !== bookingId || !body.recipient || !Array.isArray(body.notices)
-                    || body.notices.some((item: Notice) => !noticeKinds.has(item.kind) || typeof item.available !== 'boolean')) throw new Error('카카오 알림 응답을 확인해 주세요.');
+                    || body.notices.some((item: Notice) => !item || !noticeKinds.has(item.kind) || typeof item.available !== 'boolean')
+                    || body.automation && (typeof body.automation.enabled !== 'boolean' || !Array.isArray(body.automation.notices)
+                        || body.automation.notices.some((item: any) => !item || typeof item.kind !== 'string' || typeof item.label !== 'string' || !Object.hasOwn(automationStates, item.state)))) throw new Error('카카오 알림 응답을 확인해 주세요.');
                 if (!controller.signal.aborted && current.current === scope) { setSnapshot({ scope, data: body }); setError(null); setNow(Date.now()); }
             } catch (reason: any) {
                 if (!controller.signal.aborted && current.current === scope) setError({ scope, text: reason?.message || '발송 상태를 확인하지 못했습니다.' });
@@ -107,13 +113,16 @@ export function CustomerKakaoActions({ source, bookingId, disabled = false, disa
         }
     };
 
-    return <section className="cw-kakao" aria-label="고객 카카오 알림 발송" aria-busy={!!sending}>
-        <header><span className="cw-kakao-icon"><Icon name="chat_bubble_outline" /></span><div><h3>고객에게 카카오 알림 보내기</h3><p>{data ? `${data.recipient.name || '고객'} · ${data.recipient.phone || '전화번호 미등록'}` : '등록된 고객의 수신번호와 발송 상태를 확인합니다.'}</p></div>{onHistory && <button type="button" className="cw-text-button" disabled={disabled || !!sending} onClick={onHistory}>발송 이력<Icon name="chevron_right" /></button>}</header>
+    return <details className="cw-kakao" aria-label="고객 카카오 알림 발송" aria-busy={!!sending}>
+        <summary><span className="cw-kakao-icon"><Icon name="chat_bubble_outline" /></span><span className="cw-kakao-summary-copy"><strong>고객 알림 자동발송 · 이력/다시 보내기</strong><small>{automation?.enabled ? automationIssues ? `발송 상태 확인 ${automationIssues}건` : '업무 상태에 따른 자동 안내 연결됨' : '자동 안내와 수동 재안내 상태 확인'}</small></span><Icon name="expand_more" /></summary>
+        <div className="cw-kakao-body">
+        <header><div><h3>고객 알림 관리</h3><p>{data ? `${data.recipient.name || '고객'} · ${data.recipient.phone || '전화번호 미등록'}` : '등록된 고객의 수신번호와 발송 상태를 확인합니다.'}</p></div>{onHistory && <button type="button" className="cw-text-button" disabled={disabled || !!sending} onClick={onHistory}>발송 이력<Icon name="chevron_right" /></button>}</header>
         {error?.scope === scope && <div className="cw-kakao-feedback is-error" role="alert">{error.text}<button type="button" disabled={disabled || loading || !!sending} onClick={() => setAttempt(value => value + 1)}>다시 확인</button></div>}
         {feedback?.scope === scope && <p className={`cw-kakao-feedback${feedback.failed ? ' is-error' : ''}`} role={feedback.failed ? 'alert' : 'status'}>{feedback.text}</p>}
         {disabledReason && <p className="cw-kakao-blocked" role="status">{disabledReason}</p>}
         {!data && error?.scope !== scope && <p className="cw-kakao-loading" role="status">{account ? '발송 가능한 알림을 확인하고 있습니다…' : '관리자 로그인이 필요합니다.'}</p>}
-        {data && <div className="cw-kakao-list">{data.notices.map(notice => {
+        {automation && <section className="cw-automation" aria-label="자동 고객 알림 상태"><h4>자동 안내</h4><p>각 업무가 새로 처리되면 자동으로 안내를 요청합니다. 서비스 접수는 실제 수신 완료와 다릅니다.</p><ul>{automation.notices.map(notice => <li key={notice.kind}><div><strong>{notice.label}</strong><small>{notice.trigger}</small>{notice.reason && <small className="cw-kakao-reason">{notice.reason}</small>}{notice.lastAttempt?.at && <small>{timeLabel(notice.lastAttempt.at)}</small>}</div><span className={`cw-automation-state is-${notice.state}`}>{automationStates[notice.state] || '상태 확인 필요'}</span></li>)}</ul></section>}
+        {data && <><div className="cw-kakao-manual-heading"><h4>수동 재안내</h4><p>이미 안내한 내용을 다시 보내거나, 필요한 안내를 직접 보냅니다.</p></div><div className="cw-kakao-list">{data.notices.map(notice => {
             const seconds = notice.cooldownUntil ? Math.max(0, Math.ceil((Date.parse(notice.cooldownUntil) - now) / 1000)) : 0;
             const blocked = disabled || loading || !!sending || !notice.available || error?.scope === scope || seconds > 0;
             return <article className="cw-kakao-notice" key={notice.kind}>
@@ -123,7 +132,8 @@ export function CustomerKakaoActions({ source, bookingId, disabled = false, disa
                 </div>
                 <button type="button" className="cw-kakao-send" disabled={!!blocked} title={disabledReason || (!notice.available ? notice.reason : undefined)} aria-label={`${notice.label} 카카오 알림 발송`} onClick={() => void send(notice)}><Icon name="send" />{sending === notice.kind ? '접수 중…' : seconds > 0 ? `${seconds}초 후 재발송` : notice.lastAttempt?.state === 'accepted' ? '다시 보내기' : '카카오 발송'}</button>
             </article>;
-        })}</div>}
+        })}</div></>}
         <p className="cw-kakao-hint">버튼을 누르면 등록된 고객에게 바로 발송합니다.</p>
-    </section>;
+        </div>
+    </details>;
 }

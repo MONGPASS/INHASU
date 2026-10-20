@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -203,4 +204,54 @@ test('발송 후 대기 시간은 비활성 버튼과 handler 양쪽에서 차�
     noticeButton(h).props.onClick(); assert.equal(posts(h).length, 0); assert.match(text(h.tree), /발송 서비스 접수/);
     const historyButton = nodes(h.tree).find(node => node.type === 'button' && text(node).includes('발송 이력'));
     assert.ok(historyButton); historyButton.props.onClick(); assert.equal(history, 1); assert.equal(posts(h).length, 0);
+});
+
+test('자동 안내와 수동 재안내는 기본 접힌 상태로 나뉘며 기록 없음·설정 누락·서비스 접수를 실제 수신으로 표시하지 않는다', async t => {
+    const h = mount(t, {}, (call, current) => call.method === 'GET' ? Response.json({ ...current.data(), automation: { enabled: true, notices: [
+        { kind: 'request_received', label: '문의 접수 안내', trigger: '신규 문의 저장 시', state: 'accepted', lastAttempt: { state: 'accepted', at: '2026-10-20T01:00:00Z' } },
+        { kind: 'contract_signed', label: '계약 서명 안내', trigger: '고객 서명 저장 시', state: 'not_triggered' },
+        { kind: 'booking_confirmed', label: '예약 확정 안내', trigger: '예약 확정 시', state: 'unavailable', reason: '전용 승인 템플릿이 없습니다.' },
+    ] } }) : undefined);
+    await h.settle(); assert.equal(h.tree.type, 'details'); assert.equal(h.tree.props.open, undefined); assert.equal(h.tree.props.onToggle, undefined);
+    const summary = nodes(h.tree).find(node => node.type === 'summary'); assert.ok(summary); assert.equal(summary.props.onClick, undefined);
+    assert.equal(nodes(summary).some(node => node.type === 'button'), false); assert.match(text(summary), /고객 알림 자동발송 · 이력\/다시 보내기/);
+    assert.match(text(summary), /발송 상태 확인 1건/);
+    const html = renderToStaticMarkup(h.tree);
+    for (const value of ['자동 안내', '수동 재안내', '문의 접수 안내', '신규 문의 저장 시', '자동 발송 기록 없음', '발송 설정 필요', '전용 승인 템플릿이 없습니다.', '발송 서비스 접수']) assert.ok(html.includes(value), value);
+    assert.doesNotMatch(html, /수신 완료<|전달 완료<|자동발송 켜기/); assert.equal(posts(h).length, 0);
+});
+
+test('자동 안내 응답의 알 수 없는 상태는 발송 가능으로 추정하지 않고 조회 오류로 차단한다', async t => {
+    const h = mount(t, {}, (call, current) => call.method === 'GET' ? Response.json({ ...current.data(), automation: { enabled: true, notices: [
+        { kind: 'request_received', label: '문의 접수 안내', trigger: '신규 문의 저장', state: 'invented-delivery-success' },
+    ] } }) : undefined);
+    await h.settle(); assert.match(text(h.tree), /카카오 알림 응답을 확인해 주세요/);
+    assert.equal(nodes(h.tree).some(node => node.props['aria-label'] === '여행 계약서 카카오 알림 발송'), false); assert.equal(posts(h).length, 0);
+});
+
+test('두 부모의 안정적인 원장 revision은 자동 알림 결과 변경 때만 GET을 갱신하고 이전 조회 응답을 취소한다', async t => {
+    for (const page of ['AdminReservationManage', 'AdminQuoteDesk']) {
+        const source = fs.readFileSync(new URL(`../src/pages/${page}.tsx`, import.meta.url), 'utf8');
+        const line = source.split(/\r?\n/).find(line => line.includes('revision={JSON.stringify([') && line.includes('recordedDelivery?.items.map'));
+        assert.ok(line, `${page} ties the notice query to ledger state`);
+        const expression = line.slice(line.indexOf('revision={') + 10, line.indexOf('} disabled='));
+        const project = new Function('deliveryRevision', 'reservation', 'customerCheckedAt', 'customerRecord', 'recordedDelivery', `return ${expression};`);
+        const item = { id: 'auto-receipt', kind: 'contract', channel: 'kakao', state: 'sending', at: '2026-10-20T01:00:00Z' };
+        const revision = state => project(0, { id: 'local-booking' }, '2026-10-20', { id: 'local-booking' }, { items: [{ ...item, state }] });
+        assert.equal(revision('sending'), revision('sending'), `${page} does not refetch solely because a new equal object was read`);
+        assert.notEqual(revision('sending'), revision('accepted'));
+        const old = deferred(); let first = true;
+        const h = mount(t, { revision: revision('sending') }, (call, current) => {
+            if (call.method !== 'GET') return;
+            if (first) { first = false; return old.promise; }
+            return Response.json({ ...current.data(), automation: { enabled: true, notices: [{ kind: 'contract', label: '계약 안내', trigger: '입금 확인 후', state: 'accepted' }] } });
+        });
+        const signal = h.calls[0].init.signal;
+        h.props = { ...h.props, revision: revision('accepted') }; h.render(); await h.settle();
+        assert.equal(signal.aborted, true); assert.equal(h.calls.length, 2); assert.equal(posts(h).length, 0);
+        old.resolve(Response.json({ ...h.data(), automation: { enabled: true, notices: [{ kind: 'contract', label: '계약 안내', trigger: '입금 확인 후', state: 'sending' }] } })); await h.settle();
+        const automation = nodes(h.tree).find(node => node.props['aria-label'] === '자동 고객 알림 상태'); assert.ok(automation);
+        assert.match(text(automation), /발송 서비스 접수/); assert.doesNotMatch(text(automation), /발송 처리 중/);
+        h.props = { ...h.props, revision: revision('accepted') }; h.render(); await h.settle(); assert.equal(h.calls.length, 2, 'equal receipt revisions do not form a render/query loop');
+    }
 });

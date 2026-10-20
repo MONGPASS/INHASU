@@ -10,6 +10,26 @@ vm.runInNewContext(code.outputFiles[0].text, { module, exports: module.exports, 
 const { quoteCustomerWorkspaceModel: model, quoteCustomerIsBooking: isBooking, loadQuoteCustomerRequest: load } = module.exports;
 const inquiry = { id: 'inquiry-only', name: '같은 표시명', adult: 2, status: '신규', memo: '직원 상담 메모', request: '고객 요청' };
 
+test('수동·자동 카카오 원장 접수는 과거 activity 없이도 견적 전달에 반영하고 failed·unknown은 고객 수락 대기로 바꾸지 않는다',()=>{
+    const record={...inquiry,quote:{days:[]}},receipt={id:'notice',kind:'quote',channel:'kakao',state:'accepted',at:'2026-10-20T01:00:00Z'};
+    const sent=model(record,{deliveryHistory:[receipt]});assert.equal(sent.steps.find(step=>step.id==='sent').done,true);assert.equal(sent.tasks[0].waiting,true);assert.equal(sent.documents[0].status,'안내 서비스 접수');
+    for(const state of ['failed','unknown','sending']){
+        const result=model({...record,activities:[{type:'quote_notification_queued'}]},{deliveryHistory:[{...receipt,state,error:'실제 발송 결과'}]});
+        assert.equal(result.steps.find(step=>step.id==='sent').done,false);assert.equal(result.tasks[0].action,'history');assert.equal(result.tasks[0].waiting,undefined);assert.equal(result.tasks[0].detail,'실제 발송 결과');
+    }
+});
+
+test('계약 알림 실패는 요청 플래그가 있어도 고객 서명·입력 대기로 추정하지 않고 접수 후에만 대기로 구분한다',()=>{
+    const record={...inquiry,status:'예약확정',booking:{contractInfo:{depositStatus:'입금완료'},contractRequest:{status:'requested'},travelers:[]}};
+    const receipt={id:'notice',kind:'contract',channel:'kakao',state:'failed',at:'2026-10-20T01:00:00Z'};
+    const failed=model(record,{deliveryHistory:[receipt]});assert.equal(failed.tasks.find(task=>task.id==='contract-delivery').action,'history');
+    assert.equal(failed.tasks.some(task=>task.id==='contract'),false);assert.equal(failed.tasks.find(task=>task.id==='travelers').waiting,undefined);
+    const accepted=model(record,{deliveryHistory:[{...receipt,state:'accepted'}]});
+    for(const id of ['contract','travelers','flights'])assert.equal(accepted.tasks.find(task=>task.id===id).waiting,true,id);
+    const submitted=model({...record,booking:{...record.booking,travelerSubmission:{status:'submitted',submittedAt:'2026-10-20T02:00:00Z'}}},{deliveryHistory:[{...receipt,state:'accepted'}]});
+    assert.equal(submitted.tasks.find(task=>task.id==='travelers').waiting,undefined);
+});
+
 test('미예약 문의도 실제 문의 상태로 열리고 결제·배정 완료로 추정하지 않는다', () => {
     const before = JSON.stringify(inquiry), result = model(inquiry);
     assert.equal(isBooking(inquiry), false); assert.equal(result.sourceLabel, '맞춤 견적 문의');
@@ -25,7 +45,9 @@ test('견적 내부 저장 시각·알림 건너뜀은 발송 완료가 아니�
     assert.equal(result.payment.total, 0); assert.equal(result.payment.deposit, 0); assert.equal(result.payment.balance, 0);
     assert.equal(result.steps.find(step => step.id === 'sent').done, false);
     assert.equal(result.documents[0].status, '저장됨');
-    assert.equal(model({ ...record, activities: [{ type: 'quote_notification_queued' }] }).documents[0].status, '발송 요청 기록 있음');
+    const queued=model({ ...record, activities: [{ type: 'quote_notification_queued' }] });
+    assert.equal(queued.documents[0].status, '발송 요청 · 결과 확인 필요');assert.equal(queued.steps.find(step=>step.id==='sent').done,false);
+    assert.equal(queued.tasks[0].action,'history');assert.equal(queued.tasks[0].waiting,undefined);
     const empty = model({ ...record, quote: { price: {} } });
     assert.equal(empty.payment.total, null); assert.equal(empty.payment.deposit, null); assert.equal(empty.payment.balance, null);
 });
@@ -137,8 +159,8 @@ test('미예약 문의에는 예약 배정·항공·여행자·잔금 업무를 
         model({ ...inquiry, quote: { days: [] }, activities: [{ type: 'quote_notification_queued' }] }),
         model({ ...inquiry, quote: { days: [] }, activities: [{ type: 'quote_sent' }], decision: { status: 'accepted' } })];
     assert.equal(stages[0].tasks[0].action, 'edit-itinerary'); assert.match(stages[0].tasks[0].label, /견적서 작성/);
-    assert.equal(stages[1].tasks[0].action, 'quote-share'); assert.match(stages[1].tasks[0].detail, /발송 요청 기록이 없습니다/);
-    assert.equal(stages[2].tasks[0].waiting, true); assert.match(stages[2].tasks[0].label, /진행 의사/);
+    assert.equal(stages[1].tasks[0].action, 'quote-share'); assert.match(stages[1].tasks[0].detail, /발송 접수 기록이 없습니다/);
+    assert.equal(stages[2].tasks[0].waiting, undefined); assert.match(stages[2].tasks[0].label, /발송 결과/);
     assert.equal(stages[3].tasks[0].id, 'prepare');
     for (const result of stages) {
         assert.equal(result.flights, undefined); assert.equal(result.travelers, undefined); assert.equal(result.agreement, undefined);

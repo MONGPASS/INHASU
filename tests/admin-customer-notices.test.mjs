@@ -9,12 +9,13 @@ import { onRequestGet as readCustomerQuote } from '../functions/api/my/[token].j
 const output = await build({ entryPoints: ['functions/api/admin-customer-notices.ts'], bundle: true, platform: 'node', format: 'esm', write: false });
 const notices = (await import(`data:text/javascript;base64,${Buffer.from(output.outputFiles[0].contents).toString('base64')}`)).default;
 const envConfig = { ENVIRONMENT: 'production', SOLAPI_API_KEY: 'mock-key', SOLAPI_API_SECRET: 'mock-secret', SOLAPI_PF_ID: 'mock-channel',
-    SOLAPI_TEMPLATE_QUOTE_ID: 'template-quote', SOLAPI_TEMPLATE_CONTRACT_ID: 'template-contract', SOLAPI_TEMPLATE_ITINERARY_ID: 'template-itinerary', SOLAPI_TEMPLATE_GUIDEBOOK_ID: 'template-guidebook' };
+    SOLAPI_TEMPLATE_QUOTE_ID: 'template-quote', SOLAPI_TEMPLATE_CONTRACT_ID: 'template-contract', SOLAPI_TEMPLATE_ITINERARY_ID: 'template-itinerary', SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID: 'template-travel-notice' };
 async function fixture(t) {
     const raw = new DatabaseSync(':memory:'); t.after(() => raw.close());
     let failLedger = '';
+    let claimMutation;
     const statement = (sql, args = []) => ({ bind: (...values) => statement(sql, values),
-        async run() { if (failLedger && sql.includes(failLedger)) throw Error('ledger unavailable'); return { meta: raw.prepare(sql).run(...args) }; },
+        async run() { if (failLedger && sql.includes(failLedger)) throw Error('ledger unavailable'); const meta = raw.prepare(sql).run(...args); if (claimMutation && sql.includes('INSERT INTO admin_delivery_attempts')) { const mutate = claimMutation; claimMutation = undefined; mutate(); } return { meta }; },
         async all() { if (failLedger && sql.includes(failLedger)) throw Error('ledger unavailable'); return { results: raw.prepare(sql).all(...args) }; },
         async first() { if (failLedger && sql.includes(failLedger)) throw Error('ledger unavailable'); return raw.prepare(sql).get(...args) ?? null; },
         async raw() { return raw.prepare(sql).all(...args).map(row => Object.values(row)); },
@@ -39,7 +40,7 @@ async function fixture(t) {
     const sent = [];
     globalThis.fetch = async (url, init) => { assert.equal(url, 'https://api.solapi.com/messages/v4/send'); sent.push(JSON.parse(init.body)); return Response.json({ groupId: `provider-${sent.length}`, statusCode: '2000' }); };
     t.after(() => globalThis.fetch = originalFetch);
-    return { raw, DB, request, sent, quote, fail: sql => { failLedger = sql; } };
+    return { raw, DB, request, sent, quote, fail: sql => { failLedger = sql; }, onClaim: mutate => { claimMutation = mutate; } };
 }
 const body = (kind, key = `request-${kind}-123456789`) => ({ kind, idempotencyKey: key });
 const updateQuote = (raw, quote) => raw.prepare('UPDATE requests SET data=? WHERE id=?').run(JSON.stringify(quote), 'same-id');
@@ -51,7 +52,10 @@ test('알림 상태 조회는 발송·고객 정보 변경 없이 관리자에�
     assert.equal(response.status, 200); assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
     assert.deepEqual(data.recipient, { name: '상품 고객', phone: '***-****-5678' });
     assert.deepEqual(data.notices.map(item => item.kind), ['contract', 'itinerary', 'travel_notice']);
-    assert.ok(data.notices.every(item => item.available));
+    assert.ok(data.notices.filter(item => item.kind !== 'travel_notice').every(item => item.available));
+    assert.equal(data.notices.find(item => item.kind === 'travel_notice').available, false);
+    assert.match(data.notices.find(item => item.kind === 'travel_notice').reason, /계약서 작성 완료/);
+    assert.deepEqual(data.automation.notices.map(item => item.kind), ['contract', 'contract_signed', 'booking_confirmed', 'itinerary', 'travel_notice']);
     assert.equal(sent.length, 0); assert.deepEqual(raw.prepare('SELECT * FROM reservations').get(), before);
     assert.equal((await request('product', { session: '' })).status, 401);
     assert.equal((await request('product', { session: 'member' })).status, 403);
@@ -64,6 +68,7 @@ test('알림 상태 조회는 발송·고객 정보 변경 없이 관리자에�
 
 test('각 원본의 실제 문서 경로·수신자를 사용하고 카카오만 발송하며 업무 상태는 변경하지 않는다', async t => {
     const { request, sent, raw } = await fixture(t);
+    raw.exec("UPDATE reservations SET contract_data=json_set(contract_data,'$.signature.signedAt','2026-10-20T00:00:00Z')");
     const beforeProduct = raw.prepare('SELECT * FROM reservations').get(), beforeQuote = raw.prepare('SELECT * FROM requests').get();
     const cases = [['product', 'contract', 'documents/contract/same-id'], ['product', 'itinerary', 'documents/itinerary/same-id'], ['product', 'travel_notice', 'guidebooks/mongolia-travel-guidebook-2026.pdf'],
         ['quote_booking', 'quote', `${encodeURI('내견적.html')}?t=private-customer-token-1234`], ['quote_booking', 'contract', `${encodeURI('내견적.html')}?t=private-customer-token-1234`], ['quote_booking', 'itinerary', `${encodeURI('확정일정표.html')}?t=private-customer-token-1234`]];
@@ -244,4 +249,48 @@ test('발송 중 링크 회전과 요청 상태 저장 실패는 접수 영수�
     result = await (await request('quote_booking', { body: body('contract', 'metadata-write-retry-1234') })).json(); assert.equal(result.state, 'accepted'); assert.match(result.warning, /상태를 저장하지 못했습니다/);
     assert.equal(raw.prepare("SELECT count(*) n FROM admin_delivery_attempts WHERE state='accepted'").get().n, 2);
     fail(''); after = JSON.parse(raw.prepare('SELECT data FROM requests').get().data); assert.equal(after.booking.contractRequest, undefined);
+});
+
+test('자동 안내 조회는 문의 단계부터 11종과 실제 원장 결과를 읽으며 외부 호출을 하지 않는다', async t => {
+    const { request, raw, sent, quote } = await fixture(t);
+    delete quote.booking; delete quote.decision; updateQuote(raw, quote);
+    raw.exec("UPDATE requests SET status='접수'");
+    raw.prepare('INSERT INTO admin_delivery_attempts(id,source,booking_id,kind,channel,state,error,dispatch_key,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
+        .run('receipt-event', 'quote_booking', 'same-id', 'request_received', 'kakao', 'failed', '승인 템플릿을 확인해 주세요.', 'receipt-event-key', '2026-10-20', '2026-10-20');
+    let data = await (await request('quote_booking')).json();
+    assert.equal(data.automation.notices.length, 11);
+    assert.equal(data.automation.notices.find(item => item.kind === 'request_received').state, 'failed');
+    assert.match(data.automation.notices.find(item => item.kind === 'request_received').reason, /승인 템플릿/);
+    assert.equal(data.automation.notices.find(item => item.kind === 'contract_signed').state, 'unavailable', 'unverified profile has no default event template');
+    data = await (await request('quote_booking', { env: { SOLAPI_PF_ID: '' } })).json();
+    assert.equal(data.automation.notices.find(item => item.kind === 'contract_signed').state, 'not_triggered', 'verified default profile and approved registry are ready');
+    assert.equal(sent.length, 0);
+    assert.equal(raw.prepare('SELECT count(*) n FROM admin_delivery_attempts').get().n, 1);
+});
+
+test('여행 주의사항은 실제 서명이 필요하며 예전 D7 템플릿으로 대체하지 않는다', async t => {
+    const { request, raw, sent } = await fixture(t);
+    raw.exec("UPDATE reservations SET contract_data=json_set(contract_data,'$.agreement.agreed',json('true'))");
+    assert.equal((await request('product', { body: body('travel_notice') })).status, 409);
+    raw.exec("UPDATE reservations SET contract_data=json_set(contract_data,'$.signature.signedAt','2026-10-20T00:00:00Z')");
+    const state = await (await request('product', { env: { SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID: '', SOLAPI_TEMPLATE_GUIDEBOOK_ID: 'old-d7-template' } })).json();
+    assert.equal(state.notices.find(item => item.kind === 'travel_notice').available, false);
+    assert.equal(sent.length, 0);
+    assert.equal((await request('product', { body: body('travel_notice') })).status, 200);
+    assert.equal(sent[0].message.kakaoOptions.templateId, 'template-travel-notice');
+});
+
+test('발송 원장 확보 중 바뀐 취소·연락처·고객 링크·문서는 이전 값으로 발송하지 않는다', async t => {
+    for (const kind of ['cancel', 'phone', 'token', 'document']) await t.test(kind, async inner => {
+        const { request, raw, sent, onClaim } = await fixture(inner);
+        onClaim(() => {
+            if (kind === 'cancel') raw.exec("UPDATE requests SET status='예약취소'");
+            if (kind === 'phone') raw.exec("UPDATE requests SET phone='01099990000'");
+            if (kind === 'token') raw.exec("UPDATE requests SET token='new-private-token'");
+            if (kind === 'document') raw.exec("UPDATE requests SET data=json_set(data,'$.booking.contractInfo.productName','새 계약 내용')");
+        });
+        const response = await request('quote_booking', { body: body('contract') });
+        assert.equal(response.status, 409); assert.equal((await response.json()).state, 'failed');
+        assert.equal(sent.length, 0); assert.equal(raw.prepare('SELECT state FROM admin_delivery_attempts').get().state, 'failed');
+    });
 });

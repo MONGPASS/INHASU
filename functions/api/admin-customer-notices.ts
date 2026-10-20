@@ -5,9 +5,12 @@ import { productDocumentRevisions, quoteDocumentRevisions } from '../lib/adminDo
 import { hasProductSchedule, loadProductDocument, parseDocumentJson, productItineraryPublished } from '../lib/productItinerary';
 import { isQuoteBooking, summarizeQuoteBooking } from '../lib/quoteBookings';
 import { toTourDateKey } from '../../src/utils/formatDate';
+import { APPROVED_NOTIFICATION_PROFILE_ID, resolveNotificationTemplate, type CustomerNotificationKind } from '../lib/customerNotifications';
+import { ADMIN_DELIVERY_NAMES } from '../../src/types/adminDelivery';
+import { productSignatureRecord } from '../../src/utils/productContractSignature';
 // Reuse configured approved templates; never fall back to an unrelated template or SMS.
 // @ts-ignore Existing shared JavaScript notification module.
-import { sendKakaoAlimtalk, quoteTemplateId, contractTemplateId, itineraryTemplateId, travelNoticeTemplateId, customerPath, GUIDEBOOK_PATH } from './_solapi.js';
+import { sendKakaoAlimtalk, kakaoDeliveryResult, customerPath, GUIDEBOOK_PATH } from './_solapi.js';
 
 type Source = 'product' | 'quote_booking';
 type Kind = 'quote' | 'contract' | 'itinerary' | 'travel_notice';
@@ -41,7 +44,8 @@ async function loadRecord(db: any, source: Source, id: string) {
     if (source === 'product') {
         const row = await db.prepare('SELECT * FROM reservations WHERE id=?').bind(id).first();
         if (!row) return null;
-        return { row, name: text(row.customer_name), phone: phone(row.customer_phone), depart: toTourDateKey(row.start_date),
+        const contract = parseDocumentJson(row.contract_data, {});
+        return { row, name: text(row.customer_name), phone: phone(row.customer_phone), depart: toTourDateKey(row.start_date), signed: !!productSignatureRecord(contract),
             paid: row.deposit_status === 'paid', booking: true, published: productItineraryPublished(row),
             schedule: hasProductSchedule((await loadProductDocument(db, row)).days), token: '', quote: false };
     }
@@ -51,7 +55,7 @@ async function loadRecord(db: any, source: Source, id: string) {
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid request record');
     const rec = { ...data, id: row.id, status: row.status || data.status, name: row.name ?? data.name, phone: row.phone ?? data.phone, token: row.token ?? data.token };
     const summary = summarizeQuoteBooking(rec);
-    return { row: rec, name: text(rec.name), phone: phone(rec.phone), depart: toTourDateKey(rec.depart), token: text(rec.token),
+    return { row: rec, name: text(rec.name), phone: phone(rec.phone), depart: toTourDateKey(rec.depart), token: text(rec.token), signed: summary.quoteBooking.signed,
         paid: summary.depositStatus === 'paid', booking: isQuoteBooking(rec), published: summary.quoteBooking.published,
         schedule: Array.isArray(rec.booking?.days) && rec.booking.days.some((day: any) => text(day?.dest) || text(day?.title) || text(day?.summary) || (Array.isArray(day?.items) && day.items.some((item: any) => text(item)))),
         quote: Object.keys(object(rec.quote)).length > 0 };
@@ -79,10 +83,7 @@ async function attempts(db: any, source: Source, id: string): Promise<Array<Atte
 }
 
 function templateFor(env: Env, kind: Kind) {
-    const templates: Record<Kind, string> = { quote: quoteTemplateId(env), contract: contractTemplateId(env), itinerary: itineraryTemplateId(env), travel_notice: travelNoticeTemplateId(env) };
-    const selected = templates[kind];
-    // Configured IDs identify distinct approved messages. A copy/paste collision is unsafe.
-    return selected && !kinds.some(other => other !== kind && templates[other] === selected) ? selected : '';
+    return resolveNotificationTemplate(env, kind)?.id || '';
 }
 
 function describe(kind: Kind): Pick<Notice, 'label' | 'description'> {
@@ -142,11 +143,35 @@ function noticeState(env: Env, source: Source, record: NonNullable<Awaited<Retur
     else if (kind === 'contract' && (!record.booking || !record.paid)) reason = '예약금 입금을 확인한 뒤 계약서 안내를 보낼 수 있습니다.';
     else if (kind === 'itinerary' && (!record.published || !record.schedule)) reason = '여행 일정을 저장하고 고객에게 공개한 뒤 보내 주세요.';
     else if (kind === 'travel_notice' && (!record.booking || !record.depart)) reason = '예약 관리와 여행 출발일을 먼저 확인해 주세요.';
-    else if (!env.SOLAPI_API_KEY || !env.SOLAPI_API_SECRET || !(env.SOLAPI_PF_ID || env.SOLAPI_KAKAO_PF_ID)) reason = '카카오 알림톡 발송 설정이 필요합니다.';
+    else if (kind === 'travel_notice' && !record.signed) reason = '계약서 작성 완료 후 여행 준비 안내를 보낼 수 있습니다.';
+    else if (!env.SOLAPI_API_KEY || !env.SOLAPI_API_SECRET) reason = '카카오 알림톡 발송 설정이 필요합니다.';
     else if (!templateFor(env, kind)) reason = '해당 알림의 전용 카카오 템플릿 설정을 확인해 주세요.';
     else if (pending) reason = pending.state === 'sending' ? '이전 발송 요청을 처리 중입니다. 이력을 확인해 주세요.' : '이전 발송 결과를 확인해야 합니다. 중복 발송을 중지했습니다.';
     else if (cooldown) reason = '방금 접수된 알림입니다. 1분 후 다시 보낼 수 있습니다.';
     return { kind, ...describe(kind), available: !reason, ...(reason ? { reason } : {}), ...(last ? { lastAttempt: { id: last.id, state: last.state, at: last.at, channel: last.channel, error: last.error } } : {}), ...(cooldown ? { cooldownUntil: cooldown } : {}) };
+}
+
+function automaticNotices(env: Env, source: Source, record: NonNullable<Awaited<ReturnType<typeof loadRecord>>>, history: Awaited<ReturnType<typeof attempts>>) {
+    const triggers: Record<CustomerNotificationKind, string> = {
+        request_received: '맞춤 견적 요청 접수 후', quote: '견적서를 고객에게 공유할 때', change_requested: '일정 변경 요청을 새로 기록한 후',
+        reservation_requested: '고객의 예약 진행 요청을 새로 기록한 후', deposit_requested: '예약금 안내 요청 후', travelers_requested: '여행자 정보 입력 요청 후',
+        contract: '예약금 입금을 처음 확인한 후', contract_signed: '고객 계약서 서명 접수 후', booking_confirmed: '예약을 처음 확정한 후',
+        itinerary: '확정 일정표를 처음 공개한 후', travel_notice: '고객 계약서 서명 접수 후',
+    };
+    const connected: CustomerNotificationKind[] = source === 'product'
+        ? ['contract', 'contract_signed', 'booking_confirmed', 'itinerary', 'travel_notice']
+        : ['request_received', 'quote', 'change_requested', 'reservation_requested', 'deposit_requested', 'travelers_requested', 'contract', 'contract_signed', 'booking_confirmed', 'itinerary', 'travel_notice'];
+    return { enabled: true, notices: connected.map(kind => {
+        const last = history.find(item => item.kind === kind && ['kakao', 'message'].includes(item.channel));
+        const pending = history.find(item => item.kind === kind && ['sending', 'unknown'].includes(item.state));
+        const template = resolveNotificationTemplate(env, kind);
+        const ready = !!template && !!env.SOLAPI_API_KEY && !!env.SOLAPI_API_SECRET;
+        const reason = cancelled(record.row) ? '취소된 예약의 자동 안내는 중지됩니다.' : !/^0\d{8,10}$/.test(record.phone) ? '고객 연락처를 확인해 주세요.'
+            : !ready ? '카카오 발송 설정과 해당 단계의 승인 템플릿을 확인해 주세요.' : undefined;
+        const attempt = pending || last;
+        return { kind, label: ADMIN_DELIVERY_NAMES[kind], trigger: triggers[kind], state: attempt?.state || (reason ? 'unavailable' : 'not_triggered'),
+            ...(reason ? { reason } : attempt?.error ? { reason: attempt.error } : {}), ...(attempt ? { lastAttempt: { state: attempt.state, at: attempt.at, error: attempt.error } } : {}) };
+    }) };
 }
 
 app.get('/:source/:id', async c => {
@@ -157,7 +182,8 @@ app.get('/:source/:id', async c => {
         if (!record) return c.json({ error: '예약이 삭제되었거나 없습니다.' }, 404);
         const history = await attempts(c.env.DB, source, id);
         return c.json({ source, bookingId: id, recipient: { name: record.name || '고객', phone: record.phone ? `***-****-${record.phone.slice(-4)}` : '' },
-            notices: kinds.filter(kind => source !== 'product' || kind !== 'quote').map(kind => noticeState(c.env, source, record, history, kind)) });
+            notices: kinds.filter(kind => source !== 'product' || kind !== 'quote').map(kind => noticeState(c.env, source, record, history, kind)),
+            automation: automaticNotices(c.env, source, record, history) });
     } catch { return c.json({ error: '고객 알림 발송 상태를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.' }, 503); }
 });
 
@@ -179,8 +205,8 @@ app.post('/:source/:id', async c => {
         const notice = noticeState(c.env, source, record, history, kind);
         if (!notice.available) return c.json({ ok: false, state: history.find(item => item.kind === kind && ['sending', 'unknown'].includes(item.state))?.state || 'failed', error: notice.reason, cooldownUntil: notice.cooldownUntil }, 409);
         const revisions: Record<string, string> = source === 'product' ? await productDocumentRevisions(c.env.DB, record.row) : await quoteDocumentRevisions(record.row);
-        const path = kind === 'travel_notice' ? GUIDEBOOK_PATH : source === 'product' ? `documents/${kind === 'contract' ? 'contract' : 'itinerary'}/${encodeURIComponent(id)}` : kind === 'itinerary' ? `${encodeURI('확정일정표.html')}?t=${encodeURIComponent(record.token)}` : customerPath(record.token);
         let cooldownBlocked = false;
+        let changedReason = '';
         const result = await trackedDelivery(c.env.DB, { source, bookingId: id, kind, channel: 'kakao', key: body.idempotencyKey, revision: revisions[kind] }, async () => {
             // Recheck after the atomic delivery claim: another tab may have completed since GET.
             const latest = await attempts(c.env.DB, source, id);
@@ -188,17 +214,29 @@ app.post('/:source/:id', async c => {
                 cooldownBlocked = true;
                 return { ok: false, skipped: true };
             }
+            const current = await loadRecord(c.env.DB, source, id);
+            if (!current) changedReason = '예약이 삭제되어 발송을 중지했습니다.';
+            else {
+                // Exclude this request's own claimed row when checking prior attempts.
+                const currentNotice = noticeState(c.env, source, current, latest.filter(item => item.key !== body.idempotencyKey), kind);
+                if (!currentNotice.available) changedReason = currentNotice.reason || '예약 상태가 변경되어 발송을 중지했습니다.';
+                else if (current.phone !== record.phone || current.token !== record.token) changedReason = '고객 연락처 또는 전용 링크가 변경되었습니다. 새 정보를 확인한 뒤 다시 보내 주세요.';
+                else if (kind !== 'travel_notice') {
+                    const versions: Record<string, string> = source === 'product' ? await productDocumentRevisions(c.env.DB, current.row) : await quoteDocumentRevisions(current.row);
+                    if (versions[kind] !== revisions[kind]) changedReason = '문서가 변경되었습니다. 현재 내용을 확인한 뒤 다시 보내 주세요.';
+                }
+            }
+            if (changedReason || !current) return { ok: false, skipped: true };
+            const path = kind === 'travel_notice' ? GUIDEBOOK_PATH : source === 'product' ? `documents/${kind === 'contract' ? 'contract' : 'itinerary'}/${encodeURIComponent(id)}` : kind === 'itinerary' ? `${encodeURI('확정일정표.html')}?t=${encodeURIComponent(current.token)}` : customerPath(current.token);
             providerStarted = true;
-            const response = await sendKakaoAlimtalk(c.env, { phone: record.phone, templateId: templateFor(c.env, kind), disableSms: true,
-                variables: { '#{고객명}': record.name || '고객', '#{회사명}': c.env.NOTIFY_COMPANY || '몽골리아 은하수 여행사', '#{링크}': path, ...(kind === 'travel_notice' ? { '#{출발일}': record.depart } : {}) } });
-            // A provider's explicit failed-message result is not successful delivery acceptance.
-            const rejected = (Array.isArray(response.failedMessageList) && response.failedMessageList.length > 0) || !!response.errorCode || (!!response.statusCode && String(response.statusCode) !== '2000');
-            const messageId = typeof response.messageId === 'string' ? response.messageId : undefined;
-            const groupId = typeof response.groupId === 'string' ? response.groupId : undefined;
-            const accepted = response.ok && response.httpStatus >= 200 && response.httpStatus < 300 && !rejected && !!(messageId || groupId);
-            return { ok: accepted, httpStatus: rejected ? 422 : response.ok && !accepted ? 502 : response.httpStatus, skipped: response.skipped,
-                id: messageId, groupId };
+            const response = await sendKakaoAlimtalk({ ...c.env, SOLAPI_PF_ID: c.env.SOLAPI_PF_ID || c.env.SOLAPI_KAKAO_PF_ID || APPROVED_NOTIFICATION_PROFILE_ID }, { phone: current.phone, templateId: templateFor(c.env, kind), disableSms: true,
+                variables: { '#{고객명}': current.name || '고객', '#{회사명}': c.env.NOTIFY_COMPANY || '몽골리아 은하수 여행사', '#{링크}': path, ...(kind === 'travel_notice' ? { '#{출발일}': current.depart } : {}) } });
+            return kakaoDeliveryResult(response);
         });
+        if (changedReason) {
+            if (result.id) await c.env.DB.prepare('UPDATE admin_delivery_attempts SET error=? WHERE id=?').bind(changedReason, result.id).run();
+            return c.json({ ...result, error: changedReason }, 409);
+        }
         if (cooldownBlocked) {
             const error = '방금 접수된 알림입니다. 1분 후 다시 보낼 수 있습니다.';
             if (result.id) await c.env.DB.prepare('UPDATE admin_delivery_attempts SET error=? WHERE id=?').bind(error, result.id).run();

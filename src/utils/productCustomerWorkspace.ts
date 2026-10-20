@@ -143,12 +143,22 @@ export function productCustomerOverview(r: any, days: any[], workflow: any, opti
     const signature = productSignatureStatus(contract, false);
     const signatureComplete = !!signature?.hasImage && !!signature.signedAt && Number.isFinite(Date.parse(signature.signedAt));
     const canPublish = !cancelled && ['confirmed', 'paid', 'completed'].includes(r.status);
+    const deliveries = [...(options.deliveryHistory || [])].sort((a, b) => time(b.at) - time(a.at));
+    const deliveryIssues = ['contract', 'itinerary'].flatMap(kind => {
+        const last = deliveries.find(item => item.kind === kind);
+        return last && ['failed', 'unknown', 'sending'].includes(last.state) ? [{ kind, last }] : [];
+    });
+    const awaitingCustomerInput = options.contractSent && !populated(contract.customerSubmittedAt);
     const tasks: CustomerWorkspaceOverviewModel['tasks'] = [];
     if (!cancelled) {
-        if (!workflow.depositPaid) tasks.push({ id: 'deposit', label: '예약금 입금 확인', detail: r.depositReport ? `${text(r.depositReport.name) || '고객'} 입금 완료 신고 · 실제 입금 확인 전` : '입금 확인 기록이 없습니다.', action: 'payments', actionLabel: '입금 내역 확인' });
-        if (!populated(r.email)) tasks.push({ id: 'email', label: '고객 이메일 등록', detail: '계약서·일정표 안내를 보낼 이메일이 없습니다.', action: 'edit-info', actionLabel: '주문자 정보 수정' });
+        if (!workflow.depositPaid) {
+            const waitingForDeposit = !r.depositReport && deliveries.some(item => item.kind === 'deposit_requested' && item.state === 'accepted');
+            tasks.push({ id: 'deposit', label: waitingForDeposit ? '고객 예약금 입금 대기' : '예약금 입금 확인', detail: r.depositReport ? `${text(r.depositReport.name) || '고객'} 입금 완료 신고 · 실제 입금 확인 전` : waitingForDeposit ? '입금 안내가 접수되었습니다. 실제 입금과 고객 신고를 기다리고 있습니다.' : '입금 확인 기록이 없습니다.', action: 'payments', actionLabel: '입금 내역 확인', ...(waitingForDeposit ? { waiting: true } : {}) });
+        }
+        for (const { kind, last } of deliveryIssues) tasks.push({ id: `${kind}-delivery`, label: `${kind === 'contract' ? '계약서' : '일정표'} 안내 ${last.state === 'failed' ? '발송 실패 확인' : '발송 결과 확인'}`,
+            detail: last.error || (last.state === 'failed' ? '안내가 접수되지 않았습니다. 설정과 수신 정보를 확인하세요.' : '발송 서비스의 결과를 확인하기 전에는 다시 보내지 마세요.'), action: 'history', actionLabel: '발송 이력 확인' });
         if (options.contractChanged) tasks.push({ id: 'contract-changed', label: '변경된 계약서 확인·재안내', detail: '마지막 안내 이후 계약서 내용이 변경되었습니다.', action: 'documents', actionLabel: '계약서 전달 관리' });
-        if (!workflow.signed) tasks.push(options.contractSent
+        if (!workflow.signed && !options.contractChanged && !deliveryIssues.some(item => item.kind === 'contract')) tasks.push(options.contractSent
             ? { id: 'view-contract', label: '고객 계약 동의 대기', detail: '계약서 전달 기록은 있으나 고객의 동의가 완료되지 않았습니다.', action: 'view-info', actionLabel: '동의 상태 확인', waiting: true }
             : { id: 'deliver-contract', label: '여행 계약서 확인·전달', detail: '계약서 전달 기록과 고객 동의가 없습니다.', action: 'documents', actionLabel: '계약서 전달 관리' });
         if (!options.itineraryReady) tasks.push({ id: 'itinerary', label: '확정 일정 작성', detail: '고객에게 제공할 일정 내용이 아직 없습니다.', action: 'edit-itinerary', actionLabel: '일정표 편집' });
@@ -161,14 +171,14 @@ export function productCustomerOverview(r: any, days: any[], workflow: any, opti
             label: expected === null || expected <= 0 ? '예약 인원·여행자 확인' : missingNames ? '여행자 명단·세부 정보 확인' : '여행자 세부 정보 확인',
             detail: [expected !== null && expected > 0 ? `${customerDetails.travelers.registered}/${expected}명 이름 입력` : customerDetails.travelers.status,
                 ...(missingNames ? [`${missingNames}명 이름 미입력`] : []), ...missingDetails.map(field => `${field.label} ${field.missing}명 미입력`)].join(' · '),
-            action: 'travelers', actionLabel: '여행자 정보 확인' });
+            action: 'travelers', actionLabel: '여행자 정보 확인', ...(awaitingCustomerInput ? { waiting: true } : {}) });
         const missingFlights = customerDetails.flights.map(flight => ({ label: flight.label, fields: [[flight.date, '날짜'], [flight.time, '시간'], [flight.flight, '편명']].filter(([value]) => !populated(value)).map(([, label]) => label) })).filter(flight => flight.fields.length);
-        if (missingFlights.length) tasks.push({ id: 'flights', label: '항공편 정보 확인', detail: missingFlights.map(flight => `${flight.label} ${flight.fields.join('·')} 미입력`).join(' / '), action: 'flights', actionLabel: '항공편 정보 확인' });
+        if (missingFlights.length) tasks.push({ id: 'flights', label: '항공편 정보 확인', detail: missingFlights.map(flight => `${flight.label} ${flight.fields.join('·')} 미입력`).join(' / '), action: 'flights', actionLabel: '항공편 정보 확인', ...(awaitingCustomerInput ? { waiting: true } : {}) });
         if (options.itineraryChanged) tasks.push({ id: 'itinerary-changed', label: '변경된 일정표 확인·재안내', detail: '마지막 안내 이후 일정표 내용이 변경되었습니다.', action: 'documents', actionLabel: '일정표 전달 관리' });
         else if (options.itineraryReady && !workflow.published) tasks.push(canPublish
             ? { id: 'publish', label: '확정 일정표 확인·공개', detail: '일정은 작성되었으나 고객에게 공개되지 않았습니다.', action: 'documents', actionLabel: '공개·전달 관리' }
             : { id: 'publish-blocked', label: '일정표 공개 전 예약 상태 확인', detail: `현재 ${customerReservationStatus(r.status)} 상태입니다. 결제 완료·예약 확정·여행 완료 상태에서 공개할 수 있습니다.`, action: 'payments', actionLabel: '예약·입금 상태 확인' });
-        else if (workflow.published && !options.itinerarySent) tasks.push({ id: 'deliver-itinerary', label: '공개된 일정표 안내 전달', detail: '고객 공개는 완료되었으나 안내 발송 접수 기록이 없습니다.', action: 'documents', actionLabel: '일정표 전달 관리' });
+        else if (workflow.published && !options.itinerarySent && !deliveryIssues.some(item => item.kind === 'itinerary')) tasks.push({ id: 'deliver-itinerary', label: '공개된 일정표 안내 전달', detail: '고객 공개는 완료되었으나 안내 발송 접수 기록이 없습니다.', action: 'documents', actionLabel: '일정표 전달 관리' });
     }
     const steps = [{ id: 'accepted', label: '예약 접수', done: true }, { id: 'deposit', label: '예약금 확인', done: workflow.depositPaid },
         { id: 'contract', label: '계약 동의', done: workflow.signed }, { id: 'schedule', label: '일정 준비', done: options.itineraryReady },
@@ -182,7 +192,7 @@ export function productCustomerOverview(r: any, days: any[], workflow: any, opti
         currentStage: customerCurrentStage({ status: r.status, steps, tasks, booking: true }),
         preferences: [], notes: (r.history || []).filter((h: any) => h.type === 'admin_memo').map((h: any, i: number) => ({ id: `${h.timestamp}:${i}`, body: h.description, at: h.timestamp ? new Date(h.timestamp).toLocaleString('ko-KR') : undefined })),
         days: overviewDays(days, r.dailyAccommodations || [], workflow.nights),
-        documents: [{ id: 'itinerary', label: '확정 일정표', action: options.itineraryReady ? 'itinerary' : 'edit-itinerary', status: options.itineraryChanged ? '변경 후 재안내 필요' : workflow.published ? options.itinerarySent ? '공개 · 발송됨' : '공개됨' : options.itineraryReady ? '작성됨 · 공개 전' : '작성 필요' },
+        documents: [{ id: 'itinerary', label: '확정 일정표', action: options.itineraryReady ? 'itinerary' : 'edit-itinerary', status: options.itineraryChanged ? '변경 후 재안내 필요' : workflow.published ? options.itinerarySent ? '공개 · 안내 접수' : '공개됨' : options.itineraryReady ? '작성됨 · 공개 전' : '작성 필요' },
             { id: 'contract', label: '여행 계약서', action: 'contract-preview', status: signatureComplete ? '손서명 완료' : signature?.hasImage ? '서명 시각 확인 필요' : contract.agreement?.agreed === true ? '성명 동의 완료 · 손서명 미등록' : signature ? '서명 원본 확인 필요' : options.contractChanged ? '변경 후 재안내 필요' : options.contractSent ? '전달됨 · 동의 대기' : '내용 확인', ...(options.contractChanged ? { detail: '마지막 안내 후 계약서가 변경되어 재안내가 필요합니다.' } : {}) },
             { id: 'guide-pdf', label: '가이드 시트 PDF', action: 'guide-pdf', detail: '기존 가이드용 출력 기능' }],
         payment: { total: r.paymentKnown?.total === null ? null : r.totalAmount, deposit: r.paymentKnown?.deposit === null ? null : r.deposit, balance: r.paymentKnown?.balance === null ? null : r.balance, depositPaid: r.depositStatus === 'paid', balancePaid: r.balanceStatus === 'paid' },

@@ -826,12 +826,21 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     // 고객이 계약서에서 직접 여행자 정보를 작성하므로, 이메일만 있으면 발송 가능
     const contractReady = !!reservation.email;
     // 발송 기록 판별 — 옛 일본어 기록('日程'/'契約')과 새 한국어 기록('일정'/'계약')을 모두 인식한다.
-    const acceptedDelivery = (kind: 'itinerary' | 'contract') => recordedDelivery?.bookingId === reservation.id
-        && recordedDelivery.items.some(item => item.kind === kind && item.state === 'accepted');
+    const acceptedDelivery = (kind: 'itinerary' | 'contract', channel?: string) => recordedDelivery?.bookingId === reservation.id
+        && recordedDelivery.items.some(item => item.kind === kind && item.state === 'accepted' && (!channel || item.channel === channel));
     const itineraryChanged = recordedDelivery?.bookingId === reservation.id && !!recordedDelivery.documents?.itinerary?.needsResend;
     const contractChanged = recordedDelivery?.bookingId === reservation.id && !!recordedDelivery.documents?.contract?.needsResend;
-    const itinerarySent = acceptedDelivery('itinerary') || timelineEvents.some((e: any) => e.type === 'email' && (e.detail === itineraryUrl || String(e.description || '').includes('日程') || String(e.description || '').includes('일정')));
-    const contractSent = acceptedDelivery('contract') || timelineEvents.some((e: any) => e.type === 'email' && (e.detail === contractUrl || String(e.description || '').includes('契約') || String(e.description || '').includes('계약')));
+    const itineraryEmailSent = acceptedDelivery('itinerary', 'email') || timelineEvents.some((e: any) => e.type === 'email' && (e.detail === itineraryUrl || String(e.description || '').includes('日程') || String(e.description || '').includes('일정')));
+    const contractEmailSent = acceptedDelivery('contract', 'email') || timelineEvents.some((e: any) => e.type === 'email' && (e.detail === contractUrl || String(e.description || '').includes('契約') || String(e.description || '').includes('계약')));
+    const itinerarySent = acceptedDelivery('itinerary') || itineraryEmailSent;
+    const contractSent = acceptedDelivery('contract') || contractEmailSent;
+    const emailChanged = (kind: 'itinerary' | 'contract', fallback: boolean) => {
+        if (!(kind === 'itinerary' ? itineraryEmailSent : contractEmailSent)) return false;
+        const data = recordedDelivery?.bookingId === reservation.id ? recordedDelivery : undefined;
+        const last = data?.items.find(item => item.kind === kind && item.channel === 'email' && item.state === 'accepted');
+        return last?.revision && data?.documents?.[kind]?.revision ? last.revision !== data.documents[kind].revision : fallback;
+    };
+    const itineraryEmailChanged = emailChanged('itinerary', itineraryChanged), contractEmailChanged = emailChanged('contract', contractChanged);
 
     // ── 문서 편집기(예약/견적 자동 채움) ──
     const _sd = (reservation as any).startDate;
@@ -1373,7 +1382,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             alert(!reservation.email ? '고객 이메일이 없습니다.' : '일정표 템플릿을 먼저 선택해 주세요.');
             return;
         }
-        if (itinerarySent && !window.confirm('이미 발송한 일정표 안내를 다시 보낼까요?')) return;
+        if (itineraryEmailSent && !window.confirm('이미 이메일로 접수된 일정표 안내를 다시 보낼까요?')) return;
         deliveryLock.current = true;
         setSendingItinerary(true);
         try {
@@ -1406,7 +1415,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             alert('고객 이메일이 없습니다.');
             return;
         }
-        if (contractSent && !window.confirm('이미 발송한 계약서 안내를 다시 보낼까요?')) return;
+        if (contractEmailSent && !window.confirm('이미 이메일로 접수된 계약서 안내를 다시 보낼까요?')) return;
         deliveryLock.current = true;
         setSendingContract(true);
         try {
@@ -1451,7 +1460,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 key: 'itinerary',
                 title: '일정표',
                 ready: itineraryReady && itineraryCanPublish,
-                sent: itinerarySent && !itineraryChanged,
+                sent: itineraryEmailSent && !itineraryEmailChanged,
                 send: () => deliverDocument('itinerary', {
                     customerName: reservation.customerName,
                     productName: reservation.productName,
@@ -1468,7 +1477,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 key: 'contract',
                 title: '계약서',
                 ready: contractReady,
-                sent: contractSent && !contractChanged,
+                sent: contractEmailSent && !contractEmailChanged,
                 send: () => deliverDocument('contract', {
                     customerName: reservation.customerName,
                     productName: reservation.productName,
@@ -1669,7 +1678,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
     // 문서별 마지막 발송 일시 (history의 email 이벤트에서)
     const lastEmailAt = (url: string, keywords: string[]) => {
-        const ev = [...timelineEvents].reverse().find((e: any) => e.type === 'email' && (e.detail === url || keywords.some(keyword => String(e.description || '').includes(keyword))));
+        const kind = url === contractUrl ? 'contract' : 'itinerary';
+        const receipt = recordedDelivery?.bookingId === reservation.id ? recordedDelivery.items.filter(item => item.kind === kind && item.channel === 'email' && item.state === 'accepted').map(item => ({ timestamp: item.at })) : [];
+        const ev = [...timelineEvents.filter((e: any) => e.type === 'email' && (e.detail === url || keywords.some(keyword => String(e.description || '').includes(keyword)))), ...receipt].sort((a: any, b: any) => (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0))[0];
         return ev?.timestamp ? new Date(ev.timestamp).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
     };
     // 옛 일본어 기록('日程'/'契約')과 새 한국어 기록('일정'/'계약')을 모두 인식
@@ -1680,7 +1691,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         { id: 'deposit', title: '예약금 확인', description: workspace.depositPaid ? '입금 확인 완료' : '입금 내역 확인 필요', done: workspace.depositPaid, actionLabel: '입금 확인하기', onAction: () => scrollToSec('pay') },
         { id: 'contract', title: '계약 동의', description: workspace.signed ? '고객 동의 완료' : contractSent ? '서명 요청됨 · 고객 동의 대기' : '계약서 전달 필요', done: workspace.signed, actionLabel: '계약서 확인하기', onAction: () => { scrollToSec('docs'); setActiveDocument('contract'); } },
         { id: 'schedule', title: '일정 준비', description: itineraryReady ? `${scheduleDays.length}일 일정 준비됨` : '상품 일정 불러와 작성', done: itineraryReady, actionLabel: '일정 작성하기', onAction: () => openInlineDocument('itinerary') },
-        { id: 'published', title: '일정표 공개', description: workspace.published ? itinerarySent ? '공개됨 · 메일 발송 완료' : '공개됨 · 고객 전달 가능' : '내용 확인 후 고객에게 공개', done: workspace.published, actionLabel: '공개·전달하기', onAction: () => scrollToSec('docs') },
+        { id: 'published', title: '일정표 공개', description: workspace.published ? itinerarySent ? '공개됨 · 안내 서비스 접수' : '공개됨 · 고객 전달 가능' : '내용 확인 후 고객에게 공개', done: workspace.published, actionLabel: '공개·전달하기', onAction: () => scrollToSec('docs') },
     ];
     const readiness = [
         { title: '확정 일정', value: itineraryReady ? `${scheduleDays.length}일` : '작성 필요', description: reservation.documentContent ? '고객별 저장 일정' : selectedTemplate ? '선택한 템플릿 일정' : reservationProduct ? '예약한 상품의 일정' : '일정을 작성하세요', ready: itineraryReady, onAction: () => openInlineDocument('itinerary') },
@@ -1718,7 +1729,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     overview.bookedProduct = bookedProduct;
     const kakaoDirty = inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty;
     const notificationActions = <CustomerKakaoActions key={reservation.id} source="product" bookingId={reservation.id}
-        revision={JSON.stringify([deliveryRevision, reservation])} disabled={workspaceIsBusy() || kakaoDirty}
+        revision={JSON.stringify([deliveryRevision, reservation, recordedDelivery?.items.map(item => [item.id, item.kind, item.channel, item.state, item.at, item.error])])} disabled={workspaceIsBusy() || kakaoDirty}
         disabledReason={kakaoDirty ? '변경사항과 보관된 초안을 먼저 저장한 뒤 고객에게 발송해 주세요.' : undefined}
         beforeSend={canStartDelivery} onBusyChange={setSendingKakao} onResult={() => setDeliveryRevision(value => value + 1)}
         onHistory={() => overviewAction('history')} />;
@@ -1874,7 +1885,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         ready={itineraryReady} published={workspace.published} canPublish={itineraryCanPublish}
                         itinerarySent={itinerarySent} itinerarySentAt={itinerarySentAt} signed={workspace.signed}
                         contractSent={contractSent} contractSentAt={contractSentAt} travelerCount={workspace.travelerCount}
-                        itineraryChanged={itineraryChanged} contractChanged={contractChanged}
+                        itineraryEmailSent={itineraryEmailSent} contractEmailSent={contractEmailSent}
+                        itineraryChanged={itineraryEmailChanged} contractChanged={contractEmailChanged}
                         email={reservation.email} sending={sendingItinerary || sendingContract || sendingAllDocs || publishing || updating || inlineBusy} copied={copiedDocId}
                         templates={templatesList} templateId={editForm.itineraryTemplateId || ''} applyingTemplate={applyingTemplate}
                         onTemplate={applyDocumentTemplate} onEdit={openInlineDocument} onPublish={publishCustomerItinerary}

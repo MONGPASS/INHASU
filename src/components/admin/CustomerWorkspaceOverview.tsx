@@ -38,6 +38,8 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
     const paidAmount = (m.payment.depositPaid ? m.payment.deposit || 0 : 0) + (m.payment.balancePaid ? m.payment.balance || 0 : 0);
     const paidPercent = progressKnown ? (m.payment.total! > 0 ? Math.min(100, Math.max(0, Math.round(paidAmount / m.payment.total! * 100))) : m.payment.depositPaid && m.payment.balancePaid ? 100 : 0) : null;
     const orderedTasks = [...m.tasks.filter(task => !task.waiting), ...m.tasks.filter(task => task.waiting)];
+    const waitingTasks = m.tasks.filter(task => task.waiting).length;
+    const activeTasks = m.tasks.length - waitingTasks;
     const next = orderedTasks[0];
     const completedSteps = m.steps.filter(item => item.done).length;
     const assignedResources = m.assignments.filter(item => item.state === 'ready').length;
@@ -87,16 +89,15 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
         <div className={`cw-task-card${next ? '' : ' is-complete'}`}>
             <div className="cw-next-task" role="status">
                 <span className="cw-task-symbol"><Icon name={next ? 'assignment' : 'check_circle'} /></span>
-                <div className="cw-task-copy"><div><strong>{next ? next.waiting ? '고객 확인 대기' : '지금 할 일' : '업무 확인 완료'}</strong>{next && <span className="cw-task-count">{m.tasks.length}건 남음</span>}</div><p>{next?.label || '현재 확인된 미완료 업무가 없습니다.'}</p></div>
+                <div className="cw-task-copy"><div><strong>{next ? next.waiting ? '고객 확인 대기' : '지금 할 일' : '업무 확인 완료'}</strong>{next && <span className="cw-task-count">관리자 처리 {activeTasks}건{waitingTasks > 0 && ` · 고객 대기 ${waitingTasks}건`}</span>}</div><p>{next?.label || '현재 확인된 미완료 업무가 없습니다.'}</p></div>
                 <button type="button" className="cw-button cw-primary" disabled={busy} onClick={action(next?.action || 'history', next?.id)}>{next ? next.actionLabel || '내용 확인' : '이력 확인'}<Icon name="arrow_forward" /></button>
             </div>
-            {next?.detail && <p className="cw-next-task-detail">{next.detail}</p>}
-            {orderedTasks.length > 1 && <div className="cw-task-list" aria-label="남은 고객 업무">{orderedTasks.slice(1).map(task => <div className={`cw-task-item${task.waiting ? ' is-waiting' : ''}`} key={task.id}>
+            {!!orderedTasks.length && <details className="cw-task-disclosure"><summary><span>업무 상세 {orderedTasks.length}건</span><span className="cw-task-disclosure-hint">사유와 처리 방법 확인</span><Icon name="expand_more" /></summary><div className="cw-task-list" aria-label="남은 고객 업무">{orderedTasks.map(task => <div className={`cw-task-item${task.waiting ? ' is-waiting' : ''}`} key={task.id}>
                 <span className="cw-task-marker" aria-hidden="true" /><div><strong>{task.label}</strong>{task.detail && <p>{task.detail}</p>}{task.waiting && <span className="cw-task-waiting">고객 확인 대기</span>}</div>
                 <button type="button" className="cw-button" disabled={busy} onClick={action(task.action, task.id)}>{task.actionLabel || '내용 확인'}<Icon name="chevron_right" /></button>
-            </div>)}</div>}
-            {notificationActions}
+            </div>)}</div></details>}
         </div>
+        {notificationActions}
         </section>
 
         <div className="cw-columns">

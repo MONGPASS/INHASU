@@ -53,7 +53,7 @@ test("관리자 인증이 있어야 계약 서명 원본을 조회한다", async
   assert.equal(body.item.booking.contract.signImg, "data:image/png;base64,signature-original");
 });
 
-test("5박 6일은 숙소 5개 배정 후 일정표를 공개할 수 있다", async () => {
+test("5박 6일은 숙소 5개 배정 후 일정표를 공개할 수 있다", async t => {
   const days = Array.from({ length:6 }, (_, i) => ({ d:i + 1, stay:{ name:`숙소 ${i + 1}` } }));
   const booking = {
     days,
@@ -65,28 +65,21 @@ test("5박 6일은 숙소 5개 배정 후 일정표를 공개할 수 있다", as
     contractInfo:{ depositStatus:"입금완료" }, publishStatus:"draft",
   };
   const rec = { id:"req-1", quote:{}, decision:{ status:"accepted" }, status:"예약확정", booking };
-  let saved = null;
-  const env = {
-    ADMIN_TOKEN:"admin-secret",
-    DB:{ prepare(sql) { return { bind(...values) { return {
-      async first() { return { data:JSON.stringify(rec), status:"예약확정" }; },
-      async run() { saved = { sql, values }; return { success:true }; },
-    }; } }; } },
-  };
+  const DB = requestSQLite(t, rec), env = { ADMIN_TOKEN:'admin-secret', DB }, pending = [];
   const response = await onRequestPatch({
     request:new Request("https://example.com/api/requests/req-1", {
       method:"PATCH", headers:{ "Content-Type":"application/json", "x-admin-token":"admin-secret" },
       body:JSON.stringify({ booking:{ ...booking, publishStatus:"published" } }),
     }),
-    env, params:{ id:"req-1" }, waitUntil() {},
+    env, params:{ id:"req-1" }, waitUntil(task) { pending.push(task); },
   });
   assert.equal(response.status, 200);
-  assert.ok(saved);
+  await Promise.all(pending); assert.ok(DB.requestWrites.length);
   assert.equal((await response.json()).publishStatus, "published");
 });
 
 test("확정일정표 최초 공개 시 고객 직링크 알림톡을 한 번 요청한다", async t => {
-  const days = Array.from({ length:3 }, (_, i) => ({ d:i + 1, stay:{ name:`숙소 ${i + 1}` } }));
+  const days = Array.from({ length:3 }, (_, i) => ({ d:i + 1, dest:`저장 일정 ${i + 1}`, stay:{ name:`숙소 ${i + 1}` } }));
   const booking = {
     days,
     assign:{
@@ -155,7 +148,7 @@ test("확정일정표 최초 공개 시 고객 직링크 알림톡을 한 번 �
   assert.equal(DB.deliveries[0].state, 'accepted');
 });
 
-test("여행서명 시 여행자 정보를 함께 제출하면 booking과 스냅샷에 저장된다", async () => {
+test("여행서명 시 여행자 정보를 함께 제출하면 booking과 스냅샷에 저장된다", async t => {
   const rec = {
     id: "req-1",
     token: "token-1234567890123456",
@@ -165,33 +158,7 @@ test("여행서명 시 여행자 정보를 함께 제출하면 booking과 스냅
       contractInfo: { depositStatus: "입금완료", totalAmount: 2000000, depositAmount: 200000 },
     },
   };
-  let savedData = null;
-  const env = {
-    DB: {
-      prepare() {
-        return {
-          bind() {
-            return {
-              async first() { return { id: "req-1", status: "진행중", data: JSON.stringify(rec) }; },
-              async run() { return { success: true }; },
-            };
-          },
-          run() { return { success: true }; },
-        };
-      },
-    },
-  };
-  env.DB.prepare = (sql) => ({
-    bind(...args) {
-      if (sql.includes("UPDATE")) {
-        savedData = JSON.parse(args[1] || "{}");
-      }
-      return {
-        async first() { return { id: "req-1", status: "진행중", data: JSON.stringify(rec) }; },
-        async run() { return { success: true }; },
-      };
-    },
-  });
+  const DB = requestSQLite(t, rec), env = { DB }, pending = [];
 
   const signImg = "data:image/png;base64," + "A".repeat(300);
   const travelers = [
@@ -215,10 +182,12 @@ test("여행서명 시 여행자 정보를 함께 제출하면 booking과 스냅
     }),
     env,
     params: { token: "token-1234567890123456" },
-    waitUntil() {},
+    waitUntil(task) { pending.push(task); },
   });
 
   assert.equal(response.status, 200);
+  await Promise.all(pending);
+  const savedData = DB.record;
   assert.ok(savedData);
   assert.equal(savedData.booking.travelers.length, 2);
   assert.equal(savedData.booking.travelerSubmission.status, "submitted");
@@ -326,6 +295,8 @@ test("관리자가 입금확인완료를 누르면 고객에게 계약서 안내
     SOLAPI_API_KEY: "api-key",
     SOLAPI_API_SECRET: "api-secret",
     SOLAPI_SENDER: "0212345678",
+    SOLAPI_PF_ID: 'local-test-profile',
+    SOLAPI_TEMPLATE_CONTRACT_ID: 'local-test-contract',
     SITE_URL: "https://mongolia-milkyway.com",
     DB,
   };
@@ -352,17 +323,18 @@ test("관리자가 입금확인완료를 누르면 고객에게 계약서 안내
 
   assert.ok(sentBody);
   assert.equal(sentBody.message.to, "01099998888");
-  assert.ok(sentBody.message.text.includes("입금확인이 완료되었습니다."));
-  assert.ok(sentBody.message.text.includes("1. 여행자정보 입력하기"));
-  assert.ok(sentBody.message.text.includes("2. 여행계약서 확인 및 서명하기"));
-  assert.ok(sentBody.message.text.includes("https://mongolia-milkyway.com/%EB%82%B4%EA%B2%AC%EC%A0%81.html?t=test-token-abcdef123456"));
+  assert.equal(sentBody.message.text, undefined);
+  assert.equal(sentBody.message.kakaoOptions.templateId, 'local-test-contract');
+  assert.equal(sentBody.message.kakaoOptions.disableSms, true);
+  assert.equal(sentBody.message.kakaoOptions.variables['#{고객명}'], '홍길동');
+  assert.equal(sentBody.message.kakaoOptions.variables['#{링크}'], `${encodeURI('내견적.html')}?t=test-token-abcdef123456`);
   assert.equal(sends, 1);
   assert.equal(DB.record.booking.contractInfo.depositStatus, '입금완료');
   assert.equal(DB.record.booking.checklist.deposit, true);
   assert.ok(DB.record.activities.some(activity => activity.type === 'deposit_confirmed'));
   assert.equal(DB.deliveries.length, 1);
   assert.equal(DB.deliveries[0].kind, 'contract');
-  assert.equal(DB.deliveries[0].channel, 'message');
+  assert.equal(DB.deliveries[0].channel, 'kakao');
   assert.equal(DB.deliveries[0].state, 'accepted');
 });
 

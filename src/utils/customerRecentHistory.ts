@@ -92,7 +92,9 @@ export function customerRecentHistory(input: { source: 'product' | 'quote' | 'le
         add('travel_notice_sent', record(r.notify).travelNoticeSentAt, 'document', '여행 주의사항 발송 기록');
         list(r.changeRequests).forEach(change => add('customer-change:' + text(change.id) + ':' + hash(text(change.detail || change.description)), change.at ?? change.requestedAt, 'customer', '고객 일정 변경 요청', Array.isArray(change.categories) ? change.categories.map(item => text(item)).filter(Boolean).join(' · ') : undefined));
     }
-    const documentNames: Record<string, string> = { quote: '견적서', contract: '계약서', itinerary: '확정 일정표', travel_notice: '여행 주의사항' };
+    const documentNames: Record<string, string> = { quote: '견적서', contract: '계약서', itinerary: '확정 일정표', travel_notice: '여행 주의사항',
+        request_received: '견적 요청 접수 안내', change_requested: '일정 변경 접수 안내', reservation_requested: '예약 진행 접수 안내',
+        deposit_requested: '예약금 입금 안내', travelers_requested: '여행자 정보 요청 안내', contract_signed: '계약서 서명 접수 안내', booking_confirmed: '예약 확정 안내' };
     const stateNames: Record<string, string> = { accepted: '발송 서비스 접수', queued: '발송 요청', failed: '발송 실패', unknown: '발송 결과 확인 필요', sending: '발송 처리 중', legacy: '이전 발송 기록' };
     for (const delivery of input.deliveryHistory || []) {
         if (!documentNames[delivery.kind] || !stateNames[delivery.state]) continue;

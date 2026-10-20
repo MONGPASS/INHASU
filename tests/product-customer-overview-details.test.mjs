@@ -108,7 +108,7 @@ test('미입력 명단·항공편·숙소 업무는 정확한 누락 수량과 �
     assert.equal(model.tasks.find(task => task.id === 'flights').action, 'flights');
     assert.equal(model.tasks.find(task => task.id === 'flights').detail, '몽골 도착편 시간·편명 미입력 / 몽골 출발편 날짜·시간·편명 미입력');
     const missingEmail = overview({ customer_email: '' });
-    assert.equal(missingEmail.tasks.find(task => task.id === 'email').action, 'edit-info');
+    assert.equal(missingEmail.tasks.some(task => task.id === 'email'), false, '이메일은 선택 발송 수단이며 관리자 필수 업무로 집계하지 않는다');
     assert.equal(missingEmail.canSendItinerary, false);
 });
 
@@ -121,6 +121,7 @@ test('공개 제한 상태에는 공개·발송을 완료로 보이거나 직접
     const published = overview({ itinerary_url: '/saved-itinerary' });
     assert.equal(published.tasks.some(task => task.id === 'publish'), false); assert.equal(published.tasks.find(task => task.id === 'deliver-itinerary').action, 'documents');
     assert.equal(overview({ itinerary_url: '/saved-itinerary' }, undefined, { itinerarySent: true }).tasks.some(task => task.id === 'deliver-itinerary'), false);
+    assert.equal(overview({ itinerary_url: '/saved-itinerary' }, undefined, { itinerarySent: true }).documents.find(document => document.id === 'itinerary').status, '공개 · 안내 접수');
     const cancelled = overview({ status: 'cancelled' });
     assert.deepEqual(cancelled.tasks, []); assert.equal(cancelled.customerLinkAvailable, false); assert.equal(cancelled.canSendItinerary, false);
     const legacyCancelled = legacyCustomerOverview({ id: 'cancelled-legacy', status: 'cancelled' }, null);
@@ -133,4 +134,21 @@ test('수동 주문 메모는 보존하되 고객 요청이나 여행자 신원�
     assert.equal(row.notes, '카카오 ID: saved-customer\n담당자 확인 메모');
     assert.equal(model.facts.find(fact => fact.label === '주문 메모').value, row.notes);
     assert.deepEqual(model.preferences, []); assert.equal(model.travelers.registered, 0); assert.equal(model.travelers.people.length, 0);
+});
+
+test('카카오 계약 안내 접수 후 고객 입력은 대기로 분리하고 제출 후 누락은 관리자 확인으로 되돌린다', () => {
+    const waiting = overview({ customer_email: '' }, undefined, { contractSent: true, deliveryHistory: [{ id: 'kakao', kind: 'contract', channel: 'kakao', state: 'accepted', at: '2026-10-20T00:00:00Z' }] });
+    for(const id of ['view-contract','travelers','flights']) assert.equal(waiting.tasks.find(task=>task.id===id).waiting,true,id);
+    assert.equal(waiting.tasks.some(task=>task.id==='email'),false);assert.equal(waiting.tasks.find(task=>task.id==='stay').waiting,undefined);
+    const submitted=overview({contract_data:{customerSubmittedAt:'2026-10-20T01:00:00Z',travelers:[{name:'이름만 입력'}]}},undefined,{contractSent:true});
+    assert.equal(submitted.tasks.find(task=>task.id==='travelers').waiting,undefined);assert.equal(submitted.tasks.find(task=>task.id==='flights').waiting,undefined);
+    const changed=overview({},undefined,{contractSent:true,contractChanged:true});assert.equal(changed.tasks.filter(task=>['contract-changed','view-contract','deliver-contract'].includes(task.id)).length,1);
+});
+
+test('발송 실패와 결과 불명은 고객 대기 대신 정확한 발송 이력 확인 업무로 표시한다',()=>{
+    for(const state of ['failed','unknown','sending']){
+        const model=overview({},undefined,{deliveryHistory:[{id:'receipt',kind:'contract',channel:'kakao',state,at:'2026-10-20T01:00:00Z',error:'실제 접수 결과 확인'}]});
+        const task=model.tasks.find(task=>task.id==='contract-delivery');assert.equal(task.action,'history');assert.equal(task.detail,'실제 접수 결과 확인');
+        assert.equal(model.tasks.some(task=>['deliver-contract','view-contract'].includes(task.id)),false);assert.equal(task.waiting,undefined);
+    }
 });

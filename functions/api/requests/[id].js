@@ -5,14 +5,10 @@
    ═══════════════════════════════════════════════════════════ */
 
 import { workflowStatus, defaultQuoteExpiry, requiredLodgeCount } from "../_workflow.mjs";
-import {
-  canSendKakao,
-  notifyCustomerQuoteReady, notifyCustomerItineraryReady, notifyCustomerContractReady,
-  notifyCustomerTravelNotice, quoteTemplateId, itineraryTemplateId, sendFailReason,
-} from "../_solapi.js";
-import { MANUAL_TRIGGER, recordTravelNoticeSent, travelNoticeState } from "../_travel-notice.mjs";
-import { trackedDelivery } from '../../lib/adminDelivery.ts';
-import { quoteDocumentRevisions } from '../../lib/adminDocumentRevision.ts';
+import { MANUAL_TRIGGER, travelNoticeState } from "../_travel-notice.mjs";
+import { resolveNotificationTemplate } from '../../lib/customerNotifications.ts';
+import { backgroundCustomerEvent, customerEvent, recordTravelNoticeOutcome } from '../_customer-events.mjs';
+import { documentRevision, quoteDocumentRevisions } from '../../lib/adminDocumentRevision.ts';
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -81,6 +77,9 @@ export async function onRequestPatch(context) {
     if (!row) return json({ ok: false, error: "not found" }, 404);
 
     const rec = JSON.parse(row.data);
+    const previousAccepted = rec.decision?.status === 'accepted';
+    const previousPaid = rec.booking?.contractInfo?.depositStatus === '입금완료';
+    const previousChanges = Array.isArray(rec.changeRequests) ? rec.changeRequests : [];
     const previousDocumentVersions = await quoteDocumentRevisions(rec);
     if ((requestTravelerInfo || requestDeposit || requestContract || confirmDeposit) && !rec.booking) 
       return json({ ok:false, error:"예약관리를 먼저 시작해 주세요" }, 409);
@@ -170,60 +169,61 @@ export async function onRequestPatch(context) {
     }
     const publishingItinerary = !!(rec.booking && rec.booking.publishStatus === "published" && prevPublish !== "published");
     const shouldNotifyQuote = !publishingItinerary && !silentQuote && !!rec.quote && (!hadQuote || forceNotifyQuote);
-    const shouldNotifyContract = confirmDeposit || requestContract;
+    const firstDepositConfirmed = !previousPaid && rec.booking?.contractInfo?.depositStatus === '입금완료';
+    const shouldNotifyContract = firstDepositConfirmed || requestContract;
     const shouldNotifyItinerary = publishingItinerary;
 
+    const readyFor = kind => !!(env.SOLAPI_API_KEY && env.SOLAPI_API_SECRET && resolveNotificationTemplate(env, kind) && /^0\d{8,10}$/.test(String(rec.phone || '').replace(/\D/g, '')));
+
     if (shouldNotifyQuote) {
-      const ready = canSendKakao(env, { phone:rec.phone, templateId:quoteTemplateId(env) });
+      const ready = readyFor('quote');
       notifications.push({ type:"quote", status:ready ? "queued" : "skipped" });
       rec.activities.push({ at:now, type:ready ? "quote_notification_queued" : "quote_notification_skipped", detail:ready ? "고객 견적 준비 알림톡 발송 요청" : "견적 발행 알림 건너뜀" });
     }
     if (shouldNotifyContract) {
-      const ready = !!(env.SOLAPI_API_KEY && env.SOLAPI_API_SECRET && rec.phone);
+      const ready = readyFor('contract');
       notifications.push({ type:"contract", status:ready ? "queued" : "skipped" });
       rec.activities.push({ at:now, type:ready ? "contract_notification_queued" : "contract_notification_skipped", detail:ready ? "고객 계약서 서명 안내 발송 요청" : "계약서 안내 발송 건너뜀" });
     }
     if (shouldNotifyItinerary) {
-      const ready = canSendKakao(env, { phone:rec.phone, templateId:itineraryTemplateId(env) });
+      const ready = readyFor('itinerary');
       notifications.push({ type:"itinerary", status:ready ? "queued" : "skipped" });
       rec.activities.push({ at:now, type:ready ? "itinerary_notification_queued" : "itinerary_notification_skipped", detail:ready ? "고객 확정일정표 확인 알림톡 발송 요청" : "확정일정표 알림 건너뜀" });
     }
 
-    /* 여행 주의사항 수동 발송 — 결과를 바로 알려줘야 하므로 저장 전에 실제 발송까지 마칩니다.
-       성공한 경우에만 발송 기록을 남기며, 횟수 제한 없이 다시 보낼 수 있습니다. */
+    rec.activities = rec.activities.slice(-100);
+    const persisted = await env.DB.prepare("UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ? AND data = ?")
+      .bind(rec.status, rec.memo || "", JSON.stringify(rec), rec.token || "", id, row.data).run();
+    if (Number(persisted?.meta?.changes ?? persisted?.changes ?? 0) !== 1) return json({ ok:false, error:'다른 화면에서 예약이 변경되었습니다. 입력을 보관한 뒤 최신 정보를 확인해 주세요.' }, 409);
+
+    const bg = async (kind, eventKey, forceManual = false) => backgroundCustomerEvent(context, { source:'quote_booking', bookingId:id, kind, eventKey, ...(forceManual ? {forceManual:true} : {}) });
+    if (shouldNotifyQuote) await bg('quote', forceNotifyQuote ? `quote-shared:${now}:${currentDocumentVersions.quote}` : 'first-quote-issued:v1', forceNotifyQuote);
+    if (shouldNotifyContract) await bg('contract', requestContract ? `contract-requested:${rec.booking.contractRequest?.requestedAt || now}` : 'first-deposit-paid:v1', requestContract);
+    if (shouldNotifyItinerary) await bg('itinerary', 'first-itinerary-published:v1');
+    if (requestDeposit) await bg('deposit_requested', `deposit-requested:${rec.booking.depositRequest.requestedAt}`);
+    if (requestTravelerInfo) await bg('travelers_requested', `travelers-requested:${rec.booking.travelerSubmission.requestedAt}`);
+    if (!previousAccepted && rec.decision?.status === 'accepted') await bg('reservation_requested', 'first-reservation-requested:v1');
+    if (prevStatus !== '예약확정' && rec.status === '예약확정') await bg('booking_confirmed', 'first-booking-confirmed:v1');
+    const changeKey = async change => change?.id ? `id:${String(change.id).slice(0, 150)}` : `hash:${await documentRevision(change)}`;
+    const oldChanges = new Set(await Promise.all(previousChanges.map(changeKey)));
+    for (const change of Array.isArray(rec.changeRequests) ? rec.changeRequests : []) {
+      if (!change || typeof change !== 'object' || Array.isArray(change)) continue;
+      const key = await changeKey(change);
+      if (!oldChanges.has(key)) { oldChanges.add(key); await bg('change_requested', `change-requested:${key}`); }
+    }
+
+    // Manual re-notices persist the main edit first, then return the actual
+    // provider receipt. Failed/unknown delivery never reports the saved edit lost.
     let travelNotice;
     if (sendTravelNotice) {
-      const result = await notifyCustomerTravelNotice(env, {
-        phone: rec.phone, name: rec.name, depart: rec.depart, requestUrl: request.url,
-      }).catch(e => ({ ok: false, error: String(e?.message || e) }));
-      if (result?.ok) {
-        const at = new Date().toISOString();
-        recordTravelNoticeSent(rec, { at, trigger: MANUAL_TRIGGER });
-        travelNotice = { ok: true, sentAt: at, sentCount: travelNoticeState(rec).sentCount };
-      } else {
-        travelNotice = { ok: false, reason: sendFailReason(result) };
-        rec.activities.push({ at: now, type: "travel_notice_failed", detail: `여행 주의사항 발송 실패 (${travelNotice.reason})` });
-      }
-      rec.activities = rec.activities.slice(-100);
-    }
-
-    rec.activities = rec.activities.slice(-100);
-    await env.DB.prepare("UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ?").bind(rec.status, rec.memo || "", JSON.stringify(rec), rec.token || "", id).run();
-
-    const bg = (kind, work) => {
-      const task = trackedDelivery(env.DB, { source:'quote_booking', bookingId:id, kind, channel:kind === 'contract' ? 'message' : 'kakao', revision:currentDocumentVersions[kind] }, work)
-        .then(r => console.log('customer-delivery', kind, r.state)).catch(() => console.log('customer-delivery', kind, 'history unavailable; not sent'));
-      if (typeof context.waitUntil === "function") context.waitUntil(task);
-    };
-
-    if (shouldNotifyQuote && notifications.find(x => x.type === "quote" && x.status === "queued")) {
-      bg('quote', () => notifyCustomerQuoteReady(env, { phone:rec.phone, name:rec.name, token:rec.token }));
-    }
-    if (shouldNotifyContract && notifications.find(x => x.type === "contract" && x.status === "queued")) {
-      bg('contract', () => notifyCustomerContractReady(env, { phone:rec.phone, name:rec.name, token:rec.token, requestUrl:request.url }));
-    }
-    if (shouldNotifyItinerary && notifications.find(x => x.type === "itinerary" && x.status === "queued")) {
-      bg('itinerary', () => notifyCustomerItineraryReady(env, { phone:rec.phone, name:rec.name, token:rec.token }));
+      const result = await customerEvent(context, { source:'quote_booking', bookingId:id, kind:'travel_notice', eventKey:`admin-travel-notice:${crypto.randomUUID()}` });
+      let marked;
+      try { marked = await recordTravelNoticeOutcome(env, id, result, MANUAL_TRIGGER); }
+      catch { marked = { marked:false }; }
+      if (marked.rec) { rec.notify = marked.rec.notify; rec.activities = marked.rec.activities; }
+      const state = travelNoticeState(rec);
+      travelNotice = { ok:result.ok, state:result.state, duplicate:!!result.duplicate, ...(result.ok ? { sentAt:state.sentAt, sentCount:state.sentCount } : { reason:result.error || '알림 처리 결과를 확인해 주세요.' }),
+        ...(!marked.marked && !result.duplicate ? { warning:'주 업무는 저장되었습니다. 발송 결과는 발송 이력에서 확인해 주세요.' } : {}) };
     }
 
     return json({

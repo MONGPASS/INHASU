@@ -5,6 +5,7 @@ import { requireAdmin } from '../lib/adminAuth';
 import { buildProductQuote, hasProductSchedule, loadProductDocument, mergeProductDays, productItineraryPublished } from '../lib/productItinerary';
 import { PRODUCT_CONTRACT_TERMS_VERSION, productContractTerms, productSignatureRecord, publicProductContract, validateProductSignature } from '../../src/utils/productContractSignature';
 import { documentRevision } from '../lib/adminDocumentRevision';
+import { dispatchCustomerNotification, type CustomerNotificationKind } from '../lib/customerNotifications';
 
 type Env = {
     DB: any;
@@ -12,6 +13,12 @@ type Env = {
 
 const app = new Hono<{ Bindings: Env }>();
 app.use('*', async (c, next) => { c.header('Cache-Control', 'private, no-store'); await next(); });
+
+async function queueCustomerNotification(c: any, bookingId: string, kind: CustomerNotificationKind, eventKey: string) {
+    const task = Promise.resolve().then(() => dispatchCustomerNotification(c.env, { source: 'product', bookingId, kind, eventKey }))
+        .catch(() => { console.error('[Customer Notification] outcome unavailable', kind); });
+    try { c.executionCtx.waitUntil(task); } catch { await task; }
+}
 
 const DOC_SETTINGS_MARKER = '\n\n__MILKYWAY_DOCUMENT_SETTINGS__=';
 
@@ -143,8 +150,12 @@ app.post('/itinerary/:reservationId/publish', requireAdmin, async (c) => {
     const { days } = await loadProductDocument(db, reservation);
     if (!hasProductSchedule(days)) return c.json({ error: '여행 일정을 작성하고 저장해 주세요.' }, 409);
     const itineraryUrl = `${BRAND.siteUrl}/documents/itinerary/${id}`;
-    await db.prepare("UPDATE reservations SET itinerary_url = ?, updated_at = datetime('now') WHERE id = ?")
+    const published = await db.prepare("UPDATE reservations SET itinerary_url = ?, updated_at = datetime('now') WHERE id = ?")
         .bind(itineraryUrl, id).run();
+    if (Number(published?.meta?.changes ?? published?.changes ?? 0) !== 1) return c.json({ error: '예약이 변경되었습니다. 최신 정보를 확인한 뒤 다시 공개해 주세요.' }, 409);
+    if (!productItineraryPublished(reservation)) {
+        await queueCustomerNotification(c, id, 'itinerary', `product:${id}:first-itinerary-published:v1`);
+    }
     return c.json({ itineraryUrl });
 });
 
@@ -306,6 +317,11 @@ app.post('/contract/:reservationId/customer', async (c) => {
     const result = await db.prepare(updateSql)
         .bind(JSON.stringify(contractData), reservation.id, ...guardedColumns.map(key => reservation[key] ?? null)).run();
     if (Number(result?.meta?.changes ?? result?.changes ?? 0) !== 1) return c.json({ error: '다른 화면에서 계약 정보가 변경되었습니다. 입력을 보관한 뒤 새로고침하여 확인해 주세요.' }, 409);
+    if (body.signature !== undefined) {
+        const eventKey = `product:${reservation.id}:contract-signed:${contractData.signature.signedAt}`;
+        await queueCustomerNotification(c, reservation.id, 'contract_signed', eventKey);
+        await queueCustomerNotification(c, reservation.id, 'travel_notice', eventKey);
+    }
     return c.json({ success: true, contract: publicProductContract(contractData) });
 });
 

@@ -1082,7 +1082,9 @@ if (customerWorkspace) {
         assert.ok(!text.includes('LOCAL-PRIVATE-CUSTOMER-QUOTE-MEMO'));
         assert.equal(safe.booking, null); assert.deepEqual(safe.quote, fixture.quote);
         if (fixture.quote) assert.equal(safe.quote.price.total, 0);
-        assert.equal((await apiRequest(`/api/admin/deliveries?source=quote_booking&id=${encodeURIComponent(fixture.id)}`, { headers: admin })).status, 404);
+        const inquiryLedger = await apiRequest(`/api/admin/deliveries?source=quote_booking&id=${encodeURIComponent(fixture.id)}`, { headers: admin });
+        assert.equal(inquiryLedger.status, 200);
+        assert.equal((await inquiryLedger.json()).workflow.accepted, false, 'Inquiry receipts must be readable without creating a booking');
     }
     const rawQuoteList = await (await apiRequest('/api/requests', { headers: quoteAdmin })).json();
     const quoteBookingList = await (await apiRequest('/api/admin/bookings/quote', { headers: admin })).json();
@@ -1139,7 +1141,11 @@ if (customerNotices) {
         SOLAPI_API_KEY: 'local-customer-notice-key', SOLAPI_API_SECRET: 'local-customer-notice-secret',
         SOLAPI_PF_ID: 'local-notice-profile', SOLAPI_TEMPLATE_QUOTE_ID: 'local-notice-quote',
         SOLAPI_TEMPLATE_CONTRACT_ID: 'local-notice-contract', SOLAPI_TEMPLATE_ITINERARY_ID: 'local-notice-itinerary',
-        SOLAPI_TEMPLATE_GUIDEBOOK_ID: 'local-notice-guidebook', SOLAPI_DISABLE_SMS: 'Y',
+        SOLAPI_TEMPLATE_TRAVEL_NOTICE_ID: 'local-notice-travel-notice', SOLAPI_DISABLE_SMS: 'Y',
+        SOLAPI_TEMPLATE_REQUEST_RECEIVED_ID: 'local-notice-request-received', SOLAPI_TEMPLATE_CHANGE_REQUESTED_ID: 'local-notice-change-requested',
+        SOLAPI_TEMPLATE_RESERVATION_REQUESTED_ID: 'local-notice-reservation-requested', SOLAPI_TEMPLATE_DEPOSIT_REQUESTED_ID: 'local-notice-deposit-requested',
+        SOLAPI_TEMPLATE_TRAVELERS_REQUESTED_ID: 'local-notice-travelers-requested', SOLAPI_TEMPLATE_CONTRACT_SIGNED_ID: 'local-notice-contract-signed',
+        SOLAPI_TEMPLATE_BOOKING_CONFIRMED_ID: 'local-notice-booking-confirmed',
         SITE_URL: localOrigin,
     });
     // Prepare saved, published documents directly in the fixture database. No
@@ -1161,7 +1167,9 @@ if (customerNotices) {
         assert.equal(response.status, 200);
         const state = await response.json();
         assert.deepEqual(state.notices.map(item => item.kind), kinds);
-        assert.ok(state.notices.every(item => item.available), JSON.stringify(state.notices));
+        assert.ok(state.notices.filter(item => item.kind !== 'travel_notice').every(item => item.available), JSON.stringify(state.notices));
+        assert.equal(state.notices.find(item => item.kind === 'travel_notice').available, false, 'Signing-completed template must not be offered before signing');
+        assert.equal(state.automation.enabled, true);
         assert.equal(state.recipient.phone, '***-****-0000');
         assert.equal(outbound.length, calls, 'Reading notification availability must not dispatch anything');
     }

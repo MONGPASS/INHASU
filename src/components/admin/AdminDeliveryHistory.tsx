@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUser } from '../../contexts/UserContext';
 import type { AdminDeliveryData, AdminDeliveryKind } from '../../types/adminDelivery';
+import { ADMIN_DELIVERY_NAMES } from '../../types/adminDelivery';
 import './AdminDeliveryHistory.css';
 
-const names: Record<AdminDeliveryKind, string> = { quote: '견적서', contract: '여행 계약서', itinerary: '확정 일정표', travel_notice: '여행 주의사항' };
+const names = ADMIN_DELIVERY_NAMES;
 const states: Record<string, string> = { accepted: '서비스 접수', failed: '발송 실패', unknown: '결과 확인 필요', sending: '발송 중', queued: '발송 요청 · 결과 미확인', legacy: '기존 발송 기록' };
 const steps = [{ key: 'accepted', label: '예약 접수' }, { key: 'deposit', label: '예약금 확인' }, { key: 'contract', label: '계약 동의' },
     { key: 'schedule', label: '일정 준비' }, { key: 'published', label: '일정표 공개' }] as const;
@@ -58,7 +59,7 @@ export function AdminDeliveryHistory({ source, bookingId, revision = 0, busy = f
                 <p>{item.channel === 'email' ? '이메일' : item.channel === 'message' ? '메시지' : '카카오 알림톡'} · {Number.isFinite(Date.parse(item.at)) ? new Date(item.at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '일시 미확인'}</p>
                 {item.error && <p className="delivery-error">{item.error}</p>}
                 {item.providerId && <p className="delivery-receipt">접수 번호: {item.providerId}</p>}
-                {onOpenDocument && ['failed', 'accepted', 'legacy'].includes(item.state) && <button type="button" disabled={busy} onClick={() => onOpenDocument(item.kind)}>{item.state === 'failed' ? '확인·재시도' : '문서·재발송 확인'}</button>}
+                {onOpenDocument && ['quote', 'contract', 'itinerary', 'travel_notice'].includes(item.kind) && ['failed', 'accepted', 'legacy'].includes(item.state) && <button type="button" disabled={busy} onClick={() => onOpenDocument(item.kind)}>{item.state === 'failed' ? '확인·재시도' : '문서·재발송 확인'}</button>}
             </li>)}</ul>}
         </>}
         {!data && !error && <p role="status" className="delivery-empty">{account ? '발송 이력을 불러오고 있습니다…' : '관리자 계정을 확인해 주세요.'}</p>}

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { AdminDeliveryHistory } from '../components/admin/AdminDeliveryHistory';
+import type { AdminDeliveryData } from '../types/adminDelivery';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { createPortal } from 'react-dom';
@@ -61,6 +62,8 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const [customerRefreshing, setCustomerRefreshing] = useState(false);
     const [customerChecked, setCustomerChecked] = useState<{ accountId: string; id: string; at: string } | null>(null);
     const [customerRefresh, setCustomerRefresh] = useState(0);
+    const [customerDelivery, setCustomerDelivery] = useState<{ accountId: string; data: AdminDeliveryData } | null>(null);
+    const recordedDelivery = customerDelivery?.accountId === accountId && customerDelivery.data.bookingId === bookingId && customerDelivery.data.source === 'quote_booking' ? customerDelivery.data : undefined;
     const [customerEditor, setCustomerEditor] = useState<{ id: string; tool: string } | null>(null);
     const [editorExpanded, setEditorExpanded] = useState(false);
     const customerPageRef = useRef<HTMLDivElement>(null);
@@ -405,7 +408,10 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         : tool.key === 'inbox'
             ? { title: activeSection === 'notes' ? '상담 · 내부 메모' : '문의 · 고객 정보', description: '문의 내용과 상담 기록을 확인하고 다음 업무를 이어가세요.' }
             : customerEditorLabels[activeSection] || customerEditorLabels.info;
-    const customerModel = customerRecord ? { ...quoteCustomerWorkspaceModel(customerRecord),
+    const receiveCustomerDelivery = (data: AdminDeliveryData) => {
+        if (activeCustomer.current.accountId === accountId && activeCustomer.current.id === bookingId && data.source === 'quote_booking' && data.bookingId === bookingId) setCustomerDelivery({ accountId, data });
+    };
+    const customerModel = customerRecord ? { ...quoteCustomerWorkspaceModel(customerRecord, { deliveryHistory: recordedDelivery?.items }),
         documentLabel: quoteCustomerIsBooking(customerRecord) ? '고객 문서 확인·전달' : '견적서 확인·전달',
         disabledActions: quoteCustomerIsBooking(customerRecord) ? [] : ['payments', 'assignments', 'operations'],
         disabledActionReason: '예약 진행 후 결제·배정·운영을 관리할 수 있습니다.',
@@ -459,9 +465,10 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
                             <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao}
                                 notificationActions={<CustomerKakaoActions key={`${accountId}:${bookingId}`} source="quote_booking" bookingId={bookingId!}
-                                    revision={JSON.stringify([customerCheckedAt, customerRecord])} disabled={editorBusy || customerRefreshing || sendingKakao || editorDirty}
+                                    revision={JSON.stringify([customerCheckedAt, customerRecord, recordedDelivery?.items.map(item => [item.id, item.kind, item.channel, item.state, item.at, item.error])])} disabled={editorBusy || customerRefreshing || sendingKakao || editorDirty}
                                     disabledReason={editorDirty ? '편집 중인 내용을 먼저 저장한 뒤 고객에게 발송해 주세요.' : undefined}
                                     beforeSend={canSendCustomerKakao} onBusyChange={setSendingKakao} onResult={() => setCustomerRefresh(value => value + 1)} onHistory={() => customerAction('history')} />} />
+                            {!editorExpanded && bookingId && <div hidden><AdminDeliveryHistory source="quote_booking" bookingId={bookingId} revision={customerRefresh} onData={receiveCustomerDelivery} /></div>}
                         </div> : !customerError && <div role="status" style={{ padding: 32 }}>고객 정보를 불러오는 중입니다.</div>}
                     </>}
                     {(!customerPage || customerRecord) && <div id={customerPage ? 'quote-customer-editor' : undefined} className={customerPage ? `quote-customer-editor-shell${editorExpanded ? ' is-expanded' : ''}` : undefined} inert={customerPage && !editorExpanded} aria-hidden={customerPage && !editorExpanded ? true : undefined} aria-labelledby={customerPage && editorExpanded ? 'quote-customer-editor-title' : undefined} style={customerPage ? undefined : { position: 'absolute', inset: 0 }}>
@@ -483,7 +490,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                     />}
                     {showDeliveries && !nativeHosts && tool.key === 'bookings' && bookingId && <aside className="quote-delivery-panel" aria-label="견적 예약 발송 이력">
                         <button type="button" onClick={() => setShowDeliveries(false)}>이력 닫기</button>
-                        <AdminDeliveryHistory source="quote_booking" bookingId={bookingId} onOpenDocument={kind => {
+                        <AdminDeliveryHistory source="quote_booking" bookingId={bookingId} revision={customerRefresh} onData={receiveCustomerDelivery} onOpenDocument={kind => {
                             setShowDeliveries(false);
                             try {
                                 const doc = frameRef.current?.contentDocument;
@@ -578,7 +585,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                 <p className="quote-native-info">일정·주문·결제·배정은 아래 예약 편집기에 연결됩니다. 저장·고객 공개·발송은 각각의 작업 버튼으로 진행하세요.</p>
             </div>, nativeHosts.top)}
             {createPortal(<nav className="quote-native-tabs" aria-label="예약 상세 작업">{[['docs', '일정표'], ['contract', '계약서'], ['info', '주문자·여행자'], ['pay', '결제·영수증'], ['assign', '가이드·숙소'], ['notes', '운영·메모'], ['log', '변경·발송 이력']].map(([id, label]) => <button key={id} type="button" className={activeSection === id ? 'active' : ''} aria-current={activeSection === id ? 'location' : undefined} onClick={() => navigateWorkspace(id)}>{label}</button>)}</nav>, nativeHosts.navigation)}
-            {createPortal(<AdminDeliveryHistory source="quote_booking" bookingId={bookingId} onOpenDocument={kind => {
+            {createPortal(<AdminDeliveryHistory source="quote_booking" bookingId={bookingId} revision={customerRefresh} onData={receiveCustomerDelivery} onOpenDocument={kind => {
                 navigateWorkspace(kind === 'contract' ? 'contract' : 'docs');
                 const buttonId = kind === 'contract' ? 'contractRequestBtn' : kind === 'travel_notice' ? 'travelNoticeBtn' : 'itineraryNoticeBtn';
                 frameRef.current?.contentDocument?.getElementById(buttonId)?.focus({ preventScroll: false });

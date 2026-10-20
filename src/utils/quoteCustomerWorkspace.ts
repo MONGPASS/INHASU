@@ -56,7 +56,11 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
     const balance = amount(ci.balanceAmount) ?? (contractTotal !== null && deposit !== null ? Math.max(0, contractTotal - deposit) : perBalance !== null && pax > 0 ? perBalance * pax : null);
     const total = contractTotal ?? (deposit !== null && balance !== null ? deposit + balance : null);
     const quoted = !!(quote && typeof quote === 'object' && !Array.isArray(quote));
-    const sent = list(record.activities).some(row => ['quote_notification_queued', 'quote_sent'].includes(text(row.type)));
+    const deliveries = [...(options.deliveryHistory || [])].sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
+    const delivered = (kind: string) => deliveries.some(item => item.kind === kind && item.state === 'accepted');
+    const issue = (kind: string) => { const last = deliveries.find(item => item.kind === kind); return last && ['failed', 'unknown', 'sending'].includes(last.state) ? last : undefined; };
+    const quoteRequested = list(record.activities).some(row => text(row.type) === 'quote_notification_queued');
+    const sent = delivered('quote') || list(record.activities).some(row => text(row.type) === 'quote_sent');
     const cancelled = summary.status === 'cancelled';
     const depositPaid = booked ? paymentState(ci.depositStatus, booking.checklist?.deposit) : null;
     const balancePaid = booked ? paymentState(ci.balanceStatus, booking.checklist?.balance, true) : null;
@@ -102,24 +106,32 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
         { id: 'booking-admin-memo', body: text(booking.adminMemo), author: '예약 내부 메모' },
     ].filter(row => row.body.trim());
     const tasks: CustomerWorkspaceOverviewModel['tasks'] = [];
+    const deliveryTask = (kind: 'quote' | 'contract' | 'itinerary') => {
+        const last = issue(kind), name = kind === 'quote' ? '견적서' : kind === 'contract' ? '계약서' : '일정표';
+        return { id: `${kind}-delivery`, label: `${name} 안내 ${last?.state === 'failed' ? '발송 실패 확인' : '발송 결과 확인'}`, detail: last?.error || '발송 요청과 고객 수신은 다릅니다. 발송 서비스의 접수 결과를 확인하세요.', actionLabel: '발송 이력 확인', action: 'history' };
+    };
+    const contractRequested = delivered('contract') || !issue('contract') && booking.contractRequest?.status === 'requested';
+    const customerInputRequested = contractRequested || delivered('travelers_requested') || !issue('travelers_requested') && booking.travelerSubmission?.status === 'requested';
+    const awaitingCustomerInput = customerInputRequested && booking.travelerSubmission?.status !== 'submitted' && !booking.travelerSubmission?.submittedAt;
     if (!cancelled && booked) {
         if (!accepted) tasks.push({ id: 'accepted', label: '고객 예약 진행 의사 확인', detail: '고객 수락 또는 예약 확정 기록이 없습니다. 상담 결과를 확인하고 예약 상태를 기록하세요.', actionLabel: '예약 정보 확인', action: 'view-info' });
         if (depositPaid !== true) tasks.push({ id: 'deposit', label: booking.depositReport?.status === 'reported' ? '고객 예약금 입금 신고 확인' : depositPaid === null ? '예약금 금액·입금 상태 확인' : booking.depositRequest?.status === 'requested' ? '예약금 입금 내역 확인' : '예약금 안내 내용 확인',
             detail: [deposit === null ? '예약금 금액 미입력' : `예약금 ${deposit.toLocaleString('ko-KR')}원`,
                 booking.depositReport?.status === 'reported' ? `입금 신고${nonempty(booking.depositReport.name) ? ` · 입금자 ${nonempty(booking.depositReport.name)}` : ''} · 계좌 확인 필요`
                     : depositPaid === null ? '입금 상태 기록 없음' : booking.depositRequest?.status === 'requested' ? '안내 요청 기록 있음 · 입금 확인 전' : '입금 안내 요청 기록 없음'].join(' · '),
-            actionLabel: '입금 내역 확인', action: 'payments' });
-        if (!summary.quoteBooking.signed) tasks.push({ id: 'contract', label: booking.contractRequest?.status === 'requested' ? '고객 계약서 서명 확인' : '계약서 서명 요청 준비',
-            detail: booking.contractRequest?.status === 'requested' ? `${nonempty(booking.contractRequest.requestedAt) ? `${nonempty(booking.contractRequest.requestedAt)} 요청 기록 · ` : ''}고객 서명 기록이 없습니다.`
+            actionLabel: '입금 내역 확인', action: 'payments', ...(booking.depositReport?.status !== 'reported' && delivered('deposit_requested') ? { waiting: true } : {}) });
+        if (issue('contract')) tasks.push(deliveryTask('contract'));
+        else if (!summary.quoteBooking.signed) tasks.push({ id: 'contract', label: contractRequested ? '고객 계약서 서명 확인' : '계약서 서명 요청 준비',
+            detail: contractRequested ? `${nonempty(booking.contractRequest?.requestedAt) ? `${nonempty(booking.contractRequest.requestedAt)} 요청 기록 · ` : delivered('contract') ? '안내 서비스 접수 · ' : ''}고객 서명 기록이 없습니다.`
                 : depositPaid === true ? '예약금 입금 확인됨 · 계약서 내용 검토 후 서명을 요청하세요.' : '계약서 요청 기록 없음 · 예약금 입금 상태와 계약 내용을 먼저 확인하세요.',
-            actionLabel: '계약서 확인', waiting: booking.contractRequest?.status === 'requested', action: 'contract' });
+            actionLabel: '계약서 확인', waiting: !!contractRequested, action: 'contract' });
         if (expectedTravelers === null || expectedTravelers <= 0 || namedTravelers.length < expectedTravelers || missingTravelerRows.length) tasks.push({ id: 'travelers', label: '여행자 정보 확인·보완',
             detail: [`${namedTravelers.length}/${expectedTravelers && expectedTravelers > 0 ? expectedTravelers : '미정'}명 등록`,
                 expectedTravelers && expectedTravelers > namedTravelers.length ? `${expectedTravelers - namedTravelers.length}명 미등록` : '',
                 missingTravelerRows.length ? `${missingTravelerRows.length}명 필수 정보 누락` : '',
                 booking.travelerSubmission?.status === 'requested' ? '고객 입력 요청 기록 있음' : ''].filter(Boolean).join(' · '),
-            actionLabel: '여행자 정보 확인', action: 'travelers' });
-        if (missingFlights.length) tasks.push({ id: 'flights', label: '항공·픽업 정보 확인', detail: `${missingFlights.join(' · ')} 미입력. 발권 여부와 픽업·샌딩 계획을 확인하세요.`, actionLabel: '항공 정보 확인', action: 'flights' });
+            actionLabel: '여행자 정보 확인', action: 'travelers', ...(awaitingCustomerInput ? { waiting: true } : {}) });
+        if (missingFlights.length) tasks.push({ id: 'flights', label: '항공·픽업 정보 확인', detail: `${missingFlights.join(' · ')} 미입력. 발권 여부와 픽업·샌딩 계획을 확인하세요.`, actionLabel: '항공 정보 확인', action: 'flights', ...(awaitingCustomerInput ? { waiting: true } : {}) });
         if (expectedDays === null) tasks.push({ id: 'period', label: '여행 시작·종료일 확인', detail: '유효한 여행 기간이 없어 일정 일수와 필요한 숙박 수를 확정할 수 없습니다.', actionLabel: '여행 기간 확인', action: 'view-info' });
         if (!scheduleReady) tasks.push({ id: 'schedule', label: '일자별 일정 보완', detail: [expectedDays === null ? `저장된 일정 ${days.length}일` : `여행 ${expectedDays}일 · 저장된 일정 ${days.length}일`,
             emptyDays.length ? `${emptyDays.join('·')}일차 내용 미입력` : '', !days.length ? '등록된 일정 없음' : ''].filter(Boolean).join(' · '), actionLabel: '일정표 편집', action: 'edit-itinerary' });
@@ -128,11 +140,13 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
             actionLabel: `${resource.label} 선택`, action: resource.id });
         if (accepted && depositPaid === true && summary.quoteBooking.signed && record.status !== '예약확정' && summary.status !== 'completed') tasks.push({ id: 'confirm', label: '예약 최종 확정 확인', detail: '고객 수락·입금·서명이 확인되었습니다. 예약 상태를 검토하세요.', actionLabel: '예약 상태 확인', action: 'view-info' });
         if (!published) tasks.push({ id: 'published', label: '확정 일정표 공개·전달 검토', detail: '고객 공개 기록이 없습니다. 일정·배정·계약 상태를 확인한 뒤 문서 영역에서 공개와 전달을 진행하세요.', actionLabel: '문서 확인·전달', action: 'documents' });
+        if (issue('itinerary')) tasks.push(deliveryTask('itinerary'));
         if (balancePaid !== true) tasks.push({ id: 'balance-review', label: '잔금 수령 내역 확인', detail: `${balance === null ? '잔금 금액 미입력' : `잔금 ${balance.toLocaleString('ko-KR')}원`} · ${balancePaid === null ? '수령 상태 기록 없음' : nonempty(ci.balanceStatus) || '미수령'}. 수령 사실을 확인한 뒤 기록하세요.`, actionLabel: '잔금 내역 확인', action: 'payments' });
     } else if (!cancelled) {
         if (!quoted) tasks.push({ id: 'quote', label: '고객 요청에 맞는 견적서 작성', detail: '저장된 견적서가 없습니다. 여행 기간·인원·요청 사항을 확인하고 견적을 작성하세요.', actionLabel: '견적서 작성', action: 'edit-itinerary' });
-        else if (!sent) tasks.push({ id: 'sent', label: '견적서 안내 요청 확인', detail: '견적서는 저장되어 있으나 발송 요청 기록이 없습니다. 고객 화면과 안내 내용을 검토하세요.', actionLabel: '견적 안내 확인', action: 'quote-share' });
-        else if (!accepted) tasks.push({ id: 'accepted', label: '고객 예약 진행 의사 확인', detail: '견적 발송 요청 기록이 있습니다. 고객 수락 기록이 없어 상담 결과 확인이 필요합니다.', actionLabel: '상담 정보 확인', waiting: true, action: 'view-info' });
+        else if (issue('quote') || !sent && quoteRequested) tasks.push(deliveryTask('quote'));
+        else if (!sent) tasks.push({ id: 'sent', label: '견적서 안내 요청 확인', detail: '견적서는 저장되어 있으나 발송 접수 기록이 없습니다. 고객 화면과 안내 내용을 검토하세요.', actionLabel: '견적 안내 확인', action: 'quote-share' });
+        else if (!accepted) tasks.push({ id: 'accepted', label: '고객 예약 진행 의사 확인', detail: '견적 안내 접수 기록이 있습니다. 고객 수락 기록이 없어 상담 결과 확인이 필요합니다.', actionLabel: '상담 정보 확인', waiting: true, action: 'view-info' });
         else tasks.push({ id: 'prepare', label: '예약 기본 정보 준비', detail: '고객 예약 진행 의사가 기록되었으나 예약 정보가 없습니다. 기존 견적 관리에서 예약 진행 상태를 확인하세요.', actionLabel: '예약 정보 확인', action: 'view-info' });
     }
     return {
@@ -181,7 +195,7 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
                 image: text(day.img) || text(day.images?.[0]) || undefined };
         }),
         documents: [
-            { id: 'quote', label: '견적서', detail: quoted ? '기존 견적서 디자인으로 확인·수정합니다' : '아직 작성된 견적서가 없습니다', status: quoted ? (sent ? '발송 요청 기록 있음' : '저장됨') : '작성 필요', action: quoted ? 'quote-preview' : 'edit-itinerary' },
+            { id: 'quote', label: '견적서', detail: quoted ? '기존 견적서 디자인으로 확인·수정합니다' : '아직 작성된 견적서가 없습니다', status: quoted ? (issue('quote') ? issue('quote')!.state === 'failed' ? '안내 발송 실패' : '발송 결과 확인 필요' : sent ? '안내 서비스 접수' : quoteRequested ? '발송 요청 · 결과 확인 필요' : '저장됨') : '작성 필요', action: quoted ? 'quote-preview' : 'edit-itinerary' },
             { id: 'itinerary', label: '확정 일정표', detail: booked ? (published ? '고객에게 공개된 일정표' : '저장·배정 확인 후 공개합니다') : '예약 진행 후 준비합니다', status: published ? '공개됨' : booked && days.length ? '준비 중' : '대기', action: published ? 'itinerary-preview' : 'edit-itinerary' },
             { id: 'contract', label: '계약서', detail: summary.quoteBooking.signed ? '고객 실제 서명 확인됨' : booked ? '예약금 확인 후 계약 요청' : '예약 진행 후 작성합니다', status: summary.quoteBooking.signed ? '동의 완료' : booking.contractRequest?.status === 'requested' ? '요청됨' : '대기', action: 'contract' },
         ],
