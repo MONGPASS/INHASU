@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Icon } from './console/Icon';
+import { Admin3DIcon } from './Admin3DIcon';
 import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import './CustomerWorkspaceOverview.css';
 
@@ -45,9 +46,9 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
     const action = (name: string, id?: string) => () => onAction(name, id);
     const edit = (label: string, name: string, text = '수정') => <button type="button" className="cw-text-button" aria-label={label} disabled={busy} onClick={action(name)}><Icon name="edit" />{text}</button>;
     const productContent = m.bookedProduct && <><span className="cw-booked-product-image"><Icon name="landscape" />{m.bookedProduct.image && <ResponsiveProductImage src={m.bookedProduct.image} sizes="56px" alt="" onError={event => { event.currentTarget.style.display = 'none'; }} />}</span><span className="cw-booked-product-copy"><small>예약 상품</small><strong>{m.bookedProduct.name}</strong><span>{m.bookedProduct.href ? '상품 페이지 새 창으로 보기' : '연결된 상품을 확인해 주세요.'}</span></span>{m.bookedProduct.href && <Icon name="open_in_new" />}</>;
-    const workShortcuts = [{ name: 'edit-itinerary', label: '일정표 편집', icon: 'edit_calendar' }, { name: 'view-info', label: '고객·항공편', icon: 'person' },
-        { name: 'payments', label: '결제·입금', icon: 'payments' }, { name: 'assignments', label: '가이드·숙소', icon: 'hotel' },
-        { name: 'operations', label: '운영·영수증', icon: 'receipt_long' }, { name: 'history', label: '메모·이력', icon: 'history' }];
+    const workShortcuts = [{ name: 'edit-itinerary', label: '일정표 편집', icon: 'calendar', fallback: 'edit_calendar' }, { name: 'view-info', label: '고객·항공편', icon: 'travelers', fallback: 'person' },
+        { name: 'payments', label: '결제·입금', icon: 'payment', fallback: 'payments' }, { name: 'assignments', label: '가이드·숙소', icon: 'hotel', fallback: 'hotel' },
+        { name: 'operations', label: '운영·영수증', icon: 'reservation', fallback: 'receipt_long' }, { name: 'history', label: '메모·이력', icon: 'message', fallback: 'history' }] as const;
 
     return <section className="cw-overview" aria-label="고객 통합 작업 현황" aria-busy={busy}>
         <div className="cw-breadcrumb">
@@ -71,7 +72,7 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
         {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}
 
         <nav className="cw-shortcuts" aria-label="고객 빠른 업무">
-            {workShortcuts.map(shortcut => <button type="button" key={shortcut.name} disabled={busy || m.disabledActions?.includes(shortcut.name)} title={m.disabledActions?.includes(shortcut.name) ? m.disabledActionReason || '예약 진행 후 사용할 수 있습니다.' : undefined} onClick={action(shortcut.name)}><Icon name={shortcut.icon} /><span>{m.workLabels?.[shortcut.name] || shortcut.label}</span><Icon name="chevron_right" /></button>)}
+            {workShortcuts.map(shortcut => <button type="button" key={shortcut.name} disabled={busy || m.disabledActions?.includes(shortcut.name)} title={m.disabledActions?.includes(shortcut.name) ? m.disabledActionReason || '예약 진행 후 사용할 수 있습니다.' : undefined} onClick={action(shortcut.name)}><Admin3DIcon name={shortcut.icon} fallback={shortcut.fallback} size={28} /><span>{m.workLabels?.[shortcut.name] || shortcut.label}</span><Icon name="chevron_right" /></button>)}
         </nav>
 
         <section className="cw-workflow" aria-label="업무 진행과 고객 알림">
@@ -88,11 +89,11 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
         <div className="cw-columns">
             <div className="cw-column cw-customer-column">
                 <article className="cw-card cw-customer-info">
-                    <header><div className="cw-section-title"><span className="cw-section-icon is-neutral"><Icon name="person" /></span><h2>고객 정보</h2></div><button type="button" className="cw-text-button" aria-label="고객 정보 전체 상세보기" disabled={busy} onClick={action('customer-detail')}>상세보기<Icon name="chevron_right" /></button></header>
+                    <header><div className="cw-section-title"><span className="cw-section-icon cw-3d-slot"><Admin3DIcon name="customer" fallback="person" size={36} /></span><h2>고객 정보</h2></div><button type="button" className="cw-text-button" aria-label="고객 정보 전체 상세보기" disabled={busy} onClick={action('customer-detail')}>상세보기<Icon name="chevron_right" /></button></header>
                     <dl className="cw-facts">{m.facts.slice(0, 3).map((fact, index) => <div key={`${fact.label}-${index}`}><dt>{fact.label}</dt><dd>{fact.value || '미등록'}</dd></div>)}</dl>
-                    {m.facts.length > 3 && <details className="cw-customer-disclosure"><summary><span className="cw-disclosure-icon"><Icon name="receipt_long" /></span><span className="cw-disclosure-copy"><strong>예약 상세 정보</strong><small>접수·주문 경로 등 {m.facts.length - 3}개 항목</small></span><Icon name="expand_more" /></summary><div className="cw-disclosure-body"><dl className="cw-facts">{m.facts.slice(3).map((fact, index) => <div key={`${fact.label}-${index}`}><dt>{fact.label}</dt><dd>{fact.value || '미등록'}</dd></div>)}</dl></div></details>}
+                    {m.facts.length > 3 && <details className="cw-customer-disclosure"><summary><span className="cw-disclosure-icon cw-3d-slot"><Admin3DIcon name="reservation" fallback="receipt_long" size={30} /></span><span className="cw-disclosure-copy"><strong>예약 상세 정보</strong><small>접수·주문 경로 등 {m.facts.length - 3}개 항목</small></span><Icon name="expand_more" /></summary><div className="cw-disclosure-body"><dl className="cw-facts">{m.facts.slice(3).map((fact, index) => <div key={`${fact.label}-${index}`}><dt>{fact.label}</dt><dd>{fact.value || '미등록'}</dd></div>)}</dl></div></details>}
                     {!!m.flights?.length && <details className="cw-customer-disclosure" aria-label="고객 항공편 정보">
-                        <summary><span className="cw-disclosure-icon"><Icon name="flight_land" /></span><span className="cw-disclosure-copy"><strong>항공편</strong><small>{confirmedFlights}/{m.flights.length}편 정보 등록</small></span><span className={`cw-pill ${confirmedFlights === m.flights.length ? 'is-ready' : 'is-pending'}`}>{confirmedFlights === m.flights.length ? '등록됨' : '입력 필요'}</span><Icon name="expand_more" /></summary>
+                        <summary><span className="cw-disclosure-icon cw-3d-slot"><Admin3DIcon name="flight" fallback="flight_land" size={30} /></span><span className="cw-disclosure-copy"><strong>항공편</strong><small>{confirmedFlights}/{m.flights.length}편 정보 등록</small></span><span className={`cw-pill ${confirmedFlights === m.flights.length ? 'is-ready' : 'is-pending'}`}>{confirmedFlights === m.flights.length ? '등록됨' : '입력 필요'}</span><Icon name="expand_more" /></summary>
                         <div className="cw-disclosure-body">
                         <div className="cw-flights">{m.flights.map(flight => <article className="cw-flight" key={flight.id}>
                             <div className="cw-flight-heading"><Icon name={flight.id === 'departure' ? 'flight_takeoff' : 'flight_land'} /><strong>{flight.label}</strong><span className={`cw-pill ${flight.date && flight.time && flight.flight ? 'is-ready' : 'is-pending'}`}>{flight.date && flight.time && flight.flight ? '등록됨' : '입력 필요'}</span></div>
@@ -102,7 +103,7 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                         <button type="button" className="cw-disclosure-link" disabled={busy} onClick={action('flights')}>항공편 상세보기<Icon name="chevron_right" /></button></div>
                     </details>}
                     {m.travelers && <details className="cw-customer-disclosure" aria-label="예약 여행자 정보">
-                        <summary><span className="cw-disclosure-icon"><Icon name="groups" /></span><span className="cw-disclosure-copy"><strong>여행자 정보</strong><small>{m.travelers.registered}{m.travelers.expected !== null ? `/${m.travelers.expected}` : ''}명 등록</small></span><Icon name="expand_more" /></summary>
+                        <summary><span className="cw-disclosure-icon cw-3d-slot"><Admin3DIcon name="travelers" fallback="groups" size={30} /></span><span className="cw-disclosure-copy"><strong>여행자 정보</strong><small>{m.travelers.registered}{m.travelers.expected !== null ? `/${m.travelers.expected}` : ''}명 등록</small></span><Icon name="expand_more" /></summary>
                         <div className="cw-disclosure-body">{m.travelers.status && <p className="cw-card-caption">{m.travelers.status}</p>}
                         {m.travelers.people.length ? <ol className="cw-travelers">{m.travelers.people.map((person, index) => <li key={person.id}><details>
                             <summary><span className="cw-traveler-number">{index + 1}</span><strong>{person.name || '이름 미입력'}</strong><Icon name="expand_more" /></summary>
@@ -110,12 +111,12 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                         </details></li>)}</ol> : <p className="cw-information-empty">등록된 여행자가 없습니다. 고객이 제출한 정보를 확인해 주세요.</p>}
                         <button type="button" className="cw-disclosure-link" disabled={busy} onClick={action('travelers')}>여행자 전체 상세보기<Icon name="chevron_right" /></button></div>
                     </details>}
-                    <details className="cw-customer-disclosure"><summary><span className="cw-disclosure-icon"><Icon name="chat_bubble_outline" /></span><span className="cw-disclosure-copy"><strong>고객 요청 사항</strong><small>{m.preferences?.length ? `${m.preferences.length}건 등록` : '등록된 요청 없음'}</small></span><Icon name="expand_more" /></summary><div className="cw-disclosure-body cw-preferences">{m.preferences?.length ? <div className="cw-chips">{m.preferences.map((value, index) => <span key={index}>{value}</span>)}</div> : <p>등록된 요청 사항이 없습니다.</p>}</div></details>
+                    <details className="cw-customer-disclosure"><summary><span className="cw-disclosure-icon cw-3d-slot"><Admin3DIcon name="message" fallback="chat_bubble_outline" size={30} /></span><span className="cw-disclosure-copy"><strong>고객 요청 사항</strong><small>{m.preferences?.length ? `${m.preferences.length}건 등록` : '등록된 요청 없음'}</small></span><Icon name="expand_more" /></summary><div className="cw-disclosure-body cw-preferences">{m.preferences?.length ? <div className="cw-chips">{m.preferences.map((value, index) => <span key={index}>{value}</span>)}</div> : <p>등록된 요청 사항이 없습니다.</p>}</div></details>
                     {m.agreement && <div className="cw-agreement"><span>계약 동의·서명</span><strong>{m.agreement.label}</strong>{m.agreement.name && <small>서명자 · {m.agreement.name}</small>}{m.agreement.at && <small>{m.agreement.at}</small>}</div>}
                     <div className="cw-customer-edit">{edit('고객 정보 수정', 'edit-info', '고객 정보 수정')}</div>
                 </article>
                 <article className="cw-card cw-notes">
-                    <header><div className="cw-section-title"><span className="cw-section-icon is-neutral"><Icon name="edit_note" /></span><h2>상담 · 메모</h2></div><span className="cw-private"><Icon name="lock" />내부 전용</span></header>
+                    <header><div className="cw-section-title"><span className="cw-section-icon cw-3d-slot"><Admin3DIcon name="message" fallback="edit_note" size={36} /></span><h2>상담 · 메모</h2></div><span className="cw-private"><Icon name="lock" />내부 전용</span></header>
                     <p className="cw-card-caption">직원이 함께 확인하는 상담 기록입니다.</p>
                     {m.notes.length ? <ol>{m.notes.slice(-4).map(note => <li key={note.id}><div><span className="cw-note-avatar" aria-hidden="true"><Icon name="person" /></span><strong>{note.author || '관리자 메모'}</strong>{note.at && <time>{note.at}</time>}</div><p>{note.body}</p></li>)}</ol> : <div className="cw-empty cw-empty-notes"><Icon name="edit_note" /><p>첫 상담 내용을 남겨 보세요.</p></div>}
                     {noteComposer || <button type="button" className="cw-button cw-wide" disabled={busy} onClick={action('notes')}><Icon name="edit_note" />메모 작성</button>}
@@ -124,7 +125,7 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
             </div>
 
             <div className="cw-column cw-itinerary-column"><article className="cw-card cw-itinerary-card">
-                <header><div className="cw-section-title"><span className="cw-section-icon"><Icon name="route" /></span><h2>여행 일정</h2>{!!m.days.length && <span className="cw-section-count">{m.days.length}일</span>}</div>{edit('여행 일정 편집', 'edit-itinerary', '일정표 편집')}</header>
+                <header><div className="cw-section-title"><span className="cw-section-icon cw-3d-slot"><Admin3DIcon name="route" fallback="route" size={36} /></span><h2>여행 일정</h2>{!!m.days.length && <span className="cw-section-count">{m.days.length}일</span>}</div>{edit('여행 일정 편집', 'edit-itinerary', '일정표 편집')}</header>
                 {m.days.length ? <ol className="cw-day-list cw-operational-days">{m.days.map(day => {
                     const storedActivities = day.activities || [];
                     const activities: NonNullable<typeof day.activities> = [];
@@ -159,20 +160,20 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                 })}</ol> : <div className="cw-empty cw-empty-itinerary"><span className="cw-empty-graphic"><Icon name="route" /></span><strong>어떤 여행을 준비할까요?</strong><p>기존 견적·상품 일정을 불러와 편집할 수 있습니다.</p><button type="button" className="cw-button" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</button></div>}
                 <section className="cw-files" aria-label="고객 문서와 파일">
                     <header><div><h2>고객 문서</h2><p className="cw-card-caption">내용을 확인하고 고객에게 전달하세요.</p></div><button type="button" className="cw-text-button" disabled={busy} onClick={action('documents')}>모두 보기<Icon name="chevron_right" /></button></header>
-                    <div className="cw-file-list">{m.documents.map(doc => <button type="button" key={doc.id} disabled={busy || doc.disabled} onClick={action(doc.action || doc.id, doc.id)}><span className="cw-file-icon"><Icon name="description" /></span><span className="cw-file-copy"><strong>{doc.label}</strong><small>{doc.status || doc.detail || '내용 확인'}</small>{doc.status && doc.detail && <small>{doc.detail}</small>}</span><Icon name="chevron_right" /></button>)}</div>
+                    <div className="cw-file-list">{m.documents.map(doc => <button type="button" key={doc.id} disabled={busy || doc.disabled} onClick={action(doc.action || doc.id, doc.id)}><span className="cw-file-icon cw-3d-slot"><Admin3DIcon name="reservation" fallback="description" size={30} /></span><span className="cw-file-copy"><strong>{doc.label}</strong><small>{doc.status || doc.detail || '내용 확인'}</small>{doc.status && doc.detail && <small>{doc.detail}</small>}</span><Icon name="chevron_right" /></button>)}</div>
                     {!m.documents.length && <p className="cw-card-caption">견적을 작성하면 고객에게 전달할 문서를 확인할 수 있습니다.</p>}
                 </section>
             </article>
 
                 <article className="cw-card cw-recent-history">
-                    <header><div className="cw-section-title"><span className="cw-section-icon is-neutral"><Icon name="history" /></span><h2>최근 고객 이력</h2></div><button type="button" className="cw-text-button" disabled={busy} onClick={action('history')}>전체보기<Icon name="chevron_right" /></button></header>
+                    <header><div className="cw-section-title"><span className="cw-section-icon cw-3d-slot"><Admin3DIcon name="calendar" fallback="history" size={36} /></span><h2>최근 고객 이력</h2></div><button type="button" className="cw-text-button" disabled={busy} onClick={action('history')}>전체보기<Icon name="chevron_right" /></button></header>
                     {m.currentStage && <div className={`cw-current-stage is-${m.currentStage.tone}`}><span>현재 단계</span><strong>{m.currentStage.label}</strong>{m.currentStage.detail && <p>{m.currentStage.detail}</p>}</div>}
                     {m.recentHistory?.length ? <ol className="cw-event-list">{m.recentHistory.slice(0, 5).map(event => <li key={event.id}><span className={`cw-event-dot is-${event.kind}`} aria-hidden="true" /><div><div className="cw-event-meta"><time dateTime={event.at} title={historyTime(event.at, true)}>{historyTime(event.at)}</time>{event.internal && <span><Icon name="lock" />내부</span>}</div><strong>{event.title}</strong>{event.detail && <p>{event.detail}</p>}</div></li>)}</ol> : <p className="cw-information-empty">저장된 처리 이력이 없습니다. 앞으로 기록된 업무를 여기에 표시합니다.</p>}
                 </article>
             </div>
             <div className="cw-column cw-operations-column">
                 <article className="cw-card cw-payments">
-                    <header><div className="cw-section-title"><span className="cw-section-icon is-neutral"><Icon name="payments" /></span><h2>결제 현황</h2></div></header>
+                    <header><div className="cw-section-title"><span className="cw-section-icon cw-3d-slot"><Admin3DIcon name="payment" fallback="payments" size={36} /></span><h2>결제 현황</h2></div></header>
                     <div className="cw-payment-summary">
                     <span className="cw-total-label">총 여행금액</span><strong className="cw-total">{money(m.payment.total)}</strong>
                     <div className="cw-payment-ratio"><span>입금 확인 비율</span><strong>{paidPercent === null ? '확인 필요' : `${paidPercent}%`}</strong></div>
@@ -182,10 +183,10 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                     <div className="cw-payment-footer"><span><Icon name="info" />실제 입금 확인 기준</span><button type="button" className="cw-button" disabled={busy || m.disabledActions?.includes('payments')} title={m.disabledActions?.includes('payments') ? m.disabledActionReason : undefined} onClick={action('payments')}>입금·잔금 관리<Icon name="chevron_right" /></button></div>
                 </article>
                 <article className="cw-card cw-assignments">
-                    <header><div className="cw-section-title"><span className="cw-section-icon is-neutral"><Icon name="hotel" /></span><h2>숙소 · 차량 · 가이드</h2></div><span className="cw-assignment-count">{assignedResources}/{m.assignments.length} 배정</span></header>
+                    <header><div className="cw-section-title"><span className="cw-section-icon cw-3d-slot"><Admin3DIcon name="hotel" fallback="hotel" size={36} /></span><h2>숙소 · 차량 · 가이드</h2></div><span className="cw-assignment-count">{assignedResources}/{m.assignments.length} 배정</span></header>
                     <p className="cw-card-caption">{directAssignments ? '등록된 자원을 선택해 이 예약에 배정하세요.' : '각 항목을 눌러 배정 내용을 확인하고 선택하세요.'}</p>
                     <ul className="cw-assignment-list">{m.assignments.map(item => <li key={item.id}><button type="button" className="cw-resource-select" aria-label={`${item.label} 관리`} disabled={busy || m.disabledActions?.includes('assignments')} title={m.disabledActions?.includes('assignments') ? m.disabledActionReason : undefined} onClick={action(item.id)}>
-                        <span className={`cw-resource-icon is-${item.id}`}><Icon name={item.id === 'stay' ? 'hotel' : item.id === 'vehicle' ? 'directions_car' : 'person'} /></span>
+                        <span className={`cw-resource-icon cw-3d-slot is-${item.id}`}><Admin3DIcon name={item.id === 'stay' ? 'hotel' : item.id === 'vehicle' ? 'vehicle' : 'customer'} fallback={item.id === 'stay' ? 'hotel' : item.id === 'vehicle' ? 'directions_car' : 'person'} size={32} /></span>
                         <div className="cw-assignment-copy"><span className="cw-assignment-label">{item.label}</span><strong>{item.value || '미배정'}</strong>{item.detail && <small>{item.detail}</small>}<span className={`cw-pill is-${item.state}`}>{item.statusLabel}</span></div>
                         <span className="cw-resource-select-label">{item.id === 'stay' ? '숙소 선택' : item.id === 'vehicle' ? '차량 선택' : '가이드 선택'}<Icon name="expand_more" /></span>
                     </button>

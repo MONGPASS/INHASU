@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
+import { Admin3DIcon } from '../components/admin/Admin3DIcon';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { toTourDateKey } from '../utils/formatDate';
@@ -449,7 +450,7 @@ export const AdminCalendar: React.FC = () => {
             <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', marginBottom: 18 }}>
                 <div className="metric" style={{ padding: '16px 18px' }}>
                     <div className="row" style={{ gap: 12 }}>
-                        <span className="metric-ico tint-blue" style={{ width: 40, height: 40 }}><Icon name="event" fill /></span>
+                        <span className="metric-ico" style={{ width: 40, height: 40, background: '#fff' }}><Admin3DIcon name="calendar" fallback="event" size={36} /></span>
                         <div>
                             <div className="metric-label">이번 달 투어</div>
                             <div className="metric-value" style={{ fontSize: 22 }}>{monthStats.total}건</div>
@@ -458,7 +459,7 @@ export const AdminCalendar: React.FC = () => {
                 </div>
                 <div className="metric" style={{ padding: '16px 18px' }}>
                     <div className="row" style={{ gap: 12 }}>
-                        <span className="metric-ico tint-amber" style={{ width: 40, height: 40 }}><Icon name="priority_high" fill /></span>
+                        <span className="metric-ico" style={{ width: 40, height: 40, background: '#fff' }}><Admin3DIcon name="reservation" fallback="priority_high" size={36} /></span>
                         <div>
                             <div className="metric-label">처리 필요</div>
                             <div className="metric-value" style={{ fontSize: 22 }}>{monthStats.needsAction}건</div>
@@ -467,7 +468,7 @@ export const AdminCalendar: React.FC = () => {
                 </div>
                 <div className="metric" style={{ padding: '16px 18px' }}>
                     <div className="row" style={{ gap: 12 }}>
-                        <span className="metric-ico tint-green" style={{ width: 40, height: 40 }}><Icon name="groups" fill /></span>
+                        <span className="metric-ico" style={{ width: 40, height: 40, background: '#fff' }}><Admin3DIcon name="travelers" fallback="groups" size={36} /></span>
                         <div>
                             <div className="metric-label">예약 인원</div>
                             <div className="metric-value" style={{ fontSize: 22 }}>{monthStats.people}명</div>
