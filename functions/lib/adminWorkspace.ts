@@ -1,6 +1,7 @@
 import type { AdminWorkspaceData, AdminWorkBooking, AdminWorkInquiry, AdminWorkTask } from '../../src/types/adminWorkspace';
 import { isQuoteBooking, summarizeQuoteBooking } from './quoteBookings';
 import { toTourDateKey } from '../../src/utils/formatDate';
+import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref } from '../../src/utils/customerWorkspaceRoutes.ts';
 
 const str = (v: any) => typeof v === 'string' ? v : '';
 const obj = (v: any): any => { try { const p = typeof v === 'string' ? JSON.parse(v) : v; return p && typeof p === 'object' ? p : {}; } catch { return {}; } };
@@ -28,7 +29,7 @@ function productBooking(r: any): AdminWorkBooking {
         customerName: str(r.customer_name), productName: str(r.product_name), email: str(r.customer_email), phone: str(r.customer_phone),
         status: str(r.status), statusLabel: labels[r.status] || str(r.status), totalAmount: money(r.total_price ?? breakdown.total),
         startDate: toTourDateKey(r.start_date), endDate: toTourDateKey(r.end_date), createdAt: str(r.created_at),
-        href: '/admin/reservations?open=' + encode(r.id), depositPaid: r.deposit_status === 'paid',
+        href: productCustomerHref(r.id), depositPaid: r.deposit_status === 'paid',
         depositReported: report.status === 'reported', contractSigned: contract.agreement?.agreed === true };
 }
 
@@ -74,7 +75,7 @@ export async function readAdminWorkspace(DB: any, now = new Date()): Promise<Adm
             const b: AdminWorkBooking = { id: q.id, key: 'quote_booking:' + q.id, type: 'quote_booking', reservationNumber: q.reservationNumber,
                 customerName: q.customerName, productName: q.productName, email: q.email, phone: q.phone,
                 status: q.status, statusLabel: q.quoteBooking.label, totalAmount: money(q.totalAmount), startDate: q.startDate, endDate: q.endDate,
-                createdAt: q.createdAt, href: '/admin/quote-desk/bookings?id=' + encode(q.id),
+                createdAt: q.createdAt, href: quoteCustomerHref(q.id),
                 depositPaid: q.depositStatus === 'paid', depositReported: q.depositReport?.status === 'reported', contractSigned: q.quoteBooking.signed };
             bookings.push(b);
             const assign = rec.booking?.assign || {};
@@ -84,7 +85,7 @@ export async function readAdminWorkspace(DB: any, now = new Date()): Promise<Adm
             const status = str(rec.status) || '신규';
             inquiries.push({ id: str(row.id), key: 'quote_request:' + row.id, type: 'quote_request', name: str(rec.name), destination: str(rec.destination),
                 email: str(rec.email), phone: str(rec.phone), status, statusLabel: status, createdAt: str(rec.receivedAt),
-                href: '/admin/quote-desk/inbox?id=' + encode(row.id), pending: ['신규', '작성중', '상담중', '상담 중'].includes(status) });
+                href: quoteCustomerHref(row.id), pending: ['신규', '작성중', '상담중', '상담 중'].includes(status) });
         }
     }
     if (skipped) { availability.requests = false; warnings.push(`맞춤 견적 ${skipped}건의 자료가 손상되어 읽지 못했습니다. 집계를 확인하세요.`); }
@@ -92,7 +93,7 @@ export async function readAdminWorkspace(DB: any, now = new Date()): Promise<Adm
         if (q.status === 'converted') return;
         inquiries.push({ id: str(q.id), key: 'legacy_quote:' + q.id, type: 'legacy_quote', name: str(q.name), destination: str(q.destination),
             email: str(q.email), phone: str(q.phone), status: str(q.status), statusLabel: labels[q.status] || str(q.status), createdAt: str(q.created_at),
-            href: '/admin/quotes?open=' + encode(q.id), pending: ['pending', 'new', 'processing', 'reservation_requested'].includes(q.status) });
+            href: legacyQuoteCustomerHref(q.id), pending: ['pending', 'new', 'processing', 'reservation_requested'].includes(q.status) });
     });
     const time = (v: string) => { const n = Date.parse(v.replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/, '$1T$2Z')); return Number.isFinite(n) ? n : 0; };
     bookings.sort((a, b) => time(b.createdAt) - time(a.createdAt));

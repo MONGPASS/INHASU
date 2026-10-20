@@ -8,6 +8,7 @@ import {
 import { onRequestPatch } from "../functions/api/requests/[id].js";
 import { onRequestPost as onSignPost } from "../functions/api/sign/[token].js";
 import { onRequestPost as guidebookCron } from "../functions/api/guidebook-reminders.js";
+import { requestSQLite } from './helpers/request-sqlite.mjs';
 
 const BASE_ENV = {
   SOLAPI_API_KEY:"api-key",
@@ -101,10 +102,10 @@ test("발송 실패 사유는 Solapi가 돌려준 메시지까지 남긴다", ()
   assert.equal(sendFailReason({ ok:false }), "send_failed");
 });
 
-test("수동 발송이 실패하면 실제 사유가 기록에 남는다", async () => {
-  const DB = mockDb({
+test("수동 발송이 실패하면 실제 사유가 기록에 남는다", async t => {
+  const DB = mockDb(t, {
     id:"req-1", status:"예약확정", name:"홍길동", phone:"01012345678",
-    booking:{ contractInfo:{} }, activities:[],
+    booking:{ contractInfo:{}, contract:{ signedAt:'2026-07-01T00:00:00Z' } }, activities:[],
   });
   const res = await withFetch(
     async () => new Response(JSON.stringify({ errorCode:"TemplateNotApproved", errorMessage:"승인되지 않은 템플릿입니다" }), {
@@ -135,26 +136,7 @@ test("자동 발송은 서명 1건당 한 번, 수동 발송은 제한 없이 �
   assert.equal(shouldAutoSendTravelNotice(rec), false);
 });
 
-function mockDb(record) {
-  let data = JSON.stringify(record);
-  return {
-    get record() { return JSON.parse(data); },
-    prepare(sql) {
-      return {
-        bind(...args) {
-          return {
-            async first() { return { data, status:JSON.parse(data).status || "진행중" }; },
-            async run() {
-              assert.match(sql, /UPDATE requests SET/);
-              data = args[2];
-              return { meta:{ changes:1 } };
-            },
-          };
-        },
-      };
-    },
-  };
-}
+const mockDb = (t, record) => requestSQLite(t, { token:'token-1234567890123456', depart:'2026-08-18', ...record });
 
 const patchRequest = body => new Request("https://mongolia-milkyway.com/api/requests/req-1", {
   method:"PATCH",
@@ -162,10 +144,10 @@ const patchRequest = body => new Request("https://mongolia-milkyway.com/api/requ
   body:JSON.stringify(body),
 });
 
-test("관리자 수동 발송은 실제로 보낸 뒤 결과와 기록을 함께 돌려준다", async () => {
-  const DB = mockDb({
+test("관리자 수동 발송은 실제로 보낸 뒤 결과와 기록을 함께 돌려준다", async t => {
+  const DB = mockDb(t, {
     id:"req-1", status:"예약확정", name:"홍길동", phone:"01012345678", depart:"2026-08-18",
-    booking:{ contractInfo:{ depositStatus:"입금완료" } }, activities:[],
+    booking:{ contractInfo:{ depositStatus:"입금완료" }, contract:{ signedAt:'2026-07-01T00:00:00Z' } }, activities:[],
   });
   let sends = 0;
   const res = await withFetch(async () => { sends += 1; return okResponse(); }, () =>
@@ -180,10 +162,10 @@ test("관리자 수동 발송은 실제로 보낸 뒤 결과와 기록을 함께
   assert.equal(DB.record.activities.at(-1).type, "travel_notice_sent");
 });
 
-test("발송이 실패하면 기록을 남기지 않고 실패를 알린다", async () => {
-  const DB = mockDb({
+test("발송이 실패하면 접수 완료로 기록하지 않고 결과 확인 필요를 알린다", async t => {
+  const DB = mockDb(t, {
     id:"req-1", status:"예약확정", name:"홍길동", phone:"01012345678",
-    booking:{ contractInfo:{} }, activities:[],
+    booking:{ contractInfo:{}, contract:{ signedAt:'2026-07-01T00:00:00Z' } }, activities:[],
   });
   const res = await withFetch(
     async () => new Response(JSON.stringify({ errorMessage:"quota exceeded" }), {
@@ -194,12 +176,13 @@ test("발송이 실패하면 기록을 남기지 않고 실패를 알린다", as
   const body = await res.json();
   assert.equal(body.ok, true);
   assert.equal(body.travelNotice.ok, false);
+  assert.equal(body.travelNotice.state, 'unknown');
   assert.equal(DB.record.notify?.travelNoticeSentAt, undefined);
   assert.equal(DB.record.activities.at(-1).type, "travel_notice_failed");
 });
 
-test("연락처가 없으면 발송을 건너뛰고 실패로 알린다", async () => {
-  const DB = mockDb({ id:"req-1", status:"예약확정", name:"홍길동", phone:"", booking:{}, activities:[] });
+test("연락처가 없으면 발송을 건너뛰고 실패로 알린다", async t => {
+  const DB = mockDb(t, { id:"req-1", status:"예약확정", name:"홍길동", phone:"", booking:{ contract:{ signedAt:'2026-07-01T00:00:00Z' } }, activities:[] });
   let sends = 0;
   const res = await withFetch(async () => { sends += 1; return okResponse(); }, () =>
     onRequestPatch({ request:patchRequest({ notifyTravelNotice:true }), env:{ ...KAKAO_ENV, DB }, params:{ id:"req-1" } }));
@@ -209,10 +192,10 @@ test("연락처가 없으면 발송을 건너뛰고 실패로 알린다", async 
   assert.equal(body.travelNotice.ok, false);
 });
 
-test("알림톡 템플릿이 없으면 수동 발송이 이유와 함께 실패한다", async () => {
-  const DB = mockDb({
+test("알림톡 템플릿이 없으면 수동 발송이 이유와 함께 실패한다", async t => {
+  const DB = mockDb(t, {
     id:"req-1", status:"예약확정", name:"홍길동", phone:"01012345678",
-    booking:{ contractInfo:{} }, activities:[],
+    booking:{ contractInfo:{}, contract:{ signedAt:'2026-07-01T00:00:00Z' } }, activities:[],
   });
   let sends = 0;
   const res = await withFetch(async () => { sends += 1; return okResponse(); }, () =>
@@ -221,34 +204,11 @@ test("알림톡 템플릿이 없으면 수동 발송이 이유와 함께 실패�
   const body = await res.json();
   assert.equal(sends, 0);
   assert.equal(body.travelNotice.ok, false);
-  assert.match(body.travelNotice.reason, /template not set/);
+  assert.match(body.travelNotice.reason, /템플릿/);
   assert.equal(DB.record.notify?.travelNoticeSentAt, undefined);
 });
 
-/* 서명 저장 후 CAS(이전 값 일치 시에만 갱신) 업데이트까지 재현하는 DB 목 */
-function signDb(record) {
-  let data = JSON.stringify(record);
-  return {
-    get record() { return JSON.parse(data); },
-    prepare(sql) {
-      return {
-        bind(...args) {
-          return {
-            async first() { return { id:"req-1", status:record.status || "진행중", data }; },
-            async run() {
-              if (!/UPDATE requests SET/.test(sql)) return { meta:{ changes:0 } };
-              if (/SET status = \?, data = \?/.test(sql)) { data = args[1]; return { meta:{ changes:1 } }; }
-              const [nextData, , expected] = args;          // SET data = ? WHERE id = ? AND data = ?
-              if (expected !== data) return { meta:{ changes:0 } };
-              data = nextData;
-              return { meta:{ changes:1 } };
-            },
-          };
-        },
-      };
-    },
-  };
-}
+const signDb = mockDb;
 
 const signRequest = () => new Request("https://mongolia-milkyway.com/api/sign/token-1234567890123456", {
   method:"POST", headers:{ "Content-Type":"application/json" },
@@ -268,8 +228,8 @@ const runSign = async (DB, fetchHandler) => {
   return res;
 };
 
-test("계약서 서명 직후 여행 주의사항이 자동 발송되고 기록된다", async () => {
-  const DB = signDb({
+test("계약서 서명 직후 여행 주의사항이 자동 발송되고 기록된다", async t => {
+  const DB = signDb(t, {
     id:"req-1", status:"진행중", name:"홍길동", phone:"01012345678", depart:"2026-08-18",
     booking:{ contractInfo:{ depositStatus:"입금완료" } }, activities:[],
   });
@@ -288,8 +248,8 @@ test("계약서 서명 직후 여행 주의사항이 자동 발송되고 기록�
   assert.equal(saved.activities.at(-1).type, "travel_notice_sent");
 });
 
-test("발송이 실패하면 서명은 저장되고 발송 기록만 남지 않는다", async () => {
-  const DB = signDb({
+test("발송이 실패하면 서명은 저장되고 접수 완료 기록만 남지 않는다", async t => {
+  const DB = signDb(t, {
     id:"req-1", status:"진행중", name:"홍길동", phone:"01012345678", depart:"2026-08-18",
     booking:{ contractInfo:{ depositStatus:"입금완료" } }, activities:[],
   });
@@ -303,8 +263,8 @@ test("발송이 실패하면 서명은 저장되고 발송 기록만 남지 않�
   assert.equal(saved.notify.travelNoticeSentAt, undefined);
 });
 
-test("이미 자동 발송된 예약은 재서명해도 다시 자동 발송하지 않는다", async () => {
-  const DB = signDb({
+test("이미 자동 발송된 예약은 재서명해도 다시 자동 발송하지 않는다", async t => {
+  const DB = signDb(t, {
     id:"req-1", status:"진행중", name:"홍길동", phone:"01012345678", depart:"2026-08-18",
     booking:{ contractInfo:{ depositStatus:"입금완료" } }, activities:[],
     notify:{ travelNoticeAutoSentAt:"2026-07-01T00:00:00Z", travelNoticeSentAt:"2026-07-01T00:00:00Z", travelNoticeSentCount:1 },

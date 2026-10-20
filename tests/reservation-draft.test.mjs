@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildSync } from 'esbuild';
+import { buildSync, transformSync } from 'esbuild';
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
@@ -191,14 +192,93 @@ test('실제 편집기는 data router에서 nullable legacy 일정·빈 계약 �
     const { ReservationInlineEditor } = module.exports;
     const content = { name: '레거시 문서', description: '', days: [{ title: '기존 일차', date: '', activities: null, meals: null, accommodation: null }],
         documentSettings: { contract: { intro: null, cancellationRows: null } }, highlights: null };
-    for (const mode of ['itinerary', 'contract']) {
+    for (const mode of ['itinerary', 'contract']) for (const externalActions of [false, true]) {
         const router = createMemoryRouter([{ path: '*', element: React.createElement(ReservationInlineEditor, { reservationId: scope.reservationId,
-            adminUserId: scope.userId, initialContent: content, mode, startDate: '', endDate: '', onSave: async () => true, onDirtyChange() {}, onClose() {} }) }],
+            adminUserId: scope.userId, initialContent: content, mode, externalActions, startDate: '', endDate: '', onSave: async () => true, onDirtyChange() {}, onClose() {} }) }],
             { initialEntries: ['/admin/reservations?open=' + scope.reservationId] });
         const html = renderToString(React.createElement(RouterProvider, { router }));
         assert.ok(html.includes('reservation-inline-' + scope.reservationId));
         assert.ok(!html.includes('본 여행 조건서'));
         assert.ok(html.includes('inert=""'));
+        assert.ok(html.includes('ri-draft-status'));
+        assert.equal(html.includes('type="submit"'), !externalActions, '외부 작업 도구를 쓰면 내부 저장 버튼을 중복 표시하지 않는다');
+        assert.equal(html.includes('편집 닫기'), !externalActions);
+        assert.equal(html.includes('저장 전 초안 미리보기'), !externalActions);
+        if (externalActions && mode === 'itinerary') {
+            assert.ok(html.includes('일정 편집 바로가기'));
+            assert.ok(html.includes('ri-spots-collapsible'));
+            assert.match(html, /0(?:<!-- -->)?개 선택/);
+        }
         router.dispose();
     }
+});
+
+test('같은 일차를 다시 요청하면 실제 편집기 effect가 revision마다 이동하고 잠금 해제·위젯 로드를 기다린다', () => {
+    const source = readFileSync(new URL('../src/components/admin/ReservationInlineEditor.tsx', import.meta.url), 'utf8');
+    const start = source.search(/useEffect\(\(\) => \{\r?\n\s*const requestedDay = p.requestedDay;/);
+    assert.notEqual(start, -1);
+    const actualEffect = new Function('context', `const {p,locked,activeMode,draft,jumpToDay,editorRef,requestedDayApplied,useEffect,MutationObserver,requestAnimationFrame,cancelAnimationFrame}=context;\n${source.slice(start, source.indexOf('    const contract =', start))}`);
+    const jumps = [], requestedDayApplied = { current: null };
+    const frames = new Map();
+    let previousDeps, cleanup, observer, ready = true, nextFrame = 0;
+    const paint = () => { const pending = [...frames.entries()]; frames.clear(); pending.forEach(([, run]) => run()); };
+    const jumpToDay = (index, behavior) => { if (!ready) return false; jumps.push({ index, behavior }); return true; };
+    const render = (revision, locked = false, count = 3) => actualEffect({
+        p: { reservationId: scope.reservationId, externalActions: true, requestedDay: 2, requestedDayRevision: revision },
+        locked, activeMode: 'itinerary', draft: { days: Array.from({ length: count }, () => ({})) },
+        editorRef: { current: { querySelectorAll: () => ready ? [{}, {}, {}] : [] } }, requestedDayApplied,
+        jumpToDay,
+        requestAnimationFrame: run => { const id = ++nextFrame; frames.set(id, run); return id; },
+        cancelAnimationFrame: id => frames.delete(id),
+        useEffect: (run, deps) => {
+            if (previousDeps?.every((value, index) => Object.is(value, deps[index]))) return;
+            cleanup?.(); previousDeps = deps; cleanup = run();
+        },
+        MutationObserver: class {
+            constructor(callback) { this.callback = callback; observer = this; }
+            observe() { this.observing = true; }
+            disconnect() { this.observing = false; }
+        },
+    });
+    render(0); render(0);
+    assert.equal(jumps.length, 0);
+    paint(); assert.equal(jumps.length, 0, '첫 프레임에는 DOM과 포털 레이아웃을 기다린다');
+    paint(); assert.deepEqual(jumps, [{ index: 1, behavior: 'auto' }]);
+    render(0, false, 4); paint(); paint();
+    assert.equal(jumps.length, 1, '내부 일정 편집으로 재렌더되어도 사용자 위치를 되돌리지 않는다');
+    render(1); paint(); paint();
+    assert.deepEqual(jumps, [{ index: 1, behavior: 'auto' }, { index: 1, behavior: 'auto' }], '같은 일차의 새 요청에는 다시 이동한다');
+    render(2, true); assert.equal(jumps.length, 2);
+    ready = false; render(2);
+    assert.equal(observer.observing, true);
+    ready = true; observer.callback();
+    paint(); assert.equal(jumps.length, 2);
+    paint(); assert.equal(jumps.length, 3);
+    assert.equal(observer.observing, false);
+    render(3); paint(); cleanup?.(); paint();
+    assert.equal(jumps.length, 3, '이탈하면 대기 중인 두 번째 프레임을 취소한다');
+    cleanup?.();
+});
+
+test('일차 바로가기는 접힌 편집 본문을 먼저 펼친 뒤 스크롤하고 해당 목적지에 포커스를 준다', () => {
+    const source = readFileSync(new URL('../src/components/admin/ReservationInlineEditor.tsx', import.meta.url), 'utf8');
+    const start = source.indexOf('    const jumpToDay = '), end = source.indexOf('    const requestedDayApplied', start);
+    assert.ok(start >= 0 && end > start);
+    const { code } = transformSync(source.slice(start, end), { loader: 'ts' });
+    const calls = []; let collapsed = true;
+    const day = {
+        querySelector(selector) {
+            if (selector === '.day-toggle[aria-expanded="false"]') return collapsed ? { click: () => { collapsed = false; calls.push('expand'); } } : null;
+            assert.equal(selector, 'input.dest');
+            return { focus: options => { assert.equal(collapsed, false); assert.deepEqual(options, { preventScroll: true }); calls.push('focus'); } };
+        },
+        scrollIntoView(options) { assert.equal(collapsed, false); calls.push(['scroll', options]); },
+    };
+    const ref = { current: { querySelectorAll: selector => { assert.equal(selector, '.day-edit'); return [{}, day]; } } };
+    const jump = new Function('useCallback', 'editorRef', code + '\nreturn jumpToDay;')(callback => callback, ref);
+    assert.equal(jump(1, 'auto'), true);
+    assert.deepEqual(calls, ['expand', ['scroll', { behavior: 'auto', block: 'start' }], 'focus']);
+    calls.length = 0; assert.equal(jump(1), true);
+    assert.deepEqual(calls, [['scroll', { behavior: 'smooth', block: 'start' }], 'focus']);
+    calls.length = 0; assert.equal(jump(8), false); assert.deepEqual(calls, []);
 });

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>예약 관리 · 몽골리아 은하수</title>
+<script src="/quote-booking-workspace.js"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <style>
@@ -931,6 +932,9 @@ function openGuideSheet(id) {
 }
 
 function openBooking(id) {
+  return window.QuoteBookingWorkspace.openCustomer(String(id), "/admin/quote-desk/bookings");
+}
+function openLegacyBooking(id) {
   const r = RECORDS.find(x => String(x.id) === String(id));
   if (!r) return;
   localStorage.setItem("leaders_booking_prefill", JSON.stringify({

@@ -3,8 +3,7 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { useUser } from '../contexts/UserContext';
-import { useNavigate, useBlocker } from 'react-router-dom';
-import { quoteBookingHref } from '../components/admin/quoteDesk';
+import { useNavigate, useBlocker, useParams, useLocation } from 'react-router-dom';
 import type { QuoteBookingSummary } from '../../functions/lib/quoteBookings';
 import { type QuoteRequest, ConvertSelectionModal, QuoteDetailModal } from '../components/admin/QuoteModals';
 import { sendNotificationEmail } from '../lib/email';
@@ -20,14 +19,27 @@ import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
 import { ReservationDocuments } from '../components/admin/ReservationDocuments';
 import { AdminDeliveryHistory } from '../components/admin/AdminDeliveryHistory';
 import type { AdminDeliveryData } from '../types/adminDelivery';
-import { ReservationOperations } from '../components/admin/ReservationOperations';
-import { reservationWorkspaceStatus, type ReservationOperations as Operations } from '../utils/reservationWorkspace';
+import { ReservationOperations, type ReservationOperationsControl, type ReservationOperationsStatus } from '../components/admin/ReservationOperations';
+import { reservationWorkspaceStatus, emptyReservationOperations, type ReservationOperations as Operations } from '../utils/reservationWorkspace';
 import { productScheduleDays } from '../../functions/lib/productItinerary';
 import '../styles/reservation-workspace.css';
-import { ReservationInlineEditor, type ReservationInlineEditorControl } from '../components/admin/ReservationInlineEditor';
+import { ReservationInlineEditor, type ReservationInlineEditorControl, type ReservationInlineEditorStatus } from '../components/admin/ReservationInlineEditor';
 import { createInlineDocument } from '../utils/reservationInline';
 import { readReservationDraft, reservationDraftNavigationDecision, type ReservationDraftNavigationDecision, type ReservationDraftSnapshot } from '../utils/adminReservationDraft';
 import '../styles/reservation-inline.css';
+import { readReservationList, reservationListSearch, reservationExportRows, reservationSelectionKey } from '../utils/adminReservationList';
+import { readProductVehicle } from '../utils/reservationAssignment';
+import { guideAssignmentConflicts, validAssignmentPeriod } from '../utils/assignmentAvailability';
+import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
+import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
+import { CustomerVehicleAssignment } from '../components/admin/CustomerVehicleAssignment';
+import { customerProductReference } from '../utils/customerProductReference';
+import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
+import { productWorkspaceReservation, legacyWorkspaceReservation, productCustomerOverview, sameAccountProductBookings } from '../utils/productCustomerWorkspace';
+import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref, customerWorkspaceReturnTo } from '../utils/customerWorkspaceRoutes';
+import '../styles/product-customer-workspace.css';
+import '../styles/customer-workspace-editor.css';
+import '../styles/reservation-itinerary-designer.css';
 
 // Reservation Interface
 interface Reservation {
@@ -39,6 +51,8 @@ interface Reservation {
     productName: string;
     productId?: string; // 예약한 상품 ID (신규 예약부터 저장 — 동명 상품 혼동 방지)
     customerName: string;
+    notes?: string;
+    peopleKnown?: number | null;
     startDate?: string;
     endDate?: string;
     departureMs?: number;
@@ -139,7 +153,7 @@ const sourceColor = (s?: string): { bg: string; fg: string } => ({
     visit: { bg: '#EEEDFE', fg: '#534AB7' },
     other: { bg: '#F1F2F4', fg: '#8A8F99' },
 }[s || ''] || { bg: '#F1F2F4', fg: '#8A8F99' });
-const BLANK_ADD = { customerName: '', phone: '', email: '', source: 'kakao', productName: '', startDate: '', endDate: '', people: '1', totalAmount: '', deposit: '', status: 'pending_payment', notes: '' };
+const BLANK_ADD = { customerName: '', phone: '', email: '', source: 'kakao', productName: '', productId: '', startDate: '', endDate: '', people: '1', totalAmount: '', deposit: '', status: 'pending_payment', notes: '' };
 
 /** 고객이 '입금 완료'를 신고했는데 아직 입금 확인을 하지 않은 예약 — 목록의 「입금 신고」 배지와 상세의 강조 표시에 쓴다. */
 const hasOpenDepositReport = (r: Reservation) =>
@@ -377,7 +391,7 @@ const StatusDropdown = ({ status, onChange, disabled = false }: { status: string
     );
 };
 
-const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, updating = false, products = [] }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation, silent?: boolean) => Promise<boolean>, onRefresh: () => void, updating?: boolean, products?: ProductSummary[] }) => {
+const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, updating = false, refreshing = false, refreshedAt, refreshError, products = [], fullPage = false, bookingSelector }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation, silent?: boolean) => Promise<boolean>, onRefresh: () => void, updating?: boolean, refreshing?: boolean, refreshedAt?: string, refreshError?: string, products?: ProductSummary[], fullPage?: boolean, bookingSelector?: React.ReactNode }) => {
     const { user, loading: userLoading } = useUser();
     const inlineControlRef = useRef<ReservationInlineEditorControl | null>(null);
     const docDraftSourceRef = useRef<ReservationDraftSnapshot | null>(null);
@@ -385,11 +399,20 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<Reservation | null>(null);
     const [showGuideModal, setShowGuideModal] = useState(false);
+    const [guideConfirmation, setGuideConfirmation] = useState<{ guide: any; message: string } | null>(null);
+    const [pickerSaveError, setPickerSaveError] = useState('');
     const [showAccommodationModal, setShowAccommodationModal] = useState(false);
     const [selectedDay, setSelectedDay] = useState(1);
     const [guideList, setGuideList] = useState<any[]>([]);
     const [accommodationList, setAccommodationList] = useState<any[]>([]);
     const [hotelList, setHotelList] = useState<any[]>([]);
+    const [guideSearch, setGuideSearch] = useState('');
+    const [accommodationSearch, setAccommodationSearch] = useState('');
+    const [accommodationRegion, setAccommodationRegion] = useState('');
+    const [resourceBookings, setResourceBookings] = useState<any[]>([]);
+    const [resourceNotice, setResourceNotice] = useState('');
+    const [resourceLoading, setResourceLoading] = useState(false);
+    const [recentAssignments, setRecentAssignments] = useState<{ guides: string[]; stays: string[] }>({ guides: [], stays: [] });
     const [memoDraft, setMemoDraft] = useState('');
     const [memoFocused, setMemoFocused] = useState(false);
     const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
@@ -397,6 +420,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const [sendingItinerary, setSendingItinerary] = useState(false);
     const [sendingContract, setSendingContract] = useState(false);
     const [sendingAllDocs, setSendingAllDocs] = useState(false);
+    const [sendingKakao, setSendingKakao] = useState(false);
     const deliveryLock = useRef(false);
     const deliveryKeys = useRef<Record<string, string>>({});
     const [deliveryRevision, setDeliveryRevision] = useState(0);
@@ -404,10 +428,39 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const [inlineEditorOpen, setInlineEditorOpen] = useState(false);
     const [inlineDirty, setInlineDirty] = useState(false);
     const [inlineBusy, setInlineBusy] = useState(false);
+    const [inlineUiStatus, setInlineUiStatus] = useState<ReservationInlineEditorStatus>({ dirty: false, busy: false, locked: true, message: '', failed: false });
+    const [requestedDocumentDay, setRequestedDocumentDay] = useState<number | undefined>();
+    const [documentFocusRevision, setDocumentFocusRevision] = useState(0);
     const [activeDocument, setActiveDocument] = useState<'itinerary' | 'contract'>('itinerary');
     const [applyingTemplate, setApplyingTemplate] = useState(false);
     const [publishing, setPublishing] = useState(false);
     const [operationsDirty, setOperationsDirty] = useState(false);
+    const [operationsUiStatus, setOperationsUiStatus] = useState<ReservationOperationsStatus>({ dirty: false, busy: false, message: '', failed: false });
+    const operationsControlRef = useRef<ReservationOperationsControl | null>(null);
+    const [quickAssignment, setQuickAssignment] = useState<'stay' | 'vehicle' | null>(null);
+    const [quickAssignmentDirty, setQuickAssignmentDirty] = useState(false);
+    const [registeredResources, setRegisteredResources] = useState<{ scope: string; data: RegisteredAssignmentResources } | null>(null);
+    const [registeredLoading, setRegisteredLoading] = useState(false);
+    const [registeredNotice, setRegisteredNotice] = useState('');
+    const [registeredRevision, setRegisteredRevision] = useState(0);
+    const registeredScope = `${user?.role || ''}:${user?.id || ''}:${reservation?.id || ''}`;
+    const activeRegisteredScope = useRef(registeredScope); activeRegisteredScope.current = registeredScope;
+    const needsRegisteredResources = showGuideModal || showAccommodationModal || quickAssignment === 'vehicle';
+    const registered = registeredResources?.scope === registeredScope ? registeredResources.data : null;
+    const registeredPending = needsRegisteredResources && (registeredLoading || (!registered && !registeredNotice));
+    useEffect(() => {
+        if (!needsRegisteredResources || user?.role !== 'admin' || !user.id) return;
+        const controller = new AbortController(), scope = registeredScope;
+        setRegisteredLoading(true); setRegisteredNotice('');
+        const isCurrent = () => !controller.signal.aborted && activeRegisteredScope.current === scope;
+        loadRegisteredAssignmentResources({ accountId: user.id, signal: controller.signal, isCurrent })
+            .then(data => { if (isCurrent()) { setRegisteredResources({ scope, data }); setRegisteredNotice(data.warnings.join(' ')); } })
+            .catch(() => { if (isCurrent()) { setRegisteredResources(null); setRegisteredNotice('등록된 배정 자원을 불러오지 못했습니다. 자원 목록을 다시 불러와 주세요.'); } })
+            .finally(() => { if (isCurrent()) setRegisteredLoading(false); });
+        return () => controller.abort();
+    }, [needsRegisteredResources, registeredScope, registeredRevision, user?.id, user?.role]);
+    const [workflowOpen, setWorkflowOpen] = useState(!fullPage);
+    const overviewScrollPosition = useRef(0);
     useEffect(() => {
         if (userLoading || !user?.id || !reservation?.id || !docDraftSourceRef.current) { setDocDraftPending(false); return; }
         try {
@@ -419,15 +472,15 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const approvedWorkspaceClose = useRef(false);
     const workspaceDecision = useRef<ReservationDraftNavigationDecision>({ blocked: false });
     const handledWorkspaceNavigation = useRef<string | null>(null);
-    const workspaceIsBusy = React.useCallback(() => deliveryLock.current || updating || inlineBusy || !!inlineControlRef.current?.isBusy() || publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs,
-        [updating, inlineBusy, publishing, applyingTemplate, sendingItinerary, sendingContract, sendingAllDocs]);
+    const workspaceIsBusy = React.useCallback(() => refreshing || deliveryLock.current || updating || inlineBusy || operationsUiStatus.busy || !!inlineControlRef.current?.isBusy() || publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs || sendingKakao,
+        [refreshing, updating, inlineBusy, operationsUiStatus.busy, publishing, applyingTemplate, sendingItinerary, sendingContract, sendingAllDocs, sendingKakao]);
     useEffect(() => { approvedWorkspaceClose.current = false; setNavigationNotice(''); }, [reservation?.id]);
     const workspaceBlocker = useBlocker(React.useCallback(({ currentLocation, nextLocation }) => {
         if (approvedWorkspaceClose.current) return false;
-        const decision = reservationDraftNavigationDecision(currentLocation, nextLocation, workspaceIsBusy(), () => inlineControlRef.current?.flush() || { ok: true }, isEditing || operationsDirty);
+        const decision = reservationDraftNavigationDecision(currentLocation, nextLocation, workspaceIsBusy(), () => inlineControlRef.current?.flush() || { ok: true }, isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim());
         workspaceDecision.current = decision;
         return decision.blocked;
-    }, [workspaceIsBusy, isEditing, operationsDirty]));
+    }, [workspaceIsBusy, isEditing, operationsDirty, quickAssignmentDirty, memoDraft]));
     useEffect(() => {
         if (workspaceBlocker.state === 'unblocked') { handledWorkspaceNavigation.current = null; return; }
         if (workspaceBlocker.state !== 'blocked') return;
@@ -450,30 +503,52 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     useEffect(() => {
         const beforeUnload = (event: BeforeUnloadEvent) => {
             const result = inlineControlRef.current?.flush(false) || { ok: true };
-            if (!approvedWorkspaceClose.current && (workspaceIsBusy() || !result.ok || isEditing || operationsDirty)) { event.preventDefault(); event.returnValue = ''; }
+            if (!approvedWorkspaceClose.current && (workspaceIsBusy() || !result.ok || isEditing || operationsDirty || quickAssignmentDirty || memoDraft.trim())) { event.preventDefault(); event.returnValue = ''; }
         };
         const pageHide = () => { inlineControlRef.current?.flush(false); };
         window.addEventListener('beforeunload', beforeUnload); window.addEventListener('pagehide', pageHide);
         return () => { window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('pagehide', pageHide); };
-    }, [workspaceIsBusy, isEditing, operationsDirty]);
+    }, [workspaceIsBusy, isEditing, operationsDirty, quickAssignmentDirty, memoDraft]);
     const closeWorkspace = () => {
         if (workspaceIsBusy()) { setNavigationNotice('처리 중인 작업이 끝난 뒤 예약 상세를 닫아 주세요.'); return; }
-        if ((isEditing || operationsDirty || (!inlineControlRef.current && inlineDirty)) && !window.confirm('저장하지 않은 변경사항이 있습니다. 예약 상세를 닫을까요?')) return;
+        if ((isEditing || operationsDirty || quickAssignmentDirty || memoDraft.trim() || (!inlineControlRef.current && inlineDirty)) && !window.confirm('저장하지 않은 변경사항이 있습니다. 예약 상세를 닫을까요?')) return;
         if (inlineControlRef.current && !inlineControlRef.current.prepareLeave()) return;
         approvedWorkspaceClose.current = true;
         onClose();
     };
     const refreshWorkspace = () => {
-        if (workspaceIsBusy() || isEditing || operationsDirty) return;
+        if (workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || memoDraft.trim()) return;
         if (inlineControlRef.current && !inlineControlRef.current.prepareLeave('refresh')) return;
         onRefresh();
     };
-    // Trip.com식 원페이지: 탭 대신 섹션 앵커 스크롤
+    // 고객 전용 화면은 업무별 패널, 기존 모달은 원페이지 앵커를 유지한다.
     const [activeSec, setActiveSec] = useState<'docs' | 'inline-doc' | 'ops' | 'info' | 'pay' | 'assign' | 'log'>('docs');
     const bodyRef = useRef<HTMLDivElement | null>(null);
     const scrollToSec = (id: 'docs' | 'inline-doc' | 'ops' | 'info' | 'pay' | 'assign' | 'log') => {
+        const group = id === 'inline-doc' ? 'docs' : id;
+        if (fullPage) {
+            if (workspaceIsBusy()) return;
+            if (quickAssignmentDirty || (isEditing && group !== (activeSec === 'pay' ? 'pay' : 'info')) || (inlineDirty && group !== 'docs') || (operationsDirty && group !== 'ops')) {
+                setNavigationNotice('현재 작성 중인 내용을 저장하거나 취소한 뒤 다른 업무를 열어 주세요.');
+                return;
+            }
+            setNavigationNotice('');
+        }
+        if (fullPage && !workflowOpen) overviewScrollPosition.current = window.scrollY;
         setActiveSec(id);
-        bodyRef.current?.querySelector(`#sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setWorkflowOpen(true);
+        requestAnimationFrame(() => {
+            if (fullPage) bodyRef.current?.scrollTo({ top: 0 });
+            else bodyRef.current?.querySelector(`#sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    };
+    const returnToCustomerOverview = () => {
+        if (workspaceIsBusy()) { setNavigationNotice('저장·업로드·발송이 끝난 뒤 고객 현황으로 돌아갈 수 있습니다.'); return; }
+        const recovery = inlineControlRef.current?.flush() || { ok: true };
+        if (!recovery.ok) { setNavigationNotice(recovery.error || '초안을 보관하지 못했습니다. 저장 후 고객 현황으로 돌아가 주세요.'); return; }
+        setNavigationNotice('');
+        setWorkflowOpen(false);
+        requestAnimationFrame(() => window.scrollTo({ top: overviewScrollPosition.current }));
     };
 
     useEffect(() => {
@@ -489,6 +564,25 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             }).catch(() => {});
         }
     }, [showGuideModal]);
+    useEffect(() => { setGuideSearch(''); setAccommodationSearch(''); setAccommodationRegion(''); }, [reservation?.id]);
+    useEffect(() => { if (!showGuideModal) setGuideConfirmation(null); }, [showGuideModal]);
+    useEffect(() => { setPickerSaveError(''); }, [showGuideModal, showAccommodationModal]);
+    useEffect(() => {
+        try { const value = JSON.parse(sessionStorage.getItem(`inhasu:recent-assignments:${user?.id || 'none'}`) || '{}');
+            setRecentAssignments({ guides: Array.isArray(value.guides) ? value.guides.filter((id: unknown) => typeof id === 'string').slice(0, 8) : [], stays: Array.isArray(value.stays) ? value.stays.filter((id: unknown) => typeof id === 'string').slice(0, 8) : [] });
+        } catch { setRecentAssignments({ guides: [], stays: [] }); }
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (!showGuideModal || user?.role !== 'admin') return;
+        const controller = new AbortController(); setResourceLoading(true); setResourceNotice('');
+        fetch('/api/admin/assignments', { credentials: 'include', cache: 'no-store', signal: controller.signal })
+            .then(async response => { const payload = await response.json(); if (!response.ok || !Array.isArray(payload.items)) throw new Error(); return payload; })
+            .then(payload => { if (!controller.signal.aborted) { setResourceBookings(payload.items); setResourceNotice(payload.warnings?.join(' ') || ''); } })
+            .catch(() => { if (!controller.signal.aborted) { setResourceBookings([]); setResourceNotice('최신 배정 현황을 확인하지 못했습니다. 가이드 일정을 별도로 확인하세요.'); } })
+            .finally(() => { if (!controller.signal.aborted) setResourceLoading(false); });
+        return () => controller.abort();
+    }, [showGuideModal, user?.id, user?.role]);
 
     useEffect(() => {
         if (!showAccommodationModal) return;
@@ -570,8 +664,24 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         setIsEditing(false);
     };
 
-    const handleGuideAssign = (guide: any) => {
-        if (!reservation) return;
+    const guideConflicts = (guide: any) => guideAssignmentConflicts(resourceBookings, guide, { id: reservation.id, source: 'product', startDate: reservation.startDate, endDate: reservation.endDate });
+    const rememberAssignment = (kind: 'guides' | 'stays', id: string) => {
+        if (!id || !user?.id) return;
+        setRecentAssignments(prev => { const next = { ...prev, [kind]: [id, ...prev[kind].filter(value => value !== id)].slice(0, 8) }; try { sessionStorage.setItem(`inhasu:recent-assignments:${user.id}`, JSON.stringify(next)); } catch { /* recent choices are optional */ } return next; });
+    };
+    const handleGuideAssign = async (guide: any, confirmed = false) => {
+        if (!reservation || workspaceIsBusy() || resourceLoading || registeredPending) return;
+        setPickerSaveError('');
+        const conflicts = guideConflicts(guide);
+        const periodUnknown = !validAssignmentPeriod(reservation) || resourceBookings.some(row => !['cancelled', 'on_hold'].includes(row.status) && !validAssignmentPeriod(row));
+        const overlapMessage = conflicts.length ? `같은 기간에 ${conflicts.length}건의 배정이 있습니다.\n${conflicts.map(row => `${row.customerName} · ${row.startDate} ~ ${row.endDate}`).join('\n')}` : '';
+        const unknownMessage = resourceNotice || periodUnknown ? '배정 일정 전체를 확인하지 못했습니다. 가이드에게 직접 확인해 주세요.' : '';
+        if (!confirmed && fullPage && (overlapMessage || unknownMessage)) { setGuideConfirmation({ guide, message: [overlapMessage, unknownMessage].filter(Boolean).join('\n\n') }); return; }
+        if (!confirmed && !fullPage) {
+            if (overlapMessage && !window.confirm(overlapMessage + '\n\n겹치는 일정을 확인했고 이 가이드를 배정할까요?')) return;
+            if (unknownMessage && !window.confirm(unknownMessage + '\n직접 확인한 뒤 배정할까요?')) return;
+        }
+        setGuideConfirmation(null);
 
         const parseArr = (v: any) => {
             if (Array.isArray(v)) return v;
@@ -590,7 +700,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 phone: guide.phone,
                 kakaoId: guide.kakaoId,
                 languages: parseArr(guide.languages),
-                specialties: parseArr(guide.specialties)
+                specialties: parseArr(guide.specialties),
+                ...(guide._fromResources ? { qr: guide.qr || '', nameEn: guide.nameEn || '', role: guide.role || '' } : {})
             },
             history: [
                 ...(reservation.history || []),
@@ -603,11 +714,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             ]
         };
 
-        onUpdate(updated);
+        if (await onUpdate(updated, fullPage)) { rememberAssignment('guides', guide.id); setShowGuideModal(false); if (fullPage) setNavigationNotice(`담당 가이드를 배정했습니다. (${guide.name})`); }
+        else setPickerSaveError(`${guide.name} 가이드 배정을 저장하지 못했습니다. 선택창에서 다시 시도해 주세요.`);
     };
 
-    const handleAccommodationAssign = (accommodation: any) => {
-        if (!reservation) return;
+    const handleAccommodationAssign = async (accommodation: any) => {
+        if (!reservation || workspaceIsBusy() || registeredPending) return;
+        setPickerSaveError('');
 
         const dailyAccommodations = reservation.dailyAccommodations || [];
         const existingIndex = dailyAccommodations.findIndex(d => d.day === selectedDay);
@@ -658,7 +771,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             ]
         };
 
-        onUpdate(updated);
+        if (await onUpdate(updated, fullPage)) { rememberAssignment('stays', accommodation.id); setShowAccommodationModal(false); if (fullPage) setNavigationNotice(`${selectedDay}일차에 ${accommodation.name} 숙소를 배정했습니다.`); }
+        else setPickerSaveError(`${selectedDay}일차 ${accommodation.name} 숙소 배정을 저장하지 못했습니다. 선택창에서 다시 시도해 주세요.`);
     };
 
     // 확정 숙소 배정 해제 — 해당 일차의 dailyAccommodations 항목 제거 (문서 편집기의 "선택 해제")
@@ -703,7 +817,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const contractHasTravelers = contractTravelers.length > 0 && !!contractTravelers[0]?.name;
     const contractAgreement = editForm.contractData?.agreement;
     // 고객이 계약서에서 직접 제출한 내용(여권·항공편·동의)이 있으면 이 페이지에 바로 요약 표시
-    const contractSubmitted = contractHasTravelers || !!editForm.contractData?.customerSubmittedAt;
+    const contractSubmitted = contractHasTravelers || !!editForm.contractData?.customerSubmittedAt || !!contractAgreement?.agreed
+        || [editForm.contractData?.arrival, editForm.contractData?.departure].some(flight => flight?.date || flight?.time || flight?.flight);
     const fmtFlightLine = (f?: { date?: string; time?: string; flight?: string }) => {
         const parts = [f?.date, f?.time, f?.flight].filter(Boolean);
         return parts.length ? parts.join(' · ') : '미입력';
@@ -711,10 +826,21 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     // 고객이 계약서에서 직접 여행자 정보를 작성하므로, 이메일만 있으면 발송 가능
     const contractReady = !!reservation.email;
     // 발송 기록 판별 — 옛 일본어 기록('日程'/'契約')과 새 한국어 기록('일정'/'계약')을 모두 인식한다.
-    const acceptedDelivery = (kind: 'itinerary' | 'contract') => recordedDelivery?.bookingId === reservation.id
-        && recordedDelivery.items.some(item => item.kind === kind && item.state === 'accepted');
-    const itinerarySent = acceptedDelivery('itinerary') || timelineEvents.some((e: any) => e.type === 'email' && (e.detail === itineraryUrl || String(e.description || '').includes('日程') || String(e.description || '').includes('일정')));
-    const contractSent = acceptedDelivery('contract') || timelineEvents.some((e: any) => e.type === 'email' && (e.detail === contractUrl || String(e.description || '').includes('契約') || String(e.description || '').includes('계약')));
+    const acceptedDelivery = (kind: 'itinerary' | 'contract', channel?: string) => recordedDelivery?.bookingId === reservation.id
+        && recordedDelivery.items.some(item => item.kind === kind && item.state === 'accepted' && (!channel || item.channel === channel));
+    const itineraryChanged = recordedDelivery?.bookingId === reservation.id && !!recordedDelivery.documents?.itinerary?.needsResend;
+    const contractChanged = recordedDelivery?.bookingId === reservation.id && !!recordedDelivery.documents?.contract?.needsResend;
+    const itineraryEmailSent = acceptedDelivery('itinerary', 'email') || timelineEvents.some((e: any) => e.type === 'email' && (e.detail === itineraryUrl || String(e.description || '').includes('日程') || String(e.description || '').includes('일정')));
+    const contractEmailSent = acceptedDelivery('contract', 'email') || timelineEvents.some((e: any) => e.type === 'email' && (e.detail === contractUrl || String(e.description || '').includes('契約') || String(e.description || '').includes('계약')));
+    const itinerarySent = acceptedDelivery('itinerary') || itineraryEmailSent;
+    const contractSent = acceptedDelivery('contract') || contractEmailSent;
+    const emailChanged = (kind: 'itinerary' | 'contract', fallback: boolean) => {
+        if (!(kind === 'itinerary' ? itineraryEmailSent : contractEmailSent)) return false;
+        const data = recordedDelivery?.bookingId === reservation.id ? recordedDelivery : undefined;
+        const last = data?.items.find(item => item.kind === kind && item.channel === 'email' && item.state === 'accepted');
+        return last?.revision && data?.documents?.[kind]?.revision ? last.revision !== data.documents[kind].revision : fallback;
+    };
+    const itineraryEmailChanged = emailChanged('itinerary', itineraryChanged), contractEmailChanged = emailChanged('contract', contractChanged);
 
     // ── 문서 편집기(예약/견적 자동 채움) ──
     const _sd = (reservation as any).startDate;
@@ -762,6 +888,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             history: [...(reservation.history || []), { timestamp: new Date().toISOString(), type: 'modification', description: `${kind === 'contract' ? '계약 조건을' : '확정 일정표를'} 저장했습니다.` }],
         }, true);
         if (!saved) throw new Error('문서를 저장하지 못했습니다. 입력한 내용은 편집기에 남아 있습니다.');
+        setDeliveryRevision(v => v + 1);
         return saved;
     };
 
@@ -783,16 +910,23 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         } finally { setApplyingTemplate(false); }
     };
 
-    const openInlineDocument = (kind: 'itinerary' | 'contract') => {
+    const openInlineDocument = (kind: 'itinerary' | 'contract', day?: number) => {
         if (reservation.status === 'cancelled' || workspaceIsBusy()) return;
+        if (fullPage && (operationsDirty || quickAssignmentDirty)) { setNavigationNotice('작성 중인 운영·배정 정보를 먼저 저장하거나 취소해 주세요.'); return; }
         if (isEditing) { alert('주문 정보 변경사항을 먼저 저장하세요.'); return; }
+        if (fullPage && !workflowOpen) overviewScrollPosition.current = window.scrollY;
+        if (fullPage) bodyRef.current?.scrollTo({ top: 0 });
+        setWorkflowOpen(true);
+        setRequestedDocumentDay(day);
+        setDocumentFocusRevision(value => value + 1);
         setActiveDocument(kind); setInlineEditorOpen(true);
         setActiveSec('inline-doc');
-        requestAnimationFrame(() => bodyRef.current?.querySelector('#sec-inline-doc')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        if (!fullPage) requestAnimationFrame(() => bodyRef.current?.querySelector('#sec-inline-doc')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     };
     const closeInlineDocument = () => {
         if (workspaceIsBusy()) return;
         setInlineEditorOpen(false); setInlineDirty(false);
+        if (fullPage) { setActiveSec('docs'); requestAnimationFrame(() => bodyRef.current?.scrollTo({ top: 0 })); }
     };
     const inlineSeed = createInlineDocument(docInitialContent, reservationProduct?.documentProduct, reservation.productName);
     docDraftSourceRef.current = { content: inlineSeed, dates: { startDate: reservation.startDate || '', endDate: reservation.endDate || '' } };
@@ -1238,8 +1372,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         return result;
     };
     const canStartDelivery = () => {
-        if (deliveryLock.current || updating || inlineBusy || publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs) return false;
-        if (inlineDirty || docDraftPending || isEditing || operationsDirty) { alert('작성 중인 내용이나 보관된 초안을 먼저 확인하고 저장한 뒤 고객에게 발송해 주세요.'); return false; }
+        if (workspaceIsBusy()) return false;
+        if (inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty) { alert('작성 중인 내용이나 보관된 초안을 먼저 확인하고 저장한 뒤 고객에게 발송해 주세요.'); return false; }
         return true;
     };
     const sendItineraryToCustomer = async () => {
@@ -1248,7 +1382,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             alert(!reservation.email ? '고객 이메일이 없습니다.' : '일정표 템플릿을 먼저 선택해 주세요.');
             return;
         }
-        if (itinerarySent && !window.confirm('이미 발송한 일정표 안내를 다시 보낼까요?')) return;
+        if (itineraryEmailSent && !window.confirm('이미 이메일로 접수된 일정표 안내를 다시 보낼까요?')) return;
         deliveryLock.current = true;
         setSendingItinerary(true);
         try {
@@ -1281,7 +1415,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             alert('고객 이메일이 없습니다.');
             return;
         }
-        if (contractSent && !window.confirm('이미 발송한 계약서 안내를 다시 보낼까요?')) return;
+        if (contractEmailSent && !window.confirm('이미 이메일로 접수된 계약서 안내를 다시 보낼까요?')) return;
         deliveryLock.current = true;
         setSendingContract(true);
         try {
@@ -1326,7 +1460,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 key: 'itinerary',
                 title: '일정표',
                 ready: itineraryReady && itineraryCanPublish,
-                sent: itinerarySent,
+                sent: itineraryEmailSent && !itineraryEmailChanged,
                 send: () => deliverDocument('itinerary', {
                     customerName: reservation.customerName,
                     productName: reservation.productName,
@@ -1343,7 +1477,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 key: 'contract',
                 title: '계약서',
                 ready: contractReady,
-                sent: contractSent,
+                sent: contractEmailSent && !contractEmailChanged,
                 send: () => deliverDocument('contract', {
                     customerName: reservation.customerName,
                     productName: reservation.productName,
@@ -1405,9 +1539,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         }
     };
 
-    const addMemo = () => {
+    const addMemo = async () => {
         const text = memoDraft.trim();
-        if (!text) return;
+        if (!text || workspaceIsBusy()) return;
+        if (isEditing || operationsDirty || inlineDirty) { setNavigationNotice('작성 중인 주문·운영·문서 내용을 먼저 저장한 뒤 메모를 저장해 주세요.'); return; }
         const updated = {
             ...reservation,
             history: [
@@ -1415,9 +1550,10 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 { timestamp: new Date().toISOString(), type: 'admin_memo', description: text }
             ]
         };
-        onUpdate(updated);
-        setMemoDraft('');
-        setMemoFocused(false);
+        if (await onUpdate(updated, true)) {
+            setMemoDraft(current => current.trim() === text ? '' : current);
+            setMemoFocused(false);
+        }
     };
 
     const deleteMemo = (ts: string) => {
@@ -1439,16 +1575,17 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         assignment: 'assignment_ind',
     };
 
-    // Trip.com식 섹션 앵커 (탭 대신 원페이지 스크롤)
-    const SECTION_ANCHORS: Array<{ id: 'docs' | 'inline-doc' | 'ops' | 'info' | 'pay' | 'assign' | 'log'; label: string }> = [
-        { id: 'docs', label: '일정표·계약서' },
-        ...(inlineEditorOpen ? [{ id: 'inline-doc' as const, label: '문서 작성' }] : []),
-        { id: 'info', label: '주문 정보' },
-        { id: 'pay', label: '결제' },
-        { id: 'assign', label: '가이드·숙소' },
-        { id: 'ops', label: '운영·영수증' },
-        { id: 'log', label: '메모·이력' },
+    const SECTION_ANCHORS: Array<{ id: 'docs' | 'inline-doc' | 'ops' | 'info' | 'pay' | 'assign' | 'log'; label: string; hint: string; icon: string }> = [
+        { id: 'docs', label: '일정표·계약서', hint: '편집 · 미리보기 · 전달', icon: 'description' },
+        ...(!fullPage && inlineEditorOpen ? [{ id: 'inline-doc' as const, label: '문서 작성', hint: '작성 중인 문서', icon: 'edit' }] : []),
+        { id: 'info', label: '주문자 정보', hint: '예약자 · 여행자 · 항공편', icon: 'person' },
+        { id: 'pay', label: '결제', hint: '여행금액 · 예약금 · 잔금', icon: 'payments' },
+        { id: 'assign', label: '가이드·숙소', hint: '등록 자원 선택 · 배정', icon: 'hotel' },
+        { id: 'ops', label: '운영·영수증', hint: '차량 · 수배 · 발급 기록', icon: 'receipt_long' },
+        { id: 'log', label: '메모·이력', hint: '상담 메모 · 변경 · 발송', icon: 'history' },
     ];
+    const detailSection = activeSec === 'inline-doc' ? 'docs' : activeSec;
+    const currentSection = SECTION_ANCHORS.find(item => item.id === detailSection)!;
 
     // 여행 일수 — 시작/종료일 차이를 1순위로(가장 정확), 없으면 "n박"(옛 데이터 "n泊") 문자열, 그래도 없으면 일정 일수/배정 수
     const tripDays = (() => {
@@ -1483,7 +1620,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         return `${dt.getMonth() + 1}/${dt.getDate()}(${wd})`;
     };
 
-    // 숙소 선택 모달 후보 = 숙소 관리(accommodations) + 호텔 마스터(hotels) + 이 상품 일정에 들어있는 숙소.
+    // 배정 자원에 등록된 숙소를 우선하고 기존 숙소·호텔·상품 일정도 유지한다.
     // 이미지가 출처마다 JSON 문자열/배열로 달라 _thumb로 안전하게 통일.
     const firstAccImage = (a: any): string | undefined => {
         if (a?.thumbnail) return a.thumbnail;
@@ -1492,7 +1629,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         return Array.isArray(imgs) ? imgs.find((x: any) => typeof x === 'string' && x) : undefined;
     };
     const pickerAccommodations = (() => {
-        const out: any[] = (accommodationList || []).map((a: any) => ({ ...a, _thumb: firstAccImage(a) }));
+        const resourceStays = registered?.lodges || [];
+        const registeredNames = new Set(resourceStays.map((a: any) => String(a.name || '').trim()));
+        const out: any[] = [...resourceStays, ...(accommodationList || []).filter(a => !registeredNames.has(String(a.name || '').trim()))].map((a: any) => ({ ...a, _thumb: firstAccImage(a) }));
         const seen = new Set(out.map((a: any) => String(a.name || '').trim()).filter(Boolean));
         // 호텔 마스터(hotels 테이블) — 상품관리 일정탭의 「호텔 마스터 선택」과 동일한 출처
         for (const h of (hotelList || [])) {
@@ -1503,6 +1642,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             out.push({
                 id: h.id,
                 name,
+                region: h.region || h.city || '',
                 type: h.star_rating ? `${h.star_rating}성급` : (h.city || h.region || ''),
                 location: h.address || [h.city, h.region].filter(Boolean).join(', '),
                 images,
@@ -1538,7 +1678,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
     // 문서별 마지막 발송 일시 (history의 email 이벤트에서)
     const lastEmailAt = (url: string, keywords: string[]) => {
-        const ev = [...timelineEvents].reverse().find((e: any) => e.type === 'email' && (e.detail === url || keywords.some(keyword => String(e.description || '').includes(keyword))));
+        const kind = url === contractUrl ? 'contract' : 'itinerary';
+        const receipt = recordedDelivery?.bookingId === reservation.id ? recordedDelivery.items.filter(item => item.kind === kind && item.channel === 'email' && item.state === 'accepted').map(item => ({ timestamp: item.at })) : [];
+        const ev = [...timelineEvents.filter((e: any) => e.type === 'email' && (e.detail === url || keywords.some(keyword => String(e.description || '').includes(keyword)))), ...receipt].sort((a: any, b: any) => (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0))[0];
         return ev?.timestamp ? new Date(ev.timestamp).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
     };
     // 옛 일본어 기록('日程'/'契約')과 새 한국어 기록('일정'/'계약')을 모두 인식
@@ -1549,11 +1691,11 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         { id: 'deposit', title: '예약금 확인', description: workspace.depositPaid ? '입금 확인 완료' : '입금 내역 확인 필요', done: workspace.depositPaid, actionLabel: '입금 확인하기', onAction: () => scrollToSec('pay') },
         { id: 'contract', title: '계약 동의', description: workspace.signed ? '고객 동의 완료' : contractSent ? '서명 요청됨 · 고객 동의 대기' : '계약서 전달 필요', done: workspace.signed, actionLabel: '계약서 확인하기', onAction: () => { scrollToSec('docs'); setActiveDocument('contract'); } },
         { id: 'schedule', title: '일정 준비', description: itineraryReady ? `${scheduleDays.length}일 일정 준비됨` : '상품 일정 불러와 작성', done: itineraryReady, actionLabel: '일정 작성하기', onAction: () => openInlineDocument('itinerary') },
-        { id: 'published', title: '일정표 공개', description: workspace.published ? itinerarySent ? '공개됨 · 메일 발송 완료' : '공개됨 · 고객 전달 가능' : '내용 확인 후 고객에게 공개', done: workspace.published, actionLabel: '공개·전달하기', onAction: () => scrollToSec('docs') },
+        { id: 'published', title: '일정표 공개', description: workspace.published ? itinerarySent ? '공개됨 · 안내 서비스 접수' : '공개됨 · 고객 전달 가능' : '내용 확인 후 고객에게 공개', done: workspace.published, actionLabel: '공개·전달하기', onAction: () => scrollToSec('docs') },
     ];
     const readiness = [
         { title: '확정 일정', value: itineraryReady ? `${scheduleDays.length}일` : '작성 필요', description: reservation.documentContent ? '고객별 저장 일정' : selectedTemplate ? '선택한 템플릿 일정' : reservationProduct ? '예약한 상품의 일정' : '일정을 작성하세요', ready: itineraryReady, onAction: () => openInlineDocument('itinerary') },
-        { title: '가이드·차량', value: workspace.guideReady ? reservation.assignedGuide?.name || '배정됨' : '가이드 미배정', description: reservation.adminOperations?.vehicle ? `차량 · ${reservation.adminOperations.vehicle}` : '차량 배정 기록 필요', ready: workspace.guideReady && !!reservation.adminOperations?.vehicle, onAction: () => scrollToSec(workspace.guideReady ? 'ops' : 'assign') },
+        { title: '가이드·차량', value: workspace.guideReady ? reservation.assignedGuide?.name || '배정됨' : '가이드 미배정', description: readProductVehicle(reservation.adminOperations, reservation.contractData).type ? `차량 · ${readProductVehicle(reservation.adminOperations, reservation.contractData).type}` : '차량 배정 기록 필요', ready: workspace.guideReady && !!readProductVehicle(reservation.adminOperations, reservation.contractData).type, onAction: () => scrollToSec(workspace.guideReady ? 'ops' : 'assign') },
         { title: '일자별 숙소', value: workspace.nights ? `${workspace.stayCount}/${workspace.nights}박` : '당일 투어', description: workspace.accommodationsReady ? '필요한 숙박일 준비됨' : '귀국일을 제외한 숙소 확인', ready: workspace.accommodationsReady, onAction: () => scrollToSec('assign') },
         { title: '계약·여행자', value: workspace.signed ? '동의 완료' : '동의 대기', description: `여행자 ${workspace.travelerCount}/${reservation.totalPeople || 0}명 입력`, ready: workspace.signed && workspace.travelersReady, onAction: () => scrollToSec('info') },
     ];
@@ -1563,30 +1705,134 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     // 2순위(과거 예약): 상품명이 '유일하게' 정확히 일치할 때만 —
     //   동명 상품(예: 은하수 대자연 만끽 투어 4일/5일)이 있으면 추측하지 않고 이미지 생략.
     // 수동 예약(자유 입력 상품명)은 대부분 미매칭 → 이미지 없이 기존 그대로.
-    const productImage = (() => {
-        let p = reservation.productId ? products.find(x => x.id === reservation.productId) : undefined;
-        if (!p) {
-            const norm = (v: any) => String(v || '').replace(/\s+/g, '').toLowerCase();
-            const rn = norm(reservation.productName);
-            if (rn) {
-                const exact = products.filter(x => norm(x.name) === rn);
-                if (exact.length === 1) p = exact[0];
-            }
+    const rankRecent = (items: any[], recent: string[]) => [...items].sort((a, b) => {
+        const rank = (id: string) => recent.includes(id) ? recent.indexOf(id) : 999;
+        return rank(a.id) - rank(b.id);
+    });
+    const registeredGuideNames = new Set((registered?.guides || []).map(guide => String(guide.name || '').trim()));
+    const pickerGuides = [...(registered?.guides || []), ...guideList.filter(guide => !registeredGuideNames.has(String(guide.name || '').trim()))];
+    const visibleGuides = rankRecent(pickerGuides.filter(guide => [guide.name, guide.phone, guide.languages].join(' ').toLowerCase().includes(guideSearch.toLowerCase().trim())), recentAssignments.guides);
+    const isCurrentGuide = (guide: any) => !!reservation.assignedGuide && ((guide.id && guide.id === reservation.assignedGuide.id) || guide.name === reservation.assignedGuide.name);
+    const guideLanguages = (value: any): string[] => { try { const parsed = typeof value === 'string' ? JSON.parse(value) : value; return Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string').slice(0, 3) : []; } catch { return []; } };
+    const stayRegion = (stay: any) => String(stay.region || stay.location || '지역 미정');
+    const accommodationRegions = [...new Set(pickerAccommodations.map(stayRegion))].sort();
+    const visibleAccommodations = rankRecent(pickerAccommodations.filter(stay => (!accommodationRegion || stayRegion(stay) === accommodationRegion) && [stay.name, stay.location, stay.type].join(' ').toLowerCase().includes(accommodationSearch.toLowerCase().trim())), recentAssignments.stays);
+    const selectedAccommodation = reservation.dailyAccommodations?.find(stay => Number(stay.day) === selectedDay)?.accommodation;
+    const isCurrentAccommodation = (stay: any) => !!selectedAccommodation && ((stay.id && stay.id === selectedAccommodation.id) || stay.name === selectedAccommodation.name);
+    const bookedProduct = customerProductReference(reservation, products);
+    const productImage = bookedProduct?.image;
+
+    const overview = productCustomerOverview(reservation, scheduleDays, workspace, {
+        vehicle: readProductVehicle(reservation.adminOperations, reservation.contractData).type,
+        itineraryReady, itinerarySent, contractSent, itineraryChanged, contractChanged, deliveryHistory: recordedDelivery?.items,
+    });
+    overview.bookedProduct = bookedProduct;
+    const kakaoDirty = inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty;
+    const notificationActions = <CustomerKakaoActions key={reservation.id} source="product" bookingId={reservation.id}
+        revision={JSON.stringify([deliveryRevision, reservation, recordedDelivery?.items.map(item => [item.id, item.kind, item.channel, item.state, item.at, item.error])])} disabled={workspaceIsBusy() || kakaoDirty}
+        disabledReason={kakaoDirty ? '변경사항과 보관된 초안을 먼저 저장한 뒤 고객에게 발송해 주세요.' : undefined}
+        beforeSend={canStartDelivery} onBusyChange={setSendingKakao} onResult={() => setDeliveryRevision(value => value + 1)}
+        onHistory={() => overviewAction('history')} />;
+    const refreshHint = '고객 제출·결제·배정·문서의 저장된 정보를 다시 불러옵니다. 고객에게 발송하지 않습니다.';
+    const refreshControl = <div className="cw-refresh-control">
+        <button type="button" className="cw-text-button" title={refreshHint} disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()} aria-busy={refreshing} onClick={refreshWorkspace}><Icon name="refresh" />예약 정보 새로고침</button>
+        <span className="cw-refresh-status" role="status" aria-live="polite">{refreshing ? '저장된 예약 정보를 불러오는 중…' : refreshedAt ? `불러온 시각 ${new Date(refreshedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '고객 제출·결제·배정·문서 다시 불러오기'}</span>
+        <p className="cw-refresh-hint">고객 제출·결제·배정·문서의 저장된 정보를 불러옵니다.</p>
+        {refreshError && <p className="cw-refresh-notice" role="alert">{refreshError}</p>}
+    </div>;
+    const orderDirty = isEditing && JSON.stringify(editForm) !== JSON.stringify(reservation);
+    const resumeWorkLabel = inlineDirty ? activeDocument === 'contract' ? '여행 계약서 편집' : '일정표 편집'
+        : operationsDirty ? '운영·영수증 작성' : orderDirty ? detailSection === 'pay' ? '결제 정보 수정' : '주문자 정보 수정' : '';
+    const closeQuickAssignment = () => {
+        if (workspaceIsBusy()) return;
+        if (quickAssignmentDirty && !window.confirm('저장하지 않은 차량 정보를 버리고 닫을까요?')) return;
+        setQuickAssignment(null); setQuickAssignmentDirty(false);
+    };
+    const saveQuickVehicle = async (vehicle: { type: string; phone: string; resource?: Record<string, any> }) => {
+        if (workspaceIsBusy() || isEditing || inlineDirty || operationsDirty) return false;
+        const currentVehicle = readProductVehicle(reservation.adminOperations, reservation.contractData);
+        const saved = await onUpdate({ ...reservation,
+            adminOperations: { ...emptyReservationOperations(), ...(reservation.adminOperations || {}), vehicle: vehicle.type, driverPhone: vehicle.phone },
+            ...(vehicle.resource ? { contractData: { ...(reservation.contractData || {}), vehicle: { ...vehicle.resource, type: vehicle.type, model: vehicle.type, phone: vehicle.phone } } } : {}),
+            history: [...(reservation.history || []), { timestamp: new Date().toISOString(), type: 'modification',
+                description: vehicle.type ? '배정 차량 정보를 저장했습니다.' : '차량 배정을 해제했습니다.',
+                detail: vehicle.type || currentVehicle.type }],
+        }, true);
+        if (saved) setNavigationNotice(vehicle.type ? '차량 배정을 저장했습니다.' : '차량 배정을 해제했습니다.');
+        return saved;
+    };
+    const quickAssignmentEditor = quickAssignment === 'vehicle'
+        ? <CustomerVehicleAssignment key={reservation.id} value={readProductVehicle(reservation.adminOperations, reservation.contractData)} vehicles={registered?.vehicles || []} loading={registeredPending} resourceNotice={registeredNotice} onRetry={() => setRegisteredRevision(value => value + 1)} disabled={workspaceIsBusy()} onSave={saveQuickVehicle} onDirtyChange={setQuickAssignmentDirty} onClose={closeQuickAssignment} onSaved={() => { setQuickAssignmentDirty(false); setQuickAssignment(null); }} />
+        : quickAssignment === 'stay' && workspace.nights <= 0 ? <section className="cw-quick-assignment" aria-label="숙소 바로 배정">
+            <header><strong>일자별 숙소 바로 배정</strong><button type="button" className="cw-text-button" disabled={workspaceIsBusy()} onClick={closeQuickAssignment}>닫기</button></header>
+            <p>{validAssignmentPeriod(reservation) ? '당일 투어는 숙소 배정이 필요하지 않습니다.' : '여행 시작일과 종료일을 먼저 확인해 주세요.'}</p>
+        </section> : null;
+    const overviewAction = (action: string, id?: string) => {
+        if (workspaceIsBusy()) return;
+        if (action === 'back') { closeWorkspace(); return; }
+        if (quickAssignmentDirty) { setNavigationNotice('입력 중인 차량 정보를 먼저 저장하거나 차량 편집을 닫아 주세요.'); return; }
+        if (fullPage && ['guide', 'stay', 'vehicle'].includes(action)) {
+            if (reservation.status === 'cancelled') { setNavigationNotice('취소된 예약의 배정은 변경할 수 없습니다.'); return; }
+            if (isEditing || inlineDirty || operationsDirty) { setNavigationNotice('작성 중인 주문·일정·운영 정보를 먼저 저장한 뒤 배정해 주세요.'); return; }
+            setNavigationNotice('');
+            setWorkflowOpen(false);
+            if (action === 'guide') { setQuickAssignment(null); setPickerSaveError(''); setGuideConfirmation(null); setShowGuideModal(true); }
+            else if (action === 'stay') {
+                setQuickAssignment('stay');
+                if (workspace.nights > 0) {
+                    const nextDay = Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => index + 1).find(day => !reservation.dailyAccommodations?.some(stay => Number(stay.day) === day && stay.accommodation?.name?.trim())) || 1;
+                    setSelectedDay(nextDay); setPickerSaveError(''); setShowAccommodationModal(true);
+                }
+            } else setQuickAssignment('vehicle');
+            return;
         }
-        if (!p) return undefined;
-        let imgs: any = p.mainImages;
-        if (typeof imgs === 'string') { try { imgs = JSON.parse(imgs || '[]'); } catch { imgs = []; } }
-        return p.thumbnail || (Array.isArray(imgs) && imgs.length ? imgs[0] : undefined);
-    })();
+        if (action === 'customer-link') { void copyCustomerMessage(workspace.published ? 'itinerary' : 'contract'); return; }
+        if (action === 'send-itinerary') { void sendItineraryToCustomer(); return; }
+        if (action === 'edit-itinerary') { const selectedDay = id ? overview.days.find(day => day.id === id)?.day : undefined; if (selectedDay) openInlineDocument('itinerary', selectedDay); else openInlineDocument('itinerary'); return; }
+        if (action === 'contract') { openInlineDocument('contract'); return; }
+        if (action === 'itinerary' || action === 'contract-preview') { if (canStartDelivery()) window.open(action === 'itinerary' ? itineraryPreviewUrl : contractUrl, '_blank', 'noopener,noreferrer'); return; }
+        if (action === 'guide-pdf') { printGuideSheet(); return; }
+        if (['view-info', 'customer-detail', 'flights', 'travelers'].includes(action)) {
+            if (inlineDirty || docDraftPending || operationsDirty || isEditing && activeSec === 'pay') { setNavigationNotice('작성 중인 내용을 먼저 저장하거나 취소한 뒤 고객 정보를 확인해 주세요.'); return; }
+            scrollToSec('info');
+            if (!['view-info', 'customer-detail'].includes(action)) requestAnimationFrame(() => requestAnimationFrame(() => {
+                const target = bodyRef.current?.querySelector(`#product-customer-${action}`);
+                if (target && !target.closest('[hidden]')) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }));
+            return;
+        }
+        if (action === 'documents') {
+            if (inlineDirty || docDraftPending || operationsDirty || isEditing) { setNavigationNotice('작성 중인 내용을 먼저 저장하거나 취소한 뒤 문서를 확인하고 전달해 주세요.'); return; }
+            setInlineEditorOpen(false);
+            setActiveDocument(id?.includes('contract') ? 'contract' : 'itinerary');
+            scrollToSec('docs');
+            return;
+        }
+        if (action === 'edit-info') { if (inlineDirty || operationsDirty) { setNavigationNotice('작성 중인 문서·운영 정보를 먼저 저장해 주세요.'); return; } setIsEditing(true); scrollToSec('info'); return; }
+        if ((action === 'guide' || action === 'stay') && isEditing) { setNavigationNotice('주문 정보 변경사항을 먼저 저장한 뒤 배정해 주세요.'); return; }
+        const section = { payments: 'pay', assignments: 'assign', operations: 'ops', guide: 'assign', stay: 'assign', vehicle: 'ops', history: 'log', notes: 'log', documents: 'docs' }[action] as 'pay' | 'assign' | 'ops' | 'log' | 'docs' | undefined;
+        if (section) scrollToSec(section);
+    };
 
     return (<>
-        <div className="drawer-scrim reservation-workspace-scrim" onClick={closeWorkspace}>
-            <div className="drawer reservation-workspace product-workspace tcom" role="dialog" aria-modal="true" aria-label="상품 예약 상세 작업" onClick={e => e.stopPropagation()}>
-                {navigationNotice && <div role="status" aria-live="polite" style={{ padding: '10px 16px', background: '#fff5e8', color: '#8f4c13', fontSize: 13 }}>{navigationNotice}</div>}
-                {docDraftPending && <div role="status" style={{ padding: '10px 16px', background: '#edfaf6', color: '#145c4c', fontSize: 13, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><button type="button" className="btn btn-ghost btn-sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</button></div>}
+        <div className={fullPage ? `product-customer-page${workflowOpen ? ' cw-is-working' : ''}` : 'drawer-scrim reservation-workspace-scrim'} onClick={fullPage ? undefined : closeWorkspace}>
+            <div className={`drawer reservation-workspace product-workspace tcom${fullPage ? ' product-customer-fullpage' : ''}`} role={fullPage ? 'region' : 'dialog'} aria-modal={fullPage ? undefined : true} aria-label="상품 예약 상세 작업" onClick={e => e.stopPropagation()}>
+                {navigationNotice && (!fullPage || !workflowOpen) && <div role="status" aria-live="polite" style={{ padding: '10px 16px', background: '#fff5e8', color: '#8f4c13', fontSize: 13 }}>{navigationNotice}</div>}
+                {docDraftPending && (!fullPage || !workflowOpen) && <div role="status" style={{ padding: '10px 16px', background: '#edfaf6', color: '#145c4c', fontSize: 13, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><button type="button" className="btn btn-ghost btn-sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</button></div>}
+
+                {fullPage && <>
+                    <div id="product-customer-overview" hidden={workflowOpen}>
+                    {resumeWorkLabel && <div className="cw-resume-work"><div><strong>{resumeWorkLabel} 내용이 저장되지 않았습니다.</strong><span>입력한 내용을 이어서 확인하고 저장하세요.</span></div><button type="button" className="btn btn-ink" disabled={workspaceIsBusy()} onClick={() => setWorkflowOpen(true)}>{resumeWorkLabel} 이어서 하기<Icon name="arrow_forward" /></button></div>}
+                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} notificationActions={notificationActions} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
+
+                    </div>
+                </>}
+
+                <div id="product-customer-detail" className={`product-customer-detail${fullPage ? ' cw-detail-workspace cw-focus-workspace' : ''}`} hidden={fullPage && !workflowOpen}>
 
                 {/* Header */}
-                <div className="drawer-head">
+                <div className={`drawer-head${fullPage ? ' cw-detail-toolbar' : ''}`}>
+                    {fullPage ? <><button type="button" className="btn btn-ghost cw-overview-back" disabled={workspaceIsBusy()} onClick={returnToCustomerOverview}><Icon name="arrow_back" />고객 현황</button><div className="cw-detail-identity"><h2>{reservation.customerName || '고객'} <span>{reservation.headcount}</span></h2><p>{reservation.productName} · {reservation.date}</p></div></> : <>
                     {productImage && (
                         <img src={productImage} alt={reservation.productName} loading="lazy"
                             style={{ width: 52, height: 52, flex: 'none', borderRadius: 12, objectFit: 'cover', border: '1px solid var(--mrt-gray-200, #E6E8EC)' }} />
@@ -1601,53 +1847,71 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         <div className="page-title" style={{ fontSize: 18, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reservation.productName}</div>
                         <p className="rw-customer-line">{reservation.customerName} · {reservation.date} · {reservation.headcount}</p>
                     </div>
+                    </>}
                     <StatusDropdown
                         status={editForm.status}
                         disabled={workspaceIsBusy()}
                         onChange={(s) => { if (workspaceIsBusy()) return; setEditForm({ ...editForm, status: s }); if (!isEditing) onUpdate({ ...editForm, status: s }); }}
                     />
-                    <button type="button" className="btn btn-sm btn-ghost" onClick={refreshWorkspace} disabled={workspaceIsBusy() || isEditing || operationsDirty}>고객 제출 정보 새로고침</button>
-                    <button className="icon-btn" aria-label="예약 상세 닫기" style={{ width: 36, height: 36 }} onClick={closeWorkspace}><Icon name="close" /></button>
+                    {fullPage ? refreshControl : <button type="button" className="btn btn-sm btn-ghost" title={refreshHint} onClick={refreshWorkspace} disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()}><Icon name="refresh" />예약 정보 새로고침</button>}
+                    {!fullPage && <button className="icon-btn" aria-label="예약 상세 닫기" style={{ width: 36, height: 36 }} onClick={closeWorkspace}><Icon name="close" /></button>}
                 </div>
 
-                {/* 섹션 앵커 — Trip.com식 원페이지 내비게이션 */}
-                <div className="tc-anchors">
+                <div className={`tc-anchors${fullPage ? ' cw-work-tabs' : ''}`} role={fullPage ? 'tablist' : undefined} aria-label="예약 상세 업무">
                     {SECTION_ANCHORS.map(a => (
-                        <button key={a.id} type="button" className={activeSec === a.id ? 'active' : ''} onClick={() => scrollToSec(a.id)}>
-                            {a.label}
+                        <button key={a.id} id={`customer-work-${a.id}`} type="button" role={fullPage ? 'tab' : undefined} aria-selected={fullPage ? detailSection === a.id : undefined} aria-controls={fullPage ? a.id === 'docs' ? 'customer-documents-panel' : a.id === 'ops' ? 'customer-operations-panel' : `sec-${a.id}` : undefined} tabIndex={fullPage && detailSection !== a.id ? -1 : undefined} disabled={workspaceIsBusy()} className={(fullPage ? detailSection : activeSec) === a.id ? 'active' : ''} onClick={() => scrollToSec(a.id)} onKeyDown={event => {
+                            if (!fullPage || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                            event.preventDefault();
+                            const index = SECTION_ANCHORS.findIndex(item => item.id === a.id);
+                            const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? SECTION_ANCHORS.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + SECTION_ANCHORS.length) % SECTION_ANCHORS.length;
+                            const target = SECTION_ANCHORS[nextIndex];
+                            document.getElementById(`customer-work-${target.id}`)?.focus();
+                        }}>
+                            {fullPage && <Icon name={a.icon} />}<span className="cw-work-tab-copy"><strong>{a.label}</strong>{fullPage && <small>{a.hint}</small>}</span>
                             {a.id === 'log' && memos.length > 0 && <span className="dtab-ct">{memos.length}</span>}
                         </button>
                     ))}
                 </div>
 
+                {fullPage && navigationNotice && <div className="cw-detail-notice" role="status" aria-live="polite">{navigationNotice}</div>}
                 <div className="reservation-workspace-main">
                 {/* Body */}
                 <div className="drawer-body reservation-workspace-body" ref={bodyRef} inert={workspaceIsBusy()} aria-busy={workspaceIsBusy()}>
                     <div className="stack" style={{ gap: 18 }}>
-                    <ReservationWorkflow steps={steps} readiness={readiness} cancelled={workspace.cancelled} />
+                    {fullPage && !(detailSection === 'docs' && inlineEditorOpen) && <div className="cw-panel-heading"><div><h2>{currentSection.label}</h2><p>{currentSection.hint}</p></div><span>{inlineDirty && detailSection === 'docs' || operationsDirty && detailSection === 'ops' || isEditing && (detailSection === 'info' || detailSection === 'pay') ? '저장하지 않은 변경사항' : '선택한 업무만 표시됩니다'}</span></div>}
+                    {!fullPage && <ReservationWorkflow steps={steps} readiness={readiness} cancelled={workspace.cancelled} />}
+                    <div id="customer-documents-panel" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-docs' : undefined} hidden={fullPage && detailSection !== 'docs'}>
                     <ReservationDocuments days={scheduleDays} source={reservation.documentContent ? '고객별 작성 일정' : selectedTemplate?.name || (reservationProduct ? '예약 상품 일정' : '아직 작성된 일정이 없습니다')}
                         ready={itineraryReady} published={workspace.published} canPublish={itineraryCanPublish}
                         itinerarySent={itinerarySent} itinerarySentAt={itinerarySentAt} signed={workspace.signed}
                         contractSent={contractSent} contractSentAt={contractSentAt} travelerCount={workspace.travelerCount}
+                        itineraryEmailSent={itineraryEmailSent} contractEmailSent={contractEmailSent}
+                        itineraryChanged={itineraryEmailChanged} contractChanged={contractEmailChanged}
                         email={reservation.email} sending={sendingItinerary || sendingContract || sendingAllDocs || publishing || updating || inlineBusy} copied={copiedDocId}
                         templates={templatesList} templateId={editForm.itineraryTemplateId || ''} applyingTemplate={applyingTemplate}
                         onTemplate={applyDocumentTemplate} onEdit={openInlineDocument} onPublish={publishCustomerItinerary}
                         onPreview={(kind, print) => { if (canStartDelivery()) window.open(kind === 'itinerary' ? itineraryPreviewUrl + (print ? '&autoprint=1' : '') : contractUrl + (print ? '?autoprint=1' : ''), '_blank', 'noopener,noreferrer'); }}
+                        onDraftPreview={kind => { if (inlineControlRef.current) inlineControlRef.current.preview(kind); else openInlineDocument(kind); }}
                         onSend={kind => kind === 'itinerary' ? sendItineraryToCustomer() : sendContractToCustomer()} onCopy={copyCustomerMessage}
                         onSendAll={sendReadyDocumentsToCustomer} onGuidePdf={printGuideSheet} disabled={workspace.cancelled || isEditing}
                         hasUnsavedChanges={inlineDirty || docDraftPending}
                         inlineEditor={inlineEditorOpen ? <ReservationInlineEditor key={`${user?.id || 'unverified'}:${reservation.id}`} adminUserId={userLoading ? null : user?.id || null} reservationId={reservation.id} initialContent={inlineSeed}
+                            previewContext={{ customerName: reservation.customerName, reservationNumber, travelers: reservation.totalPeople, totalAmount: reservation.totalAmount, depositAmount: reservation.deposit, balanceAmount: reservation.balance }}
                             mode={activeDocument} onModeChange={setActiveDocument} startDate={reservation.startDate || ''} endDate={reservation.endDate || ''}
                             dailyAccommodations={reservation.dailyAccommodations} onSave={saveDocContent} onDirtyChange={setInlineDirty}
                             onBusyChange={setInlineBusy} onDraftStatusChange={setDocDraftPending} externalBusy={publishing || applyingTemplate || sendingItinerary || sendingContract || sendingAllDocs || updating}
+                            externalActions={fullPage} onStatusChange={setInlineUiStatus} requestedDay={requestedDocumentDay} requestedDayRevision={documentFocusRevision}
                             onControlChange={control => { inlineControlRef.current = control; }}
                             onClose={closeInlineDocument} disabled={workspace.cancelled || updating || isEditing} /> : null} />
-                    <AdminDeliveryHistory source="product" bookingId={reservation.id} revision={deliveryRevision}
+                    </div>
+                    <div hidden={fullPage && detailSection !== 'log'}>
+                    <AdminDeliveryHistory source="product" bookingId={reservation.id} revision={JSON.stringify([deliveryRevision, reservation.documentContent, reservation.startDate, reservation.endDate, reservation.totalPeople, reservation.totalAmount, reservation.deposit, reservation.balance, reservation.assignedGuide, reservation.dailyAccommodations, reservation.contractData, reservation.adminOperations, reservation.areAssignmentsVisibleToUser])}
                         busy={sendingItinerary || sendingContract || sendingAllDocs || updating || inlineBusy || publishing}
                         onData={data => setRecordedDelivery(data)} onOpenDocument={kind => {
                             scrollToSec('docs'); setActiveDocument(kind === 'contract' ? 'contract' : 'itinerary');
                         }} />
-                    <section id="sec-info" style={{ scrollMarginTop: 8 }}>
+                    </div>
+                    <section id="sec-info" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-info' : undefined} hidden={fullPage && detailSection !== 'info'} style={{ scrollMarginTop: 8 }}>
                         {/* 주문 정보 — 여행/예약자 */}
                         <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'stretch' }}>
                             <div className="card">
@@ -1686,11 +1950,11 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         </div>
 
                         {/* 고객이 계약서에서 직접 작성·제출한 내용(여권·항공편·동의)을 이 페이지에 바로 표시 */}
-                        {contractSubmitted && (
+                        {(fullPage || contractSubmitted) && (
                             <div className="card" style={{ marginTop: 14 }}>
                                 <div className="card-head">
                                     <Icon name="assignment_ind" style={{ color: 'var(--mrt-gray-600)' }} />
-                                    <h2>고객 제출 정보</h2>
+                                    <h2>여행자·항공편 정보</h2>
                                     <div style={{ flex: 1 }} />
                                     <button type="button" className="btn btn-sm btn-ghost" style={{ flex: 'none' }} onClick={copyBookingText} title="여행자·항공편 정보를 텍스트로 복사 (카톡·메일에 붙여넣기)">
                                         <Icon name={copiedDocId === 'booking' ? 'check' : 'content_copy'} />{copiedDocId === 'booking' ? '복사됨' : '복사'}
@@ -1712,8 +1976,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                         : <span className="badge b-amber" style={{ flex: 'none' }}>미동의</span>}
                                 </div>
                                 <div className="card-pad" style={{ paddingTop: 14 }}>
+                                    {!contractSubmitted && <div style={{ marginBottom: 16, padding: 16, background: '#f6f8fa', borderRadius: 12 }}><p style={{ fontSize: 13, color: '#6b7684', margin: '0 0 12px' }}>고객이 계약서에서 여행자와 항공편을 입력하면 이곳에 반영됩니다. 계약서 전달 후 고객 입력 내용을 확인해 주세요.</p><button type="button" className="btn btn-sm btn-ghost" disabled={workspaceIsBusy()} onClick={() => overviewAction('documents', 'contract')}>계약서 전달 관리</button></div>}
                                     {/* 항공편 — 픽업·샌딩 수배용, 가장 중요 */}
-                                    <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                                    <div id="product-customer-flights" className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14, scrollMarginTop: 20 }}>
                                         <div className="pay-cell">
                                             <div className="row" style={{ gap: 6, marginBottom: 6, color: 'var(--text-secondary)' }}>
                                                 <Icon name="flight_land" /><span style={{ fontSize: 12.5, fontWeight: 700 }}>도착편 (몽골 도착)</span>
@@ -1729,6 +1994,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     </div>
 
                                     {/* 여행자별 여권 정보 */}
+                                    <div id="product-customer-travelers" style={{ scrollMarginTop: 20 }}>
+                                    {!contractTravelers.length && <p style={{ padding: 16, margin: 0, borderRadius: 12, background: '#f6f8fa', color: '#6b7684', fontSize: 13 }}>등록된 여행자가 없습니다. 예약 인원 {reservation.totalPeople || '미정'}명과 고객 제출 내용을 확인해 주세요.</p>}
                                     {contractTravelers.map((t, i) => (
                                         <div key={i} style={{ paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0, borderTop: i ? '1px solid var(--mrt-gray-100)' : 'none' }}>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 4 }}>여행자 {i + 1}</div>
@@ -1738,6 +2005,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                             <div className="kv" style={{ borderBottom: 'none' }}><span>연락처</span><b style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{t.phone || '—'}</b></div>
                                         </div>
                                     ))}
+                                    </div>
 
                                     {contractAgreement?.agreed && (
                                         <div className="kv" style={{ borderBottom: 'none', borderTop: '1px solid var(--mrt-gray-100)', marginTop: 10, paddingTop: 10 }}>
@@ -1749,8 +2017,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         )}
                     </section>
 
-                    <ReservationOperations reservationId={reservation.id} value={reservation.adminOperations} onSave={next => workspaceIsBusy() ? Promise.resolve(false) : onUpdate({ ...reservation, adminOperations: next }, true)} disabled={workspaceIsBusy() || isEditing} onDirtyChange={setOperationsDirty}/>
-                    <section id="sec-pay" style={{ scrollMarginTop: 8 }}>
+                    <div id="customer-operations-panel" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-ops' : undefined} hidden={fullPage && detailSection !== 'ops'}><ReservationOperations reservationId={reservation.id} value={{ ...(reservation.adminOperations || emptyReservationOperations()), vehicle: readProductVehicle(reservation.adminOperations, reservation.contractData).type, driverPhone: readProductVehicle(reservation.adminOperations, reservation.contractData).phone } as Operations} onSave={next => workspaceIsBusy() ? Promise.resolve(false) : onUpdate({ ...reservation, adminOperations: next }, true)} disabled={workspaceIsBusy() || isEditing} onDirtyChange={setOperationsDirty} externalActions={fullPage} formId={`reservation-operations-${reservation.id}`} onControlChange={control => { operationsControlRef.current = control; }} onStatusChange={setOperationsUiStatus}/></div>
+                    <section id="sec-pay" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-pay' : undefined} hidden={fullPage && detailSection !== 'pay'} style={{ scrollMarginTop: 8 }}>
                     <div className="stack" style={{ gap: 14 }}>
                             {/* Payment with Progress Ring */}
                             <div className="card card-pad">
@@ -1775,6 +2043,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                             {isEditing ? (
                                                 <input
                                                     type="number"
+                                                    aria-label="총 여행금액"
                                                     value={editForm.totalAmount}
                                                     onChange={(e) => setEditForm({ ...editForm, totalAmount: Number(e.target.value), balance: Number(e.target.value) - editForm.deposit })}
                                                     className="inp"
@@ -1808,6 +2077,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                         {isEditing ? (
                                             <input
                                                 type="number"
+                                                aria-label="예약금 금액"
                                                 value={editForm.deposit}
                                                 onChange={(e) => setEditForm({ ...editForm, deposit: Number(e.target.value), balance: editForm.totalAmount - Number(e.target.value) })}
                                                 className="inp"
@@ -1878,7 +2148,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     </div>
                     </section>
 
-                    <section id="sec-assign" style={{ scrollMarginTop: 8 }}>
+                    <section id="sec-assign" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-assign' : undefined} hidden={fullPage && detailSection !== 'assign'} style={{ scrollMarginTop: 8 }}>
                     <div className="stack" style={{ gap: 14 }}>
                             {/* 담당 가이드 */}
                             <div className="card">
@@ -2035,7 +2305,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     </div>
                     </section>
 
-                    <section id="sec-log" style={{ scrollMarginTop: 8 }}>
+                    <section id="sec-log" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-log' : undefined} hidden={fullPage && detailSection !== 'log'} style={{ scrollMarginTop: 8 }}>
                     <div className="stack" style={{ gap: 14 }}>
                             {/* Admin Memo */}
                             <div className="card">
@@ -2118,7 +2388,19 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
                 {/* Footer */}
                 <div className="drawer-foot">
-                    {isEditing ? (
+                    {fullPage ? <>
+                        <div className="cw-action-status" role={(inlineUiStatus.failed && detailSection === 'docs' && inlineEditorOpen) || (detailSection === 'ops' && operationsUiStatus.failed) ? 'alert' : 'status'}><strong>{detailSection === 'docs' && inlineEditorOpen ? activeDocument === 'contract' ? '계약서 편집' : '일정표 편집' : currentSection.label}</strong><span>{detailSection === 'docs' && inlineEditorOpen ? inlineUiStatus.message : detailSection === 'ops' ? operationsUiStatus.message : isEditing ? '변경사항을 저장하거나 취소할 수 있습니다.' : '고객 현황으로 돌아가도 현재 작업은 유지됩니다.'}</span></div>
+                        <div className="cw-action-buttons">
+                            {isEditing ? <><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy()} onClick={handleCancel}>취소</button><button type="button" className="btn btn-ink" disabled={workspaceIsBusy()} onClick={handleSave}><Icon name="save" />{updating ? '저장 중…' : detailSection === 'pay' ? '결제 금액 저장' : '주문자 정보 저장'}</button></>
+                                : detailSection === 'docs' && inlineEditorOpen ? <>
+                                    <button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || inlineUiStatus.locked} onClick={() => inlineControlRef.current?.preview(activeDocument)}><Icon name="visibility" />미리보기</button>
+                                    <button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || inlineUiStatus.locked || inlineDirty || docDraftPending} title={inlineDirty || docDraftPending ? '변경사항을 저장한 뒤 문서를 확인하고 전달할 수 있습니다.' : undefined} onClick={closeInlineDocument}>문서 확인·전달<Icon name="arrow_forward" /></button>
+                                    <button type="submit" form={`reservation-inline-${reservation.id}`} className="btn btn-ink" disabled={workspaceIsBusy() || inlineUiStatus.locked || workspace.cancelled}><Icon name="save" />{workspaceIsBusy() ? '저장 중…' : activeDocument === 'contract' ? '계약서 저장' : '일정 저장'}</button>
+                                </> : detailSection === 'docs' ? <><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || workspace.cancelled} onClick={() => openInlineDocument('contract')}>계약서 편집</button><button type="button" className="btn btn-ink" disabled={workspaceIsBusy() || workspace.cancelled} onClick={() => openInlineDocument('itinerary')}><Icon name="edit" />일정표 편집</button></>
+                                    : detailSection === 'ops' ? <><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || !operationsUiStatus.dirty} onClick={() => operationsControlRef.current?.cancel()}>변경 취소</button><button type="submit" className="btn btn-ink" form={`reservation-operations-${reservation.id}`} disabled={workspaceIsBusy() || !operationsUiStatus.dirty}><Icon name="save" />{operationsUiStatus.busy ? '저장 중…' : '운영 정보 저장'}</button></>
+                                        : detailSection === 'info' || detailSection === 'pay' ? <button type="button" className="btn btn-ink" disabled={workspaceIsBusy()} onClick={() => setIsEditing(true)}><Icon name="edit" />{detailSection === 'pay' ? '결제 금액 수정' : '주문자 정보 수정'}</button> : null}
+                        </div>
+                    </> : isEditing ? (
                         <>
                             <button onClick={handleCancel} className="btn btn-ghost" disabled={workspaceIsBusy()}>취소</button>
                             <div className="spacer" style={{ flex: 1 }} />
@@ -2128,8 +2410,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         <>
                             <button onClick={closeWorkspace} className="btn btn-ghost" disabled={workspaceIsBusy()}>예약 목록으로</button>
                             <div className="spacer" style={{ flex: 1 }} />
-                            {inlineEditorOpen ? <button type="submit" form={`reservation-inline-${reservation.id}`} className="btn btn-ink" disabled={workspaceIsBusy() || workspace.cancelled}><Icon name="save" />{workspaceIsBusy() ? '처리 중…' : '문서 저장'}</button>
-                                : <button onClick={() => setIsEditing(true)} className="btn btn-ink" disabled={workspaceIsBusy()}><Icon name="edit" />수정</button>}
+                            {inlineEditorOpen && (!fullPage || detailSection === 'docs') ? <button type="submit" form={`reservation-inline-${reservation.id}`} className="btn btn-ink" disabled={workspaceIsBusy() || workspace.cancelled}><Icon name="save" />{workspaceIsBusy() ? '처리 중…' : '문서 저장'}</button>
+                                : !fullPage || detailSection === 'info' || detailSection === 'pay' ? <button onClick={() => setIsEditing(true)} className="btn btn-ink" disabled={workspaceIsBusy()}><Icon name="edit" />{fullPage ? detailSection === 'pay' ? '결제 금액 수정' : '주문자 정보 수정' : '수정'}</button>
+                                : fullPage && detailSection === 'docs' ? <button type="button" onClick={() => openInlineDocument('itinerary')} className="btn btn-ink" disabled={workspaceIsBusy() || workspace.cancelled}><Icon name="edit" />일정표 편집</button> : null}
                         </>
                     )}
                 </div>
@@ -2137,26 +2420,33 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 {copiedDocId === 'final-message' && (
                     <div className="drawer-toast"><Icon name="check_circle" fill />고객 안내문이 복사되었습니다</div>
                 )}
+                </div>
             </div>
         </div>
 
         {/* Guide Selection Modal */}
         {showGuideModal && (
-            <div className="picker-scrim" onClick={() => setShowGuideModal(false)}>
-                <div className="picker" onClick={e => e.stopPropagation()}>
+            <div className="picker-scrim" onClick={() => { if (!workspaceIsBusy()) setShowGuideModal(false); }}>
+                <div className="picker crp-picker" role="dialog" aria-modal="true" aria-label="등록된 가이드 선택" onClick={e => e.stopPropagation()}>
                     <div className="card-head">
-                        <h2>가이드 선택</h2>
+                        <div><h2>등록 가이드 선택</h2><span className="crp-current">현재 배정 · {reservation.assignedGuide?.name || '미배정'}</span></div>
                         <div className="spacer" style={{ flex: 1 }} />
-                        <button className="icon-btn" style={{ width: 34, height: 34 }} onClick={() => setShowGuideModal(false)}><Icon name="close" /></button>
+                        <button className="icon-btn" aria-label="가이드 선택 닫기" disabled={workspaceIsBusy()} style={{ width: 34, height: 34 }} onClick={() => setShowGuideModal(false)}><Icon name="close" /></button>
                     </div>
+                    <div className="crp-search"><input className="inp" aria-label="가이드 이름·연락처 검색" placeholder="이름·연락처·언어로 가이드 찾기" value={guideSearch} onChange={e => setGuideSearch(e.target.value)} /><div className="crp-results-caption"><span>가이드 {visibleGuides.length}명</span><small>이름을 누르면 배정이 저장됩니다.</small></div><p role="status" className="cell-muted">{registeredPending ? '등록된 가이드 목록을 불러오는 중입니다…' : resourceLoading ? '최신 배정 일정을 확인하고 있습니다…' : resourceNotice || '기간이 겹치는 가이드는 확인 후 배정할 수 있습니다.'}</p></div>
+                    {registeredNotice && <div className="product-customer-warning" role="status">{registeredNotice}<button type="button" className="cw-text-button" disabled={registeredLoading} onClick={() => setRegisteredRevision(value => value + 1)}>자원 목록 다시 불러오기</button></div>}
+                    {guideConfirmation && <div className="product-customer-warning" role="alert"><strong>{guideConfirmation.guide.name} 배정 확인</strong><p style={{ whiteSpace: 'pre-line' }}>{guideConfirmation.message}</p><div className="row" style={{ gap: 8 }}><button type="button" className="btn btn-sm btn-ink" disabled={workspaceIsBusy() || registeredLoading || resourceLoading} onClick={() => void handleGuideAssign(guideConfirmation.guide, true)}>일정 확인 후 배정</button><button type="button" className="btn btn-sm btn-ghost" disabled={workspaceIsBusy()} onClick={() => setGuideConfirmation(null)}>취소</button></div></div>}
+                    {pickerSaveError && <div className="product-customer-warning" role="alert">{pickerSaveError}</div>}
                     <div className="picker-list">
-                        {guideList.length === 0 ? (
-                            <div className="empty"><Icon name="person_off" /><p>등록된 가이드가 없습니다</p></div>
-                        ) : guideList.map((guide: any) => (
+                        {visibleGuides.length === 0 ? (
+                            <div className="empty"><Icon name="person_off" /><p>{registeredPending ? '등록 가이드를 불러오고 있습니다…' : '조건에 맞는 가이드가 없습니다'}</p>{guideSearch && <button type="button" className="cw-text-button" onClick={() => setGuideSearch('')}>검색어 지우기</button>}</div>
+                        ) : visibleGuides.map((guide: any) => (
                             <button
                                 key={guide.id}
-                                className="picker-item"
-                                onClick={() => { handleGuideAssign(guide); setShowGuideModal(false); }}
+                                className={`picker-item${isCurrentGuide(guide) ? ' is-current' : ''}`}
+                                aria-label={`${guide.name} ${isCurrentGuide(guide) ? '현재 배정 · 다시 선택' : '가이드 배정'}`}
+                                disabled={workspaceIsBusy() || resourceLoading || registeredPending}
+                                onClick={() => { void handleGuideAssign(guide); }}
                             >
                                 {guide.image ? (
                                     <img className="avatar round" src={guide.image} alt={guide.name} />
@@ -2164,17 +2454,19 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     <span className="avatar round tint-blue"><Icon name="person" /></span>
                                 )}
                                 <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div className="cell-strong">{guide.name}</div>
+                                    <div className="cell-strong">{guide.name}{isCurrentGuide(guide) && <span className="crp-current-badge">현재 배정</span>}{guide._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}</div>
+                                    {!!guideConflicts(guide).length && <div className="badge b-amber">같은 기간 배정 {guideConflicts(guide).length}건</div>}
                                     <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{guide.phone}</div>
-                                    {guide.languages && (
+                                    {(guide.introduction || guide.bio) && <div className="crp-introduction">{guide.introduction || guide.bio}</div>}
+                                    {!!guideLanguages(guide.languages).length && (
                                         <div className="row" style={{ gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-                                            {(typeof guide.languages === 'string' ? JSON.parse(guide.languages) : guide.languages).slice(0, 3).map((l: string) => (
+                                            {guideLanguages(guide.languages).map((l: string) => (
                                                 <span key={l} className="badge b-blue" style={{ fontSize: 10, padding: '1px 7px' }}>{l}</span>
                                             ))}
                                         </div>
                                     )}
                                 </div>
-                                <Icon name="add_circle" style={{ color: 'var(--mrt-blue)' }} />
+                                <span className="crp-pick-action">{isCurrentGuide(guide) ? '선택됨' : '배정'}<Icon name={isCurrentGuide(guide) ? 'check' : 'add'} /></span>
                             </button>
                         ))}
                     </div>
@@ -2184,21 +2476,30 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
         {/* Accommodation Selection Modal */}
         {showAccommodationModal && (
-            <div className="picker-scrim" onClick={() => setShowAccommodationModal(false)}>
-                <div className="picker" onClick={e => e.stopPropagation()}>
+            <div className="picker-scrim" onClick={() => { if (!workspaceIsBusy()) setShowAccommodationModal(false); }}>
+                <div className="picker crp-picker" role="dialog" aria-modal="true" aria-label={`${selectedDay}일차 등록된 숙소 선택`} onClick={e => e.stopPropagation()}>
                     <div className="card-head">
-                        <h2>{selectedDay}일차 숙소 선택</h2>
+                        <div><h2>{selectedDay}일차 등록 숙소 선택</h2><span className="crp-current">현재 배정 · {selectedAccommodation?.name || '미배정'}</span></div>
                         <div className="spacer" style={{ flex: 1 }} />
-                        <button className="icon-btn" style={{ width: 34, height: 34 }} onClick={() => setShowAccommodationModal(false)}><Icon name="close" /></button>
+                        <button className="icon-btn" aria-label="숙소 선택 닫기" disabled={workspaceIsBusy()} style={{ width: 34, height: 34 }} onClick={() => setShowAccommodationModal(false)}><Icon name="close" /></button>
                     </div>
+                    {workspace.nights > 1 && <div className="crp-day-tabs" aria-label="숙소 배정 일차 선택">{Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => {
+                        const day = index + 1, stay = reservation.dailyAccommodations?.find(item => Number(item.day) === day)?.accommodation;
+                        return <button type="button" key={day} aria-pressed={selectedDay === day} disabled={workspaceIsBusy()} onClick={() => { setSelectedDay(day); setPickerSaveError(''); }}><strong>{day}일차</strong><small>{stay?.name || '미배정 · 숙소 선택'}</small></button>;
+                    })}</div>}
+                    <div className="crp-search"><div className="crp-search-filters"><input className="inp" aria-label="숙소 이름·지역 검색" placeholder="이름·지역으로 숙소 찾기" value={accommodationSearch} onChange={e => setAccommodationSearch(e.target.value)}/><select className="inp" aria-label="숙소 지역" value={accommodationRegion} onChange={e => setAccommodationRegion(e.target.value)}><option value="">전체 지역</option>{accommodationRegions.map(region => <option key={region} value={region}>{region}</option>)}</select></div><div className="crp-results-caption"><span>숙소 {visibleAccommodations.length}곳</span><small>선택하면 {selectedDay}일차에 저장됩니다.</small></div></div>
+                    {(registeredLoading || registeredNotice) && <div className="product-customer-warning" role="status">{registeredLoading ? '등록된 숙소 목록을 불러오는 중입니다…' : registeredNotice}{!registeredLoading && <button type="button" className="cw-text-button" onClick={() => setRegisteredRevision(value => value + 1)}>자원 목록 다시 불러오기</button>}</div>}
+                    {pickerSaveError && <div className="product-customer-warning" role="alert">{pickerSaveError}</div>}
                     <div className="picker-list">
-                        {pickerAccommodations.length === 0 ? (
-                            <div className="empty"><Icon name="hotel" /><p>등록된 숙소가 없습니다 — 「숙소 관리」에서 먼저 추가하세요</p></div>
-                        ) : pickerAccommodations.map((acc: any) => (
+                        {visibleAccommodations.length === 0 ? (
+                            <div className="empty"><Icon name="hotel" /><p>{registeredPending ? '등록 숙소를 불러오고 있습니다…' : '조건에 맞는 숙소가 없습니다'}</p>{(accommodationSearch || accommodationRegion) && <button type="button" className="cw-text-button" onClick={() => { setAccommodationSearch(''); setAccommodationRegion(''); }}>검색 조건 지우기</button>}</div>
+                        ) : visibleAccommodations.map((acc: any) => (
                             <button
                                 key={acc.id}
-                                className="picker-item"
-                                onClick={() => { handleAccommodationAssign(acc); setShowAccommodationModal(false); }}
+                                className={`picker-item${isCurrentAccommodation(acc) ? ' is-current' : ''}`}
+                                aria-label={`${selectedDay}일차 ${acc.name} ${isCurrentAccommodation(acc) ? '현재 배정 · 다시 선택' : '숙소 배정'}`}
+                                disabled={workspaceIsBusy() || registeredPending}
+                                onClick={() => { void handleAccommodationAssign(acc); }}
                             >
                                 {acc._thumb ? (
                                     <img className="thumb sq" src={acc._thumb} alt={acc.name} loading="lazy" />
@@ -2208,13 +2509,14 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                 <div style={{ minWidth: 0, flex: 1 }}>
                                     <div className="cell-strong">
                                         {acc.name}
-                                        {acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#eef4ff', color: '#1656d6' }}>호텔 마스터</span>}
+                                        {isCurrentAccommodation(acc) && <span className="crp-current-badge">현재 배정</span>}
+                                        {acc._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}{acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#eef4ff', color: '#1656d6' }}>호텔 마스터</span>}
                                         {acc._fromItinerary && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>이 상품 일정</span>}
                                     </div>
                                     {acc.type && <div className="cell-muted" style={{ fontSize: 12 }}>{acc.type}</div>}
                                     {acc.location && <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.location}</div>}
                                 </div>
-                                <Icon name="add_circle" style={{ color: 'var(--mrt-blue)' }} />
+                                <span className="crp-pick-action">{isCurrentAccommodation(acc) ? '선택됨' : `${selectedDay}일차 배정`}<Icon name={isCurrentAccommodation(acc) ? 'check' : 'add'} /></span>
                             </button>
                         ))}
                     </div>
@@ -2225,22 +2527,34 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     </>);
 };
 
-export const AdminReservationManage: React.FC = () => {
+export const AdminReservationManage: React.FC<{ customerPage?: boolean; customerSource?: 'product' | 'quote' }> = ({ customerPage = false, customerSource = 'product' }) => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { id: customerReservationId = '' } = useParams<{ id: string }>();
+    const { user, loading: userLoading } = useUser();
+    const customerScope = `${userLoading ? 'loading' : user?.id || 'anonymous'}:${user?.role || ''}:${customerSource}:${customerReservationId}`;
+    const currentScope = useRef(customerScope); currentScope.current = customerScope;
+    const fetchSequence = useRef(0);
+    const [loadedCustomerScope, setLoadedCustomerScope] = useState('');
+    const [customerLoadError, setCustomerLoadError] = useState('');
+    const [customerSync, setCustomerSync] = useState<{ scope: string; at?: string; error?: string }>({ scope: '' });
+    const [sameBookings, setSameBookings] = useState<{ scope: string; items: Array<{ id: string; label: string }>; warning: string }>({ scope: '', items: [], warning: '' });
+    const returnTo = customerWorkspaceReturnTo(new URLSearchParams(location.search).get('returnTo'));
     const [isLoading, setIsLoading] = useState(false);
     const [loadWarnings, setLoadWarnings] = useState<string[]>([]);
-    const [sortOrder, setSortOrder] = useState('recent');
+    const [sortOrder, setSortOrder] = useState(() => readReservationList(window.location.search).sortOrder);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
     const [updatingCount, setUpdatingCount] = useState(0);
+    useEffect(() => { setUpdatingCount(0); }, [customerScope]);
 
     // Filter States
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('전체 상태');
-    const [filterPayment, setFilterPayment] = useState('전체 결제');
-    const [filterType, setFilterType] = useState(() => new URLSearchParams(window.location.search).get('type') === 'quote_booking' ? '맞춤 견적 예약' : '전체 유형');
-    const [filterDeparture, setFilterDeparture] = useState('');
-    const [filterSource, setFilterSource] = useState('전체 경로');
+    const [searchTerm, setSearchTerm] = useState(() => readReservationList(window.location.search).searchTerm);
+    const [filterStatus, setFilterStatus] = useState(() => readReservationList(window.location.search).filterStatus);
+    const [filterPayment, setFilterPayment] = useState(() => readReservationList(window.location.search).filterPayment);
+    const [filterType, setFilterType] = useState(() => readReservationList(window.location.search).filterType);
+    const [filterDeparture, setFilterDeparture] = useState(() => readReservationList(window.location.search).filterDeparture);
+    const [filterSource, setFilterSource] = useState(() => readReservationList(window.location.search).filterSource);
     const [convertTarget, setConvertTarget] = useState<QuoteRequest | null>(null);
     // 수동 예약 추가(카카오톡·메일 등 사이트 외 주문)
     const [showAddModal, setShowAddModal] = useState(false);
@@ -2248,12 +2562,50 @@ export const AdminReservationManage: React.FC = () => {
     const [addForm, setAddForm] = useState({ ...BLANK_ADD });
 
     // Pagination State
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(() => readReservationList(window.location.search).currentPage);
+    const [loadedOnce, setLoadedOnce] = useState(false);
+    const [selectedRows, setSelectedRows] = useState<Set<string>>(() => new Set());
+    const [exportMode, setExportMode] = useState<'filtered' | 'selected' | 'confirmed'>('filtered');
     const itemsPerPage = 8;
 
     // Reservations State
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [products, setProducts] = useState<ProductSummary[]>([]);
+    useEffect(() => {
+        if (!customerPage || customerSource !== 'product' || userLoading || user?.role !== 'admin' || loadedCustomerScope !== customerScope || !selectedReservation?.userId) return;
+        let cancelled = false;
+        const scope = customerScope, customerUserId = selectedReservation.userId;
+        const currentBooking = { id: selectedReservation.id, label: [selectedReservation.reservationNumber || selectedReservation.id, selectedReservation.productName, selectedReservation.date, selectedReservation.headcount].filter(Boolean).join(' · ') };
+        api.reservations.list().then(rows => {
+            if (!cancelled && currentScope.current === scope) {
+                const items = sameAccountProductBookings(Array.isArray(rows) ? rows : [], customerUserId);
+                if (!items.some(item => item.id === currentBooking.id)) items.unshift(currentBooking);
+                setSameBookings({ scope, items, warning: '' });
+            }
+        }).catch(() => {
+            if (!cancelled && currentScope.current === scope) setSameBookings({ scope, items: [], warning: '같은 계정의 다른 예약을 확인하지 못했습니다. 현재 예약은 계속 관리할 수 있습니다.' });
+        });
+        return () => { cancelled = true; };
+    }, [customerPage, customerSource, customerScope, loadedCustomerScope, selectedReservation?.userId, userLoading, user?.role]);
+    useEffect(() => { if (!loadedOnce || isLoading) return;
+        const valid = new Set(reservations.map(reservationSelectionKey));
+        setSelectedRows(prev => { const next = new Set([...prev].filter(key => valid.has(key))); return next.size === prev.size ? prev : next; });
+    }, [reservations, loadedOnce, isLoading]);
+
+    useEffect(() => {
+        if (customerPage) return;
+        // Replace this list's URL without creating one browser-history entry per keystroke.
+        const search = reservationListSearch({ searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, sortOrder, currentPage }, window.location.search);
+        if (search !== window.location.search) window.history.replaceState(window.history.state, '', window.location.pathname + search + window.location.hash);
+    }, [customerPage, searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, sortOrder, currentPage]);
+    useEffect(() => {
+        if (customerPage) return;
+        const restore = () => { const state = readReservationList(window.location.search);
+            setSearchTerm(state.searchTerm); setFilterStatus(state.filterStatus); setFilterPayment(state.filterPayment); setFilterType(state.filterType);
+            setFilterDeparture(state.filterDeparture); setFilterSource(state.filterSource); setSortOrder(state.sortOrder); setCurrentPage(state.currentPage);
+        };
+        window.addEventListener('popstate', restore); return () => window.removeEventListener('popstate', restore);
+    }, [customerPage]);
 
     const toTime = (value: any) => {
         if (!value) return 0;
@@ -2267,6 +2619,41 @@ export const AdminReservationManage: React.FC = () => {
     };
 
     const fetchReservations = async () => {
+        if (customerPage) {
+            const scope = customerScope, sequence = ++fetchSequence.current;
+            const active = () => currentScope.current === scope && fetchSequence.current === sequence;
+            if (userLoading || user?.role !== 'admin' || !customerReservationId) { setReservations([]); setSelectedReservation(null); setProducts([]); setLoadedCustomerScope(''); setCustomerSync({ scope: '' }); setIsLoading(false); return; }
+            const hasCurrentRecord = loadedCustomerScope === scope && selectedReservation?.id === customerReservationId;
+            setIsLoading(true); setCustomerLoadError('');
+            setCustomerSync(previous => previous.scope === scope ? { ...previous, error: undefined } : { scope });
+            try {
+                const [result, productResult] = await Promise.allSettled([
+                    customerSource === 'quote' ? api.quotes.get(customerReservationId) : api.reservations.get(customerReservationId),
+                    customerSource === 'product' ? api.products.list() : Promise.resolve([]),
+                ]);
+                if (!active()) return;
+                if (result.status === 'rejected') throw result.reason;
+                if (!result.value || String(result.value.id) !== customerReservationId) throw Object.assign(new Error('선택한 고객의 예약을 찾지 못했습니다.'), { status: 404 });
+                const row = customerSource === 'quote' ? legacyWorkspaceReservation(result.value) : productWorkspaceReservation(result.value);
+                setProducts(productResult.status === 'fulfilled' && Array.isArray(productResult.value) ? productResult.value.map((p: any) => ({
+                    id: p.id, name: p.name, category: p.category, thumbnail: p.thumbnail, mainImages: p.mainImages ?? p.main_images,
+                    itineraryBlocks: p.itineraryBlocks ?? p.itinerary_blocks, itineraryImages: p.itineraryImages ?? p.itinerary_images, documentProduct: p,
+                })) : hasCurrentRecord ? products : []);
+                setLoadWarnings(productResult.status === 'rejected' ? ['상품 원본 정보를 불러오지 못했습니다. 저장된 고객 문서는 그대로 확인할 수 있습니다.'] : []);
+                setReservations([row]); setSelectedReservation(row); setLoadedCustomerScope(scope);
+                setCustomerSync({ scope, at: new Date().toISOString() });
+            } catch (error: any) {
+                if (!active()) return;
+                if (hasCurrentRecord && ![401, 403, 404].includes(error?.status)) {
+                    setCustomerSync(previous => ({ scope, at: previous.scope === scope ? previous.at : undefined, error: '새로고침에 실패해 이전에 불러온 정보를 표시합니다. 예약 정보 새로고침을 다시 눌러 주세요.' }));
+                } else {
+                    setReservations([]); setSelectedReservation(null); setProducts([]); setLoadedCustomerScope(scope);
+                    setCustomerSync({ scope });
+                    setCustomerLoadError(error?.status === 404 ? '선택한 예약 또는 견적 문의가 없습니다. 삭제되었거나 주소가 변경되었을 수 있습니다.' : error?.status === 401 ? '관리자 로그인이 만료되었습니다. 다시 로그인해 주세요.' : error?.status === 403 ? '이 고객 정보를 조회할 관리자 권한이 없습니다.' : '고객 정보를 불러오지 못했습니다. 다시 시도해 주세요.');
+                }
+            } finally { if (active()) { setIsLoading(false); setLoadedOnce(true); } }
+            return;
+        }
         setIsLoading(true);
         try {
 
@@ -2334,6 +2721,7 @@ export const AdminReservationManage: React.FC = () => {
                     productName: r.productName || r.product_name,
                     productId: r.productId || r.product_id,
                     customerName: r.customerName || r.customer_name || r.customer_info?.name || 'Unknown',
+                    notes: typeof r.notes === 'string' ? r.notes : '',
                     country: r.country || r.customerCountry || r.customer_country || r.customer_info?.country || '한국',
                     startDate,
                     endDate,
@@ -2451,14 +2839,19 @@ export const AdminReservationManage: React.FC = () => {
             setLoadWarnings(['예약 목록을 불러오지 못했습니다. 새로고침해 주세요.']);
         } finally {
             setIsLoading(false);
+            setLoadedOnce(true);
         }
     };
     // End of fetchReservations
 
     // 상세를 열 때 해당 예약을 서버에서 재조회 — 숙소 배정 보드 등 다른 화면에서
     // 방금 저장한 배정·가이드·계약 데이터가 목록 로드 시점보다 새것일 수 있다.
-    const openReservation = (res: Reservation) => {
-        if (res.type === 'quote_booking') { navigate(quoteBookingHref(res.id)); return; }
+    const openReservation = (res: Reservation, replace = false) => {
+        const p = new URLSearchParams(window.location.search); p.delete('open'); p.delete('kind');
+        const listReturnTo = '/admin/reservations' + (p.toString() ? '?' + p.toString() : '');
+        if (!customerPage && res.type === 'product') { navigate(productCustomerHref(res.id, listReturnTo), { replace }); return; }
+        if (!customerPage && res.type === 'quote') { navigate(legacyQuoteCustomerHref(res.id, listReturnTo), { replace }); return; }
+        if (res.type === 'quote_booking') { navigate(quoteCustomerHref(res.id, listReturnTo), { replace }); return; }
         setSelectedReservation(res);
         if (res.type === 'quote') return;
         api.reservations.get(res.id).then((fresh: any) => {
@@ -2487,6 +2880,7 @@ export const AdminReservationManage: React.FC = () => {
                 customerName: fresh.customerName ?? x.customerName,
                 email: fresh.email ?? x.email,
                 phone: fresh.phone ?? x.phone,
+                notes: fresh.notes ?? x.notes,
                 depositReport: readDepositReport(fresh) ?? x.depositReport, // 목록을 불러온 뒤에 들어온 입금 신고
             });
             setSelectedReservation(prev => (prev && prev.id === res.id && prev.type === res.type) ? merge(prev) : prev);
@@ -2496,20 +2890,25 @@ export const AdminReservationManage: React.FC = () => {
 
     // ?open=<reservationId> — 숙소 보드(Байр захиалга)의 「Захиалгын дэлгэрэнгүй」 링크로
     // 진입 시 해당 예약 상세를 자동으로 연다.
-    const openedFromUrl = React.useRef(false);
+    const openedFromUrl = React.useRef('');
     useEffect(() => {
-        if (openedFromUrl.current || reservations.length === 0) return;
+        if (customerPage) return;
         const openId = new URLSearchParams(window.location.search).get('open');
-        if (!openId) return;
+        if (!openId) { openedFromUrl.current = ''; return; }
         const openType = new URLSearchParams(window.location.search).get('kind') || 'product';
+        const key = `${openType}:${openId}`;
+        if (openedFromUrl.current === key || reservations.length === 0) return;
         const target = reservations.find(r => r.id === openId && r.type === openType);
         if (!target) return;
-        openedFromUrl.current = true;
-        openReservation(target);
+        openedFromUrl.current = key;
+        openReservation(target, true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [reservations]);
+    }, [customerPage, location.search, reservations]);
 
     const handleUpdateReservation = async (updated: Reservation, silent = false): Promise<boolean> => {
+        const operationScope = customerScope;
+        const active = () => currentScope.current === operationScope;
+        if (!active() || userLoading || user?.role !== 'admin') return false;
         if (updated.type === 'quote_booking') return false;
         setUpdatingCount(count => count + 1);
         try {
@@ -2619,10 +3018,12 @@ export const AdminReservationManage: React.FC = () => {
             } else {
                 await api.reservations.update(updated.id, updatePayload);
             }
+            if (!active()) return false;
 
             // Optimistic update locally
-            setReservations(prev => prev.map(r => r.id === updated.id && r.type === updated.type ? { ...updated, history } : r));
-            setSelectedReservation(prev => prev?.id === updated.id && prev.type === updated.type ? { ...updated, history } : prev);
+            const saved = { ...updated, history, paymentKnown: { total: updated.totalAmount, deposit: updated.deposit, balance: Math.max(0, updated.totalAmount - updated.deposit) } };
+            setReservations(prev => prev.map(r => r.id === updated.id && r.type === updated.type ? saved : r));
+            setSelectedReservation(prev => prev?.id === updated.id && prev.type === updated.type ? saved : prev);
 
             // Notification Logic
             if (oldReservation.status !== updated.status && updated.userId) {
@@ -2643,6 +3044,7 @@ export const AdminReservationManage: React.FC = () => {
             }
 
             if (updated.areAssignmentsVisibleToUser && !oldReservation.areAssignmentsVisibleToUser && updated.userId) {
+                if (!active()) return false;
                 await sendNotification({
                     userId: updated.userId,
                     type: 'reservation',
@@ -2658,6 +3060,7 @@ export const AdminReservationManage: React.FC = () => {
                 && oldReservation.depositStatus !== 'paid' && updated.depositStatus === 'paid'
                 && oldReservation.status === 'pending_payment' && updated.status === 'confirmed';
             if (depositConfirmed) {
+                if (!active()) return false;
                 let mailNote = '고객 이메일이 없어 입금 확인 메일은 보내지 않았습니다.';
                 if (updated.email) {
                     const mail = await sendNotificationEmail(updated.email, 'PAYMENT_CONFIRMED', {
@@ -2668,6 +3071,7 @@ export const AdminReservationManage: React.FC = () => {
                         paymentAmount: updated.deposit,
                         balanceAmount: Math.max(0, updated.totalAmount - updated.deposit),
                     });
+                    if (!active()) return false;
                     mailNote = mail.success
                         ? '고객에게 입금 확인 메일을 보냈습니다.'
                         : '입금 확인 메일은 보내지 못했습니다. 고객에게 따로 알려 주세요.';
@@ -2676,6 +3080,7 @@ export const AdminReservationManage: React.FC = () => {
                 return true;
             }
 
+            if (!active()) return false;
             if (!silent) alert('예약 정보가 업데이트되었습니다.');
             return true;
             // Only fetch if strictly necessary, otherwise optimistic is fine.
@@ -2684,7 +3089,7 @@ export const AdminReservationManage: React.FC = () => {
             console.error('Error updating reservation:', error);
             if (!silent) alert('예약 정보 수정에 실패했습니다.');
             return false;
-        } finally { setUpdatingCount(count => Math.max(0, count - 1)); }
+        } finally { if (active()) setUpdatingCount(count => Math.max(0, count - 1)); }
     };
 
     const handleStatusChange = async (id: string, newStatus: string, type: string) => {
@@ -2762,7 +3167,8 @@ export const AdminReservationManage: React.FC = () => {
 
     useEffect(() => {
         fetchReservations();
-    }, []);
+        return () => { fetchSequence.current += 1; };
+    }, [customerPage, customerPage ? customerScope : 'list']);
 
     // Filter Logic
     const handleCreateReservation = async () => {
@@ -2774,6 +3180,7 @@ export const AdminReservationManage: React.FC = () => {
             await api.reservations.create({
                 type: 'tour',
                 product_name: addForm.productName.trim() || '맞춤 예약',
+                ...(addForm.productId ? { product_id: addForm.productId } : {}),
                 customer_info: { name: addForm.customerName.trim(), email: addForm.email.trim(), phone: addForm.phone.trim() },
                 total_people: Number(addForm.people) || 1,
                 start_date: addForm.startDate || null,
@@ -2839,7 +3246,7 @@ export const AdminReservationManage: React.FC = () => {
             ? (a.departureMs || Number.MAX_SAFE_INTEGER) - (b.departureMs || Number.MAX_SAFE_INTEGER)
             : (b.bookedAtMs || 0) - (a.bookedAtMs || 0));
     }, [searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, reservations, sortOrder]);
-    useEffect(() => { setCurrentPage(page => Math.min(page, Math.max(1, Math.ceil(filteredReservations.length / itemsPerPage)))); }, [filteredReservations.length]);
+    useEffect(() => { if (loadedOnce && !isLoading) setCurrentPage(page => Math.min(page, Math.max(1, Math.ceil(filteredReservations.length / itemsPerPage)))); }, [filteredReservations.length, loadedOnce, isLoading]);
 
     // Pagination Logic
     const totalPages = Math.ceil(filteredReservations.length / itemsPerPage);
@@ -2899,12 +3306,11 @@ export const AdminReservationManage: React.FC = () => {
     }, [reservations, upcomingTours]);
 
     const downloadConfirmedReservationsExcel = () => {
-        const confirmedReservations = reservations
-            .filter((r) => r.type !== 'quote' && r.status === 'confirmed')
+        const confirmedReservations = reservationExportRows(reservations, filteredReservations, selectedRows, exportMode)
             .sort((a: any, b: any) => toTime(a.startDate) - toTime(b.startDate));
 
         if (confirmedReservations.length === 0) {
-            alert('예약 확정 상태의 주문이 없습니다.');
+            alert('선택한 내보내기 범위에 예약이 없습니다.');
             return;
         }
 
@@ -3088,7 +3494,7 @@ export const AdminReservationManage: React.FC = () => {
           td{border:1px solid #cbd5e1;padding:6px 8px;white-space:pre-wrap;vertical-align:top}
           .meta td{background:#f8fafc;font-weight:700}
         </style></head><body>
-          <table class="meta"><tr><td>예약 확정 숙소 수배 통합 시트</td><td>${confirmedReservations.length}건</td><td>${new Date().toISOString().slice(0, 10)}</td></tr></table>
+          <table class="meta"><tr><td>예약 숙소 수배 통합 시트 · ${esc(exportMode === 'selected' ? '선택 예약' : exportMode === 'confirmed' ? '전체 확정·결제 팀' : '현재 조회 결과')}</td><td>${confirmedReservations.length}건</td><td>${new Date().toISOString().slice(0, 10)}</td></tr></table>
           <br>
           <table><thead><tr>${headers.map(([, label]) => `<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${tableRows}</tbody></table>
         </body></html>`;
@@ -3096,17 +3502,198 @@ export const AdminReservationManage: React.FC = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `예약확정_숙소수배_${new Date().toISOString().slice(0, 10)}.xls`;
+        a.download = `예약_${exportMode}_숙소수배_${new Date().toISOString().slice(0, 10)}.xls`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
     };
 
+    const detailWorkspaces = customerPage ? <>
+            {selectedReservation && selectedReservation.type === 'product' && (
+                <ReservationDetailModal
+                    key={`${customerScope}:${selectedReservation.id}`} fullPage={customerPage} reservation={selectedReservation}
+                    onClose={() => customerPage ? navigate(returnTo) : setSelectedReservation(null)}
+                    onUpdate={handleUpdateReservation}
+                    onRefresh={() => customerPage ? void fetchReservations() : selectedReservation && openReservation(selectedReservation)}
+                    updating={updatingCount > 0}
+                    refreshing={customerPage && isLoading}
+                    refreshedAt={customerSync.scope === customerScope ? customerSync.at : undefined}
+                    refreshError={customerSync.scope === customerScope ? customerSync.error : undefined}
+                    products={products}
+                    bookingSelector={customerPage && sameBookings.scope === customerScope ? sameBookings.items.length > 1 ? <label>같은 고객의 예약 <select aria-label="같은 계정의 다른 상품 예약" value={selectedReservation.id} onChange={event => navigate(productCustomerHref(event.target.value, returnTo))}>{sameBookings.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label> : sameBookings.warning ? <span role="status">{sameBookings.warning}</span> : undefined : undefined}
+                />
+            )}
+
+
+
+            {selectedReservation && selectedReservation.type === 'quote' && selectedReservation.quoteDetail && (
+                <QuoteDetailModal
+                    key={`${customerScope}:${selectedReservation.id}`} fullPage={customerPage} request={selectedReservation.quoteDetail}
+                    onClose={() => customerPage ? navigate(returnTo) : setSelectedReservation(null)}
+                    onUpdateQuote={async (id, updates) => {
+                        const active = () => currentScope.current === customerScope && user?.role === 'admin';
+                        if (!active()) return false;
+                        try {
+                            await api.quotes.update(id, {
+                                destination: updates.destination,
+                                headcount: updates.headcount,
+                                period: updates.period,
+                                budget: updates.budget,
+                                travel_types: updates.travelTypes,
+                                accommodations: updates.accommodations,
+                                vehicle: updates.vehicle,
+                                confirmed_price: updates.confirmed_price ?? (updates as any).confirmedPrice,
+                                confirmed_start_date: updates.confirmed_start_date,
+                                confirmed_end_date: updates.confirmed_end_date,
+                                deposit: updates.deposit,
+                                itinerary_template_id: updates.itineraryTemplateId,
+                                document_content: updates.documentContent,
+                                ...(updates.adminNote !== undefined ? { admin_note: updates.adminNote } : {}),
+                                ...(updates.estimateUrl !== undefined ? { estimate_url: updates.estimateUrl } : {}),
+                                updated_at: new Date().toISOString()
+                            });
+                            if (!active()) return false;
+                            await fetchReservations();
+                            return true;
+                        } catch (e) {
+                            console.error(e);
+                            alert('견적 수정 실패');
+                            return false;
+                        }
+                    }}
+                    onSendEstimate={async (url, note, priceDetail, confirmedStartDate, confirmedEndDate, itineraryTemplateId) => {
+                        const active = () => currentScope.current === customerScope && user?.role === 'admin';
+                        if (!active()) return;
+                        // Handle Send Estimate
+                        try {
+                            // 1. Update Database
+                            await api.quotes.update(selectedReservation.id, {
+                                status: 'answered',
+                                admin_note: note,
+                                estimate_url: url,
+                                confirmed_price: priceDetail.totalAmount ?? null,
+                                deposit: priceDetail.deposit ?? null,
+                                confirmed_start_date: confirmedStartDate || null,
+                                confirmed_end_date: confirmedEndDate || null,
+                                itinerary_template_id: itineraryTemplateId || null,
+                                updated_at: new Date().toISOString()
+                            });
+                            if (!active()) return;
+
+                            // 2. Send Email (Separate try-catch to not block UI success if email fails)
+                            try {
+                                const emailResult = await sendNotificationEmail(
+                                    selectedReservation.email,
+                                    'ESTIMATE_COMPLETED',
+                                    {
+                                        customerName: selectedReservation.customerName,
+                                        destination: selectedReservation.productName.replace(' 맞춤 견적', ''),
+                                        estimateUrl: url,
+                                        adminNote: note,
+                                        quoteId: selectedReservation.id,
+                                        totalAmount: priceDetail.totalAmount,
+                                        userId: selectedReservation.userId,
+                                    }
+                                );
+                                if (!active()) return;
+
+                                if (!emailResult.success) {
+                                    console.error('Email Send Error:', emailResult.error);
+                                    alert('견적 정보는 저장되었으나, 이메일 발송에 실패했습니다.');
+                                } else {
+                                    alert(`견적서가 발송되었습니다. (이메일 알림 포함)\n확정 금액: ${priceDetail.totalAmount ? won(priceDetail.totalAmount) : '미입력'}`);
+                                }
+                            } catch (emailError) {
+                                console.error('Email Unexpected Error:', emailError);
+                                alert('견적 정보는 저장되었으나, 이메일 발송 중 오류가 발생했습니다.');
+                            }
+
+                            if (!active()) return;
+                            await fetchReservations();
+                            if (!customerPage) setSelectedReservation(null);
+
+                        } catch (e: any) {
+                            console.error(e);
+                            alert(`견적서 발송 실패: ${e.message}`);
+                        }
+                    }}
+                    onOpenConvert={() => {
+                        if (selectedReservation.quoteDetail) {
+                            setConvertTarget(selectedReservation.quoteDetail);
+                        }
+                    }}
+                />
+            )}
+            {convertTarget && (
+                <ConvertSelectionModal
+                    request={convertTarget}
+                    onClose={() => setConvertTarget(null)}
+                    onConvert={async (data) => {
+                        const active = () => currentScope.current === customerScope && user?.role === 'admin';
+                        if (!active()) return;
+                        try {
+                            // 1. Create Reservation
+                            const reservationPayload = {
+                                type: 'quote',
+                                product_name: `${convertTarget.destination} 맞춤 견적`,
+                                customer_name: convertTarget.name,
+                                customer_phone: convertTarget.phone,
+                                customer_email: convertTarget.email,
+                                total_people: parseInt(convertTarget.headcount.replace(/[^0-9]/g, '')) || 0,
+                                start_date: data.startDate,
+                                end_date: data.endDate,
+                                status: 'pending_payment',
+                                price_breakdown: {
+                                    total: data.totalAmount,
+                                    deposit: data.deposit,
+                                    local: data.totalAmount - data.deposit
+                                },
+                                user_id: convertTarget.userId
+                            };
+
+                            await api.reservations.create(reservationPayload);
+                            if (!active()) return;
+
+                            // 2. Update Quote Status
+                            await api.quotes.update(convertTarget.id, {
+                                status: 'converted',
+                                updated_at: new Date().toISOString()
+                            });
+                            if (!active()) return;
+
+                            alert('예약이 성공적으로 생성되었습니다.');
+
+                            // Optionally send email here too?
+                            // await sendNotificationEmail(...)
+
+                            setConvertTarget(null);
+                            if (!customerPage) setSelectedReservation(null);
+                            fetchReservations();
+
+                        } catch (e: any) {
+                            console.error(e);
+                            alert(`예약 생성 실패: ${e.message}`);
+                        }
+                    }}
+                />
+            )}
+    </> : null;
+
     const toggleTheme = () => {
         setIsDarkMode(!isDarkMode);
         document.documentElement.classList.toggle('dark');
     };
+
+    if (customerPage) {
+        const validScope = loadedCustomerScope === customerScope;
+        const loading = userLoading || !validScope || (isLoading && !selectedReservation);
+        return <AdminLayout activePage="reservations" title="고객 예약 관리" description="선택한 고객의 일정·계약·결제·배정을 한 화면에서 관리합니다." showSearch={false}>
+            {loading ? <div className="card product-customer-loading" role="status">고객 정보를 불러오고 있습니다…</div>
+                : customerLoadError || !selectedReservation ? <div className="card product-customer-loading" role="alert"><h2>고객 정보를 확인해 주세요</h2><p>{customerLoadError || '선택한 예약을 찾지 못했습니다.'}</p><div className="row"><button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>목록으로</button><button type="button" className="btn btn-ink" onClick={() => void fetchReservations()}>다시 불러오기</button></div></div>
+                    : <>{customerSource === 'quote' && isLoading && <div role="status">저장된 문의·견적 정보를 불러오고 있습니다…</div>}{customerSource === 'quote' && customerSync.scope === customerScope && customerSync.error && <div className="product-customer-warning" role="alert">{customerSync.error}</div>}{loadWarnings.map((warning, i) => <div className="product-customer-warning" role="status" key={i}>{warning}</div>)}{detailWorkspaces}</>}
+        </AdminLayout>;
+    }
 
     return (
         <>
@@ -3128,14 +3715,11 @@ export const AdminReservationManage: React.FC = () => {
                             <Icon name="add" />
                             수동 예약 추가
                         </button>
-                        <button
-                            type="button"
-                            onClick={downloadConfirmedReservationsExcel}
-                            className="btn btn-soft"
-                            title="예약 확정 상태의 모든 주문을 일차별 숙소 수배 Excel로 다운로드"
-                        >
-                            <Icon name="table_view" />
-                            예약확정 Excel
+                        <select className="select" aria-label="Excel 내보내기 범위" value={exportMode} onChange={e => setExportMode(e.target.value as typeof exportMode)}>
+                            <option value="filtered">현재 조회 결과</option><option value="selected">선택 예약 {selectedRows.size}건</option><option value="confirmed">전체 확정·결제 팀</option>
+                        </select>
+                        <button type="button" onClick={downloadConfirmedReservationsExcel} className="btn btn-soft" disabled={isLoading || (exportMode === 'selected' && !selectedRows.size)} title="선택한 범위의 일차별 숙소 수배 정보를 다운로드">
+                            <Icon name="table_view" />예약 Excel
                         </button>
                         <button
                             type="button"
@@ -3297,6 +3881,7 @@ export const AdminReservationManage: React.FC = () => {
                         <div className="card-head">
                             <h2>통합 예약 목록</h2>
                             <span className="cell-muted" style={{ fontSize: 13 }}>{filteredReservations.length}건</span>
+                            {!!selectedRows.size && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setSelectedRows(new Set())}>선택 {selectedRows.size}건 해제</button>}
                             <div className="spacer" />
                             <select className="inp" aria-label="예약 정렬" style={{ width: 'auto' }} value={sortOrder} onChange={e => { setSortOrder(e.target.value); setCurrentPage(1); }}>
                                 <option value="recent">최근 예약순</option><option value="departure">출발일순</option>
@@ -3306,6 +3891,9 @@ export const AdminReservationManage: React.FC = () => {
                             <table className="tbl">
                                 <thead>
                                     <tr>
+                                        <th><input type="checkbox" aria-label="현재 페이지 예약 전체 선택" checked={displayedReservations.some(r => r.type !== 'quote') && displayedReservations.filter(r => r.type !== 'quote').every(r => selectedRows.has(reservationSelectionKey(r)))} onChange={e => {
+                                            const checked = e.target.checked; setSelectedRows(prev => { const next = new Set(prev); displayedReservations.filter(r => r.type !== 'quote').forEach(r => { const key = reservationSelectionKey(r); if (checked) next.add(key); else next.delete(key); }); return next; });
+                                        }}/></th>
                                         <th>예약번호</th>
                                         <th>고객 / 연락처</th>
                                         <th>상품</th>
@@ -3324,6 +3912,9 @@ export const AdminReservationManage: React.FC = () => {
                                         const statusTone = STATUS_TONE[res.status] || 'b-gray';
                                         return (
                                             <tr key={`${res.type}:${res.id}`} onClick={() => openReservation(res)}>
+                                                <td onClick={e => e.stopPropagation()}>{res.type !== 'quote' && <input type="checkbox" aria-label={`${res.customerName} 예약 선택`} checked={selectedRows.has(reservationSelectionKey(res))} onChange={e => {
+                                                    const checked = e.target.checked; setSelectedRows(prev => { const next = new Set(prev); const key = reservationSelectionKey(res); if (checked) next.add(key); else next.delete(key); return next; });
+                                                }}/>}</td>
                                                 <td>
                                                     <div className="cell-mono">#{reservationNo}</div>
                                                     <div style={{ marginTop: 3, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -3367,7 +3958,7 @@ export const AdminReservationManage: React.FC = () => {
                                                     )}
                                                 </td>
                                                 <td className="r cell-price">
-                                                    {typeof res.totalAmount === 'number' && !isNaN(res.totalAmount) && res.totalAmount > 0 ? won(res.totalAmount) : '–'}
+                                                    {typeof res.totalAmount === 'number' && Number.isFinite(res.totalAmount) && res.totalAmount >= 0 ? won(res.totalAmount) : '–'}
                                                     {res.type !== 'quote' && <div className="cell-muted" style={{ fontSize: 11, fontWeight: 500, marginTop: 4 }}>
                                                         예약금 {res.depositStatus === 'paid' ? '확인' : '대기'} · 잔금 {res.balanceStatus === 'paid' ? '확인' : '대기'}
                                                     </div>}
@@ -3436,12 +4027,17 @@ export const AdminReservationManage: React.FC = () => {
                         </div>
                         <p className="cell-muted" style={{ fontSize: 12, margin: '0 0 16px' }}>카카오톡·메일·전화 등 사이트 외 주문을 직접 등록합니다.</p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <label style={{ gridColumn: '1 / -1' }} className="rw-field"><span>예약 상품 선택</span>
+                                <select className="inp" aria-label="예약 상품 선택" value={addForm.productId} disabled={creating} onChange={e => { const id = e.target.value; const product = products.find(p => p.id === id); setAddForm(f => ({ ...f, productId: id, ...(product ? { productName: product.name } : {}) })); }}>
+                                    <option value="">맞춤 예약 · 직접 입력</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select><small>기존 상품을 선택하면 해당 상품의 일정·사진·대표 명소를 사용합니다.</small>
+                            </label>
                             {[
                                 { k: 'customerName', label: '고객명 *', el: <input className="inp" style={{ width: '100%' }} value={addForm.customerName} onChange={e => setAddForm(f => ({ ...f, customerName: e.target.value }))} placeholder="고객명" /> },
                                 { k: 'source', label: '주문 경로', el: <select className="select" style={{ width: '100%' }} value={addForm.source} onChange={e => setAddForm(f => ({ ...f, source: e.target.value }))}>{SOURCE_OPTIONS.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}</select> },
                                 { k: 'phone', label: '연락처', el: <input className="inp" style={{ width: '100%' }} value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} placeholder="010-1234-5678" /> },
                                 { k: 'email', label: '이메일', el: <input className="inp" style={{ width: '100%' }} value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} placeholder="example@mail.com" /> },
-                                { k: 'productName', label: '상품 / 투어명', full: true, el: <input className="inp" style={{ width: '100%' }} value={addForm.productName} onChange={e => setAddForm(f => ({ ...f, productName: e.target.value }))} placeholder="예: 은하수 대자연 만끽 투어 (4일)" /> },
+                                { k: 'productName', label: '상품 / 투어명', full: true, el: <input className="inp" style={{ width: '100%' }} value={addForm.productName} readOnly={!!addForm.productId} onChange={e => setAddForm(f => ({ ...f, productName: e.target.value }))} placeholder="예: 은하수 대자연 만끽 투어 (4일)" /> },
                                 { k: 'startDate', label: '여행 시작일', el: <input type="date" className="inp" style={{ width: '100%' }} value={addForm.startDate} onChange={e => setAddForm(f => ({ ...f, startDate: e.target.value }))} /> },
                                 { k: 'endDate', label: '여행 종료일', el: <input type="date" className="inp" style={{ width: '100%' }} value={addForm.endDate} onChange={e => setAddForm(f => ({ ...f, endDate: e.target.value }))} /> },
                                 { k: 'people', label: '인원', el: <input type="number" min={1} className="inp" style={{ width: '100%' }} value={addForm.people} onChange={e => setAddForm(f => ({ ...f, people: e.target.value }))} /> },
@@ -3464,156 +4060,6 @@ export const AdminReservationManage: React.FC = () => {
                 </div>
             )}
 
-            {selectedReservation && selectedReservation.type === 'product' && (
-                <ReservationDetailModal
-                    reservation={selectedReservation}
-                    onClose={() => setSelectedReservation(null)}
-                    onUpdate={handleUpdateReservation}
-                    onRefresh={() => selectedReservation && openReservation(selectedReservation)}
-                    updating={updatingCount > 0}
-                    products={products}
-                />
-            )}
-
-
-
-            {selectedReservation && selectedReservation.type === 'quote' && selectedReservation.quoteDetail && (
-                <QuoteDetailModal
-                    request={selectedReservation.quoteDetail}
-                    onClose={() => setSelectedReservation(null)}
-                    onUpdateQuote={async (id, updates) => {
-                        try {
-                            await api.quotes.update(id, {
-                                destination: updates.destination,
-                                headcount: updates.headcount,
-                                period: updates.period,
-                                budget: updates.budget,
-                                travel_types: updates.travelTypes,
-                                accommodations: updates.accommodations,
-                                vehicle: updates.vehicle,
-                                confirmed_price: updates.confirmed_price,
-                                confirmed_start_date: updates.confirmed_start_date,
-                                confirmed_end_date: updates.confirmed_end_date,
-                                deposit: updates.deposit,
-                                itinerary_template_id: updates.itineraryTemplateId,
-                                document_content: updates.documentContent,
-                                updated_at: new Date().toISOString()
-                            });
-                            fetchReservations();
-                            return true;
-                        } catch (e) {
-                            console.error(e);
-                            alert('견적 수정 실패');
-                            return false;
-                        }
-                    }}
-                    onSendEstimate={async (url, note, priceDetail, confirmedStartDate, confirmedEndDate, itineraryTemplateId) => {
-                        // Handle Send Estimate
-                        try {
-                            // 1. Update Database
-                            await api.quotes.update(selectedReservation.id, {
-                                status: 'answered',
-                                admin_note: note,
-                                estimate_url: url,
-                                confirmed_price: priceDetail.totalAmount || null,
-                                deposit: priceDetail.deposit || null,
-                                confirmed_start_date: confirmedStartDate || null,
-                                confirmed_end_date: confirmedEndDate || null,
-                                itinerary_template_id: itineraryTemplateId || null,
-                                updated_at: new Date().toISOString()
-                            });
-
-                            // 2. Send Email (Separate try-catch to not block UI success if email fails)
-                            try {
-                                const emailResult = await sendNotificationEmail(
-                                    selectedReservation.email,
-                                    'ESTIMATE_COMPLETED',
-                                    {
-                                        customerName: selectedReservation.customerName,
-                                        destination: selectedReservation.productName.replace(' 맞춤 견적', ''),
-                                        estimateUrl: url,
-                                        adminNote: note,
-                                        quoteId: selectedReservation.id,
-                                        totalAmount: priceDetail.totalAmount,
-                                        userId: selectedReservation.userId,
-                                    }
-                                );
-
-                                if (!emailResult.success) {
-                                    console.error('Email Send Error:', emailResult.error);
-                                    alert('견적 정보는 저장되었으나, 이메일 발송에 실패했습니다.');
-                                } else {
-                                    alert(`견적서가 발송되었습니다. (이메일 알림 포함)\n확정 금액: ${priceDetail.totalAmount ? won(priceDetail.totalAmount) : '미입력'}`);
-                                }
-                            } catch (emailError) {
-                                console.error('Email Unexpected Error:', emailError);
-                                alert('견적 정보는 저장되었으나, 이메일 발송 중 오류가 발생했습니다.');
-                            }
-
-                            fetchReservations();
-                            setSelectedReservation(null);
-
-                        } catch (e: any) {
-                            console.error(e);
-                            alert(`견적서 발송 실패: ${e.message}`);
-                        }
-                    }}
-                    onOpenConvert={() => {
-                        if (selectedReservation.quoteDetail) {
-                            setConvertTarget(selectedReservation.quoteDetail);
-                        }
-                    }}
-                />
-            )}
-            {convertTarget && (
-                <ConvertSelectionModal
-                    request={convertTarget}
-                    onClose={() => setConvertTarget(null)}
-                    onConvert={async (data) => {
-                        try {
-                            // 1. Create Reservation
-                            const reservationPayload = {
-                                type: 'quote',
-                                product_name: `${convertTarget.destination} 맞춤 견적`,
-                                customer_name: convertTarget.name,
-                                customer_phone: convertTarget.phone,
-                                customer_email: convertTarget.email,
-                                total_people: parseInt(convertTarget.headcount.replace(/[^0-9]/g, '')) || 0,
-                                start_date: data.startDate,
-                                end_date: data.endDate,
-                                status: 'pending_payment',
-                                price_breakdown: {
-                                    total: data.totalAmount,
-                                    deposit: data.deposit,
-                                    local: data.totalAmount - data.deposit
-                                },
-                                user_id: convertTarget.userId
-                            };
-
-                            await api.reservations.create(reservationPayload);
-
-                            // 2. Update Quote Status
-                            await api.quotes.update(convertTarget.id, {
-                                status: 'converted',
-                                updated_at: new Date().toISOString()
-                            });
-
-                            alert('예약이 성공적으로 생성되었습니다.');
-
-                            // Optionally send email here too?
-                            // await sendNotificationEmail(...)
-
-                            setConvertTarget(null);
-                            setSelectedReservation(null);
-                            fetchReservations();
-
-                        } catch (e: any) {
-                            console.error(e);
-                            alert(`예약 생성 실패: ${e.message}`);
-                        }
-                    }}
-                />
-            )}
         </>
     );
 };

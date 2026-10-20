@@ -5,6 +5,7 @@ import { build } from 'esbuild';
 import { Hono } from 'hono';
 import { ensureSiteSchema } from '../functions/lib/siteSchema.ts';
 import { trackedDelivery } from '../functions/lib/adminDelivery.ts';
+import { ADMIN_DELIVERY_TABLE } from '../functions/lib/siteSchema.ts';
 const bundled = async file => { const result = await build({ entryPoints: [file], bundle: true, platform: 'node', format: 'esm', write: false });
     return (await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].contents).toString('base64')}`)).default; };
 const [history, email] = await Promise.all([bundled('functions/api/admin-deliveries.ts'), bundled('functions/api/notifications/email.ts')]);
@@ -35,6 +36,50 @@ async function fixture(t) {
 }
 const scope = {source:'product',bookingId:'same-id',kind:'contract',channel:'email'};
 const mailBody = {to:'customer@example.invalid',type:'CONTRACT_READY',idempotencyKey:'repeat-key-123456',data:{reservationDbId:'same-id',customerName:'테스트 고객'}};
+
+test('문의 단계 자동 접수와 서명 접수 이력은 문서 안내로 잘못 집계하지 않는다', async t => {
+    const { raw, DB, request } = await fixture(t);
+    raw.prepare('UPDATE requests SET status=?,data=? WHERE id=?').run('접수', JSON.stringify({ name: '문의 고객', token: 'NEVER-TOKEN' }), 'same-id');
+    await trackedDelivery(DB, { ...scope, source: 'quote_booking', channel: 'kakao', kind: 'request_received', key: 'request-event' }, async () => ({ ok: true, groupId: 'request-receipt' }));
+    await trackedDelivery(DB, { ...scope, kind: 'contract_signed', channel: 'kakao', key: 'sign-event' }, async () => ({ ok: true, groupId: 'sign-receipt' }));
+    await trackedDelivery(DB, { ...scope, kind: 'future_event', channel: 'kakao', key: 'unknown-event' }, async () => ({ ok: true, groupId: 'unknown-receipt' }));
+    const quote = await (await request('/history?source=quote_booking&id=same-id')).json();
+    assert.equal(quote.workflow.accepted, false); assert.equal(quote.items[0].kind, 'request_received');
+    const product = await (await request('/history?source=product&id=same-id')).json();
+    assert.deepEqual(product.items.map(item => item.kind), ['contract_signed']);
+    assert.equal(product.documents.contract.hasPriorDelivery, false); assert.equal(product.documents.itinerary.hasPriorDelivery, false);
+});
+
+test('문서 수정은 재안내로 표시하고 새 발송 성공 뒤 현재 버전으로 기록한다', async t => {
+    const {raw,request}=await fixture(t);const original=globalThis.fetch;let sends=0;
+    globalThis.fetch=async()=>Response.json({id:`version-receipt-${++sends}`});t.after(()=>globalThis.fetch=original);
+    assert.equal((await request('/email',{body:mailBody})).status,200);
+    let state=await(await request('/history?source=product&id=same-id')).json();
+    assert.equal(state.documents.contract.needsResend,false);assert.equal(state.documents.contract.verified,true);
+    const oldRevision=state.documents.contract.lastSentRevision;assert.match(oldRevision,/^[a-f0-9]{64}$/);
+    raw.prepare('UPDATE reservations SET history=? WHERE id=?').run(JSON.stringify([{type:'admin_memo',description:'내부 메모'}]),'same-id');
+    state=await(await request('/history?source=product&id=same-id')).json();assert.equal(state.documents.contract.needsResend,false);
+    const content=JSON.parse(raw.prepare('SELECT document_content FROM reservations WHERE id=?').get('same-id').document_content);
+    content.documentSettings={contract:{preamble:'관리자가 변경한 계약 원문'}};
+    raw.prepare('UPDATE reservations SET document_content=? WHERE id=?').run(JSON.stringify(content),'same-id');
+    state=await(await request('/history?source=product&id=same-id')).json();assert.equal(state.documents.contract.needsResend,true);
+    assert.equal((await request('/email',{body:{...mailBody,idempotencyKey:'changed-version-123456'}})).status,200);
+    // Equal service timestamps must still resolve to the later accepted revision.
+    raw.prepare('UPDATE admin_delivery_attempts SET created_at=?').run('2026-10-19T00:00:00.000Z');
+    state=await(await request('/history?source=product&id=same-id')).json();assert.equal(state.documents.contract.needsResend,false);assert.equal(sends,2);
+    assert.notEqual(state.documents.contract.lastSentRevision,oldRevision);
+    assert.equal(raw.prepare('SELECT document_revision FROM admin_delivery_attempts WHERE dispatch_key=?').get(mailBody.idempotencyKey).document_revision,oldRevision);
+});
+test('v4 발송 표는 기록을 보존하며 버전 칸을 추가하고 과거 발송을 현재본으로 추정하지 않는다', async t => {
+    const {DB,raw,request}=await fixture(t);raw.exec('DROP TABLE admin_delivery_attempts');
+    const columns=ADMIN_DELIVERY_TABLE.columns.filter(value=>!value.startsWith('document_revision'));
+    raw.exec(`CREATE TABLE admin_delivery_attempts (${[...columns,...ADMIN_DELIVERY_TABLE.constraints].join(',')})`);
+    raw.prepare('INSERT INTO admin_delivery_attempts(id,source,booking_id,kind,channel,state,dispatch_key,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').run('legacy','product','same-id','contract','email','accepted','old-request-key-1234','2026-10-14','2026-10-14');
+    let sent=0;const previous=await trackedDelivery(DB,{...scope,key:'old-request-key-1234',revision:'a'.repeat(64)},async()=>{sent++;return {ok:true};});
+    assert.equal(previous.duplicate,true);assert.equal(sent,0);
+    assert.equal(raw.prepare('SELECT document_revision FROM admin_delivery_attempts WHERE id=?').get('legacy').document_revision,null);
+    const state=await(await request('/history?source=product&id=same-id')).json();assert.equal(state.documents.contract.verified,false);assert.equal(state.documents.contract.needsResend,false);
+});
 
 test('메일 요청은 성공·실패를 서버에 남기고 같은 요청 키는 다시 발송하지 않는다', async t => {
     const {raw,request}=await fixture(t); const original=globalThis.fetch; let sent=0;

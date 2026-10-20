@@ -8,9 +8,13 @@ interface Props {
     published: boolean;
     canPublish: boolean;
     itinerarySent: boolean;
+    itineraryEmailSent: boolean;
+    itineraryChanged?: boolean;
     itinerarySentAt: string;
     signed: boolean;
     contractSent: boolean;
+    contractEmailSent: boolean;
+    contractChanged?: boolean;
     contractSentAt: string;
     travelerCount: number;
     email: string;
@@ -30,6 +34,7 @@ interface Props {
     disabled?: boolean;
     inlineEditor?: ReactNode;
     hasUnsavedChanges?: boolean;
+    onDraftPreview?: (kind: 'itinerary' | 'contract') => void;
 }
 
 export function ReservationDocuments(p: Props) {
@@ -46,7 +51,7 @@ export function ReservationDocuments(p: Props) {
                 <div className="rw-primary-actions"><button type="button" className="btn btn-ink" disabled={p.disabled || p.sending || p.applyingTemplate} onClick={() => p.onEdit('itinerary')}>{p.ready ? '일정 편집' : '상품 일정 불러와 작성'}</button><button type="button" className="btn btn-ghost" disabled={!p.ready || blocked || p.hasUnsavedChanges} onClick={() => p.onPreview('itinerary')}>고객 화면 미리보기</button></div>
                 <div className="rw-secondary-actions"><button type="button" disabled={!p.ready || blocked} onClick={() => p.onPreview('itinerary', true)}>PDF 저장</button><button type="button" disabled={blocked || !p.ready || !p.canPublish} onClick={p.onPublish}>{p.published ? '공개 상태 확인' : '고객에게 공개'}</button><button type="button" disabled={blocked || !p.ready || !p.canPublish} onClick={() => p.onCopy('itinerary')}>{p.copied === 'itinerary-message' ? '안내문 복사됨' : '카카오톡 안내문 복사'}</button></div>
                 {!p.canPublish && <p className="rw-inline-note">예약금 확인 후 예약이 확정되면 공개할 수 있습니다.</p>}
-                <div className="rw-delivery"><span>{p.itinerarySent ? `메일 발송 완료${p.itinerarySentAt ? ` · ${p.itinerarySentAt}` : ''}` : '메일 미발송'}</span><button type="button" className="btn btn-sm btn-blue" disabled={blocked || p.hasUnsavedChanges || !p.ready || !p.canPublish || !p.email} onClick={() => p.onSend('itinerary')}>{p.itinerarySent ? '메일 재발송' : '일정표 메일 발송'}</button></div>
+                <div className="rw-delivery"><span>{p.itineraryChanged ? '이메일 수정본 안내 필요' : p.itineraryEmailSent ? `이메일 서비스 접수${p.itinerarySentAt ? ` · ${p.itinerarySentAt}` : ''}` : p.itinerarySent ? '다른 채널 안내 접수 · 이메일 미발송' : '이메일 미발송'}</span><button type="button" className="btn btn-sm btn-blue" disabled={blocked || p.hasUnsavedChanges || !p.ready || !p.canPublish || !p.email} onClick={() => p.onSend('itinerary')}>{p.itineraryChanged ? '수정본 메일 발송' : p.itineraryEmailSent ? '메일 재발송' : '일정표 메일 발송'}</button></div>
             </article>
             <article className="rw-document-card">
                 <div className="row" style={{ justifyContent: 'space-between' }}><h3>여행 계약서</h3><span className={`badge ${p.signed ? 'b-green' : 'b-amber'}`}>{p.signed ? '고객 동의 완료' : p.contractSent ? '고객 동의 대기' : '전달 대기'}</span></div>
@@ -55,12 +60,12 @@ export function ReservationDocuments(p: Props) {
                 <div className="rw-primary-actions"><button type="button" className="btn btn-ink" disabled={p.disabled || p.sending || p.applyingTemplate} onClick={() => p.onEdit('contract')}>계약 조건 편집</button><button type="button" className="btn btn-ghost" disabled={blocked} onClick={() => p.onPreview('contract')}>고객 계약서 확인</button></div>
                 <div className="rw-secondary-actions"><button type="button" disabled={blocked} onClick={() => p.onPreview('contract', true)}>PDF 저장</button><button type="button" disabled={blocked} onClick={() => p.onCopy('contract')}>{p.copied === 'contract-message' ? '안내문 복사됨' : '카카오톡 서명 요청문 복사'}</button></div>
                 <p className="rw-inline-note">고객이 계약서에서 여행자·항공편 정보를 작성하고 동의하면 아래 주문 정보에 반영됩니다.</p>
-                <div className="rw-delivery"><span>{p.contractSent ? `메일 발송 완료${p.contractSentAt ? ` · ${p.contractSentAt}` : ''}` : '메일 미발송'}</span><button type="button" className="btn btn-sm btn-blue" disabled={blocked || !p.email} onClick={() => p.onSend('contract')}>{p.contractSent ? '서명 요청 재발송' : '계약서 메일 발송'}</button></div>
+                <div className="rw-delivery"><span>{p.contractChanged ? '이메일 수정본 안내 필요' : p.contractEmailSent ? `이메일 서비스 접수${p.contractSentAt ? ` · ${p.contractSentAt}` : ''}` : p.contractSent ? '다른 채널 안내 접수 · 이메일 미발송' : '이메일 미발송'}</span><button type="button" className="btn btn-sm btn-blue" disabled={blocked || !p.email} onClick={() => p.onSend('contract')}>{p.contractChanged ? '수정본 메일 발송' : p.contractEmailSent ? '서명 요청 메일 재발송' : '계약서 메일 발송'}</button></div>
             </article>
         </div>
         {p.inlineEditor}
-        {p.hasUnsavedChanges && <p className="rw-inline-note" role="status" style={{ padding: '0 24px' }}>편집 중인 내용을 저장하면 고객 미리보기와 전달 버튼을 사용할 수 있습니다.</p>}
+        {p.hasUnsavedChanges && <div className="rw-inline-note" role="status" style={{ padding: '0 24px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}><span>작성 중 초안은 관리자 미리보기로 확인하세요. 고객 공개·발송은 저장 후 사용할 수 있습니다.</span>{p.onDraftPreview && <><button type="button" className="btn btn-ghost btn-sm" disabled={p.sending || p.applyingTemplate} onClick={() => p.onDraftPreview?.('itinerary')}>일정 초안 미리보기</button><button type="button" className="btn btn-ghost btn-sm" disabled={p.sending || p.applyingTemplate} onClick={() => p.onDraftPreview?.('contract')}>계약 초안 미리보기</button></>}</div>}
         {p.days.length > 0 && <details className="rw-schedule-summary"><summary>확정 일정 요약 보기 · {p.days.length}일</summary><div>{p.days.map((day, i) => <div className="rw-day-summary" key={`${day.day}-${i}`}><b>{day.day || i + 1}일차</b><div><strong>{day.title || day.region || '일정 제목 미입력'}</strong><p>{[day.summary, ...(day.activities || []).map(a => [a.time, a.title].filter(Boolean).join(' '))].filter(Boolean).join(' · ') || '상세 일정 미입력'}</p>{day.accommodation?.name && <small>숙소 · {day.accommodation.name}</small>}</div></div>)}</div></details>}
-        <div className="rw-document-footer"><p>{p.email ? `메일 수신 · ${p.email}` : '메일 발송을 사용하려면 주문 정보에서 고객 이메일을 입력하세요.'}<br/>안내문 복사는 고객에게 자동 발송되지 않습니다.</p><div className="row" style={{ flexWrap: 'wrap' }}><button type="button" className="btn btn-ghost" disabled={blocked || !p.ready || !p.canPublish} onClick={() => p.onCopy('final')}>{p.copied === 'final-message' ? '복사됨' : '일정표·계약서 안내문 복사'}</button><button type="button" className="btn btn-blue" disabled={blocked || !p.email || (!p.canPublish && p.contractSent) || (p.itinerarySent && p.contractSent)} onClick={p.onSendAll}>{p.sending ? '발송 중…' : '미발송 문서 메일 발송'}</button></div></div>
+        <div className="rw-document-footer"><p>{p.email ? `메일 수신 · ${p.email}` : '이메일 안내는 선택 사항입니다. 사용하려면 고객 이메일을 등록하세요.'}<br/>안내문 복사는 고객에게 자동 발송되지 않습니다.</p><div className="row" style={{ flexWrap: 'wrap' }}><button type="button" className="btn btn-ghost" disabled={blocked || !p.ready || !p.canPublish} onClick={() => p.onCopy('final')}>{p.copied === 'final-message' ? '복사됨' : '일정표·계약서 안내문 복사'}</button><button type="button" className="btn btn-blue" disabled={blocked || !p.email || (!p.canPublish && p.contractEmailSent && !p.contractChanged) || (p.itineraryEmailSent && p.contractEmailSent && !p.itineraryChanged && !p.contractChanged)} onClick={p.onSendAll}>{p.sending ? '발송 중…' : '미발송·수정본 메일 발송'}</button></div></div>
     </section>;
 }

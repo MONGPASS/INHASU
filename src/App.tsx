@@ -166,7 +166,11 @@ function App() {
             <Route path="/admin/quotes" element={<AdminGuard><AdminQuoteManage /></AdminGuard>} />
             {/* 맞춤 견적 데스크: 견적 관리 도구(public/*.html)를 관리자 안에 끼워 넣는다. tool = inbox | bookings | builder | courses | itinerary | spots | resources */}
             <Route path="/admin/quote-desk/:tool?" element={<AdminGuard><AdminQuoteDesk /></AdminGuard>} />
-            <Route path="/admin/reservations" element={<AdminGuard><AdminReservationManage /></AdminGuard>} />
+            {/* Keep list selection and customer editor state in separate route instances. */}
+            <Route path="/admin/reservations" element={<AdminGuard><AdminReservationManage key="reservation-list" /></AdminGuard>} />
+            <Route path="/admin/customer-workspace/product/:id" element={<AdminGuard><AdminReservationManage key="product-customer" customerPage /></AdminGuard>} />
+            <Route path="/admin/customer-workspace/legacy-quote/:id" element={<AdminGuard><AdminReservationManage key="legacy-quote-customer" customerPage customerSource="quote" /></AdminGuard>} />
+            <Route path="/admin/customer-workspace/quote/:id" element={<AdminGuard><AdminQuoteDesk customerPage /></AdminGuard>} />
             <Route path="/admin/accommodation-ops" element={<AdminGuard><AdminAccommodationOps /></AdminGuard>} />
             <Route path="/admin/calendar" element={<AdminGuard><AdminCalendar /></AdminGuard>} />
             <Route path="/admin/banners" element={<AdminGuard><AdminBannerManage /></AdminGuard>} />

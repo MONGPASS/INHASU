@@ -1,9 +1,15 @@
 /* 상품 예약도 기존 확정 일정표의 표지·요금·배정 디자인을 그대로 사용한다. */
+import { receiveAdminDocumentPreview } from './admin-document-preview.js';
 export const escapeDocumentText = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const imageUrl = value => /^(https?:\/\/|\/(?!\/)|img\/)/i.test(String(value || '')) ? String(value) : '';
 const photos = values => (Array.isArray(values) ? values : []).map(imageUrl).filter(Boolean);
 
 export async function loadProductItinerary(params) {
+    if (params.has('adminDraft')) {
+        const q = await receiveAdminDocumentPreview(params);
+        q.images = { ...(window.QUOTE?.images || {}), ...q.images };
+        return q;
+    }
     const id = params.get('reservationId');
     const query = new URLSearchParams({ format: 'quote' });
     if (params.get('preview') === '1') query.set('preview', '1');
@@ -86,10 +92,16 @@ export function paginateProductPages(root) {
 
 export function productDocumentToolbar(params, mobile) {
     const preview = params.get('preview') === '1';
+    const draft = params.has('adminDraft');
     const toolbar = document.createElement('nav');
     toolbar.className = 'customer-bar web-only';
     const back = preview ? `/admin/reservations?open=${encodeURIComponent(params.get('reservationId'))}` : `/mypage/reservations/${encodeURIComponent(params.get('reservationId'))}`;
     toolbar.innerHTML = `<a href="${back}">← ${preview ? '예약 관리' : '내 예약'}</a><span class="cb-title">${preview ? '관리자 미리보기' : '확정 일정표'}</span><button type="button" style="border:0;border-radius:24px;background:#27AB8F;color:#0A1F2E;padding:10px 16px;font:700 13px Pretendard,sans-serif;cursor:pointer;">PDF 저장</button>`;
+    if (draft) {
+        toolbar.querySelector('.cb-title').textContent = '관리자 초안 · 고객에게 공개되지 않음';
+        const backLink = toolbar.querySelector('a'); backLink.textContent = '← 편집으로 돌아가기'; backLink.href = '#';
+        backLink.onclick = event => { event.preventDefault(); window.parent.postMessage({ type: 'inhasu-admin-preview-close', nonce: params.get('adminDraft') }, window.location.origin); };
+    }
     const print = () => {
         if (mobile) {
             const p = new URLSearchParams(params); p.set('m', '0'); p.set('print', '1');

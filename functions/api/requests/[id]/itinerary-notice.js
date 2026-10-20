@@ -3,6 +3,7 @@
    with a new key: inspect the provider result first. Booking stages are never changed. */
 import { canSendKakao, quoteTemplateId, itineraryNoticePayload, listKakaoTemplates, notifyCustomerItineraryReady } from "../../_solapi.js";
 import { trackedDelivery } from '../../../lib/adminDelivery.ts';
+import { quoteDocumentRevisions } from '../../../lib/adminDocumentRevision.ts';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
@@ -78,7 +79,7 @@ export async function onRequestPost({ request, env, params }) {
     return json({ ok: previous?.state === "accepted", duplicate: true, state: previous?.state || "unknown", result: previous?.result ? JSON.parse(previous.result) : null });
   }
   const delivery = await trackedDelivery(env.DB, { source:'quote_booking', bookingId:params.id, kind:'itinerary', channel:'kakao',
-      key:input.idempotencyKey, legacyNoticeKey:input.idempotencyKey }, () => notifyCustomerItineraryReady(env, rec));
+      key:input.idempotencyKey, legacyNoticeKey:input.idempotencyKey, revision:(await quoteDocumentRevisions(rec)).itinerary }, () => notifyCustomerItineraryReady(env, rec));
   const result = { ok:delivery.ok, ...(delivery.providerId ? { groupId:delivery.providerId } : {}), ...(delivery.error ? { error:delivery.error } : {}) };
   // HTTP acceptance is not proof of delivery; return the provider receipt for review.
   const state = result.ok ? "accepted" : delivery.duplicate || delivery.state === 'failed' ? 'failed' : "unknown";

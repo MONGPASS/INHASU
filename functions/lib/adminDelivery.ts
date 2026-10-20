@@ -1,12 +1,17 @@
 import { ADMIN_DELIVERY_TABLE } from './siteSchema.ts';
 
-export interface DeliveryScope { source: 'product' | 'quote_booking'; bookingId: string; kind: string; channel: 'email' | 'kakao' | 'message'; key?: string; legacyNoticeKey?: string; }
+export interface DeliveryScope { source: 'product' | 'quote_booking'; bookingId: string; kind: string; channel: 'email' | 'kakao' | 'message'; key?: string; legacyNoticeKey?: string; revision?: string; }
 export type DeliveryOutcome = { ok: boolean; state: 'accepted' | 'failed' | 'unknown' | 'sending'; duplicate?: boolean; id?: string; error?: string; providerId?: string };
 
 const knownState = (state: string): DeliveryOutcome['state'] => ['accepted', 'failed', 'sending'].includes(state) ? state as DeliveryOutcome['state'] : 'unknown';
 async function ensureTable(db: any) {
     const d = ADMIN_DELIVERY_TABLE;
     await db.prepare(`CREATE TABLE IF NOT EXISTS ${d.name} (${[...d.columns, ...(d.constraints || [])].join(', ')})`).run();
+    const columns = await db.prepare('PRAGMA table_info(admin_delivery_attempts)').all();
+    if (!columns.results?.some((column: any) => column.name === 'document_revision')) {
+        try { await db.prepare('ALTER TABLE admin_delivery_attempts ADD COLUMN document_revision TEXT').run(); }
+        catch (error) { const updated = await db.prepare('PRAGMA table_info(admin_delivery_attempts)').all(); if (!updated.results?.some((column: any) => column.name === 'document_revision')) throw error; }
+    }
     for (const index of d.indexes || []) await db.prepare(index).run();
 }
 
@@ -30,12 +35,12 @@ export async function trackedDelivery(db: any, scope: DeliveryScope, work: () =>
     }
     const id = crypto.randomUUID(), now = new Date().toISOString();
     // The INSERT performs the pending check again, covering concurrent tabs with different keys.
-    const claim = await db.prepare(`INSERT INTO admin_delivery_attempts (id,source,booking_id,kind,channel,state,dispatch_key,created_at,updated_at)
-        SELECT ?,?,?,?,?,'sending',?,?,? WHERE NOT EXISTS (
+    const claim = await db.prepare(`INSERT INTO admin_delivery_attempts (id,source,booking_id,kind,channel,state,dispatch_key,created_at,updated_at,document_revision)
+        SELECT ?,?,?,?,?,'sending',?,?,?,? WHERE NOT EXISTS (
           SELECT 1 FROM admin_delivery_attempts WHERE source=? AND booking_id=? AND kind=? AND state IN ('sending','unknown'))
         ${legacyExists ? `AND NOT EXISTS (SELECT 1 FROM ${legacyName} WHERE request_id=? AND dispatch_key<>? AND state IN ('sending','unknown'))` : ''}
         ON CONFLICT(source,booking_id,kind,dispatch_key) DO NOTHING`)
-        .bind(id, scope.source, scope.bookingId, scope.kind, scope.channel, key, now, now, scope.source, scope.bookingId, scope.kind,
+        .bind(id, scope.source, scope.bookingId, scope.kind, scope.channel, key, now, now, scope.revision || null, scope.source, scope.bookingId, scope.kind,
             ...(legacyExists ? [scope.bookingId, scope.legacyNoticeKey || ''] : [])).run();
     if (claim.meta?.changes !== 1) return { ok: false, state: 'sending', duplicate: true, error: '다른 요청에서 발송 중입니다. 이력을 새로고침해 주세요.' };
     let outcome: DeliveryOutcome;

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { D1PreparedStatement } from '@cloudflare/workers-types';
 import { hasAdminSession, requireAdmin } from '../lib/adminAuth';
+import { categoryChanges, categoryOrder } from '../lib/categoryUpdate';
 
 type Env = {
     DB: any; // Using any for simplicity or you can use D1Database if imported
@@ -63,80 +64,59 @@ app.get('/:slug', async (c) => {
     }
 });
 
-// POST /api/categories
+// POST accepts the same validated values and legacy order alias as partial PUT.
 app.post('/', requireAdmin, async (c) => {
-    const data = await c.req.json();
-    const db = c.env.DB;
-    const id = data.id || crypto.randomUUID();
-    const type = data.type || 'product'; // Default to product
-    const highlightsJson = Array.isArray(data.landing_highlights)
-        ? JSON.stringify(data.landing_highlights)
-        : (typeof data.landing_highlights === 'string' ? data.landing_highlights : null);
-    const heroImagesJson = Array.isArray(data.landing_hero_images)
-        ? JSON.stringify(data.landing_hero_images)
-        : (typeof data.landing_hero_images === 'string' ? data.landing_hero_images : null);
+    let data: Record<string, any>, id: string, type: string;
     try {
+        const input = await c.req.json();
+        if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('카테고리 내용을 확인해 주세요.');
+        const { id: suppliedId, type: suppliedType, ...fields } = input;
+        id = suppliedId ?? crypto.randomUUID(); type = suppliedType ?? 'product';
+        if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9-]{0,149}$/.test(id) || !['product', 'magazine'].includes(type)) throw new Error('카테고리 ID와 종류를 확인해 주세요.');
+        data = categoryChanges(fields);
+        if (!data.name) throw new Error('카테고리 이름을 입력해 주세요.');
+    } catch (error: any) { return c.json({ error: error.message || '카테고리 내용을 확인해 주세요.' }, 400); }
+    const db = c.env.DB;
+    try {
+        if (await db.prepare('SELECT id FROM categories WHERE id=?').bind(id).first()) return c.json({ error: '이미 사용 중인 카테고리 ID입니다.' }, 409);
         await db.prepare(
-            `INSERT INTO categories (
-                id, name, description, icon, image, sort_order, is_active, type,
-                landing_hero_image, landing_hero_images, landing_hero_tagline, landing_hero_title,
-                landing_hero_subtitle, landing_accent_color, landing_highlights,
-                landing_product_grid_title
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(
-            id, data.name, data.description || '', data.icon || '', data.image || '',
-            data.sort_order || 0, data.is_active ?? 1, type,
-            data.landing_hero_image || null,
-            heroImagesJson,
-            data.landing_hero_tagline || null,
-            data.landing_hero_title || null,
-            data.landing_hero_subtitle || null,
-            data.landing_accent_color || null,
-            highlightsJson,
-            data.landing_product_grid_title || null,
-        ).run();
-        return c.json({ id, ...data });
-    } catch (e: any) {
-        return c.json({ error: e.message }, 500);
-    }
+            'INSERT INTO categories (id,name,description,icon,image,sort_order,is_active,type,landing_hero_image,landing_hero_images,landing_hero_tagline,landing_hero_title,landing_hero_subtitle,landing_accent_color,landing_highlights,landing_product_grid_title) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+        ).bind(id, data.name, data.description ?? '', data.icon ?? '', data.image ?? '', data.sort_order ?? 0, data.is_active ?? 1, type,
+            data.landing_hero_image ?? null, data.landing_hero_images ?? null, data.landing_hero_tagline ?? null, data.landing_hero_title ?? null,
+            data.landing_hero_subtitle ?? null, data.landing_accent_color ?? null, data.landing_highlights ?? null, data.landing_product_grid_title ?? null).run();
+        return c.json({ id, ...data, type });
+    } catch { return c.json({ error: '카테고리를 만들지 못했습니다. 다시 시도해 주세요.' }, 500); }
 });
 
-// PUT /api/categories/:id
-app.put('/:id', requireAdmin, async (c) => {
-    const id = c.req.param('id');
-    const data = await c.req.json();
+// One batch keeps a category move from leaving half of a two-row swap saved.
+app.put('/reorder', requireAdmin, async (c) => {
+    let order: ReturnType<typeof categoryOrder>;
+    try { order = categoryOrder(await c.req.json()); }
+    catch (error: any) { return c.json({ error: error.message || '순서 내용을 확인해 주세요.' }, 400); }
     const db = c.env.DB;
-    const highlightsJson = Array.isArray(data.landing_highlights)
-        ? JSON.stringify(data.landing_highlights)
-        : (typeof data.landing_highlights === 'string' ? data.landing_highlights : null);
-    const heroImagesJson = Array.isArray(data.landing_hero_images)
-        ? JSON.stringify(data.landing_hero_images)
-        : (typeof data.landing_hero_images === 'string' ? data.landing_hero_images : null);
     try {
-        await db.prepare(
-            `UPDATE categories SET
-                name=?, description=?, icon=?, image=?, sort_order=?, is_active=?,
-                landing_hero_image=?, landing_hero_images=?, landing_hero_tagline=?, landing_hero_title=?,
-                landing_hero_subtitle=?, landing_accent_color=?, landing_highlights=?,
-                landing_product_grid_title=?
-             WHERE id=?`
-        ).bind(
-            data.name, data.description || '', data.icon || '', data.image || '',
-            data.sort_order || 0, data.is_active ?? 1,
-            data.landing_hero_image || null,
-            heroImagesJson,
-            data.landing_hero_tagline || null,
-            data.landing_hero_title || null,
-            data.landing_hero_subtitle || null,
-            data.landing_accent_color || null,
-            highlightsJson,
-            data.landing_product_grid_title || null,
-            id,
-        ).run();
+        const rows = await db.prepare("SELECT id FROM categories WHERE COALESCE(NULLIF(type,''),'product')=?").bind(order.type).all();
+        const ids = new Set((rows.results || []).map((row: any) => row.id));
+        if (ids.size !== order.items.length || order.items.some(item => !ids.has(item.id))) return c.json({ error: '카테고리 목록이 변경되었습니다. 새로고침한 뒤 순서를 다시 변경해 주세요.' }, 409);
+        if (order.items.length) await db.batch(order.items.map(item => db.prepare("UPDATE categories SET sort_order=? WHERE id=? AND COALESCE(NULLIF(type,''),'product')=?").bind(item.sort_order, item.id, order.type)));
         return c.json({ success: true });
-    } catch (e: any) {
-        return c.json({ error: e.message }, 500);
-    }
+    } catch { return c.json({ error: '순서를 저장하지 못했습니다. 다시 시도해 주세요.' }, 500); }
+});
+
+// PUT changes only supplied columns; a toggle must never erase landing artwork.
+app.put('/:id', requireAdmin, async (c) => {
+    let changes: Record<string, any>;
+    try { changes = categoryChanges(await c.req.json()); }
+    catch (error: any) { return c.json({ error: error.message || '변경 내용을 확인해 주세요.' }, 400); }
+    const db = c.env.DB, id = c.req.param('id');
+    try {
+        if (!await db.prepare('SELECT id FROM categories WHERE id=?').bind(id).first()) return c.json({ error: '카테고리를 찾을 수 없습니다.' }, 404);
+        const fields = Object.keys(changes);
+        const sql = 'UPDATE categories SET ' + fields.map(field => field + '=?').join(',') + ' WHERE id=?';
+        const result = await db.prepare(sql).bind(...fields.map(field => changes[field]), id).run();
+        if (result.meta?.changes === 0) return c.json({ error: '카테고리를 찾을 수 없습니다.' }, 404);
+        return c.json({ success: true });
+    } catch { return c.json({ error: '카테고리를 저장하지 못했습니다. 다시 시도해 주세요.' }, 500); }
 });
 
 // POST /api/categories/:id/rename - change the category's id (URL slug)

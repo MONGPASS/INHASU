@@ -1,6 +1,8 @@
 // 상품 예약을 기존 INHASU 확정 일정표의 데이터 형식으로 연결한다.
 // 샘플 견적을 복제하지 않는다. 누락된 고객 정보·금액은 실제 예약 값만 사용한다.
 import type { RepresentativeSpotSnapshot } from '../../src/types/product';
+import { readProductVehicle } from '../../src/utils/reservationAssignment.ts';
+import { resolveCancellationRows } from '../../src/constants/company.ts';
 
 export function parseDocumentJson(value: any, fallback: any = null) {
     let result = value;
@@ -136,9 +138,10 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
     const overview = settings.overview || {};
     const contract = parseDocumentJson(r.contract_data, {});
     const guide = assignmentsVisible ? parseDocumentJson(r.assigned_guide, {}) : {};
-    const vehicleData = assignmentsVisible ? (contract.vehicle || {}) : {};
-    const vehicle = typeof vehicleData === 'string' ? { model: vehicleData } : {
-        model: text(vehicleData.model || vehicleData.type || vehicleData.name), img: documentImage(vehicleData.image || vehicleData.img),
+    const vehicleName = assignmentsVisible ? readProductVehicle(r.admin_operations, contract).type : '';
+    const vehicleData = vehicleName ? (contract.vehicle || {}) : {};
+    const vehicle = typeof vehicleData === 'string' ? { model: vehicleName } : {
+        model: vehicleName, img: documentImage(vehicleData.image || vehicleData.img),
         imgs: photos(vehicleData.images || vehicleData.imgs), desc: text(vehicleData.description || vehicleData.desc),
         seats: text(String(vehicleData.seats ?? '')), luggage: text(vehicleData.luggage),
     };
@@ -190,6 +193,7 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
             balanceStatus: r.balance_status === 'paid' ? '결제 완료' : '현지 결제 예정',
             payment: '예약금: 계좌이체 · 잔금: 현지 현금 결제', paymentNote: '' },
         included, excluded, intensity: 0, days: itineraryDays, detailDays: days, highlights,
+        refundRows: resolveCancellationRows(settings.contract?.cancellationRows),
         scheduleNotes: lines(settings.detail?.note),
         images: { cover: mainImages[0] || scheduleImages[0] || '', coverLabel: text(r.product_name) },
         booking: { assign: { guide: { name: text(guide.name), phone: text(guide.phone), img: documentImage(guide.image || guide.img),

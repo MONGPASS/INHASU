@@ -75,7 +75,7 @@ export const QUOTE_DESK_TOOLS: QuoteDeskTool[] = [
 export const quoteDeskHref = (key: string): string => `${QUOTE_DESK_BASE}/${key}`;
 
 /** ID로 서버의 최신 예약을 연다. 다른 고객의 localStorage 전달값에 의존하지 않는다. */
-export const quoteBookingHref = (id: string): string => `${quoteDeskHref('bookings')}?id=${encodeURIComponent(id)}`;
+export const quoteBookingHref = (id: string): string => `/admin/customer-workspace/quote/${encodeURIComponent(id)}`;
 
 /** AdminLayout / AdminSidebar 의 activePage 값 */
 export const quoteDeskPageId = (key: string): string => `quote-desk-${key}`;

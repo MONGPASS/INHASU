@@ -6,8 +6,8 @@ export function requestSQLite(t, record, options = {}) {
   const raw = new DatabaseSync(':memory:');
   t.after(() => raw.close());
   raw.exec(fs.readFileSync(new URL('../../schema.sql', import.meta.url), 'utf8'));
-  const id = record.id || 'req-1';
-  raw.prepare('INSERT INTO requests (id,name,phone,destination,status,memo,data,token) VALUES (?,?,?,?,?,?,?,?)')
+  const id = record?.id || 'req-1';
+  if (!options.skipInsert) raw.prepare('INSERT INTO requests (id,name,phone,destination,status,memo,data,token) VALUES (?,?,?,?,?,?,?,?)')
     .run(id, record.name || '', record.phone || '', record.destination || '', record.status || '신규', record.memo || '', JSON.stringify(record), record.token || '');
   const writes = [];
   function statement(sql, values = []) {
@@ -30,8 +30,10 @@ export function requestSQLite(t, record, options = {}) {
     };
   }
   return {
+    raw,
     prepare: sql => statement(sql),
     get record() { return JSON.parse(raw.prepare('SELECT data FROM requests WHERE id=?').get(id).data); },
+    get records() { return raw.prepare('SELECT data FROM requests ORDER BY received_at,id').all().map(row => JSON.parse(row.data)); },
     get deliveries() {
       if (!raw.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='admin_delivery_attempts'").get()) return [];
       return raw.prepare('SELECT * FROM admin_delivery_attempts ORDER BY created_at,id').all().map(row => ({ ...row }));

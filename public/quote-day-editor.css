@@ -1,6 +1,7 @@
 /* 견적만들기 STEP 2의 원본 크기·색상. 공유 위젯 밖의 폼에는 적용하지 않습니다. */
 .quote-day-editor { --p:#06C4A0; --pd:#05A084; --pl:#E1F8F3; --pb:#9DE7D8; --ink:#111827; --sub:#667085; --gray:#98A2B3; --dim:#B6BCC6; --line2:#EEF0F3; --red:#E07A7A; min-width:0; font-family:inherit; }
 .quote-day-editor *, .quote-day-editor *::before, .quote-day-editor *::after { box-sizing:border-box; }
+.quote-day-editor .qde-field-label { display:none; }
 .quote-day-editor input, .quote-day-editor select, .quote-day-editor textarea { width:100%; padding:10px 12px; border:1px solid #E5E7EB; border-radius:9px; font-size:14px; font-family:inherit; color:var(--ink); outline:none; background:#fff; }
 .quote-day-editor input::placeholder, .quote-day-editor textarea::placeholder { color:var(--dim); }
 .quote-day-editor input:focus, .quote-day-editor select:focus, .quote-day-editor textarea:focus { border-color:var(--p); box-shadow:0 0 0 3px rgba(6,196,160,.16); }
@@ -18,6 +19,10 @@
 .quote-day-editor .day-edit .dh input.move { max-width:130px; padding:8px 11px; border-radius:8px; font-size:13px; color:var(--sub); }
 .quote-day-editor .day-edit .dh .day-del { border:1px solid #F0D2D2; background:#fff; color:var(--red); width:30px; height:30px; border-radius:8px; font-size:15px; cursor:pointer; flex:0 0 auto; font-family:inherit; }
 .quote-day-editor .day-edit .dh .day-del:hover { background:#FDF5F5; }
+.quote-day-editor .day-edit .dh .day-toggle { display:inline-flex; align-items:center; justify-content:center; gap:5px; flex:0 0 auto; min-height:38px; padding:7px 10px; border:1px solid #d7e9e2; border-radius:8px; background:#f1faf5; color:#14836d; font:inherit; font-size:12px; font-weight:650; white-space:nowrap; cursor:pointer; }
+.quote-day-editor .day-edit .dh .day-toggle:hover:not(:disabled) { background:#e6f6ed; border-color:#a7d8c5; }
+.quote-day-editor .day-edit.is-collapsed .dh { margin-bottom:0; }
+.quote-day-editor .day-body[hidden] { display:none!important; }
 .quote-day-editor .day-edit .snip-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .quote-day-editor .day-edit .snip-sel { width:250px; padding:8px 11px; border:1px solid var(--p); border-radius:8px; background:#fff; color:var(--ink); font-weight:600; font-size:13px; cursor:pointer; }
 .quote-day-editor .day-edit .snip-hint { font-size:12px; color:var(--gray); }

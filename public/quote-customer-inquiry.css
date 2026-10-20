@@ -1,0 +1,8 @@
+.customer-inquiry-inline #dash,.customer-inquiry-inline .overlay{display:none!important}
+.customer-inquiry-inline body{background:#fff}
+.customer-inquiry-inline .drawer{position:relative;top:auto;right:auto;bottom:auto;width:100%;max-width:1100px;height:auto;margin:0 auto;transform:none;border-radius:0;box-shadow:none;display:none;transition:none}
+.customer-inquiry-inline .drawer.on{display:flex}
+.customer-inquiry-inline .drawer .db{overflow:visible}
+.customer-inquiry-inline #closeX{display:none}
+.customer-inquiry-inline .drawer .df{position:sticky;bottom:0;background:#fff;z-index:2}
+.customer-inquiry-inline .drawer textarea{scroll-margin-top:20px}

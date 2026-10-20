@@ -143,6 +143,20 @@ export function canSendKakao(env, { phone, templateId } = {}) {
     templateId && isPhone(normPhone(phone)));
 }
 
+/* Provider HTTP acceptance is not proof of customer delivery. Require an actual
+   receipt and reject per-message failures even when the outer HTTP request is 2xx. */
+export function kakaoDeliveryResult(result) {
+  const id = typeof result?.messageId === "string" && result.messageId ? result.messageId : undefined;
+  const groupId = typeof result?.groupId === "string" && result.groupId ? result.groupId : undefined;
+  const rejected = !!result?.errorCode || !!result?.error ||
+    (Array.isArray(result?.failedMessageList) && result.failedMessageList.length > 0) ||
+    (!!result?.statusCode && String(result.statusCode) !== "2000");
+  const httpStatus = Number(result?.httpStatus) || undefined;
+  const ok = result?.ok === true && !!httpStatus && httpStatus >= 200 && httpStatus < 300 && !rejected && !!(id || groupId);
+  return { ok, httpStatus: httpStatus >= 500 ? httpStatus : rejected ? 422 : httpStatus >= 400 ? httpStatus : result?.ok && !ok ? 502 : httpStatus,
+    skipped: result?.skipped === true, id, groupId };
+}
+
 /* 승인된 카카오 알림톡 단건 발송. text를 함께 보내면 알림톡이 실패하므로 넣지 않습니다. */
 export async function sendKakaoAlimtalk(env, { phone, templateId, variables, buttonName, link, disableSms }) {
   const tel = normPhone(phone);

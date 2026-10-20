@@ -407,6 +407,9 @@ export const api = {
         }),
     },
     categories: {
+        reorder: async (items: { id: string; sort_order: number }[], type: 'product' | 'magazine' = 'product') => request(`${API_BASE}/categories/reorder`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, items })
+        }),
         list: async (type?: string) => request(`${API_BASE}/categories${type ? `?type=${type}` : ''}`),
         get: async (slug: string) => request(`${API_BASE}/categories/${slug}`),
         create: async (data: any) => request(`${API_BASE}/categories`, {

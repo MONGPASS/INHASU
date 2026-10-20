@@ -7,7 +7,9 @@
    GET  : 관리자 페이지에서 목록 조회 (x-admin-token 헤더 필요)
    ═══════════════════════════════════════════════════════════ */
 
-import { notifyAdmin, canSendKakao, notifyCustomerQuoteReady, quoteTemplateId } from "./_solapi.js";
+import { notifyAdmin } from "./_solapi.js";
+import { resolveNotificationTemplate } from '../lib/customerNotifications.ts';
+import { backgroundCustomerEvent } from './_customer-events.mjs';
 import { defaultQuoteExpiry } from "./_workflow.mjs";
 
 const json = (obj, status = 200) =>
@@ -95,8 +97,8 @@ export async function onRequestPost(context) {
       d.quoteIssuedAt = d.receivedAt;
       d.quoteExpiresAt = defaultQuoteExpiry(new Date(d.receivedAt));
       d.activities = Array.isArray(d.activities) ? d.activities : [];
-      const ready = canSendKakao(env, { phone:d.phone, templateId:quoteTemplateId(env) });
-      d.activities.push({ at:d.receivedAt, type:ready ? "quote_notification_queued" : "quote_notification_skipped", detail:ready ? "고객 견적 준비 알림톡 발송 요청" : "견적은 발행됐지만 고객 알림톡 설정 또는 전화번호를 확인해야 함" });
+      const ready = !!(env.SOLAPI_API_KEY && env.SOLAPI_API_SECRET && resolveNotificationTemplate(env, 'quote') && /^0\d{8,10}$/.test(String(d.phone || '').replace(/\D/g, '')));
+      if (!silentQuote) d.activities.push({ at:d.receivedAt, type:ready ? "quote_notification_queued" : "quote_notification_skipped", detail:ready ? "고객 견적 준비 알림톡 발송 요청" : "견적은 발행됐지만 고객 알림톡 설정 또는 전화번호를 확인해야 함" });
     }
 
     // INSERT OR IGNORE: 같은 id가 이미 있으면 무시 → 기존 문의·발행 견적을
@@ -116,13 +118,15 @@ export async function onRequestPost(context) {
     if (!r.meta || r.meta.changes === 0) return json({ ok: false, error: "duplicate" }, 409);
 
     // 관리자 문자와 고객 알림톡 — 응답을 막지 않게 백그라운드로.
-    const bg = (tag, p) => context.waitUntil(
-      p.then(res => console.log(tag, JSON.stringify(res))).catch(e => console.log(tag + "-err", String(e)))
-    );
+    const bg = async (tag, p) => {
+      const task = p.then(() => undefined).catch(() => console.log(tag, 'notification unavailable'));
+      if (typeof context.waitUntil === 'function') { try { context.waitUntil(task); return; } catch {} }
+      await task;
+    };
 
     if (d.source !== "walkin" && d.source !== "course-share") {
       const pax = Number(d.adult || 0) + Number(d.child || 0) + Number(d.infant || 0);
-      bg("notify-admin-request", notifyAdmin(env,
+      await bg("notify-admin-request", notifyAdmin(env,
         `[새 견적요청] ${d.name || "고객"} · ${d.destination || "여행지 미정"}\n` +
         `${d.depart || "일정 미정"}${d.return_ ? " ~ " + d.return_ : ""} · ${pax || "?"}명\n` +
         `연락처 ${d.phone || "-"}`
@@ -131,11 +135,12 @@ export async function onRequestPost(context) {
 
     const quoteNotification = quoteCreated
       ? (silentQuote ? "silent"
-        : canSendKakao(env, { phone:d.phone, templateId:quoteTemplateId(env) }) ? "queued" : "skipped")
+        : env.SOLAPI_API_KEY && env.SOLAPI_API_SECRET && resolveNotificationTemplate(env, 'quote') && /^0\d{8,10}$/.test(String(d.phone || '').replace(/\D/g, '')) ? "queued" : "skipped")
       : null;
     if (quoteNotification === "queued") {
-      bg("notify-customer-quote", notifyCustomerQuoteReady(env, { phone:d.phone, name:d.name, token }));
+      await backgroundCustomerEvent(context, { source:'quote_booking', bookingId:id, kind:'quote', eventKey:'first-quote-issued:v1' });
     }
+    if (!admin) await backgroundCustomerEvent(context, { source:'quote_booking', bookingId:id, kind:'request_received', eventKey:'first-request-received:v1' });
 
     return json({ ok: true, id, token, notifications:quoteCreated ? [{ type:"quote", status:quoteNotification }] : [] });
   } catch (e) {

@@ -23,7 +23,10 @@ const stmt = (sql, args = []) => ({
     bind: (...a) => stmt(sql, a),
     async first() { return raw.prepare(sql).get(...args) ?? null; },
     async all() { return { results: raw.prepare(sql).all(...args) }; },
-    async run() { return raw.prepare(sql).run(...args); },
+    async run() {
+        const result = raw.prepare(sql).run(...args);
+        return { success: true, meta: { changes: Number(result.changes), last_row_id: Number(result.lastInsertRowid) } };
+    },
     async raw() { return raw.prepare(sql).all(...args).map(row => Object.values(row)); },
 });
 const db = { prepare: sql => stmt(sql), batch: async list => Promise.all(list.map(s => s.run())) };
@@ -77,17 +80,22 @@ console.log('상품 문서 API: 관리자/고객 권한, 공개 전후, 미확�
 // 실제 메일 서비스로 보내지 않고 공급자 응답만 흉내 낸다.
 const realFetch = globalThis.fetch;
 let providerStatus = 200;
+let providerCalls = 0;
 globalThis.fetch = async url => {
     assert.equal(String(url), 'https://api.resend.com/emails');
+    providerCalls++;
     return new Response(JSON.stringify({ id: 'local-test-email' }), { status: providerStatus, headers: { 'content-type': 'application/json' } });
 };
 try {
+    // Tracked document delivery requires the recipient saved on this reservation.
+    raw.prepare('UPDATE reservations SET customer_email=? WHERE id=?').run('local-test@example.invalid', 'local-confirmed');
     const options = { method: 'POST', headers: { ...admin, 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: 'local-test@example.invalid', type: 'ITINERARY_READY', data: { customerName: '테스트 고객', reservationDbId: 'local-confirmed', userId: 'user', itineraryUrl: 'https://example.invalid/documents/itinerary/local-confirmed' } }) };
     assert.equal((await emailApp.request('/', options, { DB: db, RESEND_API_KEY: '' })).status, 502);
     assert.equal((await emailApp.request('/', options, { DB: db, RESEND_API_KEY: 'local-dummy' })).status, 200);
     providerStatus = 503;
     assert.equal((await emailApp.request('/', options, { DB: db, RESEND_API_KEY: 'local-dummy' })).status, 502);
+    assert.equal(providerCalls, 2, 'only the configured success and failure cases contact the local provider stub');
     console.log('이메일 API: 설정 누락·공급자 실패를 실패로 반환하고 성공만 성공으로 반환함(실제 발송 없음)');
 } finally { globalThis.fetch = realFetch; }
 

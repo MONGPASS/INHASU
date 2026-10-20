@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminToolbar } from './AdminToolbar';
 import '../../styles/admin-console.css';
@@ -36,13 +37,70 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     activePage, title, description, eyebrow, showSearch = true, actions, flush = false, children,
 }) => {
     const eb = eyebrow || EYEBROW[activePage] || '관리자 콘솔';
+    const location = useLocation();
+    const customerLayout = location.pathname.startsWith('/admin/customer-workspace/');
+    const [narrowCustomer, setNarrowCustomer] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+    const menuButtonRef = useRef<HTMLButtonElement>(null);
+    const menuPanelRef = useRef<HTMLDivElement>(null);
+    const actionButtonRef = useRef<HTMLButtonElement>(null);
+    const actionPanelRef = useRef<HTMLDivElement>(null);
+    const id = useId().replace(/:/g, '');
+    const menuId = `admin-customer-menu-${id}`;
+    const actionsId = `admin-customer-actions-${id}`;
+    const menuShown = customerLayout && narrowCustomer && mobileMenuOpen;
+    const closeMenu = () => {
+        setMobileMenuOpen(false);
+        requestAnimationFrame(() => menuButtonRef.current?.focus());
+    };
+    useEffect(() => {
+        const viewport = window.matchMedia('(max-width: 760px)');
+        const update = () => { setNarrowCustomer(viewport.matches); if (!viewport.matches) { setMobileMenuOpen(false); setMobileActionsOpen(false); } };
+        update(); viewport.addEventListener('change', update);
+        return () => viewport.removeEventListener('change', update);
+    }, []);
+    useEffect(() => { setMobileMenuOpen(false); setMobileActionsOpen(false); }, [location.key]);
+    useEffect(() => {
+        if (!menuShown) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        menuPanelRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+        return () => { document.body.style.overflow = previousOverflow; };
+    }, [menuShown]);
+    useEffect(() => {
+        if (!mobileActionsOpen || !customerLayout || !narrowCustomer) return;
+        const outside = (event: PointerEvent) => {
+            if (!actionPanelRef.current?.contains(event.target as Node) && !actionButtonRef.current?.contains(event.target as Node)) setMobileActionsOpen(false);
+        };
+        const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setMobileActionsOpen(false); actionButtonRef.current?.focus(); } };
+        document.addEventListener('pointerdown', outside); document.addEventListener('keydown', escape);
+        return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape); };
+    }, [mobileActionsOpen, customerLayout, narrowCustomer]);
     return (
-        <div className="app">
-            <AdminSidebar activePage={activePage} />
-            <div className="main" style={flush ? { height: '100vh' } : undefined}>
+        <div className={`app${customerLayout ? ' admin-customer-layout' : ''}${menuShown ? ' admin-customer-menu-open' : ''}`}>
+            {customerLayout ? <>
+                {menuShown && <button type="button" className="admin-customer-menu-backdrop" aria-label="관리자 메뉴 배경 닫기" tabIndex={-1} onClick={closeMenu} />}
+                <div ref={menuPanelRef} id={menuId} className="admin-customer-menu-panel" role={menuShown ? 'dialog' : undefined} aria-modal={menuShown ? true : undefined} aria-label={menuShown ? '관리자 메뉴' : undefined}
+                    onClickCapture={event => { if (menuShown && (event.target as Element).closest('a[href]')) setMobileMenuOpen(false); }}
+                    onKeyDown={event => {
+                        if (!menuShown) return;
+                        if (event.key === 'Escape') { event.preventDefault(); closeMenu(); return; }
+                        if (event.key !== 'Tab') return;
+                        const items = Array.from(menuPanelRef.current?.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),[tabindex="0"]') || []).filter(element => element.offsetParent !== null);
+                        const first = items[0], last = items[items.length - 1];
+                        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+                        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+                    }}>
+                    <button type="button" className="admin-customer-menu-close" aria-label="관리자 메뉴 닫기" onClick={closeMenu}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>
+                    <AdminSidebar activePage={activePage} />
+                </div>
+            </> : <AdminSidebar activePage={activePage} />}
+            <div className="main" inert={menuShown} style={flush ? { height: '100vh' } : undefined}>
                 <header className="header">
                     <div className="header-in">
-                        <div style={{ minWidth: 0 }}>
+                        {customerLayout && <button ref={menuButtonRef} type="button" className="admin-customer-menu-toggle" aria-label="관리자 메뉴 열기" aria-expanded={menuShown} aria-controls={menuId} onClick={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>}
+                        <div className="admin-layout-heading" style={{ minWidth: 0 }}>
                             <div className="eyebrow"><span className="dot" />{eb}</div>
                             <div className="page-title">{title}</div>
                             {description && (
@@ -52,7 +110,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                         <div className="header-spacer" />
                         <div className="header-tools">
                             <AdminToolbar showSearch={showSearch} />
-                            {actions}
+                            {customerLayout && actions ? <>
+                                <button ref={actionButtonRef} type="button" className="admin-customer-actions-toggle" aria-label="고객 관리 추가 작업" aria-expanded={mobileActionsOpen} aria-controls={actionsId} onClick={() => setMobileActionsOpen(value => !value)}><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><circle cx="4" cy="10" r="1.6" /><circle cx="10" cy="10" r="1.6" /><circle cx="16" cy="10" r="1.6" /></svg></button>
+                                <div ref={actionPanelRef} id={actionsId} className={`admin-customer-header-actions${mobileActionsOpen ? ' is-open' : ''}`} onClick={event => { if ((event.target as Element).closest('button,a[href]')) setMobileActionsOpen(false); }}>{actions}</div>
+                            </> : actions}
                         </div>
                     </div>
                 </header>

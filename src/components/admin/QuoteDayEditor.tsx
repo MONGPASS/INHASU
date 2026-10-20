@@ -25,7 +25,7 @@ interface WidgetOptions extends Omit<Props, 'renderDetails'> {
     forceValues: boolean;
     afterRender: (cards: HTMLElement[]) => void;
 }
-interface Widget { update: (options: WidgetOptions) => void; destroy: () => void; }
+interface Widget { update: (options: WidgetOptions) => void; expandDay: (index: number) => boolean; destroy: () => void; }
 interface SharedEditor { mount: (host: HTMLElement, options: WidgetOptions) => Widget; }
 const editorWindow = () => window as Window & { QuoteDayEditor?: SharedEditor };
 let loading: Promise<SharedEditor> | null = null;
@@ -75,7 +75,13 @@ export function QuoteDayEditor(p: Props) {
             syncedKey.current = latest.current.syncKey;
             const next = cards.map(card => card.querySelector<HTMLElement>('.quote-day-extra')).filter((node): node is HTMLElement => !!node);
             setSlots(previous => previous.length === next.length && previous.every((node, index) => node === next[index]) ? previous : next);
-            if (scrollToAdded.current) { cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); scrollToAdded.current = false; }
+            if (scrollToAdded.current) {
+                const added = cards[cards.length - 1];
+                widget.current?.expandDay(cards.length - 1);
+                added?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                added?.querySelector<HTMLInputElement>('input.dest')?.focus({ preventScroll: true });
+                scrollToAdded.current = false;
+            }
         },
     });
     useEffect(() => {

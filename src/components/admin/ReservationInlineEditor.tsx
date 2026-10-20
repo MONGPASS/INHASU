@@ -6,12 +6,23 @@ import { createInlineDocument, applyQuoteSnippet, quoteDayFields, updateQuoteDay
 import { uploadImage } from '../../utils/upload';
 import { QuoteDayEditor } from './QuoteDayEditor';
 import { QuoteSpotSelector, toggleRepresentativeSpot } from './QuoteSpotSelector';
+import { ReservationDraftPreview } from './ReservationDraftPreview';
+import type { ReservationPreviewContext } from '../../utils/reservationDraftPreview';
 
 export interface ReservationInlineEditorControl {
     prepareLeave: (reason?: 'close' | 'refresh') => boolean;
     isBusy: () => boolean;
     flush: (notify?: boolean) => ReservationDraftResult;
     getState: () => { dirty: boolean; busy: boolean };
+    preview: (kind?: 'itinerary' | 'contract') => void;
+}
+
+export interface ReservationInlineEditorStatus {
+    dirty: boolean;
+    busy: boolean;
+    locked: boolean;
+    message: string;
+    failed: boolean;
 }
 
 interface Props {
@@ -31,6 +42,12 @@ interface Props {
     onClose: () => void;
     disabled?: boolean;
     externalBusy?: boolean;
+    /** The customer work toolbar supplies the save, preview, and return actions. */
+    externalActions?: boolean;
+    onStatusChange?: (status: ReservationInlineEditorStatus) => void;
+    requestedDay?: number;
+    requestedDayRevision?: number;
+    previewContext?: ReservationPreviewContext;
 }
 
 interface Libraries {
@@ -47,9 +64,17 @@ const renumber = (days: TemplateDay[]) => days.map((day, index) => ({ ...day, da
 
 /** 일정과 계약 조건을 현재 예약 상세 본문 안에서 편집한다. */
 export function ReservationInlineEditor(p: Props) {
+    const editorRef = useRef<HTMLElement>(null);
     const [draft, setDraftState] = useState(() => cloneContent(p.initialContent));
     const [dates, setDatesState] = useState({ startDate: p.startDate, endDate: p.endDate });
     const [activeMode, setActiveMode] = useState(p.mode);
+    const [tripSettingsOpen, setTripSettingsOpen] = useState(!p.initialContent.name || !p.startDate || !p.endDate);
+    useEffect(() => {
+        if (p.externalActions && (!draft.name || !dates.startDate || !dates.endDate)) setTripSettingsOpen(true);
+    }, [p.externalActions, draft.name, dates.startDate, dates.endDate]);
+    useEffect(() => {
+        if (p.externalActions) editorRef.current?.closest<HTMLElement>('.reservation-workspace-body')?.scrollTo({ top: 0 });
+    }, [p.externalActions, activeMode]);
     const [initialBaseline] = useState<ReservationDraftSnapshot>(() => ({ content: cloneContent(p.initialContent), dates: { startDate: p.startDate, endDate: p.endDate } }));
     const baselineRef = useRef(initialBaseline);
     const contentRef = useRef(draft);
@@ -87,6 +112,7 @@ export function ReservationInlineEditor(p: Props) {
     const [libraryLoading, setLibraryLoading] = useState(true);
     const [libraryError, setLibraryError] = useState('');
     const [libraryAttempt, setLibraryAttempt] = useState(0);
+    const [preview, setPreview] = useState<{ content: ReservationDocContent; dates: { startDate: string; endDate: string }; mode: 'itinerary' | 'contract' } | null>(null);
     const incomingSnapshot = { content: p.initialContent, dates: { startDate: p.startDate, endDate: p.endDate } };
     const incomingFingerprint = reservationDraftFingerprint(incomingSnapshot);
     const latestSourceFingerprint = useRef(incomingFingerprint);
@@ -95,8 +121,19 @@ export function ReservationInlineEditor(p: Props) {
     const dirty = fingerprint !== reservationDraftFingerprint(baselineRef.current);
     const appliedFingerprint = useRef(incomingFingerprint);
     const locked = !!p.disabled || !!p.externalBusy || saving || uploading || !draftReady || !!pendingDraft || invalidDraft;
+    const statusMessage = uploading ? '사진 업로드 중입니다…' : saving ? '문서를 저장하고 있습니다…'
+        : pendingDraft ? '보관된 초안을 복원하거나 버린 뒤 편집하세요.'
+        : invalidDraft ? '보관된 초안을 확인하고 정리해 주세요.'
+        : !draftReady ? '관리자 계정과 문서를 확인하고 있습니다.'
+        : draftError || notice || (sourceConflict ? '서버 문서가 변경되었습니다. 현재 초안은 유지됩니다.'
+            : dirty ? '변경사항을 저장하세요.' : '현재 저장된 문서를 편집합니다.');
+    const statusFailed = noticeFailed || !!draftError || invalidDraft;
     const isBusy = useCallback(() => savingRef.current || uploadingRef.current || externalBusyRef.current, []);
     const isLocked = () => disabledRef.current || isBusy() || !readyRef.current || pendingRef.current;
+    const showDraftPreview = useCallback((kind?: 'itinerary' | 'contract') => {
+        if (isBusy() || !readyRef.current || pendingRef.current) return;
+        setPreview({ content: cloneContent(contentRef.current), dates: { ...datesRef.current }, mode: kind || modeRef.current });
+    }, [isBusy]);
 
     const setDraft = (change: ReservationDocContent | ((current: ReservationDocContent) => ReservationDocContent)) => {
         if (!mountedRef.current || savingRef.current) return;
@@ -190,6 +227,9 @@ export function ReservationInlineEditor(p: Props) {
     useEffect(() => { p.onDirtyChange(dirty); }, [dirty, p.onDirtyChange]);
     useEffect(() => { p.onDraftStatusChange?.(!!pendingDraft || dirty || storedDraftPending); }, [pendingDraft, dirty, storedDraftPending, p.onDraftStatusChange]);
     useEffect(() => { p.onBusyChange?.(saving || uploading); }, [saving, uploading, p.onBusyChange]);
+    useEffect(() => {
+        callbacks.current.onStatusChange?.({ dirty, busy: saving || uploading, locked, message: statusMessage, failed: statusFailed });
+    }, [dirty, saving, uploading, locked, statusMessage, statusFailed]);
 
     const prepareLeave = useCallback((reason: 'close' | 'refresh' = 'close') => {
         if (isBusy()) { setNotice('저장 또는 사진 업로드가 끝난 뒤 이동해 주세요.'); setNoticeFailed(true); return false; }
@@ -199,7 +239,7 @@ export function ReservationInlineEditor(p: Props) {
     }, [flushDraft, isBusy]);
     useLayoutEffect(() => {
         mountedRef.current = true;
-        callbacks.current.onControlChange?.({ prepareLeave, isBusy, flush: flushDraft, getState: () => ({ dirty: reservationDraftFingerprint({ content: contentRef.current, dates: datesRef.current }) !== reservationDraftFingerprint(baselineRef.current), busy: isBusy() }) });
+        callbacks.current.onControlChange?.({ prepareLeave, isBusy, flush: flushDraft, preview: showDraftPreview, getState: () => ({ dirty: reservationDraftFingerprint({ content: contentRef.current, dates: datesRef.current }) !== reservationDraftFingerprint(baselineRef.current), busy: isBusy() }) });
         return () => {
             flushDraft(false); mountedRef.current = false;
             let remains = storedDraftPendingRef.current;
@@ -293,9 +333,13 @@ export function ReservationInlineEditor(p: Props) {
         if (draft.days.length <= 1) { setNotice('최소 1일은 필요합니다.'); setNoticeFailed(true); return; }
         edit(current => ({ ...current, days: renumber(current.days.filter((_, i) => i !== index)) }));
     };
+    const revealTripSettings = () => {
+        setTripSettingsOpen(true);
+        if (p.externalActions) requestAnimationFrame(() => editorRef.current?.querySelector('.ri-trip-settings')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    };
     const fillDates = () => {
         if (locked) return;
-        if (!dates.startDate) { setNotice('여행 시작일을 먼저 입력하세요.'); setNoticeFailed(true); return; }
+        if (!dates.startDate) { revealTripSettings(); setNotice('여행 시작일을 먼저 입력하세요.'); setNoticeFailed(true); return; }
         edit(current => ({ ...current, days: fillQuoteDayDates(current.days, dates.startDate) }));
         setNotice('출발일 기준으로 여행일자를 채웠어요 — 각 칸에서 자유롭게 수정할 수 있어요.');
     };
@@ -323,8 +367,8 @@ export function ReservationInlineEditor(p: Props) {
     const save = async () => {
         if (isLocked()) return;
         const currentDates = datesRef.current;
-        if (!!currentDates.startDate !== !!currentDates.endDate) { setNotice('여행 시작일과 종료일을 함께 입력하세요.'); setNoticeFailed(true); return; }
-        if (currentDates.endDate && currentDates.endDate < currentDates.startDate) { setNotice('여행 종료일은 시작일보다 빠를 수 없습니다.'); setNoticeFailed(true); return; }
+        if (!!currentDates.startDate !== !!currentDates.endDate) { revealTripSettings(); setNotice('여행 시작일과 종료일을 함께 입력하세요.'); setNoticeFailed(true); return; }
+        if (currentDates.endDate && currentDates.endDate < currentDates.startDate) { revealTripSettings(); setNotice('여행 종료일은 시작일보다 빠를 수 없습니다.'); setNoticeFailed(true); return; }
         if (modeRef.current === 'itinerary' && !contentRef.current.days.length) { setNotice('일차를 추가하고 일정을 작성해 주세요.'); setNoticeFailed(true); return; }
         if (latestSourceFingerprint.current !== baseFingerprint.current && acceptedSourceFingerprint.current !== latestSourceFingerprint.current) {
             if (!window.confirm('편집 중 서버의 문서가 변경되었습니다. 현재 초안으로 문서를 저장할까요?')) return;
@@ -364,13 +408,52 @@ export function ReservationInlineEditor(p: Props) {
         }
     };
     const close = () => { if (prepareLeave()) callbacks.current.onClose(); };
+    const jumpToDay = useCallback((index: number, behavior: ScrollBehavior = 'smooth') => {
+        const day = editorRef.current?.querySelectorAll<HTMLElement>('.day-edit')[index];
+        day?.querySelector<HTMLButtonElement>('.day-toggle[aria-expanded="false"]')?.click();
+        day?.scrollIntoView({ behavior, block: 'start' });
+        day?.querySelector<HTMLInputElement>('input.dest')?.focus({ preventScroll: true });
+        return !!day;
+    }, []);
+    const requestedDayApplied = useRef<string | null>(null);
+    useEffect(() => {
+        const requestedDay = p.requestedDay;
+        if (!p.externalActions || locked || activeMode !== 'itinerary' || requestedDay == null || !Number.isInteger(requestedDay) || requestedDay < 1 || requestedDay > draft.days.length) return;
+        const requestKey = `${p.reservationId}:${requestedDay}:${p.requestedDayRevision ?? 0}`;
+        if (requestedDayApplied.current === requestKey) return;
+        if (!editorRef.current) return;
+        let disposed = false, firstFrame = 0, settledFrame = 0;
+        // The shared widget adds cards before its portals and layout finish settling.
+        // Wait for two paint frames, then place the requested day without a competing animation.
+        const schedule = () => {
+            if (disposed || firstFrame || settledFrame || !editorRef.current?.querySelectorAll('.day-edit')[requestedDay - 1]) return;
+            firstFrame = requestAnimationFrame(() => {
+                firstFrame = 0;
+                settledFrame = requestAnimationFrame(() => {
+                    settledFrame = 0;
+                    if (disposed || !jumpToDay(requestedDay - 1, 'auto')) return;
+                    requestedDayApplied.current = requestKey;
+                    observer.disconnect();
+                });
+            });
+        };
+        const observer = new MutationObserver(schedule);
+        observer.observe(editorRef.current, { childList: true, subtree: true });
+        schedule();
+        return () => {
+            disposed = true;
+            observer.disconnect();
+            if (firstFrame) cancelAnimationFrame(firstFrame);
+            if (settledFrame) cancelAnimationFrame(settledFrame);
+        };
+    }, [p.externalActions, p.requestedDay, p.requestedDayRevision, p.reservationId, activeMode, draft.days.length, locked, jumpToDay]);
     const contract = draft.documentSettings?.contract || {} as DocumentSettings['contract'];
     const expectedDays = dates.startDate && dates.endDate ? Math.round((Date.parse(dates.endDate) - Date.parse(dates.startDate)) / 86400000) + 1 : null;
     const photos = (urls: string[], remove: (index: number) => void) => urls.length > 0 && <div className="ri-photos">{urls.map((url, i) => <figure key={`${url}-${i}`}><img src={url} alt={`일정 사진 ${i + 1}`} loading="lazy" /><button type="button" disabled={locked} onClick={() => remove(i)} aria-label={`사진 ${i + 1} 삭제`}>×</button></figure>)}</div>;
 
-    return <section id="sec-inline-doc" className="card ri-editor" aria-label="예약 문서 본문 편집" aria-busy={saving || uploading}>
-        <div className="ri-heading"><div><span className="ri-kicker">예약 문서 작성</span><h2>예약 상세에서 바로 편집하세요</h2><p>저장한 일정과 계약 조건을 미리보기에서 확인할 수 있습니다.</p></div><button type="button" className="btn btn-ghost" onClick={close} disabled={saving || uploading || !!p.externalBusy}>편집 닫기</button></div>
-        <div role="status" aria-live="polite" style={{ marginBottom: 14, padding: '12px 14px', borderRadius: 12, background: draftError || sourceConflict || pendingDraft?.conflict ? '#fff5e8' : '#edfaf6', border: '1px solid ' + (draftError || sourceConflict || pendingDraft?.conflict ? '#f3d5a3' : '#c8eee3'), fontSize: 13, lineHeight: 1.7 }}>
+    return <section ref={editorRef} id="sec-inline-doc" className={`card ri-editor${p.externalActions ? ' ri-editor-workflow' : ''}`} aria-label="예약 문서 본문 편집" aria-busy={saving || uploading}>
+        {!p.externalActions && <div className="ri-heading"><div><span className="ri-kicker">예약 문서 작성</span><h2>예약 상세에서 바로 편집하세요</h2><p>작성 중인 초안을 미리보고 저장한 뒤 고객에게 전달하세요.</p></div><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><button type="button" className="btn btn-ghost" disabled={locked} onClick={() => showDraftPreview()}>저장 전 초안 미리보기</button><button type="button" className="btn btn-ghost" onClick={close} disabled={saving || uploading || !!p.externalBusy}>편집 닫기</button></div></div>}
+        <div className={`ri-draft-status${draftError || sourceConflict || pendingDraft?.conflict ? ' is-warning' : ''}${p.adminUserId && !dirty && !pendingDraft && !storedDraftPending && !invalidDraft && !sourceConflict && !draftError ? ' is-idle' : ''}`} role="status" aria-live="polite">
             {!p.adminUserId ? '관리자 계정을 확인한 뒤 문서를 편집할 수 있습니다.' : pendingDraft ? <>
                 <strong>{pendingDraft.conflict ? '현재 서버 문서와 다른 초안이 있습니다.' : '저장하지 않은 일정표·계약서 초안이 있습니다.'}</strong>
                 <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')} · 일정·날짜·사진·계약 조건을 함께 복원합니다.{pendingDraft.conflict ? ' 복원 후 현재 문서와 비교해 저장하세요.' : ''}</div>
@@ -379,16 +462,23 @@ export function ReservationInlineEditor(p: Props) {
             {draftError && <div role="alert" style={{ color: '#9f4d13', marginTop: 6 }}>{draftError}<button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading || !!p.externalBusy} onClick={() => { if (invalidDraft || !dirty) discardLocalDraft(); else flushDraft(); }} style={{ marginLeft: 8 }}>{invalidDraft || !dirty ? '초안 버리기' : '다시 보관'}</button></div>}
             {!pendingDraft && !invalidDraft && (dirty || storedDraftPending) && <button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading || !!p.externalBusy} onClick={() => { if (window.confirm('작성 중 문서 변경사항과 보관된 초안을 버리고 서버 문서로 돌아갈까요?')) discardLocalDraft(); }}>초안 버리기</button>}
         </div>
-        <div className="ri-modes" aria-label="문서 편집 종류"><button type="button" className={activeMode === 'itinerary' ? 'is-selected' : ''} aria-pressed={activeMode === 'itinerary'} disabled={locked} onClick={() => changeMode('itinerary')}>확정 일정표</button><button type="button" className={activeMode === 'contract' ? 'is-selected' : ''} aria-pressed={activeMode === 'contract'} disabled={locked} onClick={() => changeMode('contract')}>여행 계약서</button><span>{dirty ? '저장하지 않은 변경사항' : '저장된 문서 기준'}</span></div>
+        <div className="ri-editor-tools"><div className="ri-modes" aria-label="문서 편집 종류"><button type="button" className={activeMode === 'itinerary' ? 'is-selected' : ''} aria-pressed={activeMode === 'itinerary'} disabled={locked} onClick={() => changeMode('itinerary')}>확정 일정표</button><button type="button" className={activeMode === 'contract' ? 'is-selected' : ''} aria-pressed={activeMode === 'contract'} disabled={locked} onClick={() => changeMode('contract')}>여행 계약서</button><span>{dirty ? '저장하지 않은 변경사항' : '저장된 문서 기준'}</span></div>
+        {p.externalActions && activeMode === 'itinerary' && <nav className="ri-day-navigation" aria-label="일정 편집 바로가기">
+            <span>바로가기</span>
+            {draft.days.map((day, index) => <button key={index} type="button" disabled={locked} onClick={() => jumpToDay(index)} title={day.title || `${index + 1}일차`}>{index + 1}일차</button>)}
+            <button type="button" onClick={() => { const spots = editorRef.current?.querySelector<HTMLDetailsElement>('.ri-spots-collapsible'); if (spots) { spots.open = true; spots.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }}>대표 명소</button>
+        </nav>}</div>
         <form id={`reservation-inline-${p.reservationId}`} noValidate onSubmit={event => { event.preventDefault(); void save(); }}>
-        <fieldset className="ri-form" disabled={locked} inert={locked}>
+        <fieldset className={`ri-form${p.externalActions ? ' ri-composer' : ''}`} disabled={locked} inert={locked}>
+            <section className="ri-trip-settings" aria-label="여행 기본 정보">
+            {p.externalActions && <header className="ri-settings-heading"><span className="ri-settings-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" /><path d="M8 3v4m8-4v4M4 10h16m-11 5h2m3 0h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg></span><div className="ri-settings-title"><h3>{draft.name || '여행 기본 정보'}</h3><p>{dates.startDate || '출발일 미정'}<span>—</span>{dates.endDate || '도착일 미정'}{expectedDays != null && expectedDays > 0 && <b>{expectedDays}일 여행</b>}</p></div><button type="button" className="ri-settings-toggle" aria-expanded={tripSettingsOpen} aria-controls={`reservation-trip-settings-${p.reservationId}`} onClick={() => setTripSettingsOpen(value => !value)}>{tripSettingsOpen ? '접기' : '기본 정보 수정'}<svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 8 5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></button></header>}
+            <div id={`reservation-trip-settings-${p.reservationId}`} hidden={p.externalActions && !tripSettingsOpen}>
             <div className="ri-basics"><label className="ri-field ri-wide"><span>여행명</span><input value={draft.name} onChange={e => edit(current => ({ ...current, name: e.target.value }))} /></label><label className="ri-field"><span>여행 시작일</span><input type="date" value={dates.startDate} onChange={e => setDate('startDate', e.target.value)} /></label><label className="ri-field"><span>여행 종료일</span><input type="date" value={dates.endDate} min={dates.startDate || undefined} onChange={e => setDate('endDate', e.target.value)} /></label></div>
+            </div>
+            </section>
             {activeMode === 'itinerary' ? <>
                 <div className="ri-quote-section quote-day-editor">
-                    <div className="ri-quote-head"><h3>일자별 일정</h3><p>일차별 일정을 구성하고 프리셋으로 빠르게 채웁니다.</p></div>
-                    <p className="ri-quote-hint">목적지·이동·세부 일정을 자유롭게 수정하세요. (한 줄에 하나씩. "*"로 시작하면 강조, "("로 시작하면 회색)</p>
-                    {expectedDays != null && expectedDays > 0 && <p className={expectedDays === draft.days.length ? 'ri-day-count is-matched' : 'ri-day-count is-mismatched'}>{expectedDays === draft.days.length ? '✓ 여행 기간과 일정 칸 수가 맞습니다.' : '여행 기간에 맞춰 일자를 추가·삭제하세요.'} {expectedDays}일 여행 · 일정 {draft.days.length}일</p>}
-                    <button type="button" className="ri-fill-dates" onClick={fillDates}>📅 출발일 기준 여행일자 자동 입력 (선택)</button>
+                    <div className="ri-schedule-heading"><div className="ri-quote-head"><h3>일자별 일정 <span className="ri-schedule-count">{draft.days.length}일</span></h3></div><button type="button" className="ri-fill-dates" onClick={fillDates}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" /><path d="M8 3v4m8-4v4M4 10h16m-8 4v4m-2-2h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>날짜 자동 입력</button></div>
                     {libraryLoading && <p className="ri-library-note" role="status">저장된 일정과 명소를 불러오고 있습니다.</p>}
                     {libraryError && <div className="ri-library-error" role="alert">{libraryError}<button type="button" onClick={() => setLibraryAttempt(current => current + 1)}>다시 시도</button></div>}
                     <QuoteDayEditor syncKey={appliedFingerprint.current} days={draft.days.map((day, index) => ({ ...quoteDayFields(day), d: index + 1 }))}
@@ -402,7 +492,7 @@ export function ReservationInlineEditor(p: Props) {
                             if (!day) return null;
                             const assigned = p.dailyAccommodations?.find(stay => stay.day === dayIndex + 1)?.accommodation.name;
                             return <>
-                                {assigned && <p className="ri-assigned-stay"><b>실제 배정 숙소 · {assigned}</b><span>고객 일정표에는 배정 숙소가 우선 표시됩니다.</span></p>}
+                                {assigned && <p className="ri-assigned-stay"><span className="ri-stay-state">배정 완료</span><b>{assigned}</b><span>고객 일정표에 우선 반영됩니다.</span></p>}
                                 <details className="ri-rich-details"><summary>사진·상세 설명</summary><div className="ri-rich-body">
                                     <label className="ri-field"><span>지역</span><input value={day.region || ''} onChange={e => editDay(dayIndex, current => ({ ...current, region: e.target.value }))} /></label>
                                     {day.retainedSummary && <p className="ri-library-note">기존 상품 안내 · {day.retainedSummary}</p>}
@@ -419,13 +509,18 @@ export function ReservationInlineEditor(p: Props) {
                             </>;
                         }} />
                 </div>
-                <div className="ri-spots"><div className="ri-section-title"><div><h3>대표 명소</h3><p>견적서와 같은 화면에서 선택합니다. 선택한 순서대로 고객 일정표에 표시합니다.</p></div></div>
+                {p.externalActions ? <details className="ri-spots ri-spots-collapsible">
+                    <summary><span><strong>대표 명소</strong><small>필요한 명소를 선택한 순서대로 일정표에 표시합니다.</small></span><b>{(draft.highlights || []).length}개 선택</b></summary>
+                    <div className="ri-spots-content">{!libraryLoading && !libraryError && <QuoteSpotSelector spots={libraries.spots} categories={libraries.spot_cats}
+                        selected={(draft.highlights || []).map(spot => spot.name)} disabled={locked} onToggle={toggleSpot} />}</div>
+                </details> : <div className="ri-spots"><div className="ri-section-title"><div><h3>대표 명소</h3><p>견적서와 같은 화면에서 선택합니다. 선택한 순서대로 고객 일정표에 표시합니다.</p></div></div>
                     {!libraryLoading && !libraryError && <QuoteSpotSelector spots={libraries.spots} categories={libraries.spot_cats}
                         selected={(draft.highlights || []).map(spot => spot.name)} disabled={locked} onToggle={toggleSpot} />}
-                </div>
+                </div>}
             </> : <div className="ri-contract"><h3>여행 계약 조건</h3><p className="ri-library-note">현재 문서의 원문을 확인하고 필요한 내용을 수정하세요.</p><label className="ri-field"><span>계약서 서문</span><textarea rows={4} value={contract.intro || ''} onChange={e => editContract('intro', e.target.value)} /></label><div className="ri-contract-fields"><label className="ri-field"><span>지급 방법</span><input value={contract.paymentMethod || ''} onChange={e => editContract('paymentMethod', e.target.value)} /></label><label className="ri-field"><span>지급 기한</span><input value={contract.paymentDeadline || ''} onChange={e => editContract('paymentDeadline', e.target.value)} /></label><label className="ri-field"><span>포함 사항</span><textarea rows={4} value={contract.includedText || ''} onChange={e => editContract('includedText', e.target.value)} /></label><label className="ri-field"><span>불포함 사항</span><textarea rows={4} value={contract.excludedText || ''} onChange={e => editContract('excludedText', e.target.value)} /></label></div><div className="ri-small-heading"><h4>취소 규정</h4><button type="button" onClick={() => editContract('cancellationRows', [...(contract.cancellationRows || []), { period: '', fee: '' }])}>＋ 규정 행 추가</button></div>{(contract.cancellationRows || []).map((row, index) => <div className="ri-cancellation-row" key={index}><label className="ri-field"><span>취소 시점</span><input value={row.period} onChange={e => editContract('cancellationRows', (contract.cancellationRows || []).map((item, i) => i === index ? { ...item, period: e.target.value } : item))} /></label><label className="ri-field"><span>취소 요금</span><input value={row.fee} onChange={e => editContract('cancellationRows', (contract.cancellationRows || []).map((item, i) => i === index ? { ...item, fee: e.target.value } : item))} /></label><button type="button" className="ri-remove" onClick={() => editContract('cancellationRows', (contract.cancellationRows || []).filter((_, i) => i !== index))}>삭제</button></div>)}<label className="ri-field"><span>동의 문구</span><textarea rows={3} value={contract.signatureNote || ''} onChange={e => editContract('signatureNote', e.target.value)} /></label></div>}
         </fieldset>
-        <div className="ri-savebar"><span className={noticeFailed ? 'ri-save-error' : ''} role={noticeFailed ? 'alert' : 'status'}>{uploading ? '사진 업로드 중입니다…' : saving ? '문서를 저장하고 있습니다…' : notice || (dirty ? '변경사항을 저장하세요.' : '현재 예약의 문서를 편집합니다.')}</span><button type="submit" className="btn btn-ink" disabled={locked}>{saving ? '저장 중…' : activeMode === 'contract' ? '계약 조건 저장' : '일정 저장'}</button></div>
+        <div className="ri-savebar"><span className={noticeFailed ? 'ri-save-error' : ''} role={noticeFailed ? 'alert' : 'status'}>{uploading ? '사진 업로드 중입니다…' : saving ? '문서를 저장하고 있습니다…' : notice || (dirty ? '변경사항을 저장하세요.' : '현재 예약의 문서를 편집합니다.')}</span>{!p.externalActions && <button type="submit" className="btn btn-ink" disabled={locked}>{saving ? '저장 중…' : activeMode === 'contract' ? '계약 조건 저장' : '일정 저장'}</button>}</div>
+        {preview && <ReservationDraftPreview {...preview} accountId={p.adminUserId} context={p.previewContext} onClose={() => setPreview(null)} />}
         </form>
     </section>;
 }

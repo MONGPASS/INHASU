@@ -1,4 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useBlocker } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
+import { productCustomerHref, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
+import type { AssignmentSource } from '../utils/reservationAssignment';
+import { assignmentFingerprint, editorAssignment, writeAssignmentDraft, readAssignmentDraft, discardAssignmentDraft, type AssignmentDraft, type AssignmentDraftResult } from '../utils/adminAssignmentDraft';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
@@ -30,13 +35,16 @@ interface DailyAcc {
         facilities?: string[];
         roomCount?: number;
         occupancy?: string;
-        bookingStatus?: BookingStatus;
+        bookingStatus?: string;
     };
 }
 interface Traveler { name?: string; passportName?: string; birthdate?: string; gender?: string; phone?: string }
 interface Flight { date?: string; time?: string; flight?: string }
 interface Reservation {
     id: string;
+    bookingId: string;
+    source: AssignmentSource;
+    version: string;
     type?: string;
     productName?: string;
     customerName?: string;
@@ -58,7 +66,7 @@ interface Reservation {
     };
 }
 
-const statusStyle = (s?: BookingStatus | 'Хуваарилаагүй' | 'Явагдаж байна'): { bg: string; fg: string } => ({
+const statusStyle = (s?: string): { bg: string; fg: string } => ({
     'Хуваарилаагүй': { bg: '#F1F2F4', fg: '#8A8F99' },
     'Илгээгээгүй': { bg: '#EEF1F5', fg: '#5F636B' },
     'Имэйл илгээсэн': { bg: '#E8F2FF', fg: '#0B6FE0' },
@@ -119,8 +127,7 @@ const flightLine = (f?: Flight) => [f?.date, f?.time, f?.flight].filter(Boolean)
 
 // 저장된 dailyAccommodations이 있으면 그대로(추가/삭제 보존), 없으면 박일수만큼 빈 행 생성
 const daysOf = (r: Reservation): DailyAcc[] => {
-    const existing = Array.isArray(r.dailyAccommodations) ? r.dailyAccommodations : [];
-    if (existing.length > 0) return existing;
+    if (Array.isArray(r.dailyAccommodations)) return r.dailyAccommodations;
     const nights = nightsOf(r);
     if (nights <= 0) return [];
     return Array.from({ length: nights }, (_, i) => ({ day: i + 1, date: isoOffset(r.startDate, i), accommodation: {} }));
@@ -138,7 +145,36 @@ const summaryOf = (r: Reservation) => {
 const CONFIRMED_STATUSES = ['confirmed', 'paid', 'completed'];
 
 export const AdminAccommodationOps: React.FC = () => {
-    const [reservations, setReservations] = useState<Reservation[]>([]);
+    const { user, loading } = useUser();
+    if (loading || !user || user.role !== 'admin') return <AdminLayout activePage="accommodation-ops" title="숙소 배정 · 현지 운영"><div className="empty">관리자 계정을 확인하고 있습니다.</div></AdminLayout>;
+    return <AccommodationBoard key={user.id} userId={user.id} />;
+};
+
+function fromApi(item: any): Reservation {
+    return { ...item, bookingId: item.id, id: item.key, assignedGuide: item.assignment.guide,
+        dailyAccommodations: item.accommodationsInitialized === false ? undefined : item.assignment.accommodations, contractData: { ...item.contractData, vehicle: item.assignment.vehicle } };
+}
+async function assignmentRequest(path = '', options: RequestInit = {}) {
+    const response = await fetch(`/api/admin/assignments${path}`, { credentials: 'same-origin', cache: 'no-store', ...options });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || '배정 정보를 불러오지 못했습니다.');
+    return body;
+}
+
+const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
+    const [reservations, setReservationsState] = useState<Reservation[]>([]);
+    const rowsRef = useRef<Reservation[]>([]), dirtyRef = useRef(new Set<string>());
+    const mounted = useRef(true), savingRef = useRef<string | null>(null), generation = useRef(0);
+    const storedSnapshots = useRef(new Map<string, string>());
+    const pendingRef = useRef<Record<string, { draft: AssignmentDraft; conflict: boolean }>>({});
+    const [pendingDrafts, setPendingDrafts] = useState<Record<string, { draft: AssignmentDraft; conflict: boolean }>>({});
+    const [notice, setNotice] = useState('');
+    const [loadWarnings, setLoadWarnings] = useState<string[]>([]);
+    const setReservations = useCallback<React.Dispatch<React.SetStateAction<Reservation[]>>>((update) => {
+        if (!mounted.current) return;
+        const next = typeof update === 'function' ? update(rowsRef.current) : update;
+        rowsRef.current = next; setReservationsState(next);
+    }, []);
     const [loading, setLoading] = useState(true);
     const [dirty, setDirty] = useState<Set<string>>(new Set());
     const [savingId, setSavingId] = useState<string | null>(null);
@@ -155,27 +191,56 @@ export const AdminAccommodationOps: React.FC = () => {
     // 호텔 마스터에 없는 숙소를 직접 입력 중인 칸 (key = `${reservationId}:${dayIndex}`)
     const [manualHotels, setManualHotels] = useState<Set<string>>(new Set());
 
+    const draftScope = useCallback((r: Reservation) => ({ userId, source: r.source, id: r.bookingId }), [userId]);
+    const flushDrafts = useCallback((notify = true): AssignmentDraftResult => {
+        for (const row of rowsRef.current) {
+            if (!dirtyRef.current.has(row.id) || pendingRef.current[row.id]) continue;
+            const assignment = editorAssignment(row), fingerprint = row.version + assignmentFingerprint(assignment);
+            if (storedSnapshots.current.get(row.id) === fingerprint) continue;
+            const result = writeAssignmentDraft(window.localStorage, draftScope(row), row.version, assignment);
+            if (!result.ok) { if (notify && mounted.current) setNotice(result.error); return result; }
+            storedSnapshots.current.set(row.id, fingerprint);
+        }
+        return { ok: true };
+    }, [draftScope]);
     const load = async () => {
+        if (savingRef.current) { setNotice('저장이 끝난 뒤 새로고침해 주세요.'); return; }
+        const stored = flushDrafts(); if (!stored.ok) return;
+        if (dirtyRef.current.size && !window.confirm('변경 내용을 브라우저 초안으로 보관했습니다. 최신 예약을 다시 불러올까요?')) return;
+        const requestGeneration = ++generation.current;
         setLoading(true);
         try {
-            const data = await api.reservations.list();
-            // 사이트 예약 + 맞춤 견적(전환되어 type='quote'로 생성된 예약)을 모두 포함
-            const arr: Reservation[] = (Array.isArray(data) ? data : []).filter((r: any) => !!r && !!r.id);
+            const data = await assignmentRequest();
+            if (!mounted.current || requestGeneration !== generation.current) return;
+            const failedSource = (source: AssignmentSource) => data.availability?.[source] === false;
+            const arr: Reservation[] = [...(Array.isArray(data.items) ? data.items : []).map(fromApi), ...rowsRef.current.filter(r => failedSource(r.source))];
+            const nextPending: typeof pendingDrafts = Object.fromEntries(Object.entries(pendingRef.current).filter(([key]) => rowsRef.current.some(r => r.id === key && failedSource(r.source))));
+            for (const row of arr) {
+                if (failedSource(row.source)) continue;
+                const saved = readAssignmentDraft(window.localStorage, draftScope(row), row.version);
+                if (saved.draft) nextPending[row.id] = { draft: saved.draft, conflict: !!saved.conflict };
+                else if (saved.error) setNotice(saved.error);
+            }
+            pendingRef.current = nextPending; setPendingDrafts(nextPending);
+            storedSnapshots.current.clear();
+            dirtyRef.current = new Set([...dirtyRef.current].filter(id => arr.some(r => r.id === id && failedSource(r.source)))); setDirty(new Set(dirtyRef.current));
             setReservations(arr);
             setMaterialized(new Set());
+            setExpanded(prev => new Set([...Object.keys(nextPending), ...[...prev].filter(id => arr.some(r => r.id === id && failedSource(r.source)))]));
+            if (Object.keys(nextPending).length) { setQ(''); setScope('all'); setMonth('all'); setRegion('all'); setConfirmFilter('all'); }
+            setLoadWarnings(data.warnings || []);
         } catch (e) {
-            console.error('Байр захиалга — ачаалал амжилтгүй:', e);
-            setReservations([]);
+            if (mounted.current && requestGeneration === generation.current) setLoadWarnings([e instanceof Error ? e.message : '예약을 불러오지 못했습니다. 이전 자료를 유지합니다.']);
         } finally {
-            setLoading(false);
+            if (mounted.current && requestGeneration === generation.current) setLoading(false);
         }
     };
     useEffect(() => { load(); }, []);
     // 호텔 마스터 목록 — байрны нэр 셀렉트에 사용
     useEffect(() => {
         (api as any).hotels.list({ active: true })
-            .then((d: any) => setHotels(Array.isArray(d) ? d : []))
-            .catch(() => setHotels([]));
+            .then((d: any) => { if (mounted.current) setHotels(Array.isArray(d) ? d : []); })
+            .catch(() => { if (mounted.current) setLoadWarnings(prev => [...prev, '호텔 마스터를 불러오지 못했습니다. 기존 배정은 유지됩니다.']); });
     }, []);
     const hotelNames = useMemo(() => Array.from(new Set(hotels.map(h => h.name_kr || h.name_local || '').filter(Boolean))), [hotels]);
     // 표시명 → 호텔 마스터 레코드 (선택 시 이미지·지역·설명 등 전체 정보를 숙소에 채우기 위함)
@@ -257,27 +322,67 @@ export const AdminAccommodationOps: React.FC = () => {
         if (openedFromUrl.current || reservations.length === 0) return;
         const id = new URLSearchParams(window.location.search).get('open');
         if (!id) return;
-        const target = reservations.find(x => x.id === id);
+        const source = new URLSearchParams(window.location.search).get('source') || 'product';
+        const target = reservations.find(x => x.bookingId === id && x.source === source);
         if (!target) return;
         openedFromUrl.current = true;
         // 확정 전 예약이면 기본 필터(Зөвхөн баталгаажсан)에 걸려 안 보이므로 전체 보기로 전환
         if (!(CONFIRMED_STATUSES.includes(target.status || '') || target.depositStatus === 'paid' || target.type === 'quote')) setScope('all');
         openRow(target);
-        setTimeout(() => { try { document.getElementById(`acc-row-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { /* noop */ } }, 200);
+        setTimeout(() => { if (mounted.current) document.getElementById(`acc-row-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [reservations]);
 
     // ── 편집 ──
-    const markDirty = (rId: string) => setDirty(prev => new Set(prev).add(rId));
-    // Хадгалах(저장) 전 새로고침·이탈 시 편집 내용이 사라지는 것을 경고 —
-    // "다 바꿨는데 어느 순간 되돌아간다"의 흔한 원인이 저장 전 이탈이다.
+    const markDirty = (rId: string) => { dirtyRef.current = new Set(dirtyRef.current).add(rId); setDirty(new Set(dirtyRef.current)); };
     useEffect(() => {
-        const h = (e: BeforeUnloadEvent) => { if (dirty.size > 0) { e.preventDefault(); e.returnValue = ''; } };
+        if (!dirty.size || savingId) return;
+        const timer = window.setTimeout(() => flushDrafts(), 650);
+        return () => window.clearTimeout(timer);
+    }, [reservations, dirty, savingId, flushDrafts]);
+    const blocker = useBlocker(useCallback(({ currentLocation, nextLocation }) => {
+        if (currentLocation.pathname === nextLocation.pathname && currentLocation.search === nextLocation.search) return false;
+        const result = flushDrafts();
+        return !!savingRef.current || !result.ok;
+    }, [flushDrafts]));
+    useEffect(() => {
+        if (blocker.state !== 'blocked') return;
+        if (savingRef.current) { setNotice('저장 중에는 다른 메뉴로 이동할 수 없습니다.'); blocker.reset(); }
+        else if (window.confirm('초안을 보관하지 못했습니다. 변경 내용이 사라질 수 있습니다. 이동할까요?')) blocker.proceed();
+        else blocker.reset();
+    }, [blocker]);
+    useEffect(() => {
+        mounted.current = true;
+        const h = (e: BeforeUnloadEvent) => { const result = flushDrafts(false); if (savingRef.current || !result.ok) { e.preventDefault(); e.returnValue = ''; } };
+        const hide = () => { flushDrafts(false); };
+        const navigating = (event: MouseEvent) => {
+            if (!savingRef.current || !(event.target instanceof Element)) return;
+            const anchor = event.target.closest('a[href]');
+            if (anchor && anchor.getAttribute('target') !== '_blank') { event.preventDefault(); event.stopPropagation(); setNotice('저장이 끝난 뒤 다른 화면으로 이동해 주세요.'); }
+        };
         window.addEventListener('beforeunload', h);
-        return () => window.removeEventListener('beforeunload', h);
-    }, [dirty]);
+        window.addEventListener('pagehide', hide);
+        document.addEventListener('click', navigating, true);
+        return () => { flushDrafts(false); mounted.current = false; generation.current++; window.removeEventListener('beforeunload', h); window.removeEventListener('pagehide', hide); document.removeEventListener('click', navigating, true); };
+    }, [flushDrafts]);
+    const resolveDraft = (row: Reservation, restore: boolean) => {
+        const pending = pendingRef.current[row.id]; if (!pending || savingRef.current) return;
+        if (restore) {
+            const a = pending.draft.assignment;
+            setReservations(prev => prev.map(r => r.id === row.id ? { ...r, assignedGuide: a.guide,
+                dailyAccommodations: a.accommodations, contractData: { ...r.contractData, vehicle: a.vehicle } } : r));
+            markDirty(row.id);
+        } else {
+            const result = discardAssignmentDraft(window.localStorage, draftScope(row), pending.draft.revision);
+            if (!result.ok) { setNotice(result.error); return; }
+        }
+        const next = { ...pendingRef.current }; delete next[row.id]; pendingRef.current = next; setPendingDrafts(next);
+        setMaterialized(prev => new Set(prev).add(row.id));
+        setNotice(restore ? '초안을 복원했습니다. 확인 후 저장해야 서버에 반영됩니다.' : '초안을 버리고 현재 서버 정보를 유지합니다.');
+    };
     // 일차 번호를 날짜순으로 1..N 재부여 — 2~5처럼 어긋난 옛 데이터를 예약 상세·확정 일정표와 맞춘다
     const renumberDays = (rId: string) => {
+        if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
             const rows = [...(r.dailyAccommodations || [])];
@@ -288,6 +393,7 @@ export const AdminAccommodationOps: React.FC = () => {
     };
     // 인덱스 기준 편집(일차 번호·날짜를 직접 수정해도 안전)
     const patchDay = (rId: string, idx: number, patch: Partial<DailyAcc['accommodation']>) => {
+        if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
             const rows = (r.dailyAccommodations || []).map((d, i) => i === idx ? { ...d, accommodation: { ...d.accommodation, ...patch } } : d);
@@ -297,6 +403,7 @@ export const AdminAccommodationOps: React.FC = () => {
     };
     // 일차(번호)·날짜 직접 편집
     const patchDayMeta = (rId: string, idx: number, patch: { day?: number; date?: string }) => {
+        if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
             const rows = (r.dailyAccommodations || []).map((d, i) => i === idx ? { ...d, ...patch } : d);
@@ -305,6 +412,7 @@ export const AdminAccommodationOps: React.FC = () => {
         markDirty(rId);
     };
     const addDay = (rId: string) => {
+        if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
             const rows = [...(r.dailyAccommodations || [])];
@@ -317,6 +425,7 @@ export const AdminAccommodationOps: React.FC = () => {
         markDirty(rId);
     };
     const removeDay = (rId: string, idx: number) => {
+        if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
             const rows = (r.dailyAccommodations || []).filter((_, i) => i !== idx);
@@ -324,36 +433,44 @@ export const AdminAccommodationOps: React.FC = () => {
         }));
         markDirty(rId);
     };
+    const populateNights = (row: Reservation) => {
+        if (savingRef.current || pendingRef.current[row.id]) return;
+        setReservations(prev => prev.map(r => r.id === row.id ? { ...r, dailyAccommodations: Array.from({ length: nightsOf(r) }, (_, i) => ({ day: i + 1, date: isoOffset(r.startDate, i), accommodation: {} })) } : r));
+        markDirty(row.id);
+    };
     // 담당 가이드(assignedGuide)·차량(contractData.vehicle) 편집 — 기존 컬럼에 저장(마이그레이션 불필요)
     const patchGuide = (rId: string, patch: { name?: string; phone?: string }) => {
-        setReservations(prev => prev.map(r => r.id === rId ? { ...r, assignedGuide: { ...(r.assignedGuide || {}), ...patch } } : r));
+        if (savingRef.current || pendingRef.current[rId]) return;
+        setReservations(prev => prev.map(r => r.id === rId ? { ...r, assignedGuide: { ...(r.assignedGuide || {}), ...(patch.name !== undefined && patch.name !== r.assignedGuide?.name ? { id: '' } : {}), ...patch } } : r));
         markDirty(rId);
     };
     const patchVehicle = (rId: string, patch: { type?: string; phone?: string }) => {
+        if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => r.id === rId
             ? { ...r, contractData: { ...(r.contractData || {}), vehicle: { ...(r.contractData?.vehicle || {}), ...patch } } }
             : r));
         markDirty(rId);
     };
     const save = async (r: Reservation) => {
+        if (savingRef.current || pendingRef.current[r.id]) return;
+        savingRef.current = r.id;
         setSavingId(r.id);
+        const requestGeneration = generation.current;
+        const local = writeAssignmentDraft(window.localStorage, draftScope(r), r.version, editorAssignment(r));
+        if (local.ok && local.revision) storedSnapshots.current.set(r.id, r.version + assignmentFingerprint(editorAssignment(r)));
         try {
-            // 전체 객체를 보내면 이 화면이 로드된 뒤 다른 곳(예약 상세·고객 계약서)에서 바뀐
-            // 필드를 오래된 복사본으로 덮어쓴다. 최신본을 다시 읽어, 이 보드가 편집하는
-            // 필드(숙소 배정·가이드·차량)만 얹어 부분 저장한다.
-            let fresh: any = null;
-            try { fresh = await api.reservations.get(r.id); } catch { fresh = null; }
-            const payload: any = {
-                dailyAccommodations: r.dailyAccommodations || [],
-                assignedGuide: { ...((fresh?.assignedGuide) || {}), ...(r.assignedGuide || {}) },
-                contractData: { ...((fresh?.contractData) || (r.contractData || {})), vehicle: r.contractData?.vehicle },
-            };
-            await api.reservations.update(r.id, payload);
-            setDirty(prev => { const n = new Set(prev); n.delete(r.id); return n; });
+            const data = await assignmentRequest(`/${r.source}/${encodeURIComponent(r.bookingId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expectedVersion: r.version, assignment: editorAssignment(r) }) });
+            if (!mounted.current || requestGeneration !== generation.current) return;
+            setReservations(prev => prev.map(x => x.id === r.id ? fromApi(data.item) : x));
+            dirtyRef.current.delete(r.id); setDirty(new Set(dirtyRef.current));
+            storedSnapshots.current.delete(r.id);
+            const result = local.ok && local.revision ? discardAssignmentDraft(window.localStorage, draftScope(r), local.revision) : { ok: true } as const;
+            setNotice(!local.ok ? '서버 저장은 완료했습니다. 다만 브라우저 초안 저장소를 확인해 주세요. ' + local.error : result.ok ? '배정 정보를 저장했습니다.' : result.error);
         } catch (e: any) {
-            alert('Хадгалах амжилтгүй: ' + (e?.message || e));
+            if (mounted.current && requestGeneration === generation.current) setNotice((e?.message || '저장하지 못했습니다.') + (local.ok ? ' 변경 내용과 브라우저 초안을 유지합니다.' : ' 화면의 변경 내용은 유지합니다. ' + local.error));
         } finally {
-            setSavingId(null);
+            if (mounted.current && requestGeneration === generation.current) { savingRef.current = null; setSavingId(null); }
         }
     };
 
@@ -361,8 +478,11 @@ export const AdminAccommodationOps: React.FC = () => {
         <AdminLayout
             activePage="accommodation-ops"
             title="Байр захиалгын удирдлага"
-            actions={<button type="button" onClick={load} className="btn"><Icon name="refresh" />Шинэчлэх</button>}
+            actions={<button type="button" onClick={load} disabled={loading || !!savingId} className="btn"><Icon name="refresh" />Шинэчлэх</button>}
         >
+            {notice && <div className="card card-pad" role="status" style={{ marginBottom: 12 }}>{notice}</div>}
+            {loadWarnings.map((warning, i) => <div key={i} role="alert" className="card card-pad" style={{ marginBottom: 12, color: '#8A5A12' }}>{warning}</div>)}
+            {Object.keys(pendingDrafts).length > 0 && <div className="card card-pad" role="status" style={{ marginBottom: 12 }}>복구 가능한 배정 초안 {Object.keys(pendingDrafts).length}건이 있습니다. 펼친 예약에서 복원 또는 버리기를 선택하세요.</div>}
             <div className="route-anim">
                 <div className="toolbar" style={{ flexWrap: 'wrap', gap: 8 }}>
                     <label className="tb-search">
@@ -479,7 +599,7 @@ export const AdminAccommodationOps: React.FC = () => {
                                                 <td><span style={{ display: 'inline-block', padding: '3px 9px', borderRadius: 999, fontSize: 12, fontWeight: 800, background: sty.bg, color: sty.fg }}>{sum.label}</span></td>
                                                 <td style={{ fontWeight: 700 }}>
                                                     {r.customerName || '-'}
-                                                    {r.type === 'quote' && <span style={{ marginLeft: 6, padding: '1px 7px', borderRadius: 999, fontSize: 10, fontWeight: 800, background: '#EEEDFE', color: '#534AB7' }}>Үнийн санал</span>}
+                                                    {(r.type === 'quote' || r.source === 'quote_booking') && <span style={{ marginLeft: 6, padding: '1px 7px', borderRadius: 999, fontSize: 10, fontWeight: 800, background: '#EEEDFE', color: '#534AB7' }}>Үнийн санал</span>}
                                                     {r.reservationNumber && <span className="cell-muted" style={{ marginLeft: 6, fontSize: 11 }}>#{r.reservationNumber}</span>}
                                                 </td>
                                                 <td>{fmtDate(r.startDate)} ~ {fmtDate(r.endDate)}</td>
@@ -499,6 +619,13 @@ export const AdminAccommodationOps: React.FC = () => {
                                                 <tr>
                                                     <td colSpan={9} style={{ padding: 0, background: 'var(--surface-canvas, #F7F8FA)' }}>
                                                         <div style={{ padding: '14px 18px 18px' }}>
+
+                                                            {pendingDrafts[r.id] && <div className="card card-pad" style={{ marginBottom: 12 }} role="status">
+                                                                <p>{pendingDrafts[r.id].conflict ? '초안 보관 후 서버 예약이 변경되었습니다. 현재 예약에 초안 배정을 적용할지 확인하세요.' : '이 계정과 예약에 보관된 배정 초안이 있습니다.'}</p>
+                                                                <button className="btn btn-ink btn-sm" disabled={!!savingId} onClick={() => resolveDraft(r, true)}>초안 복원</button>{' '}
+                                                                <button className="btn btn-ghost btn-sm" disabled={!!savingId} onClick={() => resolveDraft(r, false)}>초안 버리기</button>
+                                                            </div>}
+                                                            <fieldset disabled={!!savingId || !!pendingDrafts[r.id]} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
 
                                                             {/* ── Аяллын мэдээлэл (수배서 정보) ── */}
                                                             <div style={{ background: '#fff', border: '1px solid var(--color-border-tertiary, #E6E8EC)', borderRadius: 12, padding: 14, marginBottom: 14 }}>
@@ -545,7 +672,7 @@ export const AdminAccommodationOps: React.FC = () => {
                                                             {/* ── Өдөр тутмын байр ── */}
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
                                                                 <b style={{ fontSize: 13 }}>Өдөр тутмын байрны захиалга</b>
-                                                                <a className="btn btn-sm" href={`/admin/reservations?open=${r.id}`} title="통합 예약 관리에서 이 예약 상세를 엽니다.">
+                                                                <a className="btn btn-sm" href={r.source === 'quote_booking' ? quoteCustomerHref(r.bookingId, '/admin/accommodation-ops') : productCustomerHref(r.bookingId, '/admin/accommodation-ops')} title="고객 통합 작업 화면에서 이 예약을 엽니다.">
                                                                     <Icon name="assignment" />Захиалгын дэлгэрэнгүй
                                                                 </a>
                                                                 <div style={{ flex: 1 }} />
@@ -553,7 +680,7 @@ export const AdminAccommodationOps: React.FC = () => {
                                                                     <Icon name="format_list_numbered" />Огноогоор цэгцлэх
                                                                 </button>
                                                                 {isDirty && <span style={{ fontSize: 12, fontWeight: 700, color: '#B45309' }}>Өөрчлөгдсөн ·</span>}
-                                                                <button type="button" className="btn btn-ink btn-sm" disabled={!isDirty || savingId === r.id} onClick={() => save(r)}>
+                                                                <button type="button" className="btn btn-ink btn-sm" disabled={!isDirty || !!savingId} onClick={() => save(r)}>
                                                                     <Icon name="save" />{savingId === r.id ? 'Хадгалж байна…' : 'Хадгалах'}
                                                                 </button>
                                                             </div>
@@ -575,7 +702,7 @@ export const AdminAccommodationOps: React.FC = () => {
                                                                         {rows.map((d, idx) => {
                                                                             const acc = d.accommodation || {};
                                                                             const hasName = (acc.name || '').trim().length > 0;
-                                                                            const st: BookingStatus | 'Хуваарилаагүй' = hasName ? (acc.bookingStatus || 'Илгээгээгүй') : 'Хуваарилаагүй';
+                                                                            const st = hasName ? (acc.bookingStatus || 'Илгээгээгүй') : 'Хуваарилаагүй';
                                                                             const sts = statusStyle(st);
                                                                             return (
                                                                                 <tr key={idx}>
@@ -667,6 +794,7 @@ export const AdminAccommodationOps: React.FC = () => {
                                                                 </table>
                                                             </div>
                                                             <button type="button" className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => addDay(r.id)}><Icon name="add" />Өдөр нэмэх</button>
+                                                            {rows.length === 0 && nightsOf(r) > 0 && <button type="button" className="btn btn-sm" style={{ marginTop: 10, marginLeft: 8 }} onClick={() => populateNights(r)}><Icon name="add" />Шөнийн тоогоор мөр үүсгэх</button>}
 
                                                             {/* ── Хариуцсан гайд ба тээвэр (가이드·차량) ── */}
                                                             <div style={{ background: '#fff', border: '1px solid var(--color-border-tertiary, #E6E8EC)', borderRadius: 12, padding: 14, marginTop: 14 }}>
@@ -690,6 +818,7 @@ export const AdminAccommodationOps: React.FC = () => {
                                                                     </div>
                                                                 </div>
                                                             </div>
+                                                            </fieldset>
                                                         </div>
                                                     </td>
                                                 </tr>

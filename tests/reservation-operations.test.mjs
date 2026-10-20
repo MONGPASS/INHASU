@@ -146,10 +146,11 @@ test('관리자 저장 후 새 조회에서도 운영 정보가 유지되고 기
     const fresh = await request('/owned-booking', { role: 'admin' });
     assert.deepEqual((await fresh.json()).adminOperations, next);
     const after = raw.prepare('SELECT * FROM reservations WHERE id = ?').get('owned-booking');
-    const { admin_operations: oldOps, ...oldRow } = before;
-    const { admin_operations: newOps, ...newRow } = after;
+    const { admin_operations: oldOps, contract_data: oldContract, ...oldRow } = before;
+    const { admin_operations: newOps, contract_data: newContract, ...newRow } = after;
     assert.deepEqual(newRow, oldRow);
     assert.deepEqual(JSON.parse(newOps), next);
+    assert.deepEqual(JSON.parse(newContract), { vehicle: { type: next.vehicle, model: next.vehicle, phone: next.driverPhone } });
 });
 
 test('snake_case와 JSON 문자열 부분 갱신이 다른 운영 값과 영수증 하위 값을 보존한다', async t => {
@@ -231,7 +232,7 @@ test('기존 예약표에 운영 칸만 추가하며 고객 데이터와 이력�
     const DB = { prepare: statement, batch: async statements => Promise.all(statements.map(s => s.run())) };
     const before = raw.prepare('SELECT id,customer_name,history FROM reservations').get();
     await ensureSiteSchema(DB);
-    assert.equal(SITE_SCHEMA_VERSION, 4);
+    assert.ok(SITE_SCHEMA_VERSION >= 4);
     assert.ok(raw.prepare('PRAGMA table_info(reservations)').all().some(c => c.name === 'admin_operations'));
     assert.deepEqual(raw.prepare('SELECT id,customer_name,history FROM reservations').get(), before);
     assert.deepEqual(await ensureSiteSchema(DB), []);

@@ -1,0 +1,172 @@
+/* Full customer pages share the same spacing as the overview. Legacy drawers keep their layout. */
+.admin-app-wrapper:has(.product-customer-page) { --content-max: 1880px; }
+.admin-app-wrapper .content:has(.product-customer-page) { padding: 0 24px 40px; }
+.product-customer-page .product-customer-controls { max-width: 1816px; margin: 8px auto 24px; padding: 0 8px; }
+.product-customer-page .cw-detail-workspace { max-width: 1816px; margin: 0 auto; border-color: #e4e9ef; border-radius: 20px; background: #f6f7f9; overflow: visible; }
+.product-customer-page .cw-detail-workspace [hidden] { display: none!important; }
+.product-customer-page .cw-detail-workspace .cw-detail-toolbar { gap: 16px; flex-wrap: wrap; padding: 24px 28px; border-bottom: 1px solid #edf0f3; border-radius: 20px 20px 0 0; }
+.cw-detail-identity { min-width: 0; flex: 1; }
+.cw-detail-eyebrow { display: block; margin-bottom: 4px; color: #00947e; font-size: 12px; font-weight: 650; }
+.cw-detail-identity h2 { margin: 0; color: #191f28; font-size: 20px; font-weight: 750; letter-spacing: -.5px; }
+.cw-detail-identity p { margin: 6px 0 0; color: #6b7684; font-size: 13px; overflow-wrap: anywhere; }
+.product-customer-page .cw-detail-workspace .cw-work-tabs { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; padding: 16px 24px; border-bottom: 1px solid #edf0f3; overflow: visible; background: white; top: var(--header-h, 72px); z-index: 6; }
+.product-customer-page .cw-detail-workspace .cw-work-tabs > button { display: flex; align-items: center; justify-content: flex-start; gap: 10px; min-width: 0; min-height: 72px; padding: 12px; border: 1px solid transparent; border-radius: 12px; color: #6b7684; background: white; text-align: left; white-space: normal; }
+.product-customer-page .cw-detail-workspace .cw-work-tabs > button.active { background: #eaf7f2; color: #008571; border-color: #c7e9de; }
+.product-customer-page .cw-detail-workspace .cw-work-tabs > button:hover:not(:disabled) { background: #f4f7f8; }
+.product-customer-page .cw-detail-workspace .cw-work-tabs > button.active:hover:not(:disabled) { background: #e1f3ec; }
+.cw-work-tabs > button > .material-symbols-outlined { font-size: 22px; flex-shrink: 0; }
+.cw-work-tab-copy { display: grid; gap: 4px; min-width: 0; }
+.cw-work-tab-copy strong { font-size: 14px; font-weight: 650; letter-spacing: -.3px; }
+.cw-work-tab-copy small { font-size: 12px; line-height: 1.5; color: #6b7684; font-weight: 400; }
+.cw-detail-notice { margin: 16px 28px 0; padding: 12px 16px; border-radius: 10px; color: #8b5b16; background: #fff4df; font-size: 13px; }
+.product-customer-page .cw-detail-workspace .reservation-workspace-main { background: #f6f7f9; }
+.product-customer-page .cw-detail-workspace .reservation-workspace-body { padding: 28px!important; }
+.product-customer-page .cw-detail-workspace .reservation-workspace-body > .stack { max-width: 1480px; margin: 0 auto; }
+.cw-detail-workspace .reservation-workspace-body section[id] { scroll-margin-top: 200px!important; }
+.cw-panel-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 0 0 4px; }
+.cw-panel-heading h2 { margin: 0; color: #191f28; font-size: 22px; font-weight: 750; letter-spacing: -.5px; }
+.cw-panel-heading p { margin: 6px 0 0; color: #6b7684; font-size: 13px; }
+.cw-panel-heading > span { font-size: 12px; color: #6b7684; }
+.product-customer-page .cw-detail-workspace .card { border: 1px solid #e6ebf0; border-radius: 16px; box-shadow: none; }
+.product-customer-page .cw-detail-workspace .card-head { gap: 12px; padding: 20px 24px; min-height: 72px; flex-wrap: wrap; border-bottom-color: #edf0f3; }
+.product-customer-page .cw-detail-workspace .card-head h2 { font-size: 17px; line-height: 1.5; color: #191f28; letter-spacing: -.4px; }
+.product-customer-page .cw-detail-workspace .card-head p { font-size: 13px; color: #6b7684; line-height: 1.7; }
+.product-customer-page .cw-detail-workspace .card-pad { padding: 20px 24px!important; }
+.product-customer-page .cw-detail-workspace .kv { min-height: 52px; padding: 14px 0; align-items: center; gap: 20px; font-size: 14px; border-color: #edf0f3; }
+.product-customer-page .cw-detail-workspace .kv > span:first-child { color: #6b7684; font-size: 13px; }
+.product-customer-page .cw-detail-workspace .kv > b { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.product-customer-page .cw-detail-workspace .cell-price { color: #191f28; font-variant-numeric: tabular-nums; }
+.product-customer-page .cw-detail-workspace .pay-cell { padding: 20px; border-radius: 12px; border-color: #e4e9ef; }
+.product-customer-page .cw-detail-workspace .ring-n { display: flex; align-items: center; justify-content: center; gap: 2px; }
+.product-customer-page .cw-detail-workspace .inp { min-height: 44px; border-color: #dfe4eb; border-radius: 10px; font-size: 14px; padding: 10px 12px; max-width: 100%; }
+.product-customer-page .cw-detail-workspace textarea.inp { min-height: 100px; line-height: 1.7; }
+.product-customer-page .cw-detail-workspace .btn { min-height: 40px; height: auto; padding: 9px 14px; border-radius: 10px; font-size: 14px; }
+.product-customer-page .cw-detail-workspace .btn-sm { min-height: 36px; padding: 8px 12px; font-size: 13px; }
+.product-customer-page .cw-detail-workspace .rw-document-grid { gap: 20px; padding: 24px; }
+.product-customer-page .cw-detail-workspace .rw-document-card { padding: 24px; border-color: #e6ebf0; border-radius: 14px; background: #fff; }
+.product-customer-page .cw-detail-workspace .rw-document-card h3 { color: #191f28; font-size: 18px; font-weight: 750; }
+.product-customer-page .cw-detail-workspace .rw-document-card > p { font-size: 13px; color: #6b7684; line-height: 1.7; margin: 12px 0 20px; }
+.product-customer-page .cw-detail-workspace .rw-field { gap: 8px; font-size: 14px; }
+.product-customer-page .cw-detail-workspace .rw-field > span { font-size: 13px; font-weight: 600; color: #4e5968; }
+.product-customer-page .cw-detail-workspace .rw-primary-actions { gap: 8px; flex-wrap: wrap; margin: 20px 0 12px; }
+.product-customer-page .cw-detail-workspace .rw-secondary-actions { gap: 8px 16px; flex-wrap: wrap; }
+.product-customer-page .cw-detail-workspace .rw-secondary-actions button { min-height: 36px; font-size: 13px; }
+.product-customer-page .cw-detail-workspace .rw-contract-summary { padding: 16px; gap: 14px; background: #f6f8fa; border: 0; border-radius: 12px; font-size: 13px; }
+.product-customer-page .cw-detail-workspace .rw-delivery { gap: 12px; margin-top: 24px; padding-top: 20px; border-color: #edf0f3; font-size: 12px; flex-wrap: wrap; }
+.product-customer-page .cw-detail-workspace .rw-document-footer { padding: 20px 24px; background: #f8fafb; gap: 16px; border-color: #edf0f3; }
+.product-customer-page .cw-detail-workspace .rw-document-footer p { font-size: 12px; line-height: 1.7; }
+.product-customer-page .cw-detail-workspace .rw-documents:has(.ri-editor) > :is(.rw-document-grid, .rw-document-footer, .rw-schedule-summary) { display: none; }
+.product-customer-page .cw-detail-workspace .ri-heading h2 { font-size: 20px; color: #191f28; }
+.product-customer-page .cw-detail-workspace .ri-heading p, .product-customer-page .cw-detail-workspace .ri-library-note, .product-customer-page .cw-detail-workspace .ri-modes > span { font-size: 13px; color: #6b7684; }
+.product-customer-page .cw-detail-workspace .ri-field { gap: 8px; color: #4e5968; font-size: 13px; }
+.product-customer-page .cw-detail-workspace .ri-field :is(input, select, textarea) { min-height: 44px; padding: 10px 12px; border-radius: 10px; border-color: #dfe4eb; font-size: 14px; }
+.product-customer-page .cw-detail-workspace .ri-modes { padding: 16px 24px; background: #f8fafb; }
+.product-customer-page .cw-detail-workspace .ri-modes button { min-height: 40px; font-size: 14px; border-radius: 10px; }
+.product-customer-page .cw-detail-workspace .ri-basics { padding: 20px; gap: 20px; background: #f6f8fa; border-color: #e6ebf0; }
+.product-customer-page .cw-detail-workspace .quote-day-editor .day-edit { padding: 20px; margin-bottom: 20px; background: #fafbfd; border-color: #e6ebf0; border-radius: 14px; }
+.product-customer-page .cw-detail-workspace .quote-day-editor .day-edit :is(input, select) { min-height: 42px; font-size: 14px; }
+.product-customer-page .cw-detail-workspace .quote-day-editor .day-edit textarea { font-size: 14px; line-height: 1.8; }
+.product-customer-page .cw-detail-workspace .quote-day-editor .snip-hint { font-size: 12px; color: #6b7684; }
+.product-customer-page .cw-detail-workspace .ri-savebar { padding: 20px 24px; background: #f7faf8; }
+.product-customer-page .cw-detail-workspace .rw-schedule-summary { margin: 0 24px 24px; padding: 16px; border-color: #e6ebf0; border-radius: 12px; font-size: 13px; }
+.product-customer-page .cw-detail-workspace .delivery-history { border-radius: 16px; padding: 24px; font-size: 14px; }
+.product-customer-page .cw-detail-workspace .delivery-workflow { display: none; }
+.reservation-workspace.product-workspace .rw-operations-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 24px; }
+.rw-operations-group { min-width: 0; border: 1px solid #e6ebf0; border-radius: 14px; padding: 20px; background: white; }
+.rw-operations-group h3 { margin: 0 0 6px; color: #333d4b; font-size: 16px; font-weight: 650; }
+.rw-operations-group p { margin: 0 0 20px; color: #6b7684; font-size: 12px; line-height: 1.7; }
+.rw-operations-group-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 16px; }
+.rw-operations-group-wide { grid-column: 1 / -1; }
+.product-customer-page .cw-detail-workspace .drawer-foot { padding: 16px 28px; border-color: #e6ebf0; box-shadow: 0 -4px 16px #19242e04; }
+.product-customer-page .cw-detail-workspace :is(button, input, select, textarea):focus-visible { outline: 3px solid #8bd8c6; outline-offset: 2px; }
+@media (max-width: 1500px) {
+    .product-customer-page .cw-detail-workspace .cw-work-tabs { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; padding: 12px 20px; }
+    .product-customer-page .cw-detail-workspace .cw-work-tabs > button { min-height: 64px; padding: 10px 12px; }
+    .cw-detail-workspace .reservation-workspace-body section[id] { scroll-margin-top: 260px!important; }
+}
+@media (max-width: 1100px) {
+    .reservation-workspace.product-workspace .rw-operations-fields { grid-template-columns: minmax(0,1fr); }
+    .product-customer-page .cw-detail-workspace .rw-document-grid { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 760px) {
+    .admin-app-wrapper .content:has(.product-customer-page) { padding: 0 8px 24px; }
+    .product-customer-page .cw-detail-workspace .cw-detail-toolbar { padding: 20px; }
+    .product-customer-page .cw-detail-workspace .cw-work-tabs { display: flex; overflow-x: auto; gap: 8px; padding: 12px; }
+    .product-customer-page .cw-detail-workspace .cw-work-tabs > button { min-height: 44px; padding: 10px 12px; flex-shrink: 0; }
+    .cw-work-tab-copy small { display: none; }
+    .product-customer-page .cw-detail-workspace .reservation-workspace-body { padding: 16px!important; }
+    .cw-detail-workspace .reservation-workspace-body section[id] { scroll-margin-top: 150px!important; }
+    .product-customer-page .cw-detail-workspace .rw-document-grid, .product-customer-page .cw-detail-workspace .rw-operations-fields { padding: 16px; gap: 16px; }
+    .product-customer-page .cw-detail-workspace .rw-document-card { padding: 20px; }
+    .rw-operations-group-fields { grid-template-columns: minmax(0,1fr); gap: 16px; }
+    .product-customer-page .cw-detail-workspace .drawer-foot { padding: 12px 16px; }
+}
+
+/* Keep customer context, work navigation and actions in place while only the form scrolls. */
+.admin-app-wrapper .content:has(.cw-is-working) { padding: 0 20px 12px; min-height: 0; }
+.product-customer-page #product-customer-overview[hidden] { display: none!important; }
+.cw-resume-work { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 16px 32px 0; padding: 14px 20px; border: 1px solid #cbe8df; border-radius: 14px; background: #edf8f3; }
+.cw-resume-work > div { display: grid; gap: 4px; min-width: 0; }
+.cw-resume-work strong { color: #176b55; font-size: 14px; }
+.cw-resume-work span { font-size: 12px; color: #5b776b; }
+.product-customer-page .cw-focus-workspace { display: flex; flex-direction: column; height: calc(100dvh - var(--header-h, 72px) - 28px); min-height: 0; margin: 12px auto 0; overflow: hidden; border-radius: 18px; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-detail-toolbar { flex: none; gap: 16px; padding: 14px 20px; min-height: 82px; flex-wrap: nowrap; }
+.cw-focus-workspace .cw-overview-back { flex: none; }
+.cw-focus-workspace .cw-refresh-control { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: 0 1 230px; min-width: 0; }
+.cw-focus-workspace .cw-refresh-control > button { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 6px 8px; border: 0; border-radius: 8px; background: #f7f9fb; color: #4e5968; font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; }
+.cw-focus-workspace .cw-refresh-control > button:disabled { opacity: .45; cursor: default; }
+.cw-focus-workspace .cw-refresh-control > button .material-symbols-outlined { font-size: 16px; }
+.cw-focus-workspace .cw-refresh-status { color: #8b95a1; font-size: 11px; text-align: right; }
+.cw-focus-workspace .cw-refresh-hint { display: none; }
+.cw-focus-workspace .cw-refresh-notice { margin: 0; color: #94672c; font-size: 12px; }
+.cw-focus-workspace .cw-detail-identity h2 { font-size: 18px; }
+.cw-focus-workspace .cw-detail-identity h2 > span { margin-left: 8px; font-size: 12px; font-weight: 500; color: #6b7684; }
+.cw-focus-workspace .cw-detail-identity p { margin-top: 4px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs { position: static; display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); flex: none; gap: 6px; padding: 8px 16px; overflow-x: auto; min-height: 74px; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs > button { min-height: 56px; padding: 8px 12px; gap: 8px; }
+.cw-focus-workspace .cw-work-tab-copy { gap: 2px; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .reservation-workspace-main { display: flex; flex-direction: column; flex: 1; min-height: 0; height: auto; overflow: hidden; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .reservation-workspace-body.drawer-body { flex: 1; min-height: 0; height: auto; max-height: none; padding: 20px!important; overflow-y: auto; overscroll-behavior-y: contain; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .reservation-workspace-body section[id] { scroll-margin-top: 12px!important; }
+.cw-focus-workspace .cw-detail-notice { flex: none; margin: 8px 20px; padding: 10px 14px; }
+.product-customer-page .product-customer-fullpage .cw-focus-workspace .drawer-foot { position: static; display: flex; align-items: center; justify-content: space-between; flex: none; gap: 20px; min-height: 76px; padding: 12px 20px; }
+.cw-action-status { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.cw-action-status strong { color: #333d4b; font-size: 13px; }
+.cw-action-status span { color: #6b7684; font-size: 12px; line-height: 1.6; }
+.cw-action-status[role=alert] span { color: #a15219; }
+.cw-action-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
+.product-customer-page .cw-focus-workspace .rw-documents:has(.ri-editor) { border: 0; background: transparent; overflow: visible; }
+.product-customer-page .cw-focus-workspace .rw-documents:has(.ri-editor) > .rw-section-head { display: none; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow { margin: 0; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-draft-status.is-idle { display: none; }
+.product-customer-page .cw-focus-workspace .ri-editor-tools { position: sticky; top: 0; z-index: 3; background: white; box-shadow: 0 3px 8px #19242e05; }
+.product-customer-page .cw-focus-workspace .ri-editor-tools::before { content: ''; position: absolute; inset: -20px 0 auto; height: 20px; background: white; pointer-events: none; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow :is(.day-edit, .ri-spots, .ri-spots-collapsible) { scroll-margin-top: 136px!important; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation { flex-wrap: nowrap; overflow-x: auto; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation > * { flex-shrink: 0; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow :is(.ri-modes, .ri-day-navigation) { padding: 10px 20px; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-basics { padding: 16px; margin-bottom: 20px; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-savebar { border: 0; padding: 12px 24px; background: transparent; }
+@media (max-width: 1280px) {
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs { display: flex; }
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs > button { flex: 1 0 auto; min-width: 144px; }
+    .cw-focus-workspace .cw-work-tab-copy small { display: none; }
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs { min-height: 62px; }
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-work-tabs > button { min-height: 44px; }
+}
+@media (max-width: 760px) {
+    .admin-app-wrapper .content:has(.cw-is-working) { padding: 0 8px 8px; }
+    .product-customer-page .cw-focus-workspace { height: calc(100dvh - var(--header-h, 72px) - 20px); margin-top: 8px; }
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-detail-toolbar { min-height: 76px; padding: 12px; gap: 10px; }
+    .cw-focus-workspace .cw-detail-toolbar > .btn:last-child { display: none; }
+    .cw-focus-workspace .cw-refresh-control { display: none; }
+    .cw-focus-workspace .cw-detail-identity h2 { font-size: 16px; }
+    .product-customer-page .product-customer-fullpage .cw-focus-workspace .drawer-foot { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+    .cw-action-status { flex-basis: 100%; }
+    .cw-action-status span { display: none; }
+    .cw-action-status[role=alert] span { display: block; }
+    .cw-action-buttons { flex: 1; flex-wrap: wrap; }
+    .product-customer-page .cw-focus-workspace .ri-editor-workflow :is(.day-edit, .ri-spots, .ri-spots-collapsible) { scroll-margin-top: 176px!important; }
+    .product-customer-page .cw-focus-workspace .cw-action-buttons .btn { font-size: 13px; padding: 9px 10px; }
+    .cw-resume-work { margin: 12px; flex-wrap: wrap; }
+}

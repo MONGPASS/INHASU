@@ -1,7 +1,7 @@
 #:schema node_modules/wrangler/config-schema.json
 # Cloudflare Pages 설정 — 몽골리아 은하수 통합 플랫폼
 # (여행상품 사이트 + 맞춤 견적 시스템이 한 프로젝트로 배포됩니다)
-name = "milkway-mongolia"
+name = "inhasu"
 compatibility_date = "2024-09-23"
 pages_build_output_dir = "./dist"   # `npm run build` 결과물 (견적 정적 페이지 포함)
 

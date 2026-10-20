@@ -1135,3 +1135,40 @@
 .admin-app-wrapper .tcom .link-action { color: #287DFA; font-size: 12.5px; }
 .admin-app-wrapper .tcom .link-action:hover { background: #EAF3FF; }
 
+/* A customer workspace needs the full narrow viewport for its forms. The same
+   existing navigation remains available in a drawer; other admin layouts retain
+   their current sidebar and header. */
+.admin-app-wrapper .admin-customer-menu-panel,
+.admin-app-wrapper .admin-customer-header-actions { display: contents; }
+.admin-app-wrapper .admin-customer-menu-toggle,
+.admin-app-wrapper .admin-customer-menu-close,
+.admin-app-wrapper .admin-customer-menu-backdrop,
+.admin-app-wrapper .admin-customer-actions-toggle { display: none; }
+@media (max-width: 760px) {
+  .admin-app-wrapper .app.admin-customer-layout { --header-h: 72px; }
+  .admin-app-wrapper .admin-customer-layout > .main { width: 100%; margin-left: 0; }
+  .admin-app-wrapper .admin-customer-layout .admin-customer-menu-panel { display: none; }
+  .admin-app-wrapper .admin-customer-layout.admin-customer-menu-open .admin-customer-menu-panel { display: block; position: fixed; inset: 0 auto 0 0; z-index: 101; width: min(300px, calc(100vw - 48px)); }
+  .admin-app-wrapper .admin-customer-layout.admin-customer-menu-open .side { position: static; width: 100%; height: 100%; }
+  .admin-app-wrapper .admin-customer-layout.admin-customer-menu-open .side-brand { min-height: 78px; padding-right: 52px; }
+  .admin-app-wrapper .admin-customer-layout.admin-customer-menu-open .brand-name { font-size: 16px; }
+  .admin-app-wrapper .admin-customer-layout.admin-customer-menu-open .admin-customer-menu-backdrop { display: block; position: fixed; inset: 0; z-index: 100; border: 0; background: #10253666; cursor: pointer; }
+  .admin-app-wrapper .admin-customer-layout .admin-customer-menu-toggle,
+  .admin-app-wrapper .admin-customer-layout .admin-customer-actions-toggle,
+  .admin-app-wrapper .admin-customer-layout.admin-customer-menu-open .admin-customer-menu-close { display: grid; place-items: center; flex: none; width: 36px; height: 36px; padding: 0; border: 1px solid #e4e9ef; border-radius: 10px; background: #fff; color: #4e5968; cursor: pointer; }
+  .admin-app-wrapper .admin-customer-layout .admin-customer-menu-close { position: absolute; top: 18px; right: 10px; z-index: 1; }
+  .admin-app-wrapper .admin-customer-layout :is(.admin-customer-menu-toggle,.admin-customer-menu-close,.admin-customer-actions-toggle):focus-visible { outline: 2px solid #27ab8f; outline-offset: 3px; }
+  .admin-app-wrapper .admin-customer-layout .header { flex: none; padding: 0 12px; }
+  .admin-app-wrapper .admin-customer-layout .header-in { height: 72px; min-height: 72px; gap: 10px; }
+  .admin-app-wrapper .admin-customer-layout .admin-layout-heading { flex: 1; overflow: hidden; }
+  .admin-app-wrapper .admin-customer-layout .admin-layout-heading > .cell-muted,
+  .admin-app-wrapper .admin-customer-layout .header-spacer { display: none; }
+  .admin-app-wrapper .admin-customer-layout .page-title { overflow: hidden; font-size: 18px; text-overflow: ellipsis; }
+  .admin-app-wrapper .admin-customer-layout .eyebrow { font-size: 10px; }
+  .admin-app-wrapper .admin-customer-layout .header-tools { gap: 6px; }
+  .admin-app-wrapper .admin-customer-layout .admin-toolbar { gap: 6px; }
+  .admin-app-wrapper .admin-customer-layout .admin-customer-header-actions { display: none; position: absolute; top: 64px; right: 12px; z-index: 95; width: min(300px, calc(100vw - 24px)); max-height: calc(100dvh - 88px); overflow-y: auto; padding: 10px; border: 1px solid #e4e9ef; border-radius: 14px; background: #fff; box-shadow: 0 12px 32px #19242e1a; }
+  .admin-app-wrapper .admin-customer-layout .admin-customer-header-actions.is-open { display: grid; gap: 8px; }
+  .admin-app-wrapper .admin-customer-layout .admin-customer-header-actions > .btn { width: 100%; min-height: 40px; justify-content: flex-start; }
+}
+
