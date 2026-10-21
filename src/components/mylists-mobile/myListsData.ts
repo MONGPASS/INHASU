@@ -46,7 +46,14 @@ export function useTripCatalog() {
     return { productById, stats, wishlist, wishItems, wishLoading };
 }
 
-export const productCard = (p: HomeProduct): TripCardData => ({
+/** Card data plus the one-line highlights shown under the title (the design's "route" line). */
+export type TripCardMData = TripCardData & { route?: string };
+
+/** 상품 태그를 한 줄 요약으로(고비사막 · 낙타 · 별 관측 …). 태그가 없으면 빈 문자열 — 카드가 카테고리를 대신 보여 준다. */
+const routeLine = (p: HomeProduct) =>
+    (Array.isArray(p.tags) ? p.tags : []).map((t) => String(t).replace(/^#/, '').trim()).filter(Boolean).slice(0, 5).join(' · ');
+
+export const productCard = (p: HomeProduct): TripCardMData => ({
     key: p.id,
     productId: p.id,
     title: cleanTitle(p.name),
@@ -54,6 +61,7 @@ export const productCard = (p: HomeProduct): TripCardData => ({
     duration: p.duration,
     category: p.category,
     price: p.price,
+    route: routeLine(p),
 });
 
 /** Wishlist payload for a card whose product is no longer in the published list. */
@@ -74,12 +82,12 @@ export function groupRecentByDay(items: RecentItem[], now: number, productById: 
     const label = (d: Date) =>
         dayKey(d) === today ? '오늘' : dayKey(d) === yesterday ? '어제' : `${d.getMonth() + 1}월 ${d.getDate()}일(${WEEK[d.getDay()]})`;
 
-    const groups: Array<{ label: string; cards: TripCardData[] }> = [];
+    const groups: Array<{ label: string; cards: TripCardMData[] }> = [];
     for (const it of items) {
         const d = parseDbTime(it.viewedAt);
         const g = Number.isNaN(d.getTime()) ? '이전' : label(d);
         const p = productById.get(it.productId);
-        const card: TripCardData = p
+        const card: TripCardMData = p
             ? productCard(p)
             : { key: it.productId, productId: it.productId, title: cleanTitle(it.title), image: it.image, category: it.category, price: it.price };
         const last = groups[groups.length - 1];

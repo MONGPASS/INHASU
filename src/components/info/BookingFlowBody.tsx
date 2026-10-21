@@ -18,7 +18,7 @@ export function BookingFlowBody({ compact = false }: { compact?: boolean }) {
         <>
             <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
                 {BOOKING_FLOW_STEPS.map((s, i) => (
-                    <li key={s.title} style={{ display: 'grid', gridTemplateColumns: '56px minmax(0,1fr)', columnGap: compact ? 16 : 20 }}>
+                    <li key={s.title} style={{ display: 'grid', gridTemplateColumns: '56px minmax(0,1fr)', columnGap: 20 }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <span
                                 aria-hidden="true"
@@ -31,9 +31,9 @@ export function BookingFlowBody({ compact = false }: { compact?: boolean }) {
                             </span>
                             {i < last && <span aria-hidden="true" style={{ flex: 1, width: 2, margin: '8px 0', background: MW.line }} />}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: `6px 0 ${i < last ? 36 : 8}px` }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: `6px 0 ${i < last || compact ? 36 : 8}px` }}>
                             <h2 style={{ margin: 0, fontSize: 19, fontWeight: 900, lineHeight: 1.45 }}>{s.title}</h2>
-                            <p style={{ margin: 0, fontSize: compact ? 15 : 14, lineHeight: 1.85, color: MW.ink3 }}>{s.text}</p>
+                            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.85, color: MW.ink3 }}>{s.text}</p>
                             <span style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, minHeight: 28, padding: '0 12px', borderRadius: 999, background: M_PAPER, fontSize: 12, fontWeight: 700, color: MW.mute }}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MW.mintDeep} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                     <path d={CLOCK} />
@@ -45,7 +45,7 @@ export function BookingFlowBody({ compact = false }: { compact?: boolean }) {
                 ))}
             </ol>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap', padding: compact ? '22px 20px' : '24px 28px', borderRadius: 24, background: MW.mintBg }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap', padding: '24px 28px', borderRadius: 24, background: MW.mintBg }}>
                 <span style={{ fontSize: 15, fontWeight: 900 }}>먼저 무료 견적부터 받아 보세요</span>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button type="button" onClick={() => go('/custom-estimate')} style={{ height: 48, padding: '0 22px', border: 0, borderRadius: 999, background: MW_GRADIENT, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: MW.navy, cursor: 'pointer' }}>

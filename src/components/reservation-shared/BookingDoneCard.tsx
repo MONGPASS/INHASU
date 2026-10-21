@@ -11,12 +11,18 @@ interface BookingDoneCardProps extends CompleteStepProps {
     /** Opens the reservation in My Page, where the customer reports the deposit. */
     onMyBookings: () => void;
     onHome: () => void;
+    /** The tour and amounts are shown by a summary card next to this one (mobile 완료 screen). */
+    hideAmounts?: boolean;
+    /** Replaces the default "다음 단계" rows (BK_NEXT_STEPS). */
+    nextSteps?: { t: string; d: string }[];
 }
 
 const rowKey: CSSProperties = { fontSize: 12, color: MW.mute, flexShrink: 0 };
 
 /** 완료 screen (Claude Design: "Booking Done"): thanks, reservation number, deposit account, amounts and what happens next. */
-export function BookingDoneCard({ pc, productName, email, reservationNo, total, deposit, local, onMyBookings, onHome }: BookingDoneCardProps) {
+export function BookingDoneCard({
+    pc, productName, email, reservationNo, total, deposit, local, onMyBookings, onHome, hideAmounts = false, nextSteps = BK_NEXT_STEPS,
+}: BookingDoneCardProps) {
     const mark = pc ? 84 : 64;
     return (
         <div style={{ background: '#FFFFFF', borderRadius: pc ? 28 : 20, padding: pc ? '48px 32px 36px' : '32px 20px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: pc ? 18 : 14, textAlign: 'center' }}>
@@ -52,6 +58,7 @@ export function BookingDoneCard({ pc, productName, email, reservationNo, total, 
                 </span>
             </div>
 
+            {!hideAmounts && (
             <div style={{ width: '100%', maxWidth: 560, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', padding: pc ? '6px 20px' : '4px 16px', borderRadius: 18, background: BK_SOFT, textAlign: 'left' }}>
                 {productName && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderBottom: `1px solid ${BK_HAIR}` }}>
@@ -75,10 +82,11 @@ export function BookingDoneCard({ pc, productName, email, reservationNo, total, 
                     <span style={{ fontFamily: MW_FONT_EN, fontSize: 13, fontWeight: 600 }}>{won(local)}</span>
                 </div>
             </div>
+            )}
 
             <div style={{ width: '100%', maxWidth: 560, display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
                 <span style={{ fontSize: 13, fontWeight: 900, padding: '6px 0 10px' }}>다음 단계</span>
-                {BK_NEXT_STEPS.map((s, i) => (
+                {nextSteps.map((s, i) => (
                     <div key={s.t} style={{ display: 'flex', gap: 12, padding: '10px 0', borderTop: `1px solid ${BK_HAIR}` }}>
                         <span style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: i ? MW.chip : MW.mint, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 600, color: i ? MW.mute : MW.navy }}>{i + 1}</span>
                         <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>

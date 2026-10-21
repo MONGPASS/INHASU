@@ -129,7 +129,7 @@ export function SubPageBar({
     const { stickyTop } = useMobileShell();
     return (
         <div style={{ position: 'sticky', top: stickyTop, zIndex: 10, background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${MW.line}` }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0,1fr) auto', alignItems: 'center', gap: 6, padding: '4px 10px 4px 6px', minHeight: 52, boxSizing: 'border-box' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0,1fr) auto', alignItems: 'center', gap: 6, padding: '4px 10px 4px 6px', minHeight: 60, boxSizing: 'border-box' }}>
                 <button type="button" onClick={onBack} aria-label="뒤로" style={{ width: 44, height: 44, border: 0, borderRadius: '50%', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
                     <Ico d={D.back} size={22} />
                 </button>

@@ -34,11 +34,14 @@ export function MyPageMobile() {
     const [today] = useState(() => toTourDateKey(new Date()));
 
     const resList = useMemo(() => reservations.data ?? [], [reservations.data]);
-    // The trip in progress, otherwise the nearest departure.
-    const next = useMemo(
-        () => resList.filter((r) => !!r.start && tripPhase(r, today) !== 'past').sort((a, b) => a.start.localeCompare(b.start))[0],
-        [resList, today],
-    );
+    // The trip in progress, otherwise the nearest departure (undated bookings last). With nothing
+    // ahead the card shows the most recent finished trip, as in the design (labelled 여행 완료);
+    // cancelled bookings never take the card.
+    const next = useMemo(() => {
+        const ahead = resList.filter((r) => tripPhase(r, today) !== 'past').sort((a, b) => (a.start || '9999').localeCompare(b.start || '9999'))[0];
+        if (ahead) return ahead;
+        return [...resList].sort((a, b) => (b.start || '').localeCompare(a.start || '')).find((r) => r.status !== 'cancelled');
+    }, [resList, today]);
     // Same rule as the wishlist screen: only tours that still exist are counted.
     const wishCount = useMemo(() => {
         const live = new Set(home.products.map((p) => p.id));
@@ -150,7 +153,9 @@ export function MyPageMobile() {
                                 <span style={{ fontSize: 11, fontWeight: 700, color: reservationTone(next.status).fg, background: reservationTone(next.status).bg, padding: '4px 10px', borderRadius: 999 }}>
                                     {reservationStatusLabel(next.status, next.depositReported, next.status || '준비 중')}
                                 </span>
-                                <span style={{ fontFamily: MW_FONT_EN, fontSize: 13, fontWeight: 600, color: MW.mintLight }}>{ddayLabel(next, today)}</span>
+                                <span style={{ fontFamily: MW_FONT_EN, fontSize: 13, fontWeight: 600, color: MW.mintLight }}>
+                                    {ddayLabel(next, today) || (tripPhase(next, today) === 'past' ? '여행 완료' : '')}
+                                </span>
                             </div>
                             <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <span style={{ fontSize: 18, fontWeight: 900, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{next.productName}</span>

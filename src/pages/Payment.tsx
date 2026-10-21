@@ -7,6 +7,7 @@ import { SEO } from '../components/seo/SEO';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { PaymentDesktop } from '../components/reservation-desktop/PaymentDesktop';
 import { PaymentMobile } from '../components/reservation-mobile/PaymentMobile';
+import { bookingSummaryState } from '../components/reservation-mobile/completeSummary';
 import { BookingFallback } from '../components/reservation-shared/BookingFallback';
 import { clearBookingDraft, type PaymentStepProps } from '../components/reservation-shared/bookingShared';
 import { toLocalDateKey } from '../utils/formatDate';
@@ -241,7 +242,18 @@ export const Payment: React.FC = () => {
 
             // Proceed to reservation complete
             if (product?.id) clearBookingDraft(String(product.id));
-            navigate('/reservation-complete', { state: { reservationId }, replace: true });
+            // `summary` only feeds the summary card of the mobile 완료 screen (photo, dates, options picked here).
+            const summary = bookingSummaryState({
+                product,
+                isQuote,
+                selectedStartDate,
+                endDate,
+                parsedDuration,
+                totalPeople,
+                selectedAccomId: reservationData.selectedAccomId,
+                selectedVehicleId: reservationData.selectedVehicleId,
+            });
+            navigate('/reservation-complete', { state: { reservationId, summary }, replace: true });
         } catch (e) {
             console.error('Failed to save reservation', e);
             setIsProcessing(false);

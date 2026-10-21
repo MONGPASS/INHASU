@@ -1,12 +1,13 @@
 import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { MW, MW_FONT_EN, cleanTitle, isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { EDITORIAL, SITE, categoryLabel, formatDate } from '../magazine/magazineShared';
 import { useRelatedTourMatches } from '../magazine/relatedTourMatches';
 import type { ArticleData } from '../magazine-desktop/MagazineArticleDesktop';
 import type { MagazineListItem } from '../magazine-desktop/MagazineListDesktop';
 import { useMobileShell } from '../mobile/mobileShellContext';
-import { M_GRADIENT, M_HAIR } from '../mobile/mobileTheme';
+import { D, M_GRADIENT, M_HAIR } from '../mobile/mobileTheme';
+import { Ico, MPhoto } from '../mobile/mobileUi';
 import { durationLabel } from '../tours-mobile/tourListFilters';
 import { MagazineQuoteCta } from './MagazineQuoteCta';
 import { BODY_HEADING_SKIP, buildToc } from './magazineMobile';
@@ -26,6 +27,7 @@ const CLAMP = (lines: number) => ({ display: '-webkit-box', WebkitLineClamp: lin
 /** Mobile 여행 가이드(매거진) article (Claude Design: "M Article"). Same data and behaviour as the PC article page. */
 export function MagazineArticleMobile({ magazine, body, faqs, more, prev, next }: Props) {
     const navigate = useNavigate();
+    const location = useLocation();
     const { stickyTop } = useMobileShell();
     const bodyRef = useRef<HTMLDivElement>(null);
     const [copied, setCopied] = useState(false);
@@ -43,6 +45,14 @@ export function MagazineArticleMobile({ magazine, body, faqs, more, prev, next }
     });
 
     const toc = useMemo(() => buildToc(magazine.content), [magazine.content]);
+
+    // Lead paragraph (design: `lead || excerpt`): the article summary, unless the body already carries it.
+    const lead = useMemo(() => {
+        const summary = (magazine.description || '').replace(/\s+/g, ' ').trim();
+        if (!summary || summary === cleanTitle(magazine.title)) return '';
+        const text = magazine.content.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+        return text.includes(summary) ? '' : summary;
+    }, [magazine.description, magazine.content, magazine.title]);
 
     /** Scroll to the n-th non-empty heading of the rendered body, clear of the sticky header. */
     const jump = (n: number) => {
@@ -64,6 +74,16 @@ export function MagazineArticleMobile({ magazine, body, faqs, more, prev, next }
     };
 
     const share = (href: string) => window.open(href, '_blank', 'noopener,noreferrer');
+    // The design's LINE button → the phone's own share sheet (카카오톡 등). Hidden where the browser has none.
+    const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+    const shareNative = () => {
+        navigator.share({ title, url }).catch(() => undefined);
+    };
+    // Opened directly (search result, shared link): there is no in-app history, so "back" means the list.
+    const back = () => {
+        if (location.key !== 'default') navigate(-1);
+        else navigate('/travel-guide');
+    };
     const go = (path: string) => {
         navigate(path);
         window.scrollTo(0, 0);
@@ -72,6 +92,13 @@ export function MagazineArticleMobile({ magazine, body, faqs, more, prev, next }
     return (
         <>
             <article style={{ padding: '14px 0 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* The article screen has no back bar (design): this pill is the way back. */}
+                <div style={{ padding: '0 16px', display: 'flex' }}>
+                    <button type="button" onClick={back} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px 0 10px', border: `1px solid ${MW.line}`, borderRadius: 999, background: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: MW.navy, cursor: 'pointer' }}>
+                        <Ico d={D.back} size={16} color="currentColor" width={2} />
+                        뒤로
+                    </button>
+                </div>
                 <header style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                         {magazine.category && <span style={{ fontSize: 11, fontWeight: 700, color: MW.mintDeep, background: MW.mintTint, padding: '4px 10px', borderRadius: 999 }}>{categoryLabel(magazine.category)}</span>}
@@ -85,13 +112,13 @@ export function MagazineArticleMobile({ magazine, body, faqs, more, prev, next }
                 </header>
 
                 {isUsableImage(magazine.image) && (
-                    <div style={{ aspectRatio: '4/3', overflow: 'hidden', background: MW.chip }}>
-                        <img src={magazine.image} alt={`${title} | 몽골 여행 가이드`} fetchPriority="high" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', background: MW.chip }}>
+                        <MPhoto src={magazine.image} alt={`${title} | 몽골 여행 가이드`} priority sizes="(max-width: 480px) 100vw, 480px" />
                     </div>
                 )}
 
                 <div style={{ padding: '4px 16px 0', display: 'flex', flexDirection: 'column', gap: 20, fontSize: 15, lineHeight: 1.95, color: MW.ink2 }}>
-                    {/* No separate lead paragraph: article bodies open with their own intro (same as PC). */}
+                    {lead && <p style={{ margin: 0, fontSize: 17, fontWeight: 700, lineHeight: 1.85, color: MW.navy, textWrap: 'pretty' }}>{lead}</p>}
                     {toc.length >= 2 && (
                         <nav aria-label="목차" style={{ border: `1.5px solid ${MW.line}`, borderRadius: 18, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <span style={{ fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', color: MW.mintDeep, marginBottom: 4 }}>CONTENTS</span>
@@ -129,7 +156,8 @@ export function MagazineArticleMobile({ magazine, body, faqs, more, prev, next }
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${canShare ? 3 : 2},minmax(0,1fr))`, gap: 8 }}>
+                        {canShare && <button type="button" style={shareBtn} onClick={shareNative}>공유하기</button>}
                         <button type="button" style={shareBtn} onClick={() => share(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`)}>X</button>
                         <button type="button" style={shareBtn} onClick={copyLink}>{copied ? '복사됨' : '링크 복사'}</button>
                     </div>
@@ -166,10 +194,8 @@ export function MagazineArticleMobile({ magazine, body, faqs, more, prev, next }
                                     onClick={(e) => { e.preventDefault(); go(`/products/${t.id}`); }}
                                     style={{ flex: '0 0 58%', minWidth: 0, scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column', gap: 6, color: MW.navy, textDecoration: 'none' }}
                                 >
-                                    <div style={{ aspectRatio: '1/1', borderRadius: 16, overflow: 'hidden', background: MW.chip }}>
-                                        {isUsableImage(t.mainImages[0]) && (
-                                            <img src={t.mainImages[0]} alt={`${t.name} | ${t.category}`} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                        )}
+                                    <div style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 16, overflow: 'hidden', background: MW.chip }}>
+                                        {isUsableImage(t.mainImages[0]) && <MPhoto src={t.mainImages[0]} alt={`${t.name} | ${t.category}`} sizes="(max-width: 480px) 58vw, 280px" />}
                                     </div>
                                     <span style={{ fontSize: 11, color: MW.mute, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[t.category, durationLabel(t.duration)].filter(Boolean).join(' | ')}</span>
                                     <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</h3>
@@ -222,10 +248,8 @@ export function MagazineArticleMobile({ magazine, body, faqs, more, prev, next }
                                     onClick={(e) => { e.preventDefault(); go(`/travel-guide/${m.id}`); }}
                                     style={{ display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: 12, alignItems: 'center', padding: '12px 0', borderTop: `1px solid ${M_HAIR}`, color: MW.navy, textDecoration: 'none' }}
                                 >
-                                    <div style={{ aspectRatio: '1/1', borderRadius: 12, overflow: 'hidden', pointerEvents: 'none', background: MW.chip }}>
-                                        {isUsableImage(m.image) && (
-                                            <img src={m.image} alt={`${t} | 몽골 여행 가이드`} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                        )}
+                                    <div style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 12, overflow: 'hidden', pointerEvents: 'none', background: MW.chip }}>
+                                        {isUsableImage(m.image) && <MPhoto src={m.image} alt={`${t} | 몽골 여행 가이드`} sizes="96px" />}
                                     </div>
                                     <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.5, ...CLAMP(3) }}>{t}</span>
                                 </a>
