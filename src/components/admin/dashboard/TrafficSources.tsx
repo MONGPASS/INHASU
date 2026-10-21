@@ -12,6 +12,7 @@ const BRAND: Record<AdminTrafficChannel, { bg: string; border?: boolean; logo?: 
     '네이버 검색': { bg: '#03C75A', logo: logo('naver', 'ffffff') },
     '네이버 블로그': { bg: '#fff', border: true, logo: logo('naver', '03C75A') },
     '인스타그램': { bg: 'linear-gradient(135deg,#FEDA75,#FA7E1E 30%,#D62976 60%,#962FBF 85%,#4F5BD5)', logo: logo('instagram', 'ffffff') },
+    '페이스북': { bg: '#0866FF', logo: logo('facebook', 'ffffff') },
     '구글 검색': { bg: '#fff', border: true, logo: logo('google', '4285F4') },
     '유튜브': { bg: '#FF0000', logo: logo('youtube', 'ffffff') },
     '카카오톡 채널': { bg: '#FEE500', logo: logo('kakaotalk', '191919') },
@@ -19,7 +20,8 @@ const BRAND: Record<AdminTrafficChannel, { bg: string; border?: boolean; logo?: 
     '기타·추천': { bg: 'var(--mrt-gray-100)', icon: 'lc-link' },
 };
 const TONES = ['var(--mrt-ink)', 'var(--mrt-blue-strong)', 'var(--mrt-blue)', 'color-mix(in oklch, var(--mrt-blue) 70%, white)',
-    'color-mix(in oklch, var(--mrt-blue) 45%, white)', 'color-mix(in oklch, var(--mrt-blue) 28%, white)', 'var(--mrt-gray-400)', 'var(--border-default)'];
+    'color-mix(in oklch, var(--mrt-blue) 45%, white)', 'color-mix(in oklch, var(--mrt-blue) 28%, white)', 'color-mix(in oklch, var(--mrt-blue) 16%, white)',
+    'var(--mrt-gray-400)', 'var(--border-default)'];
 const numbers = new Intl.NumberFormat('ko-KR');
 
 type Load = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: AdminTrafficData };

@@ -5,7 +5,7 @@
  */
 import type { AdminTrafficChannel, AdminTrafficData, AdminTrafficPeriod } from '../../src/types/adminTraffic';
 
-export const TRAFFIC_CHANNELS: AdminTrafficChannel[] = ['네이버 검색', '네이버 블로그', '인스타그램', '구글 검색', '유튜브', '카카오톡 채널', '직접 방문', '기타·추천'];
+export const TRAFFIC_CHANNELS: AdminTrafficChannel[] = ['네이버 검색', '네이버 블로그', '인스타그램', '페이스북', '구글 검색', '유튜브', '카카오톡 채널', '직접 방문', '기타·추천'];
 
 /** GA session source/medium → dashboard channel. utm_source values from the owner's links come first. */
 export function classifyTrafficSource(source: string, medium: string): AdminTrafficChannel {
@@ -14,6 +14,7 @@ export function classifyTrafficSource(source: string, medium: string): AdminTraf
     if (s.includes('blog.naver') || s === 'naver_blog' || s === 'naverblog') return '네이버 블로그';
     if (s.includes('naver')) return '네이버 검색';
     if (s.includes('instagram') || s === 'ig') return '인스타그램';
+    if (s.includes('facebook') || s === 'fb' || s === 'fb.me') return '페이스북';
     if (s.includes('youtube') || s.includes('youtu.be')) return '유튜브';
     if (s.includes('google')) return '구글 검색';
     if (s.includes('kakao') || s === 'pf.kakao.com') return '카카오톡 채널';
