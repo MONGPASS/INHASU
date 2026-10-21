@@ -8,7 +8,7 @@ import { build } from 'esbuild';
 const result = await build({ stdin: { contents: `
     export { AdminBannerManage } from './src/pages/AdminBannerManage';
     export { AdminCategoryManage, CategoryModal } from './src/pages/AdminCategoryManage';
-`, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false,
+`, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false, loader: { '.css': 'empty' },
     plugins: [{ name: 'content-event-fixture', setup(builder) {
         builder.onResolve({ filter: /^react$|^react\/jsx-runtime$|^react-router-dom$/ }, args => ({ path: args.path, namespace: 'fixture' }));
         builder.onResolve({ filter: /\/(AdminLayout|Icon|api|upload)$/ }, args => ({ path: args.path.split('/').at(-1), namespace: 'fixture' }));

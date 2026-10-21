@@ -1,0 +1,58 @@
+/* 상품 카테고리 — Admin Dashboard v3 "04-3 상품 관리 - 상품 카테고리". 목록과 오른쪽 편집 패널에만 적용합니다. */
+.admin-app-wrapper :is(.cg-page, .cg-drawer) { --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c; }
+
+/* 목록 */
+.admin-app-wrapper .cg-card { overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; box-shadow: none; }
+.admin-app-wrapper .cg-table { min-width: 760px; }
+.admin-app-wrapper .cg-table th { padding: 10px 14px; background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 12px; font-weight: 500; }
+.admin-app-wrapper .cg-table td { padding: 12px 14px; border-color: var(--border-subtle); }
+.admin-app-wrapper .cg-table :is(th, td):first-child { padding-left: 20px; }
+.admin-app-wrapper .cg-table :is(th, td):last-child { padding-right: 20px; }
+.admin-app-wrapper .cg-table tbody tr:hover { background: var(--mrt-gray-50); }
+.admin-app-wrapper .cg-table tbody tr.is-hidden > td { opacity: .55; }
+.admin-app-wrapper .cg-table tbody tr.is-hidden > td:has(.switch) { opacity: 1; }
+.admin-app-wrapper .cg-table .edit-move button { width: 24px; height: 18px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); }
+.admin-app-wrapper .cg-table .edit-move button:disabled { color: var(--mrt-gray-300); }
+.admin-app-wrapper .cg-table .edit-move .material-symbols-outlined { font-size: 14px; }
+.admin-app-wrapper .cg-table td .cell-mono { color: var(--text-strong); font-family: inherit; font-size: 14px; font-weight: 800; }
+.admin-app-wrapper .cg-table .cg-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--mrt-gray-100); color: var(--text-strong); font-size: 20px; object-fit: cover; }
+.admin-app-wrapper .cg-table td.cell-strong { color: var(--text-strong); font-size: 14px; font-weight: 800; white-space: nowrap; }
+.admin-app-wrapper .cg-table td.cell-muted { max-width: 360px; overflow: hidden; color: var(--text-secondary); font-size: 14px; white-space: nowrap; text-overflow: ellipsis; }
+.admin-app-wrapper .cg-table td.cg-count { color: var(--text-strong); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.admin-app-wrapper .cg-page .switch.on, .admin-app-wrapper .cg-drawer .switch.on { background: var(--mrt-blue); }
+.admin-app-wrapper .cg-table .act-btn { width: 36px; height: 36px; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); }
+.admin-app-wrapper .cg-table .act-btn:hover { background: var(--mrt-gray-100); color: var(--text-strong); }
+.admin-app-wrapper .cg-table .act-btn.danger:hover { background: var(--mrt-red-soft); color: var(--mrt-red); }
+.admin-app-wrapper .cg-fixed { display: inline-grid; place-items: center; width: 36px; height: 36px; color: var(--text-tertiary); font-size: 11px; font-weight: 700; }
+
+/* 오른쪽 편집 패널 */
+.admin-app-wrapper .cg-drawer-scrim { display: flex; align-items: stretch; justify-content: flex-end; padding: 0; background: rgba(26,27,30,.32); backdrop-filter: none; }
+.admin-app-wrapper .picker.cg-drawer { display: flex; flex-direction: column; width: min(560px, 100%); max-width: 100%; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: var(--shadow-lg); animation: cgSlide .22s cubic-bezier(.2,0,.1,1); }
+.admin-app-wrapper .cg-drawer > form { flex: 1; min-height: 0; }
+.admin-app-wrapper .cg-drawer .card-head { padding: 18px 22px; border-bottom: 1px solid var(--border-default); }
+.admin-app-wrapper .cg-drawer .card-head h2 { margin: 0; color: var(--text-strong); font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
+.admin-app-wrapper .cg-drawer .card-head .act-btn { width: 36px; height: 36px; border: 0; border-radius: 999px; background: transparent; }
+.admin-app-wrapper .cg-drawer .card-head .act-btn:hover { background: var(--mrt-gray-100); }
+.admin-app-wrapper .cg-drawer-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 22px; }
+.admin-app-wrapper .cg-drawer .field > label { color: var(--text-strong); font-size: 13px; font-weight: 800; }
+.admin-app-wrapper .cg-drawer .cg-hint { margin-left: 4px; color: var(--text-tertiary); font-size: 12px; font-weight: 500; }
+.admin-app-wrapper .cg-drawer .inp { min-height: 44px; border: 1.5px solid var(--border-default); border-radius: 12px; font-size: 14px; }
+.admin-app-wrapper .cg-drawer .inp:focus { border-color: var(--mrt-ink); box-shadow: none; }
+.admin-app-wrapper .cg-drawer .field .cg-upload { display: inline-flex; width: auto; margin: 0; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1.5px dashed var(--mrt-gray-300); border-radius: 12px; background: #fff; color: var(--mrt-blue-strong); font-size: 13px; font-weight: 700; cursor: pointer; }
+.admin-app-wrapper .cg-drawer .field .cg-upload:hover { border-color: var(--mrt-ink); }
+.admin-app-wrapper .cg-upload:focus-within { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }
+.admin-app-wrapper .cg-upload input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.admin-app-wrapper .cg-visible { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 14px 16px; border: 1px solid var(--border-default); border-radius: 14px; background: #fff; }
+.admin-app-wrapper .cg-visible > span { display: flex; flex-direction: column; gap: 2px; }
+.admin-app-wrapper .cg-visible b { color: var(--text-strong); font-size: 14px; font-weight: 800; }
+.admin-app-wrapper .cg-visible small { color: var(--text-tertiary); font-size: 12px; }
+.admin-app-wrapper .cg-drawer .edit-sec { overflow: hidden; border: 1px solid var(--border-default); border-radius: 16px; }
+.admin-app-wrapper .cg-drawer .edit-sec-head { align-items: center; gap: 8px; background: var(--mrt-gray-50) !important; }
+.admin-app-wrapper .cg-drawer .edit-sec-head h4 { margin: 0; color: var(--text-strong); font-weight: 800; }
+.admin-app-wrapper .cg-drawer .cg-slug { margin-left: 4px; color: var(--text-tertiary); font-weight: 500; }
+.admin-app-wrapper .cg-drawer-foot { gap: 8px; padding: 14px 22px; border-top: 1px solid var(--border-default); }
+.admin-app-wrapper .cg-drawer-foot .btn { height: 46px; padding: 0 20px; border-radius: 999px; font-size: 15px; font-weight: 700; }
+.admin-app-wrapper .cg-drawer-foot .btn-ghost { border: 1.5px solid var(--border-default); background: #fff; color: var(--text-strong); }
+.admin-app-wrapper .cg-drawer-foot .btn-ink { background: var(--mrt-ink); color: #fff; }
+@keyframes cgSlide { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .admin-app-wrapper .picker.cg-drawer { animation: none; } }

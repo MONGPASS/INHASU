@@ -352,7 +352,7 @@
 
 /* ============ Toggle switch ============ */
 .admin-app-wrapper .switch { width: 42px; height: 24px; border-radius: 999px; background: var(--mrt-gray-300); padding: 3px; cursor: pointer; border: none; transition: background var(--dur-fast); flex: none; }
-.admin-app-wrapper .switch .knob { width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-xs); transition: transform var(--dur-base) var(--ease-out); }
+.admin-app-wrapper .switch .knob { display: block; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-xs); transition: transform var(--dur-base) var(--ease-out); }
 .admin-app-wrapper .switch.on { background: var(--mrt-blue); }
 .admin-app-wrapper .switch.on .knob { transform: translateX(18px); }
 

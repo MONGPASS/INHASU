@@ -6,6 +6,8 @@ import { useAdminContentGuard, type AdminContentState } from '../hooks/useAdminC
 import { createAdminContentTask, moveAdminRow } from '../utils/adminContentWorkflow';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
+import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
+import './AdminCategoryManage.css';
 import { DEFAULT_CATEGORIES, DEFAULT_MAGAZINE_CATEGORIES, type Category } from '../types/category';
 
 export const AdminCategoryManage: React.FC = () => {
@@ -21,6 +23,13 @@ export const AdminCategoryManage: React.FC = () => {
     const handleEditorState = useCallback((state: AdminContentState) => { modalState.current = state; setModalBusy(state.busy); }, []);
     const closeModal = () => { setIsModalOpen(false); setSelectedCategory(null); modalState.current = { busy: false, dirty: false }; setModalBusy(false); };
     useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+    const [productCategories, setProductCategories] = useState<string[] | null>(null);
+    useEffect(() => {
+        let active = true;
+        Promise.resolve(api.products?.list?.()).then(rows => { if (active && Array.isArray(rows)) setProductCategories(rows.map((row: any) => String(row?.category ?? ''))); }).catch(() => { /* counts stay hidden */ });
+        return () => { active = false; };
+    }, []);
+    const productCount = (category: Category) => productCategories == null ? '—' : category.id === 'all' ? productCategories.length : productCategories.filter(name => name === category.name).length;
 
     // Fetch categories from API
     const fetchCategories = async () => {
@@ -185,7 +194,8 @@ export const AdminCategoryManage: React.FC = () => {
     return (
         <AdminLayout
             activePage="categories"
-            title="카테고리 관리"
+            title="상품 카테고리"
+            description="화살표로 노출 순서를 바꾸고, 스위치로 사이트 노출을 켜고 꺼요."
             actions={
                 <button
                     onClick={() => {
@@ -204,33 +214,17 @@ export const AdminCategoryManage: React.FC = () => {
             {loadError && <div role="alert" className="card card-pad">{loadError}<button type="button" className="btn btn-ghost" onClick={fetchCategories} disabled={busy || loading}>다시 불러오기</button></div>}
             {(loading || actionBusy) && <p role="status">{loading ? '카테고리를 불러오는 중…' : '카테고리 변경 내용을 저장하는 중…'}</p>}
             <fieldset disabled={busy || loading || !!loadError || isModalOpen} inert={busy || loading || !!loadError || isModalOpen} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-            <div className="route-anim">
-                <div className="toolbar">
-                    <div className="cell-muted" style={{ fontSize: 13.5, fontWeight: 600 }}>
-                        순서 버튼으로 노출 순서를 변경할 수 있습니다.
-                    </div>
-                    <div className="spacer" />
-                    <button
-                        onClick={() => {
-                            setSelectedCategory(null);
-                            setIsModalOpen(true);
-                        }}
-                        className="btn btn-ink"
-                    >
-                        <Icon name="add" />
-                        카테고리 추가
-                    </button>
-                </div>
-
-                <div className="card">
+            <div className="route-anim cg-page">
+                <div className="card cg-card">
                     <div className="tbl-wrap">
-                        <table className="tbl">
+                        <table className="tbl cg-table">
                             <thead>
                                 <tr>
                                     <th style={{ width: 60 }}>순서</th>
                                     <th style={{ width: 80 }}>아이콘</th>
                                     <th>이름</th>
                                     <th>설명</th>
+                                    <th className="r">상품</th>
                                     <th className="c">노출</th>
                                     <th className="r">관리</th>
                                 </tr>
@@ -238,7 +232,7 @@ export const AdminCategoryManage: React.FC = () => {
                             <tbody>
                                 {sortedCategories.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6}>
+                                        <td colSpan={7}>
                                             <div className="empty">
                                                 <Icon name="category" />
                                                 <p>등록된 카테고리가 없습니다.</p>
@@ -247,7 +241,7 @@ export const AdminCategoryManage: React.FC = () => {
                                     </tr>
                                 ) : (
                                     sortedCategories.map((category, index) => (
-                                        <tr key={category.id}>
+                                        <tr key={category.id} className={category.isActive ? undefined : 'is-hidden'}>
                                             <td>
                                                 <span className="row" style={{ gap: 6 }}>
                                                     <span className="edit-move">
@@ -274,20 +268,23 @@ export const AdminCategoryManage: React.FC = () => {
                                                     <img
                                                         src={category.icon}
                                                         alt={category.name}
-                                                        className="thumb sq"
+                                                        className="thumb sq cg-icon"
                                                     />
                                                 ) : (
-                                                    <span className="thumb sq" style={{ display: 'grid', placeItems: 'center', fontSize: 22 }}>
+                                                    <span className="thumb sq cg-icon">
                                                         <Icon name={category.icon} />
                                                     </span>
                                                 )}
                                             </td>
                                             <td className="cell-strong">{category.name}</td>
-                                            <td className="cell-muted">{category.description}</td>
+                                            <td className="cell-muted">{category.description || '—'}</td>
+                                            <td className="r cg-count">{productCount(category)}</td>
                                             <td className="c">
                                                 <button
                                                     type="button"
                                                     className={`switch${category.isActive ? ' on' : ''}`}
+                                                    aria-pressed={category.isActive}
+                                                    aria-label={`${category.name} 사이트 노출`}
                                                     onClick={() => toggleActive(category.id, category.isActive)}
                                                 >
                                                     <span className="knob" />
@@ -299,23 +296,25 @@ export const AdminCategoryManage: React.FC = () => {
                                                         type="button"
                                                         className="act-btn"
                                                         title="수정"
+                                                        aria-label={`${category.name} 수정`}
                                                         onClick={() => {
                                                             setSelectedCategory(category);
                                                             setIsModalOpen(true);
                                                         }}
                                                     >
-                                                        <Icon name="edit" />
+                                                        <DashboardIcon name="lc-pencil" size={16} />
                                                     </button>
-                                                    {category.id !== 'all' && (
+                                                    {category.id !== 'all' ? (
                                                         <button
                                                             type="button"
                                                             className="act-btn danger"
                                                             title="삭제"
+                                                            aria-label={`${category.name} 삭제`}
                                                             onClick={() => deleteCategory(category.id)}
                                                         >
-                                                            <Icon name="delete" />
+                                                            <DashboardIcon name="lc-trash" size={16} />
                                                         </button>
-                                                    )}
+                                                    ) : <span className="cg-fixed" title="기본 카테고리는 삭제할 수 없어요">기본</span>}
                                                 </span>
                                             </td>
                                         </tr>
@@ -401,10 +400,12 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
     };
 
     return (
-        <div className="picker-scrim" onClick={close}>
+        <div className="picker-scrim cg-drawer-scrim" onClick={close}>
             <div
-                className="picker"
-                style={{ width: 680, maxHeight: '90vh' }}
+                className="picker cg-drawer"
+                role="dialog"
+                aria-modal="true"
+                aria-label={category ? '카테고리 수정' : '카테고리 추가'}
                 onClick={(e) => e.stopPropagation()}
             >
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -422,13 +423,14 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
                             onClick={close}
                             className="act-btn"
                             title="닫기"
+                            aria-label="닫기"
                         >
-                            <Icon name="close" />
+                            <DashboardIcon name="lc-x" size={18} />
                         </button>
                     </div>
 
                     {/* Body */}
-                    <div style={{ overflowY: 'auto', padding: '20px 22px' }}>
+                    <div className="cg-drawer-body">
                         {/* Name */}
                         <div className="field">
                             <label>카테고리 이름 *</label>
@@ -476,7 +478,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
 
                         {/* Icon */}
                         <div className="field">
-                            <label>아이콘 이미지 *</label>
+                            <label>아이콘 이미지 * <span className="cg-hint">1:1 이미지 · 사용자 화면에선 원형으로 보여요</span></label>
 
                             {/* Image Preview */}
                             {formData.icon && (formData.icon.startsWith('data:') || formData.icon.startsWith('http') || formData.icon.startsWith('/')) && (
@@ -491,31 +493,32 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
                             )}
 
                             {/* File Upload */}
-                            <input
-                                type="file"
-                                accept="image/*"
-                                className="inp"
-                                style={{ paddingTop: 9 }}
-                                onChange={e => {
-                                    const input = e.target, file = input.files?.[0];
-                                    if (file) void uploadImageTo(file, url => setFormData(previous => ({ ...previous, icon: url }))).finally(() => { input.value = ''; });
-                                }}
-                            />
-                            <p className="cell-muted" style={{ fontSize: 12, marginTop: 8 }}>
-                                권장: 1:1 비율의 이미지 (사용자 화면에서 원형으로 표시됩니다)
-                            </p>
+                            <label className="cg-upload">
+                                <DashboardIcon name="lc-image-plus" size={18} />
+                                <span>{formData.icon && (formData.icon.startsWith('data:') || formData.icon.startsWith('http') || formData.icon.startsWith('/')) ? '이미지 바꾸기' : '이미지 올리기'}</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={e => {
+                                        const input = e.target, file = input.files?.[0];
+                                        if (file) void uploadImageTo(file, url => setFormData(previous => ({ ...previous, icon: url }))).finally(() => { input.value = ''; });
+                                    }}
+                                />
+                            </label>
                         </div>
 
                         {/* Active Status */}
-                        <div className="toggle-row" style={{ marginBottom: 18 }}>
+                        <div className="toggle-row cg-visible">
                             <button
                                 type="button"
                                 className={`switch${formData.isActive ? ' on' : ''}`}
+                                aria-pressed={!!formData.isActive}
+                                aria-label="사이트에 노출"
                                 onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
                             >
                                 <span className="knob" />
                             </button>
-                            <span className="cell-strong" style={{ fontSize: 13.5 }}>활성화</span>
+                            <span><b>사이트에 노출</b><small>끄면 카테고리 메뉴와 랜딩 페이지가 숨겨져요</small></span>
                         </div>
 
                         {/* Landing page editor — only for product categories */}
@@ -529,7 +532,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
                     </div>
 
                     {/* Footer */}
-                    <div className="drawer-foot">
+                    <div className="drawer-foot cg-drawer-foot">
                         <div className="spacer" style={{ flex: 1 }} />
                         <button
                             type="button"
@@ -601,8 +604,8 @@ const LandingPageEditor: React.FC<LandingEditorProps> = ({ formData, setFormData
                 className="edit-sec-head"
                 style={{ width: '100%', padding: '14px 16px', margin: 0, border: 'none', background: 'none', cursor: 'pointer' }}
             >
-                <Icon name="web" />
-                <h4 style={{ fontSize: 13.5 }}>랜딩 페이지 편집 (/category/{formData.id || '...'})</h4>
+                <DashboardIcon name="lc-panels-top-left" size={16} />
+                <h4 style={{ fontSize: 14 }}>랜딩 페이지 <span className="cg-slug">/category/{formData.id || '…'}</span></h4>
                 <span className="spacer" style={{ flex: 1 }} />
                 <Icon name="expand_more" className={expanded ? 'rotate' : ''} style={expanded ? { transform: 'rotate(180deg)' } : undefined} />
             </button>
