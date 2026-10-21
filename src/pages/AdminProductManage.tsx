@@ -2108,19 +2108,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                     </div>
 
                                     <div className="field">
-                                        <label>여행 타입</label>
-                                        <select
-                                            className="inp"
-                                            style={{ appearance: 'none' }}
-                                            value={formData.packageType ?? ''}
-                                            onChange={(e) => setFormData({ ...formData, packageType: (e.target.value || null) as PackageType | null })}
-                                        >
-                                            <option value="">미지정</option>
-                                            <option value="full">풀패키지 (4성급 호텔 + 디럭스 게르)</option>
-                                            <option value="value">실속형 (3성급 호텔 + 스탠다드 게르)</option>
-                                        </select>
+                                        <label id="pa-package-label">여행 타입</label>
+                                        <div className="pa-seg" role="radiogroup" aria-labelledby="pa-package-label">
+                                            {([[null, '미지정', ''], ['full', '풀패키지', '4성급 호텔 + 디럭스 게르'], ['value', '실속형 패키지', '3성급 호텔 + 스탠다드 게르']] as const).map(([value, label, stays]) => (
+                                                <button key={label} type="button" role="radio" aria-checked={(formData.packageType ?? null) === value} title={stays || undefined} className={(formData.packageType ?? null) === value ? 'is-on' : ''} onClick={() => setFormData({ ...formData, packageType: value as PackageType | null })}>{label}</button>
+                                            ))}
+                                        </div>
                                         <div className="cell-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                                            PC 투어 상품 목록의 '풀패키지 여행 / 가성비 여행' 필터에 사용됩니다.
+                                            풀패키지는 4성급 호텔 + 디럭스 게르, 실속형 패키지는 3성급 호텔 + 스탠다드 게르예요. 고객 투어 목록의 여행 타입 필터에 사용됩니다.
                                         </div>
                                     </div>
                                 </div>
