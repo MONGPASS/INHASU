@@ -61,7 +61,14 @@ export function productScheduleDays(product: any) {
                 accommodation: content.accommodation ? {
                     name: content.accommodation, images: photos(content.accommodationImages),
                     description: content.accommodationDescription, location: content.accommodationAddress,
+                    ...Object.fromEntries([
+                        ['accommodationHotelId', 'id'], ['accommodationAddress', 'address'], ['accommodationRegion', 'region'],
+                        ['accommodationType', 'type'], ['accommodationOccupancy', 'occupancy'],
+                    ].filter(([source]) => typeof content[source] === 'string').map(([source, target]) => [target, content[source]])),
                     tags: array(content.accommodationAmenities).join(', '),
+                    ...Object.fromEntries([
+                        ['accommodationAmenities', 'facilities'], ['accommodationRoomAmenities', 'roomAmenities'], ['accommodationSharedFacilities', 'sharedFacilities'],
+                    ].filter(([source]) => Array.isArray(content[source])).map(([source, target]) => [target, content[source].map(text).filter(Boolean)])),
                 } : null,
             };
             days.push(current);
@@ -162,9 +169,12 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
     }));
     const lodges = assignmentsVisible ? days.filter((d: any) => d.accommodation?.name).map((d: any) => {
         const a = d.accommodation;
-        return { day: d.day, name: text(a.name), region: text(a.location), grade: text(a.type),
+        return { day: d.day, name: text(a.name), region: typeof a.region === 'string' ? a.region : text(a.location), grade: text(a.type),
             img: documentImage(a.image || a.img) || photos(a.images)[0] || '', imgs: photos(a.images),
-            desc: text(a.description), tags: text(a.tags), amenities: array(a.amenities), facilities: a.facilities };
+            desc: text(a.description), tags: text(a.tags), amenities: array(a.amenities), facilities: a.facilities,
+            ...(Object.hasOwn(a, 'address') ? { address: text(a.address) } : {}),
+            ...Object.fromEntries(['roomAmenities', 'sharedFacilities'].filter(field => Object.hasOwn(a, field))
+                .map(field => [field, Array.isArray(a[field]) ? a[field].map(text).filter(Boolean).join('\n') : text(a[field])])) };
     }) : [];
     const breakdown = parseDocumentJson(r.price_breakdown, {});
     const total = amount(r.total_price ?? breakdown.total);

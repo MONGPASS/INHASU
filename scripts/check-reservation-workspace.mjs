@@ -941,6 +941,28 @@ if (usability) {
         const loaded = await (await apiRequest(`/api/data/${key}`, { headers: quoteAdmin })).json();
         assert.deepEqual(loaded.data, value);
     }
+    // Product/document pickers reuse the same libraries without publishing operational contacts.
+    const sharedHotelsResponse = await apiRequest('/api/hotels?source=resources');
+    assert.equal(sharedHotelsResponse.status, 200);
+    assert.equal(sharedHotelsResponse.headers.get('Cache-Control'), 'no-store');
+    const sharedHotels = await sharedHotelsResponse.json();
+    assert.deepEqual(sharedHotels.map(hotel => hotel.name_kr).sort(), lodgeRows.map(lodge => lodge.name).sort());
+    const sharedHotel = sharedHotels.find(hotel => hotel.name_kr === lodgeRows[0].name);
+    assert.equal(sharedHotel.id, `resource-lodge:${lodgeRows[0].name}`);
+    assert.deepEqual(sharedHotel.images, lodgeRows[0].images);
+    assert.equal(sharedHotel.description, '');
+    assert.ok(!JSON.stringify(sharedHotels).includes('LOCAL-PRIVATE-LODGE-CONTACT'));
+    const sharedHotelById = await apiRequest(`/api/hotels/${encodeURIComponent(sharedHotel.id)}`);
+    assert.equal(sharedHotelById.status, 200);
+    assert.deepEqual(await sharedHotelById.json(), sharedHotel);
+    const sharedSpotsResponse = await apiRequest('/api/tourist-spots');
+    assert.equal(sharedSpotsResponse.status, 200);
+    const sharedSpots = await sharedSpotsResponse.json();
+    assert.equal(sharedSpots.length, Object.keys(publicLibraryFixtures.spots).length);
+    const sharedSpot = sharedSpots.find(spot => spot.name_kr === '거북바위');
+    assert.equal(sharedSpot.id, 'quote-spot:거북바위');
+    assert.equal(sharedSpot.description, publicLibraryFixtures.spots['거북바위'].desc);
+    assert.deepEqual(await (await apiRequest(`/api/tourist-spots/${encodeURIComponent(sharedSpot.id)}`)).json(), sharedSpot);
     const publicGuides = await (await apiRequest('/api/data/guides')).text();
     assert.ok(!publicGuides.includes('LOCAL-KV-GUIDE-PHONE'));
 

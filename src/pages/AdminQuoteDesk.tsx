@@ -44,8 +44,8 @@ interface BookingWorkspaceState {
     schedule: boolean; published: boolean; dayCount: number; guideReady: boolean; vehicleReady: boolean;
     lodgeCount: number; lodgeNeeded: number; travelerCount: number; expectedTravelers: number;
 }
-const workspaceFrameSrc = (customerPage: boolean, tool: ReturnType<typeof findQuoteDeskTool>, id?: string, editorId?: string) => customerPage && tool.key === 'inbox' && id
-    ? `/견적관리?id=${encodeURIComponent(id)}&m=0&workspace=1` : quoteDeskFrameSrc(tool, id, editorId);
+const workspaceFrameSrc = (customerPage: boolean, tool: ReturnType<typeof findQuoteDeskTool>, id?: string, editorId?: string, resourceType?: string) => customerPage && tool.key === 'inbox' && id
+    ? `/견적관리?id=${encodeURIComponent(id)}&m=0&workspace=1` : quoteDeskFrameSrc(tool, id, editorId, resourceType);
 
 export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerPage = false }) => {
     const { user } = useUser();
@@ -58,6 +58,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const returnTo = customerWorkspaceReturnTo(searchParams.get('returnTo'), customerPage ? '/admin/quote-desk/inbox' : '/admin/reservations?type=quote_booking');
     const bookingId = customerPage ? customerId : ['bookings', 'inbox', 'builder'].includes(toolParam || '') ? searchParams.get('id') || undefined : undefined;
     const quoteEditorId = toolParam === 'inbox' ? searchParams.get('qe') || undefined : undefined;
+    const resourceType = toolParam === 'resources' && ['guides', 'lodges', 'vehicles'].includes(searchParams.get('resourceType') || '') ? searchParams.get('resourceType') || undefined : undefined;
     const navigate = useNavigate();
     const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: any } | null>(null);
     const customerRecord = customerResult?.accountId === accountId && customerResult.id === bookingId ? customerResult.record : null;
@@ -90,9 +91,9 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const linked = phase === 'linked' && linkedAccount === accountId && !!accountId;
     const connectionRequest = useRef(0);
     const connectController = useRef<AbortController | null>(null);
-    const frameKey = `${accountId}:${customerPage ? 'customer-page' : 'quote-workspace'}:${tool.key}:${bookingId || ''}:${quoteEditorId || ''}`;
+    const frameKey = `${accountId}:${customerPage ? 'customer-page' : 'quote-workspace'}:${tool.key}:${bookingId || ''}:${quoteEditorId || ''}:${resourceType || ''}`;
     // seq 가 바뀌면 iframe 을 새로 만든다(같은 주소를 다시 불러와야 할 때).
-    const [frame, setFrame] = useState(() => ({ src: workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId), seq: 0, routeKey: frameKey }));
+    const [frame, setFrame] = useState(() => ({ src: workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId, resourceType), seq: 0, routeKey: frameKey }));
     const recoverySrc = useRef(frame.src);
     const [frameLoading, setFrameLoading] = useState(true);
     const [frameDelayed, setFrameDelayed] = useState(false);
@@ -248,7 +249,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         }
         setNativeHosts(null); setBookingWorkspace(null); setActiveSection('docs');
         setEditorBusy(false);
-        recoverySrc.current = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId);
+        recoverySrc.current = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId, resourceType);
         setFrame((prev) => ({ src: recoverySrc.current, seq: prev.seq + 1, routeKey: frameKey }));
         setFrameLoading(true);
         // tool 은 tool.key 로 정해진다.
@@ -333,7 +334,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     // 새 창으로 열기: 지금 안쪽에 떠 있는 화면을 단독으로 연다.
     // noopener 를 붙이지 않는다 — 새 창이 이 탭의 sessionStorage(관리자 값)를 이어받아야 자체 로그인 화면이 뜨지 않는다.
     const openStandalone = () => {
-        let url = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId);
+        let url = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId, resourceType);
         try {
             const inner = frameRef.current?.contentWindow?.location;
             if (inner && inner.origin === window.location.origin) url = `${inner.pathname}${inner.search}`;

@@ -1,20 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/api';
-import type { SpotRegion, TouristSpot } from '../../types/touristSpot';
-import { SPOT_REGION_OPTIONS } from '../../types/touristSpot';
-
-type RegionFilter = 'all' | SpotRegion | 'uncat';
-
-const REGION_TABS: { value: RegionFilter; label: string }[] = [
-    { value: 'all', label: '전체' },
-    { value: 'central', label: '중앙몽골' },
-    { value: 'gobi', label: '고비사막' },
-    { value: 'hovsgol', label: '홉스굴' },
-    { value: 'ulaanbaatar', label: '울란바타르' },
-    { value: 'experience', label: '체험' },
-    { value: 'food', label: '음식' },
-    { value: 'uncat', label: '미분류' },
-];
+import type { TouristSpot } from '../../types/touristSpot';
+import { touristSpotRegionGroups, touristSpotRegionLabel } from '../../types/touristSpot';
 
 interface TouristSpotPickerModalProps {
     open: boolean;
@@ -32,22 +19,24 @@ export const TouristSpotPickerModal: React.FC<TouristSpotPickerModalProps> = ({
     open,
     onPick,
     onClose,
-    title = '관광지 마스터에서 선택',
+    title = '여행지 관리에서 선택',
 }) => {
     const [spots, setSpots] = useState<TouristSpot[]>([]);
     const [loading, setLoading] = useState(false);
     const [q, setQ] = useState('');
-    const [region, setRegion] = useState<RegionFilter>('all');
+    const [region, setRegion] = useState<string | null>(null);
 
     useEffect(() => {
         if (!open) return;
         let cancelled = false;
+        const controller = new AbortController();
         const load = async () => {
             setLoading(true);
             try {
-                const data = await api.touristSpots.list({ active: true });
+                const data = await api.touristSpots.list({ active: true }, { signal: controller.signal, cache: 'no-store' });
                 if (!cancelled) setSpots(Array.isArray(data) ? data : []);
             } catch (e) {
+                if (cancelled) return;
                 console.error('Tourist spot picker load failed:', e);
                 if (!cancelled) setSpots([]);
             } finally {
@@ -56,20 +45,13 @@ export const TouristSpotPickerModal: React.FC<TouristSpotPickerModalProps> = ({
         };
         load();
         setQ('');
-        setRegion('all');
-        return () => { cancelled = true; };
+        setRegion(null);
+        return () => { cancelled = true; controller.abort(); };
     }, [open]);
 
     const filtered = useMemo(() => {
         return spots.filter((s) => {
-            if (region !== 'all') {
-                const rowRegion = (s.region || '') as SpotRegion;
-                if (region === 'uncat') {
-                    if (rowRegion) return false;
-                } else if (rowRegion !== region) {
-                    return false;
-                }
-            }
+            if (region !== null && touristSpotRegionLabel(s.region) !== region) return false;
             if (q) {
                 const needle = q.toLowerCase();
                 const hay = `${s.name_kr} ${s.name_local || ''}`.toLowerCase();
@@ -79,11 +61,8 @@ export const TouristSpotPickerModal: React.FC<TouristSpotPickerModalProps> = ({
         });
     }, [spots, q, region]);
 
-    const regionLabel = (r?: SpotRegion | null): string | null => {
-        if (!r) return null;
-        const found = SPOT_REGION_OPTIONS.find((o) => o.value === r);
-        return found ? found.label : null;
-    };
+    const regionTabs = useMemo(() => touristSpotRegionGroups(spots), [spots]);
+    const regionLabel = touristSpotRegionLabel;
 
     if (!open) return null;
 
@@ -115,16 +94,12 @@ export const TouristSpotPickerModal: React.FC<TouristSpotPickerModalProps> = ({
                 {/* Region tabs — same filter as the master page so admin
                     can quickly switch between 중앙몽골 / 고비사막 / 홉스굴 */}
                 <div className="px-6 pt-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto">
-                    {REGION_TABS.map((tab) => {
-                        const count = tab.value === 'all'
-                            ? spots.length
-                            : tab.value === 'uncat'
-                                ? spots.filter((s) => !s.region).length
-                                : spots.filter((s) => s.region === tab.value).length;
+                    {regionTabs.map((tab) => {
+                        const count = tab.count;
                         const on = region === tab.value;
                         return (
                             <button
-                                key={tab.value}
+                                key={tab.value ?? '__all'}
                                 type="button"
                                 onClick={() => setRegion(tab.value)}
                                 className={`shrink-0 px-3 pb-2.5 -mb-px text-sm font-medium border-b-2 transition-colors ${
@@ -149,7 +124,7 @@ export const TouristSpotPickerModal: React.FC<TouristSpotPickerModalProps> = ({
                         type="text"
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
-                        placeholder="관광지명으로 검색"
+                        placeholder="여행지명으로 검색"
                         autoFocus
                         className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                     />
@@ -161,15 +136,15 @@ export const TouristSpotPickerModal: React.FC<TouristSpotPickerModalProps> = ({
                     ) : filtered.length === 0 ? (
                         <div className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
                             {spots.length === 0
-                                ? '아직 등록된 관광지가 없습니다. 사이드바 → "관광지 마스터" 메뉴에서 먼저 등록해주세요.'
-                                : '조건에 맞는 관광지가 없습니다.'}
+                                ? '아직 등록된 여행지가 없습니다. 견적 관리 → "여행지 관리"에서 먼저 등록해주세요.'
+                                : '조건에 맞는 여행지가 없습니다.'}
                         </div>
                     ) : (
                         <table className="w-full text-sm">
                             <thead className="bg-slate-50 dark:bg-slate-800/50 sticky top-0">
                                 <tr className="text-xs text-slate-500 dark:text-slate-400">
                                     <th className="text-left px-4 py-2.5 font-medium w-16">대표</th>
-                                    <th className="text-left px-4 py-2.5 font-medium">관광지명</th>
+                                    <th className="text-left px-4 py-2.5 font-medium">여행지명</th>
                                     <th className="text-left px-4 py-2.5 font-medium">주소</th>
                                     <th className="text-center px-4 py-2.5 font-medium w-16">사진</th>
                                     <th className="text-right px-4 py-2.5 font-medium w-24">선택</th>

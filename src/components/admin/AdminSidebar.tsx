@@ -33,7 +33,7 @@ const dashboardItem: NavItem = { id: 'dashboard', icon: 'dashboard', label: '대
 
 const navArtwork: Record<string, Admin3DIconName> = {
     dashboard: 'dashboard', 'booking-work': 'reservation', 'quote-work': 'idea',
-    'product-work': 'travel', 'assignment-work': 'customer', 'travel-material': 'route',
+    'product-work': 'travel', 'assignment-work': 'customer',
     'customer-content': 'message', 'site-management': 'target',
 };
 
@@ -54,33 +54,21 @@ const navGroups: NavGroup[] = [
     {
         id: 'quote-work', icon: 'request_quote', label: '견적 관리',
         relatedPages: [quoteDeskPageId('builder')],
-        items: [quoteItem('inbox')],
+        items: [quoteItem('inbox'), quoteItem('courses'), quoteItem('itinerary'), quoteItem('spots')],
     },
     {
         id: 'product-work', icon: 'inventory_2', label: '상품 관리',
         items: [
             { id: 'products', icon: 'inventory_2', label: '상품 목록', href: '/admin/products' },
             { id: 'categories', icon: 'category', label: '상품 카테고리', href: '/admin/categories' },
+            { id: 'templates', icon: 'folder_special', label: '문서 템플릿', href: '/admin/templates' },
         ],
     },
     {
         id: 'assignment-work', icon: 'groups', label: '배정·자원',
         items: [
             { id: 'accommodation-ops', icon: 'night_shelter', label: '숙소 배정 · 현지 운영', href: '/admin/accommodation-ops' },
-            quoteItem('resources', '가이드·견적숙소·차량'),
-            { id: 'hotels', icon: 'hotel', label: '상품용 호텔', href: '/admin/hotels' },
-            { id: 'guide-intro', icon: 'translate', label: '가이드 소개', href: '/admin/guide-intro' },
-        ],
-    },
-    {
-        id: 'travel-material', icon: 'route', label: '여행 자료',
-        items: [
-            quoteItem('courses'),
-            quoteItem('itinerary'),
-            quoteItem('spots', '견적용 명소'),
-            { id: 'tourist-spots', icon: 'location_on', label: '상품용 관광지', href: '/admin/tourist-spots' },
-            { id: 'design-spots', icon: 'photo_library', label: '여행지 사진', href: '/admin/design-spots' },
-            { id: 'templates', icon: 'folder_special', label: '문서 템플릿', href: '/admin/templates' },
+            quoteItem('resources'),
         ],
     },
     {

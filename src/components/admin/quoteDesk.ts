@@ -59,16 +59,16 @@ export const QUOTE_DESK_TOOLS: QuoteDeskTool[] = [
         description: '견적서에 불러오는 코스(일정·명소·기본가)',
     },
     {
-        key: 'itinerary', label: '일정 조각 관리', icon: 'timeline', doc: '/일정관리',
+        key: 'itinerary', label: '일정관리', icon: 'timeline', doc: '/일정관리',
         description: '코스와 일정표에 끼워 넣는 일정 문구',
     },
     {
-        key: 'spots', label: '명소 관리', icon: 'place', doc: '/명소관리',
-        description: '견적서 대표 명소와 지도에 쓰는 명소',
+        key: 'spots', label: '여행지 관리', icon: 'place', doc: '/명소관리',
+        description: '상품·예약 일정표와 견적에서 함께 쓰는 여행지 사진·설명',
     },
     {
         key: 'resources', label: '가이드·숙소·차량', icon: 'groups', doc: '/리소스관리',
-        description: '예약 배정에서 고르는 가이드·숙소·차량',
+        description: '상품·예약 일정표와 배정에서 함께 쓰는 가이드·숙소·차량',
     },
 ];
 
@@ -105,11 +105,12 @@ export function isDesktopViewport(): boolean {
 }
 
 /** iframe 에 넣을 주소. 바깥 창이 데스크톱 폭이면 모바일 화면으로 넘어가지 않게 `?m=0` 을 붙인다. */
-export function quoteDeskFrameSrc(tool: QuoteDeskTool, bookingId?: string, quoteEditorId?: string): string {
+export function quoteDeskFrameSrc(tool: QuoteDeskTool, bookingId?: string, quoteEditorId?: string, resourceType?: string): string {
     if (tool.key === 'builder' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}`;
     if (tool.key === 'inbox' && quoteEditorId) return `/견적관리-모바일?qe=${encodeURIComponent(quoteEditorId)}`;
     if (tool.key === 'bookings' && bookingId) return `/예약관리?id=${encodeURIComponent(bookingId)}`;
     if (tool.key === 'inbox' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}${isDesktopViewport() ? '&m=0' : ''}`;
+    if (tool.key === 'resources' && ['guides', 'lodges', 'vehicles'].includes(resourceType || '')) return `${tool.doc}?resourceType=${resourceType}`;
     return tool.mobileDoc && isDesktopViewport() ? `${tool.doc}?m=0` : tool.doc;
 }
 

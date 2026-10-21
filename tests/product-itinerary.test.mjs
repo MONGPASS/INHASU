@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import { productScheduleDays, mergeProductDays, loadProductDocument, buildProductQuote, hasProductSchedule, productItineraryPublished, documentImage, normalizeRepresentativeSpots } from '../functions/lib/productItinerary.ts';
 import { productDocumentSections, escapeDocumentText } from '../public/product-itinerary.js';
 import { documentUrl, documentImageAttribute, documentTextWithoutBreaks } from '../public/document-safe.js';
+import { productLodgingSnapshot } from '../src/utils/lodgingItinerarySnapshot.ts';
 
 const reservation = { id: 'booking-uuid', product_id: 'tour-a', product_name: '고비 3일', customer_name: '테스트 고객',
     start_date: '2026-10-20', end_date: '2026-10-22', travelers: 3, total_price: 1234567, deposit_amount: 234567,
@@ -23,6 +24,34 @@ test('상품의 DAY·타임라인·슬라이드 일정과 사진을 보존한다
     assert.deepEqual(days[0].activities[1].images, ['/img/camp.jpg']);
     assert.equal(days[0].meals.lunch, '현지식');
     assert.ok(hasProductSchedule(days));
+});
+
+test('공통 숙소 선택 snapshot의 출처·등급·지역·시설과 명시빈값을 고객 일정에 연결한다', () => {
+    const selected = { id: 'resource-lodge:등록 숙소', name_kr: '등록 숙소', grade: '고급 게르', region: '중앙몽골',
+        address: '저장된 실제 주소', occupancy: '2인실', images: [], description: '', amenities: ['온수', '식당'],
+        roomAmenities: ['온수'], sharedFacilities: ['식당'], phone: 'PRIVATE-PHONE', operatingNotes: 'PRIVATE-ARCHIVE' };
+    const snapshot = productLodgingSnapshot(selected);
+    const selectedProduct = { itineraryBlocks: [{ type: 'dayInfo', content: { title: '초원', ...snapshot } }] };
+    const days = mergeProductDays(reservation, null, selectedProduct);
+    const stay = days[0].accommodation;
+    assert.equal(stay.id, selected.id); assert.equal(stay.type, '고급 게르'); assert.equal(stay.region, '중앙몽골');
+    assert.equal(stay.occupancy, '2인실'); assert.equal(stay.address, '저장된 실제 주소');
+    assert.deepEqual(stay.images, []); assert.equal(stay.description, '');
+    assert.deepEqual(stay.facilities, ['온수', '식당']); assert.deepEqual(stay.roomAmenities, ['온수']);
+    stay.roomAmenities.push('문서에서 추가'); assert.deepEqual(snapshot.accommodationRoomAmenities, ['온수']);
+    const q = buildProductQuote({ reservation, product: selectedProduct, days, assignmentsVisible: true });
+    const lodge = q.booking.assign.lodges[0];
+    assert.equal(lodge.address, '저장된 실제 주소'); assert.equal(lodge.region, '중앙몽골'); assert.equal(lodge.grade, '고급 게르');
+    assert.equal(lodge.roomAmenities, '온수\n문서에서 추가'); assert.equal(lodge.sharedFacilities, '식당');
+    assert.deepEqual(lodge.imgs, []); assert.equal(lodge.desc, ''); assert.ok(!JSON.stringify(q).includes('PRIVATE-'));
+    const emptyProduct = { itineraryBlocks: [{ type: 'dayInfo', content: { title: '초원', ...productLodgingSnapshot({ id: selected.id, name_kr: selected.name_kr }) } }] };
+    const empty = buildProductQuote({ reservation, days: mergeProductDays(reservation, null, emptyProduct), assignmentsVisible: true }).booking.assign.lodges[0];
+    for (const field of ['address', 'region', 'grade', 'desc', 'roomAmenities', 'sharedFacilities']) assert.equal(empty[field], '');
+    assert.deepEqual(empty.imgs, []);
+    const legacyDays = productScheduleDays({ itineraryBlocks: [{ type: 'dayInfo', content: { accommodation: '옛 숙소', accommodationAddress: '옛 주소' } }] });
+    const legacy = buildProductQuote({ reservation, days: legacyDays, assignmentsVisible: true }).booking.assign.lodges[0];
+    assert.equal(legacy.region, '옛 주소'); assert.equal(legacy.address, '옛 주소');
+    assert.equal(Object.hasOwn(legacy, 'roomAmenities'), false, '옛 기록에 없는 필드는 새 빈 snapshot으로 만들지 않는다');
 });
 
 test('예약 시작일로 날짜를 계산하고 날짜를 건너뛴 숙소 배정도 반영한다', () => {

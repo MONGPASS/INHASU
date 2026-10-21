@@ -92,7 +92,7 @@ export const horseTrekFields: DesignTemplateField[] = [
     {
         key: 'spot_cards', label: '방문 여행지', type: 'spot-cards', section: '08 방문 여행지',
         default: '울란바토르|\n쳉헤르 온천|\n테를지 국립공원|',
-        help: '한 줄에 한 곳: 표시이름|사진URL. 「관광지 마스터에서 추가」를 누르면 이름과 대표 사진이 자동으로 들어갑니다.',
+        help: '한 줄에 한 곳: 표시이름|사진URL. 공통 여행지를 선택하면 이름과 대표 사진이 추가됩니다.',
     },
 
     // ── 09 고비 히어로 ────────────────────────────────────────

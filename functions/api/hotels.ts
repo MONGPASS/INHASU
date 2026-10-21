@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAdmin } from '../lib/adminAuth';
+import { parseResourceLodges, publicResourceLodgeHotel, publicResourceLodgeHotels, RESOURCE_LODGE_PREFIX } from '../lib/resourceLodgeHotel.ts';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -31,6 +32,23 @@ const decorate = (row: any) => ({
 app.get('/', async (c) => {
     const db = c.env.DB;
     const q = (c.req.query('q') || '').trim();
+    if (c.req.query('source') === 'resources') {
+        c.header('Cache-Control', 'no-store');
+        try {
+            const row = await db.prepare('SELECT v FROM kv WHERE k = ?').bind('lodges').first<{ v: unknown }>();
+            if (!row) return c.json([]);
+            const needle = q.toLocaleLowerCase('ko');
+            const region = (c.req.query('region') || '').trim();
+            const hotels = publicResourceLodgeHotels(parseResourceLodges(row.v)).filter(hotel => {
+                if (region === 'uncat' ? !!hotel.region : region && hotel.region !== region) return false;
+                return !needle || [hotel.name_kr, hotel.region, hotel.address, hotel.grade, ...hotel.amenities]
+                    .some(value => value.toLocaleLowerCase('ko').includes(needle));
+            });
+            return c.json(hotels);
+        } catch {
+            return c.json({ error: '숙소 자료를 읽지 못했습니다. 잠시 후 다시 시도해 주세요.' }, 503);
+        }
+    }
     const country = (c.req.query('country') || '').trim();
     const city = (c.req.query('city') || '').trim();
     const onlyActive = c.req.query('active') !== '0'; // default: hide inactive
@@ -57,6 +75,18 @@ app.get('/', async (c) => {
 app.get('/:id', async (c) => {
     const id = c.req.param('id');
     const db = c.env.DB;
+    if (id.startsWith(RESOURCE_LODGE_PREFIX)) {
+        // Exact shared IDs are aliases only; never copy into or fall back to legacy hotel rows.
+        c.header('Cache-Control', 'no-store');
+        try {
+            const row = await db.prepare('SELECT v FROM kv WHERE k = ?').bind('lodges').first<{ v: unknown }>();
+            if (!row) return c.json({ error: '숙소를 찾을 수 없습니다.' }, 404);
+            const hotel = publicResourceLodgeHotel(id, parseResourceLodges(row.v));
+            return hotel ? c.json(hotel) : c.json({ error: '숙소를 찾을 수 없습니다.' }, 404);
+        } catch {
+            return c.json({ error: '숙소 자료를 읽지 못했습니다. 잠시 후 다시 시도해 주세요.' }, 503);
+        }
+    }
     try {
         const row = await db.prepare('SELECT * FROM hotels WHERE id = ?').bind(id).first();
         if (!row) return c.json({ error: 'Not found' }, 404);
