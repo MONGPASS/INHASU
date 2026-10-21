@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { dashboardAvailability, dashboardDate, dashboardNumber, dashboardPeriod, dashboardTimestamp } from '../src/utils/adminDashboard.ts';
+import { dashboardAnswerRate, dashboardAvailability, dashboardBookingSplit, dashboardDailyNew, dashboardDate, dashboardNumber, dashboardPeriod,
+    dashboardRevenue, dashboardSeoulDate, dashboardShortRange, dashboardTaskCards, dashboardTimestamp } from '../src/utils/adminDashboard.ts';
 
 const require = createRequire(import.meta.url);
 const React = require('react');
@@ -157,4 +158,72 @@ test('표시 날짜는 한국시간으로 고정하고 여행 날짜·팀 금액
     assert.deepEqual(dashboardAvailability(null), { bookings: false, inquiries: false, tasks: false });
     const data = fixture(); data.availability.requests = false;
     assert.deepEqual(dashboardAvailability(data), { bookings: false, inquiries: false, tasks: false });
+});
+
+test('기간별 확정 매출은 한국시간 접수일로 합산하고 전체 기간은 서버 집계를 그대로 쓴다', () => {
+    const data = fixture();
+    data.bookings.push({ ...booking('boundary-in', 'product', 1000), createdAt: '2026-09-30T15:30:00Z' },   // KST 10.01 00:30
+        { ...booking('boundary-out', 'product', 20000), createdAt: '2026-09-30T14:30:00Z' },                 // KST 09.30 23:30
+        { ...booking('waiting', 'product', 500000), status: 'pending_payment' },
+        { ...booking('old-unknown', 'product', null), createdAt: '2025-03-01T00:00:00Z' });
+    assert.deepEqual(dashboardRevenue(data, '전체 기간'), { value: 7654321, range: '전체' });
+    assert.deepEqual(dashboardRevenue(data, '이번 달'), { value: 3301000, range: '10.01 – 10.14' });
+    assert.equal(dashboardRevenue(data, '지난 30일').value, 3321000);
+    assert.equal(dashboardRevenue(data, '올해').value, 3321000, 'an unknown amount outside the period does not hide it');
+    data.bookings.push({ ...booking('new-unknown', 'quote_booking', null), createdAt: '2026-10-10T01:00:00Z' });
+    assert.equal(dashboardRevenue(data, '이번 달').value, null, 'an unknown amount inside the period is never counted as 0');
+    data.availability.requests = false;
+    assert.equal(dashboardRevenue(data, '지난 30일').value, null);
+    assert.deepEqual(dashboardRevenue(null, '이번 달'), { value: null, range: '' });
+});
+
+test('예약 구분·7일 신규 예약·답변 처리율은 받은 자료만으로 계산한다', () => {
+    const data = fixture();
+    data.bookings.push({ ...booking('cancelled', 'product', 900000), status: 'cancelled' },
+        { ...booking('waiting', 'quote_booking', null), status: 'reservation_requested', createdAt: '2026-10-09T03:00:00Z' });
+    const split = dashboardBookingSplit(data);
+    assert.equal(split.total, 3, 'cancelled bookings are left out');
+    assert.deepEqual(split.confirmed, { count: 2, amount: 3300000 });
+    assert.deepEqual(split.waiting, { count: 1, amount: null });
+
+    const days = dashboardDailyNew(data);
+    assert.equal(days.length, 7);
+    // Same rule as the server's todayReservations: every booking received that day, cancelled included.
+    assert.deepEqual(days.at(-1), { key: '2026-10-14', label: '10.14 (수)', count: 3, today: true });
+    assert.equal(days[0].key, '2026-10-08');
+    assert.equal(days.find(day => day.key === '2026-10-09').count, 1);
+
+    assert.deepEqual(dashboardAnswerRate(data), { month: 10, received: 3, answered: 1 });
+    data.availability.quotes = false;
+    assert.equal(dashboardAnswerRate(data), null);
+    assert.equal(dashboardSeoulDate('2026-10-13 15:05:00'), '2026-10-14');
+    assert.equal(dashboardSeoulDate('invalid'), '');
+});
+
+test('오늘 확인할 업무는 서버 키로 예약을 찾아 출발일 가까운 순으로 묶는다', () => {
+    const data = fixture();
+    data.bookings.push({ ...booking('soon', 'product', 1), startDate: '2026-10-18', endDate: '2026-10-20', customerName: '곧 출발' });
+    data.tasks = [
+        { key: 'assignment:product:product-1', kind: 'assignment', title: '출발 전 배정 확인', description: '상품 고객 · 2026-10-14', href: '/a1', createdAt: '', priority: 'urgent' },
+        { key: 'assignment:product:soon', kind: 'assignment', title: '출발 전 배정 확인', description: '곧 출발 · 2026-10-18', href: '/a2', createdAt: '', priority: 'urgent' },
+        { key: 'contract:product:missing', kind: 'contract', title: '계약 동의 확인', description: '목록 밖 고객 · 몽골', href: '/c1', createdAt: '', priority: 'normal' },
+        { key: 'quote:quote_request:x', kind: 'quote', title: '견적 문의 답변', description: 'x', href: '/q', createdAt: '', priority: 'normal' },
+    ];
+    const cards = dashboardTaskCards(data);
+    assert.deepEqual(cards.assignment.map(card => [card.name, card.dday]), [['상품 고객', 0], ['곧 출발', 4]]);
+    assert.deepEqual(cards.contract.map(card => [card.name, card.dday]), [['목록 밖 고객', null]]);
+    assert.equal(cards.deposit_report.length, 0);
+
+    const html = render({ data });
+    assert.ok(html.includes('href="/a2"'));
+    assert.ok(html.includes('D-DAY') && html.includes('D-4'));
+    assert.match(html, /id="dashboard-panel-contract"[^>]*hidden=""/, 'only the first tab with work is shown');
+    assert.ok(html.includes('답변을 기다리는 견적 문의 <b>2</b>건'));
+});
+
+test('대시보드 행의 짧은 여행 기간은 연도가 바뀌면 끝 날짜에도 연도를 붙인다', () => {
+    assert.deepEqual(dashboardShortRange('2026-09-12', '2026-09-15'), { range: '26.09.12 – 09.15', nights: '3박 4일' });
+    assert.deepEqual(dashboardShortRange('2026-12-31', '2027-01-03'), { range: '26.12.31 – 27.01.03', nights: '3박 4일' });
+    assert.deepEqual(dashboardShortRange('2026-10-14', '2026-10-14'), { range: '26.10.14', nights: '당일' });
+    assert.deepEqual(dashboardShortRange('', ''), { range: '일정 미정', nights: '' });
 });
