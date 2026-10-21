@@ -28,6 +28,13 @@ import { createInlineDocument } from '../utils/reservationInline';
 import { readReservationDraft, reservationDraftNavigationDecision, type ReservationDraftNavigationDecision, type ReservationDraftSnapshot } from '../utils/adminReservationDraft';
 import '../styles/reservation-inline.css';
 import { readReservationList, reservationListSearch, reservationExportRows, reservationSelectionKey } from '../utils/adminReservationList';
+import {
+    STATUS_GROUP_CONFIRMED, STATUS_GROUP_WAITING, highlightMatch, isConfirmedReservation, isWaitingReservation, reservationAssignments,
+    reservationDday, reservationKpis, reservationPayNote, reservationPeriod, reservationSteps, type BoardKpi,
+} from '../utils/adminReservationBoard';
+import { dashboardPhone, dashboardSeoulDate, dashboardWon } from '../utils/adminDashboard';
+import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
+import board from './AdminReservationBoard.module.css';
 import { readProductVehicle } from '../utils/reservationAssignment';
 import { guideAssignmentConflicts, validAssignmentPeriod } from '../utils/assignmentAvailability';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
@@ -160,6 +167,13 @@ const BLANK_ADD = { customerName: '', phone: '', email: '', source: 'kakao', pro
 /** 고객이 '입금 완료'를 신고했는데 아직 입금 확인을 하지 않은 예약 — 목록의 「입금 신고」 배지와 상세의 강조 표시에 쓴다. */
 const hasOpenDepositReport = (r: Reservation) =>
     r.type !== 'quote' && !!r.depositReport && r.depositStatus !== 'paid' && r.status !== 'cancelled';
+
+const KPI_ICONS: Record<BoardKpi['key'], DashboardIconName> = {
+    all: 'lc-folder', waiting: 'lc-hourglass', confirmed: 'lc-badge-check', balanceDue: 'lc-banknote', departing: 'lc-plane-takeoff',
+};
+const CHIP_ICONS: Record<'guide' | 'vehicle' | 'stay', DashboardIconName> = { guide: 'lc-user', vehicle: 'lc-car', stay: 'lc-bed' };
+/** The part of a list value that matches the search term is marked. */
+const Highlight = ({ a, b, c }: { a: string; b: string; c: string }) => <>{a}{b && <mark className={board.mark}>{b}</mark>}{c}</>;
 
 /** 입금 신고 시각: "10. 12. 오후 03:04". 날짜를 읽을 수 없으면 ''. */
 const formatReportTime = (iso?: string) => {
@@ -2585,6 +2599,23 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
     const [selectedRows, setSelectedRows] = useState<Set<string>>(() => new Set());
     const [exportMode, setExportMode] = useState<'filtered' | 'selected' | 'confirmed'>('filtered');
     const itemsPerPage = 8;
+    // 통합 예약 목록 board: search suggestions, filter dropdowns and the "/" search shortcut.
+    const [searchFocused, setSearchFocused] = useState(false);
+    const [openFilter, setOpenFilter] = useState('');
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        if (customerPage) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') { setOpenFilter(''); return; }
+            if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
+            const target = event.target as HTMLElement | null;
+            if (target && (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable)) return;
+            if (!searchInputRef.current) return;
+            event.preventDefault(); searchInputRef.current.focus();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [customerPage]);
 
     // Reservations State
     const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -3219,51 +3250,52 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         }
     };
 
-    const filteredReservations = useMemo(() => {
-        const normalizedSearch = searchTerm.trim().toLowerCase();
-        return reservations.filter(res => {
-            const haystack = [
-                res.id,
-                res.reservationNumber,
-                res.customerName,
-                res.email,
-                res.phone,
-                res.productName,
-                res.country,
-                res.headcount,
-            ].filter(Boolean).join(' ').toLowerCase();
-
-            const matchesSearch = !normalizedSearch || haystack.includes(normalizedSearch);
-            const matchesStatus = filterStatus === '전체 상태' ||
-                (filterStatus === '계약 서명 대기' && res.quoteBooking?.label === '계약 서명 대기') ||
-                (filterStatus === '최종 확정 대기' && res.quoteBooking?.label === '최종 확정 대기') ||
-                (filterStatus === '입금 대기' && res.status === 'pending_payment') ||
-                (filterStatus === '결제 완료' && res.status === 'paid') ||
-                (filterStatus === '예약 확정' && res.status === 'confirmed') ||
-                (filterStatus === '취소됨' && res.status === 'cancelled') ||
-                (filterStatus === '신규 견적' && res.status === 'new') ||
-                (filterStatus === '견적 작성 중' && res.status === 'processing') ||
-                (filterStatus === '견적 발송 완료' && res.status === 'answered') ||
-                (filterStatus === '예약 요청' && res.status === 'reservation_requested') ||
-                (filterStatus === '보류' && res.status === 'on_hold') ||
-                (filterStatus === '여행 완료' && res.status === 'completed');
-            const matchesType = (filterType === '전체 유형' && res.type !== 'quote') ||
-                (filterType === '맞춤 견적 예약' && res.type === 'quote_booking') ||
-                (filterType === '이전 견적 문의' && res.type === 'quote') ||
-                (filterType === '일반 상품' && res.type === 'product');
-            const matchesPayment = filterPayment === '전체 결제' ||
-                (filterPayment === '예약금 미입금' && res.depositStatus !== 'paid') ||
-                (filterPayment === '예약금 입금' && res.depositStatus === 'paid') ||
-                (filterPayment === '잔금 미입금' && res.balanceStatus !== 'paid') ||
-                (filterPayment === '잔금 입금' && res.balanceStatus === 'paid');
-            const matchesDeparture = !filterDeparture || res.startDate === filterDeparture;
-            const matchesSource = filterSource === '전체 경로' || (res.source || '') === filterSource;
-
-            return matchesSearch && matchesStatus && matchesType && matchesPayment && matchesDeparture && matchesSource;
-        }).sort((a, b) => sortOrder === 'departure'
-            ? (a.departureMs || Number.MAX_SAFE_INTEGER) - (b.departureMs || Number.MAX_SAFE_INTEGER)
-            : (b.bookedAtMs || 0) - (a.bookedAtMs || 0));
-    }, [searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, reservations, sortOrder]);
+    // Each list filter is a separate test so the board can count options with the other filters applied.
+    const matchesSearch = (res: Reservation, term = searchTerm) => {
+        const normalizedSearch = term.trim().toLowerCase();
+        if (!normalizedSearch) return true;
+        const haystack = [res.id, res.reservationNumber, res.customerName, res.email, res.phone, res.productName, res.country, res.headcount]
+            .filter(Boolean).join(' ').toLowerCase();
+        const digits = normalizedSearch.replace(/[-\s]/g, '');
+        return haystack.includes(normalizedSearch) || (/^\d+$/.test(digits) && (res.phone || '').replace(/\D/g, '').includes(digits));
+    };
+    const matchesStatus = (res: Reservation, value = filterStatus) => value === '전체 상태' ||
+        (value === STATUS_GROUP_WAITING && isWaitingReservation(res)) ||
+        (value === STATUS_GROUP_CONFIRMED && isConfirmedReservation(res)) ||
+        (value === '계약 서명 대기' && res.quoteBooking?.label === '계약 서명 대기') ||
+        (value === '최종 확정 대기' && res.quoteBooking?.label === '최종 확정 대기') ||
+        (value === '입금 대기' && res.status === 'pending_payment') ||
+        (value === '결제 완료' && res.status === 'paid') ||
+        (value === '예약 확정' && res.status === 'confirmed') ||
+        (value === '취소됨' && res.status === 'cancelled') ||
+        (value === '신규 견적' && res.status === 'new') ||
+        (value === '견적 작성 중' && res.status === 'processing') ||
+        (value === '견적 발송 완료' && res.status === 'answered') ||
+        (value === '예약 요청' && res.status === 'reservation_requested') ||
+        (value === '보류' && res.status === 'on_hold') ||
+        (value === '여행 완료' && res.status === 'completed');
+    const matchesType = (res: Reservation, value = filterType) => (value === '전체 유형' && res.type !== 'quote') ||
+        (value === '맞춤 견적 예약' && res.type === 'quote_booking') ||
+        (value === '이전 견적 문의' && res.type === 'quote') ||
+        (value === '일반 상품' && res.type === 'product');
+    const matchesPayment = (res: Reservation, value = filterPayment) => value === '전체 결제' ||
+        (value === '예약금 미입금' && res.depositStatus !== 'paid') ||
+        (value === '예약금 입금' && res.depositStatus === 'paid') ||
+        (value === '잔금 미입금' && res.balanceStatus !== 'paid') ||
+        (value === '잔금 입금' && res.balanceStatus === 'paid');
+    // 출발일 필터는 그날 이후 출발하는 예약을 보여 준다(디자인 "출발일 … 이후").
+    const matchesDeparture = (res: Reservation) => !filterDeparture || (!!res.startDate && toTourDateKey(res.startDate) >= filterDeparture);
+    const matchesSource = (res: Reservation, value = filterSource) => value === '전체 경로' || (res.source || '') === value;
+    type ListFilter = 'status' | 'payment' | 'type' | 'source';
+    const passesFilters = (res: Reservation, skip?: ListFilter) => matchesSearch(res) && matchesDeparture(res)
+        && (skip === 'status' || matchesStatus(res)) && (skip === 'type' || matchesType(res))
+        && (skip === 'payment' || matchesPayment(res)) && (skip === 'source' || matchesSource(res));
+    const filteredReservations = useMemo(() => reservations.filter(res => passesFilters(res)).sort((a, b) => sortOrder === 'departure'
+        ? (a.departureMs || Number.MAX_SAFE_INTEGER) - (b.departureMs || Number.MAX_SAFE_INTEGER)
+        : sortOrder === 'amount' ? (b.totalAmount || 0) - (a.totalAmount || 0)
+        : (b.bookedAtMs || 0) - (a.bookedAtMs || 0)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the matchers read exactly these filter values
+    [searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, reservations, sortOrder]);
     useEffect(() => { if (loadedOnce && !isLoading) setCurrentPage(page => Math.min(page, Math.max(1, Math.ceil(filteredReservations.length / itemsPerPage)))); }, [filteredReservations.length, loadedOnce, isLoading]);
 
     // Pagination Logic
@@ -3299,29 +3331,50 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
             });
     }, [reservations]);
 
-    const formatUpcomingDate = (value?: string) => {
-        if (!value) return '날짜 미정';
-        const time = toTime(toTourDateKey(value));
-        if (!time) return '날짜 미정';
-        return new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' }).format(new Date(time));
+    // 통합 예약 목록 board (Admin Dashboard v3 · Page 02)
+    const todayKey = dashboardSeoulDate(new Date().toISOString());
+    const kpis = useMemo(() => reservationKpis(reservations, todayKey), [reservations, todayKey]);
+    const KPI_FILTERS: Record<BoardKpi['key'], { status: string; payment: string; departure: string }> = {
+        all: { status: '전체 상태', payment: '전체 결제', departure: '' },
+        waiting: { status: STATUS_GROUP_WAITING, payment: '전체 결제', departure: '' },
+        confirmed: { status: STATUS_GROUP_CONFIRMED, payment: '전체 결제', departure: '' },
+        balanceDue: { status: '전체 상태', payment: '잔금 미입금', departure: '' },
+        departing: { status: '전체 상태', payment: '전체 결제', departure: todayKey },
     };
-
-    // Stats
-    const stats = useMemo(() => {
-
-        const hasContractSent = (r: Reservation) => r.quoteBooking?.contractRequested || Boolean(r.history?.some((event: any) =>
-            event.type === 'email' && (String(event.description || '').includes('契約') || String(event.description || '').includes('계약') || String(event.detail || '').includes('/documents/contract/'))
-        ));
-
-        return {
-            total: reservations.filter(r => r.type !== 'quote').length,
-            pending: reservations.filter(r => r.type !== 'quote' && !['cancelled', 'completed'].includes(r.status) && (r.depositStatus !== 'paid' || r.status === 'pending_payment')).length,
-            confirmed: reservations.filter(r => r.status === 'confirmed' || r.status === 'paid').length,
-            quoteBookings: reservations.filter(r => r.type === 'quote_booking').length,
-            contractSent: reservations.filter(hasContractSent).length,
-            departingSoon: upcomingTours.length,
-        };
-    }, [reservations, upcomingTours]);
+    const kpiActive = (key: BoardKpi['key']) => key !== 'all' && filterStatus === KPI_FILTERS[key].status && filterPayment === KPI_FILTERS[key].payment
+        && filterDeparture === KPI_FILTERS[key].departure && filterSource === '전체 경로' && filterType === '전체 유형';
+    const applyKpi = (key: BoardKpi['key']) => {
+        const active = kpiActive(key), next = active ? KPI_FILTERS.all : KPI_FILTERS[key];
+        setFilterStatus(next.status); setFilterPayment(next.payment); setFilterDeparture(next.departure);
+        if (!active) { setFilterSource('전체 경로'); setFilterType('전체 유형'); }
+        setCurrentPage(1);
+    };
+    const statusTabs = ([['전체 예약', '전체 상태'], ['확정 대기', STATUS_GROUP_WAITING], ['예약 확정', STATUS_GROUP_CONFIRMED]] as const)
+        .map(([label, value]) => ({ label, value, count: reservations.filter(r => passesFilters(r, 'status') && matchesStatus(r, value)).length }));
+    const detailedStatuses = ['전체 상태', '입금 대기', '결제 완료', '예약 확정', '계약 서명 대기', '최종 확정 대기',
+        ...(filterType === '이전 견적 문의' ? ['신규 견적', '견적 작성 중', '견적 발송 완료', '예약 요청'] : []), '보류', '여행 완료', '취소됨'];
+    const filterGroups: Array<{ key: 'status' | 'payment' | 'source' | 'type'; label: string; value: string; defaultValue: string;
+        options: Array<{ value: string; label: string }>; set: (value: string) => void; test: (res: Reservation, value: string) => boolean }> = [
+        { key: 'status', label: '상태', value: filterStatus, defaultValue: '전체 상태', options: detailedStatuses.map(value => ({ value, label: value === '전체 상태' ? '전체' : value })), set: setFilterStatus, test: matchesStatus },
+        { key: 'payment', label: '결제', value: filterPayment, defaultValue: '전체 결제', options: ['전체 결제', '예약금 미입금', '예약금 입금', '잔금 미입금', '잔금 입금'].map(value => ({ value, label: value === '전체 결제' ? '전체' : value })), set: setFilterPayment, test: matchesPayment },
+        { key: 'source', label: '경로', value: filterSource, defaultValue: '전체 경로', options: [{ value: '전체 경로', label: '전체' }, ...SOURCE_OPTIONS.map(s => ({ value: s.v, label: s.l }))], set: setFilterSource, test: matchesSource },
+        { key: 'type', label: '유형', value: filterType, defaultValue: '전체 유형', options: ['전체 유형', '일반 상품', '맞춤 견적 예약', '이전 견적 문의'].map(value => ({ value, label: value === '전체 유형' ? '전체' : value })), set: setFilterType, test: matchesType },
+    ];
+    const searchMatches = searchTerm.trim() ? reservations.filter(r => matchesType(r) && matchesSearch(r)) : [];
+    const searchNumber = (r: Reservation) => r.reservationNumber || r.id.slice(0, 8).toUpperCase();
+    const showSuggest = searchFocused && searchMatches.length > 0
+        && !(searchMatches.length === 1 && searchNumber(searchMatches[0]).toLowerCase() === searchTerm.trim().toLowerCase());
+    const recentCustomers = reservations.filter(r => r.type !== 'quote' && r.customerName.trim())
+        .sort((a, b) => (b.bookedAtMs || 0) - (a.bookedAtMs || 0))
+        .filter((r, index, list) => list.findIndex(x => x.customerName === r.customerName) === index).slice(0, 4);
+    const hasActiveFilters = !!searchTerm.trim() || filterStatus !== '전체 상태' || filterPayment !== '전체 결제' || filterType !== '전체 유형' || !!filterDeparture || filterSource !== '전체 경로';
+    const totalBookings = reservations.filter(r => r.type !== 'quote').length;
+    const resetListFilters = () => { setSearchTerm(''); setFilterStatus('전체 상태'); setFilterPayment('전체 결제'); setFilterType('전체 유형'); setFilterDeparture(''); setFilterSource('전체 경로'); setSortOrder('recent'); setCurrentPage(1); };
+    const statusPillClass = (status: string) => isConfirmedReservation({ status }) ? board.pillOk : isWaitingReservation({ status }) ? board.pillWait : board.pillMuted;
+    const shortDow = (value?: string) => {
+        const key = toTourDateKey(value || '');
+        return /^\d{4}-\d{2}-\d{2}$/.test(key) ? `${key.slice(5).replace('-', '.')} ${'일월화수목금토'[new Date(`${key}T00:00:00Z`).getUTCDay()]}` : '';
+    };
 
     const downloadConfirmedReservationsExcel = () => {
         const confirmedReservations = reservationExportRows(reservations, filteredReservations, selectedRows, exportMode)
@@ -3751,288 +3804,273 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                     </>
                 }
             >
-                <div className="stack route-anim" style={{ gap: 18, fontFamily: 'var(--font-sans)' }}>
-                    {loadWarnings.length > 0 && <div className="card card-pad" role="alert" style={{ borderColor: '#D99635' }}>
+                <div className={`route-anim ${board.board}`}>
+                    {loadWarnings.length > 0 && <div className={board.warning} role="alert">
                         {loadWarnings.map(message => <div key={message}>{message}</div>)}
                         <button type="button" className="btn btn-sm btn-ghost" disabled={isLoading} onClick={fetchReservations}>다시 불러오기</button>
                     </div>}
-                    {isLoading && <div role="status" aria-live="polite">예약 목록을 불러오는 중…</div>}
-                    {/* Summary Cards */}
-                    <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-                        {[
-                            { label: '전체 예약 건수', value: stats.total, icon: 'folder_managed', tint: 'tint-blue' },
-                            { label: '입금 대기', value: stats.pending, icon: 'payments', tint: 'tint-amber' },
-                            { label: '예약 확정', value: stats.confirmed, icon: 'verified', tint: 'tint-green' },
-                            { label: '맞춤 견적 예약', value: stats.quoteBookings, icon: 'request_quote', tint: 'tint-blue' },
-                            { label: '계약서 발송 완료', value: stats.contractSent, icon: 'contract', tint: 'tint-purple' },
-                            { label: '여행 출발 예정', value: stats.departingSoon, icon: 'flight_takeoff', tint: 'tint-red' },
-                        ].map(card => (
-                            <div key={card.label} className="metric">
-                                <div className="metric-top">
-                                    <span className={`metric-ico ${card.tint}`}><Icon name={card.icon} fill /></span>
-                                </div>
-                                <div className="metric-label">{card.label}</div>
-                                <div className="metric-value">{card.value}<small>건</small></div>
-                            </div>
-                        ))}
-                    </div>
+                    {isLoading && <div className={board.loading} role="status" aria-live="polite">예약 목록을 불러오는 중…</div>}
 
-                    {/* Upcoming tours — operational departure radar */}
-                    <section className="card upcoming-tours" aria-labelledby="upcoming-tours-title">
-                        <div className="card-head">
-                            <span className="metric-ico tint-red upcoming-tours-icon"><Icon name="flight_takeoff" fill /></span>
-                            <div style={{ minWidth: 0 }}>
-                                <h2 id="upcoming-tours-title">곧 출발하는 투어</h2>
-                                <div className="sub">30일 이내 출발 · 확정 팀만 · 가까운 날짜순</div>
+                    <section className={board.kpis} aria-label="예약 요약">
+                        {kpis.map(kpi => {
+                            const on = kpiActive(kpi.key);
+                            return (
+                                <button key={kpi.key} type="button" className={`${board.kpi} ${on ? board.kpiOn : ''}`} title={kpi.tip}
+                                    aria-pressed={kpi.key === 'all' ? undefined : on} onClick={() => applyKpi(kpi.key)}>
+                                    <span className={board.kpiHead}>
+                                        <span className={`${board.kpiIcon} ${kpi.warn ? board.kpiIconWarn : kpi.value ? board.kpiIconOn : ''}`}><DashboardIcon name={KPI_ICONS[kpi.key]} size={16} /></span>
+                                        <span className={board.kpiLabel}>{kpi.label}</span>
+                                        {on && <span className={board.kpiWatching}>보는 중</span>}
+                                    </span>
+                                    <span className={board.kpiValueRow}>
+                                        <span className={`${board.kpiValue} ${kpi.value ? '' : board.kpiZero}`}>{loadedOnce ? kpi.value : '—'}</span>
+                                        <span className={board.kpiUnit}>건</span>
+                                        <span className={board.kpiPct}>{loadedOnce ? kpi.pct : ''}</span>
+                                    </span>
+                                    <span className={board.kpiBar}><span className={kpi.warn ? board.kpiFillWarn : board.kpiFill} style={{ width: kpi.key === 'all' ? '100%' : loadedOnce ? kpi.pct : '0%' }} /></span>
+                                    <span className={board.kpiRows}>
+                                        {kpi.rows.map(row => <span key={row.k}><span>{row.k}</span><b className={row.alert ? board.kpiAlert : ''}>{loadedOnce ? row.v : '—'}</b></span>)}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </section>
+
+                    <section className={board.card} aria-labelledby="upcoming-tours-title">
+                        <div className={board.upHead}>
+                            <span className={board.upIcon}><DashboardIcon name="lc-plane-takeoff" size={20} /></span>
+                            <div className={board.upTitle}>
+                                <h2 id="upcoming-tours-title" className={board.cardTitle}>곧 출발하는 투어</h2>
+                                <span className={board.sub}>30일 이내 출발 · 확정 팀만 · 가까운 날짜순</span>
                             </div>
-                            <div className="spacer" />
-                            <span className="badge b-red"><span className="pulse" />{upcomingTours.length}건 예정</span>
+                            <span className={board.neutralBadge}>{upcomingTours.length}건 예정</span>
                         </div>
                         {upcomingTours.length > 0 ? (
-                            <div className="upcoming-tour-list">
+                            <div className={board.upList}>
                                 {upcomingTours.slice(0, 5).map(({ reservation, daysUntil }) => {
-                                    const dueTone = daysUntil <= 3 ? 'due-now' : daysUntil <= 7 ? 'due-week' : 'due-later';
-                                    const peopleText = reservation.headcount || (reservation.totalPeople ? `${reservation.totalPeople}명` : '인원 미정');
+                                    const period = reservationPeriod(reservation.startDate, reservation.endDate);
+                                    const chips = reservationAssignments(reservation, readProductVehicle(reservation.adminOperations, reservation.contractData).type);
                                     return (
-                                        <div className="upcoming-tour-row" key={`${reservation.type}:${reservation.id}`}>
-                                            <div className={`upcoming-tour-due ${dueTone}`}>
-                                                <strong>{daysUntil === 0 ? '오늘 출발' : `D-${daysUntil}`}</strong>
-                                                <span>{formatUpcomingDate(reservation.startDate)}</span>
-                                            </div>
-                                            <div className="upcoming-tour-product">
-                                                <strong>{reservation.productName || '상품명 미정'}</strong>
-                                                <span>#{reservation.reservationNumber || reservation.id.slice(0, 8).toUpperCase()}</span>
-                                            </div>
-                                            <div className="upcoming-tour-customer">
-                                                <strong>{reservation.customerName || '고객명 미정'}</strong>
-                                                <span>{peopleText}{reservation.phone ? ` · ${reservation.phone}` : ''}</span>
-                                            </div>
-                                            <div className="upcoming-tour-actions">
-                                                <span className={`badge ${STATUS_TONE[reservation.status] || 'b-gray'}`}>
-                                                    <span className="pulse" />{STATUS_LABELS[reservation.status] || reservation.status}
-                                                </span>
-                                                <button type="button" className="btn btn-sm btn-ghost" onClick={() => openReservation(reservation)}>
-                                                    <Icon name="visibility" />상세
-                                                </button>
-                                            </div>
-                                        </div>
+                                        <button type="button" className={board.upRow} key={`${reservation.type}:${reservation.id}`} onClick={() => openReservation(reservation)}
+                                            aria-label={`${reservation.customerName || '고객명 미정'} · ${reservation.productName || '상품명 미정'} 상세 보기`}>
+                                            <span className={`${board.upDday} ${daysUntil <= 7 ? board.upDdaySoon : ''}`}>
+                                                <b>{daysUntil === 0 ? '오늘' : `D-${daysUntil}`}</b><small>{shortDow(reservation.startDate)}</small>
+                                            </span>
+                                            <span className={board.upWho}>
+                                                <strong>{reservation.customerName || '고객명 미정'} <span>· {reservation.headcount || (reservation.totalPeople ? `${reservation.totalPeople}명` : '인원 미정')}</span></strong>
+                                                <span>{reservation.productName || '상품명 미정'}</span>
+                                            </span>
+                                            <span className={board.upWhen}><strong>{period.range}</strong><span>{period.nights}</span></span>
+                                            <span className={board.upChips}>
+                                                {chips.map(chip => <span key={chip.key} className={chip.done ? board.chipOk : board.chipMissing}>
+                                                    <DashboardIcon name={chip.done ? 'lc-check' : CHIP_ICONS[chip.key]} size={12} />{chip.label}{chip.done ? '' : ' 미배정'}
+                                                </span>)}
+                                            </span>
+                                        </button>
                                     );
                                 })}
-                                {upcomingTours.length > 5 && (
-                                    <div className="upcoming-tour-more">가까운 5건을 표시 중입니다. 이후 일정이 {upcomingTours.length - 5}건 더 있습니다.</div>
-                                )}
+                                {upcomingTours.length > 5 && <div className={board.upMore}>가까운 5건을 표시 중입니다. 이후 일정이 {upcomingTours.length - 5}건 더 있습니다.</div>}
                             </div>
                         ) : (
-                            <div className="upcoming-tour-empty">
-                                <Icon name="event_available" />
-                                <div><strong>30일 이내 출발 예정인 확정 투어가 없습니다.</strong><span>예약이 확정(입금 완료)되고 출발일이 등록되면 이곳에 자동으로 표시됩니다.</span></div>
+                            <div className={board.emptyBox}>
+                                <strong>30일 이내 출발 예정인 확정 투어가 없습니다.</strong>
+                                <span>예약이 확정(입금 완료)되고 출발일이 등록되면 이곳에 자동으로 표시됩니다.</span>
                             </div>
                         )}
                     </section>
 
-                    {/* Filter Section */}
-                    <div className="card card-pad">
-                        <div className="row" style={{ marginBottom: 16 }}>
-                            <div style={{ minWidth: 0 }}>
-                                <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: 'var(--text-strong)' }}>검색 및 필터</h2>
-                                <p className="cell-muted" style={{ fontSize: 12, marginTop: 4 }}>고객명, 이메일, 전화번호, 예약번호, 여행상품으로 검색할 수 있습니다.</p>
+                    <section className={`${board.card} ${board.listCard}`} aria-label="통합 예약 목록">
+                        <div className={board.searchArea}>
+                            <div className={board.searchWrap}>
+                                <label className={`${board.searchBox} ${searchFocused ? board.searchFocused : ''}`}>
+                                    <DashboardIcon name="lc-search" size={20} color="var(--text-tertiary)" />
+                                    <input ref={searchInputRef} type="search" value={searchTerm} aria-label="고객 찾기"
+                                        placeholder="고객 찾기 · 이름, 전화번호(숫자만), 예약번호, 상품명"
+                                        onChange={e => { setSearchTerm(e.target.value); setSearchFocused(true); setCurrentPage(1); }}
+                                        onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Escape') { setSearchTerm(''); setSearchFocused(false); setCurrentPage(1); }
+                                            if (e.key === 'Enter') setSearchFocused(false);
+                                        }} />
+                                    {searchTerm ? <>
+                                        <span className={board.matchBadge}>{searchMatches.length}건 일치</span>
+                                        <button type="button" className={board.clearBtn} aria-label="검색어 지우기" onClick={() => { setSearchTerm(''); setCurrentPage(1); }}><DashboardIcon name="lc-x" size={16} /></button>
+                                    </> : <kbd className={board.kbd} title="/ 키로 검색창에 바로 이동">/</kbd>}
+                                </label>
+                                {showSuggest && <div className={board.suggest} role="listbox" aria-label="일치하는 고객">
+                                    <div className={board.suggestTitle}>일치하는 고객</div>
+                                    {searchMatches.slice(0, 5).map(r => (
+                                        <button type="button" role="option" aria-selected={false} key={`${r.type}:${r.id}`} className={board.suggestRow}
+                                            onMouseDown={e => { e.preventDefault(); setSearchTerm(searchNumber(r)); setSearchFocused(false); setCurrentPage(1); }}>
+                                            <span className={board.suggestAvatar}>{(r.customerName || '?').slice(0, 1).toUpperCase()}</span>
+                                            <span className={board.suggestText}>
+                                                <b>{r.customerName || '이름 미정'}</b>
+                                                <span>#{searchNumber(r)} · {r.phone ? dashboardPhone(r.phone) : r.email || '연락처 미입력'} · {r.productName || '상품 미정'} · {reservationPeriod(r.startDate, r.endDate).range}</span>
+                                            </span>
+                                            <span className={`${board.pill} ${statusPillClass(r.status)}`}>{getWorkflowMeta(r).label}</span>
+                                        </button>
+                                    ))}
+                                </div>}
                             </div>
-                            <div className="spacer" style={{ flex: 1 }} />
-                            <button
-                                onClick={() => { setSearchTerm(''); setFilterStatus('전체 상태'); setFilterPayment('전체 결제'); setFilterType('전체 유형'); setFilterDeparture(''); setFilterSource('전체 경로'); setSortOrder('recent'); setCurrentPage(1); }}
-                                className="btn btn-soft btn-sm"
-                            >
-                                <Icon name="restart_alt" />
-                                초기화
-                            </button>
+                            {recentCustomers.length > 0 && <div className={board.recent}>
+                                <span>최근 고객</span>
+                                {recentCustomers.map(r => <button type="button" key={`${r.type}:${r.id}`} className={board.recentChip}
+                                    onClick={() => { setSearchTerm(r.customerName); setCurrentPage(1); }}>
+                                    <span>{r.customerName.slice(0, 1).toUpperCase()}</span>{r.customerName}
+                                </button>)}
+                            </div>}
                         </div>
-                        <div className="toolbar" style={{ marginBottom: 0 }}>
-                            <label className="tb-search" style={{ flex: 1, minWidth: 240 }}>
-                                <Icon name="search" />
-                                <input
-                                    type="text"
-                                    placeholder="고객명 / 이메일 / 전화번호 / 예약번호 / 상품명"
-                                    value={searchTerm}
-                                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                                />
+
+                        <div className={board.tabs} role="group" aria-label="예약 상태">
+                            {statusTabs.map(tab => <button key={tab.value} type="button" className={board.tab} aria-pressed={filterStatus === tab.value}
+                                onClick={() => { setFilterStatus(tab.value); setCurrentPage(1); }}>
+                                {tab.label}<span className={board.tabCount}>{tab.count}</span>
+                            </button>)}
+                        </div>
+
+                        <div className={board.filters}>
+                            <span className={board.filterLabel}><DashboardIcon name="lc-sliders" size={16} color="var(--text-tertiary)" />필터</span>
+                            {filterGroups.map(group => {
+                                const current = group.options.find(option => option.value === group.value);
+                                const on = !!current && group.value !== group.defaultValue, open = openFilter === group.key;
+                                return (
+                                    <div key={group.key} className={board.dd}>
+                                        <button type="button" className={`${board.ddBtn} ${on ? board.ddOn : ''} ${open ? board.ddOpen : ''}`}
+                                            aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpenFilter(open ? '' : group.key)}>
+                                            <span className={board.ddKey}>{group.label}</span><span className={board.ddVal}>{on ? current!.label : '전체'}</span>
+                                            <DashboardIcon name="lc-chevron-down" size={14} />
+                                        </button>
+                                        {open && <>
+                                            <div className={board.scrim} onClick={() => setOpenFilter('')} />
+                                            <div className={board.ddMenu} role="listbox" aria-label={`${group.label} 필터`}>
+                                                {group.options.map(option => {
+                                                    const selected = group.value === option.value || (!current && option.value === group.defaultValue);
+                                                    return <button type="button" role="option" aria-selected={selected} key={option.value} className={board.ddOption}
+                                                        onClick={() => { group.set(option.value); setCurrentPage(1); setOpenFilter(''); }}>
+                                                        <span>{option.label}</span>
+                                                        <span className={board.ddCount}>{reservations.filter(r => passesFilters(r, group.key) && group.test(r, option.value)).length}</span>
+                                                        <DashboardIcon name="lc-check" size={14} color="#0E9E7A" />
+                                                    </button>;
+                                                })}
+                                            </div>
+                                        </>}
+                                    </div>
+                                );
+                            })}
+                            <label className={`${board.ddBtn} ${board.dateBtn} ${filterDeparture ? board.ddOn : ''}`}>
+                                <span className={board.ddKey}>출발일</span>
+                                <input type="date" aria-label="출발일 이후" value={filterDeparture} onChange={e => { setFilterDeparture(e.target.value); setCurrentPage(1); }} />
+                                <span className={board.dateAfter}>이후</span>
                             </label>
-                            <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }} className="select">
-                                <option>전체 상태</option>
-                                <option value="입금 대기">입금 대기</option>
-                                <option value="결제 완료">결제 완료</option>
-                                <option value="예약 확정">예약 확정</option>
-                                <option value="계약 서명 대기">계약 서명 대기</option>
-                                <option value="최종 확정 대기">최종 확정 대기</option>
-                                {filterType === '이전 견적 문의' && <>
-                                    <option value="신규 견적">신규 견적</option>
-                                    <option value="견적 작성 중">견적 작성 중</option>
-                                    <option value="견적 발송 완료">견적 발송 완료</option>
-                                    <option value="예약 요청">예약 요청</option>
-                                </>}
-                                <option value="보류">보류</option><option value="여행 완료">여행 완료</option>
-                                <option value="취소됨">취소됨</option>
-                            </select>
-                            <select value={filterPayment} onChange={(e) => { setFilterPayment(e.target.value); setCurrentPage(1); }} className="select">
-                                <option>전체 결제</option>
-                                <option>예약금 미입금</option>
-                                <option>예약금 입금</option>
-                                <option>잔금 미입금</option>
-                                <option>잔금 입금</option>
-                            </select>
-                            <input type="date" value={filterDeparture} onChange={(e) => { setFilterDeparture(e.target.value); setCurrentPage(1); }} className="select" style={{ paddingRight: 13 }} />
-                            <select value={filterSource} onChange={(e) => { setFilterSource(e.target.value); setCurrentPage(1); }} className="select" title="주문 경로">
-                                <option value="전체 경로">전체 경로</option>
-                                {SOURCE_OPTIONS.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}
-                            </select>
+                            {hasActiveFilters && <button type="button" className={board.reset} onClick={resetListFilters}><DashboardIcon name="lc-rotate-ccw" size={14} />초기화</button>}
+                            <span className={board.filterCount}><b>{filteredReservations.length}</b>건</span>
                         </div>
-                        <div className="chip-row" style={{ marginTop: 14 }}>
-                            {['전체 유형', '일반 상품', '맞춤 견적 예약', '이전 견적 문의'].map(type => (
-                                <button key={type} onClick={() => { setFilterType(type); setCurrentPage(1); }} className={`chip${filterType === type ? ' active' : ''}`}>
-                                    {type}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
 
-                    {/* Reservation List */}
-                    <div className="card">
-                        <div className="card-head">
-                            <h2>통합 예약 목록</h2>
-                            <span className="cell-muted" style={{ fontSize: 13 }}>{filteredReservations.length}건</span>
+                        <div className={board.listHead}>
+                            <h2 className={board.cardTitle}>통합 예약 목록</h2>
+                            <span className={board.countLabel}>{hasActiveFilters ? `${filteredReservations.length}건 / 전체 ${totalBookings}건` : `${filteredReservations.length}건`}</span>
                             {!!selectedRows.size && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setSelectedRows(new Set())}>선택 {selectedRows.size}건 해제</button>}
-                            <div className="spacer" />
-                            <select className="inp" aria-label="예약 정렬" style={{ width: 'auto' }} value={sortOrder} onChange={e => { setSortOrder(e.target.value); setCurrentPage(1); }}>
-                                <option value="recent">최근 예약순</option><option value="departure">출발일순</option>
-                            </select>
-                        </div>
-                        <div className="tbl-wrap">
-                            <table className="tbl">
-                                <thead>
-                                    <tr>
-                                        <th><input type="checkbox" aria-label="현재 페이지 예약 전체 선택" checked={displayedReservations.some(r => r.type !== 'quote') && displayedReservations.filter(r => r.type !== 'quote').every(r => selectedRows.has(reservationSelectionKey(r)))} onChange={e => {
-                                            const checked = e.target.checked; setSelectedRows(prev => { const next = new Set(prev); displayedReservations.filter(r => r.type !== 'quote').forEach(r => { const key = reservationSelectionKey(r); if (checked) next.add(key); else next.delete(key); }); return next; });
-                                        }}/></th>
-                                        <th>예약번호</th>
-                                        <th>고객 / 연락처</th>
-                                        <th>상품</th>
-                                        <th className="c">인원</th>
-                                        <th>투어일</th>
-                                        <th>상태</th>
-                                        <th className="r">금액</th>
-                                        <th className="r">관리</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {displayedReservations.map((res) => {
-                                        const workflow = getWorkflowMeta(res);
-                                        const nextAction = getQuoteAction(res);
-                                        const reservationNo = res.reservationNumber || res.id.slice(0, 8).toUpperCase();
-                                        const statusTone = STATUS_TONE[res.status] || 'b-gray';
-                                        return (
-                                            <tr key={`${res.type}:${res.id}`} onClick={() => openReservation(res)}>
-                                                <td onClick={e => e.stopPropagation()}>{res.type !== 'quote' && <input type="checkbox" aria-label={`${res.customerName} 예약 선택`} checked={selectedRows.has(reservationSelectionKey(res))} onChange={e => {
-                                                    const checked = e.target.checked; setSelectedRows(prev => { const next = new Set(prev); const key = reservationSelectionKey(res); if (checked) next.add(key); else next.delete(key); return next; });
-                                                }}/>}</td>
-                                                <td>
-                                                    <div className="cell-mono">#{reservationNo}</div>
-                                                    <div style={{ marginTop: 3, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                                                        <span className={`tag-type ${res.type !== 'product' ? 'quote' : 'reservation'}`}>
-                                                            {res.type === 'quote_booking' ? '견적예약' : res.type === 'quote' ? '이전견적' : '상품예약'}
-                                                        </span>
-                                                        {res.source && (
-                                                            <span style={{ display: 'inline-block', padding: '1px 7px', borderRadius: 6, fontSize: 10, fontWeight: 800, background: sourceColor(res.source).bg, color: sourceColor(res.source).fg }}>
-                                                                {sourceLabel(res.source)}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div>
-                                                        <div className="cell-strong">{res.customerName}</div>
-                                                        <div className="cell-muted" style={{ fontSize: 12 }}>{res.email || res.phone || '연락처 미입력'}</div>
-                                                    </div>
-                                                </td>
-                                                <td className="cell-muted" style={{ maxWidth: 240 }}>
-                                                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={res.productName}>{res.productName}</div>
-                                                </td>
-                                                <td className="c cell-mono">{res.headcount || '미정'}</td>
-                                                <td className="cell-muted">{res.date}</td>
-                                                <td>
-                                                    <span className={`badge ${statusTone}`}>
-                                                        <Icon name={workflow.icon} style={{ fontSize: 14 }} />
-                                                        {workflow.label}
-                                                    </span>
-                                                    {res.quoteBooking?.hint && <div className="cell-muted" style={{ fontSize: 11, marginTop: 4 }}>{res.quoteBooking.hint}</div>}
-                                                    {hasOpenDepositReport(res) && (
-                                                        <div style={{ marginTop: 4 }}>
-                                                            <span
-                                                                className="badge b-blue"
-                                                                title={`고객 입금 신고: 입금자명 ${res.depositReport?.name || '—'}${formatReportTime(res.depositReport?.reportedAt) ? ` · ${formatReportTime(res.depositReport?.reportedAt)}` : ''} — 입금 내역을 확인한 뒤 상세에서 「입금 확인」을 눌러 주세요`}
-                                                            >
-                                                                <Icon name="notifications" style={{ fontSize: 14 }} />
-                                                                입금 신고 · {res.depositReport?.name || '—'}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td className="r cell-price">
-                                                    {typeof res.totalAmount === 'number' && Number.isFinite(res.totalAmount) && res.totalAmount >= 0 ? won(res.totalAmount) : '–'}
-                                                    {res.type !== 'quote' && <div className="cell-muted" style={{ fontSize: 11, fontWeight: 500, marginTop: 4 }}>
-                                                        예약금 {res.depositStatus === 'paid' ? '확인' : '대기'} · 잔금 {res.balanceStatus === 'paid' ? '확인' : '대기'}
-                                                    </div>}
-                                                </td>
-                                                <td className="r" onClick={(e) => e.stopPropagation()}>
-                                                    <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                                                        <button
-                                                            type="button"
-                                                            className={`btn btn-sm ${nextAction.primary ? 'btn-blue' : 'btn-ghost'}`}
-                                                            onClick={() => {
-                                                                if (nextAction.nextStatus) {
-                                                                    handleStatusChange(res.id, nextAction.nextStatus, res.type);
-                                                                } else {
-                                                                    openReservation(res);
-                                                                }
-                                                            }}
-                                                            title={nextAction.description}
-                                                        >
-                                                            <Icon name={nextAction.icon} />
-                                                            {nextAction.label}
-                                                        </button>
-                                                        <button className="act-btn" title="상세" onClick={() => openReservation(res)}>
-                                                            <Icon name="visibility" />
-                                                        </button>
-                                                        {res.type !== 'quote_booking' && <button className="act-btn danger" title="삭제" onClick={() => handleDelete(res.id, res.type)}>
-                                                            <Icon name="delete" />
-                                                        </button>}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                            {displayedReservations.length === 0 && (
-                                <div className="empty"><Icon name="manage_search" /><p>{isLoading ? '예약 목록을 불러오는 중…' : '검색 결과가 없습니다.'}</p></div>
-                            )}
+                            <label className={board.sort}>
+                                <select aria-label="예약 정렬" value={sortOrder} onChange={e => { setSortOrder(e.target.value); setCurrentPage(1); }}>
+                                    <option value="recent">최근 예약순</option><option value="departure">투어일 빠른순</option><option value="amount">금액 높은순</option>
+                                </select>
+                                <DashboardIcon name="lc-chevron-down" size={16} color="var(--text-tertiary)" />
+                            </label>
                         </div>
 
-                        {/* Pagination */}
-                        <div className="row" style={{ padding: '14px 20px', borderTop: '1px solid var(--border-subtle)' }}>
-                            <span className="cell-muted" style={{ fontSize: 12 }}>
-                                총 {filteredReservations.length}건 중 {filteredReservations.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredReservations.length)} 표시
-                            </span>
-                            <div className="spacer" style={{ flex: 1 }} />
-                            <div className="row" style={{ gap: 8 }}>
-                                <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="act-btn">
-                                    <Icon name="chevron_left" />
-                                </button>
-                                <span className="cell-mono" style={{ fontSize: 12 }}>{Math.min(currentPage, Math.max(totalPages, 1))} / {Math.max(totalPages, 1)}</span>
-                                <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.max(totalPages, 1)))} disabled={currentPage >= totalPages || totalPages === 0} className="act-btn">
-                                    <Icon name="chevron_right" />
-                                </button>
+                        <div className={board.list}>
+                            <div className={board.columns}>
+                                <span className={board.selectCell}>
+                                    <input type="checkbox" aria-label="현재 페이지 예약 전체 선택"
+                                        checked={displayedReservations.some(r => r.type !== 'quote') && displayedReservations.filter(r => r.type !== 'quote').every(r => selectedRows.has(reservationSelectionKey(r)))}
+                                        onChange={e => {
+                                            const checked = e.target.checked;
+                                            setSelectedRows(prev => { const next = new Set(prev); displayedReservations.filter(r => r.type !== 'quote').forEach(r => { const key = reservationSelectionKey(r); if (checked) next.add(key); else next.delete(key); }); return next; });
+                                        }} />
+                                </span>
+                                <span aria-hidden="true">고객 · 예약번호</span><span aria-hidden="true">상품 · 인원</span><span aria-hidden="true">투어일</span>
+                                <span aria-hidden="true">진행 상황</span><span aria-hidden="true" className={board.right}>팀 금액</span><span aria-hidden="true" className={board.right}>관리</span>
                             </div>
+                            {displayedReservations.map(res => {
+                                const workflow = getWorkflowMeta(res);
+                                const nextAction = getQuoteAction(res);
+                                const number = searchNumber(res);
+                                const contact = res.phone ? dashboardPhone(res.phone) : res.email || '';
+                                const dday = reservationDday(res.startDate, todayKey);
+                                const period = reservationPeriod(res.startDate, res.endDate);
+                                const payNote = reservationPayNote(res);
+                                const amountKnown = typeof res.totalAmount === 'number' && Number.isFinite(res.totalAmount) && res.totalAmount >= 0;
+                                return (
+                                    <div key={`${res.type}:${res.id}`} className={board.row} onClick={() => openReservation(res)}>
+                                        <span className={board.selectCell} onClick={e => e.stopPropagation()}>
+                                            {res.type !== 'quote' && <input type="checkbox" aria-label={`${res.customerName} 예약 선택`} checked={selectedRows.has(reservationSelectionKey(res))} onChange={e => {
+                                                const checked = e.target.checked;
+                                                setSelectedRows(prev => { const next = new Set(prev); const key = reservationSelectionKey(res); if (checked) next.add(key); else next.delete(key); return next; });
+                                            }} />}
+                                        </span>
+                                        <div className={board.who}>
+                                            <span className={board.name}><Highlight {...highlightMatch(res.customerName || '이름 미정', searchTerm)} /></span>
+                                            <span className={contact ? board.contact : board.contactEmpty}>{contact ? <Highlight {...highlightMatch(contact, searchTerm)} /> : '연락처 미입력'}</span>
+                                            <span className={board.idLine}>
+                                                <span className={board.resNo}>#<Highlight {...highlightMatch(number, searchTerm)} /></span>
+                                                <span className={board.dot} />
+                                                <span className={`${board.kind} ${res.type === 'product' ? board.kindProduct : ''}`}>{res.type === 'quote_booking' ? '견적 고객' : res.type === 'quote' ? '이전 견적' : '상품 예약'}</span>
+                                                {res.source && <span className={board.source} style={{ background: sourceColor(res.source).bg, color: sourceColor(res.source).fg }}>{sourceLabel(res.source)}</span>}
+                                            </span>
+                                            {hasOpenDepositReport(res) && <span className={board.depositReport}
+                                                title={`고객 입금 신고: 입금자명 ${res.depositReport?.name || '—'}${formatReportTime(res.depositReport?.reportedAt) ? ` · ${formatReportTime(res.depositReport?.reportedAt)}` : ''} — 입금 내역을 확인한 뒤 상세에서 「입금 확인」을 눌러 주세요`}>
+                                                <DashboardIcon name="lc-bell" size={12} />입금 신고 · {res.depositReport?.name || '—'}
+                                            </span>}
+                                        </div>
+                                        <div className={board.product}>
+                                            <span className={board.productName}><DashboardIcon name="lc-map-pin" size={14} color="#0E9E7A" /><span title={res.productName}>{res.productName || '상품 미정'}</span></span>
+                                            <span className={board.pax}><DashboardIcon name="lc-users" size={14} color="var(--text-tertiary)" /><b>{res.headcount || '미정'}</b></span>
+                                        </div>
+                                        <div className={board.when}>
+                                            <span className={board.whenTop}>
+                                                <span className={`${board.dday} ${board[`dday_${dday.tone}`]}`}>{dday.label}</span>
+                                                {period.nights && <span className={board.nights}>{period.nights}</span>}
+                                            </span>
+                                            <span className={board.range}>{period.range}</span>
+                                        </div>
+                                        <div className={board.progress}>
+                                            <span className={`${board.pill} ${statusPillClass(res.status)}`} title={workflow.hint || undefined}>{workflow.label}</span>
+                                            {res.type !== 'quote'
+                                                ? <div className={board.steps}>{reservationSteps(res).map((step, index) => (
+                                                    <div key={step.label} className={board.step} title={`${step.title} · ${step.done ? '완료' : '대기'}`}>
+                                                        <span className={board.stepBar}>{step.done && <span className={board.stepFill} style={{ animationDelay: `${index * 90}ms` }} />}</span>
+                                                        <span className={step.done ? board.stepDone : board.stepText}>{step.label}</span>
+                                                    </div>))}</div>
+                                                : workflow.hint && <span className={board.hint}>{workflow.hint}</span>}
+                                        </div>
+                                        <div className={board.amount}>
+                                            <b>{amountKnown ? dashboardWon(res.totalAmount) : '–'}</b>
+                                            {payNote && <span className={payNote.done ? board.payDone : board.payWait}>{payNote.text}</span>}
+                                        </div>
+                                        <div className={board.actions} onClick={e => e.stopPropagation()}>
+                                            <button type="button" className="btn btn-sm btn-blue" title={nextAction.description} onClick={() => {
+                                                if (nextAction.nextStatus) handleStatusChange(res.id, nextAction.nextStatus, res.type); else openReservation(res);
+                                            }}>{nextAction.label}</button>
+                                            <button type="button" className={board.iconBtn} title="상세 보기" aria-label={`${res.customerName} 상세 보기`} onClick={() => openReservation(res)}><DashboardIcon name="lc-eye" size={16} /></button>
+                                            {res.type !== 'quote_booking' && <button type="button" className={`${board.iconBtn} ${board.iconDanger}`} title="삭제" aria-label={`${res.customerName} 삭제`} onClick={() => handleDelete(res.id, res.type)}><DashboardIcon name="lc-trash" size={16} /></button>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {displayedReservations.length === 0 && <div className={board.emptyList}>
+                                {isLoading ? '예약 목록을 불러오는 중…' : hasActiveFilters ? '조건에 맞는 예약이 없어요. 필터를 초기화해 보세요.' : '등록된 예약이 없습니다.'}
+                            </div>}
                         </div>
-                    </div>
+
+                        <div className={board.footer}>
+                            <span>총 {filteredReservations.length}건 중 {filteredReservations.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredReservations.length)} 표시</span>
+                            <span className={board.pager}>
+                                <button type="button" className={board.iconBtn} aria-label="이전 페이지" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><DashboardIcon name="lc-chevron-left" size={16} /></button>
+                                <b>{Math.min(currentPage, Math.max(totalPages, 1))} / {Math.max(totalPages, 1)}</b>
+                                <button type="button" className={board.iconBtn} aria-label="다음 페이지" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.max(totalPages, 1)))} disabled={currentPage >= totalPages || totalPages === 0}><DashboardIcon name="lc-chevron-right" size={16} /></button>
+                            </span>
+                        </div>
+                    </section>
                 </div>
             </AdminLayout>
 

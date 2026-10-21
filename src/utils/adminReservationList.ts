@@ -7,7 +7,9 @@ export const defaultReservationList: ReservationListState = {
     filterDeparture: '', filterSource: '전체 경로', sortOrder: 'recent', currentPage: 1,
 };
 const typeKeys: Record<string, string> = { product: '일반 상품', quote_booking: '맞춤 견적 예약', legacy_quote: '이전 견적 문의' };
-const statuses = ['전체 상태', '입금 대기', '결제 완료', '예약 확정', '계약 서명 대기', '최종 확정 대기', '취소됨', '보류', '여행 완료', '예약 요청', '견적 발송 완료'];
+// '확정 대기' and '확정 팀' are the board's status tabs (groups); the rest are single statuses.
+const statuses = ['전체 상태', '확정 대기', '확정 팀', '입금 대기', '결제 완료', '예약 확정', '계약 서명 대기', '최종 확정 대기', '취소됨', '보류', '여행 완료', '예약 요청', '견적 발송 완료'];
+const sorts = ['recent', 'departure', 'amount'];
 const payments = ['전체 결제', '예약금 미입금', '예약금 입금', '잔금 미입금', '잔금 입금'];
 export function readReservationList(search: string): ReservationListState {
     const p = new URLSearchParams(search);
@@ -15,7 +17,7 @@ export function readReservationList(search: string): ReservationListState {
         filterPayment: payments.includes(p.get('payment') || '') ? p.get('payment')! : '전체 결제',
         filterType: typeKeys[p.get('type') || ''] || '전체 유형',
         filterDeparture: /^\d{4}-\d{2}-\d{2}$/.test(p.get('departure') || '') ? p.get('departure')! : '',
-        filterSource: (p.get('source') || '전체 경로').slice(0, 60), sortOrder: p.get('sort') === 'departure' ? 'departure' : 'recent',
+        filterSource: (p.get('source') || '전체 경로').slice(0, 60), sortOrder: sorts.includes(p.get('sort') || '') ? p.get('sort')! : 'recent',
         currentPage: Math.max(1, Math.min(100000, Math.floor(Number(p.get('page')) || 1))) };
 }
 export function reservationListSearch(state: ReservationListState, base = ''): string {
