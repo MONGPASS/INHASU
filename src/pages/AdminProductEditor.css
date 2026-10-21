@@ -1,0 +1,93 @@
+/* 상품 추가·수정 — Admin Dashboard v3 "04-2 상품 관리 - 상품 추가". 관리자 토큰을 민트로 바꿔 이 편집기에만 적용합니다. */
+.admin-app-wrapper .pa-editor {
+  --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c;
+  overflow: visible; border: 1px solid var(--border-default); border-radius: 20px; background: var(--surface-canvas); box-shadow: none;
+}
+
+/* 머리글 */
+.admin-app-wrapper .pa-editor .pa-head { gap: 12px; padding: 14px 24px; border-bottom: 0; border-radius: 20px 20px 0 0; background: #fff; }
+.admin-app-wrapper .pa-editor .pa-back { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 36px; padding: 0 14px 0 10px; border: 1.5px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.admin-app-wrapper .pa-editor .pa-back:hover:not(:disabled) { border-color: var(--mrt-ink); }
+.admin-app-wrapper .pa-editor .pa-title { display: flex; flex-direction: column; min-width: 0; }
+.admin-app-wrapper .pa-editor .pa-title span { color: var(--mrt-blue); font-size: 12px; font-weight: 800; }
+.admin-app-wrapper .pa-editor .pa-title h2 { margin: 0; color: var(--text-strong); font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
+
+/* 탭 — 아이콘 없이 밑줄형 */
+.admin-app-wrapper .pa-editor .pa-tabs-wrap { padding: 0 16px !important; border-bottom: 1px solid var(--border-default); background: #fff; }
+.admin-app-wrapper .pa-editor .pa-tabs { gap: 2px; border: 0; background: transparent; padding: 0; overflow-x: auto; scrollbar-width: none; }
+.admin-app-wrapper .pa-editor .pa-tabs .tab { height: 48px; padding: 0 14px; border: 0; border-radius: 0; background: transparent; color: var(--text-secondary); font-size: 14px; font-weight: 500; box-shadow: none; white-space: nowrap; }
+.admin-app-wrapper .pa-editor .pa-tabs .tab .material-symbols-outlined { display: none; }
+.admin-app-wrapper .pa-editor .pa-tabs .tab:hover:not(:disabled) { background: transparent; color: var(--text-strong); }
+.admin-app-wrapper .pa-editor .pa-tabs .tab.active { background: transparent; color: var(--text-strong); font-weight: 800; box-shadow: inset 0 -3px 0 var(--mrt-ink); }
+
+/* 본문 + 오른쪽 열 */
+.admin-app-wrapper .pa-editor .pa-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; padding: 16px 20px 0; }
+.admin-app-wrapper .pa-editor .pa-main { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.admin-app-wrapper .pa-editor .pa-draft-status { margin: 16px 20px 0 !important; border-radius: 14px !important; }
+.admin-app-wrapper .pa-editor .pa-main > form > fieldset > .card-pad:first-child { padding: 20px 22px; }
+
+/* 입력칸 */
+.admin-app-wrapper .pa-editor .field > label { color: var(--text-strong); font-size: 13px; font-weight: 700; }
+.admin-app-wrapper .pa-editor .inp { min-height: 44px; border: 1.5px solid var(--border-default); border-radius: 12px; font-size: 14px; }
+.admin-app-wrapper .pa-editor .inp:focus { border-color: var(--mrt-ink); box-shadow: none; }
+.admin-app-wrapper .pa-editor textarea.inp { min-height: 96px; }
+
+/* 버튼 묶음(카테고리·기간·판매 상태) */
+.admin-app-wrapper .pa-editor .pa-seg { display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 100%; padding: 3px; border-radius: 999px; background: var(--mrt-gray-100); }
+.admin-app-wrapper .pa-editor .pa-seg button { height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
+.admin-app-wrapper .pa-editor .pa-seg button:hover { color: var(--text-strong); }
+.admin-app-wrapper .pa-editor .pa-seg button.is-on { background: var(--mrt-ink); color: #fff; font-weight: 800; }
+.admin-app-wrapper .pa-editor .pa-seg > span { padding: 8px 12px; font-size: 12px; }
+.admin-app-wrapper .pa-editor .pa-seg-sm { gap: 4px; margin-top: 8px; padding: 0; border-radius: 0; background: transparent; }
+.admin-app-wrapper .pa-editor .pa-seg-sm button { height: 30px; padding: 0 10px; border: 1px solid var(--border-default); background: #fff; font-size: 12px; }
+.admin-app-wrapper .pa-editor .pa-seg-sm button.is-on { border-color: var(--mrt-ink); }
+
+/* 이미지 업로드 타일 */
+.admin-app-wrapper .pa-editor .pa-upload { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 160px; height: 160px; border: 1.5px dashed var(--mrt-gray-300); border-radius: 16px; background: var(--mrt-gray-50); color: var(--text-tertiary); cursor: pointer; text-align: center; }
+.admin-app-wrapper .pa-editor .pa-upload:hover { border-color: var(--mrt-ink); color: var(--text-strong); }
+.admin-app-wrapper .pa-editor .pa-upload b { color: var(--text-strong); font-size: 13px; font-weight: 800; }
+.admin-app-wrapper .pa-editor .pa-upload span { padding: 0 10px; font-size: 11px; }
+.admin-app-wrapper .pa-editor .pa-file { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.admin-app-wrapper .pa-editor .pa-file:focus-visible + * , .admin-app-wrapper .pa-editor .pa-upload:focus-within { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }
+
+/* 노출 설정 스위치 */
+.admin-app-wrapper .pa-editor .toggle-row { padding: 12px 14px; border: 1px solid var(--border-default); border-radius: 14px; background: #fff; }
+.admin-app-wrapper .pa-editor .switch.on { background: var(--mrt-ink); }
+
+/* 하단 저장 바 */
+.admin-app-wrapper .pa-editor .pa-savebar { padding: 12px 22px; border-radius: 0 0 20px 20px; background: rgba(255,255,255,.96) !important; }
+.admin-app-wrapper .pa-editor .pa-save-note { margin-right: auto; color: var(--text-tertiary); font-size: 13px; }
+.admin-app-wrapper .pa-editor .pa-save-note b { color: var(--text-strong); font-weight: 800; }
+.admin-app-wrapper .pa-editor .pa-savebar .btn { height: 44px; padding: 0 18px; border-radius: 999px; font-size: 14px; font-weight: 700; }
+.admin-app-wrapper .pa-editor .pa-savebar .btn-ghost { border: 1.5px solid var(--border-default); background: #fff; color: var(--text-strong); }
+.admin-app-wrapper .pa-editor .pa-savebar .btn-ink { background: var(--mrt-ink); color: #fff; }
+
+/* 오른쪽 열 — 미리보기·필수 항목 */
+.admin-app-wrapper .pa-editor .pa-aside { position: sticky; top: calc(var(--header-h, 72px) + 16px); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.admin-app-wrapper .pa-editor .pa-preview { overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.admin-app-wrapper .pa-editor .pa-preview-image { display: grid; place-items: center; aspect-ratio: 4 / 3; background: var(--mrt-gray-100); color: var(--mrt-gray-400); }
+.admin-app-wrapper .pa-editor .pa-preview-image img { width: 100%; height: 100%; object-fit: cover; }
+.admin-app-wrapper .pa-editor .pa-preview-copy { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px 16px; }
+.admin-app-wrapper .pa-editor .pa-preview-copy b { color: var(--text-strong); font-size: 15px; font-weight: 800; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.admin-app-wrapper .pa-editor .pa-preview-copy span { color: var(--text-tertiary); font-size: 12px; }
+.admin-app-wrapper .pa-editor .pa-preview-copy strong { margin-top: 4px; color: var(--text-strong); font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
+.admin-app-wrapper .pa-editor .pa-checks { padding: 18px 20px; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.admin-app-wrapper .pa-editor .pa-checks h3 { margin: 0 0 10px; color: var(--text-strong); font-size: 15px; font-weight: 800; }
+.admin-app-wrapper .pa-editor .pa-checks ul { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.admin-app-wrapper .pa-editor .pa-checks li { display: flex; align-items: center; gap: 10px; color: var(--text-secondary); font-size: 13px; }
+.admin-app-wrapper .pa-editor .pa-checks li > span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--mrt-gray-100); color: var(--mrt-gray-400); }
+.admin-app-wrapper .pa-editor .pa-checks li.is-done { color: var(--text-strong); font-weight: 700; }
+.admin-app-wrapper .pa-editor .pa-checks li.is-done > span { background: var(--mrt-green); color: #fff; }
+
+@media (max-width: 1100px) {
+  .admin-app-wrapper .pa-editor .pa-body { grid-template-columns: minmax(0, 1fr); }
+  .admin-app-wrapper .pa-editor .pa-aside { position: static; flex-direction: row; flex-wrap: wrap; order: -1; }
+  .admin-app-wrapper .pa-editor .pa-aside > section { flex: 1 1 240px; }
+  .admin-app-wrapper .pa-editor .pa-preview { display: flex; }
+  .admin-app-wrapper .pa-editor .pa-preview-image { flex: 0 0 120px; aspect-ratio: auto; }
+}
+@media (max-width: 760px) {
+  .admin-app-wrapper .pa-editor .pa-body { padding: 12px 10px 0; }
+  .admin-app-wrapper .pa-editor .pa-head { padding: 12px 14px; }
+  .admin-app-wrapper .pa-editor .pa-save-note { flex-basis: 100%; }
+}
