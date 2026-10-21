@@ -52,6 +52,81 @@ async function fixture(t) {
     return {raw,DB,request,list,setBeforeRun(fn){beforeRun=fn;}};
 }
 
+test('숙소 배정 조회는 고객별 저장 일정을 별도로 제공하고 명시적 빈 일정과 빈 숙소를 보존한다', async t => {
+    const f = await fixture(t);
+    const doc = { days: [{ day: 1, title: '고객 고비 일정', region: '고비', items: ['09:00 이동'], privateNote: 'PRIVATE-DAY', image: 'PRIVATE-PHOTO' },
+        { day: 2, title: '고객 초원 일정', region: '중앙몽골' }, { day: 3, title: '귀환' }], privateToken: 'PRIVATE-TOKEN' };
+    f.raw.prepare('UPDATE reservations SET start_date=?,end_date=?,document_content=?,product_id=? WHERE id=?').run(
+        '2026-10-19T15:00:00.000Z', '2026-10-21T15:00:00.000Z', JSON.stringify(doc), 'real-product', 'same-id');
+    let item = (await f.list()).find(i => i.source === 'product');
+    assert.equal(item.startDate, '2026-10-20'); assert.equal(item.endDate, '2026-10-22'); assert.equal(item.schedule.source, 'customer');
+    assert.deepEqual(item.schedule.days.map(d => [d.day, d.date, d.region]), [[1, '2026-10-20', '고비'], [2, '2026-10-21', '중앙몽골'], [3, '2026-10-22', '']]);
+    assert.equal(item.schedule.days[0].summary, '09:00 이동'); assert.ok(!JSON.stringify(item.schedule).includes('PRIVATE-'));
+    f.raw.prepare('UPDATE reservations SET document_content=?,daily_accommodations=? WHERE id=?').run('{"days":[]}', '[]', 'same-id');
+    item = (await f.list()).find(i => i.source === 'product');
+    assert.equal(item.schedule.source, 'customer'); assert.deepEqual(item.schedule.days, []); assert.deepEqual(item.assignment.accommodations, []);
+    item.assignment.vehicle.type = '빈 일정에서도 배정만 편집';
+    assert.equal((await f.request('/assignments/product/same-id', { method: 'PATCH', body: { expectedVersion: item.version, assignment: item.assignment } })).status, 200);
+    assert.equal(f.raw.prepare('SELECT document_content FROM reservations WHERE id=?').get('same-id').document_content, '{"days":[]}');
+});
+
+test('상품 고객 일정이 조회 후 또는 저장 직전에 바뀌면 409로 거절하고 새 일정과 기존 배정을 보존한다', async t => {
+    const f = await fixture(t), save = item => f.request('/assignments/product/same-id', { method: 'PATCH', body: { expectedVersion: item.version, assignment: item.assignment } });
+    f.raw.prepare('UPDATE reservations SET document_content=? WHERE id=?').run('{"days":[{"day":1,"title":"원래 일정"}]}', 'same-id');
+    let item = (await f.list()).find(i => i.source === 'product');
+    const before = f.raw.prepare('SELECT assigned_guide,daily_accommodations FROM reservations WHERE id=?').get('same-id');
+    const change = title => f.raw.prepare('UPDATE reservations SET document_content=? WHERE id=?').run(JSON.stringify({ days: [{ day: 1, title }] }), 'same-id');
+    change('다른 화면에서 수정'); assert.equal((await save(item)).status, 409);
+    item = (await f.list()).find(i => i.source === 'product');
+    let injected = false; f.setBeforeRun(sql => { if (!injected && /^UPDATE reservations SET assigned_guide=/i.test(sql)) { injected = true; change('저장 직전 수정'); } });
+    assert.equal((await save(item)).status, 409);
+    const after = f.raw.prepare('SELECT document_content,assigned_guide,daily_accommodations FROM reservations WHERE id=?').get('same-id');
+    assert.equal(JSON.parse(after.document_content).days[0].title, '저장 직전 수정');
+    assert.equal(after.assigned_guide, before.assigned_guide); assert.equal(after.daily_accommodations, before.daily_accommodations);
+});
+
+for (const source of ['product', 'template']) {
+    test(`선택 ${source} 일정 변경도 버전과 원자적 저장 조건에 포함하고 새 원본을 덮어쓰지 않는다`, async t => {
+        const f = await fixture(t), table = source === 'product' ? 'products' : 'itinerary_templates', id = source === 'product' ? 'real-product' : 'selected-template';
+        const column = source === 'product' ? 'itinerary_blocks' : 'days';
+        const encode = title => JSON.stringify(source === 'product' ? [{ type: 'dayInfo', content: { title, region: '고비' } }] : [{ day: 1, title, region: '고비' }]);
+        if (source === 'template') f.raw.prepare('INSERT INTO itinerary_templates(id,name,days) VALUES(?,?,?)').run(id, '선택 템플릿', encode('원래 일정'));
+        else f.raw.prepare('UPDATE products SET itinerary_blocks=? WHERE id=?').run(encode('원래 일정'), id);
+        f.raw.prepare('UPDATE reservations SET product_id=?,itinerary_template_id=? WHERE id=?').run('real-product', source === 'template' ? id : null, 'same-id');
+        const save = item => f.request('/assignments/product/same-id', { method: 'PATCH', body: { expectedVersion: item.version, assignment: item.assignment } });
+        let item = (await f.list()).find(i => i.source === 'product'); assert.equal(item.schedule.source, source);
+        const before = f.raw.prepare('SELECT assigned_guide,daily_accommodations FROM reservations WHERE id=?').get('same-id');
+        const change = title => f.raw.prepare(`UPDATE ${table} SET ${column}=? WHERE id=?`).run(encode(title), id);
+        change('조회 후 변경'); assert.equal((await save(item)).status, 409);
+        item = (await f.list()).find(i => i.source === 'product');
+        let injected = false; f.setBeforeRun(sql => { if (!injected && /^UPDATE reservations SET assigned_guide=/i.test(sql)) { injected = true; change('저장 직전 변경'); } });
+        assert.equal((await save(item)).status, 409);
+        assert.equal(f.raw.prepare(`SELECT ${column} FROM ${table} WHERE id=?`).get(id)[column], encode('저장 직전 변경'));
+        assert.deepEqual(f.raw.prepare('SELECT assigned_guide,daily_accommodations FROM reservations WHERE id=?').get('same-id'), before);
+    });
+}
+
+test('고객 일정 원본을 읽지 못해도 배정 행은 보이며 저장은 409로 막고 원본을 보존한다', async t => {
+    const f = await fixture(t);
+    f.raw.prepare('UPDATE reservations SET document_content=?,product_id=? WHERE id=?').run('{', 'real-product', 'same-id');
+    const item = (await f.list()).find(i => i.source === 'product');
+    assert.equal(item.schedule.source, 'unavailable'); assert.ok(item.assignment.accommodations.length);
+    const before = f.raw.prepare('SELECT * FROM reservations WHERE id=?').get('same-id');
+    item.assignment.guide.name = '저장되어서는 안 됨';
+    const response = await f.request('/assignments/product/same-id', { method: 'PATCH', body: { expectedVersion: item.version, assignment: item.assignment } });
+    assert.equal(response.status, 409); assert.match((await response.json()).error, /고객 일정 원본/);
+    assert.deepEqual(f.raw.prepare('SELECT * FROM reservations WHERE id=?').get('same-id'), before);
+});
+
+test('견적 숙소에 저장된 잘못된 일차를 조회 중 정상 일차로 조용히 바꾸지 않는다', async t => {
+    const f = await fixture(t), row = f.raw.prepare('SELECT data FROM requests WHERE id=?').get('same-id'), rec = JSON.parse(row.data);
+    rec.booking.assign.lodges[0].day = 0;
+    const data = JSON.stringify(rec); f.raw.prepare('UPDATE requests SET data=? WHERE id=?').run(data, 'same-id');
+    const item = (await f.list()).find(i => i.source === 'quote_booking');
+    assert.equal(item.assignment.accommodations[0].day, 0);
+    assert.equal(f.raw.prepare('SELECT data FROM requests WHERE id=?').get('same-id').data, data);
+});
+
 test('관리자 세션 전용 배정 목록은 같은 ID의 두 원본을 분리하고 고객 토큰·서명·내부 메모를 노출하지 않는다',async t=>{
     const f=await fixture(t);const response=await f.request('/assignments');assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'private, no-store');
     const text=await response.text(),data=JSON.parse(text);assert.equal(data.items.length,2);assert.deepEqual(new Set(data.items.map(i=>i.key)),new Set(['product:same-id','quote_booking:same-id']));

@@ -23,6 +23,7 @@ import { reservationDraftKey, reservationDraftFingerprint, readReservationDraft,
 import { magazineDraftKey, magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft } from '../src/utils/adminMagazineDraft.ts';
 import { assignmentDraftKey, editorAssignment, readAssignmentDraft, writeAssignmentDraft } from '../src/utils/adminAssignmentDraft.ts';
 import { selectResourceGuide, selectResourceVehicle, selectResourceLodge } from '../src/utils/accommodationResourceSelection.ts';
+import { getAccommodationPlan, addMissingAccommodationNights, alignAccommodationDates } from '../src/utils/accommodationSchedule.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
 const portArgument = process.argv.find(argument => argument.startsWith('--port='));
@@ -979,13 +980,17 @@ if (usability) {
             vehicle: { type: assigned ? '로컬 하이스' : '', phone: assigned ? 'LOCAL-PRIVATE-USABILITY-DRIVER' : '' },
             ...(signed ? { agreement: { agreed: true, name: `합성 여행자 ${index}`, agreedAt: '2026-10-18T00:00:00Z' },
                 customerSubmittedAt: '2026-10-18T00:00:00Z' } : {}) };
-        const lodges = assigned ? [{ day: 1, date: start, accommodation: { ...lodgeRows[0], roomCount: 2,
+        const lodges = assigned ? [{ day: 1, date: index === 2 ? '2026-10-19' : start, accommodation: { ...lodgeRows[0], roomCount: 2,
             occupancy: '2인실', bookingStatus: index % 2 ? 'Баталгаажсан' : 'Шалгаж байна' } }] : [];
+        const customerSchedule = index === 4 ? { ...structuredClone(savedDocument), days: savedDocument.days.map((day, dayIndex) => ({ ...day,
+            title: ['고객 맞춤 테렐지 도착', '고객 맞춤 고비 이동', '고객 맞춤 귀국'][dayIndex],
+            region: ['중앙몽골', '고비사막', '울란바타르'][dayIndex],
+        })) } : savedDocument;
         insertReservation.run(id, 'workspace-booked-tour', productName, `합성 예약 고객 ${String(index).padStart(2, '0')}`,
             `local-${index}@example.invalid`, '01000000000', index % 4 + 1, start, end, status,
             index === 4 ? 0 : 3300000, index === 4 ? 0 : 330000, index === 4 ? 0 : 2970000,
             status === 'pending_payment' ? 'unpaid' : 'paid', status === 'completed' ? 'paid' : 'unpaid', `LOCAL-QA-${index}`,
-            index % 2 === 0 ? JSON.stringify(savedDocument) : null, JSON.stringify(contract),
+            index % 2 === 0 ? JSON.stringify(customerSchedule) : null, JSON.stringify(contract),
             assigned ? JSON.stringify(guide) : null, JSON.stringify(lodges), 0, null, null, 'workspace-owner',
             `2026-10-${String(index + 8).padStart(2, '0')}T01:00:00Z`, 'website');
     }
@@ -1034,6 +1039,41 @@ if (usability) {
     assert.equal(usabilityAssignments.items.length, 16);
     assert.equal(usabilityAssignments.items.filter(row => row.id === 'workspace-product').length, 2);
     assert.equal(usabilityAssignments.items.find(row => row.key === 'quote_booking:workspace-quote').assignment.accommodations[0].accommodation.name, lodgeRows[1].name);
+    // Actual schedule projection and assignment writes share the customer's saved itinerary.
+    const customerScheduleItem = usabilityAssignments.items.find(row => row.key === 'product:workspace-usability-04');
+    assert.equal(customerScheduleItem.schedule.source, 'customer');
+    assert.deepEqual(customerScheduleItem.schedule.days.map(day => [day.day, day.date, day.region]), [
+        [1, '2026-10-20', '중앙몽골'], [2, '2026-10-21', '고비사막'], [3, '2026-10-22', '울란바타르'],
+    ]);
+    assert.equal(customerScheduleItem.schedule.days[1].title, '고객 맞춤 고비 이동');
+    const scheduleBooking = { ...customerScheduleItem, dailyAccommodations: customerScheduleItem.assignment.accommodations };
+    const lodgingPlan = getAccommodationPlan(scheduleBooking);
+    assert.equal(lodgingPlan.needed, 2);
+    assert.equal(lodgingPlan.complete, false);
+    assert.deepEqual(lodgingPlan.addableNights.map(day => day.date), ['2026-10-21']);
+    const scheduleOriginal = raw.prepare('SELECT * FROM reservations WHERE id=?').get(customerScheduleItem.id);
+    const missingAdded = addMissingAccommodationNights(scheduleBooking);
+    assert.deepEqual(missingAdded[0], customerScheduleItem.assignment.accommodations[0]);
+    assert.equal(missingAdded[1].accommodation.region, '고비사막');
+    const schedulePatch = await write(`/api/admin/assignments/product/${customerScheduleItem.id}`, 'PATCH', {
+        expectedVersion: customerScheduleItem.version, assignment: { ...customerScheduleItem.assignment, accommodations: missingAdded },
+    });
+    assert.equal(schedulePatch.status, 200, await schedulePatch.clone().text());
+    const scheduleReload = (await (await apiRequest('/api/admin/assignments', { headers: admin })).json()).items.find(row => row.key === customerScheduleItem.key);
+    assert.deepEqual(scheduleReload.assignment.accommodations, missingAdded);
+    assert.deepEqual(scheduleReload.schedule, customerScheduleItem.schedule);
+    assert.equal(raw.prepare('SELECT document_content FROM reservations WHERE id=?').get(customerScheduleItem.id).document_content, scheduleOriginal.document_content);
+    raw.prepare('UPDATE reservations SET assigned_guide=?,daily_accommodations=?,admin_operations=?,contract_data=? WHERE id=?').run(
+        scheduleOriginal.assigned_guide, scheduleOriginal.daily_accommodations, scheduleOriginal.admin_operations, scheduleOriginal.contract_data, customerScheduleItem.id);
+    const staleDateItem = usabilityAssignments.items.find(row => row.key === 'product:workspace-usability-02');
+    const staleDateBooking = { ...staleDateItem, dailyAccommodations: staleDateItem.assignment.accommodations };
+    assert.equal(getAccommodationPlan(staleDateBooking).canAlignDates, true);
+    assert.equal(alignAccommodationDates(staleDateBooking)[0].date, '2026-10-20');
+    assert.equal(alignAccommodationDates(staleDateBooking)[0].accommodation.bookingStatus, 'Илгээгээгүй');
+    const intentionallyEmpty = usabilityAssignments.items.find(row => row.key === 'product:workspace-empty');
+    assert.equal(intentionallyEmpty.schedule.source, 'customer');
+    assert.deepEqual(intentionallyEmpty.schedule.days, []);
+    console.log('고객 일정별 숙소 배정 검증 통과: 고객 저장 일정 우선 · 지역/숙박일 연결 · 귀국일 제외 · 누락 숙박만 추가/저장/재조회 · 기존 수배/문서 보존 · 불일치 날짜 명시 조정');
     // The operations board's actual selection + serializer must round-trip both source IDs.
     const originalResourceProduct = raw.prepare('SELECT * FROM reservations WHERE id=?').get('workspace-product');
     const originalResourceQuote = raw.prepare('SELECT data FROM requests WHERE id=?').get('workspace-product').data;

@@ -3,6 +3,7 @@
 import type { RepresentativeSpotSnapshot } from '../../src/types/product';
 import { readProductVehicle } from '../../src/utils/reservationAssignment.ts';
 import { resolveCancellationRows } from '../../src/constants/company.ts';
+import { toTourDateKey } from '../../src/utils/formatDate.ts';
 
 export function parseDocumentJson(value: any, fallback: any = null) {
     let result = value;
@@ -19,7 +20,7 @@ const array = (value: any): any[] => {
 const text = (value: any) => typeof value === 'string' ? value : '';
 const lines = (value: any) => text(value).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
 const amount = (value: any) => Number.isFinite(Number(value)) ? Number(value) : 0;
-const dateKey = (value: any) => /^\d{4}-\d{2}-\d{2}/.test(text(value)) ? value.slice(0, 10) : '';
+const dateKey = (value: any) => /^\d{4}-\d{2}-\d{2}/.test(text(value)) ? toTourDateKey(value) : '';
 const dayDate = (start: string, offset: number) => {
     if (!start) return '';
     const date = new Date(`${start}T00:00:00Z`);
@@ -57,6 +58,7 @@ export function productScheduleDays(product: any) {
         if (block.type === 'dayInfo' && content && typeof content === 'object') {
             current = {
                 day: days.length + 1, title: text(content.title), summary: text(content.description),
+                ...(typeof content.region === 'string' ? { region: content.region } : {}),
                 activities: [], meals: content.meals || {}, images: [...photos(content.galleryImages), documentImage(content.heroImage)].filter(Boolean),
                 accommodation: content.accommodation ? {
                     name: content.accommodation, images: photos(content.accommodationImages),

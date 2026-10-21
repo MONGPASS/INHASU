@@ -5,6 +5,7 @@ import { productCustomerHref, quoteCustomerHref } from '../utils/customerWorkspa
 import type { AssignmentAccommodation, AssignmentGuide, AssignmentSource, AssignmentVehicle } from '../utils/reservationAssignment';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
 import { selectResourceGuide, selectResourceLodge, selectResourceVehicle } from '../utils/accommodationResourceSelection';
+import { addMissingAccommodationNights, alignAccommodationDates, getAccommodationPlan, initialAccommodationRows, type AccommodationSchedule } from '../utils/accommodationSchedule';
 import { assignmentFingerprint, editorAssignment, writeAssignmentDraft, readAssignmentDraft, discardAssignmentDraft, type AssignmentDraft, type AssignmentDraftResult } from '../utils/adminAssignmentDraft';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
@@ -26,6 +27,10 @@ const WD = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
 type DailyAcc = AssignmentAccommodation;
 interface Traveler { name?: string; passportName?: string; birthdate?: string; gender?: string; phone?: string }
 interface Flight { date?: string; time?: string; flight?: string }
+const scheduleSourceLabel: Record<string, string> = {
+    customer: '고객별 저장 일정', template: '선택한 일정 템플릿', product: '예약 상품 일정',
+    booking: '예약 확정 일정', quote: '견적 일정', none: '등록 일정 없음', unavailable: '일정 조회 필요',
+};
 interface Reservation {
     id: string;
     bookingId: string;
@@ -42,6 +47,7 @@ interface Reservation {
     reservationNumber?: string | null;
     createdAt?: string;
     dailyAccommodations?: DailyAcc[];
+    schedule?: AccommodationSchedule;
     assignedGuide?: AssignmentGuide;
     contractData?: {
         region?: string; category?: string;
@@ -61,13 +67,6 @@ const statusStyle = (s?: string): { bg: string; fg: string } => ({
     'Баталгаажсан': { bg: '#E4F7EC', fg: '#0F7A43' },
 }[s || 'Хуваарилаагүй'] || { bg: '#F1F2F4', fg: '#8A8F99' });
 
-const nightsOf = (r: Reservation): number => {
-    if (!r.startDate || !r.endDate) return 0;
-    const s = new Date(r.startDate), e = new Date(r.endDate);
-    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0;
-    const n = Math.round((e.getTime() - s.getTime()) / 86400000);
-    return n > 0 ? n : 0;
-};
 const fmtDate = (iso?: string) => {
     if (!iso) return '-';
     const d = new Date(iso);
@@ -94,14 +93,6 @@ const isPastTour = (r: { startDate?: string; endDate?: string }, today: string) 
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     return key < today;
 };
-// startDate + offset일 → yyyy-mm-dd (date input용 기본값)
-const isoOffset = (start?: string, offset = 0) => {
-    if (!start) return '';
-    const d = new Date(start);
-    if (Number.isNaN(d.getTime())) return '';
-    d.setDate(d.getDate() + offset);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 const weekdayMn = (iso?: string) => {
     if (!iso) return '';
     const d = new Date(iso);
@@ -111,21 +102,12 @@ const regionOf = (r: Reservation) => (r.contractData?.region || r.contractData?.
 const genderMn = (g?: string) => g === '男性' || g === '남성' || g === 'male' ? 'Эрэгтэй' : g === '女性' || g === '여성' || g === 'female' ? 'Эмэгтэй' : (g || '-');
 const flightLine = (f?: Flight) => [f?.date, f?.time, f?.flight].filter(Boolean).join(' · ') || '-';
 
-// 저장된 dailyAccommodations이 있으면 그대로(추가/삭제 보존), 없으면 박일수만큼 빈 행 생성
-const daysOf = (r: Reservation): DailyAcc[] => {
-    if (Array.isArray(r.dailyAccommodations)) return r.dailyAccommodations;
-    const nights = nightsOf(r);
-    if (nights <= 0) return [];
-    return Array.from({ length: nights }, (_, i) => ({ day: i + 1, date: isoOffset(r.startDate, i), accommodation: {} }));
-};
 const summaryOf = (r: Reservation) => {
-    const rows = daysOf(r);
-    const total = rows.length;
-    const assigned = rows.filter(d => (d.accommodation?.name || '').trim()).length;
-    const confirmed = rows.filter(d => d.accommodation?.bookingStatus === 'Баталгаажсан').length;
-    const allConfirmed = total > 0 && confirmed === total;
-    const label: BookingStatus | 'Хуваарилаагүй' | 'Явагдаж байна' = allConfirmed ? 'Баталгаажсан' : (assigned > 0 || confirmed > 0) ? 'Явагдаж байна' : 'Хуваарилаагүй';
-    return { total, assigned, confirmed, allConfirmed, label };
+    const plan = getAccommodationPlan(r);
+    const total = plan.needed;
+    const { assigned, confirmed, complete: allConfirmed } = plan;
+    const label: BookingStatus | 'Хуваарилаагүй' | 'Явагдаж байна' | '숙박 없음' = total === 0 && allConfirmed ? '숙박 없음' : allConfirmed ? 'Баталгаажсан' : (assigned > 0 || confirmed > 0) ? 'Явагдаж байна' : 'Хуваарилаагүй';
+    return { total, assigned, confirmed, allConfirmed, label, plan };
 };
 
 const CONFIRMED_STATUSES = ['confirmed', 'paid', 'completed'];
@@ -302,7 +284,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     // ── 펼침/구체화 ──
     const openRow = (r: Reservation) => {
         if (!materialized.has(r.id)) {
-            setReservations(prev => prev.map(x => x.id === r.id ? { ...x, dailyAccommodations: daysOf(x).map((d, i) => ({ ...d, date: d.date || isoOffset(x.startDate, i) })) } : x));
+            setReservations(prev => prev.map(x => x.id === r.id ? { ...x, dailyAccommodations: initialAccommodationRows(x) } : x));
             setMaterialized(prev => new Set(prev).add(r.id));
         }
         setExpanded(prev => new Set(prev).add(r.id));
@@ -373,14 +355,12 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         setMaterialized(prev => new Set(prev).add(row.id));
         setNotice(restore ? '초안을 복원했습니다. 확인 후 저장해야 서버에 반영됩니다.' : '초안을 버리고 현재 서버 정보를 유지합니다.');
     };
-    // 일차 번호를 날짜순으로 1..N 재부여 — 2~5처럼 어긋난 옛 데이터를 예약 상세·확정 일정표와 맞춘다
-    const renumberDays = (rId: string) => {
+    // 저장된 숙소·객실을 유지하면서 관리자가 명시한 경우에만 고객 일정의 날짜에 맞춘다.
+    const alignDates = (rId: string) => {
         if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
-            const rows = [...(r.dailyAccommodations || [])];
-            rows.sort((a, b) => String(a.date || '9999-99-99').localeCompare(String(b.date || '9999-99-99')) || ((a.day || 0) - (b.day || 0)));
-            return { ...r, dailyAccommodations: rows.map((d, i) => ({ ...d, day: i + 1, date: d.date || isoOffset(r.startDate, i) })) };
+            return { ...r, dailyAccommodations: alignAccommodationDates(r) };
         }));
         markDirty(rId);
     };
@@ -399,7 +379,9 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
-            const rows = (r.dailyAccommodations || []).map((d, i) => i === idx ? { ...d, ...patch } : d);
+            const rows = (r.dailyAccommodations || []).map((d, i) => i === idx ? { ...d, ...patch,
+                ...(patch.date !== undefined && d.date && patch.date !== d.date ? { accommodation: { ...d.accommodation, bookingStatus: 'Илгээгээгүй' as BookingStatus } } : {}),
+            } : d);
             return { ...r, dailyAccommodations: rows };
         }));
         markDirty(rId);
@@ -410,9 +392,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             if (r.id !== rId) return r;
             const rows = [...(r.dailyAccommodations || [])];
             const maxDay = rows.reduce((m, d) => Math.max(m, d.day || 0), 0);
-            const last = rows[rows.length - 1]?.date;
-            const nextDate = last ? isoOffset(last, 1) : isoOffset(r.startDate, rows.length);
-            rows.push({ day: maxDay + 1, date: nextDate, accommodation: {} });
+            const night = getAccommodationPlan(r).nights.find(item => item.day === maxDay + 1);
+            rows.push({ day: maxDay + 1, date: night?.usable ? night.date : '', accommodation: {} });
             return { ...r, dailyAccommodations: rows };
         }));
         markDirty(rId);
@@ -426,9 +407,9 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         }));
         markDirty(rId);
     };
-    const populateNights = (row: Reservation) => {
+    const addMissingNights = (row: Reservation) => {
         if (savingRef.current || pendingRef.current[row.id]) return;
-        setReservations(prev => prev.map(r => r.id === row.id ? { ...r, dailyAccommodations: Array.from({ length: nightsOf(r) }, (_, i) => ({ day: i + 1, date: isoOffset(r.startDate, i), accommodation: {} })) } : r));
+        setReservations(prev => prev.map(r => r.id === row.id ? { ...r, dailyAccommodations: addMissingAccommodationNights(r) } : r));
         markDirty(row.id);
     };
     // 담당 가이드(assignedGuide)·차량(contractData.vehicle) 편집 — 기존 컬럼에 저장(마이그레이션 불필요)
@@ -613,15 +594,14 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                     {r.reservationNumber && <span className="cell-muted" style={{ marginLeft: 6, fontSize: 11 }}>#{r.reservationNumber}</span>}
                                                 </td>
                                                 <td>{fmtDate(r.startDate)} ~ {fmtDate(r.endDate)}</td>
-                                                <td>{nightsOf(r) > 0 ? `${nightsOf(r)} шөнө ${nightsOf(r) + 1} өдөр` : '-'}</td>
+                                                <td>{sum.total === null ? '-' : `${sum.total} шөнө ${sum.total + 1} өдөр`}</td>
                                                 <td>{regionOf(r)}</td>
                                                 <td>{fmtDate(r.createdAt)}</td>
                                                 <td>{r.travelers || '-'} хүн</td>
                                                 <td style={{ fontWeight: 700, color: sum.allConfirmed ? '#0F7A43' : '#B45309' }}>
-                                                    {sum.confirmed}/{sum.total} баталгаажсан
-                                                    {/* 옛 데이터: 박수보다 행이 많으면(예: 4박인데 5행) 빈 행이 확정을 영원히 막는다 — 삭제 유도 */}
-                                                    {nightsOf(r) > 0 && sum.total > nightsOf(r) && (
-                                                        <span style={{ display: 'block', fontSize: 10, fontWeight: 800, color: '#D0342C' }}>шөнөөс {sum.total - nightsOf(r)} мөр илүү — 🗑 устгана уу</span>
+                                                    {sum.total === null ? '필요 숙박일 확인' : sum.total === 0 ? '숙박 없음' : `${sum.confirmed}/${sum.total} баталгаажсан`}
+                                                    {sum.plan.warnings.length > 0 && (
+                                                        <span style={{ display: 'block', fontSize: 10, fontWeight: 800, color: '#D0342C' }}>숙박일 확인 필요</span>
                                                     )}
                                                 </td>
                                             </tr>
@@ -677,6 +657,22 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                     </div>
                                                                 ) : <div className="cell-muted" style={{ fontSize: 12, marginTop: 10 }}>Аялагчийн мэдээлэл алга (гэрээ ирээгүй).</div>}
                                                                 {cd.agreement?.name && <div style={{ marginTop: 10, fontSize: 12 }}><span className="cell-muted">Цахим гарын үсэг:</span> <b>{cd.agreement.name}</b></div>}
+                                                                <div style={{ marginTop: 10, fontSize: 12 }}>
+                                                                    <span className="cell-muted">고객 일정 기준:</span>{' '}
+                                                                    <b>{scheduleSourceLabel[r.schedule?.source || 'none'] || '고객 일정'}</b> · {r.schedule?.days.length || 0}일
+                                                                </div>
+                                                                <details style={{ marginTop: 10 }}>
+                                                                    <summary>전체 고객 일정 보기</summary>
+                                                                    {(r.schedule?.days || []).length ? <div className="tbl-wrap">
+                                                                        <table className="tbl">
+                                                                            <thead><tr><th>일차</th><th>날짜</th><th>여행 지역</th><th>고객 일정 요약</th></tr></thead>
+                                                                            <tbody>{r.schedule!.days.map((day, index) => <tr key={index}>
+                                                                                <td>{day.day}일차</td><td>{day.date || '날짜 미정'}</td><td>{day.region || '지역 미입력'}</td>
+                                                                                <td style={{ whiteSpace: 'normal', minWidth: 220, overflowWrap: 'anywhere' }}>{[day.title, day.summary].filter(Boolean).join(' · ') || '일정 내용 없음'}</td>
+                                                                            </tr>)}</tbody>
+                                                                        </table>
+                                                                    </div> : <p className="cell-muted">저장된 고객 일정이 없습니다. 숙소 배정은 기존 내용을 유지합니다.</p>}
+                                                                </details>
                                                             </div>
 
                                                             {/* ── Өдөр тутмын байр ── */}
@@ -686,14 +682,18 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                     <Icon name="assignment" />Захиалгын дэлгэрэнгүй
                                                                 </a>
                                                                 <div style={{ flex: 1 }} />
-                                                                <button type="button" className="btn btn-sm" title="일차 번호를 날짜순으로 1..N 재정렬합니다." onClick={() => renumberDays(r.id)}>
-                                                                    <Icon name="format_list_numbered" />Огноогоор цэгцлэх
+                                                                <button type="button" className="btn btn-sm" title="저장된 숙소와 객실은 유지하고 고객 일정의 해당 일차 날짜에 맞춥니다." disabled={!sum.plan.canAlignDates} onClick={() => alignDates(r.id)}>
+                                                                    <Icon name="format_list_numbered" />여행 날짜에 맞추기
                                                                 </button>
                                                                 {isDirty && <span style={{ fontSize: 12, fontWeight: 700, color: '#B45309' }}>Өөрчлөгдсөн ·</span>}
                                                                 <button type="button" className="btn btn-ink btn-sm" disabled={!isDirty || !!savingId} onClick={() => save(r)}>
                                                                     <Icon name="save" />{savingId === r.id ? 'Хадгалж байна…' : 'Хадгалах'}
                                                                 </button>
                                                             </div>
+                                                            <div className="cell-muted" style={{ fontSize: 12, marginBottom: 8 }}>
+                                                                {sum.total === null ? '여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.' : sum.total === 0 ? '당일 여행으로 숙박 배정이 필요하지 않습니다.' : `필요 ${sum.total}박 · 숙소 배정 ${sum.assigned}박 · 예약 확정 ${sum.confirmed}박`}
+                                                            </div>
+                                                            {sum.plan.warnings.map((warning, index) => <div key={index} role="alert" className="cell-muted" style={{ marginBottom: 8 }}>{warning}</div>)}
                                                             <div style={{ overflowX: 'auto' }}>
                                                                 <table className="tbl" style={{ minWidth: 1070 }}>
                                                                     <thead>
@@ -711,6 +711,10 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                     <tbody>
                                                                         {rows.map((d, idx) => {
                                                                             const acc = d.accommodation || {};
+                                                                            const scheduleDay = r.schedule?.days.find(day => day.day === d.day);
+                                                                            const scheduleRegion = scheduleDay?.region.trim() || '';
+                                                                            const regionLodges = scheduleRegion ? resources.lodges.filter(lodge => [lodge.region, lodge.location].some(value => value.trim().toLocaleLowerCase('ko-KR') === scheduleRegion.toLocaleLowerCase('ko-KR'))) : [];
+                                                                            const otherLodges = scheduleRegion ? resources.lodges.filter(lodge => !regionLodges.includes(lodge)) : resources.lodges;
                                                                             const hasName = (acc.name || '').trim().length > 0;
                                                                             const st = hasName ? (acc.bookingStatus || 'Илгээгээгүй') : 'Хуваарилаагүй';
                                                                             const sts = statusStyle(st);
@@ -720,16 +724,20 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                                                                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 'none' }}>
                                                                                                 <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#B4B8C0' }}>ӨДӨР</span>
-                                                                                                <input type="number" min={1} value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })}
+                                                                                                <input type="number" min={1} aria-label="숙박 일차" value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })}
                                                                                                     style={{ width: 38, height: 28, textAlign: 'center', padding: 0, border: '1px solid #E6E8EC', borderRadius: 8, fontWeight: 800, fontSize: 14, color: '#1A8CFF', background: '#fff', outline: 'none', marginTop: 1 }} />
                                                                                             </div>
                                                                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                                                                                                <input type="date" className="inp" style={{ width: 148 }} value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
+                                                                                                <input type="date" className="inp" style={{ width: 148 }} aria-label="숙박 날짜" value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
                                                                                                 {d.date && <span style={{ fontSize: 11, fontWeight: 700, color: '#8A8F99', flex: 'none' }}>{weekdayMn(d.date)}</span>}
                                                                                             </div>
                                                                                         </div>
+                                                                                        {scheduleDay && <div className="cell-muted" style={{ fontSize: 11, marginTop: 6, whiteSpace: 'normal', maxWidth: 260, overflowWrap: 'anywhere' }}>
+                                                                                            일정: {[scheduleDay.date || '날짜 미정', scheduleDay.region || '지역 미입력', scheduleDay.title || scheduleDay.summary.slice(0, 80)].filter(Boolean).join(' · ')}
+                                                                                        </div>}
+                                                                                        {(sum.plan.rowWarnings[idx] || []).map((warning, index) => <div key={index} role="alert" className="cell-muted" style={{ fontSize: 11, marginTop: 6, whiteSpace: 'normal', maxWidth: 260, overflowWrap: 'anywhere' }}>{warning}</div>)}
                                                                                     </td>
-                                                                                    <td><input className="inp" style={{ width: 116 }} value={acc.location || ''} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value, region: e.target.value })} /></td>
+                                                                                    <td><input className="inp" style={{ width: 116 }} aria-label="숙박 지역" value={acc.location || ''} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value, region: e.target.value })} /></td>
                                                                                     <td>{(() => {
                                                                                         // 공통 숙소에서 선택하며 과거 배정과 직접 입력은 그대로 유지한다.
                                                                                         const mKey = `${r.id}:${idx}`;
@@ -762,7 +770,10 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                                                 }}>
                                                                                                 <option value="">{resourcesLoading ? '등록 숙소 불러오는 중…' : '등록 숙소 선택…'}</option>
                                                                                                 {!inMaster && nm && <option value="__current__">현재 배정: {nm}</option>}
-                                                                                                {resources.lodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}
+                                                                                                {scheduleRegion ? <>
+                                                                                                    <optgroup label={`일정 지역: ${scheduleRegion}`}>{regionLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
+                                                                                                    <optgroup label="전체 다른 지역">{otherLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
+                                                                                                </> : resources.lodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}
                                                                                                 <option value="__manual__">✏️ 직접 입력 (목록에 없는 숙소)</option>
                                                                                             </select>
                                                                                         );
@@ -800,7 +811,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                 </table>
                                                             </div>
                                                             <button type="button" className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => addDay(r.id)}><Icon name="add" />Өдөр нэмэх</button>
-                                                            {rows.length === 0 && nightsOf(r) > 0 && <button type="button" className="btn btn-sm" style={{ marginTop: 10, marginLeft: 8 }} onClick={() => populateNights(r)}><Icon name="add" />Шөнийн тоогоор мөр үүсгэх</button>}
+                                                            {sum.plan.missingNights.length > 0 && <button type="button" className="btn btn-sm" style={{ marginTop: 10, marginLeft: 8 }} disabled={sum.plan.addableNights.length === 0} onClick={() => addMissingNights(r)}><Icon name="add" />누락 숙박일 추가</button>}
 
                                                             {/* ── Хариуцсан гайд ба тээвэр (가이드·차량) ── */}
                                                             <div style={{ background: '#fff', border: '1px solid var(--color-border-tertiary, #E6E8EC)', borderRadius: 12, padding: 14, marginTop: 14 }}>
