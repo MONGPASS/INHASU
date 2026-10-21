@@ -208,6 +208,10 @@ test('실제 편집기는 data router에서 nullable legacy 일정·빈 계약 �
             assert.ok(html.includes('일정 편집 바로가기'));
             assert.ok(html.includes('ri-spots-collapsible'));
             assert.match(html, /0(?:<!-- -->)?개 선택/);
+            assert.ok(html.includes('ri-itinerary-aside'), '작업 화면은 명소 순서와 작성 상태 요약을 함께 보여준다');
+            assert.ok(html.includes('명소 순서') && html.includes('작성 상태') && html.includes('+ 일차 추가'));
+        } else if (mode === 'itinerary') {
+            assert.ok(!html.includes('ri-itinerary-aside'), '예전 서랍형 편집기에는 요약 열을 추가하지 않는다');
         }
         router.dispose();
     }

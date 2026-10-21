@@ -7,6 +7,7 @@ import { uploadImage } from '../../utils/upload';
 import { QuoteDayEditor } from './QuoteDayEditor';
 import { QuoteSpotSelector, toggleRepresentativeSpot } from './QuoteSpotSelector';
 import { ReservationDraftPreview } from './ReservationDraftPreview';
+import { DashboardIcon } from './dashboard/DashboardIcon';
 import type { ReservationPreviewContext } from '../../utils/reservationDraftPreview';
 
 export interface ReservationInlineEditorControl {
@@ -348,6 +349,15 @@ export function ReservationInlineEditor(p: Props) {
         editDay(index, day => applyQuoteSnippet(day, libraries.snippets[name]));
     };
     const toggleSpot = (name: string, value: any) => edit(current => ({ ...current, highlights: toggleRepresentativeSpot(current.highlights || [], name, value) }));
+    const raiseSpot = (index: number) => edit(current => {
+        const spots = [...(current.highlights || [])];
+        if (index < 1 || index >= spots.length) return current;
+        [spots[index - 1], spots[index]] = [spots[index], spots[index - 1]];
+        return { ...current, highlights: spots };
+    });
+    const removeSpot = (name: string) => edit(current => ({ ...current, highlights: (current.highlights || []).filter(spot => spot.name !== name) }));
+    const clearSpots = () => { if (window.confirm('선택한 대표 명소를 모두 해제할까요? 저장 전에는 초안 버리기로 되돌릴 수 있습니다.')) edit(current => ({ ...current, highlights: [] })); };
+    const addDay = () => edit(current => ({ ...current, days: [...current.days, { day: current.days.length + 1, date: '', dateMode: 'manual', title: '', items: [], activities: [], meals: {}, accommodation: null }] }));
     const addPhotos = async (dayIndex: number, activityIndex: number | null, files: FileList | null) => {
         if (isLocked() || !files?.length) return;
         uploadingRef.current = true; callbacks.current.onBusyChange?.(true);
@@ -476,16 +486,17 @@ export function ReservationInlineEditor(p: Props) {
             <div className="ri-basics"><label className="ri-field ri-wide"><span>여행명</span><input value={draft.name} onChange={e => edit(current => ({ ...current, name: e.target.value }))} /></label><label className="ri-field"><span>여행 시작일</span><input type="date" value={dates.startDate} onChange={e => setDate('startDate', e.target.value)} /></label><label className="ri-field"><span>여행 종료일</span><input type="date" value={dates.endDate} min={dates.startDate || undefined} onChange={e => setDate('endDate', e.target.value)} /></label></div>
             </div>
             </section>
-            {activeMode === 'itinerary' ? <>
+            {activeMode === 'itinerary' ? <div className={p.externalActions ? 'ri-itinerary-layout' : 'ri-itinerary-plain'}>
+                <div className="ri-itinerary-main">
                 <div className="ri-quote-section quote-day-editor">
-                    <div className="ri-schedule-heading"><div className="ri-quote-head"><h3>일자별 일정 <span className="ri-schedule-count">{draft.days.length}일</span></h3></div><button type="button" className="ri-fill-dates" onClick={fillDates}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" /><path d="M8 3v4m8-4v4M4 10h16m-8 4v4m-2-2h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>날짜 자동 입력</button></div>
+                    <div className="ri-schedule-heading"><div className="ri-quote-head"><h3>{p.externalActions ? '확정 일정표' : '일자별 일정'} <span className="ri-schedule-count">{p.externalActions ? <><b>{draft.days.length}</b>일 일정</> : `${draft.days.length}일`}</span></h3></div><button type="button" className="ri-fill-dates" onClick={fillDates}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.6" /><path d="M8 3v4m8-4v4M4 10h16m-8 4v4m-2-2h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>날짜 자동 입력</button>{p.externalActions && <button type="button" className="ri-add-day" onClick={addDay}>+ 일차 추가</button>}</div>
                     {libraryLoading && <p className="ri-library-note" role="status">저장된 일정과 명소를 불러오고 있습니다.</p>}
                     {libraryError && <div className="ri-library-error" role="alert">{libraryError}<button type="button" onClick={() => setLibraryAttempt(current => current + 1)}>다시 시도</button></div>}
                     <QuoteDayEditor syncKey={appliedFingerprint.current} days={draft.days.map((day, index) => ({ ...quoteDayFields(day), d: index + 1 }))}
                         startDate={dates.startDate} endDate={dates.endDate} snippets={libraries.snippets} snippetCats={libraries.snippet_cats} disabled={locked}
                         onField={(index, field, value) => editDay(index, day => updateQuoteDay(day, field === 'move' ? value : { [field]: value }))}
                         onSnippet={loadSnippet} onDelete={removeDay} onReorder={moveDay}
-                        onAdd={() => edit(current => ({ ...current, days: [...current.days, { day: current.days.length + 1, date: '', dateMode: 'manual', title: '', items: [], activities: [], meals: {}, accommodation: null }] }))}
+                        onAdd={addDay}
                         onNotice={message => { setNotice(message); setNoticeFailed(false); }}
                         renderDetails={dayIndex => {
                             const day = draft.days[dayIndex];
@@ -509,7 +520,7 @@ export function ReservationInlineEditor(p: Props) {
                             </>;
                         }} />
                 </div>
-                {p.externalActions ? <details className="ri-spots ri-spots-collapsible">
+                {p.externalActions ? <details className="ri-spots ri-spots-collapsible" open>
                     <summary><span><strong>대표 명소</strong><small>필요한 명소를 선택한 순서대로 일정표에 표시합니다.</small></span><b>{(draft.highlights || []).length}개 선택</b></summary>
                     <div className="ri-spots-content">{!libraryLoading && !libraryError && <QuoteSpotSelector spots={libraries.spots} categories={libraries.spot_cats}
                         selected={(draft.highlights || []).map(spot => spot.name)} disabled={locked} onToggle={toggleSpot} />}</div>
@@ -517,10 +528,51 @@ export function ReservationInlineEditor(p: Props) {
                     {!libraryLoading && !libraryError && <QuoteSpotSelector spots={libraries.spots} categories={libraries.spot_cats}
                         selected={(draft.highlights || []).map(spot => spot.name)} disabled={locked} onToggle={toggleSpot} />}
                 </div>}
-            </> : <div className="ri-contract"><h3>여행 계약 조건</h3><p className="ri-library-note">현재 문서의 원문을 확인하고 필요한 내용을 수정하세요.</p><label className="ri-field"><span>계약서 서문</span><textarea rows={4} value={contract.intro || ''} onChange={e => editContract('intro', e.target.value)} /></label><div className="ri-contract-fields"><label className="ri-field"><span>지급 방법</span><input value={contract.paymentMethod || ''} onChange={e => editContract('paymentMethod', e.target.value)} /></label><label className="ri-field"><span>지급 기한</span><input value={contract.paymentDeadline || ''} onChange={e => editContract('paymentDeadline', e.target.value)} /></label><label className="ri-field"><span>포함 사항</span><textarea rows={4} value={contract.includedText || ''} onChange={e => editContract('includedText', e.target.value)} /></label><label className="ri-field"><span>불포함 사항</span><textarea rows={4} value={contract.excludedText || ''} onChange={e => editContract('excludedText', e.target.value)} /></label></div><div className="ri-small-heading"><h4>취소 규정</h4><button type="button" onClick={() => editContract('cancellationRows', [...(contract.cancellationRows || []), { period: '', fee: '' }])}>＋ 규정 행 추가</button></div>{(contract.cancellationRows || []).map((row, index) => <div className="ri-cancellation-row" key={index}><label className="ri-field"><span>취소 시점</span><input value={row.period} onChange={e => editContract('cancellationRows', (contract.cancellationRows || []).map((item, i) => i === index ? { ...item, period: e.target.value } : item))} /></label><label className="ri-field"><span>취소 요금</span><input value={row.fee} onChange={e => editContract('cancellationRows', (contract.cancellationRows || []).map((item, i) => i === index ? { ...item, fee: e.target.value } : item))} /></label><button type="button" className="ri-remove" onClick={() => editContract('cancellationRows', (contract.cancellationRows || []).filter((_, i) => i !== index))}>삭제</button></div>)}<label className="ri-field"><span>동의 문구</span><textarea rows={3} value={contract.signatureNote || ''} onChange={e => editContract('signatureNote', e.target.value)} /></label></div>}
+                </div>
+                {p.externalActions && <ItinerarySummary days={draft.days} spots={draft.highlights || []} assignedDays={(p.dailyAccommodations || []).map(stay => stay.day)}
+                    disabled={locked} onRaise={raiseSpot} onRemove={removeSpot} onClear={clearSpots} />}
+            </div> : <div className="ri-contract"><h3>여행 계약 조건</h3><p className="ri-library-note">현재 문서의 원문을 확인하고 필요한 내용을 수정하세요.</p><label className="ri-field"><span>계약서 서문</span><textarea rows={4} value={contract.intro || ''} onChange={e => editContract('intro', e.target.value)} /></label><div className="ri-contract-fields"><label className="ri-field"><span>지급 방법</span><input value={contract.paymentMethod || ''} onChange={e => editContract('paymentMethod', e.target.value)} /></label><label className="ri-field"><span>지급 기한</span><input value={contract.paymentDeadline || ''} onChange={e => editContract('paymentDeadline', e.target.value)} /></label><label className="ri-field"><span>포함 사항</span><textarea rows={4} value={contract.includedText || ''} onChange={e => editContract('includedText', e.target.value)} /></label><label className="ri-field"><span>불포함 사항</span><textarea rows={4} value={contract.excludedText || ''} onChange={e => editContract('excludedText', e.target.value)} /></label></div><div className="ri-small-heading"><h4>취소 규정</h4><button type="button" onClick={() => editContract('cancellationRows', [...(contract.cancellationRows || []), { period: '', fee: '' }])}>＋ 규정 행 추가</button></div>{(contract.cancellationRows || []).map((row, index) => <div className="ri-cancellation-row" key={index}><label className="ri-field"><span>취소 시점</span><input value={row.period} onChange={e => editContract('cancellationRows', (contract.cancellationRows || []).map((item, i) => i === index ? { ...item, period: e.target.value } : item))} /></label><label className="ri-field"><span>취소 요금</span><input value={row.fee} onChange={e => editContract('cancellationRows', (contract.cancellationRows || []).map((item, i) => i === index ? { ...item, fee: e.target.value } : item))} /></label><button type="button" className="ri-remove" onClick={() => editContract('cancellationRows', (contract.cancellationRows || []).filter((_, i) => i !== index))}>삭제</button></div>)}<label className="ri-field"><span>동의 문구</span><textarea rows={3} value={contract.signatureNote || ''} onChange={e => editContract('signatureNote', e.target.value)} /></label></div>}
         </fieldset>
         <div className="ri-savebar"><span className={noticeFailed ? 'ri-save-error' : ''} role={noticeFailed ? 'alert' : 'status'}>{uploading ? '사진 업로드 중입니다…' : saving ? '문서를 저장하고 있습니다…' : notice || (dirty ? '변경사항을 저장하세요.' : '현재 예약의 문서를 편집합니다.')}</span>{!p.externalActions && <button type="submit" className="btn btn-ink" disabled={locked}>{saving ? '저장 중…' : activeMode === 'contract' ? '계약 조건 저장' : '일정 저장'}</button>}</div>
         {preview && <ReservationDraftPreview {...preview} accountId={p.adminUserId} context={p.previewContext} onClose={() => setPreview(null)} />}
         </form>
     </section>;
+}
+
+/** Right-hand summary of the workflow editor: spot order and what is still missing (design "Page 15"). */
+function ItinerarySummary({ days, spots, assignedDays, disabled, onRaise, onRemove, onClear }: {
+    days: TemplateDay[];
+    spots: Array<{ name: string }>;
+    assignedDays: number[];
+    disabled: boolean;
+    onRaise: (index: number) => void;
+    onRemove: (name: string) => void;
+    onClear: () => void;
+}) {
+    const fields = days.map(quoteDayFields);
+    const written = fields.filter(day => day.dest.trim() && day.items.some(line => line.trim())).length;
+    const stays = fields.filter((day, index) => day.stay.name.trim() || assignedDays.includes(index + 1)).length;
+    const checks: Array<[string, string, boolean]> = [
+        ['일차별 일정', `${written} / ${days.length}`, days.length > 0 && written === days.length],
+        ['대표 명소', `${spots.length}곳`, spots.length > 0],
+        ['숙소 입력', `${stays} / ${days.length}`, days.length > 0 && stays === days.length],
+    ];
+    return <aside className="ri-itinerary-aside" aria-label="일정표 작성 요약">
+        <section className="ri-aside-card">
+            <header><h3>명소 순서</h3><b>{spots.length}곳</b>{spots.length > 0 && <button type="button" disabled={disabled} onClick={onClear}>모두 해제</button>}</header>
+            {spots.length ? <ol className="ri-spot-order">{spots.map((spot, index) => <li key={spot.name}>
+                <span className="ri-spot-n" aria-hidden="true">{index + 1}</span>
+                <span className="ri-spot-name">{spot.name}</span>
+                <button type="button" disabled={disabled || index === 0} aria-label={`${spot.name} 순서 올리기`} onClick={() => onRaise(index)}><DashboardIcon name="lc-arrow-up" size={14} /></button>
+                <button type="button" disabled={disabled} aria-label={`${spot.name} 선택 해제`} onClick={() => onRemove(spot.name)}><DashboardIcon name="lc-x" size={14} /></button>
+            </li>)}</ol> : <p className="ri-aside-empty">아래 대표 명소에서 골라 주세요.</p>}
+        </section>
+        <section className="ri-aside-card">
+            <header><h3>작성 상태</h3></header>
+            <ul className="ri-progress">{checks.map(([label, value, done]) => <li key={label} className={done ? 'is-done' : ''}>
+                <span className="ri-progress-dot" aria-hidden="true"><DashboardIcon name="lc-check" size={12} strokeWidth={3} /></span>
+                <span>{label}</span><b>{value}</b>
+            </li>)}</ul>
+        </section>
+    </aside>;
 }

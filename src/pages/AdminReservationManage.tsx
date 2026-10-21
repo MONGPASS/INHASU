@@ -1865,7 +1865,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
                 {/* Header */}
                 <div className={`drawer-head${fullPage ? ' cw-detail-toolbar' : ''}`}>
-                    {fullPage ? <><button type="button" className="btn btn-ghost cw-overview-back" disabled={workspaceIsBusy()} onClick={returnToCustomerOverview}><Icon name="arrow_back" />고객 현황</button><div className="cw-detail-identity"><h2>{reservation.customerName || '고객'} <span>{reservation.headcount}</span></h2><p>{reservation.productName} · {reservation.date}</p></div></> : <>
+                    {fullPage ? <><button type="button" className="btn btn-ghost cw-overview-back" disabled={workspaceIsBusy()} onClick={returnToCustomerOverview}><Icon name="arrow_back" />고객 현황</button><div className="cw-detail-identity"><h2>{reservation.customerName || '고객'}<span className="cw-detail-badge">{detailSection === 'docs' && inlineEditorOpen ? '일정표 편집' : currentSection.label}</span></h2><p><b>{reservation.headcount}</b> · <b>{reservation.date}</b> · {reservation.productName}</p></div></> : <>
                     {productImage && (
                         <img src={productImage} alt={reservation.productName} loading="lazy"
                             style={{ width: 52, height: 52, flex: 'none', borderRadius: 12, objectFit: 'cover', border: '1px solid var(--mrt-gray-200, #E6E8EC)' }} />
