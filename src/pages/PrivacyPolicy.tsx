@@ -139,6 +139,26 @@ const PrivacyKo = () => (
                 <li>웹브라우저 상단의 도구 &gt; 인터넷 옵션 &gt; 개인정보 메뉴의 옵션 설정을 통해 쿠키 저장을 거부할 수 있습니다.</li>
                 <li>쿠키 저장을 거부할 경우 맞춤형 서비스 이용에 어려움이 발생할 수 있습니다.</li>
             </ul>
+            <p>4. 웹 로그 분석 도구(Google Analytics)의 이용:</p>
+            <ul>
+                <li>회사는 방문자 수, 유입 경로(검색·SNS 등), 페이지 이용 현황을 파악하여 서비스를 개선하기 위해 Google LLC가 제공하는 Google Analytics를 이용합니다.</li>
+                <li>수집 항목: 쿠키 식별자, 방문 일시, 방문한 페이지 주소, 유입 경로(참조 사이트·캠페인 정보), 기기·브라우저·운영체제 정보, 대략적인 접속 지역, 견적 요청 접수 여부(요청 내용은 제외)</li>
+                <li>예약 조회·결제·계약서·일정표 등 고객 개인 문서 화면과 마이페이지 등 회원 전용 화면에서는 수집하지 않으며, 페이지 주소에 포함된 고객 조회용 식별값은 전송하지 않습니다. 이름·연락처·이메일 등 이용자를 직접 식별할 수 있는 정보도 전송하지 않습니다.</li>
+                <li>수집 거부: 웹브라우저에서 쿠키 저장을 거부하거나, Google이 제공하는 Google Analytics 차단 브라우저 부가기능(<a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer">tools.google.com/dlpage/gaoptout</a>)을 설치하여 거부할 수 있습니다. 거부하더라도 서비스 이용에는 제한이 없습니다.</li>
+            </ul>
+        </LegalArticle>
+
+        <LegalArticle no="09-2" title="제9조의2 (개인정보의 국외 이전)">
+            <p>회사는 웹사이트 이용 통계 분석을 위하여 다음과 같이 개인정보를 국외로 이전하고 있습니다.</p>
+            <ul className="mw-legal__plain">
+                <li>- 이전받는 자: Google LLC (개인정보 문의: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">policies.google.com/privacy</a>)</li>
+                <li>- 이전되는 국가: 미국 등 Google 데이터센터 소재 국가</li>
+                <li>- 이전 일시 및 방법: 웹사이트 방문 시 이용자의 웹브라우저에서 정보통신망을 통해 전송</li>
+                <li>- 이전 항목: 제9조 제4항의 수집 항목</li>
+                <li>- 이전 목적: 방문 통계 및 유입 경로 분석</li>
+                <li>- 보유·이용 기간: 이벤트 데이터 2개월, 사용자 단위 데이터 14개월(재방문 시 기간 갱신). 개인을 식별할 수 없는 합산 통계는 이후에도 보관될 수 있습니다.</li>
+                <li>- 거부 방법 및 효과: 제9조 제4항의 방법으로 거부할 수 있으며, 거부하더라도 서비스 이용에는 제한이 없습니다.</li>
+            </ul>
         </LegalArticle>
 
         <LegalArticle no="10" title="제10조 (개인정보 보호책임자)">
@@ -158,7 +178,7 @@ const PrivacyKo = () => (
 
         <LegalArticle no="11" title="제11조 (개인정보 처리방침의 변경)">
             <p>
-                이 개인정보 처리방침은 2026년 1월 23일부터 적용되며, 법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.
+                이 개인정보 처리방침은 2026년 10월 21일부터 적용되며, 법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.
             </p>
         </LegalArticle>
 
@@ -189,7 +209,8 @@ const PrivacyKo = () => (
 
         <div className="mw-legal__box">
             <p className="mw-legal__label">부칙</p>
-            <p>본 방침은 2026년 1월 23일부터 시행됩니다.</p>
+            <p>본 방침은 2026년 10월 21일부터 시행됩니다.</p>
+            <p>종전 방침(2026년 1월 23일 시행)에 Google Analytics 이용(제9조 제4항)과 개인정보의 국외 이전(제9조의2)을 추가했습니다.</p>
         </div>
     </>
 );
@@ -207,7 +228,7 @@ export const PrivacyPolicy = () => {
     const doc = (
         <LegalDoc
             compact={!isDesktop}
-            effective="시행일: 2026년 1월 23일"
+            effective="시행일: 2026년 10월 21일"
         >
             <PrivacyKo />
         </LegalDoc>
