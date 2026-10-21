@@ -8,7 +8,10 @@ export const assignmentRecord = (value: unknown): Record<string, any> => {
 };
 const own = (value: object, key: string) => Object.prototype.hasOwnProperty.call(value, key);
 const string = (value: unknown): string => typeof value === 'string' ? value : '';
-export interface AssignmentVehicle { type: string; phone: string }
+export interface AssignmentVehicleResource {
+    id?: string; img?: string; images?: string[]; description?: string; seats?: string; luggage?: string;
+}
+export interface AssignmentVehicle { type: string; phone: string; resource?: AssignmentVehicleResource }
 
 export function readProductVehicle(operations: unknown, contractData: unknown): AssignmentVehicle {
     const ops = assignmentRecord(operations), rawVehicle = assignmentRecord(contractData).vehicle, vehicle = assignmentRecord(rawVehicle);
@@ -50,10 +53,15 @@ export function publicAssignmentContract(value: unknown) {
 }
 
 export type AssignmentSource = 'product' | 'quote_booking';
-export interface AssignmentGuide { id?: string; name?: string; phone?: string; image?: string; [key: string]: unknown }
+export interface AssignmentGuide {
+    id?: string; name?: string; phone?: string; image?: string; introduction?: string; nameEn?: string; role?: string;
+    languages?: string[]; specialties?: string[]; [key: string]: unknown;
+}
 export interface AssignmentAccommodation {
     day: number; date?: string;
-    accommodation: { id?: string; name?: string; type?: string; location?: string; images?: string[]; description?: string; facilities?: string[]; roomCount?: number; occupancy?: string; bookingStatus?: string; [key: string]: unknown };
+    accommodation: { id?: string; name?: string; type?: string; location?: string; region?: string; address?: string;
+        images?: string[]; description?: string; facilities?: string[]; roomAmenities?: string[]; sharedFacilities?: string[];
+        roomCount?: number; occupancy?: string; bookingStatus?: string; [key: string]: unknown };
 }
 export interface BookingAssignment { guide: AssignmentGuide; vehicle: AssignmentVehicle; accommodations: AssignmentAccommodation[] }
 export const assignmentKey = (source: AssignmentSource, id: string) => `${source}:${id}`;

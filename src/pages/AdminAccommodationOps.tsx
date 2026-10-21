@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useBlocker } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { productCustomerHref, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
-import type { AssignmentSource } from '../utils/reservationAssignment';
+import type { AssignmentAccommodation, AssignmentGuide, AssignmentSource, AssignmentVehicle } from '../utils/reservationAssignment';
+import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
+import { selectResourceGuide, selectResourceLodge, selectResourceVehicle } from '../utils/accommodationResourceSelection';
 import { assignmentFingerprint, editorAssignment, writeAssignmentDraft, readAssignmentDraft, discardAssignmentDraft, type AssignmentDraft, type AssignmentDraftResult } from '../utils/adminAssignmentDraft';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
-import { api } from '../lib/api';
 
 /**
  * Байр захиалгын удирдлага (дотоод) — байрны хариуцсан ажилтанд зориулсан, монгол хэлээр.
@@ -22,22 +23,7 @@ const OCCUPANCY_OPTIONS = ['', '1 хүн/өрөө', '2 хүн/өрөө', '3 хү
 const GRADE_OPTIONS = ['', '고급 게르', '일반 게르', '5성급 호텔', '4성급호텔', '목조하우스'];
 const WD = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
 
-interface DailyAcc {
-    day: number;
-    date?: string; // 직접 편집 가능한 날짜(yyyy-mm-dd). 없으면 startDate 기준 자동
-    accommodation: {
-        id?: string;
-        name?: string;
-        type?: string;
-        location?: string;
-        images?: string[];
-        description?: string;
-        facilities?: string[];
-        roomCount?: number;
-        occupancy?: string;
-        bookingStatus?: string;
-    };
-}
+type DailyAcc = AssignmentAccommodation;
 interface Traveler { name?: string; passportName?: string; birthdate?: string; gender?: string; phone?: string }
 interface Flight { date?: string; time?: string; flight?: string }
 interface Reservation {
@@ -56,13 +42,13 @@ interface Reservation {
     reservationNumber?: string | null;
     createdAt?: string;
     dailyAccommodations?: DailyAcc[];
-    assignedGuide?: { id?: string; name?: string; phone?: string; image?: string; kakaoId?: string; languages?: string[]; specialties?: string[] };
+    assignedGuide?: AssignmentGuide;
     contractData?: {
         region?: string; category?: string;
         travelers?: Traveler[];
         arrival?: Flight; departure?: Flight;
         agreement?: { agreed?: boolean; name?: string; agreedAt?: string };
-        vehicle?: { type?: string; phone?: string };
+        vehicle?: AssignmentVehicle;
     };
 }
 
@@ -187,11 +173,29 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     const [region, setRegion] = useState('all');
     const [confirmFilter, setConfirmFilter] = useState<'all' | 'pending' | 'done'>('all');
     const [scope, setScope] = useState<'confirmed' | 'all'>('confirmed');
-    const [hotels, setHotels] = useState<Array<{ id: string; name_kr?: string; name_local?: string; region?: string; address?: string; description?: string; images?: string[]; amenities?: string[] }>>([]);
-    // 호텔 마스터에 없는 숙소를 직접 입력 중인 칸 (key = `${reservationId}:${dayIndex}`)
+    const [resources, setResources] = useState<RegisteredAssignmentResources>({ guides: [], lodges: [], vehicles: [], warnings: [] });
+    const [resourcesLoading, setResourcesLoading] = useState(false);
+    const resourceGeneration = useRef(0), resourceController = useRef<AbortController | null>(null);
+    // 공통 목록에 없는 숙소를 직접 입력 중인 칸 (key = `${reservationId}:${dayIndex}`)
     const [manualHotels, setManualHotels] = useState<Set<string>>(new Set());
+    const [listHotels, setListHotels] = useState<Set<string>>(new Set());
 
     const draftScope = useCallback((r: Reservation) => ({ userId, source: r.source, id: r.bookingId }), [userId]);
+    const loadResources = useCallback(async () => {
+        resourceController.current?.abort();
+        const controller = new AbortController(), requestGeneration = ++resourceGeneration.current;
+        resourceController.current = controller;
+        const isCurrent = () => mounted.current && !controller.signal.aborted && requestGeneration === resourceGeneration.current;
+        setResourcesLoading(true);
+        try {
+            const saved = await loadRegisteredAssignmentResources({ accountId: userId, signal: controller.signal, isCurrent });
+            if (isCurrent()) setResources(saved);
+        } catch {
+            if (isCurrent()) setResources(prev => ({ ...prev, warnings: ['공통 가이드·숙소·차량 자료를 불러오지 못했습니다. 기존 배정과 직접 입력은 유지됩니다.'] }));
+        } finally {
+            if (isCurrent()) setResourcesLoading(false);
+        }
+    }, [userId]);
     const flushDrafts = useCallback((notify = true): AssignmentDraftResult => {
         for (const row of rowsRef.current) {
             if (!dirtyRef.current.has(row.id) || pendingRef.current[row.id]) continue;
@@ -207,6 +211,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         if (savingRef.current) { setNotice('저장이 끝난 뒤 새로고침해 주세요.'); return; }
         const stored = flushDrafts(); if (!stored.ok) return;
         if (dirtyRef.current.size && !window.confirm('변경 내용을 브라우저 초안으로 보관했습니다. 최신 예약을 다시 불러올까요?')) return;
+        void loadResources();
         const requestGeneration = ++generation.current;
         setLoading(true);
         try {
@@ -236,19 +241,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         }
     };
     useEffect(() => { load(); }, []);
-    // 호텔 마스터 목록 — байрны нэр 셀렉트에 사용
-    useEffect(() => {
-        (api as any).hotels.list({ active: true })
-            .then((d: any) => { if (mounted.current) setHotels(Array.isArray(d) ? d : []); })
-            .catch(() => { if (mounted.current) setLoadWarnings(prev => [...prev, '호텔 마스터를 불러오지 못했습니다. 기존 배정은 유지됩니다.']); });
-    }, []);
-    const hotelNames = useMemo(() => Array.from(new Set(hotels.map(h => h.name_kr || h.name_local || '').filter(Boolean))), [hotels]);
-    // 표시명 → 호텔 마스터 레코드 (선택 시 이미지·지역·설명 등 전체 정보를 숙소에 채우기 위함)
-    const hotelByName = useMemo(() => {
-        const map = new Map<string, typeof hotels[number]>();
-        hotels.forEach(h => { const n = h.name_kr || h.name_local || ''; if (n) map.set(n, h); });
-        return map;
-    }, [hotels]);
+    const lodgeById = useMemo(() => new Map(resources.lodges.map(lodge => [lodge.id, lodge])), [resources.lodges]);
 
     const base = useMemo(() => reservations.filter(r => scope === 'all' ? true
         : (CONFIRMED_STATUSES.includes(r.status || '') || r.depositStatus === 'paid' || r.type === 'quote')), [reservations, scope]);
@@ -363,7 +356,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         window.addEventListener('beforeunload', h);
         window.addEventListener('pagehide', hide);
         document.addEventListener('click', navigating, true);
-        return () => { flushDrafts(false); mounted.current = false; generation.current++; window.removeEventListener('beforeunload', h); window.removeEventListener('pagehide', hide); document.removeEventListener('click', navigating, true); };
+        return () => { flushDrafts(false); mounted.current = false; generation.current++; resourceGeneration.current++; resourceController.current?.abort(); window.removeEventListener('beforeunload', h); window.removeEventListener('pagehide', hide); document.removeEventListener('click', navigating, true); };
     }, [flushDrafts]);
     const resolveDraft = (row: Reservation, restore: boolean) => {
         const pending = pendingRef.current[row.id]; if (!pending || savingRef.current) return;
@@ -441,14 +434,30 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     // 담당 가이드(assignedGuide)·차량(contractData.vehicle) 편집 — 기존 컬럼에 저장(마이그레이션 불필요)
     const patchGuide = (rId: string, patch: { name?: string; phone?: string }) => {
         if (savingRef.current || pendingRef.current[rId]) return;
-        setReservations(prev => prev.map(r => r.id === rId ? { ...r, assignedGuide: { ...(r.assignedGuide || {}), ...(patch.name !== undefined && patch.name !== r.assignedGuide?.name ? { id: '' } : {}), ...patch } } : r));
+        setReservations(prev => prev.map(r => r.id === rId ? { ...r, assignedGuide: patch.name !== undefined && patch.name !== r.assignedGuide?.name
+            ? { id: '', name: patch.name, phone: r.assignedGuide?.phone || '', ...patch }
+            : { ...(r.assignedGuide || {}), ...patch } } : r));
         markDirty(rId);
     };
-    const patchVehicle = (rId: string, patch: { type?: string; phone?: string }) => {
+    const patchVehicle = (rId: string, patch: Partial<AssignmentVehicle>) => {
         if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => r.id === rId
-            ? { ...r, contractData: { ...(r.contractData || {}), vehicle: { ...(r.contractData?.vehicle || {}), ...patch } } }
+            ? { ...r, contractData: { ...(r.contractData || {}), vehicle: { type: '', phone: '', ...(r.contractData?.vehicle || {}), ...(patch.type !== undefined && patch.type !== r.contractData?.vehicle?.type ? { resource: undefined } : {}), ...patch } } }
             : r));
+        markDirty(rId);
+    };
+    const chooseGuide = (rId: string, resourceId: string) => {
+        if (resourcesLoading || savingRef.current || pendingRef.current[rId]) return;
+        const resource = resources.guides.find(guide => guide.id === resourceId);
+        if (!resource) return;
+        setReservations(prev => prev.map(r => r.id === rId ? { ...r, assignedGuide: selectResourceGuide(r.assignedGuide, resource) } : r));
+        markDirty(rId);
+    };
+    const chooseVehicle = (rId: string, resourceName: string) => {
+        if (resourcesLoading || savingRef.current || pendingRef.current[rId]) return;
+        const resource = resources.vehicles.find(vehicle => vehicle.type === resourceName);
+        if (!resource) return;
+        setReservations(prev => prev.map(r => r.id === rId ? { ...r, contractData: { ...(r.contractData || {}), vehicle: selectResourceVehicle(r.contractData?.vehicle, resource) } } : r));
         markDirty(rId);
     };
     const save = async (r: Reservation) => {
@@ -482,6 +491,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         >
             {notice && <div className="card card-pad" role="status" style={{ marginBottom: 12 }}>{notice}</div>}
             {loadWarnings.map((warning, i) => <div key={i} role="alert" className="card card-pad" style={{ marginBottom: 12, color: '#8A5A12' }}>{warning}</div>)}
+            {resources.warnings.map((warning, i) => <div key={`resource-${i}`} role="alert" className="card card-pad" style={{ marginBottom: 12, color: '#8A5A12' }}>{warning}</div>)}
             {Object.keys(pendingDrafts).length > 0 && <div className="card card-pad" role="status" style={{ marginBottom: 12 }}>복구 가능한 배정 초안 {Object.keys(pendingDrafts).length}건이 있습니다. 펼친 예약에서 복원 또는 버리기를 선택하세요.</div>}
             <div className="route-anim">
                 <div className="toolbar" style={{ flexWrap: 'wrap', gap: 8 }}>
@@ -719,20 +729,23 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                                             </div>
                                                                                         </div>
                                                                                     </td>
-                                                                                    <td><input className="inp" style={{ width: 116 }} value={acc.location || ''} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value })} /></td>
+                                                                                    <td><input className="inp" style={{ width: 116 }} value={acc.location || ''} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value, region: e.target.value })} /></td>
                                                                                     <td>{(() => {
-                                                                                        // 호텔 마스터에서 셀렉트로 선택. 목록에 없는 숙소만 "Гараар бичих"로 직접 입력.
+                                                                                        // 공통 숙소에서 선택하며 과거 배정과 직접 입력은 그대로 유지한다.
                                                                                         const mKey = `${r.id}:${idx}`;
                                                                                         const nm = acc.name || '';
-                                                                                        const inMaster = !!nm && hotelNames.includes(nm);
-                                                                                        const manual = manualHotels.has(mKey) || (!!nm && !inMaster);
+                                                                                        const inMaster = !!acc.id && lodgeById.get(acc.id)?.name === nm;
+                                                                                        const manual = manualHotels.has(mKey) || (!listHotels.has(mKey) && !!nm && !inMaster);
                                                                                         if (manual) {
                                                                                             return (
                                                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 200 }}>
-                                                                                                    <input className="inp" style={{ flex: 1, minWidth: 0 }} value={nm} placeholder="Буудлын нэр бичих"
-                                                                                                        onChange={e => { if (!manualHotels.has(mKey)) setManualHotels(prev => new Set(prev).add(mKey)); patchDay(r.id, idx, { name: e.target.value }); }} />
-                                                                                                    <button type="button" title="Жагсаалтаас сонгох"
-                                                                                                        onClick={() => { setManualHotels(prev => { const n = new Set(prev); n.delete(mKey); return n; }); patchDay(r.id, idx, { name: '' }); }}
+                                                                                                    <input className="inp" style={{ flex: 1, minWidth: 0 }} value={nm} placeholder="숙소명 직접 입력" aria-label="숙소명 직접 입력"
+                                                                                                        onChange={e => {
+                                                                                                            if (!manualHotels.has(mKey)) setManualHotels(prev => new Set(prev).add(mKey));
+                                                                                                            if (e.target.value !== nm) patchDay(r.id, idx, { name: e.target.value, id: undefined, images: [], description: '', facilities: [], region: acc.location || '', address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: 'Илгээгээгүй' });
+                                                                                                        }} />
+                                                                                                    <button type="button" title="등록 숙소 목록에서 선택"
+                                                                                                        onClick={() => { setManualHotels(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListHotels(prev => new Set(prev).add(mKey)); }}
                                                                                                         style={{ flex: 'none', width: 30, height: 30, display: 'grid', placeItems: 'center', border: '1px solid #E6E8EC', borderRadius: 8, background: '#fff', color: '#8A8F99', cursor: 'pointer' }}>
                                                                                                         <Icon name="checklist" />
                                                                                                     </button>
@@ -740,37 +753,30 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                                             );
                                                                                         }
                                                                                         return (
-                                                                                            <select className="select" style={{ width: '100%', minWidth: 200 }} value={inMaster ? nm : ''}
+                                                                                            <select className="select" style={{ width: '100%', minWidth: 200 }} aria-label="등록 숙소 선택" disabled={resourcesLoading} value={inMaster ? acc.id : nm ? '__current__' : ''}
                                                                                                 onChange={e => {
                                                                                                     const v = e.target.value;
-                                                                                                    if (v === '__manual__') { setManualHotels(prev => new Set(prev).add(mKey)); patchDay(r.id, idx, { name: '', id: undefined, images: [] }); return; }
-                                                                                                    // 호텔 마스터에서 선택 → 이미지·지역·설명·시설까지 전체를 숙소에 채운다.
-                                                                                                    // (이름만 넣으면 예약 상세·확정 일정표에 이미지가 안 나옴)
-                                                                                                    const h = hotelByName.get(v);
-                                                                                                    const patch: Partial<DailyAcc['accommodation']> = { name: v };
-                                                                                                    if (h) {
-                                                                                                        patch.id = h.id;
-                                                                                                        patch.images = Array.isArray(h.images) ? h.images : [];
-                                                                                                        patch.description = h.description || '';
-                                                                                                        if (!acc.location && h.region) patch.location = h.region;
-                                                                                                        if (Array.isArray(h.amenities) && h.amenities.length) patch.facilities = h.amenities;
-                                                                                                    }
-                                                                                                    patchDay(r.id, idx, patch);
+                                                                                                    if (v === '__manual__') { setManualHotels(prev => new Set(prev).add(mKey)); setListHotels(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
+                                                                                                    const lodge = lodgeById.get(v);
+                                                                                                    if (lodge) patchDay(r.id, idx, selectResourceLodge(d, lodge).accommodation);
                                                                                                 }}>
-                                                                                                <option value="">Буудал сонгох…</option>
-                                                                                                {hotelNames.map(n => <option key={n} value={n}>{n}</option>)}
-                                                                                                <option value="__manual__">✏️ Гараар бичих (жагсаалтад байхгүй)</option>
+                                                                                                <option value="">{resourcesLoading ? '등록 숙소 불러오는 중…' : '등록 숙소 선택…'}</option>
+                                                                                                {!inMaster && nm && <option value="__current__">현재 배정: {nm}</option>}
+                                                                                                {resources.lodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}
+                                                                                                <option value="__manual__">✏️ 직접 입력 (목록에 없는 숙소)</option>
                                                                                             </select>
                                                                                         );
                                                                                     })()}</td>
                                                                                     <td>
                                                                                         <select className="select" style={{ width: 124 }} value={acc.type || ''} onChange={e => patchDay(r.id, idx, { type: e.target.value || undefined })}>
+                                                                                            {acc.type && !GRADE_OPTIONS.includes(acc.type) && <option value={acc.type}>{acc.type}</option>}
                                                                                             {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g || 'Тодорхойгүй'}</option>)}
                                                                                         </select>
                                                                                     </td>
                                                                                     <td><input className="inp" type="number" min={0} style={{ width: 66 }} value={acc.roomCount ?? ''} placeholder="0" onChange={e => patchDay(r.id, idx, { roomCount: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value) || 0) })} /></td>
                                                                                     <td>
                                                                                         <select className="select" style={{ width: 120 }} value={acc.occupancy || ''} onChange={e => patchDay(r.id, idx, { occupancy: e.target.value || undefined })}>
+                                                                                            {acc.occupancy && !OCCUPANCY_OPTIONS.includes(acc.occupancy) && <option value={acc.occupancy}>{acc.occupancy}</option>}
                                                                                             {OCCUPANCY_OPTIONS.map(o => <option key={o} value={o}>{o || 'Тодорхойгүй'}</option>)}
                                                                                         </select>
                                                                                     </td>
@@ -798,23 +804,31 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
 
                                                             {/* ── Хариуцсан гайд ба тээвэр (가이드·차량) ── */}
                                                             <div style={{ background: '#fff', border: '1px solid var(--color-border-tertiary, #E6E8EC)', borderRadius: 12, padding: 14, marginTop: 14 }}>
-                                                                <b style={{ fontSize: 13 }}>Хариуцсан гайд ба тээвэр</b>
+                                                                <b style={{ fontSize: 13 }}>담당 가이드 · 차량</b>
                                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10, marginTop: 10 }}>
                                                                     <div>
-                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Гайдын нэр</label>
-                                                                        <input className="inp" style={{ width: '100%' }} value={r.assignedGuide?.name || ''} placeholder="Гайдын нэр" onChange={e => patchGuide(r.id, { name: e.target.value })} />
+                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>담당 가이드 · 등록 자료 선택</label>
+                                                                        <select className="select" style={{ width: '100%', display: 'block' }} aria-label="등록 가이드 선택" disabled={resourcesLoading} value={resources.guides.some(guide => guide.id === r.assignedGuide?.id) ? r.assignedGuide?.id || '' : ''} onChange={e => chooseGuide(r.id, e.target.value)}>
+                                                                            <option value="">{resourcesLoading ? '등록 가이드 불러오는 중…' : '등록 가이드 선택 · 직접 입력 가능'}</option>
+                                                                            {resources.guides.map(guide => <option key={guide.id} value={guide.id}>{guide.name}</option>)}
+                                                                        </select>
+                                                                        <input className="inp" style={{ width: '100%' }} aria-label="가이드 이름 직접 입력" value={r.assignedGuide?.name || ''} placeholder="가이드 이름 직접 입력" onChange={e => patchGuide(r.id, { name: e.target.value })} />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Гайдын утас</label>
-                                                                        <input className="inp" style={{ width: '100%' }} value={r.assignedGuide?.phone || ''} placeholder="Гайдын утас" onChange={e => patchGuide(r.id, { phone: e.target.value })} />
+                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>가이드 연락처</label>
+                                                                        <input className="inp" style={{ width: '100%' }} aria-label="가이드 연락처" value={r.assignedGuide?.phone || ''} placeholder="가이드 연락처" onChange={e => patchGuide(r.id, { phone: e.target.value })} />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Машины төрөл</label>
-                                                                        <input className="inp" style={{ width: '100%' }} value={r.contractData?.vehicle?.type || ''} placeholder="Жишээ: Land Cruiser 76" onChange={e => patchVehicle(r.id, { type: e.target.value })} />
+                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>차량 · 등록 자료 선택</label>
+                                                                        <select className="select" style={{ width: '100%', display: 'block' }} aria-label="등록 차량 선택" disabled={resourcesLoading} value={r.contractData?.vehicle?.resource && resources.vehicles.some(vehicle => vehicle.type === r.contractData?.vehicle?.type) ? r.contractData.vehicle.type : ''} onChange={e => chooseVehicle(r.id, e.target.value)}>
+                                                                            <option value="">{resourcesLoading ? '등록 차량 불러오는 중…' : '등록 차량 선택 · 직접 입력 가능'}</option>
+                                                                            {resources.vehicles.map(vehicle => <option key={vehicle.type} value={vehicle.type}>{vehicle.name}</option>)}
+                                                                        </select>
+                                                                        <input className="inp" style={{ width: '100%' }} aria-label="차종 직접 입력" value={r.contractData?.vehicle?.type || ''} placeholder="차종 직접 입력" onChange={e => patchVehicle(r.id, { type: e.target.value })} />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>Жолоочийн утас</label>
-                                                                        <input className="inp" style={{ width: '100%' }} value={r.contractData?.vehicle?.phone || ''} placeholder="Жолоочийн утас" onChange={e => patchVehicle(r.id, { phone: e.target.value })} />
+                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>기사 연락처</label>
+                                                                        <input className="inp" style={{ width: '100%' }} aria-label="기사 연락처" value={r.contractData?.vehicle?.phone || ''} placeholder="기사 연락처" onChange={e => patchVehicle(r.id, { phone: e.target.value })} />
                                                                     </div>
                                                                 </div>
                                                             </div>

@@ -21,7 +21,8 @@ import { onRequestGet as noticeGet, onRequestPost as noticePost } from '../funct
 import { adminProductDraftKey } from '../src/utils/adminProductDraft.ts';
 import { reservationDraftKey, reservationDraftFingerprint, readReservationDraft, writeReservationDraft } from '../src/utils/adminReservationDraft.ts';
 import { magazineDraftKey, magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft } from '../src/utils/adminMagazineDraft.ts';
-import { assignmentDraftKey, readAssignmentDraft, writeAssignmentDraft } from '../src/utils/adminAssignmentDraft.ts';
+import { assignmentDraftKey, editorAssignment, readAssignmentDraft, writeAssignmentDraft } from '../src/utils/adminAssignmentDraft.ts';
+import { selectResourceGuide, selectResourceVehicle, selectResourceLodge } from '../src/utils/accommodationResourceSelection.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
 const portArgument = process.argv.find(argument => argument.startsWith('--port='));
@@ -934,7 +935,7 @@ if (usability) {
             tags: lodge.facilities.join(', '), facilities: lodge.facilities, contact: 'LOCAL-PRIVATE-LODGE-CONTACT' }])),
         lodge_cats: ['중앙몽골', '고비사막'],
         vehicles: { '로컬 하이스': { model: '로컬 하이스', seats: '6인', luggage: '캐리어 4개', img: image,
-            desc: '로컬 차량 사진과 안내' } },
+            desc: '로컬 차량 사진과 안내', phone: 'LOCAL-KV-DRIVER-PHONE' } },
     };
     for (const [key, value] of Object.entries(libraryResources)) {
         assert.equal((await write(`/api/data/${key}`, 'PUT', value, quoteAdmin)).status, 200);
@@ -1033,6 +1034,47 @@ if (usability) {
     assert.equal(usabilityAssignments.items.length, 16);
     assert.equal(usabilityAssignments.items.filter(row => row.id === 'workspace-product').length, 2);
     assert.equal(usabilityAssignments.items.find(row => row.key === 'quote_booking:workspace-quote').assignment.accommodations[0].accommodation.name, lodgeRows[1].name);
+    // The operations board's actual selection + serializer must round-trip both source IDs.
+    const originalResourceProduct = raw.prepare('SELECT * FROM reservations WHERE id=?').get('workspace-product');
+    const originalResourceQuote = raw.prepare('SELECT data FROM requests WHERE id=?').get('workspace-product').data;
+    const selectedGuide = { id: 'resource-guide:로컬 고비 가이드', name: '로컬 고비 가이드', phone: 'LOCAL-KV-GOBI-PHONE',
+        image: libraryResources.guides['로컬 고비 가이드'].img, introduction: libraryResources.guides['로컬 고비 가이드'].desc,
+        nameEn: '', role: '', languages: [], specialties: [] };
+    const selectedVehicle = { name: '로컬 하이스', type: '로컬 하이스', phone: 'LOCAL-KV-DRIVER-PHONE', snapshot: {
+        img: image, images: [image], description: '로컬 차량 사진과 안내', seats: '6인', luggage: '캐리어 4개' } };
+    const selectedLodge = { id: sharedHotel.id, name: sharedHotel.name_kr, type: sharedHotel.type, location: sharedHotel.region,
+        region: sharedHotel.region, address: sharedHotel.address, occupancy: '', images: sharedHotel.images, description: sharedHotel.description,
+        facilities: sharedHotel.amenities, roomAmenities: sharedHotel.roomAmenities, sharedFacilities: sharedHotel.sharedFacilities };
+    for (const source of ['product', 'quote_booking']) {
+        const current = usabilityAssignments.items.find(row => row.source === source && row.id === 'workspace-product');
+        const stay = selectResourceLodge({ day: 1, date: current.startDate, accommodation: {
+            id: 'previous-resource', name: '다른 숙소', roomCount: 0, occupancy: '2인실', bookingStatus: 'Баталгаажсан' } }, selectedLodge);
+        const selected = editorAssignment({ assignedGuide: selectResourceGuide(current.assignment.guide, selectedGuide),
+            contractData: { vehicle: selectResourceVehicle(current.assignment.vehicle, selectedVehicle) }, dailyAccommodations: [stay] });
+        const route = `/api/admin/assignments/${source}/workspace-product`;
+        const result = await write(route, 'PATCH', { expectedVersion: current.version, assignment: selected });
+        assert.equal(result.status, 200, await result.clone().text());
+        const saved = (await result.json()).item;
+        assert.deepEqual(saved.assignment.guide, selected.guide);
+        assert.deepEqual(saved.assignment.vehicle, selected.vehicle);
+        assert.equal(saved.assignment.accommodations[0].accommodation.id, selectedLodge.id);
+        assert.equal(saved.assignment.accommodations[0].accommodation.roomCount, 0);
+        assert.equal(saved.assignment.accommodations[0].accommodation.bookingStatus, 'Илгээгээгүй');
+        assert.deepEqual(saved.assignment.accommodations[0].accommodation.images, selectedLodge.images);
+        assert.equal((await write(route, 'PATCH', { expectedVersion: current.version, assignment: selected })).status, 409);
+        const reloaded = (await (await apiRequest('/api/admin/assignments', { headers: admin })).json()).items.find(row => row.key === current.key);
+        assert.deepEqual(reloaded.assignment, saved.assignment);
+    }
+    const resourceProduct = raw.prepare('SELECT * FROM reservations WHERE id=?').get('workspace-product');
+    assert.equal(resourceProduct.document_content, originalResourceProduct.document_content);
+    assert.equal(resourceProduct.status, originalResourceProduct.status);
+    assert.deepEqual({ ...JSON.parse(resourceProduct.contract_data), vehicle: undefined }, { ...JSON.parse(originalResourceProduct.contract_data), vehicle: undefined });
+    const resourceQuote = JSON.parse(raw.prepare('SELECT data FROM requests WHERE id=?').get('workspace-product').data);
+    assert.deepEqual(immutableQuote(resourceQuote), immutableQuote(JSON.parse(originalResourceQuote)));
+    raw.prepare('UPDATE reservations SET assigned_guide=?,daily_accommodations=?,admin_operations=?,contract_data=? WHERE id=?').run(
+        originalResourceProduct.assigned_guide, originalResourceProduct.daily_accommodations, originalResourceProduct.admin_operations, originalResourceProduct.contract_data, 'workspace-product');
+    raw.prepare('UPDATE requests SET data=? WHERE id=?').run(originalResourceQuote, 'workspace-product');
+    console.log('공통 기준 자료 배정 검증 통과: 가이드·차량 전화/프로필·숙소 사진 선택 → 두 출처 저장/재조회 · 객실 0·수동 인실 보존 · 숙소 교체 수배 상태 초기화 · CAS/원본 문서 보존');
     assert.ok(usabilityWorkspace.searchItems.some(row => row.title === '합성 예약 고객 01'));
     assert.ok(usabilityWorkspace.searchItems.some(row => row.title === inquiry.name));
     assert.equal(outbound.length, 0);

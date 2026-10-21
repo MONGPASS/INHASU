@@ -9,6 +9,7 @@ import { buildProductQuote } from '../functions/lib/productItinerary.ts';
 import { readProductVehicle, syncProductVehicle } from '../src/utils/reservationAssignment.ts';
 import { onRequestGet as getPublicQuote } from '../functions/api/my/[token].js';
 import { assignmentDraftKey, editorAssignment, writeAssignmentDraft, readAssignmentDraft, discardAssignmentDraft } from '../src/utils/adminAssignmentDraft.ts';
+import { selectResourceGuide, selectResourceVehicle, selectResourceLodge } from '../src/utils/accommodationResourceSelection.ts';
 
 const bundle = async path => { const r = await build({ entryPoints: [path], bundle: true, platform: 'node', format: 'esm', write: false }); return (await import(`data:text/javascript;base64,${Buffer.from(r.outputFiles[0].contents).toString('base64')}`)).default; };
 const [assignments, reservations, documents] = await Promise.all([bundle('functions/api/admin-assignments.ts'),bundle('functions/api/reservations.ts'),bundle('functions/api/documents.ts')]);
@@ -199,4 +200,83 @@ test('배정 초안은 계정·종류·예약별로 복원하고 충돌·저장 
     const second=writeAssignmentDraft(storage,scope,'base-1',assignment);discardAssignmentDraft(storage,scope,first.revision);assert.equal(readAssignmentDraft(storage,scope,'base-1').draft.revision,second.revision);
     assert.equal(writeAssignmentDraft({...storage,setItem(){throw Error('quota');}},scope,'base',assignment).ok,false);assert.ok(map.has(assignmentDraftKey(scope)));
     discardAssignmentDraft(storage,scope,second.revision);assert.deepEqual(readAssignmentDraft(storage,scope,'base-1'),{});
+});
+
+for (const source of ['product', 'quote_booking']) {
+    test(`${source} 공통 선택 snapshot은 실제 저장·재조회 후 유지되고 같은 담당의 전화 수정과 수동 전환을 구분한다`, async t => {
+        const f = await fixture(t), otherSource = source === 'product' ? 'quote_booking' : 'product';
+        const other = (await f.list()).find(item => item.source === otherSource);
+        const beforeProduct = f.raw.prepare('SELECT * FROM reservations WHERE id=?').get('same-id');
+        const beforeQuote = JSON.parse(f.raw.prepare('SELECT data FROM requests WHERE id=?').get('same-id').data);
+        let item = (await f.list()).find(item => item.source === source);
+        const guide = { id: 'resource-guide:선택 가이드', name: '선택 가이드', phone: 'GUIDE-PHONE', image: '/selected-guide.webp',
+            introduction: '선택 당시 소개', nameEn: 'Selected Guide', role: '현지 가이드', languages: ['한국어'], specialties: ['중앙몽골'] };
+        const vehicle = { name: '선택 차량', type: '선택 차량', phone: 'PRIVATE-SELECTED-DRIVER', snapshot: { img: '/selected-car.webp',
+            images: ['/selected-car.webp', '/inside.webp'], description: '선택 당시 차량 소개', seats: '6인', luggage: '4개', privateNote: 'PRIVATE-EXCLUDED' } };
+        const lodge = { id: 'resource-lodge:선택 숙소', name: '선택 숙소', type: '고급 게르', location: '테를지', region: '테를지', address: '선택 당시 주소',
+            images: [], description: '', facilities: ['온수'], roomAmenities: ['수건'], sharedFacilities: ['식당'], occupancy: '2 хүн/өрөө', operatingNotes: 'PRIVATE-EXCLUDED' };
+        const day = { ...item.assignment.accommodations[0], date: '2026-10-20', accommodation: { ...item.assignment.accommodations[0].accommodation,
+            roomCount: 2, occupancy: '4 хүн/өрөө', bookingStatus: 'Баталгаажсан' } };
+        item.assignment = { guide: selectResourceGuide(item.assignment.guide, guide), vehicle: selectResourceVehicle(item.assignment.vehicle, vehicle),
+            accommodations: [selectResourceLodge(day, lodge)] };
+        const payload = editorAssignment({ assignedGuide: item.assignment.guide, contractData: { vehicle: item.assignment.vehicle }, dailyAccommodations: item.assignment.accommodations });
+        let response = await f.request(`/assignments/${source}/same-id`, { method: 'PATCH', body: { expectedVersion: item.version, assignment: payload } });
+        assert.equal(response.status, 200); item = (await response.json()).item;
+        assert.deepEqual(item.assignment.guide, payload.guide); assert.deepEqual(item.assignment.vehicle, payload.vehicle);
+        const stay = item.assignment.accommodations[0];
+        assert.equal(stay.date, '2026-10-20'); assert.equal(stay.accommodation.id, lodge.id); assert.equal(stay.accommodation.address, '선택 당시 주소');
+        assert.equal(stay.accommodation.region, '테를지'); assert.deepEqual(stay.accommodation.images, []); assert.equal(stay.accommodation.description, '');
+        assert.equal(stay.accommodation.roomCount, 2); assert.equal(stay.accommodation.occupancy, '4 хүн/өрөө');
+        assert.equal(stay.accommodation.bookingStatus, 'Илгээгээгүй'); assert.deepEqual(stay.accommodation.roomAmenities, ['수건']);
+        assert.ok(!JSON.stringify(item).includes('PRIVATE-EXCLUDED'));
+        item.assignment.guide = { id: guide.id, name: guide.name, phone: 'MANUALLY-EDITED-GUIDE' };
+        item.assignment.vehicle = { type: vehicle.type, phone: 'PRIVATE-MANUALLY-EDITED-DRIVER' };
+        response = await f.request(`/assignments/${source}/same-id`, { method: 'PATCH', body: { expectedVersion: item.version, assignment: item.assignment } });
+        assert.equal(response.status, 200); item = (await response.json()).item;
+        assert.equal(item.assignment.guide.phone, 'MANUALLY-EDITED-GUIDE'); assert.equal(item.assignment.guide.image, '/selected-guide.webp');
+        assert.equal(item.assignment.guide.introduction, '선택 당시 소개'); assert.deepEqual(item.assignment.guide.languages, ['한국어']);
+        assert.equal(item.assignment.vehicle.phone, 'PRIVATE-MANUALLY-EDITED-DRIVER'); assert.equal(item.assignment.vehicle.resource.img, '/selected-car.webp');
+        if (source === 'product') {
+            const row = f.raw.prepare('SELECT * FROM reservations WHERE id=?').get('same-id');
+            const withoutVehicle = value => { const { vehicle, ...rest } = JSON.parse(value); return rest; };
+            assert.deepEqual(withoutVehicle(row.contract_data), withoutVehicle(beforeProduct.contract_data));
+            assert.equal(row.status, beforeProduct.status); assert.equal(row.history, beforeProduct.history);
+            assert.ok(!JSON.stringify(buildProductQuote({ reservation: row, days: [], assignmentsVisible: true, brand: {} })).includes('PRIVATE-MANUALLY-EDITED-DRIVER'));
+        } else {
+            const rec = JSON.parse(f.raw.prepare('SELECT data FROM requests WHERE id=?').get('same-id').data);
+            const withoutAssignment = value => ({ ...value, booking: { ...value.booking, assign: undefined } });
+            assert.deepEqual(withoutAssignment(rec), withoutAssignment(beforeQuote));
+            const publicResponse = await getPublicQuote({ request: new Request('https://fixture.invalid/api/my/PRIVATE-TOKEN-FIXTURE', { headers: { cookie: 'auth_session=session-admin' } }), env: { DB: f.DB }, params: { token: 'PRIVATE-TOKEN-FIXTURE' } });
+            const customer = await publicResponse.json();
+            assert.ok(!JSON.stringify(customer).includes('PRIVATE-MANUALLY-EDITED-DRIVER'));
+            assert.equal(customer.booking.assign.lodges[0].roomAmenities, '수건'); assert.equal(customer.booking.assign.lodges[0].sharedFacilities, '식당');
+        }
+        item.assignment.guide = { id: '', name: '직접 입력 담당', phone: '' }; item.assignment.vehicle = { type: '직접 입력 차량', phone: '' };
+        response = await f.request(`/assignments/${source}/same-id`, { method: 'PATCH', body: { expectedVersion: item.version, assignment: item.assignment } });
+        assert.equal(response.status, 200); item = (await response.json()).item;
+        assert.equal(item.assignment.guide.image, ''); assert.equal(item.assignment.guide.introduction, '');
+        assert.equal(item.assignment.vehicle.resource?.id || '', ''); assert.equal(item.assignment.vehicle.resource?.img || '', '');
+        assert.deepEqual((await f.list()).find(item => item.source === otherSource), other, '같은 ID의 다른 원본은 변경하지 않는다');
+    });
+}
+
+test('선택 snapshot의 임의 필드·대용량·실행 URL·인증정보 URL·고객 첨부 URL은 저장하지 않는다', async t => {
+    const f = await fixture(t), item = (await f.list()).find(item => item.source === 'product');
+    const before = f.raw.prepare('SELECT assigned_guide,contract_data,daily_accommodations FROM reservations WHERE id=?').get('same-id');
+    const snapshots = [
+        { guide: { ...item.assignment.guide, memo: 'PRIVATE-INJECTION' } },
+        { guide: { ...item.assignment.guide, introduction: 'x'.repeat(10001) } },
+        { guide: { ...item.assignment.guide, languages: Array(51).fill('한국어') } },
+        { vehicle: { type: '차량', phone: '', resource: { plate: 'PRIVATE-INJECTION' } } },
+        { vehicle: { type: '차량', phone: '', resource: { images: Array(51).fill('/car.webp') } } },
+        ...['javascript:alert(1)', 'data:image/png;base64,YQ==', 'blob:temporary', 'https://user:secret@example.invalid/a.webp',
+            '/api/file/uploads/private.webp?token=PRIVATE', '/uploads/private.webp', '/api/img/uploads/private.webp', '/%61pi/file/private.webp']
+            .flatMap(url => [{ guide: { ...item.assignment.guide, image: url } }, { vehicle: { type: '차량', phone: '', resource: { img: url } } },
+                { accommodations: [{ day: 1, accommodation: { images: [url] } }] }]),
+    ];
+    for (const patch of snapshots) {
+        const response = await f.request('/assignments/product/same-id', { method: 'PATCH', body: { expectedVersion: item.version, assignment: { ...item.assignment, ...patch } } });
+        assert.equal(response.status, 400);
+    }
+    assert.deepEqual(f.raw.prepare('SELECT assigned_guide,contract_data,daily_accommodations FROM reservations WHERE id=?').get('same-id'), before);
 });
