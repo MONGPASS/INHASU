@@ -43,7 +43,7 @@ import { CustomerVehicleAssignment } from '../components/admin/CustomerVehicleAs
 import { customerProductReference } from '../utils/customerProductReference';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
 import { productWorkspaceReservation, legacyWorkspaceReservation, productCustomerOverview, sameAccountProductBookings } from '../utils/productCustomerWorkspace';
-import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref, customerWorkspaceReturnTo } from '../utils/customerWorkspaceRoutes';
+import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref, customerWorkspaceReturnTo, customerWorkspaceBackLabel } from '../utils/customerWorkspaceRoutes';
 import { consumedCalendarWorkspaceSearch, readCalendarWorkspaceAction } from '../utils/calendarWorkspaceAction';
 import '../styles/product-customer-workspace.css';
 import '../styles/customer-workspace-editor.css';
@@ -1758,6 +1758,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         itineraryReady, itinerarySent, contractSent, itineraryChanged, contractChanged, deliveryHistory: recordedDelivery?.items,
     });
     overview.bookedProduct = bookedProduct;
+    overview.backLabel = customerWorkspaceBackLabel(customerWorkspaceReturnTo(new URLSearchParams(workspaceLocation.search).get('returnTo')));
     const kakaoDirty = inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty;
     const notificationActions = <CustomerKakaoActions key={reservation.id} source="product" bookingId={reservation.id}
         revision={JSON.stringify([deliveryRevision, reservation, recordedDelivery?.items.map(item => [item.id, item.kind, item.channel, item.state, item.at, item.error])])} disabled={workspaceIsBusy() || kakaoDirty}
