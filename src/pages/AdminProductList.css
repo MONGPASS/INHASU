@@ -1,0 +1,93 @@
+/* 상품 목록 — Admin Dashboard v3 "04-1 상품 관리 - 상품 목록". 관리자 토큰을 민트로 바꿔 이 목록에만 적용합니다. */
+.pd-list {
+  --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c;
+  display: flex; flex-direction: column; gap: 16px; min-width: 0;
+}
+.pd-list button { font: inherit; cursor: pointer; }
+.pd-list :is(button, input):focus-visible { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }
+
+/* 요약 카드 = 상태·추천 필터 */
+.pd-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+.pd-kpi { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 16px 18px; border: 1px solid var(--border-default); border-radius: 18px; background: #fff; text-align: left; transition: border-color .14s ease; }
+.pd-kpi:hover { border-color: var(--mrt-gray-300); }
+.pd-kpi.is-active, .pd-kpi.is-active:hover { padding: 15.5px 17.5px; border: 1.5px solid var(--mrt-ink); }
+.pd-kpi > span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pd-kpi-icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
+.pd-kpi-icon[data-tone="green"] { background: var(--mrt-green-soft); color: var(--mrt-green); }
+.pd-kpi-icon[data-tone="gray"] { background: var(--mrt-gray-100); color: var(--text-strong); }
+.pd-kpi-icon[data-tone="red"] { background: var(--mrt-red-soft); color: var(--mrt-red); }
+.pd-kpi-icon[data-tone="purple"] { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
+.pd-kpi-label { color: var(--text-secondary); font-size: 13px; font-weight: 600; }
+.pd-kpi strong { color: var(--text-strong); font-size: 24px; font-weight: 800; letter-spacing: -.03em; line-height: 1.2; font-variant-numeric: tabular-nums; }
+
+/* 목록 카드 */
+.pd-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.pd-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px 20px; }
+.pd-search { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 200px; max-width: 320px; height: 40px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 999px; color: var(--text-tertiary); }
+.pd-search:focus-within { border-color: var(--mrt-ink); }
+.pd-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text-strong); font: inherit; font-size: 14px; }
+.pd-search input:focus-visible { outline: 0; }
+.pd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pd-chips button { display: inline-flex; align-items: center; gap: 4px; height: 38px; padding: 0 14px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-secondary); font-size: 14px; font-weight: 600; }
+.pd-chips button:hover { border-color: var(--mrt-gray-300); }
+.pd-chips button span { color: var(--text-tertiary); font-weight: 600; }
+.pd-chips button.is-active { border-color: var(--mrt-ink); background: var(--mrt-ink); color: #fff; font-weight: 800; }
+.pd-chips button.is-active span { color: rgba(255,255,255,.7); }
+.pd-count { margin-left: auto; color: var(--text-tertiary); font-size: 13px; white-space: nowrap; }
+.pd-count b { color: var(--text-strong); font-weight: 800; }
+
+.pd-table-wrap { min-width: 0; overflow-x: auto; }
+.pd-table { width: 100%; min-width: 960px; border-collapse: collapse; font-size: 14px; }
+.pd-table th { padding: 10px 14px; border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 12px; font-weight: 500; text-align: left; white-space: nowrap; }
+.pd-table td { padding: 12px 14px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+.pd-table :is(th, td):first-child { padding-left: 20px; }
+.pd-table :is(th, td):last-child { padding-right: 20px; }
+.pd-table .r { text-align: right; }
+.pd-table tbody tr { cursor: move; }
+.pd-table tbody tr:hover { background: var(--mrt-gray-50); }
+.pd-table tbody tr.is-dragging { opacity: .5; }
+.pd-product { display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 360px; }
+.pd-grip { display: grid; place-items: center; flex: none; margin-right: -4px; color: var(--mrt-gray-300); }
+.pd-thumb { display: grid; place-items: center; flex: none; width: 40px; height: 40px; overflow: hidden; border-radius: 12px; background: var(--mrt-gray-100); color: var(--text-secondary); font-size: 15px; font-weight: 800; }
+.pd-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.pd-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pd-name b { overflow: hidden; color: var(--text-strong); font-weight: 800; letter-spacing: -.02em; white-space: nowrap; text-overflow: ellipsis; }
+.pd-name small { display: flex; align-items: center; gap: 6px; overflow: hidden; color: var(--text-tertiary); font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+.pd-name em { flex: none; color: var(--mrt-red); font-style: normal; font-weight: 800; }
+.pd-muted { color: var(--text-secondary); font-weight: 600; white-space: nowrap; }
+.pd-dur { color: var(--text-secondary); font-weight: 700; white-space: nowrap; }
+.pd-price { display: block; color: var(--text-strong); font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pd-original { display: block; color: var(--text-tertiary); font-size: 11px; }
+.pd-status { height: 26px; padding: 0 10px; border: 0; border-radius: 999px; background: var(--mrt-green-soft); color: var(--mrt-green); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.pd-status[data-status="inactive"] { background: var(--mrt-gray-100); color: var(--text-secondary); }
+.pd-status[data-status="soldout"] { background: var(--mrt-red-soft); color: var(--mrt-red); }
+.pd-status:hover { filter: brightness(.96); }
+.pd-flags { display: inline-flex; gap: 4px; }
+.pd-flag { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--mrt-gray-300); }
+.pd-flag:hover { background: var(--mrt-gray-100); color: var(--text-secondary); }
+.pd-flag[data-flag="featured"].is-on { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
+.pd-flag[data-flag="popular"].is-on { background: var(--mrt-red-soft); color: var(--mrt-red); }
+.pd-flag.is-on svg { fill: currentColor; }
+.pd-stats { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+.pd-stats > span:first-child { color: var(--text-tertiary); font-size: 12px; white-space: nowrap; }
+.pd-stats b { color: var(--text-strong); font-weight: 800; }
+.pd-bar { display: block; height: 4px; overflow: hidden; border-radius: 2px; background: var(--mrt-gray-100); }
+.pd-bar > span { display: block; height: 100%; border-radius: 2px; background: var(--mrt-blue); }
+.pd-actions { display: inline-flex; justify-content: flex-end; gap: 2px; }
+.pd-actions button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); }
+.pd-actions button:hover { background: var(--mrt-gray-100); color: var(--text-strong); }
+.pd-actions button.is-danger:hover { background: var(--mrt-red-soft); color: var(--mrt-red); }
+.pd-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px 20px; color: var(--mrt-gray-400); }
+.pd-empty p { margin: 0; color: var(--text-tertiary); font-size: 14px; }
+.pd-empty button { padding: 0; border: 0; background: transparent; color: var(--text-link); font-size: 13px; font-weight: 700; }
+
+@media (max-width: 760px) {
+  .pd-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .pd-kpi { padding: 12px; border-radius: 14px; }
+  .pd-kpi.is-active { padding: 11.5px; }
+  .pd-kpi strong { font-size: 20px; }
+  .pd-toolbar { padding: 12px; }
+  .pd-search { max-width: none; }
+  .pd-count { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .pd-kpi { transition: none; } }

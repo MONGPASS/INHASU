@@ -3,6 +3,8 @@ import { useSearchParams, useBlocker } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { adminProductFromApi, adminProductNavigationDecision, updateAdminProductEditorForm, readAdminProductDraft, writeAdminProductDraft, removeAdminProductDraft, finishAdminProductSave, runAdminProductSaveOnce, productDraftFingerprint, type AdminProductDraft, type AdminProductDraftScope, type AdminProductNavigationDecision, type DraftResult } from '../utils/adminProductDraft';
 import { AdminLayout } from '../components/admin/AdminLayout';
+import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
+import './AdminProductList.css';
 import { Icon } from '../components/admin/console/Icon';
 import { DesignTemplateBlockEditor } from '../components/admin/DesignTemplateBlockEditor';
 import { designTemplates } from '../components/product/designTemplates/registry';
@@ -367,18 +369,31 @@ export const AdminProductManage: React.FC = () => {
         );
     };
 
-    const STAT_CARDS = [
-        { key: 'total', label: '전체 상품', value: stats.total, ico: 'inventory_2', tint: 'tint-blue' },
-        { key: 'active', label: '판매중', value: stats.active, ico: 'check_circle', tint: 'tint-green' },
-        { key: 'inactive', label: '비활성', value: stats.inactive, ico: 'cancel', tint: 'tint-ink' },
-        { key: 'soldout', label: '품절', value: stats.soldout, ico: 'remove_shopping_cart', tint: 'tint-red' },
-        { key: 'featured', label: '추천 상품', value: stats.featured, ico: 'star', tint: 'tint-amber' },
+    // Summary cards double as the status / featured filter (design "04-1 상품 목록").
+    const STAT_CARDS: Array<{ key: string; label: string; value: number; icon: DashboardIconName; tone: string }> = [
+        { key: 'total', label: '전체 상품', value: stats.total, icon: 'lc-archive', tone: 'mint' },
+        { key: 'active', label: '판매중', value: stats.active, icon: 'lc-circle-check', tone: 'green' },
+        { key: 'inactive', label: '비활성', value: stats.inactive, icon: 'lc-circle-x', tone: 'gray' },
+        { key: 'soldout', label: '품절', value: stats.soldout, icon: 'lc-shopping-cart', tone: 'red' },
+        { key: 'featured', label: '추천 상품', value: stats.featured, icon: 'lc-star', tone: 'purple' },
     ];
+    const activeCard = featuredFilter === 'featured' ? 'featured' : statusFilter !== 'all' ? statusFilter : featuredFilter === 'all' ? 'total' : '';
+    const pickCard = (key: string) => {
+        setStatusFilter(['active', 'inactive', 'soldout'].includes(key) ? key : 'all');
+        setFeaturedFilter(key === 'featured' ? 'featured' : 'all');
+        setCurrentPage(1);
+    };
+    const categoryChips = [{ value: 'all', label: '전체', count: products.length },
+        ...categories.map(cat => ({ value: cat.name, label: cat.name, count: products.filter(p => p.category === cat.name).length }))];
+    const maxBookings = Math.max(1, ...products.map(p => Number(p.bookingCount) || 0));
+    const statusLabels: Record<string, string> = { active: '판매중', inactive: '비활성', soldout: '품절' };
+    const clearFilters = () => { setSearchQuery(''); setCategoryFilter('all'); setStatusFilter('all'); setFeaturedFilter('all'); setCurrentPage(1); };
 
     return (
         <AdminLayout
             activePage="products"
-            title={isModalOpen ? (selectedProduct ? '상품 수정' : '상품 추가') : '상품 관리'}
+            title={isModalOpen ? (selectedProduct ? '상품 수정' : '상품 추가') : '상품 목록'}
+            description={isModalOpen ? undefined : '판매 상태와 추천 노출을 한 화면에서 관리해요.'}
             actions={!isModalOpen && (
                 <button
                     className="btn btn-ink"
@@ -393,172 +408,112 @@ export const AdminProductManage: React.FC = () => {
         >
             {productOpenNotice && <div className="card-pad" role="status" style={{ background: '#fff5e8', borderRadius: 12, marginBottom: 16 }}>{productOpenNotice}</div>}
             <div className="route-anim" style={{ display: isModalOpen ? 'none' : undefined }}>
-                {/* Statistics Cards */}
-                <div className="prod-stats">
-                    {STAT_CARDS.map((s) => (
-                        <div className="metric" key={s.key} style={{ padding: '16px 18px' }}>
-                            <div className="row" style={{ gap: 12 }}>
-                                <span className={`metric-ico ${s.tint}`} style={{ width: 40, height: 40 }}>
-                                    <Icon name={s.ico} fill />
-                                </span>
-                                <div>
-                                    <div className="metric-label">{s.label}</div>
-                                    <div className="metric-value" style={{ fontSize: 22 }}>{s.value}</div>
-                                </div>
-                            </div>
-                        </div>
+                <div className="pd-list">
+                <div className="pd-kpis">
+                    {STAT_CARDS.map(card => (
+                        <button key={card.key} type="button" className={`pd-kpi${activeCard === card.key ? ' is-active' : ''}`} aria-pressed={activeCard === card.key} onClick={() => pickCard(card.key)}>
+                            <span className="pd-kpi-icon" data-tone={card.tone}><DashboardIcon name={card.icon} size={18} /></span>
+                            <span><span className="pd-kpi-label">{card.label}</span><strong>{card.value}</strong></span>
+                        </button>
                     ))}
                 </div>
 
-                {/* Filters / Toolbar */}
-                <div className="toolbar" style={{ marginTop: 18 }}>
-                    <label className="tb-search">
-                        <Icon name="search" />
-                        <input
-                            type="text"
-                            placeholder="상품명 검색"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </label>
-                    <select
-                        className="select"
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                    >
-                        <option value="all">전체 카테고리</option>
-                        {categories.map((cat) => (
-                            <option key={cat.id} value={cat.name}>{cat.name}</option>
-                        ))}
-                    </select>
-                    <select
-                        className="select"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                    >
-                        <option value="all">전체 상태</option>
-                        <option value="active">판매중</option>
-                        <option value="inactive">비활성</option>
-                        <option value="soldout">품절</option>
-                    </select>
-                    <select
-                        className="select"
-                        value={featuredFilter}
-                        onChange={(e) => setFeaturedFilter(e.target.value)}
-                    >
-                        <option value="all">추천 전체</option>
-                        <option value="featured">추천 상품</option>
-                        <option value="normal">일반 상품</option>
-                    </select>
-                </div>
-
-                {/* Products Table */}
-                <div className="card">
-                    <div className="tbl-wrap">
-                        <table className="tbl">
+                <section className="pd-card" aria-label="상품 목록">
+                    <div className="pd-toolbar">
+                        <label className="pd-search">
+                            <DashboardIcon name="lc-search" size={16} />
+                            <input type="text" aria-label="상품명 검색" placeholder="상품명 검색" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
+                        </label>
+                        <div className="pd-chips" role="group" aria-label="카테고리">
+                            {categoryChips.map(chip => (
+                                <button key={chip.value} type="button" className={categoryFilter === chip.value ? 'is-active' : ''} aria-pressed={categoryFilter === chip.value} onClick={() => { setCategoryFilter(chip.value); setCurrentPage(1); }}>
+                                    {chip.label}<span>{chip.count}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <span className="pd-count"><b>{filteredProducts.length}</b>개 상품</span>
+                    </div>
+                    <div className="pd-table-wrap">
+                        <table className="pd-table">
                             <thead>
                                 <tr>
                                     <th>상품</th>
                                     <th>카테고리</th>
                                     <th>기간</th>
-                                    <th className="r">가격</th>
+                                    <th className="r">가격 (1인~)</th>
                                     <th>상태</th>
-                                    <th className="c">추천</th>
-                                    <th className="c">인기</th>
-                                    <th className="c">조회/예약</th>
-                                    <th className="r">액션</th>
+                                    <th>추천 · 인기</th>
+                                    <th>조회 / 예약</th>
+                                    <th className="r">관리</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {paginatedProducts.map((product, index) => (
-                                    <tr
+                                {paginatedProducts.map((product, index) => {
+                                    const price = typeof product.price === 'number' ? product.price : Number(product.price) || 0;
+                                    const original = typeof product.originalPrice === 'number' ? product.originalPrice : Number(product.originalPrice) || 0;
+                                    const bookings = Number(product.bookingCount) || 0;
+                                    return <tr
                                         key={product.id}
                                         draggable
                                         onDragStart={(e) => handleProductDragStart(e, index)}
                                         onDragOver={(e) => handleProductDragOver(e, index)}
                                         onDrop={handleProductDragEnd}
                                         onDragEnd={handleProductDragEnd}
-                                        style={draggedProductIndex === index ? { opacity: 0.5, cursor: 'move' } : { cursor: 'move' }}
+                                        className={draggedProductIndex === index ? 'is-dragging' : undefined}
                                     >
-                                        <td style={{ maxWidth: 340 }}>
-                                            <div className="av-cell">
-                                                <Icon name="drag_indicator" className="drag-handle" style={{ fontSize: 18 }} />
-                                                <span className="thumb sq" style={{ overflow: 'hidden' }}>
-                                                    <img
-                                                        src={getOptimizedImageUrl(product.mainImages[0], 'productThumbnail')}
-                                                        alt={product.name}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                    />
+                                        <td>
+                                            <div className="pd-product">
+                                                <span className="pd-grip" title="끌어서 순서 변경"><DashboardIcon name="lc-grip-vertical" size={16} /></span>
+                                                <span className="pd-thumb">
+                                                    {product.mainImages?.[0]
+                                                        ? <img src={getOptimizedImageUrl(product.mainImages[0], 'productThumbnail')} alt={product.name} />
+                                                        : product.name.replace('은하수 ', '').slice(0, 1)}
                                                 </span>
-                                                <div style={{ minWidth: 0 }}>
-                                                    <div className="cell-strong" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</div>
-                                                    <div className="cell-muted" style={{ fontSize: 11.5 }}>{product.id}</div>
-                                                </div>
+                                                <span className="pd-name">
+                                                    <b>{product.name}</b>
+                                                    <small>{product.isPopular ? <em>인기</em> : null}{product.id}</small>
+                                                </span>
                                             </div>
                                         </td>
-                                        <td className="cell-muted">{product.category}</td>
-                                        <td className="cell-muted">{product.duration}</td>
+                                        <td className="pd-muted">{product.category}</td>
+                                        <td className="pd-dur">{product.duration}</td>
                                         <td className="r">
-                                            <div className="cell-price">{typeof product.price === 'number' ? product.price.toLocaleString('ko-KR') : (product.price || 0)}원</div>
-                                            {product.originalPrice ? (
-                                                <div className="cell-muted" style={{ fontSize: 11.5, textDecoration: 'line-through' }}>{typeof product.originalPrice === 'number' ? product.originalPrice.toLocaleString('ko-KR') : (product.originalPrice || 0)}원</div>
-                                            ) : null}
+                                            <span className="pd-price">{price ? `${price.toLocaleString('ko-KR')}원` : '미정'}</span>
+                                            {original ? <s className="pd-original">{original.toLocaleString('ko-KR')}원</s> : null}
                                         </td>
                                         <td>
-                                            <button
-                                                onClick={() => toggleStatus(product.id)}
-                                                style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}
-                                            >
-                                                {getStatusBadge(product.status)}
+                                            <button type="button" className="pd-status" data-status={product.status} title="눌러서 판매중 / 비활성 전환" onClick={() => toggleStatus(product.id)}>
+                                                {statusLabels[product.status] || product.status}
                                             </button>
                                         </td>
-                                        <td className="c">
-                                            <button onClick={() => toggleFeatured(product.id)} className="star-btn" title="추천">
-                                                <Icon
-                                                    name={product.isFeatured ? 'star' : 'star_border'}
-                                                    fill={product.isFeatured}
-                                                    style={{ color: product.isFeatured ? 'var(--mrt-star)' : 'var(--mrt-gray-300)' }}
-                                                />
-                                            </button>
+                                        <td>
+                                            <span className="pd-flags">
+                                                <button type="button" className={`pd-flag${product.isFeatured ? ' is-on' : ''}`} data-flag="featured" aria-pressed={!!product.isFeatured} aria-label={`${product.name} 추천`} title="추천" onClick={() => toggleFeatured(product.id)}><DashboardIcon name="lc-star" size={16} /></button>
+                                                <button type="button" className={`pd-flag${product.isPopular ? ' is-on' : ''}`} data-flag="popular" aria-pressed={!!product.isPopular} aria-label={`${product.name} 인기`} title="인기" onClick={() => togglePopular(product.id)}><DashboardIcon name="lc-heart" size={16} /></button>
+                                            </span>
                                         </td>
-                                        <td className="c">
-                                            <button onClick={() => togglePopular(product.id)} className="star-btn" title="인기">
-                                                <Icon
-                                                    name={product.isPopular ? 'favorite' : 'favorite_border'}
-                                                    fill={product.isPopular}
-                                                    style={{ color: product.isPopular ? '#FF4F8B' : 'var(--mrt-gray-300)' }}
-                                                />
-                                            </button>
-                                        </td>
-                                        <td className="c">
-                                            <div className="cell-mono" style={{ fontSize: 12.5 }}>{typeof product.viewCount === 'number' ? product.viewCount.toLocaleString() : (product.viewCount || 0)}</div>
-                                            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--mrt-blue-strong)' }}>예약 {product.bookingCount || 0}</div>
+                                        <td>
+                                            <span className="pd-stats">
+                                                <span><b>{(Number(product.viewCount) || 0).toLocaleString('ko-KR')}</b> · 예약 <b>{bookings}</b></span>
+                                                <span className="pd-bar"><span style={{ width: `${bookings / maxBookings * 100}%` }} /></span>
+                                            </span>
                                         </td>
                                         <td className="r">
-                                            <div className="row-actions">
-                                                <button onClick={() => duplicateProduct(product)} className="act-btn" title="복제">
-                                                    <Icon name="content_copy" />
-                                                </button>
-                                                <button
-                                                    onClick={() => { void editProduct(product); }}
-                                                    className="act-btn"
-                                                    title="수정"
-                                                >
-                                                    <Icon name="edit" />
-                                                </button>
-                                                <button onClick={() => deleteProduct(product.id)} className="act-btn danger" title="삭제">
-                                                    <Icon name="delete" />
-                                                </button>
-                                            </div>
+                                            <span className="pd-actions">
+                                                <button type="button" aria-label={`${product.name} 수정`} title="수정" onClick={() => { void editProduct(product); }}><DashboardIcon name="lc-pencil" size={16} /></button>
+                                                <button type="button" aria-label={`${product.name} 복제`} title="복제" onClick={() => duplicateProduct(product)}><DashboardIcon name="lc-copy" size={16} /></button>
+                                                <button type="button" className="is-danger" aria-label={`${product.name} 삭제`} title="삭제" onClick={() => deleteProduct(product.id)}><DashboardIcon name="lc-trash" size={16} /></button>
+                                            </span>
                                         </td>
-                                    </tr>
-                                ))}
+                                    </tr>;
+                                })}
                             </tbody>
                         </table>
                         {paginatedProducts.length === 0 && (
-                            <div className="empty">
-                                <Icon name="inventory_2" />
-                                <p>조건에 맞는 상품이 없습니다.</p>
+                            <div className="pd-empty">
+                                <DashboardIcon name="lc-archive" size={28} />
+                                <p>조건에 맞는 상품이 없어요.</p>
+                                <button type="button" onClick={clearFilters}>필터 지우기</button>
                             </div>
                         )}
                     </div>
@@ -596,6 +551,7 @@ export const AdminProductManage: React.FC = () => {
                             </div>
                         </div>
                     )}
+                </section>
                 </div>
             </div>
 
