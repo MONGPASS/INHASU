@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
 import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
-import { customerWorkspaceReturnTo, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
+import { customerWorkspaceBackLabel, customerWorkspaceReturnTo, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 import { consumedCalendarWorkspaceSearch, readCalendarWorkspaceAction } from '../utils/calendarWorkspaceAction';
 import { loadQuoteCustomerRequest, quoteCustomerIsBooking, quoteCustomerWorkspaceModel } from '../utils/quoteCustomerWorkspace';
 import workspaceStyles from '../styles/reservation-workspace.css?inline';
@@ -414,7 +414,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const receiveCustomerDelivery = (data: AdminDeliveryData) => {
         if (activeCustomer.current.accountId === accountId && activeCustomer.current.id === bookingId && data.source === 'quote_booking' && data.bookingId === bookingId) setCustomerDelivery({ accountId, data });
     };
-    const customerModel = customerRecord ? { ...quoteCustomerWorkspaceModel(customerRecord, { deliveryHistory: recordedDelivery?.items }),
+    const customerModel = customerRecord ? { ...quoteCustomerWorkspaceModel(customerRecord, { deliveryHistory: recordedDelivery?.items }), backLabel: customerWorkspaceBackLabel(returnTo),
         documentLabel: quoteCustomerIsBooking(customerRecord) ? '고객 문서 확인·전달' : '견적서 확인·전달',
         disabledActions: quoteCustomerIsBooking(customerRecord) ? [] : ['payments', 'assignments', 'operations'],
         disabledActionReason: '예약 진행 후 결제·배정·운영을 관리할 수 있습니다.',

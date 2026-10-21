@@ -38,7 +38,7 @@ function elements(tree, predicate) {
 const childrenText = node => Array.isArray(node) ? node.map(childrenText).join('') : typeof node === 'string' || typeof node === 'number' ? String(node) : React.isValidElement(node) ? childrenText(node.props.children) : '';
 test('고객 현황은 0원과 미확인 금액을 구분하고 실제 입금 확인만 진행률에 반영한다',()=>{
     const render = payment => renderToStaticMarkup(React.createElement(CustomerWorkspaceOverview,{model:{...model,payment},onAction(){}}));
-    const zero=render(model.payment);assert.ok(zero.includes('>0원<'));assert.ok(zero.includes('aria-valuenow="0"'));
+    const zero=render(model.payment);assert.ok(zero.includes('>₩0<'));assert.ok(zero.includes('aria-valuenow="0"'));
     const unknown=render({...model.payment,total:null});assert.ok(unknown.includes('>확인 필요<'));assert.ok(!unknown.includes('aria-valuenow='));assert.ok(unknown.includes('aria-valuetext="확인 필요"'));
     const missingReceipt=render({...model.payment,total:3000000,depositPaid:true,deposit:null});assert.ok(!missingReceipt.includes('aria-valuenow='));
     const paid=render({total:3000000,deposit:900000,balance:2100000,depositPaid:true,balancePaid:false});assert.ok(paid.includes('aria-valuenow="30"'));assert.ok(paid.includes('>미입금<'));
