@@ -41,18 +41,18 @@ export function HeartButton({
     );
 }
 
-/** PREMIUM (풀 패키지) / STANDARD (가성비 중시) pill shown bottom-left on tour photos. */
+/** 풀패키지 / 실속형 pill shown bottom-left on tour photos. */
 export function TypeBadge({ type, style }: { type: 'full' | 'value' | null | undefined; style?: CSSProperties }) {
     if (type !== 'full' && type !== 'value') return null;
     const full = type === 'full';
     return (
         <span
             style={{
-                fontFamily: MW_FONT_EN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', padding: '3px 7px', borderRadius: 999,
+                fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 700, letterSpacing: '-0.01em', padding: '3px 7px', borderRadius: 999,
                 background: full ? MW.mintDeep : 'rgba(255,255,255,0.92)', color: full ? '#FFFFFF' : MW.mintDeep, ...style,
             }}
         >
-            {full ? 'PREMIUM' : 'STANDARD'}
+            {full ? '풀패키지' : '실속형'}
         </span>
     );
 }

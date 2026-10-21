@@ -106,7 +106,7 @@ export function TourListMobile() {
                             <span style={{ fontFamily: MW_FONT_EN, fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em' }}>
                                 몽골리아<span style={{ color: full ? '#FFFFFF' : MW.mint }}> 은하수</span>
                             </span>
-                            <span style={{ fontFamily: MW_FONT_EN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '3px 8px', borderRadius: 999, background: full ? 'rgba(255,255,255,0.22)' : MW.mintTint, color: full ? '#FFFFFF' : MW.mintDeep }}>{t.en}</span>
+                            <span style={{ fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 700, letterSpacing: '-0.01em', padding: '3px 8px', borderRadius: 999, background: full ? 'rgba(255,255,255,0.22)' : MW.mintTint, color: full ? '#FFFFFF' : MW.mintDeep }}>{t.en}</span>
                             <span style={{ fontSize: 14, fontWeight: 900, marginTop: 4 }}>{t.label}</span>
                             <span style={{ fontSize: 'clamp(8px,2.4vw,9.5px)', lineHeight: 1.5, fontWeight: 700, letterSpacing: '-0.04em', whiteSpace: 'nowrap', color: full ? MW.mintTint : MW.ink3 }}>{t.desc}</span>
                             {on && (

@@ -73,7 +73,7 @@ export const ProductDetail: React.FC = () => {
                         vehicleOptions: Array.isArray(data.vehicleOptions ?? data.vehicle_options) ? (data.vehicleOptions ?? data.vehicle_options) : (typeof (data.vehicleOptions ?? data.vehicle_options) === 'string' ? JSON.parse(data.vehicleOptions ?? data.vehicle_options) : []),
                         isFeatured: data.isFeatured ?? data.is_featured ?? false,
                         isPopular: data.isPopular ?? data.is_popular ?? false,
-                        // PREMIUM / STANDARD badge and the tour's own FAQ (both already returned by /api/products/:id).
+                        // 풀패키지 / 실속형 badge and the tour's own FAQ (both already returned by /api/products/:id).
                         packageType: data.packageType === 'full' || data.packageType === 'value' ? data.packageType : null,
                         faqs: Array.isArray(data.faqs) ? data.faqs : [],
                         description: data.description,

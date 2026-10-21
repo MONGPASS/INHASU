@@ -73,7 +73,7 @@ export function TourTitleBlock({
     product, typeBadge, summary, compact = false, bookedFrom, onReviews, actions,
 }: {
     product: TourProduct;
-    /** PREMIUM / STANDARD pill (platform primitive). */
+    /** 풀패키지 / 실속형 pill (platform primitive). */
     typeBadge: ReactNode;
     summary: ReviewSummary;
     compact?: boolean;
