@@ -198,6 +198,8 @@
   html.admin-embedded body { background:var(--g50); }
   html.admin-embedded .content { max-width:none; padding:24px 28px 60px; }
   html.admin-embedded .welcome { display:none; }
+  /* 통합 관리자에서는 개요 도구 줄(폼 미리보기·링크·백업·복원·CSV·견적서 만들기)을 숨깁니다. 단독 화면에는 그대로 둡니다. */
+  html.admin-embedded #overviewSection > .sec-head { display:none; }
   .sec-head h2 { font-size:18px; font-weight:800; letter-spacing:-.03em; color:var(--ink2); }
   .btn { height:36px; padding:0 14px; border:1.5px solid var(--bd); border-radius:999px; color:var(--ink2); font-size:13px; font-weight:700; }
   .btn:hover { background:#fff; border-color:var(--ink2); }
