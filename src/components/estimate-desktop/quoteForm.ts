@@ -1,4 +1,5 @@
 import type { QuoteDoneState } from './quoteLinks';
+import { trackLead } from '../../utils/analytics';
 
 /**
  * 맞춤 견적 요청 폼의 공용 로직 (PC: CustomEstimateDesktop, 모바일: CustomEstimateMobile).
@@ -463,6 +464,7 @@ export async function submitQuote(f: QuoteFormValues): Promise<QuoteSubmitResult
     }
     const data: { ok?: boolean; id?: unknown; token?: unknown } | null = await res.json().catch(() => null);
     if (res.ok && data?.ok && typeof data.token === 'string' && data.token) {
+        trackLead('custom_estimate');
         return { ok: true, id: typeof data.id === 'string' ? data.id : '', token: data.token };
     }
     if (res.status === 401) return { ok: false, kind: 'login', message: '로그인 시간이 지났습니다. 다시 로그인하면 작성한 내용을 이어서 제출할 수 있습니다.' };

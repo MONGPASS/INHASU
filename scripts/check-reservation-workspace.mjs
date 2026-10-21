@@ -56,6 +56,7 @@ import products from '../../functions/api/products';
 import quotes from '../../functions/api/quotes';
 import bookings from '../../functions/api/admin-bookings';
 import workspace from '../../functions/api/admin-workspace';
+import traffic from '../../functions/api/admin-traffic';
 import deliveries from '../../functions/api/admin-deliveries';
 import customerNotices from '../../functions/api/admin-customer-notices';
 import assignments from '../../functions/api/admin-assignments';
@@ -77,7 +78,7 @@ const app = new Hono().basePath('/api');
 app.route('/auth', auth); app.route('/reservations', reservations); app.route('/products', products);
 app.route('/customer-access', customerAccess);
 app.route('/quotes', quotes); app.route('/admin/bookings', bookings); app.route('/documents', documents);
-app.route('/admin/workspace', workspace); app.route('/admin/deliveries', deliveries); app.route('/categories', categories);
+app.route('/admin/workspace', workspace); app.route('/admin/traffic', traffic); app.route('/admin/deliveries', deliveries); app.route('/categories', categories);
 app.route('/admin/customer-notices', customerNotices);
 app.route('/admin/assignments', assignments); app.route('/magazines', magazines); app.route('/banners', banners);
 app.route('/site-upload', upload); app.route('/images', images);
@@ -757,6 +758,11 @@ assert.ok(Object.values(workspaceData.availability).every(Boolean));
 assert.ok(workspaceData.searchItems.some(item => item.category === 'product'));
 assert.equal((await apiRequest('/api/admin/workspace', { headers: owner })).status, 403);
 assert.equal((await apiRequest('/api/admin/workspace')).status, 401);
+// GA4 secrets are absent locally: the traffic API answers "not configured" without any outbound call.
+assert.deepEqual(await (await apiRequest('/api/admin/traffic?period=7d', { headers: admin })).json(), { configured: false, period: '7d' });
+assert.equal((await apiRequest('/api/admin/traffic?period=1y', { headers: admin })).status, 400);
+assert.equal((await apiRequest('/api/admin/traffic', { headers: owner })).status, 403);
+assert.equal((await apiRequest('/api/admin/traffic')).status, 401);
 
 // The new assignment board talks to both original sources, never copying a
 // booking into the other table. Check overlapping IDs and signed source safety.

@@ -13,6 +13,7 @@ import { AdminGuard } from './components/auth/AdminGuard'
 import { AuthGuard } from './components/auth/AuthGuard'
 import { CustomerAccessGuard } from './components/auth/CustomerAccessGuard'
 import { SEO } from './components/seo/SEO'
+import { trackPageView } from './utils/analytics'
 
 import { NotificationProvider } from './contexts/NotificationContext'
 import { FloatingConsultation } from './components/common/FloatingConsultation'
@@ -101,6 +102,8 @@ function App() {
     : isGuidePrintRoute
       ? 'guide-document-wrapper'
       : 'mobile-app-wrapper';
+
+  useEffect(() => { trackPageView(location.pathname, location.search); }, [location.pathname, location.search]);
 
   // Ensure body background matches the layout style for seamless experience
   useEffect(() => {

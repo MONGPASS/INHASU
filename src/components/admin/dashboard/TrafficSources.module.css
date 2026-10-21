@@ -1,0 +1,53 @@
+/* 유입 경로 — Admin Dashboard v3 (Claude Design handoff). */
+.card { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 20px 22px; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.title { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: var(--text-strong); }
+.info { display: flex; cursor: help; }
+.seg { margin-left: auto; display: flex; gap: 4px; padding: 3px; background: var(--mrt-gray-100); border-radius: 10px; }
+.segButton { height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+.segButton[aria-pressed="true"] { background: #fff; color: var(--text-strong); box-shadow: var(--shadow-sm); }
+.segButton:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--border-subtle); }
+.kpi { display: flex; flex-direction: column; gap: 4px; }
+.kpiLabel { font-size: 13px; color: var(--text-secondary); }
+.kpiRow { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.kpiValue { font-family: var(--font-sans); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-strong); font-variant-numeric: tabular-nums; }
+.kpiUnit { font-size: 13px; color: var(--text-secondary); }
+.kpiDelta { font-family: var(--font-sans); font-size: 12px; font-weight: 600; color: #2EC5AD; }
+.kpiDown { color: var(--mrt-red); }
+
+.track { height: 14px; border-radius: 7px; background: var(--mrt-gray-100); overflow: hidden; }
+.segments { display: flex; gap: 3px; height: 100%; }
+.segments > span { cursor: pointer; }
+
+.table { display: flex; flex-direction: column; gap: 2px; }
+.tableHead, .row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr) 64px 44px 56px; gap: 12px; }
+.tableHead { padding: 0 4px 6px; font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+.right { text-align: right; }
+.row { align-items: center; padding: 8px 4px; border-radius: 10px; font-size: 14px; }
+.row:hover { background: var(--mrt-gray-50); }
+.channel { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.dot { width: 30px; height: 30px; flex: none; border-radius: 9px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
+.dot img { display: block; width: 16px; height: 16px; }
+.channelName { font-weight: 500; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shareCell { display: flex; align-items: center; gap: 8px; }
+.bar { flex: 1; height: 8px; border-radius: 4px; background: var(--mrt-gray-100); overflow: hidden; cursor: pointer; }
+.bar > span { display: block; height: 100%; border-radius: 4px; }
+.share { width: 36px; font-family: var(--font-sans); font-size: 12px; color: var(--text-secondary); text-align: right; }
+.visits { text-align: right; font-family: var(--font-sans); font-weight: 600; color: var(--text-strong); font-variant-numeric: tabular-nums; }
+.leads { text-align: right; font-family: var(--font-sans); color: var(--text-body); font-variant-numeric: tabular-nums; }
+.cvr { text-align: right; font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: #30C3A5; }
+.note { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-tertiary); }
+
+.state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 200px; padding: 24px 16px; border-radius: 14px; background: var(--mrt-gray-50); text-align: center; }
+.state strong { font-size: 14px; font-weight: 700; color: var(--text-strong); }
+.state p { margin: 0; max-width: 380px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
+.stateIcon { width: 40px; height: 40px; border-radius: 12px; background: #fff; color: var(--mrt-blue-strong); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
+
+/* Narrow cards keep channel, visits and leads; share bar and rate move out of the way. */
+@container (max-width: 480px) {
+  .tableHead, .row { grid-template-columns: minmax(0, 1fr) 56px 40px 52px; }
+  .tableHead > span:nth-child(2), .shareCell { display: none; }
+}
+.card { container-type: inline-size; }

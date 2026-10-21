@@ -11,5 +11,9 @@ declare global {
         ADMIN_TOKEN?: string;
         /** 'true'일 때만 예약 생성 시 PayPal 인보이스를 보낸다. 기본은 꺼짐(예약금은 계좌이체 + 입금 신고). */
         PAYPAL_ENABLED?: string;
+        /** 관리자 대시보드 유입 경로: GA4 속성 ID(숫자). */
+        GA4_PROPERTY_ID?: string;
+        /** GA4 속성 뷰어 권한을 받은 서비스 계정 JSON 키(비밀로 등록). */
+        GA4_SERVICE_ACCOUNT_JSON?: string;
     }
 }
