@@ -114,7 +114,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                     <span className={styles.revTitle}>확정 매출</span>
                     <span className={styles.info} role="img" aria-label="확정·결제·완료 예약의 팀 전체 금액. 기간은 예약 접수일(한국시간) 기준"
                         title="확정·결제·완료 예약의 팀 전체 금액 · 기간은 예약 접수일(한국시간) 기준">
-                        <DashboardIcon name="lc-info" size={14} color="rgba(255,255,255,.72)" />
+                        <DashboardIcon name="lc-info" size={14} color="#5f8f82" />
                     </span>
                     <div className={styles.revPicker}>
                         <button type="button" className={styles.revButton} aria-haspopup="menu" aria-expanded={periodOpen} onClick={() => setPeriodOpen(open => !open)}>
@@ -167,7 +167,8 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                                     {...tipFor(`${day.label}${day.today ? ' · 오늘' : ''}`, [{ k: '신규 예약', v: `${day.count}건` }])}>
                                     <span className={styles.miniFill} style={{
                                         height: `${Math.max(day.count ? 0 : 6, day.count / dayMax * 100 * t)}%`,
-                                        background: day.today ? 'var(--mrt-blue)' : day.count && day.count === dayMax ? 'var(--mrt-blue-strong)' : 'color-mix(in oklch, var(--mrt-blue) 45%, white)',
+                                        background: day.today ? 'linear-gradient(180deg,#3fe0b4,#12b28c)'
+                                            : day.count && day.count === dayMax ? 'linear-gradient(180deg,#1cc497,#0E9E7A)' : 'linear-gradient(180deg,#bff0e0,#8fe3c9)',
                                     }} />
                                 </span>)}
                             </div>}
@@ -188,8 +189,9 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                                 {...tipFor(`${answer.month}월 견적 답변 처리율`, [{ k: '접수', v: `${answer.received}건` }, { k: '답변 완료', v: `${answer.answered}건` },
                                     { k: '처리율', v: answerPct == null ? '—' : `${answerPct.toFixed(1)}%` }])}>
                                 <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                                    <circle cx="32" cy="32" r="26" fill="none" stroke="var(--mrt-blue-50)" strokeWidth="7" />
-                                    <circle cx="32" cy="32" r="26" fill="none" stroke="var(--mrt-blue)" strokeWidth="7" strokeLinecap="round" pathLength={100}
+                                    <defs><linearGradient id="dashboard-mint-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3fe0b4" /><stop offset="1" stopColor="#0E9E7A" /></linearGradient></defs>
+                                    <circle cx="32" cy="32" r="26" fill="none" stroke="#dcf6ee" strokeWidth="7" />
+                                    <circle cx="32" cy="32" r="26" fill="none" stroke="url(#dashboard-mint-ring)" strokeWidth="7" strokeLinecap="round" pathLength={100}
                                         transform="rotate(-90 32 32)" style={{ strokeDasharray: `${(answerPct ?? 0) * t} 100` }} />
                                 </svg>
                                 <span className={styles.ringPct}>{answerPct == null ? '—' : `${Math.round(answerPct * t)}%`}</span>

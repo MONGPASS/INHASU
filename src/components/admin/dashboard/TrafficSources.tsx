@@ -19,9 +19,10 @@ const BRAND: Record<AdminTrafficChannel, { bg: string; border?: boolean; logo?: 
     '직접 방문': { bg: 'var(--mrt-gray-100)', icon: 'lc-mouse-pointer-click' },
     '기타·추천': { bg: 'var(--mrt-gray-100)', icon: 'lc-link' },
 };
-const TONES = ['var(--mrt-ink)', 'var(--mrt-blue-strong)', 'var(--mrt-blue)', 'color-mix(in oklch, var(--mrt-blue) 70%, white)',
-    'color-mix(in oklch, var(--mrt-blue) 45%, white)', 'color-mix(in oklch, var(--mrt-blue) 28%, white)', 'color-mix(in oklch, var(--mrt-blue) 16%, white)',
-    'var(--mrt-gray-400)', 'var(--border-default)'];
+/** Mint scale from the design (largest channel darkest); the 7th step is added for the ninth channel, 페이스북. */
+const TONES = ['linear-gradient(90deg,#12b28c,#0a7f62)', 'linear-gradient(90deg,#2fd3a7,#0E9E7A)', 'linear-gradient(90deg,#4fe0b9,#1cc497)',
+    'linear-gradient(90deg,#7fe8c9,#3fd6ab)', 'linear-gradient(90deg,#a8f0db,#6fe0bf)', 'linear-gradient(90deg,#c9f5e6,#9ce9d2)',
+    'linear-gradient(90deg,#ddf8ef,#b8eedd)', 'linear-gradient(90deg,#c7d6d1,#a9bdb6)', 'linear-gradient(90deg,#e1ebe8,#cfdcd8)'];
 const numbers = new Intl.NumberFormat('ko-KR');
 
 type Load = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: AdminTrafficData };
