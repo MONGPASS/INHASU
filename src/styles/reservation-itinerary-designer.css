@@ -1,103 +1,167 @@
-/* The customer editor uses the original quote widget with a clearer form layout. */
-.product-customer-page .cw-focus-workspace .ri-editor-workflow { max-width: 1240px; margin: 0 auto; border-radius: 16px; background: #f6f8fa; }
-.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-composer { container: itinerary-composer / inline-size; padding: 28px; background: #f6f8fa; }
-.product-customer-page .cw-focus-workspace .ri-editor-tools { border-radius: 16px 16px 0 0; }
-.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-modes { padding: 14px 24px; border-radius: inherit; }
+/* 고객 작업 화면의 일정표 편집 — Admin Dashboard v3 "Page 15 Itinerary Editor".
+   공유 견적 위젯(quote-day-editor·quote-spot-selector)의 마크업은 그대로 두고 이 화면 안에서만 모양을 바꿉니다. */
+.product-customer-page .cw-focus-workspace .ri-editor-workflow { max-width: 1480px; margin: 0 auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-composer { container: itinerary-composer / inline-size; padding: 16px 0 0; border: 0; background: transparent; }
+
+/* 문서 종류·일차 바로가기 */
+.product-customer-page .cw-focus-workspace .ri-editor-tools { border: 1px solid var(--border-default); border-radius: 16px; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-modes { gap: 4px; padding: 8px 12px; border: 0; border-radius: inherit; background: transparent; }
 .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-modes > span { display: none; }
-.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation { padding: 10px 24px; background: white; }
-.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation > button { min-height: 36px; padding: 7px 14px; font-size: 13px; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-trip-settings { padding: 18px 22px; margin-bottom: 28px; border: 1px solid #e2e7ec; border-radius: 14px; background: white; scroll-margin-top: 176px; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-modes button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font-size: 14px; font-weight: 600; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-modes button.is-selected { background: var(--mrt-ink); color: #fff; font-weight: 800; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation { gap: 6px; padding: 8px 12px; border: 0; background: transparent; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation > span { color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation > button { min-height: 32px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-strong); font-size: 13px; font-weight: 700; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation > button:hover:not(:disabled) { border-color: var(--mrt-ink); }
+
+/* 여행 기본 정보 */
+.product-customer-page .cw-focus-workspace .ri-composer .ri-trip-settings { padding: 16px 22px; margin-bottom: 16px; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; scroll-margin-top: 96px; }
 .product-customer-page .cw-focus-workspace .ri-settings-heading { display: flex; align-items: center; gap: 12px; }
-.product-customer-page .cw-focus-workspace .ri-settings-heading h3 { margin: 0; color: #263342; font-size: 17px; font-weight: 700; letter-spacing: -.4px; }
+.product-customer-page .cw-focus-workspace .ri-settings-mark { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
 .product-customer-page .cw-focus-workspace .ri-settings-title { min-width: 0; flex: 1; }
-.product-customer-page .cw-focus-workspace .ri-settings-title h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
-.product-customer-page .cw-focus-workspace .ri-settings-title p { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 7px 0 0; color: #84909d; font-size: 12px; }
-.product-customer-page .cw-focus-workspace .ri-settings-title p b { margin-left: 5px; color: #648577; font-size: 11px; font-weight: 500; }
-.product-customer-page .cw-focus-workspace .ri-settings-toggle { display: inline-flex; align-items: center; flex: none; gap: 6px; padding: 8px 0 8px 12px; border: 0; color: #71808e; background: none; font: inherit; font-size: 12px; cursor: pointer; }
+.product-customer-page .cw-focus-workspace .ri-settings-title h3 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-strong); font-size: 15px; font-weight: 800; letter-spacing: -.02em; }
+.product-customer-page .cw-focus-workspace .ri-settings-title p { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 4px 0 0; color: var(--text-tertiary); font-size: 12px; }
+.product-customer-page .cw-focus-workspace .ri-settings-title p b { margin-left: 4px; color: var(--mrt-blue-strong); font-size: 12px; font-weight: 700; }
+.product-customer-page .cw-focus-workspace .ri-settings-toggle { display: inline-flex; align-items: center; flex: none; gap: 4px; height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--mrt-gray-100); color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.product-customer-page .cw-focus-workspace .ri-settings-toggle svg { transition: transform .2s; }
 .product-customer-page .cw-focus-workspace .ri-settings-toggle[aria-expanded=true] svg { transform: rotate(180deg); }
-.product-customer-page .cw-focus-workspace .ri-trip-settings:has(.ri-settings-toggle[aria-expanded=true]) .ri-settings-heading { margin-bottom: 20px; }
-.product-customer-page .cw-focus-workspace .ri-settings-mark { display: grid; place-items: center; color: #16836e; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-basics { padding: 0; margin: 0; gap: 20px; border: 0; border-radius: 0; background: transparent; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-field { gap: 9px; color: #596879; font-size: 13px; font-weight: 600; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-field :is(input, textarea) { min-height: 48px; padding: 12px 14px; border-color: #dce3e9; border-radius: 10px; color: #253344; font-size: 15px; font-weight: 500; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-quote-section { padding: 0; background: transparent; }
-.product-customer-page .cw-focus-workspace .ri-schedule-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-quote-head { margin: 0; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-quote-head h3 { display: flex; align-items: center; gap: 10px; color: #1f2d3d; font-size: 22px; font-weight: 750; letter-spacing: -.6px; }
-.product-customer-page .cw-focus-workspace .ri-schedule-count { padding: 4px 9px; border-radius: 7px; background: #e4f3ed; color: #13836c; font-size: 13px; font-weight: 650; letter-spacing: 0; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-fill-dates { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; margin: 0; padding: 9px 13px; border: 1px solid #dbe3e9; border-radius: 9px; color: #516172; background: white; font-size: 13px; font-weight: 600; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-fill-dates:hover { border-color: #a3cec2; color: #13836c; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit { padding: 24px; margin-bottom: 20px; border: 1px solid #dfe6ec; border-radius: 16px; background: white; box-shadow: 0 3px 8px #26334203; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit:focus-within { border-color: #a2d8c9; box-shadow: 0 0 0 3px #e4f3ed; }
-.product-customer-page .cw-focus-workspace .ri-composer .qde-field-label { display: block; color: #6b7888; font-size: 13px; font-weight: 600; line-height: 1.5; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { display: grid; grid-template-columns: 20px 66px 128px minmax(160px,1fr) 160px 68px 36px; grid-template-rows: auto 46px; grid-template-areas: 'drag day date-label dest-label move-label toggle remove' 'drag day date dest move toggle remove'; align-items: end; gap: 8px 12px; margin: 0 0 20px; padding-bottom: 20px; border-bottom: 1px solid #edf1f4; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit.is-collapsed .dh { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
-.product-customer-page .cw-focus-workspace .ri-composer .dh .drag-handle { grid-area: drag; display: grid; place-items: center; align-self: end; height: 46px; padding: 0; color: #b0bbc5; font-size: 19px; }
-.product-customer-page .cw-focus-workspace .ri-composer .dh .badge { grid-area: day; display: grid; place-items: center; align-self: end; height: 46px; min-height: 46px; padding: 10px; border-radius: 10px; background: #e6f5ef; color: #12846d; font-size: 15px; font-weight: 750; }
-.product-customer-page .cw-focus-workspace .ri-composer .dh .qde-label-date { grid-area: date-label; }
-.product-customer-page .cw-focus-workspace .ri-composer .dh .qde-label-dest { grid-area: dest-label; }
-.product-customer-page .cw-focus-workspace .ri-composer .dh .qde-label-move { grid-area: move-label; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate { grid-area: date; width: 100%; font-size: 13px; font-weight: 500; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.dest { grid-area: dest; font-size: 15px; font-weight: 650; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.move { grid-area: move; width: 100%; max-width: none; color: #516172; font-size: 13px; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh > input { height: 46px; min-height: 46px; max-height: 46px; line-height: 22px; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle { grid-area: toggle; align-self: end; display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 46px; min-height: 46px; padding: 0 9px; border: 1px solid #dce7e2; border-radius: 9px; color: #16836e; background: #f3faf6; font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle:hover:not(:disabled) { border-color: #a2d8c9; background: #e9f6f0; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del { grid-area: remove; align-self: end; width: 36px; height: 46px; min-height: 46px; padding: 0; border: 0; color: #a4aeba; background: #f4f6f8; border-radius: 8px; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del:hover { color: #c75a5a; background: #fff0ef; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit :is(input, select) { min-height: 46px; padding: 11px 13px; border: 1px solid #dce3e9; border-radius: 9px; color: #2a3848; background: white; font-size: 14px; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit :is(input, select, textarea):focus { border-color: #27ab8f; box-shadow: 0 0 0 3px #e1f4ed; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-row { display: grid; grid-template-columns: 148px minmax(0,320px); align-items: center; gap: 12px; margin-bottom: 20px; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-sel { width: 100%; min-height: 42px; background: #f8fafb; font-size: 13px; font-weight: 500; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-hint { display: none; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .qde-label-items { margin-bottom: 9px; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit textarea.items { min-height: 132px; margin-bottom: 18px; padding: 14px 16px; border-color: #dce3e9; border-radius: 10px; color: #354353; background: #fff; font-size: 16px; line-height: 1.85; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-areas: 'stay-label meals-label' 'stay meals'; gap: 9px 16px; }
+.product-customer-page .cw-focus-workspace .ri-trip-settings:has(.ri-settings-toggle[aria-expanded=true]) .ri-settings-heading { margin-bottom: 16px; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-basics { padding: 0; margin: 0; gap: 12px; border: 0; border-radius: 0; background: transparent; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-field { gap: 6px; color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-field :is(input, textarea) { min-height: 44px; padding: 10px 14px; border: 1.5px solid var(--border-default); border-radius: 12px; color: var(--text-strong); font-size: 14px; font-weight: 500; }
+.product-customer-page .cw-focus-workspace .ri-composer :is(input, select, textarea):focus { border-color: var(--mrt-ink); box-shadow: none; outline: 0; }
+
+/* 본문(일정·명소)과 오른쪽 요약 */
+.product-customer-page .cw-focus-workspace .ri-itinerary-layout { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
+.product-customer-page .cw-focus-workspace .ri-itinerary-main { display: flex; flex-direction: column; gap: 16px; flex: 999 1 560px; min-width: 0; }
+.product-customer-page .cw-focus-workspace .ri-itinerary-aside { position: sticky; top: 72px; display: flex; flex-direction: column; gap: 16px; flex: 1 1 280px; min-width: 0; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-quote-section { display: flex; flex-direction: column; padding: 22px; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+
+/* 확정 일정표 카드 머리 */
+.product-customer-page .cw-focus-workspace .ri-schedule-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-quote-head { margin: 0 auto 0 0; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-quote-head h3 { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text-strong); font-size: 18px; font-weight: 800; letter-spacing: -.03em; }
+.product-customer-page .cw-focus-workspace .ri-schedule-count { padding: 0; background: none; color: var(--text-tertiary); font-size: 13px; font-weight: 500; letter-spacing: 0; }
+.product-customer-page .cw-focus-workspace .ri-schedule-count b { color: var(--text-strong); font-weight: 800; }
+.product-customer-page .cw-focus-workspace .ri-composer :is(.ri-fill-dates, .ri-add-day) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; margin: 0; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-fill-dates:hover { border-color: var(--mrt-ink); color: var(--text-strong); }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-add-day { border-color: var(--mrt-ink); background: var(--mrt-ink); color: #fff; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-add-day:hover { background: #000; }
+
+/* 일차 카드 — 순서·N일차·날짜·장소·이동·접기·삭제를 한 줄로 */
+.product-customer-page .cw-focus-workspace .ri-composer .qde-field-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.product-customer-page .cw-focus-workspace .ri-composer .row.c2 .qde-field-label { display: block; position: static; width: auto; height: auto; overflow: visible; clip: auto; color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit { padding: 14px 14px 14px 8px; margin-bottom: 12px; border: 1.5px solid var(--mrt-ink); border-radius: 16px; background: #fff; box-shadow: none; transition: border-color .2s; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit.is-collapsed { padding: 13.5px 13.5px 13.5px 7.5px; border: 1px solid var(--border-default); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit.is-collapsed:hover { border-color: var(--mrt-gray-300); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit.drag-over { border-color: var(--mrt-blue); box-shadow: 0 0 0 2px var(--mrt-blue) inset; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { display: grid; grid-template-columns: 22px 64px 108px minmax(0,1fr) 140px auto 36px; grid-template-areas: 'drag day date dest move toggle remove'; align-items: center; gap: 8px; margin: 0; padding: 0; border: 0; }
+.product-customer-page .cw-focus-workspace .ri-composer .dh .drag-handle { grid-area: drag; display: grid; place-items: center; height: 36px; padding: 0; color: var(--text-tertiary); font-size: 16px; }
+.product-customer-page .cw-focus-workspace .ri-composer .dh .badge { grid-area: day; display: grid; place-items: center; height: 30px; padding: 0; border-radius: 999px; background: var(--mrt-ink); color: #fff; font-size: 13px; font-weight: 800; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh > input { height: 44px; min-height: 44px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 12px; background: #fff; color: var(--text-strong); line-height: 1.4; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate { grid-area: date; width: 100%; padding: 0 6px; border-color: transparent; background: transparent; font-size: 14px; font-weight: 800; text-align: center; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate:hover { border-color: var(--border-default); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate:focus { border-color: var(--mrt-ink); background: #fff; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate::placeholder { color: var(--text-tertiary); font-weight: 500; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.dest { grid-area: dest; min-width: 0; font-size: 15px; font-weight: 800; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.move { grid-area: move; width: 100%; max-width: none; color: var(--text-secondary); font-size: 13px; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle { grid-area: toggle; display: inline-flex; align-items: center; gap: 4px; height: 36px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--mrt-gray-100); color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle:hover:not(:disabled) { background: var(--mrt-gray-200); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del { grid-area: remove; width: 36px; height: 36px; min-height: 36px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--text-tertiary); font-size: 14px; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del:hover { background: var(--mrt-red-soft); color: var(--mrt-red); }
+
+/* 펼친 일차 — 일정 불러오기·세부 일정·숙소·식사 */
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .day-body { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; margin-left: 6px; padding: 14px; border-radius: 14px; background: var(--mrt-gray-50); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-sel { width: auto; max-width: 100%; min-width: 220px; height: 40px; min-height: 40px; padding: 0 14px; border: 1.5px solid var(--mrt-ink); border-radius: 999px; background: #fff; color: var(--text-strong); font-size: 13px; font-weight: 800; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-hint { display: inline; color: var(--text-tertiary); font-size: 12px; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit textarea.items { min-height: 104px; margin: 0; padding: 12px 14px; border: 1.5px solid var(--border-default); border-radius: 12px; background: #fff; color: var(--text-strong); font-size: 14px; line-height: 1.7; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-areas: 'stay-label meals-label' 'stay meals'; gap: 6px 8px; }
 .product-customer-page .cw-focus-workspace .ri-composer .qde-label-stay { grid-area: stay-label; }
 .product-customer-page .cw-focus-workspace .ri-composer .qde-label-meals { grid-area: meals-label; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 .stay { grid-area: stay; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 .meals { grid-area: meals; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-assigned-stay { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: 16px; padding: 12px 14px; border: 0; border-radius: 9px; color: #477666; background: #f0f8f4; font-size: 12px; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-assigned-stay b { color: #2f6755; font-size: 13px; font-weight: 600; }
-.product-customer-page .cw-focus-workspace .ri-stay-state { padding: 3px 7px; border-radius: 5px; background: white; color: #16836e; font-size: 11px; font-weight: 650; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-rich-details { margin-top: 18px; border-color: #edf1f4; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-rich-details > summary { padding-top: 15px; color: #6b7888; font-size: 13px; font-weight: 500; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-add { min-height: 50px; border-color: #bed9cf; border-radius: 12px; background: #edf6f1; color: #1b8b71; font-size: 14px; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-spots-collapsible { background: white; border-radius: 16px; }
-.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-savebar { padding: 0 28px 20px; font-size: 12px; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 input { height: 44px; min-height: 44px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 12px; background: #fff; color: var(--text-strong); font-size: 14px; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .quote-day-extra { margin: 0; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-assigned-stay { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0; padding: 10px 12px; border: 0; border-radius: 12px; background: var(--mrt-blue-50); color: var(--mrt-blue-strong); font-size: 12px; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-assigned-stay b { color: var(--text-strong); font-size: 13px; font-weight: 700; }
+.product-customer-page .cw-focus-workspace .ri-stay-state { padding: 3px 8px; border-radius: 6px; background: #fff; color: var(--mrt-blue-strong); font-size: 11px; font-weight: 700; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-rich-details { margin-top: 10px; border-top: 1px solid var(--border-default); }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-rich-details > summary { padding-top: 12px; color: var(--text-secondary); font-size: 13px; font-weight: 600; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-add { height: 52px; min-height: 52px; margin-top: 4px; border: 1.5px dashed var(--mrt-gray-300); border-radius: 16px; background: transparent; color: var(--text-secondary); font-size: 14px; font-weight: 800; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-add:hover { border-color: var(--mrt-ink); background: transparent; color: var(--text-strong); }
+
+/* 대표 명소 */
+.product-customer-page .cw-focus-workspace .ri-composer .ri-spots-collapsible { margin: 0; padding: 0; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.product-customer-page .cw-focus-workspace .ri-spots-collapsible > summary { padding: 22px; }
+.product-customer-page .cw-focus-workspace .ri-spots-collapsible > summary strong { color: var(--text-strong); font-size: 18px; font-weight: 800; letter-spacing: -.03em; }
+.product-customer-page .cw-focus-workspace .ri-spots-collapsible > summary small { color: var(--text-tertiary); font-size: 13px; }
+.product-customer-page .cw-focus-workspace .ri-spots-collapsible > summary > b { color: var(--mrt-blue); font-size: 13px; font-weight: 800; }
+.product-customer-page .cw-focus-workspace .ri-spots-content { padding: 0 22px 22px; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-cat { margin-top: 16px; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-cat:first-child { margin-top: 0; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-cat-head { gap: 10px; margin-bottom: 10px; color: var(--text-strong); font-size: 14px; font-weight: 800; letter-spacing: 0; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-cat-head .ln { background: var(--border-subtle); }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-cat-head .cc { color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 8px; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk { align-items: flex-start; gap: 10px; min-height: 72px; padding: 14px 12px; border: 1px solid var(--border-default); border-radius: 14px; background: #fff; transition: border-color .12s, background .12s; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk:hover:not(:disabled) { border-color: var(--mrt-gray-300); }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk.on { padding: 13.5px 11.5px; border: 1.5px solid var(--mrt-ink); background: var(--mrt-gray-50); }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk .box { width: 20px; height: 20px; margin-top: 1px; border: 1.5px solid var(--mrt-gray-300); border-radius: 6px; background: #fff; color: #fff; font-size: 11px; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk.on .box { border: 0; background: var(--mrt-ink); }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk b { color: var(--text-strong); font-size: 14px; font-weight: 800; letter-spacing: -.02em; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk small { margin-top: 2px; color: var(--text-tertiary); font-size: 12px; line-height: 1.4; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk:focus-visible { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }
+
+/* 오른쪽 요약 — 명소 순서·작성 상태 */
+.ri-aside-card { display: flex; flex-direction: column; gap: 12px; padding: 20px; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.ri-aside-card > header { display: flex; align-items: baseline; gap: 8px; }
+.ri-aside-card h3 { margin: 0; color: var(--text-strong); font-size: 16px; font-weight: 800; letter-spacing: -.02em; }
+.ri-aside-card > header > b { color: var(--mrt-blue); font-size: 13px; font-weight: 800; }
+.ri-aside-card > header > button { margin-left: auto; padding: 0; border: 0; background: transparent; color: var(--text-tertiary); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.ri-aside-card > header > button:hover:not(:disabled) { color: var(--text-strong); }
+.ri-spot-order { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ri-spot-order li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--mrt-gray-50); }
+.ri-spot-n { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--mrt-ink); color: #fff; font-size: 11px; font-weight: 800; }
+.ri-spot-name { flex: 1; min-width: 0; overflow: hidden; color: var(--text-strong); font-size: 14px; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
+.ri-spot-order button { display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-tertiary); cursor: pointer; }
+.ri-spot-order button:hover:not(:disabled) { background: #fff; color: var(--text-strong); }
+.ri-spot-order button:disabled { opacity: .35; cursor: default; }
+.ri-aside-empty { margin: 0; color: var(--text-tertiary); font-size: 13px; }
+.ri-progress { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.ri-progress li { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.ri-progress li > span:nth-child(2) { flex: 1; color: var(--text-secondary); }
+.ri-progress li > b { color: var(--text-strong); font-weight: 800; }
+.ri-progress-dot { display: grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--mrt-gray-100); color: var(--mrt-gray-400); }
+.ri-progress li.is-done .ri-progress-dot { background: var(--mrt-green); color: #fff; }
+
+.product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-savebar { padding: 12px 4px 0; border: 0; background: transparent; color: var(--text-tertiary); font-size: 12px; }
+
 @media (min-width: 1101px) {
-  .product-customer-page .cw-focus-workspace .ri-composer .ri-trip-settings { scroll-margin-top: 96px; }
   .product-customer-page .cw-focus-workspace .ri-editor-tools { display: flex; align-items: center; }
-  .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-modes { flex: none; gap: 6px; border-bottom: 0; }
-  .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation { flex: 1; min-width: 0; border: 0; }
+  .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-modes { flex: none; }
+  .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation { flex: 1; min-width: 0; }
   .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-day-navigation > span { display: none; }
-  .product-customer-page .cw-focus-workspace .ri-editor-workflow :is(.day-edit, .ri-spots, .ri-spots-collapsible) { scroll-margin-top: 96px!important; }
+  .product-customer-page .cw-focus-workspace .ri-editor-workflow :is(.day-edit, .ri-spots, .ri-spots-collapsible) { scroll-margin-top: 80px!important; }
 }
 @container itinerary-composer (max-width: 760px) {
   .product-customer-page .cw-focus-workspace .ri-composer .ri-basics { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
   .product-customer-page .cw-focus-workspace .ri-composer .ri-basics .ri-wide { grid-column: 1 / -1; }
-  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { grid-template-columns: 20px minmax(0,1fr) 68px 36px; grid-template-rows: auto auto 46px auto 46px; grid-template-areas: 'drag day toggle remove' 'date-label date-label move-label move-label' 'date date move move' 'dest-label dest-label dest-label dest-label' 'dest dest dest dest'; gap: 8px 12px; }
-  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .badge { justify-self: start; min-width: 66px; }
-  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-row { grid-template-columns: minmax(0,1fr); gap: 8px; }
-  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-sel { max-width: none; }
+  .product-customer-page .cw-focus-workspace .ri-itinerary-aside { position: static; }
+  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { grid-template-columns: 22px 64px minmax(0,1fr) auto 36px; grid-template-areas: 'drag day date toggle remove' 'dest dest dest dest dest' 'move move move move move'; }
+  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate { text-align: left; }
   .product-customer-page .cw-focus-workspace .ri-composer .ri-assigned-stay > span:last-child { flex-basis: 100%; }
 }
 @container itinerary-composer (max-width: 430px) {
   .product-customer-page .cw-focus-workspace .ri-composer .ri-basics { grid-template-columns: minmax(0,1fr); }
-  .product-customer-page .cw-focus-workspace .ri-composer .ri-trip-settings { padding: 18px; }
-  .product-customer-page .cw-focus-workspace .ri-settings-heading { gap: 10px; }
+  .product-customer-page .cw-focus-workspace .ri-composer :is(.ri-trip-settings, .ri-quote-section) { padding: 16px; }
   .product-customer-page .cw-focus-workspace .ri-settings-heading .ri-settings-mark { display: none; }
   .product-customer-page .cw-focus-workspace .ri-settings-title h3 { white-space: normal; line-height: 1.5; }
-  .product-customer-page .cw-focus-workspace .ri-settings-toggle { padding-left: 0; font-size: 11px; }
-  .product-customer-page .cw-focus-workspace .ri-composer .day-edit { padding: 18px; }
-  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { grid-template-columns: 20px minmax(0,1fr) 68px 36px; grid-template-rows: auto auto 46px auto 46px auto 46px; grid-template-areas: 'drag day toggle remove' 'date-label date-label date-label date-label' 'date date date date' 'dest-label dest-label dest-label dest-label' 'dest dest dest dest' 'move-label move-label move-label move-label' 'move move move move'; }
-  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .badge { justify-self: start; min-width: 70px; }
+  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { grid-template-columns: 22px minmax(0,1fr) auto 36px; grid-template-areas: 'drag day toggle remove' 'date date date date' 'dest dest dest dest' 'move move move move'; }
+  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .badge { justify-self: start; min-width: 64px; }
   .product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 { grid-template-columns: minmax(0,1fr); grid-template-areas: 'stay-label' 'stay' 'meals-label' 'meals'; }
-  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate { max-width: none; }
+  .product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-sel { width: 100%; min-width: 0; }
 }
-@media (max-width: 760px) {
-  .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-composer { padding: 16px; }
-  .product-customer-page .cw-focus-workspace .ri-composer .ri-trip-settings { margin-bottom: 24px; }
-  .product-customer-page .cw-focus-workspace .ri-settings-heading h3 { font-size: 16px; }
-  .product-customer-page .cw-focus-workspace .ri-composer .ri-quote-head h3 { font-size: 20px; }
+@media (prefers-reduced-motion: reduce) {
+  .product-customer-page .cw-focus-workspace .ri-composer :is(.day-edit, .ri-settings-toggle svg) { transition: none; }
 }
