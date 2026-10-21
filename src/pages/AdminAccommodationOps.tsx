@@ -9,12 +9,13 @@ import { addMissingAccommodationNights, alignAccommodationDates, getAccommodatio
 import { assignmentFingerprint, editorAssignment, writeAssignmentDraft, readAssignmentDraft, discardAssignmentDraft, type AssignmentDraft, type AssignmentDraftResult } from '../utils/adminAssignmentDraft';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
+import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
+import './AdminAccommodationOps.css';
 
 /**
- * Байр захиалгын удирдлага (дотоод) — байрны хариуцсан ажилтанд зориулсан, монгол хэлээр.
- * Баталгаажсан захиалгыг нэг дороос харж, өдөр тутмын байр/өрөө/хүн/захиалгын төлвийг удирдана.
- * Аяллын мэдээлэл (нислэг·аялагч) нь reservations.contractData-аас, байр нь dailyAccommodations(JSON)-д хадгална.
- * Схемийн миграци шаардлагагүй.
+ * 숙소 배정 · 현지 운영 — Admin Dashboard v3 "05-1" 디자인(한국어).
+ * 예약별 숙박일의 숙소·객실·인원·수배 상태와 담당 가이드·차량을 한 화면에서 관리합니다.
+ * 저장 값(수배 상태·객실당 인원)은 기존 데이터와 다른 화면이 읽는 원래 표기(몽골어)를 그대로 쓰고, 화면 표시만 한국어로 바꿉니다.
  */
 
 type BookingStatus = 'Илгээгээгүй' | 'Имэйл илгээсэн' | 'Хариу ирсэн' | 'Баталгаажсан';
@@ -22,7 +23,10 @@ const STATUS_OPTIONS: BookingStatus[] = ['Илгээгээгүй', 'Имэйл �
 const OCCUPANCY_OPTIONS = ['', '1 хүн/өрөө', '2 хүн/өрөө', '3 хүн/өрөө', '4 хүн/өрөө', '5 хүн/өрөө', '6 хүн/өрөө'];
 // 숙소 등급 — 선택명은 한국어로 유지(요청)
 const GRADE_OPTIONS = ['', '고급 게르', '일반 게르', '5성급 호텔', '4성급호텔', '목조하우스'];
-const WD = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
+const WD = ['일', '월', '화', '수', '목', '금', '토'];
+const STATUS_LABELS: Record<BookingStatus, string> = { 'Илгээгээгүй': '미발송', 'Имэйл илгээсэн': '메일 발송', 'Хариу ирсэн': '회신 받음', 'Баталгаажсан': '확정' };
+const occupancyLabel = (value: string) => value ? value.replace(/^(\d+) хүн\/өрөө$/, '$1인 / 객실') : '미정';
+type BoardStatus = '미배정' | '진행 중' | '배정 완료';
 
 type DailyAcc = AssignmentAccommodation;
 interface Traveler { name?: string; passportName?: string; birthdate?: string; gender?: string; phone?: string }
@@ -58,15 +62,6 @@ interface Reservation {
     };
 }
 
-const statusStyle = (s?: string): { bg: string; fg: string } => ({
-    'Хуваарилаагүй': { bg: '#F1F2F4', fg: '#8A8F99' },
-    'Илгээгээгүй': { bg: '#EEF1F5', fg: '#5F636B' },
-    'Имэйл илгээсэн': { bg: '#E8F2FF', fg: '#0B6FE0' },
-    'Хариу ирсэн': { bg: '#FEF6E7', fg: '#B45309' },
-    'Явагдаж байна': { bg: '#FEF6E7', fg: '#B45309' },
-    'Баталгаажсан': { bg: '#E4F7EC', fg: '#0F7A43' },
-}[s || 'Хуваарилаагүй'] || { bg: '#F1F2F4', fg: '#8A8F99' });
-
 const fmtDate = (iso?: string) => {
     if (!iso) return '-';
     const d = new Date(iso);
@@ -93,21 +88,26 @@ const isPastTour = (r: { startDate?: string; endDate?: string }, today: string) 
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     return key < today;
 };
-const weekdayMn = (iso?: string) => {
+const weekdayKo = (iso?: string) => {
     if (!iso) return '';
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? '' : WD[d.getDay()];
 };
 const regionOf = (r: Reservation) => (r.contractData?.region || r.contractData?.category || r.productName || '-');
-const genderMn = (g?: string) => g === '男性' || g === '남성' || g === 'male' ? 'Эрэгтэй' : g === '女性' || g === '여성' || g === 'female' ? 'Эмэгтэй' : (g || '-');
+const genderLabel = (g?: string) => g === '男性' || g === '남성' || g === 'male' ? '남' : g === '女性' || g === '여성' || g === 'female' ? '여' : (g || '-');
 const flightLine = (f?: Flight) => [f?.date, f?.time, f?.flight].filter(Boolean).join(' · ') || '-';
 
 const summaryOf = (r: Reservation) => {
     const plan = getAccommodationPlan(r);
     const total = plan.needed;
     const { assigned, confirmed, complete: allConfirmed } = plan;
-    const label: BookingStatus | 'Хуваарилаагүй' | 'Явагдаж байна' | '숙박 없음' = total === 0 && allConfirmed ? '숙박 없음' : allConfirmed ? 'Баталгаажсан' : (assigned > 0 || confirmed > 0) ? 'Явагдаж байна' : 'Хуваарилаагүй';
-    return { total, assigned, confirmed, allConfirmed, label, plan };
+    return { total, assigned, confirmed, allConfirmed, plan };
+};
+/** 디자인의 예약 상태: 필요한 숙박일이 모두 확정되고 가이드·차량이 있으면 배정 완료. */
+const boardStatusOf = (r: Reservation): BoardStatus => {
+    const sum = summaryOf(r), guide = !!r.assignedGuide?.name?.trim(), vehicle = !!r.contractData?.vehicle?.type?.trim();
+    if (sum.total !== null && sum.allConfirmed && sum.plan.warnings.length === 0 && guide && vehicle) return '배정 완료';
+    return sum.assigned > 0 || sum.confirmed > 0 || guide || vehicle ? '진행 중' : '미배정';
 };
 
 const CONFIRMED_STATUSES = ['confirmed', 'paid', 'completed'];
@@ -153,7 +153,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     const [month, setMonth] = useState('all');
     const [year, setYear] = useState(() => new Date().getFullYear());
     const [region, setRegion] = useState('all');
-    const [confirmFilter, setConfirmFilter] = useState<'all' | 'pending' | 'done'>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | BoardStatus>('all');
     const [scope, setScope] = useState<'confirmed' | 'all'>('confirmed');
     const [resources, setResources] = useState<RegisteredAssignmentResources>({ guides: [], lodges: [], vehicles: [], warnings: [] });
     const [resourcesLoading, setResourcesLoading] = useState(false);
@@ -214,7 +214,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             setReservations(arr);
             setMaterialized(new Set());
             setExpanded(prev => new Set([...Object.keys(nextPending), ...[...prev].filter(id => arr.some(r => r.id === id && failedSource(r.source)))]));
-            if (Object.keys(nextPending).length) { setQ(''); setScope('all'); setMonth('all'); setRegion('all'); setConfirmFilter('all'); }
+            if (Object.keys(nextPending).length) { setQ(''); setScope('all'); setMonth('all'); setRegion('all'); setStatusFilter('all'); }
             setLoadWarnings(data.warnings || []);
         } catch (e) {
             if (mounted.current && requestGeneration === generation.current) setLoadWarnings([e instanceof Error ? e.message : '예약을 불러오지 못했습니다. 이전 자료를 유지합니다.']);
@@ -252,11 +252,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         return base.filter(r => {
             if (month !== 'all' && monthKey(r.startDate) !== month) return false;
             if (region !== 'all' && regionOf(r) !== region) return false;
-            if (confirmFilter !== 'all') {
-                const done = summaryOf(r).allConfirmed;
-                if (confirmFilter === 'done' && !done) return false;
-                if (confirmFilter === 'pending' && done) return false;
-            }
+            if (statusFilter !== 'all' && boardStatusOf(r) !== statusFilter) return false;
             if (needle) {
                 const hay = `${r.customerName || ''} ${r.productName || ''} ${r.reservationNumber || ''} ${regionOf(r)}`.toLowerCase();
                 if (!hay.includes(needle)) return false;
@@ -274,7 +270,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             if (da !== db) return da - db;
             return (a.startDate || '').localeCompare(b.startDate || '');
         });
-    }, [base, q, month, region, confirmFilter]);
+    }, [base, q, month, region, statusFilter]);
     const counts = useMemo(() => {
         let done = 0, pending = 0;
         filtered.forEach(r => { summaryOf(r).allConfirmed ? done++ : pending++; });
@@ -301,7 +297,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         const target = reservations.find(x => x.bookingId === id && x.source === source);
         if (!target) return;
         openedFromUrl.current = true;
-        // 확정 전 예약이면 기본 필터(Зөвхөн баталгаажсан)에 걸려 안 보이므로 전체 보기로 전환
+        // 확정 전 예약이면 기본 필터(확정 예약만)에 걸려 안 보이므로 전체 보기로 전환
         if (!(CONFIRMED_STATUSES.includes(target.status || '') || target.depositStatus === 'paid' || target.type === 'quote')) setScope('all');
         openRow(target);
         setTimeout(() => { if (mounted.current) document.getElementById(`acc-row-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
@@ -464,397 +460,326 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         }
     };
 
+    const statusCounts = useMemo(() => {
+        const counts: Record<BoardStatus, number> = { '미배정': 0, '진행 중': 0, '배정 완료': 0 };
+        base.forEach(r => { counts[boardStatusOf(r)]++; });
+        return counts;
+    }, [base]);
+    const yearTotal = Array.from({ length: 12 }, (_, i) => monthStats.perMonth.get(`${year}-${String(i + 1).padStart(2, '0')}`) || 0).reduce((a, b) => a + b, 0);
+    const filtersOn = !!(q.trim() || region !== 'all' || statusFilter !== 'all' || month !== 'all');
+    const resetFilters = () => { setQ(''); setRegion('all'); setStatusFilter('all'); setMonth('all'); };
+
     return (
         <AdminLayout
             activePage="accommodation-ops"
-            title="Байр захиалгын удирдлага"
-            actions={<button type="button" onClick={load} disabled={loading || !!savingId} className="btn"><Icon name="refresh" />Шинэчлэх</button>}
+            title="숙소 배정 · 현지 운영"
+            description="예약별 숙박일에 숙소·객실을 배정하고, 수배 상태와 가이드·차량을 함께 관리해요."
+            actions={<button type="button" onClick={load} disabled={loading || !!savingId} className="btn"><Icon name="refresh" />새로고침</button>}
         >
-            {notice && <div className="card card-pad" role="status" style={{ marginBottom: 12 }}>{notice}</div>}
-            {loadWarnings.map((warning, i) => <div key={i} role="alert" className="card card-pad" style={{ marginBottom: 12, color: '#8A5A12' }}>{warning}</div>)}
-            {resources.warnings.map((warning, i) => <div key={`resource-${i}`} role="alert" className="card card-pad" style={{ marginBottom: 12, color: '#8A5A12' }}>{warning}</div>)}
-            {Object.keys(pendingDrafts).length > 0 && <div className="card card-pad" role="status" style={{ marginBottom: 12 }}>복구 가능한 배정 초안 {Object.keys(pendingDrafts).length}건이 있습니다. 펼친 예약에서 복원 또는 버리기를 선택하세요.</div>}
-            <div className="route-anim">
-                <div className="toolbar" style={{ flexWrap: 'wrap', gap: 8 }}>
-                    <label className="tb-search">
-                        <Icon name="search" />
-                        <input placeholder="Үйлчлүүлэгч, аялал, захиалгын дугаараар хайх" value={q} onChange={e => setQ(e.target.value)} />
-                    </label>
-                    <select className="select" value={scope} onChange={e => setScope(e.target.value as any)}>
-                        <option value="confirmed">Зөвхөн баталгаажсан</option>
-                        <option value="all">Бүх захиалга</option>
-                    </select>
-                    <select className="select" value={region} onChange={e => setRegion(e.target.value)}>
-                        <option value="all">Бүх бүс нутаг</option>
-                        {regionOptions.map(rg => <option key={rg} value={rg}>{rg}</option>)}
-                    </select>
-                    <select className="select" value={confirmFilter} onChange={e => setConfirmFilter(e.target.value as any)}>
-                        <option value="all">Бүх төлөв</option>
-                        <option value="pending">Батлаагүй</option>
-                        <option value="done">Баталгаажсан</option>
-                    </select>
-                    <div className="spacer" />
-                    <span className="cell-muted" style={{ fontSize: 13 }}>
-                        Харагдаж буй <b style={{ color: 'var(--text-strong)' }}>{counts.total}</b> ·{' '}
-                        <span style={{ color: '#B45309', fontWeight: 700 }}>Батлаагүй {counts.pending}</span> ·{' '}
-                        <span style={{ color: '#0F7A43', fontWeight: 700 }}>Баталгаажсан {counts.done}</span>
-                    </span>
-                </div>
+            <div className="lo-board">
+            {notice && <div className="lo-notice" role="status">{notice}</div>}
+            {loadWarnings.map((warning, i) => <div key={i} role="alert" className="lo-notice is-warn">{warning}</div>)}
+            {resources.warnings.map((warning, i) => <div key={`resource-${i}`} role="alert" className="lo-notice is-warn">{warning}</div>)}
+            {Object.keys(pendingDrafts).length > 0 && <div className="lo-notice is-draft" role="status">복구 가능한 배정 초안 {Object.keys(pendingDrafts).length}건이 있어요. 펼친 예약에서 복원 또는 버리기를 골라 주세요.</div>}
 
-                {/* 출발월 막대 — 연도 이동 + 월별 건수, 누르면 그 달만 표시 */}
-                <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', marginTop: 10, overflowX: 'auto' }}>
-                    <div className="row" style={{ gap: 6, alignItems: 'center', flex: 'none' }}>
-                        <Icon name="calendar_month" style={{ fontSize: 18, color: 'var(--text-muted)' }} />
-                        <span className="cell-muted" style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>Явах сар</span>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setMonth('all')}
-                        style={{
-                            flex: 'none', border: 0, cursor: 'pointer', borderRadius: 999, padding: '6px 14px',
-                            fontSize: 12.5, fontWeight: 800, whiteSpace: 'nowrap',
-                            background: month === 'all' ? '#06C4A0' : 'var(--bg-muted, #f1f3f5)',
-                            color: month === 'all' ? '#fff' : 'var(--text-muted)',
-                        }}
-                    >
-                        Бүгд {monthStats.total}
+            <div className="lo-summary">
+                {([['all', '전체 예약', base.length], ['미배정', '미배정', statusCounts['미배정']], ['진행 중', '진행 중', statusCounts['진행 중']], ['배정 완료', '배정 완료', statusCounts['배정 완료']]] as const).map(([key, label, n]) => (
+                    <button key={key} type="button" data-tone={key} aria-pressed={statusFilter === key} className={`lo-kpi${statusFilter === key ? ' is-on' : ''}${key === '미배정' && n > 0 ? ' is-warn' : ''}`} onClick={() => setStatusFilter(statusFilter === key || key === 'all' ? 'all' : key)}>
+                        <span>{label}</span><b>{n}</b>
                     </button>
-                    <div className="row" style={{ gap: 4, alignItems: 'center', flex: 'none' }}>
-                        <button type="button" className="act-btn" title="Өмнөх жил" disabled={year <= monthStats.minYear} onClick={() => setYear(y => y - 1)}>
-                            <Icon name="chevron_left" style={{ fontSize: 16 }} />
-                        </button>
-                        <b style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{year} он</b>
-                        <button type="button" className="act-btn" title="Дараа жил" disabled={year >= monthStats.maxYear} onClick={() => setYear(y => y + 1)}>
-                            <Icon name="chevron_right" style={{ fontSize: 16 }} />
-                        </button>
-                    </div>
-                    <div className="row" style={{ gap: 6, flex: 1, minWidth: 0 }}>
-                        {Array.from({ length: 12 }, (_, i) => {
-                            const key = `${year}-${String(i + 1).padStart(2, '0')}`;
-                            const n = monthStats.perMonth.get(key) || 0;
-                            const active = month === key;
-                            return (
-                                <button
-                                    key={key}
-                                    type="button"
-                                    disabled={n === 0}
-                                    onClick={() => setMonth(key)}
-                                    title={n === 0 ? 'Захиалга байхгүй' : `${i + 1}-р сар — ${n} захиалга`}
-                                    style={{
-                                        flex: '1 1 0', minWidth: 62, cursor: n === 0 ? 'default' : 'pointer',
-                                        borderRadius: 10, padding: '7px 4px', textAlign: 'center', lineHeight: 1.25,
-                                        border: active ? '2px solid #06C4A0' : '1px solid var(--border-default)',
-                                        background: active ? 'rgba(6,196,160,0.08)' : '#fff',
-                                        opacity: n === 0 ? 0.45 : 1,
-                                    }}
-                                >
-                                    <div style={{ fontSize: 12.5, fontWeight: 800, color: n === 0 ? 'var(--text-muted)' : 'var(--text-strong)' }}>{i + 1}-р сар</div>
-                                    <div style={{ fontSize: 11.5, fontWeight: 700, color: n === 0 ? 'var(--text-muted)' : '#06C4A0' }}>{n === 0 ? '-' : `${n}`}</div>
-                                </button>
-                            );
-                        })}
-                    </div>
+                ))}
+            </div>
+
+            <div className="lo-filters">
+                <label className="lo-search">
+                    <DashboardIcon name="lc-search" size={16} />
+                    <input aria-label="고객·여행·예약번호 검색" placeholder="고객, 여행, 예약번호로 검색" value={q} onChange={e => setQ(e.target.value)} />
+                </label>
+                <select className="lo-select" aria-label="예약 범위" value={scope} onChange={e => setScope(e.target.value as any)}>
+                    <option value="confirmed">확정 예약만</option>
+                    <option value="all">전체 예약</option>
+                </select>
+                <select className="lo-select" aria-label="지역" value={region} onChange={e => setRegion(e.target.value)}>
+                    <option value="all">전체 지역</option>
+                    {regionOptions.map(rg => <option key={rg} value={rg}>{rg}</option>)}
+                </select>
+                {filtersOn && <button type="button" className="lo-reset" onClick={resetFilters}>필터 초기화</button>}
+                <span className="lo-count">보이는 예약 <b>{counts.total}</b> · 숙소 확정 <b>{counts.done}</b> · 확인 필요 <b className="is-warn">{counts.pending}</b></span>
+            </div>
+
+            {/* 출발 월 — 연도 이동 + 월별 건수, 누르면 그 달만 표시 */}
+            <div className="lo-months">
+                <span className="lo-months-label"><DashboardIcon name="lc-calendar" size={16} />출발 월</span>
+                <span className="lo-year">
+                    <button type="button" aria-label="이전 연도" disabled={year <= monthStats.minYear} onClick={() => setYear(y => y - 1)}><DashboardIcon name="lc-chevron-left" size={16} /></button>
+                    <b>{year}년</b>
+                    <button type="button" aria-label="다음 연도" disabled={year >= monthStats.maxYear} onClick={() => setYear(y => y + 1)}><DashboardIcon name="lc-chevron-right" size={16} /></button>
+                </span>
+                <button type="button" className={`lo-year-all${month === 'all' ? ' is-on' : ''}`} onClick={() => setMonth('all')}>전체 {monthStats.total}팀 · {year}년 {yearTotal}팀</button>
+                <div className="lo-month-grid">
+                    {Array.from({ length: 12 }, (_, i) => {
+                        const key = `${year}-${String(i + 1).padStart(2, '0')}`;
+                        const n = monthStats.perMonth.get(key) || 0;
+                        const active = month === key;
+                        return (
+                            <button key={key} type="button" disabled={n === 0} aria-pressed={active} onClick={() => setMonth(active ? 'all' : key)} title={n === 0 ? '이 달에 출발하는 예약이 없어요' : `${i + 1}월 출발 ${n}팀`}
+                                className={`lo-month${active ? ' is-on' : ''}${n ? ' has-tours' : ''}`}>
+                                <span>{i + 1}월</span><small>{n ? `${n}팀` : '—'}</small>
+                            </button>
+                        );
+                    })}
                 </div>
+            </div>
 
-                <div className="card">
-                    <div className="tbl-wrap">
-                        <table className="tbl">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: 34 }}></th>
-                                    <th style={{ width: 116 }}>Төлөв</th>
-                                    <th>Үйлчлүүлэгч</th>
-                                    <th style={{ width: 200 }}>Ирэх ~ Явах</th>
-                                    <th style={{ width: 120 }}>Хоног</th>
-                                    <th>Бүс нутаг</th>
-                                    <th style={{ width: 100 }}>Захиалсан</th>
-                                    <th style={{ width: 64 }}>Хүн</th>
-                                    <th style={{ width: 130 }}>Явц</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {loading && <tr><td colSpan={9} style={{ textAlign: 'center', padding: 28 }} className="cell-muted">Ачааллаж байна…</td></tr>}
-                                {!loading && filtered.length === 0 && <tr><td colSpan={9} style={{ textAlign: 'center', padding: 28 }} className="cell-muted">Тохирох захиалга алга.</td></tr>}
-                                {!loading && filtered.map(r => {
-                                    const sum = summaryOf(r);
-                                    const sty = statusStyle(sum.label);
-                                    const open = expanded.has(r.id);
-                                    const isDirty = dirty.has(r.id);
-                                    const rows = open ? (r.dailyAccommodations || []) : [];
-                                    const cd = r.contractData || {};
-                                    const travelers = cd.travelers || [];
-                                    return (
-                                        <React.Fragment key={r.id}>
-                                            <tr id={`acc-row-${r.id}`} style={{ cursor: 'pointer', background: open ? 'var(--surface-canvas, #F7F8FA)' : undefined }} onClick={() => toggleExpand(r)}>
-                                                <td style={{ textAlign: 'center' }}><Icon name={open ? 'expand_more' : 'chevron_right'} /></td>
-                                                <td><span style={{ display: 'inline-block', padding: '3px 9px', borderRadius: 999, fontSize: 12, fontWeight: 800, background: sty.bg, color: sty.fg }}>{sum.label}</span></td>
-                                                <td style={{ fontWeight: 700 }}>
-                                                    {r.customerName || '-'}
-                                                    {(r.type === 'quote' || r.source === 'quote_booking') && <span style={{ marginLeft: 6, padding: '1px 7px', borderRadius: 999, fontSize: 10, fontWeight: 800, background: '#EEEDFE', color: '#534AB7' }}>Үнийн санал</span>}
-                                                    {r.reservationNumber && <span className="cell-muted" style={{ marginLeft: 6, fontSize: 11 }}>#{r.reservationNumber}</span>}
-                                                </td>
-                                                <td>{fmtDate(r.startDate)} ~ {fmtDate(r.endDate)}</td>
-                                                <td>{sum.total === null ? '-' : `${sum.total} шөнө ${sum.total + 1} өдөр`}</td>
-                                                <td>{regionOf(r)}</td>
-                                                <td>{fmtDate(r.createdAt)}</td>
-                                                <td>{r.travelers || '-'} хүн</td>
-                                                <td style={{ fontWeight: 700, color: sum.allConfirmed ? '#0F7A43' : '#B45309' }}>
-                                                    {sum.total === null ? '필요 숙박일 확인' : sum.total === 0 ? '숙박 없음' : `${sum.confirmed}/${sum.total} баталгаажсан`}
-                                                    {sum.plan.warnings.length > 0 && (
-                                                        <span style={{ display: 'block', fontSize: 10, fontWeight: 800, color: '#D0342C' }}>숙박일 확인 필요</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                            {open && (
-                                                <tr>
-                                                    <td colSpan={9} style={{ padding: 0, background: 'var(--surface-canvas, #F7F8FA)' }}>
-                                                        <div style={{ padding: '14px 18px 18px' }}>
-
-                                                            {pendingDrafts[r.id] && <div className="card card-pad" style={{ marginBottom: 12 }} role="status">
-                                                                <p>{pendingDrafts[r.id].conflict ? '초안 보관 후 서버 예약이 변경되었습니다. 현재 예약에 초안 배정을 적용할지 확인하세요.' : '이 계정과 예약에 보관된 배정 초안이 있습니다.'}</p>
-                                                                <button className="btn btn-ink btn-sm" disabled={!!savingId} onClick={() => resolveDraft(r, true)}>초안 복원</button>{' '}
-                                                                <button className="btn btn-ghost btn-sm" disabled={!!savingId} onClick={() => resolveDraft(r, false)}>초안 버리기</button>
-                                                            </div>}
-                                                            <fieldset disabled={!!savingId || !!pendingDrafts[r.id]} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-
-                                                            {/* ── Аяллын мэдээлэл (수배서 정보) ── */}
-                                                            <div style={{ background: '#fff', border: '1px solid var(--color-border-tertiary, #E6E8EC)', borderRadius: 12, padding: 14, marginBottom: 14 }}>
-                                                                <b style={{ fontSize: 13 }}>Аяллын мэдээлэл</b>
-                                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
-                                                                    <div style={{ background: 'var(--surface-canvas, #F7F8FA)', borderRadius: 8, padding: '10px 12px' }}>
-                                                                        <div className="cell-muted" style={{ fontSize: 11 }}>✈ Ирэх нислэг (Монгол ирэх)</div>
-                                                                        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 3 }}>{flightLine(cd.arrival)}</div>
-                                                                    </div>
-                                                                    <div style={{ background: 'var(--surface-canvas, #F7F8FA)', borderRadius: 8, padding: '10px 12px' }}>
-                                                                        <div className="cell-muted" style={{ fontSize: 11 }}>✈ Буцах нислэг (Монголоос явах)</div>
-                                                                        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 3 }}>{flightLine(cd.departure)}</div>
-                                                                    </div>
-                                                                </div>
-                                                                {travelers.length > 0 ? (
-                                                                    <div style={{ overflowX: 'auto', marginTop: 10 }}>
-                                                                        <table className="tbl" style={{ minWidth: 640 }}>
-                                                                            <thead><tr>
-                                                                                <th style={{ width: 56 }}>Аялагч</th>
-                                                                                <th>Паспортын нэр</th>
-                                                                                <th>Нэр</th>
-                                                                                <th style={{ width: 110 }}>Төрсөн огноо</th>
-                                                                                <th style={{ width: 80 }}>Хүйс</th>
-                                                                                <th style={{ width: 130 }}>Утас</th>
-                                                                            </tr></thead>
-                                                                            <tbody>
-                                                                                {travelers.map((t, i) => (
-                                                                                    <tr key={i}>
-                                                                                        <td style={{ fontWeight: 700 }}>{i + 1}</td>
-                                                                                        <td style={{ fontWeight: 700 }}>{t.passportName || '-'}</td>
-                                                                                        <td>{t.name || '-'}</td>
-                                                                                        <td>{t.birthdate || '-'}</td>
-                                                                                        <td>{genderMn(t.gender)}</td>
-                                                                                        <td>{t.phone || '-'}</td>
-                                                                                    </tr>
-                                                                                ))}
-                                                                            </tbody>
-                                                                        </table>
-                                                                    </div>
-                                                                ) : <div className="cell-muted" style={{ fontSize: 12, marginTop: 10 }}>Аялагчийн мэдээлэл алга (гэрээ ирээгүй).</div>}
-                                                                {cd.agreement?.name && <div style={{ marginTop: 10, fontSize: 12 }}><span className="cell-muted">Цахим гарын үсэг:</span> <b>{cd.agreement.name}</b></div>}
-                                                                <div style={{ marginTop: 10, fontSize: 12 }}>
-                                                                    <span className="cell-muted">고객 일정 기준:</span>{' '}
-                                                                    <b>{scheduleSourceLabel[r.schedule?.source || 'none'] || '고객 일정'}</b> · {r.schedule?.days.length || 0}일
-                                                                </div>
-                                                                <details style={{ marginTop: 10 }}>
-                                                                    <summary>전체 고객 일정 보기</summary>
-                                                                    {(r.schedule?.days || []).length ? <div className="tbl-wrap">
-                                                                        <table className="tbl">
-                                                                            <thead><tr><th>일차</th><th>날짜</th><th>여행 지역</th><th>고객 일정 요약</th></tr></thead>
-                                                                            <tbody>{r.schedule!.days.map((day, index) => <tr key={index}>
-                                                                                <td>{day.day}일차</td><td>{day.date || '날짜 미정'}</td><td>{day.region || '지역 미입력'}</td>
-                                                                                <td style={{ whiteSpace: 'normal', minWidth: 220, overflowWrap: 'anywhere' }}>{[day.title, day.summary].filter(Boolean).join(' · ') || '일정 내용 없음'}</td>
-                                                                            </tr>)}</tbody>
-                                                                        </table>
-                                                                    </div> : <p className="cell-muted">저장된 고객 일정이 없습니다. 숙소 배정은 기존 내용을 유지합니다.</p>}
-                                                                </details>
-                                                            </div>
-
-                                                            {/* ── Өдөр тутмын байр ── */}
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-                                                                <b style={{ fontSize: 13 }}>Өдөр тутмын байрны захиалга</b>
-                                                                <a className="btn btn-sm" href={r.source === 'quote_booking' ? quoteCustomerHref(r.bookingId, '/admin/accommodation-ops') : productCustomerHref(r.bookingId, '/admin/accommodation-ops')} title="고객 통합 작업 화면에서 이 예약을 엽니다.">
-                                                                    <Icon name="assignment" />Захиалгын дэлгэрэнгүй
-                                                                </a>
-                                                                <div style={{ flex: 1 }} />
-                                                                <button type="button" className="btn btn-sm" title="저장된 숙소와 객실은 유지하고 고객 일정의 해당 일차 날짜에 맞춥니다." disabled={!sum.plan.canAlignDates} onClick={() => alignDates(r.id)}>
-                                                                    <Icon name="format_list_numbered" />여행 날짜에 맞추기
-                                                                </button>
-                                                                {isDirty && <span style={{ fontSize: 12, fontWeight: 700, color: '#B45309' }}>Өөрчлөгдсөн ·</span>}
-                                                                <button type="button" className="btn btn-ink btn-sm" disabled={!isDirty || !!savingId} onClick={() => save(r)}>
-                                                                    <Icon name="save" />{savingId === r.id ? 'Хадгалж байна…' : 'Хадгалах'}
-                                                                </button>
-                                                            </div>
-                                                            <div className="cell-muted" style={{ fontSize: 12, marginBottom: 8 }}>
-                                                                {sum.total === null ? '여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.' : sum.total === 0 ? '당일 여행으로 숙박 배정이 필요하지 않습니다.' : `필요 ${sum.total}박 · 숙소 배정 ${sum.assigned}박 · 예약 확정 ${sum.confirmed}박`}
-                                                            </div>
-                                                            {sum.plan.warnings.map((warning, index) => <div key={index} role="alert" className="cell-muted" style={{ marginBottom: 8 }}>{warning}</div>)}
-                                                            <div style={{ overflowX: 'auto' }}>
-                                                                <table className="tbl" style={{ minWidth: 1070 }}>
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th style={{ width: 240 }}>Өдөр · Огноо</th>
-                                                                            <th style={{ width: 120 }}>Бүс / Байршил</th>
-                                                                            <th>Байрны нэр</th>
-                                                                            <th style={{ width: 130 }}>Зэрэглэл</th>
-                                                                            <th style={{ width: 80 }}>Өрөө</th>
-                                                                            <th style={{ width: 130 }}>Хүн/өрөө</th>
-                                                                            <th style={{ width: 150 }}>Захиалгын төлөв</th>
-                                                                            <th style={{ width: 44 }}></th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {rows.map((d, idx) => {
-                                                                            const acc = d.accommodation || {};
-                                                                            const scheduleDay = r.schedule?.days.find(day => day.day === d.day);
-                                                                            const scheduleRegion = scheduleDay?.region.trim() || '';
-                                                                            const regionLodges = scheduleRegion ? resources.lodges.filter(lodge => [lodge.region, lodge.location].some(value => value.trim().toLocaleLowerCase('ko-KR') === scheduleRegion.toLocaleLowerCase('ko-KR'))) : [];
-                                                                            const otherLodges = scheduleRegion ? resources.lodges.filter(lodge => !regionLodges.includes(lodge)) : resources.lodges;
-                                                                            const hasName = (acc.name || '').trim().length > 0;
-                                                                            const st = hasName ? (acc.bookingStatus || 'Илгээгээгүй') : 'Хуваарилаагүй';
-                                                                            const sts = statusStyle(st);
-                                                                            return (
-                                                                                <tr key={idx}>
-                                                                                    <td>
-                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                                                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 'none' }}>
-                                                                                                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#B4B8C0' }}>ӨДӨР</span>
-                                                                                                <input type="number" min={1} aria-label="숙박 일차" value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })}
-                                                                                                    style={{ width: 38, height: 28, textAlign: 'center', padding: 0, border: '1px solid #E6E8EC', borderRadius: 8, fontWeight: 800, fontSize: 14, color: '#1A8CFF', background: '#fff', outline: 'none', marginTop: 1 }} />
-                                                                                            </div>
-                                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                                                                                                <input type="date" className="inp" style={{ width: 148 }} aria-label="숙박 날짜" value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
-                                                                                                {d.date && <span style={{ fontSize: 11, fontWeight: 700, color: '#8A8F99', flex: 'none' }}>{weekdayMn(d.date)}</span>}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        {scheduleDay && <div className="cell-muted" style={{ fontSize: 11, marginTop: 6, whiteSpace: 'normal', maxWidth: 260, overflowWrap: 'anywhere' }}>
-                                                                                            일정: {[scheduleDay.date || '날짜 미정', scheduleDay.region || '지역 미입력', scheduleDay.title || scheduleDay.summary.slice(0, 80)].filter(Boolean).join(' · ')}
-                                                                                        </div>}
-                                                                                        {(sum.plan.rowWarnings[idx] || []).map((warning, index) => <div key={index} role="alert" className="cell-muted" style={{ fontSize: 11, marginTop: 6, whiteSpace: 'normal', maxWidth: 260, overflowWrap: 'anywhere' }}>{warning}</div>)}
-                                                                                    </td>
-                                                                                    <td><input className="inp" style={{ width: 116 }} aria-label="숙박 지역" value={acc.location || ''} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value, region: e.target.value })} /></td>
-                                                                                    <td>{(() => {
-                                                                                        // 공통 숙소에서 선택하며 과거 배정과 직접 입력은 그대로 유지한다.
-                                                                                        const mKey = `${r.id}:${idx}`;
-                                                                                        const nm = acc.name || '';
-                                                                                        const inMaster = !!acc.id && lodgeById.get(acc.id)?.name === nm;
-                                                                                        const manual = manualHotels.has(mKey) || (!listHotels.has(mKey) && !!nm && !inMaster);
-                                                                                        if (manual) {
-                                                                                            return (
-                                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 200 }}>
-                                                                                                    <input className="inp" style={{ flex: 1, minWidth: 0 }} value={nm} placeholder="숙소명 직접 입력" aria-label="숙소명 직접 입력"
-                                                                                                        onChange={e => {
-                                                                                                            if (!manualHotels.has(mKey)) setManualHotels(prev => new Set(prev).add(mKey));
-                                                                                                            if (e.target.value !== nm) patchDay(r.id, idx, { name: e.target.value, id: undefined, images: [], description: '', facilities: [], region: acc.location || '', address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: 'Илгээгээгүй' });
-                                                                                                        }} />
-                                                                                                    <button type="button" title="등록 숙소 목록에서 선택"
-                                                                                                        onClick={() => { setManualHotels(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListHotels(prev => new Set(prev).add(mKey)); }}
-                                                                                                        style={{ flex: 'none', width: 30, height: 30, display: 'grid', placeItems: 'center', border: '1px solid #E6E8EC', borderRadius: 8, background: '#fff', color: '#8A8F99', cursor: 'pointer' }}>
-                                                                                                        <Icon name="checklist" />
-                                                                                                    </button>
-                                                                                                </div>
-                                                                                            );
-                                                                                        }
-                                                                                        return (
-                                                                                            <select className="select" style={{ width: '100%', minWidth: 200 }} aria-label="등록 숙소 선택" disabled={resourcesLoading} value={inMaster ? acc.id : nm ? '__current__' : ''}
-                                                                                                onChange={e => {
-                                                                                                    const v = e.target.value;
-                                                                                                    if (v === '__manual__') { setManualHotels(prev => new Set(prev).add(mKey)); setListHotels(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
-                                                                                                    const lodge = lodgeById.get(v);
-                                                                                                    if (lodge) patchDay(r.id, idx, selectResourceLodge(d, lodge).accommodation);
-                                                                                                }}>
-                                                                                                <option value="">{resourcesLoading ? '등록 숙소 불러오는 중…' : '등록 숙소 선택…'}</option>
-                                                                                                {!inMaster && nm && <option value="__current__">현재 배정: {nm}</option>}
-                                                                                                {scheduleRegion ? <>
-                                                                                                    <optgroup label={`일정 지역: ${scheduleRegion}`}>{regionLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
-                                                                                                    <optgroup label="전체 다른 지역">{otherLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
-                                                                                                </> : resources.lodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}
-                                                                                                <option value="__manual__">✏️ 직접 입력 (목록에 없는 숙소)</option>
-                                                                                            </select>
-                                                                                        );
-                                                                                    })()}</td>
-                                                                                    <td>
-                                                                                        <select className="select" style={{ width: 124 }} value={acc.type || ''} onChange={e => patchDay(r.id, idx, { type: e.target.value || undefined })}>
-                                                                                            {acc.type && !GRADE_OPTIONS.includes(acc.type) && <option value={acc.type}>{acc.type}</option>}
-                                                                                            {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g || 'Тодорхойгүй'}</option>)}
-                                                                                        </select>
-                                                                                    </td>
-                                                                                    <td><input className="inp" type="number" min={0} style={{ width: 66 }} value={acc.roomCount ?? ''} placeholder="0" onChange={e => patchDay(r.id, idx, { roomCount: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value) || 0) })} /></td>
-                                                                                    <td>
-                                                                                        <select className="select" style={{ width: 120 }} value={acc.occupancy || ''} onChange={e => patchDay(r.id, idx, { occupancy: e.target.value || undefined })}>
-                                                                                            {acc.occupancy && !OCCUPANCY_OPTIONS.includes(acc.occupancy) && <option value={acc.occupancy}>{acc.occupancy}</option>}
-                                                                                            {OCCUPANCY_OPTIONS.map(o => <option key={o} value={o}>{o || 'Тодорхойгүй'}</option>)}
-                                                                                        </select>
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <select className="select" style={{ width: 140, fontWeight: 700, background: sts.bg, color: sts.fg, borderColor: 'transparent' }}
-                                                                                            value={hasName ? (acc.bookingStatus || 'Илгээгээгүй') : 'Илгээгээгүй'} disabled={!hasName}
-                                                                                            onChange={e => patchDay(r.id, idx, { bookingStatus: e.target.value as BookingStatus })}>
-                                                                                            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                                                                                        </select>
-                                                                                    </td>
-                                                                                    <td style={{ textAlign: 'center' }}>
-                                                                                        <button type="button" className="btn btn-sm" title="Энэ өдрийг устгах" onClick={() => { if (window.confirm(`Өдөр ${d.day}-г устгах уу?`)) removeDay(r.id, idx); }} style={{ color: '#E24B4A' }}>
-                                                                                            <Icon name="delete" />
-                                                                                        </button>
-                                                                                    </td>
-                                                                                </tr>
-                                                                            );
-                                                                        })}
-                                                                        {rows.length === 0 && <tr><td colSpan={8} className="cell-muted" style={{ textAlign: 'center', padding: 14 }}>Өдөр алга. ‘Өдөр нэмэх’ дарж нэмнэ үү.</td></tr>}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                            <button type="button" className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => addDay(r.id)}><Icon name="add" />Өдөр нэмэх</button>
-                                                            {sum.plan.missingNights.length > 0 && <button type="button" className="btn btn-sm" style={{ marginTop: 10, marginLeft: 8 }} disabled={sum.plan.addableNights.length === 0} onClick={() => addMissingNights(r)}><Icon name="add" />누락 숙박일 추가</button>}
-
-                                                            {/* ── Хариуцсан гайд ба тээвэр (가이드·차량) ── */}
-                                                            <div style={{ background: '#fff', border: '1px solid var(--color-border-tertiary, #E6E8EC)', borderRadius: 12, padding: 14, marginTop: 14 }}>
-                                                                <b style={{ fontSize: 13 }}>담당 가이드 · 차량</b>
-                                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10, marginTop: 10 }}>
-                                                                    <div>
-                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>담당 가이드 · 등록 자료 선택</label>
-                                                                        <select className="select" style={{ width: '100%', display: 'block' }} aria-label="등록 가이드 선택" disabled={resourcesLoading} value={resources.guides.some(guide => guide.id === r.assignedGuide?.id) ? r.assignedGuide?.id || '' : ''} onChange={e => chooseGuide(r.id, e.target.value)}>
-                                                                            <option value="">{resourcesLoading ? '등록 가이드 불러오는 중…' : '등록 가이드 선택 · 직접 입력 가능'}</option>
-                                                                            {resources.guides.map(guide => <option key={guide.id} value={guide.id}>{guide.name}</option>)}
-                                                                        </select>
-                                                                        <input className="inp" style={{ width: '100%' }} aria-label="가이드 이름 직접 입력" value={r.assignedGuide?.name || ''} placeholder="가이드 이름 직접 입력" onChange={e => patchGuide(r.id, { name: e.target.value })} />
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>가이드 연락처</label>
-                                                                        <input className="inp" style={{ width: '100%' }} aria-label="가이드 연락처" value={r.assignedGuide?.phone || ''} placeholder="가이드 연락처" onChange={e => patchGuide(r.id, { phone: e.target.value })} />
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>차량 · 등록 자료 선택</label>
-                                                                        <select className="select" style={{ width: '100%', display: 'block' }} aria-label="등록 차량 선택" disabled={resourcesLoading} value={r.contractData?.vehicle?.resource && resources.vehicles.some(vehicle => vehicle.type === r.contractData?.vehicle?.type) ? r.contractData.vehicle.type : ''} onChange={e => chooseVehicle(r.id, e.target.value)}>
-                                                                            <option value="">{resourcesLoading ? '등록 차량 불러오는 중…' : '등록 차량 선택 · 직접 입력 가능'}</option>
-                                                                            {resources.vehicles.map(vehicle => <option key={vehicle.type} value={vehicle.type}>{vehicle.name}</option>)}
-                                                                        </select>
-                                                                        <input className="inp" style={{ width: '100%' }} aria-label="차종 직접 입력" value={r.contractData?.vehicle?.type || ''} placeholder="차종 직접 입력" onChange={e => patchVehicle(r.id, { type: e.target.value })} />
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="cell-muted" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>기사 연락처</label>
-                                                                        <input className="inp" style={{ width: '100%' }} aria-label="기사 연락처" value={r.contractData?.vehicle?.phone || ''} placeholder="기사 연락처" onChange={e => patchVehicle(r.id, { phone: e.target.value })} />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            </fieldset>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+            <section className="lo-table" aria-label="숙소 배정 예약 목록">
+                <div className="lo-head" aria-hidden="true">
+                    <span /><span>상태</span><span>고객</span><span>여행 기간</span><span>지역</span><span>인원</span><span>숙소</span><span>진행</span>
                 </div>
+                {loading && <p className="lo-empty">예약을 불러오고 있어요…</p>}
+                {!loading && filtered.length === 0 && <div className="lo-empty"><p>조건에 맞는 예약이 없어요.</p>{filtersOn && <button type="button" onClick={resetFilters}>필터 초기화</button>}</div>}
+                {!loading && filtered.map(r => {
+                    const sum = summaryOf(r);
+                    const status = boardStatusOf(r);
+                    const open = expanded.has(r.id);
+                    const isDirty = dirty.has(r.id);
+                    const rows = open ? (r.dailyAccommodations || []) : [];
+                    const cd = r.contractData || {};
+                    const travelers = cd.travelers || [];
+                    const hotels = [...new Set((r.dailyAccommodations || []).map(d => (d.accommodation?.name || '').trim()).filter(Boolean))];
+                    const hasGuide = !!r.assignedGuide?.name?.trim(), hasVehicle = !!cd.vehicle?.type?.trim();
+                    const progress = sum.total === null ? '필요 숙박일 확인' : sum.total === 0 ? '숙박 없음' : `${sum.confirmed}/${sum.total}박 확정`;
+                    const progressNote = sum.plan.warnings.length > 0 || (sum.total !== null && sum.total > 0 && !sum.allConfirmed) ? '숙박일 확인 필요' : !hasGuide || !hasVehicle ? '가이드·차량 확인' : '배정 완료';
+                    return (
+                        <React.Fragment key={r.id}>
+                            <div id={`acc-row-${r.id}`} role="button" tabIndex={0} aria-expanded={open} className={`lo-row${open ? ' is-open' : ''}`} onClick={() => toggleExpand(r)}
+                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(r); } }}>
+                                <span className="lo-chev"><DashboardIcon name="lc-chevron-down" size={18} /></span>
+                                <span><span className="lo-status" data-status={status}><i />{status}</span></span>
+                                <span className="lo-customer">
+                                    <b>{r.customerName || '-'}</b>
+                                    <small>
+                                        <em className="lo-kind" data-kind={r.type === 'quote' || r.source === 'quote_booking' ? 'quote' : 'product'}>{r.type === 'quote' || r.source === 'quote_booking' ? '견적 고객' : '상품 예약'}</em>
+                                        {r.reservationNumber && <span>#{r.reservationNumber}</span>}
+                                        {isDirty && <em className="lo-kind" data-kind="dirty">변경됨</em>}
+                                        {pendingDrafts[r.id] && <em className="lo-kind" data-kind="draft">초안</em>}
+                                    </small>
+                                </span>
+                                <span className="lo-range"><b>{fmtDate(r.startDate)} – {fmtDate(r.endDate)}</b><small>{sum.total === null ? '기간 확인 필요' : sum.total === 0 ? '당일' : `${sum.total}박 ${sum.total + 1}일`}</small></span>
+                                <span className="lo-muted">{regionOf(r)}</span>
+                                <span className="lo-muted">{r.travelers || '-'}명</span>
+                                <span className="lo-hotels">{hotels.length ? `${hotels[0]}${hotels.length > 1 ? ` 외 ${hotels.length - 1}` : ''}` : '—'}</span>
+                                <span className="lo-progress">
+                                    <b className={sum.allConfirmed && sum.total ? 'is-done' : ''}>{progress}</b>
+                                    {sum.total !== 0 && <small className={progressNote === '배정 완료' ? 'is-done' : ''}>{progressNote}</small>}
+                                </span>
+                            </div>
+                            {open && (
+                                <div className="lo-detail">
+                                    {pendingDrafts[r.id] && <div className="lo-notice is-draft" role="status">
+                                        <p>{pendingDrafts[r.id].conflict ? '초안 보관 후 서버 예약이 변경되었습니다. 현재 예약에 초안 배정을 적용할지 확인하세요.' : '이 계정과 예약에 보관된 배정 초안이 있습니다.'}</p>
+                                        <span className="lo-actions">
+                                            <button type="button" className="lo-btn is-ink" disabled={!!savingId} onClick={() => resolveDraft(r, true)}>초안 복원</button>
+                                            <button type="button" className="lo-btn" disabled={!!savingId} onClick={() => resolveDraft(r, false)}>초안 버리기</button>
+                                        </span>
+                                    </div>}
+                                    <fieldset disabled={!!savingId || !!pendingDrafts[r.id]} className="lo-fieldset">
+
+                                    {/* 여행자 · 항공 */}
+                                    <section className="lo-card">
+                                        <header className="lo-card-head"><DashboardIcon name="lc-users" size={16} /><h3>여행자 · 항공</h3>
+                                            <span className="lo-card-sub">{travelers.length ? `${travelers.length}명 · ${travelers.slice(0, 3).map(t => t.name || t.passportName || '이름 미입력').join(', ')}` : '여행자 정보 없음 (계약서 제출 전)'}</span></header>
+                                        <div className="lo-flights">
+                                            <div><span><DashboardIcon name="lc-plane-landing" size={14} />입국 항공 (몽골 도착)</span><b>{flightLine(cd.arrival)}</b></div>
+                                            <div><span><DashboardIcon name="lc-plane-takeoff" size={14} />출국 항공 (몽골 출발)</span><b>{flightLine(cd.departure)}</b></div>
+                                        </div>
+                                        {travelers.length > 0 && (
+                                            <div className="lo-scroll">
+                                                <table className="lo-mini">
+                                                    <thead><tr><th>#</th><th>여권 영문명</th><th>이름</th><th>생년월일</th><th>성별</th><th>연락처</th></tr></thead>
+                                                    <tbody>
+                                                        {travelers.map((t, i) => (
+                                                            <tr key={i}><td>{i + 1}</td><td><b>{t.passportName || '-'}</b></td><td>{t.name || '-'}</td><td>{t.birthdate || '-'}</td><td>{genderLabel(t.gender)}</td><td>{t.phone || '-'}</td></tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                        <div className="lo-meta">
+                                            {cd.agreement?.name && <span>전자 서명 <b>{cd.agreement.name}</b></span>}
+                                            <span>고객 일정 기준 <b>{scheduleSourceLabel[r.schedule?.source || 'none'] || '고객 일정'}</b> · {r.schedule?.days.length || 0}일</span>
+                                        </div>
+                                        <details className="lo-schedule">
+                                            <summary>전체 고객 일정 보기</summary>
+                                            {(r.schedule?.days || []).length ? <div className="lo-scroll">
+                                                <table className="lo-mini">
+                                                    <thead><tr><th>일차</th><th>날짜</th><th>여행 지역</th><th>고객 일정 요약</th></tr></thead>
+                                                    <tbody>{r.schedule!.days.map((day, index) => <tr key={index}>
+                                                        <td>{day.day}일차</td><td>{day.date || '날짜 미정'}</td><td>{day.region || '지역 미입력'}</td>
+                                                        <td className="is-wrap">{[day.title, day.summary].filter(Boolean).join(' · ') || '일정 내용 없음'}</td>
+                                                    </tr>)}</tbody>
+                                                </table>
+                                            </div> : <p className="lo-muted">저장된 고객 일정이 없습니다. 숙소 배정은 기존 내용을 유지합니다.</p>}
+                                        </details>
+                                    </section>
+
+                                    {/* 일차별 숙소 */}
+                                    <section className="lo-card">
+                                        <header className="lo-card-head"><DashboardIcon name="lc-bed" size={16} /><h3>일차별 숙소</h3>
+                                            <span className={`lo-pill${sum.allConfirmed && sum.total ? ' is-done' : ''}`}>{progress}</span>
+                                            <span className="lo-spacer" />
+                                            <a className="lo-btn" href={r.source === 'quote_booking' ? quoteCustomerHref(r.bookingId, '/admin/accommodation-ops') : productCustomerHref(r.bookingId, '/admin/accommodation-ops')} title="고객 통합 작업 화면에서 이 예약을 엽니다.">
+                                                <DashboardIcon name="lc-external-link" size={14} />예약 상세
+                                            </a>
+                                            <button type="button" className="lo-btn" title="저장된 숙소와 객실은 유지하고 고객 일정의 해당 일차 날짜에 맞춥니다." disabled={!sum.plan.canAlignDates} onClick={() => alignDates(r.id)}>
+                                                <DashboardIcon name="lc-calendar" size={14} />여행 날짜에 맞추기
+                                            </button>
+                                        </header>
+                                        <p className="lo-note">
+                                            {sum.total === null ? '여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.' : sum.total === 0 ? '당일 여행으로 숙박 배정이 필요하지 않습니다.' : `필요 ${sum.total}박 · 숙소 배정 ${sum.assigned}박 · 예약 확정 ${sum.confirmed}박`}
+                                        </p>
+                                        {sum.plan.warnings.map((warning, index) => <div key={index} role="alert" className="lo-warn">{warning}</div>)}
+                                        <div className="lo-scroll">
+                                            <table className="lo-nights">
+                                                <thead>
+                                                    <tr><th>일차 · 날짜</th><th>지역</th><th>숙소</th><th>등급</th><th>객실</th><th>인원</th><th>예약 상태</th><th aria-label="삭제" /></tr>
+                                                </thead>
+                                                <tbody>
+                                                    {rows.map((d, idx) => {
+                                                        const acc = d.accommodation || {};
+                                                        const scheduleDay = r.schedule?.days.find(day => day.day === d.day);
+                                                        const scheduleRegion = scheduleDay?.region.trim() || '';
+                                                        const regionLodges = scheduleRegion ? resources.lodges.filter(lodge => [lodge.region, lodge.location].some(value => value.trim().toLocaleLowerCase('ko-KR') === scheduleRegion.toLocaleLowerCase('ko-KR'))) : [];
+                                                        const otherLodges = scheduleRegion ? resources.lodges.filter(lodge => !regionLodges.includes(lodge)) : resources.lodges;
+                                                        const hasName = (acc.name || '').trim().length > 0;
+                                                        const bookingStatus = hasName ? (acc.bookingStatus || 'Илгээгээгүй') : 'Илгээгээгүй';
+                                                        const mKey = `${r.id}:${idx}`;
+                                                        const nm = acc.name || '';
+                                                        const inMaster = !!acc.id && lodgeById.get(acc.id)?.name === nm;
+                                                        const manual = manualHotels.has(mKey) || (!listHotels.has(mKey) && !!nm && !inMaster);
+                                                        return (
+                                                            <tr key={idx}>
+                                                                <td>
+                                                                    <div className="lo-day">
+                                                                        <label className="lo-day-no"><span>일차</span>
+                                                                            <input type="number" min={1} aria-label="숙박 일차" value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })} /></label>
+                                                                        <input type="date" className="lo-input lo-date" aria-label="숙박 날짜" value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
+                                                                        {d.date && <span className="lo-dow">{weekdayKo(d.date)}</span>}
+                                                                    </div>
+                                                                    {scheduleDay && <div className="lo-day-plan">일정: {[scheduleDay.date || '날짜 미정', scheduleDay.region || '지역 미입력', scheduleDay.title || scheduleDay.summary.slice(0, 80)].filter(Boolean).join(' · ')}</div>}
+                                                                    {(sum.plan.rowWarnings[idx] || []).map((warning, index) => <div key={index} role="alert" className="lo-day-plan is-warn">{warning}</div>)}
+                                                                </td>
+                                                                <td><input className="lo-input lo-region" aria-label="숙박 지역" value={acc.location || ''} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value, region: e.target.value })} /></td>
+                                                                <td>{manual ? (
+                                                                    // 공통 숙소에서 선택하며 과거 배정과 직접 입력은 그대로 유지한다.
+                                                                    <div className="lo-hotel-manual">
+                                                                        <input className="lo-input" value={nm} placeholder="숙소명 직접 입력" aria-label="숙소명 직접 입력"
+                                                                            onChange={e => {
+                                                                                if (!manualHotels.has(mKey)) setManualHotels(prev => new Set(prev).add(mKey));
+                                                                                if (e.target.value !== nm) patchDay(r.id, idx, { name: e.target.value, id: undefined, images: [], description: '', facilities: [], region: acc.location || '', address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: 'Илгээгээгүй' });
+                                                                            }} />
+                                                                        <button type="button" className="lo-icon-btn" title="등록 숙소 목록에서 선택"
+                                                                            onClick={() => { setManualHotels(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListHotels(prev => new Set(prev).add(mKey)); }}>
+                                                                            <DashboardIcon name="lc-search" size={14} />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <select className="lo-input lo-hotel" aria-label="등록 숙소 선택" disabled={resourcesLoading} value={inMaster ? acc.id : nm ? '__current__' : ''}
+                                                                        onChange={e => {
+                                                                            const v = e.target.value;
+                                                                            if (v === '__manual__') { setManualHotels(prev => new Set(prev).add(mKey)); setListHotels(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
+                                                                            const lodge = lodgeById.get(v);
+                                                                            if (lodge) patchDay(r.id, idx, selectResourceLodge(d, lodge).accommodation);
+                                                                        }}>
+                                                                        <option value="">{resourcesLoading ? '등록 숙소 불러오는 중…' : '등록 숙소 선택…'}</option>
+                                                                        {!inMaster && nm && <option value="__current__">현재 배정: {nm}</option>}
+                                                                        {scheduleRegion ? <>
+                                                                            <optgroup label={`일정 지역: ${scheduleRegion}`}>{regionLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
+                                                                            <optgroup label="전체 다른 지역">{otherLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
+                                                                        </> : resources.lodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}
+                                                                        <option value="__manual__">직접 입력 (목록에 없는 숙소)</option>
+                                                                    </select>
+                                                                )}</td>
+                                                                <td>
+                                                                    <select className="lo-input" aria-label="숙소 등급" value={acc.type || ''} onChange={e => patchDay(r.id, idx, { type: e.target.value || undefined })}>
+                                                                        {acc.type && !GRADE_OPTIONS.includes(acc.type) && <option value={acc.type}>{acc.type}</option>}
+                                                                        {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g || '미정'}</option>)}
+                                                                    </select>
+                                                                </td>
+                                                                <td><input className="lo-input lo-rooms" type="number" min={0} aria-label="객실 수" value={acc.roomCount ?? ''} placeholder="0" onChange={e => patchDay(r.id, idx, { roomCount: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value) || 0) })} /></td>
+                                                                <td>
+                                                                    <select className="lo-input" aria-label="객실당 인원" value={acc.occupancy || ''} onChange={e => patchDay(r.id, idx, { occupancy: e.target.value || undefined })}>
+                                                                        {acc.occupancy && !OCCUPANCY_OPTIONS.includes(acc.occupancy) && <option value={acc.occupancy}>{acc.occupancy}</option>}
+                                                                        {OCCUPANCY_OPTIONS.map(o => <option key={o} value={o}>{occupancyLabel(o)}</option>)}
+                                                                    </select>
+                                                                </td>
+                                                                <td>
+                                                                    <span className="lo-status-select" data-status={hasName ? bookingStatus : 'none'}>
+                                                                        <i />
+                                                                        <select className="lo-input" aria-label="숙소 예약 상태" value={bookingStatus} disabled={!hasName}
+                                                                            onChange={e => patchDay(r.id, idx, { bookingStatus: e.target.value as BookingStatus })}>
+                                                                            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                                                                        </select>
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <button type="button" className="lo-icon-btn is-danger" title="이 숙박일 삭제" aria-label={`${d.day}일차 숙박 삭제`} onClick={() => { if (window.confirm(`${d.day}일차 숙박을 삭제할까요?`)) removeDay(r.id, idx); }}>
+                                                                        <DashboardIcon name="lc-trash" size={14} />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                    {rows.length === 0 && <tr><td colSpan={8} className="lo-empty-row">숙박일이 없어요. '숙박일 추가'로 추가해 주세요.</td></tr>}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="lo-actions">
+                                            <button type="button" className="lo-btn is-dashed" onClick={() => addDay(r.id)}>＋ 숙박일 추가</button>
+                                            {sum.plan.missingNights.length > 0 && <button type="button" className="lo-btn is-dashed" disabled={sum.plan.addableNights.length === 0} onClick={() => addMissingNights(r)}>＋ 누락 숙박일 추가</button>}
+                                        </div>
+                                    </section>
+
+                                    {/* 담당 가이드 · 투어 차량 */}
+                                    <div className="lo-crew">
+                                        <section className="lo-card">
+                                            <header className="lo-card-head"><DashboardIcon name="lc-user" size={16} /><h3>담당 가이드</h3>
+                                                <span className={`lo-pill${hasGuide ? ' is-done' : ' is-warn'}`}>{hasGuide ? '배정됨' : '미배정'}</span></header>
+                                            <select className="lo-input" aria-label="등록 가이드 선택" disabled={resourcesLoading} value={resources.guides.some(guide => guide.id === r.assignedGuide?.id) ? r.assignedGuide?.id || '' : ''} onChange={e => chooseGuide(r.id, e.target.value)}>
+                                                <option value="">{resourcesLoading ? '등록 가이드 불러오는 중…' : '등록 가이드 선택 · 직접 입력 가능'}</option>
+                                                {resources.guides.map(guide => <option key={guide.id} value={guide.id}>{guide.name}</option>)}
+                                            </select>
+                                            <div className="lo-crew-row">
+                                                <input className="lo-input" aria-label="가이드 이름 직접 입력" value={r.assignedGuide?.name || ''} placeholder="가이드 이름 직접 입력" onChange={e => patchGuide(r.id, { name: e.target.value })} />
+                                                <input className="lo-input" aria-label="가이드 연락처" value={r.assignedGuide?.phone || ''} placeholder="가이드 연락처" onChange={e => patchGuide(r.id, { phone: e.target.value })} />
+                                            </div>
+                                        </section>
+                                        <section className="lo-card">
+                                            <header className="lo-card-head"><DashboardIcon name="lc-car" size={16} /><h3>투어 차량</h3>
+                                                <span className={`lo-pill${hasVehicle ? ' is-done' : ' is-warn'}`}>{hasVehicle ? '배정됨' : '미배정'}</span></header>
+                                            <select className="lo-input" aria-label="등록 차량 선택" disabled={resourcesLoading} value={r.contractData?.vehicle?.resource && resources.vehicles.some(vehicle => vehicle.type === r.contractData?.vehicle?.type) ? r.contractData.vehicle.type : ''} onChange={e => chooseVehicle(r.id, e.target.value)}>
+                                                <option value="">{resourcesLoading ? '등록 차량 불러오는 중…' : '등록 차량 선택 · 직접 입력 가능'}</option>
+                                                {resources.vehicles.map(vehicle => <option key={vehicle.type} value={vehicle.type}>{vehicle.name}</option>)}
+                                            </select>
+                                            <div className="lo-crew-row">
+                                                <input className="lo-input" aria-label="차종 직접 입력" value={r.contractData?.vehicle?.type || ''} placeholder="차종 직접 입력" onChange={e => patchVehicle(r.id, { type: e.target.value })} />
+                                                <input className="lo-input" aria-label="기사 연락처" value={r.contractData?.vehicle?.phone || ''} placeholder="기사 연락처" onChange={e => patchVehicle(r.id, { phone: e.target.value })} />
+                                            </div>
+                                        </section>
+                                    </div>
+                                    </fieldset>
+
+                                    <div className="lo-savebar">
+                                        <span>{isDirty ? '변경 내용이 있어요 · 저장하면 예약 상세와 투어 캘린더에 반영돼요.' : '저장된 배정 기준이에요.'}</span>
+                                        <button type="button" className="lo-btn is-ink" disabled={!isDirty || !!savingId || !!pendingDrafts[r.id]} onClick={() => save(r)}>
+                                            <DashboardIcon name="lc-check" size={14} />{savingId === r.id ? '저장하는 중…' : '배정 저장'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </React.Fragment>
+                    );
+                })}
+            </section>
             </div>
         </AdminLayout>
     );
