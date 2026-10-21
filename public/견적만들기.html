@@ -14,10 +14,10 @@
 <link rel="stylesheet" href="/quote-spot-selector.css">
 <style>
   :root {
-    --p:#06C4A0; --pd:#05A084; --pl:#E1F8F3; --pb:#9DE7D8;
+    --p:#12B28C; --pd:#0E9E7A; --pl:#E6F8F1; --pb:#A6E6D2;
     --accent:var(--p); --deep:var(--p); --deep2:var(--pd); --soft:var(--pl);
-    --ink:#111827; --ink2:#1F2937; --sub:#667085; --gray:#98A2B3; --dim:#B6BCC6;
-    --line:#EAECF0; --line2:#EEF0F3; --hair:#F4F6F8; --bg:#F5F6F8; --red:#E07A7A;
+    --ink:#1A1B1E; --ink2:#1A1B1E; --sub:#4A4E55; --gray:#8A8F99; --dim:#B4B8C0;
+    --line:#E6E8EC; --line2:#E6E8EC; --hair:#F1F2F4; --bg:#F7F8FA; --red:#FF4F4F;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Pretendard, system-ui, "Malgun Gothic", sans-serif; background: var(--bg); color: var(--ink); -webkit-font-smoothing:antialiased; }
@@ -181,6 +181,104 @@
   .bottom .publish { padding:0 22px; border:none; background:var(--p); color:#fff; font-weight:800; }
   .bottom .publish:hover { background:var(--pd); }
   .bottom button[hidden] { display:none; }
+
+  /* ── Admin Dashboard v3 "03-2 견적서 작성" ── 흰 머리글·단계 표시·카드·하단 총액 바 */
+  header { height:64px; gap:8px; padding:0 28px; background:rgba(255,255,255,.96); }
+  header button { height:36px; padding:0 14px; border:1.5px solid var(--line); border-radius:999px; color:var(--ink); font-weight:700; }
+  header button:hover { border-color:var(--ink); }
+  header button.go { background:var(--ink); color:#fff; font-weight:800; }
+  header button.go:hover { background:#000; }
+  .qb-head { display:flex; flex-direction:column; min-width:0; }
+  .qb-kick { font-size:12px; font-weight:800; color:var(--p); }
+  .qb-head b { overflow:hidden; color:var(--ink); font-size:20px; font-weight:800; letter-spacing:-.03em; white-space:nowrap; text-overflow:ellipsis; }
+  .stepwrap { top:64px; padding:2px 28px 14px; background:rgba(255,255,255,.96); }
+  .steps { max-width:720px; }
+  .steps .track { top:15px; background:var(--line); }
+  .steps .fill { top:15px; background:var(--ink); }
+  .step { gap:6px; }
+  .step .dot { width:30px; height:30px; border:0; background:var(--hair); color:var(--gray); }
+  .step .tx { font-size:12px; color:var(--gray); }
+  .step.done .dot { background:var(--ink); color:#fff; }
+  .step.done .tx { color:var(--gray); }
+  .step.on .dot { width:30px; height:30px; border:2px solid var(--p); background:#fff; color:var(--pd); outline:0; animation:qbPulse 1.8s cubic-bezier(.2,0,.1,1) infinite; }
+  .step.on .tx { color:var(--ink); }
+  @keyframes qbPulse { 0% { box-shadow:0 0 0 0 rgba(18,178,140,.35); } 70% { box-shadow:0 0 0 8px rgba(18,178,140,0); } 100% { box-shadow:0 0 0 0 rgba(18,178,140,0); } }
+  main { max-width:1040px; padding:24px 28px 120px; }
+  .phead { margin-bottom:16px; }
+  .phead .kick { font-size:12px; letter-spacing:0; margin-bottom:4px; }
+  .phead h2 { font-size:26px; letter-spacing:-.03em; }
+  .phead p { font-size:14px; }
+  .pcard { margin-bottom:16px; padding:22px; background:#fff; border:1px solid var(--line); border-radius:20px; }
+  .glabel { margin-bottom:12px; color:var(--ink); font-size:15px; letter-spacing:0; }
+  .glabel.mt { margin-top:22px; }
+  .hint { color:var(--gray); font-size:13px; }
+  .hint b { color:var(--ink); font-weight:800; }
+  .row { gap:10px; }
+  label.f span { font-size:12px; font-weight:600; color:var(--gray); }
+  label.f span span { color:var(--dim); }
+  input:not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea { padding:0 14px; height:44px; border:1.5px solid var(--line); border-radius:12px; color:var(--ink); }
+  textarea { height:auto; padding:12px 14px; }
+  input:focus, select:focus, textarea:focus { border-color:var(--ink); box-shadow:none; }
+  .calc-note { color:var(--pd); }
+  .int-dot { width:40px; height:40px; border:1.5px solid var(--line); border-radius:12px; color:var(--sub); font-size:15px; }
+  .int-dot:hover { border-color:var(--ink); }
+  .int-dot.on { border-color:var(--ink); background:var(--ink); }
+  .int-desc { color:var(--ink); font-size:14px; font-weight:800; }
+  .course-pick { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px; }
+  .course-btn { min-height:64px; padding:14px 16px; border:1px solid var(--line); border-radius:14px; }
+  .course-btn:hover { background:#fff; border-color:#D7DAE0; }
+  .course-btn.sel { padding:13.5px 15.5px; border:1.5px solid var(--ink); background:var(--bg); }
+  .course-btn b { color:var(--ink); font-size:14px; font-weight:800; letter-spacing:-.02em; }
+  .course-btn small { margin-top:2px; color:var(--gray); font-size:12px; }
+  #cloneBtn { border:1.5px solid var(--line)!important; border-radius:999px!important; background:#fff!important; color:var(--ink)!important; font-weight:700!important; }
+  #fillDatesBtn { height:36px; padding:0 14px!important; border:1.5px solid var(--line)!important; border-radius:999px!important; color:var(--ink)!important; font-size:13px!important; }
+  .seg { padding:3px; border-radius:999px; background:var(--hair); }
+  .seg button { height:36px; padding:0 14px; border-radius:999px; color:var(--sub); font-size:13px; font-weight:500; }
+  .seg button.on { background:var(--ink); color:#fff; font-weight:800; }
+  .opt-list, .bal-table { border-color:var(--line); border-radius:14px; }
+  .opt-row .lbl { color:var(--ink); font-weight:700; }
+  .bal-head { background:var(--bg); color:var(--gray); font-size:12px; }
+  .bal-row .pax { height:26px; display:inline-flex; align-items:center; padding:0 10px; border-radius:999px; background:var(--hair); color:var(--ink); font-weight:800; }
+  .bal-row label input { height:40px; }
+  .add-opt input { height:40px; }
+  .add-opt button { height:40px; border:1.5px solid var(--line); border-radius:999px; background:#fff; color:var(--ink); font-weight:700; }
+  .add-opt button:hover { border-color:var(--ink); background:#fff; }
+  .sec-lbl { color:var(--ink); font-size:14px; font-weight:800; }
+  #dayList.quote-day-editor .day-edit { padding:14px; border:1px solid var(--line); border-radius:16px; background:#fff; }
+  #dayList.quote-day-editor .day-edit:not(.is-collapsed) { padding:13.5px; border:1.5px solid var(--ink); }
+  #dayList.quote-day-editor .day-edit .dh .badge { display:inline-flex; align-items:center; height:30px; padding:0 14px; border-radius:999px; background:var(--ink); font-size:13px; }
+  #dayList.quote-day-editor .day-edit .dh input { height:44px; padding:0 14px; border:1.5px solid var(--line); border-radius:12px; }
+  #dayList.quote-day-editor .day-edit .dh input.dest { font-size:15px; font-weight:800; }
+  #dayList.quote-day-editor .day-edit .dh .day-toggle { height:36px; min-height:36px; padding:0 12px; border:0; border-radius:999px; background:var(--hair); color:var(--ink); font-size:13px; font-weight:700; }
+  #dayList.quote-day-editor .day-edit .dh .day-del { width:36px; height:36px; border:0; border-radius:999px; background:transparent; color:var(--gray); }
+  #dayList.quote-day-editor .day-edit .dh .day-del:hover { background:#FFECEC; color:var(--red); }
+  #dayList.quote-day-editor .day-body { margin-top:12px; padding:14px; border-radius:14px; background:var(--bg); }
+  #dayList.quote-day-editor .day-edit .snip-sel { height:40px; border:1.5px solid var(--ink); border-radius:999px; font-weight:800; }
+  #dayList.quote-day-editor .day-edit textarea.items { min-height:104px; border:1.5px solid var(--line); border-radius:12px; font-size:14px; }
+  #dayList.quote-day-editor .day-edit .row.c2 input { height:44px; border:1.5px solid var(--line); border-radius:12px; font-size:14px; }
+  #dayList.quote-day-editor :is(input, select, textarea):focus { border-color:var(--ink); box-shadow:none; }
+  #dayList.quote-day-editor .day-add { height:52px; border:1.5px dashed #D7DAE0; border-radius:16px; background:transparent; color:var(--sub); font-weight:800; }
+  #dayList.quote-day-editor .day-add:hover { border-color:var(--ink); background:transparent; color:var(--ink); }
+  #spotGroups.quote-spot-selector .spot-cat-head { color:var(--ink); font-size:14px; font-weight:800; letter-spacing:0; }
+  #spotGroups.quote-spot-selector .spot-cat-head .cc { color:var(--gray); font-size:12px; font-weight:600; }
+  #spotGroups.quote-spot-selector .spot-grid { grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px; }
+  #spotGroups.quote-spot-selector .spot-chk { min-height:60px; padding:12px; border:1px solid var(--line); border-radius:14px; }
+  #spotGroups.quote-spot-selector .spot-chk.on { padding:11.5px; border:1.5px solid var(--ink); background:var(--bg); }
+  #spotGroups.quote-spot-selector .spot-chk .box { width:24px; height:24px; border:1.5px solid #D7DAE0; background:#fff; color:#fff; }
+  #spotGroups.quote-spot-selector .spot-chk.on .box { border:0; background:var(--ink); }
+  #spotGroups.quote-spot-selector .spot-chk b { color:var(--ink); font-size:14px; font-weight:800; }
+  #spotGroups.quote-spot-selector .spot-chk small { color:var(--gray); font-size:12px; }
+  .bottom { height:72px; padding:0 28px; background:rgba(255,255,255,.96); border-top-color:var(--line); }
+  .bottom .sum .ic { display:none; }
+  .bottom .sum .cap { color:var(--gray); font-size:12px; }
+  .bottom .sum .amt { color:var(--ink); font-size:22px; letter-spacing:-.03em; }
+  .bottom .sum .amt i { color:var(--gray); font-size:13px; font-weight:600; }
+  .bottom button { height:44px; border-radius:999px; font-weight:700; }
+  .bottom .prev { border:1.5px solid var(--line); color:var(--ink); }
+  .bottom .prev:hover { border-color:var(--ink); }
+  .bottom :is(.next, .publish) { padding:0 20px; background:var(--ink); font-weight:800; }
+  .bottom :is(.next, .publish):hover { background:#000; }
+  @media (prefers-reduced-motion:reduce) { .step.on .dot { animation:none; } }
   @media (max-width:900px){ .side{display:none} .bottom{left:0} .row.c3{grid-template-columns:1fr 1fr} .spot-grid{grid-template-columns:1fr 1fr} }
 
   .toast { position:fixed; bottom:88px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:12px 22px; border-radius:12px; font-size:14px; font-weight:600; opacity:0; transition:.25s; z-index:30; pointer-events:none; }
@@ -254,6 +352,7 @@
   </aside>
   <div class="ecol">
 <header>
+  <div class="qb-head"><span class="qb-kick" id="qbKick">견적서 작성</span><b id="qbTitle">새 견적</b></div>
   <span class="sp"></span>
   <button id="resetBtn">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
@@ -281,6 +380,7 @@
       <h2>기본 정보 · 코스 불러오기</h2>
       <p>고객·일정·항공 정보를 입력하고 저장된 코스를 불러옵니다.</p>
     </div>
+    <div class="pcard">
 
     <div class="glabel">기본 정보</div>
     <div class="row c3">
@@ -306,7 +406,9 @@
     </div>
     <div class="calc-note" id="nightsNote"></div>
 
-    <div class="glabel mt">코스 불러오기</div>
+    </div>
+    <div class="pcard">
+    <div class="glabel">코스 불러오기</div>
     <div class="hint">코스를 고르면 일정·대표 명소·기본 요금이 한 번에 채워집니다. 이후 각 단계에서 자유롭게 수정하세요.</div>
     <div class="course-pick" id="coursePick"></div>
 
@@ -318,6 +420,7 @@
       </div>
       <div id="clonePick" style="display:none; margin-top:12px; max-height:300px; overflow:auto; gap:8px;"></div>
     </div>
+    </div>
   </section>
 
   <!-- STEP 2 · 일자별 일정 -->
@@ -327,10 +430,12 @@
       <h2>일자별 일정</h2>
       <p>일차별 일정을 구성하고 프리셋으로 빠르게 채웁니다.</p>
     </div>
+    <div class="pcard">
     <div class="hint">목적지·이동·세부 일정을 자유롭게 수정하세요. (한 줄에 하나씩. "*"로 시작하면 강조, "("로 시작하면 회색)</div>
     <div id="dayCheck" style="font-size:12.5px; margin-bottom:8px"></div>
     <div style="margin-bottom:12px;"><button type="button" id="fillDatesBtn" style="border:1px dashed #cfd6dd; background:#fff; color:#5a6a75; border-radius:9px; padding:8px 13px; font:700 12px inherit; cursor:pointer;">📅 출발일 기준 여행일자 자동 입력 (선택)</button></div>
     <div id="dayList"></div>
+    </div>
   </section>
 
   <!-- STEP 3 · 요금 -->
@@ -340,6 +445,7 @@
       <h2>요금 (1인 기준)</h2>
       <p>인원·숙소 타입별 단가와 추가 옵션을 설정합니다.</p>
     </div>
+    <div class="pcard">
 
     <div style="display:flex; gap:22px; align-items:flex-end; flex-wrap:wrap; margin-bottom:20px;">
       <label class="f"><span>예약금 (1인)</span><input type="number" id="f_deposit" step="1000" style="width:170px"></label>
@@ -371,6 +477,7 @@
       <input class="amt-in" id="newBalFull" type="number" placeholder="풀패키지(원)">
       <button id="addBalBtn">＋ 인원 추가</button>
     </div>
+    </div>
   </section>
 
   <!-- STEP 4 · 대표 명소 -->
@@ -380,8 +487,10 @@
       <h2>대표 명소</h2>
       <p>선택 순서대로 지도·견적서에 표시됩니다.</p>
     </div>
+    <div class="pcard">
     <div class="hint">지역(카테고리)별로 묶여 있어요. 설명·몽골어 지명은 자동으로 채워집니다.</div>
     <div id="spotGroups"></div>
+    </div>
   </section>
 
   <!-- STEP 5 · 혜택 · 비고 -->
@@ -391,10 +500,12 @@
       <h2>혜택 · 이벤트 · 비고</h2>
       <p>제공 혜택과 이벤트, 비고를 안내합니다.</p>
     </div>
+    <div class="pcard">
     <div class="hint">견적서 기본 정보 표에 그대로 표시됩니다. 비우면 견적서에 빈 칸으로 나옵니다.</div>
     <label class="f" style="margin-bottom:16px"><span>여행사 혜택</span><input id="f_benefits" placeholder="예) 판초 1인1개, 캠핑의자 세트, 낙타양말 증정"></label>
     <label class="f" style="margin-bottom:16px"><span>참여 가능 이벤트 <span>(한 줄에 하나씩)</span></span><textarea id="f_events" rows="5" placeholder="❤️1번: 후기이벤트 참여시 1인 1만원할인&#10;❤️2번: 인스타 후기 작성시 1인 2만원할인"></textarea></label>
     <label class="f"><span>비고</span><input id="f_remark" placeholder="특이사항 (비우면 '-')"></label>
+    </div>
   </section>
 </main>
 
@@ -613,6 +724,7 @@ const bind = (id, key, num) => $(id).oninput = e => {
   if (key === "depart" || key === "return_") updateNights();
   if (key === "pax" || key === "deposit") renderTotal();
   if (key === "manager") renderManagerChip();
+  if (key === "customer" || key === "destination" || key === "quoteNo") renderHeadTitle();
 };
 bind("f_customer","customer"); bind("f_phone","phone"); bind("f_destination","destination"); bind("f_quoteNo","quoteNo");
 bind("f_depart","depart"); bind("f_return","return_"); bind("f_pax","pax",true);
@@ -800,6 +912,7 @@ function setStep(i) {
   $("stepFill").style.width = `calc((100% - 120px) * ${frac})`;
   const last = curStep === STEP_LABELS.length - 1;
   $("stepNext").hidden = last;
+  if (!last) $("stepNext").textContent = `다음 · ${STEP_LABELS[curStep + 1]}`;
   $("publishBtn2").hidden = !last;
   $("saveQuoteBtn2").hidden = !last;
   $("stepPrev").disabled = curStep === 0;
@@ -835,7 +948,11 @@ function renderManagerChip() {
   $("sideAv").textContent = name ? name.slice(0, 1) : "매";
 }
 
-function renderAll() { renderIntensity(); renderSpots(); renderOptions(); renderBalances(); renderDays(); renderManagerChip(); syncRoomSeg(); }
+function renderAll() { renderIntensity(); renderSpots(); renderOptions(); renderBalances(); renderDays(); renderManagerChip(); syncRoomSeg(); renderHeadTitle(); }
+function renderHeadTitle() {
+  $("qbKick").textContent = `견적서 작성 · ${$("f_quoteNo").value || ST.quoteNo || ""}`.replace(/ · $/, "");
+  $("qbTitle").textContent = `${String(ST.customer || "").trim() || "새 견적"} · ${String(ST.destination || "").trim() || "여행지 미정"}`;
+}
 function syncRoomSeg() {
   $("roomSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.r === (ST.roomType || "eco")));
 }
