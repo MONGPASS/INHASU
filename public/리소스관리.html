@@ -99,7 +99,11 @@
 
   /* ── Admin Dashboard v3 "05-2 가이드·견적숙소·차량" ── 민트·잉크 카드 디자인 */
   :root { --accent:#12b28c; --deep:#1a1b1e; --soft:#e6f8f1; --ink:#1a1b1e; --sub:#4a4e55; --gray:#8a8f99; --line:#e6e8ec; --bg:#f7f8fa; --red:#ff4f4f; --mint:#12b28c; --mint-strong:#0e9e7a; }
-  html.admin-embedded .content { max-width:none; padding:24px 28px 60px; }
+  html.admin-embedded .content { max-width:none; padding:20px 28px 60px; }
+  /* 통합 관리자 안에서는 바깥 머리글에 같은 제목·설명이 있으므로 안쪽 제목·설명을 숨기고 추가 버튼만 둡니다. */
+  html.admin-embedded .page-title { display:none; }
+  html.admin-embedded .content { position:relative; }
+  html.admin-embedded .page-head { position:absolute; top:20px; right:28px; z-index:2; margin:0; }
   .page-head { align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
   .page-title { flex:1; min-width:220px; }
   .page-title .kick { display:block; color:var(--mint); font-size:12px; font-weight:800; }
