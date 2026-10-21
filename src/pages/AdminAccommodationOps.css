@@ -1,0 +1,170 @@
+/* 숙소 배정 · 현지 운영 — Admin Dashboard v3 "05-1 배정 자원 - 숙소 배정 현지 운영". 이 보드 안에서만 민트 토큰을 씁니다. */
+.lo-board {
+  --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c;
+  --lo-mint: #12b28c; --lo-mint-strong: #0E9E7A; --lo-mint-soft: linear-gradient(135deg, #e9fbf4, #d2f5e8); --lo-mint-line: #bdeedd;
+  display: flex; flex-direction: column; gap: 14px; min-width: 0;
+}
+.lo-board button, .lo-board select, .lo-board input { font: inherit; }
+.lo-board :is(button, a, select, input, summary):focus-visible { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }
+.lo-notice { padding: 12px 16px; border-radius: 14px; background: var(--mrt-blue-50); color: var(--lo-mint-strong); font-size: 13px; font-weight: 600; }
+.lo-notice.is-warn { background: #fff6df; color: #8a5d00; }
+.lo-notice.is-draft { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; background: #fff6df; color: #8a5d00; }
+.lo-notice.is-draft p { flex: 1; min-width: 220px; margin: 0; }
+
+/* 상태 요약 칩 */
+.lo-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+.lo-kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 104px; padding: 8px 16px; border: 1px solid var(--border-default); border-radius: 14px; background: #fff; color: var(--text-strong); cursor: pointer; text-align: left; }
+.lo-kpi span { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.lo-kpi b { font-size: 22px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.lo-kpi[data-tone="배정 완료"] b { color: var(--lo-mint-strong); }
+.lo-kpi.is-warn { border-color: #ffd6d6; background: #ffecec; }
+.lo-kpi.is-warn :is(span, b) { color: #ff4f4f; }
+.lo-kpi.is-on { border: 1.5px solid var(--lo-mint); background: linear-gradient(160deg, #f2fdf9, #e3f9f1); padding: 7.5px 15.5px; }
+
+/* 검색·필터 */
+.lo-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.lo-search { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; max-width: 340px; height: 40px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-tertiary); }
+.lo-search:focus-within { border-color: var(--mrt-ink); }
+.lo-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-strong); font-size: 14px; }
+.lo-select { height: 40px; padding: 0 32px 0 14px; border: 1.5px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-strong); font-size: 13px; font-weight: 600; cursor: pointer; }
+.lo-reset { padding: 0 4px; border: 0; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; cursor: pointer; }
+.lo-reset:hover { color: var(--text-strong); text-decoration: underline; }
+.lo-count { margin-left: auto; color: var(--text-tertiary); font-size: 12px; }
+.lo-count b { color: var(--text-strong); font-weight: 800; }
+.lo-count b.is-warn { color: #ff4f4f; }
+
+/* 출발 월 */
+.lo-months { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 14px; border: 1px solid var(--border-default); border-radius: 18px; background: #fff; }
+.lo-months-label { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 13px; font-weight: 700; }
+.lo-year { display: inline-flex; align-items: center; gap: 4px; }
+.lo-year b { min-width: 58px; color: var(--text-strong); font-size: 14px; font-weight: 800; text-align: center; }
+.lo-year button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-secondary); cursor: pointer; }
+.lo-year button:disabled { opacity: .4; cursor: default; }
+.lo-year-all { height: 30px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--mrt-gray-100); color: var(--text-secondary); font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.lo-year-all.is-on { background: linear-gradient(135deg, #1cc497, #0a7f62); color: #fff; }
+.lo-month-grid { display: grid; grid-template-columns: repeat(12, minmax(52px, 1fr)); gap: 6px; flex: 1 1 100%; min-width: 0; overflow-x: auto; }
+.lo-month { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; height: 46px; border: 1px solid var(--border-default); border-radius: 12px; background: #fff; color: var(--text-tertiary); cursor: pointer; }
+.lo-month span { font-size: 13px; font-weight: 700; }
+.lo-month small { font-size: 11px; font-weight: 700; }
+.lo-month:disabled { cursor: default; }
+.lo-month.has-tours { border-color: var(--lo-mint-line); background: linear-gradient(160deg, #f2fdf9, #e3f9f1); color: var(--text-strong); }
+.lo-month.has-tours small { color: var(--lo-mint-strong); }
+.lo-month.is-on { border: 1.5px solid var(--lo-mint); background: linear-gradient(135deg, #1cc497, #0a7f62); color: #fff; }
+.lo-month.is-on small { color: #fff; }
+
+/* 예약 목록 */
+.lo-table { min-width: 0; overflow-x: auto; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.lo-head, .lo-row { display: grid; grid-template-columns: 36px 104px minmax(200px, 1.7fr) minmax(180px, 1.2fr) minmax(88px, .7fr) 64px minmax(130px, 1fr) 140px; column-gap: 14px; align-items: center; min-width: 1000px; padding: 0 20px; }
+.lo-head { min-height: 40px; border-bottom: 1px solid var(--border-subtle); background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 12px; font-weight: 500; }
+.lo-row { min-height: 68px; padding-top: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; transition: background .16s; }
+.lo-row:hover { background: var(--mrt-gray-50); }
+.lo-row.is-open { background: #f4fbf8; }
+.lo-chev { display: grid; place-items: center; color: var(--text-tertiary); transform: rotate(-90deg); transition: transform .2s; }
+.lo-row.is-open .lo-chev { color: var(--lo-mint-strong); transform: none; }
+.lo-status { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; background: #ffecec; color: #ff4f4f; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.lo-status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.lo-status[data-status="진행 중"] { background: var(--lo-mint-soft); color: var(--lo-mint-strong); box-shadow: inset 0 0 0 1px var(--lo-mint-line); }
+.lo-status[data-status="배정 완료"] { background: var(--mrt-ink); color: #fff; }
+.lo-customer, .lo-range, .lo-progress { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.lo-customer b { overflow: hidden; color: var(--text-strong); font-size: 14px; font-weight: 800; white-space: nowrap; text-overflow: ellipsis; }
+.lo-customer small { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--text-tertiary); font-size: 11px; }
+.lo-kind { height: 18px; padding: 0 6px; border-radius: 5px; background: var(--mrt-gray-100); color: var(--text-secondary); font-size: 10px; font-style: normal; font-weight: 800; line-height: 18px; }
+.lo-kind[data-kind="quote"] { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
+.lo-kind[data-kind="product"] { background: var(--mrt-green-soft); color: var(--mrt-green); }
+.lo-kind[data-kind="dirty"] { background: #fff6df; color: #a16d00; }
+.lo-kind[data-kind="draft"] { background: #ffecec; color: #ff4f4f; }
+.lo-range b { color: var(--text-strong); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.lo-range small, .lo-muted { color: var(--text-secondary); font-size: 13px; }
+.lo-range small { color: var(--text-tertiary); font-size: 12px; }
+.lo-hotels { overflow: hidden; color: var(--text-strong); font-size: 13px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.lo-progress b { color: var(--text-strong); font-size: 14px; font-weight: 800; white-space: nowrap; }
+.lo-progress b.is-done { color: var(--lo-mint-strong); }
+.lo-progress small { color: #ff4f4f; font-size: 11px; font-weight: 700; }
+.lo-progress small.is-done { color: var(--lo-mint-strong); }
+.lo-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 0; padding: 40px 20px; color: var(--text-tertiary); font-size: 14px; text-align: center; }
+.lo-empty p { margin: 0; }
+.lo-empty button { border: 0; background: transparent; color: var(--text-link); font-size: 13px; font-weight: 700; cursor: pointer; }
+
+/* 펼친 예약 */
+.lo-detail { display: flex; flex-direction: column; gap: 12px; min-width: 1000px; padding: 16px 20px 20px; border-bottom: 1px solid var(--border-subtle); background: #f4fbf8; }
+.lo-fieldset { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.lo-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 16px 18px; border: 1px solid var(--border-default); border-radius: 16px; background: #fff; }
+.lo-card-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--text-strong); }
+.lo-card-head h3 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -.02em; }
+.lo-card-sub { color: var(--text-tertiary); font-size: 12px; }
+.lo-spacer { flex: 1; }
+.lo-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--lo-mint-soft); color: var(--lo-mint-strong); box-shadow: inset 0 0 0 1px var(--lo-mint-line); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.lo-pill.is-done { background: linear-gradient(135deg, #2fd3a7, #0E9E7A); color: #fff; box-shadow: none; }
+.lo-pill.is-warn { background: #ffecec; color: #ff4f4f; box-shadow: none; }
+.lo-crew .lo-card-head .lo-pill { margin-left: auto; }
+.lo-flights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.lo-flights > div { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--mrt-gray-50); }
+.lo-flights span { display: inline-flex; align-items: center; gap: 5px; color: var(--text-tertiary); font-size: 11px; font-weight: 600; }
+.lo-flights b { color: var(--text-strong); font-size: 13px; font-weight: 700; }
+.lo-scroll { min-width: 0; overflow-x: auto; }
+.lo-mini { width: 100%; border-collapse: collapse; font-size: 13px; }
+.lo-mini th { padding: 8px 10px; background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 11px; font-weight: 600; text-align: left; white-space: nowrap; }
+.lo-mini td { padding: 8px 10px; border-top: 1px solid var(--border-subtle); color: var(--text-secondary); white-space: nowrap; }
+.lo-mini td b { color: var(--text-strong); }
+.lo-mini td.is-wrap { min-width: 220px; white-space: normal; overflow-wrap: anywhere; }
+.lo-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--text-tertiary); font-size: 12px; }
+.lo-meta b { color: var(--text-strong); font-weight: 700; }
+.lo-schedule summary { color: var(--text-secondary); font-size: 12px; font-weight: 700; cursor: pointer; }
+.lo-schedule[open] summary { margin-bottom: 8px; }
+.lo-note { margin: 0; color: var(--text-secondary); font-size: 12px; }
+.lo-warn { padding: 8px 12px; border-radius: 10px; background: #ffecec; color: #d93636; font-size: 12px; font-weight: 600; }
+
+/* 일차별 숙소 표 */
+.lo-nights { width: 100%; min-width: 1020px; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.lo-nights th { padding: 8px; background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 11px; font-weight: 600; text-align: left; white-space: nowrap; }
+.lo-nights th:first-child { border-radius: 10px 0 0 10px; }
+.lo-nights th:last-child { border-radius: 0 10px 10px 0; }
+.lo-nights td { padding: 8px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.lo-input { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: 10px; background: #fff; color: var(--text-strong); font-size: 13px; font-weight: 600; outline: 0; }
+.lo-input:focus { border-color: var(--mrt-ink); }
+.lo-input:disabled { opacity: .55; }
+.lo-day { display: flex; align-items: center; gap: 8px; }
+.lo-day-no { display: flex; flex-direction: column; align-items: center; flex: none; color: var(--text-tertiary); font-size: 9px; font-weight: 700; }
+.lo-day-no input { width: 40px; height: 30px; padding: 0; border: 1px solid var(--border-default); border-radius: 8px; color: var(--lo-mint-strong); font-size: 14px; font-weight: 800; text-align: center; }
+.lo-date { width: 150px; }
+.lo-dow { flex: none; color: var(--text-tertiary); font-size: 12px; font-weight: 700; }
+.lo-day-plan { max-width: 260px; margin-top: 6px; color: var(--text-tertiary); font-size: 11px; white-space: normal; overflow-wrap: anywhere; }
+.lo-day-plan.is-warn { color: #d93636; font-weight: 600; }
+.lo-region { width: 120px; }
+.lo-hotel { min-width: 210px; }
+.lo-hotel-manual { display: flex; align-items: center; gap: 6px; min-width: 210px; }
+.lo-rooms { width: 64px; }
+.lo-status-select { position: relative; display: block; min-width: 132px; }
+.lo-status-select i { position: absolute; top: 17px; left: 11px; width: 7px; height: 7px; border-radius: 50%; background: var(--mrt-gray-300); pointer-events: none; }
+.lo-status-select select { padding-left: 26px; }
+.lo-status-select[data-status="Имэйл илгээсэн"] i { background: #a8f0db; }
+.lo-status-select[data-status="Хариу ирсэн"] i { background: #3fd6ab; }
+.lo-status-select[data-status="Баталгаажсан"] i { background: var(--lo-mint-strong); }
+.lo-status-select[data-status="Баталгаажсан"] select { border-color: var(--lo-mint-line); background: #f2fdf9; color: var(--lo-mint-strong); }
+.lo-icon-btn { display: grid; place-items: center; flex: none; width: 34px; height: 34px; padding: 0; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-secondary); cursor: pointer; }
+.lo-icon-btn:hover { border-color: var(--mrt-ink); color: var(--text-strong); }
+.lo-icon-btn.is-danger { border-color: transparent; }
+.lo-icon-btn.is-danger:hover { background: #ffecec; color: #ff4f4f; }
+.lo-empty-row { padding: 16px; color: var(--text-tertiary); text-align: center; }
+
+/* 버튼 */
+.lo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.lo-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-strong); font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.lo-btn:hover:not(:disabled) { border-color: var(--mrt-ink); }
+.lo-btn:disabled { opacity: .45; cursor: default; }
+.lo-btn.is-ink { border-color: var(--mrt-ink); background: var(--mrt-ink); color: #fff; }
+.lo-btn.is-ink:hover:not(:disabled) { background: #000; }
+.lo-btn.is-dashed { border-style: dashed; color: var(--lo-mint-strong); }
+
+/* 가이드·차량 */
+.lo-crew { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.lo-crew-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.lo-savebar { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--border-default); border-radius: 16px; background: rgba(255,255,255,.96); box-shadow: 0 -4px 16px rgba(26,27,30,.04); color: var(--text-tertiary); font-size: 12px; }
+.lo-savebar .lo-btn { height: 44px; padding: 0 20px; font-size: 14px; }
+
+@media (max-width: 1100px) {
+  .lo-crew { grid-template-columns: minmax(0, 1fr); }
+  .lo-month-grid { grid-template-columns: repeat(6, minmax(52px, 1fr)); }
+  .lo-count { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .lo-row, .lo-chev { transition: none; } }
