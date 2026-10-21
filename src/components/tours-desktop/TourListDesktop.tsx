@@ -16,8 +16,8 @@ type Sort = 'rec' | 'low' | 'high' | 'rating' | 'reviews';
  * 견적 폼이 일본어 값·한국어 값 어느 쪽이어도 맞도록 두 표기를 함께 보낸다(모르는 값은 견적 폼이 버린다).
  */
 const TRIP_TYPES = [
-    { key: 'full', label: '풀패키지 여행', sub: '4성급 호텔 + 디럭스 게르 숙박', tier: 'PREMIUM', stays: ['4성급 호텔', '디럭스 게르', '4つ星ホテル', 'デラックスゲル'], dark: true },
-    { key: 'value', label: '가성비 여행', sub: '3성급 호텔 + 스탠다드 게르 숙박', tier: 'STANDARD', stays: ['3성급 호텔', '스탠다드 게르', '3つ星ホテル', 'スタンダードゲル'], dark: false },
+    { key: 'full', label: '풀패키지 여행', sub: '4성급 호텔 + 디럭스 게르 숙박', tier: '풀패키지', stays: ['4성급 호텔', '디럭스 게르', '4つ星ホテル', 'デラックスゲル'], dark: true },
+    { key: 'value', label: '실속형 여행', sub: '3성급 호텔 + 스탠다드 게르 숙박', tier: '실속형', stays: ['3성급 호텔', '스탠다드 게르', '3つ星ホテル', 'スタンダードゲル'], dark: false },
 ];
 
 export function TourListDesktop() {
@@ -131,7 +131,7 @@ export function TourListDesktop() {
                                 <span style={{ fontFamily: MW_FONT_EN, fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em', color: t.dark ? '#FFFFFF' : MW.navy }}>
                                     몽골리아<span style={{ color: t.dark ? '#A3ECD6' : MW.mintDeep }}> 은하수</span>
                                 </span>
-                                <span style={{ alignSelf: 'flex-start', fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: t.dark ? '#FFFFFF' : MW.mintDeep, background: t.dark ? 'rgba(255,255,255,0.18)' : MW.mintTint, padding: '3px 8px', borderRadius: 999 }}>
+                                <span style={{ alignSelf: 'flex-start', fontFamily: MW_FONT_EN, fontSize: 11, fontWeight: 700, letterSpacing: '-0.01em', color: t.dark ? '#FFFFFF' : MW.mintDeep, background: t.dark ? 'rgba(255,255,255,0.18)' : MW.mintTint, padding: '3px 8px', borderRadius: 999 }}>
                                     {t.tier}
                                 </span>
                             </span>

@@ -20,8 +20,8 @@ export const EMPTY_FILTERS: TourFilters = { days: [], prices: [], perks: [] };
 
 /** Trip-type cards, driven by each tour's 여행 타입 set in the admin (packageType). */
 export const TRIP_TYPES: { key: TripTypeKey; label: string; desc: string; en: string }[] = [
-    { key: 'full', label: '풀패키지 여행', desc: '4성급 호텔 + 디럭스 게르 숙박', en: 'PREMIUM' },
-    { key: 'value', label: '가성비 여행', desc: '3성급 호텔 + 스탠다드 게르 숙박', en: 'STANDARD' },
+    { key: 'full', label: '풀패키지 여행', desc: '4성급 호텔 + 디럭스 게르 숙박', en: '풀패키지' },
+    { key: 'value', label: '실속형 여행', desc: '3성급 호텔 + 스탠다드 게르 숙박', en: '실속형' },
 ];
 
 export const SORT_OPTIONS: [Sort, string][] = [
