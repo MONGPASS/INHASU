@@ -19,6 +19,8 @@ import type { Hotel } from '../types/hotel';
 import type { TouristSpot } from '../types/touristSpot';
 import { HotelPickerModal } from '../components/admin/HotelPickerModal';
 import { TouristSpotPickerModal } from '../components/admin/TouristSpotPickerModal';
+import { lodgingTimelineSnapshot, productLodgingSnapshot } from '../utils/lodgingItinerarySnapshot';
+import { travelSpotSnapshot } from '../utils/travelSpotSnapshot';
 import { ItineraryImportModal } from '../components/admin/ItineraryImportModal';
 import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '../components/admin/itineraryImport';
 import { stripDayLabelReading } from '../utils/dayLabel';
@@ -1166,24 +1168,15 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             // or deleted.
             updateItineraryBlockContent(index, {
                 ...(block.content as DayInfoContent),
-                accommodation: hotel.name_kr,
-                accommodationHotelId: hotel.id,
-                accommodationImages: hotel.images && hotel.images.length > 0 ? [...hotel.images] : [],
-                accommodationDescription: hotel.description || '',
-                accommodationAddress: hotel.address || '',
-                accommodationSubtitle: hotel.name_local || '',
-                accommodationAmenities: hotel.amenities && hotel.amenities.length > 0 ? [...hotel.amenities] : [],
+                ...productLodgingSnapshot(hotel),
             });
         } else if (kind === 'timeline' && block.type === 'timeline') {
             // For a TIMELINE block: push hotel data into title + description + images.
             // This is the "hotel as a timeline event" flow (e.g., 호텔 체크인).
             const current = block.content as TimelineContent;
-            const hotelDesc = [hotel.description, hotel.address].filter(Boolean).join('\n\n');
             updateItineraryBlockContent(index, {
                 ...current,
-                title: hotel.name_kr,
-                description: hotelDesc || current.description,
-                images: hotel.images && hotel.images.length > 0 ? [...hotel.images] : current.images,
+                ...lodgingTimelineSnapshot(hotel, current),
             });
         }
         setHotelPickerTarget(null);
@@ -1214,12 +1207,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         const block = formData.itineraryBlocks?.[spotPickerForIndex];
         if (block && block.type === 'timeline') {
             const current = block.content as TimelineContent;
-            const desc = [spot.description, spot.address].filter(Boolean).join('\n\n');
             updateItineraryBlockContent(spotPickerForIndex, {
                 ...current,
-                title: spot.name_kr,
-                description: desc || current.description,
-                images: spot.images && spot.images.length > 0 ? [...spot.images] : current.images,
+                ...travelSpotSnapshot(spot),
             });
         }
         setSpotPickerForIndex(null);
@@ -2493,7 +2483,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         <ul style={{ margin: '8px 0 0', paddingLeft: 20, listStyle: 'disc', lineHeight: 1.7 }}>
                                             <li>아래 <strong>DAY 추가</strong> 버튼으로 일차를 추가하면 번호가 자동으로 정리됩니다.</li>
                                             <li>각 카드에 <strong>제목·날짜·식사·숙소</strong>를 입력하고, <strong>일정 항목 추가</strong>로 관광·이동·체험을 순서대로 구성합니다.</li>
-                                            <li><strong>관광지·호텔 마스터</strong>에서 선택하면 제목·설명·사진을 자동으로 불러옵니다.</li>
+                                            <li><strong>여행지 관리·등록 숙소</strong>에서 선택하면 제목·설명·사진을 자동으로 불러옵니다.</li>
                                             <li>단일 이미지·갤러리·구분선은 각 카드의 <strong>고급 항목</strong>에서 추가할 수 있습니다.</li>
                                         </ul>
                                     </div>
@@ -2508,8 +2498,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                 return (
                                                     <div className="stack" style={{ gap: 8 }}>
                                                         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                                                            <button type="button" onClick={() => setSpotPickerForIndex(flatIndex)} className="btn btn-blue btn-sm" title="관광지 마스터에서 정보를 불러옵니다"><Icon name="location_on" />관광지 선택</button>
-                                                            <button type="button" onClick={() => setHotelPickerTarget({ kind: 'timeline', index: flatIndex })} className="btn btn-ghost btn-sm" title="호텔 마스터에서 정보를 불러옵니다"><Icon name="hotel" />호텔 선택</button>
+                                                            <button type="button" onClick={() => setSpotPickerForIndex(flatIndex)} className="btn btn-blue btn-sm" title="여행지 관리에서 정보를 불러옵니다"><Icon name="location_on" />여행지 선택</button>
+                                                            <button type="button" onClick={() => setHotelPickerTarget({ kind: 'timeline', index: flatIndex })} className="btn btn-ghost btn-sm" title="등록 숙소에서 정보를 불러옵니다"><Icon name="hotel" />숙소 선택</button>
                                                         </div>
                                                         <div className="row" style={{ gap: 8 }}>
                                                             <input type="text" className="inp" style={{ width: 120 }} value={c.time || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'time', e.target.value)} placeholder="시간 (선택)" />
@@ -2655,13 +2645,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                         <div className="row" style={{ marginBottom: 6 }}>
                                                                             <label className="cell-strong" style={{ fontSize: 12.5 }}>숙소 정보</label>
                                                                             <div className="spacer" style={{ flex: 1 }} />
-                                                                            <button type="button" onClick={() => setHotelPickerForIndex(day.dayInfoFlatIndex)} className="btn btn-ghost btn-sm"><Icon name="hotel" />호텔 마스터 선택</button>
+                                                                            <button type="button" onClick={() => setHotelPickerForIndex(day.dayInfoFlatIndex)} className="btn btn-ghost btn-sm"><Icon name="hotel" />등록 숙소 선택</button>
                                                                         </div>
                                                                         <div className="inp-mini"><span className="pre"><Icon name="hotel" style={{ fontSize: 14 }} /></span>
-                                                                            <input value={dc.accommodation || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, accommodation: e.target.value, accommodationHotelId: undefined })} placeholder="숙소명을 입력하거나 호텔 마스터에서 선택" />
+                                                                            <input value={dc.accommodation || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, accommodation: e.target.value, accommodationHotelId: undefined })} placeholder="숙소명을 입력하거나 등록 숙소에서 선택" />
                                                                         </div>
                                                                         {dc.accommodationHotelId && (
-                                                                            <div className="row" style={{ gap: 4, marginTop: 6, fontSize: 11, color: 'var(--mrt-blue-strong)' }}><Icon name="link" style={{ fontSize: 14 }} />호텔 마스터와 연결되었습니다. 직접 입력하면 연결이 해제됩니다.</div>
+                                                                            <div className="row" style={{ gap: 4, marginTop: 6, fontSize: 11, color: 'var(--mrt-blue-strong)' }}><Icon name="link" style={{ fontSize: 14 }} />등록 숙소와 연결되었습니다. 직접 입력하면 연결이 해제됩니다.</div>
                                                                         )}
                                                                     </div>
 

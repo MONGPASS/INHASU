@@ -127,17 +127,19 @@ const tileLabel: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8
 /** 숙박 tile. Older itineraries stored only the hotel id, so photos / description fall back to the hotel master. */
 function StayTile({ info, onOpen }: { info: DayInfoContent; onOpen: OpenImages }) {
     const snapshotImages = strings(info.accommodationImages);
-    const needsFetch = !!info.accommodationHotelId && snapshotImages.length === 0 && !info.accommodationDescription && !info.accommodationAddress;
+    const hasSnapshot = ['accommodationImages', 'accommodationDescription', 'accommodationAddress', 'accommodationSubtitle', 'accommodationAmenities']
+        .some(field => Object.prototype.hasOwnProperty.call(info, field));
+    const needsFetch = !!info.accommodationHotelId && !hasSnapshot;
     const { data: live } = useQuery({
         queryKey: ['hotel', info.accommodationHotelId],
         queryFn: () => api.hotels.get(info.accommodationHotelId!),
         enabled: needsFetch,
         staleTime: 1000 * 60 * 60,
     });
-    const images = snapshotImages.length > 0 ? snapshotImages : strings(live?.images);
-    const description = info.accommodationDescription || live?.description || '';
-    const address = info.accommodationAddress || live?.address || '';
-    const subtitle = info.accommodationSubtitle || live?.name_local || '';
+    const images = hasSnapshot ? snapshotImages : strings(live?.images);
+    const description = hasSnapshot ? info.accommodationDescription || '' : live?.description || '';
+    const address = hasSnapshot ? info.accommodationAddress || '' : live?.address || '';
+    const subtitle = hasSnapshot ? info.accommodationSubtitle || '' : live?.name_local || '';
     const name = info.accommodation || '';
 
     return (

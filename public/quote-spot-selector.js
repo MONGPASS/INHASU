@@ -50,7 +50,7 @@
             <span class="box" aria-hidden="true"></span>
             <span class="nm"><b>${esc(name)}</b><small>${esc(typeof value.short === "string" ? value.short : "")}</small></span>
           </button>`).join("")}</div>
-        </div>`).join("") : `<div class="spot-empty">등록된 명소가 없습니다. 명소 관리에서 추가하세요.</div>`;
+        </div>`).join("") : `<div class="spot-empty">등록된 명소가 없습니다. 여행지 관리에서 추가하세요.</div>`;
         if (focused && !options.disabled) {
           const buttons = [...host.querySelectorAll("button.spot-chk")];
           (buttons.find(button => button.dataset.s === focused) || buttons[0])?.focus();

@@ -72,14 +72,10 @@ const AdminCategoryManage = lazy(() => import('./pages/AdminCategoryManage').the
 const AdminGuideManage = lazy(() => import('./pages/AdminGuideManage').then(module => ({ default: module.AdminGuideManage })))
 const AdminMagazineManage = lazy(() => import('./pages/AdminMagazineManage').then(module => ({ default: module.AdminMagazineManage })))
 const AdminAccommodationManage = lazy(() => import('./pages/AdminAccommodationManage').then(module => ({ default: module.AdminAccommodationManage })))
-const AdminHotelManage = lazy(() => import('./pages/AdminHotelManage').then(module => ({ default: module.AdminHotelManage })))
 const AdminAccommodationOps = lazy(() => import('./pages/AdminAccommodationOps').then(module => ({ default: module.AdminAccommodationOps })))
-const AdminTouristSpotManage = lazy(() => import('./pages/AdminTouristSpotManage').then(module => ({ default: module.AdminTouristSpotManage })))
-const AdminDesignSpotManage = lazy(() => import('./pages/AdminDesignSpotManage').then(module => ({ default: module.AdminDesignSpotManage })))
 const AdminTemplateManage = lazy(() => import('./pages/AdminTemplateManage').then(module => ({ default: module.AdminTemplateManage })))
 const AdminReviewManage = lazy(() => import('./pages/AdminReviewManage').then(module => ({ default: module.AdminReviewManage })))
 const AdminFAQManage = lazy(() => import('./pages/AdminFAQManage').then(module => ({ default: module.AdminFAQManage })))
-const AdminGuideIntroManage = lazy(() => import('./pages/AdminGuideIntroManage').then(module => ({ default: module.AdminGuideIntroManage })))
 const AdminPromotionManage = lazy(() => import('./pages/AdminPromotionManage').then(module => ({ default: module.AdminPromotionManage })))
 const AdminInquiryManage = lazy(() => import('./pages/AdminInquiryManage').then(module => ({ default: module.AdminInquiryManage })))
 const AdminTourFAQManage = lazy(() => import('./pages/AdminTourFAQManage').then(module => ({ default: module.AdminTourFAQManage })))
@@ -184,14 +180,14 @@ function App() {
             <Route path="/admin/categories" element={<AdminGuard><AdminCategoryManage /></AdminGuard>} />
             <Route path="/admin/guides" element={<AdminGuard><AdminGuideManage /></AdminGuard>} />
             <Route path="/admin/magazines" element={<AdminGuard><AdminMagazineManage /></AdminGuard>} />
-            <Route path="/admin/hotels" element={<AdminGuard><AdminHotelManage /></AdminGuard>} />
-            <Route path="/admin/tourist-spots" element={<AdminGuard><AdminTouristSpotManage /></AdminGuard>} />
-            <Route path="/admin/design-spots" element={<AdminGuard><AdminDesignSpotManage /></AdminGuard>} />
+            <Route path="/admin/hotels" element={<AdminGuard><Navigate to="/admin/quote-desk/resources?resourceType=lodges" replace /></AdminGuard>} />
+            <Route path="/admin/tourist-spots" element={<AdminGuard><Navigate to="/admin/quote-desk/spots" replace /></AdminGuard>} />
+            <Route path="/admin/design-spots" element={<AdminGuard><Navigate to="/admin/quote-desk/spots" replace /></AdminGuard>} />
             <Route path="/admin/accommodations" element={<AdminGuard><AdminAccommodationManage /></AdminGuard>} />
             <Route path="/admin/templates" element={<AdminGuard><AdminTemplateManage /></AdminGuard>} />
             <Route path="/admin/reviews" element={<AdminGuard><AdminReviewManage /></AdminGuard>} />
             <Route path="/admin/faq" element={<AdminGuard><AdminFAQManage /></AdminGuard>} />
-            <Route path="/admin/guide-intro" element={<AdminGuard><AdminGuideIntroManage /></AdminGuard>} />
+            <Route path="/admin/guide-intro" element={<AdminGuard><Navigate to="/admin/quote-desk/resources" replace /></AdminGuard>} />
             <Route path="/admin/promotions" element={<AdminGuard><AdminPromotionManage /></AdminGuard>} />
             <Route path="/admin/inquiries" element={<AdminGuard><AdminInquiryManage /></AdminGuard>} />
             <Route path="/admin/tour-faqs" element={<AdminGuard><AdminTourFAQManage /></AdminGuard>} />

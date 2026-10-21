@@ -16,9 +16,9 @@ import { useDesignSpots } from '../product/designTemplates/designSpots';
  * 저장 형식은 기존과 동일한 텍스트("지역명|표시 라벨" 줄 단위)라서
  * 지도/템플릿 쪽은 그대로 동작하고, 직접 입력(좌표·사진)도 그대로 지원한다.
  */
-/** 방문 여행지 카드 목록 — 「여행지 사진」 페이지에 등록한 목록에서 골라 담고, 이름·사진을 줄 단위로 관리한다 */
+/** 방문 여행지 카드 목록 — 공통 여행지 관리에서 이름·사진을 복사해 저장한다. */
 function SpotCardsField({ value, onChange, onBusyChange }: { value: string; onChange: (next: string) => void; onBusyChange?: (busy: boolean) => void }) {
-    const registered = useDesignSpots();
+    const { spots: registered, loading, error, retry } = useDesignSpots();
     const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
     const lines = value.split('\n').map(s => s.trim()).filter(Boolean);
     const setLines = (next: string[]) => onChange(next.join('\n'));
@@ -92,10 +92,14 @@ function SpotCardsField({ value, onChange, onBusyChange }: { value: string; onCh
             <div style={{ border: '1px dashed var(--border-default)', borderRadius: 8, padding: '8px 10px' }}>
                 <div className="cell-muted" style={{ fontSize: 12, marginBottom: 6 }}>
                     등록된 여행지 — 누르면 카드에 추가됩니다
-                    <a href="/admin/design-spots" target="_blank" rel="noreferrer" style={{ marginLeft: 8, color: '#06C4A0', fontWeight: 700 }}>여행지 등록 관리 ↗</a>
+                    <a href="/admin/quote-desk/spots" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, color: '#06C4A0', fontWeight: 700 }}>여행지 등록 관리 ↗</a>
                 </div>
-                {registered.length === 0 ? (
-                    <div className="cell-muted" style={{ fontSize: 12 }}>아직 등록된 여행지가 없습니다. 「여행지 사진」 페이지에서 사진+이름을 등록해 주세요.</div>
+                {loading ? (
+                    <div className="cell-muted" style={{ fontSize: 12 }} role="status">여행지를 불러오는 중입니다…</div>
+                ) : error ? (
+                    <div className="cell-muted" style={{ fontSize: 12 }} role="alert">{error}<button type="button" className="btn btn-ghost btn-sm" onClick={retry}>다시 불러오기</button></div>
+                ) : registered.length === 0 ? (
+                    <div className="cell-muted" style={{ fontSize: 12 }}>등록된 여행지가 없습니다. 여행지 관리에서 먼저 추가해 주세요.</div>
                 ) : (
                     <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
                         {registered.map(sp => (

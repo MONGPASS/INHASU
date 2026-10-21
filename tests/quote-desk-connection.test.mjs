@@ -135,3 +135,18 @@ test('기존 문의 메뉴는 실제 바깥 화면 폭에 맞춰 데스크톱 �
     assert.equal(mobile.searchParams.get('m'), null);
     assert.equal(mobile.searchParams.get('id'), 'inquiry-a');
 });
+
+test('공통 자원 바로가기는 허용된 분류만 열고 고객·편집 주소를 바꾸지 않는다', () => {
+    const app = setup(), resources = app.findQuoteDeskTool('resources');
+    for (const resourceType of ['guides', 'lodges', 'vehicles']) {
+        const url = new URL(app.quoteDeskFrameSrc(resources, undefined, undefined, resourceType), 'https://local.example.invalid');
+        assert.equal(decodeURIComponent(url.pathname), '/리소스관리');
+        assert.equal(url.searchParams.get('resourceType'), resourceType);
+        assert.deepEqual([...url.searchParams.keys()], ['resourceType']);
+    }
+    for (const invalid of ['', 'other', 'lodges&id=other', 'lodges#other']) {
+        assert.equal(app.quoteDeskFrameSrc(resources, undefined, undefined, invalid), '/리소스관리');
+    }
+    assert.equal(app.quoteDeskFrameSrc(app.findQuoteDeskTool('builder'), 'saved-id', undefined, 'lodges'), '/견적만들기?id=saved-id');
+    assert.equal(app.quoteDeskFrameSrc(app.findQuoteDeskTool('spots'), undefined, undefined, 'lodges'), '/명소관리');
+});

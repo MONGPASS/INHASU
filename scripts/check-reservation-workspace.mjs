@@ -21,7 +21,9 @@ import { onRequestGet as noticeGet, onRequestPost as noticePost } from '../funct
 import { adminProductDraftKey } from '../src/utils/adminProductDraft.ts';
 import { reservationDraftKey, reservationDraftFingerprint, readReservationDraft, writeReservationDraft } from '../src/utils/adminReservationDraft.ts';
 import { magazineDraftKey, magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft } from '../src/utils/adminMagazineDraft.ts';
-import { assignmentDraftKey, readAssignmentDraft, writeAssignmentDraft } from '../src/utils/adminAssignmentDraft.ts';
+import { assignmentDraftKey, editorAssignment, readAssignmentDraft, writeAssignmentDraft } from '../src/utils/adminAssignmentDraft.ts';
+import { selectResourceGuide, selectResourceVehicle, selectResourceLodge } from '../src/utils/accommodationResourceSelection.ts';
+import { getAccommodationPlan, addMissingAccommodationNights, alignAccommodationDates } from '../src/utils/accommodationSchedule.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
 const portArgument = process.argv.find(argument => argument.startsWith('--port='));
@@ -934,13 +936,35 @@ if (usability) {
             tags: lodge.facilities.join(', '), facilities: lodge.facilities, contact: 'LOCAL-PRIVATE-LODGE-CONTACT' }])),
         lodge_cats: ['중앙몽골', '고비사막'],
         vehicles: { '로컬 하이스': { model: '로컬 하이스', seats: '6인', luggage: '캐리어 4개', img: image,
-            desc: '로컬 차량 사진과 안내' } },
+            desc: '로컬 차량 사진과 안내', phone: 'LOCAL-KV-DRIVER-PHONE' } },
     };
     for (const [key, value] of Object.entries(libraryResources)) {
         assert.equal((await write(`/api/data/${key}`, 'PUT', value, quoteAdmin)).status, 200);
         const loaded = await (await apiRequest(`/api/data/${key}`, { headers: quoteAdmin })).json();
         assert.deepEqual(loaded.data, value);
     }
+    // Product/document pickers reuse the same libraries without publishing operational contacts.
+    const sharedHotelsResponse = await apiRequest('/api/hotels?source=resources');
+    assert.equal(sharedHotelsResponse.status, 200);
+    assert.equal(sharedHotelsResponse.headers.get('Cache-Control'), 'no-store');
+    const sharedHotels = await sharedHotelsResponse.json();
+    assert.deepEqual(sharedHotels.map(hotel => hotel.name_kr).sort(), lodgeRows.map(lodge => lodge.name).sort());
+    const sharedHotel = sharedHotels.find(hotel => hotel.name_kr === lodgeRows[0].name);
+    assert.equal(sharedHotel.id, `resource-lodge:${lodgeRows[0].name}`);
+    assert.deepEqual(sharedHotel.images, lodgeRows[0].images);
+    assert.equal(sharedHotel.description, '');
+    assert.ok(!JSON.stringify(sharedHotels).includes('LOCAL-PRIVATE-LODGE-CONTACT'));
+    const sharedHotelById = await apiRequest(`/api/hotels/${encodeURIComponent(sharedHotel.id)}`);
+    assert.equal(sharedHotelById.status, 200);
+    assert.deepEqual(await sharedHotelById.json(), sharedHotel);
+    const sharedSpotsResponse = await apiRequest('/api/tourist-spots');
+    assert.equal(sharedSpotsResponse.status, 200);
+    const sharedSpots = await sharedSpotsResponse.json();
+    assert.equal(sharedSpots.length, Object.keys(publicLibraryFixtures.spots).length);
+    const sharedSpot = sharedSpots.find(spot => spot.name_kr === '거북바위');
+    assert.equal(sharedSpot.id, 'quote-spot:거북바위');
+    assert.equal(sharedSpot.description, publicLibraryFixtures.spots['거북바위'].desc);
+    assert.deepEqual(await (await apiRequest(`/api/tourist-spots/${encodeURIComponent(sharedSpot.id)}`)).json(), sharedSpot);
     const publicGuides = await (await apiRequest('/api/data/guides')).text();
     assert.ok(!publicGuides.includes('LOCAL-KV-GUIDE-PHONE'));
 
@@ -956,13 +980,17 @@ if (usability) {
             vehicle: { type: assigned ? '로컬 하이스' : '', phone: assigned ? 'LOCAL-PRIVATE-USABILITY-DRIVER' : '' },
             ...(signed ? { agreement: { agreed: true, name: `합성 여행자 ${index}`, agreedAt: '2026-10-18T00:00:00Z' },
                 customerSubmittedAt: '2026-10-18T00:00:00Z' } : {}) };
-        const lodges = assigned ? [{ day: 1, date: start, accommodation: { ...lodgeRows[0], roomCount: 2,
+        const lodges = assigned ? [{ day: 1, date: index === 2 ? '2026-10-19' : start, accommodation: { ...lodgeRows[0], roomCount: 2,
             occupancy: '2인실', bookingStatus: index % 2 ? 'Баталгаажсан' : 'Шалгаж байна' } }] : [];
+        const customerSchedule = index === 4 ? { ...structuredClone(savedDocument), days: savedDocument.days.map((day, dayIndex) => ({ ...day,
+            title: ['고객 맞춤 테렐지 도착', '고객 맞춤 고비 이동', '고객 맞춤 귀국'][dayIndex],
+            region: ['중앙몽골', '고비사막', '울란바타르'][dayIndex],
+        })) } : savedDocument;
         insertReservation.run(id, 'workspace-booked-tour', productName, `합성 예약 고객 ${String(index).padStart(2, '0')}`,
             `local-${index}@example.invalid`, '01000000000', index % 4 + 1, start, end, status,
             index === 4 ? 0 : 3300000, index === 4 ? 0 : 330000, index === 4 ? 0 : 2970000,
             status === 'pending_payment' ? 'unpaid' : 'paid', status === 'completed' ? 'paid' : 'unpaid', `LOCAL-QA-${index}`,
-            index % 2 === 0 ? JSON.stringify(savedDocument) : null, JSON.stringify(contract),
+            index % 2 === 0 ? JSON.stringify(customerSchedule) : null, JSON.stringify(contract),
             assigned ? JSON.stringify(guide) : null, JSON.stringify(lodges), 0, null, null, 'workspace-owner',
             `2026-10-${String(index + 8).padStart(2, '0')}T01:00:00Z`, 'website');
     }
@@ -1011,6 +1039,82 @@ if (usability) {
     assert.equal(usabilityAssignments.items.length, 16);
     assert.equal(usabilityAssignments.items.filter(row => row.id === 'workspace-product').length, 2);
     assert.equal(usabilityAssignments.items.find(row => row.key === 'quote_booking:workspace-quote').assignment.accommodations[0].accommodation.name, lodgeRows[1].name);
+    // Actual schedule projection and assignment writes share the customer's saved itinerary.
+    const customerScheduleItem = usabilityAssignments.items.find(row => row.key === 'product:workspace-usability-04');
+    assert.equal(customerScheduleItem.schedule.source, 'customer');
+    assert.deepEqual(customerScheduleItem.schedule.days.map(day => [day.day, day.date, day.region]), [
+        [1, '2026-10-20', '중앙몽골'], [2, '2026-10-21', '고비사막'], [3, '2026-10-22', '울란바타르'],
+    ]);
+    assert.equal(customerScheduleItem.schedule.days[1].title, '고객 맞춤 고비 이동');
+    const scheduleBooking = { ...customerScheduleItem, dailyAccommodations: customerScheduleItem.assignment.accommodations };
+    const lodgingPlan = getAccommodationPlan(scheduleBooking);
+    assert.equal(lodgingPlan.needed, 2);
+    assert.equal(lodgingPlan.complete, false);
+    assert.deepEqual(lodgingPlan.addableNights.map(day => day.date), ['2026-10-21']);
+    const scheduleOriginal = raw.prepare('SELECT * FROM reservations WHERE id=?').get(customerScheduleItem.id);
+    const missingAdded = addMissingAccommodationNights(scheduleBooking);
+    assert.deepEqual(missingAdded[0], customerScheduleItem.assignment.accommodations[0]);
+    assert.equal(missingAdded[1].accommodation.region, '고비사막');
+    const schedulePatch = await write(`/api/admin/assignments/product/${customerScheduleItem.id}`, 'PATCH', {
+        expectedVersion: customerScheduleItem.version, assignment: { ...customerScheduleItem.assignment, accommodations: missingAdded },
+    });
+    assert.equal(schedulePatch.status, 200, await schedulePatch.clone().text());
+    const scheduleReload = (await (await apiRequest('/api/admin/assignments', { headers: admin })).json()).items.find(row => row.key === customerScheduleItem.key);
+    assert.deepEqual(scheduleReload.assignment.accommodations, missingAdded);
+    assert.deepEqual(scheduleReload.schedule, customerScheduleItem.schedule);
+    assert.equal(raw.prepare('SELECT document_content FROM reservations WHERE id=?').get(customerScheduleItem.id).document_content, scheduleOriginal.document_content);
+    raw.prepare('UPDATE reservations SET assigned_guide=?,daily_accommodations=?,admin_operations=?,contract_data=? WHERE id=?').run(
+        scheduleOriginal.assigned_guide, scheduleOriginal.daily_accommodations, scheduleOriginal.admin_operations, scheduleOriginal.contract_data, customerScheduleItem.id);
+    const staleDateItem = usabilityAssignments.items.find(row => row.key === 'product:workspace-usability-02');
+    const staleDateBooking = { ...staleDateItem, dailyAccommodations: staleDateItem.assignment.accommodations };
+    assert.equal(getAccommodationPlan(staleDateBooking).canAlignDates, true);
+    assert.equal(alignAccommodationDates(staleDateBooking)[0].date, '2026-10-20');
+    assert.equal(alignAccommodationDates(staleDateBooking)[0].accommodation.bookingStatus, 'Илгээгээгүй');
+    const intentionallyEmpty = usabilityAssignments.items.find(row => row.key === 'product:workspace-empty');
+    assert.equal(intentionallyEmpty.schedule.source, 'customer');
+    assert.deepEqual(intentionallyEmpty.schedule.days, []);
+    console.log('고객 일정별 숙소 배정 검증 통과: 고객 저장 일정 우선 · 지역/숙박일 연결 · 귀국일 제외 · 누락 숙박만 추가/저장/재조회 · 기존 수배/문서 보존 · 불일치 날짜 명시 조정');
+    // The operations board's actual selection + serializer must round-trip both source IDs.
+    const originalResourceProduct = raw.prepare('SELECT * FROM reservations WHERE id=?').get('workspace-product');
+    const originalResourceQuote = raw.prepare('SELECT data FROM requests WHERE id=?').get('workspace-product').data;
+    const selectedGuide = { id: 'resource-guide:로컬 고비 가이드', name: '로컬 고비 가이드', phone: 'LOCAL-KV-GOBI-PHONE',
+        image: libraryResources.guides['로컬 고비 가이드'].img, introduction: libraryResources.guides['로컬 고비 가이드'].desc,
+        nameEn: '', role: '', languages: [], specialties: [] };
+    const selectedVehicle = { name: '로컬 하이스', type: '로컬 하이스', phone: 'LOCAL-KV-DRIVER-PHONE', snapshot: {
+        img: image, images: [image], description: '로컬 차량 사진과 안내', seats: '6인', luggage: '캐리어 4개' } };
+    const selectedLodge = { id: sharedHotel.id, name: sharedHotel.name_kr, type: sharedHotel.type, location: sharedHotel.region,
+        region: sharedHotel.region, address: sharedHotel.address, occupancy: '', images: sharedHotel.images, description: sharedHotel.description,
+        facilities: sharedHotel.amenities, roomAmenities: sharedHotel.roomAmenities, sharedFacilities: sharedHotel.sharedFacilities };
+    for (const source of ['product', 'quote_booking']) {
+        const current = usabilityAssignments.items.find(row => row.source === source && row.id === 'workspace-product');
+        const stay = selectResourceLodge({ day: 1, date: current.startDate, accommodation: {
+            id: 'previous-resource', name: '다른 숙소', roomCount: 0, occupancy: '2인실', bookingStatus: 'Баталгаажсан' } }, selectedLodge);
+        const selected = editorAssignment({ assignedGuide: selectResourceGuide(current.assignment.guide, selectedGuide),
+            contractData: { vehicle: selectResourceVehicle(current.assignment.vehicle, selectedVehicle) }, dailyAccommodations: [stay] });
+        const route = `/api/admin/assignments/${source}/workspace-product`;
+        const result = await write(route, 'PATCH', { expectedVersion: current.version, assignment: selected });
+        assert.equal(result.status, 200, await result.clone().text());
+        const saved = (await result.json()).item;
+        assert.deepEqual(saved.assignment.guide, selected.guide);
+        assert.deepEqual(saved.assignment.vehicle, selected.vehicle);
+        assert.equal(saved.assignment.accommodations[0].accommodation.id, selectedLodge.id);
+        assert.equal(saved.assignment.accommodations[0].accommodation.roomCount, 0);
+        assert.equal(saved.assignment.accommodations[0].accommodation.bookingStatus, 'Илгээгээгүй');
+        assert.deepEqual(saved.assignment.accommodations[0].accommodation.images, selectedLodge.images);
+        assert.equal((await write(route, 'PATCH', { expectedVersion: current.version, assignment: selected })).status, 409);
+        const reloaded = (await (await apiRequest('/api/admin/assignments', { headers: admin })).json()).items.find(row => row.key === current.key);
+        assert.deepEqual(reloaded.assignment, saved.assignment);
+    }
+    const resourceProduct = raw.prepare('SELECT * FROM reservations WHERE id=?').get('workspace-product');
+    assert.equal(resourceProduct.document_content, originalResourceProduct.document_content);
+    assert.equal(resourceProduct.status, originalResourceProduct.status);
+    assert.deepEqual({ ...JSON.parse(resourceProduct.contract_data), vehicle: undefined }, { ...JSON.parse(originalResourceProduct.contract_data), vehicle: undefined });
+    const resourceQuote = JSON.parse(raw.prepare('SELECT data FROM requests WHERE id=?').get('workspace-product').data);
+    assert.deepEqual(immutableQuote(resourceQuote), immutableQuote(JSON.parse(originalResourceQuote)));
+    raw.prepare('UPDATE reservations SET assigned_guide=?,daily_accommodations=?,admin_operations=?,contract_data=? WHERE id=?').run(
+        originalResourceProduct.assigned_guide, originalResourceProduct.daily_accommodations, originalResourceProduct.admin_operations, originalResourceProduct.contract_data, 'workspace-product');
+    raw.prepare('UPDATE requests SET data=? WHERE id=?').run(originalResourceQuote, 'workspace-product');
+    console.log('공통 기준 자료 배정 검증 통과: 가이드·차량 전화/프로필·숙소 사진 선택 → 두 출처 저장/재조회 · 객실 0·수동 인실 보존 · 숙소 교체 수배 상태 초기화 · CAS/원본 문서 보존');
     assert.ok(usabilityWorkspace.searchItems.some(row => row.title === '합성 예약 고객 01'));
     assert.ok(usabilityWorkspace.searchItems.some(row => row.title === inquiry.name));
     assert.equal(outbound.length, 0);

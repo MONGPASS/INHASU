@@ -358,51 +358,52 @@ export const api = {
     touristSpots: {
         // Reusable master library — admin picks from this when filling out
         // a timeline event in the itinerary editor.
-        list: async (params?: { q?: string; active?: boolean }) => {
+        list: async (params?: { q?: string; active?: boolean }, options?: Pick<RequestInit, 'signal' | 'cache'>) => {
             const qs = new URLSearchParams();
             if (params?.q) qs.set('q', params.q);
             if (params?.active === false) qs.set('active', '0');
             const tail = qs.toString();
-            return request(`${API_BASE}/tourist-spots${tail ? '?' + tail : ''}`);
+            return request(`${API_BASE}/tourist-spots${tail ? '?' + tail : ''}`, options);
         },
-        get: async (id: string) => request(`${API_BASE}/tourist-spots/${id}`),
+        get: async (id: string) => request(`${API_BASE}/tourist-spots/${encodeURIComponent(id)}`),
         create: async (data: any) => request(`${API_BASE}/tourist-spots`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         }),
-        update: async (id: string, data: any) => request(`${API_BASE}/tourist-spots/${id}`, {
+        update: async (id: string, data: any) => request(`${API_BASE}/tourist-spots/${encodeURIComponent(id)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         }),
-        delete: async (id: string) => request(`${API_BASE}/tourist-spots/${id}`, { method: 'DELETE' }),
+        delete: async (id: string) => request(`${API_BASE}/tourist-spots/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     },
     hotels: {
         // Reusable master library — admin picks from this when filling out
         // a day's accommodation slot in the itinerary editor.
         // Optional query params: { q, country, city, active }
-        list: async (params?: { q?: string; country?: string; city?: string; active?: boolean }) => {
+        list: async (params?: { q?: string; country?: string; city?: string; active?: boolean; source?: 'resources' }, options?: Pick<RequestInit, 'signal' | 'cache'>) => {
             const qs = new URLSearchParams();
             if (params?.q) qs.set('q', params.q);
             if (params?.country) qs.set('country', params.country);
             if (params?.city) qs.set('city', params.city);
+            if (params?.source) qs.set('source', params.source);
             if (params?.active === false) qs.set('active', '0');
             const tail = qs.toString();
-            return request(`${API_BASE}/hotels${tail ? '?' + tail : ''}`);
+            return request(`${API_BASE}/hotels${tail ? '?' + tail : ''}`, options);
         },
-        get: async (id: string) => request(`${API_BASE}/hotels/${id}`),
+        get: async (id: string) => request(`${API_BASE}/hotels/${encodeURIComponent(id)}`),
         create: async (data: any) => request(`${API_BASE}/hotels`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         }),
-        update: async (id: string, data: any) => request(`${API_BASE}/hotels/${id}`, {
+        update: async (id: string, data: any) => request(`${API_BASE}/hotels/${encodeURIComponent(id)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         }),
-        delete: async (id: string) => request(`${API_BASE}/hotels/${id}`, { method: 'DELETE' }),
+        delete: async (id: string) => request(`${API_BASE}/hotels/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     },
     accommodations: {
         list: async () => request(`${API_BASE}/accommodations`),

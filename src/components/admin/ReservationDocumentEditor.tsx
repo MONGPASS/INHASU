@@ -17,6 +17,8 @@ import { TouristSpotPickerModal } from './TouristSpotPickerModal';
 import { HotelPickerModal } from './HotelPickerModal';
 import type { TouristSpot } from '../../types/touristSpot';
 import type { Hotel } from '../../types/hotel';
+import { documentLodgingSnapshot } from '../../utils/lodgingItinerarySnapshot';
+import { travelSpotSnapshot } from '../../utils/travelSpotSnapshot';
 import { normalizeRepresentativeSpots } from '../../../functions/lib/productItinerary';
 
 export interface ReservationDocContent {
@@ -303,13 +305,12 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
         const acts = day.activities.map((act, j) => {
             if (j !== a) return act;
             const keepTitle = (act.title || '').trim().length > 0;
-            const desc = [spot.description, spot.address].filter(Boolean).join('\n' + '\n');
-            return { ...act, title: keepTitle ? act.title : spot.name_kr, description: desc || act.description, images: (spot.images && spot.images.length > 0) ? [...spot.images] : act.images };
+            return { ...act, ...travelSpotSnapshot(spot), title: keepTitle ? act.title : spot.name_kr };
         });
         return { ...day, activities: acts };
     }));
     // 호텔 마스터 → 해당 일차의 숙박 정보 채움
-    const fillDayFromHotel = (d: number, hotel: Hotel) => setDays(prev => prev.map((day, i) => i === d ? { ...day, accommodation: { id: hotel.id, name: hotel.name_kr, location: hotel.address || '', images: hotel.images || [], description: hotel.description || '' } } : day));
+    const fillDayFromHotel = (d: number, hotel: Hotel) => setDays(prev => prev.map((day, i) => i === d ? { ...day, accommodation: documentLodgingSnapshot(hotel) } : day));
 
     // ── documentSettings 핸들러 ──
     const updateDocSection = <K extends keyof DocumentSettings>(section: K, patch: Partial<DocumentSettings[K]>) =>

@@ -17,6 +17,12 @@ export interface Hotel {
     website?: string;
     images?: string[];
     amenities?: string[];    // ["수영장", "사우나", ...]
+    /** 공통 숙소 리소스에서 선택할 때 사용하는 공개 정보 스냅샷. */
+    grade?: string;
+    type?: string;
+    occupancy?: string;
+    roomAmenities?: string[];
+    sharedFacilities?: string[];
     is_active?: boolean;
     created_at?: string;
     updated_at?: string;

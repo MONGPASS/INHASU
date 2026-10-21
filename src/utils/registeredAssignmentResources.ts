@@ -1,13 +1,22 @@
 import { connectQuoteDesk } from '../components/admin/quoteDesk';
-import type { AssignmentVehicle } from './reservationAssignment';
+import type { AssignmentGuide, AssignmentVehicle } from './reservationAssignment';
+
+export interface RegisteredGuide extends AssignmentGuide {
+    id: string; name: string; phone: string; image: string; introduction: string; nameEn: string; role: string;
+    languages: string[]; specialties: string[]; qr: string; _fromResources: true;
+}
+export interface RegisteredLodge {
+    id: string; name: string; type: string; location: string; region: string; address: string; occupancy: string;
+    images: string[]; description: string; facilities: string[]; roomAmenities: string[]; sharedFacilities: string[]; _fromResources: true;
+}
 
 export interface RegisteredVehicle extends AssignmentVehicle {
     name: string;
     snapshot: Record<string, any>;
 }
 export interface RegisteredAssignmentResources {
-    guides: any[];
-    lodges: any[];
+    guides: RegisteredGuide[];
+    lodges: RegisteredLodge[];
     vehicles: RegisteredVehicle[];
     warnings: string[];
 }
@@ -27,24 +36,31 @@ const words = (value: unknown): string[] => {
 function image(value: unknown): string {
     if (typeof value !== 'string' || !value || /[\u0000-\u0020\\]/.test(value)) return '';
     if (/^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(value)) return value;
-    if (/^\/(?!\/)/.test(value) || /^(?:\.\.?\/)?[A-Za-z0-9_-][^:]*$/.test(value)) return value;
-    try { const url = new URL(value); return /^https?:$/.test(url.protocol) && !url.username && !url.password ? value : ''; } catch { return ''; }
+    if (value.startsWith('//')) return '';
+    try {
+        const url = new URL(value, 'https://assignment-image.invalid/');
+        return /^https?:$/.test(url.protocol) && !url.username && !url.password
+            && !/^\/(?:api\/file(?:\/|$)|api\/img\/uploads(?:\/|$)|uploads(?:\/|$))/i.test(decodeURIComponent(url.pathname)) ? value : '';
+    } catch { return ''; }
 }
 const images = (value: unknown): string[] => Array.isArray(value) ? [...new Set(value.map(image).filter(Boolean))] : [];
 const entries = (data: unknown): [string, Record<string, any>][] => Object.entries(object(data) || {}).filter(([name, row]) => !!name.trim() && !/[\u0000-\u001f]/.test(name) && !!object(row)) as [string, Record<string, any>][];
 
-function guides(data: unknown): any[] {
+function guides(data: unknown): RegisteredGuide[] {
     return entries(data).map(([name, row]) => ({
         id: `resource-guide:${name}`, name, image: image(row.img) || images(row.imgs)[0] || '',
         introduction: text(row.desc), phone: text(row.phone), qr: image(row.qr), nameEn: text(row.nameEn), role: text(row.role),
         languages: words(row.languages), specialties: words(row.specialties), _fromResources: true,
     }));
 }
-function lodges(data: unknown): any[] {
+function lodges(data: unknown): RegisteredLodge[] {
     return entries(data).map(([name, row]) => ({
         id: `resource-lodge:${name}`, name, type: text(row.grade), location: text(row.region),
+        region: text(row.region), address: text(row.address), occupancy: text(row.occupancy),
         images: Array.isArray(row.representativePhotos) ? images(row.representativePhotos) : [...new Set([image(row.img), ...images(row.imgs)].filter(Boolean))],
-        description: text(row.desc), facilities: [...new Set([...words(row.facilities), ...words(row.roomAmenities), ...words(row.sharedFacilities)])],
+        // Legacy prose is an archive and may contain supplier contacts or operating notes.
+        description: '', facilities: [...new Set([...words(row.facilities), ...words(row.roomAmenities), ...words(row.sharedFacilities)])],
+        roomAmenities: words(row.roomAmenities), sharedFacilities: words(row.sharedFacilities),
         _fromResources: true,
     }));
 }

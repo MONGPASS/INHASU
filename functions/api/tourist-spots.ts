@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAdmin } from '../lib/adminAuth';
+import { parseSharedTravelSpots, publicSharedTravelSpot, publicSharedTravelSpots, SHARED_TRAVEL_SPOT_PREFIX } from '../lib/sharedTravelSpot.ts';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -21,39 +22,42 @@ const decorate = (row: any) => ({
     is_active: row.is_active === 1 || row.is_active === true,
 });
 
-// GET /api/tourist-spots?q=&active=&region=central|gobi|hovsgol|uncat
+// New selections come only from the shared travel destination library used by quotes.
+// Historical tourist_spots records remain readable by their exact ID below.
+// GET /api/tourist-spots?q=&active=&region=<saved category>|uncat
 app.get('/', async (c) => {
     const db = c.env.DB;
-    const q = (c.req.query('q') || '').trim();
-    const onlyActive = c.req.query('active') !== '0';
+    const q = (c.req.query('q') || '').trim().toLocaleLowerCase('ko');
     const region = (c.req.query('region') || '').trim();
+    c.header('Cache-Control', 'no-store');
     try {
-        const where: string[] = [];
-        const bind: any[] = [];
-        if (onlyActive) where.push('is_active = 1');
-        if (q) {
-            where.push('(name_kr LIKE ? OR name_local LIKE ?)');
-            const like = `%${q}%`;
-            bind.push(like, like);
-        }
-        if (region === 'uncat') {
-            // Sentinel — admin picked "미분류" tab. Match rows with no region.
-            where.push("(region IS NULL OR region = '')");
-        } else if (region && ['central', 'gobi', 'hovsgol', 'ulaanbaatar', 'experience', 'food'].includes(region)) {
-            where.push('region = ?');
-            bind.push(region);
-        }
-        const sql = `SELECT * FROM tourist_spots ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY name_kr ASC LIMIT 500`;
-        const result = await db.prepare(sql).bind(...bind).all();
-        return c.json((result.results || []).map(decorate));
-    } catch (e: any) {
-        return c.json({ error: e.message }, 500);
+        const row = await db.prepare('SELECT v FROM kv WHERE k = ?').bind('spots').first<{ v: unknown }>();
+        if (!row) return c.json([]);
+        const spots = publicSharedTravelSpots(parseSharedTravelSpots(row.v)).filter(spot => {
+            if (region === 'uncat' ? !!spot.region : region && spot.region !== region) return false;
+            return !q || [spot.name_kr, spot.name_local, spot.description, spot.region].some(value => value.toLocaleLowerCase('ko').includes(q));
+        });
+        // All shared destinations are active; active=0 remains the inclusive list option.
+        return c.json(spots);
+    } catch {
+        return c.json({ error: '여행지 자료를 읽지 못했습니다. 잠시 후 다시 시도해 주세요.' }, 503);
     }
 });
 
 app.get('/:id', async (c) => {
     const id = c.req.param('id');
     const db = c.env.DB;
+    c.header('Cache-Control', 'no-store');
+    if (id.startsWith(SHARED_TRAVEL_SPOT_PREFIX)) {
+        try {
+            const row = await db.prepare('SELECT v FROM kv WHERE k = ?').bind('spots').first<{ v: unknown }>();
+            if (!row) return c.json({ error: '여행지를 찾을 수 없습니다.' }, 404);
+            const spot = publicSharedTravelSpot(id, parseSharedTravelSpots(row.v));
+            return spot ? c.json(spot) : c.json({ error: '여행지를 찾을 수 없습니다.' }, 404);
+        } catch {
+            return c.json({ error: '여행지 자료를 읽지 못했습니다. 잠시 후 다시 시도해 주세요.' }, 503);
+        }
+    }
     try {
         const row = await db.prepare('SELECT * FROM tourist_spots WHERE id = ?').bind(id).first();
         if (!row) return c.json({ error: 'Not found' }, 404);

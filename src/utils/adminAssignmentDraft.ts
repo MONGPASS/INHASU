@@ -7,13 +7,22 @@ export const assignmentDraftKey = (scope: AssignmentDraftScope) => `inhasu:admin
 export const assignmentFingerprint = (value: BookingAssignment) => JSON.stringify(value);
 const error = (): AssignmentDraftResult => ({ ok: false, error: '브라우저에 배정 초안을 보관하지 못했습니다. 화면을 닫기 전에 저장하거나 다시 시도해 주세요.' });
 export function editorAssignment(row: any): BookingAssignment {
-    return { guide: { id: row.assignedGuide?.id || '', name: row.assignedGuide?.name || '', phone: row.assignedGuide?.phone || '' },
-        vehicle: { type: row.contractData?.vehicle?.type || '', phone: row.contractData?.vehicle?.phone || '' },
+    const guide = assignmentRecord(row.assignedGuide), vehicle = assignmentRecord(row.contractData?.vehicle);
+    const safeImage = (value: unknown) => typeof value === 'string' && !/^(data:|blob:)/i.test(value) ? value : '';
+    const safeImages = (value: unknown): string[] => Array.isArray(value) ? value.map(safeImage).filter(Boolean) : [];
+    const resource = assignmentRecord(vehicle.resource);
+    return { guide: { id: guide.id || '', name: guide.name || '', phone: guide.phone || '',
+            ...Object.fromEntries(['image','introduction','nameEn','role','languages','specialties'].filter(key => guide[key] !== undefined).map(key => [key,
+                key === 'image' ? safeImage(guide[key]) : ['languages','specialties'].includes(key) && Array.isArray(guide[key]) ? [...guide[key]] : guide[key]])) },
+        vehicle: { type: vehicle.type || '', phone: vehicle.phone || '',
+            ...(vehicle.resource && typeof vehicle.resource === 'object' && !Array.isArray(vehicle.resource) ? { resource:
+                Object.fromEntries(['id','img','images','description','seats','luggage'].filter(key => resource[key] !== undefined).map(key => [key,
+                    key === 'img' ? safeImage(resource[key]) : key === 'images' ? safeImages(resource[key]) : resource[key]])) } : {}) },
         accommodations: (row.dailyAccommodations || []).map((d: any) => {
             const acc = assignmentRecord(d.accommodation), next: Record<string, any> = {};
-            for (const k of ['id','name','type','location','images','description','facilities','roomCount','occupancy','bookingStatus']) if (acc[k] !== undefined) next[k] = acc[k];
+            for (const k of ['id','name','type','location','region','address','images','description','facilities','roomAmenities','sharedFacilities','roomCount','occupancy','bookingStatus']) if (acc[k] !== undefined) next[k] = Array.isArray(acc[k]) ? [...acc[k]] : acc[k];
             // Recovery copies never retain file bytes or temporary image URLs.
-            if (Array.isArray(next.images)) next.images = next.images.filter((s: unknown) => typeof s === 'string' && !/^(data:|blob:)/i.test(s));
+            if (Array.isArray(next.images)) next.images = safeImages(next.images);
             return { day: d.day, date: d.date || '', accommodation: next };
         }) };
 }
