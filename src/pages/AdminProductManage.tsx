@@ -5,6 +5,7 @@ import { adminProductFromApi, adminProductNavigationDecision, updateAdminProduct
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
 import './AdminProductList.css';
+import './AdminProductEditor.css';
 import { Icon } from '../components/admin/console/Icon';
 import { DesignTemplateBlockEditor } from '../components/admin/DesignTemplateBlockEditor';
 import { designTemplates } from '../components/product/designTemplates/registry';
@@ -845,6 +846,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         // Validate required fields
         if (!formData.name || !formData.name.trim()) {
             alert('상품명을 입력해주세요.');
+            return;
+        }
+        if (!formData.category) {
+            alert('카테고리를 선택해주세요.');
             return;
         }
         if (!formData.duration || !formData.duration.trim()) {
@@ -1840,22 +1845,25 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     const busy = saving || uploadCount > 0 || itineraryBulkUploading || designUploading;
     const locked = busy || !draftReady || !!pendingDraft || savedRef.current;
 
+    const requiredChecks: Array<[string, boolean]> = [
+        ['상품명', !!formData.name?.trim()], ['카테고리', !!formData.category], ['기간', !!formData.duration?.trim()],
+        ['판매가', Number(formData.price) > 0], ['메인 이미지', (formData.mainImages || []).length > 0],
+    ];
+    const requiredDone = requiredChecks.filter(([, done]) => done).length;
     return (
-        <div className="card product-draft-editor" style={{ width: '100%' }}>
+        <div className="card product-draft-editor pa-editor" style={{ width: '100%' }}>
                 {/* Header */}
-                <div className="card-head">
-                    <button onClick={closeEditor} disabled={busy} className="act-btn" title="목록으로" type="button">
-                        <Icon name="arrow_back" />
+                <div className="card-head pa-head">
+                    <button onClick={closeEditor} disabled={busy} className="pa-back" title="목록으로" type="button">
+                        <DashboardIcon name="lc-chevron-left" size={16} />상품 목록
                     </button>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-strong)', margin: 0 }}>
-                        {product ? '상품 수정' : '상품 추가'}
-                    </h2>
+                    <div className="pa-title"><span>카탈로그</span><h2>{product ? '상품 수정' : '상품 추가'}</h2></div>
                     <div className="spacer" />
                 </div>
 
                 {/* Tabs */}
-                <div className="card-pad" style={{ paddingTop: 10, paddingBottom: 0 }}>
-                    <div className="tabs" style={{ marginBottom: 0 }}>
+                <div className="card-pad pa-tabs-wrap" style={{ paddingTop: 10, paddingBottom: 0 }}>
+                    <div className="tabs pa-tabs" style={{ marginBottom: 0 }}>
                         {[
                             { id: 'basic', label: '기본 정보', icon: 'info' },
                             { id: 'details', label: '상세 정보', icon: 'description' },
@@ -1877,7 +1885,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                     </div>
                 </div>
 
-                <div role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 12, background: draftError || pendingDraft?.conflict ? '#fff5e8' : '#edfaf6', border: '1px solid ' + (draftError || pendingDraft?.conflict ? '#f3d5a3' : '#c8eee3'), fontSize: 13, lineHeight: 1.7 }}>
+                <div className="pa-body">
+                <div className="pa-main">
+
+                <div className="pa-draft-status" role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 12, background: draftError || pendingDraft?.conflict ? '#fff5e8' : '#edfaf6', border: '1px solid ' + (draftError || pendingDraft?.conflict ? '#f3d5a3' : '#c8eee3'), fontSize: 13, lineHeight: 1.7 }}>
                     {!adminUserId ? '관리자 계정을 확인하고 있습니다. 확인이 끝난 뒤 편집할 수 있습니다.' : pendingDraft ? <>
                         <strong>{pendingDraft.conflict ? '상품이 변경된 뒤 남아 있는 초안입니다.' : '이 브라우저에 저장하지 않은 상품 초안이 있습니다.'}</strong>
                         <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')}{pendingDraft.conflict ? ' · 서버 상품과 다른 버전입니다. 내용을 복원해 검토하거나 초안을 버리고 최신 상품으로 시작하세요.' : ' · 복원하거나 버린 뒤 편집을 계속하세요.'}</div>
@@ -1930,19 +1941,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                                 <div className="field-row">
                                     <div className="field">
-                                        <label>카테고리 *</label>
-                                        <select
-                                            className="inp"
-                                            style={{ appearance: 'none' }}
-                                            value={formData.category}
-                                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                            required
-                                        >
-                                            <option value="" disabled>카테고리 선택</option>
+                                        <label id="pa-category-label">카테고리 *</label>
+                                        <div className="pa-seg" role="radiogroup" aria-labelledby="pa-category-label">
                                             {categories.map(cat => (
-                                                <option key={cat.id} value={cat.name}>{cat.name}</option>
+                                                <button key={cat.id} type="button" role="radio" aria-checked={formData.category === cat.name} className={formData.category === cat.name ? 'is-on' : ''} onClick={() => setFormData({ ...formData, category: cat.name })}>{cat.name}</button>
                                             ))}
-                                        </select>
+                                            {categories.length === 0 && <span className="cell-muted">상품 카테고리에서 먼저 카테고리를 등록하세요.</span>}
+                                        </div>
                                     </div>
 
                                     <div className="field">
@@ -1955,6 +1960,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                             placeholder="예: 4박 5일"
                                             required
                                         />
+                                        <div className="pa-seg pa-seg-sm" aria-label="기간 빠른 입력">
+                                            {[1, 2, 3, 4, 5, 6, 7].map(n => {
+                                                const label = `${n}박 ${n + 1}일`;
+                                                return <button key={n} type="button" className={formData.duration === label ? 'is-on' : ''} onClick={() => setFormData({ ...formData, duration: label })}>{n}박{n + 1}일</button>;
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1983,14 +1994,19 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                                 {/* Main Images Upload */}
                                 <div className="field">
-                                    <label>메인 이미지 업로드 *</label>
+                                    <label htmlFor="pa-main-images">메인 이미지 업로드 *</label>
+                                    <label className="pa-upload" htmlFor="pa-main-images">
+                                        <DashboardIcon name="lc-image-plus" size={22} />
+                                        <b>이미지 추가</b>
+                                        <span>{(formData.mainImages || []).length}장 등록됨 · 여러 장 선택 가능</span>
+                                    </label>
                                     <input
+                                        id="pa-main-images"
                                         type="file"
                                         accept="image/*"
                                         multiple
                                         onChange={(e) => handleMainImageUpload(e.target.files)}
-                                        className="inp"
-                                        style={{ paddingTop: 10, height: 'auto' }}
+                                        className="pa-file"
                                     />
                                     <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>대표 사진은 홈 상품 카드와 상품 상세 슬라이드에 사용됩니다. 업로드 후 상품을 저장하고 ‘판매중’으로 설정해야 공개됩니다.</p>
 
@@ -2049,17 +2065,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                                 <div className="field-row">
                                     <div className="field">
-                                        <label>상태</label>
-                                        <select
-                                            className="inp"
-                                            style={{ appearance: 'none' }}
-                                            value={formData.status}
-                                            onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                                        >
-                                            <option value="active">판매중</option>
-                                            <option value="inactive">비활성</option>
-                                            <option value="soldout">품절</option>
-                                        </select>
+                                        <label id="pa-status-label">판매 상태</label>
+                                        <div className="pa-seg" role="radiogroup" aria-labelledby="pa-status-label">
+                                            {([['active', '판매중'], ['inactive', '비활성'], ['soldout', '품절']] as const).map(([value, label]) => (
+                                                <button key={value} type="button" role="radio" aria-checked={formData.status === value} className={formData.status === value ? 'is-on' : ''} onClick={() => setFormData({ ...formData, status: value })}>{label}</button>
+                                            ))}
+                                        </div>
                                     </div>
 
                                     <div className="field">
@@ -2097,19 +2108,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                     </div>
 
                                     <div className="field">
-                                        <label>여행 타입</label>
-                                        <select
-                                            className="inp"
-                                            style={{ appearance: 'none' }}
-                                            value={formData.packageType ?? ''}
-                                            onChange={(e) => setFormData({ ...formData, packageType: (e.target.value || null) as PackageType | null })}
-                                        >
-                                            <option value="">미지정</option>
-                                            <option value="full">풀패키지 (4성급 호텔 + 디럭스 게르)</option>
-                                            <option value="value">실속형 (3성급 호텔 + 스탠다드 게르)</option>
-                                        </select>
+                                        <label id="pa-package-label">여행 타입</label>
+                                        <div className="pa-seg" role="radiogroup" aria-labelledby="pa-package-label">
+                                            {([[null, '미지정', ''], ['full', '풀패키지', '4성급 호텔 + 디럭스 게르'], ['value', '실속형 패키지', '3성급 호텔 + 스탠다드 게르']] as const).map(([value, label, stays]) => (
+                                                <button key={label} type="button" role="radio" aria-checked={(formData.packageType ?? null) === value} title={stays || undefined} className={(formData.packageType ?? null) === value ? 'is-on' : ''} onClick={() => setFormData({ ...formData, packageType: value as PackageType | null })}>{label}</button>
+                                            ))}
+                                        </div>
                                         <div className="cell-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                                            PC 투어 상품 목록의 '풀패키지 여행 / 가성비 여행' 필터에 사용됩니다.
+                                            풀패키지는 4성급 호텔 + 디럭스 게르, 실속형 패키지는 3성급 호텔 + 스탠다드 게르예요. 고객 투어 목록의 여행 타입 필터에 사용됩니다.
                                         </div>
                                     </div>
                                 </div>
@@ -2929,16 +2935,33 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                     </div>
 
                     {/* Footer — 페이지 스크롤 중에도 항상 보이는 저장 바 */}
-                    <div className="card-pad row" style={{ justifyContent: 'flex-end', gap: 10, borderTop: '1px solid var(--border-subtle)', position: 'sticky', bottom: 0, background: 'var(--bg-card, #fff)', zIndex: 5 }}>
+                    <div className="card-pad row pa-savebar" style={{ justifyContent: 'flex-end', gap: 10, borderTop: '1px solid var(--border-subtle)', position: 'sticky', bottom: 0, background: 'var(--bg-card, #fff)', zIndex: 5 }}>
+                        <span className="pa-save-note">필수 항목 <b>{requiredDone} / {requiredChecks.length}</b>{requiredDone < requiredChecks.length ? ' · 모두 채우면 공개 준비가 끝나요' : ' · 저장할 준비가 됐어요'}</span>
                         <button type="button" onClick={closeEditor} disabled={busy} className="btn btn-ghost">
                             취소
                         </button>
                         <button type="submit" className="btn btn-ink" disabled={locked}>
-                            <Icon name="check" />{saving ? '저장 중…' : product ? '수정 완료' : '추가 완료'}
+                            <Icon name="check" />{saving ? '저장 중…' : '상품 저장'}
                         </button>
                     </div>
                     </fieldset>
                 </form>
+                </div>
+                <aside className="pa-aside" aria-label="상품 미리보기와 필수 항목">
+                    <section className="pa-preview">
+                        <div className="pa-preview-image">{formData.mainImages?.[0] ? <img src={getOptimizedImageUrl(formData.mainImages[0], 'productThumbnail')} alt="" /> : <DashboardIcon name="lc-image-plus" size={28} />}</div>
+                        <div className="pa-preview-copy">
+                            <b>{formData.name?.trim() || '상품명을 입력하세요'}</b>
+                            <span>{[formData.category, formData.duration].filter(Boolean).join(' · ') || '카테고리 · 기간'}</span>
+                            <strong>{Number(formData.price) > 0 ? `${Number(formData.price).toLocaleString('ko-KR')}원~` : '0원~'}</strong>
+                        </div>
+                    </section>
+                    <section className="pa-checks">
+                        <h3>필수 항목</h3>
+                        <ul>{requiredChecks.map(([label, done]) => <li key={label} className={done ? 'is-done' : ''}><span aria-hidden="true"><DashboardIcon name="lc-check" size={12} strokeWidth={3} /></span>{label}</li>)}</ul>
+                    </section>
+                </aside>
+                </div>
 
                 {/* Master pickers — open from either dayInfo or timeline buttons. */}
                 <HotelPickerModal
