@@ -101,7 +101,15 @@ export const Reservation: React.FC = () => {
                         highlights: pickArr(data.highlights, data.highlights),
                         included: pickArr(data.included, data.included),
                         excluded: pickArr(data.excluded, data.excluded),
-                        pricingOptions: pickArr(data.pricingOptions, data.pricing_options),
+                        // Older pricing JSON stores headcounts as digit strings.
+                        // Normalize those once so the initial count, tier buttons and
+                        // price dialog all pass numbers to the shared calculator.
+                        pricingOptions: pickArr(data.pricingOptions, data.pricing_options).map(option => {
+                            const people = option?.people;
+                            if (typeof people !== 'string' || !/^\d+$/.test(people.trim())) return option;
+                            const count = Number(people);
+                            return Number.isSafeInteger(count) && count > 0 ? { ...option, people: count } : option;
+                        }),
                         accommodationOptions: pickArr(data.accommodationOptions, data.accommodation_options),
                         vehicleOptions: pickArr(data.vehicleOptions, data.vehicle_options),
                         viewCount: data.viewCount ?? data.view_count ?? 0,
