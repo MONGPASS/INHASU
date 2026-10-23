@@ -57,14 +57,9 @@ export function useHomeReviews() {
 }
 
 /**
- * Whole-percent discount when the admin set an original price above the sale price.
- * Token reductions (under 5%) are not advertised as a sale.
+ * A global original price has no headcount basis, so it cannot substantiate a tier discount.
  */
-export const discountPct = (p: HomeProduct) => {
-    if (!p.originalPrice || p.originalPrice <= p.price) return 0;
-    const pct = Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100);
-    return pct >= 5 ? pct : 0;
-};
+export const discountPct = (_p: HomeProduct) => 0;
 
 /** /api/products also returns unpublished tours; PC listings show published ones only. */
 export const isPublished = (p: HomeProduct) => !p.status || p.status === 'active';

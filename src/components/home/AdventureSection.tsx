@@ -2,8 +2,10 @@ import React, { useMemo } from 'react';
 import { getOptimizedImageUrl } from '../../utils/cloudflareImage';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { PublicProductPriceFields } from '../../utils/publicProductPrice';
+import { StartingPrice } from '../product/StartingPrice';
 
-interface Product {
+interface Product extends PublicProductPriceFields {
     id: string;
     name: string;
     price: number;
@@ -84,11 +86,8 @@ export const AdventureSection: React.FC<AdventureSectionProps> = ({ products }) 
                             <div className="pt-1">
                                 <div className="flex items-center gap-2">
                                     <span className="text-[15px] font-bold text-primary">
-                                        {product.price ? product.price.toLocaleString() : t('home.theme.price_inquiry')}{product.price ? t('home.theme.won') : ''}
+                                        <StartingPrice product={product} />
                                     </span>
-                                </div>
-                                <div className="text-[11px] text-slate-400 line-through">
-                                    {product.price ? (product.price * 1.05).toLocaleString() : ''}{product.price ? t('home.theme.won') : ''}
                                 </div>
                             </div>
                         </div>

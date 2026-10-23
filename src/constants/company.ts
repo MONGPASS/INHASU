@@ -21,6 +21,9 @@ export const DEPOSIT_ACCOUNT = {
     holder: 'DAVAASUREN (헬로볼라)',
 } as const;
 
+/** 상품 편집기의 1인 예약금. 1인 총가격이 더 낮으면 그 금액까지만 받는다. */
+export const PRODUCT_DEPOSIT_PER_PERSON = 50000;
+
 export const COMPANY_INFO = {
     nameJa: '몽골리아 은하수',
     nameEn: 'Mongolia Milky Way',

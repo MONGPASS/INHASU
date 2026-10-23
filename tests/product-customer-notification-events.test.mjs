@@ -54,7 +54,8 @@ async function fixture(t) {
         raw.prepare('INSERT INTO users(id,google_id,name,email,role) VALUES(?,?,?,?,?)').run(id, 'local-google-' + id, '동명이인 고객', id + '@example.invalid', role);
         raw.prepare('INSERT INTO sessions VALUES(?,?,?)').run('notice-' + id, id, Date.now() + 86400000);
     }
-    raw.prepare('INSERT INTO products(id,name,included,excluded) VALUES(?,?,?,?)').run('local-tour', '예약 상품', '["포함"]', '["불포함"]');
+    raw.prepare('INSERT INTO products(id,name,included,excluded,pricing_options) VALUES(?,?,?,?,?)').run('local-tour', '예약 상품', '["포함"]', '["불포함"]',
+        JSON.stringify([{ people: 2, pricePerPerson: 500000, depositPerPerson: 150000, localPaymentPerPerson: 350000 }]));
     raw.prepare(`INSERT INTO reservations(id,product_id,product_name,customer_name,customer_email,customer_phone,user_id,status,deposit_status,balance_status,contract_data,document_content,start_date,end_date,total_price,deposit_amount,balance_amount,travelers)
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run('local-booking', 'local-tour', '예약 상품', '저장된 예약자', 'stored@example.invalid', '01012345678', 'google-customer', 'pending_payment', 'unpaid', 'unpaid', '{}', JSON.stringify({ name: '저장 일정', days: [{ day: 1, title: '울란바토르', items: ['공항 픽업'] }] }), '2026-10-25', '2026-10-25', 1000000, 300000, 700000, 1);
     const env = { DB, ENVIRONMENT: 'production', PAYPAL_ENABLED: 'false', localAttempts: [], localDelivered: [], localAccepted: new Set() };

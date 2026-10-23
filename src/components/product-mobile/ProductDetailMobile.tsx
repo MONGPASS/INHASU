@@ -15,9 +15,10 @@ import {
 import { ItineraryAccordion } from '../product/detail/ItineraryAccordion';
 import {
     detailFlags, detailTabs, summariseReviews, tourFacts, tourGallery, tourImageAlt, useRecentlyViewedTours, useRelatedTours, useSectionTabs,
-    useTourFaqItems, useTourPricing, type RecentlyViewedTour, type TourDetailViewProps, type TourFact, type TourPricing,
+    useTourFaqItems, useTourPricing, type TourDetailViewProps, type TourFact, type TourPricing,
 } from '../product/detail/productDetailData';
 import { TourCardMobile } from '../tours-mobile/TourCardMobile';
+import { StartingPrice } from '../product/StartingPrice';
 
 const TAB_ROW_H = 55;
 
@@ -223,9 +224,9 @@ function TourActionBar({ fav, onFav, people, total, onBook }: { fav: boolean; on
             </button>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <span style={{ fontSize: 11, color: MW.mute, whiteSpace: 'nowrap' }}>성인 {people}명 · 합계</span>
-                <span style={{ fontFamily: MW_FONT_EN, fontSize: 17, fontWeight: 600, whiteSpace: 'nowrap' }}>{won(total)}</span>
+                <span style={{ fontFamily: MW_FONT_EN, fontSize: 17, fontWeight: 600, whiteSpace: 'nowrap' }}>{total > 0 ? won(total) : '요금 등록 필요'}</span>
             </span>
-            <button type="button" onClick={onBook} style={{ height: 50, padding: '0 22px', border: 0, borderRadius: 999, background: M_GRADIENT, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, color: MW.navy, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <button type="button" onClick={onBook} disabled={total <= 0} style={{ height: 50, padding: '0 22px', border: 0, borderRadius: 999, background: M_GRADIENT, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, color: MW.navy, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 예약하기
             </button>
         </div>
@@ -260,7 +261,6 @@ function RecentlyViewed({ productId }: { productId: string }) {
     const navigate = useNavigate();
     const items = useRecentlyViewedTours(productId);
     if (items.length === 0) return null;
-    const price = (v: RecentlyViewedTour['price']) => (typeof v === 'number' ? `${won(v)}~` : `${v}원~`);
     return (
         <section style={{ paddingTop: 44, display: 'flex', flexDirection: 'column', gap: 16 }}>
             <h2 style={rowTitle}>최근 본 상품</h2>
@@ -276,7 +276,7 @@ function RecentlyViewed({ productId }: { productId: string }) {
                             <MPhoto src={isUsableImage(item.image) ? item.image : undefined} alt={`${item.title ?? ''} | 몽골 여행·몽골 투어`} />
                         </span>
                         <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.title}</span>
-                        {!!item.price && <span style={{ fontSize: 13, fontWeight: 900 }}>{price(item.price)}</span>}
+                        <StartingPrice product={item} amountStyle={{ fontSize: 13, fontWeight: 900 }} />
                     </a>
                 ))}
             </div>

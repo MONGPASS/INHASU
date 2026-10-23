@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useHeroBanners } from '../../hooks/useHeroBanners';
 import type { HomeData } from '../../hooks/useHomeData';
 import { BRAND } from '../../constants/company';
-import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { MW, isUsableImage } from '../desktop-primitives/mwTokens';
 import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import { HeroBannerStatus } from '../common/HeroBannerStatus';
+import { productPriceLabel, productPriceBasis } from '../../utils/publicProductPrice';
 
 interface Slide {
     key: string;
@@ -76,7 +77,7 @@ export function HeroCarouselDesktop({ products }: Props) {
                 img: b.pc_image || b.pcImage || b.image || b.image_url || '',
                 eyebrow: tag || (product ? [product.category, product.duration].filter(Boolean).join(' · ') : ''),
                 title: clean(b.pc_title || b.pcTitle) || clean(b.title) || product?.name || '몽골 여행',
-                sub: sub || (product ? `${won(product.price)}~` : ''),
+                sub: sub || (product ? [productPriceLabel(product), productPriceBasis(product)].filter(Boolean).join(' · ') : ''),
                 label: product?.category || '몽골 여행',
                 path,
             };

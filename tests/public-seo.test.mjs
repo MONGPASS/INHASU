@@ -22,9 +22,10 @@ async function fixture() {
     });
     const db = { raw, prepare: sql => statement(sql), batch: async list => Promise.all(list.map(item => item.run())) };
     await ensureSiteSchema(db);
-    raw.prepare("INSERT INTO products (id,name,description,category,duration,price,main_images,tags,status,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)").run(
-        'tour & one', '테를지 & 고비 몽골 투어', '<p>한국어 가이드와 함께 여행합니다.</p>', '테를지', '3박 4일', 1290000,
-        JSON.stringify(['/api/images/test.webp?v=1&size=2', '/api/file?token=customer-secret', 'javascript:alert(1)']), '["terelj"]', 'active', '2026-01-10 12:00:00'
+    raw.prepare("INSERT INTO products (id,name,description,category,duration,price,main_images,tags,status,updated_at,pricing_options) VALUES (?,?,?,?,?,?,?,?,?,?,?)").run(
+        'tour & one', '테를지 & 고비 몽골 투어', '<p>한국어 가이드와 함께 여행합니다.</p>', '테를지', '3박 4일', 9990000,
+        JSON.stringify(['/api/images/test.webp?v=1&size=2', '/api/file?token=customer-secret', 'javascript:alert(1)']), '["terelj"]', 'active', '2026-01-10 12:00:00',
+        JSON.stringify([{ people: 2, pricePerPerson: 1590000 }, { people: 6, pricePerPerson: 1290000 }])
     );
     raw.prepare("INSERT INTO products (id,name,category,status) VALUES (?,?,?,?)").run('draft-tour', '비공개 상품', '고비', 'inactive');
     raw.prepare("INSERT INTO products (id,name,category,status) VALUES (?,?,?,?)").run('soldout-tour', '매진 상품', '고비', 'soldout');
@@ -47,11 +48,34 @@ test('public product has encoded canonical, actual won price and crawlable escap
         assert.equal(page.jsonLd[0].offers.price, 1290000);
         assert.equal(page.jsonLd[0].offers.priceCurrency, 'KRW');
         assert.equal(page.jsonLd[0].offers.url, page.canonical);
+        assert.equal(page.jsonLd[0].offers.description, '6명 예약 시 1인 요금');
         assert.deepEqual(page.jsonLd[0].image, ['https://mongolia-milkyway.com/api/images/test.webp?v=1&size=2']);
         assert.match(fallbackMarkup(page), /<h1>테를지 &amp; 고비 몽골 투어<\/h1>/);
         assert.match(page.body, /1,290,000원부터/);
+        assert.match(page.body, /6명 기준/);
+        assert.match(page.description, /1인 1,290,000원부터 · 6명 기준/);
+        assert.doesNotMatch(page.body, /9,990,000/);
         assert.match(page.body, /한국어 가이드와 함께 여행합니다/);
         for (const invented of ['priceValidUntil', 'shippingDetails', 'hasMerchantReturnPolicy', 'aggregateRating']) assert.equal(invented in page.jsonLd[0], false);
+    } finally { db.raw.close(); }
+});
+
+test('SEO omits offers for unconfigured tiers and never revives a legacy sale price', async () => {
+    const db = await fixture();
+    try {
+        for (const pricing of [null, '[]', '[{"people":2,"pricePerPerson":0}]', '[{"people":2,"pricePerPerson":-1}]']) {
+            db.raw.prepare('UPDATE products SET pricing_options=? WHERE id=?').run(pricing, 'tour & one');
+            const page = await readPublicPage(db, '/products/tour%20%26%20one');
+            assert.equal('offers' in page.jsonLd[0], false);
+            assert.match(page.body, /요금 등록 필요/);
+            assert.match(page.description, /요금 등록 필요/);
+            assert.doesNotMatch(page.body, /9,990,000|0원부터/);
+            for (const path of ['/', '/products', '/category/terelj', '/promotions/promo-one']) {
+                const collection = await readPublicPage(db, path);
+                assert.match(collection.body, /요금 등록 필요/);
+                assert.doesNotMatch(collection.body, /9,990,000|0원부터/);
+            }
+        }
     } finally { db.raw.close(); }
 });
 
@@ -187,8 +211,8 @@ test('Cloudflare HTMLRewriter serves real product HTML, safe JSON-LD and noindex
     try {
         const db = await mf.getD1Database('DB');
         await ensureSiteSchema(db);
-        await db.prepare('INSERT INTO products (id,name,description,category,duration,price,main_images,status) VALUES (?,?,?,?,?,?,?,?)')
-            .bind('runtime-tour', '몽골 투어 <특가> & "상담"', '한국어 여행 가이드 </script><script>bad()</script>', '테를지', '3박 4일', 1230000, '["/img/home/1.webp"]', 'active').run();
+        await db.prepare('INSERT INTO products (id,name,description,category,duration,price,main_images,status,pricing_options) VALUES (?,?,?,?,?,?,?,?,?)')
+            .bind('runtime-tour', '몽골 투어 <특가> & "상담"', '한국어 여행 가이드 </script><script>bad()</script>', '테를지', '3박 4일', 9990000, '["/img/home/1.webp"]', 'active', '[{"people":6,"pricePerPerson":1230000}]').run();
         await db.prepare('INSERT INTO products (id,name,status) VALUES (?,?,?)').bind('runtime-draft', '비공개 상품', 'inactive').run();
         const response = await mf.dispatchFetch('https://mongolia-milkyway.com/products/runtime-tour?ref=sample');
         assert.equal(response.status, 200);
@@ -205,6 +229,9 @@ test('Cloudflare HTMLRewriter serves real product HTML, safe JSON-LD and noindex
         const scripts = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map(match => JSON.parse(match[1]));
         assert.equal(scripts[0].offers.price, 1230000);
         assert.equal(scripts[0].offers.priceCurrency, 'KRW');
+        assert.equal(scripts[0].offers.description, '6명 예약 시 1인 요금');
+        assert.match(html, /1인 1,230,000원부터 · 6명 기준/);
+        assert.doesNotMatch(html, /9,990,000/);
         assert.equal(scripts[0].shippingDetails, undefined);
         const preview = await mf.dispatchFetch('https://review.inhasu.pages.dev/products/runtime-tour');
         assert.equal(preview.headers.get('X-Robots-Tag'), 'noindex, nofollow');

@@ -1,4 +1,5 @@
 import type { HomeProduct, ReviewStat } from '../home-desktop/homeDesktopData';
+import { publicProductPrice, compareProductStartingPrice } from '../../utils/publicProductPrice';
 
 /**
  * Filter / sort logic of the mobile tour list (Claude Design: "Milkyway Japan Mobile" — M Tours).
@@ -93,7 +94,8 @@ export function splitDuration(d: string): [string, string] {
 
 export function matchFilters(p: HomeProduct, f: TourFilters): boolean {
     if (f.days.length && !f.days.includes(durationOf(p))) return false;
-    if (f.prices.length && !PRICE_BANDS.some((b) => f.prices.includes(b.key) && b.test(p.price))) return false;
+    const price = publicProductPrice(p).price;
+    if (f.prices.length && (price === null || !PRICE_BANDS.some((b) => f.prices.includes(b.key) && b.test(price)))) return false;
     return PERKS.every((k) => !f.perks.includes(k.key) || k.test(p));
 }
 
@@ -125,8 +127,8 @@ export function sortTours(list: HomeProduct[], sort: Sort, stats: Record<string,
     const rank = (p: HomeProduct) => Number(p.isPopular) * 2 + Number(p.isFeatured);
     const sorters: Record<Sort, (a: HomeProduct, b: HomeProduct) => number> = {
         rec: (a, b) => rank(b) - rank(a),
-        low: (a, b) => a.price - b.price,
-        high: (a, b) => b.price - a.price,
+        low: (a, b) => compareProductStartingPrice(a, b, 'low'),
+        high: (a, b) => compareProductStartingPrice(a, b, 'high'),
         rating: (a, b) => (stats[b.id]?.avg ?? 0) - (stats[a.id]?.avg ?? 0) || (stats[b.id]?.count ?? 0) - (stats[a.id]?.count ?? 0),
         reviews: (a, b) => (stats[b.id]?.count ?? 0) - (stats[a.id]?.count ?? 0),
     };

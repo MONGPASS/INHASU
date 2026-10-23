@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import { useWishlist } from '../../hooks/useWishlist';
-import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { MW, isUsableImage } from '../desktop-primitives/mwTokens';
 import { TypePill } from '../desktop-primitives/TypePill';
 import { FavButton } from './TourTabsSection.desktop';
-import { discountPct, type HomeProduct, type ReviewStat } from './homeDesktopData';
+import { type HomeProduct, type ReviewStat } from './homeDesktopData';
+import { StartingPrice } from '../product/StartingPrice';
 
 interface Props {
     title: string;
@@ -97,7 +98,6 @@ export function ThemeRowSectionDesktop({ title, subtitle, products, stats, image
 function MiniCard({ p, stat }: { p: HomeProduct; stat?: ReviewStat }) {
     const navigate = useNavigate();
     const wishlist = useWishlist();
-    const off = discountPct(p);
     const img = p.mainImages[0];
 
     return (
@@ -123,8 +123,7 @@ function MiniCard({ p, stat }: { p: HomeProduct; stat?: ReviewStat }) {
                 </div>
             )}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                {off > 0 && <span style={{ fontSize: 13, color: MW.mute2, textDecoration: 'line-through' }}>{won(p.originalPrice!)}</span>}
-                <span style={{ fontSize: 18, fontWeight: 900 }}>{won(p.price)}</span>
+                <StartingPrice product={p} amountStyle={{ fontSize: 18, fontWeight: 900 }} />
             </div>
             {stat && stat.count > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: MW.mute }}>

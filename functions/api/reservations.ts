@@ -12,6 +12,8 @@ import { sendEmail } from '../lib/mailer';
 import { tplAdminDepositReported } from './notifications/email';
 import { COMPANY_INFO } from '../../src/constants/company';
 import { dispatchCustomerNotification, type CustomerNotificationKind } from '../lib/customerNotifications';
+import { resolveBookingPricing } from '../../src/utils/bookingPricing';
+import { getProductPricedOptions } from '../../src/utils/productStartingPrice';
 // 견적 시스템의 문자 발송 모듈(JS, 타입 선언 없음). SOLAPI_*·ADMIN_PHONE 이 없으면 조용히 건너뛴다.
 // @ts-ignore
 import { notifyAdmin } from './_solapi.js';
@@ -499,16 +501,74 @@ app.post('/', async (c) => {
     if (originDenied) return originDenied;
     const isAdmin = user.role === 'admin';
 
-    const body = await c.req.json();
+    let body: any;
+    try { body = await c.req.json(); } catch { return c.json({ error: '예약 정보를 확인해 주세요.' }, 400); }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return c.json({ error: '예약 정보를 확인해 주세요.' }, 400);
     const db = drizzle(c.env.DB);
 
     const selectedProductId = body.product_id ?? body.productId;
     let productId: string | null = null;
+    let selectedProduct: any = null;
     if (selectedProductId !== undefined && selectedProductId !== null && selectedProductId !== '') {
         if (typeof selectedProductId !== 'string' || selectedProductId.length > 150) return c.json({ error: '상품 ID를 확인해 주세요.' }, 400);
-        const selectedProduct = await c.env.DB.prepare('SELECT id FROM products WHERE id=?').bind(selectedProductId).first();
+        selectedProduct = await c.env.DB.prepare('SELECT * FROM products WHERE id=?').bind(selectedProductId).first();
         if (!selectedProduct) return c.json({ error: '선택한 상품을 찾을 수 없습니다.' }, 400);
         productId = selectedProduct.id;
+    }
+
+    const peopleValue = body.total_people ?? body.totalPeople ?? 1;
+    const travelers = Number(peopleValue);
+    const submittedBreakdown = body.price_breakdown ?? body.priceBreakdown;
+    const readAmount = (value: unknown) => typeof value === 'number' || (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN;
+    const amount = (key: string, legacyKey: string) => submittedBreakdown && Object.hasOwn(submittedBreakdown, key)
+        ? submittedBreakdown[key] : Object.hasOwn(body, legacyKey) ? body[legacyKey] : 0;
+    let priceBreakdown = {
+        total: readAmount(amount('total', 'totalAmount')),
+        deposit: readAmount(amount('deposit', 'deposit')),
+        local: readAmount(amount('local', 'balance')),
+    };
+    if (isAdmin) {
+        // Manual bookings retain the administrator's saved split rather than
+        // being repriced against the current product catalog.
+        priceBreakdown = {
+            total: Number(body.price_breakdown?.total ?? body.totalAmount ?? 0),
+            deposit: Number(body.price_breakdown?.deposit ?? body.deposit ?? 0),
+            local: Number(body.price_breakdown?.local ?? body.balance ?? 0),
+        };
+    }
+    if (!isAdmin) {
+        if ((typeof peopleValue !== 'number' && typeof peopleValue !== 'string') || !Number.isSafeInteger(travelers) || travelers < 1) {
+            return c.json({ error: '예약 인원을 확인해 주세요.' }, 400);
+        }
+        if ((submittedBreakdown !== undefined && (submittedBreakdown === null || typeof submittedBreakdown !== 'object' || Array.isArray(submittedBreakdown))) ||
+            !Object.values(priceBreakdown).every(value => Number.isSafeInteger(value) && value >= 0) ||
+            priceBreakdown.deposit + priceBreakdown.local !== priceBreakdown.total) {
+            return c.json({ error: '예약 금액을 확인해 주세요. 총 금액은 예약금과 잔금의 합계여야 합니다.', code: 'INVALID_PRICE' }, 400);
+        }
+        if (selectedProduct) {
+            // Current catalog bookings use the same positive registered tiers as
+            // the public price/selection. Stored reservations and quotes are not repriced.
+            const tiers = getProductPricedOptions(selectedProduct);
+            if (tiers.length === 0) {
+                return c.json({ error: '상품 요금을 확인할 수 없습니다. 담당자에게 문의해 주세요.', code: 'INVALID_PRODUCT_PRICE' }, 400);
+            }
+            const minimumPeople = Math.min(...tiers.map(tier => tier.people));
+            if (travelers < minimumPeople) {
+                return c.json({ error: `이 상품은 최소 ${minimumPeople}명부터 예약할 수 있습니다.`, code: 'MINIMUM_PEOPLE' }, 400);
+            }
+            let current;
+            try {
+                current = resolveBookingPricing({ ...selectedProduct, pricingOptions: tiers }, travelers,
+                    body.selected_accom_id ?? body.selectedAccomId,
+                    body.selected_vehicle_id ?? body.selectedVehicleId);
+            } catch (error) {
+                return c.json({ error: error instanceof Error ? error.message : '상품 요금과 옵션을 확인해 주세요.', code: 'INVALID_PRODUCT_PRICE' }, 400);
+            }
+            if (Object.keys(priceBreakdown).some(key => priceBreakdown[key as keyof typeof priceBreakdown] !== current.priceBreakdown[key as keyof typeof priceBreakdown])) {
+                return c.json({ error: '상품 요금이 변경되었습니다. 상품 예약 화면에서 금액을 다시 확인해 주세요.', code: 'PRICE_CHANGED' }, 409);
+            }
+            priceBreakdown = current.priceBreakdown;
+        }
     }
 
     // 고객 예약 요청으로는 내부 메모·영수증 정보를 설정할 수 없다.
@@ -561,15 +621,15 @@ app.post('/', async (c) => {
             customerName: String(customerName),
             customerEmail: String(customerEmail),
             customerPhone: String(customerPhone),
-            travelers: Number(body.total_people || body.totalPeople || 1),
+            travelers: isAdmin ? Number(body.total_people || body.totalPeople || 1) : travelers,
             startDate: (body.start_date || body.date) ? String(body.start_date || body.date) : null,
             endDate: body.end_date ? String(body.end_date) : null,
             duration: body.duration ? String(body.duration) : null,
             status: isAdmin && body.status ? String(body.status) : 'pending_payment',
             source: isAdmin && body.source ? String(body.source) : null,
-            totalPrice: Number(body.price_breakdown?.total ?? body.totalAmount ?? 0),
-            depositAmount: Number(body.price_breakdown?.deposit ?? body.deposit ?? 0),
-            balanceAmount: Number(body.price_breakdown?.local ?? body.balance ?? 0),
+            totalPrice: priceBreakdown.total,
+            depositAmount: priceBreakdown.deposit,
+            balanceAmount: priceBreakdown.local,
             paymentMethod: body.paymentMethod ? String(body.paymentMethod) : null,
             notes: body.notes ? String(body.notes) : null,
             adminOperations: adminOperations ? JSON.stringify(adminOperations) : null,
@@ -601,7 +661,7 @@ app.post('/', async (c) => {
                 !c.env.PAYPAL_SECRET_KEY && 'PAYPAL_SECRET_KEY',
                 !c.env.PAYPAL_BUSINESS_EMAIL && 'PAYPAL_BUSINESS_EMAIL',
             ].filter(Boolean);
-            const depositAmt = Number(body.price_breakdown?.deposit ?? body.deposit ?? 0);
+            const depositAmt = priceBreakdown.deposit;
 
             if (missingPayPalEnv.length > 0) {
                 console.warn(`[PayPal Invoice] skipped: missing ${missingPayPalEnv.join(', ')}`);
@@ -639,7 +699,7 @@ app.post('/', async (c) => {
             }
         }
 
-        return c.json({ message: 'Reservation created', id, reservationNumber }, 201);
+        return c.json({ message: 'Reservation created', id, reservationNumber, priceBreakdown, price_breakdown: priceBreakdown }, 201);
     } catch (error: any) {
         return c.json({ error: error.message }, 500);
     }

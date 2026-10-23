@@ -471,24 +471,20 @@ export function FaqList({ items }: { items: ProductFAQ[] }) {
 // ───────────────────────── booking card ─────────────────────────
 
 /** Price, headcount (per-headcount tiers) and the two CTAs. The date is chosen on the booking page. */
-export function BookingCard({ product, pricing, onBook }: { product: TourProduct; pricing: TourPricing; onBook: () => void }) {
+export function BookingCard({ pricing, onBook }: { product: TourProduct; pricing: TourPricing; onBook: () => void }) {
     const { options, people, unit, total } = pricing;
-    const off = tourDiscountPct(product);
-    // The original price belongs to the tour's "from" price; do not strike it against a dearer tier.
-    const showOff = off > 0 && unit <= product.price;
+    const ready = options.length > 0 && unit > 0;
     const stepBtn: CSSProperties = { width: 40, height: 40, border: 0, borderRadius: '50%', fontSize: 18, lineHeight: 1, color: MW.navy, padding: 0 };
 
     return (
         <div style={{ border: `1px solid ${MW.line}`, borderRadius: 28, background: '#FFFFFF', overflow: 'hidden' }}>
             <div style={{ padding: '24px 24px 20px', background: 'linear-gradient(160deg,#F1FCF8 0%,#FFFFFF 100%)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: MW.mute }}>
-                    1인 요금
-                    {showOff && <span style={{ textDecoration: 'line-through', color: MW.mute2 }}>{won(product.originalPrice!)}</span>}
-                    {showOff && <span style={{ height: 20, padding: '0 8px', borderRadius: 999, background: MW.red, display: 'inline-flex', alignItems: 'center', fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 700, color: '#FFFFFF' }}>{off}% OFF</span>}
+                    1인 기본요금{ready ? ` · ${people}명 기준` : ''}
                 </span>
                 <span style={{ display: 'flex', alignItems: 'baseline', gap: 4, flexWrap: 'wrap' }}>
-                    <span style={{ fontFamily: MW_FONT_EN, fontSize: 34, fontWeight: 600, color: MW.navy, letterSpacing: '-0.02em' }}>{won(unit)}</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: MW.mute }}>~ / 1인</span>
+                    <span style={{ fontFamily: MW_FONT_EN, fontSize: ready ? 34 : 22, fontWeight: 600, color: MW.navy, letterSpacing: '-0.02em' }}>{ready ? won(unit) : '요금 등록 필요'}</span>
+                    {ready && <span style={{ fontSize: 14, fontWeight: 700, color: MW.mute }}>/ 1인</span>}
                 </span>
             </div>
             <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -526,14 +522,14 @@ export function BookingCard({ product, pricing, onBook }: { product: TourProduct
                     )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 16, borderTop: `1px dashed ${MW.line2}`, fontSize: 13, color: MW.mute }}>
-                    <span style={{ display: 'flex', justifyContent: 'space-between' }}><span>{won(unit)} × {people}명</span><span>{won(total)}</span></span>
-                    <span style={{ display: 'flex', justifyContent: 'space-between' }}><span>서비스 요금</span><span style={{ color: MW.mintDeep, fontWeight: 700 }}>무료</span></span>
+                    {ready && <span style={{ display: 'flex', justifyContent: 'space-between' }}><span>{won(unit)} × {people}명</span><span>{won(total)}</span></span>}
+                    {ready && <span style={{ display: 'flex', justifyContent: 'space-between' }}><span>옵션 추가요금</span><span>예약 단계에서 확인</span></span>}
                     <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 6, color: MW.navy }}>
                         <strong style={{ fontSize: 15 }}>합계</strong>
-                        <span style={{ fontFamily: MW_FONT_EN, fontSize: 24, fontWeight: 600 }}>{won(total)}</span>
+                        <span style={{ fontFamily: MW_FONT_EN, fontSize: 24, fontWeight: 600 }}>{ready ? won(total) : '요금 등록 필요'}</span>
                     </span>
                 </div>
-                <button type="button" onClick={onBook} style={{ height: 56, border: 0, borderRadius: 999, background: MW_GRADIENT, fontFamily: 'inherit', fontSize: 16, fontWeight: 700, color: MW.navy, cursor: 'pointer' }}>예약하기</button>
+                <button type="button" onClick={onBook} disabled={!ready} style={{ height: 56, border: 0, borderRadius: 999, background: MW_GRADIENT, fontFamily: 'inherit', fontSize: 16, fontWeight: 700, color: MW.navy, cursor: ready ? 'pointer' : 'default', opacity: ready ? 1 : 0.5 }}>예약하기</button>
                 <button type="button" onClick={openConsult} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, marginTop: -8, border: `1.5px solid ${MW.navy}`, borderRadius: 999, background: '#FFFFFF', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: MW.navy, cursor: 'pointer' }}>
                     <Svg d={ICON.chat} size={17} color={MW.navy} />먼저 무료 상담
                 </button>

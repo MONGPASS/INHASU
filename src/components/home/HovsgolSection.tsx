@@ -2,7 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { getOptimizedImageUrl } from '../../utils/cloudflareImage';
-import { won } from '../desktop-primitives/mwTokens';
+import { withPublicProductPrice } from '../../utils/publicProductPrice';
+import { StartingPrice } from '../product/StartingPrice';
 
 export const HovsgolSection: React.FC = () => {
     const navigate = useNavigate();
@@ -15,15 +16,14 @@ export const HovsgolSection: React.FC = () => {
                 if (Array.isArray(data)) {
                     const khuvsgulData = data.filter((p: any) => p.category === '홉스굴').slice(0, 3);
                     setProducts(khuvsgulData.map((p: any) => ({
+                        ...withPublicProductPrice(p),
                         id: p.id,
                         name: p.name,
                         category: p.category,
-                        price: p.price,
                         mainImages: p.mainImages || p.main_images || [],
                         duration: p.duration,
                         highlights: p.highlights || [],
                         isPopular: p.is_popular,
-                        originalPrice: p.original_price,
                         tags: p.tags || []
                     })));
                 }
@@ -71,13 +71,8 @@ export const HovsgolSection: React.FC = () => {
                                     </p>
                                     <div className="flex items-center gap-2">
                                         <span className="text-[14px] font-bold text-slate-900 dark:text-white">
-                                            {won(product.price)}~
+                                            <StartingPrice product={product} />
                                         </span>
-                                        {product.originalPrice && (
-                                            <span className="text-xs text-slate-400 line-through">
-                                                {won(product.originalPrice)}
-                                            </span>
-                                        )}
                                     </div>
                                 </div>
                             </div>

@@ -6,6 +6,7 @@ import { ReservationCompleteDesktop } from '../components/reservation-desktop/Re
 import { ReservationCompleteMobile } from '../components/reservation-mobile/ReservationCompleteMobile';
 import { BookingFallback } from '../components/reservation-shared/BookingFallback';
 import { reservationNoOf, type CompleteStepProps } from '../components/reservation-shared/bookingShared';
+import { savedReservationPricing } from '../utils/savedReservationPricing';
 
 export const ReservationComplete: React.FC = () => {
     const navigate = useNavigate();
@@ -42,30 +43,19 @@ export const ReservationComplete: React.FC = () => {
 
     if (!reservation) return null;
 
-    const priceBreakdown = reservation.priceBreakdown || reservation.price_breakdown || {
-        total: reservation.totalPrice || reservation.totalAmount || 0,
-        deposit: reservation.depositAmount || reservation.deposit || 0,
-        local: reservation.balanceAmount || reservation.balance || 0,
-    };
+    const priceBreakdown = savedReservationPricing(reservation);
     const productName = reservation.productName || reservation.product_name || '';
     const customerEmail =
         reservation.customerEmail ||
         reservation.customer_info?.email ||
         reservation.email ||
         '';
-    const total = priceBreakdown.total || 0;
-    const deposit = priceBreakdown.deposit || 0;
-
-    // Final step of the wizard. The pay-on-site figure keeps each layout's existing rule:
-    // PC shows total − deposit, mobile shows the saved pay-on-site amount.
     const stepProps: CompleteStepProps = {
         reservationId: String(reservation.id || reservationId || ''),
         productName,
         email: customerEmail,
         reservationNo: reservationNoOf(reservation),
-        total,
-        deposit,
-        local: isDesktop ? Math.max(0, total - deposit) : priceBreakdown.local || 0,
+        ...priceBreakdown,
     };
 
     return isDesktop ? <ReservationCompleteDesktop {...stepProps} /> : <ReservationCompleteMobile {...stepProps} />;
