@@ -26,6 +26,8 @@ import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '.
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
 import { productPricingIssues } from '../utils/productPricingValidation';
+import { withAutomaticProductPricing } from '../utils/adminProductPricing';
+import { PRODUCT_DEPOSIT_PER_PERSON } from '../constants/company';
 
 
 
@@ -616,7 +618,7 @@ const cleanDayLabels = (p: TourProduct): TourProduct => ({
 
 export const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClose, onSave, adminUserId = null }) => {
     const [formData, setFormDataState] = useState<Partial<TourProduct>>(() =>
-        product ? structuredClone(cleanDayLabels(product)) : {
+        product ? withAutomaticProductPricing(structuredClone(cleanDayLabels(product))) : {
             name: '',
             category: categories.length > 0 ? categories[0].name : '',
             duration: '',
@@ -644,7 +646,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     );
 
     const formRef = useRef(formData);
-    const [initialBaseline] = useState(() => structuredClone(formData));
+    // Keep the saved baseline intact so derived price corrections remain an
+    // unsaved edit and old drafts still compare against the actual server row.
+    const [initialBaseline] = useState(() => product ? structuredClone(cleanDayLabels(product)) : structuredClone(formData));
     const baselineRef = useRef(initialBaseline);
     const mountedRef = useRef(true);
     const savedRef = useRef(false);
@@ -672,7 +676,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
     // Update the ref synchronously so a navigation in the same turn flushes the latest input.
     const setFormData = useCallback<React.Dispatch<React.SetStateAction<Partial<TourProduct>>>>(next => {
-        const value = updateAdminProductEditorForm(formRef, { mounted: mountedRef.current, saving: savingRef.current, saved: savedRef.current }, next);
+        const value = updateAdminProductEditorForm(formRef, { mounted: mountedRef.current, saving: savingRef.current, saved: savedRef.current }, current =>
+            withAutomaticProductPricing(typeof next === 'function' ? next(current) : next));
         if (value) setFormDataState(value);
     }, []);
 
@@ -2751,28 +2756,29 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                         {currentTab === 'options' && (
                             <div className="stack" style={{ maxWidth: 860 }}>
                                 {/* Pricing Options */}
-                                <section className="edit-sec">
+                                <section className="edit-sec pricing-options">
                                     <div className="edit-sec-head">
                                         <Icon name="groups" />
                                         <h4>인원별 가격 옵션</h4>
-                                        <span className="muted">모두 1인 기준 · 예약금 + 현지 잔금 = 총가격</span>
+                                        <span className="muted">예약금 1인 {PRODUCT_DEPOSIT_PER_PERSON.toLocaleString('ko-KR')}원 · 나머지는 현지 결제</span>
                                     </div>
-                                    <div className="opt-grid-head"><span>인원</span><span>1인 총가격</span><span>예약금</span><span>현지 결제</span><span></span></div>
-                                    <div className="stack" style={{ gap: 10 }}>
-                                        {formData.pricingOptions?.map((option, index) => (
-                                            <div className="edit-row" key={index}>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div className="opt-grid">
-                                                        <div className="inp-mini"><input type="number" value={option.people} onChange={(e) => updatePricingOption(index, 'people', Number(e.target.value))} /><span>명</span></div>
-                                                        <div className="inp-mini"><input type="number" value={option.pricePerPerson} onChange={(e) => updatePricingOption(index, 'pricePerPerson', Number(e.target.value))} /><span>원</span></div>
-                                                        <div className="inp-mini"><input type="number" value={option.depositPerPerson || 0} onChange={(e) => updatePricingOption(index, 'depositPerPerson', Number(e.target.value))} /><span>원</span></div>
-                                                        <div className="inp-mini"><input type="number" value={option.localPaymentPerPerson || 0} onChange={(e) => updatePricingOption(index, 'localPaymentPerPerson', Number(e.target.value))} /><span>원</span></div>
-                                                    </div>
-                                                    {pricingIssues[index] && <p role="alert" style={{ margin: '6px 0 0', color: '#B45309', fontSize: 12 }}>{pricingIssues[index]}</p>}
+                                    <p className="pricing-options-help">총가격을 입력하면 예약금과 현지 결제 금액이 자동으로 계산됩니다. {PRODUCT_DEPOSIT_PER_PERSON.toLocaleString('ko-KR')}원 미만은 전액 예약금입니다.</p>
+                                    <div className="pricing-options-table">
+                                        <div className="pricing-options-head"><span>인원</span><span>1인 총가격</span><span>예약금</span><span>현지 결제</span><span aria-hidden="true"></span></div>
+                                        <div className="stack" style={{ gap: 10 }}>
+                                            {formData.pricingOptions?.map((option, index) => (
+                                                <div className="edit-row pricing-option-row" key={index}>
+                                                    <div className="inp-mini"><input aria-label={`${index + 1}번째 가격 옵션 인원`} type="number" value={option.people} onChange={(e) => updatePricingOption(index, 'people', Number(e.target.value))} /><span>명</span></div>
+                                                    <div className="inp-mini"><input aria-label={`${index + 1}번째 가격 옵션 1인 총가격`} type="number" value={option.pricePerPerson} onChange={(e) => updatePricingOption(index, 'pricePerPerson', Number(e.target.value))} /><span>원</span></div>
+                                                    <div className="inp-mini pricing-option-calculated"><input aria-label={`${index + 1}번째 가격 옵션 예약금`} aria-readonly="true" readOnly min={0} type="number" value={option.depositPerPerson || 0} /><span>원</span></div>
+                                                    <div className="inp-mini pricing-option-calculated"><input aria-label={`${index + 1}번째 가격 옵션 현지 결제`} aria-readonly="true" readOnly min={0} type="number" value={option.localPaymentPerPerson || 0} /><span>원</span></div>
+                                                    <button type="button" className="act-btn danger" onClick={() => removePricingOption(index)} title="삭제" aria-label={`${index + 1}번째 가격 옵션 삭제`}><Icon name="delete" /></button>
+                                                    {pricingIssues[index] && <p className="pricing-option-issue" role="alert" style={{ margin: 0, color: '#B45309', fontSize: 12 }}>{pricingIssues[index]}</p>}
                                                 </div>
-                                                <button type="button" className="act-btn danger" onClick={() => removePricingOption(index)} title="삭제"><Icon name="delete" /></button>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="stack" style={{ gap: 10, marginTop: 10 }}>
                                         {(!formData.pricingOptions || formData.pricingOptions.length === 0) && (
                                             <p className="muted" style={{ textAlign: 'center', padding: '8px 0', fontSize: 13 }}>등록된 가격 옵션이 없습니다.</p>
                                         )}
