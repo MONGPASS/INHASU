@@ -10,6 +10,7 @@ import { PaymentMobile } from '../components/reservation-mobile/PaymentMobile';
 import { BookingFallback } from '../components/reservation-shared/BookingFallback';
 import { clearBookingDraft, type PaymentStepProps } from '../components/reservation-shared/bookingShared';
 import { toLocalDateKey } from '../utils/formatDate';
+import { resolveBookingPricing } from '../utils/bookingPricing';
 
 export const Payment: React.FC = () => {
     const { t } = useTranslation();
@@ -74,21 +75,21 @@ export const Payment: React.FC = () => {
     const selectedStartDate = reservationData?.selectedStartDate;
     const totalPeople = reservationData?.totalPeople;
     const parsedDuration = reservationData?.parsedDuration;
-    const priceBreakdown = reservationData?.priceBreakdown;
+    // Router state may outlive an older build. Product amounts always use the
+    // same calculation as STEP 1 and server validation; negotiated quotes keep their own split.
+    const pricing = React.useMemo(() => {
+        if (!reservationData || !product || isQuote) return null;
+        try { return { value: resolveBookingPricing(product, totalPeople ?? 0, reservationData.selectedAccomId, reservationData.selectedVehicleId), error: '' }; }
+        catch (error) { return { value: null, error: error instanceof Error ? error.message : '상품 가격을 확인해 주세요.' }; }
+    }, [reservationData, product, isQuote, totalPeople]);
+    const priceBreakdown = isQuote ? reservationData?.priceBreakdown : pricing?.value?.priceBreakdown;
+    const baseOption = pricing?.value?.baseOption ?? null;
 
     useEffect(() => {
         if (!fieldError || isDesktop) return;
         const target = document.querySelector(`[data-payment-field="${fieldError.field}"]`);
         target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, [fieldError, isDesktop]);
-
-    // Safety check for 0 won payments (especially for quotes)
-    useEffect(() => {
-        if (priceBreakdown && priceBreakdown.total <= 0) {
-            console.error('[payment] Invalid price breakdown', priceBreakdown);
-            navigate(-1);
-        }
-    }, [priceBreakdown, navigate]);
 
     // Auto-fill customer info from quote if passed
     useEffect(() => {
@@ -182,6 +183,8 @@ export const Payment: React.FC = () => {
                 status: 'pending_payment',
                 product_name: product.name,
                 product_id: isQuote ? null : product.id,
+                selected_accom_id: isQuote ? undefined : pricing?.value?.selectedAccomId,
+                selected_vehicle_id: isQuote ? undefined : pricing?.value?.selectedVehicleId,
                 total_people: totalPeople,
                 customer_info: customerInfoForSave,
                 price_breakdown: priceBreakdown,
@@ -201,6 +204,15 @@ export const Payment: React.FC = () => {
             }
 
             const data = await api.reservations.create(newReservation);
+            // Notifications use the amounts actually persisted by the server.
+            try {
+                const raw = data.priceBreakdown ?? data.price_breakdown;
+                const savedPrices = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                if (savedPrices && ['total', 'deposit', 'local'].every(key => Number.isSafeInteger(savedPrices[key]) && savedPrices[key] >= 0)
+                    && savedPrices.deposit + savedPrices.local === savedPrices.total) newReservation.price_breakdown = savedPrices;
+            } catch (responseError) {
+                console.error('Saved reservation price response could not be read:', responseError);
+            }
             const reservationId = data.id;
             const reservationNumber = data.reservationNumber
                 ? String(data.reservationNumber)
@@ -246,7 +258,10 @@ export const Payment: React.FC = () => {
             console.error('Failed to save reservation', e);
             setIsProcessing(false);
 
-            setFieldError({ field: 'form', msg: '전송에 실패했습니다. 잠시 후 다시 시도해 주세요.' });
+            const failure = e as Error & { status?: number };
+            setFieldError({ field: 'form', msg: failure.status === 409
+                ? `${failure.message} 상품 페이지에서 여행 인원과 옵션을 다시 선택해 주세요.`
+                : '전송에 실패했습니다. 잠시 후 다시 시도해 주세요.' });
         }
     };
 
@@ -255,24 +270,11 @@ export const Payment: React.FC = () => {
         return (
             <BookingFallback
                 pc={isDesktop}
-                text={t('payment.no_reservation')}
-                action={{ label: t('payment.return_to_products'), onClick: () => navigate('/products') }}
+                text={pricing?.error || (priceBreakdown?.total === 0 ? '예약 가능한 상품 금액을 확인해 주세요.' : t('payment.no_reservation'))}
+                action={{ label: t('payment.return_to_products'), onClick: () => navigate(product?.id && !isQuote ? `/products/${product.id}` : '/products') }}
             />
         );
     }
-
-    // Find the matching pricing tier so the summary can show the per-person
-    // price the customer is about to be charged (quotes have no tiers).
-    const baseOption = (() => {
-        const options = product.pricingOptions;
-        if (!Array.isArray(options) || options.length === 0 || !totalPeople) return null;
-        const sorted = [...options].sort((a: any, b: any) => a.people - b.people);
-        const exact = sorted.find((p: any) => p.people === totalPeople);
-        if (exact) return exact;
-        if (totalPeople < sorted[0].people) return sorted[0];
-        if (totalPeople > sorted[sorted.length - 1].people) return sorted[sorted.length - 1];
-        return sorted.filter((p: any) => p.people <= totalPeople).pop() || sorted[0];
-    })();
 
     // PC and mobile get the same state and handlers (step 2 of 3); only the layout differs.
     const stepProps: PaymentStepProps = {
@@ -285,8 +287,8 @@ export const Payment: React.FC = () => {
         totalPeople: totalPeople ?? 0,
         baseOption,
         priceBreakdown,
-        selectedAccomId: reservationData.selectedAccomId,
-        selectedVehicleId: reservationData.selectedVehicleId,
+        selectedAccomId: pricing?.value?.selectedAccomId ?? reservationData.selectedAccomId,
+        selectedVehicleId: pricing?.value?.selectedVehicleId ?? reservationData.selectedVehicleId,
         customerInfo,
         setCustomerInfo,
         memo,

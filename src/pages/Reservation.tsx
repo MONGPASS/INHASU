@@ -9,6 +9,7 @@ import { ReservationDesktop } from '../components/reservation-desktop/Reservatio
 import { ReservationMobile } from '../components/reservation-mobile/ReservationMobile';
 import { BookingFallback } from '../components/reservation-shared/BookingFallback';
 import { readBookingDraft, saveBookingDraft, startOfToday, type ReservationStepProps } from '../components/reservation-shared/bookingShared';
+import { resolveBookingPricing } from '../utils/bookingPricing';
 
 export const Reservation: React.FC = () => {
     const { t } = useTranslation();
@@ -143,57 +144,16 @@ export const Reservation: React.FC = () => {
         loadProduct();
     }, [id]);
 
-    // Calculation Logic
-    // Calculation Logic
-    const baseOption = useMemo(() => {
-        if (!product || !product.pricingOptions || product.pricingOptions.length === 0) return null;
-
-        // Find exact match or closest
-        const exactMatch = product.pricingOptions.find(p => p.people === totalPeople);
-        if (exactMatch) return exactMatch;
-
-        // If no exact match, find closest smaller or max
-        const sorted = [...product.pricingOptions].sort((a, b) => a.people - b.people);
-
-        if (totalPeople < sorted[0].people) return sorted[0];
-        if (totalPeople > sorted[sorted.length - 1].people) return sorted[sorted.length - 1];
-
-        // Logic: find largest count <= totalPeople
-        const tier = sorted.filter(p => p.people <= totalPeople).pop();
-        return tier || sorted[0];
-    }, [product, totalPeople]);
-
-    const priceBreakdown = useMemo(() => {
-        if (!product || !baseOption) return { total: 0, deposit: 0, local: 0 };
-
-        const baseTotal = baseOption.pricePerPerson * totalPeople;
-        const baseDeposit = (baseOption.depositPerPerson || 0) * totalPeople;
-        const baseLocal = (baseOption.localPaymentPerPerson || 0) * totalPeople;
-
-        let vehicleTotal = 0;
-        if (selectedVehicleId && product.vehicleOptions) {
-            const v = product.vehicleOptions.find(o => o.id === selectedVehicleId);
-            if (v) vehicleTotal = v.priceModifier;
-        }
-
-        let accomTotal = 0;
-        if (selectedAccomId && product.accommodationOptions) {
-            const a = product.accommodationOptions.find(o => o.id === selectedAccomId);
-            if (a) accomTotal = a.priceModifier;
-        }
-
-        return {
-            total: baseTotal + vehicleTotal + accomTotal,
-            deposit: baseDeposit, // 예약금 (기본)
-            local: baseLocal,     // 현지 지불 (기본)
-            // Add-ons are usually added to total. 
-            // If add-ons need to be in deposit or local, logic needs to adjust.
-            // For now, assume add-ons are just adding to the Total Price.
-        };
-    }, [baseOption, totalPeople, selectedVehicleId, selectedAccomId, product]);
+    const pricing = useMemo(() => {
+        if (!product) return null;
+        try { return { value: resolveBookingPricing(product, totalPeople, selectedAccomId, selectedVehicleId), error: '' }; }
+        catch (error) { return { value: null, error: error instanceof Error ? error.message : '상품 가격을 확인해 주세요.' }; }
+    }, [product, totalPeople, selectedVehicleId, selectedAccomId]);
 
     if (loading) return <BookingFallback pc={isDesktop} />;
     if (!product) return <BookingFallback pc={isDesktop} text={t('reservation.messages.not_found')} />;
+    if (!pricing?.value) return <BookingFallback pc={isDesktop} text={pricing?.error || '상품 가격을 확인해 주세요.'} action={{ label: '상품으로 돌아가기', onClick: () => navigate(`/products/${product.id}`) }} />;
+    const { baseOption, priceBreakdown } = pricing.value;
 
     // Shared "Next" handler — used by both mobile and desktop CTAs so any
     // future flow change only needs to be made in one place.

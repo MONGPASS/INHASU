@@ -1,5 +1,5 @@
 // Actual Hono/Lucia/D1-shaped SQLite routes for local reservation workspace QA.
-// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--customer-workspace] [--customer-notices] [--calendar] [--port=8796]
+// node scripts/check-reservation-workspace.mjs [--serve] [--usability] [--customer-workspace] [--customer-notices] [--calendar] [--payment-pricing] [--port=8796]
 // Uses only synthetic, in-memory data; never reaches a live delivery or storage service.
 import { build } from 'esbuild';
 import { DatabaseSync } from 'node:sqlite';
@@ -1428,6 +1428,19 @@ if (calendar) {
 console.log('예약 작업 API 검증 통과: 실제 로그인/견적 계정 · 견적 POST/PATCH/재조회 · 상품/견적 발송 이력·v5 문서 버전 · 상품 ID · 공개 코스/명소 라이브러리 · 대표 명소 등록/조회/수정/예약 상속 · STEP 2 문서 저장/재조회 · 계정별 예약/견적 초안 복원/충돌 · 상품·예약·견적·매거진·배정 초안 저장 실패 · 수동/빈 날짜와 강조/회색 문구 정본 · 숙소/식사 한 칸 입력 · 최신 이동/대표 명소 PDF · 원본 시간/사진/계약조건 보존 · 빈 배열 정본 · 공개 제한 · 배정 버전 충돌/서명·여행자 보존/기사 연락처 보호 · 실제 이미지 업로드/조회 · 배너·카테고리 부분 수정/순서/매거진 공개 · 외부 발송 차단');
 
 if (process.argv.includes('--serve')) {
+    if (process.argv.includes('--payment-pricing')) {
+        // Browser regression fixture: intentionally stale catalog deposit, never a live booking.
+        const { horseTrekSectionDefs } = await import('../src/components/product/designTemplates/horseTrekFields.ts');
+        const priceDesign = { type: 'design', content: { templateId: 'horse-trek', values: {},
+            sections: horseTrekSectionDefs.map(section => ({ id: section.id, def: section.id, hidden: section.id !== '18 투어 가격' })) } };
+        insertProduct.run('local-payment-pricing', '예약금 검증 · 은하수 여행', '로컬 전용 요금 표시 검증 상품', '중앙몽골', '1박 2일', 50000, 'active',
+            JSON.stringify([image]), image, JSON.stringify(['숙소', '가이드']), JSON.stringify(['국제선 항공권']), '[]',
+            JSON.stringify([{ people: 2, pricePerPerson: 50000, depositPerPerson: 540000, localPaymentPerPerson: 0 },
+                { people: 3, pricePerPerson: 45000, depositPerPerson: 10000, localPaymentPerPerson: 35000 }]));
+        raw.prepare('UPDATE products SET detail_blocks=?,accommodation_options=?,vehicle_options=? WHERE id=?')
+            .run(JSON.stringify([priceDesign]), '[]', '[]', 'local-payment-pricing');
+        console.log(`예약금 브라우저 검증 상품: ${localOrigin}/products/local-payment-pricing (외부 발송 없음)`);
+    }
     const types = { '.html': 'text/html;charset=utf-8', '.js': 'text/javascript;charset=utf-8', '.css': 'text/css;charset=utf-8',
         '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml',
         '.woff2': 'font/woff2', '.json': 'application/json', '.mp4': 'video/mp4' };

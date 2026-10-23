@@ -25,6 +25,7 @@ import { ItineraryImportModal } from '../components/admin/ItineraryImportModal';
 import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '../components/admin/itineraryImport';
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
+import { productPricingIssues } from '../utils/productPricingValidation';
 
 
 
@@ -831,6 +832,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     };
 
     const [currentTab, setCurrentTab] = useState<'basic' | 'details' | 'itinerary' | 'spots' | 'options' | 'includes'>('basic');
+    const pricingIssues = useMemo(() => productPricingIssues(formData.pricingOptions), [formData.pricingOptions]);
 
     // 페이지형 편집 화면 — 목록에서 진입할 때 스크롤을 맨 위로
     useEffect(() => {
@@ -860,6 +862,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         }
         if (!formData.price || formData.price <= 0) {
             alert('판매가를 입력해주세요.');
+            return;
+        }
+        const pricingIssue = productPricingIssues(formRef.current.pricingOptions).find(Boolean);
+        if (pricingIssue) {
+            setCurrentTab('options');
+            setSaveNotice(pricingIssue);
+            alert(pricingIssue);
             return;
         }
 
@@ -2746,7 +2755,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                     <div className="edit-sec-head">
                                         <Icon name="groups" />
                                         <h4>인원별 가격 옵션</h4>
-                                        <span className="muted">1인 가격 · 예약금 · 현지결제</span>
+                                        <span className="muted">모두 1인 기준 · 예약금 + 현지 잔금 = 총가격</span>
                                     </div>
                                     <div className="opt-grid-head"><span>인원</span><span>1인 총가격</span><span>예약금</span><span>현지 결제</span><span></span></div>
                                     <div className="stack" style={{ gap: 10 }}>
@@ -2759,6 +2768,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                         <div className="inp-mini"><input type="number" value={option.depositPerPerson || 0} onChange={(e) => updatePricingOption(index, 'depositPerPerson', Number(e.target.value))} /><span>원</span></div>
                                                         <div className="inp-mini"><input type="number" value={option.localPaymentPerPerson || 0} onChange={(e) => updatePricingOption(index, 'localPaymentPerPerson', Number(e.target.value))} /><span>원</span></div>
                                                     </div>
+                                                    {pricingIssues[index] && <p role="alert" style={{ margin: '6px 0 0', color: '#B45309', fontSize: 12 }}>{pricingIssues[index]}</p>}
                                                 </div>
                                                 <button type="button" className="act-btn danger" onClick={() => removePricingOption(index)} title="삭제"><Icon name="delete" /></button>
                                             </div>

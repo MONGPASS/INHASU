@@ -20,6 +20,7 @@ import type { Hotel } from '../../types/hotel';
 import { documentLodgingSnapshot } from '../../utils/lodgingItinerarySnapshot';
 import { travelSpotSnapshot } from '../../utils/travelSpotSnapshot';
 import { normalizeRepresentativeSpots } from '../../../functions/lib/productItinerary';
+import { resolveBookingPricing } from '../../utils/bookingPricing';
 
 export interface ReservationDocContent {
     name: string;
@@ -193,8 +194,19 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
         if (!opts?.auto && days.length > 0 && !window.confirm('현재 작성 중인 일정과 문서 설정을 상품 정보로 교체할까요?')) return;
         autoImportRef.current = false;
         const { included, excluded } = reservationProductTerms(product);
-        const defaultPricing = product.pricingOptions?.find(option => option.people === customer?.peopleCount)
-            || product.pricingOptions?.[0];
+        let defaultPricing: { price: number; deposit: number; local: number } | undefined;
+        const hasPricingOptions = (product.pricingOptions?.length ?? 0) > 0;
+        if (hasPricingOptions) {
+            try {
+                const people = customer?.peopleCount ?? product.pricingOptions![0].people;
+                const resolved = resolveBookingPricing({ pricingOptions: product.pricingOptions }, people);
+                defaultPricing = {
+                    price: resolved.baseOption.pricePerPerson,
+                    deposit: resolved.priceBreakdown.deposit / people,
+                    local: resolved.priceBreakdown.local / people,
+                };
+            } catch { /* Keep unknown product prices unknown in a newly imported document. */ }
+        }
 
         setName(product.name || customer?.tripType || '');
         setDescription(product.description || '');
@@ -205,7 +217,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
             overview: {
                 ...current.overview,
                 heroTagline: product.description || current.overview.heroTagline,
-                pricePerPerson: String(defaultPricing?.pricePerPerson || product.price || current.overview.pricePerPerson),
+                pricePerPerson: defaultPricing ? String(defaultPricing.price) : hasPricingOptions ? '' : String(product.price ?? current.overview.pricePerPerson),
                 includedText: included.join('\n'),
                 excludedText: excluded.join('\n'),
                 included: included.slice(0, 8).map((label, index) => ({
@@ -221,8 +233,8 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
             guide: {
                 ...current.guide,
                 paymentInfo: defaultPricing
-                    ? `예약금(${DEPOSIT_PAYMENT_METHOD}): 1인 ${Number(defaultPricing.depositPerPerson || 0).toLocaleString('ko-KR')}원\n현지 잔금(현금): 1인 ${Number(defaultPricing.localPaymentPerPerson || 0).toLocaleString('ko-KR')}원`
-                    : current.guide.paymentInfo,
+                    ? `예약금(${DEPOSIT_PAYMENT_METHOD}): 1인 ${defaultPricing.deposit.toLocaleString('ko-KR')}원\n현지 잔금(현금): 1인 ${defaultPricing.local.toLocaleString('ko-KR')}원`
+                    : hasPricingOptions ? '상품 요금을 확인해 주세요.' : current.guide.paymentInfo,
             },
         }));
         if (opts?.auto) setAutoLoadedName(product.name || customer?.tripType || '예약 상품');
