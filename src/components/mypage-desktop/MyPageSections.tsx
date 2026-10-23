@@ -11,6 +11,8 @@ import { MW, MW_FONT_EN, MW_GRADIENT, cleanTitle, isUsableImage, won } from '../
 import { EmptyBox, FilterPills, Ico, Loading, PanelHead } from './myPageUi';
 import { HAIR, ICON, NOTICE_TYPES, PAPER, QUOTE_STATUS, TONE, cardBox, ghostBtn, ghostHover, hover, mintBtn, mintHover, reservationTone, smallPill, type BadgeTone } from './myPageTheme';
 import { daysUntil, parseDbTime, type MeUser, type MyMatePost, type MyQuote, type MyReservation, type MyReview, type RecentItem } from './useMyPageData';
+import { StartingPrice } from '../product/StartingPrice';
+import { withPublicProductPrice, type PublicProductPriceFields } from '../../utils/publicProductPrice';
 
 type Go = (path: string) => void;
 
@@ -366,7 +368,7 @@ export function MatesSection({ me, posts, loading, go }: { me: MeUser; posts: My
 
 /* ---------- 찜 목록 / 최근 본 상품 ---------- */
 
-export interface TripCardData {
+export interface TripCardData extends PublicProductPriceFields {
     key: string;
     productId: string;
     title: string;
@@ -419,11 +421,7 @@ function TripCard({ t, stat, fav, onFav, onRemove, removeLabel = '찜 목록에�
                             <><span style={{ color: MW.mintDeep }}>★</span> <strong style={{ color: MW.navy }}>{stat.avg.toFixed(1)}</strong> ({stat.count})</>
                         )}
                     </span>
-                    {t.price > 0 && (
-                        <span style={{ fontFamily: MW_FONT_EN, fontSize: 15, fontWeight: 600 }}>
-                            {won(t.price)}<span style={{ fontFamily: 'inherit', fontSize: 11, fontWeight: 500, color: MW.mute }}>~</span>
-                        </span>
-                    )}
+                    <StartingPrice product={t} amountStyle={{ fontSize: 15, fontWeight: 600 }} />
                 </span>
             </span>
         </a>
@@ -431,13 +429,13 @@ function TripCard({ t, stat, fav, onFav, onRemove, removeLabel = '찜 목록에�
 }
 
 const productCard = (p: HomeProduct): TripCardData => ({
+    ...withPublicProductPrice(p),
     key: p.id,
     productId: p.id,
     title: cleanTitle(p.name),
     image: p.mainImages[0],
     duration: p.duration,
     category: p.category,
-    price: p.price,
 });
 
 const cardGrid: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,240px),1fr))', gap: 16 };

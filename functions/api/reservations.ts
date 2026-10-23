@@ -13,6 +13,7 @@ import { tplAdminDepositReported } from './notifications/email';
 import { COMPANY_INFO } from '../../src/constants/company';
 import { dispatchCustomerNotification, type CustomerNotificationKind } from '../lib/customerNotifications';
 import { resolveBookingPricing } from '../../src/utils/bookingPricing';
+import { getProductPricedOptions } from '../../src/utils/productStartingPrice';
 // 견적 시스템의 문자 발송 모듈(JS, 타입 선언 없음). SOLAPI_*·ADMIN_PHONE 이 없으면 조용히 건너뛴다.
 // @ts-ignore
 import { notifyAdmin } from './_solapi.js';
@@ -545,29 +546,28 @@ app.post('/', async (c) => {
             return c.json({ error: '예약 금액을 확인해 주세요. 총 금액은 예약금과 잔금의 합계여야 합니다.', code: 'INVALID_PRICE' }, 400);
         }
         if (selectedProduct) {
-            // Older products without a pricing table keep their submitted split. A
-            // populated table is authoritative, including a deliberately saved zero.
-            let tiers: unknown = selectedProduct.pricing_options ?? selectedProduct.pricingOptions;
-            try { if (typeof tiers === 'string') tiers = JSON.parse(tiers); } catch {
+            // Current catalog bookings use the same positive registered tiers as
+            // the public price/selection. Stored reservations and quotes are not repriced.
+            const tiers = getProductPricedOptions(selectedProduct);
+            if (tiers.length === 0) {
                 return c.json({ error: '상품 요금을 확인할 수 없습니다. 담당자에게 문의해 주세요.', code: 'INVALID_PRODUCT_PRICE' }, 400);
             }
-            if (tiers !== undefined && tiers !== null && !Array.isArray(tiers)) {
-                return c.json({ error: '상품 요금을 확인할 수 없습니다. 담당자에게 문의해 주세요.', code: 'INVALID_PRODUCT_PRICE' }, 400);
+            const minimumPeople = Math.min(...tiers.map(tier => tier.people));
+            if (travelers < minimumPeople) {
+                return c.json({ error: `이 상품은 최소 ${minimumPeople}명부터 예약할 수 있습니다.`, code: 'MINIMUM_PEOPLE' }, 400);
             }
-            if (Array.isArray(tiers) && tiers.length > 0) {
-                let current;
-                try {
-                    current = resolveBookingPricing(selectedProduct, travelers,
-                        body.selected_accom_id ?? body.selectedAccomId,
-                        body.selected_vehicle_id ?? body.selectedVehicleId);
-                } catch (error) {
-                    return c.json({ error: error instanceof Error ? error.message : '상품 요금과 옵션을 확인해 주세요.', code: 'INVALID_PRODUCT_PRICE' }, 400);
-                }
-                if (Object.keys(priceBreakdown).some(key => priceBreakdown[key as keyof typeof priceBreakdown] !== current.priceBreakdown[key as keyof typeof priceBreakdown])) {
-                    return c.json({ error: '상품 요금이 변경되었습니다. 상품 예약 화면에서 금액을 다시 확인해 주세요.', code: 'PRICE_CHANGED' }, 409);
-                }
-                priceBreakdown = current.priceBreakdown;
+            let current;
+            try {
+                current = resolveBookingPricing({ ...selectedProduct, pricingOptions: tiers }, travelers,
+                    body.selected_accom_id ?? body.selectedAccomId,
+                    body.selected_vehicle_id ?? body.selectedVehicleId);
+            } catch (error) {
+                return c.json({ error: error instanceof Error ? error.message : '상품 요금과 옵션을 확인해 주세요.', code: 'INVALID_PRODUCT_PRICE' }, 400);
             }
+            if (Object.keys(priceBreakdown).some(key => priceBreakdown[key as keyof typeof priceBreakdown] !== current.priceBreakdown[key as keyof typeof priceBreakdown])) {
+                return c.json({ error: '상품 요금이 변경되었습니다. 상품 예약 화면에서 금액을 다시 확인해 주세요.', code: 'PRICE_CHANGED' }, 409);
+            }
+            priceBreakdown = current.priceBreakdown;
         }
     }
 

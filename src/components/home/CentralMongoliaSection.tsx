@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { getOptimizedImageUrl } from '../../utils/cloudflareImage';
-import { won } from '../desktop-primitives/mwTokens';
 import type { TourProduct } from '../../types/product';
+import { withPublicProductPrice } from '../../utils/publicProductPrice';
+import { StartingPrice } from '../product/StartingPrice';
 
 export const CentralMongoliaSection: React.FC = () => {
     const navigate = useNavigate();
@@ -16,10 +17,9 @@ export const CentralMongoliaSection: React.FC = () => {
                 if (Array.isArray(data)) {
                     const centralData = data.filter((item: any) => item.category === '중앙몽골' && item.status === 'active').slice(0, 4);
                     const formattedProducts = centralData.map((item: any) => ({
+                        ...withPublicProductPrice(item),
                         id: item.id,
                         name: item.name,
-                        price: item.price,
-                        originalPrice: item.original_price,
                         duration: item.duration,
                         category: item.category,
                         mainImages: item.main_images || [],
@@ -95,13 +95,8 @@ export const CentralMongoliaSection: React.FC = () => {
                         </h4>
                         <div className="flex items-center gap-1.5">
                             <span className="text-primary font-bold text-[14px]">
-                                {won(product.price)}~
+                                <StartingPrice product={product} />
                             </span>
-                            {product.originalPrice && (
-                                <span className="text-xs text-slate-400 line-through">
-                                    {won(product.originalPrice)}
-                                </span>
-                            )}
                         </div>
                     </div>
                 ))}

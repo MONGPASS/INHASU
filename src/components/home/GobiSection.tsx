@@ -2,7 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { getOptimizedImageUrl } from '../../utils/cloudflareImage';
-import { won } from '../desktop-primitives/mwTokens';
+import { withPublicProductPrice } from '../../utils/publicProductPrice';
+import { StartingPrice } from '../product/StartingPrice';
 
 export const GobiSection: React.FC = () => {
     const navigate = useNavigate();
@@ -15,10 +16,10 @@ export const GobiSection: React.FC = () => {
                 if (Array.isArray(data)) {
                     const gobiData = data.filter((p: any) => p.category === '고비사막').slice(0, 4);
                     setProducts(gobiData.map((p: any) => ({
+                        ...withPublicProductPrice(p),
                         id: p.id,
                         name: p.name,
                         category: p.category,
-                        price: p.price,
                         mainImages: p.mainImages || p.main_images || [],
                         isPopular: p.is_popular,
                         tags: p.tags || []
@@ -81,7 +82,7 @@ export const GobiSection: React.FC = () => {
                                     <h4 className="text-lg font-bold text-white mb-1 leading-tight line-clamp-2">
                                         {product.name}
                                     </h4>
-                                    <p className="text-primary font-bold">{won(product.price)}~</p>
+                                    <p className="text-primary font-bold"><StartingPrice product={product} /></p>
                                 </div>
                             </div>
                         </div>

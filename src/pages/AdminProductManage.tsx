@@ -28,6 +28,8 @@ import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelecto
 import { productPricingIssues } from '../utils/productPricingValidation';
 import { withAutomaticProductPricing } from '../utils/adminProductPricing';
 import { PRODUCT_DEPOSIT_PER_PERSON } from '../constants/company';
+import { getProductStartingPrice } from '../utils/productStartingPrice';
+import { productPriceLabel, productPriceBasis } from '../utils/publicProductPrice';
 
 
 
@@ -455,8 +457,6 @@ export const AdminProductManage: React.FC = () => {
                             </thead>
                             <tbody>
                                 {paginatedProducts.map((product, index) => {
-                                    const price = typeof product.price === 'number' ? product.price : Number(product.price) || 0;
-                                    const original = typeof product.originalPrice === 'number' ? product.originalPrice : Number(product.originalPrice) || 0;
                                     const bookings = Number(product.bookingCount) || 0;
                                     return <tr
                                         key={product.id}
@@ -484,8 +484,8 @@ export const AdminProductManage: React.FC = () => {
                                         <td className="pd-muted">{product.category}</td>
                                         <td className="pd-dur">{product.duration}</td>
                                         <td className="r">
-                                            <span className="pd-price">{price ? `${price.toLocaleString('ko-KR')}원` : '미정'}</span>
-                                            {original ? <s className="pd-original">{original.toLocaleString('ko-KR')}원</s> : null}
+                                            <span className="pd-price">{productPriceLabel(product)}</span>
+                                            {productPriceBasis(product) && <span className="pd-muted">{productPriceBasis(product)}</span>}
                                         </td>
                                         <td>
                                             <button type="button" className="pd-status" data-status={product.status} title="눌러서 판매중 / 비활성 전환" onClick={() => toggleStatus(product.id)}>
@@ -865,8 +865,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             alert('기간을 입력해주세요.');
             return;
         }
-        if (!formData.price || formData.price <= 0) {
-            alert('판매가를 입력해주세요.');
+        if (getProductStartingPrice(formRef.current).price === null) {
+            setCurrentTab('options');
+            alert('가격/옵션에서 인원별 1인 총가격을 등록해 주세요.');
             return;
         }
         const pricingIssue = productPricingIssues(formRef.current.pricingOptions).find(Boolean);
@@ -1848,10 +1849,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
     const busy = saving || uploadCount > 0 || itineraryBulkUploading || designUploading;
     const locked = busy || !draftReady || !!pendingDraft || savedRef.current;
+    const startingPrice = getProductStartingPrice(formData);
 
     const requiredChecks: Array<[string, boolean]> = [
         ['상품명', !!formData.name?.trim()], ['카테고리', !!formData.category], ['기간', !!formData.duration?.trim()],
-        ['판매가', Number(formData.price) > 0], ['메인 이미지', (formData.mainImages || []).length > 0],
+        ['인원별 요금', startingPrice.price !== null], ['메인 이미지', (formData.mainImages || []).length > 0],
     ];
     const requiredDone = requiredChecks.filter(([, done]) => done).length;
     return (
@@ -1973,27 +1975,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                     </div>
                                 </div>
 
-                                <div className="field-row">
-                                    <div className="field">
-                                        <label>판매가 (원) *</label>
-                                        <input
-                                            type="number"
-                                            className="inp"
-                                            value={formData.price}
-                                            onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="field">
-                                        <label>정가 (원, 선택)</label>
-                                        <input
-                                            type="number"
-                                            className="inp"
-                                            value={formData.originalPrice || ''}
-                                            onChange={(e) => setFormData({ ...formData, originalPrice: Number(e.target.value) || undefined })}
-                                        />
-                                    </div>
+                                <div className="field">
+                                    <label htmlFor="pa-starting-price">대표 표시가격 · 자동</label>
+                                    <output id="pa-starting-price" className="inp" style={{ display: 'flex', alignItems: 'center' }}>{productPriceLabel(formData)}</output>
+                                    <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>{productPriceBasis(formData) || '가격/옵션에서 인원별 1인 총가격을 등록해 주세요.'} · 홈·목록·검색에 표시됩니다.</p>
+                                    <button type="button" className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setCurrentTab('options')}>인원별 요금 작성</button>
                                 </div>
 
                                 {/* Main Images Upload */}
@@ -2959,7 +2945,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                         <div className="pa-preview-copy">
                             <b>{formData.name?.trim() || '상품명을 입력하세요'}</b>
                             <span>{[formData.category, formData.duration].filter(Boolean).join(' · ') || '카테고리 · 기간'}</span>
-                            <strong>{Number(formData.price) > 0 ? `${Number(formData.price).toLocaleString('ko-KR')}원~` : '0원~'}</strong>
+                            <strong>{productPriceLabel(formData)}</strong>
+                            {productPriceBasis(formData) && <span className="muted" style={{ fontSize: 12 }}>{productPriceBasis(formData)}</span>}
                         </div>
                     </section>
                     <section className="pa-checks">

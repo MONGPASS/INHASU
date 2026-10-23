@@ -45,8 +45,17 @@ test('상품 외의 필드·공통 자료·서버 기준값을 변경하지 않�
     assert.notEqual(normalized, product); assert.notEqual(normalized.pricingOptions, product.pricingOptions);
     assert.deepEqual(product, before);
     for (const field of ['itineraryBlocks', 'accommodationOptions', 'representativeSpots', 'savedReservation']) assert.equal(normalized[field], product[field]);
-    assert.equal(normalized.price, product.price);
+    assert.equal(normalized.price, 100000, '상품 대표가격은 요금표에서 계산');
     for (const form of [{}, { pricingOptions: [] }, { pricingOptions: null }, { pricingOptions: 'broken' }]) assert.equal(withAutomaticProductPricing(form), form);
+});
+
+test('인원별 요금 변경·삭제 시 대표가격을 다시 계산하고 미등록 요금은 수동 가격으로 되살리지 않는다', () => {
+    const initial = withAutomaticProductPricing({ price: 9999999, pricingOptions: [tier(500000), tier(400000, { people: 6 })] });
+    assert.equal(initial.price, 400000);
+    const edited = withAutomaticProductPricing({ ...initial, pricingOptions: [initial.pricingOptions[0]] });
+    assert.equal(edited.price, 500000);
+    assert.equal(withAutomaticProductPricing({ ...edited, pricingOptions: [] }).price, 0);
+    assert.equal(withAutomaticProductPricing({ price: 9999999 }).price, 0);
 });
 
 test('기존 초안을 복원한 뒤 전체 폼에 같은 자동 계산을 적용하되 충돌 기준은 저장 원본을 유지한다', () => {

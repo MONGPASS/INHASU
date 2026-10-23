@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
 import type { Category } from '../../types/category';
 import { useWishlist } from '../../hooks/useWishlist';
-import { MW, MW_EYEBROW as eyebrow, MW_SEE_ALL as seeAll, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { MW, MW_EYEBROW as eyebrow, MW_SEE_ALL as seeAll, isUsableImage } from '../desktop-primitives/mwTokens';
 import { TypePill } from '../desktop-primitives/TypePill';
-import { discountPct, inCategory, type HomeProduct } from './homeDesktopData';
+import { inCategory, type HomeProduct } from './homeDesktopData';
+import { StartingPrice } from '../product/StartingPrice';
 
 interface Props {
     products: HomeProduct[];
@@ -120,7 +121,6 @@ function TourCard({ p }: { p: HomeProduct }) {
     const navigate = useNavigate();
     const wishlist = useWishlist();
     const fav = wishlist.has(p.id);
-    const off = discountPct(p);
     const img = p.mainImages[0];
 
     return (
@@ -153,10 +153,7 @@ function TourCard({ p }: { p: HomeProduct }) {
                 {p.duration ? `[${p.duration}] ` : ''}{p.name}
             </h3>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                {off > 0 && <span style={{ fontSize: 18, fontWeight: 700, color: MW.red }}>{off}%OFF</span>}
-                <span style={{ fontSize: 20, fontWeight: 900 }}>
-                    {won(p.price)}<span style={{ fontSize: 13, fontWeight: 700 }}>~</span>
-                </span>
+                <StartingPrice product={p} amountStyle={{ fontSize: 20, fontWeight: 900 }} />
             </div>
         </a>
     );

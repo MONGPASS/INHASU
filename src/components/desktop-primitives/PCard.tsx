@@ -1,9 +1,10 @@
 import { useState, type CSSProperties } from 'react';
 import { MatIcon } from './MatIcon';
-import { won } from './mwTokens';
 import { TagChip, type TagTone } from './TagChip';
+import { StartingPrice } from '../product/StartingPrice';
+import type { PublicProductPriceFields } from '../../utils/publicProductPrice';
 
-export interface PCardData {
+export interface PCardData extends PublicProductPriceFields {
     id: string;
     name: string;
     category?: string;
@@ -42,7 +43,6 @@ export function PCard({ p, onClick, layout = 'flex' }: PCardProps) {
         ? `url(${firstImg})`
         : 'linear-gradient(135deg, #134e4a 0%, #115e59 50%, #0f766e 100%)';
     const firstTag = p.tags?.[0];
-    const hasOriginal = !!p.originalPrice && p.originalPrice > p.price;
 
     const style: CSSProperties = layout === 'flex'
         ? {
@@ -163,13 +163,8 @@ export function PCard({ p, onClick, layout = 'flex' }: PCardProps) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                        {hasOriginal && (
-                            <div style={{ fontSize: 11, color: 'var(--fg-5)', textDecoration: 'line-through' }}>
-                                {won(p.originalPrice!)}
-                            </div>
-                        )}
                         <div style={{ fontSize: 18, fontWeight: 700, color: '#0f766e' }}>
-                            {won(p.price)}<span style={{ fontSize: 13 }}>~</span>
+                            <StartingPrice product={p} />
                         </div>
                     </div>
                     {(p.rating || p.reviewCount) && (

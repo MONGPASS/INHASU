@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { withPublicProductPrice, type PublicProductPriceFields } from '../../utils/publicProductPrice';
 
 export interface RelatedTourQuery {
     category?: string;
@@ -10,7 +11,7 @@ export interface RelatedTourQuery {
     limit?: number;
 }
 
-export interface RelatedTour {
+export interface RelatedTour extends PublicProductPriceFields {
     id: string;
     name: string;
     price: number;
@@ -122,20 +123,6 @@ const scoreProduct = (p: RawProduct, keywords: string[], magCategory: string): n
     return score;
 };
 
-const getStartingPrice = (product: RawProduct): number => {
-    const directPrice = Number(product.price);
-    const tierPrices = toArray(product.pricingOptions ?? product.pricing_options)
-        .map((option) => {
-            if (!option || typeof option !== 'object') return 0;
-            const row = option as Record<string, unknown>;
-            return Number(row.pricePerPerson ?? row.price_per_person ?? row.price ?? 0);
-        })
-        .filter((price) => Number.isFinite(price) && price > 0);
-
-    if (tierPrices.length > 0) return Math.min(...tierPrices);
-    return Number.isFinite(directPrice) ? directPrice : 0;
-};
-
 /**
  * Tours that best match a magazine article (category, title keywords, tags),
  * topped up with popular/featured tours when there are too few matches.
@@ -178,10 +165,10 @@ export function useRelatedTourMatches({ category, tag, title, description, limit
     }, [products, category, tag, title, description, limit]);
 
     return matches.map((p) => ({
+        ...withPublicProductPrice(p),
         id: p.id,
         name: p.name ?? '',
-        price: getStartingPrice(p),
-        originalPrice: p.originalPrice ?? p.original_price,
+        originalPrice: undefined,
         category: p.category ?? '',
         duration: p.duration ?? '',
         mainImages: toImageArray(p.mainImages ?? p.main_images),

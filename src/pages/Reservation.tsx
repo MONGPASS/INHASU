@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { TourProduct } from '../types/product';
+import type { TourPricingOption, TourProduct } from '../types/product';
 import { api } from '../lib/api';
 import { SEO } from '../components/seo/SEO';
 import { useIsDesktop } from '../hooks/useIsDesktop';
@@ -10,6 +10,7 @@ import { ReservationMobile } from '../components/reservation-mobile/ReservationM
 import { BookingFallback } from '../components/reservation-shared/BookingFallback';
 import { readBookingDraft, saveBookingDraft, startOfToday, type ReservationStepProps } from '../components/reservation-shared/bookingShared';
 import { resolveBookingPricing } from '../utils/bookingPricing';
+import { getProductPricedOptions } from '../utils/productStartingPrice';
 
 export const Reservation: React.FC = () => {
     const { t } = useTranslation();
@@ -101,15 +102,9 @@ export const Reservation: React.FC = () => {
                         highlights: pickArr(data.highlights, data.highlights),
                         included: pickArr(data.included, data.included),
                         excluded: pickArr(data.excluded, data.excluded),
-                        // Older pricing JSON stores headcounts as digit strings.
-                        // Normalize those once so the initial count, tier buttons and
-                        // price dialog all pass numbers to the shared calculator.
-                        pricingOptions: pickArr(data.pricingOptions, data.pricing_options).map(option => {
-                            const people = option?.people;
-                            if (typeof people !== 'string' || !/^\d+$/.test(people.trim())) return option;
-                            const count = Number(people);
-                            return Number.isSafeInteger(count) && count > 0 ? { ...option, people: count } : option;
-                        }),
+                        // Use the same purchasable tiers as catalog cards and detail.
+                        // The booking calculator validates the retained deposit/local aliases before checkout.
+                        pricingOptions: getProductPricedOptions(data) as unknown as TourPricingOption[],
                         accommodationOptions: pickArr(data.accommodationOptions, data.accommodation_options),
                         vehicleOptions: pickArr(data.vehicleOptions, data.vehicle_options),
                         viewCount: data.viewCount ?? data.view_count ?? 0,

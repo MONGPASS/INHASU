@@ -71,7 +71,7 @@ test('실제 상품 API→관리자 화면 mapper→초안 저장·복원은 ID 
         { type: 'design', content: { templateId: 'legacy-template', values: { photo: '/img/template.webp' }, sections: [{ id: 'overview', def: 'overview', hidden: false }] } },
     ];
     assert.equal((await request('/', { method: 'POST', admin: true, body: { id: 'draft-legacy', name: '초안 회귀 상품',
-        duration: '2박 3일', price: 1100000, status: 'active', category: '중앙몽골', mainImages: ['/img/main.webp'],
+        duration: '2박 3일', price: 1100000, pricingOptions: [{ people: 2, pricePerPerson: 1100000, depositPerPerson: 50000, localPaymentPerPerson: 1050000 }], status: 'active', category: '중앙몽골', mainImages: ['/img/main.webp'],
         itineraryBlocks: legacyBlocks, representativeSpots: spots, highlights: sellingPoints, isFeatured: false, isPopular: false } })).status, 200);
     // Existing SQL rows can have nullable optional metadata even though new writes have defaults.
     raw.exec("UPDATE products SET description=NULL,original_price=NULL,created_at=NULL,updated_at=NULL,is_featured=0,is_popular=0 WHERE id='draft-legacy'");

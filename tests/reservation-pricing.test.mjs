@@ -101,20 +101,20 @@ test('명시적인 0원 예약금과 정상 인원별 요금·옵션을 서버 �
     assert.equal(invalid.status, 400); assert.equal((await invalid.json()).code, 'INVALID_PRODUCT_PRICE'); assert.equal(f.count(), 2);
 });
 
-test('상품에 저장된 실제 0원은 오래된 예약금이나 대표 가격으로 대체하지 않는다', async t => {
+test('현재 상품의 전부 0원 요금표는 신규 예약을 받지 않고 과거 0원 예약은 그대로 조회한다', async t => {
     const f = await fixture(t);
     f.updateProduct({ price: 999999, pricing_options: JSON.stringify([{ ...tier, pricePerPerson: 0 }]) });
     const response = await f.request('/', 'POST', f.body({ price_breakdown: split(0, 0, 0) }));
-    assert.equal(response.status, 201); const result = await response.json(), row = f.saved(result.id);
-    assert.deepEqual(result.priceBreakdown, split(0, 0, 0));
-    assert.deepEqual([row.total_price, row.deposit_amount, row.balance_amount], [0, 0, 0]);
+    assert.equal(response.status, 400); assert.equal((await response.json()).code, 'INVALID_PRODUCT_PRICE'); assert.equal(f.count(), 0);
+    f.raw.prepare('INSERT INTO reservations(id,product_id,user_id,total_price,deposit_amount,balance_amount) VALUES(?,?,?,?,?,?)').run('historic-zero', 'tour', 'customer', 0, 0, 0);
+    const read = await (await f.request('/historic-zero')).json(); assert.deepEqual(read.price_breakdown, split(0, 0, 0));
 });
 
-test('요금표 없는 기존 상품과 견적의 유효한 분할 금액은 유지하고 관리자 수동 금액을 재산정하지 않는다', async t => {
+test('요금표 없는 현재 상품은 접수를 막고 견적·관리자 수동 금액·기존 예약을 재산정하지 않는다', async t => {
     const f = await fixture(t);
     f.updateProduct({ pricing_options: '[]' });
     const legacy = await f.request('/', 'POST', f.body({ price_breakdown: split(1000000, 200000, 800000) }));
-    assert.equal(legacy.status, 201); assert.deepEqual((await legacy.json()).priceBreakdown, split(1000000, 200000, 800000));
+    assert.equal(legacy.status, 400); assert.equal((await legacy.json()).code, 'INVALID_PRODUCT_PRICE');
     const quote = await f.request('/', 'POST', f.body({ product_id: null, type: 'quote', price_breakdown: split(987654, 123456, 864198) }));
     assert.equal(quote.status, 201); assert.deepEqual((await quote.json()).priceBreakdown, split(987654, 123456, 864198));
     f.updateProduct({ pricing_options: JSON.stringify([tier]) });
@@ -124,6 +124,21 @@ test('요금표 없는 기존 상품과 견적의 유효한 분할 금액은 유
     f.updateProduct({ pricing_options: JSON.stringify([{ ...tier, pricePerPerson: 9999999 }]) });
     const saved = await (await f.request('/manual', 'GET', undefined, 'admin')).json();
     assert.deepEqual(saved.price_breakdown, split(999999, 12345, 987654));
+});
+
+test('0원·잘못된 행과 유효한 6인 요금이 섞여 있어도 실제 예약은 공개된 구간과 같은 금액을 저장한다', async t => {
+    const f = await fixture(t);
+    f.updateProduct({ pricing_options: JSON.stringify([null, { people: 0, pricePerPerson: 1 }, { ...tier, pricePerPerson: 0 },
+        { people: '6', price_per_person: '400000', deposit_per_person: '50000', local_payment_per_person: '350000' }]) });
+    const response = await f.request('/', 'POST', f.body({ total_people: 6, price_breakdown: split(2400000, 300000, 2100000) }));
+    assert.equal(response.status, 201); const result = await response.json(), row = f.saved(result.id);
+    assert.equal(row.travelers, 6); assert.deepEqual([row.total_price, row.deposit_amount, row.balance_amount], [2400000, 300000, 2100000]);
+    assert.deepEqual(result.priceBreakdown, split(2400000, 300000, 2100000));
+    const below = await f.request('/', 'POST', f.body({ total_people: 2, price_breakdown: split(800000, 100000, 700000) }));
+    assert.equal(below.status, 400); assert.equal((await below.json()).code, 'MINIMUM_PEOPLE'); assert.equal(f.count(), 1);
+    const above = await f.request('/', 'POST', f.body({ total_people: 8, price_breakdown: split(3200000, 400000, 2800000) }));
+    assert.equal(above.status, 201, '최대 등록 인원보다 큰 그룹은 기존 최대 구간 계산을 유지');
+    assert.equal((await f.request('/', 'POST', f.body({ total_people: 6, price_breakdown: split(0, 0, 0) }))).status, 409);
 });
 
 test('손상된 상품 요금표와 잘못된 JSON 요청은 가격을 추정하거나 저장하지 않는다', async t => {

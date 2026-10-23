@@ -8,6 +8,8 @@ import { durationLabel } from '../../tours-mobile/tourListFilters';
 import { mapReview, parseJsonArray, type DesktopReview, type RawReview } from '../../reviews-desktop/reviewsData';
 import { getDesignTemplate } from '../designTemplates/registry';
 import { visibleInstances } from '../designTemplates/sections';
+import { getProductStartingPrice, getProductPricedOptions } from '../../../utils/productStartingPrice';
+import { withPublicProductPrice } from '../../../utils/publicProductPrice';
 
 /**
  * Data helpers shared by the redesigned tour detail (PC + mobile).
@@ -220,10 +222,9 @@ export function tourFacts(product: TourProduct, minPeople: number | undefined, c
 }
 
 /** Whole-percent discount (5%+) of the tour's "from" price against the admin-set original price. */
-export function tourDiscountPct(product: TourProduct): number {
-    if (!product.originalPrice || product.originalPrice <= product.price) return 0;
-    const pct = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
-    return pct >= 5 ? pct : 0;
+export function tourDiscountPct(_product: TourProduct): number {
+    // A global original price has no matching headcount and cannot establish a discount.
+    return 0;
 }
 
 // ───────────────────────── pricing ─────────────────────────
@@ -246,11 +247,11 @@ export interface TourPricing {
 
 /**
  * Headcount → price, from the admin's per-headcount tiers (the same matching the booking page uses).
- * Falls back to the flat product price when no tiers are configured.
+ * Missing tiers remain unpriced; a separate catalog price cannot establish a booking amount.
  */
 export function useTourPricing(product: TourProduct): TourPricing {
     const options = useMemo(
-        () => (product.pricingOptions ?? []).filter((o) => o && o.people > 0).slice().sort((a, b) => a.people - b.people),
+        () => (getProductPricedOptions(product) as unknown as TourPricingOption[]).sort((a, b) => a.people - b.people),
         [product.pricingOptions],
     );
     const first = options[0];
@@ -265,7 +266,7 @@ export function useTourPricing(product: TourProduct): TourPricing {
         return options.filter((o) => o.people <= people).pop() ?? options[0];
     }, [options, people]);
 
-    const unit = tier?.pricePerPerson ?? product.price ?? 0;
+    const unit = tier?.pricePerPerson ?? 0;
     const min = first?.people ?? 1;
     const max = last?.people;
     const canDec = people > min;
@@ -358,6 +359,8 @@ interface RawProduct {
     price?: number;
     originalPrice?: number;
     original_price?: number;
+    pricingOptions?: unknown;
+    pricing_options?: unknown;
     isPopular?: boolean | number;
     is_popular?: boolean | number;
     isFeatured?: boolean | number;
@@ -381,12 +384,12 @@ export function useRelatedTours(productId: string, category: string, limit: numb
             const raw = await api.products.list();
             return (Array.isArray(raw) ? (raw as RawProduct[]) : []).map((p) => ({
                 booked: Number(p.bookingCount ?? p.booking_count ?? 0),
-                product: {
+                product: withPublicProductPrice({
                     id: String(p.id),
                     name: String(p.name ?? ''),
                     category: p.category ?? '',
                     price: Number(p.price ?? 0),
-                    originalPrice: p.originalPrice ?? p.original_price ?? undefined,
+                    pricingOptions: parseJsonArray<TourPricingOption>(p.pricingOptions ?? p.pricing_options),
                     isPopular: !!(p.isPopular ?? p.is_popular),
                     isFeatured: !!(p.isFeatured ?? p.is_featured),
                     status: p.status,
@@ -394,7 +397,7 @@ export function useRelatedTours(productId: string, category: string, limit: numb
                     mainImages: parseJsonArray<string>(p.mainImages ?? p.main_images).filter((x) => typeof x === 'string' && x.length > 0),
                     duration: p.duration ?? '',
                     tags: parseJsonArray<string>(p.tags),
-                } satisfies HomeProduct,
+                }) satisfies HomeProduct,
             }));
         },
     });
@@ -415,6 +418,9 @@ export interface RecentlyViewedTour {
     image?: string;
     price?: number | string;
     type?: string;
+    startingPrice?: number | null;
+    priceBasisPeople?: number | null;
+    priceReady?: boolean;
 }
 
 /** The signed-in visitor's recently viewed tours, without the current one. */
@@ -426,10 +432,15 @@ export function useRecentlyViewedTours(excludeId: string): RecentlyViewedTour[] 
             try {
                 const me = await api.auth.me();
                 if (!me) return [];
-                const rows = await api.recentlyViewed.list();
+                const [rows, products] = await Promise.all([api.recentlyViewed.list(), api.products.summary()]);
+                const live = new Map((Array.isArray(products) ? products : []).map((item: any) => [String(item.id), item]));
                 return (Array.isArray(rows) ? (rows as RecentlyViewedTour[]) : [])
                     .filter((v) => v.product_id !== excludeId && v.type !== 'magazine' && (v.title || v.image))
-                    .slice(0, 8);
+                    .slice(0, 8).map(row => {
+                        const current = live.get(String(row.product_id));
+                        const price = getProductStartingPrice(current);
+                        return { ...row, price: price.price ?? 0, startingPrice: price.price, priceBasisPeople: price.people, priceReady: price.price !== null };
+                    });
             } catch {
                 return [];
             }

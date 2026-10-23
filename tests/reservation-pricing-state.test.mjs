@@ -24,8 +24,8 @@ const nodes = node => !node || typeof node !== 'object' ? [] : Array.isArray(nod
 const content = node => typeof node === 'string' || typeof node === 'number' ? String(node) : Array.isArray(node) ? node.map(content).join('') : content(node?.props?.children ?? '');
 const tier = people => ({ people, pricePerPerson: 50000, depositPerPerson: 540000, localPaymentPerPerson: 0 });
 
-function mount({ people = ['4', '2'], desktop = true, draftPeople } = {}) {
-    const source = { id: 'healing', name: '은하수 힐링', duration: '1박 2일', pricing_options: JSON.stringify(people.map(tier)), accommodation_options: '[]', vehicle_options: '[]' };
+function mount({ people = ['4', '2'], desktop = true, draftPeople, rates } = {}) {
+    const source = { id: 'healing', name: '은하수 힐링', duration: '1박 2일', pricing_options: JSON.stringify(rates ?? people.map(tier)), accommodation_options: '[]', vehicle_options: '[]' };
     const state = [], effects = new Map(), queue = [], navigated = [], module = { exports: {} }; let cursor = 0;
     const storage = new Map(draftPeople ? [['mw-booking-draft:healing', JSON.stringify({ totalPeople: draftPeople, selectedAccomId: '', selectedVehicleId: '', startDate: null })]] : []);
     const context = { module, exports: module.exports, desktop, console: { error() {} }, api: { products: { get: async () => source } }, navigate: (...args) => navigated.push(args),
@@ -68,4 +68,19 @@ test('문자열 인원 요금표에서도 기존 숫자 초안을 복원하고 �
         assert.equal(view.type, 'fallback', `잘못된 인원 ${JSON.stringify(invalid)}`);
         assert.match(view.props.text, /인원|가격/);
     }
+});
+
+test('일부 0원·손상된 구간이 있어도 예약은 대표가격과 같은 유효 인원 구간에서 시작한다', async () => {
+    const rates = [{ ...tier(2), pricePerPerson: 0 }, { ...tier(0), pricePerPerson: 1 },
+        { people: '6', price_per_person: '400000', deposit_per_person: '50000', local_payment_per_person: '350000' }];
+    for (const desktop of [true, false]) {
+        const view = await mount({ desktop, rates, draftPeople: 2 }).settle();
+        assert.equal(view.type, desktop ? 'desktop' : 'mobile');
+        assert.equal(view.props.totalPeople, 6);
+        assert.equal(view.props.baseOption.pricePerPerson, 400000);
+        assert.equal(view.props.priceBreakdown.total, 2400000);
+        assert.equal(view.props.priceBreakdown.deposit, 300000);
+        assert.equal(view.props.product.pricingOptions.length, 1);
+    }
+    assert.equal((await mount({ rates: [{ ...tier(2), pricePerPerson: 0 }] }).settle()).type, 'fallback');
 });

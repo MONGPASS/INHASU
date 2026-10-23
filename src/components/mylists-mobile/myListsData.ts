@@ -7,6 +7,7 @@ import { useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopDat
 import { cleanTitle } from '../desktop-primitives/mwTokens';
 import type { TripCardData } from '../mypage-desktop/MyPageSections';
 import { parseDbTime, type MyReservation, type RecentItem } from '../mypage-desktop/useMyPageData';
+import { withPublicProductPrice } from '../../utils/publicProductPrice';
 
 /**
  * Data helpers for the mobile my-page list screens (최근 본 상품 / 찜 목록 / 동행 찾기 글 /
@@ -47,13 +48,13 @@ export function useTripCatalog() {
 }
 
 export const productCard = (p: HomeProduct): TripCardData => ({
+    ...withPublicProductPrice(p),
     key: p.id,
     productId: p.id,
     title: cleanTitle(p.name),
     image: p.mainImages[0],
     duration: p.duration,
     category: p.category,
-    price: p.price,
 });
 
 /** Wishlist payload for a card whose product is no longer in the published list. */

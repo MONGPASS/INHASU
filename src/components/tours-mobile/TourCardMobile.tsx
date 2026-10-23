@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
-import { discountPct, type HomeProduct, type ReviewStat } from '../home-desktop/homeDesktopData';
+import { MW, isUsableImage } from '../desktop-primitives/mwTokens';
+import type { HomeProduct, ReviewStat } from '../home-desktop/homeDesktopData';
 import { HeartButton, MPhoto, TypeBadge } from '../mobile/mobileUi';
 import { durationLabel } from './tourListFilters';
+import { StartingPrice } from '../product/StartingPrice';
 
 interface Props {
     p: HomeProduct;
@@ -17,7 +18,6 @@ interface Props {
 /** Square tour card of the mobile two-column tour grids (tour list, 여행 기획전 detail). */
 export function TourCardMobile({ p, eager = false, fav, onFav, stat }: Props) {
     const navigate = useNavigate();
-    const off = discountPct(p);
     const img = p.mainImages[0];
     const duration = durationLabel(p.duration);
 
@@ -39,8 +39,7 @@ export function TourCardMobile({ p, eager = false, fav, onFav, stat }: Props) {
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.name}</span>
             <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-                {off > 0 && <span style={{ fontSize: 13, fontWeight: 900, color: MW.red }}>{off}%OFF</span>}
-                <span style={{ fontSize: 15, fontWeight: 900 }}>{won(p.price)}~</span>
+                <StartingPrice product={p} amountStyle={{ fontSize: 15, fontWeight: 900 }} />
             </span>
             {stat && stat.count > 0 && (
                 <span style={{ fontSize: 11, color: MW.mute }}>

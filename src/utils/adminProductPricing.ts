@@ -1,5 +1,6 @@
 import type { TourProduct } from '../types/product';
 import { PRODUCT_DEPOSIT_PER_PERSON } from '../constants/company.ts';
+import { getProductStartingPrice } from './productStartingPrice.ts';
 
 /**
  * 상품 편집·초안 복원·저장 경계에서만 사용하는 가격 규칙.
@@ -7,9 +8,8 @@ import { PRODUCT_DEPOSIT_PER_PERSON } from '../constants/company.ts';
  * 검증에서 안내할 수 있도록 그대로 남기고, 유효한 총가격만 계산한다.
  */
 export function withAutomaticProductPricing<T extends Partial<TourProduct>>(form: T): T {
-    if (!Array.isArray(form.pricingOptions)) return form;
     let changed = false;
-    const pricingOptions = form.pricingOptions.map(row => {
+    const pricingOptions = Array.isArray(form.pricingOptions) ? form.pricingOptions.map(row => {
         if (!row || typeof row !== 'object' || Array.isArray(row)) return row;
         const raw: unknown = row.pricePerPerson;
         if (typeof raw !== 'number' && !(typeof raw === 'string' && /^\d+$/.test(raw.trim()))) return row;
@@ -20,6 +20,9 @@ export function withAutomaticProductPricing<T extends Partial<TourProduct>>(form
         if (row.pricePerPerson === price && row.depositPerPerson === deposit && row.localPaymentPerPerson === local) return row;
         changed = true;
         return { ...row, pricePerPerson: price, depositPerPerson: deposit, localPaymentPerPerson: local };
-    });
-    return changed ? { ...form, pricingOptions } : form;
+    }) : form.pricingOptions;
+    const starting = getProductStartingPrice({ pricingOptions });
+    const price = starting.price ?? (form.price !== undefined ? 0 : undefined);
+    if (form.price !== price) changed = true;
+    return changed ? { ...form, pricingOptions, price } : form;
 }

@@ -24,6 +24,9 @@ export interface TourProduct {
     // 가격 정보
     price: number;
     originalPrice?: number;
+    startingPrice?: number | null;
+    priceBasisPeople?: number | null;
+    priceReady?: boolean;
 
     // 이미지
     mainImages: string[]; // 메인 이미지들 (여러 개)
