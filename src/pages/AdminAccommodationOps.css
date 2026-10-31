@@ -114,27 +114,31 @@
 .lo-note { margin: 0; color: var(--text-secondary); font-size: 12px; }
 .lo-warn { padding: 8px 12px; border-radius: 10px; background: #ffecec; color: #d93636; font-size: 12px; font-weight: 600; }
 
-/* 일차별 숙소 표 */
-.lo-nights { width: 100%; min-width: 1020px; border-collapse: separate; border-spacing: 0; font-size: 13px; }
-.lo-nights th { padding: 8px; background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 11px; font-weight: 600; text-align: left; white-space: nowrap; }
-.lo-nights th:first-child { border-radius: 10px 0 0 10px; }
-.lo-nights th:last-child { border-radius: 0 10px 10px 0; }
-.lo-nights td { padding: 8px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+/* 일차별 숙소 */
+.lo-night-list { display: flex; flex-direction: column; gap: 8px; }
+.lo-night { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 1px solid var(--border-default); border-left: 3px solid var(--mrt-gray-300); border-radius: 12px; background: #fff; }
+.lo-night[data-state="assigned"] { border-left-color: #3fd6ab; }
+.lo-night[data-state="confirmed"] { border-left-color: var(--lo-mint-strong); background: #f7fdfb; }
+.lo-night.is-plan { flex-direction: row; align-items: center; gap: 10px; border-style: dashed; border-left-style: dashed; background: var(--mrt-gray-50); color: var(--text-strong); font-size: 13px; }
+.lo-night-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.lo-night-route { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; padding-left: 12px; border-left: 1px solid var(--border-subtle); }
+.lo-night-route b { color: var(--text-strong); font-size: 14px; font-weight: 800; letter-spacing: -.02em; }
+.lo-night-route small { overflow: hidden; color: var(--text-tertiary); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.lo-copy { flex: none; height: 32px; padding: 0 12px; font-size: 12px; }
+.lo-night-warn { padding: 6px 10px; border-radius: 8px; background: #ffecec; color: #d93636; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.lo-night-fields { display: grid; grid-template-columns: minmax(130px, .8fr) minmax(240px, 2fr) minmax(96px, .6fr) 76px minmax(110px, .7fr) minmax(136px, .8fr); gap: 8px; }
+.lo-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.lo-field > span:first-child { color: var(--text-tertiary); font-size: 11px; font-weight: 600; }
 .lo-input { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: 10px; background: #fff; color: var(--text-strong); font-size: 13px; font-weight: 600; outline: 0; }
 .lo-input:focus { border-color: var(--mrt-ink); }
 .lo-input:disabled { opacity: .55; }
-.lo-day { display: flex; align-items: center; gap: 8px; }
-.lo-day-no { display: flex; flex-direction: column; align-items: center; flex: none; color: var(--text-tertiary); font-size: 9px; font-weight: 700; }
-.lo-day-no input { width: 40px; height: 30px; padding: 0; border: 1px solid var(--border-default); border-radius: 8px; color: var(--lo-mint-strong); font-size: 14px; font-weight: 800; text-align: center; }
-.lo-date { width: 150px; }
+.lo-day-no { display: flex; align-items: center; gap: 4px; flex: none; color: var(--lo-mint-strong); font-size: 13px; font-weight: 800; }
+.lo-day-no input { width: 38px; height: 32px; padding: 0; border: 1px solid var(--lo-mint-line); border-radius: 8px; background: #f2fdf9; color: var(--lo-mint-strong); font-size: 14px; font-weight: 800; text-align: center; }
+.lo-date { flex: none; width: 136px; height: 32px; padding: 0 8px; font-size: 12px; }
 .lo-dow { flex: none; color: var(--text-tertiary); font-size: 12px; font-weight: 700; }
-.lo-day-plan { max-width: 260px; margin-top: 6px; color: var(--text-tertiary); font-size: 11px; white-space: normal; overflow-wrap: anywhere; }
-.lo-day-plan.is-warn { color: #d93636; font-weight: 600; }
-.lo-region { width: 120px; }
-.lo-hotel { min-width: 210px; }
-.lo-hotel-manual { display: flex; align-items: center; gap: 6px; min-width: 210px; }
-.lo-rooms { width: 64px; }
-.lo-status-select { position: relative; display: block; min-width: 132px; }
+.lo-region-manual { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.lo-hotel-manual { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.lo-status-select { position: relative; display: block; }
 .lo-status-select i { position: absolute; top: 17px; left: 11px; width: 7px; height: 7px; border-radius: 50%; background: var(--mrt-gray-300); pointer-events: none; }
 .lo-status-select select { padding-left: 26px; }
 .lo-status-select[data-status="Имэйл илгээсэн"] i { background: #a8f0db; }
@@ -145,7 +149,7 @@
 .lo-icon-btn:hover { border-color: var(--mrt-ink); color: var(--text-strong); }
 .lo-icon-btn.is-danger { border-color: transparent; }
 .lo-icon-btn.is-danger:hover { background: #ffecec; color: #ff4f4f; }
-.lo-empty-row { padding: 16px; color: var(--text-tertiary); text-align: center; }
+.lo-empty-row { margin: 0; padding: 12px; color: var(--text-tertiary); font-size: 13px; text-align: center; }
 
 /* 버튼 */
 .lo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
