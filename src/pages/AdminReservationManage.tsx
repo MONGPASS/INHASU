@@ -4049,7 +4049,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                                             {payNote && <span className={payNote.done ? board.payDone : board.payWait}>{payNote.text}</span>}
                                         </div>
                                         <div className={board.actions} onClick={e => e.stopPropagation()}>
-                                            <button type="button" className="btn btn-sm btn-blue" title={nextAction.description} onClick={() => {
+                                            <button type="button" className={`btn btn-sm btn-blue ${board.nextAction}`} title={nextAction.description} onClick={() => {
                                                 if (nextAction.nextStatus) handleStatusChange(res.id, nextAction.nextStatus, res.type); else openReservation(res);
                                             }}>{nextAction.label}</button>
                                             <button type="button" className={board.iconBtn} title="상세 보기" aria-label={`${res.customerName} 상세 보기`} onClick={() => openReservation(res)}><DashboardIcon name="lc-eye" size={16} /></button>

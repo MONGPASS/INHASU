@@ -119,8 +119,10 @@ export const AdminAccommodationOps: React.FC = () => {
 };
 
 function fromApi(item: any): Reservation {
+    // 견적 예약은 저장만 해도 빈 배열이 들어가므로, 고객 일정이 있으면 빈 배열도 '아직 배정 전'으로 보고 일차별 행을 펼친다(수정·저장 전에는 서버를 바꾸지 않음).
+    const unassigned = item.accommodationsInitialized === false || (!item.assignment.accommodations.length && !!item.schedule?.days?.length);
     return { ...item, bookingId: item.id, id: item.key, assignedGuide: item.assignment.guide,
-        dailyAccommodations: item.accommodationsInitialized === false ? undefined : item.assignment.accommodations, contractData: { ...item.contractData, vehicle: item.assignment.vehicle } };
+        dailyAccommodations: unassigned ? undefined : item.assignment.accommodations, contractData: { ...item.contractData, vehicle: item.assignment.vehicle } };
 }
 async function assignmentRequest(path = '', options: RequestInit = {}) {
     const response = await fetch(`/api/admin/assignments${path}`, { credentials: 'same-origin', cache: 'no-store', ...options });
@@ -161,6 +163,9 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     // 공통 목록에 없는 숙소를 직접 입력 중인 칸 (key = `${reservationId}:${dayIndex}`)
     const [manualHotels, setManualHotels] = useState<Set<string>>(new Set());
     const [listHotels, setListHotels] = useState<Set<string>>(new Set());
+    // 등록 숙소의 지역에 없는 지역을 직접 입력 중인 칸 (key는 숙소와 동일)
+    const [manualRegions, setManualRegions] = useState<Set<string>>(new Set());
+    const [listRegions, setListRegions] = useState<Set<string>>(new Set());
 
     const draftScope = useCallback((r: Reservation) => ({ userId, source: r.source, id: r.bookingId }), [userId]);
     const loadResources = useCallback(async () => {
@@ -224,6 +229,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     };
     useEffect(() => { load(); }, []);
     const lodgeById = useMemo(() => new Map(resources.lodges.map(lodge => [lodge.id, lodge])), [resources.lodges]);
+    const lodgeRegions = useMemo(() => [...new Set(resources.lodges.map(lodge => (lodge.region || lodge.location).trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko-KR')), [resources.lodges]);
 
     const base = useMemo(() => reservations.filter(r => scope === 'all' ? true
         : (CONFIRMED_STATUSES.includes(r.status || '') || r.depositStatus === 'paid' || r.type === 'quote')), [reservations, scope]);
@@ -346,6 +352,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         } else {
             const result = discardAssignmentDraft(window.localStorage, draftScope(row), pending.draft.revision);
             if (!result.ok) { setNotice(result.error); return; }
+            setReservations(prev => prev.map(r => r.id === row.id && !r.dailyAccommodations ? { ...r, dailyAccommodations: initialAccommodationRows(r) } : r));
         }
         const next = { ...pendingRef.current }; delete next[row.id]; pendingRef.current = next; setPendingDrafts(next);
         setMaterialized(prev => new Set(prev).add(row.id));
@@ -403,6 +410,20 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         }));
         markDirty(rId);
     };
+    // 며칠 연속 같은 숙소를 쓰는 일정이 많아 앞 일차 내용을 그대로 가져온다. 일차·날짜는 유지하고 수배는 새로 시작한다.
+    const copyPreviousDay = (rId: string, idx: number) => {
+        if (savingRef.current || pendingRef.current[rId]) return;
+        const target = rowsRef.current.find(r => r.id === rId)?.dailyAccommodations?.[idx];
+        if (target?.accommodation?.name?.trim() && !window.confirm(`${target.day}일차에 입력한 숙소를 앞 일차 내용으로 바꿀까요?`)) return;
+        setReservations(prev => prev.map(r => {
+            if (r.id !== rId) return r;
+            const rows = (r.dailyAccommodations || []).map((d, i, all) => i === idx ? { ...d, accommodation: { ...all[i - 1].accommodation, bookingStatus: 'Илгээгээгүй' as BookingStatus } } : d);
+            return { ...r, dailyAccommodations: rows };
+        }));
+        const mKey = `${rId}:${idx}`;
+        for (const setKeys of [setManualHotels, setListHotels, setManualRegions, setListRegions]) setKeys(prev => { const next = new Set(prev); next.delete(mKey); return next; });
+        markDirty(rId);
+    };
     const addMissingNights = (row: Reservation) => {
         if (savingRef.current || pendingRef.current[row.id]) return;
         setReservations(prev => prev.map(r => r.id === row.id ? { ...r, dailyAccommodations: addMissingAccommodationNights(r) } : r));
@@ -448,7 +469,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             const data = await assignmentRequest(`/${r.source}/${encodeURIComponent(r.bookingId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ expectedVersion: r.version, assignment: editorAssignment(r) }) });
             if (!mounted.current || requestGeneration !== generation.current) return;
-            setReservations(prev => prev.map(x => x.id === r.id ? fromApi(data.item) : x));
+            // 방금 저장한 행(모두 지운 경우 포함)을 이 화면에서 그대로 보여 준다.
+            setReservations(prev => prev.map(x => x.id === r.id ? { ...fromApi(data.item), dailyAccommodations: data.item.assignment.accommodations } : x));
             dirtyRef.current.delete(r.id); setDirty(new Set(dirtyRef.current));
             storedSnapshots.current.delete(r.id);
             const result = local.ok && local.revision ? discardAssignmentDraft(window.localStorage, draftScope(r), local.revision) : { ok: true } as const;
@@ -638,100 +660,133 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                             {sum.total === null ? '여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.' : sum.total === 0 ? '당일 여행으로 숙박 배정이 필요하지 않습니다.' : `필요 ${sum.total}박 · 숙소 배정 ${sum.assigned}박 · 예약 확정 ${sum.confirmed}박`}
                                         </p>
                                         {sum.plan.warnings.map((warning, index) => <div key={index} role="alert" className="lo-warn">{warning}</div>)}
-                                        <div className="lo-scroll">
-                                            <table className="lo-nights">
-                                                <thead>
-                                                    <tr><th>일차 · 날짜</th><th>지역</th><th>숙소</th><th>등급</th><th>객실</th><th>인원</th><th>예약 상태</th><th aria-label="삭제" /></tr>
-                                                </thead>
-                                                <tbody>
-                                                    {rows.map((d, idx) => {
-                                                        const acc = d.accommodation || {};
-                                                        const scheduleDay = r.schedule?.days.find(day => day.day === d.day);
-                                                        const scheduleRegion = scheduleDay?.region.trim() || '';
-                                                        const regionLodges = scheduleRegion ? resources.lodges.filter(lodge => [lodge.region, lodge.location].some(value => value.trim().toLocaleLowerCase('ko-KR') === scheduleRegion.toLocaleLowerCase('ko-KR'))) : [];
-                                                        const otherLodges = scheduleRegion ? resources.lodges.filter(lodge => !regionLodges.includes(lodge)) : resources.lodges;
-                                                        const hasName = (acc.name || '').trim().length > 0;
-                                                        const bookingStatus = hasName ? (acc.bookingStatus || 'Илгээгээгүй') : 'Илгээгээгүй';
-                                                        const mKey = `${r.id}:${idx}`;
-                                                        const nm = acc.name || '';
-                                                        const inMaster = !!acc.id && lodgeById.get(acc.id)?.name === nm;
-                                                        const manual = manualHotels.has(mKey) || (!listHotels.has(mKey) && !!nm && !inMaster);
-                                                        return (
-                                                            <tr key={idx}>
-                                                                <td>
-                                                                    <div className="lo-day">
-                                                                        <label className="lo-day-no"><span>일차</span>
-                                                                            <input type="number" min={1} aria-label="숙박 일차" value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })} /></label>
-                                                                        <input type="date" className="lo-input lo-date" aria-label="숙박 날짜" value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
-                                                                        {d.date && <span className="lo-dow">{weekdayKo(d.date)}</span>}
-                                                                    </div>
-                                                                    {scheduleDay && <div className="lo-day-plan">일정: {[scheduleDay.date || '날짜 미정', scheduleDay.region || '지역 미입력', scheduleDay.title || scheduleDay.summary.slice(0, 80)].filter(Boolean).join(' · ')}</div>}
-                                                                    {(sum.plan.rowWarnings[idx] || []).map((warning, index) => <div key={index} role="alert" className="lo-day-plan is-warn">{warning}</div>)}
-                                                                </td>
-                                                                <td><input className="lo-input lo-region" aria-label="숙박 지역" value={acc.location || ''} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value, region: e.target.value })} /></td>
-                                                                <td>{manual ? (
-                                                                    // 공통 숙소에서 선택하며 과거 배정과 직접 입력은 그대로 유지한다.
-                                                                    <div className="lo-hotel-manual">
-                                                                        <input className="lo-input" value={nm} placeholder="숙소명 직접 입력" aria-label="숙소명 직접 입력"
-                                                                            onChange={e => {
-                                                                                if (!manualHotels.has(mKey)) setManualHotels(prev => new Set(prev).add(mKey));
-                                                                                if (e.target.value !== nm) patchDay(r.id, idx, { name: e.target.value, id: undefined, images: [], description: '', facilities: [], region: acc.location || '', address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: 'Илгээгээгүй' });
-                                                                            }} />
-                                                                        <button type="button" className="lo-icon-btn" title="등록 숙소 목록에서 선택"
-                                                                            onClick={() => { setManualHotels(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListHotels(prev => new Set(prev).add(mKey)); }}>
-                                                                            <DashboardIcon name="lc-search" size={14} />
-                                                                        </button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <select className="lo-input lo-hotel" aria-label="등록 숙소 선택" disabled={resourcesLoading} value={inMaster ? acc.id : nm ? '__current__' : ''}
-                                                                        onChange={e => {
-                                                                            const v = e.target.value;
-                                                                            if (v === '__manual__') { setManualHotels(prev => new Set(prev).add(mKey)); setListHotels(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
-                                                                            const lodge = lodgeById.get(v);
-                                                                            if (lodge) patchDay(r.id, idx, selectResourceLodge(d, lodge).accommodation);
-                                                                        }}>
-                                                                        <option value="">{resourcesLoading ? '등록 숙소 불러오는 중…' : '등록 숙소 선택…'}</option>
-                                                                        {!inMaster && nm && <option value="__current__">현재 배정: {nm}</option>}
-                                                                        {scheduleRegion ? <>
-                                                                            <optgroup label={`일정 지역: ${scheduleRegion}`}>{regionLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
-                                                                            <optgroup label="전체 다른 지역">{otherLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
-                                                                        </> : resources.lodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}
-                                                                        <option value="__manual__">직접 입력 (목록에 없는 숙소)</option>
-                                                                    </select>
-                                                                )}</td>
-                                                                <td>
-                                                                    <select className="lo-input" aria-label="숙소 등급" value={acc.type || ''} onChange={e => patchDay(r.id, idx, { type: e.target.value || undefined })}>
-                                                                        {acc.type && !GRADE_OPTIONS.includes(acc.type) && <option value={acc.type}>{acc.type}</option>}
-                                                                        {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g || '미정'}</option>)}
-                                                                    </select>
-                                                                </td>
-                                                                <td><input className="lo-input lo-rooms" type="number" min={0} aria-label="객실 수" value={acc.roomCount ?? ''} placeholder="0" onChange={e => patchDay(r.id, idx, { roomCount: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value) || 0) })} /></td>
-                                                                <td>
-                                                                    <select className="lo-input" aria-label="객실당 인원" value={acc.occupancy || ''} onChange={e => patchDay(r.id, idx, { occupancy: e.target.value || undefined })}>
-                                                                        {acc.occupancy && !OCCUPANCY_OPTIONS.includes(acc.occupancy) && <option value={acc.occupancy}>{acc.occupancy}</option>}
-                                                                        {OCCUPANCY_OPTIONS.map(o => <option key={o} value={o}>{occupancyLabel(o)}</option>)}
-                                                                    </select>
-                                                                </td>
-                                                                <td>
-                                                                    <span className="lo-status-select" data-status={hasName ? bookingStatus : 'none'}>
-                                                                        <i />
-                                                                        <select className="lo-input" aria-label="숙소 예약 상태" value={bookingStatus} disabled={!hasName}
-                                                                            onChange={e => patchDay(r.id, idx, { bookingStatus: e.target.value as BookingStatus })}>
-                                                                            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
-                                                                        </select>
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <button type="button" className="lo-icon-btn is-danger" title="이 숙박일 삭제" aria-label={`${d.day}일차 숙박 삭제`} onClick={() => { if (window.confirm(`${d.day}일차 숙박을 삭제할까요?`)) removeDay(r.id, idx); }}>
-                                                                        <DashboardIcon name="lc-trash" size={14} />
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                    {rows.length === 0 && <tr><td colSpan={8} className="lo-empty-row">숙박일이 없어요. '숙박일 추가'로 추가해 주세요.</td></tr>}
-                                                </tbody>
-                                            </table>
+                                        <div className="lo-night-list">
+                                            {rows.map((d, idx) => {
+                                                const acc = d.accommodation || {};
+                                                const scheduleDay = r.schedule?.days.find(day => day.day === d.day);
+                                                const scheduleRegion = scheduleDay?.region.trim() || '';
+                                                const nightRegion = (acc.location || '').trim() || scheduleRegion;
+                                                const regionLodges = nightRegion ? resources.lodges.filter(lodge => [lodge.region, lodge.location].some(value => value.trim().toLocaleLowerCase('ko-KR') === nightRegion.toLocaleLowerCase('ko-KR'))) : [];
+                                                const otherLodges = nightRegion ? resources.lodges.filter(lodge => !regionLodges.includes(lodge)) : resources.lodges;
+                                                const hasName = (acc.name || '').trim().length > 0;
+                                                const bookingStatus = hasName ? (acc.bookingStatus || 'Илгээгээгүй') : 'Илгээгээгүй';
+                                                const mKey = `${r.id}:${idx}`;
+                                                const nm = acc.name || '';
+                                                const inMaster = !!acc.id && lodgeById.get(acc.id)?.name === nm;
+                                                const manual = manualHotels.has(mKey) || (!listHotels.has(mKey) && !!nm && !inMaster);
+                                                const loc = acc.location || '';
+                                                const regionChoices = scheduleRegion && !lodgeRegions.includes(scheduleRegion) ? [scheduleRegion, ...lodgeRegions] : lodgeRegions;
+                                                const regionManual = manualRegions.has(mKey) || (!listRegions.has(mKey) && !!loc && !regionChoices.includes(loc));
+                                                const previous = idx > 0 ? rows[idx - 1].accommodation : undefined;
+                                                const planSummary = (scheduleDay?.summary || '').split('\n').map(line => line.trim()).filter(Boolean).join(' · ');
+                                                return (
+                                                    <article key={idx} className="lo-night" data-state={!hasName ? 'empty' : bookingStatus === 'Баталгаажсан' ? 'confirmed' : 'assigned'}>
+                                                        <header className="lo-night-head">
+                                                            <label className="lo-day-no">
+                                                                <input type="number" min={1} aria-label="숙박 일차" value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })} /><span>일차</span></label>
+                                                            <input type="date" className="lo-input lo-date" aria-label="숙박 날짜" value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
+                                                            {d.date && <span className="lo-dow">{weekdayKo(d.date)}</span>}
+                                                            <div className="lo-night-route" title={scheduleDay?.summary || undefined}>
+                                                                {scheduleDay && <><b>{scheduleDay.title || scheduleDay.region || '일정'}</b>{planSummary && <small>{planSummary}</small>}</>}
+                                                            </div>
+                                                            {previous && <button type="button" className="lo-btn lo-copy" disabled={!previous.name && !previous.location} title="앞 일차의 지역·숙소·등급·객실·인원을 그대로 가져옵니다. 예약 상태는 미발송으로 시작합니다." onClick={() => copyPreviousDay(r.id, idx)}>
+                                                                <DashboardIcon name="lc-copy" size={14} />앞 일차와 동일
+                                                            </button>}
+                                                            <button type="button" className="lo-icon-btn is-danger" title="이 숙박일 삭제" aria-label={`${d.day}일차 숙박 삭제`} onClick={() => { if (window.confirm(`${d.day}일차 숙박을 삭제할까요?`)) removeDay(r.id, idx); }}>
+                                                                <DashboardIcon name="lc-trash" size={14} />
+                                                            </button>
+                                                        </header>
+                                                        {(sum.plan.rowWarnings[idx] || []).map((warning, index) => <div key={index} role="alert" className="lo-night-warn">{warning}</div>)}
+                                                        <div className="lo-night-fields">
+                                                        <div className="lo-field"><span>지역</span>{regionManual ? (
+                                                            // 등록 숙소의 지역에서 선택하며 과거 값과 직접 입력은 그대로 유지한다.
+                                                            <div className="lo-region-manual">
+                                                                <input className="lo-input lo-region" aria-label="숙박 지역" value={loc} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value, region: e.target.value })} />
+                                                                <button type="button" className="lo-icon-btn" title="등록 지역 목록에서 선택"
+                                                                    onClick={() => { setManualRegions(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListRegions(prev => new Set(prev).add(mKey)); }}>
+                                                                    <DashboardIcon name="lc-search" size={14} />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <select className="lo-input lo-region" aria-label="숙박 지역 선택" disabled={resourcesLoading} value={loc}
+                                                                onChange={e => {
+                                                                    const v = e.target.value;
+                                                                    if (v === '__manual__') { setManualRegions(prev => new Set(prev).add(mKey)); setListRegions(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
+                                                                    patchDay(r.id, idx, { location: v, region: v });
+                                                                }}>
+                                                                <option value="">{resourcesLoading ? '지역 불러오는 중…' : '지역 선택…'}</option>
+                                                                {loc && !regionChoices.includes(loc) && <option value={loc}>{loc}</option>}
+                                                                {regionChoices.map(choice => <option key={choice} value={choice}>{choice}</option>)}
+                                                                <option value="__manual__">직접 입력</option>
+                                                            </select>
+                                                        )}</div>
+                                                        <div className="lo-field"><span>숙소</span>{manual ? (
+                                                            // 공통 숙소에서 선택하며 과거 배정과 직접 입력은 그대로 유지한다.
+                                                            <div className="lo-hotel-manual">
+                                                                <input className="lo-input" value={nm} placeholder="숙소명 직접 입력" aria-label="숙소명 직접 입력"
+                                                                    onChange={e => {
+                                                                        if (!manualHotels.has(mKey)) setManualHotels(prev => new Set(prev).add(mKey));
+                                                                        if (e.target.value !== nm) patchDay(r.id, idx, { name: e.target.value, id: undefined, images: [], description: '', facilities: [], region: acc.location || '', address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: 'Илгээгээгүй' });
+                                                                    }} />
+                                                                <button type="button" className="lo-icon-btn" title="등록 숙소 목록에서 선택"
+                                                                    onClick={() => { setManualHotels(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListHotels(prev => new Set(prev).add(mKey)); }}>
+                                                                    <DashboardIcon name="lc-search" size={14} />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <select className="lo-input lo-hotel" aria-label="등록 숙소 선택" disabled={resourcesLoading} value={inMaster ? acc.id : nm ? '__current__' : ''}
+                                                                onChange={e => {
+                                                                    const v = e.target.value;
+                                                                    if (v === '__manual__') { setManualHotels(prev => new Set(prev).add(mKey)); setListHotels(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
+                                                                    const lodge = lodgeById.get(v);
+                                                                    if (lodge) patchDay(r.id, idx, selectResourceLodge(d, lodge).accommodation);
+                                                                }}>
+                                                                <option value="">{resourcesLoading ? '등록 숙소 불러오는 중…' : '등록 숙소 선택…'}</option>
+                                                                {!inMaster && nm && <option value="__current__">현재 배정: {nm}</option>}
+                                                                {nightRegion ? <>
+                                                                    <optgroup label={`${nightRegion === scheduleRegion ? '일정 지역' : '선택 지역'}: ${nightRegion}`}>{regionLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
+                                                                    <optgroup label="전체 다른 지역">{otherLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
+                                                                </> : resources.lodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}
+                                                                <option value="__manual__">직접 입력 (목록에 없는 숙소)</option>
+                                                            </select>
+                                                        )}</div>
+                                                        <div className="lo-field"><span>등급</span>
+                                                            <select className="lo-input" aria-label="숙소 등급" value={acc.type || ''} onChange={e => patchDay(r.id, idx, { type: e.target.value || undefined })}>
+                                                                {acc.type && !GRADE_OPTIONS.includes(acc.type) && <option value={acc.type}>{acc.type}</option>}
+                                                                {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g || '미정'}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div className="lo-field"><span>객실</span><input className="lo-input" type="number" min={0} aria-label="객실 수" value={acc.roomCount ?? ''} placeholder="0" onChange={e => patchDay(r.id, idx, { roomCount: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value) || 0) })} /></div>
+                                                        <div className="lo-field"><span>인원</span>
+                                                            <select className="lo-input" aria-label="객실당 인원" value={acc.occupancy || ''} onChange={e => patchDay(r.id, idx, { occupancy: e.target.value || undefined })}>
+                                                                {acc.occupancy && !OCCUPANCY_OPTIONS.includes(acc.occupancy) && <option value={acc.occupancy}>{acc.occupancy}</option>}
+                                                                {OCCUPANCY_OPTIONS.map(o => <option key={o} value={o}>{occupancyLabel(o)}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div className="lo-field"><span>예약 상태</span>
+                                                            <span className="lo-status-select" data-status={hasName ? bookingStatus : 'none'}>
+                                                                <i />
+                                                                <select className="lo-input" aria-label="숙소 예약 상태" value={bookingStatus} disabled={!hasName}
+                                                                    onChange={e => patchDay(r.id, idx, { bookingStatus: e.target.value as BookingStatus })}>
+                                                                    {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                                                                </select>
+                                                            </span>
+                                                        </div>
+                                                        </div>
+                                                    </article>
+                                                );
+                                            })}
+                                            {/* 숙박 행이 없는 일차도 고객 일정은 보여 준다. 저장된 배정은 명시적으로 추가할 때만 바뀐다. */}
+                                            {sum.plan.missingNights.filter(night => night.title || night.summary).map(night => (
+                                                <div key={`missing-${night.day}`} className="lo-night is-plan">
+                                                    <b>{night.day}일차</b>
+                                                    <span className="lo-dow">{night.date || '날짜 미정'}{night.date && ` ${weekdayKo(night.date)}`}</span>
+                                                    <div className="lo-night-route"><b>{night.title || night.region || '일정'}</b>{night.summary && <small>{night.summary.split('\n').map(line => line.trim()).filter(Boolean).join(' · ')}</small>}</div>
+                                                </div>
+                                            ))}
+                                            {sum.plan.missingNights.some(night => night.title || night.summary)
+                                                ? <p className="lo-empty-row">위 일차는 숙소 행이 아직 없어요. '누락 숙박일 추가'를 누르면 숙소를 배정할 수 있어요.</p>
+                                                : rows.length === 0 && <p className="lo-empty-row">숙박일이 없어요. '숙박일 추가'로 추가해 주세요.</p>}
                                         </div>
                                         <div className="lo-actions">
                                             <button type="button" className="lo-btn is-dashed" onClick={() => addDay(r.id)}>＋ 숙박일 추가</button>

@@ -192,6 +192,8 @@
 .payDone { color: #0E9E7A; }
 .payWait { color: #5f8f82; }
 .actions { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+.row .actions .nextAction { background: linear-gradient(135deg, #12b28c, #0E9E7A); box-shadow: 0 4px 12px rgba(18,168,128,.28); }
+.row .actions .nextAction:hover { background: #0E9E7A; }
 .iconBtn { width: 36px; height: 36px; flex: none; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-default); border-radius: 10px;
   background: #fff; color: var(--text-secondary); cursor: pointer; transition: background 160ms, color 160ms; }
 .iconBtn:hover { background: var(--mrt-gray-50); color: var(--text-strong); }

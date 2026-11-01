@@ -288,6 +288,48 @@ test('명시적으로 비운 고객 일정과 저장된 빈 숙소 배열은 보
     h.unmount();
 });
 
+test('저장된 숙소 배열이 비어 있어도 고객 일정대로 숙박 행을 펼치고 지역을 선택해 저장하기 전에는 서버를 바꾸지 않는다', async () => {
+    const row = twoNightFixture();
+    row.schedule.days.forEach(day => { day.region = ''; });
+    row.assignment.accommodations = []; row.accommodationsInitialized = true;
+    const libraries = resourceFixture();
+    libraries.lodges.push({ ...plain(libraries.lodges[0]), id: 'resource-lodge:고비 등록 숙소', name: '고비 등록 숙소', location: '고비사막', region: '고비사막' });
+    const h = mount({ items: [row], resources: async () => libraries }); await h.settle(); await h.open('quote_booking');
+    const dates = () => nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').map(node => node.props.value);
+    assert.deepEqual(dates(), ['2026-11-01', '2026-11-02']);
+    assert.equal(text(h.tree).includes('숙박 행이 없습니다'), false);
+    h.flushDraft(); assert.equal(h.storage.size, 0); assert.equal(h.button('배정 저장').props.disabled, true);
+    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
+
+    const regions = () => nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '숙박 지역 선택');
+    assert.equal(regions().length, 2);
+    assert.ok(nodes(regions()[0]).some(node => node.type === 'option' && node.props.value === '고비사막'));
+    regions()[1].props.onChange({ target: { value: '고비사막' } }); h.render();
+    assert.equal(regions()[1].props.value, '고비사막');
+    const lodgeSelect = nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '등록 숙소 선택')[1];
+    assert.equal(nodes(lodgeSelect).find(node => node.type === 'optgroup').props.label, '선택 지역: 고비사막');
+
+    await h.button('배정 저장').props.onClick(); await h.settle();
+    const saved = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
+    assert.deepEqual(saved.map(stay => [stay.day, stay.date, stay.accommodation.location || '']), [[1, '2026-11-01', ''], [2, '2026-11-02', '고비사막']]);
+    h.unmount();
+});
+
+test('앞 일차와 동일은 숙소·객실을 가져오되 일차·날짜를 유지하고 수배 상태는 미발송으로 시작한다', async () => {
+    const row = twoNightFixture(), first = plain(row.assignment.accommodations[0]);
+    assert.equal(first.accommodation.bookingStatus, 'Баталгаажсан');
+    row.assignment.accommodations.push({ day: 2, date: '2026-11-02', accommodation: {} });
+    const h = mount({ items: [row] }); await h.settle(); await h.open('quote_booking');
+    h.button('앞 일차와 동일').props.onClick(); h.render();
+    await h.button('배정 저장').props.onClick(); await h.settle();
+    const stays = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
+    assert.equal(stays[0].accommodation.bookingStatus, 'Баталгаажсан', '앞 일차는 그대로');
+    assert.equal(stays[1].day, 2); assert.equal(stays[1].date, '2026-11-02');
+    assert.equal(stays[1].accommodation.name, first.accommodation.name);
+    assert.equal(stays[1].accommodation.bookingStatus, 'Илгээгээгүй');
+    h.unmount();
+});
+
 test('숙박 날짜를 직접 고칠 때도 변경한 예약만 다시 수배하고 기존 객실과 배정 자료는 보존한다', async () => {
     const row = twoNightFixture('product', 'customer');
     row.assignment.accommodations[0].accommodation.roomCount = 0;

@@ -183,6 +183,7 @@ node scripts/check-reservation-workspace.mjs --serve --usability --customer-work
 - 그 밖의 운영 데이터 변경(값 옮기기·정리)은 `functions/api/migrate-db.ts`를 통해서만.
 
 ### 로컬 실행
+- `npm run dev`는 8804번 합성 자료 서버(`check-reservation-workspace.mjs --serve`)를 함께 띄우고 `/api`를 그쪽으로 보낸다(`vite.config.ts`). 관리자는 `http://localhost:5173/__local-admin`으로 바로 들어간다. 데이터는 메모리 합성 자료이고 운영 D1·R2·발송에는 연결되지 않으며 재시작하면 초기화된다.
 - `npm run build` 후 `npx wrangler pages dev dist --port 8788`. 로컬 변수는 `.dev.vars`(gitignore) — `ENVIRONMENT=development`면 로컬 관리자 시드가 동작한다. 로컬 D1 초기화: `npx wrangler d1 execute leaders-requests --local --file=schema.sql` (사이트 표는 첫 요청 때 자동 생성).
 - 로컬 wrangler는 `/견적서.html`처럼 `.html`이 붙은 한글 주소에서 502가 난 이력이 있다(리다이렉트 헤더 문제, 운영은 정상). 이 환경에서는 **확장자 없는 주소**(`/견적서?t=…`)를 사용한다. 고객 `?t=` 문서는 localhost에서도 실제 로그인·소유권 API를 사용하며 브라우저 저장소로 우회하지 않는다. 합성 자료는 `scripts/check-reservation-workspace.mjs`의 별도 로컬 서버로 확인한다.
 - ⚠ **Windows + 한글이 들어간 폴더 경로 + Node 24**에서는 `fs.rmSync`가 네이티브 충돌(0xC0000409)을 내서 두 번째 `vite build`와 `wrangler dev`가 조용히 죽는다. 영문 경로에 클론하거나(권장), 영문 경로의 디렉터리 정션을 만들어 그 경로에서 실행할 것.
