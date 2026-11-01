@@ -288,6 +288,29 @@ test('명시적으로 비운 고객 일정과 저장된 빈 숙소 배열은 보
     h.unmount();
 });
 
+test('지역은 일정 목적지로 미리 선택되고 비우면 비운 채 유지하며 직접 입력 숙소에 함께 저장된다', async () => {
+    const row = twoNightFixture();
+    row.schedule.days.forEach(day => { day.region = ''; });
+    row.schedule.days[0].title = '고비사막 이동'; row.schedule.days[1].title = '톱아이막';
+    row.assignment.accommodations = []; row.accommodationsInitialized = true;
+    const libraries = resourceFixture();
+    libraries.lodges.push({ ...plain(libraries.lodges[0]), id: 'resource-lodge:고비 등록 숙소', name: '고비 등록 숙소', location: '고비사막', region: '고비사막' });
+    const h = mount({ items: [row], resources: async () => libraries }); await h.settle(); await h.open('quote_booking');
+    const regions = () => nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '숙박 지역 선택');
+    assert.deepEqual(regions().map(select => select.props.value), ['고비사막', '톱아이막']);
+    assert.equal(nodes(nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '등록 숙소 선택')[0]).find(node => node.type === 'optgroup').props.label, '일정 지역: 고비사막');
+    regions()[0].props.onChange({ target: { value: '' } }); h.render();
+    assert.deepEqual(regions().map(select => select.props.value), ['', '톱아이막']);
+    nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '등록 숙소 선택')[1].props.onChange({ target: { value: '__manual__' } }); h.render();
+    nodes(h.tree).find(node => node.type === 'input' && node.props['aria-label'] === '숙소명 직접 입력').props.onChange({ target: { value: '직접 입력 숙소' } }); h.render();
+    await h.button('배정 저장').props.onClick(); await h.settle();
+    const saved = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
+    assert.equal(saved[0].accommodation.location || '', '');
+    assert.equal(saved[1].accommodation.location, '톱아이막');
+    assert.equal(saved[1].accommodation.region, '톱아이막');
+    h.unmount();
+});
+
 test('저장된 숙소 배열이 비어 있어도 고객 일정대로 숙박 행을 펼치고 지역을 선택해 저장하기 전에는 서버를 바꾸지 않는다', async () => {
     const row = twoNightFixture();
     row.schedule.days.forEach(day => { day.region = ''; });
@@ -304,14 +327,15 @@ test('저장된 숙소 배열이 비어 있어도 고객 일정대로 숙박 행
     const regions = () => nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '숙박 지역 선택');
     assert.equal(regions().length, 2);
     assert.ok(nodes(regions()[0]).some(node => node.type === 'option' && node.props.value === '고비사막'));
-    regions()[1].props.onChange({ target: { value: '고비사막' } }); h.render();
-    assert.equal(regions()[1].props.value, '고비사막');
+    assert.equal(regions()[1].props.value, '고비사막', '일정 제목의 등록 지역을 미리 선택한다');
+    regions()[1].props.onChange({ target: { value: '중앙몽골' } }); h.render();
+    assert.equal(regions()[1].props.value, '중앙몽골');
     const lodgeSelect = nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '등록 숙소 선택')[1];
-    assert.equal(nodes(lodgeSelect).find(node => node.type === 'optgroup').props.label, '선택 지역: 고비사막');
+    assert.equal(nodes(lodgeSelect).find(node => node.type === 'optgroup').props.label, '선택 지역: 중앙몽골');
 
     await h.button('배정 저장').props.onClick(); await h.settle();
     const saved = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
-    assert.deepEqual(saved.map(stay => [stay.day, stay.date, stay.accommodation.location || '']), [[1, '2026-11-01', ''], [2, '2026-11-02', '고비사막']]);
+    assert.deepEqual(saved.map(stay => [stay.day, stay.date, stay.accommodation.location || '']), [[1, '2026-11-01', ''], [2, '2026-11-02', '중앙몽골']]);
     h.unmount();
 });
 

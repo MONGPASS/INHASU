@@ -1,6 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getAccommodationPlan, initialAccommodationRows, addMissingAccommodationNights, alignAccommodationDates } from '../src/utils/accommodationSchedule.ts';
+import { getAccommodationPlan, initialAccommodationRows, addMissingAccommodationNights, alignAccommodationDates, scheduleStayRegion } from '../src/utils/accommodationSchedule.ts';
+
+test('숙박 지역은 일정의 지역·목적지를 등록 표기로 맞추고 여러 곳이면 마지막 지역을 쓴다', () => {
+    const registered = ['남고비', '테렐지', '울란바타르', '고비'];
+    const stay = (title, source = 'quote', region = '') => scheduleStayRegion({ title, region }, registered, source);
+    assert.equal(stay('테를지'), '테렐지');
+    assert.equal(stay('울란바토르'), '울란바타르');
+    assert.equal(stay('테를지 → 남고비'), '남고비');
+    assert.equal(stay('남고비 이동'), '남고비', '겹치는 지역명은 더 긴 이름을 고른다');
+    assert.equal(scheduleStayRegion({ title: '테를지', region: '' }, ['테를지 국립공원'], 'quote'), '테를지 국립공원');
+    assert.equal(stay('자유일정', 'quote', '남고비'), '남고비', '일정에 적힌 지역이 제목보다 먼저다');
+    assert.equal(stay('테를지', 'product', '중앙몽골'), '중앙몽골');
+    assert.equal(stay('톱아이막'), '톱아이막', '견적 목적지는 등록 지역에 없어도 그대로 보여 준다');
+    assert.equal(stay('톱아이막', 'booking'), '톱아이막', '예약 일정으로 저장된 견적도 같다');
+    assert.equal(stay('테를지 → 톱아이막'), '테렐지', '등록 지역이 나오면 그 지역을 우선한다');
+    assert.equal(stay('호텔 체크인 후 자유 일정', 'product'), '', '상품 제목은 지역으로 추측하지 않는다');
+    assert.equal(stay(''), '');
+});
 
 const schedule = (days, source = 'customer') => ({ source, days, warnings: [] });
 const tour = (patch = {}) => ({ startDate: '2026-10-20', endDate: '2026-10-22', schedule: schedule([
