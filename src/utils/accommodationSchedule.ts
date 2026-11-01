@@ -85,6 +85,26 @@ function dateAlignments(rows: AssignmentAccommodation[], nights: AccommodationNi
     return changes;
 }
 
+const regionKey = (value: string) => value.toLocaleLowerCase('ko-KR').replace(/\s+/g, '').replace(/테렐지/g, '테를지').replace(/울란바토르/g, '울란바타르');
+function registeredRegionIn(value: string, registered: string[]) {
+    const key = regionKey(value), known = registered.map(name => ({ name, key: regionKey(name) })).filter(item => item.key);
+    const exact = known.find(item => item.key === key);
+    if (exact || !key) return exact?.name || '';
+    // A day can pass through several places: the last one named is where the customer stays.
+    const endOf = (item: { key: string }) => key.lastIndexOf(item.key) + item.key.length;
+    const named = known.filter(item => key.includes(item.key)).sort((a, b) => endOf(b) - endOf(a) || b.key.length - a.key.length);
+    return named[0]?.name || known.find(item => item.key.includes(key))?.name || '';
+}
+
+/** The region a night belongs to, in the registered spelling. A quote booking's title is its destination field, so it stands in when nothing registered matches. */
+export function scheduleStayRegion(day: Pick<AccommodationScheduleDay, 'title' | 'region'>, registered: string[], source?: AccommodationSchedule['source']): string {
+    const region = text(day.region), title = text(day.title);
+    if (region) return registeredRegionIn(region, registered) || region;
+    const matched = registeredRegionIn(title, registered);
+    if (matched || (source !== 'quote' && source !== 'booking')) return matched;
+    return title.split(/→|->|>|~|\/|,|·|-/).map(part => part.trim()).filter(Boolean).pop() || '';
+}
+
 /** Existing rows, including [], remain authoritative. Only absent rows get initial empty nights. */
 export function initialAccommodationRows(booking: ScheduleBooking): AssignmentAccommodation[] {
     const { nights } = expectedNights(booking);

@@ -5,7 +5,7 @@ import { productCustomerHref, quoteCustomerHref } from '../utils/customerWorkspa
 import type { AssignmentAccommodation, AssignmentGuide, AssignmentSource, AssignmentVehicle } from '../utils/reservationAssignment';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
 import { selectResourceGuide, selectResourceLodge, selectResourceVehicle } from '../utils/accommodationResourceSelection';
-import { addMissingAccommodationNights, alignAccommodationDates, getAccommodationPlan, initialAccommodationRows, type AccommodationSchedule } from '../utils/accommodationSchedule';
+import { addMissingAccommodationNights, alignAccommodationDates, getAccommodationPlan, initialAccommodationRows, scheduleStayRegion, type AccommodationSchedule } from '../utils/accommodationSchedule';
 import { assignmentFingerprint, editorAssignment, writeAssignmentDraft, readAssignmentDraft, discardAssignmentDraft, type AssignmentDraft, type AssignmentDraftResult } from '../utils/adminAssignmentDraft';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
@@ -166,6 +166,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     // 등록 숙소의 지역에 없는 지역을 직접 입력 중인 칸 (key는 숙소와 동일)
     const [manualRegions, setManualRegions] = useState<Set<string>>(new Set());
     const [listRegions, setListRegions] = useState<Set<string>>(new Set());
+    const [clearedRegions, setClearedRegions] = useState<Set<string>>(new Set());
 
     const draftScope = useCallback((r: Reservation) => ({ userId, source: r.source, id: r.bookingId }), [userId]);
     const loadResources = useCallback(async () => {
@@ -421,7 +422,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             return { ...r, dailyAccommodations: rows };
         }));
         const mKey = `${rId}:${idx}`;
-        for (const setKeys of [setManualHotels, setListHotels, setManualRegions, setListRegions]) setKeys(prev => { const next = new Set(prev); next.delete(mKey); return next; });
+        for (const setKeys of [setManualHotels, setListHotels, setManualRegions, setListRegions, setClearedRegions]) setKeys(prev => { const next = new Set(prev); next.delete(mKey); return next; });
         markDirty(rId);
     };
     const addMissingNights = (row: Reservation) => {
@@ -664,17 +665,19 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                             {rows.map((d, idx) => {
                                                 const acc = d.accommodation || {};
                                                 const scheduleDay = r.schedule?.days.find(day => day.day === d.day);
-                                                const scheduleRegion = scheduleDay?.region.trim() || '';
-                                                const nightRegion = (acc.location || '').trim() || scheduleRegion;
+                                                const scheduleRegion = scheduleDay ? scheduleStayRegion(scheduleDay, lodgeRegions, r.schedule?.source) : '';
+                                                const mKey = `${r.id}:${idx}`;
+                                                const nightRegion = (acc.location || '').trim() || (clearedRegions.has(mKey) ? '' : scheduleRegion);
                                                 const regionLodges = nightRegion ? resources.lodges.filter(lodge => [lodge.region, lodge.location].some(value => value.trim().toLocaleLowerCase('ko-KR') === nightRegion.toLocaleLowerCase('ko-KR'))) : [];
                                                 const otherLodges = nightRegion ? resources.lodges.filter(lodge => !regionLodges.includes(lodge)) : resources.lodges;
                                                 const hasName = (acc.name || '').trim().length > 0;
                                                 const bookingStatus = hasName ? (acc.bookingStatus || 'Илгээгээгүй') : 'Илгээгээгүй';
-                                                const mKey = `${r.id}:${idx}`;
                                                 const nm = acc.name || '';
                                                 const inMaster = !!acc.id && lodgeById.get(acc.id)?.name === nm;
                                                 const manual = manualHotels.has(mKey) || (!listHotels.has(mKey) && !!nm && !inMaster);
                                                 const loc = acc.location || '';
+                                                // 숙소를 고르기 전에는 일정 지역을 보여 주되, 저장 값은 관리자가 숙소나 지역을 고를 때 정해진다.
+                                                const shownRegion = loc || (hasName ? '' : nightRegion);
                                                 const regionChoices = scheduleRegion && !lodgeRegions.includes(scheduleRegion) ? [scheduleRegion, ...lodgeRegions] : lodgeRegions;
                                                 const regionManual = manualRegions.has(mKey) || (!listRegions.has(mKey) && !!loc && !regionChoices.includes(loc));
                                                 const previous = idx > 0 ? rows[idx - 1].accommodation : undefined;
@@ -708,10 +711,11 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                 </button>
                                                             </div>
                                                         ) : (
-                                                            <select className="lo-input lo-region" aria-label="숙박 지역 선택" disabled={resourcesLoading} value={loc}
+                                                            <select className="lo-input lo-region" aria-label="숙박 지역 선택" disabled={resourcesLoading} value={shownRegion}
                                                                 onChange={e => {
                                                                     const v = e.target.value;
                                                                     if (v === '__manual__') { setManualRegions(prev => new Set(prev).add(mKey)); setListRegions(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
+                                                                    setClearedRegions(prev => { const next = new Set(prev); if (v) next.delete(mKey); else next.add(mKey); return next; });
                                                                     patchDay(r.id, idx, { location: v, region: v });
                                                                 }}>
                                                                 <option value="">{resourcesLoading ? '지역 불러오는 중…' : '지역 선택…'}</option>
@@ -726,7 +730,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                 <input className="lo-input" value={nm} placeholder="숙소명 직접 입력" aria-label="숙소명 직접 입력"
                                                                     onChange={e => {
                                                                         if (!manualHotels.has(mKey)) setManualHotels(prev => new Set(prev).add(mKey));
-                                                                        if (e.target.value !== nm) patchDay(r.id, idx, { name: e.target.value, id: undefined, images: [], description: '', facilities: [], region: acc.location || '', address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: 'Илгээгээгүй' });
+                                                                        if (e.target.value !== nm) patchDay(r.id, idx, { name: e.target.value, id: undefined, images: [], description: '', facilities: [], location: shownRegion, region: shownRegion, address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: 'Илгээгээгүй' });
                                                                     }} />
                                                                 <button type="button" className="lo-icon-btn" title="등록 숙소 목록에서 선택"
                                                                     onClick={() => { setManualHotels(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListHotels(prev => new Set(prev).add(mKey)); }}>
