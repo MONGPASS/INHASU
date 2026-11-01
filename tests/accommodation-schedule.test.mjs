@@ -1,6 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getAccommodationPlan, initialAccommodationRows, addMissingAccommodationNights, alignAccommodationDates, scheduleStayRegion } from '../src/utils/accommodationSchedule.ts';
+import { getAccommodationPlan, initialAccommodationRows, addMissingAccommodationNights, alignAccommodationDates, scheduleStayRegion, scheduleTimeline } from '../src/utils/accommodationSchedule.ts';
+
+test('일정 타임라인은 줄마다 한 단계로 나누고 시간·강조·회색 안내를 구분한다', () => {
+    assert.deepEqual(scheduleTimeline('가이드 미팅\n\n  유심 / 환전  \n*칭기스칸광장 관람\n(+쇼핑 선택)\n09:30 공항 픽업\n- 호텔 체크인'), [
+        { time: '', text: '가이드 미팅', tone: '' },
+        { time: '', text: '유심 / 환전', tone: '' },
+        { time: '', text: '칭기스칸광장 관람', tone: 'strong' },
+        { time: '', text: '(+쇼핑 선택)', tone: 'muted' },
+        { time: '09:30', text: '공항 픽업', tone: '' },
+        { time: '', text: '호텔 체크인', tone: '' },
+    ]);
+    assert.deepEqual(scheduleTimeline(''), []);
+    assert.deepEqual(scheduleTimeline('*\n  \n-'), []);
+});
 
 test('숙박 지역은 일정의 지역·목적지를 등록 표기로 맞추고 여러 곳이면 마지막 지역을 쓴다', () => {
     const registered = ['남고비', '테렐지', '울란바타르', '고비'];

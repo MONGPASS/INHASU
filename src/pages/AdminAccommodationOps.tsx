@@ -5,7 +5,7 @@ import { productCustomerHref, quoteCustomerHref } from '../utils/customerWorkspa
 import type { AssignmentAccommodation, AssignmentGuide, AssignmentSource, AssignmentVehicle } from '../utils/reservationAssignment';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
 import { selectResourceGuide, selectResourceLodge, selectResourceVehicle } from '../utils/accommodationResourceSelection';
-import { addMissingAccommodationNights, alignAccommodationDates, getAccommodationPlan, initialAccommodationRows, scheduleStayRegion, type AccommodationSchedule } from '../utils/accommodationSchedule';
+import { addMissingAccommodationNights, alignAccommodationDates, getAccommodationPlan, initialAccommodationRows, scheduleStayRegion, scheduleTimeline, type AccommodationSchedule } from '../utils/accommodationSchedule';
 import { assignmentFingerprint, editorAssignment, writeAssignmentDraft, readAssignmentDraft, discardAssignmentDraft, type AssignmentDraft, type AssignmentDraftResult } from '../utils/adminAssignmentDraft';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
@@ -565,7 +565,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                     const status = boardStatusOf(r);
                     const open = expanded.has(r.id);
                     const isDirty = dirty.has(r.id);
-                    const rows = open ? (r.dailyAccommodations || []) : [];
+                    // 초안 선택 전에는 행이 구체화되지 않으므로 잠긴 화면에도 고객 일정의 숙박일을 그대로 보여 준다.
+                    const rows = open ? (r.dailyAccommodations || sum.plan.rows) : [];
                     const cd = r.contractData || {};
                     const travelers = cd.travelers || [];
                     const hotels = [...new Set((r.dailyAccommodations || []).map(d => (d.accommodation?.name || '').trim()).filter(Boolean))];
@@ -633,14 +634,24 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                         </div>
                                         <details className="lo-schedule">
                                             <summary>전체 고객 일정 보기</summary>
-                                            {(r.schedule?.days || []).length ? <div className="lo-scroll">
-                                                <table className="lo-mini">
-                                                    <thead><tr><th>일차</th><th>날짜</th><th>여행 지역</th><th>고객 일정 요약</th></tr></thead>
-                                                    <tbody>{r.schedule!.days.map((day, index) => <tr key={index}>
-                                                        <td>{day.day}일차</td><td>{day.date || '날짜 미정'}</td><td>{day.region || '지역 미입력'}</td>
-                                                        <td className="is-wrap">{[day.title, day.summary].filter(Boolean).join(' · ') || '일정 내용 없음'}</td>
-                                                    </tr>)}</tbody>
-                                                </table>
+                                            {(r.schedule?.days || []).length ? <div className="lo-plan-days">
+                                                {r.schedule!.days.map((day, index) => {
+                                                    const dayRegion = scheduleStayRegion(day, lodgeRegions, r.schedule?.source);
+                                                    const steps = scheduleTimeline(day.summary);
+                                                    return <details key={index} className="lo-plan-day">
+                                                        <summary>
+                                                            <span className="lo-plan-chev"><DashboardIcon name="lc-chevron-down" size={16} /></span>
+                                                            <b>{day.day}일차</b>
+                                                            <span className="lo-plan-date">{day.date || '날짜 미정'}{day.date && ` ${weekdayKo(day.date)}`}</span>
+                                                            <span className="lo-pill lo-plan-region" data-empty={dayRegion ? undefined : 'true'}>{dayRegion || '지역 미입력'}</span>
+                                                            {day.title && day.title !== dayRegion && <span className="lo-plan-title">{day.title}</span>}
+                                                            <small>{steps.length}개 일정</small>
+                                                        </summary>
+                                                        {steps.length ? <ol className="lo-timeline">
+                                                            {steps.map((step, stepIndex) => <li key={stepIndex} data-tone={step.tone || undefined}>{step.time && <time>{step.time}</time>}<span>{step.text}</span></li>)}
+                                                        </ol> : <p className="lo-muted lo-plan-empty">일정 내용 없음</p>}
+                                                    </details>;
+                                                })}
                                             </div> : <p className="lo-muted">저장된 고객 일정이 없습니다. 숙소 배정은 기존 내용을 유지합니다.</p>}
                                         </details>
                                     </section>
@@ -660,6 +671,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                         <p className="lo-note">
                                             {sum.total === null ? '여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.' : sum.total === 0 ? '당일 여행으로 숙박 배정이 필요하지 않습니다.' : `필요 ${sum.total}박 · 숙소 배정 ${sum.assigned}박 · 예약 확정 ${sum.confirmed}박`}
                                         </p>
+                                        {pendingDrafts[r.id] && <div role="status" className="lo-warn">보관된 초안이 있어 잠겨 있어요. 이 예약 맨 위에서 ‘초안 복원’ 또는 ‘초안 버리기’를 고르면 수정할 수 있어요.</div>}
                                         {sum.plan.warnings.map((warning, index) => <div key={index} role="alert" className="lo-warn">{warning}</div>)}
                                         <div className="lo-night-list">
                                             {rows.map((d, idx) => {

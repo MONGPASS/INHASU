@@ -288,6 +288,29 @@ test('명시적으로 비운 고객 일정과 저장된 빈 숙소 배열은 보
     h.unmount();
 });
 
+test('보관된 초안을 고르기 전에도 고객 일정의 숙박일을 잠긴 채 보여 주고 버리면 수정할 수 있다', async () => {
+    const row = twoNightFixture();
+    row.assignment.accommodations = []; row.accommodationsInitialized = true;
+    const h = mount({ items: [row] }); await h.settle(); await h.open('quote_booking');
+    const regions = () => nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '숙박 지역 선택');
+    const dates = () => nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').map(node => node.props.value);
+    regions()[0].props.onChange({ target: { value: '중앙몽골' } }); h.render(); h.flushDraft();
+    assert.equal(h.storage.size, 1);
+
+    await h.button('새로고침').props.onClick(); await h.settle();
+    const fieldset = nodes(h.tree).find(node => node.type === 'fieldset');
+    assert.equal(fieldset.props.disabled, true, '초안을 고르기 전에는 잠긴다');
+    assert.deepEqual(dates(), ['2026-11-01', '2026-11-02']);
+    assert.equal(text(h.tree).includes('숙박일이 없어요'), false);
+    assert.ok(text(h.tree).includes('보관된 초안이 있어 잠겨 있어요'));
+
+    h.button('초안 버리기').props.onClick(); h.render();
+    assert.equal(nodes(h.tree).find(node => node.type === 'fieldset').props.disabled, false);
+    assert.deepEqual(dates(), ['2026-11-01', '2026-11-02']);
+    assert.equal(text(h.tree).includes('보관된 초안이 있어 잠겨 있어요'), false);
+    h.unmount();
+});
+
 test('지역은 일정 목적지로 미리 선택되고 비우면 비운 채 유지하며 직접 입력 숙소에 함께 저장된다', async () => {
     const row = twoNightFixture();
     row.schedule.days.forEach(day => { day.region = ''; });
@@ -298,6 +321,12 @@ test('지역은 일정 목적지로 미리 선택되고 비우면 비운 채 유
     const h = mount({ items: [row], resources: async () => libraries }); await h.settle(); await h.open('quote_booking');
     const regions = () => nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '숙박 지역 선택');
     assert.deepEqual(regions().map(select => select.props.value), ['고비사막', '톱아이막']);
+    const planDays = nodes(h.tree).filter(node => node.type === 'details' && node.props.className === 'lo-plan-day');
+    assert.equal(planDays.length, 3, '일차마다 접이식 행을 하나씩 만든다');
+    assert.equal(planDays.some(day => day.props.open), false, '처음에는 모두 접혀 있다');
+    const planRegions = planDays.map(day => text(nodes(day).find(node => String(node.props?.className).includes('lo-plan-region'))));
+    assert.deepEqual(planRegions.slice(0, 2), ['고비사막', '톱아이막'], '전체 일정에도 같은 지역을 보여 준다');
+    assert.deepEqual(nodes(planDays[0]).filter(node => node.type === 'li').map(text), ['공항 픽업 · 초원 산책']);
     assert.equal(nodes(nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '등록 숙소 선택')[0]).find(node => node.type === 'optgroup').props.label, '일정 지역: 고비사막');
     regions()[0].props.onChange({ target: { value: '' } }); h.render();
     assert.deepEqual(regions().map(select => select.props.value), ['', '톱아이막']);

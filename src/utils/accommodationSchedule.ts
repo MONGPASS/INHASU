@@ -105,6 +105,17 @@ export function scheduleStayRegion(day: Pick<AccommodationScheduleDay, 'title' |
     return title.split(/→|->|>|~|\/|,|·|-/).map(part => part.trim()).filter(Boolean).pop() || '';
 }
 
+export interface ScheduleStep { time: string; text: string; tone: '' | 'strong' | 'muted' }
+/** One timeline step per saved line. Keeps the quote documents' `*` emphasis and `(` gray-note conventions. */
+export function scheduleTimeline(summary: string): ScheduleStep[] {
+    return text(summary).split('\n').map(line => line.trim().replace(/^[-·•]\s*/, '')).filter(Boolean).map((line): ScheduleStep => {
+        const tone = line.startsWith('*') ? 'strong' : line.startsWith('(') ? 'muted' : '';
+        const body = tone === 'strong' ? line.slice(1).trim() : line;
+        const timed = /^(\d{1,2}:\d{2})\s+(.+)$/.exec(body);
+        return { time: timed?.[1] || '', text: timed?.[2] || body, tone };
+    }).filter(step => step.text);
+}
+
 /** Existing rows, including [], remain authoritative. Only absent rows get initial empty nights. */
 export function initialAccommodationRows(booking: ScheduleBooking): AssignmentAccommodation[] {
     const { nights } = expectedNights(booking);
