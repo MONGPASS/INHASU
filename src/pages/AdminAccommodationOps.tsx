@@ -7,6 +7,7 @@ import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources }
 import { selectResourceGuide, selectResourceLodge, selectResourceVehicle } from '../utils/accommodationResourceSelection';
 import { addMissingAccommodationNights, alignAccommodationDates, getAccommodationPlan, initialAccommodationRows, scheduleStayRegion, scheduleTimeline, type AccommodationSchedule } from '../utils/accommodationSchedule';
 import { assignmentFingerprint, editorAssignment, writeAssignmentDraft, readAssignmentDraft, discardAssignmentDraft, type AssignmentDraft, type AssignmentDraftResult } from '../utils/adminAssignmentDraft';
+import { toTourDateKey } from '../utils/formatDate';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
@@ -27,6 +28,12 @@ const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const STATUS_LABELS: Record<BookingStatus, string> = { 'Илгээгээгүй': '미발송', 'Имэйл илгээсэн': '메일 발송', 'Хариу ирсэн': '회신 받음', 'Баталгаажсан': '확정' };
 const occupancyLabel = (value: string) => value ? value.replace(/^(\d+) хүн\/өрөө$/, '$1인 / 객실') : '미정';
 type BoardStatus = '미배정' | '진행 중' | '배정 완료';
+const KPI_CARDS = [
+    { key: 'all', label: '전체 예약', tone: 'all', icon: 'lc-layers', hint: '전체' },
+    { key: '미배정', label: '미배정', tone: 'warn', icon: 'lc-circle-alert', hint: '바로 배정' },
+    { key: '진행 중', label: '진행 중', tone: 'info', icon: 'lc-loader', hint: '수배 중' },
+    { key: '배정 완료', label: '배정 완료', tone: 'ok', icon: 'lc-circle-check', hint: '' },
+] as const;
 
 type DailyAcc = AssignmentAccommodation;
 interface Traveler { name?: string; passportName?: string; birthdate?: string; gender?: string; phone?: string }
@@ -88,6 +95,18 @@ const isPastTour = (r: { startDate?: string; endDate?: string }, today: string) 
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     return key < today;
 };
+const savedStamp = () => {
+    const d = new Date();
+    return `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+// 출발일까지 남은 일수. 60일 안쪽으로 다가온 출발은 강조한다.
+const departureBadge = (iso?: string) => {
+    const key = iso ? toTourDateKey(iso) : '';
+    const start = /^\d{4}-\d{2}-\d{2}$/.test(key) ? Date.parse(`${key}T00:00:00Z`) : NaN;
+    if (Number.isNaN(start)) return null;
+    const days = Math.round((start - Date.parse(`${todayKey()}T00:00:00Z`)) / 86400000);
+    return { label: days > 0 ? `D-${days}` : days === 0 ? 'D-DAY' : '출발 완료', soon: days >= 0 && days <= 60 };
+};
 const weekdayKo = (iso?: string) => {
     if (!iso) return '';
     const d = new Date(iso);
@@ -134,6 +153,8 @@ async function assignmentRequest(path = '', options: RequestInit = {}) {
 const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     const [reservations, setReservationsState] = useState<Reservation[]>([]);
     const rowsRef = useRef<Reservation[]>([]), dirtyRef = useRef(new Set<string>());
+    // 서버에서 받은 행 그대로. '변경 취소'는 이 값으로 되돌린다.
+    const savedRows = useRef(new Map<string, Reservation>());
     const mounted = useRef(true), savingRef = useRef<string | null>(null), generation = useRef(0);
     const storedSnapshots = useRef(new Map<string, string>());
     const pendingRef = useRef<Record<string, { draft: AssignmentDraft; conflict: boolean }>>({});
@@ -150,6 +171,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     const [savingId, setSavingId] = useState<string | null>(null);
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [materialized, setMaterialized] = useState<Set<string>>(new Set());
+    const [travelersClosed, setTravelersClosed] = useState<Set<string>>(new Set());
+    const [savedAt, setSavedAt] = useState<Record<string, string>>({});
 
     const [q, setQ] = useState('');
     const [month, setMonth] = useState('all');
@@ -217,6 +240,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             pendingRef.current = nextPending; setPendingDrafts(nextPending);
             storedSnapshots.current.clear();
             dirtyRef.current = new Set([...dirtyRef.current].filter(id => arr.some(r => r.id === id && failedSource(r.source)))); setDirty(new Set(dirtyRef.current));
+            savedRows.current = new Map(arr.map(row => [row.id, failedSource(row.source) ? savedRows.current.get(row.id) || row : row]));
             setReservations(arr);
             setMaterialized(new Set());
             setExpanded(prev => new Set([...Object.keys(nextPending), ...[...prev].filter(id => arr.some(r => r.id === id && failedSource(r.source)))]));
@@ -471,9 +495,12 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                 body: JSON.stringify({ expectedVersion: r.version, assignment: editorAssignment(r) }) });
             if (!mounted.current || requestGeneration !== generation.current) return;
             // 방금 저장한 행(모두 지운 경우 포함)을 이 화면에서 그대로 보여 준다.
-            setReservations(prev => prev.map(x => x.id === r.id ? { ...fromApi(data.item), dailyAccommodations: data.item.assignment.accommodations } : x));
+            const savedRow: Reservation = { ...fromApi(data.item), dailyAccommodations: data.item.assignment.accommodations };
+            savedRows.current.set(r.id, savedRow);
+            setReservations(prev => prev.map(x => x.id === r.id ? savedRow : x));
             dirtyRef.current.delete(r.id); setDirty(new Set(dirtyRef.current));
             storedSnapshots.current.delete(r.id);
+            setSavedAt(prev => ({ ...prev, [r.id]: savedStamp() }));
             const result = local.ok && local.revision ? discardAssignmentDraft(window.localStorage, draftScope(r), local.revision) : { ok: true } as const;
             setNotice(!local.ok ? '서버 저장은 완료했습니다. 다만 브라우저 초안 저장소를 확인해 주세요. ' + local.error : result.ok ? '배정 정보를 저장했습니다.' : result.error);
         } catch (e: any) {
@@ -483,20 +510,33 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         }
     };
 
+    // 저장 전 편집과 브라우저 초안을 버리고 마지막으로 받은 서버 배정으로 되돌린다. 서버는 바꾸지 않는다.
+    const resetRow = (r: Reservation) => {
+        const saved = savedRows.current.get(r.id);
+        if (!saved || savingRef.current || pendingRef.current[r.id]) return;
+        if (!window.confirm('저장하지 않은 변경 내용을 취소할까요?')) return;
+        const result = discardAssignmentDraft(window.localStorage, draftScope(r));
+        if (!result.ok) { setNotice(result.error); return; }
+        setReservations(prev => prev.map(x => x.id === r.id ? { ...saved, dailyAccommodations: initialAccommodationRows(saved) } : x));
+        dirtyRef.current.delete(r.id); setDirty(new Set(dirtyRef.current));
+        storedSnapshots.current.delete(r.id);
+        for (const setKeys of [setManualHotels, setListHotels, setManualRegions, setListRegions, setClearedRegions]) setKeys(prev => new Set([...prev].filter(key => !key.startsWith(`${r.id}:`))));
+        setNotice('변경 내용을 취소했어요.');
+    };
+
     const statusCounts = useMemo(() => {
         const counts: Record<BoardStatus, number> = { '미배정': 0, '진행 중': 0, '배정 완료': 0 };
         base.forEach(r => { counts[boardStatusOf(r)]++; });
         return counts;
     }, [base]);
     const yearTotal = Array.from({ length: 12 }, (_, i) => monthStats.perMonth.get(`${year}-${String(i + 1).padStart(2, '0')}`) || 0).reduce((a, b) => a + b, 0);
-    const filtersOn = !!(q.trim() || region !== 'all' || statusFilter !== 'all' || month !== 'all');
-    const resetFilters = () => { setQ(''); setRegion('all'); setStatusFilter('all'); setMonth('all'); };
+    const filtersOn = !!(q.trim() || scope !== 'confirmed' || region !== 'all' || statusFilter !== 'all' || month !== 'all');
+    const resetFilters = () => { setQ(''); setScope('confirmed'); setRegion('all'); setStatusFilter('all'); setMonth('all'); };
 
     return (
         <AdminLayout
             activePage="accommodation-ops"
             title="숙소 배정 · 현지 운영"
-            description="예약별 숙박일에 숙소·객실을 배정하고, 수배 상태와 가이드·차량을 함께 관리해요."
             actions={<button type="button" onClick={load} disabled={loading || !!savingId} className="btn"><Icon name="refresh" />새로고침</button>}
         >
             <div className="lo-board">
@@ -506,11 +546,17 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             {Object.keys(pendingDrafts).length > 0 && <div className="lo-notice is-draft" role="status">복구 가능한 배정 초안 {Object.keys(pendingDrafts).length}건이 있어요. 펼친 예약에서 복원 또는 버리기를 골라 주세요.</div>}
 
             <div className="lo-summary">
-                {([['all', '전체 예약', base.length], ['미배정', '미배정', statusCounts['미배정']], ['진행 중', '진행 중', statusCounts['진행 중']], ['배정 완료', '배정 완료', statusCounts['배정 완료']]] as const).map(([key, label, n]) => (
-                    <button key={key} type="button" data-tone={key} aria-pressed={statusFilter === key} className={`lo-kpi${statusFilter === key ? ' is-on' : ''}${key === '미배정' && n > 0 ? ' is-warn' : ''}`} onClick={() => setStatusFilter(statusFilter === key || key === 'all' ? 'all' : key)}>
-                        <span>{label}</span><b>{n}</b>
-                    </button>
-                ))}
+                {KPI_CARDS.map(({ key, label, tone, icon, hint }) => {
+                    const n = key === 'all' ? base.length : statusCounts[key];
+                    const on = statusFilter === key, hot = tone === 'warn' && n > 0;
+                    return (
+                        <button key={key} type="button" data-tone={tone} aria-pressed={on} className={`lo-kpi${on ? ' is-on' : ''}${hot ? ' is-hot' : ''}${tone === 'ok' && n > 0 ? ' is-filled' : ''}`} onClick={() => setStatusFilter(on || key === 'all' ? 'all' : key)}>
+                            <span className="lo-kpi-icon"><DashboardIcon name={icon} size={18} /></span>
+                            <span className="lo-kpi-body"><span className="lo-kpi-label">{label}</span><span className="lo-kpi-num"><b>{n}</b><small>팀</small></span></span>
+                            <span className="lo-kpi-hint">{on ? '선택됨' : tone === 'warn' && n === 0 ? '' : hint}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             <div className="lo-filters">
@@ -532,14 +578,16 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
 
             {/* 출발 월 — 연도 이동 + 월별 건수, 누르면 그 달만 표시 */}
             <div className="lo-months">
-                <span className="lo-months-label"><DashboardIcon name="lc-calendar" size={16} />출발 월</span>
-                <span className="lo-year">
-                    <button type="button" aria-label="이전 연도" disabled={year <= monthStats.minYear} onClick={() => setYear(y => y - 1)}><DashboardIcon name="lc-chevron-left" size={16} /></button>
-                    <b>{year}년</b>
-                    <button type="button" aria-label="다음 연도" disabled={year >= monthStats.maxYear} onClick={() => setYear(y => y + 1)}><DashboardIcon name="lc-chevron-right" size={16} /></button>
-                </span>
-                <button type="button" className={`lo-year-all${month === 'all' ? ' is-on' : ''}`} onClick={() => setMonth('all')}>전체 {monthStats.total}팀 · {year}년 {yearTotal}팀</button>
-                <div className="lo-month-grid">
+                <div className="lo-months-head">
+                    <span className="lo-months-label"><DashboardIcon name="lc-calendar" size={16} />출발 월</span>
+                    <span className="lo-year">
+                        <button type="button" aria-label="이전 연도" disabled={year <= monthStats.minYear} onClick={() => setYear(y => y - 1)}><DashboardIcon name="lc-chevron-left" size={14} /></button>
+                        <b>{year}년</b>
+                        <button type="button" aria-label="다음 연도" disabled={year >= monthStats.maxYear} onClick={() => setYear(y => y + 1)}><DashboardIcon name="lc-chevron-right" size={14} /></button>
+                    </span>
+                    <button type="button" className={`lo-year-all${month === 'all' ? ' is-on' : ''}`} onClick={() => setMonth('all')}>전체 {monthStats.total}팀 · {year}년 {yearTotal}팀</button>
+                </div>
+                <div className="lo-month-scroll"><div className="lo-month-grid">
                     {Array.from({ length: 12 }, (_, i) => {
                         const key = `${year}-${String(i + 1).padStart(2, '0')}`;
                         const n = monthStats.perMonth.get(key) || 0;
@@ -551,12 +599,12 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                             </button>
                         );
                     })}
-                </div>
+                </div></div>
             </div>
 
             <section className="lo-table" aria-label="숙소 배정 예약 목록">
                 <div className="lo-head" aria-hidden="true">
-                    <span /><span>상태</span><span>고객</span><span>여행 기간</span><span>지역</span><span>인원</span><span>숙소</span><span>진행</span>
+                    <span>고객</span><span>여행 일정</span><span>숙소</span><span>배정 진행</span><span>상태</span><span />
                 </div>
                 {loading && <p className="lo-empty">예약을 불러오고 있어요…</p>}
                 {!loading && filtered.length === 0 && <div className="lo-empty"><p>조건에 맞는 예약이 없어요.</p>{filtersOn && <button type="button" onClick={resetFilters}>필터 초기화</button>}</div>}
@@ -573,29 +621,39 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                     const hasGuide = !!r.assignedGuide?.name?.trim(), hasVehicle = !!cd.vehicle?.type?.trim();
                     const progress = sum.total === null ? '필요 숙박일 확인' : sum.total === 0 ? '숙박 없음' : `${sum.confirmed}/${sum.total}박 확정`;
                     const progressNote = sum.plan.warnings.length > 0 || (sum.total !== null && sum.total > 0 && !sum.allConfirmed) ? '숙박일 확인 필요' : !hasGuide || !hasVehicle ? '가이드·차량 확인' : '배정 완료';
+                    const isQuote = r.type === 'quote' || r.source === 'quote_booking';
+                    const departure = departureBadge(r.startDate);
+                    const travelersOpen = !travelersClosed.has(r.id);
+                    const nightSegments = sum.plan.nightStates.length ? sum.plan.nightStates : ['empty' as const];
                     return (
                         <React.Fragment key={r.id}>
                             <div id={`acc-row-${r.id}`} role="button" tabIndex={0} aria-expanded={open} className={`lo-row${open ? ' is-open' : ''}`} onClick={() => toggleExpand(r)}
                                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(r); } }}>
-                                <span className="lo-chev"><DashboardIcon name="lc-chevron-down" size={18} /></span>
-                                <span><span className="lo-status" data-status={status}><i />{status}</span></span>
                                 <span className="lo-customer">
-                                    <b>{r.customerName || '-'}</b>
-                                    <small>
-                                        <em className="lo-kind" data-kind={r.type === 'quote' || r.source === 'quote_booking' ? 'quote' : 'product'}>{r.type === 'quote' || r.source === 'quote_booking' ? '견적 고객' : '상품 예약'}</em>
-                                        {r.reservationNumber && <span>#{r.reservationNumber}</span>}
+                                    <span className="lo-customer-name">
+                                        <b>{r.customerName || '-'}</b>
                                         {isDirty && <em className="lo-kind" data-kind="dirty">변경됨</em>}
                                         {pendingDrafts[r.id] && <em className="lo-kind" data-kind="draft">초안</em>}
+                                    </span>
+                                    <small>{isQuote ? '견적 고객' : '상품 예약'} · {regionOf(r)} · {r.travelers || '-'}명{r.reservationNumber && ` · #${r.reservationNumber}`}</small>
+                                </span>
+                                <span className="lo-range">
+                                    <b>{fmtDate(r.startDate)} – {fmtDate(r.endDate)}</b>
+                                    <small>
+                                        <span className={sum.total === null ? 'is-alert' : ''}>{sum.total === null ? '기간 확인 필요' : sum.total === 0 ? '당일' : `${sum.total}박 ${sum.total + 1}일`}</span>
+                                        {departure && <>·<span className={`lo-dday${departure.soon ? ' is-alert' : ''}`}>{departure.label}</span></>}
                                     </small>
                                 </span>
-                                <span className="lo-range"><b>{fmtDate(r.startDate)} – {fmtDate(r.endDate)}</b><small>{sum.total === null ? '기간 확인 필요' : sum.total === 0 ? '당일' : `${sum.total}박 ${sum.total + 1}일`}</small></span>
-                                <span className="lo-muted">{regionOf(r)}</span>
-                                <span className="lo-muted">{r.travelers || '-'}명</span>
-                                <span className="lo-hotels">{hotels.length ? `${hotels[0]}${hotels.length > 1 ? ` 외 ${hotels.length - 1}` : ''}` : '—'}</span>
+                                <span className={`lo-hotels${hotels.length ? '' : ' is-empty'}`}>{hotels.length ? `${hotels[0]}${hotels.length > 1 ? ` 외 ${hotels.length - 1}` : ''}` : '숙소 미배정'}</span>
                                 <span className="lo-progress">
-                                    <b className={sum.allConfirmed && sum.total ? 'is-done' : ''}>{progress}</b>
-                                    {sum.total !== 0 && <small className={progressNote === '배정 완료' ? 'is-done' : ''}>{progressNote}</small>}
+                                    <span className="lo-progress-text">
+                                        <b className={sum.allConfirmed && sum.total ? 'is-done' : ''}>{progress}</b>
+                                        <small className={progressNote === '배정 완료' ? 'is-done' : ''}>{progressNote}</small>
+                                    </span>
+                                    <span className="lo-segments" aria-hidden="true">{nightSegments.map((state, index) => <i key={index} data-state={state} />)}</span>
                                 </span>
+                                <span className="lo-status-cell"><span className="lo-status" data-status={status}><i />{status}</span></span>
+                                <span className="lo-chev"><DashboardIcon name="lc-chevron-down" size={18} /></span>
                             </div>
                             {open && (
                                 <div className="lo-detail">
@@ -610,56 +668,60 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
 
                                     {/* 여행자 · 항공 */}
                                     <section className="lo-card">
-                                        <header className="lo-card-head"><DashboardIcon name="lc-users" size={16} /><h3>여행자 · 항공</h3>
-                                            <span className="lo-card-sub">{travelers.length ? `${travelers.length}명 · ${travelers.slice(0, 3).map(t => t.name || t.passportName || '이름 미입력').join(', ')}` : '여행자 정보 없음 (계약서 제출 전)'}</span></header>
-                                        <div className="lo-flights">
-                                            <div><span><DashboardIcon name="lc-plane-landing" size={14} />입국 항공 (몽골 도착)</span><b>{flightLine(cd.arrival)}</b></div>
-                                            <div><span><DashboardIcon name="lc-plane-takeoff" size={14} />출국 항공 (몽골 출발)</span><b>{flightLine(cd.departure)}</b></div>
-                                        </div>
-                                        {travelers.length > 0 && (
-                                            <div className="lo-scroll">
-                                                <table className="lo-mini">
-                                                    <thead><tr><th>#</th><th>여권 영문명</th><th>이름</th><th>생년월일</th><th>성별</th><th>연락처</th></tr></thead>
-                                                    <tbody>
-                                                        {travelers.map((t, i) => (
-                                                            <tr key={i}><td>{i + 1}</td><td><b>{t.passportName || '-'}</b></td><td>{t.name || '-'}</td><td>{t.birthdate || '-'}</td><td>{genderLabel(t.gender)}</td><td>{t.phone || '-'}</td></tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
+                                        <button type="button" className="lo-card-toggle" aria-expanded={travelersOpen} onClick={() => setTravelersClosed(prev => { const next = new Set(prev); if (next.has(r.id)) next.delete(r.id); else next.add(r.id); return next; })}>
+                                            <DashboardIcon name="lc-users" size={16} /><h3>여행자 · 항공</h3>
+                                            <span className="lo-card-chev"><DashboardIcon name="lc-chevron-down" size={18} /></span>
+                                        </button>
+                                        {travelersOpen && <>
+                                            <div className="lo-flights">
+                                                <div><span><DashboardIcon name="lc-plane-landing" size={14} />입국 항공 (몽골 도착)</span><b>{flightLine(cd.arrival)}</b></div>
+                                                <div><span><DashboardIcon name="lc-plane-takeoff" size={14} />출국 항공 (몽골 출발)</span><b>{flightLine(cd.departure)}</b></div>
                                             </div>
-                                        )}
-                                        <div className="lo-meta">
-                                            {cd.agreement?.name && <span>전자 서명 <b>{cd.agreement.name}</b></span>}
-                                            <span>고객 일정 기준 <b>{scheduleSourceLabel[r.schedule?.source || 'none'] || '고객 일정'}</b> · {r.schedule?.days.length || 0}일</span>
-                                        </div>
-                                        <details className="lo-schedule">
-                                            <summary>전체 고객 일정 보기</summary>
-                                            {(r.schedule?.days || []).length ? <div className="lo-plan-days">
-                                                {r.schedule!.days.map((day, index) => {
-                                                    const dayRegion = scheduleStayRegion(day, lodgeRegions, r.schedule?.source);
-                                                    const steps = scheduleTimeline(day.summary);
-                                                    return <details key={index} className="lo-plan-day">
-                                                        <summary>
-                                                            <span className="lo-plan-chev"><DashboardIcon name="lc-chevron-down" size={16} /></span>
-                                                            <b>{day.day}일차</b>
-                                                            <span className="lo-plan-date">{day.date || '날짜 미정'}{day.date && ` ${weekdayKo(day.date)}`}</span>
-                                                            <span className="lo-pill lo-plan-region" data-empty={dayRegion ? undefined : 'true'}>{dayRegion || '지역 미입력'}</span>
-                                                            {day.title && day.title !== dayRegion && <span className="lo-plan-title">{day.title}</span>}
-                                                            <small>{steps.length}개 일정</small>
-                                                        </summary>
-                                                        {steps.length ? <ol className="lo-timeline">
-                                                            {steps.map((step, stepIndex) => <li key={stepIndex} data-tone={step.tone || undefined}>{step.time && <time>{step.time}</time>}<span>{step.text}</span></li>)}
-                                                        </ol> : <p className="lo-muted lo-plan-empty">일정 내용 없음</p>}
-                                                    </details>;
-                                                })}
-                                            </div> : <p className="lo-muted">저장된 고객 일정이 없습니다. 숙소 배정은 기존 내용을 유지합니다.</p>}
-                                        </details>
+                                            {travelers.length > 0 ? (
+                                                <div className="lo-scroll">
+                                                    <table className="lo-mini">
+                                                        <thead><tr><th>#</th><th>여권 영문명</th><th>이름</th><th>생년월일</th><th>성별</th><th>연락처</th></tr></thead>
+                                                        <tbody>
+                                                            {travelers.map((t, i) => (
+                                                                <tr key={i}><td>{i + 1}</td><td><b>{t.passportName || '-'}</b></td><td>{t.name || '-'}</td><td>{t.birthdate || '-'}</td><td>{genderLabel(t.gender)}</td><td>{t.phone || '-'}</td></tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            ) : <p className="lo-note">여행자 정보 없음 (계약서 제출 전)</p>}
+                                            <details className="lo-schedule">
+                                                <summary><span className="lo-schedule-chev"><DashboardIcon name="lc-chevron-right" size={14} /></span>전체 고객 일정 보기</summary>
+                                                <div className="lo-meta">
+                                                    {cd.agreement?.name && <span>전자 서명 <b>{cd.agreement.name}</b></span>}
+                                                    <span>고객 일정 기준 <b>{scheduleSourceLabel[r.schedule?.source || 'none'] || '고객 일정'}</b> · {r.schedule?.days.length || 0}일</span>
+                                                </div>
+                                                {(r.schedule?.days || []).length ? <div className="lo-plan-days">
+                                                    {r.schedule!.days.map((day, index) => {
+                                                        const dayRegion = scheduleStayRegion(day, lodgeRegions, r.schedule?.source);
+                                                        const steps = scheduleTimeline(day.summary);
+                                                        return <details key={index} className="lo-plan-day" open={index === 0}>
+                                                            <summary>
+                                                                <span className="lo-plan-chev"><DashboardIcon name="lc-chevron-down" size={16} /></span>
+                                                                <b>{day.day}일차</b>
+                                                                <span className="lo-plan-date">{day.date || '날짜 미정'}{day.date && ` ${weekdayKo(day.date)}`}</span>
+                                                                <span className="lo-pill lo-plan-region" data-tone={dayRegion ? 'ok' : undefined} data-empty={dayRegion ? undefined : 'true'}>{dayRegion || '지역 미입력'}</span>
+                                                                {day.title && day.title !== dayRegion && <span className="lo-plan-title">{day.title}</span>}
+                                                                <small>{steps.length}개 일정</small>
+                                                            </summary>
+                                                            {steps.length ? <ol className="lo-timeline">
+                                                                {steps.map((step, stepIndex) => <li key={stepIndex} data-tone={step.tone || undefined}>{step.time && <time>{step.time}</time>}<span>{step.text}</span></li>)}
+                                                            </ol> : <p className="lo-muted lo-plan-empty">일정 내용 없음</p>}
+                                                        </details>;
+                                                    })}
+                                                </div> : <p className="lo-muted">저장된 고객 일정이 없습니다. 숙소 배정은 기존 내용을 유지합니다.</p>}
+                                            </details>
+                                        </>}
                                     </section>
 
                                     {/* 일차별 숙소 */}
                                     <section className="lo-card">
                                         <header className="lo-card-head"><DashboardIcon name="lc-bed" size={16} /><h3>일차별 숙소</h3>
-                                            <span className={`lo-pill${sum.allConfirmed && sum.total ? ' is-done' : ''}`}>{progress}</span>
+                                            <span className="lo-pill" data-tone={sum.allConfirmed && sum.total ? 'ok' : 'info'}>{progress}</span>
                                             <span className="lo-spacer" />
                                             <a className="lo-btn" href={r.source === 'quote_booking' ? quoteCustomerHref(r.bookingId, '/admin/accommodation-ops') : productCustomerHref(r.bookingId, '/admin/accommodation-ops')} title="고객 통합 작업 화면에서 이 예약을 엽니다.">
                                                 <DashboardIcon name="lc-external-link" size={14} />예약 상세
@@ -668,9 +730,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                 <DashboardIcon name="lc-calendar" size={14} />여행 날짜에 맞추기
                                             </button>
                                         </header>
-                                        <p className="lo-note">
-                                            {sum.total === null ? '여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.' : sum.total === 0 ? '당일 여행으로 숙박 배정이 필요하지 않습니다.' : `필요 ${sum.total}박 · 숙소 배정 ${sum.assigned}박 · 예약 확정 ${sum.confirmed}박`}
-                                        </p>
+                                        {!sum.total && <p className="lo-note">{sum.total === null ? '여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.' : '당일 여행으로 숙박 배정이 필요하지 않습니다.'}</p>}
                                         {pendingDrafts[r.id] && <div role="status" className="lo-warn">보관된 초안이 있어 잠겨 있어요. 이 예약 맨 위에서 ‘초안 복원’ 또는 ‘초안 버리기’를 고르면 수정할 수 있어요.</div>}
                                         {sum.plan.warnings.map((warning, index) => <div key={index} role="alert" className="lo-warn">{warning}</div>)}
                                         <div className="lo-night-list">
@@ -693,22 +753,22 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                 const regionChoices = scheduleRegion && !lodgeRegions.includes(scheduleRegion) ? [scheduleRegion, ...lodgeRegions] : lodgeRegions;
                                                 const regionManual = manualRegions.has(mKey) || (!listRegions.has(mKey) && !!loc && !regionChoices.includes(loc));
                                                 const previous = idx > 0 ? rows[idx - 1].accommodation : undefined;
-                                                const planSummary = (scheduleDay?.summary || '').split('\n').map(line => line.trim()).filter(Boolean).join(' · ');
                                                 return (
                                                     <article key={idx} className="lo-night" data-state={!hasName ? 'empty' : bookingStatus === 'Баталгаажсан' ? 'confirmed' : 'assigned'}>
                                                         <header className="lo-night-head">
                                                             <label className="lo-day-no">
-                                                                <input type="number" min={1} aria-label="숙박 일차" value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })} /><span>일차</span></label>
-                                                            <input type="date" className="lo-input lo-date" aria-label="숙박 날짜" value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
-                                                            {d.date && <span className="lo-dow">{weekdayKo(d.date)}</span>}
-                                                            <div className="lo-night-route" title={scheduleDay?.summary || undefined}>
-                                                                {scheduleDay && <><b>{scheduleDay.title || scheduleDay.region || '일정'}</b>{planSummary && <small>{planSummary}</small>}</>}
-                                                            </div>
+                                                                <input type="number" min={1} aria-label="숙박 일차" style={{ width: `${String(d.day).length + 0.4}ch` }} value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })} /><span>일차</span></label>
+                                                            <span className="lo-date-pill">
+                                                                <input type="date" className="lo-date" aria-label="숙박 날짜" value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
+                                                                {d.date && <span className="lo-dow">{weekdayKo(d.date)}</span>}
+                                                            </span>
+                                                            <span className="lo-night-place" title={scheduleDay?.summary || undefined}><DashboardIcon name="lc-map-pin" size={14} />{nightRegion || scheduleDay?.title || '장소 미정'}</span>
+                                                            <span className="lo-spacer" />
                                                             {previous && <button type="button" className="lo-btn lo-copy" disabled={!previous.name && !previous.location} title="앞 일차의 지역·숙소·등급·객실·인원을 그대로 가져옵니다. 예약 상태는 미발송으로 시작합니다." onClick={() => copyPreviousDay(r.id, idx)}>
                                                                 <DashboardIcon name="lc-copy" size={14} />앞 일차와 동일
                                                             </button>}
                                                             <button type="button" className="lo-icon-btn is-danger" title="이 숙박일 삭제" aria-label={`${d.day}일차 숙박 삭제`} onClick={() => { if (window.confirm(`${d.day}일차 숙박을 삭제할까요?`)) removeDay(r.id, idx); }}>
-                                                                <DashboardIcon name="lc-trash" size={14} />
+                                                                <DashboardIcon name="lc-trash" size={15} />
                                                             </button>
                                                         </header>
                                                         {(sum.plan.rowWarnings[idx] || []).map((warning, index) => <div key={index} role="alert" className="lo-night-warn">{warning}</div>)}
@@ -805,16 +865,16 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                 : rows.length === 0 && <p className="lo-empty-row">숙박일이 없어요. '숙박일 추가'로 추가해 주세요.</p>}
                                         </div>
                                         <div className="lo-actions">
-                                            <button type="button" className="lo-btn is-dashed" onClick={() => addDay(r.id)}>＋ 숙박일 추가</button>
-                                            {sum.plan.missingNights.length > 0 && <button type="button" className="lo-btn is-dashed" disabled={sum.plan.addableNights.length === 0} onClick={() => addMissingNights(r)}>＋ 누락 숙박일 추가</button>}
+                                            <button type="button" className="lo-btn is-dashed" onClick={() => addDay(r.id)}><DashboardIcon name="lc-plus" size={15} />숙박일 추가</button>
+                                            {sum.plan.missingNights.length > 0 && <button type="button" className="lo-btn is-dashed" disabled={sum.plan.addableNights.length === 0} onClick={() => addMissingNights(r)}><DashboardIcon name="lc-plus" size={15} />누락 숙박일 추가</button>}
                                         </div>
                                     </section>
 
                                     {/* 담당 가이드 · 투어 차량 */}
                                     <div className="lo-crew">
                                         <section className="lo-card">
-                                            <header className="lo-card-head"><DashboardIcon name="lc-user" size={16} /><h3>담당 가이드</h3>
-                                                <span className={`lo-pill${hasGuide ? ' is-done' : ' is-warn'}`}>{hasGuide ? '배정됨' : '미배정'}</span></header>
+                                            <header className="lo-card-head"><DashboardIcon name="lc-user-round" size={16} /><h3>담당 가이드</h3>
+                                                <span className="lo-pill" data-tone={hasGuide ? 'ok' : 'alert'}>{hasGuide ? '배정됨' : '미배정'}</span></header>
                                             <select className="lo-input" aria-label="등록 가이드 선택" disabled={resourcesLoading} value={resources.guides.some(guide => guide.id === r.assignedGuide?.id) ? r.assignedGuide?.id || '' : ''} onChange={e => chooseGuide(r.id, e.target.value)}>
                                                 <option value="">{resourcesLoading ? '등록 가이드 불러오는 중…' : '등록 가이드 선택 · 직접 입력 가능'}</option>
                                                 {resources.guides.map(guide => <option key={guide.id} value={guide.id}>{guide.name}</option>)}
@@ -826,7 +886,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                         </section>
                                         <section className="lo-card">
                                             <header className="lo-card-head"><DashboardIcon name="lc-car" size={16} /><h3>투어 차량</h3>
-                                                <span className={`lo-pill${hasVehicle ? ' is-done' : ' is-warn'}`}>{hasVehicle ? '배정됨' : '미배정'}</span></header>
+                                                <span className="lo-pill" data-tone={hasVehicle ? 'ok' : 'alert'}>{hasVehicle ? '배정됨' : '미배정'}</span></header>
                                             <select className="lo-input" aria-label="등록 차량 선택" disabled={resourcesLoading} value={r.contractData?.vehicle?.resource && resources.vehicles.some(vehicle => vehicle.type === r.contractData?.vehicle?.type) ? r.contractData.vehicle.type : ''} onChange={e => chooseVehicle(r.id, e.target.value)}>
                                                 <option value="">{resourcesLoading ? '등록 차량 불러오는 중…' : '등록 차량 선택 · 직접 입력 가능'}</option>
                                                 {resources.vehicles.map(vehicle => <option key={vehicle.type} value={vehicle.type}>{vehicle.name}</option>)}
@@ -840,9 +900,10 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                     </fieldset>
 
                                     <div className="lo-savebar">
-                                        <span>{isDirty ? '변경 내용이 있어요 · 저장하면 예약 상세와 투어 캘린더에 반영돼요.' : '저장된 배정 기준이에요.'}</span>
-                                        <button type="button" className="lo-btn is-ink" disabled={!isDirty || !!savingId || !!pendingDrafts[r.id]} onClick={() => save(r)}>
-                                            <DashboardIcon name="lc-check" size={14} />{savingId === r.id ? '저장하는 중…' : '배정 저장'}
+                                        <span className={`lo-savebar-text${isDirty ? ' is-dirty' : ''}`}>{isDirty ? '저장하지 않은 변경 사항이 있어요.' : savedAt[r.id] ? `${savedAt[r.id]} 저장됨 · 저장된 배정 기준이에요.` : '저장된 배정 기준이에요.'}</span>
+                                        {isDirty && <button type="button" className="lo-btn lo-reset-row" disabled={!!savingId} onClick={() => resetRow(r)}>변경 취소</button>}
+                                        <button type="button" className="lo-save" disabled={!isDirty || !!savingId || !!pendingDrafts[r.id]} onClick={() => save(r)}>
+                                            <DashboardIcon name="lc-check" size={15} />{savingId === r.id ? '저장하는 중…' : '배정 저장'}
                                         </button>
                                     </div>
                                 </div>

@@ -323,7 +323,7 @@ test('지역은 일정 목적지로 미리 선택되고 비우면 비운 채 유
     assert.deepEqual(regions().map(select => select.props.value), ['고비사막', '톱아이막']);
     const planDays = nodes(h.tree).filter(node => node.type === 'details' && node.props.className === 'lo-plan-day');
     assert.equal(planDays.length, 3, '일차마다 접이식 행을 하나씩 만든다');
-    assert.equal(planDays.some(day => day.props.open), false, '처음에는 모두 접혀 있다');
+    assert.deepEqual(planDays.map(day => !!day.props.open), [true, false, false], '처음에는 첫 일차만 펼쳐 둔다');
     const planRegions = planDays.map(day => text(nodes(day).find(node => String(node.props?.className).includes('lo-plan-region'))));
     assert.deepEqual(planRegions.slice(0, 2), ['고비사막', '톱아이막'], '전체 일정에도 같은 지역을 보여 준다');
     assert.deepEqual(nodes(planDays[0]).filter(node => node.type === 'li').map(text), ['공항 픽업 · 초원 산책']);
@@ -365,6 +365,32 @@ test('저장된 숙소 배열이 비어 있어도 고객 일정대로 숙박 행
     await h.button('배정 저장').props.onClick(); await h.settle();
     const saved = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
     assert.deepEqual(saved.map(stay => [stay.day, stay.date, stay.accommodation.location || '']), [[1, '2026-11-01', ''], [2, '2026-11-02', '중앙몽골']]);
+    h.unmount();
+});
+
+test('변경 취소는 편집과 브라우저 초안을 버리고 서버 배정으로 되돌리며 저장 요청을 보내지 않는다', async () => {
+    const row = twoNightFixture();
+    const h = mount({ items: [row] }); await h.settle(); await h.open('quote_booking');
+    assert.equal(nodes(h.tree).some(node => node.type === 'button' && text(node).includes('변경 취소')), false, '변경 전에는 취소 버튼이 없다');
+    const guideName = () => nodes(h.tree).find(node => node.type === 'input' && node.props['aria-label'] === '가이드 이름 직접 입력');
+    guideName().props.onChange({ target: { value: '임시 가이드' } }); h.render();
+    h.button('누락 숙박일 추가').props.onClick(); h.render();
+    h.flushDraft(); assert.equal(h.storage.size, 1, '편집 내용은 초안으로 보관');
+    assert.equal(h.button('배정 저장').props.disabled, false);
+
+    h.button('변경 취소').props.onClick(); h.render();
+    assert.equal(guideName().props.value, '이전 가이드');
+    assert.equal(nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').length, 1);
+    assert.equal(h.button('배정 저장').props.disabled, true);
+    assert.equal(h.storage.size, 0, '초안도 함께 지운다');
+    h.flushDraft(); assert.equal(h.storage.size, 0);
+    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
+
+    guideName().props.onChange({ target: { value: '저장한 가이드' } }); h.render();
+    await h.button('배정 저장').props.onClick(); await h.settle();
+    guideName().props.onChange({ target: { value: '또 바꾼 가이드' } }); h.render();
+    h.button('변경 취소').props.onClick(); h.render();
+    assert.equal(guideName().props.value, '저장한 가이드', '저장 뒤에는 저장한 값으로 되돌린다');
     h.unmount();
 });
 
