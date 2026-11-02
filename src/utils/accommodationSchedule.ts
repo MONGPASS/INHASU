@@ -158,10 +158,14 @@ export function getAccommodationPlan(booking: ScheduleBooking) {
         const row = validForNight(night);
         return text(row?.accommodation?.name) && row?.accommodation?.bookingStatus === 'Баталгаажсан';
     }).length;
+    const nightStates = nights.map(night => {
+        const row = validForNight(night);
+        return !text(row?.accommodation?.name) ? 'empty' as const : row?.accommodation?.bookingStatus === 'Баталгаажсан' ? 'confirmed' as const : 'assigned' as const;
+    });
     const canAlignDates = dateAlignments(rows, nights).size > 0;
     const complete = needed !== null && confirmed === needed && rows.length === needed && rowWarnings.every(messages => !messages.length)
         && nights.every(night => night.usable) && booking.schedule?.source !== 'unavailable';
-    return { nights, rows, needed, missingNights, addableNights, warnings: unique(warnings), rowWarnings, assigned, confirmed, complete, canAlignDates };
+    return { nights, rows, needed, missingNights, addableNights, warnings: unique(warnings), rowWarnings, assigned, confirmed, nightStates, complete, canAlignDates };
 }
 
 /** Explicitly append only safe missing nights; never replace or reorder existing supplier bookings. */
