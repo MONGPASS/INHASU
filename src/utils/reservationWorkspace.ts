@@ -6,12 +6,25 @@ export interface ReservationOperations {
     category: string;
     vehicle: string;
     driverPhone: string;
-    receipt: { status: 'not_requested' | 'pending' | 'issued'; number: string; issuedDate: string };
+    /** 예약 관리 v7의 구분(풀패키지·일정+차량…)과 항공(포함·불포함·개별). 빈 값은 미정. */
+    serviceType?: string;
+    airfare?: string;
+    receipt: { status: ReceiptStatus; number: string; issuedDate: string };
     opsNote: string;
 }
+export type ReceiptStatus = 'not_requested' | 'pending' | 'issued' | 'info_missing' | 'tax_invoice_pending' | 'tax_invoice_issued';
+
+/** 예약 관리 v7의 운영 선택지. 저장 값은 functions/api/reservations.ts가 같은 목록으로 검증한다. */
+export const SERVICE_TYPE_OPTIONS = ['풀패키지', '일정+차량', '차량만', '가이드만', '숙소만', '기타'];
+export const AIRFARE_OPTIONS = ['포함', '불포함', '개별'];
+export const CATEGORY_OPTIONS = ['개인', '가족여행', '학회/협회', '학교행사', '정부행사', '여행사', '산악회', '우정여행', '승마투어', '골프투어'];
+export const JOINING_LABELS: Record<ReservationOperations['joining'], string> = { join: '체크(Yes)', private: '체크(No)', undecided: '미정' };
+export const RECEIPT_LABELS: Record<ReceiptStatus, string> = {
+    pending: '예정', issued: '완료', not_requested: '해당x', info_missing: '정보작성x', tax_invoice_pending: '전자세금계산서발행', tax_invoice_issued: '전자세금계산서완료',
+};
 
 export const emptyReservationOperations = (): ReservationOperations => ({
-    joining: 'undecided', region: '', category: '', vehicle: '', driverPhone: '',
+    joining: 'undecided', region: '', category: '', vehicle: '', driverPhone: '', serviceType: '', airfare: '',
     receipt: { status: 'not_requested', number: '', issuedDate: '' }, opsNote: '',
 });
 

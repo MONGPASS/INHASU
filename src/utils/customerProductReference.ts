@@ -9,7 +9,8 @@ export type CustomerProductReference = {
     match: 'id' | 'name' | 'stored';
 };
 
-const savedPackageType = (product: ProductReferenceSource | undefined) => product?.packageType === 'full' || product?.packageType === 'value' ? { packageType: product.packageType } : {};
+const savedPackageType = (product: ProductReferenceSource | undefined): { packageType?: 'full' | 'value' } =>
+    product?.packageType === 'full' || product?.packageType === 'value' ? { packageType: product.packageType } : {};
 
 function savedName(value: unknown): string {
     return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';

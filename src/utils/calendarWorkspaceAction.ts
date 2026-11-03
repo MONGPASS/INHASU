@@ -1,16 +1,20 @@
 import { customerWorkspaceReturnTo } from './customerWorkspaceRoutes';
 
-export type CalendarWorkspaceAction = 'guide' | 'vehicle' | 'stay' | 'payments';
-const actions = new Set<CalendarWorkspaceAction>(['guide', 'vehicle', 'stay', 'payments']);
+export type CalendarWorkspaceAction = 'guide' | 'vehicle' | 'stay' | 'payments' | 'edit-itinerary' | 'contract' | 'documents' | 'notes' | 'history';
+const calendarActions = new Set<CalendarWorkspaceAction>(['guide', 'vehicle', 'stay', 'payments']);
+/** 예약 관리 v7 목록은 일정표 편집·계약서·문서·메모·이력 바로가기도 넘긴다. */
+const listActions = new Set<CalendarWorkspaceAction>([...calendarActions, 'edit-itinerary', 'contract', 'documents', 'notes', 'history']);
 
-/** Calendar shortcuts only open an existing work panel; they never save or send. */
+/** Calendar and reservation-list shortcuts only open an existing work panel; they never save or send. */
 export function readCalendarWorkspaceAction(search: string): CalendarWorkspaceAction | null {
     const params = new URLSearchParams(search);
     if (params.getAll('action').length !== 1 || params.getAll('returnTo').length !== 1) return null;
     const action = params.get('action') as CalendarWorkspaceAction;
     const returnTo = customerWorkspaceReturnTo(params.get('returnTo'), '');
-    if (!actions.has(action) || !returnTo) return null;
-    return new URL(returnTo, 'https://workspace.invalid').pathname === '/admin/calendar' ? action : null;
+    if (!returnTo) return null;
+    const path = new URL(returnTo, 'https://workspace.invalid').pathname;
+    return path === '/admin/calendar' && calendarActions.has(action) ? action
+        : path === '/admin/reservations' && listActions.has(action) ? action : null;
 }
 
 /** Preserve the calendar return address and any unrelated workspace parameters. */

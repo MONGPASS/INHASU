@@ -55,8 +55,10 @@ interface ReservationAdminOperations {
     category: string;
     vehicle: string;
     driverPhone: string;
+    serviceType?: string;
+    airfare?: string;
     receipt: {
-        status: 'not_requested' | 'pending' | 'issued';
+        status: typeof RECEIPT_STATUSES[number];
         number: string;
         issuedDate: string;
     };
@@ -71,6 +73,10 @@ const emptyAdminOperations = (): ReservationAdminOperations => ({
     joining: 'undecided', region: '', category: '', vehicle: '', driverPhone: '',
     receipt: { status: 'not_requested', number: '', issuedDate: '' }, opsNote: '',
 });
+// 예약 관리 v7의 구분·항공·현금영수증 선택지. 빈 값·없는 칸은 '미정'이다.
+const SERVICE_TYPES = ['', '풀패키지', '일정+차량', '차량만', '가이드만', '숙소만', '기타'];
+const AIRFARE_OPTIONS = ['', '포함', '불포함', '개별'];
+const RECEIPT_STATUSES = ['not_requested', 'pending', 'issued', 'info_missing', 'tax_invoice_pending', 'tax_invoice_issued'] as const;
 
 const record = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
@@ -82,12 +88,17 @@ const validateAdminOperations = (input: unknown): OperationsUpdate | null => {
         try { value = JSON.parse(value); } catch { return null; }
     }
     if (!record(value)) return null;
-    const fields = new Set(['joining', 'region', 'category', 'vehicle', 'driverPhone', 'receipt', 'opsNote']);
+    const fields = new Set(['joining', 'region', 'category', 'vehicle', 'driverPhone', 'serviceType', 'airfare', 'receipt', 'opsNote']);
     if (Object.keys(value).some((key) => !fields.has(key))) return null;
     const update: OperationsUpdate = {};
     if ('joining' in value) {
         if (typeof value.joining !== 'string' || !['private', 'join', 'undecided'].includes(value.joining)) return null;
         update.joining = value.joining as ReservationAdminOperations['joining'];
+    }
+    for (const [key, options] of [['serviceType', SERVICE_TYPES], ['airfare', AIRFARE_OPTIONS]] as const) {
+        if (!(key in value)) continue;
+        if (typeof value[key] !== 'string' || !options.includes(value[key] as string)) return null;
+        update[key] = value[key] as string;
     }
     for (const key of ['region', 'category', 'vehicle', 'driverPhone', 'opsNote'] as const) {
         if (!(key in value)) continue;
@@ -101,7 +112,7 @@ const validateAdminOperations = (input: unknown): OperationsUpdate | null => {
         const receipt = value.receipt;
         update.receipt = {};
         if ('status' in receipt) {
-            if (typeof receipt.status !== 'string' || !['not_requested', 'pending', 'issued'].includes(receipt.status)) return null;
+            if (typeof receipt.status !== 'string' || !(RECEIPT_STATUSES as readonly string[]).includes(receipt.status)) return null;
             update.receipt.status = receipt.status as ReservationAdminOperations['receipt']['status'];
         }
         for (const key of ['number', 'issuedDate'] as const) {

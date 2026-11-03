@@ -9,6 +9,8 @@ import { createPortal } from 'react-dom';
 import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
+import { api } from '../lib/api';
+import type { V7Source } from '../utils/reservationV7';
 import { customerWorkspaceBackLabel, customerWorkspaceReturnTo, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 import { consumedCalendarWorkspaceSearch, readCalendarWorkspaceAction } from '../utils/calendarWorkspaceAction';
 import { loadQuoteCustomerRequest, quoteCustomerIsBooking, quoteCustomerWorkspaceModel } from '../utils/quoteCustomerWorkspace';
@@ -67,6 +69,19 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const [customerChecked, setCustomerChecked] = useState<{ accountId: string; id: string; at: string } | null>(null);
     const [customerRefresh, setCustomerRefresh] = useState(0);
     const [customerDelivery, setCustomerDelivery] = useState<{ accountId: string; data: AdminDeliveryData } | null>(null);
+    // 예약 관리 v7 상세의 진행 단계·박별 숙소는 통합 예약 목록과 같은 견적 예약 요약으로 계산한다.
+    const [bookingSummary, setBookingSummary] = useState<{ accountId: string; id: string; item: V7Source | null } | null>(null);
+    const v7Source = bookingSummary?.accountId === accountId && bookingSummary.id === bookingId ? bookingSummary.item : null;
+    useEffect(() => {
+        if (!customerPage || !accountId || !bookingId || !customerRecord || !quoteCustomerIsBooking(customerRecord)) return;
+        let cancelled = false;
+        api.adminBookings.quote().then(result => {
+            if (cancelled) return;
+            const found = result.items.find(entry => entry.id === bookingId);
+            setBookingSummary({ accountId, id: bookingId, item: found ? { ...(found as unknown as V7Source), type: 'quote_booking' } : null });
+        }).catch(() => { if (!cancelled) setBookingSummary({ accountId, id: bookingId, item: null }); });
+        return () => { cancelled = true; };
+    }, [customerPage, accountId, bookingId, customerRecord]);
     const recordedDelivery = customerDelivery?.accountId === accountId && customerDelivery.data.bookingId === bookingId && customerDelivery.data.source === 'quote_booking' ? customerDelivery.data : undefined;
     const [customerEditor, setCustomerEditor] = useState<{ id: string; tool: string } | null>(null);
     const [editorExpanded, setEditorExpanded] = useState(false);
@@ -489,6 +504,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 12, background: '#fff5e8' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
                         {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
                             <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao}
+                                links={{ source: v7Source, userId: accountId, onAssignmentSaved: () => setCustomerRefresh(value => value + 1) }}
                                 notificationActions={<CustomerKakaoActions key={`${accountId}:${bookingId}`} source="quote_booking" bookingId={bookingId!}
                                     revision={JSON.stringify([customerCheckedAt, customerRecord, recordedDelivery?.items.map(item => [item.id, item.kind, item.channel, item.state, item.at, item.error])])} disabled={editorBusy || customerRefreshing || sendingKakao || editorDirty}
                                     disabledReason={editorDirty ? '편집 중인 내용을 먼저 저장한 뒤 고객에게 발송해 주세요.' : undefined}
