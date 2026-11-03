@@ -1,12 +1,15 @@
 type ReservationProductSource = { productId?: unknown; productName?: unknown };
-type ProductReferenceSource = { id?: unknown; name?: unknown; thumbnail?: unknown; mainImages?: unknown; main_images?: unknown };
+type ProductReferenceSource = { id?: unknown; name?: unknown; thumbnail?: unknown; mainImages?: unknown; main_images?: unknown; packageType?: unknown };
 
 export type CustomerProductReference = {
     name: string;
     href?: string;
     image?: string;
+    packageType?: 'full' | 'value';
     match: 'id' | 'name' | 'stored';
 };
+
+const savedPackageType = (product: ProductReferenceSource | undefined) => product?.packageType === 'full' || product?.packageType === 'value' ? { packageType: product.packageType } : {};
 
 function savedName(value: unknown): string {
     return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
@@ -60,6 +63,7 @@ export function customerProductReference(
             name: name || savedName(product?.name) || '예약 상품',
             href: `/products/${encodeURIComponent(id)}`,
             ...(image ? { image } : {}),
+            ...savedPackageType(product),
             match: product ? 'id' : 'stored',
         };
     }
@@ -73,5 +77,5 @@ export function customerProductReference(
     const matchedId = savedId(product.id);
     if (matchedId === undefined) return { name, match: 'stored' };
     const image = productImage(product);
-    return { name, href: `/products/${encodeURIComponent(matchedId)}`, ...(image ? { image } : {}), match: 'name' };
+    return { name, href: `/products/${encodeURIComponent(matchedId)}`, ...(image ? { image } : {}), ...savedPackageType(product), match: 'name' };
 }

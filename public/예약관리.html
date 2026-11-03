@@ -264,15 +264,15 @@
   <span class="who" id="hMeta"></span>
   <span class="hd-acts">
     <a class="hbtn" href="예약목록.html">← 예약 목록</a>
-    <span class="hd-group"><span class="hd-label">고객 화면·공유</span>
+    <span class="hd-group"><span class="hd-label">고객 공유</span>
       <button class="hbtn" type="button" id="itineraryNoticeBtn">확정일정표 알림</button>
-      <a class="hbtn" id="confirmLink" href="#" target="_blank">🎫 확정일정표</a>
-      <a class="hbtn" id="contractLink" href="#">📜 여행계약서</a>
-      <button class="hbtn" id="copyLinkBtn">🔗 링크 복사</button>
+      <a class="hbtn" id="confirmLink" href="#" target="_blank">확정일정표 보기</a>
+      <a class="hbtn" id="contractLink" href="#">여행계약서</a>
+      <button class="hbtn" id="copyLinkBtn">링크 복사</button>
     </span>
     <span class="hd-group"><span class="hd-label">가이드 전달</span>
-      <button class="hbtn blue" id="guideSheetBtn">📋 가이드 시트 PDF</button>
-      <button class="hbtn blue" id="guidePdfBtn">🖨 가이드용 PDF</button>
+      <button class="hbtn blue" id="guideSheetBtn">가이드 시트 PDF</button>
+      <button class="hbtn blue" id="guidePdfBtn">가이드용 PDF</button>
     </span>
   </span>
 </header>
@@ -287,13 +287,13 @@
   <input type="checkbox" id="setStatus" hidden>
   <input type="checkbox" id="publishSchedule" hidden>
   <span class="save-actions">
-    <button class="barbtn" id="depositRequestBtn">💳 예약금 안내</button>
-    <button class="barbtn" id="contractRequestBtn">✍ 계약서 요청</button>
-    <button class="barbtn" id="confirmBookingBtn">✓ 예약 확정</button>
-    <button class="barbtn" id="publishBtn">🎫 일정표 공개</button>
-    <button class="barbtn" id="travelNoticeBtn">📘 주의사항 발송</button>
-    <button id="saveBtn">💾 임시 저장</button>
-    <details class="bar-more"><summary title="기타 작업">⋯</summary><div class="bar-more-menu"><button class="barbtn danger" id="undoBtn">↩ 되돌리기</button></div></details>
+    <button class="barbtn" id="depositRequestBtn">예약금 안내</button>
+    <button class="barbtn" id="contractRequestBtn">계약서 요청</button>
+    <button class="barbtn" id="confirmBookingBtn">예약 확정</button>
+    <button class="barbtn" id="publishBtn">일정표 공개</button>
+    <button class="barbtn" id="travelNoticeBtn">주의사항 발송</button>
+    <button id="saveBtn">임시 저장</button>
+    <details class="bar-more"><summary title="기타 작업">⋯</summary><div class="bar-more-menu"><button class="barbtn danger" id="undoBtn">되돌리기</button></div></details>
   </span>
 </div>
 <div id="toast"></div>
@@ -671,9 +671,9 @@ function dayCard(d, i) {
 function lodgeRow(l, i) {
   return `
   <div class="lodge-row" data-li="${i}">
-    <div class="subtt"><span>🏕 ${esc(l.day || i + 1)}일차 숙소</span>
+    <div class="subtt"><span>${esc(l.day || i + 1)}일차 숙소</span>
       <span style="display:flex; align-items:center; gap:8px;">
-        <select class="pick lodge-pick"><option value="">📥 리소스에서 선택…</option></select>
+        <select class="pick lodge-pick"><option value="">리소스에서 선택…</option></select>
         <button class="del-lodge" data-del-lodge="${i}" title="숙소 배정 삭제">×</button>
       </span>
     </div>
@@ -725,13 +725,13 @@ function render() {
     <div class="sec-h">
       <h2><span class="n">일정</span>확정 일정표</h2>
       <span style="display:flex; gap:8px;">
-        ${PRE.quote ? `<button class="hbtn" id="pullQuote">↺ 견적 일정 불러오기</button>` : ""}
-        <button class="hbtn" id="addDay">＋ 일차 추가</button>
+        ${PRE.quote ? `<button class="hbtn" id="pullQuote">견적 일정 불러오기</button>` : ""}
+        <button class="hbtn" id="addDay">+ 일차 추가</button>
       </span>
     </div>
     ${BK.days.length ? `<div id="dayWrap">${window.QuoteDayEditor ? "" : BK.days.map(dayCard).join("")}</div>`
       : `<div style="text-align:center; padding:28px; color:var(--sub); font-size:13.5px;">
-           아직 확정 일정이 없어요. <b>↺ 견적 일정 불러오기</b>를 누르면 발행한 견적서의 일정을 그대로 가져와 수정할 수 있어요.</div><div id="dayWrap"></div>`}
+           아직 확정 일정이 없어요. <b>견적 일정 불러오기</b>를 누르면 발행한 견적서의 일정을 그대로 가져와 수정할 수 있어요.</div><div id="dayWrap"></div>`}
   </section>
 
   <section class="card">
@@ -745,7 +745,7 @@ function render() {
       <span class="tip">이름·소개는 고객 확정안내에 보여요 · 연락처/차량번호는 내부용</span></div>
 
     <div class="assign-box">
-      <div class="subtt"><span>👤 가이드</span><select class="pick" id="g_pick"><option value="">📥 리소스에서 선택…</option></select></div>
+      <div class="subtt"><span>가이드</span><select class="pick" id="g_pick"><option value="">리소스에서 선택…</option></select></div>
       ${previewHtml("guide", a.guide)}
       <details class="edit-panel">
         <summary>세부정보 수정</summary>
@@ -769,7 +769,7 @@ function render() {
     </div>
 
     <div class="assign-box">
-      <div class="subtt"><span>🚐 차량</span><select class="pick" id="v_pick"><option value="">📥 리소스에서 선택…</option></select></div>
+      <div class="subtt"><span>차량</span><select class="pick" id="v_pick"><option value="">리소스에서 선택…</option></select></div>
       ${previewHtml("vehicle", a.vehicle)}
       <details class="edit-panel">
         <summary>세부정보 수정</summary>
@@ -786,11 +786,11 @@ function render() {
     </div>
 
     <div class="assign-box">
-      <div class="subtt">🏕 일차별 숙소</div>
+      <div class="subtt">일차별 숙소</div>
       ${BK.days.length ? `<div style="font-size:12px;color:var(--sub);font-weight:700;margin-bottom:10px;">숙박 ${assignStats().lodgeNeeded}일 기준으로 숙소 누락 여부를 확인합니다. (귀국일 제외)</div>` : ""}
       <div id="lodgeWrap">${a.lodges.map(lodgeRow).join("")}</div>
-      <button class="addbtn" id="addLodge">＋ 숙소 배정 추가</button>
-      ${BK.days.length ? `<button class="addbtn" id="lodgeFromDays" style="margin-top:8px;">↺ 확정 일정표의 숙소를 그대로 가져오기</button>` : ""}
+      <button class="addbtn" id="addLodge">+ 숙소 배정 추가</button>
+      ${BK.days.length ? `<button class="addbtn" id="lodgeFromDays" style="margin-top:8px;">확정 일정표의 숙소를 그대로 가져오기</button>` : ""}
     </div>
   </section>
 
@@ -799,8 +799,8 @@ function render() {
       <span class="tip">저장하면 내부 초안으로 보관됩니다 · 고객 발송은 하단 단계 버튼을 누를 때만 진행됩니다</span></div>
     <div class="assign-box">
       <div class="subtt" style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">
-        <span>👥 여행자 정보</span>
-        <button class="hbtn" id="requestTravelers" type="button">📨 고객에게 입력 요청</button>
+        <span>여행자 정보</span>
+        <button class="hbtn" id="requestTravelers" type="button">고객에게 입력 요청</button>
       </div>
       <div style="padding:12px 14px;margin-bottom:12px;border-radius:11px;background:${travelerDone ? "#e8f8f3" : "#f5f7f7"};font-size:12.5px;line-height:1.6;color:${travelerDone ? "#08745f" : "var(--sub)"};">
         ${travelerDone
@@ -810,11 +810,11 @@ function render() {
             : `<b>고객이 직접 입력하는 정보입니다.</b> 요청 버튼을 누르면 고객 페이지에 입력 안내가 표시됩니다. 관리자는 예외 상황에서만 아래 항목을 수정해 주세요.`}
       </div>
       <div id="travelerWrap">${(BK.travelers || []).map(travelerRow).join("")}</div>
-      <button class="addbtn" id="addTraveler">＋ 관리자 직접 입력 (예외 처리)</button>
+      <button class="addbtn" id="addTraveler">+ 관리자 직접 입력 (예외 처리)</button>
       <label class="f" style="margin-top:12px;"><span>특이사항 (고객 입력 — 고혈압·거동 불편·채식 등)</span><textarea id="bk_travelerNote" rows="3" placeholder="고객이 여행자 정보 입력 화면에서 적은 내용이 표시됩니다">${esc(BK.travelerNote || "")}</textarea></label>
     </div>
     <div class="assign-box">
-      <div class="subtt">✈️ 항공 정보 <span style="font-size:11px;font-weight:700;color:var(--sub);">— 시간은 24시간 기준 (고객이 여행자 정보 입력 때 함께 작성)</span></div>
+      <div class="subtt">항공 정보 <span style="font-size:11px;font-weight:700;color:var(--sub);">— 시간은 24시간 기준 (고객이 여행자 정보 입력 때 함께 작성)</span></div>
       <div class="grid4">
         <label class="f"><span>몽골 도착일</span><input id="fl_inDate" value="${esc(fl.inDate || PRE.depart || "")}" placeholder="2026-08-25"></label>
         <label class="f"><span>도착편 출발시간</span><input id="fl_inDepTime" value="${esc(fl.inDepTime || "")}" placeholder="20:30"></label>
@@ -830,7 +830,7 @@ function render() {
       <label class="f" style="margin-top:10px;"><span>픽업·샌딩 숙소명 (울란바타르 출발·도착 팀 — 고객 입력)</span><input id="bk_pickupLodge" value="${esc(BK.pickupLodge || "")}" placeholder="예: 샹그릴라 울란바타르 호텔"></label>
     </div>
     <div class="assign-box" id="paymentSection">
-      <div class="subtt">💳 계약·정산 정보</div>
+      <div class="subtt">계약·정산 정보</div>
       <div class="grid3">
         <label class="f"><span>여행상품명</span><input id="ci_productName" list="productNameList" value="${esc(ci.productName || PRE.destination || "")}" placeholder="선택 또는 직접 입력"></label>
         <label class="f"><span>여행지역</span><input id="ci_region" list="regionList" value="${esc(ci.region || PRE.destination || "")}" placeholder="선택 또는 직접 입력"></label>
@@ -870,13 +870,13 @@ function render() {
       if (ct && ct.signedAt) {
         const dt = String(ct.signedAt).replace("T", " ").slice(0, 16);
         return `<div class="assign-box" style="margin-top:12px; background:#F1FBF7; border-color:#BFE6D9;">
-          <div class="subtt" style="color:#0A6A5E;">📜 여행계약서 — <b>✓ ${esc(dt)} 서명 완료</b> (${esc(ct.signerName || PRE.name)})</div>
+          <div class="subtt" style="color:#0A6A5E;">여행계약서 — <b>${esc(dt)} 서명 완료</b> (${esc(ct.signerName || PRE.name)})</div>
           ${ct.signImg ? `<div style="margin:10px 0 12px;padding:12px;border:1px solid #BFE6D9;border-radius:12px;background:#fff;text-align:center;">
             <div style="font-size:11px;font-weight:800;color:#0A6A5E;margin-bottom:8px;">고객 서명 원본</div>
             <img src="${esc(ct.signImg)}" alt="${esc(ct.signerName || PRE.name)} 고객 서명" style="display:block;max-width:100%;height:90px;object-fit:contain;margin:auto;">
           </div>` : `<div style="font-size:12px;color:#9A5B24;margin:8px 0 12px;">서명 기록은 있으나 원본 이미지가 없습니다. 계약서 화면에서 관리자 인증 상태를 확인해 주세요.</div>`}
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <a class="hbtn" href="계약서.html?t=${encodeURIComponent(PRE.token || "")}&adminId=${encodeURIComponent(PRE.id)}&return=manage">📜 서명 원본 확인</a>
+            <a class="hbtn" href="계약서.html?t=${encodeURIComponent(PRE.token || "")}&adminId=${encodeURIComponent(PRE.id)}&return=manage">서명 원본 확인</a>
             <button class="hbtn" id="resetSignBtn" style="color:#c66;">서명 초기화</button>
           </div>
         </div>`;
@@ -884,9 +884,9 @@ function render() {
       const paid = ci.depositStatus === "입금완료";
       const requested = BK.contractRequest && BK.contractRequest.status === "requested";
       return `<div class="assign-box" style="margin-top:12px;background:${paid?"#f5f9ff":"#fff8eb"};">
-        <div class="subtt">📜 여행계약서 — ${paid ? (requested ? "고객 서명 대기" : "서명 요청 전") : "예약금 확인 전"}</div>
+        <div class="subtt">여행계약서 — ${paid ? (requested ? "고객 서명 대기" : "서명 요청 전") : "예약금 확인 전"}</div>
         <div style="font-size:12px; color:var(--sub); margin-bottom:10px;">${paid ? (requested ? "고객에게 계약서 서명 요청을 보냈습니다." : "예약금 확인이 완료됐습니다. 하단의 계약서 요청 버튼을 눌러 주세요.") : "예약금 입금 확인 전에는 고객에게 서명을 요구하지 않습니다."}</div>
-        ${paid ? `<a class="hbtn" href="계약서.html?t=${encodeURIComponent(PRE.token || "")}&adminId=${encodeURIComponent(PRE.id)}&return=manage">📜 계약서 미리보기</a>` : ""}
+        ${paid ? `<a class="hbtn" href="계약서.html?t=${encodeURIComponent(PRE.token || "")}&adminId=${encodeURIComponent(PRE.id)}&return=manage">계약서 미리보기</a>` : ""}
       </div>`;
     })()}
     <div class="grid2" style="margin-top:14px;">
@@ -1124,7 +1124,7 @@ function bindEvents() {
       localStorage.setItem("leaders_booking_prefill", JSON.stringify(PRE));
       render(); toast("✓ 고객에게 여행자 정보 입력 요청을 보냈어요");
     } catch (e) {
-      rtb.disabled = false; rtb.textContent = "📨 고객에게 입력 요청";
+      rtb.disabled = false; rtb.textContent = "고객에게 입력 요청";
       toast("⚠ " + e.message);
     }
   };
@@ -1184,13 +1184,13 @@ function updateActionBar() {
   const depositSent = BK.depositRequest && BK.depositRequest.status === "requested";
   const contractSent = BK.contractRequest && BK.contractRequest.status === "requested";
   const wf = workflowUi();
-  $("depositRequestBtn").textContent = paid ? "✓ 예약금 확인" : (depositSent ? "💳 예약금 안내 재전송" : "💳 예약금 안내 보내기");
+  $("depositRequestBtn").textContent = paid ? "예약금 확인 완료" : (depositSent ? "예약금 안내 재전송" : "예약금 안내 보내기");
   $("depositRequestBtn").disabled = paid;
-  $("contractRequestBtn").textContent = signed ? "✓ 계약 서명완료" : (contractSent ? "✍ 계약서 요청 재전송" : "✍ 계약서 요청 보내기");
+  $("contractRequestBtn").textContent = signed ? "계약 서명완료" : (contractSent ? "계약서 요청 재전송" : "계약서 요청 보내기");
   $("contractRequestBtn").disabled = !paid || signed;
-  $("confirmBookingBtn").textContent = confirmed ? "✓ 예약 확정됨" : "✓ 예약 확정하기";
+  $("confirmBookingBtn").textContent = confirmed ? "예약 확정됨" : "예약 확정하기";
   $("confirmBookingBtn").disabled = confirmed || !paid || !signed;
-  $("publishBtn").textContent = published ? "✓ 일정표 공개됨" : "🎫 일정표 공개하기";
+  $("publishBtn").textContent = published ? "일정표 공개됨" : "일정표 공개하기";
   $("publishBtn").disabled = published || !confirmed;
   const stageButtons = {
     deposit: $("depositRequestBtn"), contract: $("contractRequestBtn"),
@@ -1206,7 +1206,7 @@ function updateActionBar() {
   const tnBtn = $("travelNoticeBtn");
   const tnSentAt = tn.travelNoticeSentAt || "";
   const tnCount = Number(tn.travelNoticeSentCount) || 0;
-  tnBtn.textContent = tnSentAt ? "📘 주의사항 재발송" : "📘 주의사항 발송";
+  tnBtn.textContent = tnSentAt ? "주의사항 재발송" : "주의사항 발송";
   tnBtn.disabled = false;
   tnBtn.title = tnSentAt ? `마지막 발송 ${tnSentAt.slice(0, 10)} · 총 ${tnCount}회 — 다시 보낼 수 있습니다`
     : "여행 주의사항 PDF를 고객에게 지금 보냅니다";
@@ -1214,7 +1214,7 @@ function updateActionBar() {
   $("bottomTask").textContent = wf.task.title;
   const hasStageAction = ["deposit", "contract", "confirm", "publish"].includes(wf.task.action);
   $("saveBtn").classList.toggle("secondary", hasStageAction);
-  $("saveBtn").textContent = wf.task.action === "payment" ? "💾 입금 상태 저장" : wf.task.action === "assign" ? "💾 배정정보 저장" : wf.task.action === "bookingInfo" ? "💾 예약정보 저장" : "💾 임시 저장";
+  $("saveBtn").textContent = wf.task.action === "payment" ? "입금 상태 저장" : wf.task.action === "assign" ? "배정정보 저장" : wf.task.action === "bookingInfo" ? "예약정보 저장" : "임시 저장";
 }
 
 async function sendStageRequestBody(kind) {
@@ -1432,7 +1432,7 @@ function fillDatalists() {
     const el = $(pickId); if (!el) return;
     const assigned = key === "guides" ? (BK.assign.guide.name || "") : (BK.assign.vehicle.model || "");
     const names = Object.keys(LIBS[key]);
-    el.innerHTML = `<option value="">${assigned ? "📥 다른 리소스로 변경…" : "📥 리소스에서 선택…"}</option>` +
+    el.innerHTML = `<option value="">${assigned ? "다른 리소스로 변경…" : "리소스에서 선택…"}</option>` +
       Object.keys(LIBS[key]).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
     el.value = names.includes(assigned) ? assigned : "";
     if (!names.length) el.innerHTML = `<option value="">리소스관리에 등록된 항목 없음</option>`;
@@ -1450,7 +1450,7 @@ function fillDatalists() {
     const body = groups.length === 1 && groups[0][0] === LODGE_REGION_UNSET
       ? options(groups[0])
       : groups.map(g => `<optgroup label="${esc(g[0])} (${g[1].length})">${options(g)}</optgroup>`).join("");
-    el.innerHTML = `<option value="">${assigned ? "📥 다른 리소스로 변경…" : "📥 리소스에서 선택…"}</option>` + body;
+    el.innerHTML = `<option value="">${assigned ? "다른 리소스로 변경…" : "리소스에서 선택…"}</option>` + body;
     el.value = names.includes(assigned) ? assigned : "";
   });
   mountResourcePickers();
@@ -1735,7 +1735,7 @@ async function saveBookingBody(opts = {}) {
     toast("⚠ " + e.message);
     return false;
   } finally {
-    $("saveBtn").disabled = false; $("saveBtn").textContent = "💾 예약정보 저장";
+    $("saveBtn").disabled = false; $("saveBtn").textContent = "예약정보 저장";
     updateActionBar();
   }
 }

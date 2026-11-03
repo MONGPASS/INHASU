@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { isQuoteBooking, summarizeQuoteBooking, readQuoteBookings } from '../functions/lib/quoteBookings.ts';
+import { isQuoteBooking, quotePackageTier, summarizeQuoteBooking, readQuoteBookings } from '../functions/lib/quoteBookings.ts';
 
 const booking = (extra = {}) => ({ id: 'quote-id', name: '견적 고객', status: '진행중', depart: '2026-10-20', return_: '2026-10-22',
     adult: '2', child: '1', receivedAt: '2026-10-13T00:00:00Z', quote: { pax: 3, price: { deposit: 100000, balances: [{ pax: 3, economy: 200000, full: 300000 }] } },
@@ -23,6 +23,21 @@ test('견적의 1인 금액을 팀 금액으로 바꾸고 저장된 0원 잔금�
     assert.equal(summarizeQuoteBooking(booking({ pkgTier: '풀패키지' })).totalAmount, 1200000);
     const saved = summarizeQuoteBooking(booking({ booking: { contractInfo: { totalAmount: 1234567, depositAmount: 234567, balanceAmount: 0 } } }));
     assert.deepEqual([saved.totalAmount, saved.deposit, saved.balance], [1234567, 234567, 0]);
+});
+
+test('패키지 판별은 잔금 티어와 같은 기준이고 등급을 고르지 않으면 추정하지 않는다', () => {
+    const { quoteMoney } = new Function(`${fs.readFileSync(new URL('../public/booking.js', import.meta.url), 'utf8')}\nreturn { quoteMoney };`)();
+    for (const extra of [{ pkgTier: '풀패키지' }, { pkgTier: '최고급' }, { gerStay: '고급 여행자 게르' }, { pkgTier: '실속', gerStay: '고급 여행자 게르' }]) {
+        assert.equal(quotePackageTier(extra), 'full', JSON.stringify(extra));
+        assert.equal(summarizeQuoteBooking(booking(extra)).totalAmount, 1200000, JSON.stringify(extra));
+        assert.equal(quoteMoney(booking(extra)).totalAmount, 1200000, JSON.stringify(extra));
+    }
+    for (const extra of [{ pkgTier: '실속' }, { gerStay: '일반 여행자 게르' }]) {
+        assert.equal(quotePackageTier(extra), 'value', JSON.stringify(extra));
+        assert.equal(summarizeQuoteBooking(booking(extra)).totalAmount, 900000, JSON.stringify(extra));
+        assert.equal(quoteMoney(booking(extra)).totalAmount, 900000, JSON.stringify(extra));
+    }
+    for (const extra of [{}, { gerStay: '상관없음' }, { pkgTier: 7 }, null]) assert.equal(quotePackageTier(extra), null);
 });
 
 test('계약 요청과 서명을 구분하고 입금 후 최종 확정 대기 상태를 표시한다', () => {

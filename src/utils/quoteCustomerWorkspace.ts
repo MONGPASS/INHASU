@@ -1,5 +1,5 @@
 import type { CustomerWorkspaceOverviewModel } from '../components/admin/CustomerWorkspaceOverview';
-import { isQuoteBooking, summarizeQuoteBooking } from '../../functions/lib/quoteBookings';
+import { isQuoteBooking, quotePackageTier, summarizeQuoteBooking } from '../../functions/lib/quoteBookings';
 import type { AdminDeliveryItem } from '../types/adminDelivery';
 import { customerRecentHistory, customerCurrentStage } from './customerRecentHistory.ts';
 
@@ -49,7 +49,9 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
     const published = booked && booking.publishStatus === 'published';
     const pax = amount(quote?.pax) || summary.totalPeople, price = quote?.price || {};
     const balances = list(price.balances), balanceRow = balances.find(row => Number(row.pax) === pax) || balances.reduce((best: any, row: any) => !best || Math.abs(Number(row.pax) - pax) < Math.abs(Number(best.pax) - pax) ? row : best, null);
-    const full = /풀패키지|최고급|고급/.test(`${record.pkgTier || ''} ${record.gerStay || ''}`);
+    const packageTier = quotePackageTier(record), full = packageTier === 'full';
+    // 맞춤 견적은 고객이 고른 숙소가 상품 패키지의 기본 구성과 다를 수 있어 실제 선택값을 보여 준다.
+    const chosenStays = [text(record.cityStay || record.stay), text(record.gerStay)].map(value => value.trim()).filter(value => value && value !== '상관없음');
     const perDeposit = amount(price.deposit), perBalance = amount(balanceRow?.[full ? 'full' : 'economy'] ?? balanceRow?.amount);
     const deposit = amount(ci.depositAmount) ?? (perDeposit !== null && pax > 0 ? perDeposit * pax : null);
     const contractTotal = amount(ci.totalAmount);
@@ -154,6 +156,8 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
         bookingNumber: text(record.reservationNumber) || text(record.id), statusLabel: booked ? summary.quoteBooking.label : text(record.status) || '신규 문의',
         period: [text(record.depart), text(record.return_)].filter(Boolean).join(' ~ ') || text(quote?.period) || '여행 기간 미정',
         partyLabel: summary.totalPeople ? `${summary.totalPeople}명` : '인원 미정',
+        packageInfo: packageTier ? { tier: packageTier, ...(chosenStays.length ? { detail: `고객 선택 · ${chosenStays.join(' + ')}` } : {}) } : { tier: null, detail: '게르 등급 미선택 · 상담 후 확인이 필요합니다' },
+        ...(text(record.destination) ? { placeLabel: text(record.destination) } : {}),
         facts: [
             { label: '연락처', value: text(record.phone) || '미입력' }, { label: '이메일', value: text(record.email) || '미입력' },
             ...(record.kakaoId ? [{ label: '카카오 ID', value: text(record.kakaoId) }] : []),

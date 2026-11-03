@@ -172,6 +172,8 @@ const KPI_ICONS: Record<BoardKpi['key'], DashboardIconName> = {
     all: 'lc-folder', waiting: 'lc-hourglass', confirmed: 'lc-badge-check', balanceDue: 'lc-banknote', departing: 'lc-plane-takeoff',
 };
 const CHIP_ICONS: Record<'guide' | 'vehicle' | 'stay', DashboardIconName> = { guide: 'lc-user', vehicle: 'lc-car', stay: 'lc-bed' };
+/** 디자인 02-1의 카드별 색: 전체·출발 파랑, 확정 대기 주황, 확정 초록, 잔금 빨강. */
+const KPI_TONES: Record<BoardKpi['key'], 'info' | 'wait' | 'ok' | 'alert'> = { all: 'info', waiting: 'wait', confirmed: 'ok', balanceDue: 'alert', departing: 'info' };
 /** The part of a list value that matches the search term is marked. */
 const Highlight = ({ a, b, c }: { a: string; b: string; c: string }) => <>{a}{b && <mark className={board.mark}>{b}</mark>}{c}</>;
 
@@ -188,6 +190,7 @@ interface ProductSummary {
     category?: string;
     thumbnail?: string;
     mainImages?: any; // API가 mainImages/main_images 두 표기를 모두 내려줌 (배열 또는 JSON 문자열)
+    packageType?: unknown;
     itineraryBlocks?: any;
     itineraryImages?: any;
     documentProduct?: any;
@@ -1758,6 +1761,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         itineraryReady, itinerarySent, contractSent, itineraryChanged, contractChanged, deliveryHistory: recordedDelivery?.items,
     });
     overview.bookedProduct = bookedProduct;
+    if (bookedProduct && bookedProduct.match !== 'stored') overview.packageInfo = bookedProduct.packageType ? { tier: bookedProduct.packageType } : { tier: null, detail: '상품 관리에서 여행 타입을 지정해 주세요' };
     overview.backLabel = customerWorkspaceBackLabel(customerWorkspaceReturnTo(new URLSearchParams(workspaceLocation.search).get('returnTo')));
     const kakaoDirty = inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty;
     const notificationActions = <CustomerKakaoActions key={reservation.id} source="product" bookingId={reservation.id}
@@ -1812,7 +1816,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             else if (action === 'stay') {
                 setQuickAssignment('stay');
                 if (workspace.nights > 0) {
-                    const nextDay = Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => index + 1).find(day => !reservation.dailyAccommodations?.some(stay => Number(stay.day) === day && stay.accommodation?.name?.trim())) || 1;
+                    const pickedDay = id ? overview.days.find(day => day.id === id)?.day : undefined;
+                    const nextDay = pickedDay || Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => index + 1).find(day => !reservation.dailyAccommodations?.some(stay => Number(stay.day) === day && stay.accommodation?.name?.trim())) || 1;
                     setSelectedDay(nextDay); setPickerSaveError(''); setShowAccommodationModal(true);
                 }
             } else setQuickAssignment('vehicle');
@@ -2686,7 +2691,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                 if (!result.value || String(result.value.id) !== customerReservationId) throw Object.assign(new Error('선택한 고객의 예약을 찾지 못했습니다.'), { status: 404 });
                 const row = customerSource === 'quote' ? legacyWorkspaceReservation(result.value) : productWorkspaceReservation(result.value);
                 setProducts(productResult.status === 'fulfilled' && Array.isArray(productResult.value) ? productResult.value.map((p: any) => ({
-                    id: p.id, name: p.name, category: p.category, thumbnail: p.thumbnail, mainImages: p.mainImages ?? p.main_images,
+                    id: p.id, name: p.name, category: p.category, thumbnail: p.thumbnail, mainImages: p.mainImages ?? p.main_images, packageType: p.packageType,
                     itineraryBlocks: p.itineraryBlocks ?? p.itinerary_blocks, itineraryImages: p.itineraryImages ?? p.itinerary_images, documentProduct: p,
                 })) : hasCurrentRecord ? products : []);
                 setLoadWarnings(productResult.status === 'rejected' ? ['상품 원본 정보를 불러오지 못했습니다. 저장된 고객 문서는 그대로 확인할 수 있습니다.'] : []);
@@ -2727,6 +2732,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                     category: p.category,
                     thumbnail: p.thumbnail,
                     mainImages: p.mainImages ?? p.main_images,
+                    packageType: p.packageType,
                     itineraryBlocks: p.itineraryBlocks ?? p.itinerary_blocks,
                     itineraryImages: p.itineraryImages ?? p.itinerary_images,
                     documentProduct: p,
@@ -3816,10 +3822,10 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                         {kpis.map(kpi => {
                             const on = kpiActive(kpi.key);
                             return (
-                                <button key={kpi.key} type="button" className={`${board.kpi} ${on ? board.kpiOn : ''}`} title={kpi.tip}
+                                <button key={kpi.key} type="button" className={`${board.kpi} ${board[`tone_${KPI_TONES[kpi.key]}`]} ${kpi.key === 'all' ? board.kpiAll : ''} ${on ? board.kpiOn : ''}`} title={kpi.tip}
                                     aria-pressed={kpi.key === 'all' ? undefined : on} onClick={() => applyKpi(kpi.key)}>
                                     <span className={board.kpiHead}>
-                                        <span className={`${board.kpiIcon} ${kpi.warn ? board.kpiIconWarn : kpi.value ? board.kpiIconOn : ''}`}><DashboardIcon name={KPI_ICONS[kpi.key]} size={16} /></span>
+                                        <span className={`${board.kpiIcon} ${kpi.value ? board.kpiIconOn : ''}`}><DashboardIcon name={KPI_ICONS[kpi.key]} size={16} /></span>
                                         <span className={board.kpiLabel}>{kpi.label}</span>
                                         {on && <span className={board.kpiWatching}>보는 중</span>}
                                     </span>
@@ -3828,7 +3834,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                                         <span className={board.kpiUnit}>건</span>
                                         <span className={board.kpiPct}>{loadedOnce ? kpi.pct : ''}</span>
                                     </span>
-                                    <span className={board.kpiBar}><span className={kpi.warn ? board.kpiFillWarn : board.kpiFill} style={{ width: kpi.key === 'all' ? '100%' : loadedOnce ? kpi.pct : '0%' }} /></span>
+                                    <span className={board.kpiBar}><span className={board.kpiFill} style={{ width: kpi.key === 'all' ? '100%' : loadedOnce ? kpi.pct : '0%' }} /></span>
                                     <span className={board.kpiRows}>
                                         {kpi.rows.map(row => <span key={row.k}><span>{row.k}</span><b className={row.alert ? board.kpiAlert : ''}>{loadedOnce ? row.v : '—'}</b></span>)}
                                     </span>
@@ -3854,7 +3860,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                                     return (
                                         <button type="button" className={board.upRow} key={`${reservation.type}:${reservation.id}`} onClick={() => openReservation(reservation)}
                                             aria-label={`${reservation.customerName || '고객명 미정'} · ${reservation.productName || '상품명 미정'} 상세 보기`}>
-                                            <span className={`${board.upDday} ${daysUntil <= 7 ? board.upDdaySoon : ''}`}>
+                                            <span className={`${board.upDday} ${daysUntil <= 7 ? board.upDdaySoon : daysUntil <= 14 ? board.upDdayWeek : ''}`}>
                                                 <b>{daysUntil === 0 ? '오늘' : `D-${daysUntil}`}</b><small>{shortDow(reservation.startDate)}</small>
                                             </span>
                                             <span className={board.upWho}>
@@ -4049,7 +4055,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                                             {payNote && <span className={payNote.done ? board.payDone : board.payWait}>{payNote.text}</span>}
                                         </div>
                                         <div className={board.actions} onClick={e => e.stopPropagation()}>
-                                            <button type="button" className={`btn btn-sm btn-blue ${board.nextAction}`} title={nextAction.description} onClick={() => {
+                                            <button type="button" className={board.nextAction} title={nextAction.description} onClick={() => {
                                                 if (nextAction.nextStatus) handleStatusChange(res.id, nextAction.nextStatus, res.type); else openReservation(res);
                                             }}>{nextAction.label}</button>
                                             <button type="button" className={board.iconBtn} title="상세 보기" aria-label={`${res.customerName} 상세 보기`} onClick={() => openReservation(res)}><DashboardIcon name="lc-eye" size={16} /></button>

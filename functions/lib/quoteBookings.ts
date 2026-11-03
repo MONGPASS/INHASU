@@ -9,6 +9,12 @@ const numberValue = (value: unknown, fallback = 0): number => {
 const text = (value: unknown): string => typeof value === 'string' ? value : '';
 export type QuoteBookingStatus = 'cancelled' | 'completed' | 'on_hold' | 'confirmed' | 'reservation_requested' | 'pending_payment';
 
+/** 잔금 티어와 같은 기준의 패키지 판별. 등급을 고르지 않은 요청은 어느 쪽으로도 추정하지 않는다. */
+export function quotePackageTier(rec: any): 'full' | 'value' | null {
+    const source = `${text(rec?.pkgTier)} ${text(rec?.gerStay)}`;
+    return /풀패키지|최고급|고급/.test(source) ? 'full' : /실속|일반|스탠다드|스탠더드/.test(source) ? 'value' : null;
+}
+
 /** public/booking.js의 quoteMoney와 같은 팀 금액 계산. 저장된 계약 금액이 있으면 그 값이 우선한다. */
 function quoteAmounts(rec: any) {
     const q = rec.quote || {};
@@ -17,7 +23,7 @@ function quoteAmounts(rec: any) {
     const balances = Array.isArray(price.balances) ? price.balances : [];
     const row = balances.find((b: any) => numberValue(b.pax) === pax)
         || balances.reduce((a: any, b: any) => !a || Math.abs(numberValue(b.pax) - pax) < Math.abs(numberValue(a.pax) - pax) ? b : a, null);
-    const full = /풀패키지|최고급|고급/.test(`${rec.pkgTier || ''} ${rec.gerStay || ''}`);
+    const full = quotePackageTier(rec) === 'full';
     const deposit = numberValue(price.deposit) * pax;
     const balance = numberValue(row?.[full ? 'full' : 'economy'] ?? row?.amount) * pax;
     return { total: deposit + balance, deposit, balance };

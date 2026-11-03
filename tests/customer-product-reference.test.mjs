@@ -32,6 +32,13 @@ test('ID가 없는 옛 예약은 공백을 정규화한 정확한 상품명이 �
     });
 });
 
+test('패키지 타입은 실제로 연결된 상품의 유효한 값만 가져온다', () => {
+    const rows = [{ id: 'a', name: '실속 투어', packageType: 'value' }, { id: 'b', name: '풀 투어', packageType: 'full' }, { id: 'c', name: '미지정 투어', packageType: null }, { id: 'd', name: '잘못된 값', packageType: 'budget' }];
+    assert.equal(customerProductReference({ productId: 'a' }, rows).packageType, 'value');
+    assert.equal(customerProductReference({ productName: '풀 투어' }, rows).packageType, 'full');
+    for (const productId of ['c', 'd', 'deleted']) assert.equal(customerProductReference({ productId }, rows).packageType, undefined);
+});
+
 test('상품 ID의 0과 특수문자는 보존하면서 공개 경로의 한 세그먼트로 인코딩한다', () => {
     assert.deepEqual(customerProductReference({ productId: 0 }, [{ id: '0', name: '0번 상품' }]), {
         name: '0번 상품', href: '/products/0', match: 'id',

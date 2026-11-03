@@ -1,0 +1,111 @@
+/* ============================================================
+   관리자 공통 틀 — Claude Design "Admin Dashboard v3" (standalone-src).
+   admin-console.css 다음에 읽혀 사이드바·상단 바·브랜드 색을 덮어쓴다.
+   디자인은 브랜드 "blue" 토큰을 민트로 쓰므로 관리자 전체에 같은 값을 적용한다.
+   ============================================================ */
+.admin-app-wrapper {
+  --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --mrt-blue-100: #c9f0e2;
+  --mrt-purple: #1cc497; --mrt-purple-2: #0a7f62; --mrt-purple-soft: #dcf6ee;
+  --text-link: #0E9E7A; --border-focus: #12b28c; --ring-blue: 0 0 0 4px rgba(18,178,140,.16);
+  --side-w: 260px; --side-rail-w: 68px; --shell-gap: 16px;
+}
+.admin-app-wrapper .btn-blue { box-shadow: 0 4px 12px rgba(18,178,140,.28); }
+
+/* ---------- 데스크톱: 둥근 본문 카드 + 투명한 사이드바 ---------- */
+@media (min-width: 761px) {
+  /* 상단 바가 더 이상 고정되지 않으므로 그 높이에 맞춘 고정 위치를 0으로 둔다. */
+  .admin-app-wrapper { --header-h: 0px; }
+  .admin-app-wrapper .app { min-height: 100vh; background: var(--surface-canvas); }
+  .admin-app-wrapper .side {
+    inset: var(--shell-gap) auto var(--shell-gap) var(--shell-gap); width: var(--side-w);
+    gap: 8px; background: transparent; border-right: 0; transition: width 360ms cubic-bezier(.22,.61,.36,1);
+  }
+  .admin-app-wrapper .main {
+    margin: var(--shell-gap) var(--shell-gap) var(--shell-gap) calc(var(--side-w) + var(--shell-gap) * 2);
+    min-height: calc(100vh - var(--shell-gap) * 2); background: #fff; border: 1px solid var(--border-default); border-radius: 24px;
+    overflow: clip; transition: margin-left 360ms cubic-bezier(.22,.61,.36,1);
+  }
+  .admin-app-wrapper .main.is-flush { height: calc(100vh - var(--shell-gap) * 2); }
+  .admin-app-wrapper .app.is-side-rail .side { width: var(--side-rail-w); }
+  .admin-app-wrapper .app.is-side-rail .main { margin-left: calc(var(--side-rail-w) + var(--shell-gap) * 2); }
+
+  /* 상단 바(알림·검색) 아래에 큰 제목과 화면 작업 버튼을 둔다. */
+  .admin-app-wrapper .header { position: relative; z-index: 40; padding: 0 28px; background: #fff; backdrop-filter: none; border-bottom: 0; }
+  .admin-app-wrapper .header-in {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "bar bar" "head acts";
+    align-items: end; column-gap: 12px; height: auto; max-width: none;
+  }
+  .admin-app-wrapper .header-spacer { display: none; }
+  .admin-app-wrapper .header-tools { display: contents; }
+  .admin-app-wrapper .header .admin-toolbar {
+    grid-area: bar; justify-content: flex-end; min-height: 68px; margin: 0 -28px; padding: 14px 28px; border-bottom: 1px solid var(--border-default);
+  }
+  .admin-app-wrapper .admin-layout-heading { grid-area: head; padding: 24px 0 4px; }
+  .admin-app-wrapper .admin-page-actions,
+  .admin-app-wrapper .admin-customer-header-actions { grid-area: acts; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 24px 0 6px; }
+  .admin-app-wrapper .eyebrow { margin-bottom: 2px; font-size: 11px; letter-spacing: .08em; }
+  .admin-app-wrapper .page-title { font-size: 28px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
+  .admin-app-wrapper .admin-layout-heading > .cell-muted { margin-top: 4px !important; font-size: 13px !important; }
+  .admin-app-wrapper .content { padding: 20px 28px 40px; }
+  .admin-app-wrapper .main.is-flush > .content { padding: 16px 0 0 !important; }
+  .admin-app-wrapper .header-tools .btn,
+  .admin-app-wrapper .admin-page-actions .btn { min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; }
+}
+
+/* ---------- 사이드바 ---------- */
+.admin-app-wrapper .side-rail-bar { display: flex; justify-content: flex-end; padding: 4px 4px 0; }
+.admin-app-wrapper .side.is-rail .side-rail-bar { justify-content: center; padding-right: 0; padding-left: 0; }
+.admin-app-wrapper .side-rail-toggle {
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; padding: 0;
+  border: 1px solid var(--border-default); border-radius: 10px; background: #fff; color: var(--text-secondary); cursor: pointer;
+}
+.admin-app-wrapper .side-rail-toggle:hover { background: var(--mrt-gray-50); color: var(--text-strong); }
+.admin-app-wrapper .side-nav { padding: 8px 0; overflow-x: hidden; }
+.admin-app-wrapper .nav-section { display: flex; flex-direction: column; gap: 2px; padding: 12px 0; border-bottom: 1px solid var(--border-default); }
+.admin-app-wrapper .nav-section-title { padding: 4px 14px 8px; font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--text-tertiary); }
+.admin-app-wrapper .side.is-rail .nav-section-title { height: 1px; margin: 4px 12px 8px; padding: 0; overflow: hidden; font-size: 0; background: var(--border-default); }
+
+.admin-app-wrapper .nav-item,
+.admin-app-wrapper .nav-group-toggle {
+  display: flex; align-items: center; gap: 12px; width: 100%; height: 40px; min-height: 40px; margin: 0; padding: 0 14px;
+  border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--text-body);
+  font-size: 14px; font-weight: 500; text-align: left; box-shadow: none; transition: background 200ms, border-color 200ms;
+}
+.admin-app-wrapper .nav-item > span, .admin-app-wrapper .nav-group-toggle > span:not(.nav-chevron) { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-app-wrapper .nav-item:hover, .admin-app-wrapper .nav-group-toggle:hover { background: rgba(255,255,255,.7); color: var(--text-strong); }
+.admin-app-wrapper .nav-item.active { background: var(--mrt-ink); color: #fff; box-shadow: none; }
+.admin-app-wrapper .nav-group-toggle.is-current { background: transparent; color: var(--text-strong); font-weight: 600; }
+.admin-app-wrapper .nav-group.is-open > .nav-group-toggle { background: #fff; border-color: var(--mrt-blue); color: var(--text-strong); font-weight: 600; }
+.admin-app-wrapper .nav-chevron { display: flex; margin-left: auto; color: var(--text-tertiary); transition: transform 200ms; }
+.admin-app-wrapper .nav-group.is-open .nav-chevron { transform: rotate(180deg); }
+.admin-app-wrapper .nav-group { margin-top: 0; }
+.admin-app-wrapper .nav-submenu { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 2px 0 4px 18px; border-left: 0; }
+.admin-app-wrapper .nav-submenu .nav-item { gap: 10px; height: 36px; min-height: 36px; padding: 0 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+.admin-app-wrapper .nav-submenu .nav-item:hover { color: var(--text-strong); }
+.admin-app-wrapper .nav-submenu .nav-item.active { background: #fff; border-color: var(--border-default); color: var(--mrt-blue-strong); font-weight: 600; }
+.admin-app-wrapper .side.is-rail .nav-item,
+.admin-app-wrapper .side.is-rail .nav-group-toggle { justify-content: center; width: 44px; height: 44px; margin: 0 auto; padding: 0; gap: 0; }
+.admin-app-wrapper .side.is-rail .nav-item > span,
+.admin-app-wrapper .side.is-rail .nav-group-toggle > span { display: none; }
+
+.admin-app-wrapper .side-foot { padding: 0; border-top: 0; }
+.admin-app-wrapper .side-account { gap: 12px; padding: 12px; border: 1px solid var(--border-default); border-radius: 16px; background: #fff; }
+.admin-app-wrapper .side-account .av { width: 40px; height: 40px; border-radius: 12px; font-size: 15px; font-weight: 700; }
+.admin-app-wrapper .side-account .who b { font-size: 14px; }
+.admin-app-wrapper .side-account .who span { font-size: 12px; color: var(--text-secondary); }
+.admin-app-wrapper .side-account .out { width: 36px; height: 36px; padding: 0; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-secondary); }
+.admin-app-wrapper .side-account .out:hover { border-color: #ffd0d0; }
+.admin-app-wrapper .side.is-rail .side-account { justify-content: center; padding: 8px; }
+.admin-app-wrapper .side.is-rail .side-account .who,
+.admin-app-wrapper .side.is-rail .side-account .out { display: none; }
+
+.admin-app-wrapper .side-rail-toggle:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .admin-app-wrapper .side, .admin-app-wrapper .main, .admin-app-wrapper .nav-chevron { transition: none; }
+}
+/* 좁은 화면의 고객 메뉴 패널에서는 기존 모바일 배치를 유지한다. */
+@media (max-width: 760px) {
+  .admin-app-wrapper .main.is-flush { height: 100vh; }
+  .admin-app-wrapper .side-rail-bar { display: none; }
+  .admin-app-wrapper .admin-page-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+}

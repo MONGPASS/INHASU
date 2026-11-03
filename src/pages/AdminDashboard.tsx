@@ -2,13 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { useAdminWorkspace } from '../components/admin/AdminWorkspaceContext';
-import { Icon } from '../components/admin/console/Icon';
 import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
 import { TrafficSources } from '../components/admin/dashboard/TrafficSources';
 import { useEntrance, type DashboardTipFor, type DashboardTipLine } from '../components/admin/dashboard/dashboardMotion';
 import type { AdminWorkspaceData } from '../types/adminWorkspace';
 import {
-    REVENUE_PERIODS, dashboardAnswerRate, dashboardAvailability, dashboardBookingGroup, dashboardBookingSplit, dashboardDailyNew,
+    REVENUE_PERIODS, dashboardAddDays, dashboardAnswerRate, dashboardAvailability, dashboardBookingGroup, dashboardBookingSplit, dashboardDailyNew,
     dashboardDate, dashboardNumber, dashboardPeriod, dashboardPhone, dashboardRevenue, dashboardSeoulDate, dashboardShortRange,
     dashboardTaskCards, dashboardTimestamp, dashboardWon, type DashboardTaskKind, type RevenuePeriod,
 } from '../utils/adminDashboard';
@@ -23,10 +22,39 @@ interface DashboardState {
 
 interface Tip { x: number; y: number; title: string; lines: DashboardTipLine[] }
 
-const TASK_TABS: { kind: DashboardTaskKind; label: string; icon: DashboardIconName; chip: DashboardIconName; action: string }[] = [
-    { kind: 'assignment', label: '가이드·차량 배정', icon: 'lc-users', chip: 'lc-car', action: '배정하기' },
+/**
+ * Lucide outlines (ISC, lucide-static@0.460.0) this page needs beyond the shared DashboardIcon set.
+ * `lc-` keys keep scripts/check-icon-subset.mjs from reading them as Material Symbols names.
+ */
+const PAGE_ICONS = {
+    'lc-wallet': <><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></>,
+    'lc-calendar-plus': <><path d="M8 2v4" /><path d="M16 2v4" /><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8" /><path d="M3 10h18" /><path d="M16 19h6" /><path d="M19 16v6" /></>,
+    'lc-file-plus': <><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M9 15h6" /><path d="M12 18v-6" /></>,
+    'lc-list': <><path d="M3 12h.01" /><path d="M3 18h.01" /><path d="M3 6h.01" /><path d="M8 12h13" /><path d="M8 18h13" /><path d="M8 6h13" /></>,
+    'lc-user-x': <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="17" x2="22" y1="8" y2="13" /><line x1="22" x2="17" y1="8" y2="13" /></>,
+    'lc-file-pen-line': <><path d="m18 5-2.414-2.414A2 2 0 0 0 14.172 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2" /><path d="M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" /><path d="M8 18h1" /></>,
+} as const;
+type PageIconName = keyof typeof PAGE_ICONS;
+type AnyIcon = DashboardIconName | PageIconName;
+
+function PageIcon({ name, size = 16 }: { name: AnyIcon; size?: number }) {
+    if (!(name in PAGE_ICONS)) return <DashboardIcon name={name as DashboardIconName} size={size} />;
+    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flex: 'none', display: 'block' }}>
+        {PAGE_ICONS[name as PageIconName]}
+    </svg>;
+}
+
+const TASK_TABS: { kind: DashboardTaskKind; label: string; icon: AnyIcon; chip: AnyIcon; action: string }[] = [
+    { kind: 'assignment', label: '가이드·차량 배정', icon: 'lc-users', chip: 'lc-user-x', action: '배정하기' },
     { kind: 'deposit_report', label: '입금 신고 확인', icon: 'lc-banknote', chip: 'lc-banknote', action: '입금 확인' },
-    { kind: 'contract', label: '계약 확인', icon: 'lc-file-check', chip: 'lc-file-check', action: '계약 확인' },
+    { kind: 'contract', label: '계약 확인', icon: 'lc-file-check', chip: 'lc-file-pen-line', action: '계약 확인' },
+];
+const QUICK_ACTIONS: { label: string; icon: AnyIcon; to: string; main?: boolean }[] = [
+    { label: '견적서 작성', icon: 'lc-file-plus', to: '/admin/quote-desk/builder', main: true },
+    { label: '통합 예약 목록', icon: 'lc-list', to: '/admin/reservations' },
+    { label: '투어 캘린더', icon: 'lc-calendar', to: '/admin/calendar' },
+    { label: '숙소 배정', icon: 'lc-house', to: '/admin/accommodation-ops' },
 ];
 const BOOKING_FILTERS = ['전체', '확정 대기', '예약 확정'] as const;
 type BookingFilter = typeof BOOKING_FILTERS[number];
@@ -34,10 +62,36 @@ type BookingFilter = typeof BOOKING_FILTERS[number];
 const metricLabel = (label: string, value: number | null | undefined, unit: string) =>
     `${label}: ${dashboardNumber(value)}${value != null ? unit : ''}`;
 
+/**
+ * Teams leaving within the next 7 days (today included, Korean calendar date from the server),
+ * the same window the server uses for pre-departure assignment checks. Cancelled bookings are left out.
+ * Null when part of the booking data could not be loaded, so it is never shown as 0.
+ */
+export function dashboardDepartingSoon(data: AdminWorkspaceData | null): number | null {
+    if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(data.today) || !dashboardAvailability(data).bookings) return null;
+    const until = dashboardAddDays(data.today, 7);
+    return data.bookings.filter(b => dashboardBookingGroup(b.status) !== 'other'
+        && /^\d{4}-\d{2}-\d{2}$/.test(b.startDate) && b.startDate >= data.today && b.startDate <= until).length;
+}
+
+/** "2026.12.31 – 01.03": the task table's travel period, with the full start year like the design. */
+function taskRange(start: string, end: string): string {
+    const short = dashboardShortRange(start, end).range;
+    const from = start.slice(2).replaceAll('-', '.');
+    return /^\d{4}-\d{2}-\d{2}$/.test(start) && short.startsWith(from) ? `${start.slice(0, 2)}${short}` : short;
+}
+
 function SectionState({ loading, complete, error, empty }: { loading: boolean; complete: boolean; error: string; empty: string }) {
     return <div className={styles.empty} role={loading ? 'status' : undefined}>
         <span className={styles.emptyIcon}><DashboardIcon name={loading ? 'lc-refresh-cw' : complete ? 'lc-check' : 'lc-circle-alert'} size={20} /></span>
         <p>{loading ? '자료를 불러오고 있습니다.' : complete ? empty : error || '일부 자료를 불러오지 못했습니다. 다시 조회해 주세요.'}</p>
+    </div>;
+}
+
+function SectionTitle({ title, note }: { title: string; note?: string }) {
+    return <div className={styles.sectionTitle}>
+        <h2>{title}</h2>
+        {note && <span className={styles.sectionNote}>{note}</span>}
     </div>;
 }
 
@@ -80,6 +134,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
     const activeTab = taskTab ?? TASK_TABS.find(tab => taskCards[tab.kind].length)?.kind ?? 'assignment';
     const taskTeams = new Set(TASK_TABS.flatMap(tab => taskCards[tab.kind].map(card => card.task.key.slice(tab.kind.length + 1)))).size;
     const anyTask = taskTeams > 0;
+    const departing = dashboardDepartingSoon(data);
 
     const bookings = data?.bookings || [];
     const bookingCounts: Record<BookingFilter, number> = {
@@ -90,15 +145,30 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
     const bookingRows = bookings.filter(b => bookingFilter === '전체'
         || dashboardBookingGroup(b.status) === (bookingFilter === '확정 대기' ? 'waiting' : 'confirmed')).slice(0, 6);
 
+    const unit = (value: number | null | undefined, suffix: string) => value == null ? '—' : `${dashboardNumber(value)}${suffix}`;
+    const tiles: { label: string; value: string; aria: string; icon: AnyIcon; to: string; hot?: boolean }[] = [
+        { label: '처리 필요 팀', value: data ? `${taskTeams}팀` : '—', aria: data ? `처리 필요 팀: ${taskTeams}팀${availability.tasks ? '' : ' (일부 자료)'}` : '처리 필요 팀: —',
+            icon: 'lc-clipboard-check', to: '#dashboard-tasks', hot: true },
+        { label: '확정 매출', value: dashboardWon(metrics?.confirmedSales), aria: metricLabel('확정 매출 전체 기간', metrics?.confirmedSales, '원'), icon: 'lc-wallet', to: '/admin/reservations' },
+        { label: '오늘 신규 예약', value: unit(metrics?.todayReservations, '건'), aria: metricLabel('오늘 신규 예약', metrics?.todayReservations, '건'), icon: 'lc-calendar-plus', to: '/admin/reservations' },
+        { label: '답변 대기 견적', value: unit(metrics?.newQuotes, '건'), aria: metricLabel('답변 대기 견적', metrics?.newQuotes, '건'), icon: 'lc-message-circle', to: '/admin/quotes' },
+        { label: '7일 내 출발', value: unit(departing, '팀'), aria: metricLabel('7일 내 출발', departing, '팀'), icon: 'lc-plane-takeoff', to: '/admin/calendar' },
+    ];
+
     return <div className={`route-anim ${styles.dashboard}`}>
-        <div className={styles.topbar}>
+        <div className={styles.head}>
             <p className={styles.today}>
                 {data ? `${dashboardDate(data.today)} · 한국시간 기준` : '오늘의 운영 현황'}
                 <span>{data ? `최근 조회 ${dashboardTimestamp(data.generatedAt)}` : initialLoading ? '상품·견적 자료를 확인하고 있습니다.' : '운영 자료를 다시 조회해 주세요.'}</span>
             </p>
-            <button type="button" className={`btn btn-ghost btn-sm ${styles.refresh}`} disabled={loading} onClick={() => { void refresh(); }}>
-                <DashboardIcon name="lc-refresh-cw" size={15} />{loading ? '조회 중…' : '새로고침'}
-            </button>
+            <div className={styles.actions}>
+                {QUICK_ACTIONS.map(action => <Link key={action.label} to={action.to} className={`${styles.action} ${action.main ? styles.actionMain : ''}`}>
+                    <PageIcon name={action.icon} />{action.label}
+                </Link>)}
+                <button type="button" className={styles.action} disabled={loading} onClick={() => { void refresh(); }}>
+                    <DashboardIcon name="lc-refresh-cw" size={16} />{loading ? '조회 중…' : '새로고침'}
+                </button>
+            </div>
         </div>
 
         {error && <div className={styles.warning} role="alert">{error}{data && <span>마지막으로 불러온 자료를 표시하고 있습니다.</span>}</div>}
@@ -108,6 +178,131 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
             <span>확인되지 않은 집계는 —로 표시합니다.</span>
         </div>}
 
+        <div className={styles.tiles} role="group" aria-label="오늘의 핵심 지표" aria-busy={initialLoading}>
+            {tiles.map(tile => {
+                const body = <>
+                    <span className={styles.tileIcon}><PageIcon name={tile.icon} size={22} /></span>
+                    <span className={styles.tileLabel}>{tile.label}</span>
+                    <span className={styles.tileValue} aria-label={tile.aria}>{tile.value}</span>
+                </>;
+                const className = `${styles.tile} ${tile.hot ? styles.tileHot : ''}`;
+                return tile.to.startsWith('#')
+                    ? <a key={tile.label} href={tile.to} className={className}>{body}</a>
+                    : <Link key={tile.label} to={tile.to} className={className}>{body}</Link>;
+            })}
+        </div>
+
+        <SectionTitle title="지금 처리할 일" />
+        <div className={styles.row420}>
+            <section className={`${styles.card} ${styles.tasks}`} id="dashboard-tasks">
+                <div className={styles.taskHead}>
+                    <span className={styles.cardTitle}>오늘 확인할 업무</span>
+                    <span className={styles.taskSub}>{data
+                        ? <>처리가 필요한 팀 <b>{taskTeams}</b>팀 · 출발일 가까운 순{!availability.tasks && ' · 일부 자료'}</>
+                        : initialLoading ? '업무를 확인하고 있습니다.' : '업무 자료를 다시 조회해 주세요.'}</span>
+                </div>
+                <div className={styles.tabs} role="tablist" aria-label="업무 종류">
+                    {TASK_TABS.map(tab => {
+                        const count = taskCards[tab.kind].length;
+                        return <button key={tab.kind} type="button" role="tab" id={`dashboard-tab-${tab.kind}`} aria-controls={`dashboard-panel-${tab.kind}`}
+                            aria-selected={activeTab === tab.kind} className={styles.tab} onClick={() => setTaskTab(tab.kind)}>
+                            <PageIcon name={tab.icon} />{tab.label}
+                            <span className={`${styles.glow} ${styles.tabCount} ${count ? styles.toneAlert : styles.toneNeutral}`}>{count}</span>
+                        </button>;
+                    })}
+                </div>
+                {!availability.tasks && data && <p className={`${styles.partial} ${styles.partialInset}`}>확인된 업무만 표시합니다. 불러오지 못한 자료에 추가 업무가 있을 수 있습니다.</p>}
+                {!data || !anyTask ? <div className={styles.taskPanel}>
+                    <SectionState loading={initialLoading} complete={availability.tasks} error={error}
+                        empty={data?.tasks.length ? '배정·입금·계약 확인이 필요한 팀이 없습니다.' : '확인이 필요한 업무가 없습니다.'} />
+                </div> : TASK_TABS.map(tab => <div key={tab.kind} className={styles.taskPanel} role="tabpanel" id={`dashboard-panel-${tab.kind}`}
+                    aria-labelledby={`dashboard-tab-${tab.kind}`} hidden={activeTab !== tab.kind}>
+                    {!!taskCards[tab.kind].length && <div className={`${styles.taskGrid} ${styles.taskGridHead}`} aria-hidden="true">
+                        <span>출발</span><span>고객 · 상품</span><span>여행 기간</span><span>미처리 항목</span><span />
+                    </div>}
+                    {taskCards[tab.kind].map(card => {
+                        const soon = card.dday !== null && card.dday <= 90;
+                        return <div key={card.task.key} className={`${styles.taskGrid} ${styles.taskRow}`}>
+                            <span className={styles.ddayCell}>
+                                <span className={`${styles.glow} ${styles.dday} ${soon ? styles.toneInk : styles.toneNeutral}`}>
+                                    {card.dday === null ? '미정' : card.dday === 0 ? 'D-DAY' : card.dday < 0 ? `D+${-card.dday}` : `D-${card.dday}`}
+                                </span>
+                            </span>
+                            <span className={styles.stack2}>
+                                <span className={styles.rowName}>{card.name}</span>
+                                {card.product && <span className={styles.rowSub}>{card.product}</span>}
+                            </span>
+                            <span className={styles.taskRange}>{taskRange(card.start, card.end)}</span>
+                            <span className={styles.chips}>
+                                <span className={`${styles.glow} ${styles.toneAlert}`}><PageIcon name={tab.chip} size={13} />{card.task.title}</span>
+                            </span>
+                            <span className={styles.taskActionCell}>
+                                <Link className={styles.taskAction} to={card.task.href}>{tab.action}</Link>
+                            </span>
+                        </div>;
+                    })}
+                    {!taskCards[tab.kind].length && <div className={styles.empty}>
+                        <span className={styles.emptyIcon}><DashboardIcon name="lc-check" size={20} /></span><p>이 탭에는 확인할 업무가 없어요.</p>
+                    </div>}
+                </div>)}
+                <div className={styles.taskFoot}>
+                    <DashboardIcon name="lc-message-circle" size={16} color="var(--mrt-blue-strong)" />
+                    {!availability.inquiries
+                        ? data ? '문의 자료를 확인할 수 없어 답변 대기 건수를 표시하지 않습니다.' : '문의 자료를 확인하고 있습니다.'
+                        : pendingInquiries.length
+                            ? <Link to="/admin/quotes">답변을 기다리는 견적 문의 <b>{pendingInquiries.length}</b>건<DashboardIcon name="lc-arrow-right" size={14} /></Link>
+                            : '답변을 기다리는 문의가 없습니다.'}
+                </div>
+            </section>
+
+            <section className={`${styles.card} ${styles.recent}`}>
+                <div className={styles.recentHead}>
+                    <span className={styles.cardTitle}>최근 통합 예약</span>
+                    <span className={`${styles.glow} ${styles.dot} ${styles.toneNeutral}`}>상품 · 견적</span>
+                    <Link className={styles.headLink} to="/admin/reservations">전체 보기<DashboardIcon name="lc-arrow-right" size={16} /></Link>
+                </div>
+                <div className={styles.pills}>
+                    {BOOKING_FILTERS.map(filter => <button key={filter} type="button" className={styles.pill} aria-pressed={bookingFilter === filter}
+                        onClick={() => setBookingFilter(filter)}>
+                        {filter}<span className={styles.pillN}>{data ? bookingCounts[filter] : '—'}</span>
+                    </button>)}
+                </div>
+                {!availability.bookings && data && <p className={styles.partial}>불러온 예약만 표시합니다. 일부 예약 자료는 확인이 필요합니다.</p>}
+                <div className={styles.table}>
+                    <div className={styles.tableHead} aria-hidden="true">
+                        <span>고객 · 상품</span><span>여행 기간</span><span className={styles.right}>팀 금액</span><span className={styles.right}>상태</span>
+                    </div>
+                    {bookingRows.map(booking => {
+                        const group = dashboardBookingGroup(booking.status);
+                        const range = dashboardShortRange(booking.startDate, booking.endDate);
+                        const name = booking.customerName || '이름 미정';
+                        return <Link key={booking.key} to={booking.href} className={styles.tableRow}>
+                            <span className={styles.who}>
+                                <span className={`${styles.avatar} ${group === 'waiting' ? styles.avatarWait : ''}`} aria-hidden="true">{name.replace(/\s*\(.*\)/, '').slice(0, 1)}</span>
+                                <span className={styles.stack2}>
+                                    <span className={styles.rowName}>{name}</span>
+                                    <span className={styles.rowSub}>{booking.type === 'quote_booking' ? '견적 예약' : '상품 예약'} · {booking.productName || '상품 미정'} · <span className={styles.mono}>#{booking.reservationNumber || booking.id.slice(0, 8)}</span></span>
+                                </span>
+                            </span>
+                            <span className={`${styles.stack2} ${styles.rangeCell}`} aria-label={`여행 기간 ${dashboardPeriod(booking.startDate, booking.endDate)}`}>
+                                <span className={styles.rowRange}>{range.range}</span>
+                                {range.nights && <span className={styles.rowSub}>{range.nights}</span>}
+                            </span>
+                            <span className={styles.rowAmount} aria-label={`팀 금액 ${dashboardNumber(booking.totalAmount)}${booking.totalAmount != null ? '원' : ''}`}>{dashboardWon(booking.totalAmount)}</span>
+                            <span className={styles.statusCell}>
+                                <span className={`${styles.glow} ${styles.dot} ${styles.status} ${group === 'waiting' ? styles.toneWait : group === 'confirmed' ? styles.toneOk : styles.toneNeutral}`}>
+                                    {booking.statusLabel || booking.status || '상태 미정'}
+                                </span>
+                            </span>
+                        </Link>;
+                    })}
+                    {!bookingRows.length && <SectionState loading={initialLoading} complete={availability.bookings} error={error}
+                        empty={bookingFilter === '전체' ? '접수된 예약이 없습니다.' : '이 상태의 예약이 없습니다.'} />}
+                </div>
+            </section>
+        </div>
+
+        <SectionTitle title="매출 · 예약 현황" note="확정 매출과 오늘 들어온 예약" />
         <div className={styles.row420} role="group" aria-label="통합 운영 집계" aria-busy={initialLoading}>
             <section className={styles.revenue}>
                 <div className={styles.revHead}>
@@ -203,6 +398,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
             </section>
         </div>
 
+        <SectionTitle title="유입 · 문의" />
         <div className={styles.row520}>
             <TrafficSources tipFor={tipFor} />
 
@@ -220,7 +416,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                             <div className={styles.quoteTop}>
                                 <span className={styles.quoteName}>{inquiry.name || '이름 미정'}</span>
                                 {inquiry.phone && <span className={styles.quotePhone}>{dashboardPhone(inquiry.phone)}</span>}
-                                <span className={styles.quoteStatus}>{inquiry.statusLabel || inquiry.status}</span>
+                                <span className={`${styles.glow} ${styles.dot} ${styles.quoteStatus} ${styles.toneInfo}`}>{inquiry.statusLabel || inquiry.status}</span>
                             </div>
                             <div className={styles.quoteDest}><b>{inquiry.destination || '희망 여행 미정'}</b></div>
                             <div className={styles.quoteMeta}>
@@ -236,112 +432,6 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
             </section>
         </div>
 
-        <div className={styles.row420}>
-            <section className={styles.card} id="dashboard-tasks">
-                <div className={styles.taskHead}>
-                    <span className={styles.taskIcon}><DashboardIcon name="lc-clipboard-check" size={22} /></span>
-                    <div className={styles.taskHeadText}>
-                        <div className={styles.cardTitle}>오늘 확인할 업무</div>
-                        <div className={styles.taskSub}>{data
-                            ? <>처리가 필요한 팀 <b>{taskTeams}</b>팀 · 출발일 가까운 순{!availability.tasks && ' · 일부 자료'}</>
-                            : initialLoading ? '업무를 확인하고 있습니다.' : '업무 자료를 다시 조회해 주세요.'}</div>
-                    </div>
-                </div>
-                <div className={styles.tabs} role="tablist" aria-label="업무 종류">
-                    {TASK_TABS.map(tab => {
-                        const count = taskCards[tab.kind].length;
-                        return <button key={tab.kind} type="button" role="tab" id={`dashboard-tab-${tab.kind}`} aria-controls={`dashboard-panel-${tab.kind}`}
-                            aria-selected={activeTab === tab.kind} className={styles.tab} onClick={() => setTaskTab(tab.kind)}>
-                            <DashboardIcon name={tab.icon} size={16} />{tab.label}
-                            <span className={`${styles.tabCount} ${count ? styles.tabCountOn : ''}`}>{count}</span>
-                        </button>;
-                    })}
-                </div>
-                {!availability.tasks && data && <p className={`${styles.partial} ${styles.partialInset}`}>확인된 업무만 표시합니다. 불러오지 못한 자료에 추가 업무가 있을 수 있습니다.</p>}
-                {!data || !anyTask ? <div className={styles.taskPanel}>
-                    <SectionState loading={initialLoading} complete={availability.tasks} error={error}
-                        empty={data?.tasks.length ? '배정·입금·계약 확인이 필요한 팀이 없습니다.' : '확인이 필요한 업무가 없습니다.'} />
-                </div> : TASK_TABS.map(tab => <div key={tab.kind} className={styles.taskPanel} role="tabpanel" id={`dashboard-panel-${tab.kind}`}
-                    aria-labelledby={`dashboard-tab-${tab.kind}`} hidden={activeTab !== tab.kind}>
-                    {taskCards[tab.kind].map(card => {
-                        const range = dashboardShortRange(card.start, card.end);
-                        const soon = card.dday !== null && card.dday <= 90;
-                        return <div key={card.task.key} className={styles.taskCard}>
-                            <div className={styles.taskTop}>
-                                <span className={`${styles.dday} ${soon ? styles.ddaySoon : ''}`}>
-                                    {card.dday === null ? '미정' : card.dday === 0 ? 'D-DAY' : card.dday < 0 ? `D+${-card.dday}` : `D-${card.dday}`}
-                                </span>
-                                <span className={styles.taskName}>{card.name}</span>
-                                {card.product && <span className={styles.taskProduct}>{card.product}</span>}
-                            </div>
-                            <div className={styles.taskBottom}>
-                                <span className={styles.taskRange}><DashboardIcon name="lc-calendar" size={13} />{range.range}</span>
-                                <span className={styles.chip}><DashboardIcon name={tab.chip} size={13} />{card.task.title}</span>
-                                <Link className={`btn btn-blue btn-sm ${styles.taskAction}`} to={card.task.href}>{tab.action}</Link>
-                            </div>
-                        </div>;
-                    })}
-                    {!taskCards[tab.kind].length && <div className={styles.empty}>
-                        <span className={styles.emptyIcon}><DashboardIcon name="lc-check" size={20} /></span><p>이 탭에는 확인할 업무가 없어요.</p>
-                    </div>}
-                </div>)}
-                <div className={styles.taskFoot}>
-                    <DashboardIcon name="lc-message-circle" size={16} color="var(--mrt-blue-strong)" />
-                    {!availability.inquiries
-                        ? data ? '문의 자료를 확인할 수 없어 답변 대기 건수를 표시하지 않습니다.' : '문의 자료를 확인하고 있습니다.'
-                        : pendingInquiries.length
-                            ? <Link to="/admin/quotes">답변을 기다리는 견적 문의 <b>{pendingInquiries.length}</b>건<DashboardIcon name="lc-arrow-right" size={14} /></Link>
-                            : '답변을 기다리는 문의가 없습니다.'}
-                </div>
-            </section>
-
-            <section className={`${styles.card} ${styles.recent}`}>
-                <div className={styles.recentHead}>
-                    <span className={styles.cardTitle}>최근 통합 예약</span>
-                    <span className={styles.neutralBadge}>상품 · 견적</span>
-                    <Link className={styles.headLink} to="/admin/reservations">전체 보기<DashboardIcon name="lc-arrow-right" size={16} /></Link>
-                </div>
-                <div className={styles.pills}>
-                    {BOOKING_FILTERS.map(filter => <button key={filter} type="button" className={styles.pill} aria-pressed={bookingFilter === filter}
-                        onClick={() => setBookingFilter(filter)}>
-                        {filter}<span className={styles.pillN}>{data ? bookingCounts[filter] : '—'}</span>
-                    </button>)}
-                </div>
-                {!availability.bookings && data && <p className={styles.partial}>불러온 예약만 표시합니다. 일부 예약 자료는 확인이 필요합니다.</p>}
-                <div className={styles.table}>
-                    <div className={styles.tableHead} aria-hidden="true">
-                        <span>고객 · 상품</span><span>여행 기간</span><span className={styles.right}>팀 금액</span><span className={styles.right}>상태</span>
-                    </div>
-                    {bookingRows.map(booking => {
-                        const group = dashboardBookingGroup(booking.status);
-                        const range = dashboardShortRange(booking.startDate, booking.endDate);
-                        const name = booking.customerName || '이름 미정';
-                        return <Link key={booking.key} to={booking.href} className={styles.tableRow}>
-                            <span className={styles.who}>
-                                <span className={`${styles.avatar} ${group === 'waiting' ? styles.avatarWait : ''}`} aria-hidden="true">{name.replace(/\s*\(.*\)/, '').slice(0, 1)}</span>
-                                <span className={styles.stack2}>
-                                    <span className={styles.rowName}>{name}</span>
-                                    <span className={styles.rowSub}>{booking.type === 'quote_booking' ? '견적 예약' : '상품 예약'} · {booking.productName || '상품 미정'} · <span className={styles.mono}>#{booking.reservationNumber || booking.id.slice(0, 8)}</span></span>
-                                </span>
-                            </span>
-                            <span className={styles.stack2} aria-label={`여행 기간 ${dashboardPeriod(booking.startDate, booking.endDate)}`}>
-                                <span className={styles.rowRange}>{range.range}</span>
-                                {range.nights && <span className={styles.rowSub}>{range.nights}</span>}
-                            </span>
-                            <span className={styles.rowAmount} aria-label={`팀 금액 ${dashboardNumber(booking.totalAmount)}${booking.totalAmount != null ? '원' : ''}`}>{dashboardWon(booking.totalAmount)}</span>
-                            <span className={styles.statusCell}>
-                                <span className={`${styles.status} ${group === 'waiting' ? styles.statusWait : group === 'confirmed' ? styles.statusOk : ''}`}>
-                                    {booking.statusLabel || booking.status || '상태 미정'}
-                                </span>
-                            </span>
-                        </Link>;
-                    })}
-                    {!bookingRows.length && <SectionState loading={initialLoading} complete={availability.bookings} error={error}
-                        empty={bookingFilter === '전체' ? '접수된 예약이 없습니다.' : '이 상태의 예약이 없습니다.'} />}
-                </div>
-            </section>
-        </div>
-
         {tip && <div className={styles.tip} aria-hidden="true" style={{
             left: tip.x > (typeof window !== 'undefined' ? window.innerWidth : 1600) - 220 ? tip.x - 190 : tip.x + 14, top: tip.y + 16,
         }}>
@@ -353,8 +443,8 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
 
 export const AdminDashboard: React.FC = () => {
     const workspace = useAdminWorkspace();
-    return <AdminLayout activePage="dashboard" title="대시보드" description="상품과 견적 예약의 오늘 업무를 함께 확인합니다."
-        actions={<Link className="btn btn-ink" to="/admin/reservations"><Icon name="event_note" />예약 관리</Link>}>
+    // 디자인 v3: 통합 예약 목록은 본문 바로가기에 있으므로 상단 작업 버튼을 두지 않는다.
+    return <AdminLayout activePage="dashboard" title="대시보드" description="상품과 견적 예약의 오늘 업무를 함께 확인합니다.">
         <AdminDashboardBody {...workspace} />
     </AdminLayout>;
 };
