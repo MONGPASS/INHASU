@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { clearCustomerSessionCache } from '../lib/customerSessionCache';
+import { clearAdminReads, setAdminReadAccount } from '../lib/adminReadCache';
 
 interface User {
     id: string;
@@ -24,45 +25,58 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const queryClient = useQueryClient();
     const [user, setUserState] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-
-    const checkUser = async () => {
-        try {
-            const data = await api.auth.me();
-            if (data) {
-                setUserState({
-                    id: data.id,
-                    name: data.name || 'User',
-                    email: data.email,
-                    image: data.avatarUrl,
-                    role: data.role
-                });
-            } else {
-                setUserState(null);
-            }
-        } catch (e) {
-            console.error(e);
-            setUserState(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        checkUser();
+    const authRevision = useRef(0);
+    const applyUser = useCallback((next: User | null) => {
+        // Scope changes before children can render or start another request.
+        setAdminReadAccount(next?.role === 'admin' ? next.id : '');
+        setUserState(next);
     }, []);
 
+    useEffect(() => {
+        const current = ++authRevision.current;
+        let active = true;
+        const checkUser = async () => {
+            try {
+                const data = await api.auth.me();
+                if (!active || current !== authRevision.current) return;
+                if (data) {
+                    applyUser({
+                        id: data.id,
+                        name: data.name || 'User',
+                        email: data.email,
+                        image: data.avatarUrl,
+                        role: data.role
+                    });
+                } else {
+                    applyUser(null);
+                }
+            } catch (e) {
+                console.error(e);
+                if (active && current === authRevision.current) applyUser(null);
+            } finally {
+                if (active && current === authRevision.current) setLoading(false);
+            }
+        };
+        void checkUser();
+        return () => { active = false; clearAdminReads(); };
+    }, [applyUser]);
+
     const logout = async () => {
+        authRevision.current++;
+        clearAdminReads();
         try { await api.auth.logout(); }
         finally {
             await clearCustomerSessionCache(queryClient);
-            setUserState(null);
+            applyUser(null);
             window.location.href = '/';
         }
     };
 
     const setUser = useCallback((newUser: User | null) => {
-        setUserState(newUser);
-    }, []);
+        authRevision.current++;
+        applyUser(newUser);
+        setLoading(false);
+    }, [applyUser]);
 
     return (
         <UserContext.Provider value={{ user, setUser, logout, loading }}>

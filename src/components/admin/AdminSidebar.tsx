@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
 import { DashboardIcon, type DashboardIconName } from './dashboard/DashboardIcon';
 import { QUOTE_DESK_TOOLS, disconnectQuoteDesk, quoteDeskHref, quoteDeskPageId } from './quoteDesk';
+import { preloadAdminPage } from '../../lib/adminPagePreload';
 
 interface AdminSidebarProps {
     activePage: string;
@@ -122,7 +123,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = f
     const renderItem = (item: NavItem, sub = false) => {
         const isActive = activePage === item.id;
         return (
-            <Link key={item.id} to={item.href} className={`nav-item${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined} title={rail ? item.label : undefined}>
+            <Link key={item.id} to={item.href} className={`nav-item${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined} title={rail ? item.label : undefined}
+                onPointerEnter={() => preloadAdminPage(item.href)} onFocus={() => preloadAdminPage(item.href)} onPointerDown={() => preloadAdminPage(item.href)}>
                 <DashboardIcon name={item.icon} size={sub ? 16 : 18} />
                 <span>{item.label}</span>
             </Link>
@@ -156,6 +158,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = f
                                         aria-controls={panelId}
                                         title={rail ? group.label : undefined}
                                         onClick={() => {
+                                            preloadAdminPage(group.items[0].href);
                                             // 접힌 메뉴에서는 펼치면서 해당 업무를 연다.
                                             if (rail) { onToggleRail?.(); setExpandedGroup(group.id); return; }
                                             setExpandedGroup(isOpen ? null : group.id);

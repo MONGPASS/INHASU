@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
 import { api } from '../lib/api';
+import { peekAdminRead } from '../lib/adminReadCache';
+import { useUser } from '../contexts/UserContext';
 import { productCustomerHref, quoteCustomerHref, legacyQuoteCustomerHref } from '../utils/customerWorkspaceRoutes';
 import { adaptCalendarTours, calendarDateKey, calendarMonthDays, toursOnDate, toursInMonth, calendarConflicts, calendarConflictsInRange, calendarStats, calendarTourDay,
     type CalendarTour, type CalendarConflict } from '../utils/adminTourCalendar';
@@ -25,6 +27,25 @@ const actionable = (tour: CalendarTour) => tour.issues.filter(issue => issue.kin
 const money = (value: number | null) => value === null ? '금액 미등록' : `${value.toLocaleString('ko-KR')}원`;
 const peopleSummary = (stats: ReturnType<typeof calendarStats>) => stats.unknownPeople ? stats.people ? `${stats.people}명 + 미정 ${stats.unknownPeople}팀` : '인원 미등록' : `${stats.people}명`;
 const dateLabel = (date: string, year = false) => new Intl.DateTimeFormat('ko-KR', { ...(year ? { year: 'numeric' as const } : {}), month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Seoul' }).format(new Date(`${date}T12:00:00+09:00`));
+
+type CalendarData = { reservations: unknown[]; bookings: unknown[]; quotes: unknown[] };
+interface CalendarSnapshot {
+    account: string;
+    data: CalendarData;
+    ready: { reservations: boolean; bookings: boolean; quotes: boolean };
+    loading: boolean;
+    warnings: string[];
+    skippedBookings: number;
+}
+function cachedCalendar(account: string): CalendarSnapshot {
+    const reservations = account ? peekAdminRead<unknown[]>('/api/reservations', account) : undefined;
+    const bookings = account ? peekAdminRead<{ items: unknown[]; skipped?: number }>('/api/admin/bookings/quote', account) : undefined;
+    const quotes = account ? peekAdminRead<unknown[]>('/api/quotes', account) : undefined;
+    return { account,
+        data: { reservations: Array.isArray(reservations) ? reservations : [], bookings: Array.isArray(bookings?.items) ? bookings.items : [], quotes: Array.isArray(quotes) ? quotes : [] },
+        ready: { reservations: Array.isArray(reservations), bookings: Array.isArray(bookings?.items), quotes: Array.isArray(quotes) },
+        loading: !Array.isArray(reservations) || !Array.isArray(bookings?.items), warnings: [], skippedBookings: Number(bookings?.skipped) || 0 };
+}
 function workspaceHref(tour: CalendarTour, returnTo: string, action?: CalendarWorkspaceAction) {
     const returnUrl = new URL(returnTo, 'https://calendar.invalid');
     returnUrl.searchParams.set('open', tour.key);
@@ -62,28 +83,65 @@ function TourCard({ tour, date, conflicts, returnTo, selected }: { tour: Calenda
 
 export function AdminCalendar() {
     const [params, setParams] = useSearchParams(), view = readAdminCalendarView(params.toString());
-    const [data, setData] = useState<{ reservations: unknown[]; bookings: unknown[]; quotes: unknown[] }>({ reservations: [], bookings: [], quotes: [] });
-    const [loading, setLoading] = useState(true), [initialized, setInitialized] = useState(false), [warnings, setWarnings] = useState<string[]>([]);
-    const [skippedBookings, setSkippedBookings] = useState(0);
+    const { user } = useUser(), account = user?.role === 'admin' ? user.id : '';
+    const [snapshot, setSnapshot] = useState<CalendarSnapshot>(() => cachedCalendar(account));
+    // Do not show the previous administrator's rows even for the render before effect cleanup.
+    const visibleSnapshot = snapshot.account === account ? snapshot : cachedCalendar(account);
+    const { data, warnings, skippedBookings } = visibleSnapshot;
+    const initialized = visibleSnapshot.ready.reservations && visibleSnapshot.ready.bookings && (!view.legacy || visibleSnapshot.ready.quotes);
+    const loading = visibleSnapshot.loading || (!initialized && warnings.length === 0);
+    const activeAccount = useRef(account);
     const generation = useRef(0), panelRef = useRef<HTMLElement>(null);
+    const pending = useRef<{ id: number; promise: Promise<void> } | null>(null), reloadQueued = useRef(false);
+    const latestReload = useRef<((force?: boolean) => Promise<void>) | null>(null);
+    const lastSuccess = useRef({ account: '', base: 0, legacy: 0 });
     const revealedTour = useRef('');
-    const reload = useCallback(async () => {
-        const request = ++generation.current; setLoading(true);
-        const results = await Promise.allSettled([api.reservations.list(), api.adminBookings.quote(), api.quotes.list()]);
-        if (request !== generation.current) return;
-        const nextWarnings: string[] = [];
-        const rows = results.map((result, index) => {
-            const raw = result.status === 'fulfilled' ? result.value : null;
-            const value = index === 1 && raw && typeof raw === 'object' && 'items' in raw ? raw.items : raw;
-            if (!Array.isArray(value)) { nextWarnings.push(['상품 예약', '견적 예약', '이전 문의'][index]); return null; }
-            return value;
+    const reload = useCallback(async (force = true): Promise<void> => {
+        if (!account || activeAccount.current !== account) return;
+        if (pending.current) { if (force) reloadQueued.current = true; return pending.current.promise; }
+        const fresh = lastSuccess.current;
+        if (!force && fresh.account === account && Date.now() - fresh.base < 30000 && (!view.legacy || Date.now() - fresh.legacy < 30000)) return;
+        const request = ++generation.current;
+        const active = () => request === generation.current && activeAccount.current === account;
+        setSnapshot(previous => ({ ...(previous.account === account ? previous : cachedCalendar(account)), loading: true }));
+        const operation = (async () => {
+            // Old inquiries are optional; they must not hold up the normal tour calendar.
+            const results = await Promise.allSettled([api.reservations.list(), api.adminBookings.quote(), view.legacy ? api.quotes.list() : Promise.resolve(null)]);
+            if (!active()) return;
+            const nextWarnings: string[] = [];
+            const rows = results.map((result, index) => {
+                if (index === 2 && !view.legacy) return null;
+                const raw = result.status === 'fulfilled' ? result.value : null;
+                const value = index === 1 && raw && typeof raw === 'object' && 'items' in raw ? raw.items : raw;
+                if (!Array.isArray(value)) { nextWarnings.push(['상품 예약', '견적 예약', '이전 문의'][index]); return null; }
+                return value;
+            });
+            setSnapshot(previous => {
+                const current = previous.account === account ? previous : cachedCalendar(account);
+                return { account, data: { reservations: rows[0] ?? current.data.reservations, bookings: rows[1] ?? current.data.bookings, quotes: rows[2] ?? current.data.quotes },
+                    ready: { reservations: rows[0] !== null || current.ready.reservations, bookings: rows[1] !== null || current.ready.bookings, quotes: rows[2] !== null || current.ready.quotes },
+                    loading: false, warnings: nextWarnings,
+                    skippedBookings: rows[1] && results[1].status === 'fulfilled' ? Number(results[1].value.skipped) || 0 : current.skippedBookings };
+            });
+            if (rows[0] && rows[1]) lastSuccess.current = { account, base: Date.now(), legacy: rows[2] ? Date.now() : fresh.account === account ? fresh.legacy : 0 };
+        })().finally(() => {
+            if (!active()) return;
+            pending.current = null;
+            if (reloadQueued.current) { reloadQueued.current = false; void latestReload.current?.(); }
         });
-        setData(previous => ({ reservations: rows[0] ?? previous.reservations, bookings: rows[1] ?? previous.bookings, quotes: rows[2] ?? previous.quotes }));
-        if (results[1].status === 'fulfilled' && rows[1]) setSkippedBookings(Number(results[1].value.skipped) || 0);
-        setWarnings(nextWarnings); setInitialized(true); setLoading(false);
-    }, []);
-    useEffect(() => { void reload(); const update = () => { void reload(); }; window.addEventListener('admin-workspace-changed', update); window.addEventListener('focus', update);
-        return () => { generation.current++; window.removeEventListener('admin-workspace-changed', update); window.removeEventListener('focus', update); }; }, [reload]);
+        pending.current = { id: request, promise: operation };
+        return operation;
+    }, [account, view.legacy]);
+    useEffect(() => { latestReload.current = reload; return () => { latestReload.current = null; }; }, [reload]);
+    useEffect(() => {
+        activeAccount.current = account;
+        const mountGeneration = generation.current;
+        queueMicrotask(() => { if (generation.current === mountGeneration && activeAccount.current === account) void reload(false); });
+        const update = () => { void reload(); }, focus = () => { if (!document.hidden) void reload(false); };
+        window.addEventListener('admin-workspace-changed', update); window.addEventListener('focus', focus); document.addEventListener('visibilitychange', focus);
+        const cancelRead = () => { generation.current++; pending.current = null; reloadQueued.current = false; activeAccount.current = ''; };
+        return () => { cancelRead(); window.removeEventListener('admin-workspace-changed', update); window.removeEventListener('focus', focus); document.removeEventListener('visibilitychange', focus); };
+    }, [account, reload]);
     const all = useMemo(() => adaptCalendarTours(data), [data]);
     useEffect(() => {
         const key = `${view.date}:${view.open}`;
@@ -126,7 +184,7 @@ export function AdminCalendar() {
     };
     let cells = calendarMonthDays(monthDate);
     while (cells.length > 28 && cells.slice(-7).every(cell => !cell.inMonth)) cells = cells.slice(0, -7);
-    const unknown = !initialized || (warnings.length === 3 && all.length === 0);
+    const unknown = !initialized;
     const metrics = [
         { label: '이번 달 투어', value: `${stats.tours}팀`, caption: '상품·견적 예약 · 보류 제외', icon: 'lc-calendar' as DashboardIconName, tone: 'mint' },
         { label: '여행 인원', value: stats.people === 0 && stats.unknownPeople ? '인원 미등록' : `${stats.people}명`, caption: stats.unknownPeople ? `${stats.unknownPeople}팀 인원 확인 필요` : '확정 일정의 전체 예약 인원', icon: 'lc-users' as DashboardIconName, tone: 'green' },
@@ -157,11 +215,11 @@ export function AdminCalendar() {
                             <div className="tc-events">{tours.slice(0, 2).map(tour => <button type="button" className={`tc-event${cellConflicts.has(tour.key) ? ' is-conflict' : ''}${['completed', 'on_hold'].includes(tour.status) ? ' is-muted' : ''}`} data-source={tour.source} key={tour.key} title={`${typeLabels[tour.source]} · ${tour.customerName} · ${tour.productName}`} onClick={() => choose(cell.dateKey, tour.key, true)}><span>{tour.customerName}</span><small>{tour.people === null ? '?명' : `${tour.people}명`}</small></button>)}</div>
                             {tours.length > 2 && <button type="button" className="tc-more" onClick={() => choose(cell.dateKey, '', true)}>+{tours.length - 2}건 모두 보기</button>}
                         </div>;
-                    })}</div></> : <div className="tc-table-wrap">{visibleMonth.length ? <table className="tc-table"><thead><tr><th>고객·여행</th><th>여행 기간</th><th>인원</th><th>가이드·차량</th><th>확인할 업무</th></tr></thead><tbody>{visibleMonth.map(tour => <tr key={tour.key}><td><button type="button" className="tc-table-customer" onClick={() => choose(view.date >= tour.startDate && view.date <= tour.endDate ? view.date : tour.startDate < `${view.month}-01` ? `${view.month}-01` : tour.startDate, tour.key, true)}><span className="tc-source" data-source={tour.source}>{typeLabels[tour.source]}</span><strong>{tour.customerName}</strong><small>{tour.productName}</small></button></td><td>{tour.startDate.slice(5)} ~ {tour.endDate.slice(5)}</td><td>{tour.people === null ? '미등록' : `${tour.people}명`}</td><td>{tour.guide?.name || '가이드 미배정'}<br />{tour.vehicle?.name || '차량 미배정'}</td><td>{conflictKeys.has(tour.key) ? '배정 겹침 · ' : ''}{actionable(tour).slice(0, 2).map(issue => issue.label).join(' · ') || tour.statusLabel}</td></tr>)}</tbody></table> : <div className="tc-empty"><Glyph name="calendar" /><strong>{unknown ? '일정을 불러오는 중입니다' : '표시할 일정이 없습니다'}</strong>{filtered && <button className="tc-button" onClick={clear}>필터 초기화</button>}</div>}</div>}
+                    })}</div></> : <div className="tc-table-wrap">{visibleMonth.length ? <table className="tc-table"><thead><tr><th>고객·여행</th><th>여행 기간</th><th>인원</th><th>가이드·차량</th><th>확인할 업무</th></tr></thead><tbody>{visibleMonth.map(tour => <tr key={tour.key}><td><button type="button" className="tc-table-customer" onClick={() => choose(view.date >= tour.startDate && view.date <= tour.endDate ? view.date : tour.startDate < `${view.month}-01` ? `${view.month}-01` : tour.startDate, tour.key, true)}><span className="tc-source" data-source={tour.source}>{typeLabels[tour.source]}</span><strong>{tour.customerName}</strong><small>{tour.productName}</small></button></td><td>{tour.startDate.slice(5)} ~ {tour.endDate.slice(5)}</td><td>{tour.people === null ? '미등록' : `${tour.people}명`}</td><td>{tour.guide?.name || '가이드 미배정'}<br />{tour.vehicle?.name || '차량 미배정'}</td><td>{conflictKeys.has(tour.key) ? '배정 겹침 · ' : ''}{actionable(tour).slice(0, 2).map(issue => issue.label).join(' · ') || tour.statusLabel}</td></tr>)}</tbody></table> : <div className="tc-empty"><Glyph name="calendar" /><strong>{unknown ? loading ? '일정을 불러오는 중입니다' : '일정을 불러오지 못했습니다' : '표시할 일정이 없습니다'}</strong>{filtered && <button className="tc-button" onClick={clear}>필터 초기화</button>}</div>}</div>}
                     <footer className="tc-month-footer"><div className="tc-legend"><span data-source="product">상품 예약</span><span data-source="quote_booking">견적 예약</span>{view.legacy && <span data-source="legacy_quote">이전 문의</span>}<span><i className="tc-attention-dot" />처리 필요</span></div><small>날짜를 선택하면 팀별 운영 정보를 확인할 수 있습니다.</small></footer>
                 </section>
-                <section className="tc-day-panel" ref={panelRef} aria-label="선택일 투어 상세"><header className="tc-panel-header"><div><span className="tc-eyebrow">선택한 날짜</span><h2>{dateLabel(view.date)}{view.date === today && <span className="tc-today-badge">오늘</span>}</h2></div><span className="tc-panel-count">{selected.length}건</span></header><div className="tc-panel-stats"><span>투어 <b>{dayStats.tours}팀</b></span><span>인원 <b>{peopleSummary(dayStats)}</b></span><span>처리 필요 <b>{selected.filter(tour => actionable(tour).length || dayConflicts.some(conflict => conflict.tourKeys.includes(tour.key))).length}팀</b></span>{dayStats.inquiries > 0 && <span>문의 <b>{dayStats.inquiries}건</b></span>}</div>
-                    <div className="tc-panel-body" aria-live="polite">{selected.length > 0 ? selected.map(tour => <TourCard key={tour.key} tour={tour} date={view.date} conflicts={dayConflicts.filter(conflict => conflict.tourKeys.includes(tour.key))} returnTo={returnTo} selected={view.open === tour.key} />) : <div className="tc-empty"><Glyph name="calendar" /><strong>{unknown ? '예약 정보를 불러오고 있습니다' : filtered ? '조건에 맞는 투어가 없습니다' : '이 날짜에 등록된 투어가 없습니다'}</strong><p>{filtered ? '검색어나 필터를 바꾸어 확인해 주세요.' : '다른 날짜를 선택하거나 예약 목록을 확인해 주세요.'}</p>{filtered ? <button type="button" className="tc-button" onClick={clear}>필터 초기화</button> : <a className="tc-button" href="/admin/reservations">예약 목록 보기</a>}</div>}</div>
+                <section className="tc-day-panel" ref={panelRef} aria-label="선택일 투어 상세"><header className="tc-panel-header"><div><span className="tc-eyebrow">선택한 날짜</span><h2>{dateLabel(view.date)}{view.date === today && <span className="tc-today-badge">오늘</span>}</h2></div><span className="tc-panel-count">{unknown ? '—' : selected.length}건</span></header><div className="tc-panel-stats"><span>투어 <b>{unknown ? '—' : dayStats.tours}팀</b></span><span>인원 <b>{unknown ? '—' : peopleSummary(dayStats)}</b></span><span>처리 필요 <b>{unknown ? '—' : selected.filter(tour => actionable(tour).length || dayConflicts.some(conflict => conflict.tourKeys.includes(tour.key))).length}팀</b></span>{dayStats.inquiries > 0 && <span>문의 <b>{dayStats.inquiries}건</b></span>}</div>
+                    <div className="tc-panel-body" aria-live="polite">{selected.length > 0 ? selected.map(tour => <TourCard key={tour.key} tour={tour} date={view.date} conflicts={dayConflicts.filter(conflict => conflict.tourKeys.includes(tour.key))} returnTo={returnTo} selected={view.open === tour.key} />) : <div className="tc-empty"><Glyph name="calendar" /><strong>{unknown ? loading ? '예약 정보를 불러오고 있습니다' : '예약 정보를 불러오지 못했습니다' : filtered ? '조건에 맞는 투어가 없습니다' : '이 날짜에 등록된 투어가 없습니다'}</strong><p>{filtered ? '검색어나 필터를 바꾸어 확인해 주세요.' : '다른 날짜를 선택하거나 예약 목록을 확인해 주세요.'}</p>{filtered ? <button type="button" className="tc-button" onClick={clear}>필터 초기화</button> : <a className="tc-button" href="/admin/reservations">예약 목록 보기</a>}</div>}</div>
                 </section>
             </div><p className="tc-note">여행 날짜가 등록된 예약을 표시합니다. <a href="/admin/reservations">날짜 미정 예약은 예약 목록에서 확인<Glyph name="next" /></a></p>
         </div>

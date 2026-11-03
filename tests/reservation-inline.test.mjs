@@ -10,11 +10,17 @@ import { buildProductQuote, mergeProductDays } from '../functions/lib/productIti
 const bundle = buildSync({
     entryPoints: [fileURLToPath(new URL('../src/utils/reservationInline.ts', import.meta.url))],
     bundle: true, platform: 'node', format: 'cjs', packages: 'external', jsx: 'automatic', write: false,
+    // Navigation prefetch is unrelated to document conversion. Keep its lazy
+    // destinations out of this Node-only editor bundle, while retaining every
+    // real template/editor dependency that the assertions below exercise.
+    external: ['*/adminPagePreload'],
     loader: { '.webp': 'dataurl', '.jpg': 'dataurl', '.png': 'dataurl', '.svg': 'dataurl', '.css': 'empty' },
     define: { 'import.meta.env': '{}' },
 }).outputFiles[0].text;
 const module = { exports: {} };
-new Function('require', 'module', 'exports', bundle)(createRequire(import.meta.url), module, module.exports);
+const require = createRequire(import.meta.url);
+const editorRequire = id => id.endsWith('/adminPagePreload') ? { preloadAdminPage() {} } : require(id);
+new Function('require', 'module', 'exports', bundle)(editorRequire, module, module.exports);
 const { createInlineDocument, applyQuoteSnippet, groupQuoteLibrary, quoteDayFields, updateQuoteDay, quoteDateForStart, fillQuoteDayDates, parseQuoteMove } = module.exports;
 
 const product = { name: '정확히 예약한 상품', description: '실제 상품 소개', price: 1200000,

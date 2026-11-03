@@ -98,6 +98,60 @@ test('requests의 최신 상태를 사용하고 깨진 한 건은 집계하며 �
     } finally { raw.close(); }
 });
 
+test('문의 본문은 DB에서 제외하면서 상태 우선순위·오래된 확정·중복 JSON 키와 누락 집계를 보존한다', async () => {
+    const raw = new DatabaseSync(':memory:');
+    raw.exec(fs.readFileSync(new URL('../schema.sql', import.meta.url), 'utf8'));
+    const insert = raw.prepare('INSERT INTO requests (id,status,received_at,data) VALUES (?,?,?,?)');
+    const fixtures = [
+        ['draft', '진행중', '{"booking":{}}'],
+        ['old-confirmed', '예약확정', '{}'],
+        ['null-data-confirmed', '예약확정', null],
+        ['empty-data-confirmed', '예약확정', ''],
+        ['json-status', null, '{"status":"예약확정"}'],
+        ['empty-row-status', '', '{"status":"예약확정"}'],
+        ['row-wins', '보류', '{"status":"예약확정"}'],
+        ['cancelled-draft', '예약취소', '{"booking":{}}'],
+        ['signed-draft', '진행중', '{"booking":{"contract":{"signedAt":"2026-10-13"}}}'],
+        ['duplicate-booking-last-object', '신규', '{"booking":null,"booking":{}}'],
+        ['duplicate-booking-last-null', '신규', '{"booking":{},"booking":null}'],
+        ['duplicate-status-last-confirmed', '', '{"status":"신규","status":"예약확정"}'],
+        ['duplicate-status-last-new', '', '{"status":"예약확정","status":"신규"}'],
+        ['not-booked-array', '신규', '{"booking":[]}'],
+        ['broken', '신규', '{'], ['whitespace', '신규', ' '],
+        ['array', '예약확정', '[]'], ['primitive-null', '예약확정', 'null'],
+        ['primitive-number', '신규', '0'], ['primitive-bool', '신규', 'true'],
+        ['primitive-text', '신규', '"text"'],
+        ['large-inquiry', '신규', JSON.stringify({ quote: { days: [{ text: '문의 일정'.repeat(10000) }] } })],
+    ];
+    fixtures.forEach(([id, status, data], index) => insert.run(id, status, `2026-10-${String(index + 1).padStart(2, '0')}`, data));
+    const before = raw.prepare('SELECT * FROM requests ORDER BY received_at DESC').all();
+    const expected = { items: [], skipped: 0 };
+    // Reference the original full-table read semantics, independently of the SQL
+    // optimization, including malformed/non-object records and empty data.
+    for (const row of before) {
+        try {
+            const data = JSON.parse(row.data || '{}');
+            if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error();
+            const rec = { ...data, id: row.id, status: row.status || data.status,
+                name: row.name ?? data.name, phone: row.phone ?? data.phone, destination: row.destination ?? data.destination,
+                receivedAt: row.received_at || data.receivedAt };
+            if (isQuoteBooking(rec)) expected.items.push(summarizeQuoteBooking(rec));
+        } catch { expected.skipped++; }
+    }
+    let transferred = [];
+    try {
+        const actual = await readQuoteBookings({ prepare: sql => ({ all: async () => {
+            transferred = raw.prepare(sql).all(); return { results: transferred };
+        } }) });
+        assert.deepEqual(actual, expected);
+        assert.equal(actual.skipped, 7);
+        assert.ok(actual.items.find(row => row.id === 'signed-draft').quoteBooking.signed);
+        assert.ok(!transferred.some(row => ['row-wins', 'not-booked-array', 'large-inquiry'].includes(row.id)));
+        assert.ok(transferred.length < before.length, 'ordinary inquiry documents must not cross the DB boundary');
+        assert.deepEqual(raw.prepare('SELECT * FROM requests ORDER BY received_at DESC').all(), before);
+    } finally { raw.close(); }
+});
+
 test('ID로 견적 예약을 열 때 실패하거나 다른 고객 응답이면 이전 고객을 열지 않는다', async () => {
     const html = fs.readFileSync(new URL('../public/예약관리.html', import.meta.url), 'utf8');
     const bootstrap = html.slice(html.indexOf('async function openInitialBooking()'), html.indexOf('openInitialBooking();'));
