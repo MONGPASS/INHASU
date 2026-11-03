@@ -16,6 +16,8 @@ export interface CustomerWorkspaceOverviewModel {
     /** 상품과 연결되지 않은 맞춤 견적의 희망 여행지. */
     placeLabel?: string;
     documentLabel?: string;
+    /** 'documents': 예약 전 문의처럼 알림 패널 대신 문서 화면을 연다. 기본은 고객 알림 패널(디자인 v3). */
+    documentAction?: 'notices' | 'documents';
     disabledActions?: string[];
     disabledActionReason?: string;
     workLabels?: Record<string, string>;
@@ -47,8 +49,10 @@ const PACKAGE_COPY = {
     full: { label: '풀패키지', detail: '4성급 호텔 + 디럭스 게르 숙박' },
     value: { label: '실속형', detail: '3성급 호텔 + 스탠다드 게르 숙박' },
 };
-const DOCUMENT_LINKS: Array<{ id: string; label: string; icon: DashboardIconName }> = [
-    { id: 'quote', label: '견적서', icon: 'lc-file-text' }, { id: 'itinerary', label: '확정 일정표', icon: 'lc-calendar' }, { id: 'contract', label: '여행 계약서', icon: 'lc-file-check' },
+/** 디자인 v3: 머리 영역의 문서 버튼은 각 문서의 편집 화면(견적서 작성 · 일정표 편집의 일정표/계약서 탭)을 연다. */
+const DOCUMENT_LINKS: Array<{ id: string; label: string; icon: DashboardIconName; action: string }> = [
+    { id: 'quote', label: '견적서', icon: 'lc-file-text', action: 'quote-edit' }, { id: 'itinerary', label: '확정 일정표', icon: 'lc-calendar', action: 'edit-itinerary' },
+    { id: 'contract', label: '여행 계약서', icon: 'lc-file-check', action: 'contract' },
 ];
 const EVENT_ICONS: Record<NonNullable<CustomerWorkspaceOverviewModel['recentHistory']>[number]['kind'], DashboardIconName> = {
     inquiry: 'lc-message-circle', quote: 'lc-file-text', booking: 'lc-clipboard-check', payment: 'lc-banknote', contract: 'lc-file-check',
@@ -136,10 +140,18 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                         {m.bookedProduct && (m.bookedProduct.href ? <a className="cw-booked-product" href={m.bookedProduct.href} target="_blank" rel="noopener noreferrer" aria-label={`예약 상품 ${m.bookedProduct.name} 새 창으로 보기`}>{productContent}</a> : <div className="cw-booked-product">{productContent}</div>)}
                     </div>
                     <div className="cw-header-tools">
-                        {DOCUMENT_LINKS.flatMap(link => { const doc = m.documents.find(item => item.id === link.id); return doc ? [<button type="button" key={link.id} className="cw-doc-link" disabled={busy || doc.disabled} onClick={action(doc.action || doc.id, doc.id)}><DashboardIcon name={link.icon} size={15} />{link.label}</button>] : []; })}
+                        {DOCUMENT_LINKS.flatMap(link => { const doc = m.documents.find(item => item.id === link.id); return doc ? [<button type="button" key={link.id} className="cw-doc-link" disabled={busy || doc.disabled} onClick={action(link.action)}><DashboardIcon name={link.icon} size={15} />{link.label}</button>] : []; })}
                         <span className="cw-header-divider" aria-hidden="true" />
                         <div className="cw-header-actions">
-                            <button type="button" className="cw-button cw-primary" disabled={busy} onClick={action('documents')}>{m.documentLabel || '고객 문서 확인·전달'}</button>
+                            <button type="button" className="cw-button cw-primary" disabled={busy} onClick={event => {
+                                // 디자인 v3: 같은 화면의 '고객 알림 자동발송 · 이력/다시 보내기' 패널을 펼친다.
+                                const panel = notificationActions && m.documentAction !== 'documents'
+                                    ? (event?.currentTarget as HTMLElement | undefined)?.closest('.cw-overview')?.querySelector<HTMLDetailsElement>('details.cw-kakao') : null;
+                                if (!panel) { action('documents')(); return; }
+                                panel.open = true;
+                                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                panel.querySelector('summary')?.focus({ preventScroll: true });
+                            }}>{m.documentLabel || '고객 문서 확인·전달'}</button>
                         </div>
                     </div>
                 </header>

@@ -58,7 +58,21 @@ test('상단 문서 바로가기는 저장된 문서의 기존 액션을 그대�
     const links = elements(tree, node => node.props.className === 'cw-doc-link');
     assert.deepEqual(links.map(childrenText), ['견적서', '여행 계약서']);
     links.forEach(link => link.props.onClick());
-    assert.deepEqual(calls, [['quote-preview', 'quote'], ['contract', 'contract']]);
+    // 디자인 v3: 문서 버튼은 미리보기·발송이 아니라 각 문서의 편집 화면을 연다.
+    assert.deepEqual(calls, [['quote-edit', undefined], ['contract', undefined]]);
+});
+
+test('고객 문서 확인·전달은 같은 화면의 고객 알림 패널을 펼치고 문의 단계에서는 문서 화면을 연다', () => {
+    const calls = [];
+    let opened = false, scrolled = 0, focused = 0;
+    const panel = { set open(value) { opened = value; }, get open() { return opened; }, scrollIntoView: () => scrolled++, querySelector: () => ({ focus: () => focused++ }) };
+    const event = { currentTarget: { closest: () => ({ querySelector: selector => selector === 'details.cw-kakao' ? panel : null }) } };
+    const notices = React.createElement('details', { className: 'cw-kakao' });
+    const primary = tree => elements(elements(tree, node => node.props.className === 'cw-header-actions')[0], node => node.type === 'button')[0];
+    primary(CustomerWorkspaceOverview({ model, notificationActions: notices, onAction: (...args) => calls.push(args) })).props.onClick(event);
+    assert.deepEqual(calls, []); assert.equal(opened, true); assert.equal(scrolled, 1); assert.equal(focused, 1);
+    primary(CustomerWorkspaceOverview({ model: { ...model, documentAction: 'documents' }, notificationActions: notices, onAction: (...args) => calls.push(args) })).props.onClick(event);
+    assert.deepEqual(calls, [['documents', undefined]]);
 });
 
 test('숙박일이 확정된 숙소는 박별 행으로 나누어 해당 일차를 전달하고 이전 견적의 희망 숙소는 나누지 않는다', () => {

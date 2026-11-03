@@ -35,10 +35,45 @@ interface Props {
     inlineEditor?: ReactNode;
     hasUnsavedChanges?: boolean;
     onDraftPreview?: (kind: 'itinerary' | 'contract') => void;
+    /** 고객 통합 작업 화면: 공개·전달을 편집 화면 위의 한 영역으로 보여 준다(디자인 v3). */
+    compact?: boolean;
 }
 
 export function ReservationDocuments(p: Props) {
     const blocked = p.disabled || p.sending || p.applyingTemplate || p.hasUnsavedChanges;
+    const itineraryDelivery = p.itineraryChanged ? '이메일 수정본 안내 필요' : p.itineraryEmailSent ? `이메일 서비스 접수${p.itinerarySentAt ? ` · ${p.itinerarySentAt}` : ''}` : p.itinerarySent ? '다른 채널 안내 접수 · 이메일 미발송' : '이메일 미발송';
+    const contractDelivery = p.contractChanged ? '이메일 수정본 안내 필요' : p.contractEmailSent ? `이메일 서비스 접수${p.contractSentAt ? ` · ${p.contractSentAt}` : ''}` : p.contractSent ? '다른 채널 안내 접수 · 이메일 미발송' : '이메일 미발송';
+    const sendAllDisabled = blocked || !p.email || (!p.canPublish && p.contractEmailSent && !p.contractChanged) || (p.itineraryEmailSent && p.contractEmailSent && !p.itineraryChanged && !p.contractChanged);
+    if (p.compact) return <section id="sec-docs" className="rw-documents rw-documents-compact" aria-label="고객 문서 작업">
+        <section className="rw-delivery-panel" aria-labelledby="rw-delivery-title">
+            <header className="rw-delivery-head"><div><h2 id="rw-delivery-title">고객 공개 · 전달</h2><p>{p.email ? `메일 수신 · ${p.email}` : '이메일 안내는 선택 사항입니다. 사용하려면 고객 이메일을 등록하세요.'} · 안내문 복사는 고객에게 자동 발송되지 않습니다.</p></div>
+                <div className="rw-delivery-head-actions"><button type="button" disabled={blocked || !p.ready || !p.canPublish} onClick={() => p.onCopy('final')}>{p.copied === 'final-message' ? '복사됨' : '일정표·계약서 안내문 복사'}</button><button type="button" className="is-primary" disabled={sendAllDisabled} onClick={p.onSendAll}>{p.sending ? '발송 중…' : '미발송·수정본 메일 발송'}</button></div>
+            </header>
+            <div className="rw-delivery-row">
+                <div className="rw-delivery-copy"><strong>확정 일정표</strong><span className={`rw-glow ${p.published ? 'is-ok' : p.ready ? 'is-wait' : 'is-alert'}`}>{p.published ? '고객 공개됨' : p.ready ? '공개 대기' : '작성 필요'}</span><small>{p.source}{p.days.length ? ` · ${p.days.length}일 일정` : ''} · {itineraryDelivery}</small></div>
+                <div className="rw-delivery-actions">
+                    <label className="rw-delivery-template"><span>템플릿으로 시작</span><select value={p.templateId} disabled={blocked} onChange={e => p.onTemplate(e.target.value)}><option value="">템플릿 선택</option>{p.templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+                    <button type="button" disabled={!p.ready || blocked} onClick={() => p.onPreview('itinerary')}>고객 화면 미리보기</button>
+                    <button type="button" disabled={!p.ready || blocked} onClick={() => p.onPreview('itinerary', true)}>PDF 저장</button>
+                    <button type="button" disabled={blocked || !p.ready || !p.canPublish} onClick={() => p.onCopy('itinerary')}>{p.copied === 'itinerary-message' ? '안내문 복사됨' : '카카오톡 안내문 복사'}</button>
+                    <button type="button" disabled={blocked || !p.ready || !p.canPublish || !p.email} onClick={() => p.onSend('itinerary')}>{p.itineraryChanged ? '수정본 메일 발송' : p.itineraryEmailSent ? '메일 재발송' : '일정표 메일 발송'}</button>
+                    <button type="button" className="is-primary" disabled={blocked || !p.ready || !p.canPublish} onClick={p.onPublish}>{p.published ? '공개 상태 확인' : '고객에게 공개'}</button>
+                </div>
+                {!p.canPublish && <p className="rw-delivery-note">예약금 확인 후 예약이 확정되면 공개할 수 있습니다.</p>}
+            </div>
+            <div className="rw-delivery-row">
+                <div className="rw-delivery-copy"><strong>여행 계약서</strong><span className={`rw-glow ${p.signed ? 'is-ok' : 'is-wait'}`}>{p.signed ? '고객 동의 완료' : p.contractSent ? '고객 동의 대기' : '전달 대기'}</span><small>여행자 {p.travelerCount}명 입력됨 · {contractDelivery}</small></div>
+                <div className="rw-delivery-actions">
+                    <button type="button" disabled={blocked} onClick={() => p.onPreview('contract')}>고객 계약서 확인</button>
+                    <button type="button" disabled={blocked} onClick={() => p.onPreview('contract', true)}>PDF 저장</button>
+                    <button type="button" disabled={blocked} onClick={() => p.onCopy('contract')}>{p.copied === 'contract-message' ? '안내문 복사됨' : '카카오톡 서명 요청문 복사'}</button>
+                    <button type="button" disabled={blocked || !p.email} onClick={() => p.onSend('contract')}>{p.contractChanged ? '수정본 메일 발송' : p.contractEmailSent ? '서명 요청 메일 재발송' : '계약서 메일 발송'}</button>
+                </div>
+            </div>
+            {p.hasUnsavedChanges && <div className="rw-delivery-unsaved" role="status"><span>작성 중 초안은 관리자 미리보기로 확인하세요. 고객 공개·발송은 저장 후 사용할 수 있습니다.</span>{p.onDraftPreview && <><button type="button" disabled={p.sending || p.applyingTemplate} onClick={() => p.onDraftPreview?.('itinerary')}>일정 초안 미리보기</button><button type="button" disabled={p.sending || p.applyingTemplate} onClick={() => p.onDraftPreview?.('contract')}>계약 초안 미리보기</button></>}</div>}
+        </section>
+        {p.inlineEditor}
+    </section>;
     return <section id="sec-docs" className="rw-documents card" aria-label="고객 문서 작업">
         <div className="card-head rw-section-head"><div><span className="rw-kicker">고객 문서</span><h2>확정 일정표 · 여행 계약서</h2><p>내용을 확인하고 저장한 뒤 고객에게 전달하세요.</p></div>
             <button type="button" className="btn btn-sm btn-ghost" onClick={p.onGuidePdf} disabled={!p.ready || blocked}>가이드용 PDF</button>
