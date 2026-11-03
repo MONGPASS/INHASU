@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { emptyReservationOperations, type ReservationOperations as Operations } from '../../utils/reservationWorkspace';
+import { AIRFARE_OPTIONS, CATEGORY_OPTIONS, RECEIPT_LABELS, SERVICE_TYPE_OPTIONS, emptyReservationOperations, type ReceiptStatus, type ReservationOperations as Operations } from '../../utils/reservationWorkspace';
 
 export interface ReservationOperationsControl {
     cancel: () => void;
@@ -69,7 +69,9 @@ export function ReservationOperations(p: Props) {
                 <div className="rw-operations-group-fields">
                     <label className="rw-field"><span>조인 여부</span><select className="inp" value={draft.joining} onChange={e => change('joining', e.target.value)}><option value="undecided">미정</option><option value="private">단독 투어</option><option value="join">조인 투어</option></select></label>
                     <label className="rw-field"><span>지역</span><input className="inp" value={draft.region} maxLength={200} placeholder="예: 고비사막 · 테를지" onChange={e => change('region', e.target.value)}/></label>
-                    <label className="rw-field"><span>분류</span><input className="inp" value={draft.category} maxLength={200} placeholder="예: 가족 여행" onChange={e => change('category', e.target.value)}/></label>
+                    <label className="rw-field"><span>분류</span><input className="inp" value={draft.category} maxLength={200} placeholder="예: 가족여행" list={`reservation-categories-${reservationId}`} onChange={e => change('category', e.target.value)}/><datalist id={`reservation-categories-${reservationId}`}>{CATEGORY_OPTIONS.map(o => <option key={o} value={o} />)}</datalist></label>
+                    <label className="rw-field"><span>구분</span><select className="inp" value={draft.serviceType || ''} onChange={e => change('serviceType', e.target.value)}><option value="">미정</option>{SERVICE_TYPE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></label>
+                    <label className="rw-field"><span>항공</span><select className="inp" value={draft.airfare || ''} onChange={e => change('airfare', e.target.value)}><option value="">미정</option>{AIRFARE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></label>
                     <label className="rw-field"><span>차량</span><input className="inp" value={draft.vehicle} maxLength={200} placeholder="배정 차량" onChange={e => change('vehicle', e.target.value)}/></label>
                     <label className="rw-field"><span>기사 연락처</span><input className="inp" type="tel" value={draft.driverPhone} maxLength={60} onChange={e => change('driverPhone', e.target.value)}/></label>
                 </div>
@@ -77,7 +79,7 @@ export function ReservationOperations(p: Props) {
             <section className="rw-operations-group" aria-label="현금영수증 기록">
                 <h3>현금영수증 기록</h3>
                 <div className="rw-operations-group-fields">
-                    <label className="rw-field"><span>현금영수증 상태</span><select className="inp" value={draft.receipt.status} onChange={e => receipt('status', e.target.value)}><option value="not_requested">미요청</option><option value="pending">발급 대기</option><option value="issued">발급 완료</option></select></label>
+                    <label className="rw-field"><span>현금영수증 상태</span><select className="inp" value={draft.receipt.status} onChange={e => receipt('status', e.target.value)}>{(Object.keys(RECEIPT_LABELS) as ReceiptStatus[]).map(status => <option key={status} value={status}>{RECEIPT_LABELS[status]}</option>)}</select></label>
                     <label className="rw-field"><span>발급수단 번호</span><input className="inp" value={draft.receipt.number} maxLength={60} placeholder="요청받은 휴대폰·사업자 번호" onChange={e => receipt('number', e.target.value)}/></label>
                     <label className="rw-field"><span>현금영수증 발행일</span><input className="inp" type="date" value={draft.receipt.issuedDate} onChange={e => receipt('issuedDate', e.target.value)}/></label>
                 </div>

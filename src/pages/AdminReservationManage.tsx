@@ -38,6 +38,9 @@ import board from './AdminReservationBoard.module.css';
 import { readProductVehicle } from '../utils/reservationAssignment';
 import { guideAssignmentConflicts, validAssignmentPeriod } from '../utils/assignmentAvailability';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
+import { ReservationListV7, type V7OpenAction } from '../components/admin/v7/ReservationListV7';
+import type { V7Source } from '../utils/reservationV7';
+import type { ReservationDetailV7Links } from '../components/admin/v7/ReservationDetailV7';
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
 import { CustomerVehicleAssignment } from '../components/admin/CustomerVehicleAssignment';
 import { customerProductReference } from '../utils/customerProductReference';
@@ -560,7 +563,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (fullPage && !workflowOpen) overviewScrollPosition.current = window.scrollY;
         setActiveSec(id);
         // 디자인 v3: 고객 통합 작업의 문서 탭은 곧 편집 화면이며, 공개·전달은 그 위 영역에 있다.
-        if (fullPage && group === 'docs' && !inlineEditorOpen && reservation.status !== 'cancelled') { setInlineEditorOpen(true); setActiveSec('inline-doc'); }
+        if (fullPage && group === 'docs' && !inlineEditorOpen && reservation?.status !== 'cancelled') { setInlineEditorOpen(true); setActiveSec('inline-doc'); }
         setWorkflowOpen(true);
         requestAnimationFrame(() => {
             if (fullPage) bodyRef.current?.scrollTo({ top: 0 });
@@ -1805,6 +1808,21 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             <header><strong>일자별 숙소 바로 배정</strong><button type="button" className="cw-text-button" disabled={workspaceIsBusy()} onClick={closeQuickAssignment}>닫기</button></header>
             <p>{validAssignmentPeriod(reservation) ? '당일 투어는 숙소 배정이 필요하지 않습니다.' : '여행 시작일과 종료일을 먼저 확인해 주세요.'}</p>
         </section> : null;
+    // 예약 관리 v7 상세: 결제·진행상황·운영 정보·배정을 상세 카드에서 바로 저장한다.
+    const v7Links: ReservationDetailV7Links = {
+        source: reservation as V7Source, userId: user?.id || '',
+        operations: { ...emptyReservationOperations(), ...(reservation.adminOperations || {}) },
+        onOperations: async patch => {
+            if (workspaceIsBusy() || operationsDirty) { setNavigationNotice('작성 중인 운영 정보를 먼저 저장해 주세요.'); return false; }
+            try { await api.reservations.update(reservation.id, { admin_operations: patch }); onRefresh(); return true; }
+            catch (error: any) { alert(`운영 정보를 저장하지 못했습니다. ${error?.message || ''}`.trim()); return false; }
+        },
+        onPayment: (field, paid) => onUpdate(field === 'deposit'
+            ? { ...reservation, depositStatus: paid ? 'paid' : 'unpaid', status: paid && reservation.status === 'pending_payment' ? 'confirmed' : reservation.status }
+            : { ...reservation, balanceStatus: paid ? 'paid' : 'unpaid' }, true),
+        onStatus: async status => { await onUpdate({ ...reservation, status: status as Reservation['status'] }, true); },
+        onAssignmentSaved: onRefresh,
+    };
     const overviewAction = (action: string, id?: string) => {
         if (workspaceIsBusy()) return;
         if (action === 'back') { closeWorkspace(); return; }
@@ -1864,7 +1882,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 {fullPage && <>
                     <div id="product-customer-overview" hidden={workflowOpen}>
                     {resumeWorkLabel && <div className="cw-resume-work"><div><strong>{resumeWorkLabel} 내용이 저장되지 않았습니다.</strong><span>입력한 내용을 이어서 확인하고 저장하세요.</span></div><button type="button" className="btn btn-ink" disabled={workspaceIsBusy()} onClick={() => setWorkflowOpen(true)}>{resumeWorkLabel} 이어서 하기<Icon name="arrow_forward" /></button></div>}
-                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} notificationActions={notificationActions} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
+                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} links={v7Links} notificationActions={notificationActions} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
 
                     </div>
                 </>}
@@ -3386,8 +3404,9 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         return /^\d{4}-\d{2}-\d{2}$/.test(key) ? `${key.slice(5).replace('-', '.')} ${'일월화수목금토'[new Date(`${key}T00:00:00Z`).getUTCDay()]}` : '';
     };
 
-    const downloadConfirmedReservationsExcel = () => {
-        const confirmedReservations = reservationExportRows(reservations, filteredReservations, selectedRows, exportMode)
+    const downloadConfirmedReservationsExcel = (mode: typeof exportMode = exportMode, keys: Set<string> = selectedRows) => {
+        const exportMode = mode;
+        const confirmedReservations = reservationExportRows(reservations, filteredReservations, keys, mode)
             .sort((a: any, b: any) => toTime(a.startDate) - toTime(b.startDate));
 
         if (confirmedReservations.length === 0) {
@@ -3761,6 +3780,39 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
             )}
     </> : null;
 
+    // 예약 관리 v7 목록의 바로가기·결제·운영 정보 변경
+    const openV7 = (source: V7Source, action?: V7OpenAction) => {
+        const res = reservations.find(x => x.id === source.id && x.type === source.type);
+        if (!res) return;
+        const params = new URLSearchParams(window.location.search); params.delete('open'); params.delete('kind');
+        const listReturnTo = '/admin/reservations' + (params.toString() ? '?' + params.toString() : '');
+        const href = res.type === 'quote_booking' ? quoteCustomerHref(res.id, listReturnTo) : productCustomerHref(res.id, listReturnTo);
+        navigate(action ? `${href}${href.includes('?') ? '&' : '?'}action=${encodeURIComponent(action)}` : href);
+    };
+    const updateV7Payment = async (source: V7Source, field: 'deposit' | 'final', paid: boolean) => {
+        const res = reservations.find(x => x.id === source.id && x.type === source.type);
+        if (!res || res.type !== 'product') return false;
+        const updated: Reservation = field === 'deposit'
+            ? { ...res, depositStatus: paid ? 'paid' : 'unpaid', status: paid && res.status === 'pending_payment' ? 'confirmed' : res.status }
+            : { ...res, balanceStatus: paid ? 'paid' : 'unpaid' };
+        return handleUpdateReservation(updated, true);
+    };
+    const updateV7Operations = async (source: V7Source, patch: Partial<Operations>) => {
+        if (source.type !== 'product' || user?.role !== 'admin') return false;
+        try {
+            await api.reservations.update(source.id, { admin_operations: patch });
+            setReservations(prev => prev.map(x => {
+                if (x.id !== source.id || x.type !== 'product') return x;
+                const current = { ...emptyReservationOperations(), ...(x.adminOperations || {}) };
+                return { ...x, adminOperations: { ...current, ...patch, receipt: { ...current.receipt, ...(patch.receipt || {}) } } };
+            }));
+            return true;
+        } catch (error: any) {
+            alert(`운영 정보를 저장하지 못했습니다. ${error?.message || ''}`.trim());
+            return false;
+        }
+    };
+
     const toggleTheme = () => {
         setIsDarkMode(!isDarkMode);
         document.documentElement.classList.toggle('dark');
@@ -3780,8 +3832,9 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         <>
             <AdminLayout
                 activePage="reservations"
-                title="통합 예약 관리"
-                description="상품 예약과 실제 견적 예약의 입금·계약·출발 일정을 함께 확인합니다."
+                eyebrow="예약 관리"
+                title="통합 예약 목록"
+                description="상품 예약과 실제 견적 예약의 입금·계약·배정·출발 일정을 함께 확인합니다."
                 showSearch={false}
                 isDarkMode={isDarkMode}
                 toggleTheme={toggleTheme}
@@ -3799,7 +3852,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                         <select className="select" aria-label="Excel 내보내기 범위" value={exportMode} onChange={e => setExportMode(e.target.value as typeof exportMode)}>
                             <option value="filtered">현재 조회 결과</option><option value="selected">선택 예약 {selectedRows.size}건</option><option value="confirmed">전체 확정·결제 팀</option>
                         </select>
-                        <button type="button" onClick={downloadConfirmedReservationsExcel} className="btn btn-soft" disabled={isLoading || (exportMode === 'selected' && !selectedRows.size)} title="선택한 범위의 일차별 숙소 수배 정보를 다운로드">
+                        <button type="button" onClick={() => downloadConfirmedReservationsExcel()} className="btn btn-soft" disabled={isLoading || (exportMode === 'selected' && !selectedRows.size)} title="선택한 범위의 일차별 숙소 수배 정보를 다운로드">
                             <Icon name="table_view" />예약 Excel
                         </button>
                         <button
@@ -3814,273 +3867,22 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                     </>
                 }
             >
-                <div className={`route-anim ${board.board}`}>
+                <div className="route-anim">
                     {loadWarnings.length > 0 && <div className={board.warning} role="alert">
                         {loadWarnings.map(message => <div key={message}>{message}</div>)}
                         <button type="button" className="btn btn-sm btn-ghost" disabled={isLoading} onClick={fetchReservations}>다시 불러오기</button>
                     </div>}
-                    {isLoading && <div className={board.loading} role="status" aria-live="polite">예약 목록을 불러오는 중…</div>}
-
-                    <section className={board.kpis} aria-label="예약 요약">
-                        {kpis.map(kpi => {
-                            const on = kpiActive(kpi.key);
-                            return (
-                                <button key={kpi.key} type="button" className={`${board.kpi} ${board[`tone_${KPI_TONES[kpi.key]}`]} ${kpi.key === 'all' ? board.kpiAll : ''} ${on ? board.kpiOn : ''}`} title={kpi.tip}
-                                    aria-pressed={kpi.key === 'all' ? undefined : on} onClick={() => applyKpi(kpi.key)}>
-                                    <span className={board.kpiHead}>
-                                        <span className={`${board.kpiIcon} ${kpi.value ? board.kpiIconOn : ''}`}><DashboardIcon name={KPI_ICONS[kpi.key]} size={16} /></span>
-                                        <span className={board.kpiLabel}>{kpi.label}</span>
-                                        {on && <span className={board.kpiWatching}>보는 중</span>}
-                                    </span>
-                                    <span className={board.kpiValueRow}>
-                                        <span className={`${board.kpiValue} ${kpi.value ? '' : board.kpiZero}`}>{loadedOnce ? kpi.value : '—'}</span>
-                                        <span className={board.kpiUnit}>건</span>
-                                        <span className={board.kpiPct}>{loadedOnce ? kpi.pct : ''}</span>
-                                    </span>
-                                    <span className={board.kpiBar}><span className={board.kpiFill} style={{ width: kpi.key === 'all' ? '100%' : loadedOnce ? kpi.pct : '0%' }} /></span>
-                                    <span className={board.kpiRows}>
-                                        {kpi.rows.map(row => <span key={row.k}><span>{row.k}</span><b className={row.alert ? board.kpiAlert : ''}>{loadedOnce ? row.v : '—'}</b></span>)}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </section>
-
-                    <section className={board.card} aria-labelledby="upcoming-tours-title">
-                        <div className={board.upHead}>
-                            <span className={board.upIcon}><DashboardIcon name="lc-plane-takeoff" size={20} /></span>
-                            <div className={board.upTitle}>
-                                <h2 id="upcoming-tours-title" className={board.cardTitle}>곧 출발하는 투어</h2>
-                                <span className={board.sub}>30일 이내 출발 · 확정 팀만 · 가까운 날짜순</span>
-                            </div>
-                            <span className={board.neutralBadge}>{upcomingTours.length}건 예정</span>
-                        </div>
-                        {upcomingTours.length > 0 ? (
-                            <div className={board.upList}>
-                                {upcomingTours.slice(0, 5).map(({ reservation, daysUntil }) => {
-                                    const period = reservationPeriod(reservation.startDate, reservation.endDate);
-                                    const chips = reservationAssignments(reservation, readProductVehicle(reservation.adminOperations, reservation.contractData).type);
-                                    return (
-                                        <button type="button" className={board.upRow} key={`${reservation.type}:${reservation.id}`} onClick={() => openReservation(reservation)}
-                                            aria-label={`${reservation.customerName || '고객명 미정'} · ${reservation.productName || '상품명 미정'} 상세 보기`}>
-                                            <span className={`${board.upDday} ${daysUntil <= 7 ? board.upDdaySoon : daysUntil <= 14 ? board.upDdayWeek : ''}`}>
-                                                <b>{daysUntil === 0 ? '오늘' : `D-${daysUntil}`}</b><small>{shortDow(reservation.startDate)}</small>
-                                            </span>
-                                            <span className={board.upWho}>
-                                                <strong>{reservation.customerName || '고객명 미정'} <span>· {reservation.headcount || (reservation.totalPeople ? `${reservation.totalPeople}명` : '인원 미정')}</span></strong>
-                                                <span>{reservation.productName || '상품명 미정'}</span>
-                                            </span>
-                                            <span className={board.upWhen}><strong>{period.range}</strong><span>{period.nights}</span></span>
-                                            <span className={board.upChips}>
-                                                {chips.map(chip => <span key={chip.key} className={chip.done ? board.chipOk : board.chipMissing}>
-                                                    <DashboardIcon name={chip.done ? 'lc-check' : CHIP_ICONS[chip.key]} size={12} />{chip.label}{chip.done ? '' : ' 미배정'}
-                                                </span>)}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                                {upcomingTours.length > 5 && <div className={board.upMore}>가까운 5건을 표시 중입니다. 이후 일정이 {upcomingTours.length - 5}건 더 있습니다.</div>}
-                            </div>
-                        ) : (
-                            <div className={board.emptyBox}>
-                                <strong>30일 이내 출발 예정인 확정 투어가 없습니다.</strong>
-                                <span>예약이 확정(입금 완료)되고 출발일이 등록되면 이곳에 자동으로 표시됩니다.</span>
-                            </div>
-                        )}
-                    </section>
-
-                    <section className={`${board.card} ${board.listCard}`} aria-label="통합 예약 목록">
-                        <div className={board.searchArea}>
-                            <div className={board.searchWrap}>
-                                <label className={`${board.searchBox} ${searchFocused ? board.searchFocused : ''}`}>
-                                    <DashboardIcon name="lc-search" size={20} color="var(--text-tertiary)" />
-                                    <input ref={searchInputRef} type="search" value={searchTerm} aria-label="고객 찾기"
-                                        placeholder="고객 찾기 · 이름, 전화번호(숫자만), 예약번호, 상품명"
-                                        onChange={e => { setSearchTerm(e.target.value); setSearchFocused(true); setCurrentPage(1); }}
-                                        onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)}
-                                        onKeyDown={e => {
-                                            if (e.key === 'Escape') { setSearchTerm(''); setSearchFocused(false); setCurrentPage(1); }
-                                            if (e.key === 'Enter') setSearchFocused(false);
-                                        }} />
-                                    {searchTerm ? <>
-                                        <span className={board.matchBadge}>{searchMatches.length}건 일치</span>
-                                        <button type="button" className={board.clearBtn} aria-label="검색어 지우기" onClick={() => { setSearchTerm(''); setCurrentPage(1); }}><DashboardIcon name="lc-x" size={16} /></button>
-                                    </> : <kbd className={board.kbd} title="/ 키로 검색창에 바로 이동">/</kbd>}
-                                </label>
-                                {showSuggest && <div className={board.suggest} role="listbox" aria-label="일치하는 고객">
-                                    <div className={board.suggestTitle}>일치하는 고객</div>
-                                    {searchMatches.slice(0, 5).map(r => (
-                                        <button type="button" role="option" aria-selected={false} key={`${r.type}:${r.id}`} className={board.suggestRow}
-                                            onMouseDown={e => { e.preventDefault(); setSearchTerm(searchNumber(r)); setSearchFocused(false); setCurrentPage(1); }}>
-                                            <span className={board.suggestAvatar}>{(r.customerName || '?').slice(0, 1).toUpperCase()}</span>
-                                            <span className={board.suggestText}>
-                                                <b>{r.customerName || '이름 미정'}</b>
-                                                <span>#{searchNumber(r)} · {r.phone ? dashboardPhone(r.phone) : r.email || '연락처 미입력'} · {r.productName || '상품 미정'} · {reservationPeriod(r.startDate, r.endDate).range}</span>
-                                            </span>
-                                            <span className={`${board.pill} ${statusPillClass(r.status)}`}>{getWorkflowMeta(r).label}</span>
-                                        </button>
-                                    ))}
-                                </div>}
-                            </div>
-                            {recentCustomers.length > 0 && <div className={board.recent}>
-                                <span>최근 고객</span>
-                                {recentCustomers.map(r => <button type="button" key={`${r.type}:${r.id}`} className={board.recentChip}
-                                    onClick={() => { setSearchTerm(r.customerName); setCurrentPage(1); }}>
-                                    <span>{r.customerName.slice(0, 1).toUpperCase()}</span>{r.customerName}
-                                </button>)}
-                            </div>}
-                        </div>
-
-                        <div className={board.tabs} role="group" aria-label="예약 상태">
-                            {statusTabs.map(tab => <button key={tab.value} type="button" className={board.tab} aria-pressed={filterStatus === tab.value}
-                                onClick={() => { setFilterStatus(tab.value); setCurrentPage(1); }}>
-                                {tab.label}<span className={board.tabCount}>{tab.count}</span>
-                            </button>)}
-                        </div>
-
-                        <div className={board.filters}>
-                            <span className={board.filterLabel}><DashboardIcon name="lc-sliders" size={16} color="var(--text-tertiary)" />필터</span>
-                            {filterGroups.map(group => {
-                                const current = group.options.find(option => option.value === group.value);
-                                const on = !!current && group.value !== group.defaultValue, open = openFilter === group.key;
-                                return (
-                                    <div key={group.key} className={board.dd}>
-                                        <button type="button" className={`${board.ddBtn} ${on ? board.ddOn : ''} ${open ? board.ddOpen : ''}`}
-                                            aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpenFilter(open ? '' : group.key)}>
-                                            <span className={board.ddKey}>{group.label}</span><span className={board.ddVal}>{on ? current!.label : '전체'}</span>
-                                            <DashboardIcon name="lc-chevron-down" size={14} />
-                                        </button>
-                                        {open && <>
-                                            <div className={board.scrim} onClick={() => setOpenFilter('')} />
-                                            <div className={board.ddMenu} role="listbox" aria-label={`${group.label} 필터`}>
-                                                {group.options.map(option => {
-                                                    const selected = group.value === option.value || (!current && option.value === group.defaultValue);
-                                                    return <button type="button" role="option" aria-selected={selected} key={option.value} className={board.ddOption}
-                                                        onClick={() => { group.set(option.value); setCurrentPage(1); setOpenFilter(''); }}>
-                                                        <span>{option.label}</span>
-                                                        <span className={board.ddCount}>{reservations.filter(r => passesFilters(r, group.key) && group.test(r, option.value)).length}</span>
-                                                        <DashboardIcon name="lc-check" size={14} color="#0E9E7A" />
-                                                    </button>;
-                                                })}
-                                            </div>
-                                        </>}
-                                    </div>
-                                );
-                            })}
-                            <label className={`${board.ddBtn} ${board.dateBtn} ${filterDeparture ? board.ddOn : ''}`}>
-                                <span className={board.ddKey}>출발일</span>
-                                <input type="date" aria-label="출발일 이후" value={filterDeparture} onChange={e => { setFilterDeparture(e.target.value); setCurrentPage(1); }} />
-                                <span className={board.dateAfter}>이후</span>
-                            </label>
-                            {hasActiveFilters && <button type="button" className={board.reset} onClick={resetListFilters}><DashboardIcon name="lc-rotate-ccw" size={14} />초기화</button>}
-                            <span className={board.filterCount}><b>{filteredReservations.length}</b>건</span>
-                        </div>
-
-                        <div className={board.listHead}>
-                            <h2 className={board.cardTitle}>통합 예약 목록</h2>
-                            <span className={board.countLabel}>{hasActiveFilters ? `${filteredReservations.length}건 / 전체 ${totalBookings}건` : `${filteredReservations.length}건`}</span>
-                            {!!selectedRows.size && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setSelectedRows(new Set())}>선택 {selectedRows.size}건 해제</button>}
-                            <label className={board.sort}>
-                                <select aria-label="예약 정렬" value={sortOrder} onChange={e => { setSortOrder(e.target.value); setCurrentPage(1); }}>
-                                    <option value="recent">최근 예약순</option><option value="departure">투어일 빠른순</option><option value="amount">금액 높은순</option>
-                                </select>
-                                <DashboardIcon name="lc-chevron-down" size={16} color="var(--text-tertiary)" />
-                            </label>
-                        </div>
-
-                        <div className={board.list}>
-                            <div className={board.columns}>
-                                <span className={board.selectCell}>
-                                    <input type="checkbox" aria-label="현재 페이지 예약 전체 선택"
-                                        checked={displayedReservations.some(r => r.type !== 'quote') && displayedReservations.filter(r => r.type !== 'quote').every(r => selectedRows.has(reservationSelectionKey(r)))}
-                                        onChange={e => {
-                                            const checked = e.target.checked;
-                                            setSelectedRows(prev => { const next = new Set(prev); displayedReservations.filter(r => r.type !== 'quote').forEach(r => { const key = reservationSelectionKey(r); if (checked) next.add(key); else next.delete(key); }); return next; });
-                                        }} />
-                                </span>
-                                <span aria-hidden="true">고객 · 예약번호</span><span aria-hidden="true">상품 · 인원</span><span aria-hidden="true">투어일</span>
-                                <span aria-hidden="true">진행 상황</span><span aria-hidden="true" className={board.right}>팀 금액</span><span aria-hidden="true" className={board.right}>관리</span>
-                            </div>
-                            {displayedReservations.map(res => {
-                                const workflow = getWorkflowMeta(res);
-                                const nextAction = getQuoteAction(res);
-                                const number = searchNumber(res);
-                                const contact = res.phone ? dashboardPhone(res.phone) : res.email || '';
-                                const dday = reservationDday(res.startDate, todayKey);
-                                const period = reservationPeriod(res.startDate, res.endDate);
-                                const payNote = reservationPayNote(res);
-                                const amountKnown = typeof res.totalAmount === 'number' && Number.isFinite(res.totalAmount) && res.totalAmount >= 0;
-                                return (
-                                    <div key={`${res.type}:${res.id}`} className={board.row} onClick={() => openReservation(res)}>
-                                        <span className={board.selectCell} onClick={e => e.stopPropagation()}>
-                                            {res.type !== 'quote' && <input type="checkbox" aria-label={`${res.customerName} 예약 선택`} checked={selectedRows.has(reservationSelectionKey(res))} onChange={e => {
-                                                const checked = e.target.checked;
-                                                setSelectedRows(prev => { const next = new Set(prev); const key = reservationSelectionKey(res); if (checked) next.add(key); else next.delete(key); return next; });
-                                            }} />}
-                                        </span>
-                                        <div className={board.who}>
-                                            <span className={board.name}><Highlight {...highlightMatch(res.customerName || '이름 미정', searchTerm)} /></span>
-                                            <span className={contact ? board.contact : board.contactEmpty}>{contact ? <Highlight {...highlightMatch(contact, searchTerm)} /> : '연락처 미입력'}</span>
-                                            <span className={board.idLine}>
-                                                <span className={board.resNo}>#<Highlight {...highlightMatch(number, searchTerm)} /></span>
-                                                <span className={board.dot} />
-                                                <span className={`${board.kind} ${res.type === 'product' ? board.kindProduct : ''}`}>{res.type === 'quote_booking' ? '견적 고객' : res.type === 'quote' ? '이전 견적' : '상품 예약'}</span>
-                                                {res.source && <span className={board.source} style={{ background: sourceColor(res.source).bg, color: sourceColor(res.source).fg }}>{sourceLabel(res.source)}</span>}
-                                            </span>
-                                            {hasOpenDepositReport(res) && <span className={board.depositReport}
-                                                title={`고객 입금 신고: 입금자명 ${res.depositReport?.name || '—'}${formatReportTime(res.depositReport?.reportedAt) ? ` · ${formatReportTime(res.depositReport?.reportedAt)}` : ''} — 입금 내역을 확인한 뒤 상세에서 「입금 확인」을 눌러 주세요`}>
-                                                <DashboardIcon name="lc-bell" size={12} />입금 신고 · {res.depositReport?.name || '—'}
-                                            </span>}
-                                        </div>
-                                        <div className={board.product}>
-                                            <span className={board.productName}><DashboardIcon name="lc-map-pin" size={14} color="#0E9E7A" /><span title={res.productName}>{res.productName || '상품 미정'}</span></span>
-                                            <span className={board.pax}><DashboardIcon name="lc-users" size={14} color="var(--text-tertiary)" /><b>{res.headcount || '미정'}</b></span>
-                                        </div>
-                                        <div className={board.when}>
-                                            <span className={board.whenTop}>
-                                                <span className={`${board.dday} ${board[`dday_${dday.tone}`]}`}>{dday.label}</span>
-                                                {period.nights && <span className={board.nights}>{period.nights}</span>}
-                                            </span>
-                                            <span className={board.range}>{period.range}</span>
-                                        </div>
-                                        <div className={board.progress}>
-                                            <span className={`${board.pill} ${statusPillClass(res.status)}`} title={workflow.hint || undefined}>{workflow.label}</span>
-                                            {res.type !== 'quote'
-                                                ? <div className={board.steps}>{reservationSteps(res).map((step, index) => (
-                                                    <div key={step.label} className={board.step} title={`${step.title} · ${step.done ? '완료' : '대기'}`}>
-                                                        <span className={board.stepBar}>{step.done && <span className={board.stepFill} style={{ animationDelay: `${index * 90}ms` }} />}</span>
-                                                        <span className={step.done ? board.stepDone : board.stepText}>{step.label}</span>
-                                                    </div>))}</div>
-                                                : workflow.hint && <span className={board.hint}>{workflow.hint}</span>}
-                                        </div>
-                                        <div className={board.amount}>
-                                            <b>{amountKnown ? dashboardWon(res.totalAmount) : '–'}</b>
-                                            {payNote && <span className={payNote.done ? board.payDone : board.payWait}>{payNote.text}</span>}
-                                        </div>
-                                        <div className={board.actions} onClick={e => e.stopPropagation()}>
-                                            <button type="button" className={board.nextAction} title={nextAction.description} onClick={() => {
-                                                if (nextAction.nextStatus) handleStatusChange(res.id, nextAction.nextStatus, res.type); else openReservation(res);
-                                            }}>{nextAction.label}</button>
-                                            <button type="button" className={board.iconBtn} title="상세 보기" aria-label={`${res.customerName} 상세 보기`} onClick={() => openReservation(res)}><DashboardIcon name="lc-eye" size={16} /></button>
-                                            {res.type !== 'quote_booking' && <button type="button" className={`${board.iconBtn} ${board.iconDanger}`} title="삭제" aria-label={`${res.customerName} 삭제`} onClick={() => handleDelete(res.id, res.type)}><DashboardIcon name="lc-trash" size={16} /></button>}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            {displayedReservations.length === 0 && <div className={board.emptyList}>
-                                {isLoading ? '예약 목록을 불러오는 중…' : hasActiveFilters ? '조건에 맞는 예약이 없어요. 필터를 초기화해 보세요.' : '등록된 예약이 없습니다.'}
-                            </div>}
-                        </div>
-
-                        <div className={board.footer}>
-                            <span>총 {filteredReservations.length}건 중 {filteredReservations.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredReservations.length)} 표시</span>
-                            <span className={board.pager}>
-                                <button type="button" className={board.iconBtn} aria-label="이전 페이지" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><DashboardIcon name="lc-chevron-left" size={16} /></button>
-                                <b>{Math.min(currentPage, Math.max(totalPages, 1))} / {Math.max(totalPages, 1)}</b>
-                                <button type="button" className={board.iconBtn} aria-label="다음 페이지" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.max(totalPages, 1)))} disabled={currentPage >= totalPages || totalPages === 0}><DashboardIcon name="lc-chevron-right" size={16} /></button>
-                            </span>
-                        </div>
-                    </section>
+                    <ReservationListV7
+                        reservations={reservations}
+                        loading={isLoading}
+                        loadedOnce={loadedOnce}
+                        userId={user?.id || ''}
+                        onOpen={openV7}
+                        onStatus={(r, status) => handleStatusChange(r.id, status, r.type)}
+                        onPayment={updateV7Payment}
+                        onOperations={updateV7Operations}
+                        onExport={keys => downloadConfirmedReservationsExcel('selected', new Set(keys))}
+                    />
                 </div>
             </AdminLayout>
 

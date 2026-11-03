@@ -15,7 +15,12 @@ const search = action => '?action=' + action + '&returnTo=' + encodeURIComponent
 test('캘린더 업무 바로가기는 허용된 업무와 검증된 캘린더 복귀 주소만 받는다', () => {
     for (const action of ['guide', 'vehicle', 'stay', 'payments']) assert.equal(readCalendarWorkspaceAction(search(action)), action);
     for (const value of ['', '?action=guide', search('send-itinerary'), search('guide') + '&action=payments', search('guide') + '&returnTo=/admin/calendar']) assert.equal(readCalendarWorkspaceAction(value), null);
-    for (const returnTo of ['/admin/reservations', '/admin/calendar/other', '/admin/calendarish', 'https://foreign.invalid/admin/calendar', '//foreign.invalid/admin/calendar', '/\\foreign.invalid/admin/calendar', '/admin/calendar\r\nLocation: bad']) {
+    // 예약 관리 v7 목록은 일정표·계약서·문서·메모·이력 바로가기도 넘긴다. 캘린더는 기존 네 가지만 받는다.
+    const listSearch = action => '?action=' + action + '&returnTo=' + encodeURIComponent('/admin/reservations?tab=ended');
+    for (const action of ['guide', 'vehicle', 'stay', 'payments', 'edit-itinerary', 'contract', 'documents', 'notes', 'history']) assert.equal(readCalendarWorkspaceAction(listSearch(action)), action);
+    for (const action of ['send-itinerary', 'customer-link', 'back']) assert.equal(readCalendarWorkspaceAction(listSearch(action)), null);
+    for (const action of ['edit-itinerary', 'contract', 'documents']) assert.equal(readCalendarWorkspaceAction(search(action)), null);
+    for (const returnTo of ['/admin/reservations/other', '/admin/calendar/other', '/admin/calendarish', 'https://foreign.invalid/admin/calendar', '//foreign.invalid/admin/calendar', '/\\foreign.invalid/admin/calendar', '/admin/calendar\r\nLocation: bad']) {
         assert.equal(readCalendarWorkspaceAction('?action=guide&returnTo=' + encodeURIComponent(returnTo)), null);
     }
     const cleaned = new URLSearchParams(consumedCalendarWorkspaceSearch(search('vehicle')));
