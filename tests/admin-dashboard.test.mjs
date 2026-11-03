@@ -227,3 +227,25 @@ test('대시보드 행의 짧은 여행 기간은 연도가 바뀌면 끝 날짜
     assert.deepEqual(dashboardShortRange('2026-10-14', '2026-10-14'), { range: '26.10.14', nights: '당일' });
     assert.deepEqual(dashboardShortRange('', ''), { range: '일정 미정', nights: '' });
 });
+
+test('핵심 지표 타일과 바로가기는 실제 자료와 기존 관리자 주소를 사용한다', () => {
+    const { dashboardDepartingSoon } = module.exports;
+    const data = fixture();
+    data.bookings.push({ ...booking('leaving', 'product', 1), startDate: '2026-10-21', endDate: '2026-10-23' },
+        { ...booking('later', 'product', 1), startDate: '2026-10-22', endDate: '2026-10-24' },
+        { ...booking('leaving-cancelled', 'product', 1), status: 'cancelled', startDate: '2026-10-15', endDate: '2026-10-16' });
+    // today(10.14) ~ 10.21 inclusive: product-1, quote-1 (10.14) and leaving; cancelled and 10.22 are out.
+    assert.equal(dashboardDepartingSoon(data), 3);
+    const html = render({ data });
+    assert.ok(html.includes('7일 내 출발: 3팀'));
+    assert.ok(html.includes('처리 필요 팀: 2팀'));
+    assert.ok(html.includes('확정 매출 전체 기간: 7,654,321원'));
+    for (const href of ['/admin/quote-desk/builder', '/admin/reservations', '/admin/calendar', '/admin/accommodation-ops', '#dashboard-tasks'])
+        assert.ok(html.includes(`href="${href}"`), href);
+    assert.ok(html.includes('지금 처리할 일') && html.includes('매출 · 예약 현황') && html.includes('유입 · 문의'));
+
+    data.availability.reservations = false;
+    assert.equal(dashboardDepartingSoon(data), null, 'partial booking data is never shown as 0 teams');
+    assert.ok(render({ data }).includes('7일 내 출발: —'));
+    assert.equal(dashboardDepartingSoon(null), null);
+});

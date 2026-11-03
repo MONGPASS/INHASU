@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Icon } from './console/Icon';
 import { DashboardIcon, type DashboardIconName } from './dashboard/DashboardIcon';
 import { ResponsiveProductImage } from '../common/ResponsiveProductImage';
@@ -11,7 +11,13 @@ export interface CustomerWorkspaceOverviewModel {
     /** Breadcrumb label of the list this workspace returns to. */
     backLabel?: string;
     bookedProduct?: { name: string; href?: string; image?: string };
+    /** 없으면 표시하지 않는다. tier가 null이면 패키지를 확인할 수 없는 예약이다. */
+    packageInfo?: { tier: 'full' | 'value' | null; detail?: string };
+    /** 상품과 연결되지 않은 맞춤 견적의 희망 여행지. */
+    placeLabel?: string;
     documentLabel?: string;
+    /** 'documents': 예약 전 문의처럼 알림 패널 대신 문서 화면을 연다. 기본은 고객 알림 패널(디자인 v3). */
+    documentAction?: 'notices' | 'documents';
     disabledActions?: string[];
     disabledActionReason?: string;
     workLabels?: Record<string, string>;
@@ -39,9 +45,47 @@ const SHORTCUTS: Array<{ name: string; label: string; icon: DashboardIconName }>
     { name: 'payments', label: '결제·입금', icon: 'lc-banknote' }, { name: 'assignments', label: '가이드·숙소', icon: 'lc-bed' },
     { name: 'operations', label: '운영·영수증', icon: 'lc-clipboard-check' }, { name: 'history', label: '메모·이력', icon: 'lc-history' },
 ];
+const PACKAGE_COPY = {
+    full: { label: '풀패키지', detail: '4성급 호텔 + 디럭스 게르 숙박' },
+    value: { label: '실속형', detail: '3성급 호텔 + 스탠다드 게르 숙박' },
+};
+/** 디자인 v3: 머리 영역의 문서 버튼은 각 문서의 편집 화면(견적서 작성 · 일정표 편집의 일정표/계약서 탭)을 연다. */
+const DOCUMENT_LINKS: Array<{ id: string; label: string; icon: DashboardIconName; action: string }> = [
+    { id: 'quote', label: '견적서', icon: 'lc-file-text', action: 'quote-edit' }, { id: 'itinerary', label: '확정 일정표', icon: 'lc-calendar', action: 'edit-itinerary' },
+    { id: 'contract', label: '여행 계약서', icon: 'lc-file-check', action: 'contract' },
+];
+const EVENT_ICONS: Record<NonNullable<CustomerWorkspaceOverviewModel['recentHistory']>[number]['kind'], DashboardIconName> = {
+    inquiry: 'lc-message-circle', quote: 'lc-file-text', booking: 'lc-clipboard-check', payment: 'lc-banknote', contract: 'lc-file-check',
+    customer: 'lc-user', assignment: 'lc-bed', document: 'lc-file-text', memo: 'lc-pencil', change: 'lc-history',
+};
 const dateKeys = (text: string) => (text.match(/\d{4}[-.]\d{2}[-.]\d{2}/g) || []).map(key => key.replaceAll('.', '-'));
+/** 일차에 날짜가 저장되지 않은 상품 예약은 출발일 기준으로 숙박일을 표시한다. */
+const nightDate = (startKey: string | undefined, day: number, endKey?: string) => {
+    const stamp = startKey ? Date.parse(`${startKey}T00:00:00Z`) : NaN, end = endKey ? Date.parse(`${endKey}T00:00:00Z`) : NaN;
+    const at = stamp + (day - 1) * 86400000;
+    if (!Number.isFinite(at) || Number.isFinite(end) && at > end) return '날짜 확인 필요';
+    const date = new Date(at);
+    return `${String(date.getUTCMonth() + 1).padStart(2, '0')}.${String(date.getUTCDate()).padStart(2, '0')}(${'일월화수목금토'[date.getUTCDay()]})`;
+};
+const statusTone = (label: string) => /취소|실패/.test(label) ? 'alert' : /대기|요청|신규|접수/.test(label) ? 'wait' : /확정|완료/.test(label) ? 'ok' : 'neutral';
+const documentTone = (status: string) => /실패|필요|미작성|미발송/.test(status) ? 'alert' : /준비|대기|요청|전달 전|확인 전|공개 전/.test(status) ? 'wait' : 'ok';
 
-export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, noteComposer, bookingSelector, assignmentEditor, notificationActions, directAssignments = false }: {
+/** 패키지는 저장된 값에서 판별해 표시만 한다(맞춤 견적은 게르 등급, 상품 예약은 상품 설정). */
+function PackageBadge({ info }: { info: NonNullable<CustomerWorkspaceOverviewModel['packageInfo']> }) {
+    const copy = info.tier ? PACKAGE_COPY[info.tier] : null;
+    return <span className={`cw-package is-${info.tier || 'unknown'}`}><strong>{copy?.label || '패키지 미지정'}</strong><span>{info.detail || copy?.detail || ''}</span></span>;
+}
+
+function CopyPhoneButton({ phone, busy }: { phone: string; busy: boolean }) {
+    const [copied, setCopied] = useState(false);
+    const copy = async () => {
+        try { await navigator.clipboard.writeText(phone); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); }
+    };
+    const label = copied ? '연락처를 복사했어요' : '연락처 복사';
+    return <button type="button" className="cw-icon-button" aria-label={label} title={label} disabled={busy} onClick={() => void copy()}><DashboardIcon name={copied ? 'lc-check' : 'lc-copy'} size={16} /></button>;
+}
+
+export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, noteComposer, bookingSelector, assignmentEditor, notificationActions }: {
     model: CustomerWorkspaceOverviewModel; onAction: (action: string, id?: string) => void;
     busy?: boolean; noteComposer?: ReactNode; bookingSelector?: ReactNode; assignmentEditor?: ReactNode; notificationActions?: ReactNode; directAssignments?: boolean;
 }) {
@@ -59,7 +103,20 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
     const [startKey, endKey] = dateKeys(m.period || '');
     const dday = startKey ? reservationDday(startKey, dashboardSeoulDate(new Date().toISOString())) : null;
     const nights = startKey && endKey ? reservationPeriod(startKey, endKey).nights : '';
-    const productContent = m.bookedProduct && <><span className="cw-booked-product-image"><DashboardIcon name="lc-map-pin" size={14} />{m.bookedProduct.image && <ResponsiveProductImage src={m.bookedProduct.image} sizes="28px" alt="" onError={event => { event.currentTarget.style.display = 'none'; }} />}</span><span className="cw-booked-product-copy"><strong>{m.bookedProduct.name}</strong><span>{m.bookedProduct.href ? '상품 페이지 새 창으로 보기' : '연결된 상품을 확인해 주세요.'}</span></span>{m.bookedProduct.href && <DashboardIcon name="lc-external-link" size={14} />}</>;
+    const stageCancelled = m.currentStage?.tone === 'cancelled';
+    const nowIndex = m.steps.findIndex(step => step.current), nowStep = m.steps[nowIndex];
+    const allStepsDone = m.steps.length > 0 && m.steps.every(step => step.done);
+    const nextTask = stageCancelled ? undefined : m.tasks.find(task => !task.waiting);
+    const nextButton = nextTask && <button type="button" className="cw-button cw-primary cw-next-button" disabled={busy || m.disabledActions?.includes(nextTask.action)} onClick={action(nextTask.action)}>{nextTask.actionLabel || '바로가기'}</button>;
+    const phone = m.facts.find(fact => fact.label === '연락처')?.value?.trim() || '';
+    const assignmentsDisabled = busy || m.disabledActions?.includes('assignments');
+    const assignmentRows = m.assignments.flatMap(item => {
+        const nights = item.id === 'stay' && item.state !== 'unknown' ? m.days.filter(day => day.stayRequired === true) : [];
+        if (nights.length) return nights.map((day, index) => ({ key: `stay:${day.id}`, id: 'stay', dayId: day.id, label: `${index + 1}박 숙소`, sub: day.date || nightDate(startKey, day.day, endKey), place: day.title, value: day.stayAssigned ? day.stay || '' : '선택해 주세요', ready: !!day.stayAssigned, picker: '숙소 선택' }));
+        const sub = item.state === 'ready' && item.id === 'vehicle' && m.partyLabel ? `${m.partyLabel} 탑승` : item.detail || item.statusLabel;
+        return [{ key: item.id, id: item.id as string, dayId: undefined, label: item.label, sub, place: '', value: item.state === 'ready' ? item.value : item.state === 'pending' ? '선택해 주세요' : item.value, ready: item.state === 'ready', picker: item.id === 'stay' ? '숙소 선택' : item.id === 'vehicle' ? '차량 선택' : '가이드 선택' }];
+    });
+    const productContent = m.bookedProduct &&<><span className="cw-booked-product-image"><DashboardIcon name="lc-map-pin" size={14} />{m.bookedProduct.image && <ResponsiveProductImage src={m.bookedProduct.image} sizes="28px" alt="" onError={event => { event.currentTarget.style.display = 'none'; }} />}</span><span className="cw-booked-product-copy"><strong>{m.bookedProduct.name}</strong><span>{m.bookedProduct.href ? '상품 페이지 새 창으로 보기' : '연결된 상품을 확인해 주세요.'}</span></span>{m.bookedProduct.href && <DashboardIcon name="lc-external-link" size={14} />}</>;
 
     return <section className="cw-overview" aria-label="고객 통합 작업 현황" aria-busy={busy}>
         <div className="cw-breadcrumb">
@@ -70,19 +127,32 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
         <section className="cw-workflow" aria-label="예약 현황과 업무 진행">
             <div className="cw-hero">
                 <header className="cw-customer-header">
-                    <span className="cw-avatar" aria-hidden="true">{m.customerName?.trim().slice(0, 1) || <DashboardIcon name="lc-user" size={22} />}</span>
                     <div className="cw-identity-copy">
-                        <div className="cw-customer-title"><h1>{name}</h1><span className="cw-status">{m.statusLabel}</span>{dday && dday.tone !== 'none' && <span className="cw-dday">{dday.label}</span>}</div>
-                        <p className="cw-trip-meta">
+                        <div className="cw-customer-title"><h1>{name}</h1><span className={`cw-badge is-${statusTone(m.statusLabel)}`}>{m.statusLabel}</span>{dday && dday.tone !== 'none' && <span className="cw-badge is-neutral cw-dday">{dday.label}</span>}</div>
+                        <div className="cw-trip-meta">
+                            {m.placeLabel && <span><DashboardIcon name="lc-map-pin" size={14} />{m.placeLabel}</span>}
+                            {m.packageInfo && <PackageBadge info={m.packageInfo} />}
                             {m.partyLabel && <span><DashboardIcon name="lc-users" size={14} />{m.partyLabel}</span>}
                             {m.period && <span className="cw-mono"><DashboardIcon name="lc-calendar" size={14} />{m.period}</span>}
                             {nights && <span>{nights}</span>}
                             <span className="cw-record">{m.bookingNumber && `#${m.bookingNumber} · `}{m.sourceLabel}</span>
-                        </p>
+                        </div>
                         {m.bookedProduct && (m.bookedProduct.href ? <a className="cw-booked-product" href={m.bookedProduct.href} target="_blank" rel="noopener noreferrer" aria-label={`예약 상품 ${m.bookedProduct.name} 새 창으로 보기`}>{productContent}</a> : <div className="cw-booked-product">{productContent}</div>)}
                     </div>
-                    <div className="cw-header-actions">
-                        <button type="button" className="cw-button cw-primary" disabled={busy} onClick={action('documents')}>{m.documentLabel || '고객 문서 확인·전달'}</button>
+                    <div className="cw-header-tools">
+                        {DOCUMENT_LINKS.flatMap(link => { const doc = m.documents.find(item => item.id === link.id); return doc ? [<button type="button" key={link.id} className="cw-doc-link" disabled={busy || doc.disabled} onClick={action(link.action)}><DashboardIcon name={link.icon} size={15} />{link.label}</button>] : []; })}
+                        <span className="cw-header-divider" aria-hidden="true" />
+                        <div className="cw-header-actions">
+                            <button type="button" className="cw-button cw-primary" disabled={busy} onClick={event => {
+                                // 디자인 v3: 같은 화면의 '고객 알림 자동발송 · 이력/다시 보내기' 패널을 펼친다.
+                                const panel = notificationActions && m.documentAction !== 'documents'
+                                    ? (event?.currentTarget as HTMLElement | undefined)?.closest('.cw-overview')?.querySelector<HTMLDetailsElement>('details.cw-kakao') : null;
+                                if (!panel) { action('documents')(); return; }
+                                panel.open = true;
+                                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                panel.querySelector('summary')?.focus({ preventScroll: true });
+                            }}>{m.documentLabel || '고객 문서 확인·전달'}</button>
+                        </div>
                     </div>
                 </header>
                 {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}
@@ -95,12 +165,18 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                         <span className="cw-step-dot" aria-hidden="true">{item.done ? <DashboardIcon name="lc-check" size={16} strokeWidth={2.6} /> : index + 1}</span>
                         <span className="cw-step-copy"><span>{item.label}</span><small>{item.done ? '완료' : item.current ? '진행 중' : '대기'}</small></span>
                     </li>)}</ol>
+                    {!stageCancelled && (nowStep || allStepsDone) && <div className="cw-now">
+                        <span className="cw-now-dot" aria-hidden="true" /><span className="cw-now-caption">지금 단계</span>
+                        <strong>{nowStep ? nowStep.label : '모든 단계 완료'}</strong>
+                        <small>{nowStep ? [`${nowIndex + 1}단계`, m.steps[nowIndex + 1] && `다음은 ${m.steps[nowIndex + 1].label}`].filter(Boolean).join(' · ') : '출발 준비만 남았어요'}</small>
+                        {nextButton}
+                    </div>}
                 </div>}
             </div>
 
             <nav className="cw-shortcuts" aria-label="고객 빠른 업무">
                 {SHORTCUTS.map(shortcut => <button type="button" key={shortcut.name} disabled={busy || m.disabledActions?.includes(shortcut.name)} title={m.disabledActions?.includes(shortcut.name) ? m.disabledActionReason || '예약 진행 후 사용할 수 있습니다.' : undefined} onClick={action(shortcut.name)}>
-                    <DashboardIcon name={shortcut.icon} size={18} /><span>{m.workLabels?.[shortcut.name] || shortcut.label}</span><DashboardIcon name="lc-chevron-right" size={16} />
+                    <i className="cw-shortcut-icon" aria-hidden="true"><DashboardIcon name={shortcut.icon} size={18} /></i><span>{m.workLabels?.[shortcut.name] || shortcut.label}</span><DashboardIcon name="lc-chevron-right" size={16} />
                 </button>)}
             </nav>
 
@@ -111,6 +187,7 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
             <div className="cw-column cw-customer-column">
                 <article className="cw-card cw-customer-info">
                     <header><h2>고객 정보</h2><span className="cw-card-tools">
+                        {phone && phone !== '미입력' && phone !== '미등록' && <CopyPhoneButton phone={phone} busy={busy} />}
                         <button type="button" className="cw-icon-button" aria-label="고객 정보 전체 상세보기" title="고객 정보 전체 상세보기" disabled={busy} onClick={action('customer-detail')}><DashboardIcon name="lc-eye" size={16} /></button>
                         <button type="button" className="cw-icon-button" aria-label="고객 정보 수정" title="고객 정보 수정" disabled={busy} onClick={action('edit-info')}><DashboardIcon name="lc-pencil" size={16} /></button>
                     </span></header>
@@ -162,7 +239,7 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                         return <li key={day.id}>
                             <details className="cw-day-disclosure">
                                 <summary className="cw-day-summary" aria-label={`${day.day}일차 ${day.title || '일정'} 상세 일정`}>
-                                    <span className="cw-day-date"><b>{day.day}일차</b><small>{day.date || '날짜 확인 필요'}</small></span>
+                                    <span className="cw-day-date"><b>{day.day}일차</b><small>{day.date || nightDate(startKey, day.day, endKey)}</small></span>
                                     <strong className="cw-day-title">{day.title || `${day.day}일차 일정 작성`}</strong>
                                     <span className="cw-day-detail-label" aria-hidden="true"><span className="cw-day-show">상세 보기</span><span className="cw-day-hide">접기</span><DashboardIcon name="lc-chevron-down" size={16} /></span>
                                 </summary>
@@ -177,9 +254,9 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                     })}</ol> : <div className="cw-empty cw-empty-itinerary"><span className="cw-empty-graphic"><DashboardIcon name="lc-calendar" size={22} /></span><strong>어떤 여행을 준비할까요?</strong><p>기존 견적·상품 일정을 불러와 편집할 수 있습니다.</p><button type="button" className="cw-button" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</button></div>}
                     <section className="cw-files" aria-label="고객 문서와 파일">
                         <header><h2>고객 문서</h2><button type="button" className="cw-text-button" disabled={busy} onClick={action('documents')}>모두 보기<DashboardIcon name="lc-chevron-right" size={14} /></button></header>
-                        <div className="cw-file-list">{m.documents.map(doc => <button type="button" key={doc.id} disabled={busy || doc.disabled} onClick={action(doc.action || doc.id, doc.id)}>
-                            <span className="cw-file-copy"><strong>{doc.label}</strong>{doc.status && doc.detail ? <small>{doc.detail}</small> : !doc.status && <small>{doc.detail || '내용 확인'}</small>}</span>
-                            {doc.status && <span className={`cw-file-status${/필요|대기|미작성|미발송|전달 전|확인 전/.test(doc.status) ? ' is-attention' : ''}`}>{doc.status}</span>}<DashboardIcon name="lc-chevron-right" size={16} />
+                        <div className="cw-file-list">{m.documents.map(doc => <button type="button" key={doc.id} title={doc.status ? doc.detail : undefined} disabled={busy || doc.disabled} onClick={action(doc.action || doc.id, doc.id)}>
+                            <span className="cw-file-copy"><strong>{doc.label}</strong>{!doc.status && <small>{doc.detail || '내용 확인'}</small>}</span>
+                            {doc.status && <span className={`cw-badge is-${documentTone(doc.status)}`}>{doc.status}</span>}<DashboardIcon name="lc-chevron-right" size={16} />
                         </button>)}</div>
                         {!m.documents.length && <p className="cw-card-caption">견적을 작성하면 고객에게 전달할 문서를 확인할 수 있습니다.</p>}
                     </section>
@@ -187,8 +264,11 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
 
                 <article className="cw-card cw-recent-history">
                     <header><h2>최근 고객 이력</h2><button type="button" className="cw-text-button" disabled={busy} onClick={action('history')}>전체보기<DashboardIcon name="lc-chevron-right" size={14} /></button></header>
-                    {m.currentStage && <div className={`cw-current-stage is-${m.currentStage.tone}`}><span>현재 단계</span><strong>{m.currentStage.label}</strong>{m.currentStage.detail && <p>{m.currentStage.detail}</p>}</div>}
-                    {m.recentHistory?.length ? <ol className="cw-event-list">{m.recentHistory.slice(0, 5).map(event => <li key={event.id}><span className={`cw-event-dot is-${event.kind}`} aria-hidden="true" /><div><div className="cw-event-meta"><strong>{event.title}</strong><time dateTime={event.at} title={historyTime(event.at, true)}>{historyTime(event.at)}</time></div>{event.detail && <p>{event.detail}</p>}{event.internal && <span className="cw-internal"><DashboardIcon name="lc-lock" size={11} />내부</span>}</div></li>)}</ol> : <p className="cw-information-empty">저장된 처리 이력이 없습니다. 앞으로 기록된 업무를 여기에 표시합니다.</p>}
+                    {m.currentStage && <div className={`cw-current-stage is-${m.currentStage.tone}`}>
+                        <div><span>현재 단계</span><strong>{m.currentStage.label}</strong>{m.currentStage.detail && <p>{m.currentStage.detail}</p>}</div>
+                        {nextTask && <div className="cw-stage-next"><small>다음 · <b>{nextTask.label}</b></small>{nextButton}</div>}
+                    </div>}
+                    {m.recentHistory?.length ? <ol className="cw-event-list">{m.recentHistory.slice(0, 5).map(event => <li key={event.id}><span className={`cw-event-icon is-${event.kind}`} aria-hidden="true"><DashboardIcon name={EVENT_ICONS[event.kind]} size={15} /></span><div><div className="cw-event-meta"><strong>{event.title}</strong><time dateTime={event.at} title={historyTime(event.at, true)}>{historyTime(event.at)}</time></div>{event.detail && <p>{event.detail}</p>}{event.internal && <span className="cw-internal"><DashboardIcon name="lc-lock" size={11} />내부</span>}</div></li>)}</ol> : <p className="cw-information-empty">저장된 처리 이력이 없습니다. 앞으로 기록된 업무를 여기에 표시합니다.</p>}
                 </article>
             </div>
 
@@ -200,18 +280,16 @@ export function CustomerWorkspaceOverview({ model: m, onAction, busy = false, no
                         <div className="cw-payment-progress"><div role="progressbar" aria-label="입금 확인 비율" aria-valuemin={0} aria-valuemax={100} aria-valuenow={paidPercent ?? undefined} aria-valuetext={paidPercent === null ? '확인 필요' : undefined}><span style={{ width: `${paidPercent ?? 0}%` }} /></div></div>
                         <div className="cw-payment-ratio"><span>입금 {progressKnown ? money(paidAmount) : '확인 필요'}</span><strong>{paidPercent === null ? '확인 필요' : `${paidPercent}%`}</strong></div>
                     </div>
-                    <dl className="cw-payment-lines">{([{ label: '예약금', value: m.payment.deposit, paid: m.payment.depositPaid }, { label: '잔금', value: m.payment.balance, paid: m.payment.balancePaid }]).map(item => <div key={item.label}><dt>{item.label}</dt><dd><strong>{money(item.value)}</strong><span className={`cw-pill ${item.paid === true ? 'is-ready' : item.paid === null ? 'is-unknown' : 'is-pending'}`}>{item.paid === true ? '입금 확인' : item.paid === null ? '확인 필요' : '미입금'}</span></dd></div>)}</dl>
-                    <button type="button" className="cw-button cw-payment-manage" disabled={busy || m.disabledActions?.includes('payments')} title={m.disabledActions?.includes('payments') ? m.disabledActionReason : undefined} onClick={action('payments')}>입금·잔금 관리<DashboardIcon name="lc-chevron-right" size={16} /></button>
+                    <dl className="cw-payment-lines">{([{ label: '예약금', value: m.payment.deposit, paid: m.payment.depositPaid }, { label: '잔금', value: m.payment.balance, paid: m.payment.balancePaid }]).map(item => <div key={item.label}><dt>{item.label}</dt><dd><strong>{money(item.value)}</strong><span className={`cw-badge is-${item.paid === true ? 'ok' : item.paid === null ? 'neutral' : 'wait'}`}>{item.paid === true ? '입금 확인' : item.paid === null ? '확인 필요' : '미입금'}</span></dd></div>)}</dl>
                 </article>
                 <article className="cw-card cw-assignments">
                     <header><h2>숙소 · 차량 · 가이드</h2><span className={`cw-assignment-count ${assignedResources < m.assignments.length ? 'is-short' : ''}`}>{assignedResources} / {m.assignments.length} 배정</span></header>
-                    <p className="cw-card-caption">{directAssignments ? '등록된 자원을 선택해 이 예약에 배정하세요.' : '각 항목을 눌러 배정 내용을 확인하고 선택하세요.'}</p>
-                    <ul className="cw-assignment-list">{m.assignments.map(item => <li key={item.id}><button type="button" className="cw-resource-select" aria-label={`${item.label} 관리`} disabled={busy || m.disabledActions?.includes('assignments')} title={m.disabledActions?.includes('assignments') ? m.disabledActionReason : undefined} onClick={action(item.id)}>
-                        <span className="cw-assignment-copy"><span className="cw-assignment-label">{item.label}</span>{item.detail && <small>{item.detail}</small>}<span className={`cw-pill is-${item.state}`}>{item.statusLabel}</span></span>
-                        <span className={`cw-select-box is-${item.state}`}><span className="cw-select-dot" aria-hidden="true" /><strong>{item.value || '미배정'}</strong><span className="cw-resource-select-label">{item.id === 'stay' ? '숙소 선택' : item.id === 'vehicle' ? '차량 선택' : '가이드 선택'}</span><DashboardIcon name="lc-chevron-down" size={16} /></span>
+                    <ul className="cw-assignment-list">{assignmentRows.map(row => <li key={row.key}><button type="button" className="cw-resource-select" aria-label={`${row.label} 관리`} disabled={assignmentsDisabled} title={m.disabledActions?.includes('assignments') ? m.disabledActionReason : undefined} onClick={action(row.id, row.dayId)}>
+                        <span className="cw-assignment-copy"><span className="cw-assignment-label">{row.label}</span>{row.sub && <small>{row.sub}</small>}{row.place && <em>{row.place}</em>}</span>
+                        <span className={`cw-select-box ${row.ready ? 'is-ready' : 'is-pending'}`}><span className="cw-select-dot" aria-hidden="true" /><strong>{row.value || '선택해 주세요'}</strong><span className="cw-resource-select-label">{row.picker}</span><DashboardIcon name="lc-chevron-down" size={16} /></span>
                     </button></li>)}</ul>
                     {assignmentEditor}
-                    <button type="button" className="cw-history-link" disabled={busy} onClick={action('history')}>예약 변경 · 발송 이력<DashboardIcon name="lc-chevron-right" size={16} /></button>
+                    <button type="button" className="cw-history-link" disabled={assignmentsDisabled} onClick={action('assignments')}>세부 정보 수정<DashboardIcon name="lc-chevron-right" size={16} /></button>
                 </article>
                 <article className="cw-card cw-notes">
                     <header><h2>상담 · 메모</h2><span className="cw-private"><DashboardIcon name="lc-lock" size={12} />내부 전용</span></header>

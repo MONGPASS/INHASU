@@ -24,6 +24,71 @@ test('업무 진행과 고객 알림은 유지하고 중복된 지금 할 일 �
     elements(groups[0], node => node.type === 'button')[0].props.onClick(); assert.equal(sent, 1);
 });
 
+test('풀패키지·실속형·미지정을 머리 영역에 구분해 표시하고 정보가 없으면 숨긴다', () => {
+    const render = packageInfo => renderToStaticMarkup(React.createElement(CustomerWorkspaceOverview, { model: { ...model, packageInfo }, onAction() {} }));
+    const full = render({ tier: 'full' });
+    assert.match(full, /cw-package is-full/); assert.match(full, /풀패키지/); assert.match(full, /4성급 호텔 \+ 디럭스 게르 숙박/);
+    const value = render({ tier: 'value', detail: '고객 선택 · 일반 여행자 게르' });
+    assert.match(value, /cw-package is-value/); assert.match(value, /실속형/); assert.match(value, /고객 선택 · 일반 여행자 게르/); assert.doesNotMatch(value, /3성급/);
+    const unknown = render({ tier: null, detail: '상담 후 확인' });
+    assert.match(unknown, /cw-package is-unknown/); assert.match(unknown, /패키지 미지정/); assert.match(unknown, /상담 후 확인/);
+    assert.doesNotMatch(render(undefined), /cw-package/);
+    // 패키지는 표시만 하며 화면에서 바꾸는 버튼을 만들지 않는다.
+    assert.doesNotMatch(render({ tier: 'value' }), /<button[^>]*cw-package/);
+});
+
+test('지금 단계와 다음 업무는 저장 없이 해당 화면만 열고 대기·취소 상태에서는 바로가기를 만들지 않는다', () => {
+    const calls = [];
+    const tasks = [{ id: 'wait', label: '고객 서명 대기', action: 'contract', actionLabel: '계약서 확인', waiting: true }, { id: 'g', label: '가이드 배정', action: 'guide', actionLabel: '가이드 선택' }];
+    const tree = CustomerWorkspaceOverview({ model: { ...model, tasks, currentStage: { label: '견적 준비', tone: 'active' } }, onAction: (...args) => calls.push(args) });
+    const now = elements(tree, node => node.props.className === 'cw-now')[0];
+    assert.ok(childrenText(now).includes('견적 준비')); assert.ok(childrenText(now).includes('2단계'));
+    assert.equal(childrenText(elements(now, node => node.type === 'button')[0]), '가이드 선택');
+    elements(now, node => node.type === 'button')[0].props.onClick();
+    assert.deepEqual(calls, [['guide', undefined]]);
+    const cancelled = CustomerWorkspaceOverview({ model: { ...model, tasks, currentStage: { label: '취소됨', tone: 'cancelled' } }, onAction() {} });
+    assert.equal(elements(cancelled, node => node.props.className === 'cw-now').length, 0);
+    assert.equal(elements(cancelled, node => String(node.props.className).includes('cw-next-button')).length, 0);
+});
+
+test('상단 문서 바로가기는 저장된 문서의 기존 액션을 그대로 열고 없는 문서는 만들지 않는다', () => {
+    const calls = [];
+    const documents = [{ id: 'quote', label: '견적서', action: 'quote-preview', status: '저장됨' }, { id: 'contract', label: '계약서', action: 'contract', status: '대기' }];
+    const tree = CustomerWorkspaceOverview({ model: { ...model, documents }, onAction: (...args) => calls.push(args) });
+    const links = elements(tree, node => node.props.className === 'cw-doc-link');
+    assert.deepEqual(links.map(childrenText), ['견적서', '여행 계약서']);
+    links.forEach(link => link.props.onClick());
+    // 디자인 v3: 문서 버튼은 미리보기·발송이 아니라 각 문서의 편집 화면을 연다.
+    assert.deepEqual(calls, [['quote-edit', undefined], ['contract', undefined]]);
+});
+
+test('고객 문서 확인·전달은 같은 화면의 고객 알림 패널을 펼치고 문의 단계에서는 문서 화면을 연다', () => {
+    const calls = [];
+    let opened = false, scrolled = 0, focused = 0;
+    const panel = { set open(value) { opened = value; }, get open() { return opened; }, scrollIntoView: () => scrolled++, querySelector: () => ({ focus: () => focused++ }) };
+    const event = { currentTarget: { closest: () => ({ querySelector: selector => selector === 'details.cw-kakao' ? panel : null }) } };
+    const notices = React.createElement('details', { className: 'cw-kakao' });
+    const primary = tree => elements(elements(tree, node => node.props.className === 'cw-header-actions')[0], node => node.type === 'button')[0];
+    primary(CustomerWorkspaceOverview({ model, notificationActions: notices, onAction: (...args) => calls.push(args) })).props.onClick(event);
+    assert.deepEqual(calls, []); assert.equal(opened, true); assert.equal(scrolled, 1); assert.equal(focused, 1);
+    primary(CustomerWorkspaceOverview({ model: { ...model, documentAction: 'documents' }, notificationActions: notices, onAction: (...args) => calls.push(args) })).props.onClick(event);
+    assert.deepEqual(calls, [['documents', undefined]]);
+});
+
+test('숙박일이 확정된 숙소는 박별 행으로 나누어 해당 일차를 전달하고 이전 견적의 희망 숙소는 나누지 않는다', () => {
+    const calls = [];
+    const days = [{ id: 'a', day: 1, title: '울란바타르', date: '02.06(토)', stayRequired: true, stay: '저장 호텔', stayAssigned: true }, { id: 'b', day: 2, title: '테를지', date: '02.07(일)', stayRequired: true, stay: '일정상 숙소', stayAssigned: false }, { id: 'c', day: 3, title: '공항', stayRequired: false }];
+    const stay = { id: 'stay', label: '숙소', value: '1/2박 배정', statusLabel: '1/2박 배정', state: 'pending' };
+    const tree = CustomerWorkspaceOverview({ model: { ...model, days, assignments: [stay] }, onAction: (...args) => calls.push(args) });
+    const rows = elements(tree, node => node.props.className === 'cw-resource-select');
+    assert.deepEqual(rows.map(row => row.props['aria-label']), ['1박 숙소 관리', '2박 숙소 관리']);
+    assert.ok(childrenText(rows[0]).includes('저장 호텔')); assert.ok(childrenText(rows[1]).includes('선택해 주세요')); assert.ok(!childrenText(rows[1]).includes('일정상 숙소'));
+    rows[1].props.onClick();
+    assert.deepEqual(calls, [['stay', 'b']]);
+    const wish = CustomerWorkspaceOverview({ model: { ...model, days, assignments: [{ ...stay, label: '희망 숙소', value: '호텔', state: 'unknown' }] }, onAction() {} });
+    assert.equal(elements(wish, node => node.props.className === 'cw-resource-select').length, 1);
+});
+
 function elements(tree, predicate) {
     const found = [];
     const visit = node => {
@@ -230,7 +295,9 @@ test('일차별 일정은 기본 접힘 요약과 독립된 편집 버튼으로 
         const summaryText = childrenText(summary);
         assert.ok(summaryText.includes(String(days[index].day) + '일차'));
         assert.ok(summaryText.includes(days[index].title));
-        assert.ok(summaryText.includes(days[index].date || '날짜 확인 필요'));
+        // 저장된 날짜가 없으면 여행 기간 안의 일차만 출발일 기준 날짜로 보여 주고, 기간 밖이면 확인 필요로 둔다.
+        const fallback = new Date(Date.UTC(2026, 9, 24 + days[index].day - 1));
+        assert.ok(summaryText.includes(days[index].date || (days[index].day <= 5 ? `${String(fallback.getUTCMonth() + 1).padStart(2, '0')}.${String(fallback.getUTCDate()).padStart(2, '0')}(${'일월화수목금토'[fallback.getUTCDay()]})` : '날짜 확인 필요')));
         assert.equal(elements(summary, node => ['button', 'a', 'input', 'select', 'textarea'].includes(node.type)).length, 0);
         assert.equal(elements(summary, node => node.type === 'span' && node.props.className === 'cw-day-detail-label').length, 1);
         assert.equal(childrenText(summary).includes('실제 배정 캠프'), false, 'Full logistics belong inside the expandable body');

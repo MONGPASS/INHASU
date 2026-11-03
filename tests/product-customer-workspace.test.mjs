@@ -58,6 +58,7 @@ const pending = () => { let resolve, reject; const promise = new Promise((yes, n
 test('업무 패널 전환은 결제·주문·문서·운영의 작성 중 입력을 보호하고 현재 업무의 저장 경로를 유지한다', () => {
     const calls = [];
     const context = { fullPage: true, workflowOpen: false, overviewScrollPosition: {current: 0}, window: {scrollY: 123}, activeSec: 'pay', isEditing: true, inlineDirty: false, operationsDirty: false, quickAssignmentDirty: false,
+        inlineEditorOpen: true, reservation: { status: 'confirmed' }, setInlineEditorOpen: value => calls.push(['editor', value]),
         workspaceIsBusy: () => false, requestAnimationFrame: callback => callback(),
         bodyRef: { current: { scrollTo: options => calls.push(['scroll', options.top]), querySelector: selector => ({ scrollIntoView: () => calls.push(['scroll', selector]) }) } },
         setActiveSec: value => calls.push(['section', value]), setWorkflowOpen: value => calls.push(['open', value]), setNavigationNotice: value => calls.push(['notice', value]) };
@@ -71,6 +72,11 @@ test('업무 패널 전환은 결제·주문·문서·운영의 작성 중 입�
         calls.length = 0; context.navigate('log'); assert.equal(calls.length, 1); assert.equal(calls[0][0], 'notice');
     }
     context.operationsDirty = false; context.quickAssignmentDirty = true; calls.length = 0; context.navigate('docs'); assert.equal(calls.length, 1);
+    // 고객 통합 작업의 문서 탭은 예전 공개·전달 화면 대신 편집 화면을 연다(취소 예약은 열지 않음).
+    context.quickAssignmentDirty = false; context.inlineEditorOpen = false; calls.length = 0; context.navigate('docs');
+    assert.deepEqual(calls.filter(call => !['scroll', 'notice'].includes(call[0])), [['section', 'docs'], ['editor', true], ['section', 'inline-doc'], ['open', true]]);
+    context.reservation = { status: 'cancelled' }; calls.length = 0; context.navigate('docs'); assert.equal(calls.some(call => call[0] === 'editor'), false);
+    context.reservation = { status: 'confirmed' }; context.inlineEditorOpen = true;
     context.quickAssignmentDirty = false; context.workspaceIsBusy = () => true; calls.length = 0; context.navigate('pay'); assert.equal(calls.length, 0);
     context.fullPage = false; context.isEditing = true; context.navigate('log'); assert.ok(calls.some(call => call[0] === 'section' && call[1] === 'log'));
 });
@@ -253,7 +259,7 @@ test('요약 버튼들은 실제 기존 업무 제어에 연결되고 저장 중
     context.workspaceIsBusy = () => false; context.canStartDelivery = () => false; context.action('itinerary'); assert.equal(calls.length, count);
 });
 
-test('남은 문서 업무는 일정을 편집하거나 즉시 발송하지 않고 실제 문서 확인·전달 패널을 연다', () => {
+test('남은 문서 업무는 즉시 발송하지 않고 문서 탭의 공개·전달 영역을 연다', () => {
     const calls = [];
     const context = { workspaceIsBusy: () => false, inlineDirty: false, docDraftPending: false, operationsDirty: false, isEditing: false, quickAssignmentDirty: false, fullPage: true };
     for (const name of ['setInlineEditorOpen', 'setActiveDocument', 'scrollToSec', 'setNavigationNotice']) context[name] = (...args) => calls.push([name, ...args]);
@@ -261,8 +267,12 @@ test('남은 문서 업무는 일정을 편집하거나 즉시 발송하지 않�
     const start = source.indexOf('    const overviewAction = ('), end = source.indexOf('\n\n    return (<>', start);
     execute(source.slice(start, end) + '\nglobalThis.action = overviewAction;', context);
     for (const [task, expected] of [['deliver-contract', 'contract'], ['contract-changed', 'contract'], ['itinerary-changed', 'itinerary'], ['publish', 'itinerary'], ['deliver-itinerary', 'itinerary']]) {
+        // 고객 통합 작업에서는 편집 화면을 닫지 않고, 드로어에서는 기존처럼 닫은 뒤 문서 목록을 연다.
         calls.length = 0; context.action('documents', task);
+        assert.deepEqual(calls, [['setActiveDocument', expected], ['scrollToSec', 'docs']]);
+        context.fullPage = false; calls.length = 0; context.action('documents', task);
         assert.deepEqual(calls, [['setInlineEditorOpen', false], ['setActiveDocument', expected], ['scrollToSec', 'docs']]);
+        context.fullPage = true;
     }
     for (const field of ['inlineDirty', 'docDraftPending', 'operationsDirty', 'isEditing', 'quickAssignmentDirty']) {
         calls.length = 0; context[field] = true; context.action('documents', 'deliver-contract');

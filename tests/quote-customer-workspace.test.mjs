@@ -39,6 +39,11 @@ test('미예약 문의도 실제 문의 상태로 열리고 결제·배정 완�
     assert.equal(result.canSendItinerary, false); assert.equal(JSON.stringify(inquiry), before);
     assert.notEqual(model({ ...inquiry, id: 'another-same-name' }).bookingNumber, result.bookingNumber);
 });
+test('맞춤 견적 패키지는 고객이 고른 숙소를 그대로 보여 주고 미선택이면 미지정으로 남긴다', () => {
+    assert.deepEqual(JSON.parse(JSON.stringify(model({ ...inquiry, cityStay: '호텔(5성급)', gerStay: '고급 여행자 게르' }).packageInfo)), { tier: 'full', detail: '고객 선택 · 호텔(5성급) + 고급 여행자 게르' });
+    assert.deepEqual(JSON.parse(JSON.stringify(model({ ...inquiry, cityStay: '상관없음', gerStay: '일반 여행자 게르' }).packageInfo)), { tier: 'value', detail: '고객 선택 · 일반 여행자 게르' });
+    assert.deepEqual(JSON.parse(JSON.stringify(model({ ...inquiry, pkgTier: '실속' }).packageInfo)), { tier: 'value' });    for (const record of [inquiry, { ...inquiry, cityStay: '호텔(4성급)', gerStay: '상관없음' }]) assert.equal(model(record).packageInfo.tier, null);
+});
 test('견적 내부 저장 시각·알림 건너뜀은 발송 완료가 아니며 명시한 0원은 보존한다', () => {
     const record = { ...inquiry, quoteIssuedAt: '2026-10-19', quote: { pax: 2, days: [], price: { deposit: 0, balances: [{ pax: 2, economy: 0 }] } }, activities: [{ type: 'quote_notification_skipped' }] };
     const result = model(record);

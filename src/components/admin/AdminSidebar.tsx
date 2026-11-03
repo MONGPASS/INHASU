@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
-import { Icon } from './console/Icon';
-import { Admin3DIcon } from './Admin3DIcon';
-import type { Admin3DIconName } from './Admin3DIcon';
+import { DashboardIcon, type DashboardIconName } from './dashboard/DashboardIcon';
 import { QUOTE_DESK_TOOLS, disconnectQuoteDesk, quoteDeskHref, quoteDeskPageId } from './quoteDesk';
 
 interface AdminSidebarProps {
     activePage: string;
+    /** 아이콘만 보이는 좁은 메뉴 (디자인 v3의 접기). */
+    rail?: boolean;
+    onToggleRail?: () => void;
     /** kept for backward-compat with existing call sites; the redesign is light-only */
     isDarkMode?: boolean;
     toggleTheme?: () => void;
@@ -15,81 +16,83 @@ interface AdminSidebarProps {
 
 interface NavItem {
     id: string;
-    icon: string;
+    icon: DashboardIconName;
     label: string;
     href: string;
 }
 
 interface NavGroup {
     id: string;
-    icon: string;
+    icon: DashboardIconName;
     label: string;
     items: NavItem[];
     /** 상세·작성 화면도 관련 업무 메뉴 안에 표시한다. */
     relatedPages?: string[];
 }
 
-const dashboardItem: NavItem = { id: 'dashboard', icon: 'dashboard', label: '대시보드', href: '/admin' };
+const dashboardItem: NavItem = { id: 'dashboard', icon: 'lc-layout-dashboard', label: '대시보드', href: '/admin' };
 
-const navArtwork: Record<string, Admin3DIconName> = {
-    dashboard: 'dashboard', 'booking-work': 'reservation', 'quote-work': 'idea',
-    'product-work': 'travel', 'assignment-work': 'customer',
-    'customer-content': 'message', 'site-management': 'target',
+const QUOTE_ICONS: Record<string, DashboardIconName> = {
+    inbox: 'lc-file-text', courses: 'lc-route', itinerary: 'lc-trending-up', spots: 'lc-map-pin', resources: 'lc-users',
 };
-
 const quoteItem = (key: string, label?: string): NavItem => {
     const tool = QUOTE_DESK_TOOLS.find((entry) => entry.key === key)!;
-    return { id: quoteDeskPageId(key), icon: tool.icon, label: label ?? tool.label, href: quoteDeskHref(key) };
+    return { id: quoteDeskPageId(key), icon: QUOTE_ICONS[key] || 'lc-file-text', label: label ?? tool.label, href: quoteDeskHref(key) };
 };
 
 const navGroups: NavGroup[] = [
     {
-        id: 'booking-work', icon: 'assignment', label: '예약 관리',
+        id: 'booking-work', icon: 'lc-calendar-check', label: '예약 관리',
         relatedPages: [quoteDeskPageId('bookings')],
         items: [
-            { id: 'reservations', icon: 'assignment', label: '통합 예약 목록', href: '/admin/reservations' },
-            { id: 'calendar', icon: 'calendar_today', label: '투어 캘린더', href: '/admin/calendar' },
+            { id: 'reservations', icon: 'lc-clipboard-list', label: '통합 예약 목록', href: '/admin/reservations' },
+            { id: 'calendar', icon: 'lc-calendar', label: '투어 캘린더', href: '/admin/calendar' },
         ],
     },
     {
-        id: 'quote-work', icon: 'request_quote', label: '견적 관리',
+        id: 'quote-work', icon: 'lc-file-text', label: '견적 관리',
         relatedPages: [quoteDeskPageId('builder')],
         items: [quoteItem('inbox'), quoteItem('courses'), quoteItem('itinerary'), quoteItem('spots')],
     },
     {
-        id: 'product-work', icon: 'inventory_2', label: '상품 관리',
+        id: 'product-work', icon: 'lc-archive', label: '상품 관리',
         items: [
-            { id: 'products', icon: 'inventory_2', label: '상품 목록', href: '/admin/products' },
-            { id: 'categories', icon: 'category', label: '상품 카테고리', href: '/admin/categories' },
-            { id: 'templates', icon: 'folder_special', label: '문서 템플릿', href: '/admin/templates' },
+            { id: 'products', icon: 'lc-archive', label: '상품 목록', href: '/admin/products' },
+            { id: 'categories', icon: 'lc-shapes', label: '상품 카테고리', href: '/admin/categories' },
+            { id: 'templates', icon: 'lc-folder-plus', label: '문서 템플릿', href: '/admin/templates' },
         ],
     },
     {
-        id: 'assignment-work', icon: 'groups', label: '배정·자원',
+        id: 'assignment-work', icon: 'lc-users', label: '배정·자원',
         items: [
-            { id: 'accommodation-ops', icon: 'night_shelter', label: '숙소 배정 · 현지 운영', href: '/admin/accommodation-ops' },
+            { id: 'accommodation-ops', icon: 'lc-house', label: '숙소 배정 · 현지 운영', href: '/admin/accommodation-ops' },
             quoteItem('resources'),
         ],
     },
     {
-        id: 'customer-content', icon: 'mail', label: '고객·콘텐츠',
+        id: 'customer-content', icon: 'lc-mail', label: '고객·콘텐츠',
         items: [
-            { id: 'inquiries', icon: 'mail', label: '일반 문의', href: '/admin/inquiries' },
-            { id: 'reviews', icon: 'reviews', label: '후기 관리', href: '/admin/reviews' },
-            { id: 'faq', icon: 'help', label: 'FAQ 관리', href: '/admin/faq' },
-            { id: 'magazines', icon: 'menu_book', label: '매거진 관리', href: '/admin/magazines' },
+            { id: 'inquiries', icon: 'lc-mail', label: '일반 문의', href: '/admin/inquiries' },
+            { id: 'reviews', icon: 'lc-message-square-quote', label: '후기 관리', href: '/admin/reviews' },
+            { id: 'faq', icon: 'lc-circle-help', label: 'FAQ 관리', href: '/admin/faq' },
+            { id: 'magazines', icon: 'lc-book-open', label: '매거진 관리', href: '/admin/magazines' },
         ],
     },
     {
-        id: 'site-management', icon: 'ad_units', label: '사이트 관리',
+        id: 'site-management', icon: 'lc-panel-top', label: '사이트 관리',
         items: [
-            { id: 'banners', icon: 'ad_units', label: '홈 화면 관리', href: '/admin/banners' },
-            { id: 'promotions', icon: 'campaign', label: '여행기획전 관리', href: '/admin/promotions' },
+            { id: 'banners', icon: 'lc-panel-top', label: '홈 화면 관리', href: '/admin/banners' },
+            { id: 'promotions', icon: 'lc-megaphone', label: '여행기획전 관리', href: '/admin/promotions' },
         ],
     },
 ];
+/** 디자인 v3: 업무 메뉴(MAIN MENU)와 고객·사이트 메뉴(OTHER)를 나눈다. */
+const sections: Array<{ title: string; groups: string[]; dashboard?: boolean }> = [
+    { title: 'MAIN MENU', dashboard: true, groups: ['booking-work', 'quote-work', 'product-work', 'assignment-work'] },
+    { title: 'OTHER', groups: ['customer-content', 'site-management'] },
+];
 
-export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = false, onToggleRail }) => {
     const navigate = useNavigate();
     let logout: undefined | (() => void | Promise<void>);
     try { logout = useUser().logout; } catch { logout = undefined; }
@@ -116,53 +119,60 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
         navigate('/admin/login');
     };
 
-    const renderItem = (item: NavItem) => {
+    const renderItem = (item: NavItem, sub = false) => {
         const isActive = activePage === item.id;
         return (
-            <Link key={item.id} to={item.href} className={`nav-item${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined}>
-                {navArtwork[item.id] ? <Admin3DIcon name={navArtwork[item.id]} fallback={item.icon} size={28} className="admin-nav-art" /> : <Icon name={item.icon} fill={isActive} />}
+            <Link key={item.id} to={item.href} className={`nav-item${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined} title={rail ? item.label : undefined}>
+                <DashboardIcon name={item.icon} size={sub ? 16 : 18} />
                 <span>{item.label}</span>
             </Link>
         );
     };
 
     return (
-        <aside className="side">
-            <Link to="/admin" className="side-brand" aria-label="몽골리아 은하수 관리자 홈">
-                <span className="brand-mark"><Icon name="flight_takeoff" /></span>
-                <div>
-                    <div className="brand-name">몽골리아 은하수</div>
-                    <div className="brand-sub">통합 관리자</div>
-                </div>
-            </Link>
+        <aside className={`side${rail ? ' is-rail' : ''}`}>
+            {onToggleRail && <div className="side-rail-bar">
+                <button type="button" className="side-rail-toggle" title={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-label={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-pressed={rail} onClick={onToggleRail}>
+                    <DashboardIcon name={rail ? 'lc-chevron-right' : 'lc-chevron-left'} size={18} />
+                </button>
+            </div>}
 
             <nav className="side-nav" ref={navRef} aria-label="관리자 업무 메뉴">
-                {renderItem(dashboardItem)}
-                {navGroups.map((group) => {
-                    const isOpen = expandedGroup === group.id;
-                    const isCurrent = activeGroupId === group.id;
-                    const panelId = `admin-nav-${group.id}`;
-                    return (
-                        <div className={`nav-group${isOpen ? ' is-open' : ''}`} key={group.id}>
-                            <button
-                                type="button"
-                                className={`nav-group-toggle${isCurrent ? ' is-current' : ''}`}
-                                aria-expanded={isOpen}
-                                aria-controls={panelId}
-                                onClick={() => setExpandedGroup(isOpen ? null : group.id)}
-                            >
-                                <Admin3DIcon name={navArtwork[group.id]} fallback={group.icon} size={28} className="admin-nav-art" />
-                                <span>{group.label}</span>
-                                <svg className="nav-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                                    <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </button>
-                            <div className="nav-submenu" id={panelId} hidden={!isOpen}>
-                                {group.items.map(renderItem)}
-                            </div>
-                        </div>
-                    );
-                })}
+                {sections.map((section) => (
+                    <div className="nav-section" key={section.title}>
+                        <div className="nav-section-title" aria-hidden={rail || undefined}>{section.title}</div>
+                        {section.dashboard && renderItem(dashboardItem)}
+                        {section.groups.map((groupId) => {
+                            const group = navGroups.find((entry) => entry.id === groupId)!;
+                            const isOpen = !rail && expandedGroup === group.id;
+                            const isCurrent = activeGroupId === group.id;
+                            const panelId = `admin-nav-${group.id}`;
+                            return (
+                                <div className={`nav-group${isOpen ? ' is-open' : ''}`} key={group.id}>
+                                    <button
+                                        type="button"
+                                        className={`nav-group-toggle${isCurrent ? ' is-current' : ''}`}
+                                        aria-expanded={isOpen}
+                                        aria-controls={panelId}
+                                        title={rail ? group.label : undefined}
+                                        onClick={() => {
+                                            // 접힌 메뉴에서는 펼치면서 해당 업무를 연다.
+                                            if (rail) { onToggleRail?.(); setExpandedGroup(group.id); return; }
+                                            setExpandedGroup(isOpen ? null : group.id);
+                                        }}
+                                    >
+                                        <DashboardIcon name={group.icon} size={18} />
+                                        <span>{group.label}</span>
+                                        <span className="nav-chevron" aria-hidden="true"><DashboardIcon name="lc-chevron-down" size={16} /></span>
+                                    </button>
+                                    <div className="nav-submenu" id={panelId} hidden={!isOpen}>
+                                        {group.items.map((item) => renderItem(item, true))}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ))}
             </nav>
 
             <div className="side-foot">
@@ -173,7 +183,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage }) => {
                         <span>운영 계정 · 마스터</span>
                     </div>
                     <button type="button" className="out" title="로그아웃" aria-label="로그아웃" onClick={handleLogout}>
-                        <Icon name="logout" />
+                        <DashboardIcon name="lc-log-out" size={18} />
                     </button>
                 </div>
             </div>

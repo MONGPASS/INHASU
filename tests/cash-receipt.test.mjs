@@ -28,7 +28,7 @@ test("현금영수증 출력 데이터가 예약의 잔금·기간·담당 가�
 test("PC 예약관리의 가이드 시트 PDF가 저장된 최신 예약을 사용한다", () => {
   const admin = read("예약관리.html");
   const shared = read("booking.js");
-  assert.match(admin, /id="guideSheetBtn">📋 가이드 시트 PDF/);
+  assert.match(admin, /id="guideSheetBtn">가이드 시트 PDF/);
   assert.match(admin, /async function printGuideSheet\(\)/);
   assert.match(admin, /leaders_guide_sheet_print/);
   assert.match(admin, /await save\(\{ quiet:true \}\)/);

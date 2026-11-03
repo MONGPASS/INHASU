@@ -7,15 +7,22 @@
 .quote-customer-editor-entry>button{flex:none}
 .quote-customer-editor-shell{position:relative;display:flex;flex-direction:column;min-width:0;height:0;overflow:hidden;background:#fff;scroll-margin-top:16px}
 .quote-customer-editor-shell.is-expanded{flex:1;height:auto;min-height:0;max-width:none;margin:0;border:0;border-radius:0}
-.quote-customer-editor-heading{position:relative;z-index:3;display:flex;flex:none;align-items:center;gap:24px;padding:18px 28px;border-bottom:1px solid #e9edf2;background:#fff}
+/* Customer editor heading — Admin Dashboard v3 "일정표 편집": back pill, name + glow badge.
+   The share/guide actions continue directly below inside the frame (body>header). */
+.quote-customer-editor-heading{position:relative;z-index:3;display:flex;flex:none;align-items:center;gap:14px;padding:14px 28px 6px;border-bottom:0;background:#fff;font-family:Pretendard,system-ui,sans-serif}
 .quote-customer-editor-heading>div{min-width:0}
 .quote-customer-focus-identity{flex:1}
-.quote-customer-editor-heading h2{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin:0;color:#182b3c;font-size:20px;font-weight:750;letter-spacing:-.03em;line-height:1.4;overflow-wrap:anywhere}
+.quote-customer-editor-heading h2{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:0;color:#191f28;font-size:20px;font-weight:800;letter-spacing:-.03em;line-height:1.4;overflow-wrap:anywhere}
 .quote-customer-editor-heading h2:focus{outline:none}
-.quote-customer-editor-heading h2>span{padding-left:16px;border-left:1px solid #dce3eb;color:#168b75;font-size:14px;font-weight:650;letter-spacing:-.01em}
-.quote-customer-editor-heading p{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:4px 0 0;color:#697586;font-size:13px;line-height:1.6}
+.quote-customer-editor-heading h2>span{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;background:#e8f3ff;color:#1b64da;font-size:12px;font-weight:700;letter-spacing:-.01em;line-height:1;white-space:nowrap}
+.quote-customer-editor-heading h2>span::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:#3182f6;box-shadow:0 0 0 3px rgba(49,130,246,.18),0 0 8px rgba(49,130,246,.55)}
+.quote-customer-editor-heading p{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:2px 0 0;color:#4e5968;font-size:12px;font-weight:700;line-height:1.5}
+.quote-customer-editor-heading p>span{color:#8b95a1;font-weight:500}
 .quote-customer-editor-heading>button{flex:none;min-height:40px}
-.quote-customer-focus-status{flex:none;padding:7px 12px;border-radius:8px;background:#e8f7f2;color:#087960;font-size:12px;font-weight:650;line-height:1.5}
+.quote-customer-editor-heading>.quote-customer-return{display:inline-flex;align-items:center;gap:4px;height:36px;min-height:36px;padding:0 14px 0 10px;border:1.5px solid #e5e8eb;border-radius:999px;background:#fff;color:#191f28;font-size:13px;font-weight:700;box-shadow:none}
+.quote-customer-editor-heading>.quote-customer-return:hover:not(:disabled){border-color:#d1d6db;background:#f9fafb}
+.quote-customer-editor-heading>.quote-customer-return .material-symbols-outlined{font-size:16px}
+.quote-customer-focus-status{flex:none;padding:5px 10px;border-radius:999px;background:#f2f4f6;color:#4e5968;font-size:12px;font-weight:700;line-height:1.5}
 .quote-customer-editor-frame{display:block;flex:1;width:100%;min-height:0;border:0;background:#f5f7fa}
 
 .reservation-workspace.product-workspace.quote-native-workspace{display:block;width:100%;height:auto;max-height:none;margin:0 auto 24px;background:transparent;font-family:Pretendard,system-ui,sans-serif}
@@ -108,10 +115,188 @@
 .customer-booking-editor[data-customer-section="log"] #main{display:none}
 .customer-booking-editor body>header h1,.customer-booking-editor body>header .who{display:none}
 .customer-booking-editor .hd-acts{margin-left:0}
-.customer-booking-editor:not([data-customer-section="docs"]) body>header,
 .customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) .save-context{display:none}
 .customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) #contractRequestBtn,
 .customer-booking-editor:not([data-customer-section="docs"]) #travelNoticeBtn{display:none!important}
 
+/* ── Customer editor look: Admin Dashboard v3 "일정표 편집" ─────────────────────────────
+   Scoped to the canonical customer frame only, so the standalone 예약관리 page and the
+   quote builder keep their own styles. Shared day-card rules (quote-day-editor.css) are
+   overridden here rather than edited. Ids, classes and scripts are untouched. */
+.customer-booking-editor{--cbe-ink:#191f28;--cbe-text:#191f28;--cbe-sub:#4e5968;--cbe-muted:#8b95a1;--cbe-line:#e5e8eb;--cbe-hair:#f2f4f6;--cbe-soft:#f7f8fa;--cbe-canvas:#f5f6f8;--cbe-mint:#12b28c;--cbe-head:50px;--cbe-tabs:49px;--cbe-shadow:0 12px 32px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);--cbe-focus:0 0 0 3px rgba(25,31,40,.08)}
+.customer-booking-editor body{background:var(--cbe-canvas);color:var(--cbe-text)}
+.customer-booking-editor :is(#documentsSection,#bookingInfoSection,#paymentSection,#assignmentSection,#admin-booking-history,#c_contract,#bk_memo,#g_pick,#v_pick,#lodgeWrap,#fl_inDate,#travelerWrap){scroll-margin-top:calc(var(--cbe-head) + var(--cbe-tabs) + 20px)}
+
+/* Share / guide actions continue the outer heading as one white header block. */
+.customer-booking-editor body>header{position:sticky;top:0;z-index:31;display:flex;justify-content:flex-end;box-sizing:border-box;max-width:none;height:var(--cbe-head);margin:0;padding:0 28px 14px;border:0;background:#fff}
+.customer-booking-editor .hd-acts{flex-wrap:nowrap;align-items:center;gap:10px;margin-left:auto}
+.customer-booking-editor .hd-acts>a.hbtn:not([id]){display:none}
+.customer-booking-editor .hd-group{gap:8px;padding-left:12px;border-left:1px solid var(--cbe-line)}
+.customer-booking-editor .hd-group:first-of-type{padding-left:0;border-left:0}
+.customer-booking-editor .hd-label{color:var(--cbe-muted);font-size:12px;font-weight:600}
+.customer-booking-editor:not([data-customer-section="docs"]) :is(#itineraryNoticeBtn,#guidePdfBtn),
+.customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) #contractLink{display:none}
+
+/* Buttons: white secondary pills, black primary. */
+.customer-booking-editor .hbtn,.customer-booking-editor .hbtn.blue{display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;height:36px;min-height:36px;padding:0 14px;border:1.5px solid var(--cbe-line);border-radius:999px;background:#fff;color:var(--cbe-text);font:700 13px/1 Pretendard,system-ui,sans-serif;white-space:nowrap;box-shadow:none}
+.customer-booking-editor .hbtn:hover:not(:disabled){border-color:#d1d6db;background:#f9fafb;color:var(--cbe-text)}
+.customer-booking-editor .hbtn:focus-visible,.customer-booking-editor .barbtn:focus-visible,.customer-booking-editor #saveBtn:focus-visible{outline:2px solid var(--cbe-ink);outline-offset:2px}
+.customer-booking-editor #addDay{border-color:var(--cbe-ink);background:var(--cbe-ink);color:#fff}
+.customer-booking-editor #addDay:hover:not(:disabled){border-color:#333d4b;background:#333d4b;color:#fff}
+.customer-booking-editor #resetSignBtn{border-color:transparent;background:#fff0f0;color:#e5484d!important}
+
+/* Underline tab bar. */
+.customer-booking-editor #admin-booking-navigation{top:var(--cbe-head);max-width:none;margin:0;padding:0 28px;border-bottom:1px solid var(--cbe-line);background:#fff}
+.customer-booking-editor .quote-native-tabs{gap:2px;margin:0;padding:0;border:0;border-radius:0;background:transparent;scrollbar-width:none}
+.customer-booking-editor .quote-native-tabs button{min-height:48px;height:48px;padding:0 14px;border-radius:0;background:transparent;color:var(--cbe-sub);font:500 14px/1 Pretendard,system-ui,sans-serif;box-shadow:inset 0 -2px 0 transparent}
+.customer-booking-editor .quote-native-tabs button:hover{background:transparent;color:var(--cbe-text)}
+.customer-booking-editor .quote-native-tabs button.active{background:transparent;color:var(--cbe-text);font-weight:800;box-shadow:inset 0 -2px 0 var(--cbe-ink)}
+.customer-booking-editor .quote-native-tabs button:focus-visible{outline:2px solid var(--cbe-ink);outline-offset:-4px}
+
+/* Content column and borderless white cards. */
+.customer-booking-editor main,.customer-booking-editor #admin-booking-history{max-width:1240px;margin:0;padding:20px 28px 24px}
+.customer-booking-editor main{gap:16px}
+.customer-booking-editor section.card{padding:22px 24px;border:0;border-radius:20px;background:#fff;box-shadow:var(--cbe-shadow)}
+.customer-booking-editor .sec-h{align-items:center;gap:8px 12px;margin-bottom:16px}
+.customer-booking-editor .sec-h:has(>.tip){flex-direction:column;align-items:flex-start;gap:2px}
+.customer-booking-editor .sec-h h2{gap:8px;color:var(--cbe-text);font-size:18px;font-weight:800;letter-spacing:-.03em;line-height:1.4}
+.customer-booking-editor .sec-h h2 .n{display:none}
+.customer-booking-editor .sec-h .tip{max-width:none;color:var(--cbe-muted);font-size:13px;font-weight:500;line-height:1.6}
+.customer-booking-editor .sec-h>span:has(>.hbtn){gap:6px!important}
+.customer-booking-editor .subtt{gap:12px;margin-bottom:14px;color:var(--cbe-text);font-size:18px;font-weight:800;letter-spacing:-.03em;line-height:1.4}
+.customer-booking-editor .subtt:has(>span[style*="font-size"]){justify-content:flex-start}
+.customer-booking-editor .subtt>span[style*="font-size"]{color:var(--cbe-muted)!important;font-size:12px!important;font-weight:500!important;letter-spacing:0}
+
+/* 가이드·숙소 / 주문자·여행자 / 결제: each inner box becomes its own card. */
+.customer-booking-editor :is(#assignmentSection,#bookingInfoSection){padding:0;border-radius:0;background:transparent;box-shadow:none}
+.customer-booking-editor :is(#assignmentSection,#bookingInfoSection)>.sec-h{margin:2px 4px 14px}
+.customer-booking-editor :is(#assignmentSection,#bookingInfoSection)>.assign-box{padding:22px 24px;border:0;border-radius:20px;background:#fff;box-shadow:var(--cbe-shadow)}
+.customer-booking-editor :is(#assignmentSection,#bookingInfoSection)>.assign-box+.assign-box{margin-top:16px}
+.customer-booking-editor section.card .assign-box:not(#assignmentSection>.assign-box):not(#bookingInfoSection>.assign-box){padding:18px 20px;border:0!important;border-radius:16px;background:var(--cbe-soft)!important}
+.customer-booking-editor section.card .assign-box .subtt[style]{color:var(--cbe-text)!important;font-size:16px}
+.customer-booking-editor section.card .assign-box>div[style*="border:1px solid #BFE6D9"]{border:0!important;border-radius:14px!important}
+.customer-booking-editor #bookingInfoSection .assign-box>div[style*="border-radius:11px"]{border-radius:12px!important;font-size:13px!important}
+
+/* Form fields. */
+.customer-booking-editor label.f{gap:6px;color:var(--cbe-muted);font-size:12px;font-weight:600;line-height:1.4}
+.customer-booking-editor label.f input,.customer-booking-editor label.f select,.customer-booking-editor label.f textarea{box-sizing:border-box;min-height:44px;padding:10px 14px;border:1.5px solid var(--cbe-line);border-radius:12px;background-color:#fff;color:var(--cbe-text);font:600 14px/1.5 Pretendard,system-ui,sans-serif}
+.customer-booking-editor label.f select{appearance:none;padding-right:40px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b95a1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 14px center/16px no-repeat}
+.customer-booking-editor label.f textarea{min-height:104px;padding:12px 14px;font-weight:500;line-height:1.7}
+.customer-booking-editor label.f :is(input,select,textarea):focus{border-color:var(--cbe-ink);box-shadow:var(--cbe-focus)}
+.customer-booking-editor :is(.grid2,.grid3,.grid4){gap:12px}
+.customer-booking-editor .addbtn{box-sizing:border-box;height:52px;min-height:52px;padding:0 16px;border:1.5px dashed #d1d6db;border-radius:16px;background:transparent;color:var(--cbe-text);font:800 14px/1 Pretendard,system-ui,sans-serif}
+.customer-booking-editor .addbtn:hover:not(:disabled){border-color:var(--cbe-ink)}
+.customer-booking-editor .chk{gap:12px;min-height:56px;padding:14px 0;border-bottom:1px solid var(--cbe-hair);color:var(--cbe-text);font-size:15px;font-weight:700}
+.customer-booking-editor .chk input{width:20px;height:20px;accent-color:var(--cbe-ink)}
+
+/* Resource picker, preview and detail panels (가이드·차량·숙소). */
+.customer-booking-editor .rp{width:280px}
+.customer-booking-editor .rp-trigger{box-sizing:border-box;height:44px;min-height:44px;padding:0 16px;border:1.5px solid var(--cbe-line);border-radius:999px;color:var(--cbe-text);font:600 14px/1 Pretendard,system-ui,sans-serif}
+.customer-booking-editor .rp-trigger:hover{border-color:#d1d6db}
+.customer-booking-editor .rp-trigger .txt.ph,.customer-booking-editor .rp-trigger .arw{color:var(--cbe-muted)}
+.customer-booking-editor .rp.open .rp-trigger{border-color:var(--cbe-ink);box-shadow:var(--cbe-focus)}
+.customer-booking-editor .rp.open .rp-trigger .arw{color:var(--cbe-ink)}
+.customer-booking-editor .rp-panel{border-color:var(--cbe-line);border-radius:16px;box-shadow:0 16px 40px rgba(16,24,40,.14)}
+.customer-booking-editor .rp-action{background:#f9fafb;color:var(--cbe-text)}
+.customer-booking-editor .rp-item{border-radius:0;color:var(--cbe-text)}
+.customer-booking-editor .rp-item:hover{background:#f9fafb}
+.customer-booking-editor .rp-item.on{background:var(--cbe-hair);color:var(--cbe-text)}
+.customer-booking-editor .rp-item .ck{color:var(--cbe-ink)}
+.customer-booking-editor .preview{gap:14px;min-height:0;margin-top:0;padding:14px 16px;border:0;border-radius:14px;background:var(--cbe-soft)}
+.customer-booking-editor .preview .thumb{box-sizing:border-box;width:52px;height:52px;border:1.5px dashed #d1d6db;border-radius:12px;background:#fff;color:var(--cbe-muted)}
+.customer-booking-editor .preview .thumb:has(img){border:0}
+.customer-booking-editor .preview .thumb:not(:has(img)){font-size:0}
+.customer-booking-editor .preview .thumb:not(:has(img))::before{content:"";width:20px;height:20px;background:currentColor;-webkit-mask:var(--cbe-thumb-icon) center/contain no-repeat;mask:var(--cbe-thumb-icon) center/contain no-repeat}
+.customer-booking-editor #guidePreview{--cbe-thumb-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1'/%3E%3C/svg%3E")}
+.customer-booking-editor #vehiclePreview{--cbe-thumb-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 17h2v-4l-2.5-5H5L3 13v4h2'/%3E%3Ccircle cx='7.5' cy='17' r='2'/%3E%3Ccircle cx='16.5' cy='17' r='2'/%3E%3Cpath d='M9.5 17h5M3 13h18'/%3E%3C/svg%3E")}
+.customer-booking-editor .lodge-row .preview{--cbe-thumb-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 20V8M2 17h20M22 20v-6a3 3 0 0 0-3-3h-9v6'/%3E%3Ccircle cx='6.5' cy='12.5' r='1.5'/%3E%3C/svg%3E")}
+.customer-booking-editor .preview b{color:var(--cbe-text);font-size:16px;font-weight:800;letter-spacing:-.02em}
+.customer-booking-editor .preview p{margin-top:2px;color:var(--cbe-muted);font-size:13px;font-weight:500;line-height:1.55}
+.customer-booking-editor .edit-panel{margin-top:12px;border:1.5px solid var(--cbe-line);border-radius:14px}
+.customer-booking-editor .edit-panel summary{min-height:48px;padding:14px 16px;color:var(--cbe-text);font-size:14px;font-weight:800}
+.customer-booking-editor .edit-panel summary::after{color:var(--cbe-muted);font-size:12px;font-weight:600}
+.customer-booking-editor .lodge-row{margin-bottom:10px;padding:14px 16px;border:1.5px solid var(--cbe-line);border-radius:16px;background:#fff}
+.customer-booking-editor .lodge-row .subtt{margin-bottom:12px;font-size:15px}
+.customer-booking-editor :is(.del-lodge,.quote-day-editor .day-edit .dh .day-del){display:inline-flex;align-items:center;justify-content:center;flex:none;box-sizing:border-box;width:36px;height:36px;padding:0;border:0;border-radius:10px;background:transparent;color:var(--cbe-muted);font-size:0}
+.customer-booking-editor :is(.del-lodge,.quote-day-editor .day-edit .dh .day-del)::before{content:"";width:18px;height:18px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6'/%3E%3C/svg%3E") center/contain no-repeat}
+.customer-booking-editor :is(.del-lodge,.quote-day-editor .day-edit .dh .day-del):hover:not(:disabled){background:var(--cbe-hair);color:#e5484d}
+.customer-booking-editor .traveler-row{padding:16px!important;border:1.5px solid var(--cbe-line)!important;border-radius:16px!important;background:#fff}
+.customer-booking-editor .traveler-row>input+div{color:var(--cbe-text)!important;font-size:14px!important;font-weight:800!important}
+.customer-booking-editor .traveler-row .grid4{align-items:end}
+
+/* Day rows (shared STEP 2 widget, overridden only inside this frame). */
+.customer-booking-editor .quote-day-editor .day-edit{margin-bottom:10px;padding:12px 14px;border:1.5px solid var(--cbe-line);border-radius:16px;background:#fff}
+.customer-booking-editor .quote-day-editor .day-edit:not(.is-collapsed){border-color:var(--cbe-ink)}
+.customer-booking-editor .quote-day-editor .day-edit .dh{gap:8px;margin-bottom:0}
+.customer-booking-editor .quote-day-editor .day-edit .dh .drag-handle{color:#b0b8c1}
+.customer-booking-editor .quote-day-editor .day-edit .dh .badge{display:inline-flex;align-items:center;justify-content:center;flex:none;height:30px;padding:0 14px;border-radius:999px;background:var(--cbe-ink);color:#fff;font-size:13px;font-weight:800}
+.customer-booking-editor .quote-day-editor .day-edit .dh input{box-sizing:border-box;height:44px;min-height:44px;padding:0 14px;border:1.5px solid var(--cbe-line);border-radius:12px;color:var(--cbe-text)}
+.customer-booking-editor .quote-day-editor .day-edit .dh input.ddate{width:108px;padding:0 6px;border-color:transparent;background:transparent;font-size:14px;font-weight:800;text-align:center}
+.customer-booking-editor .quote-day-editor .day-edit .dh input.ddate:hover:not(:disabled){border-color:var(--cbe-line);background:#fff}
+.customer-booking-editor .quote-day-editor .day-edit .dh input.dest{font-size:15px;font-weight:800}
+.customer-booking-editor .quote-day-editor .day-edit .dh input.move{flex:0 0 140px;max-width:140px;color:var(--cbe-sub);font-size:13px;font-weight:500}
+.customer-booking-editor .quote-day-editor .day-edit .dh .day-toggle{min-height:36px;height:36px;padding:0 12px;border:0;border-radius:999px;background:var(--cbe-hair);color:var(--cbe-text);font-size:13px;font-weight:700}
+.customer-booking-editor .quote-day-editor .day-edit .dh .day-toggle:hover:not(:disabled){border:0;background:#e5e8eb}
+.customer-booking-editor .quote-day-editor .day-body{margin-top:12px;padding:14px;border-radius:14px;background:var(--cbe-soft)}
+.customer-booking-editor .quote-day-editor .day-edit .snip-row{gap:10px;margin-bottom:10px}
+.customer-booking-editor .quote-day-editor .day-edit .snip-sel{width:auto;min-width:180px;height:40px;padding:0 38px 0 14px;border:1.5px solid var(--cbe-ink);border-radius:999px;appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23191f28' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 14px center/14px no-repeat;color:var(--cbe-text);font-size:13px;font-weight:800}
+.customer-booking-editor .quote-day-editor .day-edit .snip-hint{color:var(--cbe-muted);font-size:12px}
+.customer-booking-editor .quote-day-editor .day-edit textarea.items{min-height:104px;margin-bottom:10px;padding:12px 14px;border:1.5px solid var(--cbe-line);border-radius:12px;color:var(--cbe-text);font-size:14px;line-height:1.7}
+.customer-booking-editor .quote-day-editor .day-edit .row.c2{grid-template-rows:auto auto;grid-auto-flow:column;gap:6px 8px}
+.customer-booking-editor .quote-day-editor .day-edit .row.c2 .qde-field-label{display:block;color:var(--cbe-muted);font-size:12px;font-weight:600}
+.customer-booking-editor .quote-day-editor .day-edit .row.c2 input{height:44px;padding:0 14px;border:1.5px solid var(--cbe-line);border-radius:12px;font-size:14px}
+.customer-booking-editor .quote-day-editor :is(input,select,textarea):focus{border-color:var(--cbe-ink);box-shadow:var(--cbe-focus)}
+.customer-booking-editor .quote-day-editor .day-edit .dh input.ddate:focus{border-color:var(--cbe-ink);background:#fff}
+.customer-booking-editor .quote-day-editor .day-add{height:52px;border:1.5px dashed #d1d6db;border-radius:16px;background:transparent;color:var(--cbe-sub);font-size:14px;font-weight:800}
+.customer-booking-editor .quote-day-editor .day-add:hover{border-color:var(--cbe-ink);background:transparent;color:var(--cbe-text)}
+.customer-booking-editor .quote-day-editor button:focus-visible{outline:2px solid var(--cbe-ink);outline-offset:2px}
+.customer-booking-editor .quote-day-extra details{margin-top:12px;color:var(--cbe-muted);font-size:12px}
+
+/* 대표 명소: black border + black check on selected cards, mint order number. */
+.customer-booking-editor .spot-cat{margin-top:20px}
+.customer-booking-editor .spot-cat:first-child{margin-top:0}
+.customer-booking-editor .spot-cat-head{gap:10px;margin-bottom:10px;color:var(--cbe-text);font-size:14px;font-weight:800}
+.customer-booking-editor .spot-cat-head .ln{background:var(--cbe-hair)}
+.customer-booking-editor .spot-cat-head .cc{color:var(--cbe-muted);font-size:12px;font-weight:600}
+.customer-booking-editor .spot-grid{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:8px}
+.customer-booking-editor .spot-chk{align-items:flex-start;gap:10px;min-height:64px;padding:12px;border:1.5px solid var(--cbe-line);border-radius:14px;background:#fff}
+.customer-booking-editor .spot-chk:hover{border-color:#b0b8c1}
+.customer-booking-editor .spot-chk.on{border-color:var(--cbe-ink);background:#f9fafb}
+.customer-booking-editor .spot-chk>div:not(.box){flex:1;min-width:0}
+.customer-booking-editor .spot-chk .box{box-sizing:border-box;width:20px;height:20px;margin-top:1px;border:1.5px solid #d1d6db;border-radius:6px;background:#fff;color:#fff;font-size:12px;font-weight:800}
+.customer-booking-editor .spot-chk.on .box{border-color:var(--cbe-ink);background:var(--cbe-ink)}
+.customer-booking-editor .spot-chk b{display:block;color:var(--cbe-text);font-size:14px;font-weight:800;letter-spacing:-.02em;line-height:1.35}
+.customer-booking-editor .spot-chk small{margin-top:2px;color:var(--cbe-muted);font-size:12px;line-height:1.4}
+.customer-booking-editor .spot-order{flex:none;color:var(--cbe-mint);font-size:13px;font-weight:800}
+
+/* Bottom bar: step text left, white secondary + one black primary right. */
+.customer-booking-editor .savebar{justify-content:flex-start;gap:16px;padding:14px 28px;border-top:1px solid var(--cbe-line);background:rgba(255,255,255,.96);box-shadow:0 -8px 24px rgba(16,24,40,.05)}
+.customer-booking-editor .save-context{flex:1;width:auto;min-width:0}
+.customer-booking-editor .save-context small{color:var(--cbe-mint);font-size:12px;font-weight:800}
+.customer-booking-editor .save-context b{margin-top:2px;color:var(--cbe-text);font-size:14px;font-weight:800}
+.customer-booking-editor .save-actions{gap:10px;margin-left:auto}
+.customer-booking-editor .savebar .barbtn,.customer-booking-editor #saveBtn{box-sizing:border-box;height:46px;min-height:46px;padding:0 20px;border:1.5px solid var(--cbe-line);border-radius:999px;background:#fff;color:var(--cbe-text);font:800 14px/1 Pretendard,system-ui,sans-serif;white-space:nowrap;box-shadow:none}
+.customer-booking-editor .savebar .barbtn:hover:not(:disabled),.customer-booking-editor #saveBtn.secondary:hover:not(:disabled){border-color:#d1d6db;background:#f9fafb}
+.customer-booking-editor .savebar .barbtn.primary,.customer-booking-editor #saveBtn:not(.secondary){border-color:var(--cbe-ink);background:var(--cbe-ink);color:#fff;box-shadow:none}
+.customer-booking-editor .savebar .barbtn.primary:hover:not(:disabled),.customer-booking-editor #saveBtn:not(.secondary):hover:not(:disabled){border-color:#333d4b;background:#333d4b}
+/* The contract request stays hidden outside 일정표/계약서; then saving is the one primary action. */
+.customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) .savebar:has(#contractRequestBtn.primary) #saveBtn{border-color:var(--cbe-ink);background:var(--cbe-ink);color:#fff}
+.customer-booking-editor .savebar .barbtn.danger{color:#e5484d}
+.customer-booking-editor .bar-more summary{box-sizing:border-box;width:46px;height:46px;border:1.5px solid var(--cbe-line);border-radius:50%;background:#fff;color:var(--cbe-sub);font-size:16px}
+.customer-booking-editor .bar-more-menu{border-color:var(--cbe-line);border-radius:14px;box-shadow:0 16px 40px rgba(16,24,40,.14)}
+
+/* 변경·발송 이력 card. */
+.customer-booking-editor #admin-booking-history .delivery-history{margin:0;padding:22px 24px;border:0;border-radius:20px;background:#fff;box-shadow:var(--cbe-shadow);color:var(--cbe-text)}
+.customer-booking-editor #admin-booking-history .delivery-history header{position:static;padding:0;border:0;background:none}
+.customer-booking-editor #admin-booking-history .delivery-history h3{color:var(--cbe-text);font-size:18px;font-weight:800;letter-spacing:-.03em}
+.customer-booking-editor #admin-booking-history .delivery-history p{color:var(--cbe-muted);font-size:13px}
+.customer-booking-editor #admin-booking-history .delivery-history button{display:inline-flex;align-items:center;height:36px;padding:0 14px;border:1.5px solid var(--cbe-line);border-radius:999px;background:#fff;color:var(--cbe-text);font-size:13px;font-weight:700}
+.customer-booking-editor #admin-booking-history .delivery-workflow{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin:18px 0}
+.customer-booking-editor #admin-booking-history .delivery-workflow li{padding:12px 0 0;border-radius:0;background:linear-gradient(var(--cbe-line),var(--cbe-line)) top/100% 4px no-repeat;color:var(--cbe-muted);font-size:12px;font-weight:600}
+.customer-booking-editor #admin-booking-history .delivery-workflow .is-done{background-image:linear-gradient(var(--cbe-ink),var(--cbe-ink));color:var(--cbe-text);font-weight:800}
+.customer-booking-editor #admin-booking-history .delivery-list li{border-top-color:var(--cbe-hair)}
+@media(max-width:1000px){.customer-booking-editor{--cbe-head:0px}.customer-booking-editor body>header{position:static;height:auto;padding:0 20px 12px}.customer-booking-editor .hd-acts{flex-wrap:wrap;justify-content:flex-end}}
+@media(max-width:700px){.customer-booking-editor body>header{padding:0 12px 12px}.customer-booking-editor .hd-group{flex-wrap:wrap;width:auto;padding:0;border:0;overflow:visible}.customer-booking-editor #admin-booking-navigation{padding:0 12px}.customer-booking-editor main,.customer-booking-editor #admin-booking-history{padding:16px 12px 24px}.customer-booking-editor section.card,.customer-booking-editor :is(#assignmentSection,#bookingInfoSection)>.assign-box{padding:18px 16px;border-radius:16px}.customer-booking-editor .quote-day-editor .day-edit .dh{flex-wrap:wrap}.customer-booking-editor .quote-day-editor .day-edit .dh input.dest{flex:1 1 calc(100% - 120px)}.customer-booking-editor .quote-day-editor .day-edit .dh input.move{flex:1 1 120px;max-width:none}.customer-booking-editor .savebar{gap:8px;padding:10px 12px}.customer-booking-editor .savebar .barbtn,.customer-booking-editor #saveBtn{padding:0 12px}.customer-booking-editor .rp{width:100%}}
+
 @media(max-width:900px){.native-booking-workspace .grid3,.native-booking-workspace .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.native-booking-workspace .save-context{display:none}.native-booking-workspace .savebar{gap:12px;padding:12px}.native-booking-workspace .savebar .barbtn{padding-right:10px;padding-left:10px}}
-@media(max-width:700px){.quote-customer-editor-entry{align-items:flex-start;flex-direction:column;gap:12px;padding:0 16px 20px}.quote-customer-editor-shell.is-expanded{min-height:0;height:auto;margin:0;border-radius:0}.quote-customer-editor-heading{align-items:center;gap:12px;padding:14px 16px}.quote-customer-editor-heading h2>span{padding-left:0;border:0;font-size:13px}.quote-customer-focus-status{display:none}.quote-customer-editor-heading h2{font-size:19px}.quote-customer-editor-heading p{font-size:12px}.quote-customer-editor-heading>button{padding-right:10px;padding-left:10px;font-size:12px}.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history,.native-booking-workspace #admin-booking-navigation{padding-right:12px;padding-left:12px}.native-booking-workspace body>header{padding:20px 16px 12px}.native-booking-workspace main{gap:16px}.native-booking-workspace section.card{padding:20px 16px;border-radius:16px}.native-booking-workspace .sec-h h2{font-size:18px}.native-booking-workspace .sec-h{margin-bottom:20px}.native-booking-workspace .assign-box,.native-booking-workspace .lodge-row{padding:16px}.native-booking-workspace .subtt{font-size:15px}.native-booking-workspace .quote-day-editor .day-edit{padding:16px 12px}.native-booking-workspace .quote-day-editor .day-edit .dh{gap:8px;flex-wrap:wrap}.native-booking-workspace .quote-day-editor .day-edit .dh input.move{max-width:100%;flex:1}.native-booking-workspace .grid2,.native-booking-workspace .grid3,.native-booking-workspace .grid4{gap:12px}.quote-native-tabs{gap:2px;margin-bottom:16px;padding:4px}.quote-native-tabs button{min-height:42px;padding:10px 12px;font-size:13px}.quote-native-workspace .rw-card-heading{padding:20px}}
+@media(max-width:700px){.quote-customer-editor-entry{align-items:flex-start;flex-direction:column;gap:12px;padding:0 16px 20px}.quote-customer-editor-shell.is-expanded{min-height:0;height:auto;margin:0;border-radius:0}.quote-customer-editor-heading{align-items:center;gap:12px;padding:14px 16px}.quote-customer-focus-status{display:none}.quote-customer-editor-heading h2{font-size:19px}.quote-customer-editor-heading p{font-size:12px}.quote-customer-editor-heading>button{padding-right:10px;padding-left:10px;font-size:12px}.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history,.native-booking-workspace #admin-booking-navigation{padding-right:12px;padding-left:12px}.native-booking-workspace body>header{padding:20px 16px 12px}.native-booking-workspace main{gap:16px}.native-booking-workspace section.card{padding:20px 16px;border-radius:16px}.native-booking-workspace .sec-h h2{font-size:18px}.native-booking-workspace .sec-h{margin-bottom:20px}.native-booking-workspace .assign-box,.native-booking-workspace .lodge-row{padding:16px}.native-booking-workspace .subtt{font-size:15px}.native-booking-workspace .quote-day-editor .day-edit{padding:16px 12px}.native-booking-workspace .quote-day-editor .day-edit .dh{gap:8px;flex-wrap:wrap}.native-booking-workspace .quote-day-editor .day-edit .dh input.move{max-width:100%;flex:1}.native-booking-workspace .grid2,.native-booking-workspace .grid3,.native-booking-workspace .grid4{gap:12px}.quote-native-tabs{gap:2px;margin-bottom:16px;padding:4px}.quote-native-tabs button{min-height:42px;padding:10px 12px;font-size:13px}.quote-native-workspace .rw-card-heading{padding:20px}}

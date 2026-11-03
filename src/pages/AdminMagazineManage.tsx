@@ -5,11 +5,27 @@ import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
+import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import { SimpleSlider } from '../components/ui/SimpleSlider';
 import { isPublishedMagazine } from '../constants/seo';
 import { useBlocker } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft, removeMagazineDraft, type MagazineDraftScope, type MagazineDraftRead, type MagazineDraftResult, type MagazineDraftForm } from '../utils/adminMagazineDraft';
+import './AdminContentManage.css';
+
+/** Lucide outlines (ISC) that DashboardIcon does not carry. Keys keep the `lc-` prefix for the icon-subset check. */
+const MAGAZINE_ICONS = {
+    'lc-square-pen': <><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></>,
+    'lc-image': <><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></>,
+    'lc-chevron-up': <path d="m18 15-6-6-6 6" />,
+    'lc-book-open':<><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></>,
+} as const;
+
+const MagazineIcon: React.FC<{ name: keyof typeof MAGAZINE_ICONS; size?: number }> = ({ name, size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flex: 'none', display: 'block' }}>
+        {MAGAZINE_ICONS[name]}
+    </svg>
+);
 
 interface Magazine {
     id: string;
@@ -267,6 +283,8 @@ export const AdminMagazineManage: React.FC = () => {
     // Search & Filter State
     const [searchQuery, setSearchQuery] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [categoryBusy, setCategoryBusy] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState<Partial<Magazine>>({
@@ -834,19 +852,55 @@ export const AdminMagazineManage: React.FC = () => {
         fetchCategories();
     };
 
+    // Quick add from the category tab — same request as the modal; new categories start visible.
+    const handleQuickAddCategory = async () => {
+        const name = newCategoryName.trim();
+        if (!name || categoryBusy) return;
+        if (magazineCategories.some(c => c.name === name)) {
+            alert('이미 같은 이름의 카테고리가 있습니다.');
+            return;
+        }
+        setCategoryBusy(true);
+        try {
+            const maxOrder = magazineCategories?.length ? Math.max(...magazineCategories.map(c => c.order)) : 0;
+            await api.categories.create({
+                id: `mag-cat-${Date.now()}`,
+                name,
+                is_active: true,
+                order: maxOrder + 1,
+                type: 'magazine',
+                icon: 'article',
+                description: ''
+            });
+            setNewCategoryName('');
+            fetchCategories();
+        } catch (error) {
+            alert(`카테고리 추가 실패: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setCategoryBusy(false);
+        }
+    };
+
+    const formatCardDate = (value?: string) => {
+        if (!value) return '';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value.slice(0, 10).replace(/-/g, '.');
+        return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+    };
+
     // Header actions differ between list and edit views
     const headerActions = viewMode === 'edit' ? (
         <>
             <button className="btn btn-ghost btn-sm" onClick={() => resetForm()} disabled={saving || uploading}>
-                <Icon name="arrow_back" />목록
+                <DashboardIcon name="lc-chevron-left" />목록
             </button>
             <button className="btn btn-ink" onClick={handleSubmit} disabled={editorLocked}>
-                <Icon name="check" />{saving ? '저장 중…' : uploading ? '사진 업로드 중…' : formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장'}
+                <DashboardIcon name="lc-check" />{saving ? '저장 중…' : uploading ? '사진 업로드 중…' : formData.isActive ? (editingMagazine ? '수정 완료' : '발행하기') : '임시 저장'}
             </button>
         </>
     ) : (
         <button className="btn btn-ink" onClick={handleCreateNew}>
-            <Icon name="edit_document" />매거진 작성
+            <MagazineIcon name="lc-square-pen" />매거진 작성
         </button>
     );
 
@@ -860,13 +914,14 @@ export const AdminMagazineManage: React.FC = () => {
                 .ql-editor { flex: 1; overflow-y: auto; padding: 1.5rem; min-height: 360px; }
             `}</style>
 
+            <div className="cm-page mg-page">
             {/* Tabs */}
-            <div className="seg" style={{ marginBottom: 22 }}>
-                <button className={activeTab === 'magazines' ? 'active' : ''} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('magazines'); }}>매거진 목록</button>
-                <button className={activeTab === 'categories' ? 'active' : ''} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('categories'); }}>카테고리 관리</button>
+            <div className="cm-tabs" role="tablist" aria-label="매거진 관리 화면">
+                <button type="button" role="tab" className="cm-tab" aria-selected={activeTab === 'magazines'} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('magazines'); }}>매거진 목록</button>
+                <button type="button" role="tab" className="cm-tab" aria-selected={activeTab === 'categories'} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('categories'); }}>카테고리 관리</button>
             </div>
-            {draftNotice && <p role="alert" style={{ padding: '12px 16px', background: '#fff5e8', color: '#8f4c13', borderRadius: 12 }}>{draftNotice}</p>}
-            {viewMode === 'edit' && <div role="status" style={{ padding: '14px 18px', marginBottom: 16, borderRadius: 14, background: '#edfaf6', color: '#145c4c' }}>
+            {draftNotice && <p role="alert" style={{ margin: 0, padding: '12px 16px', background: '#fff5e8', color: '#8f4c13', borderRadius: 12 }}>{draftNotice}</p>}
+            {viewMode === 'edit' && <div role="status" style={{ padding: '14px 18px', borderRadius: 14, background: '#edfaf6', color: '#145c4c' }}>
                 <strong>이 브라우저에 관리자별 매거진 초안을 자동 보관합니다.</strong><p style={{ margin: '4px 0', fontSize: 13 }}>자동 보관은 사이트 발행·서버 임시 저장과 별도입니다. {draftSavedAt ? `마지막 초안 보관: ${new Date(draftSavedAt).toLocaleString('ko-KR')}` : dirty ? '입력 내용을 보관하고 있습니다.' : '변경사항이 생기면 자동 보관합니다.'}</p>
                 {recovery.kind === 'draft' && <><p>{recovery.conflict ? '보관 후 서버 원본이 변경되었습니다. 초안을 복원하면 저장 시 현재 작성 내용이 원본을 대체합니다.' : '이 문서의 보관된 초안이 있습니다.'} 보관 시각: {new Date(recovery.draft.savedAt).toLocaleString('ko-KR')}</p><button type="button" className="btn btn-ink btn-sm" onClick={() => { if (saveLock.current || uploadLock.current) return; const restored = recovery.draft; pendingRef.current = false; revisionRef.current = restored.revision; storedRef.current = magazineDraftFingerprint(restored.form); setFormData(structuredClone(restored.form)); setEditorContent(restored.form.content || ''); setDraftSavedAt(restored.savedAt); setRecovery({ kind: 'empty' }); }}>초안 복원</button>{' '}</>}
                 {recovery.kind === 'error' && <p role="alert">{recovery.error}</p>}
@@ -874,171 +929,127 @@ export const AdminMagazineManage: React.FC = () => {
             </div>}
 
             {activeTab === 'categories' && (
-                <div className="card">
-                    <div className="card-head">
-                        <h2>매거진 카테고리</h2>
-                        <div className="spacer" />
-                        <button
-                            className="btn btn-ink btn-sm"
-                            onClick={() => {
-                                setEditingCategory(null);
-                                setCategoryForm({ name: '', isActive: true });
-                                setIsCategoryModalOpen(true);
-                            }}
-                        >
-                            <Icon name="add" />카테고리 추가
-                        </button>
-                    </div>
-                    <div className="tbl-wrap">
-                        <table className="tbl">
-                            <thead>
-                                <tr>
-                                    <th>순서</th>
-                                    <th>카테고리명</th>
-                                    <th className="c">매거진 수</th>
-                                    <th className="c">상태</th>
-                                    <th className="c">액션</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {magazineCategories?.map((cat, index) => (
-                                    <tr key={cat.id}>
-                                        <td>
-                                            <div className="edit-move">
-                                                <button onClick={() => moveCategoryOrder(index, 'up')} disabled={index === 0}>
-                                                    <Icon name="arrow_upward" />
-                                                </button>
-                                                <button onClick={() => moveCategoryOrder(index, 'down')} disabled={index === magazineCategories.length - 1}>
-                                                    <Icon name="arrow_downward" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td className="cell-strong">{cat.name}</td>
-                                        <td className="c cell-muted">{magazines?.filter(m => m.category === cat.name).length || 0}개</td>
-                                        <td className="c">
-                                            <button
-                                                onClick={() => handleToggleCategoryActive(cat)}
-                                                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
-                                            >
-                                                <span className={`badge ${cat.isActive ? 'b-green' : 'b-gray'}`}>
-                                                    {cat.isActive ? '활성' : '비활성'}
-                                                </span>
-                                            </button>
-                                        </td>
-                                        <td className="c">
-                                            <span className="row-actions">
-                                                <button className="act-btn" onClick={() => {
-                                                    setEditingCategory({ id: cat.id, name: cat.name, order: cat.order, isActive: cat.isActive });
-                                                    setCategoryForm({ name: cat.name, isActive: cat.isActive });
-                                                    setIsCategoryModalOpen(true);
-                                                }}>
-                                                    <Icon name="edit" />
-                                                </button>
-                                                <button className="act-btn danger" onClick={() => handleDeleteCategory(cat)}>
-                                                    <Icon name="delete" />
-                                                </button>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <section className="cm-card fq-cats" aria-label="매거진 카테고리">
+                    <form className="fq-cat-add" onSubmit={(e) => { e.preventDefault(); void handleQuickAddCategory(); }}>
+                        <input
+                            className="cm-input"
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            placeholder="새 카테고리 이름 (예: 사진 명소)"
+                            aria-label="새 카테고리 이름"
+                        />
+                        <button type="submit" className="cm-btn is-primary is-tall" disabled={categoryBusy || !newCategoryName.trim()}>추가</button>
+                    </form>
+                    {magazineCategories?.map((cat, index) => {
+                        const count = magazines?.filter(m => m.category === cat.name).length || 0;
+                        return (
+                            <div key={cat.id} className="fq-cat-row" data-hidden={!cat.isActive || undefined}>
+                                <span className="cm-order">
+                                    <button type="button" onClick={() => moveCategoryOrder(index, 'up')} disabled={index === 0} title="위로" aria-label="위로 옮기기">
+                                        <MagazineIcon name="lc-chevron-up" size={14} />
+                                    </button>
+                                    <button type="button" onClick={() => moveCategoryOrder(index, 'down')} disabled={index === magazineCategories.length - 1} title="아래로" aria-label="아래로 옮기기">
+                                        <DashboardIcon name="lc-chevron-down" size={14} />
+                                    </button>
+                                </span>
+                                <span className="fq-cat-name">{cat.name}</span>
+                                <span className="fq-cat-count">글 {count}개</span>
+                                <button type="button" className="cm-switch" aria-pressed={cat.isActive} title={cat.isActive ? '활성' : '비활성'} onClick={() => handleToggleCategoryActive(cat)}>
+                                    <span className="cm-switch-track"><span className="cm-switch-knob" /></span>{cat.isActive ? '활성' : '비활성'}
+                                </button>
+                                <button type="button" className="cm-icon-btn" title="이름·활성 수정" aria-label="카테고리 수정" onClick={() => {
+                                    setEditingCategory({ id: cat.id, name: cat.name, order: cat.order, isActive: cat.isActive });
+                                    setCategoryForm({ name: cat.name, isActive: cat.isActive });
+                                    setIsCategoryModalOpen(true);
+                                }}>
+                                    <DashboardIcon name="lc-pencil" />
+                                </button>
+                                <button type="button" className="cm-icon-btn is-danger" title={count ? '글이 있어 지울 수 없어요' : '삭제'} aria-label="카테고리 삭제" disabled={count > 0} onClick={() => handleDeleteCategory(cat)}>
+                                    <DashboardIcon name="lc-trash" />
+                                </button>
+                            </div>
+                        );
+                    })}
+                    {magazineCategories.length === 0 && (
+                        <div className="cm-empty"><MagazineIcon name="lc-book-open" size={32} /><span>등록된 카테고리가 없어요.</span></div>
+                    )}
+                    <p className="fq-cat-note">글이 들어 있는 카테고리는 지울 수 없어요. 먼저 글을 다른 카테고리로 옮겨 주세요.</p>
+                </section>
             )}
 
             {activeTab === 'magazines' && (
                 <>
                     {viewMode === 'list' && (
                         <>
-                            <div className="toolbar">
-                                <label className="tb-search">
-                                    <Icon name="search" />
+                            <div className="cm-toolbar">
+                                <label className="cm-search">
+                                    <DashboardIcon name="lc-search" color="var(--text-tertiary)" />
                                     <input
                                         type="text"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         placeholder="매거진 제목 검색"
+                                        aria-label="매거진 제목 검색"
                                     />
                                 </label>
-                                <select
-                                    className="select"
-                                    value={filterCategory}
-                                    onChange={(e) => setFilterCategory(e.target.value)}
-                                >
-                                    <option value="all">전체 카테고리</option>
-                                    {categories.map(cat => (
-                                        <option key={cat} value={cat}>{cat}</option>
+                                <div className="cm-chips" aria-label="카테고리">
+                                    <button type="button" className="cm-chip" aria-pressed={filterCategory === 'all'} onClick={() => setFilterCategory('all')}>
+                                        전체<span className="cm-chip-n">{magazines.length}</span>
+                                    </button>
+                                    {[...categories, ...[...new Set(magazines.map(m => m.category))].filter(name => name && !categories.includes(name))].map(cat => (
+                                        <button key={cat} type="button" className="cm-chip" aria-pressed={filterCategory === cat} onClick={() => setFilterCategory(cat)}>
+                                            {cat}<span className="cm-chip-n">{magazines.filter(m => m.category === cat).length}</span>
+                                        </button>
                                     ))}
-                                </select>
-                                <div className="spacer" />
-                                <button className="btn btn-ink" onClick={handleCreateNew}>
-                                    <Icon name="add" />매거진 작성
-                                </button>
+                                </div>
                             </div>
 
                             {filteredMagazines?.length === 0 ? (
-                                <div className="empty">
-                                    <Icon name="menu_book" />
-                                    <p>검색 결과가 없습니다.</p>
+                                <div className="cm-empty">
+                                    <MagazineIcon name="lc-book-open" size={32} />
+                                    <span>{magazines.length ? '검색 결과가 없어요.' : '작성된 매거진이 없어요.'}</span>
                                 </div>
                             ) : (
-                                <div className="mag-grid">
+                                <div className="mg-grid">
                                     {filteredMagazines?.map((magazine, index) => (
-                                        <div className="mag-card" key={magazine.id} onClick={() => handleEdit(magazine)}>
-                                            <div className="mag-cover">
-                                                {magazine.image && (
-                                                    <img src={magazine.image} alt={magazine.title} loading="lazy" />
-                                                )}
-                                                <span className={`badge ${magazine.isActive ? 'b-green' : 'b-amber'}`}>
-                                                    {magazine.isActive ? '게시중' : '임시저장'}
+                                        <article className="mg-card" key={magazine.id}>
+                                            <button type="button" className="mg-card-open" onClick={() => handleEdit(magazine)} aria-label={`${magazine.title || '제목 없음'} 편집`}>
+                                                <span className="mg-cover">
+                                                    {magazine.image ? <img src={magazine.image} alt="" loading="lazy" /> : <MagazineIcon name="lc-image" size={28} />}
+                                                    <span className="mg-badges">
+                                                        <span className="mg-status" data-published={magazine.isActive || undefined}>{magazine.isActive ? '발행' : '초안'}</span>
+                                                        {!!magazine.isFeatured && <span className="mg-hot">인기</span>}
+                                                    </span>
                                                 </span>
-                                            </div>
-                                            <div className="mag-body">
-                                                <h4>{magazine.title}</h4>
-                                                <div className="mag-meta">
-                                                    <span className="badge b-blue">{magazine.category}</span>
-                                                    {magazine.isFeatured && (
-                                                        <>
-                                                            <span>·</span>
-                                                            <span className="badge b-amber">인기</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                                <div className="row" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
-                                                    {isReorderable ? (
-                                                        <span className="edit-move" style={{ flexDirection: 'row' }}>
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); moveMagazine(index, 'up'); }}
-                                                                disabled={index === 0}
-                                                            >
-                                                                <Icon name="arrow_back" />
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); moveMagazine(index, 'down'); }}
-                                                                disabled={index === filteredMagazines.length - 1}
-                                                            >
-                                                                <Icon name="arrow_forward" />
-                                                            </button>
-                                                        </span>
-                                                    ) : (
-                                                        <span className="row" style={{ gap: 4, fontSize: 12, color: 'var(--text-tertiary)' }}>
-                                                            <Icon name="calendar_today" style={{ fontSize: 14 }} />
-                                                            {magazine.createdAt ? new Date(magazine.createdAt).toLocaleDateString() : ''}
-                                                        </span>
-                                                    )}
-                                                    <div className="spacer" style={{ flex: 1 }} />
-                                                    <span className="row-actions">
-                                                        <button className="act-btn" onClick={(e) => { e.stopPropagation(); handleEdit(magazine); }}>
-                                                            <Icon name="edit" />
+                                                <span className="mg-body">
+                                                    <span className="mg-cat">{magazine.category || '카테고리 없음'}</span>
+                                                    <span className="mg-title">{magazine.title || '제목 없음'}</span>
+                                                    <span className="mg-sum">{magazine.description || '요약 설명이 없어요'}</span>
+                                                </span>
+                                            </button>
+                                            <div className="mg-foot">
+                                                <span className="mg-meta">
+                                                    {magazine.author && <><span>{magazine.author}</span><span aria-hidden="true">·</span></>}
+                                                    <span>{formatCardDate(magazine.createdAt)}</span>
+                                                </span>
+                                                {isReorderable && (
+                                                    <span className="mg-move" title="목록 순서">
+                                                        <button type="button" onClick={() => moveMagazine(index, 'up')} disabled={index === 0} title="앞으로" aria-label="앞으로 옮기기">
+                                                            <DashboardIcon name="lc-chevron-left" size={14} />
                                                         </button>
-                                                        <button className="act-btn danger" onClick={(e) => { e.stopPropagation(); handleDelete(magazine.id); }}>
-                                                            <Icon name="delete" />
+                                                        <button type="button" onClick={() => moveMagazine(index, 'down')} disabled={index === filteredMagazines.length - 1} title="뒤로" aria-label="뒤로 옮기기">
+                                                            <DashboardIcon name="lc-chevron-right" size={14} />
                                                         </button>
                                                     </span>
-                                                </div>
+                                                )}
+                                                <button type="button" className="cm-icon-btn" title="수정" aria-label="매거진 수정" onClick={() => handleEdit(magazine)}>
+                                                    <DashboardIcon name="lc-pencil" />
+                                                </button>
+                                                <button type="button" className="cm-icon-btn is-danger" title="삭제" aria-label="매거진 삭제" onClick={() => handleDelete(magazine.id)}>
+                                                    <DashboardIcon name="lc-trash" />
+                                                </button>
                                             </div>
-                                        </div>
+                                        </article>
                                     ))}
                                 </div>
                             )}
@@ -1226,6 +1237,7 @@ export const AdminMagazineManage: React.FC = () => {
                     )}
                 </>
             )}
+            </div>
 
             {/* Inline Location Block Modal */}
             {isLocationModalOpen && (
@@ -1322,40 +1334,35 @@ export const AdminMagazineManage: React.FC = () => {
             )}
 
             {isCategoryModalOpen && (
-                <div className="picker-scrim" onClick={() => setIsCategoryModalOpen(false)}>
-                    <div className="picker" onClick={(e) => e.stopPropagation()}>
-                        <div className="card-head">
-                            <h2>{editingCategory ? '카테고리 수정' : '카테고리 추가'}</h2>
-                            <div className="spacer" />
-                            <button className="act-btn" onClick={() => setIsCategoryModalOpen(false)}>
-                                <Icon name="close" />
+                <div className="cm-scrim" onClick={() => setIsCategoryModalOpen(false)}>
+                    <div className="cm-modal is-narrow" role="dialog" aria-modal="true" aria-labelledby="mg-cat-modal-title" onClick={(e) => e.stopPropagation()}>
+                        <div className="cm-modal-head">
+                            <h2 id="mg-cat-modal-title">{editingCategory ? '카테고리 수정' : '카테고리 추가'}</h2>
+                            <button type="button" className="cm-icon-btn" title="닫기" aria-label="닫기" onClick={() => setIsCategoryModalOpen(false)}>
+                                <DashboardIcon name="lc-x" />
                             </button>
                         </div>
-                        <div style={{ padding: '18px 22px' }}>
-                            <div className="field">
-                                <label>카테고리명</label>
+                        <div className="cm-modal-body">
+                            <label className="cm-field">
+                                <span className="cm-label">카테고리명</span>
                                 <input
-                                    className="inp"
+                                    className="cm-input"
                                     type="text"
                                     value={categoryForm.name}
                                     onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
                                     placeholder="예: 여행 팁"
                                 />
-                            </div>
-                            <label className="toggle-row" style={{ cursor: 'pointer' }}>
-                                <input
-                                    type="checkbox"
-                                    id="catActive"
-                                    checked={categoryForm.isActive}
-                                    onChange={(e) => setCategoryForm({ ...categoryForm, isActive: e.target.checked })}
-                                    style={{ width: 16, height: 16 }}
-                                />
-                                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>활성화</span>
                             </label>
+                            <div className="cm-field">
+                                <span className="cm-label">상태</span>
+                                <button type="button" className="cm-switch" aria-pressed={categoryForm.isActive} onClick={() => setCategoryForm({ ...categoryForm, isActive: !categoryForm.isActive })}>
+                                    <span className="cm-switch-track"><span className="cm-switch-knob" /></span>{categoryForm.isActive ? '활성화' : '비활성'}
+                                </button>
+                            </div>
                         </div>
-                        <div className="drawer-foot" style={{ justifyContent: 'flex-end' }}>
-                            <button className="btn btn-ghost" onClick={() => setIsCategoryModalOpen(false)}>취소</button>
-                            <button className="btn btn-ink" onClick={handleSaveCategory}>저장</button>
+                        <div className="cm-modal-foot">
+                            <button type="button" className="cm-btn" onClick={() => setIsCategoryModalOpen(false)}>취소</button>
+                            <button type="button" className="cm-btn is-primary" onClick={handleSaveCategory}>저장</button>
                         </div>
                     </div>
                 </div>
