@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
+import { peekAdminRead } from '../lib/adminReadCache';
 import { useUser } from '../contexts/UserContext';
 import { useNavigate, useBlocker, useParams, useLocation } from 'react-router-dom';
 import type { QuoteBookingSummary } from '../../functions/lib/quoteBookings';
@@ -2586,6 +2587,172 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     </>);
 };
 
+const toTime = (value: any) => {
+        if (!value) return 0;
+        const dateOnly = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (dateOnly) {
+            const [, year, month, day] = dateOnly;
+            return new Date(Number(year), Number(month) - 1, Number(day)).getTime();
+        }
+        const time = new Date(value).getTime();
+        return Number.isNaN(time) ? 0 : time;
+    };
+
+function reservationListRows(resData: any[] | null, quoteData: any[] | null, bookings: QuoteBookingSummary[] | null): Reservation[] {
+    const allItems: Reservation[] = [];
+    if (bookings) {
+        allItems.push(...bookings.map((b): Reservation => ({
+            ...b, status: b.status as Reservation['status'],
+            date: b.startDate ? `${b.startDate} ~ ${b.endDate || ''}` : '날짜 미정',
+            bookedAt: b.createdAt ? new Date(b.createdAt).toLocaleDateString('ko-KR') : '',
+            bookedAtMs: toTime(b.createdAt), departureMs: toTime(b.startDate),
+        })));
+    }
+
+    // Map Reservations
+    if (resData) {
+        const mappedReservations: Reservation[] = resData.map((r: any) => {
+            // start_date/end_date는 "YYYY-MM-DD"와 ISO 타임스탬프가 섞여 저장돼 있다.
+            // ISO 값을 그대로 자르면 출발일이 하루 앞당겨 보이므로 여기서 한 번에 정규화한다.
+            const startDate = toTourDateKey(r.startDate || r.start_date);
+            const endDate = toTourDateKey(r.endDate || r.end_date);
+            const createdAt = r.createdAt || r.created_at;
+            const travelers = r.travelers || r.totalPeople || r.total_people || 0;
+            const totalAmount = Number(r.totalPrice ?? r.total_price ?? r.total_amount ?? r.price_breakdown?.total ?? r.totalAmount ?? 0);
+            const depositAmt = Number(r.depositAmount ?? r.deposit_amount ?? r.price_breakdown?.deposit ?? r.deposit ?? 0);
+            return {
+            id: r.id,
+            reservationNumber: r.reservationNumber || r.reservation_number || null,
+            type: 'product', // 사이트의 type=tour도 상품 예약으로 표시
+            productName: r.productName || r.product_name,
+            productId: r.productId || r.product_id,
+            customerName: r.customerName || r.customer_name || r.customer_info?.name || 'Unknown',
+            notes: typeof r.notes === 'string' ? r.notes : '',
+            country: r.country || r.customerCountry || r.customer_country || r.customer_info?.country || '한국',
+            startDate,
+            endDate,
+            departureMs: toTime(startDate),
+            date: startDate
+                ? `${new Date(toTime(startDate)).toLocaleDateString('ko-KR')} ~ ${endDate ? new Date(toTime(endDate)).toLocaleDateString('ko-KR') : ''}`
+                : r.duration || '날짜 미정',
+            bookedAt: createdAt ? new Date(createdAt).toLocaleDateString('ko-KR') : '',
+            status: r.status,
+            bookedAtMs: toTime(createdAt),
+            totalAmount,
+            deposit: depositAmt,
+            depositStatus: r.depositStatus || r.deposit_status || (r.status === 'pending_payment' ? 'unpaid' : 'paid'),
+            balance: Number(r.balanceAmount ?? r.balance_amount ?? r.price_breakdown?.local ?? Math.max(0, totalAmount - depositAmt)),
+            balanceStatus: r.balanceStatus || r.balance_status || 'unpaid',
+            depositReport: readDepositReport(r),
+            contractUrl: r.contractUrl || r.contract_url,
+            itineraryUrl: r.itineraryUrl || r.itinerary_url,
+            itineraryTemplateId: r.itineraryTemplateId || r.itinerary_template_id,
+            contractData: (() => {
+                const raw = r.contractData || r.contract_data;
+                if (!raw) return undefined;
+                if (typeof raw === 'object') return raw;
+                try { return JSON.parse(raw); } catch { return undefined; }
+            })(),
+            documentContent: (() => {
+                const raw = r.documentContent || r.document_content;
+                if (!raw) return null;
+                let parsed = raw;
+                for (let depth = 0; depth < 2 && typeof parsed === 'string'; depth += 1) {
+                    try { parsed = JSON.parse(parsed); } catch { return null; }
+                }
+                return parsed && typeof parsed === 'object' ? parsed : null;
+            })(),
+            assignedGuide: r.assignedGuide || r.assigned_guide,
+            dailyAccommodations: r.dailyAccommodations || r.daily_accommodations,
+            history: r.history || [],
+            areAssignmentsVisibleToUser: r.areAssignmentsVisibleToUser || r.are_assignments_visible_to_user || false,
+            headcount: travelers ? `${travelers}명` : '미정',
+            totalPeople: travelers,
+            phone: r.phone || r.customerPhone || r.customer_phone || r.customer_info?.phone || '',
+            email: r.email || r.customerEmail || r.customer_email || r.customer_info?.email || '',
+            manager: r.manager || r.assignedAdmin || r.assigned_admin || 'Admin',
+            source: r.source || undefined, // 주문 경로 — 목록의 경로 배지와 「경로」 필터가 이 값을 쓴다
+            adminOperations: r.adminOperations,
+            userId: r.userId || r.user_id,
+            };
+        });
+        allItems.push(...mappedReservations);
+    }
+
+    // Map Quotes
+    if (quoteData) {
+        // Filter out already transformed converted quotes if necessary,
+        // but usually API returns all. We filter in map or before.
+        // The original code filtered: .neq('status', 'converted')
+        // We should filter client side if API doesn't.
+        // Assuming API returns all.
+        const activeQuotes = quoteData.filter((q: any) => q.status !== 'converted');
+
+        const mappedQuotes: Reservation[] = activeQuotes.map((q: any) => {
+            const createdAt = q.createdAt || q.created_at;
+            return {
+                id: q.id,
+                type: 'quote',
+                productName: `${q.destination || '몽골'} 맞춤 견적`,
+                customerName: q.name,
+                date: q.period || '일정 미정',
+                bookedAt: createdAt ? new Date(createdAt).toLocaleDateString('ko-KR') : '',
+                bookedAtMs: toTime(createdAt),
+                status: q.status,
+                totalAmount: q.confirmedPrice || q.confirmed_price || 0,
+                deposit: q.deposit || 0,
+                depositStatus: 'unpaid',
+                balance: (q.confirmedPrice || q.confirmed_price || 0) - (q.deposit || 0),
+                balanceStatus: 'unpaid',
+                headcount: q.headcount,
+                totalPeople: 0,
+                phone: q.phone,
+                email: q.email,
+                manager: q.manager || 'Admin',
+                userId: q.userId || q.user_id,
+                quoteDetail: {
+                    ...q,
+                    userId: q.userId || q.user_id,
+                    travelTypes: q.travelTypes || q.travel_types || [],
+                    accommodations: q.accommodations || [],
+                    additionalRequest: q.additionalRequest || q.additional_request,
+                    adminNote: q.adminNote || q.admin_note,
+                    estimateUrl: q.estimateUrl || q.estimate_url,
+                    confirmedPrice: q.confirmedPrice || q.confirmed_price,
+                    confirmed_price: q.confirmed_price || q.confirmedPrice,
+                    confirmed_start_date: q.confirmed_start_date || q.confirmedStartDate,
+                    confirmed_end_date: q.confirmed_end_date || q.confirmedEndDate,
+                    deposit: q.deposit || 0,
+                    deposit_status: q.deposit_status || q.depositStatus || 'unpaid',
+                    balance_status: q.balance_status || q.balanceStatus || 'unpaid',
+                    itineraryTemplateId: q.itineraryTemplateId || q.itinerary_template_id || '',
+                    date: createdAt ? new Date(createdAt).toLocaleDateString() : ''
+                }
+            };
+        });
+        allItems.push(...mappedQuotes);
+    }
+
+    allItems.sort((a, b) => (b.bookedAtMs || 0) - (a.bookedAtMs || 0));
+
+    return allItems;
+}
+
+function reservationListSnapshot(account: string) {
+    const rows = peekAdminRead<any[]>('/api/reservations', account);
+    const quotes = peekAdminRead<any[]>('/api/quotes', account);
+    const bookings = peekAdminRead<{ items: QuoteBookingSummary[]; skipped: number }>('/api/admin/bookings/quote', account);
+    return Array.isArray(rows) && Array.isArray(quotes) && Array.isArray(bookings?.items) ? reservationListRows(rows, quotes, bookings.items) : undefined;
+}
+
+const productSummaries = (rows: any[]): ProductSummary[] => rows.map(p => ({
+    id: p.id, name: p.name, category: p.category, thumbnail: p.thumbnail, mainImages: p.mainImages ?? p.main_images, packageType: p.packageType,
+    itineraryBlocks: p.itineraryBlocks ?? p.itinerary_blocks, itineraryImages: p.itineraryImages ?? p.itinerary_images, documentProduct: p,
+    hasItinerary: [p.itineraryBlocks ?? p.itinerary_blocks, p.itineraryImages ?? p.itinerary_images].some(value => {
+        try { return (typeof value === 'string' ? JSON.parse(value) : value)?.length > 0; } catch { return false; }
+    }),
+}));
+
 export const AdminReservationManage: React.FC<{ customerPage?: boolean; customerSource?: 'product' | 'quote' }> = ({ customerPage = false, customerSource = 'product' }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -2599,7 +2766,10 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
     const [customerSync, setCustomerSync] = useState<{ scope: string; at?: string; error?: string }>({ scope: '' });
     const [sameBookings, setSameBookings] = useState<{ scope: string; items: Array<{ id: string; label: string }>; warning: string }>({ scope: '', items: [], warning: '' });
     const returnTo = customerWorkspaceReturnTo(new URLSearchParams(location.search).get('returnTo'));
-    const [isLoading, setIsLoading] = useState(false);
+    const initialList = useMemo(() => !customerPage && user?.role === 'admin' ? reservationListSnapshot(user.id) : undefined, [customerPage, user?.id, user?.role]);
+    const [listAccount, setListAccount] = useState(user?.id || '');
+    const listPending = useRef<Promise<void> | null>(null);
+    const [isLoading, setIsLoading] = useState(!customerPage && !initialList);
     const [loadWarnings, setLoadWarnings] = useState<string[]>([]);
     const [sortOrder, setSortOrder] = useState(() => readReservationList(window.location.search).sortOrder);
     const [isDarkMode, setIsDarkMode] = useState(false);
@@ -2622,7 +2792,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(() => readReservationList(window.location.search).currentPage);
-    const [loadedOnce, setLoadedOnce] = useState(false);
+    const [loadedOnce, setLoadedOnce] = useState(Boolean(initialList));
     const [selectedRows, setSelectedRows] = useState<Set<string>>(() => new Set());
     const [exportMode, setExportMode] = useState<'filtered' | 'selected' | 'confirmed'>('filtered');
     const itemsPerPage = 8;
@@ -2645,8 +2815,24 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
     }, [customerPage]);
 
     // Reservations State
-    const [reservations, setReservations] = useState<Reservation[]>([]);
-    const [products, setProducts] = useState<ProductSummary[]>([]);
+    const [reservations, setReservations] = useState<Reservation[]>(() => initialList || []);
+    const [products, setProducts] = useState<ProductSummary[]>(() => productSummaries(peekAdminRead<any[]>('/api/products', user?.id || '') || []));
+    const [productsLoading, setProductsLoading] = useState(false);
+    const [productLoadError, setProductLoadError] = useState('');
+    const [productsRevision, setProductsRevision] = useState(0);
+    useEffect(() => {
+        if (customerPage || userLoading || user?.role !== 'admin') return;
+        let cancelled = false;
+        const scope = customerScope;
+        setProducts(productSummaries(peekAdminRead<any[]>('/api/products', user.id) || []));
+        setProductsLoading(true); setProductLoadError('');
+        void api.products.list().then(rows => {
+            if (!cancelled && currentScope.current === scope && Array.isArray(rows)) setProducts(productSummaries(rows));
+        }).catch(() => {
+            if (!cancelled && currentScope.current === scope) setProductLoadError('상품 정보를 불러오지 못했습니다.');
+        }).finally(() => { if (!cancelled && currentScope.current === scope) setProductsLoading(false); });
+        return () => { cancelled = true; };
+    }, [customerPage, customerSource, customerScope, userLoading, user?.id, user?.role, productsRevision]);
     useEffect(() => {
         if (!customerPage || customerSource !== 'product' || userLoading || user?.role !== 'admin' || loadedCustomerScope !== customerScope || !selectedReservation?.userId) return;
         let cancelled = false;
@@ -2683,16 +2869,6 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         window.addEventListener('popstate', restore); return () => window.removeEventListener('popstate', restore);
     }, [customerPage]);
 
-    const toTime = (value: any) => {
-        if (!value) return 0;
-        const dateOnly = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (dateOnly) {
-            const [, year, month, day] = dateOnly;
-            return new Date(Number(year), Number(month) - 1, Number(day)).getTime();
-        }
-        const time = new Date(value).getTime();
-        return Number.isNaN(time) ? 0 : time;
-    };
 
     const fetchReservations = async () => {
         if (customerPage) {
@@ -2703,14 +2879,19 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
             setIsLoading(true); setCustomerLoadError('');
             setCustomerSync(previous => previous.scope === scope ? { ...previous, error: undefined } : { scope });
             try {
-                const [result, productResult] = await Promise.allSettled([
-                    customerSource === 'quote' ? api.quotes.get(customerReservationId) : api.reservations.get(customerReservationId),
-                    customerSource === 'product' ? api.products.list() : Promise.resolve([]),
+                const record = await (customerSource === 'quote' ? api.quotes.get(customerReservationId) : api.reservations.get(customerReservationId));
+                if (!active()) return;
+                if (!record || String(record.id) !== customerReservationId) throw Object.assign(new Error('선택한 고객의 예약을 찾지 못했습니다.'), { status: 404 });
+                const row = customerSource === 'quote' ? legacyWorkspaceReservation(record) : productWorkspaceReservation(record);
+                // Existing documents need their actual product, not the entire catalog.
+                // Older reservations without a product ID keep the name-matching fallback.
+                const productId = record.productId || record.product_id;
+                const [productResult] = await Promise.allSettled([
+                    customerSource === 'product'
+                        ? productId ? api.products.get(productId).then(product => [product]) : api.products.list()
+                        : Promise.resolve([]),
                 ]);
                 if (!active()) return;
-                if (result.status === 'rejected') throw result.reason;
-                if (!result.value || String(result.value.id) !== customerReservationId) throw Object.assign(new Error('선택한 고객의 예약을 찾지 못했습니다.'), { status: 404 });
-                const row = customerSource === 'quote' ? legacyWorkspaceReservation(result.value) : productWorkspaceReservation(result.value);
                 setProducts(productResult.status === 'fulfilled' && Array.isArray(productResult.value) ? productResult.value.map((p: any) => ({
                     id: p.id, name: p.name, category: p.category, thumbnail: p.thumbnail, mainImages: p.mainImages ?? p.main_images, packageType: p.packageType,
                     itineraryBlocks: p.itineraryBlocks ?? p.itinerary_blocks, itineraryImages: p.itineraryImages ?? p.itinerary_images, documentProduct: p,
@@ -2730,196 +2911,71 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
             } finally { if (active()) { setIsLoading(false); setLoadedOnce(true); } }
             return;
         }
+        if (userLoading || user?.role !== 'admin') return;
+        if (listPending.current) return listPending.current;
+        const scope = customerScope, sequence = ++fetchSequence.current;
+        const active = () => currentScope.current === scope && fetchSequence.current === sequence;
         setIsLoading(true);
-        try {
+        const pendingLoad = (async () => {
+            try {
 
-            // Fetch reservations and quotes independently so one failure doesn't block the other
-            const [resSettled, quoteSettled, productSettled, bookingSettled] = await Promise.allSettled([
-                api.reservations.list(),
-                api.quotes.list(),
-                api.products.list(),
-                api.adminBookings.quote(),
-            ]);
-            const resData = resSettled.status === 'fulfilled' ? resSettled.value : null;
-            const quoteData = quoteSettled.status === 'fulfilled' ? quoteSettled.value : null;
-            const productData = productSettled.status === 'fulfilled' ? productSettled.value : null;
-            if (quoteSettled.status === 'rejected') console.error('[Admin] quotes fetch failed:', quoteSettled.reason);
-            if (resSettled.status === 'rejected') console.error('[Admin] reservations fetch failed:', resSettled.reason);
-            if (productSettled.status === 'rejected') console.error('[Admin] products fetch failed:', productSettled.reason);
-            if (Array.isArray(productData)) {
-                setProducts(productData.map((p: any) => ({
-                    id: p.id,
-                    name: p.name,
-                    category: p.category,
-                    thumbnail: p.thumbnail,
-                    mainImages: p.mainImages ?? p.main_images,
-                    packageType: p.packageType,
-                    itineraryBlocks: p.itineraryBlocks ?? p.itinerary_blocks,
-                    itineraryImages: p.itineraryImages ?? p.itinerary_images,
-                    documentProduct: p,
-                    hasItinerary: [p.itineraryBlocks ?? p.itinerary_blocks, p.itineraryImages ?? p.itinerary_images].some(value => {
-                        try { return (typeof value === 'string' ? JSON.parse(value) : value)?.length > 0; } catch { return false; }
-                    }),
-                })));
+                // Fetch reservations and quotes independently so one failure doesn't block the other
+                const [resSettled, quoteSettled, bookingSettled] = await Promise.allSettled([
+                    api.reservations.list(),
+                    api.quotes.list(),
+                    api.adminBookings.quote(),
+                ]);
+                if (!active()) return;
+                if ([resSettled, quoteSettled, bookingSettled].some(result => result.status === 'rejected' && [401, 403].includes(result.reason?.status))) {
+                    setReservations([]); setProducts([]);
+                    setLoadWarnings(['관리자 로그인 또는 조회 권한을 다시 확인해 주세요.']);
+                    return;
+                }
+                const resData = resSettled.status === 'fulfilled' ? resSettled.value : null;
+                const quoteData = quoteSettled.status === 'fulfilled' ? quoteSettled.value : null;
+                if (quoteSettled.status === 'rejected') console.error('[Admin] quotes fetch failed:', quoteSettled.reason);
+                if (resSettled.status === 'rejected') console.error('[Admin] reservations fetch failed:', resSettled.reason);
+                const warnings: string[] = [];
+                if (resSettled.status === 'rejected') warnings.push('상품 예약을 불러오지 못했습니다. 이전 목록을 표시합니다.');
+                if (quoteSettled.status === 'rejected') warnings.push('이전 견적 문의를 불러오지 못했습니다. 이전 목록을 표시합니다.');
+                if (bookingSettled.status === 'rejected') warnings.push('견적 예약을 불러오지 못했습니다. 이전 목록을 표시합니다.');
+                else if (bookingSettled.value.skipped) warnings.push(`견적 데이터 ${bookingSettled.value.skipped}건을 읽지 못했습니다. 원본 확인이 필요합니다.`);
+                setLoadWarnings(warnings);
+                const allItems = reservationListRows(resData, quoteData, bookingSettled.status === 'fulfilled' ? bookingSettled.value.items : null);
+                setReservations(prev => [...allItems, ...prev.filter(item =>
+                    (item.type === 'product' && resSettled.status === 'rejected')
+                    || (item.type === 'quote' && quoteSettled.status === 'rejected')
+                    || (item.type === 'quote_booking' && bookingSettled.status === 'rejected'))]
+                    .sort((a, b) => (b.bookedAtMs || 0) - (a.bookedAtMs || 0)));
+
+            } catch (error) {
+                if (!active()) return;
+                console.error('Error fetching data:', error);
+                setLoadWarnings(['예약 목록을 불러오지 못했습니다. 새로고침해 주세요.']);
+            } finally {
+                if (active()) { setIsLoading(false); setLoadedOnce(true); listPending.current = null; }
             }
-
-            const warnings: string[] = [];
-            if (resSettled.status === 'rejected') warnings.push('상품 예약을 불러오지 못했습니다. 이전 목록을 표시합니다.');
-            if (quoteSettled.status === 'rejected') warnings.push('이전 견적 문의를 불러오지 못했습니다. 이전 목록을 표시합니다.');
-            if (bookingSettled.status === 'rejected') warnings.push('견적 예약을 불러오지 못했습니다. 이전 목록을 표시합니다.');
-            else if (bookingSettled.value.skipped) warnings.push(`견적 데이터 ${bookingSettled.value.skipped}건을 읽지 못했습니다. 원본 확인이 필요합니다.`);
-            if (productSettled.status === 'rejected') warnings.push('상품 정보를 불러오지 못했습니다.');
-            setLoadWarnings(warnings);
-            const allItems: Reservation[] = [];
-            if (bookingSettled.status === 'fulfilled') {
-                allItems.push(...bookingSettled.value.items.map((b): Reservation => ({
-                    ...b, status: b.status as Reservation['status'],
-                    date: b.startDate ? `${b.startDate} ~ ${b.endDate || ''}` : '날짜 미정',
-                    bookedAt: b.createdAt ? new Date(b.createdAt).toLocaleDateString('ko-KR') : '',
-                    bookedAtMs: toTime(b.createdAt), departureMs: toTime(b.startDate),
-                })));
-            }
-
-            // Map Reservations
-            if (resData) {
-                const mappedReservations: Reservation[] = resData.map((r: any) => {
-                    // start_date/end_date는 "YYYY-MM-DD"와 ISO 타임스탬프가 섞여 저장돼 있다.
-                    // ISO 값을 그대로 자르면 출발일이 하루 앞당겨 보이므로 여기서 한 번에 정규화한다.
-                    const startDate = toTourDateKey(r.startDate || r.start_date);
-                    const endDate = toTourDateKey(r.endDate || r.end_date);
-                    const createdAt = r.createdAt || r.created_at;
-                    const travelers = r.travelers || r.totalPeople || r.total_people || 0;
-                    const totalAmount = Number(r.totalPrice ?? r.total_price ?? r.total_amount ?? r.price_breakdown?.total ?? r.totalAmount ?? 0);
-                    const depositAmt = Number(r.depositAmount ?? r.deposit_amount ?? r.price_breakdown?.deposit ?? r.deposit ?? 0);
-                    return {
-                    id: r.id,
-                    reservationNumber: r.reservationNumber || r.reservation_number || null,
-                    type: 'product', // 사이트의 type=tour도 상품 예약으로 표시
-                    productName: r.productName || r.product_name,
-                    productId: r.productId || r.product_id,
-                    customerName: r.customerName || r.customer_name || r.customer_info?.name || 'Unknown',
-                    notes: typeof r.notes === 'string' ? r.notes : '',
-                    country: r.country || r.customerCountry || r.customer_country || r.customer_info?.country || '한국',
-                    startDate,
-                    endDate,
-                    departureMs: toTime(startDate),
-                    date: startDate
-                        ? `${new Date(toTime(startDate)).toLocaleDateString('ko-KR')} ~ ${endDate ? new Date(toTime(endDate)).toLocaleDateString('ko-KR') : ''}`
-                        : r.duration || '날짜 미정',
-                    bookedAt: createdAt ? new Date(createdAt).toLocaleDateString('ko-KR') : '',
-                    status: r.status,
-                    bookedAtMs: toTime(createdAt),
-                    totalAmount,
-                    deposit: depositAmt,
-                    depositStatus: r.depositStatus || r.deposit_status || (r.status === 'pending_payment' ? 'unpaid' : 'paid'),
-                    balance: Number(r.balanceAmount ?? r.balance_amount ?? r.price_breakdown?.local ?? Math.max(0, totalAmount - depositAmt)),
-                    balanceStatus: r.balanceStatus || r.balance_status || 'unpaid',
-                    depositReport: readDepositReport(r),
-                    contractUrl: r.contractUrl || r.contract_url,
-                    itineraryUrl: r.itineraryUrl || r.itinerary_url,
-                    itineraryTemplateId: r.itineraryTemplateId || r.itinerary_template_id,
-                    contractData: (() => {
-                        const raw = r.contractData || r.contract_data;
-                        if (!raw) return undefined;
-                        if (typeof raw === 'object') return raw;
-                        try { return JSON.parse(raw); } catch { return undefined; }
-                    })(),
-                    documentContent: (() => {
-                        const raw = r.documentContent || r.document_content;
-                        if (!raw) return null;
-                        let parsed = raw;
-                        for (let depth = 0; depth < 2 && typeof parsed === 'string'; depth += 1) {
-                            try { parsed = JSON.parse(parsed); } catch { return null; }
-                        }
-                        return parsed && typeof parsed === 'object' ? parsed : null;
-                    })(),
-                    assignedGuide: r.assignedGuide || r.assigned_guide,
-                    dailyAccommodations: r.dailyAccommodations || r.daily_accommodations,
-                    history: r.history || [],
-                    areAssignmentsVisibleToUser: r.areAssignmentsVisibleToUser || r.are_assignments_visible_to_user || false,
-                    headcount: travelers ? `${travelers}명` : '미정',
-                    totalPeople: travelers,
-                    phone: r.phone || r.customerPhone || r.customer_phone || r.customer_info?.phone || '',
-                    email: r.email || r.customerEmail || r.customer_email || r.customer_info?.email || '',
-                    manager: r.manager || r.assignedAdmin || r.assigned_admin || 'Admin',
-                    source: r.source || undefined, // 주문 경로 — 목록의 경로 배지와 「경로」 필터가 이 값을 쓴다
-                    adminOperations: r.adminOperations,
-                    userId: r.userId || r.user_id,
-                    };
-                });
-                allItems.push(...mappedReservations);
-            }
-
-            // Map Quotes
-            if (quoteData) {
-                // Filter out already transformed converted quotes if necessary,
-                // but usually API returns all. We filter in map or before.
-                // The original code filtered: .neq('status', 'converted')
-                // We should filter client side if API doesn't.
-                // Assuming API returns all.
-                const activeQuotes = quoteData.filter((q: any) => q.status !== 'converted');
-
-                const mappedQuotes: Reservation[] = activeQuotes.map((q: any) => {
-                    const createdAt = q.createdAt || q.created_at;
-                    return {
-                        id: q.id,
-                        type: 'quote',
-                        productName: `${q.destination || '몽골'} 맞춤 견적`,
-                        customerName: q.name,
-                        date: q.period || '일정 미정',
-                        bookedAt: createdAt ? new Date(createdAt).toLocaleDateString('ko-KR') : '',
-                        bookedAtMs: toTime(createdAt),
-                        status: q.status,
-                        totalAmount: q.confirmedPrice || q.confirmed_price || 0,
-                        deposit: q.deposit || 0,
-                        depositStatus: 'unpaid',
-                        balance: (q.confirmedPrice || q.confirmed_price || 0) - (q.deposit || 0),
-                        balanceStatus: 'unpaid',
-                        headcount: q.headcount,
-                        totalPeople: 0,
-                        phone: q.phone,
-                        email: q.email,
-                        manager: q.manager || 'Admin',
-                        userId: q.userId || q.user_id,
-                        quoteDetail: {
-                            ...q,
-                            userId: q.userId || q.user_id,
-                            travelTypes: q.travelTypes || q.travel_types || [],
-                            accommodations: q.accommodations || [],
-                            additionalRequest: q.additionalRequest || q.additional_request,
-                            adminNote: q.adminNote || q.admin_note,
-                            estimateUrl: q.estimateUrl || q.estimate_url,
-                            confirmedPrice: q.confirmedPrice || q.confirmed_price,
-                            confirmed_price: q.confirmed_price || q.confirmedPrice,
-                            confirmed_start_date: q.confirmed_start_date || q.confirmedStartDate,
-                            confirmed_end_date: q.confirmed_end_date || q.confirmedEndDate,
-                            deposit: q.deposit || 0,
-                            deposit_status: q.deposit_status || q.depositStatus || 'unpaid',
-                            balance_status: q.balance_status || q.balanceStatus || 'unpaid',
-                            itineraryTemplateId: q.itineraryTemplateId || q.itinerary_template_id || '',
-                            date: createdAt ? new Date(createdAt).toLocaleDateString() : ''
-                        }
-                    };
-                });
-                allItems.push(...mappedQuotes);
-            }
-
-            allItems.sort((a, b) => (b.bookedAtMs || 0) - (a.bookedAtMs || 0));
-            setReservations(prev => [...allItems, ...prev.filter(item =>
-                (item.type === 'product' && resSettled.status === 'rejected')
-                || (item.type === 'quote' && quoteSettled.status === 'rejected')
-                || (item.type === 'quote_booking' && bookingSettled.status === 'rejected'))]
-                .sort((a, b) => (b.bookedAtMs || 0) - (a.bookedAtMs || 0)));
-
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            setLoadWarnings(['예약 목록을 불러오지 못했습니다. 새로고침해 주세요.']);
-        } finally {
-            setIsLoading(false);
-            setLoadedOnce(true);
-        }
+            })();
+        listPending.current = pendingLoad;
+        return pendingLoad;
     };
     // End of fetchReservations
+    const refreshReservationList = () => {
+        setProductsRevision(value => value + 1);
+        return fetchReservations();
+    };
+    useEffect(() => {
+        if (customerPage || userLoading || user?.role !== 'admin') return;
+        let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+        const changed = () => {
+            fetchSequence.current++; listPending.current = null;
+            clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(() => { void refreshReservationList(); }, 300);
+        };
+        window.addEventListener('admin-workspace-changed', changed);
+        return () => { clearTimeout(refreshTimer); window.removeEventListener('admin-workspace-changed', changed); };
+    }, [customerPage, customerScope, userLoading, user?.role]);
+
 
     // 상세를 열 때 해당 예약을 서버에서 재조회 — 숙소 배정 보드 등 다른 화면에서
     // 방금 저장한 배정·가이드·계약 데이터가 목록 로드 시점보다 새것일 수 있다.
@@ -3161,7 +3217,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
             if (!silent) alert('예약 정보가 업데이트되었습니다.');
             return true;
             // Only fetch if strictly necessary, otherwise optimistic is fine.
-            // fetchReservations(); 
+            // fetchReservations();
         } catch (error) {
             console.error('Error updating reservation:', error);
             if (!silent) alert('예약 정보 수정에 실패했습니다.');
@@ -3243,9 +3299,13 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
 
     useEffect(() => {
-        fetchReservations();
-        return () => { fetchSequence.current += 1; };
-    }, [customerPage, customerPage ? customerScope : 'list']);
+        if (userLoading || user?.role !== 'admin') return;
+        if (!customerPage) {
+            setListAccount(user.id); setReservations(initialList || []); setLoadedOnce(Boolean(initialList));
+        }
+        void fetchReservations();
+        return () => { fetchSequence.current += 1; listPending.current = null; };
+    }, [customerPage, customerScope, userLoading, user?.role]);
 
     // Filter Logic
     const handleCreateReservation = async () => {
@@ -3405,6 +3465,10 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
     };
 
     const downloadConfirmedReservationsExcel = (mode: typeof exportMode = exportMode, keys: Set<string> = selectedRows) => {
+        if (productsLoading) {
+            alert('상품 정보를 불러오는 중입니다. 잠시 후 다시 내보내 주세요.');
+            return;
+        }
         const exportMode = mode;
         const confirmedReservations = reservationExportRows(reservations, filteredReservations, keys, mode)
             .sort((a: any, b: any) => toTime(a.startDate) - toTime(b.startDate));
@@ -3852,12 +3916,12 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                         <select className="select" aria-label="Excel 내보내기 범위" value={exportMode} onChange={e => setExportMode(e.target.value as typeof exportMode)}>
                             <option value="filtered">현재 조회 결과</option><option value="selected">선택 예약 {selectedRows.size}건</option><option value="confirmed">전체 확정·결제 팀</option>
                         </select>
-                        <button type="button" onClick={() => downloadConfirmedReservationsExcel()} className="btn btn-soft" disabled={isLoading || (exportMode === 'selected' && !selectedRows.size)} title="선택한 범위의 일차별 숙소 수배 정보를 다운로드">
+                        <button type="button" onClick={() => downloadConfirmedReservationsExcel()} className="btn btn-soft" disabled={isLoading || productsLoading || (exportMode === 'selected' && !selectedRows.size)} title="선택한 범위의 일차별 숙소 수배 정보를 다운로드">
                             <Icon name="table_view" />예약 Excel
                         </button>
                         <button
                             type="button"
-                            onClick={fetchReservations}
+                            onClick={refreshReservationList}
                             disabled={isLoading}
                             className="btn btn-ghost"
                         >
@@ -3868,14 +3932,14 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                 }
             >
                 <div className="route-anim">
-                    {loadWarnings.length > 0 && <div className={board.warning} role="alert">
-                        {loadWarnings.map(message => <div key={message}>{message}</div>)}
-                        <button type="button" className="btn btn-sm btn-ghost" disabled={isLoading} onClick={fetchReservations}>다시 불러오기</button>
+                    {(loadWarnings.length > 0 || productLoadError) && <div className={board.warning} role="alert">
+                        {[...loadWarnings, ...(productLoadError ? [productLoadError] : [])].map(message => <div key={message}>{message}</div>)}
+                        <button type="button" className="btn btn-sm btn-ghost" disabled={isLoading} onClick={refreshReservationList}>다시 불러오기</button>
                     </div>}
                     <ReservationListV7
-                        reservations={reservations}
-                        loading={isLoading}
-                        loadedOnce={loadedOnce}
+                        reservations={listAccount === user?.id ? reservations : []}
+                        loading={isLoading || listAccount !== user?.id}
+                        loadedOnce={loadedOnce && listAccount === user?.id}
                         userId={user?.id || ''}
                         onOpen={openV7}
                         onStatus={(r, status) => handleStatusChange(r.id, status, r.type)}
@@ -3896,8 +3960,8 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                         <p className="cell-muted" style={{ fontSize: 12, margin: '0 0 16px' }}>카카오톡·메일·전화 등 사이트 외 주문을 직접 등록합니다.</p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                             <label style={{ gridColumn: '1 / -1' }} className="rw-field"><span>예약 상품 선택</span>
-                                <select className="inp" aria-label="예약 상품 선택" value={addForm.productId} disabled={creating} onChange={e => { const id = e.target.value; const product = products.find(p => p.id === id); setAddForm(f => ({ ...f, productId: id, ...(product ? { productName: product.name } : {}) })); }}>
-                                    <option value="">맞춤 예약 · 직접 입력</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                <select className="inp" aria-label="예약 상품 선택" value={addForm.productId} disabled={creating || productsLoading} onChange={e => { const id = e.target.value; const product = products.find(p => p.id === id); setAddForm(f => ({ ...f, productId: id, ...(product ? { productName: product.name } : {}) })); }}>
+                                    <option value="">{productsLoading ? '상품 정보를 불러오는 중…' : '맞춤 예약 · 직접 입력'}</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                 </select><small>기존 상품을 선택하면 해당 상품의 일정·사진·대표 명소를 사용합니다.</small>
                             </label>
                             {[

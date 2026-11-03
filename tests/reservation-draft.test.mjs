@@ -186,9 +186,14 @@ test('저장소 읽기·삭제 불가를 복원 실패와 구분해 보고한다
 test('실제 편집기는 data router에서 nullable legacy 일정·빈 계약 설정을 안전하게 표시한다', () => {
     const bundle = buildSync({ entryPoints: [fileURLToPath(new URL('../src/components/admin/ReservationInlineEditor.tsx', import.meta.url))],
         bundle: true, platform: 'node', format: 'cjs', packages: 'external', jsx: 'automatic', write: false,
+        // This renderer exercises real editor/draft behavior, not sidebar
+        // navigation. Exclude only speculative destination chunk loading.
+        external: ['*/adminPagePreload'],
         loader: { '.webp': 'dataurl', '.jpg': 'dataurl', '.png': 'dataurl', '.svg': 'dataurl', '.css': 'empty' }, define: { 'import.meta.env': '{}' } }).outputFiles[0].text;
     const module = { exports: {} };
-    new Function('require', 'module', 'exports', bundle)(createRequire(import.meta.url), module, module.exports);
+    const require = createRequire(import.meta.url);
+    const editorRequire = id => id.endsWith('/adminPagePreload') ? { preloadAdminPage() {} } : require(id);
+    new Function('require', 'module', 'exports', bundle)(editorRequire, module, module.exports);
     const { ReservationInlineEditor } = module.exports;
     const content = { name: '레거시 문서', description: '', days: [{ title: '기존 일차', date: '', activities: null, meals: null, accommodation: null }],
         documentSettings: { contract: { intro: null, cancellationRows: null } }, highlights: null };

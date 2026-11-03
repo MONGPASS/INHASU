@@ -4,6 +4,7 @@ import type { QuoteBookingSummary } from '../../functions/lib/quoteBookings';
 import type { AdminWorkspaceData } from '../types/adminWorkspace';
 import { INQUIRY_REQUEST_FAILED, type InquiryInput, type InquiryRecord, type InquiryStatus } from '../types/inquiry';
 import { customerLoginPath, customerLinkPath, type CustomerSource } from '../../public/customer-access.js';
+import { invalidateAdminReads, isAdminReadResource, readAdminCached } from './adminReadCache';
 
 const API_BASE = '/api';
 
@@ -18,39 +19,50 @@ export interface MateJoinRequests {
 }
 
 async function request(url: string, options?: RequestInit) {
-    // credentials: 'include' guarantees the session cookie is sent even if the
-    // API is ever served from a different origin (previews, custom domains).
-    // Same-origin requests are unaffected.
-    const res = await fetch(url, { credentials: 'include', ...options });
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Request failed' }));
-        if (typeof window !== 'undefined' && window.location?.pathname && !window.location.pathname.startsWith('/admin') && /^\/api\/(?:reservations|quotes|documents|customer-access\/history)(?:\/|$)/.test(url)) {
-            const returnTo = window.location.pathname + window.location.search + window.location.hash;
-            if (res.status === 401) window.location.replace(customerLoginPath(returnTo));
-            if (res.status === 403 && err.code === 'claim_required') {
-                const quote = url.match(/^\/api\/quotes\/([^/?]+)/);
-                const reservation = url.match(/^\/api\/(?:reservations|documents\/(?:itinerary|contract))\/([^/?]+)/);
-                const match = quote || reservation;
-                if (match) {
-                    const source: CustomerSource = quote ? 'quote' : 'reservation';
-                    window.location.replace(customerLinkPath(source, decodeURIComponent(match[1]), returnTo));
+    const method = (options?.method || 'GET').toUpperCase();
+    const editing = !['GET', 'HEAD'].includes(method);
+    // A pending read may describe the state before this write. Invalidate both
+    // sides of a successful write, so it cannot become a later view's snapshot.
+    if (editing) invalidateAdminReads();
+    const load = async () => {
+        // credentials: 'include' guarantees the session cookie is sent even if the
+        // API is ever served from a different origin (previews, custom domains).
+        // Same-origin requests are unaffected.
+        const res = await fetch(url, { credentials: 'include', ...options, ...(isAdminReadResource(url) ? { cache: 'no-store' as const } : {}) });
+        if (!res.ok) {
+            if (res.status === 401 || res.status === 403) invalidateAdminReads();
+            const err = await res.json().catch(() => ({ error: 'Request failed' }));
+            if (typeof window !== 'undefined' && window.location?.pathname && !window.location.pathname.startsWith('/admin') && /^\/api\/(?:reservations|quotes|documents|customer-access\/history)(?:\/|$)/.test(url)) {
+                const returnTo = window.location.pathname + window.location.search + window.location.hash;
+                if (res.status === 401) window.location.replace(customerLoginPath(returnTo));
+                if (res.status === 403 && err.code === 'claim_required') {
+                    const quote = url.match(/^\/api\/quotes\/([^/?]+)/);
+                    const reservation = url.match(/^\/api\/(?:reservations|documents\/(?:itinerary|contract))\/([^/?]+)/);
+                    const match = quote || reservation;
+                    if (match) {
+                        const source: CustomerSource = quote ? 'quote' : 'reservation';
+                        window.location.replace(customerLinkPath(source, decodeURIComponent(match[1]), returnTo));
+                    }
                 }
             }
+            const failure = new Error(err.error || `HTTP ${res.status}`) as Error & { delivery?: { state: string }; status?: number; code?: string };
+            failure.status = res.status;
+            if (typeof err.code === 'string') failure.code = err.code;
+            if (err.delivery && typeof err.delivery.state === 'string') failure.delivery = { state: err.delivery.state };
+            throw failure;
         }
-        const failure = new Error(err.error || `HTTP ${res.status}`) as Error & { delivery?: { state: string }; status?: number; code?: string };
-        failure.status = res.status;
-        if (typeof err.code === 'string') failure.code = err.code;
-        if (err.delivery && typeof err.delivery.state === 'string') failure.delivery = { state: err.delivery.state };
-        throw failure;
-    }
-    const data = await res.json();
-    const resource = changedContentResource(url, options?.method);
-    if (resource) notifyContentSaved(resource);
-    if (typeof window !== 'undefined' && options?.method && !['GET', 'HEAD'].includes(options.method.toUpperCase())
-        && /^\/api\/(reservations|quotes|products|documents)(\/|$)/.test(url)) {
-        window.dispatchEvent(new Event('admin-workspace-changed'));
-    }
-    return data;
+        const data = await res.json();
+        if (editing) invalidateAdminReads();
+        const resource = changedContentResource(url, options?.method);
+        if (resource) notifyContentSaved(resource);
+        if (typeof window !== 'undefined' && options?.method && !['GET', 'HEAD'].includes(options.method.toUpperCase())
+            && /^\/api\/(reservations|quotes|products|documents)(\/|$)/.test(url)) {
+            window.dispatchEvent(new Event('admin-workspace-changed'));
+        }
+        return data;
+    };
+    // A caller's AbortSignal must never cancel a different view's shared GET.
+    return method === 'GET' && !options?.signal ? readAdminCached(url, load) : load();
 }
 
 export const api = {

@@ -18,6 +18,7 @@ import { trackPageView } from './utils/analytics'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { FloatingConsultation } from './components/common/FloatingConsultation'
 import { AdminWorkspaceProvider } from './components/admin/AdminWorkspaceContext'
+import { adminPageLoaders } from './lib/adminPagePreload'
 
 // Lazy Load Pages - Handling Named Exports
 const Reservation = lazy(() => import('./pages/Reservation').then(module => ({ default: module.Reservation })))
@@ -60,25 +61,25 @@ const RecentlyViewed = lazy(() => import('./pages/RecentlyViewed').then(module =
 const Wishlist = lazy(() => import('./pages/Wishlist').then(module => ({ default: module.Wishlist })))
 
 // Admin Pages
-const AdminLogin = lazy(() => import('./pages/AdminLogin').then(module => ({ default: module.AdminLogin })))
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })))
-const AdminQuoteManage = lazy(() => import('./pages/AdminQuoteManage').then(module => ({ default: module.AdminQuoteManage })))
-const AdminQuoteDesk = lazy(() => import('./pages/AdminQuoteDesk').then(module => ({ default: module.AdminQuoteDesk })))
-const AdminReservationManage = lazy(() => import('./pages/AdminReservationManage').then(module => ({ default: module.AdminReservationManage })))
-const AdminCalendar = lazy(() => import('./pages/AdminCalendar').then(module => ({ default: module.AdminCalendar })))
-const AdminBannerManage = lazy(() => import('./pages/AdminBannerManage').then(module => ({ default: module.AdminBannerManage })))
-const AdminProductManage = lazy(() => import('./pages/AdminProductManage').then(module => ({ default: module.AdminProductManage })))
-const AdminCategoryManage = lazy(() => import('./pages/AdminCategoryManage').then(module => ({ default: module.AdminCategoryManage })))
-const AdminGuideManage = lazy(() => import('./pages/AdminGuideManage').then(module => ({ default: module.AdminGuideManage })))
-const AdminMagazineManage = lazy(() => import('./pages/AdminMagazineManage').then(module => ({ default: module.AdminMagazineManage })))
-const AdminAccommodationManage = lazy(() => import('./pages/AdminAccommodationManage').then(module => ({ default: module.AdminAccommodationManage })))
-const AdminAccommodationOps = lazy(() => import('./pages/AdminAccommodationOps').then(module => ({ default: module.AdminAccommodationOps })))
-const AdminTemplateManage = lazy(() => import('./pages/AdminTemplateManage').then(module => ({ default: module.AdminTemplateManage })))
-const AdminReviewManage = lazy(() => import('./pages/AdminReviewManage').then(module => ({ default: module.AdminReviewManage })))
-const AdminFAQManage = lazy(() => import('./pages/AdminFAQManage').then(module => ({ default: module.AdminFAQManage })))
-const AdminPromotionManage = lazy(() => import('./pages/AdminPromotionManage').then(module => ({ default: module.AdminPromotionManage })))
-const AdminInquiryManage = lazy(() => import('./pages/AdminInquiryManage').then(module => ({ default: module.AdminInquiryManage })))
-const AdminTourFAQManage = lazy(() => import('./pages/AdminTourFAQManage').then(module => ({ default: module.AdminTourFAQManage })))
+const AdminLogin = lazy(adminPageLoaders.login)
+const AdminDashboard = lazy(adminPageLoaders.dashboard)
+const AdminQuoteManage = lazy(adminPageLoaders.quotes)
+const AdminQuoteDesk = lazy(adminPageLoaders.quoteDesk)
+const AdminReservationManage = lazy(adminPageLoaders.reservations)
+const AdminCalendar = lazy(adminPageLoaders.calendar)
+const AdminBannerManage = lazy(adminPageLoaders.banners)
+const AdminProductManage = lazy(adminPageLoaders.products)
+const AdminCategoryManage = lazy(adminPageLoaders.categories)
+const AdminGuideManage = lazy(adminPageLoaders.guides)
+const AdminMagazineManage = lazy(adminPageLoaders.magazines)
+const AdminAccommodationManage = lazy(adminPageLoaders.accommodations)
+const AdminAccommodationOps = lazy(adminPageLoaders.accommodationOps)
+const AdminTemplateManage = lazy(adminPageLoaders.templates)
+const AdminReviewManage = lazy(adminPageLoaders.reviews)
+const AdminFAQManage = lazy(adminPageLoaders.faq)
+const AdminPromotionManage = lazy(adminPageLoaders.promotions)
+const AdminInquiryManage = lazy(adminPageLoaders.inquiries)
+const AdminTourFAQManage = lazy(adminPageLoaders.tourFaqs)
 
 // Loading Component
 const PageLoader = () => (

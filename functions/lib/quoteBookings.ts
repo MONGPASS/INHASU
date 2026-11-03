@@ -101,7 +101,31 @@ export type QuoteBookingSummary = ReturnType<typeof summarizeQuoteBooking>;
 
 /** 1건의 깨진 JSON이 나머지 예약을 숨기지 않도록 분리하고, 누락 건수는 화면에 알린다. */
 export async function readQuoteBookings(DB: any) {
-    const { results } = await DB.prepare('SELECT id, received_at, name, phone, destination, status, data FROM requests ORDER BY received_at DESC').all();
+    // Do not transfer/JSON.parse every inquiry's full itinerary just to discard
+    // it below. Invalid/non-object records still reach the parser so `skipped`
+    // keeps its existing meaning. The JS parser remains the final authority:
+    // json_each deliberately admits any matching duplicate key because SQLite
+    // json_extract takes the first occurrence while JSON.parse takes the last.
+    const { results } = await DB.prepare(`
+        WITH request_records AS (
+            SELECT id, received_at, name, phone, destination, status, data,
+                   COALESCE(NULLIF(data, ''), '{}') AS record_json
+            FROM requests
+        )
+        SELECT id, received_at, name, phone, destination, status, data
+        FROM request_records
+        WHERE CASE
+            WHEN json_valid(record_json) = 0 THEN 1
+            WHEN json_type(record_json) <> 'object' THEN 1
+            WHEN status = '예약확정' THEN 1
+            WHEN EXISTS (SELECT 1 FROM json_each(record_json) WHERE key = 'booking' AND type = 'object') THEN 1
+            WHEN COALESCE(status, '') = '' AND EXISTS (
+                SELECT 1 FROM json_each(record_json) WHERE key = 'status' AND value = '예약확정'
+            ) THEN 1
+            ELSE 0
+        END
+        ORDER BY received_at DESC
+    `).all();
     const items: QuoteBookingSummary[] = [];
     let skipped = 0;
     for (const row of results) {
