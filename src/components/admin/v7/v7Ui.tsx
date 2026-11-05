@@ -65,7 +65,9 @@ const KEYFRAMES = `@keyframes rvPop{from{opacity:0;transform:translateY(-4px) sc
 .v7-nav-btn:hover{box-shadow:0 0 0 1.5px #12b28c,0 4px 12px rgba(18,178,140,.12)!important}
 .v7-dd-row:hover{background:#f8f9fa!important}
 .v7-bulk-btn:hover{background:rgba(255,255,255,.2)!important}
-.v7-dim:hover{filter:none!important;opacity:1!important}`;
+.v7-dim:hover{filter:none!important;opacity:1!important}
+@keyframes v7SecFlash{0%{box-shadow:0 0 0 1px #eef0f2}25%{box-shadow:0 0 0 2px #12b28c,0 8px 24px rgba(18,178,140,.18)}100%{box-shadow:0 0 0 1px #eef0f2}}
+.v7-root .v7-sec-flash{animation:v7SecFlash 1.4s ease-out}`;
 /** 디자인의 애니메이션·hover 규칙. 화면마다 한 번 넣는다. */
 export const V7Styles = () => <style>{KEYFRAMES}</style>;
 

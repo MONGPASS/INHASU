@@ -40,6 +40,9 @@ const byText = (tree, text) => buttons(tree).find(b => childrenText(b).trim() ==
 const byLabel = (tree, label) => buttons(tree).find(b => b.props['aria-label'] === label);
 const html = props => renderToStaticMarkup(React.createElement(CustomerWorkspaceOverview, { onAction() {}, ...props }));
 const stop = { stopPropagation() {} };
+/** 바로가기 이동 대상 카드 흉내: 이동 호출과 잠깐 강조(class)만 받는다. */
+const sectionStub = (selector, onScroll) => ({ id: selector.slice(1), offsetWidth: 1, classList: { add() {}, remove() {}, contains: () => false }, scrollIntoView: onScroll });
+if (typeof globalThis.window === 'undefined') globalThis.window = globalThis;
 
 test('고객 상세는 예약 관리 v7 화면으로 그리고 렌더만으로 업무·발송을 실행하지 않는다', () => {
     let sent = 0; const calls = [];
@@ -53,16 +56,23 @@ test('고객 상세는 예약 관리 v7 화면으로 그리고 렌더만으로 �
     assert.equal(markup.includes('지금 할 일'), false);
 });
 
-test('바로가기는 6개이고 일정이 없으면 일정표 편집을 연다', () => {
-    const calls = [];
-    const { tree } = view({ model: { ...model, days: [] }, onAction: (...args) => calls.push(args) });
+test('바로가기 6개는 디자인대로 화면 안 카드로 이동만 하고 업무·발송을 실행하지 않는다', () => {
+    const calls = [], scrolled = [];
+    const st = initialDetailState();
+    const env = { mounted: { current: true }, toastTimer: { current: undefined }, root: { current: { querySelector: selector => sectionStub(selector, options => scrolled.push([selector, options.block])) } } };
+    const tree = reservationDetailView({ model, onAction: (...args) => calls.push(args) }, st, patch => Object.assign(st, patch), env).element;
     const nav = elements(tree, node => node.type === 'nav' && node.props['aria-label'] === '예약 상세 바로가기')[0];
     const items = elements(nav, node => node.type === 'button');
     assert.deepEqual(items.map(childrenText), ['일정표 편집', '고객·항공편', '결제·영수증', '가이드·숙소', '운영·메모', '메모·이력']);
-    items[0].props.onClick();
-    assert.deepEqual(calls, [['edit-itinerary']]);
-    items[2].props.onClick(); // 화면 안 위치로만 이동한다
-    assert.deepEqual(calls, [['edit-itinerary']]);
+    for (const item of items) { assert.notEqual(item.props.disabled, true); item.props.onClick(); }
+    assert.deepEqual(scrolled.map(([selector]) => selector), ['#sec-plan', '#sec-info', '#sec-pay', '#sec-asg', '#sec-memo', '#sec-log']);
+    assert.deepEqual(calls, []);
+    // 이동 대상 카드가 모두 화면에 있다.
+    const markup = renderToStaticMarkup(tree);
+    for (const id of ['sec-plan', 'sec-info', 'sec-pay', 'sec-asg', 'sec-memo', 'sec-log']) assert.ok(markup.includes(`id="${id}"`), id);
+    // 처리 중에도 화면 안 이동은 막지 않는다.
+    const busyNav = elements(view({ model, busy: true }).tree, node => node.type === 'nav')[0];
+    assert.ok(elements(busyNav, node => node.type === 'button').every(b => b.props.disabled !== true));
 });
 
 test('알림 보내기는 같은 화면의 고객 알림 패널을 펼치고 문의 단계에서는 문서 화면을 연다', () => {
@@ -107,6 +117,13 @@ test('예약 원본이 연결되면 계약서·예약금·배정·잔금·출발
     const markup = renderToStaticMarkup(view({ model, links: { source, userId: 'admin' } }).tree);
     for (const label of ['계약서', '예약금', '배정', '잔금', '출발', '계약서 서명', '₩600,000 입금', '₩2,400,000 미수']) assert.ok(markup.includes(label), label);
     assert.ok(markup.includes('1 / 5 단계 완료'));
+    const calls = [], scrolled = [];
+    const st = initialDetailState();
+    const env = { mounted: { current: true }, toastTimer: { current: undefined }, root: { current: { querySelector: selector => sectionStub(selector, () => scrolled.push(selector)) } } };
+    const steps = elements(reservationDetailView({ model, links: { source, userId: 'admin' }, onAction: (...args) => calls.push(args) }, st, patch => Object.assign(st, patch), env).element, node => typeof node.type === 'function' && node.props.steps)[0];
+    [0, 1, 2, 3, 4].forEach(i => steps.props.onStep(i));
+    assert.deepEqual(scrolled, ['#sec-doc', '#sec-pay', '#sec-asg', '#sec-pay', '#sec-plan']);
+    assert.deepEqual(calls, []);
 });
 
 test('서류 카드는 저장된 문서의 기존 액션만 열고 없는 문서는 만들지 않는다', () => {

@@ -32,6 +32,7 @@ export interface ReservationDetailV7Links {
     onAssignmentSaved?: () => void;
 }
 
+/** 바로가기 6개(디자인 v7): 같은 화면 안의 해당 카드로 이동한다. 업무 화면은 각 카드의 버튼이 연다. */
 const NAV: Array<{ label: string; icon: DashboardIconName; sid: string }> = [
     { label: '일정표 편집', icon: 'lc-calendar', sid: 'sec-plan' }, { label: '고객·항공편', icon: 'lc-user', sid: 'sec-info' },
     { label: '결제·영수증', icon: 'lc-banknote', sid: 'sec-pay' }, { label: '가이드·숙소', icon: 'lc-bed', sid: 'sec-asg' },
@@ -144,7 +145,15 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const cancelled = row ? row.tab === 'cancel' : m.currentStage?.tone === 'cancelled';
     const name = m.customerName || '고객 정보 확인 필요';
     const action = (a: string, id?: string) => () => onAction(a, id);
-    const goSec = (sid: string) => { const el = rootRef.current?.querySelector<HTMLElement>(`#${sid}`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 86, behavior: 'smooth' }); };
+    // 화면 안 이동. 관리자 레이아웃마다 스크롤 영역이 달라 요소 기준으로 이동한다(카드의 scrollMarginTop이 고정 바로가기 높이를 비운다).
+    const goSec = (sid: string) => {
+        const el = rootRef.current?.querySelector<HTMLElement>(`#${sid}`);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // 고정 열의 카드처럼 이미 보이는 대상은 움직이지 않으므로 잠깐 강조해 어디로 왔는지 보여 준다.
+        el.classList.remove('v7-sec-flash'); void el.offsetWidth; el.classList.add('v7-sec-flash');
+        window.setTimeout(() => el.classList.remove('v7-sec-flash'), 1400);
+    };
     const openMenu = (e: React.MouseEvent, title: string, items: V7MenuItem[], wide = false) => { e.stopPropagation(); setMenu(menuAt(e.currentTarget as HTMLElement, title, items, wide)); };
     const closeMenu = () => setMenu(null);
     const phoneFact = m.facts.find(f => /연락처|전화/.test(f.label))?.value || '';
@@ -257,6 +266,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     // 진행 단계: v7 계산(예약 원본이 있을 때) 또는 고객 화면 모델의 단계
     const steps = row ? row.steps.map((s, i) => ({ ...s, sub: v7StepSubs(row)[i] })) : m.steps.map(s => ({ label: s.label, done: s.done, sub: s.done ? '완료' : s.current ? '진행 중' : '대기' }));
     const stepHead = row ? v7StepLabel(row) : cancelled ? { label: '취소된 예약', tone: 'gray' as const } : steps.every(s => s.done) ? { label: '모든 단계 완료', tone: 'mint' as const } : { label: m.steps.find(s => s.current)?.label || steps.find(s => !s.done)?.label || '', tone: 'red' as const };
+    // 진행 단계 클릭은 디자인대로 해당 카드로 이동한다(서류·결제·배정·결제·일정). 원본이 없는 모델 단계는 해당 업무를 연다.
     const stepTargets = row ? ['sec-doc', 'sec-pay', 'sec-asg', 'sec-pay', 'sec-plan'] : [];
     const dd = row ? v7Dday(row) : null;
     const period = row ? v7Range(row) : null;
@@ -348,7 +358,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         </div>
 
         <nav aria-label="예약 상세 바로가기" style={{ position: 'sticky', top: 0, zIndex: 5, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 50px) / 6), min(calc((100% - 20px) / 3), calc((1100px - 100%) * 999))),1fr))', gap: 10, padding: '8px 0', background: 'var(--surface-canvas, #f6f7f9)' }}>
-            {NAV.map(n => <button key={n.sid} type="button" className="v7-nav-btn" onClick={() => n.sid === 'sec-plan' && !m.days.length ? onAction('edit-itinerary') : goSec(n.sid)}
+            {NAV.map(n => <button key={n.sid} type="button" className="v7-nav-btn" aria-label={`${n.label} 위치로 이동`} onClick={() => goSec(n.sid)}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, height: 58, padding: '0 16px 0 14px', border: 0, borderRadius: 16, background: '#fff', boxShadow: '0 0 0 1px #eef0f2,0 1px 3px rgba(16,24,40,.04)', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
                 <span style={iconTile(34)}><Ico name={n.icon} size={17} /></span>
                 <b style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: V7_INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.label}</b>
