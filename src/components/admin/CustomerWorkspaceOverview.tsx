@@ -28,7 +28,9 @@ export interface CustomerWorkspaceOverviewModel {
     currentStage?: { label: string; detail?: string; tone: 'active' | 'waiting' | 'complete' | 'cancelled' };
     days: Array<{ id: string; day: number; title: string; date?: string; summary?: string; image?: string; region?: string;
         activities?: Array<{ time?: string; title: string; description?: string }>; stay?: string; stayAssigned?: boolean; stayRequired?: boolean; meals?: string; travel?: string }>;
-    documents: Array<{ id: string; label: string; detail?: string; status?: string; action?: string; disabled?: boolean }>;
+    documents: Array<{ id: string; label: string; detail?: string; status?: string; action?: string; disabled?: boolean;
+        /** 있으면 상세 서류 카드에 ‘수정’ 버튼을 둔다(예: 견적서 → 견적 작성기). */
+        editAction?: string; editLabel?: string }>;
     payment: { total: number | null; deposit: number | null; balance: number | null; depositPaid: boolean | null; balancePaid: boolean | null };
     assignments: Array<{ id: 'guide' | 'vehicle' | 'stay'; label: string; value: string; detail?: string; statusLabel: string; state: 'ready' | 'pending' | 'unknown' }>;
     steps: Array<{ id: string; label: string; done: boolean; current?: boolean }>;

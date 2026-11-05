@@ -15,7 +15,7 @@
   const sections = { docs: ['documentsSection'], contract: ['c_contract'], info: ['bookingInfoSection'], pay: ['paymentSection', 'ci_depositStatus'],
     flights: ['fl_inDate', 'fl_inNo'], travelers: ['travelerWrap', 'requestTravelers'], 'view-info': ['bookingInfoSection'],
     assign: ['assignmentSection', 'g_pick'], guide: ['g_pick'], vehicle: ['v_pick'], stay: ['lodgeWrap'],
-    send: ['itineraryNoticeBtn'], log: ['admin-booking-history'], notes: ['bk_memo'] };
+    send: ['documentsSection'], log: ['admin-booking-history'], notes: ['bk_memo'] };
   function navigate(section, document) {
     const target = sections[section]; if (!target) return false;
     const element = document.getElementById(target[0]); if (!element) return false;

@@ -41,6 +41,8 @@
     grid-area: bar; justify-content: flex-end; min-height: 68px; margin: 0 -28px; padding: 14px 28px; border-bottom: 1px solid var(--border-default);
   }
   .admin-app-wrapper .admin-layout-heading { grid-area: head; padding: 24px 0 4px; }
+  /* 편집 화면처럼 제목·작업 버튼을 숨길 때는 상단 바만 남긴다. */
+  .admin-app-wrapper .header.is-heading-hidden .header-in { grid-template-areas: "bar bar"; }
   .admin-app-wrapper .admin-page-actions,
   .admin-app-wrapper .admin-customer-header-actions { grid-area: acts; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 24px 0 6px; }
   .admin-app-wrapper .eyebrow { margin-bottom: 2px; font-size: 11px; letter-spacing: .08em; }

@@ -9,7 +9,7 @@
 .quote-customer-editor-shell.is-expanded{flex:1;height:auto;min-height:0;max-width:none;margin:0;border:0;border-radius:0}
 /* Customer editor heading — Admin Dashboard v3 "일정표 편집": back pill, name + glow badge.
    The share/guide actions continue directly below inside the frame (body>header). */
-.quote-customer-editor-heading{position:relative;z-index:3;display:flex;flex:none;align-items:center;gap:14px;padding:14px 28px 6px;border-bottom:0;background:#fff;font-family:Pretendard,system-ui,sans-serif}
+.quote-customer-editor-heading{position:relative;z-index:3;display:flex;flex:none;align-items:center;gap:14px;padding:10px 28px;border-bottom:1px solid #e5e8eb;background:#fff;font-family:Pretendard,system-ui,sans-serif}
 .quote-customer-editor-heading>div{min-width:0}
 .quote-customer-focus-identity{flex:1}
 .quote-customer-editor-heading h2{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:0;color:#191f28;font-size:20px;font-weight:800;letter-spacing:-.03em;line-height:1.4;overflow-wrap:anywhere}
@@ -22,6 +22,13 @@
 .quote-customer-editor-heading>.quote-customer-return{display:inline-flex;align-items:center;gap:4px;height:36px;min-height:36px;padding:0 14px 0 10px;border:1.5px solid #e5e8eb;border-radius:999px;background:#fff;color:#191f28;font-size:13px;font-weight:700;box-shadow:none}
 .quote-customer-editor-heading>.quote-customer-return:hover:not(:disabled){border-color:#d1d6db;background:#f9fafb}
 .quote-customer-editor-heading>.quote-customer-return .material-symbols-outlined{font-size:16px}
+/* 오른쪽 묶음: 고객에게 전달 ▾ · 가이드 전달 ▾ · ⋯ (iframe의 기존 버튼을 메뉴로 모은 것) */
+.quote-customer-editor-tools{display:flex;flex:none;align-items:center;gap:8px;margin-left:auto}
+.quote-customer-editor-tools>button{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:1.5px solid #e5e8eb;border-radius:999px;background:#fff;color:#191f28;font:700 13px/1 Pretendard,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.quote-customer-editor-tools>button:hover:not(:disabled){border-color:#d1d6db;background:#f9fafb}
+.quote-customer-editor-tools>button:disabled{opacity:.5;cursor:not-allowed}
+.quote-customer-editor-tools>button.is-icon{width:36px;padding:0;justify-content:center}
+.quote-customer-editor-tools>button.is-icon .material-symbols-outlined{font-size:20px}
 .quote-customer-focus-status{flex:none;padding:5px 10px;border-radius:999px;background:#f2f4f6;color:#4e5968;font-size:12px;font-weight:700;line-height:1.5}
 .quote-customer-editor-frame{display:block;flex:1;width:100%;min-height:0;border:0;background:#f5f7fa}
 
@@ -114,28 +121,20 @@
 .customer-booking-editor:not([data-customer-section="log"]) #admin-booking-history{display:none}
 .customer-booking-editor[data-customer-section="log"] #main{display:none}
 .customer-booking-editor body>header h1,.customer-booking-editor body>header .who{display:none}
-.customer-booking-editor .hd-acts{margin-left:0}
 .customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) .save-context{display:none}
 .customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) #contractRequestBtn,
-.customer-booking-editor:not([data-customer-section="docs"]) #travelNoticeBtn{display:none!important}
+.customer-booking-editor #travelNoticeBtn,.customer-booking-editor .bar-more{display:none!important}
 
 /* ── Customer editor look: Admin Dashboard v3 "일정표 편집" ─────────────────────────────
    Scoped to the canonical customer frame only, so the standalone 예약관리 page and the
    quote builder keep their own styles. Shared day-card rules (quote-day-editor.css) are
    overridden here rather than edited. Ids, classes and scripts are untouched. */
-.customer-booking-editor{--cbe-ink:#191f28;--cbe-text:#191f28;--cbe-sub:#4e5968;--cbe-muted:#8b95a1;--cbe-line:#e5e8eb;--cbe-hair:#f2f4f6;--cbe-soft:#f7f8fa;--cbe-canvas:#f5f6f8;--cbe-mint:#12b28c;--cbe-head:50px;--cbe-tabs:49px;--cbe-shadow:0 12px 32px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);--cbe-focus:0 0 0 3px rgba(25,31,40,.08)}
+.customer-booking-editor{--cbe-ink:#191f28;--cbe-text:#191f28;--cbe-sub:#4e5968;--cbe-muted:#8b95a1;--cbe-line:#e5e8eb;--cbe-hair:#f2f4f6;--cbe-soft:#f7f8fa;--cbe-canvas:#f5f6f8;--cbe-mint:#12b28c;--cbe-head:0px;--cbe-tabs:49px;--cbe-shadow:0 12px 32px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);--cbe-focus:0 0 0 3px rgba(25,31,40,.08)}
 .customer-booking-editor body{background:var(--cbe-canvas);color:var(--cbe-text)}
 .customer-booking-editor :is(#documentsSection,#bookingInfoSection,#paymentSection,#assignmentSection,#admin-booking-history,#c_contract,#bk_memo,#g_pick,#v_pick,#lodgeWrap,#fl_inDate,#travelerWrap){scroll-margin-top:calc(var(--cbe-head) + var(--cbe-tabs) + 20px)}
 
-/* Share / guide actions continue the outer heading as one white header block. */
-.customer-booking-editor body>header{position:sticky;top:0;z-index:31;display:flex;justify-content:flex-end;box-sizing:border-box;max-width:none;height:var(--cbe-head);margin:0;padding:0 28px 14px;border:0;background:#fff}
-.customer-booking-editor .hd-acts{flex-wrap:nowrap;align-items:center;gap:10px;margin-left:auto}
-.customer-booking-editor .hd-acts>a.hbtn:not([id]){display:none}
-.customer-booking-editor .hd-group{gap:8px;padding-left:12px;border-left:1px solid var(--cbe-line)}
-.customer-booking-editor .hd-group:first-of-type{padding-left:0;border-left:0}
-.customer-booking-editor .hd-label{color:var(--cbe-muted);font-size:12px;font-weight:600}
-.customer-booking-editor:not([data-customer-section="docs"]) :is(#itineraryNoticeBtn,#guidePdfBtn),
-.customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) #contractLink{display:none}
+/* 고객 공유·가이드 전달 버튼은 바깥 편집 도구줄 메뉴가 InhasuQuoteBookingWorkspace.run으로 대신 누른다. 옛 머리는 숨긴다. */
+.customer-booking-editor body>header{display:none}
 
 /* Buttons: white secondary pills, black primary. */
 .customer-booking-editor .hbtn,.customer-booking-editor .hbtn.blue{display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;height:36px;min-height:36px;padding:0 14px;border:1.5px solid var(--cbe-line);border-radius:999px;background:#fff;color:var(--cbe-text);font:700 13px/1 Pretendard,system-ui,sans-serif;white-space:nowrap;box-shadow:none}
@@ -154,7 +153,7 @@
 .customer-booking-editor .quote-native-tabs button:focus-visible{outline:2px solid var(--cbe-ink);outline-offset:-4px}
 
 /* Content column and borderless white cards. */
-.customer-booking-editor main,.customer-booking-editor #admin-booking-history{max-width:1240px;margin:0;padding:20px 28px 24px}
+.customer-booking-editor main,.customer-booking-editor #admin-booking-history{max-width:none;margin:0;padding:20px 28px 24px}
 .customer-booking-editor main{gap:16px}
 .customer-booking-editor section.card{padding:22px 24px;border:0;border-radius:20px;background:#fff;box-shadow:var(--cbe-shadow)}
 .customer-booking-editor .sec-h{align-items:center;gap:8px 12px;margin-bottom:16px}
@@ -282,8 +281,6 @@
 /* The contract request stays hidden outside 일정표/계약서; then saving is the one primary action. */
 .customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) .savebar:has(#contractRequestBtn.primary) #saveBtn{border-color:var(--cbe-ink);background:var(--cbe-ink);color:#fff}
 .customer-booking-editor .savebar .barbtn.danger{color:#e5484d}
-.customer-booking-editor .bar-more summary{box-sizing:border-box;width:46px;height:46px;border:1.5px solid var(--cbe-line);border-radius:50%;background:#fff;color:var(--cbe-sub);font-size:16px}
-.customer-booking-editor .bar-more-menu{border-color:var(--cbe-line);border-radius:14px;box-shadow:0 16px 40px rgba(16,24,40,.14)}
 
 /* 변경·발송 이력 card. */
 .customer-booking-editor #admin-booking-history .delivery-history{margin:0;padding:22px 24px;border:0;border-radius:20px;background:#fff;box-shadow:var(--cbe-shadow);color:var(--cbe-text)}
@@ -295,8 +292,8 @@
 .customer-booking-editor #admin-booking-history .delivery-workflow li{padding:12px 0 0;border-radius:0;background:linear-gradient(var(--cbe-line),var(--cbe-line)) top/100% 4px no-repeat;color:var(--cbe-muted);font-size:12px;font-weight:600}
 .customer-booking-editor #admin-booking-history .delivery-workflow .is-done{background-image:linear-gradient(var(--cbe-ink),var(--cbe-ink));color:var(--cbe-text);font-weight:800}
 .customer-booking-editor #admin-booking-history .delivery-list li{border-top-color:var(--cbe-hair)}
-@media(max-width:1000px){.customer-booking-editor{--cbe-head:0px}.customer-booking-editor body>header{position:static;height:auto;padding:0 20px 12px}.customer-booking-editor .hd-acts{flex-wrap:wrap;justify-content:flex-end}}
-@media(max-width:700px){.customer-booking-editor body>header{padding:0 12px 12px}.customer-booking-editor .hd-group{flex-wrap:wrap;width:auto;padding:0;border:0;overflow:visible}.customer-booking-editor #admin-booking-navigation{padding:0 12px}.customer-booking-editor main,.customer-booking-editor #admin-booking-history{padding:16px 12px 24px}.customer-booking-editor section.card,.customer-booking-editor :is(#assignmentSection,#bookingInfoSection)>.assign-box{padding:18px 16px;border-radius:16px}.customer-booking-editor .quote-day-editor .day-edit .dh{flex-wrap:wrap}.customer-booking-editor .quote-day-editor .day-edit .dh input.dest{flex:1 1 calc(100% - 120px)}.customer-booking-editor .quote-day-editor .day-edit .dh input.move{flex:1 1 120px;max-width:none}.customer-booking-editor .savebar{gap:8px;padding:10px 12px}.customer-booking-editor .savebar .barbtn,.customer-booking-editor #saveBtn{padding:0 12px}.customer-booking-editor .rp{width:100%}}
+@media(max-width:700px){.customer-booking-editor #admin-booking-navigation{padding:0 12px}.customer-booking-editor main,.customer-booking-editor #admin-booking-history{padding:16px 12px 24px}.customer-booking-editor section.card,.customer-booking-editor :is(#assignmentSection,#bookingInfoSection)>.assign-box{padding:18px 16px;border-radius:16px}.customer-booking-editor .quote-day-editor .day-edit .dh{flex-wrap:wrap}.customer-booking-editor .quote-day-editor .day-edit .dh input.dest{flex:1 1 calc(100% - 120px)}.customer-booking-editor .quote-day-editor .day-edit .dh input.move{flex:1 1 120px;max-width:none}.customer-booking-editor .savebar{gap:8px;padding:10px 12px}.customer-booking-editor .savebar .barbtn,.customer-booking-editor #saveBtn{padding:0 12px}.customer-booking-editor .rp{width:100%}}
 
 @media(max-width:900px){.native-booking-workspace .grid3,.native-booking-workspace .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.native-booking-workspace .save-context{display:none}.native-booking-workspace .savebar{gap:12px;padding:12px}.native-booking-workspace .savebar .barbtn{padding-right:10px;padding-left:10px}}
 @media(max-width:700px){.quote-customer-editor-entry{align-items:flex-start;flex-direction:column;gap:12px;padding:0 16px 20px}.quote-customer-editor-shell.is-expanded{min-height:0;height:auto;margin:0;border-radius:0}.quote-customer-editor-heading{align-items:center;gap:12px;padding:14px 16px}.quote-customer-focus-status{display:none}.quote-customer-editor-heading h2{font-size:19px}.quote-customer-editor-heading p{font-size:12px}.quote-customer-editor-heading>button{padding-right:10px;padding-left:10px;font-size:12px}.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history,.native-booking-workspace #admin-booking-navigation{padding-right:12px;padding-left:12px}.native-booking-workspace body>header{padding:20px 16px 12px}.native-booking-workspace main{gap:16px}.native-booking-workspace section.card{padding:20px 16px;border-radius:16px}.native-booking-workspace .sec-h h2{font-size:18px}.native-booking-workspace .sec-h{margin-bottom:20px}.native-booking-workspace .assign-box,.native-booking-workspace .lodge-row{padding:16px}.native-booking-workspace .subtt{font-size:15px}.native-booking-workspace .quote-day-editor .day-edit{padding:16px 12px}.native-booking-workspace .quote-day-editor .day-edit .dh{gap:8px;flex-wrap:wrap}.native-booking-workspace .quote-day-editor .day-edit .dh input.move{max-width:100%;flex:1}.native-booking-workspace .grid2,.native-booking-workspace .grid3,.native-booking-workspace .grid4{gap:12px}.quote-native-tabs{gap:2px;margin-bottom:16px;padding:4px}.quote-native-tabs button{min-height:42px;padding:10px 12px;font-size:13px}.quote-native-workspace .rw-card-heading{padding:20px}}
+@media(max-width:700px){.quote-customer-editor-tools{gap:6px}.quote-customer-editor-tools .label{display:none}.quote-customer-editor-tools>button{padding:0 10px}}
