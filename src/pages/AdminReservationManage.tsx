@@ -414,7 +414,7 @@ const StatusDropdown = ({ status, onChange, disabled = false }: { status: string
     );
 };
 
-const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, updating = false, refreshing = false, refreshedAt, refreshError, products = [], fullPage = false, bookingSelector }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation, silent?: boolean) => Promise<boolean>, onRefresh: () => void, updating?: boolean, refreshing?: boolean, refreshedAt?: string, refreshError?: string, products?: ProductSummary[], fullPage?: boolean, bookingSelector?: React.ReactNode }) => {
+const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, updating = false, refreshing = false, refreshedAt, refreshError, products = [], fullPage = false, bookingSelector, onWorkflowOpenChange }: { reservation: Reservation | null, onClose: () => void, onUpdate: (updated: Reservation, silent?: boolean) => Promise<boolean>, onRefresh: () => void, updating?: boolean, refreshing?: boolean, refreshedAt?: string, refreshError?: string, products?: ProductSummary[], fullPage?: boolean, bookingSelector?: React.ReactNode, onWorkflowOpenChange?: (open: boolean) => void }) => {
     const { user, loading: userLoading } = useUser();
     const workspaceLocation = useLocation();
     const workspaceNavigate = useNavigate();
@@ -487,6 +487,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         return () => controller.abort();
     }, [needsRegisteredResources, registeredScope, registeredRevision, user?.id, user?.role]);
     const [workflowOpen, setWorkflowOpen] = useState(!fullPage);
+    // 고객 페이지에서 업무 화면이 열려 있는 동안 바깥 레이아웃이 제목·버튼 줄을 숨길 수 있게 알린다.
+    const workflowOpenCallback = useRef(onWorkflowOpenChange); workflowOpenCallback.current = onWorkflowOpenChange;
+    useEffect(() => { workflowOpenCallback.current?.(fullPage && workflowOpen); return () => { workflowOpenCallback.current?.(false); }; }, [fullPage, workflowOpen]);
     const overviewScrollPosition = useRef(0);
     useEffect(() => {
         if (userLoading || !user?.id || !reservation?.id || !docDraftSourceRef.current) { setDocDraftPending(false); return; }
@@ -2774,6 +2777,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
     const [sortOrder, setSortOrder] = useState(() => readReservationList(window.location.search).sortOrder);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+    const [customerEditing, setCustomerEditing] = useState(false);
     const [updatingCount, setUpdatingCount] = useState(0);
     useEffect(() => { setUpdatingCount(0); }, [customerScope]);
 
@@ -3676,7 +3680,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
     const detailWorkspaces = customerPage ? <>
             {selectedReservation && selectedReservation.type === 'product' && (
                 <ReservationDetailModal
-                    key={`${customerScope}:${selectedReservation.id}`} fullPage={customerPage} reservation={selectedReservation}
+                    key={`${customerScope}:${selectedReservation.id}`} fullPage={customerPage} reservation={selectedReservation} onWorkflowOpenChange={setCustomerEditing}
                     onClose={() => customerPage ? navigate(returnTo) : setSelectedReservation(null)}
                     onUpdate={handleUpdateReservation}
                     onRefresh={() => customerPage ? void fetchReservations() : selectedReservation && openReservation(selectedReservation)}
@@ -3885,7 +3889,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
     if (customerPage) {
         const validScope = loadedCustomerScope === customerScope;
         const loading = userLoading || !validScope || (isLoading && !selectedReservation);
-        return <AdminLayout activePage="reservations" title="고객 예약 관리" description="선택한 고객의 일정·계약·결제·배정을 한 화면에서 관리합니다." showSearch={false}>
+        return <AdminLayout activePage="reservations" hideHeading={customerEditing} title="고객 예약 관리" description="선택한 고객의 일정·계약·결제·배정을 한 화면에서 관리합니다." showSearch={false}>
             {loading ? <div className="card product-customer-loading" role="status">고객 정보를 불러오고 있습니다…</div>
                 : customerLoadError || !selectedReservation ? <div className="card product-customer-loading" role="alert"><h2>고객 정보를 확인해 주세요</h2><p>{customerLoadError || '선택한 예약을 찾지 못했습니다.'}</p><div className="row"><button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>목록으로</button><button type="button" className="btn btn-ink" onClick={() => void fetchReservations()}>다시 불러오기</button></div></div>
                     : <>{customerSource === 'quote' && isLoading && <div role="status">저장된 문의·견적 정보를 불러오고 있습니다…</div>}{customerSource === 'quote' && customerSync.scope === customerScope && customerSync.error && <div className="product-customer-warning" role="alert">{customerSync.error}</div>}{loadWarnings.map((warning, i) => <div className="product-customer-warning" role="status" key={i}>{warning}</div>)}{detailWorkspaces}</>}

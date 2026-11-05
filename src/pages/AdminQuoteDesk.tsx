@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom';
 import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
+import { Ico, V7Menu, V7Styles, menuAt, type V7MenuItem, type V7MenuState } from '../components/admin/v7/v7Ui';
 import { api } from '../lib/api';
 import type { V7Source } from '../utils/reservationV7';
 import { customerWorkspaceBackLabel, customerWorkspaceReturnTo, quoteCustomerHref } from '../utils/customerWorkspaceRoutes';
@@ -135,7 +136,9 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         getState: () => { dirty: boolean; busy: boolean; error?: string };
         flushAll: () => { ok: boolean; dirty?: boolean; busy: boolean; error?: string };
         approveLeaveOnce?: () => void;
-    }; InhasuQuoteBookingWorkspace?: { getState: () => BookingWorkspaceState | null; navigate: (section: string) => boolean };
+    }; InhasuQuoteBookingWorkspace?: { getState: () => BookingWorkspaceState | null; navigate: (section: string) => boolean;
+        run?: (action: string) => boolean;
+        links?: () => { confirm: string | null; contract: string | null; hasQuote: boolean; travelNoticeLabel: string; travelNoticeDisabled: boolean; undoDisabled: boolean; locked: boolean } };
         InhasuQuoteInquiryWorkspace?: { navigate: (section: string) => boolean; flushAll: () => { ok: boolean; busy: boolean; error?: string } }; setStep?: (step: number) => void };
     const navigateWorkspace = (section: string) => {
         setActiveSection(section);
@@ -467,6 +470,47 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         } catch { setEditorNotice('편집 상태를 확인하지 못했습니다. 작업 화면에서 저장 상태를 확인해 주세요.'); return false; }
         return true;
     };
+    // 편집 도구줄 메뉴(고객에게 전달 · 가이드 전달 · ⋯)와 현황 머리 ⋯. iframe의 기존 버튼을 대신 누르며 저장·발송 중에는 실행하지 않는다.
+    const [toolMenu, setToolMenu] = useState<V7MenuState | null>(null);
+    const deliveryButtonRef = useRef<HTMLButtonElement>(null);
+    const bookingEditor = tool.key === 'bookings' && !!bookingId && nativeHosts?.bookingId === bookingId;
+    const workspaceApi = () => { try { return (frameRef.current?.contentWindow as EditorWindow | null)?.InhasuQuoteBookingWorkspace; } catch { return undefined; } };
+    const frameLinks = () => { try { return workspaceApi()?.links?.() || null; } catch { return null; } };
+    // 고객에게 나가는 항목(알림·주의사항)만 저장 전 편집 내용이 없어야 한다. 가이드 인쇄는 스스로 저장하고, 되돌리기는 편집 중에 쓰는 기능이다.
+    const runFrame = (action: string, needsClean = false) => {
+        if (editorBusy || sendingKakao || customerEditorMounted && frameLoading) { setEditorNotice('저장·발송이 끝난 뒤 다시 선택해 주세요.'); return; }
+        if (needsClean && !canSendCustomerKakao()) return;
+        if (!workspaceApi()?.run?.(action)) setEditorNotice('지금은 실행할 수 없습니다. 작업 화면의 저장 상태를 확인해 주세요.');
+    };
+    const openToolMenu = (anchor: HTMLElement, title: string, items: V7MenuItem[]) => setToolMenu(menuAt(anchor, title, items, true));
+    const openCustomerLink = (url: string | null) => { if (url) window.open(url, '_blank', 'noopener'); };
+    const deliveryMenu = (anchor: HTMLElement) => {
+        const l = frameLinks(), noLink = '견적 저장 후 고객 링크가 발급됩니다';
+        openToolMenu(anchor, '고객에게 전달', [
+            { key: 'notice', label: '확정일정표 알림', sub: '카카오 알림톡으로 확정 일정표 링크를 보냅니다', subTone: 'muted', onPick: () => runFrame('itineraryNotice', true) },
+            { key: 'confirm', label: '확정일정표 보기', sub: l?.confirm ? '새 탭에서 엽니다' : noLink, subTone: 'muted', disabled: !l?.confirm, onPick: () => openCustomerLink(l?.confirm || null) },
+            { key: 'contract', label: '여행계약서', sub: l?.contract ? '새 탭에서 엽니다' : noLink, subTone: 'muted', disabled: !l?.contract, onPick: () => openCustomerLink(l?.contract || null) },
+            { key: 'copy', label: '링크 복사', sub: '고객 견적 페이지 링크를 복사합니다', subTone: 'muted', onPick: () => runFrame('copyLink') },
+            { key: 'travel', label: l?.travelNoticeLabel || '주의사항 발송', sub: '여행 주의사항 PDF를 고객에게 보냅니다', subTone: 'muted', disabled: !!l?.travelNoticeDisabled, onPick: () => runFrame('travelNotice', true) },
+        ]);
+    };
+    const guideMenu = (anchor: HTMLElement) => {
+        const l = frameLinks();
+        openToolMenu(anchor, '가이드 전달', [
+            { key: 'sheet', label: '가이드 시트 PDF', sub: '항공편·고객 명단·일차별 숙소 한 장 요약', subTone: 'muted', onPick: () => runFrame('guideSheet') },
+            { key: 'pdf', label: '가이드용 PDF', sub: l && !l.hasQuote ? '견적서를 먼저 작성해 주세요' : '가이드용 일정표를 인쇄합니다', subTone: 'muted', disabled: !!l && !l.hasQuote, onPick: () => runFrame('guidePdf') },
+        ]);
+    };
+    const moreMenu = (anchor: HTMLElement) => {
+        const l = editorExpanded ? frameLinks() : null;
+        openToolMenu(anchor, '기타 작업', [
+            ...(editorExpanded ? [{ key: 'reload', label: '작업 화면 다시 불러오기', onPick: () => { reloadFrame(); setCustomerRefresh(value => value + 1); } }] : []),
+            { key: 'standalone', label: '새 창으로 열기', onPick: openStandalone },
+            ...(linked && tool.key === 'bookings' && bookingId ? [{ key: 'log', label: '발송 이력', sub: '변경·발송 이력 탭', subTone: 'muted' as const, onPick: () => { if (editorExpanded && bookingEditor) navigateWorkspace('log'); else customerAction('history'); } }] : []),
+            ...(tool.key !== 'builder' || !editorExpanded ? [{ key: 'quote', label: customerRecord?.quote ? '견적서 수정' : '견적서 작성', disabled: !customerRecord, onPick: () => openCustomerEditor('builder', 'docs') }] : []),
+            ...(editorExpanded && bookingEditor ? [{ key: 'revert', label: '되돌리기', sub: '마지막 저장 상태로 되돌립니다', subTone: 'warn' as const, disabled: !!l?.undoDisabled, onPick: () => runFrame('revert') }] : []),
+        ]);
+    };
 
     return (
         <><AdminLayout
@@ -475,28 +519,36 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
             title={customerPage ? '고객 통합 작업' : bookingId && tool.key === 'bookings' ? '견적 예약 상세' : tool.label}
             description={customerPage ? '선택한 문의·견적의 고객 정보와 일정·문서·예약 업무를 한곳에서 확인합니다.' : bookingId && tool.key === 'bookings' ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.description}
             flush
-            actions={
-                <>
-                    {(tool.key === 'inbox' || customerPage) && (
-                        <button type="button" className="btn btn-blue" disabled={customerPage && !customerRecord} onClick={() => customerPage ? openCustomerEditor('builder', 'docs') : navigate(quoteDeskHref('builder'))}>
-                            <Icon name="edit_document" />{customerPage && customerRecord?.quote ? '견적 수정' : '견적 작성'}
+            hideHeading={customerPage && editorExpanded}
+            actions={customerPage ? <>
+                    {/* 고객 현황 머리: 목록 복귀와 ⋯(견적서 수정 · 발송 이력 · 새 창)만. 나머지는 v7 상세 카드와 편집 도구줄이 맡는다. */}
+                    <button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>
+                        <Icon name="arrow_back" />목록으로
+                    </button>
+                    <button type="button" className="btn btn-ghost" aria-label="기타 작업" aria-haspopup="menu" onClick={event => moreMenu(event.currentTarget)}>
+                        <Icon name="more_horiz" />
+                    </button>
+                </> : <>
+                    {tool.key === 'inbox' && (
+                        <button type="button" className="btn btn-blue" onClick={() => navigate(quoteDeskHref('builder'))}>
+                            <Icon name="edit_document" />견적 작성
                         </button>
                     )}
                     <button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>
-                        <Icon name="arrow_back" />{customerPage ? '목록으로' : '통합 예약 목록'}
+                        <Icon name="arrow_back" />통합 예약 목록
                     </button>
-                    {linked && (!customerPage || editorExpanded) && (
-                        <button type="button" className="btn btn-ghost" onClick={() => { reloadFrame(); if (customerPage) setCustomerRefresh(value => value + 1); }}>
-                            <Icon name="refresh" />{customerPage ? '작업 화면 다시 불러오기' : '새로고침'}
+                    {linked && (
+                        <button type="button" className="btn btn-ghost" onClick={() => reloadFrame()}>
+                            <Icon name="refresh" />새로고침
                         </button>
                     )}
-                    {linked && tool.key === 'bookings' && bookingId && <button type="button" className="btn btn-ghost" onClick={() => customerPage ? customerAction('history') : nativeHosts ? navigateWorkspace('log') : setShowDeliveries(v => !v)}>발송 이력</button>}
+                    {linked && tool.key === 'bookings' && bookingId && <button type="button" className="btn btn-ghost" onClick={() => nativeHosts ? navigateWorkspace('log') : setShowDeliveries(v => !v)}>발송 이력</button>}
                     <button type="button" className="btn btn-ghost" onClick={openStandalone}>
                         <Icon name="open_in_new" />새 창으로 열기
                     </button>
-                </>
-            }
+                </>}
         >
+            {customerPage && <><V7Styles /><V7Menu menu={toolMenu} onClose={() => setToolMenu(null)} /></>}
             {editorNotice && <div role="status" style={{ padding: '12px 20px', background: '#fff5e8', color: '#80521b' }}>{editorNotice}</div>}
             {linked ? (
                 <div ref={customerPageRef} className={customerPage ? `quote-customer-page${editorExpanded ? ' is-editing' : ''}` : undefined} style={customerPage ? { flex: 1, minHeight: 0, overflow: editorExpanded ? 'hidden' : 'auto', background: '#f5f7fa' } : { position: 'relative', flex: 1, minHeight: 0, background: '#fff' }}>
@@ -517,6 +569,11 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         <button type="button" className="btn btn-ghost quote-customer-return" disabled={editorBusy} onClick={closeCustomerEditor}><Icon name="arrow_back" />고객 현황</button>
                         <div className="quote-customer-focus-identity"><h2 ref={customerEditorTitleRef} tabIndex={-1} id="quote-customer-editor-title">{customerModel.customerName}<span>{customerEditorLabel.title}</span></h2><p>{customerModel.partyLabel}<span aria-hidden="true">·</span>{customerModel.period}</p></div>
                         <span className="quote-customer-focus-status" role="status">{editorBusy ? '작업 처리 중' : customerModel.statusLabel}</span>
+                        <div className="quote-customer-editor-tools">
+                            {bookingEditor && <button ref={deliveryButtonRef} type="button" disabled={editorBusy} aria-haspopup="menu" onClick={event => deliveryMenu(event.currentTarget)}><Ico name="lc-send" size={15} color="#0E9E7A" /><span className="label">고객에게 전달</span><Ico name="lc-chevron-down" size={12} /></button>}
+                            {bookingEditor && <button type="button" disabled={editorBusy} aria-haspopup="menu" onClick={event => guideMenu(event.currentTarget)}><Ico name="lc-file-text" size={15} /><span className="label">가이드 전달</span><Ico name="lc-chevron-down" size={12} /></button>}
+                            <button type="button" className="is-icon" disabled={editorBusy} aria-label="기타 작업" aria-haspopup="menu" onClick={event => moreMenu(event.currentTarget)}><Icon name="more_horiz" /></button>
+                        </div>
                     </div>}
                     {frameIsMounted && <iframe
                         key={frame.seq}
@@ -628,8 +685,9 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
             {createPortal(<nav className="quote-native-tabs" aria-label="예약 상세 작업">{[['docs', '일정표'], ['contract', '계약서'], ['info', '주문자·여행자'], ['pay', '결제·영수증'], ['assign', '가이드·숙소'], ['notes', '운영·메모'], ['log', '변경·발송 이력']].map(([id, label]) => <button key={id} type="button" className={activeSection === id ? 'active' : ''} aria-current={activeSection === id ? 'location' : undefined} onClick={() => navigateWorkspace(id)}>{label}</button>)}</nav>, nativeHosts.navigation)}
             {createPortal(<AdminDeliveryHistory source="quote_booking" bookingId={bookingId} revision={customerRefresh} onData={receiveCustomerDelivery} onOpenDocument={kind => {
                 navigateWorkspace(kind === 'contract' ? 'contract' : 'docs');
-                const buttonId = kind === 'contract' ? 'contractRequestBtn' : kind === 'travel_notice' ? 'travelNoticeBtn' : 'itineraryNoticeBtn';
-                frameRef.current?.contentDocument?.getElementById(buttonId)?.focus({ preventScroll: false });
+                if (kind === 'contract') { frameRef.current?.contentDocument?.getElementById('contractRequestBtn')?.focus({ preventScroll: false }); return; }
+                // 확정일정표 알림·주의사항 버튼은 편집 도구줄의 ‘고객에게 전달’ 메뉴로 옮겼다.
+                if (deliveryButtonRef.current) deliveryMenu(deliveryButtonRef.current);
             }} />, nativeHosts.history)}
         </>}
         </>

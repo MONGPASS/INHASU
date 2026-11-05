@@ -373,6 +373,22 @@ function publishQuoteWorkspace() {
 window.InhasuQuoteBookingWorkspace = {
   getState() { if (BK) pullForm(); return quoteWorkspaceState(); },
   navigate(section) { return window.QuoteBookingWorkspace.navigate(section, document); },
+  /* 바깥 편집 도구줄 메뉴가 옛 머리·아래 바의 버튼을 대신 누른다. 잠겨 있거나 없는 버튼이면 false. */
+  run(action) {
+    const id = { itineraryNotice:"itineraryNoticeBtn", copyLink:"copyLinkBtn", guideSheet:"guideSheetBtn",
+      guidePdf:"guidePdfBtn", travelNotice:"travelNoticeBtn", revert:"undoBtn" }[action];
+    const el = id && $(id);
+    if (!el || el.disabled || bookingEditorBooting || (bookingRecovery && bookingRecovery.isBusy())) return false;
+    el.click(); return true;
+  },
+  /* 메뉴 라벨·활성 상태용. 고객 링크는 토큰이 있을 때만 절대 주소로 돌려준다. */
+  links() {
+    const href = key => { const a = $(key); const raw = a && a.getAttribute("href"); return raw && raw !== "#" ? a.href : null; };
+    const tn = $("travelNoticeBtn");
+    return { confirm: href("confirmLink"), contract: href("contractLink"), hasQuote: !!(PRE && PRE.quote),
+      travelNoticeLabel: tn ? tn.textContent : "주의사항 발송", travelNoticeDisabled: !tn || tn.disabled,
+      undoDisabled: !SAVED_BK_JSON, locked: bookingEditorBooting || !!(bookingRecovery && bookingRecovery.isBusy()) };
+  },
 };
 document.addEventListener('input', () => { if (BK && !bookingEditorBooting) queueMicrotask(() => { pullForm(); publishQuoteWorkspace(); }); });
 document.addEventListener('change', () => { if (BK && !bookingEditorBooting) queueMicrotask(() => { pullForm(); publishQuoteWorkspace(); }); });

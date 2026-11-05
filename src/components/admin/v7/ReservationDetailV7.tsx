@@ -286,6 +286,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const btnPill = (value: string, tone: PillTone, go: (e: React.MouseEvent) => void) => <button type="button" disabled={busy || saving} onClick={go} style={pill(tone)}>{value}<Ico name="lc-chevron-down" size={12} /></button>;
     const openLink = (label: string, go: () => void, disabled = false) => <button type="button" aria-label={`${label} 열기`} disabled={busy || disabled} onClick={go}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: '#495057', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={12} /></button>;
+    const editLink = (label: string, go: () => void) => <button type="button" aria-label={label} disabled={busy} onClick={go}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 12, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: '#0E9E7A', cursor: 'pointer' }}>수정<Ico name="lc-pencil" size={12} /></button>;
     const guideValue = row?.guide?.name || (m.assignments.find(a => a.id === 'guide')?.state === 'ready' ? m.assignments.find(a => a.id === 'guide')!.value : '');
     const vehicleValue = row?.vehicle?.type || (m.assignments.find(a => a.id === 'vehicle')?.state === 'ready' ? m.assignments.find(a => a.id === 'vehicle')!.value : '');
     const stayReady = row ? row.accDone : m.assignments.find(a => a.id === 'stay')?.state === 'ready';
@@ -307,7 +309,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         }) },
         { sid: 'sec-doc', icon: 'lc-file-text', title: '서류', left: docAlerts, items: [
             ...m.documents.map(doc => ({ label: doc.label, sub: <span style={{ color: /실패|필요|미작성|미발송|전/.test(doc.status || '') ? '#FF4F4F' : doc.status ? '#0E9E7A' : V7_INK }}>{doc.status || doc.detail || '내용 확인'}</span>,
-                control: openLink(doc.label, action(doc.action || doc.id, doc.id), doc.disabled) })),
+                control: <>{doc.editAction && editLink(doc.editLabel || `${doc.label} 수정`, action(doc.editAction, doc.id))}{openLink(doc.label, action(doc.action || doc.id, doc.id), doc.disabled)}</> })),
             ...(m.agreement ? [{ label: '계약 동의', sub: [m.agreement.label, m.agreement.name && `서명자 ${m.agreement.name}`].filter(Boolean).join(' · ') }] : []),
             { label: '공개·전달', control: btnSel('관리', false, action('documents'), 'lc-chevron-right') }] },
     ];

@@ -258,3 +258,15 @@ test('운영 메모는 전달된 작성기를 쓰고 없으면 메모 화면을 
     byText(view({ model, onAction: (...args) => calls.push(args) }).tree, '메모 작성').props.onClick();
     assert.deepEqual(calls, [['notes', undefined]]);
 });
+
+test('서류 카드의 견적서 수정 버튼은 견적 작성기 액션을 보내고 처리 중에는 잠긴다', () => {
+    const calls = [];
+    const documents = [{ id: 'quote', label: '견적서', action: 'quote-preview', editAction: 'quote-edit', editLabel: '견적서 수정', status: '저장됨' }];
+    const { tree } = view({ model: { ...model, documents }, onAction: (...args) => calls.push(args) });
+    const edit = byLabel(tree, '견적서 수정');
+    assert.ok(edit); assert.equal(edit.props.disabled, false);
+    edit.props.onClick(); assert.deepEqual(calls, [['quote-edit', 'quote']]);
+    byLabel(tree, '견적서 열기').props.onClick(); assert.deepEqual(calls.at(-1), ['quote-preview', 'quote']);
+    assert.equal(byLabel(view({ model: { ...model, documents }, busy: true }).tree, '견적서 수정').props.disabled, true);
+    assert.equal(byLabel(view({ model }).tree, '계약서 수정'), undefined);
+});

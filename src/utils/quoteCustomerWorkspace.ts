@@ -199,7 +199,7 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
                 image: text(day.img) || text(day.images?.[0]) || undefined };
         }),
         documents: [
-            { id: 'quote', label: '견적서', detail: quoted ? '기존 견적서 디자인으로 확인·수정합니다' : '아직 작성된 견적서가 없습니다', status: quoted ? (issue('quote') ? issue('quote')!.state === 'failed' ? '안내 발송 실패' : '발송 결과 확인 필요' : sent ? '안내 서비스 접수' : quoteRequested ? '발송 요청 · 결과 확인 필요' : '저장됨') : '작성 필요', action: quoted ? 'quote-preview' : 'edit-itinerary' },
+            { id: 'quote', label: '견적서', editAction: 'quote-edit', editLabel: quoted ? '견적서 수정' : '견적서 작성', detail: quoted ? '기존 견적서 디자인으로 확인·수정합니다' : '아직 작성된 견적서가 없습니다', status: quoted ? (issue('quote') ? issue('quote')!.state === 'failed' ? '안내 발송 실패' : '발송 결과 확인 필요' : sent ? '안내 서비스 접수' : quoteRequested ? '발송 요청 · 결과 확인 필요' : '저장됨') : '작성 필요', action: quoted ? 'quote-preview' : 'edit-itinerary' },
             { id: 'itinerary', label: '확정 일정표', detail: booked ? (published ? '고객에게 공개된 일정표' : '저장·배정 확인 후 공개합니다') : '예약 진행 후 준비합니다', status: published ? '공개됨' : booked && days.length ? '준비 중' : '대기', action: published ? 'itinerary-preview' : 'edit-itinerary' },
             { id: 'contract', label: '계약서', detail: summary.quoteBooking.signed ? '고객 실제 서명 확인됨' : booked ? '예약금 확인 후 계약 요청' : '예약 진행 후 작성합니다', status: summary.quoteBooking.signed ? '동의 완료' : booking.contractRequest?.status === 'requested' ? '요청됨' : '대기', action: 'contract' },
         ],

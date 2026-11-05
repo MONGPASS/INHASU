@@ -25,6 +25,8 @@ interface AdminLayoutProps {
      * 끼워 넣은 화면(맞춤 견적 데스크의 iframe)용 — children 의 최상위 요소에 `flex: 1` 을 주면 된다.
      */
     flush?: boolean;
+    /** 편집 화면처럼 제목·설명·작업 버튼을 숨긴다. 상단 바(검색·알림)·사이드바·좁은 화면 메뉴 토글은 유지한다. */
+    hideHeading?: boolean;
     children: React.ReactNode;
 }
 
@@ -38,7 +40,7 @@ const EYEBROW: Record<string, string> = {
 };
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
-    activePage, title, description, eyebrow, showSearch = true, actions, flush = false, children,
+    activePage, title, description, eyebrow, showSearch = true, actions, flush = false, hideHeading = false, children,
 }) => {
     const eb = eyebrow || EYEBROW[activePage] || '관리자 콘솔';
     const location = useLocation();
@@ -60,6 +62,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     const menuId = `admin-customer-menu-${id}`;
     const actionsId = `admin-customer-actions-${id}`;
     const menuShown = customerLayout && narrowCustomer && mobileMenuOpen;
+    // 편집 화면(hideHeading)에서는 저장된 설정과 무관하게 사이드바를 아이콘 줄로 접어 본문 폭을 넓힌다.
+    const railShown = rail || hideHeading;
     const closeMenu = () => {
         setMobileMenuOpen(false);
         requestAnimationFrame(() => menuButtonRef.current?.focus());
@@ -88,7 +92,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape); };
     }, [mobileActionsOpen, customerLayout, narrowCustomer]);
     return (
-        <div className={`app${customerLayout ? ' admin-customer-layout' : ''}${menuShown ? ' admin-customer-menu-open' : ''}${rail && !menuShown ? ' is-side-rail' : ''}`}>
+        <div className={`app${customerLayout ? ' admin-customer-layout' : ''}${menuShown ? ' admin-customer-menu-open' : ''}${railShown && !menuShown ? ' is-side-rail' : ''}`}>
             {customerLayout ? <>
                 {menuShown && <button type="button" className="admin-customer-menu-backdrop" aria-label="관리자 메뉴 배경 닫기" tabIndex={-1} onClick={closeMenu} />}
                 <div ref={menuPanelRef} id={menuId} className="admin-customer-menu-panel" role={menuShown ? 'dialog' : undefined} aria-modal={menuShown ? true : undefined} aria-label={menuShown ? '관리자 메뉴' : undefined}
@@ -103,24 +107,24 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
                     }}>
                     <button type="button" className="admin-customer-menu-close" aria-label="관리자 메뉴 닫기" onClick={closeMenu}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>
-                    <AdminSidebar activePage={activePage} rail={rail && !menuShown} onToggleRail={menuShown ? undefined : toggleRail} />
+                    <AdminSidebar activePage={activePage} rail={railShown && !menuShown} onToggleRail={menuShown || hideHeading ? undefined : toggleRail} />
                 </div>
-            </> : <AdminSidebar activePage={activePage} rail={rail} onToggleRail={toggleRail} />}
+            </> : <AdminSidebar activePage={activePage} rail={railShown} onToggleRail={hideHeading ? undefined : toggleRail} />}
             <div className={`main${flush ? ' is-flush' : ''}`} inert={menuShown}>
-                <header className="header">
+                <header className={`header${hideHeading ? ' is-heading-hidden' : ''}`}>
                     <div className="header-in">
                         {customerLayout && <button ref={menuButtonRef} type="button" className="admin-customer-menu-toggle" aria-label="관리자 메뉴 열기" aria-expanded={menuShown} aria-controls={menuId} onClick={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>}
-                        <div className="admin-layout-heading" style={{ minWidth: 0 }}>
+                        {!hideHeading && <div className="admin-layout-heading" style={{ minWidth: 0 }}>
                             <div className="eyebrow"><span className="dot" />{eb}</div>
                             <div className="page-title">{title}</div>
                             {description && (
                                 <div className="cell-muted" style={{ fontSize: 12.5, marginTop: 2 }}>{description}</div>
                             )}
-                        </div>
+                        </div>}
                         <div className="header-spacer" />
                         <div className="header-tools">
                             <AdminToolbar showSearch={showSearch} />
-                            {customerLayout && actions ? <>
+                            {hideHeading ? null : customerLayout && actions ? <>
                                 <button ref={actionButtonRef} type="button" className="admin-customer-actions-toggle" aria-label="고객 관리 추가 작업" aria-expanded={mobileActionsOpen} aria-controls={actionsId} onClick={() => setMobileActionsOpen(value => !value)}><svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><circle cx="4" cy="10" r="1.6" /><circle cx="10" cy="10" r="1.6" /><circle cx="16" cy="10" r="1.6" /></svg></button>
                                 <div ref={actionPanelRef} id={actionsId} className={`admin-customer-header-actions${mobileActionsOpen ? ' is-open' : ''}`} onClick={event => { if ((event.target as Element).closest('button,a[href]')) setMobileActionsOpen(false); }}>{actions}</div>
                             </> : actions && <div className="admin-page-actions">{actions}</div>}
