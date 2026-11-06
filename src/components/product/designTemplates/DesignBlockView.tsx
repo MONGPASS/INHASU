@@ -64,14 +64,16 @@ function useDesignFonts() {
  * variant='mobile'이면 템플릿의 모바일 전용 디자인(있을 때)을 렌더링한다.
  * editing=true면 빈 이미지 슬롯에 업로드 안내 placeholder를 표시한다.
  */
-export default function DesignBlockView({ content, editing, variant = 'desktop', onFieldClick, selectedField, itinerarySlot, valueOverrides }: {
+export default function DesignBlockView({ content, editing, variant = 'desktop', onFieldClick, selectedField, highlightSection, itinerarySlot, valueOverrides }: {
     content: DesignBlockContent;
     editing?: boolean;
     variant?: 'desktop' | 'mobile';
-    /** 미리보기에서 문구/사진을 클릭하면 해당 필드 key로 호출 (관리자 편집기용) */
-    onFieldClick?: (key: string) => void;
+    /** 미리보기에서 문구/사진을 클릭(또는 Enter)하면 해당 필드 key와 요소로 호출 (관리자 편집기용) */
+    onFieldClick?: (key: string, element?: Element) => void;
     /** 현재 편집 중인 필드 — 미리보기에서 초록 테두리로 표시 */
     selectedField?: string | null;
+    /** 마우스를 올린/다루는 중인 섹션 인스턴스 id — 옅은 테두리로 표시 */
+    highlightSection?: string | null;
     /**
      * 상품 일정탭의 일정표. 템플릿의 itineraryAfter 섹션 뒤에 끼워 넣고
      * 나머지 섹션(여행의 순간들부터)으로 이어간다.
@@ -84,6 +86,12 @@ export default function DesignBlockView({ content, editing, variant = 'desktop',
     valueOverrides?: Record<string, string>;
 }) {
     useDesignFonts();
+    const rootRef = useRef<HTMLDivElement>(null);
+    // 편집 모드에서는 문구·사진 요소를 키보드로도 고를 수 있게 한다(템플릿 DOM은 직접 손대지 않는다)
+    useEffect(() => {
+        if (!onFieldClick || !rootRef.current) return;
+        rootRef.current.querySelectorAll('[data-df]').forEach(el => { el.setAttribute('tabindex', '0'); el.setAttribute('role', 'button'); });
+    });
     // 사이트 공통 기본값 — 상품마다 다시 올리지 않아도 되는 사진·문구
     const globalDefaults = useDesignGlobalDefaults(content?.templateId);
     const def = getDesignTemplate(content?.templateId);
@@ -125,21 +133,36 @@ export default function DesignBlockView({ content, editing, variant = 'desktop',
                 e.preventDefault();
                 // 복제된 섹션 안이면 그 섹션의 접미사를 붙여 복제본 필드를 가리킨다
                 const scope = el?.closest('[data-df-scope]')?.getAttribute('data-df-scope') || '';
-                onFieldClick(key + scope);
+                onFieldClick(key + scope, el ?? undefined);
             }
         }
         : undefined;
+    const handleKeyDown = onFieldClick
+        ? (e: React.KeyboardEvent<HTMLDivElement>) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            const el = e.target as HTMLElement;
+            const key = el.getAttribute?.('data-df');
+            if (!key) return;
+            e.preventDefault();
+            const scope = el.closest('[data-df-scope]')?.getAttribute('data-df-scope') || '';
+            onFieldClick(key + scope, el);
+        }
+        : undefined;
+    const highlightSelector = highlightSection ? `.dtpl-clickable [data-df-section="${highlightSection.replace(/"/g, '\\"')}"]` : '';
 
     // 선택된 필드가 복제본이면 key와 접미사를 나눠 해당 섹션 안만 하이라이트한다
     const selBase = selectedField ? baseKey(selectedField) : null;
     const selScope = selectedField ? scopeOf(selectedField) : '';
 
     return (
-        <div className={onFieldClick ? 'dtpl-clickable' : undefined} onClick={handleClick}>
+        <div ref={rootRef} className={onFieldClick ? 'dtpl-clickable' : undefined} onClick={handleClick} onKeyDown={handleKeyDown}>
             {onFieldClick && (
                 <style>{`
                     .dtpl-clickable [data-df] { cursor: pointer; pointer-events: auto; }
                     .dtpl-clickable [data-df]:hover { outline: 2px dashed rgba(6,196,160,0.75); outline-offset: 2px; }
+                    .dtpl-clickable [data-df]:focus-visible { outline: 2px solid #06C4A0; outline-offset: 2px; }
+                    .dtpl-clickable img[data-df]:hover { filter: brightness(.85); }
+                    ${highlightSelector ? `${highlightSelector} { outline: 2px solid rgba(6,196,160,0.4); outline-offset: -2px; }` : ''}
                     ${selectedField ? `.dtpl-clickable [data-df-scope="${selScope}"] [data-df="${selBase}"] { outline: 2px solid #06C4A0; outline-offset: 2px; }` : ''}
                 `}</style>
             )}

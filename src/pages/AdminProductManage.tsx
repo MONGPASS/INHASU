@@ -40,6 +40,8 @@ export const AdminProductManage: React.FC = () => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<TourProduct | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    // 상품 편집창의 디자인 블록 ‘집중 편집’ — 켜지면 관리자 제목·머리 버튼을 숨긴다
+    const [designFocus, setDesignFocus] = useState(false);
 
 
     // Filters
@@ -395,6 +397,7 @@ export const AdminProductManage: React.FC = () => {
     return (
         <AdminLayout
             activePage="products"
+            hideHeading={isModalOpen && designFocus}
             title={isModalOpen ? (selectedProduct ? '상품 수정' : '상품 추가') : '상품 목록'}
             description={isModalOpen ? undefined : '판매 상태와 추천 노출을 한 화면에서 관리해요.'}
             actions={!isModalOpen && (
@@ -566,6 +569,7 @@ export const AdminProductManage: React.FC = () => {
                     product={selectedProduct}
                     categories={categories}
                     onClose={closeProductEditor}
+                    onLayoutModeChange={setDesignFocus}
                     onSave={async (product) => {
                         let success = false;
                         if (selectedProduct) {
@@ -600,6 +604,8 @@ interface ProductModalProps {
     onClose: () => void;
     onSave: (product: TourProduct) => Promise<boolean>;
     adminUserId?: string | null;
+    /** 디자인 블록 ‘집중 편집’ 켜짐/꺼짐 — 바깥 레이아웃이 제목·오른쪽 열을 숨긴다 */
+    onLayoutModeChange?: (designFocus: boolean) => void;
 }
 
 /** 예전 골격이 저장한 후리가나 붙은 라벨('1日目（いちにちめ）')에서 괄호를 뗀다 — 폼에 올릴 때 한 번 정리 */
@@ -613,7 +619,11 @@ const cleanDayLabels = (p: TourProduct): TourProduct => ({
     }),
 });
 
-export const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClose, onSave, adminUserId = null }) => {
+export const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClose, onSave, adminUserId = null, onLayoutModeChange }) => {
+    // 디자인 블록 집중 편집: 오른쪽 요약 열을 숨기고 본문 폭을 넓힌다. 저장 바는 그대로 둔다.
+    const [designFocus, setDesignFocus] = useState(false);
+    const layoutModeCallback = useRef(onLayoutModeChange); layoutModeCallback.current = onLayoutModeChange;
+    useEffect(() => { layoutModeCallback.current?.(designFocus); return () => { layoutModeCallback.current?.(false); }; }, [designFocus]);
     const [formData, setFormDataState] = useState<Partial<TourProduct>>(() =>
         product ? structuredClone(cleanDayLabels(product)) : {
             name: '',
@@ -1841,7 +1851,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     ];
     const requiredDone = requiredChecks.filter(([, done]) => done).length;
     return (
-        <div className="card product-draft-editor pa-editor" style={{ width: '100%' }}>
+        <div className={`card product-draft-editor pa-editor${designFocus ? ' is-design-focus' : ''}`} style={{ width: '100%' }}>
                 {/* Header */}
                 <div className="card-head pa-head">
                     <button onClick={closeEditor} disabled={busy} className="pa-back" title="목록으로" type="button">
@@ -2114,7 +2124,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                         {/* Details Tab */}
                         {currentTab === 'details' && (
-                            <div className="stack" style={{ maxWidth: 860 }}>
+                            <div className="stack" style={{ maxWidth: designFocus ? undefined : 860 }}>
                                 {/* Tags */}
                                 <div className="field" style={{ marginBottom: 0 }}>
                                     <label>태그</label>
@@ -2257,9 +2267,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                                         <div className="stack" style={{ gap: 12 }}>
                                             {(formData.detailBlocks || []).map((block, index) => (
-                                                // 디자인 블록은 분할 편집기(미리보기+폼)라 860px 스택을 벗어나
-                                                // 데스크톱 콘텐츠 폭 전체를 쓴다
-                                                <div key={block.id} className="edit-row" style={block.type === 'design' ? { width: 'min(1380px, calc(100vw - var(--side-w) - 128px))' } : undefined}>
+                                                // 디자인 블록은 열 폭을 꽉 채운다(오른쪽 요약 열 아래로 넘치지 않게). 축소 없는 원본 크기는 ‘집중 편집’에서 본다
+                                                <div key={block.id} className="edit-row" style={block.type === 'design' ? { width: '100%' } : undefined}>
                                                     <div className="edit-move">
                                                         <button type="button" onClick={() => moveDetailBlock(index, index - 1)} disabled={index === 0}><Icon name="expand_less" /></button>
                                                         <button type="button" onClick={() => moveDetailBlock(index, index + 1)} disabled={index === (formData.detailBlocks?.length || 0) - 1}><Icon name="expand_more" /></button>
@@ -2409,6 +2418,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                 onChange={(next) => updateBlockContent(index, next)}
                                                                 pricingOptions={formData.pricingOptions}
                                                                 onBusyChange={busy => reportDesignBusy(block.id, busy)}
+                                                                focusMode={designFocus}
+                                                                onFocusModeChange={setDesignFocus}
                                                             />
                                                         ) : (
                                                             // DIVIDER BLOCK
