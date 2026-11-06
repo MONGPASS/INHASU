@@ -19,6 +19,7 @@ import workspaceStyles from '../styles/reservation-workspace.css?inline';
 import nativeWorkspaceStyles from '../styles/quote-booking-workspace.css?inline';
 import '../styles/quote-booking-workspace.css';
 import deliveryStyles from '../components/admin/AdminDeliveryHistory.css?inline';
+import { GuideSchedule } from '../components/admin/guides/GuideSchedule';
 import { quoteFrameNeedsRemount, scheduleQuoteFrameDelay } from '../utils/quoteFrameRecovery';
 import {
     connectQuoteDesk,
@@ -63,6 +64,9 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const quoteEditorId = toolParam === 'inbox' ? searchParams.get('qe') || undefined : undefined;
     const resourceType = toolParam === 'resources' && ['guides', 'lodges', 'vehicles'].includes(searchParams.get('resourceType') || '') ? searchParams.get('resourceType') || undefined : undefined;
     const navigate = useNavigate();
+    // 가이드·숙소·차량: 등록 정보(기존 도구)와 가이드 배정 현황(?view=schedule)을 오간다. 기존 도구 화면은 그대로 둔 채 위에 겹쳐 보여 준다.
+    const scheduleView = toolParam === 'resources' && searchParams.get('view') === 'schedule';
+    const setScheduleView = (on: boolean) => { const next = new URLSearchParams(searchParams); if (on) next.set('view', 'schedule'); else next.delete('view'); navigate({ search: next.toString() ? `?${next}` : '' }, { replace: true }); };
     const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: any } | null>(null);
     const customerRecord = customerResult?.accountId === accountId && customerResult.id === bookingId ? customerResult.record : null;
     const [customerError, setCustomerError] = useState('');
@@ -529,6 +533,12 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         <Icon name="more_horiz" />
                     </button>
                 </> : <>
+                    {tool.key === 'resources' && (
+                        <span className="btn-group" role="group" aria-label="보기" style={{ display: 'inline-flex', gap: 4, padding: 3, border: '1px solid #e3e6ea', borderRadius: 12, background: '#fff' }}>
+                            <button type="button" className={scheduleView ? 'btn btn-ghost' : 'btn btn-blue'} aria-pressed={!scheduleView} onClick={() => setScheduleView(false)}>등록 정보</button>
+                            <button type="button" className={scheduleView ? 'btn btn-blue' : 'btn btn-ghost'} aria-pressed={scheduleView} onClick={() => setScheduleView(true)}>가이드 배정 현황</button>
+                        </span>
+                    )}
                     {tool.key === 'inbox' && (
                         <button type="button" className="btn btn-blue" onClick={() => navigate(quoteDeskHref('builder'))}>
                             <Icon name="edit_document" />견적 작성
@@ -586,6 +596,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         className={customerPage ? 'quote-customer-editor-frame' : undefined}
                         style={customerPage ? undefined : { position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, display: 'block' }}
                     />}
+                    {scheduleView && accountId && <GuideSchedule accountId={accountId} />}
                     {showDeliveries && !nativeHosts && tool.key === 'bookings' && bookingId && <aside className="quote-delivery-panel" aria-label="견적 예약 발송 이력">
                         <button type="button" onClick={() => setShowDeliveries(false)}>이력 닫기</button>
                         <AdminDeliveryHistory source="quote_booking" bookingId={bookingId} revision={customerRefresh} onData={receiveCustomerDelivery} onOpenDocument={kind => {

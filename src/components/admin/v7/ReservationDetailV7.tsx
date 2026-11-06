@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 
 import type { DashboardIconName } from '../dashboard/DashboardIcon';
 import type { CustomerWorkspaceOverviewModel } from '../CustomerWorkspaceOverview';
 import { dashboardSeoulDate } from '../../../utils/adminDashboard';
-import { guideAssignmentConflicts } from '../../../utils/assignmentAvailability';
+import { confirmGuideConflict, guideMenuItems } from './guideMenuItems';
 import { scheduleTimeline } from '../../../utils/accommodationSchedule';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../../../utils/registeredAssignmentResources';
 import { selectResourceGuide, selectResourceLodge, selectResourceVehicle } from '../../../utils/accommodationResourceSelection';
@@ -159,18 +159,26 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const phoneFact = m.facts.find(f => /연락처|전화/.test(f.label))?.value || '';
     const emailFact = m.facts.find(f => /이메일/.test(f.label))?.value || '';
 
-    const save = async (build: (it: V7AssignmentItem) => Parameters<typeof saveV7Assignment>[1], done: string) => {
+    const save = async (build: (it: V7AssignmentItem) => Parameters<typeof saveV7Assignment>[1], done: string, allowGuideConflict = false): Promise<boolean> => {
         if (!item) { flash('배정 정보를 아직 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'); void loadItem(); return false; }
         if (saving) return false;
         setSaving(true);
+        let retry = false;
         try {
-            const saved = await saveV7Assignment(item, build(item));
+            const saved = await saveV7Assignment(item, build(item), { allowGuideConflict });
             if (!mounted.current) return false;
             setItem(saved); setAllItems(prev => prev.map(x => x.key === saved.key ? saved : x));
             flash(done); links?.onAssignmentSaved?.();
             return true;
-        } catch (e: any) { if (mounted.current) { flash(e?.message || '배정을 저장하지 못했습니다.'); void loadItem(); } return false; }
-        finally { if (mounted.current) setSaving(false); }
+        } catch (e: any) {
+            // 다른 화면에서 방금 같은 가이드를 배정했으면 서버가 거절한다. 확인하면 그대로 다시 저장한다.
+            if (mounted.current && !allowGuideConflict && confirmGuideConflict(e)) retry = true;
+            else if (mounted.current) { flash(e?.message || '배정을 저장하지 못했습니다.'); void loadItem(); }
+            return false;
+        } finally {
+            if (mounted.current) setSaving(false);
+            if (retry) window.setTimeout(() => { void save(build, done, true); }, 0);
+        }
     };
     const peopleMenu = async (e: React.MouseEvent, kind: 'guide' | 'vehicle') => {
         e.stopPropagation();
@@ -178,11 +186,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         const target = e.currentTarget as HTMLElement, loaded = await ensureResources();
         const items: V7MenuItem[] = kind === 'guide' ? [
             { key: 'none', label: '배정 해제', muted: true, on: !row.guide, onPick: () => { if (row.guide) void save(it => withGuide(it, { id: '', name: '', phone: '' }), '가이드 배정을 해제했어요'); } },
-            ...(loaded?.guides || []).map(g => {
-                const busyWith = guideAssignmentConflicts(allItems, g, { id: item.id, source: item.source, startDate: item.startDate, endDate: item.endDate })[0];
-                return { key: g.id, label: g.name, on: row.guide?.name === g.name, sub: busyWith ? `일정 겹침 · ${(busyWith as any).customerName || '다른 예약'} ${String(busyWith.startDate || '').slice(5).replace('-', '.')}~` : '이 일정에 배정 가능', subTone: busyWith ? 'warn' as const : 'ok' as const,
-                    onPick: () => { if (busyWith && !window.confirm(`${g.name} 가이드는 같은 기간에 다른 예약이 있습니다. 그래도 배정할까요?`)) return; void save(it => withGuide(it, selectResourceGuide(it.assignment.guide, g)), `${g.name} 가이드를 배정했어요`); } };
-            }),
+            ...guideMenuItems(loaded?.guides || [], allItems, { id: item.id, source: item.source, startDate: item.startDate, endDate: item.endDate }, row.guide?.name,
+                (g, confirmed) => { void save(it => withGuide(it, selectResourceGuide(it.assignment.guide, g)), `${g.name} 가이드를 배정했어요`, confirmed); }),
         ] : [
             { key: 'none', label: '배정 해제', muted: true, on: !row.vehicle, onPick: () => { if (row.vehicle) void save(it => withVehicle(it, { type: '', phone: '' }), '차량 배정을 해제했어요'); } },
             ...(loaded?.vehicles || []).map(v => ({ key: v.name, label: v.name, on: row.vehicle?.type === v.type, sub: [v.snapshot.seats && `${v.snapshot.seats}인승`, v.snapshot.plate].filter(Boolean).join(' · ') || undefined, subTone: 'muted' as const,

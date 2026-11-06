@@ -442,3 +442,41 @@ test('숙소 배정 시트 고객명: 대표 1인 이름과 고객이 고른 패
     next = (await f.list()).find(i => i.key === 'quote_booking:same-id');
     assert.equal(next.leadName, '계약 서명자', '계약 서명자를 가장 먼저 쓴다');
 });
+
+test('가이드 중복: 같은 기간 다른 예약의 가이드로 바꾸면 확인 없이는 저장하지 않고, 교대·같은 가이드 재저장·취소 예약은 막지 않는다', async t => {
+    const f = await fixture(t);
+    const items = await f.list(), product = items.find(i => i.key === 'product:same-id');
+    const quoteGuide = { id: 'q-guide', name: '견적 가이드', phone: '' };
+    const patch = (item, assignment, extra = {}) => f.request(`/assignments/${item.source}/same-id`, { method: 'PATCH', body: { expectedVersion: item.version, assignment, ...extra } });
+    // 상품(10/20~22)에 견적(10/21~24)의 가이드를 넣으면 같은 날을 함께 쓴다.
+    let response = await patch(product, { ...product.assignment, guide: quoteGuide });
+    assert.equal(response.status, 409);
+    const body = await response.json();
+    assert.equal(body.code, 'guide_conflict'); assert.match(body.error, /견적 가이드/);
+    assert.deepEqual(body.conflicts.map(c => [c.source, c.id]), [['quote_booking', 'same-id']]);
+    assert.ok(!JSON.stringify(body).includes('PRIVATE'), '중복 안내에 고객 개인정보를 싣지 않는다');
+    assert.equal(JSON.parse(f.raw.prepare('SELECT assigned_guide FROM reservations WHERE id=?').get('same-id').assigned_guide).name, '기존 가이드', '거절하면 바꾸지 않는다');
+    // 관리자가 확인하면 저장한다.
+    response = await patch(product, { ...product.assignment, guide: quoteGuide }, { allowGuideConflict: true });
+    assert.equal(response.status, 200);
+    let saved = (await response.json()).item;
+    // 이미 배정된 같은 가이드로 숙소만 저장할 때는 다시 묻지 않는다.
+    response = await patch(saved, { ...saved.assignment, accommodations: saved.assignment.accommodations });
+    assert.equal(response.status, 200); saved = (await response.json()).item;
+    // 잘못된 확인 값은 거절
+    assert.equal((await patch(saved, saved.assignment, { allowGuideConflict: 'yes' })).status, 400);
+    // 견적 일정을 상품 끝나는 날(10/22)부터로 옮기면 같은 날 교대라 막지 않는다.
+    response = await patch(saved, { ...saved.assignment, guide: { id: '', name: '', phone: '' } });
+    assert.equal(response.status, 200); saved = (await response.json()).item;
+    const rec = JSON.parse(f.raw.prepare('SELECT data FROM requests WHERE id=?').get('same-id').data);
+    rec.depart = '2026-10-22'; rec.return_ = '2026-10-24';
+    f.raw.prepare('UPDATE requests SET data=? WHERE id=?').run(JSON.stringify(rec), 'same-id');
+    response = await patch(saved, { ...saved.assignment, guide: quoteGuide });
+    assert.equal(response.status, 200, '끝나는 날=시작하는 날은 교대'); saved = (await response.json()).item;
+    // 취소된 예약의 가이드는 비어 있는 것으로 본다.
+    rec.depart = '2026-10-21'; f.raw.prepare('UPDATE requests SET data=?, status=? WHERE id=?').run(JSON.stringify(rec), '예약취소', 'same-id');
+    response = await patch(saved, { ...saved.assignment, guide: { id: '', name: '', phone: '' } });
+    assert.equal(response.status, 200); saved = (await response.json()).item;
+    response = await patch(saved, { ...saved.assignment, guide: quoteGuide });
+    assert.equal(response.status, 200, '취소 예약과는 겹치지 않는다');
+});

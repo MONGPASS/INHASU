@@ -559,3 +559,23 @@ test('시트 보기: 숙박 행을 저장한 적 없는 예약도 계약 일정�
     assert.deepEqual(plain(saved.map(n => [n.day, n.accommodation.region || '', n.accommodation.assignType || ''])), [[1, 'Terelj', ''], [2, 'Kharkhorin', '3인1실']]);
     h.unmount();
 });
+
+test('카드 보기 가이드 선택: 같은 기간에 다른 예약이 있는 가이드는 이유를 붙이고, 확인 후 저장하면 서버 중복 확인을 다시 묻지 않는다', async () => {
+    const quote = bookingFixture('quote_booking');
+    quote.assignment.guide = { id: 'resource-guide:등록 가이드 / #?', name: '등록 가이드 / #?', phone: '' };
+    const h = mount({ items: [bookingFixture('product'), quote] });
+    await h.settle(); await h.open('product');
+    const select = () => nodes(h.tree).find(node => node.type === 'select' && node.props['aria-label'] === '등록 가이드 선택');
+    const optionText = plain(nodes(select()).filter(n => n.type === 'option' && n.props.value).map(n => text(n)));
+    assert.equal(optionText.length, 1);
+    assert.match(optionText[0], /등록 가이드 \/ #\? · 일정 겹침 \(견적 고객 11\.01~11\.02\)/);
+    // 고를 때 한 번 확인한다(테스트 브라우저의 confirm은 항상 예).
+    select().props.onChange({ target: { value: 'resource-guide:등록 가이드 / #?' } });
+    h.render(); await h.settle();
+    h.button('배정 저장').props.onClick(); await h.settle(); await h.settle();
+    const patch = h.requests.filter(r => r.options.method === 'PATCH').at(-1);
+    assert.ok(patch, '저장 요청');
+    assert.equal(patch.body.allowGuideConflict, true, '고를 때 확인한 중복은 저장할 때 다시 묻지 않는다');
+    assert.equal(patch.body.assignment.guide.name, '등록 가이드 / #?');
+    h.unmount();
+});

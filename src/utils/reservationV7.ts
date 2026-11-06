@@ -197,10 +197,11 @@ export async function fetchV7Assignments(signal?: AbortSignal): Promise<{ items:
     if (!response.ok) throw new Error(body.error || '배정 정보를 불러오지 못했습니다.');
     return { items: Array.isArray(body.items) ? body.items : [], warnings: Array.isArray(body.warnings) ? body.warnings : [] };
 }
-export async function saveV7Assignment(item: V7AssignmentItem, assignment: BookingAssignment): Promise<V7AssignmentItem> {
+/** allowGuideConflict: 관리자가 같은 기간 가이드 중복을 확인한 경우에만 true. 서버가 중복으로 거절하면 error.code === 'guide_conflict'. */
+export async function saveV7Assignment(item: V7AssignmentItem, assignment: BookingAssignment, options: { allowGuideConflict?: boolean } = {}): Promise<V7AssignmentItem> {
     const response = await fetch(`/api/admin/assignments/${item.source}/${encodeURIComponent(item.id)}`, { method: 'PATCH', credentials: 'same-origin', cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expectedVersion: item.version, assignment }) });
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expectedVersion: item.version, assignment, ...(options.allowGuideConflict ? { allowGuideConflict: true } : {}) }) });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error || '배정을 저장하지 못했습니다.');
+    if (!response.ok) throw Object.assign(new Error(body.error || '배정을 저장하지 못했습니다.'), { code: body.code, conflicts: body.conflicts });
     return body.item;
 }

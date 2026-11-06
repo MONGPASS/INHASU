@@ -15,6 +15,7 @@ import './AdminAccommodationOps.css';
 import { LODGE_BOOKING_STATUSES, isLodgeBookingConfirmed, lodgeBookingLabel } from '../utils/lodgeBookingStatus';
 import { LODGE_GRADE_OPTIONS, ROOM_PLAN_OPTIONS, isUpcomingTour, tourSerials } from '../utils/accommodationSheet';
 import { AccommodationSheet } from '../components/admin/accommodation/AccommodationSheet';
+import { guideOverlaps, overlapLabel, sameGuide } from '../utils/assignmentAvailability';
 
 /**
  * 숙소 배정 · 현지 운영 — Admin Dashboard v3 "05-1" 디자인(한국어).
@@ -159,7 +160,8 @@ function fromApi(item: any): Reservation {
 async function assignmentRequest(path = '', options: RequestInit = {}) {
     const response = await fetch(`/api/admin/assignments${path}`, { credentials: 'same-origin', cache: 'no-store', ...options });
     const body = await response.json();
-    if (!response.ok) throw new Error(body.error || '배정 정보를 불러오지 못했습니다.');
+    // 가이드 중복(guide_conflict)은 화면이 확인 후 다시 저장할 수 있게 사유 코드를 함께 넘긴다.
+    if (!response.ok) throw Object.assign(new Error(body.error || '배정 정보를 불러오지 못했습니다.'), { code: body.code, conflicts: body.conflicts });
     return body;
 }
 
@@ -504,10 +506,21 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             : r));
         markDirty(rId);
     };
+    // 같은 기간에 다른 예약이 있는 가이드는 고를 때 확인한다. 확인한 가이드는 저장할 때 서버 중복 확인을 다시 묻지 않는다.
+    const confirmedGuides = useRef(new Map<string, { id?: string; name?: string }>());
+    const guideChoices = (r: Reservation) => resources.guides.map(guide => {
+        const found = guideOverlaps(rowsRef.current, guide, { id: r.id, source: r.source, startDate: r.startDate, endDate: r.endDate });
+        const overlap = found.find(item => item.kind === 'overlap'), handover = found.find(item => item.kind === 'handover');
+        return { guide, overlap, handover, rank: overlap ? 2 : handover ? 1 : 0 };
+    }).sort((a, b) => a.rank - b.rank || a.guide.name.localeCompare(b.guide.name, 'ko-KR'));
     const chooseGuide = (rId: string, resourceId: string) => {
         if (resourcesLoading || savingRef.current || pendingRef.current[rId]) return;
         const resource = resources.guides.find(guide => guide.id === resourceId);
         if (!resource) return;
+        const row = rowsRef.current.find(r => r.id === rId);
+        const overlap = row && guideOverlaps(rowsRef.current, resource, { id: row.id, source: row.source, startDate: row.startDate, endDate: row.endDate }).find(item => item.kind === 'overlap');
+        if (overlap && !window.confirm(`${resource.name} 가이드는 같은 기간에 ${overlapLabel(overlap.booking)} 일정이 있습니다. 그래도 배정할까요?`)) return;
+        if (overlap) confirmedGuides.current.set(rId, { id: resource.id, name: resource.name }); else confirmedGuides.current.delete(rId);
         setReservations(prev => prev.map(r => r.id === rId ? { ...r, assignedGuide: selectResourceGuide(r.assignedGuide, resource) } : r));
         markDirty(rId);
     };
@@ -518,8 +531,10 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         setReservations(prev => prev.map(r => r.id === rId ? { ...r, contractData: { ...(r.contractData || {}), vehicle: selectResourceVehicle(r.contractData?.vehicle, resource) } } : r));
         markDirty(rId);
     };
-    const save = async (r: Reservation) => {
+    const save = async (r: Reservation, allowGuideConflict = false): Promise<void> => {
         if (savingRef.current || pendingRef.current[r.id]) return;
+        const allowGuide = allowGuideConflict || sameGuide(confirmedGuides.current.get(r.id), r.assignedGuide);
+        let retry = false;
         savingRef.current = r.id;
         setSavingId(r.id);
         const requestGeneration = generation.current;
@@ -527,22 +542,26 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         if (local.ok && local.revision) storedSnapshots.current.set(r.id, r.version + assignmentFingerprint(editorAssignment(r)));
         try {
             const data = await assignmentRequest(`/${r.source}/${encodeURIComponent(r.bookingId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expectedVersion: r.version, assignment: editorAssignment(r) }) });
+                body: JSON.stringify({ expectedVersion: r.version, assignment: editorAssignment(r), ...(allowGuide ? { allowGuideConflict: true } : {}) }) });
             if (!mounted.current || requestGeneration !== generation.current) return;
             // 방금 저장한 행(모두 지운 경우 포함)을 이 화면에서 그대로 보여 준다.
             const savedRow: Reservation = { ...fromApi(data.item), dailyAccommodations: data.item.assignment.accommodations };
             savedRows.current.set(r.id, savedRow);
             setReservations(prev => prev.map(x => x.id === r.id ? savedRow : x));
             dirtyRef.current.delete(r.id); setDirty(new Set(dirtyRef.current));
-            storedSnapshots.current.delete(r.id);
+            storedSnapshots.current.delete(r.id); confirmedGuides.current.delete(r.id);
             setSavedAt(prev => ({ ...prev, [r.id]: savedStamp() }));
             const result = local.ok && local.revision ? discardAssignmentDraft(window.localStorage, draftScope(r), local.revision) : { ok: true } as const;
             setNotice(!local.ok ? '서버 저장은 완료했습니다. 다만 브라우저 초안 저장소를 확인해 주세요. ' + local.error : result.ok ? '배정 정보를 저장했습니다.' : result.error);
         } catch (e: any) {
-            if (mounted.current && requestGeneration === generation.current) setNotice((e?.message || '저장하지 못했습니다.') + (local.ok ? ' 변경 내용과 브라우저 초안을 유지합니다.' : ' 화면의 변경 내용은 유지합니다. ' + local.error));
+            // 다른 화면에서 방금 같은 기간에 이 가이드를 배정했으면 서버가 거절한다. 확인하면 그대로 다시 저장한다.
+            if (mounted.current && requestGeneration === generation.current && e?.code === 'guide_conflict' && !allowGuide
+                && window.confirm(`${e.message}\n그래도 배정할까요?`)) retry = true;
+            else if (mounted.current && requestGeneration === generation.current) setNotice((e?.message || '저장하지 못했습니다.') + (local.ok ? ' 변경 내용과 브라우저 초안을 유지합니다.' : ' 화면의 변경 내용은 유지합니다. ' + local.error));
         } finally {
             if (mounted.current && requestGeneration === generation.current) { savingRef.current = null; setSavingId(null); }
         }
+        if (retry) { const latest = rowsRef.current.find(x => x.id === r.id); if (latest) return save(latest, true); }
     };
 
     // 저장된 숙박 행이 없는 예약은 고객 일정으로 행을 보여 주되, 지역은 시트가 계약 일정에서 시트 지명으로 불러오도록 비워 둔다(처음 고칠 때 함께 저장).
@@ -952,7 +971,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                 <span className="lo-pill" data-tone={hasGuide ? 'ok' : 'alert'}>{hasGuide ? '배정됨' : '미배정'}</span></header>
                                             <select className="lo-input" aria-label="등록 가이드 선택" disabled={resourcesLoading} value={resources.guides.some(guide => guide.id === r.assignedGuide?.id) ? r.assignedGuide?.id || '' : ''} onChange={e => chooseGuide(r.id, e.target.value)}>
                                                 <option value="">{resourcesLoading ? '등록 가이드 불러오는 중…' : '등록 가이드 선택 · 직접 입력 가능'}</option>
-                                                {resources.guides.map(guide => <option key={guide.id} value={guide.id}>{guide.name}</option>)}
+                                                {open && guideChoices(r).map(({ guide, overlap, handover }) => <option key={guide.id} value={guide.id}>
+                                                    {guide.name}{overlap ? ` · 일정 겹침 (${overlapLabel(overlap.booking)})` : handover ? ` · 같은 날 교대 (${overlapLabel(handover.booking)})` : ' · 배정 가능'}</option>)}
                                             </select>
                                             <div className="lo-crew-row">
                                                 <input className="lo-input" aria-label="가이드 이름 직접 입력" value={r.assignedGuide?.name || ''} placeholder="가이드 이름 직접 입력" onChange={e => patchGuide(r.id, { name: e.target.value })} />
