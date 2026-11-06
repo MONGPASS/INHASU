@@ -71,7 +71,7 @@ function makeS(v: (k: string) => string, instances: DesignSectionInstance[]) {
     return (id: string, render: (v: (k: string) => string, idx: number) => React.ReactNode) =>
         instances.filter(inst => inst.def === id).map((inst, idx) => {
             const sv = inst.id === inst.def ? v : (k: string) => v(scopedKey(k, inst.id));
-            return <div key={inst.id} data-df-scope={suffixOf(inst.id)}>{render(sv, idx)}</div>;
+            return <div key={inst.id} data-df-scope={suffixOf(inst.id)} data-df-section={inst.id}>{render(sv, idx)}</div>;
         });
 }
 

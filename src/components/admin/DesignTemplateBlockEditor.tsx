@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import type { DesignBlockContent, TourPricingOption } from '../../types/product';
-import type { DesignPreset, DesignTemplateField } from '../product/designTemplates/types';
+import type { DesignTemplateField } from '../product/designTemplates/types';
 import { getDesignTemplate } from '../product/designTemplates/registry';
 import DesignBlockView from '../product/designTemplates/DesignBlockView';
 import { priceRowsFromOptions } from '../product/designTemplates/pricing';
@@ -10,6 +10,13 @@ import { saveDesignDefaults, useAllDesignDefaults, useDesignGlobalDefaults } fro
 import { uploadImage } from '../../utils/upload';
 import { Icon } from './console/Icon';
 import { useDesignSpots } from '../product/designTemplates/designSpots';
+import { Ico, V7Menu, menuAt, type V7MenuState } from './v7/v7Ui';
+import { PresetChips, PresetLineChips } from './designEditor/PresetChips';
+import { FieldPopover } from './designEditor/FieldPopover';
+import { ImagePopover } from './designEditor/ImagePopover';
+import { SectionToolbar } from './designEditor/SectionToolbar';
+import { useAnchorRect } from './designEditor/useAnchorRect';
+import { clampSectionAnchor, commitValue, fieldSelector, findDesignTarget, sectionSelector } from './designEditor/inlineEdit';
 
 /**
  * 지도 경유지 선택 UI — 지도에 좌표가 등록된 여행지 목록에서 골라 담는다.
@@ -249,96 +256,6 @@ function MapStopsField({ value, onChange, onBusyChange }: { value: string; onCha
 }
 
 /**
- * 프리셋을 { label, value }로 정규화.
- * 버튼에는 관리자가 알아보기 쉬운 label을, 실제 입력값에는 value(고객 페이지에 표시되는 문구)를 쓴다.
- */
-function normPresets(presets: DesignPreset[]): { label: string; value: string }[] {
-    return presets.map(p => (typeof p === 'string' ? { label: p, value: p } : p));
-}
-
-/**
- * 자주 쓰는 값 버튼 — 누르면 입력칸이 그 값으로 채워진다.
- * (직접 입력도 그대로 가능. 목록에 없는 값은 타이핑하면 된다)
- */
-function PresetChips({ presets, value, onPick }: { presets: DesignPreset[]; value: string; onPick: (v: string) => void }) {
-    const items = normPresets(presets);
-    const translated = items.some(p => p.label !== p.value);
-    return (
-        <>
-            <div className="row" style={{ gap: 4, flexWrap: 'wrap', marginBottom: 5 }}>
-                {items.map(p => (
-                    <button
-                        key={p.value}
-                        type="button"
-                        onClick={() => onPick(p.value)}
-                        title={p.label === p.value ? `"${p.value}"(으)로 채우기` : `페이지에는 "${p.value}"로 표시됩니다`}
-                        style={{
-                            padding: '2px 8px', borderRadius: 500, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-                            border: '1px solid', ...(value === p.value
-                                ? { borderColor: '#06C4A0', background: 'rgba(6,196,160,0.12)', color: '#029F85' }
-                                : { borderColor: 'var(--border-default)', background: 'transparent', color: 'var(--text-muted)' }),
-                        }}
-                    >
-                        {p.label}
-                    </button>
-                ))}
-            </div>
-            {translated && (
-                <div className="muted" style={{ fontSize: 11, marginBottom: 4 }}>
-                    버튼 이름과 페이지에 표시되는 문구가 다를 수 있습니다 (버튼에 마우스를 올리면 확인)
-                </div>
-            )}
-        </>
-    );
-}
-
-/**
- * 자주 쓰는 줄 버튼 — 누르면 그 줄이 추가되고, 다시 누르면 빠진다.
- * 순서는 프리셋 목록 순서를 따르고, 직접 입력한 줄은 뒤에 남는다.
- */
-function PresetLineChips({ presetLines, value, onChange, separator = '\n' }: { presetLines: DesignPreset[]; value: string; onChange: (v: string) => void; separator?: string }) {
-    const items = normPresets(presetLines);
-    const known = items.map(p => p.value);
-    const lines = value.split(separator).map(s => s.trim()).filter(Boolean);
-    const translated = items.some(p => p.label !== p.value);
-    const toggle = (line: string) => {
-        const next = lines.includes(line) ? lines.filter(l => l !== line) : [...lines, line];
-        // 프리셋에 있는 항목은 목록 순서대로, 직접 입력한 항목은 그 뒤에
-        onChange([...known.filter(k => next.includes(k)), ...next.filter(l => !known.includes(l))].join(separator));
-    };
-    return (
-        <>
-            <div className="row" style={{ gap: 4, flexWrap: 'wrap', marginBottom: 5 }}>
-                {items.map(p => {
-                    const on = lines.includes(p.value);
-                    return (
-                        <button
-                            key={p.value}
-                            type="button"
-                            onClick={() => toggle(p.value)}
-                            title={`${on ? '빼기' : '추가'} — 페이지 표시: ${p.value}`}
-                            style={{
-                                padding: '2px 8px', borderRadius: 500, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-                                border: '1px solid', ...(on
-                                    ? { borderColor: '#06C4A0', background: 'rgba(6,196,160,0.12)', color: '#029F85' }
-                                    : { borderColor: 'var(--border-default)', background: 'transparent', color: 'var(--text-muted)' }),
-                            }}
-                        >
-                            {on ? '✓ ' : '+ '}{p.label}
-                        </button>
-                    );
-                })}
-            </div>
-            {translated && (
-                <div className="muted" style={{ fontSize: 11, marginBottom: 4 }}>
-                    버튼 이름과 페이지에 표시되는 문구가 다를 수 있습니다 (버튼에 마우스를 올리면 확인)
-                </div>
-            )}
-        </>
-    );
-}
-
-/**
  * 'design' 상세 블록의 관리자 편집기 — 좌측 미리보기 / 우측 폼 분할.
  * 미리보기의 문구·사진을 클릭하면 해당 입력칸이 열리고 포커스된다.
  * 값을 전부 지우면 디자인 원본 문구(default)로 되돌아간다.
@@ -348,6 +265,8 @@ export function DesignTemplateBlockEditor({
     onChange,
     pricingOptions,
     onBusyChange,
+    focusMode = false,
+    onFocusModeChange,
 }: {
     content: DesignBlockContent;
     onChange: (next: DesignBlockContent) => void;
@@ -355,6 +274,9 @@ export function DesignTemplateBlockEditor({
     pricingOptions?: TourPricingOption[];
     /** Prevent the containing product form from saving before image/shared-data work completes. */
     onBusyChange?: (busy: boolean) => void;
+    /** 집중 편집(상품 편집창의 오른쪽 열·제목 숨김) 켜짐 여부와 토글 — 상품 편집창이 넘겨준다 */
+    focusMode?: boolean;
+    onFocusModeChange?: (on: boolean) => void;
 }) {
     const pendingWork = useRef(0);
     const busyCallback = useRef(onBusyChange);
@@ -378,6 +300,15 @@ export function DesignTemplateBlockEditor({
     const allDefaults = useAllDesignDefaults();
     const fieldRefs = useRef(new Map<string, HTMLElement>());
     const previewRef = useRef<HTMLDivElement>(null);
+    // 미리보기 인라인 편집: 열린 편집창, 마우스를 올린/마지막으로 다룬 섹션, 오른쪽 목록 패널, 드롭 대상
+    const [inline, setInline] = useState<{ kind: 'text-field' | 'image-field'; key: string } | null>(null);
+    const [hoverInst, setHoverInst] = useState<string | null>(null);
+    const [activeInst, setActiveInst] = useState<string | null>(null);
+    const [panelOpen, setPanelOpen] = useState(false);
+    const [dropKey, setDropKey] = useState<string | null>(null);
+    const [removedMenu, setRemovedMenu] = useState<V7MenuState | null>(null);
+    const hoverTimer = useRef<number | undefined>(undefined);
+    useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
 
     const instances = useMemo(
         () => (def ? resolveInstances(def, content?.sections) : []),
@@ -414,18 +345,25 @@ export function DesignTemplateBlockEditor({
         });
     }, [def, instances]);
 
-    /** 미리보기에서 필드 클릭 → 해당 섹션 열고 입력칸으로 스크롤 + 포커스 */
-    const handlePreviewFieldClick = (key: string) => {
-        const owner = sections.find(s => s.fields.some(f => f.key === key));
-        if (!owner) return;
-        setSelectedField(key);
-        setOpenSection(owner.instId);
+    /** 오른쪽 목록 패널을 열고 그 칸으로 스크롤 + 포커스 (전용 편집기가 필요한 칸용) */
+    const openInPanel = (key: string, instId: string) => {
+        setPanelOpen(true);
+        setOpenSection(instId);
         // 섹션이 방금 열렸으면 입력칸이 다음 렌더에 생기므로 한 프레임 기다린다
         setTimeout(() => {
             const el = fieldRefs.current.get(key);
             el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
             (el as HTMLInputElement | HTMLTextAreaElement | null)?.focus?.({ preventScroll: true });
         }, 60);
+    };
+    /** 미리보기에서 문구·사진 클릭 → 그 자리 옆 편집창. 지도 경유지·대표 명소는 전용 편집기가 있는 목록 패널로. */
+    const handlePreviewFieldClick = (key: string) => {
+        const entry = lookupField(key);
+        if (!entry) return;
+        setSelectedField(entry.key);
+        setActiveInst(entry.instId);
+        if (entry.field.type === 'map-stops' || entry.field.type === 'spot-cards') { setInline(null); openInPanel(entry.key, entry.instId); return; }
+        setInline({ kind: entry.field.type === 'image' ? 'image-field' : 'text-field', key: entry.key });
     };
 
     /** 입력칸 포커스 → 미리보기의 해당 요소를 하이라이트하고 화면에 보이게 */
@@ -487,6 +425,29 @@ export function DesignTemplateBlockEditor({
         [def, instances],
     );
 
+    /** 필드 키 → 정의와 섹션. 복제본 안의 공유 필드(`key@2`)는 접미사 없는 원본 키로 찾는다. */
+    const fieldByKey = useMemo(() => {
+        const map = new Map<string, { field: DesignTemplateField; key: string; instId: string; name: string }>();
+        for (const sec of sections) for (const f of sec.fields) map.set(f.key, { field: f.field, key: f.key, instId: sec.instId, name: sec.name });
+        return map;
+    }, [sections]);
+    const lookupField = (key: string) => fieldByKey.get(key) || (scopeOf(key) ? fieldByKey.get(baseKey(key)) : undefined);
+    const inlineEntry = inline ? lookupField(inline.key) : undefined;
+    const inlineAnchor = useAnchorRect(
+        () => (inline && previewRef.current ? previewRef.current.querySelector(fieldSelector(inline.key)) : null),
+        [inline?.key, inline ? values[inline.key] : undefined, previewVariant, content.sections, sections],
+        () => previewRef.current,
+    );
+    const toolbarInst = hoverInst ?? activeInst;
+    const toolbarSection = toolbarInst ? sections.find(s => s.instId === toolbarInst) : undefined;
+    const sectionRect = useAnchorRect(
+        () => (toolbarInst && previewRef.current ? previewRef.current.querySelector(sectionSelector(toolbarInst)) : null),
+        [toolbarInst, previewVariant, content.sections, sections],
+        () => previewRef.current,
+    );
+    const previewRect = useAnchorRect(() => previewRef.current, [toolbarInst, previewVariant]);
+    const toolbarPosition = sectionRect && previewRect && toolbarSection ? clampSectionAnchor(sectionRect, previewRect) : null;
+
     /**
      * 이 상품에서 직접 올린 사진들의 key.
      * 복제 섹션(@2 이후 = 2일차·3일차처럼 일차마다 다른 사진)은 공통 대상이 아니다.
@@ -542,6 +503,13 @@ export function DesignTemplateBlockEditor({
     const setValue = (key: string, value: string) => {
         onChange({ ...content, values: { ...values, [key]: value } });
     };
+    /** 비우기 = 키 삭제. 미리보기는 공통 사진이나 원본 문구로 돌아간다. */
+    const clearValue = (key: string) => {
+        if (!(key in values)) return;
+        const nextValues = { ...values };
+        delete nextValues[key];
+        onChange({ ...content, values: nextValues });
+    };
 
     const handleImageUpload = async (key: string, file: File | undefined) => {
         if (!file) return;
@@ -559,6 +527,38 @@ export function DesignTemplateBlockEditor({
         }
     };
 
+    const keepHover = () => window.clearTimeout(hoverTimer.current);
+    const scheduleHoverClear = () => { keepHover(); hoverTimer.current = window.setTimeout(() => setHoverInst(null), 160); };
+    const handlePreviewMouseOver = (event: React.MouseEvent) => {
+        const id = (event.target as Element).closest?.('[data-df-section]')?.getAttribute('data-df-section') ?? null;
+        keepHover();
+        setHoverInst(prev => (prev === id ? prev : id));
+    };
+    /** 끌어다 놓는 지점의 사진 칸(자동 반영 칸 제외) */
+    const dropTarget = (event: React.DragEvent) => {
+        const target = findDesignTarget(document.elementFromPoint(event.clientX, event.clientY));
+        const entry = target ? lookupField(target.key) : undefined;
+        return entry && entry.field.type === 'image' ? entry : null;
+    };
+    const handlePreviewDragOver = (event: React.DragEvent) => {
+        if (!event.dataTransfer.types.includes('Files')) return;
+        event.preventDefault();
+        const entry = uploadingKey === null ? dropTarget(event) : null;
+        event.dataTransfer.dropEffect = entry ? 'copy' : 'none';
+        setDropKey(prev => (prev === (entry?.key ?? null) ? prev : entry?.key ?? null));
+    };
+    const handlePreviewDrop = (event: React.DragEvent) => {
+        if (!event.dataTransfer.types.includes('Files')) return;
+        event.preventDefault();
+        setDropKey(null);
+        const entry = uploadingKey === null ? dropTarget(event) : null;
+        const file = event.dataTransfer.files?.[0];
+        if (!entry || !file || !file.type.startsWith('image/')) return;
+        setSelectedField(entry.key);
+        setActiveInst(entry.instId);
+        void handleImageUpload(entry.key, file);
+    };
+
     const filledCount = (fields: { field: DesignTemplateField; key: string }[]) =>
         fields.filter(({ field, key }) => {
             const raw = values[key] ?? '';
@@ -570,9 +570,25 @@ export function DesignTemplateBlockEditor({
             <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <span className="badge b-gray">{def.name}</span>
                 <span className="cell-muted" style={{ fontSize: 12 }}>
-                    미리보기의 문구·사진을 클릭하면 바로 편집할 수 있습니다 — 전부 지우면 원본으로 되돌아갑니다
+                    미리보기의 문구·사진을 클릭해 그 자리에서 고칩니다 — 비우면 원본으로 돌아갑니다
                 </span>
                 <div className="spacer" />
+                {removedDefs.length > 0 && (
+                    <button type="button" className="chip" aria-haspopup="menu" title="뺀 섹션을 다시 넣습니다. 입력했던 내용이 그대로 돌아옵니다"
+                        onClick={e => setRemovedMenu(menuAt(e.currentTarget, '뺀 섹션 다시 넣기', removedDefs.map(sec => ({ key: sec.id, label: sec.id, onPick: () => restoreSection(sec.id) })), true))}>
+                        <Ico name="lc-plus" size={14} />뺀 섹션 {removedDefs.length}
+                    </button>
+                )}
+                <button type="button" className="chip" aria-pressed={panelOpen} title="모든 입력칸을 섹션별 목록으로 봅니다" onClick={() => setPanelOpen(v => !v)}
+                    style={panelOpen ? { background: 'var(--mrt-navy, #1a2b4a)', color: '#fff' } : undefined}>
+                    <Ico name="lc-list" size={14} />목록으로 편집
+                </button>
+                {onFocusModeChange && (
+                    <button type="button" className="chip" aria-pressed={focusMode} title="상품 편집창의 오른쪽 열과 제목을 숨기고 디자인을 넓게 봅니다" onClick={() => onFocusModeChange(!focusMode)}
+                        style={focusMode ? { background: 'var(--mrt-navy, #1a2b4a)', color: '#fff' } : undefined}>
+                        <Ico name="lc-panels-top-left" size={14} />{focusMode ? '집중 편집 끝' : '집중 편집'}
+                    </button>
+                )}
                 {sharedCount > 0 && (
                     <span className="cell-muted" style={{ fontSize: 12 }}>
                         공통 사진 {sharedCount}장 사용 중
@@ -615,7 +631,12 @@ export function DesignTemplateBlockEditor({
                 {/* 좌: 클릭 가능한 미리보기 */}
                 <div
                     ref={previewRef}
-                    style={{ flex: 1, minWidth: 0, maxHeight: '78vh', overflowY: 'auto', border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', background: '#fff' }}
+                    onMouseOver={handlePreviewMouseOver}
+                    onMouseLeave={scheduleHoverClear}
+                    onDragOver={handlePreviewDragOver}
+                    onDragLeave={() => setDropKey(null)}
+                    onDrop={handlePreviewDrop}
+                    style={{ flex: 1, minWidth: 0, maxHeight: focusMode ? 'calc(100vh - 160px)' : '78vh', overflowY: 'auto', border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', background: '#fff' }}
                 >
                     <div style={{ maxWidth: previewVariant === 'mobile' ? 430 : undefined, margin: previewVariant === 'mobile' ? '0 auto' : undefined }}>
                         <DesignBlockView
@@ -623,7 +644,8 @@ export function DesignTemplateBlockEditor({
                             editing
                             variant={previewVariant}
                             onFieldClick={handlePreviewFieldClick}
-                            selectedField={selectedField}
+                            selectedField={dropKey ?? selectedField}
+                            highlightSection={toolbarInst}
                             valueOverrides={valueOverrides}
                             itinerarySlot={(
                                 <div style={{ padding: '28px 16px', background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 12, margin: '8px 0', textAlign: 'center', color: '#64748b', fontSize: 14 }}>
@@ -634,8 +656,12 @@ export function DesignTemplateBlockEditor({
                     </div>
                 </div>
 
-                {/* 우: 섹션별 폼 */}
-                <div className="stack" style={{ gap: 6, flex: '0 0 420px', maxHeight: '78vh', overflowY: 'auto' }}>
+                {/* 우: 섹션별 입력칸 목록 — 기본 숨김. 전용 편집기가 필요한 칸이나 ‘목록으로 편집’일 때 연다 */}
+                {panelOpen && <div className="stack" style={{ gap: 6, flex: '0 0 420px', maxHeight: '78vh', overflowY: 'auto' }}>
+                <div className="row" style={{ gap: 6, alignItems: 'center', padding: '2px 2px 4px' }}>
+                    <span className="cell-muted" style={{ fontSize: 12 }}>섹션별 입력칸</span><div className="spacer" />
+                    <button type="button" className="chip" onClick={() => setPanelOpen(false)}><Ico name="lc-x" size={13} />닫기</button>
+                </div>
                 {sections.map(sec => {
                     const open = openSection === sec.instId;
                     const filled = filledCount(sec.fields);
@@ -707,7 +733,7 @@ export function DesignTemplateBlockEditor({
                                                             />
                                                             <button
                                                                 type="button"
-                                                                onClick={() => setValue(fk, '')}
+                                                                onClick={() => clearValue(fk)}
                                                                 title="이미지 제거"
                                                                 style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'var(--mrt-red)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
                                                             >
@@ -837,8 +863,32 @@ export function DesignTemplateBlockEditor({
                         </div>
                     </div>
                 )}
-                </div>
+                </div>}
             </div>
+            <V7Menu menu={removedMenu} onClose={() => setRemovedMenu(null)} />
+            {inline && inlineEntry && inline.kind === 'text-field' && (
+                <FieldPopover key={inline.key} field={inlineEntry.field} value={values[inline.key] ?? inlineEntry.field.default ?? ''} anchor={inlineAnchor} disabled={uploadingKey !== null}
+                    readOnlyNote={valueOverrides?.[baseKey(inline.key)] !== undefined ? '「가격/옵션」 탭의 인원별 가격이 자동으로 반영됩니다. 수정은 그 탭에서 해 주세요.' : undefined}
+                    onChange={next => onChange({ ...content, values: commitValue(values, inline.key, next, inlineEntry.field.default) })} onClear={() => clearValue(inline.key)}
+                    onClose={() => setInline(null)}
+                    isInside={target => !!previewRef.current?.querySelector(fieldSelector(inline.key))?.contains(target)} />
+            )}
+            {inline && inlineEntry && inline.kind === 'image-field' && (
+                <ImagePopover key={inline.key} label={inlineEntry.field.label} value={values[inline.key] ?? ''} sharedUrl={sharedAssets[baseKey(inline.key)]}
+                    uploading={uploadingKey === inline.key} disabled={uploadingKey !== null && uploadingKey !== inline.key} anchor={inlineAnchor}
+                    onUpload={file => void handleImageUpload(inline.key, file)} onUseShared={() => clearValue(inline.key)} onClear={() => clearValue(inline.key)} onClose={() => setInline(null)}
+                    isInside={target => !!previewRef.current?.querySelector(fieldSelector(inline.key))?.contains(target)} />
+            )}
+            {toolbarSection && (
+                <SectionToolbar name={toolbarSection.name} position={toolbarPosition} disabled={uploadingKey !== null || savingShared}
+                    repeatable={!!def.sectionDefs.find(sec => sec.id === toolbarSection.defId)?.repeatable}
+                    imageFields={toolbarSection.fields.filter(f => f.field.type === 'image').map(f => ({ key: f.key, label: f.field.label, filled: !!values[f.key] }))}
+                    onDuplicate={() => duplicateSection(toolbarSection.instId)}
+                    onRemove={() => { setInline(null); setActiveInst(null); setHoverInst(null); removeSection(toolbarSection.instId); }}
+                    onPickImage={key => { setSelectedField(key); setActiveInst(toolbarSection.instId); setInline({ kind: 'image-field', key }); }}
+                    onOpenPanel={() => { setPanelOpen(true); setOpenSection(toolbarSection.instId); }}
+                    onPointerEnter={keepHover} onPointerLeave={scheduleHoverClear} />
+            )}
         </div>
     );
 }

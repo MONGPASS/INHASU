@@ -91,3 +91,7 @@
   .admin-app-wrapper .pa-editor .pa-head { padding: 12px 14px; }
   .admin-app-wrapper .pa-editor .pa-save-note { flex-basis: 100%; }
 }
+
+/* 디자인 블록 ‘집중 편집’: 오른쪽 요약 열을 숨기고 본문이 폭 전체를 쓴다(저장 바는 그대로) */
+.admin-app-wrapper .pa-editor.is-design-focus .pa-body { grid-template-columns: minmax(0, 1fr); }
+.admin-app-wrapper .pa-editor.is-design-focus .pa-aside { display: none; }
