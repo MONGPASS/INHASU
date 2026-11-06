@@ -523,9 +523,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                     </button>
                 </> : <>
                     {tool.key === 'resources' && (
-                        <span className="btn-group" role="group" aria-label="보기" style={{ display: 'inline-flex', gap: 4, padding: 3, border: '1px solid #e3e6ea', borderRadius: 12, background: '#fff' }}>
-                            <button type="button" className={scheduleView ? 'btn btn-ghost' : 'btn btn-blue'} aria-pressed={!scheduleView} onClick={() => setScheduleView(false)}>등록 정보</button>
-                            <button type="button" className={scheduleView ? 'btn btn-blue' : 'btn btn-ghost'} aria-pressed={scheduleView} onClick={() => setScheduleView(true)}>가이드 배정 현황</button>
+                        // 디자인 v4: 회색 바탕 알약 안에서 선택한 쪽만 흰 바탕·그림자
+                        <span role="group" aria-label="보기" style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: '#f2f4f6' }}>
+                            {([[false, '등록 정보'], [true, '가이드 배정 현황']] as const).map(([on, label]) => (
+                                <button key={label} type="button" aria-pressed={scheduleView === on} onClick={() => setScheduleView(on)}
+                                    style={{ display: 'flex', alignItems: 'center', height: 38, padding: '0 18px', border: 0, borderRadius: 999, font: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                        background: scheduleView === on ? '#fff' : 'transparent', color: scheduleView === on ? '#1A1B1E' : '#6b7684', boxShadow: scheduleView === on ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}>{label}</button>
+                            ))}
                         </span>
                     )}
                     {tool.key === 'inbox' && (
