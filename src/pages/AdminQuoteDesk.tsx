@@ -355,13 +355,10 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
 
     // 새 창으로 열기: 지금 안쪽에 떠 있는 화면을 단독으로 연다.
     // noopener 를 붙이지 않는다 — 새 창이 이 탭의 sessionStorage(관리자 값)를 이어받아야 자체 로그인 화면이 뜨지 않는다.
+    // ‘새 창으로 열기’는 지금 보는 새 관리자 화면(같은 메뉴·같은 고객)을 새 탭으로 연다.
+    // 예전에는 안쪽 견적 도구 문서를 단독으로 열어 옛 관리자 메뉴가 보였다. 안쪽 메뉴 이동은 바깥 주소에 이미 맞춰 둔다.
     const openStandalone = () => {
-        let url = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId, resourceType);
-        try {
-            const inner = frameRef.current?.contentWindow?.location;
-            if (inner && inner.origin === window.location.origin) url = `${inner.pathname}${inner.search}`;
-        } catch { /* 기본 문서로 연다 */ }
-        window.open(url, '_blank');
+        window.open(`${window.location.pathname}${window.location.search}${window.location.hash}`, '_blank', 'noopener');
     };
 
     const focusCustomerEditor = useCallback((section: string) => {
