@@ -256,7 +256,10 @@ select.lo-input { padding-right: 30px; background: #fff var(--lo-chevron) no-rep
 .lo-sheet .is-sticky-1, .lo-sheet .is-sticky-2 { position: sticky; z-index: 2; }
 .lo-sheet th.is-sticky-1, .lo-sheet th.is-sticky-2 { z-index: 4; }
 .lo-sheet .is-sticky-1 { left: 0; min-width: 64px; text-align: center; }
-.lo-sheet .is-sticky-2 { left: 64px; min-width: 150px; box-shadow: 1px 0 0 #e3e6ea; }
+.lo-sheet .is-sticky-2 { left: 64px; min-width: 150px; box-shadow: 1px 0 0 #dfe3e8; }
+/* 고정 열 가장자리 그림자 — 옆으로 밀었을 때만 */
+.lo-sheet .is-sticky-2::after { content: ''; position: absolute; top: 0; bottom: -1px; right: -14px; width: 14px; pointer-events: none; background: linear-gradient(90deg, rgba(16,24,40,.12), rgba(16,24,40,0)); opacity: 0; transition: opacity .15s; }
+.lo-sheet-wrap.is-scrolled .lo-sheet .is-sticky-2::after { opacity: 1; }
 .lo-sheet-serial { font-weight: 800; font-variant-numeric: tabular-nums; }
 .lo-sheet-customer { white-space: normal; }
 .lo-sheet-customer a { color: var(--text-strong); text-decoration: none; }

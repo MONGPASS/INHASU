@@ -42,7 +42,9 @@ export function AccommodationSheet({ tours, rowsOf, regionOf, serials, lodges, l
 }) {
     const areaOptions = [...new Set([...LODGE_AREA_OPTIONS, ...lodgeRegions])];
     return (
-        <div className="lo-sheet-wrap" role="region" aria-label="숙소 배정 시트" tabIndex={0}>
+        // 옆으로 밀면 고정 열(일련번호·고객명) 가장자리에 그림자를 띄워, 아래로 지나가는 칸이 잘린 게 아니라 가려진 것임을 보여 준다.
+        <div className="lo-sheet-wrap" role="region" aria-label="숙소 배정 시트" tabIndex={0}
+            onScroll={e => e.currentTarget.classList.toggle('is-scrolled', e.currentTarget.scrollLeft > 0)}>
             <table className="lo-sheet">
                 <thead>
                     <tr>
