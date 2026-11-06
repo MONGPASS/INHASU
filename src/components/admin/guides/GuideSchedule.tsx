@@ -228,12 +228,6 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                         })()}
                     </div>
                 </div>
-                <div className="gs-legend">
-                    <span><i data-tone="mint" />배정</span>
-                    <span><i data-tone="red" />중복</span>
-                    <span><i data-tone="orange" />미배정</span>
-                    <span>빈 칸을 누르면 그날 배정할 투어를, 막대를 누르면 가이드를 바꿀 수 있어요.</span>
-                </div>
             </> : (
                 <div className="gs-card" role="region" aria-label="가이드 배정 목록" tabIndex={0}>
                     <div className="gs-list">
