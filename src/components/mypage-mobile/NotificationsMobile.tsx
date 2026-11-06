@@ -1,14 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotification, type Notification } from '../../contexts/NotificationContext';
 import { formatRelativeTime } from '../../utils/formatDate';
-import { MW } from '../desktop-primitives/mwTokens';
+import { MW, MW_FONT_EN } from '../desktop-primitives/mwTokens';
 import { NOTICE_TYPES } from '../mypage-desktop/myPageTheme';
 import { parseDbTime } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
+import { useMobileShell } from '../mobile/mobileShellContext';
 import { D, M_HAIR, M_PAPER } from '../mobile/mobileTheme';
-import { BarButton, Ico, MEmpty, MLoading, MPills, SubPageBar } from '../mobile/mobileUi';
-import { NOTICE_TONE, groupNotices, noticeType } from './noticeMeta';
+import { Ico, MEmpty, MLoading, MPills } from '../mobile/mobileUi';
+import { NOTICE_TONE, groupNotices, noticeCta, noticeType } from './noticeMeta';
 
 /**
  * 알림 (Claude Design: "M Notifications"): the signed-in user's notifications grouped by
@@ -41,21 +42,14 @@ export function NotificationsMobile() {
 
     return (
         <MobileShell>
-            <SubPageBar
-                title="알림"
-                count={unreadCount > 0 ? unreadCount : undefined}
-                onBack={back}
-                right={<BarButton onClick={() => { void markAllAsRead(); }} disabled={unreadCount === 0}>모두 읽음</BarButton>}
-            >
-                {notifications.length > 0 && (
-                    <MPills<string>
-                        items={[['all', '전체'], ['unread', `안 읽음 ${unreadCount}`], ...types.map((t): [string, string] => [t, NOTICE_TYPES[t].label])]}
-                        value={filter}
-                        onChange={setFilter}
-                        style={{ padding: '4px 16px 10px' }}
-                    />
-                )}
-            </SubPageBar>
+            <NoticeBar unread={unreadCount} onBack={back} onReadAll={() => { void markAllAsRead(); }}>
+                <MPills<string>
+                    items={[['all', '전체'], ['unread', `안 읽음 ${unreadCount}`], ...types.map((t): [string, string] => [t, NOTICE_TYPES[t].label])]}
+                    value={filter}
+                    onChange={setFilter}
+                    style={{ padding: '0 16px' }}
+                />
+            </NoticeBar>
 
             <section style={{ background: M_PAPER, minHeight: '60vh', padding: '16px 16px 36px', display: 'flex', flexDirection: 'column', gap: 18 }}>
                 {loading ? (
@@ -85,9 +79,45 @@ export function NotificationsMobile() {
     );
 }
 
+/**
+ * Sticky title bar of the screen (design: back, title + unread count pill, "모두 읽음", filter chips).
+ * Rendered inside MobileShell so it can sit right under the shell header.
+ */
+function NoticeBar({ unread, onBack, onReadAll, children }: { unread: number; onBack: () => void; onReadAll: () => void; children: ReactNode }) {
+    const { stickyTop } = useMobileShell();
+    const none = unread === 0;
+    return (
+        <div style={{ position: 'sticky', top: stickyTop, zIndex: 10, background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${MW.line}`, display: 'flex', flexDirection: 'column', gap: 8, padding: '4px 0 10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0,1fr) auto', alignItems: 'center', gap: 6, padding: '0 12px 0 6px' }}>
+                <button type="button" onClick={onBack} aria-label="뒤로" style={{ width: 44, height: 44, border: 0, borderRadius: '50%', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                    <Ico d={D.back} size={22} width={2} />
+                </button>
+                <h1 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 900, whiteSpace: 'nowrap', minWidth: 0 }}>
+                    알림
+                    {!none && (
+                        <span aria-label={`안 읽은 알림 ${unread}개`} style={{ fontFamily: MW_FONT_EN, fontSize: 10, fontWeight: 600, lineHeight: 1.5, color: MW.navy, background: '#3FC2A4', padding: '2px 8px', borderRadius: 999 }}>
+                            {unread > 99 ? '99+' : unread}
+                        </span>
+                    )}
+                </h1>
+                <button
+                    type="button"
+                    onClick={onReadAll}
+                    disabled={none}
+                    style={{ height: 34, padding: '0 12px', border: `1px solid ${MW.line}`, borderRadius: 999, background: '#fff', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: none ? '#B8C4C1' : MW.navy, cursor: none ? 'default' : 'pointer', whiteSpace: 'nowrap' }}
+                >
+                    모두 읽음
+                </button>
+            </div>
+            {children}
+        </div>
+    );
+}
+
 function NoticeRow({ n, first, onOpen }: { n: Notification; first: boolean; onOpen: () => void }) {
     const type = noticeType(n);
     const tone = NOTICE_TONE[type];
+    const cta = noticeCta(n);
     return (
         <a
             href={n.link || '#'}
@@ -107,7 +137,7 @@ function NoticeRow({ n, first, onOpen }: { n: Notification; first: boolean; onOp
                 {n.message && (
                     <span style={{ fontSize: 12, lineHeight: 1.65, color: MW.mute, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.message}</span>
                 )}
-                {n.link && <span style={{ marginTop: 4, fontSize: 12, fontWeight: 700, color: MW.mintDeep }}>자세히 보기 →</span>}
+                {cta && <span style={{ marginTop: 4, fontSize: 12, fontWeight: 700, color: MW.mintDeep }}>{cta} →</span>}
             </span>
         </a>
     );

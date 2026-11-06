@@ -13,6 +13,16 @@ export const NOTICE_TONE: Record<string, { bg: string; fg: string }> = {
 
 export const noticeType = (n: Notification) => (NOTICE_TYPES[n.type] ? n.type : 'system');
 
+/** Wording of the "… →" line under a notification, by where its link leads ('' = no link). */
+export const noticeCta = (n: Notification): string => {
+    const link = (n.link || '').trim();
+    if (!link) return '';
+    if (link.startsWith('/mypage/reservations')) return '예약 상세 보기';
+    if (link.startsWith('/travel-mates')) return '동행 글 보기';
+    if (link.startsWith('/products') || link.startsWith('/promotions') || link.startsWith('/category/')) return '투어 보기';
+    return '자세히 보기';
+};
+
 const GROUPS = ['오늘', '이번 주', '이전'] as const;
 
 /** Buckets notifications (kept in their given order) into 오늘 / 이번 주 / 이전 relative to `now`. */

@@ -7,13 +7,23 @@ import { MW, MW_FONT_EN } from '../desktop-primitives/mwTokens';
 import { parseDbTime, useMe, useMyPageData, type MyMatePost } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
 import { M_HAIR } from '../mobile/mobileTheme';
-import { MEmpty, MLoading, MPills, SubPageBar } from '../mobile/mobileUi';
+import { MEmpty, MLoading, SubPageBar } from '../mobile/mobileUi';
 import { dateRange, useGo } from './myListsData';
 import { CardPill, ScreenBody } from './myListsUi';
 
 type MateFilter = 'all' | 'open' | 'closed';
 
 const FILTERS: Array<[MateFilter, string]> = [['all', '전체'], ['open', '모집 중'], ['closed', '모집 마감']];
+
+/** Status chip tones from the design: 모집 중 = mint, 마감 임박 = amber, 모집 마감 = grey. */
+const CHIP = {
+    open: { label: '모집 중', bg: MW.mintTint, fg: MW.mintDeep },
+    few: { label: '마감 임박', bg: '#FFF2DC', fg: '#9A5B00' },
+    closed: { label: '모집 마감', bg: MW.chip, fg: MW.mute },
+} as const;
+
+/** 공개 목록(동행 찾기)과 같은 기준: 모집 중인데 남은 자리가 1명이면 '마감 임박'. */
+const chipOf = (p: MyMatePost) => (p.status === 'closed' ? CHIP.closed : p.capacity > 0 && p.capacity - p.joined === 1 ? CHIP.few : CHIP.open);
 
 /** Mobile 동행 찾기 글 (Claude Design: "M My Mate Posts"). Same posts, filters and owner actions as the PC tab. */
 export function MyMatesMobile() {
@@ -55,7 +65,6 @@ export function MyMatesMobile() {
         <MobileShell>
             <SubPageBar
                 title="동행 찾기 글"
-                count={loading ? undefined : posts.length}
                 onBack={() => go('/mypage')}
                 right={(
                     <button type="button" onClick={write} style={{ height: 34, padding: '0 12px', border: 0, borderRadius: 999, background: MW.mint, fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: MW.navy, cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -64,11 +73,28 @@ export function MyMatesMobile() {
                 )}
             />
             <ScreenBody eyebrow="TRAVEL MATES" lead="함께 여행할 동행을 모집해 차량·가이드 비용을 나눌 수 있습니다." label="동행 찾기 글">
-                <MPills<MateFilter> items={FILTERS} value={filter} onChange={setFilter} style={{ margin: '0 -16px', padding: '0 16px' }} />
+                <div role="tablist" aria-label="모집 상태" data-noscroll="" style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', margin: '0 -16px', padding: '0 16px' }}>
+                    {FILTERS.map(([k, label]) => {
+                        const on = k === filter;
+                        return (
+                            <button
+                                key={k}
+                                type="button"
+                                role="tab"
+                                aria-selected={on}
+                                onClick={() => setFilter(k)}
+                                style={{ flexShrink: 0, height: 36, padding: '0 14px', borderRadius: 999, border: `1px solid ${on ? MW.mint : MW.line}`, background: on ? MW.mintTint : '#FFFFFF', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: on ? MW.mintDeep : MW.mute, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                            >
+                                {label}
+                            </button>
+                        );
+                    })}
+                </div>
                 {loading ? <MLoading /> : items.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {items.map((p) => {
                             const closed = p.status === 'closed';
+                            const chip = chipOf(p);
                             const pct = p.capacity > 0 ? Math.min(100, Math.round((p.joined / p.capacity) * 100)) : 0;
                             return (
                                 <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 16, border: `1px solid ${MW.line}`, borderRadius: 18, background: '#fff', color: MW.navy }}>
@@ -78,12 +104,12 @@ export function MyMatesMobile() {
                                         style={{ display: 'flex', flexDirection: 'column', gap: 10, color: MW.navy, textDecoration: 'none', minWidth: 0 }}
                                     >
                                         <span style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0 }}>
-                                            <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: closed ? MW.chip : MW.mintTint, color: closed ? MW.mute : MW.mintDeep, whiteSpace: 'nowrap' }}>
-                                                {closed ? '모집 마감' : '모집 중'}
+                                            <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: chip.bg, color: chip.fg, whiteSpace: 'nowrap' }}>
+                                                {chip.label}
                                             </span>
                                             {p.region && <span style={{ fontSize: 12, color: MW.mute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.region}</span>}
                                         </span>
-                                        <span style={{ fontSize: 15, fontWeight: 900, lineHeight: 1.45, color: closed ? MW.mute : MW.navy }}>{p.title}</span>
+                                        <span style={{ fontSize: 15, fontWeight: 900, lineHeight: 1.45, overflowWrap: 'anywhere' }}>{p.title}</span>
                                         <span style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', fontSize: 11, color: MW.mute }}>
                                             {(p.start || p.end) && <span>{dateRange(p.start, p.end)}{p.duration ? ` (${p.duration})` : ''}</span>}
                                             <span>댓글 {p.comments}</span>

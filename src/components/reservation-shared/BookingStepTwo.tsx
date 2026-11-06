@@ -253,18 +253,19 @@ export function BookingPayMethodCard({ pc, deposit = 0 }: { pc: boolean; deposit
                     </li>
                 ))}
             </ol>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: pc ? '18px 20px' : 16, borderRadius: 18, background: BK_SOFT }}>
+            {/* Same metrics on PC and mobile: the mobile design keeps the 24px indent under the heading icon. */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '18px 20px', borderRadius: 18, background: BK_SOFT }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 900 }}>
                     <Ico d={BK_D.note} size={16} width={2} />
                     결제 시 유의 사항
                 </span>
                 {BK_PAY_NOTES.map((t) => (
-                    <span key={t} style={{ display: 'flex', gap: 8, paddingLeft: pc ? 24 : 4, fontSize: 13, lineHeight: 1.7, color: MW.mute }}>
+                    <span key={t} style={{ display: 'flex', gap: 8, paddingLeft: 24, fontSize: 13, lineHeight: 1.7, color: MW.mute }}>
                         <span style={{ width: 4, height: 4, marginTop: 10, borderRadius: '50%', background: MW.mute2, flexShrink: 0 }} />
                         {t}
                     </span>
                 ))}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginTop: 4, padding: pc ? '12px 12px 12px 24px' : 12, borderRadius: 14, background: '#FFFFFF' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginTop: 4, padding: '12px 12px 12px 24px', borderRadius: 14, background: '#FFFFFF' }}>
                     <span style={{ flex: '1 1 200px', fontSize: 13, lineHeight: 1.7, color: MW.ink3 }}>결제에 관한 질문은 카카오톡으로 편하게 문의해 주세요.</span>
                     <KakaoLink label="카카오톡으로 문의" />
                 </div>

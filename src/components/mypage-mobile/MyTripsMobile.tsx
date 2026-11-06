@@ -7,8 +7,9 @@ import { QUOTE_STATUS } from '../mypage-desktop/myPageTheme';
 import { useMe, useMyPageData, type MyQuote, type MyReservation } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
 import { D, M_HAIR, M_PAPER } from '../mobile/mobileTheme';
-import { Ico, MEmpty, MLoading, SubPageBar } from '../mobile/mobileUi';
+import { Ico, MEmpty, MLoading } from '../mobile/mobileUi';
 import { QUOTE_NOTE, ddayLabel, softTone, tripPeriod, tripPhase } from './tripFormat';
+import { TripsBar } from './TripsBar';
 
 type TripsTab = 'bookings' | 'quote';
 
@@ -45,7 +46,7 @@ export function MyTripsMobile({ tab }: { tab: TripsTab }) {
 
     return (
         <MobileShell>
-            <SubPageBar title="내 여행" onBack={() => go('/mypage')}>
+            <TripsBar title="내 여행" onBack={() => go('/mypage')}>
                 <div role="tablist" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}>
                     {TABS.map((t) => {
                         const on = t.key === tab;
@@ -69,7 +70,7 @@ export function MyTripsMobile({ tab }: { tab: TripsTab }) {
                         );
                     })}
                 </div>
-            </SubPageBar>
+            </TripsBar>
 
             <section style={{ background: M_PAPER, minHeight: '60vh', padding: '16px 16px 36px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {tab === 'quote' && <a href="/customer-link" onClick={event => { event.preventDefault(); go('/customer-link'); }} style={{ padding: '12px 14px', background: MW.mintBg, borderRadius: 12, color: MW.mintDeep, fontSize: 13, lineHeight: 1.7, fontWeight: 700, textDecoration: 'none' }}>예전에 받은 견적이 보이지 않나요? 기존 견적 연결 →</a>}

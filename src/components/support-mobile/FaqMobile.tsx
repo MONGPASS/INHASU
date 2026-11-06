@@ -61,7 +61,29 @@ export function FaqPanel({ faqs, categories, loading, bare = false }: FaqProps &
 
     const body = (
             <>
-                {categories.length > 0 && <MPills items={chips} value={cat} onChange={pick} style={bare ? { flexWrap: 'wrap' } : { margin: '0 -16px', padding: '0 16px' }} />}
+                {categories.length > 0 && (bare ? (
+                    <MPills items={chips} value={cat} onChange={pick} style={{ flexWrap: 'wrap' }} />
+                ) : (
+                    <div role="group" aria-label="FAQ 분류" data-noscroll="" style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', margin: '0 -16px', padding: '0 16px' }}>
+                        {chips.map(([k, label]) => {
+                            const on = k === cat;
+                            return (
+                                <button
+                                    key={k}
+                                    type="button"
+                                    aria-pressed={on}
+                                    onClick={() => pick(k)}
+                                    style={{
+                                        flexShrink: 0, height: 36, padding: '0 14px', borderRadius: 999, border: `1px solid ${on ? MW.mint : MW.line}`, background: on ? MW.mintTint : '#FFFFFF',
+                                        fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: on ? MW.mintDeep : MW.mute, cursor: 'pointer', whiteSpace: 'nowrap',
+                                    }}
+                                >
+                                    {label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                ))}
                 {loading ? <MLoading /> : items.length > 0 ? (
                     <div style={{ border: `1px solid ${MW.line}`, borderRadius: 18, background: '#fff', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                         {items.map((f, i) => {
