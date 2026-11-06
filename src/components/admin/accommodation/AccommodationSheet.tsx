@@ -3,7 +3,8 @@ import type { AssignmentAccommodation, AssignmentSource } from '../../../utils/r
 import type { RegisteredLodge } from '../../../utils/registeredAssignmentResources';
 import { selectResourceLodge } from '../../../utils/accommodationResourceSelection';
 import { LODGE_BOOKING_STATUSES, LODGE_BOOKING_UNSENT, lodgeBookingLabel } from '../../../utils/lodgeBookingStatus';
-import { ASSIGN_TYPE_OPTIONS, LODGE_AREA_OPTIONS, LODGE_GRADE_OPTIONS, ROOM_PLAN_OPTIONS, roomPlanLabel, tourMonthLabel, tripLengthLabel } from '../../../utils/accommodationSheet';
+import { ASSIGN_TYPE_OPTIONS, LODGE_AREA_OPTIONS, LODGE_GRADE_OPTIONS, PACKAGE_LABELS, ROOM_PLAN_OPTIONS, packagePlanFromGrades, roomPlanLabel, sheetAreaFor, tourMonthLabel, tripLengthLabel, type PackagePlan } from '../../../utils/accommodationSheet';
+import { scheduleStayRegion, type AccommodationSchedule } from '../../../utils/accommodationSchedule';
 import { CATEGORY_OPTIONS } from '../../../utils/reservationWorkspace';
 import { productCustomerHref, quoteCustomerHref } from '../../../utils/customerWorkspaceRoutes';
 
@@ -11,6 +12,12 @@ import { productCustomerHref, quoteCustomerHref } from '../../../utils/customerW
 export interface SheetTour {
     id: string; bookingId: string; source: AssignmentSource; customerName?: string; startDate?: string; endDate?: string;
     travelers?: number; assignmentCategory?: string;
+    /** 대표 1인 이름(서버 계산). 없으면 예약 이름을 쓴다. */
+    leadName?: string;
+    /** 고객이 고른 패키지(서버 계산). 숙박 등급을 고르면 그 등급으로 다시 판단한다. */
+    packagePlan?: PackagePlan | null;
+    /** 계약 일정 — 숙박일마다 지역을 불러온다 */
+    schedule?: AccommodationSchedule;
 }
 type Patch = Partial<AssignmentAccommodation['accommodation']>;
 
@@ -24,7 +31,7 @@ const same = (a?: string, b?: string) => !!a && !!b && a.trim().toLowerCase() ==
  * A~F·H·I·L열은 예약·고객 일정에서 자동으로 채우고, G·M~S열은 관리자가 고른다.
  * 저장은 예약(투어) 단위로 기존 배정 API(버전 확인)를 그대로 쓴다.
  */
-export function AccommodationSheet({ tours, rowsOf, regionOf, serials, lodges, lodgeRegions, resourcesLoading, dirty, pending, savingId, onPatch, onCategory, onSave, onResolveDraft }: {
+export function AccommodationSheet({ tours, rowsOf, regionOf, serials, lodges, lodgeRegions, resourcesLoading, dirty, pending, savingId, clearedAreas, onAreaCleared, onPatch, onCategory, onSave, onResolveDraft }: {
     tours: SheetTour[];
     rowsOf: (tour: SheetTour) => AssignmentAccommodation[];
     regionOf: (tour: SheetTour) => string;
@@ -35,7 +42,11 @@ export function AccommodationSheet({ tours, rowsOf, regionOf, serials, lodges, l
     dirty: Set<string>;
     pending: Record<string, unknown>;
     savingId: string | null;
-    onPatch: (tourId: string, index: number, patch: Patch) => void;
+    /** 관리자가 숙소지역을 일부러 비운 칸(`투어id:행`) — 계약 일정 지역을 다시 채우지 않는다 */
+    clearedAreas: Set<string>;
+    onAreaCleared: (key: string, cleared: boolean) => void;
+    /** fill: 저장된 지역이 없는 숙박일(행 번호)에 함께 저장할 계약 일정 지역 */
+    onPatch: (tourId: string, index: number, patch: Patch, fill?: Record<number, string>) => void;
     onCategory: (tourId: string, category: string) => void;
     onSave: (tourId: string) => void;
     onResolveDraft: (tourId: string, restore: boolean) => void;
@@ -57,14 +68,28 @@ export function AccommodationSheet({ tours, rowsOf, regionOf, serials, lodges, l
                 <tbody>
                     {tours.map(tour => {
                         const rows = rowsOf(tour), serial = serials.get(tour.id) ?? 0, span = Math.max(1, rows.length);
+                        // 숙박일마다: 저장된 지역 → (관리자가 비우지 않았으면) 계약 일정의 그날 지역을 시트 지명으로.
+                        const storedAreaOf = (acc: Patch) => (typeof acc.region === 'string' && acc.region) || acc.location || '';
+                        const plannedAreas = rows.map((night, index) => {
+                            const day = tour.schedule?.days?.find(item => item.day === night.day);
+                            return !storedAreaOf(night.accommodation || {}) && !clearedAreas.has(`${tour.id}:${index}`) && day
+                                ? sheetAreaFor(scheduleStayRegion(day, lodgeRegions, tour.schedule?.source)) : '';
+                        });
+                        // 이 예약에서 한 칸이라도 고치면, 지역이 비어 있던 모든 숙박일에 불러온 지역을 함께 저장한다.
+                        const fill = Object.fromEntries(plannedAreas.map((area, index) => [index, area]).filter(([, area]) => area)) as Record<number, string>;
+                        const patchTour = (index: number, patch: Patch) => onPatch(tour.id, index, patch, fill);
                         const locked = !!pending[tour.id] || savingId === tour.id, isDirty = dirty.has(tour.id);
                         const href = tour.source === 'quote_booking' ? quoteCustomerHref(tour.bookingId, '/admin/accommodation-ops') : productCustomerHref(tour.bookingId, '/admin/accommodation-ops');
+                        // 대표 1인 이름 (풀패키지·실속·혼합). 배정한 숙박 등급이 있으면 등급으로, 없으면 고객 선택으로 판단한다.
+                        const leadName = tour.leadName?.trim() || tour.customerName || '-';
+                        const plan = packagePlanFromGrades(rows.map(night => night.accommodation?.type)) ?? tour.packagePlan ?? null;
+                        const planLabel = plan ? PACKAGE_LABELS[plan] : '미정';
                         const tourCells = (
                             <>
                                 <td rowSpan={span} className="is-sticky-1 lo-sheet-serial">{serial || '-'}</td>
                                 <td rowSpan={span} className="is-sticky-2 lo-sheet-customer">
-                                    <a href={href} title="고객 통합 작업 화면에서 열기"><b>{tour.customerName || '-'}</b></a>
-                                    <small>{tour.source === 'quote_booking' ? '견적 예약' : '상품 예약'}</small>
+                                    <a href={href} title="고객 통합 작업 화면에서 열기"><b>{leadName}</b> <span className="lo-sheet-plan" data-plan={plan || 'none'}>({planLabel})</span></a>
+                                    <small>{tour.source === 'quote_booking' ? '견적 예약' : '상품 예약'}{tour.customerName && tour.customerName !== leadName ? ` · ${tour.customerName}` : ''}</small>
                                     {pending[tour.id] ? (
                                         <span className="lo-sheet-actions">
                                             <em className="lo-kind" data-kind="draft">초안</em>
@@ -100,7 +125,12 @@ export function AccommodationSheet({ tours, rowsOf, regionOf, serials, lodges, l
                         );
                         return rows.map((night, index) => {
                             const acc = night.accommodation || {};
-                            const area = (typeof acc.region === 'string' && acc.region) || acc.location || '';
+                            const areaKey = `${tour.id}:${index}`;
+                            const storedArea = storedAreaOf(acc);
+                            const area = storedArea || plannedAreas[index];
+                            const fromPlan = !storedArea && !!area;
+                            // 계약 일정에서 불러온 지역은 이 숙박일을 처음 고칠 때 함께 저장한다.
+                            const patchNight = (patch: Patch) => patchTour(index, patch);
                             const hasLodge = !!acc.name?.trim();
                             const label = `${tour.customerName || ''} ${night.day}박`;
                             const regional = lodges.filter(l => same(l.region || l.location, area)), others = lodges.filter(l => !regional.includes(l));
@@ -113,26 +143,28 @@ export function AccommodationSheet({ tours, rowsOf, regionOf, serials, lodges, l
                                     <td>{fmt(night.date)}</td>
                                     <td className="is-num">{tour.travelers || '-'}</td>
                                     <td>
-                                        <select className="lo-sheet-input" aria-label={`${label} 숙소지역`} disabled={locked} value={area} onChange={e => onPatch(tour.id, index, { location: e.target.value, region: e.target.value })}>
+                                        <select className={`lo-sheet-input${fromPlan ? ' is-planned' : ''}`} aria-label={`${label} 숙소지역`} disabled={locked} value={area}
+                                            title={fromPlan ? '계약 일정에서 불러온 지역입니다. 이 숙박일을 고치면 함께 저장됩니다.' : undefined}
+                                            onChange={e => { onAreaCleared(areaKey, !e.target.value); patchTour(index, { location: e.target.value, region: e.target.value }); }}>
                                             <option value="">미정</option>
                                             {withCurrent(areaOptions, area).map(o => <option key={o} value={o}>{o}</option>)}
                                         </select>
                                     </td>
                                     <td>
-                                        <select className="lo-sheet-input" aria-label={`${label} 등급`} disabled={locked} value={acc.type || ''} onChange={e => onPatch(tour.id, index, { type: e.target.value || undefined })}>
+                                        <select className="lo-sheet-input" aria-label={`${label} 등급`} disabled={locked} value={acc.type || ''} onChange={e => patchNight({ type: e.target.value || undefined })}>
                                             <option value="">미정</option>
                                             {withCurrent(LODGE_GRADE_OPTIONS, acc.type).map(o => <option key={o} value={o}>{o}</option>)}
                                         </select>
                                     </td>
                                     <td>
-                                        <select className="lo-sheet-input" aria-label={`${label} 방수`} disabled={locked} value={acc.occupancy || ''} onChange={e => onPatch(tour.id, index, { occupancy: e.target.value || undefined })}>
+                                        <select className="lo-sheet-input" aria-label={`${label} 방수`} disabled={locked} value={acc.occupancy || ''} onChange={e => patchNight({ occupancy: e.target.value || undefined })}>
                                             <option value="">미정</option>
                                             {acc.occupancy && !ROOM_PLAN_OPTIONS.some(o => o.value === acc.occupancy) && <option value={acc.occupancy}>{roomPlanLabel(acc.occupancy)}</option>}
                                             {ROOM_PLAN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                         </select>
                                     </td>
                                     <td>
-                                        <select className="lo-sheet-input" aria-label={`${label} 배정 구분`} disabled={locked} value={acc.assignType || ''} onChange={e => onPatch(tour.id, index, { assignType: e.target.value })}>
+                                        <select className="lo-sheet-input" aria-label={`${label} 배정 구분`} disabled={locked} value={acc.assignType || ''} onChange={e => patchNight({ assignType: e.target.value })}>
                                             <option value="">미정</option>
                                             {withCurrent(ASSIGN_TYPE_OPTIONS, acc.assignType).map(o => <option key={o} value={o}>{o}</option>)}
                                         </select>
@@ -141,14 +173,14 @@ export function AccommodationSheet({ tours, rowsOf, regionOf, serials, lodges, l
                                         <select className="lo-sheet-input is-wide" aria-label={`${label} 숙소정보`} disabled={locked || resourcesLoading} value={registered ? registered.id : hasLodge ? '__current__' : ''}
                                             onChange={e => {
                                                 const v = e.target.value;
-                                                if (v === '') return onPatch(tour.id, index, { id: undefined, name: '', images: [], description: '', facilities: [], address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: LODGE_BOOKING_UNSENT });
+                                                if (v === '') return patchNight({ id: undefined, name: '', images: [], description: '', facilities: [], address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: LODGE_BOOKING_UNSENT });
                                                 if (v === '__manual__') {
                                                     const name = window.prompt('목록에 없는 숙소명을 입력해 주세요.', acc.name || '')?.trim();
-                                                    if (name && name !== acc.name) onPatch(tour.id, index, { id: undefined, name, images: [], description: '', facilities: [], address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: LODGE_BOOKING_UNSENT });
+                                                    if (name && name !== acc.name) patchNight({ id: undefined, name, images: [], description: '', facilities: [], address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: LODGE_BOOKING_UNSENT });
                                                     return;
                                                 }
                                                 const lodge = lodges.find(l => l.id === v);
-                                                if (lodge) onPatch(tour.id, index, { ...selectResourceLodge(night, lodge).accommodation, ...(area ? { location: area, region: area } : {}) });
+                                                if (lodge) patchTour(index, { ...selectResourceLodge(night, lodge).accommodation, ...(area ? { location: area, region: area } : {}) });
                                             }}>
                                             <option value="">{resourcesLoading ? '숙소 불러오는 중…' : '미배정'}</option>
                                             {!registered && hasLodge && <option value="__current__">{acc.name}</option>}
@@ -159,14 +191,14 @@ export function AccommodationSheet({ tours, rowsOf, regionOf, serials, lodges, l
                                     </td>
                                     <td>
                                         <select className="lo-sheet-input" data-status={status} aria-label={`${label} 예약상태`} disabled={locked || !hasLodge} title={hasLodge ? undefined : '숙소를 먼저 골라 주세요'} value={status}
-                                            onChange={e => onPatch(tour.id, index, { bookingStatus: e.target.value })}>
+                                            onChange={e => patchNight({ bookingStatus: e.target.value })}>
                                             {!LODGE_BOOKING_STATUSES.some(s => s.value === status) && <option value={status}>{lodgeBookingLabel(status)}</option>}
                                             {LODGE_BOOKING_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                                         </select>
                                     </td>
                                     <td>
                                         <input className="lo-sheet-input is-memo" aria-label={`${label} 예약메모`} disabled={locked} maxLength={2000} value={acc.adminMemo || ''} placeholder="메모"
-                                            onChange={e => onPatch(tour.id, index, { adminMemo: e.target.value })} />
+                                            onChange={e => patchNight({ adminMemo: e.target.value })} />
                                     </td>
                                 </tr>
                             );

@@ -413,3 +413,32 @@ test('배정 초안은 분류·배정 구분·예약메모를 함께 보관하�
     const restored = readAssignmentDraft(storage, scope, 'v1').draft.assignment;
     assert.equal(restored.category, '골프투어'); assert.equal(restored.accommodations[0].accommodation.adminMemo, '조식 포함');
 });
+
+test('숙소 배정 시트 고객명: 대표 1인 이름과 고객이 고른 패키지(풀패키지·실속·혼합)를 내려 준다', async t => {
+    const f = await fixture(t);
+    let items = await f.list();
+    assert.equal(items.find(i => i.key === 'product:same-id').leadName, '상품 고객');
+    assert.equal(items.find(i => i.key === 'product:same-id').packagePlan, null, '상품 미연결이면 미정');
+    assert.equal(items.find(i => i.key === 'quote_booking:same-id').leadName, '견적 고객');
+    assert.equal(items.find(i => i.key === 'quote_booking:same-id').packagePlan, null, '고객이 등급을 고르지 않으면 추정하지 않는다');
+    f.raw.prepare('UPDATE products SET package_type=? WHERE id=?').run('value', 'real-product');
+    f.raw.prepare('UPDATE reservations SET product_id=? WHERE id=?').run('real-product', 'same-id');
+    const rec = JSON.parse(f.raw.prepare('SELECT data FROM requests WHERE id=?').get('same-id').data);
+    rec.name = '박유린(2인)'; rec.cityStay = '호텔(4성급)'; rec.gerStay = '일반 여행자 게르';
+    f.raw.prepare('UPDATE requests SET data=? WHERE id=?').run(JSON.stringify(rec), 'same-id');
+    items = await f.list();
+    assert.equal(items.find(i => i.key === 'product:same-id').packagePlan, 'value');
+    const quote = items.find(i => i.key === 'quote_booking:same-id');
+    assert.equal(quote.leadName, '박유린', '접수 이름 끝의 인원 표기는 뺀다');
+    assert.equal(quote.packagePlan, 'mixed', '4성급 호텔 + 일반 게르는 혼합');
+    rec.cityStay = '호텔(5성급)'; rec.gerStay = '고급 여행자 게르';
+    rec.booking.travelers = [{ type: '아동', nameKo: '아동 여행자' }, { type: '성인', nameKo: '대표 성인', passportNo: 'PRIVATE-PASSPORT-2' }];
+    f.raw.prepare('UPDATE requests SET data=? WHERE id=?').run(JSON.stringify(rec), 'same-id');
+    let next = (await f.list()).find(i => i.key === 'quote_booking:same-id');
+    assert.equal(next.leadName, '대표 성인'); assert.equal(next.packagePlan, 'full');
+    assert.ok(!JSON.stringify(next).includes('PRIVATE-PASSPORT-2'), '여권 정보는 내려 주지 않는다');
+    rec.booking.contract.signerName = '계약 서명자';
+    f.raw.prepare('UPDATE requests SET data=? WHERE id=?').run(JSON.stringify(rec), 'same-id');
+    next = (await f.list()).find(i => i.key === 'quote_booking:same-id');
+    assert.equal(next.leadName, '계약 서명자', '계약 서명자를 가장 먼저 쓴다');
+});

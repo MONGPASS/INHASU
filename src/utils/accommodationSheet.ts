@@ -57,3 +57,53 @@ export function tourSerials(tours: Array<{ id: string; createdAt?: string; start
         || (a.startDate || '').localeCompare(b.startDate || '') || a.id.localeCompare(b.id));
     return new Map(order.map((tour, index) => [tour.id, index + 1]));
 }
+
+/**
+ * 계약 일정의 지역 표기를 숙소 배정 시트의 지명(M열 목록)으로 바꾼다.
+ * 목록에 없는 지역(예: 중앙몽골·남고비)은 일정 표기 그대로 둔다.
+ */
+const AREA_ALIASES: Array<[RegExp, string]> = [
+    [/테[를렐]지|terelj|거북바위|아리야발/i, 'Terelj'],
+    [/울란바[토타]르|칭기스칸\s*공항|자이산|간단\s*사원|수흐바타르|^ub$/i, 'UB'],
+    [/엘[승선]\s*타사르|미니\s*고비|elsen/i, 'Elsen tasarkhai'],
+    [/하르허린|카라코룸|에르덴\s*조|kharkhorin|karakorum/i, 'Kharkhorin'],
+    [/홉스[굴골]|하트갈|khuvsgul|huvsgul/i, 'Huvsgul'],
+    [/무릉|므릉|murun|moron/i, 'Moron'],
+    [/에르데넷|erdenet/i, 'Erdenet'],
+    [/후스타이|hustai/i, 'Hustai'],
+    [/어르[헝홍]|오르[홍혼헝]|orkhon/i, 'Orkhon hurhree'],
+    [/바양작|bayanzag/i, 'Bayanzag'],
+    [/홍고린\s*엘스|khongor/i, 'Khongoriin els'],
+    [/바가\s*가즈링|baga\s*gaz/i, 'Baga gazriin chuluu'],
+    [/차강\s*소브라가|tsagaan\s*suvarga/i, 'Tsagaansuvarga'],
+    [/차강\s*[노누]르|tsagaan\s*nuur/i, 'Tsagaannuur'],
+    [/쳉헤르|tsenkher|tsenher/i, 'Tsenher'],
+    [/어기\s*호수|오기\s*호수|ugii/i, 'UgiiNuur'],
+    [/욜[링린]\s*암|yol[iy]n\s*am/i, 'Yoliin am'],
+    [/신\s*에드|shine[-\s]*ed/i, 'Shine-Eder'],
+    [/불[간강]|bulgan/i, 'Bulgan'],
+];
+export function sheetAreaFor(region: unknown) {
+    const value = typeof region === 'string' ? region.trim() : '';
+    if (!value) return '';
+    return AREA_ALIASES.find(([pattern]) => pattern.test(value))?.[1] ?? value;
+}
+
+/** 고객명 괄호 — 풀패키지·실속·혼합 */
+export type PackagePlan = 'full' | 'value' | 'mixed';
+export const PACKAGE_LABELS: Record<PackagePlan, string> = { full: '풀패키지', value: '실속', mixed: '혼합' };
+const HIGH_GRADE = /고급|디럭스|최고급|5성|4성/;
+const STANDARD_GRADE = /일반|스탠[다더]드|3성|게스트|목조|tureesiin/i;
+/**
+ * 배정한 숙박 등급으로 패키지를 판단한다. 고급(고급·디럭스 게르, 4·5성급)만이면 풀패키지,
+ * 일반(일반 게르, 3성급, 게스트하우스 등)만이면 실속, 둘이 섞이면 혼합. 등급이 없으면 null.
+ */
+export function packagePlanFromGrades(grades: unknown[]): PackagePlan | null {
+    let high = false, standard = false;
+    for (const grade of grades) {
+        const value = typeof grade === 'string' ? grade : '';
+        if (HIGH_GRADE.test(value)) high = true;
+        else if (STANDARD_GRADE.test(value)) standard = true;
+    }
+    return high && standard ? 'mixed' : high ? 'full' : standard ? 'value' : null;
+}

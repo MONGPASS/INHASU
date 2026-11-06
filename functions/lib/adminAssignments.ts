@@ -1,5 +1,5 @@
 import { assignmentKey, assignmentRecord, readProductVehicle, syncProductVehicle, type AssignmentSource, type BookingAssignment } from '../../src/utils/reservationAssignment.ts';
-import { isQuoteBooking, summarizeQuoteBooking } from './quoteBookings.ts';
+import { isQuoteBooking, quotePackageTier, summarizeQuoteBooking } from './quoteBookings.ts';
 import { toTourDateKey } from '../../src/utils/formatDate.ts';
 import { assignmentScheduleCas, createAssignmentScheduleReader, type AssignmentScheduleRead } from './assignmentSchedule.ts';
 
@@ -56,6 +56,40 @@ const publicDays = (value: any, memos: Record<string, string> = {}) => parseArra
     if (memo) selected.adminMemo = memo;
     return { day: Number(d.day), date: text(d.date), accommodation: selected };
 });
+/**
+ * 숙소 배정 시트의 고객명 칸: 대표 1인 이름과 고객이 고른 패키지(풀패키지·실속·혼합).
+ * 견적은 계약 서명자 → 첫 성인 여행자 → 접수 이름(끝의 '(2인)' 같은 인원 표기는 뺀다) 순서.
+ */
+const cleanBookingName = (value: unknown) => text(value).replace(/\s*\(\s*\d+\s*인\s*\)\s*$/, '').trim();
+function quoteLeadName(rec: any) {
+    const booking = assignmentRecord(rec.booking), people = array(booking.travelers);
+    const adult = people.find(t => text(t?.type) === '성인' && text(t?.nameKo ?? t?.name).trim()) || people.find(t => text(t?.nameKo ?? t?.name).trim());
+    return text(assignmentRecord(booking.contract).signerName).trim() || text(adult?.nameKo ?? adult?.name).trim() || cleanBookingName(rec.name);
+}
+const stayLevel = (value: unknown) => { const v = text(value); return /5성|4성|최고급|고급|디럭스|풀패키지/.test(v) ? 'high' : /3성|일반|스탠[다더]드|게스트|실속/.test(v) ? 'standard' : null; };
+/** 견적: 도시 숙소와 게르 등급이 서로 다르면 혼합, 아니면 기존 잔금 티어와 같은 판별. */
+function quotePackagePlan(rec: any): 'full' | 'value' | 'mixed' | null {
+    const city = stayLevel(rec.cityStay), ger = stayLevel(rec.gerStay);
+    if (city && ger && city !== ger) return 'mixed';
+    const tier = quotePackageTier(rec);
+    if (tier) return tier;
+    const only = city || ger;
+    return only ? (only === 'high' ? 'full' : 'value') : null;
+}
+type PackageLookup = (productId: unknown) => Promise<'full' | 'value' | null>;
+/** 상품 예약은 예약 상품의 여행 타입(package_type). 칸이 없는 예전 DB에서는 미정으로 둔다. */
+export function productPackageLookup(db: any): PackageLookup {
+    let all: Promise<Map<string, unknown>> | null = null;
+    return async productId => {
+        if (!productId) return null;
+        all ??= Promise.resolve().then(() => db.prepare('SELECT id, package_type FROM products').all())
+            .then((result: any) => new Map((result.results || []).map((p: any) => [String(p.id), p.package_type])))
+            .catch(() => new Map());
+        const value = (await all).get(String(productId));
+        return value === 'full' || value === 'value' ? value : null;
+    };
+}
+
 async function version(source: AssignmentSource, row: any, schedule: AssignmentScheduleRead) {
     const bytes = new TextEncoder().encode(JSON.stringify(source === 'product'
         ? [row.start_date, row.end_date, row.status, row.assigned_guide, row.daily_accommodations, row.contract_data, row.admin_operations,
@@ -64,7 +98,7 @@ async function version(source: AssignmentSource, row: any, schedule: AssignmentS
     return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function assignmentFromRow(source: AssignmentSource, row: any, readSchedule = createAssignmentScheduleReader()) {
+export async function assignmentFromRow(source: AssignmentSource, row: any, readSchedule = createAssignmentScheduleReader(), packageOf: PackageLookup = async () => null) {
     const schedule = await readSchedule(source, row);
     const rowVersion = await version(source, row, schedule);
     if (source === 'product') {
@@ -72,6 +106,8 @@ export async function assignmentFromRow(source: AssignmentSource, row: any, read
         return { key: assignmentKey(source, row.id), source, id: row.id, version: rowVersion, type: row.type, schedule: schedule.schedule,
             productName: row.product_name || '', customerName: row.customer_name || '', startDate: toTourDateKey(row.start_date), endDate: toTourDateKey(row.end_date),
             status: row.status, depositStatus: row.deposit_status, travelers: row.travelers, reservationNumber: row.reservation_number, createdAt: text(row.created_at),
+            leadName: text(row.customer_name).trim() || text(assignmentRecord(contract.agreement).name).trim() || text(assignmentRecord(array(contract.travelers)[0]).name).trim(),
+            packagePlan: await packageOf(row.product_id),
             accommodationsInitialized: row.daily_accommodations != null,
             contractData: { region: text(contract.region), category: text(contract.category), arrival: flight(contract.arrival), departure: flight(contract.departure), travelers: travelers(contract.travelers) },
             assignment: { guide: selectedGuide(guide), vehicle: { ...readProductVehicle(row.admin_operations, contract), ...selectedVehicleResource(contract.vehicle) },
@@ -84,6 +120,7 @@ export async function assignmentFromRow(source: AssignmentSource, row: any, read
     return { key: assignmentKey(source, row.id), source, id: row.id, version: rowVersion, type: 'quote_booking', schedule: schedule.schedule,
         productName: summary.productName, customerName: summary.customerName, startDate: toTourDateKey(summary.startDate), endDate: toTourDateKey(summary.endDate),
         status: summary.status, depositStatus: summary.depositStatus, travelers: summary.totalPeople, reservationNumber: summary.reservationNumber, createdAt: text(summary.createdAt),
+        leadName: quoteLeadName(rec), packagePlan: quotePackagePlan(rec),
         accommodationsInitialized: Array.isArray(assign.lodges),
         contractData: { ...summary.contractData, travelers: travelers(rec.booking?.travelers) },
         assignment: { guide: selectedGuide(guide), category: text(assign.category),
@@ -151,7 +188,7 @@ export function validateBookingAssignment(value: unknown): BookingAssignment | n
 
 export async function readAdminAssignments(db: any) {
     const items: any[] = [], warnings: string[] = [];
-    const readSchedule = createAssignmentScheduleReader(db);
+    const readSchedule = createAssignmentScheduleReader(db), packageOf = productPackageLookup(db);
     const results = await Promise.allSettled([
         Promise.resolve().then(() => db.prepare('SELECT * FROM reservations ORDER BY start_date,id').all()),
         Promise.resolve().then(() => db.prepare('SELECT id,status,data FROM requests ORDER BY received_at DESC').all()),
@@ -161,7 +198,7 @@ export async function readAdminAssignments(db: any) {
         for (const row of result.value.results || []) {
             try {
                 if (index) { const data = quoteData(row.data); if (!data) throw new Error('Invalid quote source'); if (!isQuoteBooking({ ...data, status: row.status })) continue; }
-                items.push(await assignmentFromRow(index ? 'quote_booking' : 'product', row, readSchedule));
+                items.push(await assignmentFromRow(index ? 'quote_booking' : 'product', row, readSchedule, packageOf));
             } catch { warnings.push('읽을 수 없는 예약이 있습니다. 해당 원본을 확인해 주세요.'); }
         }
     }
@@ -224,5 +261,5 @@ export async function saveAdminAssignment(db: any, source: AssignmentSource, id:
         result = await db.prepare('UPDATE requests SET data=? WHERE id=? AND data IS ? AND status IS ?').bind(JSON.stringify(updated), id, row.data, row.status).run();
     }
     if (result.meta?.changes !== 1) return { status: 409, error: '저장 직전에 예약이 변경되었습니다. 최신 예약을 확인한 뒤 다시 저장해 주세요.' };
-    return { status: 200, item: await assignmentFromRow(source, await db.prepare(`SELECT * FROM ${table} WHERE id=?`).bind(id).first(), createAssignmentScheduleReader(db)) };
+    return { status: 200, item: await assignmentFromRow(source, await db.prepare(`SELECT * FROM ${table} WHERE id=?`).bind(id).first(), createAssignmentScheduleReader(db), productPackageLookup(db)) };
 }
