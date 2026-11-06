@@ -67,6 +67,9 @@ interface Reservation {
     dailyAccommodations?: DailyAcc[];
     /** 숙소 배정 시트의 분류(G열). 서버가 보낸 값이 있을 때만 저장 요청에 포함한다. */
     assignmentCategory?: string;
+    /** 숙소 배정 시트 고객명 칸 — 대표 1인 이름과 고객이 고른 패키지 */
+    leadName?: string;
+    packagePlan?: 'full' | 'value' | 'mixed' | null;
     schedule?: AccommodationSchedule;
     assignedGuide?: AssignmentGuide;
     contractData?: {
@@ -412,11 +415,18 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         markDirty(rId);
     };
     // 인덱스 기준 편집(일차 번호·날짜를 직접 수정해도 안전)
-    const patchDay = (rId: string, idx: number, patch: Partial<DailyAcc['accommodation']>) => {
+    // fill(시트): 지역이 비어 있는 숙박일에 계약 일정의 지역을 함께 넣는다. 처음 만든 행의 일정 원문 지역은 시트 지명으로 바꾼다.
+    const patchDay = (rId: string, idx: number, patch: Partial<DailyAcc['accommodation']>, fill?: Record<number, string>) => {
         if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
-            const rows = (r.dailyAccommodations ?? initialAccommodationRows(r)).map((d, i) => i === idx ? { ...d, accommodation: { ...d.accommodation, ...patch } } : d);
+            const fresh = !r.dailyAccommodations;
+            const rows = (r.dailyAccommodations ?? initialAccommodationRows(r)).map((d, i) => {
+                const area = fill?.[i];
+                const hasStored = !fresh && !!(d.accommodation?.region || d.accommodation?.location);
+                const base = area && !hasStored ? { ...d, accommodation: { ...d.accommodation, location: area, region: area } } : d;
+                return i === idx ? { ...base, accommodation: { ...base.accommodation, ...patch } } : base;
+            });
             return { ...r, dailyAccommodations: rows };
         }));
         setMaterialized(prev => prev.has(rId) ? prev : new Set(prev).add(rId));
@@ -535,6 +545,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         }
     };
 
+    // 저장된 숙박 행이 없는 예약은 고객 일정으로 행을 보여 주되, 지역은 시트가 계약 일정에서 시트 지명으로 불러오도록 비워 둔다(처음 고칠 때 함께 저장).
+    const sheetRowsOf = (tour: { id: string }) => { const r = tour as Reservation; return r.dailyAccommodations ?? initialAccommodationRows(r).map(row => { const { location, region, ...rest } = row.accommodation; return { ...row, accommodation: rest }; }); };
     // 시트에서 여러 예약을 고친 뒤 한 번에 저장한다. 예약마다 버전을 확인하며 하나라도 실패하면 거기서 멈춘다.
     const saveAll = async () => {
         if (savingRef.current) return;
@@ -657,8 +669,9 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                 )}
                 {loading ? <p className="lo-empty">예약을 불러오고 있어요…</p>
                     : filtered.length === 0 ? <div className="lo-empty"><p>오늘 이후 진행하는 투어 중 조건에 맞는 예약이 없어요.</p>{filtersOn && <button type="button" onClick={resetFilters}>필터 초기화</button>}</div>
-                    : <AccommodationSheet tours={filtered} rowsOf={r => (r as Reservation).dailyAccommodations ?? initialAccommodationRows(r as Reservation)} regionOf={r => regionOf(r as Reservation)}
+                    : <AccommodationSheet tours={filtered} rowsOf={sheetRowsOf} regionOf={r => regionOf(r as Reservation)}
                         serials={serials} lodges={resources.lodges} lodgeRegions={lodgeRegions} resourcesLoading={resourcesLoading} dirty={dirty} pending={pendingDrafts} savingId={savingId}
+                        clearedAreas={clearedRegions} onAreaCleared={(key, cleared) => setClearedRegions(prev => { const next = new Set(prev); if (cleared) next.add(key); else next.delete(key); return next; })}
                         onPatch={patchDay} onCategory={patchCategory}
                         onSave={id => { const row = rowsRef.current.find(r => r.id === id); if (row) void save(row); }}
                         onResolveDraft={(id, restore) => { const row = rowsRef.current.find(r => r.id === id); if (row) resolveDraft(row, restore); }} />}

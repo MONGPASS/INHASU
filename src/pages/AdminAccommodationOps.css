@@ -277,3 +277,10 @@ select.lo-input { padding-right: 30px; background: #fff var(--lo-chevron) no-rep
 .lo-sheet-input[data-status="Баталгаажсан"], .lo-sheet-input[data-status="예약완료"], .lo-sheet-input[data-status="변경완료"] { border-color: var(--lo-mint-line); background-color: #eefaf5; color: var(--lo-mint-strong); }
 .lo-sheet-input[data-status="취소요청"], .lo-sheet-input[data-status="변경요청"], .lo-sheet-input[data-status="예약요청"] { background-color: #fff8ea; }
 .lo-sheet-input[data-status="배정X"] { background-color: #fff1f1; color: #d93025; }
+
+/* 고객명 괄호(풀패키지·실속·혼합)와 계약 일정에서 불러온 숙소지역 */
+.lo-sheet-plan { color: var(--text-tertiary); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.lo-sheet-plan[data-plan="full"] { color: var(--lo-mint-strong); }
+.lo-sheet-plan[data-plan="value"] { color: #1c6fd1; }
+.lo-sheet-plan[data-plan="mixed"] { color: #b45309; }
+.lo-sheet-input.is-planned { border-style: dashed; border-color: var(--lo-mint-line); color: var(--lo-mint-strong); }

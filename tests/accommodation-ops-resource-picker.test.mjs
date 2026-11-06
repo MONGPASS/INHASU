@@ -509,3 +509,53 @@ test('시트 보기: 오늘 이후 투어만 보여 주고 분류·배정 구분
         [1, '2026-11-01', '이전 숙소', '2인1실', '골프오후', '늦은 체크인']);
     h.unmount();
 });
+
+test('시트 보기: 숙소지역은 계약 일정의 그날 지역을 불러오고 고객명은 대표 이름(패키지)로 보여 준다', async () => {
+    const quote = { ...bookingFixture('quote_booking'), leadName: '대표 고객', packagePlan: 'value', startDate: '2026-11-01', endDate: '2026-11-03',
+        schedule: { source: 'quote', warnings: [], days: [
+            { day: 1, date: '2026-11-01', title: '울란바타르 → 테를지 국립공원', region: '' },
+            { day: 2, date: '2026-11-02', title: '엘승타사르해', region: '' },
+            { day: 3, date: '2026-11-03', title: '귀국', region: '' }] } };
+    quote.assignment.accommodations = [{ day: 1, date: '2026-11-01', accommodation: {} }, { day: 2, date: '2026-11-02', accommodation: { region: 'UB', location: 'UB' } }];
+    const h = mount({ view: 'sheet-view', items: [quote] });
+    await h.settle();
+    const sheetEl = () => nodes(h.tree).find(node => typeof node.type === 'function' && Array.isArray(node.props?.tours));
+    const sheetNodes = () => nodes(sheetEl().type(sheetEl().props));
+    const field = label => { const node = sheetNodes().find(n => n.props?.['aria-label'] === label); assert.ok(node, label); return node; };
+    const plan = () => text(sheetNodes().find(n => n.props?.className === 'lo-sheet-plan'));
+    assert.ok(sheetNodes().some(n => n.type === 'b' && text(n) === '대표 고객'), '대표 이름');
+    assert.equal(plan(), '(실속)', '등급을 고르기 전에는 고객 선택');
+    assert.equal(field('견적 고객 1박 숙소지역').props.value, 'Terelj', '저장된 지역이 없으면 계약 일정의 지역');
+    assert.match(field('견적 고객 1박 숙소지역').props.className, /is-planned/);
+    assert.equal(field('견적 고객 2박 숙소지역').props.value, 'UB', '저장된 지역이 우선');
+    // 그 숙박일을 고치면 불러온 지역이 함께 저장된다.
+    field('견적 고객 1박 등급').props.onChange({ target: { value: '고급 게르' } }); h.render();
+    assert.equal(plan(), '(풀패키지)', '배정한 등급으로 다시 판단');
+    field('견적 고객 2박 등급').props.onChange({ target: { value: '일반 게르' } }); h.render();
+    assert.equal(plan(), '(혼합)');
+    h.button('모두 저장').props.onClick(); await h.settle(); await h.settle();
+    const saved = h.requests.filter(r => r.options.method === 'PATCH').at(-1).body.assignment.accommodations;
+    assert.deepEqual(plain(saved.map(n => [n.day, n.accommodation.region || '', n.accommodation.type])), [[1, 'Terelj', '고급 게르'], [2, 'UB', '일반 게르']]);
+    h.unmount();
+});
+
+test('시트 보기: 숙박 행을 저장한 적 없는 예약도 계약 일정의 지역을 시트 지명으로 보여 주고 한 칸을 고치면 모든 숙박일 지역을 함께 저장한다', async () => {
+    const quote = { ...bookingFixture('quote_booking'), startDate: '2026-11-01', endDate: '2026-11-03', accommodationsInitialized: false,
+        schedule: { source: 'quote', warnings: [], days: [
+            { day: 1, date: '2026-11-01', title: '울란바타르 → 테를지 국립공원', region: '' },
+            { day: 2, date: '2026-11-02', title: '카라코룸', region: '' },
+            { day: 3, date: '2026-11-03', title: '귀국', region: '' }] } };
+    quote.assignment.accommodations = [];
+    const h = mount({ view: 'sheet-view', items: [quote] });
+    await h.settle();
+    const sheetEl = () => nodes(h.tree).find(node => typeof node.type === 'function' && Array.isArray(node.props?.tours));
+    const field = label => { const node = nodes(sheetEl().type(sheetEl().props)).find(n => n.props?.['aria-label'] === label); assert.ok(node, label); return node; };
+    assert.deepEqual(plain([field('견적 고객 1박 숙소지역').props.value, field('견적 고객 2박 숙소지역').props.value]), ['Terelj', 'Kharkhorin']);
+    assert.match(field('견적 고객 2박 숙소지역').props.className, /is-planned/);
+    assert.equal(h.requests.filter(r => r.options.method === 'PATCH').length, 0, '보기만 해서는 저장하지 않는다');
+    field('견적 고객 2박 배정 구분').props.onChange({ target: { value: '3인1실' } }); h.render();
+    h.button('모두 저장').props.onClick(); await h.settle(); await h.settle();
+    const saved = h.requests.filter(r => r.options.method === 'PATCH').at(-1).body.assignment.accommodations;
+    assert.deepEqual(plain(saved.map(n => [n.day, n.accommodation.region || '', n.accommodation.assignType || ''])), [[1, 'Terelj', ''], [2, 'Kharkhorin', '3인1실']]);
+    h.unmount();
+});
