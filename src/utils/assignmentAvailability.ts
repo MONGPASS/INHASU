@@ -21,3 +21,31 @@ export function guideAssignmentConflicts(bookings: any[], guide: { id?: string; 
         return matches && from && to && from <= end && to >= start;
     });
 }
+
+/**
+ * 가이드 일정 겹침을 두 가지로 나눈다.
+ * - overlap: 같은 날을 함께 쓰는 진짜 중복 → 배정 전에 확인하고, 서버도 확인 없이는 저장하지 않는다.
+ * - handover: 한 팀이 끝나는 날 다른 팀이 시작하는 경우(공항 인계 등) → 막지 않고 알림만 한다.
+ * 취소·보류 예약과 현재 예약 자신은 빼며, 날짜가 올바르지 않은 예약은 판단하지 않는다.
+ */
+export type GuideOverlapKind = 'overlap' | 'handover';
+export function guideOverlaps(bookings: any[], guide: { id?: string; name?: string }, current: { id: string; source: string; startDate?: string; endDate?: string }) {
+    const start = toTourDateKey(current.startDate), end = toTourDateKey(current.endDate || current.startDate);
+    return guideAssignmentConflicts(bookings, guide, current).map(booking => {
+        const from = toTourDateKey(booking.startDate), to = toTourDateKey(booking.endDate || booking.startDate);
+        const kind: GuideOverlapKind = (to === start && from < start) || (from === end && to > end) ? 'handover' : 'overlap';
+        return { booking, kind };
+    });
+}
+/** 가이드가 같은지 — 등록 ID가 둘 다 있으면 ID로, 아니면 공백을 뺀 이름으로 비교한다. */
+export function sameGuide(a: { id?: string; name?: string } | null | undefined, b: { id?: string; name?: string } | null | undefined) {
+    if (!a || !b) return false;
+    if (a.id && b.id) return a.id === b.id;
+    return !!normalized(a.name) && normalized(a.name) === normalized(b.name);
+}
+/** 저장 메시지·메뉴에 쓰는 짧은 설명: `홍길동 06.21~06.28` */
+export function overlapLabel(booking: any) {
+    const day = (value: unknown) => toTourDateKey(String(value || '')).slice(5).replace('-', '.');
+    const name = String(booking?.leadName || booking?.customerName || '다른 예약').trim();
+    return `${name} ${day(booking?.startDate)}~${day(booking?.endDate || booking?.startDate)}`;
+}

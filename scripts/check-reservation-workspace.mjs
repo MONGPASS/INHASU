@@ -1093,7 +1093,12 @@ if (usability) {
         const selected = editorAssignment({ assignedGuide: selectResourceGuide(current.assignment.guide, selectedGuide),
             contractData: { vehicle: selectResourceVehicle(current.assignment.vehicle, selectedVehicle) }, dailyAccommodations: [stay] });
         const route = `/api/admin/assignments/${source}/workspace-product`;
-        const result = await write(route, 'PATCH', { expectedVersion: current.version, assignment: selected });
+        // 같은 ID의 상품·견적 예약이 같은 기간이라, 두 번째에 같은 가이드를 넣으면 서버가 중복으로 거절한다. 확인한 요청만 저장된다.
+        if (source === 'quote_booking') {
+            const blocked = await write(route, 'PATCH', { expectedVersion: current.version, assignment: selected });
+            assert.equal(blocked.status, 409); assert.equal((await blocked.json()).code, 'guide_conflict');
+        }
+        const result = await write(route, 'PATCH', { expectedVersion: current.version, assignment: selected, ...(source === 'quote_booking' ? { allowGuideConflict: true } : {}) });
         assert.equal(result.status, 200, await result.clone().text());
         const saved = (await result.json()).item;
         assert.deepEqual(saved.assignment.guide, selected.guide);

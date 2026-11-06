@@ -2,6 +2,8 @@ import { assignmentKey, assignmentRecord, readProductVehicle, syncProductVehicle
 import { isQuoteBooking, quotePackageTier, summarizeQuoteBooking } from './quoteBookings.ts';
 import { toTourDateKey } from '../../src/utils/formatDate.ts';
 import { assignmentScheduleCas, createAssignmentScheduleReader, type AssignmentScheduleRead } from './assignmentSchedule.ts';
+import { guideConflictsOnChange } from './guideAvailability.ts';
+import { overlapLabel } from '../../src/utils/assignmentAvailability.ts';
 
 const own = (v: object, k: string) => Object.prototype.hasOwnProperty.call(v, k);
 const text = (v: unknown) => typeof v === 'string' ? v : '';
@@ -205,7 +207,7 @@ export async function readAdminAssignments(db: any) {
     return { items, warnings, availability: { product: results[0].status === 'fulfilled', quote_booking: results[1].status === 'fulfilled' } };
 }
 
-export async function saveAdminAssignment(db: any, source: AssignmentSource, id: string, expectedVersion: string, assignment: BookingAssignment) {
+export async function saveAdminAssignment(db: any, source: AssignmentSource, id: string, expectedVersion: string, assignment: BookingAssignment, options: { allowGuideConflict?: boolean } = {}) {
     const table = source === 'product' ? 'reservations' : 'requests';
     const row = await db.prepare(`SELECT * FROM ${table} WHERE id=?`).bind(id).first();
     if (row && source === 'quote_booking' && !quoteData(row.data)) return { status: 409, error: '견적 원본을 읽을 수 없습니다. 기존 예약 관리에서 원본을 확인해 주세요.' };
@@ -213,6 +215,18 @@ export async function saveAdminAssignment(db: any, source: AssignmentSource, id:
     const schedule = await createAssignmentScheduleReader(db)(source, row);
     if (schedule.schedule.source === 'unavailable') return { status: 409, error: '고객 일정 원본을 읽지 못했습니다. 초안을 보관하고 고객 일정 원본을 확인한 뒤 다시 저장해 주세요.' };
     if (expectedVersion !== await version(source, row, schedule)) return { status: 409, error: '다른 곳에서 예약이나 고객 일정이 변경되었습니다. 초안을 보관한 뒤 최신 예약을 다시 불러와 주세요.' };
+    // 가이드를 새로 배정하거나 바꾸면 같은 날 다른 예약에 배정돼 있는지 확인한다. 관리자가 확인한 경우에만 그대로 저장한다.
+    if (!options.allowGuideConflict) {
+        const quoteRec = source === 'quote_booking' ? { ...assignmentRecord(quoteData(row.data)), id: row.id, status: row.status } : null;
+        const summary = quoteRec ? summarizeQuoteBooking(quoteRec) : null;
+        const previous = source === 'product' ? assignmentRecord(quoteData(row.assigned_guide)) : assignmentRecord(assignmentRecord(assignmentRecord(quoteRec?.booking).assign).guide);
+        const conflicts = await guideConflictsOnChange(db, { id: String(row.id), source,
+            startDate: source === 'product' ? toTourDateKey(row.start_date) : toTourDateKey(summary?.startDate), endDate: source === 'product' ? toTourDateKey(row.end_date) : toTourDateKey(summary?.endDate) },
+            { id: text(previous.id), name: text(previous.name) }, assignment.guide);
+        if (conflicts.length) return { status: 409, code: 'guide_conflict',
+            error: `${assignment.guide.name || '선택한'} 가이드는 같은 기간에 다른 예약이 있습니다: ${conflicts.map(overlapLabel).join(', ')}`,
+            conflicts: conflicts.map(row => ({ source: row.source, id: row.id, customerName: row.customerName, startDate: row.startDate, endDate: row.endDate })) };
+    }
     const scheduleCas = assignmentScheduleCas(schedule.guards);
     let result: any;
     if (source === 'product') {

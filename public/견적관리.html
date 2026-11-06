@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="/admin-legacy-redirect.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
 /* 좁은 화면(모바일)은 모바일 관리자(견적관리-모바일.html)로 안내합니다.
@@ -988,7 +989,8 @@ function openDrawer(id) {
   $("memo").onblur = () => saveMemo(id, $("memo").value);
   $("memo").oninput = () => { inquirySaveError = ""; publishInquiryState(); };
   $("makeBtn").onclick = () => {
-    if (new URLSearchParams(location.search).get("workspace") === "1") { location.assign("/견적만들기?id=" + encodeURIComponent(r.id)); return; }
+    // 새 관리자 안(고객 화면·견적 문의)에서는 같은 화면 안에서 견적서 만들기를 연다. 새 탭으로 열면 옛 관리자 메뉴가 보인다.
+    if (new URLSearchParams(location.search).get("workspace") === "1" || window.self !== window.top) { location.assign("/견적만들기?id=" + encodeURIComponent(r.id)); return; }
     // 이미 발행된 견적이 있으면 편집기에서 그대로 복원해 수정할 수 있게 함께 넘깁니다.
     localStorage.setItem("leaders_prefill", JSON.stringify({ id:r.id, token:r.token, adminToken:ADMIN_TOKEN, name:r.name, phone:r.phone||"", depart:r.depart, return_:r.return_, adult:r.adult, child:r.child, infant:r.infant, destination:r.destination, vehicle:r.vehicle, tripType:r.tripType, travelStyles:r.travelStyles, destSpots:r.destSpots, cityStay:r.cityStay||r.stay||"", gerStay:r.gerStay||"", budget:r.budget, request:r.request||"", flightIn:r.flightIn||"", flightOut:r.flightOut||"", quote:r.quote||null }));
     window.open("견적만들기.html","_blank");
@@ -996,6 +998,8 @@ function openDrawer(id) {
   const bookBtn = $("bookBtn");
   if (bookBtn) bookBtn.onclick = () => {
     if (new URLSearchParams(location.search).get("workspace") === "1") { location.assign("/예약관리?id=" + encodeURIComponent(r.id)); return; }
+    // 견적 문의 목록(새 관리자 안)에서는 새 고객 화면으로 연다.
+    if (window.self !== window.top && window.QuoteBookingWorkspace) { window.QuoteBookingWorkspace.openCustomer(String(r.id), "/admin/quote-desk/inbox"); return; }
     // 예약관리 화면에 필요한 정보를 함께 넘김 (견적만들기와 같은 방식)
     localStorage.setItem("leaders_booking_prefill", JSON.stringify({
       id: r.id, token: r.token || "", adminToken: ADMIN_TOKEN, status: r.status || "신규",

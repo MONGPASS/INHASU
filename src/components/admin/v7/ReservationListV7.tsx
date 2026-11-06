@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DashboardIconName } from '../dashboard/DashboardIcon';
 import { dashboardSeoulDate } from '../../../utils/adminDashboard';
-import { guideAssignmentConflicts } from '../../../utils/assignmentAvailability';
+import { confirmGuideConflict, guideMenuItems } from './guideMenuItems';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../../../utils/registeredAssignmentResources';
 import { selectResourceGuide, selectResourceVehicle } from '../../../utils/accommodationResourceSelection';
 import { AIRFARE_OPTIONS, CATEGORY_OPTIONS, JOINING_LABELS, RECEIPT_LABELS, SERVICE_TYPE_OPTIONS, type ReceiptStatus, type ReservationOperations } from '../../../utils/reservationWorkspace';
@@ -98,19 +98,24 @@ export function ReservationListV7(p: ReservationListV7Props) {
     const closeMenu = useCallback(() => setMenu(null), []);
     const quoteOnly = (row: V7Row, action: V7OpenAction, what: string) => { flash(`견적 예약의 ${what}은 예약관리 편집기에서 바꿉니다`); p.onOpen(row.source, action); };
 
-    const saveAssignment = async (row: V7Row, build: (item: V7AssignmentItem) => Parameters<typeof saveV7Assignment>[1], done: string) => {
+    const saveAssignment = async (row: V7Row, build: (item: V7AssignmentItem) => Parameters<typeof saveV7Assignment>[1], done: string, allowGuideConflict = false): Promise<void> => {
         const item = row.assignment;
         if (!item) { flash('배정 정보를 아직 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'); void loadAssignments(); return; }
         if (busy) return;
         setBusy(row.key);
+        let retry = false;
         try {
-            const saved = await saveV7Assignment(item, build(item));
+            const saved = await saveV7Assignment(item, build(item), { allowGuideConflict });
             if (!mounted.current) return;
             setItems(prev => new Map(prev).set(saved.key, saved));
             flash(done);
         } catch (e: any) {
-            if (mounted.current) { flash(e?.message || '배정을 저장하지 못했습니다.'); void loadAssignments(); }
-        } finally { if (mounted.current) setBusy(''); }
+            if (mounted.current && !allowGuideConflict && confirmGuideConflict(e)) retry = true;
+            else if (mounted.current) { flash(e?.message || '배정을 저장하지 못했습니다.'); void loadAssignments(); }
+        } finally {
+            if (mounted.current) setBusy('');
+            if (retry) window.setTimeout(() => { void saveAssignment(row, build, done, true); }, 0);
+        }
     };
     const guideMenu = async (e: React.MouseEvent, row: V7Row) => {
         e.stopPropagation();
@@ -118,13 +123,8 @@ export function ReservationListV7(p: ReservationListV7Props) {
         const bookings = [...items.values()];
         const options: V7MenuItem[] = [
             { key: 'none', label: '배정 해제', muted: true, on: !row.guide, onPick: () => row.guide && void saveAssignment(row, item => withGuide(item, { id: '', name: '', phone: '' }), `${row.source.customerName} · 가이드 배정을 해제했어요`) },
-            ...(loaded?.guides || []).map(guide => {
-                const busyWith = guideAssignmentConflicts(bookings, guide, { id: row.source.id, source: row.source.type === 'quote_booking' ? 'quote_booking' : 'product', startDate: row.source.startDate, endDate: row.source.endDate })[0];
-                return { key: guide.id, label: guide.name, on: row.guide?.name === guide.name,
-                    sub: busyWith ? `일정 겹침 · ${busyWith.customerName || '다른 예약'} ${dot(String(busyWith.startDate || '').slice(5))}~` : '이 일정에 배정 가능', subTone: busyWith ? 'warn' as const : 'ok' as const,
-                    onPick: () => { if (busyWith && !window.confirm(`${guide.name} 가이드는 같은 기간에 ${busyWith.customerName || '다른 예약'} 일정이 있습니다. 그래도 배정할까요?`)) return;
-                        void saveAssignment(row, item => withGuide(item, selectResourceGuide(item.assignment.guide, guide)), `${row.source.customerName} · ${guide.name} 가이드를 배정했어요`); } };
-            }),
+            ...guideMenuItems(loaded?.guides || [], bookings, { id: row.source.id, source: row.source.type === 'quote_booking' ? 'quote_booking' : 'product', startDate: row.source.startDate, endDate: row.source.endDate }, row.guide?.name,
+                (guide, confirmed) => { void saveAssignment(row, item => withGuide(item, selectResourceGuide(item.assignment.guide, guide)), `${row.source.customerName} · ${guide.name} 가이드를 배정했어요`, confirmed); }),
         ];
         setMenu(menuAt(target, '가이드 선택', options, true));
     };
