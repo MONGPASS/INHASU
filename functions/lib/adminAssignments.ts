@@ -13,7 +13,14 @@ const quoteData = (value: unknown): Record<string, any> | null => {
 const flight = (value: unknown) => { const f = assignmentRecord(value); return { date: text(f.date), time: text(f.time), flight: text(f.flight) }; };
 const travelers = (value: unknown) => array(value).map(t => ({ name: text(t?.name ?? t?.nameKo), passportName: text(t?.passportName), birthdate: text(t?.birthdate ?? t?.birth), gender: text(t?.gender), phone: text(t?.phone) }));
 const GUIDE_FIELDS = ['id','name','phone','image','introduction','nameEn','role','languages','specialties'];
-const ACCOMMODATION_FIELDS = ['id','name','type','location','region','address','images','description','facilities','roomAmenities','sharedFacilities','bookingStatus','roomCount','occupancy'];
+// assignType(배정 구분)·adminMemo(예약메모)는 숙소 배정 시트 칸이다. adminMemo는 관리자 전용이라
+// 상품 예약에서는 고객 예약 조회가 그대로 내려 주는 daily_accommodations가 아니라 admin_operations.lodgeMemos에 둔다.
+const ACCOMMODATION_FIELDS = ['id','name','type','location','region','address','images','description','facilities','roomAmenities','sharedFacilities','bookingStatus','roomCount','occupancy','assignType','adminMemo'];
+const STORED_DAY_FIELDS = ACCOMMODATION_FIELDS.filter(key => key !== 'adminMemo');
+const lodgeMemos = (operations: unknown): Record<string, string> => {
+    const memos = assignmentRecord(assignmentRecord(operations).lodgeMemos);
+    return Object.fromEntries(Object.entries(memos).filter(([day, memo]) => /^\d+$/.test(day) && typeof memo === 'string' && memo));
+};
 const VEHICLE_RESOURCE_FIELDS = ['id','img','images','description','seats','luggage'];
 const selectedGuide = (value: unknown) => {
     const guide = assignmentRecord(value);
@@ -42,9 +49,11 @@ const vehicleResourcePatch = (vehicle: BookingAssignment['vehicle']) => vehicle.
     description: text(vehicle.resource.description), desc: text(vehicle.resource.description),
     seats: text(vehicle.resource.seats), luggage: text(vehicle.resource.luggage),
 } : null;
-const publicDays = (value: any) => parseArray(value).filter(d => d && typeof d === 'object').map(d => {
+const publicDays = (value: any, memos: Record<string, string> = {}) => parseArray(value).filter(d => d && typeof d === 'object').map(d => {
     const acc = assignmentRecord(d.accommodation), selected: Record<string, any> = {};
-    for (const key of ACCOMMODATION_FIELDS) if (own(acc,key)) selected[key] = acc[key];
+    for (const key of STORED_DAY_FIELDS) if (own(acc,key)) selected[key] = acc[key];
+    const memo = memos[String(Number(d.day))];
+    if (memo) selected.adminMemo = memo;
     return { day: Number(d.day), date: text(d.date), accommodation: selected };
 });
 async function version(source: AssignmentSource, row: any, schedule: AssignmentScheduleRead) {
@@ -62,10 +71,11 @@ export async function assignmentFromRow(source: AssignmentSource, row: any, read
         const contract = assignmentRecord(row.contract_data), guide = assignmentRecord(row.assigned_guide);
         return { key: assignmentKey(source, row.id), source, id: row.id, version: rowVersion, type: row.type, schedule: schedule.schedule,
             productName: row.product_name || '', customerName: row.customer_name || '', startDate: toTourDateKey(row.start_date), endDate: toTourDateKey(row.end_date),
-            status: row.status, depositStatus: row.deposit_status, travelers: row.travelers, reservationNumber: row.reservation_number,
+            status: row.status, depositStatus: row.deposit_status, travelers: row.travelers, reservationNumber: row.reservation_number, createdAt: text(row.created_at),
             accommodationsInitialized: row.daily_accommodations != null,
             contractData: { region: text(contract.region), category: text(contract.category), arrival: flight(contract.arrival), departure: flight(contract.departure), travelers: travelers(contract.travelers) },
-            assignment: { guide: selectedGuide(guide), vehicle: { ...readProductVehicle(row.admin_operations, contract), ...selectedVehicleResource(contract.vehicle) }, accommodations: publicDays(row.daily_accommodations) },
+            assignment: { guide: selectedGuide(guide), vehicle: { ...readProductVehicle(row.admin_operations, contract), ...selectedVehicleResource(contract.vehicle) },
+                accommodations: publicDays(row.daily_accommodations, lodgeMemos(row.admin_operations)), category: text(assignmentRecord(row.admin_operations).category) },
         };
     }
     const data = quoteData(row.data); if (!data) throw new Error('Invalid quote source');
@@ -73,10 +83,10 @@ export async function assignmentFromRow(source: AssignmentSource, row: any, read
     const assign = assignmentRecord(rec.booking?.assign), guide = assignmentRecord(assign.guide), vehicle = assignmentRecord(assign.vehicle);
     return { key: assignmentKey(source, row.id), source, id: row.id, version: rowVersion, type: 'quote_booking', schedule: schedule.schedule,
         productName: summary.productName, customerName: summary.customerName, startDate: toTourDateKey(summary.startDate), endDate: toTourDateKey(summary.endDate),
-        status: summary.status, depositStatus: summary.depositStatus, travelers: summary.totalPeople, reservationNumber: summary.reservationNumber,
+        status: summary.status, depositStatus: summary.depositStatus, travelers: summary.totalPeople, reservationNumber: summary.reservationNumber, createdAt: text(summary.createdAt),
         accommodationsInitialized: Array.isArray(assign.lodges),
         contractData: { ...summary.contractData, travelers: travelers(rec.booking?.travelers) },
-        assignment: { guide: selectedGuide(guide),
+        assignment: { guide: selectedGuide(guide), category: text(assign.category),
             vehicle: { type: text(vehicle.model ?? vehicle.type), phone: text(vehicle.phone ?? vehicle.driverPhone), ...selectedVehicleResource(vehicle) },
             accommodations: array(assign.lodges).map((l: any, i: number) => ({ day: l.day === undefined ? i + 1 : Number.isFinite(Number(l.day)) ? Number(l.day) : 0, date: text(l.date), accommodation: {
                 id: text(l.id), name: text(l.name), type: text(l.grade), location: text(l.region),
@@ -85,6 +95,7 @@ export async function assignmentFromRow(source: AssignmentSource, row: any, read
                 region: text(l.region),
                 images: array(l.imgs).length ? array(l.imgs) : l.img ? [l.img] : [], description: text(l.descCustom ?? l.desc), facilities: array(l.facilities),
                 bookingStatus: text(l.bookingStatus), roomCount: l.roomCount === '' || l.roomCount == null ? undefined : Number(l.roomCount), occupancy: text(l.occupancy ?? l.roomType),
+                ...(text(l.assignType) ? { assignType: text(l.assignType) } : {}), ...(text(l.adminMemo) ? { adminMemo: text(l.adminMemo) } : {}),
             } })),
         },
     };
@@ -93,7 +104,8 @@ export async function assignmentFromRow(source: AssignmentSource, row: any, read
 /** Only assignment fields cross this endpoint. It never accepts booking/status/contract/accounting patches. */
 export function validateBookingAssignment(value: unknown): BookingAssignment | null {
     const v = assignmentRecord(value);
-    if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(v).some(k => !['guide','vehicle','accommodations'].includes(k))) return null;
+    if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(v).some(k => !['guide','vehicle','accommodations','category'].includes(k))) return null;
+    if (v.category !== undefined && (typeof v.category !== 'string' || v.category.length > 100 || /[\u0000-\u001f]/.test(v.category))) return null;
     try { if (JSON.stringify(value).length > 2_000_000) return null; } catch { return null; }
     if (!v.guide || typeof v.guide !== 'object' || Array.isArray(v.guide) || !v.vehicle || typeof v.vehicle !== 'object' || Array.isArray(v.vehicle) || !Array.isArray(v.accommodations) || v.accommodations.length > 100) return null;
     const guide = assignmentRecord(v.guide), vehicle = assignmentRecord(v.vehicle);
@@ -127,12 +139,14 @@ export function validateBookingAssignment(value: unknown): BookingAssignment | n
         days.add(day.day);
         const acc = assignmentRecord(day.accommodation);
         if (!day.accommodation || Array.isArray(day.accommodation) || Object.keys(acc).some(k => !ACCOMMODATION_FIELDS.includes(k))) return null;
-        if (!['id','name','type','location','region','address','description','occupancy','bookingStatus'].every(k => validText(acc[k], k === 'description' ? 10000 : 500))) return null;
+        if (!['id','name','type','location','region','address','description','occupancy','bookingStatus','assignType'].every(k => validText(acc[k], k === 'description' ? 10000 : 500))) return null;
+        if (!validText(acc.adminMemo, 2000)) return null;
         if (!validList(acc.images, true) || !['facilities','roomAmenities','sharedFacilities'].every(k => validList(acc[k]))) return null;
         if (acc.roomCount !== undefined && (!Number.isInteger(acc.roomCount) || acc.roomCount < 0 || acc.roomCount > 10000)) return null;
     }
     return { guide: selectedGuide(guide), vehicle: { type: text(vehicle.type), phone: text(vehicle.phone),
-        ...(vehicle.resource !== undefined ? { resource: vehicle.resource } : {}) }, accommodations: v.accommodations };
+        ...(vehicle.resource !== undefined ? { resource: vehicle.resource } : {}) }, accommodations: v.accommodations,
+        ...(v.category !== undefined ? { category: v.category } : {}) };
 }
 
 export async function readAdminAssignments(db: any) {
@@ -171,12 +185,18 @@ export async function saveAdminAssignment(db: any, source: AssignmentSource, id:
             ...(resource ? { contractData: { ...assignmentRecord(row.contract_data), vehicle: { ...resource, type: assignment.vehicle.type, phone: assignment.vehicle.phone } } } : {}),
         });
         const guide = mergeSelectedGuide(row.assigned_guide, assignment.guide);
-        const oldDays = parseArray(row.daily_accommodations);
+        const oldDays = parseArray(row.daily_accommodations), oldMemos = lodgeMemos(row.admin_operations), memos: Record<string, string> = {};
         const days = assignment.accommodations.map(d => {
             const previous = oldDays.find((x: any) => x.day === d.day), old = assignmentRecord(previous?.accommodation);
             const same = d.accommodation.id ? d.accommodation.id === old.id : d.accommodation.name === old.name;
-            return { ...previous, ...d, accommodation: { ...old, ...(!same ? { image: '', img: '', amenities: [] } : {}), ...d.accommodation } };
+            const { adminMemo, ...stored } = d.accommodation as Record<string, any>;
+            const memo = own(d.accommodation, 'adminMemo') ? text(adminMemo) : oldMemos[String(d.day)] || '';
+            if (memo) memos[String(d.day)] = memo;
+            const { adminMemo: _legacyMemo, ...oldStored } = old;
+            return { ...previous, ...d, accommodation: { ...oldStored, ...(!same ? { image: '', img: '', amenities: [] } : {}), ...stored } };
         });
+        sync.operations.lodgeMemos = memos;
+        if (assignment.category !== undefined) sync.operations.category = assignment.category;
         result = await db.prepare(`UPDATE reservations SET assigned_guide=?,daily_accommodations=?,admin_operations=?,contract_data=?
             WHERE id=? AND assigned_guide IS ? AND daily_accommodations IS ? AND admin_operations IS ? AND contract_data IS ? AND start_date IS ? AND end_date IS ? AND status IS ?
                 AND document_content IS ? AND product_id IS ? AND itinerary_template_id IS ?${scheduleCas.sql}`)
@@ -194,10 +214,11 @@ export async function saveAdminAssignment(db: any, source: AssignmentSource, id:
                 representativePhotos: acc.images || [],
                 ...Object.fromEntries(['address','roomAmenities','sharedFacilities'].filter(key => own(acc,key)).map(key => [key,
                     key === 'address' ? text(acc[key]) : array(acc[key]).map(text).filter(Boolean).join('\n')])),
-                bookingStatus: acc.bookingStatus || '', roomCount: acc.roomCount ?? '', occupancy: acc.occupancy || '', roomType: acc.occupancy || '' };
+                bookingStatus: acc.bookingStatus || '', roomCount: acc.roomCount ?? '', occupancy: acc.occupancy || '', roomType: acc.occupancy || '',
+                ...Object.fromEntries(['assignType','adminMemo'].filter(key => own(acc,key)).map(key => [key, text(acc[key])])) };
         });
         const previousVehicle = assignmentRecord(old.vehicle), sameVehicle = text(previousVehicle.model ?? previousVehicle.type) === assignment.vehicle.type;
-        const updated = { ...rec, booking: { ...booking, assign: { ...old, guide: mergeSelectedGuide(old.guide, assignment.guide),
+        const updated = { ...rec, booking: { ...booking, assign: { ...old, ...(assignment.category !== undefined ? { category: assignment.category } : {}), guide: mergeSelectedGuide(old.guide, assignment.guide),
             vehicle: { ...previousVehicle, ...(!sameVehicle ? { id: '', image: '', img: '', images: [], imgs: [], description: '', desc: '', seats: '', luggage: '' } : {}),
                 ...(vehicleResourcePatch(assignment.vehicle) || {}), model: assignment.vehicle.type, type: assignment.vehicle.type, phone: assignment.vehicle.phone }, lodges } } };
         result = await db.prepare('UPDATE requests SET data=? WHERE id=? AND data IS ? AND status IS ?').bind(JSON.stringify(updated), id, row.data, row.status).run();

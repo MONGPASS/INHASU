@@ -54,17 +54,25 @@ const bookingFixture = source => ({
     },
 });
 
-function mount({ resources = async () => resourceFixture(), failPatch = false, items } = {}) {
+// 보드는 오늘 이후 투어만 보여 주므로 고정된 '오늘'(픽스처 출발일 전)에서 실행한다.
+const FIXTURE_TODAY = '2026-10-15T09:00:00';
+class FixtureDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [FIXTURE_TODAY])); }
+    static now() { return new Date(FIXTURE_TODAY).getTime(); }
+}
+function mount({ resources = async () => resourceFixture(), failPatch = false, items, view = 'card-view' } = {}) {
     const server = plain(items || [bookingFixture('product'), bookingFixture('quote_booking')]), requests = [], resourceCalls = [];
     const storage = new Map(), windowListeners = new Map(), documentListeners = new Map();
+    // 이 파일은 카드 보기의 편집 흐름을 검사한다. 보기 설정은 초안 저장소(storage)와 따로 둔다.
+    const VIEW_KEY = 'inhasu:accommodation-board:view';
     const module = { exports: {} };
     const listeners = map => ({ addEventListener(name, fn) { if (!map.has(name)) map.set(name, new Set()); map.get(name).add(fn); }, removeEventListener(name, fn) { map.get(name)?.delete(fn); } });
     const browser = { ...listeners(windowListeners), location: { search: '' }, confirm: () => true,
-        localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
+        localStorage: { getItem: key => key === VIEW_KEY ? view : storage.get(key) ?? null, setItem: (key, value) => { if (key === VIEW_KEY) view = value; else storage.set(key, value); }, removeItem: key => storage.delete(key) },
         setTimeout: () => 1, clearTimeout() {},
     };
     const response = (body, status = 200) => ({ ok: status < 400, status, json: async () => plain(body) });
-    const context = vm.createContext({ module, exports: module.exports, console, AbortController, URLSearchParams, crypto: { randomUUID },
+    const context = vm.createContext({ module, exports: module.exports, console, AbortController, URLSearchParams, crypto: { randomUUID }, Date: FixtureDate,
         window: browser, document: { ...listeners(documentListeners), getElementById: () => null },
         Element: class Element {}, setTimeout: () => 1, clearTimeout() {},
         api: { hotels: { list: async () => { throw new Error('공통 자원 대신 이전 호텔 목록을 조회했습니다.'); } } },
@@ -473,4 +481,31 @@ test('당일 투어와 여행 기간이 없는 예약은 잘못된 0박 확정 �
     assert.equal(pending.button('여행 날짜에 맞추기').props.disabled, true);
     assert.ok(nodes(pending.tree).some(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜' && node.props.value === '2026-11-01'), '저장된 수배 날짜는 유지');
     pending.unmount();
+});
+
+test('시트 보기: 오늘 이후 투어만 보여 주고 분류·배정 구분·예약메모를 모두 저장으로 보낸다', async () => {
+    const past = { ...bookingFixture('product'), key: 'product:past-tour', id: 'past-tour', customerName: '지난 고객', startDate: '2026-09-01', endDate: '2026-09-03' };
+    const h = mount({ view: 'sheet-view', items: [bookingFixture('product'), bookingFixture('quote_booking'), past] });
+    await h.settle();
+    // 시트는 별도 컴포넌트라 직접 그려서 칸을 찾는다.
+    const sheetEl = () => { const el = nodes(h.tree).find(node => typeof node.type === 'function' && Array.isArray(node.props?.tours)); assert.ok(el, '시트 보기'); return el; };
+    const field = label => { const node = nodes(sheetEl().type(sheetEl().props)).find(n => n.props?.['aria-label'] === label); assert.ok(node, label); return node; };
+    assert.deepEqual(plain(sheetEl().props.tours.map(t => t.customerName)).sort(), ['견적 고객', '상품 고객'], '지난 투어는 목록에 없다');
+    assert.ok(!nodes(h.tree).some(node => node.props?.id === 'acc-row-product:same / #?'), '시트 보기에서는 카드 목록을 그리지 않는다');
+
+    field('상품 고객 분류').props.onChange({ target: { value: '골프투어' } }); h.render();
+    field('상품 고객 1박 배정 구분').props.onChange({ target: { value: '2인1실' } }); h.render();
+    field('상품 고객 1박 방수').props.onChange({ target: { value: '골프오후' } }); h.render();
+    field('상품 고객 1박 예약메모').props.onChange({ target: { value: '늦은 체크인' } }); h.render();
+    await h.settle();
+    assert.equal(h.requests.filter(r => r.options.method === 'PATCH').length, 0, '저장 전에는 서버를 바꾸지 않는다');
+    h.button('모두 저장').props.onClick(); await h.settle(); await h.settle();
+    const patches = h.requests.filter(r => r.options.method === 'PATCH');
+    assert.equal(patches.length, 1, '바꾼 예약만 저장한다');
+    assert.match(patches[0].url, /\/api\/admin\/assignments\/product\//);
+    assert.equal(patches[0].body.assignment.category, '골프투어');
+    const night = patches[0].body.assignment.accommodations[0];
+    assert.deepEqual(plain([night.day, night.date, night.accommodation.name, night.accommodation.assignType, night.accommodation.occupancy, night.accommodation.adminMemo]),
+        [1, '2026-11-01', '이전 숙소', '2인1실', '골프오후', '늦은 체크인']);
+    h.unmount();
 });

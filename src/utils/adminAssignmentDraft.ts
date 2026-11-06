@@ -20,16 +20,18 @@ export function editorAssignment(row: any): BookingAssignment {
                     key === 'img' ? safeImage(resource[key]) : key === 'images' ? safeImages(resource[key]) : resource[key]])) } : {}) },
         accommodations: (row.dailyAccommodations || []).map((d: any) => {
             const acc = assignmentRecord(d.accommodation), next: Record<string, any> = {};
-            for (const k of ['id','name','type','location','region','address','images','description','facilities','roomAmenities','sharedFacilities','roomCount','occupancy','bookingStatus']) if (acc[k] !== undefined) next[k] = Array.isArray(acc[k]) ? [...acc[k]] : acc[k];
+            for (const k of ['id','name','type','location','region','address','images','description','facilities','roomAmenities','sharedFacilities','roomCount','occupancy','bookingStatus','assignType','adminMemo']) if (acc[k] !== undefined) next[k] = Array.isArray(acc[k]) ? [...acc[k]] : acc[k];
             // Recovery copies never retain file bytes or temporary image URLs.
             if (Array.isArray(next.images)) next.images = safeImages(next.images);
             return { day: d.day, date: d.date || '', accommodation: next };
-        }) };
+        }),
+        // 숙소 배정 시트의 분류(G열). 화면이 값을 받은 적이 없으면 보내지 않아 기존 값을 그대로 둔다.
+        ...(typeof row.assignmentCategory === 'string' ? { category: row.assignmentCategory } : {}) };
 }
 export function writeAssignmentDraft(storage: Store, scope: AssignmentDraftScope, baseVersion: string, assignment: BookingAssignment): AssignmentDraftResult {
     try {
         const revision = crypto.randomUUID();
-        const safe = editorAssignment({ assignedGuide: assignment.guide, contractData: { vehicle: assignment.vehicle }, dailyAccommodations: assignment.accommodations });
+        const safe = editorAssignment({ assignedGuide: assignment.guide, contractData: { vehicle: assignment.vehicle }, dailyAccommodations: assignment.accommodations, assignmentCategory: assignment.category });
         storage.setItem(assignmentDraftKey(scope), JSON.stringify({ scope, baseVersion, assignment: safe, revision, savedAt: new Date().toISOString() }));
         return { ok: true, revision };
     } catch { return error(); }
@@ -40,7 +42,7 @@ export function readAssignmentDraft(storage: Store, scope: AssignmentDraftScope,
         const d = JSON.parse(raw), a = d?.assignment;
         if (d?.scope?.userId !== scope.userId || d.scope.source !== scope.source || d.scope.id !== scope.id || typeof d.baseVersion !== 'string' || typeof d.revision !== 'string' ||
             !a || typeof a !== 'object' || !a.guide || !a.vehicle || !Array.isArray(a.accommodations)) return { error: '배정 초안 형식이 잘못되어 자동 복원하지 않았습니다.' };
-        return { draft: { ...d, assignment: editorAssignment({ assignedGuide: a.guide, contractData: { vehicle: a.vehicle }, dailyAccommodations: a.accommodations }) }, conflict: d.baseVersion !== baseVersion };
+        return { draft: { ...d, assignment: editorAssignment({ assignedGuide: a.guide, contractData: { vehicle: a.vehicle }, dailyAccommodations: a.accommodations, assignmentCategory: a.category }) }, conflict: d.baseVersion !== baseVersion };
     } catch { return { error: '배정 초안을 읽지 못했습니다. 저장소 설정을 확인해 주세요.' }; }
 }
 export function discardAssignmentDraft(storage: Store, scope: AssignmentDraftScope, ownedRevision?: string): AssignmentDraftResult {

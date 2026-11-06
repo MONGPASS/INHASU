@@ -17,7 +17,8 @@ export type ReceiptStatus = 'not_requested' | 'pending' | 'issued' | 'info_missi
 /** 예약 관리 v7의 운영 선택지. 저장 값은 functions/api/reservations.ts가 같은 목록으로 검증한다. */
 export const SERVICE_TYPE_OPTIONS = ['풀패키지', '일정+차량', '차량만', '가이드만', '숙소만', '기타'];
 export const AIRFARE_OPTIONS = ['포함', '불포함', '개별'];
-export const CATEGORY_OPTIONS = ['개인', '가족여행', '학회/협회', '학교행사', '정부행사', '여행사', '산악회', '우정여행', '승마투어', '골프투어'];
+// 숙소 배정 시트(G열 분류)와 같은 목록. 기존 저장 값은 그대로 두고 시트에만 있던 분류를 더했다.
+export const CATEGORY_OPTIONS = ['개인', '가족여행', '학회/협회', '학교행사', '정부행사', '여행사', '산악회', '우정여행', '승마투어', '골프투어', '종교행사', '기타행사', '출장/세미나'];
 export const JOINING_LABELS: Record<ReservationOperations['joining'], string> = { join: '체크(Yes)', private: '체크(No)', undecided: '미정' };
 export const RECEIPT_LABELS: Record<ReceiptStatus, string> = {
     pending: '예정', issued: '완료', not_requested: '해당x', info_missing: '정보작성x', tax_invoice_pending: '전자세금계산서발행', tax_invoice_issued: '전자세금계산서완료',

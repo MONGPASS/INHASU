@@ -355,6 +355,13 @@ const BOOKING_STATUS_KO: Record<string, { label: string; bg: string; fg: string 
     'Имэйл илгээсэн': { label: '메일 발송됨', bg: '#E8F2FF', fg: '#0B6FE0' },
     'Хариу ирсэн': { label: '회신 수신', bg: '#FEF6E7', fg: '#B45309' },
     'Баталгаажсан': { label: '수배 확정', bg: '#E4F7EC', fg: '#0F7A43' },
+    '예약요청': { label: '예약요청', bg: '#FEF6E7', fg: '#B45309' },
+    '예약완료': { label: '예약완료', bg: '#E4F7EC', fg: '#0F7A43' },
+    '취소요청': { label: '취소요청', bg: '#FDECE3', fg: '#C2410C' },
+    '취소완료': { label: '취소완료', bg: '#EEF1F5', fg: '#5F636B' },
+    '변경요청': { label: '변경요청', bg: '#FEF6E7', fg: '#B45309' },
+    '변경완료': { label: '변경완료', bg: '#E4F7EC', fg: '#0F7A43' },
+    '배정X': { label: '배정X', bg: '#FDECEA', fg: '#D93025' },
 };
 
 const StatusDropdown = ({ status, onChange, disabled = false }: { status: string, onChange: (s: Reservation['status']) => void, disabled?: boolean }) => {

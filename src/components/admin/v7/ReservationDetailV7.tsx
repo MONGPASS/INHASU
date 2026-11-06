@@ -44,7 +44,7 @@ const LOG_TAGS: Record<HistoryKind, { tag: string; tone: 'gray' | 'blue' | 'mint
     memo: { tag: '메모', tone: 'gray' }, change: { tag: '변경', tone: 'amber' },
 };
 /** 숙소 등급 선택지(디자인 v7). 저장 값은 배정 숙소의 type(등급) 칸이다. */
-const LODGE_GRADES = ['고급 게르', '일반 게르', '5성급 호텔', '4성급 호텔', '3성급 호텔', '게스트하우스', '캠핑'];
+const LODGE_GRADES = ['고급 게르', '디럭스 게르', '일반 게르', '5성급 호텔', '4성급 호텔', '3성급 호텔', '게스트하우스', '캠핑'];
 const PRIVATE_LABEL = /연락처|전화|휴대|이메일|메일|여권|생년월일|생일/;
 const mask = (value: string, keep: number) => value.length <= keep ? value : value.slice(0, keep) + '*'.repeat(value.length - keep);
 const maskFact = (label: string, value: string, on: boolean) => !on || !value || !PRIVATE_LABEL.test(label) ? value
