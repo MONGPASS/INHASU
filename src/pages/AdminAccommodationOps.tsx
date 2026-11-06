@@ -13,6 +13,8 @@ import { Icon } from '../components/admin/console/Icon';
 import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import './AdminAccommodationOps.css';
 import { LODGE_BOOKING_STATUSES, isLodgeBookingConfirmed, lodgeBookingLabel } from '../utils/lodgeBookingStatus';
+import { LODGE_GRADE_OPTIONS, ROOM_PLAN_OPTIONS, isUpcomingTour, tourSerials } from '../utils/accommodationSheet';
+import { AccommodationSheet } from '../components/admin/accommodation/AccommodationSheet';
 
 /**
  * 숙소 배정 · 현지 운영 — Admin Dashboard v3 "05-1" 디자인(한국어).
@@ -22,10 +24,14 @@ import { LODGE_BOOKING_STATUSES, isLodgeBookingConfirmed, lodgeBookingLabel } fr
 
 // 숙소 예약 상태 정본은 utils/lodgeBookingStatus.ts (보드·고객 상세·예약 상세 공용)
 type BookingStatus = string;
-const OCCUPANCY_OPTIONS = ['', '1 хүн/өрөө', '2 хүн/өрөө', '3 хүн/өрөө', '4 хүн/өрөө', '5 хүн/өрөө', '6 хүн/өрөө'];
+const OCCUPANCY_OPTIONS = ['', ...ROOM_PLAN_OPTIONS.map(o => o.value)];
 // 숙소 등급 — 선택명은 한국어로 유지(요청)
 // 저장 값은 그대로 쓴다(기존 '4성급호텔' 표기 유지). 목록에 없는 기존 값은 선택창이 따로 보여 준다.
-const GRADE_OPTIONS = ['', '고급 게르', '디럭스 게르', '일반 게르', '5성급 호텔', '4성급호텔', '3성급 호텔', '목조하우스', '게스트하우스'];
+const GRADE_OPTIONS = ['', ...LODGE_GRADE_OPTIONS];
+// 시트 보기(숙소 배정 스프레드시트와 같은 열)와 카드 보기. 고른 보기는 이 브라우저에만 기억한다.
+type BoardView = 'sheet-view' | 'card-view';
+const VIEW_KEY = 'inhasu:accommodation-board:view';
+const storedView = (): BoardView => { try { return window.localStorage.getItem(VIEW_KEY) === 'card-view' ? 'card-view' : 'sheet-view'; } catch { return 'sheet-view'; } };
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const occupancyLabel = (value: string) => value ? value.replace(/^(\d+) хүн\/өрөө$/, '$1인 / 객실') : '미정';
 type BoardStatus = '미배정' | '진행 중' | '배정 완료';
@@ -59,6 +65,8 @@ interface Reservation {
     reservationNumber?: string | null;
     createdAt?: string;
     dailyAccommodations?: DailyAcc[];
+    /** 숙소 배정 시트의 분류(G열). 서버가 보낸 값이 있을 때만 저장 요청에 포함한다. */
+    assignmentCategory?: string;
     schedule?: AccommodationSchedule;
     assignedGuide?: AssignmentGuide;
     contractData?: {
@@ -142,6 +150,7 @@ function fromApi(item: any): Reservation {
     // 견적 예약은 저장만 해도 빈 배열이 들어가므로, 고객 일정이 있으면 빈 배열도 '아직 배정 전'으로 보고 일차별 행을 펼친다(수정·저장 전에는 서버를 바꾸지 않음).
     const unassigned = item.accommodationsInitialized === false || (!item.assignment.accommodations.length && !!item.schedule?.days?.length);
     return { ...item, bookingId: item.id, id: item.key, assignedGuide: item.assignment.guide,
+        assignmentCategory: typeof item.assignment.category === 'string' ? item.assignment.category : undefined,
         dailyAccommodations: unassigned ? undefined : item.assignment.accommodations, contractData: { ...item.contractData, vehicle: item.assignment.vehicle } };
 }
 async function assignmentRequest(path = '', options: RequestInit = {}) {
@@ -181,6 +190,11 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     const [region, setRegion] = useState('all');
     const [statusFilter, setStatusFilter] = useState<'all' | BoardStatus>('all');
     const [scope, setScope] = useState<'confirmed' | 'all'>('confirmed');
+    const [view, setViewState] = useState<BoardView>(() => new URLSearchParams(window.location.search).get('open') ? 'card-view' : storedView());
+    const setView = (next: BoardView) => { setViewState(next); try { window.localStorage.setItem(VIEW_KEY, next); } catch { /* 보기 기억은 편의 기능 */ } };
+    // 지난 투어는 숨기되, 예약 상세의 링크로 직접 연 예약은 보여 준다.
+    const [pinned, setPinned] = useState<Set<string>>(new Set());
+    const [savingAll, setSavingAll] = useState(false);
     const [resources, setResources] = useState<RegisteredAssignmentResources>({ guides: [], lodges: [], vehicles: [], warnings: [] });
     const [resourcesLoading, setResourcesLoading] = useState(false);
     const resourceGeneration = useRef(0), resourceController = useRef<AbortController | null>(null);
@@ -257,8 +271,11 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     const lodgeById = useMemo(() => new Map(resources.lodges.map(lodge => [lodge.id, lodge])), [resources.lodges]);
     const lodgeRegions = useMemo(() => [...new Set(resources.lodges.map(lodge => (lodge.region || lodge.location).trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko-KR')), [resources.lodges]);
 
-    const base = useMemo(() => reservations.filter(r => scope === 'all' ? true
-        : (CONFIRMED_STATUSES.includes(r.status || '') || r.depositStatus === 'paid' || r.type === 'quote')), [reservations, scope]);
+    // 오늘 이후(오늘 포함) 진행되는 투어만 숙소 배정 대상으로 보여 준다. 복구할 초안이 있는 예약은 정리할 수 있게 남긴다.
+    const today = todayKey();
+    const base = useMemo(() => reservations.filter(r => (isUpcomingTour(r, today) || pinned.has(r.id) || !!pendingDrafts[r.id]) && (scope === 'all' ? true
+        : (CONFIRMED_STATUSES.includes(r.status || '') || r.depositStatus === 'paid' || r.type === 'quote'))), [reservations, scope, pinned, today, pendingDrafts]);
+    const serials = useMemo(() => tourSerials(reservations), [reservations]);
     /** 연도 막대에 표시할 월별 건수 + 이동 가능한 연도 범위 */
     const monthStats = useMemo(() => {
         const perMonth = new Map<string, number>();
@@ -329,6 +346,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         const target = reservations.find(x => x.bookingId === id && x.source === source);
         if (!target) return;
         openedFromUrl.current = true;
+        setPinned(prev => new Set(prev).add(target.id));
         // 확정 전 예약이면 기본 필터(확정 예약만)에 걸려 안 보이므로 전체 보기로 전환
         if (!(CONFIRMED_STATUSES.includes(target.status || '') || target.depositStatus === 'paid' || target.type === 'quote')) setScope('all');
         openRow(target);
@@ -372,7 +390,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         const pending = pendingRef.current[row.id]; if (!pending || savingRef.current) return;
         if (restore) {
             const a = pending.draft.assignment;
-            setReservations(prev => prev.map(r => r.id === row.id ? { ...r, assignedGuide: a.guide,
+            setReservations(prev => prev.map(r => r.id === row.id ? { ...r, assignedGuide: a.guide, assignmentCategory: a.category ?? r.assignmentCategory,
                 dailyAccommodations: a.accommodations, contractData: { ...r.contractData, vehicle: a.vehicle } } : r));
             markDirty(row.id);
         } else {
@@ -398,9 +416,15 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
-            const rows = (r.dailyAccommodations || []).map((d, i) => i === idx ? { ...d, accommodation: { ...d.accommodation, ...patch } } : d);
+            const rows = (r.dailyAccommodations ?? initialAccommodationRows(r)).map((d, i) => i === idx ? { ...d, accommodation: { ...d.accommodation, ...patch } } : d);
             return { ...r, dailyAccommodations: rows };
         }));
+        setMaterialized(prev => prev.has(rId) ? prev : new Set(prev).add(rId));
+        markDirty(rId);
+    };
+    const patchCategory = (rId: string, category: string) => {
+        if (savingRef.current || pendingRef.current[rId]) return;
+        setReservations(prev => prev.map(r => r.id === rId ? { ...r, assignmentCategory: category } : r));
         markDirty(rId);
     };
     // 일차(번호)·날짜 직접 편집
@@ -511,6 +535,21 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         }
     };
 
+    // 시트에서 여러 예약을 고친 뒤 한 번에 저장한다. 예약마다 버전을 확인하며 하나라도 실패하면 거기서 멈춘다.
+    const saveAll = async () => {
+        if (savingRef.current) return;
+        setSavingAll(true);
+        try {
+            for (const id of [...dirtyRef.current]) {
+                if (pendingRef.current[id]) continue;
+                const row = rowsRef.current.find(r => r.id === id);
+                if (!row) continue;
+                await save(row);
+                if (!mounted.current || dirtyRef.current.has(id)) break;
+            }
+        } finally { if (mounted.current) setSavingAll(false); }
+    };
+
     // 저장 전 편집과 브라우저 초안을 버리고 마지막으로 받은 서버 배정으로 되돌린다. 서버는 바꾸지 않는다.
     const resetRow = (r: Reservation) => {
         const saved = savedRows.current.get(r.id);
@@ -573,6 +612,10 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                     <option value="all">전체 지역</option>
                     {regionOptions.map(rg => <option key={rg} value={rg}>{rg}</option>)}
                 </select>
+                <span className="lo-view-toggle" role="group" aria-label="보기 방식">
+                    <button type="button" aria-pressed={view === 'sheet-view'} className={view === 'sheet-view' ? 'is-on' : ''} onClick={() => setView('sheet-view')}>시트</button>
+                    <button type="button" aria-pressed={view === 'card-view'} className={view === 'card-view' ? 'is-on' : ''} onClick={() => setView('card-view')}>카드</button>
+                </span>
                 {filtersOn && <button type="button" className="lo-reset" onClick={resetFilters}>필터 초기화</button>}
                 <span className="lo-count">보이는 예약 <b>{counts.total}</b> · 숙소 확정 <b>{counts.done}</b> · 확인 필요 <b className="is-warn">{counts.pending}</b></span>
             </div>
@@ -603,7 +646,24 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                 </div></div>
             </div>
 
-            <section className="lo-table" aria-label="숙소 배정 예약 목록">
+            {view === 'sheet-view' && <>
+                {dirty.size > 0 && (
+                    <div className="lo-sheet-savebar" role="status">
+                        <span>저장하지 않은 예약 <b>{dirty.size}</b>팀 · 변경 내용은 브라우저 초안으로도 보관돼요.</span>
+                        <button type="button" className="lo-save" disabled={!!savingId || savingAll} onClick={() => void saveAll()}>
+                            <DashboardIcon name="lc-check" size={15} />{savingAll ? '저장하는 중…' : '모두 저장'}
+                        </button>
+                    </div>
+                )}
+                {loading ? <p className="lo-empty">예약을 불러오고 있어요…</p>
+                    : filtered.length === 0 ? <div className="lo-empty"><p>오늘 이후 진행하는 투어 중 조건에 맞는 예약이 없어요.</p>{filtersOn && <button type="button" onClick={resetFilters}>필터 초기화</button>}</div>
+                    : <AccommodationSheet tours={filtered} rowsOf={r => (r as Reservation).dailyAccommodations ?? initialAccommodationRows(r as Reservation)} regionOf={r => regionOf(r as Reservation)}
+                        serials={serials} lodges={resources.lodges} lodgeRegions={lodgeRegions} resourcesLoading={resourcesLoading} dirty={dirty} pending={pendingDrafts} savingId={savingId}
+                        onPatch={patchDay} onCategory={patchCategory}
+                        onSave={id => { const row = rowsRef.current.find(r => r.id === id); if (row) void save(row); }}
+                        onResolveDraft={(id, restore) => { const row = rowsRef.current.find(r => r.id === id); if (row) resolveDraft(row, restore); }} />}
+            </>}
+            {view === 'card-view' && <section className="lo-table" aria-label="숙소 배정 예약 목록">
                 <div className="lo-head" aria-hidden="true">
                     <span>고객</span><span>여행 일정</span><span>숙소</span><span>배정 진행</span><span>상태</span><span />
                 </div>
@@ -913,7 +973,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                         </React.Fragment>
                     );
                 })}
-            </section>
+            </section>}
             </div>
         </AdminLayout>
     );

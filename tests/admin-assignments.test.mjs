@@ -355,3 +355,61 @@ test('선택 snapshot의 임의 필드·대용량·실행 URL·인증정보 URL�
     }
     assert.deepEqual(f.raw.prepare('SELECT assigned_guide,contract_data,daily_accommodations FROM reservations WHERE id=?').get('same-id'), before);
 });
+
+test('숙소 배정 시트: 분류·배정 구분·예약메모를 저장하고 예약메모는 고객 조회에 내보내지 않는다', async t => {
+    const f = await fixture(t);
+    const items = await f.list(), product = items.find(i => i.key === 'product:same-id'), quote = items.find(i => i.key === 'quote_booking:same-id');
+    assert.equal(typeof product.createdAt, 'string'); assert.equal(product.assignment.category, '');
+    // 상품: 분류는 운영 정보, 예약메모는 운영 정보의 lodgeMemos에만 저장한다.
+    const productAssignment = { ...product.assignment, category: '학회/협회', accommodations: [{ day: 1, date: '2026-10-20', accommodation: { ...product.assignment.accommodations[0].accommodation, assignType: '2인1실', occupancy: '골프오전', adminMemo: 'PRIVATE-LODGE-MEMO' } }] };
+    let response = await f.request('/assignments/product/same-id', { method: 'PATCH', body: { expectedVersion: product.version, assignment: productAssignment } });
+    assert.equal(response.status, 200);
+    const savedProduct = (await response.json()).item, savedNight = savedProduct.assignment.accommodations[0].accommodation;
+    assert.equal(savedProduct.assignment.category, '학회/협회');
+    assert.deepEqual([savedNight.assignType, savedNight.occupancy, savedNight.adminMemo], ['2인1실', '골프오전', 'PRIVATE-LODGE-MEMO']);
+    const row = f.raw.prepare('SELECT daily_accommodations, admin_operations FROM reservations WHERE id=?').get('same-id');
+    assert.ok(!row.daily_accommodations.includes('PRIVATE-LODGE-MEMO'), '고객 예약 조회가 읽는 숙박 행에는 메모가 없다');
+    const ops = JSON.parse(row.admin_operations);
+    assert.equal(ops.category, '학회/협회'); assert.deepEqual(ops.lodgeMemos, { 1: 'PRIVATE-LODGE-MEMO' }); assert.equal(ops.opsNote, 'PRIVATE-NOTE', '다른 운영 정보는 보존');
+    const member = await f.request('/reservations/same-id', { role: 'member' });
+    assert.equal(member.status, 200); assert.ok(!(await member.text()).includes('PRIVATE-LODGE-MEMO'));
+    // 메모 칸·분류를 보내지 않는 다른 화면의 저장은 기존 메모·분류를 지우지 않는다.
+    const { adminMemo, ...withoutMemo } = savedNight;
+    response = await f.request('/assignments/product/same-id', { method: 'PATCH', body: { expectedVersion: savedProduct.version, assignment: { guide: savedProduct.assignment.guide, vehicle: savedProduct.assignment.vehicle, accommodations: [{ ...savedProduct.assignment.accommodations[0], accommodation: withoutMemo }] } } });
+    assert.equal(response.status, 200);
+    const kept = JSON.parse(f.raw.prepare('SELECT admin_operations FROM reservations WHERE id=?').get('same-id').admin_operations);
+    assert.deepEqual(kept.lodgeMemos, { 1: 'PRIVATE-LODGE-MEMO' }); assert.equal(kept.category, '학회/협회');
+
+    // 견적: 분류는 booking.assign.category, 배정 구분·메모는 숙박 객체. 고객 링크는 허용 목록만 내려 준다.
+    const quoteNight = quote.assignment.accommodations[0];
+    const quoteAssignment = { ...quote.assignment, category: '가족여행', accommodations: [{ ...quoteNight, accommodation: { ...quoteNight.accommodation, assignType: '이용x/개별', adminMemo: 'PRIVATE-QUOTE-MEMO', bookingStatus: '변경요청' } }] };
+    response = await f.request('/assignments/quote_booking/same-id', { method: 'PATCH', body: { expectedVersion: quote.version, assignment: quoteAssignment } });
+    assert.equal(response.status, 200);
+    const savedQuote = (await response.json()).item;
+    assert.equal(savedQuote.assignment.category, '가족여행');
+    assert.equal(savedQuote.assignment.accommodations[0].accommodation.adminMemo, 'PRIVATE-QUOTE-MEMO');
+    assert.equal(savedQuote.assignment.accommodations[0].accommodation.assignType, '이용x/개별');
+    const data = JSON.parse(f.raw.prepare('SELECT data FROM requests WHERE id=?').get('same-id').data);
+    assert.equal(data.booking.assign.category, '가족여행'); assert.equal(data.booking.assign.lodges[0].tags, '샤워 가능', '같은 숙소의 기존 정보 보존');
+    const publicQuote = await getPublicQuote({ request: new Request('https://fixture.invalid/api/my/PRIVATE-TOKEN-FIXTURE', { headers: { cookie: 'auth_session=session-admin' } }), env: { DB: f.DB }, params: { token: 'PRIVATE-TOKEN-FIXTURE' } });
+    assert.equal(publicQuote.status, 200); assert.ok(!(await publicQuote.text()).includes('PRIVATE-QUOTE-MEMO'));
+
+    // 잘못된 분류·메모는 거절한다.
+    const longMemo = { ...savedQuote.assignment.accommodations[0], accommodation: { ...savedQuote.assignment.accommodations[0].accommodation, adminMemo: 'x'.repeat(2001) } };
+    for (const bad of [{ ...savedQuote.assignment, category: 7 }, { ...savedQuote.assignment, category: 'x'.repeat(101) }, { ...savedQuote.assignment, accommodations: [longMemo] }]) {
+        assert.equal((await f.request('/assignments/quote_booking/same-id', { method: 'PATCH', body: { expectedVersion: savedQuote.version, assignment: bad } })).status, 400);
+    }
+});
+
+test('배정 초안은 분류·배정 구분·예약메모를 함께 보관하고 받은 적 없는 분류는 보내지 않는다', () => {
+    const row = { assignedGuide: {}, contractData: { vehicle: {} }, assignmentCategory: '골프투어', dailyAccommodations: [{ day: 1, date: '2026-12-01', accommodation: { name: '숙소', assignType: '1인1실', adminMemo: '조식 포함' } }] };
+    const assignment = editorAssignment(row);
+    assert.equal(assignment.category, '골프투어');
+    assert.deepEqual(assignment.accommodations[0].accommodation, { name: '숙소', assignType: '1인1실', adminMemo: '조식 포함' });
+    assert.equal(Object.hasOwn(editorAssignment({ ...row, assignmentCategory: undefined }), 'category'), false);
+    const store = new Map(), storage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: k => store.delete(k) };
+    const scope = { userId: 'admin', source: 'product', id: 'sheet-draft' };
+    assert.equal(writeAssignmentDraft(storage, scope, 'v1', assignment).ok, true);
+    const restored = readAssignmentDraft(storage, scope, 'v1').draft.assignment;
+    assert.equal(restored.category, '골프투어'); assert.equal(restored.accommodations[0].accommodation.adminMemo, '조식 포함');
+});

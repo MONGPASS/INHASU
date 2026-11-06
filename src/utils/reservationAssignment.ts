@@ -61,7 +61,11 @@ export interface AssignmentAccommodation {
     day: number; date?: string;
     accommodation: { id?: string; name?: string; type?: string; location?: string; region?: string; address?: string;
         images?: string[]; description?: string; facilities?: string[]; roomAmenities?: string[]; sharedFacilities?: string[];
-        roomCount?: number; occupancy?: string; bookingStatus?: string; [key: string]: unknown };
+        roomCount?: number; occupancy?: string; bookingStatus?: string;
+        /** 숙소 배정 시트 P열(배정 구분) */ assignType?: string;
+        /** 숙소 배정 시트 S열(예약메모). 관리자 전용 — 고객 응답에 넣지 않는다 */ adminMemo?: string;
+        [key: string]: unknown };
 }
-export interface BookingAssignment { guide: AssignmentGuide; vehicle: AssignmentVehicle; accommodations: AssignmentAccommodation[] }
+/** category: 숙소 배정 시트 G열(분류). 보내지 않으면 기존 값을 바꾸지 않는다. */
+export interface BookingAssignment { guide: AssignmentGuide; vehicle: AssignmentVehicle; accommodations: AssignmentAccommodation[]; category?: string }
 export const assignmentKey = (source: AssignmentSource, id: string) => `${source}:${id}`;
