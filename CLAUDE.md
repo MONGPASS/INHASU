@@ -57,7 +57,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 ### 3.7 API 권한
 전역 인증 미들웨어가 없다. 사이트 API의 쓰기 라우트에는 `requireAdmin`(`functions/lib/adminAuth.ts`)을 반드시 붙일 것. 견적 API는 `x-admin-token` 헤더를 `env.ADMIN_TOKEN`과 비교한다(공유 비밀번호 하나).
 
-견적 비공개 첨부 `/api/file/*`도 `x-admin-token`을 지원한다. 기존 `?token=` 다운로드 링크는 호환을 위해 유지하며, 응답은 `private, no-store`·`nosniff`다. 새 호출은 헤더 인증을 사용한다. 고객 링크 `/api/my/:token`의 여행자 목록과 서명 snapshot 모두 연락처·생년월일·여권번호를 마스킹하고, 계약 증빙 원본은 DB에 보존한다.
+견적 비공개 첨부 `/api/file/*`도 `x-admin-token`을 지원한다. 기존 `?token=` 다운로드 링크는 호환을 위해 유지하며, 응답은 `private, no-store`·`nosniff`다. 새 호출은 헤더 인증을 사용한다. 고객 링크 `/api/my/:token`의 여행자 목록과 서명 snapshot 모두 연락처·생년월일·여권번호를 마스킹하고, 계약 증빙 원본은 DB에 보존한다. 링크만 가진 열람 전용 응답에는 여행자 목록·서명 snapshot 자체를 넣지 않는다.
 
 ### 3.8 그 밖의 함정
 - `categories` 테이블에는 `updated_at`/`created_at`이 없다 — 시간 기준 정렬/조회 금지.
@@ -76,7 +76,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 페이지 파일(`src/pages/*`)은 `useIsDesktop()`으로 분기만 하고, 화면은 `*-desktop` / `*-mobile` 폴더에 있다. 스타일은 인라인 `style` + `MW` 토큰, 폰트는 **전부 Pretendard**(오너 지정, CDN 동적 서브셋 — `index.html`과 견적 페이지가 같은 jsDelivr 주소를 쓴다). 다른 웹폰트를 추가하지 말 것(아이콘용 Material Symbols만 예외). `MW_FONT_EN`은 `MW_FONT`와 같은 값이다.
 - 모바일 공통: `src/components/mobile/` — `MobileShell`(헤더·검색·푸터·하단 탭), `mobileUi.tsx`, `mobileTheme.ts`. 시트·드로어에는 `data-mw-overlay`, 하단 액션 바 화면에는 `data-mw-actionbar`(플로팅 상담 버튼 숨김, `index.css`).
 - 리디자인되지 않은 옛 화면(후기/동행 작성, 채팅, 견적 상세 `/estimate/:id`, 문서 출력 일부)은 Tailwind + 틸 `#0f766e` 스타일 그대로. 옛 디자인 가이드는 `docs/design-system/`(일본어 사이트 시절 문서 — 카피·통화 규칙은 무시).
-- 고객 로그인은 Google OAuth뿐(이메일/비밀번호는 관리자 전용). 신규 견적은 로그인 계정에 서버에서 연결한다. 기존 `?t=` 고객 링크는 주소를 유지하되 로그인·소유권을 검사하고 미연결 기록은 등록된 연락처 인증번호로 확인한 뒤 연결한다. 이메일 일치나 JSON userId는 소유권 근거가 아니다. 상세: `docs/customer-account-linking.md`.
+- 고객 로그인은 Google OAuth뿐(이메일/비밀번호는 관리자 전용). 신규 견적은 로그인 계정에 서버에서 연결한다. 기존 `?t=` 고객 링크는 주소를 유지한다. `내견적`·`견적서`·`일정지도`는 링크만으로 열리고 `/api/my/:token`이 소유자·관리자가 아니면 열람 전용(`access: "view"`, 여행자·서명·항공·배정·입금자명 제외) 응답을 준다. 입금 신고·서명·여행자 정보와 확정일정표·계약서 문서는 로그인·소유권을 검사하고 미연결 기록은 등록된 연락처 인증번호로 확인한 뒤 연결한다. Google 로그인 버튼은 카카오톡 등 앱 안 브라우저면 바깥 브라우저로 넘긴다(`googleLogin.ts`의 `startGoogleLogin`). 이메일 일치나 JSON userId는 소유권 근거가 아니다. 상세: `docs/customer-account-linking.md`.
 - 고객 현황의 고객 알림 관리는 `GET/POST /api/admin/customer-notices/:source/:id`를 사용한다. GET은 외부 템플릿 조회·발송을 하지 않으며, POST만 저장된 고객에게 해당 종류의 설정 템플릿으로 발송한다. 상품/견적 링크를 구분하고 문자 대체 없이 `trackedDelivery`로 접수·실패·불명 결과를 보존한다. 설정이 없거나 문서가 준비되지 않으면 사유를 표시하며 자동으로 공개·입금 확인·서명하지 않는다. 견적 계약 안내 접수 성공 때만 기존 고객 페이지에서 서명 버튼이 열리도록 요청 메타데이터를 원자적으로 기록한다.
 - 자동 고객 알림은 `functions/lib/customerNotifications.ts`의 승인 목록과 원장을 공유한다. 현재 견적 11종·상품 5종을 업무 저장 뒤 실행하며 같은 이벤트·같은 문서의 중복을 차단한다. 여행 주의사항은 실제 서명 후만 발송하고 예전 D7 자동화를 되살리지 않는다. 승인 템플릿·조건·설정은 `docs/customer-notifications.md`가 정리한다. 고객 현황 상단에는 ‘지금 할 일’ 건수·업무 상세 목록을 표시하지 않고, 디자인 02-2의 ‘지금 단계’ 한 줄과 대기 중이 아닌 첫 업무의 바로가기 하나만 둔다. 업무 진행 단계와 기본 접힌 ‘고객 알림 자동발송 · 이력/다시 보내기’, 아래 정보 카드의 조회·수정 버튼은 유지한다. 모델의 `tasks`는 이 바로가기와 최근 이력 옆 현재 단계 판단에 계속 사용하며 카카오 접수를 메일 완료로 표시하지 않는다.
 - 견적 고객 페이지(`내견적`·`계약서`·`여행자정보`·`견적서`·`확정일정표`·`일정지도`)는 `public/quote-theme.css`로 사이트 톤을 입혔다. 견적서·확정일정표는 A4 794px 고정 레이아웃 + 브라우저 인쇄(PDF).

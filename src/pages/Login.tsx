@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { LoginMobile } from '../components/mypage-mobile/LoginMobile';
-import { googleLoginUrl, loginErrorMessage, loginReturnPath } from '../components/mypage-mobile/googleLogin';
+import { loginErrorMessage, loginReturnPath, startGoogleLogin } from '../components/mypage-mobile/googleLogin';
 
 import loginBg2 from '../assets/login_bg_2.jpg';
 import logo from '../assets/logo_white_full.webp';
@@ -54,7 +54,8 @@ const LoginDesktop: React.FC = () => {
         // Forward the original page (set by AuthGuard via location.state.from) to the
         // OAuth start endpoint so the callback can redirect the user back after login.
         // Only same-origin paths are accepted; other inputs fall back to "/".
-        window.location.href = googleLoginUrl(loginReturnPath(location.state, location.search));
+        // 카카오톡 등 앱 안 브라우저는 바깥 브라우저로 넘긴다(Google이 앱 안 로그인을 막는다).
+        startGoogleLogin(loginReturnPath(location.state, location.search));
     };
 
     return (

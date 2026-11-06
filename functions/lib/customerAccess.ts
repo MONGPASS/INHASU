@@ -74,6 +74,19 @@ export async function requireResourceAccess(request: Request, env: AccessEnv, so
     return accessJson({ ok: false, code: 'claim_required', error: '기존 연락처로 본인 인증 후 연결해 주세요.' }, 403);
 }
 
+/**
+ * 견적 열람 전용: 링크(토큰)를 가진 사람은 견적 내용을 볼 수 있다.
+ * 소유자·관리자만 `full`이며, 나머지는 응답에서 신원·연락 정보를 뺀 `view`로 내려 준다.
+ * 서명·여행자 정보·입금 신고 같은 쓰기와 개인정보 조회는 계속 requireResourceAccess를 쓴다.
+ */
+export async function resourceViewAccess(request: Request, env: AccessEnv, source: CustomerSource, key: string): Promise<Response | { full: boolean }> {
+    const resource = await customerResource(env, source, key);
+    if (!resource) return accessJson({ ok: false, code: 'not_found', error: '기록을 찾을 수 없습니다.' }, 404);
+    if (customerAdminToken(request, env)) return { full: true };
+    const user = await customerSession(request, env);
+    return { full: !!user && (user.role === 'admin' || resource.owner === user.id) };
+}
+
 export function safeCustomerReturn(value: unknown, fallback = '/') {
     if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || /[\\\u0000-\u001f\u007f]/.test(value)) return fallback;
     try {

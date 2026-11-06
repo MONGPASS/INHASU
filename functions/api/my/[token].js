@@ -1,10 +1,13 @@
 import { publicLodge } from "../_lodging.mjs";
-import { requireResourceAccess } from "../../lib/customerAccess.ts";
+import { resourceViewAccess } from "../../lib/customerAccess.ts";
 /* ═══════════════════════════════════════════════════════════
    Cloudflare Pages Function · /api/my/<token>
-   GET : 기존 고객 링크를 유지하면서 로그인·확인된 소유자만 조회
-   - 링크 주소만으로 개인 자료를 열 수 없으며 미연결 기록은 본인 인증 필요.
-   - 응답에서도 전화·이메일·카톡ID·첨부키 등 민감정보는 제외.
+   GET : 기존 고객 링크로 견적을 연다.
+   - 링크만 가진 사람(비로그인·미연결·다른 계정)은 열람 전용(access: "view") 응답을 받는다.
+     견적 내용·일정·금액·진행 상태만 있고 여행자·서명 snapshot·항공편·가이드 연락처·입금자명은 비운다.
+   - 로그인한 소유자와 관리자는 전체(access: "owner") 응답을 받는다.
+   - 서명·여행자 정보·입금 신고와 여권 정보 조회는 각 API가 로그인·소유권을 따로 검사한다.
+   - 어떤 경우에도 전화·이메일·카톡ID·첨부키 등 민감정보는 제외.
    ═══════════════════════════════════════════════════════════ */
 
 import { workflowStatus, quoteExpiry, isQuoteExpired } from "../_workflow.mjs";
@@ -22,8 +25,9 @@ export async function onRequestGet({ request, env, params }) {
   try {
     const token = Array.isArray(params.token) ? params.token[0] : params.token;
     if (!token || String(token).length < 16) return json({ ok: false, error: "invalid" }, 400);
-    const denied = await requireResourceAccess(request, env, "request", token);
-    if (denied) return denied;
+    const access = await resourceViewAccess(request, env, "request", token);
+    if (access instanceof Response) return access;
+    const full = access.full;
 
     const row = await env.DB
       .prepare("SELECT data, status FROM requests WHERE token = ?")
@@ -80,12 +84,12 @@ export async function onRequestGet({ request, env, params }) {
       publishStatus,
       publishedAt: bk.publishedAt || "",
       days: Array.isArray(bk.days) ? bk.days : [],
-      travelers: Array.isArray(bk.travelers) ? bk.travelers.map(publicTraveler) : [],
+      travelers: full && Array.isArray(bk.travelers) ? bk.travelers.map(publicTraveler) : [],
       travelerSubmission: (() => {
         const s = bk.travelerSubmission && typeof bk.travelerSubmission === "object" ? bk.travelerSubmission : {};
         return { status:s.status || "not_requested", requestedAt:s.requestedAt || "", submittedAt:s.submittedAt || "", expectedCount:Number(s.expectedCount)||0, submittedCount:Number(s.submittedCount)||0 };
       })(),
-      flight: bk.flight ? {
+      flight: full && bk.flight ? {
         inDate: bk.flight.inDate || "",
         inDepTime: bk.flight.inDepTime || "",
         inTime: bk.flight.inTime || "",
@@ -95,8 +99,8 @@ export async function onRequestGet({ request, env, params }) {
         outArrTime: bk.flight.outArrTime || "",
         outNo: bk.flight.outNo || "",
       } : null,
-      pickupLodge: bk.pickupLodge || "",
-      travelerNote: bk.travelerNote || "",
+      pickupLodge: full ? bk.pickupLodge || "" : "",
+      travelerNote: full ? bk.travelerNote || "" : "",
       contractInfo: {
         productName: (bk.contractInfo && bk.contractInfo.productName) || rec.destination || "",
         region: (bk.contractInfo && bk.contractInfo.region) || rec.destination || "",
@@ -116,25 +120,26 @@ export async function onRequestGet({ request, env, params }) {
       contractRequest: bk.contractRequest ? { status:bk.contractRequest.status || "not_sent", requestedAt:bk.contractRequest.requestedAt || "" } : { status:"not_sent", requestedAt:"" },
       depositReport: bk.depositReport ? {
         status: bk.depositReport.status || "none",
-        name: bk.depositReport.name || "",
+        name: full ? bk.depositReport.name || "" : "",
         reportedAt: bk.depositReport.reportedAt || "",
       } : { status: "none", name: "", reportedAt: "" },
       // notes(추가 메모)는 내부 참고용 — 고객에게 반환하지 않음
-      assign: safeAssign(bk.assign),
+      assign: full ? safeAssign(bk.assign) : null,
       // 계약 서명 상태 — 본인 서명 이미지·서명 시각만 (IP·기기 정보는 반환 안 함)
       contract: (bk.contract && bk.contract.signedAt) ? {
         signedAt: bk.contract.signedAt,
         // 서명 원본은 내부 계약 증빙으로만 보관하고 공개 링크 응답에는 포함하지 않음.
         signImg: "",
-        signerName: bk.contract.signerName || "",
+        signerName: full ? bk.contract.signerName || "" : "",
         termsVersion: bk.contract.termsVersion || "",
-        snapshot: publicContractSnapshot(bk.contract.snapshot),
+        snapshot: full ? publicContractSnapshot(bk.contract.snapshot) : null,
       } : null,
     } : null;
 
     // 고객 안전 필드만 추림 (민감정보 제외)
     return json({
       ok: true,
+      access: full ? "owner" : "view",
       status: row.status || "신규",
       name: rec.name || "",
       destination: rec.destination || "",

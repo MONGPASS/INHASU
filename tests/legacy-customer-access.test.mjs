@@ -34,25 +34,37 @@ const writes = [
   [sign,{agree:true,signerName:'합성 고객',signImg:'data:image/png;base64,'+'A'.repeat(300)}],
 ];
 
-test('기존 견적 링크는 Google 로그인과 확인된 소유자가 있어야 문서·여권 정보를 반환한다',async t=>{
+test('기존 견적 링크는 링크만으로 열람 전용 견적을 주고 여행자·여권 정보는 확인된 소유자에게만 준다',async t=>{
   const f=fixture(t);
-  for(const headers of [{},f.passwordOnly,f.other]) for(const handler of [quote,travelers]) {
-    const response=await f.request(handler,{headers});
+  for(const headers of [{},f.passwordOnly,f.other]) {
+    const view=await f.request(quote,{headers});assert.equal(view.status,200);
+    const text=await view.text(),body=JSON.parse(text);
+    assert.equal(body.access,'view');
+    assert.doesNotMatch(text,/M12345678|1990-01-01|01012345678|합성 여행자|SYNTHETIC TRAVELER|fixture-customer@/);
+    assert.deepEqual(body.booking.travelers,[]);assert.equal(body.booking.assign,null);assert.equal(body.booking.flight,null);
+    assert.equal(body.booking.days[0].dest,'PRIVATE-SCHEDULE','견적 일정은 링크로 볼 수 있다');
+    const response=await f.request(travelers,{headers});
     assert.equal(response.status,headers===f.other?403:401);
     assert.doesNotMatch(await response.text(),/PRIVATE-|M12345678|1990-01-01|01012345678/);
   }
+  for(const headers of [f.admin,{'x-admin-token':'admin-secret'}]) assert.equal((await (await f.request(quote,{headers})).json()).access,'owner');
+  assert.equal((await f.request(quote,{token:'synthetic-unknown-customer-link'})).status,404);
   const safe=await f.request(quote,{headers:f.owner});assert.equal(safe.status,200);
-  assert.doesNotMatch(await safe.text(),/M12345678|1990-01-01|01012345678/);
+  const safeText=await safe.text();assert.equal(JSON.parse(safeText).access,'owner');
+  assert.doesNotMatch(safeText,/M12345678|1990-01-01|01012345678/);
   const full=await f.request(travelers,{headers:f.owner});assert.equal(full.status,200);
   assert.equal((await full.json()).travelers[0].passportNo,privateTraveler.passportNo);
 });
 
 test('미연결 견적은 과거 JSON userId·일치하는 연락처만으로 소유권을 얻지 않는다',async t=>{
   const f=fixture(t,false),before=f.DB.record;
-  for(const [handler,body] of [[quote],[travelers],...writes]) {
+  for(const [handler,body] of [[travelers],...writes]) {
     const response=await f.request(handler,{headers:f.owner,body});
     assert.equal(response.status,403);assert.equal((await response.json()).code,'claim_required');
   }
+  // 견적 열람은 연결 전에도 링크로 되지만 열람 전용 정보만 받는다.
+  const view=await f.request(quote,{headers:f.owner});assert.equal(view.status,200);
+  assert.equal((await view.json()).access,'view');
   assert.deepEqual(f.DB.record,before);assert.equal(f.DB.requestWrites.length,0);
 });
 

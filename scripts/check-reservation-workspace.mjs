@@ -367,7 +367,8 @@ const quoteReloaded = await (await apiRequest(`/api/requests/${quoteEditorId}`, 
 assert.deepEqual(quoteReloaded.item.quote, editedQuoteDocument);
 assert.deepEqual(quoteReloaded.item.booking.days, editedBooking.days);
 assert.deepEqual(quoteReloaded.item.booking.contractInfo, editedBooking.contractInfo);
-assert.equal((await apiRequest(`/api/my/${createdQuoteResponse.token}`)).status, 401);
+// 견적 링크는 로그인 없이 열람 전용으로 열린다(여행자·배정·서명 정보 제외)
+{ const view = await (await apiRequest(`/api/my/${createdQuoteResponse.token}`)).json(); assert.equal(view.access, 'view'); assert.deepEqual(view.quote, editedQuoteDocument); assert.deepEqual(view.booking.travelers, []); assert.equal(view.booking.assign, null); }
 const publicQuoteReloaded = await (await apiRequest(`/api/my/${createdQuoteResponse.token}`, { headers: quoteAdmin })).json();
 assert.equal(publicQuoteReloaded.ok, true);
 assert.deepEqual(publicQuoteReloaded.quote, editedQuoteDocument);
@@ -1198,7 +1199,7 @@ if (customerWorkspace) {
         const after = (await (await apiRequest(route, { headers: quoteAdmin })).json()).item;
         assert.equal(after.memo, `${memo}-SAVED`); assert.deepEqual(after.quote, before.quote);
         assert.equal(after.token, before.token); assert.equal(after.status, before.status); assert.equal(after.booking, undefined);
-        assert.equal((await apiRequest(`/api/my/${createdData.token}`)).status, 401);
+        { const anonymous = await apiRequest(`/api/my/${createdData.token}`); assert.equal(anonymous.status, 200); const text = await anonymous.text(); assert.equal(JSON.parse(text).access, 'view'); assert.ok(!text.includes('LOCAL-PRIVATE-CUSTOMER-QUOTE-MEMO')); }
         raw.prepare('INSERT INTO customer_resource_links VALUES(?,?,?,?)').run('request', fixture.id, 'workspace-customer-account-a', new Date().toISOString());
         const customerRead = await apiRequest(`/api/my/${createdData.token}`, { headers: customerOwner });
         assert.equal(customerRead.status, 200); const text = await customerRead.text(), safe = JSON.parse(text);
