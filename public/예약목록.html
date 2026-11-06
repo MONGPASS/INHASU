@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script src="/admin-legacy-redirect.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>예약 관리 · 몽골리아 은하수</title>
 <script src="/quote-booking-workspace.js"></script>
@@ -933,20 +934,6 @@ function openGuideSheet(id) {
 
 function openBooking(id) {
   return window.QuoteBookingWorkspace.openCustomer(String(id), "/admin/quote-desk/bookings");
-}
-function openLegacyBooking(id) {
-  const r = RECORDS.find(x => String(x.id) === String(id));
-  if (!r) return;
-  localStorage.setItem("leaders_booking_prefill", JSON.stringify({
-    id: r.id, token: r.token || "", adminToken: ADMIN_TOKEN, status: r.status || "예약확정",
-    name: r.name, phone: r.phone || "", depart: r.depart || "", return_: r.return_ || "",
-    adult: r.adult || 0, child: r.child || 0, infant: r.infant || 0,
-    destination: r.destination || "", vehicle: r.vehicle || "",
-    joinType: r.joinType || "", flightIncl: r.flightIncl || "", progress: r.progress || "", pkgTier: r.pkgTier || "",
-    decision: r.decision || null, notify: r.notify || null,
-    quote: r.quote || null, booking: r.booking || null,
-  }));
-  window.open("예약관리.html", "_blank");
 }
 
 const newToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, "0")).join("");

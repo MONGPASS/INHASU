@@ -353,13 +353,6 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         setFrame((prev) => ({ src: recoverySrc.current || prev.src, seq: prev.seq + 1, routeKey: frameKey }));
     };
 
-    // 새 창으로 열기: 지금 안쪽에 떠 있는 화면을 단독으로 연다.
-    // noopener 를 붙이지 않는다 — 새 창이 이 탭의 sessionStorage(관리자 값)를 이어받아야 자체 로그인 화면이 뜨지 않는다.
-    // ‘새 창으로 열기’는 지금 보는 새 관리자 화면(같은 메뉴·같은 고객)을 새 탭으로 연다.
-    // 예전에는 안쪽 견적 도구 문서를 단독으로 열어 옛 관리자 메뉴가 보였다. 안쪽 메뉴 이동은 바깥 주소에 이미 맞춰 둔다.
-    const openStandalone = () => {
-        window.open(`${window.location.pathname}${window.location.search}${window.location.hash}`, '_blank', 'noopener');
-    };
 
     const focusCustomerEditor = useCallback((section: string) => {
         setActiveSection(['guide', 'vehicle', 'stay'].includes(section) ? 'assign' : section === 'send' ? 'docs' : ['flights', 'travelers', 'view-info'].includes(section) ? 'info' : section);
@@ -506,7 +499,6 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         const l = editorExpanded ? frameLinks() : null;
         openToolMenu(anchor, '기타 작업', [
             ...(editorExpanded ? [{ key: 'reload', label: '작업 화면 다시 불러오기', onPick: () => { reloadFrame(); setCustomerRefresh(value => value + 1); } }] : []),
-            { key: 'standalone', label: '새 창으로 열기', onPick: openStandalone },
             ...(linked && tool.key === 'bookings' && bookingId ? [{ key: 'log', label: '발송 이력', sub: '변경·발송 이력 탭', subTone: 'muted' as const, onPick: () => { if (editorExpanded && bookingEditor) navigateWorkspace('log'); else customerAction('history'); } }] : []),
             ...(tool.key !== 'builder' || !editorExpanded ? [{ key: 'quote', label: customerRecord?.quote ? '견적서 수정' : '견적서 작성', disabled: !customerRecord, onPick: () => openCustomerEditor('builder', 'docs') }] : []),
             ...(editorExpanded && bookingEditor ? [{ key: 'revert', label: '되돌리기', sub: '마지막 저장 상태로 되돌립니다', subTone: 'warn' as const, disabled: !!l?.undoDisabled, onPick: () => runFrame('revert') }] : []),
@@ -522,7 +514,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
             flush
             hideHeading={customerPage && editorExpanded}
             actions={customerPage ? <>
-                    {/* 고객 현황 머리: 목록 복귀와 ⋯(견적서 수정 · 발송 이력 · 새 창)만. 나머지는 v7 상세 카드와 편집 도구줄이 맡는다. */}
+                    {/* 고객 현황 머리: 목록 복귀와 ⋯(견적서 수정 · 발송 이력)만. 나머지는 v7 상세 카드와 편집 도구줄이 맡는다. */}
                     <button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>
                         <Icon name="arrow_back" />목록으로
                     </button>
@@ -541,18 +533,8 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                             <Icon name="edit_document" />견적 작성
                         </button>
                     )}
-                    <button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>
-                        <Icon name="arrow_back" />통합 예약 목록
-                    </button>
-                    {linked && (
-                        <button type="button" className="btn btn-ghost" onClick={() => reloadFrame()}>
-                            <Icon name="refresh" />새로고침
-                        </button>
-                    )}
+                    {/* 통합 예약 목록·새로고침·새 창으로 열기는 두지 않는다(메뉴는 사이드바, 새로고침은 브라우저). 새 창은 옛 도구를 단독으로 열어 옛 관리자 메뉴가 보였다. */}
                     {linked && tool.key === 'bookings' && bookingId && <button type="button" className="btn btn-ghost" onClick={() => nativeHosts ? navigateWorkspace('log') : setShowDeliveries(v => !v)}>발송 이력</button>}
-                    <button type="button" className="btn btn-ghost" onClick={openStandalone}>
-                        <Icon name="open_in_new" />새 창으로 열기
-                    </button>
                 </>}
         >
             {customerPage && <><V7Styles /><V7Menu menu={toolMenu} onClose={() => setToolMenu(null)} /></>}
