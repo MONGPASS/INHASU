@@ -12,6 +12,7 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import './AdminAccommodationOps.css';
+import { LODGE_BOOKING_STATUSES, isLodgeBookingConfirmed, lodgeBookingLabel } from '../utils/lodgeBookingStatus';
 
 /**
  * 숙소 배정 · 현지 운영 — Admin Dashboard v3 "05-1" 디자인(한국어).
@@ -19,14 +20,13 @@ import './AdminAccommodationOps.css';
  * 저장 값(수배 상태·객실당 인원)은 기존 데이터와 다른 화면이 읽는 원래 표기(몽골어)를 그대로 쓰고, 화면 표시만 한국어로 바꿉니다.
  */
 
-type BookingStatus = 'Илгээгээгүй' | 'Имэйл илгээсэн' | 'Хариу ирсэн' | 'Баталгаажсан';
-const STATUS_OPTIONS: BookingStatus[] = ['Илгээгээгүй', 'Имэйл илгээсэн', 'Хариу ирсэн', 'Баталгаажсан'];
+// 숙소 예약 상태 정본은 utils/lodgeBookingStatus.ts (보드·고객 상세·예약 상세 공용)
+type BookingStatus = string;
 const OCCUPANCY_OPTIONS = ['', '1 хүн/өрөө', '2 хүн/өрөө', '3 хүн/өрөө', '4 хүн/өрөө', '5 хүн/өрөө', '6 хүн/өрөө'];
 // 숙소 등급 — 선택명은 한국어로 유지(요청)
 // 저장 값은 그대로 쓴다(기존 '4성급호텔' 표기 유지). 목록에 없는 기존 값은 선택창이 따로 보여 준다.
 const GRADE_OPTIONS = ['', '고급 게르', '디럭스 게르', '일반 게르', '5성급 호텔', '4성급호텔', '3성급 호텔', '목조하우스', '게스트하우스'];
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
-const STATUS_LABELS: Record<BookingStatus, string> = { 'Илгээгээгүй': '미발송', 'Имэйл илгээсэн': '메일 발송', 'Хариу ирсэн': '회신 받음', 'Баталгаажсан': '확정' };
 const occupancyLabel = (value: string) => value ? value.replace(/^(\d+) хүн\/өрөө$/, '$1인 / 객실') : '미정';
 type BoardStatus = '미배정' | '진행 중' | '배정 완료';
 const KPI_CARDS = [
@@ -755,7 +755,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                 const regionManual = manualRegions.has(mKey) || (!listRegions.has(mKey) && !!loc && !regionChoices.includes(loc));
                                                 const previous = idx > 0 ? rows[idx - 1].accommodation : undefined;
                                                 return (
-                                                    <article key={idx} className="lo-night" data-state={!hasName ? 'empty' : bookingStatus === 'Баталгаажсан' ? 'confirmed' : 'assigned'}>
+                                                    <article key={idx} className="lo-night" data-state={!hasName ? 'empty' : isLodgeBookingConfirmed(bookingStatus) ? 'confirmed' : 'assigned'}>
                                                         <header className="lo-night-head">
                                                             <label className="lo-day-no">
                                                                 <input type="number" min={1} aria-label="숙박 일차" style={{ width: `${String(d.day).length + 0.4}ch` }} value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })} /><span>일차</span></label>
@@ -845,7 +845,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                 <i />
                                                                 <select className="lo-input" aria-label="숙소 예약 상태" value={bookingStatus} disabled={!hasName}
                                                                     onChange={e => patchDay(r.id, idx, { bookingStatus: e.target.value as BookingStatus })}>
-                                                                    {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                                                                    {!LODGE_BOOKING_STATUSES.some(s => s.value === bookingStatus) && <option value={bookingStatus}>{lodgeBookingLabel(bookingStatus)}</option>}
+                                                                    {LODGE_BOOKING_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                                                                 </select>
                                                             </span>
                                                         </div>

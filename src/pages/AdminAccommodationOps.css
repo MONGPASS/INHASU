@@ -201,6 +201,11 @@ select.lo-input { padding-right: 30px; background: #fff var(--lo-chevron) no-rep
 .lo-status-select[data-status="Имэйл илгээсэн"] i { background: #a8f0db; }
 .lo-status-select[data-status="Хариу ирсэн"] i { background: #3fd6ab; }
 .lo-status-select[data-status="Баталгаажсан"] i { background: var(--lo-mint-strong); }
+.lo-status-select[data-status="예약완료"] i, .lo-status-select[data-status="변경완료"] i { background: var(--lo-mint-strong); }
+.lo-status-select[data-status="예약요청"] i, .lo-status-select[data-status="변경요청"] i { background: #f5c26b; }
+.lo-status-select[data-status="취소요청"] i { background: #f08c4a; }
+.lo-status-select[data-status="취소완료"] i { background: #868e96; }
+.lo-status-select[data-status="배정X"] i { background: #FF4F4F; }
 .lo-icon-btn { display: flex; flex: none; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-secondary); cursor: pointer; }
 .lo-icon-btn:hover { border-color: var(--mrt-ink); color: var(--text-strong); }
 .lo-icon-btn.is-danger { width: 32px; height: 32px; border: 0; background: transparent; color: var(--text-tertiary); }

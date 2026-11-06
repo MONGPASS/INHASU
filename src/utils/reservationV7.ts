@@ -3,6 +3,7 @@ import { reservationSigned } from './adminReservationBoard.ts';
 import { dashboardDayDiff } from './adminDashboard.ts';
 import { toTourDateKey } from './formatDate.ts';
 import type { AssignmentAccommodation, AssignmentGuide, AssignmentSource, AssignmentVehicle, BookingAssignment } from './reservationAssignment';
+import { LODGE_BOOKING_STATUSES } from './lodgeBookingStatus.ts';
 
 /** 예약 관리 v7 목록·상세가 읽는 예약 필드. 상품 예약과 견적 예약을 같은 모양으로 다룬다. */
 export interface V7Source {
@@ -32,14 +33,10 @@ export const V7_TABS: Array<{ key: V7Tab; label: string }> = [
     { key: 'contract', label: '계약 완료' }, { key: 'ongoing', label: '투어 진행중' }, { key: 'ended', label: '투어 종료' }, { key: 'cancel', label: '예약 취소' },
 ];
 export const BOOKING_STATUS = { unsent: 'Илгээгээгүй', mailed: 'Имэйл илгээсэн', replied: 'Хариу ирсэн', confirmed: 'Баталгаажсан' } as const;
-/** 숙소 수배 상태. 저장 값은 몽골어(현지 운영 보드와 공유), 화면은 한국어. */
-export const BOOKING_STATUS_OPTIONS: Array<{ value: string; label: string; color: string; tone: 'gray' | 'amber' | 'blue' | 'solid' }> = [
-    { value: BOOKING_STATUS.unsent, label: '미발송', color: '#adb5bd', tone: 'gray' },
-    { value: BOOKING_STATUS.mailed, label: '메일 발송', color: '#f08c00', tone: 'amber' },
-    { value: BOOKING_STATUS.replied, label: '회신 받음', color: '#1c6fd1', tone: 'blue' },
-    { value: BOOKING_STATUS.confirmed, label: '확정', color: '#12b28c', tone: 'solid' },
-];
-export const bookingStatusMeta = (value?: string) => BOOKING_STATUS_OPTIONS.find(o => o.value === value) || BOOKING_STATUS_OPTIONS[0];
+/** 숙소 수배 상태. 정본은 utils/lodgeBookingStatus.ts(현지 운영 보드와 공유), 화면은 한국어. */
+export const BOOKING_STATUS_OPTIONS = LODGE_BOOKING_STATUSES;
+export const bookingStatusMeta = (value?: string) => BOOKING_STATUS_OPTIONS.find(o => o.value === value)
+    || (value ? { value, label: value, color: '#adb5bd', tone: 'gray' as const } : BOOKING_STATUS_OPTIONS[0]);
 /** 객실당 인원. 저장 값은 현지 운영 보드와 같은 `N хүн/өрөө`. */
 export const OCCUPANCY_OPTIONS = ['1 хүн/өрөө', '2 хүн/өрөө', '3 хүн/өрөө', '4 хүн/өрөө', '5 хүн/өрөө', '6 хүн/өрөө'];
 export const occupancyLabel = (value?: string) => {

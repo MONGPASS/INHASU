@@ -1,4 +1,5 @@
 import { toTourDateKey } from './formatDate.ts';
+import { isLodgeBookingConfirmed } from './lodgeBookingStatus.ts';
 import type { AssignmentAccommodation } from './reservationAssignment';
 
 export interface AccommodationScheduleDay {
@@ -156,11 +157,11 @@ export function getAccommodationPlan(booking: ScheduleBooking) {
     const assigned = nights.filter(night => text(validForNight(night)?.accommodation?.name)).length;
     const confirmed = nights.filter(night => {
         const row = validForNight(night);
-        return text(row?.accommodation?.name) && row?.accommodation?.bookingStatus === 'Баталгаажсан';
+        return text(row?.accommodation?.name) && isLodgeBookingConfirmed(row?.accommodation?.bookingStatus);
     }).length;
     const nightStates = nights.map(night => {
         const row = validForNight(night);
-        return !text(row?.accommodation?.name) ? 'empty' as const : row?.accommodation?.bookingStatus === 'Баталгаажсан' ? 'confirmed' as const : 'assigned' as const;
+        return !text(row?.accommodation?.name) ? 'empty' as const : isLodgeBookingConfirmed(row?.accommodation?.bookingStatus) ? 'confirmed' as const : 'assigned' as const;
     });
     const canAlignDates = dateAlignments(rows, nights).size > 0;
     const complete = needed !== null && confirmed === needed && rows.length === needed && rowWarnings.every(messages => !messages.length)
