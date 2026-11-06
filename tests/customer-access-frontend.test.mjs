@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { safeCustomerReturnPath, customerLoginPath, customerLinkPath, parseCustomerReference, requireCustomerAccess, requireAdminDocumentAccess, customerDocumentFetch } from '../public/customer-access.js';
+import { safeCustomerReturnPath, customerLoginPath, customerLinkPath, parseCustomerReference, requireCustomerAccess, requireCustomerView, requireAdminDocumentAccess, customerDocumentFetch } from '../public/customer-access.js';
 
 const token = 'synthetic-customer-token-1234';
 const path = `/내견적.html?t=${token}#progress`;
@@ -75,11 +75,17 @@ test('an expired session on a customer write redirects to login and never retrie
   assert.equal(calls.length, 1); assert.equal(calls[0].options.method, 'POST');
 });
 
+// 견적 열람 문서는 링크만으로 열고(서버가 열람 전용 정보를 준다), 확정 일정·계약·여행자 문서는 로그인과 소유권을 확인한다.
+const VIEW_DOCUMENTS = ['내견적', '견적서', '견적서-모바일', '일정지도'];
+const OWNER_DOCUMENTS = ['확정일정표', '확정일정표-모바일', '계약서', '여행자정보', '확정안내'];
 test('all token-based customer documents gate reads and have no localhost private-record bypass', () => {
-  for (const name of ['내견적', '견적서', '견적서-모바일', '확정일정표', '확정일정표-모바일', '계약서', '여행자정보', '일정지도', '확정안내']) {
+  for (const name of [...VIEW_DOCUMENTS, ...OWNER_DOCUMENTS]) {
     const html = fs.readFileSync(new URL(`../public/${name}.html`, import.meta.url), 'utf8');
     assert.match(html, /from "\/customer-access\.js"/, name);
-    assert.match(html, /await requireCustomerAccess\('request', (?:_token|token)\)/, name);
+    if (VIEW_DOCUMENTS.includes(name)) {
+      assert.match(html, /await requireCustomerView\('request', (?:_token|token)\)/, name);
+      assert.doesNotMatch(html, /await requireCustomerAccess\(/, name);
+    } else assert.match(html, /await requireCustomerAccess\('request', (?:_token|token)\)/, name);
     assert.doesNotMatch(html, /localStorage\.(?:getItem|setItem)\("leaders_requests"/, name);
     assert.doesNotMatch(html, /\bfetch\("\/api\/(?:my|travelers|sign|deposit)\//, name);
   }
@@ -100,6 +106,14 @@ test('editor document storage requires a real administrator session even with pr
     const gate = html.indexOf('await requireAdminDocumentAccess()');
     assert.ok(gate > 0 && gate < html.indexOf('localStorage.getItem'), name);
   }
+});
+
+test('link-only quote view needs a request link but never a login redirect or status call', async () => {
+  const { surface, redirects, calls } = surfaceFor({ code: 'login_required' }, 401);
+  assert.equal(await requireCustomerView('request', token, surface), true);
+  assert.deepEqual(redirects, []); assert.equal(calls.length, 0);
+  await assert.rejects(requireCustomerView('request', '', surface));
+  await assert.rejects(requireCustomerView('reservation', token, surface));
 });
 
 test('legacy mobile administrators can preview only after the server verifies their stored credential', async () => {

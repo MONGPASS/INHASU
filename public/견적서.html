@@ -76,11 +76,12 @@
 <section class="quote-actions" id="quoteActions" style="display:none"><div class="eyebrow">NEXT STEP</div><h2>이 일정으로 여행을 준비할까요?</h2><p>수정하고 싶은 부분이나 예약 진행 의사를 카카오톡으로 말씀해 주시면<br>담당자가 예약 절차를 바로 도와드립니다.</p><div class="buttons"><a class="accept" href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener">💬 카카오톡으로 예약 진행하기 <span>→</span></a></div></section>
 
 <script type="module">
-import { requireCustomerDocumentAccess as requireCustomerAccess, requireAdminDocumentAccess, customerDocumentFetch } from "/customer-access.js";
+import { requireCustomerDocumentView as requireCustomerView, requireAdminDocumentAccess, customerDocumentFetch } from "/customer-access.js";
 import { escapeDocumentText as escapeQuoteDocumentText, sanitizeDocumentHTML, documentUrl, documentImageAttribute, documentTextWithoutBreaks } from "/document-safe.js";
 /* 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 */
 const _token = new URLSearchParams(location.search).get("t");
-if (_token) await requireCustomerAccess('request', _token);
+// 견적 열람 문서는 링크만으로 연다(서버가 열람 전용 정보만 내려 준다)
+if (_token) await requireCustomerView('request', _token);
 else await requireAdminDocumentAccess();
 const customerFetch = (url, options) => customerDocumentFetch(url, options, { source: 'request', key: _token });
 const mapHref = "일정지도.html" + (_token ? "?t=" + encodeURIComponent(_token) : "");

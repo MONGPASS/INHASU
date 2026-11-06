@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { MW, MW_FONT_EN } from '../desktop-primitives/mwTokens';
@@ -6,7 +6,7 @@ import { useMe } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
 import { D } from '../mobile/mobileTheme';
 import { Ico, TravellerAvatar } from '../mobile/mobileUi';
-import { googleLoginUrl, loginErrorMessage, loginReturnPath } from './googleLogin';
+import { inAppBrowser, loginErrorMessage, loginReturnPath, startGoogleLogin } from './googleLogin';
 
 const PERKS: Array<[string, string]> = [
     ['예약 현황을 언제든 확인', D.calendar],
@@ -26,6 +26,13 @@ export function LoginMobile() {
     // Back to the page that asked for a login, otherwise on to the my page.
     const target = loginReturnPath(location.state, location.search) ?? '/mypage';
     const errorMessage = loginErrorMessage(location.search);
+    // iOS 일반 앱 브라우저(인스타그램·네이버 등)는 바깥 브라우저로 넘길 수 없어 Safari로 열도록 안내한다.
+    const [safariHint, setSafariHint] = useState(() => typeof navigator !== 'undefined' && inAppBrowser(navigator.userAgent) === 'ios-app');
+    const [copied, setCopied] = useState(false);
+    const copyLink = async () => {
+        try { await navigator.clipboard.writeText(window.location.href); setCopied(true); }
+        catch { window.prompt('주소를 길게 눌러 복사한 뒤 Safari에 붙여 넣어 주세요', window.location.href); }
+    };
 
     // Coming back from the OAuth round trip (or the back/forward cache) must not reuse a
     // "logged out" answer cached before the login, so the tab bar can switch to the avatar.
@@ -71,6 +78,15 @@ export function LoginMobile() {
                     ))}
                 </div>
 
+                {safariHint && (
+                    <div role="status" style={{ padding: '12px 14px', borderRadius: 14, background: MW.mintBg, border: `1px solid ${MW.line}`, fontSize: 13, fontWeight: 700, lineHeight: 1.6, color: MW.navy, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <span>이 앱 안에서는 Google 로그인이 되지 않아요. 오른쪽 위 메뉴에서 ‘Safari로 열기’를 누르거나, 주소를 복사해 Safari에서 열어 주세요.</span>
+                        <button type="button" onClick={() => { void copyLink(); }} style={{ alignSelf: 'flex-start', height: 34, padding: '0 14px', border: `1.5px solid ${MW.mintDeep}`, borderRadius: 999, background: '#FFFFFF', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: MW.mintDeep, cursor: 'pointer' }}>
+                            {copied ? '주소를 복사했어요' : '주소 복사'}
+                        </button>
+                    </div>
+                )}
+
                 {errorMessage && (
                     <div role="alert" style={{ padding: '12px 14px', borderRadius: 14, background: '#FDECEA', border: '1px solid #F5C6C0', fontSize: 13, fontWeight: 700, lineHeight: 1.6, color: MW.redDeep }}>
                         {errorMessage}
@@ -80,7 +96,7 @@ export function LoginMobile() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <button
                         type="button"
-                        onClick={() => { window.location.href = googleLoginUrl(target); }}
+                        onClick={() => { if (startGoogleLogin(target) === 'ios-app') setSafariHint(true); }}
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, border: `1.5px solid ${MW.line}`, borderRadius: 999, background: '#FFFFFF', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, color: MW.navy, cursor: 'pointer' }}
                     >
                         <span style={{ fontFamily: MW_FONT_EN, fontSize: 15, fontWeight: 700, color: '#4285F4' }}>G</span>

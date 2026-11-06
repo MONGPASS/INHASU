@@ -175,12 +175,13 @@
   </footer>
 
 <script type="module">
-  import { requireCustomerDocumentAccess as requireCustomerAccess, customerDocumentFetch } from "/customer-access.js";
+  import { requireCustomerDocumentView as requireCustomerView, customerDocumentFetch, customerLoginPath } from "/customer-access.js";
   const KAKAO = "https://pf.kakao.com/_BSLaxl";
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
   const card = document.getElementById("card");
   const token = new URLSearchParams(location.search).get("t");
-  if (token) await requireCustomerAccess('request', token);
+  // 견적은 링크만으로 열람한다. 입금 신고·계약서 서명·여행자 정보는 Google 로그인과 본인 확인 후 진행한다.
+  if (token) await requireCustomerView('request', token);
   const customerFetch = (url, options) => customerDocumentFetch(url, options, { source: 'request', key: token });
 
   const paxTxt = r => {
@@ -284,6 +285,7 @@
         </section>
         ${sumHtml(r)}
         ${progressHtml(r)}
+        ${r.access === "view" ? `<div class="notice">입금 완료 알림·계약서 서명·여행자 정보 입력은 본인 확인을 위해 Google 로그인 후 진행됩니다. <a href="${esc(customerLoginPath(location.pathname + location.search))}">로그인하기</a></div>` : ""}
         ${depositRequested && !depositPaid ? `<div class="dep">
           <span class="hub-eyebrow">DEPOSIT</span>
           <div class="amt">예약금 ${esc(money(ci.depositAmount))}<small>입금이 확인되면 예약이 진행됩니다</small></div>

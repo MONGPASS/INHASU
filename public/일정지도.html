@@ -122,11 +122,12 @@
 </div>
 
 <script type="module">
-import { requireCustomerDocumentAccess as requireCustomerAccess, requireAdminDocumentAccess, customerDocumentFetch } from "/customer-access.js";
+import { requireCustomerDocumentView as requireCustomerView, requireAdminDocumentAccess, customerDocumentFetch } from "/customer-access.js";
 import { escapeDocumentText as escapeQuoteDocumentText, sanitizeDocumentHTML, documentUrl, documentImageAttribute, documentTextWithoutBreaks } from "/document-safe.js";
 /* 견적 출처: ?t=<token>이면 서버(고객 매직링크), 아니면 localStorage(편집기)/data.js 샘플 */
 const _token = new URLSearchParams(location.search).get("t");
-if (_token) await requireCustomerAccess('request', _token);
+// 견적 열람 문서는 링크만으로 연다(서버가 열람 전용 정보만 내려 준다)
+if (_token) await requireCustomerView('request', _token);
 else await requireAdminDocumentAccess();
 const customerFetch = (url, options) => customerDocumentFetch(url, options, { source: 'request', key: _token });
 const esc = escapeQuoteDocumentText;

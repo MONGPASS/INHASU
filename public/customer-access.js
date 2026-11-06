@@ -93,6 +93,20 @@ export async function requireCustomerDocumentAccess(source, key, surface = windo
   }
 }
 
+/**
+ * 견적 열람 문서(내견적·견적서·일정지도)는 링크만으로 연다. 서버가 소유자·관리자에게만 전체 정보를,
+ * 그 밖의 사람에게는 열람 전용 정보를 내려 준다. 로그인은 서명·입금 신고 같은 행동을 할 때 받는다.
+ */
+export async function requireCustomerView(source, key, surface = window) {
+  if (source !== 'request' || !key) throw new Error('담당자에게 받은 고객 전용 링크를 확인해 주세요.');
+  return true;
+}
+
+export async function requireCustomerDocumentView(source, key, surface = window) {
+  try { return await requireCustomerView(source, key, surface); }
+  catch (failure) { return requireCustomerDocumentAccess(source, '', surface); }
+}
+
 /** Editor storage is private even after logout; query flags never grant editor access. */
 export async function requireAdminDocumentAccess(surface = window) {
   if (await verifiedLegacyAdminToken(surface)) return true;
