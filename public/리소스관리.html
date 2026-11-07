@@ -48,8 +48,6 @@
   .tab .cnt, .cat-tab .cnt { font-size:12px; font-weight:700; color:var(--low); }
   .cat-tab.on .cnt { color:var(--mint700); }
   .rg-view { height:34px; padding:0 10px; font-size:13px; }
-  .rg-search { flex:1 1 220px; max-width:360px; display:flex; align-items:center; gap:8px; height:40px; padding:0 12px; border-radius:6px; background:var(--paper); box-shadow:inset 0 0 0 1px var(--div2); color:var(--low); }
-  .rg-search input { flex:1; min-width:0; height:100%; border:0; outline:0; background:transparent; font-size:14px; color:var(--ink); }
   .rg-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
   .rg-add { display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px; border:0; border-radius:6px; background:var(--primary); font-size:14px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; }
   .rg-add:hover { background:var(--primary-hover); }
@@ -198,7 +196,6 @@
     <div class="page-head"><h1>가이드·숙소·차량</h1></div>
     <div class="rg-bar">
       <div class="rg-seg" id="tabs"></div>
-      <label class="rg-search"><span id="qIcon"></span><input id="q" autocomplete="off"></label>
       <div class="rg-right">
         <div class="rg-seg sm" id="views"></div>
         <button class="rg-add" id="addBtn" type="button"></button>
@@ -276,7 +273,7 @@ let editKey = null;
 let LODGE_CATS = [];           // 숙소 지역 카테고리 목록 (순서·빈 카테고리 보존)
 let activeLodgeCat = "__all"; // "__all" | "__none" | 카테고리명
 const LODGE_UNCAT = "미분류";
-let QUERY = "", typeFilter = "";
+let typeFilter = "";
 let VIEW = "card";
 try { if (localStorage.getItem("leaders_resource_view") === "list") VIEW = "list"; } catch (e) {}
 
@@ -303,14 +300,6 @@ async function persist() {
   return results.find(r => r && !r.ok) || results[0];
 }
 
-/* ── 검색: 이름·부제·종류 ── */
-function matchesQuery(name, r) {
-  const q = QUERY.trim().toLowerCase();
-  if (!q) return true;
-  const T = TYPES[activeType];
-  return [name, T.sub(r), T.type(r)].join(" ").toLowerCase().includes(q);
-}
-
 /* ── 종류 탭 · 보기 · 추가 버튼 ── */
 function renderTabs() {
   $("tabs").innerHTML = Object.entries(TYPES).map(([k, t]) => {
@@ -319,7 +308,7 @@ function renderTabs() {
   }).join("");
   $("tabs").querySelectorAll(".tab").forEach(el => el.onclick = () => {
     if (activeType === el.dataset.t) return;
-    activeType = el.dataset.t; typeFilter = ""; QUERY = ""; $("q").value = ""; load();
+    activeType = el.dataset.t; typeFilter = ""; load();
   });
   $("views").innerHTML = [["card","카드","grid"],["list","목록","rows"]].map(([v, label, icon]) =>
     `<button type="button" class="rg-view ${VIEW===v?"on":""}" data-v="${v}" title="${label}">${ic(icon, 15)}${label}</button>`).join("");
@@ -328,19 +317,18 @@ function renderTabs() {
     renderTabs(); renderGrid();
   });
   $("addBtn").innerHTML = `${ic("plus")}새 ${TYPES[activeType].short} 추가`;
-  $("q").placeholder = `${TYPES[activeType].short} 이름으로 찾기`;
   renderLodgeCats();
 }
 
 /* ── 숙소 지역 카테고리 ── */
 function lodgeCatOf(r) { return String((r && r.region) || "").trim(); }
-function lodgeCatCount(cat) { return Object.entries(LIB).filter(([name, r]) => lodgeCatOf(r) === cat && matchesQuery(name, r)).length; }
+function lodgeCatCount(cat) { return Object.entries(LIB).filter(([, r]) => lodgeCatOf(r) === cat).length; }
 
 function renderLodgeCats() {
   const bar = $("lodgeCats");
   if (activeType !== "lodges") { bar.hidden = true; bar.innerHTML = ""; return; }
   bar.hidden = false;
-  const visible = Object.entries(LIB).filter(([name, r]) => matchesQuery(name, r));
+  const visible = Object.entries(LIB);
   const total = visible.length;
   const noneCnt = visible.filter(([, r]) => !lodgeCatOf(r)).length;
   let html = `<button type="button" class="cat-tab ${activeLodgeCat === "__all" ? "on" : ""}" data-cat="__all">${ic("pin", 14)}전체 <span class="cnt">${total}</span></button>`;
@@ -445,7 +433,7 @@ const introMissing = () => activeType === "lodges" ? "상세 정보를 입력해
 /* ── 카드 · 목록 ── */
 function renderGrid() {
   const T = TYPES[activeType];
-  let entries = Object.entries(LIB).filter(([name, r]) => matchesQuery(name, r));
+  let entries = Object.entries(LIB);
   if (activeType === "lodges") {
     if (activeLodgeCat === "__none") entries = entries.filter(([, r]) => !lodgeCatOf(r));
     else if (activeLodgeCat !== "__all") entries = entries.filter(([, r]) => lodgeCatOf(r) === activeLodgeCat);
@@ -462,7 +450,7 @@ function renderGrid() {
   const coverOf = r => activeType === "lodges" ? (Lodging.photos(r)[0] || "") : Lodging.imageUrl(r.img || (r.imgs || [])[0]);
   const grid = $("grid");
   if (!items.length) {
-    const filtered = !!(QUERY.trim() || typeFilter || (activeType === "lodges" && activeLodgeCat !== "__all"));
+    const filtered = !!(typeFilter || (activeType === "lodges" && activeLodgeCat !== "__all"));
     grid.className = "";
     grid.innerHTML = `<div class="rg-empty">${filtered ? "조건에 맞는 항목이 없어요." : `등록된 ${esc(T.short)}이(가) 없어요.`}<div>` +
       (filtered ? `<button type="button" data-reset>필터 초기화</button>` : "") +
@@ -512,7 +500,7 @@ function renderGrid() {
   grid.querySelectorAll(".res-card").forEach(el => el.onclick = () => openEdit(el.dataset.k));
 }
 function resetFilters() {
-  QUERY = ""; $("q").value = ""; typeFilter = ""; activeLodgeCat = "__all";
+  typeFilter = ""; activeLodgeCat = "__all";
   renderLodgeCats(); renderGrid();
 }
 
@@ -791,8 +779,6 @@ function openEdit(key) {
 function closeDrawer(){ $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); }
 $("overlay").onclick = closeDrawer;
 $("addBtn").onclick = () => openEdit(null);
-$("qIcon").innerHTML = ic("search");
-$("q").addEventListener("input", e => { QUERY = e.target.value; renderLodgeCats(); renderGrid(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && $("drawer").classList.contains("on")) closeDrawer(); });
 
 /* ── 시작: 서버 라이브러리 동기화 후 렌더 ── */

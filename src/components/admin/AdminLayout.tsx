@@ -12,8 +12,8 @@ interface AdminLayoutProps {
     activePage: string;
     title: string;
     description?: string;
-    /** small uppercase label above the title; defaults from the page section */
-    eyebrow?: string;
+    /** small uppercase label above the title; defaults from the page section. `null`이면 표시하지 않는다. */
+    eyebrow?: string | null;
     /** 검색은 선택적으로 표시하며 업무 알림은 항상 제공한다. */
     showSearch?: boolean;
     /** kept for backward-compat with existing call sites; redesign is light-only */
@@ -42,7 +42,7 @@ const EYEBROW: Record<string, string> = {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
     activePage, title, description, eyebrow, showSearch = true, actions, flush = false, hideHeading = false, children,
 }) => {
-    const eb = eyebrow || EYEBROW[activePage] || '관리자 콘솔';
+    const eb = eyebrow === null ? null : eyebrow || EYEBROW[activePage] || '관리자 콘솔';
     const location = useLocation();
     const customerLayout = location.pathname.startsWith('/admin/customer-workspace/');
     const [narrowCustomer, setNarrowCustomer] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches);
@@ -115,7 +115,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                     <div className="header-in">
                         {customerLayout && <button ref={menuButtonRef} type="button" className="admin-customer-menu-toggle" aria-label="관리자 메뉴 열기" aria-expanded={menuShown} aria-controls={menuId} onClick={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>}
                         {!hideHeading && <div className="admin-layout-heading" style={{ minWidth: 0 }}>
-                            <div className="eyebrow"><span className="dot" />{eb}</div>
+                            {eb && <div className="eyebrow"><span className="dot" />{eb}</div>}
                             <div className="page-title">{title}</div>
                             {description && (
                                 <div className="cell-muted" style={{ fontSize: 12.5, marginTop: 2 }}>{description}</div>

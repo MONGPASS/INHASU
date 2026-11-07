@@ -9,7 +9,6 @@ import { addMissingAccommodationNights, alignAccommodationDates, getAccommodatio
 import { assignmentFingerprint, editorAssignment, writeAssignmentDraft, readAssignmentDraft, discardAssignmentDraft, type AssignmentDraft, type AssignmentDraftResult } from '../utils/adminAssignmentDraft';
 import { toTourDateKey } from '../utils/formatDate';
 import { AdminLayout } from '../components/admin/AdminLayout';
-import { Icon } from '../components/admin/console/Icon';
 import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import './AdminAccommodationOps.css';
 import { LODGE_BOOKING_STATUSES, isLodgeBookingConfirmed, lodgeBookingLabel } from '../utils/lodgeBookingStatus';
@@ -607,13 +606,12 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     return (
         <AdminLayout
             activePage="accommodation-ops"
+            eyebrow={null}
             title="숙소 배정 · 현지 운영"
-            actions={<button type="button" onClick={load} disabled={loading || !!savingId} className="btn"><Icon name="refresh" />새로고침</button>}
         >
             <div className="lo-board">
             {notice && <div className="lo-notice" role="status">{notice}</div>}
             {loadWarnings.map((warning, i) => <div key={i} role="alert" className="lo-notice is-warn">{warning}</div>)}
-            {resources.warnings.map((warning, i) => <div key={`resource-${i}`} role="alert" className="lo-notice is-warn">{warning}</div>)}
             {Object.keys(pendingDrafts).length > 0 && <div className="lo-notice is-draft" role="status">복구 가능한 배정 초안 {Object.keys(pendingDrafts).length}건이 있어요. 펼친 예약에서 복원 또는 버리기를 골라 주세요.</div>}
 
             <div className="lo-summary">

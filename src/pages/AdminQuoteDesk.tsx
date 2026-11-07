@@ -30,6 +30,7 @@ import {
     quoteDeskHref,
     quoteDeskPageId,
     quoteDeskToolForPath,
+    resourceScheduleView,
 } from '../components/admin/quoteDesk';
 
 /**
@@ -64,9 +65,10 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const quoteEditorId = toolParam === 'inbox' ? searchParams.get('qe') || undefined : undefined;
     const resourceType = toolParam === 'resources' && ['guides', 'lodges', 'vehicles'].includes(searchParams.get('resourceType') || '') ? searchParams.get('resourceType') || undefined : undefined;
     const navigate = useNavigate();
-    // 가이드·숙소·차량: 등록 정보(기존 도구)와 가이드 배정 현황(?view=schedule)을 오간다. 기존 도구 화면은 그대로 둔 채 위에 겹쳐 보여 준다.
-    const scheduleView = toolParam === 'resources' && searchParams.get('view') === 'schedule';
-    const setScheduleView = (on: boolean) => { const next = new URLSearchParams(searchParams); if (on) next.set('view', 'schedule'); else next.delete('view'); navigate({ search: next.toString() ? `?${next}` : '' }, { replace: true }); };
+    // 가이드·숙소·차량: 가이드 배정 현황(첫 화면, ?view=schedule)과 등록 정보(기존 도구, ?view=registry)를 오간다. 기존 도구 화면은 그대로 둔 채 위에 겹쳐 보여 준다.
+    // 종류를 지정한 링크(?resourceType=lodges 등)는 등록 정보로 연다.
+    const scheduleView = toolParam === 'resources' && resourceScheduleView(searchParams);
+    const setScheduleView = (on: boolean) => { const next = new URLSearchParams(searchParams); next.set('view', on ? 'schedule' : 'registry'); navigate({ search: `?${next}` }, { replace: true }); };
     const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: any } | null>(null);
     const customerRecord = customerResult?.accountId === accountId && customerResult.id === bookingId ? customerResult.record : null;
     const [customerError, setCustomerError] = useState('');
@@ -508,9 +510,10 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     return (
         <><AdminLayout
             activePage={quoteDeskPageId(tool.key)}
-            eyebrow="맞춤 견적"
+            /* 가이드·숙소·차량은 제목만 둔다(운영 요청으로 라벨·설명 제거). */
+            eyebrow={tool.key === 'resources' && !customerPage ? null : '맞춤 견적'}
             title={customerPage ? '고객 통합 작업' : bookingId && tool.key === 'bookings' ? '견적 예약 상세' : tool.label}
-            description={customerPage ? '선택한 문의·견적의 고객 정보와 일정·문서·예약 업무를 한곳에서 확인합니다.' : bookingId && tool.key === 'bookings' ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.description}
+            description={customerPage ? '선택한 문의·견적의 고객 정보와 일정·문서·예약 업무를 한곳에서 확인합니다.' : bookingId && tool.key === 'bookings' ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.key === 'resources' ? undefined : tool.description}
             flush
             hideHeading={customerPage && editorExpanded}
             actions={customerPage ? <>

@@ -150,3 +150,13 @@ test('공통 자원 바로가기는 허용된 분류만 열고 고객·편집 �
     assert.equal(app.quoteDeskFrameSrc(app.findQuoteDeskTool('builder'), 'saved-id', undefined, 'lodges'), '/견적만들기?id=saved-id');
     assert.equal(app.quoteDeskFrameSrc(app.findQuoteDeskTool('spots'), undefined, undefined, 'lodges'), '/명소관리');
 });
+
+test('가이드·숙소·차량 메뉴의 첫 화면은 가이드 배정 현황이고, 등록 정보는 view=registry나 종류 지정 링크로 연다', () => {
+    const app = setup(), view = search => app.resourceScheduleView(new URLSearchParams(search));
+    assert.equal(view(''), true);
+    assert.equal(view('?view=schedule'), true);
+    assert.equal(view('?view=registry'), false);
+    assert.equal(view('?resourceType=lodges'), false);
+    assert.equal(view('?resourceType=lodges&view=schedule'), true);
+    assert.equal(view('?resourceType=unknown'), true);
+});
