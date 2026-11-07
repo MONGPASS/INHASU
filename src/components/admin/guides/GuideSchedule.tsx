@@ -51,11 +51,6 @@ const md = (key?: string) => (key || '').slice(5).replace('-', '.');
 const startOf = (b: Item) => (b.startDate || '').slice(0, 10);
 const endOf = (b: Item) => (b.endDate || b.startDate || '').slice(0, 10);
 const period = (b: Item) => `${md(startOf(b))}→${md(endOf(b))}`;
-/** 목록 여행기간 — 같은 해면 끝 날짜의 연도를 줄여 칸을 좁힌다 (2026.09.20 ~ 09.23). */
-const periodLong = (b: Item) => {
-    const s = startOf(b), e = endOf(b), dot = (v: string) => v.replace(/-/g, '.');
-    return `${dot(s)} ~ ${dot(e.slice(0, 4) === s.slice(0, 4) ? e.slice(5) : e)}`;
-};
 const people = (b: Item) => (b.travelers ? `${b.travelers}명` : '인원 미정');
 const nights = (b: Item) => tripLengthLabel(b.startDate, b.endDate);
 const initial = (name: string) => name.replace(/^로컬\s*/, '').trim().slice(0, 1) || '?';
@@ -533,7 +528,7 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                                 <b className="gs-tname">{nameOf(b)}</b>
                                 <span className="gs-tprod">
                                     <span><b>{b.productName || (b.source === 'quote_booking' ? '맞춤 견적 여행' : '상품 미지정')}</b><span>{b.reservationNumber ? `#${b.reservationNumber}` : b.source === 'quote_booking' ? '견적 예약' : '상품 예약'}</span></span></span>
-                                <span className="gs-tperiod"><span><span>{periodLong(b)}</span><span className="is-low">{nights(b)}</span></span></span>
+                                <span className="gs-tperiod" title={`${startOf(b)} ~ ${endOf(b)} · ${nights(b)}`}><span><span>{startOf(b)} ~</span><span>{endOf(b)}</span><span className="is-low">{nights(b)}</span></span></span>
                                 <span className="is-c gs-ticon"><Ico name="lc-user" size={16} color="#8b95a1" />{b.travelers ? `${b.travelers}명` : '-'}</span>
                                 <span className="gs-ticon" title={regionOf(b) || '지역 미정'}><Ico name="lc-map-pin" size={16} color="#8b95a1" /><span className="gs-ell">{regionOf(b) || <span className="is-low">지역 미정</span>}</span></span>
                                 <span className="gs-tassign">

@@ -230,8 +230,8 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 .gs-cta.is-ghost:hover { background: var(--gs-contents); }
 .gs-cta.is-small { height: 36px; padding: 0 14px; border-radius: 6px; }
 /* 열 폭은 내용 기준 — 사이드바를 뺀 관리자 화면(표 영역 약 970px)에서 가로 스크롤 없이 다 보인다. 남는 폭은 고객명·투어명·배정 칸이 나눈다. */
-.gs-table { min-width: 964px; }
-.gs-trow { display: grid; grid-template-columns: 32px minmax(72px, .8fr) minmax(120px, 1.4fr) 132px 52px minmax(64px, .6fr) minmax(136px, 1fr) minmax(136px, 1fr) 100px 104px; align-items: center; box-sizing: border-box; min-height: 72px; padding: 0 8px; border-bottom: 1px solid var(--gs-div1); font-size: 14px; }
+.gs-table { min-width: 936px; }
+.gs-trow { display: grid; grid-template-columns: 32px minmax(72px, .8fr) minmax(120px, 1.4fr) 104px 52px minmax(64px, .6fr) minmax(136px, 1fr) minmax(136px, 1fr) 100px 104px; align-items: center; box-sizing: border-box; min-height: 72px; padding: 0 8px; border-bottom: 1px solid var(--gs-div1); font-size: 14px; }
 .gs-trow.is-head { align-items: stretch; height: 48px; min-height: 0; background: var(--gs-contents); border-bottom-color: var(--gs-div2); color: var(--gs-low); font-size: 13px; font-weight: 700; }
 .gs-trow.is-head > span { display: flex; align-items: center; padding-left: 10px; }
 .gs-trow.is-head > span.is-c { justify-content: center; padding-left: 0; }
@@ -247,7 +247,8 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 .gs-tprod b { display: -webkit-box; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 135%; word-break: keep-all; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .gs-tprod > span:last-child > span { overflow: hidden; color: var(--gs-low); font-size: 12px; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
 .gs-tperiod { display: flex; align-items: center; padding-left: 10px; }
-.gs-tperiod > span { display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 135%; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* 여행기간은 시작일 ~ / 종료일 / 박·일 세 줄 — 칸이 가로로 길어지지 않는다 */
+.gs-tperiod > span { display: flex; flex-direction: column; gap: 1px; font-size: 13px; line-height: 135%; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .gs-ticon { display: flex; align-items: center; gap: 4px; min-width: 0; padding-left: 10px; font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .gs-ticon.is-c { padding-left: 0; }
 .gs-ell { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
