@@ -205,7 +205,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     const [year, setYear] = useState(() => new Date().getFullYear());
     const [region, setRegion] = useState('all');
     const [statusFilter, setStatusFilter] = useState<'all' | BoardStatus>('all');
-    const [scope, setScope] = useState<'confirmed' | 'all'>('confirmed');
+    // 숙소 배정에 들어오면 확정 여부와 관계없이 전체 예약을 보여 준다.
+    const [scope, setScope] = useState<'confirmed' | 'all'>('all');
     const [view, setViewState] = useState<BoardView>(() => new URLSearchParams(window.location.search).get('open') ? 'card-view' : storedView());
     const setView = (next: BoardView) => { setViewState(next); try { window.localStorage.setItem(VIEW_KEY, next); } catch { /* 보기 기억은 편의 기능 */ } };
     // 지난 투어는 숨기되, 예약 상세의 링크로 직접 연 예약은 보여 준다.
@@ -363,7 +364,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         if (!target) return;
         openedFromUrl.current = true;
         setPinned(prev => new Set(prev).add(target.id));
-        // 확정 전 예약이면 기본 필터(확정 예약만)에 걸려 안 보이므로 전체 보기로 전환
+        // 확정 전 예약이면 ‘확정 예약만’ 필터에 걸려 안 보이므로 전체 보기로 전환
         if (!(CONFIRMED_STATUSES.includes(target.status || '') || target.depositStatus === 'paid' || target.type === 'quote')) setScope('all');
         openRow(target);
         setTimeout(() => { if (mounted.current) document.getElementById(`acc-row-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
@@ -620,8 +621,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         return counts;
     }, [base]);
     const yearTotal = Array.from({ length: 12 }, (_, i) => monthStats.perMonth.get(`${year}-${String(i + 1).padStart(2, '0')}`) || 0).reduce((a, b) => a + b, 0);
-    const filtersOn = !!(q.trim() || scope !== 'confirmed' || region !== 'all' || statusFilter !== 'all' || month !== 'all');
-    const resetFilters = () => { setQ(''); setScope('confirmed'); setRegion('all'); setStatusFilter('all'); setMonth('all'); };
+    const filtersOn = !!(q.trim() || scope !== 'all' || region !== 'all' || statusFilter !== 'all' || month !== 'all');
+    const resetFilters = () => { setQ(''); setScope('all'); setRegion('all'); setStatusFilter('all'); setMonth('all'); };
 
     return (
         <AdminLayout

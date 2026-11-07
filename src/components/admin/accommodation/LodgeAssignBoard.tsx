@@ -75,7 +75,8 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
 }) {
     const now = new Date(), todayK = keyOf(now);
     const [calState, setCal] = useState<{ y: number; m: number } | null>(null);
-    const [allPeriod, setAllPeriod] = useState(false);
+    // 들어오면 전체 기간의 예약을 모두 보여 준다. 달·날짜를 고르면 그 기간만 본다.
+    const [allPeriod, setAllPeriod] = useState(true);
     const [day, setDay] = useState<string | null>(null);
     const [range, setRange] = useState<'d' | 'w' | 'm'>('m');
     const [winStart, setWinStart] = useState(0);
@@ -125,7 +126,7 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
         return { tour, rows, nights, fill, bs, start, end, plan, planned: plannedNights(tour) };
     }), [tours, rowsOf, plannedNights, clearedAreas, lodgeRegions]);
 
-    // 처음에는 이번 달 — 이번 달에 숙박이 없으면 가장 가까운 다음 숙박이 있는 달을 연다.
+    // 달 선택의 기준 달: 이번 달 — 이번 달에 숙박이 없으면 가장 가까운 다음 숙박이 있는 달.
     const firstMonthKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
     const autoMonth = model.flatMap(m => m.nights.map(n => n.date.slice(0, 7))).filter(k => k >= firstMonthKey).sort()[0] || firstMonthKey;
     const cal = calState ?? { y: Number(autoMonth.slice(0, 4)), m: Number(autoMonth.slice(5, 7)) };
