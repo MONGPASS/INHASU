@@ -986,6 +986,7 @@ function pullForm() {
   const g = id => $(id) ? $(id).value.trim() : "";
   BK.assign.guide = { name:g("g_name"), nameEn:g("g_nameEn"), role:g("g_role"),
                       phone:g("g_phone"), qr:g("g_qr"), img:g("g_img"), desc:g("g_desc") };
+  const prevVehicle = BK.assign.vehicle || {};
   BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), luggage:g("v_luggage"), plate:g("v_plate"), img:"", imgs:[], desc:"" };
   BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map((el, index) => {
     const name = el.querySelector('[data-lk="name"]').value.trim();
@@ -1006,6 +1007,10 @@ function pullForm() {
   if (vlib.img) BK.assign.vehicle.img = vlib.img;
   BK.assign.vehicle.imgs = Array.isArray(vlib.imgs) ? vlib.imgs : (vlib.img ? [vlib.img] : []);
   BK.assign.vehicle.desc = g("v_desc") || vlib.desc || "";
+  // 기사 이름·연락처: 같은 차량이면 이전 값을 지키고, 차량을 바꾸면 등록 정보의 기사로 채운다.
+  const sameVehicle = (prevVehicle.model || prevVehicle.type || "") === BK.assign.vehicle.model;
+  BK.assign.vehicle.driver = (sameVehicle ? prevVehicle.driver : "") || vlib.driver || "";
+  BK.assign.vehicle.phone = (sameVehicle ? (prevVehicle.phone || prevVehicle.driverPhone) : "") || vlib.phone || "";
   BK.travelers = [...document.querySelectorAll(".traveler-row")].map(el => ({
     type: (el.querySelector('[data-tk="type"]') || {}).value || "성인",
     nameKo: (el.querySelector('[data-tk="nameKo"]') || {}).value?.trim() || "",

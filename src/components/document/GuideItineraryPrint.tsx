@@ -11,6 +11,7 @@ interface GuidePrintExtra {
     guidePhone?: string;
     vehicleType?: string;
     vehiclePhone?: string;
+    driverName?: string;
     memos?: string[];
 }
 
@@ -76,7 +77,7 @@ export const GuideItineraryPrint: React.FC<GuideItineraryPrintProps> = ({ reserv
     const customerName = extra?.customerName || reservation.customerName;
     const people = extra?.people || (reservation.travelers ? `${reservation.travelers}명` : '—');
     const guide = [extra?.guideName, extra?.guidePhone].filter(Boolean).join(' · ');
-    const vehicle = [extra?.vehicleType, extra?.vehiclePhone].filter(Boolean).join(' · ');
+    const driver = [extra?.driverName, extra?.vehiclePhone].filter(Boolean).join(' · ');
     const duration = computeDuration(reservation.startDate, reservation.endDate);
     const durationLabel = duration ? `${duration.nights}박 ${duration.days}일` : `총 ${days.length}일`;
     const regions = Array.from(new Set(days.map((day) => day.region).filter(Boolean)))
@@ -91,7 +92,8 @@ export const GuideItineraryPrint: React.FC<GuideItineraryPrintProps> = ({ reserv
         ['몽골 도착', clean(extra?.arrival)],
         ['몽골 출발·귀국', clean(extra?.departure)],
         ['담당 가이드', clean(guide)],
-        ['차량', clean(vehicle)],
+        ['차량', clean(extra?.vehicleType)],
+        ['차량 기사', clean(driver)],
     ];
 
     return (

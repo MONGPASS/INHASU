@@ -118,7 +118,7 @@ interface GuideDocFlight { date?: string; time?: string; flight?: string }
 export interface GuideDocBooking {
     source: string; id: string; customerName?: string; leadName?: string; travelers?: number;
     contractData?: { arrival?: GuideDocFlight; departure?: GuideDocFlight };
-    assignment?: { guide?: { name?: string; phone?: string }; vehicle?: { type?: string; phone?: string } };
+    assignment?: { guide?: { name?: string; phone?: string }; vehicle?: { type?: string; phone?: string; driver?: string } };
 }
 export const guideItineraryHref = (b: Pick<GuideDocBooking, 'source' | 'id'>) => b.source === 'quote_booking'
     ? `/가이드시트?id=${encodeURIComponent(b.id)}`
@@ -133,6 +133,7 @@ export const guideItineraryExtra = (b: GuideDocBooking) => ({
     guidePhone: String(b.assignment?.guide?.phone || '').trim(),
     vehicleType: String(b.assignment?.vehicle?.type || '').trim(),
     vehiclePhone: String(b.assignment?.vehicle?.phone || '').trim(),
+    driverName: String(b.assignment?.vehicle?.driver || '').trim(),
 });
 
 /** 목록의 배정 상태: 중복(가이드·차량) > 배정완료(가이드+차량) > 부분 배정 > 미배정 */

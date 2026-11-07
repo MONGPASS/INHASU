@@ -1180,6 +1180,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             guidePhone: g.phone || '',
             vehicleType: v.type || v.name || '',
             vehiclePhone: v.phone || '',
+            driverName: v.driver || '',
             memos: d.memos || [],
         };
         try { localStorage.setItem(`guideDoc:${reservation.id}`, JSON.stringify(payload)); } catch { /* ignore */ }

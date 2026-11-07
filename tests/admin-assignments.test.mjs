@@ -480,3 +480,16 @@ test('가이드 중복: 같은 기간 다른 예약의 가이드로 바꾸면 �
     response = await patch(saved, { ...saved.assignment, guide: quoteGuide });
     assert.equal(response.status, 200, '취소 예약과는 겹치지 않는다');
 });
+
+test('차량 기사 이름은 관리자 배정에만 저장하고, 같은 차량이면 이어 쓰고 차량을 바꾸면 비운다', () => {
+    assert.deepEqual(readProductVehicle({ vehicle: '스타렉스', driverPhone: '+976 2', driverName: 'Bat' }, {}), { type: '스타렉스', phone: '+976 2', driver: 'Bat' });
+    assert.deepEqual(readProductVehicle({}, { vehicle: { model: '스타렉스', phone: '+976 2', driver: 'Bat' } }), { type: '스타렉스', phone: '+976 2', driver: 'Bat' });
+    const first = syncProductVehicle({}, {}, { operations: { vehicle: '스타렉스', driverPhone: '+976 2', driverName: 'Bat' } });
+    assert.equal(first.operations.driverName, 'Bat'); assert.equal(first.contractData.vehicle.driver, 'Bat');
+    const samePhone = syncProductVehicle(first.operations, first.contractData, { operations: { vehicle: '스타렉스', driverPhone: '+976 9' } });
+    assert.equal(samePhone.operations.driverName, 'Bat', '같은 차량의 연락처만 바꾸면 기사 이름은 그대로');
+    const other = syncProductVehicle(first.operations, first.contractData, { operations: { vehicle: '하이에이스', driverPhone: '' } });
+    assert.ok(!('driverName' in other.operations) && !('driver' in other.contractData.vehicle), '다른 차량에 이전 기사 이름이 남지 않는다');
+    const cleared = syncProductVehicle(first.operations, first.contractData, { operations: { vehicle: '스타렉스', driverPhone: '+976 2', driverName: '' } });
+    assert.ok(!('driverName' in cleared.operations), '비운 기사 이름은 지운다');
+});

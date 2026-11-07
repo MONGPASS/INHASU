@@ -96,6 +96,7 @@ interface GuideExtra {
     guidePhone?: string;
     vehicleType?: string;
     vehiclePhone?: string;
+    driverName?: string;
     memos?: string[];
 }
 
@@ -400,7 +401,8 @@ const GuideDocumentItinerary: React.FC = () => {
         { label: '도착편', value: guideExtra.arrival },
         { label: '출발편', value: guideExtra.departure },
         { label: '담당 가이드', value: [guideExtra.guideName, guideExtra.guidePhone].filter(Boolean).join(' · ') || undefined },
-        { label: '차량', value: [guideExtra.vehicleType, guideExtra.vehiclePhone].filter(Boolean).join(' · ') || undefined },
+        { label: '차량', value: guideExtra.vehicleType || undefined },
+        { label: '차량 기사', value: [guideExtra.driverName, guideExtra.vehiclePhone].filter(Boolean).join(' · ') || undefined },
     ].filter(r => r.value) : [];
     const guideBlock = guideExtra ? (
         <div className="print-break" style={{ padding: m ? '16px 16px 0' : '24px 56px 0' }}>

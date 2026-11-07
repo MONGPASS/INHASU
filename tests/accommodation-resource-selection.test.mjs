@@ -16,9 +16,10 @@ test('공통 가이드·차량 선택은 등록 전화와 공개 프로필만 �
     assert.deepEqual(selectedGuide, { id: guide.id, name: guide.name, phone: '', image: '/guide.webp', introduction: '공개 소개',
         nameEn: 'Guide', role: '현지 가이드', languages: ['한국어'], specialties: ['고비'] });
     const selectedVehicle = selectResourceVehicle({ type: '이전 차량', phone: 'MANUAL-OLD-DRIVER' }, vehicle);
-    assert.deepEqual(selectedVehicle, { type: vehicle.type, phone: 'REGISTERED-DRIVER', resource: { id: `resource-vehicle:${vehicle.name}`,
+    assert.deepEqual(selectedVehicle, { type: vehicle.type, phone: 'REGISTERED-DRIVER', driver: '', resource: { id: `resource-vehicle:${vehicle.name}`,
         img: '/car.webp', images: ['/car.webp', '/inside.webp'], description: '공개 차량 안내', seats: '6인', luggage: '4개' } });
     assert.equal(selectResourceVehicle(selectedVehicle, { ...vehicle, phone: '', snapshot: {} }).phone, '', '다른 차량에 기존 기사 전화가 남지 않는다');
+    assert.equal(selectResourceVehicle({ type: '이전 차량', phone: '', driver: '이전 기사' }, { ...vehicle, driver: 'Bat' }).driver, 'Bat', '등록 차량의 기사 이름을 함께 넣는다');
     selectedGuide.languages.push('직접 추가'); selectedVehicle.resource.images.push('/booking.webp');
     assert.deepEqual(guide.languages, ['한국어']); assert.deepEqual(vehicle.snapshot.images, ['/car.webp', '/inside.webp']);
     assert.ok(!JSON.stringify({ selectedGuide, selectedVehicle }).includes('PRIVATE-'));
