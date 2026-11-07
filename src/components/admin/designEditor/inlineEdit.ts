@@ -5,10 +5,20 @@
 export interface AnchorBox { top: number; left: number; right: number; bottom: number; width: number; height: number }
 export interface PopoverPlacement { left: number; top?: number; bottom?: number; above: boolean }
 
-/** 앵커 아래에 두되 공간이 모자라면 위로 뒤집고, 좌우는 화면 안쪽으로 밀어 넣는다. */
+/**
+ * 앵커 아래에 두되 공간이 모자라면 위로 뒤집고, 좌우는 화면 안쪽으로 밀어 넣는다.
+ * 위아래 어디에도 다 들어가지 않으면(문구가 화면 가운데에서 커졌을 때 등) 고치는 문구를 가리지 않도록 옆에 둔다.
+ */
 export function placePopover(anchor: AnchorBox, size: { width: number; height: number }, viewport: { width: number; height: number }, gap = 8, margin = 8): PopoverPlacement {
     const below = viewport.height - anchor.bottom - gap;
     const aboveSpace = anchor.top - gap;
+    if (below - margin < size.height && aboveSpace - margin < size.height) {
+        const right = viewport.width - anchor.right - gap - margin, leftSpace = anchor.left - gap - margin;
+        if (right >= size.width || leftSpace >= size.width) {
+            const top = Math.max(margin, Math.min(anchor.top, viewport.height - size.height - margin));
+            return { left: right >= size.width ? anchor.right + gap : anchor.left - gap - size.width, top, above: false };
+        }
+    }
     const above = below < size.height && aboveSpace > below;
     const left = Math.max(margin, Math.min(anchor.left, viewport.width - size.width - margin));
     if (above) return { left, bottom: Math.max(margin, viewport.height - anchor.top + gap), above: true };

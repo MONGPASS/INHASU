@@ -21,6 +21,12 @@ test('placePopover: 아래 공간이 모자라면 위로 뒤집고 좌우는 화
     const clamped = placePopover(box(1100, 100, 80, 30), { width: 360, height: 200 }, viewport);
     assert.equal(clamped.left, 1200 - 360 - 8);
     assert.equal(placePopover(box(-50, 100, 80, 30), { width: 360, height: 200 }, viewport).left, 8);
+    // 위아래 모두 모자라면 문구를 덮지 않게 옆(오른쪽 우선, 없으면 왼쪽)에 둔다
+    const tall = { width: 400, height: 380 };
+    const side = placePopover(box(100, 300, 300, 200), tall, viewport);
+    assert.deepEqual(side, { left: 408, top: 300, above: false });
+    const leftSide = placePopover(box(700, 300, 400, 200), tall, viewport);
+    assert.equal(leftSide.left, 700 - 8 - 400);
 });
 
 test('scoped key 규칙은 sections.ts의 scopedKey와 같다 (`key@2`만 접미사)', () => {

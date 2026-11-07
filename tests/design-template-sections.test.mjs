@@ -40,12 +40,17 @@ for (const [name, entry] of [['PC', '../src/components/product/designTemplates/H
     });
 }
 
-test('FieldPopover: 한 줄은 input, 여러 줄은 textarea, 자동 반영 칸은 안내만 보여 준다', async () => {
+test('FieldPopover: 한 줄 칸은 Shift+Enter로 줄을 나누고(프리셋 칸은 input), 여러 줄은 textarea, 자동 반영 칸은 안내만 보여 준다', async () => {
     const { FieldPopover } = await load('../src/components/admin/designEditor/FieldPopover.tsx');
     const text = renderToStaticMarkup(React.createElement(FieldPopover, { field: { key: 'a', label: '큰 제목', type: 'text', section: 's', default: '원본 문구' }, value: '', anchor: null, onChange: noop, onClear: noop, onClose: noop }));
-    assert.ok(text.includes('<input') && !text.includes('<textarea'), '한 줄 칸');
+    assert.ok(text.includes('<textarea') && text.includes('rows="1"') && !text.includes('<input'), '한 줄 칸은 한 줄 높이의 textarea');
     assert.ok(text.includes('placeholder="원본 문구"') && text.includes('원본 문구</span>'), '비어 있으면 원본 문구 표시');
-    assert.ok(text.includes('Enter 적용 · Esc 취소') && text.includes('원본으로') && text.includes('적용'));
+    assert.ok(text.includes('Enter 적용 · Shift+Enter 줄바꿈 · Esc 취소') && text.includes('원본으로') && text.includes('적용'));
+    assert.ok(!text.includes('글자 크기'), '크기 조절은 onSizeChange가 있을 때만');
+    const preset = renderToStaticMarkup(React.createElement(FieldPopover, { field: { key: 'd', label: '일수', type: 'text', section: 's', presets: ['3박 4일'] }, value: '', anchor: null, onChange: noop, onClear: noop, onClose: noop }));
+    assert.ok(preset.includes('<input') && preset.includes('Enter 적용 · Esc 취소') && !preset.includes('Shift+Enter'), '프리셋 칸은 줄을 나누지 않는다');
+    const sized = renderToStaticMarkup(React.createElement(FieldPopover, { field: { key: 'a', label: '큰 제목', type: 'text', section: 's', default: '원본 문구' }, value: '', size: 120, onSizeChange: noop, anchor: null, onChange: noop, onClear: noop, onClose: noop }));
+    assert.ok(sized.includes('글자 크기') && sized.includes('120%') && sized.includes('기본 크기(100%)') && sized.includes('수정됨'), '크기를 바꾸면 수정됨');
     const multi = renderToStaticMarkup(React.createElement(FieldPopover, { field: { key: 'b', label: '본문', type: 'textarea', section: 's', default: '1\n2\n3' }, value: '고친 글', anchor: null, disabled: true, onChange: noop, onClear: noop, onClose: noop }));
     assert.ok(multi.includes('<textarea') && multi.includes('rows="4"') && multi.includes('disabled=""'), '여러 줄 칸은 업로드 중 잠긴다');
     assert.ok(multi.includes('수정됨') && multi.includes('Ctrl+Enter 적용'));
@@ -65,4 +70,19 @@ test('ImagePopover: 공통 사진 배지·바꾸기/지우기 버튼·업로드 
     assert.ok(own.includes('사진 바꾸기') && own.includes('공통 사진 쓰기') && own.includes('지우기') && own.includes('이 상품에 올린 사진'));
     const busy = renderToStaticMarkup(React.createElement(ImagePopover, { ...base, value: '/api/images/own.webp', uploading: true }));
     assert.ok(busy.includes('업로드 중…') && busy.includes('type="file" accept="image/*" disabled=""'));
+});
+
+test('문구 글자 크기·줄바꿈: 범위 제한, 기본 크기는 지워 저장, 블록 안 선택자로만 zoom·pre-line 적용', async () => {
+    const { clampTextSize, commitTextSize, textStyleCss, TEXT_SIZE } = await load('../src/components/product/designTemplates/textStyles.ts');
+    assert.equal(clampTextSize(10), TEXT_SIZE.min);
+    assert.equal(clampTextSize(999), TEXT_SIZE.max);
+    assert.equal(clampTextSize('abc'), 100);
+    assert.deepEqual(commitTextSize(undefined, 'hero_title', 130), { hero_title: { size: 130 } });
+    assert.equal(commitTextSize({ hero_title: { size: 130 } }, 'hero_title', 100), undefined, '기본 크기면 키를 지운다');
+    const css = textStyleCss('[data-dtpl="b1"]', { hero_title: { size: 130 }, 'intro_body@2': { size: 80 }, 'bad"key': { size: 150 }, plain: { size: 100 } },
+        { hero_title: ['첫 줄', '둘째 줄'].join(String.fromCharCode(10)), photo: 'https://x/a.webp', one: '한 줄' });
+    assert.ok(css.includes('[data-dtpl="b1"] [data-df-scope=""] [data-df="hero_title"]{zoom:1.3}'));
+    assert.ok(css.includes('[data-dtpl="b1"] [data-df-scope="@2"] [data-df="intro_body"]{zoom:0.8}'), '복제 섹션은 그 섹션 안만');
+    assert.ok(css.includes('[data-df="hero_title"]{white-space:pre-line}'), '줄을 나눈 문구는 줄바꿈 표시');
+    assert.ok(!css.includes('bad') && !css.includes('"plain"') && !css.includes('"one"') && !css.includes('photo'), '이상한 키·기본 크기·한 줄·사진 주소는 규칙 없음');
 });
