@@ -508,9 +508,10 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     return (
         <><AdminLayout
             activePage={quoteDeskPageId(tool.key)}
-            eyebrow="맞춤 견적"
+            /* 가이드·숙소·차량은 제목만 둔다(운영 요청으로 라벨·설명 제거). */
+            eyebrow={tool.key === 'resources' && !customerPage ? null : '맞춤 견적'}
             title={customerPage ? '고객 통합 작업' : bookingId && tool.key === 'bookings' ? '견적 예약 상세' : tool.label}
-            description={customerPage ? '선택한 문의·견적의 고객 정보와 일정·문서·예약 업무를 한곳에서 확인합니다.' : bookingId && tool.key === 'bookings' ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.description}
+            description={customerPage ? '선택한 문의·견적의 고객 정보와 일정·문서·예약 업무를 한곳에서 확인합니다.' : bookingId && tool.key === 'bookings' ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.key === 'resources' ? undefined : tool.description}
             flush
             hideHeading={customerPage && editorExpanded}
             actions={customerPage ? <>

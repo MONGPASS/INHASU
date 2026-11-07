@@ -105,6 +105,8 @@ function mount({ resources = async () => resourceFixture(), failPatch = false, i
         async open(source = 'quote_booking') { h.row(source).props.onClick(); h.render(); await h.settle(); },
         select(value) { const select = nodes(h.tree).find(node => node.type === 'select' && nodes(node).some(child => child.type === 'option' && child.props.value === value)); assert.ok(select, `선택 항목 ${value}`); assert.ok(!select.props.disabled, `${value} 선택 가능`); select.props.onChange({ target: { value } }); h.render(); },
         button(label) { const button = nodes(h.tree).find(node => node.type === 'button' && text(node).includes(label)); assert.ok(button, label); return button; },
+        /** 페이지 새로고침: 화면 상태를 버리고 같은 서버·저장소로 다시 연다(머리의 새로고침 버튼은 운영 요청으로 뺐다). */
+        async reload() { h.unmount(); for (const key of Object.keys(values)) delete values[key]; effects.clear(); h.render(); await h.settle(); },
         flushDraft() { for (const listener of windowListeners.get('pagehide') || []) listener(); },
         unmount() { for (const entry of effects.values()) entry.cleanup?.(); },
     };
@@ -149,7 +151,7 @@ test('숙소 운영 보드의 실제 등록 선택은 자동 채움만 하고 �
     assert.deepEqual(stay.accommodation.facilities, ['온수']); assert.equal(stay.accommodation.bookingStatus, 'Илгээгээгүй');
     assert.equal(stay.accommodation.roomCount, 2); assert.equal(stay.accommodation.occupancy, '2 хүн/өрөө');
     assert.deepEqual(h.server[0], originalProduct); assert.equal(h.storage.size, 0);
-    await h.button('새로고침').props.onClick(); await h.settle(); await h.open();
+    await h.reload(); await h.open();
     assert.ok(nodes(h.tree).some(node => node.type === 'select' && node.props.value === 'resource-guide:등록 가이드 / #?'));
     assert.ok(nodes(h.tree).some(node => node.type === 'select' && node.props.value === 'resource-lodge:등록 게르 / #?'));
     h.unmount();
@@ -201,7 +203,7 @@ test('숙소 입력 모드 전환은 현재 배정을 보존하고 실제 수동
     assert.equal(acc.roomCount, 2); assert.equal(acc.occupancy, '2 хүн/өрөө');
     assert.equal(acc.location, '새 운영 지역'); assert.equal(acc.region, '새 운영 지역');
     assert.deepEqual(h.server[1], originalQuote);
-    await h.button('새로고침').props.onClick(); await h.settle(); await h.open('product');
+    await h.reload(); await h.open('product');
     assert.equal(manualInput().props.value, '새로 직접 작성한 숙소');
     assert.ok(nodes(h.tree).some(node => node.type === 'input' && node.props.placeholder === '지역 입력' && node.props.value === '새 운영 지역'));
     h.unmount();
@@ -289,7 +291,7 @@ test('명시적으로 비운 고객 일정과 저장된 빈 숙소 배열은 보
     assert.ok(text(h.tree).includes('고객별 저장 일정'));
     assert.equal(nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').length, 0);
     h.flushDraft(); assert.equal(h.storage.size, 0); assert.equal(h.button('배정 저장').props.disabled, true);
-    await h.button('새로고침').props.onClick(); await h.settle(); await h.open('product');
+    await h.reload(); await h.open('product');
     assert.equal(nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').length, 0);
     assert.deepEqual(h.server[0].schedule.days, []); assert.deepEqual(h.server[0].assignment.accommodations, []);
     assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
@@ -305,7 +307,7 @@ test('보관된 초안을 고르기 전에도 고객 일정의 숙박일을 잠�
     regions()[0].props.onChange({ target: { value: '중앙몽골' } }); h.render(); h.flushDraft();
     assert.equal(h.storage.size, 1);
 
-    await h.button('새로고침').props.onClick(); await h.settle();
+    await h.reload();
     const fieldset = nodes(h.tree).find(node => node.type === 'fieldset');
     assert.equal(fieldset.props.disabled, true, '초안을 고르기 전에는 잠긴다');
     assert.deepEqual(dates(), ['2026-11-01', '2026-11-02']);
@@ -435,7 +437,7 @@ test('숙박 날짜를 직접 고칠 때도 변경한 예약만 다시 수배하
         ...before[0].accommodation, bookingStatus: 'Илгээгээгүй',
     } }, '직접 바꾼 날짜만 수배 재확인이 필요하며 객실 0을 비롯한 자료를 보존');
     assert.deepEqual(stays[1], before[1], '같은 날짜를 다시 입력해도 확정 상태를 유지');
-    await h.button('새로고침').props.onClick(); await h.settle(); await h.open('product');
+    await h.reload(); await h.open('product');
     assert.deepEqual(dates().map(node => node.props.value), ['2026-10-31', '2026-11-02']);
     h.unmount();
 });
