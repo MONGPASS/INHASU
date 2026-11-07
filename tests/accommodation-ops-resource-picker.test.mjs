@@ -504,8 +504,8 @@ test('시트 보기: 오늘 이후 투어만 보여 주고 분류·배정 구분
     await h.settle();
     assert.deepEqual(plain(boardEl(h).props.tours.map(t => t.customerName)).sort(), ['견적 고객', '상품 고객'], '지난 투어는 목록에 없다');
     assert.ok(!nodes(h.tree).some(node => node.props?.id === 'acc-row-product:same / #?'), '시트 보기에서는 카드 목록을 그리지 않는다');
-    // 오늘(10월)에는 숙박이 없어 가장 가까운 숙박 달(11월)을 연다.
-    assert.ok(boardNodes(h).some(n => n.type === 'b' && text(n) === '2026년 11월'), '숙박이 있는 달');
+    // 들어오면 달을 고르지 않고 전체 기간의 예약을 모두 보여 준다.
+    assert.ok(boardNodes(h).some(n => n.type === 'b' && text(n) === '전체 기간'), '처음에는 전체 기간');
 
     boardField(h, '상품 고객 예약 정보 보기').props.onClick(fakeClick); h.render();
     boardPick(h, '상품 고객 분류', '골프투어');
