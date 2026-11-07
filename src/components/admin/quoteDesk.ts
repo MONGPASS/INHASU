@@ -104,6 +104,13 @@ export function isDesktopViewport(): boolean {
     return width > NARROW_MAX_WIDTH;
 }
 
+/** 가이드·숙소·차량의 첫 화면은 가이드 배정 현황이다. `?view=registry`나 종류를 지정한 링크(`?resourceType=`)만 등록 정보로 연다. */
+export function resourceScheduleView(params: URLSearchParams): boolean {
+    const view = params.get('view');
+    if (view) return view !== 'registry';
+    return !['guides', 'lodges', 'vehicles'].includes(params.get('resourceType') || '');
+}
+
 /** iframe 에 넣을 주소. 바깥 창이 데스크톱 폭이면 모바일 화면으로 넘어가지 않게 `?m=0` 을 붙인다. */
 export function quoteDeskFrameSrc(tool: QuoteDeskTool, bookingId?: string, quoteEditorId?: string, resourceType?: string): string {
     if (tool.key === 'builder' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}`;

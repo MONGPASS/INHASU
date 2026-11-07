@@ -30,6 +30,7 @@ import {
     quoteDeskHref,
     quoteDeskPageId,
     quoteDeskToolForPath,
+    resourceScheduleView,
 } from '../components/admin/quoteDesk';
 
 /**
@@ -64,9 +65,10 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const quoteEditorId = toolParam === 'inbox' ? searchParams.get('qe') || undefined : undefined;
     const resourceType = toolParam === 'resources' && ['guides', 'lodges', 'vehicles'].includes(searchParams.get('resourceType') || '') ? searchParams.get('resourceType') || undefined : undefined;
     const navigate = useNavigate();
-    // 가이드·숙소·차량: 등록 정보(기존 도구)와 가이드 배정 현황(?view=schedule)을 오간다. 기존 도구 화면은 그대로 둔 채 위에 겹쳐 보여 준다.
-    const scheduleView = toolParam === 'resources' && searchParams.get('view') === 'schedule';
-    const setScheduleView = (on: boolean) => { const next = new URLSearchParams(searchParams); if (on) next.set('view', 'schedule'); else next.delete('view'); navigate({ search: next.toString() ? `?${next}` : '' }, { replace: true }); };
+    // 가이드·숙소·차량: 가이드 배정 현황(첫 화면, ?view=schedule)과 등록 정보(기존 도구, ?view=registry)를 오간다. 기존 도구 화면은 그대로 둔 채 위에 겹쳐 보여 준다.
+    // 종류를 지정한 링크(?resourceType=lodges 등)는 등록 정보로 연다.
+    const scheduleView = toolParam === 'resources' && resourceScheduleView(searchParams);
+    const setScheduleView = (on: boolean) => { const next = new URLSearchParams(searchParams); next.set('view', on ? 'schedule' : 'registry'); navigate({ search: `?${next}` }, { replace: true }); };
     const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: any } | null>(null);
     const customerRecord = customerResult?.accountId === accountId && customerResult.id === bookingId ? customerResult.record : null;
     const [customerError, setCustomerError] = useState('');
