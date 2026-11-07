@@ -131,9 +131,9 @@ test('가이드 상세의 일정표는 담당 가이드에게 전달하는 문�
     assert.equal(guideItineraryHref({ source: 'quote_booking', id: 'q-7' }), '/가이드시트?id=q-7');
     assert.deepEqual(guideItineraryExtra({ source: 'product', id: 'r1', customerName: ' 김고객 ', travelers: 3,
         contractData: { arrival: { date: '2026-10-20', time: '21:40', flight: 'OM302' }, departure: { date: '2026-10-22' } },
-        assignment: { guide: { name: 'Oyuka', phone: '+976 1' }, vehicle: { type: '스타렉스', phone: '+976 2' } } }), {
+        assignment: { guide: { name: 'Oyuka', phone: '+976 1' }, vehicle: { type: '스타렉스', phone: '+976 2', driver: ' Bat ' } } }), {
         customerName: '김고객', people: '3명', arrival: '2026-10-20 · 21:40 · OM302', departure: '2026-10-22',
-        guideName: 'Oyuka', guidePhone: '+976 1', vehicleType: '스타렉스', vehiclePhone: '+976 2',
+        guideName: 'Oyuka', guidePhone: '+976 1', vehicleType: '스타렉스', vehiclePhone: '+976 2', driverName: 'Bat',
     });
     const source = (await import('node:fs')).readFileSync(fileURLToPath(new URL('../src/components/admin/guides/GuideSchedule.tsx', import.meta.url)), 'utf8');
     assert.doesNotMatch(source, /연락처 복사|예약 상세 열기/);

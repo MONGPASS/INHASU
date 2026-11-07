@@ -11,15 +11,21 @@ const string = (value: unknown): string => typeof value === 'string' ? value : '
 export interface AssignmentVehicleResource {
     id?: string; img?: string; images?: string[]; description?: string; seats?: string; luggage?: string;
 }
-export interface AssignmentVehicle { type: string; phone: string; resource?: AssignmentVehicleResource }
+/** driver: 차량 기사 이름(관리자·가이드 문서 전용, 고객 화면에는 내보내지 않는다) */
+export interface AssignmentVehicle { type: string; phone: string; driver?: string; resource?: AssignmentVehicleResource }
 
 export function readProductVehicle(operations: unknown, contractData: unknown): AssignmentVehicle {
     const ops = assignmentRecord(operations), rawVehicle = assignmentRecord(contractData).vehicle, vehicle = assignmentRecord(rawVehicle);
     return {
         type: own(ops, 'vehicle') ? string(ops.vehicle) : typeof rawVehicle === 'string' ? rawVehicle : string(vehicle.type ?? vehicle.model ?? vehicle.name),
         phone: own(ops, 'driverPhone') ? string(ops.driverPhone) : string(vehicle.phone ?? vehicle.driverPhone),
+        ...driverOf(ops, vehicle),
     };
 }
+const driverOf = (ops: Record<string, any>, vehicle: Record<string, any>) => {
+    const driver = own(ops, 'driverName') ? string(ops.driverName) : string(vehicle.driver ?? vehicle.driverName);
+    return driver ? { driver } : {};
+};
 
 /** Server callers persist both results in one conditional UPDATE. Private fields stay private. */
 export function syncProductVehicle(currentOperations: unknown, currentContract: unknown, patch: { operations?: unknown; contractData?: unknown }) {
@@ -32,9 +38,16 @@ export function syncProductVehicle(currentOperations: unknown, currentContract: 
         type: own(incomingOps, 'vehicle') ? string(incomingOps.vehicle) : vehiclePatch !== null ? string(vehiclePatch.type ?? vehiclePatch.model ?? vehiclePatch.name) : old.type,
         phone: own(incomingOps, 'driverPhone') ? string(incomingOps.driverPhone) : vehiclePatch !== null ? string(vehiclePatch.phone ?? vehiclePatch.driverPhone) : old.phone,
     };
+    // 기사 이름: 보낸 값이 있으면 그 값, 없으면 같은 차량일 때만 이전 기사를 이어 쓴다(차량을 바꾸면 비운다).
+    const driverPatch = own(incomingOps, 'driverName') ? string(incomingOps.driverName)
+        : vehiclePatch !== null && (own(vehiclePatch, 'driver') || own(vehiclePatch, 'driverName')) ? string(vehiclePatch.driver ?? vehiclePatch.driverName) : undefined;
+    const driver = driverPatch ?? (next.type === old.type ? old.driver || '' : '');
     operations.vehicle = next.type; operations.driverPhone = next.phone;
+    if (driver) operations.driverName = driver; else delete operations.driverName;
     const metadata = next.type === old.type ? assignmentRecord(assignmentRecord(currentContract).vehicle) : {};
-    contractData.vehicle = { ...metadata, ...(vehiclePatch || {}), type: next.type, model: next.type, phone: next.phone };
+    const vehicle: Record<string, any> = { ...metadata, ...(vehiclePatch || {}), type: next.type, model: next.type, phone: next.phone };
+    delete vehicle.driverName; if (driver) vehicle.driver = driver; else delete vehicle.driver;
+    contractData.vehicle = vehicle;
     return { operations, contractData };
 }
 

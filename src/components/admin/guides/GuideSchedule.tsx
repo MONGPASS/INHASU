@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { fetchV7Assignments, saveV7Assignment, withGuide, withVehicle, type V7AssignmentItem } from '../../../utils/reservationV7';
 import { loadRegisteredAssignmentResources, type RegisteredGuide, type RegisteredVehicle } from '../../../utils/registeredAssignmentResources';
@@ -237,7 +238,7 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
             const clash = vehicleClash(active, v.name, booking), on = cur === v;
             const plate = String(v.snapshot.plate || '');
             return { key: v.name, name: plate ? `${v.name} · ${plate}` : v.name,
-                sub: clash ? `겹침 · ${overlapLabel(clash).replace('~', '→')}` : v.phone ? `기사 연락처 ${v.phone}` : '기사 연락처 없음',
+                sub: clash ? `겹침 · ${overlapLabel(clash).replace('~', '→')}` : v.driver || v.phone ? `기사 ${[v.driver, v.phone].filter(Boolean).join(' · ')}` : '기사 정보 없음',
                 tag: on ? { label: '현재', tone: 'cur' as Tone } : clash ? { label: '겹침', tone: 'red' as Tone } : { label: '가능', tone: 'mint' as Tone },
                 onPick: () => { if (on) setPop(null); else void saveVehicle(booking, v); } };
         });
@@ -711,6 +712,8 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                 </div>
             ) : table}
 
+            {/* 팝오버·상세 패널·피켓·안내는 문서 맨 위에 그린다. .gs(z-index:2) 안에 두면 관리자 상단바·탭 아래로 깔린다. */}
+            {createPortal(<div className="gs-layer">
             {pop && <>
                 <div className="gs-pop-back" onClick={() => setPop(null)} />
                 <div className="gs-pop" role="dialog" aria-label={pop.title} style={{ left: pop.x, top: pop.y }}>
@@ -728,6 +731,7 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
             {picketView}
             {tipView}
             {toast && <div className="gs-toast" role="status">{toast}</div>}
+            </div>, document.body)}
         </div>
     );
 }

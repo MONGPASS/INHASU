@@ -353,6 +353,7 @@ const page1 = `
       <div class="bt">현지 수배 정보</div>
       <div class="kv"><span>담당 가이드</span><b>${[noBr(guide.name), noBr(guide.phone)].filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
       <div class="kv"><span>차량</span><b>${[noBr(vehicle.model) + (vehicle.seats ? ` (${noBr(vehicle.seats)})` : ""), noBr(vehicle.plate)].map(s => s.trim()).filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
+      <div class="kv"><span>차량 기사</span><b>${[noBr(vehicle.driver || vehicle.driverName), noBr(vehicle.phone || vehicle.driverPhone)].filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
     </div>
     <div class="info-box">
       <div class="bt">잔금 정보</div>

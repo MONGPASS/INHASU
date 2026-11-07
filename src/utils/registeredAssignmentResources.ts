@@ -67,7 +67,7 @@ function lodges(data: unknown): RegisteredLodge[] {
 function vehicles(data: unknown): RegisteredVehicle[] {
     return entries(data).map(([name, row]) => {
         const photos = [...new Set([image(row.img), ...images(row.imgs), ...images(row.images)].filter(Boolean))];
-        return { type: name, name, phone: text(row.phone), snapshot: {
+        return { type: name, name, phone: text(row.phone), ...(text(row.driver).trim() ? { driver: text(row.driver).trim() } : {}), snapshot: {
             model: name, type: name, img: photos[0] || '', images: photos, imgs: photos,
             description: text(row.desc), desc: text(row.desc), seats: text(row.seats), luggage: text(row.luggage), plate: text(row.plate),
         } };

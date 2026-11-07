@@ -126,7 +126,8 @@ export async function assignmentFromRow(source: AssignmentSource, row: any, read
         accommodationsInitialized: Array.isArray(assign.lodges),
         contractData: { ...summary.contractData, travelers: travelers(rec.booking?.travelers) },
         assignment: { guide: selectedGuide(guide), category: text(assign.category),
-            vehicle: { type: text(vehicle.model ?? vehicle.type), phone: text(vehicle.phone ?? vehicle.driverPhone), ...selectedVehicleResource(vehicle) },
+            vehicle: { type: text(vehicle.model ?? vehicle.type), phone: text(vehicle.phone ?? vehicle.driverPhone),
+                ...(text(vehicle.driver ?? vehicle.driverName) ? { driver: text(vehicle.driver ?? vehicle.driverName) } : {}), ...selectedVehicleResource(vehicle) },
             accommodations: array(assign.lodges).map((l: any, i: number) => ({ day: l.day === undefined ? i + 1 : Number.isFinite(Number(l.day)) ? Number(l.day) : 0, date: text(l.date), accommodation: {
                 id: text(l.id), name: text(l.name), type: text(l.grade), location: text(l.region),
                 ...Object.fromEntries(['address','roomAmenities','sharedFacilities'].filter(key => own(l,key)).map(key => [key,
@@ -148,7 +149,7 @@ export function validateBookingAssignment(value: unknown): BookingAssignment | n
     try { if (JSON.stringify(value).length > 2_000_000) return null; } catch { return null; }
     if (!v.guide || typeof v.guide !== 'object' || Array.isArray(v.guide) || !v.vehicle || typeof v.vehicle !== 'object' || Array.isArray(v.vehicle) || !Array.isArray(v.accommodations) || v.accommodations.length > 100) return null;
     const guide = assignmentRecord(v.guide), vehicle = assignmentRecord(v.vehicle);
-    if (Object.keys(guide).some(k => !GUIDE_FIELDS.includes(k)) || Object.keys(vehicle).some(k => !['type','phone','resource'].includes(k))) return null;
+    if (Object.keys(guide).some(k => !GUIDE_FIELDS.includes(k)) || Object.keys(vehicle).some(k => !['type','phone','driver','resource'].includes(k))) return null;
     const validText = (x: any, max = 500) => x === undefined || (typeof x === 'string' && x.length <= max && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(x));
     const validPicture = (x: any) => {
         if (x === undefined || x === '') return true;
@@ -162,7 +163,7 @@ export function validateBookingAssignment(value: unknown): BookingAssignment | n
     const validList = (x: any, picture = false, max = 2000) => x === undefined || (Array.isArray(x) && x.length <= 50 && x.every(entry =>
         typeof entry === 'string' && validText(entry, max) && (!picture || validPicture(entry))));
     if (!['id','name','phone','nameEn','role'].every(k => validText(guide[k])) || !validText(guide.introduction, 10000) || !validPicture(guide.image)
-        || !['languages','specialties'].every(k => validList(guide[k], false, 500)) || !['type','phone'].every(k => validText(vehicle[k]))) return null;
+        || !['languages','specialties'].every(k => validList(guide[k], false, 500)) || !['type','phone','driver'].every(k => validText(vehicle[k]))) return null;
     if (vehicle.resource !== undefined) {
         const resource = assignmentRecord(vehicle.resource);
         if (!vehicle.resource || typeof vehicle.resource !== 'object' || Array.isArray(vehicle.resource)
@@ -184,6 +185,7 @@ export function validateBookingAssignment(value: unknown): BookingAssignment | n
         if (acc.roomCount !== undefined && (!Number.isInteger(acc.roomCount) || acc.roomCount < 0 || acc.roomCount > 10000)) return null;
     }
     return { guide: selectedGuide(guide), vehicle: { type: text(vehicle.type), phone: text(vehicle.phone),
+        ...(vehicle.driver !== undefined ? { driver: text(vehicle.driver) } : {}),
         ...(vehicle.resource !== undefined ? { resource: vehicle.resource } : {}) }, accommodations: v.accommodations,
         ...(v.category !== undefined ? { category: v.category } : {}) };
 }
@@ -232,8 +234,9 @@ export async function saveAdminAssignment(db: any, source: AssignmentSource, id:
     if (source === 'product') {
         const resource = vehicleResourcePatch(assignment.vehicle);
         const sync = syncProductVehicle(row.admin_operations, row.contract_data, {
-            operations: { vehicle: assignment.vehicle.type, driverPhone: assignment.vehicle.phone },
-            ...(resource ? { contractData: { ...assignmentRecord(row.contract_data), vehicle: { ...resource, type: assignment.vehicle.type, phone: assignment.vehicle.phone } } } : {}),
+            operations: { vehicle: assignment.vehicle.type, driverPhone: assignment.vehicle.phone, ...(own(assignment.vehicle, 'driver') ? { driverName: text(assignment.vehicle.driver) } : {}) },
+            ...(resource ? { contractData: { ...assignmentRecord(row.contract_data), vehicle: { ...resource, type: assignment.vehicle.type, phone: assignment.vehicle.phone,
+                ...(own(assignment.vehicle, 'driver') ? { driver: text(assignment.vehicle.driver) } : {}) } } } : {}),
         });
         const guide = mergeSelectedGuide(row.assigned_guide, assignment.guide);
         const oldDays = parseArray(row.daily_accommodations), oldMemos = lodgeMemos(row.admin_operations), memos: Record<string, string> = {};
@@ -270,8 +273,9 @@ export async function saveAdminAssignment(db: any, source: AssignmentSource, id:
         });
         const previousVehicle = assignmentRecord(old.vehicle), sameVehicle = text(previousVehicle.model ?? previousVehicle.type) === assignment.vehicle.type;
         const updated = { ...rec, booking: { ...booking, assign: { ...old, ...(assignment.category !== undefined ? { category: assignment.category } : {}), guide: mergeSelectedGuide(old.guide, assignment.guide),
-            vehicle: { ...previousVehicle, ...(!sameVehicle ? { id: '', image: '', img: '', images: [], imgs: [], description: '', desc: '', seats: '', luggage: '' } : {}),
-                ...(vehicleResourcePatch(assignment.vehicle) || {}), model: assignment.vehicle.type, type: assignment.vehicle.type, phone: assignment.vehicle.phone }, lodges } } };
+            vehicle: { ...previousVehicle, ...(!sameVehicle ? { id: '', image: '', img: '', images: [], imgs: [], description: '', desc: '', seats: '', luggage: '', driver: '' } : {}),
+                ...(vehicleResourcePatch(assignment.vehicle) || {}), model: assignment.vehicle.type, type: assignment.vehicle.type, phone: assignment.vehicle.phone,
+                ...(own(assignment.vehicle, 'driver') ? { driver: text(assignment.vehicle.driver) } : {}) }, lodges } } };
         result = await db.prepare('UPDATE requests SET data=? WHERE id=? AND data IS ? AND status IS ?').bind(JSON.stringify(updated), id, row.data, row.status).run();
     }
     if (result.meta?.changes !== 1) return { status: 409, error: '저장 직전에 예약이 변경되었습니다. 최신 예약을 확인한 뒤 다시 저장해 주세요.' };

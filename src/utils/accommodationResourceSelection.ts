@@ -14,7 +14,8 @@ export function selectResourceGuide(_current: AssignmentGuide | undefined, resou
 /** Selecting a vehicle fills its registered phone (including blank); subsequent manual phone edits remain ordinary assignment edits. */
 export function selectResourceVehicle(_current: AssignmentVehicle | undefined, resource: RegisteredVehicle): AssignmentVehicle {
     const snapshot = resource.snapshot;
-    return { type: resource.type, phone: resource.phone, resource: {
+    // 등록 차량의 기사 이름을 함께 넣는다(없으면 비워 이전 차량의 기사가 남지 않게).
+    return { type: resource.type, phone: resource.phone, driver: text(resource.driver), resource: {
         id: `resource-vehicle:${resource.name}`, img: text(snapshot.img), images: [...list(snapshot.images)],
         description: text(snapshot.description), seats: text(snapshot.seats), luggage: text(snapshot.luggage),
     } };

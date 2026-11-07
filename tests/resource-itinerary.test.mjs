@@ -35,6 +35,14 @@ test("가이드 공개 조회는 연락처를 숨기고 관리자 조회는 전�
   assert.equal(adminBody.data.Bagi.qr, "/api/img/bagi.webp");
 });
 
+test("차량 공개 조회는 기사 이름·연락처를 숨기고 관리자 조회는 보존한다", async () => {
+  const env = dataEnv({ 스타렉스:{ driver:"Bat", phone:"+976 2", seats:"6인" } });
+  const publicBody = await (await getData({ request:new Request("https://example.com/api/data/vehicles"), params:{ key:"vehicles" }, env })).json();
+  assert.deepEqual(publicBody.data.스타렉스, { seats:"6인" });
+  const adminBody = await (await getData({ request:new Request("https://example.com/api/data/vehicles", { headers:{ "x-admin-token":"admin-secret" } }), params:{ key:"vehicles" }, env })).json();
+  assert.equal(adminBody.data.스타렉스.driver, "Bat"); assert.equal(adminBody.data.스타렉스.phone, "+976 2");
+});
+
 test("예약관리는 인증된 리소스를 읽고 차량·숙소의 PDF 필드를 저장한다", () => {
   const admin = read("예약관리.html");
   assert.match(admin, /headers: adminHeaders/);

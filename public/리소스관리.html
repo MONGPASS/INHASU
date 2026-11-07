@@ -584,6 +584,8 @@ function fieldRows(type, r) {
     ${[['address','주소'],['phone','숙소 대표 전화번호'],['roomAmenities','객실 비품'],['sharedFacilities','호텔 공용시설'],['operatingNotes','운영 참고 (보관용·일정표 미표시)'],['officialSources','공식 출처']].map(([k,label]) => `<label class="f"><span class="f-l">${label}</span><textarea class="sm" id="f_${k}" rows="2" placeholder="${k === 'roomAmenities' ? '객실 비품을 입력해 주세요' : k === 'officialSources' ? '웹사이트 주소를 한 줄에 하나씩 입력해 주세요' : ''}">${esc(r[k]||"")}</textarea></label>`).join('')}`;
   return `
     ${fld("차량 번호", `<input id="f_plate" value="${esc(r.plate||"")}" placeholder="예: 12가 3401">`, "내부용")}
+    ${fld("기사 이름", `<input id="f_driver" value="${esc(r.driver||"")}" placeholder="예: Bat">`, "가이드 일정표에 보여요")}
+    ${fld("기사 연락처", `<input id="f_phone" value="${esc(r.phone||"")}" placeholder="+976 8000-0000">`, "가이드 일정표에 보여요")}
     ${chipField("f_seats", "탑승 인원", [], r.seats || "", { extra: usedValues("vehicles", v => v.seats), hint: "확정 일정표에 보여요", placeholder: "예: 6인" })}
     ${fld("수하물", `<input id="f_luggage" value="${esc(r.luggage||"")}" placeholder="대형 캐리어 4개 적재 가능">`, "확정 일정표에 보여요")}
     ${introField("차량 특징", r.desc, "확정 일정표에 보여요", "예: 몽골 장거리 이동에 적합한 차량입니다.")}`;
@@ -603,7 +605,7 @@ function readFields(type, r) {
   const v = id => $(id) ? $(id).value.trim() : "";
   if (type === "guides") { r.nameEn=v("f_nameEn"); r.role=v("f_role"); r.phone=v("f_phone"); r.qr=v("f_qr"); r.desc=v("f_desc"); }
   else if (type === "lodges") { r.region=v("f_region") === "__new" ? "" : v("f_region"); r.grade=v("f_grade"); r.tags=v("f_tags"); r.desc=v("f_desc"); Lodging.fields.forEach(k => r[k]=v("f_"+k)); }
-  else { r.seats=v("f_seats"); r.luggage=v("f_luggage"); r.plate=v("f_plate"); r.desc=v("f_desc"); }
+  else { r.seats=v("f_seats"); r.luggage=v("f_luggage"); r.plate=v("f_plate"); r.driver=v("f_driver"); r.phone=v("f_phone"); r.desc=v("f_desc"); }
   return r;
 }
 

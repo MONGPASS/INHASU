@@ -1,16 +1,20 @@
 /* 가이드 배정 현황 — 디자인: Admin Dashboard redesign · 05-2 배정 자원 - 가이드 배정 현황 v4 (Seed 토큰을 관리자 색으로 옮김) */
-.gs {
+.gs, .gs-layer {
   --gs-ink: #1A1B1E; --gs-low: #6b7684; --gs-bg: #f2f4f6; --gs-paper: #fff; --gs-contents: #f7f8fa;
   --gs-div1: #f1f3f5; --gs-div2: #e5e8eb; --gs-div3: #d1d6db;
   --gs-mint: #12b28c; --gs-mint-hover: #0e9e7a; --gs-mint-low: #e6f8f1; --gs-mint-text: #057a61; --gs-mint-paper: #F2FCF8;
   --gs-red: #e5484d; --gs-red-low: #fff0f0; --gs-blue: #2F6FED; --gs-blue-low: #EEF4FF;
   --gs-orange-bg: #FFF4E5; --gs-orange-line: #F08C00; --gs-orange-text: #B35C00;
   --gs-gray100: #f2f4f6; --gs-gray200: #e5e8eb; --gs-dark: #212124;
+}
+/* 문서 맨 위(body)에 그리는 팝오버·상세 패널 층 — 관리자 사이드바(50)·상단바(40)보다 위 */
+.gs-layer { position: relative; z-index: 90; color: var(--gs-ink); font-family: inherit; -webkit-font-smoothing: antialiased; }
+.gs {
   position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; gap: 12px; padding: 20px 32px 48px; overflow: auto;
   background: var(--gs-bg); color: var(--gs-ink); font-family: inherit; -webkit-font-smoothing: antialiased;
 }
-.gs button, .gs select, .gs input { font: inherit; color: inherit; }
-.gs a { text-decoration: none; }
+.gs button, .gs select, .gs input, .gs-layer button, .gs-layer select, .gs-layer input { font: inherit; color: inherit; }
+.gs a, .gs-layer a { text-decoration: none; }
 .gs-empty { margin: 0; padding: 48px 20px; color: var(--gs-low); font-size: 14px; text-align: center; }
 .gs-notice { padding: 10px 14px; border-radius: 12px; background: #fff6df; color: #8a5d00; font-size: 13px; font-weight: 600; }
 .gs-spacer { flex: 1; }
@@ -21,7 +25,7 @@
 @keyframes gsBarIn { from { opacity: 0; transform: scaleX(.6); } to { opacity: 1; transform: none; } }
 @keyframes gsGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes gsBlink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
-@media (prefers-reduced-motion: reduce) { .gs *, .gs-pop, .gs-drawer, .gs-toast { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .gs *, .gs-layer *, .gs-pop, .gs-drawer, .gs-toast { animation: none !important; } }
 
 /* 공통 아바타 */
 .gs-av { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 999px; color: #fff; font-weight: 800; }
