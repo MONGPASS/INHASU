@@ -76,3 +76,65 @@ test('배정 현황표 줄: 예전 ID로 저장된 같은 이름은 등록 가�
     const rows = guideRows([registered], tours, monthDays('2026-12'));
     assert.deepEqual(rows.map(r => [r.guide.name, r.registered, r.bookings.map(b => b.id)]), [['Oyuka', true, ['old-id']], ['Ganaa', false, ['dec']]]);
 });
+
+test('배정 현황 v4 달력 계산: 월간 주(일요일 시작), 주별 막대 줄과 더보기, 타임라인 범위, 차량 겹침, 목록 배정 상태', async () => {
+    const { monthWeeks, weekLanes, timelineWindow, vehicleClash, assignState, dayDiff } = await import('../src/components/admin/guides/guideScheduleModel.ts');
+    // 2026-12-01은 화요일 → 첫 주는 11-29(일)부터, 5주
+    const weeks = monthWeeks('2026-12');
+    assert.equal(weeks.length, 5);
+    assert.deepEqual([weeks[0][0], weeks[0][2], weeks[4][6]], ['2026-11-29', '2026-12-01', '2027-01-02']);
+    assert.equal(dayDiff('2026-12-30', '2027-01-02'), 3);
+
+    const week = weeks[1]; // 12-06(일) ~ 12-12(토)
+    const tours = [
+        booking('long', '2026-12-03', '2026-12-08', oyuka), booking('a', '2026-12-07', '2026-12-09', bilguun),
+        booking('b', '2026-12-07', '2026-12-07', null), booking('c', '2026-12-07', '2026-12-10', null), booking('next', '2026-12-12', '2026-12-15', oyuka),
+    ];
+    const { bars, more } = weekLanes(tours, week, 3);
+    const byId = Object.fromEntries(bars.map(b => [b.booking.id, b]));
+    assert.deepEqual([byId.long.from, byId.long.to, byId.long.clipStart, byId.long.clipEnd], [0, 2, true, false], '지난주부터 이어진 막대는 앞이 잘린다');
+    assert.deepEqual([byId.next.from, byId.next.to, byId.next.clipEnd], [6, 6, true], '다음 주로 이어지는 막대는 뒤가 잘린다');
+    assert.equal(bars.length, 4, '세 줄을 넘는 투어는 막대 대신 더보기로 센다');
+    assert.equal(more.reduce((n, x) => n + x, 0) > 0, true);
+    assert.equal(new Set(bars.filter(b => b.from <= 1 && b.to >= 1).map(b => b.lane)).size, bars.filter(b => b.from <= 1 && b.to >= 1).length, '같은 날 막대는 서로 다른 줄');
+
+    assert.deepEqual(timelineWindow(31, 'm', 5, 10), { from: 0, to: 30 }, '한 달은 전체');
+    assert.deepEqual(timelineWindow(31, 'w2', null, 16, 4), { from: 13, to: 26 }, '2주는 오늘이 든 주의 월요일부터');
+    assert.deepEqual(timelineWindow(31, 'w1', 28, -1), { from: 24, to: 30 }, '끝을 넘지 않게 당긴다');
+    assert.deepEqual(timelineWindow(31, 'w1', null, -1), { from: 0, to: 6 }, '오늘이 다른 달이면 1일부터');
+
+    const withCar = (id, s, e, type, extra) => ({ ...booking(id, s, e, null, extra), assignment: { guide: { name: '' }, vehicle: { type, phone: '' } } });
+    const pool = [withCar('v1', '2026-12-01', '2026-12-04', '현대 스타렉스'), withCar('v2', '2026-12-04', '2026-12-06', ' 현대스타렉스 '), withCar('v3', '2026-12-03', '2026-12-05', '현대 스타렉스', { status: 'cancelled' })];
+    assert.equal(vehicleClash(pool, '현대 스타렉스', pool[0]), undefined, '끝나는 날=시작하는 날 교대·취소 예약은 겹침이 아니다');
+    assert.equal(vehicleClash(pool, '현대 스타렉스', { id: 'new', source: 'quote_booking', startDate: '2026-12-02', endDate: '2026-12-03' })?.id, 'v1');
+    assert.equal(vehicleClash(pool, '', pool[0]), undefined);
+
+    assert.deepEqual([assignState(true, true, false), assignState(true, false, false), assignState(false, true, false), assignState(false, false, false), assignState(true, true, true)],
+        ['배정완료', '부분 배정', '부분 배정', '미배정', '중복']);
+});
+
+test('가이드·숙소·차량 화면에서 연 고객 화면은 그 화면으로 돌아오고 일정표 바로가기를 연다', async () => {
+    const out = await build({ stdin: { contents: "export * from './src/utils/calendarWorkspaceAction.ts'; export * from './src/utils/customerWorkspaceRoutes.ts';", resolveDir: fileURLToPath(new URL('..', import.meta.url)), loader: 'ts' },
+        bundle: true, format: 'esm', platform: 'node', write: false });
+    const mod = await import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`);
+    const back = '/admin/quote-desk/resources?view=schedule';
+    assert.equal(mod.customerWorkspaceReturnTo(back), back);
+    assert.equal(mod.customerWorkspaceBackLabel(back), '가이드·숙소·차량');
+    const href = `${mod.quoteCustomerHref('req-1', back)}&action=edit-itinerary`;
+    assert.equal(mod.readCalendarWorkspaceAction(new URL(href, 'https://x.invalid').search), 'edit-itinerary');
+    assert.equal(mod.readCalendarWorkspaceAction(new URL(`${mod.productCustomerHref('p-1', back)}&action=send-itinerary`, 'https://x.invalid').search), null, '허용 목록 밖 동작은 열지 않는다');
+});
+
+test('가이드 상세의 일정표는 담당 가이드에게 전달하는 문서를 연다(상품=가이드용 일정표, 견적=가이드 시트)', async () => {
+    const { guideItineraryExtra, guideItineraryHref } = await import('../src/components/admin/guides/guideScheduleModel.ts');
+    assert.equal(guideItineraryHref({ source: 'product', id: 'r 1/#' }), '/documents/itinerary/r%201%2F%23?guide=1');
+    assert.equal(guideItineraryHref({ source: 'quote_booking', id: 'q-7' }), '/가이드시트?id=q-7');
+    assert.deepEqual(guideItineraryExtra({ source: 'product', id: 'r1', customerName: ' 김고객 ', travelers: 3,
+        contractData: { arrival: { date: '2026-10-20', time: '21:40', flight: 'OM302' }, departure: { date: '2026-10-22' } },
+        assignment: { guide: { name: 'Oyuka', phone: '+976 1' }, vehicle: { type: '스타렉스', phone: '+976 2' } } }), {
+        customerName: '김고객', people: '3명', arrival: '2026-10-20 · 21:40 · OM302', departure: '2026-10-22',
+        guideName: 'Oyuka', guidePhone: '+976 1', vehicleType: '스타렉스', vehiclePhone: '+976 2',
+    });
+    const source = (await import('node:fs')).readFileSync(fileURLToPath(new URL('../src/components/admin/guides/GuideSchedule.tsx', import.meta.url)), 'utf8');
+    assert.doesNotMatch(source, /연락처 복사|예약 상세 열기/);
+});

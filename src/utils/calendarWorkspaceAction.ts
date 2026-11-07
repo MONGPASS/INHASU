@@ -14,7 +14,8 @@ export function readCalendarWorkspaceAction(search: string): CalendarWorkspaceAc
     if (!returnTo) return null;
     const path = new URL(returnTo, 'https://workspace.invalid').pathname;
     return path === '/admin/calendar' && calendarActions.has(action) ? action
-        : path === '/admin/reservations' && listActions.has(action) ? action : null;
+        // 가이드·숙소·차량(가이드 배정 현황)의 일정표 바로가기도 목록과 같은 허용 목록을 쓴다.
+        : (path === '/admin/reservations' || path === '/admin/quote-desk/resources') && listActions.has(action) ? action : null;
 }
 
 /** Preserve the calendar return address and any unrelated workspace parameters. */
