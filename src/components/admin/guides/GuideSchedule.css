@@ -343,11 +343,12 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 .gs-modal-head { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--gs-div1); }
 .gs-modal-head > b { flex: 1; font-size: 16px; font-weight: 700; }
 .gs-modal-body { padding: 24px; overflow: auto; background: var(--gs-bg); }
-.gs-picket { width: min(100%, calc((100vh - 180px) * 297 / 210)); margin: 0 auto; aspect-ratio: 297 / 210; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 32px; box-sizing: border-box; border-radius: 8px; background: #fff; box-shadow: 0 0 0 1px var(--gs-div2); text-align: center; }
-.gs-picket .pk-en { color: var(--gs-mint-text); font-size: 16px; font-weight: 700; letter-spacing: .2em; }
-.gs-picket .pk-name { font-size: clamp(28px, 7vh, 64px); line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; word-break: keep-all; }
-.gs-picket .pk-prod { font-size: 20px; font-weight: 700; }
-.gs-picket .pk-sub { color: var(--gs-low); font-size: 15px; font-variant-numeric: tabular-nums; }
+.gs-modal.is-picket { width: min(1000px, calc(100vw - 32px)); }
+.gs-modal-head > b small { margin-left: 6px; color: var(--gs-low); font-size: 12px; font-weight: 600; }
+.gs-cta:disabled { opacity: .45; cursor: default; }
+.gs-picket { width: min(100%, calc((100vh - 180px) * 297 / 210)); margin: 0 auto; aspect-ratio: 297 / 210; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; background: #fff; box-shadow: 0 0 0 1px var(--gs-div2); }
+.gs-picket img { display: block; width: 100%; height: 100%; }
+.gs-picket-wait { color: var(--gs-low); font-size: 14px; font-weight: 600; }
 
 /* 막대 말풍선 · 토스트 */
 .gs-tip { position: fixed; z-index: 80; width: 280px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 10px; background: var(--gs-dark); color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.24); pointer-events: none; animation: gsPopIn 120ms ease-out; }

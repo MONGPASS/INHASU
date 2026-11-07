@@ -1,6 +1,7 @@
 import React from 'react';
 import { BRAND } from '../../constants/company';
 import { computeDuration, formatRange, type DayData } from './ItineraryDocParts';
+import { GuidePicketPage } from './GuidePicketPage';
 
 interface GuidePrintExtra {
     customerName?: string;
@@ -286,6 +287,9 @@ export const GuideItineraryPrint: React.FC<GuideItineraryPrintProps> = ({ reserv
             </section>
 
             <footer className="guide-footer"><b>{BRAND.name}</b> · 가이드 업무용 자료<br />본 일정은 현지 날씨·교통 상황에 따라 변경될 수 있습니다.</footer>
+
+            <GuidePicketPage input={{ customerName: customerName || '', startDate: String(reservation.startDate || '').slice(0, 10), endDate: String(reservation.endDate || reservation.startDate || '').slice(0, 10),
+                guideName: extra?.guideName || '', guidePhone: extra?.guidePhone || '' }} />
         </div>
     );
 };
