@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { DesignBlockContent } from '../../../types/product';
 import { getDesignTemplate } from './registry';
 import { baseKey, scopeOf, visibleInstances } from './sections';
 import { useDesignGlobalDefaults } from './globalDefaults';
+import { textStyleCss } from './textStyles';
 
 /**
  * 고정폭 캔버스 디자인을 컨테이너 폭에 맞춰 축소해 보여주는 래퍼.
@@ -87,6 +88,8 @@ export default function DesignBlockView({ content, editing, variant = 'desktop',
 }) {
     useDesignFonts();
     const rootRef = useRef<HTMLDivElement>(null);
+    // 문구 크기·줄바꿈 규칙은 이 블록 안에서만 적용한다(한 화면에 디자인 블록이 여럿일 수 있다)
+    const blockId = useId().replace(/[^A-Za-z0-9_-]/g, '');
     // 편집 모드에서는 문구·사진 요소를 키보드로도 고를 수 있게 한다(템플릿 DOM은 직접 손대지 않는다)
     useEffect(() => {
         if (!onFieldClick || !rootRef.current) return;
@@ -154,8 +157,11 @@ export default function DesignBlockView({ content, editing, variant = 'desktop',
     const selBase = selectedField ? baseKey(selectedField) : null;
     const selScope = selectedField ? scopeOf(selectedField) : '';
 
+    const textCss = textStyleCss(`[data-dtpl="${blockId}"]`, content?.textStyles, values);
+
     return (
-        <div ref={rootRef} className={onFieldClick ? 'dtpl-clickable' : undefined} onClick={handleClick} onKeyDown={handleKeyDown}>
+        <div ref={rootRef} data-dtpl={blockId} className={onFieldClick ? 'dtpl-clickable' : undefined} onClick={handleClick} onKeyDown={handleKeyDown}>
+            {textCss && <style>{textCss}</style>}
             {onFieldClick && (
                 <style>{`
                     .dtpl-clickable [data-df] { cursor: pointer; pointer-events: auto; }

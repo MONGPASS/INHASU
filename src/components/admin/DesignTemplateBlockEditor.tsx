@@ -3,6 +3,7 @@ import type { DesignBlockContent, TourPricingOption } from '../../types/product'
 import type { DesignTemplateField } from '../product/designTemplates/types';
 import { getDesignTemplate } from '../product/designTemplates/registry';
 import DesignBlockView from '../product/designTemplates/DesignBlockView';
+import { commitTextSize } from '../product/designTemplates/textStyles';
 import { priceRowsFromOptions } from '../product/designTemplates/pricing';
 import { MAP_DESTINATIONS } from '../product/designTemplates/mapDestinations';
 import { baseKey, fieldKeysOfSection, nextCopyId, resolveInstances, scopeOf, scopedKey } from '../product/designTemplates/sections';
@@ -381,14 +382,17 @@ export function DesignTemplateBlockEditor({
         const defId = instances[idx].def;
         const newId = nextCopyId(defId, instances);
         const nextValues = { ...(content.values || {}) };
+        const nextStyles = { ...(content.textStyles || {}) };
         for (const key of fieldKeysOfSection(def, defId)) {
             const from = scopedKey(key, instId);
             const cur = content.values?.[from];
             if (cur !== undefined && cur !== '') nextValues[scopedKey(key, newId)] = cur;
+            const style = content.textStyles?.[from];
+            if (style) nextStyles[scopedKey(key, newId)] = { ...style };
         }
         const nextSections = [...instances];
         nextSections.splice(idx + 1, 0, { id: newId, def: defId });
-        onChange({ ...content, values: nextValues, sections: nextSections });
+        onChange({ ...content, values: nextValues, sections: nextSections, ...(Object.keys(nextStyles).length ? { textStyles: nextStyles } : {}) });
         setOpenSection(newId);
     };
 
@@ -435,7 +439,8 @@ export function DesignTemplateBlockEditor({
     const inlineEntry = inline ? lookupField(inline.key) : undefined;
     const inlineAnchor = useAnchorRect(
         () => (inline && previewRef.current ? previewRef.current.querySelector(fieldSelector(inline.key)) : null),
-        [inline?.key, inline ? values[inline.key] : undefined, previewVariant, content.sections, sections],
+        // 글자 크기를 바꾸면 문구 크기가 달라지므로 편집창도 다시 자리를 잡는다(커진 문구를 가리지 않게)
+        [inline?.key, inline ? values[inline.key] : undefined, inline ? content.textStyles?.[inline.key]?.size : undefined, previewVariant, content.sections, sections],
         () => previewRef.current,
     );
     const toolbarInst = hoverInst ?? activeInst;
@@ -869,6 +874,7 @@ export function DesignTemplateBlockEditor({
             {inline && inlineEntry && inline.kind === 'text-field' && (
                 <FieldPopover key={inline.key} field={inlineEntry.field} value={values[inline.key] ?? inlineEntry.field.default ?? ''} anchor={inlineAnchor} disabled={uploadingKey !== null}
                     readOnlyNote={valueOverrides?.[baseKey(inline.key)] !== undefined ? '「가격/옵션」 탭의 인원별 가격이 자동으로 반영됩니다. 수정은 그 탭에서 해 주세요.' : undefined}
+                    size={content.textStyles?.[inline.key]?.size} onSizeChange={next => onChange({ ...content, textStyles: commitTextSize(content.textStyles, inline.key, next) })}
                     onChange={next => onChange({ ...content, values: commitValue(values, inline.key, next, inlineEntry.field.default) })} onClear={() => clearValue(inline.key)}
                     onClose={() => setInline(null)}
                     isInside={target => !!previewRef.current?.querySelector(fieldSelector(inline.key))?.contains(target)} />

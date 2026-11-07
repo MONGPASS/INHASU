@@ -180,6 +180,15 @@ export interface DesignBlockContent {
      * 섹션을 삭제하면 이 목록에서 빠진다 (입력값은 남아 있어 다시 추가하면 복원됨).
      */
     sections?: DesignSectionInstance[];
+    /**
+     * 문구별 표시 설정 (입력값 key → 설정). 복제 섹션은 values와 같은 '@2' 접미사 key를 쓴다.
+     * size는 템플릿 원래 글자 크기 대비 %이며, 100(기본)이면 저장하지 않는다(`textStyles.ts`).
+     */
+    textStyles?: Record<string, DesignTextStyle>;
+}
+
+export interface DesignTextStyle {
+    size?: number;
 }
 
 export interface DesignSectionInstance {

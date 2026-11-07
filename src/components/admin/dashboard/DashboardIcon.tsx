@@ -11,6 +11,7 @@ const PATHS = {
     'lc-layers': <><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" /><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" /></>,
     'lc-loader': <><path d="M12 2v4" /><path d="m16.2 7.8 2.9-2.9" /><path d="M18 12h4" /><path d="m16.2 16.2 2.9 2.9" /><path d="M12 18v4" /><path d="m4.9 19.1 2.9-2.9" /><path d="M2 12h4" /><path d="m4.9 4.9 2.9 2.9" /></>,
     'lc-plus': <><path d="M5 12h14" /><path d="M12 5v14" /></>,
+    'lc-minus': <path d="M5 12h14" />,
     'lc-user-round': <><circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" /></>,
     'lc-arrow-up': <><path d="m5 12 7-7 7 7" /><path d="M12 19V5" /></>,
     'lc-arrow-right': <><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></>,
