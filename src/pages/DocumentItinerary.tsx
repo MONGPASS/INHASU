@@ -182,7 +182,9 @@ const GuideDocumentItinerary: React.FC = () => {
                 finishPrint();
             }
         };
-        const kick = window.setTimeout(() => {
+        const kick = window.setTimeout(async () => {
+            // 가이드용 사본의 마지막 페이지(가이드 피켓)는 그림을 만든 뒤 <img>가 생긴다.
+            for (let waited = 0; document.querySelector('[data-picket-pending]') && waited < 3500; waited += 100) await new Promise(r => window.setTimeout(r, 100));
             const imgs = Array.from(document.querySelectorAll('img'));
             imgs.forEach((im) => { try { im.loading = 'eager'; const s = im.getAttribute('src'); if (s && !im.complete) im.setAttribute('src', s); } catch { /* noop */ } });
             const pending = imgs.filter((im) => !im.complete);

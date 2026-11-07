@@ -9,6 +9,7 @@ import { isUpcomingTour, tripLengthLabel } from '../../../utils/accommodationShe
 import { productCustomerHref, quoteCustomerHref } from '../../../utils/customerWorkspaceRoutes';
 import type { AssignmentGuide } from '../../../utils/reservationAssignment';
 import { Ico } from '../v7/v7Ui';
+import { printGuidePicket, saveGuidePicket, useGuidePicketImage, type GuidePicketInput } from '../../../utils/guidePicket';
 import { confirmGuideConflict } from '../v7/guideMenuItems';
 import {
     activeBooking, assignState, coversDay, dayDiff, guideRows, hasGuide, inMonth, laneBookings, matchesGuide, monthDays, monthWeeks,
@@ -620,26 +621,23 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
     })();
 
     // ── 가이드 피켓 ────────────────────────────────────
-    const picketRef = useRef<HTMLDivElement>(null);
-    const printPicket = () => {
-        const el = picketRef.current; if (!el) return;
-        const w = window.open('', '_blank');
-        if (!w) { flash('팝업이 막혀 있어요. 팝업을 허용해 주세요'); return; }
-        w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>가이드 피켓</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><style>@page{size:A4 landscape;margin:0}body{margin:0;font-family:"Pretendard Variable",Pretendard,sans-serif}#p{width:297mm;height:210mm;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10mm;text-align:center}#p .pk-en{font-size:22px;font-weight:700;letter-spacing:.2em;color:#057a61}#p .pk-name{font-size:96px;line-height:1.15;font-weight:700;letter-spacing:-0.02em;word-break:keep-all}#p .pk-prod{font-size:28px;font-weight:700}#p .pk-sub{font-size:20px;color:#6b7684}</style></head><body><div id="p">${el.innerHTML}</div></body></html>`);
-        w.document.close(); window.setTimeout(() => w.print(), 400);
-    };
+    const picketInput: GuidePicketInput | null = picketBooking ? {
+        customerName: nameOf(picketBooking), startDate: startOf(picketBooking), endDate: endOf(picketBooking),
+        guideName: String(picketBooking.assignment?.guide?.name || ''), guidePhone: String(picketBooking.assignment?.guide?.phone || ''),
+    } : null;
+    const picketImage = useGuidePicketImage(picketInput);
+    const picketAction = (run: (input: GuidePicketInput) => Promise<void>) => { if (picketInput) run(picketInput).catch(error => flash(error?.message || '피켓을 만들지 못했어요')); };
     const picketView = picketBooking && <>
         <div className="gs-dim is-dark" onClick={() => setPicket(null)} />
-        <div className="gs-modal" role="dialog" aria-label="가이드 피켓 미리보기">
-            <div className="gs-modal-head"><b>가이드 피켓 미리보기</b>
-                <button type="button" className="gs-cta is-small" onClick={printPicket}><Ico name="lc-file-check" size={15} color="#fff" />인쇄하기</button>
+        <div className="gs-modal is-picket" role="dialog" aria-label="가이드 피켓 미리보기">
+            <div className="gs-modal-head"><b>가이드 피켓 미리보기 <small>A4 가로</small></b>
+                <button type="button" className="gs-cta is-small is-ghost" disabled={!picketImage.url} onClick={() => picketAction(saveGuidePicket)}><Ico name="lc-download" size={15} />PNG 저장</button>
+                <button type="button" className="gs-cta is-small" disabled={!picketImage.url} onClick={() => picketAction(printGuidePicket)}><Ico name="lc-file-check" size={15} color="#fff" />인쇄하기</button>
                 <button type="button" className="gs-close" aria-label="닫기" onClick={() => setPicket(null)}><Ico name="lc-x" size={16} /></button></div>
             <div className="gs-modal-body">
-                <div ref={picketRef} className="gs-picket">
-                    <span className="pk-en">WELCOME TO MONGOLIA</span>
-                    <b className="pk-name">{nameOf(picketBooking)} 님</b>
-                    <span className="pk-prod">{picketBooking.productName || '몽골 여행'}</span>
-                    <span className="pk-sub">{period(picketBooking)} · {people(picketBooking)} · 가이드 {picketBooking.assignment?.guide?.name || '미배정'}{picketBooking.assignment?.guide?.phone ? ` ${picketBooking.assignment.guide.phone}` : ''}</span>
+                <div className="gs-picket">
+                    {picketImage.url ? <img src={picketImage.url} alt={`${nameOf(picketBooking)} 님 가이드 피켓`} />
+                        : <span className="gs-picket-wait">{picketImage.error || '피켓을 만드는 중…'}</span>}
                 </div>
             </div>
         </div>

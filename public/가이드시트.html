@@ -170,7 +170,19 @@ td b{ font-weight:800; }
   .sheet + .sheet{ page-break-before:always; }
   .cash-page{ width:auto; height:297mm; min-height:0; margin:0; box-shadow:none; overflow:hidden; page-break-before:always; }
   @page{ size:A4; margin:0; }
+  .picket-sheet{ page:picket; width:auto; margin:0; padding:0 !important; page-break-before:always; break-before:page; }
+  .picket-bar{ display:none !important; }
+  .picket-frame{ width:297mm; height:209.5mm; aspect-ratio:auto; border-radius:0; box-shadow:none; }
 }
+@page picket{ size:A4 landscape; margin:0; }
+/* 마지막 페이지: 가이드 피켓(A4 가로) */
+.picket-bar{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.picket-bar b{ font-size:15px; font-weight:800; }
+.picket-bar small{ margin-left:6px; color:var(--mute); font-size:12px; font-weight:600; }
+.picket-bar button{ flex:none; background:var(--brand); color:#fff; border:0; border-radius:9px; padding:8px 16px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+.picket-bar button:disabled{ opacity:.45; cursor:default; }
+.picket-frame{ aspect-ratio:297/210; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:8px; box-shadow:0 0 0 1px var(--line); color:var(--mute); font-size:13px; font-weight:600; }
+.picket-frame img{ display:block; width:100%; height:100%; }
 </style>
 </head>
 <body>
@@ -181,6 +193,7 @@ td b{ font-weight:800; }
 <div id="root"></div>
 
 <script src="booking.js"></script>
+<script src="guide-picket.js"></script>
 <script type="module">
 /* ══════════ 데이터 로드 ══════════
    출처 1) 예약관리 "📋 가이드 시트" 버튼 → localStorage(leaders_guide_sheet_print) + ?adminPrint=1
@@ -442,14 +455,23 @@ const cashCopy = copy => {
 };
 const cashPage = Number(cash.amount) > 0 ? `<div class="cash-page">${cashCopy("고객용 / CUSTOMER COPY")}<div class="cr-cut">✂ 절취선 / CUT HERE</div>${cashCopy("회사 보관용 / COMPANY COPY")}</div>` : "";
 
-root.innerHTML = page1 + page2 + cashPage;
+const picketPage = `<div class="sheet picket-sheet"><div class="picket-bar"><b>가이드 피켓<small>A4 가로 · 공항 미팅용</small></b><button type="button" id="picketSave" disabled>🖼 PNG 저장</button></div><div class="picket-frame" id="picketFrame">피켓을 만드는 중…</div></div>`;
+root.innerHTML = page1 + page2 + cashPage + picketPage;
+/* 가이드 피켓 — 고객 이름·여행 날짜·담당 가이드. 그림은 guide-picket.js(React 화면과 같은 렌더러) */
+const picketInput = { customerName: noBr(REC.name || travelers[0]?.name || ""), startDate: fmtFull(departDate), endDate: fmtFull(returnDate || departDate), guideName: noBr(guide.name), guidePhone: noBr(guide.phone) };
+const picketReady = (window.GuidePicket ? window.GuidePicket.toDataUrl(picketInput) : Promise.reject(new Error("피켓 도구를 불러오지 못했습니다"))).then(url => {
+  const frame = document.getElementById("picketFrame"), img = new Image();
+  img.alt = "가이드 피켓"; img.src = url; frame.textContent = ""; frame.appendChild(img);
+  const btn = document.getElementById("picketSave"); btn.disabled = false;
+  btn.addEventListener("click", () => window.GuidePicket.download(picketInput).catch(e => alert(e.message || "PNG를 만들지 못했습니다")));
+}, e => { document.getElementById("picketFrame").textContent = e.message || "피켓을 만들지 못했습니다"; });
 document.title = `가이드시트_${(REC.name || "예약").replace(/\s+/g, "")}_${fmtFull(departDate) || ""}`;
 
 if (_autoPrint) {
-  const imagesReady = Promise.all([...document.images].map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
+  const imagesReady = picketReady.then(() => Promise.all([...document.images].map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
     img.addEventListener("load", resolve, { once:true });
     img.addEventListener("error", resolve, { once:true });
-  })));
+  }))));
   imagesReady.then(() => setTimeout(() => window.print(), 150));
 }
 }
