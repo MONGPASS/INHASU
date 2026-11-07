@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
@@ -137,4 +138,15 @@ test('가이드 상세의 일정표는 담당 가이드에게 전달하는 문�
     });
     const source = (await import('node:fs')).readFileSync(fileURLToPath(new URL('../src/components/admin/guides/GuideSchedule.tsx', import.meta.url)), 'utf8');
     assert.doesNotMatch(source, /연락처 복사|예약 상세 열기/);
+});
+
+test('가이드 상세의 배정 내역과 가이드 일정표에 차종·기사 이름·연락처를 보여 주고, 예전 배정은 등록 차량의 기사로 보충한다', () => {
+    const read = p => fs.readFileSync(fileURLToPath(new URL(`../${p}`, import.meta.url)), 'utf8');
+    const schedule = read('src/components/admin/guides/GuideSchedule.tsx');
+    assert.match(schedule, /driver: String\(v\?\.driver \|\| reg\?\.driver \|\| ''\)/);
+    assert.match(schedule, /기사 \{\[car\.driver, car\.phone\]/);
+    assert.match(schedule, /onClick=\{\(\) => openItinerary\(b\)\}/, '일정표에도 보충한 기사 정보를 넘긴다');
+    const sheet = read('public/가이드시트.html');
+    assert.match(sheet, /fetch\("\/api\/data\/vehicles", \{ cache:"no-store", headers:adminHeaders \}\)/);
+    assert.match(sheet, /if \(!\(vehicle\.driver \|\| vehicle\.driverName\)\) vehicle\.driver = vehicleLib\.driver/);
 });

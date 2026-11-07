@@ -229,41 +229,43 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 .gs-cta.is-ghost { background: var(--gs-paper); box-shadow: inset 0 0 0 1px var(--gs-div2); color: var(--gs-mint-text) !important; }
 .gs-cta.is-ghost:hover { background: var(--gs-contents); }
 .gs-cta.is-small { height: 36px; padding: 0 14px; border-radius: 6px; }
-.gs-table { min-width: 1468px; }
-.gs-trow { display: grid; grid-template-columns: 44px minmax(96px, .8fr) minmax(230px, 1.6fr) minmax(176px, 1.1fr) 68px 96px 210px 210px 120px 196px; align-items: center; box-sizing: border-box; min-height: 80px; padding: 0 12px; border-bottom: 1px solid var(--gs-div1); font-size: 14px; }
+/* 열 폭은 내용 기준 — 사이드바를 뺀 관리자 화면(표 영역 약 970px)에서 가로 스크롤 없이 다 보인다. 남는 폭은 고객명·투어명·배정 칸이 나눈다. */
+.gs-table { min-width: 964px; }
+.gs-trow { display: grid; grid-template-columns: 32px minmax(72px, .8fr) minmax(120px, 1.4fr) 132px 52px minmax(64px, .6fr) minmax(136px, 1fr) minmax(136px, 1fr) 100px 104px; align-items: center; box-sizing: border-box; min-height: 72px; padding: 0 8px; border-bottom: 1px solid var(--gs-div1); font-size: 14px; }
 .gs-trow.is-head { align-items: stretch; height: 48px; min-height: 0; background: var(--gs-contents); border-bottom-color: var(--gs-div2); color: var(--gs-low); font-size: 13px; font-weight: 700; }
-.gs-trow.is-head > span { display: flex; align-items: center; padding-left: 12px; }
+.gs-trow.is-head > span { display: flex; align-items: center; padding-left: 10px; }
 .gs-trow.is-head > span.is-c { justify-content: center; padding-left: 0; }
 .gs-trow.is-head > .is-g { background: var(--gs-mint-low); color: var(--gs-mint-text); }
 .gs-trow.is-head > .is-v { background: var(--gs-blue-low); color: var(--gs-blue); }
 .gs-trow.is-sel { background: var(--gs-mint-paper); }
 .gs-trow input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--gs-mint); cursor: pointer; }
 .gs-trow > .is-c { display: flex; align-items: center; justify-content: center; }
-.gs-tname { padding: 0 6px; text-align: center; font-size: 15px; font-weight: 700; line-height: 135%; word-break: keep-all; }
-.gs-tprod { display: flex; align-items: center; gap: 12px; min-width: 0; padding-left: 12px; }
+.gs-tname { padding: 0 4px; text-align: center; font-size: 15px; font-weight: 700; line-height: 135%; word-break: keep-all; }
+.gs-tprod { display: flex; align-items: center; min-width: 0; padding: 0 8px 0 10px; }
 .gs-tprod > span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.gs-tprod b { overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.gs-tprod > span:last-child > span { color: var(--gs-low); font-size: 13px; font-variant-numeric: tabular-nums; }
-.gs-thumb { display: flex; flex: none; align-items: center; justify-content: center; width: 64px; height: 48px; border-radius: 8px; background: var(--gs-gray100); }
-.gs-tperiod { display: flex; align-items: flex-start; gap: 8px; padding-left: 12px; }
-.gs-tperiod > span { display: flex; flex-direction: column; gap: 2px; font-size: 14px; line-height: 135%; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.gs-ticon { display: flex; align-items: center; gap: 4px; padding-left: 12px; font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* 투어명은 두 줄까지 보이고 넘치면 말줄임 */
+.gs-tprod b { display: -webkit-box; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 135%; word-break: keep-all; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.gs-tprod > span:last-child > span { overflow: hidden; color: var(--gs-low); font-size: 12px; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.gs-tperiod { display: flex; align-items: center; padding-left: 10px; }
+.gs-tperiod > span { display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 135%; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gs-ticon { display: flex; align-items: center; gap: 4px; min-width: 0; padding-left: 10px; font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .gs-ticon.is-c { padding-left: 0; }
-.gs-tassign { display: flex; align-items: center; align-self: stretch; gap: 10px; min-width: 0; padding: 0 12px; box-shadow: inset 1px 0 0 var(--gs-div1); }
+.gs-ell { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gs-tassign { display: flex; align-items: center; align-self: stretch; gap: 6px; min-width: 0; padding: 0 8px; box-shadow: inset 1px 0 0 var(--gs-div1); }
 .gs-tassign > button { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .gs-tassign > button:disabled { opacity: .6; cursor: progress; }
 .gs-tassign-name { display: flex; align-items: center; gap: 4px; max-width: 100%; }
-.gs-tassign-name b { overflow: hidden; font-size: 15px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.gs-tassign-sub { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.gs-tassign-name b { overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.gs-tassign-sub { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .gs-tassign > button:hover .gs-tassign-sub { color: var(--gs-mint-text); }
-.gs-ph { display: flex; flex: none; align-items: center; justify-content: center; width: 60px; height: 40px; border-radius: 8px; box-shadow: inset 0 0 0 1.5px var(--gs-div3); }
-.gs-ph.is-round { width: 44px; height: 44px; border-radius: 999px; }
-.gs-car { flex: none; width: 60px; height: 40px; border-radius: 8px; object-fit: cover; }
+.gs-ph { display: flex; flex: none; align-items: center; justify-content: center; width: 40px; height: 30px; border-radius: 8px; box-shadow: inset 0 0 0 1.5px var(--gs-div3); }
+.gs-ph.is-round { width: 36px; height: 36px; border-radius: 999px; }
+.gs-car { flex: none; width: 40px; height: 30px; border-radius: 8px; object-fit: cover; }
 .gs-tcell { align-self: stretch; box-shadow: inset 1px 0 0 var(--gs-div1); }
-.gs-state { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.gs-state { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px; border-radius: 8px; font-size: 13px; font-weight: 700; white-space: nowrap; }
 .gs-tacts { gap: 6px; }
-.gs-tacts button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: var(--gs-paper); box-shadow: inset 0 0 0 1px var(--gs-div2); font-size: 13px !important; font-weight: 700; white-space: nowrap; cursor: pointer; }
-.gs-tacts button.is-icon { width: 34px; padding: 0; font-size: 16px !important; }
+.gs-tacts button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 32px; padding: 0 9px; border: 0; border-radius: 6px; background: var(--gs-paper); box-shadow: inset 0 0 0 1px var(--gs-div2); font-size: 13px !important; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.gs-tacts button.is-icon { width: 32px; padding: 0; font-size: 16px !important; }
 .gs-tacts button:hover { background: var(--gs-contents); }
 .gs-pager { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--gs-div2); }
 .gs-pager > b { font-size: 14px; font-weight: 700; }
@@ -333,6 +335,10 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 .gs-dr-name { overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .gs-dr-prod { overflow: hidden; color: var(--gs-low); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .gs-dr-warn { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 6px; background: var(--gs-red-low); color: var(--gs-red); font-size: 13px; }
+.gs-dr-car { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; color: var(--gs-ink); font-size: 13px; }
+.gs-dr-car b { font-weight: 700; }
+.gs-dr-car > span { color: var(--gs-low); font-variant-numeric: tabular-nums; }
+.gs-dr-car .is-warn, .gs-dr-car.is-empty { color: var(--gs-orange-text); }
 .gs-dr-log { display: flex; align-items: center; gap: 4px; color: var(--gs-low); font-size: 12px; font-variant-numeric: tabular-nums; }
 .gs-dr-acts { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 2px; }
 .gs-dr-acts > a, .gs-dr-acts > button { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 10px; border: 0; border-radius: 6px; background: var(--gs-gray100); color: var(--gs-ink) !important; font-size: 13px !important; font-weight: 700; white-space: nowrap; cursor: pointer; }

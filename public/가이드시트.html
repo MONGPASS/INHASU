@@ -231,6 +231,15 @@ const LODGE_LIB = await (async () => {
   } catch (e) { return {}; }
 })();
 
+/* 차량 리소스 라이브러리 — 예전 배정에 기사 이름·연락처가 없을 때 같은 차종의 등록 기사로 보충 (없어도 동작) */
+const VEHICLE_LIB = await (async () => {
+  try {
+    const r = await fetch("/api/data/vehicles", { cache:"no-store", headers:adminHeaders });
+    const j = await r.json();
+    return (j.ok && j.data) ? j.data : {};
+  } catch (e) { return {}; }
+})();
+
 const root = document.getElementById("root");
 if (!REC || !REC.booking) {
   root.innerHTML = `<div style="max-width:640px;margin:80px auto;padding:0 24px;text-align:center;color:#16261f">
@@ -260,7 +269,11 @@ const days = Array.isArray(BK.days) ? BK.days : [];
 const fl = BK.flight || {};
 const assign = BK.assign || {};
 const guide = assign.guide || {};
-const vehicle = assign.vehicle || {};
+const vehicleLib = VEHICLE_LIB[(assign.vehicle || {}).model || (assign.vehicle || {}).type || ""] || {};
+const vehicle = { ...(assign.vehicle || {}) };
+if (!(vehicle.driver || vehicle.driverName)) vehicle.driver = vehicleLib.driver || "";
+if (!(vehicle.phone || vehicle.driverPhone)) vehicle.phone = vehicleLib.phone || "";
+if (!vehicle.plate) vehicle.plate = vehicleLib.plate || "";
 const travelers = Array.isArray(BK.travelers) ? BK.travelers : [];
 const ci = BK.contractInfo || {};
 
@@ -365,7 +378,7 @@ const page1 = `
     <div class="info-box">
       <div class="bt">현지 수배 정보</div>
       <div class="kv"><span>담당 가이드</span><b>${[noBr(guide.name), noBr(guide.phone)].filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
-      <div class="kv"><span>차량</span><b>${[noBr(vehicle.model) + (vehicle.seats ? ` (${noBr(vehicle.seats)})` : ""), noBr(vehicle.plate)].map(s => s.trim()).filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
+      <div class="kv"><span>차량</span><b>${[noBr(vehicle.model || vehicle.type) + (vehicle.seats ? ` (${noBr(vehicle.seats)})` : ""), noBr(vehicle.plate)].map(s => s.trim()).filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
       <div class="kv"><span>차량 기사</span><b>${[noBr(vehicle.driver || vehicle.driverName), noBr(vehicle.phone || vehicle.driverPhone)].filter(Boolean).map(esc).join(" · ") || "—"}</b></div>
     </div>
     <div class="info-box">

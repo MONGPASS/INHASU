@@ -51,6 +51,11 @@ const md = (key?: string) => (key || '').slice(5).replace('-', '.');
 const startOf = (b: Item) => (b.startDate || '').slice(0, 10);
 const endOf = (b: Item) => (b.endDate || b.startDate || '').slice(0, 10);
 const period = (b: Item) => `${md(startOf(b))}→${md(endOf(b))}`;
+/** 목록 여행기간 — 같은 해면 끝 날짜의 연도를 줄여 칸을 좁힌다 (2026.09.20 ~ 09.23). */
+const periodLong = (b: Item) => {
+    const s = startOf(b), e = endOf(b), dot = (v: string) => v.replace(/-/g, '.');
+    return `${dot(s)} ~ ${dot(e.slice(0, 4) === s.slice(0, 4) ? e.slice(5) : e)}`;
+};
 const people = (b: Item) => (b.travelers ? `${b.travelers}명` : '인원 미정');
 const nights = (b: Item) => tripLengthLabel(b.startDate, b.endDate);
 const initial = (name: string) => name.replace(/^로컬\s*/, '').trim().slice(0, 1) || '?';
@@ -163,6 +168,16 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
     }, [rows, days, dup, today]);
     const visible = (b: Item) => (!focusG || rowOf(b)?.key === focusG) && (!stateFilter || stateOf(b) === stateFilter);
     const vehicleOf = (b: Item) => { const name = norm(b.assignment?.vehicle?.type); return name ? vehicles.find(v => norm(v.name) === name) : undefined; };
+    /** 차종·차량 번호·기사 이름·연락처 — 예약에 저장된 값이 우선이고, 비어 있으면 등록 정보 차량의 기사로 보충한다. */
+    const carInfo = (b: Item) => {
+        const v = b.assignment?.vehicle, reg = vehicleOf(b);
+        return { type: String(v?.type || '').trim(), plate: String(reg?.snapshot.plate || '').trim(),
+            driver: String(v?.driver || reg?.driver || '').trim(), phone: String(v?.phone || reg?.phone || '').trim() };
+    };
+    const openItinerary = (b: Item) => {
+        const car = carInfo(b);
+        openGuideItinerary(car.type ? { ...b, assignment: { ...b.assignment!, vehicle: { ...b.assignment!.vehicle, type: car.type, phone: car.phone, driver: car.driver } } } : b);
+    };
     const guideImg = (b: Item) => rowOf(b)?.resource?.image || String(b.assignment?.guide?.image || '');
     const colorOf = (b: Item) => rowOf(b)?.color || NONE_COLOR;
 
@@ -516,23 +531,23 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                             <div key={b.key} className={`gs-trow${selected[b.key] ? ' is-sel' : ''}`}>
                                 <span className="is-c"><input type="checkbox" checked={!!selected[b.key]} aria-label="선택" onChange={() => setSelected(s => ({ ...s, [b.key]: !s[b.key] }))} /></span>
                                 <b className="gs-tname">{nameOf(b)}</b>
-                                <span className="gs-tprod"><span className="gs-thumb"><Ico name="lc-map-pin" size={18} color="#8b95a1" /></span>
+                                <span className="gs-tprod">
                                     <span><b>{b.productName || (b.source === 'quote_booking' ? '맞춤 견적 여행' : '상품 미지정')}</b><span>{b.reservationNumber ? `#${b.reservationNumber}` : b.source === 'quote_booking' ? '견적 예약' : '상품 예약'}</span></span></span>
-                                <span className="gs-tperiod"><Ico name="lc-calendar" size={16} color="#8b95a1" /><span><span>{startOf(b)} ~ {endOf(b)}</span><span className="is-low">({nights(b)})</span></span></span>
+                                <span className="gs-tperiod"><span><span>{periodLong(b)}</span><span className="is-low">{nights(b)}</span></span></span>
                                 <span className="is-c gs-ticon"><Ico name="lc-user" size={16} color="#8b95a1" />{b.travelers ? `${b.travelers}명` : '-'}</span>
-                                <span className="gs-ticon"><Ico name="lc-map-pin" size={16} color="#8b95a1" />{regionOf(b) || <span className="is-low">지역 미정</span>}</span>
+                                <span className="gs-ticon" title={regionOf(b) || '지역 미정'}><Ico name="lc-map-pin" size={16} color="#8b95a1" /><span className="gs-ell">{regionOf(b) || <span className="is-low">지역 미정</span>}</span></span>
                                 <span className="gs-tassign">
-                                    {assigned ? <Avatar name={g?.name || ''} img={guideImg(b)} size={44} color={colorOf(b)} /> : <span className="gs-ph is-round"><Ico name="lc-user" size={18} color="#d1d6db" /></span>}
+                                    {assigned ? <Avatar name={g?.name || ''} img={guideImg(b)} size={36} color={colorOf(b)} /> : <span className="gs-ph is-round"><Ico name="lc-user" size={18} color="#d1d6db" /></span>}
                                     <button type="button" disabled={savingKey === b.key} title={assigned ? `${g?.name} · ${g?.phone || '연락처 없음'}` : '가이드를 배정해 주세요'} onClick={e => openGuidePop(e.currentTarget, b)}>
                                         <span className="gs-tassign-name"><b style={{ color: gd ? '#e5484d' : assigned ? undefined : ORANGE.text }}>{assigned ? g?.name : '가이드 선택'}</b>{gd && <span className="gs-badge-red">중복</span>}</span>
-                                        <span className="gs-tassign-sub">{assigned ? '배정 변경하기' : '배정하기'}<Ico name="lc-chevron-down" size={14} /></span>
+                                        <span className="gs-tassign-sub">{assigned ? '변경하기' : '배정하기'}<Ico name="lc-chevron-down" size={14} /></span>
                                     </button>
                                 </span>
                                 <span className="gs-tassign">
                                     {car ? (carImg ? <img className="gs-car" src={carImg} alt="" /> : <span className="gs-ph"><Ico name="lc-car" size={18} color="#8b95a1" /></span>) : <span className="gs-ph"><Ico name="lc-car" size={18} color="#d1d6db" /></span>}
                                     <button type="button" disabled={savingKey === b.key} title={car ? `${car} · 기사 ${b.assignment?.vehicle?.phone || '연락처 없음'}` : '차량을 배정해 주세요'} onClick={e => openCarPop(e.currentTarget, b)}>
                                         <span className="gs-tassign-name"><b style={{ color: cd ? '#e5484d' : car ? undefined : ORANGE.text }}>{car || '차량 선택'}</b>{cd && <span className="gs-badge-red">중복</span>}</span>
-                                        <span className="gs-tassign-sub">{car ? (plate || '배정 변경하기') : '배정하기'}<Ico name="lc-chevron-down" size={14} /></span>
+                                        <span className="gs-tassign-sub">{car ? (plate || '변경하기') : '배정하기'}<Ico name="lc-chevron-down" size={14} /></span>
                                     </button>
                                 </span>
                                 <span className="is-c gs-tcell"><span className="gs-state" style={{ background: chip.bg, color: chip.fg }}><Ico name={chip.icon} size={15} color={chip.fg} />{st}</span></span>
@@ -604,10 +619,16 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                                         <span className="gs-tag" data-tone={d ? 'red' : past ? 'gray' : run ? 'cur' : 'mint'}>{d ? '중복' : past ? '완료' : run ? '진행 중' : '예정'}</span></span>
                                     <b className="gs-dr-name">{nameOf(b)} · {people(b)}</b>
                                     <span className="gs-dr-prod">{b.productName || (b.source === 'quote_booking' ? '맞춤 견적 여행' : '상품 미지정')}</span>
+                                    {(() => {
+                                        const car = carInfo(b);
+                                        if (!car.type) return <span className="gs-dr-car is-empty"><Ico name="lc-car" size={13} />차량 미배정</span>;
+                                        return <span className="gs-dr-car"><Ico name="lc-car" size={13} /><b>{car.type}{car.plate ? ` · ${car.plate}` : ''}</b>
+                                            {car.driver || car.phone ? <span>기사 {[car.driver, car.phone].filter(Boolean).join(' · ')}</span> : <span className="is-warn">기사 정보 없음</span>}</span>;
+                                    })()}
                                     {other && <span className="gs-dr-warn"><Ico name="lc-circle-alert" size={14} color="#e5484d" />{nameOf(other)} ({period(other)})와 겹쳐요</span>}
                                     {b.createdAt && <span className="gs-dr-log"><Ico name="lc-history" size={12} />예약 접수 {b.createdAt.slice(0, 10).replace(/-/g, '.')}</span>}
                                     <div className="gs-dr-acts">
-                                        <button type="button" title="담당 가이드에게 전달하는 일정표 열기" onClick={() => openGuideItinerary(b)}><Ico name="lc-calendar" size={14} />일정표</button>
+                                        <button type="button" title="담당 가이드에게 전달하는 일정표 열기" onClick={() => openItinerary(b)}><Ico name="lc-calendar" size={14} />일정표</button>
                                         <button type="button" title="공항 미팅용 피켓 열기" onClick={() => setPicket(b.key)}><Ico name="lc-user-round" size={14} />가이드 피켓</button>
                                     </div>
                                 </div>
