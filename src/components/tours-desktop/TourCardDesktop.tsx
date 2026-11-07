@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { useWishlist } from '../../hooks/useWishlist';
-import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { MW, isUsableImage } from '../desktop-primitives/mwTokens';
 import { TypePill } from '../desktop-primitives/TypePill';
 import { FavButton } from '../home-desktop/TourTabsSection.desktop';
-import { discountPct, type HomeProduct, type ReviewStat } from '../home-desktop/homeDesktopData';
+import type { HomeProduct, ReviewStat } from '../home-desktop/homeDesktopData';
 import { durationLabel } from '../tours-mobile/tourListFilters';
+import { StartingPrice } from '../product/StartingPrice';
 
 interface Props {
     p: HomeProduct;
@@ -16,7 +17,6 @@ interface Props {
 export function TourCardDesktop({ p, stat }: Props) {
     const navigate = useNavigate();
     const wishlist = useWishlist();
-    const off = discountPct(p);
     const img = p.mainImages[0];
 
     return (
@@ -41,10 +41,7 @@ export function TourCardDesktop({ p, stat }: Props) {
             <span style={{ fontSize: 12, color: MW.mute, marginTop: 4 }}>{[p.category, durationLabel(p.duration)].filter(Boolean).join(' | ')}</span>
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</h3>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                {off > 0 && <span style={{ fontSize: 15, fontWeight: 700, color: MW.red }}>{off}%OFF</span>}
-                <span style={{ fontSize: 20, fontWeight: 900 }}>
-                    {won(p.price)}<span style={{ fontSize: 13, fontWeight: 700 }}>~</span>
-                </span>
+                <StartingPrice product={p} amountStyle={{ fontSize: 20, fontWeight: 900 }} />
             </div>
             {stat && stat.count > 0 && (
                 <span style={{ fontSize: 13, color: MW.mute }}>

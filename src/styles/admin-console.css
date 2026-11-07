@@ -1069,6 +1069,20 @@
 .admin-app-wrapper .opt-grid-head span:nth-child(2),
 .admin-app-wrapper .opt-grid-head span:nth-child(3),
 .admin-app-wrapper .opt-grid-head span:nth-child(4) { text-align: right; }
+/* Pricing headers and fields share all five tracks, including the delete action. */
+.admin-app-wrapper .pricing-options { --pricing-option-columns: minmax(64px, 0.8fr) repeat(3, minmax(100px, 1fr)) 32px; }
+.admin-app-wrapper .pricing-options .edit-sec-head { flex-wrap: wrap; }
+.admin-app-wrapper .pricing-options-help { margin: 0 0 12px; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+.admin-app-wrapper .pricing-options-table { overflow-x: auto; padding: 3px; margin: -3px; }
+.admin-app-wrapper .pricing-options-head,
+.admin-app-wrapper .pricing-option-row { display: grid; grid-template-columns: var(--pricing-option-columns); gap: 8px; min-width: 460px; box-sizing: border-box; }
+.admin-app-wrapper .pricing-options-head { padding: 0 13px 8px; }
+.admin-app-wrapper .pricing-options-head > span { font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-align: center; }
+.admin-app-wrapper .pricing-option-row { align-items: center; }
+.admin-app-wrapper .pricing-option-row > .inp-mini { min-width: 0; }
+.admin-app-wrapper .pricing-option-row > .pricing-option-calculated { background: var(--mrt-gray-50); }
+.admin-app-wrapper .pricing-option-row > .act-btn { width: 32px; height: 32px; padding: 0; margin-top: 0; }
+.admin-app-wrapper .pricing-option-issue { grid-column: 1 / -1; }
 .admin-app-wrapper .opt-card { }
 .admin-app-wrapper .radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border-strong); background: #fff; cursor: pointer; flex: none; position: relative; }
 .admin-app-wrapper .radio.on { border-color: var(--mrt-blue); } .admin-app-wrapper .radio.on::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--mrt-blue); }

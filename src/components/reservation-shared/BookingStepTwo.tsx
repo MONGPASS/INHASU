@@ -178,7 +178,8 @@ export function BookingPersonCard({
 export function BookingAmountCard({
     pc, priceBreakdown, baseOption, totalPeople,
 }: { pc: boolean; priceBreakdown: PriceBreakdown; baseOption: TourPricingOption | null; totalPeople: number }) {
-    const depositUnit = baseOption?.depositPerPerson ?? 0;
+    const unit = totalPeople > 0 ? priceBreakdown.deposit / totalPeople : 0;
+    const depositUnit = baseOption && Number.isSafeInteger(unit) ? unit : 0;
     return (
         <BookCard pc={pc} eyebrow="PAYMENT" title="결제 금액">
             <div style={{ display: 'flex', flexDirection: 'column' }}>

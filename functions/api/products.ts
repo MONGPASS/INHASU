@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { hasAdminSession, requireAdmin } from '../lib/adminAuth';
 import { normalizeRepresentativeSpots } from '../lib/productItinerary';
+import { getProductStartingPrice } from '../../src/utils/productStartingPrice';
 
 type Env = {
     DB: any;
@@ -31,6 +32,11 @@ const g = (data: any, snakeKey: string, camelKey: string, defaultVal: any = '') 
 // Trip type: 'full' (풀패키지) | 'value' (실속형) | null (미지정)
 const toPackageType = (v: any): 'full' | 'value' | null => (v === 'full' || v === 'value' ? v : null);
 
+const catalogPrice = (product: unknown) => {
+    const starting = getProductStartingPrice(product);
+    return { price: starting.price ?? 0, startingPrice: starting.price, priceBasisPeople: starting.people, priceReady: starting.price !== null };
+};
+
 // package_type is written separately and best-effort so product saves keep working
 // on databases where /api/migrate-db hasn't added the column yet.
 const savePackageType = async (db: any, id: string, data: any) => {
@@ -52,7 +58,7 @@ app.get('/', async (c) => {
         const published = adminView ? '' : " WHERE status = 'active'";
         // Home cards need no long itinerary/detail JSON; keep the initial response small.
         const fields = c.req.query('summary') === '1'
-            ? 'id, name, category, price, original_price, is_popular, is_featured, popular, featured, status, package_type, main_images, duration, tags, sort_order, created_at'
+            ? 'id, name, category, price, original_price, pricing_options, is_popular, is_featured, popular, featured, status, package_type, main_images, duration, tags, sort_order, created_at'
             : '*';
         let result;
         try {
@@ -63,6 +69,7 @@ app.get('/', async (c) => {
         }
         const parsed = (result.results || []).map((p: any) => ({
             ...p,
+            ...catalogPrice(p),
             mainImages: safeParse(p.main_images),
             galleryImages: safeParse(p.gallery_images),
             detailImages: safeParse(p.detail_images),
@@ -80,7 +87,9 @@ app.get('/', async (c) => {
             excluded: safeParse(p.excluded),
             faqs: safeParse(p.faqs),
             images: safeParse(p.images),
-            originalPrice: p.original_price,
+            // A global original price has no group-size basis for a safe discount comparison.
+            originalPrice: null,
+            original_price: adminView ? p.original_price : null,
             isFeatured: p.is_featured === 1 || p.featured === 1,
             isPopular: p.is_popular === 1 || p.popular === 1,
             sortOrder: p.sort_order || 0,
@@ -98,10 +107,12 @@ app.get('/:id', async (c) => {
     const db = c.env.DB;
     try {
         const result = await db.prepare('SELECT * FROM products WHERE id = ?').bind(id).first();
-        if (!result || (!['active', 'soldout'].includes(result.status) && !await hasAdminSession(c))) return c.json({ error: 'Product not found' }, 404);
+        const adminView = await hasAdminSession(c);
+        if (!result || (!['active', 'soldout'].includes(result.status) && !adminView)) return c.json({ error: 'Product not found' }, 404);
 
         const parsed = {
             ...result,
+            ...catalogPrice(result),
             mainImages: safeParse(result.main_images),
             galleryImages: safeParse(result.gallery_images),
             detailImages: safeParse(result.detail_images),
@@ -119,7 +130,8 @@ app.get('/:id', async (c) => {
             excluded: safeParse(result.excluded),
             faqs: safeParse(result.faqs),
             images: safeParse(result.images),
-            originalPrice: result.original_price,
+            originalPrice: null,
+            original_price: adminView ? result.original_price : null,
             isFeatured: result.is_featured === 1 || result.featured === 1,
             isPopular: result.is_popular === 1 || result.popular === 1,
             sortOrder: result.sort_order || 0,
@@ -141,6 +153,8 @@ app.post('/', requireAdmin, async (c) => {
         const mainImages = g(data, 'main_images', 'mainImages', []);
         const isFeatured = data.is_featured ?? data.isFeatured ?? false;
         const isPopular = data.is_popular ?? data.isPopular ?? false;
+        const pricingOptions = g(data, 'pricing_options', 'pricingOptions', []);
+        const price = getProductStartingPrice({ pricing_options: pricingOptions }).price ?? 0;
 
         try {
             await db.prepare(`
@@ -160,7 +174,7 @@ app.post('/', requireAdmin, async (c) => {
                 data.description || '',
                 data.category || '',
                 data.duration || '',
-                data.price || 0,
+                price,
                 g(data, 'original_price', 'originalPrice', 0),
                 toJson(mainImages),
                 toJson(g(data, 'gallery_images', 'galleryImages', [])),
@@ -182,7 +196,7 @@ app.post('/', requireAdmin, async (c) => {
                 toJson(g(data, 'itinerary_blocks', 'itineraryBlocks', [])),
                 toJson(data.highlights || []),
                 JSON.stringify(normalizeRepresentativeSpots(g(data, 'representative_spots', 'representativeSpots', []))),
-                toJson(g(data, 'pricing_options', 'pricingOptions', [])),
+                toJson(pricingOptions),
                 toJson(g(data, 'accommodation_options', 'accommodationOptions', [])),
                 toJson(g(data, 'vehicle_options', 'vehicleOptions', [])),
                 data.view_count || data.viewCount || 0,
@@ -208,7 +222,7 @@ app.post('/', requireAdmin, async (c) => {
                 data.description || '',
                 data.category || '',
                 data.duration || '',
-                data.price || 0,
+                price,
                 g(data, 'original_price', 'originalPrice', 0),
                 toJson(mainImages),
                 toJson(g(data, 'gallery_images', 'galleryImages', [])),
@@ -230,7 +244,7 @@ app.post('/', requireAdmin, async (c) => {
                 toJson(g(data, 'itinerary_blocks', 'itineraryBlocks', [])),
                 toJson(data.highlights || []),
                 JSON.stringify(normalizeRepresentativeSpots(g(data, 'representative_spots', 'representativeSpots', []))),
-                toJson(g(data, 'pricing_options', 'pricingOptions', [])),
+                toJson(pricingOptions),
                 toJson(g(data, 'accommodation_options', 'accommodationOptions', [])),
                 toJson(g(data, 'vehicle_options', 'vehicleOptions', [])),
                 data.view_count || data.viewCount || 0,
@@ -281,7 +295,8 @@ app.put('/:id', requireAdmin, async (c) => {
         const db = c.env.DB;
 
         // A stale editor must not report success and erase its recovery draft after deletion.
-        if (!await db.prepare('SELECT id FROM products WHERE id = ?').bind(id).first()) {
+        const existing = await db.prepare('SELECT id, pricing_options FROM products WHERE id = ?').bind(id).first();
+        if (!existing) {
             return c.json({ error: '상품이 삭제되어 저장할 수 없습니다. 작성한 초안은 보관됩니다.' }, 404);
         }
 
@@ -347,6 +362,20 @@ app.put('/:id', requireAdmin, async (c) => {
         };
 
         const processedCols = new Set<string>();
+
+        // Tier edits replace the table explicitly; a separate price input cannot
+        // override its derived starting price. Other partial edits keep the table.
+        if (data.pricing_options !== undefined || data.pricingOptions !== undefined) {
+            const tiers = g(data, 'pricing_options', 'pricingOptions', []);
+            updateFields.push('pricing_options = ?', 'price = ?');
+            updateValues.push(toJson(tiers), getProductStartingPrice({ pricing_options: tiers }).price ?? 0);
+            processedCols.add('pricing_options');
+            processedCols.add('price');
+        } else if (Object.hasOwn(data, 'price')) {
+            updateFields.push('price = ?');
+            updateValues.push(getProductStartingPrice(existing).price ?? 0);
+            processedCols.add('price');
+        }
 
         // As with creates, an explicit snake_case value takes precedence over
         // its camelCase alias; omitted selections never clear a saved snapshot.

@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
-import { MW_FONT, isUsableImage, won } from '../components/desktop-primitives/mwTokens';
+import { MW_FONT, isUsableImage } from '../components/desktop-primitives/mwTokens';
 import { PromoCard } from '../components/promotions/PromoCard';
 import { promoItemOf, themeOf } from '../components/promotions/promotionsData';
 import { PROMO_THEME_KEYS, type Promotion, type PromoThemeKey } from '../components/promotions/promotionTypes';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
+import { productPriceLabel, productPriceBasis, withPublicProductPrice, type PublicProductPriceFields } from '../utils/publicProductPrice';
 
-interface ProductLite {
+interface ProductLite extends PublicProductPriceFields {
     id: string;
     name: string;
     category: string;
@@ -67,10 +68,10 @@ const describeError = (e: unknown) => {
 const toProductLite = (p: Record<string, unknown>): ProductLite => {
     const first = (v: unknown) => (Array.isArray(v) && typeof v[0] === 'string' ? v[0] : '');
     return {
+        ...withPublicProductPrice(p),
         id: String(p.id ?? ''),
         name: String(p.name ?? ''),
         category: String(p.category ?? ''),
-        price: Number(p.price) || 0,
         status: String(p.status || 'active'),
         image: first(p.mainImages) || (typeof p.thumbnail === 'string' ? p.thumbnail : '') || first(p.images),
     };
@@ -390,7 +391,7 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
                                                 : <span className="thumb" />}
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <div className="cell-strong" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p ? p.name : '삭제된 상품'}</div>
-                                                <div className="cell-muted" style={{ fontSize: 12 }}>{p ? `${p.category || '카테고리 없음'} · ${won(p.price)}` : id}</div>
+                                                <div className="cell-muted" style={{ fontSize: 12 }}>{p ? [p.category || '카테고리 없음', productPriceLabel(p), productPriceBasis(p)].filter(Boolean).join(' · ') : id}</div>
                                             </div>
                                             {p ? <ProductStatus status={p.status} /> : <span className="badge b-red">없음</span>}
                                             <button
@@ -426,7 +427,7 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
                                                 : <span className="thumb" />}
                                             <div style={{ flex: 1 }}>
                                                 <div className="cell-strong" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                                                <div className="cell-muted" style={{ fontSize: 12 }}>{p.category || '카테고리 없음'} · {won(p.price)}</div>
+                                                <div className="cell-muted" style={{ fontSize: 12 }}>{[p.category || '카테고리 없음', productPriceLabel(p), productPriceBasis(p)].filter(Boolean).join(' · ')}</div>
                                             </div>
                                             <ProductStatus status={p.status} />
                                             <Icon name="add" style={{ fontSize: 18, color: 'var(--mrt-blue-strong)', flex: 'none' }} />

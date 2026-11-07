@@ -8,6 +8,7 @@ import { useWishlist } from '../../hooks/useWishlist';
 import { useProductCategories } from '../../hooks/useProductCategories';
 import { BRAND } from '../../constants/company';
 import { isPublishedMagazine } from '../../constants/seo';
+import { getProductStartingPrice } from '../../utils/productStartingPrice';
 import { MW, MW_FONT, MW_FONT_EN, isUsableImage, won } from '../desktop-primitives/mwTokens';
 
 const NAV_ITEMS: { id: string; label: string; path: string; match: (p: string) => boolean }[] = [
@@ -29,7 +30,7 @@ interface SearchProduct {
     name: string;
     category: string;
     duration: string;
-    price: number;
+    startingPrice: ReturnType<typeof getProductStartingPrice>;
     tags: string[];
     image: string;
 }
@@ -98,7 +99,7 @@ export function DesktopHeader() {
                     name: (p.name || '').trim(),
                     category: p.category || '',
                     duration: p.duration || '',
-                    price: p.price || 0,
+                    startingPrice: getProductStartingPrice(p),
                     tags: Array.isArray(p.tags) ? p.tags : [],
                     image: p.mainImages?.[0] || '',
                 }));
@@ -368,7 +369,10 @@ export function DesktopHeader() {
                                                             </span>
                                                             <span style={{ fontSize: 12, color: MW.mute }}>{t.category}</span>
                                                         </span>
-                                                        <span style={{ fontSize: 14, fontWeight: 900, color: MW.navy, flexShrink: 0 }}>{won(t.price)}~</span>
+                                                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-end', flexShrink: 0 }}>
+                                                            <span style={{ fontSize: 14, fontWeight: 900, color: MW.navy }}>{t.startingPrice.price === null ? '요금 등록 필요' : `1인 ${won(t.startingPrice.price)}부터`}</span>
+                                                            {t.startingPrice.people !== null && <span style={{ fontSize: 12, color: MW.mute }}>{t.startingPrice.people}명 기준</span>}
+                                                        </span>
                                                     </HoverButton>
                                                 ))}
                                             </div>

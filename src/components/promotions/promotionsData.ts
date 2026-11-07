@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useHomeData } from '../../hooks/useHomeData';
-import { won } from '../desktop-primitives/mwTokens';
 import { categoryImage, inCategory, isPublished, type HomeProduct } from '../home-desktop/homeDesktopData';
 import { PROMO_THEME_KEYS, type Promotion, type PromoThemeKey } from './promotionTypes';
+import { publicProductPrice, compareProductStartingPrice, productPriceLabel, productPriceBasis } from '../../utils/publicProductPrice';
 
 export interface PromoTheme {
     bg: string;
@@ -129,13 +129,14 @@ export function usePromotions() {
             ? promos.map((p) => promoItemOf(p, toursOf(p, products).length))
             : data.categories.map((c, i) => {
                 const tours = products.filter((p) => inCategory(p, c));
+                const startingTour = tours.filter(p => publicProductPrice(p).price !== null).sort((a, b) => compareProductStartingPrice(a, b, 'low'))[0];
                 return {
                     key: `category-${c.id}`,
                     group: GROUP_FEATURE,
                     title: c.name,
                     sub: oneLine(c.description),
                     art: artFrom(c.id),
-                    badge: tours.length > 0 ? `${won(Math.min(...tours.map((p) => p.price)))}~` : '',
+                    badge: startingTour ? [productPriceLabel(startingTour), productPriceBasis(startingTour)].filter(Boolean).join(' · ') : tours.length ? '요금 등록 필요' : '',
                     tags: tours.length > 0 ? [`투어 ${tours.length}건`] : [],
                     image: categoryImage(c),
                     path: `/category/${c.id}`,

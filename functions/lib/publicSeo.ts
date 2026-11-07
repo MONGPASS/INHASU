@@ -1,5 +1,6 @@
 import { SEO_CONSTANTS, isPrivateSeoPath, isPublishedMagazine } from '../../src/constants/seo.ts';
 import { BRAND, COMPANY_INFO, KAKAO_CHANNEL_URL } from '../../src/constants/company.ts';
+import { getProductStartingPrice } from '../../src/utils/productStartingPrice.ts';
 
 type Row = Record<string, any>;
 type PublicDb = { prepare(sql: string): { bind(...args: unknown[]): any; all(): Promise<{ results?: Row[] }>; first(): Promise<Row | null> } };
@@ -67,19 +68,28 @@ export const matchesCategory = (product: Row, category: Row) => {
     return targets.some(target => name === target || name.includes(target) || tags.some(tag => tag === target || tag.includes(target)));
 };
 
-export const productJsonLd = (product: Row, canonical: string): Row => ({
+const productPriceText = (product: Row) => {
+    const starting = getProductStartingPrice(product);
+    return starting.price === null ? '요금 등록 필요' : `1인 ${starting.price.toLocaleString('ko-KR')}원부터 · ${starting.people}명 기준`;
+};
+
+export const productJsonLd = (product: Row, canonical: string): Row => {
+    const starting = getProductStartingPrice(product);
+    return {
     '@context': 'https://schema.org', '@type': ['Product', 'TouristTrip'], '@id': `${canonical}#product`,
     name: product.name, description: plainText(product.description),
     image: publicProductImages(product).length ? publicProductImages(product) : undefined,
     brand: { '@type': 'Brand', name: BRAND.name }, category: product.category || '몽골 투어', touristType: product.category || '몽골 투어',
     ...(product.duration ? { additionalProperty: [{ '@type': 'PropertyValue', name: '소요 기간', value: product.duration }] } : {}),
     // Use only the actual displayed price. Tours have no fictional shipping/return policy or expiry.
-    ...(Number(product.price) > 0 ? { offers: {
-        '@type': 'Offer', url: canonical, priceCurrency: 'KRW', price: Number(product.price),
+    ...(starting.price !== null ? { offers: {
+        '@type': 'Offer', url: canonical, priceCurrency: 'KRW', price: starting.price,
+        description: `${starting.people}명 예약 시 1인 요금`,
         availability: product.status === 'active' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
         seller: { '@type': 'Organization', name: BRAND.name },
     } } : {}),
-});
+    };
+};
 
 export const PUBLIC_STATIC_META: Record<string, { title: string; description: string }> = {
     '/': { title: SEO_CONSTANTS.TITLE, description: SEO_CONSTANTS.DESCRIPTION },
@@ -104,7 +114,7 @@ const imageMarkup = (image: unknown, alt: string) => {
     const url = publicImageUrl(image);
     return url ? `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" width="960" height="600" style="max-width:100%;height:auto" decoding="async">` : '';
 };
-const itemLinks = (items: Row[], prefix: string, nameKey = 'name') => `<ul>${items.map(item => `<li><a href="${prefix}/${encodedId(item.id)}">${escapeHtml(item[nameKey])}</a>${item.duration ? ` · ${escapeHtml(item.duration)}` : ''}${Number(item.price) > 0 ? ` · ${Number(item.price).toLocaleString('ko-KR')}원부터` : ''}</li>`).join('')}</ul>`;
+const itemLinks = (items: Row[], prefix: string, nameKey = 'name') => `<ul>${items.map(item => `<li><a href="${prefix}/${encodedId(item.id)}">${escapeHtml(item[nameKey])}</a>${item.duration ? ` · ${escapeHtml(item.duration)}` : ''}${prefix === '/products' ? ` · ${productPriceText(item)}` : ''}</li>`).join('')}</ul>`;
 const breadcrumbs = (name: string, path: string, section = '몽골 투어 상품', sectionPath = '/products') => ({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
     { '@type': 'ListItem', position: 1, name: '홈', item: canonicalUrl('/') },
     { '@type': 'ListItem', position: 2, name: section, item: canonicalUrl(sectionPath) },
@@ -125,11 +135,11 @@ export async function readPublicPage(db: PublicDb, path: string): Promise<Public
         const product = await db.prepare('SELECT * FROM products WHERE id = ?').bind(decodedId(productMatch)).first();
         if (!product || !['active', 'soldout'].includes(product.status)) return missing();
         page.title = `${product.name} | ${BRAND.name}`;
-        page.description = [product.name, product.duration, plainText(product.description)].filter(Boolean).join(' · ').slice(0, 160);
+        page.description = [product.name, product.duration, productPriceText(product), plainText(product.description)].filter(Boolean).join(' · ').slice(0, 160);
         page.image = publicProductImages(product)[0] || page.image;
         page.canonical = canonicalUrl(productPath(product));
         page.jsonLd = [productJsonLd(product, page.canonical), breadcrumbs(product.name, productPath(product))];
-        page.body = `<article><h1>${escapeHtml(product.name)}</h1>${imageMarkup(page.image, product.name)}${paragraphs(product.description)}<dl><dt>여행 기간</dt><dd>${escapeHtml(product.duration)}</dd><dt>여행 가격</dt><dd>${Number(product.price) > 0 ? `${Number(product.price).toLocaleString('ko-KR')}원부터` : '견적 문의'}</dd></dl>`;
+        page.body = `<article><h1>${escapeHtml(product.name)}</h1>${imageMarkup(page.image, product.name)}${paragraphs(product.description)}<dl><dt>여행 기간</dt><dd>${escapeHtml(product.duration)}</dd><dt>여행 가격</dt><dd>${productPriceText(product)}</dd></dl>`;
         for (const [field, title] of [['included', '포함 사항'], ['excluded', '불포함 사항']]) {
             const values = arrayValue(product[field]).filter(value => typeof value === 'string');
             if (values.length) page.body += `<h2>${title}</h2><ul>${values.map(value => `<li>${escapeHtml(plainText(value))}</li>`).join('')}</ul>`;

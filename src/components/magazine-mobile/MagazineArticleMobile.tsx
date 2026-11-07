@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MW, MW_FONT_EN, cleanTitle, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { MW, MW_FONT_EN, cleanTitle, isUsableImage } from '../desktop-primitives/mwTokens';
 import { EDITORIAL, SITE, categoryLabel, formatDate } from '../magazine/magazineShared';
 import { useRelatedTourMatches } from '../magazine/relatedTourMatches';
 import type { ArticleData } from '../magazine-desktop/MagazineArticleDesktop';
@@ -8,6 +8,7 @@ import type { MagazineListItem } from '../magazine-desktop/MagazineListDesktop';
 import { useMobileShell } from '../mobile/mobileShellContext';
 import { M_GRADIENT, M_HAIR } from '../mobile/mobileTheme';
 import { durationLabel } from '../tours-mobile/tourListFilters';
+import { StartingPrice } from '../product/StartingPrice';
 import { MagazineQuoteCta } from './MagazineQuoteCta';
 import { BODY_HEADING_SKIP, buildToc } from './magazineMobile';
 
@@ -173,11 +174,7 @@ export function MagazineArticleMobile({ magazine, body, faqs, more, prev, next }
                                     </div>
                                     <span style={{ fontSize: 11, color: MW.mute, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[t.category, durationLabel(t.duration)].filter(Boolean).join(' | ')}</span>
                                     <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</h3>
-                                    {t.price > 0 && (
-                                        <span style={{ fontSize: 17, fontWeight: 900 }}>
-                                            {won(t.price)}<span style={{ fontSize: 12 }}>~</span>
-                                        </span>
-                                    )}
+                                    <StartingPrice product={t} amountStyle={{ fontSize: 17, fontWeight: 900 }} />
                                 </a>
                             ))}
                         </div>

@@ -1,9 +1,10 @@
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import type { ReviewStat } from '../home-desktop/homeDesktopData';
-import { MW, MW_FONT_EN, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { MW, MW_FONT_EN, isUsableImage } from '../desktop-primitives/mwTokens';
 import type { TripCardData } from '../mypage-desktop/MyPageSections';
 import { M_PAPER } from '../mobile/mobileTheme';
 import { HeartButton, MPhoto } from '../mobile/mobileUi';
+import { StartingPrice } from '../product/StartingPrice';
 
 /**
  * Shared pieces of the mobile my-page sub screens (Claude Design: "M Recently Viewed",
@@ -76,11 +77,7 @@ export function TripCardM({
                             <><span style={{ color: MW.mintDeep }}>★</span> <strong style={{ color: MW.navy }}>{stat.avg.toFixed(1)}</strong></>
                         )}
                     </span>
-                    {t.price > 0 && (
-                        <span style={{ fontFamily: MW_FONT_EN, fontSize: 12, fontWeight: 600 }}>
-                            {won(t.price)}<span style={{ fontFamily: 'inherit', fontSize: 10, fontWeight: 500, color: MW.mute }}>~</span>
-                        </span>
-                    )}
+                    <StartingPrice product={t} amountStyle={{ fontSize: 12, fontWeight: 600 }} />
                 </span>
             </span>
         </a>

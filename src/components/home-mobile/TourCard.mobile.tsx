@@ -1,7 +1,8 @@
-import { MW, isUsableImage, won } from '../desktop-primitives/mwTokens';
-import { discountPct, type HomeProduct, type ReviewStat } from '../home-desktop/homeDesktopData';
+import { MW, isUsableImage } from '../desktop-primitives/mwTokens';
+import type { HomeProduct, ReviewStat } from '../home-desktop/homeDesktopData';
 import { HeartButton, MPhoto, TypeBadge } from '../mobile/mobileUi';
 import { linkTo, useGo } from './homeMobileData';
+import { StartingPrice } from '../product/StartingPrice';
 
 interface CardProps {
     p: HomeProduct;
@@ -36,7 +37,6 @@ function Photo({ p, fav, onFav, heart, icon }: CardProps & { heart: number; icon
 export function TourGridCardMobile(props: CardProps) {
     const { p, stat } = props;
     const go = useGo();
-    const off = discountPct(p);
     return (
         <a {...linkTo(go, `/products/${p.id}`)} style={{ display: 'flex', flexDirection: 'column', gap: 6, color: MW.navy, minWidth: 0, textDecoration: 'none' }}>
             <div style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 18, overflow: 'hidden', background: MW.chip }}>
@@ -46,8 +46,7 @@ export function TourGridCardMobile(props: CardProps) {
                 {p.duration ? `[${p.duration}] ` : ''}{p.name}
             </h3>
             <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-                {off > 0 && <span style={{ fontSize: 14, fontWeight: 900, color: MW.red }}>{off}%OFF</span>}
-                <span style={{ fontSize: 15, fontWeight: 900 }}>{won(p.price)}~</span>
+                <StartingPrice product={p} amountStyle={{ fontSize: 15, fontWeight: 900 }} />
             </span>
             <Rating stat={stat} />
         </a>
@@ -58,7 +57,6 @@ export function TourGridCardMobile(props: CardProps) {
 export function TourRowCardMobile(props: CardProps) {
     const { p, stat } = props;
     const go = useGo();
-    const off = discountPct(p);
     return (
         <a {...linkTo(go, `/products/${p.id}`)} style={{ flex: '0 0 62%', minWidth: 0, scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column', gap: 6, color: MW.navy, textDecoration: 'none' }}>
             <div style={{ position: 'relative', aspectRatio: '16/11', borderRadius: 16, overflow: 'hidden', background: MW.chip }}>
@@ -68,8 +66,7 @@ export function TourRowCardMobile(props: CardProps) {
                 {p.duration ? `[${p.duration}] ` : ''}{p.name}
             </h3>
             <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                {off > 0 && <span style={{ fontSize: 11, color: MW.mute2, textDecoration: 'line-through' }}>{won(p.originalPrice!)}</span>}
-                <span style={{ fontSize: 15, fontWeight: 900 }}>{won(p.price)}</span>
+                <StartingPrice product={p} amountStyle={{ fontSize: 15, fontWeight: 900 }} />
             </span>
             <Rating stat={stat} />
         </a>

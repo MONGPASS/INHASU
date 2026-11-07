@@ -5,6 +5,7 @@ import { MW, MW_FONT_EN, MW_GRADIENT, isUsableImage } from '../desktop-primitive
 import { categoryImage, inCategory, isPublished, useHomeReviews, type HomeProduct } from '../home-desktop/homeDesktopData';
 import { durationLabel } from '../tours-mobile/tourListFilters';
 import { TourCardDesktop } from './TourCardDesktop';
+import { compareProductStartingPrice } from '../../utils/publicProductPrice';
 
 type Sort = 'rec' | 'low' | 'high' | 'rating' | 'reviews';
 
@@ -59,8 +60,8 @@ export function TourListDesktop() {
         const rank = (p: HomeProduct) => Number(p.isPopular) * 2 + Number(p.isFeatured);
         const sorters: Record<Sort, (a: HomeProduct, b: HomeProduct) => number> = {
             rec: (a, b) => rank(b) - rank(a),
-            low: (a, b) => a.price - b.price,
-            high: (a, b) => b.price - a.price,
+            low: (a, b) => compareProductStartingPrice(a, b, 'low'),
+            high: (a, b) => compareProductStartingPrice(a, b, 'high'),
             rating: (a, b) => (stats[b.id]?.avg ?? 0) - (stats[a.id]?.avg ?? 0) || (stats[b.id]?.count ?? 0) - (stats[a.id]?.count ?? 0),
             reviews: (a, b) => (stats[b.id]?.count ?? 0) - (stats[a.id]?.count ?? 0),
         };

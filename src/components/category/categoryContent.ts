@@ -1,6 +1,7 @@
 import type { HighlightCardData, HighlightSectionData } from '../../types/category';
 import { MW } from '../desktop-primitives/mwTokens';
 import type { HomeProduct } from '../home-desktop/homeDesktopData';
+import { withPublicProductPrice } from '../../utils/publicProductPrice';
 
 /**
  * Content model of the category landing page (/category/:slug) and the helpers
@@ -98,6 +99,11 @@ export interface RawProduct {
     main_images?: unknown;
     duration?: string;
     tags?: unknown;
+    pricingOptions?: unknown;
+    pricing_options?: unknown;
+    startingPrice?: number | null;
+    priceBasisPeople?: number | null;
+    priceReady?: boolean;
 }
 
 const strings = (val: unknown): string[] => {
@@ -113,11 +119,11 @@ const strings = (val: unknown): string[] => {
 
 /** Same shape as the home / tour list products, so the shared tour cards can render it. */
 export const toTourProduct = (p: RawProduct): HomeProduct => ({
+    ...withPublicProductPrice(p),
     id: p.id,
     name: p.name,
     category: p.category || '',
-    price: p.price,
-    originalPrice: p.originalPrice ?? p.original_price ?? undefined,
+    originalPrice: undefined,
     isPopular: !!(p.isPopular ?? p.is_popular),
     isFeatured: !!(p.isFeatured ?? p.is_featured),
     status: p.status,
