@@ -13,7 +13,7 @@ import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import './AdminAccommodationOps.css';
 import { LODGE_BOOKING_STATUSES, isLodgeBookingConfirmed, lodgeBookingLabel } from '../utils/lodgeBookingStatus';
 import { LODGE_GRADE_OPTIONS, ROOM_PLAN_OPTIONS, isUpcomingTour, tourSerials } from '../utils/accommodationSheet';
-import { AccommodationSheet } from '../components/admin/accommodation/AccommodationSheet';
+import { LodgeAssignBoard } from '../components/admin/accommodation/LodgeAssignBoard';
 import { guideOverlaps, overlapLabel, sameGuide } from '../utils/assignmentAvailability';
 
 /**
@@ -125,6 +125,18 @@ const weekdayKo = (iso?: string) => {
     return Number.isNaN(d.getTime()) ? '' : WD[d.getDay()];
 };
 const regionOf = (r: Reservation) => (r.contractData?.region || r.contractData?.category || r.productName || '-');
+/**
+ * 시트에서 고칠 숙박 행. 저장된 행이 없으면 고객 일정으로 만든다.
+ * fill: 지역이 비어 있는 숙박일(행 번호)에 함께 넣을 계약 일정 지역. 처음 만든 행의 일정 원문 지역은 시트 지명으로 바꾼다.
+ */
+const sheetRowsWithFill = (r: Reservation, fill?: Record<number, string>): DailyAcc[] => {
+    const fresh = !r.dailyAccommodations;
+    return (r.dailyAccommodations ?? initialAccommodationRows(r)).map((d, i) => {
+        const area = fill?.[i];
+        const hasStored = !fresh && !!(d.accommodation?.region || d.accommodation?.location);
+        return area && !hasStored ? { ...d, accommodation: { ...d.accommodation, location: area, region: area } } : d;
+    });
+};
 const genderLabel = (g?: string) => g === '男性' || g === '남성' || g === 'male' ? '남' : g === '女性' || g === '여성' || g === 'female' ? '여' : (g || '-');
 const flightLine = (f?: Flight) => [f?.date, f?.time, f?.flight].filter(Boolean).join(' · ') || '-';
 
@@ -421,14 +433,22 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         if (savingRef.current || pendingRef.current[rId]) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
-            const fresh = !r.dailyAccommodations;
-            const rows = (r.dailyAccommodations ?? initialAccommodationRows(r)).map((d, i) => {
-                const area = fill?.[i];
-                const hasStored = !fresh && !!(d.accommodation?.region || d.accommodation?.location);
-                const base = area && !hasStored ? { ...d, accommodation: { ...d.accommodation, location: area, region: area } } : d;
-                return i === idx ? { ...base, accommodation: { ...base.accommodation, ...patch } } : base;
-            });
+            const rows = sheetRowsWithFill(r, fill).map((d, i) => i === idx ? { ...d, accommodation: { ...d.accommodation, ...patch } } : d);
             return { ...r, dailyAccommodations: rows };
+        }));
+        setMaterialized(prev => prev.has(rId) ? prev : new Set(prev).add(rId));
+        markDirty(rId);
+    };
+    // 숙소 배정 시트: 마지막 숙박 다음 날로 숙박을 하나 더한다(저장 전 행이면 계약 일정 지역과 함께 만든다).
+    const addSheetNight = (rId: string, fill?: Record<number, string>) => {
+        if (savingRef.current || pendingRef.current[rId]) return;
+        setReservations(prev => prev.map(r => {
+            if (r.id !== rId) return r;
+            const rows = sheetRowsWithFill(r, fill);
+            const maxDay = rows.reduce((m, d) => Math.max(m, d.day || 0), 0);
+            const last = [...rows].reverse().find(d => /^\d{4}-\d{2}-\d{2}/.test(d.date || ''))?.date?.slice(0, 10) || (r.startDate && toTourDateKey(r.startDate));
+            const next = last && /^\d{4}-\d{2}-\d{2}$/.test(last) ? (() => { const d = new Date(`${last}T00:00:00`); d.setDate(d.getDate() + (rows.length ? 1 : 0)); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })() : '';
+            return { ...r, dailyAccommodations: [...rows, { day: maxDay + 1, date: next, accommodation: {} }] };
         }));
         setMaterialized(prev => prev.has(rId) ? prev : new Set(prev).add(rId));
         markDirty(rId);
@@ -614,6 +634,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             {loadWarnings.map((warning, i) => <div key={i} role="alert" className="lo-notice is-warn">{warning}</div>)}
             {Object.keys(pendingDrafts).length > 0 && <div className="lo-notice is-draft" role="status">복구 가능한 배정 초안 {Object.keys(pendingDrafts).length}건이 있어요. 펼친 예약에서 복원 또는 버리기를 골라 주세요.</div>}
 
+            {view === 'card-view' && <>
             <div className="lo-summary">
                 {KPI_CARDS.map(({ key, label, tone, icon, hint }) => {
                     const n = key === 'all' ? base.length : statusCounts[key];
@@ -642,8 +663,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                     {regionOptions.map(rg => <option key={rg} value={rg}>{rg}</option>)}
                 </select>
                 <span className="lo-view-toggle" role="group" aria-label="보기 방식">
-                    <button type="button" aria-pressed={view === 'sheet-view'} className={view === 'sheet-view' ? 'is-on' : ''} onClick={() => setView('sheet-view')}>시트</button>
-                    <button type="button" aria-pressed={view === 'card-view'} className={view === 'card-view' ? 'is-on' : ''} onClick={() => setView('card-view')}>카드</button>
+                    <button type="button" aria-pressed={false} onClick={() => setView('sheet-view')}>시트</button>
+                    <button type="button" aria-pressed className="is-on">카드</button>
                 </span>
                 {filtersOn && <button type="button" className="lo-reset" onClick={resetFilters}>필터 초기화</button>}
                 <span className="lo-count">보이는 예약 <b>{counts.total}</b> · 숙소 확정 <b>{counts.done}</b> · 확인 필요 <b className="is-warn">{counts.pending}</b></span>
@@ -674,25 +695,18 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                     })}
                 </div></div>
             </div>
-
-            {view === 'sheet-view' && <>
-                {dirty.size > 0 && (
-                    <div className="lo-sheet-savebar" role="status">
-                        <span>저장하지 않은 예약 <b>{dirty.size}</b>팀 · 변경 내용은 브라우저 초안으로도 보관돼요.</span>
-                        <button type="button" className="lo-save" disabled={!!savingId || savingAll} onClick={() => void saveAll()}>
-                            <DashboardIcon name="lc-check" size={15} />{savingAll ? '저장하는 중…' : '모두 저장'}
-                        </button>
-                    </div>
-                )}
-                {loading ? <p className="lo-empty">예약을 불러오고 있어요…</p>
-                    : filtered.length === 0 ? <div className="lo-empty"><p>오늘 이후 진행하는 투어 중 조건에 맞는 예약이 없어요.</p>{filtersOn && <button type="button" onClick={resetFilters}>필터 초기화</button>}</div>
-                    : <AccommodationSheet tours={filtered} rowsOf={sheetRowsOf} regionOf={r => regionOf(r as Reservation)}
-                        serials={serials} lodges={resources.lodges} lodgeRegions={lodgeRegions} resourcesLoading={resourcesLoading} dirty={dirty} pending={pendingDrafts} savingId={savingId}
-                        clearedAreas={clearedRegions} onAreaCleared={(key, cleared) => setClearedRegions(prev => { const next = new Set(prev); if (cleared) next.add(key); else next.delete(key); return next; })}
-                        onPatch={patchDay} onCategory={patchCategory}
-                        onSave={id => { const row = rowsRef.current.find(r => r.id === id); if (row) void save(row); }}
-                        onResolveDraft={(id, restore) => { const row = rowsRef.current.find(r => r.id === id); if (row) resolveDraft(row, restore); }} />}
             </>}
+
+            {view === 'sheet-view' && <LodgeAssignBoard tours={base} loading={loading} rowsOf={sheetRowsOf} plannedNights={t => getAccommodationPlan(t as Reservation).nights.length}
+                regionOf={t => regionOf(t as Reservation)} contactOf={t => (t as Reservation).contractData?.travelers?.find(x => x.phone?.trim())?.phone?.trim() || ''}
+                serials={serials} lodges={resources.lodges} lodgeRegions={lodgeRegions} resourcesLoading={resourcesLoading} dirty={dirty} pending={pendingDrafts} savingId={savingId} savingAll={savingAll}
+                scope={scope} onScope={setScope}
+                clearedAreas={clearedRegions} onAreaCleared={(key, cleared) => setClearedRegions(prev => { const next = new Set(prev); if (cleared) next.add(key); else next.delete(key); return next; })}
+                onPatch={patchDay} onCategory={patchCategory}
+                onSave={id => { const row = rowsRef.current.find(r => r.id === id); if (row) void save(row); }}
+                onSaveAll={() => void saveAll()}
+                onResolveDraft={(id, restore) => { const row = rowsRef.current.find(r => r.id === id); if (row) resolveDraft(row, restore); }}
+                onAddNight={addSheetNight} onRemoveNight={removeDay} onCardView={() => setView('card-view')} />}
             {view === 'card-view' && <section className="lo-table" aria-label="숙소 배정 예약 목록">
                 <div className="lo-head" aria-hidden="true">
                     <span>고객</span><span>여행 일정</span><span>숙소</span><span>배정 진행</span><span>상태</span><span />
