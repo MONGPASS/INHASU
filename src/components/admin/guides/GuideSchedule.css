@@ -229,9 +229,9 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 .gs-cta.is-ghost { background: var(--gs-paper); box-shadow: inset 0 0 0 1px var(--gs-div2); color: var(--gs-mint-text) !important; }
 .gs-cta.is-ghost:hover { background: var(--gs-contents); }
 .gs-cta.is-small { height: 36px; padding: 0 14px; border-radius: 6px; }
-/* 열 폭은 내용 기준 — 사이드바를 뺀 관리자 화면(표 영역 약 970px)에서 가로 스크롤 없이 다 보인다. 남는 폭은 고객명·투어명·배정 칸이 나눈다. */
+/* 열 폭은 내용 기준 — 사이드바를 뺀 관리자 화면(표 영역 약 970px)에서 가로 스크롤 없이 다 보인다. 투어명은 176px까지만 — 남는 폭은 고객명·지역·배정 칸이 나눠 투어명과 여행기간 사이가 벌어지지 않는다. */
 .gs-table { min-width: 936px; }
-.gs-trow { display: grid; grid-template-columns: 32px minmax(72px, .8fr) minmax(120px, 1.4fr) 104px 52px minmax(64px, .6fr) minmax(136px, 1fr) minmax(136px, 1fr) 100px 104px; align-items: center; box-sizing: border-box; min-height: 72px; padding: 0 8px; border-bottom: 1px solid var(--gs-div1); font-size: 14px; }
+.gs-trow { display: grid; grid-template-columns: 32px minmax(72px, .8fr) minmax(120px, 176px) 104px 52px minmax(64px, .6fr) minmax(136px, 1.2fr) minmax(136px, 1.2fr) 100px 104px; align-items: center; box-sizing: border-box; min-height: 72px; padding: 0 8px; border-bottom: 1px solid var(--gs-div1); font-size: 14px; }
 .gs-trow.is-head { align-items: stretch; height: 48px; min-height: 0; background: var(--gs-contents); border-bottom-color: var(--gs-div2); color: var(--gs-low); font-size: 13px; font-weight: 700; }
 .gs-trow.is-head > span { display: flex; align-items: center; padding-left: 10px; }
 .gs-trow.is-head > span.is-c { justify-content: center; padding-left: 0; }
