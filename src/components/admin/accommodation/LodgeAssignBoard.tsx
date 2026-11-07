@@ -50,7 +50,7 @@ const withCurrent = (options: string[], current?: string) => current && !options
 const same = (a?: string, b?: string) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 const CLEAR_LODGE: Patch = { id: undefined, name: '', images: [], description: '', facilities: [], address: '', roomAmenities: [], sharedFacilities: [], bookingStatus: LODGE_BOOKING_UNSENT };
 
-type Pop = { kind: 'hotel' | 'area' | 'grade' | 'room' | 'assign' | 'status' | 'category' | 'month' | 'info'; tourId: string; idx?: number; x: number; y: number; top: number; tab?: string; year?: number };
+type Pop = { kind: 'hotel' | 'area' | 'grade' | 'roomPlan' | 'assign' | 'status' | 'category' | 'month' | 'info'; tourId: string; idx?: number; x: number; y: number; top: number; tab?: string; year?: number };
 
 export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, contactOf, serials, lodges, lodgeRegions, resourcesLoading, dirty, pending, savingId, savingAll, clearedAreas, scope,
     onScope, onAreaCleared, onPatch, onCategory, onSave, onSaveAll, onResolveDraft, onAddNight, onRemoveNight, onCardView, loading }: {
@@ -251,7 +251,7 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
         const none = { value: '', label: '미정' };
         if (pop.kind === 'area') return simple('숙소지역', [none, ...withCurrent(areaOptions, n.area).map(v => ({ value: v, label: v }))], n.area, v => { onAreaCleared(`${m.tour.id}:${idx}`, !v); patchNight(m, idx, { location: v, region: v }); });
         if (pop.kind === 'grade') return simple('등급', [none, ...withCurrent(LODGE_GRADE_OPTIONS, acc.type).map(v => ({ value: v, label: v }))], acc.type || '', v => patchNight(m, idx, { type: v || undefined }));
-        if (pop.kind === 'room') return simple('방수', [none, ...(acc.occupancy && !ROOM_PLAN_OPTIONS.some(o => o.value === acc.occupancy) ? [{ value: acc.occupancy, label: roomPlanLabel(acc.occupancy) }] : []), ...ROOM_PLAN_OPTIONS], acc.occupancy || '', v => patchNight(m, idx, { occupancy: v || undefined }));
+        if (pop.kind === 'roomPlan') return simple('방수', [none, ...(acc.occupancy && !ROOM_PLAN_OPTIONS.some(o => o.value === acc.occupancy) ? [{ value: acc.occupancy, label: roomPlanLabel(acc.occupancy) }] : []), ...ROOM_PLAN_OPTIONS], acc.occupancy || '', v => patchNight(m, idx, { occupancy: v || undefined }));
         if (pop.kind === 'assign') return simple('배정 구분', [none, ...withCurrent(ASSIGN_TYPE_OPTIONS, acc.assignType).map(v => ({ value: v, label: v }))], acc.assignType || '', v => patchNight(m, idx, { assignType: v }));
         const status = acc.bookingStatus || LODGE_BOOKING_UNSENT;
         return simple('예약상태', [...(!LODGE_BOOKING_STATUSES.some(s => s.value === status) ? [{ value: status, label: lodgeBookingLabel(status) }] : []), ...LODGE_BOOKING_STATUSES], status, v => patchNight(m, idx, { bookingStatus: v }), acc.name || label);
@@ -358,7 +358,7 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
                                                 <DashboardIcon name={hasLodge ? 'lc-bed-double' : 'lc-circle-plus'} size={16} /><b>{hasLodge ? acc.name : '미배정'}</b><DashboardIcon name="lc-chevron-down" size={14} />
                                             </button>
                                             {dd('grade', acc.type || '미정', !acc.type, '등급')}
-                                            {dd('room', acc.occupancy ? roomPlanLabel(acc.occupancy) : '미정', !acc.occupancy, '방수')}
+                                            {dd('roomPlan', acc.occupancy ? roomPlanLabel(acc.occupancy) : '미정', !acc.occupancy, '방수')}
                                             {dd('assign', acc.assignType || '미정', !acc.assignType, '배정 구분')}
                                             <button type="button" data-la-pop aria-label={`${nameOf(t)} ${n.index + 1}박 예약상태`} className="la-status" data-tone={hasLodge ? toneOfStatus(status) : 'off'} disabled={locked}
                                                 onClick={e => { if (!hasLodge) { e.stopPropagation(); flash('숙소를 먼저 골라 주세요'); return; } openPop(e, { kind: 'status', tourId: t.id, idx: n.index }, 220, 460); }}>
