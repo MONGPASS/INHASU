@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { ReservationCompleteDesktop } from '../components/reservation-desktop/ReservationCompleteDesktop';
 import { ReservationCompleteMobile } from '../components/reservation-mobile/ReservationCompleteMobile';
+import { readCompleteSummary } from '../components/reservation-mobile/completeSummary';
 import { BookingFallback } from '../components/reservation-shared/BookingFallback';
 import { reservationNoOf, type CompleteStepProps } from '../components/reservation-shared/bookingShared';
 
@@ -66,6 +67,8 @@ export const ReservationComplete: React.FC = () => {
         total,
         deposit,
         local: isDesktop ? Math.max(0, total - deposit) : priceBreakdown.local || 0,
+        // Mobile shows the booking summary card under the confirmation card (same card as STEP 1 · 2).
+        summary: isDesktop ? undefined : readCompleteSummary(location.state?.summary, reservation),
     };
 
     return isDesktop ? <ReservationCompleteDesktop {...stepProps} /> : <ReservationCompleteMobile {...stepProps} />;

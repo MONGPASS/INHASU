@@ -20,8 +20,9 @@ export function ReviewDetailMobile({ id }: { id: string }) {
         if (location.key !== 'default') navigate(-1);
         else navigate('/reviews');
     };
+    // No back bar on this screen (design): the "뒤로" pill in the body is the way back.
     return (
-        <MobileShell title="여행 후기" onBack={back}>
+        <MobileShell>
             <ReviewDetailBody key={id} id={id} onBack={back} />
         </MobileShell>
     );

@@ -4,6 +4,7 @@ import { useHeroBanners } from '../../hooks/useHeroBanners';
 import { BRAND } from '../../constants/company';
 import { won } from '../desktop-primitives/mwTokens';
 import type { HomeProduct } from '../home-desktop/homeDesktopData';
+import { durationLabel } from '../tours-mobile/tourListFilters';
 
 export interface HeroSlide {
     key: string;
@@ -87,7 +88,7 @@ export function useHeroSlides(products: HomeProduct[]) {
                 // The legacy mobile banner image has its copy baked into the picture; the PC image
                 // is the clean photo meant to sit under overlaid text, so it comes first.
                 img: b.pc_image || b.pcImage || b.image || b.image_url || '',
-                eyebrow: tag || (product ? [product.category, product.duration].filter(Boolean).join(' · ') : ''),
+                eyebrow: tag || (product ? [product.category, durationLabel(product.duration)].filter(Boolean).join(' · ') : ''),
                 title: cleanAdminText(b.title) || cleanAdminText(b.pc_title || b.pcTitle) || product?.name || '몽골 여행',
                 sub: sub || (product ? `${won(product.price)}~` : ''),
                 label: product?.category || '몽골 여행',

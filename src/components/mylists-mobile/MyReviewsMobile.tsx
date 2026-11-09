@@ -7,7 +7,7 @@ import { MW, MW_FONT_EN, isUsableImage } from '../desktop-primitives/mwTokens';
 import { useMe, useMyPageData, type MyReview } from '../mypage-desktop/useMyPageData';
 import { MobileShell } from '../mobile/MobileShell';
 import { M_HAIR } from '../mobile/mobileTheme';
-import { MEmpty, MLoading, SubPageBar } from '../mobile/mobileUi';
+import { MEmpty, MLoading, MPhoto, SubPageBar } from '../mobile/mobileUi';
 import { dateRange, pendingReviewList, useGo, useTripCatalog } from './myListsData';
 import { CardPill, ScreenBody, Thumb } from './myListsUi';
 
@@ -96,7 +96,9 @@ export function MyReviewsMobile() {
                                         {photos.length > 0 && (
                                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                                 {photos.map((src, i) => (
-                                                    <img key={i} src={src} alt={`후기 사진 ${i + 1}`} loading="lazy" decoding="async" style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover', background: MW.chip }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                                    <span key={i} style={{ position: 'relative', flexShrink: 0, width: 72, height: 72, borderRadius: 12, overflow: 'hidden', background: MW.chip }}>
+                                                        <MPhoto src={src} alt={`후기 사진 ${i + 1}`} sizes="72px" />
+                                                    </span>
                                                 ))}
                                             </div>
                                         )}

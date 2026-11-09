@@ -117,13 +117,16 @@ export function CategoryHeader({ slug, content, compact = false }: BlockProps & 
     return (
         <section style={{ background: `linear-gradient(180deg,${M_PAPER} 0%,#FFFFFF 100%)`, borderBottom: `1px solid ${M_HAIR}` }}>
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: `20px ${compact ? 16 : 24}px 32px`, display: 'flex', flexDirection: 'column', gap: 18 }}>
-                <nav aria-label="이동 경로" style={{ display: 'flex', gap: 8, fontSize: 12, color: MW.mute2, whiteSpace: 'nowrap', minWidth: 0 }}>
-                    <Go to="/" style={crumb}>홈</Go>
-                    <span aria-hidden="true">›</span>
-                    <Go to="/products" style={crumb}>투어 상품</Go>
-                    <span aria-hidden="true">›</span>
-                    <span style={{ color: MW.navy, fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{content.name}</span>
-                </nav>
+                {/* Phones: the shell's back bar replaces the breadcrumb; the design keeps its (empty) row. */}
+                {compact ? <div aria-hidden="true" /> : (
+                    <nav aria-label="이동 경로" style={{ display: 'flex', gap: 8, fontSize: 12, color: MW.mute2, whiteSpace: 'nowrap', minWidth: 0 }}>
+                        <Go to="/" style={crumb}>홈</Go>
+                        <span aria-hidden="true">›</span>
+                        <Go to="/products" style={crumb}>투어 상품</Go>
+                        <span aria-hidden="true">›</span>
+                        <span style={{ color: MW.navy, fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{content.name}</span>
+                    </nav>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24, flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px 10px', flexWrap: 'wrap' }}>
@@ -135,9 +138,9 @@ export function CategoryHeader({ slug, content, compact = false }: BlockProps & 
                                 </>
                             )}
                         </span>
-                        <h1 style={{ margin: 0, fontSize: compact ? 'clamp(26px,8vw,32px)' : 'clamp(32px,4vw,46px)', fontWeight: 900, lineHeight: 1.2, letterSpacing: '-0.01em', overflowWrap: 'anywhere' }}>{content.heroTitle}</h1>
+                        <h1 style={{ margin: 0, fontSize: compact ? 'clamp(28px,8.6vw,32px)' : 'clamp(32px,4vw,46px)', fontWeight: 900, lineHeight: 1.2, letterSpacing: '-0.01em', overflowWrap: 'anywhere' }}>{content.heroTitle}</h1>
                         {content.heroSubtitle && (
-                            <p style={{ margin: 0, maxWidth: 640, fontSize: compact ? 14 : 15, lineHeight: 1.7, color: MW.mute, whiteSpace: 'pre-line' }}>{content.heroSubtitle}</p>
+                            <p style={{ margin: 0, maxWidth: 640, fontSize: 15, lineHeight: 1.7, color: MW.mute, whiteSpace: 'pre-line' }}>{content.heroSubtitle}</p>
                         )}
                     </div>
                     <CategoryTabs slug={slug} />
@@ -160,8 +163,6 @@ export function CategoryHero({ content, compact = false }: BlockProps) {
     const count = slides.length;
     const { idx, shown, goTo, prev, next, setPaused } = useHeroSlider(count);
     const touchX = useRef<number | null>(null);
-    const edge = compact ? 12 : 20;
-    const cta: CSSProperties = compact ? { flex: '1 1 0', justifyContent: 'center', padding: '0 12px', fontSize: 14 } : { fontSize: 15 };
 
     return (
         <section style={{ maxWidth: 1200, margin: '0 auto', padding: `28px ${compact ? 16 : 24}px 0`, display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -197,13 +198,13 @@ export function CategoryHero({ content, compact = false }: BlockProps) {
 
                 {count > 1 && (
                     <>
-                        <span style={{ position: 'absolute', left: compact ? 20 : 28, bottom: 26, fontFamily: MW_FONT_EN, fontSize: 12, fontWeight: 600, color: '#FFFFFF', pointerEvents: 'none' }}>
+                        <span style={{ position: 'absolute', left: 28, bottom: 26, fontFamily: MW_FONT_EN, fontSize: 12, fontWeight: 600, color: '#FFFFFF', pointerEvents: 'none' }}>
                             {pad2(idx + 1)} / {pad2(count)}
                         </span>
-                        <button type="button" onClick={prev} aria-label="이전" style={{ ...NAV_BTN, left: edge }} {...NAV_HOVER}>
+                        <button type="button" onClick={prev} aria-label="이전" style={{ ...NAV_BTN, left: 20 }} {...NAV_HOVER}>
                             <Svg d={P_PREV} size={20} width={2.2} />
                         </button>
-                        <button type="button" onClick={next} aria-label="다음" style={{ ...NAV_BTN, right: edge }} {...NAV_HOVER}>
+                        <button type="button" onClick={next} aria-label="다음" style={{ ...NAV_BTN, right: 20 }} {...NAV_HOVER}>
                             <Svg d={P_NEXT} size={20} width={2.2} />
                         </button>
                         <div style={{ position: 'absolute', left: '50%', bottom: 28, transform: 'translateX(-50%)', display: 'flex', gap: 6 }}>
@@ -226,7 +227,7 @@ export function CategoryHero({ content, compact = false }: BlockProps) {
                 <button
                     type="button"
                     onClick={scrollToLineup}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, height: 52, padding: '0 26px', border: 0, borderRadius: 999, background: MW_GRADIENT, fontFamily: 'inherit', fontWeight: 700, color: MW.navy, cursor: 'pointer', whiteSpace: 'nowrap', ...cta }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, height: 52, padding: '0 26px', border: 0, borderRadius: 999, background: MW_GRADIENT, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, color: MW.navy, cursor: 'pointer', whiteSpace: 'nowrap' }}
                     {...hover({ opacity: '0.92' }, { opacity: '1' })}
                 >
                     투어 상품 보기
@@ -237,7 +238,7 @@ export function CategoryHero({ content, compact = false }: BlockProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="카카오톡으로 문의"
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, height: 52, padding: '0 24px', border: `1.5px solid ${MW.navy}`, borderRadius: 999, background: '#FFFFFF', fontWeight: 700, color: MW.navy, textDecoration: 'none', whiteSpace: 'nowrap', ...cta }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, height: 52, padding: '0 24px', border: `1.5px solid ${MW.navy}`, borderRadius: 999, background: '#FFFFFF', fontSize: 15, fontWeight: 700, color: MW.navy, textDecoration: 'none', whiteSpace: 'nowrap' }}
                     {...hover({ background: M_PAPER }, { background: '#FFFFFF' })}
                 >
                     <Svg d={P_CHAT} width={1.8} />
@@ -352,12 +353,12 @@ export function CategoryExperiences({ content, compact = false }: BlockProps) {
 // ─── Lineup ─────────────────────────────────────────────────
 
 /** Heading of the tour lineup; `count` is omitted while the tours are loading. */
-export function CategoryLineupHead({ title, count, compact = false }: { title: string; count?: number; compact?: boolean }) {
+export function CategoryLineupHead({ title, count }: { title: string; count?: number }) {
     return (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
                 <span style={EYEBROW}>TOUR LINEUP</span>
-                <h2 style={{ margin: 0, fontSize: compact ? 24 : 28, fontWeight: 900, lineHeight: 1.35 }}>{title}</h2>
+                <h2 style={{ margin: 0, fontSize: 28, fontWeight: 900, lineHeight: 1.35, overflowWrap: 'anywhere' }}>{title}</h2>
                 {count !== undefined && (
                     <span style={{ fontSize: 13, color: MW.mute }}>
                         <strong style={{ color: MW.navy }}>{count}개</strong>의 투어
@@ -398,7 +399,7 @@ export function CategoryLineupEmpty() {
 
 export function CategoryQuoteCta({ content, compact = false }: BlockProps) {
     return (
-        <section style={{ maxWidth: 1200, margin: '0 auto', padding: compact ? '80px 16px 0' : '80px 24px 104px' }}>
+        <section style={{ maxWidth: 1200, margin: '0 auto', padding: compact ? '80px 16px 40px' : '80px 24px 104px' }}>
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 32, background: `linear-gradient(135deg,${MW.navySoft} 0%,${MW.mintDeep} 100%)`, padding: compact ? '28px 22px' : '40px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24, flexWrap: 'wrap', color: '#FFFFFF' }}>
                 <span aria-hidden="true" style={{ position: 'absolute', right: -100, top: -120, width: 340, height: 340, borderRadius: '50%', background: 'radial-gradient(circle,rgba(109,219,190,0.35),rgba(109,219,190,0) 70%)', pointerEvents: 'none' }} />
                 <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
@@ -408,7 +409,7 @@ export function CategoryQuoteCta({ content, compact = false }: BlockProps) {
                 </div>
                 <Go
                     to="/custom-estimate"
-                    style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 56, padding: '0 28px', borderRadius: 999, background: '#FFFFFF', fontSize: 15, fontWeight: 700, color: MW.navy, flexShrink: 0, whiteSpace: 'nowrap', ...(compact ? { width: '100%' } : null) }}
+                    style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 56, padding: '0 28px', borderRadius: 999, background: '#FFFFFF', fontSize: 15, fontWeight: 700, color: MW.navy, flexShrink: 0, whiteSpace: 'nowrap' }}
                     hoverStyle={[{ background: MW.mintBg }, { background: '#FFFFFF' }]}
                 >
                     1분 만에 요청하기
