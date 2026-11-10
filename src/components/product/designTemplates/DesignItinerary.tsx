@@ -31,6 +31,7 @@ const SIZES = {
         itemTitle: 23, bodyTop: 10, body: 20, itemGap: 44, itemPadBottom: 12, photosTop: 22, photosGap: 14, photoH: 230, photoRadius: 14,
         boxTop: 20, boxPad: '24px 26px', boxRadius: 14, badgePad: '8px 16px', badge: 19, boxBodyTop: 14, boxBody: 19,
         accPad: '22px 26px', bulletsTop: 14, bulletsGap: '8px 22px', bullet: 19, accPhotosTop: 20, accPhotosGap: 12, accPhotoH: 180, accPhotoRadius: 12,
+        rowPad: '26px 30px', rowGap: 22, rowLabel: 22, rowTitle: 24, rowIcon: 26, allPad: '0 30px 14px', allFont: 17,
     },
     mobile: {
         canvas: 430, heroH: 300, heroPad: '34px 18px 0', heroBottom: 28, h2: 24,
@@ -41,6 +42,7 @@ const SIZES = {
         itemTitle: 16, bodyTop: 6, body: 14, itemGap: 30, itemPadBottom: 8, photosTop: 14, photosGap: 8, photoH: 120, photoRadius: 10,
         boxTop: 12, boxPad: '16px 16px', boxRadius: 12, badgePad: '6px 12px', badge: 13, boxBodyTop: 10, boxBody: 13,
         accPad: '14px 16px', bulletsTop: 10, bulletsGap: '6px 14px', bullet: 13, accPhotosTop: 12, accPhotosGap: 6, accPhotoH: 100, accPhotoRadius: 8,
+        rowPad: '18px 16px', rowGap: 12, rowLabel: 15, rowTitle: 16, rowIcon: 20, allPad: '0 16px 10px', allFont: 13,
     },
 } as const;
 type Sizes = typeof SIZES.desktop | typeof SIZES.mobile;
@@ -97,8 +99,14 @@ const img = (src: string) => src;
 /** 옛 일본어 자동 일차 라벨(「1日目」)을 한국어(「1일차」)로 바꾼다 — 그 밖의 라벨은 그대로 */
 const koDayLabel = (label: string) => label.replace(/^\s*(\d+)\s*日目\s*$/, '$1일차');
 
-export function DesignItinerary({ product, variant = 'desktop' }: { product: TourProduct; variant?: 'desktop' | 'mobile' }) {
+/**
+ * collapsible: 일차마다 「N일차 · 제목 ⌄」 줄을 두고 눌러서 펼친다 (첫 일차만 펼친 채로 시작).
+ * 상품 상세의 일정 영역에서 쓴다. 디자인 템플릿 안에 끼워 넣을 때는 기존처럼 모두 펼쳐 둔다.
+ */
+export function DesignItinerary({ product, variant = 'desktop', collapsible = false }: { product: TourProduct; variant?: 'desktop' | 'mobile'; collapsible?: boolean }) {
     const S: Sizes = SIZES[variant];
+    const [openDays, setOpenDays] = useState<Set<number>>(() => new Set([0]));
+    const toggleDay = (index: number) => setOpenDays(prev => { const next = new Set(prev); if (next.has(index)) next.delete(index); else next.add(index); return next; });
 
     const [lightbox, setLightbox] = useState<{ images: string[]; startIndex: number } | null>(null);
     const open = (images: string[], startIndex: number) => setLightbox({ images, startIndex });
@@ -134,9 +142,31 @@ export function DesignItinerary({ product, variant = 'desktop' }: { product: Tou
                     <ResponsiveProductImage key={i} src={img(src)} alt={`${product.name} 일정 ${i + 1}`} loading="lazy" decoding="async" style={{ width: '100%', height: 'auto', display: 'block' }} />
                 ))}
 
-                {groups.map((day, i) => (
-                    <DaySection key={day.dayInfo.id || i} day={day} index={i} all={groups} S={S} onOpen={open} />
-                ))}
+                {collapsible && groups.length > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', padding: S.allPad }}>
+                        <button type="button" data-itinerary-all onClick={() => setOpenDays(openDays.size === groups.length ? new Set() : new Set(groups.map((_, i) => i)))}
+                            style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: S.allFont, fontWeight: 700, color: TEAL, letterSpacing: '-0.02em' }}>
+                            {openDays.size === groups.length ? '모두 접기' : '모두 펼치기'}
+                        </button>
+                    </div>
+                )}
+                {groups.map((day, i) => {
+                    const isOpen = !collapsible || openDays.has(i);
+                    const label = koDayLabel(stripDayLabelReading(day.dayInfo.dayLabel)) || `${i + 1}일차`;
+                    return (
+                        <div key={day.dayInfo.id || i} data-itinerary-day={isOpen ? 'open' : 'closed'}>
+                            {collapsible && (
+                                <button type="button" data-itinerary-toggle={i} aria-expanded={isOpen} onClick={() => toggleDay(i)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: S.rowGap, width: '100%', padding: S.rowPad, border: 'none', borderTop: `1px solid ${LINE}`, borderBottom: i === groups.length - 1 && !isOpen ? `1px solid ${LINE}` : 'none', background: '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', color: INK }}>
+                                    <span style={{ flex: 'none', fontSize: S.rowLabel, fontWeight: 800, letterSpacing: '-0.03em' }}>{label}</span>
+                                    <span style={{ flex: 1, minWidth: 0, fontSize: S.rowTitle, fontWeight: 800, letterSpacing: '-0.03em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{day.dayInfo.title || ''}</span>
+                                    <svg width={S.rowIcon} height={S.rowIcon} viewBox="0 0 24 24" fill="none" stroke="#9aa3a0" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none', transform: isOpen ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }}><path d="M6 9l6 6 6-6" /></svg>
+                                </button>
+                            )}
+                            {isOpen && <DaySection day={day} index={i} all={groups} S={S} onOpen={open} />}
+                        </div>
+                    );
+                })}
             </div>
             {lightbox && <ImageLightbox images={lightbox.images} startIndex={lightbox.startIndex} onClose={() => setLightbox(null)} />}
         </ScaledDesign>
@@ -163,7 +193,9 @@ function DaySection({ day, index, all, S, onOpen }: {
         d.meals?.lunch && `점심: ${d.meals.lunch}`,
         d.meals?.dinner && `저녁: ${d.meals.dinner}`,
     ].filter(Boolean) as string[];
-    const amenities = (d.accommodationAmenities ?? []).filter(Boolean);
+    // 등급 → 객실 인원 → 시설 순. 같은 문구는 한 번만
+    const amenities = [...new Set([d.accommodationType, d.accommodationOccupancy, ...(d.accommodationAmenities ?? []), ...(d.accommodationRoomAmenities ?? []), ...(d.accommodationSharedFacilities ?? [])]
+        .map(v => (typeof v === 'string' ? v.trim() : '')).filter(Boolean))];
     const multi = all.length > 1;
     const progress = multi ? (index / (all.length - 1)) * 80 : 0;
 

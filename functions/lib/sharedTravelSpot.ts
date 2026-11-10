@@ -7,6 +7,10 @@ export interface PublicSharedTravelSpot {
     name_local: string;
     address: string;
     description: string;
+    /** 여행지 관리의 「한 줄 소개」 — 일정 항목 아래에 짧게 들어간다 */
+    summary: string;
+    /** 여행지 관리의 「다른 이름」 — 코스 일정 문구에 다르게 적혀 있어도 이 여행지로 찾는다 */
+    aliases: string[];
     images: string[];
     region: string;
     is_active: boolean;
@@ -42,6 +46,9 @@ export function parseSharedTravelSpots(value: unknown): Record<string, Record<st
         if (spot.subImgs !== undefined && (!Array.isArray(spot.subImgs) || spot.subImgs.some(image => typeof image !== 'string'))) {
             throw new Error('Invalid travel destination photographs');
         }
+        if (spot.aliases !== undefined && (!Array.isArray(spot.aliases) || spot.aliases.some(alias => typeof alias !== 'string'))) {
+            throw new Error('Invalid travel destination aliases');
+        }
     }
     return parsed as Record<string, Record<string, unknown>>;
 }
@@ -55,7 +62,9 @@ export function publicSharedTravelSpot(id: string, catalog: Record<string, Recor
     const photos = [spot.img, ...(Array.isArray(spot.subImgs) ? spot.subImgs : [])];
     return {
         id, name_kr: name, name_local: text(spot.nameMn), address: text(spot.address),
-        description: text(spot.desc), images: [...new Set(photos.map(imageUrl).filter(Boolean))],
+        description: text(spot.desc), summary: text(spot.short),
+        aliases: [...new Set((Array.isArray(spot.aliases) ? spot.aliases : []).map(text).filter(Boolean))],
+        images: [...new Set(photos.map(imageUrl).filter(Boolean))],
         region: text(spot.region), is_active: true,
     };
 }

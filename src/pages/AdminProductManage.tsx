@@ -22,6 +22,7 @@ import { TouristSpotPickerModal } from '../components/admin/TouristSpotPickerMod
 import { lodgingTimelineSnapshot, productLodgingSnapshot } from '../utils/lodgingItinerarySnapshot';
 import { travelSpotSnapshot } from '../utils/travelSpotSnapshot';
 import { ItineraryImportModal } from '../components/admin/ItineraryImportModal';
+import { CourseImportModal, type CourseImportExtra } from '../components/admin/CourseImportModal';
 import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '../components/admin/itineraryImport';
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
@@ -1212,6 +1213,31 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         });
         setItineraryImportOpen(false);
     };
+    // 「코스에서 불러오기」 — 견적 관리의 코스로 일정표를 만든다 (사진·설명은 여행지 관리·등록 숙소에서 채움)
+    const [courseImportOpen, setCourseImportOpen] = useState(false);
+    const importCourseBlocks = (blocks: DetailContentBlock[], courseName: string, extra: CourseImportExtra) => {
+        const current = formData.itineraryBlocks || [];
+        const currentImages = formData.itineraryImages || [];
+        let replace = true;
+        if (current.length > 0 || currentImages.length > 0) {
+            replace = window.confirm(`코스 「${courseName}」로 일정표를 만듭니다.
+
+확인: 지금 일정표를 지우고 교체
+취소: 지금 일정표 뒤에 이어 붙이기`);
+        }
+        // 요금: 고른 여행 타입의 인원별 가격으로 바꾼다 — 이미 입력한 가격이 있으면 먼저 묻는다
+        const existing = (formData.pricingOptions || []).filter(option => option.pricePerPerson > 0);
+        const usePricing = !!extra.pricing && (existing.length === 0
+            || window.confirm(`가격/옵션에 입력된 인원별 가격 ${existing.length}개를 코스 요금으로 바꿀까요?\n\n확인: 코스 요금으로 교체\n취소: 지금 가격 유지`));
+        setFormData({
+            ...formData,
+            itineraryBlocks: renumberDayLabels(replace ? blocks : [...current, ...blocks]),
+            itineraryImages: replace ? [] : currentImages,
+            ...(extra.packageType ? { packageType: extra.packageType } : {}),
+            ...(usePricing && extra.pricing ? { pricingOptions: extra.pricing, price: Math.min(...extra.pricing.map(option => option.pricePerPerson)) } : {}),
+        });
+        setCourseImportOpen(false);
+    };
     const handleSpotPick = (spot: TouristSpot) => {
         if (spotPickerForIndex == null) return;
         const block = formData.itineraryBlocks?.[spotPickerForIndex];
@@ -1240,6 +1266,16 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     // Day-based itinerary editor UI state: which day cards are collapsed / showing the advanced menu.
     const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
     const [advancedDays, setAdvancedDays] = useState<Set<string>>(new Set());
+    // 일정 항목은 한 줄로 접어 두고 고칠 항목만 펼친다. 시간·강조 배지·디자인 사진처럼 가끔 쓰는 칸은 따로 연다.
+    const [openEvents, setOpenEvents] = useState<Set<string>>(new Set());
+    const [moreEvents, setMoreEvents] = useState<Set<string>>(new Set());
+    const [designDays, setDesignDays] = useState<Set<string>>(new Set());
+    const toggleIn = (setter: React.Dispatch<React.SetStateAction<Set<string>>>) => (id: string) => {
+        setter((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+    };
+    const toggleEventOpen = toggleIn(setOpenEvents);
+    const toggleEventMore = toggleIn(setMoreEvents);
+    const toggleDayDesign = toggleIn(setDesignDays);
     const bulkAddItineraryImages = async (files: File[]) => {
         if (files.length === 0) return;
         setItineraryBulkUploading(true);
@@ -1552,6 +1588,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     const addItineraryEvent = (dayGroupIndex: number, type: 'timeline' | 'image' | 'slide' | 'divider') => {
         const block = makeItineraryBlock(type);
         rebuildItinerary((g) => { g.days[dayGroupIndex]?.events.push(block); });
+        // 새 항목은 바로 쓸 수 있게 펼친 채로 추가한다
+        setOpenEvents((prev) => new Set(prev).add(block.id));
         setTimeout(() => {
             const el = document.querySelector(`[data-itinerary-block="${block.id}"]`);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1878,6 +1916,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                 disabled={busy || !!pendingDraft}
                                 onClick={() => setCurrentTab(tab.id as any)}
                                 className={`tab${currentTab === tab.id ? ' active' : ''}`}
+                                // 초안을 복원할지 정하기 전에는 탭이 잠긴다 — 눌러도 반응이 없는 이유가 보이게 흐리게 표시한다
+                                title={pendingDraft ? '아래에서 초안 복원 또는 초안 버리기를 먼저 선택하세요' : undefined}
+                                style={pendingDraft && currentTab !== tab.id ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
                             >
                                 <Icon name={tab.icon} />{tab.label}
                             </button>
@@ -1891,7 +1932,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                 <div className="pa-draft-status" role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 12, background: draftError || pendingDraft?.conflict ? '#fff5e8' : '#edfaf6', border: '1px solid ' + (draftError || pendingDraft?.conflict ? '#f3d5a3' : '#c8eee3'), fontSize: 13, lineHeight: 1.7 }}>
                     {!adminUserId ? '관리자 계정을 확인하고 있습니다. 확인이 끝난 뒤 편집할 수 있습니다.' : pendingDraft ? <>
                         <strong>{pendingDraft.conflict ? '상품이 변경된 뒤 남아 있는 초안입니다.' : '이 브라우저에 저장하지 않은 상품 초안이 있습니다.'}</strong>
-                        <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')}{pendingDraft.conflict ? ' · 서버 상품과 다른 버전입니다. 내용을 복원해 검토하거나 초안을 버리고 최신 상품으로 시작하세요.' : ' · 복원하거나 버린 뒤 편집을 계속하세요.'}</div>
+                        <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')}{pendingDraft.conflict ? ' · 서버 상품과 다른 버전입니다. 내용을 복원해 검토하거나 초안을 버리고 최신 상품으로 시작하세요.' : ' · 아래 버튼 중 하나를 고르면 다른 탭과 입력 칸이 열립니다.'}</div>
                         <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                             <button type="button" className="btn btn-ink btn-sm" onClick={restoreDraft}>초안 복원</button>
                             <button type="button" className="btn btn-ghost btn-sm" onClick={discardDraft}>초안 버리기</button>
@@ -2480,6 +2521,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                     onBulkImages={bulkAddItineraryImages}
                                     onSkeleton={addDaysSkeleton}
                                     onImport={() => setItineraryImportOpen(true)}
+                                    onImportCourse={() => setCourseImportOpen(true)}
                                     uploading={itineraryBulkUploading}
                                     progress={itineraryBulkProgress}
                                 />
@@ -2494,6 +2536,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         <ul style={{ margin: '8px 0 0', paddingLeft: 20, listStyle: 'disc', lineHeight: 1.7 }}>
                                             <li>아래 <strong>DAY 추가</strong> 버튼으로 일차를 추가하면 번호가 자동으로 정리됩니다.</li>
                                             <li>각 카드에 <strong>제목·날짜·식사·숙소</strong>를 입력하고, <strong>일정 항목 추가</strong>로 관광·이동·체험을 순서대로 구성합니다.</li>
+                                            <li>일정 항목은 한 줄로 보입니다. 제목은 그 자리에서 고치고, <strong>연필 버튼</strong>을 누르면 설명·사진을 편집합니다.</li>
                                             <li><strong>여행지 관리·등록 숙소</strong>에서 선택하면 제목·설명·사진을 자동으로 불러옵니다.</li>
                                             <li>단일 이미지·갤러리·구분선은 각 카드의 <strong>고급 항목</strong>에서 추가할 수 있습니다.</li>
                                         </ul>
@@ -2503,30 +2546,39 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         const { pre, days } = groupItineraryForEditor(formData.itineraryBlocks || []);
                                         const typeLabel = (t: string) => (t === 'image' ? '이미지' : t === 'slide' ? '갤러리' : t === 'divider' ? '구분선' : '일정');
 
-                                        const renderEventBody = (block: DetailContentBlock, flatIndex: number) => {
+                                        const renderEventBody = (block: DetailContentBlock, flatIndex: number, withTitle = true) => {
                                             if (block.type === 'timeline') {
                                                 const c = block.content as TimelineContent;
+                                                // 제목은 접힌 줄에서 고친다 — 여기는 설명·사진과, 가끔 쓰는 시간·강조 배지·숙소 불러오기
+                                                const showMore = withTitle || moreEvents.has(block.id) || !!c.time || !!c.badge;
                                                 return (
                                                     <div className="stack" style={{ gap: 8 }}>
-                                                        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                                                            <button type="button" onClick={() => setSpotPickerForIndex(flatIndex)} className="btn btn-blue btn-sm" title="여행지 관리에서 정보를 불러옵니다"><Icon name="location_on" />여행지 선택</button>
-                                                            <button type="button" onClick={() => setHotelPickerTarget({ kind: 'timeline', index: flatIndex })} className="btn btn-ghost btn-sm" title="등록 숙소에서 정보를 불러옵니다"><Icon name="hotel" />숙소 선택</button>
+                                                        {withTitle && (
+                                                            <input type="text" className="inp" style={{ fontWeight: 700 }} value={c.title || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'title', e.target.value)} placeholder="일정 제목 (예: 자이승 전망대)" />
+                                                        )}
+                                                        <textarea className="inp" value={c.description || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'description', e.target.value)} placeholder="설명 (한두 줄로 짧게)" rows={c.description && c.description.length > 60 ? 3 : 1} style={{ minHeight: 0, resize: 'vertical' }} />
+                                                        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                                            {(c.images || []).map((img, imgIdx) => (
+                                                                <div key={imgIdx} style={{ position: 'relative', flex: 'none' }}>
+                                                                    <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`일정 사진 ${imgIdx + 1}`} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid var(--border-default)' }} />
+                                                                    <button type="button" onClick={() => removeTimelineBlockImage('itinerary', flatIndex, imgIdx)} aria-label={`일정 사진 ${imgIdx + 1} 삭제`} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'var(--mrt-red)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="close" style={{ fontSize: 13 }} /></button>
+                                                                </div>
+                                                            ))}
+                                                            <label title="사진 추가" style={{ width: 64, height: 64, flex: 'none', borderRadius: 'var(--r-md)', border: '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--text-muted)', background: '#fff' }}>
+                                                                <Icon name="add_a_photo" style={{ fontSize: 18 }} />
+                                                                <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => { handleTimelineBlockImages('itinerary', flatIndex, e.target.files); e.target.value = ''; }} />
+                                                            </label>
+                                                            <div style={{ flex: 1 }} />
+                                                            <button type="button" onClick={() => setSpotPickerForIndex(flatIndex)} className="btn btn-blue btn-sm" title="여행지 관리에서 제목·설명·사진을 불러옵니다"><Icon name="location_on" />여행지 선택</button>
+                                                            {!showMore && (
+                                                                <button type="button" onClick={() => toggleEventMore(block.id)} className="btn btn-ghost btn-sm" style={{ fontSize: 12 }} title="시간·강조 배지·숙소 불러오기"><Icon name="tune" />더 보기</button>
+                                                            )}
                                                         </div>
-                                                        <div className="row" style={{ gap: 8 }}>
-                                                            <input type="text" className="inp" style={{ width: 120 }} value={c.time || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'time', e.target.value)} placeholder="시간 (선택)" />
-                                                            <input type="text" className="inp" style={{ flex: 1, fontWeight: 700 }} value={c.title || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'title', e.target.value)} placeholder="일정 제목 (예: 자이승 전망대)" />
-                                                        </div>
-                                                        <input type="text" className="inp" value={c.badge || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'badge', e.target.value)} placeholder="강조 배지 (선택, 예: 환전 / 장보기) — 넣으면 설명이 배지 달린 강조 박스로 표시" />
-                                                        <textarea className="inp" value={c.description || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'description', e.target.value)} placeholder="상세 설명" rows={2} />
-                                                        <input type="file" accept="image/*" multiple onChange={(e) => handleTimelineBlockImages('itinerary', flatIndex, e.target.files)} className="inp" style={{ height: 'auto', paddingTop: 8, paddingBottom: 8, fontSize: 13 }} />
-                                                        {c.images?.length > 0 && (
-                                                            <div className="row" style={{ gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                                                                {c.images.map((img, imgIdx) => (
-                                                                    <div key={imgIdx} style={{ position: 'relative', flex: 'none' }}>
-                                                                        <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`일정 사진 ${imgIdx + 1}`} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid var(--border-default)' }} />
-                                                                        <button type="button" onClick={() => removeTimelineBlockImage('itinerary', flatIndex, imgIdx)} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'var(--mrt-red)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="close" style={{ fontSize: 13 }} /></button>
-                                                                    </div>
-                                                                ))}
+                                                        {showMore && (
+                                                            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                                                                <input type="text" className="inp" style={{ width: 120 }} value={c.time || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'time', e.target.value)} placeholder="시간 (선택)" />
+                                                                <input type="text" className="inp" style={{ flex: 1, minWidth: 200 }} value={c.badge || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'badge', e.target.value)} placeholder="강조 배지 (선택, 예: 환전 / 장보기)" title="넣으면 설명이 배지 달린 강조 박스로 표시됩니다" />
+                                                                <button type="button" onClick={() => setHotelPickerTarget({ kind: 'timeline', index: flatIndex })} className="btn btn-ghost btn-sm" title="등록 숙소에서 정보를 불러옵니다"><Icon name="hotel" />숙소 선택</button>
                                                             </div>
                                                         )}
                                                     </div>
@@ -2667,9 +2719,16 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                     </div>
 
                                                                     <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
-                                                                        <label className="cell-strong" style={{ fontSize: 12.5, display: 'block', marginBottom: 2 }}><Icon name="photo_library" style={{ fontSize: 16, verticalAlign: '-3px' }} /> 디자인 사진 (일정 상세 디자인 전용)</label>
-                                                                        <p className="muted" style={{ fontSize: 11.5, margin: '0 0 8px' }}>히어로 배경 1장 + 카드 상단 사진 최대 5장. 비워 두면 이 일차의 일정 사진에서 자동으로 채워집니다.</p>
-                                                                        <div className="row" style={{ gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                                                        {/* 비워 두면 일정 사진으로 자동 채워지는 칸이라 평소에는 접어 둔다 */}
+                                                                        <button type="button" data-day-design-toggle onClick={() => toggleDayDesign(day.dayInfo.id)} aria-expanded={designDays.has(day.dayInfo.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+                                                                            <Icon name="photo_library" style={{ fontSize: 16 }} />
+                                                                            <span className="cell-strong" style={{ fontSize: 12.5 }}>디자인 사진 (일정 상세 디자인 전용)</span>
+                                                                            <span className="muted" style={{ fontSize: 11.5 }}>{dc.heroImage || (dc.galleryImages || []).length ? `배경 ${dc.heroImage ? 1 : 0}장 · 상단 ${(dc.galleryImages || []).length}장` : '비워 두면 일정 사진으로 자동'}</span>
+                                                                            <span style={{ flex: 1 }} />
+                                                                            <Icon name={designDays.has(day.dayInfo.id) ? 'expand_less' : 'expand_more'} style={{ fontSize: 18, color: 'var(--mrt-gray-500)' }} />
+                                                                        </button>
+                                                                        {designDays.has(day.dayInfo.id) && <p className="muted" style={{ fontSize: 11.5, margin: '6px 0 8px' }}>히어로 배경 1장 + 카드 상단 사진 최대 5장. 비워 두면 이 일차의 일정 사진에서 자동으로 채워집니다.</p>}
+                                                                        <div className="row" style={{ gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', display: designDays.has(day.dayInfo.id) ? undefined : 'none' }}>
                                                                             <div>
                                                                                 <div className="muted" style={{ fontSize: 11, marginBottom: 4 }}>히어로 배경</div>
                                                                                 <label title={dc.heroImage ? '사진 변경' : '사진 업로드'} style={{ display: 'block', position: 'relative', width: 120, height: 72, borderRadius: 'var(--r-md)', overflow: 'hidden', border: dc.heroImage ? '2px solid #06C4A0' : '2px dashed var(--border-default)', cursor: 'pointer', background: 'var(--bg-muted, #f8f9fa)' }}>
@@ -2706,8 +2765,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                         {day.events.length === 0 && (
                                                                             <p className="muted" style={{ fontSize: 12, padding: '2px 0 8px', margin: 0 }}>등록된 일정이 없습니다. 아래 버튼으로 추가하세요.</p>
                                                                         )}
-                                                                        <div className="stack" style={{ gap: 10 }}>
-                                                                            {day.events.map((ev, evIdx) => (
+                                                                        <div className="stack" style={{ gap: 6 }}>
+                                                                            {day.events.map((ev, evIdx) => {
+                                                                                // 이미지·갤러리·구분선은 기존 카드 그대로 (일정 항목과 섞인 순서를 유지한다)
+                                                                                if (ev.block.type !== 'timeline') return (
                                                                                 <div key={ev.block.id} data-itinerary-block={ev.block.id} className="edit-row" style={{ background: 'var(--mrt-gray-50, #f8f9fa)', borderRadius: 'var(--r-md)', padding: 10 }}>
                                                                                     <div className="edit-move">
                                                                                         <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, -1)} disabled={evIdx === 0}><Icon name="expand_less" /></button>
@@ -2719,7 +2780,41 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                                     </div>
                                                                                     <button type="button" className="act-btn danger" onClick={() => removeItineraryEvent(dayIdx, evIdx)} title="삭제"><Icon name="delete" /></button>
                                                                                 </div>
-                                                                            ))}
+                                                                                );
+                                                                                // 일정 항목: 평소에는 한 줄(사진·시간·제목·설명 요약), 누른 항목만 아래로 펼친다
+                                                                                const tc = ev.block.content as TimelineContent;
+                                                                                const open = openEvents.has(ev.block.id);
+                                                                                const photos = (tc.images || []).filter(Boolean);
+                                                                                return (
+                                                                                    <div key={ev.block.id} data-itinerary-block={ev.block.id} data-event-row={open ? 'open' : 'closed'} style={{ border: '1px solid', borderColor: open ? 'var(--mrt-blue)' : 'var(--border-default)', borderRadius: 'var(--r-md)', background: open ? 'var(--mrt-gray-50, #f8f9fa)' : '#fff' }}>
+                                                                                        <div className="row" style={{ gap: 8, alignItems: 'center', padding: '6px 8px' }}>
+                                                                                            <div className="edit-move">
+                                                                                                <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, -1)} disabled={evIdx === 0} aria-label="위로"><Icon name="expand_less" /></button>
+                                                                                                <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, 1)} disabled={evIdx === day.events.length - 1} aria-label="아래로"><Icon name="expand_more" /></button>
+                                                                                            </div>
+                                                                                            <button type="button" onClick={() => toggleEventOpen(ev.block.id)} title={photos.length ? `사진 ${photos.length}장` : '사진 없음'} style={{ position: 'relative', width: 40, height: 40, flex: 'none', padding: 0, borderRadius: 8, overflow: 'hidden', border: photos.length ? '1px solid var(--border-default)' : '1.5px dashed var(--border-default)', background: 'var(--mrt-gray-50, #f8f9fa)', color: 'var(--mrt-gray-400)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+                                                                                                {photos.length
+                                                                                                    ? <img src={getOptimizedImageUrl(photos[0], 'productThumbnail')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                                                    : <Icon name="image" style={{ fontSize: 18 }} />}
+                                                                                                {photos.length > 1 && <span style={{ position: 'absolute', right: 2, bottom: 2, padding: '0 4px', borderRadius: 6, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: 700 }}>{photos.length}</span>}
+                                                                                            </button>
+                                                                                            {tc.time && <span className="cell-muted" style={{ flex: 'none', fontSize: 12, fontWeight: 700 }}>{tc.time}</span>}
+                                                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                                                <input type="text" value={tc.title || ''} onChange={(e) => updateTimelineInBlock('itinerary', ev.flatIndex, 'title', e.target.value)} placeholder="일정 제목 (예: 자이승 전망대)" aria-label="일정 제목"
+                                                                                                    style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', fontWeight: 700, fontSize: 14, padding: '2px 0', color: 'var(--text-strong)' }} />
+                                                                                                {!open && (tc.badge || tc.description) && (
+                                                                                                    <div className="cell-muted" onClick={() => toggleEventOpen(ev.block.id)} style={{ fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>
+                                                                                                        {tc.badge && <b style={{ marginRight: 6 }}>[{tc.badge}]</b>}{tc.description}
+                                                                                                    </div>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <button type="button" className="act-btn" style={{ flex: 'none' }} onClick={() => toggleEventOpen(ev.block.id)} title={open ? '접기' : '설명·사진 편집'} aria-expanded={open}><Icon name={open ? 'expand_less' : 'edit'} /></button>
+                                                                                            <button type="button" className="act-btn danger" style={{ flex: 'none' }} onClick={() => removeItineraryEvent(dayIdx, evIdx)} title="삭제"><Icon name="delete" /></button>
+                                                                                        </div>
+                                                                                        {open && <div style={{ padding: '4px 10px 10px 40px' }}>{renderEventBody(ev.block, ev.flatIndex, false)}</div>}
+                                                                                    </div>
+                                                                                );
+                                                                            })}
                                                                         </div>
 
                                                                         <button type="button" onClick={() => addItineraryEvent(dayIdx, 'timeline')} className="add-line" style={{ marginTop: 10 }}><Icon name="add_circle" />일정 항목 추가</button>
@@ -2970,6 +3065,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                     onPick={handleHotelPick}
                     onClose={() => setHotelPickerTarget(null)}
                 />
+                <CourseImportModal
+                    open={courseImportOpen}
+                    packageType={formData.packageType ?? null}
+                    onPick={importCourseBlocks}
+                    onClose={() => setCourseImportOpen(false)}
+                />
                 <ItineraryImportModal
                     open={itineraryImportOpen}
                     currentProductId={product?.id}
@@ -2994,6 +3095,7 @@ interface ItineraryQuickActionsProps {
     onBulkImages: (files: File[]) => void | Promise<void>;
     onSkeleton: (days: number) => void;
     onImport: () => void;
+    onImportCourse: () => void;
     uploading: boolean;
     progress: { done: number; total: number } | null;
 }
@@ -3002,6 +3104,7 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
     onBulkImages,
     onSkeleton,
     onImport,
+    onImportCourse,
     uploading,
     progress,
 }) => {
@@ -3085,6 +3188,22 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
                         <Icon name="add_photo_alternate" style={{ color: 'var(--mrt-gray-400)', fontSize: 22 }} />
                     )}
                 </div>
+            </div>
+
+            {/* ─── 코스에서 불러오기 ─── */}
+            <div className="row" style={{ gap: 12, flexWrap: 'wrap', padding: 16, borderRadius: 'var(--r-lg)', background: '#E8F1FF', border: '1px solid #BCD4FA' }}>
+                <span className="metric-ico tint-blue" style={{ width: 40, height: 40, flex: 'none' }}>
+                    <Icon name="route" />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="cell-strong" style={{ color: '#1d4f9c' }}>코스에서 불러오기</div>
+                    <div style={{ fontSize: 12, color: '#3563a8', marginTop: 2 }}>
+                        견적 관리의 코스를 고르면 일차·일정·식사·숙소가 한 번에 만들어집니다. 사진과 설명은 여행지 관리·등록 숙소에서 자동으로 채워집니다.
+                    </div>
+                </div>
+                <button type="button" onClick={onImportCourse} className="btn btn-ink btn-sm" style={{ flex: 'none' }} data-course-import-open>
+                    <Icon name="route" />코스 선택
+                </button>
             </div>
 
             {/* ─── 일정표 불러오기 ─── */}

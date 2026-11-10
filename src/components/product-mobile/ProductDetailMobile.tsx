@@ -12,7 +12,7 @@ import {
     BookingCard, CancelNote, DetailBlocks, DetailSection, DetailTabsBar, FaqList, IncludedCards, OverviewBody, PhotoOverlay, ReviewsBlock,
     SaveShareButtons, SectionHead, TourTitleBlock,
 } from '../product/detail/DetailParts';
-import { ItineraryAccordion } from '../product/detail/ItineraryAccordion';
+import { DesignItinerary } from '../product/designTemplates/DesignItinerary';
 import {
     detailFlags, detailTabs, summariseReviews, tourFacts, tourGallery, tourImageAlt, useRecentlyViewedTours, useRelatedTours, useSectionTabs,
     useTourFaqItems, useTourPricing, type RecentlyViewedTour, type TourDetailViewProps, type TourFact, type TourPricing,
@@ -95,7 +95,7 @@ function TourDetailBody({ product, reviews, onBook, onShare, pricing, fav, onFav
                 {flags.hasItinerary && !flags.itineraryInDesign && (
                     <DetailSection>
                         <SectionHead id="td-plan" eyebrow="ITINERARY" title="일정" compact />
-                        <ItineraryAccordion product={product} compact />
+                        <div data-itinerary-design style={{ margin: '0 -16px' }}><DesignItinerary product={product} variant="mobile" collapsible /></div>
                     </DetailSection>
                 )}
 
