@@ -22,7 +22,7 @@ import { TouristSpotPickerModal } from '../components/admin/TouristSpotPickerMod
 import { lodgingTimelineSnapshot, productLodgingSnapshot } from '../utils/lodgingItinerarySnapshot';
 import { travelSpotSnapshot } from '../utils/travelSpotSnapshot';
 import { ItineraryImportModal } from '../components/admin/ItineraryImportModal';
-import { CourseImportModal } from '../components/admin/CourseImportModal';
+import { CourseImportModal, type CourseImportExtra } from '../components/admin/CourseImportModal';
 import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '../components/admin/itineraryImport';
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
@@ -1215,7 +1215,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     };
     // 「코스에서 불러오기」 — 견적 관리의 코스로 일정표를 만든다 (사진·설명은 여행지 관리·등록 숙소에서 채움)
     const [courseImportOpen, setCourseImportOpen] = useState(false);
-    const importCourseBlocks = (blocks: DetailContentBlock[], courseName: string) => {
+    const importCourseBlocks = (blocks: DetailContentBlock[], courseName: string, extra: CourseImportExtra) => {
         const current = formData.itineraryBlocks || [];
         const currentImages = formData.itineraryImages || [];
         let replace = true;
@@ -1225,10 +1225,16 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 확인: 지금 일정표를 지우고 교체
 취소: 지금 일정표 뒤에 이어 붙이기`);
         }
+        // 요금: 고른 여행 타입의 인원별 가격으로 바꾼다 — 이미 입력한 가격이 있으면 먼저 묻는다
+        const existing = (formData.pricingOptions || []).filter(option => option.pricePerPerson > 0);
+        const usePricing = !!extra.pricing && (existing.length === 0
+            || window.confirm(`가격/옵션에 입력된 인원별 가격 ${existing.length}개를 코스 요금으로 바꿀까요?\n\n확인: 코스 요금으로 교체\n취소: 지금 가격 유지`));
         setFormData({
             ...formData,
             itineraryBlocks: renumberDayLabels(replace ? blocks : [...current, ...blocks]),
             itineraryImages: replace ? [] : currentImages,
+            ...(extra.packageType ? { packageType: extra.packageType } : {}),
+            ...(usePricing && extra.pricing ? { pricingOptions: extra.pricing, price: Math.min(...extra.pricing.map(option => option.pricePerPerson)) } : {}),
         });
         setCourseImportOpen(false);
     };
@@ -3061,6 +3067,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                 />
                 <CourseImportModal
                     open={courseImportOpen}
+                    packageType={formData.packageType ?? null}
                     onPick={importCourseBlocks}
                     onClose={() => setCourseImportOpen(false)}
                 />

@@ -1,21 +1,34 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/api';
-import type { DetailContentBlock } from '../../types/product';
+import type { DetailContentBlock, PackageType, TourPricingOption } from '../../types/product';
 import type { TouristSpot } from '../../types/touristSpot';
 import type { Hotel } from '../../types/hotel';
 import { TouristSpotPickerModal } from './TouristSpotPickerModal';
 import { HotelPickerModal } from './HotelPickerModal';
 import {
     planCourse, planToBlocks, dayGaps, planPhotoCount, plainText, shortText, dayAliasKey, itemAliasKey, stayAliasKey,
+    coursePricing, suspiciousPricing, stayForPackage,
     type Course, type CourseImportAliases, type PlanDay,
 } from './courseImport';
 
+/** 일정표와 함께 넘기는 것 — 고른 여행 타입과, 가져오기로 한 경우의 인원별 가격 */
+export interface CourseImportExtra {
+    packageType: PackageType | null;
+    pricing: TourPricingOption[] | null;
+}
+
 interface CourseImportModalProps {
     open: boolean;
-    /** 만든 일정표 블록과 코스 이름 */
-    onPick: (blocks: DetailContentBlock[], courseName: string) => void;
+    /** 상품에 이미 정해 둔 여행 타입 */
+    packageType?: PackageType | null;
+    /** 만든 일정표 블록, 코스 이름, 여행 타입·가격 */
+    onPick: (blocks: DetailContentBlock[], courseName: string, extra: CourseImportExtra) => void;
     onClose: () => void;
 }
+
+const PACKAGE_LABEL: Record<PackageType, string> = { full: '풀패키지', value: '실속형 패키지' };
+const PACKAGE_STAYS: Record<PackageType, string> = { full: '4성급 호텔 + 고급 게르', value: '3성급 호텔 + 일반 게르' };
+const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
 /** 관리자가 직접 골라 준 짝을 이 브라우저에 기억해 두는 자리 */
 const ALIAS_KEY = 'mw_course_import_aliases';
@@ -89,19 +102,19 @@ const mutedBtn = 'px-2 py-1 rounded-md text-[11px] font-semibold text-slate-400 
  * 사진·설명은 여행지 관리·등록 숙소에서 이름으로 찾아 채우고, 못 찾은 자리는 이 화면에서
  * 바로 골라 준다. 한 번 골라 준 짝은 기억해 두었다가 다음 불러오기에 자동으로 쓴다.
  */
-export const CourseImportModal: React.FC<CourseImportModalProps> = ({ open, onPick, onClose }) => {
+export const CourseImportModal: React.FC<CourseImportModalProps> = ({ open, packageType, onPick, onClose }) => {
     if (!open) return null;
     return (
         <div className="fixed inset-0 z-[225] bg-black/50 flex items-center justify-center p-6" onClick={onClose}>
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 {/* 열릴 때마다 새로 마운트되어 코스·여행지·숙소를 다시 읽는다 */}
-                <CourseImporter onPick={onPick} onClose={onClose} />
+                <CourseImporter packageType={packageType ?? null} onPick={onPick} onClose={onClose} />
             </div>
         </div>
     );
 };
 
-function CourseImporter({ onPick, onClose }: { onPick: (blocks: DetailContentBlock[], courseName: string) => void; onClose: () => void }) {
+function CourseImporter({ packageType, onPick, onClose }: { packageType: PackageType | null; onPick: CourseImportModalProps['onPick']; onClose: () => void }) {
     const [courses, setCourses] = useState<Record<string, Course>>({});
     const [spots, setSpots] = useState<TouristSpot[]>([]);
     const [hotels, setHotels] = useState<Hotel[]>([]);
@@ -110,6 +123,9 @@ function CourseImporter({ onPick, onClose }: { onPick: (blocks: DetailContentBlo
     const [courseName, setCourseName] = useState<string | null>(null);
     const [plan, setPlan] = useState<PlanDay[]>([]);
     const [includeMove, setIncludeMove] = useState(true);
+    // 여행 타입에 따라 숙소 등급과 요금 열이 정해진다 — 상품에 정해 둔 값으로 시작한다
+    const [pkg, setPkg] = useState<PackageType | null>(packageType);
+    const [withPrice, setWithPrice] = useState(true);
     const [target, setTarget] = useState<PickTarget | null>(null);
 
     useEffect(() => {
@@ -166,6 +182,11 @@ function CourseImporter({ onPick, onClose }: { onPick: (blocks: DetailContentBlo
     };
 
     const gaps = useMemo(() => plan.map(d => dayGaps(d, plan)), [plan]);
+    const course = courseName ? courses[courseName] : undefined;
+    const hasPrice = !!course && (coursePricing(course, 'full').length > 0 || coursePricing(course, 'value').length > 0);
+    const pricing = useMemo(() => (course && pkg ? coursePricing(course, pkg) : []), [course, pkg]);
+    const suspect = useMemo(() => suspiciousPricing(pricing), [pricing]);
+    const needsPackage = hasPrice && withPrice && !pkg;
     const emptyPhotoDays = gaps.filter(g => g.photo).length;
     const emptyLodgings = gaps.filter(g => g.lodging).length;
 
@@ -216,6 +237,36 @@ function CourseImporter({ onPick, onClose }: { onPick: (blocks: DetailContentBlo
         <>
             {header(courseName, '자동으로 찾은 사진과 한 줄 설명을 확인하세요. 주황색으로 표시된 자리만 골라 주면 됩니다. 한 번 골라 준 짝은 다음 불러오기부터 자동으로 들어갑니다.')}
             <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 p-4 space-y-3">
+                {/* 여행 타입 — 숙소 등급과 가져올 요금을 정한다 */}
+                <div data-course-package className={`rounded-xl border bg-white dark:bg-slate-900 px-4 py-3 ${needsPackage ? 'border-amber-300' : 'border-slate-200 dark:border-slate-800'}`}>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <b className="text-[13px] text-slate-900 dark:text-white">여행 타입</b>
+                        <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden" role="radiogroup" aria-label="여행 타입">
+                            {(['full', 'value'] as const).map(type => (
+                                <button key={type} type="button" role="radio" aria-checked={pkg === type} data-package={type} onClick={() => setPkg(type)}
+                                    className={`px-3 py-1.5 text-[12px] font-bold ${pkg === type ? 'bg-slate-900 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50'}`}>{PACKAGE_LABEL[type]}</button>
+                            ))}
+                        </div>
+                        <span className="text-[11.5px] text-slate-500">{pkg ? PACKAGE_STAYS[pkg] : '풀패키지는 4성급 호텔 + 고급 게르, 실속형은 3성급 호텔 + 일반 게르'}</span>
+                    </div>
+                    {hasPrice && (
+                        <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                            <label className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
+                                <input type="checkbox" checked={withPrice} onChange={(e) => setWithPrice(e.target.checked)} className="w-3.5 h-3.5 accent-teal-600" />
+                                코스 요금을 가격/옵션에 함께 가져오기
+                            </label>
+                            {withPrice && (pkg ? (
+                                <div data-course-pricing className="mt-1.5 text-[12px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    {pricing.map(o => (
+                                        <span key={o.people} className={`inline-block mr-3 ${suspect.includes(o.people) ? 'text-amber-700 font-bold' : ''}`}>{o.people}인 {won(o.pricePerPerson)}</span>
+                                    ))}
+                                    <div className="text-[11px] text-slate-400">1인 가격 = 예약금 {won(pricing[0]?.depositPerPerson || 0)} + 현지 지불 잔금 · 판매가는 가장 낮은 1인 가격으로 맞춥니다</div>
+                                    {suspect.length > 0 && <div className="text-[11.5px] font-bold text-amber-700">{suspect.join('인, ')}인 금액이 다른 인원과 크게 다릅니다. 코스 관리의 입력값을 확인하세요.</div>}
+                                </div>
+                            ) : <div className="mt-1 text-[11.5px] font-bold text-amber-700">여행 타입을 고르면 그 타입의 요금을 가져옵니다.</div>)}
+                        </div>
+                    )}
+                </div>
                 {plan.map((day, i) => {
                     const gap = gaps[i];
                     const lodgeThumb = day.lodge ? (day.lodge.images || []).find(Boolean) : day.stayImages[0];
@@ -285,7 +336,7 @@ function CourseImporter({ onPick, onClose }: { onPick: (blocks: DetailContentBlo
                                         <div className="flex items-center gap-2">
                                             <b className="text-slate-400">숙소</b>
                                             <span className="min-w-0 flex-1 truncate">
-                                                {day.lodge ? day.lodge.name_kr : day.stayName}
+                                                {day.lodge ? day.lodge.name_kr : stayForPackage(day.stayName, pkg)}
                                                 {day.lodge && day.lodge.name_kr !== day.stayName && <span className="ml-1.5 text-slate-400">(코스: {day.stayName})</span>}
                                             </span>
                                             {lodgeThumb
@@ -318,7 +369,9 @@ function CourseImporter({ onPick, onClose }: { onPick: (blocks: DetailContentBlo
                 </div>
                 <div className="flex items-center gap-2 flex-none">
                     <button type="button" onClick={() => setCourseName(null)} className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">다른 코스</button>
-                    <button type="button" data-course-submit onClick={() => onPick(planToBlocks(plan, { includeMove }), courseName)} className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700">
+                    <button type="button" data-course-submit disabled={needsPackage} title={needsPackage ? '여행 타입을 먼저 고르세요' : undefined}
+                        onClick={() => onPick(planToBlocks(plan, { includeMove, packageType: pkg }), courseName, { packageType: pkg, pricing: hasPrice && withPrice && pricing.length ? pricing : null })}
+                        className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed">
                         이 코스로 일정표 만들기
                     </button>
                 </div>

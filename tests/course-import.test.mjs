@@ -120,3 +120,33 @@ test('다른 이름으로 적힌 문구도 찾고, 한 줄의 두 여행지는 �
     assert.deepEqual(plan[1].items.map(item => item.spot?.name_kr || ''), ['욜린암', '엘승타사르하이']);
     assert.equal(plan[0].items[2].description, '거북바위 한 줄 소개');
 });
+
+test('여행 타입에 맞는 요금 열과 숙소 등급만 가져온다', async () => {
+    const { coursePricing, suspiciousPricing, stayForPackage } = await import('../src/components/admin/courseImport.ts');
+    const priced = { price: { deposit: 50000, balances: [{ pax: 3, economy: 1410000, full: 1520000 }, { pax: 2, economy: 1500000, full: 1570000 }, { pax: 5, economy: 120000, full: 1250000 }, { pax: 4, economy: 1370000, full: 1450000 }, { pax: 6, economy: 0, full: 0 }] },
+        days: [{ d: 1, dest: '테를지', items: [], stay: { name: '일반/고급게르', tags: [] } }, { d: 2, dest: '울란바타르', items: [], stay: { name: '3성급/4성급호텔', tags: [] } }] };
+    const full = coursePricing(priced, 'full'), value = coursePricing(priced, 'value');
+    // 인원순으로 정렬하고, 금액이 없는 인원은 뺀다. 1인 가격 = 예약금 + 잔금
+    assert.deepEqual(full, [
+        { people: 2, pricePerPerson: 1620000, depositPerPerson: 50000, localPaymentPerPerson: 1570000 },
+        { people: 3, pricePerPerson: 1570000, depositPerPerson: 50000, localPaymentPerPerson: 1520000 },
+        { people: 4, pricePerPerson: 1500000, depositPerPerson: 50000, localPaymentPerPerson: 1450000 },
+        { people: 5, pricePerPerson: 1300000, depositPerPerson: 50000, localPaymentPerPerson: 1250000 },
+    ]);
+    assert.deepEqual(value.map(o => o.localPaymentPerPerson), [1500000, 1410000, 1370000, 120000]);
+    // 0을 하나 빠뜨린 금액은 확인을 권한다
+    assert.deepEqual(suspiciousPricing(value), [5]);
+    assert.deepEqual(suspiciousPricing(full), []);
+    assert.deepEqual(coursePricing({ days: [] }, 'full'), []);
+
+    assert.equal(stayForPackage('일반/고급게르', 'full'), '고급 게르');
+    assert.equal(stayForPackage('일반/고급게르', 'value'), '일반 게르');
+    assert.equal(stayForPackage('3성급/4성급 호텔', 'full'), '4성급 호텔');
+    assert.equal(stayForPackage('여행자 캠프 (일반/고급게르)', 'value'), '여행자 캠프 (일반 게르)');
+    assert.equal(stayForPackage('일반/고급게르', null), '일반/고급게르');
+    assert.equal(stayForPackage('일반게르', 'full'), '일반게르');
+    const plan = planCourse(priced, [], []);
+    const stays = type => planToBlocks(plan, { packageType: type }, 1).filter(b => b.type === 'dayInfo').map(b => b.content.accommodation);
+    assert.deepEqual(stays('full'), ['고급 게르', '4성급 호텔']);
+    assert.deepEqual(stays('value'), ['일반 게르', '3성급 호텔']);
+});

@@ -1,4 +1,4 @@
-import type { DetailContentBlock, DayInfoContent, TimelineContent } from '../../types/product';
+import type { DetailContentBlock, DayInfoContent, TimelineContent, PackageType, TourPricingOption } from '../../types/product';
 import type { TouristSpot } from '../../types/touristSpot';
 import type { Hotel } from '../../types/hotel';
 import { productLodgingSnapshot } from '../../utils/lodgingItinerarySnapshot.ts';
@@ -29,6 +29,8 @@ export interface Course {
     nights?: string;
     highlights?: string[];
     days?: CourseDay[];
+    /** 코스 관리의 요금: 1인 예약금 + 인원별 잔금(실속형 economy / 풀패키지 full) */
+    price?: { deposit?: number; balances?: { pax?: number; economy?: number; full?: number; amount?: number }[] };
 }
 
 /** 관리자가 직접 골라 준 짝 — 다음에 같은 문구가 나오면 자동으로 쓴다. 값이 ''이면 「사진 없이」로 정한 것 */
@@ -70,6 +72,36 @@ export interface PlanDay {
     stayImages: string[];
     stayDesc: string;
     lodge: Hotel | null;
+}
+
+/**
+ * 코스 요금을 상품 가격 옵션으로 — 여행 타입에 맞는 열(풀패키지 = full, 실속형 = economy)만 가져온다.
+ * 코스의 잔금은 현지 지불 잔금, 예약금은 1인 예약금, 둘을 더한 값이 1인 가격이 된다.
+ */
+export function coursePricing(course: Course, type: PackageType): TourPricingOption[] {
+    const deposit = Math.max(0, Math.round(Number(course.price?.deposit) || 0));
+    return (course.price?.balances || [])
+        .map(row => ({ people: Math.round(Number(row.pax) || 0), balance: Math.round(Number(type === 'full' ? row.full ?? row.amount : row.economy ?? row.amount) || 0) }))
+        .filter(row => row.people > 0 && row.balance > 0)
+        .sort((a, b) => a.people - b.people)
+        .map(row => ({ people: row.people, pricePerPerson: deposit + row.balance, depositPerPerson: deposit, localPaymentPerPerson: row.balance }));
+}
+
+/** 다른 인원 요금의 절반도 안 되는 금액 — 0을 하나 빠뜨린 입력일 수 있어 화면에서 확인을 권한다 */
+export function suspiciousPricing(options: TourPricingOption[]): number[] {
+    if (options.length < 3) return [];
+    const sorted = options.map(o => o.pricePerPerson).sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    return options.filter(o => o.pricePerPerson < median * 0.5 || o.pricePerPerson > median * 3).map(o => o.people);
+}
+
+/**
+ * 코스의 숙소는 두 등급을 함께 적는다(「3성급/4성급 호텔」「일반/고급게르」).
+ * 여행 타입이 정해지면 그 등급만 남긴다 — 실속형은 앞(3성급·일반), 풀패키지는 뒤(4성급·고급).
+ */
+export function stayForPackage(name: string, type?: PackageType | null): string {
+    if (!type) return name;
+    return name.replace(/(3성급|일반)\s*\/\s*(4성급|고급)\s*/g, (_, value: string, full: string) => `${type === 'full' ? full : value} `).replace(/\s+/g, ' ').trim();
 }
 
 /** 관리자 작성 문구에서 줄바꿈 태그를 띄어쓰기로 바꾼 글 */
@@ -330,7 +362,7 @@ export function planPhotoCount(day: PlanDay, plan: PlanDay[]): number {
 }
 
 /** 계획을 상품 일정표 블록으로 — 상세페이지 렌더러(DesignItinerary)가 읽는 모양 그대로 */
-export function planToBlocks(plan: PlanDay[], options: { includeMove?: boolean } = {}, stamp = Date.now()): DetailContentBlock[] {
+export function planToBlocks(plan: PlanDay[], options: { includeMove?: boolean; packageType?: PackageType | null } = {}, stamp = Date.now()): DetailContentBlock[] {
     const blocks: DetailContentBlock[] = [];
     plan.forEach((day, i) => {
         const intro = day.repeat || spotInItems(day) ? '' : shortText(day.spot);
@@ -349,7 +381,7 @@ export function planToBlocks(plan: PlanDay[], options: { includeMove?: boolean }
             Object.assign(info, productLodgingSnapshot(day.lodge));
             if (!(info.accommodationAmenities || []).length) info.accommodationAmenities = [...day.stayTags];
         } else if (day.stayName) {
-            info.accommodation = day.stayName;
+            info.accommodation = stayForPackage(day.stayName, options.packageType);
             info.accommodationAmenities = [...day.stayTags];
             info.accommodationImages = [...day.stayImages];
             info.accommodationDescription = day.stayDesc;
