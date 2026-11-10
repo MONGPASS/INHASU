@@ -138,7 +138,8 @@
   <main class="content">
     <div class="page-head">
       <h1>여행지 관리</h1>
-      <button class="add" id="addBtn">＋ 새 명소 추가</button>
+      <button class="add" id="copyBtn" style="margin-left:auto; background:#fff; color:var(--deep); border:1.5px solid var(--accent);">문구 초안 가져오기</button>
+      <button class="add" id="addBtn" style="margin-left:8px;">＋ 새 명소 추가</button>
     </div>
     <div class="lead"><b>상품·예약 일정표와 견적</b>에서 함께 쓰는 여행지 사진과 설명을 관리합니다. <b>카테고리(지역)</b> 탭으로 여행지별로 명소를 관리할 수 있습니다.</div>
     <div class="tabs" id="tabs"></div>
@@ -173,7 +174,7 @@ function load() {
     const c = (s.region || "").trim();
     if (c && !CATS.includes(c)) CATS.push(c);
   });
-  if (activeCat !== "__all" && activeCat !== "__none" && !CATS.includes(activeCat)) activeCat = "__all";
+  if (activeCat !== "__all" && activeCat !== "__none" && activeCat !== "__photo" && !CATS.includes(activeCat)) activeCat = "__all";
   renderTabs(); renderGrid();
 }
 // 서버(D1)에 영구 저장. localStorage에도 쓰고, 서버 반영 결과를 반환합니다.
@@ -185,6 +186,10 @@ function persist() {
 
 /* ── 카테고리 탭 ── */
 function catOf(s){ return (s && s.region ? String(s.region).trim() : ""); }
+/* 일정표에는 여행지마다 사진 두 장이 나온다 — 대표 사진 + 추가 사진을 합쳐 센다 */
+function photoCount(s){ return [s && s.img, ...((s && s.subImgs) || [])].filter(Boolean).length; }
+function needsPhoto(s){ return photoCount(s) < 2; }
+function aliasList(v){ return [...new Set((Array.isArray(v) ? v : String(v || "").split(",")).map(x => String(x).trim()).filter(Boolean))]; }
 function countIn(cat){ return Object.values(SPOTS).filter(s => catOf(s) === cat).length; }
 
 function renderTabs() {
@@ -198,6 +203,8 @@ function renderTabs() {
       + `</button>`;
   });
   if (noneCnt) html += `<button class="tab ${activeCat==="__none"?"on":""}" data-cat="__none">${UNCAT} <span class="cnt">${noneCnt}</span></button>`;
+  const photoCnt = Object.values(SPOTS).filter(needsPhoto).length;
+  if (photoCnt || activeCat === "__photo") html += `<button class="tab ${activeCat==="__photo"?"on":""}" data-cat="__photo" title="사진이 2장 미만인 여행지 — 일정표에는 여행지마다 사진 두 장이 나옵니다">📷 사진 필요 <span class="cnt">${photoCnt}</span></button>`;
   html += `<button class="tab addcat" id="addCatBtn">＋ 카테고리</button>`;
   $("tabs").innerHTML = html;
 
@@ -242,12 +249,14 @@ function deleteCat(cat) {
 function renderGrid() {
   let entries = Object.entries(SPOTS);
   if (activeCat === "__none") entries = entries.filter(([,s]) => !catOf(s));
+  else if (activeCat === "__photo") entries = entries.filter(([,s]) => needsPhoto(s));
   else if (activeCat !== "__all") entries = entries.filter(([,s]) => catOf(s) === activeCat);
   $("grid").innerHTML = entries.map(([name, s]) => `
     <div class="spot-card" data-k="${esc(name)}">
       <div class="thumb">
         ${s.img ? `<img src="${s.img}" alt="${esc(name)}">` : `<div class="noimg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 3 3 4-4 4 4"/></svg><span>이미지 없음</span></div>`}
         ${s.region ? `<span class="region">${esc(s.region)}</span>` : ""}
+        ${needsPhoto(s) ? `<span class="region" style="left:auto; right:8px; background:#f59e0b; color:#fff;">사진 ${photoCount(s)}/2</span>` : ""}
       </div>
       <div class="body">
         <div class="mn">${esc(s.nameMn || "")}</div>
@@ -256,7 +265,8 @@ function renderGrid() {
       </div>
     </div>`).join("")
   || `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--gray)">${
-      activeCat === "__all"
+      activeCat === "__photo" ? `사진이 필요한 여행지가 없습니다. 모든 여행지에 사진이 두 장 이상 있어요.`
+      : activeCat === "__all"
         ? `등록된 명소가 없습니다. 우측 상단 <b>＋ 새 명소 추가</b>로 만들어보세요.`
         : `이 카테고리에 명소가 없습니다. <b>＋ 새 명소 추가</b> 시 카테고리에서 선택해 넣어보세요.`
     }</div>`;
@@ -311,7 +321,7 @@ function catOptions(sel) {
 function openEdit(key) {
   editKey = key;
   const isNew = key === null;
-  const defCat = (isNew && activeCat !== "__all" && activeCat !== "__none") ? activeCat : "";
+  const defCat = (isNew && activeCat !== "__all" && activeCat !== "__none" && activeCat !== "__photo") ? activeCat : "";
   const s = isNew ? { nameMn:"", region:defCat, short:"", desc:"", lat:"", lng:"", img:"", subImgs:["","","",""] }
                   : JSON.parse(JSON.stringify(SPOTS[key]));
   s.subImgs = s.subImgs || ["","","",""];
@@ -336,8 +346,10 @@ function openEdit(key) {
         <label class="f"><span>카테고리 (지역/여행지)</span>
           <select id="f_region">${catOptions(catOf(s))}</select></label>
       </div>
-      <label class="f"><span>한 줄 소개 (카드·지도에 표시)</span>
+      <label class="f"><span>한 줄 소개 (카드·지도, 상품 일정표의 항목 설명에 표시)</span>
         <input id="f_short" value="${esc(s.short)}" placeholder="예) '하얀 탑' 침식지형"></label>
+      <label class="f"><span>다른 이름 (쉼표로 구분) — 코스 일정에 이렇게 적혀 있어도 이 여행지의 사진·소개가 붙습니다</span>
+        <input id="f_aliases" value="${esc(aliasList(s.aliases).join(", "))}" placeholder="예) 미니사막, 미니고비"></label>
       <label class="f"><span>상세 설명 (견적서에 표시)</span>
         <textarea id="f_desc" placeholder="명소에 대한 설명을 적어주세요.">${esc(s.desc)}</textarea></label>
       <div class="row2">
@@ -412,6 +424,7 @@ function openEdit(key) {
       nameMn: $("f_mn").value.trim(),
       region: catSel.value === "__new" ? "" : catSel.value,
       short: $("f_short").value.trim(),
+      aliases: aliasList($("f_aliases").value),
       desc: $("f_desc").value.trim(),
       lat: parseFloat($("f_lat").value) || undefined,
       lng: parseFloat($("f_lng").value) || undefined,
@@ -445,9 +458,76 @@ function openEdit(key) {
     toast(saveMsg(res, "삭제되었습니다"));
   };
 }
+/* ── 문구 초안 가져오기 ──
+   /spot-copy-draft.json 의 한 줄 소개·다른 이름·새 항목을 미리 보여 주고, 고른 것만 반영한다.
+   사진과 상세 설명은 건드리지 않는다. 한 줄 소개는 비어 있을 때만 채우고, 초안이 「바꾸기」로 표시한 것만 교체를 제안한다. */
+function copyChanges(draft) {
+  const out = [];
+  for (const [name, d] of Object.entries((draft && draft.spots) || {})) {
+    const cur = SPOTS[name];
+    const short = String(d.short || "").trim();
+    const aliases = aliasList(d.aliases);
+    // 없는 여행지는 한 줄 소개가 있는 초안만 새로 만든다 — 「다른 이름」만 있는 초안은 기존 여행지용이라 건너뛴다
+    if (!cur) { if (short) out.push({ name, kind: "new", short, aliases, region: String(d.region || "").trim() }); continue; }
+    const curShort = String(cur.short || "").trim();
+    if (short && short !== curShort && (!curShort || d.replaceShort)) out.push({ name, kind: "short", short, before: curShort });
+    const add = aliases.filter(a => !aliasList(cur.aliases).includes(a));
+    if (add.length) out.push({ name, kind: "aliases", aliases: add });
+  }
+  return out;
+}
+async function openCopyImport() {
+  let draft;
+  try {
+    const r = await fetch("/spot-copy-draft.json", { cache: "no-store" });
+    if (!r.ok) throw new Error("http " + r.status);
+    draft = await r.json();
+  } catch (e) { toast("⚠ 문구 초안 파일을 읽지 못했습니다"); return; }
+  const changes = copyChanges(draft);
+  const label = c => c.kind === "new"
+    ? `<b>새 항목</b> · ${esc(c.region || UNCAT)}<br><span style="color:var(--sub)">${esc(c.short)}</span>${c.aliases.length ? `<br><span style="color:var(--gray)">다른 이름: ${esc(c.aliases.join(", "))}</span>` : ""}`
+    : c.kind === "short"
+      ? `<b>한 줄 소개</b> ${c.before ? "바꾸기" : "채우기"}<br><span style="color:var(--sub)">${esc(c.short)}</span>${c.before ? `<br><span style="color:var(--gray); text-decoration:line-through">${esc(c.before)}</span>` : ""}`
+      : `<b>다른 이름</b> 추가<br><span style="color:var(--sub)">${esc(c.aliases.join(", "))}</span>`;
+  $("drawer").innerHTML = `
+    <div class="dh"><h2>문구 초안 가져오기</h2><button class="x" id="closeX">✕</button></div>
+    <div class="db">
+      <div class="hintline" style="margin-bottom:14px">반영할 항목만 체크하세요. <b>사진과 상세 설명은 바뀌지 않습니다.</b> 새 항목은 사진 없이 만들어지고 <b>📷 사진 필요</b> 탭에 모입니다.</div>
+      ${changes.length ? `<label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; margin-bottom:10px; cursor:pointer"><input type="checkbox" id="copyAll" checked style="width:16px; height:16px; padding:0; flex:none; accent-color:var(--accent)"> 전체 선택 (${changes.length}건)</label>` : `<div style="padding:40px 0; text-align:center; color:var(--gray)">반영할 내용이 없습니다. 이미 모두 적용되어 있어요.</div>`}
+      ${changes.map((c, i) => `
+        <label style="display:flex; gap:10px; padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; margin-bottom:8px; cursor:pointer; font-size:12.5px; line-height:1.6">
+          <input type="checkbox" class="copyChk" data-i="${i}" checked style="width:16px; height:16px; padding:0; flex:none; margin-top:3px; accent-color:var(--accent)">
+          <span style="min-width:0"><b style="font-size:13.5px">${esc(c.name)}</b><br>${label(c)}</span>
+        </label>`).join("")}
+    </div>
+    <div class="df">${changes.length ? `<button class="save" id="copyApply">선택한 내용 반영하기</button>` : ""}</div>`;
+  $("drawer").classList.add("on"); $("overlay").classList.add("on");
+  $("closeX").onclick = closeDrawer;
+  if (!changes.length) return;
+  const boxes = () => [...$("drawer").querySelectorAll(".copyChk")];
+  $("copyAll").onchange = e => boxes().forEach(b => b.checked = e.target.checked);
+  $("copyApply").onclick = async () => {
+    const picked = boxes().filter(b => b.checked).map(b => changes[+b.dataset.i]);
+    if (!picked.length) { toast("반영할 항목을 체크하세요"); return; }
+    for (const c of picked) {
+      if (c.kind === "new") {
+        SPOTS[c.name] = { nameMn: "", region: c.region, short: c.short, aliases: c.aliases, desc: c.short, img: "", subImgs: ["", "", "", ""] };
+        if (c.region && !CATS.includes(c.region)) CATS.push(c.region);
+      } else if (c.kind === "short") SPOTS[c.name].short = c.short;
+      else SPOTS[c.name].aliases = aliasList([...aliasList(SPOTS[c.name].aliases), ...c.aliases]);
+    }
+    const btn = $("copyApply"); btn.disabled = true; btn.textContent = "저장 중…";
+    let res;
+    try { res = await persist(); } catch (err) { toast("⚠ 저장하지 못했습니다"); btn.disabled = false; btn.textContent = "선택한 내용 반영하기"; return; }
+    if (Object.values(SPOTS).some(needsPhoto)) activeCat = "__photo";
+    renderTabs(); renderGrid(); closeDrawer();
+    toast(saveMsg(res, `${picked.length}건을 반영했습니다`));
+  };
+}
 function closeDrawer(){ $("drawer").classList.remove("on"); $("overlay").classList.remove("on"); editKey=null; }
 $("overlay").onclick = closeDrawer;
 $("addBtn").onclick = () => openEdit(null);
+$("copyBtn").onclick = openCopyImport;
 
 /* 저장 결과 메시지: 서버 저장 성공/로컬만/실패 구분 */
 function saveMsg(res, okMsg) {

@@ -41,7 +41,7 @@ test('여행지 목록은 견적 공통 명소만 읽고 기존 관광지 마스
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('cache-control'), 'no-store');
     assert.deepEqual(await response.json(), [{ id: 'quote-spot:테를지 초원', name_kr: '테를지 초원', name_local: 'Тэрэлж',
-        address: '', description: '실제 여행지 소개', images: ['/api/img/images/terelj.webp'], region: '중앙몽골', is_active: true }]);
+        address: '', description: '실제 여행지 소개', summary: '초원 여행', aliases: [], images: ['/api/img/images/terelj.webp'], region: '중앙몽골', is_active: true }]);
     assert.deepEqual(f.raw.prepare('SELECT * FROM kv').all(), before);
     assert.equal(f.raw.prepare('SELECT COUNT(*) AS n FROM tourist_spots').get().n, 1);
     assert.ok(f.statements.every(sql => /^SELECT v FROM kv WHERE k = \?$/.test(sql)), '목록 조회는 공통 명소 SELECT만 실행해야 한다');
@@ -56,7 +56,7 @@ test('사진·실제 주소·임의 지역은 허용 필드만 공개하고 연�
     const response = await f.request(`/${encodeURIComponent(id)}?include=all&token=PRIVATE-QUERY`);
     assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store');
     const spot = await response.json();
-    assert.deepEqual(spot, { id, name_kr: name, name_local: 'Хорхог', address: '저장된 실제 주소', description: '공개 여행지 소개',
+    assert.deepEqual(spot, { id, name_kr: name, name_local: 'Хорхог', address: '저장된 실제 주소', description: '공개 여행지 소개', summary: '', aliases: [],
         images: ['/api/img/images/main.webp', 'https://cdn.example.invalid/second.webp'], region: '식도락 · 사용자 지정', is_active: true });
     assert.ok(!JSON.stringify(spot).includes('PRIVATE-'));
     assert.equal(f.statements.length, 1, '슬래시가 포함된 별칭도 경로 한 개로 읽는다');

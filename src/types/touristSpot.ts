@@ -45,6 +45,8 @@ export interface TouristSpot {
     name_local?: string;     // 소제목 (일정 카드 부제목)
     address?: string;
     description?: string;    // 일정 설명으로 들어감
+    aliases?: string[];      // 다른 이름 — 코스 일정 문구에 다르게 적혀 있어도 이 여행지로 찾음
+    summary?: string;        // 한 줄 소개 — 코스에서 불러온 일정 항목 아래에 짧게 들어감
     images?: string[];       // 일정 이미지로 들어감
     region?: SpotRegion;     // 여행지 관리에 저장한 지역·분류 (빈 문자열 = 미분류)
     is_active?: boolean;
