@@ -125,7 +125,7 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare }: Tour
                     {flags.hasItinerary && !flags.itineraryInDesign && (
                         <DetailSection>
                             <SectionHead id="td-plan" eyebrow="ITINERARY" title="일정" />
-                            <div data-itinerary-design style={{ borderRadius: 20, overflow: 'hidden' }}><DesignItinerary product={product} /></div>
+                            <div data-itinerary-design style={{ borderRadius: 20, overflow: 'hidden' }}><DesignItinerary product={product} collapsible /></div>
                         </DetailSection>
                     )}
 

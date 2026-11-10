@@ -95,7 +95,7 @@ function TourDetailBody({ product, reviews, onBook, onShare, pricing, fav, onFav
                 {flags.hasItinerary && !flags.itineraryInDesign && (
                     <DetailSection>
                         <SectionHead id="td-plan" eyebrow="ITINERARY" title="일정" compact />
-                        <div data-itinerary-design style={{ margin: '0 -16px' }}><DesignItinerary product={product} variant="mobile" /></div>
+                        <div data-itinerary-design style={{ margin: '0 -16px' }}><DesignItinerary product={product} variant="mobile" collapsible /></div>
                     </DetailSection>
                 )}
 
