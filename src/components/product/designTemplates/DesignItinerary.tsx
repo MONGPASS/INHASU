@@ -163,7 +163,9 @@ function DaySection({ day, index, all, S, onOpen }: {
         d.meals?.lunch && `점심: ${d.meals.lunch}`,
         d.meals?.dinner && `저녁: ${d.meals.dinner}`,
     ].filter(Boolean) as string[];
-    const amenities = (d.accommodationAmenities ?? []).filter(Boolean);
+    // 등급 → 객실 인원 → 시설 순. 같은 문구는 한 번만
+    const amenities = [...new Set([d.accommodationType, d.accommodationOccupancy, ...(d.accommodationAmenities ?? []), ...(d.accommodationRoomAmenities ?? []), ...(d.accommodationSharedFacilities ?? [])]
+        .map(v => (typeof v === 'string' ? v.trim() : '')).filter(Boolean))];
     const multi = all.length > 1;
     const progress = multi ? (index / (all.length - 1)) * 80 : 0;
 

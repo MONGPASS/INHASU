@@ -38,8 +38,8 @@ test('코스를 불러오면 일정 항목마다 여행지의 한 줄 소개와 
     assert.equal(d1.heroImage, '/차강소브라가-1.webp');
     // 대표 여행지의 앞 두 장은 일정 항목에 넣었으므로 나머지 한 장 + 일정 문구에 안 나온 둘째 목적지(욜린암) 사진 2장
     assert.deepEqual(d1.galleryImages, ['/차강소브라가-3.webp', '/욜린암-1.webp', '/욜린암-2.webp']);
-    // 여행지 소개는 일정 항목에서 한 번만 보여 준다
-    assert.equal(d1.description, '이동 10시간 (600 km)');
+    // 일차 소개에는 대표 여행지의 상세 설명이, 일정 항목에는 한 줄 소개가 들어간다 (서로 다른 글)
+    assert.equal(d1.description, '차강소브라가의 긴 설명입니다. 둘째 문장은 일정 항목에 넣지 않습니다.\n\n이동 10시간 (600 km)');
     assert.deepEqual(d1.meals, { breakfast: '현지식당', lunch: '현지식당', dinner: '캠프식' });
     assert.equal(d1.accommodation, '고비 게르 캠프');
     assert.equal(d1.accommodationHotelId, 'resource-lodge:고비 게르 캠프');
@@ -78,9 +78,9 @@ test('직접 골라 둔 짝은 다음에 자동으로 쓰이고, 비워 둔 짝�
     assert.equal(plan[0].items[0].spot, null);
     assert.equal(plan[0].lodge, null);
     const days = planToBlocks(plan, { includeMove: false }, 1).filter(b => b.type === 'dayInfo').map(b => b.content);
-    assert.equal(days[0].description, '');
-    // 일정 문구에 안 나오는 대표 여행지는 일차 소개에 한 줄로, 사진은 일차 사진으로 들어간다
-    assert.equal(days[3].description, '테를지 국립공원 한 줄 소개');
+    assert.equal(days[0].description, '차강소브라가의 긴 설명입니다. 둘째 문장은 일정 항목에 넣지 않습니다.');
+    // 직접 고른 대표 여행지도 일차 소개와 일차 사진으로 들어간다
+    assert.equal(days[3].description, '테를지 국립공원의 긴 설명입니다. 둘째 문장은 일정 항목에 넣지 않습니다.');
     assert.equal(days[3].galleryImages.length, 3);
 });
 
@@ -149,4 +149,13 @@ test('여행 타입에 맞는 요금 열과 숙소 등급만 가져온다', asyn
     const stays = type => planToBlocks(plan, { packageType: type }, 1).filter(b => b.type === 'dayInfo').map(b => b.content.accommodation);
     assert.deepEqual(stays('full'), ['고급 게르', '4성급 호텔']);
     assert.deepEqual(stays('value'), ['일반 게르', '3성급 호텔']);
+});
+
+test('일차 소개는 상세 설명의 첫 문단을 문장 단위로 끊어 쓴다', async () => {
+    const { introText } = await import('../src/components/admin/courseImport.ts');
+    const long = `${'가'.repeat(80)}입니다. ${'나'.repeat(80)}입니다. 셋째 문장.`;
+    assert.equal(introText({ id: 'a', name_kr: 'a', description: `${long}\n둘째 문단` }), `${'가'.repeat(80)}입니다. ${'나'.repeat(80)}입니다.`);
+    assert.equal(introText({ id: 'a', name_kr: 'a', description: '짧은 설명.\n다음 문단' }), '짧은 설명.');
+    assert.equal(introText({ id: 'a', name_kr: 'a', summary: '한 줄', description: '' }), '한 줄');
+    assert.equal(introText(null), '');
 });

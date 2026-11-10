@@ -11,7 +11,7 @@ import {
     BookingCard, CancelNote, DetailBlocks, DetailSection, DetailTabsBar, FaqList, IncludedCards, OverviewBody, PhotoOverlay, ReviewsBlock,
     SaveShareButtons, SectionHead, TourTitleBlock,
 } from '../product/detail/DetailParts';
-import { ItineraryAccordion } from '../product/detail/ItineraryAccordion';
+import { DesignItinerary } from '../product/designTemplates/DesignItinerary';
 import {
     detailFlags, detailTabs, openConsult, summariseReviews, tourFacts, tourGallery, tourImageAlt, useRelatedTours, useSectionTabs,
     useTourFaqItems, useTourPricing, type TourDetailViewProps, type TourFact,
@@ -125,7 +125,7 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare }: Tour
                     {flags.hasItinerary && !flags.itineraryInDesign && (
                         <DetailSection>
                             <SectionHead id="td-plan" eyebrow="ITINERARY" title="일정" />
-                            <ItineraryAccordion product={product} />
+                            <div data-itinerary-design style={{ borderRadius: 20, overflow: 'hidden' }}><DesignItinerary product={product} /></div>
                         </DetailSection>
                     )}
 

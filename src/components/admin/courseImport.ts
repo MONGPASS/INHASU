@@ -200,6 +200,23 @@ export function shortText(spot: TouristSpot | null | undefined, limit = 70): str
     return first.length > limit ? `${first.slice(0, limit).trimEnd()}…` : first;
 }
 
+/**
+ * 일차 제목 아래의 소개 글 — 여행지 「상세 설명」의 첫 문단. 너무 길면 문장 단위로 끊는다.
+ * 상세 설명이 없으면 한 줄 소개를 쓴다.
+ */
+export function introText(spot: TouristSpot | null | undefined, limit = 170): string {
+    if (!spot) return '';
+    const paragraph = plainText(String(spot.description ?? '').split(/\r?\n/).find(line => line.trim()) ?? '');
+    if (!paragraph) return shortText(spot);
+    if (paragraph.length <= limit) return paragraph;
+    let out = '';
+    for (const sentence of paragraph.split(/(?<=[.!?。])\s+/)) {
+        if ((out + ' ' + sentence).trim().length > limit) break;
+        out = (out + ' ' + sentence).trim();
+    }
+    return out || `${paragraph.slice(0, limit).trimEnd()}…`;
+}
+
 const photosOf = (list?: string[]) => (Array.isArray(list) ? list : []).filter((s): s is string => typeof s === 'string' && !!s);
 
 /** 「숙소미포함」「X」「-」처럼 숙소·식사가 없다는 뜻으로 적은 값 */
@@ -365,7 +382,7 @@ export function planPhotoCount(day: PlanDay, plan: PlanDay[]): number {
 export function planToBlocks(plan: PlanDay[], options: { includeMove?: boolean; packageType?: PackageType | null } = {}, stamp = Date.now()): DetailContentBlock[] {
     const blocks: DetailContentBlock[] = [];
     plan.forEach((day, i) => {
-        const intro = day.repeat || spotInItems(day) ? '' : shortText(day.spot);
+        const intro = day.repeat ? '' : introText(day.spot);
         const info: DayInfoContent = {
             id: `dayInfo-${stamp}-c${i}`,
             dayLabel: `${i + 1}일차`,
