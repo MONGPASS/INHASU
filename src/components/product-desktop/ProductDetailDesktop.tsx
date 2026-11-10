@@ -169,14 +169,14 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare }: Tour
                         {gallery[0] && <img src={productImageUrl(gallery[0], 320)} alt="" style={{ width: 52, height: 52, borderRadius: 14, objectFit: 'cover', flexShrink: 0 }} />}
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <span style={{ fontSize: 14, fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
-                            <span style={{ fontSize: 12, color: MW.mute }}>성인 {pricing.people}명 · 1인 {won(pricing.unit)}</span>
+                            <span style={{ fontSize: 12, color: MW.mute }}>{pricing.unit > 0 ? `성인 ${pricing.people}명 · 1인 ${won(pricing.unit)}` : '요금 등록 필요'}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
                             <span style={{ fontSize: 11, color: MW.mute }}>합계</span>
-                            <span style={{ fontFamily: MW_FONT_EN, fontSize: 20, fontWeight: 600 }}>{won(pricing.total)}</span>
+                            <span style={{ fontFamily: MW_FONT_EN, fontSize: 20, fontWeight: 600 }}>{pricing.unit > 0 ? won(pricing.total) : '요금 등록 필요'}</span>
                         </div>
                         <button type="button" onClick={openConsult} style={{ height: 48, padding: '0 22px', border: `1.5px solid ${MW.navy}`, borderRadius: 999, background: '#FFFFFF', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: MW.navy, cursor: 'pointer', whiteSpace: 'nowrap' }}>무료 상담</button>
-                        <button type="button" onClick={onBook} style={{ height: 48, padding: '0 28px', border: 0, borderRadius: 999, background: MW_GRADIENT, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, color: MW.navy, cursor: 'pointer', whiteSpace: 'nowrap' }}>예약하기</button>
+                        <button type="button" onClick={onBook} disabled={pricing.unit <= 0} style={{ height: 48, padding: '0 28px', border: 0, borderRadius: 999, background: MW_GRADIENT, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, color: MW.navy, cursor: 'pointer', whiteSpace: 'nowrap' }}>예약하기</button>
                     </div>
                 </div>
             )}

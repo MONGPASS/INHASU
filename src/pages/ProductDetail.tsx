@@ -6,12 +6,14 @@ import { useToast } from '../components/ui/Toast';
 import { useTranslation } from 'react-i18next';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import { DesktopLayout } from '../components/layout-desktop/DesktopLayout';
-import { MW, won } from '../components/desktop-primitives/mwTokens';
+import { MW } from '../components/desktop-primitives/mwTokens';
 import { BRAND } from '../constants/company';
 import { SEO_CONSTANTS } from '../constants/seo';
 import { MobileShell } from '../components/mobile/MobileShell';
 import { MEmpty } from '../components/mobile/mobileUi';
 import { ProductDetailDesktop, ProductDetailDesktopSkeleton } from '../components/product-desktop/ProductDetailDesktop';
+import { getProductStartingPrice } from '../utils/productStartingPrice';
+import { productPriceLabel, productPriceBasis, withPublicProductPrice } from '../utils/publicProductPrice';
 import { ProductDetailMobile, ProductDetailMobileSkeleton } from '../components/product-mobile/ProductDetailMobile';
 import type { ShareResult } from '../components/product/detail/productDetailData';
 import type { RawReview } from '../components/reviews-desktop/reviewsData';
@@ -54,7 +56,7 @@ export const ProductDetail: React.FC = () => {
                         id: data.id,
                         name: data.name,
                         price: data.price,
-                        originalPrice: data.originalPrice ?? data.original_price,
+                        originalPrice: undefined,
                         duration: data.duration,
                         category: data.category,
                         mainImages: data.mainImages ?? data.main_images ?? [],
@@ -83,8 +85,9 @@ export const ProductDetail: React.FC = () => {
                         createdAt: data.createdAt ?? data.created_at,
                         updatedAt: data.updatedAt ?? data.updated_at
                     };
-                    setProduct(mappedProduct);
-                    addToRecentlyViewed(mappedProduct);
+                    const pricedProduct = withPublicProductPrice(mappedProduct);
+                    setProduct(pricedProduct);
+                    addToRecentlyViewed(pricedProduct);
                 }
             } catch (error) {
                 console.error("Product fetch error:", error);
@@ -190,12 +193,13 @@ export const ProductDetail: React.FC = () => {
         .map(img => new URL(img, `${SITE_URL}/`).href);
 
     // Enhanced Product description for meta
+    const startingPrice = getProductStartingPrice(product);
     const productMetaDescription = [
         product.name,
         product.duration ? `(${product.duration})` : '',
         product.category ? `[${product.category}]` : '',
+        productPriceLabel(product), productPriceBasis(product),
         product.description || product.highlights?.[0]?.description || '',
-        product.price ? `${won(product.price)}~` : ''
     ].filter(Boolean).join(' ').substring(0, 160);
 
     // ── Aggregate rating + sample reviews from approved user reviews ──
@@ -229,7 +233,8 @@ export const ProductDetail: React.FC = () => {
         "@type": "Offer",
         "url": `${SITE_URL}/products/${encodeURIComponent(id || product.id)}`,
         "priceCurrency": "KRW",
-        "price": product.price,
+        "price": startingPrice.price,
+        "description": startingPrice.people ? `${startingPrice.people}명 기준 · 1인 기본요금` : undefined,
         "availability": availability,
         "seller": { "@type": "Organization", "name": BRAND.name },
     };
@@ -249,7 +254,7 @@ export const ProductDetail: React.FC = () => {
         ...(product.duration ? { "additionalProperty": [
             { "@type": "PropertyValue", "name": "소요 기간", "value": product.duration }
         ]} : {}),
-        ...(Number(product.price) > 0 ? { "offers": offersLd } : {}),
+        ...(startingPrice.price !== null ? { "offers": offersLd } : {}),
         ...(aggregateRating ? { "aggregateRating": aggregateRating } : {}),
         ...(reviewLd.length > 0 ? { "review": reviewLd } : {}),
     };
@@ -275,7 +280,10 @@ export const ProductDetail: React.FC = () => {
             structuredData={[productStructuredData, breadcrumbData]}
         />
     );
-    const onBook = () => navigate(`/reservation/${product.id}`);
+    const onBook = () => {
+        if (startingPrice.price === null) { showToast('error', '요금 등록이 필요합니다. 상담으로 문의해 주세요.'); return; }
+        navigate(`/reservation/${product.id}`);
+    };
 
     // Keyed by tour so headcount, open rows and scroll position reset when moving to another tour.
     if (isDesktop) {

@@ -7,6 +7,7 @@ import { clearCustomerSessionCache } from '../../lib/customerSessionCache';
 import { useUser } from '../../contexts/UserContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { BRAND, KAKAO_CHANNEL_CHAT_URL, KAKAO_CHANNEL_URL } from '../../constants/company';
+import { getProductStartingPrice } from '../../utils/productStartingPrice';
 import { MW, MW_FONT, MW_FONT_EN, isUsableImage, won } from '../desktop-primitives/mwTokens';
 import { useMe } from '../mypage-desktop/useMyPageData';
 import { MobileShellContext } from './mobileShellContext';
@@ -91,7 +92,7 @@ interface SearchProduct {
     name: string;
     category: string;
     duration: string;
-    price: number;
+    startingPrice: ReturnType<typeof getProductStartingPrice>;
     tags: string[];
     image: string;
 }
@@ -189,7 +190,7 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                     name: (p.name || '').trim(),
                     category: p.category || '',
                     duration: p.duration || '',
-                    price: p.price || 0,
+                    startingPrice: getProductStartingPrice(p),
                     tags: Array.isArray(p.tags) ? p.tags : [],
                     image: p.mainImages?.[0] || '',
                 }));
@@ -366,7 +367,7 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                                                     </span>
                                                     <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                         <span style={{ fontSize: 14, fontWeight: 700, color: MW.navy, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</span>
-                                                        <span style={{ fontSize: 12, color: MW.mute }}>{[t.duration, t.price > 0 ? `${won(t.price)}~` : ''].filter(Boolean).join(' · ')}</span>
+                                                        <span style={{ fontSize: 12, color: MW.mute }}>{[t.duration, t.startingPrice.price === null ? '요금 등록 필요' : `1인 ${won(t.startingPrice.price)}부터`, t.startingPrice.people !== null ? `${t.startingPrice.people}명 기준` : ''].filter(Boolean).join(' · ')}</span>
                                                     </span>
                                                 </button>
                                             ))}

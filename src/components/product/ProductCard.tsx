@@ -2,9 +2,11 @@ import React, { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { optimizeImage } from '../../utils/imageOptimizer';
 import type { TourProduct } from '../../types/product';
+import { StartingPrice } from './StartingPrice';
+import type { PublicProductPriceFields } from '../../utils/publicProductPrice';
 
 interface ProductCardProps {
-    product: Pick<TourProduct, 'id' | 'name' | 'price' | 'originalPrice' | 'category' | 'duration' | 'mainImages'>;
+    product: Pick<TourProduct, 'id' | 'name' | 'price' | 'originalPrice' | 'category' | 'duration' | 'mainImages'> & PublicProductPriceFields;
     className?: string;
     imageHeight?: string; // Optional height for card image
 }
@@ -39,7 +41,7 @@ export const ProductCard = memo(({ product, className = '', imageHeight = 'aspec
                     {product.name}
                 </p>
                 <p className="text-sm font-bold text-primary">
-                    {typeof product.price === 'number' ? product.price.toLocaleString('ko-KR') : (product.price || 0)}원~
+                    <StartingPrice product={product} />
                 </p>
             </div>
         </div>
@@ -50,6 +52,11 @@ export const ProductCard = memo(({ product, className = '', imageHeight = 'aspec
         prevProps.product.id === nextProps.product.id &&
         prevProps.product.name === nextProps.product.name &&
         prevProps.product.price === nextProps.product.price &&
+        prevProps.product.startingPrice === nextProps.product.startingPrice &&
+        prevProps.product.priceBasisPeople === nextProps.product.priceBasisPeople &&
+        prevProps.product.priceReady === nextProps.product.priceReady &&
+        prevProps.product.pricingOptions === nextProps.product.pricingOptions &&
+        prevProps.product.pricing_options === nextProps.product.pricing_options &&
         prevProps.product.mainImages[0] === nextProps.product.mainImages[0]
     );
 });

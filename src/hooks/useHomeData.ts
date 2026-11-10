@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Category } from '../types/category';
 import { isPublishedMagazine } from '../constants/seo';
+import { withPublicProductPrice, type PublicProductPriceFields } from '../utils/publicProductPrice';
 
 /**
  * Safely ensures a value is always a string array.
@@ -30,7 +31,7 @@ interface CategoryTab {
     bannerImage: string;
 }
 
-interface Product {
+interface Product extends PublicProductPriceFields {
     id: string;
     name: string;
     category: string;
@@ -74,11 +75,11 @@ export const useHomeData = () => {
             ]);
 
             const products: Product[] = (Array.isArray(productsData) ? productsData : []).map((p: any) => ({
+                ...withPublicProductPrice(p),
                 id: p.id,
                 name: p.name,
                 category: p.category,
-                price: p.price,
-                originalPrice: p.originalPrice ?? p.original_price ?? undefined,
+                originalPrice: undefined,
                 isPopular: !!(p.isPopular ?? p.is_popular),
                 isFeatured: !!(p.isFeatured ?? p.is_featured),
                 status: p.status,

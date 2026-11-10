@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRelatedTourMatches } from '../magazine/relatedTourMatches';
-import { MW, MW_FONT_EN, MW_GRADIENT, MW_SEE_ALL, MW_STICKY_TOP, cleanTitle, isUsableImage, won } from '../desktop-primitives/mwTokens';
+import { MW, MW_FONT_EN, MW_GRADIENT, MW_SEE_ALL, MW_STICKY_TOP, cleanTitle, isUsableImage } from '../desktop-primitives/mwTokens';
 import { EDITORIAL, SITE, categoryLabel, formatDate } from '../magazine/magazineShared';
 import { durationLabel } from '../tours-mobile/tourListFilters';
 import { ArticleCard, type MagazineListItem } from './MagazineListDesktop';
+import { StartingPrice } from '../product/StartingPrice';
 
 export interface ArticleData {
     id: string;
@@ -217,11 +218,7 @@ export function MagazineArticleDesktop({ magazine, body, faqs, more, prev, next 
                                     </div>
                                     <span style={{ fontSize: 12, color: MW.mute, marginTop: 4 }}>{[t.category, durationLabel(t.duration)].filter(Boolean).join(' | ')}</span>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</h3>
-                                    {t.price > 0 && (
-                                        <span style={{ fontSize: 19, fontWeight: 900 }}>
-                                            {won(t.price)}<span style={{ fontSize: 13 }}>~</span>
-                                        </span>
-                                    )}
+                                    <StartingPrice product={t} amountStyle={{ fontSize: 19, fontWeight: 900 }} />
                                 </a>
                             ))}
                         </div>

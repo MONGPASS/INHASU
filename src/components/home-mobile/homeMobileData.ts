@@ -2,8 +2,8 @@ import { useCallback, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHeroBanners } from '../../hooks/useHeroBanners';
 import { BRAND } from '../../constants/company';
-import { won } from '../desktop-primitives/mwTokens';
 import type { HomeProduct } from '../home-desktop/homeDesktopData';
+import { productPriceLabel, productPriceBasis } from '../../utils/publicProductPrice';
 
 export interface HeroSlide {
     key: string;
@@ -89,7 +89,7 @@ export function useHeroSlides(products: HomeProduct[]) {
                 img: b.pc_image || b.pcImage || b.image || b.image_url || '',
                 eyebrow: tag || (product ? [product.category, product.duration].filter(Boolean).join(' · ') : ''),
                 title: cleanAdminText(b.title) || cleanAdminText(b.pc_title || b.pcTitle) || product?.name || '몽골 여행',
-                sub: sub || (product ? `${won(product.price)}~` : ''),
+                sub: sub || (product ? [productPriceLabel(product), productPriceBasis(product)].filter(Boolean).join(' · ') : ''),
                 label: product?.category || '몽골 여행',
                 path,
             };
