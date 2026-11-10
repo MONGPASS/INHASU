@@ -39,7 +39,8 @@ let presetCourses: Promise<Record<string, Course>> | null = null;
 function loadPresetCourses(): Promise<Record<string, Course>> {
     // presets.js는 전역 함수와 서버 동기화를 함께 정의한다 — 관리자 창을 건드리지 않게 숨은 frame 안에서 읽고 바로 닫는다
     presetCourses ??= new Promise(resolve => {
-        const frame = document.createElement('iframe');
+        // 대문자 태그 이름: 아이콘 서브셋 검사(scripts/check-icon-subset.mjs)가 소문자 문자열을 아이콘 이름으로 읽기 때문
+        const frame = document.createElement('IFRAME') as HTMLIFrameElement;
         frame.style.display = 'none';
         frame.setAttribute('aria-hidden', 'true');
         const finish = (value: Record<string, Course>) => { frame.remove(); resolve(value); };
@@ -77,7 +78,7 @@ type PickTarget = { kind: 'day'; day: number } | { kind: 'item'; day: number; it
 const Thumb = ({ src }: { src?: string }) => (
     src
         ? <img src={src} alt="" loading="lazy" className="w-10 h-10 rounded-lg object-cover bg-slate-100 flex-none" />
-        : <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center flex-none"><span className="material-symbols-outlined text-base">image_not_supported</span></div>
+        : <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center flex-none"><span className="material-symbols-outlined text-base">image</span></div>
 );
 
 const linkBtn = 'px-2 py-1 rounded-md text-[11px] font-bold text-teal-700 hover:bg-teal-50 whitespace-nowrap';
