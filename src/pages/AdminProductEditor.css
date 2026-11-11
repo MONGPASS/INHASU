@@ -94,3 +94,40 @@
 /* 디자인 블록 ‘집중 편집’: 오른쪽 요약 열을 숨기고 본문이 폭 전체를 쓴다(저장 바는 그대로) */
 .admin-app-wrapper .pa-editor.is-design-focus .pa-body { grid-template-columns: minmax(0, 1fr); }
 .admin-app-wrapper .pa-editor.is-design-focus .pa-aside { display: none; }
+
+/* ── 일정 탭: ‘일정표 만들기’ 카드 — 색색의 상자 대신 한 장의 카드에 같은 모양의 줄로 ── */
+.admin-app-wrapper .pa-start { display: flex; flex-direction: column; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); overflow: hidden; }
+.admin-app-wrapper .pa-start-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: var(--adm-space-4) var(--adm-pad-card) var(--adm-space-3); }
+.admin-app-wrapper .pa-start-head b { color: var(--adm-ink); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); }
+.admin-app-wrapper .pa-start-head span { color: var(--adm-text-3); font-size: var(--adm-fs-small); }
+.admin-app-wrapper .pa-start-row { display: flex; align-items: center; gap: var(--adm-space-3); padding: var(--adm-space-3) var(--adm-pad-card); border-top: 1px solid var(--adm-line-subtle); }
+.admin-app-wrapper .pa-start-ico { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: var(--adm-radius-sm); background: var(--adm-gray-100); color: var(--adm-text-2); }
+.admin-app-wrapper .pa-start-ico .material-symbols-outlined { font-size: 20px; }
+.admin-app-wrapper .pa-start-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.admin-app-wrapper .pa-start-text b { color: var(--adm-ink); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); }
+.admin-app-wrapper .pa-start-text span { color: var(--adm-text-3); font-size: var(--adm-fs-small); line-height: 1.5; }
+.admin-app-wrapper .pa-start-row > .adm-btn, .admin-app-wrapper .pa-start-acts { flex: none; }
+.admin-app-wrapper .pa-start-row > .adm-btn { min-width: 92px; }
+.admin-app-wrapper .pa-start-acts { display: flex; align-items: center; gap: var(--adm-gap-control); }
+.admin-app-wrapper .pa-start-acts .select { height: var(--adm-control-h); min-width: 76px; font-size: var(--adm-fs-body); }
+.admin-app-wrapper .pa-start-drop { cursor: pointer; background: var(--adm-gray-50); border-top-style: dashed; border-top-color: var(--adm-line-strong); transition: background var(--adm-dur) var(--adm-ease); }
+.admin-app-wrapper .pa-start-drop:hover, .admin-app-wrapper .pa-start-drop.is-drag { background: var(--adm-accent-soft); }
+.admin-app-wrapper .pa-start-drop.is-drag .pa-start-ico { background: var(--adm-accent); color: #fff; }
+.admin-app-wrapper .pa-start-drop.is-busy { cursor: wait; }
+.admin-app-wrapper .pa-start-drop:focus-visible { outline: 0; box-shadow: inset var(--adm-ring); }
+/* 작성 요령: 접어 두고 필요할 때만 편다 */
+.admin-app-wrapper .pa-tips { margin-bottom: 14px; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--adm-text-2); font-size: var(--adm-fs-body); }
+.admin-app-wrapper .pa-tips > summary { display: flex; align-items: center; gap: 6px; padding: var(--adm-space-3) var(--adm-space-4); color: var(--adm-ink); font-weight: var(--adm-fw-semibold); cursor: pointer; list-style: none; }
+.admin-app-wrapper .pa-tips > summary::-webkit-details-marker { display: none; }
+.admin-app-wrapper .pa-tips > summary .material-symbols-outlined { font-size: 18px; color: var(--adm-warn); }
+.admin-app-wrapper .pa-tips > summary > span:last-child { margin-left: auto; color: var(--adm-accent-strong); font-size: var(--adm-fs-small); }
+.admin-app-wrapper .pa-tips[open] > summary > span:last-child { visibility: hidden; }
+.admin-app-wrapper .pa-tips > ul { margin: 0 !important; padding: 0 var(--adm-space-4) var(--adm-space-4) calc(var(--adm-space-4) + 20px) !important; }
+@media (max-width: 760px) {
+  .admin-app-wrapper .pa-start-row { flex-wrap: wrap; padding: var(--adm-space-3) var(--adm-space-4); }
+  .admin-app-wrapper .pa-start-head { padding: var(--adm-space-4) var(--adm-space-4) var(--adm-space-3); }
+  .admin-app-wrapper .pa-start-text { flex-basis: calc(100% - 48px); }
+  .admin-app-wrapper .pa-start-row > .adm-btn, .admin-app-wrapper .pa-start-acts { flex: 1 1 100%; }
+  .admin-app-wrapper .pa-start-acts .select { flex: 1; }
+  .admin-app-wrapper .pa-start-acts .adm-btn { flex: 1; }
+}

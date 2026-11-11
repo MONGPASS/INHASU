@@ -57,6 +57,11 @@ html.admin-embedded :is(.toast, #toast) { bottom: 28px; max-width: calc(100vw - 
   html.admin-embedded header > * { flex: none; }
   html.admin-embedded .bottom { height: auto; min-height: 64px; gap: var(--adm-space-2); padding: var(--adm-space-2) var(--adm-pad-page); }
   html.admin-embedded .bottom .sum .ic { display: none; }
+  /* 아래 합계 막대: 합계 한 줄, 이전·다음 버튼 한 줄(다음 버튼이 화면 밖으로 나가지 않게) */
+  html.admin-embedded .bottom { flex-wrap: wrap; }
+  html.admin-embedded .bottom .sum { flex: 1 1 100%; min-width: 0; }
+  html.admin-embedded .bottom .sp { display: none; }
+  html.admin-embedded .bottom button { flex: 1 1 0; min-width: 0; justify-content: center; }
   html.admin-embedded .bottom .sum .amt { font-size: var(--adm-fs-lead); white-space: nowrap; }
   html.admin-embedded .shell > .content { padding-left: var(--adm-pad-page); padding-right: var(--adm-pad-page); }
   /* 견적서 만들기: 단계 줄은 옆으로 밀고, 입력 칸은 화면 폭 안에서 두 칸으로 */

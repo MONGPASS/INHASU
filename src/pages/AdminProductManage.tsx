@@ -2532,8 +2532,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                     editing, then serializes back to the SAME flat shape the public
                                     renderer expects. Public site / DB untouched. */}
                                 <div>
-                                    <div className="card-muted-note" style={{ marginBottom: 14, display: 'block' }}>
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontWeight: 700 }}><Icon name="lightbulb" />날짜별 카드에서 일정을 간단히 작성합니다</div>
+                                    <details className="pa-tips">
+                                        <summary><Icon name="lightbulb" />날짜별 카드에서 일정을 간단히 작성합니다<span>작성 방법 보기</span></summary>
                                         <ul style={{ margin: '8px 0 0', paddingLeft: 20, listStyle: 'disc', lineHeight: 1.7 }}>
                                             <li>아래 <strong>DAY 추가</strong> 버튼으로 일차를 추가하면 번호가 자동으로 정리됩니다.</li>
                                             <li>각 카드에 <strong>제목·날짜·식사·숙소</strong>를 입력하고, <strong>일정 항목 추가</strong>로 관광·이동·체험을 순서대로 구성합니다.</li>
@@ -2541,7 +2541,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                             <li><strong>여행지 관리·등록 숙소</strong>에서 선택하면 제목·설명·사진을 자동으로 불러옵니다.</li>
                                             <li>단일 이미지·갤러리·구분선은 각 카드의 <strong>고급 항목</strong>에서 추가할 수 있습니다.</li>
                                         </ul>
-                                    </div>
+                                    </details>
 
                                     {(() => {
                                         const { pre, days } = groupItineraryForEditor(formData.itineraryBlocks || []);
@@ -3121,9 +3121,59 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
     };
 
     return (
-        <div className="stack" style={{ gap: 12 }}>
+        <section className="pa-start" aria-label="일정표 만들기">
+            <header className="pa-start-head">
+                <b>일정표 만들기</b>
+                <span>코스나 다른 상품에서 가져오거나, 빈 일차를 만들어 직접 적습니다.</span>
+            </header>
+
+            {/* ─── 코스에서 불러오기 (가장 많이 쓰는 방법) ─── */}
+            <div className="pa-start-row">
+                <span className="pa-start-ico"><Icon name="route" /></span>
+                <div className="pa-start-text">
+                    <b>코스에서 불러오기</b>
+                    <span>견적 관리의 코스를 고르면 일차·일정·식사·숙소가 한 번에 만들어집니다. 사진과 설명은 여행지 관리·등록 숙소에서 자동으로 채워집니다.</span>
+                </div>
+                <button type="button" onClick={onImportCourse} className="adm-btn is-primary" data-course-import-open>코스 선택</button>
+            </div>
+
+            {/* ─── 일정표 불러오기 ─── */}
+            <div className="pa-start-row">
+                <span className="pa-start-ico"><Icon name="content_copy" /></span>
+                <div className="pa-start-text">
+                    <b>일정표 불러오기</b>
+                    <span>기존 상품의 일정표를 사진·내용 그대로 가져옵니다. 가져온 뒤 이 상품에 맞게 편집만 하면 됩니다.</span>
+                </div>
+                <button type="button" onClick={onImport} className="adm-btn">불러오기</button>
+            </div>
+
+            {/* ─── N-day skeleton macro ─── */}
+            <div className="pa-start-row">
+                <span className="pa-start-ico"><Icon name="calendar_view_day" /></span>
+                <div className="pa-start-text">
+                    <b>N일 일정 골격 만들기</b>
+                    <span>1일차 ~ N일차 헤더와 구분선을 한 번에 생성합니다. 각 날짜는 펼쳐서 내용 채우세요.</span>
+                </div>
+                <div className="pa-start-acts">
+                    <select
+                        aria-label="일수"
+                        value={skeletonDays}
+                        onChange={(e) => setSkeletonDays(Number(e.target.value))}
+                        className="select"
+                    >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                            <option key={n} value={n}>
+                                {n}일
+                            </option>
+                        ))}
+                    </select>
+                    <button type="button" onClick={() => onSkeleton(skeletonDays)} className="adm-btn">생성</button>
+                </div>
+            </div>
+
             {/* ─── Bulk image drop zone ─── */}
             <div
+                className={`pa-start-row pa-start-drop${drag ? ' is-drag' : ''}${uploading ? ' is-busy' : ''}`}
                 onDragOver={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -3145,17 +3195,7 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
                     if (uploading) return;
                     fileInputRef.current?.click();
                 }}
-                style={{
-                    position: 'relative',
-                    width: '100%',
-                    borderRadius: 'var(--r-lg)',
-                    border: '1.5px dashed',
-                    borderColor: drag ? 'var(--mrt-blue)' : 'var(--border-strong)',
-                    background: drag ? 'var(--mrt-blue-50)' : (uploading ? 'var(--mrt-gray-50)' : '#fff'),
-                    cursor: uploading ? 'wait' : 'pointer',
-                    padding: '24px',
-                    transition: 'all var(--dur-fast)',
-                }}
+                onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !uploading) { e.preventDefault(); fileInputRef.current?.click(); } }}
                 role="button"
                 tabIndex={0}
             >
@@ -3171,92 +3211,17 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
                         e.target.value = '';
                     }}
                 />
-                <div className="row" style={{ gap: 14 }}>
-                    <span className="metric-ico tint-blue" style={{ width: 44, height: 44, flex: 'none' }}>
-                        <Icon name={uploading ? 'hourglass_top' : 'cloud_upload'} />
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="cell-strong" style={{ marginBottom: 2 }}>
-                            {uploading
-                                ? `업로드 중... ${progress ? `${progress.done} / ${progress.total}` : ''}`
-                                : '이미지 한 번에 업로드'}
-                        </div>
-                        <div className="cell-muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                            여러 장의 사진을 이 박스에 드래그하거나 클릭해서 선택하세요. 각 사진이 자동으로 일정 끝에 추가됩니다.
-                        </div>
-                    </div>
-                    {!uploading && (
-                        <Icon name="add_photo_alternate" style={{ color: 'var(--mrt-gray-400)', fontSize: 22 }} />
-                    )}
+                <span className="pa-start-ico"><Icon name={uploading ? 'hourglass_top' : 'cloud_upload'} /></span>
+                <div className="pa-start-text">
+                    <b>
+                        {uploading
+                            ? `업로드 중... ${progress ? `${progress.done} / ${progress.total}` : ''}`
+                            : '이미지 한 번에 업로드'}
+                    </b>
+                    <span>여러 장의 사진을 이 박스에 드래그하거나 클릭해서 선택하세요. 각 사진이 자동으로 일정 끝에 추가됩니다.</span>
                 </div>
+                {!uploading && <span className="adm-btn" aria-hidden="true">사진 선택</span>}
             </div>
-
-            {/* ─── 코스에서 불러오기 ─── */}
-            <div className="row" style={{ gap: 12, flexWrap: 'wrap', padding: 16, borderRadius: 'var(--r-lg)', background: '#E8F1FF', border: '1px solid #BCD4FA' }}>
-                <span className="metric-ico tint-blue" style={{ width: 40, height: 40, flex: 'none' }}>
-                    <Icon name="route" />
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="cell-strong" style={{ color: '#1d4f9c' }}>코스에서 불러오기</div>
-                    <div style={{ fontSize: 12, color: '#3563a8', marginTop: 2 }}>
-                        견적 관리의 코스를 고르면 일차·일정·식사·숙소가 한 번에 만들어집니다. 사진과 설명은 여행지 관리·등록 숙소에서 자동으로 채워집니다.
-                    </div>
-                </div>
-                <button type="button" onClick={onImportCourse} className="btn btn-ink btn-sm" style={{ flex: 'none' }} data-course-import-open>
-                    <Icon name="route" />코스 선택
-                </button>
-            </div>
-
-            {/* ─── 일정표 불러오기 ─── */}
-            <div className="row" style={{ gap: 12, flexWrap: 'wrap', padding: 16, borderRadius: 'var(--r-lg)', background: '#E6FAF4', border: '1px solid #B5E9D9' }}>
-                <span className="metric-ico tint-green" style={{ width: 40, height: 40, flex: 'none' }}>
-                    <Icon name="content_copy" />
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="cell-strong" style={{ color: '#0f6b58' }}>일정표 불러오기</div>
-                    <div style={{ fontSize: 12, color: '#2a7d6a', marginTop: 2 }}>
-                        기존 상품의 일정표를 사진·내용 그대로 가져옵니다. 가져온 뒤 이 상품에 맞게 편집만 하면 됩니다.
-                    </div>
-                </div>
-                <button type="button" onClick={onImport} className="btn btn-ink btn-sm" style={{ flex: 'none' }}>
-                    <Icon name="download" />불러오기
-                </button>
-            </div>
-
-            {/* ─── N-day skeleton macro ─── */}
-            <div className="row" style={{ gap: 12, flexWrap: 'wrap', padding: 16, borderRadius: 'var(--r-lg)', background: '#FFF3DC', border: '1px solid #F0DBA8' }}>
-                <span className="metric-ico tint-amber" style={{ width: 40, height: 40, flex: 'none' }}>
-                    <Icon name="calendar_view_day" />
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="cell-strong" style={{ color: '#8a5a12' }}>N일 일정 골격 만들기</div>
-                    <div style={{ fontSize: 12, color: '#9a6a22', marginTop: 2 }}>
-                        1일차 ~ N일차 헤더와 구분선을 한 번에 생성합니다. 각 날짜는 펼쳐서 내용 채우세요.
-                    </div>
-                </div>
-                <div className="row" style={{ gap: 8, flex: 'none' }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#8a5a12' }}>일수</label>
-                    <select
-                        value={skeletonDays}
-                        onChange={(e) => setSkeletonDays(Number(e.target.value))}
-                        className="select"
-                        style={{ height: 36, fontSize: 13 }}
-                    >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                            <option key={n} value={n}>
-                                {n}일
-                            </option>
-                        ))}
-                    </select>
-                    <button
-                        type="button"
-                        onClick={() => onSkeleton(skeletonDays)}
-                        className="btn btn-ink btn-sm"
-                    >
-                        <Icon name="add" />생성
-                    </button>
-                </div>
-            </div>
-        </div>
+        </section>
     );
 };
