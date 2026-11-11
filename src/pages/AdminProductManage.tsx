@@ -2662,19 +2662,28 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                     </div>
                                                 )}
 
+                                                {days.length > 1 && (
+                                                    <div className="pa-day-bar">
+                                                        <b>일차 {days.length}개</b>
+                                                        <span style={{ flex: 1 }} />
+                                                        <button type="button" className="adm-btn is-sm" onClick={() => setCollapsedDays(new Set(days.map((d) => d.dayInfo.id)))}>모두 접기</button>
+                                                        <button type="button" className="adm-btn is-sm" onClick={() => setCollapsedDays(new Set())}>모두 펼치기</button>
+                                                    </div>
+                                                )}
+
                                                 {days.map((day, dayIdx) => {
                                                     const dc = day.dayInfo.content as DayInfoContent;
                                                     const collapsed = collapsedDays.has(day.dayInfo.id);
                                                     const showAdv = advancedDays.has(day.dayInfo.id);
                                                     const eventCount = day.events.filter((e) => e.block.type === 'timeline').length;
                                                     return (
-                                                        <div key={day.dayInfo.id} data-itinerary-block={day.dayInfo.id} style={{ border: '1px solid var(--border-default)', borderRadius: 'var(--r-lg)', overflow: 'hidden', background: '#fff' }}>
+                                                        <div key={day.dayInfo.id} data-itinerary-block={day.dayInfo.id} className={`pa-day${collapsed ? ' is-collapsed' : ''}`}>
                                                             {/* Day header */}
-                                                            <div className="row" style={{ gap: 8, alignItems: 'center', padding: '12px 14px', background: 'var(--mrt-gray-50, #f8f9fa)', borderBottom: collapsed ? 'none' : '1px solid var(--border-subtle)' }}>
+                                                            <div className="row pa-day-head">
                                                                 <button type="button" className="act-btn" onClick={() => toggleDayCollapsed(day.dayInfo.id)} title={collapsed ? '펼치기' : '접기'}><Icon name={collapsed ? 'expand_more' : 'expand_less'} /></button>
-                                                                <span className="badge b-amber" style={{ flex: 'none' }}>{dc.dayLabel || `${dayIdx + 1}일차`}</span>
+                                                                <span className="pa-day-no">{dc.dayLabel || `${dayIdx + 1}일차`}</span>
                                                                 <input type="text" className="inp" style={{ flex: 1, fontWeight: 700 }} value={dc.title || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, title: e.target.value })} placeholder="일정 제목 (예: 울란바토르 → 테를지)" />
-                                                                {collapsed && eventCount > 0 && <span className="cell-muted" style={{ fontSize: 12, flex: 'none' }}>일정 {eventCount}개</span>}
+                                                                {collapsed && <span className="pa-day-sum">{[dc.dayDate, dc.accommodation && `숙소 ${dc.accommodation}`, `일정 ${eventCount}개`].filter(Boolean).join(' · ')}</span>}
                                                                 <div className="edit-move" style={{ flex: 'none' }}>
                                                                     <button type="button" onClick={() => moveItineraryDay(dayIdx, -1)} disabled={dayIdx === 0}><Icon name="expand_less" /></button>
                                                                     <button type="button" onClick={() => moveItineraryDay(dayIdx, 1)} disabled={dayIdx === days.length - 1}><Icon name="expand_more" /></button>
@@ -2684,20 +2693,20 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                             </div>
 
                                                             {!collapsed && (
-                                                                <div className="stack" style={{ gap: 12, padding: 14 }}>
+                                                                <div className="stack pa-day-body">
                                                                     <div className="field-row">
                                                                         <div>
-                                                                            <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>날짜 (선택)</label>
+                                                                            <label className="pa-label">날짜 (선택)</label>
                                                                             <input type="text" className="inp" value={dc.dayDate || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, dayDate: e.target.value })} placeholder="05/26(화)" />
                                                                         </div>
                                                                         <div>
-                                                                            <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>주요 일정 요약 (선택)</label>
+                                                                            <label className="pa-label">주요 일정 요약 (선택)</label>
                                                                             <input type="text" className="inp" value={dc.description || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, description: e.target.value })} placeholder="대형마트, 테를지 국립공원, 거북바위..." />
                                                                         </div>
                                                                     </div>
 
                                                                     <div>
-                                                                        <label className="cell-strong" style={{ fontSize: 12.5, display: 'block', marginBottom: 6 }}>식사 정보</label>
+                                                                        <label className="pa-label">식사 정보</label>
                                                                         <div className="meal-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                                                                             <div className="inp-mini"><span className="pre" style={{ fontSize: 11 }}>조식</span><input value={dc.meals?.breakfast || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, meals: { ...dc.meals, breakfast: e.target.value } })} placeholder="호텔식" /></div>
                                                                             <div className="inp-mini"><span className="pre" style={{ fontSize: 11 }}>중식</span><input value={dc.meals?.lunch || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, meals: { ...dc.meals, lunch: e.target.value } })} placeholder="현지식" /></div>
@@ -2707,7 +2716,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                                                                     <div>
                                                                         <div className="row" style={{ marginBottom: 6 }}>
-                                                                            <label className="cell-strong" style={{ fontSize: 12.5 }}>숙소 정보</label>
+                                                                            <label className="pa-label" style={{ marginBottom: 0 }}>숙소 정보</label>
                                                                             <div className="spacer" style={{ flex: 1 }} />
                                                                             <button type="button" onClick={() => setHotelPickerForIndex(day.dayInfoFlatIndex)} className="btn btn-ghost btn-sm"><Icon name="hotel" />등록 숙소 선택</button>
                                                                         </div>
@@ -2732,7 +2741,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                         <div className="row" style={{ gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', display: designDays.has(day.dayInfo.id) ? undefined : 'none' }}>
                                                                             <div>
                                                                                 <div className="muted" style={{ fontSize: 11, marginBottom: 4 }}>히어로 배경</div>
-                                                                                <label title={dc.heroImage ? '사진 변경' : '사진 업로드'} style={{ display: 'block', position: 'relative', width: 120, height: 72, borderRadius: 'var(--r-md)', overflow: 'hidden', border: dc.heroImage ? '2px solid #06C4A0' : '2px dashed var(--border-default)', cursor: 'pointer', background: 'var(--bg-muted, #f8f9fa)' }}>
+                                                                                <label title={dc.heroImage ? '사진 변경' : '사진 업로드'} style={{ display: 'block', position: 'relative', width: 120, height: 72, borderRadius: 'var(--r-md)', overflow: 'hidden', border: dc.heroImage ? '2px solid var(--adm-accent)' : '2px dashed var(--border-default)', cursor: 'pointer', background: 'var(--bg-muted, #f8f9fa)' }}>
                                                                                     {dc.heroImage
                                                                                         ? <img src={getOptimizedImageUrl(dc.heroImage, 'productThumbnail')} alt="히어로" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                                         : <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'var(--text-muted)' }}><Icon name="add_a_photo" style={{ fontSize: 18 }} /></span>}
@@ -2762,7 +2771,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                         </div>
                                                                     </div>
                                                                     <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
-                                                                        <label className="cell-strong" style={{ fontSize: 12.5, display: 'block', marginBottom: 8 }}><Icon name="timeline" style={{ fontSize: 16, verticalAlign: '-3px' }} /> 이 일차의 주요 일정</label>
+                                                                        <label className="pa-label"><Icon name="timeline" style={{ fontSize: 16, verticalAlign: '-3px' }} /> 이 일차의 주요 일정</label>
                                                                         {day.events.length === 0 && (
                                                                             <p className="muted" style={{ fontSize: 12, padding: '2px 0 8px', margin: 0 }}>등록된 일정이 없습니다. 아래 버튼으로 추가하세요.</p>
                                                                         )}
