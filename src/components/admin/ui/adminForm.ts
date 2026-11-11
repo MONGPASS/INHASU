@@ -2,7 +2,7 @@ import './admin-ui.css';
 
 /**
  * 필수 입력 공통 처리.
- * - 라벨에 `className="adm-req"`를 주면 빨간 `*`가 붙는다(라벨 글자에 `*`를 직접 적지 않는다).
+ * - 이름표(label 또는 그 안의 span)에 `className="adm-req"`를 주면 빨간 `*`가 붙는다(글자에 `*`를 직접 적지 않는다).
  * - 저장할 때 `adminValidateRequired()`를 부르면, 열려 있는 팝업(없으면 화면 본문) 안의 필수 칸 중
  *   비어 있는 칸 아래에 빨간 안내를 띄우고 첫 칸으로 이동한다. 모두 채워져 있으면 true.
  * 안내는 그 칸을 고치면 사라진다. `alert()`나 알림으로 필수 입력을 알리지 않는다.
@@ -27,8 +27,11 @@ export function adminValidateRequired(root?: ParentNode | null): boolean {
     const popups = Array.from(document.querySelectorAll<HTMLElement>(POPUPS)).filter(node => node.offsetParent !== null || node.getClientRects().length);
     const scope: ParentNode = root || popups[popups.length - 1] || document.querySelector('.admin-app-wrapper .content') || document;
     let first: HTMLElement | null = null;
-    scope.querySelectorAll<HTMLElement>('label.adm-req').forEach(label => {
-        const control = controlFor(label), holder = label.parentElement;
+    scope.querySelectorAll<HTMLElement>('.adm-req').forEach(label => {
+        // 이름표가 입력 칸을 감싼 label 안에 있으면(<label><span class="adm-req">…</span><input/></label>) 그 label이 한 칸이다.
+        const wrap = label.closest<HTMLElement>('label, .cm-field, .field');
+        const holder = wrap && wrap !== label ? wrap : label.parentElement;
+        const control = (wrap && wrap !== label ? wrap.querySelector<HTMLInputElement>(CONTROLS) : null) || controlFor(label);
         if (!control || !holder || control.disabled) return;
         const empty = !String(control.value ?? '').trim();
         if (!empty) { holder.removeAttribute('data-adm-error'); control.removeAttribute('aria-invalid'); return; }

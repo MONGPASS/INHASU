@@ -102,3 +102,16 @@ test('견적 도구는 관리자 안에서 공통 규격 CSS를 함께 읽는다
         assert.ok(link > html.lastIndexOf('</style>', html.indexOf('</head>')) && link < html.indexOf('</head>'), `${tool}: 자체 스타일 뒤에 공통 규격을 읽는다`);
     }
 });
+
+test('견적 도구 네 문서는 공통 확인·입력 창을 쓴다', () => {
+    const dialog = read('public/admin-dialog.js');
+    assert.ok(dialog.includes('window.AdminDialog') && dialog.includes('var(--adm-primary-bg') && dialog.includes('var(--adm-danger'));
+    for (const tool of ['코스관리', '일정관리', '명소관리', '리소스관리']) {
+        const html = read(`public/${tool}.html`);
+        assert.ok(html.includes('<script src="/admin-dialog.js"></script>'), `${tool}: 공통 창 스크립트 연결`);
+        assert.ok(html.indexOf('/admin-legacy-redirect.js') < html.indexOf('/admin-dialog.js'), `${tool}: 단독 접속 차단 스크립트가 먼저`);
+        // 비밀번호를 묻는 줄만 기본 입력창을 쓴다.
+        const native = html.split('\n').filter((line) => /(^|[^.\w])(confirm|prompt)\(/.test(line) && !line.includes('비밀번호'));
+        assert.deepEqual(native, [], `${tool}: await AdminDialog.confirm/prompt 를 쓴다`);
+    }
+});

@@ -42,6 +42,6 @@
 @media (prefers-reduced-motion: reduce) { .adm-toast, .adm-dialog, .adm-dialog-scrim { animation: none; } }
 
 /* ── 필수 입력: 라벨의 빨간 *, 칸 아래 오류 안내 ── */
-label.adm-req::after { content: " *"; color: var(--adm-danger); font-weight: var(--adm-fw-bold); }
+.adm-req::after { content: " *"; color: var(--adm-danger); font-weight: var(--adm-fw-bold); }
 [data-adm-error]::after { content: attr(data-adm-error); display: block; margin-top: 4px; color: var(--adm-danger); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); line-height: 1.4; }
 :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--adm-danger) !important; box-shadow: 0 0 0 3px rgba(255, 79, 79, .14) !important; }

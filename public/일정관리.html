@@ -84,6 +84,7 @@
 </style>
 <script src="/admin-embed.js"></script>
 <link rel="stylesheet" href="/admin-tools.css">
+<script src="/admin-dialog.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -192,16 +193,16 @@ function renderTabs() {
   $("addCatBtn").onclick = addCat;
 }
 
-function addCat() {
-  const name = (prompt("새 카테고리(지역) 이름을 입력하세요") || "").trim();
+async function addCat() {
+  const name = (await AdminDialog.prompt("새 카테고리(지역) 이름을 입력하세요") || "").trim();
   if (!name) return;
   if (name === UNCAT) { toast(`"${UNCAT}"은(는) 사용할 수 없는 이름입니다`); return; }
   if (CATS.includes(name)) { toast("이미 있는 카테고리입니다"); activeCat = name; renderTabs(); renderList(); return; }
   CATS.push(name); persist(); activeCat = name; renderTabs(); renderList();
   toast(`"${name}" 카테고리가 추가되었습니다`);
 }
-function renameCat(cat) {
-  const name = (prompt("카테고리 이름 변경", cat) || "").trim();
+async function renameCat(cat) {
+  const name = (await AdminDialog.prompt("카테고리 이름 변경", cat) || "").trim();
   if (!name || name === cat) return;
   if (name === UNCAT || CATS.includes(name)) { toast("사용할 수 없거나 이미 있는 이름입니다"); return; }
   CATS = CATS.map(c => c === cat ? name : c);
@@ -209,9 +210,9 @@ function renameCat(cat) {
   if (activeCat === cat) activeCat = name;
   persist(); renderTabs(); renderList(); toast("이름이 변경되었습니다");
 }
-function deleteCat(cat) {
+async function deleteCat(cat) {
   const n = countIn(cat);
-  if (!confirm(`"${cat}" 카테고리를 삭제할까요?` + (n ? `\n이 카테고리의 일정 ${n}개는 "${UNCAT}"으로 이동합니다. (일정은 삭제되지 않습니다)` : ""))) return;
+  if (!await AdminDialog.confirm(`"${cat}" 카테고리를 삭제할까요?` + (n ? `\n이 카테고리의 일정 ${n}개는 "${UNCAT}"으로 이동합니다. (일정은 삭제되지 않습니다)` : ""))) return;
   CATS = CATS.filter(c => c !== cat);
   Object.values(SNIPS).forEach(s => { if (catOf(s) === cat) s.cat = ""; });
   if (activeCat === cat) activeCat = "__all";
@@ -283,9 +284,9 @@ function openEdit(key) {
   // 카테고리 선택: "＋ 새 카테고리 추가…" 를 고르면 즉시 이름을 입력받아 목록에 추가
   const catSel = $("f_cat");
   let prevCat = catSel.value;
-  catSel.onchange = () => {
+  catSel.onchange = async () => {
     if (catSel.value !== "__new") { prevCat = catSel.value; return; }
-    const name = (prompt("새 카테고리(지역) 이름을 입력하세요") || "").trim();
+    const name = (await AdminDialog.prompt("새 카테고리(지역) 이름을 입력하세요") || "").trim();
     if (!name || name === UNCAT) { catSel.value = prevCat; if (name === UNCAT) toast(`"${UNCAT}"은(는) 사용할 수 없는 이름입니다`); return; }
     if (!CATS.includes(name)) { CATS.push(name); saveSnippetCats(CATS); renderTabs(); }
     catSel.innerHTML = catOptions(name);
@@ -317,7 +318,7 @@ function openEdit(key) {
   };
   const delEl = $("delBtn");
   if (delEl) delEl.onclick = async () => {
-    if (!confirm(`"${key}" 일정을 삭제할까요?`)) return;
+    if (!await AdminDialog.confirm(`"${key}" 일정을 삭제할까요?`)) return;
     delete SNIPS[key];
     const res = await persist();
     renderTabs(); renderList(); closeDrawer();
