@@ -8,6 +8,7 @@ import { PROMO_THEME_KEYS, type Promotion, type PromoThemeKey } from '../compone
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminValidateRequired } from '../components/admin/ui/adminForm';
 
 interface ProductLite {
     id: string;
@@ -201,10 +202,7 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
 
     const save = async () => {
         const title = form.title.trim();
-        if (!title) {
-            setError('제목을 입력해 주세요.');
-            return;
-        }
+        if (!title) { adminValidateRequired(); return; }
         setSaving(true);
         setError('');
         const payload: PromoForm = {
@@ -252,7 +250,7 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
                         </div>
 
                         <div className="field">
-                            <label>제목 *</label>
+                            <label className="adm-req">제목</label>
                             <input
                                 className="inp"
                                 type="text"

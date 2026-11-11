@@ -434,7 +434,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
                     <div className="cg-drawer-body">
                         {/* Name */}
                         <div className="field">
-                            <label>카테고리 이름 *</label>
+                            <label className="adm-req">카테고리 이름</label>
                             <input
                                 type="text"
                                 className="inp"

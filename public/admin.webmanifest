@@ -1,0 +1,17 @@
+{
+  "name": "몽골리아 은하수 관리자",
+  "short_name": "은하수 관리자",
+  "description": "몽골리아 은하수 예약·견적·배정 관리",
+  "lang": "ko",
+  "id": "/admin",
+  "start_url": "/admin",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F8FA",
+  "theme_color": "#FFFFFF",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/img/brand/admin-app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

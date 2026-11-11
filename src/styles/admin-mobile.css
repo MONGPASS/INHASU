@@ -109,3 +109,16 @@
 @media (max-width: 760px) {
   :is(.la-pop, .gs-pop) { position: fixed !important; inset: auto 0 0 0 !important; z-index: var(--adm-z-modal) !important; width: 100% !important; max-width: none !important; max-height: 72dvh !important; box-sizing: border-box; padding-bottom: var(--adm-safe-bottom); border-radius: var(--adm-radius-lg) var(--adm-radius-lg) 0 0 !important; box-shadow: 0 -8px 28px rgba(26, 27, 30, .18), 0 0 0 100vmax var(--adm-scrim) !important; overflow-y: auto; animation: admSheetIn var(--adm-dur) var(--adm-ease); }
 }
+
+/* ── 팝업 안의 입력 칸: 휴대폰에서는 한 줄에 한 칸(옆으로 넘치지 않게) ── */
+@media (max-width: 760px) {
+  .admin-app-wrapper.admin-app-wrapper :is(.picker, .cm-modal, .drawer) .field-row { display: grid; grid-template-columns: minmax(0, 1fr) !important; gap: var(--adm-space-3); }
+  .admin-app-wrapper.admin-app-wrapper :is(.picker, .cm-modal, .drawer) :is(.field, .cm-field) { min-width: 0; }
+  .admin-app-wrapper.admin-app-wrapper :is(.picker, .cm-modal) { overflow-x: hidden; }
+  .admin-app-wrapper.admin-app-wrapper :is(.picker, .cm-modal) :is(input, select, textarea) { max-width: 100%; box-sizing: border-box; }
+}
+@media (max-width: 760px) {
+  /* 팝업 뒤 막의 칸이 안쪽 내용 폭만큼 늘어나지 않게 화면 폭으로 고정한다. */
+  .admin-app-wrapper.admin-app-wrapper :is(.picker-scrim, .cm-scrim) { grid-template-columns: minmax(0, 1fr); }
+  .admin-app-wrapper.admin-app-wrapper :is(.picker, .cm-modal) { min-width: 0; }
+}

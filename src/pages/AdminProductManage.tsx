@@ -1952,7 +1952,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                         {currentTab === 'basic' && (
                             <div style={{ maxWidth: 760 }}>
                                 <div className="field">
-                                    <label>상품명 *</label>
+                                    <label className="adm-req">상품명</label>
                                     <input
                                         type="text"
                                         className="inp"
@@ -1983,7 +1983,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                                 <div className="field-row">
                                     <div className="field">
-                                        <label id="pa-category-label">카테고리 *</label>
+                                        <label id="pa-category-label" className="adm-req">카테고리</label>
                                         <div className="pa-seg" role="radiogroup" aria-labelledby="pa-category-label">
                                             {categories.map(cat => (
                                                 <button key={cat.id} type="button" role="radio" aria-checked={formData.category === cat.name} className={formData.category === cat.name ? 'is-on' : ''} onClick={() => setFormData({ ...formData, category: cat.name })}>{cat.name}</button>
@@ -1993,7 +1993,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                     </div>
 
                                     <div className="field">
-                                        <label>기간 *</label>
+                                        <label className="adm-req">기간</label>
                                         <input
                                             type="text"
                                             className="inp"
@@ -2013,7 +2013,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                                 <div className="field-row">
                                     <div className="field">
-                                        <label>판매가 (원) *</label>
+                                        <label className="adm-req">판매가 (원)</label>
                                         <input
                                             type="number"
                                             className="inp"
@@ -2036,7 +2036,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                                 {/* Main Images Upload */}
                                 <div className="field">
-                                    <label htmlFor="pa-main-images">메인 이미지 업로드 *</label>
+                                    <label htmlFor="pa-main-images" className="adm-req">메인 이미지 업로드</label>
                                     <label className="pa-upload" htmlFor="pa-main-images">
                                         <DashboardIcon name="lc-image-plus" size={22} />
                                         <b>이미지 추가</b>

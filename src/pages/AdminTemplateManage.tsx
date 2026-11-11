@@ -15,6 +15,7 @@ import mongoliaHero from '../assets/login_bg_3.jpg';
 import { DOC_BLUE, DOC_NAVY } from '../components/document/TripDocParts';
 import { won } from '../components/desktop-primitives/mwTokens';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminValidateRequired } from '../components/admin/ui/adminForm';
 
 // ─── Types ───────────────────────────────────────────────
 export type ActivityType = 'pickup' | 'transport' | 'meal' | 'sightseeing' | 'activity' | 'checkin' | 'free' | 'other';
@@ -1681,7 +1682,7 @@ const GuidesTab: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        if (!form.name || !form.phone) { adminNotify('이름과 연락처는 필수입니다.'); return; }
+        if (!adminValidateRequired() || !form.name || !form.phone) return;
         try {
             const payload = { name: form.name, bio: form.introduction, phone: form.phone, image: form.image, experience_years: form.experienceYears, languages: form.languages, specialties: form.specialties };
             if (editing) { await api.tourGuides.update(editing.id, { ...payload, status: editing.status }); }
@@ -1758,8 +1759,8 @@ const GuidesTab: React.FC = () => {
                                     </label>
                                 </div>
                             </div>
-                            <div className="field"><label>이름 *</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="inp" /></div>
-                            <div className="field"><label>연락처 *</label><input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="inp" /></div>
+                            <div className="field"><label className="adm-req">이름</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="inp" /></div>
+                            <div className="field"><label className="adm-req">연락처</label><input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="inp" /></div>
                             <div className="field"><label>경력 연수</label><div className="row"><input type="number" min={0} value={form.experienceYears} onChange={e => setForm(f => ({ ...f, experienceYears: Number(e.target.value) }))} className="inp" style={{ width: 110, textAlign: 'center' }} /><span className="cell-muted" style={{ fontSize: 13 }}>년</span></div></div>
                             <div className="field"><label>소개글</label><textarea value={form.introduction} onChange={e => setForm(f => ({ ...f, introduction: e.target.value }))} rows={3} className="inp" /></div>
                             <div className="field"><label>언어</label><div className="chip-row">{LANGUAGES.map(l => <button key={l} type="button" onClick={() => toggle('languages', l)} className={`chip${form.languages.includes(l) ? ' active' : ''}`}>{l}</button>)}</div></div>
@@ -1804,7 +1805,7 @@ const AccommodationsTab: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        if (!form.name || !form.location) { adminNotify('숙소명과 위치는 필수입니다.'); return; }
+        if (!adminValidateRequired() || !form.name || !form.location) return;
         try {
             const payload = { name: form.name, images: form.images, description: form.description, type: form.type, location: form.location };
             if (editing) { await api.accommodations.update(editing.id, payload); }
@@ -1864,8 +1865,8 @@ const AccommodationsTab: React.FC = () => {
                                     <Icon name="add_photo_alternate" /> 이미지 추가 <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
                                 </label>
                             </div>
-                            <div className="field"><label>숙소명 *</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="inp" /></div>
-                            <div className="field"><label>위치 *</label><input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} className="inp" placeholder="예: 울란바토르 시내, 테를지 국립공원" /></div>
+                            <div className="field"><label className="adm-req">숙소명</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="inp" /></div>
+                            <div className="field"><label className="adm-req">위치</label><input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} className="inp" placeholder="예: 울란바토르 시내, 테를지 국립공원" /></div>
                             <div className="field">
                                 <label>숙소 타입</label>
                                 {Object.entries(ACCOM_TYPES).map(([cat, subs]) => (

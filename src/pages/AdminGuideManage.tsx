@@ -4,6 +4,7 @@ import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminValidateRequired } from '../components/admin/ui/adminForm';
 
 interface Guide {
     id: string;
@@ -91,10 +92,7 @@ export const AdminGuideManage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        if (!formData.name || !formData.phone) {
-            adminNotify('이름과 연락처는 필수 입력 항목입니다.');
-            return;
-        }
+        if (!adminValidateRequired() || !formData.name || !formData.phone) return;
 
         try {
             const payload = {
@@ -354,7 +352,7 @@ export const AdminGuideManage: React.FC = () => {
                             {/* Name + Phone */}
                             <div className="field-row">
                                 <div className="field" style={{ marginBottom: 0 }}>
-                                    <label>이름 *</label>
+                                    <label className="adm-req">이름</label>
                                     <input
                                         type="text"
                                         className="inp"
@@ -364,7 +362,7 @@ export const AdminGuideManage: React.FC = () => {
                                     />
                                 </div>
                                 <div className="field" style={{ marginBottom: 0 }}>
-                                    <label>연락처 *</label>
+                                    <label className="adm-req">연락처</label>
                                     <input
                                         type="tel"
                                         className="inp"
