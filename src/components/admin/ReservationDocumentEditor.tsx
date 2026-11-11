@@ -394,15 +394,15 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                         <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">취소</button>
-                        <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-sm font-bold bg-[#287DFA] hover:bg-[#1668DC] text-white rounded-lg inline-flex items-center gap-1.5 disabled:opacity-50">
+                        <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-sm font-bold bg-[var(--adm-accent)] hover:bg-[var(--adm-accent-hover)] text-white rounded-lg inline-flex items-center gap-1.5 disabled:opacity-50">
                             <span className="material-symbols-outlined text-base">check</span>{saving ? '저장 중' : '저장'}
                         </button>
                     </div>
                 </div>
                 {(customer || (documentType === 'contract' && (onAssignGuide || onAssignAccommodation))) && <div className="flex flex-shrink-0 flex-col gap-3 border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900 lg:flex-row lg:items-center lg:justify-between">
                     <div className={`grid gap-2 sm:grid-cols-3 ${datesEditable ? 'lg:min-w-[760px] lg:grid-cols-5' : 'lg:min-w-[520px]'}`}>
-                        <div className="rounded-2xl border border-[#BBD9FF] bg-[#EAF3FF] px-4 py-3 dark:border-teal-900 dark:bg-teal-950/20">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-[#1668DC]">고객</p>
+                        <div className="rounded-2xl border border-[color:var(--adm-accent-line)] bg-[var(--adm-accent-soft)] px-4 py-3 dark:border-teal-900 dark:bg-teal-950/20">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[color:var(--adm-accent-hover)]">고객</p>
                             <p className="mt-1 truncate text-sm font-black text-slate-900 dark:text-white">{customer?.name || '고객명 없음'}</p>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
@@ -414,12 +414,12 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                             <p className="mt-1 truncate text-sm font-black text-slate-900 dark:text-white">{editableDuration || customer?.tripLength || '-'}</p>
                         </div>
                         {datesEditable && <>
-                            <label className="rounded-2xl border border-[#BBD9FF] bg-white px-4 py-2 dark:border-blue-800 dark:bg-slate-800">
-                                <span className="block text-[10px] font-black uppercase tracking-widest text-[#1668DC]">투어 시작일</span>
+                            <label className="rounded-2xl border border-[color:var(--adm-accent-line)] bg-white px-4 py-2 dark:border-blue-800 dark:bg-slate-800">
+                                <span className="block text-[10px] font-black uppercase tracking-widest text-[color:var(--adm-accent-hover)]">투어 시작일</span>
                                 <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 w-full border-0 bg-transparent p-0 text-sm font-black text-slate-900 outline-none dark:text-white" />
                             </label>
-                            <label className="rounded-2xl border border-[#BBD9FF] bg-white px-4 py-2 dark:border-blue-800 dark:bg-slate-800">
-                                <span className="block text-[10px] font-black uppercase tracking-widest text-[#1668DC]">투어 종료일</span>
+                            <label className="rounded-2xl border border-[color:var(--adm-accent-line)] bg-white px-4 py-2 dark:border-blue-800 dark:bg-slate-800">
+                                <span className="block text-[10px] font-black uppercase tracking-widest text-[color:var(--adm-accent-hover)]">투어 종료일</span>
                                 <input type="date" value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)} className="mt-1 w-full border-0 bg-transparent p-0 text-sm font-black text-slate-900 outline-none dark:text-white" />
                             </label>
                         </>}
@@ -427,7 +427,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                     {documentType === 'contract' && (onAssignGuide || onAssignAccommodation) && (
                         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                         {onAssignGuide && (
-                            <button onClick={onAssignGuide} className="inline-flex h-12 items-center gap-2 rounded-xl border border-[#BBD9FF] bg-white px-4 text-sm font-black text-[#1668DC] shadow-sm transition-colors hover:bg-[#EAF3FF] dark:border-teal-700 dark:bg-slate-800 dark:text-teal-300 dark:hover:bg-teal-900/30">
+                            <button onClick={onAssignGuide} className="inline-flex h-12 items-center gap-2 rounded-xl border border-[color:var(--adm-accent-line)] bg-white px-4 text-sm font-black text-[color:var(--adm-accent-hover)] shadow-sm transition-colors hover:bg-[var(--adm-accent-soft)] dark:border-teal-700 dark:bg-slate-800 dark:text-teal-300 dark:hover:bg-teal-900/30">
                                 <span className="material-symbols-outlined text-[20px]">{assignedGuide?.name ? 'badge' : 'person_add'}</span>
                                 <span>{assignedGuide?.name || '가이드 배정'}</span>
                             </button>
@@ -438,7 +438,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                     const dayNum = i + 1;
                                     const a = dailyAccommodations?.find(d => d.day === dayNum);
                                     return (
-                                        <button key={i} onClick={() => onAssignAccommodation(dayNum)} className={`inline-flex h-12 items-center gap-1.5 rounded-xl border px-3 text-xs font-black shadow-sm transition-colors hover:bg-[#EAF3FF] dark:hover:bg-teal-900/30 ${a ? 'border-[#BBD9FF] bg-white text-[#1668DC] dark:border-teal-700 dark:bg-slate-800 dark:text-teal-300' : 'border-dashed border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-800'}`}>
+                                        <button key={i} onClick={() => onAssignAccommodation(dayNum)} className={`inline-flex h-12 items-center gap-1.5 rounded-xl border px-3 text-xs font-black shadow-sm transition-colors hover:bg-[var(--adm-accent-soft)] dark:hover:bg-teal-900/30 ${a ? 'border-[color:var(--adm-accent-line)] bg-white text-[color:var(--adm-accent-hover)] dark:border-teal-700 dark:bg-slate-800 dark:text-teal-300' : 'border-dashed border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-800'}`}>
                                             <span className="material-symbols-outlined text-[18px]">hotel</span>
                                             <span>{dayNum}일차: {a?.accommodation?.name || '숙소 선택'}</span>
                                         </button>
@@ -449,7 +449,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                         </div>
                     )}
                 </div>}
-                {documentType === 'contract' && <div className="flex flex-shrink-0 items-center gap-2 border-b border-[#BBD9FF] bg-[#EAF3FF] px-6 py-2 text-xs font-bold text-[#287DFA] dark:border-teal-800 dark:bg-teal-900/20">
+                {documentType === 'contract' && <div className="flex flex-shrink-0 items-center gap-2 border-b border-[color:var(--adm-accent-line)] bg-[var(--adm-accent-soft)] px-6 py-2 text-xs font-bold text-[color:var(--adm-accent)] dark:border-teal-800 dark:bg-teal-900/20">
                     <span className="material-symbols-outlined text-[16px]">tips_and_updates</span>
                     <span>문서를 클릭해서 수정하고, 상단에서 담당 가이드와 일자별 숙소를 배정하면 일정표·계약서에 함께 반영됩니다.</span>
                 </div>}
@@ -466,9 +466,9 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                     {(
                     <div className="grid h-full grid-cols-[240px_minmax(560px,1fr)_280px] overflow-hidden max-xl:grid-cols-[210px_minmax(520px,1fr)] max-lg:block max-lg:overflow-y-auto">
                         <aside className="overflow-y-auto border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 max-lg:border-b max-lg:border-r-0">
-                            <div className="mb-4 rounded-xl border border-[#9CC5FF] bg-[#F5F7FA] p-3">
+                            <div className="mb-4 rounded-xl border border-[color:var(--adm-accent-line)] bg-[#F5F7FA] p-3">
                                 <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[18px] text-[#287DFA]">inventory_2</span>
+                                    <span className="material-symbols-outlined text-[18px] text-[color:var(--adm-accent)]">inventory_2</span>
                                     <div>
                                         <p className="text-xs font-black text-slate-800">상품 정보 불러오기</p>
                                         <p className="text-[9px] font-semibold text-slate-400">일정·가격·포함사항을 재사용합니다.</p>
@@ -480,7 +480,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                         autoImportRef.current = false;
                                         setSelectedProductId(event.target.value);
                                     }}
-                                    className="mt-3 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[#287DFA]"
+                                    className="mt-3 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[color:var(--adm-accent)]"
                                     disabled={loadingProducts}
                                 >
                                     <option value="">{loadingProducts ? '상품 불러오는 중...' : '상품 선택'}</option>
@@ -499,7 +499,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                     type="button"
                                     onClick={importSelectedProduct}
                                     disabled={!selectedProductId}
-                                    className="mt-2 flex h-9 w-full items-center justify-center gap-1 rounded-lg bg-[#287DFA] text-[11px] font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="mt-2 flex h-9 w-full items-center justify-center gap-1 rounded-lg bg-[var(--adm-accent)] text-[11px] font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     <span className="material-symbols-outlined text-[15px]">download</span>
                                     선택 상품 적용
@@ -510,7 +510,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                     <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">일정 구성</p>
                                     <h2 className="mt-1 text-base font-black text-slate-900 dark:text-white">{days.length}일 일정</h2>
                                 </div>
-                                <button onClick={addDay} className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#287DFA] text-white" title="DAY 추가">
+                                <button onClick={addDay} className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--adm-accent)] text-white" title="DAY 추가">
                                     <span className="material-symbols-outlined text-[18px]">add</span>
                                 </button>
                             </div>
@@ -521,7 +521,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                         onClick={() => setSelectedDayIndex(index)}
                                         onDragOver={(e) => handleDayDragOver(e, index)}
                                         onDrop={handleDayDragEnd}
-                                        className={`w-full cursor-pointer rounded-xl border p-3 text-left transition-colors ${selectedDayIndex === index ? 'border-[#287DFA] bg-[#EAF3FF] shadow-sm' : 'border-slate-200 bg-white hover:border-[#9CC5FF]'} ${draggedDayIndex === index ? 'opacity-50' : ''}`}
+                                        className={`w-full cursor-pointer rounded-xl border p-3 text-left transition-colors ${selectedDayIndex === index ? 'border-[color:var(--adm-accent)] bg-[var(--adm-accent-soft)] shadow-sm' : 'border-slate-200 bg-white hover:border-[color:var(--adm-accent-line)]'} ${draggedDayIndex === index ? 'opacity-50' : ''}`}
                                     >
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-1">
@@ -535,7 +535,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                                 >
                                                     <span className="material-symbols-outlined text-[16px]">drag_indicator</span>
                                                 </span>
-                                                <span className="text-[10px] font-black text-[#287DFA]">DAY {day.day}</span>
+                                                <span className="text-[10px] font-black text-[color:var(--adm-accent)]">DAY {day.day}</span>
                                             </div>
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-[9px] font-bold text-slate-400">{day.activities.length}개 일정</span>
@@ -568,11 +568,11 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                             onClick={(e) => e.stopPropagation()}
                                             onChange={(e) => updateDay(index, 'date', e.target.value)}
                                             placeholder={startDate ? '기준일로 자동 계산' : '날짜 직접 입력 (예: 9월 20일)'}
-                                            className="mt-0.5 w-full truncate border-none bg-transparent p-0 text-[10px] font-semibold text-[#287DFA] outline-none placeholder:text-slate-300 focus:ring-0"
+                                            className="mt-0.5 w-full truncate border-none bg-transparent p-0 text-[10px] font-semibold text-[color:var(--adm-accent)] outline-none placeholder:text-slate-300 focus:ring-0"
                                         />
                                     </div>
                                 ))}
-                                <button onClick={addDay} className="flex w-full items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#9CC5FF] px-3 py-3 text-xs font-black text-[#287DFA] hover:bg-[#EAF3FF]">
+                                <button onClick={addDay} className="flex w-full items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[color:var(--adm-accent-line)] px-3 py-3 text-xs font-black text-[color:var(--adm-accent)] hover:bg-[var(--adm-accent-soft)]">
                                     <span className="material-symbols-outlined text-[16px]">add</span>
                                     {days.length === 0 ? '첫 번째 DAY 추가' : 'DAY 추가'}
                                 </button>
@@ -621,7 +621,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">여행 요약</p>
                             <div className="mt-3 rounded-xl border border-slate-200 p-3">
                                 <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[18px] text-[#287DFA]">calendar_month</span>
+                                    <span className="material-symbols-outlined text-[18px] text-[color:var(--adm-accent)]">calendar_month</span>
                                     <div>
                                         <p className="text-[10px] font-bold text-slate-400">여행 기간</p>
                                         <p className="text-xs font-black text-slate-800">{editablePeriod || editableDuration || customer?.period || customer?.tripLength || '-'}</p>
@@ -642,7 +642,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                             <div className="mt-4 rounded-xl border border-slate-200 p-3">
                                 <div className="flex items-center justify-between">
                                     <p className="text-xs font-black text-slate-800">현재 DAY</p>
-                                    <span className="rounded-full bg-[#EAF3FF] px-2 py-1 text-[10px] font-black text-[#287DFA]">DAY {selectedDay?.day || 0}</span>
+                                    <span className="rounded-full bg-[var(--adm-accent-soft)] px-2 py-1 text-[10px] font-black text-[color:var(--adm-accent)]">DAY {selectedDay?.day || 0}</span>
                                 </div>
                                 <dl className="mt-3 space-y-2 text-[11px]">
                                     <div className="flex justify-between gap-3"><dt className="font-bold text-slate-400">지역</dt><dd className="truncate font-black text-slate-700">{selectedDay?.region || '미정'}</dd></div>
@@ -667,11 +667,11 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                             </div>
 
                             <div className="mt-4 space-y-2">
-                                {onAssignGuide && <button onClick={onAssignGuide} className="flex w-full items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs font-black text-slate-700 hover:border-[#287DFA]">
-                                    <span className="material-symbols-outlined text-[18px] text-[#287DFA]">badge</span>{assignedGuide?.name || '담당 가이드 배정'}
+                                {onAssignGuide && <button onClick={onAssignGuide} className="flex w-full items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs font-black text-slate-700 hover:border-[color:var(--adm-accent)]">
+                                    <span className="material-symbols-outlined text-[18px] text-[color:var(--adm-accent)]">badge</span>{assignedGuide?.name || '담당 가이드 배정'}
                                 </button>}
-                                {onAssignAccommodation && selectedDay && <button onClick={() => onAssignAccommodation(selectedDay.day)} className="flex w-full items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs font-black text-slate-700 hover:border-[#287DFA]">
-                                    <span className="material-symbols-outlined text-[18px] text-[#287DFA]">hotel</span>DAY {selectedDay.day} 숙소 배정
+                                {onAssignAccommodation && selectedDay && <button onClick={() => onAssignAccommodation(selectedDay.day)} className="flex w-full items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs font-black text-slate-700 hover:border-[color:var(--adm-accent)]">
+                                    <span className="material-symbols-outlined text-[18px] text-[color:var(--adm-accent)]">hotel</span>DAY {selectedDay.day} 숙소 배정
                                 </button>}
                             </div>
                         </aside>

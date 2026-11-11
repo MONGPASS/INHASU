@@ -217,3 +217,8 @@
     .rw-delivery-row { grid-template-columns: minmax(0, 1fr); }
     .rw-delivery-actions { justify-content: flex-start; }
 }
+
+/* 고객 공개·전달 묶음의 버튼도 관리자 공통 규격(높이·모서리·주 버튼 민트)을 따른다 — public/admin-tokens.css */
+.rw-delivery-panel button { height: var(--adm-control-h-sm); border-radius: var(--adm-radius-sm); }
+.rw-delivery-panel button.is-primary { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff; }
+.rw-delivery-panel button.is-primary:hover:not(:disabled) { border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover); color: #fff; }

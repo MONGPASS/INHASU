@@ -302,3 +302,16 @@
 .customer-booking-editor .savebar .barbtn.primary,.customer-booking-editor #saveBtn:not(.secondary){border-color:var(--adm-primary-bg);background:var(--adm-primary-bg);color:#fff}
 .customer-booking-editor .savebar .barbtn.primary:hover:not(:disabled),.customer-booking-editor #saveBtn:not(.secondary):hover:not(:disabled){border-color:var(--adm-primary-bg-hover);background:var(--adm-primary-bg-hover)}
 .customer-booking-editor:not([data-customer-section="docs"]):not([data-customer-section="contract"]) .savebar:has(#contractRequestBtn.primary) #saveBtn{border-color:var(--adm-primary-bg);background:var(--adm-primary-bg);color:#fff}
+/* 버튼·입력창의 높이와 모서리도 관리자 공통 규격을 따른다(알약 모양 대신 공통 모서리) — public/admin-tokens.css */
+.customer-booking-editor .hbtn,.customer-booking-editor .hbtn.blue,.customer-booking-editor #admin-booking-history .delivery-history button{height:var(--adm-control-h-sm);min-height:var(--adm-control-h-sm);border-radius:var(--adm-radius-sm)}
+.customer-booking-editor .savebar .barbtn,.customer-booking-editor #saveBtn{height:var(--adm-control-h-lg);min-height:var(--adm-control-h-lg);border-radius:var(--adm-radius-sm)}
+.customer-booking-editor .quote-day-editor .day-edit .dh .day-toggle{height:var(--adm-control-h-sm);min-height:var(--adm-control-h-sm);border-radius:var(--adm-radius-sm)}
+.customer-booking-editor .quote-day-editor .day-edit .snip-sel{height:var(--adm-control-h);border-radius:var(--adm-radius-sm)}
+.customer-booking-editor .quote-day-editor .day-add{height:var(--adm-control-h-lg);border-radius:var(--adm-radius-md)}
+.customer-booking-editor label.f input,.customer-booking-editor label.f select,.customer-booking-editor label.f textarea{min-height:var(--adm-control-h);border-radius:var(--adm-radius-sm)}
+.customer-booking-editor .quote-day-editor .day-edit .dh input,.customer-booking-editor .quote-day-editor .day-edit .row.c2 input{height:var(--adm-control-h);min-height:var(--adm-control-h);border-radius:var(--adm-radius-sm)}
+.customer-booking-editor .quote-day-editor .day-edit textarea.items{border-radius:var(--adm-radius-sm)}
+.customer-booking-editor .confirm-cancel,.customer-booking-editor .confirm-ok{min-height:var(--adm-control-h-lg);border-radius:var(--adm-radius-sm)}
+.customer-booking-editor .confirm-ok{background:var(--adm-primary-bg);box-shadow:none}
+.customer-booking-editor .confirm-card.danger .confirm-ok{background:var(--adm-danger);box-shadow:none}
+@media(max-width:700px){.customer-booking-editor .quote-day-editor .day-edit .dh input.dest{flex:1 1 100%}}

@@ -253,7 +253,7 @@ const ACCOM_TYPES = { '호텔': ['2성급 호텔', '3성급 호텔', '4성급 �
 
 // 모듈 스코프 컴포넌트 — 컴포넌트 내부에 정의하면 입력마다 리마운트되어 포커스·스크롤이 튐
 const Frame: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="mx-auto max-w-[960px] rounded-[22px] border border-[#9CC5FF] bg-white shadow-sm">{children}</div>
+    <div className="mx-auto max-w-[960px] rounded-[22px] border border-[color:var(--adm-accent-line)] bg-white shadow-sm">{children}</div>
 );
 
 // ─── Live Preview (editable PC document preview) ───
@@ -392,16 +392,16 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ name, descript
                     </p>
                     <span className="rounded-full bg-[#287DFA]/10 px-3 py-1 text-[11px] font-black text-[#1656D6]">클릭해서 수정</span>
                 </div>
-                <div className="grid grid-cols-4 gap-1.5 rounded-2xl bg-[#EAF3FF] p-1">
+                <div className="grid grid-cols-4 gap-1.5 rounded-2xl bg-[var(--adm-accent-soft)] p-1">
                     {pages.map(page => (
-                        <button key={page.id} onClick={() => setActivePage(page.id)} className={`inline-flex min-w-0 items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-black transition-colors ${activePage === page.id ? 'bg-white text-[#1656D6] shadow-sm' : 'text-slate-500 hover:bg-white/60'}`} title={page.label}>
+                        <button key={page.id} onClick={() => setActivePage(page.id)} className={`inline-flex min-w-0 items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-black transition-colors ${activePage === page.id ? 'bg-white text-[color:var(--adm-accent-strong)] shadow-sm' : 'text-slate-500 hover:bg-white/60'}`} title={page.label}>
                             <span className="material-symbols-outlined text-[15px]">{page.icon}</span><span className="truncate">{page.label}</span>
                         </button>
                     ))}
                 </div>
             </div>}
             {customer ? (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-[#C7DCFF] bg-[#EAF3FF] px-4 py-2 text-[11px] font-bold text-[#1656D6] dark:border-blue-900 dark:bg-blue-900/20">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-[color:var(--adm-accent-line)] bg-[var(--adm-accent-soft)] px-4 py-2 text-[11px] font-bold text-[color:var(--adm-accent-strong)] dark:border-blue-900 dark:bg-blue-900/20">
                     <span className="material-symbols-outlined text-[15px]">person</span>
                     <span>{customer.name || '고객'}님 문서 — 고객 정보·금액이 자동 반영되었습니다</span>
                     <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5"><span className="material-symbols-outlined text-[13px]">badge</span>{guideText}</span>
@@ -1169,7 +1169,7 @@ const ProductDayInfoItineraryEditor: React.FC<ProductStyleItineraryEditorProps> 
                             <button type="button" onClick={() => toggleDayCollapsed(day.day)} className="act-btn" title={collapsed ? '펼치기' : '접기'}>
                                 <Icon name={collapsed ? 'expand_more' : 'expand_less'} />
                             </button>
-                            <span className="inline-flex min-w-[68px] items-center justify-center rounded-lg bg-[#1656D6] px-3 py-2 text-xs font-black text-white">DAY {day.day}</span>
+                            <span className="inline-flex min-w-[68px] items-center justify-center rounded-lg bg-[var(--adm-accent-strong)] px-3 py-2 text-xs font-black text-white">DAY {day.day}</span>
                             <div className="min-w-[260px] flex-1">
                                 <input className="inp font-bold" value={day.title || ''} onChange={event => onUpdateDay(dayIdx, 'title', event.target.value)} placeholder="일정 제목 (예: 울란바토르 → 테를지)" />
                             </div>
@@ -1282,7 +1282,7 @@ const ProductDayInfoItineraryEditor: React.FC<ProductStyleItineraryEditorProps> 
                 })}
 
                 {days.length === 0 && (
-                    <button type="button" onClick={onCreateSkeleton} className="min-h-[280px] w-full rounded-2xl border-2 border-dashed border-[#9CC5FF] bg-white text-sm font-black text-[#1656D6]">
+                    <button type="button" onClick={onCreateSkeleton} className="min-h-[280px] w-full rounded-2xl border-2 border-dashed border-[color:var(--adm-accent-line)] bg-white text-sm font-black text-[color:var(--adm-accent-strong)]">
                         <Icon name="calendar_add_on" /> 일정 골격 생성
                     </button>
                 )}
@@ -1586,7 +1586,7 @@ const TemplatesTab: React.FC = () => {
                                     <h3 className="mt-4 max-w-[420px] truncate text-xl font-black tracking-tight">{t.name}</h3>
                                     {t.description && <p className="mt-1 max-w-[420px] truncate text-xs font-semibold text-white/80">{t.description}</p>}
                                 </div>
-                                <span className="absolute right-4 top-4 rounded-xl bg-white/90 px-3 py-1 text-xs font-black text-[#1656D6] shadow-sm">{Math.max(0, t.days.length - 1)}박{t.days.length}일</span>
+                                <span className="absolute right-4 top-4 rounded-xl bg-white/90 px-3 py-1 text-xs font-black text-[color:var(--adm-accent-strong)] shadow-sm">{Math.max(0, t.days.length - 1)}박{t.days.length}일</span>
                             </div>
 
                             <div className="card-pad">

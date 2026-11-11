@@ -1109,7 +1109,7 @@
 .admin-app-wrapper .tc-anchors { display: flex; gap: 2px; padding: 0 22px; background: #fff; border-bottom: 1px solid var(--border-default); flex: none; }
 .admin-app-wrapper .tc-anchors button { border: none; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--text-tertiary); padding: 10px 13px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .admin-app-wrapper .tc-anchors button:hover { color: var(--text-secondary); }
-.admin-app-wrapper .tc-anchors button.active { color: #287DFA; border-bottom-color: #287DFA; }
+.admin-app-wrapper .tc-anchors button.active { color: var(--adm-accent); border-bottom-color: var(--adm-accent); }
 .admin-app-wrapper .tcom { letter-spacing: -0.01em; }
 .admin-app-wrapper .tcom .drawer-head { padding: 12px 22px; }
 .admin-app-wrapper .tcom .drawer-head .page-title { font-size: 17px; }
@@ -1130,13 +1130,13 @@
 .admin-app-wrapper .tcom .cell-price { color: #FF6F00; }
 .admin-app-wrapper .tcom .pay-cell { border-radius: 8px; }
 .admin-app-wrapper .tcom .inp { height: 36px; font-size: 13px; border-radius: 6px; }
-.admin-app-wrapper .tcom .next-bar { background: #EAF3FF; }
-.admin-app-wrapper .tcom .next-bar .nb-label { color: #1668DC; }
-.admin-app-wrapper .tcom .step-dots .sd.on { background: #287DFA; }
+.admin-app-wrapper .tcom .next-bar { background: var(--adm-accent-soft); }
+.admin-app-wrapper .tcom .next-bar .nb-label { color: var(--adm-accent-hover); }
+.admin-app-wrapper .tcom .step-dots .sd.on { background: var(--adm-accent); }
 .admin-app-wrapper .tcom .reservation-workspace-body { padding: 16px 20px 24px; }
 .admin-app-wrapper .tcom .reservation-action-rail { font-size: 12.5px; }
-.admin-app-wrapper .tcom .link-action { color: #287DFA; font-size: 12.5px; }
-.admin-app-wrapper .tcom .link-action:hover { background: #EAF3FF; }
+.admin-app-wrapper .tcom .link-action { color: var(--adm-accent); font-size: 12.5px; }
+.admin-app-wrapper .tcom .link-action:hover { background: var(--adm-accent-soft); }
 
 /* A customer workspace needs the full narrow viewport for its forms. The same
    existing navigation remains available in a drawer; other admin layouts retain
