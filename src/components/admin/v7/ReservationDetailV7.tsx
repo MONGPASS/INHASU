@@ -16,6 +16,7 @@ import {
     Ico, V7Menu, V7Steps, V7StepHead, V7Styles, V7Toast, V7_INK, V7_MUTED, card, chip, ghostBtn, iconTile, inkBtn, menuAt, pill, sel,
     type PillTone, type V7MenuItem, type V7MenuState,
 } from './v7Ui';
+import { adminConfirm } from '../ui/adminFeedback';
 
 type Css = React.CSSProperties;
 type Model = CustomerWorkspaceOverviewModel;
@@ -172,7 +173,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             return true;
         } catch (e: any) {
             // 다른 화면에서 방금 같은 가이드를 배정했으면 서버가 거절한다. 확인하면 그대로 다시 저장한다.
-            if (mounted.current && !allowGuideConflict && confirmGuideConflict(e)) retry = true;
+            if (mounted.current && !allowGuideConflict && await confirmGuideConflict(e)) retry = true;
             else if (mounted.current) { flash(e?.message || '배정을 저장하지 못했습니다.'); void loadItem(); }
             return false;
         } finally {
@@ -217,10 +218,10 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         ], true));
     };
     const pendingNights = row ? row.stays.filter(s => s.hotel && s.bookingStatus === BOOKING_STATUS.unsent) : [];
-    const requestLodging = () => {
+    const requestLodging = async () => {
         if (!row || !item) { onAction('stay'); return; }
         if (!pendingNights.length) { flash('새로 보낼 수배 요청이 없어요'); return; }
-        if (!window.confirm(`숙소 ${pendingNights.length}박을 '메일 발송'(현지 운영 수배 요청) 상태로 바꿀까요?\n이 버튼은 상태만 기록하며 숙소에 직접 메일을 보내지 않습니다.`)) return;
+        if (!await adminConfirm(`숙소 ${pendingNights.length}박을 '메일 발송'(현지 운영 수배 요청) 상태로 바꿀까요?\n이 버튼은 상태만 기록하며 숙소에 직접 메일을 보내지 않습니다.`)) return;
         const days = new Set(pendingNights.map(s => s.day));
         void save(it => {
             const base = withNight(it, -1, r => r);
@@ -232,7 +233,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         const paid = field === 'deposit' ? row.depositPaid : row.balancePaid, labels = field === 'deposit' ? ['입금 완료', '미입금'] : ['완납', '미수'];
         openMenu(e, field === 'deposit' ? '예약금' : '잔금', labels.map((label, i) => ({ key: label, label, on: paid === (i === 0), onPick: async () => {
             if (paid === (i === 0)) return;
-            if (field === 'deposit' && i === 0 && !window.confirm(`예약금 ${v7Won(row.source.deposit)} 입금을 확인할까요?${row.source.status === 'pending_payment' ? '\n예약이 확정되고 고객에게 입금 확인 메일이 발송됩니다.' : ''}`)) return;
+            if (field === 'deposit' && i === 0 && !await adminConfirm(`예약금 ${v7Won(row.source.deposit)} 입금을 확인할까요?${row.source.status === 'pending_payment' ? '\n예약이 확정되고 고객에게 입금 확인 메일이 발송됩니다.' : ''}`)) return;
             if (await links.onPayment!(field, i === 0)) flash(`${field === 'deposit' ? '예약금' : '잔금'} ${label}(으)로 변경했어요`);
         } })));
     };
@@ -252,9 +253,9 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     };
     const statusMenu = (e: React.MouseEvent) => {
         if (!links?.onStatus || !source || source.type !== 'product') { e.stopPropagation(); onAction('payments'); return; }
-        openMenu(e, '진행상황 변경', PRODUCT_STATUS_OPTIONS.map(o => ({ key: o.value, label: o.label, on: source.status === o.value, onPick: () => {
+        openMenu(e, '진행상황 변경', PRODUCT_STATUS_OPTIONS.map(o => ({ key: o.value, label: o.label, on: source.status === o.value, onPick: async () => {
             if (o.value === source.status) return;
-            if (o.value === 'cancelled' && !window.confirm('이 예약을 취소 상태로 바꿀까요? 고객에게 취소 알림이 갑니다.')) return;
+            if (o.value === 'cancelled' && !await adminConfirm('이 예약을 취소 상태로 바꿀까요? 고객에게 취소 알림이 갑니다.')) return;
             void links.onStatus!(o.value).then(() => flash(`${o.label}(으)로 변경했어요`));
         } })));
     };

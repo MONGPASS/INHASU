@@ -3,6 +3,7 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface Guide {
     id: string;
@@ -70,7 +71,7 @@ export const AdminGuideManage: React.FC = () => {
                 setFormData({ ...formData, image: url });
             } catch (error) {
                 console.error('Guide image upload failed:', error);
-                alert('이미지 업로드 실패');
+                adminNotify('이미지 업로드 실패');
             }
         }
     };
@@ -91,7 +92,7 @@ export const AdminGuideManage: React.FC = () => {
 
     const handleSubmit = async () => {
         if (!formData.name || !formData.phone) {
-            alert('이름과 연락처는 필수 입력 항목입니다.');
+            adminNotify('이름과 연락처는 필수 입력 항목입니다.');
             return;
         }
 
@@ -117,7 +118,7 @@ export const AdminGuideManage: React.FC = () => {
             resetForm();
         } catch (error: any) {
             console.error('Guide save error:', error);
-            alert('저장 실패: ' + error.message);
+            adminNotify('저장 실패: ' + error.message);
         }
     };
 
@@ -135,7 +136,7 @@ export const AdminGuideManage: React.FC = () => {
             });
             await loadGuides();
         } catch (error: any) {
-            alert('승인 실패: ' + error.message);
+            adminNotify('승인 실패: ' + error.message);
         }
     };
 
@@ -154,12 +155,12 @@ export const AdminGuideManage: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm('정말 삭제하시겠습니까?')) {
+        if (await adminConfirm('정말 삭제하시겠습니까?')) {
             try {
                 await api.tourGuides.delete(id);
                 await loadGuides();
             } catch (error: any) {
-                alert('삭제 실패: ' + error.message);
+                adminNotify('삭제 실패: ' + error.message);
             }
         }
     };

@@ -2,8 +2,11 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminToolbar } from './AdminToolbar';
+import { AdminMobileTabBar } from './ui/AdminMobileTabBar';
+import { useCardTables } from './ui/useCardTables';
 import '../../styles/admin-console.css';
 import '../../styles/admin-shell-v3.css';
+import '../../styles/admin-mobile.css';
 
 const RAIL_KEY = 'mw-admin-side-rail';
 const readRail = () => { try { return window.localStorage.getItem(RAIL_KEY) === '1'; } catch { return false; } };
@@ -58,10 +61,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     const menuPanelRef = useRef<HTMLDivElement>(null);
     const actionButtonRef = useRef<HTMLButtonElement>(null);
     const actionPanelRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    useCardTables(contentRef);
     const id = useId().replace(/:/g, '');
     const menuId = `admin-customer-menu-${id}`;
     const actionsId = `admin-customer-actions-${id}`;
-    const menuShown = customerLayout && narrowCustomer && mobileMenuOpen;
+    // 휴대폰 폭에서는 모든 화면이 같은 앱 틀(위 바 + 아래 메뉴 + 서랍 메뉴)을 쓴다.
+    const menuShown = narrowCustomer && mobileMenuOpen;
     // 편집 화면(hideHeading)에서는 저장된 설정과 무관하게 사이드바를 아이콘 줄로 접어 본문 폭을 넓힌다.
     const railShown = rail || hideHeading;
     const closeMenu = () => {
@@ -92,8 +98,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape); };
     }, [mobileActionsOpen, customerLayout, narrowCustomer]);
     return (
-        <div className={`app${customerLayout ? ' admin-customer-layout' : ''}${menuShown ? ' admin-customer-menu-open' : ''}${railShown && !menuShown ? ' is-side-rail' : ''}`}>
-            {customerLayout ? <>
+        <div className={`app${customerLayout ? ' admin-customer-layout' : ''}${menuShown ? ' admin-customer-menu-open' : ''}${railShown && !menuShown ? ' is-side-rail' : ''}${hideHeading ? ' is-editing' : ''}`}>
+            <>
                 {menuShown && <button type="button" className="admin-customer-menu-backdrop" aria-label="관리자 메뉴 배경 닫기" tabIndex={-1} onClick={closeMenu} />}
                 <div ref={menuPanelRef} id={menuId} className="admin-customer-menu-panel" role={menuShown ? 'dialog' : undefined} aria-modal={menuShown ? true : undefined} aria-label={menuShown ? '관리자 메뉴' : undefined}
                     onClickCapture={event => { if (menuShown && (event.target as Element).closest('a[href]')) setMobileMenuOpen(false); }}
@@ -109,11 +115,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                     <button type="button" className="admin-customer-menu-close" aria-label="관리자 메뉴 닫기" onClick={closeMenu}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>
                     <AdminSidebar activePage={activePage} rail={railShown && !menuShown} onToggleRail={menuShown || hideHeading ? undefined : toggleRail} />
                 </div>
-            </> : <AdminSidebar activePage={activePage} rail={railShown} onToggleRail={hideHeading ? undefined : toggleRail} />}
+            </>
             <div className={`main${flush ? ' is-flush' : ''}`} inert={menuShown}>
                 <header className={`header${hideHeading ? ' is-heading-hidden' : ''}`}>
                     <div className="header-in">
-                        {customerLayout && <button ref={menuButtonRef} type="button" className="admin-customer-menu-toggle" aria-label="관리자 메뉴 열기" aria-expanded={menuShown} aria-controls={menuId} onClick={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>}
+                        {<button ref={menuButtonRef} type="button" className="admin-customer-menu-toggle" aria-label="관리자 메뉴 열기" aria-expanded={menuShown} aria-controls={menuId} onClick={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>}
                         {!hideHeading && <div className="admin-layout-heading" style={{ minWidth: 0 }}>
                             {eb && <div className="eyebrow"><span className="dot" />{eb}</div>}
                             <div className="page-title">{title}</div>
@@ -133,13 +139,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                 </header>
 
                 {flush ? (
-                    <div className="content" style={{ padding: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                    <div ref={contentRef} className="content" style={{ padding: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                         {children}
                     </div>
                 ) : (
-                    <div className="content"><div className="content-in">{children}</div></div>
+                    <div ref={contentRef} className="content"><div className="content-in">{children}</div></div>
                 )}
             </div>
+            {!hideHeading && <AdminMobileTabBar activePage={activePage} menuOpen={menuShown} menuId={menuId} onOpenMenu={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }} />}
         </div>
     );
 };

@@ -11,13 +11,14 @@ const result = await build({ stdin: { contents: `
 `, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false, loader: { '.css': 'empty' },
     plugins: [{ name: 'content-event-fixture', setup(builder) {
         builder.onResolve({ filter: /^react$|^react\/jsx-runtime$|^react-router-dom$/ }, args => ({ path: args.path, namespace: 'fixture' }));
-        builder.onResolve({ filter: /\/(AdminLayout|Icon|api|upload)$/ }, args => ({ path: args.path.split('/').at(-1), namespace: 'fixture' }));
+        builder.onResolve({ filter: /\/(AdminLayout|Icon|api|upload|adminFeedback)$/ }, args => ({ path: args.path.split('/').at(-1), namespace: 'fixture' }));
         builder.onLoad({ filter: /.*/, namespace: 'fixture' }, ({ path }) => ({ loader: 'js', contents:
             path === 'react' ? `export const useState=(...a)=>globalThis.h.useState(...a),useRef=(...a)=>globalThis.h.useRef(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useCallback=(...a)=>globalThis.h.useCallback(...a);export default {useState,useRef,useEffect,useCallback};`
             : path === 'react/jsx-runtime' ? `export const Fragment='fragment';export const jsx=(type,props,key)=>({type,props,key});export const jsxs=jsx;`
             : path === 'react-router-dom' ? `export const useBlocker=predicate=>{globalThis.h.predicate=predicate;return globalThis.h.blocker};`
             : path === 'AdminLayout' ? `export const AdminLayout='layout';`
             : path === 'Icon' ? `export const Icon='icon';`
+            : path === 'adminFeedback' ? `export const adminNotify=()=>{};export const adminConfirm=async m=>(typeof window!=='undefined'&&window.confirm?!!window.confirm(typeof m==='string'?m:m.message):true);`
             : path === 'api' ? `export const api=new Proxy({}, {get:(_,key)=>globalThis.adapters.api[key]});`
             : `export const uploadImage=(...args)=>globalThis.adapters.upload(...args);` }));
     } }],
@@ -101,7 +102,7 @@ test('되돌리기는 서버 호출 없이 마지막으로 불러온 내용으�
     const h = app.mount(app.AdminBannerManage); await tick(); h.render();
     find(h.tree, n => n.type === 'textarea' && n.props.value === '첫 배너').props.onChange({ target: { value: '되돌릴 문구' } }); h.render();
     app.context.window.confirm = () => true;
-    find(h.tree, n => n.type === 'button' && n.props.className === 'hm-revert').props.onClick(); h.render();
+    find(h.tree, n => n.type === 'button' && n.props.className === 'hm-revert').props.onClick(); await tick(); h.render();
     assert.equal(saves, 0); assert.equal(readBusy(h), false);
     assert.ok(nodes(h.tree).some(n => n.type === 'textarea' && n.props.value === '첫 배너'));
     assert.equal(saveButton(h.tree).props.disabled, true);

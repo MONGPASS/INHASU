@@ -111,14 +111,17 @@ export function resourceScheduleView(params: URLSearchParams): boolean {
     return !['guides', 'lodges', 'vehicles'].includes(params.get('resourceType') || '');
 }
 
-/** iframe 에 넣을 주소. 바깥 창이 데스크톱 폭이면 모바일 화면으로 넘어가지 않게 `?m=0` 을 붙인다. */
+/**
+ * iframe 에 넣을 주소. 관리자 안에서는 화면 폭과 관계없이 같은 문서(PC와 같은 화면)를 쓰도록 `?m=0` 을 붙인다.
+ * 폭을 줄였을 때와 휴대폰에서 새로 열었을 때 서로 다른 화면이 나오지 않게 하기 위해서다.
+ */
 export function quoteDeskFrameSrc(tool: QuoteDeskTool, bookingId?: string, quoteEditorId?: string, resourceType?: string): string {
     if (tool.key === 'builder' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}`;
     if (tool.key === 'inbox' && quoteEditorId) return `/견적관리-모바일?qe=${encodeURIComponent(quoteEditorId)}`;
     if (tool.key === 'bookings' && bookingId) return `/예약관리?id=${encodeURIComponent(bookingId)}`;
-    if (tool.key === 'inbox' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}${isDesktopViewport() ? '&m=0' : ''}`;
+    if (tool.key === 'inbox' && bookingId) return `${tool.doc}?id=${encodeURIComponent(bookingId)}&m=0`;
     if (tool.key === 'resources' && ['guides', 'lodges', 'vehicles'].includes(resourceType || '')) return `${tool.doc}?resourceType=${resourceType}`;
-    return tool.mobileDoc && isDesktopViewport() ? `${tool.doc}?m=0` : tool.doc;
+    return tool.mobileDoc ? `${tool.doc}?m=0` : tool.doc;
 }
 
 /**

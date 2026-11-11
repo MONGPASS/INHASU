@@ -7,6 +7,7 @@ import { uploadImage } from '../utils/upload';
 import { useAdminContentGuard } from '../hooks/useAdminContentGuard';
 import { createAdminContentTask, withUploadedImage, moveAdminRow } from '../utils/adminContentWorkflow';
 import './AdminBannerManage.css';
+import { adminConfirm } from '../components/admin/ui/adminFeedback';
 
 interface Banner {
     id: string;
@@ -239,8 +240,8 @@ export const AdminBannerManage: React.FC = () => {
         markUnsaved();
     };
 
-    const deleteBanner = (id: string) => {
-        if (confirm('정말 삭제하시겠습니까?')) {
+    const deleteBanner = async (id: string) => {
+        if (await adminConfirm('정말 삭제하시겠습니까?')) {
             setBanners(previous => previous.filter(b => b.id !== id));
             markUnsaved();
         }
@@ -258,8 +259,8 @@ export const AdminBannerManage: React.FC = () => {
         markUnsaved();
     };
 
-    const deleteLink = (id: string) => {
-        if (confirm('정말 삭제하시겠습니까?')) {
+    const deleteLink = async (id: string) => {
+        if (await adminConfirm('정말 삭제하시겠습니까?')) {
             setLinks(previous => previous.filter(l => l.id !== id));
             markUnsaved();
         }
@@ -292,8 +293,8 @@ export const AdminBannerManage: React.FC = () => {
         setCollapsed(previous => ({ ...previous, ...Object.fromEntries(eventBanners.map(e => [e.id, true])), [newId]: false }));
         markUnsaved();
     };
-    const deleteEventBanner = (id: string) => {
-        if (confirm('정말 삭제하시겠습니까?')) {
+    const deleteEventBanner = async (id: string) => {
+        if (await adminConfirm('정말 삭제하시겠습니까?')) {
             setEventBanners(previous => previous.filter(e => e.id !== id));
             markUnsaved();
         }
@@ -365,10 +366,10 @@ export const AdminBannerManage: React.FC = () => {
     };
 
     // Discard local edits back to the last loaded/saved content. Nothing is sent to the server.
-    const revertAll = () => {
+    const revertAll = async () => {
         const saved = savedRef.current;
         if (!saved || task.current.busy() || !dirty.current) return;
-        if (!confirm('저장하지 않은 변경사항을 모두 되돌릴까요?')) return;
+        if (!await adminConfirm('저장하지 않은 변경사항을 모두 되돌릴까요?')) return;
         setBanners(saved.banners); setLinks(saved.quickLinks); setEventBanners(saved.eventBanners); setCategoryTabs(saved.categoryTabs);
         dirty.current = false; setHasUnsavedChanges(false); setNotice('');
     };

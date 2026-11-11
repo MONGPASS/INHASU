@@ -26,6 +26,7 @@ import { CourseImportModal, type CourseImportExtra } from '../components/admin/C
 import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '../components/admin/itineraryImport';
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 
 
@@ -205,7 +206,7 @@ export const AdminProductManage: React.FC = () => {
             return true;
         } catch (error: any) {
             console.error('Failed to save product:', error);
-            alert('상품 저장 중 오류가 발생했습니다: ' + (error.message || JSON.stringify(error)));
+            adminNotify('상품 저장 중 오류가 발생했습니다: ' + (error.message || JSON.stringify(error)));
             return false;
         }
     };
@@ -274,18 +275,18 @@ export const AdminProductManage: React.FC = () => {
     };
 
     const deleteProduct = async (id: string) => {
-        if (confirm('정말 이 상품을 삭제하시겠습니까?')) {
+        if (await adminConfirm('정말 이 상품을 삭제하시겠습니까?')) {
             try {
                 await api.products.delete(id);
                 setProducts(prev => prev.filter(p => p.id !== id));
             } catch (error: any) {
-                alert('삭제 실패: ' + error.message);
+                adminNotify('삭제 실패: ' + error.message);
             }
         }
     };
 
     const duplicateProduct = async (product: TourProduct) => {
-        if (confirm(`'${product.name}' 상품을 복제하시겠습니까?`)) {
+        if (await adminConfirm(`'${product.name}' 상품을 복제하시겠습니까?`)) {
             const duplicatedProduct: TourProduct = {
                 ...product,
                 id: `prod-${Date.now()}`,
@@ -353,7 +354,7 @@ export const AdminProductManage: React.FC = () => {
             // Optionally show a toast for successful save
         } catch (error) {
             console.error('Failed to save product order:', error);
-            alert('순서 저장에 실패했습니다.');
+            adminNotify('순서 저장에 실패했습니다.');
         }
     };
 
@@ -830,13 +831,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         setSaveNotice('보관된 초안을 버렸습니다. 현재 서버에 저장된 상품으로 시작합니다.');
     };
 
-    const closeEditor = () => {
+    const closeEditor = async () => {
         if (savingRef.current || uploadsRef.current > 0 || designUploadsRef.current.size > 0) {
             setSaveNotice('저장 또는 사진 업로드가 끝난 뒤 편집을 닫아 주세요.');
             return;
         }
         const result = flushDraft();
-        if (!result.ok && !window.confirm(result.error + '\n\n초안을 보관하지 못한 상태로 편집을 닫을까요?')) return;
+        if (!result.ok && !await adminConfirm(result.error + '\n\n초안을 보관하지 못한 상태로 편집을 닫을까요?')) return;
         closingRef.current = true;
         onClose();
     };
@@ -858,19 +859,19 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
         // Validate required fields
         if (!formData.name || !formData.name.trim()) {
-            alert('상품명을 입력해주세요.');
+            adminNotify('상품명을 입력해주세요.');
             return;
         }
         if (!formData.category) {
-            alert('카테고리를 선택해주세요.');
+            adminNotify('카테고리를 선택해주세요.');
             return;
         }
         if (!formData.duration || !formData.duration.trim()) {
-            alert('기간을 입력해주세요.');
+            adminNotify('기간을 입력해주세요.');
             return;
         }
         if (!formData.price || formData.price <= 0) {
-            alert('판매가를 입력해주세요.');
+            adminNotify('판매가를 입력해주세요.');
             return;
         }
 
@@ -1119,7 +1120,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             updateBlockContent(index, url);
         } catch (error) {
             console.error('Block image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1144,7 +1145,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }
         } catch (error) {
             console.error('Slide images upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1198,12 +1199,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
     // 「일정표 불러오기」 — 다른 상품의 일차들을 복제해 현재 상품에 넣는다 (일차 번호는 다시 매김)
     const [itineraryImportOpen, setItineraryImportOpen] = useState(false);
-    const importItineraryFrom = (src: ItinerarySource) => {
+    const importItineraryFrom = async (src: ItinerarySource) => {
         const current = formData.itineraryBlocks || [];
         const currentImages = formData.itineraryImages || [];
         let replace = true;
         if (current.length > 0 || currentImages.length > 0) {
-            replace = window.confirm(`「${src.name}」의 일정표를 불러옵니다.\n\n확인: 지금 일정표를 지우고 교체\n취소: 지금 일정표 뒤에 이어 붙이기`);
+            replace = await adminConfirm(`「${src.name}」의 일정표를 불러옵니다.\n\n확인: 지금 일정표를 지우고 교체\n취소: 지금 일정표 뒤에 이어 붙이기`);
         }
         const cloned = cloneItineraryBlocks(src.blocks);
         setFormData({
@@ -1215,12 +1216,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     };
     // 「코스에서 불러오기」 — 견적 관리의 코스로 일정표를 만든다 (사진·설명은 여행지 관리·등록 숙소에서 채움)
     const [courseImportOpen, setCourseImportOpen] = useState(false);
-    const importCourseBlocks = (blocks: DetailContentBlock[], courseName: string, extra: CourseImportExtra) => {
+    const importCourseBlocks = async (blocks: DetailContentBlock[], courseName: string, extra: CourseImportExtra) => {
         const current = formData.itineraryBlocks || [];
         const currentImages = formData.itineraryImages || [];
         let replace = true;
         if (current.length > 0 || currentImages.length > 0) {
-            replace = window.confirm(`코스 「${courseName}」로 일정표를 만듭니다.
+            replace = await adminConfirm(`코스 「${courseName}」로 일정표를 만듭니다.
 
 확인: 지금 일정표를 지우고 교체
 취소: 지금 일정표 뒤에 이어 붙이기`);
@@ -1228,7 +1229,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         // 요금: 고른 여행 타입의 인원별 가격으로 바꾼다 — 이미 입력한 가격이 있으면 먼저 묻는다
         const existing = (formData.pricingOptions || []).filter(option => option.pricePerPerson > 0);
         const usePricing = !!extra.pricing && (existing.length === 0
-            || window.confirm(`가격/옵션에 입력된 인원별 가격 ${existing.length}개를 코스 요금으로 바꿀까요?\n\n확인: 코스 요금으로 교체\n취소: 지금 가격 유지`));
+            || await adminConfirm(`가격/옵션에 입력된 인원별 가격 ${existing.length}개를 코스 요금으로 바꿀까요?\n\n확인: 코스 요금으로 교체\n취소: 지금 가격 유지`));
         setFormData({
             ...formData,
             itineraryBlocks: renumberDayLabels(replace ? blocks : [...current, ...blocks]),
@@ -1305,7 +1306,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }));
         } catch (e) {
             console.error('Bulk itinerary image upload failed:', e);
-            alert('이미지 업로드 중 일부가 실패했습니다.');
+            adminNotify('이미지 업로드 중 일부가 실패했습니다.');
         } finally {
             setItineraryBulkUploading(false);
             setItineraryBulkProgress(null);
@@ -1654,7 +1655,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             updateItineraryBlockContent(index, url);
         } catch (error) {
             console.error('Itinerary block image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1678,7 +1679,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }
         } catch (error) {
             console.error('Itinerary slide images upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1729,7 +1730,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }
         } catch (error) {
             console.error('Timeline images upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
     
@@ -1749,7 +1750,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             setFormData({ ...formData, itineraryBlocks: blocks });
         } catch (error) {
             console.error('Day design images upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1779,7 +1780,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }));
         } catch (error) {
             console.error('Detail image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1829,7 +1830,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }));
         } catch (error) {
             console.error('Main image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -2679,7 +2680,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                     <button type="button" onClick={() => moveItineraryDay(dayIdx, 1)} disabled={dayIdx === days.length - 1}><Icon name="expand_more" /></button>
                                                                 </div>
                                                                 <button type="button" className="act-btn" style={{ flex: 'none' }} onClick={() => duplicateItineraryDay(dayIdx)} title="이 일차 복제 (식사·숙소·일정 그대로 복사)"><Icon name="content_copy" /></button>
-                                                                <button type="button" className="act-btn danger" style={{ flex: 'none' }} onClick={() => { if (window.confirm(`${dc.dayLabel || `${dayIdx + 1}일차`} 전체를 삭제할까요?`)) removeItineraryDay(dayIdx); }} title="이 일차 삭제"><Icon name="delete" /></button>
+                                                                <button type="button" className="act-btn danger" style={{ flex: 'none' }} onClick={async () => { if (await adminConfirm(`${dc.dayLabel || `${dayIdx + 1}일차`} 전체를 삭제할까요?`)) removeItineraryDay(dayIdx); }} title="이 일차 삭제"><Icon name="delete" /></button>
                                                             </div>
 
                                                             {!collapsed && (

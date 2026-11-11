@@ -45,3 +45,60 @@ test('관리자 CSS에 옛 민트 값을 다시 적지 않는다', () => {
         assert.doesNotMatch(css, /--mrt-blue\s*:\s*#/, `${file}: 강조색을 화면별로 다시 정하지 않는다`);
     }
 });
+
+test('관리자 화면은 브라우저 기본 알림창 대신 공통 알림을 쓴다', () => {
+    const walk = (dir) => readdirSync(new URL(dir, root), { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(join(dir, e.name)) : e.name.endsWith('.tsx') ? [join(dir, e.name)] : []);
+    const files = [...walk('src/components/admin'), ...readdirSync(new URL('src/pages', root)).filter((n) => /^Admin.*\.tsx$/.test(n)).map((n) => join('src/pages', n))];
+    for (const file of files) {
+        assert.doesNotMatch(read(file.replace(/\\/g, '/')), /(^|[^.\w])alert\(|window\.alert\(/m, `${file}: adminNotify()를 쓴다`);
+    }
+});
+
+test('휴대폰 앱 틀은 한 파일에서 정하고 크기는 공통 변수를 쓴다', () => {
+    const mobile = read('src/styles/admin-mobile.css');
+    for (const name of ['--adm-tabbar-h', '--adm-topbar-h', '--adm-control-h', '--adm-fs-input', '--adm-pad-page']) assert.ok(mobile.includes(`var(${name})`), name);
+    assert.match(read('public/admin-tokens.css'), /@media \(max-width: 760px\)\s*\{\s*:root\s*\{[^}]*--adm-control-h:\s*44px/);
+    const layout = read('src/components/admin/AdminLayout.tsx');
+    assert.ok(layout.includes('AdminMobileTabBar') && layout.includes("admin-mobile.css"));
+    const tabbar = read('src/components/admin/ui/AdminMobileTabBar.tsx');
+    for (const label of ['홈', '예약', '견적', '배정', '전체']) assert.ok(tabbar.includes(label), label);
+});
+
+test('휴대폰에서 목록 표는 카드로 바뀐다', () => {
+    const layout = read('src/components/admin/AdminLayout.tsx');
+    assert.ok(layout.includes('useCardTables(contentRef)'));
+    const mobile = read('src/styles/admin-mobile.css');
+    assert.ok(mobile.includes('[data-card-table="on"]') && mobile.includes('.v7-list-row'));
+    const list = read('src/components/admin/v7/ReservationListV7.tsx');
+    for (const name of ['check', 'cust', 'period', 'people', 'region', 'assign', 'pay', 'status']) assert.ok(list.includes('v7-c-' + name), name);
+});
+
+test('삭제·변경 확인은 공통 확인 창을 쓰고, 브라우저 확인창은 나가기 보호에만 남긴다', () => {
+    const walk = (dir) => readdirSync(new URL(dir, root), { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(join(dir, e.name)) : /\.tsx?$/.test(e.name) ? [join(dir, e.name)] : []);
+    const files = [...walk('src/components/admin'), ...readdirSync(new URL('src/pages', root)).filter((n) => /^Admin.*\.tsx$/.test(n)).map((n) => join('src/pages', n)), 'src/hooks/useAdminContentGuard.ts'];
+    let native = 0, shared = 0;
+    for (const file of files) {
+        const source = read(file.replace(/\\/g, '/'));
+        assert.doesNotMatch(source, /(^|[^.\w])confirm\(/m, `${file}: await adminConfirm()을 쓴다`);
+        native += (source.match(/window\.confirm\(/g) || []).length;
+        shared += (source.match(/await adminConfirm\(/g) || []).length;
+    }
+    assert.ok(shared >= 70, '공통 확인 창 사용 ' + shared);
+    assert.ok(native <= 13, '나가기 보호 밖에 브라우저 확인창을 늘리지 않는다: ' + native);
+});
+
+test('견적 도구는 관리자 안에서 공통 규격 CSS를 함께 읽는다', () => {
+    const tools = read('public/admin-tools.css');
+    assert.ok(tools.includes('html.admin-embedded') && tools.includes('var(--adm-primary-bg)') && tools.includes('var(--adm-control-h)'));
+    // 규칙이 시작되는 줄(‘{’가 있는 줄)은 모두 관리자 안(html.admin-embedded)으로 한정한다.
+    for (const line of tools.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => l.includes('{'))) {
+        assert.match(line.trim(), /^(html\.admin-embedded|@media)/, `관리자 안에서만 적용: ${line.trim().slice(0, 60)}`);
+    }
+    for (const tool of ['견적관리', '예약목록', '견적만들기', '코스관리', '일정관리', '명소관리', '리소스관리']) {
+        const html = read(`public/${tool}.html`);
+        const link = html.indexOf('<link rel="stylesheet" href="/admin-tools.css">');
+        assert.ok(link > html.lastIndexOf('</style>', html.indexOf('</head>')) && link < html.indexOf('</head>'), `${tool}: 자체 스타일 뒤에 공통 규격을 읽는다`);
+    }
+});

@@ -4,6 +4,7 @@ import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import { api } from '../lib/api';
 import type { InquiryRecord, InquiryStatus } from '../types/inquiry';
 import './AdminContentManage.css';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 type StatusFilter = InquiryStatus | 'all';
 
@@ -132,7 +133,7 @@ const InquiryPanel: React.FC<PanelProps> = ({ inquiry, busy, onClose, onStatus, 
         registerLeaveGuard(() => {
             if (!noteDirty && !draftDirty) return true;
             const what = noteDirty && draftDirty ? '저장하지 않은 메모와 답장 초안' : noteDirty ? '저장하지 않은 메모' : '작성 중인 답장 초안';
-            return confirm(`${what}이 있습니다. 이 문의를 닫을까요?`);
+            return window.confirm(`${what}이 있습니다. 이 문의를 닫을까요?`);
         });
         return () => registerLeaveGuard(null);
     }, [noteDirty, draftDirty, registerLeaveGuard]);
@@ -306,7 +307,7 @@ export const AdminInquiryManage: React.FC = () => {
 
     const fail = (e: unknown) => {
         if (isMigrationError(e)) setNeedsMigration(true);
-        alert(describeError(e));
+        adminNotify(describeError(e));
     };
 
     const counts = useMemo(() => {
@@ -366,7 +367,7 @@ export const AdminInquiryManage: React.FC = () => {
     };
 
     const remove = async (inquiry: InquiryRecord) => {
-        if (!confirm(`${inquiry.name || inquiry.email} 님의 문의를 삭제하시겠습니까?\n삭제하면 되돌릴 수 없습니다.`)) return;
+        if (!await adminConfirm(`${inquiry.name || inquiry.email} 님의 문의를 삭제하시겠습니까?\n삭제하면 되돌릴 수 없습니다.`)) return;
         setBusyId(inquiry.id);
         try {
             await api.inquiries.delete(inquiry.id);

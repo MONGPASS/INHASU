@@ -12,6 +12,7 @@ import { useBlocker } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft, removeMagazineDraft, type MagazineDraftScope, type MagazineDraftRead, type MagazineDraftResult, type MagazineDraftForm } from '../utils/adminMagazineDraft';
 import './AdminContentManage.css';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 /** Lucide outlines (ISC) that DashboardIcon does not carry. Keys keep the `lc-` prefix for the icon-subset check. */
 const MAGAZINE_ICONS = {
@@ -415,7 +416,7 @@ export const AdminMagazineManage: React.FC = () => {
                     }
                 } catch (error) {
                     console.error('Image upload failed:', error);
-                    alert('이미지 업로드 실패');
+                    adminNotify('이미지 업로드 실패');
                 }
                 });
             }
@@ -464,7 +465,7 @@ export const AdminMagazineManage: React.FC = () => {
 
                     if (range) {
                         if (uploadedUrls.length === 0) {
-                            alert('이미지 업로드에 실패했습니다.');
+                            adminNotify('이미지 업로드에 실패했습니다.');
                             return;
                         }
 
@@ -484,7 +485,7 @@ export const AdminMagazineManage: React.FC = () => {
                 }
             } catch (error) {
                 console.error('Slider images upload failed:', error);
-                alert('슬라이더 이미지 업로드 실패');
+                adminNotify('슬라이더 이미지 업로드 실패');
             }
             });
         }
@@ -514,7 +515,7 @@ export const AdminMagazineManage: React.FC = () => {
     const insertLocationBlot = () => {
         if (saveLock.current || uploadLock.current || pendingRef.current) return;
         if (!locationModalForm.name && !locationModalForm.address && !locationModalForm.mapEmbedUrl) {
-            alert('장소 이름 / 주소 / 지도 임베드 중 하나는 입력해주세요.');
+            adminNotify('장소 이름 / 주소 / 지도 임베드 중 하나는 입력해주세요.');
             return;
         }
         const quill = quillRef.current?.getEditor();
@@ -650,7 +651,7 @@ export const AdminMagazineManage: React.FC = () => {
                 setFormData(prev => ({ ...prev, image: url }));
             } catch (error) {
                 console.error('Magazine image upload failed:', error);
-                alert('이미지 업로드 실패');
+                adminNotify('이미지 업로드 실패');
             }
             });
         }
@@ -667,7 +668,7 @@ export const AdminMagazineManage: React.FC = () => {
             setFormData(prev => ({ ...prev, authorImage: url }));
         } catch (error) {
             console.error('Magazine author image upload failed:', error);
-            alert('저자 사진 업로드 실패');
+            adminNotify('저자 사진 업로드 실패');
         }
         });
     };
@@ -713,20 +714,20 @@ export const AdminMagazineManage: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('정말 삭제하시겠습니까?')) {
+        if (await adminConfirm('정말 삭제하시겠습니까?')) {
             try {
                 await api.magazines.delete(id);
                 fetchMagazines();
             } catch (error) {
                 console.error('Error deleting magazine:', error);
-                alert('삭제 중 오류가 발생했습니다.');
+                adminNotify('삭제 중 오류가 발생했습니다.');
             }
         }
     };
 
     const handleSubmit = async () => {
         if (saveLock.current || uploadLock.current || pendingRef.current || !scopeRef.current || scopeRef.current.userId !== user?.id) return;
-        if (!formRef.current.title?.trim()) { alert('제목을 입력해주세요.'); return; }
+        if (!formRef.current.title?.trim()) { adminNotify('제목을 입력해주세요.'); return; }
         saveLock.current = true; setSaving(true);
         const session = sessionRef.current;
         const scope = { ...scopeRef.current };
@@ -736,12 +737,12 @@ export const AdminMagazineManage: React.FC = () => {
             if (editingMagazine) {
                 const latest = magazineFromApi(await api.magazines.get(editingMagazine.id));
                 if (!mountedRef.current || sessionRef.current !== session || accountRef.current !== scope.userId) return;
-                if (magazineDraftFingerprint(latest) !== magazineDraftFingerprint(baselineRef.current) && !window.confirm('편집 중 서버의 매거진 원본이 변경되었습니다. 현재 작성 내용으로 덮어쓸까요?')) return;
+                if (magazineDraftFingerprint(latest) !== magazineDraftFingerprint(baselineRef.current) && !await adminConfirm('편집 중 서버의 매거진 원본이 변경되었습니다. 현재 작성 내용으로 덮어쓸까요?')) return;
             }
             const content = editorContent;
 
             if (!formData.title?.trim()) {
-                alert('제목을 입력해주세요.');
+                adminNotify('제목을 입력해주세요.');
                 return;
             }
 
@@ -776,12 +777,12 @@ export const AdminMagazineManage: React.FC = () => {
             savedRef.current = true;
             const removed = ownedRevision ? removeMagazineDraft(window.localStorage, scope, ownedRevision) : { ok: true as const };
             if (!removed.ok) setDraftNotice(removed.error);
-            alert(removed.ok ? '저장되었습니다!' : '저장되었습니다. 브라우저 초안 정리에는 실패했습니다.');
+            adminNotify(removed.ok ? '저장되었습니다!' : '저장되었습니다. 브라우저 초안 정리에는 실패했습니다.');
             fetchMagazines();
             resetForm(true);
         } catch (error: any) {
             console.error('Error saving magazine:', error);
-            alert(`저장 실패: ${error.message || '저장 중 오류가 발생했습니다.'}`);
+            adminNotify(`저장 실패: ${error.message || '저장 중 오류가 발생했습니다.'}`);
             flushMagazineDraft();
         } finally { saveLock.current = false; if (mountedRef.current && sessionRef.current === session) setSaving(false); else if (mountedRef.current) setSaving(false); }
     };
@@ -796,7 +797,7 @@ export const AdminMagazineManage: React.FC = () => {
     // Category CRUD logic
     const handleSaveCategory = async () => {
         if (!categoryForm.name) {
-            alert('카테고리명을 입력해주세요.');
+            adminNotify('카테고리명을 입력해주세요.');
             return;
         }
         if (editingCategory) {
@@ -825,10 +826,10 @@ export const AdminMagazineManage: React.FC = () => {
     const handleDeleteCategory = async (cat: MagazineCategory) => {
         const count = magazines?.filter(m => m.category === cat.name).length || 0;
         if (count > 0) {
-            alert('이 카테고리에 매거진이 있어 삭제할 수 없습니다.');
+            adminNotify('이 카테고리에 매거진이 있어 삭제할 수 없습니다.');
             return;
         }
-        if (confirm('이 카테고리를 삭제하시겠습니까?')) {
+        if (await adminConfirm('이 카테고리를 삭제하시겠습니까?')) {
             await api.categories.delete(cat.id);
             fetchCategories();
         }
@@ -857,7 +858,7 @@ export const AdminMagazineManage: React.FC = () => {
         const name = newCategoryName.trim();
         if (!name || categoryBusy) return;
         if (magazineCategories.some(c => c.name === name)) {
-            alert('이미 같은 이름의 카테고리가 있습니다.');
+            adminNotify('이미 같은 이름의 카테고리가 있습니다.');
             return;
         }
         setCategoryBusy(true);
@@ -875,7 +876,7 @@ export const AdminMagazineManage: React.FC = () => {
             setNewCategoryName('');
             fetchCategories();
         } catch (error) {
-            alert(`카테고리 추가 실패: ${error instanceof Error ? error.message : String(error)}`);
+            adminNotify(`카테고리 추가 실패: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setCategoryBusy(false);
         }
@@ -925,7 +926,7 @@ export const AdminMagazineManage: React.FC = () => {
                 <strong>이 브라우저에 관리자별 매거진 초안을 자동 보관합니다.</strong><p style={{ margin: '4px 0', fontSize: 13 }}>자동 보관은 사이트 발행·서버 임시 저장과 별도입니다. {draftSavedAt ? `마지막 초안 보관: ${new Date(draftSavedAt).toLocaleString('ko-KR')}` : dirty ? '입력 내용을 보관하고 있습니다.' : '변경사항이 생기면 자동 보관합니다.'}</p>
                 {recovery.kind === 'draft' && <><p>{recovery.conflict ? '보관 후 서버 원본이 변경되었습니다. 초안을 복원하면 저장 시 현재 작성 내용이 원본을 대체합니다.' : '이 문서의 보관된 초안이 있습니다.'} 보관 시각: {new Date(recovery.draft.savedAt).toLocaleString('ko-KR')}</p><button type="button" className="btn btn-ink btn-sm" onClick={() => { if (saveLock.current || uploadLock.current) return; const restored = recovery.draft; pendingRef.current = false; revisionRef.current = restored.revision; storedRef.current = magazineDraftFingerprint(restored.form); setFormData(structuredClone(restored.form)); setEditorContent(restored.form.content || ''); setDraftSavedAt(restored.savedAt); setRecovery({ kind: 'empty' }); }}>초안 복원</button>{' '}</>}
                 {recovery.kind === 'error' && <p role="alert">{recovery.error}</p>}
-                {(recovery.kind !== 'empty' || dirty || draftSavedAt) && <button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading} onClick={() => { if (recovery.kind !== 'empty' || window.confirm('매거진 변경사항과 보관된 초안을 버릴까요?')) discardRecovery(); }}>초안 버리기</button>}
+                {(recovery.kind !== 'empty' || dirty || draftSavedAt) && <button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading} onClick={async () => { if (recovery.kind !== 'empty' || await adminConfirm('매거진 변경사항과 보관된 초안을 버릴까요?')) discardRecovery(); }}>초안 버리기</button>}
             </div>}
 
             {activeTab === 'categories' && (

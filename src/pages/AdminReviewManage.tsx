@@ -4,6 +4,7 @@ import { uploadImage } from '../utils/upload';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import './AdminContentManage.css';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface ReviewRow {
     id: string;
@@ -107,14 +108,14 @@ export const AdminReviewManage: React.FC = () => {
     }, []);
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('정말 이 후기를 삭제하시겠습니까?')) {
+        if (await adminConfirm('정말 이 후기를 삭제하시겠습니까?')) {
             setBusyId(id);
             try {
                 await api.reviews.delete(id);
                 setReviews((list) => list.filter((r) => r.id !== id));
             } catch (error) {
                 console.error('Failed to delete review:', error);
-                alert('삭제에 실패했습니다.');
+                adminNotify('삭제에 실패했습니다.');
             } finally {
                 setBusyId(null);
             }
@@ -130,7 +131,7 @@ export const AdminReviewManage: React.FC = () => {
         } catch (error) {
             console.error('Failed to change review visibility:', error);
             setReviews((list) => list.map((r) => (r.id === review.id ? { ...r, approved: review.approved } : r)));
-            alert('노출 상태를 바꾸지 못했습니다.');
+            adminNotify('노출 상태를 바꾸지 못했습니다.');
         } finally {
             setBusyId(null);
         }
@@ -151,7 +152,7 @@ export const AdminReviewManage: React.FC = () => {
             setFormData((prev) => ({ ...prev, images: [...prev.images, ...urls].slice(0, MAX_IMAGES) }));
         } catch (error) {
             console.error('Review image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         } finally {
             setUploading(false);
         }
@@ -171,7 +172,7 @@ export const AdminReviewManage: React.FC = () => {
 
     const handleSubmit = async () => {
         if (!formData.author.trim() || !formData.content.trim()) {
-            alert('작성자와 내용은 필수입니다.');
+            adminNotify('작성자와 내용은 필수입니다.');
             return;
         }
         if (submitting || uploading) return;
@@ -190,13 +191,13 @@ export const AdminReviewManage: React.FC = () => {
 
             if (error) throw error;
 
-            alert('리뷰가 등록되었습니다.');
+            adminNotify('리뷰가 등록되었습니다.');
             setIsModalOpen(false);
             setFormData(EMPTY_FORM);
             void fetchReviews(); // Refresh list
         } catch (error: any) {
             console.error('Error adding review:', error);
-            alert('등록 실패: ' + (error?.message || error));
+            adminNotify('등록 실패: ' + (error?.message || error));
         } finally {
             setSubmitting(false);
         }

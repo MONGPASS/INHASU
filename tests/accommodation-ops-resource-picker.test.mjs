@@ -15,7 +15,7 @@ const built = await build({
         for (const [filter, path] of [
             [/\/contexts\/UserContext$/, 'user'], [/\/admin\/AdminLayout$/, 'layout'],
             [/\/admin\/console\/Icon$/, 'icon'], [/\/lib\/api$/, 'api'],
-            [/\/registeredAssignmentResources$/, 'resources'],
+            [/\/registeredAssignmentResources$/, 'resources'], [/\/ui\/adminFeedback$/, 'feedback'],
         ]) builder.onResolve({ filter }, () => ({ path, namespace: 'ops-events' }));
         builder.onLoad({ filter: /.*/, namespace: 'ops-events' }, ({ path }) => ({ loader: 'js', contents: {
             react: `export const useState=(...a)=>globalThis.h.useState(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useMemo=(...a)=>globalThis.h.useMemo(...a),useRef=(...a)=>globalThis.h.useRef(...a),useCallback=(f,d)=>useMemo(()=>f,d);export default {Fragment:'fragment'};`,
@@ -25,6 +25,8 @@ const built = await build({
             layout: `export const AdminLayout=()=>null;`, icon: `export const Icon=()=>null;`,
             api: `export const api=globalThis.api;`,
             resources: `export const loadRegisteredAssignmentResources=(...a)=>globalThis.loadResources(...a);`,
+            // 공통 알림·확인 창은 화면 부품이라, 같은 약속(Promise<boolean>)의 대역으로 바꾼다.
+            feedback: `export const adminNotify=()=>{};export const adminConfirm=async m=>(typeof window!=='undefined'&&window.confirm?!!window.confirm(typeof m==='string'?m:m.message):true);`,
         }[path] }));
         builder.onLoad({ filter: /\.css$/ }, () => ({ loader: 'js', contents: '' }));
     } }],
@@ -388,7 +390,7 @@ test('변경 취소는 편집과 브라우저 초안을 버리고 서버 배정�
     h.flushDraft(); assert.equal(h.storage.size, 1, '편집 내용은 초안으로 보관');
     assert.equal(h.button('배정 저장').props.disabled, false);
 
-    h.button('변경 취소').props.onClick(); h.render();
+    await h.button('변경 취소').props.onClick(); h.render(); // 공통 확인 창의 답을 기다린 뒤 되돌린다
     assert.equal(guideName().props.value, '이전 가이드');
     assert.equal(nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').length, 1);
     assert.equal(h.button('배정 저장').props.disabled, true);
@@ -399,7 +401,7 @@ test('변경 취소는 편집과 브라우저 초안을 버리고 서버 배정�
     guideName().props.onChange({ target: { value: '저장한 가이드' } }); h.render();
     await h.button('배정 저장').props.onClick(); await h.settle();
     guideName().props.onChange({ target: { value: '또 바꾼 가이드' } }); h.render();
-    h.button('변경 취소').props.onClick(); h.render();
+    await h.button('변경 취소').props.onClick(); h.render();
     assert.equal(guideName().props.value, '저장한 가이드', '저장 뒤에는 저장한 값으로 되돌린다');
     h.unmount();
 });

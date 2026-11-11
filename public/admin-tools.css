@@ -1,0 +1,69 @@
+/* ============================================================
+   견적 도구(관리자 안에 끼워 넣은 예전 화면)의 공통 규격.
+   - 관리자 안(iframe, html.admin-embedded)에서만 적용한다. 단독으로 연 화면은 그대로다.
+   - 값은 admin-tokens.css의 변수만 쓴다. 각 문서의 선택자·id·마크업은 바꾸지 않고 모양만 맞춘다.
+   - React 관리자와 같은 규격: 주요 버튼 민트, 버튼·입력창 높이와 모서리, 서랍, 알림.
+   규칙: docs/admin-design-system.md 3절·8절
+   ============================================================ */
+html.admin-embedded body { font-family: var(--adm-font); background: var(--adm-canvas); color: var(--adm-text); }
+
+/* 바깥 관리자가 이미 화면 제목을 보여 주므로 안쪽의 같은 제목은 숨긴다(추가 버튼과 설명은 남긴다). */
+html.admin-embedded .page-head > h1 { display: none; }
+html.admin-embedded .page-head { min-height: var(--adm-control-h); }
+
+/* ── 버튼: 높이·모서리·글자 ── */
+html.admin-embedded :is(.btn, .bulkbtn, .page-head .add, .page-head .ghost, .rg-add, header button, .bottom button) {
+  height: var(--adm-control-h); min-height: var(--adm-control-h); padding: 0 var(--adm-control-pad-x); box-sizing: border-box;
+  border-radius: var(--adm-radius-sm); font-family: inherit; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); line-height: 1; white-space: nowrap;
+}
+html.admin-embedded .bulkbtn { height: var(--adm-control-h-sm); min-height: var(--adm-control-h-sm); padding: 0 12px; font-size: var(--adm-fs-small); }
+html.admin-embedded .df button { height: var(--adm-control-h-lg); padding-top: 0; padding-bottom: 0; border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); }
+
+/* ── 주요 버튼은 민트 하나 ── */
+html.admin-embedded :is(.btn.primary, .bulkbtn.primary, .page-head .add, .rg-add, header button.go, .df .save, .bottom :is(.next, .publish), .action-item .go) {
+  border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff;
+}
+html.admin-embedded :is(.btn.primary, .bulkbtn.primary, .page-head .add, .rg-add, header button.go, .df .save, .bottom :is(.next, .publish), .action-item .go):hover:not(:disabled) {
+  border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover);
+}
+html.admin-embedded .df .del { background: var(--adm-danger-soft); color: var(--adm-danger); padding-left: 18px; padding-right: 18px; }
+
+/* ── 입력창 ── */
+html.admin-embedded :is(.db, .panel, .card, .toolbar, .bar, .filters, .search, label.f, .field) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="hidden"]), select) {
+  min-height: var(--adm-control-h); box-sizing: border-box; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-sm); box-shadow: none; font-family: inherit; font-size: var(--adm-fs-input);
+}
+html.admin-embedded :is(.db, .panel, .card, label.f, .field) textarea { box-sizing: border-box; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-sm); box-shadow: none; font-family: inherit; font-size: var(--adm-fs-input); }
+html.admin-embedded :is(input, select, textarea):focus { border-color: var(--adm-accent); box-shadow: var(--adm-ring); outline: 0; }
+
+/* ── 편집 서랍: 폭·뒤 막·머리·발 ── */
+html.admin-embedded .overlay { background: var(--adm-scrim); }
+html.admin-embedded .drawer { width: min(520px, 100vw); max-width: 100vw; box-shadow: var(--adm-shadow-lg); }
+html.admin-embedded .dh { min-height: 60px; height: auto; padding: 0 var(--adm-space-5); box-sizing: border-box; border-bottom: 1px solid var(--adm-line); }
+html.admin-embedded .dh h2 { color: var(--adm-ink); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); }
+html.admin-embedded .dh .x { width: 36px; height: 36px; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-2); }
+html.admin-embedded .dh .x:hover { background: var(--adm-gray-100); }
+html.admin-embedded .db { padding: var(--adm-space-5); }
+html.admin-embedded .df { padding: var(--adm-space-3) var(--adm-space-5); border-top: 1px solid var(--adm-line); }
+
+/* ── 알림: React 관리자의 알림과 같은 모양·위치 ── */
+html.admin-embedded :is(.toast, #toast) { bottom: 28px; max-width: calc(100vw - 32px); padding: 12px 16px; border-radius: var(--adm-radius-md); background: var(--adm-ink); color: #fff; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); box-shadow: var(--adm-shadow-lg); }
+
+/* ── 휴대폰(760px 이하): 서랍은 아래 시트, 머리 버튼 줄은 옆으로 민다 ── */
+@media (max-width: 760px) {
+  html.admin-embedded .drawer { top: auto; right: 0; bottom: 0; left: 0; width: 100%; height: 92dvh; max-height: 92dvh; border-radius: var(--adm-radius-lg) var(--adm-radius-lg) 0 0; transform: translateY(100%); }
+  html.admin-embedded .drawer.on { transform: none; }
+  html.admin-embedded header { height: auto; min-height: 56px; flex-wrap: nowrap; gap: var(--adm-gap-control); padding: var(--adm-space-2) var(--adm-pad-page); overflow-x: auto; scrollbar-width: none; }
+  html.admin-embedded header::-webkit-scrollbar { display: none; }
+  html.admin-embedded header > * { flex: none; }
+  html.admin-embedded .bottom { height: auto; min-height: 64px; gap: var(--adm-space-2); padding: var(--adm-space-2) var(--adm-pad-page); }
+  html.admin-embedded .bottom .sum .ic { display: none; }
+  html.admin-embedded .bottom .sum .amt { font-size: var(--adm-fs-lead); white-space: nowrap; }
+  html.admin-embedded .shell > .content { padding-left: var(--adm-pad-page); padding-right: var(--adm-pad-page); }
+  /* 견적서 만들기: 단계 줄은 옆으로 밀고, 입력 칸은 화면 폭 안에서 두 칸으로 */
+  html.admin-embedded main { padding-left: var(--adm-pad-page); padding-right: var(--adm-pad-page); box-sizing: border-box; }
+  html.admin-embedded .steps { max-width: none; overflow-x: auto; scrollbar-width: none; }
+  html.admin-embedded .steps::-webkit-scrollbar { display: none; }
+  html.admin-embedded .steps .srow { min-width: 520px; }
+  html.admin-embedded .row > * { min-width: 0; }
+  html.admin-embedded :is(.card, .panel) { min-width: 0; max-width: 100%; box-sizing: border-box; }
+}

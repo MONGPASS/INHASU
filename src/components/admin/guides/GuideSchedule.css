@@ -373,3 +373,31 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
   .gs { padding: 16px; }
   .gs-side { position: static; flex: 1 1 100%; }
 }
+
+/* ── 휴대폰(760px 이하): 배정 목록의 한 줄을 카드 한 장으로, 타임라인의 가이드 칸은 좁게 ──
+   크기는 공통 변수(public/admin-tokens.css)를 쓴다. 규칙: docs/admin-design-system.md 8절 */
+@media (max-width: 760px) {
+  .gs { padding: var(--adm-space-3) !important; }
+  .gs .gs-scroll { overflow-x: visible; }
+  .gs .gs-table { min-width: 0; }
+  .gs .gs-trow.is-head { display: none; }
+  .gs .gs-trow { grid-template-columns: 24px minmax(0, 1fr) auto; grid-template-areas: "check name state" ". prod people" ". period region" ". guide guide" ". car car" ". acts acts"; gap: var(--adm-space-2) var(--adm-space-3); align-items: center; min-height: 0; padding: var(--adm-space-4); }
+  .gs .gs-trow > :nth-child(1) { grid-area: check; align-self: start; padding-top: 2px; }
+  .gs .gs-trow > :nth-child(2) { grid-area: name; text-align: left; font-size: var(--adm-fs-base); }
+  .gs .gs-trow > :nth-child(3) { grid-area: prod; min-width: 0; }
+  .gs .gs-trow > :nth-child(4) { grid-area: period; }
+  .gs .gs-trow > :nth-child(4) > span { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .gs .gs-trow > :nth-child(5) { grid-area: people; justify-content: flex-end; }
+  .gs .gs-trow > :nth-child(6) { grid-area: region; justify-content: flex-end; min-width: 0; }
+  .gs .gs-trow > :nth-child(7) { grid-area: guide; }
+  .gs .gs-trow > :nth-child(8) { grid-area: car; }
+  .gs .gs-trow > :nth-child(9) { grid-area: state; justify-content: flex-end; }
+  .gs .gs-trow > :nth-child(10) { grid-area: acts; justify-content: flex-end; }
+  .gs .gs-trow > .gs-tcell { box-shadow: none; }
+  .gs .gs-trow > .gs-tassign { min-height: var(--adm-control-h); padding: 6px var(--adm-space-3); border-radius: var(--adm-radius-sm); background: var(--adm-gray-50); box-shadow: none; }
+  .gs .gs-pager { flex-wrap: wrap; gap: var(--adm-space-2); }
+  .gs .gs-tl-name { width: 108px; padding: 0 var(--adm-space-2); }
+  .gs .gs-tl-name.is-row { padding: var(--adm-space-2); }
+  .gs .gs-tl-who { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .gs .gs-tl-util { display: none; }
+}

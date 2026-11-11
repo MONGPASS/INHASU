@@ -9,6 +9,7 @@ import { Icon } from '../components/admin/console/Icon';
 import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import './AdminCategoryManage.css';
 import { DEFAULT_CATEGORIES, DEFAULT_MAGAZINE_CATEGORIES, type Category } from '../types/category';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 export const AdminCategoryManage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -114,10 +115,10 @@ export const AdminCategoryManage: React.FC = () => {
     const toggleActive = (id: string, currentStatus: boolean) => runAction(async () => {
         await api.categories.update(id, { is_active: !currentStatus });
     });
-    const deleteCategory = (id: string) => {
+    const deleteCategory = async (id: string) => {
         if (task.current.busy() || modalState.current.busy) return;
         if (id === 'all') { setNotice('전체 카테고리는 삭제할 수 없습니다.'); return; }
-        if (confirm('정말 이 카테고리를 삭제하시겠습니까?')) return runAction(async () => { await api.categories.delete(id); });
+        if (await adminConfirm('정말 이 카테고리를 삭제하시겠습니까?')) return runAction(async () => { await api.categories.delete(id); });
     };
     const moveCategory = (index: number, direction: 'up' | 'down') => runAction(async () => {
         const next = moveAdminRow(sortedCategories, index, direction === 'up' ? -1 : 1);
@@ -151,10 +152,10 @@ export const AdminCategoryManage: React.FC = () => {
                 if (selectedCategory.id !== category.id) {
                     const newId = (category.id || '').trim();
                     if (!newId || !/^[a-z0-9][a-z0-9-]*$/.test(newId)) {
-                        alert('URL 슬러그는 영문 소문자/숫자/하이픈으로, 문자나 숫자로 시작해야 합니다.');
+                        adminNotify('URL 슬러그는 영문 소문자/숫자/하이픈으로, 문자나 숫자로 시작해야 합니다.');
                         return false;
                     }
-                    if (!confirm(`URL 슬러그를 "${selectedCategory.id}" → "${newId}" 로 변경하시겠습니까?\n기존 /category/${selectedCategory.id} 링크는 더이상 열리지 않습니다.`)) {
+                    if (!await adminConfirm(`URL 슬러그를 "${selectedCategory.id}" → "${newId}" 로 변경하시겠습니까?\n기존 /category/${selectedCategory.id} 링크는 더이상 열리지 않습니다.`)) {
                         return false;
                     }
                     await api.categories.rename(selectedCategory.id, newId);
@@ -374,9 +375,9 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
         report.current?.({ busy: task.current.busy(), dirty: dirty() });
     };
     useEffect(() => { mounted.current = true; report.current?.({ busy: false, dirty: dirty() }); return () => { mounted.current = false; report.current?.({ busy: false, dirty: false }); }; }, []);
-    const close = () => {
+    const close = async () => {
         if (task.current.busy()) { setError('저장·이미지 업로드가 끝난 뒤 닫아 주세요.'); return; }
-        if (dirty() && !window.confirm('저장하지 않은 카테고리 변경사항을 버리고 닫을까요?')) return;
+        if (dirty() && !await adminConfirm('저장하지 않은 카테고리 변경사항을 버리고 닫을까요?')) return;
         onClose();
     };
     const uploadImageTo = async (file: File, apply: (url: string) => void): Promise<boolean> => {

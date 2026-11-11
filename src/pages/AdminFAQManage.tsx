@@ -4,6 +4,7 @@ import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import { TourFAQEditor } from '../components/admin/TourFAQEditor';
 import { api } from '../lib/api';
 import './AdminContentManage.css';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface FAQ {
     id: string;
@@ -137,7 +138,7 @@ export const AdminFAQManage: React.FC = () => {
     // Add/Edit FAQ
     const handleSaveFAQ = async () => {
         if (!faqForm.question || !faqForm.answer || !faqForm.category) {
-            alert('모든 필드를 입력해주세요.');
+            adminNotify('모든 필드를 입력해주세요.');
             return;
         }
 
@@ -154,7 +155,7 @@ export const AdminFAQManage: React.FC = () => {
                 }) as any;
 
                 if (result?.error) {
-                    alert('FAQ 수정 실패: ' + (result.error.message || result.error));
+                    adminNotify('FAQ 수정 실패: ' + (result.error.message || result.error));
                     return;
                 }
 
@@ -175,14 +176,14 @@ export const AdminFAQManage: React.FC = () => {
                 const result = await api.faqs.create(newFaq) as any;
 
                 if (result?.error) {
-                    alert('FAQ 저장 실패: ' + (result.error.message || result.error));
+                    adminNotify('FAQ 저장 실패: ' + (result.error.message || result.error));
                     return;
                 }
 
                 setFaqs([...faqs, { id: newFaq.id, category: newFaq.category, question: newFaq.question, answer: newFaq.answer, order: newFaq.order, isActive: newFaq.is_active, viewCount: null }]);
             }
         } catch (e) {
-            alert(`FAQ 저장 실패: ${errorMessage(e)}`);
+            adminNotify(`FAQ 저장 실패: ${errorMessage(e)}`);
             return;
         }
 
@@ -193,12 +194,12 @@ export const AdminFAQManage: React.FC = () => {
 
     // Delete FAQ
     const handleDeleteFAQ = async (id: string) => {
-        if (confirm('이 FAQ를 삭제하시겠습니까?')) {
+        if (await adminConfirm('이 FAQ를 삭제하시겠습니까?')) {
             try {
                 await api.faqs.delete(id);
                 setFaqs(list => list.filter(f => f.id !== id));
             } catch (e) {
-                alert(`FAQ 삭제 실패: ${errorMessage(e)}`);
+                adminNotify(`FAQ 삭제 실패: ${errorMessage(e)}`);
             }
         }
     };
@@ -209,7 +210,7 @@ export const AdminFAQManage: React.FC = () => {
             await api.faqs.update(faq.id, { is_active: !faq.isActive });
             setFaqs(list => list.map(f => f.id === faq.id ? { ...f, isActive: !faq.isActive } : f));
         } catch (e) {
-            alert(`노출 상태 변경 실패: ${errorMessage(e)}`);
+            adminNotify(`노출 상태 변경 실패: ${errorMessage(e)}`);
         }
     };
 
@@ -224,7 +225,7 @@ export const AdminFAQManage: React.FC = () => {
             await api.faqs.update(other.id, { order: faq.order });
             setFaqs(list => list.map(f => f.id === faq.id ? { ...f, order: other.order } : f.id === other.id ? { ...f, order: faq.order } : f));
         } catch (e) {
-            alert(`순서 변경 실패: ${errorMessage(e)}`);
+            adminNotify(`순서 변경 실패: ${errorMessage(e)}`);
         } finally {
             setBusy(false);
         }
@@ -234,9 +235,9 @@ export const AdminFAQManage: React.FC = () => {
     const alertCategoryError = (action: string, e: unknown) => {
         const message = errorMessage(e);
         if (message.includes('migrate-db')) {
-            alert('FAQ 카테고리 테이블이 아직 없습니다.\n관리자로 로그인한 상태에서 /api/migrate-db 를 한 번 열어 주세요. (배포 후 1회)');
+            adminNotify('FAQ 카테고리 테이블이 아직 없습니다.\n관리자로 로그인한 상태에서 /api/migrate-db 를 한 번 열어 주세요. (배포 후 1회)');
         } else {
-            alert(`${action} 실패: ${message}`);
+            adminNotify(`${action} 실패: ${message}`);
         }
     };
 
@@ -256,11 +257,11 @@ export const AdminFAQManage: React.FC = () => {
     const handleSaveCategory = async () => {
         const name = categoryForm.name.trim();
         if (!name) {
-            alert('카테고리명을 입력해주세요.');
+            adminNotify('카테고리명을 입력해주세요.');
             return;
         }
         if (categories.some(c => c.name === name && c.id !== selectedCategory?.id)) {
-            alert('이미 같은 이름의 카테고리가 있습니다.');
+            adminNotify('이미 같은 이름의 카테고리가 있습니다.');
             return;
         }
 
@@ -296,7 +297,7 @@ export const AdminFAQManage: React.FC = () => {
         const name = newCategoryName.trim();
         if (!name || busy) return;
         if (categories.some(c => c.name === name)) {
-            alert('이미 같은 이름의 카테고리가 있습니다.');
+            adminNotify('이미 같은 이름의 카테고리가 있습니다.');
             return;
         }
         setBusy(true);
@@ -314,10 +315,10 @@ export const AdminFAQManage: React.FC = () => {
     const handleDeleteCategory = async (id: string) => {
         const faqsInCategory = faqs.filter(f => f.category === categories.find(c => c.id === id)?.name);
         if (faqsInCategory.length > 0) {
-            alert('이 카테고리에 FAQ가 있어 삭제할 수 없습니다.');
+            adminNotify('이 카테고리에 FAQ가 있어 삭제할 수 없습니다.');
             return;
         }
-        if (confirm('이 카테고리를 삭제하시겠습니까?')) {
+        if (await adminConfirm('이 카테고리를 삭제하시겠습니까?')) {
             try {
                 await api.faqCategories.delete(id);
                 setCategories(list => list.filter(c => c.id !== id));

@@ -18,6 +18,7 @@ import { ImagePopover } from './designEditor/ImagePopover';
 import { SectionToolbar } from './designEditor/SectionToolbar';
 import { useAnchorRect } from './designEditor/useAnchorRect';
 import { clampSectionAnchor, commitValue, fieldSelector, findDesignTarget, sectionSelector } from './designEditor/inlineEdit';
+import { adminConfirm, adminNotify } from './ui/adminFeedback';
 
 /**
  * 지도 경유지 선택 UI — 지도에 좌표가 등록된 여행지 목록에서 골라 담는다.
@@ -59,7 +60,7 @@ function SpotCardsField({ value, onChange, onBusyChange }: { value: string; onCh
             patch(i, { img: await uploadImage(file, 'product-details') });
         } catch (error) {
             console.error('Spot card image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         } finally {
             setUploadingIdx(null);
             onBusyChange?.(false);
@@ -169,7 +170,7 @@ function MapStopsField({ value, onChange, onBusyChange }: { value: string; onCha
             setLineImage(i, url);
         } catch (error) {
             console.error('Map stop image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         } finally {
             setUploadingIdx(null);
             onBusyChange?.(false);
@@ -397,8 +398,8 @@ export function DesignTemplateBlockEditor({
     };
 
     /** 섹션 빼기 — 마지막 하나면 hidden 표시로 남긴다 (템플릿에 새 섹션이 생겨도 삭제가 유지되도록) */
-    const removeSection = (instId: string) => {
-        if (!window.confirm('이 섹션을 상세페이지에서 빼시겠습니까? 입력한 내용은 남아 있습니다.')) return;
+    const removeSection = async (instId: string) => {
+        if (!await adminConfirm('이 섹션을 상세페이지에서 빼시겠습니까? 입력한 내용은 남아 있습니다.')) return;
         const target = instances.find(s => s.id === instId);
         if (!target) return;
         const others = instances.some(s => s.def === target.def && s.id !== instId && !s.hidden);
@@ -481,7 +482,7 @@ export function DesignTemplateBlockEditor({
      */
     const saveOwnImagesAsShared = async () => {
         if (!def || ownImageKeys.length === 0) return;
-        const ok = window.confirm(
+        const ok = await adminConfirm(
             `지금 올린 사진 ${ownImageKeys.length}장을 모든 상품이 함께 쓰는 공통 사진으로 저장할까요?\n\n` +
             '이 상품 화면은 그대로이고, 앞으로 새로 만드는 상품에도 같은 사진이 자동으로 들어갑니다.',
         );
@@ -498,7 +499,7 @@ export function DesignTemplateBlockEditor({
             onChange({ ...content, values: nextValues });
         } catch (e) {
             console.error('Failed to save shared design images:', e);
-            alert('공통 사진 저장에 실패했습니다');
+            adminNotify('공통 사진 저장에 실패했습니다');
         } finally {
             setSavingShared(false);
             changeBusy(false);
@@ -525,7 +526,7 @@ export function DesignTemplateBlockEditor({
             setValue(key, url);
         } catch (error) {
             console.error('Design image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         } finally {
             setUploadingKey(null);
             changeBusy(false);

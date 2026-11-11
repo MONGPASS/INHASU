@@ -15,6 +15,7 @@ import { LODGE_BOOKING_STATUSES, isLodgeBookingConfirmed, lodgeBookingLabel } fr
 import { LODGE_GRADE_OPTIONS, ROOM_PLAN_OPTIONS, isUpcomingTour, tourSerials } from '../utils/accommodationSheet';
 import { LodgeAssignBoard } from '../components/admin/accommodation/LodgeAssignBoard';
 import { guideOverlaps, overlapLabel, sameGuide } from '../utils/assignmentAvailability';
+import { adminConfirm } from '../components/admin/ui/adminFeedback';
 
 /**
  * 숙소 배정 · 현지 운영 — Admin Dashboard v3 "05-1" 디자인(한국어).
@@ -253,7 +254,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     const load = async () => {
         if (savingRef.current) { setNotice('저장이 끝난 뒤 새로고침해 주세요.'); return; }
         const stored = flushDrafts(); if (!stored.ok) return;
-        if (dirtyRef.current.size && !window.confirm('변경 내용을 브라우저 초안으로 보관했습니다. 최신 예약을 다시 불러올까요?')) return;
+        if (dirtyRef.current.size && !await adminConfirm('변경 내용을 브라우저 초안으로 보관했습니다. 최신 예약을 다시 불러올까요?')) return;
         void loadResources();
         const requestGeneration = ++generation.current;
         setLoading(true);
@@ -493,10 +494,10 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         markDirty(rId);
     };
     // 며칠 연속 같은 숙소를 쓰는 일정이 많아 앞 일차 내용을 그대로 가져온다. 일차·날짜는 유지하고 수배는 새로 시작한다.
-    const copyPreviousDay = (rId: string, idx: number) => {
+    const copyPreviousDay = async (rId: string, idx: number) => {
         if (savingRef.current || pendingRef.current[rId]) return;
         const target = rowsRef.current.find(r => r.id === rId)?.dailyAccommodations?.[idx];
-        if (target?.accommodation?.name?.trim() && !window.confirm(`${target.day}일차에 입력한 숙소를 앞 일차 내용으로 바꿀까요?`)) return;
+        if (target?.accommodation?.name?.trim() && !await adminConfirm(`${target.day}일차에 입력한 숙소를 앞 일차 내용으로 바꿀까요?`)) return;
         setReservations(prev => prev.map(r => {
             if (r.id !== rId) return r;
             const rows = (r.dailyAccommodations || []).map((d, i, all) => i === idx ? { ...d, accommodation: { ...all[i - 1].accommodation, bookingStatus: 'Илгээгээгүй' as BookingStatus } } : d);
@@ -533,13 +534,13 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         const overlap = found.find(item => item.kind === 'overlap'), handover = found.find(item => item.kind === 'handover');
         return { guide, overlap, handover, rank: overlap ? 2 : handover ? 1 : 0 };
     }).sort((a, b) => a.rank - b.rank || a.guide.name.localeCompare(b.guide.name, 'ko-KR'));
-    const chooseGuide = (rId: string, resourceId: string) => {
+    const chooseGuide = async (rId: string, resourceId: string) => {
         if (resourcesLoading || savingRef.current || pendingRef.current[rId]) return;
         const resource = resources.guides.find(guide => guide.id === resourceId);
         if (!resource) return;
         const row = rowsRef.current.find(r => r.id === rId);
         const overlap = row && guideOverlaps(rowsRef.current, resource, { id: row.id, source: row.source, startDate: row.startDate, endDate: row.endDate }).find(item => item.kind === 'overlap');
-        if (overlap && !window.confirm(`${resource.name} 가이드는 같은 기간에 ${overlapLabel(overlap.booking)} 일정이 있습니다. 그래도 배정할까요?`)) return;
+        if (overlap && !await adminConfirm(`${resource.name} 가이드는 같은 기간에 ${overlapLabel(overlap.booking)} 일정이 있습니다. 그래도 배정할까요?`)) return;
         if (overlap) confirmedGuides.current.set(rId, { id: resource.id, name: resource.name }); else confirmedGuides.current.delete(rId);
         setReservations(prev => prev.map(r => r.id === rId ? { ...r, assignedGuide: selectResourceGuide(r.assignedGuide, resource) } : r));
         markDirty(rId);
@@ -576,7 +577,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         } catch (e: any) {
             // 다른 화면에서 방금 같은 기간에 이 가이드를 배정했으면 서버가 거절한다. 확인하면 그대로 다시 저장한다.
             if (mounted.current && requestGeneration === generation.current && e?.code === 'guide_conflict' && !allowGuide
-                && window.confirm(`${e.message}\n그래도 배정할까요?`)) retry = true;
+                && await adminConfirm(`${e.message}\n그래도 배정할까요?`)) retry = true;
             else if (mounted.current && requestGeneration === generation.current) setNotice((e?.message || '저장하지 못했습니다.') + (local.ok ? ' 변경 내용과 브라우저 초안을 유지합니다.' : ' 화면의 변경 내용은 유지합니다. ' + local.error));
         } finally {
             if (mounted.current && requestGeneration === generation.current) { savingRef.current = null; setSavingId(null); }
@@ -602,10 +603,10 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     };
 
     // 저장 전 편집과 브라우저 초안을 버리고 마지막으로 받은 서버 배정으로 되돌린다. 서버는 바꾸지 않는다.
-    const resetRow = (r: Reservation) => {
+    const resetRow = async (r: Reservation) => {
         const saved = savedRows.current.get(r.id);
         if (!saved || savingRef.current || pendingRef.current[r.id]) return;
-        if (!window.confirm('저장하지 않은 변경 내용을 취소할까요?')) return;
+        if (!await adminConfirm('저장하지 않은 변경 내용을 취소할까요?')) return;
         const result = discardAssignmentDraft(window.localStorage, draftScope(r));
         if (!result.ok) { setNotice(result.error); return; }
         setReservations(prev => prev.map(x => x.id === r.id ? { ...saved, dailyAccommodations: initialAccommodationRows(saved) } : x));
@@ -873,7 +874,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                             {previous && <button type="button" className="lo-btn lo-copy" disabled={!previous.name && !previous.location} title="앞 일차의 지역·숙소·등급·객실·인원을 그대로 가져옵니다. 예약 상태는 미발송으로 시작합니다." onClick={() => copyPreviousDay(r.id, idx)}>
                                                                 <DashboardIcon name="lc-copy" size={14} />앞 일차와 동일
                                                             </button>}
-                                                            <button type="button" className="lo-icon-btn is-danger" title="이 숙박일 삭제" aria-label={`${d.day}일차 숙박 삭제`} onClick={() => { if (window.confirm(`${d.day}일차 숙박을 삭제할까요?`)) removeDay(r.id, idx); }}>
+                                                            <button type="button" className="lo-icon-btn is-danger" title="이 숙박일 삭제" aria-label={`${d.day}일차 숙박 삭제`} onClick={async () => { if (await adminConfirm(`${d.day}일차 숙박을 삭제할까요?`)) removeDay(r.id, idx); }}>
                                                                 <DashboardIcon name="lc-trash" size={15} />
                                                             </button>
                                                         </header>
