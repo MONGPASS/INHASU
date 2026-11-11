@@ -81,7 +81,7 @@
 .admin-app-wrapper .cm-btn:disabled { color: var(--text-tertiary); cursor: default; }
 .admin-app-wrapper .cm-btn.is-sm { height: 32px; padding: 0 12px; border-radius: 10px; font-size: 13px; }
 .admin-app-wrapper .cm-btn.is-tall { height: 44px; }
-.admin-app-wrapper .cm-btn.is-primary { border: 0; background: var(--mrt-ink); color: #fff; font-weight: 700; padding: 0 18px; }
+.admin-app-wrapper .cm-btn.is-primary { border: 0; background: var(--adm-primary-bg); color: #fff; font-weight: 700; padding: 0 18px; }
 .admin-app-wrapper .cm-btn.is-primary:hover:not(:disabled) { opacity: .88; }
 .admin-app-wrapper .cm-btn.is-primary:disabled { background: var(--mrt-gray-100); color: var(--text-tertiary); }
 .admin-app-wrapper .cm-order { display: flex; flex-direction: column; gap: 2px; flex: none; }

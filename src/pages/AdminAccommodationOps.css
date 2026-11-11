@@ -216,8 +216,8 @@ select.lo-input { padding-right: 30px; background: #fff var(--lo-chevron) no-rep
 .lo-btn { display: inline-flex; flex: none; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-strong); font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; cursor: pointer; }
 .lo-btn:hover:not(:disabled) { border-color: var(--mrt-ink); }
 .lo-btn:disabled { color: var(--text-tertiary); opacity: .6; cursor: default; }
-.lo-btn.is-ink { border-color: var(--mrt-ink); background: var(--mrt-ink); color: #fff; }
-.lo-btn.is-ink:hover:not(:disabled) { background: #000; }
+.lo-btn.is-ink { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff; }
+.lo-btn.is-ink:hover:not(:disabled) { border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover); }
 .lo-btn.is-dashed { height: 38px; padding: 0 16px; border: 1.5px dashed var(--lo-mint-seg); background: transparent; color: var(--lo-mint-strong); }
 .lo-btn.is-dashed:hover:not(:disabled) { border-color: var(--lo-mint); }
 

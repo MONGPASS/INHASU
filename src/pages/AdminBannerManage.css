@@ -59,9 +59,9 @@
 .admin-app-wrapper .hm-sec-text p { margin: 0; font-size: 13px; color: var(--text-tertiary); }
 .admin-app-wrapper .hm-add {
   display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; flex: none; border: 0; border-radius: 12px;
-  background: var(--mrt-ink); color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  background: var(--adm-primary-bg); color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
 }
-.admin-app-wrapper .hm-add:hover { opacity: .88; }
+.admin-app-wrapper .hm-add:hover { background: var(--adm-primary-bg-hover); }
 .admin-app-wrapper .hm-toggle-all { display: flex; justify-content: flex-end; margin: -8px 0; }
 .admin-app-wrapper .hm-toggle-all button { height: 30px; padding: 0 8px; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
 .admin-app-wrapper .hm-toggle-all button:hover { color: var(--text-strong); }
@@ -211,7 +211,8 @@
 .admin-app-wrapper .hm-page :is(button, input, textarea, select):focus-visible { outline: 2px solid var(--mrt-blue); outline-offset: 2px; }
 
 @media (max-width: 760px) {
-  .admin-app-wrapper .hm-bar { gap: 8px; }
+  /* 휴대폰 본문 여백(16px)에 맞춘다. 데스크톱 값(-32px)을 그대로 쓰면 화면이 옆으로 넘친다. */
+  .admin-app-wrapper .hm-bar { gap: 8px; top: var(--adm-topbar-h); margin: calc(var(--adm-space-4) * -1) calc(var(--adm-pad-page) * -1) var(--adm-space-4); padding: var(--adm-space-2) var(--adm-pad-page); }
   .admin-app-wrapper .hm-tabs { flex-wrap: nowrap; overflow-x: auto; width: 100%; }
   .admin-app-wrapper .hm-bar-end { margin-left: 0; width: 100%; }
   .admin-app-wrapper .hm-status { flex: 1; }

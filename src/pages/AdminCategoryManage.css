@@ -53,6 +53,6 @@
 .admin-app-wrapper .cg-drawer-foot { gap: 8px; padding: 14px 22px; border-top: 1px solid var(--border-default); }
 .admin-app-wrapper .cg-drawer-foot .btn { height: 46px; padding: 0 20px; border-radius: 999px; font-size: 15px; font-weight: 700; }
 .admin-app-wrapper .cg-drawer-foot .btn-ghost { border: 1.5px solid var(--border-default); background: #fff; color: var(--text-strong); }
-.admin-app-wrapper .cg-drawer-foot .btn-ink { background: var(--mrt-ink); color: #fff; }
+.admin-app-wrapper .cg-drawer-foot .btn-ink { background: var(--adm-primary-bg); color: #fff; }
 @keyframes cgSlide { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .admin-app-wrapper .picker.cg-drawer { animation: none; } }

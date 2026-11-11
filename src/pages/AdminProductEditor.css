@@ -59,7 +59,7 @@
 .admin-app-wrapper .pa-editor .pa-save-note b { color: var(--text-strong); font-weight: 800; }
 .admin-app-wrapper .pa-editor .pa-savebar .btn { height: 44px; padding: 0 18px; border-radius: 999px; font-size: 14px; font-weight: 700; }
 .admin-app-wrapper .pa-editor .pa-savebar .btn-ghost { border: 1.5px solid var(--border-default); background: #fff; color: var(--text-strong); }
-.admin-app-wrapper .pa-editor .pa-savebar .btn-ink { background: var(--mrt-ink); color: #fff; }
+.admin-app-wrapper .pa-editor .pa-savebar .btn-ink { background: var(--adm-primary-bg); color: #fff; }
 
 /* 오른쪽 열 — 미리보기·필수 항목 */
 .admin-app-wrapper .pa-editor .pa-aside { position: sticky; top: calc(var(--header-h, 72px) + 16px); display: flex; flex-direction: column; gap: 16px; min-width: 0; }

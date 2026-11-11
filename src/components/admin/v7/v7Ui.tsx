@@ -132,7 +132,7 @@ export function V7Steps({ steps, cancelled, large = false, onStep }: { steps: V7
                     {now && <span style={{ width: 8, height: 8, borderRadius: 999, background: '#fff' }} />}
                 </span>
                 <span style={{ fontSize: 13, fontWeight: now ? 800 : 700, whiteSpace: 'nowrap', color: ok ? 'var(--adm-accent-strong)' : now ? '#FF4F4F' : '#adb5bd' }}>{s.label}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', fontVariantNumeric: 'tabular-nums', color: now ? '#FF4F4F' : ok ? '#495057' : '#adb5bd', animation: now ? 'rvBlink 1.8s ease-in-out infinite' : 'none' }}>{s.sub}</span>
+                <span className="v7-step-sub" style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', fontVariantNumeric: 'tabular-nums', color: now ? '#FF4F4F' : ok ? '#495057' : '#adb5bd', animation: now ? 'rvBlink 1.8s ease-in-out infinite' : 'none' }}>{s.sub}</span>
             </>;
             const box: Css = { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center', minWidth: 0 };
             return onStep

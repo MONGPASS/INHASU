@@ -365,7 +365,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => stepTargets[i] ? goSec(stepTargets[i]) : onAction(m.steps[i]?.id || 'payments')} />
         </div>
 
-        <nav aria-label="예약 상세 바로가기" style={{ position: 'sticky', top: 0, zIndex: 5, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 50px) / 6), min(calc((100% - 20px) / 3), calc((1100px - 100%) * 999))),1fr))', gap: 10, padding: '8px 0', background: 'var(--surface-canvas, #f6f7f9)' }}>
+        <nav aria-label="예약 상세 바로가기" className="v7-nav" style={{ position: 'sticky', top: 0, zIndex: 5, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 50px) / 6), min(calc((100% - 20px) / 3), calc((1100px - 100%) * 999))),1fr))', gap: 10, padding: '8px 0', background: 'var(--surface-canvas, #f6f7f9)' }}>
             {NAV.map(n => <button key={n.sid} type="button" className="v7-nav-btn" aria-label={`${n.label} 위치로 이동`} onClick={() => goSec(n.sid)}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, height: 58, padding: '0 16px 0 14px', border: 0, borderRadius: 16, background: '#fff', boxShadow: '0 0 0 1px #eef0f2,0 1px 3px rgba(16,24,40,.04)', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
                 <span style={iconTile(34)}><Ico name={n.icon} size={17} /></span>
@@ -374,12 +374,12 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             </button>)}
         </nav>
         {notificationActions}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 36px) / 4), min(calc((100% - 12px) / 2), calc((1100px - 100%) * 999))),1fr))', gap: 12 }}>
+        <div className="v7-quad" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 36px) / 4), min(calc((100% - 12px) / 2), calc((1100px - 100%) * 999))),1fr))', gap: 12 }}>
             {quad.map(compactCard)}
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start' }}>
-            <div style={{ flex: '1 1 560px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="v7-cols" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start' }}>
+            <div className="v7-main" style={{ flex: '1 1 560px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div id="sec-asg" style={{ ...card, overflow: 'hidden' }}>
                     {cardHead({ icon: 'lc-users', title: '숙소 · 가이드 · 차량', right: <>
                         {row && <span style={{ ...pill(row.board === '배정 완료' ? 'solid' : row.board === '진행 중' ? 'amber' : 'red'), cursor: 'default' }}>{row.board}</span>}
@@ -391,7 +391,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         const tel = v?.phone ? maskFact('연락처', v.phone, maskOn) : value ? fallback?.detail || '연락처 미등록' : '배정 전';
                         const photo = kind === 'guide' ? item?.assignment.guide?.image : item?.assignment.vehicle?.resource?.img || item?.assignment.vehicle?.resource?.images?.[0];
                         const icon = kind === 'guide' ? 'lc-user-round' : 'lc-car';
-                        return <div key={kind} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 76, padding: '10px 18px', boxSizing: 'border-box', borderTop: '1px solid #f1f3f5' }}>
+                        return <div key={kind} className="v7-asg-row" style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 76, padding: '10px 18px', boxSizing: 'border-box', borderTop: '1px solid #f1f3f5' }}>
                             <span style={{ width: 72, flex: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: V7_MUTED }}><Ico name={icon} size={14} />{label}</span>
                             {value && photo ? <img src={photo} alt={`${label} ${value} 사진`} loading="lazy" style={{ width: 56, height: 56, flex: 'none', borderRadius: 999, objectFit: 'cover', background: '#f8f9fa' }} />
                                 : <span aria-hidden="true" style={{ width: 56, height: 56, flex: 'none', borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', boxShadow: 'inset 0 0 0 1.5px #e9ecef', color: '#ced4da' }}>{value ? <span style={{ fontSize: 11, fontWeight: 700, color: '#adb5bd' }}>사진</span> : <Ico name={icon} size={20} color="#ced4da" />}</span>}
@@ -409,10 +409,10 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                             {pendingNights.length > 0 && <span style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999, alignItems: 'center', justifyContent: 'center', background: '#0E9E7A', color: '#fff', fontSize: 11, fontWeight: 800 }}>{pendingNights.length}</span>}
                         </button>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', height: 34, padding: '0 18px', background: '#f8f9fa', fontSize: 11.5, fontWeight: 700, color: V7_MUTED }}><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
+                    <div className="v7-stay-head" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', height: 34, padding: '0 18px', background: '#f8f9fa', fontSize: 11.5, fontWeight: 700, color: V7_MUTED }}><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
                     {(row?.stays || []).map(nt => {
                         const st = bookingStatusMeta(nt.bookingStatus);
-                        return <div key={nt.day} style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', minHeight: 62, padding: '8px 18px', boxSizing: 'border-box', borderTop: '1px solid #f1f3f5' }}>
+                        return <div key={nt.day} className="v7-stay-row" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', minHeight: 62, padding: '8px 18px', boxSizing: 'border-box', borderTop: '1px solid #f1f3f5' }}>
                             <b style={{ fontSize: 13, fontWeight: 800, color: V7_INK }}>{nt.day}박</b>
                             <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><b style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{nt.date ? shortDate(nt.date) : '날짜 확인'}</b><span style={{ fontSize: 12, color: V7_MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nt.region || '지역 미정'}</span></span>
                             <span style={{ display: 'flex', minWidth: 0 }}>{btnSel(nt.hotel || '숙소 선택', !nt.hotel, e => void nightMenu(e, nt.day, 'hotel'), 'lc-chevron-down', { maxWidth: '100%', minWidth: 0, overflow: 'hidden' })}</span>
@@ -439,7 +439,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         const has = stayText !== '숙소 미정', none = stayText === '숙박 없음', c = none ? '#ced4da' : night?.hotel ? bookingStatusMeta(night.bookingStatus).color : has ? '#12b28c' : '#FF4F4F';
                         const activities = day.activities?.length ? day.activities : scheduleTimeline(day.summary || '').map(s => ({ time: s.time, title: s.text }));
                         return <div key={day.id} style={{ borderTop: '1px solid #f1f3f5' }}>
-                            <button type="button" aria-expanded={open} onClick={() => setDayOpen(prev => ({ ...prev, [day.id]: !open }))}
+                            <button type="button" aria-expanded={open} onClick={() => setDayOpen(prev => ({ ...prev, [day.id]: !open }))} className="v7-day-btn"
                                 style={{ display: 'grid', gridTemplateColumns: '64px 96px minmax(0,1fr) auto 20px', alignItems: 'center', gap: 12, width: '100%', minHeight: 52, padding: '0 18px', border: 0, background: open ? '#fbfefd' : 'transparent', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
                                 <b style={{ fontSize: 13, fontWeight: 800, color: V7_INK, textAlign: 'left' }}>{day.day}일차</b>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: V7_MUTED, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textAlign: 'left' }}>{day.date ? (/^\d{4}-\d{2}-\d{2}$/.test(day.date) ? shortDate(day.date) : day.date) : startKey ? shortDate(new Date(Date.parse(`${startKey}T00:00:00Z`) + (day.day - 1) * 864e5).toISOString().slice(0, 10)) : ''}</span>
@@ -468,7 +468,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
 
             </div>
 
-            <div style={{ flex: '1 1 320px', maxWidth: 440, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 84 }}>
+            <div className="v7-side" style={{ flex: '1 1 320px', maxWidth: 440, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 84 }}>
                 <div id="sec-info" style={{ ...card, padding: '18px 20px 6px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 10 }}>
                         <b style={{ flex: 1, fontSize: 17, fontWeight: 800 }}>고객 정보</b>
