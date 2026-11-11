@@ -60,6 +60,37 @@
   .admin-app-wrapper .app .content-in :is(.card, .cm-card, .pd-card, .tbl-wrap) { max-width: 100%; }
   .admin-app-wrapper .app .content-in :is(.card, .cm-card, .pd-card):has(> table) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+  /* ── 표 → 카드: 목록 표는 한 줄이 카드 한 장이 된다(칸 이름표는 useCardTables가 붙인다) ── */
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] { display: block; width: 100%; min-width: 0 !important; border: 0; }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] thead { display: none; }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] tbody { display: block; }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3) var(--adm-space-4); padding: var(--adm-space-4); border-bottom: 1px solid var(--adm-line-subtle); }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] tr[data-card-row="plain"] { display: block; }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; width: auto !important; padding: 0 !important; border: 0 !important; text-align: left !important; font-size: var(--adm-fs-body); }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-label]:not([data-label=""])::before { content: attr(data-label); color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-label=""] { display: none; }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-primary] { grid-column: 1 / -1; order: -1; font-size: var(--adm-fs-base); }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-primary]::before { display: none; }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-actions] { grid-column: 1 / -1; order: 99; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; gap: var(--adm-gap-control); padding-top: var(--adm-space-3) !important; border-top: 1px solid var(--adm-line-subtle) !important; }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-actions]::before { display: none; }
+  .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-actions] > * { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--adm-gap-control); }
+
+  /* ── 통합 예약 목록: 한 줄이 카드 한 장 ── */
+  .admin-app-wrapper .v7-list-scroll { overflow-x: visible !important; }
+  .admin-app-wrapper .v7-list-inner { min-width: 0 !important; }
+  .admin-app-wrapper .v7-list-head { display: none !important; }
+  .admin-app-wrapper .v7-list-row { grid-template-columns: 22px minmax(0, 1fr) auto !important; grid-template-areas: "check cust status" ". period pay" ". region people" ". assign assign"; gap: var(--adm-space-2) var(--adm-space-3) !important; align-items: start !important; padding: var(--adm-space-4) !important; }
+  .admin-app-wrapper .v7-list-row > .v7-c-check { grid-area: check; margin-top: 1px; }
+  .admin-app-wrapper .v7-list-row > .v7-c-cust { grid-area: cust; }
+  .admin-app-wrapper .v7-list-row > .v7-c-status { grid-area: status; justify-self: end; }
+  .admin-app-wrapper .v7-list-row > .v7-c-period { grid-area: period; }
+  .admin-app-wrapper .v7-list-row > .v7-c-pay { grid-area: pay; }
+  .admin-app-wrapper .v7-list-row > .v7-c-region { grid-area: region; }
+  .admin-app-wrapper .v7-list-row > .v7-c-people { grid-area: people; justify-self: end; text-align: right !important; color: var(--adm-text-2); }
+  .admin-app-wrapper .v7-list-row > .v7-c-assign { grid-area: assign; }
+  .admin-app-wrapper .v7-list-row > .v7-c-chev { display: none !important; }
+  .admin-app-wrapper .v7-list-panel { position: static !important; width: auto !important; padding: var(--adm-space-1) var(--adm-space-4) var(--adm-space-4) !important; }
+
   /* ── 팝업은 아래에서 올라오는 시트 ── */
   .admin-app-wrapper.admin-app-wrapper :is(.picker-scrim, .cm-scrim) { place-items: end stretch; padding: 0; }
   .admin-app-wrapper.admin-app-wrapper :is(.picker, .cm-modal, .cm-modal.is-narrow) { width: 100% !important; max-width: none; max-height: 92dvh; border-radius: var(--adm-radius-lg) var(--adm-radius-lg) 0 0; padding-bottom: var(--adm-safe-bottom); animation: admSheetIn var(--adm-dur) var(--adm-ease); }

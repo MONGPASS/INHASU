@@ -24,7 +24,6 @@ import { quoteFrameNeedsRemount, scheduleQuoteFrameDelay } from '../utils/quoteF
 import {
     connectQuoteDesk,
     findQuoteDeskTool,
-    isDesktopViewport,
     normalizeDocPath,
     quoteDeskFrameSrc,
     quoteDeskHref,
@@ -312,8 +311,8 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
             } catch { /* A standalone or older document retains its existing workflow. */ }
         } else { setNativeHosts(null); setBookingWorkspace(null); }
 
-        // 바깥 창은 데스크톱 폭인데 안쪽(더 좁은 iframe)이 모바일 관리자로 넘어갔으면 데스크톱 화면으로 되돌린다.
-        if (current.mobileDoc && normalizeDocPath(path) === current.mobileDoc && isDesktopViewport() && !innerEditor) {
+        // 안쪽 화면이 예전 모바일 관리자로 넘어갔으면 PC와 같은 화면으로 되돌린다(폭과 관계없이 같은 디자인).
+        if (current.mobileDoc && normalizeDocPath(path) === current.mobileDoc && !innerEditor) {
             try {
                 frameRef.current?.contentWindow?.location.replace(`${current.doc}?m=0`);
                 setFrameLoading(true);

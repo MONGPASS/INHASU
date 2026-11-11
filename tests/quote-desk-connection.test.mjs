@@ -126,14 +126,15 @@ test('모바일 견적 편집 고객과 새 견적은 qe 주소로 재열고 문
     assert.equal(ordinary.searchParams.get('m'), '0');
 });
 
-test('기존 문의 메뉴는 실제 바깥 화면 폭에 맞춰 데스크톱 유지 옵션을 붙인다', () => {
+test('기존 문의 메뉴는 화면 폭과 관계없이 PC와 같은 문서를 연다', () => {
     const app = setup(), inbox = app.findQuoteDeskTool('inbox');
     assert.equal(app.quoteDeskFrameSrc(inbox), '/견적관리?m=0');
-    app.window.screen.width = 820;
-    assert.equal(app.quoteDeskFrameSrc(inbox), '/견적관리');
-    const mobile = new URL(app.quoteDeskFrameSrc(inbox, 'inquiry-a'), 'https://local.example.invalid');
-    assert.equal(mobile.searchParams.get('m'), null);
-    assert.equal(mobile.searchParams.get('id'), 'inquiry-a');
+    // 휴대폰 폭에서 새로 열어도 예전 모바일 전용 문서로 넘어가지 않는다(폭을 줄였을 때와 같은 화면).
+    app.window.screen.width = 390;
+    assert.equal(app.quoteDeskFrameSrc(inbox), '/견적관리?m=0');
+    const narrow = new URL(app.quoteDeskFrameSrc(inbox, 'inquiry-a'), 'https://local.example.invalid');
+    assert.equal(narrow.searchParams.get('m'), '0');
+    assert.equal(narrow.searchParams.get('id'), 'inquiry-a');
 });
 
 test('공통 자원 바로가기는 허용된 분류만 열고 고객·편집 주소를 바꾸지 않는다', () => {

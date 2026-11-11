@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminToolbar } from './AdminToolbar';
 import { AdminMobileTabBar } from './ui/AdminMobileTabBar';
+import { useCardTables } from './ui/useCardTables';
 import '../../styles/admin-console.css';
 import '../../styles/admin-shell-v3.css';
 import '../../styles/admin-mobile.css';
@@ -60,6 +61,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     const menuPanelRef = useRef<HTMLDivElement>(null);
     const actionButtonRef = useRef<HTMLButtonElement>(null);
     const actionPanelRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    useCardTables(contentRef);
     const id = useId().replace(/:/g, '');
     const menuId = `admin-customer-menu-${id}`;
     const actionsId = `admin-customer-actions-${id}`;
@@ -136,11 +139,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                 </header>
 
                 {flush ? (
-                    <div className="content" style={{ padding: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                    <div ref={contentRef} className="content" style={{ padding: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                         {children}
                     </div>
                 ) : (
-                    <div className="content"><div className="content-in">{children}</div></div>
+                    <div ref={contentRef} className="content"><div className="content-in">{children}</div></div>
                 )}
             </div>
             {!hideHeading && <AdminMobileTabBar activePage={activePage} menuOpen={menuShown} menuId={menuId} onOpenMenu={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }} />}

@@ -64,3 +64,12 @@ test('휴대폰 앱 틀은 한 파일에서 정하고 크기는 공통 변수를
     const tabbar = read('src/components/admin/ui/AdminMobileTabBar.tsx');
     for (const label of ['홈', '예약', '견적', '배정', '전체']) assert.ok(tabbar.includes(label), label);
 });
+
+test('휴대폰에서 목록 표는 카드로 바뀐다', () => {
+    const layout = read('src/components/admin/AdminLayout.tsx');
+    assert.ok(layout.includes('useCardTables(contentRef)'));
+    const mobile = read('src/styles/admin-mobile.css');
+    assert.ok(mobile.includes('[data-card-table="on"]') && mobile.includes('.v7-list-row'));
+    const list = read('src/components/admin/v7/ReservationListV7.tsx');
+    for (const name of ['check', 'cust', 'period', 'people', 'region', 'assign', 'pay', 'status']) assert.ok(list.includes('v7-c-' + name), name);
+});
