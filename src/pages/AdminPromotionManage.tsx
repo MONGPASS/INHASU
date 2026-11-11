@@ -8,6 +8,7 @@ import { PROMO_THEME_KEYS, type Promotion, type PromoThemeKey } from '../compone
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminValidateRequired } from '../components/admin/ui/adminForm';
 
 interface ProductLite {
     id: string;
@@ -201,10 +202,7 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
 
     const save = async () => {
         const title = form.title.trim();
-        if (!title) {
-            setError('제목을 입력해 주세요.');
-            return;
-        }
+        if (!title) { adminValidateRequired(); return; }
         setSaving(true);
         setError('');
         const payload: PromoForm = {
@@ -243,16 +241,16 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
                     </button>
                 </div>
 
-                <div style={{ display: 'flex', minHeight: 0, flex: 1 }}>
+                <div className="pm-split" style={{ display: 'flex', minHeight: 0, flex: 1 }}>
                     {/* Form */}
-                    <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '20px 22px' }}>
+                    <div className="pm-form" style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '20px 22px' }}>
                         <div className="card-muted-note" style={{ marginBottom: 18 }}>
                             <Icon name="translate" />
                             <span>제목 · 설명 · 분류 · 배지 문구는 고객에게 그대로 보입니다. 한국어로 입력해 주세요.</span>
                         </div>
 
                         <div className="field">
-                            <label>제목 *</label>
+                            <label className="adm-req">제목</label>
                             <input
                                 className="inp"
                                 type="text"
@@ -452,7 +450,7 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
                     </div>
 
                     {/* Live preview */}
-                    <div style={{ width: 348, flex: 'none', overflowY: 'auto', padding: '20px 22px', background: 'var(--mrt-gray-50)', borderLeft: '1px solid var(--border-subtle)' }}>
+                    <div className="pm-preview" style={{ width: 348, flex: 'none', overflowY: 'auto', padding: '20px 22px', background: 'var(--mrt-gray-50)', borderLeft: '1px solid var(--border-subtle)' }}>
                         <div className="cell-strong" style={{ fontSize: 13, marginBottom: 10 }}>고객 화면 미리보기</div>
                         <div className="seg" style={{ marginBottom: 16 }}>
                             {PREVIEWS.map((p) => (

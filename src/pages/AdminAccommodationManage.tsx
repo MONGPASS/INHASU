@@ -4,6 +4,7 @@ import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminValidateRequired } from '../components/admin/ui/adminForm';
 
 interface Accommodation {
     id: string;
@@ -107,10 +108,7 @@ export const AdminAccommodationManage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        if (!formData.name || !formData.location) {
-            adminNotify('숙소명과 위치는 필수 입력 항목입니다.');
-            return;
-        }
+        if (!adminValidateRequired() || !formData.name || !formData.location) return;
 
         if (editingAccommodation) {
             // Update existing accommodation
@@ -349,7 +347,7 @@ export const AdminAccommodationManage: React.FC = () => {
                             {/* Name + Location */}
                             <div className="field-row">
                                 <div className="field" style={{ marginBottom: 0 }}>
-                                    <label>숙소명 *</label>
+                                    <label className="adm-req">숙소명</label>
                                     <input
                                         type="text"
                                         className="inp"
@@ -359,7 +357,7 @@ export const AdminAccommodationManage: React.FC = () => {
                                     />
                                 </div>
                                 <div className="field" style={{ marginBottom: 0 }}>
-                                    <label>위치 *</label>
+                                    <label className="adm-req">위치</label>
                                     <input
                                         type="text"
                                         className="inp"

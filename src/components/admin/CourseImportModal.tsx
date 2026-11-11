@@ -5,6 +5,7 @@ import type { TouristSpot } from '../../types/touristSpot';
 import type { Hotel } from '../../types/hotel';
 import { TouristSpotPickerModal } from './TouristSpotPickerModal';
 import { HotelPickerModal } from './HotelPickerModal';
+import './CourseImportModal.css';
 import {
     planCourse, planToBlocks, dayGaps, planPhotoCount, plainText, shortText, dayAliasKey, itemAliasKey, stayAliasKey,
     coursePricing, suspiciousPricing, stayForPackage,
@@ -90,12 +91,12 @@ type PickTarget = { kind: 'day'; day: number } | { kind: 'item'; day: number; it
 
 const Thumb = ({ src }: { src?: string }) => (
     src
-        ? <img src={src} alt="" loading="lazy" className="w-10 h-10 rounded-lg object-cover bg-slate-100 flex-none" />
-        : <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center flex-none"><span className="material-symbols-outlined text-base">image</span></div>
+        ? <img src={src} alt="" loading="lazy" className="ci-thumb" />
+        : <div className="ci-thumb is-empty"><span className="material-symbols-outlined">image</span></div>
 );
 
-const linkBtn = 'px-2 py-1 rounded-md text-[11px] font-bold text-teal-700 hover:bg-teal-50 whitespace-nowrap';
-const mutedBtn = 'px-2 py-1 rounded-md text-[11px] font-semibold text-slate-400 hover:bg-slate-100 whitespace-nowrap';
+const linkBtn = 'ci-link';
+const mutedBtn = 'ci-link is-muted';
 
 /**
  * 「코스에서 불러오기」 — 견적 관리의 코스를 골라 상품 일정표를 한 번에 만든다.
@@ -105,8 +106,8 @@ const mutedBtn = 'px-2 py-1 rounded-md text-[11px] font-semibold text-slate-400 
 export const CourseImportModal: React.FC<CourseImportModalProps> = ({ open, packageType, onPick, onClose }) => {
     if (!open) return null;
     return (
-        <div className="fixed inset-0 z-[225] bg-black/50 flex items-center justify-center p-6" onClick={onClose}>
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="ci-scrim" onClick={onClose}>
+            <div className="ci-modal" role="dialog" aria-modal="true" aria-label="코스에서 불러오기" onClick={(e) => e.stopPropagation()}>
                 {/* 열릴 때마다 새로 마운트되어 코스·여행지·숙소를 다시 읽는다 */}
                 <CourseImporter packageType={packageType ?? null} onPick={onPick} onClose={onClose} />
             </div>
@@ -191,13 +192,13 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
     const emptyLodgings = gaps.filter(g => g.lodging).length;
 
     const header = (title: string, lead: string) => (
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-            <div className="min-w-0">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">{title}</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{lead}</p>
+        <div className="ci-head">
+            <div className="ci-head-text">
+                <h2>{title}</h2>
+                <p>{lead}</p>
             </div>
-            <button type="button" onClick={onClose} className="w-9 h-9 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center flex-none" aria-label="닫기">
-                <span className="material-symbols-outlined text-slate-500">close</span>
+            <button type="button" onClick={onClose} className="ci-close" aria-label="닫기">
+                <span className="material-symbols-outlined">close</span>
             </button>
         </div>
     );
@@ -207,24 +208,24 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
         return (
             <>
                 {header('코스에서 불러오기', '견적 관리 → 코스 관리의 코스를 고르면 일차·일정·식사·숙소가 한 번에 만들어지고, 사진과 설명은 여행지 관리·등록 숙소에서 자동으로 채워집니다.')}
-                <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+                <div className="ci-search">
                     <input type="text" value={q} onChange={(e) => setQ(e.target.value)} autoFocus placeholder="코스명·여행지 검색 (예: 고비, 테를지, 4박5일)"
-                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+                        className="ci-input" />
                 </div>
-                <div className="flex-1 overflow-auto">
+                <div className="ci-list">
                     {loading ? (
-                        <div className="py-20 text-center text-slate-500">불러오는 중...</div>
+                        <div className="ci-empty" role="status">불러오는 중...</div>
                     ) : entries.length === 0 ? (
-                        <div className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">{q ? '검색 결과가 없습니다.' : '등록된 코스가 없습니다. 견적 관리 → 코스 관리에서 먼저 만들어 주세요.'}</div>
+                        <div className="ci-empty">{q ? '검색 결과가 없습니다.' : '등록된 코스가 없습니다. 견적 관리 → 코스 관리에서 먼저 만들어 주세요.'}</div>
                     ) : entries.map(([name, c]) => (
                         <button key={name} type="button" data-course={name} onClick={() => choose(name)}
-                            className="w-full text-left px-6 py-3 border-b border-slate-100 dark:border-slate-800 hover:bg-teal-50/60 dark:hover:bg-teal-900/20 flex items-center gap-4">
-                            <div className="min-w-0 flex-1">
-                                <div className="font-bold text-slate-900 dark:text-white truncate">{name}</div>
-                                <div className="text-xs text-slate-500 mt-0.5 truncate">{(c.days || []).map(d => plainText(d.dest)).filter(Boolean).join(' → ')}</div>
+                            className="ci-course">
+                            <div className="ci-course-text">
+                                <b>{name}</b>
+                                <div>{(c.days || []).map(d => plainText(d.dest)).filter(Boolean).join(' → ')}</div>
                             </div>
-                            <div className="text-xs font-semibold text-slate-500 whitespace-nowrap">{c.nights || `${c.days?.length}일`}</div>
-                            <span className="material-symbols-outlined text-slate-400">chevron_right</span>
+                            <span className="ci-nights">{c.nights || `${c.days?.length}일`}</span>
+                            <span className="material-symbols-outlined ci-chev">chevron_right</span>
                         </button>
                     ))}
                 </div>
@@ -236,34 +237,34 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
     return (
         <>
             {header(courseName, '자동으로 찾은 사진과 한 줄 설명을 확인하세요. 주황색으로 표시된 자리만 골라 주면 됩니다. 한 번 골라 준 짝은 다음 불러오기부터 자동으로 들어갑니다.')}
-            <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 p-4 space-y-3">
+            <div className="ci-body">
                 {/* 여행 타입 — 숙소 등급과 가져올 요금을 정한다 */}
-                <div data-course-package className={`rounded-xl border bg-white dark:bg-slate-900 px-4 py-3 ${needsPackage ? 'border-amber-300' : 'border-slate-200 dark:border-slate-800'}`}>
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <b className="text-[13px] text-slate-900 dark:text-white">여행 타입</b>
-                        <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden" role="radiogroup" aria-label="여행 타입">
+                <div data-course-package className={`ci-card ci-pkg${needsPackage ? ' is-warn' : ''}`}>
+                    <div className="ci-pkg-row">
+                        <b>여행 타입</b>
+                        <div className="ci-seg" role="radiogroup" aria-label="여행 타입">
                             {(['full', 'value'] as const).map(type => (
                                 <button key={type} type="button" role="radio" aria-checked={pkg === type} data-package={type} onClick={() => setPkg(type)}
-                                    className={`px-3 py-1.5 text-[12px] font-bold ${pkg === type ? 'bg-slate-900 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50'}`}>{PACKAGE_LABEL[type]}</button>
+                                    className={pkg === type ? 'is-on' : undefined}>{PACKAGE_LABEL[type]}</button>
                             ))}
                         </div>
-                        <span className="text-[11.5px] text-slate-500">{pkg ? PACKAGE_STAYS[pkg] : '풀패키지는 4성급 호텔 + 고급 게르, 실속형은 3성급 호텔 + 일반 게르'}</span>
+                        <span className="ci-hint">{pkg ? PACKAGE_STAYS[pkg] : '풀패키지는 4성급 호텔 + 고급 게르, 실속형은 3성급 호텔 + 일반 게르'}</span>
                     </div>
                     {hasPrice && (
-                        <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800">
-                            <label className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
-                                <input type="checkbox" checked={withPrice} onChange={(e) => setWithPrice(e.target.checked)} className="w-3.5 h-3.5 accent-teal-600" />
+                        <div className="ci-price">
+                            <label className="ci-check">
+                                <input type="checkbox" checked={withPrice} onChange={(e) => setWithPrice(e.target.checked)} />
                                 코스 요금을 가격/옵션에 함께 가져오기
                             </label>
                             {withPrice && (pkg ? (
-                                <div data-course-pricing className="mt-1.5 text-[12px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                                <div data-course-pricing className="ci-price-list">
                                     {pricing.map(o => (
-                                        <span key={o.people} className={`inline-block mr-3 ${suspect.includes(o.people) ? 'text-amber-700 font-bold' : ''}`}>{o.people}인 {won(o.pricePerPerson)}</span>
+                                        <span key={o.people} className={suspect.includes(o.people) ? 'is-warn' : undefined}>{o.people}인 {won(o.pricePerPerson)}</span>
                                     ))}
-                                    <div className="text-[11px] text-slate-400">1인 가격 = 예약금 {won(pricing[0]?.depositPerPerson || 0)} + 현지 지불 잔금 · 판매가는 가장 낮은 1인 가격으로 맞춥니다</div>
-                                    {suspect.length > 0 && <div className="text-[11.5px] font-bold text-amber-700">{suspect.join('인, ')}인 금액이 다른 인원과 크게 다릅니다. 코스 관리의 입력값을 확인하세요.</div>}
+                                    <div className="ci-hint">1인 가격 = 예약금 {won(pricing[0]?.depositPerPerson || 0)} + 현지 지불 잔금 · 판매가는 가장 낮은 1인 가격으로 맞춥니다</div>
+                                    {suspect.length > 0 && <div className="ci-warn-text">{suspect.join('인, ')}인 금액이 다른 인원과 크게 다릅니다. 코스 관리의 입력값을 확인하세요.</div>}
                                 </div>
-                            ) : <div className="mt-1 text-[11.5px] font-bold text-amber-700">여행 타입을 고르면 그 타입의 요금을 가져옵니다.</div>)}
+                            ) : <div className="ci-warn-text">여행 타입을 고르면 그 타입의 요금을 가져옵니다.</div>)}
                         </div>
                     )}
                 </div>
@@ -271,40 +272,40 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
                     const gap = gaps[i];
                     const lodgeThumb = day.lodge ? (day.lodge.images || []).find(Boolean) : day.stayImages[0];
                     return (
-                        <div key={day.index} data-plan-day={i} className={`rounded-xl border bg-white dark:bg-slate-900 ${gap.photo ? 'border-amber-300' : 'border-slate-200 dark:border-slate-800'}`}>
-                            <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                        <div key={day.index} data-plan-day={i} className={`ci-card ci-day${gap.photo ? ' is-warn' : ''}`}>
+                            <div className="ci-day-head">
                                 <Thumb src={day.spot ? (day.spot.images || []).find(Boolean) : day.dayImages[0]} />
-                                <div className="min-w-0 flex-1">
-                                    <div className="font-bold text-slate-900 dark:text-white truncate">
-                                        <span className="text-[11px] font-bold text-slate-400 mr-1.5">{i + 1}일차</span>{day.title || '(목적지 없음)'}
+                                <div className="ci-day-text">
+                                    <div className="ci-day-title">
+                                        <span>{i + 1}일차</span>{day.title || '(목적지 없음)'}
                                     </div>
                                     {day.spot ? (
-                                        <div className="text-[11.5px] text-teal-700 dark:text-teal-300 font-semibold truncate">
+                                        <div className="ci-day-sub">
                                             여행지 「{day.spot.name_kr}」 사진 {(day.spot.images || []).filter(Boolean).length}장{day.repeat ? ' · 앞 일차와 같은 곳이라 배경 사진만 넣습니다' : ''}
                                         </div>
                                     ) : (
-                                        <div className="text-[11.5px] text-amber-700 font-semibold">{gap.photo ? '이 날에 넣을 사진을 찾지 못했습니다' : '대표 여행지 없음'}</div>
+                                        <div className="ci-day-sub is-warn">{gap.photo ? '이 날에 넣을 사진을 찾지 못했습니다' : '대표 여행지 없음'}</div>
                                     )}
                                 </div>
-                                <span className="text-[11px] text-slate-400 whitespace-nowrap">사진 {planPhotoCount(day, plan)}</span>
-                                <button type="button" data-pick-day={i} onClick={() => setTarget({ kind: 'day', day: i })} className={day.spot ? linkBtn : 'px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500 text-white hover:bg-amber-600 whitespace-nowrap'}>
+                                <span className="ci-count">사진 {planPhotoCount(day, plan)}</span>
+                                <button type="button" data-pick-day={i} onClick={() => setTarget({ kind: 'day', day: i })} className={day.spot ? linkBtn : 'ci-need'}>
                                     {day.spot ? '변경' : '여행지 선택'}
                                 </button>
                                 {day.spot && <button type="button" onClick={() => setDaySpot(i, null)} className={mutedBtn}>빼기</button>}
                             </div>
 
-                            <ul className="px-4 py-2">
+                            <ul className="ci-items">
                                 {day.items.map((item, j) => (
-                                    <li key={j} className="py-1 text-[13px] text-slate-700 dark:text-slate-200">
-                                        <div className="flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-none" />
-                                        <span className="min-w-0 flex-1 truncate">
-                                            {item.time && <b className="mr-1.5">{item.time}</b>}{item.title}
-                                            {item.note && <span className="ml-1.5 text-slate-400">{item.note}</span>}
+                                    <li key={j}>
+                                        <div className="ci-item">
+                                        <span className="ci-dot" />
+                                        <span className="ci-item-title">
+                                            {item.time && <b className="ci-time">{item.time}</b>}{item.title}
+                                            {item.note && <span className="ci-note">{item.note}</span>}
                                         </span>
                                         {item.spot ? (
                                             <>
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-[11px] font-bold whitespace-nowrap">
+                                                <span className="ci-chip">
                                                     <span className="material-symbols-outlined" style={{ fontSize: 13 }}>image</span>{item.spot.name_kr}
                                                 </span>
                                                 <button type="button" onClick={() => setItemSpot(i, j, null)} className={mutedBtn} aria-label="이 항목의 사진 빼기">빼기</button>
@@ -314,13 +315,13 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
                                         )}
                                         </div>
                                         {item.spot && (
-                                            <div className="flex items-center gap-2 mt-1 ml-3.5">
+                                            <div className="ci-item-edit">
                                                 {(item.spot.images || []).filter(Boolean).slice(0, 2).map((src, k) => (
-                                                    <img key={k} src={src} alt="" loading="lazy" className="w-9 h-7 rounded object-cover bg-slate-100 flex-none" />
+                                                    <img key={k} src={src} alt="" loading="lazy" className="ci-mini" />
                                                 ))}
                                                 <input type="text" value={item.description} data-item-description={`${i}:${j}`} onChange={(e) => setItemDescription(i, j, e.target.value)}
                                                     placeholder="항목 아래에 들어갈 한 줄 설명 (비워 두면 사진만)"
-                                                    className="min-w-0 flex-1 px-2 py-1 border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-[12px] text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-teal-500 outline-none" />
+                                                    className="ci-input is-sm" />
                                             </div>
                                         )}
                                     </li>
@@ -328,21 +329,21 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
                             </ul>
 
                             {(day.stayName || day.meals.breakfast || day.meals.lunch || day.meals.dinner) && (
-                                <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 text-[12px] text-slate-600 dark:text-slate-300 space-y-1.5">
+                                <div className="ci-day-foot">
                                     {(day.meals.breakfast || day.meals.lunch || day.meals.dinner) && (
-                                        <div><b className="text-slate-400 mr-2">식사</b>{[day.meals.breakfast && `아침 ${day.meals.breakfast}`, day.meals.lunch && `점심 ${day.meals.lunch}`, day.meals.dinner && `저녁 ${day.meals.dinner}`].filter(Boolean).join(' · ')}</div>
+                                        <div className="ci-meta"><b>식사</b>{[day.meals.breakfast && `아침 ${day.meals.breakfast}`, day.meals.lunch && `점심 ${day.meals.lunch}`, day.meals.dinner && `저녁 ${day.meals.dinner}`].filter(Boolean).join(' · ')}</div>
                                     )}
                                     {day.stayName && (
-                                        <div className="flex items-center gap-2">
-                                            <b className="text-slate-400">숙소</b>
-                                            <span className="min-w-0 flex-1 truncate">
+                                        <div className="ci-meta">
+                                            <b>숙소</b>
+                                            <span className="ci-meta-text">
                                                 {day.lodge ? day.lodge.name_kr : stayForPackage(day.stayName, pkg)}
-                                                {day.lodge && day.lodge.name_kr !== day.stayName && <span className="ml-1.5 text-slate-400">(코스: {day.stayName})</span>}
+                                                {day.lodge && day.lodge.name_kr !== day.stayName && <span className="ci-note">(코스: {day.stayName})</span>}
                                             </span>
                                             {lodgeThumb
-                                                ? <span className="text-[11px] font-bold text-teal-700 whitespace-nowrap">사진 {(day.lodge ? day.lodge.images || [] : day.stayImages).filter(Boolean).length}장</span>
-                                                : <span className="text-[11px] font-bold text-amber-700 whitespace-nowrap">사진 없음</span>}
-                                            <button type="button" data-pick-lodge={i} onClick={() => setTarget({ kind: 'lodge', day: i })} className={lodgeThumb ? linkBtn : 'px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500 text-white hover:bg-amber-600 whitespace-nowrap'}>
+                                                ? <span className="ci-count is-ok">사진 {(day.lodge ? day.lodge.images || [] : day.stayImages).filter(Boolean).length}장</span>
+                                                : <span className="ci-count is-warn">사진 없음</span>}
+                                            <button type="button" data-pick-lodge={i} onClick={() => setTarget({ kind: 'lodge', day: i })} className={lodgeThumb ? linkBtn : 'ci-need'}>
                                                 {day.lodge ? '변경' : '등록 숙소 선택'}
                                             </button>
                                             {day.lodge && <button type="button" onClick={() => setLodge(i, null)} className={mutedBtn}>빼기</button>}
@@ -355,23 +356,23 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
                 })}
             </div>
 
-            <div className="flex items-center justify-between gap-3 px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                <div className="min-w-0 text-[12px]">
-                    <div data-plan-summary className={emptyPhotoDays || emptyLodgings ? 'font-bold text-amber-700' : 'font-bold text-teal-700'}>
+            <div className="ci-foot">
+                <div className="ci-foot-text">
+                    <div data-plan-summary className={emptyPhotoDays || emptyLodgings ? 'ci-summary is-warn' : 'ci-summary'}>
                         {emptyPhotoDays || emptyLodgings
                             ? [emptyPhotoDays && `사진이 없는 일차 ${emptyPhotoDays}개`, emptyLodgings && `사진 없는 숙소 ${emptyLodgings}개`].filter(Boolean).join(' · ')
                             : '모든 일차에 사진이 들어갑니다'}
                     </div>
-                    <label className="flex items-center gap-1.5 mt-1 text-slate-500 cursor-pointer">
-                        <input type="checkbox" checked={includeMove} onChange={(e) => setIncludeMove(e.target.checked)} className="w-3.5 h-3.5 accent-teal-600" />
+                    <label className="ci-check">
+                        <input type="checkbox" checked={includeMove} onChange={(e) => setIncludeMove(e.target.checked)} />
                         이동 시간·거리를 일차 소개에 넣기
                     </label>
                 </div>
-                <div className="flex items-center gap-2 flex-none">
-                    <button type="button" onClick={() => setCourseName(null)} className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">다른 코스</button>
+                <div className="ci-foot-acts">
+                    <button type="button" onClick={() => setCourseName(null)} className="adm-btn">다른 코스</button>
                     <button type="button" data-course-submit disabled={needsPackage} title={needsPackage ? '여행 타입을 먼저 고르세요' : undefined}
                         onClick={() => onPick(planToBlocks(plan, { includeMove, packageType: pkg }), courseName, { packageType: pkg, pricing: hasPrice && withPrice && pricing.length ? pricing : null })}
-                        className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                        className="adm-btn is-primary">
                         이 코스로 일정표 만들기
                     </button>
                 </div>

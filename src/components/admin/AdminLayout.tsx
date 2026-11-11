@@ -4,6 +4,7 @@ import { AdminSidebar } from './AdminSidebar';
 import { AdminToolbar } from './AdminToolbar';
 import { AdminMobileTabBar } from './ui/AdminMobileTabBar';
 import { useCardTables } from './ui/useCardTables';
+import { useAdminInstallMeta } from './ui/useAdminInstallMeta';
 import '../../styles/admin-console.css';
 import '../../styles/admin-shell-v3.css';
 import '../../styles/admin-mobile.css';
@@ -63,6 +64,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     const actionPanelRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     useCardTables(contentRef);
+    useAdminInstallMeta();
     const id = useId().replace(/:/g, '');
     const menuId = `admin-customer-menu-${id}`;
     const actionsId = `admin-customer-actions-${id}`;
