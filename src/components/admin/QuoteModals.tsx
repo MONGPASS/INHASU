@@ -7,6 +7,7 @@ import { decodeTemplateDescription, mergeDocumentSettings } from '../../pages/Ad
 import { useBlocker } from 'react-router-dom';
 import { CustomerWorkspaceOverview } from './CustomerWorkspaceOverview';
 import { legacyCustomerOverview } from '../../utils/productCustomerWorkspace';
+import { adminNotify } from './ui/adminFeedback';
 
 export interface QuoteRequest {
     id: string;
@@ -249,7 +250,7 @@ export const ConvertSelectionModal: React.FC<{
                     <button
                         onClick={() => {
                             if (!startDate || !endDate || totalAmount <= 0) {
-                                alert('날짜와 금액을 모두 입력해주세요.');
+                                adminNotify('날짜와 금액을 모두 입력해주세요.');
                                 return;
                             }
                             onConvert({ startDate, endDate, totalAmount, deposit });
@@ -510,7 +511,7 @@ export const QuoteDetailModal: React.FC<{
             const fresh: any = await api.quotes.get(request.id);
             const savedDays = fresh?.documentContent?.days ?? fresh?.itinerary?.days;
             if (!Array.isArray(savedDays) || savedDays.length === 0) {
-                alert('⚠️ 일정이 서버에 저장되지 않았습니다.\n\n관리자 로그인이 풀렸을 수 있습니다 — 로그인 상태를 확인하고 다시 저장해 주세요.\n반복되면 /api/migrate-db 실행이 필요할 수 있습니다.');
+                adminNotify('⚠️ 일정이 서버에 저장되지 않았습니다.\n\n관리자 로그인이 풀렸을 수 있습니다 — 로그인 상태를 확인하고 다시 저장해 주세요.\n반복되면 /api/migrate-db 실행이 필요할 수 있습니다.');
             }
         } catch { /* 재조회 실패는 무시 — 저장 실패는 위 update 에러로 이미 드러남 */ }
     };
@@ -604,7 +605,7 @@ export const QuoteDetailModal: React.FC<{
 
     const handleSend = async () => {
         if (!canSendEstimate) {
-            alert(`견적 발송 전에 아래 항목을 확인해 주세요.\n\n- ${missingSendItems.join('\n- ')}`);
+            adminNotify(`견적 발송 전에 아래 항목을 확인해 주세요.\n\n- ${missingSendItems.join('\n- ')}`);
             scrollToSec('quote');
             return;
         }
@@ -658,7 +659,7 @@ export const QuoteDetailModal: React.FC<{
                 return;
             }
             if (!previewWindow) {
-                alert('견적 내용은 저장되었습니다. 브라우저에서 팝업을 허용한 뒤 미리보기를 다시 눌러 주세요.');
+                adminNotify('견적 내용은 저장되었습니다. 브라우저에서 팝업을 허용한 뒤 미리보기를 다시 눌러 주세요.');
                 return;
             }
             previewWindow.location.replace(`${estimatePageUrl}?preview=${Date.now()}`);

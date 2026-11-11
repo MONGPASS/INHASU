@@ -3,6 +3,7 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { GuideSelectionModal, AccommodationSelectionModal } from '../components/admin/SelectionModals';
 import { api } from '../lib/api';
+import { adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface Reservation {
     id: string;
@@ -63,7 +64,7 @@ export const AdminAssignment: React.FC = () => {
             }
         } catch (e) {
             console.error('Failed to load reservations', e);
-            alert('예약 목록을 불러오는데 실패했습니다.');
+            adminNotify('예약 목록을 불러오는데 실패했습니다.');
         } finally {
             setIsLoading(false);
         }
@@ -148,7 +149,7 @@ export const AdminAssignment: React.FC = () => {
             return true;
         } catch (e) {
             console.error('Failed to update reservation', e);
-            alert('할당 저장에 실패했습니다. DB 컬럼이 존재하는지 확인해주세요.');
+            adminNotify('할당 저장에 실패했습니다. DB 컬럼이 존재하는지 확인해주세요.');
             return false;
         }
     };

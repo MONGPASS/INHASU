@@ -1,0 +1,75 @@
+/* ============================================================
+   관리자 휴대폰 앱 틀 (760px 이하).
+   어느 메뉴에 들어가도 같은 위 바·아래 메뉴·서랍 메뉴·크기를 쓴다.
+   크기 값은 public/admin-tokens.css의 휴대폰 변수에서 온다. 규칙: docs/admin-design-system.md 8절
+   ============================================================ */
+.admin-app-wrapper .adm-tabbar { display: none; }
+
+@media (max-width: 760px) {
+  .admin-app-wrapper .app { --header-h: var(--adm-topbar-h); display: block; min-height: 100dvh; background: var(--adm-canvas); }
+
+  /* ── 본문: 사이드바 자리를 없애고 아래 메뉴만큼 띄운다 ── */
+  .admin-app-wrapper .app > .main { width: 100%; margin: 0; min-height: 100dvh; box-sizing: border-box; padding-bottom: calc(var(--adm-tabbar-h) + var(--adm-safe-bottom)); border: 0; border-radius: 0; background: var(--adm-canvas); }
+  .admin-app-wrapper .app > .main.is-flush { height: 100dvh; min-height: 0; }
+  .admin-app-wrapper .app.is-editing > .main { padding-bottom: 0; }
+  .admin-app-wrapper .app .content { padding: var(--adm-space-4) var(--adm-pad-page) var(--adm-space-6); }
+  .admin-app-wrapper .app .content-in { min-width: 0; }
+
+  /* ── 위 고정 바: 제목 + 검색·알림, 그 아래 화면 작업 버튼 줄 ── */
+  .admin-app-wrapper .app .header { position: sticky; top: 0; z-index: 40; flex: none; padding: 0 var(--adm-space-3) 0 var(--adm-pad-page); border-bottom: 1px solid var(--adm-line); background: var(--adm-surface); backdrop-filter: none; }
+  .admin-app-wrapper .app .header-in { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--adm-space-2); height: auto; min-height: var(--adm-topbar-h); max-width: none; }
+  .admin-app-wrapper .app .header-tools { display: contents; }
+  .admin-app-wrapper .app .header-spacer,
+  .admin-app-wrapper .app .eyebrow,
+  .admin-app-wrapper .app .admin-layout-heading > .cell-muted { display: none; }
+  .admin-app-wrapper .app .admin-layout-heading { flex: 1; min-width: 0; padding: 0; overflow: hidden; }
+  .admin-app-wrapper .app .page-title { overflow: hidden; font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); line-height: var(--adm-topbar-h); letter-spacing: -.02em; white-space: nowrap; text-overflow: ellipsis; }
+  .admin-app-wrapper .app .header .admin-toolbar { flex: none; gap: 6px; min-height: 0; margin: 0 0 0 auto; padding: 0; border: 0; }
+  .admin-app-wrapper .app .header .admin-toolbar .at-icon-button { width: 40px; height: 40px; }
+  .admin-app-wrapper .app:not(.admin-customer-layout) .admin-page-actions { display: flex; flex: 0 0 100%; flex-wrap: nowrap; gap: var(--adm-gap-control); margin: 0 calc(var(--adm-space-3) * -1) 0 calc(var(--adm-pad-page) * -1); padding: 0 var(--adm-pad-page) var(--adm-space-3); overflow-x: auto; scrollbar-width: none; }
+  .admin-app-wrapper .app:not(.admin-customer-layout) .admin-page-actions::-webkit-scrollbar { display: none; }
+  .admin-app-wrapper .app:not(.admin-customer-layout) .admin-page-actions > * { flex: none; }
+  .admin-app-wrapper .app .admin-customer-header-actions { top: calc(var(--adm-topbar-h) - 4px); }
+  /* 서랍 메뉴는 아래 메뉴의 ‘전체’로 연다. 아래 메뉴가 없는 편집 화면에서만 위 바에 메뉴 버튼을 둔다. */
+  .admin-app-wrapper .app .admin-customer-menu-toggle { display: none; }
+  .admin-app-wrapper .app.is-editing .admin-customer-menu-toggle { display: grid; place-items: center; flex: none; width: 40px; height: 40px; margin-left: -8px; padding: 0; border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-2); cursor: pointer; }
+  .admin-app-wrapper .app.is-editing .header-in { justify-content: space-between; }
+
+  /* ── 서랍형 전체 메뉴 ── */
+  .admin-app-wrapper .app .admin-customer-menu-panel { display: none; }
+  .admin-app-wrapper .app.admin-customer-menu-open .admin-customer-menu-panel { display: block; position: fixed; inset: 0 auto 0 0; z-index: 101; width: min(304px, calc(100vw - 56px)); background: var(--adm-surface); box-shadow: var(--adm-shadow-lg); animation: admDrawerIn var(--adm-dur) var(--adm-ease); }
+  .admin-app-wrapper .app.admin-customer-menu-open .side { position: static; inset: auto; width: 100%; height: 100%; padding-top: 52px; box-sizing: border-box; background: var(--adm-surface); border: 0; }
+  .admin-app-wrapper .app.admin-customer-menu-open .admin-customer-menu-backdrop { display: block; position: fixed; inset: 0; z-index: 100; border: 0; background: var(--adm-scrim); cursor: pointer; }
+  .admin-app-wrapper .app.admin-customer-menu-open .admin-customer-menu-close { display: grid; place-items: center; position: absolute; top: 8px; right: 8px; z-index: 1; width: 40px; height: 40px; padding: 0; border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-2); cursor: pointer; }
+  .admin-app-wrapper .app.admin-customer-menu-open :is(.nav-item, .nav-group-toggle) { min-height: var(--adm-control-h); font-size: var(--adm-fs-base); }
+
+  /* ── 아래 고정 메뉴 ── */
+  .admin-app-wrapper .adm-tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; inset: auto 0 0 0; z-index: 90; height: calc(var(--adm-tabbar-h) + var(--adm-safe-bottom)); padding-bottom: var(--adm-safe-bottom); box-sizing: border-box; border-top: 1px solid var(--adm-line); background: var(--adm-surface); }
+  .admin-app-wrapper .adm-tabbar-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; padding: 0; border: 0; background: none; color: var(--adm-text-3); font-family: inherit; font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); letter-spacing: -.01em; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .admin-app-wrapper .adm-tabbar-item.is-active { color: var(--adm-accent-strong); }
+  .admin-app-wrapper .adm-tabbar-item:focus-visible { outline: 2px solid var(--adm-accent); outline-offset: -4px; border-radius: var(--adm-radius-md); }
+
+  /* ── 어느 화면에서나 같은 크기: 버튼·입력창 ── */
+  .admin-app-wrapper .app :is(.btn, .cm-btn, .lo-btn, .tc-button, .cw-button) { min-height: var(--adm-control-h); }
+  .admin-app-wrapper .app :is(.btn-sm, .cm-btn.is-sm) { min-height: var(--adm-control-h-sm); }
+  .admin-app-wrapper .app :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), select, textarea) { font-size: var(--adm-fs-input); }
+  .admin-app-wrapper .app :is(.inp, .select, .cm-input, .cm-select, .lo-input, .lo-select, .hm-field, .hm-select) { min-height: var(--adm-control-h); }
+  .admin-app-wrapper .app :is(textarea.inp, textarea.cm-input, .cm-textarea, .hm-textarea) { min-height: 96px; }
+
+  /* ── 넓은 표·카드는 화면이 아니라 자기 칸 안에서 옆으로 민다 ── */
+  .admin-app-wrapper .app .content-in :is(.card, .cm-card, .pd-card, .tbl-wrap) { max-width: 100%; }
+  .admin-app-wrapper .app .content-in :is(.card, .cm-card, .pd-card):has(> table) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ── 팝업은 아래에서 올라오는 시트 ── */
+  .admin-app-wrapper.admin-app-wrapper :is(.picker-scrim, .cm-scrim) { place-items: end stretch; padding: 0; }
+  .admin-app-wrapper.admin-app-wrapper :is(.picker, .cm-modal, .cm-modal.is-narrow) { width: 100% !important; max-width: none; max-height: 92dvh; border-radius: var(--adm-radius-lg) var(--adm-radius-lg) 0 0; padding-bottom: var(--adm-safe-bottom); animation: admSheetIn var(--adm-dur) var(--adm-ease); }
+  .admin-app-wrapper.admin-app-wrapper .drawer-scrim { align-items: flex-end; }
+  .admin-app-wrapper.admin-app-wrapper .drawer { width: 100%; max-width: none; height: 94dvh; border-radius: var(--adm-radius-lg) var(--adm-radius-lg) 0 0; overflow: hidden; animation: admSheetIn var(--adm-dur) var(--adm-ease); }
+  .admin-app-wrapper .page-toast { bottom: calc(var(--adm-tabbar-h) + var(--adm-safe-bottom) + 12px); max-width: calc(100vw - 32px); }
+}
+
+@keyframes admDrawerIn { from { transform: translateX(-16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes admSheetIn { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .admin-app-wrapper :is(.admin-customer-menu-panel, .picker, .cm-modal, .drawer) { animation: none !important; }
+}

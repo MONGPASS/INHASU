@@ -35,7 +35,16 @@
     "html.admin-embedded .bottom { left:0; }",
     "html.admin-embedded .mode, html.admin-embedded .storage { left:12px; }",
     /* 로그아웃은 통합 관리자에서만 (견적관리 좌측 메뉴 · 모바일 관리자 메뉴) */
-    "html.admin-embedded #navLogout, html.admin-embedded [onclick*=\"App.logout()\"] { display:none !important; }"
+    "html.admin-embedded #navLogout, html.admin-embedded [onclick*=\"App.logout()\"] { display:none !important; }",
+    /* 모바일 관리자(견적관리-모바일): 바깥 앱 틀이 위 바와 아래 메뉴를 주므로
+       자체 머리는 숨기고, 자체 아래 메뉴는 위쪽 구역 탭 한 줄로 옮긴다(아래 메뉴가 두 줄이 되지 않게). */
+    "html.admin-embedded #app { max-width:none; box-shadow:none; }",
+    "html.admin-embedded #app > header.appbar { display:none; }",
+    "html.admin-embedded #app > nav.tabbar { order:-1; top:0; bottom:auto; border-top:0; border-bottom:1px solid var(--adm-line, #e6e8ec); padding-bottom:0; }",
+    "html.admin-embedded #app > nav.tabbar button { flex-direction:row; gap:4px; height:46px; font-size:13px; white-space:nowrap; }",
+    "html.admin-embedded #app > nav.tabbar .ic svg { display:none; }",
+    "html.admin-embedded #app > nav.tabbar .badge { position:static; }",
+    "html.admin-embedded #app > nav.tabbar button.on { box-shadow:inset 0 -2px 0 var(--adm-accent, #27ab8f); }"
   ].join("\n");
 
   var style = document.createElement("style");

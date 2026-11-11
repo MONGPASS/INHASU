@@ -52,6 +52,7 @@ import { consumedCalendarWorkspaceSearch, readCalendarWorkspaceAction } from '..
 import '../styles/product-customer-workspace.css';
 import '../styles/customer-workspace-editor.css';
 import '../styles/reservation-itinerary-designer.css';
+import { adminNotify } from '../components/admin/ui/adminFeedback';
 
 // Reservation Interface
 interface Reservation {
@@ -698,9 +699,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
     const handleSave = async () => {
         if (editForm) {
-            if (!editForm.customerName.trim()) { alert('고객 이름을 입력하세요.'); return; }
-            if (editForm.totalAmount < 0 || editForm.deposit < 0 || editForm.deposit > editForm.totalAmount) { alert('예약금은 0원부터 총 여행 금액 사이로 입력하세요.'); return; }
-            if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) { alert('고객 이메일을 확인하세요.'); return; }
+            if (!editForm.customerName.trim()) { adminNotify('고객 이름을 입력하세요.'); return; }
+            if (editForm.totalAmount < 0 || editForm.deposit < 0 || editForm.deposit > editForm.totalAmount) { adminNotify('예약금은 0원부터 총 여행 금액 사이로 입력하세요.'); return; }
+            if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) { adminNotify('고객 이메일을 확인하세요.'); return; }
             const finalData = {
                 ...editForm,
                 balance: editForm.totalAmount - editForm.deposit
@@ -949,8 +950,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (reservation.documentContent && !window.confirm('저장된 고객 문서의 일정과 조건을 선택한 템플릿으로 교체할까요?')) return;
         const decoded = decodeTemplateDescription(template.description || '');
         let days = template.days || [];
-        if (typeof days === 'string') { try { days = JSON.parse(days); } catch { alert('템플릿 일정을 읽을 수 없습니다.'); return; } }
-        if (!Array.isArray(days)) { alert('템플릿 일정을 읽을 수 없습니다.'); return; }
+        if (typeof days === 'string') { try { days = JSON.parse(days); } catch { adminNotify('템플릿 일정을 읽을 수 없습니다.'); return; } }
+        if (!Array.isArray(days)) { adminNotify('템플릿 일정을 읽을 수 없습니다.'); return; }
         setApplyingTemplate(true);
         try {
             await onUpdate({ ...reservation, itineraryTemplateId: id,
@@ -963,7 +964,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const openInlineDocument = (kind: 'itinerary' | 'contract', day?: number) => {
         if (reservation.status === 'cancelled' || workspaceIsBusy()) return;
         if (fullPage && (operationsDirty || quickAssignmentDirty)) { setNavigationNotice('작성 중인 운영·배정 정보를 먼저 저장하거나 취소해 주세요.'); return; }
-        if (isEditing) { alert('주문 정보 변경사항을 먼저 저장하세요.'); return; }
+        if (isEditing) { adminNotify('주문 정보 변경사항을 먼저 저장하세요.'); return; }
         if (fullPage && !workflowOpen) overviewScrollPosition.current = window.scrollY;
         if (fullPage) bodyRef.current?.scrollTo({ top: 0 });
         setWorkflowOpen(true);
@@ -989,8 +990,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         setPublishing(true);
         try {
             await publishItinerary();
-            if (await onUpdate({ ...reservation, itineraryUrl }, true)) alert('확정 일정표를 고객에게 공개했습니다. 메일이나 안내문으로 전달할 수 있습니다.');
-        } catch (e: any) { alert(`공개 실패: ${e.message || e}`); }
+            if (await onUpdate({ ...reservation, itineraryUrl }, true)) adminNotify('확정 일정표를 고객에게 공개했습니다. 메일이나 안내문으로 전달할 수 있습니다.');
+        } catch (e: any) { adminNotify(`공개 실패: ${e.message || e}`); }
         finally { deliveryLock.current = false; setPublishing(false); }
     };
 
@@ -1040,7 +1041,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             if (kind !== 'contract') await onUpdate({ ...reservation, itineraryUrl }, true);
             setCopiedDocId(`${kind}-message`);
             setTimeout(() => setCopiedDocId(null), 1500);
-        } catch (e: any) { alert(`공유 실패: ${e.message || e}`); }
+        } catch (e: any) { adminNotify(`공유 실패: ${e.message || e}`); }
         finally { deliveryLock.current = false; setPublishing(false); }
     };
 
@@ -1155,7 +1156,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
           <p class="foot">Цахим гарын үсэг: ${esc(signedMn)} · Хэвлэсэн өдрийн байдлаарх мэдээлэл. Хувийн мэдээлэл агуулсан тул анхааралтай хадгална уу.</p>
         </body></html>`;
         const w = window.open('', '_blank', 'width=920,height=1000');
-        if (!w) { alert('팝업이 차단되었습니다. 브라우저에서 팝업을 허용한 뒤 다시 시도해 주세요.'); return; }
+        if (!w) { adminNotify('팝업이 차단되었습니다. 브라우저에서 팝업을 허용한 뒤 다시 시도해 주세요.'); return; }
         w.document.write(html);
         w.document.close();
         w.focus();
@@ -1189,7 +1190,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         const url = `${window.location.origin}/documents/itinerary/${reservation.id}?guide=1&autoprint=1&autoclose=1`;
         const printWindow = window.open(url, '_blank', 'popup=yes,width=920,height=1100');
         if (!printWindow) {
-            alert('팝업이 차단되었습니다. 브라우저에서 팝업을 허용한 뒤 다시 눌러 주세요.');
+            adminNotify('팝업이 차단되었습니다. 브라우저에서 팝업을 허용한 뒤 다시 눌러 주세요.');
             return;
         }
         try { printWindow.focus(); } catch { /* 새 창에서 자동 인쇄 계속 */ }
@@ -1199,7 +1200,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     // 고정 디자인 PNG 위에 예약 고객명과 투어 기간만 캔버스로 합성해 즉시 내려받는다.
     const downloadGuidePicket = async () => {
         const customerName = String(reservation.customerName || '').trim().toUpperCase();
-        if (!customerName) { alert('고객 이름이 없어 가이드 피켓을 만들 수 없습니다.'); return; }
+        if (!customerName) { adminNotify('고객 이름이 없어 가이드 피켓을 만들 수 없습니다.'); return; }
 
         const parseDate = (value: any) => {
             const match = String(value || '').match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
@@ -1209,7 +1210,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         const contractData: any = editForm.contractData || {};
         const start = parseDate((reservation as any).startDate || contractData.arrival?.date);
         const end = parseDate((reservation as any).endDate || contractData.departure?.date);
-        if (!start || !end) { alert('투어 시작일과 종료일을 먼저 입력해 주세요.'); return; }
+        if (!start || !end) { adminNotify('투어 시작일과 종료일을 먼저 입력해 주세요.'); return; }
         const period = start.year === end.year
             ? `${start.year}.${start.month}.${start.day} - ${end.month}.${end.day}`
             : `${start.year}.${start.month}.${start.day} - ${end.year}.${end.month}.${end.day}`;
@@ -1297,7 +1298,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             link.remove();
             window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch (error: any) {
-            alert(error?.message || '가이드 피켓을 만들지 못했습니다.');
+            adminNotify(error?.message || '가이드 피켓을 만들지 못했습니다.');
         }
     };
 
@@ -1424,13 +1425,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     };
     const canStartDelivery = () => {
         if (workspaceIsBusy()) return false;
-        if (inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty) { alert('작성 중인 내용이나 보관된 초안을 먼저 확인하고 저장한 뒤 고객에게 발송해 주세요.'); return false; }
+        if (inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty) { adminNotify('작성 중인 내용이나 보관된 초안을 먼저 확인하고 저장한 뒤 고객에게 발송해 주세요.'); return false; }
         return true;
     };
     const sendItineraryToCustomer = async () => {
         if (!canStartDelivery()) return;
         if (!itineraryReady || !reservation.email) {
-            alert(!reservation.email ? '고객 이메일이 없습니다.' : '일정표 템플릿을 먼저 선택해 주세요.');
+            adminNotify(!reservation.email ? '고객 이메일이 없습니다.' : '일정표 템플릿을 먼저 선택해 주세요.');
             return;
         }
         if (itineraryEmailSent && !window.confirm('이미 이메일로 접수된 일정표 안내를 다시 보낼까요?')) return;
@@ -1451,9 +1452,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             if (!result.success) throw result.error || new Error('이메일 발송에 실패했습니다.');
             // 발송됨 플래그 저장 → 고객 마이페이지에서 확정 일정표가 "발송됨"으로 표시됨(itineraryUrl을 플래그로 사용)
             const recorded = await onUpdate({ ...addHistory({ type: 'email', description: '확정 일정표를 고객님께 발송했습니다.', detail: itineraryUrl }), itineraryUrl }, true);
-            alert(recorded ? '일정표 안내를 고객에게 발송했습니다.' : '메일은 발송했지만 발송 이력을 저장하지 못했습니다. 새로고침하여 확인하세요.');
+            adminNotify(recorded ? '일정표 안내를 고객에게 발송했습니다.' : '메일은 발송했지만 발송 이력을 저장하지 못했습니다. 새로고침하여 확인하세요.');
         } catch (e: any) {
-            alert(`발송 실패: ${e.message || e}`);
+            adminNotify(`발송 실패: ${e.message || e}`);
         } finally {
             deliveryLock.current = false;
             setSendingItinerary(false);
@@ -1463,7 +1464,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const sendContractToCustomer = async () => {
         if (!canStartDelivery()) return;
         if (!reservation.email) {
-            alert('고객 이메일이 없습니다.');
+            adminNotify('고객 이메일이 없습니다.');
             return;
         }
         if (contractEmailSent && !window.confirm('이미 이메일로 접수된 계약서 안내를 다시 보낼까요?')) return;
@@ -1483,9 +1484,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             if (!result.success) throw result.error || new Error('이메일 발송에 실패했습니다.');
             // 발송됨 플래그 저장 → 고객 마이페이지에서 해외여행 계약서가 "발송됨"으로 표시됨(contractUrl을 플래그로 사용)
             const recorded = await onUpdate({ ...addHistory({ type: 'email', description: '해외여행 계약서를 고객님께 발송했습니다.', detail: contractUrl }), contractUrl }, true);
-            alert(recorded ? '계약서 안내를 고객에게 발송했습니다.' : '메일은 발송했지만 발송 이력을 저장하지 못했습니다. 새로고침하여 확인하세요.');
+            adminNotify(recorded ? '계약서 안내를 고객에게 발송했습니다.' : '메일은 발송했지만 발송 이력을 저장하지 못했습니다. 새로고침하여 확인하세요.');
         } catch (e: any) {
-            alert(`발송 실패: ${e.message || e}`);
+            adminNotify(`발송 실패: ${e.message || e}`);
         } finally {
             deliveryLock.current = false;
             setSendingContract(false);
@@ -1495,7 +1496,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const sendReadyDocumentsToCustomer = async () => {
         if (!canStartDelivery()) return;
         if (!reservation.email) {
-            alert('고객 이메일이 없습니다.');
+            adminNotify('고객 이메일이 없습니다.');
             return;
         }
 
@@ -1545,7 +1546,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
         const readyJobs = jobs.filter((job) => job.ready && !job.sent);
         if (readyJobs.length === 0) {
-            alert('새로 발송할 준비된 문서가 없습니다. 이미 발송했거나 필수 정보가 부족합니다.');
+            adminNotify('새로 발송할 준비된 문서가 없습니다. 이미 발송했거나 필수 정보가 부족합니다.');
             return;
         }
 
@@ -1575,13 +1576,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     ...sentHistories,
                 ],
             }, true);
-            alert(recorded ? `${readyJobs.map((job) => job.title).join(', ')} 안내를 고객에게 발송했습니다.` : '메일은 발송했지만 발송 이력을 저장하지 못했습니다. 새로고침하여 확인하세요.');
+            adminNotify(recorded ? `${readyJobs.map((job) => job.title).join(', ')} 안내를 고객에게 발송했습니다.` : '메일은 발송했지만 발송 이력을 저장하지 못했습니다. 새로고침하여 확인하세요.');
         } catch (e: any) {
             if (sentKeys.length) await onUpdate({ ...reservation,
                 ...(sentKeys.includes('itinerary') ? { itineraryUrl } : {}),
                 ...(sentKeys.includes('contract') ? { contractUrl } : {}),
                 history: [...(reservation.history || []), ...sentHistories] }, true);
-            alert(`통합 발송 실패: ${e.message || e}`);
+            adminNotify(`통합 발송 실패: ${e.message || e}`);
         } finally {
             deliveryLock.current = false;
             setSendingAllDocs(false);
@@ -1827,7 +1828,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         onOperations: async patch => {
             if (workspaceIsBusy() || operationsDirty) { setNavigationNotice('작성 중인 운영 정보를 먼저 저장해 주세요.'); return false; }
             try { await api.reservations.update(reservation.id, { admin_operations: patch }); onRefresh(); return true; }
-            catch (error: any) { alert(`운영 정보를 저장하지 못했습니다. ${error?.message || ''}`.trim()); return false; }
+            catch (error: any) { adminNotify(`운영 정보를 저장하지 못했습니다. ${error?.message || ''}`.trim()); return false; }
         },
         onPayment: (field, paid) => onUpdate(field === 'deposit'
             ? { ...reservation, depositStatus: paid ? 'paid' : 'unpaid', status: paid && reservation.status === 'pending_payment' ? 'confirmed' : reservation.status }
@@ -2263,7 +2264,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                         className="link-action"
                                         onClick={async () => {
                                             if (!reservation.assignedGuide && (!reservation.dailyAccommodations || reservation.dailyAccommodations.length === 0)) {
-                                                alert('배정된 가이드나 숙소가 없습니다.');
+                                                adminNotify('배정된 가이드나 숙소가 없습니다.');
                                                 return;
                                             }
                                             onUpdate({
@@ -3221,18 +3222,18 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                         ? '고객에게 입금 확인 메일을 보냈습니다.'
                         : '입금 확인 메일은 보내지 못했습니다. 고객에게 따로 알려 주세요.';
                 }
-                alert(`예약금 입금을 확인했습니다. 예약이 확정되었습니다.\n${mailNote}`);
+                adminNotify(`예약금 입금을 확인했습니다. 예약이 확정되었습니다.\n${mailNote}`);
                 return true;
             }
 
             if (!active()) return false;
-            if (!silent) alert('예약 정보가 업데이트되었습니다.');
+            if (!silent) adminNotify('예약 정보가 업데이트되었습니다.');
             return true;
             // Only fetch if strictly necessary, otherwise optimistic is fine.
             // fetchReservations();
         } catch (error) {
             console.error('Error updating reservation:', error);
-            if (!silent) alert('예약 정보 수정에 실패했습니다.');
+            if (!silent) adminNotify('예약 정보 수정에 실패했습니다.');
             return false;
         } finally { if (active()) setUpdatingCount(count => Math.max(0, count - 1)); }
     };
@@ -3284,7 +3285,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
         } catch (error) {
             console.error('Failed to update status:', error);
-            alert('상태 업데이트에 실패했습니다.');
+            adminNotify('상태 업데이트에 실패했습니다.');
         }
     };
 
@@ -3299,13 +3300,13 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                 await api.reservations.delete(id);
             }
 
-            alert('삭제되었습니다.');
+            adminNotify('삭제되었습니다.');
             setReservations(prev => prev.filter(r => r.id !== id || r.type !== type));
             if (selectedReservation?.id === id && selectedReservation.type === type) setSelectedReservation(null);
 
         } catch (error: any) {
             console.error('Error deleting item:', error);
-            alert(`삭제 중 오류가 발생했습니다: ${error.message}`);
+            adminNotify(`삭제 중 오류가 발생했습니다: ${error.message}`);
         }
     };
 
@@ -3321,7 +3322,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
     // Filter Logic
     const handleCreateReservation = async () => {
-        if (!addForm.customerName.trim()) { alert('고객명을 입력해 주세요.'); return; }
+        if (!addForm.customerName.trim()) { adminNotify('고객명을 입력해 주세요.'); return; }
         setCreating(true);
         try {
             const total = Number(addForm.totalAmount) || 0;
@@ -3342,9 +3343,9 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
             setShowAddModal(false);
             setAddForm({ ...BLANK_ADD });
             await fetchReservations();
-            alert('예약이 추가되었습니다.');
+            adminNotify('예약이 추가되었습니다.');
         } catch (e: any) {
-            alert('추가 실패: ' + (e?.message || e));
+            adminNotify('추가 실패: ' + (e?.message || e));
         } finally {
             setCreating(false);
         }
@@ -3478,7 +3479,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
     const downloadConfirmedReservationsExcel = (mode: typeof exportMode = exportMode, keys: Set<string> = selectedRows) => {
         if (productsLoading) {
-            alert('상품 정보를 불러오는 중입니다. 잠시 후 다시 내보내 주세요.');
+            adminNotify('상품 정보를 불러오는 중입니다. 잠시 후 다시 내보내 주세요.');
             return;
         }
         const exportMode = mode;
@@ -3486,7 +3487,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
             .sort((a: any, b: any) => toTime(a.startDate) - toTime(b.startDate));
 
         if (confirmedReservations.length === 0) {
-            alert('선택한 내보내기 범위에 예약이 없습니다.');
+            adminNotify('선택한 내보내기 범위에 예약이 없습니다.');
             return;
         }
 
@@ -3734,7 +3735,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                             return true;
                         } catch (e) {
                             console.error(e);
-                            alert('견적 수정 실패');
+                            adminNotify('견적 수정 실패');
                             return false;
                         }
                     }}
@@ -3776,13 +3777,13 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
                                 if (!emailResult.success) {
                                     console.error('Email Send Error:', emailResult.error);
-                                    alert('견적 정보는 저장되었으나, 이메일 발송에 실패했습니다.');
+                                    adminNotify('견적 정보는 저장되었으나, 이메일 발송에 실패했습니다.');
                                 } else {
-                                    alert(`견적서가 발송되었습니다. (이메일 알림 포함)\n확정 금액: ${priceDetail.totalAmount ? won(priceDetail.totalAmount) : '미입력'}`);
+                                    adminNotify(`견적서가 발송되었습니다. (이메일 알림 포함)\n확정 금액: ${priceDetail.totalAmount ? won(priceDetail.totalAmount) : '미입력'}`);
                                 }
                             } catch (emailError) {
                                 console.error('Email Unexpected Error:', emailError);
-                                alert('견적 정보는 저장되었으나, 이메일 발송 중 오류가 발생했습니다.');
+                                adminNotify('견적 정보는 저장되었으나, 이메일 발송 중 오류가 발생했습니다.');
                             }
 
                             if (!active()) return;
@@ -3791,7 +3792,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
                         } catch (e: any) {
                             console.error(e);
-                            alert(`견적서 발송 실패: ${e.message}`);
+                            adminNotify(`견적서 발송 실패: ${e.message}`);
                         }
                     }}
                     onOpenConvert={() => {
@@ -3838,7 +3839,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                             });
                             if (!active()) return;
 
-                            alert('예약이 성공적으로 생성되었습니다.');
+                            adminNotify('예약이 성공적으로 생성되었습니다.');
 
                             // Optionally send email here too?
                             // await sendNotificationEmail(...)
@@ -3849,7 +3850,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
                         } catch (e: any) {
                             console.error(e);
-                            alert(`예약 생성 실패: ${e.message}`);
+                            adminNotify(`예약 생성 실패: ${e.message}`);
                         }
                     }}
                 />
@@ -3884,7 +3885,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
             }));
             return true;
         } catch (error: any) {
-            alert(`운영 정보를 저장하지 못했습니다. ${error?.message || ''}`.trim());
+            adminNotify(`운영 정보를 저장하지 못했습니다. ${error?.message || ''}`.trim());
             return false;
         }
     };

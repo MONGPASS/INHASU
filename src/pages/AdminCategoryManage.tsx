@@ -9,6 +9,7 @@ import { Icon } from '../components/admin/console/Icon';
 import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import './AdminCategoryManage.css';
 import { DEFAULT_CATEGORIES, DEFAULT_MAGAZINE_CATEGORIES, type Category } from '../types/category';
+import { adminNotify } from '../components/admin/ui/adminFeedback';
 
 export const AdminCategoryManage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -151,7 +152,7 @@ export const AdminCategoryManage: React.FC = () => {
                 if (selectedCategory.id !== category.id) {
                     const newId = (category.id || '').trim();
                     if (!newId || !/^[a-z0-9][a-z0-9-]*$/.test(newId)) {
-                        alert('URL 슬러그는 영문 소문자/숫자/하이픈으로, 문자나 숫자로 시작해야 합니다.');
+                        adminNotify('URL 슬러그는 영문 소문자/숫자/하이픈으로, 문자나 숫자로 시작해야 합니다.');
                         return false;
                     }
                     if (!confirm(`URL 슬러그를 "${selectedCategory.id}" → "${newId}" 로 변경하시겠습니까?\n기존 /category/${selectedCategory.id} 링크는 더이상 열리지 않습니다.`)) {

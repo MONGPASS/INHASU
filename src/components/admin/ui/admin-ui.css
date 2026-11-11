@@ -1,0 +1,42 @@
+/* 관리자 공통 부품: 알림(토스트)·확인 창·기본 버튼. 값은 public/admin-tokens.css의 변수만 쓴다.
+   문서 body에 붙어 뜨므로 .admin-app-wrapper 밖에서도 같은 모양이다. */
+.adm-feedback-host { font-family: var(--adm-font); letter-spacing: -.01em; }
+
+/* ── 버튼 ── */
+.adm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: var(--adm-control-h); padding: 0 var(--adm-control-pad-x); border: 1px solid var(--adm-line-strong); border-radius: var(--adm-radius-sm); background: var(--adm-surface); color: var(--adm-ink); font-family: inherit; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); white-space: nowrap; cursor: pointer; transition: background var(--adm-dur) var(--adm-ease), border-color var(--adm-dur) var(--adm-ease); }
+.adm-btn:hover { background: var(--adm-gray-50); }
+.adm-btn:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+.adm-btn:disabled { opacity: .5; cursor: not-allowed; }
+.adm-btn.is-primary { border-color: var(--adm-accent); background: var(--adm-accent); color: #fff; }
+.adm-btn.is-primary:hover { border-color: var(--adm-accent-hover); background: var(--adm-accent-hover); }
+.adm-btn.is-danger { border-color: var(--adm-danger); background: var(--adm-danger); color: #fff; }
+.adm-btn.is-danger:hover { filter: brightness(.94); }
+
+/* ── 알림 ── */
+.adm-toast-stack { position: fixed; left: 50%; bottom: 28px; z-index: var(--adm-z-toast); display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100vw - 32px); transform: translateX(-50%); pointer-events: none; }
+.adm-toast { display: flex; align-items: flex-start; gap: 9px; max-width: 100%; padding: 12px 16px; border: 0; border-radius: var(--adm-radius-md); background: var(--adm-ink); color: #fff; font-family: inherit; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); line-height: 1.5; text-align: left; white-space: pre-line; box-shadow: var(--adm-shadow-lg); pointer-events: auto; cursor: pointer; animation: admToastIn var(--adm-dur) var(--adm-ease); }
+.adm-toast-dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--adm-success); }
+.adm-toast.is-error .adm-toast-dot { background: var(--adm-danger); }
+.adm-toast.is-info .adm-toast-dot { background: var(--adm-info); }
+.adm-toast-text { min-width: 0; overflow-wrap: anywhere; }
+
+/* 확인 창이 떠 있는 동안에는 알림을 위쪽에 띄워 서로 가리지 않게 한다. */
+.adm-feedback-host:has(.adm-dialog-scrim) .adm-toast-stack { top: 16px; bottom: auto; }
+
+/* ── 확인 창 ── */
+.adm-dialog-scrim { position: fixed; inset: 0; z-index: calc(var(--adm-z-toast) - 1); display: grid; place-items: center; padding: 16px; background: var(--adm-scrim); animation: admFade var(--adm-dur) ease; }
+.adm-dialog { width: min(400px, 100%); padding: 24px; border-radius: var(--adm-radius-lg); background: var(--adm-surface); color: var(--adm-text); box-shadow: var(--adm-shadow-lg); animation: admToastIn var(--adm-dur) var(--adm-ease); }
+.adm-dialog-title { color: var(--adm-ink); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); }
+.adm-dialog-message { margin-top: 8px; color: var(--adm-text-2); font-size: var(--adm-fs-base); line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
+.adm-dialog-foot { display: flex; justify-content: flex-end; gap: var(--adm-gap-control); margin-top: 24px; }
+.adm-dialog-foot .adm-btn { min-width: 84px; }
+
+@media (max-width: 760px) {
+  .adm-toast-stack { bottom: calc(var(--adm-tabbar-h) + var(--adm-safe-bottom) + 12px); width: calc(100vw - 32px); align-items: stretch; }
+  .adm-dialog-scrim { place-items: end stretch; padding: 0; }
+  .adm-dialog { width: 100%; box-sizing: border-box; padding: 24px 16px calc(16px + var(--adm-safe-bottom)); border-radius: var(--adm-radius-lg) var(--adm-radius-lg) 0 0; }
+  .adm-dialog-foot .adm-btn { flex: 1; }
+}
+@keyframes admToastIn { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes admFade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .adm-toast, .adm-dialog, .adm-dialog-scrim { animation: none; } }

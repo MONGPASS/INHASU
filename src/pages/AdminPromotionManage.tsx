@@ -7,6 +7,7 @@ import { promoItemOf, themeOf } from '../components/promotions/promotionsData';
 import { PROMO_THEME_KEYS, type Promotion, type PromoThemeKey } from '../components/promotions/promotionTypes';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
+import { adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface ProductLite {
     id: string;
@@ -538,7 +539,7 @@ export const AdminPromotionManage: React.FC = () => {
 
     const fail = (e: unknown) => {
         if (isMigrationError(e)) setNeedsMigration(true);
-        alert(describeError(e));
+        adminNotify(describeError(e));
     };
 
     const onSaleIds = useMemo(() => new Set(products.filter(isOnSale).map((p) => p.id)), [products]);

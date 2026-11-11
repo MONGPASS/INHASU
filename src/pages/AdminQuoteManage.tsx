@@ -9,6 +9,7 @@ import type { QuoteRequest } from '../components/admin/QuoteModals';
 import { QuoteDetailModal, ConvertSelectionModal } from '../components/admin/QuoteModals';
 import { won } from '../components/desktop-primitives/mwTokens';
 import { legacyQuoteCustomerHref } from '../utils/customerWorkspaceRoutes';
+import { adminNotify } from '../components/admin/ui/adminFeedback';
 
 
 
@@ -80,7 +81,7 @@ export const AdminQuoteManage: React.FC = () => {
 
         } catch (error) {
             console.error("Failed to update status:", error);
-            alert("상태 변경 중 오류가 발생했습니다.");
+            adminNotify("상태 변경 중 오류가 발생했습니다.");
         }
     };
 
@@ -195,7 +196,7 @@ export const AdminQuoteManage: React.FC = () => {
 
         } catch (error: any) {
             console.error('예약 변환 오류:', error);
-            alert(`예약 변환 중 오류가 발생했습니다: ${error.message || error}`);
+            adminNotify(`예약 변환 중 오류가 발생했습니다: ${error.message || error}`);
         }
     };
 
@@ -237,7 +238,7 @@ export const AdminQuoteManage: React.FC = () => {
                 console.error('Failed to send notification email:', emailError);
             }
 
-            alert(`견적 발송 완료!\n확정 금액: ${priceDetail.totalAmount ? won(priceDetail.totalAmount) : '미입력'}${url ? `\n견적서 링크: ${url}` : ''}\n고객에게 시스템 견적 페이지와 알림 메일이 발송되었습니다.`);
+            adminNotify(`견적 발송 완료!\n확정 금액: ${priceDetail.totalAmount ? won(priceDetail.totalAmount) : '미입력'}${url ? `\n견적서 링크: ${url}` : ''}\n고객에게 시스템 견적 페이지와 알림 메일이 발송되었습니다.`);
 
             // Reflect in local state
             setRequests(prev => prev.map(req =>
@@ -256,7 +257,7 @@ export const AdminQuoteManage: React.FC = () => {
             setSelectedRequest(null);
         } catch (error) {
             console.error("Failed to send estimate:", error);
-            alert("견적서 발송 처리 중 오류가 발생했습니다.");
+            adminNotify("견적서 발송 처리 중 오류가 발생했습니다.");
         }
     };
 
@@ -284,7 +285,7 @@ export const AdminQuoteManage: React.FC = () => {
         } catch (error: any) {
             console.error("Failed to update quote:", error);
             // 원인(Unauthorized/컬럼 없음 등)이 보여야 대처 가능 — 에러 메시지를 그대로 노출
-            alert(`정보 수정 중 오류가 발생했습니다: ${error?.message || error}`);
+            adminNotify(`정보 수정 중 오류가 발생했습니다: ${error?.message || error}`);
             return false;
         }
     };

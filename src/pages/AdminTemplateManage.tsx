@@ -14,6 +14,7 @@ import { travelSpotSnapshot } from '../utils/travelSpotSnapshot';
 import mongoliaHero from '../assets/login_bg_3.jpg';
 import { DOC_BLUE, DOC_NAVY } from '../components/document/TripDocParts';
 import { won } from '../components/desktop-primitives/mwTokens';
+import { adminNotify } from '../components/admin/ui/adminFeedback';
 
 // ─── Types ───────────────────────────────────────────────
 export type ActivityType = 'pickup' | 'transport' | 'meal' | 'sightseeing' | 'activity' | 'checkin' | 'free' | 'other';
@@ -1450,7 +1451,7 @@ const TemplatesTab: React.FC = () => {
                 return { ...f, days };
             });
         } catch {
-            alert('일정 사진 업로드에 실패했습니다.');
+            adminNotify('일정 사진 업로드에 실패했습니다.');
         }
     };
     const updateActivity = (dayIdx: number, actIdx: number, field: keyof Activity, value: any) => setForm(f => { const d = [...f.days]; d[dayIdx].activities[actIdx] = { ...d[dayIdx].activities[actIdx], [field]: value }; return { ...f, days: d }; });
@@ -1506,7 +1507,7 @@ const TemplatesTab: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        if (!form.name.trim()) { alert('템플릿 이름을 입력하세요.'); return; }
+        if (!form.name.trim()) { adminNotify('템플릿 이름을 입력하세요.'); return; }
         try {
             const payload = {
                 name: form.name,
@@ -1516,11 +1517,11 @@ const TemplatesTab: React.FC = () => {
             if (editing) { await api.itineraryTemplates.update(editing.id, payload); }
             else { await api.itineraryTemplates.create(payload); }
             await load(); setIsModalOpen(false); resetForm();
-        } catch (e: any) { alert('저장 실패: ' + e.message); }
+        } catch (e: any) { adminNotify('저장 실패: ' + e.message); }
     };
 
     const handleEdit = (t: ItineraryTemplate) => { setEditing(t); setForm({ name: t.name, description: t.description, days: t.days, documentSettings: mergeDocumentSettings(t.documentSettings) }); setEditorMode('itinerary'); setIsModalOpen(true); };
-    const handleDelete = async (id: string) => { if (!confirm('삭제하시겠습니까?')) return; try { await api.itineraryTemplates.delete(id); await load(); } catch (e: any) { alert('삭제 실패'); } };
+    const handleDelete = async (id: string) => { if (!confirm('삭제하시겠습니까?')) return; try { await api.itineraryTemplates.delete(id); await load(); } catch (e: any) { adminNotify('삭제 실패'); } };
     const handleDuplicate = (t: ItineraryTemplate) => {
         setEditing(null);
         setForm({
@@ -1676,25 +1677,25 @@ const GuidesTab: React.FC = () => {
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]; if (!file) return;
-        try { const url = await uploadImage(file, 'guides'); setForm(f => ({ ...f, image: url })); } catch { alert('이미지 업로드 실패'); }
+        try { const url = await uploadImage(file, 'guides'); setForm(f => ({ ...f, image: url })); } catch { adminNotify('이미지 업로드 실패'); }
     };
 
     const handleSubmit = async () => {
-        if (!form.name || !form.phone) { alert('이름과 연락처는 필수입니다.'); return; }
+        if (!form.name || !form.phone) { adminNotify('이름과 연락처는 필수입니다.'); return; }
         try {
             const payload = { name: form.name, bio: form.introduction, phone: form.phone, image: form.image, experience_years: form.experienceYears, languages: form.languages, specialties: form.specialties };
             if (editing) { await api.tourGuides.update(editing.id, { ...payload, status: editing.status }); }
             else { await api.tourGuides.create({ ...payload, status: 'active' }); }
             await load(); setIsModalOpen(false); resetForm();
-        } catch (e: any) { alert('저장 실패: ' + e.message); }
+        } catch (e: any) { adminNotify('저장 실패: ' + e.message); }
     };
 
     const handleApprove = async (g: Guide) => {
         try { await api.tourGuides.update(g.id, { name: g.name, bio: g.introduction, phone: g.phone, image: g.image, experience_years: g.experienceYears, languages: g.languages, specialties: g.specialties, status: 'active' }); await load(); }
-        catch (e: any) { alert('승인 실패'); }
+        catch (e: any) { adminNotify('승인 실패'); }
     };
 
-    const handleDelete = async (id: string) => { if (!confirm('삭제하시겠습니까?')) return; try { await api.tourGuides.delete(id); await load(); } catch { alert('삭제 실패'); } };
+    const handleDelete = async (id: string) => { if (!confirm('삭제하시겠습니까?')) return; try { await api.tourGuides.delete(id); await load(); } catch { adminNotify('삭제 실패'); } };
 
     const pendingCount = guides.filter(g => g.status === 'pending').length;
 
@@ -1799,20 +1800,20 @@ const AccommodationsTab: React.FC = () => {
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files; if (!files) return;
         try { const urls = await Promise.all(Array.from(files).map(f => uploadImage(f, 'accommodations'))); setForm(f => ({ ...f, images: [...f.images, ...urls] })); }
-        catch { alert('이미지 업로드 실패'); }
+        catch { adminNotify('이미지 업로드 실패'); }
     };
 
     const handleSubmit = async () => {
-        if (!form.name || !form.location) { alert('숙소명과 위치는 필수입니다.'); return; }
+        if (!form.name || !form.location) { adminNotify('숙소명과 위치는 필수입니다.'); return; }
         try {
             const payload = { name: form.name, images: form.images, description: form.description, type: form.type, location: form.location };
             if (editing) { await api.accommodations.update(editing.id, payload); }
             else { await api.accommodations.create({ ...payload, id: `ACCOM-${Date.now()}` }); }
             await load(); setIsModalOpen(false); resetForm();
-        } catch (e: any) { alert('저장 실패: ' + e.message); }
+        } catch (e: any) { adminNotify('저장 실패: ' + e.message); }
     };
 
-    const handleDelete = async (id: string) => { if (!confirm('삭제하시겠습니까?')) return; try { await api.accommodations.delete(id); await load(); } catch { alert('삭제 실패'); } };
+    const handleDelete = async (id: string) => { if (!confirm('삭제하시겠습니까?')) return; try { await api.accommodations.delete(id); await load(); } catch { adminNotify('삭제 실패'); } };
 
     return (
         <div>

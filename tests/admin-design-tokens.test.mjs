@@ -45,3 +45,22 @@ test('관리자 CSS에 옛 민트 값을 다시 적지 않는다', () => {
         assert.doesNotMatch(css, /--mrt-blue\s*:\s*#/, `${file}: 강조색을 화면별로 다시 정하지 않는다`);
     }
 });
+
+test('관리자 화면은 브라우저 기본 알림창 대신 공통 알림을 쓴다', () => {
+    const walk = (dir) => readdirSync(new URL(dir, root), { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(join(dir, e.name)) : e.name.endsWith('.tsx') ? [join(dir, e.name)] : []);
+    const files = [...walk('src/components/admin'), ...readdirSync(new URL('src/pages', root)).filter((n) => /^Admin.*\.tsx$/.test(n)).map((n) => join('src/pages', n))];
+    for (const file of files) {
+        assert.doesNotMatch(read(file.replace(/\\/g, '/')), /(^|[^.\w])alert\(|window\.alert\(/m, `${file}: adminNotify()를 쓴다`);
+    }
+});
+
+test('휴대폰 앱 틀은 한 파일에서 정하고 크기는 공통 변수를 쓴다', () => {
+    const mobile = read('src/styles/admin-mobile.css');
+    for (const name of ['--adm-tabbar-h', '--adm-topbar-h', '--adm-control-h', '--adm-fs-input', '--adm-pad-page']) assert.ok(mobile.includes(`var(${name})`), name);
+    assert.match(read('public/admin-tokens.css'), /@media \(max-width: 760px\)\s*\{\s*:root\s*\{[^}]*--adm-control-h:\s*44px/);
+    const layout = read('src/components/admin/AdminLayout.tsx');
+    assert.ok(layout.includes('AdminMobileTabBar') && layout.includes("admin-mobile.css"));
+    const tabbar = read('src/components/admin/ui/AdminMobileTabBar.tsx');
+    for (const label of ['홈', '예약', '견적', '배정', '전체']) assert.ok(tabbar.includes(label), label);
+});

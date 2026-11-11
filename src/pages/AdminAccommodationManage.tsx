@@ -3,6 +3,7 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
+import { adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface Accommodation {
     id: string;
@@ -72,7 +73,7 @@ export const AdminAccommodationManage: React.FC = () => {
             return true;
         } catch (e) {
             console.error('Failed to save accommodations', e);
-            alert('저장에 실패했습니다.');
+            adminNotify('저장에 실패했습니다.');
             return false;
         }
     };
@@ -86,7 +87,7 @@ export const AdminAccommodationManage: React.FC = () => {
                 setFormData({ ...formData, images: [...formData.images, ...urls] });
             } catch (error) {
                 console.error('Accommodation image upload failed:', error);
-                alert('이미지 업로드 실패');
+                adminNotify('이미지 업로드 실패');
             }
         }
     };
@@ -107,7 +108,7 @@ export const AdminAccommodationManage: React.FC = () => {
 
     const handleSubmit = async () => {
         if (!formData.name || !formData.location) {
-            alert('숙소명과 위치는 필수 입력 항목입니다.');
+            adminNotify('숙소명과 위치는 필수 입력 항목입니다.');
             return;
         }
 

@@ -48,7 +48,7 @@ export const checkBox = (on: boolean): Css => ({ width: 18, height: 18, padding:
 export const card: Css = { display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 18, boxShadow: '0 0 0 1px #eef0f2', scrollMarginTop: 88 };
 export const iconTile = (size = 30): Css => ({ width: size, height: size, flex: 'none', borderRadius: size >= 34 ? 10 : size >= 30 ? 10 : 9, background: '#f1f3f5', color: '#495057', display: 'flex', alignItems: 'center', justifyContent: 'center' });
 export const ghostBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 14px', border: 0, borderRadius: 999, background: '#fff', boxShadow: 'inset 0 0 0 1px #dee2e6', font: 'inherit', fontSize: 13, fontWeight: 700, color: V7_INK, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
-export const inkBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 16px', border: 0, borderRadius: 999, background: V7_INK, font: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
+export const inkBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 16px', border: 0, borderRadius: 999, background: 'var(--adm-primary-bg)', font: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
 
 export const Ico = ({ name, size = 14, color }: { name: DashboardIconName; size?: number; color?: string }) => <DashboardIcon name={name} size={size} color={color} />;
 

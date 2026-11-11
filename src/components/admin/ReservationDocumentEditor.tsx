@@ -20,6 +20,7 @@ import type { Hotel } from '../../types/hotel';
 import { documentLodgingSnapshot } from '../../utils/lodgingItinerarySnapshot';
 import { travelSpotSnapshot } from '../../utils/travelSpotSnapshot';
 import { normalizeRepresentativeSpots } from '../../../functions/lib/productItinerary';
+import { adminNotify } from './ui/adminFeedback';
 
 export interface ReservationDocContent {
     name: string;
@@ -187,7 +188,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
         const importedDays = reservationProductDays(product);
         const isEmpty = importedDays.length === 0 || importedDays.every(day => !day.title && !day.summary && !(day.images?.length) && day.activities.length === 0);
         if (isEmpty && documentType === 'itinerary') {
-            if (!opts?.auto) window.alert('이 상품에는 등록된 일정이나 일정 사진이 없습니다. 다른 상품을 선택하거나 DAY 일정을 직접 작성해 주세요.');
+            if (!opts?.auto) adminNotify('이 상품에는 등록된 일정이나 일정 사진이 없습니다. 다른 상품을 선택하거나 DAY 일정을 직접 작성해 주세요.');
             return;
         }
         if (!opts?.auto && days.length > 0 && !window.confirm('현재 작성 중인 일정과 문서 설정을 상품 정보로 교체할까요?')) return;
@@ -293,7 +294,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
             const urls = await Promise.all(Array.from(files).map(file => uploadImage(file, 'reservation-docs')));
             setDays(d => d.map((x, i) => i === dayIdx ? { ...x, activities: x.activities.map((a, j) => j === actIdx ? { ...a, images: [...(a.images || []), ...urls] } : a) } : x));
         } catch {
-            alert('일정 사진 업로드에 실패했습니다.');
+            adminNotify('일정 사진 업로드에 실패했습니다.');
         }
     };
     const removeActivityImage = (dayIdx: number, actIdx: number, imgIdx: number) =>
@@ -324,7 +325,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
 
     const handleSave = async () => {
         if (!productsLoaded && productId && canAutoImportReservationDocument(initialContent, templateMode)) {
-            alert(productsError ? '예약 상품을 불러오지 못했습니다. 다시 시도한 뒤 저장해 주세요.' : '예약 상품의 일정과 포함조건을 불러오고 있습니다. 잠시 후 저장해 주세요.');
+            adminNotify(productsError ? '예약 상품을 불러오지 못했습니다. 다시 시도한 뒤 저장해 주세요.' : '예약 상품의 일정과 포함조건을 불러오고 있습니다. 잠시 후 저장해 주세요.');
             return;
         }
         // 빈 일정 저장 방지 — 이대로 저장되면 고객 화면에 '일정은 현재 준비 중입니다'만 떠서
@@ -335,11 +336,11 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
         }
         if (!templateMode && (tourStartDate !== undefined || tourEndDate !== undefined)) {
             if ((startDate && !endDate) || (!startDate && endDate)) {
-                alert('여행 시작일과 종료일을 모두 입력해 주세요.');
+                adminNotify('여행 시작일과 종료일을 모두 입력해 주세요.');
                 return;
             }
             if (startDate && endDate && endDate < startDate) {
-                alert('여행 종료일은 시작일보다 빠를 수 없습니다.');
+                adminNotify('여행 종료일은 시작일보다 빠를 수 없습니다.');
                 return;
             }
         }
@@ -351,7 +352,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
             );
             onClose();
         } catch (e: any) {
-            alert('저장 실패: ' + (e?.message || e));
+            adminNotify('저장 실패: ' + (e?.message || e));
         } finally {
             setSaving(false);
         }

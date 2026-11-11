@@ -12,6 +12,7 @@ import { useBlocker } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft, removeMagazineDraft, type MagazineDraftScope, type MagazineDraftRead, type MagazineDraftResult, type MagazineDraftForm } from '../utils/adminMagazineDraft';
 import './AdminContentManage.css';
+import { adminNotify } from '../components/admin/ui/adminFeedback';
 
 /** Lucide outlines (ISC) that DashboardIcon does not carry. Keys keep the `lc-` prefix for the icon-subset check. */
 const MAGAZINE_ICONS = {
@@ -415,7 +416,7 @@ export const AdminMagazineManage: React.FC = () => {
                     }
                 } catch (error) {
                     console.error('Image upload failed:', error);
-                    alert('이미지 업로드 실패');
+                    adminNotify('이미지 업로드 실패');
                 }
                 });
             }
@@ -464,7 +465,7 @@ export const AdminMagazineManage: React.FC = () => {
 
                     if (range) {
                         if (uploadedUrls.length === 0) {
-                            alert('이미지 업로드에 실패했습니다.');
+                            adminNotify('이미지 업로드에 실패했습니다.');
                             return;
                         }
 
@@ -484,7 +485,7 @@ export const AdminMagazineManage: React.FC = () => {
                 }
             } catch (error) {
                 console.error('Slider images upload failed:', error);
-                alert('슬라이더 이미지 업로드 실패');
+                adminNotify('슬라이더 이미지 업로드 실패');
             }
             });
         }
@@ -514,7 +515,7 @@ export const AdminMagazineManage: React.FC = () => {
     const insertLocationBlot = () => {
         if (saveLock.current || uploadLock.current || pendingRef.current) return;
         if (!locationModalForm.name && !locationModalForm.address && !locationModalForm.mapEmbedUrl) {
-            alert('장소 이름 / 주소 / 지도 임베드 중 하나는 입력해주세요.');
+            adminNotify('장소 이름 / 주소 / 지도 임베드 중 하나는 입력해주세요.');
             return;
         }
         const quill = quillRef.current?.getEditor();
@@ -650,7 +651,7 @@ export const AdminMagazineManage: React.FC = () => {
                 setFormData(prev => ({ ...prev, image: url }));
             } catch (error) {
                 console.error('Magazine image upload failed:', error);
-                alert('이미지 업로드 실패');
+                adminNotify('이미지 업로드 실패');
             }
             });
         }
@@ -667,7 +668,7 @@ export const AdminMagazineManage: React.FC = () => {
             setFormData(prev => ({ ...prev, authorImage: url }));
         } catch (error) {
             console.error('Magazine author image upload failed:', error);
-            alert('저자 사진 업로드 실패');
+            adminNotify('저자 사진 업로드 실패');
         }
         });
     };
@@ -719,14 +720,14 @@ export const AdminMagazineManage: React.FC = () => {
                 fetchMagazines();
             } catch (error) {
                 console.error('Error deleting magazine:', error);
-                alert('삭제 중 오류가 발생했습니다.');
+                adminNotify('삭제 중 오류가 발생했습니다.');
             }
         }
     };
 
     const handleSubmit = async () => {
         if (saveLock.current || uploadLock.current || pendingRef.current || !scopeRef.current || scopeRef.current.userId !== user?.id) return;
-        if (!formRef.current.title?.trim()) { alert('제목을 입력해주세요.'); return; }
+        if (!formRef.current.title?.trim()) { adminNotify('제목을 입력해주세요.'); return; }
         saveLock.current = true; setSaving(true);
         const session = sessionRef.current;
         const scope = { ...scopeRef.current };
@@ -741,7 +742,7 @@ export const AdminMagazineManage: React.FC = () => {
             const content = editorContent;
 
             if (!formData.title?.trim()) {
-                alert('제목을 입력해주세요.');
+                adminNotify('제목을 입력해주세요.');
                 return;
             }
 
@@ -776,12 +777,12 @@ export const AdminMagazineManage: React.FC = () => {
             savedRef.current = true;
             const removed = ownedRevision ? removeMagazineDraft(window.localStorage, scope, ownedRevision) : { ok: true as const };
             if (!removed.ok) setDraftNotice(removed.error);
-            alert(removed.ok ? '저장되었습니다!' : '저장되었습니다. 브라우저 초안 정리에는 실패했습니다.');
+            adminNotify(removed.ok ? '저장되었습니다!' : '저장되었습니다. 브라우저 초안 정리에는 실패했습니다.');
             fetchMagazines();
             resetForm(true);
         } catch (error: any) {
             console.error('Error saving magazine:', error);
-            alert(`저장 실패: ${error.message || '저장 중 오류가 발생했습니다.'}`);
+            adminNotify(`저장 실패: ${error.message || '저장 중 오류가 발생했습니다.'}`);
             flushMagazineDraft();
         } finally { saveLock.current = false; if (mountedRef.current && sessionRef.current === session) setSaving(false); else if (mountedRef.current) setSaving(false); }
     };
@@ -796,7 +797,7 @@ export const AdminMagazineManage: React.FC = () => {
     // Category CRUD logic
     const handleSaveCategory = async () => {
         if (!categoryForm.name) {
-            alert('카테고리명을 입력해주세요.');
+            adminNotify('카테고리명을 입력해주세요.');
             return;
         }
         if (editingCategory) {
@@ -825,7 +826,7 @@ export const AdminMagazineManage: React.FC = () => {
     const handleDeleteCategory = async (cat: MagazineCategory) => {
         const count = magazines?.filter(m => m.category === cat.name).length || 0;
         if (count > 0) {
-            alert('이 카테고리에 매거진이 있어 삭제할 수 없습니다.');
+            adminNotify('이 카테고리에 매거진이 있어 삭제할 수 없습니다.');
             return;
         }
         if (confirm('이 카테고리를 삭제하시겠습니까?')) {
@@ -857,7 +858,7 @@ export const AdminMagazineManage: React.FC = () => {
         const name = newCategoryName.trim();
         if (!name || categoryBusy) return;
         if (magazineCategories.some(c => c.name === name)) {
-            alert('이미 같은 이름의 카테고리가 있습니다.');
+            adminNotify('이미 같은 이름의 카테고리가 있습니다.');
             return;
         }
         setCategoryBusy(true);
@@ -875,7 +876,7 @@ export const AdminMagazineManage: React.FC = () => {
             setNewCategoryName('');
             fetchCategories();
         } catch (error) {
-            alert(`카테고리 추가 실패: ${error instanceof Error ? error.message : String(error)}`);
+            adminNotify(`카테고리 추가 실패: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setCategoryBusy(false);
         }

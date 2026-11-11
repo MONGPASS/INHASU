@@ -18,6 +18,7 @@ import { ImagePopover } from './designEditor/ImagePopover';
 import { SectionToolbar } from './designEditor/SectionToolbar';
 import { useAnchorRect } from './designEditor/useAnchorRect';
 import { clampSectionAnchor, commitValue, fieldSelector, findDesignTarget, sectionSelector } from './designEditor/inlineEdit';
+import { adminNotify } from './ui/adminFeedback';
 
 /**
  * 지도 경유지 선택 UI — 지도에 좌표가 등록된 여행지 목록에서 골라 담는다.
@@ -59,7 +60,7 @@ function SpotCardsField({ value, onChange, onBusyChange }: { value: string; onCh
             patch(i, { img: await uploadImage(file, 'product-details') });
         } catch (error) {
             console.error('Spot card image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         } finally {
             setUploadingIdx(null);
             onBusyChange?.(false);
@@ -169,7 +170,7 @@ function MapStopsField({ value, onChange, onBusyChange }: { value: string; onCha
             setLineImage(i, url);
         } catch (error) {
             console.error('Map stop image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         } finally {
             setUploadingIdx(null);
             onBusyChange?.(false);
@@ -498,7 +499,7 @@ export function DesignTemplateBlockEditor({
             onChange({ ...content, values: nextValues });
         } catch (e) {
             console.error('Failed to save shared design images:', e);
-            alert('공통 사진 저장에 실패했습니다');
+            adminNotify('공통 사진 저장에 실패했습니다');
         } finally {
             setSavingShared(false);
             changeBusy(false);
@@ -525,7 +526,7 @@ export function DesignTemplateBlockEditor({
             setValue(key, url);
         } catch (error) {
             console.error('Design image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         } finally {
             setUploadingKey(null);
             changeBusy(false);

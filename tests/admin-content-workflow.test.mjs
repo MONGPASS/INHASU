@@ -11,13 +11,14 @@ const result = await build({ stdin: { contents: `
 `, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false, loader: { '.css': 'empty' },
     plugins: [{ name: 'content-event-fixture', setup(builder) {
         builder.onResolve({ filter: /^react$|^react\/jsx-runtime$|^react-router-dom$/ }, args => ({ path: args.path, namespace: 'fixture' }));
-        builder.onResolve({ filter: /\/(AdminLayout|Icon|api|upload)$/ }, args => ({ path: args.path.split('/').at(-1), namespace: 'fixture' }));
+        builder.onResolve({ filter: /\/(AdminLayout|Icon|api|upload|adminFeedback)$/ }, args => ({ path: args.path.split('/').at(-1), namespace: 'fixture' }));
         builder.onLoad({ filter: /.*/, namespace: 'fixture' }, ({ path }) => ({ loader: 'js', contents:
             path === 'react' ? `export const useState=(...a)=>globalThis.h.useState(...a),useRef=(...a)=>globalThis.h.useRef(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useCallback=(...a)=>globalThis.h.useCallback(...a);export default {useState,useRef,useEffect,useCallback};`
             : path === 'react/jsx-runtime' ? `export const Fragment='fragment';export const jsx=(type,props,key)=>({type,props,key});export const jsxs=jsx;`
             : path === 'react-router-dom' ? `export const useBlocker=predicate=>{globalThis.h.predicate=predicate;return globalThis.h.blocker};`
             : path === 'AdminLayout' ? `export const AdminLayout='layout';`
             : path === 'Icon' ? `export const Icon='icon';`
+            : path === 'adminFeedback' ? `export const adminNotify=()=>{};export const adminConfirm=async()=>true;`
             : path === 'api' ? `export const api=new Proxy({}, {get:(_,key)=>globalThis.adapters.api[key]});`
             : `export const uploadImage=(...args)=>globalThis.adapters.upload(...args);` }));
     } }],

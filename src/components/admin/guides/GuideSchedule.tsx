@@ -16,6 +16,7 @@ import {
     guideItineraryExtra, guideItineraryHref, shiftMonth, timelineWindow, vehicleClash, weekLanes, type AssignState, type ScheduleBooking, type TimelineRange,
 } from './guideScheduleModel';
 import './GuideSchedule.css';
+import { adminNotify } from '../ui/adminFeedback';
 
 type Item = V7AssignmentItem & ScheduleBooking & {
     customerName?: string; leadName?: string; travelers?: number; productName?: string; reservationNumber?: string; createdAt?: string;
@@ -66,7 +67,7 @@ const popAt = (target: HTMLElement, width = 320, height = 260) => {
 /** 가이드 전달용 일정표를 새 창으로 연다. sessionStorage(견적 관리자 토큰)가 이어지도록 opener를 끊지 않는다. */
 const openGuideItinerary = (b: Item) => {
     if (b.source !== 'quote_booking') { try { localStorage.setItem(`guideDoc:${b.id}`, JSON.stringify(guideItineraryExtra(b))); } catch { /* 저장소가 막혀도 기본 일정표는 열린다 */ } }
-    if (!window.open(guideItineraryHref(b), '_blank')) window.alert('팝업이 차단되었습니다. 브라우저에서 팝업을 허용한 뒤 다시 눌러 주세요.');
+    if (!window.open(guideItineraryHref(b), '_blank')) adminNotify('팝업이 차단되었습니다. 브라우저에서 팝업을 허용한 뒤 다시 눌러 주세요.');
 };
 
 function Avatar({ name, img, size, color, ring }: { name: string; img?: string; size: number; color: string[]; ring?: string }) {

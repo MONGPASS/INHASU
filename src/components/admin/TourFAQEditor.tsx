@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import { adminNotify } from './ui/adminFeedback';
 
 /**
  * Editor for the site-wide "tour common FAQ" — the FAQ block displayed at
@@ -84,7 +85,7 @@ export const TourFAQEditor: React.FC = () => {
                 setRows(refreshed.map((d) => ({ id: d.id, question: d.question, answer: d.answer })));
             }
         } catch (e: any) {
-            alert('저장 실패: ' + (e?.message || '알 수 없는 오류'));
+            adminNotify('저장 실패: ' + (e?.message || '알 수 없는 오류'));
         } finally {
             setSaving(false);
         }

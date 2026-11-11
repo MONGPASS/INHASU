@@ -26,6 +26,7 @@ import { CourseImportModal, type CourseImportExtra } from '../components/admin/C
 import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '../components/admin/itineraryImport';
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
+import { adminNotify } from '../components/admin/ui/adminFeedback';
 
 
 
@@ -205,7 +206,7 @@ export const AdminProductManage: React.FC = () => {
             return true;
         } catch (error: any) {
             console.error('Failed to save product:', error);
-            alert('상품 저장 중 오류가 발생했습니다: ' + (error.message || JSON.stringify(error)));
+            adminNotify('상품 저장 중 오류가 발생했습니다: ' + (error.message || JSON.stringify(error)));
             return false;
         }
     };
@@ -279,7 +280,7 @@ export const AdminProductManage: React.FC = () => {
                 await api.products.delete(id);
                 setProducts(prev => prev.filter(p => p.id !== id));
             } catch (error: any) {
-                alert('삭제 실패: ' + error.message);
+                adminNotify('삭제 실패: ' + error.message);
             }
         }
     };
@@ -353,7 +354,7 @@ export const AdminProductManage: React.FC = () => {
             // Optionally show a toast for successful save
         } catch (error) {
             console.error('Failed to save product order:', error);
-            alert('순서 저장에 실패했습니다.');
+            adminNotify('순서 저장에 실패했습니다.');
         }
     };
 
@@ -858,19 +859,19 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
         // Validate required fields
         if (!formData.name || !formData.name.trim()) {
-            alert('상품명을 입력해주세요.');
+            adminNotify('상품명을 입력해주세요.');
             return;
         }
         if (!formData.category) {
-            alert('카테고리를 선택해주세요.');
+            adminNotify('카테고리를 선택해주세요.');
             return;
         }
         if (!formData.duration || !formData.duration.trim()) {
-            alert('기간을 입력해주세요.');
+            adminNotify('기간을 입력해주세요.');
             return;
         }
         if (!formData.price || formData.price <= 0) {
-            alert('판매가를 입력해주세요.');
+            adminNotify('판매가를 입력해주세요.');
             return;
         }
 
@@ -1119,7 +1120,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             updateBlockContent(index, url);
         } catch (error) {
             console.error('Block image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1144,7 +1145,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }
         } catch (error) {
             console.error('Slide images upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1305,7 +1306,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }));
         } catch (e) {
             console.error('Bulk itinerary image upload failed:', e);
-            alert('이미지 업로드 중 일부가 실패했습니다.');
+            adminNotify('이미지 업로드 중 일부가 실패했습니다.');
         } finally {
             setItineraryBulkUploading(false);
             setItineraryBulkProgress(null);
@@ -1654,7 +1655,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             updateItineraryBlockContent(index, url);
         } catch (error) {
             console.error('Itinerary block image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1678,7 +1679,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }
         } catch (error) {
             console.error('Itinerary slide images upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1729,7 +1730,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }
         } catch (error) {
             console.error('Timeline images upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
     
@@ -1749,7 +1750,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             setFormData({ ...formData, itineraryBlocks: blocks });
         } catch (error) {
             console.error('Day design images upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1779,7 +1780,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }));
         } catch (error) {
             console.error('Detail image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 
@@ -1829,7 +1830,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             }));
         } catch (error) {
             console.error('Main image upload failed:', error);
-            alert('이미지 업로드 실패');
+            adminNotify('이미지 업로드 실패');
         }
     };
 

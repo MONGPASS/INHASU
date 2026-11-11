@@ -4,6 +4,7 @@ import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import { api } from '../lib/api';
 import type { InquiryRecord, InquiryStatus } from '../types/inquiry';
 import './AdminContentManage.css';
+import { adminNotify } from '../components/admin/ui/adminFeedback';
 
 type StatusFilter = InquiryStatus | 'all';
 
@@ -306,7 +307,7 @@ export const AdminInquiryManage: React.FC = () => {
 
     const fail = (e: unknown) => {
         if (isMigrationError(e)) setNeedsMigration(true);
-        alert(describeError(e));
+        adminNotify(describeError(e));
     };
 
     const counts = useMemo(() => {
