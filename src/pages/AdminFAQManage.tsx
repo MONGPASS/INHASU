@@ -5,6 +5,7 @@ import { TourFAQEditor } from '../components/admin/TourFAQEditor';
 import { api } from '../lib/api';
 import './AdminContentManage.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminValidateRequired } from '../components/admin/ui/adminForm';
 
 interface FAQ {
     id: string;
@@ -137,8 +138,10 @@ export const AdminFAQManage: React.FC = () => {
 
     // Add/Edit FAQ
     const handleSaveFAQ = async () => {
-        if (!faqForm.question || !faqForm.answer || !faqForm.category) {
-            adminNotify('모든 필드를 입력해주세요.');
+        // 빈 필수 칸은 그 칸 아래에 안내한다. 카테고리는 고르는 칸이라 알림으로 알린다.
+        const filled = adminValidateRequired();
+        if (!filled || !faqForm.question || !faqForm.answer || !faqForm.category) {
+            if (filled && !faqForm.category) adminNotify('카테고리를 선택해 주세요.', 'error');
             return;
         }
 
@@ -256,10 +259,7 @@ export const AdminFAQManage: React.FC = () => {
     // Add/Edit Category
     const handleSaveCategory = async () => {
         const name = categoryForm.name.trim();
-        if (!name) {
-            adminNotify('카테고리명을 입력해주세요.');
-            return;
-        }
+        if (!name) { adminValidateRequired(); return; }
         if (categories.some(c => c.name === name && c.id !== selectedCategory?.id)) {
             adminNotify('이미 같은 이름의 카테고리가 있습니다.');
             return;
@@ -568,7 +568,7 @@ export const AdminFAQManage: React.FC = () => {
                                 )}
                             </div>
                             <label className="cm-field">
-                                <span className="cm-label">질문</span>
+                                <span className="cm-label adm-req">질문</span>
                                 <input
                                     className="cm-input"
                                     type="text"
@@ -578,7 +578,7 @@ export const AdminFAQManage: React.FC = () => {
                                 />
                             </label>
                             <label className="cm-field">
-                                <span className="cm-label">답변</span>
+                                <span className="cm-label adm-req">답변</span>
                                 <textarea
                                     className="cm-textarea"
                                     value={faqForm.answer}
@@ -613,7 +613,7 @@ export const AdminFAQManage: React.FC = () => {
                         </div>
                         <div className="cm-modal-body">
                             <label className="cm-field">
-                                <span className="cm-label">카테고리명</span>
+                                <span className="cm-label adm-req">카테고리명</span>
                                 <input
                                     className="cm-input"
                                     type="text"

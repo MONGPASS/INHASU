@@ -174,6 +174,7 @@
 <script src="/lodging.f3c00aad8ec7.js"></script>
 <script src="/admin-embed.js"></script>
 <link rel="stylesheet" href="/admin-tools.css">
+<script src="/admin-dialog.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -355,7 +356,7 @@ function renderLodgeCats() {
 }
 
 async function addLodgeCat() {
-  const name = (prompt("새 카테고리(숙소 지역) 이름을 입력하세요 (예: 테를지)") || "").trim();
+  const name = (await AdminDialog.prompt("새 카테고리(숙소 지역) 이름을 입력하세요 (예: 테를지)") || "").trim();
   if (!name) return;
   if (name === LODGE_UNCAT) return toast(`"${LODGE_UNCAT}"은(는) 사용할 수 없는 이름입니다`);
   if (LODGE_CATS.includes(name)) {
@@ -368,7 +369,7 @@ async function addLodgeCat() {
 }
 
 async function renameLodgeCat(cat) {
-  const name = (prompt("카테고리(숙소 지역) 이름 변경", cat) || "").trim();
+  const name = (await AdminDialog.prompt("카테고리(숙소 지역) 이름 변경", cat) || "").trim();
   if (!name || name === cat) return;
   if (name === LODGE_UNCAT || LODGE_CATS.includes(name)) return toast("사용할 수 없거나 이미 있는 이름입니다");
   LODGE_CATS = LODGE_CATS.map(c => c === cat ? name : c);
@@ -381,7 +382,7 @@ async function renameLodgeCat(cat) {
 
 async function deleteLodgeCat(cat) {
   const count = Object.values(LIB).filter(r => lodgeCatOf(r) === cat).length;
-  if (!confirm(`"${cat}" 카테고리를 삭제할까요?` + (count ? `\n이 카테고리의 숙소 ${count}개는 "${LODGE_UNCAT}"로 이동합니다. (숙소는 삭제되지 않습니다)` : ""))) return;
+  if (!await AdminDialog.confirm(`"${cat}" 카테고리를 삭제할까요?` + (count ? `\n이 카테고리의 숙소 ${count}개는 "${LODGE_UNCAT}"로 이동합니다. (숙소는 삭제되지 않습니다)` : ""))) return;
   LODGE_CATS = LODGE_CATS.filter(c => c !== cat);
   Object.values(LIB).forEach(r => { if (lodgeCatOf(r) === cat) r.region = ""; });
   activeLodgeCat = "__all";
@@ -707,9 +708,9 @@ function openEdit(key) {
   const regionSel = $("f_region");
   if (regionSel) {
     let lastRegion = regionSel.value;
-    regionSel.onchange = () => {
+    regionSel.onchange = async () => {
       if (regionSel.value !== "__new") { lastRegion = regionSel.value; return; }
-      const name = (prompt("새 지역 이름을 입력하세요 (예: 서부몽골)") || "").trim();
+      const name = (await AdminDialog.prompt("새 지역 이름을 입력하세요 (예: 서부몽골)") || "").trim();
       if (!name || name === LODGE_UNCAT) { regionSel.value = lastRegion; if (name === LODGE_UNCAT) toast(`"${LODGE_UNCAT}"은(는) 사용할 수 없는 이름입니다`); return; }
       if (!LODGE_CATS.includes(name)) { LODGE_CATS.push(name); window.saveLodgeCats(LODGE_CATS); renderLodgeCats(); }
       if (![...regionSel.options].some(o => o.value === name)) {
@@ -772,7 +773,7 @@ function openEdit(key) {
 
   const del = $("dDel");
   if (del) del.onclick = async () => {
-    if (!confirm(`"${editKey}"을(를) 삭제할까요?`)) return;
+    if (!await AdminDialog.confirm(`"${editKey}"을(를) 삭제할까요?`)) return;
     const removed = editKey;
     delete LIB[editKey];
     const res = await persist();

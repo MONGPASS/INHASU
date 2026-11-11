@@ -5,6 +5,7 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import './AdminContentManage.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminValidateRequired } from '../components/admin/ui/adminForm';
 
 interface ReviewRow {
     id: string;
@@ -171,10 +172,7 @@ export const AdminReviewManage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        if (!formData.author.trim() || !formData.content.trim()) {
-            adminNotify('작성자와 내용은 필수입니다.');
-            return;
-        }
+        if (!adminValidateRequired() || !formData.author.trim() || !formData.content.trim()) return;
         if (submitting || uploading) return;
 
         setSubmitting(true);
@@ -353,7 +351,7 @@ export const AdminReviewManage: React.FC = () => {
                         <div className="cm-modal-body">
                             <div className="cm-grid-2">
                                 <label className="cm-field">
-                                    <span className="cm-label">작성자</span>
+                                    <span className="cm-label adm-req">작성자</span>
                                     <input type="text" className="cm-input" placeholder="예: 김철수" value={formData.author}
                                         onChange={(e) => setFormData({ ...formData, author: e.target.value })} />
                                 </label>
@@ -383,7 +381,7 @@ export const AdminReviewManage: React.FC = () => {
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
                             </label>
                             <label className="cm-field">
-                                <span className="cm-label">내용</span>
+                                <span className="cm-label adm-req">내용</span>
                                 <textarea className="cm-textarea" placeholder="후기 내용을 입력하세요" value={formData.content}
                                     onChange={(e) => setFormData({ ...formData, content: e.target.value })} />
                             </label>

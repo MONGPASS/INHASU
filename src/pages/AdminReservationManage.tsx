@@ -53,6 +53,7 @@ import '../styles/product-customer-workspace.css';
 import '../styles/customer-workspace-editor.css';
 import '../styles/reservation-itinerary-designer.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminValidateRequired } from '../components/admin/ui/adminForm';
 
 // Reservation Interface
 interface Reservation {
@@ -3322,7 +3323,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
     // Filter Logic
     const handleCreateReservation = async () => {
-        if (!addForm.customerName.trim()) { adminNotify('고객명을 입력해 주세요.'); return; }
+        if (!addForm.customerName.trim()) { adminValidateRequired(); return; }
         setCreating(true);
         try {
             const total = Number(addForm.totalAmount) || 0;
@@ -3978,7 +3979,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                                 </select><small>기존 상품을 선택하면 해당 상품의 일정·사진·대표 명소를 사용합니다.</small>
                             </label>
                             {[
-                                { k: 'customerName', label: '고객명 *', el: <input className="inp" style={{ width: '100%' }} value={addForm.customerName} onChange={e => setAddForm(f => ({ ...f, customerName: e.target.value }))} placeholder="고객명" /> },
+                                { k: 'customerName', label: '고객명', req: true, el: <input className="inp" style={{ width: '100%' }} value={addForm.customerName} onChange={e => setAddForm(f => ({ ...f, customerName: e.target.value }))} placeholder="고객명" /> },
                                 { k: 'source', label: '주문 경로', el: <select className="select" style={{ width: '100%' }} value={addForm.source} onChange={e => setAddForm(f => ({ ...f, source: e.target.value }))}>{SOURCE_OPTIONS.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}</select> },
                                 { k: 'phone', label: '연락처', el: <input className="inp" style={{ width: '100%' }} value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} placeholder="010-1234-5678" /> },
                                 { k: 'email', label: '이메일', el: <input className="inp" style={{ width: '100%' }} value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} placeholder="example@mail.com" /> },
@@ -3992,7 +3993,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                                 { k: 'notes', label: '메모', full: true, el: <textarea className="inp" style={{ width: '100%', minHeight: 60, resize: 'vertical' }} value={addForm.notes} onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))} placeholder="주문 메모 (카카오톡 ID 등)" /> },
                             ].map(field => (
                                 <div key={field.k} style={field.full ? { gridColumn: '1 / -1' } : undefined}>
-                                    <label className="cell-muted" style={{ fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 5 }}>{field.label}</label>
+                                    <label className={`cell-muted${'req' in field && field.req ? ' adm-req' : ''}`} style={{ fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 5 }}>{field.label}</label>
                                     {field.el}
                                 </div>
                             ))}

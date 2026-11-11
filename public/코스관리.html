@@ -139,6 +139,7 @@
 </style>
 <script src="/admin-embed.js"></script>
 <link rel="stylesheet" href="/admin-tools.css">
+<script src="/admin-dialog.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -533,7 +534,7 @@ function openEdit(key) {
   };
   const delEl = $("delBtn");
   if (delEl) delEl.onclick = async () => {
-    if (!confirm(`"${key}" 코스를 삭제할까요?`)) return;
+    if (!await AdminDialog.confirm(`"${key}" 코스를 삭제할까요?`)) return;
     delete COURSES[key];
     const res = await persist();
     renderList(); closeDrawer();
