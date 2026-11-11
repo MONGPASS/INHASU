@@ -27,6 +27,7 @@ import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '.
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 
 
 
@@ -39,6 +40,8 @@ export const AdminProductManage: React.FC = () => {
     const [productsLoaded, setProductsLoaded] = useState(false);
     const [productOpenNotice, setProductOpenNotice] = useState('');
     const [products, setProducts] = useState<TourProduct[]>([]);
+    // 목록 상태: 불러오는 중 / 준비됨 / 불러오기 실패 (빈 목록 자리에 안내한다)
+    const [listState, setListState] = useState<'loading' | 'ready' | 'error'>('loading');
     const [categories, setCategories] = useState<Category[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<TourProduct | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,11 +66,14 @@ export const AdminProductManage: React.FC = () => {
             if (Array.isArray(data)) {
                 const mappedProducts = data.map(adminProductFromApi);
                 setProducts(mappedProducts);
+                setListState('ready');
                 return mappedProducts;
             }
+            setListState('error');
             return null;
         } catch (error) {
             console.error('Error fetching products:', error);
+            setListState('error');
             return null;
         } finally {
             setProductsLoaded(true);
@@ -520,8 +526,9 @@ export const AdminProductManage: React.FC = () => {
                         {paginatedProducts.length === 0 && (
                             <div className="pd-empty">
                                 <DashboardIcon name="lc-archive" size={28} />
-                                <p>조건에 맞는 상품이 없어요.</p>
-                                <button type="button" onClick={clearFilters}>필터 지우기</button>
+                                {listState === 'loading' ? <p role="status">상품을 불러오는 중…</p>
+                                    : listState === 'error' && !products.length ? <><p role="alert">상품을 불러오지 못했습니다.</p><button type="button" onClick={() => { setListState('loading'); void fetchProducts(); }}>다시 시도</button></>
+                                    : <><p>{products.length ? '조건에 맞는 상품이 없어요.' : '등록된 상품이 없어요.'}</p>{products.length > 0 && <button type="button" onClick={clearFilters}>필터 지우기</button>}</>}
                             </div>
                         )}
                     </div>
@@ -746,8 +753,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             return;
         }
         if (decision.blocked && decision.reason === 'draft_storage_failure') {
-            if (window.confirm(decision.error + '\n\n초안을 보관하지 못한 상태로 이동할까요?')) blocker.proceed();
-            else blocker.reset();
+            adminConfirmLeave(blocker, decision.error + '\n\n초안을 보관하지 못한 상태로 이동할까요?');
         } else blocker.proceed();
     }, [blocker]);
 

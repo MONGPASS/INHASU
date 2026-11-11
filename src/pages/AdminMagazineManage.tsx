@@ -13,6 +13,7 @@ import { useUser } from '../contexts/UserContext';
 import { magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft, removeMagazineDraft, type MagazineDraftScope, type MagazineDraftRead, type MagazineDraftResult, type MagazineDraftForm } from '../utils/adminMagazineDraft';
 import './AdminContentManage.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 
 /** Lucide outlines (ISC) that DashboardIcon does not carry. Keys keep the `lc-` prefix for the icon-subset check. */
 const MAGAZINE_ICONS = {
@@ -274,6 +275,7 @@ export const AdminMagazineManage: React.FC = () => {
 
     // Data State
     const [magazines, setMagazines] = useState<Magazine[]>([]);
+    const [listState, setListState] = useState<'loading' | 'ready' | 'error'>('loading');
     const [magazineCategories, setMagazineCategories] = useState<MagazineCategory[]>([]);
 
     // Category Management State
@@ -358,8 +360,7 @@ export const AdminMagazineManage: React.FC = () => {
         if (blocker.state !== 'blocked' || handledNavigation.current === blocker.location.key) return;
         handledNavigation.current = blocker.location.key;
         if (blockedReason.current.busy) { setDraftNotice('저장·사진 업로드가 끝난 뒤 이동해 주세요.'); blocker.reset(); }
-        else if (window.confirm(blockedReason.current.error + '\n초안을 보관하지 못한 상태로 이동할까요?')) blocker.proceed();
-        else blocker.reset();
+        else adminConfirmLeave(blocker, blockedReason.current.error + '\n초안을 보관하지 못한 상태로 이동할까요?');
     }, [blocker]);
     useEffect(() => {
         mountedRef.current = true;
@@ -578,9 +579,11 @@ export const AdminMagazineManage: React.FC = () => {
                     createdAt: m.created_at,
                     updatedAt: m.updated_at,
                 })));
-            }
+                setListState('ready');
+            } else setListState('error');
         } catch (error) {
             console.error('Error fetching magazines:', error);
+            setListState('error');
         }
     };
 
@@ -1008,7 +1011,9 @@ export const AdminMagazineManage: React.FC = () => {
                             {filteredMagazines?.length === 0 ? (
                                 <div className="cm-empty">
                                     <MagazineIcon name="lc-book-open" size={32} />
-                                    <span>{magazines.length ? '검색 결과가 없어요.' : '작성된 매거진이 없어요.'}</span>
+                                    {listState === 'loading' ? <span role="status">불러오는 중…</span>
+                                        : listState === 'error' && !magazines.length ? <><span role="alert">목록을 불러오지 못했습니다.</span><button type="button" className="cm-btn is-sm" onClick={() => { setListState('loading'); void fetchMagazines(); }}>다시 시도</button></>
+                                        : <span>{magazines.length ? '검색 결과가 없어요.' : '작성된 매거진이 없어요.'}</span>}
                                 </div>
                             ) : (
                                 <div className="mg-grid">

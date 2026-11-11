@@ -16,6 +16,7 @@ import { LODGE_GRADE_OPTIONS, ROOM_PLAN_OPTIONS, isUpcomingTour, tourSerials } f
 import { LodgeAssignBoard } from '../components/admin/accommodation/LodgeAssignBoard';
 import { guideOverlaps, overlapLabel, sameGuide } from '../utils/assignmentAvailability';
 import { adminConfirm } from '../components/admin/ui/adminFeedback';
+import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 
 /**
  * 숙소 배정 · 현지 운영 — Admin Dashboard v3 "05-1" 디자인(한국어).
@@ -387,8 +388,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     useEffect(() => {
         if (blocker.state !== 'blocked') return;
         if (savingRef.current) { setNotice('저장 중에는 다른 메뉴로 이동할 수 없습니다.'); blocker.reset(); }
-        else if (window.confirm('초안을 보관하지 못했습니다. 변경 내용이 사라질 수 있습니다. 이동할까요?')) blocker.proceed();
-        else blocker.reset();
+        else adminConfirmLeave(blocker, '초안을 보관하지 못했습니다. 변경 내용이 사라질 수 있습니다. 이동할까요?');
     }, [blocker]);
     useEffect(() => {
         mounted.current = true;

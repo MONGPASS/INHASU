@@ -161,6 +161,9 @@ for (const share of [false, true]) {
         let resolve, calls = 0, lastBody;
         context.fetch = (_url, options) => { calls++; lastBody = JSON.parse(options.body); return new Promise(done => { resolve = done; }); };
         const pending = context.runSave({ share });
+        // 공유는 확인 창의 답을 기다린 뒤 요청한다. 기다리는 동안에도 잠금은 유지된다.
+        assert.equal(state.getState().busy, true);
+        await new Promise(setImmediate);
         assert.equal(calls, 1); assert.equal(state.getState().busy, true);
         await context.runSave({ share }); assert.equal(calls, 1);
         assert.equal(lastBody[share ? 'notifyQuote' : 'silentQuote'], true);

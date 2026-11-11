@@ -31,6 +31,7 @@ import {
     quoteDeskToolForPath,
     resourceScheduleView,
 } from '../components/admin/quoteDesk';
+import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 
 /**
  * 맞춤 견적 데스크 — `/admin/quote-desk/:tool?`
@@ -201,8 +202,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         if (blocker.state !== 'blocked' || handledAttempt.current === blocker.location.key) return;
         handledAttempt.current = blocker.location.key;
         if (blockedReason.current.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 이동해 주세요.'); blocker.reset(); }
-        else if (window.confirm(blockedReason.current.error + '\n\n초안을 보관하지 못한 상태로 이동할까요?')) blocker.proceed();
-        else blocker.reset();
+        else adminConfirmLeave(blocker, blockedReason.current.error + '\n\n초안을 보관하지 못한 상태로 이동할까요?');
     }, [blocker]);
     useEffect(() => {
         const unload = (event: BeforeUnloadEvent) => {

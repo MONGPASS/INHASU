@@ -86,7 +86,7 @@ test('삭제·변경 확인은 공통 확인 창을 쓰고, 브라우저 확인�
         shared += (source.match(/await adminConfirm\(/g) || []).length;
     }
     assert.ok(shared >= 70, '공통 확인 창 사용 ' + shared);
-    assert.ok(native <= 13, '나가기 보호 밖에 브라우저 확인창을 늘리지 않는다: ' + native);
+    assert.ok(native <= 6, '나가기 보호 밖에 브라우저 확인창을 늘리지 않는다: ' + native);
 });
 
 test('견적 도구는 관리자 안에서 공통 규격 CSS를 함께 읽는다', () => {
@@ -103,10 +103,10 @@ test('견적 도구는 관리자 안에서 공통 규격 CSS를 함께 읽는다
     }
 });
 
-test('견적 도구 네 문서는 공통 확인·입력 창을 쓴다', () => {
+test('견적 도구 문서는 공통 확인·입력 창을 쓴다', () => {
     const dialog = read('public/admin-dialog.js');
     assert.ok(dialog.includes('window.AdminDialog') && dialog.includes('var(--adm-primary-bg') && dialog.includes('var(--adm-danger'));
-    for (const tool of ['코스관리', '일정관리', '명소관리', '리소스관리']) {
+    for (const tool of ['코스관리', '일정관리', '명소관리', '리소스관리', '견적관리', '예약목록', '견적만들기']) {
         const html = read(`public/${tool}.html`);
         assert.ok(html.includes('<script src="/admin-dialog.js"></script>'), `${tool}: 공통 창 스크립트 연결`);
         assert.ok(html.indexOf('/admin-legacy-redirect.js') < html.indexOf('/admin-dialog.js'), `${tool}: 단독 접속 차단 스크립트가 먼저`);

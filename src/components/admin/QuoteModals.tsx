@@ -8,6 +8,7 @@ import { useBlocker } from 'react-router-dom';
 import { CustomerWorkspaceOverview } from './CustomerWorkspaceOverview';
 import { legacyCustomerOverview } from '../../utils/productCustomerWorkspace';
 import { adminConfirm, adminNotify } from './ui/adminFeedback';
+import { adminConfirmLeave } from './ui/adminLeaveConfirm';
 
 export interface QuoteRequest {
     id: string;
@@ -336,8 +337,7 @@ export const QuoteDetailModal: React.FC<{
     useEffect(() => {
         if (navigationBlocker.state !== 'blocked') return;
         if (workspaceBusy) { setWorkspaceNotice('견적 저장·고객 전달을 마친 뒤 이동해 주세요.'); navigationBlocker.reset(); return; }
-        if (window.confirm('저장하지 않은 견적 내용이 있을 수 있습니다. 변경사항을 버리고 이동할까요?')) navigationBlocker.proceed();
-        else navigationBlocker.reset();
+        adminConfirmLeave(navigationBlocker, '저장하지 않은 견적 내용이 있을 수 있습니다. 변경사항을 버리고 이동할까요?');
     }, [navigationBlocker, workspaceBusy]);
     useEffect(() => {
         if (!fullPage) return;

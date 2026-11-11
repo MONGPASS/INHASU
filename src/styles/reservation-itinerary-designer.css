@@ -165,3 +165,16 @@
 @media (prefers-reduced-motion: reduce) {
   .product-customer-page .cw-focus-workspace .ri-composer :is(.day-edit, .ri-settings-toggle svg) { transition: none; }
 }
+
+/* 버튼·입력창의 높이·모서리·주 버튼 색은 관리자 공통 규격을 따른다(견적 예약 편집기와 같은 모양) — public/admin-tokens.css */
+.product-customer-page .cw-focus-workspace .ri-composer :is(.ri-fill-dates, .ri-add-day) { min-height: var(--adm-control-h-sm); border-radius: var(--adm-radius-sm); }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-add-day { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-add-day:hover { border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover); }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-field :is(input, textarea) { min-height: var(--adm-control-h); border-radius: var(--adm-radius-sm); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh :is(input.ddate, input.dest, input.move),
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 input { height: var(--adm-control-h); min-height: var(--adm-control-h); border-radius: var(--adm-radius-sm); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle { height: var(--adm-control-h-sm); min-height: var(--adm-control-h-sm); border-radius: var(--adm-radius-sm); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del { border-radius: var(--adm-radius-sm); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-sel { height: var(--adm-control-h); min-height: var(--adm-control-h); border-radius: var(--adm-radius-sm); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit textarea.items { border-radius: var(--adm-radius-sm); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-add { height: var(--adm-control-h-lg); min-height: var(--adm-control-h-lg); border-radius: var(--adm-radius-md); }

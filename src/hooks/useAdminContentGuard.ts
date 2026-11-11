@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useBlocker } from 'react-router-dom';
+import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 
 export interface AdminContentState { busy: boolean; dirty: boolean; }
 
@@ -20,8 +21,8 @@ export function useAdminContentGuard(read: () => AdminContentState, notice: (mes
         if (state.busy) {
             current.current.notice('저장·이미지 업로드가 끝난 뒤 이동해 주세요.');
             blocker.reset();
-        } else if (!state.dirty || window.confirm('저장하지 않은 변경사항이 있습니다. 변경사항을 버리고 이동할까요?')) blocker.proceed();
-        else blocker.reset();
+        } else if (!state.dirty) blocker.proceed();
+        else adminConfirmLeave(blocker, '저장하지 않은 변경사항이 있습니다. 변경사항을 버리고 이동할까요?');
     }, [blocker]);
     useEffect(() => {
         const unload = (event: BeforeUnloadEvent) => {

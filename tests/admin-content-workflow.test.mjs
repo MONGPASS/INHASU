@@ -214,7 +214,7 @@ test('실제 이동 guard는 미저장 배너의 Back·메뉴 이동과 새로�
     let prevented = 0; app.listeners.get('beforeunload')({ preventDefault() { prevented++; } }); assert.equal(prevented, 1);
     let resets = 0, proceeds = 0;
     h.blocker = { state: 'blocked', location: { key: 'back-1' }, reset() { resets++; }, proceed() { proceeds++; } };
-    h.render(); assert.equal(resets, 1); assert.equal(proceeds, 0);
+    h.render(); await tick(); assert.equal(resets, 1); assert.equal(proceeds, 0); // 공통 확인 창은 답을 기다린다
     app.context.window.confirm = () => true;
-    h.blocker = { ...h.blocker, location: { key: 'menu-2' } }; h.render(); assert.equal(proceeds, 1);
+    h.blocker = { ...h.blocker, location: { key: 'menu-2' } }; h.render(); await tick(); assert.equal(proceeds, 1);
 });
