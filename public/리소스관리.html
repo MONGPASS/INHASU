@@ -8,13 +8,14 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <script src="presets.js"></script>
+<link rel="stylesheet" href="/admin-tokens.css">
 <style>
   /* ── Claude Design "05-2 배정 자원 - 등록 정보" (Seed 디자인 토큰 값) ── */
   :root {
-    --paper:#ffffff; --bg:#f2f3f6; --contents:#f7f8fa;
-    --ink:#212124; --low:#868b94; --g100:#f2f3f6; --g200:#eaebee; --g300:#dcdee3; --g400:#d1d3d8; --g900:#212124;
+    --paper:#ffffff; --bg:var(--adm-canvas); --contents:#f7f8fa;
+    --ink:var(--adm-ink); --low:#868b94; --g100:#f2f3f6; --g200:#eaebee; --g300:#dcdee3; --g400:#d1d3d8; --g900:#212124;
     --div1:rgba(0,23,88,.05); --div2:#eaebee; --div3:#dcdee3;
-    --primary:#36d1a7; --primary-hover:#12b28c; --mint700:#067661;
+    --primary:var(--adm-accent); --primary-hover:var(--adm-accent-hover); --mint700:#067661;
     --danger:#ec404c; --danger-low:rgba(241,83,90,.05);
   }
   * { box-sizing:border-box; margin:0; padding:0; }

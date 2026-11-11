@@ -111,7 +111,6 @@
 .cw-resume-work span { font-size: 12px; color: #5b776b; }
 /* Admin Dashboard v3 "Page 15": white header + text tabs + canvas body + bottom action bar, in mint tokens. */
 .product-customer-page .cw-focus-workspace {
-    --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c;
     display: flex; flex-direction: column; height: calc(100dvh - var(--header-h, 72px) - 28px); min-height: 0; margin: 12px auto 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: var(--surface-canvas);
 }
 .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-detail-toolbar { flex: none; align-items: center; gap: 14px; padding: 14px 28px; min-height: 0; flex-wrap: nowrap; border-bottom: 1px solid var(--border-default); background: rgba(255,255,255,.96); }
@@ -195,7 +194,7 @@
 .rw-delivery-head p { margin: 4px 0 0; font-size: 12px; line-height: 1.6; color: #8a8f99; }
 .rw-delivery-head-actions, .rw-delivery-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .rw-delivery-panel button { display: inline-flex; align-items: center; justify-content: center; height: 34px; padding: 0 12px; border: 1px solid #e6e8ec; border-radius: 999px; background: #fff; color: #1a1b1e; font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: border-color .15s, background .15s; }
-.rw-delivery-panel button:hover:not(:disabled) { border-color: #12b28c; color: #0e9e7a; background: #f2fdf9; }
+.rw-delivery-panel button:hover:not(:disabled) { border-color: var(--adm-accent); color: var(--adm-accent-strong); background: #f2fdf9; }
 .rw-delivery-panel button.is-primary { border-color: #1a1b1e; background: #1a1b1e; color: #fff; }
 .rw-delivery-panel button.is-primary:hover:not(:disabled) { border-color: #000; background: #000; color: #fff; }
 .rw-delivery-panel button:disabled { opacity: .45; cursor: default; }

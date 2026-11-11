@@ -2,7 +2,7 @@
 .gs, .gs-layer {
   --gs-ink: #1A1B1E; --gs-low: #6b7684; --gs-bg: #f2f4f6; --gs-paper: #fff; --gs-contents: #f7f8fa;
   --gs-div1: #f1f3f5; --gs-div2: #e5e8eb; --gs-div3: #d1d6db;
-  --gs-mint: #12b28c; --gs-mint-hover: #0e9e7a; --gs-mint-low: #e6f8f1; --gs-mint-text: #057a61; --gs-mint-paper: #F2FCF8;
+  --gs-mint: var(--adm-accent); --gs-mint-hover: var(--adm-accent-strong); --gs-mint-low: var(--adm-accent-soft); --gs-mint-text: var(--adm-accent-deep); --gs-mint-paper: #F2FCF8;
   --gs-red: #e5484d; --gs-red-low: #fff0f0; --gs-blue: #2F6FED; --gs-blue-low: #EEF4FF;
   --gs-orange-bg: #FFF4E5; --gs-orange-line: #F08C00; --gs-orange-text: #B35C00;
   --gs-gray100: #f2f4f6; --gs-gray200: #e5e8eb; --gs-dark: #212124;

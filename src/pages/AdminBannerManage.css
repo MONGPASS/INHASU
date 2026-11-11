@@ -1,5 +1,5 @@
 /* 홈 화면 관리 — Admin Dashboard v3 "07-1 사이트 관리 - 홈 화면 관리". 이 화면 본문에만 적용합니다. */
-.admin-app-wrapper .hm-page { --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c; display: flex; flex-direction: column; min-width: 0; }
+.admin-app-wrapper .hm-page { display: flex; flex-direction: column; min-width: 0; }
 
 /* 상단 고정 줄: 구역 이동 · 상태 · 저장 */
 .admin-app-wrapper .hm-bar {

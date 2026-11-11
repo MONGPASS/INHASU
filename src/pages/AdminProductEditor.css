@@ -1,6 +1,5 @@
 /* 상품 추가·수정 — Admin Dashboard v3 "04-2 상품 관리 - 상품 추가". 관리자 토큰을 민트로 바꿔 이 편집기에만 적용합니다. */
 .admin-app-wrapper .pa-editor {
-  --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c;
   overflow: visible; border: 1px solid var(--border-default); border-radius: 20px; background: var(--surface-canvas); box-shadow: none;
 }
 

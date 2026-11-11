@@ -4,12 +4,9 @@
    디자인은 브랜드 "blue" 토큰을 민트로 쓰므로 관리자 전체에 같은 값을 적용한다.
    ============================================================ */
 .admin-app-wrapper {
-  --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --mrt-blue-100: #c9f0e2;
-  --mrt-purple: #1cc497; --mrt-purple-2: #0a7f62; --mrt-purple-soft: #dcf6ee;
-  --text-link: #0E9E7A; --border-focus: #12b28c; --ring-blue: 0 0 0 4px rgba(18,178,140,.16);
   --side-w: 260px; --side-rail-w: 68px; --shell-gap: 16px;
 }
-.admin-app-wrapper .btn-blue { box-shadow: 0 4px 12px rgba(18,178,140,.28); }
+.admin-app-wrapper .btn-blue { box-shadow: 0 4px 12px rgba(var(--adm-accent-rgb),.28); }
 
 /* ---------- 데스크톱: 둥근 본문 카드 + 투명한 사이드바 ---------- */
 @media (min-width: 761px) {

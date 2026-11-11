@@ -1,5 +1,5 @@
 /* 상품 카테고리 — Admin Dashboard v3 "04-3 상품 관리 - 상품 카테고리". 목록과 오른쪽 편집 패널에만 적용합니다. */
-.admin-app-wrapper :is(.cg-page, .cg-drawer) { --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c; }
+.admin-app-wrapper :is(.cg-page, .cg-drawer) { }
 
 /* 목록 */
 .admin-app-wrapper .cg-card { overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; box-shadow: none; }

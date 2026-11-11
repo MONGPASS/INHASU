@@ -1,6 +1,5 @@
 /* 투어 캘린더 — Admin Dashboard v3 "Page 03 Tour Calendar". 관리자 토큰을 민트로 바꿔 이 화면에만 적용합니다. */
 .tour-calendar {
-  --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c;
   display: flex; flex-direction: column; gap: 16px;
   color: var(--text-strong);
   min-width: 0;

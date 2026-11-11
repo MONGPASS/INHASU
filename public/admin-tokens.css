@@ -1,0 +1,91 @@
+/* ============================================================
+   은하수 관리자 공통 변수 (디자인 토큰) — 관리자 규격의 정본.
+   - React 관리자(src/components/admin/AdminLayout.tsx)와
+     같은 출처 iframe의 견적 도구(public/*.html)가 이 파일 하나를 함께 읽는다.
+   - 색·글자 크기·간격·테두리·모서리·버튼/입력창 높이는 여기서만 정한다.
+     화면별 CSS에는 값을 다시 적지 말고 var(--adm-*)를 쓴다.
+   - 고객용 페이지·인쇄 문서는 이 파일을 쓰지 않는다(quote-theme.css, mwTokens.ts).
+   규칙·예외는 docs/admin-design-system.md 참고.
+   ============================================================ */
+:root {
+  /* ── 브랜드 민트 ── */
+  --adm-accent: #27AB8F;          /* 강조·선택·주요 버튼 */
+  --adm-accent-hover: #1F9A80;    /* 마우스를 올렸을 때 */
+  --adm-accent-strong: #1C8571;   /* 밝은 바탕 위의 민트 글자·링크 */
+  --adm-accent-deep: #146B5A;     /* 아주 진한 민트(강조 글자) */
+  --adm-accent-soft: #E9F7F3;     /* 옅은 민트 바탕 */
+  --adm-accent-line: #BFE6DB;     /* 민트 테두리 */
+  --adm-accent-rgb: 39, 171, 143; /* rgba(var(--adm-accent-rgb), .16) 처럼 쓴다 */
+
+  /* ── 글자·무채색 ── */
+  --adm-ink: #1A1B1E;             /* 제목·가장 진한 글자 */
+  --adm-text: #24262B;            /* 본문 */
+  --adm-text-2: #4A4E55;          /* 보조 글자 */
+  --adm-text-3: #8A8F99;          /* 설명·안내 글자 */
+  --adm-text-disabled: #B4B8C0;
+  --adm-gray-50: #F7F8FA;
+  --adm-gray-100: #F1F2F4;
+  --adm-gray-200: #E8EAED;
+  --adm-gray-300: #D7DAE0;
+
+  /* ── 바탕·테두리 ── */
+  --adm-canvas: #F7F8FA;          /* 작업 배경 */
+  --adm-surface: #FFFFFF;         /* 카드·팝업 */
+  --adm-sunken: #F1F2F4;          /* 눌린 칸·표 머리 */
+  --adm-line: #E6E8EC;            /* 기본 테두리 */
+  --adm-line-subtle: #F1F2F4;     /* 옅은 구분선 */
+  --adm-line-strong: #D7DAE0;     /* 진한 테두리 */
+  --adm-border-width: 1px;
+
+  /* ── 상태색(의미가 정해져 있다) ── */
+  --adm-danger: #FF4F4F;   --adm-danger-soft: #FFECEC;   /* 삭제·오류·미처리 */
+  --adm-warn: #E8890C;     --adm-warn-soft: #FFF4E2;     /* 주의·대기 */
+  --adm-success: #18A957;  --adm-success-soft: #E4F7EC;  /* 완료 */
+  --adm-info: #2D8CFF;     --adm-info-soft: #EAF3FF;     /* 안내·진행 */
+  --adm-neutral: #6B7280;  --adm-neutral-soft: #F1F2F4;  /* 보류·종료 */
+
+  /* ── 글자 크기 ── */
+  --adm-font: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, system-ui, sans-serif;
+  --adm-fs-caption: 11px;   /* 배지·표 머리 */
+  --adm-fs-small: 12px;     /* 보조 설명 */
+  --adm-fs-body: 13px;      /* 목록·입력창·버튼 */
+  --adm-fs-base: 14px;      /* 본문 */
+  --adm-fs-lead: 16px;      /* 카드 제목 */
+  --adm-fs-section: 18px;   /* 구역 제목 */
+  --adm-fs-title: 28px;     /* 화면 제목 */
+  --adm-fs-title-sm: 22px;  /* 좁은 화면의 화면 제목 */
+  --adm-fw-regular: 400; --adm-fw-medium: 500; --adm-fw-semibold: 600; --adm-fw-bold: 700;
+  --adm-lh: 1.55;
+
+  /* ── 간격 ── */
+  --adm-space-1: 4px; --adm-space-2: 8px; --adm-space-3: 12px; --adm-space-4: 16px;
+  --adm-space-5: 20px; --adm-space-6: 24px; --adm-space-8: 32px;
+  --adm-gap-control: 8px;    /* 버튼·입력창 사이 */
+  --adm-gap-section: 24px;   /* 구역 사이 */
+  --adm-pad-card: 20px;      /* 카드 안 여백 */
+  --adm-pad-page: 28px;      /* 화면 좌우 여백 */
+
+  /* ── 모서리 ── */
+  --adm-radius-xs: 6px;      /* 배지·작은 버튼 */
+  --adm-radius-sm: 8px;      /* 버튼·입력창 */
+  --adm-radius-md: 12px;     /* 카드 */
+  --adm-radius-lg: 16px;     /* 팝업 */
+  --adm-radius-pill: 999px;  /* 칩·상태 */
+
+  /* ── 버튼·입력창 높이 ── */
+  --adm-control-h: 40px;       /* 기본 */
+  --adm-control-h-sm: 32px;    /* 목록 안 작은 버튼 */
+  --adm-control-h-lg: 44px;    /* 저장 등 주요 버튼, 터치 화면 */
+  --adm-control-pad-x: 14px;
+
+  /* ── 그림자·겹침 순서·움직임 ── */
+  --adm-shadow-xs: 0 1px 2px rgba(26, 27, 30, .06);
+  --adm-shadow-sm: 0 2px 8px rgba(26, 27, 30, .06);
+  --adm-shadow-md: 0 4px 16px rgba(26, 27, 30, .08);
+  --adm-shadow-lg: 0 8px 28px rgba(26, 27, 30, .12);
+  --adm-ring: 0 0 0 3px rgba(var(--adm-accent-rgb), .18);
+  --adm-scrim: rgba(26, 27, 30, .42);  /* 팝업 뒤 어두운 막 */
+  --adm-z-dropdown: 60; --adm-z-drawer: 80; --adm-z-modal: 230; --adm-z-toast: 300;
+  --adm-ease: cubic-bezier(.2, 0, .1, 1);
+  --adm-dur: 160ms;
+}

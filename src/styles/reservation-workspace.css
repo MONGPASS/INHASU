@@ -1,6 +1,6 @@
 /* 상품 예약 상세 전용. 견적 데스크의 정적 페이지와 일반 관리자 화면에는 적용하지 않는다. */
 .reservation-workspace.product-workspace {
-    --rw-mint: #16987d;
+    --rw-mint: var(--adm-accent-strong);
     --rw-mint-strong: #08765f;
     --rw-mint-soft: #eef9f5;
     --rw-ink: #172b33;

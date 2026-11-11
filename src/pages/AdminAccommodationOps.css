@@ -1,7 +1,6 @@
 /* 숙소 배정 · 현지 운영 — Admin Dashboard v3 "05-1 배정 자원 - 숙소 배정 현지 운영". 이 보드 안에서만 민트 토큰을 씁니다. */
 .lo-board {
-  --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c;
-  --lo-mint: #12b28c; --lo-mint-strong: #0E9E7A; --lo-mint-line: #bdeedd; --lo-mint-seg: #9ce9d2; --lo-red: #ff4f4f;
+  --lo-mint: var(--adm-accent); --lo-mint-strong: var(--adm-accent-strong); --lo-mint-line: #bdeedd; --lo-mint-seg: #9ce9d2; --lo-red: #ff4f4f;
   --lo-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238A8F99' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   display: flex; flex-direction: column; gap: 16px; min-width: 0;
 }
@@ -17,8 +16,8 @@
 .lo-kpi { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 14px 16px; border: 1px solid var(--border-default); border-radius: 16px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04); text-align: left; cursor: pointer; transition: box-shadow .16s, border-color .16s; }
 .lo-kpi[data-tone="all"] { --lo-tone: #1A1B1E; --lo-tone-rgb: 26,27,30; }
 .lo-kpi[data-tone="warn"] { --lo-tone: #FF4F4F; --lo-tone-rgb: 255,79,79; }
-.lo-kpi[data-tone="info"] { --lo-tone: #12b28c; --lo-tone-rgb: 18,178,140; }
-.lo-kpi[data-tone="ok"] { --lo-tone: #0E9E7A; --lo-tone-rgb: 14,158,122; }
+.lo-kpi[data-tone="info"] { --lo-tone: var(--adm-accent); --lo-tone-rgb: 18,178,140; }
+.lo-kpi[data-tone="ok"] { --lo-tone: var(--adm-accent-strong); --lo-tone-rgb: 14,158,122; }
 .lo-kpi-icon { display: flex; flex: none; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: rgba(var(--lo-tone-rgb), .12); color: var(--lo-tone); }
 .lo-kpi[data-tone="all"] .lo-kpi-icon { background: #1A1B1E; color: #fff; }
 .lo-kpi-body { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
@@ -29,7 +28,7 @@
 .lo-kpi-hint { flex: none; align-self: flex-start; color: var(--text-tertiary); font-size: 11px; font-weight: 700; }
 .lo-kpi.is-hot { background: radial-gradient(90% 140% at 0% 0%, rgba(255,79,79,.10) 0%, rgba(255,79,79,0) 70%), #fff; }
 .lo-kpi.is-hot .lo-kpi-num b { color: #FF4F4F; }
-.lo-kpi.is-filled .lo-kpi-num b { color: #0E9E7A; }
+.lo-kpi.is-filled .lo-kpi-num b { color: var(--adm-accent-strong); }
 .lo-kpi.is-on { border: 1.5px solid var(--lo-tone); box-shadow: 0 6px 18px rgba(var(--lo-tone-rgb), .16); }
 .lo-kpi.is-on .lo-kpi-hint { color: var(--lo-tone); }
 
@@ -54,7 +53,7 @@
 .lo-year button { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-strong); cursor: pointer; }
 .lo-year button:disabled { opacity: .4; cursor: default; }
 .lo-year-all { flex: none; height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--mrt-gray-100); color: var(--text-secondary); font-size: 13px; font-weight: 800; white-space: nowrap; cursor: pointer; }
-.lo-year-all.is-on { background: linear-gradient(135deg, #1cc497, #0a7f62); color: #fff; }
+.lo-year-all.is-on { background: linear-gradient(135deg, var(--adm-accent), var(--adm-accent-deep)); color: #fff; }
 .lo-month-scroll { overflow-x: auto; }
 .lo-month-grid { display: grid; grid-template-columns: repeat(12, minmax(64px, 1fr)); gap: 8px; min-width: 820px; }
 .lo-month { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 48px; border: 1px solid var(--border-default); border-radius: 12px; background: #fff; color: var(--text-tertiary); cursor: pointer; }
@@ -63,7 +62,7 @@
 .lo-month:disabled { cursor: default; }
 .lo-month.has-tours { border-color: var(--lo-mint-line); background: linear-gradient(160deg, #f2fdf9, #e3f9f1); color: var(--text-strong); }
 .lo-month.has-tours small { color: var(--lo-mint-strong); }
-.lo-month.is-on { border: 1.5px solid var(--lo-mint); background: linear-gradient(135deg, #1cc497, #0a7f62); color: #fff; }
+.lo-month.is-on { border: 1.5px solid var(--lo-mint); background: linear-gradient(135deg, var(--adm-accent), var(--adm-accent-deep)); color: #fff; }
 .lo-month.is-on small { color: #fff; }
 
 /* 예약 목록 */
@@ -181,7 +180,7 @@
 .lo-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .lo-field > span:first-child { display: flex; align-items: center; height: 16px; padding-left: 2px; color: var(--text-tertiary); font-size: 11px; font-weight: 700; line-height: 16px; white-space: nowrap; }
 .lo-input { display: block; box-sizing: border-box; width: 100%; height: 40px; margin: 0; padding: 0 12px; border: 1px solid var(--border-default); border-radius: 10px; background: #fff; color: var(--text-strong); font-size: 13px; outline: 0; }
-.lo-input:focus { border-color: var(--lo-mint); box-shadow: 0 0 0 3px rgba(18,178,140,.14); }
+.lo-input:focus { border-color: var(--lo-mint); box-shadow: 0 0 0 3px rgba(var(--adm-accent-rgb),.14); }
 .lo-input:disabled { opacity: .55; }
 select.lo-input { padding-right: 30px; background: #fff var(--lo-chevron) no-repeat right 10px center; font-weight: 600; appearance: none; -webkit-appearance: none; cursor: pointer; }
 .lo-input[type="number"] { text-align: center; appearance: textfield; -moz-appearance: textfield; }
@@ -229,7 +228,7 @@ select.lo-input { padding-right: 30px; background: #fff var(--lo-chevron) no-rep
 .lo-savebar-text { flex: 1; min-width: 200px; color: var(--text-tertiary); font-size: 12px; font-weight: 500; }
 .lo-savebar-text.is-dirty { color: var(--lo-mint-strong); font-weight: 700; }
 .lo-reset-row { height: 40px; padding: 0 16px; }
-.lo-save { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 20px; border: 0; border-radius: 999px; background: linear-gradient(135deg, #1cc497, #0a7f62); box-shadow: 0 4px 12px rgba(18,168,128,.25); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+.lo-save { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 20px; border: 0; border-radius: 999px; background: linear-gradient(135deg, var(--adm-accent), var(--adm-accent-deep)); box-shadow: 0 4px 12px rgba(18,168,128,.25); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
 .lo-save:disabled { background: var(--mrt-gray-300); box-shadow: none; cursor: default; }
 
 @media (max-width: 1100px) {
