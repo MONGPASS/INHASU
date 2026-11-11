@@ -274,6 +274,7 @@ export const AdminMagazineManage: React.FC = () => {
 
     // Data State
     const [magazines, setMagazines] = useState<Magazine[]>([]);
+    const [listState, setListState] = useState<'loading' | 'ready' | 'error'>('loading');
     const [magazineCategories, setMagazineCategories] = useState<MagazineCategory[]>([]);
 
     // Category Management State
@@ -578,9 +579,11 @@ export const AdminMagazineManage: React.FC = () => {
                     createdAt: m.created_at,
                     updatedAt: m.updated_at,
                 })));
-            }
+                setListState('ready');
+            } else setListState('error');
         } catch (error) {
             console.error('Error fetching magazines:', error);
+            setListState('error');
         }
     };
 
@@ -1008,7 +1011,9 @@ export const AdminMagazineManage: React.FC = () => {
                             {filteredMagazines?.length === 0 ? (
                                 <div className="cm-empty">
                                     <MagazineIcon name="lc-book-open" size={32} />
-                                    <span>{magazines.length ? '검색 결과가 없어요.' : '작성된 매거진이 없어요.'}</span>
+                                    {listState === 'loading' ? <span role="status">불러오는 중…</span>
+                                        : listState === 'error' && !magazines.length ? <><span role="alert">목록을 불러오지 못했습니다.</span><button type="button" className="cm-btn is-sm" onClick={() => { setListState('loading'); void fetchMagazines(); }}>다시 시도</button></>
+                                        : <span>{magazines.length ? '검색 결과가 없어요.' : '작성된 매거진이 없어요.'}</span>}
                                 </div>
                             ) : (
                                 <div className="mg-grid">

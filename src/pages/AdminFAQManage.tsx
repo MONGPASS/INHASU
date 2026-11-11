@@ -74,6 +74,7 @@ export const AdminFAQManage: React.FC = () => {
     const [faqs, setFaqs] = useState<FAQ[]>([]);
     const [categories, setCategories] = useState<FAQCategory[]>([]);
     const [loaded, setLoaded] = useState(false);
+    const [loadFailed, setLoadFailed] = useState(false);
     const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
     const [newCategoryName, setNewCategoryName] = useState('');
     const [busy, setBusy] = useState(false);
@@ -105,7 +106,7 @@ export const AdminFAQManage: React.FC = () => {
                     order: Number(f.order ?? f.sort_order) || 0,
                 })));
                 if (Array.isArray(catData)) setCategories(catData.map((c: any) => ({ ...c, isActive: !!c.is_active, order: Number(c.order ?? c.sort_order) || 0 })));
-            } catch (e) { console.error('Failed to fetch FAQ data', e); }
+            } catch (e) { console.error('Failed to fetch FAQ data', e); setLoadFailed(true); }
             finally { setLoaded(true); }
         };
         fetchData();
@@ -363,7 +364,7 @@ export const AdminFAQManage: React.FC = () => {
         </button>
     );
 
-    const emptyFaqText = !loaded ? '불러오는 중…' : faqs.length ? '조건에 맞는 FAQ가 없어요.' : '등록된 FAQ가 없어요.';
+    const emptyFaqText = !loaded ? '불러오는 중…' : loadFailed && !faqs.length ? '목록을 불러오지 못했습니다. 새로고침해 주세요.' : faqs.length ? '조건에 맞는 FAQ가 없어요.' : '등록된 FAQ가 없어요.';
 
     return (
         <AdminLayout activePage="faq" title="FAQ 관리" actions={headerActions}>

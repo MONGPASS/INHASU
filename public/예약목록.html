@@ -215,6 +215,7 @@
 </style>
 <script src="/admin-embed.js"></script>
 <link rel="stylesheet" href="/admin-tools.css">
+<script src="/admin-dialog.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -870,7 +871,7 @@ const cloneRecord = (r, i, stamp) => {
 async function cloneSelected() {
   const picked = selectedRecords();
   if (!picked.length) return toast("복제할 예약을 선택해 주세요");
-  if (!confirm(`선택한 ${picked.length}건을 복제할까요?\n고객명과 일정은 그대로 복사되고, 고객 링크 토큰은 새로 생성됩니다.`)) return;
+  if (!await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)(`선택한 ${picked.length}건을 복제할까요?\n고객명과 일정은 그대로 복사되고, 고객 링크 토큰은 새로 생성됩니다.`)) return;
   const stamp = Date.now();
   let ok = 0, fail = 0;
   for (let i = 0; i < picked.length; i++) {
@@ -901,7 +902,7 @@ async function deleteSelected() {
   if (!picked.length) return toast("삭제할 예약을 선택해 주세요");
   const names = picked.slice(0, 5).map(r => r.name || r.id).join(", ");
   const more = picked.length > 5 ? ` 외 ${picked.length - 5}건` : "";
-  if (!confirm(`선택한 ${picked.length}건을 영구 삭제할까요?\n${names}${more}\n\n삭제 후에는 복구할 수 없습니다.`)) return;
+  if (!await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)(`선택한 ${picked.length}건을 영구 삭제할까요?\n${names}${more}\n\n삭제 후에는 복구할 수 없습니다.`)) return;
   let ok = 0, fail = 0;
   for (const r of picked) {
     try {

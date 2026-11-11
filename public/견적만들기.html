@@ -304,6 +304,7 @@
 <script src="/admin-embed.js"></script>
 <script src="/quote-editor-state.js"></script>
 <link rel="stylesheet" href="/admin-tools.css">
+<script src="/admin-dialog.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -1137,11 +1138,11 @@ function renderClonePick() {
       <small>${[period, nn, days ? `일정 ${days}일` : "", spots ? `명소 ${spots}곳` : ""].filter(Boolean).join(" · ")}</small>
     </div>`;
   }).join("");
-  box.querySelectorAll(".clone-row").forEach(el => el.onclick = () => {
+  box.querySelectorAll(".clone-row").forEach(el => el.onclick = async () => {
     const it = CLONE_LIST[+el.dataset.i];
     if (!it || !it.quote) return;
     const who = it.quote.customer || it.name || "이 고객";
-    if (ST.days && ST.days.length && !confirm(`현재 일정·명소·요금을 "${who}" 견적 내용으로 덮어씁니다.\n(고객명·날짜·인원은 그대로 유지) 계속할까요?`)) return;
+    if (ST.days && ST.days.length && !await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)(`현재 일정·명소·요금을 "${who}" 견적 내용으로 덮어씁니다.\n(고객명·날짜·인원은 그대로 유지) 계속할까요?`)) return;
     importQuoteContent(it.quote);
     fillForm(); renderAll();
     $("clonePick").style.display = "none";
@@ -1200,7 +1201,7 @@ async function runSave({ share }) {
   const q = buildQuote();
   if (!ST.customer.trim() && !ANONYMOUS_SHARE) { toast("먼저 고객명을 입력하세요"); setStep(0); $("f_customer").focus(); return; }
   if (ANONYMOUS_SHARE && !ST.customer.trim()) { ST.customer = "여행 고객"; q.customer = "여행 고객"; }
-  if (share && !confirm("이 견적을 고객에게 보낼까요?\n고객에게 견적서 도착 알림톡이 발송되고, 보낼 링크가 만들어집니다.")) return;
+  if (share && !await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)("이 견적을 고객에게 보낼까요?\n고객에게 견적서 도착 알림톡이 발송되고, 보낼 링크가 만들어집니다.")) return;
   const btn = share ? pubBtn : saveBtn;
   const others = [pubBtn, saveBtn, $("publishBtn2"), $("saveQuoteBtn2")];
   others.forEach(b => b.disabled = true);
@@ -1288,8 +1289,8 @@ async function runSave({ share }) {
   }
   } finally { release(); }
 }
-$("resetBtn").onclick = () => {
-  if (!confirm("입력한 내용을 모두 지울까요?")) return;
+$("resetBtn").onclick = async () => {
+  if (!await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)("입력한 내용을 모두 지울까요?")) return;
   localStorage.removeItem("leaders_quote");
   ST = { customer:"", phone:"", destination:"", quoteNo:"", depart:"", return_:"", pax:6, vehicle:"", flightIn:"", flightOut:"",
     manager: BASE.manager || "", paxNote:"", pickup:"", drop:"",

@@ -1295,6 +1295,7 @@ const ProductDayInfoItineraryEditor: React.FC<ProductStyleItineraryEditorProps> 
 // ─── Tab: Itinerary Templates ────────────────────────────
 const TemplatesTab: React.FC = () => {
     const [templates, setTemplates] = useState<ItineraryTemplate[]>([]);
+    const [listState, setListState] = useState<'loading' | 'ready' | 'error'>('loading');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editing, setEditing] = useState<ItineraryTemplate | null>(null);
     const [form, setForm] = useState<{ name: string; description: string; days: TemplateDay[]; documentSettings: DocumentSettings }>({
@@ -1324,8 +1325,9 @@ const TemplatesTab: React.FC = () => {
                         createdAt: t.created_at || t.createdAt
                     };
                 }));
-            }
-        } catch (e) { console.error(e); }
+                setListState('ready');
+            } else setListState('error');
+        } catch (e) { console.error(e); setListState('error'); }
     };
 
     useEffect(() => { load(); }, []);
@@ -1562,7 +1564,9 @@ const TemplatesTab: React.FC = () => {
             {templates.length === 0 ? (
                 <div className="empty">
                     <Icon name="event_note" />
-                    <p>등록된 템플릿이 없습니다</p>
+                    {listState === 'loading' ? <p role="status">템플릿을 불러오는 중…</p>
+                        : listState === 'error' ? <><p role="alert">템플릿을 불러오지 못했습니다.</p><button type="button" className="btn btn-ghost btn-sm" onClick={() => { setListState('loading'); void load(); }}>다시 시도</button></>
+                        : <p>등록된 템플릿이 없습니다</p>}
                 </div>
             ) : (
                 <div className="grid-2" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>

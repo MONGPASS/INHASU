@@ -329,6 +329,7 @@
 </style>
 <script src="/admin-embed.js"></script>
 <link rel="stylesheet" href="/admin-tools.css">
+<script src="/admin-dialog.js"></script>
 </head>
 <body>
 
@@ -627,7 +628,7 @@ $("restoreFile").onchange = async e => {
     const data = JSON.parse(await f.text());
     if (!data || data._type !== "leaders-backup") throw new Error("이 사이트의 백업 파일이 아니에요");
     const when = (data.exportedAt || "").slice(0, 10) || "날짜 미상";
-    if (!confirm(`${when} 백업으로 명소·코스·일정을 모두 교체할까요?\n지금 있는 내용을 덮어씁니다.`)) return;
+    if (!await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)(`${when} 백업으로 명소·코스·일정을 모두 교체할까요?\n지금 있는 내용을 덮어씁니다.`)) return;
     const jobs = [];
     if (data.spots) jobs.push(saveSpots(data.spots));
     if (data.spot_cats) jobs.push(saveSpotCats(data.spot_cats));
@@ -968,7 +969,7 @@ function openDrawer(id) {
   $("drawer").querySelectorAll(".st-btn").forEach(b => b.onclick = () => updateStatus(id, b.dataset.s));
   const acceptBtn = $("acceptBtn");
   if (acceptBtn) acceptBtn.onclick = async () => {
-    if (!confirm(`${r.name || "고객"}님의 예약 진행을 기록할까요?\n견적에 예약금이 있으면 고객 페이지에 예약금·계좌 안내가 바로 표시됩니다.`)) return;
+    if (!await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)(`${r.name || "고객"}님의 예약 진행을 기록할까요?\n견적에 예약금이 있으면 고객 페이지에 예약금·계좌 안내가 바로 표시됩니다.`)) return;
     const prevDecision = r.decision || null, prevBooking = r.booking || null;
     const nowIso = new Date().toISOString();
     const decision = { status:"accepted", acceptedAt:nowIso, source:"admin" };
@@ -1030,7 +1031,7 @@ function openDrawer(id) {
   };
   const rotateLinkBtn = $("rotateLinkBtn");
   if (rotateLinkBtn) rotateLinkBtn.onclick = async () => {
-    if (!confirm("기존 고객 링크는 즉시 사용할 수 없게 됩니다. 새 링크를 발급할까요?")) return;
+    if (!await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)("기존 고객 링크는 즉시 사용할 수 없게 됩니다. 새 링크를 발급할까요?")) return;
     const saved = await persist(id, { rotateCustomerLink:true });
     if (saved.ok && saved.token) { r.token = saved.token; render(); openDrawer(id); toast("새 고객 링크를 발급했어요"); }
     else toast("⚠ 고객 링크 재발급 실패: " + (saved.error || "응답 오류"));
@@ -1113,7 +1114,7 @@ async function saveMemo(id, m) {
 
 /* ═══════════════ 문의 삭제 ═══════════════ */
 async function deleteRequest(r) {
-  if (!confirm(`"${r.name || "-"}" 님의 문의를 삭제할까요?\n발행된 견적서 링크도 함께 사라지며, 되돌릴 수 없습니다.`)) return;
+  if (!await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)(`"${r.name || "-"}" 님의 문의를 삭제할까요?\n발행된 견적서 링크도 함께 사라지며, 되돌릴 수 없습니다.`)) return;
   if (mode === "local") {
     RECORDS = RECORDS.filter(x => String(x.id) !== String(r.id));
     localStorage.setItem("leaders_requests", JSON.stringify(RECORDS));
