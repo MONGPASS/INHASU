@@ -7,7 +7,7 @@ import { promoItemOf, themeOf } from '../components/promotions/promotionsData';
 import { PROMO_THEME_KEYS, type Promotion, type PromoThemeKey } from '../components/promotions/promotionTypes';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
-import { adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface ProductLite {
     id: string;
@@ -164,8 +164,8 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
         setDirty(true);
     };
 
-    const close = () => {
-        if (dirty && !confirm('저장하지 않은 내용이 있습니다. 닫으시겠습니까?')) return;
+    const close = async () => {
+        if (dirty && !await adminConfirm('저장하지 않은 내용이 있습니다. 닫으시겠습니까?')) return;
         onClose();
     };
 
@@ -576,7 +576,7 @@ export const AdminPromotionManage: React.FC = () => {
     };
 
     const remove = async (promotion: Promotion) => {
-        if (!confirm(`「${promotion.title}」 기획전을 삭제하시겠습니까?\n삭제하면 되돌릴 수 없습니다. (상품 자체는 삭제되지 않습니다.)`)) return;
+        if (!await adminConfirm(`「${promotion.title}」 기획전을 삭제하시겠습니까?\n삭제하면 되돌릴 수 없습니다. (상품 자체는 삭제되지 않습니다.)`)) return;
         try {
             await api.promotions.delete(promotion.id);
             setPromos((rows) => rows.filter((p) => p.id !== promotion.id));

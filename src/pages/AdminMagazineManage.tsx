@@ -12,7 +12,7 @@ import { useBlocker } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft, removeMagazineDraft, type MagazineDraftScope, type MagazineDraftRead, type MagazineDraftResult, type MagazineDraftForm } from '../utils/adminMagazineDraft';
 import './AdminContentManage.css';
-import { adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 /** Lucide outlines (ISC) that DashboardIcon does not carry. Keys keep the `lc-` prefix for the icon-subset check. */
 const MAGAZINE_ICONS = {
@@ -714,7 +714,7 @@ export const AdminMagazineManage: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('정말 삭제하시겠습니까?')) {
+        if (await adminConfirm('정말 삭제하시겠습니까?')) {
             try {
                 await api.magazines.delete(id);
                 fetchMagazines();
@@ -737,7 +737,7 @@ export const AdminMagazineManage: React.FC = () => {
             if (editingMagazine) {
                 const latest = magazineFromApi(await api.magazines.get(editingMagazine.id));
                 if (!mountedRef.current || sessionRef.current !== session || accountRef.current !== scope.userId) return;
-                if (magazineDraftFingerprint(latest) !== magazineDraftFingerprint(baselineRef.current) && !window.confirm('편집 중 서버의 매거진 원본이 변경되었습니다. 현재 작성 내용으로 덮어쓸까요?')) return;
+                if (magazineDraftFingerprint(latest) !== magazineDraftFingerprint(baselineRef.current) && !await adminConfirm('편집 중 서버의 매거진 원본이 변경되었습니다. 현재 작성 내용으로 덮어쓸까요?')) return;
             }
             const content = editorContent;
 
@@ -829,7 +829,7 @@ export const AdminMagazineManage: React.FC = () => {
             adminNotify('이 카테고리에 매거진이 있어 삭제할 수 없습니다.');
             return;
         }
-        if (confirm('이 카테고리를 삭제하시겠습니까?')) {
+        if (await adminConfirm('이 카테고리를 삭제하시겠습니까?')) {
             await api.categories.delete(cat.id);
             fetchCategories();
         }
@@ -926,7 +926,7 @@ export const AdminMagazineManage: React.FC = () => {
                 <strong>이 브라우저에 관리자별 매거진 초안을 자동 보관합니다.</strong><p style={{ margin: '4px 0', fontSize: 13 }}>자동 보관은 사이트 발행·서버 임시 저장과 별도입니다. {draftSavedAt ? `마지막 초안 보관: ${new Date(draftSavedAt).toLocaleString('ko-KR')}` : dirty ? '입력 내용을 보관하고 있습니다.' : '변경사항이 생기면 자동 보관합니다.'}</p>
                 {recovery.kind === 'draft' && <><p>{recovery.conflict ? '보관 후 서버 원본이 변경되었습니다. 초안을 복원하면 저장 시 현재 작성 내용이 원본을 대체합니다.' : '이 문서의 보관된 초안이 있습니다.'} 보관 시각: {new Date(recovery.draft.savedAt).toLocaleString('ko-KR')}</p><button type="button" className="btn btn-ink btn-sm" onClick={() => { if (saveLock.current || uploadLock.current) return; const restored = recovery.draft; pendingRef.current = false; revisionRef.current = restored.revision; storedRef.current = magazineDraftFingerprint(restored.form); setFormData(structuredClone(restored.form)); setEditorContent(restored.form.content || ''); setDraftSavedAt(restored.savedAt); setRecovery({ kind: 'empty' }); }}>초안 복원</button>{' '}</>}
                 {recovery.kind === 'error' && <p role="alert">{recovery.error}</p>}
-                {(recovery.kind !== 'empty' || dirty || draftSavedAt) && <button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading} onClick={() => { if (recovery.kind !== 'empty' || window.confirm('매거진 변경사항과 보관된 초안을 버릴까요?')) discardRecovery(); }}>초안 버리기</button>}
+                {(recovery.kind !== 'empty' || dirty || draftSavedAt) && <button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading} onClick={async () => { if (recovery.kind !== 'empty' || await adminConfirm('매거진 변경사항과 보관된 초안을 버릴까요?')) discardRecovery(); }}>초안 버리기</button>}
             </div>}
 
             {activeTab === 'categories' && (

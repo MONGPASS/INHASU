@@ -9,7 +9,7 @@ import type { QuoteRequest } from '../components/admin/QuoteModals';
 import { QuoteDetailModal, ConvertSelectionModal } from '../components/admin/QuoteModals';
 import { won } from '../components/desktop-primitives/mwTokens';
 import { legacyQuoteCustomerHref } from '../utils/customerWorkspaceRoutes';
-import { adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 
 
@@ -190,7 +190,7 @@ export const AdminQuoteManage: React.FC = () => {
             setIsConvertModalOpen(false);
             setSelectedRequest(null);
 
-            if (confirm(`예약 ${reservationNumber} 생성 완료!\n고객에게 확인 이메일을 발송했습니다.\n[예약 관리] 페이지로 이동하시겠습니까?`)) {
+            if (await adminConfirm(`예약 ${reservationNumber} 생성 완료!\n고객에게 확인 이메일을 발송했습니다.\n[예약 관리] 페이지로 이동하시겠습니까?`)) {
                 navigate('/admin/reservations');
             }
 

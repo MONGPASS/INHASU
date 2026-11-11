@@ -13,6 +13,7 @@ import {
     Ico, V7Menu, V7Steps, V7StepHead, V7Styles, V7Toast, V7_INK, V7_MUTED, checkBox, chip, dchip, inkBtn, ghostBtn, menuAt, pill, sel,
     type PillTone, type V7MenuItem, type V7MenuState,
 } from './v7Ui';
+import { adminConfirm } from '../ui/adminFeedback';
 
 type Css = React.CSSProperties;
 export type V7OpenAction = 'edit-itinerary' | 'contract' | 'documents' | 'payments' | 'guide' | 'vehicle' | 'stay' | 'notes' | 'history';
@@ -110,7 +111,7 @@ export function ReservationListV7(p: ReservationListV7Props) {
             setItems(prev => new Map(prev).set(saved.key, saved));
             flash(done);
         } catch (e: any) {
-            if (mounted.current && !allowGuideConflict && confirmGuideConflict(e)) retry = true;
+            if (mounted.current && !allowGuideConflict && await confirmGuideConflict(e)) retry = true;
             else if (mounted.current) { flash(e?.message || '배정을 저장하지 못했습니다.'); void loadAssignments(); }
         } finally {
             if (mounted.current) setBusy('');
@@ -141,9 +142,9 @@ export function ReservationListV7(p: ReservationListV7Props) {
     };
     const statusMenu = (e: React.MouseEvent, row: V7Row) => {
         if (row.source.type === 'quote_booking') { openMenu(e, '진행상황 변경', [{ key: 'open', label: '예약관리 편집기에서 변경', sub: '견적 예약의 상태는 원래 편집기에서 바꿉니다', subTone: 'muted', onPick: () => p.onOpen(row.source, 'payments') }], true); return; }
-        openMenu(e, '진행상황 변경', PRODUCT_STATUS_OPTIONS.map(o => ({ key: o.value, label: o.label, on: row.source.status === o.value, onPick: () => {
+        openMenu(e, '진행상황 변경', PRODUCT_STATUS_OPTIONS.map(o => ({ key: o.value, label: o.label, on: row.source.status === o.value, onPick: async () => {
             if (o.value === row.source.status) return;
-            if (o.value === 'cancelled' && !window.confirm(`${row.source.customerName} 예약을 취소 상태로 바꿀까요? 고객에게 취소 알림이 갑니다.`)) return;
+            if (o.value === 'cancelled' && !await adminConfirm(`${row.source.customerName} 예약을 취소 상태로 바꿀까요? 고객에게 취소 알림이 갑니다.`)) return;
             void p.onStatus(row.source, o.value).then(() => flash(`${row.source.customerName} · ${o.label}(으)로 변경했어요`));
         } })));
     };
@@ -152,7 +153,7 @@ export function ReservationListV7(p: ReservationListV7Props) {
         const paid = field === 'deposit' ? row.depositPaid : row.balancePaid, labels = field === 'deposit' ? ['입금 완료', '미입금'] : ['완납', '미수'];
         openMenu(e, field === 'deposit' ? '예약금' : '잔금', labels.map((label, i) => ({ key: label, label, on: paid === (i === 0), onPick: async () => {
             if (paid === (i === 0)) return;
-            if (field === 'deposit' && i === 0 && !window.confirm(`${row.source.customerName} 예약금 ${v7Won(row.source.deposit)} 입금을 확인할까요?${row.source.status === 'pending_payment' ? '\n예약이 확정되고 고객에게 입금 확인 메일이 발송됩니다.' : ''}`)) return;
+            if (field === 'deposit' && i === 0 && !await adminConfirm(`${row.source.customerName} 예약금 ${v7Won(row.source.deposit)} 입금을 확인할까요?${row.source.status === 'pending_payment' ? '\n예약이 확정되고 고객에게 입금 확인 메일이 발송됩니다.' : ''}`)) return;
             if (await p.onPayment(row.source, field, i === 0)) flash(`${row.source.customerName} · ${field === 'deposit' ? '예약금' : '잔금'} ${label}(으)로 변경했어요`);
         } })));
     };
@@ -175,19 +176,19 @@ export function ReservationListV7(p: ReservationListV7Props) {
     const bulkStatus = (e: React.MouseEvent) => openMenu(e, '선택한 예약 진행상황 변경', PRODUCT_STATUS_OPTIONS.map(o => ({ key: o.value, label: o.label, onPick: async () => {
         const targets = selected.filter(r => r.source.type === 'product' && r.source.status !== o.value), skipped = selected.filter(r => r.source.type === 'quote_booking').length;
         if (!targets.length) { flash(skipped ? '견적 예약은 예약관리 편집기에서 상태를 바꿉니다' : '바꿀 예약이 없어요'); return; }
-        if (!window.confirm(`선택한 상품 예약 ${targets.length}건을 '${o.label}'(으)로 바꿀까요?${skipped ? `\n견적 예약 ${skipped}건은 제외됩니다.` : ''}`)) return;
+        if (!await adminConfirm(`선택한 상품 예약 ${targets.length}건을 '${o.label}'(으)로 바꿀까요?${skipped ? `\n견적 예약 ${skipped}건은 제외됩니다.` : ''}`)) return;
         for (const row of targets) await p.onStatus(row.source, o.value);
         setSel(new Set()); flash(`${targets.length}건을 ${o.label}(으)로 옮겼어요`);
     } })));
     const bulkPayment = (e: React.MouseEvent) => openMenu(e, '선택한 예약 입금 확인', (['deposit', 'final'] as const).map(field => ({ key: field, label: field === 'deposit' ? '예약금 입금 확인' : '잔금 완납 확인', onPick: async () => {
         const targets = selected.filter(r => r.source.type === 'product' && !(field === 'deposit' ? r.depositPaid : r.balancePaid)), skipped = selected.filter(r => r.source.type === 'quote_booking').length;
         if (!targets.length) { flash(skipped ? '견적 예약은 예약관리 편집기에서 입금을 확인합니다' : '확인할 미입금 예약이 없어요'); return; }
-        if (!window.confirm(`선택한 상품 예약 ${targets.length}건의 ${field === 'deposit' ? '예약금 입금' : '잔금 완납'}을 확인할까요?${field === 'deposit' ? '\n입금 대기 예약은 확정되고 고객에게 입금 확인 메일이 발송됩니다.' : ''}${skipped ? `\n견적 예약 ${skipped}건은 제외됩니다.` : ''}`)) return;
+        if (!await adminConfirm(`선택한 상품 예약 ${targets.length}건의 ${field === 'deposit' ? '예약금 입금' : '잔금 완납'}을 확인할까요?${field === 'deposit' ? '\n입금 대기 예약은 확정되고 고객에게 입금 확인 메일이 발송됩니다.' : ''}${skipped ? `\n견적 예약 ${skipped}건은 제외됩니다.` : ''}`)) return;
         let ok = 0; for (const row of targets) if (await p.onPayment(row.source, field, true)) ok += 1;
         flash(`${ok}건을 ${field === 'deposit' ? '예약금 입금 완료' : '완납'}로 처리했어요`);
     } })));
     const bulkNotice = (e: React.MouseEvent) => openMenu(e, '선택한 고객에게 안내 알림', NOTICE_KINDS.map(n => ({ key: n.kind, label: n.label, onPick: async () => {
-        if (!window.confirm(`선택한 ${selected.length}명에게 '${n.label}' 카카오 알림을 보낼까요?\n준비되지 않은 예약은 보내지 않고 건너뜁니다.`)) return;
+        if (!await adminConfirm(`선택한 ${selected.length}명에게 '${n.label}' 카카오 알림을 보낼까요?\n준비되지 않은 예약은 보내지 않고 건너뜁니다.`)) return;
         let accepted = 0, skipped = 0, failed = 0;
         for (const row of selected) {
             const source = row.source.type === 'quote_booking' ? 'quote_booking' : 'product', path = `/api/admin/customer-notices/${source}/${encodeURIComponent(row.source.id)}`;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
-import { adminNotify } from './ui/adminFeedback';
+import { adminConfirm, adminNotify } from './ui/adminFeedback';
 
 /**
  * Editor for the site-wide "tour common FAQ" — the FAQ block displayed at
@@ -61,8 +61,8 @@ export const TourFAQEditor: React.FC = () => {
             return next;
         });
     };
-    const removeRow = (idx: number) => {
-        if (!confirm('이 질문을 삭제하시겠습니까?')) return;
+    const removeRow = async (idx: number) => {
+        if (!await adminConfirm('이 질문을 삭제하시겠습니까?')) return;
         setRows((rs) => rs.filter((_, i) => i !== idx));
     };
     const addRow = () => {
@@ -74,7 +74,7 @@ export const TourFAQEditor: React.FC = () => {
             .map((r) => ({ id: r.id, question: r.question.trim(), answer: r.answer.trim() }))
             .filter((r) => r.question || r.answer);
         if (clean.length === 0) {
-            if (!confirm('등록된 FAQ가 없습니다. 빈 상태로 저장하시면 상품 상세 페이지에 기본 FAQ가 표시됩니다. 계속하시겠습니까?')) return;
+            if (!await adminConfirm('등록된 FAQ가 없습니다. 빈 상태로 저장하시면 상품 상세 페이지에 기본 FAQ가 표시됩니다. 계속하시겠습니까?')) return;
         }
         setSaving(true);
         try {

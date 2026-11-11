@@ -1,5 +1,6 @@
 import type { V7MenuItem } from './v7Ui';
 import { guideOverlaps, overlapLabel } from '../../../utils/assignmentAvailability';
+import { adminConfirm } from '../ui/adminFeedback';
 
 interface PickableGuide { id: string; name: string }
 
@@ -18,13 +19,13 @@ export function guideMenuItems<G extends PickableGuide>(guides: G[], bookings: a
         key: guide.id, label: guide.name, on: !!selectedName && selectedName === guide.name,
         sub: overlap ? `일정 겹침 · ${overlapLabel(overlap.booking)}` : handover ? `같은 날 교대 · ${overlapLabel(handover.booking)}` : '이 일정에 배정 가능',
         subTone: overlap ? 'warn' as const : handover ? 'muted' as const : 'ok' as const,
-        onPick: () => {
-            if (overlap && !window.confirm(`${guide.name} 가이드는 같은 기간에 ${overlapLabel(overlap.booking)} 일정이 있습니다. 그래도 배정할까요?`)) return;
+        onPick: async () => {
+            if (overlap && !await adminConfirm(`${guide.name} 가이드는 같은 기간에 ${overlapLabel(overlap.booking)} 일정이 있습니다. 그래도 배정할까요?`)) return;
             pick(guide, !!overlap);
         },
     }));
 }
 
 /** 서버가 중복으로 거절했을 때(다른 화면에서 방금 배정한 경우 등) 확인 후 다시 저장할지 묻는다. */
-export const confirmGuideConflict = (error: any) => error?.code === 'guide_conflict' && typeof window !== 'undefined'
-    && window.confirm(`${error.message || '같은 기간에 다른 예약이 있는 가이드입니다.'}\n그래도 배정할까요?`);
+export const confirmGuideConflict = async (error: any) => error?.code === 'guide_conflict' && typeof window !== 'undefined'
+    && await adminConfirm(`${error.message || '같은 기간에 다른 예약이 있는 가이드입니다.'}\n그래도 배정할까요?`);

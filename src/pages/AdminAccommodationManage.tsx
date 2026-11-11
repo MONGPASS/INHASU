@@ -3,7 +3,7 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
-import { adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface Accommodation {
     id: string;
@@ -148,8 +148,8 @@ export const AdminAccommodationManage: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id: string) => {
-        if (confirm('정말 삭제하시겠습니까?')) {
+    const handleDelete = async (id: string) => {
+        if (await adminConfirm('정말 삭제하시겠습니까?')) {
             saveAccommodations(accommodations.filter(a => a.id !== id));
         }
     };

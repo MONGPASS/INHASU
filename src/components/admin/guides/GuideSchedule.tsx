@@ -16,7 +16,7 @@ import {
     guideItineraryExtra, guideItineraryHref, shiftMonth, timelineWindow, vehicleClash, weekLanes, type AssignState, type ScheduleBooking, type TimelineRange,
 } from './guideScheduleModel';
 import './GuideSchedule.css';
-import { adminNotify } from '../ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../ui/adminFeedback';
 
 type Item = V7AssignmentItem & ScheduleBooking & {
     customerName?: string; leadName?: string; travelers?: number; productName?: string; reservationNumber?: string; createdAt?: string;
@@ -190,7 +190,7 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
             flash(guide ? `${nameOf(booking)} · ${label} 배정했어요` : `${nameOf(booking)} · 가이드 배정을 해제했어요`);
         } catch (error) {
             const e = error as { message?: string };
-            if (mounted.current && !confirmed && confirmGuideConflict(e)) retry = true;
+            if (mounted.current && !confirmed && await confirmGuideConflict(e)) retry = true;
             else if (mounted.current) { flash(e?.message || '배정을 저장하지 못했습니다.'); void load(); }
         } finally { if (mounted.current) setSavingKey(''); }
         if (retry) return assign(booking, guide, label, true);
@@ -198,16 +198,16 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
     // 가이드 값: 등록 가이드면 등록 정보를 복사하고, 예약에만 있는 이름이면 그 예약의 가이드 정보를 그대로 쓴다.
     const guideValue = (row: Row, booking: Item): AssignmentGuide => row.resource ? selectResourceGuide(booking.assignment?.guide, row.resource)
         : { ...(row.bookings.find(b => hasGuide(b))?.assignment?.guide || { name: row.guide.name }) };
-    const assignRow = (booking: Item, row: Row) => {
+    const assignRow = async (booking: Item, row: Row) => {
         const overlap = guideOverlaps(active, row.guide, booking).find(x => x.kind === 'overlap');
-        if (overlap && !window.confirm(`${row.guide.name} 가이드는 같은 기간에 ${overlapLabel(overlap.booking)} 일정이 있습니다. 그래도 배정할까요?`)) return;
+        if (overlap && !await adminConfirm(`${row.guide.name} 가이드는 같은 기간에 ${overlapLabel(overlap.booking)} 일정이 있습니다. 그래도 배정할까요?`)) return;
         void assign(booking, guideValue(row, booking), row.guide.name, !!overlap);
     };
     const saveVehicle = async (booking: Item, vehicle: RegisteredVehicle | null) => {
         if (savingKey) return;
         if (vehicle) {
             const clash = vehicleClash(active, vehicle.name, booking);
-            if (clash && !window.confirm(`${vehicle.name} 차량은 같은 기간에 ${overlapLabel(clash)} 일정에 배정돼 있습니다. 그래도 배정할까요?`)) return;
+            if (clash && !await adminConfirm(`${vehicle.name} 차량은 같은 기간에 ${overlapLabel(clash)} 일정에 배정돼 있습니다. 그래도 배정할까요?`)) return;
         }
         setPop(null); setSavingKey(booking.key);
         try {

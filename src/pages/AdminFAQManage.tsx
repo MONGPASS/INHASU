@@ -4,7 +4,7 @@ import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import { TourFAQEditor } from '../components/admin/TourFAQEditor';
 import { api } from '../lib/api';
 import './AdminContentManage.css';
-import { adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface FAQ {
     id: string;
@@ -194,7 +194,7 @@ export const AdminFAQManage: React.FC = () => {
 
     // Delete FAQ
     const handleDeleteFAQ = async (id: string) => {
-        if (confirm('이 FAQ를 삭제하시겠습니까?')) {
+        if (await adminConfirm('이 FAQ를 삭제하시겠습니까?')) {
             try {
                 await api.faqs.delete(id);
                 setFaqs(list => list.filter(f => f.id !== id));
@@ -318,7 +318,7 @@ export const AdminFAQManage: React.FC = () => {
             adminNotify('이 카테고리에 FAQ가 있어 삭제할 수 없습니다.');
             return;
         }
-        if (confirm('이 카테고리를 삭제하시겠습니까?')) {
+        if (await adminConfirm('이 카테고리를 삭제하시겠습니까?')) {
             try {
                 await api.faqCategories.delete(id);
                 setCategories(list => list.filter(c => c.id !== id));

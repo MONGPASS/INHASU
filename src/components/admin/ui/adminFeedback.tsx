@@ -84,7 +84,8 @@ export function adminNotify(message: unknown, kind?: AdminNoticeKind): void {
 /** 공통 확인 창. 이미 열려 있으면 앞의 요청은 취소로 끝낸다. */
 export function adminConfirm(options: ConfirmOptions | string): Promise<boolean> {
     ensureHost();
-    const normalized = typeof options === 'string' ? { message: options } : options;
+    // 문구만 넘기면 ‘삭제’가 들어간 물음은 빨간 삭제 버튼으로 보여 준다.
+    const normalized = typeof options === 'string' ? { message: options, danger: /삭제/.test(options) } : options;
     return new Promise(resolve => {
         state.confirm?.resolve(false);
         state.confirm = { ...normalized, id: ++seq, resolve };

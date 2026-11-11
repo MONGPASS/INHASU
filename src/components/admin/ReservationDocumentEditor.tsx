@@ -20,7 +20,7 @@ import type { Hotel } from '../../types/hotel';
 import { documentLodgingSnapshot } from '../../utils/lodgingItinerarySnapshot';
 import { travelSpotSnapshot } from '../../utils/travelSpotSnapshot';
 import { normalizeRepresentativeSpots } from '../../../functions/lib/productItinerary';
-import { adminNotify } from './ui/adminFeedback';
+import { adminConfirm, adminNotify } from './ui/adminFeedback';
 
 export interface ReservationDocContent {
     name: string;
@@ -184,14 +184,14 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
     };
 
     // 상품의 일정·포함/불포함·가격을 편집기에 적용. auto=true 면 빈 일정일 때만 조용히 적용(경고·확인창 없음)
-    const applyProduct = (product: TourProduct, opts?: { auto?: boolean }) => {
+    const applyProduct = async (product: TourProduct, opts?: { auto?: boolean }) => {
         const importedDays = reservationProductDays(product);
         const isEmpty = importedDays.length === 0 || importedDays.every(day => !day.title && !day.summary && !(day.images?.length) && day.activities.length === 0);
         if (isEmpty && documentType === 'itinerary') {
             if (!opts?.auto) adminNotify('이 상품에는 등록된 일정이나 일정 사진이 없습니다. 다른 상품을 선택하거나 DAY 일정을 직접 작성해 주세요.');
             return;
         }
-        if (!opts?.auto && days.length > 0 && !window.confirm('현재 작성 중인 일정과 문서 설정을 상품 정보로 교체할까요?')) return;
+        if (!opts?.auto && days.length > 0 && !await adminConfirm('현재 작성 중인 일정과 문서 설정을 상품 정보로 교체할까요?')) return;
         autoImportRef.current = false;
         const { included, excluded } = reservationProductTerms(product);
         const defaultPricing = product.pricingOptions?.find(option => option.people === customer?.peopleCount)
@@ -331,7 +331,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
         // 빈 일정 저장 방지 — 이대로 저장되면 고객 화면에 '일정은 현재 준비 중입니다'만 떠서
         // "저장했는데 일정표가 안 나온다"로 이어진다.
         if (!templateMode && documentType === 'itinerary' && days.length === 0) {
-            const ok = window.confirm('일정(DAY)이 하나도 없습니다.\n이대로 저장하면 고객 화면에는 \'일정은 현재 준비 중입니다\'로 표시됩니다.\n\n계속 저장할까요?\n(취소 후 좌측 \'선택 상품 적용\'을 누르면 상품 일정이 채워집니다)');
+            const ok = await adminConfirm('일정(DAY)이 하나도 없습니다.\n이대로 저장하면 고객 화면에는 \'일정은 현재 준비 중입니다\'로 표시됩니다.\n\n계속 저장할까요?\n(취소 후 좌측 \'선택 상품 적용\'을 누르면 상품 일정이 채워집니다)');
             if (!ok) return;
         }
         if (!templateMode && (tourStartDate !== undefined || tourEndDate !== undefined)) {
@@ -541,7 +541,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                                 <span className="text-[9px] font-bold text-slate-400">{day.activities.length}개 일정</span>
                                                 <button
                                                     type="button"
-                                                    onClick={(e) => { e.stopPropagation(); if (window.confirm(`DAY ${day.day}을(를) 삭제할까요?`)) removeDay(index); }}
+                                                    onClick={async (e) => { e.stopPropagation(); if (await adminConfirm(`DAY ${day.day}을(를) 삭제할까요?`)) removeDay(index); }}
                                                     title="DAY 삭제"
                                                     className="flex h-6 w-6 items-center justify-center rounded-md text-slate-300 hover:bg-red-50 hover:text-red-500"
                                                 >

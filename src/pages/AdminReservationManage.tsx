@@ -52,7 +52,7 @@ import { consumedCalendarWorkspaceSearch, readCalendarWorkspaceAction } from '..
 import '../styles/product-customer-workspace.css';
 import '../styles/customer-workspace-editor.css';
 import '../styles/reservation-itinerary-designer.css';
-import { adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 // Reservation Interface
 interface Reservation {
@@ -547,9 +547,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         window.addEventListener('beforeunload', beforeUnload); window.addEventListener('pagehide', pageHide);
         return () => { window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('pagehide', pageHide); };
     }, [workspaceIsBusy, isEditing, operationsDirty, quickAssignmentDirty, memoDraft]);
-    const closeWorkspace = () => {
+    const closeWorkspace = async () => {
         if (workspaceIsBusy()) { setNavigationNotice('처리 중인 작업이 끝난 뒤 예약 상세를 닫아 주세요.'); return; }
-        if ((isEditing || operationsDirty || quickAssignmentDirty || memoDraft.trim() || (!inlineControlRef.current && inlineDirty)) && !window.confirm('저장하지 않은 변경사항이 있습니다. 예약 상세를 닫을까요?')) return;
+        if ((isEditing || operationsDirty || quickAssignmentDirty || memoDraft.trim() || (!inlineControlRef.current && inlineDirty)) && !await adminConfirm('저장하지 않은 변경사항이 있습니다. 예약 상세를 닫을까요?')) return;
         if (inlineControlRef.current && !inlineControlRef.current.prepareLeave()) return;
         approvedWorkspaceClose.current = true;
         onClose();
@@ -676,13 +676,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (!isEditing) onUpdate(updated);
     };
 
-    const toggleDepositStatus = () => {
+    const toggleDepositStatus = async () => {
         const newStatus: 'paid' | 'unpaid' = editForm.depositStatus === 'paid' ? 'unpaid' : 'paid';
         // 계좌이체 + 입금 신고 흐름의 마지막 단계: 입금 대기 중인 예약의 예약금을 확인하면 예약이 확정된다.
         // (저장 시 handleUpdateReservation 이 상태 변경 기록·사이트 알림·입금 확인 메일을 처리한다.)
         const confirmsBooking = newStatus === 'paid' && editForm.type !== 'quote' && editForm.status === 'pending_payment';
         if (confirmsBooking && !isEditing
-            && !window.confirm('예약금 입금을 확인 처리할까요?\n예약이 「예약 확정」으로 바뀌고 고객에게 입금 확인 안내가 발송됩니다.')) {
+            && !await adminConfirm('예약금 입금을 확인 처리할까요?\n예약이 「예약 확정」으로 바뀌고 고객에게 입금 확인 안내가 발송됩니다.')) {
             return;
         }
         const updated: Reservation = { ...editForm, depositStatus: newStatus, status: confirmsBooking ? 'confirmed' : editForm.status };
@@ -729,8 +729,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         const unknownMessage = resourceNotice || periodUnknown ? '배정 일정 전체를 확인하지 못했습니다. 가이드에게 직접 확인해 주세요.' : '';
         if (!confirmed && fullPage && (overlapMessage || unknownMessage)) { setGuideConfirmation({ guide, message: [overlapMessage, unknownMessage].filter(Boolean).join('\n\n') }); return; }
         if (!confirmed && !fullPage) {
-            if (overlapMessage && !window.confirm(overlapMessage + '\n\n겹치는 일정을 확인했고 이 가이드를 배정할까요?')) return;
-            if (unknownMessage && !window.confirm(unknownMessage + '\n직접 확인한 뒤 배정할까요?')) return;
+            if (overlapMessage && !await adminConfirm(overlapMessage + '\n\n겹치는 일정을 확인했고 이 가이드를 배정할까요?')) return;
+            if (unknownMessage && !await adminConfirm(unknownMessage + '\n직접 확인한 뒤 배정할까요?')) return;
         }
         setGuideConfirmation(null);
 
@@ -947,7 +947,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (!id) return;
         const template = templatesList.find(t => t.id === id);
         if (!template) return;
-        if (reservation.documentContent && !window.confirm('저장된 고객 문서의 일정과 조건을 선택한 템플릿으로 교체할까요?')) return;
+        if (reservation.documentContent && !await adminConfirm('저장된 고객 문서의 일정과 조건을 선택한 템플릿으로 교체할까요?')) return;
         const decoded = decodeTemplateDescription(template.description || '');
         let days = template.days || [];
         if (typeof days === 'string') { try { days = JSON.parse(days); } catch { adminNotify('템플릿 일정을 읽을 수 없습니다.'); return; } }
@@ -1434,7 +1434,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             adminNotify(!reservation.email ? '고객 이메일이 없습니다.' : '일정표 템플릿을 먼저 선택해 주세요.');
             return;
         }
-        if (itineraryEmailSent && !window.confirm('이미 이메일로 접수된 일정표 안내를 다시 보낼까요?')) return;
+        if (itineraryEmailSent && !await adminConfirm('이미 이메일로 접수된 일정표 안내를 다시 보낼까요?')) return;
         deliveryLock.current = true;
         setSendingItinerary(true);
         try {
@@ -1467,7 +1467,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
             adminNotify('고객 이메일이 없습니다.');
             return;
         }
-        if (contractEmailSent && !window.confirm('이미 이메일로 접수된 계약서 안내를 다시 보낼까요?')) return;
+        if (contractEmailSent && !await adminConfirm('이미 이메일로 접수된 계약서 안내를 다시 보낼까요?')) return;
         deliveryLock.current = true;
         setSendingContract(true);
         try {
@@ -1797,9 +1797,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const orderDirty = isEditing && JSON.stringify(editForm) !== JSON.stringify(reservation);
     const resumeWorkLabel = inlineDirty ? activeDocument === 'contract' ? '여행 계약서 편집' : '일정표 편집'
         : operationsDirty ? '운영·영수증 작성' : orderDirty ? detailSection === 'pay' ? '결제 정보 수정' : '주문자 정보 수정' : '';
-    const closeQuickAssignment = () => {
+    const closeQuickAssignment = async () => {
         if (workspaceIsBusy()) return;
-        if (quickAssignmentDirty && !window.confirm('저장하지 않은 차량 정보를 버리고 닫을까요?')) return;
+        if (quickAssignmentDirty && !await adminConfirm('저장하지 않은 차량 정보를 버리고 닫을까요?')) return;
         setQuickAssignment(null); setQuickAssignmentDirty(false);
     };
     const saveQuickVehicle = async (vehicle: { type: string; phone: string; resource?: Record<string, any> }) => {
@@ -3291,7 +3291,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
     const handleDelete = async (id: string, type: string) => {
         if (type === 'quote_booking') return;
-        if (!window.confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+        if (!await adminConfirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
 
         try {
             if (type === 'quote') {

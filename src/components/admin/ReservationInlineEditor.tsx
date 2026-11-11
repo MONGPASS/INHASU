@@ -9,6 +9,7 @@ import { QuoteSpotSelector, toggleRepresentativeSpot } from './QuoteSpotSelector
 import { ReservationDraftPreview } from './ReservationDraftPreview';
 import { DashboardIcon } from './dashboard/DashboardIcon';
 import type { ReservationPreviewContext } from '../../utils/reservationDraftPreview';
+import { adminConfirm } from './ui/adminFeedback';
 
 export interface ReservationInlineEditorControl {
     prepareLeave: (reason?: 'close' | 'refresh') => boolean;
@@ -356,7 +357,7 @@ export function ReservationInlineEditor(p: Props) {
         return { ...current, highlights: spots };
     });
     const removeSpot = (name: string) => edit(current => ({ ...current, highlights: (current.highlights || []).filter(spot => spot.name !== name) }));
-    const clearSpots = () => { if (window.confirm('선택한 대표 명소를 모두 해제할까요? 저장 전에는 초안 버리기로 되돌릴 수 있습니다.')) edit(current => ({ ...current, highlights: [] })); };
+    const clearSpots = async () => { if (await adminConfirm('선택한 대표 명소를 모두 해제할까요? 저장 전에는 초안 버리기로 되돌릴 수 있습니다.')) edit(current => ({ ...current, highlights: [] })); };
     const addDay = () => edit(current => ({ ...current, days: [...current.days, { day: current.days.length + 1, date: '', dateMode: 'manual', title: '', items: [], activities: [], meals: {}, accommodation: null }] }));
     const addPhotos = async (dayIndex: number, activityIndex: number | null, files: FileList | null) => {
         if (isLocked() || !files?.length) return;
@@ -381,7 +382,7 @@ export function ReservationInlineEditor(p: Props) {
         if (currentDates.endDate && currentDates.endDate < currentDates.startDate) { revealTripSettings(); setNotice('여행 종료일은 시작일보다 빠를 수 없습니다.'); setNoticeFailed(true); return; }
         if (modeRef.current === 'itinerary' && !contentRef.current.days.length) { setNotice('일차를 추가하고 일정을 작성해 주세요.'); setNoticeFailed(true); return; }
         if (latestSourceFingerprint.current !== baseFingerprint.current && acceptedSourceFingerprint.current !== latestSourceFingerprint.current) {
-            if (!window.confirm('편집 중 서버의 문서가 변경되었습니다. 현재 초안으로 문서를 저장할까요?')) return;
+            if (!await adminConfirm('편집 중 서버의 문서가 변경되었습니다. 현재 초안으로 문서를 저장할까요?')) return;
             acceptedSourceFingerprint.current = latestSourceFingerprint.current;
         }
         flushDraft();
@@ -470,7 +471,7 @@ export function ReservationInlineEditor(p: Props) {
                 <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}><button type="button" className="btn btn-ink btn-sm" disabled={saving || uploading || !!p.externalBusy || !!p.disabled} onClick={restoreLocalDraft}>초안 복원</button><button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading || !!p.externalBusy} onClick={discardLocalDraft}>초안 버리기</button></div>
             </> : <><strong>{invalidDraft ? '보관된 초안을 확인할 수 없습니다.' : sourceConflict ? '서버 문서가 변경되었습니다. 현재 초안은 유지됩니다.' : dirty ? '작성 중 문서를 이 브라우저에 자동 보관합니다.' : '서버에 저장된 문서를 편집합니다.'}</strong><div>{savedAt ? '마지막 초안 보관: ' + new Date(savedAt).toLocaleString('ko-KR') + ' · ' : ''}현재 관리자 계정과 이 예약에서만 복원됩니다. 문서 저장과 고객 공개·전달은 별도로 진행합니다.</div></>}
             {draftError && <div role="alert" style={{ color: '#9f4d13', marginTop: 6 }}>{draftError}<button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading || !!p.externalBusy} onClick={() => { if (invalidDraft || !dirty) discardLocalDraft(); else flushDraft(); }} style={{ marginLeft: 8 }}>{invalidDraft || !dirty ? '초안 버리기' : '다시 보관'}</button></div>}
-            {!pendingDraft && !invalidDraft && (dirty || storedDraftPending) && <button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading || !!p.externalBusy} onClick={() => { if (window.confirm('작성 중 문서 변경사항과 보관된 초안을 버리고 서버 문서로 돌아갈까요?')) discardLocalDraft(); }}>초안 버리기</button>}
+            {!pendingDraft && !invalidDraft && (dirty || storedDraftPending) && <button type="button" className="btn btn-ghost btn-sm" disabled={saving || uploading || !!p.externalBusy} onClick={async () => { if (await adminConfirm('작성 중 문서 변경사항과 보관된 초안을 버리고 서버 문서로 돌아갈까요?')) discardLocalDraft(); }}>초안 버리기</button>}
         </div>
         <div className="ri-editor-tools"><div className="ri-modes" aria-label="문서 편집 종류"><button type="button" className={activeMode === 'itinerary' ? 'is-selected' : ''} aria-pressed={activeMode === 'itinerary'} disabled={locked} onClick={() => changeMode('itinerary')}>확정 일정표</button><button type="button" className={activeMode === 'contract' ? 'is-selected' : ''} aria-pressed={activeMode === 'contract'} disabled={locked} onClick={() => changeMode('contract')}>여행 계약서</button><span>{dirty ? '저장하지 않은 변경사항' : '저장된 문서 기준'}</span></div>
         {p.externalActions && activeMode === 'itinerary' && <nav className="ri-day-navigation" aria-label="일정 편집 바로가기">

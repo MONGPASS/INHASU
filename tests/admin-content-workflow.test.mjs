@@ -18,7 +18,7 @@ const result = await build({ stdin: { contents: `
             : path === 'react-router-dom' ? `export const useBlocker=predicate=>{globalThis.h.predicate=predicate;return globalThis.h.blocker};`
             : path === 'AdminLayout' ? `export const AdminLayout='layout';`
             : path === 'Icon' ? `export const Icon='icon';`
-            : path === 'adminFeedback' ? `export const adminNotify=()=>{};export const adminConfirm=async()=>true;`
+            : path === 'adminFeedback' ? `export const adminNotify=()=>{};export const adminConfirm=async m=>(typeof window!=='undefined'&&window.confirm?!!window.confirm(typeof m==='string'?m:m.message):true);`
             : path === 'api' ? `export const api=new Proxy({}, {get:(_,key)=>globalThis.adapters.api[key]});`
             : `export const uploadImage=(...args)=>globalThis.adapters.upload(...args);` }));
     } }],
@@ -102,7 +102,7 @@ test('되돌리기는 서버 호출 없이 마지막으로 불러온 내용으�
     const h = app.mount(app.AdminBannerManage); await tick(); h.render();
     find(h.tree, n => n.type === 'textarea' && n.props.value === '첫 배너').props.onChange({ target: { value: '되돌릴 문구' } }); h.render();
     app.context.window.confirm = () => true;
-    find(h.tree, n => n.type === 'button' && n.props.className === 'hm-revert').props.onClick(); h.render();
+    find(h.tree, n => n.type === 'button' && n.props.className === 'hm-revert').props.onClick(); await tick(); h.render();
     assert.equal(saves, 0); assert.equal(readBusy(h), false);
     assert.ok(nodes(h.tree).some(n => n.type === 'textarea' && n.props.value === '첫 배너'));
     assert.equal(saveButton(h.tree).props.disabled, true);

@@ -14,7 +14,7 @@ import { travelSpotSnapshot } from '../utils/travelSpotSnapshot';
 import mongoliaHero from '../assets/login_bg_3.jpg';
 import { DOC_BLUE, DOC_NAVY } from '../components/document/TripDocParts';
 import { won } from '../components/desktop-primitives/mwTokens';
-import { adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 // ─── Types ───────────────────────────────────────────────
 export type ActivityType = 'pickup' | 'transport' | 'meal' | 'sightseeing' | 'activity' | 'checkin' | 'free' | 'other';
@@ -1521,7 +1521,7 @@ const TemplatesTab: React.FC = () => {
     };
 
     const handleEdit = (t: ItineraryTemplate) => { setEditing(t); setForm({ name: t.name, description: t.description, days: t.days, documentSettings: mergeDocumentSettings(t.documentSettings) }); setEditorMode('itinerary'); setIsModalOpen(true); };
-    const handleDelete = async (id: string) => { if (!confirm('삭제하시겠습니까?')) return; try { await api.itineraryTemplates.delete(id); await load(); } catch (e: any) { adminNotify('삭제 실패'); } };
+    const handleDelete = async (id: string) => { if (!await adminConfirm('삭제하시겠습니까?')) return; try { await api.itineraryTemplates.delete(id); await load(); } catch (e: any) { adminNotify('삭제 실패'); } };
     const handleDuplicate = (t: ItineraryTemplate) => {
         setEditing(null);
         setForm({
@@ -1534,9 +1534,9 @@ const TemplatesTab: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const closeEditor = () => {
+    const closeEditor = async () => {
         if (form.name || form.days.length > 0) {
-            if (!confirm('편집 중인 내용이 사라집니다. 닫으시겠습니까?')) return;
+            if (!await adminConfirm('편집 중인 내용이 사라집니다. 닫으시겠습니까?')) return;
         }
         setIsModalOpen(false); resetForm();
     };
@@ -1695,7 +1695,7 @@ const GuidesTab: React.FC = () => {
         catch (e: any) { adminNotify('승인 실패'); }
     };
 
-    const handleDelete = async (id: string) => { if (!confirm('삭제하시겠습니까?')) return; try { await api.tourGuides.delete(id); await load(); } catch { adminNotify('삭제 실패'); } };
+    const handleDelete = async (id: string) => { if (!await adminConfirm('삭제하시겠습니까?')) return; try { await api.tourGuides.delete(id); await load(); } catch { adminNotify('삭제 실패'); } };
 
     const pendingCount = guides.filter(g => g.status === 'pending').length;
 
@@ -1813,7 +1813,7 @@ const AccommodationsTab: React.FC = () => {
         } catch (e: any) { adminNotify('저장 실패: ' + e.message); }
     };
 
-    const handleDelete = async (id: string) => { if (!confirm('삭제하시겠습니까?')) return; try { await api.accommodations.delete(id); await load(); } catch { adminNotify('삭제 실패'); } };
+    const handleDelete = async (id: string) => { if (!await adminConfirm('삭제하시겠습니까?')) return; try { await api.accommodations.delete(id); await load(); } catch { adminNotify('삭제 실패'); } };
 
     return (
         <div>

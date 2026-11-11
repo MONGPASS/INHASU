@@ -73,3 +73,18 @@ test('휴대폰에서 목록 표는 카드로 바뀐다', () => {
     const list = read('src/components/admin/v7/ReservationListV7.tsx');
     for (const name of ['check', 'cust', 'period', 'people', 'region', 'assign', 'pay', 'status']) assert.ok(list.includes('v7-c-' + name), name);
 });
+
+test('삭제·변경 확인은 공통 확인 창을 쓰고, 브라우저 확인창은 나가기 보호에만 남긴다', () => {
+    const walk = (dir) => readdirSync(new URL(dir, root), { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(join(dir, e.name)) : /\.tsx?$/.test(e.name) ? [join(dir, e.name)] : []);
+    const files = [...walk('src/components/admin'), ...readdirSync(new URL('src/pages', root)).filter((n) => /^Admin.*\.tsx$/.test(n)).map((n) => join('src/pages', n)), 'src/hooks/useAdminContentGuard.ts'];
+    let native = 0, shared = 0;
+    for (const file of files) {
+        const source = read(file.replace(/\\/g, '/'));
+        assert.doesNotMatch(source, /(^|[^.\w])confirm\(/m, `${file}: await adminConfirm()을 쓴다`);
+        native += (source.match(/window\.confirm\(/g) || []).length;
+        shared += (source.match(/await adminConfirm\(/g) || []).length;
+    }
+    assert.ok(shared >= 70, '공통 확인 창 사용 ' + shared);
+    assert.ok(native <= 13, '나가기 보호 밖에 브라우저 확인창을 늘리지 않는다: ' + native);
+});

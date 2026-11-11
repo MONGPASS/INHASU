@@ -52,7 +52,12 @@ test('배정 현황표: 달의 날짜, 이동, 줄 나누기, 중복 표시, 미
 });
 
 test('가이드 선택 메뉴: 빈 가이드 → 같은 날 교대 → 겹치는 가이드 순서, 겹침은 확인 후에만 배정', async () => {
-    const out = await build({ entryPoints: [fileURLToPath(new URL('../src/components/admin/v7/guideMenuItems.ts', import.meta.url))], bundle: true, format: 'esm', platform: 'node', write: false });
+    const out = await build({ entryPoints: [fileURLToPath(new URL('../src/components/admin/v7/guideMenuItems.ts', import.meta.url))], bundle: true, format: 'esm', platform: 'node', write: false,
+        // 공통 확인 창은 화면 부품이라, 같은 약속(Promise<boolean>)의 대역으로 바꾼다.
+        plugins: [{ name: 'feedback-stub', setup(b) {
+            b.onResolve({ filter: /\/ui\/adminFeedback$/ }, () => ({ path: 'feedback', namespace: 'stub' }));
+            b.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({ loader: 'js', contents: "export const adminConfirm=async m=>!!globalThis.window.confirm(typeof m==='string'?m:m.message);" }));
+        } }] });
     const { guideMenuItems } = await import('data:text/javascript;base64,' + Buffer.from(out.outputFiles[0].text).toString('base64'));
     const current = { id: 'now', source: 'product', startDate: '2026-12-10', endDate: '2026-12-13' };
     const bookings = [booking('busy', '2026-12-11', '2026-12-12', { id: 'g-a', name: 'Araa' }), booking('swap', '2026-12-13', '2026-12-15', { id: 'g-b', name: 'Baagii' })];
@@ -63,7 +68,7 @@ test('가이드 선택 메뉴: 빈 가이드 → 같은 날 교대 → 겹치는
     const answers = [false, true];
     globalThis.window = { confirm: () => answers.shift() };
     try {
-        items[2].onPick(); items[2].onPick(); items[0].onPick();
+        await items[2].onPick(); await items[2].onPick(); await items[0].onPick();
     } finally { delete globalThis.window; }
     assert.deepEqual(picks, [['Araa', true], ['Zulaa', false]], '겹치는 가이드는 확인했을 때만, 확인했다는 표시와 함께 배정');
 });

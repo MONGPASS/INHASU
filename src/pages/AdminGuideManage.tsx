@@ -3,7 +3,7 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
-import { adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface Guide {
     id: string;
@@ -155,7 +155,7 @@ export const AdminGuideManage: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm('정말 삭제하시겠습니까?')) {
+        if (await adminConfirm('정말 삭제하시겠습니까?')) {
             try {
                 await api.tourGuides.delete(id);
                 await loadGuides();

@@ -7,7 +7,7 @@ import { decodeTemplateDescription, mergeDocumentSettings } from '../../pages/Ad
 import { useBlocker } from 'react-router-dom';
 import { CustomerWorkspaceOverview } from './CustomerWorkspaceOverview';
 import { legacyCustomerOverview } from '../../utils/productCustomerWorkspace';
-import { adminNotify } from './ui/adminFeedback';
+import { adminConfirm, adminNotify } from './ui/adminFeedback';
 
 export interface QuoteRequest {
     id: string;
@@ -636,7 +636,7 @@ export const QuoteDetailModal: React.FC<{
     const handlePreview = async () => {
         if (previewSaving) return;
         if (!quoteSent && !hasQuoteItinerary) {
-            const shouldEdit = window.confirm('일정표가 아직 없어 고객 화면에는 \'준비 중\'으로 표시됩니다.\n문서 편집기를 열어 일정을 만들까요?\n\n(취소를 누르면 현재 금액을 저장한 뒤 미리보기를 엽니다)');
+            const shouldEdit = await adminConfirm('일정표가 아직 없어 고객 화면에는 \'준비 중\'으로 표시됩니다.\n문서 편집기를 열어 일정을 만들까요?\n\n(취소를 누르면 현재 금액을 저장한 뒤 미리보기를 엽니다)');
             if (shouldEdit) {
                 setDocEditorOpen(true);
                 return;

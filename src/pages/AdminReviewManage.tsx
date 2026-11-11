@@ -4,7 +4,7 @@ import { uploadImage } from '../utils/upload';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import './AdminContentManage.css';
-import { adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 interface ReviewRow {
     id: string;
@@ -108,7 +108,7 @@ export const AdminReviewManage: React.FC = () => {
     }, []);
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('정말 이 후기를 삭제하시겠습니까?')) {
+        if (await adminConfirm('정말 이 후기를 삭제하시겠습니까?')) {
             setBusyId(id);
             try {
                 await api.reviews.delete(id);
