@@ -23,10 +23,11 @@
 <script src="/quote-booking-workspace.js"></script>
 <link rel="stylesheet" href="/quote-customer-inquiry.css">
 <script>if (new URLSearchParams(location.search).get("workspace") === "1") document.documentElement.classList.add("customer-inquiry-inline");</script>
+<link rel="stylesheet" href="/admin-tokens.css">
 <style>
-  :root { --accent:#06c4a0; --deep:#06c4a0; --deep2:#037a64; --soft:#edf5f2;
-    --ink:#0f2e27; --sub:#5a716b; --gray:#8aa39c; --line:#eaf0ee; --bg:#f6faf9;
-    --new:#06c4a0; --prog:#e0913a; --book:#3d7ff0; --done:#8a95a0; --hold:#cf6a5e; --up:#06c4a0; --down:#d96a5e; }
+  :root { --accent:var(--adm-accent); --deep:var(--adm-accent); --deep2:var(--adm-accent-strong); --soft:var(--adm-accent-soft);
+    --ink:var(--adm-ink); --sub:var(--adm-text-2); --gray:var(--adm-text-3); --line:var(--adm-line); --bg:var(--adm-canvas);
+    --new:var(--adm-accent); --prog:#e0913a; --book:#3d7ff0; --done:#8a95a0; --hold:#cf6a5e; --up:var(--adm-accent); --down:#d96a5e; }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:Pretendard, system-ui, "Malgun Gothic", sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
   svg { display:block; }
@@ -194,8 +195,8 @@
   .mode { position:fixed; left:246px; bottom:12px; font-size:11.5px; color:var(--gray); background:#fff; border:1px solid var(--line); border-radius:8px; padding:6px 11px; z-index:5; }
 
   /* ── Admin Dashboard v3 "Page 04 Quote Inquiries" ── 통합 관리자 디자인(민트·잉크) */
-  :root { --mint:#12b28c; --mint-strong:#0e9e7a; --mint-soft:#e6f8f1; --ink2:#1a1b1e; --t2:#4a4e55; --t3:#8a8f99; --bd:#e6e8ec; --bd2:#f1f2f4; --g50:#f7f8fa; --g100:#f1f2f4;
-    --red:#ff4f4f; --red-soft:#ffecec; --purple:#5b30e8; --purple-soft:#efebff; --green:#18a957; --green-soft:#e4f7ec; }
+  :root { --mint:var(--adm-accent); --mint-strong:var(--adm-accent-strong); --mint-soft:var(--adm-accent-soft); --ink2:var(--adm-ink); --t2:var(--adm-text-2); --t3:var(--adm-text-3); --bd:var(--adm-line); --bd2:var(--adm-line-subtle); --g50:var(--adm-gray-50); --g100:var(--adm-gray-100);
+    --red:var(--adm-danger); --red-soft:var(--adm-danger-soft); --purple:#5b30e8; --purple-soft:#efebff; --green:var(--adm-success); --green-soft:var(--adm-success-soft); }
   html.admin-embedded body { background:var(--g50); }
   html.admin-embedded .content { max-width:none; padding:24px 28px 60px; }
   html.admin-embedded .welcome { display:none; }

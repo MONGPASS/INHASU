@@ -2,7 +2,7 @@
 .la {
   --la-ink: #212124; --la-ink-mid: #4d5159; --la-ink-low: #6b7684; --la-line: #e5e8eb;
   --la-g50: #f7f8f9; --la-g100: #f2f3f6; --la-g200: #e5e8eb; --la-g400: #b0b8c1;
-  --la-mint: #12b28c; --la-mint-low: #e8faf6; --la-mint-ink: #057a61;
+  --la-mint: var(--adm-accent); --la-mint-low: #e8faf6; --la-mint-ink: var(--adm-accent-deep);
   --la-red: #ff4f4f; --la-red-low: #ffefef; --la-orange: #f08c00; --la-orange-low: #fff4e5; --la-orange-ink: #b35c00;
   --la-blue: #2f6fed; --la-blue-low: #eef4ff; --la-blue-ink: #1c5cc8; --la-paper: #fbfcfd;
   display: flex; flex-direction: column; gap: 16px; min-width: 0; color: var(--la-ink);

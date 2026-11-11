@@ -4,8 +4,8 @@
 .crp-results-caption > small { color:#7b8798; font-size:11px; }
 .crp-vehicle-list { display:grid; gap:8px; max-height:290px; overflow:auto; padding:2px; overscroll-behavior:contain; }
 .crp-vehicle-choice { display:flex; align-items:center; gap:10px; width:100%; min-width:0; padding:10px; border:1px solid #dce4eb; border-radius:10px; background:#fff; color:#203047; text-align:left; font:inherit; cursor:pointer; }
-.crp-vehicle-choice:hover { border-color:#109b87; background:#f4fbf9; }
-.crp-vehicle-choice.is-selected { border-color:#109b87; background:#e9f8f3; box-shadow:0 0 0 1px #109b87; }
+.crp-vehicle-choice:hover { border-color:var(--adm-accent-strong); background:#f4fbf9; }
+.crp-vehicle-choice.is-selected { border-color:var(--adm-accent-strong); background:#e9f8f3; box-shadow:0 0 0 1px var(--adm-accent-strong); }
 .crp-vehicle-choice > img,.crp-vehicle-placeholder { width:64px; height:48px; flex:none; object-fit:cover; border-radius:7px; background:#eaf0f4; }
 .crp-vehicle-placeholder { display:grid; place-items:center; color:#8793a3; font-size:11px; }
 .crp-vehicle-copy { display:grid; flex:1; min-width:0; gap:3px; }
@@ -13,7 +13,7 @@
 .crp-vehicle-copy > small { color:#647287; font-size:11px; overflow-wrap:anywhere; }
 .crp-vehicle-copy > b { color:#087866; font-size:11px; }
 .crp-choice-mark { flex:none; display:grid; place-items:center; width:25px; height:25px; border:1px solid #c9d6df; border-radius:50%; color:#6a7b8e; font-size:18px; line-height:1; }
-.is-selected > .crp-choice-mark { background:#109b87; border-color:#109b87; color:#fff; }
+.is-selected > .crp-choice-mark { background:var(--adm-accent-strong); border-color:var(--adm-accent-strong); color:#fff; }
 .crp-empty { margin:0; padding:20px 12px; color:#647287; font-size:12px; line-height:1.7; text-align:center; }
 .crp-clear { justify-self:start; padding:4px 0; border:0; background:transparent; color:#8f4d42; font:inherit; font-size:12px; text-decoration:underline; cursor:pointer; }
 .crp-save-summary { padding:10px 12px; border:1px solid #c9e8df; border-radius:9px; background:#effaf6; color:#196650!important; }
@@ -33,7 +33,7 @@
 .crp-picker .crp-introduction { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-top:4px; color:#738092; font-size:11px; line-height:1.5; }
 .crp-day-tabs { display:flex; gap:8px; overflow:auto; padding:2px 22px 14px; scrollbar-width:thin; }
 .crp-day-tabs > button { display:grid; gap:4px; min-width:112px; max-width:150px; flex:0 0 auto; padding:10px 12px; border:1px solid #dbe4eb; border-radius:10px; background:#fff; color:#526174; font:inherit; text-align:left; cursor:pointer; }
-.crp-day-tabs > button[aria-pressed=true] { border-color:#109b87; background:#e9f8f3; color:#087860; box-shadow:inset 0 0 0 1px #109b87; }
+.crp-day-tabs > button[aria-pressed=true] { border-color:var(--adm-accent-strong); background:#e9f8f3; color:#087860; box-shadow:inset 0 0 0 1px var(--adm-accent-strong); }
 .crp-day-tabs strong { font-size:12px; }
 .crp-day-tabs small { font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .crp-day-tabs > button:focus-visible { outline:3px solid #b8e8df; outline-offset:2px; }

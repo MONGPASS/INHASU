@@ -13,12 +13,13 @@
 <link rel="stylesheet" href="/quote-day-editor.css">
 <script src="/quote-spot-selector.js"></script>
 <link rel="stylesheet" href="/quote-spot-selector.css">
+<link rel="stylesheet" href="/admin-tokens.css">
 <style>
   :root {
-    --p:#12B28C; --pd:#0E9E7A; --pl:#E6F8F1; --pb:#A6E6D2;
+    --p:var(--adm-accent); --pd:var(--adm-accent-strong); --pl:var(--adm-accent-soft); --pb:var(--adm-accent-line);
     --accent:var(--p); --deep:var(--p); --deep2:var(--pd); --soft:var(--pl);
-    --ink:#1A1B1E; --ink2:#1A1B1E; --sub:#4A4E55; --gray:#8A8F99; --dim:#B4B8C0;
-    --line:#E6E8EC; --line2:#E6E8EC; --hair:#F1F2F4; --bg:#F7F8FA; --red:#FF4F4F;
+    --ink:var(--adm-ink); --ink2:var(--adm-ink); --sub:var(--adm-text-2); --gray:var(--adm-text-3); --dim:var(--adm-text-disabled);
+    --line:var(--adm-line); --line2:var(--adm-line); --hair:var(--adm-line-subtle); --bg:var(--adm-canvas); --red:var(--adm-danger);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Pretendard, system-ui, "Malgun Gothic", sans-serif; background: var(--bg); color: var(--ink); -webkit-font-smoothing:antialiased; }

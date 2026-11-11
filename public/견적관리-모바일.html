@@ -8,14 +8,15 @@
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231eb496'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<link rel="stylesheet" href="/admin-tokens.css">
 <style>
 /* ── Seed 디자인 토큰 (몽골리아 은하수 대시보드 디자인) ── */
 :root {
-  --brand: #1eb496;
-  --brand-hover: #35c6ac;
-  --brand-active: #189580;
-  --brand-deep: #147d68;
-  --brand-bg: #e9f8f5;
+  --brand: var(--adm-accent);
+  --brand-hover: var(--adm-accent-hover);
+  --brand-active: var(--adm-accent-strong);
+  --brand-deep: var(--adm-accent-deep);
+  --brand-bg: var(--adm-accent-soft);
   --brand-bg2: #f2fbf8;
   --brand-bg3: #eefaf6;
   --g50: #f7f8fa; --g100: #f2f3f6; --g200: #eaebee; --g300: #dcdee3; --g400: #d1d3d8;

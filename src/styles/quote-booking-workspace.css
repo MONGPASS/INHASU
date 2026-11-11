@@ -40,9 +40,9 @@
 .quote-native-tabs button{flex:none;min-height:44px;padding:11px 16px;border:0;border-radius:9px;background:transparent;color:#697586;font:650 14px/1.5 Pretendard,sans-serif;white-space:nowrap;cursor:pointer}
 .quote-native-tabs button:hover{background:#f5f7fa;color:#26374a}
 .quote-native-tabs button.active{background:#e8f7f2;color:#087960}
-.quote-native-tabs button:focus-visible{outline:2px solid #16987d;outline-offset:-2px}
+.quote-native-tabs button:focus-visible{outline:2px solid var(--adm-accent-strong);outline-offset:-2px}
 
-.native-booking-workspace{--accent:#16987d;--book:#16987d;--deep:#087960;--ink:#182b3c;--sub:#697586;--muted:#8491a2;--line:#e9edf2;--soft:#f5f7fa}
+.native-booking-workspace{--accent:var(--adm-accent-strong);--book:var(--adm-accent-strong);--deep:#087960;--ink:#182b3c;--sub:#697586;--muted:#8491a2;--line:#e9edf2;--soft:#f5f7fa}
 .native-booking-workspace body{background:#f5f7fa;font-size:14px;line-height:1.6}
 .native-booking-workspace #main>.workflow-card,.native-booking-workspace #main>.workflow-card+section{display:none}
 .native-booking-workspace body>header{position:static;max-width:1240px;margin:0 auto;padding:24px 28px 16px;border:0;background:transparent}
@@ -129,7 +129,7 @@
    Scoped to the canonical customer frame only, so the standalone 예약관리 page and the
    quote builder keep their own styles. Shared day-card rules (quote-day-editor.css) are
    overridden here rather than edited. Ids, classes and scripts are untouched. */
-.customer-booking-editor{--cbe-ink:#191f28;--cbe-text:#191f28;--cbe-sub:#4e5968;--cbe-muted:#8b95a1;--cbe-line:#e5e8eb;--cbe-hair:#f2f4f6;--cbe-soft:#f7f8fa;--cbe-canvas:#f5f6f8;--cbe-mint:#12b28c;--cbe-head:0px;--cbe-tabs:49px;--cbe-shadow:0 12px 32px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);--cbe-focus:0 0 0 3px rgba(25,31,40,.08)}
+.customer-booking-editor{--cbe-ink:#191f28;--cbe-text:#191f28;--cbe-sub:#4e5968;--cbe-muted:#8b95a1;--cbe-line:#e5e8eb;--cbe-hair:#f2f4f6;--cbe-soft:#f7f8fa;--cbe-canvas:#f5f6f8;--cbe-mint:var(--adm-accent);--cbe-head:0px;--cbe-tabs:49px;--cbe-shadow:0 12px 32px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);--cbe-focus:0 0 0 3px rgba(25,31,40,.08)}
 .customer-booking-editor body{background:var(--cbe-canvas);color:var(--cbe-text)}
 .customer-booking-editor :is(#documentsSection,#bookingInfoSection,#paymentSection,#assignmentSection,#admin-booking-history,#c_contract,#bk_memo,#g_pick,#v_pick,#lodgeWrap,#fl_inDate,#travelerWrap){scroll-margin-top:calc(var(--cbe-head) + var(--cbe-tabs) + 20px)}
 
