@@ -122,3 +122,8 @@
   .admin-app-wrapper.admin-app-wrapper :is(.picker-scrim, .cm-scrim) { grid-template-columns: minmax(0, 1fr); }
   .admin-app-wrapper.admin-app-wrapper :is(.picker, .cm-modal) { min-width: 0; }
 }
+@media (max-width: 760px) {
+  /* 고정 칸 수 격자는 휴대폰에서 두 칸까지만(화면이 옆으로 늘어나면 팝업·아래 메뉴 폭도 함께 틀어진다). */
+  .admin-app-wrapper .app :is(.grid-3, .grid-4, .grid-5, .guide-grid, .metric-grid, .accom-grid, .mag-grid, .prod-stats, .meal-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-app-wrapper .app :is(.grid-2, .grid-3, .grid-4, .grid-5, .guide-grid, .metric-grid, .accom-grid, .mag-grid, .prod-stats, .meal-grid) > * { min-width: 0; }
+}
