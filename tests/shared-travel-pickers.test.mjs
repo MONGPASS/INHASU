@@ -6,7 +6,7 @@ import { build } from 'esbuild';
 
 const names = ['HotelPickerModal', 'TouristSpotPickerModal'];
 const bundles = await Promise.all(names.map(async name => {
-    const result = await build({ entryPoints: [fileURLToPath(new URL(`../src/components/admin/${name}.tsx`, import.meta.url))], bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false,
+    const result = await build({ entryPoints: [fileURLToPath(new URL(`../src/components/admin/${name}.tsx`, import.meta.url))], bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false, loader: { '.css': 'empty' },
         plugins: [{ name: 'shared-picker-events', setup(builder) {
             builder.onResolve({ filter: /^react$|^react\/jsx-runtime$/ }, args => ({ path: args.path, namespace: 'shared-picker-test' }));
             builder.onResolve({ filter: /\/lib\/api$/ }, () => ({ path: 'api', namespace: 'shared-picker-test' }));
