@@ -1057,7 +1057,7 @@ export const AdminMagazineManage: React.FC = () => {
                         </>
                     )}
                     {viewMode === 'edit' && (
-                        <fieldset className="grid-2" disabled={editorLocked} inert={editorLocked} style={{ gridTemplateColumns: '340px 1fr', alignItems: 'start', border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+                        <fieldset className="grid-2 mg-edit-grid" disabled={editorLocked} inert={editorLocked} style={{ gridTemplateColumns: '340px 1fr', alignItems: 'start', border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                             <div className="stack" style={{ gap: 16 }}>
                                 <div className="card card-pad">
                                     <h3 className="sec-head" style={{ marginBottom: 16 }}>기본 설정</h3>
