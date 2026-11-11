@@ -104,3 +104,8 @@
 @media (prefers-reduced-motion: reduce) {
   .admin-app-wrapper :is(.admin-customer-menu-panel, .picker, .cm-modal, .drawer) { animation: none !important; }
 }
+
+/* ── 배정 화면의 고르기 창(숙소·등급·상태·가이드·차량)도 아래에서 올라오는 시트로 통일 ── */
+@media (max-width: 760px) {
+  :is(.la-pop, .gs-pop) { position: fixed !important; inset: auto 0 0 0 !important; z-index: var(--adm-z-modal) !important; width: 100% !important; max-width: none !important; max-height: 72dvh !important; box-sizing: border-box; padding-bottom: var(--adm-safe-bottom); border-radius: var(--adm-radius-lg) var(--adm-radius-lg) 0 0 !important; box-shadow: 0 -8px 28px rgba(26, 27, 30, .18), 0 0 0 100vmax var(--adm-scrim) !important; overflow-y: auto; animation: admSheetIn var(--adm-dur) var(--adm-ease); }
+}

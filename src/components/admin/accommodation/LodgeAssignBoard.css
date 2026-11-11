@@ -201,3 +201,34 @@
   .la-search { width: 100%; }
   .la-tabs button { min-width: 108px; padding: 0 12px; }
 }
+
+/* ── 휴대폰(760px 이하): 예약 머리와 숙박 줄을 카드로. 옆으로 밀지 않고 한 화면에서 고른다 ──
+   크기는 공통 변수(public/admin-tokens.css)를 쓴다. 규칙: docs/admin-design-system.md 8절 */
+@media (max-width: 760px) {
+  .la-scroll { overflow-x: visible; }
+  .la-inner { min-width: 0; }
+  .la-tour-head { grid-template-columns: 16px 30px repeat(3, minmax(0, 1fr)); gap: var(--adm-space-2) var(--adm-space-3); min-height: 0; padding: var(--adm-space-3) var(--adm-space-4); }
+  .la-tour-head > .la-name { grid-column: 3 / span 2; }
+  .la-tour-head > .la-prog { grid-column: 5; grid-row: 1; }
+  .la-tour-head > .la-meta.is-first { grid-column: 3 / -1; grid-row: 2; flex-direction: row; align-items: baseline; gap: 6px; }
+  .la-tour-head > .la-meta:nth-child(5) { grid-column: 3; grid-row: 3; }
+  .la-tour-head > .la-meta:nth-child(6) { grid-column: 4; grid-row: 3; }
+  .la-tour-head > .la-meta:nth-child(7) { grid-column: 5; grid-row: 3; }
+  .la-grid.la-grid-head { display: none; }
+  .la-grid.la-night { position: relative; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-2); min-height: 0; padding: var(--adm-space-3) var(--adm-space-4); }
+  .la-grid.la-night > :nth-child(1) { position: absolute; top: var(--adm-space-2); right: var(--adm-space-4); }
+  .la-grid.la-night > .la-date { grid-column: 1 / -1; font-weight: 700; }
+  .la-grid.la-night > .la-pax { display: none; }
+  .la-grid.la-night > .la-hotel { grid-column: 1 / -1; order: 1; }
+  .la-grid.la-night > :is(.la-area, .la-dd, .la-status, .la-memo) { order: 2; }
+  .la-grid.la-night > :is(.la-area, .la-hotel, .la-dd, .la-status, .la-memo) { width: 100%; height: var(--adm-control-h); box-sizing: border-box; font-size: var(--adm-fs-body); }
+  .la-grid.la-night > .la-memo { font-size: var(--adm-fs-input); }
+  /* 머리글 줄이 없으므로 각 칸 안에 이름표를 넣는다. */
+  .la-grid.la-night > :is(.la-area, .la-dd)::before { flex: none; color: var(--la-ink-low); font-size: var(--adm-fs-caption); font-weight: 600; }
+  .la-grid.la-night > :nth-child(4)::before { content: "지역"; }
+  .la-grid.la-night > :nth-child(6)::before { content: "등급"; }
+  .la-grid.la-night > :nth-child(7)::before { content: "방수"; }
+  .la-grid.la-night > :nth-child(8)::before { content: "구분"; }
+  .la-add-row { padding-left: var(--adm-space-4); padding-right: var(--adm-space-4); }
+  .la-toast { bottom: calc(var(--adm-tabbar-h) + var(--adm-safe-bottom) + 12px); }
+}
