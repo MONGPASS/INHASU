@@ -88,3 +88,17 @@ test('삭제·변경 확인은 공통 확인 창을 쓰고, 브라우저 확인�
     assert.ok(shared >= 70, '공통 확인 창 사용 ' + shared);
     assert.ok(native <= 13, '나가기 보호 밖에 브라우저 확인창을 늘리지 않는다: ' + native);
 });
+
+test('견적 도구는 관리자 안에서 공통 규격 CSS를 함께 읽는다', () => {
+    const tools = read('public/admin-tools.css');
+    assert.ok(tools.includes('html.admin-embedded') && tools.includes('var(--adm-primary-bg)') && tools.includes('var(--adm-control-h)'));
+    // 규칙이 시작되는 줄(‘{’가 있는 줄)은 모두 관리자 안(html.admin-embedded)으로 한정한다.
+    for (const line of tools.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => l.includes('{'))) {
+        assert.match(line.trim(), /^(html\.admin-embedded|@media)/, `관리자 안에서만 적용: ${line.trim().slice(0, 60)}`);
+    }
+    for (const tool of ['견적관리', '예약목록', '견적만들기', '코스관리', '일정관리', '명소관리', '리소스관리']) {
+        const html = read(`public/${tool}.html`);
+        const link = html.indexOf('<link rel="stylesheet" href="/admin-tools.css">');
+        assert.ok(link > html.lastIndexOf('</style>', html.indexOf('</head>')) && link < html.indexOf('</head>'), `${tool}: 자체 스타일 뒤에 공통 규격을 읽는다`);
+    }
+});

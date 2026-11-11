@@ -122,6 +122,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - **새 화면·팝업은 `docs/admin-design-system.md`의 공통 변수·공통 부품·유형별 틀(목록형·입력형·상세형·대시보드형)·업무 흐름 규칙을 따른다.** 따를 수 없으면 그 문서 7절 ‘예외 기록’에 화면·내용·이유를 남긴다. 화면이나 팝업을 더하거나 없애면 `docs/admin-screen-inventory.md`도 함께 고친다.
 - **휴대폰(760px 이하)에서는 같은 React 관리자가 앱 틀로 바뀐다**: 위 고정 바 + 아래 메뉴 5칸(홈·예약·견적·배정·전체) + 서랍 메뉴 + 아래에서 올라오는 팝업. 규칙은 `src/styles/admin-mobile.css`, 크기는 `admin-tokens.css`의 휴대폰 변수 블록 한 곳이다. 모바일 전용 화면을 따로 만들거나 화면별 CSS에 휴대폰용 버튼·입력창 크기를 적지 말 것. `AdminLayout`이 모든 화면에 서랍 메뉴(`admin-customer-menu-*` 클래스)와 `AdminMobileTabBar`를 넣는다.
 - 알림은 `adminNotify()`, 확인 창은 `await adminConfirm()`(`src/components/admin/ui/adminFeedback.tsx`)을 쓴다. 관리자 코드에 `alert()`·`confirm()`을 새로 쓰지 말 것(`tests/admin-design-tokens.test.mjs`가 검사). 화면 이동을 그 자리에서 막아야 하는 나가기 보호 13곳만 `window.confirm`을 유지한다(디자인 문서 7절).
+- 견적 도구(iframe)의 버튼·입력창·서랍·알림 모양은 `public/admin-tools.css` 한 파일이 관리자 안(`html.admin-embedded`)에서만 맞춘다. 각 문서의 `<style>`에 관리자용 모양을 따로 덧붙이지 말 것. `예약관리.html`은 아직 연결하지 않았다.
 - 적용은 단계별이다(문서 1절). 공통 변수·휴대폰 앱 틀·공통 알림까지 끝났고 확인 창 교체까지 끝났고 나머지 공통 부품·유형별 틀·필수 입력 표시·견적 도구 부품 통일은 남아 있다.
 
 ### 5.1 관리자 사용성 변경 (2026-10-19)
