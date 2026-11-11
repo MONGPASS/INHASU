@@ -1,7 +1,7 @@
 /* 고객·콘텐츠 — Admin Dashboard v3 "06-1 일반 문의 · 06-2 후기 관리 · 06-3 FAQ 관리 · 06-4 매거진 관리".
    네 화면의 본문과 모달에만 적용합니다. 디자인의 --mrt-blue 계열은 민트입니다. */
 .admin-app-wrapper :is(.cm-page, .cm-scrim) {
-  --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c;
+  --mrt-blue: var(--admin-accent, #16856f); --mrt-blue-strong: var(--admin-accent-hover, #106b59); --mrt-blue-50: var(--admin-accent-soft, #edf8f4); --text-link: var(--admin-accent, #16856f); --border-focus: var(--admin-accent, #16856f);
   --mrt-purple-soft: #e6f8f1; --mrt-purple-2: #0E9E7A;
 }
 .admin-app-wrapper .cm-page { display: flex; flex-direction: column; gap: 16px; }

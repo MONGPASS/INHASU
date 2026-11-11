@@ -1,6 +1,6 @@
 /* 상품 목록 — Admin Dashboard v3 "04-1 상품 관리 - 상품 목록". 관리자 토큰을 민트로 바꿔 이 목록에만 적용합니다. */
 .pd-list {
-  --mrt-blue: #12b28c; --mrt-blue-strong: #0E9E7A; --mrt-blue-50: #e6f8f1; --text-link: #0E9E7A; --border-focus: #12b28c;
+  --mrt-blue: var(--admin-accent, #16856f); --mrt-blue-strong: var(--admin-accent-hover, #106b59); --mrt-blue-50: var(--admin-accent-soft, #edf8f4); --text-link: var(--admin-accent, #16856f); --border-focus: var(--admin-accent, #16856f);
   display: flex; flex-direction: column; gap: 16px; min-width: 0;
 }
 .pd-list button { font: inherit; cursor: pointer; }

@@ -4,6 +4,7 @@ import { AdminSidebar } from './AdminSidebar';
 import { AdminToolbar } from './AdminToolbar';
 import '../../styles/admin-console.css';
 import '../../styles/admin-shell-v3.css';
+import '../../styles/admin-unified.css';
 
 const RAIL_KEY = 'mw-admin-side-rail';
 const readRail = () => { try { return window.localStorage.getItem(RAIL_KEY) === '1'; } catch { return false; } };

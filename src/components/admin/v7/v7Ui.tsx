@@ -6,8 +6,8 @@ import { DashboardIcon, type DashboardIconName } from '../dashboard/DashboardIco
  * 디자인 원본이 인라인 style로 그려져 있어 같은 값을 style 객체로 옮겼다.
  */
 type Css = React.CSSProperties;
-export const V7_INK = '#1A1B1E';
-export const V7_MUTED = '#868e96';
+export const V7_INK = 'var(--admin-ink, #26303f)';
+export const V7_MUTED = 'var(--admin-muted, #8692a2)';
 
 const CT: Record<string, [string, string, string, string]> = {
     red: ['#fff7f7', '#ffe8e8', '#ffc9c9', '#FF4F4F'], mint: ['#f3fdf9', '#ddf6ec', '#b2ebd6', '#0E9E7A'],
@@ -20,8 +20,8 @@ export type V7Tone = 'red' | 'mint' | 'amber' | 'blue' | 'gray' | 'solid';
 export const chip = (tone: V7Tone, dot: boolean, x?: Css): Css => {
     const T = CT[tone] || CT.gray, d = tone === 'solid' ? '#fff' : T[3];
     return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: dot ? '0 9px 0 19px' : '0 9px', boxSizing: 'border-box', borderRadius: 999, fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap',
-        background: (dot ? `radial-gradient(circle at 10px 50%, ${d} 2.6px, ${tone === 'solid' ? 'transparent' : T[2]} 3px, transparent 4.6px), ` : '') + `linear-gradient(180deg,${T[0]},${T[1]})`,
-        boxShadow: `inset 0 0 0 1px ${T[2]}` + (tone === 'solid' ? ', 0 2px 8px rgba(18,168,128,.22)' : ''), color: T[3], ...(x || {}) };
+        background: (dot ? `radial-gradient(circle at 10px 50%, ${d} 2.6px, transparent 3px), ` : '') + T[1],
+        boxShadow: `inset 0 0 0 1px ${T[2]}`, color: T[3], ...(x || {}) };
 };
 
 /** 눌러서 바꾸는 상태 버튼(점 + 그라데이션). */
@@ -30,8 +30,8 @@ export const pill = (tone: PillTone, x?: Css): Css => {
     const T = ({ red: CT.red, mint: CT.mint, gray: ['#fff', '#f4f6f8', '#dee2e6', '#495057'], amber: CT.amber, blue: CT.blue, ink: [V7_INK, V7_INK, V7_INK, '#fff'], solid: ['#2fd3a7', '#0E9E7A', '#0E9E7A', '#fff'] } as Record<PillTone, string[]>)[tone];
     const filled = tone === 'ink' || tone === 'solid', dot = filled ? '#fff' : T[3];
     return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px 0 20px', border: 0, borderRadius: 999, font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
-        background: `radial-gradient(circle at 11px 50%, ${dot} 3px, ${filled ? 'transparent' : T[2]} 3.4px, transparent 5px), linear-gradient(180deg,${T[0]},${T[1]})`,
-        boxShadow: `inset 0 0 0 1px ${T[2]}` + (tone === 'solid' ? ', 0 2px 8px rgba(18,168,128,.22)' : ''), color: T[3], ...(x || {}) };
+        background: `radial-gradient(circle at 11px 50%, ${dot} 3px, transparent 3.4px), ${T[1]}`,
+        boxShadow: `inset 0 0 0 1px ${T[2]}`, color: T[3], ...(x || {}) };
 };
 
 /** 선택 상자 모양 버튼. empty면 빨간 테두리(선택 필요). */
@@ -43,12 +43,12 @@ export const dchip = (c: string, bad: boolean, x?: Css): Css => ({ display: 'inl
     background: `radial-gradient(circle at 10px 50%, ${c} 3px, transparent 3.6px), ${bad ? '#ffecec' : '#f4f6f8'}`, boxShadow: `inset 0 0 0 1px ${bad ? '#ffc9c9' : '#e9ecef'}`, color: bad ? '#FF4F4F' : V7_INK, ...(x || {}) });
 
 export const checkBox = (on: boolean): Css => ({ width: 18, height: 18, padding: 0, borderRadius: 6, border: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: on ? 'linear-gradient(135deg,#1cc497,#0E9E7A)' : '#fff', boxShadow: on ? 'none' : 'inset 0 0 0 1.5px #ced4da' });
+    background: on ? 'var(--admin-accent, #16856f)' : '#fff', boxShadow: on ? 'none' : 'inset 0 0 0 1.5px #ced4da' });
 
-export const card: Css = { display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 18, boxShadow: '0 0 0 1px #eef0f2', scrollMarginTop: 88 };
+export const card: Css = { display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 'var(--admin-radius-card, 12px)', border: '1px solid var(--admin-line, #e6e9ee)', boxShadow: 'none', scrollMarginTop: 88 };
 export const iconTile = (size = 30): Css => ({ width: size, height: size, flex: 'none', borderRadius: size >= 34 ? 10 : size >= 30 ? 10 : 9, background: '#f1f3f5', color: '#495057', display: 'flex', alignItems: 'center', justifyContent: 'center' });
-export const ghostBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 14px', border: 0, borderRadius: 999, background: '#fff', boxShadow: 'inset 0 0 0 1px #dee2e6', font: 'inherit', fontSize: 13, fontWeight: 700, color: V7_INK, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
-export const inkBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 16px', border: 0, borderRadius: 999, background: V7_INK, font: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
+export const ghostBtn = (h = 40): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 14px', border: '1px solid var(--admin-line, #e6e9ee)', borderRadius: 'var(--admin-radius-control, 8px)', background: '#fff', boxShadow: 'none', font: 'inherit', fontSize: 13, fontWeight: 600, color: V7_INK, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
+export const inkBtn = (h = 40): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 16px', border: '1px solid var(--admin-accent, #16856f)', borderRadius: 'var(--admin-radius-control, 8px)', background: 'var(--admin-accent, #16856f)', font: 'inherit', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
 
 export const Ico = ({ name, size = 14, color }: { name: DashboardIconName; size?: number; color?: string }) => <DashboardIcon name={name} size={size} color={color} />;
 

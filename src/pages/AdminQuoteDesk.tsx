@@ -17,6 +17,7 @@ import { consumedCalendarWorkspaceSearch, readCalendarWorkspaceAction } from '..
 import { loadQuoteCustomerRequest, quoteCustomerIsBooking, quoteCustomerWorkspaceModel } from '../utils/quoteCustomerWorkspace';
 import workspaceStyles from '../styles/reservation-workspace.css?inline';
 import nativeWorkspaceStyles from '../styles/quote-booking-workspace.css?inline';
+import adminUnifiedStyles from '../styles/admin-unified.css?inline';
 import '../styles/quote-booking-workspace.css';
 import deliveryStyles from '../components/admin/AdminDeliveryHistory.css?inline';
 import { GuideSchedule } from '../components/admin/guides/GuideSchedule';
@@ -311,6 +312,18 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                 }
             } catch { /* A standalone or older document retains its existing workflow. */ }
         } else { setNativeHosts(null); setBookingWorkspace(null); }
+
+        // React 관리자와 같은 원본 CSS를 사용한다. 인쇄 문서·인증·편집 데이터는 변경하지 않는다.
+        const frameDocument = frameRef.current?.contentDocument;
+        if (frameDocument?.head) {
+            let theme = frameDocument.getElementById('milkyway-admin-design-system');
+            if (!theme) {
+                theme = frameDocument.createElement('style');
+                theme.id = 'milkyway-admin-design-system';
+            }
+            theme.textContent = adminUnifiedStyles;
+            frameDocument.head.appendChild(theme);
+        }
 
         // 바깥 창은 데스크톱 폭인데 안쪽(더 좁은 iframe)이 모바일 관리자로 넘어갔으면 데스크톱 화면으로 되돌린다.
         if (current.mobileDoc && normalizeDocPath(path) === current.mobileDoc && isDesktopViewport() && !innerEditor) {

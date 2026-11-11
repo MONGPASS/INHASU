@@ -1,0 +1,348 @@
+/* Admin UI contract. Shared by React and same-origin quote-desk frames.
+   Public travel pages and printable customer documents are outside this scope. */
+:is(.admin-app-wrapper, html.admin-embedded) {
+  --admin-accent: #16856f;
+  --admin-accent-hover: #106b59;
+  --admin-accent-soft: #edf8f4;
+  --admin-accent-line: #bfe4d9;
+  --admin-canvas: #f6f7f9;
+  --admin-surface: #fff;
+  --admin-ink: #26303f;
+  --admin-body: #526078;
+  --admin-muted: #8692a2;
+  --admin-line: #e6e9ee;
+  --admin-radius-card: 12px;
+  --admin-radius-control: 8px;
+  --admin-control-height: 40px;
+  --admin-control-compact: 32px;
+  --admin-space-section: 24px;
+  --admin-space-card: 24px;
+  --admin-shadow: 0 1px 2px #26303f04;
+  --admin-font: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.admin-app-wrapper {
+  --mrt-blue: var(--admin-accent);
+  --mrt-blue-strong: var(--admin-accent-hover);
+  --mrt-blue-50: var(--admin-accent-soft);
+  --mrt-blue-100: var(--admin-accent-line);
+  --mrt-purple: var(--admin-accent);
+  --mrt-purple-2: var(--admin-accent-hover);
+  --mrt-purple-soft: var(--admin-accent-soft);
+  --mrt-ink: var(--admin-ink);
+  --text-strong: var(--admin-ink);
+  --text-body: var(--admin-ink);
+  --text-secondary: var(--admin-body);
+  --text-tertiary: var(--admin-muted);
+  --text-link: var(--admin-accent);
+  --border-default: var(--admin-line);
+  --border-focus: var(--admin-accent);
+  --surface-canvas: var(--admin-canvas);
+  --r-sm: var(--admin-radius-control);
+  --r-md: var(--admin-radius-card);
+  --r-lg: var(--admin-radius-card);
+  --r-xl: var(--admin-radius-card);
+  --shadow-xs: var(--admin-shadow);
+  --shadow-sm: var(--admin-shadow);
+  --ring-blue: 0 0 0 3px #16856f1f;
+  --side-w: 240px;
+  --font-sans: var(--admin-font);
+  font-family: var(--admin-font);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media screen {
+  .admin-app-wrapper .app {
+    background: var(--admin-canvas);
+    font-family: var(--admin-font);
+    color: var(--admin-ink);
+  }
+  .admin-app-wrapper .app .content-in { max-width: 1480px; }
+  .admin-app-wrapper .app .page-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -.03em;
+    line-height: 1.4;
+  }
+  .admin-app-wrapper .app .eyebrow {
+    color: var(--admin-muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+  }
+  .admin-app-wrapper .app .admin-layout-heading > .cell-muted {
+    font-size: 13px !important;
+    line-height: 1.7;
+    font-weight: 400;
+    color: var(--admin-muted);
+  }
+  .admin-app-wrapper .app .side-nav { padding: 8px 14px; }
+  .admin-app-wrapper .app .admin-sidebar-brand { min-height: 82px; padding: 20px 14px 12px; align-items: center; justify-content: space-between; gap: 6px; }
+  .admin-app-wrapper .app .admin-sidebar-wordmark { display: flex; align-items: center; gap: 9px; min-width: 0; color: var(--admin-ink); text-decoration: none; }
+  .admin-app-wrapper .app .admin-sidebar-mark { display: grid; place-items: center; width: 30px; height: 34px; flex: none; border: 1px solid var(--admin-accent-line); border-radius: 8px; background: var(--admin-accent-soft); color: var(--admin-accent); font-size: 17px; font-weight: 750; }
+  .admin-app-wrapper .app .admin-sidebar-brand-copy b { display: block; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .admin-app-wrapper .app .admin-sidebar-brand-copy small { display: block; font-size: 9px; color: var(--admin-muted); margin-top: 5px; }
+  .admin-app-wrapper .app .admin-sidebar-brand .side-rail-toggle { width: 28px; height: 30px; border-radius: 7px; flex: none; }
+  .admin-app-wrapper .app .side.is-rail .admin-sidebar-brand { flex-direction: column; padding: 16px 0 8px; gap: 8px; }
+  .admin-app-wrapper .app .side.is-rail .admin-sidebar-brand-copy { display: none; }
+  .admin-app-wrapper .app .nav-section { padding: 14px 0; border-color: #f0f2f5; }
+  .admin-app-wrapper .app .nav-section-title { color: var(--admin-muted); font-size: 10px; }
+  .admin-app-wrapper .app :is(.nav-item, .nav-group-toggle) {
+    min-height: 42px;
+    border-radius: var(--admin-radius-control);
+    color: var(--admin-body);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: none;
+  }
+  .admin-app-wrapper .app .nav-item.active,
+  .admin-app-wrapper .app .nav-group.is-open > .nav-group-toggle {
+    color: var(--admin-accent);
+    background: var(--admin-accent-soft);
+    border-color: transparent;
+    box-shadow: none;
+    font-weight: 650;
+  }
+  .admin-app-wrapper .app .nav-submenu .nav-item {
+    height: 36px;
+    min-height: 36px;
+    font-size: 12px;
+  }
+  .admin-app-wrapper .app :is(.nav-item, .nav-group-toggle) > svg { width: 18px; height: 18px; }
+  .admin-app-wrapper .app .side-foot { padding: 12px 14px 18px; }
+  .admin-app-wrapper .app .side-account {
+    border: 1px solid var(--admin-line);
+    border-radius: var(--admin-radius-card);
+    background: #fafbfc;
+    padding: 12px;
+  }
+  .admin-app-wrapper .app .side-account .av { width: 34px; height: 34px; border-radius: 9px; }
+  .admin-app-wrapper .app .side-account .who b { font-size: 12px; font-weight: 650; }
+  .admin-app-wrapper .app .side-account .who span { font-size: 10px; }
+
+  /* Full-size actions, compact table controls and icon-only controls have distinct sizes. */
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(.btn, .cm-btn) {
+    height: var(--admin-control-height);
+    min-height: var(--admin-control-height);
+    padding: 0 15px;
+    border-radius: var(--admin-radius-control);
+    font-family: var(--admin-font);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    gap: 7px;
+    box-shadow: none;
+    transition: background .15s, border-color .15s;
+  }
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(.btn-blue, .btn.primary, .btn-ink, .cm-btn.is-primary) {
+    background: var(--admin-accent);
+    border-color: var(--admin-accent);
+    color: #fff;
+    box-shadow: none;
+  }
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(.btn-blue, .btn.primary, .btn-ink, .cm-btn.is-primary):hover:not(:disabled) {
+    background: var(--admin-accent-hover);
+    border-color: var(--admin-accent-hover);
+    color: #fff;
+    box-shadow: none;
+  }
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(.btn-ghost, .cm-btn) {
+    border: 1px solid var(--admin-line);
+    background: #fff;
+    color: var(--admin-body);
+  }
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(.btn-sm, .btn.small, .cm-btn.is-sm) {
+    min-height: var(--admin-control-compact);
+    height: var(--admin-control-compact);
+    padding: 0 11px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+  .admin-app-wrapper .app .cm-icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+  }
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(.btn, .cm-btn):disabled { opacity: .45; cursor: not-allowed; }
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(.btn, .cm-btn) > svg { width: 16px; height: 16px; }
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(.inp, .select, .cm-input, .cm-select) {
+    min-height: var(--admin-control-height);
+    height: var(--admin-control-height);
+    border: 1px solid var(--admin-line);
+    border-radius: var(--admin-radius-control);
+    padding: 0 12px;
+    font-family: var(--admin-font);
+    font-size: 13px;
+    font-weight: 400;
+    background: #fff;
+    color: var(--admin-ink);
+    box-shadow: none;
+  }
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(textarea.inp, textarea.cm-input) {
+    height: auto;
+    min-height: 112px;
+    padding: 12px;
+    line-height: 1.7;
+    resize: vertical;
+  }
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(.inp, .select, .cm-input, .cm-select):focus {
+    border-color: var(--admin-accent);
+    outline: 0;
+    box-shadow: 0 0 0 3px #16856f1f;
+  }
+  .admin-app-wrapper .app :is(.cm-search, .pd-search) {
+    height: var(--admin-control-height);
+    border: 1px solid var(--admin-line);
+    border-radius: var(--admin-radius-control);
+    box-shadow: none;
+  }
+  .admin-app-wrapper .app .admin-toolbar .at-search-field { border: 1px solid var(--admin-line); border-radius: var(--admin-radius-control); background: #fafbfc; }
+  .admin-app-wrapper .app .admin-toolbar .at-icon-button { border-radius: var(--admin-radius-control); }
+  .admin-app-wrapper .app :is(.cm-search, .pd-search) input {
+    min-height: 0;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    font-family: var(--admin-font);
+    font-size: 13px;
+    background: transparent;
+    box-shadow: none;
+  }
+  .admin-app-wrapper .app :is(.field > label, .cm-field > label) { font-size: 12px; font-weight: 600; }
+  .admin-app-wrapper .app :is(.cm-toolbar, .pd-toolbar) { gap: 10px; }
+  .admin-app-wrapper .app :is(.cm-page, .pd-list) { gap: var(--admin-space-section); }
+  .admin-app-wrapper .app :is(.card, .cm-card, .pd-card, .mg-card, .pa-editor) {
+    border: 1px solid var(--admin-line);
+    border-radius: var(--admin-radius-card);
+    background: var(--admin-surface);
+    box-shadow: var(--admin-shadow);
+  }
+  .admin-app-wrapper .app :is(.card-head h2, .cm-card h2) { font-size: 18px; font-weight: 650; line-height: 1.5; }
+  .admin-app-wrapper .app :is(.card-pad, .cm-modal-body) { padding: var(--admin-space-card); }
+  .admin-app-wrapper .app :is(.cm-kpi, .pd-kpi) {
+    padding: 20px;
+    border: 1px solid var(--admin-line);
+    border-radius: var(--admin-radius-card);
+    box-shadow: none;
+  }
+  .admin-app-wrapper .app :is(.cm-kpi[aria-pressed="true"], .pd-kpi.is-active) {
+    border: 1px solid var(--admin-accent-line);
+    background: var(--admin-accent-soft);
+  }
+  .admin-app-wrapper .app .cm-kpi-num { font-size: 28px; font-weight: 700; }
+  .admin-app-wrapper .app :is(.tbl, .cm-table, .pd-table) { font-size: 13px; }
+  .admin-app-wrapper .app :is(.tbl, .cm-table, .pd-table) thead th {
+    padding: 13px 16px;
+    font-size: 11px;
+    line-height: 1.5;
+    font-weight: 600;
+    letter-spacing: 0;
+    background: #fafbfc;
+    color: var(--admin-muted);
+    border-color: var(--admin-line);
+  }
+  .admin-app-wrapper .app :is(.tbl, .cm-table, .pd-table) tbody td {
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    border-color: #edf0f4;
+  }
+  .admin-app-wrapper .app :is(.badge, .cm-pill) { font-size: 11px; font-weight: 600; border-radius: 5px; box-shadow: none; }
+  .admin-app-wrapper .app :is(.cm-chip, .chip) { font-size: 12px; font-weight: 500; }
+  .admin-app-wrapper .app .pd-chips button { height: 32px; padding: 0 12px; font-size: 12px; font-weight: 500; }
+  .admin-app-wrapper .app .pd-chips button.is-active { background: var(--admin-accent-soft); border-color: var(--admin-accent-line); color: var(--admin-accent); font-weight: 600; }
+  .admin-app-wrapper .app .pd-chips button.is-active span { color: var(--admin-accent); }
+  .admin-app-wrapper .app :is(.cm-chip[aria-pressed="true"], .chip.active) {
+    background: var(--admin-accent-soft);
+    border-color: var(--admin-accent-line);
+    color: var(--admin-accent);
+    box-shadow: none;
+  }
+  .admin-app-wrapper .app :is(.modal, .cm-modal) { border-radius: 14px; border: 1px solid var(--admin-line); }
+  :is(.admin-app-wrapper .app, html.admin-embedded) :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--admin-accent);
+    outline-offset: 3px;
+  }
+  /* The embedded legacy tools share controls and panels, never printable .paper content. */
+  html.admin-embedded body { background: var(--admin-canvas); font-family: var(--admin-font); }
+  html.admin-embedded .shell > .content { padding: 24px; background: var(--admin-canvas); }
+  html.admin-embedded :is(.panel, .stat, .res-card, .login-card, .ccard) {
+    border: 1px solid var(--admin-line);
+    border-radius: var(--admin-radius-card);
+    background: #fff;
+    box-shadow: var(--admin-shadow);
+  }
+  html.admin-embedded .page-head .add {
+    min-height: var(--admin-control-height);
+    padding: 0 15px;
+    border: 1px solid var(--admin-accent);
+    border-radius: var(--admin-radius-control);
+    background: var(--admin-accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: none;
+  }
+  html.admin-embedded .page-head h1 { font-size: 18px; font-weight: 650; color: var(--admin-ink); }
+  html.admin-embedded .tabs .tab { min-height: 32px; padding: 0 12px; border-radius: 7px; border-width: 1px; font-size: 12px; font-weight: 500; }
+  html.admin-embedded .tabs .tab.on { background: var(--admin-accent-soft); border-color: var(--admin-accent-line); color: var(--admin-accent); }
+  html.admin-embedded .lead { color: var(--admin-muted); font-size: 12px; line-height: 1.8; }
+  html.admin-embedded .lead b { color: var(--admin-accent); font-weight: 600; }
+  html.admin-embedded label.f :is(input, textarea, select) { border: 1px solid var(--admin-line); border-radius: var(--admin-radius-control); font-size: 13px; }
+  html.admin-embedded :is(.search input, .toolbar input, .toolbar select, .bar select) {
+    height: var(--admin-control-height);
+    border: 1px solid var(--admin-line);
+    border-radius: var(--admin-radius-control);
+    font-family: var(--admin-font);
+    font-size: 13px;
+  }
+}
+@media screen and (min-width: 761px) {
+  .admin-app-wrapper .app > .side,
+  .admin-app-wrapper .app > .admin-customer-menu-panel > .side {
+    inset: 0 auto 0 0;
+    width: var(--side-w);
+    border-right: 1px solid var(--admin-line);
+    background: #fff;
+    gap: 0;
+  }
+  .admin-app-wrapper .app > .main {
+    margin: 0 0 0 var(--side-w);
+    min-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    background: var(--admin-canvas);
+  }
+  .admin-app-wrapper .app.is-side-rail > .side,
+  .admin-app-wrapper .app.is-side-rail > .admin-customer-menu-panel > .side { width: var(--side-rail-w); }
+  .admin-app-wrapper .app.is-side-rail > .main { margin-left: var(--side-rail-w); }
+  .admin-app-wrapper .app > .main.is-flush { height: 100dvh; min-height: 0; }
+  .admin-app-wrapper .app .header { padding: 0 32px; background: var(--admin-canvas); }
+  .admin-app-wrapper .app .header .admin-toolbar {
+    min-height: 72px;
+    margin: 0 -32px;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--admin-line);
+    background: #fff;
+  }
+  .admin-app-wrapper .app .admin-layout-heading { padding: 28px 0 0; }
+  .admin-app-wrapper .app :is(.admin-page-actions, .admin-customer-header-actions) { padding: 28px 0 0; gap: 8px; }
+  .admin-app-wrapper .app .content { padding: 24px 32px 40px; }
+  .admin-app-wrapper .app > .main.is-flush > .content { padding: 0 !important; }
+}
+@media screen and (max-width: 1100px) and (min-width: 761px) {
+  .admin-app-wrapper .app .header { padding-right: 24px; padding-left: 24px; }
+  .admin-app-wrapper .app .header .admin-toolbar { margin-right: -24px; margin-left: -24px; padding-right: 24px; padding-left: 24px; }
+  .admin-app-wrapper .app .content { padding: 24px; }
+}
+@media screen and (max-width: 760px) {
+  .admin-app-wrapper .app .page-title { font-size: 24px; }
+  .admin-app-wrapper .app .content { padding: 20px 16px 32px; }
+  .admin-app-wrapper .app :is(.inp, .select, .cm-input, .cm-select) { font-size: 16px; }
+  .admin-app-wrapper .app :is(.admin-page-actions, .admin-customer-header-actions) .btn { min-height: 44px; }
+  html.admin-embedded .shell > .content { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-app-wrapper .app :is(.side, .main, .btn, .cm-btn) { transition: none; }
+}

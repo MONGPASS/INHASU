@@ -4,6 +4,7 @@ import { useUser } from '../../contexts/UserContext';
 import { DashboardIcon, type DashboardIconName } from './dashboard/DashboardIcon';
 import { QUOTE_DESK_TOOLS, disconnectQuoteDesk, quoteDeskHref, quoteDeskPageId } from './quoteDesk';
 import { preloadAdminPage } from '../../lib/adminPagePreload';
+import { BRAND } from '../../constants/company';
 
 interface AdminSidebarProps {
     activePage: string;
@@ -133,11 +134,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = f
 
     return (
         <aside className={`side${rail ? ' is-rail' : ''}`}>
-            {onToggleRail && <div className="side-rail-bar">
-                <button type="button" className="side-rail-toggle" title={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-label={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-pressed={rail} onClick={onToggleRail}>
+            <div className="side-rail-bar admin-sidebar-brand">
+                <Link to="/admin" aria-label={`${BRAND.name} 관리자 홈`} className="admin-sidebar-wordmark">
+                    <span className="admin-sidebar-mark" aria-hidden="true">은</span>
+                    <span className="admin-sidebar-brand-copy"><b>{BRAND.name}</b><small>여행 운영 관리</small></span>
+                </Link>
+                {onToggleRail && <button type="button" className="side-rail-toggle" title={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-label={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-pressed={rail} onClick={onToggleRail}>
                     <DashboardIcon name={rail ? 'lc-chevron-right' : 'lc-chevron-left'} size={18} />
-                </button>
-            </div>}
+                </button>}
+            </div>
 
             <nav className="side-nav" ref={navRef} aria-label="관리자 업무 메뉴">
                 {sections.map((section) => (
