@@ -27,6 +27,7 @@ import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '.
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 
 
 
@@ -752,8 +753,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             return;
         }
         if (decision.blocked && decision.reason === 'draft_storage_failure') {
-            if (window.confirm(decision.error + '\n\n초안을 보관하지 못한 상태로 이동할까요?')) blocker.proceed();
-            else blocker.reset();
+            adminConfirmLeave(blocker, decision.error + '\n\n초안을 보관하지 못한 상태로 이동할까요?');
         } else blocker.proceed();
     }, [blocker]);
 

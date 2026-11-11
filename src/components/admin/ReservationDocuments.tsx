@@ -47,7 +47,7 @@ export function ReservationDocuments(p: Props) {
     if (p.compact) return <section id="sec-docs" className="rw-documents rw-documents-compact" aria-label="고객 문서 작업">
         <section className="rw-delivery-panel" aria-labelledby="rw-delivery-title">
             <header className="rw-delivery-head"><div><h2 id="rw-delivery-title">고객 공개 · 전달</h2><p>{p.email ? `메일 수신 · ${p.email}` : '이메일 안내는 선택 사항입니다. 사용하려면 고객 이메일을 등록하세요.'} · 안내문 복사는 고객에게 자동 발송되지 않습니다.</p></div>
-                <div className="rw-delivery-head-actions"><button type="button" disabled={blocked || !p.ready || !p.canPublish} onClick={() => p.onCopy('final')}>{p.copied === 'final-message' ? '복사됨' : '일정표·계약서 안내문 복사'}</button><button type="button" className="is-primary" disabled={sendAllDisabled} onClick={p.onSendAll}>{p.sending ? '발송 중…' : '미발송·수정본 메일 발송'}</button></div>
+                <div className="rw-delivery-head-actions"><button type="button" disabled={blocked || !p.ready || !p.canPublish} onClick={() => p.onCopy('final')}>{p.copied === 'final-message' ? '복사됨' : '일정표·계약서 안내문 복사'}</button><button type="button" className={p.published ? "is-primary" : undefined} disabled={sendAllDisabled} onClick={p.onSendAll}>{p.sending ? '발송 중…' : '미발송·수정본 메일 발송'}</button></div>
             </header>
             <div className="rw-delivery-row">
                 <div className="rw-delivery-copy"><strong>확정 일정표</strong><span className={`rw-glow ${p.published ? 'is-ok' : p.ready ? 'is-wait' : 'is-alert'}`}>{p.published ? '고객 공개됨' : p.ready ? '공개 대기' : '작성 필요'}</span><small>{p.source}{p.days.length ? ` · ${p.days.length}일 일정` : ''} · {itineraryDelivery}</small></div>
@@ -57,7 +57,7 @@ export function ReservationDocuments(p: Props) {
                     <button type="button" disabled={!p.ready || blocked} onClick={() => p.onPreview('itinerary', true)}>PDF 저장</button>
                     <button type="button" disabled={blocked || !p.ready || !p.canPublish} onClick={() => p.onCopy('itinerary')}>{p.copied === 'itinerary-message' ? '안내문 복사됨' : '카카오톡 안내문 복사'}</button>
                     <button type="button" disabled={blocked || !p.ready || !p.canPublish || !p.email} onClick={() => p.onSend('itinerary')}>{p.itineraryChanged ? '수정본 메일 발송' : p.itineraryEmailSent ? '메일 재발송' : '일정표 메일 발송'}</button>
-                    <button type="button" className="is-primary" disabled={blocked || !p.ready || !p.canPublish} onClick={p.onPublish}>{p.published ? '공개 상태 확인' : '고객에게 공개'}</button>
+                    <button type="button" className={p.published ? undefined : "is-primary"} disabled={blocked || !p.ready || !p.canPublish} onClick={p.onPublish}>{p.published ? '공개 상태 확인' : '고객에게 공개'}</button>
                 </div>
                 {!p.canPublish && <p className="rw-delivery-note">예약금 확인 후 예약이 확정되면 공개할 수 있습니다.</p>}
             </div>

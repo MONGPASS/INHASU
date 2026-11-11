@@ -13,6 +13,7 @@ import { useUser } from '../contexts/UserContext';
 import { magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft, removeMagazineDraft, type MagazineDraftScope, type MagazineDraftRead, type MagazineDraftResult, type MagazineDraftForm } from '../utils/adminMagazineDraft';
 import './AdminContentManage.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 
 /** Lucide outlines (ISC) that DashboardIcon does not carry. Keys keep the `lc-` prefix for the icon-subset check. */
 const MAGAZINE_ICONS = {
@@ -359,8 +360,7 @@ export const AdminMagazineManage: React.FC = () => {
         if (blocker.state !== 'blocked' || handledNavigation.current === blocker.location.key) return;
         handledNavigation.current = blocker.location.key;
         if (blockedReason.current.busy) { setDraftNotice('저장·사진 업로드가 끝난 뒤 이동해 주세요.'); blocker.reset(); }
-        else if (window.confirm(blockedReason.current.error + '\n초안을 보관하지 못한 상태로 이동할까요?')) blocker.proceed();
-        else blocker.reset();
+        else adminConfirmLeave(blocker, blockedReason.current.error + '\n초안을 보관하지 못한 상태로 이동할까요?');
     }, [blocker]);
     useEffect(() => {
         mountedRef.current = true;

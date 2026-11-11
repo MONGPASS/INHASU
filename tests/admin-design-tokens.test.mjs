@@ -86,7 +86,7 @@ test('삭제·변경 확인은 공통 확인 창을 쓰고, 브라우저 확인�
         shared += (source.match(/await adminConfirm\(/g) || []).length;
     }
     assert.ok(shared >= 70, '공통 확인 창 사용 ' + shared);
-    assert.ok(native <= 13, '나가기 보호 밖에 브라우저 확인창을 늘리지 않는다: ' + native);
+    assert.ok(native <= 6, '나가기 보호 밖에 브라우저 확인창을 늘리지 않는다: ' + native);
 });
 
 test('견적 도구는 관리자 안에서 공통 규격 CSS를 함께 읽는다', () => {

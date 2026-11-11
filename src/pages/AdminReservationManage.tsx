@@ -54,6 +54,7 @@ import '../styles/customer-workspace-editor.css';
 import '../styles/reservation-itinerary-designer.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminValidateRequired } from '../components/admin/ui/adminForm';
+import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 
 // Reservation Interface
 interface Reservation {
@@ -536,8 +537,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         const message = decision.reason === 'draft_storage_failure'
             ? decision.error + '\n\n초안을 보관하지 못한 상태로 이동할까요?'
             : '저장하지 않은 주문·운영 정보가 있습니다. 이 변경사항을 버리고 이동할까요?';
-        if (window.confirm(message)) workspaceBlocker.proceed();
-        else workspaceBlocker.reset();
+        adminConfirmLeave(workspaceBlocker, message);
     }, [workspaceBlocker, workspaceIsBusy]);
     useEffect(() => {
         const beforeUnload = (event: BeforeUnloadEvent) => {
