@@ -1,0 +1,56 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+<defs>
+<linearGradient id="board-grad" x1="100" y1="190" x2="842" y2="958" gradientUnits="userSpaceOnUse"><stop stop-color="#04d3e9" /><stop offset=".43" stop-color="#009dff" /><stop offset="1" stop-color="#0045ef" /></linearGradient>
+<linearGradient id="edge-grad" x1="100" y1="220" x2="790" y2="932" gradientUnits="userSpaceOnUse"><stop stop-color="#64f5ee" /><stop offset=".18" stop-color="#00c6f1" /><stop offset=".6" stop-color="#008cff" /><stop offset="1" stop-color="#0046ef" /></linearGradient>
+<linearGradient id="clip-grad" x1="310" y1="42" x2="596" y2="285" gradientUnits="userSpaceOnUse"><stop stop-color="#45f0e2" /><stop offset=".28" stop-color="#00c5eb" /><stop offset=".7" stop-color="#009cff" /><stop offset="1" stop-color="#0057f7" /></linearGradient>
+<linearGradient id="shine-grad" x1="300" y1="25" x2="435" y2="211" gradientUnits="userSpaceOnUse"><stop stop-color="#a3fff1" stop-opacity=".85" /><stop offset="1" stop-color="#00ccff" stop-opacity="0" /></linearGradient>
+<linearGradient id="hole-grad" x1="438" y1="87" x2="498" y2="166" gradientUnits="userSpaceOnUse"><stop stop-color="#0086ce" /><stop offset=".35" stop-color="#00a5e5" /><stop offset="1" stop-color="#00b7ef" /></linearGradient>
+<linearGradient id="shadow-grad" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#003d96" stop-opacity=".48" /><stop offset="1" stop-color="#0041ab" stop-opacity="0" /></linearGradient>
+<linearGradient id="check-grad" x1="0" y1="0" x2=".55" y2="1"><stop stop-color="#d9ffae" /><stop offset=".35" stop-color="#8ff59c" /><stop offset=".75" stop-color="#21e88b" /><stop offset="1" stop-color="#00c97c" /></linearGradient>
+<linearGradient id="paper-grad" x1="0" y1="0" x2=".35" y2="1"><stop stop-color="#ffffff" /><stop offset=".4" stop-color="#e7f5ff" /><stop offset="1" stop-color="#8ed4f7" /></linearGradient>
+<linearGradient id="pencil-grad" x1="627" y1="556" x2="802" y2="676" gradientUnits="userSpaceOnUse"><stop stop-color="#fff345" /><stop offset=".29" stop-color="#ffe62b" /><stop offset=".36" stop-color="#ffd000" /><stop offset=".74" stop-color="#ffac00" /><stop offset=".8" stop-color="#ff9000" /><stop offset="1" stop-color="#ff6900" /></linearGradient>
+<linearGradient id="wood-grad" x1="537" y1="799" x2="641" y2="864" gradientUnits="userSpaceOnUse"><stop stop-color="#fff0bd" /><stop offset=".45" stop-color="#f9d197" /><stop offset="1" stop-color="#e6a061" /></linearGradient>
+<linearGradient id="lead-grad" x1="521" y1="878" x2="570" y2="918" gradientUnits="userSpaceOnUse"><stop stop-color="#777f9f" /><stop offset=".48" stop-color="#424963" /><stop offset="1" stop-color="#222743" /></linearGradient>
+<linearGradient id="eraser-grad" x1="814" y1="329" x2="946" y2="449" gradientUnits="userSpaceOnUse"><stop stop-color="#ffafbd" /><stop offset=".3" stop-color="#ff81a1" /><stop offset="1" stop-color="#f13e7d" /></linearGradient>
+<linearGradient id="band-grad" x1="768" y1="405" x2="906" y2="513" gradientUnits="userSpaceOnUse"><stop stop-color="#e2dcf0" /><stop offset=".25" stop-color="#fbf9ff" /><stop offset=".64" stop-color="#d1c8e2" /><stop offset="1" stop-color="#a99ac9" /></linearGradient>
+<clipPath id="board-clip"><rect x="70" y="169" width="793" height="831" rx="120" /></clipPath>
+</defs>
+<g id="clipboard">
+<rect x="70" y="169" width="793" height="831" rx="120" fill="url(#edge-grad)" />
+<rect x="82" y="180" width="770" height="807" rx="111" fill="url(#board-grad)" />
+<g clip-path="url(#board-clip)" fill="url(#shadow-grad)">
+<path d="M253 250L689 247 934 492 859 587 293 294Z" />
+<path d="M174 421L224 473 390 637 483 481 346 332 242 418Z" />
+<path d="M385 431L552 599 831 599 691 391Z" />
+<path d="M174 608L224 659 390 823 481 666 346 518 242 605Z" />
+<path d="M385 618L562 795 776 795 622 577Z" />
+<path d="M174 796L224 847 390 1011 481 855 346 706 242 793Z" />
+<path d="M382 809L563 991 711 991 596 761Z" />
+<path d="M771 410L915 503 740 911 617 1017 521 935 551 747Z" />
+</g>
+<g id="clip">
+<path d="M297 278C260 278 235 251 235 215V198C235 158 269 128 307 127H323C334 126 339 120 342 105C354 53 405 17 467 17C531 17 582 55 594 111C597 123 602 128 619 129C667 129 701 160 702 204V216C702 251 678 278 641 278Z" fill="url(#clip-grad)" />
+<path d="M247 213V194C251 157 280 138 313 136C338 137 346 124 351 106C368 55 409 27 465 26C504 25 539 40 560 65C526 40 497 34 466 36C414 39 375 66 362 113C356 138 343 149 314 147C280 147 255 168 247 213Z" fill="url(#shine-grad)" />
+<ellipse cx="468" cy="128" rx="47" ry="51" fill="#00b8ee" />
+<ellipse cx="467" cy="125" rx="43" ry="46" fill="url(#hole-grad)" />
+<path d="M435 160C456 180 486 176 503 149C496 177 458 189 435 160Z" fill="#25d1f3" opacity=".5" />
+</g>
+<g id="checklist">
+<path d="M168 378C180 365 199 366 212 378L229 395Q236 402 243 394L302 334C315 320 334 320 347 333C359 345 357 364 345 377L258 465C245 479 227 479 214 466L169 421C156 408 156 391 168 378Z" fill="url(#check-grad)" />
+<rect x="369" y="378" width="328" height="66" rx="33" fill="url(#paper-grad)" />
+<path d="M168 565C180 552 199 553 212 565L229 582Q236 589 243 581L302 521C315 507 334 507 347 520C359 532 357 551 345 564L258 652C245 666 227 666 214 653L169 608C156 595 156 578 168 565Z" fill="url(#check-grad)" />
+<rect x="369" y="563" width="261" height="67" rx="33.5" fill="url(#paper-grad)" />
+<path d="M168 753C180 740 199 741 212 753L229 770Q236 777 243 769L302 709C315 695 334 695 347 708C359 720 357 739 345 752L258 840C245 854 227 854 214 841L169 796C156 783 156 766 168 753Z" fill="url(#check-grad)" />
+<rect x="369" y="752" width="239" height="67" rx="33.5" fill="url(#paper-grad)" />
+</g>
+</g>
+<g id="pencil">
+<path d="M779 391L811 345C833 312 867 303 898 318L930 338C971 364 981 403 958 440L926 488Z" fill="url(#eraser-grad)" />
+<path d="M746 445L889 540 691 826Q683 840 670 849L544 768Q546 751 556 735Z" fill="url(#pencil-grad)" />
+<path d="M746 445L788 473 587 780 544 768Q546 751 556 735Z" fill="#fff85b" opacity=".35" />
+<path d="M544 767C578 771 648 814 673 848L587 905 526 866Z" fill="url(#wood-grad)" />
+<path d="M526 866C546 866 578 889 587 905L545 932C531 943 514 933 517 917Z" fill="url(#lead-grad)" />
+<path d="M745 431L774 388Q779 380 789 385C838 409 882 441 925 478Q934 485 928 495L902 535Q896 546 886 540L748 449Q739 443 745 431Z" fill="url(#band-grad)" />
+<path d="M747 431L776 389Q780 383 787 387L807 398C792 391 785 389 780 397L754 436Q749 442 755 450L748 446Q742 442 747 431Z" fill="#ffffff" opacity=".58" />
+</g>
+</svg>

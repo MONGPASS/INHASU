@@ -1,9 +1,9 @@
 import qmTours from '../../assets/mobile/quick-menu/tours.svg';
-import qmQuote from '../../assets/mobile/quick-menu/quote.webp';
+import qmQuote from '../../assets/mobile/quick-menu/quote.svg';
 import qmMates from '../../assets/mobile/quick-menu/mates.svg';
-import qmMagazine from '../../assets/mobile/quick-menu/magazine.webp';
-import qmReviews from '../../assets/mobile/quick-menu/reviews.webp';
-import qmEvent from '../../assets/mobile/quick-menu/event.webp';
+import qmMagazine from '../../assets/mobile/quick-menu/magazine.svg';
+import qmReviews from '../../assets/mobile/quick-menu/reviews.svg';
+import qmEvent from '../../assets/mobile/quick-menu/event.svg';
 
 /**
  * Constants for the mobile redesign (Claude Design: "Milkyway Japan Mobile").

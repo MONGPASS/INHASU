@@ -64,7 +64,7 @@ function QuickMenu() {
                     <a key={item.key} {...linkTo(go, item.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, color: MW.navy, minWidth: 0, textDecoration: 'none' }}>
                         <span style={{ position: 'relative', width: 62, height: 62 }}>
                             <span style={{ position: 'absolute', inset: 0, borderRadius: 20, background: M_TILE, border: '1px solid #EEF0F5', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                <img src={item.icon} alt="" width={42} height={42} style={{ width: 42, height: 42, objectFit: 'contain', pointerEvents: 'none' }} />
+                                <img src={item.icon} alt="" width={34} height={34} style={{ width: 34, height: 34, objectFit: 'contain', pointerEvents: 'none' }} />
                             </span>
                             {/* The home grid only marks new entries; PICK / EVENT pills belong to the drawer. */}
                             {item.isNew && (
