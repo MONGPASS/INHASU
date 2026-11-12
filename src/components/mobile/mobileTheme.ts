@@ -1,6 +1,6 @@
-import qmTours from '../../assets/mobile/quick-menu/tours.webp';
+import qmTours from '../../assets/mobile/quick-menu/tours.svg';
 import qmQuote from '../../assets/mobile/quick-menu/quote.webp';
-import qmMates from '../../assets/mobile/quick-menu/mates.webp';
+import qmMates from '../../assets/mobile/quick-menu/mates.svg';
 import qmMagazine from '../../assets/mobile/quick-menu/magazine.webp';
 import qmReviews from '../../assets/mobile/quick-menu/reviews.webp';
 import qmEvent from '../../assets/mobile/quick-menu/event.webp';
@@ -16,7 +16,7 @@ export const M_PAPER = '#F7FAF9';
 /** Hairline between rows inside a card. */
 export const M_HAIR = '#EEF1EF';
 /** Neutral tile background (quick menu, placeholders). */
-export const M_TILE = '#F7F7F7';
+export const M_TILE = '#F7F8FB';
 export const M_AMBER = '#F2B544';
 
 /** 카카오톡 채널 버튼: 카카오 노란색 바탕 + 말풍선 글리프(viewBox 0 0 24 24, fill). */

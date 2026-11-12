@@ -29,6 +29,8 @@ interface MobileShellProps {
     onBack?: () => void;
     /** Replaces the tab bar (quote form, mate detail). */
     bottomBar?: ReactNode;
+    /** 로고 머리를 고정하지 않고 본문과 함께 올려 보낸다(뒤로 가기 줄만 위에 남는다). 긴 상세 화면용. */
+    headerScrolls?: boolean;
     tabBar?: boolean;
     footer?: boolean;
 }
@@ -115,7 +117,7 @@ const writeRecent = (list: string[]) => {
 
 const tokens = (q: string) => q.toLowerCase().split(/\s+/).filter(Boolean);
 
-export function MobileShell({ children, home = false, title, onBack, bottomBar, tabBar = true, footer = true }: MobileShellProps) {
+export function MobileShell({ children, home = false, title, onBack, bottomBar, headerScrolls = false, tabBar = true, footer = true }: MobileShellProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const path = location.pathname;
@@ -245,14 +247,15 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
     };
 
     const noticeOn = path === '/mypage/notifications';
-    const stickyTop = hdrH - 1 + (title !== undefined ? BACK_BAR_H : 0);
+    const backBarTop = headerScrolls ? 0 : hdrH - 1;
+    const stickyTop = backBarTop + (title !== undefined ? BACK_BAR_H : 0);
     const shell = useMemo(() => ({ stickyTop }), [stickyTop]);
     const avatar = me?.avatarUrl || me?.image;
 
     return (
         <MobileShellContext.Provider value={shell}>
             <div data-mw-actionbar={bottomBar ? '' : undefined} style={{ position: 'relative', minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: '#FFFFFF', color: MW.navy, fontFamily: MW_FONT, WebkitFontSmoothing: 'antialiased' }}>
-                <header ref={hdrRef} style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${M_HAIR}` }}>
+                <header ref={hdrRef} style={{ position: headerScrolls ? 'relative' : 'sticky', top: 0, zIndex: 20, background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${M_HAIR}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px' }}>
                         <a
                             href="/"
@@ -406,7 +409,7 @@ export function MobileShell({ children, home = false, title, onBack, bottomBar, 
                 </header>
 
                 {title !== undefined && (
-                    <div style={{ position: 'sticky', top: hdrH - 1, zIndex: 10, background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${M_HAIR}`, display: 'grid', gridTemplateColumns: '44px minmax(0,1fr) 44px', alignItems: 'center', padding: '2px 6px' }}>
+                    <div style={{ position: 'sticky', top: backBarTop, zIndex: 10, background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(10px)', borderBottom: `1px solid ${M_HAIR}`, display: 'grid', gridTemplateColumns: '44px minmax(0,1fr) 44px', alignItems: 'center', padding: '2px 6px' }}>
                         <button type="button" onClick={goBack} aria-label="뒤로" style={{ width: 44, height: 44, border: 0, borderRadius: '50%', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
                             <Ico d={D.back} size={22} width={2} />
                         </button>

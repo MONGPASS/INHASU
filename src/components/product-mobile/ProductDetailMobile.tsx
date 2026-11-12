@@ -38,7 +38,7 @@ export function ProductDetailMobile(props: TourDetailViewProps) {
     }, []);
 
     return (
-        <MobileShell title="투어 상세" bottomBar={<TourActionBar fav={fav} onFav={toggleFav} people={pricing.people} total={pricing.total} onBook={onBook} />}>
+        <MobileShell title="투어 상세" headerScrolls bottomBar={<TourActionBar fav={fav} onFav={toggleFav} people={pricing.people} total={pricing.total} onBook={onBook} />}>
             <TourDetailBody {...props} pricing={pricing} fav={fav} onFav={toggleFav} />
         </MobileShell>
     );
