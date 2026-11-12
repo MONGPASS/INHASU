@@ -1,0 +1,89 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+<defs>
+  <linearGradient id="bubble-grad" x1="180" y1="136" x2="817" y2="884" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#20e4ed" />
+    <stop offset=".38" stop-color="#04b9f6" />
+    <stop offset=".72" stop-color="#0089ff" />
+    <stop offset="1" stop-color="#0746f1" />
+  </linearGradient>
+  <linearGradient id="shine-grad" x1="189" y1="148" x2="334" y2="338" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#f0ffff" stop-opacity=".96" />
+    <stop offset="1" stop-color="#8afffa" stop-opacity=".12" />
+  </linearGradient>
+  <linearGradient id="star-grad" x1=".18" y1="0" x2=".8" y2="1">
+    <stop stop-color="#fff646" />
+    <stop offset=".42" stop-color="#ffda00" />
+    <stop offset=".76" stop-color="#ff9400" />
+    <stop offset="1" stop-color="#ff6100" />
+  </linearGradient>
+  <linearGradient id="center-grad" x1="408" y1="332" x2="605" y2="615" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#fff63e" />
+    <stop offset=".4" stop-color="#ffdc00" />
+    <stop offset=".75" stop-color="#ff9300" />
+    <stop offset="1" stop-color="#ff6100" />
+  </linearGradient>
+  <linearGradient id="left-grad" x1="161" y1="412" x2="291" y2="608" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#fff543" />
+    <stop offset=".42" stop-color="#ffdb00" />
+    <stop offset=".78" stop-color="#ff9100" />
+    <stop offset="1" stop-color="#ff6500" />
+  </linearGradient>
+  <linearGradient id="right-grad" x1="734" y1="411" x2="863" y2="611" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#fff543" />
+    <stop offset=".42" stop-color="#ffdb00" />
+    <stop offset=".78" stop-color="#ff9100" />
+    <stop offset="1" stop-color="#ff6500" />
+  </linearGradient>
+  <linearGradient id="shadow-grad" x1="0" y1="0" x2="1" y2="1">
+    <stop stop-color="#003482" stop-opacity=".65" />
+    <stop offset=".55" stop-color="#003d9f" stop-opacity=".28" />
+    <stop offset="1" stop-color="#0049bc" stop-opacity="0" />
+  </linearGradient>
+  <linearGradient id="center-shadow-grad" x1="511" y1="418" x2="778" y2="751" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#003379" stop-opacity=".65" />
+    <stop offset=".62" stop-color="#003b9d" stop-opacity=".35" />
+    <stop offset="1" stop-color="#004bc2" stop-opacity="0" />
+  </linearGradient>
+  <linearGradient id="left-shadow-grad" x1="238" y1="470" x2="401" y2="687" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#003777" stop-opacity=".64" />
+    <stop offset="1" stop-color="#0046af" stop-opacity="0" />
+  </linearGradient>
+  <linearGradient id="right-shadow-grad" x1="812" y1="468" x2="984" y2="688" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#002c83" stop-opacity=".65" />
+    <stop offset="1" stop-color="#0048c6" stop-opacity="0" />
+  </linearGradient>
+  <linearGradient id="star-shine-grad" x1="0" y1="0" x2="1" y2="1">
+    <stop stop-color="#fffeb1" stop-opacity=".95" />
+    <stop offset="1" stop-color="#fff886" stop-opacity=".3" />
+  </linearGradient>
+  <clipPath id="bubble-clip">
+    <path d="M365 108H659C849 108 993 259 993 449V522C993 708 850 862 663 862H359C327 862 309 874 281 893C246 916 186 955 147 965C112 974 95 947 110 915C126 880 147 838 147 812C147 787 130 770 110 749C53 691 24 617 24 526V449C24 259 175 108 365 108Z" />
+  </clipPath>
+</defs>
+<g id="speech-bubble">
+  <path fill="url(#bubble-grad)" d="M365 108H659C849 108 993 259 993 449V522C993 708 850 862 663 862H359C327 862 309 874 281 893C246 916 186 955 147 965C112 974 95 947 110 915C126 880 147 838 147 812C147 787 130 770 110 749C53 691 24 617 24 526V449C24 259 175 108 365 108Z" />
+  <g id="long-inner-shadows" clip-path="url(#bubble-clip)">
+    <path fill="url(#left-shadow-grad)" d="M242 400L419 576L499 662L404 745L270 727L150 605L144 578L155 531L119 496L195 454Z" />
+    <path fill="url(#center-shadow-grad)" d="M531 315L613 397L664 416L847 605L853 775L719 810L596 761L400 610L397 550L352 457L469 392Z" />
+    <path fill="url(#right-shadow-grad)" d="M815 400L866 451L904 469L1030 594L1020 770L905 743L722 604L719 546L689 496L767 452Z" />
+  </g>
+  <g id="bubble-gloss" fill="url(#shine-grad)">
+    <path d="M106 281C146 199 236 147 333 142C357 141 392 140 413 143C439 146 453 156 450 174C447 194 423 198 400 200C302 205 236 227 173 285C153 303 132 334 114 328C96 323 98 301 106 281Z" />
+    <path d="M169 322C180 304 203 287 217 293C235 300 222 322 210 334C197 348 180 354 170 347C162 342 163 331 169 322Z" />
+  </g>
+</g>
+<g id="review-stars">
+  <g id="left-star">
+    <path fill="url(#left-grad)" d="M201 407C212 386 234 386 247 407L271 447C273 450 278 452 284 453L316 460C340 465 347 486 330 504L305 530C300 535 298 539 300 547L307 581C312 606 291 619 271 608L234 591C228 588 222 588 216 591L178 609C156 619 137 605 142 581L148 547C150 539 149 535 143 529L119 504C100 485 110 465 130 460L171 451C177 450 180 446 183 441Z" />
+    <path fill="url(#star-shine-grad)" d="M207 415C213 403 220 402 226 408C231 415 219 439 212 453C204 470 194 473 178 477L145 485C124 491 121 476 135 469L171 460C187 457 189 450 196 436Z" />
+  </g>
+  <g id="middle-star">
+    <path fill="url(#center-grad)" d="M478 327C491 301 520 300 537 325L570 382C574 388 578 390 586 392L643 404C674 410 683 437 665 458L624 501C616 509 613 515 616 528L625 578C632 611 606 630 579 615L524 590C514 585 505 585 496 590L442 616C412 630 385 613 391 580L400 530C403 517 402 510 393 501L354 460C333 439 345 411 373 404L430 391C441 389 446 385 451 375Z" />
+    <path fill="url(#star-shine-grad)" d="M487 336C496 321 507 321 512 332C516 341 495 382 487 398C479 416 466 423 447 428L391 440C377 444 367 438 367 430C366 421 376 416 388 413L436 402C454 398 458 390 467 374Z" />
+  </g>
+  <g id="right-star">
+    <path fill="url(#right-grad)" d="M774 407C785 386 808 386 821 408L844 447C847 451 851 452 857 453L889 460C913 465 919 485 902 504L877 530C872 535 870 539 872 547L878 581C884 606 863 619 843 608L806 591C800 588 794 588 788 591L750 609C728 619 709 605 714 581L720 547C722 539 721 535 715 529L691 504C673 486 682 465 703 460L744 451C750 450 753 446 756 441Z" />
+    <path fill="url(#star-shine-grad)" d="M779 415C785 403 793 402 798 409C803 416 791 439 784 453C776 470 766 473 750 477L717 485C696 491 693 476 707 469L744 460C759 457 761 449 768 436Z" />
+  </g>
+</g>
+</svg>

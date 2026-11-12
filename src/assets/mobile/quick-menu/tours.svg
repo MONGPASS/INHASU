@@ -1,38 +1,132 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg id="_레이어_2" data-name="레이어 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 133.03 188.56">
-  <defs>
-    <style>
-      .cls-1 {
-        fill: #1a6b5c;
-      }
-
-      .cls-2 {
-        fill: #f1fcf8;
-      }
-
-      .cls-3 {
-        fill: #ff6969;
-      }
-
-      .cls-4 {
-        fill: #fff;
-      }
-
-      .cls-5 {
-        fill: #6ddbbe;
-      }
-    </style>
-  </defs>
-  <g id="icons">
-    <path class="cls-5" d="M123.92,155.49l-21.41,8.68c1.24,6.28,2.51,12.56,5.36,16.52,9.48,13.17,27.76,1.91,24.85-10.03-1.04-4.27-5.01-9.42-8.8-15.17Z"/>
-    <path class="cls-5" d="M93.66,144.2C19.25,132.06-32.45,45.65,38.55,7.25,64.44-6.76,103.54-1.02,119.95,29.31c14.63,27.03,6.51,94.45-6.07,106.56-4.9,4.72-20.22,8.33-20.22,8.33Z"/>
-    <path class="cls-4" d="M75.81,86.1l3.87,2.89c.37.28.87.29,1.27.05l4.38-2.76c.95-.6,2.09.41,1.59,1.42l-2.01,4.09c-.23.48-.1,1.05.32,1.37l3.46,2.59c.85.64.39,1.99-.68,2l-5.38.06c-.43,0-.81.25-1,.63l-2.37,4.83c-.47.96-1.89.79-2.1-.25l-.84-4.24c-.1-.52-.56-.89-1.09-.88l-4.56.05c-1.12.01-1.54-1.45-.59-2.05l4.38-2.76c.39-.25.59-.71.5-1.16l-.94-4.74c-.2-1,.95-1.73,1.77-1.12Z"/>
-    <path class="cls-3" d="M102.17,162.43c4.15-1.68,18.66-6.38,21.26-7.7l2.53,3.8c-2.71,1.3-17.88,6.68-22.83,8.74l-.97-4.84Z"/>
-    <path class="cls-4" d="M108.16,174.11c.8,1.71,3.72,2.72,4.51.43,1.01-2.93-3.88-7.72-5.85-9.85,0,0,.3,7.22,1.34,9.43Z"/>
-    <path class="cls-4" d="M117.17,170.9c.8,1.71,3.72,2.72,4.51.43,1.01-2.93-3.88-7.72-5.85-9.85,0,0,.3,7.22,1.34,9.43Z"/>
-    <path class="cls-2" d="M11.4,87.75s23.31-1.75,35.42-4.98c0,0,1.96,21.28-13.16,22.27-15.11.99-22.26-17.28-22.26-17.28Z"/>
-    <path class="cls-2" d="M46.82,82.77s30.98-7.24,46.38-21.22c0,0-4.39,43.49-46.38,21.22Z"/>
-    <path class="cls-2" d="M93.2,61.55s17.82-15.59,26.31-33.04c9.81,19.44,3.95,39.88-26.31,33.04Z"/>
-    <path class="cls-1" d="M114.04,131.41c11.24-25.76,14.72-75.61,2.13-101.1C92.05-13.51,26.23-6.1,4.95,36.52c-14.93,31.63,6.3,66.97,31.63,86.23,12.24,9.49,26.34,16.58,41.29,20.65,5.76,1.97,13.57,1.06,16.33,7.68,5.41,10.66,3.01,24.7,11.6,33.78,9.06,9.39,27.04-.59,23.58-13.23-4.82-13.27-20.49-24.62-15.34-40.21ZM122.44,59.33c1.52,24,.06,49.15-9.2,71.59-2.11,5.11-6.6,8.37-11.71,10.16,2.4-25.75-1.31-52.25-9.94-76.61,12.67,4.56,27.52,1.63,29.84-13.56.44,2.8.78,5.61,1.02,8.43ZM35.58,8.37c26.39,7.25,45.4,29.94,54.51,54.98-13.37,10.21-29.52,16.07-45.87,19.47-13.3-22.06-18.79-49.97-8.78-74.38.05-.02.09-.05.13-.07ZM84.21,94.34l3.56,2.61c.32.23.24.57.21.67-.07.23-.28.48-.66.49l-5.58.13c-.63.01-1.2.37-1.48.93l-2.52,4.98c-.33.53-1,.59-1.24-.1,0,0-.82-4.34-.82-4.34-.14-.76-.81-1.3-1.59-1.3-.05,0-4.72.1-4.77.11-.43-.03-.58-.32-.61-.42-.07-.23-.02-.54.3-.75,6.08-4.04,5.94-1.99,4.44-9.45-.04-.72.55-.96,1.07-.67,0,0,3.97,2.91,3.97,2.91.54.4,1.29.42,1.88.05l4.59-2.89c.32-.2.63-.11.8.05.08.07.32.33.12.73l-2.14,4.22c-.36.71-.16,1.56.47,2.03ZM59.54,86.99c-4.61-.76-9.11-2.08-13.54-3.52,15.55-3.38,30.85-9.05,43.72-18.58-5.36,13.93-13.46,25.65-30.17,22.1ZM58.18,87.76c4.7.88,9.69,1.25,14.3-.24-.19.1.89,5.15.91,5.42.05.26-.08.53-.31.68l-4.59,2.89c-1.4.81-.78,3.11.86,3.01,0,0,4.73-.11,4.73-.11.31,0,.57.2.62.48l.82,4.34c.14.76.82,1.31,1.6,1.3.64,0,1.21-.35,1.51-.93l2.53-4.98c.12-.23.36-.38.61-.38l5.58-.13c.74-.02,1.36-.49,1.59-1.19.78-1.67-3.16-3.41-4.13-4.38-.24-.18-.31-.49-.17-.77l2.14-4.22c.8-1.44-1.01-3-2.34-2.08,0,0-4.59,2.89-4.59,2.89-.24.15-.54.14-.75-.01l-3.95-2.89c8.18-4.27,12.17-13.32,15.59-21.43,8.49,24.1,12.16,50.31,9.81,75.79-22.38-14.26-41.58-34.01-55.49-56.6,4.3,1.41,8.66,2.73,13.12,3.55ZM120.71,46.91c.21,16.95-15.1,21.72-29.08,16.52,10.21-7.88,18.54-17.97,25.44-28.81,1.68,3.93,2.79,8.11,3.64,12.29ZM68.6,1.86c20.05,1.19,39.76,12.99,47.97,31.67-6.94,10.99-15.32,21.23-25.66,29.2-9.14-24.86-27.9-47.44-54.02-55,9.78-4.76,20.88-6.64,31.7-5.87ZM1.21,63.36C-1.46,40.16,14.1,19.25,34.12,9.13c-9.57,24.35-4.05,51.95,9.07,73.9-11.52,2.36-23.23,3.64-34.95,4.45-3.74-7.54-6.31-15.72-7.03-24.12ZM8.72,88.45c11.69-.82,23.38-2.11,34.87-4.48.16,16.8-13.08,21.81-27.4,16.55-2.8-3.82-5.31-7.86-7.47-12.08ZM66.85,138.73c-19.43-7.55-37.01-20.23-49.66-36.85,14.02,4.68,26.81-.57,27.36-16.54,14,22.44,33.12,42.11,55.44,56.32-3.47,1.28-7.01,2.35-10.61,3.23-7.7-1.27-15.26-3.35-22.54-6.16ZM127.21,168.88c8.63,17.12-23.25,31.91-27.37-.56,1.98-.82,3.98-1.59,5.98-2.35.61,3.72-.58,10.3,4.23,11.33,6.85-1.15-.73-9.34-3.14-11.74,2.51-.94,5.03-1.86,7.55-2.78.59,3.63-.5,10,4.21,10.97,6.72-1.06-.49-9.11-2.88-11.47,1.96-.74,3.93-1.44,5.85-2.29,1.98,2.88,4.01,5.76,5.58,8.89ZM108.08,174.81c-.91-2.48-.96-5.21-1.2-7.82,1.9,2.14,4.2,4.3,4.87,7.18.49,2.73-2.77,2.67-3.67.64ZM116.7,171.26c-.91-2.48-.96-5.21-1.2-7.82,1.9,2.14,4.2,4.3,4.87,7.18.49,2.73-2.77,2.67-3.67.64ZM121.07,159.16c-7.05,2.94-14.36,5.25-21.43,8.16-.25-1.27-.5-2.54-.75-3.8,6.64-2.68,13.6-4.57,20.2-7.35.65,1.02,1.3,2,1.98,2.99ZM118.55,155.33c-6.49,2.73-13.31,4.63-19.87,7.2-1.37-5.99-2.44-13.38-8.05-16.92,7.6-2.29,16.9-4.03,21.62-11.02-1.05,7.35,2.36,14.47,6.3,20.74Z"/>
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
+<defs>
+  <linearGradient id="shell-grad" x1="236" y1="239" x2="808" y2="920" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#27e6f3" />
+    <stop offset=".43" stop-color="#00adf8" />
+    <stop offset=".78" stop-color="#006bff" />
+    <stop offset="1" stop-color="#0035d9" />
+  </linearGradient>
+  <linearGradient id="strap-grad" x1="212" y1="239" x2="350" y2="899" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#fff34a" />
+    <stop offset=".27" stop-color="#ffb900" />
+    <stop offset=".72" stop-color="#ff9400" />
+    <stop offset="1" stop-color="#ff4e00" />
+  </linearGradient>
+  <linearGradient id="right-strap-grad" x1="720" y1="214" x2="850" y2="916" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#ffef3c" />
+    <stop offset=".3" stop-color="#ffb500" />
+    <stop offset="1" stop-color="#ff5100" />
+  </linearGradient>
+  <linearGradient id="handle-grad" x1="484" y1="31" x2="520" y2="159" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#fff34c" />
+    <stop offset=".42" stop-color="#ffcf00" />
+    <stop offset="1" stop-color="#ff7900" />
+  </linearGradient>
+  <linearGradient id="shine-grad" x1="126" y1="244" x2="197" y2="354" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#fff" stop-opacity=".95" />
+    <stop offset="1" stop-color="#fff" stop-opacity=".12" />
+  </linearGradient>
+  <linearGradient id="handle-shine-grad" x1="425" y1="44" x2="436" y2="95" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#ffffc2" />
+    <stop offset="1" stop-color="#fff479" stop-opacity="0" />
+  </linearGradient>
+  <linearGradient id="post-grad" x1="326" y1="170" x2="396" y2="210" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#24bbfa" />
+    <stop offset="1" stop-color="#0869e7" />
+  </linearGradient>
+  <linearGradient id="buckle-grad" x1="233" y1="394" x2="268" y2="493" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#fff967" />
+    <stop offset=".43" stop-color="#ffda16" />
+    <stop offset="1" stop-color="#ff9c00" />
+  </linearGradient>
+  <linearGradient id="slot-grad" x1="240" y1="420" x2="249" y2="468" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#ee7900" />
+    <stop offset=".36" stop-color="#ff9c00" />
+    <stop offset="1" stop-color="#ffb500" />
+  </linearGradient>
+  <linearGradient id="corner-grad" x1="94" y1="743" x2="170" y2="914" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#ffe72d" />
+    <stop offset=".45" stop-color="#ffbd00" />
+    <stop offset="1" stop-color="#ff7d00" />
+  </linearGradient>
+  <linearGradient id="right-corner-grad" x1="853" y1="753" x2="939" y2="882" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#ffe62b" />
+    <stop offset=".5" stop-color="#ffb200" />
+    <stop offset="1" stop-color="#ff7900" />
+  </linearGradient>
+  <radialGradient id="wheel-grad" cx=".29" cy=".36" r=".74">
+    <stop stop-color="#346cbb" />
+    <stop offset=".46" stop-color="#1d408d" />
+    <stop offset="1" stop-color="#152268" />
+  </radialGradient>
+  <linearGradient id="depth-grad" x1="400" y1="465" x2="696" y2="744" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#004a92" stop-opacity=".35" />
+    <stop offset="1" stop-color="#003da0" stop-opacity="0" />
+  </linearGradient>
+  <linearGradient id="strap-shadow-grad" x1="300" y1="451" x2="396" y2="499" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#004b98" stop-opacity=".35" />
+    <stop offset="1" stop-color="#0062bb" stop-opacity="0" />
+  </linearGradient>
+  <linearGradient id="plane-grad" x1="483" y1="488" x2="536" y2="596" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#fffdf2" />
+    <stop offset=".48" stop-color="#f4fafb" />
+    <stop offset="1" stop-color="#87c9f1" />
+  </linearGradient>
+  <linearGradient id="wing-grad" x1="446" y1="462" x2="523" y2="651" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#ffe932" />
+    <stop offset=".48" stop-color="#ffcc00" />
+    <stop offset="1" stop-color="#ff9100" />
+  </linearGradient>
+  <linearGradient id="window-grad" x1="483" y1="509" x2="509" y2="548" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#11d8f1" />
+    <stop offset="1" stop-color="#04a7ec" />
+  </linearGradient>
+  <clipPath id="shell-clip"><path d="M218 222H792C894 222 975 302 975 404V753C975 848 904 919 809 919H204C110 919 38 848 38 753V406C38 304 116 222 218 222Z" /></clipPath>
+</defs>
+<g id="suitcase">
+  <g id="wheels" fill="url(#wheel-grad)">
+    <path d="M162 891H302V925C300 965 274 997 234 998C192 998 161 970 160 931Z" />
+    <path d="M712 890H852V927C850 968 823 998 783 998C742 998 713 967 711 930Z" />
   </g>
+  <g id="handle">
+    <path d="M322 131H398V235H322Z M616 131H691V235H616Z" fill="url(#post-grad)" />
+    <path d="M307 110C307 62 350 29 405 29H609C664 29 707 64 707 110C707 141 682 159 653 159C628 159 615 139 591 139H422C399 139 387 159 360 159C330 159 307 141 307 110Z" fill="url(#handle-grad)" />
+    <path d="M337 78C348 54 377 45 408 45H605C631 45 650 51 666 65C602 57 528 65 439 67C405 68 383 73 357 89C344 98 331 96 337 78Z" fill="url(#handle-shine-grad)" />
+  </g>
+  <path d="M218 222H792C894 222 975 302 975 404V753C975 848 904 919 809 919H204C110 919 38 848 38 753V406C38 304 116 222 218 222Z" fill="url(#shell-grad)" />
+  <g clip-path="url(#shell-clip)">
+    <path d="M299 400L516 631V919H290V462Z M818 397L1033 633V920H804V478Z" fill="url(#strap-shadow-grad)" />
+    <path d="M399 474L539 472L642 449L866 696L771 916H637L363 632L389 584L342 561Z" fill="url(#depth-grad)" />
+    <path d="M79 337C97 293 147 251 205 249L208 297C165 305 134 327 107 355C87 377 73 366 79 337Z" fill="url(#shine-grad)" />
+    <path d="M306 223H709L718 245H299Z" fill="#73f7ff" opacity=".25" />
+  </g>
+  <g id="straps">
+    <path d="M206 392V292C206 259 210 226 229 214C246 203 290 205 309 212L323 222C297 224 292 258 292 291V845C292 882 293 908 304 918H218C207 918 205 914 205 901Z" fill="url(#strap-grad)" />
+    <path d="M721 394V291C721 258 715 232 695 222C705 207 741 204 766 208C790 211 799 219 803 242C808 262 809 278 809 300V899C809 914 808 918 796 918H707C719 911 721 874 721 842Z" fill="url(#right-strap-grad)" />
+  </g>
+  <g id="buckles">
+    <path d="M207 398H291C310 398 323 414 323 434V464C323 486 307 501 287 501H209C187 501 177 485 177 465V433C177 413 189 398 207 398Z" fill="#0062a8" opacity=".16" />
+    <rect x="177" y="393" width="142" height="98" rx="31" fill="url(#buckle-grad)" />
+    <rect x="204" y="420" width="87" height="44" rx="11" fill="url(#slot-grad)" />
+    <path d="M214 463H279Q291 463 291 451" fill="none" stroke="#ffe94d" stroke-opacity=".65" stroke-width="2" />
+    <rect x="695" y="393" width="142" height="98" rx="31" fill="url(#buckle-grad)" />
+    <rect x="722" y="420" width="87" height="44" rx="11" fill="url(#slot-grad)" />
+    <path d="M732 463H797Q809 463 809 451" fill="none" stroke="#ffe94d" stroke-opacity=".65" stroke-width="2" />
+  </g>
+  <g id="airplane-sticker">
+    <path d="M455 524L404 480C378 457 401 428 433 438L539 467Z" fill="url(#wing-grad)" />
+    <path d="M370 602L340 564C321 539 346 517 371 528L418 547C425 550 427 555 420 562Z" fill="url(#wing-grad)" />
+    <path d="M373 594C409 561 451 532 493 502L565 453C594 434 622 429 641 447C661 464 665 487 648 512C632 536 601 552 575 567L412 633C394 641 378 649 368 640C356 630 358 609 373 594Z" fill="url(#plane-grad)" />
+    <path d="M477 599C479 592 485 589 495 585L579 548C590 543 594 547 588 557L528 653C516 674 493 694 477 692C461 690 453 678 460 658Z" fill="url(#wing-grad)" />
+    <g fill="url(#window-grad)">
+      <rect x="472" y="523" width="28" height="32" rx="14" transform="rotate(-31 486 539)" />
+      <rect x="512" y="503" width="28" height="32" rx="14" transform="rotate(-31 526 519)" />
+      <rect x="552" y="484" width="28" height="32" rx="14" transform="rotate(-31 566 500)" />
+    </g>
+  </g>
+  <g id="corner-guards">
+    <path d="M38 756C38 740 44 736 65 738C140 746 194 805 204 873C207 892 208 910 201 915C191 922 156 917 134 909C74 886 38 833 38 775Z" fill="url(#corner-grad)" />
+    <path d="M975 755C975 741 968 737 950 738C873 742 817 809 808 881C806 897 805 909 811 914C820 922 852 918 874 910C936 888 975 836 975 775Z" fill="url(#right-corner-grad)" />
+  </g>
+</g>
 </svg>

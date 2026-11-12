@@ -1,1 +1,85 @@
-<svg id="Capa_1" enable-background="new 0 0 510 510" height="512" viewBox="0 0 510 510" width="512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="162.993" x2="322.783" y1="235.429" y2="577.331"><stop offset="0" stop-color="#cdec7a"/><stop offset=".2157" stop-color="#b0e995"/><stop offset=".5613" stop-color="#87e4bb"/><stop offset=".8347" stop-color="#6ee1d2"/><stop offset="1" stop-color="#65e0db"/></linearGradient><linearGradient id="lg1"><stop offset="0" stop-color="#cdec7a" stop-opacity="0"/><stop offset=".2354" stop-color="#9ad57d" stop-opacity=".235"/><stop offset=".6035" stop-color="#51b482" stop-opacity=".604"/><stop offset=".8679" stop-color="#239f85" stop-opacity=".868"/><stop offset="1" stop-color="#119786"/></linearGradient><linearGradient id="SVGID_2_" gradientUnits="userSpaceOnUse" x1="481.376" x2="258.725" xlink:href="#lg1" y1="372.913" y2="474.263"/><linearGradient id="SVGID_3_" gradientUnits="userSpaceOnUse" x1="349.341" x2="196.119" xlink:href="#lg1" y1="415.493" y2="344.468"/><linearGradient id="SVGID_4_" gradientUnits="userSpaceOnUse" x1="232.608" x2="45.869" xlink:href="#lg1" y1="386.977" y2="446.83"/><linearGradient id="SVGID_5_" gradientUnits="userSpaceOnUse" x1="439.406" x2="275.589" xlink:href="#lg1" y1="438.253" y2="270.887"/><linearGradient id="SVGID_6_" gradientUnits="userSpaceOnUse" x1="150.965" x2="405.15" y1="67.755" y2="321.941"><stop offset="0" stop-color="#18cefb"/><stop offset=".2969" stop-color="#2bb9f9"/><stop offset=".7345" stop-color="#42a0f7"/><stop offset="1" stop-color="#4a97f6"/></linearGradient><linearGradient id="lg2"><stop offset="0" stop-color="#4a97f6" stop-opacity="0"/><stop offset="1" stop-color="#0469bb"/></linearGradient><linearGradient id="SVGID_7_" gradientUnits="userSpaceOnUse" x1="471.534" x2="125.504" xlink:href="#lg2" y1="371.614" y2="25.584"/><linearGradient id="SVGID_8_" gradientUnits="userSpaceOnUse" x1="379.739" x2="286.075" xlink:href="#lg2" y1="264.123" y2="193.478"/><linearGradient id="SVGID_9_" gradientUnits="userSpaceOnUse" x1="220.009" x2="310.609" y1="120.089" y2="210.69"><stop offset="0" stop-color="#ffd945"/><stop offset=".3043" stop-color="#ffcd3e"/><stop offset=".8558" stop-color="#ffad2b"/><stop offset="1" stop-color="#ffa325"/></linearGradient><g><g><path d="m355.954 287.443-89.226 29.233c-7.621 2.497-15.835 2.497-23.456 0l-89.226-29.233c-7.379-2.418-15.451-2.418-23.109 0l-95.405 30.118c-5.58 1.761-9.82 6.871-10.49 12.672l-18.527 160.451c-1.231 10.662 7.319 18.296 16.887 14.995l95.745-33.034c8.401-2.898 17.24-2.898 25.306 0l97.687 35.103c8.356 3.003 17.365 3.003 25.722 0l97.687-35.103c8.066-2.898 16.905-2.898 25.306 0l95.745 33.034c9.567 3.301 18.118-4.333 16.887-14.995l-18.527-160.451c-.67-5.801-4.91-10.911-10.49-12.672l-95.405-30.118c-7.66-2.418-15.732-2.418-23.111 0z" fill="url(#SVGID_1_)"/><path d="m474.468 317.561-95.405-30.118c-3.831-1.209-7.764-1.814-11.659-1.814l10.671 184.841c4.265 0 8.575.724 12.778 2.175l95.745 33.034c9.567 3.301 18.118-4.333 16.887-14.995l-18.527-160.451c-.669-5.801-4.91-10.911-10.49-12.672z" fill="url(#SVGID_2_)"/><path d="m267.861 507.748 97.687-35.103c4.036-1.45 8.262-2.175 12.527-2.175l-10.671-184.841c-3.895 0-7.758.604-11.45 1.814l-89.226 29.233c-3.808 1.248-7.767 1.872-11.728 1.872v191.451c4.344 0 8.686-.751 12.861-2.251z" fill="url(#SVGID_3_)"/><path d="m255 318.548c-3.961 0-7.92-.624-11.728-1.872l-89.226-29.233c-3.692-1.209-7.555-1.814-11.45-1.814l-10.672 184.841c4.265 0 8.492.724 12.527 2.175l97.687 35.103c4.175 1.5 8.516 2.251 12.861 2.251z" fill="url(#SVGID_4_)"/></g><path d="m390.854 472.645 95.745 33.035c9.568 3.301 18.118-4.333 16.887-14.995l-18.527-160.451c-.67-5.801-4.91-10.911-10.49-12.672l-95.405-30.118c-7.658-2.417-15.731-2.417-23.11 0l-89.226 29.233c-7.621 2.497-15.835 2.497-23.456 0l-89.226-29.233s32.757 52.716 51.959 71.323l125.95 125.95 33.593-12.071c8.066-2.9 16.905-2.9 25.306-.001z" fill="url(#SVGID_5_)"/><g><path d="m410.08 155.08c0 85.648-109.193 233.16-155.08 233.16s-155.08-147.511-155.08-233.16 69.432-155.08 155.08-155.08 155.08 69.432 155.08 155.08z" fill="url(#SVGID_6_)"/><circle cx="255" cy="155.08" fill="url(#SVGID_7_)" r="133.487"/><path d="m332.028 82.124c-19.336-20.409-46.694-31.141-77.028-31.141-58.596 0-104.097 45.501-104.097 104.097 0 30.333 10.732 57.691 31.14 77.028l124.325 124.326c47.13-46.867 100.745-135.495 103.581-196.388z" fill="url(#SVGID_8_)"/><circle cx="255" cy="155.08" fill="url(#SVGID_9_)" r="106.097"/></g></g></svg>
+<svg viewBox="0 0 1024 1024" width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="head-grad" x1="0.18" y1="0.12" x2="0.86" y2="0.91">
+      <stop offset="0" stop-color="#fff36a" />
+      <stop offset="0.32" stop-color="#ffdc17" />
+      <stop offset="0.68" stop-color="#ff9500" />
+      <stop offset="1" stop-color="#ff4c05" />
+    </linearGradient>
+    <radialGradient id="head-shine-grad" cx="0.26" cy="0.19" r="0.62">
+      <stop offset="0" stop-color="#ffffb1" stop-opacity="0.75" />
+      <stop offset="0.4" stop-color="#fff77b" stop-opacity="0.18" />
+      <stop offset="1" stop-color="#ffdb20" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="neck-grad" x1="0.3" y1="1" x2="0.58" y2="0">
+      <stop offset="0" stop-color="#ffe653" />
+      <stop offset="0.48" stop-color="#ffbd20" />
+      <stop offset="1" stop-color="#e66400" />
+    </linearGradient>
+    <linearGradient id="mint-grad" x1="0.23" y1="0.02" x2="0.86" y2="0.97">
+      <stop offset="0" stop-color="#75ff9e" />
+      <stop offset="0.35" stop-color="#40f59b" />
+      <stop offset="0.7" stop-color="#0ed891" />
+      <stop offset="1" stop-color="#00a66b" />
+    </linearGradient>
+    <linearGradient id="mint-shadow-grad" x1="0" y1="0" x2="1" y2="0.9">
+      <stop offset="0" stop-color="#008a71" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#008557" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="blue-grad" x1="0.14" y1="0.06" x2="0.86" y2="1">
+      <stop offset="0" stop-color="#66ffff" />
+      <stop offset="0.31" stop-color="#13d5f4" />
+      <stop offset="0.68" stop-color="#079ff6" />
+      <stop offset="1" stop-color="#0754e2" />
+    </linearGradient>
+    <linearGradient id="blue-shadow-grad" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#0073b9" stop-opacity="0.48" />
+      <stop offset="1" stop-color="#0054d5" stop-opacity="0.04" />
+    </linearGradient>
+    <linearGradient id="pack-grad" x1="0.1" y1="0.12" x2="0.85" y2="0.8">
+      <stop offset="0" stop-color="#1edaff" />
+      <stop offset="0.26" stop-color="#008cff" />
+      <stop offset="0.61" stop-color="#003de0" />
+      <stop offset="1" stop-color="#0723af" />
+    </linearGradient>
+    <linearGradient id="strap-grad" x1="0.05" y1="0" x2="0.81" y2="0.93">
+      <stop offset="0" stop-color="#3edaff" />
+      <stop offset="0.28" stop-color="#127dff" />
+      <stop offset="0.62" stop-color="#0347ef" />
+      <stop offset="1" stop-color="#0915ad" />
+    </linearGradient>
+    <linearGradient id="strap-edge-grad" x1="0" y1="0" x2="1" y2="0.65">
+      <stop offset="0" stop-color="#62eaff" />
+      <stop offset="0.45" stop-color="#0969fa" />
+      <stop offset="1" stop-color="#0929bf" />
+    </linearGradient>
+    <clipPath id="mint-clip">
+      <path d="M598 558C540 563 494 603 475 660C454 724 471 834 498 891C524 924 598 941 713 941C824 941 942 922 977 877C1002 844 988 744 968 687C940 611 886 570 809 559Z" />
+    </clipPath>
+    <clipPath id="blue-clip">
+      <path d="M249 530C199 540 149 575 113 628C64 700 32 778 37 840C39 889 62 909 116 924C186 945 310 948 424 940C506 935 560 925 584 910C597 857 570 703 531 620C509 570 483 537 446 525C404 552 307 560 249 530Z" />
+    </clipPath>
+  </defs>
+  <g id="companion-mint">
+    <path d="M598 558C540 563 494 603 475 660C454 724 471 834 498 891C524 924 598 941 713 941C824 941 942 922 977 877C1002 844 988 744 968 687C940 611 886 570 809 559Z" fill="url(#mint-grad)" />
+    <g clip-path="url(#mint-clip)">
+      <path d="M520 589L897 939L510 983L448 674Z" fill="url(#mint-shadow-grad)" />
+    </g>
+    <path d="M626 516C624 540 615 550 598 558C606 590 653 622 701 621C748 620 793 596 809 562C786 551 782 535 780 513Z" fill="url(#neck-grad)" />
+    <path d="M893 354C893 460 811 546 710 546C610 546 529 461 529 356C529 254 610 173 715 173C815 173 893 252 893 354Z" fill="url(#head-grad)" />
+    <path d="M893 354C893 460 811 546 710 546C610 546 529 461 529 356C529 254 610 173 715 173C815 173 893 252 893 354Z" fill="url(#head-shine-grad)" />
+  </g>
+  <g id="traveler-blue">
+    <path d="M242 458C172 454 99 465 62 512C30 553 28 619 28 687C28 720 34 746 49 760L163 692L274 506L277 480Z" fill="url(#pack-grad)" />
+    <path d="M446 525C492 529 532 566 559 615C594 677 614 747 618 817C622 872 610 899 584 911L526 795L461 601Z" fill="url(#strap-grad)" />
+    <path d="M249 530C199 540 149 575 113 628C64 700 32 778 37 840C39 889 62 909 116 924C186 945 310 948 424 940C506 935 560 925 584 910C597 857 570 703 531 620C509 570 483 537 446 525C404 552 307 560 249 530Z" fill="url(#blue-grad)" />
+    <g clip-path="url(#blue-clip)">
+      <path d="M271 610L577 925L310 985L163 929Z" fill="url(#blue-shadow-grad)" />
+    </g>
+    <path d="M278 479C275 505 266 521 250 531C277 558 331 595 385 594C421 593 450 579 466 559C446 535 438 515 436 482Z" fill="url(#neck-grad)" />
+    <path d="M150 930C198 862 224 787 228 716C233 645 210 584 176 571C158 565 141 576 127 590C135 555 156 536 194 529C224 523 244 522 265 537C306 564 323 616 321 676C318 772 282 866 221 939Z" fill="url(#strap-grad)" />
+    <path d="M127 590C137 563 151 547 167 549C210 552 244 623 239 701C236 791 205 865 150 930C194 860 224 786 228 716C232 648 213 589 180 574C164 563 146 574 127 590Z" fill="url(#strap-edge-grad)" />
+    <path d="M552 309C552 418 468 508 361 508C255 508 168 423 168 314C168 204 255 114 365 114C471 114 552 200 552 309Z" fill="url(#head-grad)" />
+    <path d="M552 309C552 418 468 508 361 508C255 508 168 423 168 314C168 204 255 114 365 114C471 114 552 200 552 309Z" fill="url(#head-shine-grad)" />
+  </g>
+</svg>
