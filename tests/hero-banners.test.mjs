@@ -27,7 +27,7 @@ const bundled = buildSync({
     platform: 'node',
     packages: 'external',
     jsx: 'automatic',
-    loader: { '.webp': 'dataurl' },
+    loader: { '.webp': 'dataurl', '.svg': 'dataurl' },
     define: { 'import.meta.env': '{}' },
     write: false,
 }).outputFiles[0].text;

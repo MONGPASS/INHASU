@@ -58,25 +58,25 @@ export function HomeMobile({ data, isLoading }: Props) {
 function QuickMenu() {
     const go = useGo();
     return (
-        <nav aria-label="퀵 메뉴" style={{ padding: '28px 16px 0' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '18px 10px' }}>
+        <nav aria-label="퀵 메뉴" style={{ padding: '24px 24px 0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: '16px 8px' }}>
                 {QUICK_MENU.map((item) => (
-                    <a key={item.key} {...linkTo(go, item.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: MW.navy, minWidth: 0, textDecoration: 'none' }}>
-                        <span style={{ position: 'relative', width: 76, height: 76 }}>
-                            <span style={{ position: 'absolute', inset: 0, borderRadius: 24, background: M_TILE, border: '1.5px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                <img src={item.icon} alt="" width={58} height={58} style={{ width: 58, height: 58, objectFit: 'contain', pointerEvents: 'none' }} />
+                    <a key={item.key} {...linkTo(go, item.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, color: MW.navy, minWidth: 0, textDecoration: 'none' }}>
+                        <span style={{ position: 'relative', width: 62, height: 62 }}>
+                            <span style={{ position: 'absolute', inset: 0, borderRadius: 20, background: M_TILE, border: '1px solid #EEF0F5', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <img src={item.icon} alt="" width={42} height={42} style={{ width: 42, height: 42, objectFit: 'contain', pointerEvents: 'none' }} />
                             </span>
                             {/* The home grid only marks new entries; PICK / EVENT pills belong to the drawer. */}
                             {item.isNew && (
                                 <span
                                     aria-label="신규"
-                                    style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%', background: MW.red, border: '2px solid #FFFFFF', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MW_FONT_EN, fontSize: 9, fontWeight: 700, color: '#FFFFFF', pointerEvents: 'none' }}
+                                    style={{ position: 'absolute', top: -5, right: -5, width: 19, height: 19, borderRadius: '50%', background: MW.red, border: '1.5px solid #FFFFFF', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MW_FONT_EN, fontSize: 8, fontWeight: 700, color: '#FFFFFF', pointerEvents: 'none' }}
                                 >
                                     N
                                 </span>
                             )}
                         </span>
-                        <span style={{ maxWidth: '100%', fontSize: 13, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
+                        <span style={{ maxWidth: '100%', fontSize: 13, fontWeight: 600, letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
                     </a>
                 ))}
             </div>

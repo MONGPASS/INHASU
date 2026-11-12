@@ -18,6 +18,9 @@ export const Reservation: React.FC = () => {
     const [product, setProduct] = useState<TourProduct | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // 긴 상세 화면에서 넘어오면 스크롤 위치가 그대로 남아 맨 아래부터 보인다. 들어올 때 맨 위에서 시작한다.
+    useEffect(() => { window.scrollTo(0, 0); }, []);
+
     // State
     const [totalPeople, setTotalPeople] = useState<number>(2);
     const [selectedAccomId, setSelectedAccomId] = useState<string>('');

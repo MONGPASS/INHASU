@@ -23,7 +23,7 @@ const LINE = '#E3EEEA';
 /** 디자인 파일의 치수 — [PC 860px, 모바일 430px] */
 const SIZES = {
     desktop: {
-        canvas: 860, heroH: 330, heroPad: '48px 50px 0', heroBottom: 40, h2: 40,
+        canvas: 860, heroH: 330, heroFixed: 0, routeFont: 0, routeTop: 0, heroPad: '48px 50px 0', heroBottom: 40, h2: 40,
         stripTop: 34, stripGap: 8, lineTop: 8, dot: 18, colGap: 10, dayLabel: 16, daySub: 18, daySubTop: -6,
         cardMargin: 30, cardRadius: 32, cardPad: '54px 46px 90px', label: 22, h3: 44, h3Top: 10, desc: 21, descTop: 26, descMax: 640,
         gridTop: 40, gridGap: 14, gridH: 240, gridWideH: 400, gridRadius: 16,
@@ -34,7 +34,7 @@ const SIZES = {
         rowPad: '26px 30px', rowGap: 22, rowLabel: 22, rowTitle: 24, rowIcon: 26, allPad: '0 30px 14px', allFont: 17,
     },
     mobile: {
-        canvas: 430, heroH: 300, heroPad: '34px 18px 0', heroBottom: 28, h2: 24,
+        canvas: 430, heroH: 300, heroFixed: 200, routeFont: 15, routeTop: 16, heroPad: '34px 18px 0', heroBottom: 28, h2: 24,
         stripTop: 26, stripGap: 4, lineTop: 5, dot: 12, colGap: 7, dayLabel: 11, daySub: 11, daySubTop: -4,
         cardMargin: 12, cardRadius: 22, cardPad: '32px 18px 60px', label: 15, h3: 28, h3Top: 6, desc: 14, descTop: 16, descMax: 640,
         gridTop: 26, gridGap: 8, gridH: 140, gridWideH: 220, gridRadius: 12,
@@ -95,6 +95,21 @@ function blockImages(b: Block): string[] {
 }
 
 const img = (src: string) => src;
+
+/** 일차 제목에 적힌 지명들 — 「인천, 울란바토르, 테렐지」「울란바토르 → 테렐지」처럼 나눠 적은 경우만 나뉜다 */
+const titlePlaces = (title?: string) => (title ?? '').split(/\s*(?:,|，|、|→|➝|▶|>|~|·|\/)\s*|\s+-\s+/).map(v => v.trim()).filter(Boolean);
+
+/**
+ * 그날의 출발지 → 도착지. 제목에 지명이 둘 이상이면 처음과 끝, 아니면 전날·당일 숙소 지역.
+ * 알 수 없으면 null (제목만 보여 준다).
+ */
+function dayRoute(cur: DayInfoContent, prev?: DayInfoContent): [string, string] | null {
+    const places = titlePlaces(cur.title);
+    if (places.length >= 2) return [places[0], places[places.length - 1]];
+    const from = prev?.accommodationRegion?.trim();
+    const to = cur.accommodationRegion?.trim();
+    return from && to && from !== to ? [from, to] : null;
+}
 
 /** 옛 일본어 자동 일차 라벨(「1日目」)을 한국어(「1일차」)로 바꾼다 — 그 밖의 라벨은 그대로 */
 const koDayLabel = (label: string) => label.replace(/^\s*(\d+)\s*日目\s*$/, '$1일차');
@@ -197,6 +212,9 @@ function DaySection({ day, index, all, S, onOpen }: {
     const amenities = [...new Set([d.accommodationType, d.accommodationOccupancy, ...(d.accommodationAmenities ?? []), ...(d.accommodationRoomAmenities ?? []), ...(d.accommodationSharedFacilities ?? [])]
         .map(v => (typeof v === 'string' ? v.trim() : '')).filter(Boolean))];
     const multi = all.length > 1;
+    // 모바일: 모든 일차의 머리 사진을 같은 높이로 두고, 전체 일정 띠 대신 그날의 출발지 → 도착지만 보여 준다
+    const fixedHero = S.heroFixed > 0;
+    const route = fixedHero ? dayRoute(d, index > 0 ? all[index - 1].dayInfo : undefined) : null;
     const progress = multi ? (index / (all.length - 1)) * 80 : 0;
 
     const dot: React.CSSProperties = { position: 'absolute', left: S.dotLeft, top: S.dotTop, width: S.dotSize, height: S.dotSize, borderRadius: '50%', background: INK, boxShadow: `0 0 0 ${S.ring}px #fff` };
@@ -215,18 +233,29 @@ function DaySection({ day, index, all, S, onOpen }: {
     return (
         <section style={{ position: 'relative', background: '#fff' }}>
             {/* ── 히어로: 사진 위에 일차 제목 + DAY 진행 스트립 (사진 위 어두운 오버레이만, 바탕은 흰색) ── */}
-            <div style={{ position: 'relative', minHeight: S.heroH, overflow: 'hidden' }}>
+            <div data-itinerary-hero style={{ position: 'relative', overflow: 'hidden', ...(fixedHero ? { height: S.heroFixed, display: 'flex', alignItems: 'center', justifyContent: 'center' } : { minHeight: S.heroH }) }}>
                 <div style={{ position: 'absolute', inset: 0, background: PHOTO_BG }}>
                     {hero && (
                         <ResponsiveProductImage src={img(hero)} alt="" loading={index === 0 ? 'eager' : 'lazy'} decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                     )}
                 </div>
                 <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.5) 100%)' }} />
-                <div style={{ position: 'relative', padding: S.heroPad, paddingBottom: S.heroBottom, textAlign: 'center' }}>
-                    <h2 style={{ margin: 0, fontSize: S.h2, fontWeight: 800, letterSpacing: '-0.04em', color: '#fff', textShadow: '0 2px 18px rgba(0,0,0,0.4)' }}>
+                <div style={{ position: 'relative', textAlign: 'center', ...(fixedHero ? { width: '100%', boxSizing: 'border-box', padding: '0 24px' } : { padding: S.heroPad, paddingBottom: S.heroBottom }) }}>
+                    <h2 style={{ margin: 0, fontSize: S.h2, fontWeight: 800, letterSpacing: '-0.04em', color: '#fff', textShadow: '0 2px 18px rgba(0,0,0,0.4)', ...(fixedHero ? { lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' } : null) }}>
                         {dayLabel}{d.title ? `. ${d.title}` : ''}
                     </h2>
-                    {multi && (
+                    {route && (
+                        <div data-itinerary-route style={{ marginTop: S.routeTop, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: S.routeFont, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>
+                            <span style={{ minWidth: 0, maxWidth: '40%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{route[0]}</span>
+                            <span aria-hidden="true" style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 0 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />
+                                <span style={{ width: 44, height: 2, background: 'rgba(255,255,255,0.55)' }} />
+                                <span style={{ width: 10, height: 10, borderRadius: '50%', background: MINT, boxShadow: '0 0 0 3px rgba(255,255,255,0.35)' }} />
+                            </span>
+                            <span style={{ minWidth: 0, maxWidth: '40%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{route[1]}</span>
+                        </div>
+                    )}
+                    {multi && !fixedHero && (
                         <div style={{ marginTop: S.stripTop, position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${all.length}, 1fr)`, gap: S.stripGap }}>
                             <div style={{ position: 'absolute', left: '10%', right: '10%', top: S.lineTop, height: 2, background: 'rgba(255,255,255,0.28)' }} />
                             <div style={{ position: 'absolute', left: '10%', width: `${progress}%`, top: S.lineTop, height: 2, background: MINT }} />
