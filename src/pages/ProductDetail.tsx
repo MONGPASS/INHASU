@@ -17,6 +17,7 @@ import type { ShareResult } from '../components/product/detail/productDetailData
 import type { RawReview } from '../components/reviews-desktop/reviewsData';
 
 import type { TourProduct } from '../types/product';
+import { productSeoDescription, productSeoTitle } from '../utils/productSeo';
 
 const MOBILE_TITLE = '투어 상세';
 const SITE_URL = SEO_CONSTANTS.SITE_URL;
@@ -190,13 +191,8 @@ export const ProductDetail: React.FC = () => {
         .map(img => new URL(img, `${SITE_URL}/`).href);
 
     // Enhanced Product description for meta
-    const productMetaDescription = [
-        product.name,
-        product.duration ? `(${product.duration})` : '',
-        product.category ? `[${product.category}]` : '',
-        product.description || product.highlights?.[0]?.description || '',
-        product.price ? `${won(product.price)}~` : ''
-    ].filter(Boolean).join(' ').substring(0, 160);
+    const seoInput = { name: product.name, duration: product.duration, category: product.category, price: product.price, included: product.included, description: product.description || product.highlights?.[0]?.description || '' };
+    const productMetaDescription = productSeoDescription(seoInput);
 
     // ── Aggregate rating + sample reviews from approved user reviews ──
     const approvedReviews = productReviews.filter((r: any) =>
@@ -265,14 +261,20 @@ export const ProductDetail: React.FC = () => {
         ]
     };
 
+    const faqItems = (product.faqs ?? []).map((f: any) => ({ q: String(f?.q ?? f?.question ?? '').trim(), a: String(f?.a ?? f?.answer ?? '').trim() })).filter((f: { q: string; a: string }) => f.q && f.a);
+    const faqData = faqItems.length ? {
+        "@context": "https://schema.org", "@type": "FAQPage", "@id": `${SITE_URL}/products/${id}#faq`,
+        "mainEntity": faqItems.map((f: { q: string; a: string }) => ({ "@type": "Question", "name": f.q, "acceptedAnswer": { "@type": "Answer", "text": f.a } })),
+    } : null;
+
     const seo = (
         <SEO
-            title={product.name}
+            title={productSeoTitle(seoInput)}
             description={productMetaDescription}
             image={product.mainImages?.find(img => !img.startsWith('data:'))}
             keywords={`${product.category}, ${product.tags.join(', ')}, 몽골 투어, 몽골 여행`}
             canonical={`/products/${id}`}
-            structuredData={[productStructuredData, breadcrumbData]}
+            structuredData={[productStructuredData, breadcrumbData, ...(faqData ? [faqData] : [])]}
         />
     );
     const onBook = () => navigate(`/reservation/${product.id}`);
