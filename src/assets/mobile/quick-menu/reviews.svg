@@ -1,14 +1,14 @@
 <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
 <defs>
   <linearGradient id="bubble-grad" x1="180" y1="136" x2="817" y2="884" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#20e4ed" />
-    <stop offset=".38" stop-color="#04b9f6" />
-    <stop offset=".72" stop-color="#0089ff" />
-    <stop offset="1" stop-color="#0746f1" />
+    <stop stop-color="#3dd0b0" />
+    <stop offset=".38" stop-color="#27bf9e" />
+    <stop offset=".72" stop-color="#2bd4af" />
+    <stop offset="1" stop-color="#27bd9d" />
   </linearGradient>
   <linearGradient id="shine-grad" x1="189" y1="148" x2="334" y2="338" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#f0ffff" stop-opacity=".96" />
-    <stop offset="1" stop-color="#8afffa" stop-opacity=".12" />
+    <stop stop-color="#d5f6ef" stop-opacity=".96" />
+    <stop offset="1" stop-color="#9eebda" stop-opacity=".12" />
   </linearGradient>
   <linearGradient id="star-grad" x1=".18" y1="0" x2=".8" y2="1">
     <stop stop-color="#fff646" />
@@ -35,22 +35,22 @@
     <stop offset="1" stop-color="#ff6500" />
   </linearGradient>
   <linearGradient id="shadow-grad" x1="0" y1="0" x2="1" y2="1">
-    <stop stop-color="#003482" stop-opacity=".65" />
-    <stop offset=".55" stop-color="#003d9f" stop-opacity=".28" />
-    <stop offset="1" stop-color="#0049bc" stop-opacity="0" />
+    <stop stop-color="#0f2c41" stop-opacity=".65" />
+    <stop offset=".55" stop-color="#133650" stop-opacity=".28" />
+    <stop offset="1" stop-color="#16405e" stop-opacity="0" />
   </linearGradient>
   <linearGradient id="center-shadow-grad" x1="511" y1="418" x2="778" y2="751" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#003379" stop-opacity=".65" />
-    <stop offset=".62" stop-color="#003b9d" stop-opacity=".35" />
-    <stop offset="1" stop-color="#004bc2" stop-opacity="0" />
+    <stop stop-color="#0e293d" stop-opacity=".65" />
+    <stop offset=".62" stop-color="#12364f" stop-opacity=".35" />
+    <stop offset="1" stop-color="#174261" stop-opacity="0" />
   </linearGradient>
   <linearGradient id="left-shadow-grad" x1="238" y1="470" x2="401" y2="687" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#003777" stop-opacity=".64" />
-    <stop offset="1" stop-color="#0046af" stop-opacity="0" />
+    <stop stop-color="#0e293c" stop-opacity=".64" />
+    <stop offset="1" stop-color="#153c58" stop-opacity="0" />
   </linearGradient>
   <linearGradient id="right-shadow-grad" x1="812" y1="468" x2="984" y2="688" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#002c83" stop-opacity=".65" />
-    <stop offset="1" stop-color="#0048c6" stop-opacity="0" />
+    <stop stop-color="#0f2d42" stop-opacity=".65" />
+    <stop offset="1" stop-color="#174463" stop-opacity="0" />
   </linearGradient>
   <linearGradient id="star-shine-grad" x1="0" y1="0" x2="1" y2="1">
     <stop stop-color="#fffeb1" stop-opacity=".95" />

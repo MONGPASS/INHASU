@@ -1,10 +1,10 @@
 <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024">
 <defs>
   <linearGradient id="shell-grad" x1="236" y1="239" x2="808" y2="920" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#27e6f3" />
-    <stop offset=".43" stop-color="#00adf8" />
-    <stop offset=".78" stop-color="#006bff" />
-    <stop offset="1" stop-color="#0035d9" />
+    <stop stop-color="#44d6b7" />
+    <stop offset=".43" stop-color="#27bd9d" />
+    <stop offset=".78" stop-color="#2bd4af" />
+    <stop offset="1" stop-color="#22a689" />
   </linearGradient>
   <linearGradient id="strap-grad" x1="212" y1="239" x2="350" y2="899" gradientUnits="userSpaceOnUse">
     <stop stop-color="#fff34a" />
@@ -31,8 +31,8 @@
     <stop offset="1" stop-color="#fff479" stop-opacity="0" />
   </linearGradient>
   <linearGradient id="post-grad" x1="326" y1="170" x2="396" y2="210" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#24bbfa" />
-    <stop offset="1" stop-color="#0869e7" />
+    <stop stop-color="#45d9b9" />
+    <stop offset="1" stop-color="#25b797" />
   </linearGradient>
   <linearGradient id="buckle-grad" x1="233" y1="394" x2="268" y2="493" gradientUnits="userSpaceOnUse">
     <stop stop-color="#fff967" />
@@ -55,22 +55,22 @@
     <stop offset="1" stop-color="#ff7900" />
   </linearGradient>
   <radialGradient id="wheel-grad" cx=".29" cy=".36" r=".74">
-    <stop stop-color="#346cbb" />
-    <stop offset=".46" stop-color="#1d408d" />
-    <stop offset="1" stop-color="#152268" />
+    <stop stop-color="#419b87" />
+    <stop offset=".46" stop-color="#143a55" />
+    <stop offset="1" stop-color="#0f2b3f" />
   </radialGradient>
   <linearGradient id="depth-grad" x1="400" y1="465" x2="696" y2="744" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#004a92" stop-opacity=".35" />
-    <stop offset="1" stop-color="#003da0" stop-opacity="0" />
+    <stop stop-color="#113249" stop-opacity=".35" />
+    <stop offset="1" stop-color="#133750" stop-opacity="0" />
   </linearGradient>
   <linearGradient id="strap-shadow-grad" x1="300" y1="451" x2="396" y2="499" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#004b98" stop-opacity=".35" />
-    <stop offset="1" stop-color="#0062bb" stop-opacity="0" />
+    <stop stop-color="#12344c" stop-opacity=".35" />
+    <stop offset="1" stop-color="#16405e" stop-opacity="0" />
   </linearGradient>
   <linearGradient id="plane-grad" x1="483" y1="488" x2="536" y2="596" gradientUnits="userSpaceOnUse">
     <stop stop-color="#fffdf2" />
-    <stop offset=".48" stop-color="#f4fafb" />
-    <stop offset="1" stop-color="#87c9f1" />
+    <stop offset=".48" stop-color="#ddeeea" />
+    <stop offset="1" stop-color="#96e2d2" />
   </linearGradient>
   <linearGradient id="wing-grad" x1="446" y1="462" x2="523" y2="651" gradientUnits="userSpaceOnUse">
     <stop stop-color="#ffe932" />
@@ -78,8 +78,8 @@
     <stop offset="1" stop-color="#ff9100" />
   </linearGradient>
   <linearGradient id="window-grad" x1="483" y1="509" x2="509" y2="548" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#11d8f1" />
-    <stop offset="1" stop-color="#04a7ec" />
+    <stop stop-color="#30d2af" />
+    <stop offset="1" stop-color="#26b798" />
   </linearGradient>
   <clipPath id="shell-clip"><path d="M218 222H792C894 222 975 302 975 404V753C975 848 904 919 809 919H204C110 919 38 848 38 753V406C38 304 116 222 218 222Z" /></clipPath>
 </defs>
@@ -98,14 +98,14 @@
     <path d="M299 400L516 631V919H290V462Z M818 397L1033 633V920H804V478Z" fill="url(#strap-shadow-grad)" />
     <path d="M399 474L539 472L642 449L866 696L771 916H637L363 632L389 584L342 561Z" fill="url(#depth-grad)" />
     <path d="M79 337C97 293 147 251 205 249L208 297C165 305 134 327 107 355C87 377 73 366 79 337Z" fill="url(#shine-grad)" />
-    <path d="M306 223H709L718 245H299Z" fill="#73f7ff" opacity=".25" />
+    <path d="M306 223H709L718 245H299Z" fill="#8be7d3" opacity=".25" />
   </g>
   <g id="straps">
     <path d="M206 392V292C206 259 210 226 229 214C246 203 290 205 309 212L323 222C297 224 292 258 292 291V845C292 882 293 908 304 918H218C207 918 205 914 205 901Z" fill="url(#strap-grad)" />
     <path d="M721 394V291C721 258 715 232 695 222C705 207 741 204 766 208C790 211 799 219 803 242C808 262 809 278 809 300V899C809 914 808 918 796 918H707C719 911 721 874 721 842Z" fill="url(#right-strap-grad)" />
   </g>
   <g id="buckles">
-    <path d="M207 398H291C310 398 323 414 323 434V464C323 486 307 501 287 501H209C187 501 177 485 177 465V433C177 413 189 398 207 398Z" fill="#0062a8" opacity=".16" />
+    <path d="M207 398H291C310 398 323 414 323 434V464C323 486 307 501 287 501H209C187 501 177 485 177 465V433C177 413 189 398 207 398Z" fill="#143954" opacity=".16" />
     <rect x="177" y="393" width="142" height="98" rx="31" fill="url(#buckle-grad)" />
     <rect x="204" y="420" width="87" height="44" rx="11" fill="url(#slot-grad)" />
     <path d="M214 463H279Q291 463 291 451" fill="none" stroke="#ffe94d" stroke-opacity=".65" stroke-width="2" />

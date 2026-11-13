@@ -17,41 +17,41 @@
       <stop offset="1" stop-color="#e66400" />
     </linearGradient>
     <linearGradient id="mint-grad" x1="0.23" y1="0.02" x2="0.86" y2="0.97">
-      <stop offset="0" stop-color="#75ff9e" />
-      <stop offset="0.35" stop-color="#40f59b" />
-      <stop offset="0.7" stop-color="#0ed891" />
-      <stop offset="1" stop-color="#00a66b" />
+      <stop offset="0" stop-color="#8ce8d4" />
+      <stop offset="0.35" stop-color="#59dcbf" />
+      <stop offset="0.7" stop-color="#27ad90" />
+      <stop offset="1" stop-color="#1a7f69" />
     </linearGradient>
     <linearGradient id="mint-shadow-grad" x1="0" y1="0" x2="1" y2="0.9">
-      <stop offset="0" stop-color="#008a71" stop-opacity="0.35" />
-      <stop offset="1" stop-color="#008557" stop-opacity="0" />
+      <stop offset="0" stop-color="#166957" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#156654" stop-opacity="0" />
     </linearGradient>
     <linearGradient id="blue-grad" x1="0.14" y1="0.06" x2="0.86" y2="1">
-      <stop offset="0" stop-color="#66ffff" />
-      <stop offset="0.31" stop-color="#13d5f4" />
-      <stop offset="0.68" stop-color="#079ff6" />
-      <stop offset="1" stop-color="#0754e2" />
+      <stop offset="0" stop-color="#80e5cf" />
+      <stop offset="0.31" stop-color="#33d5b1" />
+      <stop offset="0.68" stop-color="#28c1a0" />
+      <stop offset="1" stop-color="#24b293" />
     </linearGradient>
     <linearGradient id="blue-shadow-grad" x1="0" y1="0" x2="0.9" y2="1">
-      <stop offset="0" stop-color="#0073b9" stop-opacity="0.48" />
-      <stop offset="1" stop-color="#0054d5" stop-opacity="0.04" />
+      <stop offset="0" stop-color="#163f5d" stop-opacity="0.48" />
+      <stop offset="1" stop-color="#19496b" stop-opacity="0.04" />
     </linearGradient>
     <linearGradient id="pack-grad" x1="0.1" y1="0.12" x2="0.85" y2="0.8">
-      <stop offset="0" stop-color="#1edaff" />
-      <stop offset="0.26" stop-color="#008cff" />
-      <stop offset="0.61" stop-color="#003de0" />
-      <stop offset="1" stop-color="#0723af" />
+      <stop offset="0" stop-color="#44d9b9" />
+      <stop offset="0.26" stop-color="#2bd4af" />
+      <stop offset="0.61" stop-color="#23ab8e" />
+      <stop offset="1" stop-color="#153e5b" />
     </linearGradient>
     <linearGradient id="strap-grad" x1="0.05" y1="0" x2="0.81" y2="0.93">
-      <stop offset="0" stop-color="#3edaff" />
-      <stop offset="0.28" stop-color="#127dff" />
-      <stop offset="0.62" stop-color="#0347ef" />
-      <stop offset="1" stop-color="#0915ad" />
+      <stop offset="0" stop-color="#5fdec3" />
+      <stop offset="0.28" stop-color="#3ad7b5" />
+      <stop offset="0.62" stop-color="#26b999" />
+      <stop offset="1" stop-color="#153e5b" />
     </linearGradient>
     <linearGradient id="strap-edge-grad" x1="0" y1="0" x2="1" y2="0.65">
-      <stop offset="0" stop-color="#62eaff" />
-      <stop offset="0.45" stop-color="#0969fa" />
-      <stop offset="1" stop-color="#0929bf" />
+      <stop offset="0" stop-color="#7de4ce" />
+      <stop offset="0.45" stop-color="#2fd4b0" />
+      <stop offset="1" stop-color="#184464" />
     </linearGradient>
     <clipPath id="mint-clip">
       <path d="M598 558C540 563 494 603 475 660C454 724 471 834 498 891C524 924 598 941 713 941C824 941 942 922 977 877C1002 844 988 744 968 687C940 611 886 570 809 559Z" />
