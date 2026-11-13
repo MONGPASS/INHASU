@@ -55,6 +55,51 @@ test('public product has encoded canonical, actual won price and crawlable escap
     } finally { db.raw.close(); }
 });
 
+test('상품 검색 제목·설명·일정·FAQ·별점은 등록된 자료만으로 만든다', async () => {
+    const db = await fixture();
+    try {
+        const plain = await readPublicPage(db, '/products/tour%20%26%20one');
+        // 상품명에 이미 든 지역·'몽골 투어'는 되풀이하지 않고 기간만 덧붙인다
+        assert.equal(plain.title, '테를지 & 고비 몽골 투어 3박 4일 | 몽골리아 은하수');
+        assert.match(plain.description, /^테를지 & 고비 몽골 투어 \(3박 4일\)\. 1인 1,290,000원부터\. 한국어 가이드와 함께 여행합니다\.$/);
+        assert.equal(plain.jsonLd.some(item => item['@type'] === 'FAQPage'), false);
+        assert.equal('itinerary' in plain.jsonLd[0], false);
+
+        db.raw.prepare("INSERT INTO products (id,name,description,category,duration,price,included,faqs,itinerary_blocks,status) VALUES (?,?,?,?,?,?,?,?,?,?)").run(
+            'rich', '은하수 헌팅', '별이 쏟아지는 초원에서 하룻밤.', '중앙몽골', '1박 2일', 450000, JSON.stringify(['전용 차량', '한국어 가이드', '게르 숙박', '저녁 식사']),
+            JSON.stringify([{ q: '혼자도 예약할 수 있나요?', a: '네, 1인도 가능합니다.' }, { q: '', a: '질문 없는 답' }]),
+            JSON.stringify([{ type: 'dayInfo', content: { dayLabel: '1일차', title: '울란바토르, 테를지', description: '초원으로 이동' } }, { type: 'timeline', content: { time: '21:00', title: '<b>별 관측</b>' } }, { type: 'dayInfo', content: { dayLabel: '2日目', title: '귀환' } }]), 'active');
+        db.raw.prepare("INSERT INTO reviews (id,product_id,user_name,rating,title,content,is_approved) VALUES (?,?,?,?,?,?,?)").run('r1', 'rich', '김여행', 5, '최고', '<script>x</script>별이 정말 많았어요', 1);
+        db.raw.prepare("INSERT INTO reviews (id,product_id,user_name,rating,title,content,is_approved) VALUES (?,?,?,?,?,?,?)").run('r2', 'rich', '이여행', 4, '좋아요', '추웠지만 좋았습니다', 1);
+        db.raw.prepare("INSERT INTO reviews (id,product_id,user_name,rating,title,content,is_approved) VALUES (?,?,?,?,?,?,?)").run('r3', 'rich', '미승인', 1, '숨김', '승인 전 후기', 0);
+        const rich = await readPublicPage(db, '/products/rich');
+        assert.equal(rich.title, '은하수 헌팅 1박 2일 · 중앙몽골 투어 | 몽골리아 은하수');
+        assert.match(rich.description, /^은하수 헌팅 \(중앙몽골 1박 2일\)\. 1인 450,000원부터\. 포함: 전용 차량, 한국어 가이드, 게르 숙박\. 별이 쏟아지는/);
+        assert.ok(rich.description.length <= 160);
+        const [product, , faq] = rich.jsonLd;
+        assert.deepEqual(product.aggregateRating, { '@type': 'AggregateRating', ratingValue: 4.5, reviewCount: 2, bestRating: 5, worstRating: 1 });
+        assert.equal(product.review.length, 2);
+        assert.doesNotMatch(JSON.stringify(product.review), /승인 전|script/);
+        assert.deepEqual(product.itinerary.itemListElement.map(item => item.name), ['1일차 울란바토르, 테를지', '2일차 귀환']);
+        assert.match(product.itinerary.itemListElement[0].description, /초원으로 이동 \/ 21:00 별 관측/);
+        assert.equal(faq['@type'], 'FAQPage');
+        assert.equal(faq.mainEntity.length, 1);
+        assert.match(rich.body, /<h2>일정<\/h2>.*<h2>자주 묻는 질문<\/h2>.*<h2>여행 후기<\/h2>/s);
+        assert.doesNotMatch(rich.body, /승인 전 후기|<script|<b>/);
+
+        db.raw.prepare("INSERT INTO faqs (id,question,answer,is_active,sort_order) VALUES (?,?,?,?,?)").run('f1', '예약금은 얼마인가요?', '<p>상품 금액의 10%입니다.</p>', 1, 1);
+        db.raw.prepare("INSERT INTO faqs (id,question,answer,is_active) VALUES (?,?,?,?)").run('f2', '숨긴 질문', '숨긴 답', 0);
+        const faqPage = await readPublicPage(db, '/faq');
+        assert.equal(faqPage.jsonLd[0]['@type'], 'FAQPage');
+        assert.deepEqual(faqPage.jsonLd[0].mainEntity.map(item => item.name), ['예약금은 얼마인가요?']);
+        assert.match(faqPage.body, /상품 금액의 10%입니다/);
+        assert.doesNotMatch(faqPage.body, /숨긴/);
+        const reviewsPage = await readPublicPage(db, '/reviews');
+        assert.match(reviewsPage.body, /href="\/products\/rich"/);
+        assert.doesNotMatch(reviewsPage.body, /승인 전 후기/);
+    } finally { db.raw.close(); }
+});
+
 test('missing/hidden details are genuine 404; empty valid categories are noindex', async () => {
     const db = await fixture();
     try {

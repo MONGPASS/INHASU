@@ -1,5 +1,6 @@
 import { SEO_CONSTANTS, isPrivateSeoPath, isPublishedMagazine } from '../../src/constants/seo.ts';
 import { BRAND, COMPANY_INFO, KAKAO_CHANNEL_URL } from '../../src/constants/company.ts';
+import { productSeoDescription, productSeoTitle, type ProductSeoInput } from '../../src/utils/productSeo.ts';
 
 type Row = Record<string, any>;
 type PublicDb = { prepare(sql: string): { bind(...args: unknown[]): any; all(): Promise<{ results?: Row[] }>; first(): Promise<Row | null> } };
@@ -81,6 +82,41 @@ export const productJsonLd = (product: Row, canonical: string): Row => ({
     } } : {}),
 });
 
+const seoInput = (product: Row): ProductSeoInput => ({
+    name: plainText(product.name), duration: plainText(product.duration), category: plainText(product.category), price: Number(product.price) || 0,
+    included: arrayValue(product.included).filter(value => typeof value === 'string').map(plainText), description: plainText(product.description),
+});
+/** 검색 결과 제목·설명 — 화면(ProductDetail)과 같은 문장을 쓴다. */
+export const productTitle = (product: Row) => `${productSeoTitle(seoInput(product))} | ${BRAND.name}`;
+export const productDescription = (product: Row) => productSeoDescription(seoInput(product));
+
+/** 일정 탭의 일차 블록 → [{ title: '1일차 제목', text: 설명 + 시간표 }] */
+export const productDays = (product: Row): { title: string; text: string }[] => {
+    const days: { title: string; lines: string[] }[] = [];
+    for (const block of arrayValue(product.itinerary_blocks ?? product.itineraryBlocks)) {
+        const content = block?.content;
+        if (!content || typeof content !== 'object') continue;
+        if (block.type === 'dayInfo') {
+            const label = plainText(content.dayLabel).replace(/^(\d+)\s*日目.*$/, '$1일차') || `${days.length + 1}일차`;
+            days.push({ title: [label, plainText(content.title)].filter(Boolean).join(' '), lines: [plainText(content.description).replace(/\n+/g, ' ')].filter(Boolean) });
+        } else if (block.type === 'timeline' && days.length) {
+            const line = [plainText(content.time), plainText(content.title)].filter(Boolean).join(' ');
+            if (line) days[days.length - 1].lines.push(line);
+        }
+    }
+    return days.slice(0, 30).map(day => ({ title: day.title, text: day.lines.join(' / ') }));
+};
+
+/** 상품별 Q&A — 질문과 답이 모두 있는 것만 */
+export const productFaqs = (product: Row): { q: string; a: string }[] => arrayValue(product.faqs)
+    .map(item => ({ q: plainText(item?.q ?? item?.question), a: plainText(item?.a ?? item?.answer).replace(/\n+/g, ' ') }))
+    .filter(item => item.q && item.a).slice(0, 20);
+
+export const faqJsonLd = (faqs: { q: string; a: string }[], canonical: string): Row => ({
+    '@context': 'https://schema.org', '@type': 'FAQPage', '@id': `${canonical}#faq`,
+    mainEntity: faqs.map(faq => ({ '@type': 'Question', name: faq.q, acceptedAnswer: { '@type': 'Answer', text: faq.a } })),
+});
+
 export const PUBLIC_STATIC_META: Record<string, { title: string; description: string }> = {
     '/': { title: SEO_CONSTANTS.TITLE, description: SEO_CONSTANTS.DESCRIPTION },
     '/products': { title: '몽골 여행·몽골 투어 상품 | 몽골리아 은하수', description: '고비사막, 테를지, 홉스굴, 승마 등 몽골 여행 상품을 비교하세요. 상품별 일정, 포함 사항과 원화 가격을 확인하고 한국어로 상담하세요.' },
@@ -124,16 +160,35 @@ export async function readPublicPage(db: PublicDb, path: string): Promise<Public
     if (productMatch) {
         const product = await db.prepare('SELECT * FROM products WHERE id = ?').bind(decodedId(productMatch)).first();
         if (!product || !['active', 'soldout'].includes(product.status)) return missing();
-        page.title = `${product.name} | ${BRAND.name}`;
-        page.description = [product.name, product.duration, plainText(product.description)].filter(Boolean).join(' · ').slice(0, 160);
+        // 제목·설명은 등록된 값(기간·지역·가격·포함 사항)만으로 만든다. 없는 내용을 지어내지 않는다.
+        page.title = productTitle(product);
+        page.description = productDescription(product);
         page.image = publicProductImages(product)[0] || page.image;
         page.canonical = canonicalUrl(productPath(product));
-        page.jsonLd = [productJsonLd(product, page.canonical), breadcrumbs(product.name, productPath(product))];
+        const days = productDays(product);
+        const faqs = productFaqs(product);
+        // 후기 표가 없는 환경(견적 표만 있는 DB)에서도 상품 화면은 열려야 한다.
+        const reviews: Row[] = await db.prepare('SELECT user_name, rating, title, content, created_at FROM reviews WHERE product_id = ? AND is_approved = 1 ORDER BY created_at DESC').bind(product.id).all()
+            .then((res: { results?: Row[] }) => res.results || [], () => []);
+        const rated = reviews.filter(review => Number(review.rating) >= 1 && Number(review.rating) <= 5);
+        const productLd = productJsonLd(product, page.canonical);
+        if (days.length) productLd.itinerary = { '@type': 'ItemList', numberOfItems: days.length, itemListElement: days.map((day, index) => ({ '@type': 'ListItem', position: index + 1, name: day.title, ...(day.text ? { description: day.text.slice(0, 300) } : {}) })) };
+        // 별점은 승인된 실제 후기가 있을 때만 싣는다.
+        if (rated.length) {
+            productLd.aggregateRating = { '@type': 'AggregateRating', ratingValue: Math.round((rated.reduce((sum, review) => sum + Number(review.rating), 0) / rated.length) * 10) / 10, reviewCount: rated.length, bestRating: 5, worstRating: 1 };
+            productLd.review = rated.slice(0, 5).map(review => ({ '@type': 'Review', author: { '@type': 'Person', name: plainText(review.user_name) || '여행 고객' }, reviewRating: { '@type': 'Rating', ratingValue: Number(review.rating), bestRating: 5, worstRating: 1 },
+                ...(plainText(review.title) ? { name: plainText(review.title) } : {}), reviewBody: plainText(review.content).slice(0, 500), ...(validLastmod(review.created_at) ? { datePublished: validLastmod(review.created_at) } : {}) }));
+        }
+        page.jsonLd = [productLd, breadcrumbs(product.name, productPath(product))];
+        if (faqs.length) page.jsonLd.push(faqJsonLd(faqs, page.canonical));
         page.body = `<article><h1>${escapeHtml(product.name)}</h1>${imageMarkup(page.image, product.name)}${paragraphs(product.description)}<dl><dt>여행 기간</dt><dd>${escapeHtml(product.duration)}</dd><dt>여행 가격</dt><dd>${Number(product.price) > 0 ? `${Number(product.price).toLocaleString('ko-KR')}원부터` : '견적 문의'}</dd></dl>`;
+        if (days.length) page.body += `<h2>일정</h2><ol>${days.map(day => `<li><h3>${escapeHtml(day.title)}</h3>${day.text ? `<p>${escapeHtml(day.text)}</p>` : ''}</li>`).join('')}</ol>`;
         for (const [field, title] of [['included', '포함 사항'], ['excluded', '불포함 사항']]) {
             const values = arrayValue(product[field]).filter(value => typeof value === 'string');
             if (values.length) page.body += `<h2>${title}</h2><ul>${values.map(value => `<li>${escapeHtml(plainText(value))}</li>`).join('')}</ul>`;
         }
+        if (faqs.length) page.body += `<h2>자주 묻는 질문</h2><dl>${faqs.map(faq => `<dt>${escapeHtml(faq.q)}</dt><dd>${escapeHtml(faq.a)}</dd>`).join('')}</dl>`;
+        if (rated.length) page.body += `<h2>여행 후기</h2><ul>${rated.slice(0, 5).map(review => `<li>${escapeHtml(plainText(review.title) || plainText(review.content).slice(0, 60))} · 별점 ${Number(review.rating)}점<p>${escapeHtml(plainText(review.content).slice(0, 300))}</p></li>`).join('')}</ul>`;
         page.body += '<p><a href="/custom-estimate">몽골 여행 상담·맞춤 견적 요청</a></p></article>';
         return page;
     }
@@ -203,6 +258,17 @@ export async function readPublicPage(db: PublicDb, path: string): Promise<Public
     } else if (path === '/travel-guide') {
         const articles = ((await db.prepare('SELECT * FROM magazines ORDER BY created_at DESC').all()).results || []).filter(isPublishedMagazine);
         page.body = `<h1>몽골 여행 가이드</h1>${paragraphs(page.description)}${itemLinks(articles.slice(0, 100), '/travel-guide', 'title')}`;
+    } else if (path === '/faq') {
+        // 등록된 질문·답을 본문과 FAQ 구조화 정보로 싣는다. 표가 없거나 비어 있으면 제목만 남는다.
+        const rows: Row[] = await db.prepare('SELECT question, answer FROM faqs WHERE is_active = 1 OR is_active IS NULL ORDER BY sort_order ASC').all()
+            .then((res: { results?: Row[] }) => res.results || [], () => []);
+        const faqs = rows.map(row => ({ q: plainText(row.question), a: plainText(row.answer).replace(/\n+/g, ' ') })).filter(faq => faq.q && faq.a).slice(0, 100);
+        page.body = `<h1>몽골 여행 자주 묻는 질문</h1>${paragraphs(page.description)}${faqs.length ? `<dl>${faqs.map(faq => `<dt>${escapeHtml(faq.q)}</dt><dd>${escapeHtml(faq.a)}</dd>`).join('')}</dl>` : ''}`;
+        if (faqs.length) page.jsonLd = [faqJsonLd(faqs, page.canonical)];
+    } else if (path === '/reviews') {
+        const rows: Row[] = await db.prepare('SELECT product_id, product_name, rating, title, content FROM reviews WHERE is_approved = 1 ORDER BY created_at DESC LIMIT 50').all()
+            .then((res: { results?: Row[] }) => res.results || [], () => []);
+        page.body = `<h1>몽골 여행 고객 후기</h1>${paragraphs(page.description)}${rows.length ? `<ul>${rows.map(row => `<li>${row.product_id ? `<a href="/products/${encodedId(row.product_id)}">${escapeHtml(plainText(row.product_name) || '몽골 투어')}</a> · ` : ''}${escapeHtml(plainText(row.title))} · 별점 ${Number(row.rating) || 0}점<p>${escapeHtml(plainText(row.content).slice(0, 300))}</p></li>`).join('')}</ul>` : ''}`;
     }
     return page;
 }
