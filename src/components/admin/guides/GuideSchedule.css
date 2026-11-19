@@ -219,10 +219,12 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 
 /* 가이드 배정하기(목록) */
 .gs-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.gs-filters select, .gs-pager select { height: 44px; padding: 0 40px 0 18px; border: 0; border-radius: 999px; appearance: none; -webkit-appearance: none; cursor: pointer;
-  background: var(--gs-paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23212124' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 16px center;
-  box-shadow: inset 0 0 0 1px var(--gs-div2); font-size: 14px !important; font-weight: 700; }
-.gs-pager select { height: 40px; border-radius: 8px; }
+/* 선택 상자: Montage Select medium(목록 아래 쪽 수는 small) */
+.gs-filters select, .gs-pager select { box-sizing: border-box; height: var(--adm-input-h); padding: 0 var(--spacing-32) 0 var(--adm-input-pad-x); border: 0; border-radius: var(--adm-input-radius); appearance: none; -webkit-appearance: none; cursor: pointer;
+  background: var(--adm-input-bg) var(--adm-select-chevron) no-repeat right var(--spacing-12) center;
+  box-shadow: inset 0 0 0 1px var(--adm-input-line); color: var(--adm-input-fg); font-size: var(--adm-fs-input) !important; font-weight: var(--adm-fw-regular); }
+.gs-filters select:focus, .gs-pager select:focus { outline: 0; box-shadow: inset 0 0 0 1px var(--adm-input-line-focus), var(--adm-input-ring); }
+.gs-pager select { height: var(--adm-input-h-sm); border-radius: var(--adm-input-radius-sm); padding-left: var(--adm-input-pad-x-sm); }
 .gs-sel-n { color: var(--gs-mint-text); font-size: 14px; font-weight: 700; }
 .gs-cta { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--gs-mint); color: #fff !important; font-size: 14px !important; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .gs-cta:hover { background: var(--gs-mint-hover); }

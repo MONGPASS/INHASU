@@ -30,10 +30,12 @@ html.admin-embedded .df .del { border-color: transparent; background: var(--adm-
 
 /* ── 입력창 ── */
 html.admin-embedded :is(.db, .panel, .card, .toolbar, .bar, .filters, .search, label.f, .field) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="hidden"]), select) {
-  min-height: var(--adm-control-h); box-sizing: border-box; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-sm); box-shadow: none; font-family: inherit; font-size: var(--adm-fs-input);
+  min-height: var(--adm-input-h); box-sizing: border-box; border: 1px solid var(--adm-input-line); border-radius: var(--adm-input-radius); background-color: var(--adm-input-bg); color: var(--adm-input-fg); box-shadow: none; font-family: inherit; font-size: var(--adm-fs-input);
 }
-html.admin-embedded :is(.db, .panel, .card, label.f, .field) textarea { box-sizing: border-box; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-sm); box-shadow: none; font-family: inherit; font-size: var(--adm-fs-input); }
-html.admin-embedded :is(input, select, textarea):focus { border-color: var(--adm-accent); box-shadow: var(--adm-ring); outline: 0; }
+html.admin-embedded :is(.db, .panel, .card, label.f, .field) textarea { box-sizing: border-box; border: 1px solid var(--adm-input-line); border-radius: var(--adm-input-radius); background-color: var(--adm-input-bg); color: var(--adm-input-fg); box-shadow: none; font-family: inherit; font-size: var(--adm-fs-input); }
+html.admin-embedded :is(input, select, textarea)::placeholder { color: var(--adm-input-placeholder); }
+html.admin-embedded :is(input, select, textarea):focus { border-color: var(--adm-input-line-focus); box-shadow: var(--adm-input-ring); outline: 0; }
+html.admin-embedded :is(.db, .panel, .card, .toolbar, .bar, .filters, .search, label.f, .field) :is(input, select, textarea):disabled { background-color: var(--adm-input-disabled-bg); border-color: var(--adm-input-disabled-line); }
 
 /* ── 편집 서랍: 폭·뒤 막·머리·발 ── */
 html.admin-embedded .overlay { background: var(--adm-scrim); }

@@ -37,9 +37,7 @@
 .admin-app-wrapper .pa-editor .pa-main > form > fieldset > .card-pad:first-child { padding: 20px 22px; }
 
 /* 입력칸 */
-.admin-app-wrapper .pa-editor .field > label { color: var(--text-strong); font-size: 13px; font-weight: 700; }
-.admin-app-wrapper .pa-editor .inp { min-height: 44px; border: 1.5px solid var(--border-default); border-radius: 12px; font-size: 14px; }
-.admin-app-wrapper .pa-editor .inp:focus { border-color: var(--mrt-ink); box-shadow: none; }
+/* 라벨·입력창 모양은 공통(admin-console.css .field > label / .inp = Montage TextField)을 따른다. 여러 줄 칸 높이만 둔다. */
 .admin-app-wrapper .pa-editor textarea.inp { min-height: 96px; }
 
 /* 버튼 묶음(카테고리·기간·판매 상태) */
@@ -154,8 +152,8 @@
 .admin-app-wrapper .pa-day-body { gap: var(--adm-space-4); padding: var(--adm-space-4); }
 .admin-app-wrapper .pa-label { display: block; margin-bottom: 6px; color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
 /* 칸: 공통 높이·모서리, 글자는 왼쪽부터(식사·숙소도 다른 입력창과 같은 방향) */
-.admin-app-wrapper .pa-day :is(.inp, .inp-mini) { height: var(--adm-control-h); border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-input); }
-.admin-app-wrapper .pa-day .inp-mini { gap: 8px; padding: 0 12px; }
+.admin-app-wrapper .pa-day :is(.inp, .inp-mini) { height: var(--adm-input-h); border-radius: var(--adm-input-radius); font-size: var(--adm-fs-input); }
+.admin-app-wrapper .pa-day .inp-mini { gap: var(--spacing-8); padding: 0 var(--adm-input-pad-x); }
 .admin-app-wrapper .pa-day .inp-mini input { text-align: left; font-size: var(--adm-fs-input); font-weight: var(--adm-fw-medium); }
 .admin-app-wrapper .pa-day .inp-mini .pre { min-width: 26px; color: var(--adm-text-3); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
 .admin-app-wrapper .pa-day textarea.inp { height: auto; }
@@ -169,10 +167,8 @@
   .admin-app-wrapper .pa-day-body { padding: var(--adm-space-3); }
   .admin-app-wrapper .pa-day .meal-grid { grid-template-columns: minmax(0, 1fr) !important; }
 }
-/* 상품 편집기 기본값(44px·1.5px·12px)보다 우선해 일차 카드 안의 칸을 공통 규격으로 맞춘다. */
-.admin-app-wrapper .pa-editor .pa-day .inp { min-height: var(--adm-control-h); height: var(--adm-control-h); border-width: 1px; border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-input); }
+/* 일차 카드 안의 칸도 공통 Montage TextField(40px·모서리 12)를 쓴다. 여러 줄 칸 높이만 둔다. */
 .admin-app-wrapper .pa-editor .pa-day textarea.inp { height: auto; min-height: 72px; }
-.admin-app-wrapper .pa-editor .pa-day .inp:focus, .admin-app-wrapper .pa-day .inp-mini:focus-within { border-color: var(--adm-accent); box-shadow: var(--adm-ring); }
 @media (max-width: 760px) {
   /* 휴대폰: 날짜·요약 칸도 한 줄에 하나씩(글자가 잘리지 않게) */
   .admin-app-wrapper .pa-day .field-row { grid-template-columns: minmax(0, 1fr); gap: var(--adm-space-3); }

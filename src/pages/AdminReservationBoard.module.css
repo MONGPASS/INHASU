@@ -75,10 +75,11 @@
 /* 검색 */
 .searchArea { display: flex; flex-direction: column; gap: 10px; padding: 18px 24px 16px; border-bottom: 1px solid var(--border-subtle); border-radius: 20px 20px 0 0; background: #fff; }
 .searchWrap { position: relative; }
-.searchBox { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 12px 0 18px; box-sizing: border-box; border-radius: 14px;
-  background: var(--mrt-gray-50); border: 2px solid var(--border-default); transition: border-color 200ms, box-shadow 200ms; }
-.searchFocused { background: #fff; border-color: var(--adm-accent); box-shadow: 0 0 0 4px rgba(var(--adm-accent-rgb),.16); }
-.searchBox input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 16px; font-weight: 600; color: var(--text-strong); }
+.searchBox { display: flex; align-items: center; gap: var(--spacing-8); height: var(--adm-input-h-lg); padding: 0 var(--spacing-12); box-sizing: border-box; border-radius: var(--adm-input-radius-lg);
+  background: var(--adm-input-search-bg); border: 0; transition: box-shadow 200ms; }
+.searchFocused { box-shadow: inset 0 0 0 1px var(--adm-input-line-focus), var(--adm-input-ring); }
+.searchBox input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: var(--typography-body2-fontSize); font-weight: var(--adm-fw-regular); color: var(--adm-input-fg); }
+.searchBox input::placeholder { color: var(--adm-input-placeholder); }
 .searchBox input::-webkit-search-cancel-button { display: none; }
 .board .searchBox input:focus-visible { outline: none; }
 .matchBadge { height: 30px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 15px; background: var(--mrt-blue-50); font-size: 13px; font-weight: 700; color: var(--mrt-blue-strong); white-space: nowrap; }
@@ -140,8 +141,9 @@
 /* 목록 */
 .listHead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 16px 22px; }
 .countLabel { font-family: var(--font-sans); font-size: 13px; font-weight: 800; color: var(--text-secondary); }
-.sort { position: relative; margin-left: auto; display: flex; align-items: center; height: 44px; min-width: 130px; border: 1px solid var(--border-default); border-radius: 12px; background: #fff; }
-.sort select { appearance: none; -webkit-appearance: none; width: 100%; height: 100%; padding: 0 36px 0 14px; border: 0; outline: 0; background: transparent; font: inherit; font-size: 14px; color: var(--text-strong); cursor: pointer; }
+.sort { position: relative; margin-left: auto; display: flex; align-items: center; box-sizing: border-box; height: var(--adm-input-h); min-width: 130px; border: 1px solid var(--adm-input-line); border-radius: var(--adm-input-radius); background: var(--adm-input-bg); }
+.sort:focus-within { border-color: var(--adm-input-line-focus); box-shadow: var(--adm-input-ring); }
+.sort select { appearance: none; -webkit-appearance: none; width: 100%; height: 100%; padding: 0 var(--spacing-32) 0 var(--adm-input-pad-x); border: 0; outline: 0; background: transparent; font: inherit; font-size: var(--adm-fs-input); color: var(--adm-input-fg); cursor: pointer; }
 .sort svg { position: absolute; right: 12px; pointer-events: none; }
 .list { container-type: inline-size; }
 .columns, .row { display: grid; grid-template-columns: 20px minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.5fr) minmax(0, 1fr) 176px; column-gap: 20px; }

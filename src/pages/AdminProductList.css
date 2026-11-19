@@ -22,9 +22,10 @@
 /* 목록 카드 */
 .pd-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
 .pd-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px 20px; }
-.pd-search { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 200px; max-width: 320px; height: 40px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 999px; color: var(--text-tertiary); }
-.pd-search:focus-within { border-color: var(--mrt-ink); }
-.pd-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text-strong); font: inherit; font-size: 14px; }
+.pd-search { display: flex; align-items: center; gap: var(--spacing-4); box-sizing: border-box; flex: 1 1 200px; min-width: 200px; max-width: 320px; height: var(--adm-input-h); padding: 0 var(--spacing-12); border: 0; border-radius: var(--adm-input-radius); background: var(--adm-input-search-bg); color: var(--adm-input-placeholder); transition: box-shadow var(--adm-dur); }
+.pd-search:focus-within { box-shadow: inset 0 0 0 1px var(--adm-input-line-focus), var(--adm-input-ring); }
+.pd-search input { flex: 1; min-width: 0; height: 100%; padding: 0 var(--spacing-4); border: 0; outline: 0; background: transparent; color: var(--adm-input-fg); font: inherit; font-size: var(--adm-fs-input); }
+.pd-search input::placeholder { color: var(--adm-input-placeholder); }
 .pd-search input:focus-visible { outline: 0; }
 .pd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .pd-chips button { display: inline-flex; align-items: center; gap: 4px; height: 38px; padding: 0 14px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-secondary); font-size: 14px; font-weight: 600; }

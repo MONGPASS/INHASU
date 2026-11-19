@@ -288,7 +288,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: #fbfefd; 
 .cw-assignment-label { font-size: 13px; font-weight: 800; color: var(--text-strong); }
 .cw-assignment-copy small { font-size: 11px; line-height: 1.4; color: var(--text-tertiary); overflow-wrap: anywhere; }
 .cw-assignment-copy em { font-size: 12px; font-style: normal; font-weight: 700; line-height: 1.4; color: var(--text-secondary); overflow-wrap: anywhere; }
-.cw-select-box { display: flex; align-items: center; gap: 10px; min-width: 0; height: 42px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 12px; background: #fff; transition: border-color .15s; }
+.cw-select-box { display: flex; align-items: center; gap: 10px; box-sizing: border-box; min-width: 0; height: var(--adm-input-h); padding: 0 var(--adm-input-pad-x); border: 1px solid var(--adm-input-line); border-radius: var(--adm-input-radius); background: var(--adm-input-bg); transition: border-color .15s; }
 .cw-resource-select:hover:not(:disabled) .cw-select-box { border-color: var(--mrt-blue); }
 .cw-select-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--mrt-gray-400); }
 .cw-select-box.is-ready .cw-select-dot { background: #18a957; }

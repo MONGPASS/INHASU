@@ -34,10 +34,11 @@
 
 /* 검색·필터 */
 .lo-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.lo-search { display: flex; flex: 0 1 300px; align-items: center; gap: 8px; min-width: 220px; height: 42px; padding: 0 14px; border: 1px solid var(--border-default); border-radius: 12px; background: #fff; color: var(--text-tertiary); }
-.lo-search:focus-within { border-color: var(--mrt-ink); }
-.lo-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text-strong); font-size: 14px; }
-.lo-select { width: 140px; height: 42px; padding: 0 32px 0 14px; border: 1px solid var(--border-default); border-radius: 12px; background: #fff var(--lo-chevron) no-repeat right 12px center; color: var(--text-strong); font-size: 13px; font-weight: 700; appearance: none; -webkit-appearance: none; cursor: pointer; outline: 0; }
+.lo-search { display: flex; flex: 0 1 300px; align-items: center; gap: var(--spacing-4); box-sizing: border-box; min-width: 220px; height: var(--adm-input-h); padding: 0 var(--spacing-12); border: 0; border-radius: var(--adm-input-radius); background: var(--adm-input-search-bg); color: var(--adm-input-placeholder); transition: box-shadow var(--adm-dur); }
+.lo-search:focus-within { box-shadow: inset 0 0 0 1px var(--adm-input-line-focus), var(--adm-input-ring); }
+.lo-search input { flex: 1; min-width: 0; padding: 0 var(--spacing-4); border: 0; outline: 0; background: transparent; color: var(--adm-input-fg); font-size: var(--adm-fs-input); }
+.lo-select { box-sizing: border-box; width: 140px; height: var(--adm-input-h); padding: 0 var(--spacing-32) 0 var(--adm-input-pad-x); border: 1px solid var(--adm-input-line); border-radius: var(--adm-input-radius); background: var(--adm-input-bg) var(--adm-select-chevron) no-repeat right var(--spacing-12) center; color: var(--adm-input-fg); font-size: var(--adm-fs-input); font-weight: var(--adm-fw-regular); appearance: none; -webkit-appearance: none; cursor: pointer; outline: 0; }
+.lo-select:focus { border-color: var(--adm-input-line-focus); box-shadow: var(--adm-input-ring); }
 .lo-reset { height: 42px; padding: 0 12px; border: 0; background: transparent; color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; }
 .lo-reset:hover { color: var(--text-strong); }
 .lo-count { margin-left: auto; color: var(--text-tertiary); font-size: 12px; }
@@ -178,11 +179,13 @@
 .lo-night-warn { padding: 6px 10px; border-radius: 8px; background: #ffecec; color: #d93636; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
 .lo-night-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding-top: 12px; border-top: 1px solid var(--border-subtle); }
 .lo-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.lo-field > span:first-child { display: flex; align-items: center; height: 16px; padding-left: 2px; color: var(--text-tertiary); font-size: 11px; font-weight: 700; line-height: 16px; white-space: nowrap; }
-.lo-input { display: block; box-sizing: border-box; width: 100%; height: 40px; margin: 0; padding: 0 12px; border: 1px solid var(--border-default); border-radius: 10px; background: #fff; color: var(--text-strong); font-size: 13px; outline: 0; }
-.lo-input:focus { border-color: var(--lo-mint); box-shadow: 0 0 0 3px rgba(var(--adm-accent-rgb),.14); }
-.lo-input:disabled { opacity: .55; }
-select.lo-input { padding-right: 30px; background: #fff var(--lo-chevron) no-repeat right 10px center; font-weight: 600; appearance: none; -webkit-appearance: none; cursor: pointer; }
+.lo-field > span:first-child { display: flex; align-items: center; height: 16px; padding-left: 2px; color: var(--adm-label-fg); font-size: var(--adm-label-fs); font-weight: var(--adm-label-fw); line-height: 16px; white-space: nowrap; }
+.lo-input { display: block; box-sizing: border-box; width: 100%; height: var(--adm-input-h); margin: 0; padding: 0 var(--adm-input-pad-x); border: 1px solid var(--adm-input-line); border-radius: var(--adm-input-radius); background: var(--adm-input-bg); color: var(--adm-input-fg); font-size: var(--adm-fs-input); outline: 0; transition: border-color var(--adm-dur), box-shadow var(--adm-dur); }
+.lo-input::placeholder { color: var(--adm-input-placeholder); }
+.lo-input:focus { border-color: var(--adm-input-line-focus); box-shadow: var(--adm-input-ring); }
+.lo-input:disabled { background-color: var(--adm-input-disabled-bg); border-color: var(--adm-input-disabled-line); cursor: default; }
+select.lo-input { padding-right: var(--spacing-32); background: var(--adm-input-bg) var(--adm-select-chevron) no-repeat right var(--spacing-12) center; font-weight: var(--adm-fw-regular); appearance: none; -webkit-appearance: none; cursor: pointer; }
+select.lo-input:disabled { background-color: var(--adm-input-disabled-bg); }
 .lo-input[type="number"] { text-align: center; appearance: textfield; -moz-appearance: textfield; }
 .lo-input[type="number"]::-webkit-inner-spin-button, .lo-input[type="number"]::-webkit-outer-spin-button, .lo-day-no input::-webkit-inner-spin-button, .lo-day-no input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
 .lo-day-no { display: flex; flex: none; align-items: center; color: var(--text-strong); font-size: 15px; font-weight: 800; letter-spacing: -.02em; }

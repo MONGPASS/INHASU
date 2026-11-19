@@ -177,4 +177,7 @@
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del { border-radius: var(--adm-radius-sm); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-sel { height: var(--adm-control-h); min-height: var(--adm-control-h); border-radius: var(--adm-radius-sm); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit textarea.items { border-radius: var(--adm-radius-sm); }
+/* Montage TextField: 1px 선·흰 바탕·14px, 포커스는 진한 민트 선 + 4px 연한 링 */
+.product-customer-page .cw-focus-workspace .ri-composer :is(.ri-field input, .ri-field textarea, .day-edit .dh input.ddate, .day-edit .dh input.dest, .day-edit .dh input.move, .day-edit .row.c2 input, .day-edit textarea.items) { border: 1px solid var(--adm-input-line); border-radius: var(--adm-input-radius); background-color: var(--adm-input-bg); color: var(--adm-input-fg); font-size: var(--adm-fs-input); }
+.product-customer-page .cw-focus-workspace .ri-composer :is(.ri-field input, .ri-field textarea, .day-edit .dh input.ddate, .day-edit .dh input.dest, .day-edit .dh input.move, .day-edit .row.c2 input, .day-edit textarea.items):focus { outline: 0; border-color: var(--adm-input-line-focus); box-shadow: var(--adm-input-ring); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-add { height: var(--adm-control-h-lg); min-height: var(--adm-control-h-lg); border-radius: var(--adm-radius-md); }

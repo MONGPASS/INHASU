@@ -311,6 +311,9 @@
 .customer-booking-editor label.f input,.customer-booking-editor label.f select,.customer-booking-editor label.f textarea{min-height:var(--adm-control-h);border-radius:var(--adm-radius-sm)}
 .customer-booking-editor .quote-day-editor .day-edit .dh input,.customer-booking-editor .quote-day-editor .day-edit .row.c2 input{height:var(--adm-control-h);min-height:var(--adm-control-h);border-radius:var(--adm-radius-sm)}
 .customer-booking-editor .quote-day-editor .day-edit textarea.items{border-radius:var(--adm-radius-sm)}
+/* Montage TextField: 1px 선·흰 바탕·14px, 포커스는 진한 민트 선 + 4px 연한 링 */
+.customer-booking-editor :is(label.f input:not([type=checkbox]):not([type=radio]),label.f select,label.f textarea,.quote-day-editor .day-edit .dh input,.quote-day-editor .day-edit .row.c2 input,.quote-day-editor .day-edit textarea.items){border:1px solid var(--adm-input-line);border-radius:var(--adm-input-radius);background-color:var(--adm-input-bg);color:var(--adm-input-fg);font-size:var(--adm-fs-input)}
+.customer-booking-editor :is(label.f input:not([type=checkbox]):not([type=radio]),label.f select,label.f textarea,.quote-day-editor .day-edit .dh input,.quote-day-editor .day-edit .row.c2 input,.quote-day-editor .day-edit textarea.items):focus{outline:0;border-color:var(--adm-input-line-focus);box-shadow:var(--adm-input-ring)}
 .customer-booking-editor .confirm-cancel,.customer-booking-editor .confirm-ok{min-height:var(--adm-control-h-lg);border-radius:var(--adm-radius-sm)}
 .customer-booking-editor .confirm-ok{background:var(--adm-primary-bg);box-shadow:none}
 .customer-booking-editor .confirm-card.danger .confirm-ok{background:var(--adm-danger);box-shadow:none}

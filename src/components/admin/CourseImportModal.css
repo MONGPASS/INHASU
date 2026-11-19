@@ -11,8 +11,9 @@
 .ci-close { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-2); cursor: pointer; }
 .ci-close:hover { background: var(--adm-gray-100); }
 
-.ci-input { width: 100%; height: var(--adm-control-h); padding: 0 12px; box-sizing: border-box; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-sm); background: var(--adm-surface); color: var(--adm-ink); font-family: inherit; font-size: var(--adm-fs-input); outline: 0; }
-.ci-input.is-sm { flex: 1; min-width: 0; height: var(--adm-control-h-sm); padding: 0 10px; color: var(--adm-text-2); font-size: var(--adm-fs-small); }
+.ci-input { width: 100%; height: var(--adm-input-h); padding: 0 var(--adm-input-pad-x); box-sizing: border-box; border: 1px solid var(--adm-input-line); border-radius: var(--adm-input-radius); background: var(--adm-input-bg); color: var(--adm-input-fg); font-family: inherit; font-size: var(--adm-fs-input); outline: 0; }
+.ci-input::placeholder { color: var(--adm-input-placeholder); }
+.ci-input.is-sm { flex: 1; min-width: 0; height: var(--adm-input-h-sm); padding: 0 var(--adm-input-pad-x-sm); border-radius: var(--adm-input-radius-sm); color: var(--adm-text-2); font-size: var(--typography-label2-fontSize); }
 .ci-input:focus { border-color: var(--adm-accent); box-shadow: var(--adm-ring); }
 
 /* 1단계: 코스 고르기 */
