@@ -1,0 +1,53 @@
+.guide-statement {
+  color: #192c31;
+  background: #fff;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.gs-statement-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 16px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #08a88e;
+}
+.gs-statement-head h2 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -.04em; }
+.gs-statement-head p { margin: 0; color: #53666b; font-size: 12px; }
+.gs-statement-head strong { margin-left: 6px; color: #21383c; }
+.gs-statement-parties {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+  margin: 18px 0 28px;
+  padding: 18px 20px;
+  background: #f1f7f5;
+  border-radius: 10px;
+}
+.gs-statement-parties dt { color: #4d6664; font-size: 12px; }
+.gs-statement-parties dd { margin: 4px 0 0; font-size: 14px; font-weight: 700; }
+.gs-statement-table { width: 100%; margin: 0 0 24px; border-collapse: collapse; table-layout: fixed; }
+.gs-statement-table caption, .gs-statement-note h3 { margin: 0 0 8px; color: #126b5d; font-size: 15px; font-weight: 800; text-align: left; }
+.gs-statement-table th, .gs-statement-table td { padding: 12px 9px; border-bottom: 1px solid #dce8e4; font-size: 14px; text-align: right; }
+.gs-statement-table thead th { background: #edf5f2; color: #374e4b; font-size: 12px; }
+.gs-statement-table th:first-child { width: 42%; text-align: left; }
+.gs-statement-table small { display: block; margin-top: 3px; color: #526864; font-size: 12px; }
+.gs-statement-total { color: #086e5c; font-weight: 800; }
+.gs-statement-note p { margin: 0; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+@media screen {
+  .guide-statement-link { display: inline-block; flex: none; padding: 8px 0; color: #086e5c; font-size: 12px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  .guide-print-page .guide-statement { margin-top: 32px; padding: 24px 0 0; border-top: 1px solid #dce8e4; }
+  .sheet.guide-statement { max-width: 100%; }
+}
+@media screen and (max-width: 600px) {
+  .sheet.guide-statement { padding: 24px 16px; }
+  .gs-statement-parties { gap: 12px; padding: 14px; }
+  .gs-statement-table th, .gs-statement-table td { padding: 9px 4px; }
+}
+@media print {
+  .guide-statement-link { display: none; }
+  .guide-statement { break-before: page; page-break-before: always; }
+  .gs-statement-table tr, .gs-statement-parties { break-inside: avoid; }
+  .gs-statement-table caption, .gs-statement-note h3 { break-after: avoid; }
+}

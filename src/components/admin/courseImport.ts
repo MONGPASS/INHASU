@@ -1,4 +1,6 @@
-import type { DetailContentBlock, DayInfoContent, TimelineContent, PackageType, TourPricingOption } from '../../types/product';
+import type { DetailContentBlock, DayInfoContent, TimelineContent, PackageType, RepresentativeSpotSnapshot, TourPricingOption } from '../../types/product';
+import { normalizeRepresentativeSpots } from '../../../functions/lib/productItinerary.ts';
+import type { QuoteSpotLibrary } from './quoteLibrary';
 import type { TouristSpot } from '../../types/touristSpot';
 import type { Hotel } from '../../types/hotel';
 import { productLodgingSnapshot } from '../../utils/lodgingItinerarySnapshot.ts';
@@ -31,6 +33,26 @@ export interface Course {
     days?: CourseDay[];
     /** 코스 관리의 요금: 1인 예약금 + 인원별 잔금(실속형 economy / 풀패키지 full) */
     price?: { deposit?: number; balances?: { pax?: number; economy?: number; full?: number; amount?: number }[] };
+}
+
+/** Course highlights are ordered quote-library keys, independent of the itinerary's day destinations. */
+export function courseRepresentativeSpots(highlights: Course['highlights'], library: QuoteSpotLibrary): RepresentativeSpotSnapshot[] | null {
+    if (!Array.isArray(highlights)) return null;
+    const names = [...new Set(highlights.filter(name => typeof name === 'string').map(name => name.trim()).filter(Boolean))];
+    return normalizeRepresentativeSpots(names.map(name => ({
+        ...(Object.hasOwn(library, name) ? library[name] : {}),
+        name,
+    })));
+}
+
+export function mergeCourseSpots(current: RepresentativeSpotSnapshot[], imported: RepresentativeSpotSnapshot[] | null, replace: boolean) {
+    if (!imported) return current;
+    const existing = new Map(current.map(spot => [spot.name, spot]));
+    if (replace) {
+        // Keep a product's last saved photo and description if the library entry has since been removed.
+        return imported.map(spot => Object.keys(spot).length === 1 ? existing.get(spot.name) ?? spot : spot);
+    }
+    return [...current, ...imported.filter(spot => !existing.has(spot.name))];
 }
 
 /** 관리자가 직접 골라 준 짝 — 다음에 같은 문구가 나오면 자동으로 쓴다. 값이 ''이면 「사진 없이」로 정한 것 */

@@ -7,6 +7,7 @@
 <title>가이드 시트 · 몽골리아 은하수</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306c4a0'/%3E%3Cpath d='M20 42 30 24l7 12 5-7 8 13z' fill='white'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<link rel="stylesheet" href="/guide-statement.css">
 <style>
 /* ══════════ 가이드 시트 — 담당 가이드 전달용 A4 인쇄 페이지 ══════════
    항공편·고객명단·일차별 숙소를 1페이지에, 상세 일정을 2페이지부터 배치 */
@@ -187,7 +188,8 @@ td b{ font-weight:800; }
 </head>
 <body>
 <div class="hint" id="printHint">
-  <span>💡 <b>인쇄하기</b>를 누르고 대상 <b>"PDF로 저장"</b> 또는 프린터 선택 → 여백 <b>없음</b>, 배경 그래픽 <b>켜기</b>로 출력하세요. 잔금이 등록된 예약은 마지막 페이지에 현금영수증 2부가 포함됩니다.</span>
+  <span><b>인쇄하기</b>에서 프린터 또는 <b>PDF로 저장</b>을 선택하세요. 여백은 <b>없음</b>으로, 배경 그래픽은 <b>켜기</b>로 설정하세요. 잔금이 등록된 예약은 현금영수증 2부도 포함됩니다.</span>
+  <a class="guide-statement-link" href="#guide-statement">거래명세서 보기</a>
   <button onclick="window.print()">🖨 인쇄하기</button>
 </div>
 <div id="root"></div>
@@ -195,8 +197,9 @@ td b{ font-weight:800; }
 <script src="booking.js"></script>
 <script src="guide-picket.js"></script>
 <script type="module">
+import { guideStatementContent } from "/guide-statement.js";
 /* ══════════ 데이터 로드 ══════════
-   출처 1) 예약관리 "📋 가이드 시트" 버튼 → localStorage(leaders_guide_sheet_print) + ?adminPrint=1
+   출처 1) 예약관리 "📋 가이드 시트" 버튼 → 인쇄 창의 sessionStorage + ?adminPrint=1&id=예약ID
    출처 2) ?id=<요청ID> 직접 접속 → /api/requests/:id (관리자 토큰 필요, 마스킹 없는 원본)
    고객용 /api/my/:token 은 생년월일·연락처가 마스킹되어 가이드 시트에는 쓰지 않는다. */
 const P = new URLSearchParams(location.search);
@@ -207,18 +210,22 @@ const ADMIN_TOKEN = sessionStorage.getItem("leaders_admin_token") || "";
 const adminHeaders = ADMIN_TOKEN ? { "x-admin-token": ADMIN_TOKEN } : {};
 
 const REC = await (async () => {
-  if (_id) {   // ?id= 직접 접속은 서버 원본을 우선 (이전 인쇄의 잔여 payload와 섞이지 않게)
+  if (_adminPrint) {
+    // 이전 버전에서 이미 열린 인쇄 창은 예약 ID 없는 일회성 키를 사용한다.
+    try {
+      const storage = _id ? sessionStorage : localStorage;
+      const payload = JSON.parse(storage.getItem("leaders_guide_sheet_print") || "null");
+      storage.removeItem("leaders_guide_sheet_print");
+      if (payload?.booking && (!_id || String(payload.id) === _id)) return payload;
+    } catch (e) {}
+  }
+  if (_id) {
     try {
       const res = await fetch("/api/requests/" + encodeURIComponent(_id), { cache:"no-store", headers:adminHeaders });
       const j = await res.json();
-      if (j.ok && j.item) return { ...j.item, id:_id };
+      if (res.ok && j.ok && j.item) return { ...j.item, id:_id };
     } catch (e) {}
   }
-  try {
-    const payload = JSON.parse(localStorage.getItem("leaders_guide_sheet_print") || "null");
-    if (_adminPrint) localStorage.removeItem("leaders_guide_sheet_print");
-    if (payload && payload.booking) return payload;
-  } catch (e) {}
   return null;
 })();
 
@@ -283,9 +290,9 @@ const totalDays = days.length
   || (departDate && returnDate ? Math.round((returnDate - departDate) / 864e5) + 1 : 0)
   || (REC.nights != null && REC.nights !== "" ? Number(REC.nights) + 1 : 0);
 const nightsTxt = totalDays ? `${totalDays - 1}박${totalDays}일` : "—";
-const paxTotal = (Number(REC.adult)||0) + (Number(REC.child)||0) + (Number(REC.infant)||0) || travelers.length;
+const paxTotal = (Number(REC.adult)||0) + (Number(REC.child)||0) + (Number(REC.infant)||0) || travelers.length || Number(REC.quote?.pax) || 0;
 const dayDate = i => departDate ? addDays(departDate, i) : null;   // i = 0부터 (1일차)
-const periodTxt = departDate && returnDate ? `${fmtKoWd(departDate)} ~ ${fmtKoWd(returnDate)}` : "—";
+const periodTxt = departDate || returnDate ? `${fmtKoWd(departDate) || "—"} ~ ${fmtKoWd(returnDate) || "—"}` : "—";
 const productName = noBr(ci.productName || REC.destination || "몽골 투어");
 
 /* 일차별 숙소: 배정 목록(assign.lodges) 우선, 없으면 일정표의 stay를 사용. 마지막 날(귀국일)은 "—" */
@@ -442,7 +449,7 @@ const page2 = days.length ? `
   <div class="gs-foot"><span>몽골리아 은하수 · 가이드용 일정표 (내부용 — 고객 배포 금지)</span><span>02</span></div>
 </div>` : "";
 
-/* ══════════ 마지막 페이지: 현장 잔금 현금영수증 ══════════ */
+/* 현장 잔금 현금영수증 */
 const cash = cashReceiptPayload(REC, BK);
 const cashDate = value => {
   const m = String(value || "").match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
@@ -468,8 +475,21 @@ const cashCopy = copy => {
 };
 const cashPage = Number(cash.amount) > 0 ? `<div class="cash-page">${cashCopy("고객용 / CUSTOMER COPY")}<div class="cr-cut">✂ 절취선 / CUT HERE</div>${cashCopy("회사 보관용 / COMPANY COPY")}</div>` : "";
 
+const statementPage = `<section class="sheet guide-statement" id="guide-statement" aria-label="거래명세서">${guideStatementContent({
+  ...ci,
+  customerName: REC.name,
+  reservationNumber: REC.reservationNumber || REC.id,
+  productName,
+  travelers: paxTotal,
+  period: periodTxt,
+  issueDate: cashDate(cash.issueDate),
+  packageType: BK.contractPackageType,
+  depositStatus: ci.depositStatus || BK.checklist?.deposit,
+  balanceStatus: ci.balanceStatus || BK.checklist?.balance,
+})}</section>`;
+
 const picketPage = `<div class="sheet picket-sheet"><div class="picket-bar"><b>가이드 피켓<small>A4 가로 · 공항 미팅용</small></b><button type="button" id="picketSave" disabled>🖼 PNG 저장</button></div><div class="picket-frame" id="picketFrame">피켓을 만드는 중…</div></div>`;
-root.innerHTML = page1 + page2 + cashPage + picketPage;
+root.innerHTML = page1 + page2 + statementPage + cashPage + picketPage;
 /* 가이드 피켓 — 고객 이름·여행 날짜·담당 가이드. 그림은 guide-picket.js(React 화면과 같은 렌더러) */
 const picketInput = { customerName: noBr(REC.name || travelers[0]?.name || ""), startDate: fmtFull(departDate), endDate: fmtFull(returnDate || departDate), guideName: noBr(guide.name), guidePhone: noBr(guide.phone) };
 const picketReady = (window.GuidePicket ? window.GuidePicket.toDataUrl(picketInput) : Promise.reject(new Error("피켓 도구를 불러오지 못했습니다"))).then(url => {

@@ -41,6 +41,23 @@ export function validCustomerResource(source: unknown, key: unknown): source is 
         key.length >= 1 && key.length <= 160 && /^[a-zA-Z0-9_-]+$/.test(key);
 }
 
+/** A reusable course link only becomes personal when staff enter a customer's name. */
+export function isPersonalCustomerRequest(source: unknown, name: unknown) {
+    if (source !== 'course-share') return true;
+    const recipient = typeof name === 'string' ? name.trim() : '';
+    return !!recipient && recipient !== '여행 고객';
+}
+
+export function readCustomerRequestData(json: string | null) {
+    try {
+        const value = JSON.parse(json || '{}');
+        if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+    } catch { /* Historical rows can contain incomplete JSON. */ }
+    return {};
+}
+
+const verificationPhone = (value: unknown) => String(value ?? '').replace(/\D/g, '').replace(/^(?:0082|82)0?(?=1\d{8,9}$)/, '0');
+
 export async function customerResource(env: AccessEnv, source: CustomerSource, key: string) {
     if (!validCustomerResource(source, key)) return null;
     const sql = source === 'request' ? 'SELECT * FROM requests WHERE token = ?'
@@ -52,11 +69,13 @@ export async function customerResource(env: AccessEnv, source: CustomerSource, k
         .bind(source, row.id).first();
     // Legacy request JSON accepted arbitrary client fields; it is not proof of ownership.
     const owner = source === 'request' ? link?.user_id : row.user_id || link?.user_id;
-    let data: any = {};
-    if (source === 'request') { try { data = JSON.parse(row.data || '{}'); } catch { /* unreadable legacy record */ } }
+    const data = source === 'request' ? readCustomerRequestData(row.data) : {};
+    const indexedPhone = verificationPhone(source === 'reservation' ? row.customer_phone : row.phone);
+    const savedPhone = source === 'request' && data.phone != null ? verificationPhone(data.phone) : indexedPhone;
     return { source, key, id: String(row.id), owner: owner ? String(owner) : null, row, data,
         email: String(source === 'request' ? data.email || '' : source === 'quote' ? row.email || '' : row.customer_email || '').trim().toLowerCase(),
-        phone: String(source === 'request' ? row.phone || data.phone || '' : source === 'quote' ? row.phone || '' : row.customer_phone || '').replace(/\D/g, ''),
+        // Older editors updated only JSON. Never send a code to a stale indexed number.
+        phone: indexedPhone && savedPhone !== indexedPhone ? '' : savedPhone,
     };
 }
 

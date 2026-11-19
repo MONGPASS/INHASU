@@ -5,6 +5,7 @@ import { build } from 'esbuild';
 import { requestSQLite } from './helpers/request-sqlite.mjs';
 import { customerIdentity } from './helpers/customer-session.mjs';
 import { safeCustomerReturn } from '../functions/lib/customerAccess.ts';
+import { customerLinkPath } from '../public/customer-access.js';
 
 const bundled = await build({ entryPoints:['functions/api/auth.ts'], bundle:true, platform:'node',format:'esm',write:false,
   plugins:[{name:'local-google-provider',setup(builder){
@@ -95,6 +96,17 @@ test('Google 고객은 서버가 정한 일반 계정으로 생성되고 실제 
   assert.ok(cookie);assert.match(cookie,/Secure/);assert.match(cookie,/HttpOnly/);
   const me=await f.request('/me',cookie.split(';')[0]);assert.equal((await me.json()).user.id,user.id);
   cleared(response,'post_login_redirect');cleared(response,'google_oauth_state');cleared(response,'google_code_verifier');
+});
+
+test('관리자가 보낸 견적의 연결 화면과 원본 링크가 Google 로그인 왕복 후에도 보존된다', async t => {
+  const f = fixture(t), token = 'original-admin-quote-token';
+  const target = customerLinkPath('request', token, '/내견적?t=' + token);
+  const start = await f.request('/login/google?redirect=' + encodeURIComponent(target));
+  const cookie = start.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
+  const callback = await f.request('/login/google/callback?code=fixture-code&state=fixture-state', cookie);
+  assert.equal(callback.status, 302);
+  assert.equal(callback.headers.get('Location'), target);
+  assert.ok(callback.headers.getSetCookie().some(value => value.startsWith('auth_session=')));
 });
 
 test('Google 이메일이 관리자 또는 다른 Google 계정과 충돌하면 기존 계정·세션에 연결하지 않는다',async t=>{

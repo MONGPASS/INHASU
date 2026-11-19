@@ -23,7 +23,7 @@ interface TableDef {
 }
 
 /** 표·칸 정의를 바꾸면 올린다. 올리면 각 서버 인스턴스가 한 번씩 다시 맞춘다. */
-export const SITE_SCHEMA_VERSION = 6;
+export const SITE_SCHEMA_VERSION = 8;
 
 /** Shared definition also used by legacy quote write routes outside the Hono middleware. */
 export const ADMIN_DELIVERY_TABLE: TableDef = {
@@ -53,6 +53,12 @@ export const CUSTOMER_ACCESS_TABLES: TableDef[] = [
         indexes: ['CREATE INDEX IF NOT EXISTS idx_customer_challenge_resource ON customer_link_challenges(user_id, source, resource_id)'],
     },
     { name: 'customer_link_limits', columns: ['key TEXT PRIMARY KEY', 'window_start INTEGER NOT NULL', 'count INTEGER NOT NULL'] },
+    {
+        name: 'customer_quote_link_requests',
+        columns: ['reference TEXT PRIMARY KEY', 'request_id TEXT NOT NULL', 'resource_key TEXT NOT NULL',
+            'user_id TEXT NOT NULL', 'expires_at INTEGER NOT NULL', 'approved_at INTEGER', 'approved_by TEXT'],
+        constraints: ['UNIQUE(request_id, user_id)'],
+    },
 ];
 
 export const SITE_TABLES: TableDef[] = [
@@ -82,6 +88,7 @@ export const SITE_TABLES: TableDef[] = [
             "tags TEXT DEFAULT '[]'",
             "included TEXT DEFAULT '[]'",
             "excluded TEXT DEFAULT '[]'",
+            'inclusions_configured INTEGER DEFAULT 0',
             "faqs TEXT DEFAULT '[]'",                    // 상품별 Q&A: [{q, a}]
             "detail_slides TEXT DEFAULT '[]'",
             "detail_blocks TEXT DEFAULT '[]'",

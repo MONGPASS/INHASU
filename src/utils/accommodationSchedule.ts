@@ -1,5 +1,5 @@
 import { toTourDateKey } from './formatDate.ts';
-import { isLodgeBookingConfirmed } from './lodgeBookingStatus.ts';
+import { isLodgeBookingConfirmed, resetLodgeWorkflow } from './lodgeBookingStatus.ts';
 import type { AssignmentAccommodation } from './reservationAssignment';
 
 export interface AccommodationScheduleDay {
@@ -187,7 +187,7 @@ export function alignAccommodationDates(booking: ScheduleBooking): AssignmentAcc
         const night = changes.get(index);
         if (!night) return row;
         return { ...row, date: night.date, accommodation: { ...row.accommodation,
-            ...(text(row.date) ? { bookingStatus: 'Илгээгээгүй' } : {}),
+            ...(text(row.date) ? resetLodgeWorkflow(row.accommodation) : {}),
         } };
     });
 }

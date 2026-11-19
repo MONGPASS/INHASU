@@ -34,9 +34,9 @@ async function fixture(t) {
     raw.exec(fs.readFileSync(new URL('../schema.sql', import.meta.url), 'utf8'));
     raw.exec(`CREATE TABLE users(id TEXT PRIMARY KEY,google_id TEXT,email TEXT,name TEXT,role TEXT,avatar_url TEXT,password_hash TEXT);
         CREATE TABLE sessions(id TEXT PRIMARY KEY,user_id TEXT,expires_at INTEGER);`);
-    for (const id of ['owner', 'other', 'password-only']) {
+    for (const id of ['owner', 'other', 'password-only', 'staff']) {
         raw.prepare('INSERT INTO users(id,google_id,email,name,role) VALUES(?,?,?,?,?)').run(id,
-            id === 'password-only' ? null : `google-${id}`, `${id}@account.example.invalid`, id, 'user');
+            ['password-only', 'staff'].includes(id) ? null : `google-${id}`, `${id}@account.example.invalid`, id, id === 'staff' ? 'admin' : 'user');
         raw.prepare('INSERT INTO sessions VALUES(?,?,?)').run(`link-session-${id}`, id, Date.now() + 90 * 86400000);
     }
     raw.prepare('INSERT INTO requests(id,name,phone,destination,status,data,token,received_at) VALUES(?,?,?,?,?,?,?,?)').run('legacy-request', 'PRIVATE-CUSTOMER', storedPhone, '공개 가능한 여행지', '신규',
@@ -242,4 +242,107 @@ test('마이페이지 이력은 연결된 요청·본인 견적만 반환하고 
     assert.equal(body.items.find(item => item.source === 'quote').href, '/estimate/legacy-quote');
     for (const secret of [storedEmail, storedPhone, 'PRIVATE-CUSTOMER', 'PRIVATE-PASSPORT', 'PRIVATE-MEMO', 'PRIVATE-SIGNATURE', 'PRIVATE-QUOTE-MEMO']) assert.ok(!text.includes(secret), secret);
     assert.deepEqual((await (await f.request('/history', { user: 'other' })).json()).items, []);
+});
+
+const requestReview = (f, user = 'owner', key = token) =>
+    f.request('/staff-request', { method: 'POST', user, body: { source: 'request', key } });
+const staffReview = (f, action, reference, extra = {}, user = 'staff') =>
+    f.request('/staff-review/' + action, { method: 'POST', user, body: { requestId: 'legacy-request', reference, ...extra } });
+
+test('관리자 견적 링크 → Google 계정 확인 요청 → 관리자 본인 확인 → 예약·견적 내역', async t => {
+    const f = await fixture(t);
+    const data = JSON.parse(f.raw.prepare('SELECT data FROM requests WHERE id=?').get('legacy-request').data);
+    Object.assign(data, { source: 'walkin', phone: '', email: '', quote: { pax: 2 } });
+    data.booking.contractInfo = { productName: '테를지 여행', totalAmount: 1000000, depositAmount: 100000, depositStatus: '입금완료' };
+    f.raw.prepare('UPDATE requests SET data=?,phone=?,status=? WHERE id=?').run(JSON.stringify(data), '', '예약확정', 'legacy-request');
+    const status = async () => (await f.request('/status?source=request&key=' + token)).json();
+    assert.equal((await status()).state, 'unavailable'); assert.equal((await status()).staffReviewAvailable, true);
+    for (const user of [null, 'password-only']) assert.equal((await requestReview(f, user)).status, 401);
+    const ticket = await (await requestReview(f)).json();
+    assert.match(ticket.reference, /^[A-F0-9]{12}$/); assert.equal(ticket.state, 'pending');
+    assert.equal((await (await requestReview(f)).json()).reference, ticket.reference);
+    assert.equal(Date.parse(ticket.expiresAt), f.clock.now + 86400000);
+    assert.deepEqual((await (await f.request('/history')).json()).items, []);
+    assert.equal((await staffReview(f, 'lookup', ticket.reference, {}, 'other')).status, 403);
+    assert.equal((await staffReview(f, 'lookup', ticket.reference, { requestId: 'other-request' })).status, 409);
+    const lookup = await staffReview(f, 'lookup', ticket.reference.toLowerCase());
+    const applicant = await lookup.json(); assert.equal(lookup.status, 200);
+    assert.equal(applicant.email, 'owner@account.example.invalid');
+    const approval = { accountId: applicant.accountId, identityConfirmed: true };
+    assert.equal((await staffReview(f, 'approve', ticket.reference, { accountId: applicant.accountId })).status, 400);
+    assert.equal((await staffReview(f, 'approve', ticket.reference, { ...approval, accountId: 'other' })).status, 409);
+    assert.equal((await staffReview(f, 'approve', ticket.reference, approval, 'owner')).status, 403);
+    assert.equal(f.linkOwner('request', 'legacy-request'), undefined);
+    for (let i = 0; i < 2; i++) assert.equal((await staffReview(f, 'approve', ticket.reference, approval)).status, 200);
+    assert.equal(f.linkOwner('request', 'legacy-request'), 'owner');
+    assert.equal(f.raw.prepare('SELECT approved_by FROM customer_quote_link_requests WHERE reference=?').get(ticket.reference).approved_by, 'staff');
+    assert.equal((await status()).state, 'linked');
+    const [quote] = (await (await f.request('/history')).json()).items;
+    assert.equal(quote.href, '/내견적.html?t=' + token);
+    assert.deepEqual(quote.booking, { productName: '테를지 여행', status: 'confirmed', start: '2026-11-01', end: '2026-11-03',
+        travelers: 2, createdAt: '2026-10-20', depositReported: false, payTotal: 1000000, payPercent: 10 });
+    assert.deepEqual((await (await f.request('/history', { user: 'other' })).json()).items, []);
+    assert.equal(f.outbox.length, 0);
+});
+
+test('만료·교체된 견적 링크와 다른 고객의 선행 승인은 과거 확인 요청으로 덮어쓰지 않는다', async t => {
+    const f = await fixture(t), approval = { accountId: 'owner', identityConfirmed: true };
+    const first = await (await requestReview(f)).json();
+    f.clock.now += 86400001;
+    assert.equal((await staffReview(f, 'approve', first.reference, approval)).status, 409);
+    const second = await (await requestReview(f)).json(); assert.notEqual(second.reference, first.reference);
+    const rotated = 'fixture-rotated-staff-review-token';
+    f.raw.prepare('UPDATE requests SET token=? WHERE id=?').run(rotated, 'legacy-request');
+    assert.equal((await staffReview(f, 'approve', second.reference, approval)).status, 409);
+    const current = await (await requestReview(f, 'owner', rotated)).json();
+    assert.notEqual(current.reference, second.reference);
+    const other = await (await requestReview(f, 'other', rotated)).json();
+    assert.notEqual(other.reference, current.reference);
+    f.beforeBatch(sql => {
+        if (sql.some(statement => statement.startsWith('INSERT OR IGNORE INTO customer_resource_links'))) {
+            f.raw.prepare('INSERT INTO customer_resource_links(source,resource_id,user_id,created_at) VALUES(?,?,?,?)')
+                .run('request', 'legacy-request', 'other', new Date(f.clock.now).toISOString());
+        }
+    });
+    assert.equal((await staffReview(f, 'approve', current.reference, approval)).status, 409);
+    assert.equal(f.linkOwner('request', 'legacy-request'), 'other');
+    assert.equal(f.raw.prepare('SELECT approved_at FROM customer_quote_link_requests WHERE reference=?').get(current.reference).approved_at, null);
+});
+
+test('개인 견적만 연결 전 관리자 확인을 요청할 수 있고 일반 견적은 예약으로 표시하지 않는다', async t => {
+    const f = await fixture(t);
+    const set = (name, data) => f.raw.prepare('UPDATE requests SET name=?,data=? WHERE id=?').run(name, JSON.stringify(data), 'legacy-request');
+    set('여행 고객', { source: 'course-share', quote: { pax: 2 }, email: storedEmail });
+    const generic = await (await f.request('/status?source=request&key=' + token)).json();
+    assert.equal(generic.staffReviewAvailable, false); assert.deepEqual(generic.channels, []);
+    assert.equal((await requestReview(f)).status, 409);
+    set('예약자', { source: 'course-share', quote: { pax: 2 } });
+    assert.equal((await requestReview(f)).status, 200);
+    set('고객', { source: 'walkin', quote: {}, email: storedEmail });
+    assert.equal((await f.verify(await f.challenge())).status, 200);
+    const [estimate] = (await (await f.request('/history')).json()).items;
+    assert.equal(estimate.booking, undefined); assert.equal(estimate.href, '/내견적.html?t=' + token);
+    set('고객', { source: 'walkin', quote: { pax: 2 }, decision: { status: 'accepted', acceptedAt: '2026-10-25' } });
+    const [accepted] = (await (await f.request('/history')).json()).items;
+    assert.equal(accepted.booking.status, 'reservation_requested');
+    assert.equal(accepted.booking.createdAt, '2026-10-25');
+});
+
+test('국가번호로 저장한 한국 휴대폰은 기존 예약자 번호로 SMS 인증한다', async t => {
+    const f = await fixture(t);
+    f.raw.prepare('UPDATE requests SET phone=? WHERE id=?').run('+82 10-1234-5678', 'legacy-request');
+    const status = await (await f.request('/status?source=request&key=' + token)).json();
+    assert.equal(status.channels.find(channel => channel.kind === 'sms').masked, '010-****-5678');
+    const issued = await f.challenge('request', token, { channel: 'sms' });
+    assert.equal(f.outbox[0].body.message.to, storedPhone);
+    assert.equal((await f.verify(issued)).status, 200);
+});
+
+test('관리자가 고친 연락처와 예전 검색용 번호가 다르면 예전 번호로 인증번호를 보내지 않는다', async t => {
+    const f = await fixture(t);
+    f.raw.prepare("UPDATE requests SET data=json_set(data,'$.phone','01099990000') WHERE id='legacy-request'").run();
+    const status = await (await f.request('/status?source=request&key=' + token)).json();
+    assert.deepEqual(status.channels.map(channel => channel.kind), ['email']); assert.equal(status.staffReviewAvailable, true);
+    const send = await f.request('/challenge', { method: 'POST', body: { source: 'request', key: token, channel: 'sms' } });
+    assert.equal(send.status, 409); assert.equal(f.outbox.length, 0);
 });

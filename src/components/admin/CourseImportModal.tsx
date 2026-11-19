@@ -1,21 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/api';
-import type { DetailContentBlock, PackageType, TourPricingOption } from '../../types/product';
+import type { DetailContentBlock, PackageType, RepresentativeSpotSnapshot, TourPricingOption } from '../../types/product';
 import type { TouristSpot } from '../../types/touristSpot';
 import type { Hotel } from '../../types/hotel';
 import { TouristSpotPickerModal } from './TouristSpotPickerModal';
 import { HotelPickerModal } from './HotelPickerModal';
 import './CourseImportModal.css';
+import { loadCourses, loadQuoteSpots, type QuoteSpotLibrary } from './quoteLibrary';
 import {
     planCourse, planToBlocks, dayGaps, planPhotoCount, plainText, shortText, dayAliasKey, itemAliasKey, stayAliasKey,
-    coursePricing, suspiciousPricing, stayForPackage,
+    coursePricing, suspiciousPricing, stayForPackage, courseRepresentativeSpots,
     type Course, type CourseImportAliases, type PlanDay,
 } from './courseImport';
 
-/** 일정표와 함께 넘기는 것 — 고른 여행 타입과, 가져오기로 한 경우의 인원별 가격 */
 export interface CourseImportExtra {
     packageType: PackageType | null;
     pricing: TourPricingOption[] | null;
+    representativeSpots: RepresentativeSpotSnapshot[] | null;
 }
 
 interface CourseImportModalProps {
@@ -43,48 +44,6 @@ function readAliases(): CourseImportAliases {
 
 function writeAliases(aliases: CourseImportAliases) {
     try { window.localStorage.setItem(ALIAS_KEY, JSON.stringify(aliases)); } catch { /* 저장소를 못 쓰면 이번 불러오기에만 적용 */ }
-}
-
-const isCourseMap = (value: unknown): value is Record<string, Course> =>
-    !!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
-
-/** 코스 관리가 처음 보여 주는 기본 코스 (public/presets.js) — 서버에 저장한 코스가 아직 없을 때만 읽는다 */
-let presetCourses: Promise<Record<string, Course>> | null = null;
-function loadPresetCourses(): Promise<Record<string, Course>> {
-    // presets.js는 전역 함수와 서버 동기화를 함께 정의한다 — 관리자 창을 건드리지 않게 숨은 frame 안에서 읽고 바로 닫는다
-    presetCourses ??= new Promise(resolve => {
-        // 대문자 태그 이름: 아이콘 서브셋 검사(scripts/check-icon-subset.mjs)가 소문자 문자열을 아이콘 이름으로 읽기 때문
-        const frame = document.createElement('IFRAME') as HTMLIFrameElement;
-        frame.style.display = 'none';
-        frame.setAttribute('aria-hidden', 'true');
-        const finish = (value: Record<string, Course>) => { frame.remove(); resolve(value); };
-        document.body.appendChild(frame);
-        const doc = frame.contentDocument;
-        if (!doc) { finish({}); return; }
-        const script = doc.createElement('script');
-        script.src = '/presets.js';
-        script.onload = () => {
-            const courses = (frame.contentWindow as unknown as { PRESETS?: { courses?: Record<string, Course> } } | null)?.PRESETS?.courses;
-            finish(isCourseMap(courses) ? JSON.parse(JSON.stringify(courses)) : {});
-        };
-        script.onerror = () => finish({});
-        doc.head.appendChild(script);
-    });
-    return presetCourses;
-}
-
-/** 코스 관리와 같은 순서로 읽는다: 서버 저장분 → 이 브라우저 저장분 → 기본 코스 */
-async function loadCourses(signal: AbortSignal): Promise<Record<string, Course>> {
-    try {
-        const res = await fetch('/api/data/courses', { cache: 'no-store', signal });
-        const body = await res.json();
-        if (isCourseMap(body?.data)) return body.data;
-    } catch { /* 아래 저장분으로 넘어간다 */ }
-    try {
-        const local = JSON.parse(window.localStorage.getItem('leaders_courses') || 'null');
-        if (isCourseMap(local)) return local;
-    } catch { /* ignore */ }
-    return loadPresetCourses();
 }
 
 type PickTarget = { kind: 'day'; day: number } | { kind: 'item'; day: number; item: number } | { kind: 'lodge'; day: number };
@@ -128,6 +87,9 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
     const [pkg, setPkg] = useState<PackageType | null>(packageType);
     const [withPrice, setWithPrice] = useState(true);
     const [target, setTarget] = useState<PickTarget | null>(null);
+    const [quoteSpots, setQuoteSpots] = useState<QuoteSpotLibrary | null>(null);
+    const [spotError, setSpotError] = useState('');
+    const [spotAttempt, setSpotAttempt] = useState(0);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -184,6 +146,19 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
 
     const gaps = useMemo(() => plan.map(d => dayGaps(d, plan)), [plan]);
     const course = courseName ? courses[courseName] : undefined;
+    const needsSpots = Array.isArray(course?.highlights) && course.highlights.some(name => typeof name === 'string' && name.trim());
+    useEffect(() => {
+        if (!needsSpots || quoteSpots) return;
+        const controller = new AbortController();
+        setSpotError('');
+        loadQuoteSpots(controller.signal).then(data => {
+            if (!controller.signal.aborted) setQuoteSpots(data);
+        }).catch(error => {
+            if (!controller.signal.aborted) setSpotError(error?.message || '대표 명소를 불러오지 못했습니다.');
+        });
+        return () => controller.abort();
+    }, [needsSpots, quoteSpots, spotAttempt]);
+    const representativeSpots = useMemo(() => courseRepresentativeSpots(course?.highlights, quoteSpots ?? {}), [course, quoteSpots]);
     const hasPrice = !!course && (coursePricing(course, 'full').length > 0 || coursePricing(course, 'value').length > 0);
     const pricing = useMemo(() => (course && pkg ? coursePricing(course, pkg) : []), [course, pkg]);
     const suspect = useMemo(() => suspiciousPricing(pricing), [pricing]);
@@ -238,6 +213,11 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
         <>
             {header(courseName, '자동으로 찾은 사진과 한 줄 설명을 확인하세요. 주황색으로 표시된 자리만 골라 주면 됩니다. 한 번 골라 준 짝은 다음 불러오기부터 자동으로 들어갑니다.')}
             <div className="ci-body">
+                {needsSpots && <div className="ci-card ci-course-spots">
+                    <strong>함께 불러올 대표 명소</strong>
+                    {spotError ? <p role="alert">{spotError} <button type="button" className="ci-link" onClick={() => setSpotAttempt(attempt => attempt + 1)}>다시 시도</button></p>
+                        : <p>{representativeSpots?.map(spot => spot.name).join(' · ')}{!quoteSpots && ' · 명소 자료 불러오는 중…'}</p>}
+                </div>}
                 {/* 여행 타입 — 숙소 등급과 가져올 요금을 정한다 */}
                 <div data-course-package className={`ci-card ci-pkg${needsPackage ? ' is-warn' : ''}`}>
                     <div className="ci-pkg-row">
@@ -370,8 +350,8 @@ function CourseImporter({ packageType, onPick, onClose }: { packageType: Package
                 </div>
                 <div className="ci-foot-acts">
                     <button type="button" onClick={() => setCourseName(null)} className="adm-btn">다른 코스</button>
-                    <button type="button" data-course-submit disabled={needsPackage} title={needsPackage ? '여행 타입을 먼저 고르세요' : undefined}
-                        onClick={() => onPick(planToBlocks(plan, { includeMove, packageType: pkg }), courseName, { packageType: pkg, pricing: hasPrice && withPrice && pricing.length ? pricing : null })}
+                    <button type="button" data-course-submit disabled={needsPackage || (needsSpots && !quoteSpots)} title={needsPackage ? '여행 타입을 먼저 고르세요' : undefined}
+                        onClick={() => onPick(planToBlocks(plan, { includeMove, packageType: pkg }), courseName, { packageType: pkg, pricing: hasPrice && withPrice && pricing.length ? pricing : null, representativeSpots })}
                         className="adm-btn is-primary">
                         이 코스로 일정표 만들기
                     </button>

@@ -31,3 +31,25 @@ export const lodgeBookingLabel = (value: unknown) => {
     const v = String(value ?? '');
     return LODGE_BOOKING_STATUSES.find(s => s.value === v)?.label ?? v;
 };
+
+export const LODGE_MAIL_STAGES = ['발송전', '1메일완료', '2메일완료', '3메일완료', '배정X'] as const;
+export const LODGE_RESERVATION_STATES = ['예약완료', '취소요청', '취소완료', '변경요청', '변경완료', '배정X'] as const;
+export const NEW_LODGE_WORKFLOW = { bookingStatus: LODGE_BOOKING_UNSENT, mailStatus: '발송전', mailSentDate: '' } as const;
+
+type LodgeWorkflow = { bookingStatus?: string; mailStatus?: string; mailSentDate?: string };
+const legacyMailed = (value?: string) => value === 'Имэйл илгээсэн' || value === '메일 발송' || value === '메일발송';
+export const lodgeMailStatus = (stay: LodgeWorkflow) => stay.mailStatus ||
+    (legacyMailed(stay.bookingStatus) ? '1메일완료' : stay.bookingStatus === '배정X' ? '배정X' : '발송전');
+
+export function lodgeReservationStatus(value?: string) {
+    if (!value || value === LODGE_BOOKING_UNSENT || value === '미발송' || legacyMailed(value)) return '';
+    return value === 'Баталгаажсан' || value === '확정' ? '예약완료' : lodgeBookingLabel(value);
+}
+
+// 기존 단일 상태에만 있던 메일 기록도 예약상태를 바꾸기 전에 독립 필드로 보존한다.
+export const changeLodgeReservation = (stay: LodgeWorkflow, bookingStatus: string) => ({ bookingStatus, mailStatus: lodgeMailStatus(stay) });
+export const resetLodgeWorkflow = (stay: LodgeWorkflow) => ({
+    bookingStatus: LODGE_BOOKING_UNSENT,
+    ...(stay.mailStatus !== undefined ? { mailStatus: '발송전' } : {}),
+    ...(stay.mailSentDate !== undefined ? { mailSentDate: '' } : {}),
+});

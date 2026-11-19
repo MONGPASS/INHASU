@@ -1,0 +1,26 @@
+.qv-heading { margin: 0 0 18px; color: #0a1f2e; font-size: 22px; font-weight: 800; line-height: 1.4; }
+.qv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.qv-card { min-width: 0; background: #fff; border: 1px solid #dfe7e4; border-radius: 14px; color: #0a1f2e; break-inside: avoid; }
+.qv-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 6px; }
+.qv-photos img { width: 100%; height: 72px; display: block; object-fit: contain; }
+.qv-photos img:first-child { grid-column: 1 / -1; height: 145px; }
+.qv-details { padding: 14px 16px; overflow-wrap: anywhere; }
+.qv-details h3 { margin: 0; font-size: 17px; line-height: 1.4; font-weight: 750; }
+.qv-selected { display: inline-block; margin-top: 6px; padding: 3px 8px; border-radius: 6px; background: #e4f6f0; color: #176957; font-size: 12px; font-weight: 700; }
+.qv-details dl { margin: 10px 0 0; font-size: 13px; line-height: 1.6; }
+.qv-details dl div { display: grid; grid-template-columns: 65px 1fr; gap: 6px; }
+.qv-details dt { color: #52635e; }
+.qv-details dd { margin: 0; font-weight: 650; }
+.qv-details p { margin: 10px 0 0; font-size: 13px; line-height: 1.65; white-space: pre-line; }
+.qv-mobile .qv-grid { grid-template-columns: minmax(0, 1fr); }
+.page.qv-page { height: auto; min-height: 1123px; padding: 48px 54px 80px; overflow: visible; }
+.qv-page .qv-heading { font-size: 30px; }
+.qv-estimate { padding: 30px clamp(18px,5vw,56px); }
+@media (max-width: 640px) {
+  .qv-estimate .qv-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  .card.qv-mobile { overflow: visible; }
+  .qv-mobile .qv-grid { display: block; }
+  .qv-mobile .qv-card + .qv-card { margin-top: 12px; }
+}

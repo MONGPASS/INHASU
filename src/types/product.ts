@@ -53,6 +53,7 @@ export interface TourProduct {
     // 포함/불포함
     included: string[];
     excluded: string[];
+    inclusionsConfigured?: boolean;
 
     // 메타 정보
     createdAt: string;

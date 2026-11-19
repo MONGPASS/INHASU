@@ -8,6 +8,7 @@ import { Icon } from '../components/admin/console/Icon';
 import { createPortal } from 'react-dom';
 import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
+import { QuoteAccountLinkDialog } from '../components/admin/QuoteAccountLinkDialog';
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
 import { Ico, V7Menu, V7Styles, menuAt, type V7MenuItem, type V7MenuState } from '../components/admin/v7/v7Ui';
 import { api } from '../lib/api';
@@ -128,6 +129,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const frameIsMounted = linked && frameReady && (!customerPage || !!customerRecord && customerEditorMounted);
     const shownKeyRef = useRef(frameKey);
     const [editorNotice, setEditorNotice] = useState('');
+    const [accountReviewId, setAccountReviewId] = useState('');
     const [editorBusy, setEditorBusy] = useState(false);
     const [sendingKakao, setSendingKakao] = useState(false);
     const [editorDirty, setEditorDirty] = useState(false);
@@ -492,13 +494,14 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const guideMenu = (anchor: HTMLElement) => {
         const l = frameLinks();
         openToolMenu(anchor, '가이드 전달', [
-            { key: 'sheet', label: '가이드 시트 PDF', sub: '항공편·고객 명단·일차별 숙소 한 장 요약', subTone: 'muted', onPick: () => runFrame('guideSheet') },
+            { key: 'sheet', label: '가이드 시트 PDF', sub: '항공편·고객 명단·숙소·일정·거래명세서', subTone: 'muted', onPick: () => runFrame('guideSheet') },
             { key: 'pdf', label: '가이드용 PDF', sub: l && !l.hasQuote ? '견적서를 먼저 작성해 주세요' : '가이드용 일정표를 인쇄합니다', subTone: 'muted', disabled: !!l && !l.hasQuote, onPick: () => runFrame('guidePdf') },
         ]);
     };
     const moreMenu = (anchor: HTMLElement) => {
         const l = editorExpanded ? frameLinks() : null;
         openToolMenu(anchor, '기타 작업', [
+            ...(customerPage && bookingId && customerRecord ? [{ key: 'account', label: '고객 계정 연결', onPick: () => setAccountReviewId(bookingId) }] : []),
             ...(editorExpanded ? [{ key: 'reload', label: '작업 화면 다시 불러오기', onPick: () => { reloadFrame(); setCustomerRefresh(value => value + 1); } }] : []),
             ...(linked && tool.key === 'bookings' && bookingId ? [{ key: 'log', label: '발송 이력', sub: '변경·발송 이력 탭', subTone: 'muted' as const, onPick: () => { if (editorExpanded && bookingEditor) navigateWorkspace('log'); else customerAction('history'); } }] : []),
             ...(tool.key !== 'builder' || !editorExpanded ? [{ key: 'quote', label: customerRecord?.quote ? '견적서 수정' : '견적서 작성', disabled: !customerRecord, onPick: () => openCustomerEditor('builder', 'docs') }] : []),
@@ -548,6 +551,8 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
             {linked ? (
                 <div ref={customerPageRef} className={customerPage ? `quote-customer-page${editorExpanded ? ' is-editing' : ''}` : undefined} style={customerPage ? { flex: 1, minHeight: 0, overflow: editorExpanded ? 'hidden' : 'auto', background: '#f5f7fa' } : { position: 'relative', flex: 1, minHeight: 0, background: '#fff' }}>
                     {customerPage && <>
+                        {bookingId && accountReviewId === bookingId && customerModel && <QuoteAccountLinkDialog key={bookingId} requestId={bookingId}
+                            customerName={customerModel.customerName} onClose={() => setAccountReviewId('')} />}
                         {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 12, background: '#fff5e8' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
                         {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
                             <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao}

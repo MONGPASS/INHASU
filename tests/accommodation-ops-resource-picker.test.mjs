@@ -89,7 +89,9 @@ function mount({ resources = async () => resourceFixture(), failPatch = false, i
             assert.ok(item, String(url));
             const body = JSON.parse(options.body);
             if (failPatch || item.version !== body.expectedVersion) return response({ error: '다른 곳에서 예약이 변경되었습니다.' }, 409);
-            item.assignment = plain(body.assignment); item.version = 'b'.repeat(64);
+            if ('contractPackageType' in body.assignment) item.contractPackageType = body.assignment.contractPackageType;
+            else item.assignment = plain(body.assignment);
+            item.version = 'b'.repeat(64);
             return response({ item });
         },
     });
@@ -424,6 +426,7 @@ test('앞 일차와 동일은 숙소·객실을 가져오되 일차·날짜를 �
 test('숙박 날짜를 직접 고칠 때도 변경한 예약만 다시 수배하고 기존 객실과 배정 자료는 보존한다', async () => {
     const row = twoNightFixture('product', 'customer');
     row.assignment.accommodations[0].accommodation.roomCount = 0;
+    Object.assign(row.assignment.accommodations[0].accommodation, { mailStatus: '3메일완료', mailSentDate: '2026-10-20' });
     row.assignment.accommodations.push({ day: 2, date: '2026-11-02', accommodation: {
         ...plain(row.assignment.accommodations[0].accommodation), id: 'second-lodge', name: '둘째 밤 숙소', roomCount: 1,
     } });
@@ -436,11 +439,27 @@ test('숙박 날짜를 직접 고칠 때도 변경한 예약만 다시 수배하
     await h.button('배정 저장').props.onClick(); await h.settle();
     const stays = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
     assert.deepEqual(stays[0], { ...before[0], date: '2026-10-31', accommodation: {
-        ...before[0].accommodation, bookingStatus: 'Илгээгээгүй',
+        ...before[0].accommodation, bookingStatus: 'Илгээгээгүй', mailStatus: '발송전', mailSentDate: '',
     } }, '직접 바꾼 날짜만 수배 재확인이 필요하며 객실 0을 비롯한 자료를 보존');
     assert.deepEqual(stays[1], before[1], '같은 날짜를 다시 입력해도 확정 상태를 유지');
     await h.reload(); await h.open('product');
     assert.deepEqual(dates().map(node => node.props.value), ['2026-10-31', '2026-11-02']);
+    h.unmount();
+});
+
+test('카드 보기에서도 발송 회차·날짜와 예약상태를 독립적으로 수정하고 다시 연다', async () => {
+    const h = mount({ items: [bookingFixture('quote_booking')] });
+    await h.settle(); await h.open('quote_booking');
+    const field = label => nodes(h.tree).find(n => n.props?.['aria-label'] === label);
+    const edit = (label, value) => { field(label).props.onChange({ target: { value } }); h.render(); };
+    assert.equal(field('숙소 예약 상태').props.value, '예약완료');
+    edit('숙소 메일발송', '2메일완료');
+    edit('숙소 메일발송일자', '2026-10-23');
+    edit('숙소 예약 상태', '취소요청');
+    await h.button('배정 저장').props.onClick(); await h.settle();
+    await h.reload(); await h.open('quote_booking');
+    assert.deepEqual(['숙소 메일발송', '숙소 메일발송일자', '숙소 예약 상태'].map(label => field(label).props.value),
+        ['2메일완료', '2026-10-23', '취소요청']);
     h.unmount();
 });
 
@@ -500,6 +519,26 @@ const boardPick = (h, label, value) => {
 };
 const boardButton = (h, label) => { const node = boardNodes(h).find(n => n.type === 'button' && text(n).includes(label)); assert.ok(node, label); return node; };
 
+test('예약 정보는 선택한 상품·견적 계약서 한 건을 미리 보고 같은 문서를 새 창에서 연다', async () => {
+    const h = mount({ view: 'sheet-view' });
+    await h.settle();
+    const frames = () => boardNodes(h).filter(n => n.type === 'iframe');
+    assert.equal(frames().length, 0);
+    const id = encodeURIComponent('same / #?');
+    for (const [name, href] of [['상품 고객', `/documents/contract/${id}?preview=1`], ['견적 고객', `/계약서.html?adminId=${id}&preview=1`]]) {
+        boardField(h, name + ' 예약 정보 보기').props.onClick(fakeClick);
+        assert.equal(frames().length, 1);
+        assert.equal(frames()[0].props.src, href);
+        assert.equal(frames()[0].props.title, name + ' 여행계약서 미리보기');
+        const link = boardField(h, name + ' 여행계약서 새 창에서 열기');
+        assert.equal(link.props.href, href);
+        assert.equal(link.props.target, '_blank');
+        assert.match(link.props.rel, /noopener/);
+    }
+    boardField(h, '예약 정보 닫기').props.onClick();
+    assert.equal(frames().length, 0);
+});
+
 test('시트 보기: 오늘 이후 투어만 보여 주고 분류·배정 구분·예약메모를 모두 저장으로 보낸다', async () => {
     const past = { ...bookingFixture('product'), key: 'product:past-tour', id: 'past-tour', customerName: '지난 고객', startDate: '2026-09-01', endDate: '2026-09-03' };
     const h = mount({ view: 'sheet-view', items: [bookingFixture('product'), bookingFixture('quote_booking'), past] });
@@ -512,7 +551,11 @@ test('시트 보기: 오늘 이후 투어만 보여 주고 분류·배정 구분
     boardField(h, '상품 고객 예약 정보 보기').props.onClick(fakeClick); h.render();
     boardPick(h, '상품 고객 분류', '골프투어');
     boardPick(h, '상품 고객 1박 배정 구분', '2인1실');
-    boardPick(h, '상품 고객 1박 방수', '골프오후');
+    const roomCount = boardField(h, '상품 고객 1박 방수');
+    assert.equal(roomCount.props.value, 2);
+    const input = roomCount.type(roomCount.props);
+    assert.deepEqual([input.props.type, input.props.min, input.props.max, input.props.step], ['number', 1, 10, 1]);
+    input.props.onChange({ currentTarget: { value: '10', valueAsNumber: 10, reportValidity: () => true } });
     boardField(h, '상품 고객 1박 예약메모').props.onChange({ target: { value: '늦은 체크인' } }); h.render();
     await h.settle();
     assert.equal(h.requests.filter(r => r.options.method === 'PATCH').length, 0, '저장 전에는 서버를 바꾸지 않는다');
@@ -522,8 +565,10 @@ test('시트 보기: 오늘 이후 투어만 보여 주고 분류·배정 구분
     assert.match(patches[0].url, /\/api\/admin\/assignments\/product\//);
     assert.equal(patches[0].body.assignment.category, '골프투어');
     const night = patches[0].body.assignment.accommodations[0];
-    assert.deepEqual(plain([night.day, night.date, night.accommodation.name, night.accommodation.assignType, night.accommodation.occupancy, night.accommodation.adminMemo]),
-        [1, '2026-11-01', '이전 숙소', '2인1실', '골프오후', '늦은 체크인']);
+    assert.deepEqual(plain([night.day, night.date, night.accommodation.name, night.accommodation.roomCount, night.accommodation.assignType, night.accommodation.occupancy, night.accommodation.adminMemo]),
+        [1, '2026-11-01', '이전 숙소', 10, '2인1실', '2 хүн/өрөө', '늦은 체크인']);
+    await h.reload();
+    assert.equal(boardField(h, '상품 고객 1박 방수').props.value, 10);
     h.unmount();
 });
 
@@ -551,6 +596,32 @@ test('시트 보기: 숙소지역은 계약 일정의 그날 지역을 불러오
     boardButton(h, '모두 저장').props.onClick(); await h.settle(); await h.settle();
     const saved = h.requests.filter(r => r.options.method === 'PATCH').at(-1).body.assignment.accommodations;
     assert.deepEqual(plain(saved.map(n => [n.day, n.accommodation.region || '', n.accommodation.type])), [[1, 'Terelj', '고급 게르'], [2, 'UB', '일반 게르']]);
+    h.unmount();
+});
+
+test('시트의 패키지를 바로 저장하고 숙소 등급·미저장 편집과 별도로 다시 표시한다', async () => {
+    const quote = { ...bookingFixture('quote_booking'), contractPackageType: 'value' };
+    quote.assignment.accommodations[0].accommodation.type = '고급 게르';
+    const h = mount({ view: 'sheet-view', items: [quote] });
+    await h.settle();
+    const plan = () => text(boardNodes(h).find(n => n.props?.className === 'la-pkg'));
+    assert.equal(plan(), '실속패키지', '계약에서 고른 유형이 숙소 등급보다 우선');
+    boardField(h, '견적 고객 1박 예약메모').props.onChange({ target: { value: '편집 중' } });
+    boardPick(h, '견적 고객 계약 패키지 변경 · 실속', '풀패키지');
+    await h.settle();
+    const patches = () => h.requests.filter(r => r.options.method === 'PATCH');
+    assert.deepEqual(plain(patches()[0].body.assignment), { contractPackageType: 'full' });
+    assert.equal(plan(), '풀패키지');
+    assert.equal(boardField(h, '견적 고객 1박 예약메모').props.value, '편집 중');
+    assert.notEqual(h.server[0].assignment.accommodations[0].accommodation.adminMemo, '편집 중');
+    boardButton(h, '모두 저장').props.onClick(); await h.settle();
+    assert.equal(h.server[0].assignment.accommodations[0].accommodation.adminMemo, '편집 중');
+    await h.reload();
+    assert.equal(plan(), '풀패키지');
+    boardPick(h, '견적 고객 계약 패키지 변경 · 풀패키지', '자동 표시');
+    await h.settle();
+    assert.equal(h.server[0].contractPackageType, '');
+    assert.equal(plan(), '풀패키지', '해제하면 배정한 등급으로 돌아간다');
     h.unmount();
 });
 
@@ -582,12 +653,17 @@ test('시트 보기: 숙소를 고르면 지역을 함께 넣고, 숙박 추가�
     assert.ok(boardNodes(h).some(n => n.props?.className === 'la-date' && text(n).startsWith('2026-11-02')), '마지막 숙박 다음 날');
     boardPick(h, '상품 고객 2박 숙소지역', '중앙몽골');
     boardPick(h, '상품 고객 2박 숙소정보', '등록 게르 / #?');
-    assert.match(text(boardField(h, '상품 고객 2박 예약상태')), /미발송/, '고른 숙소는 미발송으로 시작');
-    boardPick(h, '상품 고객 2박 예약상태', '예약요청');
+    assert.match(text(boardField(h, '상품 고객 2박 메일발송')), /발송전/);
+    assert.match(text(boardField(h, '상품 고객 2박 예약상태')), /미정/);
+    boardPick(h, '상품 고객 2박 메일발송', '2메일완료');
+    boardField(h, '상품 고객 2박 메일발송일자').props.onChange({ target: { value: '2026-10-28' } });
+    boardPick(h, '상품 고객 2박 예약상태', '변경요청');
     boardButton(h, '모두 저장').props.onClick(); await h.settle(); await h.settle();
     const saved = h.requests.filter(r => r.options.method === 'PATCH').at(-1).body.assignment.accommodations;
     assert.deepEqual(plain(saved.map(n => [n.day, n.date, n.accommodation.name || '', n.accommodation.region || '', n.accommodation.bookingStatus || ''])),
-        [[1, '2026-11-01', '이전 숙소', '', 'Баталгаажсан'], [2, '2026-11-02', '등록 게르 / #?', '중앙몽골', '예약요청']]);
+        [[1, '2026-11-01', '이전 숙소', '', 'Баталгаажсан'], [2, '2026-11-02', '등록 게르 / #?', '중앙몽골', '변경요청']]);
+    assert.equal(saved[1].accommodation.mailStatus, '2메일완료');
+    assert.equal(saved[1].accommodation.mailSentDate, '2026-10-28');
     h.unmount();
 });
 

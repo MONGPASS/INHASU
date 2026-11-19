@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, matchPath, useLocation } from 'react-router-dom'
 import { useEffect, Suspense, lazy } from 'react'
 import { Layout } from './components/layout/Layout'
 import { Home } from './pages/Home'
@@ -91,34 +91,38 @@ const PageLoader = () => (
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isProductPreview = !!matchPath('/admin/products/:id/preview', location.pathname);
+  const isAdminWorkspace = isAdminRoute && !isProductPreview;
+  const isContractPreview = location.pathname.startsWith('/documents/contract/') &&
+    new URLSearchParams(location.search).get('preview') === '1';
   const isGuidePrintRoute =
     location.pathname.startsWith('/documents/itinerary/') &&
     new URLSearchParams(location.search).get('guide') === '1';
-  const appWrapperClass = isAdminRoute
+  const appWrapperClass = isAdminWorkspace
     ? 'admin-app-wrapper'
     : isGuidePrintRoute
       ? 'guide-document-wrapper'
       : 'mobile-app-wrapper';
 
-  useEffect(() => { trackPageView(location.pathname, location.search); }, [location.pathname, location.search]);
+  useEffect(() => { if (!isProductPreview) trackPageView(location.pathname, location.search); }, [location.pathname, location.search, isProductPreview]);
 
   // Ensure body background matches the layout style for seamless experience
   useEffect(() => {
     if (isGuidePrintRoute) {
       document.body.style.backgroundColor = '#ffffff';
-    } else if (isAdminRoute) {
+    } else if (isAdminWorkspace) {
       document.body.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#0f172a' : '#f8fafc';
     } else {
       document.body.style.backgroundColor = document.documentElement.classList.contains('dark') ? '#111827' : '#f3f4f6';
     }
-  }, [isAdminRoute, isGuidePrintRoute]);
+  }, [isAdminWorkspace, isGuidePrintRoute]);
 
   return (
     <div className={appWrapperClass}>
       <SEO />
       <NotificationProvider>
-        <AdminWorkspaceProvider enabled={isAdminRoute && location.pathname !== '/admin/login'}>
-        {!isAdminRoute && !isGuidePrintRoute && <FloatingConsultation />}
+        <AdminWorkspaceProvider enabled={isAdminWorkspace && location.pathname !== '/admin/login'}>
+        {!isAdminRoute && !isGuidePrintRoute && !isContractPreview && <FloatingConsultation />}
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -178,6 +182,7 @@ function App() {
             <Route path="/admin/calendar" element={<AdminGuard><AdminCalendar /></AdminGuard>} />
             <Route path="/admin/banners" element={<AdminGuard><AdminBannerManage /></AdminGuard>} />
             <Route path="/admin/products" element={<AdminGuard><AdminProductManage /></AdminGuard>} />
+            <Route path="/admin/products/:id/preview" element={<AdminGuard><ProductDetail preview /></AdminGuard>} />
             <Route path="/admin/categories" element={<AdminGuard><AdminCategoryManage /></AdminGuard>} />
             <Route path="/admin/guides" element={<AdminGuard><AdminGuideManage /></AdminGuard>} />
             <Route path="/admin/magazines" element={<AdminGuard><AdminMagazineManage /></AdminGuard>} />

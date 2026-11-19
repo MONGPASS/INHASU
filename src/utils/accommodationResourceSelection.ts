@@ -1,5 +1,6 @@
 import type { AssignmentAccommodation, AssignmentGuide, AssignmentVehicle } from './reservationAssignment';
 import type { RegisteredGuide, RegisteredLodge, RegisteredVehicle } from './registeredAssignmentResources';
+import { resetLodgeWorkflow } from './lodgeBookingStatus.ts';
 
 const text = (value: unknown): string => typeof value === 'string' ? value : '';
 const list = (value: unknown): string[] => Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
@@ -31,6 +32,6 @@ export function selectResourceLodge(current: AssignmentAccommodation, resource: 
         roomAmenities: [...resource.roomAmenities], sharedFacilities: [...resource.sharedFacilities],
         ...(Object.hasOwn(previous, 'roomCount') ? { roomCount: previous.roomCount } : {}),
         occupancy: text(previous.occupancy).trim() ? previous.occupancy : resource.occupancy,
-        bookingStatus: same ? previous.bookingStatus : 'Илгээгээгүй',
+        ...(same ? { bookingStatus: previous.bookingStatus, mailStatus: previous.mailStatus, mailSentDate: previous.mailSentDate } : resetLodgeWorkflow(previous)),
     } };
 }

@@ -11,6 +11,7 @@ import {
 } from '../components/document/ItineraryDocParts';
 import { COMPANY_INFO, EMBASSY_INFO, LOCAL_EMERGENCY } from '../constants/company';
 import { GuideItineraryPrint } from '../components/document/GuideItineraryPrint';
+import type { GuideStatementPayment } from '../../public/guide-statement.js';
 
 /**
  * 확정 일정표(고객용) — "確定日程表.dc.html"(모바일) + "確定日程表_PC.dc.html"(PC) 디자인 적용.
@@ -80,11 +81,13 @@ interface DocumentSettings {
 }
 interface ItineraryData {
     reservation: { id: string; reservationNumber: string | null; productName: string; customerName: string; travelers: number; startDate: string; endDate: string; status: string };
+    statement: GuideStatementPayment;
     template: { id: string; name: string; description: string; days: any[]; documentSettings?: DocumentSettings } | null;
     guide: { id?: string; name: string; image?: string; phone?: string; languages?: string[] | string } | null;
     days: DayData[];
     productIncluded?: string[];
     productExcluded?: string[];
+    productTermsConfigured?: boolean;
 }
 // 가이드용 사본(관리자→localStorage 전달, 고객 미노출)
 interface GuideExtra {
@@ -112,7 +115,7 @@ export const DocumentItinerary: React.FC = () => {
         if (params.get('autoprint') === '1') { query.set('m', '0'); query.set('print', '1'); }
         window.location.replace(`/확정일정표?${query}`);
     }, [reservationId, params, guideMode]);
-    return guideMode ? <GuideDocumentItinerary /> : <p style={{ padding: 40, textAlign: 'center' }}>확정 일정표를 여는 중…</p>;
+    return guideMode ? <GuideDocumentItinerary key={reservationId} /> : <p style={{ padding: 40, textAlign: 'center' }}>확정 일정표를 여는 중…</p>;
 };
 
 const GuideDocumentItinerary: React.FC = () => {
@@ -231,9 +234,9 @@ const GuideDocumentItinerary: React.FC = () => {
 
     const productInc = data.productIncluded || [];
     const productExc = data.productExcluded || [];
-    const includedDisplay = productInc.length ? productInc : (splitItems(overview.includedText).length ? splitItems(overview.includedText)
+    const includedDisplay = data.productTermsConfigured || productInc.length ? productInc : (splitItems(overview.includedText).length ? splitItems(overview.includedText)
         : ['공항 픽업·샌딩·전용 차량', '전 일정 숙박 (호텔·게르)', '일정표에 기재된 식사', '한국어 가이드 동행', '관광지 입장료·각종 체험']);
-    const excludedDisplay = productExc.length ? productExc : (splitItems(overview.excludedText).length ? splitItems(overview.excludedText)
+    const excludedDisplay = data.productTermsConfigured || productExc.length ? productExc : (splitItems(overview.excludedText).length ? splitItems(overview.excludedText)
         : ['국제선 항공권', '해외여행 보험', '개인 경비 (기념품·음료 등)', '가이드·드라이버 팁']);
 
     const officePhone1 = COMPANY_INFO.phoneKR;
@@ -252,7 +255,7 @@ const GuideDocumentItinerary: React.FC = () => {
         return (
             <>
                 <SEO title="가이드용 여행 일정" description="담당 가이드용 여행 일정표입니다." robots="noindex, nofollow" />
-                <GuideItineraryPrint reservation={reservation} title={title} days={days} extra={guideExtra} />
+                <GuideItineraryPrint reservation={reservation} title={title} days={days} extra={guideExtra} statement={data.statement} />
             </>
         );
     }

@@ -1,6 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planCourse, planToBlocks, dayGaps, matchName, matchInSentence, nameKey, dayAliasKey, itemAliasKey, shortText } from '../src/components/admin/courseImport.ts';
+import { planCourse, planToBlocks, dayGaps, matchName, matchInSentence, nameKey, dayAliasKey, itemAliasKey, shortText, courseRepresentativeSpots, mergeCourseSpots } from '../src/components/admin/courseImport.ts';
+
+test('코스에 지정한 명소의 순서와 자료를 가져오고 이어 붙이는 경우 기존 선택을 보존한다', () => {
+    const turtle = { name: '거북바위', nameMn: 'Мэлхий хад', short: '초원', desc: '바위 설명', img: '/turtle.webp', subImgs: ['/side.webp'] };
+    const library = { 거북바위: { ...turtle, privateMemo: '내부 메모' } };
+    const imported = courseRepresentativeSpots(['거북바위', '보관 명소', '거북바위', ''], library);
+    assert.deepEqual(imported, [turtle, { name: '보관 명소' }]);
+    const archived = { name: '보관 명소', desc: '이전 설명', img: '/archived.webp' };
+    const existing = [{ name: '기존 명소' }, archived];
+    assert.deepEqual(mergeCourseSpots(existing, imported, false), [...existing, turtle]);
+    assert.deepEqual(mergeCourseSpots(existing, imported, true), [turtle, archived]);
+    assert.deepEqual(mergeCourseSpots(existing, courseRepresentativeSpots(undefined, library), true), existing);
+    assert.deepEqual(mergeCourseSpots(existing, courseRepresentativeSpots([], library), true), []);
+});
 
 const spot = (name, images = [`/${name}-1.webp`, `/${name}-2.webp`, `/${name}-3.webp`]) => ({ id: `quote-spot:${name}`, name_kr: name, summary: `${name} 한 줄 소개`, description: `${name}의 긴 설명입니다. 둘째 문장은 일정 항목에 넣지 않습니다.`, images, is_active: true });
 const spots = [spot('차강소브라가'), spot('욜린암'), spot('홍고린엘스'), spot('칭기스칸 기마상'), spot('엘승타사르해'), spot('테를지 국립공원'), spot('공항 미팅', ['/meet.webp'])];

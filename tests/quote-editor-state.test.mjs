@@ -147,10 +147,11 @@ for (const share of [false, true]) {
         context.ST = { ...quote(), customer: '원본 고객', pax: 3, depart: '', return_: '', destination: '초원' };
         const session = await state.create({ kind: 'quote', requestId: 'request-a', get: () => context.ST, apply: value => { context.ST = value; } });
         context.ST.customer = '저장할 고객';
+        context.ST.email = 'verified-contact@example.invalid';
         const buttons = new Map();
         const button = id => { if (!buttons.has(id)) buttons.set(id, { disabled: false, textContent: '저장', focus() {} }); return buttons.get(id); };
         Object.assign(context, { quoteRecovery: session, quoteEditorBooting: false, buildQuote: () => state.clean(context.ST),
-            ANONYMOUS_SHARE: false, REQ_ID: 'request-a', REQ_TOKEN: 'server-only-customer-token', ADMIN_TOKEN: 'server-only-admin-token',
+            ANONYMOUS_SHARE: false, REQ_ID: 'request-a', REQ_TOKEN: 'server-only-customer-token', ADMIN_TOKEN: 'server-only-admin-token', savedEmail: '',
             REQ_PAX0: { adult: 3, child: 0, infant: 0 }, nights: () => 0, $: button, pubBtn: button('pub'), saveBtn: button('save'),
             confirm: () => true, toast: () => {}, setStep: () => {}, showLinkBox: () => {},
             clearDraft: () => session.commit(context.REQ_ID), navigator: { clipboard: { writeText: async () => {} } },
@@ -167,6 +168,7 @@ for (const share of [false, true]) {
         assert.equal(calls, 1); assert.equal(state.getState().busy, true);
         await context.runSave({ share }); assert.equal(calls, 1);
         assert.equal(lastBody[share ? 'notifyQuote' : 'silentQuote'], true);
+        assert.equal(lastBody.email, 'verified-contact@example.invalid');
         assert.ok([...saved.values()][0].includes('저장할 고객'));
         assert.ok(![...saved.values()][0].includes('server-only'));
         resolve(Response.json({ ok: false, error: '로컬 테스트 실패' }, { status: 500 })); await pending;

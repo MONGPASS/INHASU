@@ -1,5 +1,15 @@
 import type { TourProduct } from '../types/product';
+import { normalizeAccommodationOptions } from './productAccommodationOptions.ts';
 import { normalizeRepresentativeSpots } from '../../functions/lib/productItinerary.ts';
+import { quoteIncludedLabels, quoteExclusions } from '../../public/quote-inclusions.js';
+
+/** An intentionally empty selection stays empty when the product is edited again. */
+export function productEditorTerms(product?: Pick<TourProduct, 'included' | 'excluded' | 'inclusionsConfigured'>) {
+    if (product && (product.inclusionsConfigured || product.included?.length || product.excluded?.length)) {
+        return { included: product.included ?? [], excluded: product.excluded ?? [] };
+    }
+    return { included: [...quoteIncludedLabels], excluded: [...quoteExclusions] };
+}
 
 /** Shared with the real product page so draft tests exercise the API-to-form boundary. */
 export function adminProductFromApi(item: any): TourProduct {
@@ -25,8 +35,10 @@ export function adminProductFromApi(item: any): TourProduct {
         tags: list(item.tags), highlights: list(item.highlights),
         representativeSpots: normalizeRepresentativeSpots(item.representativeSpots ?? item.representative_spots),
         included: list(item.included), excluded: list(item.excluded), faqs: list(item.faqs),
+        ...(flag(item.inclusions_configured ?? item.inclusionsConfigured) ? { inclusionsConfigured: true } : {}),
         viewCount: number(item.view_count ?? item.viewCount), bookingCount: number(item.booking_count ?? item.bookingCount),
-        pricingOptions: list(item.pricing_options ?? item.pricingOptions), accommodationOptions: list(item.accommodation_options ?? item.accommodationOptions),
+        pricingOptions: list(item.pricing_options ?? item.pricingOptions),
+        accommodationOptions: normalizeAccommodationOptions(list(item.accommodation_options ?? item.accommodationOptions)),
         vehicleOptions: list(item.vehicle_options ?? item.vehicleOptions),
         createdAt: text(item.created_at ?? item.createdAt), updatedAt: text(item.updated_at ?? item.updatedAt),
     };
@@ -137,8 +149,18 @@ export function readAdminProductDraft(storage: DraftStorage, scope: AdminProduct
             return { kind: 'error', error: '보관된 초안의 형식 또는 계정 정보가 맞지 않아 복원하지 않았습니다.' };
         }
         const saved = { ...draft, form: productDraftForm(draft.form) } as unknown as AdminProductDraft;
-        if (productDraftFingerprint(saved.form) === productDraftFingerprint(serverForm)) return { kind: 'empty' };
-        return { kind: 'draft', draft: saved, conflict: saved.serverUpdatedAt !== (serverForm.updatedAt || null) || saved.baseFingerprint !== productDraftFingerprint(serverForm) };
+        const serverFingerprint = productDraftFingerprint(serverForm);
+        const sameRevision = saved.serverUpdatedAt === (serverForm.updatedAt || null);
+        // Older drafts started with blank lists. Upgrade just that baseline, preserving explicit edits.
+        if (sameRevision && !serverForm.inclusionsConfigured && saved.baseFingerprint !== serverFingerprint
+            && JSON.stringify(serverForm.included) === JSON.stringify(quoteIncludedLabels)
+            && JSON.stringify(serverForm.excluded) === JSON.stringify(quoteExclusions)
+            && saved.baseFingerprint === productDraftFingerprint({ ...serverForm, included: [], excluded: [] })) {
+            saved.baseFingerprint = serverFingerprint;
+            if (!saved.form.included?.length && !saved.form.excluded?.length) Object.assign(saved.form, productEditorTerms());
+        }
+        if (productDraftFingerprint(saved.form) === serverFingerprint) return { kind: 'empty' };
+        return { kind: 'draft', draft: saved, conflict: !sameRevision || saved.baseFingerprint !== serverFingerprint };
     } catch (error) { return { kind: 'error', error: storageError(error) }; }
 }
 

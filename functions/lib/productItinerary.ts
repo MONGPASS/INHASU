@@ -141,6 +141,13 @@ export async function loadProductDocument(db: any, reservation: any) {
     return { product, template, days: mergeProductDays(reservation, template, product) };
 }
 
+export function itineraryTerms(product: any, overview?: { includedText?: string; excludedText?: string }) {
+    return {
+        included: typeof overview?.includedText === 'string' ? lines(overview.includedText) : array(product?.included).map(text).filter(Boolean),
+        excluded: typeof overview?.excludedText === 'string' ? lines(overview.excludedText) : array(product?.excluded).map(text).filter(Boolean),
+    };
+}
+
 export function buildProductQuote({ reservation: r, template, product, days, brand, assignmentsVisible }: any) {
     const custom = parseDocumentJson(r.document_content, {});
     const settings = custom.documentSettings || template?.documentSettings || {};
@@ -160,8 +167,7 @@ export function buildProductQuote({ reservation: r, template, product, days, bra
     const flight = (f: any) => [text(f?.date), text(f?.time), text(f?.flight)].filter(Boolean).join(' · ') || '확인 중';
     const mainImages = photos(product?.main_images ?? product?.mainImages);
     const scheduleImages = days.flatMap((d: any) => [...photos(d.images), ...array(d.activities).flatMap(a => photos(a.images))]);
-    const included = typeof overview.includedText === 'string' ? lines(overview.includedText) : array(product?.included).map(text).filter(Boolean);
-    const excluded = typeof overview.excludedText === 'string' ? lines(overview.excludedText) : array(product?.excluded).map(text).filter(Boolean);
+    const { included, excluded } = itineraryTerms(product, product?.inclusions_configured === 1 ? custom.documentSettings?.overview : overview);
     const itineraryDays = days.map((d: any) => ({
         d: d.day, date: d.date, dest: (text(d.title) || text(d.region) || `${d.day}일차`).slice(0, 80), move: text(d.move), dist: text(d.dist),
         items: Array.isArray(d.items) ? d.items.filter((item: any) => typeof item === 'string')

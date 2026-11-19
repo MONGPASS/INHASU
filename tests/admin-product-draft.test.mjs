@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    adminProductDraftKey, readAdminProductDraft, writeAdminProductDraft,
-    removeAdminProductDraft, finishAdminProductSave, productDraftFingerprint,
+    adminProductDraftKey, adminProductFromApi, readAdminProductDraft, writeAdminProductDraft,
+    removeAdminProductDraft, finishAdminProductSave, productDraftFingerprint, productEditorTerms,
     runAdminProductSaveOnce,
     adminProductNavigationDecision, updateAdminProductEditorForm,
 } from '../src/utils/adminProductDraft.ts';
+import { bookableAccommodationOptions } from '../src/utils/productAccommodationOptions.ts';
 
 function memoryStorage() {
     const values = new Map();
@@ -16,6 +17,18 @@ function memoryStorage() {
     };
 }
 const scope = { userId: 'admin-a', productId: 'product-1' };
+test('기본 항목 도입 전에 보관한 초안을 복원하고 이후 직접 해제한 항목은 복원하지 않는다', () => {
+    const storage = memoryStorage();
+    const blank = { name: '상품', included: [], excluded: [] };
+    const baseline = { ...blank, ...productEditorTerms() };
+    writeAdminProductDraft(storage, scope, blank, { ...blank, name: '초안' });
+    const old = readAdminProductDraft(storage, scope, baseline);
+    assert.equal(old.kind, 'draft');
+    assert.equal(old.conflict, false);
+    assert.deepEqual(old.draft.form, { ...baseline, name: '초안' });
+    writeAdminProductDraft(storage, scope, baseline, { ...blank, name: '전체 해제' });
+    assert.deepEqual(readAdminProductDraft(storage, scope, baseline).draft.form, { ...blank, name: '전체 해제' });
+});
 const server = { id: 'product-1', name: '서버 상품', duration: '3박 4일', category: '중앙몽골', price: 1000000,
     updatedAt: '2026-10-14T00:00:00Z', mainImages: ['/images/main.webp'], itineraryBlocks: [], tags: [] };
 const edited = { ...server, name: '작성 중 상품', itineraryBlocks: [
@@ -23,6 +36,29 @@ const edited = { ...server, name: '작성 중 상품', itineraryBlocks: [
     { id: 'event-1', type: 'timeline', content: { title: '거북바위', description: '작성한 설명', images: ['/images/spot.webp'] } },
 ] };
 const savedAt = '2026-10-14T01:23:45Z';
+
+test('숙소 옵션의 순서·기본값·금액을 보존하고 입력하지 않은 칸은 고객 선택지에서 제외한다', () => {
+    const saved = [
+        { id: 'a', name: '', description: '', priceModifier: 0, isDefault: true },
+        { id: 'b', name: '일반 게르', description: '공용 욕실', priceModifier: 0 },
+        { id: 'b', name: '디럭스 게르', description: '개별 욕실', priceModifier: 50000 },
+        { name: '호텔', description: '시내 숙박', priceModifier: -10000 },
+    ];
+    const editor = adminProductFromApi({ ...server, accommodation_options: JSON.stringify(saved) });
+    const draft = { ...editor, accommodationOptions: editor.accommodationOptions.map((option, i) => ({ ...option, isDefault: i === 3 })) };
+    const storage = memoryStorage();
+    assert.equal(writeAdminProductDraft(storage, scope, editor, draft).ok, true);
+    const restored = readAdminProductDraft(storage, scope, editor);
+    assert.deepEqual(restored.draft.form.accommodationOptions, draft.accommodationOptions);
+    const options = bookableAccommodationOptions(restored.draft.form.accommodationOptions);
+    assert.deepEqual(options.map(o => [o.name, o.priceModifier, o.isDefault]), [
+        ['일반 게르', 0, false], ['디럭스 게르', 50000, false], ['호텔', -10000, true],
+    ]);
+    assert.equal(new Set(options.map(o => o.id)).size, 3);
+    assert.deepEqual(bookableAccommodationOptions(saved), bookableAccommodationOptions(editor.accommodationOptions));
+    assert.equal(bookableAccommodationOptions(saved)[0].isDefault, true);
+    assert.deepEqual(bookableAccommodationOptions([saved[0]]), []);
+});
 
 test('서버 저장본으로 진입하면 초안을 새로 만들지 않는다', () => {
     const storage = memoryStorage();

@@ -8,6 +8,11 @@ import { invalidateAdminReads, isAdminReadResource, readAdminCached } from './ad
 
 const API_BASE = '/api';
 
+export interface CustomerQuoteBooking {
+    productName: string; status: string; start: string; end: string; travelers: number; createdAt: string;
+    depositReported: boolean; payTotal: number; payPercent: number;
+}
+
 /** Body of a promotion create / update; the server assigns id and timestamps (and sort_order when omitted). */
 type PromotionInput = Partial<Omit<Promotion, 'id' | 'created_at' | 'updated_at'>>;
 
@@ -67,7 +72,7 @@ async function request(url: string, options?: RequestInit) {
 
 export const api = {
     customerAccess: {
-        history: async (): Promise<{ ok: boolean; items: Array<{ id: string; source: 'request' | 'quote'; status: string; destination: string; period: string; headcount: string | number; createdAt: string; href: string }> }> => request(`${API_BASE}/customer-access/history`, { cache: 'no-store' }),
+        history: async (): Promise<{ ok: boolean; items: Array<{ id: string; source: 'request' | 'quote'; status: string; destination: string; period: string; headcount: string | number; createdAt: string; href: string; booking?: CustomerQuoteBooking }> }> => request(`${API_BASE}/customer-access/history`, { cache: 'no-store' }),
     },
     adminWorkspace: { get: async (): Promise<AdminWorkspaceData> => request(`${API_BASE}/admin/workspace`, { cache: 'no-store' }) },
     adminBookings: {
@@ -310,7 +315,7 @@ export const api = {
             publish: async (reservationId: string) => request(`${API_BASE}/documents/itinerary/${reservationId}/publish`, { method: 'POST' }),
         },
         contract: {
-            get: async (reservationId: string) => request(`${API_BASE}/documents/contract/${reservationId}`),
+            get: async (reservationId: string) => request(`${API_BASE}/documents/contract/${encodeURIComponent(reservationId)}`),
             saveCustomer: async (reservationId: string, data: any) => request(`${API_BASE}/documents/contract/${reservationId}/customer`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

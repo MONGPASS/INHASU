@@ -1,4 +1,5 @@
 import { hasProductSchedule } from '../../functions/lib/productItinerary.ts';
+import type { ContractPackageType } from './reservationAssignment';
 
 export interface ReservationOperations {
     joining: 'private' | 'join' | 'undecided';
@@ -8,6 +9,7 @@ export interface ReservationOperations {
     driverPhone: string;
     /** 예약 관리 v7의 구분(풀패키지·일정+차량…)과 항공(포함·불포함·개별). 빈 값은 미정. */
     serviceType?: string;
+    contractPackageType?: ContractPackageType;
     airfare?: string;
     receipt: { status: ReceiptStatus; number: string; issuedDate: string };
     opsNote: string;

@@ -8,7 +8,7 @@ import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources }
 import { selectResourceGuide, selectResourceLodge, selectResourceVehicle } from '../../../utils/accommodationResourceSelection';
 import { AIRFARE_OPTIONS, CATEGORY_OPTIONS, JOINING_LABELS, RECEIPT_LABELS, SERVICE_TYPE_OPTIONS, type ReceiptStatus, type ReservationOperations } from '../../../utils/reservationWorkspace';
 import {
-    BOOKING_STATUS, BOOKING_STATUS_OPTIONS, OCCUPANCY_OPTIONS, V7_TABS, bookingStatusMeta, fetchV7Assignments, occupancyLabel, saveV7Assignment,
+    BOOKING_STATUS, BOOKING_STATUS_OPTIONS, OCCUPANCY_OPTIONS, V7_TABS, bookingStatusMeta, changeV7StayStatus, fetchV7Assignments, occupancyLabel, saveV7Assignment,
     v7Dday, v7Range, v7Row, v7StepLabel, v7StepSubs, v7Won, withGuide, withNight, withVehicle, type V7AssignmentItem, type V7Row, type V7Source,
 } from '../../../utils/reservationV7';
 import { PRODUCT_STATUS_OPTIONS, statusLabelOf } from './ReservationListV7';
@@ -208,7 +208,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         if (field === 'grade') { setMenu(menuAt(target, `${day}박 숙소 등급`, [...(night.grade && !LODGE_GRADES.includes(night.grade) ? [night.grade] : []), ...LODGE_GRADES].map(g => ({ key: g, label: g, on: night.grade === g,
             onPick: () => void save(it => withNight(it, day, r => ({ ...r, accommodation: { ...r.accommodation, type: g } })), `${day}박 숙소 등급을 ${g}(으)로 바꿨어요`) })))); return; }
         if (field === 'status') { setMenu(menuAt(target, `${day}박 수배 상태`, BOOKING_STATUS_OPTIONS.map(o => ({ key: o.value, label: o.label, on: night.bookingStatus === o.value,
-            onPick: () => void save(it => withNight(it, day, r => ({ ...r, accommodation: { ...r.accommodation, bookingStatus: o.value } })), `${day}박 ${o.label}(으)로 변경했어요`) })))); return; }
+            onPick: () => void save(it => withNight(it, day, r => ({ ...r, accommodation: { ...r.accommodation, ...changeV7StayStatus(r.accommodation, o.value) } })), `${day}박 ${o.label}(으)로 변경했어요`) })))); return; }
         const loaded = await ensureResources(), place = night.region.replace(/\s+/g, '');
         const lodges = [...(loaded?.lodges || [])].sort((a, b) => Number(!!place && (b.region || b.location).replace(/\s+/g, '').includes(place)) - Number(!!place && (a.region || a.location).replace(/\s+/g, '').includes(place)));
         setMenu(menuAt(target, `${day}박 숙소 선택`, [
@@ -225,7 +225,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         const days = new Set(pendingNights.map(s => s.day));
         void save(it => {
             const base = withNight(it, -1, r => r);
-            return { ...base, accommodations: base.accommodations.map(r => days.has(Number(r.day)) ? { ...r, accommodation: { ...r.accommodation, bookingStatus: BOOKING_STATUS.mailed } } : r) };
+            return { ...base, accommodations: base.accommodations.map(r => days.has(Number(r.day)) ? { ...r, accommodation: { ...r.accommodation, ...changeV7StayStatus(r.accommodation, BOOKING_STATUS.mailed) } } : r) };
         }, `${pendingNights.length}박 수배 요청을 현지 운영에 보냈어요`);
     };
     const paymentMenu = (e: React.MouseEvent, field: 'deposit' | 'final') => {

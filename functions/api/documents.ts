@@ -3,7 +3,7 @@ import { BRAND, COMPANY_INFO, DEPOSIT_ACCOUNT, resolveCancellationRows } from '.
 import { getSessionUser } from '../lib/userAuth';
 import { requireResourceAccess } from '../lib/customerAccess';
 import { requireAdmin } from '../lib/adminAuth';
-import { buildProductQuote, hasProductSchedule, loadProductDocument, mergeProductDays, productItineraryPublished } from '../lib/productItinerary';
+import { buildProductQuote, hasProductSchedule, itineraryTerms, loadProductDocument, mergeProductDays, productItineraryPublished } from '../lib/productItinerary';
 import { PRODUCT_CONTRACT_TERMS_VERSION, productContractTerms, productSignatureRecord, publicProductContract, validateProductSignature } from '../../src/utils/productContractSignature';
 import { documentRevision } from '../lib/adminDocumentRevision';
 import { dispatchCustomerNotification, type CustomerNotificationKind } from '../lib/customerNotifications';
@@ -48,19 +48,19 @@ const decodeTemplateDescription = (raw = '') => {
 
 // 예약 상품명으로 products 테이블의 포함/불포함(상품관리 입력값)을 로드.
 // 일정표·계약서가 동일한 상품 기준 포함/불포함을 노출하도록 단일 출처로 사용.
-const loadProductIncExc = async (db: any, productName?: string | null, productId?: string | null): Promise<{ included: string[]; excluded: string[] }> => {
-    const empty = { included: [], excluded: [] };
+const loadProductIncExc = async (db: any, productName?: string | null, productId?: string | null): Promise<{ included: string[]; excluded: string[]; configured: boolean }> => {
+    const empty = { included: [], excluded: [], configured: false };
     if (!productName && !productId) return empty;
     try {
         const prod: any = productId
-            ? await db.prepare('SELECT included, excluded FROM products WHERE id = ?').bind(productId).first()
-            : await db.prepare('SELECT included, excluded FROM products WHERE name = ? LIMIT 1').bind(productName).first();
+            ? await db.prepare('SELECT included, excluded, inclusions_configured FROM products WHERE id = ?').bind(productId).first()
+            : await db.prepare('SELECT included, excluded, inclusions_configured FROM products WHERE name = ? LIMIT 1').bind(productName).first();
         if (!prod) return empty;
         const arr = (v: any) => {
             try { const p = JSON.parse(v || '[]'); return Array.isArray(p) ? p.filter((x: any) => typeof x === 'string' && x.trim()) : []; }
             catch { return []; }
         };
-        return { included: arr(prod.included), excluded: arr(prod.excluded) };
+        return { included: arr(prod.included), excluded: arr(prod.excluded), configured: prod.inclusions_configured === 1 };
     } catch {
         return empty;
     }
@@ -120,7 +120,9 @@ app.get('/itinerary/:reservationId', async (c) => {
         return c.json({ quote: { ...quote, refundRows: resolveCancellationRows(template?.documentSettings?.contract?.cancellationRows) } });
     }
 
-    const productIncExc = await loadProductIncExc(db, reservation.product_name, reservation.product_id);
+    const termsConfigured = product?.inclusions_configured === 1;
+    const productIncExc = itineraryTerms(product, termsConfigured ? parseNestedJson(reservation.document_content)?.documentSettings?.overview : undefined);
+    const breakdown = parseNestedJson(reservation.price_breakdown);
 
     return c.json({
         reservation: {
@@ -134,11 +136,20 @@ app.get('/itinerary/:reservationId', async (c) => {
             endDate: reservation.end_date,
             status: reservation.status,
         },
+        statement: {
+            totalAmount: reservation.total_price ?? breakdown?.total ?? null,
+            depositAmount: reservation.deposit_amount ?? breakdown?.deposit ?? null,
+            balanceAmount: reservation.balance_amount ?? breakdown?.local ?? null,
+            depositStatus: reservation.deposit_status,
+            balanceStatus: reservation.balance_status,
+            packageType: parseNestedJson(reservation.admin_operations)?.contractPackageType,
+        },
         template,
         guide: assignedGuide,
         days: mergedDays,
         productIncluded: productIncExc.included,
         productExcluded: productIncExc.excluded,
+        productTermsConfigured: termsConfigured,
         ...(quote ? { quote } : {}),
     });
 });
@@ -238,8 +249,8 @@ async function loadProductContractData(db: any, reservation: any, contractData: 
             createdAt: reservation.created_at,
         },
         contract: contractData,
-        contractIncludedOverride: typeof savedContractSettings?.includedText === 'string',
-        contractExcludedOverride: typeof savedContractSettings?.excludedText === 'string',
+        contractIncludedOverride: productIncExc.configured || typeof savedContractSettings?.includedText === 'string',
+        contractExcludedOverride: productIncExc.configured || typeof savedContractSettings?.excludedText === 'string',
         template,
         accommodations: dailyAccommodations.length > 0 ? dailyAccommodations : templateAccommodations,
         guide: assignedGuide,
@@ -247,6 +258,21 @@ async function loadProductContractData(db: any, reservation: any, contractData: 
         productExcluded: productIncExc.excluded,
     };
 }
+
+// 견적 계약 원본은 숙소 배정 목록과 분리해 관리자가 한 건을 열 때만 조회한다.
+app.get('/quote-contract/:requestId', requireAdmin, async c => {
+    const row = await c.env.DB.prepare('SELECT id, name, destination, data FROM requests WHERE id=?').bind(c.req.param('requestId')).first();
+    const rec = parseNestedJson(row?.data);
+    const booking = rec?.booking;
+    if (!row || !booking || typeof booking !== 'object' || Array.isArray(booking)) return c.json({ error: '준비된 여행계약서가 없습니다.' }, 404);
+    const { contract, confirmedAt, contractInfo, travelers, flight, pickupLodge, travelerNote } = booking;
+    return c.json({ id: row.id, name: rec.name ?? row.name, destination: rec.destination ?? row.destination,
+        depart: rec.depart, return_: rec.return_, nights: rec.nights, adult: rec.adult, child: rec.child, infant: rec.infant,
+        booking: { confirmedAt, contractInfo, travelers, flight, pickupLodge, travelerNote, contract: contract?.signedAt ? {
+            signedAt: contract.signedAt, signerName: contract.signerName, termsVersion: contract.termsVersion,
+            signImg: contract.signImg, snapshot: contract.snapshot,
+        } : null } });
+});
 
 // GET /api/documents/contract/:reservationId — existing private customer link
 app.get('/contract/:reservationId', async (c) => {

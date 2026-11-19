@@ -30,7 +30,7 @@ export function ProductDetailMobile(props: TourDetailViewProps) {
     const pricing = useTourPricing(product);
     const wishlist = useWishlist();
     const fav = wishlist.has(product.id);
-    const toggleFav = () => wishlist.toggle(product);
+    const toggleFav = props.previewNotice ?? (() => wishlist.toggle(product));
 
     // A tour opened from another tour's page starts at the top.
     useEffect(() => {

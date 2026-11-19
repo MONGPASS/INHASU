@@ -1,3 +1,8 @@
+import type { PackageType } from '../types/product';
+
+export type ContractPackageType = PackageType | '';
+export const isContractPackageType = (value: unknown): value is ContractPackageType => value === '' || value === 'full' || value === 'value';
+
 /** Shared read rules for the two legacy vehicle fields. Explicit empty values clear an assignment. */
 export const assignmentRecord = (value: unknown): Record<string, any> => {
     let current = value;
@@ -70,11 +75,12 @@ export interface AssignmentGuide {
     id?: string; name?: string; phone?: string; image?: string; introduction?: string; nameEn?: string; role?: string;
     languages?: string[]; specialties?: string[]; [key: string]: unknown;
 }
+export const MAX_ROOMS_PER_NIGHT = 10;
 export interface AssignmentAccommodation {
     day: number; date?: string;
     accommodation: { id?: string; name?: string; type?: string; location?: string; region?: string; address?: string;
         images?: string[]; description?: string; facilities?: string[]; roomAmenities?: string[]; sharedFacilities?: string[];
-        roomCount?: number; occupancy?: string; bookingStatus?: string;
+        roomCount?: number | null; occupancy?: string; bookingStatus?: string; mailStatus?: string; mailSentDate?: string;
         /** 숙소 배정 시트 P열(배정 구분) */ assignType?: string;
         /** 숙소 배정 시트 S열(예약메모). 관리자 전용 — 고객 응답에 넣지 않는다 */ adminMemo?: string;
         [key: string]: unknown };

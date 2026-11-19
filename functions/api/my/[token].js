@@ -1,5 +1,5 @@
 import { publicLodge } from "../_lodging.mjs";
-import { resourceViewAccess } from "../../lib/customerAccess.ts";
+import { isPersonalCustomerRequest, resourceViewAccess } from "../../lib/customerAccess.ts";
 /* ═══════════════════════════════════════════════════════════
    Cloudflare Pages Function · /api/my/<token>
    GET : 기존 고객 링크로 견적을 연다.
@@ -30,7 +30,7 @@ export async function onRequestGet({ request, env, params }) {
     const full = access.full;
 
     const row = await env.DB
-      .prepare("SELECT data, status FROM requests WHERE token = ?")
+      .prepare("SELECT data, status, name FROM requests WHERE token = ?")
       .bind(token)
       .first();
     if (!row) return json({ ok: false, error: "not found" }, 404);
@@ -140,6 +140,7 @@ export async function onRequestGet({ request, env, params }) {
     return json({
       ok: true,
       access: full ? "owner" : "view",
+      personalHistory: isPersonalCustomerRequest(rec.source, rec.name ?? row.name),
       status: row.status || "신규",
       name: rec.name || "",
       destination: rec.destination || "",

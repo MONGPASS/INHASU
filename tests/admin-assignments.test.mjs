@@ -52,6 +52,66 @@ async function fixture(t) {
     return {raw,DB,request,list,setBeforeRun(fn){beforeRun=fn;}};
 }
 
+test('견적 계약서 미리보기는 관리자에게 요청한 예약의 계약 내용만 제공한다', async t => {
+    const f = await fixture(t);
+    const path = '/documents/quote-contract/same-id';
+    assert.equal((await f.request(path, { role: null })).status, 401);
+    assert.equal((await f.request(path, { role: 'member' })).status, 403);
+    for (const id of ['just-inquiry', 'missing']) assert.equal((await f.request('/documents/quote-contract/' + id)).status, 404);
+    const rec = JSON.parse(f.raw.prepare('SELECT data FROM requests WHERE id=?').get('same-id').data);
+    Object.assign(rec.booking.contract, { ip: 'INTERNAL-IP', ua: 'INTERNAL-UA' });
+    const update = () => f.raw.prepare('UPDATE requests SET data=? WHERE id=?').run(JSON.stringify(rec), rec.id);
+    update();
+    const res = await f.request(path);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('cache-control'), 'private, no-store');
+    const signed = await res.json();
+    assert.equal(signed.name, '견적 고객');
+    assert.equal(signed.booking.contract.signImg, rec.booking.contract.signImg);
+    assert.deepEqual(signed.booking.contract.snapshot, rec.booking.contract.snapshot);
+    assert.doesNotMatch(JSON.stringify(signed), /PRIVATE-(TOKEN|MEMO|PLATE)|INTERNAL-(IP|UA)/);
+    delete rec.booking.contract;
+    rec.booking.contractInfo.depositStatus = '미입금';
+    update();
+    const draft = await (await f.request(path)).json();
+    assert.equal(draft.booking.contract, null);
+    assert.deepEqual(draft.booking.contractInfo, rec.booking.contractInfo);
+});
+
+test('상품·견적 숙박별 메일 회차와 발송일은 예약상태와 독립적으로 저장·삭제된다', async t => {
+    const f = await fixture(t);
+    for (const source of ['product', 'quote_booking']) {
+        const item = async () => (await f.list()).find(row => row.source === source);
+        const save = async mutate => {
+            const row = await item();
+            mutate(row.assignment.accommodations[0].accommodation);
+            return f.request('/assignments/' + source + '/same-id', { method: 'PATCH', body: { expectedVersion: row.version, assignment: row.assignment } });
+        };
+        for (const fields of [
+            { mailStatus: '2메일완료', mailSentDate: '2026-10-15', bookingStatus: '취소요청' },
+            { mailStatus: '3메일완료', mailSentDate: '2026-10-16', bookingStatus: '변경완료' },
+        ]) {
+            assert.equal((await save(acc => Object.assign(acc, fields))).status, 200);
+            const acc = (await item()).assignment.accommodations[0].accommodation;
+            for (const [key, value] of Object.entries(fields)) assert.equal(acc[key], value);
+        }
+        assert.equal((await save(acc => { delete acc.mailStatus; delete acc.mailSentDate; acc.roomCount = 3; })).status, 200);
+        assert.equal((await item()).assignment.accommodations[0].accommodation.mailStatus, '3메일완료');
+        for (const bad of [{ mailStatus: '4메일완료' }, { mailSentDate: '2026-02-30' }, { mailSentDate: 20261001 }]) {
+            assert.equal((await save(acc => Object.assign(acc, bad))).status, 400);
+        }
+        if (source === 'product') {
+            const customer = await f.request('/reservations/same-id', { role: 'member' });
+            assert.doesNotMatch(await customer.text(), /mailSentDate|mailStatus|3메일완료/);
+        }
+        assert.equal((await save(acc => { acc.mailSentDate = ''; acc.mailStatus = '배정X'; })).status, 200);
+        const cleared = (await item()).assignment.accommodations[0].accommodation;
+        assert.equal(cleared.mailSentDate || '', '');
+        assert.equal(cleared.bookingStatus, '변경완료');
+        assert.equal(cleared.mailStatus, '배정X');
+    }
+});
+
 test('숙소 배정 조회는 고객별 저장 일정을 별도로 제공하고 명시적 빈 일정과 빈 숙소를 보존한다', async t => {
     const f = await fixture(t);
     const doc = { days: [{ day: 1, title: '고객 고비 일정', region: '고비', items: ['09:00 이동'], privateNote: 'PRIVATE-DAY', image: 'PRIVATE-PHOTO' },
@@ -173,6 +233,32 @@ test('배정 API는 임의 계약·상태 주입 및 잘못된 일자·객실을
         {expectedVersion:item.version,assignment:{...item.assignment,accommodations:[{day:1,accommodation:{}},{day:1,accommodation:{}}]}}];
     for(const body of bodies)assert.equal((await f.request('/assignments/quote_booking/same-id',{method:'PATCH',body})).status,400);
     assert.equal(f.raw.prepare('SELECT data FROM requests WHERE id=?').get('same-id').data,before);
+});
+
+test('방수는 숙박일별로 1~10개를 저장하거나 비울 수 있고 예전 방수와 배정 구분은 보존된다', async t => {
+    const f = await fixture(t);
+    f.raw.prepare("UPDATE reservations SET daily_accommodations=json_set(daily_accommodations, '$[0].accommodation.roomCount', 12, '$[0].accommodation.assignType', '4인1실') WHERE id=?").run('same-id');
+    f.raw.prepare("UPDATE requests SET data=json_set(data, '$.booking.assign.lodges[0].roomCount', 12, '$.booking.assign.lodges[0].assignType', '4인1실') WHERE id=?").run('same-id');
+    for (const source of ['product', 'quote_booking']) {
+        const read = async () => (await f.list()).find(r => r.source === source);
+        let item = await read();
+        const save = count => {
+            const assignment = structuredClone(item.assignment);
+            assignment.accommodations[0].accommodation.roomCount = count;
+            return f.request(`/assignments/${source}/same-id`, { method: 'PATCH', body: { expectedVersion: item.version, assignment } });
+        };
+        assert.equal((await save(12)).status, 200, '기존 값 그대로 저장');
+        item = await read();
+        for (const invalid of [0, 11, 1.5, '4인1실']) assert.equal((await save(invalid)).status, 400);
+        assert.equal((await read()).assignment.accommodations[0].accommodation.roomCount, 12);
+        for (const count of [1, 10, null]) {
+            assert.equal((await save(count)).status, 200);
+            item = await read();
+            const night = item.assignment.accommodations[0].accommodation;
+            assert.equal(night.roomCount ?? null, count);
+            assert.equal(night.assignType, '4인1실');
+        }
+    }
 });
 
 test('상품 날짜 변경과 UPDATE 직전 변경도 배정 버전 충돌로 보호한다',async t=>{
@@ -441,6 +527,34 @@ test('숙소 배정 시트 고객명: 대표 1인 이름과 고객이 고른 패
     f.raw.prepare('UPDATE requests SET data=? WHERE id=?').run(JSON.stringify(rec), 'same-id');
     next = (await f.list()).find(i => i.key === 'quote_booking:same-id');
     assert.equal(next.leadName, '계약 서명자', '계약 서명자를 가장 먼저 쓴다');
+});
+
+test('시트의 패키지 변경은 해당 예약의 계약 유형만 수정하고 오래된 버전은 거절한다', async t => {
+    const f = await fixture(t);
+    const readQuote = () => JSON.parse(f.raw.prepare('SELECT data FROM requests WHERE id=?').get('same-id').data);
+    const readProduct = () => f.raw.prepare('SELECT * FROM reservations WHERE id=?').get('same-id');
+    const originalQuote = readQuote(), originalProduct = readProduct();
+    const save = (row, type, role = 'admin') => f.request(`/assignments/${row.source}/same-id`, {
+        method: 'PATCH', role, body: { expectedVersion: row.version, assignment: { contractPackageType: type } },
+    });
+    for (const row of await f.list()) {
+        assert.equal((await save(row, 'mixed')).status, 400);
+        assert.equal((await save(row, 'full', 'member')).status, 403);
+        const result = await save(row, 'value');
+        assert.equal(result.status, 200);
+        const updated = (await result.json()).item;
+        assert.equal(updated.contractPackageType, 'value');
+        assert.equal((await save(row, 'full')).status, 409);
+        if (row.source === 'quote_booking') {
+            assert.deepEqual(readQuote(), { ...originalQuote, booking: { ...originalQuote.booking, contractPackageType: 'value' } });
+        } else {
+            const saved = readProduct();
+            assert.deepEqual(JSON.parse(saved.admin_operations), { ...JSON.parse(originalProduct.admin_operations), contractPackageType: 'value' });
+            assert.deepEqual({ ...saved, admin_operations: originalProduct.admin_operations }, { ...originalProduct });
+        }
+        assert.equal((await save(updated, '')).status, 200);
+        assert.equal((await f.list()).find(r => r.key === row.key).contractPackageType, '');
+    }
 });
 
 test('가이드 중복: 같은 기간 다른 예약의 가이드로 바꾸면 확인 없이는 저장하지 않고, 교대·같은 가이드 재저장·취소 예약은 막지 않는다', async t => {

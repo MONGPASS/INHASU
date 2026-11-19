@@ -17,6 +17,17 @@ const product = { main_images: '["/img/tour.jpg"]', included: '["가이드"]', e
     { type: 'dayInfo', content: { title: '귀환' } },
 ]) };
 
+test('상품에서 해제한 항목은 기본 일정 템플릿에서 복원되지 않고 고객별로 고친 항목만 우선한다', () => {
+    const data = { product: { ...product, inclusions_configured: 1, excluded: '[]' }, reservation: {},
+        template: { documentSettings: { overview: { includedText: '템플릿 포함', excludedText: '템플릿 불포함' } } }, days: [], brand: {} };
+    const quote = buildProductQuote(data);
+    assert.deepEqual(quote.included, ['가이드']);
+    assert.deepEqual(quote.excluded, []);
+    const changed = buildProductQuote({ ...data, reservation: { document_content: JSON.stringify({ documentSettings: { overview: { includedText: '', excludedText: '별도 장비' } } }) } });
+    assert.deepEqual(changed.included, []);
+    assert.deepEqual(changed.excluded, ['별도 장비']);
+});
+
 test('상품의 DAY·타임라인·슬라이드 일정과 사진을 보존한다', () => {
     const days = productScheduleDays(product);
     assert.equal(days.length, 2);

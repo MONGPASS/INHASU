@@ -1,9 +1,10 @@
-import { assignmentKey, assignmentRecord, readProductVehicle, syncProductVehicle, type AssignmentSource, type BookingAssignment } from '../../src/utils/reservationAssignment.ts';
+import { assignmentKey, assignmentRecord, isContractPackageType, MAX_ROOMS_PER_NIGHT, readProductVehicle, syncProductVehicle, type AssignmentSource, type BookingAssignment, type ContractPackageType } from '../../src/utils/reservationAssignment.ts';
 import { isQuoteBooking, quotePackageTier, summarizeQuoteBooking } from './quoteBookings.ts';
 import { toTourDateKey } from '../../src/utils/formatDate.ts';
 import { assignmentScheduleCas, createAssignmentScheduleReader, type AssignmentScheduleRead } from './assignmentSchedule.ts';
 import { guideConflictsOnChange } from './guideAvailability.ts';
 import { overlapLabel } from '../../src/utils/assignmentAvailability.ts';
+import { LODGE_MAIL_STAGES } from '../../src/utils/lodgeBookingStatus.ts';
 
 const own = (v: object, k: string) => Object.prototype.hasOwnProperty.call(v, k);
 const text = (v: unknown) => typeof v === 'string' ? v : '';
@@ -17,8 +18,10 @@ const travelers = (value: unknown) => array(value).map(t => ({ name: text(t?.nam
 const GUIDE_FIELDS = ['id','name','phone','image','introduction','nameEn','role','languages','specialties'];
 // assignType(배정 구분)·adminMemo(예약메모)는 숙소 배정 시트 칸이다. adminMemo는 관리자 전용이라
 // 상품 예약에서는 고객 예약 조회가 그대로 내려 주는 daily_accommodations가 아니라 admin_operations.lodgeMemos에 둔다.
-const ACCOMMODATION_FIELDS = ['id','name','type','location','region','address','images','description','facilities','roomAmenities','sharedFacilities','bookingStatus','roomCount','occupancy','assignType','adminMemo'];
-const STORED_DAY_FIELDS = ACCOMMODATION_FIELDS.filter(key => key !== 'adminMemo');
+const STORED_DAY_FIELDS = ['id','name','type','location','region','address','images','description','facilities','roomAmenities','sharedFacilities','bookingStatus','roomCount','occupancy','assignType'];
+const ACCOMMODATION_FIELDS = [...STORED_DAY_FIELDS, 'adminMemo', 'mailStatus', 'mailSentDate'];
+// 날짜·숙소가 다른 숙박에 이전 메일 이력이 붙지 않도록 상품 예약의 관리자 전용 기록을 식별한다.
+const lodgeMailKey = (day: number, date: unknown, lodge: Record<string, any>) => JSON.stringify([day, text(date), lodge.id || lodge.name || '']);
 const lodgeMemos = (operations: unknown): Record<string, string> => {
     const memos = assignmentRecord(assignmentRecord(operations).lodgeMemos);
     return Object.fromEntries(Object.entries(memos).filter(([day, memo]) => /^\d+$/.test(day) && typeof memo === 'string' && memo));
@@ -51,11 +54,14 @@ const vehicleResourcePatch = (vehicle: BookingAssignment['vehicle']) => vehicle.
     description: text(vehicle.resource.description), desc: text(vehicle.resource.description),
     seats: text(vehicle.resource.seats), luggage: text(vehicle.resource.luggage),
 } : null;
-const publicDays = (value: any, memos: Record<string, string> = {}) => parseArray(value).filter(d => d && typeof d === 'object').map(d => {
+const publicDays = (value: any, memos: Record<string, string>, mail: Record<string, any>) => parseArray(value).filter(d => d && typeof d === 'object').map(d => {
     const acc = assignmentRecord(d.accommodation), selected: Record<string, any> = {};
     for (const key of STORED_DAY_FIELDS) if (own(acc,key)) selected[key] = acc[key];
     const memo = memos[String(Number(d.day))];
     if (memo) selected.adminMemo = memo;
+    const entry = mail[lodgeMailKey(Number(d.day), d.date, acc)];
+    if (entry?.mailStatus) selected.mailStatus = entry.mailStatus;
+    if (entry?.mailSentDate) selected.mailSentDate = entry.mailSentDate;
     return { day: Number(d.day), date: text(d.date), accommodation: selected };
 });
 /**
@@ -110,10 +116,11 @@ export async function assignmentFromRow(source: AssignmentSource, row: any, read
             status: row.status, depositStatus: row.deposit_status, travelers: row.travelers, reservationNumber: row.reservation_number, createdAt: text(row.created_at),
             leadName: text(row.customer_name).trim() || text(assignmentRecord(contract.agreement).name).trim() || text(assignmentRecord(array(contract.travelers)[0]).name).trim(),
             packagePlan: await packageOf(row.product_id),
+            contractPackageType: text(assignmentRecord(row.admin_operations).contractPackageType),
             accommodationsInitialized: row.daily_accommodations != null,
             contractData: { region: text(contract.region), category: text(contract.category), arrival: flight(contract.arrival), departure: flight(contract.departure), travelers: travelers(contract.travelers) },
             assignment: { guide: selectedGuide(guide), vehicle: { ...readProductVehicle(row.admin_operations, contract), ...selectedVehicleResource(contract.vehicle) },
-                accommodations: publicDays(row.daily_accommodations, lodgeMemos(row.admin_operations)), category: text(assignmentRecord(row.admin_operations).category) },
+                accommodations: publicDays(row.daily_accommodations, lodgeMemos(row.admin_operations), assignmentRecord(assignmentRecord(row.admin_operations).lodgeMail)), category: text(assignmentRecord(row.admin_operations).category) },
         };
     }
     const data = quoteData(row.data); if (!data) throw new Error('Invalid quote source');
@@ -123,6 +130,7 @@ export async function assignmentFromRow(source: AssignmentSource, row: any, read
         productName: summary.productName, customerName: summary.customerName, startDate: toTourDateKey(summary.startDate), endDate: toTourDateKey(summary.endDate),
         status: summary.status, depositStatus: summary.depositStatus, travelers: summary.totalPeople, reservationNumber: summary.reservationNumber, createdAt: text(summary.createdAt),
         leadName: quoteLeadName(rec), packagePlan: quotePackagePlan(rec),
+        contractPackageType: text(rec.booking?.contractPackageType),
         accommodationsInitialized: Array.isArray(assign.lodges),
         contractData: { ...summary.contractData, travelers: travelers(rec.booking?.travelers) },
         assignment: { guide: selectedGuide(guide), category: text(assign.category),
@@ -135,16 +143,21 @@ export async function assignmentFromRow(source: AssignmentSource, row: any, read
                 region: text(l.region),
                 images: array(l.imgs).length ? array(l.imgs) : l.img ? [l.img] : [], description: text(l.descCustom ?? l.desc), facilities: array(l.facilities),
                 bookingStatus: text(l.bookingStatus), roomCount: l.roomCount === '' || l.roomCount == null ? undefined : Number(l.roomCount), occupancy: text(l.occupancy ?? l.roomType),
+                ...(l.mailStatus ? { mailStatus: text(l.mailStatus) } : {}), ...(l.mailSentDate ? { mailSentDate: text(l.mailSentDate) } : {}),
                 ...(text(l.assignType) ? { assignType: text(l.assignType) } : {}), ...(text(l.adminMemo) ? { adminMemo: text(l.adminMemo) } : {}),
             } })),
         },
     };
 }
 
-/** Only assignment fields cross this endpoint. It never accepts booking/status/contract/accounting patches. */
-export function validateBookingAssignment(value: unknown): BookingAssignment | null {
+type AssignmentUpdate = BookingAssignment | { contractPackageType: ContractPackageType };
+const validDay = (value: unknown) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+export function validateBookingAssignment(value: unknown): AssignmentUpdate | null {
     const v = assignmentRecord(value);
-    if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(v).some(k => !['guide','vehicle','accommodations','category'].includes(k))) return null;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (Object.keys(v).length === 1 && isContractPackageType(v.contractPackageType)) return { contractPackageType: v.contractPackageType };
+    if (Object.keys(v).some(k => !['guide','vehicle','accommodations','category'].includes(k))) return null;
     if (v.category !== undefined && (typeof v.category !== 'string' || v.category.length > 100 || /[\u0000-\u001f]/.test(v.category))) return null;
     try { if (JSON.stringify(value).length > 2_000_000) return null; } catch { return null; }
     if (!v.guide || typeof v.guide !== 'object' || Array.isArray(v.guide) || !v.vehicle || typeof v.vehicle !== 'object' || Array.isArray(v.vehicle) || !Array.isArray(v.accommodations) || v.accommodations.length > 100) return null;
@@ -175,14 +188,16 @@ export function validateBookingAssignment(value: unknown): BookingAssignment | n
     for (const day of v.accommodations) {
         if (!day || typeof day !== 'object' || Array.isArray(day) || Object.keys(day).some(k => !['day','date','accommodation'].includes(k)) ||
             !Number.isInteger(day.day) || day.day < 1 || day.day > 100 || days.has(day.day) || !validText(day.date, 10) ||
-            (day.date && (!/^\d{4}-\d{2}-\d{2}$/.test(day.date) || !Number.isFinite(Date.parse(day.date)) || new Date(day.date).toISOString().slice(0,10) !== day.date))) return null;
+            (day.date && !validDay(day.date))) return null;
         days.add(day.day);
         const acc = assignmentRecord(day.accommodation);
         if (!day.accommodation || Array.isArray(day.accommodation) || Object.keys(acc).some(k => !ACCOMMODATION_FIELDS.includes(k))) return null;
         if (!['id','name','type','location','region','address','description','occupancy','bookingStatus','assignType'].every(k => validText(acc[k], k === 'description' ? 10000 : 500))) return null;
         if (!validText(acc.adminMemo, 2000)) return null;
+        if (acc.mailStatus !== undefined && !LODGE_MAIL_STAGES.includes(acc.mailStatus)) return null;
+        if (acc.mailSentDate !== undefined && acc.mailSentDate !== '' && !validDay(acc.mailSentDate)) return null;
         if (!validList(acc.images, true) || !['facilities','roomAmenities','sharedFacilities'].every(k => validList(acc[k]))) return null;
-        if (acc.roomCount !== undefined && (!Number.isInteger(acc.roomCount) || acc.roomCount < 0 || acc.roomCount > 10000)) return null;
+        if (acc.roomCount != null && (!Number.isInteger(acc.roomCount) || acc.roomCount < 0 || acc.roomCount > 10000)) return null;
     }
     return { guide: selectedGuide(guide), vehicle: { type: text(vehicle.type), phone: text(vehicle.phone),
         ...(vehicle.driver !== undefined ? { driver: text(vehicle.driver) } : {}),
@@ -209,14 +224,38 @@ export async function readAdminAssignments(db: any) {
     return { items, warnings, availability: { product: results[0].status === 'fulfilled', quote_booking: results[1].status === 'fulfilled' } };
 }
 
-export async function saveAdminAssignment(db: any, source: AssignmentSource, id: string, expectedVersion: string, assignment: BookingAssignment, options: { allowGuideConflict?: boolean } = {}) {
+export async function saveAdminAssignment(db: any, source: AssignmentSource, id: string, expectedVersion: string, assignment: AssignmentUpdate, options: { allowGuideConflict?: boolean } = {}) {
     const table = source === 'product' ? 'reservations' : 'requests';
     const row = await db.prepare(`SELECT * FROM ${table} WHERE id=?`).bind(id).first();
     if (row && source === 'quote_booking' && !quoteData(row.data)) return { status: 409, error: '견적 원본을 읽을 수 없습니다. 기존 예약 관리에서 원본을 확인해 주세요.' };
     if (!row || (source === 'quote_booking' && !isQuoteBooking({ ...assignmentRecord(row.data), status: row.status }))) return { status: 404, error: '예약을 찾을 수 없습니다.' };
     const schedule = await createAssignmentScheduleReader(db)(source, row);
-    if (schedule.schedule.source === 'unavailable') return { status: 409, error: '고객 일정 원본을 읽지 못했습니다. 초안을 보관하고 고객 일정 원본을 확인한 뒤 다시 저장해 주세요.' };
     if (expectedVersion !== await version(source, row, schedule)) return { status: 409, error: '다른 곳에서 예약이나 고객 일정이 변경되었습니다. 초안을 보관한 뒤 최신 예약을 다시 불러와 주세요.' };
+    if ('contractPackageType' in assignment) {
+        const { contractPackageType } = assignment;
+        let result;
+        if (source === 'quote_booking') {
+            const rec = assignmentRecord(row.data);
+            const data = JSON.stringify({ ...rec, booking: { ...assignmentRecord(rec.booking), contractPackageType } });
+            result = await db.prepare('UPDATE requests SET data=? WHERE id=? AND data IS ? AND status IS ?').bind(data, id, row.data, row.status).run();
+            row.data = data;
+        } else {
+            const operations = JSON.stringify({ ...assignmentRecord(row.admin_operations), contractPackageType });
+            result = await db.prepare('UPDATE reservations SET admin_operations=? WHERE id=? AND admin_operations IS ?').bind(operations, id, row.admin_operations).run();
+            row.admin_operations = operations;
+        }
+        if (result.meta?.changes !== 1) return { status: 409, error: '예약이 변경되었습니다. 최신 예약을 확인한 뒤 패키지를 다시 선택해 주세요.' };
+        return { status: 200, item: await assignmentFromRow(source, row, async () => schedule, productPackageLookup(db)) };
+    }
+    if (schedule.schedule.source === 'unavailable') return { status: 409, error: '고객 일정 원본을 읽지 못했습니다. 초안을 보관하고 고객 일정 원본을 확인한 뒤 다시 저장해 주세요.' };
+    const outsideRange = assignment.accommodations.filter(({ accommodation: { roomCount } }) =>
+        roomCount != null && (roomCount < 1 || roomCount > MAX_ROOMS_PER_NIGHT));
+    if (outsideRange.length) {
+        // 예전 입력 범위로 저장한 방수는 같은 숙박일에 그대로 보낼 수 있다.
+        const current = await assignmentFromRow(source, row, async () => schedule);
+        if (outsideRange.some(d => !current.assignment.accommodations.some(n => n.day === d.day && n.accommodation.roomCount === d.accommodation.roomCount)))
+            return { status: 400, error: `방수는 1~${MAX_ROOMS_PER_NIGHT}개의 정수로 입력해 주세요.` };
+    }
     // 가이드를 새로 배정하거나 바꾸면 같은 날 다른 예약에 배정돼 있는지 확인한다. 관리자가 확인한 경우에만 그대로 저장한다.
     if (!options.allowGuideConflict) {
         const quoteRec = source === 'quote_booking' ? { ...assignmentRecord(quoteData(row.data)), id: row.id, status: row.status } : null;
@@ -240,16 +279,21 @@ export async function saveAdminAssignment(db: any, source: AssignmentSource, id:
         });
         const guide = mergeSelectedGuide(row.assigned_guide, assignment.guide);
         const oldDays = parseArray(row.daily_accommodations), oldMemos = lodgeMemos(row.admin_operations), memos: Record<string, string> = {};
+        const oldMail = assignmentRecord(sync.operations.lodgeMail), mail: Record<string, any> = {};
         const days = assignment.accommodations.map(d => {
             const previous = oldDays.find((x: any) => x.day === d.day), old = assignmentRecord(previous?.accommodation);
             const same = d.accommodation.id ? d.accommodation.id === old.id : d.accommodation.name === old.name;
-            const { adminMemo, ...stored } = d.accommodation as Record<string, any>;
+            const { adminMemo, mailStatus, mailSentDate, ...stored } = d.accommodation as Record<string, any>;
+            const key = lodgeMailKey(d.day, d.date, stored);
+            const entry = { mailStatus: mailStatus ?? oldMail[key]?.mailStatus, mailSentDate: mailSentDate ?? oldMail[key]?.mailSentDate };
+            if (entry.mailStatus || entry.mailSentDate) mail[key] = entry;
             const memo = own(d.accommodation, 'adminMemo') ? text(adminMemo) : oldMemos[String(d.day)] || '';
             if (memo) memos[String(d.day)] = memo;
             const { adminMemo: _legacyMemo, ...oldStored } = old;
             return { ...previous, ...d, accommodation: { ...oldStored, ...(!same ? { image: '', img: '', amenities: [] } : {}), ...stored } };
         });
         sync.operations.lodgeMemos = memos;
+        if (Object.keys(mail).length || sync.operations.lodgeMail) sync.operations.lodgeMail = mail;
         if (assignment.category !== undefined) sync.operations.category = assignment.category;
         result = await db.prepare(`UPDATE reservations SET assigned_guide=?,daily_accommodations=?,admin_operations=?,contract_data=?
             WHERE id=? AND assigned_guide IS ? AND daily_accommodations IS ? AND admin_operations IS ? AND contract_data IS ? AND start_date IS ? AND end_date IS ? AND status IS ?
@@ -263,12 +307,15 @@ export async function saveAdminAssignment(db: any, source: AssignmentSource, id:
         const lodges = assignment.accommodations.map(d => {
             const acc = d.accommodation, previous = oldLodges.find((l: any) => Number(l.day) === d.day) || {};
             const same = acc.id ? acc.id === previous.id : acc.name === previous.name;
+            const sameStay = same && text(previous.date) === text(d.date);
             return { ...previous, ...(!same ? { tags: '', amenities: [] } : {}), day: d.day, date: d.date || '', id: acc.id || '', name: acc.name || '', grade: acc.type || '', region: typeof acc.region === 'string' ? acc.region : acc.location || '',
                 imgs: acc.images || [], img: acc.images?.[0] || '', desc: acc.description || '', descCustom: acc.description || '', facilities: acc.facilities || [],
                 representativePhotos: acc.images || [],
                 ...Object.fromEntries(['address','roomAmenities','sharedFacilities'].filter(key => own(acc,key)).map(key => [key,
                     key === 'address' ? text(acc[key]) : array(acc[key]).map(text).filter(Boolean).join('\n')])),
                 bookingStatus: acc.bookingStatus || '', roomCount: acc.roomCount ?? '', occupancy: acc.occupancy || '', roomType: acc.occupancy || '',
+                mailStatus: acc.mailStatus ?? (sameStay ? previous.mailStatus : undefined),
+                mailSentDate: acc.mailSentDate ?? (sameStay ? previous.mailSentDate : undefined),
                 ...Object.fromEntries(['assignType','adminMemo'].filter(key => own(acc,key)).map(key => [key, text(acc[key])])) };
         });
         const previousVehicle = assignmentRecord(old.vehicle), sameVehicle = text(previousVehicle.model ?? previousVehicle.type) === assignment.vehicle.type;

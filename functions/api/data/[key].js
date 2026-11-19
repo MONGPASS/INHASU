@@ -24,6 +24,20 @@ const json = (obj, status = 200) =>
 
 const ALLOWED = ["spots", "spot_cats", "courses", "snippets", "snippet_cats", "guides", "drivers", "lodges", "lodge_cats", "vehicles"];
 
+function quoteVehicleCatalog(library) {
+  const text = value => typeof value === "string" ? value.trim() : "";
+  return Object.entries(library || {}).flatMap(([name, row]) => {
+    if (!name.trim() || !row || typeof row !== "object" || Array.isArray(row)) return [];
+    const photos = [row.img, ...(Array.isArray(row.imgs) ? row.imgs : []), ...(Array.isArray(row.images) ? row.images : [])];
+    return [{
+      name: name.trim(), seats: typeof row.seats === "number" ? String(row.seats) : text(row.seats),
+      luggage: text(row.luggage), description: text(row.desc ?? row.description),
+      // 리소스 관리 화면에서 고객용으로 지정한 대표 사진과 추가 사진 두 장.
+      photos: [...new Set(photos.map(text).filter(Boolean))].slice(0, 3),
+    }];
+  });
+}
+
 // kv 테이블은 없으면 자동으로 만듭니다(별도 마이그레이션 불필요).
 async function ensureTable(env) {
   await env.DB.prepare(
@@ -42,6 +56,9 @@ export async function onRequestGet({ request, params, env }) {
   try {
     await ensureTable(env);
     const row = await env.DB.prepare("SELECT v, updated_at FROM kv WHERE k = ?").bind(key).first();
+    if (key === "vehicles" && new URL(request.url).searchParams.get("view") === "quote") {
+      return json({ ok: true, vehicles: quoteVehicleCatalog(row ? JSON.parse(row.v) : {}) });
+    }
     if (!row) return json({ ok: true, key, data: null, updatedAt: null });
     let data = null;
     try { data = JSON.parse(row.v); } catch (e) {}
