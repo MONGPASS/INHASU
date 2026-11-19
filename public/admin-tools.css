@@ -14,19 +14,19 @@ html.admin-embedded .page-head { min-height: var(--adm-control-h); }
 /* ── 버튼: 높이·모서리·글자 ── */
 html.admin-embedded :is(.btn, .bulkbtn, .page-head .add, .page-head .ghost, .rg-add, header button, .bottom button) {
   height: var(--adm-control-h); min-height: var(--adm-control-h); padding: 0 var(--adm-control-pad-x); box-sizing: border-box;
-  border-radius: var(--adm-radius-sm); font-family: inherit; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); line-height: 1; white-space: nowrap;
+  border-radius: var(--adm-btn-radius); font-family: inherit; font-size: var(--adm-btn-fs); font-weight: var(--adm-btn-fw); line-height: 1; white-space: nowrap;
 }
-html.admin-embedded .bulkbtn { height: var(--adm-control-h-sm); min-height: var(--adm-control-h-sm); padding: 0 12px; font-size: var(--adm-fs-small); }
-html.admin-embedded .df button { height: var(--adm-control-h-lg); padding-top: 0; padding-bottom: 0; border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); }
+html.admin-embedded .bulkbtn { height: var(--adm-control-h-sm); min-height: var(--adm-control-h-sm); padding: 0 var(--adm-btn-pad-x-sm); border-radius: var(--adm-btn-radius-sm); font-size: var(--adm-btn-fs-sm); }
+html.admin-embedded .df button { height: var(--adm-control-h-lg); padding-top: 0; padding-bottom: 0; border-radius: var(--adm-btn-radius-lg); font-size: var(--adm-btn-fs-lg); font-weight: var(--adm-btn-fw); }
 
 /* ── 주요 버튼은 민트 하나 ── */
 html.admin-embedded :is(.btn.primary, .bulkbtn.primary, .page-head .add, .rg-add, header button.go, .df .save, .bottom :is(.next, .publish), .action-item .go) {
-  border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff;
+  border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: var(--semantic-static-white);
 }
 html.admin-embedded :is(.btn.primary, .bulkbtn.primary, .page-head .add, .rg-add, header button.go, .df .save, .bottom :is(.next, .publish), .action-item .go):hover:not(:disabled) {
   border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover);
 }
-html.admin-embedded .df .del { background: var(--adm-danger-soft); color: var(--adm-danger); padding-left: 18px; padding-right: 18px; }
+html.admin-embedded .df .del { border-color: transparent; background: var(--adm-btn-negative-bg); color: var(--adm-btn-negative-fg); padding-left: var(--adm-btn-pad-x-lg); padding-right: var(--adm-btn-pad-x-lg); }
 
 /* ── 입력창 ── */
 html.admin-embedded :is(.db, .panel, .card, .toolbar, .bar, .filters, .search, label.f, .field) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="hidden"]), select) {

@@ -164,28 +164,31 @@
 .admin-app-wrapper .content { flex: 1; padding: 28px 32px 56px; }
 .admin-app-wrapper .content-in { max-width: var(--content-max); margin: 0 auto; }
 
-/* ============ Buttons ============ */
+/* ============ Buttons — Montage Button(M3) ============ */
+/* 크기: 기본 medium 40 · .btn-sm small 32 · .btn-lg large 48. 색: .btn-ink/.btn-blue 주요(민트) · .btn-ghost 테두리 · .btn-soft 회색 · .btn-danger 위험.
+   값은 public/admin-tokens.css의 --adm-btn-* (Montage 변수)만 쓴다. */
 .admin-app-wrapper .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  height: 40px; padding: 0 17px; border-radius: 11px; border: 1px solid transparent;
-  font: inherit; font-size: 14px; font-weight: 700; letter-spacing: -0.01em;
-  cursor: pointer; white-space: nowrap; transition: transform var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast), border var(--dur-fast);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-4); box-sizing: border-box;
+  height: var(--adm-control-h); padding: 0 var(--adm-btn-pad-x); border-radius: var(--adm-btn-radius); border: var(--adm-border-width) solid transparent;
+  font: inherit; font-size: var(--adm-btn-fs); font-weight: var(--adm-btn-fw); line-height: 1; letter-spacing: 0;
+  cursor: pointer; white-space: nowrap; transition: background-color var(--adm-dur) var(--adm-ease), border-color var(--adm-dur) var(--adm-ease), color var(--adm-dur) var(--adm-ease);
 }
-.admin-app-wrapper .btn:active { transform: scale(0.97); }
-.admin-app-wrapper .btn .material-symbols-outlined { font-size: 19px; }
-.admin-app-wrapper .btn-ink { background: var(--adm-primary-bg); color: #fff; }
-.admin-app-wrapper .btn-ink:hover { background: var(--adm-primary-bg-hover); }
-.admin-app-wrapper .btn-blue { background: var(--mrt-blue); color: #fff; box-shadow: 0 4px 12px rgba(var(--adm-accent-rgb),0.28); }
-.admin-app-wrapper .btn-blue:hover { background: var(--mrt-blue-strong); }
-.admin-app-wrapper .btn-ghost { background: #fff; color: var(--text-secondary); border-color: var(--border-default); }
-.admin-app-wrapper .btn-ghost:hover { background: var(--mrt-gray-50); border-color: var(--border-strong); color: var(--text-strong); }
-.admin-app-wrapper .btn-soft { background: var(--mrt-gray-100); color: var(--text-strong); }
-.admin-app-wrapper .btn-soft:hover { background: var(--mrt-gray-300); }
-.admin-app-wrapper .btn-sm { height: 34px; padding: 0 12px; font-size: 13px; border-radius: 9px; }
-.admin-app-wrapper .btn-sm .material-symbols-outlined { font-size: 17px; }
-.admin-app-wrapper .btn-lg { height: 48px; padding: 0 22px; font-size: 15px; border-radius: 13px; }
-.admin-app-wrapper .btn-danger { background: var(--mrt-red-soft); color: var(--mrt-red); }
-.admin-app-wrapper .btn-danger:hover { background: #ffdada; }
+.admin-app-wrapper .btn .material-symbols-outlined { font-size: 18px; }
+.admin-app-wrapper .btn > svg { flex-shrink: 0; }
+.admin-app-wrapper .btn:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+.admin-app-wrapper :is(.btn-ink, .btn-blue) { border-color: transparent; background: var(--semantic-surface-brand-primary); color: var(--semantic-static-white); box-shadow: none; }
+.admin-app-wrapper :is(.btn-ink, .btn-blue):is(:hover, :active):not(:disabled) { background: var(--semantic-surface-brand-strong); }
+.admin-app-wrapper .btn-ghost { border-color: var(--adm-btn-line); background: var(--semantic-background-neutral-primary); color: var(--semantic-foreground-neutral-primary); }
+.admin-app-wrapper :is(.btn-ghost, .btn-soft, .btn-danger):is(:hover, :active):not(:disabled) { background-image: linear-gradient(var(--adm-btn-hover-overlay), var(--adm-btn-hover-overlay)); }
+.admin-app-wrapper .btn-soft { border-color: transparent; background-color: var(--adm-btn-assistive-bg); color: var(--adm-btn-assistive-fg); }
+.admin-app-wrapper .btn-danger { border-color: transparent; background-color: var(--adm-btn-negative-bg); color: var(--adm-btn-negative-fg); }
+.admin-app-wrapper .btn-sm { height: var(--adm-control-h-sm); padding: 0 var(--adm-btn-pad-x-sm); border-radius: var(--adm-btn-radius-sm); font-size: var(--adm-btn-fs-sm); }
+.admin-app-wrapper .btn-sm .material-symbols-outlined { font-size: 16px; }
+.admin-app-wrapper .btn-lg { height: var(--adm-control-h-lg); padding: 0 var(--adm-btn-pad-x-lg); border-radius: var(--adm-btn-radius-lg); font-size: var(--adm-btn-fs-lg); }
+.admin-app-wrapper .btn-lg .material-symbols-outlined { font-size: 20px; }
+/* 쓸 수 없는 버튼: Montage disable 색(흐리게 하지 않는다) */
+.admin-app-wrapper :is(.btn-ink, .btn-blue, .btn-soft, .btn-danger):disabled { opacity: 1; border-color: transparent; background: var(--adm-btn-disabled-bg); color: var(--adm-btn-disabled-fg); }
+.admin-app-wrapper .btn-ghost:disabled { opacity: 1; background: var(--semantic-background-neutral-primary); color: var(--adm-btn-disabled-fg); }
 
 /* ============ Cards ============ */
 .admin-app-wrapper .card { background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--r-lg); box-shadow: var(--shadow-xs); }
@@ -780,7 +783,8 @@
 .admin-app-wrapper .doc-card { background: #fff; border: 1px solid var(--border-default); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow-xs); }
 .admin-app-wrapper .doc-ico { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; flex: none; }
 .admin-app-wrapper .doc-ico .material-symbols-outlined { font-size: 21px; }
-.admin-app-wrapper .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.admin-app-wrapper .btn:disabled { cursor: not-allowed; }
+.admin-app-wrapper .btn:not(.btn-ink, .btn-blue, .btn-ghost, .btn-soft, .btn-danger):disabled { opacity: 0.45; }
 
 /* ============ Memo + Timeline ============ */
 .admin-app-wrapper .memo-box { border: 1px solid var(--border-default); border-radius: var(--r-md); padding: 10px 12px; background: #fff; transition: border var(--dur-fast), box-shadow var(--dur-fast); }
@@ -1119,13 +1123,10 @@
 .admin-app-wrapper .tcom .card-head .material-symbols-outlined { font-size: 17px; }
 .admin-app-wrapper .tcom .card-pad { padding: 11px 14px; }
 .admin-app-wrapper .tcom .kv { padding: 6px 0; font-size: 12.5px; }
-.admin-app-wrapper .tcom .btn { height: 32px; padding: 0 12px; font-size: 12.5px; border-radius: 6px; }
-.admin-app-wrapper .tcom .btn-sm { height: 28px; padding: 0 10px; font-size: 12px; border-radius: 5px; }
+/* 촘촘한 작업 화면(.tcom): 기본 버튼은 Montage small 32, .btn-sm은 xsmall 28 */
+.admin-app-wrapper .tcom .btn { height: var(--adm-control-h-sm); padding: 0 var(--adm-btn-pad-x-sm); font-size: var(--adm-btn-fs-sm); border-radius: var(--adm-btn-radius-sm); }
+.admin-app-wrapper .tcom .btn-sm { height: var(--adm-btn-h-xs); padding: 0 var(--adm-btn-pad-x-xs); font-size: var(--adm-btn-fs-sm); border-radius: var(--adm-btn-radius-xs); }
 .admin-app-wrapper .tcom .btn .material-symbols-outlined { font-size: 16px; }
-.admin-app-wrapper .tcom .btn-blue { background: var(--adm-primary-bg); box-shadow: none; }
-.admin-app-wrapper .tcom .btn-blue:hover { background: var(--adm-primary-bg-hover); }
-.admin-app-wrapper .tcom .btn-ink { background: var(--adm-primary-bg); }
-.admin-app-wrapper .tcom .btn-ink:hover { background: var(--adm-primary-bg-hover); box-shadow: none; }
 .admin-app-wrapper .tcom .badge { border-radius: 4px; font-size: 11px; padding: 1px 6px; }
 .admin-app-wrapper .tcom .cell-price { color: #FF6F00; }
 .admin-app-wrapper .tcom .pay-cell { border-radius: 8px; }

@@ -10,7 +10,7 @@
 .product-customer-note { display:grid; gap:12px; margin-top:16px; font-size:14px; }
 .product-customer-note textarea { width:100%; resize:vertical; min-height:104px; border:1px solid #d7e0e8; border-radius:12px; padding:14px 16px; background:#fff; color:#203047; font:inherit; font-size:14px; line-height:1.6; }
 .product-customer-note textarea::placeholder { color:#7b8797; }
-.product-customer-fullpage.tcom .product-customer-note > .btn { justify-self:end; min-height:40px; height:auto; padding:9px 16px; border-radius:10px; font-size:14px; }
+.product-customer-fullpage.tcom .product-customer-note > .btn { justify-self:end; min-height:var(--adm-control-h); height:auto; padding:var(--spacing-8) var(--adm-btn-pad-x); border-radius:var(--adm-btn-radius); font-size:var(--adm-btn-fs); }
 .cw-quick-assignment { margin:16px 0; padding:16px; border:1px solid #dce6eb; border-radius:12px; background:#f8fafb; color:#203047; font-size:14px; line-height:1.6; }
 .cw-quick-assignment > header { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:16px; }
 .cw-quick-assignment > header > strong { font-size:15px; line-height:1.5; letter-spacing:-.2px; }
@@ -18,7 +18,7 @@
 .cw-quick-assignment > fieldset:disabled { opacity:.65; }
 .cw-quick-assignment label { display:grid; gap:7px; color:#526174; font-size:13px; font-weight:600; }
 .cw-quick-assignment input,.cw-quick-assignment select { width:100%; min-width:0; min-height:44px; padding:10px 12px; background:#fff; border:1px solid #d4dfe7; border-radius:10px; font:inherit; font-size:14px; font-weight:500; color:#203047; }
-.cw-quick-assignment .cw-button { min-height:40px; padding:9px 14px; border-radius:10px; font-size:14px; }
+.cw-quick-assignment .cw-button { min-height:var(--adm-control-h); }
 .cw-quick-assignment .cw-text-button { min-height:36px; padding:6px 8px; font-size:13px!important; color:#526174; }
 .cw-quick-assignment > header > .cw-text-button { flex-shrink:0; }
 .cw-quick-assignment .cw-quick-resource-preview { display:flex; gap:12px; align-items:center; padding:16px 0; }
@@ -33,7 +33,7 @@
 .cw-quick-assignment > .cw-quick-stays > li > div { display:grid; flex:1; min-width:0; gap:4px; }
 .cw-quick-assignment > .cw-quick-stays > li strong { font-size:14px; line-height:1.5; }
 .cw-quick-assignment > .cw-quick-stays > li span { font-size:12px; color:#647287; overflow-wrap:anywhere; }
-.cw-quick-assignment > .cw-quick-stays > li > .cw-button { flex-shrink:0; min-height:40px; padding:8px 12px; font-size:13px; }
+.cw-quick-assignment > .cw-quick-stays > li > .cw-button { flex-shrink:0; min-height:var(--adm-control-h-sm); padding:var(--spacing-6) var(--adm-btn-pad-x-sm); border-radius:var(--adm-btn-radius-sm); font-size:var(--adm-btn-fs-sm); } /* 목록 안 small 32 */
 .product-customer-bookings { border:0; margin:0; padding:0; min-width:0; width:100%; max-width:100%; font-size:13px; }
 .product-customer-bookings label { display:flex; gap:10px; align-items:center; flex-wrap:wrap; color:#526174; font-weight:600; }
 .product-customer-bookings select { max-width:420px; width:100%; min-width:0; min-height:42px; border:1px solid #d4dfe7; border-radius:10px; background:#fff; padding:9px 12px; color:#203047; font:inherit; font-size:14px; font-weight:500; }

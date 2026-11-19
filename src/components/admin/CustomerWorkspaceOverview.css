@@ -2,10 +2,14 @@
    The design system maps the brand "blue" tokens to mint; that mapping is applied inside this screen. */
 
 /* Shared buttons (also used by the detail workspace, quick assignment and vehicle selector). */
-.cw-button { display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-height: 40px; padding: 9px 14px; border: 1px solid var(--border-default, #e6e8ec); border-radius: 12px; background: #fff; color: var(--text-strong, #1a1b1e); font-weight: 650 !important; white-space: nowrap; text-decoration: none; transition: background-color .15s, border-color .15s; }
-.cw-button:hover:not(:disabled) { background: var(--mrt-gray-50, #f7f8fa); border-color: var(--border-strong, #d7dae0); }
-.cw-primary { color: #fff; background: var(--mrt-ink, #1a1b1e); border-color: var(--mrt-ink, #1a1b1e); }
-.cw-primary:hover:not(:disabled) { background: #000; border-color: #000; }
+/* Montage Button medium 40: 기본 테두리, cw-primary 주요(민트) */
+.cw-button { display: inline-flex; justify-content: center; align-items: center; gap: var(--spacing-4); box-sizing: border-box; min-height: var(--adm-control-h); padding: var(--spacing-8) var(--adm-btn-pad-x); border-radius: var(--adm-btn-radius); border: var(--adm-border-width) solid var(--adm-btn-line); background: var(--semantic-background-neutral-primary); color: var(--semantic-foreground-neutral-primary); font-size: var(--adm-btn-fs); font-weight: var(--adm-btn-fw) !important; line-height: 1.2; white-space: nowrap; text-decoration: none; cursor: pointer; transition: background-color var(--adm-dur) var(--adm-ease); }
+.cw-button:is(:hover, :active):not(:disabled) { background-image: linear-gradient(var(--adm-btn-hover-overlay), var(--adm-btn-hover-overlay)); }
+.cw-button:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+.cw-button:disabled { color: var(--adm-btn-disabled-fg); cursor: default; }
+.cw-primary { border-color: transparent; background: var(--semantic-surface-brand-primary); color: var(--semantic-static-white); }
+.cw-primary:is(:hover, :active):not(:disabled) { background: var(--semantic-surface-brand-strong); background-image: none; }
+.cw-primary:disabled { border-color: transparent; background: var(--adm-btn-disabled-bg); color: var(--adm-btn-disabled-fg); }
 .cw-text-button { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-height: 32px; padding: 4px 6px; margin-right: -6px; border: 0; border-radius: 8px; color: var(--text-link, var(--adm-accent-strong)); background: none; font-size: 13px !important; font-weight: 700; white-space: nowrap; }
 .cw-text-button:hover:not(:disabled) { background: var(--mrt-gray-50, #f7f8fa); }
 .cw-text-button .material-symbols-outlined { font-size: 17px; }
@@ -21,7 +25,8 @@
 }
 .cw-overview *, .cw-overview *::before, .cw-overview *::after { box-sizing: border-box; }
 .cw-overview button { font: inherit; cursor: pointer; }
-.cw-overview button:disabled { cursor: default; opacity: .45; }
+.cw-overview button:disabled { cursor: default; }
+.cw-overview button:disabled:not(.btn, .cw-button) { opacity: .45; } /* Montage 버튼은 disable 색을 쓴다 */
 .cw-overview button:focus-visible, .cw-overview summary:focus-visible, .cw-overview a:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 .cw-overview h1, .cw-overview h2, .cw-overview h3, .cw-overview p { margin: 0; }
 .cw-overview .material-symbols-outlined { font-size: 18px; flex-shrink: 0; }
@@ -75,7 +80,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: #fbfefd; 
 .cw-doc-link:hover:not(:disabled) { border-color: var(--adm-accent); color: var(--adm-accent-strong); background: #f2fdf9; }
 .cw-header-divider { width: 1px; height: 24px; background: var(--border-default); }
 .cw-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.cw-header-actions .cw-button { min-height: 36px; padding: 0 16px; border-radius: 999px; font-size: 13px; }
+.cw-header-actions .cw-button { min-height: var(--adm-control-h); }
 .cw-booking-switcher { padding: 0 24px 16px; }
 .cw-progress-card { display: flex; flex-direction: column; gap: 18px; padding: 20px 24px 24px; border-top: 1px solid var(--border-subtle); }
 .cw-progress-caption { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -106,7 +111,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: #fbfefd; 
 .cw-now > strong { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-strong); }
 .cw-now > small { font-size: 13px; color: var(--text-tertiary); }
 .cw-now > .cw-next-button { margin-left: auto; }
-.cw-next-button { min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px !important; }
+.cw-next-button { min-height: var(--adm-control-h); } /* Montage medium(모양은 .cw-button) */
 
 /* 바로가기 */
 .cw-shortcuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 10px; }

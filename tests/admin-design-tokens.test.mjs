@@ -84,27 +84,27 @@ const ADMIN_CSS_HEX_BASELINE = {
     'src/components/admin/CourseImportModal.css': 4,
     'src/components/admin/CustomerKakaoActions.css': 38,
     'src/components/admin/CustomerResourcePicker.css': 35,
-    'src/components/admin/CustomerWorkspaceOverview.css': 46,
+    'src/components/admin/CustomerWorkspaceOverview.css': 36,
     'src/components/admin/dashboard/TrafficSources.module.css': 5,
     'src/components/admin/guides/GuideSchedule.css': 43,
-    'src/components/admin/ui/admin-ui.css': 3,
-    'src/pages/AdminAccommodationOps.css': 61,
+    'src/components/admin/ui/admin-ui.css': 1,
+    'src/pages/AdminAccommodationOps.css': 59,
     'src/pages/AdminBannerManage.css': 23,
     'src/pages/AdminCalendar.css': 21,
     'src/pages/AdminCategoryManage.css': 4,
-    'src/pages/AdminContentManage.css': 36,
+    'src/pages/AdminContentManage.css': 34,
     'src/pages/AdminDashboard.module.css': 44,
     'src/pages/AdminProductEditor.css': 14,
     'src/pages/AdminProductList.css': 4,
     'src/pages/AdminReservationBoard.module.css': 55,
-    'src/styles/admin-console.css': 111,
-    'src/styles/customer-workspace-editor.css': 103,
+    'src/styles/admin-console.css': 107,
+    'src/styles/customer-workspace-editor.css': 94,
     'src/styles/product-customer-workspace.css': 31,
     'src/styles/quote-booking-workspace.css': 122,
     'src/styles/reservation-inline.css': 125,
     'src/styles/reservation-itinerary-designer.css': 23,
-    'src/styles/reservation-workspace.css': 71,
-    'public/admin-tools.css': 2,
+    'src/styles/reservation-workspace.css': 65,
+    'public/admin-tools.css': 1,
 };
 // 관리자 화면에서만 읽는 src/styles 파일(이름이 admin-로 시작하지 않는 것)
 const ADMIN_ONLY_STYLES = ['customer-workspace-editor', 'product-customer-workspace', 'quote-booking-workspace', 'reservation-inline', 'reservation-itinerary-designer', 'reservation-workspace'];
@@ -247,4 +247,34 @@ test('공통 틀은 시안의 사이드바 248px·상단 바 64px·민트 선택
     }
     const sidebar = read('src/components/admin/AdminSidebar.tsx');
     assert.ok(sidebar.includes('className="side-brand"') && sidebar.includes('to="/admin"') && sidebar.includes('은하수 관리자'));
+});
+
+// M3-① 버튼: Montage Button 크기(32/40/48·모서리 10/12/14)와 색(주요 민트·테두리·회색·위험)을 모든 버튼 계열이 같은 변수로 쓴다.
+test('버튼은 Montage Button 규격 변수를 쓴다', () => {
+    const montage = read('public/admin-montage.css');
+    const tokens = read('public/admin-tokens.css');
+    const expect = {
+        '--adm-btn-radius': 'var(--radius-12)', '--adm-btn-radius-sm': 'var(--radius-10)', '--adm-btn-radius-lg': 'var(--radius-14)',
+        '--adm-btn-fs': 'var(--typography-label1-fontSize)', '--adm-btn-fs-sm': 'var(--typography-caption1-fontSize)', '--adm-btn-fs-lg': 'var(--typography-body2-fontSize)',
+        '--adm-btn-pad-x': 'var(--spacing-16)', '--adm-btn-pad-x-sm': 'var(--spacing-12)', '--adm-btn-pad-x-lg': 'var(--spacing-20)',
+    };
+    for (const [name, value] of Object.entries(expect)) assert.equal(lastValue(tokens, name), value, name);
+    for (const name of [...new Set([...stripComments(tokens).matchAll(/var\((--(?:radius|spacing|typography|semantic|dimension)[\w-]*)/g)].map((m) => m[1]))]) {
+        assert.ok(montage.includes(`${name}:`), `${name} 이 Montage에 없다`);
+    }
+    const consoleCss = stripComments(read('src/styles/admin-console.css'));
+    assert.match(consoleCss, /\.admin-app-wrapper \.btn \{[^}]*height:\s*var\(--adm-control-h\);[^}]*border-radius:\s*var\(--adm-btn-radius\)/);
+    assert.match(consoleCss, /\.btn-sm \{[^}]*height:\s*var\(--adm-control-h-sm\)[^}]*border-radius:\s*var\(--adm-btn-radius-sm\)/);
+    assert.match(consoleCss, /\.btn-lg \{[^}]*height:\s*var\(--adm-control-h-lg\)[^}]*border-radius:\s*var\(--adm-btn-radius-lg\)/);
+    assert.match(consoleCss, /:is\(\.btn-ink, \.btn-blue\) \{[^}]*background:\s*var\(--semantic-surface-brand-primary\)/);
+    assert.doesNotMatch(consoleCss, /\.btn:active \{[^}]*scale/, 'Montage 버튼은 눌렀을 때 작아지지 않는다');
+    // 주요 버튼 바탕은 #27AB8F를 직접 쓰지 않는다(민트 기준).
+    for (const file of ['src/components/admin/ui/admin-ui.css', 'src/pages/AdminContentManage.css', 'src/pages/AdminAccommodationOps.css', 'src/components/admin/CustomerWorkspaceOverview.css', 'public/admin-tools.css']) {
+        const css = stripComments(read(file));
+        assert.doesNotMatch(css, /27AB8F/i, file);
+        assert.match(css, /--adm-btn-(radius|fs)/, `${file}: 버튼 규격 변수를 쓴다`);
+    }
+    // 화면별로 버튼을 알약 모양(999px)으로 덮어쓰지 않는다.
+    const pages = ['src/pages/AdminCategoryManage.css', 'src/pages/AdminProductEditor.css', 'src/styles/customer-workspace-editor.css', 'src/components/admin/CustomerWorkspaceOverview.css', 'src/pages/AdminAccommodationOps.css'];
+    for (const file of pages) assert.doesNotMatch(stripComments(read(file)), /\.(btn|cw-button|lo-btn)\b[^{]*\{[^}]*border-radius:\s*999px/, file);
 });
