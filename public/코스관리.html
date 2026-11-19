@@ -245,7 +245,7 @@ function renderList() {
       <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l11 0M9 12l11 0M9 18l11 0"/><circle cx="4" cy="6" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="4" cy="18" r="1.5"/></svg></div>
       <div class="body">
         <h3>${esc(name)}</h3>
-        <div class="meta">${esc(c.destination||"")}<span class="dot">·</span>${esc(c.nights||"")}<span class="dot">·</span>기본 ${won(c.base)}<span class="dot">·</span>명소 ${(c.highlights||[]).length}곳</div>
+        <div class="meta">${esc(c.destination||"")}<span class="dot">·</span>${esc(c.nights||"")}<span class="dot">·</span>기본 ${won(c.base)}<span class="dot">·</span>명소 ${(c.highlights||[]).length}곳<span class="dot">·</span>${esc(CourseDistanceKm.label(c.totalDistanceKm))}</div>
       </div>
       <div class="days-badge">${(c.days||[]).length}일 일정</div>
       <div class="card-actions">
@@ -309,6 +309,7 @@ function openEdit(key) {
       <div class="row2">
         <label class="f"><span>이동강도 (1~5)</span>
           <select id="f_intensity">${[1,2,3,4,5].map(i=>`<option value="${i}" ${i===(c.intensity||3)?"selected":""}>${i}</option>`).join("")}</select></label>
+        <label class="f"><span>총 이동거리 (km)</span><input id="f_totalDistanceKm" inputmode="decimal" value="${esc(c.totalDistanceKm)}" placeholder="예) 720.5" aria-describedby="f_totalDistanceHint"><span id="f_totalDistanceHint">코스 전체 차량 주행거리 · 모르면 비워 두세요.</span></label>
       </div>
 
       <div class="sec-title"><span class="n">1</span>요금 (1인 기준) <span style="font-weight:500;color:var(--gray);font-size:12px">· 견적서 만들기에서 이 코스를 고르면 그대로 채워집니다</span></div>
@@ -508,6 +509,9 @@ function openEdit(key) {
   $("saveBtn").onclick = async () => {
     const name = $("f_name").value.trim();
     if (!name) { toast("코스 이름을 입력하세요"); return; }
+    const distanceField = $("f_totalDistanceKm");
+    const totalDistanceKm = CourseDistanceKm.parse(distanceField.value);
+    if (Number.isNaN(totalDistanceKm)) { toast(CourseDistanceKm.errorMessage); distanceField.focus(); return; }
     const priceDeposit = parseInt($("f_price_deposit").value) || 0;
     const priceBalances = draftPrice.balances
       .map(b => ({ pax: Number(b.pax) || 0, economy: Number(b.economy != null ? b.economy : b.amount) || 0, full: Number(b.full != null ? b.full : b.amount) || 0 }))
@@ -515,6 +519,7 @@ function openEdit(key) {
       .sort((a, b) => a.pax - b.pax);
     const priceOptions = draftPrice.options.filter(o => o && String(o.label || "").trim());
     const rec = {
+      ...c,
       destination: $("f_dest").value.trim(),
       nights: $("f_nights").value.trim(),
       intensity: parseInt($("f_intensity").value) || 3,
@@ -525,6 +530,8 @@ function openEdit(key) {
       highlights: draftSpots,
       days: draftDays.map((d,i) => ({ d:i+1, dest:d.dest||"", move:d.move||"", dist:d.dist||"", items:d.items||[], stay:{name:d.stay?.name||"", tags:d.stay?.tags||[]}, meals:d.meals||["","",""] })),
     };
+    if (totalDistanceKm === null) delete rec.totalDistanceKm;
+    else rec.totalDistanceKm = totalDistanceKm;
     if (!isNew && key !== name) delete COURSES[key];
     COURSES[name] = rec;
     const btn = $("saveBtn"); btn.disabled = true; btn.textContent = "저장 중…";

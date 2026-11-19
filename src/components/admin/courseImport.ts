@@ -29,6 +29,8 @@ export interface CourseDay {
 export interface Course {
     destination?: string;
     nights?: string;
+    /** 관리자가 직접 입력한 코스 전체 차량 주행거리(km). 미입력은 생략. */
+    totalDistanceKm?: number;
     highlights?: string[];
     days?: CourseDay[];
     /** 코스 관리의 요금: 1인 예약금 + 인원별 잔금(실속형 economy / 풀패키지 full) */

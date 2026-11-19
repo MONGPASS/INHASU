@@ -239,6 +239,24 @@ window.saveCourses = function (obj) {
   return window.cloudPush ? window.cloudPush("courses", obj) : Promise.resolve({ ok: false, local: true });
 };
 
+// Course-level distance is entered separately from free-text daily distances.
+window.CourseDistanceKm = {
+  errorMessage: "총 이동거리는 0 이상의 숫자로, 소수 둘째 자리까지 입력해 주세요.",
+  parse(raw) {
+    if (raw == null) return null;
+    if (typeof raw !== "number" && typeof raw !== "string") return NaN;
+    const value = String(raw).trim();
+    if (!value) return null;
+    if (!/^\d+(?:\.\d{1,2})?$/.test(value)) return NaN;
+    const km = Number(value);
+    return Number.isSafeInteger(Math.trunc(km)) ? km : NaN;
+  },
+  label(raw) {
+    const km = this.parse(raw);
+    return km === null || Number.isNaN(km) ? "거리 미입력" : km.toLocaleString("ko-KR", { maximumFractionDigits: 2 }) + " km";
+  },
+};
+
 /* ═══════════════════════════════════════════════════════════════
    일정 조각(하루 일정) 읽기/쓰기 (관리자 "일정 관리"에서 편집)
    견적서 만들기의 각 일자 "일정 불러오기"가 이 함수를 사용합니다.

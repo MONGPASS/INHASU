@@ -2470,7 +2470,7 @@ function pgCourse() {
         <span style="font-size:14px; font-weight:bold;">${esc(name)}</span>
         <span class="pill" style="margin-left:auto; flex:none;">${(c.days || []).length}일 일정</span>
       </span>
-      <span style="font-size:12px; line-height:150%; color:var(--g600);" onclick="App.courseEdit(${jsArg(name)})">${esc(c.destination || "-")} · ${esc(nightsOf(c))} · 명소 ${(c.highlights || []).length}곳${c.price && c.price.deposit ? " · 예약금 " + won(c.price.deposit) : ""}</span>
+      <span style="font-size:12px; line-height:150%; color:var(--g600);" onclick="App.courseEdit(${jsArg(name)})">${esc(c.destination || "-")} · ${esc(nightsOf(c))} · 명소 ${(c.highlights || []).length}곳 · ${esc(CourseDistanceKm.label(c.totalDistanceKm))}${c.price && c.price.deposit ? " · 예약금 " + won(c.price.deposit) : ""}</span>
       <span style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding-top:6px;">
         <button type="button" class="btn" style="height:38px; font-size:12px;" onclick="App.courseEdit(${jsArg(name)})">편집</button>
         <button type="button" class="btn" style="height:38px; font-size:12px;" onclick="App.courseClone(${jsArg(name)})">복제</button>
@@ -2513,16 +2513,28 @@ App.courseDelete = async () => {
   const courses = { ...getCourses() }; delete courses[ce.orig];
   saveCourses(courses); PGS.courseEdit = null; renderOverlays(); toast("삭제했어요");
 };
-App.courseSave = () => {
-  const ce = PGS.courseEdit; if (!ce) return;
+App.courseSave = async () => {
+  const ce = PGS.courseEdit; if (!ce || ce.saving) return;
   const d = ce.draft;
   const name = (d.name || "").trim();
   if (!name) { toast("코스 이름을 입력하세요"); return; }
+  const totalDistanceKm = CourseDistanceKm.parse(d.totalDistanceKm);
+  if (Number.isNaN(totalDistanceKm)) {
+    toast(CourseDistanceKm.errorMessage); $("ceTotalDistanceKm")?.focus(); return;
+  }
   const courses = { ...getCourses() };
   if (ce.orig && ce.orig !== name) delete courses[ce.orig];
   const obj = clone(d); delete obj.name;
+  if (totalDistanceKm === null) delete obj.totalDistanceKm;
+  else obj.totalDistanceKm = totalDistanceKm;
   courses[name] = obj;
-  saveCourses(courses); PGS.courseEdit = null; renderOverlays(); toast("코스를 저장했어요");
+  ce.saving = true;
+  renderOverlays();
+  const result = await saveCourses(courses);
+  if (PGS.courseEdit === ce) { PGS.courseEdit = null; renderOverlays(); }
+  toast(result?.ok ? "코스를 서버에 저장했어요" :
+    result?.local ? "이 브라우저에만 저장했어요. 서버 저장은 확인되지 않았어요." :
+      "서버에 저장하지 못했어요. " + (result?.error || "다시 시도해 주세요."));
 };
 App.ceSpotToggle = name => {
   const d = PGS.courseEdit.draft;
@@ -2590,6 +2602,7 @@ function courseEditSheet() {
             ${[1, 2, 3, 4, 5].map(n => `<option value="${n}" ${d.intensity === n ? "selected" : ""}>${n}</option>`).join("")}
           </select>
         </label>
+        <label class="mini-f">총 이동거리 (km)<input id="ceTotalDistanceKm" data-ce="totalDistanceKm" inputmode="decimal" value="${esc(d.totalDistanceKm ?? "")}" placeholder="예) 720.5" aria-describedby="ceTotalDistanceHint" style="height:44px;"><span id="ceTotalDistanceHint">코스 전체 차량 주행거리 · 모르면 비워 두세요.</span></label>
       </section>
       <section style="padding:16px; border-radius:12px; background:#fff; display:flex; flex-direction:column; gap:12px;">
         <div style="display:flex; align-items:center; gap:8px;">
@@ -2671,7 +2684,7 @@ function courseEditSheet() {
       ${isNew
         ? `<button type="button" class="btn" style="flex:none; width:80px; height:48px; font-size:14px;" onclick="PGS.courseEdit=null; renderOverlays();">취소</button>`
         : `<button type="button" class="btn danger" style="flex:none; width:80px; height:48px; font-size:14px;" onclick="App.courseDelete()">삭제</button>`}
-      <button type="button" class="btn mint" style="flex:1; height:48px; font-size:15px;" onclick="App.courseSave()">저장하기</button>
+      <button type="button" class="btn mint" style="flex:1; height:48px; font-size:15px;" onclick="App.courseSave()" ${ce.saving ? "disabled" : ""}>${ce.saving ? "저장 중…" : "저장하기"}</button>
     </div>
   </div>`;
 }
