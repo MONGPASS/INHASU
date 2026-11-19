@@ -72,7 +72,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: #fbfefd; 
 .cw-header-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cw-doc-link { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px 0 10px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; font-size: 13px !important; font-weight: 700 !important; color: var(--text-strong); white-space: nowrap; transition: border-color .15s, color .15s, background-color .15s; }
 .cw-doc-link > svg { color: var(--adm-accent-strong); }
-.cw-doc-link:hover:not(:disabled) { border-color: var(--adm-accent); color: var(--adm-accent-strong); background: #f2fdf9; }
+.cw-doc-link:hover:not(:disabled) { border-color: var(--adm-accent); color: var(--adm-accent-strong); background: var(--adm-accent-soft); }
 .cw-header-divider { width: 1px; height: 24px; background: var(--border-default); }
 .cw-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .cw-header-actions .cw-button { min-height: 36px; padding: 0 16px; border-radius: 999px; font-size: 13px; }

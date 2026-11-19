@@ -44,7 +44,7 @@
     "html.admin-embedded #app > nav.tabbar button { flex-direction:row; gap:4px; height:46px; font-size:13px; white-space:nowrap; }",
     "html.admin-embedded #app > nav.tabbar .ic svg { display:none; }",
     "html.admin-embedded #app > nav.tabbar .badge { position:static; }",
-    "html.admin-embedded #app > nav.tabbar button.on { box-shadow:inset 0 -2px 0 var(--adm-accent, #27ab8f); }"
+    "html.admin-embedded #app > nav.tabbar button.on { box-shadow:inset 0 -2px 0 var(--adm-accent, #0066FF); }"
   ].join("\n");
 
   var style = document.createElement("style");

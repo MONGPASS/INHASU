@@ -19,7 +19,54 @@ test('공통 변수 파일이 색·글자·간격·모서리·높이 변수를 �
     for (const name of ['--adm-accent', '--adm-ink', '--adm-line', '--adm-fs-body', '--adm-space-4', '--adm-radius-sm', '--adm-control-h', '--adm-danger']) {
         assert.match(tokens, new RegExp(name + '\\s*:'), name);
     }
-    assert.match(tokens, /--adm-accent:\s*#27AB8F/i, '브랜드 민트를 유지한다');
+    // 관리자 강조색은 Montage 브랜드 블루. 견적 도구에는 Montage theme.css가 없으므로 같은 값을 두 번째 값으로 둔다.
+    assert.match(tokens, /--adm-accent:\s*var\(--semantic-surface-brand-primary,\s*#0066FF\)/i, 'Montage 브랜드 블루에 연결한다');
+    assert.doesNotMatch(tokens, /#27AB8F/i, '관리자 변수에 고객 민트를 남기지 않는다');
+    // 색 변수는 모두 Montage 토큰을 가리킨다.
+    const colorVars = [...tokens.matchAll(/(--adm-(?:accent[\w-]*|ink|text[\w-]*|gray-\d+|canvas|surface|sunken|line[\w-]*|danger[\w-]*|warn[\w-]*|success[\w-]*|info[\w-]*|neutral[\w-]*)):\s*([^;]+);/g)];
+    assert.ok(colorVars.length >= 30, '색 변수 ' + colorVars.length);
+    for (const [, name, value] of colorVars) {
+        assert.match(value.trim(), /^var\(--(semantic|atomic|adm)-/, `${name}: Montage 토큰을 가리킨다`);
+    }
+    // 버튼 높이: 목록 안 32 / 기본 40 / 저장 48 (Montage small·medium·large)
+    assert.match(tokens, /--adm-control-h:\s*40px/); assert.match(tokens, /--adm-control-h-sm:\s*32px/); assert.match(tokens, /--adm-control-h-lg:\s*48px/);
+});
+
+test('Montage는 관리자 영역에서만 불러온다', () => {
+    const pkg = JSON.parse(read('package.json'));
+    assert.ok(pkg.dependencies['@montage-ui/core'] && pkg.dependencies['@montage-ui/icon'], 'Montage 패키지 설치');
+    const provider = read('src/components/admin/AdminThemeProvider.tsx');
+    assert.ok(provider.includes("from '@montage-ui/core'") && provider.includes('<ThemeProvider'));
+    assert.ok(provider.includes("import '@montage-ui/core/theme.css'"), '변수 파일만 읽는다');
+    const app = read('src/App.tsx');
+    assert.match(app, /lazy\(\(\) => import\('\.\/components\/admin\/AdminThemeProvider'\)\)/, '관리자 경로에서만 lazy로 읽는다');
+    assert.match(app, /<AdminThemeArea enabled=\{isAdminWorkspace\}>/);
+    // Montage의 전역 초기화 CSS는 고객 화면에 새어 나가므로 어디에서도 불러오지 않는다.
+    const walk = (dir) => readdirSync(new URL(dir, root), { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(join(dir, e.name)) : /\.(tsx?|css)$/.test(e.name) ? [join(dir, e.name)] : []);
+    for (const file of walk('src')) {
+        const source = read(file.replace(/\\/g, '/'));
+        assert.doesNotMatch(source, /@montage-ui\/core\/(reset|global)\.css/, `${file}: Montage 전역 초기화 CSS를 불러오지 않는다`);
+        if (!/[\\/]components[\\/]admin[\\/]|[\\/]pages[\\/]Admin/.test(file)) {
+            assert.doesNotMatch(source, /from ['"]@montage-ui\//, `${file}: 고객 화면 코드에서 Montage를 불러오지 않는다`);
+        }
+    }
+});
+
+test('관리자 코드에 hex 색 고정값·직접 만든 버튼/입력창이 새로 늘지 않는다', async () => {
+    const { scanAdminDesign, adminDesignFiles } = await import('../scripts/admin-design-scan.mjs');
+    const baseline = JSON.parse(read('tests/admin-design-baseline.json')).files;
+    const files = adminDesignFiles();
+    assert.ok(files.some((f) => f.startsWith('public/') && f.endsWith('.html')) && files.some((f) => f.startsWith('src/components/admin/')));
+    assert.ok(!files.some((f) => /^src\/(pages\/(?!Admin)|components\/(?!admin\/))/.test(f) || f === 'public/style.css'), '고객 화면 파일은 검사하지 않는다');
+    const current = scanAdminDesign();
+    for (const file of new Set([...Object.keys(current), ...Object.keys(baseline)])) {
+        const now = current[file] || { hex: 0, controls: 0 }, before = baseline[file] || { hex: 0, controls: 0 };
+        assert.ok(now.hex <= before.hex, `${file}: hex 색 고정값 ${before.hex} → ${now.hex}. var(--adm-*)·Montage 토큰을 쓴다 (docs/admin-design-system.md 2절)`);
+        assert.ok(now.controls <= before.controls, `${file}: 직접 만든 버튼/입력창 ${before.controls} → ${now.controls}. Montage 컴포넌트를 쓴다 (3절)`);
+        // 줄였으면 기준 목록도 줄여 둔다: node scripts/admin-design-scan.mjs --write
+        assert.ok(now.hex === before.hex && now.controls === before.controls, `${file}: 줄었습니다(${before.hex}/${before.controls} → ${now.hex}/${now.controls}). node scripts/admin-design-scan.mjs --write 로 기준 목록을 줄여 주세요`);
+    }
 });
 
 test('React 관리자와 견적 도구가 같은 공통 변수 파일을 읽는다', () => {
@@ -58,7 +105,8 @@ test('관리자 화면은 브라우저 기본 알림창 대신 공통 알림을 
 test('휴대폰 앱 틀은 한 파일에서 정하고 크기는 공통 변수를 쓴다', () => {
     const mobile = read('src/styles/admin-mobile.css');
     for (const name of ['--adm-tabbar-h', '--adm-topbar-h', '--adm-control-h', '--adm-fs-input', '--adm-pad-page']) assert.ok(mobile.includes(`var(${name})`), name);
-    assert.match(read('public/admin-tokens.css'), /@media \(max-width: 760px\)\s*\{\s*:root\s*\{[^}]*--adm-control-h:\s*44px/);
+    // 휴대폰도 Montage 고정 높이(기본 40)를 쓰고 입력 글자만 16px로 키운다.
+    assert.match(read('public/admin-tokens.css'), /@media \(max-width: 760px\)\s*\{\s*:root\s*\{[^}]*--adm-control-h:\s*40px[^}]*--adm-fs-input:\s*16px/);
     const layout = read('src/components/admin/AdminLayout.tsx');
     assert.ok(layout.includes('AdminMobileTabBar') && layout.includes("admin-mobile.css"));
     const tabbar = read('src/components/admin/ui/AdminMobileTabBar.tsx');

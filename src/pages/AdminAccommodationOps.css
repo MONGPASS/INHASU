@@ -1,6 +1,6 @@
 /* 숙소 배정 · 현지 운영 — Admin Dashboard v3 "05-1 배정 자원 - 숙소 배정 현지 운영". 이 보드 안에서만 민트 토큰을 씁니다. */
 .lo-board {
-  --lo-mint: var(--adm-accent); --lo-mint-strong: var(--adm-accent-strong); --lo-mint-line: #bdeedd; --lo-mint-seg: #9ce9d2; --lo-red: #ff4f4f;
+  --lo-mint: var(--adm-accent); --lo-mint-strong: var(--adm-accent-strong); --lo-mint-line: var(--adm-accent-line); --lo-mint-seg: var(--atomic-blue-80, #9EC5FF); --lo-red: #ff4f4f;
   --lo-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238A8F99' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   display: flex; flex-direction: column; gap: 16px; min-width: 0;
 }
@@ -60,7 +60,7 @@
 .lo-month span { font-size: 13px; font-weight: 700; }
 .lo-month small { color: var(--text-tertiary); font-size: 11px; font-weight: 700; }
 .lo-month:disabled { cursor: default; }
-.lo-month.has-tours { border-color: var(--lo-mint-line); background: linear-gradient(160deg, #f2fdf9, #e3f9f1); color: var(--text-strong); }
+.lo-month.has-tours { border-color: var(--lo-mint-line); background: var(--adm-accent-soft); color: var(--text-strong); }
 .lo-month.has-tours small { color: var(--lo-mint-strong); }
 .lo-month.is-on { border: 1.5px solid var(--lo-mint); background: linear-gradient(135deg, var(--adm-accent), var(--adm-accent-deep)); color: #fff; }
 .lo-month.is-on small { color: #fff; }

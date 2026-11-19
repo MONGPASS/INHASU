@@ -1089,7 +1089,7 @@ if (usability) {
     for (const source of ['product', 'quote_booking']) {
         const current = usabilityAssignments.items.find(row => row.source === source && row.id === 'workspace-product');
         const stay = selectResourceLodge({ day: 1, date: current.startDate, accommodation: {
-            id: 'previous-resource', name: '다른 숙소', roomCount: 0, occupancy: '2인실', bookingStatus: 'Баталгаажсан' } }, selectedLodge);
+            id: 'previous-resource', name: '다른 숙소', roomCount: 1, occupancy: '2인실', bookingStatus: 'Баталгаажсан' } }, selectedLodge);
         const selected = editorAssignment({ assignedGuide: selectResourceGuide(current.assignment.guide, selectedGuide),
             contractData: { vehicle: selectResourceVehicle(current.assignment.vehicle, selectedVehicle) }, dailyAccommodations: [stay] });
         const route = `/api/admin/assignments/${source}/workspace-product`;
@@ -1104,7 +1104,7 @@ if (usability) {
         assert.deepEqual(saved.assignment.guide, selected.guide);
         assert.deepEqual(saved.assignment.vehicle, selected.vehicle);
         assert.equal(saved.assignment.accommodations[0].accommodation.id, selectedLodge.id);
-        assert.equal(saved.assignment.accommodations[0].accommodation.roomCount, 0);
+        assert.equal(saved.assignment.accommodations[0].accommodation.roomCount, 1);
         assert.equal(saved.assignment.accommodations[0].accommodation.bookingStatus, 'Илгээгээгүй');
         assert.deepEqual(saved.assignment.accommodations[0].accommodation.images, selectedLodge.images);
         assert.equal((await write(route, 'PATCH', { expectedVersion: current.version, assignment: selected })).status, 409);

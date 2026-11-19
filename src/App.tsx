@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, matchPath, useLocation } from 'react-router-dom'
-import { useEffect, Suspense, lazy } from 'react'
+import { useEffect, Suspense, lazy, type ReactNode } from 'react'
 import { Layout } from './components/layout/Layout'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
@@ -80,6 +80,8 @@ const AdminFAQManage = lazy(adminPageLoaders.faq)
 const AdminPromotionManage = lazy(adminPageLoaders.promotions)
 const AdminInquiryManage = lazy(adminPageLoaders.inquiries)
 const AdminTourFAQManage = lazy(adminPageLoaders.tourFaqs)
+// 관리자 영역만 Montage ThemeProvider로 감싼다. 고객 화면 번들에는 Montage를 넣지 않는다 (CLAUDE.md 5.0).
+const AdminThemeProvider = lazy(() => import('./components/admin/AdminThemeProvider'))
 
 // Loading Component
 const PageLoader = () => (
@@ -87,6 +89,10 @@ const PageLoader = () => (
     <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-primary"></div>
   </div>
 )
+
+const AdminThemeArea = ({ enabled, children }: { enabled: boolean; children: ReactNode }) => enabled
+  ? <Suspense fallback={<PageLoader />}><AdminThemeProvider>{children}</AdminThemeProvider></Suspense>
+  : <>{children}</>
 
 function App() {
   const location = useLocation();
@@ -123,6 +129,7 @@ function App() {
       <NotificationProvider>
         <AdminWorkspaceProvider enabled={isAdminWorkspace && location.pathname !== '/admin/login'}>
         {!isAdminRoute && !isGuidePrintRoute && !isContractPreview && <FloatingConsultation />}
+        <AdminThemeArea enabled={isAdminWorkspace}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -209,6 +216,7 @@ function App() {
             <Route path="/documents/contract/:reservationId" element={<CustomerAccessGuard source="reservation"><DocumentContract /></CustomerAccessGuard>} />
           </Routes>
         </Suspense>
+        </AdminThemeArea>
         </AdminWorkspaceProvider>
       </NotificationProvider>
     </div>

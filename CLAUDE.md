@@ -13,7 +13,7 @@
 - **두 플랫폼을 합친 저장소** (2026-10-12):
   - **INHASU** (`MONGPASS/INHASU`, 기준 저장소): 한국 고객용 맞춤 견적 시스템. 정적 HTML + 바닐라 JS + Pages Functions(JS). 견적요청 → 견적서 → 입금 신고 → 계약서 서명 → 여행자정보 → 확정일정표, Solapi 카카오 알림톡.
   - **MILKYWAY-JAPAN** (`arvijixmeat-maker/MILKYWAY-JAPAN`): 여행상품·예약·후기·매거진 사이트. React 19 + TS + Vite + Hono. 원래 일본인 대상 일본어 사이트였고, 한국어로 번역해 이 저장소에 넣었다.
-- 오너 방침: 양쪽 기능 모두 유지, **관리자는 `/admin` 하나**, 고객 플랫폼은 MILKYWAY 디자인(민트 `#27AB8F` + 네이비 `#0A1F2E`)으로 통일.
+- 오너 방침: 양쪽 기능 모두 유지, **관리자는 `/admin` 하나**, 고객 플랫폼은 MILKYWAY 디자인(민트 `#27AB8F` + 네이비 `#0A1F2E`)으로 통일. **관리자(`/admin`과 그 안의 견적 도구)는 Montage 디자인 시스템**(브랜드 블루, 5.0절)을 따른다 — 고객 화면·고객 문서의 민트·네이비와 섞지 않는다.
 
 ## 2. 구조 — 한 Cloudflare Pages 프로젝트(`inhasu`)에 둘이 함께 산다
 
@@ -116,9 +116,21 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 이미지·홈 공개 검증: `node scripts/check-admin-media.mjs`(npm ci 필요). 로컬 Lucia/SQLite/메모리 R2로 관리자 업로드·상품/배너 저장·초안 비노출·작은 이미지·ETag·Cache API를 검사한다. `--serve`는 8793번 포트의 테스트 관리자 화면을 연다. 운영 DB·R2·발송 서비스에 연결하지 않는다.
 - 검색 기준은 **몽골 여행·몽골 투어**. 공개 상품·매거진·카테고리·기획전은 서버가 메타와 읽을 수 있는 본문을 주입한다. 실제 공개 데이터만 sitemap/상품 schema에 넣고, 숨김·없는 상세는 404, 일시 DB 실패는 재시도 가능한 503으로 응답한다. 관리자·고객 문서·미리보기 호스트는 noindex다. `tests/public-seo.test.mjs`는 Miniflare의 실제 HTMLRewriter/D1도 검증하므로 로컬 루프백 연결이 필요하다.
 
-### 5.0 관리자 디자인 규칙 (2026-11-11)
+### 5.0 관리자 디자인 규칙 — Montage (2026-11-19)
 
-- 관리자(React 화면 + iframe 견적 도구)의 색·글자 크기·간격·모서리·버튼/입력창 높이는 **`public/admin-tokens.css`의 `--adm-*` 변수 하나**가 정본이다. React는 `admin-console.css` 첫 줄의 `@import`로, 견적 도구 문서는 `<link href="/admin-tokens.css">`로 같은 파일을 읽는다. 사본을 만들거나 화면별 CSS에 민트 값을 다시 적지 말 것. 옛 이름(`--mrt-blue`, `--accent`, `--p`, `--brand` 등)은 별칭으로만 남아 있다.
+**적용 범위**: `/admin` 아래 모든 React 화면·팝업과 관리자 안에 끼워 넣은 견적 도구 8개(견적관리·예약목록·예약관리·견적만들기·코스관리·일정관리·명소관리·리소스관리 `.html`). **대상 아님**: 고객 사이트, 상품 디자인 템플릿, 견적서·확정일정표·계약서·가이드 시트·가이드 피켓 같은 고객용 문서, `public/style.css` — 여기의 민트(`#27AB8F`·`#06C4A0`)와 네이비는 건드리지 않는다.
+
+- **관리자 화면은 Montage 디자인 시스템(`@montage-ui/core`)을 따른다.** 새로 만드는 관리자 화면·팝업도 같다. 상세 규격은 `docs/admin-design-system.md`.
+- **색은 Montage semantic 토큰만 쓴다**(관리자 코드에서는 그것을 가리키는 `--adm-*` 변수). 관리자 코드에 hex 색 고정값을 새로 쓰지 않는다. 강조색은 Montage 브랜드 블루(`--semantic-*-brand-*`, `#0066FF`)다.
+- **글꼴은 Pretendard**, 글자 크기는 Montage typography 단계(title·heading·headline·body·label·caption)만 쓴다.
+- **버튼·입력창·검색·표·배지·탭·팝업·알림·페이지 이동은 Montage 컴포넌트를 쓴다.** 같은 일을 하는 부품을 새로 만들지 않는다. 아이콘은 `@montage-ui/icon`.
+- **주요 버튼(Solid Primary)은 화면당 하나.** 버튼 높이는 목록 안 32 / 기본 40 / 저장 48(Montage small·medium·large, 휴대폰도 같다).
+- **상태색**: 완료=positive, 주의·대기=cautionary, 삭제·오류·미처리=negative, 안내·진행=brand, 보류·종료=neutral.
+- 따를 수 없으면 `docs/admin-design-system.md` 7절 예외 기록에 화면·내용·이유를 남긴다. `tests/admin-design-tokens.test.mjs`가 관리자 코드에 새 hex 색·직접 만든 버튼/입력창 클래스가 늘면 실패한다(기존 자리는 그 테스트의 목록에서 단계별로 줄인다).
+- **Montage는 관리자 영역에만 불러온다**: `App.tsx`가 관리자 경로(상품 미리보기 제외)에서만 `AdminThemeProvider`(`src/components/admin/AdminThemeProvider.tsx`, lazy)로 감싸고, 그 파일이 `@montage-ui/core/theme.css`(변수만)를 읽는다. Montage `reset.css`·`global.css`는 고객 화면에 새어 나가므로 전역으로 불러오지 말 것. 테마 쿠키는 `/admin` 경로로 한정하고 관리자를 벗어나면 `<html>`의 `data-theme`·`color-scheme`을 지운다.
+- 진행은 단계별이다(문서 1절): 1단계 규칙 고정 + 색 변수 연결(완료) → 2단계 공통 틀(사이드바·상단 바·제목 줄, 시안 claude.ai 아티팩트 `5e9ef812…`) → 3단계 공통 부품 Montage 교체 → 4단계 화면 유형별 틀. 단계마다 브랜치·PR로 올리고 화면을 확인받은 뒤 넘어간다.
+
+- 관리자(React 화면 + iframe 견적 도구)의 색·글자 크기·간격·모서리·버튼/입력창 높이는 **`public/admin-tokens.css`의 `--adm-*` 변수 하나**가 정본이다. 값은 Montage 토큰을 가리키고(`var(--semantic-…, Montage와 같은 hex)`), React는 `admin-console.css` 첫 줄의 `@import`로, 견적 도구 문서는 `<link href="/admin-tokens.css">`로 같은 파일을 읽는다. 견적 도구는 Montage `theme.css`를 읽지 않으므로 `var()`의 두 번째 값이 쓰인다. 사본을 만들거나 화면별 CSS에 색 값을 다시 적지 말 것. 옛 이름(`--mrt-blue`, `--accent`, `--p`, `--brand` 등)은 별칭으로만 남아 있다. 화면별 CSS의 `--*-mint*` 변수 이름은 옛 이름이며 값은 `--adm-accent*`(브랜드 블루)를 가리킨다.
 - **새 화면·팝업은 `docs/admin-design-system.md`의 공통 변수·공통 부품·유형별 틀(목록형·입력형·상세형·대시보드형)·업무 흐름 규칙을 따른다.** 따를 수 없으면 그 문서 7절 ‘예외 기록’에 화면·내용·이유를 남긴다. 화면이나 팝업을 더하거나 없애면 `docs/admin-screen-inventory.md`도 함께 고친다.
 - **휴대폰(760px 이하)에서는 같은 React 관리자가 앱 틀로 바뀐다**: 위 고정 바 + 아래 메뉴 5칸(홈·예약·견적·배정·전체) + 서랍 메뉴 + 아래에서 올라오는 팝업. 규칙은 `src/styles/admin-mobile.css`, 크기는 `admin-tokens.css`의 휴대폰 변수 블록 한 곳이다. 모바일 전용 화면을 따로 만들거나 화면별 CSS에 휴대폰용 버튼·입력창 크기를 적지 말 것. `AdminLayout`이 모든 화면에 서랍 메뉴(`admin-customer-menu-*` 클래스)와 `AdminMobileTabBar`를 넣는다.
 - 알림은 `adminNotify()`, 확인 창은 `await adminConfirm()`(`src/components/admin/ui/adminFeedback.tsx`)을 쓴다. 관리자 코드에 `alert()`·`confirm()`을 새로 쓰지 말 것(`tests/admin-design-tokens.test.mjs`가 검사). 화면 이동 차단(`useBlocker`)의 확인은 `adminConfirmLeave(blocker, 문구)`(`ui/adminLeaveConfirm.ts`)를 쓴다. 그 자리에서 참·거짓을 돌려줘야 하는 나가기 보호 6곳만 `window.confirm`을 유지한다(디자인 문서 7절).

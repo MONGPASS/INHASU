@@ -21,13 +21,13 @@
     ".admdlg-title{color:var(--adm-ink,#1a1b1e);font-size:16px;font-weight:700;}",
     ".admdlg-msg{margin-top:8px;color:var(--adm-text-2,#4a4e55);font-size:14px;line-height:1.6;white-space:pre-line;overflow-wrap:anywhere;}",
     ".admdlg-input{width:100%;height:var(--adm-control-h,40px);margin-top:14px;padding:0 12px;box-sizing:border-box;border:1px solid var(--adm-line,#e6e8ec);border-radius:var(--adm-radius-sm,8px);background:#fff;color:var(--adm-ink,#1a1b1e);font-family:inherit;font-size:var(--adm-fs-input,14px);outline:0;}",
-    ".admdlg-input:focus{border-color:var(--adm-accent,#27ab8f);box-shadow:0 0 0 3px rgba(39,171,143,.18);}",
+    ".admdlg-input:focus{border-color:var(--adm-accent,#0066FF);box-shadow:var(--adm-ring,0 0 0 3px #0066FF1F);}",
     ".admdlg-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:24px;}",
     ".admdlg-btn{min-width:84px;height:var(--adm-control-h,40px);padding:0 14px;border:1px solid var(--adm-line-strong,#d7dae0);border-radius:var(--adm-radius-sm,8px);background:#fff;color:var(--adm-ink,#1a1b1e);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}",
     ".admdlg-btn:hover{background:var(--adm-gray-50,#f7f8fa);}",
-    ".admdlg-btn.is-primary{border-color:var(--adm-primary-bg,#27ab8f);background:var(--adm-primary-bg,#27ab8f);color:#fff;}",
+    ".admdlg-btn.is-primary{border-color:var(--adm-primary-bg,#0066FF);background:var(--adm-primary-bg,#0066FF);color:#fff;}",
     ".admdlg-btn.is-danger{border-color:var(--adm-danger,#ff4f4f);background:var(--adm-danger,#ff4f4f);color:#fff;}",
-    ".admdlg-btn:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(39,171,143,.18);}",
+    ".admdlg-btn:focus-visible{outline:0;box-shadow:var(--adm-ring,0 0 0 3px #0066FF1F);}",
     "@media (max-width:760px){.admdlg-scrim{place-items:end stretch;padding:0;}.admdlg{width:100%;padding:24px 16px calc(16px + env(safe-area-inset-bottom,0px));border-radius:16px 16px 0 0;}.admdlg-btn{flex:1;height:44px;}.admdlg-input{height:44px;font-size:16px;}}"
   ].join("\n");
 
