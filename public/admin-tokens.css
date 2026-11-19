@@ -160,6 +160,22 @@
   --adm-icon-btn: var(--dimension-40); --adm-icon-btn-sm: var(--dimension-32); --adm-icon-btn-radius: var(--radius-10);
   --adm-icon-btn-line: var(--semantic-line-neutral-secondary); --adm-icon-btn-fg: var(--semantic-foreground-neutral-secondary);
 
+  /* ── 팝업(Montage Modal): 가운데 440px·모서리 24·여백 24, 떠 있는 흰 바탕 + 가장 큰 그림자 ── */
+  --adm-modal-w: 440px; --adm-modal-w-wide: 560px;
+  --adm-modal-radius: var(--radius-24); --adm-modal-pad: var(--spacing-24);
+  --adm-modal-bg: var(--semantic-surface-elevated-primary); --adm-modal-shadow: var(--semantic-elevation-shadow-normal-xlarge);
+  --adm-modal-title-fs: var(--typography-headline1-fontSize); --adm-modal-title-fw: var(--adm-fw-bold);
+  /* ── 오른쪽 서랍(Montage Drawer/SidePanel): 520px, 같은 바탕·그림자 ── */
+  --adm-drawer-w: 520px; --adm-drawer-shadow: var(--semantic-elevation-shadow-normal-xlarge);
+  /* ── 펼침 메뉴(Montage Menu/Popover): 모서리 12·안쪽 6, 줄 36px·모서리 8 ── */
+  --adm-menu-radius: var(--radius-12); --adm-menu-pad: var(--spacing-6);
+  --adm-menu-bg: var(--semantic-surface-elevated-primary); --adm-menu-shadow: var(--semantic-elevation-shadow-normal-large);
+  --adm-menu-item-h: var(--dimension-36); --adm-menu-item-radius: var(--radius-8); --adm-menu-item-hover: var(--semantic-surface-neutral-tertiary);
+  /* ── 알림(Montage Toast): 아래 가운데, 어두운 반전 바탕·모서리 12·14px 500 ── */
+  --adm-toast-radius: var(--radius-12); --adm-toast-pad: var(--spacing-12) var(--spacing-16);
+  --adm-toast-bg: var(--semantic-surface-neutral-inverse); --adm-toast-fg: var(--semantic-foreground-neutral-inverse);
+  --adm-toast-fs: var(--typography-label1-fontSize); --adm-toast-fw: var(--adm-fw-medium); --adm-toast-shadow: var(--semantic-elevation-shadow-normal-large);
+
   --adm-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2337383C' stroke-opacity='.61' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 
   /* ── 그림자·겹침 순서·움직임 ── */

@@ -119,8 +119,8 @@
 .ddOn .ddKey { color: var(--mrt-blue-strong); }
 .ddVal { font-weight: 700; }
 .scrim { position: fixed; inset: 0; z-index: 30; }
-.ddMenu { position: absolute; top: 42px; left: 0; z-index: 31; min-width: 200px; padding: 6px; background: #fff; border: 1px solid var(--border-default); border-radius: 14px;
-  box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 2px; }
+.ddMenu { position: absolute; top: 42px; left: 0; z-index: 31; min-width: 200px; padding: var(--adm-menu-pad); background: var(--adm-menu-bg); border: 0; border-radius: var(--adm-menu-radius);
+  box-shadow: var(--adm-menu-shadow); display: flex; flex-direction: column; gap: 2px; }
 .ddOption { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border: 0; border-radius: 9px; background: transparent; font: inherit; font-size: 13px;
   font-weight: 500; color: var(--text-strong); cursor: pointer; white-space: nowrap; }
 .ddOption:hover { background: var(--mrt-gray-50); }

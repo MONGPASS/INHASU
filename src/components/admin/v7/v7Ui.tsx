@@ -77,7 +77,8 @@ const KEYFRAMES = `@keyframes rvPop{from{opacity:0;transform:translateY(-4px) sc
 .v7-root a.v7-link{color:var(--adm-accent-strong);text-decoration:none}.v7-root a.v7-link:hover{color:var(--adm-accent-deep);text-decoration:underline}
 .v7-hover-row:hover{background:var(--adm-table-row-hover)!important}
 .v7-nav-btn:hover{box-shadow:0 0 0 1.5px var(--adm-accent),0 4px 12px rgba(var(--adm-accent-rgb),.12)!important}
-.v7-dd-row:hover{background:#f8f9fa!important}
+.v7-dd-row:hover{background:var(--adm-menu-item-hover)!important}
+.v7-toast{bottom:28px}@media (max-width:760px){.v7-toast{bottom:calc(var(--adm-tabbar-h) + var(--adm-safe-bottom) + 12px)}}
 .v7-bulk-btn:hover{background:rgba(255,255,255,.2)!important}
 .v7-dim:hover{filter:none!important;opacity:1!important}
 @keyframes v7SecFlash{0%{box-shadow:0 0 0 1px #eef0f2}25%{box-shadow:0 0 0 2px var(--adm-accent),0 8px 24px rgba(var(--adm-accent-rgb),.18)}100%{box-shadow:0 0 0 1px #eef0f2}}
@@ -103,14 +104,14 @@ export function V7Menu({ menu, onClose }: { menu: V7MenuState | null; onClose: (
     if (!menu) return null;
     return <>
         <div onClick={onClose} onWheel={onClose} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
-        <div role="menu" aria-label={menu.title} style={{ position: 'fixed', left: menu.x, ...(menu.y !== null ? { top: menu.y } : { bottom: menu.b ?? 0 }), zIndex: 61, width: menu.wide ? 260 : 228, maxHeight: 340, overflowY: 'auto', boxSizing: 'border-box', padding: 6, display: 'flex', flexDirection: 'column', gap: 2, background: '#fff', borderRadius: 14, boxShadow: '0 0 0 1px rgba(16,24,40,.06),0 12px 32px rgba(16,24,40,.16)', animation: 'rvPop 140ms ease-out' }}>
+        <div role="menu" aria-label={menu.title} style={{ position: 'fixed', left: menu.x, ...(menu.y !== null ? { top: menu.y } : { bottom: menu.b ?? 0 }), zIndex: 61, width: menu.wide ? 260 : 228, maxHeight: 340, overflowY: 'auto', boxSizing: 'border-box', padding: 'var(--adm-menu-pad)', display: 'flex', flexDirection: 'column', gap: 2, background: 'var(--adm-menu-bg)', borderRadius: 'var(--adm-menu-radius)', boxShadow: 'var(--adm-menu-shadow)', animation: 'rvPop 140ms ease-out' }}>
             {menu.title && <span style={{ padding: '6px 8px 4px', fontSize: 11, fontWeight: 700, color: V7_MUTED }}>{menu.title}</span>}
             {menu.items.map(o => <button key={o.key} type="button" role="menuitemradio" aria-checked={!!o.on} disabled={o.disabled} className="v7-dd-row"
                 onClick={e => { e.stopPropagation(); onClose(); o.onPick(); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', minHeight: o.sub ? 44 : 36, padding: '4px 10px', border: 0, borderRadius: 10, font: 'inherit', cursor: o.disabled ? 'not-allowed' : 'pointer', opacity: o.disabled ? .5 : 1, background: o.on ? '#f8f9fa' : 'transparent', textAlign: 'left' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', minHeight: o.sub ? 44 : 'var(--adm-menu-item-h)', padding: '4px 10px', border: 0, borderRadius: 'var(--adm-menu-item-radius)', font: 'inherit', cursor: o.disabled ? 'not-allowed' : 'pointer', opacity: o.disabled ? .5 : 1, background: o.on ? 'var(--adm-menu-item-hover)' : 'transparent', textAlign: 'left' }}>
                 <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <span style={{ fontSize: 13, fontWeight: o.on ? 800 : 600, color: o.muted ? V7_MUTED : V7_INK }}>{o.label}</span>
-                    {o.sub && <span style={{ fontSize: 11, fontWeight: 600, color: o.subTone === 'warn' ? '#FF4F4F' : o.subTone === 'muted' ? V7_MUTED : 'var(--adm-accent-strong)' }}>{o.sub}</span>}
+                    {o.sub && <span style={{ fontSize: 11, fontWeight: 600, color: o.subTone === 'warn' ? 'var(--adm-badge-danger-fg)' : o.subTone === 'muted' ? V7_MUTED : 'var(--adm-accent-strong)' }}>{o.sub}</span>}
                 </span>
                 {o.on && <Ico name="lc-check" size={15} color="var(--adm-accent-strong)" />}
             </button>)}
@@ -121,8 +122,9 @@ export function V7Menu({ menu, onClose }: { menu: V7MenuState | null; onClose: (
 
 export function V7Toast({ text }: { text: string }) {
     if (!text) return null;
-    return <div role="status" style={{ position: 'fixed', left: '50%', top: 20, transform: 'translateX(-50%)', zIndex: 70, display: 'flex', alignItems: 'center', gap: 8, padding: '12px 18px', background: '#fff', borderRadius: 14, boxShadow: '0 0 0 1px #eef0f2,0 12px 32px rgba(16,24,40,.16)', fontSize: 14, fontWeight: 700, animation: 'rvUp 180ms ease-out' }}>
-        <Ico name="lc-circle-check" size={16} color="var(--adm-accent-strong)" />{text}
+    // Montage Toast: 아래 가운데, 어두운 반전 바탕(공통 adminNotify와 같은 자리·모양)
+    return <div role="status" className="v7-toast" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 'var(--adm-z-toast)' as Css['zIndex'], display: 'flex', alignItems: 'center', gap: 8, maxWidth: 'calc(100vw - 32px)', boxSizing: 'border-box', padding: 'var(--adm-toast-pad)', background: 'var(--adm-toast-bg)', color: 'var(--adm-toast-fg)', borderRadius: 'var(--adm-toast-radius)', boxShadow: 'var(--adm-toast-shadow)', fontSize: 'var(--adm-toast-fs)', fontWeight: 'var(--adm-toast-fw)' as Css['fontWeight'], animation: 'rvUp 180ms ease-out' }}>
+        <Ico name="lc-circle-check" size={16} color="var(--semantic-foreground-positive-primary)" />{text}
     </div>;
 }
 

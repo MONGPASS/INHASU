@@ -26,8 +26,8 @@
 .admin-app-wrapper .cg-fixed { display: inline-grid; place-items: center; width: 36px; height: 36px; color: var(--text-tertiary); font-size: 11px; font-weight: 700; }
 
 /* 오른쪽 편집 패널 */
-.admin-app-wrapper .cg-drawer-scrim { display: flex; align-items: stretch; justify-content: flex-end; padding: 0; background: rgba(26,27,30,.32); backdrop-filter: none; }
-.admin-app-wrapper .picker.cg-drawer { display: flex; flex-direction: column; width: min(560px, 100%); max-width: 100%; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: var(--shadow-lg); animation: cgSlide .22s cubic-bezier(.2,0,.1,1); }
+.admin-app-wrapper .cg-drawer-scrim { display: flex; align-items: stretch; justify-content: flex-end; padding: 0; background: var(--adm-scrim); backdrop-filter: none; }
+.admin-app-wrapper .picker.cg-drawer { display: flex; flex-direction: column; width: min(var(--adm-drawer-w), 100%); max-width: 100%; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: var(--adm-drawer-shadow); animation: cgSlide .22s cubic-bezier(.2,0,.1,1); }
 .admin-app-wrapper .cg-drawer > form { flex: 1; min-height: 0; }
 .admin-app-wrapper .cg-drawer .card-head { padding: 18px 22px; border-bottom: 1px solid var(--border-default); }
 .admin-app-wrapper .cg-drawer .card-head h2 { margin: 0; color: var(--text-strong); font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
@@ -53,4 +53,4 @@
 .admin-app-wrapper .cg-drawer-foot .btn-ghost { border: 1.5px solid var(--border-default); background: #fff; color: var(--text-strong); }
 .admin-app-wrapper .cg-drawer-foot .btn-ink { background: var(--adm-primary-bg); color: #fff; }
 @keyframes cgSlide { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .admin-app-wrapper .picker.cg-drawer { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .admin-app-wrapper .picker.cg-drawer { animation: none; width: min(var(--adm-drawer-w), 100%); box-shadow: var(--adm-drawer-shadow); } }

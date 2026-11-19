@@ -278,7 +278,7 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 
 /* 팝오버 */
 .gs-pop-back { position: fixed; inset: 0; z-index: 40; }
-.gs-pop { position: fixed; z-index: 41; width: 320px; max-height: 360px; overflow: auto; border-radius: 16px; background: var(--gs-paper); box-shadow: 0 4px 16px rgba(0,0,0,.14), 0 0 0 1px var(--gs-div1); animation: gsPopIn 150ms ease-out; }
+.gs-pop { position: fixed; z-index: 41; width: 320px; max-height: 360px; overflow: auto; border-radius: var(--adm-menu-radius); background: var(--adm-menu-bg); box-shadow: var(--adm-menu-shadow); animation: gsPopIn 150ms ease-out; }
 .gs-pop-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px 10px; }
 .gs-pop-head b { flex: 1; min-width: 0; overflow: hidden; color: var(--gs-low); font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .gs-pop-head button { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; border-radius: 999px; background: transparent; cursor: pointer; }
@@ -299,7 +299,7 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 /* 가이드 상세 패널 */
 .gs-dim { position: fixed; inset: 0; z-index: 44; background: rgba(0,0,0,.2); }
 .gs-dim.is-dark { z-index: 50; background: rgba(0,0,0,.5); }
-.gs-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 45; width: min(440px, 100vw); display: flex; flex-direction: column; background: var(--gs-paper); box-shadow: -4px 0 16px rgba(0,0,0,.08); animation: gsDrawer 200ms ease-out; }
+.gs-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 45; width: min(440px, 100vw); display: flex; flex-direction: column; background: var(--adm-modal-bg); box-shadow: var(--adm-drawer-shadow); animation: gsDrawer 200ms ease-out; }
 .gs-dr-head { display: flex; align-items: center; gap: 14px; padding: 24px 24px 16px; }
 .gs-dr-who { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
 .gs-dr-who b { font-size: 20px; line-height: 135%; font-weight: 700; }
@@ -348,7 +348,7 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 .gs-dr-acts > a:hover, .gs-dr-acts > button:hover { background: var(--gs-gray200); }
 
 /* 가이드 피켓 */
-.gs-modal { position: fixed; top: 50%; left: 50%; z-index: 51; width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 32px); display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: var(--gs-paper); transform: translate(-50%, -50%); }
+.gs-modal { position: fixed; top: 50%; left: 50%; z-index: 51; width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 32px); display: flex; flex-direction: column; overflow: hidden; border-radius: var(--adm-modal-radius); background: var(--adm-modal-bg); transform: translate(-50%, -50%); box-shadow: var(--adm-modal-shadow); }
 .gs-modal-head { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--gs-div1); }
 .gs-modal-head > b { flex: 1; font-size: 16px; font-weight: 700; }
 .gs-modal-body { padding: 24px; overflow: auto; background: var(--gs-bg); }
@@ -369,7 +369,7 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 .gs-tip-rows div { display: flex; align-items: center; gap: 8px; font-size: 12px; }
 .gs-tip-rows span { flex: none; width: 52px; color: #adb5bd; }
 .gs-tip-rows b { min-width: 0; overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.gs-toast { position: fixed; left: 50%; bottom: 32px; z-index: 60; padding: 12px 18px; border-radius: 10px; background: var(--gs-ink); color: #fff; font-size: 14px; font-weight: 700; animation: gsToast 300ms cubic-bezier(.2,1.4,.4,1) both; }
+.gs-toast { position: fixed; left: 50%; bottom: 32px; z-index: 60; padding: var(--adm-toast-pad); border-radius: var(--adm-toast-radius); background: var(--adm-toast-bg); color: var(--adm-toast-fg); font-size: var(--adm-toast-fs); font-weight: var(--adm-toast-fw); animation: gsToast 300ms cubic-bezier(.2,1.4,.4,1) both; box-shadow: var(--adm-toast-shadow); }
 
 @media (max-width: 1100px) {
   .gs { padding: 16px; }

@@ -40,7 +40,7 @@
 |---|---|---|
 | M1 | 토큰: `public/admin-montage.css`(Montage 라이트 테마 + 민트 brand) 추가, `admin-tokens.css`의 `--adm-*` 값이 Montage 변수를 가리키게. 버튼 높이 32/40/48(휴대폰도 같음). hex 고정값 증가를 막는 테스트 | 완료(2026-11-19) |
 | M2 | 공통 틀: `AdminLayout`·`AdminSidebar`·`AdminToolbar`를 시안의 사이드바(248px)·상단 바(64px)로. 흰 사이드바(위에 ‘은하수 관리자’ 표시와 접기 버튼, 선택 메뉴는 옅은 민트 바탕 + 민트 글자, 하위 메뉴는 아이콘 없이 36px), 흰 상단 바(왼쪽 검색창 · 오른쪽 업무 알림), 회색 작업 배경 위에 화면 제목(title2)·설명(label2)·작업 버튼. 761~1100px에서는 작업 버튼이 제목 아래 줄로 내려간다. 틀 CSS(`admin-shell-v3.css`·`AdminToolbar.css`)에는 hex를 쓰지 않는다 | 완료(2026-11-19) |
-| M3 | 공통 부품(3절)을 Montage 부품 모양으로(CSS, React 부품은 들이지 않음): ① 버튼 → ② 입력창·선택 상자 → ③ 표·배지·탭 → ④ 팝업·알림 | 진행 중(① 버튼·② 입력창·③ 표·배지·탭 완료 2026-11-20) |
+| M3 | 공통 부품(3절)을 Montage 부품 모양으로(CSS, React 부품은 들이지 않음): ① 버튼 → ② 입력창·선택 상자 → ③ 표·배지·탭 → ④ 팝업·알림 | 완료(① 버튼·② 입력창·③ 표·배지·탭·④ 팝업·알림 2026-11-20) |
 | M4 | 화면 유형별 틀(4절): 목록형 → 입력형 → 상세형 → 대시보드형 | 예정 |
 
 ## 2. 공통 변수 — `public/admin-tokens.css` (값은 Montage)
@@ -90,6 +90,7 @@
 - 버튼(M3-①) — 모든 버튼 계열(`.btn`·`.adm-btn`·`.cm-btn`·`.lo-btn`·`.cw-button`, 견적 도구의 `admin-tools.css`)이 `--adm-btn-*` 변수(Montage Button)를 쓴다. 크기: 기본 medium 40px·모서리 12·좌우 16·14px 굵게 / `.btn-sm`·`.is-sm` small 32·10·12·12px / `.btn-lg`·`.is-tall`·저장 줄 large 48·14·20·15px / 촘촘한 작업 화면(`.tcom`)의 `.btn-sm` xsmall 28·8. 색: 주요(`.btn-ink`·`.btn-blue`·`.is-primary`·`.is-ink`·`.cw-primary`) 민트 바탕 `#1C8571`·누르면 `#187A67` / 테두리(`.btn-ghost`·기본 `.adm-btn`·`.cm-btn`·`.lo-btn`·`.cw-button`) 흰 바탕 + 1px 회색 선 / 회색(`.btn-soft`) / 위험(`.btn-danger`·`.is-danger`) 연한 빨강 바탕 + 빨간 글자. 쓸 수 없는 버튼은 흐리게 하지 않고 Montage disable 색을 쓴다. 눌렀을 때 작아지는 효과와 화면별 알약 모양(999px) 버튼은 없앴다.
 - 입력창·선택 상자(M3-②) — `.inp`·`.select`·`.inp-mini`와 화면별 입력창(`.cm-input`·`.lo-input`·`.lo-select`·`.hm-inp`·`.ci-input`·고객 상세·예약 작업 화면·견적 도구 `admin-tools.css`)이 `--adm-input-*` 변수(Montage TextField·Select·TextArea)를 쓴다. 크기: 기본 medium 40px·모서리 12·좌우 10·14px / 표·목록 안 small 32·10·8 / large 48·14. 1px 선(`line-neutral-secondary`), 흰 바탕, 글자 14px(휴대폰 16px). 포커스는 진한 민트 선 + 4px 연한 민트 링, 잘못된 입력(`aria-invalid`)은 빨간 선 + 빨간 링, 쓸 수 없는 칸은 옅은 회색 바탕. 목록 위 검색창(`.tb-search`·`.cm-search`·`.lo-search`·`.pd-search`·`.tc-search`·`.la-search`)은 Montage SearchField: 회색 바탕·선 없음·40px·모서리 12. 입력창 위 라벨(`.field > label` 등)은 12px 600 보조 글자, 라벨과 칸 사이 8px.
 - 표·배지·칩·탭·아이콘 버튼(M3-③) — `--adm-table-*`·`--adm-badge-*`·`--adm-chip-*`·`--adm-seg-*`·`--adm-tab-*`·`--adm-icon-btn-*` 변수를 쓴다. 표(`.tbl`, Montage Table): 머리 44px·13px 굵게 보조 글자(대문자·자간 없음), 칸 위아래 16·좌우 20, 1px 옅은 줄, 줄에 마우스를 올리면 옅은 회색. 상태 배지(`.badge`·`.b-*`·화면별 상태 표시·v7 `chip()`, Montage ContentBadge small): 모서리 8·위아래 4·좌우 6·12px 500, 글자색과 같은 색 8% 바탕(완료 초록·주의 주황·위험 빨강·안내 파랑·선택 민트·기본 회색). 거르기 칩(`.chip`·화면별 칩, Montage Chip outlined): 36px(촘촘한 곳 32)·모서리 10·13px 500, 고르면 연한 민트 바탕 + 민트 선·글자. 묶음형 탭(`.seg`·`.gs-seg`·`.pa-seg`·달력 거르기, Montage SegmentedControl small): 회색 32px 상자·모서리 10·안쪽 4, 고른 칸은 흰 바탕 + 작은 그림자. 밑줄 탭(`.tab`, Montage Tab small): 14px 굵게, 고르면 진한 글자 + 2px 밑줄. 아이콘 버튼(`.icon-btn`, Montage IconButton outlined): 40px 원 + 1px 선. 표 안 작은 아이콘 버튼·접기 버튼은 모서리 10. 점·숫자 원·사진 원은 둥근 모양 그대로.
+- 팝업·서랍·메뉴·알림(M3-④) — `--adm-modal-*`·`--adm-drawer-*`·`--adm-menu-*`·`--adm-toast-*` 변수를 쓴다. 가운데 창(`.adm-dialog`·`.picker`·`.cm-modal`·`.ci-modal`·`.gs-modal`, Montage Modal): 폭 440px(넓은 창 560px)·모서리 24·여백 24, 떠 있는 흰 바탕(`surface-elevated-primary`) + 가장 큰 그림자(xlarge), 제목 18px 굵게. 오른쪽 서랍(`.drawer`·`.cg-drawer`·`.gs-drawer`·견적 도구 `.drawer`): 520px, 같은 그림자. 펼침 메뉴(`.statusdd-menu`·`.revMenu`·`.ddMenu`·`.la-pop`·`.gs-pop`·v7 메뉴, Montage Menu): 모서리 12·안쪽 6·선 없이 large 그림자, 줄 36px·모서리 8. 알림(`.adm-toast`·`.page-toast`·`.drawer-toast`·`.la-toast`·`.gs-toast`·v7 알림·견적 도구 `.toast`, Montage Toast): 화면 아래 가운데, 어두운 반전 바탕·모서리 12·14px 500. 뒤 막은 모두 `--adm-scrim`. 휴대폰에서는 가운데 창·메뉴가 아래 시트(8절)로 바뀐다.
 - `AdminMobileTabBar` — 휴대폰 아래 메뉴(`AdminLayout`이 자동으로 넣는다).
 - 필수 입력 — 라벨에 `className="adm-req"`를 주면 빨간 `*`가 붙는다(글자에 `*`를 직접 적지 않는다). 저장 함수 맨 앞에서 `if (!adminValidateRequired()) return;`을 부르면 열려 있는 팝업 안의 빈 필수 칸 아래에 안내가 뜨고 첫 칸으로 이동한다(`ui/adminForm.ts`).
 - 홈 화면에 추가 — `useAdminInstallMeta`가 관리자 화면에서만 `admin.webmanifest`와 앱 아이콘 표시를 넣는다(고객 사이트에는 넣지 않는다. 오프라인 기능은 없다).
@@ -107,7 +108,7 @@
 | 표 | 머리 11px 회색 글자·`--adm-sunken` 바탕, 줄 13px·세로 여백 14px, 줄 사이 `--adm-line-subtle`. 줄별 행동은 오른쪽 끝 32px 버튼 |
 | 상태 배지 | Montage ContentBadge small(모서리 8px, `caption1` 굵기 500): 옅은 상태색 바탕 + 상태색 글자. 완료=positive, 주의·대기=cautionary, 삭제·오류·미처리=negative, 안내·진행=파랑(`--adm-info`), 보류·종료=neutral |
 | 탭 | 밑줄형(Montage Tab, 화면·구역 전환)과 묶음형(Montage SegmentedControl, 보기 방식 전환) 두 가지 |
-| 팝업 | 가운데 창(확인·짧은 입력, 폭 440/640px)과 오른쪽 서랍(편집, 폭 520px) 두 가지. 뒤 막 `--adm-scrim`(`effect-dimmer-primary`), 모서리 가운데 창 24px, 머리(제목·닫기) / 본문 / 발(왼쪽 삭제, 오른쪽 취소·저장). Esc와 바깥 누르기로 닫히되 고친 내용이 있으면 확인 |
+| 팝업 | 가운데 창(확인·짧은 입력, 폭 440px, 넓은 창 560px)과 오른쪽 서랍(편집, 폭 520px) 두 가지. 뒤 막 `--adm-scrim`(`effect-dimmer-primary`), 모서리 가운데 창 24px, 머리(제목·닫기) / 본문 / 발(왼쪽 삭제, 오른쪽 취소·저장). Esc와 바깥 누르기로 닫히되 고친 내용이 있으면 확인 |
 | 알림 | 화면 아래 가운데 토스트 하나(어두운 바탕 `surface-neutral-inverse`, 모서리 12px). 성공(초록 아이콘)·오류(빨강 아이콘)·안내. 3초 뒤 사라지고 오류는 눌러서 닫는다 |
 | 확인 창 | 삭제·되돌릴 수 없는 일은 공통 확인 창. 무엇이 지워지는지 한 문장 + 위험 버튼 |
 | 빈 목록·불러오는 중·오류 | 본문 자리에 같은 틀: 불러오는 중(회전 표시 + "불러오는 중…"), 빈 목록(안내 한 줄 + 첫 행동 버튼), 오류(이유 + "다시 시도") |
@@ -198,6 +199,7 @@ PC와 같은 화면·같은 부품이 휴대폰 폭에서 앱 모양으로 바�
 | M3-① 이후에도 둥근(999px) 모양인 것 | 아이콘만 있는 원형 버튼, 칩, 탭·기간 선택(segmented)은 그대로 | 글자 버튼이 아니라 ③ 표·배지·탭 묶음에서 Montage IconButton·Chip·SegmentedControl로 맞췄다(2026-11-20). 아이콘 원형 버튼만 Montage IconButton outlined대로 원 |
 | M3-③ 표 본문 글자 | Montage Table 본문은 16px(body1)이지만 14px(label1) | 관리자 표는 열이 많아 16px이면 1440px에서도 가로로 넘친다. 머리·여백은 Montage 그대로 |
 | M3-③ 안내 배지 색 | 디자인 시안은 ‘진행 중’을 민트로 그렸지만 파랑(`--atomic-blue-50`) | 5.0절 규칙: 안내·진행은 파랑, 민트는 선택·주요 동작에만 써서 완료(초록)·선택과 구분 |
+| M3-④ v7 알림 자리 | 고객 상세·예약 목록(v7)의 알림을 위쪽 흰 상자에서 아래 가운데 어두운 토스트로 옮김 | 공통 `adminNotify`와 같은 자리·모양으로 맞춘다(Montage Toast). 휴대폰은 아래 메뉴 위 |
 | M3-③ v7 카드 | 고객 상세·예약 목록(v7)의 카드(`card`, 모서리 18·hex 선)는 그대로 | 화면 유형별 틀(M4)에서 카드 모서리 16·간격과 함께 맞춘다 |
 | M3-② 입력창 바탕 | Montage는 투명(흐림 효과)이지만 흰 바탕(`background-neutral-primary`) | 테두리 버튼과 같은 이유. 회색 작업 배경·회색 카드 위에서 칸이 배경과 섞이지 않게 |
 | M3-② 문서 모양 그대로 고치는 칸 | 견적서·일정표 미리보기 안의 칸(`.doc-paper input`, `.doc-*-inp`)과 상품 계약서(`product-contract-document.css`)는 바꾸지 않음 | 인쇄 문서 모양 위에서 글자를 바로 고치는 칸이라 테두리가 없어야 하고, 계약서는 고객 문서다 |
