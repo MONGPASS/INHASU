@@ -2,7 +2,7 @@
    구성: 머리(제목·설명·닫기) / 본문(코스 목록 또는 일차 카드) / 발(요약 + 취소·주요 버튼).
    확인이 필요한 자리는 주황 한 가지(--adm-warn)로만 표시한다. 휴대폰에서는 아래 시트. */
 .ci-scrim { position: fixed; inset: 0; z-index: var(--adm-z-modal); display: grid; place-items: center; padding: 24px; background: var(--adm-scrim); font-family: var(--adm-font); }
-.ci-modal { display: flex; flex-direction: column; width: min(760px, 100%); max-height: 88vh; overflow: hidden; border-radius: var(--adm-radius-lg); background: var(--adm-surface); color: var(--adm-text); box-shadow: var(--adm-shadow-lg); }
+.ci-modal { display: flex; flex-direction: column; width: min(760px, 100%); max-height: 88vh; overflow: hidden; border-radius: var(--adm-modal-radius); background: var(--adm-modal-bg); color: var(--adm-text); box-shadow: var(--adm-modal-shadow); }
 
 .ci-head { display: flex; align-items: flex-start; gap: var(--adm-space-3); padding: var(--adm-space-5) var(--adm-space-6) var(--adm-space-4); border-bottom: 1px solid var(--adm-line); }
 .ci-head-text { flex: 1; min-width: 0; }
@@ -96,7 +96,7 @@
 
 @media (max-width: 760px) {
   .ci-scrim { place-items: end stretch; padding: 0; }
-  .ci-modal { width: 100%; max-height: 92dvh; border-radius: var(--adm-radius-lg) var(--adm-radius-lg) 0 0; }
+  .ci-modal { width: 100%; max-height: 92dvh; border-radius: var(--adm-modal-radius); background: var(--adm-modal-bg); box-shadow: var(--adm-modal-shadow); }
   .ci-head { padding: var(--adm-space-4); }
   .ci-head-text h2 { font-size: var(--adm-fs-lead); }
   .ci-search, .ci-course { padding-left: var(--adm-space-4); padding-right: var(--adm-space-4); }

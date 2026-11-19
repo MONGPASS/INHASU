@@ -78,7 +78,7 @@ test('Montage brand 9개만 INHASU 민트로 바꾼다', () => {
 // 관리자 CSS의 hex 색 고정값 수(2026-11-19 Montage 1단계 기준). 줄이는 것은 괜찮고 늘리면 실패한다.
 // 줄였으면 아래 숫자도 함께 줄인다. 새 관리자 CSS 파일은 0개여야 한다(Montage·--adm-* 변수를 쓴다).
 const ADMIN_CSS_HEX_BASELINE = {
-    'src/components/admin/accommodation/LodgeAssignBoard.css': 49,
+    'src/components/admin/accommodation/LodgeAssignBoard.css': 47,
     'src/components/admin/Admin3DIcon.css': 1,
     'src/components/admin/AdminDeliveryHistory.css': 23,
     'src/components/admin/CourseImportModal.css': 4,
@@ -86,25 +86,25 @@ const ADMIN_CSS_HEX_BASELINE = {
     'src/components/admin/CustomerResourcePicker.css': 34,
     'src/components/admin/CustomerWorkspaceOverview.css': 35,
     'src/components/admin/dashboard/TrafficSources.module.css': 5,
-    'src/components/admin/guides/GuideSchedule.css': 43,
-    'src/components/admin/ui/admin-ui.css': 1,
+    'src/components/admin/guides/GuideSchedule.css': 41,
+    'src/components/admin/ui/admin-ui.css': 0,
     'src/pages/AdminAccommodationOps.css': 55,
     'src/pages/AdminBannerManage.css': 22,
-    'src/pages/AdminCalendar.css': 18,
+    'src/pages/AdminCalendar.css': 17,
     'src/pages/AdminCategoryManage.css': 4,
-    'src/pages/AdminContentManage.css': 32,
-    'src/pages/AdminDashboard.module.css': 44,
+    'src/pages/AdminContentManage.css': 31,
+    'src/pages/AdminDashboard.module.css': 43,
     'src/pages/AdminProductEditor.css': 14,
     'src/pages/AdminProductList.css': 4,
-    'src/pages/AdminReservationBoard.module.css': 53,
-    'src/styles/admin-console.css': 95,
+    'src/pages/AdminReservationBoard.module.css': 52,
+    'src/styles/admin-console.css': 91,
     'src/styles/customer-workspace-editor.css': 92,
     'src/styles/product-customer-workspace.css': 21,
     'src/styles/quote-booking-workspace.css': 121,
     'src/styles/reservation-inline.css': 118,
     'src/styles/reservation-itinerary-designer.css': 23,
     'src/styles/reservation-workspace.css': 60,
-    'public/admin-tools.css': 1,
+    'public/admin-tools.css': 0,
 };
 // 관리자 화면에서만 읽는 src/styles 파일(이름이 admin-로 시작하지 않는 것)
 const ADMIN_ONLY_STYLES = ['customer-workspace-editor', 'product-customer-workspace', 'quote-booking-workspace', 'reservation-inline', 'reservation-itinerary-designer', 'reservation-workspace'];
@@ -352,4 +352,40 @@ test('표·배지·칩·탭·아이콘 버튼은 Montage 규격 변수를 쓴다
     const v7 = read('src/components/admin/v7/v7Ui.tsx');
     assert.match(v7, /borderRadius: 'var\(--adm-badge-radius\)'/);
     assert.doesNotMatch(v7.split('export const card')[0], /#[0-9a-f]{6}/i);
+});
+
+test('팝업·서랍·메뉴·알림은 Montage Modal·Drawer·Menu·Toast 규격 변수를 쓴다', () => {
+    const desktop = read('public/admin-tokens.css').split('@media')[0];
+    const expect = {
+        '--adm-modal-w': '440px', '--adm-modal-radius': 'var(--radius-24)', '--adm-modal-pad': 'var(--spacing-24)',
+        '--adm-modal-bg': 'var(--semantic-surface-elevated-primary)', '--adm-modal-shadow': 'var(--semantic-elevation-shadow-normal-xlarge)',
+        '--adm-drawer-w': '520px', '--adm-menu-radius': 'var(--radius-12)', '--adm-menu-shadow': 'var(--semantic-elevation-shadow-normal-large)',
+        '--adm-toast-radius': 'var(--radius-12)', '--adm-toast-bg': 'var(--semantic-surface-neutral-inverse)', '--adm-toast-fg': 'var(--semantic-foreground-neutral-inverse)',
+    };
+    for (const [name, value] of Object.entries(expect)) assert.equal(lastValue(desktop, name), value, name);
+    const ui = stripComments(read('src/components/admin/ui/admin-ui.css'));
+    assert.match(ui, /\.adm-dialog \{[^}]*width:\s*min\(var\(--adm-modal-w\), 100%\);[^}]*border-radius:\s*var\(--adm-modal-radius\);[^}]*box-shadow:\s*var\(--adm-modal-shadow\)/);
+    assert.match(ui, /\.adm-toast \{[^}]*border-radius:\s*var\(--adm-toast-radius\);[^}]*background:\s*var\(--adm-toast-bg\)/);
+    // 화면별 팝업·서랍·메뉴·알림이 고정 그림자·알약 모양·hex 바탕으로 덮어쓰지 않는다.
+    const checks = [
+        ['src/styles/admin-console.css', ['.admin-app-wrapper .picker', '.admin-app-wrapper .drawer', '.admin-app-wrapper .statusdd-menu', '.admin-app-wrapper .page-toast', '.admin-app-wrapper .drawer-toast', '.admin-app-wrapper .drawer-scrim', '.admin-app-wrapper .picker-scrim']],
+        ['src/pages/AdminContentManage.css', ['.admin-app-wrapper .cm-modal', '.admin-app-wrapper .cm-scrim']],
+        ['src/pages/AdminCategoryManage.css', ['.admin-app-wrapper .cg-drawer-scrim', '.admin-app-wrapper .picker.cg-drawer']],
+        ['src/pages/AdminDashboard.module.css', ['.revMenu']], ['src/pages/AdminReservationBoard.module.css', ['.ddMenu']],
+        ['src/components/admin/guides/GuideSchedule.css', ['.gs-pop', '.gs-drawer', '.gs-modal', '.gs-toast']],
+        ['src/components/admin/accommodation/LodgeAssignBoard.css', ['.la-pop', '.la-toast']],
+        ['src/components/admin/CourseImportModal.css', ['.ci-modal']], ['public/admin-tools.css', ['html.admin-embedded :is(.toast, #toast)', 'html.admin-embedded .drawer']],
+    ];
+    for (const [file, sels] of checks) {
+        const css = stripComments(read(file));
+        for (const sel of sels) {
+            const body = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].find(([, s]) => s.replace(/\s+/g, ' ').trim() === sel)?.[2];
+            assert.ok(body, `${file}: ${sel} 규칙이 없다`);
+            assert.doesNotMatch(body, /(?:background|box-shadow):[^;]*(?:#[0-9a-f]{3,8}|rgba\(\d)|border-radius:\s*999px/i, `${file}: ${sel}`);
+            assert.match(body, /var\(--adm-(?:modal|drawer|menu|toast|scrim)/, `${file}: ${sel}`);
+        }
+    }
+    const v7 = read('src/components/admin/v7/v7Ui.tsx');
+    assert.match(v7, /background: 'var\(--adm-toast-bg\)'/);
+    assert.match(v7, /borderRadius: 'var\(--adm-menu-radius\)'/);
 });
