@@ -452,7 +452,7 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
                     {/* Live preview */}
                     <div className="pm-preview" style={{ width: 348, flex: 'none', overflowY: 'auto', padding: '20px 22px', background: 'var(--mrt-gray-50)', borderLeft: '1px solid var(--border-subtle)' }}>
                         <div className="cell-strong" style={{ fontSize: 13, marginBottom: 10 }}>고객 화면 미리보기</div>
-                        <div className="seg" style={{ marginBottom: 16 }}>
+                        <div className="seg" style={{ marginBottom: 'var(--adm-gap-section)' }}>
                             {PREVIEWS.map((p) => (
                                 <button key={p.variant} type="button" className={p.variant === variant ? 'active' : ''} style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => setVariant(p.variant)}>
                                     {p.label}

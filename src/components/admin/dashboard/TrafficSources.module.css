@@ -1,5 +1,5 @@
 /* 유입 경로 — Admin Dashboard v3 (Claude Design handoff). */
-.card { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 20px 22px; border: 0; border-radius: 20px; background: #fff;
+.card { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 20px 22px; border: 0; border-radius: var(--adm-card-radius); background: #fff;
   box-shadow: 0 12px 32px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04); }
 .head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .title { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: var(--text-strong); }
@@ -41,7 +41,7 @@
 .cvr { text-align: right; font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: #30C3A5; }
 .note { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-tertiary); }
 
-.state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 200px; padding: 24px 16px; border-radius: 14px; background: var(--mrt-gray-50); text-align: center; }
+.state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 200px; padding: 24px 16px; border-radius: var(--adm-inner-radius); background: var(--mrt-gray-50); text-align: center; }
 .state strong { font-size: 14px; font-weight: 700; color: var(--text-strong); }
 .state p { margin: 0; max-width: 380px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
 .stateIcon { width: 40px; height: 40px; border-radius: 12px; background: #fff; color: var(--mrt-blue-strong); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }

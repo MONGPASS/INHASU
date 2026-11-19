@@ -22,7 +22,7 @@
   /* lines */
   --border-default:var(--adm-line); --border-subtle:var(--adm-line-subtle); --border-strong:var(--mrt-gray-300); --border-focus:var(--mrt-blue);
   /* radius */
-  --r-xs:var(--adm-radius-xs); --r-sm:var(--adm-radius-sm); --r-md:var(--adm-radius-md); --r-lg:var(--adm-radius-lg); --r-xl:20px; --r-2xl:24px; --r-pill:var(--adm-radius-pill);
+  --r-xs:var(--adm-radius-xs); --r-sm:var(--adm-radius-sm); --r-md:var(--adm-radius-md); --r-lg:var(--adm-card-radius); --r-xl:var(--adm-card-radius); --r-2xl:var(--adm-radius-lg); --r-pill:var(--adm-radius-pill);
   /* shadow */
   --shadow-xs:var(--adm-shadow-xs); --shadow-sm:var(--adm-shadow-sm); --shadow-md:var(--adm-shadow-md); --shadow-lg:var(--adm-shadow-lg);
   /* motion */
@@ -163,7 +163,10 @@
 .admin-app-wrapper .icon-btn .badge-dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--mrt-red); border: 1.5px solid #fff; }
 
 .admin-app-wrapper .content { flex: 1; padding: 28px 32px 56px; }
-.admin-app-wrapper .content-in { max-width: var(--content-max); margin: 0 auto; }
+/* M4: 본문은 구역을 위에서 아래로 같은 간격(--adm-gap-section)으로 쌓는다. 구역끼리 따로 아래 여백을 두지 않는다. */
+.admin-app-wrapper .content-in { max-width: var(--content-max); margin: 0 auto; display: flex; flex-direction: column; gap: var(--adm-gap-section); }
+.admin-app-wrapper .app .content-in > * { margin-block: 0; min-width: 0; }
+.admin-app-wrapper .content-in > :is(.seg, .chip) { align-self: flex-start; }
 
 /* ============ Buttons — Montage Button(M3) ============ */
 /* 크기: 기본 medium 40 · .btn-sm small 32 · .btn-lg large 48. 색: .btn-ink/.btn-blue 주요(민트) · .btn-ghost 테두리 · .btn-soft 회색 · .btn-danger 위험.
@@ -203,10 +206,10 @@
 .admin-app-wrapper .link-action .material-symbols-outlined { font-size: 18px; }
 
 /* ============ Metric cards ============ */
-.admin-app-wrapper .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.admin-app-wrapper .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--adm-gap-section); }
 .admin-app-wrapper .metric {
   background: var(--surface-card); border: 1px solid var(--border-default);
-  border-radius: var(--r-lg); padding: 18px 20px; box-shadow: var(--shadow-xs);
+  border-radius: var(--r-lg); padding: var(--adm-kpi-pad); box-shadow: var(--shadow-xs);
   transition: transform var(--dur-fast), box-shadow var(--dur-fast);
 }
 .admin-app-wrapper .metric-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -414,7 +417,7 @@
 .admin-app-wrapper .empty p { margin: 12px 0 0; font-size: 14px; font-weight: 600; }
 
 /* ============ Section header (in page) ============ */
-.admin-app-wrapper .sec-head { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
+.admin-app-wrapper .sec-head { display: flex; align-items: flex-end; gap: 12px; margin-bottom: var(--adm-gap-section); }
 .admin-app-wrapper .sec-head h3 { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-strong); margin: 0; }
 .admin-app-wrapper .sec-head .spacer { flex: 1; }
 
@@ -451,7 +454,7 @@
   width: min(1540px, 100%);
   max-width: none;
   height: calc(100vh - 36px);
-  border-radius: 18px;
+  border-radius: var(--adm-card-radius);
   overflow: hidden;
   animation: workspaceIn 0.24s var(--ease-out);
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
@@ -1166,7 +1169,7 @@
 @media (max-width: 760px) {
   .admin-app-wrapper .admin-customer-layout .admin-customer-actions-toggle { display: grid; place-items: center; flex: none; width: 40px; height: 40px; padding: 0; border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-2); cursor: pointer; }
   .admin-app-wrapper .app :is(.admin-customer-menu-toggle,.admin-customer-menu-close,.admin-customer-actions-toggle):focus-visible { outline: 2px solid var(--adm-accent); outline-offset: -2px; }
-  .admin-app-wrapper .admin-customer-layout .admin-customer-header-actions { display: none; position: absolute; top: 64px; right: 12px; z-index: 95; width: min(300px, calc(100vw - 24px)); max-height: calc(100dvh - 88px); overflow-y: auto; padding: 10px; border: 1px solid #e4e9ef; border-radius: 14px; background: #fff; box-shadow: 0 12px 32px #19242e1a; }
+  .admin-app-wrapper .admin-customer-layout .admin-customer-header-actions { display: none; position: absolute; top: 64px; right: 12px; z-index: 95; width: min(300px, calc(100vw - 24px)); max-height: calc(100dvh - 88px); overflow-y: auto; padding: 10px; border: 1px solid #e4e9ef; border-radius: var(--adm-inner-radius); background: #fff; box-shadow: 0 12px 32px #19242e1a; }
   .admin-app-wrapper .admin-customer-layout .admin-customer-header-actions.is-open { display: grid; gap: 8px; }
   .admin-app-wrapper .admin-customer-layout .admin-customer-header-actions > .btn { width: 100%; min-height: 40px; justify-content: flex-start; }
 }

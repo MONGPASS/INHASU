@@ -61,7 +61,7 @@ function cardHead({ icon, title, right }: { icon: DashboardIconName; title: stri
 }
 function left(n: number) { return <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: n ? '#FF4F4F' : '#0E9E7A' }}>{n ? `${n}건 남음` : '완료'}</span>; }
 function itemRow({ label, sub, children, key }: { label: string; sub?: ReactNode; children?: ReactNode; key?: string }) {
-    return <div key={key || label} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 52, padding: '0 18px', borderTop: '1px solid #f1f3f5' }}>
+    return <div key={key || label} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 52, padding: '0 18px', borderTop: '1px solid var(--adm-line-subtle)' }}>
         <span style={{ width: 96, flex: 'none', fontSize: 13, color: V7_MUTED }}>{label}</span>
         <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>
         {children}
@@ -319,25 +319,25 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             ...(m.agreement ? [{ label: '계약 동의', sub: [m.agreement.label, m.agreement.name && `서명자 ${m.agreement.name}`].filter(Boolean).join(' · ') }] : []),
             { label: '공개·전달', control: btnSel('관리', false, action('documents'), 'lc-chevron-right') }] },
     ];
-    const compactCard = (c: typeof quad[number]) => <div key={c.sid} id={c.sid} style={{ display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 16, boxShadow: '0 0 0 1px #eef0f2', scrollMarginTop: 88 }}>
+    const compactCard = (c: typeof quad[number]) => <div key={c.sid} id={c.sid} style={{ display: 'flex', flexDirection: 'column', background: 'var(--adm-surface)', borderRadius: 16, boxShadow: '0 0 0 1px var(--adm-line)', scrollMarginTop: 88 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 10px' }}>
             <span style={iconTile(28)}><Ico name={c.icon} size={15} /></span><b style={{ fontSize: 14, fontWeight: 800 }}>{c.title}</b>
             <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: c.left ? '#FF4F4F' : '#0E9E7A' }}>{c.left === null ? c.badge : c.left ? `${c.left}건 남음` : '완료'}</span>
         </div>
-        {c.items.map((it, i) => <div key={`${it.label}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid #f1f3f5' }}>
+        {c.items.map((it, i) => <div key={`${it.label}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid var(--adm-line-subtle)' }}>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}><span style={{ fontSize: 13, color: '#495057' }}>{it.label}</span>{it.sub && <span style={{ fontSize: 12, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub}</span>}</span>
             {it.control}
         </div>)}
     </div>;
 
-    const element = <section ref={rootRef as React.RefObject<HTMLElement>} className="v7-root cw-overview" aria-label="예약 상세" aria-busy={busy || saving} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    const element = <section ref={rootRef as React.RefObject<HTMLElement>} className="v7-root cw-overview" aria-label="예약 상세" aria-busy={busy || saving} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--adm-gap-section)' }}>
         <V7Styles />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <button type="button" disabled={busy} onClick={action('back')} style={{ ...ghostBtn(), padding: '0 14px 0 10px', gap: 4 }}><Ico name="lc-chevron-left" size={16} />{m.backLabel || '통합 예약 목록'}</button>
             <span style={{ fontSize: 13, color: V7_MUTED }}>예약 관리 · {m.backLabel || '통합 예약 목록'}{tabName ? ` · ${tabName}` : ''}{m.bookingNumber ? ` · 예약번호 ${m.bookingNumber}` : ''} · {m.sourceLabel}</span>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px 24px', padding: '24px 28px', background: '#fff', borderRadius: 20, boxShadow: '0 0 0 1px #eef0f2' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px 24px', padding: '24px 28px', background: 'var(--adm-surface)', borderRadius: 'var(--adm-card-radius)', boxShadow: '0 0 0 1px var(--adm-line)' }}>
             <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em' }}>{name}</h1>
@@ -360,14 +360,14 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         </div>
         {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px 24px', background: '#fff', borderRadius: 20, boxShadow: '0 0 0 1px #eef0f2' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px 24px', background: 'var(--adm-surface)', borderRadius: 'var(--adm-card-radius)', boxShadow: '0 0 0 1px var(--adm-line)' }}>
             <V7StepHead big label={stepHead.label} tone={stepHead.tone} count={cancelled ? '' : `${steps.filter(s => s.done).length} / ${steps.length} 단계 완료`} />
             <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => stepTargets[i] ? goSec(stepTargets[i]) : onAction(m.steps[i]?.id || 'payments')} />
         </div>
 
         <nav aria-label="예약 상세 바로가기" className="v7-nav" style={{ position: 'sticky', top: 0, zIndex: 5, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 50px) / 6), min(calc((100% - 20px) / 3), calc((1100px - 100%) * 999))),1fr))', gap: 10, padding: '8px 0', background: 'var(--surface-canvas, #f6f7f9)' }}>
             {NAV.map(n => <button key={n.sid} type="button" className="v7-nav-btn" aria-label={`${n.label} 위치로 이동`} onClick={() => goSec(n.sid)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, height: 58, padding: '0 16px 0 14px', border: 0, borderRadius: 16, background: '#fff', boxShadow: '0 0 0 1px #eef0f2,0 1px 3px rgba(16,24,40,.04)', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 12, height: 58, padding: '0 16px 0 14px', border: 0, borderRadius: 16, background: 'var(--adm-surface)', boxShadow: '0 0 0 1px var(--adm-line),0 1px 3px rgba(16,24,40,.04)', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
                 <span style={iconTile(34)}><Ico name={n.icon} size={17} /></span>
                 <b style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: V7_INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.label}</b>
                 <Ico name="lc-chevron-right" size={16} color="#adb5bd" />
@@ -391,7 +391,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         const tel = v?.phone ? maskFact('연락처', v.phone, maskOn) : value ? fallback?.detail || '연락처 미등록' : '배정 전';
                         const photo = kind === 'guide' ? item?.assignment.guide?.image : item?.assignment.vehicle?.resource?.img || item?.assignment.vehicle?.resource?.images?.[0];
                         const icon = kind === 'guide' ? 'lc-user-round' : 'lc-car';
-                        return <div key={kind} className="v7-asg-row" style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 76, padding: '10px 18px', boxSizing: 'border-box', borderTop: '1px solid #f1f3f5' }}>
+                        return <div key={kind} className="v7-asg-row" style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 76, padding: '10px 18px', boxSizing: 'border-box', borderTop: '1px solid var(--adm-line-subtle)' }}>
                             <span style={{ width: 72, flex: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: V7_MUTED }}><Ico name={icon} size={14} />{label}</span>
                             {value && photo ? <img src={photo} alt={`${label} ${value} 사진`} loading="lazy" style={{ width: 56, height: 56, flex: 'none', borderRadius: 999, objectFit: 'cover', background: '#f8f9fa' }} />
                                 : <span aria-hidden="true" style={{ width: 56, height: 56, flex: 'none', borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', boxShadow: 'inset 0 0 0 1.5px #e9ecef', color: '#ced4da' }}>{value ? <span style={{ fontSize: 11, fontWeight: 700, color: '#adb5bd' }}>사진</span> : <Ico name={icon} size={20} color="#ced4da" />}</span>}
@@ -402,7 +402,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                             {btnSel(value || `${label} 선택`, !value, e => void peopleMenu(e, kind))}
                         </div>;
                     })}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '16px 18px 10px', borderTop: '1px solid #f1f3f5' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '16px 18px 10px', borderTop: '1px solid var(--adm-line-subtle)' }}>
                         <b style={{ fontSize: 14, fontWeight: 800 }}>일자별 숙소</b>
                         <button type="button" disabled={busy || saving} onClick={requestLodging} style={{ ...inkBtn(34), marginLeft: 'auto', padding: '0 14px' }}>
                             <Ico name="lc-send" size={14} />현지 운영에 수배 요청
@@ -412,7 +412,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     <div className="v7-stay-head" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', height: 34, padding: '0 18px', background: '#f8f9fa', fontSize: 11.5, fontWeight: 700, color: V7_MUTED }}><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
                     {(row?.stays || []).map(nt => {
                         const st = bookingStatusMeta(nt.bookingStatus);
-                        return <div key={nt.day} className="v7-stay-row" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', minHeight: 62, padding: '8px 18px', boxSizing: 'border-box', borderTop: '1px solid #f1f3f5' }}>
+                        return <div key={nt.day} className="v7-stay-row" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', minHeight: 62, padding: '8px 18px', boxSizing: 'border-box', borderTop: '1px solid var(--adm-line-subtle)' }}>
                             <b style={{ fontSize: 13, fontWeight: 800, color: V7_INK }}>{nt.day}박</b>
                             <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><b style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{nt.date ? shortDate(nt.date) : '날짜 확인'}</b><span style={{ fontSize: 12, color: V7_MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nt.region || '지역 미정'}</span></span>
                             <span style={{ display: 'flex', minWidth: 0 }}>{btnSel(nt.hotel || '숙소 선택', !nt.hotel, e => void nightMenu(e, nt.day, 'hotel'), 'lc-chevron-down', { maxWidth: '100%', minWidth: 0, overflow: 'hidden' })}</span>
@@ -421,8 +421,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                             <span>{nt.hotel ? btnPill(st.label, st.tone, e => void nightMenu(e, nt.day, 'status')) : <button type="button" onClick={e => void nightMenu(e, nt.day, 'status')} style={{ ...pill('gray'), opacity: .5, cursor: 'not-allowed' }}>숙소 먼저 선택<Ico name="lc-chevron-down" size={12} /></button>}</span>
                         </div>;
                     })}
-                    {row && !row.stays.length && <div style={{ padding: 18, borderTop: '1px solid #f1f3f5', fontSize: 13, color: V7_MUTED }}>{row.accN === 0 && startKey ? '숙박이 없는 당일 일정이에요.' : '여행 시작일·종료일을 먼저 확인해 주세요.'}</div>}
-                    {!row && <div style={{ padding: 18, borderTop: '1px solid #f1f3f5', fontSize: 13, color: V7_MUTED }}>{m.assignments.find(a => a.id === 'stay')?.detail || '숙소 배정은 배정 업무 화면에서 관리합니다.'}</div>}
+                    {row && !row.stays.length && <div style={{ padding: 18, borderTop: '1px solid var(--adm-line-subtle)', fontSize: 13, color: V7_MUTED }}>{row.accN === 0 && startKey ? '숙박이 없는 당일 일정이에요.' : '여행 시작일·종료일을 먼저 확인해 주세요.'}</div>}
+                    {!row && <div style={{ padding: 18, borderTop: '1px solid var(--adm-line-subtle)', fontSize: 13, color: V7_MUTED }}>{m.assignments.find(a => a.id === 'stay')?.detail || '숙소 배정은 배정 업무 화면에서 관리합니다.'}</div>}
                     {assignmentEditor}
                 </div>
 
@@ -438,7 +438,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         const stayText = day.stayRequired === false || (last && !night) ? '숙박 없음' : night?.hotel ? `${night.hotel} · ${bookingStatusMeta(night.bookingStatus).label}` : day.stayAssigned && day.stay ? day.stay : '숙소 미정';
                         const has = stayText !== '숙소 미정', none = stayText === '숙박 없음', c = none ? '#ced4da' : night?.hotel ? bookingStatusMeta(night.bookingStatus).color : has ? '#12b28c' : '#FF4F4F';
                         const activities = day.activities?.length ? day.activities : scheduleTimeline(day.summary || '').map(s => ({ time: s.time, title: s.text }));
-                        return <div key={day.id} style={{ borderTop: '1px solid #f1f3f5' }}>
+                        return <div key={day.id} style={{ borderTop: '1px solid var(--adm-line-subtle)' }}>
                             <button type="button" aria-expanded={open} onClick={() => setDayOpen(prev => ({ ...prev, [day.id]: !open }))} className="v7-day-btn"
                                 style={{ display: 'grid', gridTemplateColumns: '64px 96px minmax(0,1fr) auto 20px', alignItems: 'center', gap: 12, width: '100%', minHeight: 52, padding: '0 18px', border: 0, background: open ? '#fbfefd' : 'transparent', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
                                 <b style={{ fontSize: 13, fontWeight: 800, color: V7_INK, textAlign: 'left' }}>{day.day}일차</b>
@@ -463,7 +463,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                             </div>}
                         </div>;
                     })}
-                    {!m.days.length && <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 18, borderTop: '1px solid #f1f3f5' }}><span style={{ flex: 1, fontSize: 13, color: V7_MUTED }}>아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><button type="button" disabled={busy} onClick={action('edit-itinerary')} style={inkBtn(34)}>일정 작성하기</button></div>}
+                    {!m.days.length && <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 18, borderTop: '1px solid var(--adm-line-subtle)' }}><span style={{ flex: 1, fontSize: 13, color: V7_MUTED }}>아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><button type="button" disabled={busy} onClick={action('edit-itinerary')} style={inkBtn(34)}>일정 작성하기</button></div>}
                 </div>
 
             </div>
@@ -472,9 +472,9 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                 <div id="sec-info" style={{ ...card, padding: '18px 20px 6px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 10 }}>
                         <b style={{ flex: 1, fontSize: 17, fontWeight: 800 }}>고객 정보</b>
-                        <button type="button" title="고객 정보 복사" aria-label="고객 정보 복사" onClick={() => void copyInfo()} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: '#fff', boxShadow: 'inset 0 0 0 1px #dee2e6', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-copy" size={16} /></button>
-                        <button type="button" title={maskOn ? '개인정보 보기' : '개인정보 가리기'} aria-label={maskOn ? '개인정보 보기' : '개인정보 가리기'} aria-pressed={!maskOn} onClick={() => setMaskOn(!maskOn)} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: '#fff', boxShadow: 'inset 0 0 0 1px #dee2e6', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={maskOn ? 'lc-eye' : 'lc-eye-off'} size={16} /></button>
-                        <button type="button" title="고객 정보 수정" aria-label="고객 정보 수정" disabled={busy} onClick={action('edit-info')} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: '#fff', boxShadow: 'inset 0 0 0 1px #dee2e6', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-pencil" size={16} /></button>
+                        <button type="button" title="고객 정보 복사" aria-label="고객 정보 복사" onClick={() => void copyInfo()} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px #dee2e6', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-copy" size={16} /></button>
+                        <button type="button" title={maskOn ? '개인정보 보기' : '개인정보 가리기'} aria-label={maskOn ? '개인정보 보기' : '개인정보 가리기'} aria-pressed={!maskOn} onClick={() => setMaskOn(!maskOn)} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px #dee2e6', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={maskOn ? 'lc-eye' : 'lc-eye-off'} size={16} /></button>
+                        <button type="button" title="고객 정보 수정" aria-label="고객 정보 수정" disabled={busy} onClick={action('edit-info')} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px #dee2e6', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-pencil" size={16} /></button>
                     </div>
                     {m.facts.slice(0, 3).map((f, i) => <div key={`${f.label}-${i}`} style={{ display: 'grid', gridTemplateColumns: '84px minmax(0,1fr)', gap: 10, padding: '6px 0', alignItems: 'center' }}>
                         <span style={{ fontSize: 13, color: V7_MUTED }}>{f.label}</span>
@@ -498,8 +498,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     })}
                     {travelers && disclosure({ icon: 'lc-users', title: '여행자 정보', sub: `${travelers.registered}${travelers.expected !== null ? `/${travelers.expected}` : ''}명 등록`, open: sections.tr, onToggle: () => setSections(s => s.tr ? {} as Record<string, boolean> : { tr: true }), children: <>
                         <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 12, borderRadius: 14, boxShadow: 'inset 0 0 0 1px #e9ecef', overflow: 'hidden' }}>
-                            {travelers.people.map((person, i) => { const open = travelerOpen === i; return <div key={person.id} style={{ borderTop: i ? '1px solid #f1f3f5' : 0 }}>
-                                <button type="button" aria-expanded={open} onClick={() => setTravelerOpen(open ? -1 : i)} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: 48, padding: '0 14px', border: 0, background: '#fff', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
+                            {travelers.people.map((person, i) => { const open = travelerOpen === i; return <div key={person.id} style={{ borderTop: i ? '1px solid var(--adm-line-subtle)' : 0 }}>
+                                <button type="button" aria-expanded={open} onClick={() => setTravelerOpen(open ? -1 : i)} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: 48, padding: '0 14px', border: 0, background: 'var(--adm-surface)', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
                                     <span style={{ width: 24, height: 24, flex: 'none', borderRadius: 999, boxShadow: 'inset 0 0 0 1px #dee2e6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#495057' }}>{i + 1}</span>
                                     <b style={{ flex: 1, fontSize: 14, fontWeight: 800 }}>{person.name || '이름 미입력'}</b>
                                     <span style={{ fontSize: 12, color: V7_MUTED }}>{person.details.find(d => /구분|성인|아동/.test(d.label))?.value || ''}</span>
@@ -510,7 +510,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                                 </div>}
                             </div>; })}
                             {!travelers.people.length && <div style={{ padding: '12px 14px', fontSize: 13, color: V7_MUTED }}>등록된 여행자가 없습니다.</div>}
-                            {missingTravelers > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderTop: '1px solid #f1f3f5', background: '#fff5f5', fontSize: 13, fontWeight: 700, color: '#FF4F4F' }}><Ico name="lc-circle-alert" size={14} />{missingTravelers}명 여권 정보 미제출</div>}
+                            {missingTravelers > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderTop: '1px solid var(--adm-line-subtle)', background: '#fff5f5', fontSize: 13, fontWeight: 700, color: '#FF4F4F' }}><Ico name="lc-circle-alert" size={14} />{missingTravelers}명 여권 정보 미제출</div>}
                         </div>
                         <button type="button" disabled={busy} onClick={action('travelers')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 12, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: '#0E9E7A', cursor: 'pointer' }}>여행자 전체 상세보기<Ico name="lc-chevron-right" size={12} /></button>
                     </> })}

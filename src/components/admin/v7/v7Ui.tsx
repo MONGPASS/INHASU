@@ -51,7 +51,8 @@ export const dchip = (c: string, bad: boolean, x?: Css): Css => ({ display: 'inl
 export const checkBox = (on: boolean): Css => ({ width: 18, height: 18, padding: 0, borderRadius: 5, border: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: on ? 'var(--semantic-surface-brand-primary)' : 'var(--adm-surface)', boxShadow: on ? 'none' : 'inset 0 0 0 1.5px var(--semantic-line-neutral-primary)' });
 
-export const card: Css = { display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 18, boxShadow: '0 0 0 1px #eef0f2', scrollMarginTop: 88 };
+/** 화면 위 카드(M4: 모서리 16·1px 옅은 선, 모든 화면 같은 카드). */
+export const card: Css = { display: 'flex', flexDirection: 'column', background: 'var(--adm-surface)', borderRadius: 'var(--adm-card-radius)', boxShadow: '0 0 0 1px var(--adm-line)', scrollMarginTop: 88 };
 export const iconTile = (size = 30): Css => ({ width: size, height: size, flex: 'none', borderRadius: 'var(--adm-icon-btn-radius)', background: 'var(--semantic-surface-neutral-secondary)', color: 'var(--adm-text-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' });
 
 /** 버튼 높이(px)에 맞는 Montage Button 크기의 모서리·여백·글자. */
@@ -81,7 +82,7 @@ const KEYFRAMES = `@keyframes rvPop{from{opacity:0;transform:translateY(-4px) sc
 .v7-toast{bottom:28px}@media (max-width:760px){.v7-toast{bottom:calc(var(--adm-tabbar-h) + var(--adm-safe-bottom) + 12px)}}
 .v7-bulk-btn:hover{background:rgba(255,255,255,.2)!important}
 .v7-dim:hover{filter:none!important;opacity:1!important}
-@keyframes v7SecFlash{0%{box-shadow:0 0 0 1px #eef0f2}25%{box-shadow:0 0 0 2px var(--adm-accent),0 8px 24px rgba(var(--adm-accent-rgb),.18)}100%{box-shadow:0 0 0 1px #eef0f2}}
+@keyframes v7SecFlash{0%{box-shadow:0 0 0 1px var(--adm-line)}25%{box-shadow:0 0 0 2px var(--adm-accent),0 8px 24px rgba(var(--adm-accent-rgb),.18)}100%{box-shadow:0 0 0 1px var(--adm-line)}}
 .v7-root .v7-sec-flash{animation:v7SecFlash 1.4s ease-out}`;
 /** 디자인의 애니메이션·hover 규칙. 화면마다 한 번 넣는다. */
 export const V7Styles = () => <style>{KEYFRAMES}</style>;
@@ -145,7 +146,7 @@ export function V7Steps({ steps, cancelled, large = false, onStep }: { steps: V7
                     boxShadow: now ? '0 0 0 5px #ffecec' : ok ? '0 2px 8px rgba(var(--adm-accent-rgb),.22)' : 'none',
                     animation: now ? `rvDot 420ms ${j * 120}ms both cubic-bezier(.2,.8,.2,1), rvPulse 1.8s ${j * 120 + 500}ms ease-out infinite` : ok ? `rvDot 420ms ${j * 120}ms both cubic-bezier(.2,.8,.2,1)` : 'none' }}>
                     {ok && <Ico name="lc-check" size={14} color="#fff" />}
-                    {now && <span style={{ width: 8, height: 8, borderRadius: 999, background: '#fff' }} />}
+                    {now && <span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--adm-surface)' }} />}
                 </span>
                 <span style={{ fontSize: 13, fontWeight: now ? 800 : 700, whiteSpace: 'nowrap', color: ok ? 'var(--adm-accent-strong)' : now ? '#FF4F4F' : '#adb5bd' }}>{s.label}</span>
                 <span className="v7-step-sub" style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', fontVariantNumeric: 'tabular-nums', color: now ? '#FF4F4F' : ok ? '#495057' : '#adb5bd', animation: now ? 'rvBlink 1.8s ease-in-out infinite' : 'none' }}>{s.sub}</span>

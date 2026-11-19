@@ -2,15 +2,15 @@
    네 화면의 본문과 모달에만 적용합니다. 디자인의 --mrt-blue 계열은 민트입니다. */
 .admin-app-wrapper :is(.cm-page, .cm-scrim) {
 }
-.admin-app-wrapper .cm-page { display: flex; flex-direction: column; gap: 16px; }
+.admin-app-wrapper .cm-page { display: flex; flex-direction: column; gap: var(--adm-gap-section); }
 .admin-app-wrapper :is(.cm-page, .cm-scrim) :is(button, input, textarea) { font-family: inherit; }
 
 /* KPI 카드 */
 .admin-app-wrapper .cm-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
 .admin-app-wrapper .cm-kpis.is-wide { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
-.admin-app-wrapper .cm-kpi { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; text-align: left; cursor: pointer; transition: border-color var(--dur-fast); }
+.admin-app-wrapper .cm-kpi { display: flex; flex-direction: column; gap: 10px; padding: var(--adm-kpi-pad); border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; text-align: left; cursor: pointer; transition: border-color var(--dur-fast); }
 .admin-app-wrapper .cm-kpi:hover { border-color: var(--mrt-ink); }
-.admin-app-wrapper .cm-kpi[aria-pressed="true"] { padding: 15.5px 17.5px; border: 1.5px solid var(--mrt-blue); background: var(--mrt-blue-50); }
+.admin-app-wrapper .cm-kpi[aria-pressed="true"] { padding: var(--adm-kpi-pad-active); border: 1.5px solid var(--mrt-blue); background: var(--mrt-blue-50); }
 .admin-app-wrapper .cm-kpi.is-static { cursor: default; }
 .admin-app-wrapper .cm-kpi.is-static:hover { border-color: var(--border-default); }
 .admin-app-wrapper .cm-kpi:focus-visible { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }
@@ -41,16 +41,16 @@
 .admin-app-wrapper .cm-chip[aria-pressed="true"] .cm-chip-n { color: rgba(255,255,255,.75); }
 .admin-app-wrapper .cm-count { margin-left: auto; color: var(--text-secondary); font-size: 13px; }
 .admin-app-wrapper .cm-count b { color: var(--text-strong); font-weight: 800; }
-.admin-app-wrapper .cm-tabs { display: flex; gap: 2px; align-self: flex-start; max-width: 100%; overflow-x: auto; padding: 4px; border-radius: 14px; background: var(--mrt-gray-100); }
+.admin-app-wrapper .cm-tabs { display: flex; gap: 2px; align-self: flex-start; max-width: 100%; overflow-x: auto; padding: 4px; border-radius: var(--adm-inner-radius); background: var(--mrt-gray-100); }
 .admin-app-wrapper .cm-tab { height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
 .admin-app-wrapper .cm-tab[aria-selected="true"] { background: #fff; color: var(--text-strong); font-weight: 800; box-shadow: var(--shadow-sm); }
 
 /* 카드 · 빈 상태 · 안내 */
-.admin-app-wrapper .cm-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.admin-app-wrapper .cm-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .admin-app-wrapper .cm-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 56px 16px; color: var(--mrt-gray-400); text-align: center; }
 .admin-app-wrapper .cm-empty > span { color: var(--text-secondary); font-size: 14px; font-weight: 600; }
 .admin-app-wrapper .cm-hint { margin: 0; color: var(--text-tertiary); font-size: 12px; line-height: 1.55; }
-.admin-app-wrapper .cm-notice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border: 1px solid #F3DDAE; border-radius: 16px; background: #FFF3DC; color: #8A5A12; font-size: 13.5px; font-weight: 600; line-height: 1.55; }
+.admin-app-wrapper .cm-notice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border: 1px solid #F3DDAE; border-radius: var(--adm-card-radius); background: #FFF3DC; color: #8A5A12; font-size: 13.5px; font-weight: 600; line-height: 1.55; }
 .admin-app-wrapper .cm-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 6px; background: var(--mrt-gray-100); color: var(--text-secondary); font-size: 11px; font-weight: 700; }
 .admin-app-wrapper .cm-pill { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; flex: none; border-radius: var(--adm-badge-radius); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .admin-app-wrapper .cm-pill[data-tone="mint"] { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
@@ -153,7 +153,7 @@
 .admin-app-wrapper .iq-panel-body { display: flex; flex-direction: column; gap: 14px; padding: 20px 22px; }
 .admin-app-wrapper .iq-message { display: flex; flex-direction: column; gap: 8px; }
 .admin-app-wrapper .iq-kind { color: var(--text-tertiary); font-size: 12px; font-weight: 700; }
-.admin-app-wrapper .iq-bubble { padding: 16px; border-radius: 16px; background: var(--mrt-gray-50); color: var(--text-body); font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin-app-wrapper .iq-bubble { padding: 16px; border-radius: var(--adm-card-radius); background: var(--mrt-gray-50); color: var(--text-body); font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 .admin-app-wrapper .iq-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .admin-app-wrapper .iq-status .cm-chip { height: 28px; font-size: 12px; }
 .admin-app-wrapper .iq-compose { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border-subtle); }
@@ -214,7 +214,7 @@
 .admin-app-wrapper .fq-chev { display: flex; flex: none; color: var(--text-tertiary); transition: transform 200ms; }
 .admin-app-wrapper .fq-q[aria-expanded="true"] .fq-chev { transform: rotate(180deg); }
 .admin-app-wrapper .fq-views { width: 64px; flex: none; color: var(--text-tertiary); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
-.admin-app-wrapper .fq-answer { display: flex; gap: 8px; margin: 0 18px 14px 82px; padding: 14px 16px; border-radius: 14px; background: var(--mrt-gray-50); }
+.admin-app-wrapper .fq-answer { display: flex; gap: 8px; margin: 0 18px 14px 82px; padding: 14px 16px; border-radius: var(--adm-inner-radius); background: var(--mrt-gray-50); }
 .admin-app-wrapper .fq-a-mark { flex: none; color: var(--text-tertiary); font-size: 13px; font-weight: 800; }
 .admin-app-wrapper .fq-a-text { color: var(--text-body); font-size: 14px; line-height: 1.7; white-space: pre-line; overflow-wrap: anywhere; }
 .admin-app-wrapper .fq-cats { max-width: 720px; }
@@ -233,7 +233,7 @@
 
 /* ── 06-4 매거진 관리 ── */
 .admin-app-wrapper .mg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-.admin-app-wrapper .mg-card { display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; transition: border-color var(--dur-fast); }
+.admin-app-wrapper .mg-card { display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; transition: border-color var(--dur-fast); }
 .admin-app-wrapper .mg-card:hover, .admin-app-wrapper .mg-card:focus-within { border-color: var(--mrt-ink); }
 .admin-app-wrapper .mg-card-open { display: flex; flex-direction: column; flex: 1; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .admin-app-wrapper .mg-card-open:focus-visible { outline: 2px solid var(--mrt-ink); outline-offset: -2px; }

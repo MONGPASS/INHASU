@@ -50,7 +50,7 @@
 
 /* 달력 보기 배치 */
 .gs-cal-wrap { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px; }
-.gs-side { position: sticky; top: 0; flex: 0 0 248px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 20px; border-radius: 16px; background: var(--gs-paper); box-shadow: 0 0 0 1px var(--gs-div2); }
+.gs-side { position: sticky; top: 0; flex: 0 0 248px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 20px; border-radius: var(--adm-card-radius); background: var(--gs-paper); box-shadow: 0 0 0 1px var(--gs-div2); }
 .gs-main { flex: 1 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .gs-divider { height: 1px; background: var(--gs-div1); }
 .gs-primary { display: flex; align-items: center; justify-content: center; gap: 6px; height: 44px; border: 0; border-radius: 6px; background: var(--gs-mint); color: #fff !important; font-size: 14px !important; font-weight: 700; cursor: pointer; }
@@ -133,7 +133,7 @@
 .gs-range-nav:disabled { opacity: .4; cursor: default; }
 
 /* 카드 */
-.gs-card { overflow: hidden; border-radius: 16px; background: var(--gs-paper); box-shadow: 0 0 0 1px var(--gs-div2); }
+.gs-card { overflow: hidden; border-radius: var(--adm-card-radius); background: var(--gs-paper); box-shadow: 0 0 0 1px var(--gs-div2); }
 .gs-scroll { overflow: auto; }
 
 /* 월간 달력 */

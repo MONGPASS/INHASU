@@ -2,18 +2,18 @@
 .lo-board {
   --lo-mint: var(--adm-accent); --lo-mint-strong: var(--adm-accent-strong); --lo-mint-line: #bdeedd; --lo-mint-seg: #9ce9d2; --lo-red: #ff4f4f;
   --lo-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238A8F99' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  display: flex; flex-direction: column; gap: 16px; min-width: 0;
+  display: flex; flex-direction: column; gap: var(--adm-gap-section); min-width: 0;
 }
 .lo-board button, .lo-board select, .lo-board input { font-family: inherit; }
 .lo-board :is(button, a, select, input, summary):focus-visible { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }
-.lo-notice { padding: 12px 16px; border-radius: 14px; background: var(--mrt-blue-50); color: var(--lo-mint-strong); font-size: 13px; font-weight: 600; }
+.lo-notice { padding: 12px 16px; border-radius: var(--adm-inner-radius); background: var(--mrt-blue-50); color: var(--lo-mint-strong); font-size: 13px; font-weight: 600; }
 .lo-notice.is-warn { background: #fff6df; color: #8a5d00; }
 .lo-notice.is-draft { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; background: #fff6df; color: #8a5d00; }
 .lo-notice.is-draft p { flex: 1; min-width: 220px; margin: 0; }
 
 /* 상태 요약 카드 */
 .lo-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-.lo-kpi { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 14px 16px; border: 1px solid var(--border-default); border-radius: 16px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04); text-align: left; cursor: pointer; transition: box-shadow .16s, border-color .16s; }
+.lo-kpi { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 14px 16px; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.04); text-align: left; cursor: pointer; transition: box-shadow .16s, border-color .16s; }
 .lo-kpi[data-tone="all"] { --lo-tone: #1A1B1E; --lo-tone-rgb: 26,27,30; }
 .lo-kpi[data-tone="warn"] { --lo-tone: #FF4F4F; --lo-tone-rgb: 255,79,79; }
 .lo-kpi[data-tone="info"] { --lo-tone: var(--adm-accent); --lo-tone-rgb: 18,178,140; }
@@ -46,7 +46,7 @@
 .lo-count b.is-warn { color: var(--lo-red); }
 
 /* 출발 월 */
-.lo-months { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; border: 1px solid var(--border-default); border-radius: 16px; background: #fff; }
+.lo-months { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .lo-months-head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .lo-months-label { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 13px; font-weight: 600; }
 .lo-year { display: inline-flex; align-items: center; gap: 4px; }
@@ -67,7 +67,7 @@
 .lo-month.is-on small { color: #fff; }
 
 /* 예약 목록 */
-.lo-table { min-width: 0; overflow-x: auto; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.lo-table { min-width: 0; overflow-x: auto; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .lo-head, .lo-row { display: grid; grid-template-columns: minmax(230px, 1.6fr) minmax(200px, 1.2fr) minmax(180px, 1.1fr) minmax(230px, 1.4fr) 104px 24px; column-gap: 20px; align-items: center; box-sizing: border-box; min-width: 1080px; padding: 0 20px 0 24px; }
 .lo-head { height: 44px; border-bottom: 1px solid var(--border-default); background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 12px; font-weight: 700; }
 .lo-row { min-height: 72px; padding-top: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border-subtle); background: #fff; cursor: pointer; transition: background .16s; }
@@ -112,7 +112,7 @@
 /* 펼친 예약 */
 .lo-detail { display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; min-width: 1080px; padding: 6px 20px 20px; border-bottom: 1px solid var(--border-subtle); background: #f4fbf8; }
 .lo-fieldset { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
-.lo-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 18px 20px; border: 1px solid var(--border-default); border-radius: 16px; background: #fff; }
+.lo-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 18px 20px; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .lo-card-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--text-strong); }
 .lo-card-head h3, .lo-card-toggle h3 { margin: 0; color: var(--text-strong); font-size: 15px; font-weight: 800; }
 .lo-card-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0; border: 0; background: transparent; color: var(--text-strong); text-align: left; cursor: pointer; }
@@ -167,7 +167,7 @@
 
 /* 일차별 숙소 */
 .lo-night-list { display: flex; flex-direction: column; gap: 10px; }
-.lo-night { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; border: 1px solid var(--border-default); border-radius: 14px; background: #fff; box-shadow: inset 3px 0 0 var(--mrt-gray-200); }
+.lo-night { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; border: 1px solid var(--border-default); border-radius: var(--adm-inner-radius); background: #fff; box-shadow: inset 3px 0 0 var(--mrt-gray-200); }
 .lo-night[data-state="assigned"] { box-shadow: inset 3px 0 0 var(--lo-mint-seg); }
 .lo-night[data-state="confirmed"] { box-shadow: inset 3px 0 0 var(--lo-mint-strong); }
 .lo-night.is-plan { flex-direction: row; align-items: center; gap: 10px; border-style: dashed; background: var(--mrt-gray-50); box-shadow: none; color: var(--text-strong); font-size: 13px; }
@@ -230,7 +230,7 @@ select.lo-input:disabled { background-color: var(--adm-input-disabled-bg); }
 /* 가이드·차량 */
 .lo-crew { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
 .lo-crew-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.lo-savebar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px 16px 14px 20px; border: 1px solid var(--border-default); border-radius: 16px; background: #fff; }
+.lo-savebar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px 16px 14px 20px; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .lo-savebar-text { flex: 1; min-width: 200px; color: var(--text-tertiary); font-size: 12px; font-weight: 500; }
 .lo-savebar-text.is-dirty { color: var(--lo-mint-strong); font-weight: 700; }
 .lo-reset-row { height: 40px; padding: 0 16px; }

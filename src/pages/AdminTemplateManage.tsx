@@ -1905,7 +1905,7 @@ export const AdminTemplateManage: React.FC = () => {
 
     return (
         <AdminLayout activePage="templates" title="템플릿 관리">
-            <div className="seg" style={{ marginBottom: 18 }}>
+            <div className="seg">
                 {TABS.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? 'active' : ''}>
                         {tab.label}

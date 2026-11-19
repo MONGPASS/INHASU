@@ -214,7 +214,7 @@ export function ReservationListV7(p: ReservationListV7Props) {
         return () => observer.disconnect();
     }, []);
     const tabCount = (key: V7Tab) => rows.filter(r => r.tab === key).length;
-    return <div className="v7-root" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    return <div className="v7-root" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--adm-gap-section)' }}>
         <V7Styles />
         <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e9ecef', overflowX: 'auto' }} role="tablist" aria-label="예약 진행 상태">
             {V7_TABS.map(t => { const on = t.key === tab; return <button key={t.key} type="button" role="tab" aria-selected={on} onClick={() => { setTab(t.key); setQuick('all'); setSel(new Set()); setOpen(null); }}
@@ -228,7 +228,7 @@ export function ReservationListV7(p: ReservationListV7Props) {
                 const on = quick === x.key, matched = inTab.filter(x.test), n = matched.length, warn = x.key !== 'all' && n > 0;
                 const sub = x.key === 'bal' ? v7Won(matched.reduce((a, r) => a + (Number.isFinite(r.source.balance) ? r.source.balance : 0), 0)) : x.sub;
                 return <button key={x.key} type="button" aria-pressed={on} onClick={() => setQuick(on && x.key !== 'all' ? 'all' : x.key)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, minWidth: 0, padding: '14px 16px', border: 0, borderRadius: 16, font: 'inherit', cursor: 'pointer', textAlign: 'left', background: on ? '#f7fcfa' : '#fff', boxShadow: on ? 'inset 0 0 0 1.5px #12b28c' : '0 0 0 1px #eef0f2', transition: 'box-shadow .15s, background .15s' }}>
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, minWidth: 0, padding: '14px 16px', border: 0, borderRadius: 16, font: 'inherit', cursor: 'pointer', textAlign: 'left', background: on ? '#f7fcfa' : '#fff', boxShadow: on ? 'inset 0 0 0 1.5px #12b28c' : '0 0 0 1px var(--adm-line)', transition: 'box-shadow .15s, background .15s' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', minWidth: 0 }}>
                         <span style={{ width: 24, height: 24, flex: 'none', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: warn ? '#ffecec' : '#e9fbf4', color: warn ? '#FF4F4F' : '#0E9E7A' }}><Ico name={x.icon as DashboardIconName} size={14} /></span>
                         <span style={{ fontSize: 13, fontWeight: 700, color: '#495057', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.label}</span>
@@ -243,7 +243,7 @@ export function ReservationListV7(p: ReservationListV7Props) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <label style={{ flex: 1, minWidth: 240, maxWidth: 420, display: 'flex', alignItems: 'center', gap: 8, height: 42, padding: '0 14px', background: '#fff', borderRadius: 12, boxShadow: 'inset 0 0 0 1px #e9ecef' }}>
+            <label style={{ flex: 1, minWidth: 240, maxWidth: 420, display: 'flex', alignItems: 'center', gap: 8, height: 42, padding: '0 14px', background: 'var(--adm-surface)', borderRadius: 12, boxShadow: 'inset 0 0 0 1px #e9ecef' }}>
                 <Ico name="lc-search" size={16} color={V7_MUTED} />
                 <input value={q} onChange={e => setQ(e.target.value)} aria-label="예약 검색" placeholder="고객명, 전화번호, 가이드 이름 검색"
                     style={{ flex: 1, minWidth: 0, border: 0, outline: 0, background: 'transparent', font: 'inherit', fontSize: 14, color: V7_INK }} />
@@ -257,7 +257,7 @@ export function ReservationListV7(p: ReservationListV7Props) {
             </span>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 0 0 1px #eef0f2', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--adm-surface)', borderRadius: 16, boxShadow: '0 0 0 1px var(--adm-line)', overflow: 'hidden' }}>
             <div ref={scroller} className="v7-list-scroll" style={{ overflowX: 'auto' }}><div className="v7-list-inner" style={{ minWidth: 1380 }} aria-label="통합 예약 목록">
                 <div role="row" className="v7-list-head" style={{ display: 'grid', gridTemplateColumns: GRID, columnGap: 20, alignItems: 'center', height: 40, padding: '0 24px', position: 'sticky', top: 0, zIndex: 2, background: '#f8f9fa', borderBottom: '1px solid #e9ecef', fontSize: 12, fontWeight: 700, color: V7_MUTED }}>
                     <button type="button" aria-label="이 목록 전체 선택" aria-pressed={allOn} onClick={() => setSel(prev => { const next = new Set(prev); list.forEach(r => allOn ? next.delete(r.key) : next.add(r.key)); return next; })} style={checkBox(allOn)}>{allOn && <Ico name="lc-check" size={12} color="#fff" />}</button>
@@ -330,7 +330,7 @@ function ListRow({ row, panelWidth, open, dimmed, selected, busy, onToggle, onCh
         { key: 'stay', label: '숙소', icon: 'lc-bed-double' as const, v: `숙소 ${row.accN ? `${row.accC}/${row.accN}박` : '없음'}`, title: '박별 숙소 · 현지 운영 수배 상태', go: stop(() => onOpen('stay')),
             s: dchip(row.accDone ? '#12b28c' : row.accN - row.accA ? '#FF4F4F' : '#f08c00', row.accN - row.accA > 0 && contractTab) },
     ];
-    const wrap: Css = { borderBottom: '1px solid #f1f3f5', transition: 'filter 220ms ease, opacity 220ms ease', filter: dimmed ? 'grayscale(1)' : 'none', opacity: dimmed ? 0.45 : 1,
+    const wrap: Css = { borderBottom: '1px solid var(--adm-line-subtle)', transition: 'filter 220ms ease, opacity 220ms ease', filter: dimmed ? 'grayscale(1)' : 'none', opacity: dimmed ? 0.45 : 1,
         boxShadow: open ? '0 8px 28px rgba(16,24,40,.10), 0 0 0 1px #d2f5e8' : 'none', position: 'relative', zIndex: open ? 1 : 0 };
     return <div role="rowgroup" className={dimmed ? 'v7-dim' : undefined} style={wrap} aria-busy={busy}>
         <div role="row" tabIndex={0} aria-expanded={open} className={`v7-list-row${open || selected ? '' : ' v7-hover-row'}`} onClick={onToggle} onKeyDown={e => { if (e.key === 'Enter' && e.target === e.currentTarget) onToggle(); }}
@@ -357,18 +357,18 @@ function ListRow({ row, panelWidth, open, dimmed, selected, busy, onToggle, onCh
                     <button type="button" onClick={stop(() => onOpen())} style={inkBtn()}>예약 상세 열기<Ico name="lc-chevron-right" size={15} /></button>
                 </span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 22px', background: '#fff', borderRadius: 16, boxShadow: '0 0 0 1px #eef0f2' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 22px', background: 'var(--adm-surface)', borderRadius: 16, boxShadow: '0 0 0 1px var(--adm-line)' }}>
                 <V7StepHead label={step.label} tone={step.tone} count={cancel ? '' : `${row.steps.filter(s => s.done).length} / 5 단계 완료`} />
                 <V7Steps steps={row.steps.map((s, i) => ({ ...s, sub: subs[i] }))} cancelled={cancel} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 12 }}>
-                {cards.map(c => <div key={c.title} style={{ display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 16, boxShadow: '0 0 0 1px #eef0f2' }}>
+                {cards.map(c => <div key={c.title} style={{ display: 'flex', flexDirection: 'column', background: 'var(--adm-surface)', borderRadius: 16, boxShadow: '0 0 0 1px var(--adm-line)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 10px' }}>
                         <span style={{ width: 28, height: 28, borderRadius: 9, background: '#f1f3f5', color: '#495057', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={c.icon} size={15} /></span>
                         <b style={{ fontSize: 14, fontWeight: 800 }}>{c.title}</b>
                         <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: c.left ? '#FF4F4F' : '#0E9E7A' }}>{c.left ? `${c.left}건 남음` : '완료'}</span>
                     </div>
-                    {c.items.map(it => <div key={it.label} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid #f1f3f5' }}>
+                    {c.items.map(it => <div key={it.label} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid var(--adm-line-subtle)' }}>
                         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}><span style={{ fontSize: 13, color: '#495057' }}>{it.label}</span>{it.sub && <span style={{ fontSize: 12, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums' }}>{it.sub}</span>}</span>
                         {it.btn && <button type="button" onClick={it.btn.go} style={it.btn.s} disabled={busy}>{it.btn.v}<Ico name={it.btn.icon} size={12} /></button>}
                         {it.link && <button type="button" onClick={stop(it.link)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: '#495057', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={12} /></button>}

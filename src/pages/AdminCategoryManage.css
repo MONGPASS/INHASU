@@ -2,7 +2,7 @@
 .admin-app-wrapper :is(.cg-page, .cg-drawer) { }
 
 /* 목록 */
-.admin-app-wrapper .cg-card { overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; box-shadow: none; }
+.admin-app-wrapper .cg-card { overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); box-shadow: none; }
 .admin-app-wrapper .cg-table { min-width: 760px; }
 .admin-app-wrapper .cg-table th { padding: 10px 14px; background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 12px; font-weight: 500; }
 .admin-app-wrapper .cg-table td { padding: 12px 14px; border-color: var(--border-subtle); }
@@ -40,11 +40,11 @@
 .admin-app-wrapper .cg-drawer .field .cg-upload:hover { border-color: var(--mrt-ink); }
 .admin-app-wrapper .cg-upload:focus-within { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }
 .admin-app-wrapper .cg-upload input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.admin-app-wrapper .cg-visible { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 14px 16px; border: 1px solid var(--border-default); border-radius: 14px; background: #fff; }
+.admin-app-wrapper .cg-visible { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 14px 16px; border: 1px solid var(--border-default); border-radius: var(--adm-inner-radius); background: #fff; }
 .admin-app-wrapper .cg-visible > span { display: flex; flex-direction: column; gap: 2px; }
 .admin-app-wrapper .cg-visible b { color: var(--text-strong); font-size: 14px; font-weight: 800; }
 .admin-app-wrapper .cg-visible small { color: var(--text-tertiary); font-size: 12px; }
-.admin-app-wrapper .cg-drawer .edit-sec { overflow: hidden; border: 1px solid var(--border-default); border-radius: 16px; }
+.admin-app-wrapper .cg-drawer .edit-sec { overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); }
 .admin-app-wrapper .cg-drawer .edit-sec-head { align-items: center; gap: 8px; background: var(--mrt-gray-50) !important; }
 .admin-app-wrapper .cg-drawer .edit-sec-head h4 { margin: 0; color: var(--text-strong); font-weight: 800; }
 .admin-app-wrapper .cg-drawer .cg-slug { margin-left: 4px; color: var(--text-tertiary); font-weight: 500; }

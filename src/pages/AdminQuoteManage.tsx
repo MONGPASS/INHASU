@@ -401,7 +401,7 @@ export const AdminQuoteManage: React.FC = () => {
     return (
         <AdminLayout activePage="reservations" title="맞춤견적 관리" actions={headerActions}>
             {/* Summary metrics */}
-            <section className="metric-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 18 }}>
+            <section className="metric-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                 <div className="metric">
                     <div className="metric-top">
                         <span className="metric-ico tint-purple"><Icon name="list_alt" fill /></span>
@@ -447,7 +447,7 @@ export const AdminQuoteManage: React.FC = () => {
             </div>
 
             {/* Status filter chips */}
-            <div className="chip-row" style={{ marginBottom: 18 }}>
+            <div className="chip-row">
                 {filters.map(f => (
                     <button
                         key={f.id}

@@ -1,10 +1,10 @@
 /* Full customer pages share the same spacing as the overview. Legacy drawers keep their layout. */
 .admin-app-wrapper:has(.product-customer-page) { --content-max: 1880px; }
-.admin-app-wrapper .content:has(.product-customer-page) { padding: 0 24px 40px; }
+.admin-app-wrapper .content:has(.product-customer-page) { padding: 0 var(--adm-pad-page) var(--spacing-40); } /* M4: 다른 화면과 같은 좌우 여백 */
 .product-customer-page .product-customer-controls { max-width: 1816px; margin: 8px auto 24px; padding: 0 8px; }
-.product-customer-page .cw-detail-workspace { max-width: 1816px; margin: 0 auto; border-color: #e4e9ef; border-radius: 20px; background: #f6f7f9; overflow: visible; }
+.product-customer-page .cw-detail-workspace { max-width: 1816px; margin: 0 auto; border-color: #e4e9ef; border-radius: var(--adm-card-radius); background: #f6f7f9; overflow: visible; }
 .product-customer-page .cw-detail-workspace [hidden] { display: none!important; }
-.product-customer-page .cw-detail-workspace .cw-detail-toolbar { gap: 16px; flex-wrap: wrap; padding: 24px 28px; border-bottom: 1px solid #edf0f3; border-radius: 20px 20px 0 0; }
+.product-customer-page .cw-detail-workspace .cw-detail-toolbar { gap: 16px; flex-wrap: wrap; padding: 24px 28px; border-bottom: 1px solid #edf0f3; border-radius: var(--adm-card-radius) var(--adm-card-radius) 0 0; }
 .cw-detail-identity { min-width: 0; flex: 1; }
 .cw-detail-eyebrow { display: block; margin-bottom: 4px; color: #00947e; font-size: 12px; font-weight: 650; }
 .cw-detail-identity h2 { margin: 0; color: #191f28; font-size: 20px; font-weight: 750; letter-spacing: -.5px; }
@@ -27,7 +27,7 @@
 .cw-panel-heading h2 { margin: 0; color: #191f28; font-size: 22px; font-weight: 750; letter-spacing: -.5px; }
 .cw-panel-heading p { margin: 6px 0 0; color: #6b7684; font-size: 13px; }
 .cw-panel-heading > span { font-size: 12px; color: #6b7684; }
-.product-customer-page .cw-detail-workspace .card { border: 1px solid #e6ebf0; border-radius: 16px; box-shadow: none; }
+.product-customer-page .cw-detail-workspace .card { border: 1px solid #e6ebf0; border-radius: var(--adm-card-radius); box-shadow: none; }
 .product-customer-page .cw-detail-workspace .card-head { gap: 12px; padding: 20px 24px; min-height: 72px; flex-wrap: wrap; border-bottom-color: #edf0f3; }
 .product-customer-page .cw-detail-workspace .card-head h2 { font-size: 17px; line-height: 1.5; color: #191f28; letter-spacing: -.4px; }
 .product-customer-page .cw-detail-workspace .card-head p { font-size: 13px; color: #6b7684; line-height: 1.7; }
@@ -43,7 +43,7 @@
 .product-customer-page .cw-detail-workspace .btn { min-height: var(--adm-control-h); height: auto; padding: var(--spacing-8) var(--adm-btn-pad-x); border-radius: var(--adm-btn-radius); font-size: var(--adm-btn-fs); line-height: 1.2; }
 .product-customer-page .cw-detail-workspace .btn-sm { min-height: var(--adm-control-h-sm); padding: var(--spacing-6) var(--adm-btn-pad-x-sm); border-radius: var(--adm-btn-radius-sm); font-size: var(--adm-btn-fs-sm); }
 .product-customer-page .cw-detail-workspace .rw-document-grid { gap: 20px; padding: 24px; }
-.product-customer-page .cw-detail-workspace .rw-document-card { padding: 24px; border-color: #e6ebf0; border-radius: 14px; background: #fff; }
+.product-customer-page .cw-detail-workspace .rw-document-card { padding: 24px; border-color: #e6ebf0; border-radius: var(--adm-inner-radius); background: #fff; }
 .product-customer-page .cw-detail-workspace .rw-document-card h3 { color: #191f28; font-size: 18px; font-weight: 750; }
 .product-customer-page .cw-detail-workspace .rw-document-card > p { font-size: 13px; color: #6b7684; line-height: 1.7; margin: 12px 0 20px; }
 .product-customer-page .cw-detail-workspace .rw-field { gap: 8px; font-size: 14px; }
@@ -63,16 +63,16 @@
 .product-customer-page .cw-detail-workspace .ri-modes { padding: 16px 24px; background: #f8fafb; }
 .product-customer-page .cw-detail-workspace .ri-modes button { min-height: 40px; font-size: 14px; border-radius: 10px; }
 .product-customer-page .cw-detail-workspace .ri-basics { padding: 20px; gap: 20px; background: #f6f8fa; border-color: #e6ebf0; }
-.product-customer-page .cw-detail-workspace .quote-day-editor .day-edit { padding: 20px; margin-bottom: 20px; background: #fafbfd; border-color: #e6ebf0; border-radius: 14px; }
+.product-customer-page .cw-detail-workspace .quote-day-editor .day-edit { padding: 20px; margin-bottom: 20px; background: #fafbfd; border-color: #e6ebf0; border-radius: var(--adm-inner-radius); }
 .product-customer-page .cw-detail-workspace .quote-day-editor .day-edit :is(input, select) { min-height: var(--adm-input-h); font-size: var(--adm-fs-input); }
 .product-customer-page .cw-detail-workspace .quote-day-editor .day-edit textarea { font-size: 14px; line-height: 1.8; }
 .product-customer-page .cw-detail-workspace .quote-day-editor .snip-hint { font-size: 12px; color: #6b7684; }
 .product-customer-page .cw-detail-workspace .ri-savebar { padding: 20px 24px; background: #f7faf8; }
 .product-customer-page .cw-detail-workspace .rw-schedule-summary { margin: 0 24px 24px; padding: 16px; border-color: #e6ebf0; border-radius: 12px; font-size: 13px; }
-.product-customer-page .cw-detail-workspace .delivery-history { border-radius: 16px; padding: 24px; font-size: 14px; }
+.product-customer-page .cw-detail-workspace .delivery-history { border-radius: var(--adm-card-radius); padding: 24px; font-size: 14px; }
 .product-customer-page .cw-detail-workspace .delivery-workflow { display: none; }
 .reservation-workspace.product-workspace .rw-operations-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 24px; }
-.rw-operations-group { min-width: 0; border: 1px solid #e6ebf0; border-radius: 14px; padding: 20px; background: white; }
+.rw-operations-group { min-width: 0; border: 1px solid #e6ebf0; border-radius: var(--adm-inner-radius); padding: 20px; background: white; }
 .rw-operations-group h3 { margin: 0 0 6px; color: #333d4b; font-size: 16px; font-weight: 650; }
 .rw-operations-group p { margin: 0 0 20px; color: #6b7684; font-size: 12px; line-height: 1.7; }
 .rw-operations-group-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 16px; }
@@ -89,7 +89,7 @@
     .product-customer-page .cw-detail-workspace .rw-document-grid { grid-template-columns: minmax(0,1fr); }
 }
 @media (max-width: 760px) {
-    .admin-app-wrapper .content:has(.product-customer-page) { padding: 0 8px 24px; }
+    .admin-app-wrapper .content:has(.product-customer-page) { padding: 0 var(--adm-pad-page) var(--spacing-24); }
     .product-customer-page .cw-detail-workspace .cw-detail-toolbar { padding: 20px; }
     .product-customer-page .cw-detail-workspace .cw-work-tabs { display: flex; overflow-x: auto; gap: 8px; padding: 12px; }
     .product-customer-page .cw-detail-workspace .cw-work-tabs > button { min-height: 44px; padding: 10px 12px; flex-shrink: 0; }
@@ -105,13 +105,13 @@
 /* Keep customer context, work navigation and actions in place while only the form scrolls. */
 .admin-app-wrapper .content:has(.cw-is-working) { padding: 0 20px 12px; min-height: 0; }
 .product-customer-page #product-customer-overview[hidden] { display: none!important; }
-.cw-resume-work { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 16px 32px 0; padding: 14px 20px; border: 1px solid #cbe8df; border-radius: 14px; background: #edf8f3; }
+.cw-resume-work { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 16px 32px 0; padding: 14px 20px; border: 1px solid #cbe8df; border-radius: var(--adm-inner-radius); background: #edf8f3; }
 .cw-resume-work > div { display: grid; gap: 4px; min-width: 0; }
 .cw-resume-work strong { color: #176b55; font-size: 14px; }
 .cw-resume-work span { font-size: 12px; color: #5b776b; }
 /* Admin Dashboard v3 "Page 15": white header + text tabs + canvas body + bottom action bar, in mint tokens. */
 .product-customer-page .cw-focus-workspace {
-    display: flex; flex-direction: column; height: calc(100dvh - var(--header-h, 72px) - 28px); min-height: 0; margin: 12px auto 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: var(--surface-canvas);
+    display: flex; flex-direction: column; height: calc(100dvh - var(--header-h, 72px) - 28px); min-height: 0; margin: 12px auto 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: var(--surface-canvas);
 }
 .product-customer-page .product-customer-fullpage .cw-focus-workspace .cw-detail-toolbar { flex: none; align-items: center; gap: 14px; padding: 14px 28px; min-height: 0; flex-wrap: nowrap; border-bottom: 1px solid var(--border-default); background: rgba(255,255,255,.96); }
 .product-customer-page .cw-focus-workspace .cw-detail-toolbar .cw-overview-back { display: inline-flex; align-items: center; gap: var(--spacing-4); flex: none; height: var(--adm-control-h); min-height: var(--adm-control-h); padding: 0 var(--adm-btn-pad-x) 0 var(--spacing-12); border: var(--adm-border-width) solid var(--adm-btn-line); background: var(--semantic-background-neutral-primary); color: var(--semantic-foreground-neutral-primary); border-radius: var(--adm-btn-radius); font-size: var(--adm-btn-fs); font-weight: var(--adm-btn-fw); } /* Montage 테두리 버튼 medium */
@@ -184,7 +184,7 @@
 
 /* 고객 공개·전달 — 디자인 v3: 고객 통합 작업에서는 일정표 편집 화면 위의 한 카드로 둔다. */
 .rw-documents-compact { display: flex; flex-direction: column; gap: 20px; }
-.rw-delivery-panel { display: flex; flex-direction: column; padding: 20px 22px; border-radius: 20px; background: #fff; box-shadow: 0 12px 32px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04); scroll-margin-top: 16px; }
+.rw-delivery-panel { display: flex; flex-direction: column; padding: 20px 22px; border-radius: var(--adm-card-radius); background: #fff; box-shadow: 0 12px 32px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04); scroll-margin-top: 16px; }
 .rw-delivery-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap; padding-bottom: 14px; }
 .rw-delivery-head h2 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.03em; color: #1a1b1e; }
 .rw-delivery-head p { margin: 4px 0 0; font-size: 12px; line-height: 1.6; color: #8a8f99; }

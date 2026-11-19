@@ -1,6 +1,6 @@
 .product-customer-page { width:100%; min-width:0; }
 .product-customer-page .product-customer-fullpage.drawer { position:static; inset:auto; transform:none; display:block; width:100%; max-width:none; min-height:0; height:auto; max-height:none; border:0; border-radius:0; box-shadow:none; overflow:visible; background:transparent; }
-.product-customer-fullpage .product-customer-detail { margin-top:12px; border:1px solid #e2e8ec; border-radius:18px; overflow:hidden; background:#f5f8f6; }
+.product-customer-fullpage .product-customer-detail { margin-top:12px; border:1px solid #e2e8ec; border-radius:var(--adm-card-radius); overflow:hidden; background:#f5f8f6; }
 .product-customer-fullpage .product-customer-detail[hidden] { display:none; }
 .product-customer-page .product-customer-fullpage .reservation-workspace-main { min-height:0; height:auto; overflow:visible; }
 .product-customer-page .product-customer-fullpage .reservation-workspace-body.drawer-body { min-height:0; max-height:none; height:auto; overflow:visible; overscroll-behavior:auto; }

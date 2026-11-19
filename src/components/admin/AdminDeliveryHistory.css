@@ -1,4 +1,4 @@
-.delivery-history{border:1px solid #dce9e5;background:#fff;border-radius:16px;padding:20px;margin-top:16px;color:#102a26;min-width:0}
+.delivery-history{border:1px solid #dce9e5;background:#fff;border-radius:var(--adm-card-radius);padding:20px;margin-top:16px;color:#102a26;min-width:0}
 .delivery-history header{display:flex;align-items:center;justify-content:space-between;gap:12px}.delivery-history h3{font-size:15px;margin:0 0 5px}.delivery-history p{font-size:12px;line-height:1.6;margin:4px 0;color:#667f79}
 .delivery-history button{border:1px solid #d4e5df;background:#fff;color:#137e69;border-radius:8px;padding:7px 10px;font:inherit;font-size:12px;cursor:pointer}.delivery-history button:disabled{opacity:.5;cursor:default}
 .delivery-workflow{display:flex;list-style:none;padding:0;margin:16px 0;gap:6px;flex-wrap:wrap}.delivery-workflow li{display:flex;align-items:center;gap:5px;font-size:11px;padding:7px 9px;border-radius:7px;background:#f1f5f4;color:#7b8d87}.delivery-workflow .is-done{background:#e1f6ee;color:#127c65;font-weight:700}

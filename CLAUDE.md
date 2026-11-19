@@ -127,7 +127,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 알림은 `adminNotify()`, 확인 창은 `await adminConfirm()`(`src/components/admin/ui/adminFeedback.tsx`)을 쓴다. 관리자 코드에 `alert()`·`confirm()`을 새로 쓰지 말 것(`tests/admin-design-tokens.test.mjs`가 검사). 화면 이동 차단(`useBlocker`)의 확인은 `adminConfirmLeave(blocker, 문구)`(`ui/adminLeaveConfirm.ts`)를 쓴다. 그 자리에서 참·거짓을 돌려줘야 하는 나가기 보호 6곳만 `window.confirm`을 유지한다(디자인 문서 7절).
 - 견적 도구의 확인·입력 창은 `await AdminDialog.confirm()`/`AdminDialog.prompt()`(`public/admin-dialog.js`)을 쓴다. 견적 문의·견적 예약 목록·견적서 만들기는 테스트가 `confirm`을 바꿔 끼우므로 `await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)(…)` 꼴로 쓴다(화면에서는 공통 창).
 - 견적 도구(iframe)의 버튼·입력창·서랍·알림 모양은 `public/admin-tools.css` 한 파일이 관리자 안(`html.admin-embedded`)에서만 맞춘다. 각 문서의 `<style>`에 관리자용 모양을 따로 덧붙이지 말 것. `예약관리.html`은 아직 연결하지 않았다.
-- 적용은 단계별이다(문서 1절). 공통 변수·휴대폰 앱 틀·공통 알림까지 끝났고 확인 창 교체·견적 도구 규격·필수 입력 표시(일부 화면)까지 끝났다. Montage 전환은 1단계(토큰을 Montage로)까지 했고, 공통 틀·공통 부품·유형별 틀의 Montage 교체와 나가기 보호는 남아 있다. 기능·API·저장 로직·데이터 구조와 견적 도구의 파일 이름·주소·id·class는 디자인 작업에서 바꾸지 않는다(3.1, 3.3).
+- 적용은 단계별이다(문서 1절). 공통 변수·휴대폰 앱 틀·공통 알림까지 끝났고 확인 창 교체·견적 도구 규격·필수 입력 표시(일부 화면)까지 끝났다. Montage 전환은 M1 토큰 → M2 공통 틀 → M3 공통 부품(버튼·입력창·표·배지·탭·팝업·알림) → M4 유형별 틀(제목 자리·구역 간격 16·카드 모서리 16)까지 했다(디자인 문서 1·4절). 나가기 보호는 남아 있다. 기능·API·저장 로직·데이터 구조와 견적 도구의 파일 이름·주소·id·class는 디자인 작업에서 바꾸지 않는다(3.1, 3.3).
 - 필수 입력은 라벨 `className="adm-req"` + 저장 함수의 `adminValidateRequired()`(`src/components/admin/ui/adminForm.ts`)를 쓴다. 라벨 글자에 `*`를 직접 적거나 알림으로 필수 입력을 알리지 말 것.
 - 휴대폰에서 화면이 옆으로 넘치면 팝업·아래 메뉴 폭까지 틀어진다. 고정 칸 수 격자는 `admin-mobile.css`의 두 칸 목록에 넣는다.
 
