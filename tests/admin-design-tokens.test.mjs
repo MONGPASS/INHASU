@@ -81,7 +81,6 @@ const ADMIN_CSS_HEX_BASELINE = {
     'src/components/admin/accommodation/LodgeAssignBoard.css': 51,
     'src/components/admin/Admin3DIcon.css': 1,
     'src/components/admin/AdminDeliveryHistory.css': 23,
-    'src/components/admin/AdminToolbar.css': 39,
     'src/components/admin/CourseImportModal.css': 4,
     'src/components/admin/CustomerKakaoActions.css': 38,
     'src/components/admin/CustomerResourcePicker.css': 35,
@@ -99,7 +98,6 @@ const ADMIN_CSS_HEX_BASELINE = {
     'src/pages/AdminProductList.css': 4,
     'src/pages/AdminReservationBoard.module.css': 55,
     'src/styles/admin-console.css': 111,
-    'src/styles/admin-shell-v3.css': 9,
     'src/styles/customer-workspace-editor.css': 103,
     'src/styles/product-customer-workspace.css': 31,
     'src/styles/quote-booking-workspace.css': 122,
@@ -229,4 +227,24 @@ test('견적 도구 문서는 공통 확인·입력 창을 쓴다', () => {
         const native = html.split('\n').filter((line) => /(^|[^.\w])(confirm|prompt)\(/.test(line) && !line.includes('비밀번호'));
         assert.deepEqual(native, [], `${tool}: await AdminDialog.confirm/prompt 를 쓴다`);
     }
+});
+
+// M2 공통 틀: Montage 시안(AdminSidebar·AdminTopbar)의 치수와 선택 표시. 규칙: docs/admin-design-system.md 1·3절
+test('공통 틀은 시안의 사이드바 248px·상단 바 64px·민트 선택 표시를 Montage 변수로 그린다', () => {
+    const montage = read('public/admin-montage.css');
+    const shell = stripComments(read('src/styles/admin-shell-v3.css'));
+    const toolbar = stripComments(read('src/components/admin/AdminToolbar.css'));
+    assert.match(shell, /--side-w:\s*248px/);
+    assert.match(shell, /\.header \.admin-toolbar \{[^}]*height:\s*var\(--dimension-64\)/);
+    assert.match(shell, /\.nav-item\.active[^{]*\{[^}]*background:\s*var\(--semantic-surface-brand-subtle\);[^}]*color:\s*var\(--semantic-foreground-brand-primary\)/);
+    assert.match(shell, /\.side-brand-mark \{[^}]*background:\s*var\(--semantic-surface-brand-primary\)/);
+    assert.match(toolbar, /\.at-search-field \{[^}]*height:\s*var\(--dimension-40\);[^}]*border-radius:\s*var\(--radius-12\);[^}]*background:\s*var\(--semantic-surface-neutral-secondary\)/);
+    // 틀 CSS가 쓰는 Montage 변수는 모두 admin-montage.css에 있다(오타로 값이 빠지지 않게).
+    for (const [file, css] of [['admin-shell-v3.css', shell], ['AdminToolbar.css', toolbar]]) {
+        const names = [...new Set([...css.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]))]
+            .filter((n) => !n.startsWith('--adm-') && !['--side-w', '--side-rail-w', '--font-sans'].includes(n));
+        for (const name of names) assert.ok(montage.includes(`${name}:`), `${file}: ${name} 이 Montage에 없다`);
+    }
+    const sidebar = read('src/components/admin/AdminSidebar.tsx');
+    assert.ok(sidebar.includes('className="side-brand"') && sidebar.includes('to="/admin"') && sidebar.includes('은하수 관리자'));
 });

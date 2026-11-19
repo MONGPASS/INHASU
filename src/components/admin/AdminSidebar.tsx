@@ -133,11 +133,17 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = f
 
     return (
         <aside className={`side${rail ? ' is-rail' : ''}`}>
-            {onToggleRail && <div className="side-rail-bar">
-                <button type="button" className="side-rail-toggle" title={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-label={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-pressed={rail} onClick={onToggleRail}>
+            {/* 시안(Montage): 위에 은하수 관리자 표시, 그 옆에 메뉴 접기 버튼 */}
+            <div className="side-head">
+                <Link to="/admin" className="side-brand" title={rail ? '은하수 관리자 대시보드' : undefined} aria-label="은하수 관리자 대시보드"
+                    onPointerEnter={() => preloadAdminPage('/admin')} onFocus={() => preloadAdminPage('/admin')}>
+                    <span className="side-brand-mark" aria-hidden="true">은</span>
+                    <span className="side-brand-name">은하수 관리자</span>
+                </Link>
+                {onToggleRail && <button type="button" className="side-rail-toggle" title={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-label={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-pressed={rail} onClick={onToggleRail}>
                     <DashboardIcon name={rail ? 'lc-chevron-right' : 'lc-chevron-left'} size={18} />
-                </button>
-            </div>}
+                </button>}
+            </div>
 
             <nav className="side-nav" ref={navRef} aria-label="관리자 업무 메뉴">
                 {sections.map((section) => (
