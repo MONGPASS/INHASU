@@ -5,7 +5,7 @@
   --la-mint: var(--adm-accent); --la-mint-low: #e8faf6; --la-mint-ink: var(--adm-accent-deep);
   --la-red: #ff4f4f; --la-red-low: #ffefef; --la-orange: #f08c00; --la-orange-low: #fff4e5; --la-orange-ink: #b35c00;
   --la-blue: #2f6fed; --la-blue-low: #eef4ff; --la-blue-ink: #1c5cc8; --la-paper: #fbfcfd;
-  display: flex; flex-direction: column; gap: 16px; min-width: 0; color: var(--la-ink);
+  display: flex; flex-direction: column; gap: var(--adm-gap-section); min-width: 0; color: var(--la-ink);
 }
 .la button, .la input, .la select { font-family: inherit; color: inherit; }
 .la button { cursor: pointer; }
@@ -13,7 +13,7 @@
 .la :is(button, input, select, [role="button"], a):focus-visible { outline: 2px solid var(--la-ink); outline-offset: 2px; }
 
 /* 숙박 일정 */
-.la-cal { display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 20px; background: #fff; border: 1px solid var(--la-line); }
+.la-cal { display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: var(--adm-card-radius); background: #fff; border: 1px solid var(--la-line); }
 .la-cal-title { font-size: 16px; font-weight: 700; }
 .la-cal-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .la-month-btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--la-line); background: #fff; font-size: 15px; }
@@ -56,7 +56,7 @@
 .la-tools-gap { flex: 1; }
 .la-ghost { height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--la-line); background: #fff; font-size: 13px; font-weight: 600; }
 .la-ghost:disabled { opacity: .5; }
-.la-savebar { display: flex; align-items: center; gap: 12px; justify-content: space-between; padding: 10px 16px; border-radius: 14px; background: var(--la-orange-low); color: var(--la-orange-ink); font-size: 13px; font-weight: 600; }
+.la-savebar { display: flex; align-items: center; gap: 12px; justify-content: space-between; padding: 10px 16px; border-radius: var(--adm-inner-radius); background: var(--la-orange-low); color: var(--la-orange-ink); font-size: 13px; font-weight: 600; }
 .la-savebar button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--la-ink); color: #fff !important; font-size: 13px; font-weight: 700; }
 .la-savebar button:disabled { opacity: .5; }
 

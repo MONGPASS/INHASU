@@ -3,7 +3,7 @@
 .board button:focus-visible, .board input:focus-visible, .board select:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 .warning { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 14px 18px; border: 1px solid #efcf94; border-radius: 12px; background: #fff8e8; color: #7b501b; font-size: 13px; line-height: 1.6; }
 .loading { font-size: 13px; color: var(--text-secondary); }
-.card { min-width: 0; border: 1px solid var(--border-default); border-radius: 20px; overflow: hidden; background: #fff; }
+.card { min-width: 0; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); overflow: hidden; background: #fff; }
 .listCard { overflow: visible; }
 .cardTitle { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: var(--text-strong); }
 .sub { font-size: 12px; color: var(--text-tertiary); }
@@ -20,7 +20,7 @@
 
 /* 요약 카드 */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
-.kpi { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 18px 20px; border: 1px solid var(--border-default); border-radius: 20px; background: #fff;
+.kpi { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 18px 20px; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff;
   font: inherit; text-align: left; cursor: pointer; transition: border-color 160ms, background 160ms; }
 .kpi:hover { border-color: var(--mrt-ink); }
 .kpiOn, .kpiOn:hover { border: 1.5px solid var(--tone); box-shadow: 0 8px 24px rgba(16,24,40,.08); }
@@ -73,7 +73,7 @@
 .emptyBox strong { font-size: 14px; color: var(--text-strong); }
 
 /* 검색 */
-.searchArea { display: flex; flex-direction: column; gap: 10px; padding: 18px 24px 16px; border-bottom: 1px solid var(--border-subtle); border-radius: 20px 20px 0 0; background: #fff; }
+.searchArea { display: flex; flex-direction: column; gap: 10px; padding: 18px 24px 16px; border-bottom: 1px solid var(--border-subtle); border-radius: var(--adm-card-radius) var(--adm-card-radius) 0 0; background: #fff; }
 .searchWrap { position: relative; }
 .searchBox { display: flex; align-items: center; gap: var(--spacing-8); height: var(--adm-input-h-lg); padding: 0 var(--spacing-12); box-sizing: border-box; border-radius: var(--adm-input-radius-lg);
   background: var(--adm-input-search-bg); border: 0; transition: box-shadow 200ms; }
@@ -85,7 +85,7 @@
 .matchBadge { height: 30px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 15px; background: var(--mrt-blue-50); font-size: 13px; font-weight: 700; color: var(--mrt-blue-strong); white-space: nowrap; }
 .clearBtn { width: 32px; height: 32px; flex: none; border: 0; border-radius: 50%; background: var(--mrt-gray-100); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .kbd { height: 24px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-default); font: inherit; font-size: 11px; font-weight: 700; color: var(--text-tertiary); display: inline-flex; align-items: center; white-space: nowrap; }
-.suggest { position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 20; background: #fff; border: 1px solid var(--border-default); border-radius: 16px; box-shadow: var(--shadow-lg); overflow: hidden; }
+.suggest { position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 20; background: #fff; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); box-shadow: var(--shadow-lg); overflow: hidden; }
 .suggestTitle { padding: 12px 18px 6px; font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
 .suggestRow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 18px; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; }
 .suggestRow:hover { background: var(--mrt-blue-50); }

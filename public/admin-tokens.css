@@ -67,8 +67,13 @@
   --adm-space-1: var(--spacing-4); --adm-space-2: var(--spacing-8); --adm-space-3: var(--spacing-12); --adm-space-4: var(--spacing-16);
   --adm-space-5: var(--spacing-20); --adm-space-6: var(--spacing-24); --adm-space-8: var(--spacing-32);
   --adm-gap-control: var(--spacing-8);    /* 버튼·입력창 사이 */
-  --adm-gap-section: var(--spacing-24);   /* 구역 사이 */
+  --adm-gap-head: var(--spacing-24);      /* 화면 제목 → 본문 첫 구역 */
+  --adm-gap-section: var(--spacing-16);   /* 본문 구역 사이(요약 숫자 → 검색 → 표·카드 …) — 모든 화면 같은 값 */
   --adm-pad-card: var(--spacing-20);      /* 카드 안 여백 */
+  --adm-card-radius: var(--radius-16);    /* 화면 위 카드(구역 상자) 모서리 */
+  --adm-inner-radius: var(--radius-12);   /* 카드 안 상자 모서리 */
+  --adm-kpi-pad: var(--spacing-16) var(--adm-pad-card);  /* 요약 숫자 카드 안 여백 */
+  --adm-kpi-pad-active: calc(var(--spacing-16) - .5px) calc(var(--adm-pad-card) - .5px);  /* 고른 요약 카드(1.5px 선) */
   --adm-pad-page: var(--primitive-28);    /* 화면 좌우 여백 */
 
   /* ── 모서리(Montage radius) ── */

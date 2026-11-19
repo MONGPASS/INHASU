@@ -1,6 +1,6 @@
 /* 투어 캘린더 — Admin Dashboard v3 "Page 03 Tour Calendar". 관리자 토큰을 민트로 바꿔 이 화면에만 적용합니다. */
 .tour-calendar {
-  display: flex; flex-direction: column; gap: 16px;
+  display: flex; flex-direction: column; gap: var(--adm-gap-section);
   color: var(--text-strong);
   min-width: 0;
 }
@@ -30,17 +30,17 @@
 .tour-calendar .tc-note a .tc-glyph { width: 12px; height: 12px; }
 
 /* 요약 카드 */
-.tour-calendar .tc-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.tour-calendar .tc-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: var(--adm-gap-section); }
 .tour-calendar .tc-metric {
   display: flex; align-items: center; gap: 12px; min-width: 0;
-  padding: 16px 18px; background: #fff;
-  border: 1px solid var(--border-default); border-radius: 18px; text-align: left;
+  padding: var(--adm-kpi-pad); background: #fff;
+  border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); text-align: left;
   transition: border-color .14s ease;
 }
 .tour-calendar .tc-metric > span:last-child { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .tour-calendar .tc-metric:disabled { opacity: 1; cursor: default; }
 .tour-calendar .tc-metric:not(:disabled):hover { border-color: var(--mrt-gray-300); }
-.tour-calendar .tc-metric.is-active, .tour-calendar .tc-metric.is-active:hover { border: 1.5px solid var(--mrt-ink); padding: 15.5px 17.5px; }
+.tour-calendar .tc-metric.is-active, .tour-calendar .tc-metric.is-active:hover { border: 1.5px solid var(--mrt-ink); padding: var(--adm-kpi-pad-active); }
 .tour-calendar .tc-metric-icon { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
 .tour-calendar .tc-metric-icon[data-tone="green"] { background: var(--mrt-green-soft); color: var(--mrt-green); }
 .tour-calendar .tc-metric-icon[data-tone="purple"] { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
@@ -67,8 +67,8 @@
 .tour-calendar .tc-reset:hover { color: var(--text-strong); text-decoration: underline; }
 
 /* 달력 + 선택한 날짜 */
-.tour-calendar .tc-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); gap: 16px; align-items: start; min-width: 0; }
-.tour-calendar .tc-month-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.tour-calendar .tc-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); gap: var(--adm-gap-section); align-items: start; min-width: 0; }
+.tour-calendar .tc-month-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .tour-calendar .tc-month-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 16px 20px; }
 .tour-calendar .tc-month-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .tour-calendar .tc-month-nav h2 { min-width: 130px; margin: 0; color: var(--text-strong); font-size: 22px; font-weight: 800; letter-spacing: -.03em; text-align: center; white-space: nowrap; }
@@ -110,7 +110,7 @@
 .tour-calendar .tc-legend > [data-source="legacy_quote"]::before { background: var(--mrt-star); }
 
 /* 선택한 날짜 패널 */
-.tour-calendar .tc-day-panel { position: sticky; top: 16px; min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.tour-calendar .tc-day-panel { position: sticky; top: 16px; min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .tour-calendar .tc-panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 18px 20px 8px; }
 .tour-calendar .tc-panel-header h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; color: var(--text-strong); font-size: 22px; font-weight: 800; letter-spacing: -.03em; }
 .tour-calendar .tc-eyebrow { display: block; margin-bottom: 8px; color: var(--text-tertiary); font-size: 12px; }
@@ -121,7 +121,7 @@
 .tour-calendar .tc-panel-stats b { color: var(--text-strong); font-weight: 800; }
 .tour-calendar .tc-panel-body { display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 240px); overflow-y: auto; overscroll-behavior: contain; padding: 14px; }
 
-.tour-calendar .tc-tour-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: 16px; background: #fff; }
+.tour-calendar .tc-tour-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .tour-calendar .tc-tour-card.is-selected { border: 1.5px solid var(--mrt-ink); padding: 13.5px; }
 .tour-calendar .tc-tour-card.is-conflict { border-color: #ffc9c9; }
 .tour-calendar .tc-tour-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
@@ -181,7 +181,7 @@
 .tour-calendar .tc-empty .tc-glyph { width: 28px; height: 28px; color: var(--mrt-gray-400); }
 .tour-calendar .tc-empty strong { color: var(--text-strong); font-size: 14px; font-weight: 800; }
 .tour-calendar .tc-empty p { margin: 0; }
-.tour-calendar .tc-warning { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border-radius: 14px; background: #fff6df; color: #8a5d00; font-size: 13px; line-height: 1.6; }
+.tour-calendar .tc-warning { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border-radius: var(--adm-inner-radius); background: #fff6df; color: #8a5d00; font-size: 13px; line-height: 1.6; }
 .tour-calendar .tc-warning > span { flex: 1; min-width: 0; }
 
 @media (max-width: 1280px) {
@@ -193,13 +193,13 @@
 }
 @media (max-width: 760px) {
   .tour-calendar .tc-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .tour-calendar .tc-metric { padding: 12px; gap: 8px; border-radius: 14px; }
+  .tour-calendar .tc-metric { padding: 12px; gap: 8px; border-radius: var(--adm-inner-radius); }
   .tour-calendar .tc-metric.is-active { padding: 11.5px; }
   .tour-calendar .tc-metric-icon { width: 36px; height: 36px; border-radius: 10px; }
   .tour-calendar .tc-metric strong { font-size: 20px; }
   .tour-calendar .tc-month-header { padding: 12px; }
   .tour-calendar .tc-month-nav h2 { min-width: 0; font-size: 18px; }
-  .tour-calendar .tc-month-card, .tour-calendar .tc-day-panel { border-radius: 16px; }
+  .tour-calendar .tc-month-card, .tour-calendar .tc-day-panel { border-radius: var(--adm-card-radius); }
   .tour-calendar .tc-day { height: 96px; padding: 5px 3px; }
   .tour-calendar .tc-day-count { display: none; }
   .tour-calendar .tc-event { padding: 0 3px; border-left-width: 2px; font-size: 10px; }

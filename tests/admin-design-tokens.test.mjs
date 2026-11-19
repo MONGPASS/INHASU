@@ -389,3 +389,37 @@ test('팝업·서랍·메뉴·알림은 Montage Modal·Drawer·Menu·Toast 규�
     assert.match(v7, /background: 'var\(--adm-toast-bg\)'/);
     assert.match(v7, /borderRadius: 'var\(--adm-menu-radius\)'/);
 });
+
+test('화면 유형별 틀: 모든 화면이 같은 구역 간격·카드 모서리·제목 자리를 쓴다(M4)', () => {
+    const desktop = read('public/admin-tokens.css').split('@media')[0];
+    const expect = {
+        '--adm-gap-head': 'var(--spacing-24)', '--adm-gap-section': 'var(--spacing-16)', '--adm-card-radius': 'var(--radius-16)',
+        '--adm-inner-radius': 'var(--radius-12)', '--adm-kpi-pad': 'var(--spacing-16) var(--adm-pad-card)',
+    };
+    for (const [name, value] of Object.entries(expect)) assert.equal(lastValue(desktop, name), value, name);
+    const consoleCss = stripComments(read('src/styles/admin-console.css'));
+    assert.match(consoleCss, /--r-lg:\s*var\(--adm-card-radius\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.content-in \{[^}]*flex-direction:\s*column;[^}]*gap:\s*var\(--adm-gap-section\)/);
+    assert.match(stripComments(read('src/styles/admin-shell-v3.css')), /\.admin-layout-heading \{[^}]*min-height:\s*calc\(var\(--primitive-28\) \+ var\(--adm-control-h\)\)/);
+    // 화면마다 본문 구역을 쌓는 바깥 틀은 같은 간격 변수를 쓴다.
+    const roots = [
+        ['src/pages/AdminDashboard.module.css', /\.dashboard \{[^}]*gap:\s*var\(--adm-gap-section\)/],
+        ['src/pages/AdminContentManage.css', /\.cm-page \{[^}]*gap:\s*var\(--adm-gap-section\)/],
+        ['src/pages/AdminProductList.css', /\.pd-list \{[^}]*gap:\s*var\(--adm-gap-section\)/],
+        ['src/pages/AdminCalendar.css', /\.tour-calendar \{[^}]*gap:\s*var\(--adm-gap-section\)/],
+        ['src/pages/AdminAccommodationOps.css', /\.lo-board \{[^}]*gap:\s*var\(--adm-gap-section\)/],
+        ['src/components/admin/accommodation/LodgeAssignBoard.css', /\.la \{[^}]*gap:\s*var\(--adm-gap-section\)/],
+        ['src/pages/AdminBannerManage.css', /\.hm-body \{[^}]*gap:\s*var\(--adm-gap-section\)/],
+    ];
+    for (const [file, re] of roots) assert.match(stripComments(read(file)), re, file);
+    // 카드 모서리는 16(카드)·12(카드 안 상자) 두 가지. 예전 18·20·22·24px 카드 모서리가 남지 않는다.
+    const files = ['src/components/admin/AdminDeliveryHistory.css', 'src/components/admin/CustomerKakaoActions.css', 'src/components/admin/CustomerWorkspaceOverview.css',
+        'src/components/admin/accommodation/LodgeAssignBoard.css', 'src/components/admin/dashboard/TrafficSources.module.css', 'src/components/admin/guides/GuideSchedule.css',
+        'src/pages/AdminAccommodationOps.css', 'src/pages/AdminBannerManage.css', 'src/pages/AdminCalendar.css', 'src/pages/AdminCategoryManage.css', 'src/pages/AdminContentManage.css',
+        'src/pages/AdminDashboard.module.css', 'src/pages/AdminProductEditor.css', 'src/pages/AdminProductList.css', 'src/pages/AdminReservationBoard.module.css',
+        'src/styles/admin-console.css', 'src/styles/customer-workspace-editor.css', 'src/styles/product-customer-workspace.css', 'src/styles/quote-booking-workspace.css',
+        'src/styles/reservation-itinerary-designer.css', 'src/styles/reservation-workspace.css'];
+    for (const file of files) assert.doesNotMatch(stripComments(read(file)), /border-radius:\s*(?:18|20|22|24)px/, file);
+    const v7 = read('src/components/admin/v7/v7Ui.tsx');
+    assert.match(v7, /export const card: Css = \{[^}]*borderRadius: 'var\(--adm-card-radius\)'/);
+});

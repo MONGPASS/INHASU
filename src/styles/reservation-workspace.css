@@ -80,7 +80,7 @@
 .reservation-workspace.product-workspace .card {
     min-width: 0;
     border-color: #e2ebe8;
-    border-radius: 18px;
+    border-radius: var(--adm-card-radius);
     overflow: hidden;
     background: #fff;
 }
@@ -155,7 +155,7 @@
     min-width: 0;
     padding: 20px;
     border: 1px solid #dfe9e3;
-    border-radius: 14px;
+    border-radius: var(--adm-inner-radius);
     background: #fcfefd;
 }
 
@@ -383,7 +383,7 @@
 .reservation-workspace.product-workspace .rw-readiness-card {
     min-width: 0;
     border: 1px solid #e2ebe8;
-    border-radius: 18px;
+    border-radius: var(--adm-card-radius);
     padding: 24px;
     background: #fff;
     color: var(--rw-ink);

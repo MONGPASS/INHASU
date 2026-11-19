@@ -1,6 +1,6 @@
 /* 상품 추가·수정 — Admin Dashboard v3 "04-2 상품 관리 - 상품 추가". 관리자 토큰을 민트로 바꿔 이 편집기에만 적용합니다. */
 .admin-app-wrapper .pa-editor {
-  overflow: visible; border: 1px solid var(--border-default); border-radius: 20px; background: var(--surface-canvas); box-shadow: none;
+  overflow: visible; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: var(--surface-canvas); box-shadow: none;
 }
 
 .admin-app-wrapper .pa-stay-options .pa-stay-card { display: grid; gap: 8px; min-width: 0; }
@@ -15,7 +15,7 @@
 }
 
 /* 머리글 */
-.admin-app-wrapper .pa-editor .pa-head { gap: 12px; padding: 14px 24px; border-bottom: 0; border-radius: 20px 20px 0 0; background: #fff; }
+.admin-app-wrapper .pa-editor .pa-head { gap: 12px; padding: 14px 24px; border-bottom: 0; border-radius: var(--adm-card-radius) var(--adm-card-radius) 0 0; background: #fff; }
 .admin-app-wrapper .pa-editor .pa-back { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 36px; padding: 0 14px 0 10px; border: 1.5px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .admin-app-wrapper .pa-editor .pa-back:hover:not(:disabled) { border-color: var(--mrt-ink); }
 .admin-app-wrapper .pa-editor .pa-title { display: flex; flex-direction: column; min-width: 0; }
@@ -32,8 +32,8 @@
 
 /* 본문 + 오른쪽 열 */
 .admin-app-wrapper .pa-editor .pa-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; padding: 16px 20px 0; }
-.admin-app-wrapper .pa-editor .pa-main { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
-.admin-app-wrapper .pa-editor .pa-draft-status { margin: 16px 20px 0 !important; border-radius: 14px !important; }
+.admin-app-wrapper .pa-editor .pa-main { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
+.admin-app-wrapper .pa-editor .pa-draft-status { margin: 16px 20px 0 !important; border-radius: var(--adm-inner-radius) !important; }
 .admin-app-wrapper .pa-editor .pa-main > form > fieldset > .card-pad:first-child { padding: 20px 22px; }
 
 /* 입력칸 */
@@ -51,7 +51,7 @@
 .admin-app-wrapper .pa-editor .pa-seg-sm button.is-on { border-color: var(--mrt-ink); }
 
 /* 이미지 업로드 타일 */
-.admin-app-wrapper .pa-editor .pa-upload { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 160px; height: 160px; border: 1.5px dashed var(--mrt-gray-300); border-radius: 16px; background: var(--mrt-gray-50); color: var(--text-tertiary); cursor: pointer; text-align: center; }
+.admin-app-wrapper .pa-editor .pa-upload { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 160px; height: 160px; border: 1.5px dashed var(--mrt-gray-300); border-radius: var(--adm-card-radius); background: var(--mrt-gray-50); color: var(--text-tertiary); cursor: pointer; text-align: center; }
 .admin-app-wrapper .pa-editor .pa-upload:hover { border-color: var(--mrt-ink); color: var(--text-strong); }
 .admin-app-wrapper .pa-editor .pa-upload b { color: var(--text-strong); font-size: 13px; font-weight: 800; }
 .admin-app-wrapper .pa-editor .pa-upload span { padding: 0 10px; font-size: 11px; }
@@ -59,7 +59,7 @@
 .admin-app-wrapper .pa-editor .pa-file:focus-visible + * , .admin-app-wrapper .pa-editor .pa-upload:focus-within { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }
 
 /* 노출 설정 스위치 */
-.admin-app-wrapper .pa-editor .toggle-row { padding: 12px 14px; border: 1px solid var(--border-default); border-radius: 14px; background: #fff; }
+.admin-app-wrapper .pa-editor .toggle-row { padding: 12px 14px; border: 1px solid var(--border-default); border-radius: var(--adm-inner-radius); background: #fff; }
 .admin-app-wrapper .pa-editor .switch.on { background: var(--mrt-ink); }
 
 /* 하단 저장 바 */
@@ -72,14 +72,14 @@
 
 /* 오른쪽 열 — 미리보기·필수 항목 */
 .admin-app-wrapper .pa-editor .pa-aside { position: sticky; top: calc(var(--header-h, 72px) + 16px); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.admin-app-wrapper .pa-editor .pa-preview { overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.admin-app-wrapper .pa-editor .pa-preview { overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .admin-app-wrapper .pa-editor .pa-preview-image { display: grid; place-items: center; aspect-ratio: 4 / 3; background: var(--mrt-gray-100); color: var(--mrt-gray-400); }
 .admin-app-wrapper .pa-editor .pa-preview-image img { width: 100%; height: 100%; object-fit: cover; }
 .admin-app-wrapper .pa-editor .pa-preview-copy { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px 16px; }
 .admin-app-wrapper .pa-editor .pa-preview-copy b { color: var(--text-strong); font-size: 15px; font-weight: 800; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .admin-app-wrapper .pa-editor .pa-preview-copy span { color: var(--text-tertiary); font-size: 12px; }
 .admin-app-wrapper .pa-editor .pa-preview-copy strong { margin-top: 4px; color: var(--text-strong); font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
-.admin-app-wrapper .pa-editor .pa-checks { padding: 18px 20px; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.admin-app-wrapper .pa-editor .pa-checks { padding: 18px 20px; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .admin-app-wrapper .pa-editor .pa-checks h3 { margin: 0 0 10px; color: var(--text-strong); font-size: 15px; font-weight: 800; }
 .admin-app-wrapper .pa-editor .pa-checks ul { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .admin-app-wrapper .pa-editor .pa-checks li { display: flex; align-items: center; gap: 10px; color: var(--text-secondary); font-size: 13px; }

@@ -44,7 +44,8 @@
   }
   .admin-app-wrapper .header .admin-toolbar .at-search { flex: 0 1 420px; min-width: 200px; }
   .admin-app-wrapper .header .admin-toolbar .at-tasks { margin-left: auto; }
-  .admin-app-wrapper .admin-layout-heading { grid-area: head; display: flex; flex-direction: column; gap: var(--spacing-4); padding: var(--primitive-28) 0 0; }
+  /* M4: 제목 칸을 작업 버튼 줄(40px)보다 낮지 않게 해 모든 화면에서 제목이 같은 자리에 온다. */
+  .admin-app-wrapper .admin-layout-heading { grid-area: head; display: flex; flex-direction: column; gap: var(--spacing-4); box-sizing: border-box; min-height: calc(var(--primitive-28) + var(--adm-control-h)); padding: var(--primitive-28) 0 0; }
   .admin-app-wrapper .header.is-heading-hidden .header-in { grid-template-areas: "bar bar"; }
   .admin-app-wrapper .admin-page-actions,
   .admin-app-wrapper .admin-customer-header-actions { grid-area: acts; display: flex; align-items: center; justify-content: flex-end; gap: var(--adm-gap-control); flex-wrap: wrap; padding: var(--primitive-28) 0 0; }

@@ -45,11 +45,11 @@
 
 .admin-app-wrapper .hm-alert {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; padding: 14px 18px;
-  border: 1px solid #ffd0d0; border-radius: 16px; background: var(--mrt-red-soft); color: var(--mrt-red); font-size: 14px; font-weight: 600;
+  border: 1px solid #ffd0d0; border-radius: var(--adm-card-radius); background: var(--mrt-red-soft); color: var(--mrt-red); font-size: 14px; font-weight: 600;
 }
 
 /* 본문 */
-.admin-app-wrapper .hm-body { display: flex; flex-direction: column; gap: 20px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.admin-app-wrapper .hm-body { display: flex; flex-direction: column; gap: var(--adm-gap-section); min-width: 0; margin: 0; padding: 0; border: 0; }
 .admin-app-wrapper .hm-sec-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
 .admin-app-wrapper .hm-sec-head:not(:first-of-type) { margin-top: 12px; }
 .admin-app-wrapper .hm-sec-text { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 4px; }
@@ -67,7 +67,7 @@
 .admin-app-wrapper .hm-toggle-all button:hover { color: var(--text-strong); }
 
 /* 접히는 카드 (메인·이벤트 배너) */
-.admin-app-wrapper .hm-card { display: flex; flex-direction: column; gap: 16px; padding: 20px; background: #fff; border: 1px solid var(--border-default); border-radius: 20px; min-width: 0; }
+.admin-app-wrapper .hm-card { display: flex; flex-direction: column; gap: 16px; padding: 20px; background: #fff; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); min-width: 0; }
 .admin-app-wrapper .hm-card-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .admin-app-wrapper .hm-card-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0; border: 0; background: transparent; font: inherit; color: inherit; cursor: pointer; text-align: left; }
 .admin-app-wrapper .hm-chev { display: flex; flex: none; color: var(--text-tertiary); transition: transform 200ms; }
@@ -95,7 +95,7 @@
 .admin-app-wrapper .hm-media-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
 .admin-app-wrapper .hm-media-label em { margin-left: auto; font-style: normal; font-weight: 500; color: var(--text-tertiary); }
 .admin-app-wrapper .hm-mbox, .admin-app-wrapper .hm-ev-pv {
-  position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; border-radius: 14px; overflow: hidden;
+  position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; border-radius: var(--adm-inner-radius); overflow: hidden;
   background-color: var(--mrt-blue); color: #fff; font: inherit; text-align: left; cursor: pointer;
 }
 .admin-app-wrapper .hm-mov { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; padding: 12px; }
@@ -125,7 +125,7 @@
 
 /* 입력 */
 .admin-app-wrapper .hm-fields { flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
-.admin-app-wrapper .hm-basic { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: var(--mrt-gray-50); }
+.admin-app-wrapper .hm-basic { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--adm-card-radius); background: var(--mrt-gray-50); }
 .admin-app-wrapper .hm-box-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; color: var(--text-strong); }
 .admin-app-wrapper .hm-box-title small { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
 .admin-app-wrapper .hm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
@@ -143,7 +143,7 @@
 .admin-app-wrapper .hm-textarea { height: auto; min-height: 64px; padding: var(--adm-input-pad-y-area) var(--spacing-12); line-height: 1.5; resize: vertical; }
 .admin-app-wrapper .hm-select { width: 130px; flex: none; cursor: pointer; }
 .admin-app-wrapper .hm-mono { font-variant-numeric: tabular-nums; }
-.admin-app-wrapper .hm-pc { display: flex; flex-direction: column; padding: 4px 16px; border: 1px solid var(--border-default); border-radius: 16px; }
+.admin-app-wrapper .hm-pc { display: flex; flex-direction: column; padding: 4px 16px; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); }
 .admin-app-wrapper .hm-pc-toggle { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0; border: 0; background: transparent; font: inherit; color: var(--text-strong); cursor: pointer; text-align: left; }
 .admin-app-wrapper .hm-pc-toggle b { font-size: 14px; font-weight: 800; }
 .admin-app-wrapper .hm-badge { padding: 2px 8px; border-radius: var(--adm-badge-radius); background: var(--adm-badge-neutral-bg); color: var(--text-tertiary); font-size: 11px; font-weight: 700; white-space: nowrap; }
@@ -153,11 +153,11 @@
 
 /* 바로가기 아이콘 */
 .admin-app-wrapper .hm-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.admin-app-wrapper .hm-icon-card { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: #fff; border: 1px solid var(--border-default); border-radius: 20px; min-width: 0; }
+.admin-app-wrapper .hm-icon-card { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: #fff; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); min-width: 0; }
 .admin-app-wrapper .hm-icon-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .admin-app-wrapper .hm-icon-img {
   width: 56px; height: 56px; flex: none; display: flex; align-items: center; justify-content: center; padding: 0; overflow: hidden;
-  border: 1.5px dashed var(--border-default); border-radius: 16px; background: var(--mrt-gray-50); color: var(--text-strong); cursor: pointer;
+  border: 1.5px dashed var(--border-default); border-radius: var(--adm-card-radius); background: var(--mrt-gray-50); color: var(--text-strong); cursor: pointer;
 }
 .admin-app-wrapper .hm-icon-img:hover { border-color: var(--mrt-gray-400); }
 .admin-app-wrapper .hm-icon-img.has-image { border: 0; }
@@ -191,14 +191,14 @@
 
 /* 여행지 테마 배너 */
 .admin-app-wrapper .hm-theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-.admin-app-wrapper .hm-theme-card { display: flex; flex-direction: column; overflow: hidden; background: #fff; border: 1px solid var(--border-default); border-radius: 20px; min-width: 0; }
+.admin-app-wrapper .hm-theme-card { display: flex; flex-direction: column; overflow: hidden; background: #fff; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); min-width: 0; }
 .admin-app-wrapper .hm-theme-img { position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; background-color: var(--mrt-gray-100); cursor: pointer; }
 .admin-app-wrapper .hm-theme-name { position: absolute; top: 12px; left: 12px; padding: 3px 10px; border-radius: 999px; background: var(--mrt-ink); color: #fff; font-size: 12px; font-weight: 700; }
 .admin-app-wrapper .hm-theme-fields { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
 
 /* 비어 있을 때 */
 .admin-app-wrapper .hm-empty {
-  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 36px; border: 1.5px dashed var(--border-default); border-radius: 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 36px; border: 1.5px dashed var(--border-default); border-radius: var(--adm-card-radius);
   background: #fff; font: inherit; font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer;
 }
 .admin-app-wrapper button.hm-empty:hover { border-color: var(--mrt-ink); color: var(--text-strong); }

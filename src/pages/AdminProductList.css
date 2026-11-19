@@ -1,15 +1,15 @@
 /* 상품 목록 — Admin Dashboard v3 "04-1 상품 관리 - 상품 목록". 관리자 토큰을 민트로 바꿔 이 목록에만 적용합니다. */
 .pd-list {
-  display: flex; flex-direction: column; gap: 16px; min-width: 0;
+  display: flex; flex-direction: column; gap: var(--adm-gap-section); min-width: 0;
 }
 .pd-list button { font: inherit; cursor: pointer; }
 .pd-list :is(button, input):focus-visible { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }
 
 /* 요약 카드 = 상태·추천 필터 */
 .pd-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; }
-.pd-kpi { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 16px 18px; border: 1px solid var(--border-default); border-radius: 18px; background: #fff; text-align: left; transition: border-color .14s ease; }
+.pd-kpi { display: flex; align-items: center; gap: 12px; min-width: 0; padding: var(--adm-kpi-pad); border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; text-align: left; transition: border-color .14s ease; }
 .pd-kpi:hover { border-color: var(--mrt-gray-300); }
-.pd-kpi.is-active, .pd-kpi.is-active:hover { padding: 15.5px 17.5px; border: 1.5px solid var(--mrt-ink); }
+.pd-kpi.is-active, .pd-kpi.is-active:hover { padding: var(--adm-kpi-pad-active); border: 1.5px solid var(--mrt-ink); }
 .pd-kpi > span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pd-kpi-icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
 .pd-kpi-icon[data-tone="green"] { background: var(--mrt-green-soft); color: var(--mrt-green); }
@@ -20,7 +20,7 @@
 .pd-kpi strong { color: var(--text-strong); font-size: 24px; font-weight: 800; letter-spacing: -.03em; line-height: 1.2; font-variant-numeric: tabular-nums; }
 
 /* 목록 카드 */
-.pd-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.pd-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-card-radius); background: #fff; }
 .pd-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px 20px; }
 .pd-search { display: flex; align-items: center; gap: var(--spacing-4); box-sizing: border-box; flex: 1 1 200px; min-width: 200px; max-width: 320px; height: var(--adm-input-h); padding: 0 var(--spacing-12); border: 0; border-radius: var(--adm-input-radius); background: var(--adm-input-search-bg); color: var(--adm-input-placeholder); transition: box-shadow var(--adm-dur); }
 .pd-search:focus-within { box-shadow: inset 0 0 0 1px var(--adm-input-line-focus), var(--adm-input-ring); }
@@ -97,7 +97,7 @@
 
 @media (max-width: 760px) {
   .pd-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .pd-kpi { padding: 12px; border-radius: 14px; }
+  .pd-kpi { padding: 12px; border-radius: var(--adm-inner-radius); }
   .pd-kpi.is-active { padding: 11.5px; }
   .pd-kpi strong { font-size: 20px; }
   .pd-toolbar { padding: 12px; }
