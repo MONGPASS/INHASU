@@ -40,7 +40,7 @@
 .cw-breadcrumb > span:last-child { font-weight: 600; color: var(--text-strong); overflow-wrap: anywhere; }
 
 /* 상태 배지 */
-.cw-badge { --cw-tone: #6b7280; --cw-tone-rgb: 107,114,128; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; flex: none; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; color: var(--cw-tone); background: radial-gradient(75% 150% at 20% 50%, rgba(var(--cw-tone-rgb),.22) 0%, rgba(var(--cw-tone-rgb),0) 72%), #fff; box-shadow: inset 0 0 0 1px rgba(var(--cw-tone-rgb),.2), 0 1px 2px rgba(16,24,40,.05); }
+.cw-badge { --cw-tone: #6b7280; --cw-tone-rgb: 107,114,128; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; flex: none; border-radius: var(--adm-badge-radius); font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; color: var(--cw-tone); background: radial-gradient(75% 150% at 20% 50%, rgba(var(--cw-tone-rgb),.22) 0%, rgba(var(--cw-tone-rgb),0) 72%), #fff; box-shadow: inset 0 0 0 1px rgba(var(--cw-tone-rgb),.2), 0 1px 2px rgba(16,24,40,.05); }
 .cw-badge::before { content: ''; width: 6px; height: 6px; flex: none; border-radius: 999px; background: var(--cw-tone); box-shadow: 0 0 6px rgba(var(--cw-tone-rgb),.6); }
 .cw-badge.is-ok { --cw-tone: #18a957; --cw-tone-rgb: 24,169,87; }
 .cw-badge.is-wait { --cw-tone: #e8890c; --cw-tone-rgb: 240,140,0; }
@@ -188,7 +188,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: #fbfefd; 
 .cw-travelers dt { color: var(--text-tertiary); }
 .cw-travelers dd { margin: 0; font-weight: 700; color: var(--text-strong); text-align: right; overflow-wrap: anywhere; }
 .cw-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.cw-chips > span { padding: 4px 10px; border-radius: 999px; background: var(--mrt-gray-50); font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.cw-chips > span { padding: 4px 10px; border-radius: var(--adm-badge-radius); background: var(--adm-badge-neutral-bg); font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .cw-preferences > p { font-size: 13px; color: var(--text-tertiary); }
 .cw-agreement { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); }
 .cw-agreement > svg { color: var(--mrt-blue-strong); }

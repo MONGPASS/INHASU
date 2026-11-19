@@ -101,7 +101,7 @@
 .headLink { margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; color: var(--text-link); text-decoration: none; }
 .headLink:hover { color: var(--mrt-blue-strong); }
 .pills { display: flex; gap: 6px; flex-wrap: wrap; }
-.pill { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff;
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: var(--adm-chip-radius); background: #fff;
   font: inherit; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; }
 .pill[aria-pressed="true"] { font-weight: 700; border-color: var(--mrt-gray-900); background: var(--mrt-gray-900); color: #fff; }
 .pillN { font-family: var(--font-sans); font-size: 12px; font-weight: 700; color: var(--text-tertiary); }

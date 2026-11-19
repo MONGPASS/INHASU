@@ -20,7 +20,7 @@
 .admin-app-wrapper .cg-table td.cell-muted { max-width: 360px; overflow: hidden; color: var(--text-secondary); font-size: 14px; white-space: nowrap; text-overflow: ellipsis; }
 .admin-app-wrapper .cg-table td.cg-count { color: var(--text-strong); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .admin-app-wrapper .cg-page .switch.on, .admin-app-wrapper .cg-drawer .switch.on { background: var(--mrt-blue); }
-.admin-app-wrapper .cg-table .act-btn { width: 36px; height: 36px; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); }
+.admin-app-wrapper .cg-table .act-btn { width: 36px; height: 36px; border: 0; border-radius: var(--adm-icon-btn-radius); background: transparent; color: var(--text-secondary); }
 .admin-app-wrapper .cg-table .act-btn:hover { background: var(--mrt-gray-100); color: var(--text-strong); }
 .admin-app-wrapper .cg-table .act-btn.danger:hover { background: var(--mrt-red-soft); color: var(--mrt-red); }
 .admin-app-wrapper .cg-fixed { display: inline-grid; place-items: center; width: 36px; height: 36px; color: var(--text-tertiary); font-size: 11px; font-weight: 700; }
@@ -31,7 +31,7 @@
 .admin-app-wrapper .cg-drawer > form { flex: 1; min-height: 0; }
 .admin-app-wrapper .cg-drawer .card-head { padding: 18px 22px; border-bottom: 1px solid var(--border-default); }
 .admin-app-wrapper .cg-drawer .card-head h2 { margin: 0; color: var(--text-strong); font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
-.admin-app-wrapper .cg-drawer .card-head .act-btn { width: 36px; height: 36px; border: 0; border-radius: 999px; background: transparent; }
+.admin-app-wrapper .cg-drawer .card-head .act-btn { width: 36px; height: 36px; border: 0; border-radius: var(--adm-icon-btn-radius); background: transparent; }
 .admin-app-wrapper .cg-drawer .card-head .act-btn:hover { background: var(--mrt-gray-100); }
 .admin-app-wrapper .cg-drawer-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 22px; }
 .admin-app-wrapper .cg-drawer .field > label { color: var(--text-strong); font-size: 13px; font-weight: 800; }

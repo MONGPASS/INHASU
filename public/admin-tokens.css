@@ -117,6 +117,49 @@
   --adm-label-fw: var(--adm-fw-semibold);
   --adm-label-fg: var(--semantic-foreground-neutral-secondary);
   --adm-label-gap: var(--spacing-8);
+  /* ── 표(Montage Table): 머리 13px 굵게 보조 글자·흰 바탕, 칸 좌우 20, 줄 1px ── */
+  --adm-table-head-h: calc(var(--dimension-40) + var(--spacing-4)); --adm-table-head-pad-y: var(--spacing-8);  /* 44px */
+  --adm-table-head-fs: var(--typography-label2-fontSize); --adm-table-head-fw: var(--adm-fw-bold); --adm-table-head-fg: var(--semantic-foreground-neutral-secondary);
+  --adm-table-head-bg: var(--semantic-background-neutral-primary);
+  --adm-table-pad-x: var(--spacing-20); --adm-table-cell-pad-y: var(--spacing-16); --adm-table-cell-pad-y-sm: var(--spacing-12);
+  --adm-table-fs: var(--typography-label1-fontSize);              /* Montage 기본 16px 대신 14px(7절 예외) */
+  --adm-table-fg: var(--semantic-foreground-neutral-primary);
+  --adm-table-line: var(--semantic-line-neutral-secondaryOpaque);
+  --adm-table-row-hover: var(--semantic-surface-neutral-tertiary);
+
+  /* ── 상태 배지(Montage ContentBadge small): 모서리 8, 12px 500, 글자색 + 같은 색 8% 바탕 ── */
+  --adm-badge-radius: var(--radius-8); --adm-badge-pad: var(--spacing-4) var(--spacing-6);
+  --adm-badge-fs: var(--typography-caption1-fontSize); --adm-badge-fw: var(--adm-fw-medium);
+  --adm-badge-radius-xs: var(--radius-8); --adm-badge-pad-xs: 3px var(--spacing-6); --adm-badge-fs-xs: var(--typography-caption2-fontSize);
+  --adm-badge-success-bg: var(--semantic-surface-positive-primary);   --adm-badge-success-fg: var(--semantic-foreground-positive-primary);
+  --adm-badge-warn-bg: var(--semantic-surface-cautionary-primary);    --adm-badge-warn-fg: var(--semantic-foreground-cautionary-primary);
+  --adm-badge-danger-bg: var(--semantic-surface-negative-primary);    --adm-badge-danger-fg: var(--semantic-foreground-negative-primary);
+  --adm-badge-info-bg: rgba(var(--atomic-blue-50-rgb), .08);          --adm-badge-info-fg: var(--atomic-blue-50);
+  --adm-badge-brand-bg: var(--semantic-surface-brand-subtle);         --adm-badge-brand-fg: var(--semantic-foreground-brand-primary);
+  --adm-badge-neutral-bg: var(--semantic-surface-neutral-secondary);  --adm-badge-neutral-fg: var(--semantic-foreground-neutral-tertiary);
+
+  /* ── 칩(Montage Chip outlined): medium 36px·모서리 10·13px 500 / small 32px·12px, 고르면 연한 민트 ── */
+  --adm-chip-h: var(--dimension-36); --adm-chip-h-sm: var(--dimension-32); --adm-chip-radius: var(--radius-10);
+  --adm-chip-pad-x: var(--spacing-12); --adm-chip-pad-x-sm: var(--spacing-10);
+  --adm-chip-fs: var(--typography-label2-fontSize); --adm-chip-fs-sm: var(--typography-caption1-fontSize); --adm-chip-fw: var(--adm-fw-medium);
+  --adm-chip-line: var(--semantic-line-neutral-secondary); --adm-chip-fg: var(--semantic-foreground-neutral-primary);
+  --adm-chip-active-bg: var(--semantic-surface-brand-subtle); --adm-chip-active-line: var(--semantic-line-brand-primary); --adm-chip-active-fg: var(--semantic-foreground-brand-primary);
+
+  /* ── 묶음형 탭(Montage SegmentedControl small): 회색 틀 32px·모서리 10, 고른 칸은 흰 바탕 + 작은 그림자 ── */
+  --adm-seg-h: var(--dimension-32); --adm-seg-radius: var(--radius-10); --adm-seg-pad: var(--spacing-4);
+  --adm-seg-item-radius: var(--radius-8); --adm-seg-item-pad-x: var(--spacing-10); --adm-seg-fs: var(--typography-caption1-fontSize); --adm-seg-fw: var(--adm-fw-medium);
+  --adm-seg-bg: var(--semantic-surface-neutral-secondary); --adm-seg-fg: var(--semantic-foreground-neutral-tertiary);
+  --adm-seg-active-bg: var(--semantic-surface-elevated-primary); --adm-seg-active-fg: var(--semantic-foreground-neutral-primary); --adm-seg-active-shadow: var(--semantic-elevation-shadow-normal-xsmall);
+
+  /* ── 밑줄형 탭(Montage Tab small): 15px 굵게, 고른 탭은 검은 2px 밑줄 ── */
+  --adm-tab-fs: var(--typography-body2-fontSize); --adm-tab-fw: var(--adm-fw-bold); --adm-tab-pad: 9px var(--spacing-12);
+  --adm-tab-fg: var(--semantic-foreground-neutral-tertiary); --adm-tab-active-fg: var(--semantic-foreground-neutral-primary);
+  --adm-tab-indicator: var(--semantic-foreground-neutral-strong); --adm-tab-line: var(--semantic-line-neutral-tertiary);
+
+  /* ── 아이콘 버튼(Montage IconButton): 테두리형은 원(40/32), 기본형은 투명·모서리 10(36/32) ── */
+  --adm-icon-btn: var(--dimension-40); --adm-icon-btn-sm: var(--dimension-32); --adm-icon-btn-radius: var(--radius-10);
+  --adm-icon-btn-line: var(--semantic-line-neutral-secondary); --adm-icon-btn-fg: var(--semantic-foreground-neutral-secondary);
+
   --adm-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2337383C' stroke-opacity='.61' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 
   /* ── 그림자·겹침 순서·움직임 ── */

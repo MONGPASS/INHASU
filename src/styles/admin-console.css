@@ -153,12 +153,13 @@
 .admin-app-wrapper .search-pill .material-symbols-outlined { font-size: 18px; }
 .admin-app-wrapper .search-pill input { border: none; background: none; outline: none; font: inherit; font-size: var(--adm-fs-input); color: var(--adm-input-fg); width: 100%; }
 
+/* 아이콘 버튼: Montage IconButton outlined medium(원 40px, 1px 선) */
 .admin-app-wrapper .icon-btn {
-  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-default);
-  background: #fff; color: var(--mrt-gray-700); display: grid; place-items: center; cursor: pointer;
+  width: var(--adm-icon-btn); height: var(--adm-icon-btn); border-radius: var(--radius-full); border: 1px solid var(--adm-icon-btn-line);
+  background: var(--adm-surface); color: var(--adm-icon-btn-fg); display: grid; place-items: center; cursor: pointer;
   position: relative; transition: background var(--dur-fast), border var(--dur-fast);
 }
-.admin-app-wrapper .icon-btn:hover { background: var(--mrt-gray-50); border-color: var(--border-strong); }
+.admin-app-wrapper .icon-btn:hover { background: var(--adm-surface) linear-gradient(var(--adm-btn-hover-overlay), var(--adm-btn-hover-overlay)); color: var(--adm-text); }
 .admin-app-wrapper .icon-btn .badge-dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--mrt-red); border: 1.5px solid #fff; }
 
 .admin-app-wrapper .content { flex: 1; padding: 28px 32px 56px; }
@@ -284,55 +285,59 @@
 }
 
 /* ============ Badges ============ */
+/* 상태 배지: Montage ContentBadge small(모서리 8, 12px 500, 글자색 + 같은 색 8% 바탕) */
 .admin-app-wrapper .badge {
-  display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700;
-  padding: 3px 9px; border-radius: 999px; letter-spacing: -0.01em; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: var(--spacing-4); font-size: var(--adm-badge-fs); font-weight: var(--adm-badge-fw); line-height: 1.334;
+  padding: var(--adm-badge-pad); border-radius: var(--adm-badge-radius); white-space: nowrap;
 }
 .admin-app-wrapper .badge .material-symbols-outlined { font-size: 14px; }
 .admin-app-wrapper .badge .pulse { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.admin-app-wrapper .b-blue { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
-.admin-app-wrapper .b-purple { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
-.admin-app-wrapper .b-red { background: var(--mrt-red-soft); color: var(--mrt-red); }
-.admin-app-wrapper .b-green { background: var(--mrt-green-soft); color: var(--mrt-green); }
-.admin-app-wrapper .b-amber { background: #FFF3DC; color: #B7791F; }
-.admin-app-wrapper .b-gray { background: var(--mrt-gray-100); color: var(--mrt-gray-600); }
-.admin-app-wrapper .b-ink { background: var(--mrt-ink); color: #fff; }
+.admin-app-wrapper .b-blue { background: var(--adm-badge-info-bg); color: var(--adm-badge-info-fg); }
+.admin-app-wrapper .b-purple { background: var(--adm-badge-brand-bg); color: var(--adm-badge-brand-fg); }
+.admin-app-wrapper .b-red { background: var(--adm-badge-danger-bg); color: var(--adm-badge-danger-fg); }
+.admin-app-wrapper .b-green { background: var(--adm-badge-success-bg); color: var(--adm-badge-success-fg); }
+.admin-app-wrapper .b-amber { background: var(--adm-badge-warn-bg); color: var(--adm-badge-warn-fg); }
+.admin-app-wrapper .b-gray { background: var(--adm-badge-neutral-bg); color: var(--adm-badge-neutral-fg); }
+.admin-app-wrapper .b-ink { background: var(--semantic-surface-neutral-inverse); color: var(--semantic-foreground-neutral-inverse); }
 
 /* ============ Chips / filters ============ */
 .admin-app-wrapper .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+/* 칩(거르기): Montage Chip outlined medium(36px·모서리 10·13px 500), 고른 칩은 연한 민트 */
 .admin-app-wrapper .chip {
-  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
-  border-radius: 999px; border: 1px solid var(--border-default); background: #fff;
-  font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer;
-  transition: all var(--dur-fast); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: var(--spacing-4); box-sizing: border-box; height: var(--adm-chip-h); padding: 0 var(--adm-chip-pad-x);
+  border-radius: var(--adm-chip-radius); border: 1px solid var(--adm-chip-line); background: var(--adm-surface);
+  font-size: var(--adm-chip-fs); font-weight: var(--adm-chip-fw); color: var(--adm-chip-fg); cursor: pointer;
+  transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast); white-space: nowrap;
 }
-.admin-app-wrapper .chip:hover { border-color: var(--border-strong); color: var(--text-strong); }
-.admin-app-wrapper .chip.active { background: var(--mrt-ink); border-color: var(--mrt-ink); color: #fff; }
-.admin-app-wrapper .chip .ct { font-size: 12px; font-weight: 700; opacity: 0.7; }
-.admin-app-wrapper .chip.active .ct { opacity: 0.85; }
+.admin-app-wrapper .chip:hover { background: var(--adm-surface) linear-gradient(var(--adm-btn-hover-overlay), var(--adm-btn-hover-overlay)); }
+.admin-app-wrapper .chip.active { background: var(--adm-chip-active-bg); border-color: var(--adm-chip-active-line); color: var(--adm-chip-active-fg); }
+.admin-app-wrapper .chip .ct { font-size: var(--adm-chip-fs-sm); font-weight: var(--adm-fw-bold); opacity: 0.7; }
+.admin-app-wrapper .chip.active .ct { opacity: 1; }
 
-.admin-app-wrapper .seg { display: inline-flex; background: var(--mrt-gray-100); border-radius: 999px; padding: 3px; gap: 2px; }
+/* 묶음형 탭(보기 방식·기간): Montage SegmentedControl small */
+.admin-app-wrapper .seg { display: inline-flex; box-sizing: border-box; height: var(--adm-seg-h); background: var(--adm-seg-bg); border-radius: var(--adm-seg-radius); padding: var(--adm-seg-pad); gap: 0; }
 .admin-app-wrapper .seg button {
-  border: none; background: none; font: inherit; font-size: 13px; font-weight: 700;
-  color: var(--text-secondary); padding: 7px 16px; border-radius: 999px; cursor: pointer;
-  transition: all var(--dur-fast);
+  border: none; background: none; font: inherit; font-size: var(--adm-seg-fs); font-weight: var(--adm-seg-fw);
+  color: var(--adm-seg-fg); padding: 0 var(--adm-seg-item-pad-x); border-radius: var(--adm-seg-item-radius); cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
 }
-.admin-app-wrapper .seg button.active { background: #fff; color: var(--text-strong); box-shadow: var(--shadow-xs); }
+.admin-app-wrapper .seg button.active { background: var(--adm-seg-active-bg); color: var(--adm-seg-active-fg); box-shadow: var(--adm-seg-active-shadow); }
 
 /* ============ Tables ============ */
 .admin-app-wrapper .tbl-wrap { overflow-x: auto; }
-.admin-app-wrapper table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+/* 표: Montage Table(머리 44px·13px 굵게, 칸 좌우 20·위아래 16, 1px 줄) */
+.admin-app-wrapper table.tbl { width: 100%; border-collapse: collapse; font-size: var(--adm-table-fs); }
 .admin-app-wrapper .tbl thead th {
-  text-align: left; padding: 11px 18px; font-size: 11.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary);
-  background: var(--mrt-gray-50); border-bottom: 1px solid var(--border-subtle); white-space: nowrap;
+  text-align: left; height: var(--adm-table-head-h); padding: var(--adm-table-head-pad-y) var(--adm-table-pad-x); font-size: var(--adm-table-head-fs); font-weight: var(--adm-table-head-fw);
+  color: var(--adm-table-head-fg);
+  background: var(--adm-table-head-bg); border-bottom: 1px solid var(--adm-table-line); white-space: nowrap;
 }
 .admin-app-wrapper .tbl thead th.r { text-align: right; }
 .admin-app-wrapper .tbl thead th.c { text-align: center; }
-.admin-app-wrapper .tbl tbody td { padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); color: var(--text-body); vertical-align: middle; white-space: nowrap; }
+.admin-app-wrapper .tbl tbody td { padding: var(--adm-table-cell-pad-y) var(--adm-table-pad-x); border-bottom: 1px solid var(--adm-table-line); color: var(--adm-table-fg); vertical-align: middle; white-space: nowrap; }
 .admin-app-wrapper .tbl tbody tr:last-child td { border-bottom: none; }
 .admin-app-wrapper .tbl tbody tr { transition: background var(--dur-fast); cursor: pointer; }
-.admin-app-wrapper .tbl tbody tr:hover { background: var(--mrt-gray-50); }
+.admin-app-wrapper .tbl tbody tr:hover { background: var(--adm-table-row-hover); }
 .admin-app-wrapper .tbl td.r { text-align: right; }
 .admin-app-wrapper .tbl td.c { text-align: center; }
 .admin-app-wrapper .cell-strong { font-weight: 700; color: var(--text-strong); white-space: nowrap; }
@@ -836,11 +841,12 @@
 .admin-app-wrapper .ev-amber { background: #FFF3DC; color: #B7791F; }
 
 /* ============ Product editor tabs ============ */
-.admin-app-wrapper .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border-default); margin-bottom: 22px; }
-.admin-app-wrapper .tab { display: inline-flex; align-items: center; gap: 6px; padding: 12px 16px; font-size: 14px; font-weight: 700; color: var(--text-tertiary); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color var(--dur-fast); white-space: nowrap; }
+/* 밑줄형 탭: Montage Tab small(15px 굵게, 고른 탭은 검은 2px 밑줄, 아래 1px 옅은 선) */
+.admin-app-wrapper .tabs { display: flex; gap: var(--spacing-4); border-bottom: 1px solid var(--adm-tab-line); margin-bottom: var(--spacing-24); }
+.admin-app-wrapper .tab { display: inline-flex; align-items: center; gap: var(--spacing-6); padding: var(--adm-tab-pad); font-size: var(--adm-tab-fs); font-weight: var(--adm-tab-fw); color: var(--adm-tab-fg); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color var(--dur-fast); white-space: nowrap; }
 .admin-app-wrapper .tab .material-symbols-outlined { font-size: 19px; }
-.admin-app-wrapper .tab:hover { color: var(--text-secondary); }
-.admin-app-wrapper .tab.active { color: var(--text-strong); border-bottom-color: var(--mrt-ink); }
+.admin-app-wrapper .tab:hover { color: var(--adm-text-2); }
+.admin-app-wrapper .tab.active { color: var(--adm-tab-active-fg); border-bottom-color: var(--adm-tab-indicator); }
 
 /* form */
 /* 입력창: Montage TextField medium(40px·모서리 12·1px 선). 라벨은 위, 12px 600 보조 글자 */

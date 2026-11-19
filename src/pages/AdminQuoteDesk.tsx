@@ -528,12 +528,11 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                     </button>
                 </> : <>
                     {tool.key === 'resources' && (
-                        // 디자인 v4: 회색 바탕 알약 안에서 선택한 쪽만 흰 바탕·그림자
-                        <span role="group" aria-label="보기" style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: '#f2f4f6' }}>
+                        // Montage SegmentedControl: 회색 상자 안에서 선택한 쪽만 흰 바탕·그림자(공통 .seg)
+                        <span role="group" aria-label="보기" className="seg">
                             {([[false, '등록 정보'], [true, '가이드 배정 현황']] as const).map(([on, label]) => (
                                 <button key={label} type="button" aria-pressed={scheduleView === on} onClick={() => setScheduleView(on)}
-                                    style={{ display: 'flex', alignItems: 'center', height: 38, padding: '0 18px', border: 0, borderRadius: 999, font: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                                        background: scheduleView === on ? '#fff' : 'transparent', color: scheduleView === on ? '#1A1B1E' : '#6b7684', boxShadow: scheduleView === on ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}>{label}</button>
+                                    className={scheduleView === on ? 'active' : undefined}>{label}</button>
                             ))}
                         </span>
                     )}

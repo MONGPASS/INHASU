@@ -418,8 +418,8 @@
 .reservation-workspace.product-workspace .rw-progress-label {
     flex: none;
     padding: 6px 10px;
-    border-radius: 999px;
-    background: #f3f6f5;
+    border-radius: var(--adm-badge-radius);
+    background: var(--adm-badge-neutral-bg);
     color: #62736f;
     font-size: 11px;
     line-height: 1.5;
