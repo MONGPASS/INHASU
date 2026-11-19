@@ -13,7 +13,7 @@
 - **두 플랫폼을 합친 저장소** (2026-10-12):
   - **INHASU** (`MONGPASS/INHASU`, 기준 저장소): 한국 고객용 맞춤 견적 시스템. 정적 HTML + 바닐라 JS + Pages Functions(JS). 견적요청 → 견적서 → 입금 신고 → 계약서 서명 → 여행자정보 → 확정일정표, Solapi 카카오 알림톡.
   - **MILKYWAY-JAPAN** (`arvijixmeat-maker/MILKYWAY-JAPAN`): 여행상품·예약·후기·매거진 사이트. React 19 + TS + Vite + Hono. 원래 일본인 대상 일본어 사이트였고, 한국어로 번역해 이 저장소에 넣었다.
-- 오너 방침: 양쪽 기능 모두 유지, **관리자는 `/admin` 하나**, 고객 플랫폼은 MILKYWAY 디자인(민트 `#27AB8F` + 네이비 `#0A1F2E`)으로 통일.
+- 오너 방침: 양쪽 기능 모두 유지, **관리자는 `/admin` 하나**, 고객 플랫폼은 MILKYWAY 디자인(민트 `#27AB8F` + 네이비 `#0A1F2E`)으로 통일. **관리자(`/admin`과 그 안의 견적 도구)는 이 색 규칙이 아니라 Montage 디자인 시스템(민트 brand)을 따른다**(5.0절).
 
 ## 2. 구조 — 한 Cloudflare Pages 프로젝트(`inhasu`)에 둘이 함께 산다
 
@@ -116,15 +116,18 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 이미지·홈 공개 검증: `node scripts/check-admin-media.mjs`(npm ci 필요). 로컬 Lucia/SQLite/메모리 R2로 관리자 업로드·상품/배너 저장·초안 비노출·작은 이미지·ETag·Cache API를 검사한다. `--serve`는 8793번 포트의 테스트 관리자 화면을 연다. 운영 DB·R2·발송 서비스에 연결하지 않는다.
 - 검색 기준은 **몽골 여행·몽골 투어**. 공개 상품·매거진·카테고리·기획전은 서버가 메타와 읽을 수 있는 본문을 주입한다. 실제 공개 데이터만 sitemap/상품 schema에 넣고, 숨김·없는 상세는 404, 일시 DB 실패는 재시도 가능한 503으로 응답한다. 관리자·고객 문서·미리보기 호스트는 noindex다. `tests/public-seo.test.mjs`는 Miniflare의 실제 HTMLRewriter/D1도 검증하므로 로컬 루프백 연결이 필요하다.
 
-### 5.0 관리자 디자인 규칙 (2026-11-11)
+### 5.0 관리자 디자인 규칙 (2026-11-11, Montage 전환 2026-11-19)
 
-- 관리자(React 화면 + iframe 견적 도구)의 색·글자 크기·간격·모서리·버튼/입력창 높이는 **`public/admin-tokens.css`의 `--adm-*` 변수 하나**가 정본이다. React는 `admin-console.css` 첫 줄의 `@import`로, 견적 도구 문서는 `<link href="/admin-tokens.css">`로 같은 파일을 읽는다. 사본을 만들거나 화면별 CSS에 민트 값을 다시 적지 말 것. 옛 이름(`--mrt-blue`, `--accent`, `--p`, `--brand` 등)은 별칭으로만 남아 있다.
+- **관리자는 Montage(`@montage-ui/core` 4.x, brand만 INHASU 민트) 디자인 시스템을 따른다.** 대상은 `/admin` 아래 React 화면과 관리자 안 견적 도구 8개(견적관리·예약목록·예약관리·견적만들기·코스관리·일정관리·명소관리·리소스관리.html)다. 고객 사이트·상품 디자인 템플릿·고객 문서(견적서·확정일정표·계약서·가이드 시트·가이드 피켓)·`public/style.css`는 대상이 아니며 지금 디자인을 그대로 둔다. 구조·업무 흐름은 `docs/admin-design-system.md`(4절 화면 유형, 5절 저장·삭제·알림, 8절 휴대폰), 겉모양은 Montage를 따른다(둘이 부딪히면 이 순서).
+- Montage 토큰은 `public/admin-montage.css`(Montage `dist/theme.css`의 라이트 테마 + 민트 brand 9개)에 있고, `public/admin-tokens.css` 맨 위에서만 `@import`한다. 민트 brand: 진한 민트 `#1C8571`(주요 버튼 바탕·링크·선택 글자, 흰 글자 대비 4.5:1) / 눌림 `#187A67` / 더 진하게 `#146B5A` / 연한 민트 `#27AB8F` 반투명(선택 바탕 1A·테두리 47·포커스 33). **버튼 바탕에 `#27AB8F`를 직접 쓰지 말 것.** 안내·진행 상태색은 파랑(`--atomic-blue-50`)으로 두어 완료(초록)와 구분한다.
+- 관리자 CSS의 색·글자 크기·간격·모서리·버튼/입력창 높이는 **`public/admin-tokens.css`의 `--adm-*` 변수**(값은 Montage 변수를 가리킨다) 또는 Montage 변수(`--semantic-*`, `--typography-*`, `--spacing-*`, `--radius-*`)만 쓴다. **hex 색 고정값을 새로 쓰지 말 것** — `tests/admin-design-tokens.test.mjs`가 파일별 hex 개수가 기준보다 늘면 실패한다(줄였으면 기준 숫자도 줄인다). React는 `admin-console.css` 첫 줄의 `@import`로, 견적 도구 문서는 `<link href="/admin-tokens.css">`로 같은 파일을 읽는다. 사본을 만들지 말 것. 옛 이름(`--mrt-blue`, `--accent`, `--p`, `--brand` 등)은 별칭으로만 남아 있다.
+- 버튼·입력창·표·배지·탭·팝업·알림은 Montage 부품(Button·TextField·Select·Table·ContentBadge·Tab/SegmentedControl·Modal·Toast 등)의 모양과 크기를 쓴다. 버튼 높이는 Montage 크기 small 32 / medium 40 / large 48px이며 휴대폰도 같다(예전 44px 규칙은 없앴다). 부품 교체는 단계별이다(디자인 문서 1절의 Montage 전환 표: M2 공통 틀 → M3 공통 부품 → M4 화면 유형별 틀). 교체 전까지는 기존 공통 부품(`.adm-btn` 등)이 토큰을 통해 Montage 값을 쓴다.
 - **새 화면·팝업은 `docs/admin-design-system.md`의 공통 변수·공통 부품·유형별 틀(목록형·입력형·상세형·대시보드형)·업무 흐름 규칙을 따른다.** 따를 수 없으면 그 문서 7절 ‘예외 기록’에 화면·내용·이유를 남긴다. 화면이나 팝업을 더하거나 없애면 `docs/admin-screen-inventory.md`도 함께 고친다.
 - **휴대폰(760px 이하)에서는 같은 React 관리자가 앱 틀로 바뀐다**: 위 고정 바 + 아래 메뉴 5칸(홈·예약·견적·배정·전체) + 서랍 메뉴 + 아래에서 올라오는 팝업. 규칙은 `src/styles/admin-mobile.css`, 크기는 `admin-tokens.css`의 휴대폰 변수 블록 한 곳이다. 모바일 전용 화면을 따로 만들거나 화면별 CSS에 휴대폰용 버튼·입력창 크기를 적지 말 것. `AdminLayout`이 모든 화면에 서랍 메뉴(`admin-customer-menu-*` 클래스)와 `AdminMobileTabBar`를 넣는다.
 - 알림은 `adminNotify()`, 확인 창은 `await adminConfirm()`(`src/components/admin/ui/adminFeedback.tsx`)을 쓴다. 관리자 코드에 `alert()`·`confirm()`을 새로 쓰지 말 것(`tests/admin-design-tokens.test.mjs`가 검사). 화면 이동 차단(`useBlocker`)의 확인은 `adminConfirmLeave(blocker, 문구)`(`ui/adminLeaveConfirm.ts`)를 쓴다. 그 자리에서 참·거짓을 돌려줘야 하는 나가기 보호 6곳만 `window.confirm`을 유지한다(디자인 문서 7절).
 - 견적 도구의 확인·입력 창은 `await AdminDialog.confirm()`/`AdminDialog.prompt()`(`public/admin-dialog.js`)을 쓴다. 견적 문의·견적 예약 목록·견적서 만들기는 테스트가 `confirm`을 바꿔 끼우므로 `await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)(…)` 꼴로 쓴다(화면에서는 공통 창).
 - 견적 도구(iframe)의 버튼·입력창·서랍·알림 모양은 `public/admin-tools.css` 한 파일이 관리자 안(`html.admin-embedded`)에서만 맞춘다. 각 문서의 `<style>`에 관리자용 모양을 따로 덧붙이지 말 것. `예약관리.html`은 아직 연결하지 않았다.
-- 적용은 단계별이다(문서 1절). 공통 변수·휴대폰 앱 틀·공통 알림까지 끝났고 확인 창 교체·견적 도구 규격·필수 입력 표시(일부 화면)까지 끝났고 나머지 공통 부품·유형별 틀·나가기 보호는 남아 있다.
+- 적용은 단계별이다(문서 1절). 공통 변수·휴대폰 앱 틀·공통 알림까지 끝났고 확인 창 교체·견적 도구 규격·필수 입력 표시(일부 화면)까지 끝났다. Montage 전환은 1단계(토큰을 Montage로)까지 했고, 공통 틀·공통 부품·유형별 틀의 Montage 교체와 나가기 보호는 남아 있다. 기능·API·저장 로직·데이터 구조와 견적 도구의 파일 이름·주소·id·class는 디자인 작업에서 바꾸지 않는다(3.1, 3.3).
 - 필수 입력은 라벨 `className="adm-req"` + 저장 함수의 `adminValidateRequired()`(`src/components/admin/ui/adminForm.ts`)를 쓴다. 라벨 글자에 `*`를 직접 적거나 알림으로 필수 입력을 알리지 말 것.
 - 휴대폰에서 화면이 옆으로 넘치면 팝업·아래 메뉴 폭까지 틀어진다. 고정 칸 수 격자는 `admin-mobile.css`의 두 칸 목록에 넣는다.
 

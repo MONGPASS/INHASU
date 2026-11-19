@@ -1,93 +1,96 @@
+@import "./admin-montage.css";
 /* ============================================================
    은하수 관리자 공통 변수 (디자인 토큰) — 관리자 규격의 정본.
+   - 값은 Montage 디자인 시스템(public/admin-montage.css, brand만 INHASU 민트)을 가리킨다.
+     이 파일에는 색 고정값(#…)을 적지 않는다. 변수 이름(--adm-*)은 그대로 두고 값만 Montage 변수로 잇는다.
    - React 관리자(src/components/admin/AdminLayout.tsx)와
      같은 출처 iframe의 견적 도구(public/*.html)가 이 파일 하나를 함께 읽는다.
    - 색·글자 크기·간격·테두리·모서리·버튼/입력창 높이는 여기서만 정한다.
-     화면별 CSS에는 값을 다시 적지 말고 var(--adm-*)를 쓴다.
+     화면별 CSS에는 값을 다시 적지 말고 var(--adm-*)(또는 Montage 변수)를 쓴다.
    - 고객용 페이지·인쇄 문서는 이 파일을 쓰지 않는다(quote-theme.css, mwTokens.ts).
    규칙·예외는 docs/admin-design-system.md 참고.
    ============================================================ */
 :root {
-  /* ── 브랜드 민트 ── */
-  --adm-accent: #27AB8F;          /* 강조·선택·주요 버튼 */
-  --adm-accent-hover: #1F9A80;    /* 마우스를 올렸을 때 */
-  --adm-accent-strong: #1C8571;   /* 밝은 바탕 위의 민트 글자·링크 */
-  --adm-accent-deep: #146B5A;     /* 아주 진한 민트(강조 글자) */
-  --adm-accent-soft: #E9F7F3;     /* 옅은 민트 바탕 */
-  --adm-accent-line: #BFE6DB;     /* 민트 테두리 */
-  --adm-accent-rgb: 39, 171, 143; /* rgba(var(--adm-accent-rgb), .16) 처럼 쓴다 */
+  /* ── 브랜드 민트(Montage brand) ── */
+  --adm-accent: var(--semantic-surface-brand-primary);          /* 강조·선택·주요 버튼(진한 민트 #1C8571) */
+  --adm-accent-hover: var(--semantic-surface-brand-strong);     /* 마우스를 올렸을 때·눌림 */
+  --adm-accent-strong: var(--semantic-foreground-brand-primary);/* 밝은 바탕 위의 민트 글자·링크 */
+  --adm-accent-deep: var(--semantic-surface-brand-heavy);       /* 아주 진한 민트(강조 글자) */
+  --adm-accent-soft: var(--semantic-surface-brand-subtle);      /* 옅은 민트 바탕(선택 바탕) */
+  --adm-accent-line: var(--semantic-line-brand-primary);        /* 민트 테두리 */
+  --adm-accent-rgb: var(--semantic-line-brand-primary-rgb);     /* rgba(var(--adm-accent-rgb), .16) 처럼 쓴다(연한 민트) */
 
-  --adm-primary-bg: var(--adm-accent);            /* 주요 버튼 바탕(한 화면에 하나) */
-  --adm-primary-bg-hover: var(--adm-accent-hover);
+  --adm-primary-bg: var(--semantic-surface-brand-primary);      /* 주요 버튼 바탕(한 화면에 하나) */
+  --adm-primary-bg-hover: var(--semantic-surface-brand-strong);
 
   /* ── 글자·무채색 ── */
-  --adm-ink: #1A1B1E;             /* 제목·가장 진한 글자 */
-  --adm-text: #24262B;            /* 본문 */
-  --adm-text-2: #4A4E55;          /* 보조 글자 */
-  --adm-text-3: #8A8F99;          /* 설명·안내 글자 */
-  --adm-text-disabled: #B4B8C0;
-  --adm-gray-50: #F7F8FA;
-  --adm-gray-100: #F1F2F4;
-  --adm-gray-200: #E8EAED;
-  --adm-gray-300: #D7DAE0;
+  --adm-ink: var(--semantic-foreground-neutral-primary);        /* 제목·가장 진한 글자 */
+  --adm-text: var(--semantic-foreground-neutral-primary);       /* 본문 */
+  --adm-text-2: var(--semantic-foreground-neutral-secondary);   /* 보조 글자 */
+  --adm-text-3: var(--semantic-foreground-neutral-tertiary);    /* 설명·안내 글자 */
+  --adm-text-disabled: var(--semantic-foreground-disable-primary);
+  --adm-gray-50: var(--atomic-coolNeutral-99);
+  --adm-gray-100: var(--atomic-coolNeutral-98);
+  --adm-gray-200: var(--atomic-coolNeutral-97);
+  --adm-gray-300: var(--atomic-coolNeutral-96);
 
   /* ── 바탕·테두리 ── */
-  --adm-canvas: #F7F8FA;          /* 작업 배경 */
-  --adm-surface: #FFFFFF;         /* 카드·팝업 */
-  --adm-sunken: #F1F2F4;          /* 눌린 칸·표 머리 */
-  --adm-line: #E6E8EC;            /* 기본 테두리 */
-  --adm-line-subtle: #F1F2F4;     /* 옅은 구분선 */
-  --adm-line-strong: #D7DAE0;     /* 진한 테두리 */
-  --adm-border-width: 1px;
+  --adm-canvas: var(--semantic-background-neutral-secondary);   /* 작업 배경 */
+  --adm-surface: var(--semantic-background-neutral-primary);    /* 카드·팝업 */
+  --adm-sunken: var(--atomic-coolNeutral-98);                   /* 눌린 칸·표 머리(고정 머리가 비치지 않게 불투명) */
+  --adm-line: var(--semantic-line-neutral-secondaryOpaque);     /* 기본 테두리 */
+  --adm-line-subtle: var(--semantic-line-neutral-tertiaryOpaque); /* 옅은 구분선 */
+  --adm-line-strong: var(--semantic-line-neutral-primaryOpaque);  /* 진한 테두리 */
+  --adm-border-width: var(--primitive-1);
 
   /* ── 상태색(의미가 정해져 있다) ── */
-  --adm-danger: #FF4F4F;   --adm-danger-soft: #FFECEC;   /* 삭제·오류·미처리 */
-  --adm-warn: #E8890C;     --adm-warn-soft: #FFF4E2;     /* 주의·대기 */
-  --adm-success: #18A957;  --adm-success-soft: #E4F7EC;  /* 완료 */
-  --adm-info: #2D8CFF;     --adm-info-soft: #EAF3FF;     /* 안내·진행 */
-  --adm-neutral: #6B7280;  --adm-neutral-soft: #F1F2F4;  /* 보류·종료 */
+  --adm-danger: var(--semantic-foreground-negative-primary);   --adm-danger-soft: var(--semantic-surface-negative-primary);     /* 삭제·오류·미처리 */
+  --adm-warn: var(--semantic-foreground-cautionary-primary);   --adm-warn-soft: var(--semantic-surface-cautionary-primary);     /* 주의·대기 */
+  --adm-success: var(--semantic-foreground-positive-primary);  --adm-success-soft: var(--semantic-surface-positive-primary);    /* 완료 */
+  --adm-info: var(--atomic-blue-50);                           --adm-info-soft: var(--atomic-blue-95);                          /* 안내·진행(파랑 — 완료 초록과 구분) */
+  --adm-neutral: var(--atomic-coolNeutral-50);                 --adm-neutral-soft: var(--semantic-surface-neutral-secondary);   /* 보류·종료 */
 
-  /* ── 글자 크기 ── */
+  /* ── 글자 크기(Montage typography) ── */
   --adm-font: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, system-ui, sans-serif;
-  --adm-fs-caption: 11px;   /* 배지·표 머리 */
-  --adm-fs-small: 12px;     /* 보조 설명 */
-  --adm-fs-body: 13px;      /* 목록·입력창·버튼 */
-  --adm-fs-base: 14px;      /* 본문 */
-  --adm-fs-lead: 16px;      /* 카드 제목 */
-  --adm-fs-section: 18px;   /* 구역 제목 */
-  --adm-fs-title: 28px;     /* 화면 제목 */
-  --adm-fs-title-sm: 22px;  /* 좁은 화면의 화면 제목 */
+  --adm-fs-caption: var(--typography-caption2-fontSize);   /* 11px 배지·표 머리 */
+  --adm-fs-small: var(--typography-caption1-fontSize);     /* 12px 보조 설명 */
+  --adm-fs-body: var(--typography-label2-fontSize);        /* 13px 목록·입력창·버튼 */
+  --adm-fs-base: var(--typography-label1-fontSize);        /* 14px 본문 */
+  --adm-fs-lead: var(--typography-body1-fontSize);         /* 16px 카드 제목 */
+  --adm-fs-section: var(--typography-headline1-fontSize);  /* 18px 구역 제목 */
+  --adm-fs-title: var(--typography-title2-fontSize);       /* 28px 화면 제목 */
+  --adm-fs-title-sm: var(--typography-heading1-fontSize);  /* 22px 좁은 화면의 화면 제목 */
   --adm-fw-regular: 400; --adm-fw-medium: 500; --adm-fw-semibold: 600; --adm-fw-bold: 700;
   --adm-lh: 1.55;
 
-  /* ── 간격 ── */
-  --adm-space-1: 4px; --adm-space-2: 8px; --adm-space-3: 12px; --adm-space-4: 16px;
-  --adm-space-5: 20px; --adm-space-6: 24px; --adm-space-8: 32px;
-  --adm-gap-control: 8px;    /* 버튼·입력창 사이 */
-  --adm-gap-section: 24px;   /* 구역 사이 */
-  --adm-pad-card: 20px;      /* 카드 안 여백 */
-  --adm-pad-page: 28px;      /* 화면 좌우 여백 */
+  /* ── 간격(Montage spacing) ── */
+  --adm-space-1: var(--spacing-4); --adm-space-2: var(--spacing-8); --adm-space-3: var(--spacing-12); --adm-space-4: var(--spacing-16);
+  --adm-space-5: var(--spacing-20); --adm-space-6: var(--spacing-24); --adm-space-8: var(--spacing-32);
+  --adm-gap-control: var(--spacing-8);    /* 버튼·입력창 사이 */
+  --adm-gap-section: var(--spacing-24);   /* 구역 사이 */
+  --adm-pad-card: var(--spacing-20);      /* 카드 안 여백 */
+  --adm-pad-page: var(--primitive-28);    /* 화면 좌우 여백 */
 
-  /* ── 모서리 ── */
-  --adm-radius-xs: 6px;      /* 배지·작은 버튼 */
-  --adm-radius-sm: 8px;      /* 버튼·입력창 */
-  --adm-radius-md: 12px;     /* 카드 */
-  --adm-radius-lg: 16px;     /* 팝업 */
-  --adm-radius-pill: 999px;  /* 칩·상태 */
+  /* ── 모서리(Montage radius) ── */
+  --adm-radius-xs: var(--radius-8);       /* 배지·작은 버튼 */
+  --adm-radius-sm: var(--radius-12);      /* 버튼·입력창(Montage medium) */
+  --adm-radius-md: var(--radius-16);      /* 카드 */
+  --adm-radius-lg: var(--radius-24);      /* 팝업 */
+  --adm-radius-pill: var(--radius-full);  /* 칩·상태 */
 
-  /* ── 버튼·입력창 높이 ── */
-  --adm-control-h: 40px;       /* 기본 */
-  --adm-control-h-sm: 32px;    /* 목록 안 작은 버튼 */
-  --adm-control-h-lg: 44px;    /* 저장 등 주요 버튼, 터치 화면 */
-  --adm-control-pad-x: 14px;
+  /* ── 버튼·입력창 높이(Montage size: small 32 / medium 40 / large 48, 휴대폰도 같다) ── */
+  --adm-control-h: var(--dimension-40);       /* 기본 medium */
+  --adm-control-h-sm: var(--dimension-32);    /* 목록 안 small */
+  --adm-control-h-lg: var(--dimension-48);    /* 저장 등 주요 버튼 large */
+  --adm-control-pad-x: var(--spacing-16);
 
   /* ── 그림자·겹침 순서·움직임 ── */
-  --adm-shadow-xs: 0 1px 2px rgba(26, 27, 30, .06);
-  --adm-shadow-sm: 0 2px 8px rgba(26, 27, 30, .06);
-  --adm-shadow-md: 0 4px 16px rgba(26, 27, 30, .08);
-  --adm-shadow-lg: 0 8px 28px rgba(26, 27, 30, .12);
-  --adm-ring: 0 0 0 3px rgba(var(--adm-accent-rgb), .18);
-  --adm-scrim: rgba(26, 27, 30, .42);  /* 팝업 뒤 어두운 막 */
+  --adm-shadow-xs: var(--semantic-elevation-shadow-normal-xsmall);
+  --adm-shadow-sm: var(--semantic-elevation-shadow-normal-small);
+  --adm-shadow-md: var(--semantic-elevation-shadow-normal-medium);
+  --adm-shadow-lg: var(--semantic-elevation-shadow-normal-large);
+  --adm-ring: 0 0 0 var(--primitive-4) var(--semantic-line-brand-focus);  /* 포커스(연한 민트 33) */
+  --adm-scrim: var(--semantic-effect-dimmer-primary);  /* 팝업 뒤 어두운 막 */
   --adm-z-dropdown: 60; --adm-z-drawer: 80; --adm-z-modal: 230; --adm-z-toast: 300;
   --adm-ease: cubic-bezier(.2, 0, .1, 1);
   --adm-dur: 160ms;
@@ -99,18 +102,15 @@
   --adm-fs-input: var(--adm-fs-body);   /* 입력창 글자 */
 }
 
-/* 휴대폰 폭(760px 이하): 같은 변수 이름으로 손가락에 맞는 크기를 준다.
-   화면별 CSS에서 휴대폰용 크기를 따로 정하지 않는다. */
+/* 휴대폰 폭(760px 이하): 버튼·입력창 높이는 PC와 같은 Montage 크기(32/40/48)를 쓴다.
+   글자·여백만 같은 변수 이름으로 바꾼다. 화면별 CSS에서 휴대폰용 크기를 따로 정하지 않는다. */
 @media (max-width: 760px) {
   :root {
-    --adm-control-h: 44px;
-    --adm-control-h-sm: 36px;
-    --adm-control-h-lg: 48px;
-    --adm-fs-input: 16px;       /* 16px보다 작으면 휴대폰이 화면을 확대한다 */
-    --adm-fs-title: 18px;
-    --adm-fs-section: 16px;
-    --adm-pad-page: 16px;
-    --adm-pad-card: 16px;
-    --adm-gap-section: 16px;
+    --adm-fs-input: var(--typography-body1-fontSize);    /* 16px: 이보다 작으면 휴대폰이 화면을 확대한다 */
+    --adm-fs-title: var(--typography-headline1-fontSize); /* 18px */
+    --adm-fs-section: var(--typography-body1-fontSize);  /* 16px */
+    --adm-pad-page: var(--spacing-16);
+    --adm-pad-card: var(--spacing-16);
+    --adm-gap-section: var(--spacing-16);
   }
 }
