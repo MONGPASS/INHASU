@@ -193,3 +193,5 @@ PC와 같은 화면·같은 부품이 휴대폰 폭에서 앱 모양으로 바�
 | M2 본문 최대 폭 | 시안 1240px 대신 기존 `--content-max`(1480px) 유지 | 예약 목록·캘린더처럼 넓은 표가 있는 화면이 좁아진다. 화면 유형별 틀(M4)에서 유형마다 정한다 |
 | M3 테두리 버튼 바탕 | Montage는 투명이지만 흰 바탕(`background-neutral-primary`) | 회색 작업 배경 위에 놓인 버튼이 배경과 섞이지 않게. 흰 카드 위에서는 같다 |
 | M3 위험 버튼 | 진한 빨강 바탕 대신 Montage negative(연한 빨강 바탕 + 빨간 글자) | Montage Button의 negative 색 그대로. 확인 창의 삭제 버튼도 같다 |
+| M3-① 이후에도 둥근(999px) 모양인 것 | 아이콘만 있는 원형 버튼, 칩, 탭·기간 선택(segmented)은 그대로 | 글자 버튼이 아니라 ③ 표·배지·탭 묶음에서 Montage IconButton·Chip·SegmentedControl로 맞춘다 |
+| 견적 예약 편집기(`quote-booking-workspace.css`)의 머리 버튼(`.hbtn`)·도구 버튼 | ①에서 바꾸지 않음 | 테스트가 이 CSS의 문자열을 검사하고 `예약관리.html` 안에 들어간다. 따로 화면을 보며 맞춘다 |

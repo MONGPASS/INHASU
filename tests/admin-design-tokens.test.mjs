@@ -98,12 +98,12 @@ const ADMIN_CSS_HEX_BASELINE = {
     'src/pages/AdminProductList.css': 4,
     'src/pages/AdminReservationBoard.module.css': 55,
     'src/styles/admin-console.css': 107,
-    'src/styles/customer-workspace-editor.css': 103,
+    'src/styles/customer-workspace-editor.css': 94,
     'src/styles/product-customer-workspace.css': 31,
     'src/styles/quote-booking-workspace.css': 122,
     'src/styles/reservation-inline.css': 125,
     'src/styles/reservation-itinerary-designer.css': 23,
-    'src/styles/reservation-workspace.css': 71,
+    'src/styles/reservation-workspace.css': 65,
     'public/admin-tools.css': 1,
 };
 // 관리자 화면에서만 읽는 src/styles 파일(이름이 admin-로 시작하지 않는 것)

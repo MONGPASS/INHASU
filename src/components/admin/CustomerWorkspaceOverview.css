@@ -25,7 +25,8 @@
 }
 .cw-overview *, .cw-overview *::before, .cw-overview *::after { box-sizing: border-box; }
 .cw-overview button { font: inherit; cursor: pointer; }
-.cw-overview button:disabled { cursor: default; opacity: .45; }
+.cw-overview button:disabled { cursor: default; }
+.cw-overview button:disabled:not(.btn, .cw-button) { opacity: .45; } /* Montage 버튼은 disable 색을 쓴다 */
 .cw-overview button:focus-visible, .cw-overview summary:focus-visible, .cw-overview a:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 .cw-overview h1, .cw-overview h2, .cw-overview h3, .cw-overview p { margin: 0; }
 .cw-overview .material-symbols-outlined { font-size: 18px; flex-shrink: 0; }
@@ -110,7 +111,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: #fbfefd; 
 .cw-now > strong { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-strong); }
 .cw-now > small { font-size: 13px; color: var(--text-tertiary); }
 .cw-now > .cw-next-button { margin-left: auto; }
-.cw-next-button { min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px !important; }
+.cw-next-button { min-height: var(--adm-control-h); } /* Montage medium(모양은 .cw-button) */
 
 /* 바로가기 */
 .cw-shortcuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 10px; }
