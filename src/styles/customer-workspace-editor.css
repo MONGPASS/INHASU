@@ -40,8 +40,8 @@
 .product-customer-page .cw-detail-workspace .ring-n { display: flex; align-items: center; justify-content: center; gap: 2px; }
 .product-customer-page .cw-detail-workspace .inp { min-height: 44px; border-color: #dfe4eb; border-radius: 10px; font-size: 14px; padding: 10px 12px; max-width: 100%; }
 .product-customer-page .cw-detail-workspace textarea.inp { min-height: 100px; line-height: 1.7; }
-.product-customer-page .cw-detail-workspace .btn { min-height: 40px; height: auto; padding: 9px 14px; border-radius: 10px; font-size: 14px; }
-.product-customer-page .cw-detail-workspace .btn-sm { min-height: 36px; padding: 8px 12px; font-size: 13px; }
+.product-customer-page .cw-detail-workspace .btn { min-height: var(--adm-control-h); height: auto; padding: var(--spacing-8) var(--adm-btn-pad-x); border-radius: var(--adm-btn-radius); font-size: var(--adm-btn-fs); line-height: 1.2; }
+.product-customer-page .cw-detail-workspace .btn-sm { min-height: var(--adm-control-h-sm); padding: var(--spacing-6) var(--adm-btn-pad-x-sm); border-radius: var(--adm-btn-radius-sm); font-size: var(--adm-btn-fs-sm); }
 .product-customer-page .cw-detail-workspace .rw-document-grid { gap: 20px; padding: 24px; }
 .product-customer-page .cw-detail-workspace .rw-document-card { padding: 24px; border-color: #e6ebf0; border-radius: 14px; background: #fff; }
 .product-customer-page .cw-detail-workspace .rw-document-card h3 { color: #191f28; font-size: 18px; font-weight: 750; }
@@ -148,7 +148,7 @@
 .cw-action-status span { color: #6b7684; font-size: 12px; line-height: 1.6; }
 .cw-focus-workspace .cw-action-status strong { color: var(--mrt-blue-strong); font-size: 12px; font-weight: 700; }
 .cw-focus-workspace .cw-action-status span { color: var(--text-strong); font-size: 14px; font-weight: 700; line-height: 1.5; }
-.product-customer-page .cw-focus-workspace .cw-action-buttons .btn { height: 44px; min-height: 44px; padding: 0 18px; border-radius: 999px; font-size: 14px; font-weight: 700; }
+.product-customer-page .cw-focus-workspace .cw-action-buttons .btn { min-height: var(--adm-control-h-lg); height: var(--adm-control-h-lg); padding: 0 var(--adm-btn-pad-x-lg); border-radius: var(--adm-btn-radius-lg); font-size: var(--adm-btn-fs-lg); }
 .product-customer-page .cw-focus-workspace .cw-action-buttons .btn-ghost { border: 1.5px solid var(--border-default); background: #fff; color: var(--text-strong); }
 .product-customer-page .cw-focus-workspace .cw-action-buttons .btn-ghost:hover:not(:disabled) { border-color: var(--mrt-ink); background: #fff; }
 .product-customer-page .cw-focus-workspace .cw-action-buttons .btn.btn-ink { border: 0; background: var(--adm-primary-bg); color: #fff; }

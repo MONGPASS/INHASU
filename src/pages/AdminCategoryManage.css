@@ -51,7 +51,7 @@
 .admin-app-wrapper .cg-drawer .edit-sec-head h4 { margin: 0; color: var(--text-strong); font-weight: 800; }
 .admin-app-wrapper .cg-drawer .cg-slug { margin-left: 4px; color: var(--text-tertiary); font-weight: 500; }
 .admin-app-wrapper .cg-drawer-foot { gap: 8px; padding: 14px 22px; border-top: 1px solid var(--border-default); }
-.admin-app-wrapper .cg-drawer-foot .btn { height: 46px; padding: 0 20px; border-radius: 999px; font-size: 15px; font-weight: 700; }
+.admin-app-wrapper .cg-drawer-foot .btn { height: var(--adm-control-h-lg); padding: 0 var(--adm-btn-pad-x-lg); border-radius: var(--adm-btn-radius-lg); font-size: var(--adm-btn-fs-lg); } /* 저장 등 주요 버튼: Montage large 48 */
 .admin-app-wrapper .cg-drawer-foot .btn-ghost { border: 1.5px solid var(--border-default); background: #fff; color: var(--text-strong); }
 .admin-app-wrapper .cg-drawer-foot .btn-ink { background: var(--adm-primary-bg); color: #fff; }
 @keyframes cgSlide { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }

@@ -40,7 +40,7 @@
 |---|---|---|
 | M1 | 토큰: `public/admin-montage.css`(Montage 라이트 테마 + 민트 brand) 추가, `admin-tokens.css`의 `--adm-*` 값이 Montage 변수를 가리키게. 버튼 높이 32/40/48(휴대폰도 같음). hex 고정값 증가를 막는 테스트 | 완료(2026-11-19) |
 | M2 | 공통 틀: `AdminLayout`·`AdminSidebar`·`AdminToolbar`를 시안의 사이드바(248px)·상단 바(64px)로. 흰 사이드바(위에 ‘은하수 관리자’ 표시와 접기 버튼, 선택 메뉴는 옅은 민트 바탕 + 민트 글자, 하위 메뉴는 아이콘 없이 36px), 흰 상단 바(왼쪽 검색창 · 오른쪽 업무 알림), 회색 작업 배경 위에 화면 제목(title2)·설명(label2)·작업 버튼. 761~1100px에서는 작업 버튼이 제목 아래 줄로 내려간다. 틀 CSS(`admin-shell-v3.css`·`AdminToolbar.css`)에는 hex를 쓰지 않는다 | 완료(2026-11-19) |
-| M3 | 공통 부품(3절)을 Montage 부품으로 교체: 버튼·입력창·선택 상자·표·배지·탭·팝업·알림 | 예정 |
+| M3 | 공통 부품(3절)을 Montage 부품 모양으로(CSS, React 부품은 들이지 않음): ① 버튼 → ② 입력창·선택 상자 → ③ 표·배지·탭 → ④ 팝업·알림 | 진행 중(① 버튼 완료 2026-11-20) |
 | M4 | 화면 유형별 틀(4절): 목록형 → 입력형 → 상세형 → 대시보드형 | 예정 |
 
 ## 2. 공통 변수 — `public/admin-tokens.css` (값은 Montage)
@@ -87,6 +87,7 @@
 - `adminNotify(문구, 종류?)` — 화면 아래 알림. `alert()` 대신 쓴다. 종류를 안 주면 문구로 성공·오류를 가린다.
 - `await adminConfirm({ message, danger })` — 공통 확인 창. 새 코드는 `window.confirm` 대신 이것을 쓴다. 문구만 넘기면 ‘삭제’가 들어간 물음은 빨간 삭제 버튼으로 뜬다. 답을 기다려야 하므로 부르는 함수는 `async`여야 하고, 그 함수의 결과를 바로 `if (!fn())`처럼 쓰는 곳이 없는지 확인한다.
 - `.adm-btn`(+ `.is-primary`, `.is-danger`) — 공통 버튼 클래스(`ui/admin-ui.css`).
+- 버튼(M3-①) — 모든 버튼 계열(`.btn`·`.adm-btn`·`.cm-btn`·`.lo-btn`·`.cw-button`, 견적 도구의 `admin-tools.css`)이 `--adm-btn-*` 변수(Montage Button)를 쓴다. 크기: 기본 medium 40px·모서리 12·좌우 16·14px 굵게 / `.btn-sm`·`.is-sm` small 32·10·12·12px / `.btn-lg`·`.is-tall`·저장 줄 large 48·14·20·15px / 촘촘한 작업 화면(`.tcom`)의 `.btn-sm` xsmall 28·8. 색: 주요(`.btn-ink`·`.btn-blue`·`.is-primary`·`.is-ink`·`.cw-primary`) 민트 바탕 `#1C8571`·누르면 `#187A67` / 테두리(`.btn-ghost`·기본 `.adm-btn`·`.cm-btn`·`.lo-btn`·`.cw-button`) 흰 바탕 + 1px 회색 선 / 회색(`.btn-soft`) / 위험(`.btn-danger`·`.is-danger`) 연한 빨강 바탕 + 빨간 글자. 쓸 수 없는 버튼은 흐리게 하지 않고 Montage disable 색을 쓴다. 눌렀을 때 작아지는 효과와 화면별 알약 모양(999px) 버튼은 없앴다.
 - `AdminMobileTabBar` — 휴대폰 아래 메뉴(`AdminLayout`이 자동으로 넣는다).
 - 필수 입력 — 라벨에 `className="adm-req"`를 주면 빨간 `*`가 붙는다(글자에 `*`를 직접 적지 않는다). 저장 함수 맨 앞에서 `if (!adminValidateRequired()) return;`을 부르면 열려 있는 팝업 안의 빈 필수 칸 아래에 안내가 뜨고 첫 칸으로 이동한다(`ui/adminForm.ts`).
 - 홈 화면에 추가 — `useAdminInstallMeta`가 관리자 화면에서만 `admin.webmanifest`와 앱 아이콘 표시를 넣는다(고객 사이트에는 넣지 않는다. 오프라인 기능은 없다).
@@ -190,3 +191,5 @@ PC와 같은 화면·같은 부품이 휴대폰 폭에서 앱 모양으로 바�
 | M2 상단 바의 이름표(‘관 관리자’) | 상단 바에 두지 않고 사이드바 아래 계정 줄에 둠 | 로그아웃 버튼이 그 줄에 있어 기능 위치를 옮기지 않는다. 모양은 시안 이름표(32px 원 + 이름)에 맞췄다 |
 | M2 화면 제목 위 작은 분류 글자(eyebrow) | 데스크톱에서 숨김(마크업은 그대로) | 시안 제목에는 분류 글자가 없다. `eyebrow` 속성을 넘기는 화면은 바꾸지 않는다 |
 | M2 본문 최대 폭 | 시안 1240px 대신 기존 `--content-max`(1480px) 유지 | 예약 목록·캘린더처럼 넓은 표가 있는 화면이 좁아진다. 화면 유형별 틀(M4)에서 유형마다 정한다 |
+| M3 테두리 버튼 바탕 | Montage는 투명이지만 흰 바탕(`background-neutral-primary`) | 회색 작업 배경 위에 놓인 버튼이 배경과 섞이지 않게. 흰 카드 위에서는 같다 |
+| M3 위험 버튼 | 진한 빨강 바탕 대신 Montage negative(연한 빨강 바탕 + 빨간 글자) | Montage Button의 negative 색 그대로. 확인 창의 삭제 버튼도 같다 |

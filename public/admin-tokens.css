@@ -84,6 +84,18 @@
   --adm-control-h-lg: var(--dimension-48);    /* 저장 등 주요 버튼 large */
   --adm-control-pad-x: var(--spacing-16);
 
+  /* ── 버튼(Montage Button: 크기별 모서리·여백·글자) ── */
+  --adm-btn-radius: var(--radius-12);         --adm-btn-pad-x: var(--spacing-16);    --adm-btn-fs: var(--typography-label1-fontSize);    /* medium 40 */
+  --adm-btn-radius-sm: var(--radius-10);      --adm-btn-pad-x-sm: var(--spacing-12); --adm-btn-fs-sm: var(--typography-caption1-fontSize); /* small 32 */
+  --adm-btn-radius-lg: var(--radius-14);      --adm-btn-pad-x-lg: var(--spacing-20); --adm-btn-fs-lg: var(--typography-body2-fontSize);  /* large 48 */
+  --adm-btn-radius-xs: var(--radius-8);       --adm-btn-pad-x-xs: var(--spacing-10); --adm-btn-h-xs: var(--dimension-28);                  /* xsmall 28 */
+  --adm-btn-fw: var(--adm-fw-bold);
+  --adm-btn-line: var(--semantic-line-neutral-secondary);       /* 테두리 버튼(outlined)의 1px 선 */
+  --adm-btn-assistive-bg: var(--semantic-surface-neutral-secondary); --adm-btn-assistive-fg: var(--semantic-foreground-neutral-secondary);
+  --adm-btn-negative-bg: var(--semantic-surface-negative-strong);    --adm-btn-negative-fg: var(--semantic-foreground-negative-strong);
+  --adm-btn-disabled-bg: var(--semantic-surface-disable-primary);    --adm-btn-disabled-fg: var(--semantic-foreground-disable-primary);
+  --adm-btn-hover-overlay: rgba(var(--semantic-foreground-neutral-primary-rgb), .05);  /* 테두리·회색 버튼을 누르거나 올렸을 때 */
+
   /* ── 그림자·겹침 순서·움직임 ── */
   --adm-shadow-xs: var(--semantic-elevation-shadow-normal-xsmall);
   --adm-shadow-sm: var(--semantic-elevation-shadow-normal-small);
