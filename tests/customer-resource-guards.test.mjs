@@ -85,6 +85,19 @@ test('고객 상세와 공개 일정 projection은 소유자에게 열리고 내
     }
 });
 
+test('상품 가이드 시트는 선택한 예약의 결제 금액과 상태를 읽고 기존 금액 자료의 0원도 보존한다', async t => {
+    const f = await fixture(t);
+    f.raw.prepare(`UPDATE reservations SET total_price = NULL, deposit_amount = 0, balance_amount = NULL,
+        price_breakdown = ?, deposit_status = 'paid', balance_status = 'unpaid', admin_operations = ? WHERE id = 'owned'`)
+        .run(JSON.stringify({ total: 720000, deposit: 50000, local: 650000 }), '{"contractPackageType":"value","opsNote":"PRIVATE"}');
+    const guide = await (await f.request('/documents/itinerary/owned', { user: 'admin' })).json();
+    assert.deepEqual(guide.statement, { totalAmount: 720000, depositAmount: 0, balanceAmount: 650000,
+        depositStatus: 'paid', balanceStatus: 'unpaid', packageType: 'value' });
+    const customer = await (await f.request('/documents/itinerary/owned?format=quote', { user: 'owner' })).json();
+    assert.ok(customer.quote);
+    assert.equal(Object.hasOwn(customer, 'statement'), false);
+});
+
 test('계약·입금·리뷰 제출은 비로그인·타계정·미연결 기록의 DB를 변경하지 않는다', async t => {
     const f = await fixture(t), before = f.raw.prepare('SELECT * FROM reservations ORDER BY id').all();
     for (const [id, user, status] of [['owned', undefined, 401], ['owned', 'other', 403], ['unlinked', 'owner', 403]]) {

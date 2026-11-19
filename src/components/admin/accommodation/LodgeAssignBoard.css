@@ -69,7 +69,7 @@
 .la-tabs button.is-on span { color: var(--la-ink); }
 .la-body { background: #fff; border-radius: 0 20px 20px 20px; overflow: hidden; min-height: 120px; }
 .la-scroll { overflow-x: auto; }
-.la-inner { min-width: 1060px; }
+.la-inner { min-width: 1340px; }
 .la-empty { margin: 0; padding: 48px 20px; text-align: center; color: var(--la-ink-low); font-size: 14px; }
 .la-empty.is-row { padding: 18px 20px; }
 
@@ -79,7 +79,7 @@
 .la-tour.is-missing .la-tour-head { border-left-color: var(--la-ink); }
 .la-tour-head.is-open { background: var(--la-paper); }
 .la-tour-head:hover { background: var(--la-g50); }
-.la-caret { display: grid; place-items: center; color: var(--la-ink-low); transition: transform .15s; }
+.la .la-caret { display: grid; place-items: center; border: 0; padding: 0; background: transparent; color: var(--la-ink-low); transition: transform .15s; }
 .la-tour-head.is-open .la-caret { transform: rotate(90deg); }
 .la-no { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--la-mint-low); color: var(--la-mint-ink); font-size: 14px; font-weight: 700; }
 .la-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -90,7 +90,7 @@
 .la-meta.is-first { padding-left: 16px; border-left: 1px solid var(--la-line); }
 .la-meta small { font-size: 12px; color: var(--la-ink-low); }
 .la-meta b { font-size: 14px; font-weight: 600; white-space: nowrap; }
-.la-pkg { align-self: flex-start; padding: 3px 8px; border-radius: 6px; font-style: normal; font-size: 12px; font-weight: 700; background: var(--la-orange-low); color: var(--la-orange-ink); white-space: nowrap; }
+.la .la-pkg { display: inline-flex; align-items: center; gap: 3px; align-self: flex-start; padding: 4px 8px; border: 0; border-radius: 6px; font-size: 12px; font-weight: 700; background: var(--la-orange-low); color: var(--la-orange-ink); white-space: nowrap; }
 .la-pkg[data-plan="full"] { background: var(--la-mint-low); color: var(--la-mint-ink); }
 .la-pkg[data-plan="none"] { background: var(--la-g100); color: var(--la-ink-low); }
 .la-prog { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 0; }
@@ -112,7 +112,7 @@
 .la-actions button:disabled { opacity: .5; }
 
 .la-nights { background: var(--la-paper); padding-bottom: 12px; }
-.la-grid { display: grid; grid-template-columns: 20px 112px 36px minmax(96px, 112px) minmax(160px, 220px) minmax(96px, 124px) minmax(88px, 104px) minmax(88px, 104px) minmax(100px, 120px) minmax(120px, 1fr); gap: 10px; align-items: center; padding: 6px 20px; }
+.la-grid { display: grid; grid-template-columns: 20px 112px 36px minmax(96px, 112px) minmax(160px, 220px) minmax(96px, 124px) minmax(88px, 104px) minmax(88px, 104px) 110px 142px minmax(100px, 120px) minmax(120px, 1fr); gap: 10px; align-items: center; padding: 6px 20px; }
 .la-grid-head { min-height: 34px; padding-top: 0; padding-bottom: 0; background: var(--la-g100); font-size: 12px; font-weight: 600; color: var(--la-ink-low); }
 .la-night { min-height: 56px; border-bottom: 1px solid var(--la-g100); }
 .la-grid .is-c { text-align: center; justify-self: center; }
@@ -130,6 +130,9 @@
 .la-hotel b { font-weight: 700; }
 .la-hotel.is-empty { background: var(--la-red-low); color: var(--la-red) !important; box-shadow: inset 0 0 0 1px var(--la-red); }
 .la-dd { background: #fff; box-shadow: inset 0 0 0 1px var(--la-line); }
+.la-room-count { display: flex; align-items: center; gap: 4px; height: 36px; padding: 0 9px; border: 1px solid var(--la-line); border-radius: 8px; background: #fff; }
+.la-room-count input { flex: 1; width: 0; min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; font-size: 13px; }
+.la-room-count span { color: var(--la-ink-low); font-size: 12px; }
 .la-dd.is-empty { background: var(--la-g50); box-shadow: none; color: var(--la-ink-low) !important; }
 .la-status { font-weight: 700; background: var(--la-g100); color: var(--la-ink-low) !important; }
 .la-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--la-g400); flex: none; }
@@ -142,6 +145,8 @@
 .la-status[data-tone="red"] { background: var(--la-red-low); color: var(--la-red) !important; }
 .la-status[data-tone="red"] i { background: var(--la-red); }
 .la-status[data-tone="off"] { opacity: .55; }
+.la-status small, .la-mail-date small { display: none; }
+.la-mail-date input { width: 100%; min-width: 0; height: 36px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--la-line); border-radius: 8px; background: #fff; color: var(--la-ink); font: inherit; font-size: 13px; }
 .la-memo { height: 36px; padding: 0 10px; border-radius: 8px; border: 0; background: var(--la-g50); font-size: 13px; min-width: 0; }
 .la-memo:focus { background: #fff; box-shadow: inset 0 0 0 1px var(--la-ink); outline: 0; }
 .la :is(.la-area, .la-hotel, .la-dd, .la-status, .la-memo):disabled { opacity: .5; }
@@ -180,11 +185,16 @@
 .la-month-all { height: 36px; border-radius: 8px; border: 1px solid var(--la-line); background: #fff; font-size: 13px; font-weight: 600; }
 .la-month-all.is-on { background: var(--la-ink); border-color: var(--la-ink); color: #fff !important; }
 
-.la-info { width: 320px; background: var(--la-ink); color: #fff; padding: 16px; gap: 12px; }
+.la-info { box-sizing: border-box; width: min(480px, calc(100vw - 24px)); max-height: min(660px, calc(100dvh - 24px)); overflow-y: auto; background: var(--la-ink); color: #fff; padding: 16px; gap: 12px; }
+.la-contract-preview { flex: none; border-top: 1px solid rgba(255,255,255,.18); padding-top: 8px; }
+.la-contract-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 14px; }
+.la-contract-heading a { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border-radius: 6px; background: rgba(255,255,255,.14); color: white; font-size: 12px; text-decoration: none; }
+.la-contract-preview iframe { display: block; width: 100%; height: clamp(175px, 34vh, 320px); border: 0; border-radius: 8px; background: #fff; }
 .la-info-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .la-info-head b { font-size: 16px; }
 .la-info-head em { font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, .14); }
 .la-info-head small { margin-left: auto; font-size: 12px; color: rgba(255, 255, 255, .6); }
+.la-info-close { display: grid; place-items: center; padding: 4px; border: 0; border-radius: 6px; background: transparent; color: white !important; }
 .la-info dl { margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .la-info dl > div { display: grid; grid-template-columns: 64px 1fr; gap: 8px; font-size: 13px; align-items: center; }
 .la-info dt { color: rgba(255, 255, 255, .55); }
@@ -220,11 +230,15 @@
   .la-grid.la-night > .la-date { grid-column: 1 / -1; font-weight: 700; }
   .la-grid.la-night > .la-pax { display: none; }
   .la-grid.la-night > .la-hotel { grid-column: 1 / -1; order: 1; }
-  .la-grid.la-night > :is(.la-area, .la-dd, .la-status, .la-memo) { order: 2; }
-  .la-grid.la-night > :is(.la-area, .la-hotel, .la-dd, .la-status, .la-memo) { width: 100%; height: var(--adm-control-h); box-sizing: border-box; font-size: var(--adm-fs-body); }
+  .la-grid.la-night > :is(.la-area, .la-dd, .la-room-count, .la-status, .la-memo) { order: 2; }
+  .la-grid.la-night > :is(.la-area, .la-hotel, .la-dd, .la-room-count, .la-status, .la-memo) { width: 100%; height: var(--adm-control-h); box-sizing: border-box; font-size: var(--adm-fs-body); }
   .la-grid.la-night > .la-memo { font-size: var(--adm-fs-input); }
+  .la-grid.la-night > .la-mail-date { grid-column: 1 / -1; order: 2; display: flex; align-items: center; gap: 8px; }
+  .la-mail-date input { flex: 1; height: var(--adm-control-h); }
+  .la-status small, .la-mail-date small { display: inline; color: var(--la-ink-low); font-size: var(--adm-fs-caption); white-space: nowrap; }
+  .la-grid.la-night > .la-status { grid-column: 1 / -1; }
   /* 머리글 줄이 없으므로 각 칸 안에 이름표를 넣는다. */
-  .la-grid.la-night > :is(.la-area, .la-dd)::before { flex: none; color: var(--la-ink-low); font-size: var(--adm-fs-caption); font-weight: 600; }
+  .la-grid.la-night > :is(.la-area, .la-dd, .la-room-count)::before { flex: none; color: var(--la-ink-low); font-size: var(--adm-fs-caption); font-weight: 600; }
   .la-grid.la-night > :nth-child(4)::before { content: "지역"; }
   .la-grid.la-night > :nth-child(6)::before { content: "등급"; }
   .la-grid.la-night > :nth-child(7)::before { content: "방수"; }

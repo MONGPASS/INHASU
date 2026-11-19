@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RepresentativeSpotSnapshot } from '../../types/product';
 import { normalizeRepresentativeSpots } from '../../../functions/lib/productItinerary';
+import { loadQuoteSpots, loadQuoteSpotCategories } from './quoteLibrary';
 
 interface Library { spots: Record<string, any>; categories: string[]; }
 interface SelectorProps extends Library {
@@ -84,17 +85,7 @@ export function ProductRepresentativeSpots({ value, onChange, disabled = false }
     useEffect(() => {
         const controller = new AbortController();
         setError('');
-        const read = async (key: 'spots' | 'spot_cats') => {
-            const response = await fetch(`/api/data/${key}`, { cache: 'no-store', signal: controller.signal });
-            const payload = await response.json();
-            if (!response.ok || payload?.ok !== true) throw new Error('명소 자료를 불러오지 못했습니다. 다시 시도해 주세요.');
-            const data = payload.data ?? (key === 'spots' ? {} : []);
-            if (key === 'spots' ? typeof data !== 'object' || Array.isArray(data) : !Array.isArray(data) || data.some((item: unknown) => typeof item !== 'string')) {
-                throw new Error('명소 자료 형식을 확인할 수 없습니다.');
-            }
-            return data;
-        };
-        Promise.all([read('spots'), read('spot_cats')]).then(([spots, categories]) => {
+        Promise.all([loadQuoteSpots(controller.signal), loadQuoteSpotCategories(controller.signal)]).then(([spots, categories]) => {
             if (!controller.signal.aborted) setLibrary({ spots, categories });
         }).catch(reason => { if (!controller.signal.aborted) setError(reason?.message || '명소 자료를 불러오지 못했습니다.'); });
         return () => controller.abort();

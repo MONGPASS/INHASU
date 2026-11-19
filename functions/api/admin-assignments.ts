@@ -18,7 +18,7 @@ app.patch('/:source/:id', async c => {
     try {
         const result: any = await saveAdminAssignment(c.env.DB, source as AssignmentSource, id, body.expectedVersion, assignment, { allowGuideConflict: body.allowGuideConflict === true });
         if (result.status === 200) return c.json({ item: result.item });
-        return c.json({ error: result.error, ...(result.code ? { code: result.code, conflicts: result.conflicts } : {}) }, result.status as 404 | 409);
+        return c.json({ error: result.error, ...(result.code ? { code: result.code, conflicts: result.conflicts } : {}) }, result.status as 400 | 404 | 409);
     } catch { return c.json({ error: '배정을 저장하지 못했습니다. 초안은 유지됩니다.' }, 503); }
 });
 export default app;

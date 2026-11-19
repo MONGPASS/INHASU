@@ -28,8 +28,10 @@ test('login return paths preserve Korean customer links and reject external/cont
 test('pasted historical links accept own-site documents only and never accept an arbitrary recipient', () => {
   const origin = 'https://inhasu.com';
   for (const document of ['내견적', '견적서', '견적서-모바일', '확정일정표', '확정일정표-모바일', '계약서', '여행자정보', '일정지도', '확정안내']) {
-    const reference = parseCustomerReference(`${origin}/${document}.html?t=${token}`, origin);
-    assert.equal(reference.source, 'request', document); assert.equal(reference.key, token);
+    for (const suffix of ['', '.html']) {
+      const reference = parseCustomerReference(`${origin}/${document}${suffix}?t=${token}`, origin);
+      assert.equal(reference.source, 'request', document); assert.equal(reference.key, token);
+    }
   }
   assert.equal(parseCustomerReference(`https://www.inhasu.com/내견적.html?t=${token}`, origin).source, 'request');
   assert.equal(parseCustomerReference('/estimate/quote-one', origin).source, 'quote');

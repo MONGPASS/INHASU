@@ -27,6 +27,20 @@ const elements = tree => {
     const found = []; const visit = node => { if (Array.isArray(node)) { node.forEach(visit); return; } if (!React.isValidElement(node)) return; found.push(node); visit(node.props.children); }; visit(tree); return found;
 };
 
+test('열람 전용 상품계약서는 현재 초안 또는 서명 당시 원본을 보여 주고 입력란을 숨긴다', () => {
+    const data = base();
+    const preview = () => render(data, { readOnly: true });
+    assert.match(preview(), /합성 여행자/);
+    assert.doesNotMatch(preview(), /<input|<canvas|아래 서명란/);
+    const signed = structuredClone(data);
+    signed.reservation.productName = '서명 당시 상품';
+    data.contract.signature = { signedAt: '2026-10-20T08:20:00Z', signerName: '계약자', signImg: drawnSignature, snapshot: { version: 1, document: signed } };
+    const html = preview();
+    assert.match(html, /서명 당시 상품/);
+    assert.ok(html.includes(drawnSignature));
+    assert.doesNotMatch(html, /저장된 상품|<input|<canvas/);
+});
+
 test('상품 계약서는 계약 요약과 여행자·항공·금액 정보를 먼저 보여 주고 입력·동의 업무는 뒤에 배치한다', () => {
     const html = render(base());
     for (const value of ['여행계약서', '계약자(여행자)', '합성 계약자', '저장된 여행지', '저장된 상품', 'CONTRACT DETAILS', '여행자', '항공', '금액', '별도 기록 없음']) assert.ok(html.includes(value), value);

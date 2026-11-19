@@ -182,6 +182,8 @@ export type StatusTone = 'pending' | 'partial' | 'paid' | 'cancelled' | 'neutral
 export const STATUS_MAP: Record<string, { label: string; tone: StatusTone; reportedLabel?: string }> = {
     pending_payment: { label: '입금 대기', tone: 'pending', reportedLabel: '입금 확인 중' },
     waiting_deposit: { label: '입금 대기', tone: 'pending', reportedLabel: '입금 확인 중' },
+    reservation_requested: { label: '예약 접수', tone: 'pending' },
+    on_hold: { label: '보류', tone: 'neutral' },
     paid: { label: '결제 완료', tone: 'partial' },
     confirmed: { label: '예약 확정', tone: 'paid' },
     completed: { label: '여행 종료', tone: 'neutral' },

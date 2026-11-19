@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { onRequestPost as createRequest } from "../functions/api/requests.js";
-import { onRequestPatch } from "../functions/api/requests/[id].js";
+import { onRequestGet, onRequestPatch } from "../functions/api/requests/[id].js";
 import { requestSQLite } from './helpers/request-sqlite.mjs';
 
 /* 견적서 편집기의 [저장하기]와 [링크 공유하기] 분리 검증
@@ -47,6 +47,31 @@ const adminPatch = body => new Request("https://mongolia-milkyway.com/api/reques
 });
 
 const newQuote = { customer:"테스트고객", price:{} };
+
+test("기존 계약의 패키지 유형을 지정·변경·해제하고 다시 조회한다", async t => {
+  const contractInfo = { totalAmount: 900000, balanceAmount: 0 };
+  const DB = patchDb(t, { id: "req-1", booking: { contractInfo } });
+  const context = { env: { DB, ADMIN_TOKEN: ENV.ADMIN_TOKEN }, params: { id: "req-1" } };
+  const save = booking => onRequestPatch({ ...context, request: adminPatch({ booking }) });
+  const read = async () => {
+    const response = await onRequestGet({ ...context, request: new Request("https://test/api/requests/req-1", {
+      headers: { "x-admin-token": ENV.ADMIN_TOKEN },
+    }) });
+    return (await response.json()).item.booking;
+  };
+  assert.equal((await read()).contractPackageType, undefined);
+  for (const type of ["value", "full", ""]) {
+    assert.equal((await save({ contractInfo, contractPackageType: type })).status, 200);
+    assert.equal((await read()).contractPackageType, type);
+    assert.deepEqual((await read()).contractInfo, contractInfo);
+    if (type) {
+      assert.equal((await save({ contractInfo })).status, 200);
+      assert.equal((await read()).contractPackageType, type, "구버전 편집기의 저장도 선택값을 보존한다");
+    }
+  }
+  assert.equal((await save({ contractInfo, contractPackageType: "other" })).status, 400);
+  assert.equal((await read()).contractPackageType, "");
+});
 
 test("새 견적 저장하기 — 고객 알림톡을 보내지 않는다", async t => {
   const DB = insertDb(t);

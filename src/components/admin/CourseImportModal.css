@@ -32,6 +32,8 @@
 .ci-card { flex: none; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
 .ci-card.is-warn { border-color: var(--adm-warn); box-shadow: inset 3px 0 0 var(--adm-warn); }
 .ci-pkg { padding: var(--adm-space-3) var(--adm-space-4); }
+.ci-course-spots { padding: var(--adm-space-3) var(--adm-space-4); font-size: var(--adm-fs-body); }
+.ci-course-spots p { margin: 4px 0 0; color: var(--adm-text-2); font-size: var(--adm-fs-small); }
 .ci-pkg-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .ci-pkg-row > b { color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); }
 .ci-seg { display: inline-flex; padding: 3px; border-radius: var(--adm-radius-sm); background: var(--adm-gray-100); }

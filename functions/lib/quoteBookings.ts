@@ -20,7 +20,7 @@ function quoteAmounts(rec: any) {
     const q = rec.quote || {};
     const price = q.price || {};
     const pax = numberValue(q.pax) || numberValue(rec.adult) + numberValue(rec.child) + numberValue(rec.infant);
-    const balances = Array.isArray(price.balances) ? price.balances : [];
+    const balances = Array.isArray(price.balances) ? price.balances.filter((b: unknown) => b && typeof b === 'object') : [];
     const row = balances.find((b: any) => numberValue(b.pax) === pax)
         || balances.reduce((a: any, b: any) => !a || Math.abs(numberValue(b.pax) - pax) < Math.abs(numberValue(a.pax) - pax) ? b : a, null);
     const full = quotePackageTier(rec) === 'full';
@@ -98,6 +98,22 @@ export function summarizeQuoteBooking(rec: any) {
 }
 
 export type QuoteBookingSummary = ReturnType<typeof summarizeQuoteBooking>;
+
+/** Only display fields for the customer's history. An accepted quote can precede the booking draft. */
+export function summarizeCustomerQuoteBooking(rec: any) {
+    const hasBooking = isQuoteBooking(rec);
+    if (!hasBooking && !(rec.quote && rec.decision?.status === 'accepted')) return null;
+    const summary = summarizeQuoteBooking(rec);
+    const received = !hasBooking && summary.status === 'pending_payment';
+    const paid = (summary.depositStatus === 'paid' ? summary.deposit : 0) + (summary.balanceStatus === 'paid' ? summary.balance : 0);
+    return {
+        productName: summary.productName, status: received ? 'reservation_requested' : summary.status,
+        start: summary.startDate, end: summary.endDate, travelers: summary.totalPeople,
+        createdAt: received && text(rec.decision?.acceptedAt) || summary.createdAt,
+        depositReported: !!summary.depositReport, payTotal: summary.totalAmount,
+        payPercent: summary.totalAmount > 0 ? Math.max(0, Math.min(100, Math.round(100 * paid / summary.totalAmount))) : 0,
+    };
+}
 
 /** 1건의 깨진 JSON이 나머지 예약을 숨기지 않도록 분리하고, 누락 건수는 화면에 알린다. */
 export async function readQuoteBookings(DB: any) {

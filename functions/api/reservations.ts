@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { drizzle } from 'drizzle-orm/d1';
 import { reservations } from '../../src/db/schema/reservations';
 import { eq, desc, and, isNull } from 'drizzle-orm';
-import { assignmentRecord, readProductVehicle, syncProductVehicle } from '../../src/utils/reservationAssignment';
+import { assignmentRecord, isContractPackageType, readProductVehicle, syncProductVehicle, type ContractPackageType } from '../../src/utils/reservationAssignment';
 import { preserveProductCustomerEvidence, publicProductContract } from '../../src/utils/productContractSignature';
 import { initializeLucia } from '../lib/auth';
 import { getCookie } from 'hono/cookie';
@@ -56,6 +56,7 @@ interface ReservationAdminOperations {
     vehicle: string;
     driverPhone: string;
     serviceType?: string;
+    contractPackageType?: ContractPackageType;
     airfare?: string;
     receipt: {
         status: typeof RECEIPT_STATUSES[number];
@@ -82,15 +83,19 @@ const record = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
 
 /** 운영 정보는 정해진 필드만 허용한다. 문자열 JSON을 보내는 기존 TEXT 클라이언트도 검증한다. */
-const validateAdminOperations = (input: unknown): OperationsUpdate | null => {
+const validateAdminOperations = (input: unknown, stored = false): OperationsUpdate | null => {
     let value = input;
     if (typeof value === 'string') {
         try { value = JSON.parse(value); } catch { return null; }
     }
     if (!record(value)) return null;
-    const fields = new Set(['joining', 'region', 'category', 'vehicle', 'driverPhone', 'serviceType', 'airfare', 'receipt', 'opsNote']);
-    if (Object.keys(value).some((key) => !fields.has(key))) return null;
+    const fields = new Set(['joining', 'region', 'category', 'vehicle', 'driverPhone', 'serviceType', 'contractPackageType', 'airfare', 'receipt', 'opsNote']);
+    if (!stored && Object.keys(value).some((key) => !fields.has(key))) return null;
     const update: OperationsUpdate = {};
+    if ('contractPackageType' in value) {
+        if (!isContractPackageType(value.contractPackageType)) return null;
+        update.contractPackageType = value.contractPackageType;
+    }
     if ('joining' in value) {
         if (typeof value.joining !== 'string' || !['private', 'join', 'undecided'].includes(value.joining)) return null;
         update.joining = value.joining as ReservationAdminOperations['joining'];
@@ -134,7 +139,7 @@ const mergeAdminOperations = (current: ReservationAdminOperations, update: Opera
 });
 
 const parseAdminOperations = (value: unknown): ReservationAdminOperations => {
-    const update = validateAdminOperations(value);
+    const update = validateAdminOperations(value, true);
     return update ? mergeAdminOperations(emptyAdminOperations(), update) : emptyAdminOperations();
 };
 

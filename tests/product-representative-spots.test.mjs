@@ -5,7 +5,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
 import { ensureSiteSchema } from '../functions/lib/siteSchema.ts';
-import { adminProductFromApi, writeAdminProductDraft, readAdminProductDraft, productDraftFingerprint, finishAdminProductSave } from '../src/utils/adminProductDraft.ts';
+import { adminProductFromApi, productEditorTerms, writeAdminProductDraft, readAdminProductDraft, productDraftFingerprint, finishAdminProductSave } from '../src/utils/adminProductDraft.ts';
+import { quoteIncludedLabels, quoteExclusions } from '../public/quote-inclusions.js';
 
 const bundle = await build({ entryPoints: [fileURLToPath(new URL('../functions/api/products.ts', import.meta.url))],
     bundle: true, platform: 'node', format: 'esm', write: false });
@@ -43,6 +44,26 @@ const spots = [
     { name: '고비 모래언덕', region: '고비', desc: '일몰 감상', img: '/img/gobi.webp', subImgs: [] },
 ];
 const sellingPoints = [{ icon: 'star', title: '한국어 가이드', description: '기존 판매 포인트' }];
+
+test('견적서 항목은 신규·미설정 상품에서 기본 선택되고 저장한 선택과 전체 해제는 다시 열어도 유지된다', async t => {
+    const { raw, request } = await fixture(t);
+    raw.exec("INSERT INTO products (id,name) VALUES ('legacy','기존 상품')");
+    const defaults = { included: [...quoteIncludedLabels], excluded: [...quoteExclusions] };
+    const terms = async id => productEditorTerms(adminProductFromApi(await (await request('/' + id)).json()));
+    assert.deepEqual(productEditorTerms(), defaults);
+    assert.deepEqual(await terms('legacy'), defaults);
+    assert.deepEqual((await (await request('/legacy')).json()).included, []);
+    assert.equal((await request('/', { method: 'POST', admin: true, body: { id: 'fresh', name: '신규' } })).status, 200);
+    assert.deepEqual(await terms('fresh'), defaults);
+    const custom = { included: ['특식 2회', '별도 체험'], excluded: [] };
+    await request('/legacy', { method: 'PUT', admin: true, body: custom });
+    assert.deepEqual(await terms('legacy'), custom);
+    await request('/legacy', { method: 'PUT', admin: true, body: { included: [] } });
+    await request('/legacy', { method: 'PUT', admin: true, body: { name: '이름 수정' } });
+    assert.deepEqual(await terms('legacy'), { included: [], excluded: [] });
+    raw.exec("UPDATE products SET inclusions_configured = 0, excluded = '[\"기존 제외 옵션\"]' WHERE id = 'legacy'");
+    assert.deepEqual(await terms('legacy'), { included: [], excluded: ['기존 제외 옵션'] });
+});
 
 test('편집 중 삭제된 상품은 저장 성공을 반환하지 않고 복원할 초안을 보존한다', async t => {
     const { raw, request } = await fixture(t);

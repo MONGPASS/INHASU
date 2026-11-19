@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { useMemo } from 'react';
+import { api, type CustomerQuoteBooking } from '../../lib/api';
 import { useToast } from '../ui/Toast';
 import { toTourDateKey } from '../../utils/formatDate';
 import { parseArr, paymentSummary, readBreakdown } from '../../utils/reservationDetail';
@@ -15,6 +16,8 @@ export interface MeUser {
 
 export interface MyReservation {
     id: string;
+    href: string;
+    source: 'reservation' | 'request';
     number: string;
     status: string;
     productId: string;
@@ -40,6 +43,7 @@ export interface MyQuote {
     createdAt: string;
     href: string;
     source: 'request' | 'quote';
+    booking?: CustomerQuoteBooking;
 }
 
 export interface MyMatePost {
@@ -127,6 +131,8 @@ export function useMyPageData(me: MeUser | null | undefined) {
             .filter((r) => str(r, 'userId', 'user_id') === uid)
             .map((r) => ({
                 id: str(r, 'id'),
+                source: 'reservation' as const,
+                href: `/mypage/reservations/${encodeURIComponent(str(r, 'id'))}`,
                 number: str(r, 'reservationNumber', 'reservation_number'),
                 status: str(r, 'status'),
                 productId: str(r, 'productId', 'product_id'),
@@ -214,7 +220,14 @@ export function useMyPageData(me: MeUser | null | undefined) {
             .sort((a, b) => parseDbTime(b.viewedAt).getTime() - parseDbTime(a.viewedAt).getTime()),
     });
 
-    return { reservations, quotes, mates, reviews, recent };
+    const bookings = useMemo(() => {
+        if (!reservations.data && !quotes.data) return undefined;
+        const fromQuotes: MyReservation[] = (quotes.data ?? []).flatMap(quote => quote.booking ? [{
+            ...quote.booking, id: quote.id, href: quote.href, source: 'request', number: '', productId: '', reviewed: false,
+        }] : []);
+        return [...(reservations.data ?? []), ...fromQuotes].sort(byNewest);
+    }, [reservations.data, quotes.data]);
+    return { reservations: { data: bookings, isPending: reservations.isPending || quotes.isPending }, quotes, mates, reviews, recent };
 }
 
 /**

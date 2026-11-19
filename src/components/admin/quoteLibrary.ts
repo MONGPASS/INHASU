@@ -1,0 +1,69 @@
+import type { RepresentativeSpotSnapshot } from '../../types/product';
+import type { Course } from './courseImport';
+
+export type QuoteSpotLibrary = Record<string, Omit<RepresentativeSpotSnapshot, 'name'>>;
+interface QuotePresets { courses: Record<string, Course>; spots: QuoteSpotLibrary }
+let presets: Promise<QuotePresets> | undefined;
+
+// presets.js also defines globals for the quote editor. Read its fallback data in isolation.
+function loadPresets(): Promise<QuotePresets> {
+    presets ??= new Promise<QuotePresets>((resolve, reject) => {
+        const frame = document.createElement('IFRAME') as HTMLIFrameElement;
+        frame.hidden = true;
+        frame.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(frame);
+        const fail = () => { frame.remove(); reject(new Error('기본 코스·명소를 불러오지 못했습니다.')); };
+        const doc = frame.contentDocument;
+        if (!doc) return fail();
+        const script = doc.createElement('script');
+        script.src = '/presets.js';
+        script.onload = () => {
+            const data = (frame.contentWindow as (Window & { PRESETS?: QuotePresets }) | null)?.PRESETS;
+            if (!data?.courses || !data.spots) return fail();
+            resolve(structuredClone({ courses: data.courses, spots: data.spots }));
+            frame.remove();
+        };
+        script.onerror = fail;
+        doc.head.appendChild(script);
+    }).catch(error => { presets = undefined; throw error; });
+    return presets;
+}
+
+function localMap(key: string) {
+    try {
+        const data = JSON.parse(localStorage.getItem('leaders_' + key) ?? 'null');
+        return data && typeof data === 'object' && !Array.isArray(data) ? data : null;
+    } catch { return null; }
+}
+
+async function readQuoteData(key: string, signal: AbortSignal) {
+    const response = await fetch('/api/data/' + key, { cache: 'no-store', signal });
+    const payload = await response.json();
+    if (!response.ok || payload?.ok !== true) throw new Error('견적 자료를 불러오지 못했습니다. 다시 시도해 주세요.');
+    return payload.data;
+}
+
+export async function loadCourses(signal: AbortSignal): Promise<Record<string, Course>> {
+    const isCourseMap = (value: unknown): value is Record<string, Course> =>
+        !!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
+    try {
+        const courses = await readQuoteData('courses', signal);
+        if (isCourseMap(courses)) return courses;
+    } catch { /* 코스 관리와 같은 순서로 브라우저 저장분과 기본 코스를 확인한다. */ }
+    const cached = localMap('courses');
+    if (isCourseMap(cached)) return cached;
+    try { return (await loadPresets()).courses; } catch { return {}; }
+}
+
+export async function loadQuoteSpots(signal: AbortSignal): Promise<QuoteSpotLibrary> {
+    const data = await readQuoteData('spots', signal);
+    if (data == null) return localMap('spots') ?? (await loadPresets()).spots;
+    if (typeof data !== 'object' || Array.isArray(data)) throw new Error('명소 자료 형식을 확인할 수 없습니다.');
+    return data;
+}
+
+export async function loadQuoteSpotCategories(signal: AbortSignal): Promise<string[]> {
+    const data = (await readQuoteData('spot_cats', signal)) ?? [];
+    if (!Array.isArray(data) || data.some(item => typeof item !== 'string')) throw new Error('명소 카테고리 형식을 확인할 수 없습니다.');
+    return data;
+}

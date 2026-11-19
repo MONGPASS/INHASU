@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TourProduct } from '../types/product';
+import { bookableAccommodationOptions } from '../utils/productAccommodationOptions';
 import { api } from '../lib/api';
 import { SEO } from '../components/seo/SEO';
 import { useIsDesktop } from '../hooks/useIsDesktop';
@@ -104,7 +105,7 @@ export const Reservation: React.FC = () => {
                         included: pickArr(data.included, data.included),
                         excluded: pickArr(data.excluded, data.excluded),
                         pricingOptions: pickArr(data.pricingOptions, data.pricing_options),
-                        accommodationOptions: pickArr(data.accommodationOptions, data.accommodation_options),
+                        accommodationOptions: bookableAccommodationOptions(pickArr(data.accommodationOptions, data.accommodation_options)),
                         vehicleOptions: pickArr(data.vehicleOptions, data.vehicle_options),
                         viewCount: data.viewCount ?? data.view_count ?? 0,
                         bookingCount: data.bookingCount ?? data.booking_count ?? 0,
@@ -114,10 +115,7 @@ export const Reservation: React.FC = () => {
 
                     setProduct(found);
                     // Set defaults
-                    if (found.accommodationOptions && found.accommodationOptions.length > 0) {
-                        const def = found.accommodationOptions.find(o => o.isDefault) || found.accommodationOptions[0];
-                        setSelectedAccomId(def.id);
-                    }
+                    setSelectedAccomId(found.accommodationOptions?.find(option => option.isDefault)?.id ?? '');
                     if (found.vehicleOptions && found.vehicleOptions.length > 0) {
                         const def = found.vehicleOptions.find(o => o.isDefault) || found.vehicleOptions[0];
                         setSelectedVehicleId(def.id);

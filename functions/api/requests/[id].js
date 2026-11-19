@@ -97,6 +97,33 @@ export async function onRequestPatch(context) {
     const prevStatus = row.status || rec.status || "신규";
     const prevPublish = (rec.booking && rec.booking.publishStatus) || "draft";
 
+    if (patch.booking && typeof patch.booking === "object") {
+      if (Object.hasOwn(patch.booking, "contractPackageType")) {
+        if (!["", "value", "full"].includes(patch.booking.contractPackageType))
+          return json({ ok:false, error:"계약 패키지 유형을 확인해 주세요" }, 400);
+      } else if (rec.booking?.contractPackageType) {
+        // 이 필드가 없던 편집기에서 다른 예약 정보를 저장하는 경우
+        patch.booking.contractPackageType = rec.booking.contractPackageType;
+      }
+      // 예약관리의 전체 저장은 숙소 배정 시트에서 수정한 최신 메일·예약 기록을 유지한다.
+      const oldLodges = rec.booking?.assign?.lodges;
+      const nextLodges = patch.booking.assign?.lodges;
+      if (Array.isArray(oldLodges) && Array.isArray(nextLodges)) {
+        const byDay = new Map(oldLodges.map((l, i) => [Number(l?.day ?? i + 1), l]));
+        nextLodges.forEach((lodge, i) => {
+          if (!lodge || typeof lodge !== "object") return;
+          const old = byDay.get(Number(lodge.day ?? i + 1));
+          const same = old && (old.id && lodge.id ? old.id === lodge.id : (old.name || "") === (lodge.name || ""))
+            && (!lodge.date || !old.date || lodge.date === old.date);
+          for (const key of ["mailStatus", "mailSentDate"]) {
+            if (same && Object.hasOwn(old, key)) lodge[key] = old[key];
+            else delete lodge[key];
+          }
+          if (same && !Object.hasOwn(lodge, "bookingStatus") && Object.hasOwn(old, "bookingStatus")) lodge.bookingStatus = old.bookingStatus;
+        });
+      }
+    }
+
     if (patch.booking && !patch.resetContract) {
       const prev = rec.booking;
       if (prev && prev.contract && prev.contract.signedAt && !(patch.booking.contract && patch.booking.contract.signedAt)) {
@@ -192,8 +219,8 @@ export async function onRequestPatch(context) {
     }
 
     rec.activities = rec.activities.slice(-100);
-    const persisted = await env.DB.prepare("UPDATE requests SET status = ?, memo = ?, data = ?, token = ? WHERE id = ? AND data = ?")
-      .bind(rec.status, rec.memo || "", JSON.stringify(rec), rec.token || "", id, row.data).run();
+    const persisted = await env.DB.prepare("UPDATE requests SET status = ?, memo = ?, data = ?, token = ?, phone = COALESCE(?, phone) WHERE id = ? AND data = ?")
+      .bind(rec.status, rec.memo || "", JSON.stringify(rec), rec.token || "", typeof patch.phone === "string" ? patch.phone : null, id, row.data).run();
     if (Number(persisted?.meta?.changes ?? persisted?.changes ?? 0) !== 1) return json({ ok:false, error:'다른 화면에서 예약이 변경되었습니다. 입력을 보관한 뒤 최신 정보를 확인해 주세요.' }, 409);
 
     const bg = async (kind, eventKey, forceManual = false) => backgroundCustomerEvent(context, { source:'quote_booking', bookingId:id, kind, eventKey, ...(forceManual ? {forceManual:true} : {}) });

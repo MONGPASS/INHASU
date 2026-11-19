@@ -28,11 +28,11 @@ function Badge({ label, tone, style }: { label: string; tone: BadgeTone; style?:
     );
 }
 
-function ListRow({ title, meta, badge, onClick, extra }: { title: string; meta: string; badge: ReactNode; onClick: () => void; extra?: ReactNode }) {
+function ListRow({ title, meta, badge, href, onClick, extra }: { title: string; meta: string; badge: ReactNode; href: string; onClick: () => void; extra?: ReactNode }) {
     return (
         <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); onClick(); }}
+            href={href}
+            onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) { e.preventDefault(); onClick(); } }}
             style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', borderRadius: 14, background: PAPER, color: MW.navy, textDecoration: 'none' }}
             {...hover({ background: MW.mintBg }, { background: PAPER })}
         >
@@ -63,6 +63,7 @@ function QuoteRows({ quotes, go }: { quotes: MyQuote[]; go: Go }) {
                 return (
                     <ListRow
                         key={q.id}
+                        href={q.href}
                         title={q.destination ? `맞춤 견적 (${q.destination})` : '맞춤 견적'}
                         meta={[q.period, q.headcount, requested].filter(Boolean).join(' · ')}
                         badge={<Badge label={st.label} tone={st.tone} />}
@@ -82,11 +83,12 @@ function ReservationRows({ reservations, today, go }: { reservations: MyReservat
                 return (
                     <ListRow
                         key={r.id}
+                        href={r.href}
                         title={r.productName}
                         meta={reservationMeta(r)}
                         extra={d >= 0 && d <= 90 ? <DayChip days={d} /> : undefined}
                         badge={<Badge label={reservationStatusLabel(r.status, r.depositReported, r.status || '준비 중')} tone={reservationTone(r.status)} />}
-                        onClick={() => go(`/mypage/reservations/${r.id}`)}
+                        onClick={() => go(r.href)}
                     />
                 );
             })}
@@ -159,8 +161,8 @@ export function OverviewSection({
                     <Loading />
                 ) : next ? (
                     <a
-                        href={`/mypage/reservations/${next.id}`}
-                        onClick={(e) => { e.preventDefault(); go(`/mypage/reservations/${next.id}`); }}
+                        href={next.href}
+                        onClick={(e) => { e.preventDefault(); go(next.href); }}
                         style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 20px', borderRadius: 16, background: PAPER, color: MW.navy, textDecoration: 'none' }}
                         {...hover({ background: MW.mintBg }, { background: PAPER })}
                     >
@@ -233,6 +235,7 @@ export function ReservationsSection({ reservations, today, loading, go }: { rese
             <div style={{ marginBottom: 6 }}>
                 <PanelHead eyebrow="BOOKINGS" title="예약 내역" count={loading ? undefined : reservations.length} sub="예약 상태·결제·여행 서류는 각 예약의 상세 화면에서 확인할 수 있습니다." />
             </div>
+            <a href="/customer-link?from=reservations" onClick={event => { event.preventDefault(); go('/customer-link?from=reservations'); }} style={{ color: MW.mintDeep, fontSize: 13, lineHeight: 1.7, fontWeight: 700 }}>담당자에게 받은 견적·예약 연결 →</a>
             {loading ? <Loading /> : reservations.length > 0 ? (
                 <ReservationRows reservations={reservations} today={today} go={go} />
             ) : (

@@ -23,6 +23,7 @@ export interface TourDetailViewProps {
     reviews: RawReview[];
     onBook: () => void;
     onShare: () => Promise<ShareResult>;
+    previewNotice?: () => void;
 }
 
 // ───────────────────────── sections / tabs ─────────────────────────

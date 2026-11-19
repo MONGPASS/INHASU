@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { onRequestGet as getData } from "../functions/api/data/[key].js";
+import { quoteVehicleCards } from "../public/quote-vehicles.js";
 
 const read = name => readFileSync(new URL(`../public/${name}`, import.meta.url), "utf8");
 
@@ -41,6 +42,32 @@ test("차량 공개 조회는 기사 이름·연락처를 숨기고 관리자 �
   assert.deepEqual(publicBody.data.스타렉스, { seats:"6인" });
   const adminBody = await (await getData({ request:new Request("https://example.com/api/data/vehicles", { headers:{ "x-admin-token":"admin-secret" } }), params:{ key:"vehicles" }, env })).json();
   assert.equal(adminBody.data.스타렉스.driver, "Bat"); assert.equal(adminBody.data.스타렉스.phone, "+976 2");
+});
+
+test("발송 견적서용 차량 목록은 모든 등록 차종의 고객용 항목과 대표 사진 세 장만 반환한다", async () => {
+  const env = dataEnv({
+    '하이에스 6인승': { seats: 6, luggage: '캐리어 4개', desc: '여유로운 좌석', img: '/a.webp', imgs: ['/a.webp','/b.webp','/c.webp','/archive.webp'], plate: '내부 번호', driver: '내부 기사', phone: '내부 전화', memo: '내부 메모' },
+    'Starex': {},
+  });
+  for (const headers of [{}, { 'x-admin-token': env.ADMIN_TOKEN }]) {
+    const response = await getData({ request: new Request("https://example.com/api/data/vehicles?view=quote", { headers }), params: { key: "vehicles" }, env });
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).vehicles, [
+      { name: '하이에스 6인승', seats: '6', luggage: '캐리어 4개', description: '여유로운 좌석', photos: ['/a.webp','/b.webp','/c.webp'] },
+      { name: 'Starex', seats: '', luggage: '', description: '', photos: [] },
+    ]);
+  }
+});
+
+test("견적서 차량 카드는 동일한 차종만 표시하고 등록 문구를 텍스트로 그린다", () => {
+  const row = { name: 'Starex', seats: '6', luggage: '캐리어 4개', description: '<b>차량 소개</b>', photos: ['javascript:invalid'] };
+  const cards = quoteVehicleCards([row, { ...row, name: 'Starex Plus' }], 'starex');
+  assert.equal((cards.match(/견적 기재 차량/g) || []).length, 1);
+  assert.match(cards, /Starex Plus/);
+  assert.match(cards, /6인승/);
+  assert.match(cards, /&lt;b&gt;차량 소개&lt;\/b&gt;/);
+  assert.doesNotMatch(cards, /<img|<b>차량 소개/);
+  assert.equal(quoteVehicleCards([], ''), '');
 });
 
 test("예약관리는 인증된 리소스를 읽고 차량·숙소의 PDF 필드를 저장한다", () => {

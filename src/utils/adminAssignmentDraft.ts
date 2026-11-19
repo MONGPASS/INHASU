@@ -20,7 +20,7 @@ export function editorAssignment(row: any): BookingAssignment {
                     key === 'img' ? safeImage(resource[key]) : key === 'images' ? safeImages(resource[key]) : resource[key]])) } : {}) },
         accommodations: (row.dailyAccommodations || []).map((d: any) => {
             const acc = assignmentRecord(d.accommodation), next: Record<string, any> = {};
-            for (const k of ['id','name','type','location','region','address','images','description','facilities','roomAmenities','sharedFacilities','roomCount','occupancy','bookingStatus','assignType','adminMemo']) if (acc[k] !== undefined) next[k] = Array.isArray(acc[k]) ? [...acc[k]] : acc[k];
+            for (const k of ['id','name','type','location','region','address','images','description','facilities','roomAmenities','sharedFacilities','roomCount','occupancy','bookingStatus','mailStatus','mailSentDate','assignType','adminMemo']) if (acc[k] !== undefined) next[k] = Array.isArray(acc[k]) ? [...acc[k]] : acc[k];
             // Recovery copies never retain file bytes or temporary image URLs.
             if (Array.isArray(next.images)) next.images = safeImages(next.images);
             return { day: d.day, date: d.date || '', accommodation: next };

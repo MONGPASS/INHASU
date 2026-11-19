@@ -174,8 +174,8 @@
     </div>
   </footer>
 
-<script type="module">
-  import { requireCustomerDocumentView as requireCustomerView, customerDocumentFetch, customerLoginPath } from "/customer-access.js";
+ <script type="module">
+  import { requireCustomerDocumentView as requireCustomerView, customerDocumentFetch, customerLinkPath } from "/customer-access.js";
   const KAKAO = "https://pf.kakao.com/_BSLaxl";
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
   const card = document.getElementById("card");
@@ -260,6 +260,9 @@
     }
 
     const nm = r.name ? `${esc(r.name)}님, ` : "";
+    const accountLink = r.access === "owner"
+      ? `<a class="btn ghost" href="${r.booking || r.decision?.status === 'accepted' ? '/mypage/reservations' : '/mypage/estimates'}">마이페이지에서 내역 보기</a>`
+      : r.access === "view" && r.personalHistory !== false ? `<div class="notice"><a href="${esc(customerLinkPath('request', token, location.pathname + location.search))}">내 Google 계정에 연결하기</a> · 본인 확인 후 마이페이지에서 다시 볼 수 있습니다.</div>` : "";
     if (r.booking) {
       const signed = r.booking.contract && r.booking.contract.signedAt;
       const confirmed = r.status === "예약확정";
@@ -283,9 +286,8 @@
         <h1>${title}</h1>
         <div class="desc">${nm}${description}</div>
         </section>
-        ${sumHtml(r)}
+        ${sumHtml(r)}${accountLink}
         ${progressHtml(r)}
-        ${r.access === "view" ? `<div class="notice">입금 완료 알림·계약서 서명·여행자 정보 입력은 본인 확인을 위해 Google 로그인 후 진행됩니다. <a href="${esc(customerLoginPath(location.pathname + location.search))}">로그인하기</a></div>` : ""}
         ${depositRequested && !depositPaid ? `<div class="dep">
           <span class="hub-eyebrow">DEPOSIT</span>
           <div class="amt">예약금 ${esc(money(ci.depositAmount))}<small>입금이 확인되면 예약이 진행됩니다</small></div>
@@ -366,7 +368,7 @@
         <h1>${accepted ? "예약 준비를 시작했어요" : "견적서가 도착했어요!"}</h1>
         <div class="desc">${nm}${accepted ? "예약 진행이 확인되었습니다. 담당자가 예약정보와 예약금 안내를 준비하고 있습니다." : "견적서를 확인하시고, 수정하고 싶은 부분이나 예약 진행 의사는 카카오톡으로 편하게 말씀해 주세요."}</div>
         </section>
-        ${sumHtml(r)}
+        ${sumHtml(r)}${accountLink}
         ${accepted ? progressHtml(r) : ""}
         ${expired ? `<div class="notice">이 견적의 유효기간이 만료되었습니다. 카카오톡으로 연장을 요청해 주세요.</div>`
           : (expireLabel ? `<div class="validity">${CLOCK_SVG}견적 유효기간: ${esc(expireLabel)}까지</div>` : "")}
@@ -381,7 +383,7 @@
         <h1>견적 요청이 접수됐어요</h1>
         <div class="desc">${nm}담당자가 확인 후 남겨주신 연락처로 연락드려요.<br>빠르게 견적서를 준비해 드릴게요.<br>견적서가 준비되면 이 화면에서 바로 확인할 수 있어요.</div>
         </section>
-        ${sumHtml(r)}
+        ${sumHtml(r)}${accountLink}
         <a class="btn kakao" href="${KAKAO}" target="_blank">카카오톡으로 빠른 상담</a>
         <button class="btn ghost" onclick="location.reload()">새로고침</button>
         <div class="hint">이 링크를 저장해 두시면 언제든 진행 상황을 확인할 수 있어요.</div>`;

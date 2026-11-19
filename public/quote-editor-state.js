@@ -75,7 +75,7 @@
   }
   function validQuote(value) {
     if (!record(value)) return false;
-    for (const field of ['customer', 'phone', 'destination', 'depart', 'return_', 'manager', 'quoteNo', 'vehicle', 'flightIn', 'flightOut', 'benefits', 'events', 'remark']) {
+    for (const field of ['customer', 'phone', 'email', 'destination', 'depart', 'return_', 'manager', 'quoteNo', 'vehicle', 'flightIn', 'flightOut', 'benefits', 'events', 'remark']) {
       if (value[field] !== undefined && typeof value[field] !== 'string') return false;
     }
     if (['days', 'spots', 'options', 'balances'].some(field => value[field] !== undefined && !Array.isArray(value[field]))) return false;

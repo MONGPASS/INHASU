@@ -1231,9 +1231,9 @@ App.docSchedule = id => { const r = recById(id); if (r && r.token) window.open("
 App.docContract = id => { const r = recById(id); if (r && r.token) window.open("계약서.html?t=" + encodeURIComponent(r.token) + "&adminId=" + encodeURIComponent(r.id) + "&return=manage", "_blank"); else toast("고객 링크 토큰이 없어요"); };
 App.docGuideSheet = id => {
   const r = recById(id); if (!r) return;
-  const bk = ASSIGN && ASSIGN.id === id ? ASSIGN.bk : normBooking(r.booking || {});
-  localStorage.setItem("leaders_guide_sheet_print", JSON.stringify({ ...r, adminToken: ADMIN_TOKEN, booking: { ...bk } }));
-  window.open("가이드시트.html?adminPrint=1&print=1", "_blank");
+  const bk = ASSIGN && ASSIGN.id === id ? ASSIGN.bk : r.booking;
+  if (!bk) return toast("가이드 시트를 만들 예약 정보가 없어요");
+  if (!openBookingGuideSheet(r, bk)) toast("팝업을 허용한 뒤 다시 열어 주세요");
 };
 App.docCopyLink = async id => {
   const r = recById(id); if (!r || !r.token) { toast("고객 링크 토큰이 없어요"); return; }
@@ -1666,7 +1666,7 @@ App.lodgePick = (i, name) => {
   if (!ASSIGN) return;
   const lib = getLodges()[name] || {};
   const cur = ASSIGN.bk.assign.lodges[i] || {};
-  ASSIGN.bk.assign.lodges[i] = { ...Lodging.publicData(lib), day: cur.day || i + 1, name, grade: lib.grade || "", descCustom: cur.descCustom || "" };
+  ASSIGN.bk.assign.lodges[i] = { ...Lodging.publicData(lib), day: cur.day || i + 1, roomCount: cur.roomCount, name, grade: lib.grade || "", descCustom: cur.descCustom || "" };
   ASSIGN.dirty = true; renderOverlays();
 };
 App.lodgesFromDays = () => {
@@ -1748,6 +1748,9 @@ function secInfo(r, bk) {
   `)}
   ${card(`
     ${cardHead("note", "계약 · 정산 정보", "")}
+    <label class="f">계약 패키지 유형
+      <select data-bk="contractPackageType">${contractPackageOptions(bk.contractPackageType)}</select>
+    </label>
     <div class="f2">
       ${ciFields.map(([k, label, ty, cls]) => `<label class="f ${cls}">${label}<input data-bk="contractInfo.${k}" ${ty === "num" ? 'data-num="1" inputmode="numeric"' : ""} value="${esc(ci[k] != null ? ci[k] : "")}" style="font-weight:normal;"></label>`).join("")}
       <label class="f">예약금 상태
@@ -1870,7 +1873,7 @@ const autoQuoteNo = () => { const d = new Date(); return String(d.getFullYear())
 function blankQE() {
   return {
     step: 0, reqId: "", reqToken: "", pax0: null, reqSpots: [], reqProfile: {}, shareAnon: false, coursePick: false, pickRegion: "전체", pickQuery: "", course: "",
-    customer: "", phone: "", destination: "", quoteNo: "", depart: "", return_: "", pax: 6,
+    customer: "", phone: "", email: "", destination: "", quoteNo: "", depart: "", return_: "", pax: 6,
     vehicle: "", flightIn: "", flightOut: "", manager: BASE.manager || "", paxNote: "", pickup: "", drop: "",
     benefits: BASE.benefits || "", events: (BASE.events || []).join("\n"), remark: BASE.remark || "",
     deposit: (BASE.price && BASE.price.deposit) || 50000,
@@ -1889,6 +1892,7 @@ async function openQuoteEditor(recId) {
     if (r) {
       QE.reqId = r.id; QE.reqToken = r.token || "";
       QE.customer = r.name || ""; QE.phone = r.phone || "";
+      QE.email = r.email || "";
       QE.depart = r.depart || ""; QE.return_ = r.return_ || "";
       QE.pax = paxTotal(r) || 6;
       QE.pax0 = { adult: r.adult || 0, child: r.child || 0, infant: r.infant || 0 };
@@ -2058,6 +2062,8 @@ App.qeSave = async share => {
   const release = qeRecovery.begin(); if (!release) return;
   try {
   if (!QE.customer.trim() && !QE.shareAnon) { toast("먼저 고객명을 입력하세요"); QE.step = 0; renderOverlays(); return; }
+  const email = (QE.email || "").trim();
+  if (email && (email.length > 120 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))) { toast("예약자 이메일 주소를 확인해 주세요"); QE.step = 0; renderOverlays(); return; }
   if (QE.shareAnon && !QE.customer.trim()) QE.customer = "여행 고객";
   if (share && !await appConfirm("이 견적을 고객에게 보낼까요?\n고객에게 견적서 도착 알림톡이 발송되고, 보낼 링크가 만들어집니다.", { ok: "보내기" })) return;
   const q = qeBuild();
@@ -2076,6 +2082,7 @@ App.qeSave = async share => {
       if (QE.destination) patch.destination = QE.destination;
       const tel = QE.phone.replace(/[^0-9]/g, "");
       if (tel) patch.phone = tel;
+      if (email !== (recById(QE.reqId)?.email || "")) patch.email = email;
       const j = await apiPatch(QE.reqId, patch);
       const r = recById(QE.reqId);
       if (r) { applyPatchLocal(r, patch, j); r.quote = q; if (!r.quoteIssuedAt) r.quoteIssuedAt = new Date().toISOString(); }
@@ -2084,7 +2091,7 @@ App.qeSave = async share => {
       const nN = nightsBetween(QE.depart, QE.return_);
       const j = await apiPost({
         status: "진행중",
-        name: QE.customer.trim(), phone: QE.phone.replace(/[^0-9]/g, ""),
+        name: QE.customer.trim(), phone: QE.phone.replace(/[^0-9]/g, ""), email,
         destination: QE.destination || "",
         depart: QE.depart || "", return_: QE.return_ || "",
         nights: nN > 0 ? nN : null,
@@ -2183,6 +2190,7 @@ function quoteEditorScreen() {
 function qeStep1() {
   const fields = [
     ["customer", "고객명", "예) 강민지", "text"], ["phone", "연락처", "01012345678", "tel"],
+    ["email", "예약자 이메일 (본인 확인용)", "name@example.com", "email"],
     ["destination", "여행지", "예) 고비", "text"], ["quoteNo", "문서번호", autoQuoteNo(), "text"],
     ["depart", "투어 시작일 (선택)", "", "date"], ["return_", "투어 종료일 (선택)", "", "date"],
     ["pax", "인원(명)", "", "number"], ["vehicle", "차량", "예) 하이에이스", "text"],
@@ -2885,7 +2893,7 @@ const RES_META = {
     descLabel: "기존 소개 (보관용·일정표 미표시)" },
   vehicles: { one: "차량", getter: () => getVehicles(), saver: o => saveVehicles(o), namePh: "하이스 1호",
     sub: r => [r.seats, r.plate].filter(Boolean).join(" · "),
-    descLabel: "차량 특징 (확정 일정표에 노출)" },
+    descLabel: "차량 특징 (견적서·확정 일정표에 노출)" },
 };
 function pgRes() {
   const t = PGS.resTab, M = RES_META[t];
@@ -3001,9 +3009,9 @@ function resFormSheet() {
     </label>
     <label class="f" style="font-weight:bold;">시설 태그<input data-rf="tags" value="${esc(d.tags || "")}" style="font-weight:normal;"></label>
     ${[['address','주소'],['phone','숙소 대표 전화번호'],['roomAmenities','객실 비품'],['sharedFacilities','호텔 공용시설'],['operatingNotes','운영 참고 (보관용·일정표 미표시)'],['officialSources','공식 출처']].map(([k,label]) => `<label class="f">${label}<textarea rows="2" data-rf="${k}" placeholder="${k === 'roomAmenities' ? '객실 비품을 입력해 주세요' : k === 'officialSources' ? '웹사이트 주소를 한 줄에 하나씩 입력해 주세요' : ''}">${esc(d[k] || '')}</textarea></label>`).join('')}` : `
-    <label class="f" style="font-weight:bold;">탑승 인원 (확정 일정표에 노출)<input data-rf="seats" value="${esc(d.seats || "")}" placeholder="6인" style="font-weight:normal;"></label>
+    <label class="f" style="font-weight:bold;">탑승 인원 (견적서·확정 일정표에 노출)<input data-rf="seats" value="${esc(d.seats || "")}" placeholder="6인" style="font-weight:normal;"></label>
     <label class="f" style="font-weight:bold;">차량번호 (내부용)<input data-rf="plate" value="${esc(d.plate || "")}" style="font-weight:normal;"></label>
-    <label class="f" style="font-weight:bold;">수하물 (확정 일정표에 노출)<input data-rf="luggage" value="${esc(d.luggage || "")}" placeholder="대형 캐리어 4개 적재 가능" style="font-weight:normal;"></label>`;
+    <label class="f" style="font-weight:bold;">수하물 (견적서·확정 일정표에 노출)<input data-rf="luggage" value="${esc(d.luggage || "")}" placeholder="대형 캐리어 4개 적재 가능" style="font-weight:normal;"></label>`;
   const multi = t === "vehicles";
   const imgs = Array.isArray(d.imgs) ? d.imgs : [];
   return `
@@ -3034,7 +3042,7 @@ function resFormSheet() {
           </span>`).join("")}</div>`
         : `<p style="margin:0; padding:12px; text-align:center; font-size:12px; color:var(--g500);">추가 사진이 없습니다.</p>`}
       </div>
-      <span style="font-size:11px; color:var(--g500);">숙소와 차량의 확정 일정표에는 대표 사진을 포함해 최대 3장이 표시됩니다.</span>` : ""}
+      <span style="font-size:11px; color:var(--g500);">견적서와 확정 일정표에는 대표 사진을 포함해 최대 3장이 표시됩니다.</span>` : ""}
       ${fields}
       <label class="f" style="font-weight:bold;">${M.descLabel}
         <textarea rows="4" data-rf="desc" style="font-weight:normal;">${esc(d.desc || "")}</textarea>

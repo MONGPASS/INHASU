@@ -36,6 +36,7 @@ export function MyTripsMobile({ tab }: { tab: TripsTab }) {
     const quoteList = quotes.data ?? [];
     const counts: Record<TripsTab, number | undefined> = { bookings: reservations.data?.length, quote: quotes.data?.length };
     const loading = !me || (tab === 'bookings' ? reservations.isPending : quotes.isPending);
+    const linkPath = tab === 'bookings' ? '/customer-link?from=reservations' : '/customer-link';
 
     const go = (path: string) => {
         if (/\.html(?:[?#]|$)/i.test(path)) { window.location.assign(path); return; }
@@ -72,12 +73,12 @@ export function MyTripsMobile({ tab }: { tab: TripsTab }) {
             </SubPageBar>
 
             <section style={{ background: M_PAPER, minHeight: '60vh', padding: '16px 16px 36px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {tab === 'quote' && <a href="/customer-link" onClick={event => { event.preventDefault(); go('/customer-link'); }} style={{ padding: '12px 14px', background: MW.mintBg, borderRadius: 12, color: MW.mintDeep, fontSize: 13, lineHeight: 1.7, fontWeight: 700, textDecoration: 'none' }}>예전에 받은 견적이 보이지 않나요? 기존 견적 연결 →</a>}
+                <a href={linkPath} onClick={event => { event.preventDefault(); go(linkPath); }} style={{ padding: '12px 14px', background: MW.mintBg, borderRadius: 12, color: MW.mintDeep, fontSize: 13, lineHeight: 1.7, fontWeight: 700, textDecoration: 'none' }}>{tab === 'bookings' ? '담당자에게 받은 견적·예약 연결 →' : '예전에 받은 견적이 보이지 않나요? 기존 견적 연결 →'}</a>
                 {loading ? (
                     <MLoading />
                 ) : tab === 'bookings' ? (
                     bookings.length > 0 ? (
-                        bookings.map(({ r, past }) => <BookingCard key={r.id} r={r} past={past} today={today} onOpen={() => go(`/mypage/reservations/${r.id}`)} />)
+                        bookings.map(({ r, past }) => <BookingCard key={r.id} r={r} past={past} today={today} onOpen={() => go(r.href)} />)
                     ) : (
                         <MEmpty text="아직 예약이 없습니다." action={{ label: '투어 찾기', onClick: () => go('/products') }} />
                     )
@@ -128,7 +129,7 @@ function BookingCard({ r, past, today, onOpen }: { r: MyReservation; past: boole
     const tone = softTone(r.status);
     const dday = ddayLabel(r, today);
     return (
-        <a href={`/mypage/reservations/${r.id}`} onClick={(e) => { e.preventDefault(); onOpen(); }} style={{ ...cardStyle, opacity: past ? 0.75 : 1 }}>
+        <a href={r.href} onClick={(e) => { e.preventDefault(); onOpen(); }} style={{ ...cardStyle, opacity: past ? 0.75 : 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: tone.fg, background: tone.bg, boxShadow: `inset 0 0 0 1px ${tone.bd}`, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
                     {reservationStatusLabel(r.status, r.depositReported, r.status || '준비 중')}

@@ -100,6 +100,8 @@
   #toast { position:fixed; bottom:84px; left:50%; transform:translateX(-50%) translateY(16px); max-width:calc(100% - 32px); background:#0A1F2E; color:#fff;
     font-size:13.5px; font-weight:700; line-height:1.5; padding:12px 20px; border-radius:16px; opacity:0; pointer-events:none; transition:.25s; z-index:50; }
   #toast.on { opacity:1; transform:translateX(-50%); }
+  .embedded-contract .mw-header, .embedded-contract .mw-footer, .embedded-contract .fab { display: none; }
+  .embedded-contract .doc { padding: 6px; }
 </style>
 </head>
 <body>
@@ -130,8 +132,10 @@ const KAKAO = "https://pf.kakao.com/_BSLaxl";
 const _params = new URLSearchParams(location.search);
 const _token = _params.get("t");
 const _adminId = _params.get("adminId");
+const readOnlyPreview = !!_adminId && _params.get("preview") === "1";
+if (readOnlyPreview && window.parent !== window) document.body.classList.add("embedded-contract");
 const _adminReturn = _params.get("return") === "manage" ? "예약관리.html" : "예약목록.html";
-const _adminToken = sessionStorage.getItem("leaders_admin_token") || "";
+const _adminToken = readOnlyPreview ? "" : sessionStorage.getItem("leaders_admin_token") || "";
 // adminId가 있으면 인증 토큰이 새 탭에 전달되지 않은 경우도 관리자 진입으로 구분해
 // 고객용 "안전하게 보관" 문구로 조용히 대체하지 않고 재로그인 안내를 표시합니다.
 const _adminView = !!_adminId;
@@ -143,7 +147,22 @@ const toast = m => { const t = document.getElementById("toast"); t.textContent =
 
 const customerFetch = (url, options) => customerDocumentFetch(url, options, { source: 'request', key: _token });
 
+let previewError = "";
 const [R, TR] = await (async () => {
+  if (readOnlyPreview) {
+    root.textContent = "여행계약서를 불러오는 중입니다.";
+    try {
+      const res = await fetch("/api/documents/quote-contract/" + encodeURIComponent(_adminId), { credentials:"same-origin", cache:"no-store" });
+      if (res.ok) {
+        const item = await res.json();
+        if (item.id === _adminId && item.booking) { _adminLoaded = true; return [item, null]; }
+      }
+      if (res.status === 401 || res.status === 403) previewError = "관리자 로그인 후 계약서를 다시 열어 주세요.";
+      else if (res.status === 404) previewError = "이 예약의 여행계약서가 아직 준비되지 않았습니다.";
+    } catch { /* 새로고침으로 다시 조회할 수 있다. */ }
+    previewError ||= "계약서를 불러오지 못했습니다. 새로고침해 주세요.";
+    return [null, null];
+  }
   if (_adminView) {
     try {
       const res = await fetch("/api/requests/" + encodeURIComponent(_adminId), {
@@ -167,7 +186,9 @@ const [R, TR] = await (async () => {
   return [null, null];
 })();
 
-if (!R || !R.booking) {
+if (previewError) {
+  root.innerHTML = `<div class="card"><div class="pad" role="alert"><h1>여행계약서</h1><p>${esc(previewError)}</p></div></div>`;
+} else if (!R || !R.booking) {
   root.innerHTML = `
   <div class="card"><div class="pad" style="text-align:center;">
     <div style="font-size:46px">📜</div>
@@ -175,7 +196,7 @@ if (!R || !R.booking) {
     <p style="color:#5C6B75; line-height:1.65; font-size:14px;">담당자가 예약정보와 예약금 안내를 준비한 뒤<br>계약 절차를 진행할 수 있어요.</p>
     <a href="내견적.html?t=${encodeURIComponent(_token || "")}" style="display:inline-flex; align-items:center; min-height:46px; margin-top:22px; padding:0 22px; border:1px solid #E3E6E2; border-radius:999px; color:#0A1F2E; font-size:14px; font-weight:700; text-decoration:none;">← 내 견적으로 돌아가기</a>
   </div></div>`;
-} else if ((!R.booking.contractInfo || R.booking.contractInfo.depositStatus !== "입금완료") && !(R.booking.contract && R.booking.contract.signedAt)) {
+} else if (!readOnlyPreview && (!R.booking.contractInfo || R.booking.contractInfo.depositStatus !== "입금완료") && !(R.booking.contract && R.booking.contract.signedAt)) {
   root.innerHTML = `
   <div class="card"><div class="pad" style="text-align:center;">
     <div style="font-size:46px">💳</div>
@@ -250,7 +271,7 @@ const simpleTable = rows => `<div style="border:1px solid #E3E6E2; border-radius
 const secContractDetail = card(`
   <div class="blk">
     <div class="sec-eyebrow">CONTRACT DETAILS</div>
-    <div class="sec-title">${signed ? "여행자 · 항공 · 금액 정보" : "여행상품 및 경비 정보"}</div>
+    <div class="sec-title">${signed || readOnlyPreview ? "여행자 · 항공 · 금액 정보" : "여행상품 및 경비 정보"}</div>
   </div>
   <div class="blk" style="margin-top:14px;">
     <div class="h-bar"><span class="bar"></span>여행상품 정보</div>
@@ -266,7 +287,7 @@ const secContractDetail = card(`
       ["비고", esc(contractInfo.note || "-")],
     ])}
   </div>
-  ${signed ? `
+  ${signed || readOnlyPreview ? `
   <div class="blk" style="margin-top:14px;">
     <div class="h-bar"><span class="bar"></span>항공 정보</div>
     ${simpleTable([
@@ -297,7 +318,7 @@ const secContractDetail = card(`
   </div>` : ""}`);
 
 /* ── 3) 서명 전 여행자 정보 입력 폼 ── */
-const secTravelerForm = signed ? "" : card(`
+const secTravelerForm = signed || readOnlyPreview ? "" : card(`
   <div class="blk">
     <div class="sec-eyebrow">TRAVELER INFORMATION</div>
     <div class="sec-title">여행자 정보 입력</div>
@@ -471,15 +492,15 @@ const secSign = signed ? card(`
     <div class="sec-title">서명 완료</div>
     ${_adminLoaded ? `<div style="display:inline-block;margin-top:9px;padding:5px 10px;border-radius:999px;background:#D1F6EA;color:#1C8571;font-size:10.5px;font-weight:800;">관리자 원본 확인</div>` : ""}
     <div style="margin-top:16px; border:1.5px solid #A6E8D4; border-radius:14px; background:#FFFFFF; padding:18px 10px; min-height:120px; display:flex; align-items:center; justify-content:center;">
-      ${BK.contract.signImg ? `<img src="${BK.contract.signImg}" alt="서명" style="max-width:100%; height:100px; object-fit:contain;">` : _adminView && !_adminLoaded ? `<div style="color:#9A5B00;font-size:13px;font-weight:800;line-height:1.6;">관리자 인증이 만료되어 원본을 불러오지 못했습니다.<br>대시보드에 다시 로그인한 뒤 열어 주세요.</div>` : `<div style="color:#1C8571;font-size:13px;font-weight:800;">✓ 전자서명 원본은 안전하게 보관되어 있습니다.</div>`}
+      ${BK.contract.signImg ? `<img src="${esc(BK.contract.signImg)}" alt="서명" style="max-width:100%; height:100px; object-fit:contain;">` : _adminView && !_adminLoaded ? `<div style="color:#9A5B00;font-size:13px;font-weight:800;line-height:1.6;">관리자 인증이 만료되어 원본을 불러오지 못했습니다.<br>대시보드에 다시 로그인한 뒤 열어 주세요.</div>` : `<div style="color:#1C8571;font-size:13px;font-weight:800;">✓ 전자서명 원본은 안전하게 보관되어 있습니다.</div>`}
     </div>
     <div style="margin-top:12px; font-size:13px; color:#23323D; font-weight:700;">${esc(BK.contract.signerName || S.name || R.name)} <span style="color:#8A9895; font-weight:600;">· ${fmtDT(BK.contract.signedAt)}</span></div>
     <div style="margin-top:6px; font-size:10.5px; color:#8A9895;">약관 버전 ${esc(BK.contract.termsVersion)} · 본 계약서는 서명 시점의 내용으로 보관됩니다.</div>
     <div class="no-print">
       <button class="btn ghost" onclick="window.print()">📄 계약서 PDF 저장</button>
-      <a class="btn ghost" href="${_adminView ? _adminReturn : `내견적.html?t=${encodeURIComponent(_token)}`}">${_adminView ? (_adminReturn === "예약관리.html" ? "← 예약관리로" : "← 예약 목록으로") : "← 내 견적 화면으로"}</a>
+      ${readOnlyPreview ? "" : `<a class="btn ghost" href="${_adminView ? _adminReturn : `내견적.html?t=${encodeURIComponent(_token)}`}">${_adminView ? (_adminReturn === "예약관리.html" ? "← 예약관리로" : "← 예약 목록으로") : "← 내 견적 화면으로"}</a>`}
     </div>
-  </div>`) : card(`
+  </div>`) : readOnlyPreview ? card('<div class="sec-title">고객 서명 대기</div>') : card(`
   <div class="blk">
     <div class="sec-eyebrow">SIGNATURE</div>
     <div class="sec-title">동의 및 서명</div>
@@ -503,7 +524,7 @@ document.getElementById("fab").style.display = signed ? "" : "none";
 document.title = `몽골리아 은하수_${esc(S.name || R.name)}님_여행계약서`;
 
 /* ── 캔버스 서명판 ── */
-if (!signed) {
+if (!signed && !readOnlyPreview) {
   const pad = document.getElementById("signPad");
   const hint = document.getElementById("signHint");
   const ctx = pad.getContext("2d");

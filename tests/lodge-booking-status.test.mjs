@@ -1,7 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LODGE_BOOKING_STATUSES, LODGE_BOOKING_UNSENT, isLodgeBookingConfirmed, lodgeBookingLabel } from '../src/utils/lodgeBookingStatus.ts';
+import { LODGE_BOOKING_STATUSES, LODGE_BOOKING_UNSENT, LODGE_MAIL_STAGES, LODGE_RESERVATION_STATES, changeLodgeReservation, isLodgeBookingConfirmed, lodgeBookingLabel, lodgeMailStatus, lodgeReservationStatus } from '../src/utils/lodgeBookingStatus.ts';
 import { getAccommodationPlan } from '../src/utils/accommodationSchedule.ts';
+
+test('메일 회차와 예약상태는 별도 선택지이며 이전 기록의 뜻을 유지한다', () => {
+    assert.deepEqual(LODGE_MAIL_STAGES, ['발송전','1메일완료','2메일완료','3메일완료','배정X']);
+    assert.deepEqual(LODGE_RESERVATION_STATES, ['예약완료','취소요청','취소완료','변경요청','변경완료','배정X']);
+    assert.equal(lodgeReservationStatus('Баталгаажсан'), '예약완료');
+    assert.equal(lodgeReservationStatus('Хариу ирсэн'), '회신 받음');
+    assert.equal(lodgeReservationStatus('Имэйл илгээсэн'), '');
+    assert.equal(lodgeMailStatus({ bookingStatus: 'Имэйл илгээсэн' }), '1메일완료');
+    assert.deepEqual(changeLodgeReservation({ bookingStatus: 'Имэйл илгээсэн' }, '예약완료'), { bookingStatus: '예약완료', mailStatus: '1메일완료' });
+    assert.equal(lodgeMailStatus(changeLodgeReservation({}, '배정X')), '발송전');
+});
 
 test('숙소 예약 상태 선택지는 기존 네 상태(몽골어 저장 값)를 유지하고 새 상태를 추가한다', () => {
     assert.deepEqual(LODGE_BOOKING_STATUSES.map(s => s.label), ['미발송', '예약요청', '메일 발송', '회신 받음', '예약완료', '확정', '취소요청', '취소완료', '변경요청', '변경완료', '배정X']);

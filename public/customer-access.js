@@ -25,7 +25,7 @@ export function parseCustomerReference(value, origin) {
     if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password || url.host.replace(/^www\./, '') !== base.host.replace(/^www\./, '')) return null;
     const path = decodeURIComponent(url.pathname);
     const token = url.searchParams.get('t');
-    if (token && token.length >= 16 && token.length <= 256 && /^\/(?:내견적|견적서(?:-모바일)?|확정일정표(?:-모바일)?|계약서|여행자정보|일정지도|확정안내)\.html$/.test(path)) {
+    if (token && /^[a-zA-Z0-9_-]{16,160}$/.test(token) && /^\/(?:내견적|견적서(?:-모바일)?|확정일정표(?:-모바일)?|계약서|여행자정보|일정지도|확정안내)(?:\.html)?\/?$/.test(path)) {
       return { source: 'request', key: token, returnTo: url.pathname + url.search + url.hash };
     }
     const quote = path.match(/^\/estimate\/([^/]+)$/);

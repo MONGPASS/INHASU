@@ -2,6 +2,8 @@ import React from 'react';
 import { BRAND } from '../../constants/company';
 import { computeDuration, formatRange, type DayData } from './ItineraryDocParts';
 import { GuidePicketPage } from './GuidePicketPage';
+import { guideStatementContent, type GuideStatementPayment } from '../../../public/guide-statement.js';
+import '../../../public/guide-statement.css';
 
 interface GuidePrintExtra {
     customerName?: string;
@@ -18,6 +20,7 @@ interface GuidePrintExtra {
 
 interface GuideItineraryPrintProps {
     reservation: {
+        id: string;
         reservationNumber?: string | null;
         productName: string;
         customerName: string;
@@ -28,6 +31,7 @@ interface GuideItineraryPrintProps {
     title: string;
     days: DayData[];
     extra: GuidePrintExtra | null;
+    statement: GuideStatementPayment;
 }
 
 const clean = (value?: string) => {
@@ -74,20 +78,22 @@ const shortDayNote = (summary?: string, region?: string) => {
     return String(region || '').trim();
 };
 
-export const GuideItineraryPrint: React.FC<GuideItineraryPrintProps> = ({ reservation, title, days, extra }) => {
+export const GuideItineraryPrint: React.FC<GuideItineraryPrintProps> = ({ reservation, title, days, extra, statement }) => {
     const customerName = extra?.customerName || reservation.customerName;
     const people = extra?.people || (reservation.travelers ? `${reservation.travelers}명` : '—');
     const guide = [extra?.guideName, extra?.guidePhone].filter(Boolean).join(' · ');
     const driver = [extra?.driverName, extra?.vehiclePhone].filter(Boolean).join(' · ');
     const duration = computeDuration(reservation.startDate, reservation.endDate);
     const durationLabel = duration ? `${duration.nights}박 ${duration.days}일` : `총 ${days.length}일`;
+    const period = formatRange(reservation.startDate, reservation.endDate);
+    const issued = todayLabel();
     const regions = Array.from(new Set(days.map((day) => day.region).filter(Boolean)))
         .slice(0, 4).join(' · ');
 
     const customerRows = [
         ['예약자', customerName ? `${customerName} 님` : '—'],
         ['여행 인원', people],
-        ['여행 기간', formatRange(reservation.startDate, reservation.endDate)],
+        ['여행 기간', period],
     ];
     const operationRows = [
         ['몽골 도착', clean(extra?.arrival)],
@@ -197,9 +203,10 @@ export const GuideItineraryPrint: React.FC<GuideItineraryPrintProps> = ({ reserv
                         가이드용 일정표
                         <div className="guide-doc-meta">
                             <span>예약 번호</span><span>{reservation.reservationNumber || '—'}</span>
-                            <span>발행일</span><span>{todayLabel()}</span>
+                            <span>발행일</span><span>{issued}</span>
                             <span>전체 일정</span><span>{durationLabel}</span>
                         </div>
+                        <a className="guide-statement-link" href="#guide-statement">거래명세서 보기</a>
                     </div>
                 </header>
 
@@ -287,6 +294,16 @@ export const GuideItineraryPrint: React.FC<GuideItineraryPrintProps> = ({ reserv
             </section>
 
             <footer className="guide-footer"><b>{BRAND.name}</b> · 가이드 업무용 자료<br />본 일정은 현지 날씨·교통 상황에 따라 변경될 수 있습니다.</footer>
+
+            <section className="guide-statement" id="guide-statement" aria-label="거래명세서" dangerouslySetInnerHTML={{ __html: guideStatementContent({
+                ...statement,
+                customerName: reservation.customerName,
+                reservationNumber: reservation.reservationNumber || reservation.id,
+                productName: reservation.productName || title,
+                travelers: reservation.travelers,
+                period,
+                issueDate: issued,
+            }) }} />
 
             <GuidePicketPage input={{ customerName: customerName || '', startDate: String(reservation.startDate || '').slice(0, 10), endDate: String(reservation.endDate || reservation.startDate || '').slice(0, 10),
                 guideName: extra?.guideName || '', guidePhone: extra?.guidePhone || '' }} />

@@ -33,7 +33,7 @@ interface ReviewRow extends RawReview {
  * recently-viewed tracking, then hands over to the PC or mobile screen
  * (components/product-desktop, components/product-mobile).
  */
-export const ProductDetail: React.FC = () => {
+export const ProductDetail: React.FC<{ preview?: boolean }> = ({ preview = false }) => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const { t } = useTranslation();
@@ -85,7 +85,7 @@ export const ProductDetail: React.FC = () => {
                         updatedAt: data.updatedAt ?? data.updated_at
                     };
                     setProduct(mappedProduct);
-                    addToRecentlyViewed(mappedProduct);
+                    if (!preview) addToRecentlyViewed(mappedProduct);
                 }
             } catch (error) {
                 console.error("Product fetch error:", error);
@@ -121,9 +121,11 @@ export const ProductDetail: React.FC = () => {
 
         fetchProduct();
         fetchReviews();
-    }, [id]);
+    }, [id, preview]);
 
+    const previewNotice = () => showToast('info', '관리자 미리보기 화면입니다.');
     const handleShare = async (): Promise<ShareResult> => {
+        if (preview) { previewNotice(); return null; }
         const shareUrl = window.location.href;
         const shareTitle = product?.name ? `${product.name} | ${BRAND.name}` : BRAND.name;
         const shareText = product?.description || product?.name || '';
@@ -274,18 +276,24 @@ export const ProductDetail: React.FC = () => {
             image={product.mainImages?.find(img => !img.startsWith('data:'))}
             keywords={`${product.category}, ${product.tags.join(', ')}, 몽골 투어, 몽골 여행`}
             canonical={`/products/${id}`}
-            structuredData={[productStructuredData, breadcrumbData, ...(faqData ? [faqData] : [])]}
+            robots={preview ? 'noindex, nofollow' : undefined}
+            structuredData={preview ? undefined : [productStructuredData, breadcrumbData, ...(faqData ? [faqData] : [])]}
         />
     );
-    const onBook = () => navigate(`/reservation/${product.id}`);
+    const onBook = preview ? previewNotice : () => navigate(`/reservation/${product.id}`);
+    const previewBanner = preview && <aside aria-label="관리자 미리보기" style={{ padding: '9px 16px', background: MW.navy, color: '#fff', textAlign: 'center', fontSize: 13, fontWeight: 700 }}>
+        관리자 미리보기 · {{ active: '판매중', inactive: '비활성', soldout: '품절' }[product.status]}
+    </aside>;
+    const detailProps = { product, reviews: approvedReviews, onBook, onShare: handleShare, previewNotice: preview ? previewNotice : undefined };
 
     // Keyed by tour so headcount, open rows and scroll position reset when moving to another tour.
     if (isDesktop) {
         return (
             <>
                 {seo}
+                {previewBanner}
                 <DesktopLayout>
-                    <ProductDetailDesktop key={product.id} product={product} reviews={approvedReviews} onBook={onBook} onShare={handleShare} />
+                    <ProductDetailDesktop key={product.id} {...detailProps} />
                 </DesktopLayout>
             </>
         );
@@ -294,7 +302,8 @@ export const ProductDetail: React.FC = () => {
     return (
         <>
             {seo}
-            <ProductDetailMobile key={product.id} product={product} reviews={approvedReviews} onBook={onBook} onShare={handleShare} />
+            {previewBanner}
+            <ProductDetailMobile key={product.id} {...detailProps} />
         </>
     );
 };

@@ -1,7 +1,7 @@
-﻿import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useBlocker } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
-import { adminProductFromApi, adminProductNavigationDecision, updateAdminProductEditorForm, readAdminProductDraft, writeAdminProductDraft, removeAdminProductDraft, finishAdminProductSave, runAdminProductSaveOnce, productDraftFingerprint, type AdminProductDraft, type AdminProductDraftScope, type AdminProductNavigationDecision, type DraftResult } from '../utils/adminProductDraft';
+import { adminProductFromApi, productEditorTerms, adminProductNavigationDecision, updateAdminProductEditorForm, readAdminProductDraft, writeAdminProductDraft, removeAdminProductDraft, finishAdminProductSave, runAdminProductSaveOnce, productDraftFingerprint, type AdminProductDraft, type AdminProductDraftScope, type AdminProductNavigationDecision, type DraftResult } from '../utils/adminProductDraft';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
 import './AdminProductList.css';
@@ -23,9 +23,12 @@ import { lodgingTimelineSnapshot, productLodgingSnapshot } from '../utils/lodgin
 import { travelSpotSnapshot } from '../utils/travelSpotSnapshot';
 import { ItineraryImportModal } from '../components/admin/ItineraryImportModal';
 import { CourseImportModal, type CourseImportExtra } from '../components/admin/CourseImportModal';
+import { mergeCourseSpots } from '../components/admin/courseImport';
 import { cloneItineraryBlocks, renumberDayLabels, type ItinerarySource } from '../components/admin/itineraryImport';
 import { stripDayLabelReading } from '../utils/dayLabel';
 import { ProductRepresentativeSpots } from '../components/admin/QuoteSpotSelector';
+import { ProductTermsChecklist } from '../components/admin/ProductTermsChecklist';
+import { bookableAccommodationOptions, normalizeAccommodationOptions } from '../utils/productAccommodationOptions';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 
@@ -514,6 +517,8 @@ export const AdminProductManage: React.FC = () => {
                                         </td>
                                         <td className="r">
                                             <span className="pd-actions">
+                                                <a className="pd-preview" href={`/admin/products/${encodeURIComponent(product.id)}/preview`} target="_blank" rel="noopener noreferrer"
+                                                    aria-label={`${product.name} 미리보기 (새 탭)`}><DashboardIcon name="lc-eye" size={16} />미리보기</a>
                                                 <button type="button" aria-label={`${product.name} 수정`} title="수정" onClick={() => { void editProduct(product); }}><DashboardIcon name="lc-pencil" size={16} /></button>
                                                 <button type="button" aria-label={`${product.name} 복제`} title="복제" onClick={() => duplicateProduct(product)}><DashboardIcon name="lc-copy" size={16} /></button>
                                                 <button type="button" className="is-danger" aria-label={`${product.name} 삭제`} title="삭제" onClick={() => deleteProduct(product.id)}><DashboardIcon name="lc-trash" size={16} /></button>
@@ -634,7 +639,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     const layoutModeCallback = useRef(onLayoutModeChange); layoutModeCallback.current = onLayoutModeChange;
     useEffect(() => { layoutModeCallback.current?.(designFocus); return () => { layoutModeCallback.current?.(false); }; }, [designFocus]);
     const [formData, setFormDataState] = useState<Partial<TourProduct>>(() =>
-        product ? structuredClone(cleanDayLabels(product)) : {
+        product ? structuredClone({ ...cleanDayLabels(product), ...productEditorTerms(product) }) : {
             name: '',
             category: categories.length > 0 ? categories[0].name : '',
             duration: '',
@@ -652,8 +657,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             tags: [],
             highlights: [],
             representativeSpots: [],
-            included: [],
-            excluded: [],
+            ...productEditorTerms(),
             faqs: [],
             pricingOptions: [],
             accommodationOptions: [],
@@ -816,6 +820,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         if (!pendingDraft || savingRef.current) return;
         const base = baselineRef.current;
         const restored = { ...structuredClone(base), ...structuredClone(pendingDraft.draft.form), id: base.id, createdAt: base.createdAt, updatedAt: base.updatedAt, viewCount: base.viewCount, bookingCount: base.bookingCount };
+        restored.accommodationOptions = normalizeAccommodationOptions(restored.accommodationOptions ?? []);
         lastStoredFingerprint.current = productDraftFingerprint(restored);
         pendingDraftRef.current = false;
         setPendingDraft(null);
@@ -881,12 +886,20 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
             return;
         }
 
+        const stays = formRef.current.accommodationOptions ?? [];
+        const unnamed = stays.findIndex(option => !option.name.trim() && (option.description.trim() || option.priceModifier || option.imageUrl));
+        if (unnamed !== -1) {
+            setCurrentTab('options');
+            adminNotify(`숙소 옵션 ${unnamed + 1}의 이름을 입력해 주세요.`);
+            requestAnimationFrame(() => document.getElementById(`pa-stay-name-${unnamed}`)?.focus());
+            return;
+        }
         await runAdminProductSaveOnce(savingRef, async () => {
             flushDraft();
             setSaving(true);
             setSaveNotice('상품을 저장하고 있습니다.');
             try {
-                const success = await onSave(formRef.current as TourProduct);
+                const success = await onSave({ ...formRef.current, inclusionsConfigured: true, accommodationOptions: bookableAccommodationOptions(stays) } as TourProduct);
                 if (!success) {
                     flushDraft();
                     if (mountedRef.current) setSaveNotice('상품을 저장하지 못했습니다. 작성한 내용은 유지되며 다시 저장할 수 있습니다.');
@@ -969,37 +982,23 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         });
     };
 
-    // Accommodation Option Handlers
-    const addAccommodationOption = () => {
-        setFormData({
-            ...formData,
-            accommodationOptions: [...(formData.accommodationOptions || []), {
-                id: `acc-${Date.now()}`,
-                name: '',
-                description: '',
-                priceModifier: 0,
-                isDefault: (formData.accommodationOptions?.length || 0) === 0
-            }]
-        });
+    const stays = formData.accommodationOptions ?? [];
+    const editStays = (edit: (options: AccommodationOption[]) => AccommodationOption[]) => {
+        setFormData(current => ({ ...current, accommodationOptions: edit(current.accommodationOptions ?? []) }));
     };
-    const updateAccommodationOption = (index: number, field: keyof AccommodationOption, value: any) => {
-        const updated = [...(formData.accommodationOptions || [])];
-        updated[index] = { ...updated[index], [field]: value };
-
-        // Handle default selection logic (radio behavior)
-        if (field === 'isDefault' && value === true) {
-            updated.forEach((opt, i) => {
-                if (i !== index) opt.isDefault = false;
-            });
-        }
-
-        setFormData({ ...formData, accommodationOptions: updated });
+    const addAccommodationOptions = (count: number) => {
+        editStays(options => [...options, ...Array.from({ length: count }, (_, i) => ({
+            id: `acc-${crypto.randomUUID()}`, name: '', description: '', priceModifier: 0, isDefault: !options.length && i === 0,
+        }))]);
     };
-    const removeAccommodationOption = (index: number) => {
-        setFormData({
-            ...formData,
-            accommodationOptions: formData.accommodationOptions?.filter((_, i) => i !== index)
-        });
+    const updateAccommodationOption = (id: string, change: Partial<AccommodationOption>) => {
+        editStays(options => options.map(option => option.id === id ? { ...option, ...change } : option));
+    };
+    const setDefaultAccommodation = (id: string) => {
+        editStays(options => options.map(option => ({ ...option, isDefault: option.id === id })));
+    };
+    const removeAccommodationOption = (id: string) => {
+        editStays(options => normalizeAccommodationOptions(options.filter(option => option.id !== id)));
     };
 
     // Vehicle Option Handlers
@@ -1226,23 +1225,26 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         const current = formData.itineraryBlocks || [];
         const currentImages = formData.itineraryImages || [];
         let replace = true;
-        if (current.length > 0 || currentImages.length > 0) {
-            replace = await adminConfirm(`코스 「${courseName}」로 일정표를 만듭니다.
-
-확인: 지금 일정표를 지우고 교체
-취소: 지금 일정표 뒤에 이어 붙이기`);
+        const hadSchedule = current.length > 0 || currentImages.length > 0;
+        if (hadSchedule) {
+            replace = await adminConfirm({
+                title: '코스 불러오기',
+                message: `「${courseName}」의 일정과 대표 명소를 기존 내용 뒤에 이어 붙이거나 교체할 수 있습니다.`,
+                confirmLabel: '교체', cancelLabel: '이어 붙이기',
+            });
         }
         // 요금: 고른 여행 타입의 인원별 가격으로 바꾼다 — 이미 입력한 가격이 있으면 먼저 묻는다
         const existing = (formData.pricingOptions || []).filter(option => option.pricePerPerson > 0);
         const usePricing = !!extra.pricing && (existing.length === 0
             || await adminConfirm(`가격/옵션에 입력된 인원별 가격 ${existing.length}개를 코스 요금으로 바꿀까요?\n\n확인: 코스 요금으로 교체\n취소: 지금 가격 유지`));
-        setFormData({
-            ...formData,
-            itineraryBlocks: renumberDayLabels(replace ? blocks : [...current, ...blocks]),
-            itineraryImages: replace ? [] : currentImages,
+        setFormData(prev => ({
+            ...prev,
+            itineraryBlocks: renumberDayLabels(replace ? blocks : [...(prev.itineraryBlocks ?? []), ...blocks]),
+            itineraryImages: replace ? [] : prev.itineraryImages,
+            representativeSpots: mergeCourseSpots(prev.representativeSpots ?? [], extra.representativeSpots, hadSchedule && replace),
             ...(extra.packageType ? { packageType: extra.packageType } : {}),
             ...(usePricing && extra.pricing ? { pricingOptions: extra.pricing, price: Math.min(...extra.pricing.map(option => option.pricePerPerson)) } : {}),
-        });
+        }));
         setCourseImportOpen(false);
     };
     const handleSpotPick = (spot: TouristSpot) => {
@@ -1865,26 +1867,6 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
     const removeTag = (tag: string) => {
         setFormData({ ...formData, tags: formData.tags?.filter(t => t !== tag) });
-    };
-
-    const addIncluded = (item: string) => {
-        if (item) {
-            setFormData({ ...formData, included: [...(formData.included || []), item] });
-        }
-    };
-
-    const removeIncluded = (index: number) => {
-        setFormData({ ...formData, included: formData.included?.filter((_, i) => i !== index) });
-    };
-
-    const addExcluded = (item: string) => {
-        if (item) {
-            setFormData({ ...formData, excluded: [...(formData.excluded || []), item] });
-        }
-    };
-
-    const removeExcluded = (index: number) => {
-        setFormData({ ...formData, excluded: formData.excluded?.filter((_, i) => i !== index) });
     };
 
     const busy = saving || uploadCount > 0 || itineraryBulkUploading || designUploading;
@@ -2893,46 +2875,44 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                 </section>
 
                                 {/* Accommodation Options */}
-                                <section className="edit-sec">
+                                <section className="edit-sec pa-stay-options" aria-labelledby="pa-stay-title">
                                     <div className="edit-sec-head">
-                                        <Icon name="hotel" />
-                                        <h4>숙소 옵션</h4>
-                                        <span className="muted">기본 1개 선택</span>
+                                        <DashboardIcon name="lc-bed" size={18} />
+                                        <h4 id="pa-stay-title">숙소 옵션</h4>
+                                        <span className="muted" aria-live="polite">옵션 {stays.length}개</span>
                                     </div>
                                     <div className="stack" style={{ gap: 10 }}>
-                                        {formData.accommodationOptions?.map((option, index) => (
-                                            <div className="edit-row" key={index}>
-                                                <div style={{ flex: 1, minWidth: 0 }} className="opt-card">
-                                                    <div className="row" style={{ gap: 8 }}>
-                                                        <button
-                                                            type="button"
-                                                            className={`radio${option.isDefault ? ' on' : ''}`}
-                                                            onClick={() => updateAccommodationOption(index, 'isDefault', true)}
-                                                            title="기본 옵션"
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            className="inp"
-                                                            style={{ flex: 1 }}
-                                                            value={option.name}
-                                                            onChange={(e) => updateAccommodationOption(index, 'name', e.target.value)}
-                                                            placeholder="옵션명 (예: 게르)"
-                                                        />
-                                                        <div className="inp-mini" style={{ width: 130 }}><span className="pre">+</span><input type="number" value={option.priceModifier} onChange={(e) => updateAccommodationOption(index, 'priceModifier', Number(e.target.value))} placeholder="0" /><span>원</span></div>
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        className="inp"
-                                                        style={{ marginTop: 8 }}
-                                                        value={option.description}
-                                                        onChange={(e) => updateAccommodationOption(index, 'description', e.target.value)}
-                                                        placeholder="옵션 설명"
-                                                    />
+                                        {stays.map((option, index) => (
+                                            <div className="edit-row pa-stay-card" key={option.id}>
+                                                <div className="pa-stay-head">
+                                                    <label htmlFor={`pa-stay-name-${index}`}>숙소 {index + 1}</label>
+                                                    <label className="pa-stay-default">
+                                                        <input type="radio" name="pa-default-stay" checked={!!option.isDefault}
+                                                            aria-label={`숙소 ${index + 1} 기본 옵션`} onChange={() => setDefaultAccommodation(option.id)} />
+                                                        기본 숙소
+                                                    </label>
+                                                    <button type="button" className="act-btn danger" onClick={() => removeAccommodationOption(option.id)}
+                                                        aria-label={`숙소 ${index + 1} 삭제`} title="숙소 삭제"><DashboardIcon name="lc-trash" size={16} /></button>
                                                 </div>
-                                                <button type="button" className="act-btn danger" onClick={() => removeAccommodationOption(index)} title="삭제"><Icon name="delete" /></button>
+                                                <div className="pa-stay-fields">
+                                                    <input className="inp" id={`pa-stay-name-${index}`} value={option.name} placeholder="숙소명 (예: 스탠다드 게르)"
+                                                        onChange={e => updateAccommodationOption(option.id, { name: e.target.value })} />
+                                                    <label className="inp-mini"><span className="pre">차액</span>
+                                                        <input type="number" aria-label={`숙소 ${index + 1} 추가·할인 금액`} value={option.priceModifier}
+                                                            onChange={e => updateAccommodationOption(option.id, { priceModifier: Number(e.target.value) })} />
+                                                        <span>원</span>
+                                                    </label>
+                                                </div>
+                                                <input className="inp" value={option.description} placeholder="숙소 설명 (선택)" aria-label={`숙소 ${index + 1} 설명`}
+                                                    onChange={e => updateAccommodationOption(option.id, { description: e.target.value })} />
                                             </div>
                                         ))}
-                                        <button type="button" className="add-line" onClick={addAccommodationOption}><Icon name="add" />숙소 옵션 추가</button>
+                                        <div className="pa-stay-add" role="group" aria-label="숙소 옵션 추가">
+                                            {[1, 2, 3].map(count => (
+                                                <button type="button" className="add-line" key={count} onClick={() => addAccommodationOptions(count)}
+                                                    aria-label={`숙소 옵션 ${count}개 추가`}><DashboardIcon name="lc-plus" size={16} />{count}개 추가</button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </section>
 
@@ -2982,66 +2962,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                             </div>
                         )}
 
-                        {/* Includes Tab */}
                         {currentTab === 'includes' && (
-                            <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 18, maxWidth: 860 }}>
-                                {/* Included */}
-                                <section className="edit-sec">
-                                    <div className="edit-sec-head">
-                                        <Icon name="check_circle" style={{ color: 'var(--mrt-green)' }} />
-                                        <h4>포함 사항</h4>
-                                    </div>
-                                    <div className="stack" style={{ gap: 8 }}>
-                                        {formData.included?.map((item, index) => (
-                                            <div className="row" style={{ gap: 8 }} key={index}>
-                                                <Icon name="check_circle" style={{ color: 'var(--mrt-green)', fontSize: 18, flex: 'none' }} />
-                                                <span style={{ flex: 1, fontSize: 13.5, color: 'var(--text-body)' }}>{item}</span>
-                                                <button type="button" className="act-btn danger" onClick={() => removeIncluded(index)} title="삭제"><Icon name="close" /></button>
-                                            </div>
-                                        ))}
-                                        <input
-                                            type="text"
-                                            className="inp"
-                                            placeholder="포함 항목 입력 후 Enter"
-                                            onKeyPress={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    addIncluded((e.target as HTMLInputElement).value);
-                                                    (e.target as HTMLInputElement).value = '';
-                                                }
-                                            }}
-                                        />
-                                    </div>
-                                </section>
-
-                                {/* Excluded */}
-                                <section className="edit-sec">
-                                    <div className="edit-sec-head">
-                                        <Icon name="cancel" style={{ color: 'var(--mrt-red)' }} />
-                                        <h4>불포함 사항</h4>
-                                    </div>
-                                    <div className="stack" style={{ gap: 8 }}>
-                                        {formData.excluded?.map((item, index) => (
-                                            <div className="row" style={{ gap: 8 }} key={index}>
-                                                <Icon name="cancel" style={{ color: 'var(--mrt-red)', fontSize: 18, flex: 'none' }} />
-                                                <span style={{ flex: 1, fontSize: 13.5, color: 'var(--text-body)' }}>{item}</span>
-                                                <button type="button" className="act-btn danger" onClick={() => removeExcluded(index)} title="삭제"><Icon name="close" /></button>
-                                            </div>
-                                        ))}
-                                        <input
-                                            type="text"
-                                            className="inp"
-                                            placeholder="불포함 항목 입력 후 Enter"
-                                            onKeyPress={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    addExcluded((e.target as HTMLInputElement).value);
-                                                    (e.target as HTMLInputElement).value = '';
-                                                }
-                                            }}
-                                        />
-                                    </div>
-                                </section>
+                            <div className="pa-terms-grid">
+                                {(['included', 'excluded'] as const).map(kind => (
+                                    <ProductTermsChecklist key={kind} kind={kind} selected={formData[kind] ?? []}
+                                        onChange={items => setFormData(current => ({ ...current, [kind]: items }))} />
+                                ))}
                             </div>
                         )}
                     </div>
@@ -3147,7 +3073,7 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
                 <span className="pa-start-ico"><Icon name="route" /></span>
                 <div className="pa-start-text">
                     <b>코스에서 불러오기</b>
-                    <span>견적 관리의 코스를 고르면 일차·일정·식사·숙소가 한 번에 만들어집니다. 사진과 설명은 여행지 관리·등록 숙소에서 자동으로 채워집니다.</span>
+                    <span>견적 관리의 코스를 고르면 일차별 일정, 식사, 숙소와 코스에 지정한 대표 명소를 함께 불러옵니다.</span>
                 </div>
                 <button type="button" onClick={onImportCourse} className="adm-btn is-primary" data-course-import-open>코스 선택</button>
             </div>

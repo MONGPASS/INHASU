@@ -12,6 +12,12 @@ const DEFAULT_DEPOSIT_ACCOUNT = Object.freeze({
   accountHolder: "DAVAASUREN (헬로볼라)",
 });
 
+function contractPackageOptions(selected) {
+  return [["", "미지정"], ["value", "실속"], ["full", "풀패키지"]]
+    .map(([value, label]) => `<option value="${value}"${selected === value ? " selected" : ""}>${label}</option>`)
+    .join("");
+}
+
 function blankBooking() {
   return {
     confirmedAt: "",
@@ -26,6 +32,7 @@ function blankBooking() {
     flight: { inDate:"", inDepTime:"", inTime:"", inNo:"", outDate:"", outTime:"", outArrTime:"", outNo:"" },
     pickupLodge: "",   // 울란바타르 출발·도착 팀의 픽업/샌딩 숙소명 (고객 입력)
     travelerNote: "",  // 여행자 특이사항 — 고혈압·거동 불편·채식 등 (고객 입력)
+    contractPackageType: "", // 관리자가 계약별로 지정하는 유형
     contractInfo: { productName:"", region:"", totalAmount:0, depositAmount:0, depositStatus:"미입금", balanceAmount:0, balanceStatus:"미수령", cashReceipt:"", ...DEFAULT_DEPOSIT_ACCOUNT, note:"" },
     preparedAt: "",
     depositRequest: { status:"not_sent", requestedAt:"" },
@@ -87,6 +94,22 @@ function quoteMoney(rec) {
   const depositAmount = (Number(p.deposit) || 0) * pax;
   const balanceAmount = per * pax;
   return { totalAmount: depositAmount + balanceAmount, depositAmount, balanceAmount };
+}
+
+// 선택한 예약을 해당 인쇄 창에만 전달한다. 같은 시점에 다른 팀의 시트를 열어도 섞이지 않는다.
+function openBookingGuideSheet(record, booking, printWindow = window.open("about:blank", "_blank")) {
+  if (!printWindow) return false;
+  const { id, reservationNumber, name, destination, depart, return_, adult, child, infant, nights, quote } = record;
+  const { days, travelers, flight, assign, checklist, contractInfo, contractPackageType, pickupLodge, travelerNote, notes } = booking;
+  const payload = { id, reservationNumber, name, destination, depart, return_, adult, child, infant, nights,
+    quote: { pax: quote?.pax, intensity: quote?.intensity },
+    booking: { days, travelers, flight, assign, checklist, contractInfo, contractPackageType, pickupLodge, travelerNote, notes } };
+  try { printWindow.sessionStorage.setItem("leaders_guide_sheet_print", JSON.stringify(payload)); }
+  catch { /* 큰 예약은 인쇄 창에서 같은 ID의 서버 원본을 조회한다. */ }
+  const url = new URL("가이드시트.html", location.href);
+  url.search = new URLSearchParams({ adminPrint: "1", print: "1", id: String(id) }).toString();
+  printWindow.location.replace(url.href);
+  return true;
 }
 
 /* 예약 데이터 → 현지 잔금 현금영수증 출력 데이터. PC·모바일 관리자가 같은 번호와 필드를 사용합니다. */

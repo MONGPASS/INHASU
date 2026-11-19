@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isUpcomingTour, tripLengthLabel, tourMonthLabel, tourSerials, roomPlanLabel, sheetAreaFor, packagePlanFromGrades, ROOM_PLAN_OPTIONS, LODGE_GRADE_OPTIONS, ASSIGN_TYPE_OPTIONS, LODGE_AREA_OPTIONS } from '../src/utils/accommodationSheet.ts';
+import { isUpcomingTour, tripLengthLabel, tourMonthLabel, tourSerials, sheetAreaFor, packagePlanFromGrades, ROOM_PLAN_OPTIONS, LODGE_GRADE_OPTIONS, ASSIGN_TYPE_OPTIONS, LODGE_AREA_OPTIONS } from '../src/utils/accommodationSheet.ts';
 import { CATEGORY_OPTIONS } from '../src/utils/reservationWorkspace.ts';
 
 test('오늘 이후(오늘 포함) 진행되는 투어만 숙소 배정 대상이다', () => {
@@ -28,7 +28,6 @@ test('일정·투어 월·일련번호를 시트 표기로 계산한다', () => 
 
 test('시트 선택지는 기존 저장 표기를 유지하며 시트 목록을 담는다', () => {
     assert.deepEqual(ROOM_PLAN_OPTIONS.slice(0, 4).map(o => [o.value, o.label]), [['1 хүн/өрөө', '1인1실'], ['2 хүн/өрөө', '2인1실'], ['3 хүн/өрөө', '3인1실'], ['4 хүн/өрөө', '4인1실']]);
-    assert.equal(roomPlanLabel('골프오전'), '골프오전'); assert.equal(roomPlanLabel('예전 값'), '예전 값');
     for (const grade of ['고급 게르', '4성급호텔', '목조하우스', '디럭스 게르', '3성급 호텔', '게스트하우스', '골프장', 'Tureesiin bair', '이용x/개별']) assert.ok(LODGE_GRADE_OPTIONS.includes(grade), grade);
     assert.deepEqual(ASSIGN_TYPE_OPTIONS, ['1인1실', '2인1실', '3인1실', '4인1실', '골프오전', '골프오후', '이용x/개별']);
     assert.equal(LODGE_AREA_OPTIONS.length, 19);

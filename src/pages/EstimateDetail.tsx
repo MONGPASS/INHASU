@@ -4,11 +4,29 @@ import { api } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { SEO } from '../components/seo/SEO';
 import { DEPOSIT_PAYMENT_METHOD } from '../constants/company';
+import { loadQuoteVehicles, quoteVehicleCards, type QuoteVehicle } from '../../public/quote-vehicles.js';
+import '../../public/quote-vehicles.css';
 import {
     INK, SUB, MUTE, FAINT, BLUE, BLUE_DK, BLUE_BG, GREEN, GREEN_BG, BORDER, HAIRLINE, SECTION, PAGE_BG,
     type DayData, type HeroBadge,
     useIsMobile, DayTimelineBlock, IncludedListsBlock, HeroMobile, HeroPC, InfoBlock, eyebrowStyle, h2Style,
 } from '../components/document/ItineraryDocParts';
+
+function QuoteVehicles({ model }: { model?: string }) {
+    const [vehicles, setVehicles] = useState<QuoteVehicle[]>([]);
+    useEffect(() => {
+        const controller = new AbortController();
+        loadQuoteVehicles(controller.signal).then(rows => {
+            if (!controller.signal.aborted) setVehicles(rows);
+        });
+        return () => controller.abort();
+    }, []);
+    if (!vehicles.length) return null;
+    return <section className="qv-estimate"><h2 className="qv-heading">투어 차량 안내</h2>
+        {/* PC·모바일 견적서와 동일하게 텍스트와 이미지 주소를 이스케이프한 카드만 사용한다. */}
+        <div className="qv-grid" dangerouslySetInnerHTML={{ __html: quoteVehicleCards(vehicles, model) }} />
+    </section>;
+}
 
 /**
  * 견적(맞춤 견적 고객 페이지) — 확정 일정표(DocumentItinerary)와 같은
@@ -475,26 +493,14 @@ export const EstimateDetail: React.FC = () => {
                         {stepsBlock}
                         {writingBlock}
                         {adminNoteBlock}
-                        {m ? (
-                            <>
-                                <InfoBlock items={infoItems} m={m} />
-                                {priceBlock}
-                                {ctaBlock}
-                                {itineraryBlock}
-                                <IncludedListsBlock included={includedList} excluded={excludedList} m={m} />
-                                {recapBlock}
-                            </>
-                        ) : (
-                            <>
-                                <div style={{ height: 28 }} />
-                                <InfoBlock items={infoItems} m={m} />
-                                {priceBlock}
-                                {ctaBlock}
-                                {itineraryBlock}
-                                <IncludedListsBlock included={includedList} excluded={excludedList} m={m} />
-                                {recapBlock}
-                            </>
-                        )}
+                        {!m && <div style={{ height: 28 }} />}
+                        <InfoBlock items={infoItems} m={m} />
+                        {priceBlock}
+                        {ctaBlock}
+                        {isSent && <QuoteVehicles model={estimate.vehicle} />}
+                        {itineraryBlock}
+                        <IncludedListsBlock included={includedList} excluded={excludedList} m={m} />
+                        {recapBlock}
                     </div>
                 </div>
             </div>

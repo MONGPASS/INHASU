@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { hasAdminSession, requireAdmin } from '../lib/adminAuth';
 import { normalizeRepresentativeSpots } from '../lib/productItinerary';
+import { quoteIncludedLabels, quoteExclusions } from '../../public/quote-inclusions.js';
 
 type Env = {
     DB: any;
@@ -141,6 +142,9 @@ app.post('/', requireAdmin, async (c) => {
         const mainImages = g(data, 'main_images', 'mainImages', []);
         const isFeatured = data.is_featured ?? data.isFeatured ?? false;
         const isPopular = data.is_popular ?? data.isPopular ?? false;
+        const hasTerms = data.included !== undefined || data.excluded !== undefined;
+        const included = toJson(hasTerms ? data.included : quoteIncludedLabels);
+        const excluded = toJson(hasTerms ? data.excluded : quoteExclusions);
 
         try {
             await db.prepare(`
@@ -152,8 +156,8 @@ app.post('/', requireAdmin, async (c) => {
                     tags, included, excluded, faqs,
                     detail_slides, detail_blocks, itinerary_blocks,
                     highlights, representative_spots, pricing_options, accommodation_options, vehicle_options,
-                    view_count, booking_count, sort_order
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    view_count, booking_count, sort_order, inclusions_configured
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             `).bind(
                 id,
                 data.name || '',
@@ -174,8 +178,8 @@ app.post('/', requireAdmin, async (c) => {
                 isFeatured ? 1 : 0,
                 isPopular ? 1 : 0,
                 toJson(data.tags || []),
-                toJson(data.included || []),
-                toJson(data.excluded || []),
+                included,
+                excluded,
                 toJson(data.faqs || []),
                 toJson(g(data, 'detail_slides', 'detailSlides', [])),
                 toJson(g(data, 'detail_blocks', 'detailBlocks', [])),
@@ -200,8 +204,8 @@ app.post('/', requireAdmin, async (c) => {
                     tags, included, excluded, faqs,
                     detail_slides, detail_blocks, itinerary_blocks,
                     highlights, representative_spots, pricing_options, accommodation_options, vehicle_options,
-                    view_count, booking_count
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    view_count, booking_count, inclusions_configured
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             `).bind(
                 id,
                 data.name || '',
@@ -222,8 +226,8 @@ app.post('/', requireAdmin, async (c) => {
                 isFeatured ? 1 : 0,
                 isPopular ? 1 : 0,
                 toJson(data.tags || []),
-                toJson(data.included || []),
-                toJson(data.excluded || []),
+                included,
+                excluded,
                 toJson(data.faqs || []),
                 toJson(g(data, 'detail_slides', 'detailSlides', [])),
                 toJson(g(data, 'detail_blocks', 'detailBlocks', [])),
@@ -287,6 +291,10 @@ app.put('/:id', requireAdmin, async (c) => {
 
         const updateFields: string[] = [];
         const updateValues: any[] = [];
+        if (data.included !== undefined || data.excluded !== undefined) {
+            updateFields.push('inclusions_configured = ?');
+            updateValues.push(1);
+        }
 
         // Define mapping for frontend keys to database column names, and how to format them
         const fieldMapping: Record<string, { col: string, format?: (v: any) => any }> = {

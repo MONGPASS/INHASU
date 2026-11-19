@@ -866,6 +866,7 @@ function render() {
         <label class="f"><span>잔금 상태</span><select id="ci_balanceStatus">
           ${["미수령", "입금완료", "현지현금전달", "계좌입금", "카드결제"].map(v => `<option value="${v}" ${(ci.balanceStatus || "미수령") === v ? "selected" : ""}>${v}</option>`).join("")}
         </select></label>
+        <label class="f"><span>계약 패키지 유형</span><select id="ci_packageType">${contractPackageOptions(BK.contractPackageType)}</select></label>
       </div>
       <div class="grid3" style="margin-top:10px;">
         <label class="f"><span>입금 은행</span><input id="ci_bankName" value="${esc(ci.bankName || "")}" placeholder="예: 국민은행"></label>
@@ -989,20 +990,25 @@ function pullForm() {
                       phone:g("g_phone"), qr:g("g_qr"), img:g("g_img"), desc:g("g_desc") };
   const prevVehicle = BK.assign.vehicle || {};
   BK.assign.vehicle = { model:g("v_model"), seats:g("v_seats"), luggage:g("v_luggage"), plate:g("v_plate"), img:"", imgs:[], desc:"" };
+  const previousByDay = new Map(BK.assign.lodges.map(l => [Number(l.day), l]));
   BK.assign.lodges = [...document.querySelectorAll(".lodge-row")].map((el, index) => {
     const name = el.querySelector('[data-lk="name"]').value.trim();
     const previous = (BK.assign.lodges || [])[index] || {};
     const lib = Lodging.snapshot(LIBS.lodges[name], previous.name === name ? previous : {});   // 라이브러리에 있으면 사진·태그를 고객 확정안내에 함께 노출
     const descCustom = (el.querySelector('[data-lk="desc"]') || {}).value?.trim() || "";
+    const day = Number(el.querySelector('[data-lk="day"]').value) || 0;
+    const stored = previousByDay.get(day);
+    const roomCount = stored?.roomCount;
     return {
+      ...(stored?.name === name ? stored : {}),
       ...Lodging.publicData(lib),
-      day: Number(el.querySelector('[data-lk="day"]').value) || 0,
+      day, ...(roomCount != null && roomCount !== "" ? { roomCount } : {}),
       name,
       grade: el.querySelector('[data-lk="grade"]').value,
       region: lib.region || "", img: lib.img || "", imgs: Array.isArray(lib.imgs) ? lib.imgs : (lib.img ? [lib.img] : []), tags: lib.tags || "",
       descCustom, desc: descCustom || lib.desc || "",   // 관리자가 입력하면 우선, 비우면 리소스 설명
     };
-  }).filter(l => l.name);
+  }).filter(l => l.name || l.roomCount != null || l.mailStatus || l.mailSentDate || l.bookingStatus === "배정X");
   // 차량 사진도 라이브러리에서 자동 첨부 · 특징은 관리자 입력 우선
   const vlib = LIBS.vehicles[BK.assign.vehicle.model] || {};
   if (vlib.img) BK.assign.vehicle.img = vlib.img;
@@ -1025,6 +1031,7 @@ function pullForm() {
                 outDate:g("fl_outDate"), outTime:g("fl_outTime"), outArrTime:g("fl_outArrTime"), outNo:g("fl_outNo") };
   BK.pickupLodge = $("bk_pickupLodge") ? $("bk_pickupLodge").value.trim() : (BK.pickupLodge || "");
   BK.travelerNote = $("bk_travelerNote") ? $("bk_travelerNote").value.trim() : (BK.travelerNote || "");
+  BK.contractPackageType = g("ci_packageType");
   BK.contractInfo = {
     productName:g("ci_productName"), region:g("ci_region"), cashReceipt:g("ci_cashReceipt"), bankName:g("ci_bankName"), accountNumber:g("ci_accountNumber"), accountHolder:g("ci_accountHolder"), note:$("ci_note") ? $("ci_note").value : "",
     totalAmount:Number(g("ci_totalAmount")) || 0, depositAmount:Number(g("ci_depositAmount")) || 0, depositStatus:g("ci_depositStatus") || "미입금",
@@ -1039,7 +1046,7 @@ function pullForm() {
   BK.publishStatus = $("publishSchedule").checked ? "published" : "draft";
 }
 
-/* 현재 예약을 저장한 뒤 담당 가이드 전달용 "가이드 시트"(항공편·고객명단·일차별 숙소 1페이지 요약)를 인쇄합니다. */
+/* 현재 예약을 저장한 뒤 일정과 거래명세서가 포함된 가이드 시트를 인쇄합니다. */
 async function printGuideSheet() {
   pullForm();
   const printWindow = window.open("about:blank", "_blank");
@@ -1047,8 +1054,7 @@ async function printGuideSheet() {
   printWindow.document.write(`<p style="font-family:sans-serif;padding:24px">가이드 시트를 준비하고 있습니다…</p>`);
   const saved = await save({ quiet:true });
   if (!saved) { printWindow.close(); return; }
-  localStorage.setItem("leaders_guide_sheet_print", JSON.stringify({ ...PRE, booking: { ...BK } }));
-  printWindow.location.replace(new URL("가이드시트.html?adminPrint=1&print=1", location.href).href);
+  openBookingGuideSheet(PRE, BK, printWindow);
 }
 
 /* 현재 예약을 저장한 뒤 고객 공개 여부와 무관한 관리자용 확정일정표를 PDF 인쇄합니다. */

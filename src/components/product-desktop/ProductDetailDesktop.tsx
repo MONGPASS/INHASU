@@ -25,7 +25,7 @@ const SECTION_OFFSET = MW_STICKY_TOP + TAB_ROW_H + 24;
 const ASIDE_TOP = MW_STICKY_TOP + TAB_ROW_H + 20;
 
 /** PC tour detail (Claude Design: "Milkyway Japan Home" — Tour Detail). */
-export function ProductDetailDesktop({ product, reviews, onBook, onShare }: TourDetailViewProps) {
+export function ProductDetailDesktop({ product, reviews, onBook, onShare, previewNotice }: TourDetailViewProps) {
     const navigate = useNavigate();
     const pricing = useTourPricing(product);
     const wishlist = useWishlist();
@@ -97,7 +97,7 @@ export function ProductDetailDesktop({ product, reviews, onBook, onShare }: Tour
                     bookedFrom={1}
                     onReviews={() => pick('td-rev')}
                     typeBadge={<TypePill type={product.packageType} style={{ height: 24, padding: '0 10px', fontSize: 10 }} />}
-                    actions={<SaveShareButtons fav={fav} onFav={() => wishlist.toggle(product)} onShare={onShare} />}
+                    actions={<SaveShareButtons fav={fav} onFav={previewNotice ?? (() => wishlist.toggle(product))} onShare={onShare} />}
                 />
 
                 <TourGallery images={gallery} name={product.name} onOpen={() => setPhotosOpen(true)} />

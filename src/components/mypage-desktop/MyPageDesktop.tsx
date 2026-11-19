@@ -57,7 +57,7 @@ export function MyPageDesktop({ tab = 'overview' }: { tab?: MyTab }) {
     const quoteList = quotes.data ?? [];
     // Tours that ended without a review yet (same eligibility rule as the review API).
     const pendingReviews = useMemo(
-        () => resList.filter((r) => ['confirmed', 'paid', 'completed'].includes(r.status) && (r.status === 'completed' || (!!r.end && r.end < today)) && !r.reviewed),
+        () => resList.filter((r) => r.source === 'reservation' && ['confirmed', 'paid', 'completed'].includes(r.status) && (r.status === 'completed' || (!!r.end && r.end < today)) && !r.reviewed),
         [resList, today],
     );
 

@@ -73,6 +73,7 @@ const BlockHeading = ({ children }: { children: React.ReactNode }) => <h3 classN
 
 export interface ContractDocumentViewProps {
     data: ContractPageData; formTravelers?: ContractTraveler[]; arrival?: ContractFlight; departure?: ContractFlight;
+    readOnly?: boolean;
     agreed?: boolean; signerName?: string; saving?: boolean; saved?: boolean;
     onTravelerChange?: (index: number, field: keyof ContractTraveler, value: string) => void;
     onAddTraveler?: () => void; onRemoveTraveler?: (index: number) => void;
@@ -100,6 +101,8 @@ export function ContractDocumentView(p: ContractDocumentViewProps) {
     const agreed = p.agreed === undefined ? contract.agreement?.agreed === true : p.agreed === true;
     const signerName = p.signerName ?? contract.agreement?.name ?? '';
     const submitted = contract.agreement?.agreed === true;
+    const pendingSignatureText = p.readOnly ? '아직 고객 손서명이 등록되지 않았습니다.'
+        : submitted ? '기존 성명 동의 기록은 보존되어 있습니다. 아래에서 손서명을 추가할 수 있습니다.' : '아래 서명란에 직접 서명해 주세요.';
     const terms = displayData.contractTerms || productContractTerms();
     const company = terms.company || COMPANY_INFO, depositAccount = terms.depositAccount || DEPOSIT_ACCOUNT, brand = terms.brand || BRAND;
     const settings = { ...terms.defaults, ...(template?.documentSettings?.contract || {}) };
@@ -107,7 +110,7 @@ export function ContractDocumentView(p: ContractDocumentViewProps) {
     const excluded = displayData.contractExcludedOverride ? displayData.productExcluded || [] : displayData.productExcluded?.length ? displayData.productExcluded : splitLines(settings.excludedText);
     const includedDisplay = displayData.contractIncludedOverride ? included : included.length ? included : splitLines(terms.defaults.includedText);
     const excludedDisplay = displayData.contractExcludedOverride ? excluded : excluded.length ? excluded : splitLines(terms.defaults.excludedText);
-    const reviewTravelers = frozen ? reviewContract.travelers || [] : formTravelers;
+    const reviewTravelers = frozen || p.readOnly ? reviewContract.travelers || [] : formTravelers;
     const reviewArrival = frozen ? reviewContract.arrival || {} : arrival;
     const reviewDeparture = frozen ? reviewContract.departure || {} : departure;
     const issuedDate = reviewContract.issuedDate || reservation.createdAt?.split('T')[0] || '';
@@ -152,7 +155,7 @@ export function ContractDocumentView(p: ContractDocumentViewProps) {
                 ]} />
                 <p className="pc-cover-meta">발행일 {fmtDate(issuedDate)} · 계약 번호 {contractNumber}</p>
                 <p className="pc-contract-intro">{resolveContractIntro(settings.intro)}</p>
-                {signature && <p className="pc-signature-context">{frozen ? '서명 당시 계약 원본입니다. 이후 변경된 여행자·항공 정보는 아래 입력란에서 확인할 수 있습니다.' : '서명 원본은 서명 당시 내용으로 보관됩니다. 이 화면의 예약 정보는 현재 저장된 내용입니다.'}</p>}
+                {signature && <p className="pc-signature-context">{frozen ? (p.readOnly ? '서명 당시 계약 원본입니다.' : '서명 당시 계약 원본입니다. 이후 변경된 여행자·항공 정보는 아래 입력란에서 확인할 수 있습니다.') : '서명 원본은 서명 당시 내용으로 보관됩니다. 이 화면의 예약 정보는 현재 저장된 내용입니다.'}</p>}
             </section>
 
             <section className="pc-card" aria-label="여행자 항공 금액 정보">
@@ -187,12 +190,12 @@ export function ContractDocumentView(p: ContractDocumentViewProps) {
                     { label: '대표자', value: company.representative || company.ceo }, { label: '등록번호', value: company.registrationNumber },
                     { label: 'Web', value: company.website },
                 ]} />
-                <div className={'pc-agreement-record' + (submitted ? ' is-complete' : '')}><span>{submitted ? '전자 동의 완료' : '전자 동의 대기'}</span><strong>{submitted ? contract.agreement?.name || '동의자 이름 미등록' : '아래에서 내용을 확인하고 동의해 주세요.'}</strong>{submitted && contract.agreement?.agreedAt && <time dateTime={contract.agreement.agreedAt}>{fmtMoment(contract.agreement.agreedAt)}</time>}</div>
-                <section className="pc-stored-signature" aria-label="고객 손서명 기록"><h3>{signature?.hasImage ? signatureComplete ? '고객 손서명' : '서명 시각 확인 필요' : signature ? '서명 원본 확인 필요' : '고객 손서명 미등록'}</h3>{signature?.signImg ? <img src={signature.signImg} alt="고객이 직접 작성한 계약서 서명 원본" /> : <p>{signature?.hasImage ? '손서명 원본은 안전하게 보관되어 있습니다. 인증된 관리자만 원본 이미지를 확인할 수 있습니다.' : signature ? '저장된 서명 기록은 있으나 이미지 원본을 확인할 수 없습니다. 담당자에게 확인해 주세요.' : submitted ? '기존 성명 동의 기록은 보존되어 있습니다. 아래에서 손서명을 추가할 수 있습니다.' : '아래 서명란에 직접 서명해 주세요.'}</p>}{signature && <p className="pc-signature-meta">{signature.signerName} · {signatureAt ? fmtMoment(signatureAt) : '서명 시각 확인 필요'}{signature.termsVersion && <span>약관 버전 {signature.termsVersion}</span>}</p>}</section>
+                <div className={'pc-agreement-record' + (submitted ? ' is-complete' : '')}><span>{submitted ? '전자 동의 완료' : '전자 동의 대기'}</span><strong>{submitted ? contract.agreement?.name || '동의자 이름 미등록' : p.readOnly ? '고객 동의 전입니다.' : '아래에서 내용을 확인하고 동의해 주세요.'}</strong>{submitted && contract.agreement?.agreedAt && <time dateTime={contract.agreement.agreedAt}>{fmtMoment(contract.agreement.agreedAt)}</time>}</div>
+                <section className="pc-stored-signature" aria-label="고객 손서명 기록"><h3>{signature?.hasImage ? signatureComplete ? '고객 손서명' : '서명 시각 확인 필요' : signature ? '서명 원본 확인 필요' : '고객 손서명 미등록'}</h3>{signature?.signImg ? <img src={signature.signImg} alt="고객이 직접 작성한 계약서 서명 원본" /> : <p>{signature?.hasImage ? '손서명 원본은 안전하게 보관되어 있습니다. 인증된 관리자만 원본 이미지를 확인할 수 있습니다.' : signature ? '저장된 서명 기록은 있으나 이미지 원본을 확인할 수 없습니다. 담당자에게 확인해 주세요.' : pendingSignatureText}</p>}{signature && <p className="pc-signature-meta">{signature.signerName} · {signatureAt ? fmtMoment(signatureAt) : '서명 시각 확인 필요'}{signature.termsVersion && <span>약관 버전 {signature.termsVersion}</span>}</p>}</section>
                 <button className="pc-button pc-button-secondary pc-no-print" type="button" onClick={onPrint}>인쇄 / PDF 저장</button>
             </section>
 
-            <section className="pc-card pc-customer-form pc-no-print" aria-label="여행자 항공 정보 입력과 동의 제출">
+            {!p.readOnly && <section className="pc-card pc-customer-form pc-no-print" aria-label="여행자 항공 정보 입력과 동의 제출">
                 <SectionHeading eyebrow="CUSTOMER INFORMATION">고객 정보 확인 · 동의</SectionHeading>
                 <p className="pc-form-intro">여권 정보와 왕복 항공편을 확인해 주세요. 입력하신 내용은 여행사로 제출됩니다.</p>
                 {submitted && <div className="pc-submit-notice" role="status"><strong>제출이 완료되었습니다</strong><p>기재하신 내용을 여행사가 확인한 후 연락드리겠습니다. 변경한 내용은 다시 제출할 수 있습니다.</p></div>}
@@ -219,7 +222,7 @@ export function ContractDocumentView(p: ContractDocumentViewProps) {
                         <button className="pc-button pc-submit-button" type="submit" disabled={!agreed || !signerName.trim() || (!signature && !p.signatureReady) || saving}>{saving ? '제출 중...' : signature ? '고객 정보 다시 제출하기' : '동의하고 서명 제출하기'}</button>
                     </fieldset>
                 </form>
-            </section>
+            </section>}
             <footer className="pc-document-footer"><strong>{company.nameEn}</strong><p>{company.website} · {company.email}</p></footer>
         </div>
     </main>;
@@ -282,6 +285,7 @@ export function ContractSignaturePad({ disabled = false, onChange }: { disabled?
 
 export const DocumentContract: React.FC = () => {
     const { reservationId } = useParams();
+    const readOnly = new URLSearchParams(window.location.search).get('preview') === '1';
     const [data, setData] = useState<ContractPageData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -385,7 +389,7 @@ export const DocumentContract: React.FC = () => {
         <SEO title="해외여행 계약서" description="고객님 전용 여행 계약서입니다." robots="noindex, nofollow" />
         {loading || (!error && !ready) ? <main className="product-contract-page pc-load-state" aria-busy="true"><p>계약서를 불러오고 있습니다.</p></main>
             : error || !data ? <main className="product-contract-page pc-load-state"><div role="alert"><h1>계약서를 표시할 수 없습니다</h1><p>{error || 'URL을 확인해 주세요.'}</p></div></main>
-            : <ContractDocumentView data={data} formTravelers={formTravelers} arrival={arrival} departure={departure} agreed={agreed} signerName={signerName} saving={saving} saved={saved} signatureReady={signatureReady}
+            : <ContractDocumentView data={data} readOnly={readOnly} formTravelers={formTravelers} arrival={arrival} departure={departure} agreed={agreed} signerName={signerName} saving={saving} saved={saved} signatureReady={signatureReady}
                 signaturePad={<ContractSignaturePad key={reservationId} disabled={saving} onChange={image => { signatureDraftRef.current = image; setSignatureReady(!!image); }} />}
                 onTravelerChange={(index, field, value) => setFormTravelers(current => current.map((traveler, row) => row === index ? { ...traveler, [field]: value } : traveler))}
                 onAddTraveler={() => setFormTravelers(current => [...current, { name: '', passportName: '', birthdate: '', gender: '', phone: '' }])}

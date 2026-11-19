@@ -12,15 +12,11 @@ export const LODGE_AREA_OPTIONS = ['Bayanzag', 'Elsen tasarkhai', 'Erdenet', 'Hu
 /** N열 등급 — 기존 저장 표기를 유지하고 시트에만 있던 등급을 더한다. */
 export const LODGE_GRADE_OPTIONS = ['고급 게르', '디럭스 게르', '일반 게르', '5성급 호텔', '4성급호텔', '3성급 호텔', '목조하우스', '게스트하우스', '골프장', 'Tureesiin bair', '이용x/개별'];
 
-/** O열 방수 — 객실당 인원. 1~6인은 기존 저장 값(`N хүн/өрөө`)을 쓰고 골프·개별 이용은 시트 표기로 저장한다. */
+/** 카드 보기의 객실당 인원 선택지. 기존 예약의 저장 표기를 유지한다. */
 export const ROOM_PLAN_OPTIONS: Array<{ value: string; label: string }> = [
     ...[1, 2, 3, 4, 5, 6].map(n => ({ value: `${n} хүн/өрөө`, label: `${n}인1실` })),
     { value: '골프오전', label: '골프오전' }, { value: '골프오후', label: '골프오후' }, { value: '이용x/개별', label: '이용x/개별' },
 ];
-export const roomPlanLabel = (value: unknown) => {
-    const v = typeof value === 'string' ? value : '';
-    return ROOM_PLAN_OPTIONS.find(o => o.value === v)?.label ?? v;
-};
 
 /** P열 배정 구분 — 실제로 배정한 객실 구성. 시트 표기 그대로 저장한다. */
 export const ASSIGN_TYPE_OPTIONS = ['1인1실', '2인1실', '3인1실', '4인1실', '골프오전', '골프오후', '이용x/개별'];

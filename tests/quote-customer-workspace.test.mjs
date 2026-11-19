@@ -10,6 +10,14 @@ vm.runInNewContext(code.outputFiles[0].text, { module, exports: module.exports, 
 const { quoteCustomerWorkspaceModel: model, quoteCustomerIsBooking: isBooking, loadQuoteCustomerRequest: load } = module.exports;
 const inquiry = { id: 'inquiry-only', name: '같은 표시명', adult: 2, status: '신규', memo: '직원 상담 메모', request: '고객 요청' };
 
+test('고객 현황에 관리자가 지정한 계약 유형을 표시하고 해제하면 문의 선택을 다시 표시한다', () => {
+    const record = { ...inquiry, gerStay: '고급 여행자 게르', booking: { contractPackageType: 'value' } };
+    assert.equal(model(record).packageInfo.tier, 'value');
+    assert.equal(model(record).packageInfo.detail, '관리자가 지정한 계약 패키지');
+    record.booking.contractPackageType = '';
+    assert.equal(model(record).packageInfo.tier, 'full');
+});
+
 test('수동·자동 카카오 원장 접수는 과거 activity 없이도 견적 전달에 반영하고 failed·unknown은 고객 수락 대기로 바꾸지 않는다',()=>{
     const record={...inquiry,quote:{days:[]}},receipt={id:'notice',kind:'quote',channel:'kakao',state:'accepted',at:'2026-10-20T01:00:00Z'};
     const sent=model(record,{deliveryHistory:[receipt]});assert.equal(sent.steps.find(step=>step.id==='sent').done,true);assert.equal(sent.tasks[0].waiting,true);assert.equal(sent.documents[0].status,'안내 서비스 접수');

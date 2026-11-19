@@ -1780,7 +1780,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         itineraryReady, itinerarySent, contractSent, itineraryChanged, contractChanged, deliveryHistory: recordedDelivery?.items,
     });
     overview.bookedProduct = bookedProduct;
-    if (bookedProduct && bookedProduct.match !== 'stored') overview.packageInfo = bookedProduct.packageType ? { tier: bookedProduct.packageType } : { tier: null, detail: '상품 관리에서 여행 타입을 지정해 주세요' };
+    if (reservation.adminOperations?.contractPackageType) overview.packageInfo = { tier: reservation.adminOperations.contractPackageType, detail: '관리자가 지정한 계약 패키지' };
+    else if (bookedProduct && bookedProduct.match !== 'stored') overview.packageInfo = bookedProduct.packageType ? { tier: bookedProduct.packageType } : { tier: null, detail: '상품 관리에서 여행 타입을 지정해 주세요' };
     overview.backLabel = customerWorkspaceBackLabel(customerWorkspaceReturnTo(new URLSearchParams(workspaceLocation.search).get('returnTo')));
     const kakaoDirty = inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty;
     const notificationActions = <CustomerKakaoActions key={reservation.id} source="product" bookingId={reservation.id}
@@ -2035,7 +2036,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     <button type="button" className="btn btn-sm btn-blue" style={{ flex: 'none' }} onClick={printBookingSheet} title="숙소 수배 의뢰서를 PDF로 저장·인쇄">
                                         <Icon name="picture_as_pdf" />수배서 PDF
                                     </button>
-                                    <button type="button" className="btn btn-sm btn-ink" style={{ flex: 'none' }} onClick={printGuideSheet} title="가이드용 안내서(확정 일정표·항공편·고객명·요청사항)를 PDF로 저장·인쇄">
+                                    <button type="button" className="btn btn-sm btn-ink" style={{ flex: 'none' }} onClick={printGuideSheet} title="가이드 시트와 거래명세서를 PDF로 저장·인쇄">
                                         <Icon name="hiking" />가이드 PDF
                                     </button>
                                     <button type="button" className="btn btn-sm btn-ink" style={{ flex: 'none' }} onClick={downloadGuidePicket} title="고객명과 투어 기간이 자동 입력된 공항 미팅 피켓을 PNG로 다운로드">

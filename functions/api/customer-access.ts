@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
-import { accessJson, customerAdminToken, customerResource, customerSession, customerWriteOrigin,
-    ensureCustomerAccessTables, validCustomerResource, type CustomerSource } from '../lib/customerAccess.ts';
+import { accessJson, customerAdminToken, customerResource, customerSession, customerWriteOrigin, isPersonalCustomerRequest,
+    ensureCustomerAccessTables, readCustomerRequestData, validCustomerResource, type CustomerSource } from '../lib/customerAccess.ts';
 import { sendEmail, baseLayout } from '../lib/mailer';
 import { sendSms, kakaoDeliveryResult } from './_solapi.js';
+import { isQuoteBooking, summarizeCustomerQuoteBooking } from '../lib/quoteBookings.ts';
 
 const app = new Hono<{ Bindings: { DB: any; [key: string]: any } }>();
 const TTL = 10 * 60_000;
@@ -21,9 +22,14 @@ const maskEmail = (email: string) => {
 const maskPhone = (phone: string) => `${phone.slice(0, 3)}-****-${phone.slice(-4)}`;
 function contacts(resource: NonNullable<Awaited<ReturnType<typeof customerResource>>>, env: any) {
     const channels: { kind: 'email' | 'sms'; masked: string; value: string }[] = [];
+    if (resource.source === 'request' && !isPersonalCustomerRequest(resource.data.source, resource.data.name ?? resource.row.name)) return channels;
     if (emailReady(env) && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(resource.email)) channels.push({ kind: 'email', masked: maskEmail(resource.email), value: resource.email });
     if (smsReady(env) && /^0\d{8,10}$/.test(resource.phone)) channels.push({ kind: 'sms', masked: maskPhone(resource.phone), value: resource.phone });
     return channels;
+}
+
+function canRequestStaffReview(data: any, name: unknown, status: unknown) {
+    return isPersonalCustomerRequest(data.source, data.name ?? name) && (!!data.quote || isQuoteBooking({ booking: data.booking, status: status || data.status }));
 }
 async function digest(env: any, value: string) {
     const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret(env)), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
@@ -70,7 +76,8 @@ app.get('/status', async c => {
     if (admin || resource.owner === user?.id) return accessJson({ ok: true, state: 'linked', channels: [], codeLength: 8 });
     if (resource.owner) return deny('access_denied', '이 계정으로 확인할 수 없는 기록입니다.', 403);
     const channels = secret(c.env) ? contacts(resource, c.env).map(({ kind, masked }) => ({ kind, masked })) : [];
-    return accessJson({ ok: true, state: channels.length ? 'verification_required' : 'unavailable', channels, codeLength: 8 });
+    return accessJson({ ok: true, state: channels.length ? 'verification_required' : 'unavailable', channels, codeLength: 8,
+        staffReviewAvailable: source === 'request' && canRequestStaffReview(resource.data, resource.row.name, resource.row.status) });
 });
 
 app.post('/challenge', async c => {
@@ -169,6 +176,83 @@ app.post('/verify', async c => {
     return accessJson({ ok: true });
 });
 
+// A reference identifies the signed-in applicant. Only a staff session that verifies the
+// booking holder separately can approve it on that specific quote.
+app.post('/staff-request', async c => {
+    const user = await customerSession(c.req.raw, c.env);
+    if (!user?.googleId || user.role === 'admin') return login();
+    const input = await body(c.req.raw).catch(() => null);
+    if (!validCustomerResource(input?.source, input?.key) || input.source !== 'request') return deny('invalid_request', '견적 링크를 확인해 주세요.');
+    const resource = await customerResource(c.env, 'request', input.key);
+    if (resource?.owner === user.id) return accessJson({ ok: true, state: 'linked' });
+    if (!resource || resource.owner || !canRequestStaffReview(resource.data, resource.row.name, resource.row.status)) return unavailable();
+    await schema(c.env);
+    const now = Date.now();
+    const find = () => c.env.DB.prepare(`SELECT reference, expires_at FROM customer_quote_link_requests
+        WHERE request_id=? AND resource_key=? AND user_id=? AND approved_at IS NULL AND expires_at>?`)
+        .bind(resource.id, resource.key, user.id, now).first();
+    let pending = await find();
+    if (!pending) {
+        const day = 24 * 3600_000;
+        if (!await limit(c.env, 'staff-request:' + user.id, 10, day, now)) return deny('rate_limited', '잠시 후 다시 시도해 주세요.', 429);
+        const reference = crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase();
+        await c.env.DB.prepare(`INSERT INTO customer_quote_link_requests(reference,request_id,resource_key,user_id,expires_at)
+            VALUES(?,?,?,?,?) ON CONFLICT(request_id,user_id) DO UPDATE SET reference=excluded.reference,
+            resource_key=excluded.resource_key, expires_at=excluded.expires_at, approved_at=NULL, approved_by=NULL
+            WHERE approved_at IS NULL AND (expires_at<=? OR resource_key<>excluded.resource_key)`)
+            .bind(reference, resource.id, resource.key, user.id, now + day, now).run();
+        pending = await find();
+    }
+    if (!pending) return unavailable();
+    return accessJson({ ok: true, state: 'pending', reference: pending.reference, expiresAt: new Date(pending.expires_at).toISOString() });
+});
+
+const pendingReview = `FROM customer_quote_link_requests s JOIN requests r ON r.id=s.request_id AND r.token=s.resource_key
+    JOIN users u ON u.id=s.user_id AND COALESCE(u.google_id,'')<>'' AND COALESCE(u.role,'user')<>'admin'
+    WHERE s.request_id=? AND s.reference=? AND s.expires_at>? AND s.approved_at IS NULL`;
+
+app.post('/staff-review/:action', async c => {
+    const admin = await customerSession(c.req.raw, c.env);
+    if (admin?.role !== 'admin') return deny('access_denied', '관리자 로그인이 필요합니다.', 403);
+    const input = await body(c.req.raw).catch(() => null);
+    const action = c.req.param('action'), reference = String(input?.reference || '').toUpperCase();
+    if (!['lookup', 'approve'].includes(action) || typeof input?.requestId !== 'string' || input.requestId.length > 256 || !/^[0-9A-F]{12}$/.test(reference)) {
+        return deny('invalid_request', '고객이 보내 준 연결 요청번호를 확인해 주세요.');
+    }
+    if (action === 'approve' && input.identityConfirmed !== true) return deny('confirmation_required', '예약자 본인 확인을 완료해 주세요.');
+    await schema(c.env);
+    const now = Date.now(), args = [input.requestId, reference, now];
+    const row = await c.env.DB.prepare(`SELECT s.user_id,u.email,r.name,r.status,r.data ${pendingReview}
+        AND NOT EXISTS(SELECT 1 FROM customer_resource_links l WHERE l.source='request' AND l.resource_id=s.request_id)`).bind(...args).first();
+    if (!row) {
+        if (action === 'approve' && typeof input.accountId === 'string') {
+            const approved = await c.env.DB.prepare(`SELECT 1 FROM customer_quote_link_requests s
+                JOIN requests r ON r.id=s.request_id AND r.token=s.resource_key
+                JOIN customer_resource_links l ON l.source='request' AND l.resource_id=s.request_id AND l.user_id=s.user_id
+                WHERE s.request_id=? AND s.reference=? AND s.user_id=? AND s.approved_at IS NOT NULL`)
+                .bind(input.requestId, reference, input.accountId).first();
+            if (approved) return accessJson({ ok: true });
+        }
+        return deny('unavailable', '이 견적의 유효한 연결 요청을 찾을 수 없습니다.', 409);
+    }
+    if (!canRequestStaffReview(readCustomerRequestData(row.data), row.name, row.status)) return unavailable();
+    if (action === 'lookup') return accessJson({ ok: true, accountId: row.user_id, email: row.email });
+    if (input.accountId !== row.user_id) return deny('account_changed', '연결할 계정을 다시 확인해 주세요.', 409);
+    const results = await c.env.DB.batch([
+        c.env.DB.prepare(`INSERT OR IGNORE INTO customer_resource_links(source,resource_id,user_id,created_at)
+            SELECT 'request',s.request_id,s.user_id,? ${pendingReview} AND s.user_id=?
+            AND COALESCE(r.name,'')=? AND COALESCE(r.status,'')=? AND COALESCE(r.data,'')=?`)
+            .bind(new Date(now).toISOString(), ...args, row.user_id, row.name || '', row.status || '', row.data || ''),
+        c.env.DB.prepare(`UPDATE customer_quote_link_requests SET approved_at=?,approved_by=?
+            WHERE request_id=? AND reference=? AND user_id=? AND approved_at IS NULL AND expires_at>?
+            AND EXISTS(SELECT 1 FROM requests r WHERE r.id=request_id AND r.token=resource_key)
+            AND EXISTS(SELECT 1 FROM customer_resource_links l WHERE l.source='request' AND l.resource_id=customer_quote_link_requests.request_id AND l.user_id=customer_quote_link_requests.user_id)`)
+            .bind(now, admin.id, input.requestId, reference, row.user_id, now),
+    ]);
+    if (!Number(results[1]?.meta?.changes)) return deny('unavailable', '연결 상태가 변경되었습니다. 다시 확인해 주세요.', 409);
+    return accessJson({ ok: true });
+});
+
 app.get('/history', async c => {
     const user = await customerSession(c.req.raw, c.env);
     if (!user?.googleId) return login();
@@ -177,8 +261,11 @@ app.get('/history', async c => {
         ON l.source='request' AND l.resource_id=r.id WHERE l.user_id=? ORDER BY r.received_at DESC LIMIT 200`).bind(user.id).all();
     const quotes = await c.env.DB.prepare('SELECT id,status,destination,period,headcount,created_at FROM quotes WHERE user_id=? ORDER BY created_at DESC LIMIT 200').bind(user.id).all();
     const items = (requests.results || []).map((row: any) => {
-        let data: any = {}; try { data = JSON.parse(row.data || '{}'); } catch { /* partial historical record */ }
-        return { id: row.id, source: 'request', status: row.status, destination: row.destination || data.destination || '',
+        const data = readCustomerRequestData(row.data);
+        const record = { ...data, id: row.id, status: row.status || data.status, destination: row.destination || data.destination, receivedAt: row.received_at };
+        const booking = summarizeCustomerQuoteBooking(record);
+        return { id: row.id, source: 'request', status: record.status, destination: record.destination || '',
+            ...(booking ? { booking } : {}),
             period: [data.depart, data.return_].filter(Boolean).join(' ~ '), headcount: Number(data.adult || 0) + Number(data.child || 0) + Number(data.infant || 0),
             createdAt: row.received_at, href: `/내견적.html?t=${encodeURIComponent(row.token)}` };
     });

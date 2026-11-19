@@ -46,6 +46,7 @@ export function MyPageMobile() {
     }, [home.products, wishlist.ids]);
 
     const go = (path: string) => {
+        if (/\.html(?:[?#]|$)/i.test(path)) { window.location.assign(path); return; }
         navigate(path);
         window.scrollTo(0, 0);
     };
@@ -141,8 +142,8 @@ export function MyPageMobile() {
                         </div>
                     ) : next ? (
                         <a
-                            href={`/mypage/reservations/${next.id}`}
-                            onClick={(e) => { e.preventDefault(); go(`/mypage/reservations/${next.id}`); }}
+                            href={next.href}
+                            onClick={(e) => { e.preventDefault(); go(next.href); }}
                             style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 14, padding: 20, borderRadius: 22, background: `linear-gradient(160deg,${MW.navySoft} 0%,${MW.mintDeep} 100%)`, color: '#FFFFFF', textDecoration: 'none' }}
                         >
                             <span style={{ position: 'absolute', right: -70, top: -70, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle,rgba(109,219,190,0.35),rgba(109,219,190,0) 70%)', pointerEvents: 'none' }} />

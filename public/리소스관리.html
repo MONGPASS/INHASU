@@ -589,9 +589,9 @@ function fieldRows(type, r) {
     ${fld("차량 번호", `<input id="f_plate" value="${esc(r.plate||"")}" placeholder="예: 12가 3401">`, "내부용")}
     ${fld("기사 이름", `<input id="f_driver" value="${esc(r.driver||"")}" placeholder="예: Bat">`, "가이드 일정표에 보여요")}
     ${fld("기사 연락처", `<input id="f_phone" value="${esc(r.phone||"")}" placeholder="+976 8000-0000">`, "가이드 일정표에 보여요")}
-    ${chipField("f_seats", "탑승 인원", [], r.seats || "", { extra: usedValues("vehicles", v => v.seats), hint: "확정 일정표에 보여요", placeholder: "예: 6인" })}
-    ${fld("수하물", `<input id="f_luggage" value="${esc(r.luggage||"")}" placeholder="대형 캐리어 4개 적재 가능">`, "확정 일정표에 보여요")}
-    ${introField("차량 특징", r.desc, "확정 일정표에 보여요", "예: 몽골 장거리 이동에 적합한 차량입니다.")}`;
+    ${chipField("f_seats", "탑승 인원", [], r.seats || "", { extra: usedValues("vehicles", v => v.seats), hint: "견적서·확정 일정표에 보여요", placeholder: "예: 6인" })}
+    ${fld("수하물", `<input id="f_luggage" value="${esc(r.luggage||"")}" placeholder="대형 캐리어 4개 적재 가능">`, "견적서·확정 일정표에 보여요")}
+    ${introField("차량 특징", r.desc, "견적서·확정 일정표에 보여요", "예: 몽골 장거리 이동에 적합한 차량입니다.")}`;
 }
 /* 숙소 지역 선택지 — 지역 카테고리 목록과 기존 숙소의 지역을 함께 보여줍니다. */
 function lodgeRegionOptions(current) {
@@ -634,6 +634,7 @@ function openEdit(key) {
   const nameLabel = activeType === "guides" ? "이름" : isLodge ? "숙소 이름" : "차량 이름";
   const namePh = activeType === "guides" ? "예: 빌궁" : isLodge ? "예: 테를지 스타캠프" : "예: 스타렉스";
   const photoHint = activeType === "guides" ? "사진을 끌어다 놓으면 바로 바뀌어요. 고객 확정 안내에 보여요."
+    : isVehicle ? "견적서와 확정 일정표에는 대표 사진을 포함해 최대 3장이 보여요."
     : "사진을 끌어다 놓으면 바로 바뀌어요. 첫 사진이 대표 사진이고, 확정 일정표에는 최대 3장이 보여요.";
 
   $("drawer").innerHTML = `

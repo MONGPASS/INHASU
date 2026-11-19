@@ -3,7 +3,7 @@ import { reservationSigned } from './adminReservationBoard.ts';
 import { dashboardDayDiff } from './adminDashboard.ts';
 import { toTourDateKey } from './formatDate.ts';
 import type { AssignmentAccommodation, AssignmentGuide, AssignmentSource, AssignmentVehicle, BookingAssignment } from './reservationAssignment';
-import { LODGE_BOOKING_STATUSES } from './lodgeBookingStatus.ts';
+import { LODGE_BOOKING_STATUSES, changeLodgeReservation, lodgeMailStatus, lodgeReservationStatus } from './lodgeBookingStatus.ts';
 
 /** 예약 관리 v7 목록·상세가 읽는 예약 필드. 상품 예약과 견적 예약을 같은 모양으로 다룬다. */
 export interface V7Source {
@@ -35,6 +35,18 @@ export const V7_TABS: Array<{ key: V7Tab; label: string }> = [
 export const BOOKING_STATUS = { unsent: 'Илгээгээгүй', mailed: 'Имэйл илгээсэн', replied: 'Хариу ирсэн', confirmed: 'Баталгаажсан' } as const;
 /** 숙소 수배 상태. 정본은 utils/lodgeBookingStatus.ts(현지 운영 보드와 공유), 화면은 한국어. */
 export const BOOKING_STATUS_OPTIONS = LODGE_BOOKING_STATUSES;
+export function v7StayStatus(stay: AssignmentAccommodation['accommodation']) {
+    if (lodgeReservationStatus(stay.bookingStatus)) return stay.bookingStatus!;
+    const mail = lodgeMailStatus(stay);
+    return mail === '발송전' ? BOOKING_STATUS.unsent : mail === '1메일완료' ? BOOKING_STATUS.mailed : mail;
+}
+export function changeV7StayStatus(stay: AssignmentAccommodation['accommodation'], value: string) {
+    if (value === BOOKING_STATUS.unsent || value === BOOKING_STATUS.mailed) {
+        return { mailStatus: value === BOOKING_STATUS.mailed ? '1메일완료' : '발송전',
+            bookingStatus: lodgeReservationStatus(stay.bookingStatus) ? stay.bookingStatus : value };
+    }
+    return changeLodgeReservation(stay, value);
+}
 export const bookingStatusMeta = (value?: string) => BOOKING_STATUS_OPTIONS.find(o => o.value === value)
     || (value ? { value, label: value, color: '#adb5bd', tone: 'gray' as const } : BOOKING_STATUS_OPTIONS[0]);
 /** 객실당 인원. 저장 값은 현지 운영 보드와 같은 `N хүн/өрөө`. */
@@ -88,7 +100,7 @@ export function v7Row(source: V7Source, item: V7AssignmentItem | undefined, toda
         const rowIndex = plan.rows.findIndex(row => Number(row.day) === night.day), acc = rowIndex >= 0 ? plan.rows[rowIndex].accommodation || {} : {};
         const hotel = text(acc.name);
         return { day: night.day, date: night.date || night.calendarDate, region: text(acc.region) || text(acc.location) || night.region || night.title,
-            hotel, grade: text(acc.type), occupancy: text(acc.occupancy), bookingStatus: hotel ? text(acc.bookingStatus) || BOOKING_STATUS.unsent : '', rowIndex };
+            hotel, grade: text(acc.type), occupancy: text(acc.occupancy), bookingStatus: hotel ? v7StayStatus(acc) : '', rowIndex };
     });
     const accN = plan.needed ?? 0, accA = plan.assigned, accC = plan.confirmed, accDone = accN === 0 || plan.complete;
     const board: V7Row['board'] = accDone && guideName && vehicleType ? '배정 완료' : accA || guideName || vehicleType ? '진행 중' : '미배정';
