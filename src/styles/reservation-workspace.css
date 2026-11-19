@@ -193,26 +193,15 @@
 .reservation-workspace.product-workspace .rw-field .inp {
     width: 100%;
     min-width: 0;
-    height: 40px;
-    border-color: #dce5df;
-    border-radius: 8px;
-    background: #fff;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--rw-ink);
+    height: var(--adm-input-h);
 }
 
 .reservation-workspace.product-workspace .rw-field textarea.inp {
     height: auto;
     min-height: 90px;
     resize: vertical;
-    padding: 10px 12px;
+    padding: var(--adm-input-pad-y-area) var(--spacing-12);
     line-height: 1.6;
-}
-
-.reservation-workspace.product-workspace .rw-field .inp:focus {
-    border-color: #68ba9e;
-    box-shadow: 0 0 0 3px #e8f7ef;
 }
 
 .reservation-workspace.product-workspace .rw-primary-actions {

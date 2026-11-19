@@ -26,9 +26,10 @@
 
 /* 검색 · 칩 · 탭 */
 .admin-app-wrapper .cm-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.admin-app-wrapper .cm-search { display: flex; align-items: center; gap: 8px; height: 44px; margin: 0; padding: 0 14px; flex: 0 1 300px; min-width: 200px; border: 1px solid var(--border-default); border-radius: 12px; background: #fff; cursor: text; }
-.admin-app-wrapper .cm-search:focus-within { border-color: var(--mrt-ink); }
-.admin-app-wrapper .cm-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text-strong); font: inherit; font-size: 14px; }
+.admin-app-wrapper .cm-search { display: flex; align-items: center; gap: var(--spacing-4); box-sizing: border-box; height: var(--adm-input-h); margin: 0; padding: 0 var(--spacing-12); flex: 0 1 300px; min-width: 200px; border: 0; border-radius: var(--adm-input-radius); background: var(--adm-input-search-bg); color: var(--adm-input-placeholder); cursor: text; transition: box-shadow var(--adm-dur); }
+.admin-app-wrapper .cm-search:focus-within { box-shadow: inset 0 0 0 1px var(--adm-input-line-focus), var(--adm-input-ring); }
+.admin-app-wrapper .cm-search input { flex: 1; min-width: 0; height: 100%; padding: 0 var(--spacing-4); border: 0; outline: 0; background: transparent; color: var(--adm-input-fg); font: inherit; font-size: var(--adm-fs-input); }
+.admin-app-wrapper .cm-search input::placeholder { color: var(--adm-input-placeholder); }
 .admin-app-wrapper .cm-search input::placeholder { color: var(--text-tertiary); }
 .admin-app-wrapper .cm-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .admin-app-wrapper .cm-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-secondary); font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
@@ -96,11 +97,13 @@
 .admin-app-wrapper label.cm-field, .admin-app-wrapper .cm-field > :is(.cm-input, .cm-textarea, .cm-picks) { align-self: stretch; }
 .admin-app-wrapper .cm-label { color: var(--text-strong); font-size: 13px; font-weight: 700; }
 .admin-app-wrapper .cm-label-sub { color: var(--text-tertiary); font-weight: 500; }
-.admin-app-wrapper :is(.cm-input, .cm-textarea) { box-sizing: border-box; width: 100%; padding: 0 14px; border: 1px solid var(--border-default); border-radius: 12px; background: #fff; color: var(--text-strong); font: inherit; font-size: 14px; outline: none; }
-.admin-app-wrapper .cm-input { height: 44px; }
-.admin-app-wrapper .cm-textarea { min-height: 120px; padding: 12px 14px; line-height: 1.6; resize: vertical; }
+.admin-app-wrapper :is(.cm-input, .cm-textarea) { box-sizing: border-box; width: 100%; padding: 0 var(--adm-input-pad-x); border: 1px solid var(--adm-input-line); border-radius: var(--adm-input-radius); background: var(--adm-input-bg); color: var(--adm-input-fg); font: inherit; font-size: var(--adm-fs-input); outline: none; transition: border-color var(--adm-dur), box-shadow var(--adm-dur); }
+.admin-app-wrapper :is(.cm-input, .cm-textarea)::placeholder { color: var(--adm-input-placeholder); }
+.admin-app-wrapper :is(.cm-input, .cm-textarea):disabled { background: var(--adm-input-disabled-bg); border-color: var(--adm-input-disabled-line); }
+.admin-app-wrapper .cm-input { height: var(--adm-input-h); }
+.admin-app-wrapper .cm-textarea { min-height: 120px; padding: var(--adm-input-pad-y-area) var(--spacing-12); line-height: 1.6; resize: vertical; }
 .admin-app-wrapper .cm-textarea.is-short { min-height: 84px; }
-.admin-app-wrapper :is(.cm-input, .cm-textarea):focus { border-color: var(--mrt-ink); }
+.admin-app-wrapper :is(.cm-input, .cm-textarea):focus { border-color: var(--adm-input-line-focus); box-shadow: var(--adm-input-ring); }
 .admin-app-wrapper .cm-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .admin-app-wrapper .cm-picks { display: flex; gap: 6px; flex-wrap: wrap; }
 .admin-app-wrapper .cm-pick { height: 34px; padding: 0 12px; border: 1px solid var(--border-default); border-radius: 10px; background: #fff; color: var(--text-body); font-size: 13px; font-weight: 700; cursor: pointer; }

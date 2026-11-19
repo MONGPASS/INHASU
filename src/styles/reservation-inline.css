@@ -15,11 +15,11 @@
 .reservation-workspace.product-workspace .ri-field { display:flex; flex-direction:column; gap:6px; min-width:0; color:#557061; font-size:11px; font-weight:700; line-height:1.6; }
 .reservation-workspace.product-workspace .ri-field input,
 .reservation-workspace.product-workspace .ri-field select,
-.reservation-workspace.product-workspace .ri-field textarea { width:100%; min-width:0; min-height:39px; padding:9px 11px; border:1px solid #dce7df; border-radius:7px; background:#fff; color:#243f31; font:inherit; font-size:13px; font-weight:500; line-height:1.5; outline:none; }
+.reservation-workspace.product-workspace .ri-field textarea { box-sizing:border-box; width:100%; min-width:0; min-height:var(--adm-input-h); padding:var(--spacing-8) var(--adm-input-pad-x); border:1px solid var(--adm-input-line); border-radius:var(--adm-input-radius); background:var(--adm-input-bg); color:var(--adm-input-fg); font:inherit; font-size:var(--adm-fs-input); font-weight:var(--adm-fw-regular); line-height:1.5; outline:none; }
 .reservation-workspace.product-workspace .ri-field textarea { resize:vertical; min-height:64px; }
 .reservation-workspace.product-workspace .ri-field input:focus,
 .reservation-workspace.product-workspace .ri-field select:focus,
-.reservation-workspace.product-workspace .ri-field textarea:focus { border-color:#65b79a; box-shadow:0 0 0 3px #e5f6ec; }
+.reservation-workspace.product-workspace .ri-field textarea:focus { border-color:var(--adm-input-line-focus); box-shadow:var(--adm-input-ring); }
 .reservation-workspace.product-workspace .ri-section-title { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
 .reservation-workspace.product-workspace .ri-section-title h3,
 .reservation-workspace.product-workspace .ri-contract > h3 { margin:0; color:#264c3a; font-size:16px; font-weight:800; line-height:1.6; }
@@ -105,7 +105,7 @@
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-basics { gap:16px; padding:20px; margin-bottom:24px; border-color:#e6ebef; background:#f8fafb; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-field { gap:8px; font-size:12px; color:#536273; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-field input,
-.reservation-workspace.product-workspace .ri-editor-workflow .ri-field textarea { border-color:#dde4eb; min-height:42px; font-size:14px; color:#253348; }
+.reservation-workspace.product-workspace .ri-editor-workflow .ri-field textarea { min-height:var(--adm-input-h); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-quote-section { padding:0; background:#fff; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-quote-head { margin-bottom:16px; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-quote-head h3 { font-size:19px; }

@@ -78,32 +78,32 @@ test('Montage brand 9개만 INHASU 민트로 바꾼다', () => {
 // 관리자 CSS의 hex 색 고정값 수(2026-11-19 Montage 1단계 기준). 줄이는 것은 괜찮고 늘리면 실패한다.
 // 줄였으면 아래 숫자도 함께 줄인다. 새 관리자 CSS 파일은 0개여야 한다(Montage·--adm-* 변수를 쓴다).
 const ADMIN_CSS_HEX_BASELINE = {
-    'src/components/admin/accommodation/LodgeAssignBoard.css': 51,
+    'src/components/admin/accommodation/LodgeAssignBoard.css': 49,
     'src/components/admin/Admin3DIcon.css': 1,
     'src/components/admin/AdminDeliveryHistory.css': 23,
     'src/components/admin/CourseImportModal.css': 4,
     'src/components/admin/CustomerKakaoActions.css': 38,
     'src/components/admin/CustomerResourcePicker.css': 35,
-    'src/components/admin/CustomerWorkspaceOverview.css': 36,
+    'src/components/admin/CustomerWorkspaceOverview.css': 35,
     'src/components/admin/dashboard/TrafficSources.module.css': 5,
     'src/components/admin/guides/GuideSchedule.css': 43,
     'src/components/admin/ui/admin-ui.css': 1,
-    'src/pages/AdminAccommodationOps.css': 59,
-    'src/pages/AdminBannerManage.css': 23,
-    'src/pages/AdminCalendar.css': 21,
+    'src/pages/AdminAccommodationOps.css': 55,
+    'src/pages/AdminBannerManage.css': 22,
+    'src/pages/AdminCalendar.css': 20,
     'src/pages/AdminCategoryManage.css': 4,
-    'src/pages/AdminContentManage.css': 34,
+    'src/pages/AdminContentManage.css': 32,
     'src/pages/AdminDashboard.module.css': 44,
     'src/pages/AdminProductEditor.css': 14,
     'src/pages/AdminProductList.css': 4,
-    'src/pages/AdminReservationBoard.module.css': 55,
-    'src/styles/admin-console.css': 107,
-    'src/styles/customer-workspace-editor.css': 94,
-    'src/styles/product-customer-workspace.css': 31,
+    'src/pages/AdminReservationBoard.module.css': 53,
+    'src/styles/admin-console.css': 102,
+    'src/styles/customer-workspace-editor.css': 92,
+    'src/styles/product-customer-workspace.css': 21,
     'src/styles/quote-booking-workspace.css': 122,
-    'src/styles/reservation-inline.css': 125,
+    'src/styles/reservation-inline.css': 118,
     'src/styles/reservation-itinerary-designer.css': 23,
-    'src/styles/reservation-workspace.css': 65,
+    'src/styles/reservation-workspace.css': 61,
     'public/admin-tools.css': 1,
 };
 // 관리자 화면에서만 읽는 src/styles 파일(이름이 admin-로 시작하지 않는 것)
@@ -277,4 +277,41 @@ test('버튼은 Montage Button 규격 변수를 쓴다', () => {
     // 화면별로 버튼을 알약 모양(999px)으로 덮어쓰지 않는다.
     const pages = ['src/pages/AdminCategoryManage.css', 'src/pages/AdminProductEditor.css', 'src/styles/customer-workspace-editor.css', 'src/components/admin/CustomerWorkspaceOverview.css', 'src/pages/AdminAccommodationOps.css'];
     for (const file of pages) assert.doesNotMatch(stripComments(read(file)), /\.(btn|cw-button|lo-btn)\b[^{]*\{[^}]*border-radius:\s*999px/, file);
+});
+
+test('입력창·선택 상자는 Montage TextField·Select 규격 변수를 쓴다', () => {
+    const montage = read('public/admin-montage.css');
+    const tokens = read('public/admin-tokens.css');
+    const expect = {
+        '--adm-input-h': 'var(--dimension-40)', '--adm-input-h-sm': 'var(--dimension-32)', '--adm-input-h-lg': 'var(--dimension-48)',
+        '--adm-input-radius': 'var(--radius-12)', '--adm-input-radius-sm': 'var(--radius-10)', '--adm-input-radius-lg': 'var(--radius-14)',
+        '--adm-input-line': 'var(--semantic-line-neutral-secondary)', '--adm-input-line-focus': 'var(--semantic-line-brand-strong)',
+        '--adm-input-disabled-bg': 'var(--semantic-surface-neutral-tertiary)', '--adm-input-invalid-line': 'var(--semantic-line-negative-primary)',
+        '--adm-fs-input': 'var(--typography-label1-fontSize)',
+    };
+    // 휴대폰 블록(16px)보다 앞의 PC 값을 본다.
+    const desktop = tokens.split('@media')[0];
+    for (const [name, value] of Object.entries(expect)) assert.equal(lastValue(desktop, name), value, name);
+    for (const name of [...new Set([...stripComments(tokens).matchAll(/var\((--(?:radius|spacing|typography|semantic|dimension)[\w-]*)/g)].map((m) => m[1]))]) {
+        assert.ok(montage.includes(`${name}:`), `${name} 이 Montage에 없다`);
+    }
+    const consoleCss = stripComments(read('src/styles/admin-console.css'));
+    assert.match(consoleCss, /\.admin-app-wrapper \.inp \{[^}]*height:\s*var\(--adm-input-h\);[^}]*border:\s*1px solid var\(--adm-input-line\);[^}]*border-radius:\s*var\(--adm-input-radius\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.inp:focus \{[^}]*border-color:\s*var\(--adm-input-line-focus\);[^}]*box-shadow:\s*var\(--adm-input-ring\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.select \{[^}]*height:\s*var\(--adm-input-h\);[^}]*border-radius:\s*var\(--adm-input-radius\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.tb-search \{[^}]*background:\s*var\(--adm-input-search-bg\)/);
+    // 화면별 입력창·검색창이 예전 높이(42·44px)·알약 모양·1.5px 선으로 덮어쓰지 않는다.
+    const files = ['src/pages/AdminContentManage.css', 'src/pages/AdminAccommodationOps.css', 'src/pages/AdminBannerManage.css', 'src/pages/AdminProductEditor.css',
+        'src/pages/AdminCategoryManage.css', 'src/pages/AdminProductList.css', 'src/pages/AdminCalendar.css', 'src/components/admin/guides/GuideSchedule.css',
+        'src/components/admin/accommodation/LodgeAssignBoard.css', 'src/styles/product-customer-workspace.css', 'src/styles/reservation-workspace.css'];
+    const field = /(?:\.(?:inp|select|[\w-]*(?:input|search|textarea))(?![\w-])|(?<![\w-])(?:input|select|textarea)(?![\w-]))[^{},]*\{[^}]*/g;
+    for (const file of files) {
+        for (const [rule] of stripComments(read(file)).matchAll(field)) {
+            assert.doesNotMatch(rule, /(?:^|[;{\s])(?:min-)?height:\s*4[24]px/, `${file}: ${rule.slice(0, 80)}`);
+            assert.doesNotMatch(rule, /border-radius:\s*999px|border:\s*1\.5px/, `${file}: ${rule.slice(0, 80)}`);
+        }
+    }
+    // 견적 도구·잘못된 입력 표시도 같은 변수를 쓴다.
+    assert.match(stripComments(read('public/admin-tools.css')), /:is\(input, select, textarea\):focus \{[^}]*var\(--adm-input-line-focus\)/);
+    assert.match(stripComments(read('src/components/admin/ui/admin-ui.css')), /\[aria-invalid="true"\] \{[^}]*var\(--adm-input-invalid-line\)/);
 });

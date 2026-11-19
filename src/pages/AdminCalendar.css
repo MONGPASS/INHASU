@@ -51,10 +51,10 @@
 
 /* 검색·필터 */
 .tour-calendar .tc-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
-.tour-calendar .tc-search { position: relative; display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 200px; max-width: 320px; height: 40px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-tertiary); }
-.tour-calendar .tc-search:focus-within { border-color: var(--mrt-ink); }
-.tour-calendar .tc-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text-strong); font-size: 14px; }
-.tour-calendar .tc-search input::placeholder { color: var(--text-tertiary); }
+.tour-calendar .tc-search { position: relative; display: flex; align-items: center; gap: var(--spacing-4); box-sizing: border-box; flex: 1 1 200px; min-width: 200px; max-width: 320px; height: var(--adm-input-h); padding: 0 var(--spacing-12); border: 0; border-radius: var(--adm-input-radius); background: var(--adm-input-search-bg); color: var(--adm-input-placeholder); transition: box-shadow var(--adm-dur); }
+.tour-calendar .tc-search:focus-within { box-shadow: inset 0 0 0 1px var(--adm-input-line-focus), var(--adm-input-ring); }
+.tour-calendar .tc-search input { flex: 1; min-width: 0; height: 100%; padding: 0 var(--spacing-4); border: 0; outline: 0; background: transparent; color: var(--adm-input-fg); font-size: var(--adm-fs-input); }
+.tour-calendar .tc-search input::placeholder { color: var(--adm-input-placeholder); }
 .tour-calendar .tc-search .tc-icon-button { width: 24px; height: 24px; margin-right: -6px; border: 0; background: transparent; color: var(--text-tertiary); }
 .tour-calendar .tc-search .tc-icon-button:hover { color: var(--text-strong); }
 .tour-calendar .tc-filter-chips { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; }

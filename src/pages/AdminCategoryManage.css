@@ -36,8 +36,6 @@
 .admin-app-wrapper .cg-drawer-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 22px; }
 .admin-app-wrapper .cg-drawer .field > label { color: var(--text-strong); font-size: 13px; font-weight: 800; }
 .admin-app-wrapper .cg-drawer .cg-hint { margin-left: 4px; color: var(--text-tertiary); font-size: 12px; font-weight: 500; }
-.admin-app-wrapper .cg-drawer .inp { min-height: 44px; border: 1.5px solid var(--border-default); border-radius: 12px; font-size: 14px; }
-.admin-app-wrapper .cg-drawer .inp:focus { border-color: var(--mrt-ink); box-shadow: none; }
 .admin-app-wrapper .cg-drawer .field .cg-upload { display: inline-flex; width: auto; margin: 0; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1.5px dashed var(--mrt-gray-300); border-radius: 12px; background: #fff; color: var(--mrt-blue-strong); font-size: 13px; font-weight: 700; cursor: pointer; }
 .admin-app-wrapper .cg-drawer .field .cg-upload:hover { border-color: var(--mrt-ink); }
 .admin-app-wrapper .cg-upload:focus-within { outline: 2px solid var(--mrt-ink); outline-offset: 2px; }

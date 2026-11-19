@@ -96,6 +96,29 @@
   --adm-btn-disabled-bg: var(--semantic-surface-disable-primary);    --adm-btn-disabled-fg: var(--semantic-foreground-disable-primary);
   --adm-btn-hover-overlay: rgba(var(--semantic-foreground-neutral-primary-rgb), .05);  /* 테두리·회색 버튼을 누르거나 올렸을 때 */
 
+  /* ── 입력창·선택 상자(Montage TextField·Select·TextArea: 크기별 모서리·여백, 1px 선, 포커스는 진한 민트 선 + 4px 연한 링) ── */
+  --adm-input-h: var(--dimension-40);    --adm-input-radius: var(--radius-12);    --adm-input-pad-x: var(--spacing-10);  /* medium(바깥 6 + 안 4) */
+  --adm-input-h-sm: var(--dimension-32); --adm-input-radius-sm: var(--radius-10); --adm-input-pad-x-sm: var(--spacing-8);  /* small: 표·목록 안 */
+  --adm-input-h-lg: var(--dimension-48); --adm-input-radius-lg: var(--radius-14); --adm-input-pad-x-lg: var(--spacing-12); /* large */
+  --adm-input-pad-y-area: var(--spacing-12);                              /* 여러 줄 입력창(TextArea) 위아래 */
+  --adm-input-bg: var(--semantic-background-neutral-primary);
+  --adm-input-fg: var(--semantic-foreground-neutral-primary);
+  --adm-input-placeholder: var(--semantic-foreground-neutral-tertiary);
+  --adm-input-line: var(--semantic-line-neutral-secondary);
+  --adm-input-line-focus: var(--semantic-line-brand-strong);
+  --adm-input-ring: var(--adm-ring);
+  --adm-input-disabled-bg: var(--semantic-surface-neutral-tertiary);
+  --adm-input-disabled-line: var(--semantic-line-neutral-tertiary);
+  --adm-input-invalid-line: var(--semantic-line-negative-primary);
+  --adm-input-invalid-line-focus: var(--semantic-line-negative-strong);
+  --adm-input-invalid-ring: 0 0 0 var(--primitive-4) var(--semantic-line-negative-focus);
+  --adm-input-search-bg: var(--semantic-surface-neutral-secondary);      /* 검색창(SearchField): 회색 바탕·선 없음 */
+  --adm-label-fs: var(--typography-caption1-fontSize);                    /* 입력창 위 라벨: 12px 600 보조 글자 */
+  --adm-label-fw: var(--adm-fw-semibold);
+  --adm-label-fg: var(--semantic-foreground-neutral-secondary);
+  --adm-label-gap: var(--spacing-8);
+  --adm-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2337383C' stroke-opacity='.61' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
   /* ── 그림자·겹침 순서·움직임 ── */
   --adm-shadow-xs: var(--semantic-elevation-shadow-normal-xsmall);
   --adm-shadow-sm: var(--semantic-elevation-shadow-normal-small);
@@ -111,7 +134,7 @@
   --adm-topbar-h: 56px;        /* 위 고정 바 */
   --adm-tabbar-h: 58px;        /* 아래 고정 메뉴 */
   --adm-safe-bottom: env(safe-area-inset-bottom, 0px);
-  --adm-fs-input: var(--adm-fs-body);   /* 입력창 글자 */
+  --adm-fs-input: var(--typography-label1-fontSize);   /* 입력창 글자(Montage medium: 14px) */
 }
 
 /* 휴대폰 폭(760px 이하): 버튼·입력창 높이는 PC와 같은 Montage 크기(32/40/48)를 쓴다.
