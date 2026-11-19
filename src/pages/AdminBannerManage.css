@@ -16,7 +16,7 @@
 }
 .admin-app-wrapper .hm-tabs { display: flex; gap: 4px; flex-wrap: wrap; min-width: 0; }
 .admin-app-wrapper .hm-tabs button {
-  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: var(--adm-chip-radius);
   background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; white-space: nowrap;
 }
 .admin-app-wrapper .hm-tabs button:hover { background: var(--mrt-gray-50); color: var(--text-strong); }
@@ -55,7 +55,7 @@
 .admin-app-wrapper .hm-sec-text { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 4px; }
 .admin-app-wrapper .hm-sec-title { display: flex; align-items: center; gap: 8px; }
 .admin-app-wrapper .hm-sec-title h3 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.03em; color: var(--text-strong); }
-.admin-app-wrapper .hm-count { padding: 2px 8px; border-radius: 999px; background: var(--mrt-gray-100); color: var(--text-secondary); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.admin-app-wrapper .hm-count { padding: 2px 8px; border-radius: var(--adm-badge-radius); background: var(--adm-badge-neutral-bg); color: var(--text-secondary); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .admin-app-wrapper .hm-sec-text p { margin: 0; font-size: 13px; color: var(--text-tertiary); }
 .admin-app-wrapper .hm-add {
   display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; flex: none; border: 0; border-radius: 12px;
@@ -105,7 +105,7 @@
 .admin-app-wrapper .hm-mov-sub { font-size: 10px; opacity: .85; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .admin-app-wrapper .hm-upload-pill {
   position: absolute; top: 8px; right: 8px; display: flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
-  border-radius: 999px; background: rgba(255,255,255,.22); font-size: 10px; font-weight: 700; color: #fff; backdrop-filter: blur(4px);
+  border-radius: var(--adm-badge-radius); background: rgba(255,255,255,.22); font-size: 10px; font-weight: 700; color: #fff; backdrop-filter: blur(4px);
 }
 .admin-app-wrapper :is(.hm-mbox, .hm-ev-pv, .hm-theme-img).has-image .hm-upload-pill,
 .admin-app-wrapper .hm-theme-img .hm-upload-pill { background: rgba(0,0,0,.42); opacity: 0; transition: opacity 160ms; }
@@ -146,7 +146,7 @@
 .admin-app-wrapper .hm-pc { display: flex; flex-direction: column; padding: 4px 16px; border: 1px solid var(--border-default); border-radius: 16px; }
 .admin-app-wrapper .hm-pc-toggle { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0; border: 0; background: transparent; font: inherit; color: var(--text-strong); cursor: pointer; text-align: left; }
 .admin-app-wrapper .hm-pc-toggle b { font-size: 14px; font-weight: 800; }
-.admin-app-wrapper .hm-badge { padding: 2px 8px; border-radius: 999px; background: var(--mrt-gray-100); color: var(--text-tertiary); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.admin-app-wrapper .hm-badge { padding: 2px 8px; border-radius: var(--adm-badge-radius); background: var(--adm-badge-neutral-bg); color: var(--text-tertiary); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .admin-app-wrapper .hm-badge.is-on { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
 .admin-app-wrapper .hm-pc-hint { margin-left: auto; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .admin-app-wrapper .hm-pc-body { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 16px; }

@@ -78,7 +78,7 @@
 .ci-item-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ci-time { margin-right: 6px; }
 .ci-note { margin-left: 6px; color: var(--adm-text-3); }
-.ci-chip { display: inline-flex; align-items: center; gap: 4px; flex: none; max-width: 46%; overflow: hidden; padding: 3px 9px; border-radius: var(--adm-radius-pill); background: var(--adm-accent-soft); color: var(--adm-accent-strong); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.ci-chip { display: inline-flex; align-items: center; gap: 4px; flex: none; max-width: 46%; overflow: hidden; padding: 3px 9px; border-radius: var(--adm-badge-radius); background: var(--adm-accent-soft); color: var(--adm-accent-strong); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
 .ci-item-edit { display: flex; align-items: center; gap: 8px; margin: 4px 0 4px 14px; }
 .ci-mini { flex: none; width: 40px; height: 32px; border-radius: var(--adm-radius-xs); background: var(--adm-gray-100); object-fit: cover; }
 
@@ -105,7 +105,7 @@
   .ci-day-text { flex-basis: calc(100% - 60px); }
   .ci-item { flex-wrap: wrap; }
   .ci-item-title { flex-basis: calc(100% - 20px); white-space: normal; }
-  .ci-chip { max-width: 70%; margin-left: 14px; }
+  .ci-chip { max-width: 70%; margin-left: 14px; border-radius: var(--adm-badge-radius); }
   .ci-meta { flex-wrap: wrap; }
   .ci-link, .ci-need { height: var(--adm-control-h-sm); }
   .ci-foot { flex-direction: column; align-items: stretch; padding: var(--adm-space-3) var(--adm-space-4) calc(var(--adm-space-3) + var(--adm-safe-bottom)); }
@@ -120,7 +120,7 @@
 .ci-tabs > button { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 38px; margin-bottom: -1px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--adm-text-3); font-family: inherit; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); cursor: pointer; }
 .ci-tabs > button:hover { color: var(--adm-ink); }
 .ci-tabs > button.is-on { border-bottom-color: var(--adm-accent); color: var(--adm-accent-strong); }
-.ci-tabs > button > span { padding: 1px 7px; border-radius: var(--adm-radius-pill); background: var(--adm-gray-100); color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.ci-tabs > button > span { padding: 1px 7px; border-radius: var(--adm-badge-radius); background: var(--adm-gray-100); color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
 .ci-tabs > button.is-on > span { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
 
 .ci-table { width: 100%; border-collapse: collapse; font-size: var(--adm-fs-body); }

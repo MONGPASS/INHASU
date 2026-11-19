@@ -7,7 +7,7 @@
 .listCard { overflow: visible; }
 .cardTitle { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: var(--text-strong); }
 .sub { font-size: 12px; color: var(--text-tertiary); }
-.neutralBadge { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; color: #6b7280;
+.neutralBadge { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: var(--adm-badge-radius); font-size: 12px; font-weight: 700; white-space: nowrap; color: #6b7280;
   background: radial-gradient(75% 150% at 20% 50%, rgba(107,114,128,.22) 0%, rgba(107,114,128,0) 72%), #fff; box-shadow: inset 0 0 0 1px rgba(107,114,128,.2), 0 1px 2px rgba(16,24,40,.05); }
 .neutralBadge::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: #6b7280; box-shadow: 0 0 6px rgba(107,114,128,.6); }
 .right { text-align: right; }
@@ -65,7 +65,7 @@
 .upWhen strong { font-family: var(--font-sans); font-size: 14px; font-weight: 800; color: var(--text-strong); }
 .upWhen span { font-size: 12px; font-weight: 800; color: var(--text-tertiary); }
 .upChips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.chipOk, .chipMissing { --tone: #18a957; --tone-rgb: 24,169,87; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap;
+.chipOk, .chipMissing { --tone: #18a957; --tone-rgb: 24,169,87; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 10px; border-radius: var(--adm-badge-radius); font-size: 12px; font-weight: 700; white-space: nowrap;
   color: var(--tone); background: radial-gradient(75% 150% at 20% 50%, rgba(var(--tone-rgb),.22) 0%, rgba(var(--tone-rgb),0) 72%), #fff; box-shadow: inset 0 0 0 1px rgba(var(--tone-rgb),.2), 0 1px 2px rgba(16,24,40,.05); }
 .chipMissing { --tone: #ff4f4f; --tone-rgb: 255,79,79; }
 .upMore { padding: 12px 22px; font-size: 12px; color: var(--text-tertiary); }
@@ -95,7 +95,7 @@
 .suggestText span { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .recent > span { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
-.recentChip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 4px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff;
+.recentChip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 4px; border: 1px solid var(--border-default); border-radius: var(--adm-chip-radius); background: #fff;
   font: inherit; font-size: 12px; font-weight: 700; color: var(--text-strong); cursor: pointer; }
 .recentChip:hover { border-color: var(--mrt-ink); }
 .recentChip span { width: 22px; height: 22px; border-radius: 50%; background: var(--mrt-gray-100); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--text-secondary); }
@@ -182,7 +182,7 @@
 .nights { font-size: 12px; font-weight: 800; color: var(--text-tertiary); }
 .range { font-family: var(--font-sans); font-size: 13px; font-weight: 800; color: var(--text-body); white-space: nowrap; }
 .progress { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; min-width: 0; }
-.pill { --tone: #6b7280; --tone-rgb: 107,114,128; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; flex: none; color: var(--tone);
+.pill { --tone: #6b7280; --tone-rgb: 107,114,128; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: var(--adm-badge-radius); font-size: 12px; font-weight: 700; white-space: nowrap; flex: none; color: var(--tone);
   background: radial-gradient(75% 150% at 20% 50%, rgba(var(--tone-rgb),.22) 0%, rgba(var(--tone-rgb),0) 72%), #fff; box-shadow: inset 0 0 0 1px rgba(var(--tone-rgb),.2), 0 1px 2px rgba(16,24,40,.05); }
 .pill::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: var(--tone); box-shadow: 0 0 6px rgba(var(--tone-rgb),.6); }
 .pillOk { --tone: #18a957; --tone-rgb: 24,169,87; }

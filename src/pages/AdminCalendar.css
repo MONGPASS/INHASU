@@ -57,10 +57,10 @@
 .tour-calendar .tc-search input::placeholder { color: var(--adm-input-placeholder); }
 .tour-calendar .tc-search .tc-icon-button { width: 24px; height: 24px; margin-right: -6px; border: 0; background: transparent; color: var(--text-tertiary); }
 .tour-calendar .tc-search .tc-icon-button:hover { color: var(--text-strong); }
-.tour-calendar .tc-filter-chips { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; }
-.tour-calendar .tc-filter-chips .tc-button { height: 32px; padding: 0 12px; border: 0; background: transparent; color: var(--text-secondary); font-weight: 600; }
+.tour-calendar .tc-filter-chips { display: flex; gap: 0; padding: var(--adm-seg-pad); border: 0; border-radius: var(--adm-seg-radius); background: var(--adm-seg-bg); }
+.tour-calendar .tc-filter-chips .tc-button { height: var(--dimension-28); padding: 0 12px; border: 0; background: transparent; color: var(--adm-seg-fg); font-weight: var(--adm-seg-fw); border-radius: var(--adm-seg-item-radius); }
 .tour-calendar .tc-filter-chips .tc-button:hover { color: var(--text-strong); }
-.tour-calendar .tc-filter-chips .tc-button.is-active { background: var(--mrt-ink); color: #fff; font-weight: 800; }
+.tour-calendar .tc-filter-chips .tc-button.is-active { background: var(--adm-seg-active-bg); color: var(--adm-seg-active-fg); font-weight: var(--adm-fw-semibold); box-shadow: var(--adm-seg-active-shadow); }
 .tour-calendar .tc-check { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--text-secondary); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .tour-calendar .tc-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--mrt-ink); }
 .tour-calendar .tc-reset { padding: 4px 0; border: 0; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
@@ -72,9 +72,9 @@
 .tour-calendar .tc-month-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 16px 20px; }
 .tour-calendar .tc-month-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .tour-calendar .tc-month-nav h2 { min-width: 130px; margin: 0; color: var(--text-strong); font-size: 22px; font-weight: 800; letter-spacing: -.03em; text-align: center; white-space: nowrap; }
-.tour-calendar .tc-view-switch { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--mrt-gray-100); flex: none; }
-.tour-calendar .tc-view-switch .tc-button { height: 32px; border: 0; background: transparent; color: var(--text-secondary); font-weight: 600; }
-.tour-calendar .tc-view-switch .tc-button.is-active { background: #fff; color: var(--text-strong); font-weight: 800; box-shadow: var(--shadow-sm); }
+.tour-calendar .tc-view-switch { display: inline-flex; gap: 0; padding: var(--adm-seg-pad); border-radius: var(--adm-seg-radius); background: var(--adm-seg-bg); flex: none; }
+.tour-calendar .tc-view-switch .tc-button { height: var(--dimension-28); border: 0; background: transparent; color: var(--adm-seg-fg); font-weight: var(--adm-seg-fw); border-radius: var(--adm-seg-item-radius); }
+.tour-calendar .tc-view-switch .tc-button.is-active { background: var(--adm-seg-active-bg); color: var(--adm-seg-active-fg); font-weight: var(--adm-fw-semibold); box-shadow: var(--adm-seg-active-shadow); }
 .tour-calendar .tc-weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--border-subtle); background: var(--mrt-gray-50); }
 .tour-calendar .tc-weekdays > * { min-width: 0; padding: 8px 0; text-align: center; color: var(--text-tertiary); font-size: 12px; font-weight: 700; }
 .tour-calendar .tc-weekdays > :first-child { color: var(--mrt-red); }

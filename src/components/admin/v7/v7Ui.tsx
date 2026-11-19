@@ -6,49 +6,63 @@ import { DashboardIcon, type DashboardIconName } from '../dashboard/DashboardIco
  * 디자인 원본이 인라인 style로 그려져 있어 같은 값을 style 객체로 옮겼다.
  */
 type Css = React.CSSProperties;
-export const V7_INK = '#1A1B1E';
-export const V7_MUTED = '#868e96';
+export const V7_INK = 'var(--adm-ink)';
+export const V7_MUTED = 'var(--adm-text-3)';
 
-const CT: Record<string, [string, string, string, string]> = {
-    red: ['#fff7f7', '#ffe8e8', '#ffc9c9', '#FF4F4F'], mint: ['#f3fdf9', '#ddf6ec', '#b2ebd6', 'var(--adm-accent-strong)'],
-    amber: ['#fffaf2', '#ffeed6', '#ffc98a', '#e8590c'], blue: ['#f5faff', '#e3f0ff', '#b9d8ff', '#1c6fd1'],
-    gray: ['#ffffff', '#f1f3f5', '#dee2e6', '#495057'], solid: ['var(--adm-accent)', 'var(--adm-accent-strong)', 'var(--adm-accent-strong)', '#ffffff'],
+/* Montage 부품 모양(M3): 색·크기는 public/admin-tokens.css의 --adm-* 변수만 쓴다. */
+// [바탕, 글자] — ContentBadge의 '글자색 + 같은 색 8% 바탕'
+const CT: Record<string, [string, string]> = {
+    red: ['var(--adm-badge-danger-bg)', 'var(--adm-badge-danger-fg)'], mint: ['var(--adm-badge-brand-bg)', 'var(--adm-badge-brand-fg)'],
+    amber: ['var(--adm-badge-warn-bg)', 'var(--adm-badge-warn-fg)'], blue: ['var(--adm-badge-info-bg)', 'var(--adm-badge-info-fg)'],
+    gray: ['var(--adm-badge-neutral-bg)', 'var(--adm-badge-neutral-fg)'], solid: ['var(--adm-primary-bg)', 'var(--semantic-static-white)'],
+    ink: ['var(--semantic-surface-neutral-inverse)', 'var(--semantic-foreground-neutral-inverse)'],
 };
 export type V7Tone = 'red' | 'mint' | 'amber' | 'blue' | 'gray' | 'solid';
+const dotBg = (color: string, x: number) => `radial-gradient(circle at ${x}px 50%, ${color} 3px, transparent 3.6px)`;
 
-/** 상태 표시 칩(읽기 전용). dot은 왼쪽 점. */
+/** 상태 표시 배지(읽기 전용, Montage ContentBadge small). dot은 왼쪽 점. */
 export const chip = (tone: V7Tone, dot: boolean, x?: Css): Css => {
-    const T = CT[tone] || CT.gray, d = tone === 'solid' ? '#fff' : T[3];
-    return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: dot ? '0 9px 0 19px' : '0 9px', boxSizing: 'border-box', borderRadius: 999, fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap',
-        background: (dot ? `radial-gradient(circle at 10px 50%, ${d} 2.6px, ${tone === 'solid' ? 'transparent' : T[2]} 3px, transparent 4.6px), ` : '') + `linear-gradient(180deg,${T[0]},${T[1]})`,
-        boxShadow: `inset 0 0 0 1px ${T[2]}` + (tone === 'solid' ? ', 0 2px 8px rgba(var(--adm-accent-rgb),.22)' : ''), color: T[3], ...(x || {}) };
+    const [bg, fg] = CT[tone] || CT.gray;
+    return { display: 'inline-flex', alignItems: 'center', gap: 4, padding: dot ? '4px 6px 4px 16px' : 'var(--adm-badge-pad)', boxSizing: 'border-box', borderRadius: 'var(--adm-badge-radius)',
+        fontSize: 'var(--adm-badge-fs)', fontWeight: 'var(--adm-badge-fw)' as Css['fontWeight'], lineHeight: 1.334, whiteSpace: 'nowrap',
+        background: (dot ? dotBg(fg, 9) + ', ' : '') + bg, color: fg, ...(x || {}) };
 };
 
-/** 눌러서 바꾸는 상태 버튼(점 + 그라데이션). */
+/** 눌러서 바꾸는 상태 버튼(점 + 옅은 색 바탕, 28px·모서리 8). */
 export type PillTone = 'red' | 'mint' | 'gray' | 'amber' | 'blue' | 'ink' | 'solid';
 export const pill = (tone: PillTone, x?: Css): Css => {
-    const T = ({ red: CT.red, mint: CT.mint, gray: ['#fff', '#f4f6f8', '#dee2e6', '#495057'], amber: CT.amber, blue: CT.blue, ink: [V7_INK, V7_INK, V7_INK, '#fff'], solid: ['var(--adm-accent)', 'var(--adm-accent-strong)', 'var(--adm-accent-strong)', '#fff'] } as Record<PillTone, string[]>)[tone];
-    const filled = tone === 'ink' || tone === 'solid', dot = filled ? '#fff' : T[3];
-    return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px 0 20px', border: 0, borderRadius: 999, font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
-        background: `radial-gradient(circle at 11px 50%, ${dot} 3px, ${filled ? 'transparent' : T[2]} 3.4px, transparent 5px), linear-gradient(180deg,${T[0]},${T[1]})`,
-        boxShadow: `inset 0 0 0 1px ${T[2]}` + (tone === 'solid' ? ', 0 2px 8px rgba(var(--adm-accent-rgb),.22)' : ''), color: T[3], ...(x || {}) };
+    const [bg, fg] = CT[tone] || CT.gray;
+    return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 'var(--adm-btn-h-xs)', padding: '0 var(--spacing-10) 0 20px', boxSizing: 'border-box', border: 0, borderRadius: 'var(--adm-btn-radius-xs)', font: 'inherit',
+        fontSize: 'var(--typography-caption1-fontSize)', fontWeight: 'var(--adm-fw-semibold)' as Css['fontWeight'], whiteSpace: 'nowrap', cursor: 'pointer',
+        background: `${dotBg(fg, 11)}, ${bg}`, color: fg, ...(x || {}) };
 };
 
-/** 선택 상자 모양 버튼. empty면 빨간 테두리(선택 필요). */
-export const sel = (empty: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 10px 0 12px', boxSizing: 'border-box', border: 0, borderRadius: 10, font: 'inherit', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
-    background: '#fff', boxShadow: empty ? 'inset 0 0 0 1.5px #ffc9c9' : 'inset 0 0 0 1px #dee2e6', color: empty ? '#FF4F4F' : V7_INK, ...(x || {}) });
+/** 선택 상자 모양 버튼(Montage Select small). empty면 빨간 선(선택 필요). */
+export const sel = (empty: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: 'var(--adm-input-h-sm)', padding: '0 var(--spacing-8) 0 var(--adm-input-pad-x-sm)', boxSizing: 'border-box', border: 0,
+    borderRadius: 'var(--adm-input-radius-sm)', font: 'inherit', fontSize: 'var(--typography-label2-fontSize)', fontWeight: 'var(--adm-fw-medium)' as Css['fontWeight'], whiteSpace: 'nowrap', cursor: 'pointer',
+    background: 'var(--adm-input-bg)', boxShadow: `inset 0 0 0 1px ${empty ? 'var(--adm-input-invalid-line)' : 'var(--adm-input-line)'}`, color: empty ? 'var(--adm-badge-danger-fg)' : 'var(--adm-input-fg)', ...(x || {}) });
 
-/** 배정 칩(목록의 가이드·차량·숙소). c는 점 색. */
-export const dchip = (c: string, bad: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 5, height: 28, padding: '0 10px 0 20px', boxSizing: 'border-box', border: 0, borderRadius: 999, font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer', flex: '0 0 auto',
-    background: `radial-gradient(circle at 10px 50%, ${c} 3px, transparent 3.6px), ${bad ? '#ffecec' : '#f4f6f8'}`, boxShadow: `inset 0 0 0 1px ${bad ? '#ffc9c9' : '#e9ecef'}`, color: bad ? '#FF4F4F' : V7_INK, ...(x || {}) });
+/** 배정 칩(목록의 가이드·차량·숙소, 28px·모서리 8). c는 점 색. */
+export const dchip = (c: string, bad: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 5, height: 'var(--adm-btn-h-xs)', padding: '0 var(--spacing-10) 0 20px', boxSizing: 'border-box', border: 0,
+    borderRadius: 'var(--adm-btn-radius-xs)', font: 'inherit', fontSize: 'var(--typography-caption1-fontSize)', fontWeight: 'var(--adm-fw-semibold)' as Css['fontWeight'], whiteSpace: 'nowrap', cursor: 'pointer', flex: '0 0 auto',
+    background: `${dotBg(c, 10)}, ${bad ? 'var(--adm-badge-danger-bg)' : 'var(--adm-badge-neutral-bg)'}`, color: bad ? 'var(--adm-badge-danger-fg)' : 'var(--adm-ink)', ...(x || {}) });
 
-export const checkBox = (on: boolean): Css => ({ width: 18, height: 18, padding: 0, borderRadius: 6, border: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: on ? 'linear-gradient(135deg,var(--adm-accent),var(--adm-accent-strong))' : '#fff', boxShadow: on ? 'none' : 'inset 0 0 0 1.5px #ced4da' });
+/** 체크 상자(Montage Checkbox: 모서리 5, 고르면 진한 민트). */
+export const checkBox = (on: boolean): Css => ({ width: 18, height: 18, padding: 0, borderRadius: 5, border: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: on ? 'var(--semantic-surface-brand-primary)' : 'var(--adm-surface)', boxShadow: on ? 'none' : 'inset 0 0 0 1.5px var(--semantic-line-neutral-primary)' });
 
 export const card: Css = { display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 18, boxShadow: '0 0 0 1px #eef0f2', scrollMarginTop: 88 };
-export const iconTile = (size = 30): Css => ({ width: size, height: size, flex: 'none', borderRadius: size >= 34 ? 10 : size >= 30 ? 10 : 9, background: '#f1f3f5', color: '#495057', display: 'flex', alignItems: 'center', justifyContent: 'center' });
-export const ghostBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 14px', border: 0, borderRadius: 999, background: '#fff', boxShadow: 'inset 0 0 0 1px #dee2e6', font: 'inherit', fontSize: 13, fontWeight: 700, color: V7_INK, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
-export const inkBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 16px', border: 0, borderRadius: 999, background: 'var(--adm-primary-bg)', font: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
+export const iconTile = (size = 30): Css => ({ width: size, height: size, flex: 'none', borderRadius: 'var(--adm-icon-btn-radius)', background: 'var(--semantic-surface-neutral-secondary)', color: 'var(--adm-text-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' });
+
+/** 버튼 높이(px)에 맞는 Montage Button 크기의 모서리·여백·글자. */
+const btnSize = (h: number) => h >= 48 ? ['var(--adm-btn-radius-lg)', 'var(--adm-btn-pad-x-lg)', 'var(--adm-btn-fs-lg)']
+    : h >= 40 ? ['var(--adm-btn-radius)', 'var(--adm-btn-pad-x)', 'var(--adm-btn-fs)']
+    : h >= 32 ? ['var(--adm-btn-radius-sm)', 'var(--adm-btn-pad-x-sm)', 'var(--adm-btn-fs-sm)']
+    : ['var(--adm-btn-radius-xs)', 'var(--adm-btn-pad-x-xs)', 'var(--adm-btn-fs-sm)'];
+/** 테두리 버튼(Montage Button outlined). */
+export const ghostBtn = (h = 36): Css => { const [r, p, f] = btnSize(h); return { display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: `0 ${p}`, border: 0, borderRadius: r, background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px var(--adm-btn-line)', font: 'inherit', fontSize: f, fontWeight: 'var(--adm-btn-fw)' as Css['fontWeight'], color: 'var(--adm-text)', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }; };
+/** 주요 버튼(Montage Button solid primary). */
+export const inkBtn = (h = 36): Css => { const [r, p, f] = btnSize(h); return { display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: `0 ${p}`, border: 0, borderRadius: r, background: 'var(--adm-primary-bg)', font: 'inherit', fontSize: f, fontWeight: 'var(--adm-btn-fw)' as Css['fontWeight'], color: 'var(--semantic-static-white)', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }; };
 
 export const Ico = ({ name, size = 14, color }: { name: DashboardIconName; size?: number; color?: string }) => <DashboardIcon name={name} size={size} color={color} />;
 
@@ -61,7 +75,7 @@ const KEYFRAMES = `@keyframes rvPop{from{opacity:0;transform:translateY(-4px) sc
 @keyframes rvUp{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion:reduce){.v7-root *{animation:none!important}}
 .v7-root a.v7-link{color:var(--adm-accent-strong);text-decoration:none}.v7-root a.v7-link:hover{color:var(--adm-accent-deep);text-decoration:underline}
-.v7-hover-row:hover{background:#f0fcf7!important}
+.v7-hover-row:hover{background:var(--adm-table-row-hover)!important}
 .v7-nav-btn:hover{box-shadow:0 0 0 1.5px var(--adm-accent),0 4px 12px rgba(var(--adm-accent-rgb),.12)!important}
 .v7-dd-row:hover{background:#f8f9fa!important}
 .v7-bulk-btn:hover{background:rgba(255,255,255,.2)!important}

@@ -41,8 +41,8 @@
 .admin-app-wrapper .pa-editor textarea.inp { min-height: 96px; }
 
 /* 버튼 묶음(카테고리·기간·판매 상태) */
-.admin-app-wrapper .pa-editor .pa-seg { display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 100%; padding: 3px; border-radius: 999px; background: var(--mrt-gray-100); }
-.admin-app-wrapper .pa-editor .pa-seg button { height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
+.admin-app-wrapper .pa-editor .pa-seg { display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 100%; padding: var(--adm-seg-pad); border-radius: var(--adm-seg-radius); background: var(--adm-seg-bg); }
+.admin-app-wrapper .pa-editor .pa-seg button { height: var(--dimension-32); padding: 0 14px; border: 0; border-radius: var(--adm-seg-item-radius); background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
 .admin-app-wrapper .pa-editor .pa-seg button:hover { color: var(--text-strong); }
 .admin-app-wrapper .pa-editor .pa-seg button.is-on { background: var(--mrt-ink); color: #fff; font-weight: 800; }
 .admin-app-wrapper .pa-editor .pa-seg > span { padding: 8px 12px; font-size: 12px; }

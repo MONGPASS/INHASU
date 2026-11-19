@@ -83,27 +83,27 @@ const ADMIN_CSS_HEX_BASELINE = {
     'src/components/admin/AdminDeliveryHistory.css': 23,
     'src/components/admin/CourseImportModal.css': 4,
     'src/components/admin/CustomerKakaoActions.css': 38,
-    'src/components/admin/CustomerResourcePicker.css': 35,
+    'src/components/admin/CustomerResourcePicker.css': 34,
     'src/components/admin/CustomerWorkspaceOverview.css': 35,
     'src/components/admin/dashboard/TrafficSources.module.css': 5,
     'src/components/admin/guides/GuideSchedule.css': 43,
     'src/components/admin/ui/admin-ui.css': 1,
     'src/pages/AdminAccommodationOps.css': 55,
     'src/pages/AdminBannerManage.css': 22,
-    'src/pages/AdminCalendar.css': 20,
+    'src/pages/AdminCalendar.css': 18,
     'src/pages/AdminCategoryManage.css': 4,
     'src/pages/AdminContentManage.css': 32,
     'src/pages/AdminDashboard.module.css': 44,
     'src/pages/AdminProductEditor.css': 14,
     'src/pages/AdminProductList.css': 4,
     'src/pages/AdminReservationBoard.module.css': 53,
-    'src/styles/admin-console.css': 102,
+    'src/styles/admin-console.css': 95,
     'src/styles/customer-workspace-editor.css': 92,
     'src/styles/product-customer-workspace.css': 21,
-    'src/styles/quote-booking-workspace.css': 122,
+    'src/styles/quote-booking-workspace.css': 121,
     'src/styles/reservation-inline.css': 118,
     'src/styles/reservation-itinerary-designer.css': 23,
-    'src/styles/reservation-workspace.css': 61,
+    'src/styles/reservation-workspace.css': 60,
     'public/admin-tools.css': 1,
 };
 // 관리자 화면에서만 읽는 src/styles 파일(이름이 admin-로 시작하지 않는 것)
@@ -314,4 +314,42 @@ test('입력창·선택 상자는 Montage TextField·Select 규격 변수를 쓴
     // 견적 도구·잘못된 입력 표시도 같은 변수를 쓴다.
     assert.match(stripComments(read('public/admin-tools.css')), /:is\(input, select, textarea\):focus \{[^}]*var\(--adm-input-line-focus\)/);
     assert.match(stripComments(read('src/components/admin/ui/admin-ui.css')), /\[aria-invalid="true"\] \{[^}]*var\(--adm-input-invalid-line\)/);
+});
+
+test('표·배지·칩·탭·아이콘 버튼은 Montage 규격 변수를 쓴다', () => {
+    const tokens = read('public/admin-tokens.css');
+    const desktop = tokens.split('@media')[0];
+    const expect = {
+        '--adm-table-head-h': 'calc(var(--dimension-40) + var(--spacing-4))', '--adm-table-pad-x': 'var(--spacing-20)', '--adm-table-cell-pad-y': 'var(--spacing-16)',
+        '--adm-badge-radius': 'var(--radius-8)', '--adm-chip-h': 'var(--dimension-36)', '--adm-chip-radius': 'var(--radius-10)',
+        '--adm-seg-h': 'var(--dimension-32)', '--adm-seg-radius': 'var(--radius-10)', '--adm-seg-item-radius': 'var(--radius-8)',
+        '--adm-icon-btn': 'var(--dimension-40)', '--adm-icon-btn-radius': 'var(--radius-10)',
+    };
+    for (const [name, value] of Object.entries(expect)) assert.equal(lastValue(desktop, name), value, name);
+    const consoleCss = stripComments(read('src/styles/admin-console.css'));
+    assert.match(consoleCss, /\.admin-app-wrapper \.badge \{[^}]*border-radius:\s*var\(--adm-badge-radius\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.chip \{[^}]*height:\s*var\(--adm-chip-h\);[^}]*border-radius:\s*var\(--adm-chip-radius\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.chip\.active \{[^}]*var\(--adm-chip-active-bg\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.seg \{[^}]*border-radius:\s*var\(--adm-seg-radius\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.tbl thead th \{[^}]*var\(--adm-table-head-fs\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.tbl tbody td \{[^}]*padding:\s*var\(--adm-table-cell-pad-y\) var\(--adm-table-pad-x\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.tab \{[^}]*var\(--adm-tab-fs\)/);
+    assert.match(consoleCss, /\.admin-app-wrapper \.icon-btn \{[^}]*width:\s*var\(--adm-icon-btn\)/);
+    // 화면별 배지·칩·탭이 알약 모양(999px)으로 덮어쓰지 않는다(점·숫자 원·사진 원은 제외).
+    const files = ['src/components/admin/CourseImportModal.css', 'src/components/admin/CustomerResourcePicker.css', 'src/components/admin/CustomerWorkspaceOverview.css',
+        'src/components/admin/accommodation/LodgeAssignBoard.css', 'src/components/admin/guides/GuideSchedule.css', 'src/pages/AdminAccommodationOps.css',
+        'src/pages/AdminBannerManage.css', 'src/pages/AdminCalendar.css', 'src/pages/AdminCategoryManage.css', 'src/pages/AdminContentManage.css',
+        'src/pages/AdminDashboard.module.css', 'src/pages/AdminProductEditor.css', 'src/pages/AdminProductList.css', 'src/pages/AdminReservationBoard.module.css'];
+    const pillLike = /([^{}]*(?:chip|pill|badge|status|tag|count|seg|tabs?\b|tab |toggle|act-btn|Badge|Chip)[^{}]*)\{([^}]*)\}/g;
+    for (const file of files) {
+        for (const [, sel, body] of stripComments(read(file)).matchAll(pillLike)) {
+            if (/::before|::after|(?:^|\s)i\s*$|\bi\s*,|\bdot\b|\bav\b/.test(sel.trim())) continue;
+            if (!/height|padding/.test(body)) continue;
+            assert.doesNotMatch(body, /border-radius:\s*999px/, `${file}: ${sel.trim().slice(0, 80)}`);
+        }
+    }
+    // v7 고객 상세·예약 목록의 배지·버튼 도우미도 변수를 쓴다.
+    const v7 = read('src/components/admin/v7/v7Ui.tsx');
+    assert.match(v7, /borderRadius: 'var\(--adm-badge-radius\)'/);
+    assert.doesNotMatch(v7.split('export const card')[0], /#[0-9a-f]{6}/i);
 });

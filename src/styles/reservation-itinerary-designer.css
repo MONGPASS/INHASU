@@ -22,7 +22,7 @@
 .product-customer-page .cw-focus-workspace .ri-settings-title h3 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-strong); font-size: 15px; font-weight: 800; letter-spacing: -.02em; }
 .product-customer-page .cw-focus-workspace .ri-settings-title p { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 4px 0 0; color: var(--text-tertiary); font-size: 12px; }
 .product-customer-page .cw-focus-workspace .ri-settings-title p b { margin-left: 4px; color: var(--mrt-blue-strong); font-size: 12px; font-weight: 700; }
-.product-customer-page .cw-focus-workspace .ri-settings-toggle { display: inline-flex; align-items: center; flex: none; gap: 4px; height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--mrt-gray-100); color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.product-customer-page .cw-focus-workspace .ri-settings-toggle { display: inline-flex; align-items: center; flex: none; gap: 4px; height: 36px; padding: 0 12px; border: 0; border-radius: var(--adm-btn-radius-sm); background: var(--mrt-gray-100); color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .product-customer-page .cw-focus-workspace .ri-settings-toggle svg { transition: transform .2s; }
 .product-customer-page .cw-focus-workspace .ri-settings-toggle[aria-expanded=true] svg { transform: rotate(180deg); }
 .product-customer-page .cw-focus-workspace .ri-trip-settings:has(.ri-settings-toggle[aria-expanded=true]) .ri-settings-heading { margin-bottom: 16px; }
@@ -57,7 +57,7 @@
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit.drag-over { border-color: var(--mrt-blue); box-shadow: 0 0 0 2px var(--mrt-blue) inset; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { display: grid; grid-template-columns: 22px 64px 108px minmax(0,1fr) 140px auto 36px; grid-template-areas: 'drag day date dest move toggle remove'; align-items: center; gap: 8px; margin: 0; padding: 0; border: 0; }
 .product-customer-page .cw-focus-workspace .ri-composer .dh .drag-handle { grid-area: drag; display: grid; place-items: center; height: 36px; padding: 0; color: var(--text-tertiary); font-size: 16px; }
-.product-customer-page .cw-focus-workspace .ri-composer .dh .badge { grid-area: day; display: grid; place-items: center; height: 30px; padding: 0; border-radius: 999px; background: var(--mrt-ink); color: #fff; font-size: 13px; font-weight: 800; }
+.product-customer-page .cw-focus-workspace .ri-composer .dh .badge { grid-area: day; display: grid; place-items: center; height: 30px; padding: 0; border-radius: var(--adm-badge-radius); background: var(--mrt-ink); color: #fff; font-size: 13px; font-weight: 800; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh > input { height: 44px; min-height: 44px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 12px; background: #fff; color: var(--text-strong); line-height: 1.4; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate { grid-area: date; width: 100%; padding: 0 6px; border-color: transparent; background: transparent; font-size: 14px; font-weight: 800; text-align: center; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate:hover { border-color: var(--border-default); }
@@ -65,7 +65,7 @@
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate::placeholder { color: var(--text-tertiary); font-weight: 500; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.dest { grid-area: dest; min-width: 0; font-size: 15px; font-weight: 800; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.move { grid-area: move; width: 100%; max-width: none; color: var(--text-secondary); font-size: 13px; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle { grid-area: toggle; display: inline-flex; align-items: center; gap: 4px; height: 36px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--mrt-gray-100); color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle { grid-area: toggle; display: inline-flex; align-items: center; gap: 4px; height: 36px; min-height: 36px; padding: 0 12px; border: 0; border-radius: var(--adm-btn-radius-sm); background: var(--mrt-gray-100); color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle:hover:not(:disabled) { background: var(--mrt-gray-200); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del { grid-area: remove; width: 36px; height: 36px; min-height: 36px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--text-tertiary); font-size: 14px; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del:hover { background: var(--mrt-red-soft); color: var(--mrt-red); }
@@ -173,7 +173,7 @@
 .product-customer-page .cw-focus-workspace .ri-composer .ri-field :is(input, textarea) { min-height: var(--adm-control-h); border-radius: var(--adm-radius-sm); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh :is(input.ddate, input.dest, input.move),
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 input { height: var(--adm-control-h); min-height: var(--adm-control-h); border-radius: var(--adm-radius-sm); }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle { height: var(--adm-control-h-sm); min-height: var(--adm-control-h-sm); border-radius: var(--adm-radius-sm); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-toggle { height: var(--adm-control-h-sm); min-height: var(--adm-control-h-sm); border-radius: var(--adm-btn-radius-sm); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh .day-del { border-radius: var(--adm-radius-sm); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-sel { height: var(--adm-control-h); min-height: var(--adm-control-h); border-radius: var(--adm-radius-sm); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit textarea.items { border-radius: var(--adm-radius-sm); }
