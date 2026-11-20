@@ -115,3 +115,45 @@ html.admin-embedded :is(.toast, #toast) { bottom: 28px; max-width: calc(100vw - 
 html.admin-embedded :is(.card-actions button, .tabs .tab.addcat, .sortbox select, .sortbox button) { box-sizing: border-box; height: var(--adm-control-h-sm); padding-top: 0; padding-bottom: 0; }
 html.admin-embedded .tabs .tab.addcat { border-width: 1px; font-weight: var(--adm-fw-semibold); }
 html.admin-embedded .yrbtn { width: var(--adm-control-h-sm); height: var(--adm-control-h-sm); }
+
+/* ── 편집 서랍(Montage 시트) ──
+   짧은 입력(일정·명소·등록 정보·견적 문의 상세): 오른쪽 서랍 600px.
+   긴 입력(코스 추가·편집): 가운데 넓은 창(최대 960px, 모서리 24 = Montage 팝업), 안은 두 칸.
+   아래 줄: 오른쪽에 저장 버튼(보통 크기), 삭제는 왼쪽 글자 버튼. 서랍이 열리면 바깥 관리자도 함께 어두워진다(admin-embed.js 신호). */
+@media (min-width: 761px) {
+  html.admin-embedded .drawer { width: min(600px, 100vw); }
+  html.admin-embedded .df { justify-content: flex-end; align-items: center; gap: var(--adm-space-2); }
+  html.admin-embedded .df :is(.save, .primary) { flex: none; min-width: 120px; height: var(--adm-control-h); padding: 0 var(--adm-space-5); border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); box-shadow: none; }
+  html.admin-embedded .df :is(.del, .danger) { flex: none; margin-right: auto; height: var(--adm-control-h); padding: 0 var(--adm-space-3); border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-danger); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); }
+  html.admin-embedded .df :is(.del, .danger):hover { background: var(--adm-danger-soft); }
+  html.admin-embedded .df .copy { flex: none; height: var(--adm-control-h); padding: 0 var(--adm-space-4); border: 1px solid var(--adm-line-strong); background: var(--adm-surface); color: var(--adm-text); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); }
+
+  /* 코스 추가·편집: 가운데 넓은 창 */
+  html.admin-embedded .drawer:has(#f_price_deposit) {
+    top: var(--adm-space-6); bottom: var(--adm-space-6); right: auto; left: 50%; height: auto;
+    width: min(960px, calc(100vw - 2 * var(--adm-space-6))); max-width: none;
+    border-radius: var(--adm-radius-lg); overflow: hidden;
+    opacity: 0; visibility: hidden; transform: translate(-50%, 16px);
+    transition: opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
+  }
+  html.admin-embedded .drawer.on:has(#f_price_deposit) { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .2s ease, transform .2s ease; }
+}
+/* 넓은 창 안: 기본 정보는 한 줄 두 칸, 추가·할인 사항과 인원별 잔금은 나란히, 명소·일자별 일정은 넓게 */
+@media (min-width: 900px) {
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: max-content; column-gap: var(--adm-space-6); align-items: start; align-content: start; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > * { grid-column: 1 / -1; min-width: 0; }
+  /* 왼쪽: 코스 이름 → 여행지·기간·차량 → 이동강도 → 요금(예약금·추가 및 할인) / 오른쪽: 인원별 잔금 표를 위부터. 두 칸 높이가 비슷해 빈칸이 적다 */
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(1) { grid-column: 1; grid-row: 1; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(2) { grid-column: 1; grid-row: 2; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(3) { grid-column: 1; grid-row: 3; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(4) { grid-column: 1; grid-row: 4; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(5) { grid-column: 1; grid-row: 5; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(6) { grid-column: 1; grid-row: 6; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(7) { grid-column: 1; grid-row: 7; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(8) { grid-column: 1; grid-row: 8; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(9) { grid-column: 2; grid-row: 1; align-self: end; margin-top: 0; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(10) { grid-column: 2; grid-row: 2 / span 6; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(11) { grid-column: 2; grid-row: 8; }
+  html.admin-embedded .drawer:has(#f_price_deposit) > .db > :nth-child(5) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html.admin-embedded .drawer:has(#f_price_deposit) #spotGrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
