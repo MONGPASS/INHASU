@@ -1,10 +1,10 @@
 /* 숙소 배정 시트 — Claude Design "05-3 배정 자원 - 숙소 배정 시트" */
 .la {
   --la-ink: var(--adm-ink); --la-ink-mid: var(--adm-text-2); --la-ink-low: var(--adm-text-3); --la-line: var(--adm-line);
-  --la-g50: #f7f8f9; --la-g100: #f2f3f6; --la-g200: #e5e8eb; --la-g400: #b0b8c1;
-  --la-mint: var(--adm-accent); --la-mint-low: #e8faf6; --la-mint-ink: var(--adm-accent-deep);
-  --la-red: #ff4f4f; --la-red-low: #ffefef; --la-orange: #f08c00; --la-orange-low: #fff4e5; --la-orange-ink: var(--adm-warn);
-  --la-blue: #2f6fed; --la-blue-low: #eef4ff; --la-blue-ink: var(--adm-accent-strong); --la-paper: var(--adm-gray-50);
+  --la-g50: var(--adm-gray-50); --la-g100: var(--adm-gray-100); --la-g200: var(--adm-gray-300); --la-g400: var(--adm-text-3);
+  --la-mint: var(--adm-accent); --la-mint-low: var(--adm-accent-soft); --la-mint-ink: var(--adm-accent-deep);
+  --la-red: var(--adm-danger); --la-red-low: var(--adm-danger-soft); --la-orange: var(--adm-warn); --la-orange-low: var(--adm-warn-soft); --la-orange-ink: var(--adm-warn);
+  --la-blue: var(--adm-accent); --la-blue-low: var(--adm-accent-soft); --la-blue-ink: var(--adm-accent-strong); --la-paper: var(--adm-gray-50);
   display: flex; flex-direction: column; gap: 16px; min-width: 0; color: var(--la-ink);
 }
 .la button, .la input, .la select { font-family: inherit; color: inherit; }

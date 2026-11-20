@@ -25,8 +25,8 @@
 .reservation-workspace.product-workspace .ri-contract > h3 { margin:0; color:var(--adm-ink); font-size:16px; font-weight:var(--adm-fw-bold); line-height:1.6; }
 .reservation-workspace.product-workspace .ri-section-title p { margin:4px 0 0; color:var(--adm-text-3); font-size:11px; line-height:1.7; }
 .reservation-workspace.product-workspace .ri-library-note { margin:8px 0 16px; color:var(--adm-text-3); font-size:12px; line-height:1.7; }
-.reservation-workspace.product-workspace .ri-library-error { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:12px 0; padding:12px; border:1px solid #edcfbd; border-radius:var(--adm-radius-sm); background:var(--adm-warn-soft); color:var(--adm-warn); font-size:12px; line-height:1.7; }
-.reservation-workspace.product-workspace .ri-library-error button { padding:2px; border:0; background:none; color:var(--adm-warn); font:inherit; font-weight:var(--adm-fw-bold); text-decoration:underline; cursor:pointer; }
+.reservation-workspace.product-workspace .ri-library-error { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:12px 0; padding:12px; border:1px solid color-mix(in srgb, var(--adm-warn) 32%, transparent); border-radius:var(--adm-radius-sm); background:var(--adm-warn-soft); color:var(--adm-warn-strong); font-size:12px; line-height:1.7; }
+.reservation-workspace.product-workspace .ri-library-error button { padding:2px; border:0; background:none; color:var(--adm-warn-strong); font:inherit; font-weight:var(--adm-fw-bold); text-decoration:underline; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-quote-section { padding:22px 20px; border-radius:var(--adm-radius-md); background:var(--adm-gray-50); }
 .reservation-workspace.product-workspace .ri-quote-head { margin-bottom:22px; }
 .reservation-workspace.product-workspace .ri-quote-head h3 { margin:0; color:var(--adm-ink); font-size:21px; font-weight:var(--adm-fw-bold); letter-spacing:-.5px; line-height:1.4; }
@@ -55,15 +55,15 @@
 .reservation-workspace.product-workspace .ri-activity-line { display:flex; align-items:flex-end; gap:10px; min-width:0; }
 .reservation-workspace.product-workspace .ri-time { flex:none; width:92px; }
 .reservation-workspace.product-workspace .ri-activity-title { flex:1; min-width:0; }
-.reservation-workspace.product-workspace .ri-remove { flex:none; min-height:38px; padding:5px 8px; border:none; border-radius:var(--adm-radius-xs); background:var(--adm-warn-soft); color:var(--adm-warn); font:inherit; font-size:11px; font-weight:650; cursor:pointer; }
+.reservation-workspace.product-workspace .ri-remove { flex:none; min-height:38px; padding:5px 8px; border:none; border-radius:var(--adm-radius-xs); background:var(--adm-warn-soft); color:var(--adm-warn-strong); font:inherit; font-size:11px; font-weight:650; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-photos { display:flex; flex-wrap:wrap; gap:10px; }
 .reservation-workspace.product-workspace .ri-photos figure { position:relative; flex:none; width:92px; height:72px; margin:0; border:1px solid var(--adm-line); border-radius:var(--adm-radius-xs); background:var(--adm-gray-200); }
 .reservation-workspace.product-workspace .ri-photos img { width:100%; height:100%; border-radius:var(--adm-radius-xs); object-fit:cover; }
-.reservation-workspace.product-workspace .ri-photos button { position:absolute; top:-5px; right:-5px; width:23px; height:23px; border:1px solid var(--adm-line); border-radius:50%; background:var(--adm-surface); color:var(--adm-warn); font:inherit; font-size:17px; line-height:1; cursor:pointer; }
-.reservation-workspace.product-workspace .ri-upload { position:relative; display:inline-flex; align-items:center; justify-content:center; justify-self:start; min-height:32px; padding:6px 10px; border:1px dashed var(--adm-line-strong); border-radius:var(--adm-radius-xs); background:var(--adm-surface); color:var(--adm-success); font-size:11px; line-height:1.6; font-weight:650; cursor:pointer; overflow:hidden; }
+.reservation-workspace.product-workspace .ri-photos button { position:absolute; top:-5px; right:-5px; width:23px; height:23px; border:1px solid var(--adm-line); border-radius:50%; background:var(--adm-surface); color:var(--adm-warn-strong); font:inherit; font-size:17px; line-height:1; cursor:pointer; }
+.reservation-workspace.product-workspace .ri-upload { position:relative; display:inline-flex; align-items:center; justify-content:center; justify-self:start; min-height:32px; padding:6px 10px; border:1px dashed var(--adm-line-strong); border-radius:var(--adm-radius-xs); background:var(--adm-surface); color:var(--adm-success-strong); font-size:11px; line-height:1.6; font-weight:650; cursor:pointer; overflow:hidden; }
 .reservation-workspace.product-workspace .ri-upload input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-stay-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.reservation-workspace.product-workspace .ri-assigned-stay { display:grid; gap:4px; margin:0; padding:12px; border:1px solid var(--adm-line); border-radius:var(--adm-radius-sm); background:var(--adm-accent-soft); color:var(--adm-success); font-size:11px; line-height:1.7; }
+.reservation-workspace.product-workspace .ri-assigned-stay { display:grid; gap:4px; margin:0; padding:12px; border:1px solid var(--adm-line); border-radius:var(--adm-radius-sm); background:var(--adm-accent-soft); color:var(--adm-success-strong); font-size:11px; line-height:1.7; }
 .reservation-workspace.product-workspace .ri-meals { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
 .reservation-workspace.product-workspace .ri-empty { padding:26px; border:1px dashed var(--adm-line); border-radius:var(--adm-radius-sm); background:var(--adm-gray-50); color:var(--adm-text-3); font-size:12px; text-align:center; line-height:1.7; }
 .reservation-workspace.product-workspace .ri-spots { margin-top:26px; padding-top:22px; border-top:1px solid var(--adm-line); }
@@ -83,7 +83,7 @@
 .reservation-workspace.product-workspace .ri-cancellation-row { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto; align-items:end; gap:12px; }
 .reservation-workspace.product-workspace .ri-savebar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; padding:18px 24px; border-top:1px solid var(--adm-line); background:var(--adm-gray-50); }
 .reservation-workspace.product-workspace .ri-savebar > span { flex:1; min-width:180px; color:var(--adm-text-2); font-size:12px; line-height:1.7; }
-.reservation-workspace.product-workspace .ri-savebar > .ri-save-error { color:var(--adm-warn); }
+.reservation-workspace.product-workspace .ri-savebar > .ri-save-error { color:var(--adm-warn-strong); }
 .reservation-workspace.product-workspace .ri-editor button:disabled { opacity:.45; cursor:default; }
 .reservation-workspace.product-workspace .ri-editor button:focus-visible,
 .reservation-workspace.product-workspace .ri-upload:focus-within { outline:3px solid var(--adm-accent); outline-offset:3px; }
@@ -92,7 +92,7 @@
 .reservation-workspace.product-workspace .ri-editor-workflow { border:0; border-radius:0; background:var(--adm-surface); overflow:visible; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status { margin:0; padding:14px 24px; border-width:0 0 1px; border-color:var(--adm-line); border-radius:0; background:var(--adm-gray-50); color:var(--adm-text-2); font-size:12px; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status strong { color:var(--adm-text-2); font-weight:650; }
-.reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status.is-warning { background:var(--adm-warn-soft); border-color:#f2dec0; }
+.reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status.is-warning { background:var(--adm-warn-soft); border-color:color-mix(in srgb, var(--adm-warn) 32%, transparent); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-modes { padding:16px 24px; gap:8px; background:var(--adm-surface); border-bottom:1px solid var(--adm-line-subtle); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-modes button { min-height:40px; padding:9px 18px; border-radius:var(--adm-radius-sm); font-size:14px; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-modes button.is-selected { background:var(--adm-accent-soft); border-color:var(--adm-accent-line); color:var(--adm-accent-strong); }

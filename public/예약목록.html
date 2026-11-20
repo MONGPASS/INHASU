@@ -11,7 +11,7 @@
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <link rel="stylesheet" href="/admin-tokens.css">
 <style>
-  :root { --accent:var(--adm-accent); --deep:var(--adm-accent); --soft:var(--adm-accent-soft); --ink:var(--adm-ink); --sub:var(--adm-text-2); --gray:var(--adm-text-3); --line:var(--adm-line); --bg:var(--adm-canvas); --book:#3d7ff0; --warn:#e0913a; --red:var(--adm-danger); }
+  :root { --accent:var(--adm-accent); --deep:var(--adm-accent); --soft:var(--adm-accent-soft); --ink:var(--adm-ink); --sub:var(--adm-text-2); --gray:var(--adm-text-3); --line:var(--adm-line); --bg:var(--adm-canvas); --book:var(--adm-accent); --warn:#e0913a; --red:var(--adm-danger); }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:Pretendard, system-ui, "Malgun Gothic", sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
   svg { display:block; }
@@ -35,7 +35,7 @@
   .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:12px; }
   .stat { background:var(--cs,var(--adm-accent-soft)); border:1px solid var(--cb,var(--adm-accent-line)); border-radius:var(--adm-radius-md); padding:14px 16px 13px; cursor:pointer; transition:.12s; text-align:left; font-family:inherit; display:block; width:100%; }
   .stat:hover { border-color:var(--c,var(--adm-accent)); }
-  .stat.on { border-color:var(--c,var(--adm-accent)); box-shadow:0 0 0 1px var(--c,#06c4a0) inset; }
+  .stat.on { border-color:var(--c,var(--adm-accent)); box-shadow:0 0 0 1px var(--c,var(--adm-accent)) inset; }
   .stat-top { display:flex; align-items:center; gap:9px; margin-bottom:13px; }
   .stat-ico { width:30px; height:30px; flex:none; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--adm-surface); color:var(--c,var(--adm-accent-strong)); }
   .stat-ico svg { width:16px; height:16px; }
@@ -47,10 +47,10 @@
   .stat-v .unit { font-size:12.5px; font-weight:var(--adm-fw-bold); color:var(--gray); }
   .stat-sub { color:var(--gray); font-size:11.5px; font-weight:700; margin-top:9px; }
   .stat-chart { flex:none; display:block; margin-bottom:2px; }
-  .stat.c-teal  { --c:var(--adm-accent-strong); --cs:var(--adm-accent); --cb:var(--adm-accent-line); }
-  .stat.c-red   { --c:var(--adm-danger); --cs:#fdeeed; --cb:var(--adm-line); }
-  .stat.c-amber { --c:var(--adm-warn); --cs:#fdf5e8; --cb:#f1e0c2; }
-  .stat.c-green { --c:var(--adm-accent-strong); --cs:var(--adm-accent); --cb:var(--adm-accent-line); }
+  .stat.c-teal  { --c:var(--adm-accent-strong); --cs:var(--adm-surface); --cb:var(--adm-line); }
+  .stat.c-red   { --c:var(--adm-danger); --cs:var(--adm-surface); --cb:color-mix(in srgb, var(--adm-danger) 32%, transparent); }
+  .stat.c-amber { --c:var(--adm-warn); --cs:var(--adm-surface); --cb:color-mix(in srgb, var(--adm-warn) 32%, transparent); }
+  .stat.c-green { --c:var(--adm-accent-strong); --cs:var(--adm-surface); --cb:var(--adm-line); }
   /* 검색·정렬·상태 필터를 한 카드로 통합 */
   .toolcard { background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); padding:11px 13px; margin-bottom:12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .search { flex:1 1 300px; min-width:220px; position:relative; display:flex; align-items:center; }
@@ -103,7 +103,7 @@
   .bulkbtn { border:1px solid var(--line); background:var(--adm-surface); color:var(--ink); border-radius:var(--adm-radius-sm); padding:8px 11px; font:800 12.5px Pretendard; cursor:pointer; }
   .bulkbtn:hover:not(:disabled) { border-color:var(--adm-line-strong); background:var(--adm-gray-50); }
   .bulkbtn.primary { background:var(--deep); border-color:var(--deep); color:#fff; }
-  .bulkbtn.danger { background:var(--adm-danger-soft); border-color:#f2d1cc; color:var(--adm-danger); }
+  .bulkbtn.danger { background:var(--adm-danger-soft); border-color:color-mix(in srgb, var(--adm-danger) 32%, transparent); color:var(--adm-danger); }
   .bulkbtn:disabled { opacity:.45; cursor:not-allowed; }
   .rowcheck { width:16px; height:16px; accent-color:var(--deep); cursor:pointer; }
   .col-receipt { text-align:left; }
@@ -170,7 +170,7 @@
   .table-card td.td-wrap { white-space:normal; overflow:visible; text-overflow:clip; }
   .table-card::-webkit-scrollbar { height:12px; }
   .table-card::-webkit-scrollbar-track { background:var(--adm-gray-100); border-radius:999px; }
-  .table-card::-webkit-scrollbar-thumb { background:#cbd8d4; border-radius:999px; border:3px solid var(--adm-line-subtle); }
+  .table-card::-webkit-scrollbar-thumb { background:var(--adm-gray-300); border-radius:999px; border:3px solid var(--adm-line-subtle); }
   th.sortable { cursor:pointer; user-select:none; }
   th.sortable:hover { color:var(--ink); }
   .num { color:var(--gray); font-weight:var(--adm-fw-bold); }
@@ -183,7 +183,7 @@
   .assign-track { flex:1; height:6px; border-radius:99px; background:var(--adm-gray-200); overflow:hidden; min-width:56px; max-width:118px; }
   .assign-track > span { display:block; height:100%; border-radius:99px; background:var(--adm-warn); transition:width .2s; }
   .assign-track.ok > span { background:var(--accent); }
-  .assign-count { font-size:11.5px; font-weight:var(--adm-fw-bold); color:var(--adm-warn); white-space:nowrap; }
+  .assign-count { font-size:11.5px; font-weight:var(--adm-fw-bold); color:var(--adm-warn-strong); white-space:nowrap; }
   .assign-count.ok { color:var(--adm-accent-strong); }
   .assign-detail { font-size:11.5px; font-weight:700; color:var(--gray); line-height:1.35; white-space:normal; }
   /* 결제 — 예약금·잔금 통합 (금액 + 인라인 상태 텍스트, 클릭 시 편집) */
@@ -193,7 +193,7 @@
   .pay-line .amount { font-weight:var(--adm-fw-bold); font-size:12px; }
   .pay-stat { display:inline-flex; align-items:center; font-weight:var(--adm-fw-bold); font-size:11.5px; cursor:pointer; }
   .pay-stat[data-v="입금완료"] { color:var(--adm-accent-strong); }
-  .pay-stat[data-v="현지현금전달"], .pay-stat[data-v="현장현금전달"], .pay-stat[data-v="계좌입금"], .pay-stat[data-v="카드결제"] { color:var(--adm-warn); }
+  .pay-stat[data-v="현지현금전달"], .pay-stat[data-v="현장현금전달"], .pay-stat[data-v="계좌입금"], .pay-stat[data-v="카드결제"] { color:var(--adm-warn-strong); }
   .pay-stat[data-v="미입금"], .pay-stat[data-v="미수령"] { color:var(--adm-danger); }
   .pay-stat select { color:inherit; }
   /* 여행 기간·지역 */
@@ -201,7 +201,7 @@
   .period .range { font-weight:700; font-size:12px; white-space:nowrap; }
   .period .arrow { color:var(--gray); margin:0 4px; }
   .period .sub { color:var(--gray); font-size:11.5px; font-weight:700; }
-  .dday { display:inline-block; margin-left:6px; font-size:10.5px; font-weight:var(--adm-fw-bold); color:var(--adm-warn); background:var(--adm-warn-soft); border-radius:var(--adm-radius-xs); padding:1px 6px; vertical-align:middle; }
+  .dday { display:inline-block; margin-left:6px; font-size:10.5px; font-weight:var(--adm-fw-bold); color:var(--adm-warn-strong); background:var(--adm-warn-soft); border-radius:var(--adm-radius-xs); padding:1px 6px; vertical-align:middle; }
   /* 고객명 + 인원 */
   .cust-name b { font-size:13px; font-weight:var(--adm-fw-bold); display:block; }
   .cust-name .pax { color:var(--gray); font-size:11.5px; font-weight:700; }

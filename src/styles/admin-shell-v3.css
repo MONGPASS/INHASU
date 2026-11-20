@@ -95,7 +95,7 @@
 .admin-app-wrapper .side-account .who b { font-size: 14px; }
 .admin-app-wrapper .side-account .who span { font-size: 12px; color: var(--text-secondary); }
 .admin-app-wrapper .side-account .out { width: 36px; height: 36px; padding: 0; border: 1px solid var(--border-default); border-radius:var(--adm-radius-xs); background: var(--adm-surface); color: var(--text-secondary); }
-.admin-app-wrapper .side-account .out:hover { border-color: #ffd0d0; }
+.admin-app-wrapper .side-account .out:hover { border-color: color-mix(in srgb, var(--adm-danger) 32%, transparent); }
 .admin-app-wrapper .side.is-rail .side-account { justify-content: center; padding: 8px; }
 .admin-app-wrapper .side.is-rail .side-account .who,
 .admin-app-wrapper .side.is-rail .side-account .out { display: none; }

@@ -130,7 +130,7 @@
 .admin-app-wrapper .pa-tips { margin-bottom: 14px; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--adm-text-2); font-size: var(--adm-fs-body); }
 .admin-app-wrapper .pa-tips > summary { display: flex; align-items: center; gap: 6px; padding: var(--adm-space-3) var(--adm-space-4); color: var(--adm-ink); font-weight: var(--adm-fw-semibold); cursor: pointer; list-style: none; }
 .admin-app-wrapper .pa-tips > summary::-webkit-details-marker { display: none; }
-.admin-app-wrapper .pa-tips > summary .material-symbols-outlined { font-size: 18px; color: var(--adm-warn); }
+.admin-app-wrapper .pa-tips > summary .material-symbols-outlined { font-size: 18px; color: var(--adm-warn-strong); }
 .admin-app-wrapper .pa-tips > summary > span:last-child { margin-left: auto; color: var(--adm-accent-strong); font-size: var(--adm-fs-small); }
 .admin-app-wrapper .pa-tips[open] > summary > span:last-child { visibility: hidden; }
 .admin-app-wrapper .pa-tips > ul { margin: 0 !important; padding: 0 var(--adm-space-4) var(--adm-space-4) calc(var(--adm-space-4) + 20px) !important; }

@@ -39,8 +39,8 @@
 /* 상태 배지 */
 .cw-badge { --cw-tone: var(--adm-text-3); display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; flex: none; border-radius:var(--adm-radius-xs); font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; color: var(--cw-tone); background: radial-gradient(75% 150% at 20% 50%, color-mix(in srgb, var(--cw-tone) 22%, transparent) 0%, color-mix(in srgb, var(--cw-tone) 0%, transparent) 72%), var(--adm-surface); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cw-tone) 20%, transparent), 0 1px 2px rgba(16,24,40,.05); }
 .cw-badge::before { content: ''; width: 6px; height: 6px; flex: none; border-radius: 999px; background: var(--cw-tone); box-shadow: 0 0 6px color-mix(in srgb, var(--cw-tone) 60%, transparent); }
-.cw-badge.is-ok { --cw-tone: var(--adm-success); }
-.cw-badge.is-wait { --cw-tone: var(--adm-warn); }
+.cw-badge.is-ok { --cw-tone: var(--adm-success-strong); }
+.cw-badge.is-wait { --cw-tone: var(--adm-warn-strong); }
 .cw-badge.is-alert { --cw-tone: var(--adm-danger); }
 
 /* 머리 카드 + 업무 진행 */

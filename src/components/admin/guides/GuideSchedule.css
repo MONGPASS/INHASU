@@ -1,11 +1,11 @@
 /* 가이드 배정 현황 — 디자인: Admin Dashboard redesign · 05-2 배정 자원 - 가이드 배정 현황 v4 (Seed 토큰을 관리자 색으로 옮김) */
 .gs, .gs-layer {
-  --gs-ink: var(--adm-ink); --gs-low: #6b7684; --gs-bg: var(--adm-gray-100); --gs-paper: var(--adm-surface); --gs-contents: #f7f8fa;
-  --gs-div1: #f1f3f5; --gs-div2: #e5e8eb; --gs-div3: #d1d6db;
+  --gs-ink: var(--adm-ink); --gs-low: var(--adm-text-3); --gs-bg: var(--adm-gray-100); --gs-paper: var(--adm-surface); --gs-contents: var(--adm-gray-50);
+  --gs-div1: var(--adm-gray-100); --gs-div2: var(--adm-gray-300); --gs-div3: var(--adm-text-3);
   --gs-mint: var(--adm-accent); --gs-mint-hover: var(--adm-accent-strong); --gs-mint-low: var(--adm-accent-soft); --gs-mint-text: var(--adm-accent-deep); --gs-mint-paper: var(--adm-accent-soft);
-  --gs-red: #e5484d; --gs-red-low: #fff0f0; --gs-blue: #2F6FED; --gs-blue-low: #EEF4FF;
+  --gs-red: var(--adm-danger); --gs-red-low: var(--adm-danger-soft); --gs-blue: var(--adm-accent); --gs-blue-low: var(--adm-accent-soft);
   --gs-orange-bg: var(--adm-warn-soft); --gs-orange-line: var(--adm-warn); --gs-orange-text: var(--adm-warn);
-  --gs-gray100: var(--adm-text-disabled); --gs-gray200: var(--adm-text-disabled); --gs-dark: #212124;
+  --gs-gray100: var(--adm-text-disabled); --gs-gray200: var(--adm-text-disabled); --gs-dark: var(--adm-ink);
 }
 /* 문서 맨 위(body)에 그리는 팝오버·상세 패널 층 — 관리자 사이드바(50)·상단바(40)보다 위 */
 .gs-layer { position: relative; z-index: 90; color: var(--gs-ink); font-family: inherit; -webkit-font-smoothing: antialiased; }
@@ -16,7 +16,7 @@
 .gs button, .gs select, .gs input, .gs-layer button, .gs-layer select, .gs-layer input { font: inherit; color: inherit; }
 .gs a, .gs-layer a { text-decoration: none; }
 .gs-empty { margin: 0; padding: 48px 20px; color: var(--gs-low); font-size: 14px; text-align: center; }
-.gs-notice { padding: 10px 14px; border-radius: var(--adm-radius-md); background: var(--adm-warn-soft); color: var(--adm-warn); font-size: 13px; font-weight: 600; }
+.gs-notice { padding: 10px 14px; border-radius: var(--adm-radius-md); background: var(--adm-warn-soft); color: var(--adm-warn-strong); font-size: 13px; font-weight: 600; }
 .gs-spacer { flex: 1; }
 .is-low { color: var(--gs-low); }
 @keyframes gsPopIn { from { transform: translateY(-4px); opacity: 0; } to { transform: none; opacity: 1; } }

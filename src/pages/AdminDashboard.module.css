@@ -15,10 +15,10 @@
 .actionMain { border: 0; background: linear-gradient(135deg, var(--adm-accent), var(--adm-accent-deep)); color: #fff; box-shadow: 0 4px 12px rgba(18,168,128,.25); }
 .actionMain:hover { background: linear-gradient(135deg, var(--adm-accent), var(--adm-accent-deep)); }
 
-.warning { padding: 14px 18px; border: 1px solid var(--adm-warn); border-radius: var(--r-md); background: var(--adm-warn-soft); color: var(--adm-warn); font-size: 13px; line-height: 1.6; }
+.warning { padding: 14px 18px; border: 1px solid var(--adm-warn); border-radius: var(--r-md); background: var(--adm-warn-soft); color: var(--adm-warn-strong); font-size: 13px; line-height: 1.6; }
 .warning ul { margin: 4px 0; padding-left: 20px; }
 .warning > span { display: block; font-size: 12px; }
-.partial { margin: 0; padding: 10px 14px; border-radius: var(--adm-radius-md); background: var(--adm-warn-soft); color: var(--adm-warn); font-size: 12px; line-height: 1.6; }
+.partial { margin: 0; padding: 10px 14px; border-radius: var(--adm-radius-md); background: var(--adm-warn-soft); color: var(--adm-warn-strong); font-size: 12px; line-height: 1.6; }
 .partialInset { margin: 12px 22px; }
 
 /* 핵심 지표 타일 */
@@ -53,9 +53,9 @@
 .right { text-align: right; }
 
 /* 상태 배지 (디자인 adminGlow 팔레트) */
-.toneOk { --tone: var(--adm-success); }
+.toneOk { --tone: var(--adm-success-strong); }
 .toneInfo { --tone: var(--adm-accent-strong); }
-.toneWait { --tone: var(--adm-warn); }
+.toneWait { --tone: var(--adm-warn-strong); }
 .toneAlert { --tone: var(--adm-danger); }
 .toneNeutral { --tone: var(--adm-text-3); }
 .glow { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px; box-sizing: border-box; border-radius:var(--adm-radius-xs); font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap;
@@ -243,7 +243,7 @@
 /* 처리가 필요한 지표: 채움 대신 주의 테두리 + 주의 아이콘(색만으로 알리지 않고 이름표와 함께) */
 .tileHot { border-color: color-mix(in srgb, var(--adm-warn) 43%, transparent); background: var(--adm-surface); box-shadow: none; }
 .tileHot:hover { border-color: var(--adm-warn); box-shadow: none; }
-.tileHot .tileIcon { color: var(--adm-warn); }
+.tileHot .tileIcon { color: var(--adm-warn-strong); }
 .tileHot .tileValue { color: var(--adm-ink); }
 .tileHot .tileLabel { color: var(--adm-text-2); }
 .action { border-color: var(--adm-line-strong); border-radius: var(--adm-radius-sm); color: var(--adm-text); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); }

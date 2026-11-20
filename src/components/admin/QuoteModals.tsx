@@ -747,7 +747,7 @@ export const QuoteDetailModal: React.FC<{
                             <span className="nb-desc">{nextAction.desc}</span>
                         </>
                     ) : (
-                        <span className="row" style={{ gap: 6, fontSize: 13, fontWeight: 800, color: 'var(--mrt-green)' }}>
+                        <span className="row" style={{ gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--mrt-green)' }}>
                             <span className="material-symbols-outlined" style={{ fontSize: 17 }}>check_circle</span>예약 전환까지 완료된 견적입니다
                         </span>
                     )}
@@ -815,16 +815,16 @@ export const QuoteDetailModal: React.FC<{
                             </div>
                             <div className="card-pad" style={{ paddingTop: 12 }}>
                                 <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                    <label className="field" style={{ marginBottom: 0 }}><span style={{ display: 'block', fontSize: 11, fontWeight: 800, color: 'var(--text-tertiary)', marginBottom: 5 }}>시작일</span>
+                                    <label className="field" style={{ marginBottom: 0 }}><span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 5 }}>시작일</span>
                                         <input type="date" className="inp" value={confirmedStartDate} onChange={(e) => setConfirmedStartDate(e.target.value)} /></label>
-                                    <label className="field" style={{ marginBottom: 0 }}><span style={{ display: 'block', fontSize: 11, fontWeight: 800, color: 'var(--text-tertiary)', marginBottom: 5 }}>종료일</span>
+                                    <label className="field" style={{ marginBottom: 0 }}><span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 5 }}>종료일</span>
                                         <input type="date" className="inp" value={confirmedEndDate} onChange={(e) => setConfirmedEndDate(e.target.value)} /></label>
                                 </div>
                                 <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
                                     <div className="pay-cell">
                                         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>1인 기준가</span></div>
                                         <div className="row" style={{ gap: 4 }}>
-                                            <input type="text" className="inp" style={{ textAlign: 'right', fontWeight: 800 }} value={formatNumber(priceDetail.pricePerPerson)} placeholder="0"
+                                            <input type="text" className="inp" style={{ textAlign: 'right', fontWeight: 700 }} value={formatNumber(priceDetail.pricePerPerson)} placeholder="0"
                                                 onChange={(e) => updatePricePerPerson(unformatNumber(e.target.value))} />
                                             <span className="cell-muted" style={{ fontSize: 12, flex: 'none' }}>원</span>
                                         </div>
@@ -832,7 +832,7 @@ export const QuoteDetailModal: React.FC<{
                                     <div className="pay-cell">
                                         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>인원</span></div>
                                         <div className="row" style={{ gap: 4 }}>
-                                            <input type="number" min={1} className="inp" style={{ textAlign: 'right', fontWeight: 800 }} value={priceDetail.peopleCount}
+                                            <input type="number" min={1} className="inp" style={{ textAlign: 'right', fontWeight: 700 }} value={priceDetail.peopleCount}
                                                 onChange={(e) => updatePeopleCount(Number(e.target.value))} />
                                             <span className="cell-muted" style={{ fontSize: 12, flex: 'none' }}>명</span>
                                         </div>
@@ -842,13 +842,13 @@ export const QuoteDetailModal: React.FC<{
                                     <div className="pay-cell">
                                         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
                                             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>총 견적금액</span>
-                                            <label className="row" style={{ gap: 5, fontSize: 11, fontWeight: 800, color: 'var(--text-tertiary)' }}>
+                                            <label className="row" style={{ gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)' }}>
                                                 <input type="checkbox" checked={priceDetail.manualTotal} onChange={(e) => updateManualTotal(e.target.checked)} />
                                                 직접 입력
                                             </label>
                                         </div>
                                         <div className="row" style={{ gap: 4 }}>
-                                            <input type="text" className="inp" style={{ textAlign: 'right', fontWeight: 800 }} value={formatNumber(priceDetail.totalAmount)} placeholder="0"
+                                            <input type="text" className="inp" style={{ textAlign: 'right', fontWeight: 700 }} value={formatNumber(priceDetail.totalAmount)} placeholder="0"
                                                 disabled={!priceDetail.manualTotal}
                                                 onChange={(e) => setPriceDetail(prev => ({ ...prev, totalAmount: unformatNumber(e.target.value) }))} />
                                             <span className="cell-muted" style={{ fontSize: 12, flex: 'none' }}>원</span>
@@ -857,13 +857,13 @@ export const QuoteDetailModal: React.FC<{
                                     <div className="pay-cell paid">
                                         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>예약금</span></div>
                                         <div className="row" style={{ gap: 4 }}>
-                                            <input type="text" className="inp" style={{ textAlign: 'right', fontWeight: 800 }} value={formatNumber(priceDetail.deposit)} placeholder="0"
+                                            <input type="text" className="inp" style={{ textAlign: 'right', fontWeight: 700 }} value={formatNumber(priceDetail.deposit)} placeholder="0"
                                                 onChange={(e) => setPriceDetail({ ...priceDetail, deposit: unformatNumber(e.target.value) })} />
                                             <span className="cell-muted" style={{ fontSize: 12, flex: 'none' }}>원</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="row" style={{ justifyContent: 'space-between', marginTop: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--mrt-gray-50)' }}>
+                                <div className="row" style={{ justifyContent: 'space-between', marginTop: 10, padding: '8px 12px', borderRadius: 'var(--adm-radius-sm)', background: 'var(--mrt-gray-50)' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>예상 잔금 (현지 결제)</span>
                                     <b className="cell-price" style={{ fontSize: 15 }}>{quoteBalance.toLocaleString('ko-KR')}원</b>
                                 </div>

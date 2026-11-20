@@ -41,7 +41,7 @@
 .quote-native-tabs button.active{background:var(--adm-accent-soft);color:var(--adm-accent-strong)}
 .quote-native-tabs button:focus-visible{outline:2px solid var(--adm-accent-strong);outline-offset:-2px}
 
-.native-booking-workspace{--accent:var(--adm-accent-strong);--book:var(--adm-accent-strong);--deep:#087960;--ink:var(--adm-ink);--sub:var(--adm-text-3);--muted:var(--adm-text-3);--line:var(--adm-accent-line);--soft:var(--adm-gray-50)}
+.native-booking-workspace{--accent:var(--adm-accent-strong);--book:var(--adm-accent-strong);--deep:var(--adm-accent-strong);--ink:var(--adm-ink);--sub:var(--adm-text-3);--muted:var(--adm-text-3);--line:var(--adm-accent-line);--soft:var(--adm-gray-50)}
 .native-booking-workspace body{background:var(--adm-gray-50);font-size:14px;line-height:1.6}
 .native-booking-workspace #main>.workflow-card,.native-booking-workspace #main>.workflow-card+section{display:none}
 .native-booking-workspace body>header{position:static;box-sizing:border-box;max-width:var(--adm-content-max);margin:0;padding:24px var(--adm-pad-page) 16px;border:0;background:transparent}

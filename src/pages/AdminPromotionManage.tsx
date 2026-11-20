@@ -105,7 +105,7 @@ const Toggle: React.FC<{ on: boolean; onToggle: () => void; title?: string; disa
 const Swatch: React.FC<{ theme: PromoThemeKey; image?: string; size?: [number, number] }> = ({ theme, image, size = [56, 42] }) => (
     <span
         style={{
-            display: 'block', width: size[0], height: size[1], borderRadius: 8, flex: 'none', overflow: 'hidden',
+            display: 'block', width: size[0], height: size[1], borderRadius: 'var(--adm-radius-sm)', flex: 'none', overflow: 'hidden',
             background: themeOf(theme).bg, border: '1px solid var(--border-default)',
         }}
     >
@@ -122,7 +122,7 @@ const MigrationNotice: React.FC<{ onRetry?: () => void }> = ({ onRetry }) => (
     <div
         style={{
             display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 16px', marginBottom: 16,
-            background: 'var(--adm-warn-soft)', border: '1px solid #F3DDAE', borderRadius: 'var(--r-md)', color: 'var(--adm-warn)', fontSize: 13.5, fontWeight: 600, lineHeight: 1.55,
+            background: 'var(--adm-warn-soft)', border: '1px solid color-mix(in srgb, var(--adm-warn) 32%, transparent)', borderRadius: 'var(--r-md)', color: 'var(--adm-warn-strong)', fontSize: 13.5, fontWeight: 600, lineHeight: 1.55,
         }}
     >
         <Icon name="warning" style={{ fontSize: 20, flex: 'none' }} />
@@ -338,8 +338,8 @@ const PromotionEditor: React.FC<EditorProps> = ({ initial, products, groups, onC
                                             onClick={() => patch({ theme: key })}
                                             aria-pressed={picked}
                                             style={{
-                                                display: 'flex', alignItems: 'flex-end', height: 54, padding: '7px 10px', borderRadius: 12, cursor: 'pointer',
-                                                background: t.bg, color: t.fg, font: 'inherit', fontSize: 12, fontWeight: 800, textAlign: 'left',
+                                                display: 'flex', alignItems: 'flex-end', height: 54, padding: '7px 10px', borderRadius: 'var(--adm-radius-md)', cursor: 'pointer',
+                                                background: t.bg, color: t.fg, font: 'inherit', fontSize: 12, fontWeight: 700, textAlign: 'left',
                                                 border: '1px solid var(--border-default)',
                                                 boxShadow: picked ? '0 0 0 2px #fff, 0 0 0 4px var(--mrt-blue)' : 'none',
                                             }}

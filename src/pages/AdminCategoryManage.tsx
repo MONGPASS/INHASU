@@ -410,7 +410,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
                 onClick={(e) => e.stopPropagation()}
             >
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                    {error && <p role="alert" style={{ padding: '12px 20px', color: 'var(--adm-warn)' }}>{error}</p>}
+                    {error && <p role="alert" style={{ padding: '12px 20px', color: 'var(--adm-warn-strong)' }}>{error}</p>}
                     {busy && <p role="status" style={{ padding: '12px 20px' }}>{busy === 'upload' ? '이미지 업로드 중…' : '카테고리 저장 중…'}</p>}
                     <fieldset disabled={!!busy} inert={!!busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, display: 'contents' }}>
                     {/* Header */}
@@ -848,7 +848,7 @@ const HeroImagesEditor: React.FC<HeroImagesEditorProps> = ({ images, onChange, u
                     {images.map((url, idx) => (
                         <div key={idx} style={{ position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
                             <img src={url} alt={`hero-${idx + 1}`} style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block' }} />
-                            <div style={{ position: 'absolute', top: 4, left: 4, padding: '1px 6px', borderRadius: 6, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 10, fontWeight: 700 }}>
+                            <div style={{ position: 'absolute', top: 4, left: 4, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 10, fontWeight: 700 }}>
                                 {idx + 1}
                             </div>
                             <div className="row" style={{ position: 'absolute', top: 4, right: 4, gap: 4 }}>
@@ -856,7 +856,7 @@ const HeroImagesEditor: React.FC<HeroImagesEditorProps> = ({ images, onChange, u
                                     type="button"
                                     onClick={() => moveImage(idx, 'left')}
                                     disabled={idx === 0}
-                                    style={{ padding: 4, borderRadius: 6, border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                                    style={{ padding: 4, borderRadius: 'var(--adm-radius-xs)', border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
                                     aria-label="move left"
                                 >
                                     <Icon name="chevron_left" />
@@ -865,7 +865,7 @@ const HeroImagesEditor: React.FC<HeroImagesEditorProps> = ({ images, onChange, u
                                     type="button"
                                     onClick={() => moveImage(idx, 'right')}
                                     disabled={idx === images.length - 1}
-                                    style={{ padding: 4, borderRadius: 6, border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                                    style={{ padding: 4, borderRadius: 'var(--adm-radius-xs)', border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
                                     aria-label="move right"
                                 >
                                     <Icon name="chevron_right" />
@@ -873,7 +873,7 @@ const HeroImagesEditor: React.FC<HeroImagesEditorProps> = ({ images, onChange, u
                                 <button
                                     type="button"
                                     onClick={() => removeImage(idx)}
-                                    style={{ padding: 4, borderRadius: 6, border: 'none', background: 'rgba(255,79,79,0.9)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                                    style={{ padding: 4, borderRadius: 'var(--adm-radius-xs)', border: 'none', background: 'rgba(255,79,79,0.9)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
                                     aria-label="delete"
                                 >
                                     <Icon name="close" />

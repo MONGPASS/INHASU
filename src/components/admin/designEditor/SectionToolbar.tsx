@@ -21,7 +21,7 @@ export function SectionToolbar({ name, position, repeatable, imageFields, disabl
     return createPortal(<>
         <div role="toolbar" aria-label={`${name} 섹션`} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}
             style={{ position: 'fixed', top: position.top, left: position.right, transform: 'translateX(-100%)', zIndex: 63, display: 'flex', alignItems: 'center', gap: 2, padding: '3px 4px 3px 10px', borderRadius: 999, background: 'var(--adm-surface)', boxShadow: '0 0 0 1px rgba(16,24,40,.08), 0 8px 24px rgba(16,24,40,.14)', fontFamily: 'Pretendard, system-ui, sans-serif' }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--adm-accent-strong)', marginRight: 4, whiteSpace: 'nowrap' }}>{name}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--adm-accent-strong)', marginRight: 4, whiteSpace: 'nowrap' }}>{name}</span>
             {imageFields.length > 0 && <button type="button" disabled={disabled} style={tool()} aria-haspopup="menu" onClick={e => setMenu(menuAt(e.currentTarget, `${name} 사진`, imageFields.map(f => ({ key: f.key, label: f.label, sub: f.filled ? '올린 사진 있음' : '사진 없음', subTone: f.filled ? 'ok' : 'muted', onPick: () => onPickImage(f.key) })), true))}><Ico name="lc-image-plus" size={13} />사진<Ico name="lc-chevron-down" size={11} /></button>}
             {repeatable && <button type="button" disabled={disabled} style={tool()} title="이 섹션을 내용까지 복제해 아래에 추가" onClick={onDuplicate}><Ico name="lc-copy" size={13} />복제</button>}
             <button type="button" disabled={disabled} style={tool()} title="이 섹션의 입력칸을 목록으로 보기" onClick={onOpenPanel}><Ico name="lc-list" size={13} />목록</button>

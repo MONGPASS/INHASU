@@ -26,6 +26,9 @@ html.admin-embedded :is(.ecol > header, .ecol > .stepwrap, .bottom) { padding-le
 
 /* 바깥 관리자가 이미 화면 제목을 보여 주므로 안쪽의 같은 제목은 숨긴다(추가 버튼과 설명은 남긴다). */
 html.admin-embedded .page-head > h1 { display: none; }
+/* 제목과 설명을 한 묶음(div)에 넣은 문서(견적 예약 목록)도 같은 제목·설명이 두 번 보이지 않게 숨기고, 버튼은 오른쪽에 둔다. */
+html.admin-embedded .page-head > div:has(> h1) { display: none; }
+html.admin-embedded .page-head:has(> div > h1) { justify-content: flex-end; }
 html.admin-embedded .page-head { min-height: var(--adm-control-h); }
 
 /* ── 버튼: 높이·모서리·글자 ── */
