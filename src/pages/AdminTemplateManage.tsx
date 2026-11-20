@@ -1553,7 +1553,7 @@ const TemplatesTab: React.FC = () => {
             <div className="toolbar">
                 <div style={{ minWidth: 0 }}>
                     <div className="cell-strong" style={{ fontSize: 14 }}>일정 프리셋(템플릿)을 만들어 견적·예약 문서에 재사용합니다.</div>
-                    <div className="cell-muted" style={{ fontSize: 12.5, marginTop: 2 }}>편집 화면은 예약 상세의 문서 편집기와 동일합니다. 문서 디자인은 브랜드 1벌로 고정되고, 여기서는 일정·포함사항·계약 조건을 편집합니다.</div>
+                    <div className="cell-muted" style={{ fontSize: 12, marginTop: 2 }}>편집 화면은 예약 상세의 문서 편집기와 동일합니다. 문서 디자인은 브랜드 1벌로 고정되고, 여기서는 일정·포함사항·계약 조건을 편집합니다.</div>
                 </div>
                 <div className="spacer" />
                 <button className="btn btn-ink" onClick={() => { resetForm(); setIsModalOpen(true); }}>
@@ -1722,7 +1722,7 @@ const GuidesTab: React.FC = () => {
                     <div key={g.id} className="card card-pad grid grid-cols-[72px_1fr_auto] gap-4 items-center" style={{ padding: 14 }}>
                         <div className="avatar flex-shrink-0" style={{ width: 72, height: 72, borderRadius: 'var(--r-md)', position: 'relative' }}>
                             {g.image ? <img src={g.image} alt={g.name} className="w-full h-full object-cover" /> : <Icon name="person" style={{ fontSize: 30, color: 'var(--mrt-gray-300)' }} />}
-                            {g.status === 'pending' && <span className="badge b-amber" style={{ position: 'absolute', top: 4, left: 4, padding: '1px 6px', fontSize: 9 }}>대기</span>}
+                            {g.status === 'pending' && <span className="badge b-amber" style={{ position: 'absolute', top: 4, left: 4, padding: '1px 6px', fontSize: 11 }}>대기</span>}
                         </div>
                         <div className="min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -1730,8 +1730,8 @@ const GuidesTab: React.FC = () => {
                                 {g.experienceYears > 0 && <span className="cell-muted inline-flex items-center gap-0.5" style={{ fontSize: 11 }}><Icon name="workspace_premium" style={{ fontSize: 14 }} />{g.experienceYears}년</span>}
                                 <span className="cell-muted inline-flex items-center gap-0.5" style={{ fontSize: 11 }}><Icon name="phone" style={{ fontSize: 14 }} />{g.phone}</span>
                             </div>
-                            <p className="cell-muted line-clamp-1 mb-1.5" style={{ fontSize: 12.5 }}>{g.introduction || '소개글 없음'}</p>
-                            {g.languages.length > 0 && <div className="flex flex-wrap gap-1">{g.languages.map(l => <span key={l} className="badge b-blue" style={{ padding: '2px 7px', fontSize: 10.5 }}>{l}</span>)}</div>}
+                            <p className="cell-muted line-clamp-1 mb-1.5" style={{ fontSize: 12 }}>{g.introduction || '소개글 없음'}</p>
+                            {g.languages.length > 0 && <div className="flex flex-wrap gap-1">{g.languages.map(l => <span key={l} className="badge b-blue" style={{ padding: '2px 7px', fontSize: 11 }}>{l}</span>)}</div>}
                         </div>
                         <div className="row-actions items-center" style={{ alignItems: 'center' }}>
                             {g.status === 'pending' && <button onClick={() => handleApprove(g)} className="btn btn-sm btn-blue">승인</button>}
@@ -1839,10 +1839,10 @@ const AccommodationsTab: React.FC = () => {
                         <div className="min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <h3 className="cell-strong truncate" style={{ fontSize: 15 }}>{a.name}</h3>
-                                {a.type && <span className="badge b-gray" style={{ padding: '2px 7px', fontSize: 10.5 }}>{a.type}</span>}
+                                {a.type && <span className="badge b-gray" style={{ padding: '2px 7px', fontSize: 11 }}>{a.type}</span>}
                             </div>
                             <div className="cell-muted mb-1 inline-flex items-center gap-0.5" style={{ fontSize: 11 }}><Icon name="location_on" style={{ fontSize: 14 }} />{a.location}</div>
-                            <p className="cell-muted line-clamp-1" style={{ fontSize: 12.5 }}>{a.description || '설명 없음'}</p>
+                            <p className="cell-muted line-clamp-1" style={{ fontSize: 12 }}>{a.description || '설명 없음'}</p>
                         </div>
                         <div className="row-actions items-center" style={{ alignItems: 'center' }}>
                             <button onClick={() => { setEditing(a); setForm({ name: a.name, images: a.images, description: a.description, type: a.type, location: a.location }); setIsModalOpen(true); }} className="act-btn" title="수정"><Icon name="edit" /></button>

@@ -756,7 +756,7 @@ export function DesignTemplateBlockEditor({
                                                             />
                                                             <span
                                                                 title="공통 이미지를 사용 중입니다. 이 상품만 다르게 하려면 업로드하세요."
-                                                                style={{ position: 'absolute', left: -4, bottom: -6, padding: '1px 6px', borderRadius: 500, background: '#06C4A0', color: '#fff', fontSize: 10, fontWeight: 800 }}
+                                                                style={{ position: 'absolute', left: -4, bottom: -6, padding: '1px 6px', borderRadius: 500, background: '#06C4A0', color: '#fff', fontSize: 11, fontWeight: 800 }}
                                                             >
                                                                 공통
                                                             </span>

@@ -144,7 +144,7 @@
 .revOption > span:first-child { flex: 1; text-align: left; }
 .revRange { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
 .revValueRow { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.revValue { font-family: var(--font-sans); font-size: 38px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; line-height: 1; color: var(--adm-accent-strong); font-variant-numeric: tabular-nums; }
+.revValue { font-family: var(--font-sans); font-size: 36px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; line-height: 1; color: var(--adm-accent-strong); font-variant-numeric: tabular-nums; }
 .revCaption { font-size: 14px; color: var(--adm-text-2); }
 .revSplitHead { display: flex; justify-content: space-between; font-size: 14px; color: var(--adm-ink); }
 .revSplitHead > span:first-child { font-weight: 600; }
@@ -163,7 +163,7 @@
 .pairBody { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 20px 22px; }
 .pairLabel { font-size: 15px; font-weight: 500; color: var(--text-secondary); }
 .pairRow { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-.bigNum { font-family: var(--font-sans); font-size: 38px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--text-strong); }
+.bigNum { font-family: var(--font-sans); font-size: 36px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--text-strong); }
 .bigUnit { margin-left: 4px; font-size: 15px; color: var(--text-secondary); }
 .pairNote { margin-top: 10px; font-size: 13px; color: var(--text-secondary); }
 .pairNote b { font-family: var(--font-sans); color: var(--text-strong); }
@@ -223,7 +223,7 @@
 @media (max-width: 620px) {
   .pair { grid-template-columns: minmax(0, 1fr); }
   .pairCell + .pairCell { border-left: 0; border-top: 1px solid var(--border-default); }
-  .revValue, .bigNum { font-size: 32px; }
+  .revValue, .bigNum { font-size: 28px; }
   .headNote { display: none; }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .tile { min-height: 120px; padding: 18px; }

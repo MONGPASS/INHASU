@@ -13,7 +13,7 @@
 .kpi { display: flex; flex-direction: column; gap: 4px; }
 .kpiLabel { font-size: 13px; color: var(--text-secondary); }
 .kpiRow { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.kpiValue { font-family: var(--font-sans); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-strong); font-variant-numeric: tabular-nums; }
+.kpiValue { font-family: var(--font-sans); font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-strong); font-variant-numeric: tabular-nums; }
 .kpiUnit { font-size: 13px; color: var(--text-secondary); }
 .kpiDelta { font-family: var(--font-sans); font-size: 12px; font-weight: 600; color: var(--adm-accent-strong); }
 .kpiDown { color: var(--mrt-red); }

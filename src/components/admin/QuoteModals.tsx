@@ -799,7 +799,7 @@ export const QuoteDetailModal: React.FC<{
                                     {request.travelTypes.map(t => <span key={t} className="badge b-blue">{t}</span>)}
                                     {request.accommodations.map(t => <span key={t} className="badge b-gray">{t}</span>)}
                                 </div>
-                                <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>{request.additionalRequest || '추가 요청사항이 없습니다.'}</p>
+                                <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>{request.additionalRequest || '추가 요청사항이 없습니다.'}</p>
                             </div>
                         </div>
                         </div>
@@ -822,7 +822,7 @@ export const QuoteDetailModal: React.FC<{
                                 </div>
                                 <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
                                     <div className="pay-cell">
-                                        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>1인 기준가</span></div>
+                                        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>1인 기준가</span></div>
                                         <div className="row" style={{ gap: 4 }}>
                                             <input type="text" className="inp" style={{ textAlign: 'right', fontWeight: 700 }} value={formatNumber(priceDetail.pricePerPerson)} placeholder="0"
                                                 onChange={(e) => updatePricePerPerson(unformatNumber(e.target.value))} />
@@ -830,7 +830,7 @@ export const QuoteDetailModal: React.FC<{
                                         </div>
                                     </div>
                                     <div className="pay-cell">
-                                        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>인원</span></div>
+                                        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>인원</span></div>
                                         <div className="row" style={{ gap: 4 }}>
                                             <input type="number" min={1} className="inp" style={{ textAlign: 'right', fontWeight: 700 }} value={priceDetail.peopleCount}
                                                 onChange={(e) => updatePeopleCount(Number(e.target.value))} />
@@ -841,7 +841,7 @@ export const QuoteDetailModal: React.FC<{
                                 <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
                                     <div className="pay-cell">
                                         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-                                            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>총 견적금액</span>
+                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>총 견적금액</span>
                                             <label className="row" style={{ gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)' }}>
                                                 <input type="checkbox" checked={priceDetail.manualTotal} onChange={(e) => updateManualTotal(e.target.checked)} />
                                                 직접 입력
@@ -855,7 +855,7 @@ export const QuoteDetailModal: React.FC<{
                                         </div>
                                     </div>
                                     <div className="pay-cell paid">
-                                        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>예약금</span></div>
+                                        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>예약금</span></div>
                                         <div className="row" style={{ gap: 4 }}>
                                             <input type="text" className="inp" style={{ textAlign: 'right', fontWeight: 700 }} value={formatNumber(priceDetail.deposit)} placeholder="0"
                                                 onChange={(e) => setPriceDetail({ ...priceDetail, deposit: unformatNumber(e.target.value) })} />
@@ -977,7 +977,7 @@ export const QuoteDetailModal: React.FC<{
                         <h3>발송 전 체크</h3>
                         {checklistItems.map((item) => (
                             <div key={item.label} className="row" style={{ justifyContent: 'space-between', padding: '4px 0' }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{item.label}{item.optional && <span style={{ marginLeft: 4, fontSize: 10.5, color: 'var(--text-tertiary)' }}>선택</span>}</span>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>{item.label}{item.optional && <span style={{ marginLeft: 4, fontSize: 11, color: 'var(--text-tertiary)' }}>선택</span>}</span>
                                 <span className="material-symbols-outlined" style={{ fontSize: 17, color: item.done ? 'var(--mrt-green)' : 'var(--mrt-gray-300)' }}>{item.done ? 'check_circle' : 'radio_button_unchecked'}</span>
                             </div>
                         ))}

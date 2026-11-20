@@ -66,7 +66,8 @@
 | 상태 테두리 | `--adm-danger-line` / `--adm-warn-line` / `--adm-success-line` | `#FF42426E` / `#FF92006E` / `#00BF406E` (Montage `semantic-line-negative/cautionary/positive`). 조치가 필요한 카드·옅은 상태 상자의 테두리 |
 | 구분색 | `--adm-tag-{lime,cyan,blue,violet,purple,pink,orange}` (+ `-soft` 옅은 바탕, `-solid` 채움) | Montage accent 색(`foreground/surface-accent-*`). 사람·출처·그래프 계열처럼 서로 구분만 하는 곳에. 상태(완료·주의·오류)에는 쓰지 않는다 |
 | 글꼴 | `--adm-font` | `"Pretendard Variable"`, `"Pretendard"`, 시스템 글꼴 |
-| 글자 크기 | `--adm-fs-caption` / `-small` / `-body` / `-base` / `-lead` / `-section` / `-title` | 12 / 13 / 14 / 15 / 18 / 20 / 28px (좁은 화면 제목 22px) |
+| 글자 크기 | `--adm-fs-micro` / `-caption` / `-small` / `-body` / `-base` / `-lead` / `-section` / `-title` | 11 / 12 / 13 / 14 / 15 / 18 / 20 / 28px (좁은 화면 제목 22px) |
+| 글자 크기 단계 | Montage 글자 크기 단계만 쓴다 | 11 · 12 · 13 · 14 · 15 · 16 · 17 · 18 · 20 · 22 · 24 · 28 · 36 · 40px. 12.5px·11.5px 같은 중간 크기와 10px 이하는 쓰지 않는다. `tests/admin-font-scale.test.mjs`가 관리자 CSS와 인라인 style을 검사하고, `node scripts/check-admin-font-scale.mjs --fix`가 가장 가까운 단계(한가운데면 작은 쪽)로 바꾼다. 아이콘 글꼴 크기는 대상이 아니다. |
 | 글자 굵기·줄 간격 | `--adm-fw-*`, `--adm-lh` | 400 · 500 · 600(제목만 700), 1.5 |
 | 간격 | `--adm-space-1`~`8`, `--adm-gap-control`, `--adm-gap-section`, `--adm-pad-card`, `--adm-pad-page` | 4·8·12·16·20·24·32px, 8 / 24 / 20 / 32px |
 | 본문 폭 | `--adm-content-max` / `--adm-content-max-narrow` | 1440px(목록·상세·대시보드) / 960px(입력 폼). 여백 포함, 왼쪽 정렬 |

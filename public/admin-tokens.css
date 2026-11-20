@@ -70,6 +70,7 @@
 
   /* ── 글자 크기 ── */
   --adm-font: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, system-ui, sans-serif;
+  --adm-fs-micro: 11px;     /* 촘촘한 표·작은 배지(가장 작은 크기) */
   --adm-fs-caption: 12px;   /* 배지·표 머리 */
   --adm-fs-small: 13px;     /* 보조 설명 */
   --adm-fs-body: 14px;      /* 목록·입력창·버튼 */

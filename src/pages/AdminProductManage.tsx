@@ -2429,7 +2429,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                     <input type="text" className="inp" value={(block.content as DayInfoContent).description || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), description: e.target.value })} placeholder="대형마트, 테를지 국립공원, 거북 바위..." />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="cell-strong" style={{ fontSize: 12.5, display: 'block', marginBottom: 6 }}>🍽 식사 정보</label>
+                                                                    <label className="cell-strong" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>🍽 식사 정보</label>
                                                                     <div className="meal-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                                                                         <div className="inp-mini"><span className="pre" style={{ fontSize: 11 }}>조식</span><input value={(block.content as DayInfoContent).meals?.breakfast || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), meals: { ...(block.content as DayInfoContent).meals, breakfast: e.target.value } })} placeholder="캠프식" /></div>
                                                                         <div className="inp-mini"><span className="pre" style={{ fontSize: 11 }}>중식</span><input value={(block.content as DayInfoContent).meals?.lunch || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), meals: { ...(block.content as DayInfoContent).meals, lunch: e.target.value } })} placeholder="현지식" /></div>
@@ -2437,7 +2437,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                     </div>
                                                                 </div>
                                                                 <div>
-                                                                    <label className="cell-strong" style={{ fontSize: 12.5, display: 'block', marginBottom: 6 }}>🏠 숙소 정보</label>
+                                                                    <label className="cell-strong" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>🏠 숙소 정보</label>
                                                                     <div className="inp-mini"><span className="pre"><Icon name="hotel" style={{ fontSize: 14 }} /></span><input value={(block.content as DayInfoContent).accommodation || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), accommodation: e.target.value })} placeholder="개별화장실과 샤워실이 구비된 디럭스게르" /></div>
                                                                 </div>
                                                             </div>
@@ -2629,7 +2629,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                             <div className="stack" style={{ gap: 14 }}>
                                                 {pre.length > 0 && (
                                                     <div className="stack" style={{ gap: 10, border: '1px dashed var(--border-strong)', borderRadius: 'var(--r-lg)', padding: 14 }}>
-                                                        <div className="row" style={{ gap: 6 }}><Icon name="info" /><span className="cell-strong" style={{ fontSize: 12.5 }}>일차가 지정되지 않은 기존 항목</span></div>
+                                                        <div className="row" style={{ gap: 6 }}><Icon name="info" /><span className="cell-strong" style={{ fontSize: 12 }}>일차가 지정되지 않은 기존 항목</span></div>
                                                         <p className="muted" style={{ fontSize: 11, margin: 0 }}>DAY를 추가하면 이 항목들은 첫째 날 일정으로 정리할 수 있습니다.</p>
                                                         {pre.map((ev) => (
                                                             <div key={ev.block.id} data-itinerary-block={ev.block.id} className="edit-row" style={{ background: 'var(--mrt-gray-50, var(--adm-gray-50))', borderRadius: 'var(--r-md)', padding: 10 }}>
@@ -2720,12 +2720,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                         {/* 비워 두면 일정 사진으로 자동 채워지는 칸이라 평소에는 접어 둔다 */}
                                                                         <button type="button" data-day-design-toggle onClick={() => toggleDayDesign(day.dayInfo.id)} aria-expanded={designDays.has(day.dayInfo.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
                                                                             <Icon name="photo_library" style={{ fontSize: 16 }} />
-                                                                            <span className="cell-strong" style={{ fontSize: 12.5 }}>디자인 사진 (일정 상세 디자인 전용)</span>
-                                                                            <span className="muted" style={{ fontSize: 11.5 }}>{dc.heroImage || (dc.galleryImages || []).length ? `배경 ${dc.heroImage ? 1 : 0}장 · 상단 ${(dc.galleryImages || []).length}장` : '비워 두면 일정 사진으로 자동'}</span>
+                                                                            <span className="cell-strong" style={{ fontSize: 12 }}>디자인 사진 (일정 상세 디자인 전용)</span>
+                                                                            <span className="muted" style={{ fontSize: 11 }}>{dc.heroImage || (dc.galleryImages || []).length ? `배경 ${dc.heroImage ? 1 : 0}장 · 상단 ${(dc.galleryImages || []).length}장` : '비워 두면 일정 사진으로 자동'}</span>
                                                                             <span style={{ flex: 1 }} />
                                                                             <Icon name={designDays.has(day.dayInfo.id) ? 'expand_less' : 'expand_more'} style={{ fontSize: 18, color: 'var(--mrt-gray-500)' }} />
                                                                         </button>
-                                                                        {designDays.has(day.dayInfo.id) && <p className="muted" style={{ fontSize: 11.5, margin: '6px 0 8px' }}>히어로 배경 1장 + 카드 상단 사진 최대 5장. 비워 두면 이 일차의 일정 사진에서 자동으로 채워집니다.</p>}
+                                                                        {designDays.has(day.dayInfo.id) && <p className="muted" style={{ fontSize: 11, margin: '6px 0 8px' }}>히어로 배경 1장 + 카드 상단 사진 최대 5장. 비워 두면 이 일차의 일정 사진에서 자동으로 채워집니다.</p>}
                                                                         <div className="row" style={{ gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', display: designDays.has(day.dayInfo.id) ? undefined : 'none' }}>
                                                                             <div>
                                                                                 <div className="muted" style={{ fontSize: 11, marginBottom: 4 }}>히어로 배경</div>
@@ -2794,7 +2794,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                                                 {photos.length
                                                                                                     ? <img src={getOptimizedImageUrl(photos[0], 'productThumbnail')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                                                     : <Icon name="image" style={{ fontSize: 18 }} />}
-                                                                                                {photos.length > 1 && <span style={{ position: 'absolute', right: 2, bottom: 2, padding: '0 4px', borderRadius: 'var(--adm-radius-xs)', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: 700 }}>{photos.length}</span>}
+                                                                                                {photos.length > 1 && <span style={{ position: 'absolute', right: 2, bottom: 2, padding: '0 4px', borderRadius: 'var(--adm-radius-xs)', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 11, fontWeight: 700 }}>{photos.length}</span>}
                                                                                             </button>
                                                                                             {tc.time && <span className="cell-muted" style={{ flex: 'none', fontSize: 12, fontWeight: 700 }}>{tc.time}</span>}
                                                                                             <div style={{ flex: 1, minWidth: 0 }}>

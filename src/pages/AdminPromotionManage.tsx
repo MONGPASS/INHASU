@@ -122,7 +122,7 @@ const MigrationNotice: React.FC<{ onRetry?: () => void }> = ({ onRetry }) => (
     <div
         style={{
             display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 16px', marginBottom: 16,
-            background: 'var(--adm-warn-soft)', border: '1px solid var(--adm-warn-line)', borderRadius: 'var(--r-md)', color: 'var(--adm-warn-strong)', fontSize: 13.5, fontWeight: 600, lineHeight: 1.55,
+            background: 'var(--adm-warn-soft)', border: '1px solid var(--adm-warn-line)', borderRadius: 'var(--r-md)', color: 'var(--adm-warn-strong)', fontSize: 13, fontWeight: 600, lineHeight: 1.55,
         }}
     >
         <Icon name="warning" style={{ fontSize: 20, flex: 'none' }} />
@@ -645,7 +645,7 @@ export const AdminPromotionManage: React.FC = () => {
                                                         <Swatch theme={promotion.theme} image={promotion.image} />
                                                         <div style={{ minWidth: 0, maxWidth: 420 }}>
                                                             <div className="cell-strong" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{promotion.title}</div>
-                                                            <div className="cell-muted" style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                            <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                                 {promotion.subtitle || `${THEME_LABELS[promotion.theme]} 테마`}
                                                             </div>
                                                         </div>
