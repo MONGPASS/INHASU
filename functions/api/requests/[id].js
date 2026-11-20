@@ -185,6 +185,14 @@ export async function onRequestPatch(context) {
       if (!rec.booking.contract?.signedAt) rec.booking.contractRequest = { status:"requested", requestedAt:now };
       rec.activities.push({ at:now, type:"deposit_confirmed", detail:"관리자가 입금 확인함" });
     }
+    // 결제 탭에서 예약금 상태만 '입금완료'로 저장해도 [입금 확인]과 같게 서명 요청을 기록한다.
+    // 이 저장은 아래에서 계약서 서명 안내 알림톡을 보내므로, 고객 화면의 서명 버튼도 함께 열려야 한다.
+    if (!confirmDeposit && !previousPaid && rec.booking?.contractInfo?.depositStatus === "입금완료"
+        && !rec.booking.contract?.signedAt && rec.booking.contractRequest?.status !== "requested") {
+      rec.booking.checklist = { ...(rec.booking.checklist || {}), deposit: true };
+      rec.booking.contractRequest = { status:"requested", requestedAt:now };
+      rec.activities.push({ at:now, type:"deposit_confirmed", detail:"관리자가 예약금 상태를 입금완료로 저장함" });
+    }
     if (rotateCustomerLink) { rec.token = randomToken(); rec.activities.push({ at:now, type:"customer_link_rotated", detail:"링크 재발급" }); }
 
     const nextWorkflow = workflowStatus(rec, rec.status);

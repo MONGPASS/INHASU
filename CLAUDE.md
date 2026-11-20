@@ -190,6 +190,7 @@ node scripts/check-reservation-workspace.mjs --serve --usability --customer-work
 
 - **상품 예약**: 예약(로그인 필수) → `pending_payment` → 고객이 `DEPOSIT_ACCOUNT`로 예약금 입금 → 마이페이지 예약 상세에서 **입금 완료 신고**(`POST /api/reservations/:id/deposit-report`, `reservations.deposit_report` JSON) → 관리자 예약 관리에서 입금 확인 → `confirmed`. 잔금은 현지 현금.
 - **견적 예약**: 같은 방식이 견적 시스템에 원래 있다(`public/내견적.html` → `POST /api/deposit/:token`, 관리자 `예약관리.html`의 입금 확인).
+  - 흐름: 견적서 발행([링크 공유하기] 견적 알림) → 고객이 카카오톡으로 진행 의사 → 견적 문의 상세 [예약 진행 기록](예약금·계좌가 담긴 예약 생성, 예약 접수 알림) → 고객 입금(입금 신고는 선택) → 관리자 입금 확인 → 계약서 서명 요청 기록 + 계약서·여행자 정보 요청 알림 → 고객 서명(서명 접수·여행 준비 안내 자동) → 예약확정(수락·서명·입금 필요, 확정 알림) → 가이드·차량·숙박 수만큼 숙소 배정 → 확정일정표 공개(일정표 알림). 예약관리의 [입금 확인] 버튼이든 결제 탭에서 예약금 상태만 `입금완료`로 저장하든 서버가 서명 요청(`contractRequest`)을 함께 기록한다. 전체 흐름은 `tests/quote-booking-flow.test.mjs`가 실제 함수로 확인한다.
 - PayPal 코드(`functions/lib/paypal.ts`, 웹훅, 인보이스 발송)는 남아 있지만 `PAYPAL_ENABLED=true`일 때만 동작한다(기본 꺼짐).
 
 ## 7. 배포
