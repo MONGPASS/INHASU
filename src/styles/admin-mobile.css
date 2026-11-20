@@ -260,8 +260,7 @@
   .admin-app-wrapper .pd-search:focus-within { background: var(--adm-surface); box-shadow: inset 0 0 0 1px var(--adm-accent), var(--adm-ring); }
   .admin-app-wrapper .pd-chips { flex: 0 0 100%; flex-wrap: nowrap; margin: 0 calc(var(--adm-pad-page) * -1); padding: 0 var(--adm-pad-page); overflow-x: auto; scrollbar-width: none; }
   .admin-app-wrapper .pd-chips::-webkit-scrollbar { display: none; }
-  .admin-app-wrapper .pd-chips button { flex: none; height: 32px; padding: 0 var(--adm-space-3); border: 1px solid var(--adm-line); font-size: var(--adm-fs-small); }
-  .admin-app-wrapper .pd-chips button.is-active { border-color: var(--adm-ink); }
+  .admin-app-wrapper .pd-chips button { flex: none; }
   /* 한 상품 = 사진(64) | 이름 / 가격 / 상태·지역·기간 배지, 아래에 조회·예약과 추천·인기, 관리 버튼 */
   .admin-app-wrapper .app table.pd-table[data-card-table="on"] tr { grid-template-columns: 64px max-content max-content max-content minmax(0, 1fr) auto; grid-template-areas: "thumb name name name name name" "thumb price price price price price" "thumb status cat dur . ." "stats stats stats stats stats flags" "act act act act act act"; gap: 6px; padding: var(--adm-space-3) 0; border-bottom: 1px solid var(--adm-line-subtle); }
   .admin-app-wrapper .app table.pd-table[data-card-table="on"] tr:hover { background: transparent; }

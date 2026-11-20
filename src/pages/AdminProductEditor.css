@@ -42,15 +42,17 @@
 .admin-app-wrapper .pa-editor .inp:focus { border-color: var(--mrt-ink); box-shadow: none; }
 .admin-app-wrapper .pa-editor textarea.inp { min-height: 96px; }
 
-/* 버튼 묶음(카테고리·기간·판매 상태) */
-.admin-app-wrapper .pa-editor .pa-seg { display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 100%; padding: 3px; border-radius:var(--adm-radius-sm); background: var(--mrt-gray-100); }
-.admin-app-wrapper .pa-editor .pa-seg button { height: 36px; padding: 0 14px; border: 0; border-radius:var(--adm-radius-sm); background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
-.admin-app-wrapper .pa-editor .pa-seg button:hover { color: var(--text-strong); }
-.admin-app-wrapper .pa-editor .pa-seg button.is-on { background: var(--mrt-ink); color: #fff; font-weight: var(--adm-fw-bold); }
+/* 버튼 묶음(카테고리·판매 상태·패키지) = Montage SegmentedControl: 회색 바탕 안에서 고른 칸만 흰색 */
+.admin-app-wrapper .pa-editor .pa-seg { display: inline-flex; flex-wrap: wrap; gap: 0; max-width: 100%; padding: 4px; border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); }
+.admin-app-wrapper .pa-editor .pa-seg button { height: 32px; padding: 0 var(--adm-space-3); border: 0; border-radius: calc(var(--adm-radius-sm) - 2px); background: transparent; color: var(--adm-text-3); font: inherit; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-medium); white-space: nowrap; cursor: pointer; }
+.admin-app-wrapper .pa-editor .pa-seg button:hover { color: var(--adm-ink); }
+.admin-app-wrapper .pa-editor .pa-seg button.is-on { background: var(--adm-surface); color: var(--adm-ink); font-weight: var(--adm-fw-semibold); box-shadow: var(--adm-shadow-xs); }
 .admin-app-wrapper .pa-editor .pa-seg > span { padding: 8px 12px; font-size: 12px; }
-.admin-app-wrapper .pa-editor .pa-seg-sm { gap: 4px; margin-top: 8px; padding: 0; border-radius: 0; background: transparent; }
-.admin-app-wrapper .pa-editor .pa-seg-sm button { height: 30px; padding: 0 10px; border: 1px solid var(--border-default); background: var(--adm-surface); font-size: 12px; }
-.admin-app-wrapper .pa-editor .pa-seg-sm button.is-on { border-color: var(--mrt-ink); }
+/* 기간 빠른 입력 = Montage Chip */
+.admin-app-wrapper .pa-editor .pa-seg-sm { gap: var(--adm-space-2); margin-top: 8px; padding: 0; border-radius: 0; background: transparent; }
+.admin-app-wrapper .pa-editor .pa-seg-sm button { height: 32px; padding: 0 var(--adm-space-3); border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-fill-subtle); color: var(--adm-ink); font-size: var(--adm-fs-small); box-shadow: none; }
+.admin-app-wrapper .pa-editor .pa-seg-sm button:hover { background: var(--adm-neutral-soft); }
+.admin-app-wrapper .pa-editor .pa-seg-sm button.is-on { background: var(--adm-accent-soft); color: var(--adm-accent-strong); font-weight: var(--adm-fw-semibold); }
 
 /* 이미지 업로드 타일 */
 .admin-app-wrapper .pa-editor .pa-upload { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 160px; height: 160px; border: 1.5px dashed var(--mrt-gray-300); border-radius: var(--adm-radius-md); background: var(--mrt-gray-50); color: var(--text-tertiary); cursor: pointer; text-align: center; }
