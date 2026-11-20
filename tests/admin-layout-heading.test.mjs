@@ -31,7 +31,8 @@ test('hideHeading은 제목·설명·작업 버튼만 숨기고 상단 바·사�
     assert.equal(shown.includes('is-heading-hidden'), false);
     const hidden = render({ hideHeading: true });
     for (const value of ['page-title', '고객 통합 작업', '화면 설명', '목록으로', 'admin-layout-heading']) assert.equal(hidden.includes(value), false, value);
-    for (const value of ['is-heading-hidden', 'admin-toolbar', 'side-stub', 'admin-customer-menu-toggle', '본문', 'is-side-rail']) assert.ok(hidden.includes(value), value);
+    for (const value of ['is-heading-hidden', 'admin-toolbar', 'side-stub', 'admin-customer-menu-toggle', '본문']) assert.ok(hidden.includes(value), value);
+    assert.equal(hidden.includes('is-side-rail'), false, '편집 화면이라고 사이드바를 자동으로 접지 않는다');
     assert.equal(shown.includes('is-side-rail'), false, '저장된 접기 설정이 없으면 평소에는 펼친 사이드바');
     const plain = render({ hideHeading: true }, '/admin/reservations');
     assert.equal(plain.includes('admin-page-actions'), false); assert.ok(plain.includes('is-heading-hidden'));

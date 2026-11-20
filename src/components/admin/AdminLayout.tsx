@@ -73,8 +73,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     const actionsId = `admin-customer-actions-${id}`;
     // 휴대폰 폭에서는 모든 화면이 같은 앱 틀(위 바 + 아래 메뉴 + 서랍 메뉴)을 쓴다.
     const menuShown = narrowCustomer && mobileMenuOpen;
-    // 편집 화면(hideHeading)에서는 저장된 설정과 무관하게 사이드바를 아이콘 줄로 접어 본문 폭을 넓힌다.
-    const railShown = rail || hideHeading;
+    // 사이드바 접기는 사용자가 직접 고른 설정만 따른다(편집 화면이라고 자동으로 접지 않는다. 본문은 --adm-content-max까지만 넓어진다).
+    const railShown = rail;
     const closeMenu = () => {
         setMobileMenuOpen(false);
         requestAnimationFrame(() => menuButtonRef.current?.focus());
