@@ -216,10 +216,10 @@ export function ReservationListV7(p: ReservationListV7Props) {
     const tabCount = (key: V7Tab) => rows.filter(r => r.tab === key).length;
     return <div className="v7-root" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <V7Styles />
-        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e9ecef', overflowX: 'auto' }} role="tablist" aria-label="예약 진행 상태">
+        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--adm-line)', overflowX: 'auto' }} role="tablist" aria-label="예약 진행 상태">
             {V7_TABS.map(t => { const on = t.key === tab; return <button key={t.key} type="button" role="tab" aria-selected={on} onClick={() => { setTab(t.key); setQuick('all'); setSel(new Set()); setOpen(null); }}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 44, padding: '0 14px', whiteSpace: 'nowrap', border: 0, background: 'transparent', font: 'inherit', fontSize: 14, fontWeight: on ? 800 : 600, cursor: 'pointer', color: on ? V7_INK : V7_MUTED, boxShadow: on ? 'inset 0 -3px 0 #12b28c' : 'none' }}>
-                {t.label}<span style={{ fontSize: 12, fontWeight: 800, minWidth: 20, height: 20, padding: '0 6px', boxSizing: 'border-box', borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? 'linear-gradient(135deg,#1cc497,#0a7f62)' : '#f1f3f5', color: on ? '#fff' : V7_MUTED }}>{p.loadedOnce ? tabCount(t.key) : '–'}</span>
+                {t.label}<span style={{ fontSize: 12, fontWeight: 800, minWidth: 20, height: 20, padding: '0 6px', boxSizing: 'border-box', borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? 'linear-gradient(135deg,var(--adm-accent),var(--adm-accent-strong))' : 'var(--adm-gray-100)', color: on ? '#fff' : V7_MUTED }}>{p.loadedOnce ? tabCount(t.key) : '–'}</span>
             </button>; })}
         </div>
 
@@ -228,13 +228,13 @@ export function ReservationListV7(p: ReservationListV7Props) {
                 const on = quick === x.key, matched = inTab.filter(x.test), n = matched.length, warn = x.key !== 'all' && n > 0;
                 const sub = x.key === 'bal' ? v7Won(matched.reduce((a, r) => a + (Number.isFinite(r.source.balance) ? r.source.balance : 0), 0)) : x.sub;
                 return <button key={x.key} type="button" aria-pressed={on} onClick={() => setQuick(on && x.key !== 'all' ? 'all' : x.key)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, minWidth: 0, padding: '14px 16px', border: 0, borderRadius: 16, font: 'inherit', cursor: 'pointer', textAlign: 'left', background: on ? '#f7fcfa' : '#fff', boxShadow: on ? 'inset 0 0 0 1.5px #12b28c' : '0 0 0 1px #eef0f2', transition: 'box-shadow .15s, background .15s' }}>
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, minWidth: 0, padding: '14px 16px', border: 0, borderRadius: 16, font: 'inherit', cursor: 'pointer', textAlign: 'left', background: on ? 'var(--adm-gray-50)' : 'var(--adm-surface)', boxShadow: on ? 'inset 0 0 0 1.5px #12b28c' : '0 0 0 1px var(--adm-line-subtle)', transition: 'box-shadow .15s, background .15s' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', minWidth: 0 }}>
-                        <span style={{ width: 24, height: 24, flex: 'none', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: warn ? '#ffecec' : '#e9fbf4', color: warn ? '#FF4F4F' : '#0E9E7A' }}><Ico name={x.icon as DashboardIconName} size={14} /></span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#495057', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.label}</span>
+                        <span style={{ width: 24, height: 24, flex: 'none', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: warn ? 'var(--adm-danger-soft)' : 'var(--adm-accent-soft)', color: warn ? 'var(--adm-danger)' : 'var(--adm-accent-strong)' }}><Ico name={x.icon as DashboardIconName} size={14} /></span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.label}</span>
                     </span>
                     <span style={{ display: 'flex', alignItems: 'baseline', gap: 2, whiteSpace: 'nowrap', marginTop: 6 }}>
-                        <span style={{ fontSize: 26, lineHeight: '30px', fontWeight: 800, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', color: warn ? '#FF4F4F' : V7_INK }}>{p.loadedOnce ? n : '–'}</span>
+                        <span style={{ fontSize: 26, lineHeight: '30px', fontWeight: 800, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', color: warn ? 'var(--adm-danger)' : V7_INK }}>{p.loadedOnce ? n : '–'}</span>
                         <span style={{ fontSize: 13, fontWeight: 700, color: V7_MUTED }}>건</span>
                     </span>
                     <span style={{ fontSize: 12, lineHeight: '16px', color: V7_MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{sub}</span>
@@ -243,23 +243,23 @@ export function ReservationListV7(p: ReservationListV7Props) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <label style={{ flex: 1, minWidth: 240, maxWidth: 420, display: 'flex', alignItems: 'center', gap: 8, height: 42, padding: '0 14px', background: '#fff', borderRadius: 12, boxShadow: 'inset 0 0 0 1px #e9ecef' }}>
+            <label style={{ flex: 1, minWidth: 240, maxWidth: 420, display: 'flex', alignItems: 'center', gap: 8, height: 42, padding: '0 14px', background: 'var(--adm-surface)', borderRadius: 12, boxShadow: 'inset 0 0 0 1px var(--adm-line-subtle)' }}>
                 <Ico name="lc-search" size={16} color={V7_MUTED} />
                 <input value={q} onChange={e => setQ(e.target.value)} aria-label="예약 검색" placeholder="고객명, 전화번호, 가이드 이름 검색"
                     style={{ flex: 1, minWidth: 0, border: 0, outline: 0, background: 'transparent', font: 'inherit', fontSize: 14, color: V7_INK }} />
                 {q && <button type="button" aria-label="검색어 지우기" onClick={() => setQ('')} style={{ border: 0, background: 'transparent', cursor: 'pointer', display: 'flex', color: V7_MUTED }}><Ico name="lc-x" size={14} /></button>}
             </label>
-            {(assignmentNote || p.loading) && <span role="status" style={{ fontSize: 12, fontWeight: 700, color: p.loading ? V7_MUTED : '#e8590c' }}>{p.loading ? '예약을 불러오는 중…' : assignmentNote}</span>}
+            {(assignmentNote || p.loading) && <span role="status" style={{ fontSize: 12, fontWeight: 700, color: p.loading ? V7_MUTED : 'var(--adm-warn)' }}>{p.loading ? '예약을 불러오는 중…' : assignmentNote}</span>}
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: V7_MUTED }}><Ico name="lc-arrow-up-down" size={14} />정렬</span>
-            <span style={{ display: 'flex', padding: 3, borderRadius: 999, background: '#f1f3f5' }}>
+            <span style={{ display: 'flex', padding: 3, borderRadius: 999, background: 'var(--adm-gray-100)' }}>
                 {([['pri', '우선순위'], ['dep', '출발일순'], ['bk', '최근 예약순']] as const).map(([k, label]) => { const on = sort === k; return <button key={k} type="button" aria-pressed={on} onClick={() => setSort(k)}
-                    style={{ height: 32, padding: '0 12px', whiteSpace: 'nowrap', border: 0, borderRadius: 999, font: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: on ? '#fff' : 'transparent', color: on ? V7_INK : V7_MUTED, boxShadow: on ? '0 1px 3px rgba(16,24,40,.12)' : 'none' }}>{label}</button>; })}
+                    style={{ height: 32, padding: '0 12px', whiteSpace: 'nowrap', border: 0, borderRadius: 999, font: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: on ? 'var(--adm-surface)' : 'transparent', color: on ? V7_INK : V7_MUTED, boxShadow: on ? '0 1px 3px rgba(16,24,40,.12)' : 'none' }}>{label}</button>; })}
             </span>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 0 0 1px #eef0f2', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--adm-surface)', borderRadius: 16, boxShadow: '0 0 0 1px var(--adm-line-subtle)', overflow: 'hidden' }}>
             <div ref={scroller} className="v7-list-scroll" style={{ overflowX: 'auto' }}><div className="v7-list-inner" style={{ minWidth: 1380 }} aria-label="통합 예약 목록">
-                <div role="row" className="v7-list-head" style={{ display: 'grid', gridTemplateColumns: GRID, columnGap: 20, alignItems: 'center', height: 40, padding: '0 24px', position: 'sticky', top: 0, zIndex: 2, background: '#f8f9fa', borderBottom: '1px solid #e9ecef', fontSize: 12, fontWeight: 700, color: V7_MUTED }}>
+                <div role="row" className="v7-list-head" style={{ display: 'grid', gridTemplateColumns: GRID, columnGap: 20, alignItems: 'center', height: 40, padding: '0 24px', position: 'sticky', top: 0, zIndex: 2, background: 'var(--adm-gray-50)', borderBottom: '1px solid var(--adm-line)', fontSize: 12, fontWeight: 700, color: V7_MUTED }}>
                     <button type="button" aria-label="이 목록 전체 선택" aria-pressed={allOn} onClick={() => setSel(prev => { const next = new Set(prev); list.forEach(r => allOn ? next.delete(r.key) : next.add(r.key)); return next; })} style={checkBox(allOn)}>{allOn && <Ico name="lc-check" size={12} color="#fff" />}</button>
                     <span>고객</span><span>투어 기간</span><span style={{ textAlign: 'center' }}>인원</span><span>지역 · 분류</span><span>배정</span><span style={{ textAlign: 'right' }}>결제</span><span>진행상황</span><span />
                 </div>
@@ -277,7 +277,7 @@ export function ReservationListV7(p: ReservationListV7Props) {
             <b style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginRight: 8 }}>{selected.length}건 선택</b>
             {([['진행상황 변경', 'lc-arrow-left-right', bulkStatus], ['입금 확인', 'lc-wallet', bulkPayment], ['안내 알림 발송', 'lc-send', bulkNotice], ['엑셀 내보내기', 'lc-download', exportSelected]] as const).map(([label, icon, go]) =>
                 <button key={label} type="button" className="v7-bulk-btn" onClick={go as any} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', border: 0, borderRadius: 999, background: 'rgba(255,255,255,.1)', font: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer' }}><Ico name={icon} size={15} />{label}</button>)}
-            <button type="button" title="선택 해제" aria-label="선택 해제" onClick={() => setSel(new Set())} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: 'transparent', color: '#adb5bd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-x" size={16} /></button>
+            <button type="button" title="선택 해제" aria-label="선택 해제" onClick={() => setSel(new Set())} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: 'transparent', color: 'var(--adm-text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-x" size={16} /></button>
         </div>}
         <V7Menu menu={menu} onClose={closeMenu} />
         <V7Toast text={toast} />
@@ -294,7 +294,7 @@ function ListRow({ row, panelWidth, open, dimmed, selected, busy, onToggle, onCh
     const r = row.source, cancel = row.tab === 'cancel', contractTab = row.tab === 'contract';
     const dd = v7Dday(row), period = v7Range(row), step = v7StepLabel(row), subs = v7StepSubs(row);
     const payT = cancel ? '취소' : !row.depositPaid ? '예약금 미입금' : row.balancePaid ? '완납' : `잔금 ${v7Won(r.balance)} 미수`;
-    const payC = cancel ? '#adb5bd' : !row.depositPaid || (!row.balancePaid && !contractTab) ? '#FF4F4F' : row.balancePaid ? '#0E9E7A' : V7_MUTED;
+    const payC = cancel ? 'var(--adm-text-3)' : !row.depositPaid || (!row.balancePaid && !contractTab) ? 'var(--adm-danger)' : row.balancePaid ? '#0E9E7A' : V7_MUTED;
     const stop = (fn: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); fn(); };
     const kind = r.type === 'quote_booking' ? '맞춤 견적' : '상품 예약';
     const bookedKey = r.bookedAtMs ? dashboardSeoulDate(new Date(r.bookedAtMs).toISOString()) : '';
@@ -324,18 +324,18 @@ function ListRow({ row, panelWidth, open, dimmed, selected, busy, onToggle, onCh
     ];
     const asg = cancel ? [] : [
         { key: 'guide', label: '가이드', icon: 'lc-user-round' as const, v: `가이드 ${row.guide ? '배정' : '미배정'}`, title: row.guide ? `가이드 · ${row.guide.name}` : '가이드 선택', go: guideMenu,
-            s: dchip(row.guide ? '#12b28c' : contractTab ? '#FF4F4F' : '#adb5bd', !row.guide && contractTab) },
+            s: dchip(row.guide ? '#12b28c' : contractTab ? 'var(--adm-danger)' : 'var(--adm-text-3)', !row.guide && contractTab) },
         { key: 'car', label: '차량', icon: 'lc-car' as const, v: `차량 ${row.vehicle ? '배정' : '미배정'}`, title: row.vehicle ? `차량 · ${row.vehicle.type}` : '차량 선택', go: vehicleMenu,
-            s: dchip(row.vehicle ? '#12b28c' : contractTab ? '#FF4F4F' : '#adb5bd', !row.vehicle && contractTab) },
+            s: dchip(row.vehicle ? '#12b28c' : contractTab ? 'var(--adm-danger)' : 'var(--adm-text-3)', !row.vehicle && contractTab) },
         { key: 'stay', label: '숙소', icon: 'lc-bed-double' as const, v: `숙소 ${row.accN ? `${row.accC}/${row.accN}박` : '없음'}`, title: '박별 숙소 · 현지 운영 수배 상태', go: stop(() => onOpen('stay')),
-            s: dchip(row.accDone ? '#12b28c' : row.accN - row.accA ? '#FF4F4F' : '#f08c00', row.accN - row.accA > 0 && contractTab) },
+            s: dchip(row.accDone ? '#12b28c' : row.accN - row.accA ? 'var(--adm-danger)' : '#f08c00', row.accN - row.accA > 0 && contractTab) },
     ];
-    const wrap: Css = { borderBottom: '1px solid #f1f3f5', transition: 'filter 220ms ease, opacity 220ms ease', filter: dimmed ? 'grayscale(1)' : 'none', opacity: dimmed ? 0.45 : 1,
+    const wrap: Css = { borderBottom: '1px solid var(--adm-line-subtle)', transition: 'filter 220ms ease, opacity 220ms ease', filter: dimmed ? 'grayscale(1)' : 'none', opacity: dimmed ? 0.45 : 1,
         boxShadow: open ? '0 8px 28px rgba(16,24,40,.10), 0 0 0 1px #d2f5e8' : 'none', position: 'relative', zIndex: open ? 1 : 0 };
     return <div role="rowgroup" className={dimmed ? 'v7-dim' : undefined} style={wrap} aria-busy={busy}>
         <div role="row" tabIndex={0} aria-expanded={open} className={`v7-list-row${open || selected ? '' : ' v7-hover-row'}`} onClick={onToggle} onKeyDown={e => { if (e.key === 'Enter' && e.target === e.currentTarget) onToggle(); }}
             style={{ display: 'grid', gridTemplateColumns: GRID, columnGap: 20, alignItems: 'center', minHeight: 64, padding: '10px 24px', boxSizing: 'border-box', cursor: 'pointer',
-                background: open ? '#f7fcfa' : selected ? '#f0fcf7' : '#fff', boxShadow: open || selected ? 'inset 3px 0 0 #12b28c' : 'none', opacity: cancel ? .6 : 1 }}>
+                background: open ? 'var(--adm-gray-50)' : selected ? 'var(--adm-accent-soft)' : '#fff', boxShadow: open || selected ? 'inset 3px 0 0 #12b28c' : 'none', opacity: cancel ? .6 : 1 }}>
             <button type="button" aria-label={`${r.customerName} 선택`} aria-pressed={selected} onClick={stop(onCheck)} className="v7-c-check" style={checkBox(selected)}>{selected && <Ico name="lc-check" size={12} color="#fff" />}</button>
             <span className="v7-c-cust" style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><b style={{ fontSize: 14, fontWeight: 800, lineHeight: '20px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.customerName || '이름 미정'}</b><span style={{ fontSize: 12, lineHeight: '18px', color: V7_MUTED, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{r.phone || r.email || '연락처 미입력'}</span></span>
             <span className="v7-c-period" style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><b style={{ fontSize: 13, fontWeight: 700, lineHeight: '20px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{period.range}</b><span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 18, fontSize: 12, color: V7_MUTED, whiteSpace: 'nowrap' }}>{period.sch}<span style={chip(dd.tone, dd.dot, { height: 20 })}>{dd.label}</span></span></span>
@@ -346,9 +346,9 @@ function ListRow({ row, panelWidth, open, dimmed, selected, busy, onToggle, onCh
             </span>
             <span className="v7-c-pay" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}><b style={{ fontSize: 14, fontWeight: 800, lineHeight: '20px', fontVariantNumeric: 'tabular-nums' }}>{v7Won(r.totalAmount)}</b><span style={{ fontSize: 12, lineHeight: '18px', fontWeight: 700, whiteSpace: 'nowrap', color: payC }}>{payT}</span></span>
             <span className="v7-c-status"><button type="button" onClick={statusMenu} style={pill(TAB_TONE[row.tab])}>{statusLabelOf(r)}<Ico name="lc-chevron-down" size={12} /></button></span>
-            <span className="v7-c-chev" style={{ display: 'flex', color: open ? '#0E9E7A' : '#adb5bd', transition: 'transform 200ms', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={18} /></span>
+            <span className="v7-c-chev" style={{ display: 'flex', color: open ? 'var(--adm-accent-strong)' : 'var(--adm-text-3)', transition: 'transform 200ms', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={18} /></span>
         </div>
-        {open && <div className="v7-list-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 24px 22px 64px', background: '#f7fcfa', boxShadow: 'inset 3px 0 0 #12b28c',
+        {open && <div className="v7-list-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 24px 22px 64px', background: 'var(--adm-gray-50)', boxShadow: 'inset 3px 0 0 #12b28c',
             position: 'sticky', left: 0, boxSizing: 'border-box', ...(panelWidth ? { width: panelWidth } : {}) }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13, color: V7_MUTED, whiteSpace: 'nowrap' }}>예약일 {bookedKey ? dot(bookedKey) : '–'} · 계약 {signedMonth ? `${+signedMonth}월` : '서명 전'} · 투어 {monthOf(r.startDate) ? `${+monthOf(r.startDate)!}월` : '미정'}{r.reservationNumber ? ` · 예약번호 ${r.reservationNumber}` : ''}</span>
@@ -357,21 +357,21 @@ function ListRow({ row, panelWidth, open, dimmed, selected, busy, onToggle, onCh
                     <button type="button" onClick={stop(() => onOpen())} style={inkBtn()}>예약 상세 열기<Ico name="lc-chevron-right" size={15} /></button>
                 </span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 22px', background: '#fff', borderRadius: 16, boxShadow: '0 0 0 1px #eef0f2' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 22px', background: 'var(--adm-surface)', borderRadius: 16, boxShadow: '0 0 0 1px var(--adm-line-subtle)' }}>
                 <V7StepHead label={step.label} tone={step.tone} count={cancel ? '' : `${row.steps.filter(s => s.done).length} / 5 단계 완료`} />
                 <V7Steps steps={row.steps.map((s, i) => ({ ...s, sub: subs[i] }))} cancelled={cancel} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 12 }}>
-                {cards.map(c => <div key={c.title} style={{ display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 16, boxShadow: '0 0 0 1px #eef0f2' }}>
+                {cards.map(c => <div key={c.title} style={{ display: 'flex', flexDirection: 'column', background: 'var(--adm-surface)', borderRadius: 16, boxShadow: '0 0 0 1px var(--adm-line-subtle)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 10px' }}>
-                        <span style={{ width: 28, height: 28, borderRadius: 9, background: '#f1f3f5', color: '#495057', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={c.icon} size={15} /></span>
+                        <span style={{ width: 28, height: 28, borderRadius: 9, background: 'var(--adm-gray-100)', color: 'var(--adm-text-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={c.icon} size={15} /></span>
                         <b style={{ fontSize: 14, fontWeight: 800 }}>{c.title}</b>
-                        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: c.left ? '#FF4F4F' : '#0E9E7A' }}>{c.left ? `${c.left}건 남음` : '완료'}</span>
+                        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: c.left ? 'var(--adm-danger)' : 'var(--adm-accent-strong)' }}>{c.left ? `${c.left}건 남음` : '완료'}</span>
                     </div>
-                    {c.items.map(it => <div key={it.label} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid #f1f3f5' }}>
-                        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}><span style={{ fontSize: 13, color: '#495057' }}>{it.label}</span>{it.sub && <span style={{ fontSize: 12, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums' }}>{it.sub}</span>}</span>
+                    {c.items.map(it => <div key={it.label} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid var(--adm-line-subtle)' }}>
+                        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}><span style={{ fontSize: 13, color: 'var(--adm-text-2)' }}>{it.label}</span>{it.sub && <span style={{ fontSize: 12, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums' }}>{it.sub}</span>}</span>
                         {it.btn && <button type="button" onClick={it.btn.go} style={it.btn.s} disabled={busy}>{it.btn.v}<Ico name={it.btn.icon} size={12} /></button>}
-                        {it.link && <button type="button" onClick={stop(it.link)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: '#495057', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={12} /></button>}
+                        {it.link && <button type="button" onClick={stop(it.link)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-text-2)', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={12} /></button>}
                     </div>)}
                 </div>)}
             </div>

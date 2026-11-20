@@ -327,7 +327,7 @@ export const AdminAccommodationManage: React.FC = () => {
                                                     onClick={() => removeImage(idx)}
                                                     className="act-btn danger"
                                                     title="삭제"
-                                                    style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, background: '#fff' }}
+                                                    style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, background: 'var(--adm-surface)' }}
                                                 >
                                                     <Icon name="close" />
                                                 </button>

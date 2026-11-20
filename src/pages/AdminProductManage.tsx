@@ -423,7 +423,7 @@ export const AdminProductManage: React.FC = () => {
                 </button>
             )}
         >
-            {productOpenNotice && <div className="card-pad" role="status" style={{ background: '#fff5e8', borderRadius: 12, marginBottom: 16 }}>{productOpenNotice}</div>}
+            {productOpenNotice && <div className="card-pad" role="status" style={{ background: 'var(--adm-warn-soft)', borderRadius: 12, marginBottom: 16 }}>{productOpenNotice}</div>}
             <div className="route-anim" style={{ display: isModalOpen ? 'none' : undefined }}>
                 <div className="pd-list">
                 <div className="pd-kpis">
@@ -1918,7 +1918,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                 <div className="pa-body">
                 <div className="pa-main">
 
-                <div className="pa-draft-status" role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 12, background: draftError || pendingDraft?.conflict ? '#fff5e8' : '#edfaf6', border: '1px solid ' + (draftError || pendingDraft?.conflict ? '#f3d5a3' : '#c8eee3'), fontSize: 13, lineHeight: 1.7 }}>
+                <div className="pa-draft-status" role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 12, background: draftError || pendingDraft?.conflict ? 'var(--adm-warn-soft)' : 'var(--adm-accent-soft)', border: '1px solid ' + (draftError || pendingDraft?.conflict ? '#f3d5a3' : '#c8eee3'), fontSize: 13, lineHeight: 1.7 }}>
                     {!adminUserId ? '관리자 계정을 확인하고 있습니다. 확인이 끝난 뒤 편집할 수 있습니다.' : pendingDraft ? <>
                         <strong>{pendingDraft.conflict ? '상품이 변경된 뒤 남아 있는 초안입니다.' : '이 브라우저에 저장하지 않은 상품 초안이 있습니다.'}</strong>
                         <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')}{pendingDraft.conflict ? ' · 서버 상품과 다른 버전입니다. 내용을 복원해 검토하거나 초안을 버리고 최신 상품으로 시작하세요.' : ' · 아래 버튼 중 하나를 고르면 다른 탭과 입력 칸이 열립니다.'}</div>
@@ -1930,7 +1930,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                         <strong>{saving ? '상품 저장 중…' : busy ? '사진 업로드 또는 자료 저장 중…' : dirty ? '변경 내용을 이 브라우저에 자동 보관합니다.' : '현재 저장된 상품 기준입니다.'}</strong>
                         <div>{draftSavedAt ? '마지막 초안 보관: ' + new Date(draftSavedAt).toLocaleString('ko-KR') + ' · ' : ''}초안은 현재 관리자 계정과 이 상품에서만 복원됩니다. 상품 저장 전에는 공개 상품에 반영되지 않습니다.</div>
                     </>}
-                    {draftError && <div role="alert" style={{ color: '#9f4d13', marginTop: 6 }}>{draftError}<button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { if (savedRef.current) discardDraft(); else flushDraft(); }} style={{ marginLeft: 8 }}>다시 시도</button>{!pendingDraft && !dirty && <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={discardDraft}>초안 버리기</button>}</div>}
+                    {draftError && <div role="alert" style={{ color: 'var(--adm-warn)', marginTop: 6 }}>{draftError}<button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { if (savedRef.current) discardDraft(); else flushDraft(); }} style={{ marginLeft: 8 }}>다시 시도</button>{!pendingDraft && !dirty && <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={discardDraft}>초안 버리기</button>}</div>}
                     {saveNotice && <div style={{ marginTop: 6 }}>{saveNotice}</div>}
                 </div>
                 <form onSubmit={handleSubmit} aria-busy={busy}>
@@ -2553,7 +2553,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                     <button type="button" onClick={() => removeTimelineBlockImage('itinerary', flatIndex, imgIdx)} aria-label={`일정 사진 ${imgIdx + 1} 삭제`} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'var(--mrt-red)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="close" style={{ fontSize: 13 }} /></button>
                                                                 </div>
                                                             ))}
-                                                            <label title="사진 추가" style={{ width: 64, height: 64, flex: 'none', borderRadius: 'var(--r-md)', border: '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--text-muted)', background: '#fff' }}>
+                                                            <label title="사진 추가" style={{ width: 64, height: 64, flex: 'none', borderRadius: 'var(--r-md)', border: '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--text-muted)', background: 'var(--adm-surface)' }}>
                                                                 <Icon name="add_a_photo" style={{ fontSize: 18 }} />
                                                                 <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => { handleTimelineBlockImages('itinerary', flatIndex, e.target.files); e.target.value = ''; }} />
                                                             </label>
@@ -2632,7 +2632,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                         <div className="row" style={{ gap: 6 }}><Icon name="info" /><span className="cell-strong" style={{ fontSize: 12.5 }}>일차가 지정되지 않은 기존 항목</span></div>
                                                         <p className="muted" style={{ fontSize: 11, margin: 0 }}>DAY를 추가하면 이 항목들은 첫째 날 일정으로 정리할 수 있습니다.</p>
                                                         {pre.map((ev) => (
-                                                            <div key={ev.block.id} data-itinerary-block={ev.block.id} className="edit-row" style={{ background: 'var(--mrt-gray-50, #f8f9fa)', borderRadius: 'var(--r-md)', padding: 10 }}>
+                                                            <div key={ev.block.id} data-itinerary-block={ev.block.id} className="edit-row" style={{ background: 'var(--mrt-gray-50, var(--adm-gray-50))', borderRadius: 'var(--r-md)', padding: 10 }}>
                                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                                     <div className="row" style={{ gap: 8, marginBottom: 8 }}><span className="badge b-gray">{typeLabel(ev.block.type)}</span></div>
                                                                     {renderEventBody(ev.block, ev.flatIndex)}
@@ -2729,7 +2729,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                         <div className="row" style={{ gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', display: designDays.has(day.dayInfo.id) ? undefined : 'none' }}>
                                                                             <div>
                                                                                 <div className="muted" style={{ fontSize: 11, marginBottom: 4 }}>히어로 배경</div>
-                                                                                <label title={dc.heroImage ? '사진 변경' : '사진 업로드'} style={{ display: 'block', position: 'relative', width: 120, height: 72, borderRadius: 'var(--r-md)', overflow: 'hidden', border: dc.heroImage ? '2px solid var(--adm-accent)' : '2px dashed var(--border-default)', cursor: 'pointer', background: 'var(--bg-muted, #f8f9fa)' }}>
+                                                                                <label title={dc.heroImage ? '사진 변경' : '사진 업로드'} style={{ display: 'block', position: 'relative', width: 120, height: 72, borderRadius: 'var(--r-md)', overflow: 'hidden', border: dc.heroImage ? '2px solid var(--adm-accent)' : '2px dashed var(--border-default)', cursor: 'pointer', background: 'var(--bg-muted, var(--adm-gray-50))' }}>
                                                                                     {dc.heroImage
                                                                                         ? <img src={getOptimizedImageUrl(dc.heroImage, 'productThumbnail')} alt="히어로" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                                         : <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'var(--text-muted)' }}><Icon name="add_a_photo" style={{ fontSize: 18 }} /></span>}
@@ -2749,7 +2749,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                                         </div>
                                                                                     ))}
                                                                                     {(dc.galleryImages || []).length < 5 && (
-                                                                                        <label title="사진 추가" style={{ width: 72, height: 72, borderRadius: 'var(--r-md)', border: '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--text-muted)', background: 'var(--bg-muted, #f8f9fa)' }}>
+                                                                                        <label title="사진 추가" style={{ width: 72, height: 72, borderRadius: 'var(--r-md)', border: '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--text-muted)', background: 'var(--bg-muted, var(--adm-gray-50))' }}>
                                                                                             <Icon name="add_a_photo" style={{ fontSize: 18 }} />
                                                                                             <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => { handleDayInfoDesignImages(day.dayInfoFlatIndex, 'gallery', e.target.files); e.target.value = ''; }} />
                                                                                         </label>
@@ -2767,7 +2767,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                             {day.events.map((ev, evIdx) => {
                                                                                 // 이미지·갤러리·구분선은 기존 카드 그대로 (일정 항목과 섞인 순서를 유지한다)
                                                                                 if (ev.block.type !== 'timeline') return (
-                                                                                <div key={ev.block.id} data-itinerary-block={ev.block.id} className="edit-row" style={{ background: 'var(--mrt-gray-50, #f8f9fa)', borderRadius: 'var(--r-md)', padding: 10 }}>
+                                                                                <div key={ev.block.id} data-itinerary-block={ev.block.id} className="edit-row" style={{ background: 'var(--mrt-gray-50, var(--adm-gray-50))', borderRadius: 'var(--r-md)', padding: 10 }}>
                                                                                     <div className="edit-move">
                                                                                         <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, -1)} disabled={evIdx === 0}><Icon name="expand_less" /></button>
                                                                                         <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, 1)} disabled={evIdx === day.events.length - 1}><Icon name="expand_more" /></button>
@@ -2784,13 +2784,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                                 const open = openEvents.has(ev.block.id);
                                                                                 const photos = (tc.images || []).filter(Boolean);
                                                                                 return (
-                                                                                    <div key={ev.block.id} data-itinerary-block={ev.block.id} data-event-row={open ? 'open' : 'closed'} style={{ border: '1px solid', borderColor: open ? 'var(--mrt-blue)' : 'var(--border-default)', borderRadius: 'var(--r-md)', background: open ? 'var(--mrt-gray-50, #f8f9fa)' : '#fff' }}>
+                                                                                    <div key={ev.block.id} data-itinerary-block={ev.block.id} data-event-row={open ? 'open' : 'closed'} style={{ border: '1px solid', borderColor: open ? 'var(--mrt-blue)' : 'var(--border-default)', borderRadius: 'var(--r-md)', background: open ? 'var(--mrt-gray-50, var(--adm-gray-50))' : 'var(--adm-surface)' }}>
                                                                                         <div className="row" style={{ gap: 8, alignItems: 'center', padding: '6px 8px' }}>
                                                                                             <div className="edit-move">
                                                                                                 <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, -1)} disabled={evIdx === 0} aria-label="위로"><Icon name="expand_less" /></button>
                                                                                                 <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, 1)} disabled={evIdx === day.events.length - 1} aria-label="아래로"><Icon name="expand_more" /></button>
                                                                                             </div>
-                                                                                            <button type="button" onClick={() => toggleEventOpen(ev.block.id)} title={photos.length ? `사진 ${photos.length}장` : '사진 없음'} style={{ position: 'relative', width: 40, height: 40, flex: 'none', padding: 0, borderRadius: 8, overflow: 'hidden', border: photos.length ? '1px solid var(--border-default)' : '1.5px dashed var(--border-default)', background: 'var(--mrt-gray-50, #f8f9fa)', color: 'var(--mrt-gray-400)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+                                                                                            <button type="button" onClick={() => toggleEventOpen(ev.block.id)} title={photos.length ? `사진 ${photos.length}장` : '사진 없음'} style={{ position: 'relative', width: 40, height: 40, flex: 'none', padding: 0, borderRadius: 8, overflow: 'hidden', border: photos.length ? '1px solid var(--border-default)' : '1.5px dashed var(--border-default)', background: 'var(--mrt-gray-50, var(--adm-gray-50))', color: 'var(--mrt-gray-400)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
                                                                                                 {photos.length
                                                                                                     ? <img src={getOptimizedImageUrl(photos[0], 'productThumbnail')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                                                     : <Icon name="image" style={{ fontSize: 18 }} />}
@@ -2973,7 +2973,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                     </div>
 
                     {/* Footer — 페이지 스크롤 중에도 항상 보이는 저장 바 */}
-                    <div className="card-pad row pa-savebar" style={{ justifyContent: 'flex-end', gap: 10, borderTop: '1px solid var(--border-subtle)', position: 'sticky', bottom: 0, background: 'var(--bg-card, #fff)', zIndex: 5 }}>
+                    <div className="card-pad row pa-savebar" style={{ justifyContent: 'flex-end', gap: 10, borderTop: '1px solid var(--border-subtle)', position: 'sticky', bottom: 0, background: 'var(--bg-card, var(--adm-surface))', zIndex: 5 }}>
                         <span className="pa-save-note">필수 항목 <b>{requiredDone} / {requiredChecks.length}</b>{requiredDone < requiredChecks.length ? ' · 모두 채우면 공개 준비가 끝나요' : ' · 저장할 준비가 됐어요'}</span>
                         <button type="button" onClick={closeEditor} disabled={busy} className="btn btn-ghost">
                             취소

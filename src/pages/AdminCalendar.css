@@ -17,7 +17,7 @@
 .tour-calendar .tc-button, .tour-calendar .tc-icon-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 5px;
   height: 32px; padding: 0 12px; border: 1.5px solid var(--border-default);
-  border-radius: 999px; background: #fff; color: var(--text-strong); font-size: 12px;
+  border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-strong); font-size: 12px;
   font-weight: 700; line-height: 1.25; text-decoration: none; white-space: nowrap;
   transition: background .14s ease, border-color .14s ease, color .14s ease;
 }
@@ -33,34 +33,34 @@
 .tour-calendar .tc-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
 .tour-calendar .tc-metric {
   display: flex; align-items: center; gap: 12px; min-width: 0;
-  padding: 16px 18px; background: #fff;
-  border: 1px solid var(--border-default); border-radius: 18px; text-align: left;
+  padding: 16px 18px; background: var(--adm-surface);
+  border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); text-align: left;
   transition: border-color .14s ease;
 }
 .tour-calendar .tc-metric > span:last-child { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .tour-calendar .tc-metric:disabled { opacity: 1; cursor: default; }
 .tour-calendar .tc-metric:not(:disabled):hover { border-color: var(--mrt-gray-300); }
 .tour-calendar .tc-metric.is-active, .tour-calendar .tc-metric.is-active:hover { border: 1.5px solid var(--mrt-ink); padding: 15.5px 17.5px; }
-.tour-calendar .tc-metric-icon { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
+.tour-calendar .tc-metric-icon { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: var(--adm-radius-md); background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
 .tour-calendar .tc-metric-icon[data-tone="green"] { background: var(--mrt-green-soft); color: var(--mrt-green); }
 .tour-calendar .tc-metric-icon[data-tone="purple"] { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
 .tour-calendar .tc-metric-icon[data-tone="red"] { background: var(--mrt-red-soft); color: var(--mrt-red); }
 .tour-calendar .tc-metric-label { color: var(--text-secondary); font-size: 13px; font-weight: 600; }
-.tour-calendar .tc-metric strong { color: var(--text-strong); font-size: 24px; font-weight: 800; line-height: 1.2; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.tour-calendar .tc-metric strong { color: var(--text-strong); font-size: 24px; font-weight: var(--adm-fw-bold); line-height: 1.2; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .tour-calendar .tc-metric small { color: var(--text-tertiary); font-size: 11px; line-height: 1.5; }
 
 /* 검색·필터 */
 .tour-calendar .tc-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
-.tour-calendar .tc-search { position: relative; display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 200px; max-width: 320px; height: 40px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-tertiary); }
+.tour-calendar .tc-search { position: relative; display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 200px; max-width: 320px; height: 40px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-tertiary); }
 .tour-calendar .tc-search:focus-within { border-color: var(--mrt-ink); }
 .tour-calendar .tc-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text-strong); font-size: 14px; }
 .tour-calendar .tc-search input::placeholder { color: var(--text-tertiary); }
 .tour-calendar .tc-search .tc-icon-button { width: 24px; height: 24px; margin-right: -6px; border: 0; background: transparent; color: var(--text-tertiary); }
 .tour-calendar .tc-search .tc-icon-button:hover { color: var(--text-strong); }
-.tour-calendar .tc-filter-chips { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--border-default); border-radius: 999px; background: #fff; }
+.tour-calendar .tc-filter-chips { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--border-default); border-radius:var(--adm-radius-sm); background: var(--adm-surface); }
 .tour-calendar .tc-filter-chips .tc-button { height: 32px; padding: 0 12px; border: 0; background: transparent; color: var(--text-secondary); font-weight: 600; }
 .tour-calendar .tc-filter-chips .tc-button:hover { color: var(--text-strong); }
-.tour-calendar .tc-filter-chips .tc-button.is-active { background: var(--mrt-ink); color: #fff; font-weight: 800; }
+.tour-calendar .tc-filter-chips .tc-button.is-active { background: var(--mrt-ink); color: #fff; font-weight: var(--adm-fw-bold); }
 .tour-calendar .tc-check { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--text-secondary); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .tour-calendar .tc-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--mrt-ink); }
 .tour-calendar .tc-reset { padding: 4px 0; border: 0; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
@@ -68,23 +68,23 @@
 
 /* 달력 + 선택한 날짜 */
 .tour-calendar .tc-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); gap: 16px; align-items: start; min-width: 0; }
-.tour-calendar .tc-month-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.tour-calendar .tc-month-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
 .tour-calendar .tc-month-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 16px 20px; }
 .tour-calendar .tc-month-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
-.tour-calendar .tc-month-nav h2 { min-width: 130px; margin: 0; color: var(--text-strong); font-size: 22px; font-weight: 800; letter-spacing: -.03em; text-align: center; white-space: nowrap; }
+.tour-calendar .tc-month-nav h2 { min-width: 130px; margin: 0; color: var(--text-strong); font-size: 22px; font-weight: var(--adm-fw-bold); letter-spacing: -.03em; text-align: center; white-space: nowrap; }
 .tour-calendar .tc-view-switch { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--mrt-gray-100); flex: none; }
 .tour-calendar .tc-view-switch .tc-button { height: 32px; border: 0; background: transparent; color: var(--text-secondary); font-weight: 600; }
-.tour-calendar .tc-view-switch .tc-button.is-active { background: #fff; color: var(--text-strong); font-weight: 800; box-shadow: var(--shadow-sm); }
+.tour-calendar .tc-view-switch .tc-button.is-active { background: var(--adm-surface); color: var(--text-strong); font-weight: var(--adm-fw-bold); box-shadow: var(--shadow-sm); }
 .tour-calendar .tc-weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--border-subtle); background: var(--mrt-gray-50); }
 .tour-calendar .tc-weekdays > * { min-width: 0; padding: 8px 0; text-align: center; color: var(--text-tertiary); font-size: 12px; font-weight: 700; }
 .tour-calendar .tc-weekdays > :first-child { color: var(--mrt-red); }
 .tour-calendar .tc-month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); min-width: 0; }
-.tour-calendar .tc-day { position: relative; display: flex; flex-direction: column; gap: 3px; height: 112px; min-width: 0; padding: 8px; border-top: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); text-align: left; background: #fff; overflow: hidden; }
+.tour-calendar .tc-day { position: relative; display: flex; flex-direction: column; gap: 3px; height: 112px; min-width: 0; padding: 8px; border-top: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); text-align: left; background: var(--adm-surface); overflow: hidden; }
 .tour-calendar .tc-day:nth-child(7n) { border-right: 0; }
 .tour-calendar .tc-day.is-outside { background: var(--mrt-gray-50); }
 .tour-calendar .tc-day.is-selected { background: var(--mrt-blue-50); box-shadow: inset 0 0 0 2px var(--mrt-blue); z-index: 1; }
-.tour-calendar .tc-day-heading { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; color: var(--text-strong); font-size: 12px; font-weight: 800; text-align: left; }
-.tour-calendar .tc-day-heading > :first-child { display: inline-flex; justify-content: center; align-items: center; min-width: 22px; height: 22px; border-radius: 11px; }
+.tour-calendar .tc-day-heading { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; color: var(--text-strong); font-size: 12px; font-weight: var(--adm-fw-bold); text-align: left; }
+.tour-calendar .tc-day-heading > :first-child { display: inline-flex; justify-content: center; align-items: center; min-width: 22px; height: 22px; border-radius: var(--adm-radius-sm); }
 .tour-calendar .tc-day:nth-child(7n + 1) .tc-day-heading { color: var(--mrt-red); }
 .tour-calendar .tc-day.is-outside .tc-day-heading { color: var(--mrt-gray-300); }
 .tour-calendar .tc-day.is-today .tc-day-heading > :first-child { background: var(--mrt-blue); color: #fff; }
@@ -92,11 +92,11 @@
 .tour-calendar .tc-day-count { display: block; flex: none; overflow: hidden; color: var(--text-tertiary); font-size: 10px; font-weight: 600; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
 .tour-calendar .tc-attention-dot { display: inline-block; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--mrt-purple-2); }
 .tour-calendar .tc-events { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: none; }
-.tour-calendar .tc-event { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; height: 20px; padding: 0 6px; overflow: hidden; border: 0; border-left: 3px solid var(--mrt-green); border-radius: 5px; background: var(--mrt-green-soft); color: var(--text-strong); font-size: 11px; font-weight: 700; text-align: left; }
+.tour-calendar .tc-event { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; height: 20px; padding: 0 6px; overflow: hidden; border: 0; border-left: 3px solid var(--mrt-green); border-radius: var(--adm-radius-xs); background: var(--mrt-green-soft); color: var(--text-strong); font-size: 11px; font-weight: 700; text-align: left; }
 .tour-calendar .tc-event > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tour-calendar .tc-event small { flex: none; font-size: 10px; opacity: .8; white-space: nowrap; }
 .tour-calendar .tc-event[data-source="quote_booking"] { border-left-color: var(--mrt-blue); background: var(--mrt-blue-50); }
-.tour-calendar .tc-event[data-source="legacy_quote"] { border-left-color: var(--mrt-star); background: #fff6df; }
+.tour-calendar .tc-event[data-source="legacy_quote"] { border-left-color: var(--mrt-star); background: var(--adm-warn-soft); }
 .tour-calendar .tc-event.is-conflict { border-left-color: var(--mrt-red); background: var(--mrt-red-soft); }
 .tour-calendar .tc-event.is-muted { border-left-color: var(--mrt-gray-300); background: var(--mrt-gray-100); color: var(--text-tertiary); }
 .tour-calendar .tc-event:hover { filter: brightness(.97); }
@@ -105,45 +105,45 @@
 .tour-calendar .tc-month-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 12px 20px; border-top: 1px solid var(--border-subtle); color: var(--text-tertiary); font-size: 11px; }
 .tour-calendar .tc-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
 .tour-calendar .tc-legend > span { display: inline-flex; align-items: center; gap: 5px; }
-.tour-calendar .tc-legend > [data-source]::before { content: ''; width: 8px; height: 8px; flex: none; border-radius: 2px; background: var(--mrt-green); }
+.tour-calendar .tc-legend > [data-source]::before { content: ''; width: 8px; height: 8px; flex: none; border-radius: var(--adm-radius-xs); background: var(--mrt-green); }
 .tour-calendar .tc-legend > [data-source="quote_booking"]::before { background: var(--mrt-blue); }
 .tour-calendar .tc-legend > [data-source="legacy_quote"]::before { background: var(--mrt-star); }
 
 /* 선택한 날짜 패널 */
-.tour-calendar .tc-day-panel { position: sticky; top: 16px; min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: 20px; background: #fff; }
+.tour-calendar .tc-day-panel { position: sticky; top: 16px; min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
 .tour-calendar .tc-panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 18px 20px 8px; }
-.tour-calendar .tc-panel-header h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; color: var(--text-strong); font-size: 22px; font-weight: 800; letter-spacing: -.03em; }
+.tour-calendar .tc-panel-header h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; color: var(--text-strong); font-size: 22px; font-weight: var(--adm-fw-bold); letter-spacing: -.03em; }
 .tour-calendar .tc-eyebrow { display: block; margin-bottom: 8px; color: var(--text-tertiary); font-size: 12px; }
-.tour-calendar .tc-today-badge { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; background: var(--mrt-blue-50); color: var(--mrt-blue-strong); font-size: 11px; font-weight: 800; letter-spacing: 0; }
-.tour-calendar .tc-panel-count { flex: none; padding: 4px 8px; border-radius: 8px; background: var(--mrt-gray-50); color: var(--text-secondary); font-size: 12px; font-weight: 700; }
+.tour-calendar .tc-today-badge { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--adm-radius-xs); background: var(--mrt-blue-50); color: var(--mrt-blue-strong); font-size: 11px; font-weight: var(--adm-fw-bold); letter-spacing: 0; }
+.tour-calendar .tc-panel-count { flex: none; padding: 4px 8px; border-radius: var(--adm-radius-sm); background: var(--mrt-gray-50); color: var(--text-secondary); font-size: 12px; font-weight: 700; }
 .tour-calendar .tc-panel-stats { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 0 20px 18px; border-bottom: 1px solid var(--border-subtle); }
-.tour-calendar .tc-panel-stats > span { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 8px; background: var(--mrt-gray-50); color: var(--text-secondary); font-size: 12px; }
-.tour-calendar .tc-panel-stats b { color: var(--text-strong); font-weight: 800; }
+.tour-calendar .tc-panel-stats > span { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: var(--adm-radius-sm); background: var(--mrt-gray-50); color: var(--text-secondary); font-size: 12px; }
+.tour-calendar .tc-panel-stats b { color: var(--text-strong); font-weight: var(--adm-fw-bold); }
 .tour-calendar .tc-panel-body { display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 240px); overflow-y: auto; overscroll-behavior: contain; padding: 14px; }
 
-.tour-calendar .tc-tour-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: 16px; background: #fff; }
+.tour-calendar .tc-tour-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
 .tour-calendar .tc-tour-card.is-selected { border: 1.5px solid var(--mrt-ink); padding: 13.5px; }
 .tour-calendar .tc-tour-card.is-conflict { border-color: #ffc9c9; }
 .tour-calendar .tc-tour-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
 .tour-calendar .tc-tour-title { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
-.tour-calendar .tc-tour-title h3 { margin: 0; color: var(--text-strong); font-size: 17px; font-weight: 800; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.tour-calendar .tc-tour-title h3 { margin: 0; color: var(--text-strong); font-size: 17px; font-weight: var(--adm-fw-bold); letter-spacing: -.02em; overflow-wrap: anywhere; }
 .tour-calendar .tc-product-name { margin: -6px 0 0; color: var(--text-secondary); font-size: 13px; overflow-wrap: anywhere; }
-.tour-calendar .tc-source { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 6px; background: var(--mrt-green-soft); color: var(--mrt-green); font-size: 11px; font-weight: 800; white-space: nowrap; }
+.tour-calendar .tc-source { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: var(--adm-radius-xs); background: var(--mrt-green-soft); color: var(--mrt-green); font-size: 11px; font-weight: var(--adm-fw-bold); white-space: nowrap; }
 .tour-calendar .tc-source[data-source="quote_booking"] { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
-.tour-calendar .tc-source[data-source="legacy_quote"] { background: #fff6df; color: #a16d00; }
-.tour-calendar .tc-people { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 26px; padding: 0 9px; border-radius: 8px; background: var(--mrt-gray-50); color: var(--text-strong); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.tour-calendar .tc-source[data-source="legacy_quote"] { background: var(--adm-warn-soft); color: var(--adm-warn); }
+.tour-calendar .tc-people { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 26px; padding: 0 9px; border-radius: var(--adm-radius-sm); background: var(--mrt-gray-50); color: var(--text-strong); font-size: 12px; font-weight: var(--adm-fw-bold); white-space: nowrap; }
 .tour-calendar .tc-people .tc-glyph { width: 13px; height: 13px; }
 .tour-calendar .tc-tour-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; color: var(--text-tertiary); font-size: 12px; }
 .tour-calendar .tc-tour-meta > span { overflow-wrap: anywhere; }
-.tour-calendar .tc-conflict { display: flex; align-items: flex-start; gap: 6px; padding: 8px 10px; border-radius: 10px; background: var(--mrt-red-soft); color: var(--mrt-red); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+.tour-calendar .tc-conflict { display: flex; align-items: flex-start; gap: 6px; padding: 8px 10px; border-radius: var(--adm-radius-sm); background: var(--mrt-red-soft); color: var(--mrt-red); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
 .tour-calendar .tc-conflict .tc-glyph { width: 14px; height: 14px; margin-top: 1px; }
 .tour-calendar .tc-resources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.tour-calendar .tc-resource { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; padding: 10px 12px; border-radius: 12px; background: var(--mrt-gray-50); }
-.tour-calendar .tc-resource.is-missing { background: #ffecec; }
+.tour-calendar .tc-resource { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; padding: 10px 12px; border-radius: var(--adm-radius-md); background: var(--mrt-gray-50); }
+.tour-calendar .tc-resource.is-missing { background: var(--adm-danger-soft); }
 .tour-calendar .tc-resource-label { display: flex; align-items: center; gap: 5px; color: var(--text-tertiary); font-size: 11px; font-weight: 600; }
 .tour-calendar .tc-resource-label .tc-glyph { width: 13px; height: 13px; color: var(--mrt-green); }
 .tour-calendar .tc-resource.is-missing .tc-resource-label, .tour-calendar .tc-resource.is-missing .tc-resource-label .tc-glyph { color: var(--mrt-red); }
-.tour-calendar .tc-resource-value { display: block; width: 100%; color: var(--text-strong); font-size: 14px; font-weight: 800; overflow-wrap: anywhere; }
+.tour-calendar .tc-resource-value { display: block; width: 100%; color: var(--text-strong); font-size: 14px; font-weight: var(--adm-fw-bold); overflow-wrap: anywhere; }
 .tour-calendar .tc-resource.is-missing .tc-resource-value { color: var(--mrt-red); }
 .tour-calendar .tc-resource-detail { display: block; width: 100%; color: var(--text-tertiary); font-size: 11px; overflow-wrap: anywhere; }
 .tour-calendar .tc-resource.is-missing .tc-resource-detail { color: var(--mrt-red); font-weight: 700; }
@@ -152,8 +152,8 @@
 .tour-calendar .tc-resource.is-missing .tc-resource-action { color: var(--mrt-red); }
 .tour-calendar .tc-resource-action .tc-glyph { width: 11px; height: 11px; }
 .tour-calendar .tc-issues { display: flex; flex-wrap: wrap; gap: 4px; }
-.tour-calendar .tc-issue { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; background: var(--mrt-purple-soft); color: var(--mrt-purple-2); font-size: 11px; font-weight: 800; }
-.tour-calendar .tc-inquiry-note { margin: 0; padding: 10px 12px; border-radius: 10px; background: #fff6df; color: #8a5d00; font-size: 12px; line-height: 1.5; }
+.tour-calendar .tc-issue { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--adm-radius-xs); background: var(--mrt-purple-soft); color: var(--mrt-purple-2); font-size: 11px; font-weight: var(--adm-fw-bold); }
+.tour-calendar .tc-inquiry-note { margin: 0; padding: 10px 12px; border-radius: var(--adm-radius-sm); background: var(--adm-warn-soft); color: var(--adm-warn); font-size: 12px; line-height: 1.5; }
 .tour-calendar .tc-tour-details { border-top: 1px solid var(--border-subtle); padding-top: 10px; }
 .tour-calendar .tc-tour-details summary { color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer; }
 .tour-calendar .tc-tour-details dl { display: grid; gap: 6px; margin: 10px 0 0; font-size: 12px; }
@@ -162,7 +162,7 @@
 .tour-calendar .tc-tour-details dd { min-width: 0; margin: 0; color: var(--text-strong); font-weight: 600; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .tour-calendar .tc-tour-footer { display: flex; align-items: center; gap: 8px; }
 .tour-calendar .tc-tour-footer > span { flex: 1; color: var(--text-tertiary); font-size: 12px; }
-.tour-calendar .tc-tour-footer > a { display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 999px; background: #fff; color: var(--text-strong); font-size: 13px; font-weight: 700; text-decoration: none; }
+.tour-calendar .tc-tour-footer > a { display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-strong); font-size: 13px; font-weight: 700; text-decoration: none; }
 .tour-calendar .tc-tour-footer > a:hover { border-color: var(--mrt-ink); }
 .tour-calendar .tc-tour-footer > a .tc-glyph { width: 14px; height: 14px; }
 
@@ -171,17 +171,17 @@
 .tour-calendar .tc-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; line-height: 1.5; }
 .tour-calendar .tc-table th { position: sticky; top: 0; z-index: 1; padding: 10px 16px; background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .tour-calendar .tc-table td { min-width: 80px; max-width: 260px; padding: 12px 16px; border-top: 1px solid var(--border-subtle); color: var(--text-secondary); overflow-wrap: anywhere; vertical-align: top; }
-.tour-calendar .tc-table td:nth-child(2) { color: var(--text-strong); font-weight: 800; white-space: nowrap; }
+.tour-calendar .tc-table td:nth-child(2) { color: var(--text-strong); font-weight: var(--adm-fw-bold); white-space: nowrap; }
 .tour-calendar .tc-table tbody tr:hover { background: var(--mrt-gray-50); }
 .tour-calendar .tc-table-customer { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; min-width: 140px; padding: 0; border: 0; background: transparent; text-align: left; }
-.tour-calendar .tc-table-customer strong { color: var(--text-strong); font-size: 14px; font-weight: 800; }
+.tour-calendar .tc-table-customer strong { color: var(--text-strong); font-size: 14px; font-weight: var(--adm-fw-bold); }
 .tour-calendar .tc-table-customer small { color: var(--text-tertiary); font-size: 12px; }
 .tour-calendar .tc-table-customer:hover strong { text-decoration: underline; }
 .tour-calendar .tc-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 180px; padding: 36px 16px; text-align: center; color: var(--text-tertiary); font-size: 12px; line-height: 1.6; }
 .tour-calendar .tc-empty .tc-glyph { width: 28px; height: 28px; color: var(--mrt-gray-400); }
-.tour-calendar .tc-empty strong { color: var(--text-strong); font-size: 14px; font-weight: 800; }
+.tour-calendar .tc-empty strong { color: var(--text-strong); font-size: 14px; font-weight: var(--adm-fw-bold); }
 .tour-calendar .tc-empty p { margin: 0; }
-.tour-calendar .tc-warning { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border-radius: 14px; background: #fff6df; color: #8a5d00; font-size: 13px; line-height: 1.6; }
+.tour-calendar .tc-warning { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border-radius: var(--adm-radius-md); background: var(--adm-warn-soft); color: var(--adm-warn); font-size: 13px; line-height: 1.6; }
 .tour-calendar .tc-warning > span { flex: 1; min-width: 0; }
 
 @media (max-width: 1280px) {
@@ -193,13 +193,13 @@
 }
 @media (max-width: 760px) {
   .tour-calendar .tc-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .tour-calendar .tc-metric { padding: 12px; gap: 8px; border-radius: 14px; }
+  .tour-calendar .tc-metric { padding: 12px; gap: 8px; border-radius: var(--adm-radius-md); }
   .tour-calendar .tc-metric.is-active { padding: 11.5px; }
-  .tour-calendar .tc-metric-icon { width: 36px; height: 36px; border-radius: 10px; }
+  .tour-calendar .tc-metric-icon { width: 36px; height: 36px; border-radius: var(--adm-radius-sm); }
   .tour-calendar .tc-metric strong { font-size: 20px; }
   .tour-calendar .tc-month-header { padding: 12px; }
   .tour-calendar .tc-month-nav h2 { min-width: 0; font-size: 18px; }
-  .tour-calendar .tc-month-card, .tour-calendar .tc-day-panel { border-radius: 16px; }
+  .tour-calendar .tc-month-card, .tour-calendar .tc-day-panel { border-radius: var(--adm-radius-md); }
   .tour-calendar .tc-day { height: 96px; padding: 5px 3px; }
   .tour-calendar .tc-day-count { display: none; }
   .tour-calendar .tc-event { padding: 0 3px; border-left-width: 2px; font-size: 10px; }

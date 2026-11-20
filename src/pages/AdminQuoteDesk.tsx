@@ -529,11 +529,11 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                 </> : <>
                     {tool.key === 'resources' && (
                         // 디자인 v4: 회색 바탕 알약 안에서 선택한 쪽만 흰 바탕·그림자
-                        <span role="group" aria-label="보기" style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: '#f2f4f6' }}>
+                        <span role="group" aria-label="보기" style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: 'var(--adm-gray-100)' }}>
                             {([[false, '등록 정보'], [true, '가이드 배정 현황']] as const).map(([on, label]) => (
                                 <button key={label} type="button" aria-pressed={scheduleView === on} onClick={() => setScheduleView(on)}
                                     style={{ display: 'flex', alignItems: 'center', height: 38, padding: '0 18px', border: 0, borderRadius: 999, font: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                                        background: scheduleView === on ? '#fff' : 'transparent', color: scheduleView === on ? '#1A1B1E' : '#6b7684', boxShadow: scheduleView === on ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}>{label}</button>
+                                        background: scheduleView === on ? 'var(--adm-surface)' : 'transparent', color: scheduleView === on ? 'var(--adm-ink)' : 'var(--adm-text-3)', boxShadow: scheduleView === on ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}>{label}</button>
                             ))}
                         </span>
                     )}
@@ -547,13 +547,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                 </>}
         >
             {customerPage && <><V7Styles /><V7Menu menu={toolMenu} onClose={() => setToolMenu(null)} /></>}
-            {editorNotice && <div role="status" style={{ padding: '12px 20px', background: '#fff5e8', color: '#80521b' }}>{editorNotice}</div>}
+            {editorNotice && <div role="status" style={{ padding: '12px 20px', background: 'var(--adm-warn-soft)', color: 'var(--adm-warn)' }}>{editorNotice}</div>}
             {linked ? (
-                <div ref={customerPageRef} className={customerPage ? `quote-customer-page${editorExpanded ? ' is-editing' : ''}` : undefined} style={customerPage ? { flex: 1, minHeight: 0, overflow: editorExpanded ? 'hidden' : 'auto', background: '#f5f7fa' } : { position: 'relative', flex: 1, minHeight: 0, background: '#fff' }}>
+                <div ref={customerPageRef} className={customerPage ? `quote-customer-page${editorExpanded ? ' is-editing' : ''}` : undefined} style={customerPage ? { flex: 1, minHeight: 0, overflow: editorExpanded ? 'hidden' : 'auto', background: 'var(--adm-gray-50)' } : { position: 'relative', flex: 1, minHeight: 0, background: 'var(--adm-surface)' }}>
                     {customerPage && <>
                         {bookingId && accountReviewId === bookingId && customerModel && <QuoteAccountLinkDialog key={bookingId} requestId={bookingId}
                             customerName={customerModel.customerName} onClose={() => setAccountReviewId('')} />}
-                        {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 12, background: '#fff5e8' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
+                        {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 12, background: 'var(--adm-warn-soft)' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
                         {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
                             <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao}
                                 links={{ source: v7Source, userId: accountId, onAssignmentSaved: () => setCustomerRefresh(value => value + 1) }}

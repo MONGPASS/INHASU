@@ -362,8 +362,8 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                                     {...tipFor(`${day.label}${day.today ? ' · 오늘' : ''}`, [{ k: '신규 예약', v: `${day.count}건` }])}>
                                     <span className={styles.miniFill} style={{
                                         height: `${Math.max(day.count ? 0 : 6, day.count / dayMax * 100 * t)}%`,
-                                        background: day.today ? 'linear-gradient(180deg,#3fe0b4,#12b28c)'
-                                            : day.count && day.count === dayMax ? 'linear-gradient(180deg,#1cc497,#0E9E7A)' : 'linear-gradient(180deg,#bff0e0,#8fe3c9)',
+                                        background: day.today ? 'var(--adm-accent-strong)'
+                                            : day.count && day.count === dayMax ? 'var(--adm-accent)' : 'var(--adm-accent-line)',
                                     }} />
                                 </span>)}
                             </div>}

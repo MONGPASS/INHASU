@@ -281,7 +281,7 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
             }, acc.name || label);
     };
 
-    const tabColor: Record<string, string> = { '': '#212124', none: '#FF4F4F', sel: '#8B95A1', req: '#F08C00', ok: '#12B28C' };
+    const tabColor: Record<string, string> = { '': 'var(--adm-ink)', none: 'var(--adm-danger)', sel: 'var(--adm-text-3)', req: 'var(--adm-warn)', ok: 'var(--adm-success)' };
     const monthLabel = allPeriod ? '전체 기간' : `${cal.y}년 ${cal.m}월`;
     const dayLabel = day ? `${range === 'w' && weekStart ? `${Number(weekStart.slice(5, 7))}.${Number(weekStart.slice(8))} 주` : `${Number(day.slice(5, 7))}월 ${Number(day.slice(8))}일`} 숙박` : '';
     const kfLabel = STATE_TABS.find(t => t[0] === kf)?.[1] || '';

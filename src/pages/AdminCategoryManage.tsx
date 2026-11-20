@@ -410,7 +410,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
                 onClick={(e) => e.stopPropagation()}
             >
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                    {error && <p role="alert" style={{ padding: '12px 20px', color: '#9f4d13' }}>{error}</p>}
+                    {error && <p role="alert" style={{ padding: '12px 20px', color: 'var(--adm-warn)' }}>{error}</p>}
                     {busy && <p role="status" style={{ padding: '12px 20px' }}>{busy === 'upload' ? '이미지 업로드 중…' : '카테고리 저장 중…'}</p>}
                     <fieldset disabled={!!busy} inert={!!busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, display: 'contents' }}>
                     {/* Header */}

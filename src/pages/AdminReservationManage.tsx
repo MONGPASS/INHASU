@@ -161,14 +161,14 @@ const SOURCE_OPTIONS: Array<{ v: string; l: string }> = [
 const LEGACY_SOURCE_LABELS: Record<string, string> = { line: 'LINE' };
 const sourceLabel = (s?: string) => SOURCE_OPTIONS.find(o => o.v === s)?.l || LEGACY_SOURCE_LABELS[s || ''] || (s || '');
 const sourceColor = (s?: string): { bg: string; fg: string } => ({
-    kakao: { bg: '#FFF4B8', fg: '#5C4700' },
-    line: { bg: '#E4F7EC', fg: '#0F7A43' },
-    email: { bg: '#E8F2FF', fg: '#0B6FE0' },
-    phone: { bg: '#FEF6E7', fg: '#B45309' },
-    website: { bg: '#F1F2F4', fg: '#5F636B' },
-    visit: { bg: '#EEEDFE', fg: '#534AB7' },
-    other: { bg: '#F1F2F4', fg: '#8A8F99' },
-}[s || ''] || { bg: '#F1F2F4', fg: '#8A8F99' });
+    kakao: { bg: 'var(--adm-warn-soft)', fg: 'var(--adm-warn)' },
+    line: { bg: 'var(--adm-success-soft)', fg: 'var(--adm-success)' },
+    email: { bg: 'var(--adm-accent-soft)', fg: 'var(--adm-accent-strong)' },
+    phone: { bg: 'var(--adm-warn-soft)', fg: 'var(--adm-warn)' },
+    website: { bg: 'var(--adm-gray-100)', fg: 'var(--adm-text-2)' },
+    visit: { bg: 'var(--adm-accent-soft)', fg: 'var(--adm-accent-strong)' },
+    other: { bg: 'var(--adm-gray-100)', fg: 'var(--adm-text-3)' },
+}[s || ''] || { bg: 'var(--adm-gray-100)', fg: 'var(--adm-text-3)' });
 const BLANK_ADD = { customerName: '', phone: '', email: '', source: 'kakao', productName: '', productId: '', startDate: '', endDate: '', people: '1', totalAmount: '', deposit: '', status: 'pending_payment', notes: '' };
 
 /** 고객이 '입금 완료'를 신고했는데 아직 입금 확인을 하지 않은 예약 — 목록의 「입금 신고」 배지와 상세의 강조 표시에 쓴다. */
@@ -354,17 +354,17 @@ const STATUS_LABELS: Record<string, string> = {
 // 숙소 배정 보드(Байр захиалга)의 수배 상태(몽골어 저장값) → 한국어 라벨·색.
 // 상세에서는 읽기 전용 표시만 — 상태의 원천은 보드(몽골 현지 스태프).
 const BOOKING_STATUS_KO: Record<string, { label: string; bg: string; fg: string }> = {
-    'Илгээгээгүй': { label: '수배 미발송', bg: '#EEF1F5', fg: '#5F636B' },
-    'Имэйл илгээсэн': { label: '메일 발송됨', bg: '#E8F2FF', fg: '#0B6FE0' },
-    'Хариу ирсэн': { label: '회신 수신', bg: '#FEF6E7', fg: '#B45309' },
-    'Баталгаажсан': { label: '수배 확정', bg: '#E4F7EC', fg: '#0F7A43' },
-    '예약요청': { label: '예약요청', bg: '#FEF6E7', fg: '#B45309' },
-    '예약완료': { label: '예약완료', bg: '#E4F7EC', fg: '#0F7A43' },
-    '취소요청': { label: '취소요청', bg: '#FDECE3', fg: '#C2410C' },
-    '취소완료': { label: '취소완료', bg: '#EEF1F5', fg: '#5F636B' },
-    '변경요청': { label: '변경요청', bg: '#FEF6E7', fg: '#B45309' },
-    '변경완료': { label: '변경완료', bg: '#E4F7EC', fg: '#0F7A43' },
-    '배정X': { label: '배정X', bg: '#FDECEA', fg: '#D93025' },
+    'Илгээгээгүй': { label: '수배 미발송', bg: 'var(--adm-gray-100)', fg: 'var(--adm-text-2)' },
+    'Имэйл илгээсэн': { label: '메일 발송됨', bg: 'var(--adm-accent-soft)', fg: 'var(--adm-accent-strong)' },
+    'Хариу ирсэн': { label: '회신 수신', bg: 'var(--adm-warn-soft)', fg: 'var(--adm-warn)' },
+    'Баталгаажсан': { label: '수배 확정', bg: 'var(--adm-success-soft)', fg: 'var(--adm-success)' },
+    '예약요청': { label: '예약요청', bg: 'var(--adm-warn-soft)', fg: 'var(--adm-warn)' },
+    '예약완료': { label: '예약완료', bg: 'var(--adm-success-soft)', fg: 'var(--adm-success)' },
+    '취소요청': { label: '취소요청', bg: 'var(--adm-warn-soft)', fg: 'var(--adm-warn)' },
+    '취소완료': { label: '취소완료', bg: 'var(--adm-gray-100)', fg: 'var(--adm-text-2)' },
+    '변경요청': { label: '변경요청', bg: 'var(--adm-warn-soft)', fg: 'var(--adm-warn)' },
+    '변경완료': { label: '변경완료', bg: 'var(--adm-success-soft)', fg: 'var(--adm-success)' },
+    '배정X': { label: '배정X', bg: 'var(--adm-danger-soft)', fg: 'var(--adm-danger)' },
 };
 
 const StatusDropdown = ({ status, onChange, disabled = false }: { status: string, onChange: (s: Reservation['status']) => void, disabled?: boolean }) => {
@@ -1891,8 +1891,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     return (<>
         <div className={fullPage ? `product-customer-page${workflowOpen ? ' cw-is-working' : ''}` : 'drawer-scrim reservation-workspace-scrim'} onClick={fullPage ? undefined : closeWorkspace}>
             <div className={`drawer reservation-workspace product-workspace tcom${fullPage ? ' product-customer-fullpage' : ''}`} role={fullPage ? 'region' : 'dialog'} aria-modal={fullPage ? undefined : true} aria-label="상품 예약 상세 작업" onClick={e => e.stopPropagation()}>
-                {navigationNotice && (!fullPage || !workflowOpen) && <div role="status" aria-live="polite" style={{ padding: '10px 16px', background: '#fff5e8', color: '#8f4c13', fontSize: 13 }}>{navigationNotice}</div>}
-                {docDraftPending && (!fullPage || !workflowOpen) && <div role="status" style={{ padding: '10px 16px', background: '#edfaf6', color: '#145c4c', fontSize: 13, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><button type="button" className="btn btn-ghost btn-sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</button></div>}
+                {navigationNotice && (!fullPage || !workflowOpen) && <div role="status" aria-live="polite" style={{ padding: '10px 16px', background: 'var(--adm-warn-soft)', color: 'var(--adm-warn)', fontSize: 13 }}>{navigationNotice}</div>}
+                {docDraftPending && (!fullPage || !workflowOpen) && <div role="status" style={{ padding: '10px 16px', background: 'var(--adm-accent-soft)', color: 'var(--adm-accent-strong)', fontSize: 13, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><button type="button" className="btn btn-ghost btn-sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</button></div>}
 
                 {fullPage && <>
                     <div id="product-customer-overview" hidden={workflowOpen}>
@@ -1909,7 +1909,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     {fullPage ? <><button type="button" className="btn btn-ghost cw-overview-back" disabled={workspaceIsBusy()} onClick={returnToCustomerOverview}><Icon name="arrow_back" />고객 현황</button><div className="cw-detail-identity"><h2>{reservation.customerName || '고객'}<span className="cw-detail-badge">{detailSection === 'docs' && inlineEditorOpen ? '일정표 편집' : currentSection.label}</span></h2><p><b>{reservation.headcount}</b> · <b>{reservation.date}</b> · {reservation.productName}</p></div></> : <>
                     {productImage && (
                         <img src={productImage} alt={reservation.productName} loading="lazy"
-                            style={{ width: 52, height: 52, flex: 'none', borderRadius: 12, objectFit: 'cover', border: '1px solid var(--mrt-gray-200, #E6E8EC)' }} />
+                            style={{ width: 52, height: 52, flex: 'none', borderRadius: 12, objectFit: 'cover', border: '1px solid var(--mrt-gray-200, var(--adm-line))' }} />
                     )}
                     <div style={{ minWidth: 0, flex: 1 }}>
                         <div className="row" style={{ gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
@@ -2050,7 +2050,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                         : <span className="badge b-amber" style={{ flex: 'none' }}>미동의</span>}
                                 </div>
                                 <div className="card-pad" style={{ paddingTop: 14 }}>
-                                    {!contractSubmitted && <div style={{ marginBottom: 16, padding: 16, background: '#f6f8fa', borderRadius: 12 }}><p style={{ fontSize: 13, color: '#6b7684', margin: '0 0 12px' }}>고객이 계약서에서 여행자와 항공편을 입력하면 이곳에 반영됩니다. 계약서 전달 후 고객 입력 내용을 확인해 주세요.</p><button type="button" className="btn btn-sm btn-ghost" disabled={workspaceIsBusy()} onClick={() => overviewAction('documents', 'contract')}>계약서 전달 관리</button></div>}
+                                    {!contractSubmitted && <div style={{ marginBottom: 16, padding: 16, background: 'var(--adm-gray-50)', borderRadius: 12 }}><p style={{ fontSize: 13, color: 'var(--adm-text-3)', margin: '0 0 12px' }}>고객이 계약서에서 여행자와 항공편을 입력하면 이곳에 반영됩니다. 계약서 전달 후 고객 입력 내용을 확인해 주세요.</p><button type="button" className="btn btn-sm btn-ghost" disabled={workspaceIsBusy()} onClick={() => overviewAction('documents', 'contract')}>계약서 전달 관리</button></div>}
                                     {/* 항공편 — 픽업·샌딩 수배용, 가장 중요 */}
                                     <div id="product-customer-flights" className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14, scrollMarginTop: 20 }}>
                                         <div className="pay-cell">
@@ -2069,7 +2069,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
                                     {/* 여행자별 여권 정보 */}
                                     <div id="product-customer-travelers" style={{ scrollMarginTop: 20 }}>
-                                    {!contractTravelers.length && <p style={{ padding: 16, margin: 0, borderRadius: 12, background: '#f6f8fa', color: '#6b7684', fontSize: 13 }}>등록된 여행자가 없습니다. 예약 인원 {reservation.totalPeople || '미정'}명과 고객 제출 내용을 확인해 주세요.</p>}
+                                    {!contractTravelers.length && <p style={{ padding: 16, margin: 0, borderRadius: 12, background: 'var(--adm-gray-50)', color: 'var(--adm-text-3)', fontSize: 13 }}>등록된 여행자가 없습니다. 예약 인원 {reservation.totalPeople || '미정'}명과 고객 제출 내용을 확인해 주세요.</p>}
                                     {contractTravelers.map((t, i) => (
                                         <div key={i} style={{ paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0, borderTop: i ? '1px solid var(--mrt-gray-100)' : 'none' }}>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 4 }}>여행자 {i + 1}</div>
@@ -2165,8 +2165,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                             <div
                                                 style={{
                                                     marginTop: 8, padding: '8px 10px', borderRadius: 8, fontSize: 12, lineHeight: 1.55,
-                                                    background: hasOpenDepositReport(editForm) ? '#FFF3DC' : 'rgba(255,255,255,0.7)',
-                                                    color: hasOpenDepositReport(editForm) ? '#8A5A10' : 'var(--text-secondary)',
+                                                    background: hasOpenDepositReport(editForm) ? 'var(--adm-warn-soft)' : 'rgba(255,255,255,0.7)',
+                                                    color: hasOpenDepositReport(editForm) ? 'var(--adm-warn)' : 'var(--text-secondary)',
                                                 }}
                                             >
                                                 <b>고객 입금 신고</b>: 입금자명 {editForm.depositReport.name || '—'}
@@ -2319,7 +2319,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                                             <div style={{ minWidth: 0, flex: 1 }}>
                                                                 <div className="cell-strong">
                                                                     {assigned.accommodation.name}
-                                                                    {overNights && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 800, padding: '1px 6px', borderRadius: 999, background: '#FFECEC', color: '#D0342C' }}>박수 초과 · 출발일</span>}
+                                                                    {overNights && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 800, padding: '1px 6px', borderRadius: 999, background: 'var(--adm-danger-soft)', color: 'var(--adm-danger)' }}>박수 초과 · 출발일</span>}
                                                                 </div>
                                                                 <div className="cell-muted" style={{ fontSize: 12 }}>{assigned.accommodation.location || '—'}</div>
                                                                 {(() => {
@@ -2584,7 +2584,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     <div className="cell-strong">
                                         {acc.name}
                                         {isCurrentAccommodation(acc) && <span className="crp-current-badge">현재 배정</span>}
-                                        {acc._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}{acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#eef4ff', color: '#1656d6' }}>호텔 마스터</span>}
+                                        {acc._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}{acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'var(--adm-accent-soft)', color: 'var(--adm-accent-strong)' }}>호텔 마스터</span>}
                                         {acc._fromItinerary && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>이 상품 일정</span>}
                                     </div>
                                     {acc.type && <div className="cell-muted" style={{ fontSize: 12 }}>{acc.type}</div>}
@@ -3967,7 +3967,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
             {showAddModal && (
                 <div className="adm-sheet-scrim" onClick={() => !creating && setShowAddModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-                    <div className="adm-sheet adm-form" role="dialog" aria-modal="true" aria-label="수동 예약 추가" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', background: '#fff', borderRadius: 16, padding: '20px 22px', boxShadow: '0 20px 60px rgba(0,0,0,.25)', fontFamily: 'var(--font-sans)' }}>
+                    <div className="adm-sheet adm-form" role="dialog" aria-modal="true" aria-label="수동 예약 추가" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', background: 'var(--adm-surface)', borderRadius: 16, padding: '20px 22px', boxShadow: '0 20px 60px rgba(0,0,0,.25)', fontFamily: 'var(--font-sans)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                             <h2 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: 'var(--text-strong)' }}>수동 예약 추가</h2>
                             <button className="icon-btn" style={{ width: 34, height: 34 }} onClick={() => setShowAddModal(false)}><Icon name="close" /></button>

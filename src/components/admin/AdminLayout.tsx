@@ -2,11 +2,13 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminToolbar } from './AdminToolbar';
+import { adminSectionLabel } from './adminNav';
 import { AdminMobileTabBar } from './ui/AdminMobileTabBar';
 import { useCardTables } from './ui/useCardTables';
 import { useAdminInstallMeta } from './ui/useAdminInstallMeta';
 import '../../styles/admin-console.css';
 import '../../styles/admin-shell-v3.css';
+import '../../styles/admin-montage.css';
 import '../../styles/admin-mobile.css';
 
 const RAIL_KEY = 'mw-admin-side-rail';
@@ -122,6 +124,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                 <header className={`header${hideHeading ? ' is-heading-hidden' : ''}`}>
                     <div className="header-in">
                         {<button ref={menuButtonRef} type="button" className="admin-customer-menu-toggle" aria-label="관리자 메뉴 열기" aria-expanded={menuShown} aria-controls={menuId} onClick={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>}
+                        {!hideHeading && <nav className="admin-breadcrumb" aria-label="현재 위치"><span>{adminSectionLabel(activePage)}</span><span aria-hidden="true">/</span><b aria-current="page">{title}</b></nav>}
                         {!hideHeading && <div className="admin-layout-heading" style={{ minWidth: 0 }}>
                             {eb && <div className="eyebrow"><span className="dot" />{eb}</div>}
                             <div className="page-title">{title}</div>

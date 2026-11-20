@@ -11,4 +11,4 @@
 .admin-3d-icon > img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .admin-3d-icon.is-matte > img { mix-blend-mode: multiply; }
 .admin-3d-icon > .material-symbols-outlined { font-size: calc(var(--admin-3d-size, 36px) * .65); }
-.admin-app-wrapper .nav-item.active > .admin-nav-art { background: #fff; border-radius: 6px; }
+.admin-app-wrapper .nav-item.active > .admin-nav-art { background: var(--adm-surface); border-radius: var(--adm-radius-xs); }
