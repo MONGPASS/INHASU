@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/clean-dist.mjs && node scripts/check-icon-subset.mjs && vite build",
+    "build": "node scripts/clean-dist.mjs && node scripts/check-icon-subset.mjs && vite build && node scripts/stamp-public-assets.mjs",
     "check:icons": "node scripts/check-icon-subset.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
