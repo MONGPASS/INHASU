@@ -464,7 +464,7 @@ export function ReservationInlineEditor(p: Props) {
 
     return <section ref={editorRef} id="sec-inline-doc" className={`card ri-editor${p.externalActions ? ' ri-editor-workflow' : ''}`} aria-label="예약 문서 본문 편집" aria-busy={saving || uploading}>
         {!p.externalActions && <div className="ri-heading"><div><span className="ri-kicker">예약 문서 작성</span><h2>예약 상세에서 바로 편집하세요</h2><p>작성 중인 초안을 미리보고 저장한 뒤 고객에게 전달하세요.</p></div><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><button type="button" className="btn btn-ghost" disabled={locked} onClick={() => showDraftPreview()}>저장 전 초안 미리보기</button><button type="button" className="btn btn-ghost" onClick={close} disabled={saving || uploading || !!p.externalBusy}>편집 닫기</button></div></div>}
-        <div className={`ri-draft-status${draftError || sourceConflict || pendingDraft?.conflict ? ' is-warning' : ''}${p.adminUserId && !dirty && !pendingDraft && !storedDraftPending && !invalidDraft && !sourceConflict && !draftError ? ' is-idle' : ''}`} role="status" aria-live="polite">
+        <div className={`ri-draft-status adm-msg${draftError || sourceConflict || pendingDraft?.conflict ? ' is-warning is-cautionary' : ''}${p.adminUserId && !dirty && !pendingDraft && !storedDraftPending && !invalidDraft && !sourceConflict && !draftError ? ' is-idle' : ''}`} role="status" aria-live="polite">
             {!p.adminUserId ? '관리자 계정을 확인한 뒤 문서를 편집할 수 있습니다.' : pendingDraft ? <>
                 <strong>{pendingDraft.conflict ? '현재 서버 문서와 다른 초안이 있습니다.' : '저장하지 않은 일정표·계약서 초안이 있습니다.'}</strong>
                 <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')} · 일정·날짜·사진·계약 조건을 함께 복원합니다.{pendingDraft.conflict ? ' 복원 후 현재 문서와 비교해 저장하세요.' : ''}</div>

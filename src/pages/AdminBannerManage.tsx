@@ -624,8 +624,8 @@ export const AdminBannerManage: React.FC = () => {
                     </div>
                 </div>
 
-                {notice && <p role="alert" className="hm-alert">{notice}</p>}
-                {loadError && <div role="alert" className="hm-alert">{loadError}<button type="button" className="hm-btn-sm" onClick={() => setLoadAttempt(value => value + 1)}>다시 불러오기</button></div>}
+                {notice && <p role="alert" className="hm-alert adm-msg is-negative">{notice}</p>}
+                {loadError && <div role="alert" className="hm-alert adm-msg is-negative">{loadError}<button type="button" className="hm-btn-sm" onClick={() => setLoadAttempt(value => value + 1)}>다시 불러오기</button></div>}
 
                 <fieldset className="hm-body" disabled={locked} inert={locked}>
                     <input type="file" ref={bannerFileInputRef} hidden accept="image/*" onChange={(e) => handleUpload(e, 'banner')} />

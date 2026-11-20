@@ -547,13 +547,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                 </>}
         >
             {customerPage && <><V7Styles /><V7Menu menu={toolMenu} onClose={() => setToolMenu(null)} /></>}
-            {editorNotice && <div role="status" style={{ padding: '12px 20px', background: 'var(--adm-warn-soft)', color: 'var(--adm-warn-strong)' }}>{editorNotice}</div>}
+            {editorNotice && <div role="status" className="adm-msg is-cautionary" style={{ margin: '12px var(--adm-pad-page) 0', width: 'auto' }}>{editorNotice}</div>}
             {linked ? (
                 <div ref={customerPageRef} className={customerPage ? `quote-customer-page${editorExpanded ? ' is-editing' : ''}` : undefined} style={customerPage ? { flex: 1, minHeight: 0, overflow: editorExpanded ? 'hidden' : 'auto', background: 'var(--adm-gray-50)' } : { position: 'relative', flex: 1, minHeight: 0, background: 'var(--adm-surface)' }}>
                     {customerPage && <>
                         {bookingId && accountReviewId === bookingId && customerModel && <QuoteAccountLinkDialog key={bookingId} requestId={bookingId}
                             customerName={customerModel.customerName} onClose={() => setAccountReviewId('')} />}
-                        {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 'var(--adm-radius-md)', background: 'var(--adm-warn-soft)' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
+                        {customerError && <div role="alert" className="adm-msg is-cautionary" style={{ margin: 20, width: 'auto' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
                         {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
                             <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao}
                                 links={{ source: v7Source, userId: accountId, onAssignmentSaved: () => setCustomerRefresh(value => value + 1) }}
