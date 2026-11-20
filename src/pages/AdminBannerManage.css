@@ -6,13 +6,13 @@
   position: sticky; top: var(--header-h, 72px); z-index: 20;
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   /* 본문 여백(.content padding)만큼 끌어올려 본문 카드 폭 전체에 걸친다. */
-  margin: -28px -32px 24px; padding: 12px 32px;
-  background: rgba(255,255,255,.94); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  margin: calc(var(--adm-space-6) * -1) calc(var(--adm-pad-page) * -1) var(--adm-space-6); padding: var(--adm-space-3) var(--adm-pad-page);
+  background: var(--adm-surface); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-default);
 }
 @media (min-width: 761px) {
-  /* admin-shell-v3: 데스크톱 본문 여백 20px 28px, 상단 바는 고정되지 않음(--header-h: 0). */
-  .admin-app-wrapper .hm-bar { margin: -20px -28px 24px; padding: 12px 28px; }
+  /* 데스크톱 본문 위 여백 --adm-space-6·좌우 --adm-pad-page(admin-montage), 상단 바는 고정되지 않음(--header-h: 0). */
+  .admin-app-wrapper .hm-bar { margin: calc(var(--adm-space-6) * -1) calc(var(--adm-pad-page) * -1) var(--adm-space-6); padding: var(--adm-space-3) var(--adm-pad-page); }
 }
 .admin-app-wrapper .hm-tabs { display: flex; gap: 4px; flex-wrap: wrap; min-width: 0; }
 .admin-app-wrapper .hm-tabs button {
@@ -57,11 +57,12 @@
 .admin-app-wrapper .hm-sec-title h3 { margin: 0; font-size: 20px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--text-strong); }
 .admin-app-wrapper .hm-count { padding: 2px 8px; border-radius:var(--adm-radius-xs); background: var(--mrt-gray-100); color: var(--text-secondary); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .admin-app-wrapper .hm-sec-text p { margin: 0; font-size: 13px; color: var(--text-tertiary); }
+/* 구역별 '추가'는 보조(테두리) 버튼 — 채움(주요) 버튼은 '변경사항 저장' 하나 */
 .admin-app-wrapper .hm-add {
-  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; flex: none; border: 0; border-radius: var(--adm-radius-md);
-  background: var(--adm-primary-bg); color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; height: var(--adm-control-h); padding: 0 var(--adm-control-pad-x); flex: none; border: 1px solid var(--adm-line-strong); border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface); color: var(--adm-text); font: inherit; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); cursor: pointer;
 }
-.admin-app-wrapper .hm-add:hover { background: var(--adm-primary-bg-hover); }
+.admin-app-wrapper .hm-add:hover { background: var(--adm-gray-50); }
 .admin-app-wrapper .hm-toggle-all { display: flex; justify-content: flex-end; margin: -8px 0; }
 .admin-app-wrapper .hm-toggle-all button { height: 30px; padding: 0 8px; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
 .admin-app-wrapper .hm-toggle-all button:hover { color: var(--text-strong); }
