@@ -95,8 +95,10 @@ export type DashboardIconName = keyof typeof PATHS;
 export function DashboardIcon({ name, size = 16, color = 'currentColor', strokeWidth = 2 }: {
     name: DashboardIconName; size?: number; color?: string; strokeWidth?: number;
 }) {
-    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth}
-        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flex: 'none', display: 'block' }}>
+    // 색은 CSS color로 넘겨 var(--adm-*) 값도 쓸 수 있게 한다(SVG stroke 속성은 CSS 변수를 읽지 못한다).
+    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth}
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"
+        style={{ flex: 'none', display: 'block', ...(color === 'currentColor' ? {} : { color }) }}>
         {PATHS[name]}
     </svg>;
 }

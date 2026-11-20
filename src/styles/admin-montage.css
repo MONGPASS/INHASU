@@ -148,8 +148,8 @@
 .admin-app-wrapper :is(.b-blue, .tint-blue) { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
 .admin-app-wrapper :is(.b-purple, .tint-purple) { background: var(--adm-accent-soft); color: var(--adm-accent-deep); }
 .admin-app-wrapper :is(.b-red, .tint-red) { background: var(--adm-danger-soft); color: var(--adm-danger); }
-.admin-app-wrapper :is(.b-green, .tint-green) { background: var(--adm-success-soft); color: var(--adm-success); }
-.admin-app-wrapper :is(.b-amber, .tint-amber) { background: var(--adm-warn-soft); color: var(--adm-warn); }
+.admin-app-wrapper :is(.b-green, .tint-green) { background: var(--adm-success-soft); color: var(--adm-success-strong); }
+.admin-app-wrapper :is(.b-amber, .tint-amber) { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
 .admin-app-wrapper :is(.b-gray, .tint-ink) { background: var(--adm-neutral-soft); color: var(--adm-neutral); }
 .admin-app-wrapper .b-ink { background: var(--adm-ink); color: #fff; }
 .admin-app-wrapper .sd-dot.b-amber { background: var(--adm-warn); }

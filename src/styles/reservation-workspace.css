@@ -1,7 +1,7 @@
 /* 상품 예약 상세 전용. 견적 데스크의 정적 페이지와 일반 관리자 화면에는 적용하지 않는다. */
 .reservation-workspace.product-workspace {
     --rw-mint: var(--adm-accent-strong);
-    --rw-mint-strong: #08765f;
+    --rw-mint-strong: var(--adm-accent-strong);
     --rw-mint-soft: var(--adm-accent-soft);
     --rw-ink: var(--adm-ink);
     --rw-muted: var(--adm-text-3);
@@ -684,7 +684,7 @@
     gap: 8px;
     min-width: 0;
     padding: 16px;
-    border: 1px solid #eee1c5;
+    border: 1px solid color-mix(in srgb, var(--adm-warn) 32%, transparent);
     border-radius: var(--adm-radius-md);
     background: var(--adm-gray-50);
     color: var(--rw-ink);
@@ -718,7 +718,7 @@
 .reservation-workspace.product-workspace .rw-readiness-state {
     display: inline-flex;
     align-items: center;
-    color: var(--adm-warn);
+    color: var(--adm-warn-strong);
     font-size: 10px;
     font-weight: var(--adm-fw-bold);
 }

@@ -123,14 +123,14 @@
 
 .tour-calendar .tc-tour-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
 .tour-calendar .tc-tour-card.is-selected { border: 1.5px solid var(--mrt-ink); padding: 13.5px; }
-.tour-calendar .tc-tour-card.is-conflict { border-color: #ffc9c9; }
+.tour-calendar .tc-tour-card.is-conflict { border-color: color-mix(in srgb, var(--adm-danger) 32%, transparent); }
 .tour-calendar .tc-tour-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
 .tour-calendar .tc-tour-title { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
 .tour-calendar .tc-tour-title h3 { margin: 0; color: var(--text-strong); font-size: 17px; font-weight: var(--adm-fw-bold); letter-spacing: -.02em; overflow-wrap: anywhere; }
 .tour-calendar .tc-product-name { margin: -6px 0 0; color: var(--text-secondary); font-size: 13px; overflow-wrap: anywhere; }
 .tour-calendar .tc-source { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: var(--adm-radius-xs); background: var(--mrt-green-soft); color: var(--mrt-green); font-size: 11px; font-weight: var(--adm-fw-bold); white-space: nowrap; }
 .tour-calendar .tc-source[data-source="quote_booking"] { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
-.tour-calendar .tc-source[data-source="legacy_quote"] { background: var(--adm-warn-soft); color: var(--adm-warn); }
+.tour-calendar .tc-source[data-source="legacy_quote"] { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
 .tour-calendar .tc-people { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 26px; padding: 0 9px; border-radius: var(--adm-radius-sm); background: var(--mrt-gray-50); color: var(--text-strong); font-size: 12px; font-weight: var(--adm-fw-bold); white-space: nowrap; }
 .tour-calendar .tc-people .tc-glyph { width: 13px; height: 13px; }
 .tour-calendar .tc-tour-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; color: var(--text-tertiary); font-size: 12px; }
@@ -153,7 +153,7 @@
 .tour-calendar .tc-resource-action .tc-glyph { width: 11px; height: 11px; }
 .tour-calendar .tc-issues { display: flex; flex-wrap: wrap; gap: 4px; }
 .tour-calendar .tc-issue { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--adm-radius-xs); background: var(--mrt-purple-soft); color: var(--mrt-purple-2); font-size: 11px; font-weight: var(--adm-fw-bold); }
-.tour-calendar .tc-inquiry-note { margin: 0; padding: 10px 12px; border-radius: var(--adm-radius-sm); background: var(--adm-warn-soft); color: var(--adm-warn); font-size: 12px; line-height: 1.5; }
+.tour-calendar .tc-inquiry-note { margin: 0; padding: 10px 12px; border-radius: var(--adm-radius-sm); background: var(--adm-warn-soft); color: var(--adm-warn-strong); font-size: 12px; line-height: 1.5; }
 .tour-calendar .tc-tour-details { border-top: 1px solid var(--border-subtle); padding-top: 10px; }
 .tour-calendar .tc-tour-details summary { color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer; }
 .tour-calendar .tc-tour-details dl { display: grid; gap: 6px; margin: 10px 0 0; font-size: 12px; }
@@ -181,7 +181,7 @@
 .tour-calendar .tc-empty .tc-glyph { width: 28px; height: 28px; color: var(--mrt-gray-400); }
 .tour-calendar .tc-empty strong { color: var(--text-strong); font-size: 14px; font-weight: var(--adm-fw-bold); }
 .tour-calendar .tc-empty p { margin: 0; }
-.tour-calendar .tc-warning { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border-radius: var(--adm-radius-md); background: var(--adm-warn-soft); color: var(--adm-warn); font-size: 13px; line-height: 1.6; }
+.tour-calendar .tc-warning { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border-radius: var(--adm-radius-md); background: var(--adm-warn-soft); color: var(--adm-warn-strong); font-size: 13px; line-height: 1.6; }
 .tour-calendar .tc-warning > span { flex: 1; min-width: 0; }
 
 @media (max-width: 1280px) {

@@ -51,7 +51,7 @@ export function PopoverShell({ anchor, label, width = 360, onClose, onEscape, ch
     if (!anchor || typeof document === 'undefined') return null;
     return createPortal(
         <div ref={ref} role="dialog" aria-label={label} onKeyDown={onKeyDown} className="design-popover"
-            style={{ position: 'fixed', zIndex: 64, width, maxWidth: 'calc(100vw - 16px)', boxSizing: 'border-box', padding: 12, borderRadius: 14, background: 'var(--adm-surface)',
+            style={{ position: 'fixed', zIndex: 64, width, maxWidth: 'calc(100vw - 16px)', boxSizing: 'border-box', padding: 12, borderRadius: 'var(--adm-radius-md)', background: 'var(--adm-surface)',
                 boxShadow: '0 0 0 1px rgba(16,24,40,.08), 0 16px 40px rgba(16,24,40,.18)', fontFamily: 'Pretendard, system-ui, sans-serif',
                 left: placement?.left ?? anchor.left, ...(placement ? (placement.above ? { bottom: placement.bottom } : { top: placement.top }) : { top: anchor.bottom + 8 }),
                 visibility: placement ? 'visible' : 'hidden' }}>

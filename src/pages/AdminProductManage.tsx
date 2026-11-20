@@ -423,7 +423,7 @@ export const AdminProductManage: React.FC = () => {
                 </button>
             )}
         >
-            {productOpenNotice && <div className="card-pad" role="status" style={{ background: 'var(--adm-warn-soft)', borderRadius: 12, marginBottom: 16 }}>{productOpenNotice}</div>}
+            {productOpenNotice && <div className="card-pad" role="status" style={{ background: 'var(--adm-warn-soft)', borderRadius: 'var(--adm-radius-md)', marginBottom: 16 }}>{productOpenNotice}</div>}
             <div className="route-anim" style={{ display: isModalOpen ? 'none' : undefined }}>
                 <div className="pd-list">
                 <div className="pd-kpis">
@@ -1918,7 +1918,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                 <div className="pa-body">
                 <div className="pa-main">
 
-                <div className="pa-draft-status" role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 12, background: draftError || pendingDraft?.conflict ? 'var(--adm-warn-soft)' : 'var(--adm-accent-soft)', border: '1px solid ' + (draftError || pendingDraft?.conflict ? '#f3d5a3' : '#c8eee3'), fontSize: 13, lineHeight: 1.7 }}>
+                <div className="pa-draft-status" role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 'var(--adm-radius-md)', background: draftError || pendingDraft?.conflict ? 'var(--adm-warn-soft)' : 'var(--adm-accent-soft)', border: '1px solid ' + (draftError || pendingDraft?.conflict ? 'color-mix(in srgb, var(--adm-warn) 32%, transparent)' : 'var(--adm-accent-line)'), fontSize: 13, lineHeight: 1.7 }}>
                     {!adminUserId ? '관리자 계정을 확인하고 있습니다. 확인이 끝난 뒤 편집할 수 있습니다.' : pendingDraft ? <>
                         <strong>{pendingDraft.conflict ? '상품이 변경된 뒤 남아 있는 초안입니다.' : '이 브라우저에 저장하지 않은 상품 초안이 있습니다.'}</strong>
                         <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')}{pendingDraft.conflict ? ' · 서버 상품과 다른 버전입니다. 내용을 복원해 검토하거나 초안을 버리고 최신 상품으로 시작하세요.' : ' · 아래 버튼 중 하나를 고르면 다른 탭과 입력 칸이 열립니다.'}</div>
@@ -1930,7 +1930,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                         <strong>{saving ? '상품 저장 중…' : busy ? '사진 업로드 또는 자료 저장 중…' : dirty ? '변경 내용을 이 브라우저에 자동 보관합니다.' : '현재 저장된 상품 기준입니다.'}</strong>
                         <div>{draftSavedAt ? '마지막 초안 보관: ' + new Date(draftSavedAt).toLocaleString('ko-KR') + ' · ' : ''}초안은 현재 관리자 계정과 이 상품에서만 복원됩니다. 상품 저장 전에는 공개 상품에 반영되지 않습니다.</div>
                     </>}
-                    {draftError && <div role="alert" style={{ color: 'var(--adm-warn)', marginTop: 6 }}>{draftError}<button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { if (savedRef.current) discardDraft(); else flushDraft(); }} style={{ marginLeft: 8 }}>다시 시도</button>{!pendingDraft && !dirty && <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={discardDraft}>초안 버리기</button>}</div>}
+                    {draftError && <div role="alert" style={{ color: 'var(--adm-warn-strong)', marginTop: 6 }}>{draftError}<button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { if (savedRef.current) discardDraft(); else flushDraft(); }} style={{ marginLeft: 8 }}>다시 시도</button>{!pendingDraft && !dirty && <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={discardDraft}>초안 버리기</button>}</div>}
                     {saveNotice && <div style={{ marginTop: 6 }}>{saveNotice}</div>}
                 </div>
                 <form onSubmit={handleSubmit} aria-busy={busy}>
@@ -2084,7 +2084,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                     </div>
 
                                                     {/* Image Number Badge */}
-                                                    <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11, padding: '2px 8px', borderRadius: 6 }}>
+                                                    <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11, padding: '2px 8px', borderRadius: 'var(--adm-radius-xs)' }}>
                                                         {imgIndex + 1} / {formData.mainImages?.length || 0}
                                                     </div>
                                                 </div>
@@ -2790,11 +2790,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                                                 <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, -1)} disabled={evIdx === 0} aria-label="위로"><Icon name="expand_less" /></button>
                                                                                                 <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, 1)} disabled={evIdx === day.events.length - 1} aria-label="아래로"><Icon name="expand_more" /></button>
                                                                                             </div>
-                                                                                            <button type="button" onClick={() => toggleEventOpen(ev.block.id)} title={photos.length ? `사진 ${photos.length}장` : '사진 없음'} style={{ position: 'relative', width: 40, height: 40, flex: 'none', padding: 0, borderRadius: 8, overflow: 'hidden', border: photos.length ? '1px solid var(--border-default)' : '1.5px dashed var(--border-default)', background: 'var(--mrt-gray-50, var(--adm-gray-50))', color: 'var(--mrt-gray-400)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+                                                                                            <button type="button" onClick={() => toggleEventOpen(ev.block.id)} title={photos.length ? `사진 ${photos.length}장` : '사진 없음'} style={{ position: 'relative', width: 40, height: 40, flex: 'none', padding: 0, borderRadius: 'var(--adm-radius-sm)', overflow: 'hidden', border: photos.length ? '1px solid var(--border-default)' : '1.5px dashed var(--border-default)', background: 'var(--mrt-gray-50, var(--adm-gray-50))', color: 'var(--mrt-gray-400)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
                                                                                                 {photos.length
                                                                                                     ? <img src={getOptimizedImageUrl(photos[0], 'productThumbnail')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                                                     : <Icon name="image" style={{ fontSize: 18 }} />}
-                                                                                                {photos.length > 1 && <span style={{ position: 'absolute', right: 2, bottom: 2, padding: '0 4px', borderRadius: 6, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: 700 }}>{photos.length}</span>}
+                                                                                                {photos.length > 1 && <span style={{ position: 'absolute', right: 2, bottom: 2, padding: '0 4px', borderRadius: 'var(--adm-radius-xs)', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: 700 }}>{photos.length}</span>}
                                                                                             </button>
                                                                                             {tc.time && <span className="cell-muted" style={{ flex: 'none', fontSize: 12, fontWeight: 700 }}>{tc.time}</span>}
                                                                                             <div style={{ flex: 1, minWidth: 0 }}>

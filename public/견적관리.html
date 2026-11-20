@@ -27,7 +27,7 @@
 <style>
   :root { --accent:var(--adm-accent); --deep:var(--adm-accent); --deep2:var(--adm-accent-strong); --soft:var(--adm-accent-soft);
     --ink:var(--adm-ink); --sub:var(--adm-text-2); --gray:var(--adm-text-3); --line:var(--adm-line); --bg:var(--adm-canvas);
-    --new:var(--adm-accent); --prog:#e0913a; --book:#3d7ff0; --done:#8a95a0; --hold:#cf6a5e; --up:var(--adm-accent); --down:#d96a5e; }
+    --new:var(--adm-accent); --prog:var(--adm-warn); --book:var(--adm-accent); --done:var(--adm-text-3); --hold:var(--adm-danger); --up:var(--adm-accent); --down:var(--adm-danger); }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:Pretendard, system-ui, "Malgun Gothic", sans-serif; background:var(--bg); color:var(--ink); font-size:14px; }
   svg { display:block; }
@@ -134,8 +134,8 @@
   .b-신규 { background:var(--adm-accent-soft); color:var(--adm-accent-strong); } .b-신규 .dot { background:var(--adm-accent); }
   .b-진행중 { background:var(--adm-accent-soft); color:var(--adm-accent-strong); } .b-진행중 .dot { background:var(--adm-accent); }
   .b-예약확정 { background:var(--adm-accent-line); color:var(--adm-accent-strong); } .b-예약확정 .dot { background:var(--adm-accent-strong); }
-  .b-완료 { background:var(--adm-gray-100); color:var(--adm-text-3); } .b-완료 .dot { background:#8aa39c; }
-  .b-보류 { background:var(--adm-gray-100); color:var(--adm-text-2); } .b-보류 .dot { background:#9db2ac; }
+  .b-완료 { background:var(--adm-gray-100); color:var(--adm-text-3); } .b-완료 .dot { background:var(--adm-text-3); }
+  .b-보류 { background:var(--adm-gray-100); color:var(--adm-text-2); } .b-보류 .dot { background:var(--adm-text-3); }
   .empty { text-align:center; padding:66px 20px; color:var(--gray); }
   .empty .big { font-size:38px; margin-bottom:10px; }
 
@@ -196,7 +196,7 @@
 
   /* ── Admin Dashboard v3 "Page 04 Quote Inquiries" ── 통합 관리자 디자인(민트·잉크) */
   :root { --mint:var(--adm-accent); --mint-strong:var(--adm-accent-strong); --mint-soft:var(--adm-accent-soft); --ink2:var(--adm-ink); --t2:var(--adm-text-2); --t3:var(--adm-text-3); --bd:var(--adm-line); --bd2:var(--adm-line-subtle); --g50:var(--adm-gray-50); --g100:var(--adm-gray-100);
-    --red:var(--adm-danger); --red-soft:var(--adm-danger-soft); --purple:#5b30e8; --purple-soft:var(--adm-accent-soft); --green:var(--adm-success); --green-soft:var(--adm-success-soft); }
+    --red:var(--adm-danger); --red-soft:var(--adm-danger-soft); --purple:var(--adm-accent-strong); --purple-soft:var(--adm-accent-soft); --green:var(--adm-success); --green-soft:var(--adm-success-soft); }
   html.admin-embedded body { background:var(--g50); }
   html.admin-embedded .content { max-width:none; padding:24px 28px 60px; }
   html.admin-embedded .welcome { display:none; }

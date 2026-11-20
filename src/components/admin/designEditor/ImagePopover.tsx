@@ -20,14 +20,14 @@ export function ImagePopover({ label, value, sharedUrl, uploading, disabled = fa
     const status = uploading ? '업로드 중…' : value ? '이 상품에 올린 사진' : sharedUrl ? '공통 사진 사용 중' : '사진 없음 — 올리면 이 자리에 들어갑니다';
     return <PopoverShell anchor={anchor} label={`${label} 사진`} width={380} onClose={onClose} isInside={isInside}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <b style={{ fontSize: 13, fontWeight: 800, color: 'var(--adm-ink)' }}>{label}</b>
-            <span style={{ fontSize: 11, color: uploading ? 'var(--adm-warn)' : 'var(--adm-text-3)' }}>{status}</span>
+            <b style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-ink)' }}>{label}</b>
+            <span style={{ fontSize: 11, color: uploading ? 'var(--adm-warn-strong)' : 'var(--adm-text-3)' }}>{status}</span>
             <button type="button" aria-label="닫기" onClick={onClose} style={{ marginLeft: 'auto', width: 28, height: 28, border: 0, borderRadius: 999, background: 'transparent', color: 'var(--adm-text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-x" size={15} /></button>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: 96, height: 96, flex: 'none', borderRadius: 12, overflow: 'hidden', background: 'var(--adm-gray-100)', border: `1px ${shown ? 'solid' : 'dashed'} ${value ? '#e9ecef' : '#06C4A0'}`, display: 'grid', placeItems: 'center', color: 'var(--adm-text-3)' }}>
-                {shown ? <img src={shown} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: uploading ? .5 : 1 }} /> : <Ico name="lc-image-plus" size={26} color="#adb5bd" />}
-                {!value && sharedUrl && <span style={{ position: 'absolute', left: 6, bottom: 6, padding: '1px 7px', borderRadius: 999, background: 'var(--adm-accent)', color: '#fff', fontSize: 10, fontWeight: 800 }}>공통</span>}
+            <div style={{ position: 'relative', width: 96, height: 96, flex: 'none', borderRadius: 'var(--adm-radius-md)', overflow: 'hidden', background: 'var(--adm-gray-100)', border: `1px ${shown ? 'solid' : 'dashed'} ${value ? 'var(--adm-line)' : 'var(--adm-accent)'}`, display: 'grid', placeItems: 'center', color: 'var(--adm-text-3)' }}>
+                {shown ? <img src={shown} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: uploading ? .5 : 1 }} /> : <Ico name="lc-image-plus" size={26} color="var(--adm-text-3)" />}
+                {!value && sharedUrl && <span style={{ position: 'absolute', left: 6, bottom: 6, padding: '1px 7px', borderRadius: 999, background: 'var(--adm-accent)', color: '#fff', fontSize: 10, fontWeight: 700 }}>공통</span>}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
                 <label style={{ ...btn(true), opacity: locked ? .5 : 1, cursor: locked ? 'not-allowed' : 'pointer' }}>

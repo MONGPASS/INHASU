@@ -42,7 +42,7 @@
 
 .admin-app-wrapper ::-webkit-scrollbar { width: 10px; height: 10px; }
 .admin-app-wrapper ::-webkit-scrollbar-thumb { background: var(--adm-gray-300); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
-.admin-app-wrapper ::-webkit-scrollbar-thumb:hover { background: #C9CDD4; background-clip: content-box; }
+.admin-app-wrapper ::-webkit-scrollbar-thumb:hover { background: var(--adm-gray-300); background-clip: content-box; }
 
 /* ============ App layout ============ */
 .admin-app-wrapper .app { display: flex; min-height: 100vh; }
@@ -224,7 +224,7 @@
 .admin-app-wrapper .tint-purple { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
 .admin-app-wrapper .tint-red { background: var(--mrt-red-soft); color: var(--mrt-red); }
 .admin-app-wrapper .tint-green { background: var(--mrt-green-soft); color: var(--mrt-green); }
-.admin-app-wrapper .tint-amber { background: var(--adm-warn-soft); color: var(--adm-warn); }
+.admin-app-wrapper .tint-amber { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
 .admin-app-wrapper .tint-ink { background: var(--mrt-gray-100); color: var(--mrt-ink); }
 
 /* ============ Upcoming tour radar ============ */
@@ -250,7 +250,7 @@
   font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap;
 }
 .admin-app-wrapper .upcoming-tour-due.due-now strong { color: var(--mrt-red); background: var(--mrt-red-soft); }
-.admin-app-wrapper .upcoming-tour-due.due-week strong { color: var(--adm-warn); background: var(--adm-warn-soft); }
+.admin-app-wrapper .upcoming-tour-due.due-week strong { color: var(--adm-warn-strong); background: var(--adm-warn-soft); }
 .admin-app-wrapper .upcoming-tour-due.due-later strong { color: var(--mrt-blue-strong); background: var(--mrt-blue-50); }
 .admin-app-wrapper .upcoming-tour-product,
 .admin-app-wrapper .upcoming-tour-customer { min-width: 0; }
@@ -295,7 +295,7 @@
 .admin-app-wrapper .b-purple { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
 .admin-app-wrapper .b-red { background: var(--mrt-red-soft); color: var(--mrt-red); }
 .admin-app-wrapper .b-green { background: var(--mrt-green-soft); color: var(--mrt-green); }
-.admin-app-wrapper .b-amber { background: var(--adm-warn-soft); color: var(--adm-warn); }
+.admin-app-wrapper .b-amber { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
 .admin-app-wrapper .b-gray { background: var(--mrt-gray-100); color: var(--mrt-gray-600); }
 .admin-app-wrapper .b-ink { background: var(--mrt-ink); color: #fff; }
 
@@ -716,7 +716,7 @@
 .admin-app-wrapper .pay-bar { height: 8px; border-radius:var(--adm-radius-sm); background: var(--mrt-gray-100); overflow: hidden; }
 .admin-app-wrapper .pay-bar > span { display: block; height: 100%; border-radius:var(--adm-radius-sm); background: linear-gradient(90deg, var(--mrt-blue), var(--mrt-green)); transition: width 0.4s var(--ease-out); }
 .admin-app-wrapper .pay-cell { border: 1px solid var(--border-default); border-radius: var(--r-md); padding: 13px; background: var(--adm-surface); transition: all var(--dur-fast); }
-.admin-app-wrapper .pay-cell.paid { background: var(--mrt-green-soft); border-color: #BCEBCF; }
+.admin-app-wrapper .pay-cell.paid { background: var(--mrt-green-soft); border-color: color-mix(in srgb, var(--adm-success) 32%, transparent); }
 
 .admin-app-wrapper .step { display: flex; align-items: flex-start; gap: 13px; padding: 10px 0; position: relative; }
 .admin-app-wrapper .step-ico { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--mrt-gray-100); color: var(--mrt-gray-500); z-index: 1; }
@@ -743,7 +743,7 @@
 .admin-app-wrapper .op-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .admin-app-wrapper .op-step { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 8px; border: 1px solid var(--border-default); border-radius: var(--r-md); background: var(--mrt-gray-50); cursor: pointer; text-align: left; transition: all var(--dur-fast); min-height: 92px; }
 .admin-app-wrapper .op-step:hover { border-color: var(--border-strong); background: var(--adm-surface); }
-.admin-app-wrapper .op-step.done { background: var(--mrt-green-soft); border-color: #BCEBCF; }
+.admin-app-wrapper .op-step.done { background: var(--mrt-green-soft); border-color: color-mix(in srgb, var(--adm-success) 32%, transparent); }
 .admin-app-wrapper .op-ico { width: 28px; height: 28px; border-radius: var(--adm-radius-sm); background: var(--adm-surface); color: var(--mrt-gray-400); display: grid; place-items: center; box-shadow: var(--shadow-xs); margin-bottom: 4px; }
 .admin-app-wrapper .op-ico .material-symbols-outlined { font-size: 16px; }
 .admin-app-wrapper .op-step.done .op-ico { background: var(--mrt-green); color: #fff; }
@@ -830,7 +830,7 @@
 .admin-app-wrapper .cal-ev b { font-weight: var(--adm-fw-bold); }
 .admin-app-wrapper .ev-blue { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
 .admin-app-wrapper .ev-green { background: var(--mrt-green-soft); color: var(--mrt-green); }
-.admin-app-wrapper .ev-amber { background: var(--adm-warn-soft); color: var(--adm-warn); }
+.admin-app-wrapper .ev-amber { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
 
 /* ============ Product editor tabs ============ */
 .admin-app-wrapper .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border-default); margin-bottom: 22px; }
@@ -1131,7 +1131,7 @@
 .admin-app-wrapper .tcom .btn-ink { background: var(--adm-primary-bg); }
 .admin-app-wrapper .tcom .btn-ink:hover { background: var(--adm-primary-bg-hover); box-shadow: none; }
 .admin-app-wrapper .tcom .badge { border-radius: var(--adm-radius-xs); font-size: 11px; padding: 1px 6px; }
-.admin-app-wrapper .tcom .cell-price { color: var(--adm-warn); }
+.admin-app-wrapper .tcom .cell-price { color: var(--adm-warn-strong); }
 .admin-app-wrapper .tcom .pay-cell { border-radius: var(--adm-radius-sm); }
 .admin-app-wrapper .tcom .inp { height: 36px; font-size: 13px; border-radius: var(--adm-radius-xs); }
 .admin-app-wrapper .tcom .next-bar { background: var(--adm-accent-soft); }

@@ -123,7 +123,7 @@ export const AdminLogin: React.FC = () => {
                     <div className="row" style={{ gap: 12 }}>
                         <span className="brand-mark" style={{ width: 46, height: 46 }}><Icon name="flight_takeoff" /></span>
                         <div>
-                            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em' }}>{ADMIN_BRAND}</div>
+                            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em' }}>{ADMIN_BRAND}</div>
                             <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.7 }}>예약 · 맞춤 견적 · 상품 · 콘텐츠</div>
                         </div>
                     </div>
@@ -142,7 +142,7 @@ export const AdminLogin: React.FC = () => {
                 {showSetup ? (
                     <form className="login-card" onSubmit={handleSetup}>
                         <div className="eyebrow"><span className="dot" />처음 설정</div>
-                        <h2 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-strong)', margin: '6px 0 6px' }}>관리자 계정을 만듭니다</h2>
+                        <h2 style={{ fontSize: 27, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-strong)', margin: '6px 0 6px' }}>관리자 계정을 만듭니다</h2>
                         <p style={{ fontSize: 14, color: 'var(--text-tertiary)', margin: '0 0 22px', lineHeight: 1.6 }}>
                             {ADMIN_BRAND}에 아직 계정이 없습니다. 기존 견적 관리자 비밀번호로 확인한 뒤,
                             앞으로 로그인에 쓸 이메일과 비밀번호를 정해 주세요.
@@ -190,7 +190,7 @@ export const AdminLogin: React.FC = () => {
                 ) : (
                     <form className="login-card" onSubmit={handleLogin}>
                         <div className="eyebrow"><span className="dot" />관리자 로그인</div>
-                        <h2 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-strong)', margin: '6px 0 6px' }}>운영을 시작합니다</h2>
+                        <h2 style={{ fontSize: 27, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-strong)', margin: '6px 0 6px' }}>운영을 시작합니다</h2>
                         <p style={{ fontSize: 14, color: 'var(--text-tertiary)', margin: '0 0 26px' }}>{ADMIN_BRAND} 계정으로 로그인해 주세요.</p>
 
                         {notice && <div style={noticeStyle('green')} role="status">{notice}</div>}

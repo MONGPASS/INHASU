@@ -924,8 +924,8 @@ export const AdminMagazineManage: React.FC = () => {
                 <button type="button" role="tab" className="cm-tab" aria-selected={activeTab === 'magazines'} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('magazines'); }}>매거진 목록</button>
                 <button type="button" role="tab" className="cm-tab" aria-selected={activeTab === 'categories'} onClick={() => { if (viewMode === 'edit' && !resetForm()) return; setActiveTab('categories'); }}>카테고리 관리</button>
             </div>
-            {draftNotice && <p role="alert" style={{ margin: 0, padding: '12px 16px', background: 'var(--adm-warn-soft)', color: 'var(--adm-warn)', borderRadius: 12 }}>{draftNotice}</p>}
-            {viewMode === 'edit' && <div role="status" style={{ padding: '14px 18px', borderRadius: 14, background: 'var(--adm-accent-soft)', color: 'var(--adm-accent-strong)' }}>
+            {draftNotice && <p role="alert" style={{ margin: 0, padding: '12px 16px', background: 'var(--adm-warn-soft)', color: 'var(--adm-warn-strong)', borderRadius: 'var(--adm-radius-md)' }}>{draftNotice}</p>}
+            {viewMode === 'edit' && <div role="status" style={{ padding: '14px 18px', borderRadius: 'var(--adm-radius-md)', background: 'var(--adm-accent-soft)', color: 'var(--adm-accent-strong)' }}>
                 <strong>이 브라우저에 관리자별 매거진 초안을 자동 보관합니다.</strong><p style={{ margin: '4px 0', fontSize: 13 }}>자동 보관은 사이트 발행·서버 임시 저장과 별도입니다. {draftSavedAt ? `마지막 초안 보관: ${new Date(draftSavedAt).toLocaleString('ko-KR')}` : dirty ? '입력 내용을 보관하고 있습니다.' : '변경사항이 생기면 자동 보관합니다.'}</p>
                 {recovery.kind === 'draft' && <><p>{recovery.conflict ? '보관 후 서버 원본이 변경되었습니다. 초안을 복원하면 저장 시 현재 작성 내용이 원본을 대체합니다.' : '이 문서의 보관된 초안이 있습니다.'} 보관 시각: {new Date(recovery.draft.savedAt).toLocaleString('ko-KR')}</p><button type="button" className="btn btn-ink btn-sm" onClick={() => { if (saveLock.current || uploadLock.current) return; const restored = recovery.draft; pendingRef.current = false; revisionRef.current = restored.revision; storedRef.current = magazineDraftFingerprint(restored.form); setFormData(structuredClone(restored.form)); setEditorContent(restored.form.content || ''); setDraftSavedAt(restored.savedAt); setRecovery({ kind: 'empty' }); }}>초안 복원</button>{' '}</>}
                 {recovery.kind === 'error' && <p role="alert">{recovery.error}</p>}
@@ -1222,7 +1222,7 @@ export const AdminMagazineManage: React.FC = () => {
                                         type="text"
                                         value={formData.title}
                                         onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                        style={{ width: '100%', fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-strong)', border: 'none', outline: 'none', background: 'transparent' }}
+                                        style={{ width: '100%', fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-strong)', border: 'none', outline: 'none', background: 'transparent' }}
                                         placeholder="제목을 입력하세요"
                                     />
                                 </div>

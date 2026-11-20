@@ -547,13 +547,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                 </>}
         >
             {customerPage && <><V7Styles /><V7Menu menu={toolMenu} onClose={() => setToolMenu(null)} /></>}
-            {editorNotice && <div role="status" style={{ padding: '12px 20px', background: 'var(--adm-warn-soft)', color: 'var(--adm-warn)' }}>{editorNotice}</div>}
+            {editorNotice && <div role="status" style={{ padding: '12px 20px', background: 'var(--adm-warn-soft)', color: 'var(--adm-warn-strong)' }}>{editorNotice}</div>}
             {linked ? (
                 <div ref={customerPageRef} className={customerPage ? `quote-customer-page${editorExpanded ? ' is-editing' : ''}` : undefined} style={customerPage ? { flex: 1, minHeight: 0, overflow: editorExpanded ? 'hidden' : 'auto', background: 'var(--adm-gray-50)' } : { position: 'relative', flex: 1, minHeight: 0, background: 'var(--adm-surface)' }}>
                     {customerPage && <>
                         {bookingId && accountReviewId === bookingId && customerModel && <QuoteAccountLinkDialog key={bookingId} requestId={bookingId}
                             customerName={customerModel.customerName} onClose={() => setAccountReviewId('')} />}
-                        {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 12, background: 'var(--adm-warn-soft)' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
+                        {customerError && <div role="alert" style={{ margin: 20, padding: 16, borderRadius: 'var(--adm-radius-md)', background: 'var(--adm-warn-soft)' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
                         {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
                             <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao}
                                 links={{ source: v7Source, userId: accountId, onAssignmentSaved: () => setCustomerRefresh(value => value + 1) }}
@@ -630,7 +630,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         <div className="card card-pad" style={{ maxWidth: 560 }}>
                             <div className="empty" style={{ padding: '18px 8px 10px' }}>
                                 <Icon name="lock" />
-                                <p style={{ color: 'var(--text-strong)', fontSize: 16, fontWeight: 800 }}>견적 데스크가 아직 연결되지 않았습니다</p>
+                                <p style={{ color: 'var(--text-strong)', fontSize: 16, fontWeight: 700 }}>견적 데스크가 아직 연결되지 않았습니다</p>
                                 <p style={{ lineHeight: 1.7, fontWeight: 500 }}>
                                     서버에 견적 관리자 비밀번호(환경 변수 <b>ADMIN_TOKEN</b>)가 설정되어 있지 않아
                                     견적 문의·예약 화면을 이 관리자 안에서 열 수 없습니다.
@@ -649,7 +649,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         <div className="card card-pad" style={{ maxWidth: 560 }}>
                             <div className="empty" style={{ padding: '18px 8px 10px' }}>
                                 <Icon name="warning" />
-                                <p style={{ color: 'var(--text-strong)', fontSize: 16, fontWeight: 800 }}>견적 데스크에 연결하지 못했습니다</p>
+                                <p style={{ color: 'var(--text-strong)', fontSize: 16, fontWeight: 700 }}>견적 데스크에 연결하지 못했습니다</p>
                                 <p style={{ lineHeight: 1.7, fontWeight: 500 }}>
                                     관리자 로그인이 만료되었거나 서버에 연결할 수 없습니다. 다시 시도해도 같으면 다시 로그인해 주세요.
                                 </p>
