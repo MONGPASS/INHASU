@@ -191,6 +191,7 @@ node scripts/check-reservation-workspace.mjs --serve --usability --customer-work
 - **상품 예약**: 예약(로그인 필수) → `pending_payment` → 고객이 `DEPOSIT_ACCOUNT`로 예약금 입금 → 마이페이지 예약 상세에서 **입금 완료 신고**(`POST /api/reservations/:id/deposit-report`, `reservations.deposit_report` JSON) → 관리자 예약 관리에서 입금 확인 → `confirmed`. 잔금은 현지 현금.
 - **견적 예약**: 같은 방식이 견적 시스템에 원래 있다(`public/내견적.html` → `POST /api/deposit/:token`, 관리자 `예약관리.html`의 입금 확인).
   - 흐름: 견적서 발행([링크 공유하기] 견적 알림) → 고객이 카카오톡으로 진행 의사 → 견적 문의 상세 [예약 진행 기록](예약금·계좌가 담긴 예약 생성, 예약 접수 알림) → 고객 입금(입금 신고는 선택) → 관리자 입금 확인 → 계약서 서명 요청 기록 + 계약서·여행자 정보 요청 알림 → 고객 서명(서명 접수·여행 준비 안내 자동) → 예약확정(수락·서명·입금 필요, 확정 알림) → 가이드·차량·숙박 수만큼 숙소 배정 → 확정일정표 공개(일정표 알림). 예약관리의 [입금 확인] 버튼이든 결제 탭에서 예약금 상태만 `입금완료`로 저장하든 서버가 서명 요청(`contractRequest`)을 함께 기록한다. 전체 흐름은 `tests/quote-booking-flow.test.mjs`가 실제 함수로 확인한다.
+  - **고객 통합 작업의 ‘지금 할 일’**(2026-11-20): 견적 고객 화면 진행 단계는 7단계(견적서 → 고객 답변 → 예약금 → 계약서 서명 → 예약 확정 → 배정 → 일정표 공개, 모델 `flow`)이고 첫 미완료 단계의 할 일 한 줄과 버튼 하나를 보여 준다. 버튼은 기존 PATCH `/api/requests/:id`를 쓴다: [고객이 예약하겠대요] `acceptQuote`(서버가 `functions/lib/quoteBookingSeed.mjs`로 견적관리 `public/booking.js`와 같은 예약을 만든다 — 두 파일을 함께 고치고, 테스트가 결과를 비교한다), [입금 확인했어요] `confirmDeposit`, [서명 안내 다시 보내기] `notifyContract`, [예약 확정] `status:예약확정`, [확정일정표 공개·보내기] `publishItinerary`. 고객 알림이 나가는 버튼은 확인 창을 거치고, 편집 중인 원래 편집기가 있으면 먼저 저장하게 한다. 결제·배정 카드는 정보 표시용이다.
 - PayPal 코드(`functions/lib/paypal.ts`, 웹훅, 인보이스 발송)는 남아 있지만 `PAYPAL_ENABLED=true`일 때만 동작한다(기본 꺼짐).
 
 ## 7. 배포

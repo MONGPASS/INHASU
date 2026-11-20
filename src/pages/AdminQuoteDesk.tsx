@@ -33,6 +33,7 @@ import {
     resourceScheduleView,
 } from '../components/admin/quoteDesk';
 import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
+import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 
 /**
  * 맞춤 견적 데스크 — `/admin/quote-desk/:tool?`
@@ -150,6 +151,8 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const [accountReviewId, setAccountReviewId] = useState('');
     const [editorBusy, setEditorBusy] = useState(false);
     const [sendingKakao, setSendingKakao] = useState(false);
+    // 고객 현황 '지금 할 일' 버튼(예약 만들기·입금 확인·서명 안내·예약 확정·일정표 공개)을 서버에 저장하는 중
+    const [quickBusy, setQuickBusy] = useState(false);
     const [editorDirty, setEditorDirty] = useState(false);
     const [showDeliveries, setShowDeliveries] = useState(false);
     const [bookingWorkspace, setBookingWorkspace] = useState<BookingWorkspaceState | null>(null);
@@ -420,10 +423,38 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
             if (customerPageRef.current) customerPageRef.current.scrollTop = overviewScrollRef.current;
         });
     };
+    /* '지금 할 일' 버튼: 기존 견적 API 하나로 저장한다. 고객 알림은 서버가 원래 규칙대로 보낸다(예약 접수·서명 안내·확정·일정표).
+       원래 편집기의 저장과 같은 기록을 바꾸므로, 편집 중이면 먼저 저장하게 하고 끝나면 편집기를 최신 내용으로 다시 연다. */
+    const QUICK_ACTIONS: Record<string, { body: Record<string, unknown>; done: string }> = {
+        'accept-quote': { body: { acceptQuote: true }, done: '예약을 만들었어요. 고객 화면에 예약금·입금 계좌가 보여요.' },
+        'confirm-deposit': { body: { confirmDeposit: true }, done: '입금 확인을 기록했어요. 계약서 서명 안내를 요청했어요.' },
+        'notify-contract': { body: { notifyContract: true }, done: '계약서 서명 안내를 다시 요청했어요.' },
+        'confirm-booking': { body: { status: '예약확정' }, done: '예약을 확정했어요.' },
+        'publish-itinerary': { body: { publishItinerary: true }, done: '확정일정표를 공개했어요.' },
+    };
+    const runQuickAction = async (action: string) => {
+        const quick = QUICK_ACTIONS[action], id = bookingId, account = accountId;
+        if (!quick || !customerRecord || !id || quickBusy) return;
+        if (!canSendCustomerKakao()) return;
+        const button = customerModel?.flow?.next.primary?.action === action ? customerModel.flow.next.primary : undefined;
+        if (button?.confirm && !await adminConfirm({ title: button.label, message: button.confirm, confirmLabel: button.label })) return;
+        if (activeCustomer.current.accountId !== account || activeCustomer.current.id !== id) return;
+        setQuickBusy(true);
+        try {
+            const response = await fetch(`/api/requests/${encodeURIComponent(id)}`, { method: 'PATCH', cache: 'no-store',
+                headers: { 'Content-Type': 'application/json', 'x-admin-token': linkedToken.current }, body: JSON.stringify(quick.body) });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || payload?.ok !== true) { adminNotify(typeof payload?.error === 'string' && payload.error ? payload.error : '저장하지 못했습니다. 다시 시도해 주세요.', 'error'); return; }
+            adminNotify(quick.done, 'success');
+            if (!editorExpanded) setEditorMountScope('');
+        } catch { adminNotify('연결이 끊겨 저장하지 못했습니다. 다시 시도해 주세요.', 'error'); }
+        finally { setQuickBusy(false); setCustomerRefresh(value => value + 1); }
+    };
     const customerAction = (action: string) => {
-        if (editorBusy || customerRefreshing || sendingKakao) return;
+        if (editorBusy || customerRefreshing || sendingKakao || quickBusy) return;
         if (action === 'back') { navigate(returnTo); return; }
         if (!customerRecord) return;
+        if (QUICK_ACTIONS[action]) { void runQuickAction(action); return; }
         if (['customer-link', 'quote-preview', 'itinerary-preview'].includes(action)) {
             const token = typeof customerRecord.token === 'string' ? customerRecord.token : '';
             if (!token) { setEditorNotice('고객 링크가 아직 발급되지 않았습니다. 먼저 견적서를 저장해 주세요.'); return; }
@@ -589,7 +620,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                             customerName={customerModel.customerName} onClose={() => setAccountReviewId('')} />}
                         {customerError && <div role="alert" className="adm-msg is-cautionary" style={{ margin: 20, width: 'auto' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
                         {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
-                            <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao}
+                            <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao || quickBusy}
                                 links={{ source: v7Source, userId: accountId, onAssignmentSaved: () => setCustomerRefresh(value => value + 1) }}
                                 notificationActions={<CustomerKakaoActions key={`${accountId}:${bookingId}`} source="quote_booking" bookingId={bookingId!}
                                     revision={JSON.stringify([customerCheckedAt, customerRecord, recordedDelivery?.items.map(item => [item.id, item.kind, item.channel, item.state, item.at, item.error])])} disabled={editorBusy || customerRefreshing || sendingKakao || editorDirty}

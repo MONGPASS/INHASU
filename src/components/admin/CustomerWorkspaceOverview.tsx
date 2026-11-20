@@ -34,8 +34,18 @@ export interface CustomerWorkspaceOverviewModel {
     payment: { total: number | null; deposit: number | null; balance: number | null; depositPaid: boolean | null; balancePaid: boolean | null };
     assignments: Array<{ id: 'guide' | 'vehicle' | 'stay'; label: string; value: string; detail?: string; statusLabel: string; state: 'ready' | 'pending' | 'unknown' }>;
     steps: Array<{ id: string; label: string; done: boolean; current?: boolean }>;
+    /** 맞춤 견적: 견적서부터 일정표 공개까지 7단계와 지금 할 일 하나(버튼 하나). 있으면 진행 단계 카드가 이것을 그린다. */
+    flow?: CustomerWorkspaceFlow;
     tasks: Array<{ id: string; label: string; action: string; detail?: string; actionLabel?: string; waiting?: boolean }>;
     customerLinkAvailable?: boolean; canSendItinerary?: boolean;
+}
+
+export interface CustomerWorkspaceFlowButton { label: string; action: string; /** 있으면 누르기 전에 이 문구로 확인한다(고객 알림이 나가는 버튼). */ confirm?: string }
+export interface CustomerWorkspaceFlow {
+    steps: Array<{ id: string; label: string; done: boolean }>;
+    /** 지금 단계(첫 미완료). 모두 끝났으면 steps.length */
+    current: number;
+    next: { title: string; detail?: string; waiting?: boolean; primary?: CustomerWorkspaceFlowButton; secondary?: CustomerWorkspaceFlowButton };
 }
 
 /** 고객 예약 상세 — 예약 관리 v7 디자인. links가 있으면 결제·배정·운영 값을 이 화면에서 바로 저장한다. */

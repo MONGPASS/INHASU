@@ -271,9 +271,11 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         try { await navigator.clipboard.writeText(text); flash('고객 정보를 복사했어요'); } catch { flash('복사하지 못했어요. 브라우저 권한을 확인해 주세요.'); }
     };
 
-    // 진행 단계: v7 계산(예약 원본이 있을 때) 또는 고객 화면 모델의 단계
-    const steps = row ? row.steps.map((s, i) => ({ ...s, sub: v7StepSubs(row)[i] })) : m.steps.map(s => ({ label: s.label, done: s.done, sub: s.done ? '완료' : s.current ? '진행 중' : '대기' }));
-    const stepHead = row ? v7StepLabel(row) : cancelled ? { label: '취소된 예약', tone: 'gray' as const } : steps.every(s => s.done) ? { label: '모든 단계 완료', tone: 'mint' as const } : { label: m.steps.find(s => s.current)?.label || steps.find(s => !s.done)?.label || '', tone: 'red' as const };
+    // 진행 단계: 맞춤 견적은 견적서~일정표 공개 7단계(m.flow), 상품 예약은 v7 계산(예약 원본이 있을 때) 또는 고객 화면 모델의 단계
+    const flow = m.flow;
+    const flowStepSec: Record<string, string> = { quote: 'sec-doc', answer: 'sec-doc', deposit: 'sec-pay', sign: 'sec-doc', confirm: 'sec-pay', assign: 'sec-asg', publish: 'sec-plan' };
+    const steps = flow ? flow.steps.map((s, i) => ({ label: s.label, done: s.done, sub: s.done ? '완료' : i === flow.current ? flow.next.waiting ? '기다리는 중' : '지금' : '대기' })) : row ? row.steps.map((s, i) => ({ ...s, sub: v7StepSubs(row)[i] })) : m.steps.map(s => ({ label: s.label, done: s.done, sub: s.done ? '완료' : s.current ? '진행 중' : '대기' }));
+    const stepHead = flow ? flow.current >= flow.steps.length ? { label: '모든 단계 완료', tone: 'mint' as const } : { label: `${flow.current + 1}단계 · ${flow.steps[flow.current].label}`, tone: flow.next.waiting ? 'gray' as const : 'red' as const } : row ? v7StepLabel(row) : cancelled ? { label: '취소된 예약', tone: 'gray' as const } : steps.every(s => s.done) ? { label: '모든 단계 완료', tone: 'mint' as const } : { label: m.steps.find(s => s.current)?.label || steps.find(s => !s.done)?.label || '', tone: 'red' as const };
     // 진행 단계 클릭은 디자인대로 해당 카드로 이동한다(서류·결제·배정·결제·일정). 원본이 없는 모델 단계는 해당 업무를 연다.
     const stepTargets = row ? ['sec-doc', 'sec-pay', 'sec-asg', 'sec-pay', 'sec-plan'] : [];
     const dd = row ? v7Dday(row) : null;
@@ -372,7 +374,18 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px 24px', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)' }}>
             <V7StepHead big label={stepHead.label} tone={stepHead.tone} count={cancelled ? '' : `${steps.filter(s => s.done).length} / ${steps.length} 단계 완료`} />
-            <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => stepTargets[i] ? goSec(stepTargets[i]) : onAction(m.steps[i]?.id || 'payments')} />
+            <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => flow ? goSec(flowStepSec[flow.steps[i]?.id] || 'sec-plan') : stepTargets[i] ? goSec(stepTargets[i]) : onAction(m.steps[i]?.id || 'payments')} />
+            {flow && <div className="v7-next" role="group" aria-label="지금 할 일" style={{ display: 'flex', alignItems: 'center', gap: '12px 16px', flexWrap: 'wrap', padding: '14px 16px', borderRadius: 'var(--adm-radius-md)', background: flow.next.waiting ? 'var(--adm-fill-subtle)' : 'var(--adm-accent-soft)' }}>
+                <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: flow.next.waiting ? V7_MUTED : 'var(--adm-accent-strong)' }}>{flow.current >= flow.steps.length ? '완료' : flow.next.waiting ? '고객 응답을 기다리는 중' : '지금 할 일'}</div>
+                    <div style={{ marginTop: 2, fontSize: 16, fontWeight: 700, color: 'var(--adm-text)' }}>{flow.next.title}</div>
+                    {flow.next.detail && <div style={{ marginTop: 4, fontSize: 13, fontWeight: 500, lineHeight: 1.5, color: 'var(--adm-text-2)' }}>{flow.next.detail}</div>}
+                </div>
+                {(flow.next.primary || flow.next.secondary) && <div className="v7-next-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {flow.next.secondary && <button type="button" disabled={busy} onClick={action(flow.next.secondary.action)} style={ghostBtn(40)}>{flow.next.secondary.label}</button>}
+                    {flow.next.primary && <button type="button" disabled={busy} onClick={action(flow.next.primary.action)} style={{ ...inkBtn(40), padding: '0 18px', background: 'var(--adm-accent)' }}>{flow.next.primary.label}</button>}
+                </div>}
+            </div>}
         </div>
 
         {/* Montage 시안: 구역 탭(밑줄). 누르면 해당 카드로 이동만 하고 업무를 실행하지 않는다. */}
