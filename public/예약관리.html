@@ -34,14 +34,14 @@
   .hbtn.danger { color:var(--adm-danger); }
 
   main { max-width:960px; margin:0 auto; padding:24px 20px; display:flex; flex-direction:column; gap:20px; }
-  section.card { background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); padding:22px 26px; box-shadow:0 4px 14px rgba(15,46,39,.04); }
+  section.card { background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); padding:22px 26px; box-shadow: var(--adm-shadow-md); }
   .sec-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
   .sec-h h2 { font-size:15.5px; font-weight:var(--adm-fw-bold); display:flex; align-items:center; gap:8px; }
   .sec-h h2 .n { min-width:24px; height:24px; padding:0 9px; border-radius:var(--adm-radius-xs); background:var(--accent); color:#fff; font-size:11px;
     display:inline-flex; align-items:center; justify-content:center; }
 
   /* 예약 업무 진행 단계 */
-  .workflow-card { padding:0 !important; overflow:hidden; border-color:var(--line) !important; box-shadow:0 4px 14px rgba(15,46,39,.04); }
+  .workflow-card { padding:0 !important; overflow:hidden; border-color:var(--line) !important; box-shadow: var(--adm-shadow-md); }
   .workflow-head { padding:20px 22px 17px; display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; }
   .workflow-eyebrow { display:inline-flex; color:#fff; background:var(--accent); border-radius:var(--adm-radius-xs); padding:4px 9px; font-size:11px; font-weight:var(--adm-fw-bold); margin-bottom:7px; }
   .workflow-head h2 { font-size:19px; letter-spacing:-.025em; }
@@ -67,8 +67,8 @@
   .next-task-copy small { display:block; color:var(--adm-accent-strong); font-size:11px; font-weight:var(--adm-fw-bold); margin-bottom:4px; }
   .next-task-copy b { display:block; font-size:15px; line-height:1.35; }
   .next-task-copy p { margin-top:4px; color:var(--adm-accent-strong); font-size:12px; line-height:1.45; }
-  .next-task button { flex:none; border:0; border-radius:var(--adm-radius-sm); padding:11px 16px; background:var(--accent); color:#fff; font:800 13px Pretendard; cursor:pointer; box-shadow:0 6px 14px rgba(6,196,160,.25); }
-  .next-task.waiting { background:var(--adm-warn-soft); border-color:color-mix(in srgb, var(--adm-warn) 32%, transparent); }
+  .next-task button { flex:none; border:0; border-radius:var(--adm-radius-sm); padding:11px 16px; background:var(--accent); color:#fff; font:800 13px Pretendard; cursor:pointer; box-shadow: var(--adm-shadow-md); }
+  .next-task.waiting { background:var(--adm-warn-soft); border-color:var(--adm-warn-line); }
   .next-task.waiting .next-task-icon, .next-task.waiting small { color:var(--adm-warn-strong); }
   .next-task.complete { background:var(--adm-accent-soft); border-color:var(--adm-accent-line); }
   .next-task.complete .next-task-icon, .next-task.complete small { color:var(--adm-accent-strong); }
@@ -108,7 +108,7 @@
   .rp.open .rp-trigger { border-color:var(--accent); box-shadow:0 0 0 3px rgba(6,196,160,.13); }
   .rp.open .rp-trigger .arw { transform:rotate(180deg); color:var(--accent); }
   .rp-panel { position:absolute; z-index:60; top:calc(100% + 5px); left:0; width:100%; min-width:230px;
-    background:var(--adm-surface); border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-sm); box-shadow:0 12px 28px rgba(15,46,39,.14); overflow:hidden; display:none; }
+    background:var(--adm-surface); border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-sm); box-shadow: var(--adm-shadow-lg); overflow:hidden; display:none; }
   .rp.open .rp-panel { display:block; }
   .rp-action { width:100%; background:var(--adm-gray-50); border:none; border-bottom:1px solid var(--adm-line); color:var(--accent);
     font:800 12px Pretendard; padding:10px 12px; text-align:left; cursor:default; }
@@ -167,7 +167,7 @@
 
   /* 하단 저장 바 */
   .savebar { position:fixed; left:0; right:0; bottom:0; z-index:30; background:rgba(255,255,255,.97); border-top:1px solid var(--line);
-    padding:10px 18px; display:flex; align-items:center; gap:16px; justify-content:center; box-shadow:0 -8px 28px rgba(22,38,31,.06); backdrop-filter:blur(10px); }
+    padding:10px 18px; display:flex; align-items:center; gap:16px; justify-content:center; box-shadow: var(--adm-shadow-lg); backdrop-filter:blur(10px); }
   .save-context { width:220px; line-height:1.35; }
   .save-context small { display:block; color:var(--adm-accent-strong); font-size:10.5px; font-weight:var(--adm-fw-bold); }
   .save-context b { display:block; margin-top:2px; font-size:12px; }
@@ -175,16 +175,16 @@
   .savebar .opt { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:700; color:var(--sub); cursor:pointer; }
   .savebar .opt input { accent-color:var(--book); width:16px; height:16px; }
   #saveBtn { background:var(--accent); color:#fff; border:none; border-radius:var(--adm-radius-sm); padding:13px 34px;
-    font:800 15px Pretendard; cursor:pointer; box-shadow:0 6px 14px rgba(6,196,160,.3); }
+    font:800 15px Pretendard; cursor:pointer; box-shadow: var(--adm-shadow-md); }
   #saveBtn.secondary { background:var(--adm-surface); color:var(--adm-accent-strong); border:1px solid var(--adm-accent-line); box-shadow:none; }
   .savebar .barbtn { border:1px solid var(--line); background:var(--adm-surface); color:var(--ink); border-radius:var(--adm-radius-sm); padding:12px 15px; font:800 13px Pretendard; cursor:pointer; text-decoration:none; }
-  .savebar .barbtn.primary { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 6px 14px rgba(6,196,160,.25); }
+  .savebar .barbtn.primary { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow: var(--adm-shadow-md); }
   .savebar .barbtn:disabled { opacity:.48; cursor:not-allowed; box-shadow:none; }
   .savebar .barbtn.danger { color:var(--adm-danger); }
   .bar-more { position:relative; }
   .bar-more summary { width:42px; height:42px; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:var(--adm-radius-sm); cursor:pointer; font-size:19px; list-style:none; }
   .bar-more summary::-webkit-details-marker { display:none; }
-  .bar-more-menu { position:absolute; right:0; bottom:52px; width:150px; padding:8px; background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); box-shadow:0 12px 30px rgba(22,38,31,.15); }
+  .bar-more-menu { position:absolute; right:0; bottom:52px; width:150px; padding:8px; background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); box-shadow: var(--adm-shadow-lg); }
   .bar-more-menu .barbtn { width:100%; }
   #bookingInfoSection, #assignmentSection { scroll-margin-top:82px; }
   .focus-pulse { animation:focusPulse 1.15s ease; }
@@ -200,7 +200,7 @@
     padding:20px; background:rgba(17,35,45,.46); backdrop-filter:blur(3px); opacity:0; visibility:hidden; transition:.18s; }
   .confirm-layer.on { opacity:1; visibility:visible; }
   .confirm-card { width:min(420px,100%); padding:28px; border:1px solid rgba(255,255,255,.75); border-radius:var(--adm-radius-lg);
-    background:var(--adm-surface); box-shadow:0 24px 70px rgba(17,35,45,.24); text-align:center; transform:translateY(10px) scale(.98); transition:.18s; }
+    background:var(--adm-surface); box-shadow: var(--adm-shadow-lg); text-align:center; transform:translateY(10px) scale(.98); transition:.18s; }
   .confirm-layer.on .confirm-card { transform:none; }
   .confirm-icon { width:52px; height:52px; margin:0 auto 16px; border-radius:var(--adm-radius-md); display:flex; align-items:center;
     justify-content:center; background:var(--adm-accent-soft); color:var(--deep); font-size:24px; font-weight:var(--adm-fw-bold); }
@@ -210,8 +210,8 @@
   .confirm-actions { display:grid; grid-template-columns:1fr 1.35fr; gap:10px; }
   .confirm-actions button { min-height:46px; border-radius:var(--adm-radius-md); font:800 14px Pretendard; cursor:pointer; }
   .confirm-cancel { border:1px solid var(--line); background:var(--adm-surface); color:var(--sub); }
-  .confirm-ok { border:0; background:var(--accent); color:#fff; box-shadow:0 6px 14px rgba(6,196,160,.25); }
-  .confirm-card.danger .confirm-ok { background:var(--adm-danger); box-shadow:0 8px 20px rgba(199,91,82,.22); }
+  .confirm-ok { border:0; background:var(--accent); color:#fff; box-shadow: var(--adm-shadow-md); }
+  .confirm-card.danger .confirm-ok { background:var(--adm-danger); box-shadow: var(--adm-shadow-lg); }
   .confirm-actions button:focus-visible { outline:3px solid rgba(6,196,160,.22); outline-offset:2px; }
 
   .empty { text-align:center; padding:60px 20px; color:var(--sub); }
@@ -609,7 +609,7 @@ function summaryHtml() {
       <div class="sum-card ${lodgeTotal && st.lodgeCount >= lodgeTotal ? "ok" : "warn"}"><div class="k">일자별 숙소</div><div class="v">${st.lodgeCount}/${lodgeTotal || 0}</div><div class="s">${lodgeTotal ? "숙박 일수 기준 (귀국일 제외)" : "일정 등록 후 확인"}</div></div>
       <div class="sum-card ${depositPaid ? "ok" : "warn"}"><div class="k">예약금·계약</div><div class="v">${depositPaid ? (st.signed ? "서명완료" : (contractRequested ? "서명 대기" : "입금확인")) : (depositRequested ? "입금 대기" : "안내 전")}</div><div class="s">${moneyTxt(ci.depositAmount)} · 체크 ${st.checklistDone}/5</div></div>
     </div>
-    ${st.missing.length ? `<div class="miss">${st.missing.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : `<div class="miss"><span style="background:#f1fbf7;border-color:#bfe6d9;color:#0a6a5e;">필수 항목 완료</span></div>`}
+    ${st.missing.length ? `<div class="miss">${st.missing.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : `<div class="miss"><span style="background:var(--adm-accent-soft);border-color:var(--adm-accent-line);color:var(--adm-accent-strong);">필수 항목 완료</span></div>`}
   </section>`;
 }
 
@@ -668,8 +668,8 @@ function dayCard(d, i) {
     <div class="day-h">
       <span class="dn">${i + 1}일차</span>
       <input data-k="dest" value="${esc(noBr(d.dest))}" placeholder="목적지">
-      <input data-k="move" value="${esc(d.move || "")}" placeholder="이동 시간" style="flex:none; width:110px; font-weight:600; font-size:12.5px; color:#5a6;">
-      <input data-k="dist" value="${esc(d.dist || "")}" placeholder="(km)" style="flex:none; width:80px; font-weight:600; font-size:12.5px; color:#5a6;">
+      <input data-k="move" value="${esc(d.move || "")}" placeholder="이동 시간" style="flex:none; width:110px; font-weight:600; font-size:12.5px; color:var(--adm-success-strong);">
+      <input data-k="dist" value="${esc(d.dist || "")}" placeholder="(km)" style="flex:none; width:80px; font-weight:600; font-size:12.5px; color:var(--adm-success-strong);">
       <button class="del" data-del="${i}" title="이 일차 삭제">✕</button>
     </div>
     <div class="day-b">
@@ -715,7 +715,7 @@ function lodgeRow(l, i) {
 function travelerRow(t, i) {
   return `<div class="traveler-row" data-ti="${i}" style="border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;">
     <input type="hidden" data-tk="type" value="${esc(t.type || "성인")}">
-    <div style="font-size:12px;font-weight:900;color:#008c75;margin-bottom:10px;">여행자 ${i+1} · ${esc(t.type || "성인")}</div>
+    <div style="font-size:12px;font-weight:700;color:var(--adm-accent-strong);margin-bottom:10px;">여행자 ${i+1} · ${esc(t.type || "성인")}</div>
     <div class="grid3">
       <label class="f"><span>한글명</span><input data-tk="nameKo" value="${esc(t.nameKo || "")}" placeholder="김세준"></label>
       <label class="f"><span>여권명</span><input data-tk="passportName" value="${esc(t.passportName || "")}" placeholder="KIM SEJUN"></label>
@@ -820,7 +820,7 @@ function render() {
         <span>여행자 정보</span>
         <button class="hbtn" id="requestTravelers" type="button">고객에게 입력 요청</button>
       </div>
-      <div style="padding:12px 14px;margin-bottom:12px;border-radius:11px;background:${travelerDone ? "#e8f8f3" : "#f5f7f7"};font-size:12.5px;line-height:1.6;color:${travelerDone ? "#08745f" : "var(--sub)"};">
+      <div style="padding:12px 14px;margin-bottom:12px;border-radius:11px;background:${travelerDone ? "var(--adm-accent-soft)" : "var(--adm-gray-50)"};font-size:12.5px;line-height:1.6;color:${travelerDone ? "var(--adm-accent-strong)" : "var(--sub)"};">
         ${travelerDone
           ? `<b>✓ 고객 제출 완료</b> · ${Number(ts.submittedCount)||BK.travelers.length}/${Number(ts.expectedCount)||expectedTravelers}명 · ${esc((ts.submittedAt||"").slice(0,10))}`
           : ts.status === "requested"
@@ -888,21 +888,21 @@ function render() {
       const ct = BK.contract;
       if (ct && ct.signedAt) {
         const dt = String(ct.signedAt).replace("T", " ").slice(0, 16);
-        return `<div class="assign-box" style="margin-top:12px; background:#F1FBF7; border-color:#BFE6D9;">
-          <div class="subtt" style="color:#0A6A5E;">여행계약서 — <b>${esc(dt)} 서명 완료</b> (${esc(ct.signerName || PRE.name)})</div>
-          ${ct.signImg ? `<div style="margin:10px 0 12px;padding:12px;border:1px solid #BFE6D9;border-radius:12px;background:#fff;text-align:center;">
-            <div style="font-size:11px;font-weight:800;color:#0A6A5E;margin-bottom:8px;">고객 서명 원본</div>
+        return `<div class="assign-box" style="margin-top:12px; background:var(--adm-accent-soft); border-color:var(--adm-accent-line);">
+          <div class="subtt" style="color:var(--adm-accent-strong);">여행계약서 — <b>${esc(dt)} 서명 완료</b> (${esc(ct.signerName || PRE.name)})</div>
+          ${ct.signImg ? `<div style="margin:10px 0 12px;padding:12px;border:1px solid var(--adm-accent-line);border-radius:12px;background:var(--adm-surface);text-align:center;">
+            <div style="font-size:11px;font-weight:700;color:var(--adm-accent-strong);margin-bottom:8px;">고객 서명 원본</div>
             <img src="${esc(ct.signImg)}" alt="${esc(ct.signerName || PRE.name)} 고객 서명" style="display:block;max-width:100%;height:90px;object-fit:contain;margin:auto;">
-          </div>` : `<div style="font-size:12px;color:#9A5B24;margin:8px 0 12px;">서명 기록은 있으나 원본 이미지가 없습니다. 계약서 화면에서 관리자 인증 상태를 확인해 주세요.</div>`}
+          </div>` : `<div style="font-size:12px;color:var(--adm-warn-strong);margin:8px 0 12px;">서명 기록은 있으나 원본 이미지가 없습니다. 계약서 화면에서 관리자 인증 상태를 확인해 주세요.</div>`}
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <a class="hbtn" href="계약서.html?t=${encodeURIComponent(PRE.token || "")}&adminId=${encodeURIComponent(PRE.id)}&return=manage">서명 원본 확인</a>
-            <button class="hbtn" id="resetSignBtn" style="color:#c66;">서명 초기화</button>
+            <button class="hbtn" id="resetSignBtn" style="color:var(--adm-danger);">서명 초기화</button>
           </div>
         </div>`;
       }
       const paid = ci.depositStatus === "입금완료";
       const requested = BK.contractRequest && BK.contractRequest.status === "requested";
-      return `<div class="assign-box" style="margin-top:12px;background:${paid?"#f5f9ff":"#fff8eb"};">
+      return `<div class="assign-box" style="margin-top:12px;background:${paid?"var(--adm-accent-soft)":"var(--adm-warn-soft)"};">
         <div class="subtt">여행계약서 — ${paid ? (requested ? "고객 서명 대기" : "서명 요청 전") : "예약금 확인 전"}</div>
         <div style="font-size:12px; color:var(--sub); margin-bottom:10px;">${paid ? (requested ? "고객에게 계약서 서명 요청을 보냈습니다." : "예약금 확인이 완료됐습니다. 하단의 계약서 요청 버튼을 눌러 주세요.") : "예약금 입금 확인 전에는 고객에게 서명을 요구하지 않습니다."}</div>
         ${paid ? `<a class="hbtn" href="계약서.html?t=${encodeURIComponent(PRE.token || "")}&adminId=${encodeURIComponent(PRE.id)}&return=manage">계약서 미리보기</a>` : ""}

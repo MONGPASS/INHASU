@@ -25,7 +25,7 @@
 .reservation-workspace.product-workspace .ri-contract > h3 { margin:0; color:var(--adm-ink); font-size:16px; font-weight:var(--adm-fw-bold); line-height:1.6; }
 .reservation-workspace.product-workspace .ri-section-title p { margin:4px 0 0; color:var(--adm-text-3); font-size:11px; line-height:1.7; }
 .reservation-workspace.product-workspace .ri-library-note { margin:8px 0 16px; color:var(--adm-text-3); font-size:12px; line-height:1.7; }
-.reservation-workspace.product-workspace .ri-library-error { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:12px 0; padding:12px; border:1px solid color-mix(in srgb, var(--adm-warn) 32%, transparent); border-radius:var(--adm-radius-sm); background:var(--adm-warn-soft); color:var(--adm-warn-strong); font-size:12px; line-height:1.7; }
+.reservation-workspace.product-workspace .ri-library-error { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:12px 0; padding:12px; border:1px solid var(--adm-warn-line); border-radius:var(--adm-radius-sm); background:var(--adm-warn-soft); color:var(--adm-warn-strong); font-size:12px; line-height:1.7; }
 .reservation-workspace.product-workspace .ri-library-error button { padding:2px; border:0; background:none; color:var(--adm-warn-strong); font:inherit; font-weight:var(--adm-fw-bold); text-decoration:underline; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-quote-section { padding:22px 20px; border-radius:var(--adm-radius-md); background:var(--adm-gray-50); }
 .reservation-workspace.product-workspace .ri-quote-head { margin-bottom:22px; }
@@ -92,7 +92,7 @@
 .reservation-workspace.product-workspace .ri-editor-workflow { border:0; border-radius:0; background:var(--adm-surface); overflow:visible; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status { margin:0; padding:14px 24px; border-width:0 0 1px; border-color:var(--adm-line); border-radius:0; background:var(--adm-gray-50); color:var(--adm-text-2); font-size:12px; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status strong { color:var(--adm-text-2); font-weight:650; }
-.reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status.is-warning { background:var(--adm-warn-soft); border-color:color-mix(in srgb, var(--adm-warn) 32%, transparent); }
+.reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status.is-warning { background:var(--adm-warn-soft); border-color:var(--adm-warn-line); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-modes { padding:16px 24px; gap:8px; background:var(--adm-surface); border-bottom:1px solid var(--adm-line-subtle); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-modes button { min-height:40px; padding:9px 18px; border-radius:var(--adm-radius-sm); font-size:14px; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-modes button.is-selected { background:var(--adm-accent-soft); border-color:var(--adm-accent-line); color:var(--adm-accent-strong); }

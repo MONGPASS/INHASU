@@ -45,7 +45,7 @@
 
 .admin-app-wrapper .hm-alert {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; padding: 14px 18px;
-  border: 1px solid color-mix(in srgb, var(--adm-danger) 32%, transparent); border-radius: var(--adm-radius-md); background: var(--mrt-red-soft); color: var(--mrt-red); font-size: 14px; font-weight: 600;
+  border: 1px solid var(--adm-danger-line); border-radius: var(--adm-radius-md); background: var(--mrt-red-soft); color: var(--mrt-red); font-size: 14px; font-weight: 600;
 }
 
 /* 본문 */
@@ -85,7 +85,7 @@
   border: 1px solid var(--border-default); border-radius: var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-secondary); cursor: pointer;
 }
 .admin-app-wrapper .hm-tool:hover:not(:disabled) { background: var(--mrt-gray-50); color: var(--text-strong); }
-.admin-app-wrapper .hm-tool.danger:hover:not(:disabled) { background: var(--adm-danger-soft); color: var(--adm-danger); border-color: color-mix(in srgb, var(--adm-danger) 32%, transparent); }
+.admin-app-wrapper .hm-tool.danger:hover:not(:disabled) { background: var(--adm-danger-soft); color: var(--adm-danger); border-color: var(--adm-danger-line); }
 .admin-app-wrapper .hm-tool:disabled { color: var(--mrt-gray-300); cursor: default; }
 .admin-app-wrapper .hm-card-body { display: flex; gap: 20px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--border-subtle); }
 

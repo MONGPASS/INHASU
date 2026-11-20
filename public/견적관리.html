@@ -36,7 +36,7 @@
 
   /* ── 로그인 ── */
   .login-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
-  .login-card { background:var(--adm-surface); border-radius:var(--adm-radius-lg); box-shadow:0 12px 40px rgba(20,50,45,.09); padding:38px 34px; width:100%; max-width:370px; text-align:center; }
+  .login-card { background:var(--adm-surface); border-radius:var(--adm-radius-lg); box-shadow: var(--adm-shadow-lg); padding:38px 34px; width:100%; max-width:370px; text-align:center; }
   .login-card .logo { width:50px; height:50px; border-radius:var(--adm-radius-md); background:var(--deep); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:21px; margin-bottom:16px; }
   .login-card h1 { font-size:19px; font-weight:var(--adm-fw-bold); }
   .login-card p { font-size:13px; color:var(--gray); margin:6px 0 22px; }
@@ -51,14 +51,14 @@
   /* 사이드바 (라벨 포함) */
   .side { width:232px; flex:0 0 232px; background:var(--adm-surface); border-right:1px solid var(--line); display:flex; flex-direction:column; padding:20px 14px; position:sticky; top:0; height:100vh; }
   .side-brand { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; }
-  .side-brand .logo { width:38px; height:38px; border-radius:var(--adm-radius-sm); background:linear-gradient(150deg,var(--adm-accent),var(--adm-accent-strong)); color:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow:0 6px 14px rgba(6,196,160,.3); }
+  .side-brand .logo { width:38px; height:38px; border-radius:var(--adm-radius-sm); background: var(--adm-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow: var(--adm-shadow-md); }
   .side-brand b { font-size:15px; font-weight:var(--adm-fw-bold); display:block; line-height:1.2; }
   .side-brand small { font-size:11.5px; color:var(--gray); font-weight:600; }
   .menu-label { font-size:11px; font-weight:var(--adm-fw-bold); color:var(--adm-text-3); letter-spacing:.05em; padding:16px 10px 7px; }
   .mi { display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:var(--adm-radius-sm); color:var(--sub); font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; margin-bottom:2px; border:none; background:none; width:100%; font-family:inherit; transition:.12s; }
   .mi svg { flex:0 0 auto; }
   .mi:hover { background:var(--soft); color:var(--deep); }
-  .mi.on { background:var(--deep); color:#fff; box-shadow:0 6px 14px rgba(6,196,160,.24); }
+  .mi.on { background:var(--deep); color:#fff; box-shadow: var(--adm-shadow-md); }
   .mi .badge-n { margin-left:auto; background:var(--soft); color:var(--deep); border-radius:var(--adm-radius-xs); font-size:11px; font-weight:var(--adm-fw-bold); padding:2px 8px; }
   .mi.on .badge-n { background:var(--adm-surface); color:var(--adm-accent-strong); }
   .side-foot { margin-top:auto; padding-top:12px; border-top:1px solid var(--line); }
@@ -81,7 +81,7 @@
 
   /* 통계 카드 */
   .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
-  .stat { background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); padding:18px 20px; box-shadow:0 4px 14px rgba(15,46,39,.04); }
+  .stat { background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); padding:18px 20px; box-shadow: var(--adm-shadow-md); }
   .stat-top { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
   .stat-ic { width:38px; height:38px; border-radius:var(--adm-radius-sm); display:flex; align-items:center; justify-content:center; }
   .stat-k { font-size:13.5px; color:var(--sub); font-weight:700; }
@@ -113,7 +113,7 @@
   .chip.on .cnt { opacity:.75; }
 
   /* 표 */
-  .table-card { background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); overflow:hidden; box-shadow:0 4px 14px rgba(15,46,39,.04); }
+  .table-card { background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); overflow:hidden; box-shadow: var(--adm-shadow-md); }
   table { width:100%; border-collapse:collapse; }
   thead th { background:var(--adm-surface); text-align:left; font-size:13px; font-weight:600; color:var(--gray); padding:15px 20px; border-bottom:1px solid var(--adm-line-subtle); white-space:nowrap; }
   thead th.r, tbody td.r { text-align:right; }
@@ -142,7 +142,7 @@
   /* 드로어 */
   .overlay { position:fixed; inset:0; background:rgba(20,40,36,.38); z-index:40; opacity:0; pointer-events:none; transition:.2s; }
   .overlay.on { opacity:1; pointer-events:auto; }
-  .drawer { position:fixed; top:0; right:0; width:432px; max-width:92vw; height:100%; background:var(--adm-surface); z-index:50; box-shadow:-14px 0 44px rgba(15,46,39,.16); transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
+  .drawer { position:fixed; top:0; right:0; width:432px; max-width:92vw; height:100%; background:var(--adm-surface); z-index:50; box-shadow: var(--adm-shadow-lg); transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
   .drawer.on { transform:translateX(0); }
   .drawer .dh { padding:24px 24px 18px; border-bottom:1px solid var(--adm-line-subtle); display:flex; align-items:flex-start; }
   .drawer .dh h2 { font-size:22px; font-weight:var(--adm-fw-bold); letter-spacing:-.4px; }
@@ -172,7 +172,7 @@
   .memo:focus { border-color:var(--accent); }
   .drawer .df { padding:16px 24px; border-top:1px solid var(--adm-line-subtle); display:flex; gap:10px; align-items:center; }
   .df button { flex:1; text-align:center; padding:12px 0; border-radius:var(--adm-radius-sm); font-size:13px; font-weight:700; cursor:pointer; border:none; font-family:inherit; }
-  .df .primary { flex:1.2; background:var(--deep); color:#fff; box-shadow:0 6px 14px rgba(6,196,160,.3); }
+  .df .primary { flex:1.2; background:var(--deep); color:#fff; box-shadow: var(--adm-shadow-md); }
   .df .copy { background:var(--adm-gray-100); color:var(--adm-accent-strong); }
   .df .danger { background:var(--adm-gray-100); color:var(--adm-text-3); flex:0 0 auto; padding:12px 15px; }
 
@@ -209,7 +209,7 @@
   .btn.primary:hover { background:var(--adm-ink); }
   .stats { gap:12px; margin-bottom:16px; }
   .stat { display:flex; flex-direction:column; gap:12px; padding:20px; border:1px solid var(--bd); border-radius:var(--adm-radius-md); box-shadow:none; transition:box-shadow .15s; }
-  .stat:hover { box-shadow:0 4px 16px rgba(26,27,30,.08); }
+  .stat:hover { box-shadow: var(--adm-shadow-md); }
   .stat-top { margin:0; gap:10px; }
   .stat-ic { width:36px; height:36px; border-radius:var(--adm-radius-sm); background:var(--g100); color:var(--t2); }
   .stat-ic.red { background:var(--red-soft); color:var(--red); }
@@ -306,7 +306,7 @@
     .chip{flex:none;padding:7px 12px;font-size:12px}
     .table-card{background:transparent;border:0;border-radius:0;overflow:visible}
     .table-card table,.table-card tbody{display:block;width:100%}.table-card thead{display:none}
-    .table-card tr{display:grid;grid-template-columns:1fr auto;gap:9px 12px;background:var(--adm-surface);border:1px solid var(--line);border-radius:var(--adm-radius-md);padding:14px;margin-bottom:9px;box-shadow:0 3px 12px rgba(20,50,45,.025)}
+    .table-card tr{display:grid;grid-template-columns:1fr auto;gap:9px 12px;background:var(--adm-surface);border:1px solid var(--line);border-radius:var(--adm-radius-md);padding:14px;margin-bottom:9px;box-shadow: var(--adm-shadow-md)}
     .table-card tr.urgent{border-left:3px solid var(--adm-accent)}.table-card tr.urgent td:first-child{box-shadow:none}
     .table-card td{display:block!important;padding:0!important;border:0!important;text-align:left!important;min-width:0}
     .table-card td:nth-child(1){grid-column:1}.table-card td:nth-child(3){grid-column:2;grid-row:1;align-self:start}
@@ -316,7 +316,7 @@
     .table-card td:nth-child(7){grid-column:2;grid-row:4;text-align:right!important}
     .cust{gap:9px}.avatar{width:36px;height:36px}.cust b{font-size:14px}.badge{padding:5px 9px;font-size:11px}
     .more-row{background:var(--adm-surface);border:1px solid var(--line);border-radius:var(--adm-radius-md);margin-top:8px}
-    .drawer{top:auto;bottom:0;width:100%;max-width:none;height:min(88vh,760px);border-radius:20px 20px 0 0;transform:translateY(105%);box-shadow:0 -12px 40px rgba(20,40,36,.18)}
+    .drawer{top:auto;bottom:0;width:100%;max-width:none;height:min(88vh,760px);border-radius:20px 20px 0 0;transform:translateY(105%);box-shadow: var(--adm-shadow-lg)}
     .drawer.on{transform:translateY(0)}.drawer .dh{padding:17px 17px 14px}.drawer .dh h2{font-size:18px}.drawer .db{padding:16px 17px}.drawer .df{padding:12px 12px calc(12px + env(safe-area-inset-bottom));overflow-x:auto}.drawer .df button{min-width:90px}
     .status-row{overflow-x:auto;gap:6px;margin-bottom:16px}.st-btn{flex:0 0 auto;padding:9px 13px}.info-grid{grid-template-columns:72px 1fr;gap:10px 9px;font-size:13px}
     .pub-box{align-items:flex-start}.pub-box .acts{width:100%;margin-left:0}.pub-box .pb{flex:1;text-align:center}
@@ -456,7 +456,7 @@
 /* ═══════════════ 설정 ═══════════════ */
 const CFG = { brand:"몽골리아 은하수", apiBase:"/api/requests" };
 const STATUSES = ["신규","진행중","예약확정","완료","보류"];
-const AVA_COLORS = ["#06c4a0","#3aa0e0","#e0913a","#8a6fe0","#cf6a5e","#2f9e8a","#5aa469"];
+const AVA_COLORS = ["#03866E","#008DCF","#9C5800","#5B37ED","#AD36E3","#0098B2","#429E00"]; // Montage: 글자용 민트·accent 구분색(흰 이니셜 대비)
 let RECORDS = [], filterStatus = null, searchText = "", mode = "local";
 let sortKey = "receivedAt", sortDir = -1, showLimit = 50;   // 목록 정렬·더보기 상태
 let curView = "dash", dashSummary = "";                     // 현재 화면 · 대시보드 요약문
@@ -805,8 +805,8 @@ function render() {
   const cards = [
     { k:"전체 문의", v:total, ic:ICON.total, tone:"gray", delta:`오늘 +${todayCnt}`, dc:"flat", spark:sparkline(series(14,{cumulative:true}),96,40,"#06c4a0") },
     { k:"행동 필요", v:actionRows.length, ic:ICON.new, tone:"red", delta:actionRows.length?"확인 필요":"없음", dc:actionRows.length?"warn":"flat", spark:sparkline(series(14,{status:"신규"}),96,40,"#06c4a0") },
-    { k:"진행중 (상담 중)", v:cnt["진행중"], ic:ICON.prog, tone:"purple", delta:"상담 중", dc:"prog", spark:sparkline(series(14,{status:"진행중"}),96,40,"#048068") },
-    { k:"완료", v:cnt["완료"], ic:ICON.done, tone:"green", delta:`이번달 ${doneMonth}`, dc:"flat", spark:sparkline(series(14,{status:"완료"}),96,40,"#d6e1dd") },
+    { k:"진행중 (상담 중)", v:cnt["진행중"], ic:ICON.prog, tone:"purple", delta:"상담 중", dc:"prog", spark:sparkline(series(14,{status:"진행중"}),96,40,"#03866E") },
+    { k:"완료", v:cnt["완료"], ic:ICON.done, tone:"green", delta:`이번달 ${doneMonth}`, dc:"flat", spark:sparkline(series(14,{status:"완료"}),96,40,"#C2C4C8") },
   ];
   $("stats").innerHTML = cards.map(c => `
     <div class="stat">
@@ -916,7 +916,7 @@ function openDrawer(id) {
     <div class="db">
       <div class="status-row">${STATUSES.map(s=>`<button class="st-btn ${s===cur?"sel":""}" data-s="${s}">${s}</button>`).join("")}</div>
       ${r.quote ? `
-      <div class="pub-box" style="background:#dcf4ee; border-color:#bfe9de; color:#036450; margin-top:0; margin-bottom:16px;"><span>${action ? `<b>지금 할 일: ${esc(action.label)}</b><br><span style="font-weight:600; color:#04836b;">${esc(action.detail)}</span>` : (r.booking ? "✓ 현재 처리할 필수 단계가 없습니다" : "고객 수락 후 예약관리를 시작할 수 있어요")}</span>
+      <div class="pub-box" style="background:var(--adm-accent-soft); border-color:var(--adm-accent-line); color:var(--adm-accent-strong); margin-top:0; margin-bottom:16px;"><span>${action ? `<b>지금 할 일: ${esc(action.label)}</b><br><span style="font-weight:600; color:var(--adm-accent-strong);">${esc(action.detail)}</span>` : (r.booking ? "✓ 현재 처리할 필수 단계가 없습니다" : "고객 수락 후 예약관리를 시작할 수 있어요")}</span>
         <span class="acts">
           <button class="pb" id="bookBtn" ${!accepted ? "disabled title='고객 수락을 먼저 기록하세요'" : ""}>${r.booking ? "📋 예약관리 열기" : "📋 예약관리 시작"}</button>
           ${published && r.token ? `<a class="pb" href="확정일정표.html?t=${encodeURIComponent(r.token)}" target="_blank">🎫 공개 일정표 보기</a>` : ""}
@@ -954,12 +954,12 @@ function openDrawer(id) {
         </span>
       </div>` : ""}
       ${r.quote && !accepted ? `
-      <div class="pub-box" style="background:#f1f9f7; border-color:#d9eee9; color:#05a184;">💬 고객이 카톡·전화로 "예약 진행할게요" 하면 여기서 기록하세요
+      <div class="pub-box" style="background:var(--adm-gray-100); border-color:var(--adm-accent-line); color:var(--adm-accent-strong);">💬 고객이 카톡·전화로 "예약 진행할게요" 하면 여기서 기록하세요
         <span class="acts"><button class="pb" id="acceptBtn">✅ 예약 진행 기록</button></span>
       </div>` : ""}
     </div>
     <div class="df">
-      <button class="danger" id="delReqBtn" title="문의 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c938c" stroke-width="2" style="display:inline-block;vertical-align:middle;"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg></button>
+      <button class="danger" id="delReqBtn" title="문의 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#878A93" stroke-width="2" style="display:inline-block;vertical-align:middle;"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg></button>
       <button class="copy" id="copyBtn">📋 정보 복사</button>
       <button class="primary" id="makeBtn">${r.quote ? "✎ 견적서 수정" : "📄 견적서 만들기"}</button>
     </div>`;

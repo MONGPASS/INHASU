@@ -237,7 +237,7 @@
 
 .reservation-workspace.product-workspace .rw-field .inp:focus {
     border-color: var(--adm-accent);
-    box-shadow: 0 0 0 3px #e8f7ef;
+    box-shadow: 0 0 0 3px var(--adm-success-soft);
 }
 
 .reservation-workspace.product-workspace .rw-primary-actions {
@@ -548,7 +548,7 @@
     border: 2px solid var(--rw-mint);
     background: var(--adm-surface);
     color: var(--rw-mint-strong);
-    box-shadow: 0 0 0 4px #e9f8f2;
+    box-shadow: 0 0 0 4px var(--adm-accent-soft);
 }
 
 .reservation-workspace.product-workspace .rw-step-title {
@@ -684,7 +684,7 @@
     gap: 8px;
     min-width: 0;
     padding: 16px;
-    border: 1px solid color-mix(in srgb, var(--adm-warn) 32%, transparent);
+    border: 1px solid var(--adm-warn-line);
     border-radius: var(--adm-radius-md);
     background: var(--adm-gray-50);
     color: var(--rw-ink);

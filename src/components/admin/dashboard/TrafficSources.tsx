@@ -20,9 +20,9 @@ const BRAND: Record<AdminTrafficChannel, { bg: string; border?: boolean; logo?: 
     '기타·추천': { bg: 'var(--mrt-gray-100)', icon: 'lc-link' },
 };
 /** Mint scale from the design (largest channel darkest); the 7th step is added for the ninth channel, 페이스북. */
-const TONES = ['linear-gradient(90deg,#12b28c,#0a7f62)', 'linear-gradient(90deg,#2fd3a7,#0E9E7A)', 'linear-gradient(90deg,#4fe0b9,#1cc497)',
-    'linear-gradient(90deg,#7fe8c9,#3fd6ab)', 'linear-gradient(90deg,#a8f0db,#6fe0bf)', 'linear-gradient(90deg,#c9f5e6,#9ce9d2)',
-    'linear-gradient(90deg,#ddf8ef,#b8eedd)', 'linear-gradient(90deg,#c7d6d1,#a9bdb6)', 'linear-gradient(90deg,#e1ebe8,#cfdcd8)'];
+// 순위 막대: 브랜드 민트를 진한 것부터 옅게, 하위는 회색(Montage 토큰). 평평한 색만 쓴다.
+const mint = (p: number) => `color-mix(in srgb, var(--adm-accent) ${p}%, var(--adm-surface))`;
+const TONES = ['var(--adm-accent-strong)', 'var(--adm-accent)', mint(80), mint(64), mint(50), mint(38), mint(28), 'var(--adm-gray-300)', 'var(--adm-gray-200)'];
 const numbers = new Intl.NumberFormat('ko-KR');
 
 type Load = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: AdminTrafficData };

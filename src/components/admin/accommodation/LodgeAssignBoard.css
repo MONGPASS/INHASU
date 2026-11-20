@@ -206,7 +206,7 @@
 .la-info-links { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .la-info-links :is(a, button) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; border-radius: var(--adm-radius-sm); border: 0; background: rgba(255, 255, 255, .12); color: #fff !important; font-size: 12px; font-weight: 600; text-decoration: none; }
 .la-info-links .is-primary { background: var(--la-mint); }
-.la-toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); z-index: 80; padding: 10px 18px; border-radius:var(--adm-radius-sm); background: var(--la-ink); color: #fff; font-size: 13px; font-weight: 600; box-shadow: 0 8px 24px rgba(0, 0, 0, .2); }
+.la-toast { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); z-index: 80; padding: 10px 18px; border-radius:var(--adm-radius-sm); background: var(--la-ink); color: #fff; font-size: 13px; font-weight: 600; box-shadow: var(--adm-shadow-lg); }
 
 @media (max-width: 720px) {
   .la-cal { padding: 16px; }

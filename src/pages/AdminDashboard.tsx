@@ -309,7 +309,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                     <span className={styles.revTitle}>확정 매출</span>
                     <span className={styles.info} role="img" aria-label="확정·결제·완료 예약의 팀 전체 금액. 기간은 예약 접수일(한국시간) 기준"
                         title="확정·결제·완료 예약의 팀 전체 금액 · 기간은 예약 접수일(한국시간) 기준">
-                        <DashboardIcon name="lc-info" size={14} color="#5f8f82" />
+                        <DashboardIcon name="lc-info" size={14} color="var(--adm-text-3)" />
                     </span>
                     <div className={styles.revPicker}>
                         <button type="button" className={styles.revButton} aria-haspopup="menu" aria-expanded={periodOpen} onClick={() => setPeriodOpen(open => !open)}>
@@ -384,8 +384,8 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                                 {...tipFor(`${answer.month}월 견적 답변 처리율`, [{ k: '접수', v: `${answer.received}건` }, { k: '답변 완료', v: `${answer.answered}건` },
                                     { k: '처리율', v: answerPct == null ? '—' : `${answerPct.toFixed(1)}%` }])}>
                                 <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                                    <defs><linearGradient id="dashboard-mint-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3fe0b4" /><stop offset="1" stopColor="#0E9E7A" /></linearGradient></defs>
-                                    <circle cx="32" cy="32" r="26" fill="none" stroke="#dcf6ee" strokeWidth="7" />
+                                    <defs><linearGradient id="dashboard-mint-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#06C4A0" /><stop offset="1" stopColor="#06C4A0" /></linearGradient></defs>
+                                    <circle cx="32" cy="32" r="26" fill="none" stroke="#F4F4F5" strokeWidth="7" />
                                     <circle cx="32" cy="32" r="26" fill="none" stroke="url(#dashboard-mint-ring)" strokeWidth="7" strokeLinecap="round" pathLength={100}
                                         transform="rotate(-90 32 32)" style={{ strokeDasharray: `${(answerPct ?? 0) * t} 100` }} />
                                 </svg>

@@ -47,7 +47,7 @@
 
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; }
   .spot-card { background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); overflow:hidden; cursor:pointer; transition:.12s; }
-  .spot-card:hover { border-color:var(--accent); box-shadow:0 8px 24px rgba(20,50,45,.06); }
+  .spot-card:hover { border-color:var(--accent); box-shadow: var(--adm-shadow-lg); }
   .thumb { height:150px; background:var(--adm-gray-100); display:flex; align-items:center; justify-content:center; color:var(--adm-text-3); font-size:13px; position:relative; }
   .thumb img { width:100%; height:100%; object-fit:cover; }
   .thumb .noimg { display:flex; flex-direction:column; align-items:center; gap:6px; }
@@ -60,7 +60,7 @@
   /* 드로어 */
   .overlay { position:fixed; inset:0; background:rgba(20,40,36,.4); z-index:40; opacity:0; pointer-events:none; transition:.2s; }
   .overlay.on { opacity:1; pointer-events:auto; }
-  .drawer { position:fixed; top:0; right:0; width:520px; max-width:96vw; height:100%; background:var(--adm-surface); z-index:50; box-shadow:-10px 0 40px rgba(20,40,36,.15); transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
+  .drawer { position:fixed; top:0; right:0; width:520px; max-width:96vw; height:100%; background:var(--adm-surface); z-index:50; box-shadow: var(--adm-shadow-lg); transform:translateX(100%); transition:transform .25s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
   .drawer.on { transform:translateX(0); }
   .dh { padding:20px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; }
   .dh h2 { font-size:18px; font-weight:var(--adm-fw-bold); }
@@ -259,7 +259,7 @@ function renderGrid() {
       <div class="thumb">
         ${s.img ? `<img src="${s.img}" alt="${esc(name)}">` : `<div class="noimg"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 3 3 4-4 4 4"/></svg><span>이미지 없음</span></div>`}
         ${s.region ? `<span class="region">${esc(s.region)}</span>` : ""}
-        ${needsPhoto(s) ? `<span class="region" style="left:auto; right:8px; background:#f59e0b; color:#fff;">사진 ${photoCount(s)}/2</span>` : ""}
+        ${needsPhoto(s) ? `<span class="region" style="left:auto; right:8px; background:var(--adm-warn); color:#fff;">사진 ${photoCount(s)}/2</span>` : ""}
       </div>
       <div class="body">
         <div class="mn">${esc(s.nameMn || "")}</div>

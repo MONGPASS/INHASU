@@ -35,7 +35,7 @@
 | M-2 | Montage 통일 2단계: 본문 폭 규칙 — 모든 화면 최대 1440px(입력 폼 960px), 왼쪽 정렬, 제목과 본문 같은 왼쪽 선. React `AdminLayout` 본문과 견적 도구 본문 래퍼(`admin-tools.css`) | 완료(2026-11-20) |
 | M-3 | 공통 틀(흰 사이드바 248px·상단 바 64px·경로 표시·사이트 보기, 회색 작업 바탕)과 공통 부품(버튼·칩·배지·표·카드·지표·입력)을 Montage 모양으로(`src/styles/admin-montage.css`). 관리자 CSS·견적 도구 `<style>`·TSX 인라인 색의 직접 적은 hex 약 1,600곳을 변수로, 모서리·굵기를 Montage 단계로. 대시보드·숙소 배정·견적 문의의 화면별 예외(여러 채움 버튼, 색 블록 탭) 정리 | 완료(2026-11-20) |
 | M-4 | 상태색 글자 대비(`--adm-warn-strong`·`--adm-success-strong` 추가, 글자로 쓰인 주의·완료 91곳 교체), 화면별 색 팔레트 변수(`--la-*`·`--gs-*`·견적 도구 `--g100` 등)·옅은 상태 테두리·테두리 역할 그림자의 hex를 변수로, v7·가이드 배정 TSX의 옛 민트·회색 값 정리, TSX 인라인 모서리(49곳)·굵기(50곳)를 Montage 단계로, `DashboardIcon` 색을 CSS `color`로(변수 사용 가능), 견적 예약 목록 지표 카드 흰 카드로·안쪽 중복 제목 숨김, 견적 문의 보라 → 안내 민트 | 완료(2026-11-20) |
-| M-5 | 화면별 그라데이션·큰 그림자, 남은 hex(7절) | 예정 |
+| M-5 | Montage 원본 토큰(`wanteddev/montage-web`, 2026-11-19 동기화)과 대조: 상태색 글자를 Montage 단계(orange-30·green-30)로, 상태 테두리를 Montage `line-*`로, 구분색(`--adm-tag-*`)을 Montage accent로. 견적 도구 스크립트가 만드는 관리자 화면 색(인라인 스타일은 변수, SVG 속성·배열은 Montage 값), 가이드 구분색·유입 그래프·대시보드 고리, 그림자 72곳을 Montage 그림자 4단계로, 장식 그라데이션 46곳을 평평한 색으로(로그인 화면 포함) | 완료(2026-11-20) |
 
 ## 2. 공통 변수 — `public/admin-tokens.css`
 
@@ -53,7 +53,9 @@
 | 바탕 | `--adm-canvas` / `--adm-surface` / `--adm-sunken` | `#F7F7F8` / `#FFFFFF` / `#F4F4F5` |
 | 테두리 | `--adm-line` / `-subtle` / `-strong`, 굵기 `--adm-border-width` | `#70737C29` / `#70737C14` / `#70737C38`, 1px |
 | 상태색 | `--adm-danger` / `--adm-warn` / `--adm-success` / `--adm-info` / `--adm-neutral` (+ 각 `-soft`) | 빨강 `#E52222` / 주황 `#FF9200` / 초록 `#00BF40` / 안내(민트 글자) `#03866E` / 회색 `#2E2F33E0` |
-| 상태색 글자 | `--adm-warn-strong` / `--adm-success-strong` | `#A85400` / `#007A29` — 주의·완료를 **글자**로 쓸 때(흰·옅은 바탕 위 4.5:1 이상). Montage 값 `#FF9200`·`#00BF40`은 글자 대비가 2.2~2.5:1이라 채움·아이콘·테두리·점에만 쓴다 |
+| 상태색 글자 | `--adm-warn-strong` / `--adm-success-strong` | `#9C5800`(Montage orange-30) / `#006E25`(green-30) — 주의·완료를 **글자**로 쓸 때(흰 바탕 5.5 / 6.5:1). Montage 기본 `#FF9200`·`#00BF40`은 글자 대비가 2.2~2.5:1이라 채움·아이콘·테두리·점에만 쓴다 |
+| 상태 테두리 | `--adm-danger-line` / `--adm-warn-line` / `--adm-success-line` | `#FF42426E` / `#FF92006E` / `#00BF406E` (Montage `semantic-line-negative/cautionary/positive`). 조치가 필요한 카드·옅은 상태 상자의 테두리 |
+| 구분색 | `--adm-tag-{lime,cyan,blue,violet,purple,pink,orange}` (+ `-soft` 옅은 바탕, `-solid` 채움) | Montage accent 색(`foreground/surface-accent-*`). 사람·출처·그래프 계열처럼 서로 구분만 하는 곳에. 상태(완료·주의·오류)에는 쓰지 않는다 |
 | 글꼴 | `--adm-font` | `"Pretendard Variable"`, `"Pretendard"`, 시스템 글꼴 |
 | 글자 크기 | `--adm-fs-caption` / `-small` / `-body` / `-base` / `-lead` / `-section` / `-title` | 12 / 13 / 14 / 15 / 18 / 20 / 28px (좁은 화면 제목 22px) |
 | 글자 굵기·줄 간격 | `--adm-fw-*`, `--adm-lh` | 400 · 500 · 600(제목만 700), 1.5 |
@@ -163,7 +165,8 @@ PC와 같은 화면·같은 부품이 휴대폰 폭에서 앱 모양으로 바�
 | 화면 | 예외 | 이유 |
 |---|---|---|
 | 견적 도구 전체 | 선택자·id·파일 이름을 그대로 두고 변수 값만 연결 | 알림톡 링크와 테스트(`tests/lodging-ui.py` 등)가 이 이름을 쓴다 |
-| 남은 직접 적은 색(M-4 뒤 약 610곳, 그중 약 290곳은 채움 위 흰 글자 `#fff`) | 그대로 둠 | 고객이 받는 문서를 보여 주는 곳(`AdminTemplateManage.tsx` 문서 미리보기 110곳, `DesignTemplateBlockEditor.tsx` 고객 화면 디자인 블록), 그래프 계열색(`TrafficSources.tsx`), 가이드별 구분색(`GuideSchedule.tsx`의 `PALETTE`), 캔버스·엑셀·인쇄 창 문자열(`AdminReservationManage.tsx`), 매거진 편집기의 자리 표시 `cssText`(글 본문에 저장될 수 있음), 견적 도구 스크립트가 만드는 문자열(약 100곳, 일부는 고객 문서·인쇄로 나간다). 화면별 큰 그림자 |
+| 남은 직접 적은 색(M-5 뒤 약 530곳, 그중 약 290곳은 채움 위 흰 글자 `#fff`) | 그대로 둠 | 고객이 받는 문서·화면을 그대로 보여 주는 곳(`AdminTemplateManage.tsx` 문서 미리보기 110곳, `DesignTemplateBlockEditor.tsx` 고객 화면 디자인 블록), 인쇄·엑셀 창 문자열과 캔버스(`AdminReservationManage.tsx` — 새 창·캔버스는 변수를 읽지 못한다), 홈 배너 색(`AdminBannerManage.tsx` — DB에 저장되어 고객 홈에 쓰인다), 매거진 편집기 자리 표시 `cssText`(글 본문에 저장될 수 있다), 외부 서비스 로고색(`TrafficSources.tsx`의 네이버·인스타그램·유튜브·카카오). SVG 속성·그래프 함수·배열 상수에 쓰는 색은 변수를 쓸 수 없어 **Montage 값 그대로**(hex) 적었다(견적 문의 아바타·작은 그래프, 견적 예약 목록 그래프, 등록 정보 종류 색, 대시보드 고리) |
+| 전체 테스트를 한꺼번에 돌릴 때 `customer-notifications.test.mjs`의 ‘같은 자동 이벤트…한 번만 접수한다’가 가끔 실패 | 코드 문제 아님(기록만) | 그 파일만 돌리면 매번 통과하고 main에서도 같다. 동시 실행 검사가 부하에 따라 시간 차이를 보인다 |
 | `견적관리`·`예약목록`·`예약관리`·`견적만들기`의 일부 민트 고정값(`#06c4a0` 약 17곳, 반투명 민트 20곳) | 1단계에서는 그대로 | 스크립트가 만드는 문자열 안에 있어 5단계에서 화면을 보며 바꾼다 |
 | 나가기 보호의 `window.confirm` 6곳(예약 문서·매거진·상품 편집기와 견적 도구 새로고침·편집기 전환의 ‘초안을 보관하지 못했습니다’ 확인, 문의 패널 닫기) | 브라우저 기본 확인창 유지 | 그 자리에서 참·거짓을 돌려줘야 하는 함수라 답을 기다리는 공통 확인 창으로 바꾸면 부르는 쪽 동작이 달라진다. 화면 이동 차단(`useBlocker`) 7곳은 `adminConfirmLeave`(`src/components/admin/ui/adminLeaveConfirm.ts`)로 바꿨다 |
 | TSX 인라인 `style`의 민트 고정값(`v7Ui.tsx` 제외) | 1단계에서는 그대로 | 엑셀·인쇄용 HTML, 저장되는 기본색, 캔버스 그림과 섞여 있어 부품 교체(2~3단계) 때 함께 바꾼다 |

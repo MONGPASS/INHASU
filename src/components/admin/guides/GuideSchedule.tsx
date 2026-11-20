@@ -33,8 +33,9 @@ interface Stat { n: number; days: number; dupN: number; run: boolean; nx?: Item 
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const RETURN_TO = '/admin/quote-desk/resources?view=schedule';
 const ORANGE = { bg: 'var(--adm-warn-soft)', line: 'var(--adm-warn)', text: 'var(--adm-warn-strong)' };
-// 가이드별 색(배경 · 글자 · 선). 디자인 v4의 carrot·yellow·blue·purple 순서에 두 색을 더했다.
-const PALETTE = [['#D2F8EB', '#057a61', '#12b28c'], ['#FFF5CC', '#7a4f00', '#F5B400'], ['#E1EDFF', '#1E5ED6', '#3B82F6'], ['#F0E6FF', '#6B3FC4', '#9B6BF2'], ['#FFE8EC', '#B4234A', '#F0527A'], ['#E3F6FA', '#0B6E85', '#1BA7C4']];
+// 가이드별 구분색(배경 · 글자 · 선) — Montage accent 구분색(--adm-tag-*). 주황은 '미배정' 상태색과 헷갈리지 않게 쓰지 않는다.
+const tag = (n: string) => [`var(--adm-tag-${n}-soft)`, `var(--adm-tag-${n})`, `var(--adm-tag-${n}-solid)`];
+const PALETTE = [['var(--adm-accent-soft)', 'var(--adm-accent-strong)', 'var(--adm-accent)'], tag('blue'), tag('violet'), tag('lime'), tag('pink'), tag('cyan'), tag('purple')];
 const NONE_COLOR = [ORANGE.bg, ORANGE.text, ORANGE.line];
 // 막대 색: 중복 빨강 · 미배정 주황 · 배정 민트 (배경, 글자, 선)
 const stateColors = (dup: boolean, none: boolean) => dup ? ['var(--adm-danger-soft)', 'var(--adm-danger)', 'var(--adm-danger)'] : none ? NONE_COLOR : ['var(--adm-accent-soft)', 'var(--adm-accent-strong)', 'var(--adm-accent)'];
