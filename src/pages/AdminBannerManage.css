@@ -193,7 +193,7 @@
 .admin-app-wrapper .hm-theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .admin-app-wrapper .hm-theme-card { display: flex; flex-direction: column; overflow: hidden; background: var(--adm-surface); border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); min-width: 0; }
 .admin-app-wrapper .hm-theme-img { position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; background-color: var(--mrt-gray-100); cursor: pointer; }
-.admin-app-wrapper .hm-theme-name { position: absolute; top: 12px; left: 12px; padding: 3px 10px; border-radius:var(--adm-radius-sm); background: var(--mrt-ink); color: #fff; font-size: 12px; font-weight: 700; }
+.admin-app-wrapper .hm-theme-name { position: absolute; top: 12px; left: 12px; padding: 3px 10px; border-radius: var(--adm-radius-xs); background: var(--adm-surface); color: var(--adm-ink); font-size: 12px; font-weight: var(--adm-fw-semibold); box-shadow: var(--adm-shadow-xs); }
 .admin-app-wrapper .hm-theme-fields { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
 
 /* 비어 있을 때 */
