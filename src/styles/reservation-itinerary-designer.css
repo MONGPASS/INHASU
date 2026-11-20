@@ -28,7 +28,7 @@
 .product-customer-page .cw-focus-workspace .ri-trip-settings:has(.ri-settings-toggle[aria-expanded=true]) .ri-settings-heading { margin-bottom: 16px; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-basics { padding: 0; margin: 0; gap: 12px; border: 0; border-radius: 0; background: transparent; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-field { gap: 6px; color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
-.product-customer-page .cw-focus-workspace .ri-composer .ri-field :is(input, textarea) { min-height: 44px; padding: 10px 14px; border: 1.5px solid var(--border-default); border-radius: var(--adm-radius-md); color: var(--text-strong); font-size: 14px; font-weight: 500; }
+.product-customer-page .cw-focus-workspace .ri-composer .ri-field :is(input, textarea) { min-height: var(--adm-control-h); padding: 10px 14px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); color: var(--text-strong); font-size: 14px; font-weight: 500; }
 .product-customer-page .cw-focus-workspace .ri-composer :is(input, select, textarea):focus { border-color: var(--mrt-ink); box-shadow: none; outline: 0; }
 
 /* 본문(일정·명소)과 오른쪽 요약 */
@@ -43,7 +43,7 @@
 .product-customer-page .cw-focus-workspace .ri-composer .ri-quote-head h3 { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text-strong); font-size: 18px; font-weight: var(--adm-fw-bold); letter-spacing: -.03em; }
 .product-customer-page .cw-focus-workspace .ri-schedule-count { padding: 0; background: none; color: var(--text-tertiary); font-size: 13px; font-weight: 500; letter-spacing: 0; }
 .product-customer-page .cw-focus-workspace .ri-schedule-count b { color: var(--text-strong); font-weight: var(--adm-fw-bold); }
-.product-customer-page .cw-focus-workspace .ri-composer :is(.ri-fill-dates, .ri-add-day) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; margin: 0; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: 999px; background: var(--adm-surface); color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.product-customer-page .cw-focus-workspace .ri-composer :is(.ri-fill-dates, .ri-add-day) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; margin: 0; padding: 0 14px; border: 1px solid var(--border-default); border-radius: 999px; background: var(--adm-surface); color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-fill-dates:hover { border-color: var(--mrt-ink); color: var(--text-strong); }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-add-day { border-color: var(--mrt-ink); background: var(--mrt-ink); color: #fff; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-add-day:hover { background: var(--adm-ink); }
@@ -51,14 +51,14 @@
 /* 일차 카드 — 순서·N일차·날짜·장소·이동·접기·삭제를 한 줄로 */
 .product-customer-page .cw-focus-workspace .ri-composer .qde-field-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .product-customer-page .cw-focus-workspace .ri-composer .row.c2 .qde-field-label { display: block; position: static; width: auto; height: auto; overflow: visible; clip: auto; color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit { padding: 14px 14px 14px 8px; margin-bottom: 12px; border: 1.5px solid var(--mrt-ink); border-radius: var(--adm-radius-md); background: var(--adm-surface); box-shadow: none; transition: border-color .2s; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit { padding: 14px 14px 14px 8px; margin-bottom: 12px; border: 1px solid var(--mrt-ink); border-radius: var(--adm-radius-md); background: var(--adm-surface); box-shadow: none; transition: border-color .2s; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit.is-collapsed { padding: 13.5px 13.5px 13.5px 7.5px; border: 1px solid var(--border-default); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit.is-collapsed:hover { border-color: var(--mrt-gray-300); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit.drag-over { border-color: var(--mrt-blue); box-shadow: 0 0 0 2px var(--mrt-blue) inset; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh { display: grid; grid-template-columns: 22px 64px 108px minmax(0,1fr) 140px auto 36px; grid-template-areas: 'drag day date dest move toggle remove'; align-items: center; gap: 8px; margin: 0; padding: 0; border: 0; }
 .product-customer-page .cw-focus-workspace .ri-composer .dh .drag-handle { grid-area: drag; display: grid; place-items: center; height: 36px; padding: 0; color: var(--text-tertiary); font-size: 16px; }
 .product-customer-page .cw-focus-workspace .ri-composer .dh .badge { grid-area: day; display: grid; place-items: center; height: 30px; padding: 0; border-radius:var(--adm-radius-xs); background: var(--mrt-ink); color: #fff; font-size: 13px; font-weight: var(--adm-fw-bold); }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh > input { height: 44px; min-height: 44px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--text-strong); line-height: 1.4; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh > input { height: var(--adm-control-h); min-height: var(--adm-control-h); padding: 0 14px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--text-strong); line-height: 1.4; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate { grid-area: date; width: 100%; padding: 0 6px; border-color: transparent; background: transparent; font-size: 14px; font-weight: var(--adm-fw-bold); text-align: center; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate:hover { border-color: var(--border-default); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .dh input.ddate:focus { border-color: var(--mrt-ink); background: var(--adm-surface); }
@@ -73,15 +73,15 @@
 /* 펼친 일차 — 일정 불러오기·세부 일정·숙소·식사 */
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .day-body { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; margin-left: 6px; padding: 14px; border-radius: var(--adm-radius-md); background: var(--mrt-gray-50); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-sel { width: auto; max-width: 100%; min-width: 220px; height: 40px; min-height: 40px; padding: 0 14px; border: 1.5px solid var(--mrt-ink); border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-strong); font-size: 13px; font-weight: var(--adm-fw-bold); }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-sel { width: auto; max-width: 100%; min-width: 220px; height: 40px; min-height: 40px; padding: 0 14px; border: 1px solid var(--mrt-ink); border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-strong); font-size: 13px; font-weight: var(--adm-fw-bold); }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .snip-hint { display: inline; color: var(--text-tertiary); font-size: 12px; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit textarea.items { min-height: 104px; margin: 0; padding: 12px 14px; border: 1.5px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--text-strong); font-size: 14px; line-height: 1.7; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit textarea.items { min-height: 104px; margin: 0; padding: 12px 14px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--text-strong); font-size: 14px; line-height: 1.7; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-areas: 'stay-label meals-label' 'stay meals'; gap: 6px 8px; }
 .product-customer-page .cw-focus-workspace .ri-composer .qde-label-stay { grid-area: stay-label; }
 .product-customer-page .cw-focus-workspace .ri-composer .qde-label-meals { grid-area: meals-label; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 .stay { grid-area: stay; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 .meals { grid-area: meals; }
-.product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 input { height: 44px; min-height: 44px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--text-strong); font-size: 14px; }
+.product-customer-page .cw-focus-workspace .ri-composer .day-edit .row.c2 input { height: var(--adm-control-h); min-height: var(--adm-control-h); padding: 0 14px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--text-strong); font-size: 14px; }
 .product-customer-page .cw-focus-workspace .ri-composer .day-edit .quote-day-extra { margin: 0; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-assigned-stay { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0; padding: 10px 12px; border: 0; border-radius: var(--adm-radius-md); background: var(--mrt-blue-50); color: var(--mrt-blue-strong); font-size: 12px; }
 .product-customer-page .cw-focus-workspace .ri-composer .ri-assigned-stay b { color: var(--text-strong); font-size: 13px; font-weight: 700; }
@@ -106,8 +106,8 @@
 .product-customer-page .cw-focus-workspace .quote-spot-selector .spot-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 8px; }
 .product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk { align-items: flex-start; gap: 10px; min-height: 72px; padding: 14px 12px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); transition: border-color .12s, background .12s; }
 .product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk:hover:not(:disabled) { border-color: var(--mrt-gray-300); }
-.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk.on { padding: 13.5px 11.5px; border: 1.5px solid var(--mrt-ink); background: var(--mrt-gray-50); }
-.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk .box { width: 20px; height: 20px; margin-top: 1px; border: 1.5px solid var(--mrt-gray-300); border-radius: var(--adm-radius-xs); background: var(--adm-surface); color: #fff; font-size: 11px; }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk.on { padding: 13.5px 11.5px; border: 1px solid var(--mrt-ink); background: var(--mrt-gray-50); }
+.product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk .box { width: 20px; height: 20px; margin-top: 1px; border: 1px solid var(--mrt-gray-300); border-radius: var(--adm-radius-xs); background: var(--adm-surface); color: #fff; font-size: 11px; }
 .product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk.on .box { border: 0; background: var(--mrt-ink); }
 .product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk b { color: var(--text-strong); font-size: 14px; font-weight: var(--adm-fw-bold); letter-spacing: -.02em; }
 .product-customer-page .cw-focus-workspace .quote-spot-selector .spot-chk small { margin-top: 2px; color: var(--text-tertiary); font-size: 12px; line-height: 1.4; }

@@ -588,7 +588,7 @@
 }
 .admin-app-wrapper .action-send-all {
   width: 100%;
-  min-height: 44px;
+  min-height: var(--adm-control-h);
   margin-top: 2px;
 }
 .admin-app-wrapper .action-rail-group {
@@ -842,7 +842,7 @@
 /* form */
 .admin-app-wrapper .field { margin-bottom: 18px; }
 .admin-app-wrapper .field > label { display: block; font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 7px; }
-.admin-app-wrapper .inp { width: 100%; height: 44px; border: 1px solid var(--border-default); border-radius: var(--r-md); padding: 0 14px; font: inherit; font-size: 14px; color: var(--text-body); background: var(--adm-surface); transition: border var(--dur-fast), box-shadow var(--dur-fast); }
+.admin-app-wrapper .inp { width: 100%; height: var(--adm-control-h); border: 1px solid var(--border-default); border-radius: var(--r-md); padding: 0 14px; font: inherit; font-size: 14px; color: var(--text-body); background: var(--adm-surface); transition: border var(--dur-fast), box-shadow var(--dur-fast); }
 .admin-app-wrapper .inp:focus { outline: none; border-color: var(--border-focus); box-shadow: var(--ring-blue); }
 .admin-app-wrapper textarea.inp { height: auto; padding: 12px 14px; resize: vertical; line-height: 1.6; }
 .admin-app-wrapper .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }

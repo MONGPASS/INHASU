@@ -48,6 +48,7 @@
   --adm-success: #00BF40;   --adm-success-soft: #00BF4014;  /* 완료 */
   --adm-info: #03866E;      --adm-info-soft: #06C4A00D;     /* 안내·진행 */
   --adm-neutral: #2E2F33E0; --adm-neutral-soft: #70737C14;  /* 보류·종료 */
+  --adm-fill-subtle: #70737C0D;   /* 칩 바탕 — Montage surface neutral tertiary */
   /* 상태색을 글자로 쓸 때: 주의·완료의 Montage 값은 흰 바탕에서 대비가 2.2~2.5:1이라 같은 계열의 진한 단계(Montage atomic)를 쓴다.
      채움·아이콘·테두리·점에는 위의 --adm-warn / --adm-success를 쓴다. */
   --adm-warn-strong: #9C5800;    /* 주의 글자 — Montage orange-30 (흰 바탕 5.5:1) */

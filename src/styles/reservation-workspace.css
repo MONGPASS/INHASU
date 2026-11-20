@@ -37,7 +37,7 @@
 
 .reservation-workspace.product-workspace .tc-anchors button {
     flex: none;
-    min-height: 44px;
+    min-height: var(--adm-control-h);
     white-space: nowrap;
 }
 
@@ -861,7 +861,7 @@
 
     .reservation-workspace.product-workspace .rw-primary-action {
         width: 100%;
-        min-height: 44px;
+        min-height: var(--adm-control-h);
     }
 }
 

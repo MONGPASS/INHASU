@@ -385,16 +385,16 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ name, descript
 
     return (
         <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-[#F2F5FA] dark:bg-slate-900">
-            {showPageTabs && <div className="border-b border-[#C7DCFF]/60 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+            {showPageTabs && <div className="border-b border-[color:var(--adm-line-subtle)] bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                    <p className="flex items-center gap-1.5 text-[12px] font-semibold text-[color:var(--adm-text-3)]">
                         <span className="material-symbols-outlined text-[15px]">edit_note</span>PDF 화면에서 직접 편집
                     </p>
-                    <span className="rounded-full bg-[#287DFA]/10 px-3 py-1 text-[11px] font-black text-[#1656D6]">클릭해서 수정</span>
+                    <span className="rounded-[4px] bg-[var(--adm-neutral-soft)] px-2 py-0.5 text-[12px] font-semibold text-[color:var(--adm-text-2)]">클릭해서 수정</span>
                 </div>
-                <div className="grid grid-cols-4 gap-1.5 rounded-2xl bg-[var(--adm-accent-soft)] p-1">
+                <div className="grid grid-cols-4 gap-0 rounded-[10px] bg-[var(--adm-neutral-soft)] p-1">
                     {pages.map(page => (
-                        <button key={page.id} onClick={() => setActivePage(page.id)} className={`inline-flex min-w-0 items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-black transition-colors ${activePage === page.id ? 'bg-white text-[color:var(--adm-accent-strong)] shadow-sm' : 'text-slate-500 hover:bg-white/60'}`} title={page.label}>
+                        <button key={page.id} onClick={() => setActivePage(page.id)} className={`inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded-[8px] px-2 text-[13px] transition-colors ${activePage === page.id ? 'bg-white font-semibold text-[color:var(--adm-ink)] shadow-[var(--adm-shadow-xs)]' : 'font-medium text-[color:var(--adm-text-3)] hover:text-[color:var(--adm-ink)]'}`} title={page.label}>
                             <span className="material-symbols-outlined text-[15px]">{page.icon}</span><span className="truncate">{page.label}</span>
                         </button>
                     ))}
