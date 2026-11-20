@@ -3999,7 +3999,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                                 </div>
                             ))}
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+                        <div className="adm-sheet-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
                             <button className="btn btn-ghost" onClick={() => setShowAddModal(false)} disabled={creating}>취소</button>
                             <button className="btn btn-ink" onClick={handleCreateReservation} disabled={creating}><Icon name="check" />{creating ? '추가 중…' : '예약 추가'}</button>
                         </div>

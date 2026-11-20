@@ -40,13 +40,18 @@ html.admin-embedded .bulkbtn { height: var(--adm-control-h-sm); min-height: var(
 html.admin-embedded .df button { height: var(--adm-control-h-lg); padding-top: 0; padding-bottom: 0; border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); }
 
 /* ── 주요 버튼은 민트 하나 ── */
-html.admin-embedded :is(.btn.primary, .bulkbtn.primary, .page-head .add, .rg-add, header button.go, .df .save, .bottom :is(.next, .publish)) {
+html.admin-embedded :is(.btn.primary, .page-head .add, .rg-add, .df .save, .bottom :is(.next, .publish)) {
   border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff;
 }
-html.admin-embedded :is(.btn.primary, .bulkbtn.primary, .page-head .add, .rg-add, header button.go, .df .save, .bottom :is(.next, .publish)):hover:not(:disabled) {
+html.admin-embedded :is(.btn.primary, .page-head .add, .rg-add, .df .save, .bottom :is(.next, .publish)):hover:not(:disabled) {
   border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover);
 }
 /* 목록 줄마다 있는 행동은 보조(테두리) 버튼 — 채움 버튼은 화면당 하나 */
+/* 견적서 만들기 머리의 '링크 공유하기', 선택 묶음 행동, 코스 카드의 '공유 견적'도 보조 버튼(주요는 아래 막대의 '다음' 하나) */
+html.admin-embedded :is(header button.go, .bulkbtn.primary, .card-actions .share) { border: 1px solid var(--adm-line-strong); background: var(--adm-surface); color: var(--adm-text); box-shadow: none; }
+html.admin-embedded :is(header button.go, .bulkbtn.primary, .card-actions .share):hover:not(:disabled) { background: var(--adm-gray-50); }
+/* 선택된 필터 칩·탭은 진한 채움(Montage 칩 선택). 브랜드 민트 채움은 주요 버튼에만 쓴다. */
+html.admin-embedded :is(.seg .chip.on, .mpill.on, .tabs .tab.on) { border-color: var(--adm-ink); background: var(--adm-ink); color: #fff; }
 html.admin-embedded .action-item .go { height: var(--adm-control-h-sm); border: 1px solid var(--adm-line-strong); border-radius: var(--adm-radius-sm); background: var(--adm-surface); color: var(--adm-text); font-weight: var(--adm-fw-semibold); box-shadow: none; }
 html.admin-embedded .action-item .go:hover { background: var(--adm-gray-50); }
 html.admin-embedded .df .del { background: var(--adm-danger-soft); color: var(--adm-danger); padding-left: 18px; padding-right: 18px; }

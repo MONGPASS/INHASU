@@ -186,6 +186,20 @@
 .admin-app-wrapper .select:focus { border-color: var(--adm-accent); box-shadow: var(--adm-ring); }
 
 /* ── 팝업·서랍·빈 목록 ── */
+/* 불러오기·저장 실패 안내 줄: 이유 + 다시 시도(문서 5절). 카드 모양으로 쓴 안내도 같은 줄 모양으로. */
+.admin-app-wrapper .content-in [role="alert"].card { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--adm-space-3); border-color: var(--adm-danger-line); background: var(--adm-danger-soft); color: var(--adm-ink); }
+/* 팝업의 발(취소·저장)은 본문이 길어도 아래에 붙어 있게 한다(머리 / 본문 / 발). */
+.admin-app-wrapper .adm-sheet { --sheet-px: 22px; --sheet-pb: 20px; }
+.admin-app-wrapper .adm-sheet > .adm-sheet-foot {
+  position: sticky; bottom: calc(-1 * var(--sheet-pb)); z-index: 1;
+  margin: 0 calc(-1 * var(--sheet-px)) calc(-1 * var(--sheet-pb)); padding: var(--adm-space-3) var(--sheet-px) var(--sheet-pb);
+  background: var(--adm-surface); border-top: 1px solid var(--adm-line-subtle);
+}
+@media (max-width: 760px) {
+  .admin-app-wrapper .adm-sheet { --sheet-px: var(--adm-space-4); --sheet-pb: calc(var(--adm-space-4) + var(--adm-safe-bottom)); }
+  /* 서랍 메뉴(휴대폰)에서도 메뉴 항목이 화면 끝에 붙지 않게 좌우 여백을 둔다. */
+  .admin-app-wrapper .app.admin-customer-menu-open .side { padding-left: var(--adm-space-3); padding-right: var(--adm-space-3); }
+}
 .admin-app-wrapper .drawer { box-shadow: var(--adm-shadow-lg); }
 .admin-app-wrapper .picker { border-radius: var(--adm-radius-lg); box-shadow: var(--adm-shadow-lg); }
 .admin-app-wrapper .statusdd-menu { border-color: var(--adm-line); border-radius: var(--adm-radius-sm); box-shadow: var(--adm-shadow-md); }
