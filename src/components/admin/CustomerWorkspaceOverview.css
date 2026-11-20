@@ -15,10 +15,12 @@
     --cw-card-shadow: 0 12px 32px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04);
     container: customer-workspace / inline-size;
     box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;
-    width: 100%; max-width: 1800px; margin: 0 auto; padding: 20px 32px 40px;
+    width: 100%; max-width: var(--adm-content-max); margin: 0; padding: 20px var(--adm-pad-page) 40px;
     background: #f4f6f7; color: var(--text-body, #24262b);
     font-family: Pretendard, sans-serif; font-size: 14px; line-height: 1.55; font-variant-numeric: tabular-nums;
 }
+/* AdminLayout 본문 안에서는 여백·최대 폭을 본문 래퍼가 준다(제목과 같은 왼쪽 선). */
+.admin-app-wrapper .content-in .cw-overview { max-width: none; padding-left: 0; padding-right: 0; }
 .cw-overview *, .cw-overview *::before, .cw-overview *::after { box-sizing: border-box; }
 .cw-overview button { font: inherit; cursor: pointer; }
 .cw-overview button:disabled { cursor: default; opacity: .45; }

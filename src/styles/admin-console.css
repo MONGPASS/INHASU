@@ -31,7 +31,7 @@
   --font-sans:var(--adm-font);
   --font-mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; --ls-snug:-0.02em;
   /* admin layout */
-  --side-w:252px; --header-h:72px; --content-max:1480px; --ring-blue:var(--adm-ring);
+  --side-w:252px; --header-h:72px; --content-max:var(--adm-content-max); --ring-blue:var(--adm-ring);
   /* base canvas */
   color:var(--text-body); background:var(--surface-canvas); -webkit-font-smoothing:antialiased; letter-spacing:var(--ls-snug);
 }
@@ -161,8 +161,12 @@
 .admin-app-wrapper .icon-btn:hover { background: var(--mrt-gray-50); border-color: var(--border-strong); }
 .admin-app-wrapper .icon-btn .badge-dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--mrt-red); border: 1.5px solid #fff; }
 
-.admin-app-wrapper .content { flex: 1; padding: 28px 32px 56px; }
-.admin-app-wrapper .content-in { max-width: var(--content-max); margin: 0 auto; }
+.admin-app-wrapper .header { padding-left: var(--adm-pad-page); padding-right: var(--adm-pad-page); }
+/* 본문 폭(모든 화면 공통): 여백 포함 최대 --adm-content-max, 왼쪽 정렬. 제목과 본문은 같은 왼쪽 선(--adm-pad-page).
+   화면별 CSS에 최대 폭을 따로 적지 않는다. 끼워 넣은 화면(flush)은 안쪽 문서가 같은 규칙을 쓴다(admin-tools.css). */
+.admin-app-wrapper .content { flex: 1; box-sizing: border-box; width: 100%; max-width: var(--adm-content-max); padding: 28px var(--adm-pad-page) 56px; }
+.admin-app-wrapper .main.is-flush > .content { max-width: none; }
+.admin-app-wrapper .content-in { min-width: 0; }
 
 /* ============ Buttons ============ */
 .admin-app-wrapper .btn {

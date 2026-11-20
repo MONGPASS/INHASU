@@ -27,25 +27,27 @@
   .admin-app-wrapper .app.is-side-rail .main { margin-left: calc(var(--side-rail-w) + var(--shell-gap) * 2); }
 
   /* 상단 바(알림·검색) 아래에 큰 제목과 화면 작업 버튼을 둔다. */
-  .admin-app-wrapper .header { position: relative; z-index: 40; padding: 0 28px; background: #fff; backdrop-filter: none; border-bottom: 0; }
+  .admin-app-wrapper .header { position: relative; z-index: 40; padding: 0 var(--adm-pad-page); background: #fff; backdrop-filter: none; border-bottom: 0; }
+  /* 상단 바(검색·알림)는 전체 폭, 제목·작업 버튼 줄은 본문과 같은 폭(--adm-content-max)에서 끝난다. */
   .admin-app-wrapper .header-in {
-    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "bar bar" "head acts";
+    display: grid; grid-template-columns: minmax(0, 1fr) auto max(0px, calc(100% - var(--adm-content-max) + 2 * var(--adm-pad-page)));
+    grid-template-areas: "bar bar bar" "head acts .";
     align-items: end; column-gap: 12px; height: auto; max-width: none;
   }
   .admin-app-wrapper .header-spacer { display: none; }
   .admin-app-wrapper .header-tools { display: contents; }
   .admin-app-wrapper .header .admin-toolbar {
-    grid-area: bar; justify-content: flex-end; min-height: 68px; margin: 0 -28px; padding: 14px 28px; border-bottom: 1px solid var(--border-default);
+    grid-area: bar; justify-content: flex-end; min-height: 68px; margin: 0 calc(-1 * var(--adm-pad-page)); padding: 14px var(--adm-pad-page); border-bottom: 1px solid var(--border-default);
   }
   .admin-app-wrapper .admin-layout-heading { grid-area: head; padding: 24px 0 4px; }
   /* 편집 화면처럼 제목·작업 버튼을 숨길 때는 상단 바만 남긴다. */
-  .admin-app-wrapper .header.is-heading-hidden .header-in { grid-template-areas: "bar bar"; }
+  .admin-app-wrapper .header.is-heading-hidden .header-in { grid-template-areas: "bar bar bar"; }
   .admin-app-wrapper .admin-page-actions,
   .admin-app-wrapper .admin-customer-header-actions { grid-area: acts; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 24px 0 6px; }
   .admin-app-wrapper .eyebrow { margin-bottom: 2px; font-size: 11px; letter-spacing: .08em; }
   .admin-app-wrapper .page-title { font-size: 28px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
   .admin-app-wrapper .admin-layout-heading > .cell-muted { margin-top: 4px !important; font-size: 13px !important; }
-  .admin-app-wrapper .content { padding: 20px 28px 40px; }
+  .admin-app-wrapper .content { padding: 20px var(--adm-pad-page) 40px; }
   .admin-app-wrapper .main.is-flush > .content { padding: 16px 0 0 !important; }
   .admin-app-wrapper .header-tools .btn,
   .admin-app-wrapper .admin-page-actions .btn { min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; }

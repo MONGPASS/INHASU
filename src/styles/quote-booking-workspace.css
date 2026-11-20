@@ -1,8 +1,7 @@
 /* Outside-frame shell; native rules are also injected into the original editor. */
-.admin-app-wrapper:has(.quote-customer-page){--content-max:1880px}
 .quote-customer-overview[hidden]{display:none}
 .quote-customer-page.is-editing{display:flex;flex-direction:column}
-.quote-customer-editor-entry{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1880px;margin:0 auto;padding:0 32px 24px;color:#697586;font-size:13px;line-height:1.65}
+.quote-customer-editor-entry{display:flex;align-items:center;justify-content:space-between;gap:16px;box-sizing:border-box;max-width:var(--adm-content-max);margin:0;padding:0 var(--adm-pad-page) 24px;color:#697586;font-size:13px;line-height:1.65}
 .quote-customer-editor-entry p{margin:0}
 .quote-customer-editor-entry>button{flex:none}
 .quote-customer-editor-shell{position:relative;display:flex;flex-direction:column;min-width:0;height:0;overflow:hidden;background:#fff;scroll-margin-top:16px}
@@ -45,15 +44,15 @@
 .native-booking-workspace{--accent:var(--adm-accent-strong);--book:var(--adm-accent-strong);--deep:#087960;--ink:#182b3c;--sub:#697586;--muted:#8491a2;--line:#e9edf2;--soft:#f5f7fa}
 .native-booking-workspace body{background:#f5f7fa;font-size:14px;line-height:1.6}
 .native-booking-workspace #main>.workflow-card,.native-booking-workspace #main>.workflow-card+section{display:none}
-.native-booking-workspace body>header{position:static;max-width:1240px;margin:0 auto;padding:24px 28px 16px;border:0;background:transparent}
+.native-booking-workspace body>header{position:static;box-sizing:border-box;max-width:var(--adm-content-max);margin:0;padding:24px var(--adm-pad-page) 16px;border:0;background:transparent}
 .native-booking-workspace header h1{font-size:18px;line-height:1.5}
 .native-booking-workspace header .who{color:#697586;font-size:13px}
 .native-booking-workspace .hd-acts{gap:12px}
 .native-booking-workspace .hd-group{gap:8px}
 .native-booking-workspace .hd-label{font-size:12px}
-.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history{box-sizing:border-box;max-width:1240px;margin-right:auto;margin-left:auto;padding-right:28px;padding-left:28px}
+.native-booking-workspace main,.native-booking-workspace #admin-booking-workspace,.native-booking-workspace #admin-booking-history{box-sizing:border-box;max-width:var(--adm-content-max);margin-right:auto;margin-left:0;padding-right:var(--adm-pad-page);padding-left:var(--adm-pad-page)}
 .native-booking-workspace main{gap:24px;padding-top:0;padding-bottom:32px}
-.native-booking-workspace #admin-booking-navigation{position:sticky;top:0;z-index:30;box-sizing:border-box;max-width:1240px;margin:auto;padding:8px 28px 0;background:#f5f7fa}
+.native-booking-workspace #admin-booking-navigation{position:sticky;top:0;z-index:30;box-sizing:border-box;max-width:var(--adm-content-max);margin:0;padding:8px var(--adm-pad-page) 0;background:#f5f7fa}
 .native-booking-workspace #admin-booking-history{padding-bottom:32px}
 .native-booking-workspace #documentsSection,.native-booking-workspace #bookingInfoSection,.native-booking-workspace #paymentSection,.native-booking-workspace #assignmentSection,.native-booking-workspace #admin-booking-history,.native-booking-workspace #c_contract,.native-booking-workspace #bk_memo{scroll-margin-top:88px}
 .native-booking-workspace section.card{min-width:0;padding:28px;border-color:#e2e7ed;border-radius:18px;box-shadow:none}

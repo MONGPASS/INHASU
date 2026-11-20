@@ -1,6 +1,6 @@
 /* 고객 작업 화면의 일정표 편집 — Admin Dashboard v3 "Page 15 Itinerary Editor".
    공유 견적 위젯(quote-day-editor·quote-spot-selector)의 마크업은 그대로 두고 이 화면 안에서만 모양을 바꿉니다. */
-.product-customer-page .cw-focus-workspace .ri-editor-workflow { max-width: 1480px; margin: 0 auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.product-customer-page .cw-focus-workspace .ri-editor-workflow { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .product-customer-page .cw-focus-workspace .ri-editor-workflow .ri-composer { container: itinerary-composer / inline-size; padding: 16px 0 0; border: 0; background: transparent; }
 
 /* 문서 종류·일차 바로가기 */
