@@ -414,7 +414,7 @@ export const AdminBannerManage: React.FC = () => {
 
     const renderBanner = (banner: Banner, index: number) => {
         const open = isOpen(banner.id), pcTextUsed = !!(banner.pcTag || banner.pcTitle || banner.pcSubtitle), pcShown = !!pcOpen[banner.id];
-        const summary = [banner.tag || '태그 없음', banner.link || '링크 없음', banner.image ? '모바일 이미지 ✓' : '모바일 이미지 없음', banner.pcImage ? 'PC 이미지 ✓' : ''].filter(Boolean).join(' · ');
+        const summary = [banner.tag || '태그 없음', banner.link || '링크 없음', banner.image ? '모바일 이미지 있음' : '모바일 이미지 없음', banner.pcImage ? 'PC 이미지 있음' : ''].filter(Boolean).join(' · ');
         const name = banner.title?.split('\n')[0];
         return (
             <section className="hm-card" key={banner.id}>

@@ -35,8 +35,8 @@ export const pill = (tone: PillTone, x?: Css): Css => {
 };
 
 /** 선택 상자 모양 버튼. empty면 빨간 테두리(선택 필요). */
-export const sel = (empty: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 10px 0 12px', boxSizing: 'border-box', border: 0, borderRadius: 'var(--adm-radius-sm)', font: 'inherit', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
-    background: 'var(--adm-surface)', boxShadow: empty ? 'inset 0 0 0 1.5px var(--adm-danger-line)' : 'inset 0 0 0 1px var(--adm-line)', color: empty ? 'var(--adm-danger)' : V7_INK, ...(x || {}) });
+export const sel = (empty: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 10px 0 12px', boxSizing: 'border-box', border: 0, borderRadius: 'var(--adm-radius-sm)', font: 'inherit', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer',
+    background: 'var(--adm-surface)', boxShadow: empty ? 'inset 0 0 0 1px var(--adm-danger-line)' : 'inset 0 0 0 1px var(--adm-line)', color: empty ? 'var(--adm-danger)' : V7_INK, ...(x || {}) });
 
 /** 배정 칩(목록의 가이드·차량·숙소). c는 점 색. */
 export const dchip = (c: string, bad: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 5, height: 28, padding: '0 10px 0 20px', boxSizing: 'border-box', border: 0, borderRadius: 'var(--adm-radius-sm)', font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer', flex: '0 0 auto',

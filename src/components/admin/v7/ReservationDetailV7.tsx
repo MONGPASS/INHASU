@@ -299,15 +299,23 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const guideValue = row?.guide?.name || (m.assignments.find(a => a.id === 'guide')?.state === 'ready' ? m.assignments.find(a => a.id === 'guide')!.value : '');
     const vehicleValue = row?.vehicle?.type || (m.assignments.find(a => a.id === 'vehicle')?.state === 'ready' ? m.assignments.find(a => a.id === 'vehicle')!.value : '');
     const stayReady = row ? row.accDone : m.assignments.find(a => a.id === 'stay')?.state === 'ready';
+    // 예약 전 견적 문의: 배정은 예약으로 전환한 뒤에 한다. '선택' 버튼 대신 회색 안내 글자를 둔다(눌러서 다른 화면으로 넘어가지 않게).
+    const asgLocked = !!m.disabledActions?.includes('assignments'), payLocked = !!m.disabledActions?.includes('payments');
+    const mutedNote = (text: string) => <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--adm-text-3)', whiteSpace: 'nowrap' }}>{text}</span>;
+    const lockedNote = mutedNote('예약 후 배정할 수 있어요'), payNote = mutedNote('예약 후 관리할 수 있어요');
     // 디자인 v7: 바로가기 아래 결제·배정·분류·서류 네 칸 요약
     type QuadItem = { label: string; sub?: ReactNode; control?: ReactNode };
-    const quad: Array<{ sid: string; icon: DashboardIconName; title: string; left: number | null; badge?: string; items: QuadItem[] }> = [
-        { sid: 'sec-pay', icon: 'lc-wallet', title: '결제', left: [!depositPaid, !balancePaid, receiptLate].filter(Boolean).length, items: [
+    const quad: Array<{ sid: string; icon: DashboardIconName; title: string; left: number | null; badge?: string; muted?: boolean; items: QuadItem[] }> = [
+        payLocked ? { sid: 'sec-pay', icon: 'lc-wallet', title: '결제', left: null, badge: '예약 전', muted: true, items: [
+            { label: '총 매출', sub: v7Won(pay.total) }, { label: '예약금', control: payNote }, { label: '잔금', control: payNote }, { label: '현금영수증', control: payNote }] }
+        : { sid: 'sec-pay', icon: 'lc-wallet', title: '결제', left: [!depositPaid, !balancePaid, receiptLate].filter(Boolean).length, items: [
             { label: '총 매출', sub: v7Won(pay.total) },
             { label: '예약금', sub: v7Won(pay.deposit), control: btnPill(depositPaid ? '입금 완료' : '미입금', depositPaid ? 'mint' : 'red', e => paymentMenu(e, 'deposit')) },
             { label: '잔금', sub: v7Won(pay.balance), control: btnPill(balancePaid ? '완납' : '미수', balancePaid ? 'mint' : 'red', e => paymentMenu(e, 'final')) },
             { label: '현금영수증', control: ops ? (receiptLate ? btnPill(RECEIPT_LABELS[receipt], 'red', e => opsMenu(e, 'receipt')) : btnSel(RECEIPT_LABELS[receipt], false, e => opsMenu(e, 'receipt'))) : btnSel('결제 화면', false, action('payments'), 'lc-chevron-right') }] },
-        { sid: 'sec-asg-s', icon: 'lc-users', title: '배정', left: [!guideValue, !vehicleValue, !stayReady].filter(Boolean).length, items: [
+        asgLocked ? { sid: 'sec-asg-s', icon: 'lc-users', title: '배정', left: null, badge: '예약 전', muted: true, items: [
+            { label: '가이드', control: lockedNote }, { label: '차량', control: lockedNote }, { label: '숙소', control: lockedNote }] }
+        : { sid: 'sec-asg-s', icon: 'lc-users', title: '배정', left: [!guideValue, !vehicleValue, !stayReady].filter(Boolean).length, items: [
             { label: '가이드', control: btnSel(guideValue || '선택', !guideValue, e => void peopleMenu(e, 'guide')) },
             { label: '차량', control: btnSel(vehicleValue || '선택', !vehicleValue, e => void peopleMenu(e, 'vehicle')) },
             { label: '숙소', sub: row ? row.accN ? `${row.accC}/${row.accN}박 확정` : '숙박 없음' : m.assignments.find(a => a.id === 'stay')?.value, control: btnSel('박별 관리', false, () => goSec('sec-asg'), 'lc-chevron-right') }] },
@@ -324,7 +332,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const compactCard = (c: typeof quad[number]) => <div key={c.sid} id={c.sid} style={{ display: 'flex', flexDirection: 'column', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)', scrollMarginTop: 88 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 10px' }}>
             <span style={iconTile(28)}><Ico name={c.icon} size={15} /></span><b style={{ fontSize: 14, fontWeight: 700 }}>{c.title}</b>
-            <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: c.left ? 'var(--adm-danger)' : 'var(--adm-accent-strong)' }}>{c.left === null ? c.badge : c.left ? `${c.left}건 남음` : '완료'}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: c.muted ? 'var(--adm-text-3)' : c.left ? 'var(--adm-danger)' : 'var(--adm-accent-strong)' }}>{c.left === null ? c.badge : c.left ? `${c.left}건 남음` : '완료'}</span>
         </div>
         {c.items.map((it, i) => <div key={`${it.label}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid var(--adm-line-subtle)' }}>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}><span style={{ fontSize: 13, color: 'var(--adm-text-2)' }}>{it.label}</span>{it.sub && <span style={{ fontSize: 12, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub}</span>}</span>
@@ -398,15 +406,15 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                                 <b style={{ fontSize: 14, fontWeight: 700, color: V7_INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value || `${label} 미배정`}</b>
                                 <span style={{ fontSize: 12, fontWeight: 600, color: value ? 'var(--adm-text-2)' : 'var(--adm-text-3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tel}</span>
                             </span>
-                            {btnSel(value || `${label} 선택`, !value, e => void peopleMenu(e, kind))}
+                            {asgLocked ? lockedNote : btnSel(value || `${label} 선택`, !value, e => void peopleMenu(e, kind))}
                         </div>;
                     })}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '16px 18px 10px', borderTop: '1px solid var(--adm-line-subtle)' }}>
                         <b style={{ fontSize: 14, fontWeight: 700 }}>일자별 숙소</b>
-                        <button type="button" disabled={busy || saving} onClick={requestLodging} style={{ ...ghostBtn(34), marginLeft: 'auto', padding: '0 14px' }}>
+                        {!asgLocked && <button type="button" disabled={busy || saving} onClick={requestLodging} style={{ ...ghostBtn(34), marginLeft: 'auto', padding: '0 14px' }}>
                             <Ico name="lc-send" size={14} />현지 운영에 수배 요청
                             {pendingNights.length > 0 && <span style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999, alignItems: 'center', justifyContent: 'center', background: 'var(--adm-accent)', color: '#fff', fontSize: 11, fontWeight: 700 }}>{pendingNights.length}</span>}
-                        </button>
+                        </button>}
                     </div>
                     <div className="v7-stay-head" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', height: 34, padding: '0 18px', background: 'var(--adm-gray-50)', fontSize: 11.5, fontWeight: 700, color: V7_MUTED }}><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
                     {(row?.stays || []).map(nt => {
@@ -421,7 +429,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         </div>;
                     })}
                     {row && !row.stays.length && <div style={{ padding: 18, borderTop: '1px solid var(--adm-line-subtle)', fontSize: 13, color: V7_MUTED }}>{row.accN === 0 && startKey ? '숙박이 없는 당일 일정이에요.' : '여행 시작일·종료일을 먼저 확인해 주세요.'}</div>}
-                    {!row && <div style={{ padding: 18, borderTop: '1px solid var(--adm-line-subtle)', fontSize: 13, color: V7_MUTED }}>{m.assignments.find(a => a.id === 'stay')?.detail || '숙소 배정은 배정 업무 화면에서 관리합니다.'}</div>}
+                    {!row && <div style={{ padding: 18, borderTop: '1px solid var(--adm-line-subtle)', fontSize: 13, color: V7_MUTED }}>{asgLocked ? (m.disabledActionReason || '예약 진행 후 배정할 수 있습니다.') : m.assignments.find(a => a.id === 'stay')?.detail || '숙소 배정은 배정 업무 화면에서 관리합니다.'}</div>}
                     {assignmentEditor}
                 </div>
 

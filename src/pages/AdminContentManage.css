@@ -237,7 +237,7 @@
 .admin-app-wrapper .mg-badges { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; }
 .admin-app-wrapper :is(.mg-status, .mg-hot) { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius:var(--adm-radius-xs); font-size: 11px; font-weight: 700; }
 .admin-app-wrapper .mg-status { background: var(--adm-surface); color: var(--text-secondary); }
-.admin-app-wrapper .mg-status[data-published] { background: var(--mrt-ink); color: #fff; }
+.admin-app-wrapper .mg-status[data-published] { background: var(--adm-accent); color: #fff; }
 .admin-app-wrapper .mg-hot { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
 .admin-app-wrapper .mg-body { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 12px; }
 .admin-app-wrapper .mg-cat { color: var(--mrt-blue-strong); font-size: 12px; font-weight: 700; }

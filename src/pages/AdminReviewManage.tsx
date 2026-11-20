@@ -279,7 +279,7 @@ export const AdminReviewManage: React.FC = () => {
                         <button type="button" className="cm-chip" aria-pressed={starFilter === 0} onClick={() => setStarFilter(0)}>전체 평점</button>
                         {starChips.map((n) => (
                             <button key={n} type="button" className="cm-chip" aria-pressed={starFilter === n} onClick={() => setStarFilter(n)}>
-                                ★ {n}점<span className="cm-chip-n">{starCount(n)}</span>
+                                {n}점<span className="cm-chip-n">{starCount(n)}</span>
                             </button>
                         ))}
                     </div>

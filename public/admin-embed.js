@@ -51,4 +51,29 @@
   style.setAttribute("data-admin-embed", "");
   style.appendChild(document.createTextNode(css));
   (document.head || root).appendChild(style);
+
+  /* 편집 서랍 뒤 막(#overlay.on)이 열리고 닫힐 때 바깥 통합 관리자에 알려, 바깥 메뉴·제목도 함께 어둡게 한다.
+     바깥 막을 누르면 바깥 관리자가 닫기를 요청하고, 여기서는 페이지의 뒤 막을 누른 것과 똑같이 처리한다(각 페이지의 닫기 동작 그대로). */
+  var overlayOpen = false;
+  function reportOverlay(open) {
+    if (open === overlayOpen) return;
+    overlayOpen = open;
+    try { window.parent.postMessage({ type: "inhasu-embed-overlay", version: 1, open: open }, window.location.origin); } catch (e) { /* 바깥 창 없음 */ }
+  }
+  function watchOverlay() {
+    var overlay = document.getElementById("overlay");
+    if (!overlay || typeof MutationObserver === "undefined") return;
+    /* 뒤 막이 보이지 않게 숨겨진 화면(고객 통합 작업 안의 견적 문의처럼 상세를 본문에 펼치는 화면)은 알리지 않는다. */
+    var isOpen = function () { return overlay.classList.contains("on") && window.getComputedStyle(overlay).display !== "none"; };
+    reportOverlay(isOpen());
+    new MutationObserver(function () { reportOverlay(isOpen()); }).observe(overlay, { attributes: true, attributeFilter: ["class"] });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watchOverlay); else watchOverlay();
+  window.addEventListener("pagehide", function () { reportOverlay(false); });
+  window.addEventListener("message", function (event) {
+    if (event.origin !== window.location.origin || event.source !== window.parent) return;
+    if (!event.data || event.data.type !== "inhasu-embed-overlay-close" || event.data.version !== 1) return;
+    var overlay = document.getElementById("overlay");
+    if (overlay && overlay.classList.contains("on")) overlay.click();
+  });
 })();

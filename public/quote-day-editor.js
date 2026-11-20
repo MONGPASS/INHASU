@@ -26,7 +26,7 @@
     });
     const order = [...new Set([...categories.filter(name => byCategory[name]), ...Object.keys(byCategory).filter(name => !categories.includes(name) && name !== "기타")])];
     if (byCategory["기타"] && !order.includes("기타")) order.push("기타");
-    return `<option value="">📋 일정 불러오기…</option>` + order.map(category => `<optgroup label="${esc(category)}">${byCategory[category].map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join("")}</optgroup>`).join("");
+    return `<option value="">일정 불러오기…</option>` + order.map(category => `<optgroup label="${esc(category)}">${byCategory[category].map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join("")}</optgroup>`).join("");
   };
 
   function mount(root, initialOptions) {

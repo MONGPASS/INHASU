@@ -53,6 +53,23 @@ interface BookingWorkspaceState {
 const workspaceFrameSrc = (customerPage: boolean, tool: ReturnType<typeof findQuoteDeskTool>, id?: string, editorId?: string, resourceType?: string) => customerPage && tool.key === 'inbox' && id
     ? `/견적관리?id=${encodeURIComponent(id)}&m=0&workspace=1` : quoteDeskFrameSrc(tool, id, editorId, resourceType);
 
+/** 견적 도구 안에서 편집 서랍이 열렸을 때 바깥 관리자(메뉴·제목·아래 메뉴)도 같은 막으로 덮는다.
+ *  iframe 영역은 비워 두어(그 안은 도구 자체의 막이 덮는다) 서랍 조작은 그대로 되고, 바깥 막을 누르면 서랍 닫기를 요청한다. */
+function EmbedDim({ frameRef, onClose }: { frameRef: React.RefObject<HTMLIFrameElement | null>; onClose: () => void }) {
+    const [box, setBox] = useState<{ w: number; h: number; l: number; t: number; r: number; b: number } | null>(null);
+    useEffect(() => {
+        let frame = 0;
+        const measure = () => { frame = 0; const rect = frameRef.current?.getBoundingClientRect(); if (rect) setBox({ w: window.innerWidth, h: window.innerHeight, l: rect.left, t: rect.top, r: rect.right, b: rect.bottom }); };
+        const schedule = () => { if (!frame) frame = window.requestAnimationFrame(measure); };
+        measure();
+        window.addEventListener('resize', schedule); window.addEventListener('scroll', schedule, true);
+        return () => { window.removeEventListener('resize', schedule); window.removeEventListener('scroll', schedule, true); if (frame) window.cancelAnimationFrame(frame); };
+    }, [frameRef]);
+    if (!box) return null;
+    const hole = `M0 0H${box.w}V${box.h}H0Z M${box.l} ${box.t}H${box.r}V${box.b}H${box.l}Z`;
+    return createPortal(<div className="adm-embed-dim" aria-hidden="true" onClick={onClose} style={{ clipPath: `path(evenodd, '${hole}')` }} />, document.body);
+}
+
 export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerPage = false }) => {
     const { user } = useUser();
     const accountId = user?.role === 'admin' ? user.id : '';
@@ -70,6 +87,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     // 종류를 지정한 링크(?resourceType=lodges 등)는 등록 정보로 연다.
     const scheduleView = toolParam === 'resources' && resourceScheduleView(searchParams);
     const setScheduleView = (on: boolean) => { const next = new URLSearchParams(searchParams); next.set('view', on ? 'schedule' : 'registry'); navigate({ search: `?${next}` }, { replace: true }); };
+    const [embedOverlay, setEmbedOverlay] = useState(false);
     const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: any } | null>(null);
     const customerRecord = customerResult?.accountId === accountId && customerResult.id === bookingId ? customerResult.record : null;
     const [customerError, setCustomerError] = useState('');
@@ -153,6 +171,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         try { (frameRef.current?.contentWindow as EditorWindow | null)?.InhasuQuoteBookingWorkspace?.navigate(section); }
         catch { setEditorNotice('예약 화면을 새로고침한 뒤 다시 선택해 주세요.'); }
     };
+    const clickFrameButton = (id: string) => {
+        try {
+            const button = frameRef.current?.contentDocument?.getElementById(id) as HTMLButtonElement | null;
+            if (button && !button.disabled) button.click();
+            else setEditorNotice('화면을 불러오는 중입니다. 잠시 뒤 다시 눌러 주세요.');
+        } catch { setEditorNotice('화면을 새로고침한 뒤 다시 눌러 주세요.'); }
+    };
     const flushFrame = useCallback(() => {
         if (sendingKakao) return { ok: false, busy: true, error: '카카오 알림 발송이 끝난 뒤 이동해 주세요.' };
         try {
@@ -170,6 +195,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         const receive = (event: MessageEvent) => {
             if (event.origin !== window.location.origin || event.source !== frameRef.current?.contentWindow) return;
             if (event.data?.type === 'inhasu-editor-ready' && event.data.version === 1) sendAccount();
+            if (event.data?.type === 'inhasu-embed-overlay' && event.data.version === 1) setEmbedOverlay(event.data.open === true);
             if (event.data?.type === 'inhasu-editor-state' && event.data.version === 1) {
                 if (!event.data.busy && !event.data.error) setEditorNotice('');
                 if (customerPage && lastEditorBusy.current && !event.data.busy) setCustomerRefresh(value => value + 1);
@@ -283,6 +309,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
 
     // 3) 안쪽 화면이 다른 견적 화면으로 넘어가면(예: 문의 → 견적서 만들기) 메뉴 표시와 주소를 맞춘다.
     const handleFrameLoad = () => {
+        setEmbedOverlay(false);
         let path = '', innerId = '', innerEditor = '';
         try {
             if (quoteFrameNeedsRemount(frameRef.current?.contentWindow?.location.href, window.location.origin)) return;
@@ -537,6 +564,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                             ))}
                         </span>
                     )}
+                    {/* 코스·일정·여행지: 도구 안 머리의 추가 버튼을 제목 줄로 올린다(도구 안의 원래 버튼을 대신 눌러 동작은 그대로). 도구 안 머리는 admin-tools.css가 숨긴다. */}
+                    {tool.key === 'spots' && <button type="button" className="btn btn-ghost" disabled={!frameIsMounted} onClick={() => clickFrameButton('copyBtn')}>문구 초안 가져오기</button>}
+                    {(['courses', 'itinerary', 'spots'] as string[]).includes(tool.key) && (
+                        <button type="button" className="btn btn-ink" disabled={!frameIsMounted} onClick={() => clickFrameButton('addBtn')}>
+                            <Icon name="add" />{tool.key === 'courses' ? '새 코스 추가' : tool.key === 'itinerary' ? '새 일정 추가' : '새 명소 추가'}
+                        </button>
+                    )}
                     {tool.key === 'inbox' && (
                         <button type="button" className="btn btn-blue" onClick={() => navigate(quoteDeskHref('builder'))}>
                             <Icon name="edit_document" />견적 작성
@@ -586,6 +620,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         className={customerPage ? 'quote-customer-editor-frame' : undefined}
                         style={customerPage ? undefined : { position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, display: 'block' }}
                     />}
+                    {embedOverlay && frameIsMounted && <EmbedDim frameRef={frameRef} onClose={() => frameRef.current?.contentWindow?.postMessage({ type: 'inhasu-embed-overlay-close', version: 1 }, window.location.origin)} />}
                     {scheduleView && accountId && <GuideSchedule accountId={accountId} />}
                     {showDeliveries && !nativeHosts && tool.key === 'bookings' && bookingId && <aside className="quote-delivery-panel" aria-label="견적 예약 발송 이력">
                         <button type="button" onClick={() => setShowDeliveries(false)}>이력 닫기</button>
