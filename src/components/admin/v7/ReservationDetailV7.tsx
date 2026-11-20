@@ -300,12 +300,15 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const vehicleValue = row?.vehicle?.type || (m.assignments.find(a => a.id === 'vehicle')?.state === 'ready' ? m.assignments.find(a => a.id === 'vehicle')!.value : '');
     const stayReady = row ? row.accDone : m.assignments.find(a => a.id === 'stay')?.state === 'ready';
     // 예약 전 견적 문의: 배정은 예약으로 전환한 뒤에 한다. '선택' 버튼 대신 회색 안내 글자를 둔다(눌러서 다른 화면으로 넘어가지 않게).
-    const asgLocked = !!m.disabledActions?.includes('assignments');
-    const lockedNote = <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--adm-text-3)', whiteSpace: 'nowrap' }}>예약 후 배정할 수 있어요</span>;
+    const asgLocked = !!m.disabledActions?.includes('assignments'), payLocked = !!m.disabledActions?.includes('payments');
+    const mutedNote = (text: string) => <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--adm-text-3)', whiteSpace: 'nowrap' }}>{text}</span>;
+    const lockedNote = mutedNote('예약 후 배정할 수 있어요'), payNote = mutedNote('예약 후 관리할 수 있어요');
     // 디자인 v7: 바로가기 아래 결제·배정·분류·서류 네 칸 요약
     type QuadItem = { label: string; sub?: ReactNode; control?: ReactNode };
     const quad: Array<{ sid: string; icon: DashboardIconName; title: string; left: number | null; badge?: string; muted?: boolean; items: QuadItem[] }> = [
-        { sid: 'sec-pay', icon: 'lc-wallet', title: '결제', left: [!depositPaid, !balancePaid, receiptLate].filter(Boolean).length, items: [
+        payLocked ? { sid: 'sec-pay', icon: 'lc-wallet', title: '결제', left: null, badge: '예약 전', muted: true, items: [
+            { label: '총 매출', sub: v7Won(pay.total) }, { label: '예약금', control: payNote }, { label: '잔금', control: payNote }, { label: '현금영수증', control: payNote }] }
+        : { sid: 'sec-pay', icon: 'lc-wallet', title: '결제', left: [!depositPaid, !balancePaid, receiptLate].filter(Boolean).length, items: [
             { label: '총 매출', sub: v7Won(pay.total) },
             { label: '예약금', sub: v7Won(pay.deposit), control: btnPill(depositPaid ? '입금 완료' : '미입금', depositPaid ? 'mint' : 'red', e => paymentMenu(e, 'deposit')) },
             { label: '잔금', sub: v7Won(pay.balance), control: btnPill(balancePaid ? '완납' : '미수', balancePaid ? 'mint' : 'red', e => paymentMenu(e, 'final')) },
