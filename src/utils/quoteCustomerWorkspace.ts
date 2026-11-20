@@ -1,4 +1,4 @@
-import type { CustomerWorkspaceOverviewModel } from '../components/admin/CustomerWorkspaceOverview';
+import type { CustomerWorkspaceFlow, CustomerWorkspaceOverviewModel } from '../components/admin/CustomerWorkspaceOverview';
 import { isQuoteBooking, quotePackageTier, summarizeQuoteBooking } from '../../functions/lib/quoteBookings';
 import type { AdminDeliveryItem } from '../types/adminDelivery';
 import { customerRecentHistory, customerCurrentStage } from './customerRecentHistory.ts';
@@ -152,6 +152,62 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
         else if (!accepted) tasks.push({ id: 'accepted', label: '고객 예약 진행 의사 확인', detail: '견적 안내 접수 기록이 있습니다. 고객 수락 기록이 없어 상담 결과 확인이 필요합니다.', actionLabel: '상담 정보 확인', waiting: true, action: 'view-info' });
         else tasks.push({ id: 'prepare', label: '예약 기본 정보 준비', detail: '고객 예약 진행 의사가 기록되었으나 예약 정보가 없습니다. 기존 견적 관리에서 예약 진행 상태를 확인하세요.', actionLabel: '예약 정보 확인', action: 'view-info' });
     }
+    const won = (value: number | null) => value === null ? '' : `${value.toLocaleString('ko-KR')}원`;
+    const signed = summary.quoteBooking.signed;
+    const confirmed = record.status === '예약확정' || summary.status === 'completed';
+    const assigned = booked && assignments.every(item => item.state === 'ready');
+    const flowSteps = [
+        { id: 'quote', label: '견적서', done: sent || accepted || booked },
+        { id: 'answer', label: '고객 답변', done: accepted && booked },
+        { id: 'deposit', label: '예약금', done: depositPaid === true },
+        { id: 'sign', label: '계약서 서명', done: signed },
+        { id: 'confirm', label: '예약 확정', done: confirmed },
+        { id: 'assign', label: '배정', done: assigned },
+        { id: 'publish', label: '일정표 공개', done: published },
+    ];
+    const flowCurrent = flowSteps.findIndex(step => !step.done);
+    const assignLeft = assignments.filter(item => item.state !== 'ready').map(item => item.id === 'stay' ? `숙소 ${item.statusLabel}` : `${item.label} 미배정`);
+    const quoteIssue = issue('quote'), contractIssue = issue('contract');
+    const flowNext = ((): CustomerWorkspaceFlow['next'] => {
+        switch (flowSteps[flowCurrent]?.id) {
+            case 'quote': return !quoted
+                ? { title: '견적서를 만들어 보내 주세요', detail: '여행 기간·인원·요청 사항을 보고 견적서를 작성한 뒤 고객에게 링크를 보내요.', primary: { label: '견적서 작성', action: 'quote-edit' } }
+                : quoteIssue || quoteRequested
+                    ? { title: '견적서 발송 결과를 확인해 주세요', detail: quoteIssue?.state === 'failed' ? `견적서 알림이 실패했어요${quoteIssue.error ? ` · ${quoteIssue.error}` : ''}.` : '발송 요청은 했지만 접수 결과가 아직 없어요.', primary: { label: '발송 이력 보기', action: 'history' }, secondary: { label: '견적서 다시 보내기', action: 'quote-share' } }
+                    : { title: '견적서를 고객에게 보내 주세요', detail: '견적서는 저장돼 있어요. 내용을 확인한 뒤 [링크 공유하기]로 고객에게 카카오 알림을 보내요.', primary: { label: '견적서 보내기', action: 'quote-share' }, secondary: { label: '견적서 수정', action: 'quote-edit' } };
+            case 'answer': return accepted
+                ? { title: '예약 정보를 만들어 주세요', detail: '고객 수락 기록은 있지만 예약 정보가 없어요. 견적 금액으로 예약금·입금 계좌가 담긴 예약을 만들어요.', primary: { label: '예약 만들기', action: 'accept-quote', confirm: '견적 금액으로 예약을 만들까요? 예약금이 있으면 고객 화면에 입금 계좌가 보입니다.' } }
+                : { title: '고객이 예약하겠다고 하면 눌러 주세요', waiting: true,
+                    detail: `견적서를 보냈어요. 고객이 카카오톡 등으로 진행하겠다고 알려 오면 버튼을 눌러요.${deposit ? ` 예약금 ${won(deposit)}과 입금 계좌가 담긴 예약이 만들어지고 고객에게 예약 접수 알림이 가요.` : ''}`,
+                    primary: { label: '고객이 예약하겠대요', action: 'accept-quote', confirm: `${text(record.name) || '고객'}님이 예약 진행 의사를 알려 왔나요?\n\n예약을 만들고 고객에게 예약 접수 알림(예약금${deposit ? ` ${won(deposit)}` : ''}·입금 계좌 안내)을 보냅니다.` },
+                    secondary: { label: '견적서 수정', action: 'quote-edit' } };
+            case 'deposit': {
+                const reported = booking.depositReport?.status === 'reported';
+                if (!deposit) return { title: '예약금 금액을 먼저 정해 주세요', detail: '예약금이 0원이거나 비어 있어요. 결제 정보에서 예약금과 입금 계좌를 확인해 주세요.', primary: { label: '결제 정보 열기', action: 'payments' } };
+                return { title: reported ? '고객이 입금했다고 알려 왔어요' : '예약금 입금을 기다리고 있어요', waiting: !reported,
+                    detail: [`예약금 ${won(deposit)}`, [nonempty(ci.bankName), nonempty(ci.accountNumber)].filter(Boolean).join(' '),
+                        reported ? `입금자 ${nonempty(booking.depositReport?.name) || '미입력'}` : '통장에 들어오면 버튼을 눌러요'].filter(Boolean).join(' · '),
+                    primary: { label: '입금 확인했어요', action: 'confirm-deposit', confirm: `예약금 ${won(deposit)} 입금을 통장에서 확인했나요?\n\n확인하면 고객에게 계약서 서명·여행자 정보 요청 알림이 갑니다.` },
+                    secondary: { label: '결제 정보', action: 'payments' } };
+            }
+            case 'sign': return {
+                title: contractRequested ? '고객 서명을 기다리고 있어요' : '계약서 서명을 요청해 주세요', waiting: !!contractRequested && !contractIssue,
+                detail: contractIssue ? `서명 안내 알림이 ${contractIssue.state === 'failed' ? '실패했어요' : '확인되지 않았어요'}. 다시 보내 주세요.`
+                    : contractRequested ? `${nonempty(booking.contractRequest?.requestedAt).slice(0, 10)} 서명 안내를 보냈어요. 고객이 서명하면 다음 단계로 넘어가요.`.trim() : '예약금은 확인됐어요. 고객에게 계약서 서명을 요청해요.',
+                primary: { label: contractRequested ? '서명 안내 다시 보내기' : '서명 요청 보내기', action: 'notify-contract', confirm: '고객에게 계약서 서명·여행자 정보 요청 알림을 보낼까요?' },
+                secondary: assigned ? { label: '계약서 보기', action: 'contract' } : { label: '기다리는 동안 배정하기', action: 'assignments' } };
+            case 'confirm': return { title: '예약을 확정해 주세요', detail: '입금과 서명이 모두 확인됐어요. 확정하면 고객에게 예약 확정 알림이 가요.',
+                primary: { label: '예약 확정', action: 'confirm-booking', confirm: '예약을 확정할까요?\n\n고객에게 예약 확정 알림이 갑니다.' } };
+            case 'assign': return { title: '가이드·차량·숙소를 배정해 주세요', detail: assignLeft.join(' · ') || '배정할 항목을 확인해 주세요.', primary: { label: '배정하기', action: 'assignments' } };
+            case 'publish': return !scheduleReady
+                ? { title: '일정을 채운 뒤 공개해 주세요', detail: [expectedDays === null ? `저장된 일정 ${days.length}일` : `여행 ${expectedDays}일 · 저장된 일정 ${days.length}일`, emptyDays.length ? `${emptyDays.join('·')}일차 내용 없음` : ''].filter(Boolean).join(' · '), primary: { label: '일정표 편집', action: 'edit-itinerary' } }
+                : { title: '확정일정표를 공개해 주세요', detail: '배정까지 끝났어요. 공개하면 고객에게 확정 일정표 알림이 가요.',
+                    primary: { label: '확정일정표 공개·보내기', action: 'publish-itinerary', confirm: '확정일정표를 고객에게 공개할까요?\n\n고객에게 확정 일정표 알림이 갑니다.' }, secondary: { label: '일정표 확인', action: 'edit-itinerary' } };
+            default: return { title: '모든 준비가 끝났어요', detail: balancePaid === true ? '잔금까지 받았어요.' : `${balance ? `잔금 ${won(balance)}은` : '잔금은'} 현지에서 받으면 결제 정보에 기록해 주세요.`,
+                ...(balancePaid === true ? {} : { secondary: { label: '결제 정보', action: 'payments' } }) };
+        }
+    })();
+    const flow: CustomerWorkspaceFlow | undefined = cancelled ? undefined : { steps: flowSteps, current: flowCurrent < 0 ? flowSteps.length : flowCurrent, next: flowNext };
     return {
         customerName: text(record.name) || text(quote?.customer) || '이름 미입력', sourceLabel: booked ? '맞춤 견적 예약' : '맞춤 견적 문의',
         bookingNumber: text(record.reservationNumber) || text(record.id), statusLabel: booked ? summary.quoteBooking.label : text(record.status) || '신규 문의',
@@ -208,7 +264,7 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
         payment: { total, deposit, balance,
             depositPaid, balancePaid },
         assignments, steps: steps.map((step, index) => ({ ...step, current: index === current })),
-        tasks,
+        tasks, ...(flow ? { flow } : {}),
         customerLinkAvailable: !!text(record.token), canSendItinerary: booked && !cancelled,
     };
 }

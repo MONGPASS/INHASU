@@ -17,6 +17,7 @@ import { onRequestPost as signPost } from '../functions/api/sign/[token].js';
 import { onRequestPost as travelersPost } from '../functions/api/travelers/[token].js';
 import { requestSQLite } from './helpers/request-sqlite.mjs';
 import { customerIdentity } from './helpers/customer-session.mjs';
+import { seedBookingFromQuote as serverSeed } from '../functions/lib/quoteBookingSeed.mjs';
 
 const root = new URL('../', import.meta.url);
 const bundled = await esbuild.build({ entryPoints: [fileURLToPath(new URL('src/utils/quoteCustomerWorkspace.ts', root))], bundle: true, format: 'esm', platform: 'node', write: false, logLevel: 'silent' });
@@ -46,7 +47,8 @@ function flow(t) {
     const settle = async () => { while (pending.length) await Promise.allSettled(pending.splice(0)); };
     const take = () => sent.splice(0);
     const record = () => DB.records.find(row => row.id === state.id);
-    const model = () => quoteCustomerWorkspaceModel(record());
+    // 견적서 알림이 발송 서비스에 접수된 것으로 본다(실제 화면은 발송 이력에서 읽는다).
+    const model = () => quoteCustomerWorkspaceModel(record(), { deliveryHistory: record()?.quote ? [{ id: 'quote-1', kind: 'quote', channel: 'alimtalk', state: 'accepted', at: '2027-01-01T00:00:00.000Z' }] : [] });
     const patch = async body => {
         const response = await patchRequest({ request: new Request(`https://local.invalid/api/requests/${state.id}`, { method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'x-admin-token': 'local-admin' }, body: JSON.stringify(body) }), env, params: { id: state.id }, waitUntil });
@@ -73,6 +75,19 @@ const quote = { customer: '흐름 고객', period: '2027-04-03 ~ 2027-04-05', pa
     price: { deposit: 100000, balances: [{ pax: 2, economy: 500000, full: 700000 }], options: [] },
     days: [{ d: 1, dest: '테를지', items: ['가이드 미팅', '거북바위'] }, { d: 2, dest: '테를지', items: ['승마'] }, { d: 3, dest: '칭기스칸 국제공항', items: ['출국'] }] };
 const done = m => Object.fromEntries((m.steps || []).map(step => [step.id, !!step.done]));
+// 고객 통합 작업의 7단계 중 지금 단계와 그 단계의 버튼
+const now7 = m => ({ step: m.flow.steps[m.flow.current]?.id || 'done', action: m.flow.next.primary?.action || '' });
+
+test('서버 예약 승계(acceptQuote)가 견적관리 booking.js와 같은 예약을 만든다', () => {
+    const records = [
+        { destination: '중앙몽골', depart: '2027-04-03', return_: '2027-04-05', adult: 2, quote },
+        { destination: '고비', depart: '2027-05-01', return_: '2027-05-06', adult: 3, child: 1, gerStay: '고급 게르', quote: { ...quote, pax: 0, highlights: [{ name: '바양작' }],
+            price: { deposit: 150000, balances: [{ pax: 3, economy: 800000, full: 990000 }, { pax: 5, amount: 700000 }] } } },
+        { destination: '홉스골', adult: 1, pkgTier: '풀패키지', quote: { pax: 1, price: { deposit: 0, balances: [] }, days: [] } },
+        { destination: '테를지', adult: 2 },
+    ];
+    for (const record of records) assert.deepEqual(serverSeed(record), JSON.parse(JSON.stringify(bookingContext.seed(record))));
+});
 
 for (const mode of ['입금 확인 버튼', '예약금 상태만 저장']) {
     test(`맞춤 견적 전체 흐름이 일정표 공개까지 이어진다 (${mode})`, async t => {
@@ -80,17 +95,28 @@ for (const mode of ['입금 확인 버튼', '예약금 상태만 저장']) {
         await f.create();
         assert.deepEqual(f.take(), ['request_received']);
 
+        const quick = mode === '입금 확인 버튼';
+        assert.deepEqual(now7(f.model()), { step: 'quote', action: 'quote-edit' });
         let r = await f.patch({ quote, status: '진행중' });
         assert.equal(r.workflowStatus, 'QUOTE_SENT'); assert.deepEqual(f.take(), ['quote']);
         assert.ok((await f.my()).quote, '고객이 링크로 견적서를 본다');
+        assert.deepEqual(now7(f.model()), { step: 'answer', action: 'accept-quote' });
 
-        // 고객이 카카오톡으로 진행 의사를 알리면 관리자가 [예약 진행 기록] — 예약금·계좌가 담긴 예약이 만들어진다.
-        const now = new Date().toISOString(), booking = bookingContext.seed(f.record());
-        assert.equal(booking.contractInfo.depositAmount, 200000); assert.ok(booking.contractInfo.accountNumber);
-        r = await f.patch({ decision: { status: 'accepted', acceptedAt: now, source: 'admin' },
-            booking: { ...booking, preparedAt: now, depositRequest: { status: 'requested', requestedAt: now, source: 'admin_accept' } } });
+        // 고객이 카카오톡으로 진행 의사를 알리면 관리자가 [고객이 예약하겠대요](고객 통합 작업) 또는 [예약 진행 기록](견적관리)
+        // — 예약금·계좌가 담긴 예약이 만들어진다.
+        if (quick) {
+            r = await f.patch({ acceptQuote: true });
+            assert.equal((await f.patch({ acceptQuote: true })).http, 200, '두 번 눌러도 그대로');
+        } else {
+            const now = new Date().toISOString(), booking = bookingContext.seed(f.record());
+            r = await f.patch({ decision: { status: 'accepted', acceptedAt: now, source: 'admin' },
+                booking: { ...booking, preparedAt: now, depositRequest: { status: 'requested', requestedAt: now, source: 'admin_accept' } } });
+        }
         assert.equal(r.workflowStatus, 'DEPOSIT_REQUESTED'); assert.deepEqual(f.take(), ['reservation_requested']);
+        assert.equal(f.record().booking.contractInfo.depositAmount, 200000); assert.ok(f.record().booking.contractInfo.accountNumber);
+        assert.equal(f.record().booking.depositRequest.status, 'requested');
         assert.equal(f.model().statusLabel, '입금 대기');
+        assert.deepEqual(now7(f.model()), { step: 'deposit', action: 'confirm-deposit' });
         const waiting = await f.my();
         assert.equal(waiting.booking.contractInfo.depositAmount, 200000); assert.ok(waiting.booking.contractInfo.accountNumber, '고객 화면에 입금 계좌가 보인다');
 
@@ -98,11 +124,12 @@ for (const mode of ['입금 확인 버튼', '예약금 상태만 저장']) {
         assert.equal(r.http, 200); assert.deepEqual(f.take(), [], '입금 신고는 고객 알림을 보내지 않는다');
 
         // 관리자 입금 확인: 두 방식 모두 계약서 서명 요청이 기록되고 안내가 한 번 나간다.
-        const paid = f.record().booking; paid.contractInfo.depositStatus = '입금완료';
-        r = await f.patch({ booking: paid });
-        if (mode === '입금 확인 버튼') r = await f.patch({ confirmDeposit: true });
+        assert.match(f.model().flow.next.title, /입금했다고/, '입금 신고가 지금 할 일에 보인다');
+        if (quick) r = await f.patch({ confirmDeposit: true });
+        else { const paid = f.record().booking; paid.contractInfo.depositStatus = '입금완료'; r = await f.patch({ booking: paid }); }
         assert.equal(r.contractRequest?.status, 'requested'); assert.deepEqual(f.take(), ['contract']);
         assert.deepEqual(done(f.model()), { accepted: true, deposit: true, contract: false, schedule: true, published: false });
+        assert.deepEqual(now7(f.model()), { step: 'sign', action: 'notify-contract' }); assert.equal(f.model().flow.next.waiting, true);
         const signable = await f.my();
         assert.equal(signable.booking.contractInfo.depositStatus, '입금완료');
         assert.equal(signable.booking.contractRequest.status, 'requested', '고객 화면에 서명 버튼이 열린다');
@@ -116,18 +143,22 @@ for (const mode of ['입금 확인 버튼', '예약금 상태만 저장']) {
             { nameKo: '동행', passportName: 'FLOW MATE', birth: '1991-02-02', phone: '01087654321', gender: '여', passportNo: 'M00000002' }] });
         assert.equal(r.http, 200);
 
+        assert.deepEqual(now7(f.model()), { step: 'confirm', action: 'confirm-booking' });
         r = await f.patch({ status: '예약확정' });
         assert.equal(r.workflowStatus, 'BOOKING_CONFIRMED'); assert.deepEqual(f.take(), ['booking_confirmed']);
 
         // 배정 전에는 공개할 수 없고, 가이드·차량·숙박 수만큼 숙소를 배정하면 공개된다.
-        r = await f.patch({ booking: { ...f.record().booking, publishStatus: 'published' } });
+        assert.deepEqual(now7(f.model()), { step: 'assign', action: 'assignments' });
+        r = await f.patch(quick ? { publishItinerary: true } : { booking: { ...f.record().booking, publishStatus: 'published' } });
         assert.equal(r.http, 409); assert.equal(r.code, 'publish_not_ready');
         const assigned = f.record().booking;
         assigned.assign = { ...(assigned.assign || {}), guide: { name: '등록 가이드' }, vehicle: { model: '스타렉스' }, lodges: [{ day: 1, name: '테를지 게르' }, { day: 2, name: '테를지 게르' }] };
         assert.equal((await f.patch({ booking: assigned })).http, 200);
-        r = await f.patch({ booking: { ...f.record().booking, publishStatus: 'published' } });
+        assert.deepEqual(now7(f.model()), { step: 'publish', action: 'publish-itinerary' });
+        r = await f.patch(quick ? { publishItinerary: true } : { booking: { ...f.record().booking, publishStatus: 'published' } });
         assert.equal(r.workflowStatus, 'ITINERARY_PUBLISHED'); assert.deepEqual(f.take(), ['itinerary']);
         assert.ok(Object.values(done(f.model())).every(Boolean), '관리자 업무 단계가 모두 완료된다');
+        assert.equal(f.model().flow.current, 7); assert.equal(f.model().flow.next.primary, undefined);
         assert.equal((await f.my()).booking.publishStatus, 'published');
     });
 }

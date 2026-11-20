@@ -81,7 +81,8 @@ const actions = source.slice(source.indexOf('    const customerAction = '), sour
 const actionCode = (await transform(actions + '\nglobalThis.action = customerAction;', { loader: 'ts' })).code;
 function actionHarness(booked) {
     const calls = [];
-    const context = vm.createContext({ editorBusy: false, customerRefreshing: false, sendingKakao: false, customerRecord: { token: 'local-test', quote: { days: [] } }, returnTo: '/admin/reservations',
+    const context = vm.createContext({ editorBusy: false, customerRefreshing: false, sendingKakao: false, quickBusy: false,
+        QUICK_ACTIONS: { 'accept-quote': {}, 'confirm-deposit': {} }, runQuickAction: async action => calls.push(['quick', action]), customerRecord: { token: 'local-test', quote: { days: [] } }, returnTo: '/admin/reservations',
         navigate: href => calls.push(['navigate', href]), quoteCustomerIsBooking: () => booked,
         openCustomerEditor: (...args) => calls.push(['editor', ...args]), setEditorNotice: message => calls.push(['notice', message]),
         window: { open: () => assert.fail('Opening a work panel must not open a customer token link') } });
@@ -95,11 +96,19 @@ test('견적 예약 바로가기는 각 기존 업무를 열고 문서 확인은
     for (const [action, section] of Object.entries(expected)) {
         calls.length = 0; context.action(action); assert.deepEqual(calls, [['editor', 'bookings', section]]);
     }
-    for (const field of ['editorBusy', 'customerRefreshing', 'sendingKakao']) {
+    for (const field of ['editorBusy', 'customerRefreshing', 'sendingKakao', 'quickBusy']) {
         context[field] = true; calls.length = 0;
         for (const action of Object.keys(expected)) context.action(action);
         assert.deepEqual(calls, []); context[field] = false;
     }
+});
+
+test('지금 할 일 버튼(예약 만들기·입금 확인)은 서버 저장 하나만 실행하고 처리 중에는 막는다', () => {
+    const { calls, context } = actionHarness(false);
+    context.action('accept-quote'); context.action('confirm-deposit');
+    assert.deepEqual(calls, [['quick', 'accept-quote'], ['quick', 'confirm-deposit']]);
+    calls.length = 0; context.quickBusy = true; context.action('accept-quote'); context.action('payments');
+    assert.deepEqual(calls, []);
 });
 
 test('예약 전 문의의 문서 버튼은 저장된 견적 공유 단계 또는 새 견적 작성을 열고 배정·운영을 실행하지 않는다', () => {

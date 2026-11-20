@@ -160,6 +160,12 @@
   .admin-app-wrapper .v7-root .v7-asg-row > :nth-child(2) { width: 40px !important; height: 40px !important; }
   .admin-app-wrapper .v7-root .v7-asg-row > button { flex: 0 0 100%; max-width: none !important; min-height: var(--adm-control-h); justify-content: space-between; box-sizing: border-box; }
   /* 진행 단계의 설명: 줄여 쓰지 않고 두 줄까지 */
+  /* 맞춤 견적 7단계: 칸이 좁아 이름이 겹치므로 지금 단계 이름만 보인다(나머지는 머리 칩·점으로) */
+  .admin-app-wrapper .v7-steps-many > :not([data-now]) > .v7-step-label,
+  .admin-app-wrapper .v7-steps-many > :not([data-now]) > .v7-step-sub { visibility: hidden; }
+  /* 지금 할 일: 버튼을 한 줄 전체 폭으로, 주 버튼을 위에 */
+  .admin-app-wrapper .v7-root .v7-next-actions { flex: 1 1 100%; flex-direction: column-reverse; }
+  .admin-app-wrapper .v7-root .v7-next-actions > button { width: 100%; justify-content: center; min-height: var(--adm-control-h); }
   .admin-app-wrapper .v7-step-sub { white-space: normal !important; font-size: var(--adm-fs-caption) !important; line-height: 1.3; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 }
 @media (max-width: 760px) {

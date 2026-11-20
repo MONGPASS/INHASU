@@ -9,6 +9,7 @@ import { MANUAL_TRIGGER, travelNoticeState } from "../_travel-notice.mjs";
 import { resolveNotificationTemplate } from '../../lib/customerNotifications.ts';
 import { backgroundCustomerEvent, customerEvent, recordTravelNoticeOutcome } from '../_customer-events.mjs';
 import { documentRevision, quoteDocumentRevisions } from '../../lib/adminDocumentRevision.ts';
+import { seedBookingFromQuote } from '../../lib/quoteBookingSeed.mjs';
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -72,6 +73,9 @@ export async function onRequestPatch(context) {
     const requestContract = !!patch.notifyContract; delete patch.notifyContract;
     const confirmDeposit = !!patch.confirmDeposit; delete patch.confirmDeposit;
     const sendTravelNotice = !!patch.notifyTravelNotice; delete patch.notifyTravelNotice;
+    /* 고객 통합 작업의 '지금 할 일' 버튼: 견적관리 [예약 진행 기록]과 같은 예약을 서버에서 만든다 / 저장된 예약 그대로 일정표를 공개한다 */
+    const acceptQuote = !!patch.acceptQuote; delete patch.acceptQuote;
+    const publishItinerary = !!patch.publishItinerary; delete patch.publishItinerary;
 
     const row = await env.DB.prepare("SELECT data, status FROM requests WHERE id = ?").bind(id).first();
     if (!row) return json({ ok: false, error: "not found" }, 404);
@@ -81,6 +85,22 @@ export async function onRequestPatch(context) {
     const previousPaid = rec.booking?.contractInfo?.depositStatus === '입금완료';
     const previousChanges = Array.isArray(rec.changeRequests) ? rec.changeRequests : [];
     const previousDocumentVersions = await quoteDocumentRevisions(rec);
+    if (acceptQuote) {
+      // 이미 수락·예약이 있으면 그대로 둔다(두 번 눌러도 예약금 안내가 다시 만들어지지 않음).
+      const acceptedAt = new Date().toISOString();
+      delete patch.decision; delete patch.booking;
+      if (!previousAccepted) patch.decision = { status:"accepted", acceptedAt, source:"admin" };
+      if (!rec.booking) {
+        const bk = seedBookingFromQuote(rec);
+        bk.preparedAt = acceptedAt;
+        if (Number(bk.contractInfo.depositAmount) > 0) bk.depositRequest = { status:"requested", requestedAt:acceptedAt, source:"admin_accept" };
+        patch.booking = bk;
+      }
+    }
+    if (publishItinerary) {
+      if (!rec.booking) return json({ ok:false, error:"예약관리를 먼저 시작해 주세요" }, 409);
+      patch.booking = { ...rec.booking, publishStatus:"published" };
+    }
     if ((requestTravelerInfo || requestDeposit || requestContract || confirmDeposit) && !rec.booking) 
       return json({ ok:false, error:"예약관리를 먼저 시작해 주세요" }, 409);
     

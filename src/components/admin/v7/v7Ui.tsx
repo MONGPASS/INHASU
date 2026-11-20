@@ -118,7 +118,7 @@ export function V7Steps({ steps, cancelled, large = false, onStep }: { steps: V7
     const cur = steps.findIndex(s => !s.done), dotSize = large ? 28 : 28;
     const fill: Css = { position: 'absolute', left: '10%', top: 13, height: 3, borderRadius: 'var(--adm-radius-xs)', transformOrigin: 'left center', background: 'linear-gradient(90deg,var(--adm-accent),var(--adm-accent),var(--adm-accent))', backgroundSize: '40px 100%',
         animation: 'rvGrow 700ms cubic-bezier(.2,.8,.2,1) both, rvFlow 1.2s linear 700ms infinite', width: cancelled ? 0 : `${(cur < 0 ? steps.length - 1 : Math.max(cur, 0)) * (80 / Math.max(1, steps.length - 1))}%` };
-    return <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${steps.length},minmax(0,1fr))` }}>
+    return <div className={steps.length > 5 ? 'v7-steps v7-steps-many' : 'v7-steps'} style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${steps.length},minmax(0,1fr))` }}>
         <span style={{ position: 'absolute', left: '10%', right: '10%', top: 13, height: 3, borderRadius: 'var(--adm-radius-xs)', background: 'var(--adm-gray-200)' }} />
         <span style={fill} />
         {steps.map((s, j) => {
@@ -131,13 +131,13 @@ export function V7Steps({ steps, cancelled, large = false, onStep }: { steps: V7
                     {ok && <Ico name="lc-check" size={14} color="#fff" />}
                     {now && <span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--adm-surface)' }} />}
                 </span>
-                <span style={{ fontSize: 13, fontWeight: now ? 800 : 700, whiteSpace: 'nowrap', color: ok ? 'var(--adm-accent-strong)' : now ? 'var(--adm-danger)' : 'var(--adm-text-3)' }}>{s.label}</span>
+                <span className="v7-step-label" style={{ fontSize: 13, fontWeight: now ? 800 : 700, whiteSpace: 'nowrap', color: ok ? 'var(--adm-accent-strong)' : now ? 'var(--adm-danger)' : 'var(--adm-text-3)' }}>{s.label}</span>
                 <span className="v7-step-sub" style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', fontVariantNumeric: 'tabular-nums', color: now ? 'var(--adm-danger)' : ok ? 'var(--adm-text-2)' : 'var(--adm-text-3)', animation: now ? 'rvBlink 1.8s ease-in-out infinite' : 'none' }}>{s.sub}</span>
             </>;
             const box: Css = { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center', minWidth: 0 };
             return onStep
-                ? <button key={s.label} type="button" onClick={() => onStep(j)} title={`${s.label} · ${ok ? '완료' : now ? '지금 처리할 단계' : '대기'}`} style={{ ...box, padding: 0, border: 0, background: 'transparent', font: 'inherit', cursor: 'pointer' }}>{inner}</button>
-                : <span key={s.label} style={box} title={`${s.label} · ${ok ? '완료' : now ? '지금 처리할 단계' : '대기'}`}>{inner}</span>;
+                ? <button key={s.label} data-now={now ? '' : undefined} type="button" onClick={() => onStep(j)} title={`${s.label} · ${ok ? '완료' : now ? '지금 처리할 단계' : '대기'}`} style={{ ...box, padding: 0, border: 0, background: 'transparent', font: 'inherit', cursor: 'pointer' }}>{inner}</button>
+                : <span key={s.label} data-now={now ? '' : undefined} style={box} title={`${s.label} · ${ok ? '완료' : now ? '지금 처리할 단계' : '대기'}`}>{inner}</span>;
         })}
     </div>;
 }

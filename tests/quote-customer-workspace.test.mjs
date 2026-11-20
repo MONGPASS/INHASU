@@ -226,3 +226,22 @@ test('문의 메모 이동 보호는 실제 저장을 한 번만 실행하고 �
     assert.equal(guard.getState().dirty, true); assert.match(guard.getState().error, /저장 실패/);
     const result = guard.flushAll(); assert.equal(result.busy, false); assert.equal(result.ok, false); assert.equal(calls.length, 1);
 });
+
+test('지금 할 일은 7단계 중 첫 미완료 단계의 버튼 하나만 주고 실패·취소를 완료로 보지 않는다', () => {
+    const at = '2026-10-20T01:00:00Z', step = result => [result.flow.steps[result.flow.current]?.id, result.flow.next.primary?.action];
+    assert.deepEqual(step(model(inquiry)), ['quote', 'quote-edit']);
+    const quoted = { ...inquiry, quote: { pax: 2, price: { deposit: 100000 }, days: [] } };
+    assert.deepEqual(step(model(quoted)), ['quote', 'quote-share'], '저장만 한 견적은 보내기');
+    assert.deepEqual(step(model(quoted, { deliveryHistory: [{ id: 'q', kind: 'quote', channel: 'kakao', state: 'failed', at, error: '수신 거부' }] })), ['quote', 'history'], '실패는 발송 이력 확인');
+    const sent = model(quoted, { deliveryHistory: [{ id: 'q', kind: 'quote', channel: 'kakao', state: 'accepted', at }] });
+    assert.deepEqual(step(sent), ['answer', 'accept-quote']); assert.equal(sent.flow.next.waiting, true);
+    assert.match(sent.flow.next.primary.confirm, /200,000원/, '확인 창에 예약금을 보여 준다');
+    const accepted = model({ ...quoted, decision: { status: 'accepted' } });
+    assert.deepEqual(step(accepted), ['answer', 'accept-quote'], '수락만 있고 예약이 없으면 예약 만들기');
+    const booking = { contractInfo: { depositAmount: 200000, depositStatus: '미입금', bankName: '우리은행', accountNumber: '1002' }, depositReport: { status: 'reported', name: '입금자' } };
+    const waiting = model({ ...quoted, decision: { status: 'accepted' }, booking });
+    assert.deepEqual(step(waiting), ['deposit', 'confirm-deposit']); assert.match(waiting.flow.next.detail, /입금자 입금자/); assert.notEqual(waiting.flow.next.waiting, true);
+    const zero = model({ ...quoted, decision: { status: 'accepted' }, booking: { contractInfo: { depositAmount: 0, depositStatus: '미입금' } } });
+    assert.deepEqual(step(zero), ['deposit', 'payments'], '0원 예약금은 입금 확인 대신 결제 정보');
+    assert.equal(model({ ...quoted, status: '예약취소', decision: { status: 'accepted' }, booking }).flow, undefined, '취소된 예약은 지금 할 일을 만들지 않는다');
+});
