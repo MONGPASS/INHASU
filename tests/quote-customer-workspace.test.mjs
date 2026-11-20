@@ -245,3 +245,12 @@ test('지금 할 일은 7단계 중 첫 미완료 단계의 버튼 하나만 주
     assert.deepEqual(step(zero), ['deposit', 'payments'], '0원 예약금은 입금 확인 대신 결제 정보');
     assert.equal(model({ ...quoted, status: '예약취소', decision: { status: 'accepted' }, booking }).flow, undefined, '취소된 예약은 지금 할 일을 만들지 않는다');
 });
+
+test('예약 편집기 아래 단계 표시는 고객 통합 작업과 같은 7단계 이름·순서를 쓴다', () => {
+    const labels = model(inquiry).flow.steps.map(step => step.label);
+    const editor = fs.readFileSync(new URL('../public/예약관리.html', import.meta.url), 'utf8');
+    const line = editor.split('\n').find(row => row.includes('const flow7 = '));
+    assert.equal([...line.matchAll(/\["([^"]+)", /g)].map(match => match[1]).join(' > '), Array.from(labels).join(' > '));
+    assert.match(editor, /`\$\{flowAt \+ 1\}\/\$\{flow7\.length\}단계 · \$\{flow7\[flowAt\]\[0\]\}`/);
+    assert.doesNotMatch(editor.split('\n').find(row => row.includes('$("bottomStep").textContent')), /wf\.steps/, '아래 줄은 옛 5단계 숫자를 쓰지 않는다');
+});
