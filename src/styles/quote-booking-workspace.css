@@ -314,3 +314,23 @@
 .customer-booking-editor .confirm-ok{background:var(--adm-primary-bg);box-shadow:none}
 .customer-booking-editor .confirm-card.danger .confirm-ok{background:var(--adm-danger);box-shadow:none}
 @media(max-width:700px){.customer-booking-editor .quote-day-editor .day-edit .dh input.dest{flex:1 1 100%}}
+
+/* ── Montage 시안 ③-1 일정표 편집(2026-11-20) ──
+   일자 카드는 흰 카드 + 1px 선(펼친 카드도 진한 테두리 없이 한 단계 진한 선), 일차 배지는 회색 채움,
+   입력창은 1px 선·모서리 10·높이 40, '일정 불러오기'는 보조(테두리) 버튼,
+   카드 머리의 '+ 일차 추가'는 보조 버튼(주요 버튼은 아래 막대 하나). */
+.customer-booking-editor #addDay,.customer-booking-editor #addDay:hover:not(:disabled){border:1px solid var(--adm-line-strong);background:var(--adm-surface);color:var(--adm-text)}
+.customer-booking-editor #addDay:hover:not(:disabled){background:var(--adm-gray-50)}
+.customer-booking-editor .quote-day-editor .day-edit{padding:16px 20px;border:1px solid var(--adm-line);border-radius:var(--adm-radius-md);background:var(--adm-surface)}
+.customer-booking-editor .quote-day-editor .day-edit:not(.is-collapsed){border-color:var(--adm-line-strong);box-shadow:var(--adm-shadow-xs)}
+.customer-booking-editor .quote-day-editor .day-edit .dh .badge{height:24px;padding:0 8px;border-radius:var(--adm-radius-xs);background:var(--adm-neutral-soft);color:var(--adm-ink);font-size:var(--adm-fs-small);font-weight:var(--adm-fw-semibold)}
+.customer-booking-editor .quote-day-editor .day-edit .dh input,.customer-booking-editor .quote-day-editor .day-edit .row.c2 input{height:var(--adm-control-h);min-height:var(--adm-control-h);border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm);font-size:var(--adm-fs-body)}
+.customer-booking-editor .quote-day-editor .day-edit .dh input.ddate{border-color:transparent;font-size:var(--adm-fs-lead);font-weight:var(--adm-fw-semibold)}
+.customer-booking-editor .quote-day-editor .day-edit textarea.items{border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm);font-size:var(--adm-fs-body)}
+.customer-booking-editor .quote-day-editor .day-edit .snip-sel{height:var(--adm-control-h-sm);border:1px solid var(--adm-line-strong);border-radius:var(--adm-radius-sm);font-size:var(--adm-fs-small);font-weight:var(--adm-fw-semibold)}
+.customer-booking-editor .quote-day-editor .day-edit .dh .day-toggle{height:32px;min-height:32px;border-radius:var(--adm-radius-sm);background:transparent;color:var(--adm-text-2)}
+.customer-booking-editor .quote-day-editor .day-edit .dh .day-toggle:hover:not(:disabled){background:var(--adm-neutral-soft)}
+.customer-booking-editor .quote-day-editor .day-body{background:var(--adm-gray-50);border-radius:var(--adm-radius-sm)}
+.customer-booking-editor .quote-day-editor :is(input,select,textarea):focus{border-color:var(--adm-accent);box-shadow:var(--adm-ring)}
+.customer-booking-editor .quote-day-editor .day-add{height:44px;border:1px dashed var(--adm-line-strong);border-radius:var(--adm-radius-md);background:transparent;color:var(--adm-text-2);font-weight:var(--adm-fw-semibold)}
+.customer-booking-editor .quote-day-editor .day-add:hover{background:var(--adm-gray-50);color:var(--adm-ink)}
