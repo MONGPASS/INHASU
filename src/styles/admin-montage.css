@@ -36,7 +36,16 @@
 .admin-app-wrapper .nav-group-toggle:hover { background: var(--adm-neutral-soft); color: var(--adm-ink); }
 .admin-app-wrapper .nav-item.active,
 .admin-app-wrapper .nav-submenu .nav-item.active { border: 0; background: var(--adm-accent-soft); color: var(--adm-accent-strong); font-weight: var(--adm-fw-semibold); box-shadow: none; }
-/* 업무 묶음 머리: 시안의 묶음 제목(13px 600) 모양. 펼침·접기 동작은 그대로 둔다. */
+/* 업무 묶음(늘 펼침): 묶음 제목 13px 600 + 메뉴. 아이콘은 Montage 아이콘(1em)이라 글자 크기로 20px. */
+.admin-app-wrapper .nav-group { display: flex; flex-direction: column; gap: var(--adm-space-1); padding-bottom: var(--adm-space-2); }
+.admin-app-wrapper .nav-group-title { padding: var(--adm-space-1) var(--adm-space-3); color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); line-height: 18px; white-space: nowrap; }
+.admin-app-wrapper .nav-item > .nav-icon { display: flex; flex: none; font-size: 20px; }
+.admin-app-wrapper .side.is-rail .nav-group-title { display: none; }
+.admin-app-wrapper .side.is-rail .nav-item > .nav-icon { display: flex; }
+.admin-app-wrapper .side-rail-toggle { font-size: 18px; }
+.admin-app-wrapper .side-account .av { font-size: 20px; }
+.admin-app-wrapper .side-account .out { display: grid; place-items: center; font-size: 20px; }
+/* (이전) 업무 묶음 머리 버튼 모양 — 다른 곳에서 같은 클래스를 쓰면 시안의 묶음 제목 모양으로 보인다. */
 .admin-app-wrapper .nav-group-toggle { height: 32px; min-height: 32px; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
 .admin-app-wrapper .nav-group-toggle.is-current,
 .admin-app-wrapper .nav-group.is-open > .nav-group-toggle { border: 0; background: transparent; color: var(--adm-ink); font-weight: var(--adm-fw-semibold); }

@@ -251,9 +251,9 @@ export function ReservationListV7(p: ReservationListV7Props) {
             </label>
             {(assignmentNote || p.loading) && <span role="status" style={{ fontSize: 12, fontWeight: 700, color: p.loading ? V7_MUTED : 'var(--adm-warn-strong)' }}>{p.loading ? '예약을 불러오는 중…' : assignmentNote}</span>}
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: V7_MUTED }}><Ico name="lc-arrow-up-down" size={14} />정렬</span>
-            <span style={{ display: 'flex', padding: 3, borderRadius: 999, background: 'var(--adm-gray-100)' }}>
+            <span style={{ display: 'flex', padding: 3, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-gray-100)' }}>
                 {([['pri', '우선순위'], ['dep', '출발일순'], ['bk', '최근 예약순']] as const).map(([k, label]) => { const on = sort === k; return <button key={k} type="button" aria-pressed={on} onClick={() => setSort(k)}
-                    style={{ height: 32, padding: '0 12px', whiteSpace: 'nowrap', border: 0, borderRadius: 999, font: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: on ? 'var(--adm-surface)' : 'transparent', color: on ? V7_INK : V7_MUTED, boxShadow: on ? '0 1px 3px rgba(16,24,40,.12)' : 'none' }}>{label}</button>; })}
+                    style={{ height: 32, padding: '0 12px', whiteSpace: 'nowrap', border: 0, borderRadius: 8, font: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: on ? 'var(--adm-surface)' : 'transparent', color: on ? V7_INK : V7_MUTED, boxShadow: on ? '0 1px 3px rgba(16,24,40,.12)' : 'none' }}>{label}</button>; })}
             </span>
         </div>
 
@@ -273,11 +273,11 @@ export function ReservationListV7(p: ReservationListV7Props) {
             </div></div>
         </div>
 
-        {selected.length > 0 && <div role="toolbar" aria-label="선택한 예약 작업" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 50, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 8px 8px 18px', background: V7_INK, borderRadius: 999, boxShadow: '0 12px 32px rgba(16,24,40,.28)', animation: 'rvUp 180ms ease-out', whiteSpace: 'nowrap' }}>
+        {selected.length > 0 && <div role="toolbar" aria-label="선택한 예약 작업" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 50, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 8px 8px 18px', background: V7_INK, borderRadius: 'var(--adm-radius-md)', boxShadow: '0 12px 32px rgba(16,24,40,.28)', animation: 'rvUp 180ms ease-out', whiteSpace: 'nowrap' }}>
             <b style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginRight: 8 }}>{selected.length}건 선택</b>
             {([['진행상황 변경', 'lc-arrow-left-right', bulkStatus], ['입금 확인', 'lc-wallet', bulkPayment], ['안내 알림 발송', 'lc-send', bulkNotice], ['엑셀 내보내기', 'lc-download', exportSelected]] as const).map(([label, icon, go]) =>
-                <button key={label} type="button" className="v7-bulk-btn" onClick={go as any} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', border: 0, borderRadius: 999, background: 'rgba(255,255,255,.1)', font: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer' }}><Ico name={icon} size={15} />{label}</button>)}
-            <button type="button" title="선택 해제" aria-label="선택 해제" onClick={() => setSel(new Set())} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: 'transparent', color: 'var(--adm-text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-x" size={16} /></button>
+                <button key={label} type="button" className="v7-bulk-btn" onClick={go as any} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'rgba(255,255,255,.1)', font: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer' }}><Ico name={icon} size={15} />{label}</button>)}
+            <button type="button" title="선택 해제" aria-label="선택 해제" onClick={() => setSel(new Set())} style={{ width: 38, height: 38, border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'transparent', color: 'var(--adm-text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-x" size={16} /></button>
         </div>}
         <V7Menu menu={menu} onClose={closeMenu} />
         <V7Toast text={toast} />

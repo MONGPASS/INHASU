@@ -240,9 +240,10 @@ test('핵심 지표 타일과 바로가기는 실제 자료와 기존 관리자 
     assert.ok(html.includes('7일 내 출발: 3팀'));
     assert.ok(html.includes('처리 필요 팀: 2팀'));
     assert.ok(html.includes('확정 매출 전체 기간: 7,654,321원'));
-    for (const href of ['/admin/quote-desk/builder', '/admin/reservations', '/admin/calendar', '/admin/accommodation-ops', '#dashboard-tasks'])
+    // Montage 시안: 주요 버튼은 '견적서 작성' 하나. 예약 목록·캘린더는 지표 카드로 연결한다(숙소 배정 바로가기는 사이드바).
+    for (const href of ['/admin/quote-desk/builder', '/admin/reservations', '/admin/calendar', '#dashboard-tasks'])
         assert.ok(html.includes(`href="${href}"`), href);
-    assert.ok(html.includes('지금 처리할 일') && html.includes('매출 · 예약 현황') && html.includes('유입 · 문의'));
+    assert.ok(html.includes('지금 처리할 일') && html.includes('예약 · 유입') && html.includes('매출 · 예약 현황'));
 
     data.availability.reservations = false;
     assert.equal(dashboardDepartingSoon(data), null, 'partial booking data is never shown as 0 teams');

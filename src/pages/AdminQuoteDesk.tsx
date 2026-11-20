@@ -529,10 +529,10 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                 </> : <>
                     {tool.key === 'resources' && (
                         // 디자인 v4: 회색 바탕 알약 안에서 선택한 쪽만 흰 바탕·그림자
-                        <span role="group" aria-label="보기" style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: 'var(--adm-gray-100)' }}>
+                        <span role="group" aria-label="보기" style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-gray-100)' }}>
                             {([[false, '등록 정보'], [true, '가이드 배정 현황']] as const).map(([on, label]) => (
                                 <button key={label} type="button" aria-pressed={scheduleView === on} onClick={() => setScheduleView(on)}
-                                    style={{ display: 'flex', alignItems: 'center', height: 38, padding: '0 18px', border: 0, borderRadius: 999, font: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                    style={{ display: 'flex', alignItems: 'center', height: 38, padding: '0 18px', border: 0, borderRadius: 8, font: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                                         background: scheduleView === on ? 'var(--adm-surface)' : 'transparent', color: scheduleView === on ? 'var(--adm-ink)' : 'var(--adm-text-3)', boxShadow: scheduleView === on ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}>{label}</button>
                             ))}
                         </span>

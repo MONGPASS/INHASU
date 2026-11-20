@@ -1,14 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {
+    IconApps, IconBook, IconCalendar, IconChevronLeft, IconChevronRight, IconCircleQuestion, IconClock, IconDocument, IconDocumentText,
+    IconFlag, IconFolder, IconHome, IconImage, IconLocation, IconLogout, IconMail, IconMegaphone, IconPerson, IconPersons, IconStar, IconTag, IconTicket,
+} from '@montage-ui/icon';
 import { useUser } from '../../contexts/UserContext';
-import { DashboardIcon } from './dashboard/DashboardIcon';
-import { disconnectQuoteDesk } from './quoteDesk';
+import { disconnectQuoteDesk, quoteDeskPageId } from './quoteDesk';
 import { dashboardItem, navGroups, sections, type NavItem } from './adminNav';
 import { preloadAdminPage } from '../../lib/adminPagePreload';
 
 interface AdminSidebarProps {
     activePage: string;
-    /** 아이콘만 보이는 좁은 메뉴 (디자인 v3의 접기). */
+    /** 아이콘만 보이는 좁은 메뉴(접기). */
     rail?: boolean;
     onToggleRail?: () => void;
     /** kept for backward-compat with existing call sites; the redesign is light-only */
@@ -16,25 +19,34 @@ interface AdminSidebarProps {
     toggleTheme?: () => void;
 }
 
+type IconComponent = typeof IconApps;
+/** 메뉴별 Montage 아이콘 — Claude Design "은하수 관리자 (Montage)" 공통 사이드바와 같다. */
+const MENU_ICONS: Record<string, IconComponent> = {
+    dashboard: IconApps, reservations: IconTicket, calendar: IconCalendar,
+    [quoteDeskPageId('inbox')]: IconDocumentText, [quoteDeskPageId('courses')]: IconFlag, [quoteDeskPageId('itinerary')]: IconClock, [quoteDeskPageId('spots')]: IconLocation,
+    products: IconFolder, categories: IconTag, templates: IconDocument,
+    'accommodation-ops': IconHome, [quoteDeskPageId('resources')]: IconPersons,
+    inquiries: IconMail, reviews: IconStar, faq: IconCircleQuestion, magazines: IconBook,
+    banners: IconImage, promotions: IconMegaphone,
+};
+
+/**
+ * 관리자 사이드바(Montage 시안): 로고 묶음 → "업무" / "고객 · 사이트" 구역 → 업무 묶음 제목과 메뉴(늘 펼침) → 계정.
+ * 접기(rail)에서는 묶음 제목을 숨기고 메뉴 아이콘만 보인다.
+ */
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = false, onToggleRail }) => {
     const navigate = useNavigate();
     let logout: undefined | (() => void | Promise<void>);
     try { logout = useUser().logout; } catch { logout = undefined; }
-
-    const activeGroupId = navGroups.find((group) => (
-        group.items.some((item) => item.id === activePage) || group.relatedPages?.includes(activePage)
-    ))?.id ?? null;
-    const [expandedGroup, setExpandedGroup] = useState<string | null>(activeGroupId);
     const navRef = useRef<HTMLElement>(null);
 
-    // 현재 업무만 먼저 펼친다. 다른 화면으로 이동하면 해당 업무 메뉴를 자동으로 연다.
+    // 다른 화면으로 이동하면 현재 메뉴가 보이게 스크롤한다.
     useEffect(() => {
-        setExpandedGroup(activeGroupId);
         const frame = window.requestAnimationFrame(() => {
-            navRef.current?.querySelector('.nav-item.active, .nav-group-toggle.is-current')?.scrollIntoView({ block: 'nearest' });
+            navRef.current?.querySelector('.nav-item.active')?.scrollIntoView({ block: 'nearest' });
         });
         return () => window.cancelAnimationFrame(frame);
-    }, [activePage, activeGroupId]);
+    }, [activePage]);
 
     const handleLogout = async () => {
         // 견적 도구가 쓰는 관리자 값(sessionStorage)도 함께 지운다.
@@ -43,12 +55,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = f
         navigate('/admin/login');
     };
 
-    const renderItem = (item: NavItem, sub = false) => {
+    const renderItem = (item: NavItem) => {
         const isActive = activePage === item.id;
+        const Icon = MENU_ICONS[item.id] || IconDocument;
         return (
             <Link key={item.id} to={item.href} className={`nav-item${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined} title={rail ? item.label : undefined}
                 onPointerEnter={() => preloadAdminPage(item.href)} onFocus={() => preloadAdminPage(item.href)} onPointerDown={() => preloadAdminPage(item.href)}>
-                <DashboardIcon name={item.icon} size={sub ? 16 : 18} />
+                <span className="nav-icon" aria-hidden="true"><Icon /></span>
                 <span>{item.label}</span>
             </Link>
         );
@@ -58,7 +71,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = f
         <aside className={`side${rail ? ' is-rail' : ''}`}>
             {onToggleRail && <div className="side-rail-bar">
                 <button type="button" className="side-rail-toggle" title={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-label={rail ? '메뉴 펼치기' : '메뉴 접기'} aria-pressed={rail} onClick={onToggleRail}>
-                    <DashboardIcon name={rail ? 'lc-chevron-right' : 'lc-chevron-left'} size={18} />
+                    {rail ? <IconChevronRight aria-hidden="true" /> : <IconChevronLeft aria-hidden="true" />}
                 </button>
             </div>}
 
@@ -71,34 +84,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = f
                 {sections.map((section) => (
                     <div className="nav-section" key={section.title}>
                         <div className="nav-section-title" aria-hidden={rail || undefined}>{section.title}</div>
-                        {section.dashboard && renderItem(dashboardItem)}
+                        {section.dashboard && <div className="nav-group">{renderItem(dashboardItem)}</div>}
                         {section.groups.map((groupId) => {
                             const group = navGroups.find((entry) => entry.id === groupId)!;
-                            const isOpen = !rail && expandedGroup === group.id;
-                            const isCurrent = activeGroupId === group.id;
-                            const panelId = `admin-nav-${group.id}`;
+                            const titleId = `admin-nav-${group.id}`;
                             return (
-                                <div className={`nav-group${isOpen ? ' is-open' : ''}`} key={group.id}>
-                                    <button
-                                        type="button"
-                                        className={`nav-group-toggle${isCurrent ? ' is-current' : ''}`}
-                                        aria-expanded={isOpen}
-                                        aria-controls={panelId}
-                                        title={rail ? group.label : undefined}
-                                        onClick={() => {
-                                            preloadAdminPage(group.items[0].href);
-                                            // 접힌 메뉴에서는 펼치면서 해당 업무를 연다.
-                                            if (rail) { onToggleRail?.(); setExpandedGroup(group.id); return; }
-                                            setExpandedGroup(isOpen ? null : group.id);
-                                        }}
-                                    >
-                                        <DashboardIcon name={group.icon} size={18} />
-                                        <span>{group.label}</span>
-                                        <span className="nav-chevron" aria-hidden="true"><DashboardIcon name="lc-chevron-down" size={16} /></span>
-                                    </button>
-                                    <div className="nav-submenu" id={panelId} hidden={!isOpen}>
-                                        {group.items.map((item) => renderItem(item, true))}
-                                    </div>
+                                <div className="nav-group" key={group.id} role="group" aria-labelledby={titleId}>
+                                    <div className="nav-group-title" id={titleId}>{group.label}</div>
+                                    {group.items.map((item) => renderItem(item))}
                                 </div>
                             );
                         })}
@@ -108,13 +101,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = f
 
             <div className="side-foot">
                 <div className="side-account">
-                    <span className="av">관</span>
+                    <span className="av" aria-hidden="true"><IconPerson /></span>
                     <div className="who">
                         <b>관리자</b>
                         <span>운영 계정 · 마스터</span>
                     </div>
                     <button type="button" className="out" title="로그아웃" aria-label="로그아웃" onClick={handleLogout}>
-                        <DashboardIcon name="lc-log-out" size={18} />
+                        <IconLogout aria-hidden="true" />
                     </button>
                 </div>
             </div>
