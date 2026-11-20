@@ -235,7 +235,6 @@ export function ReservationsSection({ reservations, today, loading, go }: { rese
             <div style={{ marginBottom: 6 }}>
                 <PanelHead eyebrow="BOOKINGS" title="예약 내역" count={loading ? undefined : reservations.length} sub="예약 상태·결제·여행 서류는 각 예약의 상세 화면에서 확인할 수 있습니다." />
             </div>
-            <a href="/customer-link?from=reservations" onClick={event => { event.preventDefault(); go('/customer-link?from=reservations'); }} style={{ color: MW.mintDeep, fontSize: 13, lineHeight: 1.7, fontWeight: 700 }}>담당자에게 받은 견적·예약 연결 →</a>
             {loading ? <Loading /> : reservations.length > 0 ? (
                 <ReservationRows reservations={reservations} today={today} go={go} />
             ) : (
@@ -257,7 +256,6 @@ export function EstimatesSection({ quotes, loading, go }: { quotes: MyQuote[]; l
                     action={<button type="button" onClick={() => go('/custom-estimate')} style={mintBtn} {...mintHover}>+ 새로 요청하기</button>}
                 />
             </div>
-            <a href="/customer-link" onClick={event => { event.preventDefault(); go('/customer-link'); }} style={{ color: MW.mintDeep, fontSize: 13, lineHeight: 1.7, fontWeight: 700 }}>예전에 받은 견적이 보이지 않나요? 기존 견적 연결 →</a>
             {loading ? <Loading /> : quotes.length > 0 ? (
                 <QuoteRows quotes={quotes} go={go} />
             ) : (
