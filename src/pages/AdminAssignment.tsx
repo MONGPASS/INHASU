@@ -190,13 +190,13 @@ export const AdminAssignment: React.FC = () => {
                                         >
                                             <td>
                                                 <div className="cell-strong">{reservation.productName}</div>
-                                                <div className="cell-muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+                                                <div className="cell-muted" style={{ fontSize: 12, marginTop: 2 }}>
                                                     {reservation.customerName} · {reservation.id.slice(0, 8)}…
                                                 </div>
                                             </td>
                                             <td className="cell-muted">
                                                 <div>{reservation.duration}</div>
-                                                <div style={{ fontSize: 12.5, marginTop: 2 }}>{reservation.startDate}</div>
+                                                <div style={{ fontSize: 12, marginTop: 2 }}>{reservation.startDate}</div>
                                             </td>
                                             <td className="c">
                                                 {reservation.assignedGuide
@@ -243,7 +243,7 @@ export const AdminAssignment: React.FC = () => {
                                                 />
                                                 <div>
                                                     <div className="cell-strong">{selectedReservation.assignedGuide.name}</div>
-                                                    <div className="cell-muted" style={{ fontSize: 12.5 }}>{selectedReservation.assignedGuide.phone}</div>
+                                                    <div className="cell-muted" style={{ fontSize: 12 }}>{selectedReservation.assignedGuide.phone}</div>
                                                 </div>
                                                 <button
                                                     className="btn btn-ghost btn-sm"
@@ -284,7 +284,7 @@ export const AdminAssignment: React.FC = () => {
                                                                 <div>
                                                                     <div className="cell-strong">{assigned.accommodation.name}</div>
                                                                     {assigned.accommodation.location && (
-                                                                        <div className="cell-muted" style={{ fontSize: 12.5 }}>{assigned.accommodation.location}</div>
+                                                                        <div className="cell-muted" style={{ fontSize: 12 }}>{assigned.accommodation.location}</div>
                                                                     )}
                                                                 </div>
                                                                 <button

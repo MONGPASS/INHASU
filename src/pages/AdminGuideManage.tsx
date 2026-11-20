@@ -257,7 +257,7 @@ export const AdminGuideManage: React.FC = () => {
                                         </span>
                                     )}
                                     <div className="cell-strong" style={{ fontSize: 15 }}>{guide.name}</div>
-                                    <div className="cell-muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+                                    <div className="cell-muted" style={{ fontSize: 12, marginTop: 2 }}>
                                         {guide.phone || '연락처 미등록'}
                                     </div>
                                     <div style={{ marginTop: 10 }}>
@@ -398,7 +398,7 @@ export const AdminGuideManage: React.FC = () => {
                                         value={formData.experienceYears}
                                         onChange={(e) => setFormData({ ...formData, experienceYears: Number(e.target.value) })}
                                     />
-                                    <span className="cell-muted" style={{ fontSize: 13.5 }}>년</span>
+                                    <span className="cell-muted" style={{ fontSize: 13 }}>년</span>
                                 </div>
                             </div>
 

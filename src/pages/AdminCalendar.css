@@ -89,18 +89,18 @@
 .tour-calendar .tc-day.is-outside .tc-day-heading { color: var(--mrt-gray-300); }
 .tour-calendar .tc-day.is-today .tc-day-heading > :first-child { background: var(--mrt-blue); color: #fff; }
 .tour-calendar .tc-day-heading .tc-attention-dot { margin-left: auto; }
-.tour-calendar .tc-day-count { display: block; flex: none; overflow: hidden; color: var(--text-tertiary); font-size: 10px; font-weight: 600; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
+.tour-calendar .tc-day-count { display: block; flex: none; overflow: hidden; color: var(--text-tertiary); font-size: 11px; font-weight: 600; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
 .tour-calendar .tc-attention-dot { display: inline-block; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--mrt-purple-2); }
 .tour-calendar .tc-events { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: none; }
 .tour-calendar .tc-event { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; height: 20px; padding: 0 6px; overflow: hidden; border: 0; border-left: 3px solid var(--mrt-green); border-radius: var(--adm-radius-xs); background: var(--mrt-green-soft); color: var(--text-strong); font-size: 11px; font-weight: 700; text-align: left; }
 .tour-calendar .tc-event > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tour-calendar .tc-event small { flex: none; font-size: 10px; opacity: .8; white-space: nowrap; }
+.tour-calendar .tc-event small { flex: none; font-size: 11px; opacity: .8; white-space: nowrap; }
 .tour-calendar .tc-event[data-source="quote_booking"] { border-left-color: var(--mrt-blue); background: var(--mrt-blue-50); }
 .tour-calendar .tc-event[data-source="legacy_quote"] { border-left-color: var(--mrt-star); background: var(--adm-warn-soft); }
 .tour-calendar .tc-event.is-conflict { border-left-color: var(--mrt-red); background: var(--mrt-red-soft); }
 .tour-calendar .tc-event.is-muted { border-left-color: var(--mrt-gray-300); background: var(--mrt-gray-100); color: var(--text-tertiary); }
 .tour-calendar .tc-event:hover { filter: brightness(.97); }
-.tour-calendar .tc-more { align-self: flex-start; padding: 0; border: 0; background: transparent; color: var(--text-tertiary); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.tour-calendar .tc-more { align-self: flex-start; padding: 0; border: 0; background: transparent; color: var(--text-tertiary); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .tour-calendar .tc-more:hover { color: var(--text-strong); text-decoration: underline; }
 .tour-calendar .tc-month-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 12px 20px; border-top: 1px solid var(--border-subtle); color: var(--text-tertiary); font-size: 11px; }
 .tour-calendar .tc-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
@@ -202,7 +202,7 @@
   .tour-calendar .tc-month-card, .tour-calendar .tc-day-panel { border-radius: var(--adm-radius-md); }
   .tour-calendar .tc-day { height: 96px; padding: 5px 3px; }
   .tour-calendar .tc-day-count { display: none; }
-  .tour-calendar .tc-event { padding: 0 3px; border-left-width: 2px; font-size: 10px; }
+  .tour-calendar .tc-event { padding: 0 3px; border-left-width: 2px; font-size: 11px; }
   .tour-calendar .tc-event small { display: none; }
   .tour-calendar .tc-panel-header { padding: 16px 14px 8px; }
   .tour-calendar .tc-panel-stats { padding: 0 14px 14px; }

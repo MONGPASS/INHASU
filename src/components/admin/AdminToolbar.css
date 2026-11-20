@@ -8,7 +8,7 @@
 .admin-toolbar .at-icon-button { width:40px; height:40px; padding:0; display:grid; place-items:center; border:1px solid var(--adm-line); background:var(--adm-surface); border-radius:50%; color:var(--adm-text-2); cursor:pointer; position:relative; }
 .admin-toolbar .at-icon-button:hover { background:var(--adm-gray-50); }
 .admin-toolbar .at-mobile-search { display:none; }
-.admin-toolbar .at-count { position:absolute; top:-5px; right:-5px; min-width:19px; padding:2px 4px; border-radius:var(--adm-radius-md); background:var(--adm-accent-soft); border:2px solid var(--adm-surface); color:var(--adm-accent-strong); font-size:10px; font-weight:var(--adm-fw-bold); line-height:1.2; }
+.admin-toolbar .at-count { position:absolute; top:-5px; right:-5px; min-width:19px; padding:2px 4px; border-radius:var(--adm-radius-md); background:var(--adm-accent-soft); border:2px solid var(--adm-surface); color:var(--adm-accent-strong); font-size:11px; font-weight:var(--adm-fw-bold); line-height:1.2; }
 .admin-toolbar .at-count-warning { color:var(--adm-warn-strong); background:var(--adm-warn-soft); }
 .admin-toolbar .at-panel { position:absolute; right:0; top:calc(100% + 14px); width:450px; max-width:calc(100vw - 32px); max-height:calc(100dvh - 110px); overflow:auto; border:1px solid var(--adm-line); border-radius:var(--adm-radius-md); background:var(--adm-surface); box-shadow:0 16px 44px #10182826; z-index:90; outline:0; }
 .admin-toolbar .at-panel-head { display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--adm-line-subtle); }
@@ -20,17 +20,17 @@
 .admin-toolbar .at-warning { display:block; margin:12px 16px; padding:10px 12px; background:var(--adm-warn-soft); border:1px solid var(--adm-warn-line); color:var(--adm-warn-strong); border-radius:var(--adm-radius-sm); font-size:12px; line-height:1.55; }
 .admin-toolbar .at-warning span { display:block; }
 .admin-toolbar .at-empty { margin:0; padding:28px 20px; font-size:13px; line-height:1.65; text-align:center; color:var(--adm-text-3); }
-.admin-toolbar .at-hint { padding:10px 18px; margin:0; color:var(--adm-text-3); font-size:11.5px; line-height:1.55; }
+.admin-toolbar .at-hint { padding:10px 18px; margin:0; color:var(--adm-text-3); font-size:11px; line-height:1.55; }
 .admin-toolbar .at-group-label { padding:12px 18px 5px; color:var(--adm-text-3); font-size:11px; font-weight:var(--adm-fw-bold); }
 .admin-toolbar .at-result { display:flex; align-items:center; gap:12px; padding:11px 18px; text-decoration:none; color:var(--adm-text-2); border-left:3px solid transparent; }
 .admin-toolbar .at-result.at-active, .admin-toolbar .at-result:hover { background:var(--adm-accent-soft); border-left-color:var(--adm-accent); }
 .admin-toolbar .at-result > span:first-child { flex:1; min-width:0; }
 .admin-toolbar .at-result strong, .admin-toolbar .at-task strong { display:block; font-size:13px; font-weight:700; color:var(--adm-ink); overflow-wrap:anywhere; }
-.admin-toolbar .at-result small, .admin-toolbar .at-task small { display:block; margin-top:3px; font-size:11.5px; line-height:1.5; color:var(--adm-text-3); overflow-wrap:anywhere; }
-.admin-toolbar .at-state { flex:none; max-width:100px; color:var(--adm-text-3); font-size:10.5px; }
+.admin-toolbar .at-result small, .admin-toolbar .at-task small { display:block; margin-top:3px; font-size:11px; line-height:1.5; color:var(--adm-text-3); overflow-wrap:anywhere; }
+.admin-toolbar .at-state { flex:none; max-width:100px; color:var(--adm-text-3); font-size:11px; }
 .admin-toolbar .at-task { display:block; padding:13px 18px; border-top:1px solid var(--adm-line-subtle); text-decoration:none; }
 .admin-toolbar .at-task:hover { background:var(--adm-gray-50); }
-.admin-toolbar .at-task-kind { display:inline-block; margin-bottom:5px; padding:3px 7px; border-radius:var(--adm-radius-xs); background:var(--adm-accent-soft); color:var(--adm-accent-strong); font-size:10px; font-weight:var(--adm-fw-bold); }
+.admin-toolbar .at-task-kind { display:inline-block; margin-bottom:5px; padding:3px 7px; border-radius:var(--adm-radius-xs); background:var(--adm-accent-soft); color:var(--adm-accent-strong); font-size:11px; font-weight:var(--adm-fw-bold); }
 .admin-toolbar .at-task-urgent { background:var(--adm-warn-soft); color:var(--adm-warn-strong); }
 @media (max-width:1100px) {
   .admin-toolbar .at-search-field { display:none; }

@@ -1222,7 +1222,7 @@ export const AdminMagazineManage: React.FC = () => {
                                         type="text"
                                         value={formData.title}
                                         onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                        style={{ width: '100%', fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-strong)', border: 'none', outline: 'none', background: 'transparent' }}
+                                        style={{ width: '100%', fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-strong)', border: 'none', outline: 'none', background: 'transparent' }}
                                         placeholder="제목을 입력하세요"
                                     />
                                 </div>

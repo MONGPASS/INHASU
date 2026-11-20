@@ -160,7 +160,7 @@
 .kind { --tone: var(--adm-accent-strong); display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius:var(--adm-radius-xs); font-size: 11px; font-weight: 700; white-space: nowrap; color: var(--tone);
   background: color-mix(in srgb, var(--tone) 10%, var(--adm-surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 20%, transparent), 0 1px 2px rgba(16,24,40,.05); }
 .kindProduct { --tone: var(--adm-text-3); }
-.source { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: var(--adm-radius-xs); font-size: 10px; font-weight: var(--adm-fw-bold); white-space: nowrap; }
+.source { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: var(--adm-radius-xs); font-size: 11px; font-weight: var(--adm-fw-bold); white-space: nowrap; }
 .depositReport { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; height: 22px; margin-top: 2px; padding: 0 8px; border-radius: var(--adm-radius-xs);
   background: var(--mrt-purple-soft); color: var(--mrt-purple-2); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .mark { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); border-radius: var(--adm-radius-xs); }

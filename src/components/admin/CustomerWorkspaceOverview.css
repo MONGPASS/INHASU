@@ -49,7 +49,7 @@
 .cw-customer-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 24px; }
 .cw-identity-copy { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 6px; }
 .cw-customer-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cw-customer-title h1 { font-size: 30px; font-weight: var(--adm-fw-bold); letter-spacing: -0.035em; line-height: 1.3; color: var(--text-strong); overflow-wrap: anywhere; }
+.cw-customer-title h1 { font-size: 28px; font-weight: var(--adm-fw-bold); letter-spacing: -0.035em; line-height: 1.3; color: var(--text-strong); overflow-wrap: anywhere; }
 .cw-dday { font-family: var(--font-sans); }
 .cw-trip-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--text-secondary); }
 .cw-trip-meta > span { display: inline-flex; align-items: center; gap: 5px; }
@@ -241,7 +241,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: var(--adm
 .cw-current-stage { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-radius: var(--adm-radius-md); background: var(--mrt-blue-50); }
 .cw-current-stage > div:first-child { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .cw-current-stage > div:first-child > span { font-size: 12px; font-weight: 600; color: var(--mrt-blue-strong); }
-.cw-current-stage > div:first-child > strong { font-size: 19px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--text-strong); }
+.cw-current-stage > div:first-child > strong { font-size: 18px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--text-strong); }
 .cw-current-stage > div:first-child > p { font-size: 13px; color: var(--text-secondary); }
 .cw-stage-next { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 100%; }
 .cw-stage-next > small { font-size: 12px; color: var(--text-secondary); text-align: right; }
@@ -264,7 +264,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: var(--adm
 /* 결제 현황 */
 .cw-payment-summary { display: flex; flex-direction: column; gap: 8px; }
 .cw-total-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.cw-total { font-family: var(--font-sans); font-size: 34px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; line-height: 1.1; color: var(--text-strong); }
+.cw-total { font-family: var(--font-sans); font-size: 36px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; line-height: 1.1; color: var(--text-strong); }
 .cw-total-label { font-size: 13px; color: var(--text-secondary); }
 .cw-payment-progress > div { height: 8px; border-radius: var(--adm-radius-xs); background: var(--mrt-gray-100); overflow: hidden; }
 .cw-payment-progress span { display: block; height: 100%; border-radius: var(--adm-radius-xs); background: var(--adm-accent); }

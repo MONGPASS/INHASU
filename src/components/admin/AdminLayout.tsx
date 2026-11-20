@@ -131,7 +131,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                             {eb && <div className="eyebrow"><span className="dot" />{eb}</div>}
                             <div className="page-title">{title}</div>
                             {description && (
-                                <div className="cell-muted" style={{ fontSize: 12.5, marginTop: 2 }}>{description}</div>
+                                <div className="cell-muted" style={{ fontSize: 12, marginTop: 2 }}>{description}</div>
                             )}
                         </div>}
                         <div className="header-spacer" />

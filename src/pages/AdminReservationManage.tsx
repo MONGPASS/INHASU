@@ -2055,13 +2055,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     <div id="product-customer-flights" className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14, scrollMarginTop: 20 }}>
                                         <div className="pay-cell">
                                             <div className="row" style={{ gap: 6, marginBottom: 6, color: 'var(--text-secondary)' }}>
-                                                <Icon name="flight_land" /><span style={{ fontSize: 12.5, fontWeight: 700 }}>도착편 (몽골 도착)</span>
+                                                <Icon name="flight_land" /><span style={{ fontSize: 12, fontWeight: 700 }}>도착편 (몽골 도착)</span>
                                             </div>
                                             <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtFlightLine(editForm.contractData?.arrival)}</div>
                                         </div>
                                         <div className="pay-cell">
                                             <div className="row" style={{ gap: 6, marginBottom: 6, color: 'var(--text-secondary)' }}>
-                                                <Icon name="flight_takeoff" /><span style={{ fontSize: 12.5, fontWeight: 700 }}>출발편 (몽골 출발)</span>
+                                                <Icon name="flight_takeoff" /><span style={{ fontSize: 12, fontWeight: 700 }}>출발편 (몽골 출발)</span>
                                             </div>
                                             <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtFlightLine(editForm.contractData?.departure)}</div>
                                         </div>
@@ -2110,7 +2110,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                         <span className="ring-n">{paidPercent}<small>%</small></span>
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div className="cell-muted" style={{ fontSize: 12.5 }}>
+                                        <div className="cell-muted" style={{ fontSize: 12 }}>
                                             {paidPercent >= 100 ? '완납 완료' : `잔액 ${won((editForm.totalAmount || 0) - paidAmount)}`}
                                         </div>
                                         <div className="row" style={{ gap: 6, marginTop: 2 }}>
@@ -2143,7 +2143,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                 <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                     <div className={`pay-cell${editForm.depositStatus === 'paid' ? ' paid' : ''}`}>
                                         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-                                            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>예약금</span>
+                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>예약금</span>
                                             <span className={`badge ${editForm.depositStatus === 'paid' ? 'b-green' : 'b-amber'}`}>
                                                 {editForm.depositStatus === 'paid' ? '입금' : '미납'}
                                             </span>
@@ -2186,7 +2186,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     </div>
                                     <div className={`pay-cell${editForm.balanceStatus === 'paid' ? ' paid' : ''}`}>
                                         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-                                            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>잔금</span>
+                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>잔금</span>
                                             <span className={`badge ${editForm.balanceStatus === 'paid' ? 'b-green' : 'b-amber'}`}>
                                                 {editForm.balanceStatus === 'paid' ? '입금' : '미납'}
                                             </span>
@@ -2296,7 +2296,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     </button>
                                 </div>
                                 <div className="card-pad" style={{ paddingTop: 12 }}>
-                                    <p className="cell-muted" style={{ fontSize: 11.5, marginBottom: 10, lineHeight: 1.5 }}>
+                                    <p className="cell-muted" style={{ fontSize: 11, marginBottom: 10, lineHeight: 1.5 }}>
                                         비워두면 <b>상품 일정의 기본 숙소</b>가 그대로 일정표에 적용됩니다. 실제 묵을 숙소를 확정하려면 날짜별로 「직접 지정」하세요.
                                     </p>
                                     <div className="stack" style={{ gap: 8 }}>
@@ -2307,7 +2307,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                                 <div className="accom-day" key={day}>
                                                     <span className="th-day" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
                                                         <span>{day}일차</span>
-                                                        {stayDateLabel(day) && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--mrt-gray-400)' }}>{stayDateLabel(day)} 밤</span>}
+                                                        {stayDateLabel(day) && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--mrt-gray-400)' }}>{stayDateLabel(day)} 밤</span>}
                                                     </span>
                                                     {assigned ? (
                                                         <div className="assign-row" style={{ flex: 1, padding: 0 }}>
@@ -2319,7 +2319,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                                             <div style={{ minWidth: 0, flex: 1 }}>
                                                                 <div className="cell-strong">
                                                                     {assigned.accommodation.name}
-                                                                    {overNights && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--adm-danger-soft)', color: 'var(--adm-danger)' }}>박수 초과 · 출발일</span>}
+                                                                    {overNights && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--adm-danger-soft)', color: 'var(--adm-danger)' }}>박수 초과 · 출발일</span>}
                                                                 </div>
                                                                 <div className="cell-muted" style={{ fontSize: 12 }}>{assigned.accommodation.location || '—'}</div>
                                                                 {(() => {
@@ -2330,8 +2330,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                                                     if (!bs && !rooms) return null;
                                                                     return (
                                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 4, flexWrap: 'wrap' }}>
-                                                                            {bs && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--adm-radius-xs)', background: bs.bg, color: bs.fg }}>{bs.label}</span>}
-                                                                            {rooms && <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--mrt-gray-500)' }}>{rooms}</span>}
+                                                                            {bs && <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--adm-radius-xs)', background: bs.bg, color: bs.fg }}>{bs.label}</span>}
+                                                                            {rooms && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--mrt-gray-500)' }}>{rooms}</span>}
                                                                         </div>
                                                                     );
                                                                 })()}
@@ -2353,7 +2353,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                                                     <div style={{ minWidth: 0, flex: 1 }}>
                                                                         <div className="cell-strong" style={{ color: 'var(--mrt-gray-500)' }}>
                                                                             {def.name}
-                                                                            <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>상품 기본</span>
+                                                                            <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>상품 기본</span>
                                                                         </div>
                                                                         <div className="cell-muted" style={{ fontSize: 12 }}>{def.location || '일정표에 적용 중 · 비워두면 이대로 발송'}</div>
                                                                     </div>
@@ -2386,7 +2386,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                 <div className="card-head">
                                     <Icon name="sticky_note_2" style={{ color: 'var(--mrt-gray-600)' }} /><h2>관리자 메모</h2>
                                     <div className="spacer" style={{ flex: 1 }} />
-                                    <span className="cell-muted" style={{ fontSize: 11.5 }}>고객 비공개 · 내부 전용</span>
+                                    <span className="cell-muted" style={{ fontSize: 11 }}>고객 비공개 · 내부 전용</span>
                                 </div>
                                 <div className="card-pad" style={{ paddingTop: 12 }}>
                                     <div className="memo-box">
@@ -2400,7 +2400,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                             rows={memoFocused || memoDraft ? 3 : 2}
                                         />
                                         <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
-                                            <span className="cell-muted" style={{ fontSize: 11.5 }}>⌘ + Enter 로 저장</span>
+                                            <span className="cell-muted" style={{ fontSize: 11 }}>⌘ + Enter 로 저장</span>
                                             <button
                                                 onClick={addMemo}
                                                 disabled={!memoDraft.trim()}
@@ -2441,8 +2441,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                                 {i < arr.length - 1 && <span className="tl-line" />}
                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                     <div className="cell-strong" style={{ fontSize: 13, whiteSpace: 'normal' }}>{e.description}</div>
-                                                    {e.detail && <div className="cell-muted" style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.detail}</div>}
-                                                    <div className="cell-muted" style={{ fontSize: 11.5 }}>
+                                                    {e.detail && <div className="cell-muted" style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.detail}</div>}
+                                                    <div className="cell-muted" style={{ fontSize: 11 }}>
                                                         {e.timestamp ? new Date(e.timestamp).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                                                     </div>
                                                 </div>
@@ -2528,14 +2528,14 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     <span className="avatar round tint-blue"><Icon name="person" /></span>
                                 )}
                                 <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div className="cell-strong">{guide.name}{isCurrentGuide(guide) && <span className="crp-current-badge">현재 배정</span>}{guide._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}</div>
+                                    <div className="cell-strong">{guide.name}{isCurrentGuide(guide) && <span className="crp-current-badge">현재 배정</span>}{guide._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 11 }}>배정 자원</span>}</div>
                                     {!!guideConflicts(guide).length && <div className="badge b-amber">같은 기간 배정 {guideConflicts(guide).length}건</div>}
                                     <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{guide.phone}</div>
                                     {(guide.introduction || guide.bio) && <div className="crp-introduction">{guide.introduction || guide.bio}</div>}
                                     {!!guideLanguages(guide.languages).length && (
                                         <div className="row" style={{ gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
                                             {guideLanguages(guide.languages).map((l: string) => (
-                                                <span key={l} className="badge b-blue" style={{ fontSize: 10, padding: '1px 7px' }}>{l}</span>
+                                                <span key={l} className="badge b-blue" style={{ fontSize: 11, padding: '1px 7px' }}>{l}</span>
                                             ))}
                                         </div>
                                     )}
@@ -2584,8 +2584,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                     <div className="cell-strong">
                                         {acc.name}
                                         {isCurrentAccommodation(acc) && <span className="crp-current-badge">현재 배정</span>}
-                                        {acc._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 10 }}>배정 자원</span>}{acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--adm-accent-soft)', color: 'var(--adm-accent-strong)' }}>호텔 마스터</span>}
-                                        {acc._fromItinerary && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>이 상품 일정</span>}
+                                        {acc._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 11 }}>배정 자원</span>}{acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--adm-accent-soft)', color: 'var(--adm-accent-strong)' }}>호텔 마스터</span>}
+                                        {acc._fromItinerary && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>이 상품 일정</span>}
                                     </div>
                                     {acc.type && <div className="cell-muted" style={{ fontSize: 12 }}>{acc.type}</div>}
                                     {acc.location && <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.location}</div>}

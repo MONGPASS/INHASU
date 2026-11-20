@@ -9,7 +9,7 @@ export function normPresets(presets: DesignPreset[]): { label: string; value: st
 }
 
 const chipStyle = (on: boolean): React.CSSProperties => ({
-    padding: '2px 8px', borderRadius: 500, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: '1px solid',
+    padding: '2px 8px', borderRadius: 500, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: '1px solid',
     ...(on ? { borderColor: '#06C4A0', background: 'rgba(6,196,160,0.12)', color: '#029F85' } : { borderColor: 'var(--border-default)', background: 'transparent', color: 'var(--text-muted)' }),
 });
 

@@ -352,7 +352,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px 24px', padding: '24px 28px', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)' }}>
             <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: '-0.03em' }}>{name}</h1>
+                    <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, letterSpacing: '-0.03em' }}>{name}</h1>
                     <button type="button" disabled={busy} onClick={statusMenu} style={pill(statusTone)}>{source ? statusLabelOf(source) : m.statusLabel}<Ico name="lc-chevron-down" size={12} /></button>
                     {dd && <span style={chip(dd.tone, dd.dot, { height: 24, fontSize: 12 })}>{dd.label}</span>}
                     {m.packageInfo && <span style={chip(m.packageInfo.tier === 'full' ? 'mint' : m.packageInfo.tier === 'value' ? 'blue' : 'gray', !!m.packageInfo.tier, { height: 24, fontSize: 12 })} title={m.packageInfo.detail}>{m.packageInfo.tier === 'full' ? '풀패키지' : m.packageInfo.tier === 'value' ? '실속형' : '패키지 미지정'}</span>}
@@ -429,7 +429,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                             {pendingNights.length > 0 && <span style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999, alignItems: 'center', justifyContent: 'center', background: 'var(--adm-accent)', color: '#fff', fontSize: 11, fontWeight: 700 }}>{pendingNights.length}</span>}
                         </button>}
                     </div>
-                    <div className="v7-stay-head" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', height: 34, padding: '0 18px', background: 'var(--adm-gray-50)', fontSize: 11.5, fontWeight: 700, color: V7_MUTED }}><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
+                    <div className="v7-stay-head" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', height: 34, padding: '0 18px', background: 'var(--adm-gray-50)', fontSize: 11, fontWeight: 700, color: V7_MUTED }}><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
                     {(row?.stays || []).map(nt => {
                         const st = bookingStatusMeta(nt.bookingStatus);
                         return <div key={nt.day} className="v7-stay-row" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', minHeight: 62, padding: '8px 18px', boxSizing: 'border-box', borderTop: '1px solid var(--adm-line-subtle)' }}>

@@ -848,7 +848,7 @@ const HeroImagesEditor: React.FC<HeroImagesEditorProps> = ({ images, onChange, u
                     {images.map((url, idx) => (
                         <div key={idx} style={{ position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
                             <img src={url} alt={`hero-${idx + 1}`} style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block' }} />
-                            <div style={{ position: 'absolute', top: 4, left: 4, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 10, fontWeight: 700 }}>
+                            <div style={{ position: 'absolute', top: 4, left: 4, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
                                 {idx + 1}
                             </div>
                             <div className="row" style={{ position: 'absolute', top: 4, right: 4, gap: 4 }}>

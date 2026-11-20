@@ -23,7 +23,7 @@
 .lo-kpi-body { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
 .lo-kpi-label { color: var(--text-secondary); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .lo-kpi-num { display: flex; align-items: baseline; gap: 3px; }
-.lo-kpi-num b { color: var(--text-strong); font-size: 26px; font-weight: var(--adm-fw-bold); letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.lo-kpi-num b { color: var(--text-strong); font-size: 24px; font-weight: var(--adm-fw-bold); letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .lo-kpi-num small { color: var(--text-tertiary); font-size: 12px; font-weight: 700; }
 .lo-kpi-hint { flex: none; align-self: flex-start; color: var(--text-tertiary); font-size: 11px; font-weight: 700; }
 .lo-kpi.is-hot { background: var(--adm-danger-soft); }
@@ -85,7 +85,7 @@
 .lo-customer-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .lo-customer-name b { overflow: hidden; color: var(--text-strong); font-size: 15px; font-weight: var(--adm-fw-bold); letter-spacing: -.02em; white-space: nowrap; text-overflow: ellipsis; }
 .lo-customer > small { overflow: hidden; color: var(--text-tertiary); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
-.lo-kind { flex: none; height: 18px; padding: 0 6px; border-radius: var(--adm-radius-xs); font-size: 10px; font-style: normal; font-weight: var(--adm-fw-bold); line-height: 18px; }
+.lo-kind { flex: none; height: 18px; padding: 0 6px; border-radius: var(--adm-radius-xs); font-size: 11px; font-style: normal; font-weight: var(--adm-fw-bold); line-height: 18px; }
 .lo-kind[data-kind="dirty"] { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
 .lo-kind[data-kind="draft"] { background: var(--adm-danger-soft); color: var(--lo-red); }
 .lo-range b { color: var(--text-strong); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }

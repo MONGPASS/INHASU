@@ -7,7 +7,7 @@ import { isCommitKey } from './inlineEdit';
 import { TEXT_SIZE, clampTextSize } from '../../product/designTemplates/textStyles';
 
 const btn = (primary = false): React.CSSProperties => ({
-    display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none', whiteSpace: 'nowrap', height: 32, padding: '0 12px', borderRadius: 'var(--adm-radius-sm)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', font: 'inherit',
+    display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none', whiteSpace: 'nowrap', height: 32, padding: '0 12px', borderRadius: 'var(--adm-radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer', font: 'inherit',
     border: primary ? '1.5px solid var(--adm-ink)' : '1.5px solid var(--adm-line)', background: primary ? 'var(--adm-ink)' : 'var(--adm-surface)', color: primary ? '#fff' : 'var(--adm-ink)',
 });
 const stepBtn = (off: boolean): React.CSSProperties => ({
@@ -62,7 +62,7 @@ export function FieldPopover({ field, value, anchor, disabled = false, readOnlyN
             <span style={{ fontSize: 11, color: 'var(--adm-text-3)' }}>{changed || sized ? '수정됨' : '원본 문구'}</span>
             <button type="button" aria-label="닫기" onClick={onClose} style={{ marginLeft: 'auto', width: 28, height: 28, border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'transparent', color: 'var(--adm-text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-x" size={15} /></button>
         </div>
-        {readOnlyNote ? <div style={{ padding: '10px 12px', borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-gray-50)', fontSize: 12.5, color: 'var(--adm-text-2)', lineHeight: 1.6 }}>{readOnlyNote}</div> : <>
+        {readOnlyNote ? <div style={{ padding: '10px 12px', borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-gray-50)', fontSize: 12, color: 'var(--adm-text-2)', lineHeight: 1.6 }}>{readOnlyNote}</div> : <>
             {field.presets && <PresetChips presets={field.presets} value={draft} onPick={update} />}
             {field.presetLines && <PresetLineChips presetLines={field.presetLines} separator={field.presetSeparator} value={draft} onChange={update} />}
             {multiline
@@ -73,14 +73,14 @@ export function FieldPopover({ field, value, anchor, disabled = false, readOnlyN
                     style={{ width: '100%', boxSizing: 'border-box', fontSize: 14, lineHeight: 1.5, resize: 'none' }} />
                 : <input ref={inputRef as React.RefObject<HTMLInputElement>} type="text" className="inp" value={draft} placeholder={field.default || ''} disabled={disabled} onChange={e => update(e.target.value)} onKeyDown={onKeyDown}
                     style={{ width: '100%', boxSizing: 'border-box', fontSize: 14 }} />}
-            {field.help && <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--adm-text-3)', lineHeight: 1.5 }}>{field.help}</div>}
+            {field.help && <div style={{ marginTop: 6, fontSize: 11, color: 'var(--adm-text-3)', lineHeight: 1.5 }}>{field.help}</div>}
             <div style={{ marginTop: 4, fontSize: 11, color: 'var(--adm-text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{multiline ? 'Ctrl+Enter 적용 · Esc 취소' : breakable ? 'Enter 적용 · Shift+Enter 줄바꿈 · Esc 취소' : 'Enter 적용 · Esc 취소'}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
                 {onSizeChange && <div role="group" aria-label="글자 크기" style={{ display: 'flex', alignItems: 'center', gap: 2, height: 32, padding: '0 3px 0 10px', borderRadius: 'var(--adm-radius-sm)', boxShadow: 'inset 0 0 0 1.5px var(--adm-line)', flex: 'none' }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--adm-text-3)', marginRight: 2 }}>크기</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--adm-text-3)', marginRight: 2 }}>크기</span>
                     <button type="button" aria-label="글자 작게" disabled={disabled || size <= TEXT_SIZE.min} onClick={() => setSize(size - TEXT_SIZE.step)} style={stepBtn(size <= TEXT_SIZE.min)}><Ico name="lc-minus" size={13} /></button>
                     <button type="button" aria-live="polite" title="눌러서 기본 크기(100%)로 되돌립니다" disabled={disabled || !sized} onClick={() => setSize(TEXT_SIZE.base)}
-                        style={{ minWidth: 44, height: 26, padding: 0, border: 0, background: 'transparent', font: 'inherit', fontSize: 12.5, fontWeight: 700, color: sized ? 'var(--adm-accent-strong)' : 'var(--adm-ink)', fontVariantNumeric: 'tabular-nums', cursor: sized ? 'pointer' : 'default' }}>{clampTextSize(size)}%</button>
+                        style={{ minWidth: 44, height: 26, padding: 0, border: 0, background: 'transparent', font: 'inherit', fontSize: 12, fontWeight: 700, color: sized ? 'var(--adm-accent-strong)' : 'var(--adm-ink)', fontVariantNumeric: 'tabular-nums', cursor: sized ? 'pointer' : 'default' }}>{clampTextSize(size)}%</button>
                     <button type="button" aria-label="글자 크게" disabled={disabled || size >= TEXT_SIZE.max} onClick={() => setSize(size + TEXT_SIZE.step)} style={stepBtn(size >= TEXT_SIZE.max)}><Ico name="lc-plus" size={13} /></button>
                 </div>}
                 <button type="button" disabled={disabled || !changed} title="비우고 디자인 원본 문구로 되돌립니다" onClick={() => { onClear(); onClose(); }} style={{ ...btn(), marginLeft: 'auto', opacity: changed ? 1 : .5 }}><Ico name="lc-rotate-ccw" size={13} />원본으로</button>
