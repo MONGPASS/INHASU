@@ -239,3 +239,20 @@
   .admin-app-wrapper .v7-list-sort { margin-left: 0; }
   .admin-app-wrapper .v7-list-bulk { left: var(--adm-space-3); right: var(--adm-space-3); bottom: calc(var(--adm-tabbar-h) + var(--adm-safe-bottom) + var(--adm-space-2)); transform: none; overflow-x: auto; }
 }
+
+/* ── 고객 통합 작업(Montage 시안 ③ 상세형) ── */
+/* 뒤로: 글자 버튼(TextButton 모양) */
+.admin-app-wrapper .v7-root .v7-back { display: inline-flex; align-items: center; gap: var(--adm-space-1); height: var(--adm-control-h-sm); padding: 0 var(--adm-space-2) 0 var(--adm-space-1); border: 0; border-radius: 8px; background: transparent; color: var(--adm-text-2); font: inherit; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); cursor: pointer; }
+.admin-app-wrapper .v7-root .v7-back:hover:not(:disabled) { background: var(--adm-neutral-soft); color: var(--adm-ink); }
+.admin-app-wrapper .v7-root .v7-back:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+/* 구역 탭: 밑줄 탭(TabList medium). 화면을 내려도 위에 붙어 있다. */
+.admin-app-wrapper .v7-root .v7-tabs { position: sticky; top: 0; z-index: 5; display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; margin: 0; padding: 0 var(--adm-space-1); border-bottom: 1px solid var(--adm-line); background: var(--adm-canvas); }
+.admin-app-wrapper .v7-root .v7-tabs::-webkit-scrollbar { display: none; }
+.admin-app-wrapper .v7-root .v7-tab { flex: none; height: 48px; margin-bottom: -1px; padding: 0 var(--adm-space-4); border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--adm-text-3); font: inherit; font-size: var(--adm-fs-base); font-weight: var(--adm-fw-medium); white-space: nowrap; cursor: pointer; }
+.admin-app-wrapper .v7-root .v7-tab:hover { color: var(--adm-ink); }
+.admin-app-wrapper .v7-root .v7-tab[aria-current="true"] { border-bottom-color: var(--adm-ink); color: var(--adm-ink); font-weight: var(--adm-fw-semibold); }
+.admin-app-wrapper .v7-root .v7-tab:focus-visible { outline: 0; box-shadow: inset var(--adm-ring); }
+@media (max-width: 760px) {
+  .admin-app-wrapper .v7-root .v7-tabs { top: var(--adm-topbar-h); }
+  .admin-app-wrapper .v7-root .v7-tab { padding: 0 var(--adm-space-3); font-size: var(--adm-fs-body); }
+}

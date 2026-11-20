@@ -88,9 +88,11 @@ export interface ReservationDetailV7Props {
 export interface DetailState {
     item?: V7AssignmentItem; allItems: V7AssignmentItem[]; resources: RegisteredAssignmentResources | null; menu: V7MenuState | null; toast: string; saving: boolean;
     maskOn: boolean; sections: Record<string, boolean>; travelerOpen: number; dayOpen: Record<string, boolean>;
+    /** 구역 탭에서 마지막으로 고른 구역(밑줄 표시용). */
+    navSid: string;
 }
 export const initialDetailState = (): DetailState => ({ allItems: [], resources: null, menu: null, toast: '', saving: false, maskOn: true,
-    sections: {}, travelerOpen: 0, dayOpen: {} });
+    sections: {}, travelerOpen: 0, dayOpen: {}, navSid: 'sec-plan' });
 export type DetailSet = (patch: Partial<DetailState> | ((s: DetailState) => Partial<DetailState>)) => void;
 export interface DetailEnv { mounted: { current: boolean }; toastTimer: { current: number | undefined }; root: { current: HTMLElement | null } }
 
@@ -333,7 +335,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const element = <section ref={rootRef as React.RefObject<HTMLElement>} className="v7-root cw-overview" aria-label="예약 상세" aria-busy={busy || saving} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <V7Styles />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <button type="button" disabled={busy} onClick={action('back')} style={{ ...ghostBtn(), padding: '0 14px 0 10px', gap: 4 }}><Ico name="lc-chevron-left" size={16} />{m.backLabel || '통합 예약 목록'}</button>
+            <button type="button" className="v7-back" disabled={busy} onClick={action('back')}><Ico name="lc-chevron-left" size={16} />{m.backLabel || '통합 예약 목록'}</button>
             <span style={{ fontSize: 13, color: V7_MUTED }}>예약 관리 · {m.backLabel || '통합 예약 목록'}{tabName ? ` · ${tabName}` : ''}{m.bookingNumber ? ` · 예약번호 ${m.bookingNumber}` : ''} · {m.sourceLabel}</span>
         </div>
 
@@ -365,13 +367,10 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => stepTargets[i] ? goSec(stepTargets[i]) : onAction(m.steps[i]?.id || 'payments')} />
         </div>
 
-        <nav aria-label="예약 상세 바로가기" className="v7-nav" style={{ position: 'sticky', top: 0, zIndex: 5, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 50px) / 6), min(calc((100% - 20px) / 3), calc((1100px - 100%) * 999))),1fr))', gap: 10, padding: '8px 0', background: 'var(--surface-canvas, var(--adm-gray-50))' }}>
-            {NAV.map(n => <button key={n.sid} type="button" className="v7-nav-btn" aria-label={`${n.label} 위치로 이동`} onClick={() => goSec(n.sid)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, height: 58, padding: '0 16px 0 14px', border: 0, borderRadius: 'var(--adm-radius-md)', background: 'var(--adm-surface)', boxShadow: '0 0 0 1px var(--adm-line-subtle),0 1px 3px rgba(16,24,40,.04)', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
-                <span style={iconTile(34)}><Ico name={n.icon} size={17} /></span>
-                <b style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: V7_INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.label}</b>
-                <Ico name="lc-chevron-right" size={16} color="var(--adm-text-3)" />
-            </button>)}
+        {/* Montage 시안: 구역 탭(밑줄). 누르면 해당 카드로 이동만 하고 업무를 실행하지 않는다. */}
+        <nav aria-label="예약 상세 바로가기" className="v7-nav v7-tabs">
+            {NAV.map(n => <button key={n.sid} type="button" className="v7-tab" aria-label={`${n.label} 위치로 이동`} aria-current={st.navSid === n.sid ? 'true' : undefined}
+                onClick={() => { set({ navSid: n.sid }); goSec(n.sid); }}>{n.label}</button>)}
         </nav>
         {notificationActions}
         <div className="v7-quad" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 36px) / 4), min(calc((100% - 12px) / 2), calc((1100px - 100%) * 999))),1fr))', gap: 12 }}>
@@ -404,7 +403,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     })}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '16px 18px 10px', borderTop: '1px solid var(--adm-line-subtle)' }}>
                         <b style={{ fontSize: 14, fontWeight: 700 }}>일자별 숙소</b>
-                        <button type="button" disabled={busy || saving} onClick={requestLodging} style={{ ...inkBtn(34), marginLeft: 'auto', padding: '0 14px' }}>
+                        <button type="button" disabled={busy || saving} onClick={requestLodging} style={{ ...ghostBtn(34), marginLeft: 'auto', padding: '0 14px' }}>
                             <Ico name="lc-send" size={14} />현지 운영에 수배 요청
                             {pendingNights.length > 0 && <span style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999, alignItems: 'center', justifyContent: 'center', background: 'var(--adm-accent)', color: '#fff', fontSize: 11, fontWeight: 700 }}>{pendingNights.length}</span>}
                         </button>
@@ -463,7 +462,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                             </div>}
                         </div>;
                     })}
-                    {!m.days.length && <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 18, borderTop: '1px solid var(--adm-line-subtle)' }}><span style={{ flex: 1, fontSize: 13, color: V7_MUTED }}>아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><button type="button" disabled={busy} onClick={action('edit-itinerary')} style={inkBtn(34)}>일정 작성하기</button></div>}
+                    {!m.days.length && <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 18, borderTop: '1px solid var(--adm-line-subtle)' }}><span style={{ flex: 1, fontSize: 13, color: V7_MUTED }}>아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><button type="button" disabled={busy} onClick={action('edit-itinerary')} style={ghostBtn(34)}>일정 작성하기</button></div>}
                 </div>
 
             </div>
