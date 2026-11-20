@@ -4,6 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { SEO } from '../components/seo/SEO';
 import { useUser } from '../contexts/UserContext';
 import { MW } from '../components/desktop-primitives/mwTokens';
+import { useIsDesktop } from '../hooks/useIsDesktop';
+import { DesktopLayout } from '../components/layout-desktop/DesktopLayout';
+import { MobileShell } from '../components/mobile/MobileShell';
 import { parseCustomerReference, safeCustomerReturnPath, type CustomerSource } from '../../public/customer-access.js';
 
 type Channel = { kind: 'email' | 'sms'; masked: string };
@@ -16,6 +19,7 @@ const input: CSSProperties = { width: '100%', minHeight: 50, boxSizing: 'border-
 export function CustomerLink() {
     const [params, setParams] = useSearchParams();
     const { user } = useUser();
+    const isDesktop = useIsDesktop();
     const fromReservations = params.get('from') === 'reservations' || params.get('source') === 'reservation';
     const sourceValue = params.get('source');
     const source = ['request', 'quote', 'reservation'].includes(sourceValue || '') ? sourceValue as CustomerSource : null;
@@ -109,9 +113,11 @@ export function CustomerLink() {
         } catch (failure) { setError((failure as Error).message); }
         finally { setBusy(false); }
     };
-    return <>
+    // 사이트의 다른 화면과 같은 머리·바닥·하단 탭 안에 보여 준다.
+    const Shell = isDesktop ? DesktopLayout : MobileShell;
+    return <Shell>
         <SEO title="기존 견적·예약 연결" description="본인 확인 후 기존 여행 이력을 Google 계정에 연결합니다." robots="noindex, nofollow" />
-        <main style={{ minHeight: '100vh', boxSizing: 'border-box', background: '#F7FAF9', padding: '32px 20px', color: MW.navy, fontFamily: 'Pretendard, sans-serif', display: 'grid', placeItems: 'center' }}>
+        <div style={{ minHeight: isDesktop ? 560 : undefined, boxSizing: 'border-box', background: '#F7FAF9', padding: isDesktop ? '48px 20px 64px' : '20px 16px 32px', color: MW.navy, fontFamily: 'Pretendard, sans-serif', display: 'grid', placeItems: 'center' }}>
             <section style={{ width: '100%', maxWidth: 460, boxSizing: 'border-box', background: '#fff', border: `1px solid ${MW.line}`, borderRadius: 24, padding: '30px 24px', display: 'grid', gap: 20 }}>
                 <a href={fromReservations ? '/mypage/reservations' : '/mypage/estimates'} style={{ color: MW.mintDeep, fontSize: 13, textDecoration: 'none', fontWeight: 700 }}>← {fromReservations ? '내 예약 내역' : '내 견적 내역'}</a>
                 <header><p style={{ margin: '0 0 8px', color: MW.mintDeep, fontSize: 12, fontWeight: 800 }}>기존 고객 이력 연결</p><h1 style={{ margin: 0, fontSize: 25, lineHeight: 1.4 }}>받은 견적·예약을<br />내 계정에 연결하세요</h1><p style={{ fontSize: 14, lineHeight: 1.8, color: MW.mute, marginBottom: 0 }}>처음 한 번 본인 확인을 마치면, 다음부터는 같은 Google 계정의 마이페이지에서 확인할 수 있습니다.</p></header>
@@ -139,6 +145,6 @@ export function CustomerLink() {
                 {hasReference && !status && error && <button type="button" style={button} onClick={() => setRefresh(value => value + 1)}>다시 확인</button>}
                 <a href="https://pf.kakao.com/_BSLaxl" target="_blank" rel="noopener noreferrer" style={{ color: MW.mintDeep, fontSize: 13, fontWeight: 700 }}>연락처가 바뀌었거나 연결이 어려운가요? 카카오톡 문의 →</a>
             </section>
-        </main>
-    </>;
+        </div>
+    </Shell>;
 }
