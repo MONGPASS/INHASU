@@ -346,3 +346,51 @@ test('관리자가 고친 연락처와 예전 검색용 번호가 다르면 예�
     const send = await f.request('/challenge', { method: 'POST', body: { source: 'request', key: token, channel: 'sms' } });
     assert.equal(send.status, 409); assert.equal(f.outbox.length, 0);
 });
+
+// 오너 결정(2026-11-20): Google이 확인한 로그인 이메일이 견적에 적힌 이메일과 같으면 인증번호 없이 연결한다.
+// 그 이메일로 인증번호를 받아 입력하는 것과 같은 수준의 확인이며, 이미 연결된 기록·공유 견적은 건드리지 않는다.
+const addGoogleUser = (f, id, email) => {
+    f.raw.prepare('INSERT INTO users(id,google_id,email,name,role) VALUES(?,?,?,?,?)').run(id, `google-${id}`, email, id, 'user');
+    f.raw.prepare('INSERT INTO sessions VALUES(?,?,?)').run(`link-session-${id}`, id, Date.now() + 90 * 86400000);
+};
+
+test('견적 이메일과 같은 Google 계정은 연결 화면에서 인증번호 없이 바로 연결된다', async t => {
+    const f = await fixture(t);
+    addGoogleUser(f, 'mail-owner', storedEmail.toUpperCase());
+    const response = await f.request(`/status?source=request&key=${token}`, { user: 'mail-owner' });
+    assert.equal(response.status, 200); assert.equal((await response.json()).state, 'linked');
+    assert.equal(f.linkOwner('request', 'legacy-request'), 'mail-owner');
+    assert.equal(f.outbox.length, 0, '인증번호를 보내지 않는다');
+    // 다른 계정은 이후에도 이 기록을 가져갈 수 없다.
+    const other = await f.request(`/status?source=request&key=${token}`, { user: 'other' });
+    assert.equal(other.status, 403); assert.equal(f.linkOwner('request', 'legacy-request'), 'mail-owner');
+});
+
+test('마이페이지 이력은 같은 Google 이메일의 미연결 견적·예약을 연결해 보여 준다', async t => {
+    const f = await fixture(t);
+    addGoogleUser(f, 'mail-owner', storedEmail);
+    const before = await f.request('/history', { user: 'owner' });
+    assert.deepEqual((await before.json()).items.filter(item => item.source === 'request'), [], '이메일이 다른 계정에는 보이지 않는다');
+    const response = await f.request('/history', { user: 'mail-owner' });
+    assert.equal(response.status, 200);
+    const items = (await response.json()).items.filter(item => item.source === 'request');
+    assert.equal(items.length, 1); assert.equal(items[0].id, 'legacy-request');
+    assert.equal(f.linkOwner('request', 'legacy-request'), 'mail-owner');
+    // 예전 사이트 견적(quotes)·상품 예약(reservations)은 이 방식으로 연결하지 않는다.
+    assert.equal(f.raw.prepare('SELECT user_id FROM quotes WHERE id=?').get('legacy-quote').user_id, null);
+    assert.equal(f.raw.prepare('SELECT user_id FROM reservations WHERE id=?').get('legacy-reservation').user_id, null);
+});
+
+test('이미 다른 계정에 연결된 견적과 받는 사람이 없는 공유 견적은 이메일이 같아도 연결하지 않는다', async t => {
+    const f = await fixture(t);
+    f.raw.prepare('INSERT INTO customer_resource_links VALUES(?,?,?,?)').run('request', 'legacy-request', 'other', new Date().toISOString());
+    f.raw.prepare('INSERT INTO requests(id,name,phone,destination,status,data,token,received_at) VALUES(?,?,?,?,?,?,?,?)').run('shared-course', '여행 고객', '', '공유 코스', '신규',
+        JSON.stringify({ name: '여행 고객', source: 'course-share', email: storedEmail, quote: { customer: '여행 고객' } }), 'fixture-shared-course-token', '2026-10-21');
+    addGoogleUser(f, 'mail-owner', storedEmail);
+    const status = await f.request(`/status?source=request&key=${token}`, { user: 'mail-owner' });
+    assert.equal(status.status, 403);
+    const items = (await (await f.request('/history', { user: 'mail-owner' })).json()).items;
+    assert.deepEqual(items.filter(item => item.source === 'request'), []);
+    assert.equal(f.linkOwner('request', 'legacy-request'), 'other');
+    assert.equal(f.linkOwner('request', 'shared-course'), undefined);
+});
