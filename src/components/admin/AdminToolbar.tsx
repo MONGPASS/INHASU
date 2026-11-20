@@ -120,5 +120,6 @@ export function AdminToolbar({ showSearch = true }: { showSearch?: boolean }) {
                                     <strong>{task.title}</strong><small>{task.description}</small></Link>)}</div>}
             </div>}
         </div>
+        <a className="at-site-link" href="/" target="_blank" rel="noopener noreferrer">사이트 보기</a>
     </div>;
 }

@@ -19,7 +19,9 @@ test('공통 변수 파일이 색·글자·간격·모서리·높이 변수를 �
     for (const name of ['--adm-accent', '--adm-ink', '--adm-line', '--adm-fs-body', '--adm-space-4', '--adm-radius-sm', '--adm-control-h', '--adm-danger']) {
         assert.match(tokens, new RegExp(name + '\\s*:'), name);
     }
-    assert.match(tokens, /--adm-accent:\s*#27AB8F/i, '브랜드 민트를 유지한다');
+    assert.match(tokens, /--adm-accent:\s*#06C4A0/i, '브랜드 민트(Montage)를 유지한다');
+    assert.match(tokens, /--adm-accent-strong:\s*#03866E/i, '글자로 쓰는 브랜드색');
+    assert.match(tokens, /--adm-content-max:\s*1440px/, '본문 최대 폭');
 });
 
 test('React 관리자와 견적 도구가 같은 공통 변수 파일을 읽는다', () => {

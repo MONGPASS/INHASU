@@ -59,9 +59,9 @@ function cardHead({ icon, title, right }: { icon: DashboardIconName; title: stri
         <span style={iconTile(30)}><Ico name={icon} size={16} /></span><b style={{ fontSize: 15, fontWeight: 800 }}>{title}</b>{right}
     </div>;
 }
-function left(n: number) { return <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: n ? '#FF4F4F' : '#0E9E7A' }}>{n ? `${n}건 남음` : '완료'}</span>; }
+function left(n: number) { return <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: n ? 'var(--adm-danger)' : 'var(--adm-accent-strong)' }}>{n ? `${n}건 남음` : '완료'}</span>; }
 function itemRow({ label, sub, children, key }: { label: string; sub?: ReactNode; children?: ReactNode; key?: string }) {
-    return <div key={key || label} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 52, padding: '0 18px', borderTop: '1px solid #f1f3f5' }}>
+    return <div key={key || label} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 52, padding: '0 18px', borderTop: '1px solid var(--adm-line-subtle)' }}>
         <span style={{ width: 96, flex: 'none', fontSize: 13, color: V7_MUTED }}>{label}</span>
         <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>
         {children}
@@ -69,12 +69,12 @@ function itemRow({ label, sub, children, key }: { label: string; sub?: ReactNode
 }
 function disclosure({ icon, title, sub, badge, open, onToggle, children }: { icon: DashboardIconName; title: string; sub: string; badge?: string; open: boolean; onToggle: () => void; children: ReactNode }) {
     return <React.Fragment key={title}>
-        <div style={{ height: 1, background: '#f1f3f5' }} />
+        <div style={{ height: 1, background: 'var(--adm-gray-100)' }} />
         <button type="button" aria-expanded={!!open} onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 0', border: 0, background: 'transparent', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
-            <span style={{ width: 36, height: 36, flex: 'none', borderRadius: 12, background: '#f4f6f8', color: '#495057', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={icon} size={17} /></span>
+            <span style={{ width: 36, height: 36, flex: 'none', borderRadius: 12, background: 'var(--adm-gray-50)', color: 'var(--adm-text-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={icon} size={17} /></span>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}><b style={{ fontSize: 14, fontWeight: 800, color: V7_INK }}>{title}</b><span style={{ fontSize: 12, color: V7_MUTED }}>{sub}</span></span>
             {badge && <span style={chip('mint', true)}>{badge}</span>}
-            <span style={{ display: 'flex', color: '#adb5bd', transition: 'transform 200ms', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={16} /></span>
+            <span style={{ display: 'flex', color: 'var(--adm-text-3)', transition: 'transform 200ms', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={16} /></span>
         </button>
         {open && children}
     </React.Fragment>;
@@ -291,9 +291,9 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         <button type="button" disabled={busy || saving} onClick={go} style={sel(empty, x)}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span><Ico name={icon} size={12} /></button>;
     const btnPill = (value: string, tone: PillTone, go: (e: React.MouseEvent) => void) => <button type="button" disabled={busy || saving} onClick={go} style={pill(tone)}>{value}<Ico name="lc-chevron-down" size={12} /></button>;
     const openLink = (label: string, go: () => void, disabled = false) => <button type="button" aria-label={`${label} 열기`} disabled={busy || disabled} onClick={go}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: '#495057', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={12} /></button>;
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-text-2)', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={12} /></button>;
     const editLink = (label: string, go: () => void) => <button type="button" aria-label={label} disabled={busy} onClick={go}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 12, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: '#0E9E7A', cursor: 'pointer' }}>수정<Ico name="lc-pencil" size={12} /></button>;
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 12, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>수정<Ico name="lc-pencil" size={12} /></button>;
     const guideValue = row?.guide?.name || (m.assignments.find(a => a.id === 'guide')?.state === 'ready' ? m.assignments.find(a => a.id === 'guide')!.value : '');
     const vehicleValue = row?.vehicle?.type || (m.assignments.find(a => a.id === 'vehicle')?.state === 'ready' ? m.assignments.find(a => a.id === 'vehicle')!.value : '');
     const stayReady = row ? row.accDone : m.assignments.find(a => a.id === 'stay')?.state === 'ready';
@@ -314,18 +314,18 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             return { label, control: btnSel(value || '미정', false, e => opsMenu(e, key)) };
         }) },
         { sid: 'sec-doc', icon: 'lc-file-text', title: '서류', left: docAlerts, items: [
-            ...m.documents.map(doc => ({ label: doc.label, sub: <span style={{ color: /실패|필요|미작성|미발송|전/.test(doc.status || '') ? '#FF4F4F' : doc.status ? '#0E9E7A' : V7_INK }}>{doc.status || doc.detail || '내용 확인'}</span>,
+            ...m.documents.map(doc => ({ label: doc.label, sub: <span style={{ color: /실패|필요|미작성|미발송|전/.test(doc.status || '') ? 'var(--adm-danger)' : doc.status ? '#0E9E7A' : V7_INK }}>{doc.status || doc.detail || '내용 확인'}</span>,
                 control: <>{doc.editAction && editLink(doc.editLabel || `${doc.label} 수정`, action(doc.editAction, doc.id))}{openLink(doc.label, action(doc.action || doc.id, doc.id), doc.disabled)}</> })),
             ...(m.agreement ? [{ label: '계약 동의', sub: [m.agreement.label, m.agreement.name && `서명자 ${m.agreement.name}`].filter(Boolean).join(' · ') }] : []),
             { label: '공개·전달', control: btnSel('관리', false, action('documents'), 'lc-chevron-right') }] },
     ];
-    const compactCard = (c: typeof quad[number]) => <div key={c.sid} id={c.sid} style={{ display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 16, boxShadow: '0 0 0 1px #eef0f2', scrollMarginTop: 88 }}>
+    const compactCard = (c: typeof quad[number]) => <div key={c.sid} id={c.sid} style={{ display: 'flex', flexDirection: 'column', background: 'var(--adm-surface)', borderRadius: 16, boxShadow: '0 0 0 1px var(--adm-line-subtle)', scrollMarginTop: 88 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 10px' }}>
             <span style={iconTile(28)}><Ico name={c.icon} size={15} /></span><b style={{ fontSize: 14, fontWeight: 800 }}>{c.title}</b>
-            <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: c.left ? '#FF4F4F' : '#0E9E7A' }}>{c.left === null ? c.badge : c.left ? `${c.left}건 남음` : '완료'}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: c.left ? 'var(--adm-danger)' : 'var(--adm-accent-strong)' }}>{c.left === null ? c.badge : c.left ? `${c.left}건 남음` : '완료'}</span>
         </div>
-        {c.items.map((it, i) => <div key={`${it.label}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid #f1f3f5' }}>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}><span style={{ fontSize: 13, color: '#495057' }}>{it.label}</span>{it.sub && <span style={{ fontSize: 12, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub}</span>}</span>
+        {c.items.map((it, i) => <div key={`${it.label}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid var(--adm-line-subtle)' }}>
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}><span style={{ fontSize: 13, color: 'var(--adm-text-2)' }}>{it.label}</span>{it.sub && <span style={{ fontSize: 12, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub}</span>}</span>
             {it.control}
         </div>)}
     </div>;
@@ -337,7 +337,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             <span style={{ fontSize: 13, color: V7_MUTED }}>예약 관리 · {m.backLabel || '통합 예약 목록'}{tabName ? ` · ${tabName}` : ''}{m.bookingNumber ? ` · 예약번호 ${m.bookingNumber}` : ''} · {m.sourceLabel}</span>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px 24px', padding: '24px 28px', background: '#fff', borderRadius: 20, boxShadow: '0 0 0 1px #eef0f2' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px 24px', padding: '24px 28px', background: 'var(--adm-surface)', borderRadius: 20, boxShadow: '0 0 0 1px var(--adm-line-subtle)' }}>
             <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em' }}>{name}</h1>
@@ -345,7 +345,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     {dd && <span style={chip(dd.tone, dd.dot, { height: 24, fontSize: 12 })}>{dd.label}</span>}
                     {m.packageInfo && <span style={chip(m.packageInfo.tier === 'full' ? 'mint' : m.packageInfo.tier === 'value' ? 'blue' : 'gray', !!m.packageInfo.tier, { height: 24, fontSize: 12 })} title={m.packageInfo.detail}>{m.packageInfo.tier === 'full' ? '풀패키지' : m.packageInfo.tier === 'value' ? '실속형' : '패키지 미지정'}</span>}
                 </div>
-                <div style={{ display: 'flex', gap: '6px 18px', flexWrap: 'wrap', fontSize: 13, fontWeight: 600, color: '#495057' }}>
+                <div style={{ display: 'flex', gap: '6px 18px', flexWrap: 'wrap', fontSize: 13, fontWeight: 600, color: 'var(--adm-text-2)' }}>
                     {phoneFact && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontVariantNumeric: 'tabular-nums' }}><Ico name="lc-phone" size={14} color={V7_MUTED} />{maskFact('연락처', phoneFact, maskOn)}</span>}
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontVariantNumeric: 'tabular-nums' }}><Ico name="lc-calendar" size={14} color={V7_MUTED} />{period ? `${period.range}${period.sch ? ` · ${period.sch}` : ''}` : m.period || '일정 미정'}</span>
                     {m.partyLabel && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ico name="lc-users" size={14} color={V7_MUTED} />{m.partyLabel}</span>}
@@ -360,17 +360,17 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         </div>
         {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px 24px', background: '#fff', borderRadius: 20, boxShadow: '0 0 0 1px #eef0f2' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px 24px', background: 'var(--adm-surface)', borderRadius: 20, boxShadow: '0 0 0 1px var(--adm-line-subtle)' }}>
             <V7StepHead big label={stepHead.label} tone={stepHead.tone} count={cancelled ? '' : `${steps.filter(s => s.done).length} / ${steps.length} 단계 완료`} />
             <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => stepTargets[i] ? goSec(stepTargets[i]) : onAction(m.steps[i]?.id || 'payments')} />
         </div>
 
-        <nav aria-label="예약 상세 바로가기" className="v7-nav" style={{ position: 'sticky', top: 0, zIndex: 5, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 50px) / 6), min(calc((100% - 20px) / 3), calc((1100px - 100%) * 999))),1fr))', gap: 10, padding: '8px 0', background: 'var(--surface-canvas, #f6f7f9)' }}>
+        <nav aria-label="예약 상세 바로가기" className="v7-nav" style={{ position: 'sticky', top: 0, zIndex: 5, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 50px) / 6), min(calc((100% - 20px) / 3), calc((1100px - 100%) * 999))),1fr))', gap: 10, padding: '8px 0', background: 'var(--surface-canvas, var(--adm-gray-50))' }}>
             {NAV.map(n => <button key={n.sid} type="button" className="v7-nav-btn" aria-label={`${n.label} 위치로 이동`} onClick={() => goSec(n.sid)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, height: 58, padding: '0 16px 0 14px', border: 0, borderRadius: 16, background: '#fff', boxShadow: '0 0 0 1px #eef0f2,0 1px 3px rgba(16,24,40,.04)', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 12, height: 58, padding: '0 16px 0 14px', border: 0, borderRadius: 16, background: 'var(--adm-surface)', boxShadow: '0 0 0 1px var(--adm-line-subtle),0 1px 3px rgba(16,24,40,.04)', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
                 <span style={iconTile(34)}><Ico name={n.icon} size={17} /></span>
                 <b style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: V7_INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.label}</b>
-                <Ico name="lc-chevron-right" size={16} color="#adb5bd" />
+                <Ico name="lc-chevron-right" size={16} color="var(--adm-text-3)" />
             </button>)}
         </nav>
         {notificationActions}
@@ -383,7 +383,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                 <div id="sec-asg" style={{ ...card, overflow: 'hidden' }}>
                     {cardHead({ icon: 'lc-users', title: '숙소 · 가이드 · 차량', right: <>
                         {row && <span style={{ ...pill(row.board === '배정 완료' ? 'solid' : row.board === '진행 중' ? 'amber' : 'red'), cursor: 'default' }}>{row.board}</span>}
-                        <a className="v7-link" href="/admin/accommodation-ops" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: '#495057', whiteSpace: 'nowrap' }}>숙소 배정 · 현지 운영<Ico name="lc-chevron-right" size={14} /></a>
+                        <a className="v7-link" href="/admin/accommodation-ops" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', whiteSpace: 'nowrap' }}>숙소 배정 · 현지 운영<Ico name="lc-chevron-right" size={14} /></a>
                     </> })}
                     {(['guide', 'vehicle'] as const).map(kind => {
                         const v = kind === 'guide' ? row?.guide : row?.vehicle, fallback = m.assignments.find(a => a.id === kind), label = kind === 'guide' ? '가이드' : '차량';
@@ -391,28 +391,28 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         const tel = v?.phone ? maskFact('연락처', v.phone, maskOn) : value ? fallback?.detail || '연락처 미등록' : '배정 전';
                         const photo = kind === 'guide' ? item?.assignment.guide?.image : item?.assignment.vehicle?.resource?.img || item?.assignment.vehicle?.resource?.images?.[0];
                         const icon = kind === 'guide' ? 'lc-user-round' : 'lc-car';
-                        return <div key={kind} className="v7-asg-row" style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 76, padding: '10px 18px', boxSizing: 'border-box', borderTop: '1px solid #f1f3f5' }}>
+                        return <div key={kind} className="v7-asg-row" style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 76, padding: '10px 18px', boxSizing: 'border-box', borderTop: '1px solid var(--adm-line-subtle)' }}>
                             <span style={{ width: 72, flex: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: V7_MUTED }}><Ico name={icon} size={14} />{label}</span>
-                            {value && photo ? <img src={photo} alt={`${label} ${value} 사진`} loading="lazy" style={{ width: 56, height: 56, flex: 'none', borderRadius: 999, objectFit: 'cover', background: '#f8f9fa' }} />
-                                : <span aria-hidden="true" style={{ width: 56, height: 56, flex: 'none', borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', boxShadow: 'inset 0 0 0 1.5px #e9ecef', color: '#ced4da' }}>{value ? <span style={{ fontSize: 11, fontWeight: 700, color: '#adb5bd' }}>사진</span> : <Ico name={icon} size={20} color="#ced4da" />}</span>}
+                            {value && photo ? <img src={photo} alt={`${label} ${value} 사진`} loading="lazy" style={{ width: 56, height: 56, flex: 'none', borderRadius: 999, objectFit: 'cover', background: 'var(--adm-gray-50)' }} />
+                                : <span aria-hidden="true" style={{ width: 56, height: 56, flex: 'none', borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--adm-gray-50)', boxShadow: 'inset 0 0 0 1.5px var(--adm-line-subtle)', color: 'var(--adm-text-disabled)' }}>{value ? <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--adm-text-3)' }}>사진</span> : <Ico name={icon} size={20} color="var(--adm-line-strong)" />}</span>}
                             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 <b style={{ fontSize: 14, fontWeight: 800, color: V7_INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value || `${label} 미배정`}</b>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: value ? '#495057' : '#adb5bd', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tel}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: value ? 'var(--adm-text-2)' : 'var(--adm-text-3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tel}</span>
                             </span>
                             {btnSel(value || `${label} 선택`, !value, e => void peopleMenu(e, kind))}
                         </div>;
                     })}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '16px 18px 10px', borderTop: '1px solid #f1f3f5' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '16px 18px 10px', borderTop: '1px solid var(--adm-line-subtle)' }}>
                         <b style={{ fontSize: 14, fontWeight: 800 }}>일자별 숙소</b>
                         <button type="button" disabled={busy || saving} onClick={requestLodging} style={{ ...inkBtn(34), marginLeft: 'auto', padding: '0 14px' }}>
                             <Ico name="lc-send" size={14} />현지 운영에 수배 요청
-                            {pendingNights.length > 0 && <span style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999, alignItems: 'center', justifyContent: 'center', background: '#0E9E7A', color: '#fff', fontSize: 11, fontWeight: 800 }}>{pendingNights.length}</span>}
+                            {pendingNights.length > 0 && <span style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999, alignItems: 'center', justifyContent: 'center', background: 'var(--adm-accent)', color: '#fff', fontSize: 11, fontWeight: 800 }}>{pendingNights.length}</span>}
                         </button>
                     </div>
-                    <div className="v7-stay-head" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', height: 34, padding: '0 18px', background: '#f8f9fa', fontSize: 11.5, fontWeight: 700, color: V7_MUTED }}><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
+                    <div className="v7-stay-head" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', height: 34, padding: '0 18px', background: 'var(--adm-gray-50)', fontSize: 11.5, fontWeight: 700, color: V7_MUTED }}><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
                     {(row?.stays || []).map(nt => {
                         const st = bookingStatusMeta(nt.bookingStatus);
-                        return <div key={nt.day} className="v7-stay-row" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', minHeight: 62, padding: '8px 18px', boxSizing: 'border-box', borderTop: '1px solid #f1f3f5' }}>
+                        return <div key={nt.day} className="v7-stay-row" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', minHeight: 62, padding: '8px 18px', boxSizing: 'border-box', borderTop: '1px solid var(--adm-line-subtle)' }}>
                             <b style={{ fontSize: 13, fontWeight: 800, color: V7_INK }}>{nt.day}박</b>
                             <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><b style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{nt.date ? shortDate(nt.date) : '날짜 확인'}</b><span style={{ fontSize: 12, color: V7_MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nt.region || '지역 미정'}</span></span>
                             <span style={{ display: 'flex', minWidth: 0 }}>{btnSel(nt.hotel || '숙소 선택', !nt.hotel, e => void nightMenu(e, nt.day, 'hotel'), 'lc-chevron-down', { maxWidth: '100%', minWidth: 0, overflow: 'hidden' })}</span>
@@ -421,8 +421,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                             <span>{nt.hotel ? btnPill(st.label, st.tone, e => void nightMenu(e, nt.day, 'status')) : <button type="button" onClick={e => void nightMenu(e, nt.day, 'status')} style={{ ...pill('gray'), opacity: .5, cursor: 'not-allowed' }}>숙소 먼저 선택<Ico name="lc-chevron-down" size={12} /></button>}</span>
                         </div>;
                     })}
-                    {row && !row.stays.length && <div style={{ padding: 18, borderTop: '1px solid #f1f3f5', fontSize: 13, color: V7_MUTED }}>{row.accN === 0 && startKey ? '숙박이 없는 당일 일정이에요.' : '여행 시작일·종료일을 먼저 확인해 주세요.'}</div>}
-                    {!row && <div style={{ padding: 18, borderTop: '1px solid #f1f3f5', fontSize: 13, color: V7_MUTED }}>{m.assignments.find(a => a.id === 'stay')?.detail || '숙소 배정은 배정 업무 화면에서 관리합니다.'}</div>}
+                    {row && !row.stays.length && <div style={{ padding: 18, borderTop: '1px solid var(--adm-line-subtle)', fontSize: 13, color: V7_MUTED }}>{row.accN === 0 && startKey ? '숙박이 없는 당일 일정이에요.' : '여행 시작일·종료일을 먼저 확인해 주세요.'}</div>}
+                    {!row && <div style={{ padding: 18, borderTop: '1px solid var(--adm-line-subtle)', fontSize: 13, color: V7_MUTED }}>{m.assignments.find(a => a.id === 'stay')?.detail || '숙소 배정은 배정 업무 화면에서 관리합니다.'}</div>}
                     {assignmentEditor}
                 </div>
 
@@ -430,40 +430,40 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px 12px' }}>
                         <span style={iconTile(30)}><Ico name="lc-route" size={16} /></span><b style={{ fontSize: 15, fontWeight: 800 }}>일정</b>
                         <span style={{ fontSize: 13, fontWeight: 600, color: V7_MUTED }}>{period?.sch || (m.days.length ? `${m.days.length}일` : '')}</span>
-                        <button type="button" disabled={busy} onClick={action('edit-itinerary')} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 700, color: '#495057', cursor: 'pointer' }}>일정표 편집<Ico name="lc-chevron-right" size={14} /></button>
+                        <button type="button" disabled={busy} onClick={action('edit-itinerary')} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', cursor: 'pointer' }}>일정표 편집<Ico name="lc-chevron-right" size={14} /></button>
                     </div>
                     {m.days.map((day, i) => {
                         const open = !!dayOpen[day.id], last = i === m.days.length - 1;
                         const night = row?.stays.find(s => s.day === day.day);
                         const stayText = day.stayRequired === false || (last && !night) ? '숙박 없음' : night?.hotel ? `${night.hotel} · ${bookingStatusMeta(night.bookingStatus).label}` : day.stayAssigned && day.stay ? day.stay : '숙소 미정';
-                        const has = stayText !== '숙소 미정', none = stayText === '숙박 없음', c = none ? '#ced4da' : night?.hotel ? bookingStatusMeta(night.bookingStatus).color : has ? '#12b28c' : '#FF4F4F';
+                        const has = stayText !== '숙소 미정', none = stayText === '숙박 없음', c = none ? 'var(--adm-line-strong)' : night?.hotel ? bookingStatusMeta(night.bookingStatus).color : has ? 'var(--adm-accent-strong)' : 'var(--adm-danger)';
                         const activities = day.activities?.length ? day.activities : scheduleTimeline(day.summary || '').map(s => ({ time: s.time, title: s.text }));
-                        return <div key={day.id} style={{ borderTop: '1px solid #f1f3f5' }}>
+                        return <div key={day.id} style={{ borderTop: '1px solid var(--adm-line-subtle)' }}>
                             <button type="button" aria-expanded={open} onClick={() => setDayOpen(prev => ({ ...prev, [day.id]: !open }))} className="v7-day-btn"
-                                style={{ display: 'grid', gridTemplateColumns: '64px 96px minmax(0,1fr) auto 20px', alignItems: 'center', gap: 12, width: '100%', minHeight: 52, padding: '0 18px', border: 0, background: open ? '#fbfefd' : 'transparent', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
+                                style={{ display: 'grid', gridTemplateColumns: '64px 96px minmax(0,1fr) auto 20px', alignItems: 'center', gap: 12, width: '100%', minHeight: 52, padding: '0 18px', border: 0, background: open ? 'var(--adm-surface)' : 'transparent', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
                                 <b style={{ fontSize: 13, fontWeight: 800, color: V7_INK, textAlign: 'left' }}>{day.day}일차</b>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: V7_MUTED, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textAlign: 'left' }}>{day.date ? (/^\d{4}-\d{2}-\d{2}$/.test(day.date) ? shortDate(day.date) : day.date) : startKey ? shortDate(new Date(Date.parse(`${startKey}T00:00:00Z`) + (day.day - 1) * 864e5).toISOString().slice(0, 10)) : ''}</span>
                                 <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>{day.title || `${day.day}일차 일정 작성`}</span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, padding: '0 10px 0 20px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', background: `radial-gradient(circle at 10px 50%, ${c} 3px, transparent 3.6px), ${has ? '#f4f6f8' : '#ffecec'}`, boxShadow: `inset 0 0 0 1px ${has ? '#e9ecef' : '#ffc9c9'}`, color: none ? V7_MUTED : has ? V7_INK : '#FF4F4F' }}><Ico name="lc-bed-double" size={13} />{stayText}</span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, padding: '0 10px 0 20px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', background: `radial-gradient(circle at 10px 50%, ${c} 3px, transparent 3.6px), ${has ? 'var(--adm-gray-100)' : 'var(--adm-danger-soft)'}`, boxShadow: `inset 0 0 0 1px ${has ? 'var(--adm-line-subtle)' : 'color-mix(in srgb, var(--adm-danger) 32%, transparent)'}`, color: none ? V7_MUTED : has ? V7_INK : 'var(--adm-danger)' }}><Ico name="lc-bed-double" size={13} />{stayText}</span>
                                 <span style={{ display: 'flex', transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={16} color={V7_MUTED} /></span>
                             </button>
                             {open && <div style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '0 18px 16px 94px', padding: '4px 0 0', animation: 'rvPop 180ms ease-out' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                                     {activities.length ? activities.map((it, k) => <div key={k} style={{ display: 'grid', gridTemplateColumns: '52px 14px minmax(0,1fr)', gap: 10, alignItems: 'start' }}>
-                                        <span style={{ fontSize: 13, fontWeight: 700, color: '#495057', fontVariantNumeric: 'tabular-nums', lineHeight: '20px' }}>{it.time || ''}</span>
-                                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', alignSelf: 'stretch' }}><span style={{ width: 8, height: 8, marginTop: 6, borderRadius: 999, background: '#12b28c', boxShadow: '0 0 0 3px #d2f5e8' }} /><span style={{ flex: 1, width: 2, marginTop: 4, background: k === activities.length - 1 ? 'transparent' : '#d2f5e8' }} /></span>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', fontVariantNumeric: 'tabular-nums', lineHeight: '20px' }}>{it.time || ''}</span>
+                                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', alignSelf: 'stretch' }}><span style={{ width: 8, height: 8, marginTop: 6, borderRadius: 999, background: 'var(--adm-accent)', boxShadow: '0 0 0 3px #d2f5e8' }} /><span style={{ flex: 1, width: 2, marginTop: 4, background: k === activities.length - 1 ? 'transparent' : '#d2f5e8' }} /></span>
                                         <span style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 12, minWidth: 0 }}><b style={{ fontSize: 14, fontWeight: 700, lineHeight: '20px' }}>{it.title}</b>{(it as any).description && <span style={{ fontSize: 12, lineHeight: '18px', color: V7_MUTED }}>{(it as any).description}</span>}</span>
                                     </div>) : <span style={{ fontSize: 13, color: V7_MUTED, paddingBottom: 8 }}>상세 일정이 입력되지 않았습니다.</span>}
                                 </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', paddingTop: 10, borderTop: '1px dashed #d2f5e8', fontSize: 12, color: '#495057' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', paddingTop: 10, borderTop: '1px dashed var(--adm-accent-line)', fontSize: 12, color: 'var(--adm-text-2)' }}>
                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ico name="lc-utensils" size={13} color="#0E9E7A" /><b style={{ fontWeight: 700 }}>식사</b>{day.meals || '미입력'}</span>
                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ico name="lc-car" size={13} color="#0E9E7A" /><b style={{ fontWeight: 700 }}>이동</b>{day.travel || '미입력'}</span>
-                                    <button type="button" disabled={busy} onClick={action('edit-itinerary', day.id)} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: '#0E9E7A', cursor: 'pointer' }}><Ico name="lc-pencil" size={12} />{day.day}일차 편집</button>
+                                    <button type="button" disabled={busy} onClick={action('edit-itinerary', day.id)} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}><Ico name="lc-pencil" size={12} />{day.day}일차 편집</button>
                                 </div>
                             </div>}
                         </div>;
                     })}
-                    {!m.days.length && <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 18, borderTop: '1px solid #f1f3f5' }}><span style={{ flex: 1, fontSize: 13, color: V7_MUTED }}>아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><button type="button" disabled={busy} onClick={action('edit-itinerary')} style={inkBtn(34)}>일정 작성하기</button></div>}
+                    {!m.days.length && <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 18, borderTop: '1px solid var(--adm-line-subtle)' }}><span style={{ flex: 1, fontSize: 13, color: V7_MUTED }}>아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><button type="button" disabled={busy} onClick={action('edit-itinerary')} style={inkBtn(34)}>일정 작성하기</button></div>}
                 </div>
 
             </div>
@@ -472,57 +472,57 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                 <div id="sec-info" style={{ ...card, padding: '18px 20px 6px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 10 }}>
                         <b style={{ flex: 1, fontSize: 17, fontWeight: 800 }}>고객 정보</b>
-                        <button type="button" title="고객 정보 복사" aria-label="고객 정보 복사" onClick={() => void copyInfo()} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: '#fff', boxShadow: 'inset 0 0 0 1px #dee2e6', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-copy" size={16} /></button>
-                        <button type="button" title={maskOn ? '개인정보 보기' : '개인정보 가리기'} aria-label={maskOn ? '개인정보 보기' : '개인정보 가리기'} aria-pressed={!maskOn} onClick={() => setMaskOn(!maskOn)} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: '#fff', boxShadow: 'inset 0 0 0 1px #dee2e6', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={maskOn ? 'lc-eye' : 'lc-eye-off'} size={16} /></button>
-                        <button type="button" title="고객 정보 수정" aria-label="고객 정보 수정" disabled={busy} onClick={action('edit-info')} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: '#fff', boxShadow: 'inset 0 0 0 1px #dee2e6', color: '#495057', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-pencil" size={16} /></button>
+                        <button type="button" title="고객 정보 복사" aria-label="고객 정보 복사" onClick={() => void copyInfo()} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px var(--adm-line)', color: 'var(--adm-text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-copy" size={16} /></button>
+                        <button type="button" title={maskOn ? '개인정보 보기' : '개인정보 가리기'} aria-label={maskOn ? '개인정보 보기' : '개인정보 가리기'} aria-pressed={!maskOn} onClick={() => setMaskOn(!maskOn)} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px var(--adm-line)', color: 'var(--adm-text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={maskOn ? 'lc-eye' : 'lc-eye-off'} size={16} /></button>
+                        <button type="button" title="고객 정보 수정" aria-label="고객 정보 수정" disabled={busy} onClick={action('edit-info')} style={{ width: 38, height: 38, border: 0, borderRadius: 999, background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px var(--adm-line)', color: 'var(--adm-text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-pencil" size={16} /></button>
                     </div>
                     {m.facts.slice(0, 3).map((f, i) => <div key={`${f.label}-${i}`} style={{ display: 'grid', gridTemplateColumns: '84px minmax(0,1fr)', gap: 10, padding: '6px 0', alignItems: 'center' }}>
                         <span style={{ fontSize: 13, color: V7_MUTED }}>{f.label}</span>
-                        <span style={{ fontSize: 14, fontWeight: f.value ? 800 : 600, color: f.value ? V7_INK : '#adb5bd', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span>
+                        <span style={{ fontSize: 14, fontWeight: f.value ? 800 : 600, color: f.value ? V7_INK : 'var(--adm-text-3)', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span>
                     </div>)}
-                    <div style={{ height: 1, background: '#f1f3f5', marginTop: 10 }} />
+                    <div style={{ height: 1, background: 'var(--adm-gray-100)', marginTop: 10 }} />
                     {m.facts.length > 3 && disclosure({ icon: 'lc-file-text', title: '예약 상세 정보', sub: `접수 · 주문 경로 등 ${m.facts.length - 3}개 항목`, open: sections.bk, onToggle: () => setSections(s => s.bk ? {} as Record<string, boolean> : { bk: true }), children:
-                        <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 16px', marginBottom: 12, background: '#f8f9fa', borderRadius: 14 }}>
-                            {m.facts.slice(3).map((f, i) => <div key={`${f.label}-${i}`} style={{ display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: 10, padding: '7px 0', fontSize: 13 }}><span style={{ color: V7_MUTED }}>{f.label}</span><span style={{ fontWeight: 700, color: f.value ? V7_INK : '#adb5bd', lineHeight: 1.55, overflowWrap: 'anywhere' }}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span></div>)}
+                        <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 16px', marginBottom: 12, background: 'var(--adm-gray-50)', borderRadius: 14 }}>
+                            {m.facts.slice(3).map((f, i) => <div key={`${f.label}-${i}`} style={{ display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: 10, padding: '7px 0', fontSize: 13 }}><span style={{ color: V7_MUTED }}>{f.label}</span><span style={{ fontWeight: 700, color: f.value ? V7_INK : 'var(--adm-text-3)', lineHeight: 1.55, overflowWrap: 'anywhere' }}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span></div>)}
                         </div>
                     })}
                     {!!m.flights?.length && disclosure({ icon: 'lc-plane', title: '항공편', sub: `${confirmedFlights}/${m.flights.length}편 정보 등록`, badge: confirmedFlights === m.flights.length ? '등록됨' : undefined, open: sections.fl, onToggle: () => setSections(s => s.fl ? {} as Record<string, boolean> : { fl: true }), children:
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
-                            {m.flights.map(f => { const ok = !!(f.date && f.time && f.flight); return <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '14px 16px', background: '#f8f9fa', borderRadius: 14 }}>
+                            {m.flights.map(f => { const ok = !!(f.date && f.time && f.flight); return <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '14px 16px', background: 'var(--adm-gray-50)', borderRadius: 14 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Ico name={f.id === 'departure' ? 'lc-plane-takeoff' : 'lc-plane-landing'} size={15} /><b style={{ flex: 1, fontSize: 13, fontWeight: 800 }}>{f.label}</b><span style={chip(ok ? 'mint' : 'red', true)}>{ok ? '등록됨' : '미등록'}</span></div>
-                                <b style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em', color: f.flight ? V7_INK : '#adb5bd' }}>{f.flight || '미등록'}</b>
+                                <b style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em', color: f.flight ? V7_INK : 'var(--adm-text-3)' }}>{f.flight || '미등록'}</b>
                                 {[{ k: '날짜', v: f.date }, { k: f.id === 'departure' ? '몽골 출발' : '몽골 도착', v: f.time }, ...(f.extra || []).map(x => ({ k: x.label, v: x.value }))].map((kv, i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13 }}><span style={{ color: V7_MUTED }}>{kv.k}</span><b style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{kv.v || '미입력'}</b></div>)}
                             </div>; })}
-                            <button type="button" disabled={busy} onClick={action('flights')} style={{ alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: '#0E9E7A', cursor: 'pointer' }}>항공편 수정<Ico name="lc-chevron-right" size={12} /></button>
+                            <button type="button" disabled={busy} onClick={action('flights')} style={{ alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>항공편 수정<Ico name="lc-chevron-right" size={12} /></button>
                         </div>
                     })}
                     {travelers && disclosure({ icon: 'lc-users', title: '여행자 정보', sub: `${travelers.registered}${travelers.expected !== null ? `/${travelers.expected}` : ''}명 등록`, open: sections.tr, onToggle: () => setSections(s => s.tr ? {} as Record<string, boolean> : { tr: true }), children: <>
-                        <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 12, borderRadius: 14, boxShadow: 'inset 0 0 0 1px #e9ecef', overflow: 'hidden' }}>
-                            {travelers.people.map((person, i) => { const open = travelerOpen === i; return <div key={person.id} style={{ borderTop: i ? '1px solid #f1f3f5' : 0 }}>
-                                <button type="button" aria-expanded={open} onClick={() => setTravelerOpen(open ? -1 : i)} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: 48, padding: '0 14px', border: 0, background: '#fff', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
-                                    <span style={{ width: 24, height: 24, flex: 'none', borderRadius: 999, boxShadow: 'inset 0 0 0 1px #dee2e6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#495057' }}>{i + 1}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 12, borderRadius: 14, boxShadow: 'inset 0 0 0 1px var(--adm-line-subtle)', overflow: 'hidden' }}>
+                            {travelers.people.map((person, i) => { const open = travelerOpen === i; return <div key={person.id} style={{ borderTop: i ? '1px solid var(--adm-line-subtle)' : 0 }}>
+                                <button type="button" aria-expanded={open} onClick={() => setTravelerOpen(open ? -1 : i)} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: 48, padding: '0 14px', border: 0, background: 'var(--adm-surface)', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
+                                    <span style={{ width: 24, height: 24, flex: 'none', borderRadius: 999, boxShadow: 'inset 0 0 0 1px var(--adm-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--adm-text-2)' }}>{i + 1}</span>
                                     <b style={{ flex: 1, fontSize: 14, fontWeight: 800 }}>{person.name || '이름 미입력'}</b>
                                     <span style={{ fontSize: 12, color: V7_MUTED }}>{person.details.find(d => /구분|성인|아동/.test(d.label))?.value || ''}</span>
-                                    <span style={{ display: 'flex', color: '#adb5bd', transition: 'transform 200ms', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={15} /></span>
+                                    <span style={{ display: 'flex', color: 'var(--adm-text-3)', transition: 'transform 200ms', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={15} /></span>
                                 </button>
-                                {open && <div style={{ display: 'flex', flexDirection: 'column', gap: 2, margin: '0 12px 12px', padding: '10px 14px', background: '#f8f9fa', borderRadius: 12 }}>
+                                {open && <div style={{ display: 'flex', flexDirection: 'column', gap: 2, margin: '0 12px 12px', padding: '10px 14px', background: 'var(--adm-gray-50)', borderRadius: 12 }}>
                                     {person.details.map((kv, k) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '5px 0', fontSize: 13 }}><span style={{ color: V7_MUTED }}>{kv.label}</span><b style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', textAlign: 'right', overflowWrap: 'anywhere' }}>{kv.value ? maskFact(kv.label, kv.value, maskOn) : '미입력'}</b></div>)}
                                 </div>}
                             </div>; })}
                             {!travelers.people.length && <div style={{ padding: '12px 14px', fontSize: 13, color: V7_MUTED }}>등록된 여행자가 없습니다.</div>}
-                            {missingTravelers > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderTop: '1px solid #f1f3f5', background: '#fff5f5', fontSize: 13, fontWeight: 700, color: '#FF4F4F' }}><Ico name="lc-circle-alert" size={14} />{missingTravelers}명 여권 정보 미제출</div>}
+                            {missingTravelers > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderTop: '1px solid var(--adm-line-subtle)', background: 'var(--adm-danger-soft)', fontSize: 13, fontWeight: 700, color: 'var(--adm-danger)' }}><Ico name="lc-circle-alert" size={14} />{missingTravelers}명 여권 정보 미제출</div>}
                         </div>
-                        <button type="button" disabled={busy} onClick={action('travelers')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 12, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: '#0E9E7A', cursor: 'pointer' }}>여행자 전체 상세보기<Ico name="lc-chevron-right" size={12} /></button>
+                        <button type="button" disabled={busy} onClick={action('travelers')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 12, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>여행자 전체 상세보기<Ico name="lc-chevron-right" size={12} /></button>
                     </> })}
                     {disclosure({ icon: 'lc-message-circle', title: '고객 요청 사항', sub: m.preferences?.length ? `요청 ${m.preferences.length}건` : '등록된 요청 없음', open: sections.rq, onToggle: () => setSections(s => s.rq ? {} as Record<string, boolean> : { rq: true }), children:
-                        <div style={m.preferences?.length ? { margin: '0 0 14px', padding: '12px 14px', background: '#f8f9fa', borderRadius: 12, fontSize: 13, fontWeight: 600, lineHeight: 1.6, color: V7_INK, whiteSpace: 'pre-wrap' } : { margin: '0 0 14px', fontSize: 13, color: V7_MUTED }}>{m.preferences?.length ? m.preferences.join('\n') : '등록된 요청 사항이 없어요.'}</div>
+                        <div style={m.preferences?.length ? { margin: '0 0 14px', padding: '12px 14px', background: 'var(--adm-gray-50)', borderRadius: 12, fontSize: 13, fontWeight: 600, lineHeight: 1.6, color: V7_INK, whiteSpace: 'pre-wrap' } : { margin: '0 0 14px', fontSize: 13, color: V7_MUTED }}>{m.preferences?.length ? m.preferences.join('\n') : '등록된 요청 사항이 없어요.'}</div>
                     })}
                 </div>
 
                 <div id="sec-memo" className="v7-memo" style={{ ...card, gap: 10, padding: '16px 18px' }}>
                     <b style={{ fontSize: 15, fontWeight: 800 }}>운영 메모</b>
-                    {m.notes.length > 0 && <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>{m.notes.slice(-4).map(note => <li key={note.id} style={{ padding: '10px 12px', background: '#f8f9fa', borderRadius: 12 }}>
-                        <div style={{ display: 'flex', gap: 8, fontSize: 12, color: V7_MUTED }}><b style={{ color: '#495057' }}>{note.author || '관리자 메모'}</b>{note.at && <span>{note.at}</span>}</div>
+                    {m.notes.length > 0 && <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>{m.notes.slice(-4).map(note => <li key={note.id} style={{ padding: '10px 12px', background: 'var(--adm-gray-50)', borderRadius: 12 }}>
+                        <div style={{ display: 'flex', gap: 8, fontSize: 12, color: V7_MUTED }}><b style={{ color: 'var(--adm-text-2)' }}>{note.author || '관리자 메모'}</b>{note.at && <span>{note.at}</span>}</div>
                         <p style={{ margin: '4px 0 0', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{note.body}</p>
                     </li>)}</ol>}
                     {noteComposer || <button type="button" disabled={busy} onClick={action('notes')} style={ghostBtn()}>메모 작성</button>}
@@ -531,15 +531,15 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                 <div id="sec-log" style={{ ...card, gap: 4, padding: '16px 18px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}><b style={{ fontSize: 15, fontWeight: 800 }}>알림 · 변경 이력</b><span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: V7_MUTED }}>{logs.length}건</span></div>
                     {logs.map((lg, i) => { const tag = LOG_TAGS[lg.kind] || LOG_TAGS.change; return <div key={lg.id} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr)', gap: 10 }}>
-                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}><span style={{ width: 10, height: 10, marginTop: 5, borderRadius: 999, boxSizing: 'border-box', background: i === 0 ? '#12b28c' : '#fff', border: i === 0 ? '0' : '2px solid #ced4da', boxShadow: i === 0 ? '0 0 0 4px #e6f8f1' : 'none' }} /><span style={{ flex: 1, width: 2, background: '#f1f3f5', marginTop: 4 }} /></span>
+                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}><span style={{ width: 10, height: 10, marginTop: 5, borderRadius: 999, boxSizing: 'border-box', background: i === 0 ? 'var(--adm-accent)' : 'var(--adm-surface)', border: i === 0 ? '0' : '2px solid var(--adm-line-strong)', boxShadow: i === 0 ? '0 0 0 4px #e6f8f1' : 'none' }} /><span style={{ flex: 1, width: 2, background: 'var(--adm-gray-100)', marginTop: 4 }} /></span>
                         <span style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 14, minWidth: 0 }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><span style={chip(tag.tone, false, { height: 20 })}>{tag.tag}</span><span style={{ fontSize: 14, fontWeight: 700 }}>{lg.title}</span>{lg.internal && <span style={{ fontSize: 11, color: V7_MUTED }}>내부</span>}</span>
-                            {lg.detail && <span style={{ fontSize: 12, color: '#495057' }}>{lg.detail}</span>}
+                            {lg.detail && <span style={{ fontSize: 12, color: 'var(--adm-text-2)' }}>{lg.detail}</span>}
                             <span style={{ fontSize: 12, color: V7_MUTED, fontVariantNumeric: 'tabular-nums' }}>{historyTime(lg.at)}</span>
                         </span>
                     </div>; })}
                     {!logs.length && <span style={{ fontSize: 13, color: V7_MUTED, paddingBottom: 8 }}>저장된 처리 이력이 없습니다.</span>}
-                    <button type="button" disabled={busy} onClick={action('history')} style={{ alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 700, color: '#0E9E7A', cursor: 'pointer' }}>전체 이력<Ico name="lc-chevron-right" size={14} /></button>
+                    <button type="button" disabled={busy} onClick={action('history')} style={{ alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>전체 이력<Ico name="lc-chevron-right" size={14} /></button>
                 </div>
             </div>
         </div>

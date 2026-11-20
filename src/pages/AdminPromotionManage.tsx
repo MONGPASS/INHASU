@@ -122,7 +122,7 @@ const MigrationNotice: React.FC<{ onRetry?: () => void }> = ({ onRetry }) => (
     <div
         style={{
             display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 16px', marginBottom: 16,
-            background: '#FFF3DC', border: '1px solid #F3DDAE', borderRadius: 'var(--r-md)', color: '#8A5A12', fontSize: 13.5, fontWeight: 600, lineHeight: 1.55,
+            background: 'var(--adm-warn-soft)', border: '1px solid #F3DDAE', borderRadius: 'var(--r-md)', color: 'var(--adm-warn)', fontSize: 13.5, fontWeight: 600, lineHeight: 1.55,
         }}
     >
         <Icon name="warning" style={{ fontSize: 20, flex: 'none' }} />

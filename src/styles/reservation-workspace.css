@@ -2,27 +2,27 @@
 .reservation-workspace.product-workspace {
     --rw-mint: var(--adm-accent-strong);
     --rw-mint-strong: #08765f;
-    --rw-mint-soft: #eef9f5;
-    --rw-ink: #172b33;
-    --rw-muted: #64767b;
+    --rw-mint-soft: var(--adm-accent-soft);
+    --rw-ink: var(--adm-ink);
+    --rw-muted: var(--adm-text-3);
     display: flex;
     flex-direction: column;
     width: min(1240px, 100%);
     min-height: 0;
     height: calc(100dvh - 36px);
     max-height: calc(100dvh - 36px);
-    background: #f5f8f6;
+    background: var(--adm-gray-50);
 }
 
 .reservation-workspace.product-workspace .drawer-head {
     flex: none;
     padding: 16px 24px;
-    background: #fff;
+    background: var(--adm-surface);
 }
 
 .reservation-workspace.product-workspace .rw-customer-line {
     margin: 6px 0 0;
-    color: #6a7b74;
+    color: var(--adm-text-3);
     font-size: 12px;
     line-height: 1.6;
 }
@@ -53,7 +53,7 @@
     min-width: 0;
     min-height: 0;
     overflow: hidden;
-    background: #f5f8f6;
+    background: var(--adm-gray-50);
 }
 
 .reservation-workspace.product-workspace .reservation-workspace-body.drawer-body {
@@ -79,17 +79,17 @@
 
 .reservation-workspace.product-workspace .card {
     min-width: 0;
-    border-color: #e2ebe8;
-    border-radius: 18px;
+    border-color: var(--adm-accent-line);
+    border-radius: var(--adm-radius-md);
     overflow: hidden;
-    background: #fff;
+    background: var(--adm-surface);
 }
 
 .reservation-workspace.product-workspace .btn {
     min-height: 38px;
     height: auto;
     padding: 9px 12px;
-    border-radius: 9px;
+    border-radius: var(--adm-radius-sm);
     font-size: 12px;
     line-height: 1.45;
     white-space: normal;
@@ -111,14 +111,14 @@
 }
 
 .reservation-workspace.product-workspace .btn.btn-ghost {
-    border-color: #dbe7e0;
-    background: #fff;
-    color: #3b6256;
+    border-color: var(--adm-line);
+    background: var(--adm-surface);
+    color: var(--adm-accent-strong);
 }
 
 .reservation-workspace.product-workspace .btn.btn-ghost:hover:not(:disabled) {
-    border-color: #95c9b3;
-    background: #f1f9f5;
+    border-color: var(--adm-accent);
+    background: var(--adm-gray-100);
 }
 
 .reservation-workspace.product-workspace .btn:disabled {
@@ -140,7 +140,7 @@
     flex-wrap: wrap;
     gap: 12px;
     padding: 20px 24px;
-    border-bottom: 1px solid #eaf0ec;
+    border-bottom: 1px solid var(--adm-line);
 }
 
 .reservation-workspace.product-workspace .rw-kicker {
@@ -148,7 +148,7 @@
     margin-bottom: 4px;
     font-size: 11px;
     line-height: 1.5;
-    font-weight: 750;
+    font-weight: var(--adm-fw-bold);
     color: var(--rw-mint-strong);
 }
 
@@ -179,9 +179,9 @@
     flex-direction: column;
     min-width: 0;
     padding: 20px;
-    border: 1px solid #dfe9e3;
-    border-radius: 14px;
-    background: #fcfefd;
+    border: 1px solid var(--adm-line);
+    border-radius: var(--adm-radius-md);
+    background: var(--adm-surface);
 }
 
 .reservation-workspace.product-workspace .rw-document-card > .row {
@@ -193,7 +193,7 @@
     margin: 0;
     color: var(--rw-ink);
     font-size: 17px;
-    font-weight: 800;
+    font-weight: var(--adm-fw-bold);
     line-height: 1.5;
 }
 
@@ -212,16 +212,16 @@
     font-size: 12px;
     line-height: 1.5;
     font-weight: 700;
-    color: #4f665c;
+    color: var(--adm-text-2);
 }
 
 .reservation-workspace.product-workspace .rw-field .inp {
     width: 100%;
     min-width: 0;
     height: 40px;
-    border-color: #dce5df;
-    border-radius: 8px;
-    background: #fff;
+    border-color: var(--adm-line);
+    border-radius: var(--adm-radius-sm);
+    background: var(--adm-surface);
     font-size: 13px;
     font-weight: 500;
     color: var(--rw-ink);
@@ -236,7 +236,7 @@
 }
 
 .reservation-workspace.product-workspace .rw-field .inp:focus {
-    border-color: #68ba9e;
+    border-color: var(--adm-accent);
     box-shadow: 0 0 0 3px #e8f7ef;
 }
 
@@ -285,24 +285,24 @@
     gap: 10px 16px;
     margin-top: 3px;
     padding: 15px;
-    border: 1px solid #e6eee8;
-    border-radius: 10px;
-    background: #f3f8f5;
-    color: #596e62;
+    border: 1px solid var(--adm-line);
+    border-radius: var(--adm-radius-sm);
+    background: var(--adm-gray-50);
+    color: var(--adm-text-2);
     font-size: 12px;
     line-height: 1.6;
 }
 
 .reservation-workspace.product-workspace .rw-contract-summary strong {
     justify-self: end;
-    color: #264b3b;
-    font-weight: 750;
+    color: var(--adm-ink);
+    font-weight: var(--adm-fw-bold);
     overflow-wrap: anywhere;
 }
 
 .reservation-workspace.product-workspace .rw-document-card > .rw-inline-note {
     margin: 12px 0;
-    color: #6a7e73;
+    color: var(--adm-text-3);
     font-size: 11px;
     line-height: 1.65;
 }
@@ -315,7 +315,7 @@
     gap: 10px;
     margin-top: auto;
     padding-top: 18px;
-    border-top: 1px solid #e4ece6;
+    border-top: 1px solid var(--adm-line);
     color: var(--rw-muted);
     font-size: 11px;
     line-height: 1.6;
@@ -328,14 +328,14 @@
     flex-wrap: wrap;
     gap: 12px 20px;
     padding: 18px 24px;
-    border-top: 1px solid #e6ede8;
-    background: #f7faf8;
+    border-top: 1px solid var(--adm-line);
+    background: var(--adm-gray-50);
 }
 
 .reservation-workspace.product-workspace .rw-document-footer p {
     min-width: 0;
     margin: 0;
-    color: #62776b;
+    color: var(--adm-text-3);
     font-size: 11px;
     line-height: 1.7;
     overflow-wrap: anywhere;
@@ -343,17 +343,17 @@
 
 .reservation-workspace.product-workspace .rw-schedule-summary {
     margin: 0 24px 22px;
-    border: 1px solid #dfe8e2;
-    border-radius: 12px;
-    background: #fff;
+    border: 1px solid var(--adm-line);
+    border-radius: var(--adm-radius-md);
+    background: var(--adm-surface);
 }
 
 .reservation-workspace.product-workspace .rw-schedule-summary > summary {
     padding: 14px 16px;
-    color: #355b49;
+    color: var(--adm-text-2);
     font-size: 12px;
     line-height: 1.6;
-    font-weight: 750;
+    font-weight: var(--adm-fw-bold);
     cursor: pointer;
 }
 
@@ -366,8 +366,8 @@
     grid-template-columns: 50px minmax(0, 1fr);
     gap: 12px;
     padding: 14px 0;
-    border-top: 1px solid #edf1ee;
-    color: #395443;
+    border-top: 1px solid var(--adm-line-subtle);
+    color: var(--adm-text-2);
     font-size: 12px;
     line-height: 1.7;
 }
@@ -383,7 +383,7 @@
 }
 
 .reservation-workspace.product-workspace .rw-day-summary small {
-    color: #6d8172;
+    color: var(--adm-text-3);
     font-size: 11px;
 }
 
@@ -403,7 +403,7 @@
 
 .reservation-workspace.product-workspace .rw-operations-note {
     padding: 0 24px 20px;
-    color: #728377;
+    color: var(--adm-text-3);
     font-size: 11px;
     line-height: 1.7;
 }
@@ -411,17 +411,17 @@
 .reservation-workspace.product-workspace .rw-secondary-actions button:focus-visible,
 .reservation-workspace.product-workspace .rw-schedule-summary > summary:focus-visible,
 .reservation-workspace.product-workspace .btn:focus-visible {
-    outline: 3px solid #8bd7bd;
+    outline: 3px solid var(--adm-accent);
     outline-offset: 3px;
 }
 
 .reservation-workspace.product-workspace .rw-workflow-card,
 .reservation-workspace.product-workspace .rw-readiness-card {
     min-width: 0;
-    border: 1px solid #e2ebe8;
-    border-radius: 18px;
+    border: 1px solid var(--adm-accent-line);
+    border-radius: var(--adm-radius-md);
     padding: 24px;
-    background: #fff;
+    background: var(--adm-surface);
     color: var(--rw-ink);
     box-shadow: 0 4px 20px #18382b04;
 }
@@ -437,7 +437,7 @@
     margin: 3px 0 0;
     font-size: 18px;
     line-height: 1.45;
-    font-weight: 800;
+    font-weight: var(--adm-fw-bold);
     letter-spacing: -.04em;
     color: var(--rw-ink);
 }
@@ -447,7 +447,7 @@
     margin: 0;
     font-size: 11px;
     line-height: 1.5;
-    font-weight: 750;
+    font-weight: var(--adm-fw-bold);
     color: var(--rw-mint-strong);
 }
 
@@ -455,8 +455,8 @@
     flex: none;
     padding: 6px 10px;
     border-radius: 999px;
-    background: #f3f6f5;
-    color: #62736f;
+    background: var(--adm-gray-100);
+    color: var(--adm-text-2);
     font-size: 11px;
     line-height: 1.5;
     font-weight: 700;
@@ -488,13 +488,13 @@
     left: calc(50% + 23px);
     width: calc(100% - 46px);
     height: 2px;
-    background: #e4ece8;
+    background: var(--adm-gray-300);
     content: '';
     pointer-events: none;
 }
 
 .reservation-workspace.product-workspace .rw-step-item.is-done:not(:last-child)::after {
-    background: #7dccb6;
+    background: var(--adm-accent);
 }
 
 .reservation-workspace.product-workspace .rw-step-button {
@@ -507,7 +507,7 @@
     margin: 0;
     padding: 2px 7px 6px;
     border: none;
-    border-radius: 10px;
+    border-radius: var(--adm-radius-sm);
     background: transparent;
     color: var(--rw-muted);
     font: inherit;
@@ -516,7 +516,7 @@
 }
 
 .reservation-workspace.product-workspace .rw-step-button:hover:not(:disabled) {
-    background: #f6faf8;
+    background: var(--adm-gray-50);
 }
 
 .reservation-workspace.product-workspace .rw-step-number {
@@ -525,12 +525,12 @@
     flex: none;
     width: 36px;
     height: 36px;
-    border: 1px solid #dce7e1;
+    border: 1px solid var(--adm-line);
     border-radius: 50%;
-    background: #f7faf8;
-    color: #86998f;
+    background: var(--adm-gray-50);
+    color: var(--adm-text-3);
     font-size: 13px;
-    font-weight: 800;
+    font-weight: var(--adm-fw-bold);
 }
 
 .reservation-workspace.product-workspace .rw-step-number svg {
@@ -546,7 +546,7 @@
 
 .reservation-workspace.product-workspace .rw-step-item.is-next .rw-step-number {
     border: 2px solid var(--rw-mint);
-    background: #fff;
+    background: var(--adm-surface);
     color: var(--rw-mint-strong);
     box-shadow: 0 0 0 4px #e9f8f2;
 }
@@ -554,7 +554,7 @@
 .reservation-workspace.product-workspace .rw-step-title {
     font-size: 13px;
     line-height: 1.45;
-    font-weight: 800;
+    font-weight: var(--adm-fw-bold);
     overflow-wrap: anywhere;
 }
 
@@ -576,8 +576,8 @@
     align-items: center;
     gap: 14px;
     padding: 18px;
-    border: 1px solid #cfe8dc;
-    border-radius: 12px;
+    border: 1px solid var(--adm-accent-line);
+    border-radius: var(--adm-radius-md);
     background: var(--rw-mint-soft);
 }
 
@@ -587,12 +587,12 @@
     flex: none;
     width: 40px;
     height: 40px;
-    border: 1px solid #d2ebdf;
-    border-radius: 12px;
-    background: #fff;
+    border: 1px solid var(--adm-accent-line);
+    border-radius: var(--adm-radius-md);
+    background: var(--adm-surface);
     color: var(--rw-mint-strong);
     font-size: 17px;
-    font-weight: 800;
+    font-weight: var(--adm-fw-bold);
 }
 
 .reservation-workspace.product-workspace .rw-next-marker svg {
@@ -609,13 +609,13 @@
     margin: 2px 0 0;
     color: var(--rw-ink);
     font-size: 15px;
-    font-weight: 800;
+    font-weight: var(--adm-fw-bold);
     line-height: 1.5;
 }
 
 .reservation-workspace.product-workspace .rw-next-copy p {
     margin: 4px 0 0;
-    color: #5d7770;
+    color: var(--adm-text-2);
     font-size: 12px;
     line-height: 1.65;
     overflow-wrap: anywhere;
@@ -630,13 +630,13 @@
     min-height: 42px;
     padding: 10px 14px;
     border: 1px solid var(--rw-mint);
-    border-radius: 9px;
+    border-radius: var(--adm-radius-sm);
     background: var(--rw-mint);
     color: #fff;
     font: inherit;
     font-size: 12px;
     line-height: 1.45;
-    font-weight: 750;
+    font-weight: var(--adm-fw-bold);
     cursor: pointer;
 }
 
@@ -659,8 +659,8 @@
 }
 
 .reservation-workspace.product-workspace .rw-next-task.is-cancelled {
-    border-color: #e3e8e5;
-    background: #f6f8f7;
+    border-color: var(--adm-line);
+    background: var(--adm-gray-50);
 }
 
 .reservation-workspace.product-workspace .rw-heading-note {
@@ -685,8 +685,8 @@
     min-width: 0;
     padding: 16px;
     border: 1px solid #eee1c5;
-    border-radius: 12px;
-    background: #fffdf7;
+    border-radius: var(--adm-radius-md);
+    background: var(--adm-gray-50);
     color: var(--rw-ink);
     font: inherit;
     text-align: left;
@@ -694,13 +694,13 @@
 }
 
 .reservation-workspace.product-workspace .rw-readiness-item.is-ready {
-    border-color: #dce9e2;
-    background: #f8fcfa;
+    border-color: var(--adm-line);
+    background: var(--adm-gray-50);
 }
 
 .reservation-workspace.product-workspace .rw-readiness-item:hover {
-    border-color: #81bea6;
-    background: #f0f9f4;
+    border-color: var(--adm-accent);
+    background: var(--adm-success-soft);
 }
 
 .reservation-workspace.product-workspace .rw-readiness-top {
@@ -711,16 +711,16 @@
     gap: 6px;
     font-size: 11px;
     line-height: 1.5;
-    font-weight: 750;
-    color: #65756f;
+    font-weight: var(--adm-fw-bold);
+    color: var(--adm-text-3);
 }
 
 .reservation-workspace.product-workspace .rw-readiness-state {
     display: inline-flex;
     align-items: center;
-    color: #966e24;
+    color: var(--adm-warn);
     font-size: 10px;
-    font-weight: 750;
+    font-weight: var(--adm-fw-bold);
 }
 
 .reservation-workspace.product-workspace .rw-readiness-state svg {
@@ -732,7 +732,7 @@
 .reservation-workspace.product-workspace .rw-readiness-value {
     font-size: 20px;
     line-height: 1.35;
-    font-weight: 850;
+    font-weight: var(--adm-fw-bold);
     letter-spacing: -.03em;
     overflow-wrap: anywhere;
 }
@@ -754,13 +754,13 @@
     color: var(--rw-mint-strong);
     font-size: 11px;
     line-height: 1.5;
-    font-weight: 750;
+    font-weight: var(--adm-fw-bold);
 }
 
 .reservation-workspace.product-workspace .rw-step-button:focus-visible,
 .reservation-workspace.product-workspace .rw-primary-action:focus-visible,
 .reservation-workspace.product-workspace .rw-readiness-item:focus-visible {
-    outline: 3px solid #8bd7bd;
+    outline: 3px solid var(--adm-accent);
     outline-offset: 3px;
 }
 
@@ -840,7 +840,7 @@
     .reservation-workspace.product-workspace .rw-workflow-card,
     .reservation-workspace.product-workspace .rw-readiness-card {
         padding: 18px;
-        border-radius: 15px;
+        border-radius: var(--adm-radius-md);
     }
 
     .reservation-workspace.product-workspace .rw-card-heading {

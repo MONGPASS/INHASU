@@ -7,6 +7,23 @@
    ============================================================ */
 html.admin-embedded body { font-family: var(--adm-font); background: var(--adm-canvas); color: var(--adm-text); }
 
+/* ── 본문 폭: 모든 관리자 화면 최대 --adm-content-max(입력 폼 --adm-content-max-narrow), 왼쪽 정렬 ──
+   좌우 여백을 바깥 관리자 제목과 같은 --adm-pad-page로 맞춰 제목과 본문이 같은 왼쪽 선에 선다.
+   목록·편집 도구(견적 문의·코스·일정·여행지·등록 정보·견적 예약 목록)의 본문 래퍼는 .shell > main.content,
+   입력 폼(견적서 만들기)은 .ecol > main. 각 문서의 화면별 max-width(1000·1100·1240px 등)를 덮는다. */
+html.admin-embedded .shell > main.content {
+  box-sizing: border-box; width: 100%; max-width: var(--adm-content-max); margin-left: 0; margin-right: auto;
+  padding-left: var(--adm-pad-page); padding-right: var(--adm-pad-page);
+}
+html.admin-embedded .ecol > main {
+  box-sizing: border-box; max-width: var(--adm-content-max-narrow); margin-left: 0; margin-right: auto;
+  padding-left: var(--adm-pad-page); padding-right: var(--adm-pad-page);
+}
+html.admin-embedded :is(.ecol > header, .ecol > .stepwrap, .bottom) { padding-left: var(--adm-pad-page); padding-right: var(--adm-pad-page); }
+@media (min-width: 761px) {
+  html.admin-embedded .ecol > .stepwrap > .steps { margin-left: 0; max-width: min(720px, calc(var(--adm-content-max-narrow) - 2 * var(--adm-pad-page))); }
+}
+
 /* 바깥 관리자가 이미 화면 제목을 보여 주므로 안쪽의 같은 제목은 숨긴다(추가 버튼과 설명은 남긴다). */
 html.admin-embedded .page-head > h1 { display: none; }
 html.admin-embedded .page-head { min-height: var(--adm-control-h); }
@@ -20,12 +37,15 @@ html.admin-embedded .bulkbtn { height: var(--adm-control-h-sm); min-height: var(
 html.admin-embedded .df button { height: var(--adm-control-h-lg); padding-top: 0; padding-bottom: 0; border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); }
 
 /* ── 주요 버튼은 민트 하나 ── */
-html.admin-embedded :is(.btn.primary, .bulkbtn.primary, .page-head .add, .rg-add, header button.go, .df .save, .bottom :is(.next, .publish), .action-item .go) {
+html.admin-embedded :is(.btn.primary, .bulkbtn.primary, .page-head .add, .rg-add, header button.go, .df .save, .bottom :is(.next, .publish)) {
   border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff;
 }
-html.admin-embedded :is(.btn.primary, .bulkbtn.primary, .page-head .add, .rg-add, header button.go, .df .save, .bottom :is(.next, .publish), .action-item .go):hover:not(:disabled) {
+html.admin-embedded :is(.btn.primary, .bulkbtn.primary, .page-head .add, .rg-add, header button.go, .df .save, .bottom :is(.next, .publish)):hover:not(:disabled) {
   border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover);
 }
+/* 목록 줄마다 있는 행동은 보조(테두리) 버튼 — 채움 버튼은 화면당 하나 */
+html.admin-embedded .action-item .go { height: var(--adm-control-h-sm); border: 1px solid var(--adm-line-strong); border-radius: var(--adm-radius-sm); background: var(--adm-surface); color: var(--adm-text); font-weight: var(--adm-fw-semibold); box-shadow: none; }
+html.admin-embedded .action-item .go:hover { background: var(--adm-gray-50); }
 html.admin-embedded .df .del { background: var(--adm-danger-soft); color: var(--adm-danger); padding-left: 18px; padding-right: 18px; }
 
 /* ── 입력창 ── */

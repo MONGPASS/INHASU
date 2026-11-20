@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
-import { DashboardIcon, type DashboardIconName } from './dashboard/DashboardIcon';
-import { QUOTE_DESK_TOOLS, disconnectQuoteDesk, quoteDeskHref, quoteDeskPageId } from './quoteDesk';
+import { DashboardIcon } from './dashboard/DashboardIcon';
+import { disconnectQuoteDesk } from './quoteDesk';
+import { dashboardItem, navGroups, sections, type NavItem } from './adminNav';
 import { preloadAdminPage } from '../../lib/adminPagePreload';
 
 interface AdminSidebarProps {
@@ -14,84 +15,6 @@ interface AdminSidebarProps {
     isDarkMode?: boolean;
     toggleTheme?: () => void;
 }
-
-interface NavItem {
-    id: string;
-    icon: DashboardIconName;
-    label: string;
-    href: string;
-}
-
-interface NavGroup {
-    id: string;
-    icon: DashboardIconName;
-    label: string;
-    items: NavItem[];
-    /** 상세·작성 화면도 관련 업무 메뉴 안에 표시한다. */
-    relatedPages?: string[];
-}
-
-const dashboardItem: NavItem = { id: 'dashboard', icon: 'lc-layout-dashboard', label: '대시보드', href: '/admin' };
-
-const QUOTE_ICONS: Record<string, DashboardIconName> = {
-    inbox: 'lc-file-text', courses: 'lc-route', itinerary: 'lc-trending-up', spots: 'lc-map-pin', resources: 'lc-users',
-};
-const quoteItem = (key: string, label?: string): NavItem => {
-    const tool = QUOTE_DESK_TOOLS.find((entry) => entry.key === key)!;
-    return { id: quoteDeskPageId(key), icon: QUOTE_ICONS[key] || 'lc-file-text', label: label ?? tool.label, href: quoteDeskHref(key) };
-};
-
-const navGroups: NavGroup[] = [
-    {
-        id: 'booking-work', icon: 'lc-calendar-check', label: '예약 관리',
-        relatedPages: [quoteDeskPageId('bookings')],
-        items: [
-            { id: 'reservations', icon: 'lc-clipboard-list', label: '통합 예약 목록', href: '/admin/reservations' },
-            { id: 'calendar', icon: 'lc-calendar', label: '투어 캘린더', href: '/admin/calendar' },
-        ],
-    },
-    {
-        id: 'quote-work', icon: 'lc-file-text', label: '견적 관리',
-        relatedPages: [quoteDeskPageId('builder')],
-        items: [quoteItem('inbox'), quoteItem('courses'), quoteItem('itinerary'), quoteItem('spots')],
-    },
-    {
-        id: 'product-work', icon: 'lc-archive', label: '상품 관리',
-        items: [
-            { id: 'products', icon: 'lc-archive', label: '상품 목록', href: '/admin/products' },
-            { id: 'categories', icon: 'lc-shapes', label: '상품 카테고리', href: '/admin/categories' },
-            { id: 'templates', icon: 'lc-folder-plus', label: '문서 템플릿', href: '/admin/templates' },
-        ],
-    },
-    {
-        id: 'assignment-work', icon: 'lc-users', label: '배정·자원',
-        items: [
-            { id: 'accommodation-ops', icon: 'lc-house', label: '숙소 배정 · 현지 운영', href: '/admin/accommodation-ops' },
-            quoteItem('resources'),
-        ],
-    },
-    {
-        id: 'customer-content', icon: 'lc-mail', label: '고객·콘텐츠',
-        items: [
-            { id: 'inquiries', icon: 'lc-mail', label: '일반 문의', href: '/admin/inquiries' },
-            { id: 'reviews', icon: 'lc-message-square-quote', label: '후기 관리', href: '/admin/reviews' },
-            { id: 'faq', icon: 'lc-circle-help', label: 'FAQ 관리', href: '/admin/faq' },
-            { id: 'magazines', icon: 'lc-book-open', label: '매거진 관리', href: '/admin/magazines' },
-        ],
-    },
-    {
-        id: 'site-management', icon: 'lc-panel-top', label: '사이트 관리',
-        items: [
-            { id: 'banners', icon: 'lc-panel-top', label: '홈 화면 관리', href: '/admin/banners' },
-            { id: 'promotions', icon: 'lc-megaphone', label: '여행기획전 관리', href: '/admin/promotions' },
-        ],
-    },
-];
-/** 디자인 v3: 업무 메뉴(MAIN MENU)와 고객·사이트 메뉴(OTHER)를 나눈다. */
-const sections: Array<{ title: string; groups: string[]; dashboard?: boolean }> = [
-    { title: 'MAIN MENU', dashboard: true, groups: ['booking-work', 'quote-work', 'product-work', 'assignment-work'] },
-    { title: 'OTHER', groups: ['customer-content', 'site-management'] },
-];
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = false, onToggleRail }) => {
     const navigate = useNavigate();
@@ -138,6 +61,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePage, rail = f
                     <DashboardIcon name={rail ? 'lc-chevron-right' : 'lc-chevron-left'} size={18} />
                 </button>
             </div>}
+
+            <Link to="/admin" className="side-brand" aria-label="몽골리아 은하수 관리자 대시보드" title={rail ? '몽골리아 은하수 관리자' : undefined}>
+                <span className="side-brand-mark" aria-hidden="true">은</span>
+                <span className="side-brand-text"><b>몽골리아 은하수</b><small>관리자</small></span>
+            </Link>
 
             <nav className="side-nav" ref={navRef} aria-label="관리자 업무 메뉴">
                 {sections.map((section) => (

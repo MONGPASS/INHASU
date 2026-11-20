@@ -32,15 +32,15 @@ interface Stat { n: number; days: number; dupN: number; run: boolean; nx?: Item 
 
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const RETURN_TO = '/admin/quote-desk/resources?view=schedule';
-const ORANGE = { bg: '#FFF4E5', line: '#F08C00', text: '#B35C00' };
+const ORANGE = { bg: 'var(--adm-warn-soft)', line: 'var(--adm-warn)', text: 'var(--adm-warn)' };
 // 가이드별 색(배경 · 글자 · 선). 디자인 v4의 carrot·yellow·blue·purple 순서에 두 색을 더했다.
 const PALETTE = [['#D2F8EB', '#057a61', '#12b28c'], ['#FFF5CC', '#7a4f00', '#F5B400'], ['#E1EDFF', '#1E5ED6', '#3B82F6'], ['#F0E6FF', '#6B3FC4', '#9B6BF2'], ['#FFE8EC', '#B4234A', '#F0527A'], ['#E3F6FA', '#0B6E85', '#1BA7C4']];
 const NONE_COLOR = [ORANGE.bg, ORANGE.text, ORANGE.line];
 // 막대 색: 중복 빨강 · 미배정 주황 · 배정 민트 (배경, 글자, 선)
 const stateColors = (dup: boolean, none: boolean) => dup ? ['#fff0f0', '#e5484d', '#e5484d'] : none ? NONE_COLOR : ['#e6f8f1', '#057a61', '#12b28c'];
 const STATE_CHIP: Record<AssignState, { bg: string; fg: string; icon: 'lc-circle-check' | 'lc-loader' | 'lc-hourglass' | 'lc-circle-alert' }> = {
-    '배정완료': { bg: '#e6f8f1', fg: '#057a61', icon: 'lc-circle-check' }, '부분 배정': { bg: '#EEF4FF', fg: '#2F6FED', icon: 'lc-loader' },
-    '미배정': { bg: ORANGE.bg, fg: ORANGE.text, icon: 'lc-hourglass' }, '중복': { bg: '#fff0f0', fg: '#e5484d', icon: 'lc-circle-alert' },
+    '배정완료': { bg: 'var(--adm-accent-soft)', fg: 'var(--adm-accent-strong)', icon: 'lc-circle-check' }, '부분 배정': { bg: 'var(--adm-accent-soft)', fg: 'var(--adm-accent-strong)', icon: 'lc-loader' },
+    '미배정': { bg: ORANGE.bg, fg: ORANGE.text, icon: 'lc-hourglass' }, '중복': { bg: 'var(--adm-danger-soft)', fg: 'var(--adm-danger)', icon: 'lc-circle-alert' },
 };
 
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -457,7 +457,7 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                                     <span className="gs-tl-text"><b className={hasDupRow ? 'is-dup' : ''}>{label}</b><span className={row && !row.registered ? 'is-warn' : ''}>{sub}</span></span>
                                     {!none && <Ico name="lc-chevron-right" size={14} color="#8b95a1" />}
                                 </span>
-                                <span className="gs-tl-util"><span className="gs-util"><span style={{ width: `${util}%`, background: none ? ORANGE.line : hasDupRow ? '#e5484d' : color[2] }} /></span><span>이번 달 {monthCount}팀</span></span>
+                                <span className="gs-tl-util"><span className="gs-util"><span style={{ width: `${util}%`, background: none ? ORANGE.line : hasDupRow ? 'var(--adm-danger)' : color[2] }} /></span><span>이번 달 {monthCount}팀</span></span>
                             </button>
                             <div className="gs-tl-track">
                                 <div className="gs-tl-cells" style={cols}>
@@ -535,14 +535,14 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                                 <span className="gs-tassign">
                                     {assigned ? <Avatar name={g?.name || ''} img={guideImg(b)} size={36} color={colorOf(b)} /> : <span className="gs-ph is-round"><Ico name="lc-user" size={18} color="#d1d6db" /></span>}
                                     <button type="button" disabled={savingKey === b.key} title={assigned ? `${g?.name} · ${g?.phone || '연락처 없음'}` : '가이드를 배정해 주세요'} onClick={e => openGuidePop(e.currentTarget, b)}>
-                                        <span className="gs-tassign-name"><b style={{ color: gd ? '#e5484d' : assigned ? undefined : ORANGE.text }}>{assigned ? g?.name : '가이드 선택'}</b>{gd && <span className="gs-badge-red">중복</span>}</span>
+                                        <span className="gs-tassign-name"><b style={{ color: gd ? 'var(--adm-danger)' : assigned ? undefined : ORANGE.text }}>{assigned ? g?.name : '가이드 선택'}</b>{gd && <span className="gs-badge-red">중복</span>}</span>
                                         <span className="gs-tassign-sub">{assigned ? '변경하기' : '배정하기'}<Ico name="lc-chevron-down" size={14} /></span>
                                     </button>
                                 </span>
                                 <span className="gs-tassign">
                                     {car ? (carImg ? <img className="gs-car" src={carImg} alt="" /> : <span className="gs-ph"><Ico name="lc-car" size={18} color="#8b95a1" /></span>) : <span className="gs-ph"><Ico name="lc-car" size={18} color="#d1d6db" /></span>}
                                     <button type="button" disabled={savingKey === b.key} title={car ? `${car} · 기사 ${b.assignment?.vehicle?.phone || '연락처 없음'}` : '차량을 배정해 주세요'} onClick={e => openCarPop(e.currentTarget, b)}>
-                                        <span className="gs-tassign-name"><b style={{ color: cd ? '#e5484d' : car ? undefined : ORANGE.text }}>{car || '차량 선택'}</b>{cd && <span className="gs-badge-red">중복</span>}</span>
+                                        <span className="gs-tassign-name"><b style={{ color: cd ? 'var(--adm-danger)' : car ? undefined : ORANGE.text }}>{car || '차량 선택'}</b>{cd && <span className="gs-badge-red">중복</span>}</span>
                                         <span className="gs-tassign-sub">{car ? (plate || '변경하기') : '배정하기'}<Ico name="lc-chevron-down" size={14} /></span>
                                     </button>
                                 </span>
@@ -664,14 +664,14 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
     const tipBooking = tip && !pop ? items.find(b => b.key === tip.key) : undefined;
     const tipView = tipBooking && tip && (() => {
         const b = tipBooking, d = dup.has(b.key), none = !hasGuide(b), live = coversDay(b, today), past = endOf(b) < today, dd = dayDiff(today, startOf(b));
-        const st = d ? '중복' : none ? '미배정' : live ? '진행 중' : past ? '종료' : '예정', c = d ? '#ff6b6b' : none ? '#ffa94d' : live ? '#12b28c' : '#adb5bd';
+        const st = d ? '중복' : none ? '미배정' : live ? '진행 중' : past ? '종료' : '예정', c = d ? '#ff6b6b' : none ? '#ffa94d' : live ? '#12b28c' : 'var(--adm-text-3)';
         const below = tip.y + 210 < window.innerHeight;
         const rowsT: Array<[string, string, boolean]> = [['일정', `${md(startOf(b))} → ${md(endOf(b))} · ${nights(b)}`, false], ['인원', people(b), false],
             ['가이드', b.assignment?.guide?.name || '배정 필요', none || d], ['차량', b.assignment?.vehicle?.type || '배정 필요', !b.assignment?.vehicle?.type], ['출발', live ? '투어 진행 중' : past ? '종료됨' : `D-${dd}`, false]];
         return <div aria-hidden="true" className="gs-tip" style={{ left: Math.max(12, Math.min(tip.x, window.innerWidth - 292)), top: below ? tip.y + 6 : Math.max(12, tip.top - 216) }}>
             <div className="gs-tip-head"><b>{nameOf(b)}</b><span style={{ color: c }}>{st}</span></div>
             {b.productName && <span className="gs-tip-low">{b.productName}</span>}
-            <div className="gs-tip-rows">{rowsT.map(([l, v, warn]) => <div key={l}><span>{l}</span><b style={{ color: warn ? (d ? '#ff6b6b' : '#ffa94d') : '#fff' }}>{v}</b></div>)}</div>
+            <div className="gs-tip-rows">{rowsT.map(([l, v, warn]) => <div key={l}><span>{l}</span><b style={{ color: warn ? (d ? 'var(--adm-danger)' : 'var(--adm-warn)') : '#fff' }}>{v}</b></div>)}</div>
             <span className="gs-tip-low">{none ? '눌러서 가이드 배정하기' : '눌러서 가이드 바꾸기'}</span>
         </div>;
     })();
@@ -694,7 +694,7 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                     {chips.map(c => { const t = chipColor[c.key];
                         return <button key={c.label} type="button" title={c.on ? '전체 보기' : `${c.label} 투어만 보기`} aria-pressed={c.on} onClick={c.go}
                             className="gs-chip" style={{ background: c.on ? t[2] : t[0], color: c.on ? '#fff' : t[1], boxShadow: c.on ? `0 0 0 2px #fff, 0 0 0 3.5px ${t[2]}` : 'none' }}>
-                            <i style={{ background: c.on ? '#fff' : t[2] }} />{c.label}<b>{c.n}</b>{c.unit}</button>; })}
+                            <i style={{ background: c.on ? 'var(--adm-surface)' : t[2] }} />{c.label}<b>{c.n}</b>{c.unit}</button>; })}
                 </div>
             </div>
             {warnings.map((w, i) => <div key={i} className="gs-notice" role="alert">{w}</div>)}
