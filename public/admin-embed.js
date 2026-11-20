@@ -63,8 +63,10 @@
   function watchOverlay() {
     var overlay = document.getElementById("overlay");
     if (!overlay || typeof MutationObserver === "undefined") return;
-    reportOverlay(overlay.classList.contains("on"));
-    new MutationObserver(function () { reportOverlay(overlay.classList.contains("on")); }).observe(overlay, { attributes: true, attributeFilter: ["class"] });
+    /* 뒤 막이 보이지 않게 숨겨진 화면(고객 통합 작업 안의 견적 문의처럼 상세를 본문에 펼치는 화면)은 알리지 않는다. */
+    var isOpen = function () { return overlay.classList.contains("on") && window.getComputedStyle(overlay).display !== "none"; };
+    reportOverlay(isOpen());
+    new MutationObserver(function () { reportOverlay(isOpen()); }).observe(overlay, { attributes: true, attributeFilter: ["class"] });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watchOverlay); else watchOverlay();
   window.addEventListener("pagehide", function () { reportOverlay(false); });
