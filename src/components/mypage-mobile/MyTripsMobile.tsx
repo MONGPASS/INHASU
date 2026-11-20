@@ -36,7 +36,6 @@ export function MyTripsMobile({ tab }: { tab: TripsTab }) {
     const quoteList = quotes.data ?? [];
     const counts: Record<TripsTab, number | undefined> = { bookings: reservations.data?.length, quote: quotes.data?.length };
     const loading = !me || (tab === 'bookings' ? reservations.isPending : quotes.isPending);
-    const linkPath = tab === 'bookings' ? '/customer-link?from=reservations' : '/customer-link';
 
     const go = (path: string) => {
         if (/\.html(?:[?#]|$)/i.test(path)) { window.location.assign(path); return; }
@@ -73,7 +72,6 @@ export function MyTripsMobile({ tab }: { tab: TripsTab }) {
             </SubPageBar>
 
             <section style={{ background: M_PAPER, minHeight: '60vh', padding: '16px 16px 36px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <a href={linkPath} onClick={event => { event.preventDefault(); go(linkPath); }} style={{ padding: '12px 14px', background: MW.mintBg, borderRadius: 12, color: MW.mintDeep, fontSize: 13, lineHeight: 1.7, fontWeight: 700, textDecoration: 'none' }}>{tab === 'bookings' ? '담당자에게 받은 견적·예약 연결 →' : '예전에 받은 견적이 보이지 않나요? 기존 견적 연결 →'}</a>
                 {loading ? (
                     <MLoading />
                 ) : tab === 'bookings' ? (
