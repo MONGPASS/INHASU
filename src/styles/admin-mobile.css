@@ -131,7 +131,7 @@
 /* ── 고객 예약 상세(v7): 휴대폰에서는 모든 카드가 같은 폭의 한 줄, 표는 카드로 ── */
 @media (max-width: 760px) {
   /* 바로가기 6칸: 두 칸씩, 화면을 가리지 않게 고정 해제 */
-  .admin-app-wrapper .v7-root .v7-nav { position: static !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: var(--adm-space-2) !important; padding: 0 !important; }
+  .admin-app-wrapper .v7-root .v7-nav:not(.v7-tabs) { position: static !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: var(--adm-space-2) !important; padding: 0 !important; }
   .admin-app-wrapper .v7-root .v7-nav .v7-nav-btn { height: var(--adm-control-h-lg) !important; padding: 0 10px !important; gap: 8px !important; border-radius: var(--adm-radius-md) !important; }
   /* 결제·배정·분류·서류: 한 칸씩(글자가 잘리지 않게) */
   .admin-app-wrapper .v7-root .v7-quad { grid-template-columns: minmax(0, 1fr) !important; }
