@@ -217,3 +217,25 @@
 .admin-app-wrapper .empty { color: var(--adm-text-2); }
 .admin-app-wrapper .empty p { font-size: var(--adm-fs-base); font-weight: var(--adm-fw-regular); }
 .admin-app-wrapper .empty .material-symbols-outlined { color: var(--adm-text-3); }
+
+/* ── 통합 예약 목록(Montage 시안 ② 목록형): 카드 하나 = 탭 / 필터 줄 / 표 ── */
+.admin-app-wrapper .v7-list-card { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
+.admin-app-wrapper .v7-list-tabs { padding: var(--adm-space-2) var(--adm-pad-card) 0; overflow-x: auto; }
+.admin-app-wrapper .v7-list-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-3); padding: var(--adm-space-4) var(--adm-pad-card); border-top: 1px solid var(--adm-line-subtle); }
+.admin-app-wrapper .v7-list-search { display: flex; align-items: center; gap: var(--adm-space-2); flex: 1 1 240px; min-width: 200px; max-width: 320px; height: var(--adm-control-h); padding: 0 var(--adm-space-1) 0 var(--adm-space-3); border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); color: var(--adm-text-3); font-size: 18px; }
+.admin-app-wrapper .v7-list-search:focus-within { box-shadow: var(--adm-ring); background: var(--adm-surface); outline: 1px solid var(--adm-accent); }
+.admin-app-wrapper .v7-list-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--adm-text); font: inherit; font-size: var(--adm-fs-input); }
+.admin-app-wrapper .v7-list-quick { display: flex; flex-wrap: wrap; gap: var(--adm-space-2); }
+.admin-app-wrapper .v7-list-note { font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
+.admin-app-wrapper .v7-list-sort { flex: none; width: 264px; margin-left: auto; } /* 세 항목이 잘리지 않는 폭 */
+.admin-app-wrapper .v7-list-card .v7-list-scroll { border-top: 1px solid var(--adm-line-subtle); }
+.admin-app-wrapper .v7-list-empty { display: flex; flex-direction: column; align-items: center; gap: var(--adm-space-3); padding: 56px var(--adm-space-5); color: var(--adm-text-2); font-size: var(--adm-fs-base); text-align: center; }
+.admin-app-wrapper .v7-list-empty svg { font-size: 32px; color: var(--adm-text-3); }
+.admin-app-wrapper .v7-list-bulk { position: fixed; left: 50%; bottom: var(--adm-space-6); z-index: 50; display: flex; align-items: center; gap: var(--adm-space-2); padding: var(--adm-space-2) var(--adm-space-2) var(--adm-space-2) var(--adm-space-5); transform: translateX(-50%); border: 1px solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); box-shadow: var(--adm-shadow-lg); white-space: nowrap; }
+.admin-app-wrapper .v7-list-bulk b { margin-right: var(--adm-space-2); color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); }
+@media (max-width: 760px) {
+  .admin-app-wrapper .v7-list-tabs, .admin-app-wrapper .v7-list-filters { padding-left: var(--adm-space-4); padding-right: var(--adm-space-4); }
+  .admin-app-wrapper .v7-list-search { max-width: none; flex-basis: 100%; }
+  .admin-app-wrapper .v7-list-sort { margin-left: 0; }
+  .admin-app-wrapper .v7-list-bulk { left: var(--adm-space-3); right: var(--adm-space-3); bottom: calc(var(--adm-tabbar-h) + var(--adm-safe-bottom) + var(--adm-space-2)); transform: none; overflow-x: auto; }
+}

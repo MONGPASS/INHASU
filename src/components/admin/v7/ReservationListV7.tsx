@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Chip, IconButton, SegmentedControl, SegmentedControlItem, Tab, TabList, TabListItem } from '@montage-ui/core';
+import { IconClose, IconInbox, IconSearch } from '@montage-ui/icon';
 import type { DashboardIconName } from '../dashboard/DashboardIcon';
 import { dashboardSeoulDate } from '../../../utils/adminDashboard';
 import { confirmGuideConflict, guideMenuItems } from './guideMenuItems';
@@ -214,50 +216,42 @@ export function ReservationListV7(p: ReservationListV7Props) {
         return () => observer.disconnect();
     }, []);
     const tabCount = (key: V7Tab) => rows.filter(r => r.tab === key).length;
-    return <div className="v7-root" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    // Montage 시안(② 목록형): 카드 하나 안에 탭 → 필터 줄(검색·빠른 필터 칩·정렬) → 표. 행·펼침 작업 패널은 그대로.
+    return <div className="v7-root" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--adm-space-5)' }}>
         <V7Styles />
-        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--adm-line)', overflowX: 'auto' }} role="tablist" aria-label="예약 진행 상태">
-            {V7_TABS.map(t => { const on = t.key === tab; return <button key={t.key} type="button" role="tab" aria-selected={on} onClick={() => { setTab(t.key); setQuick('all'); setSel(new Set()); setOpen(null); }}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 44, padding: '0 14px', whiteSpace: 'nowrap', border: 0, background: 'transparent', font: 'inherit', fontSize: 14, fontWeight: on ? 800 : 600, cursor: 'pointer', color: on ? V7_INK : V7_MUTED, boxShadow: on ? 'inset 0 -3px 0 var(--adm-accent)' : 'none' }}>
-                {t.label}<span style={{ fontSize: 12, fontWeight: 700, minWidth: 20, height: 20, padding: '0 6px', boxSizing: 'border-box', borderRadius: 999, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? 'linear-gradient(135deg,var(--adm-accent),var(--adm-accent-strong))' : 'var(--adm-gray-100)', color: on ? '#fff' : V7_MUTED }}>{p.loadedOnce ? tabCount(t.key) : '–'}</span>
-            </button>; })}
-        </div>
+        <section aria-label="예약 목록" className="v7-list-card">
+            <div className="v7-list-tabs">
+                <Tab value={tab} onValueChange={value => { setTab(value as V7Tab); setQuick('all'); setSel(new Set()); setOpen(null); }}>
+                    <TabList size="medium" aria-label="예약 진행 상태">
+                        {V7_TABS.map(t => <TabListItem key={t.key} value={t.key}>{t.label} {p.loadedOnce ? tabCount(t.key) : '–'}</TabListItem>)}
+                    </TabList>
+                </Tab>
+            </div>
 
-        <div className="v7-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 50px) / 6), min(calc((100% - 20px) / 3), calc((1100px - 100%) * 999))),1fr))', gap: 10 }}>
-            {V7_QUICK.map(x => {
-                const on = quick === x.key, matched = inTab.filter(x.test), n = matched.length, warn = x.key !== 'all' && n > 0;
-                const sub = x.key === 'bal' ? v7Won(matched.reduce((a, r) => a + (Number.isFinite(r.source.balance) ? r.source.balance : 0), 0)) : x.sub;
-                return <button key={x.key} type="button" aria-pressed={on} onClick={() => setQuick(on && x.key !== 'all' ? 'all' : x.key)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, minWidth: 0, padding: '14px 16px', border: 0, borderRadius: 'var(--adm-radius-md)', font: 'inherit', cursor: 'pointer', textAlign: 'left', background: on ? 'var(--adm-gray-50)' : 'var(--adm-surface)', boxShadow: on ? 'inset 0 0 0 1.5px var(--adm-accent)' : '0 0 0 1px var(--adm-line-subtle)', transition: 'box-shadow .15s, background .15s' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', minWidth: 0 }}>
-                        <span style={{ width: 24, height: 24, flex: 'none', borderRadius: 'var(--adm-radius-xs)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: warn ? 'var(--adm-danger-soft)' : 'var(--adm-accent-soft)', color: warn ? 'var(--adm-danger)' : 'var(--adm-accent-strong)' }}><Ico name={x.icon as DashboardIconName} size={14} /></span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.label}</span>
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'baseline', gap: 2, whiteSpace: 'nowrap', marginTop: 6 }}>
-                        <span style={{ fontSize: 26, lineHeight: '30px', fontWeight: 700, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', color: warn ? 'var(--adm-danger)' : V7_INK }}>{p.loadedOnce ? n : '–'}</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: V7_MUTED }}>건</span>
-                    </span>
-                    <span style={{ fontSize: 12, lineHeight: '16px', color: V7_MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{sub}</span>
-                </button>;
-            })}
-        </div>
+            <div className="v7-list-filters">
+                <label className="v7-list-search">
+                    <IconSearch aria-hidden="true" />
+                    <input value={q} onChange={e => setQ(e.target.value)} aria-label="예약 검색" placeholder="고객명, 전화번호, 가이드 이름 검색" />
+                    {q && <IconButton variant="normal" size="medium" aria-label="검색어 지우기" onClick={() => setQ('')}><IconClose /></IconButton>}
+                </label>
+                <div role="group" aria-label="빠른 필터" className="v7-kpis v7-list-quick">
+                    {V7_QUICK.map(x => {
+                        const on = quick === x.key, n = inTab.filter(x.test).length;
+                        return <Chip key={x.key} size="small" variant="solid" active={on} aria-pressed={on} onClick={() => setQuick(on && x.key !== 'all' ? 'all' : x.key)}>
+                            {x.label} {p.loadedOnce ? n : '–'}
+                        </Chip>;
+                    })}
+                </div>
+                {(assignmentNote || p.loading) && <span role="status" className="v7-list-note" style={{ color: p.loading ? 'var(--adm-text-3)' : 'var(--adm-warn-strong)' }}>{p.loading ? '예약을 불러오는 중…' : assignmentNote}</span>}
+                <div className="v7-list-sort">
+                    <SegmentedControl size="small" value={sort} onValueChange={value => setSort(value as typeof sort)} aria-label="정렬">
+                        <SegmentedControlItem value="pri">우선순위</SegmentedControlItem>
+                        <SegmentedControlItem value="dep">출발일순</SegmentedControlItem>
+                        <SegmentedControlItem value="bk">최근 예약순</SegmentedControlItem>
+                    </SegmentedControl>
+                </div>
+            </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <label style={{ flex: 1, minWidth: 240, maxWidth: 420, display: 'flex', alignItems: 'center', gap: 8, height: 42, padding: '0 14px', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: 'inset 0 0 0 1px var(--adm-line-subtle)' }}>
-                <Ico name="lc-search" size={16} color={V7_MUTED} />
-                <input value={q} onChange={e => setQ(e.target.value)} aria-label="예약 검색" placeholder="고객명, 전화번호, 가이드 이름 검색"
-                    style={{ flex: 1, minWidth: 0, border: 0, outline: 0, background: 'transparent', font: 'inherit', fontSize: 14, color: V7_INK }} />
-                {q && <button type="button" aria-label="검색어 지우기" onClick={() => setQ('')} style={{ border: 0, background: 'transparent', cursor: 'pointer', display: 'flex', color: V7_MUTED }}><Ico name="lc-x" size={14} /></button>}
-            </label>
-            {(assignmentNote || p.loading) && <span role="status" style={{ fontSize: 12, fontWeight: 700, color: p.loading ? V7_MUTED : 'var(--adm-warn-strong)' }}>{p.loading ? '예약을 불러오는 중…' : assignmentNote}</span>}
-            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: V7_MUTED }}><Ico name="lc-arrow-up-down" size={14} />정렬</span>
-            <span style={{ display: 'flex', padding: 3, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-gray-100)' }}>
-                {([['pri', '우선순위'], ['dep', '출발일순'], ['bk', '최근 예약순']] as const).map(([k, label]) => { const on = sort === k; return <button key={k} type="button" aria-pressed={on} onClick={() => setSort(k)}
-                    style={{ height: 32, padding: '0 12px', whiteSpace: 'nowrap', border: 0, borderRadius: 8, font: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: on ? 'var(--adm-surface)' : 'transparent', color: on ? V7_INK : V7_MUTED, boxShadow: on ? '0 1px 3px rgba(16,24,40,.12)' : 'none' }}>{label}</button>; })}
-            </span>
-        </div>
-
-        <div style={{ background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)', overflow: 'hidden' }}>
             <div ref={scroller} className="v7-list-scroll" style={{ overflowX: 'auto' }}><div className="v7-list-inner" style={{ minWidth: 1380 }} aria-label="통합 예약 목록">
                 <div role="row" className="v7-list-head" style={{ display: 'grid', gridTemplateColumns: GRID, columnGap: 20, alignItems: 'center', height: 40, padding: '0 24px', position: 'sticky', top: 0, zIndex: 2, background: 'var(--adm-gray-50)', borderBottom: '1px solid var(--adm-line)', fontSize: 12, fontWeight: 700, color: V7_MUTED }}>
                     <button type="button" aria-label="이 목록 전체 선택" aria-pressed={allOn} onClick={() => setSel(prev => { const next = new Set(prev); list.forEach(r => allOn ? next.delete(r.key) : next.add(r.key)); return next; })} style={checkBox(allOn)}>{allOn && <Ico name="lc-check" size={12} color="#fff" />}</button>
@@ -269,15 +263,15 @@ export function ReservationListV7(p: ReservationListV7Props) {
                     onOpen={action => p.onOpen(row.source, action)}
                     guideMenu={e => void guideMenu(e, row)} vehicleMenu={e => void vehicleMenu(e, row)} statusMenu={e => statusMenu(e, row)}
                     paymentMenu={(e, field) => paymentMenu(e, row, field)} opsMenu={(e, key) => opsMenu(e, row, key)} />)}
-                {!list.length && <div style={{ padding: '56px 20px', textAlign: 'center', fontSize: 14, color: V7_MUTED }}>{p.loading && !p.loadedOnce ? '예약을 불러오는 중…' : '이 조건에 해당하는 예약이 없어요.'}</div>}
+                {!list.length && <div className="v7-list-empty"><IconInbox aria-hidden="true" /><span>{p.loading && !p.loadedOnce ? '예약을 불러오는 중…' : '이 조건에 해당하는 예약이 없어요.'}</span></div>}
             </div></div>
-        </div>
+        </section>
 
-        {selected.length > 0 && <div role="toolbar" aria-label="선택한 예약 작업" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 50, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 8px 8px 18px', background: V7_INK, borderRadius: 'var(--adm-radius-md)', boxShadow: '0 12px 32px rgba(16,24,40,.28)', animation: 'rvUp 180ms ease-out', whiteSpace: 'nowrap' }}>
-            <b style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginRight: 8 }}>{selected.length}건 선택</b>
-            {([['진행상황 변경', 'lc-arrow-left-right', bulkStatus], ['입금 확인', 'lc-wallet', bulkPayment], ['안내 알림 발송', 'lc-send', bulkNotice], ['엑셀 내보내기', 'lc-download', exportSelected]] as const).map(([label, icon, go]) =>
-                <button key={label} type="button" className="v7-bulk-btn" onClick={go as any} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'rgba(255,255,255,.1)', font: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer' }}><Ico name={icon} size={15} />{label}</button>)}
-            <button type="button" title="선택 해제" aria-label="선택 해제" onClick={() => setSel(new Set())} style={{ width: 38, height: 38, border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'transparent', color: 'var(--adm-text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-x" size={16} /></button>
+        {selected.length > 0 && <div role="toolbar" aria-label="선택한 예약 작업" className="v7-list-bulk">
+            <b>{selected.length}건 선택</b>
+            {([['진행상황 변경', bulkStatus], ['입금 확인', bulkPayment], ['안내 알림 발송', bulkNotice], ['엑셀 내보내기', exportSelected]] as const).map(([label, go]) =>
+                <Button key={label} variant="solid" color="assistive" size="small" onClick={go as any}>{label}</Button>)}
+            <IconButton variant="normal" size="medium" aria-label="선택 해제" title="선택 해제" onClick={() => setSel(new Set())}><IconClose /></IconButton>
         </div>}
         <V7Menu menu={menu} onClose={closeMenu} />
         <V7Toast text={toast} />
