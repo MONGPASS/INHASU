@@ -22,6 +22,8 @@ html.admin-embedded .ecol > main {
 html.admin-embedded :is(.ecol > header, .ecol > .stepwrap, .bottom) { padding-left: var(--adm-pad-page); padding-right: var(--adm-pad-page); }
 @media (min-width: 761px) {
   html.admin-embedded .ecol > .stepwrap > .steps { margin-left: 0; max-width: min(720px, calc(var(--adm-content-max-narrow) - 2 * var(--adm-pad-page))); }
+  /* 견적서 만들기: 위(초기화~링크 공유하기)·아래(이전·다음) 버튼을 본문(입력 폼 960px)의 오른쪽 끝에 맞춘다. 넓은 화면에서 버튼만 멀리 떨어지지 않게. */
+  html.admin-embedded :is(.ecol > header, .ecol > .bottom) { padding-right: max(var(--adm-pad-page), calc(100% - var(--adm-content-max-narrow) + var(--adm-pad-page))); }
 }
 
 /* 바깥 관리자가 이미 화면 제목을 보여 주므로 안쪽의 같은 제목은 숨긴다(추가 버튼과 설명은 남긴다). */

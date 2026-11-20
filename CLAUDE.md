@@ -69,6 +69,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 새 사이트 이미지 업로드는 WebP와 320/640/960/1280px 사본을 R2에 함께 저장한다. URL에 저장된 실제 크기가 들어가며 `productImage.ts`가 그 사본만 srcset에 넣는다. 기존 이미지는 재업로드 전까지 원본을 쓴다. 별도 Cloudflare Image Transformations는 존에서 활성화·검증한 뒤 `VITE_IMAGE_TRANSFORM=1`로만 켠다.
 - 상품의 대표·본문 이미지는 업로드 후 **상품 저장 + 판매중**일 때 공개된다(본문 이미지는 상세에만 표시). 배너는 **변경사항 저장** 후 공개된다. 같은 출처의 열린 홈은 저장 이벤트로 갱신하며, 다른 브라우저는 포커스/최대 60초 조회로 갱신한다.
 - PC·모바일 홈 메인 배너는 `useHeroBanners`의 `heroBanners` 조회를 공유한다. 조회 전에는 같은 크기의 로딩 화면, 처음 조회 실패 시에는 재시도를 표시한다. 기본 견적 배너는 정상 응답에서 등록 배너가 실제로 없을 때만 표시하며, 재조회 실패 시 이미 받은 배너는 유지한다.
+- Cloudflare가 `.css`·`.js`에 브라우저 캐시 4시간(`max-age=14400`)을 붙인다(`_headers`의 no-cache를 덮음, 존 설정). 그래서 `npm run build` 마지막의 `scripts/stamp-public-assets.mjs`가 dist의 정적 문서(견적 도구·견적 고객 페이지)에서 공용 CSS·JS 주소에 내용 버전 `?v=`를 붙인다. public 원본 문서에는 `?v=`를 적지 말 것.
 - 공개 이미지 `/api/images/*`·`/api/img/images/*`만 immutable 캐시를 허용한다. 견적 고객 첨부 `FILES/uploads/*`와 JSON·관리자 API의 no-store를 풀지 말 것.
 
 ## 4. 화면 구조 메모
