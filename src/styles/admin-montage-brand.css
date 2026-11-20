@@ -1,0 +1,18 @@
+@import "@montage-ui/core/theme.css";
+/* ============================================================
+   Montage 부품(@montage-ui/core)의 브랜드 값을 은하수 민트로 바꾼다.
+   - @montage-ui/core/theme.css(Montage 기본 브랜드 파랑) 다음에 읽힌다.
+   - 값은 Claude Design "은하수 관리자 (Montage)" 시안의 덮어쓰기와 같고, public/admin-tokens.css의
+     --adm-accent* 와 같은 색이다. 관리자 화면 묶음에만 들어가므로 고객 화면에는 영향이 없다.
+   ============================================================ */
+:root {
+  --semantic-surface-brand-primary: var(--adm-accent);         --semantic-surface-brand-primary-rgb: 6, 196, 160;
+  --semantic-surface-brand-strong: var(--adm-accent-hover);    --semantic-surface-brand-strong-rgb: 5, 176, 145;
+  --semantic-surface-brand-heavy: #049C80;                     --semantic-surface-brand-heavy-rgb: 4, 156, 128;
+  --semantic-surface-brand-subtle: var(--adm-accent-soft);     --semantic-surface-brand-subtle-rgb: 6, 196, 160;
+  --semantic-foreground-brand-primary: var(--adm-accent-strong); --semantic-foreground-brand-primary-rgb: 3, 134, 110;
+  --semantic-foreground-brand-inverse: var(--adm-accent);      --semantic-foreground-brand-inverse-rgb: 6, 196, 160;
+  --semantic-line-brand-primary: var(--adm-accent-line);       --semantic-line-brand-primary-rgb: 6, 196, 160;
+  --semantic-line-brand-strong: #06C4A06E;                     --semantic-line-brand-strong-rgb: 6, 196, 160;
+  --semantic-line-brand-focus: #06C4A01F;                      --semantic-line-brand-focus-rgb: 6, 196, 160;
+}

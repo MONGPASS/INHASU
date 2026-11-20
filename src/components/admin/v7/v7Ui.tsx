@@ -19,7 +19,7 @@ export type V7Tone = 'red' | 'mint' | 'amber' | 'blue' | 'gray' | 'solid';
 /** 상태 표시 칩(읽기 전용). dot은 왼쪽 점. */
 export const chip = (tone: V7Tone, dot: boolean, x?: Css): Css => {
     const T = CT[tone] || CT.gray, d = tone === 'solid' ? '#fff' : T[3];
-    return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: dot ? '0 9px 0 19px' : '0 9px', boxSizing: 'border-box', borderRadius: 999, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+    return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: dot ? '0 9px 0 19px' : '0 9px', boxSizing: 'border-box', borderRadius: 'var(--adm-radius-xs)', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
         background: (dot ? `radial-gradient(circle at 10px 50%, ${d} 2.6px, ${tone === 'solid' ? 'transparent' : T[2]} 3px, transparent 4.6px), ` : '') + `linear-gradient(180deg,${T[0]},${T[1]})`,
         boxShadow: `inset 0 0 0 1px ${T[2]}` + (tone === 'solid' ? ', 0 2px 8px rgba(var(--adm-accent-rgb),.22)' : ''), color: T[3], ...(x || {}) };
 };
@@ -29,7 +29,7 @@ export type PillTone = 'red' | 'mint' | 'gray' | 'amber' | 'blue' | 'ink' | 'sol
 export const pill = (tone: PillTone, x?: Css): Css => {
     const T = ({ red: CT.red, mint: CT.mint, gray: ['#fff', 'var(--adm-gray-100)', 'var(--adm-line)', 'var(--adm-text-2)'], amber: CT.amber, blue: CT.blue, ink: [V7_INK, V7_INK, V7_INK, '#fff'], solid: ['var(--adm-accent)', 'var(--adm-accent-strong)', 'var(--adm-accent-strong)', '#fff'] } as Record<PillTone, string[]>)[tone];
     const filled = tone === 'ink' || tone === 'solid', dot = filled ? '#fff' : T[3];
-    return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px 0 20px', border: 0, borderRadius: 999, font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
+    return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px 0 20px', border: 0, borderRadius: 'var(--adm-radius-sm)', font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
         background: `radial-gradient(circle at 11px 50%, ${dot} 3px, ${filled ? 'transparent' : T[2]} 3.4px, transparent 5px), linear-gradient(180deg,${T[0]},${T[1]})`,
         boxShadow: `inset 0 0 0 1px ${T[2]}` + (tone === 'solid' ? ', 0 2px 8px rgba(var(--adm-accent-rgb),.22)' : ''), color: T[3], ...(x || {}) };
 };
@@ -39,7 +39,7 @@ export const sel = (empty: boolean, x?: Css): Css => ({ display: 'inline-flex', 
     background: 'var(--adm-surface)', boxShadow: empty ? 'inset 0 0 0 1.5px var(--adm-danger-line)' : 'inset 0 0 0 1px var(--adm-line)', color: empty ? 'var(--adm-danger)' : V7_INK, ...(x || {}) });
 
 /** 배정 칩(목록의 가이드·차량·숙소). c는 점 색. */
-export const dchip = (c: string, bad: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 5, height: 28, padding: '0 10px 0 20px', boxSizing: 'border-box', border: 0, borderRadius: 999, font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer', flex: '0 0 auto',
+export const dchip = (c: string, bad: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 5, height: 28, padding: '0 10px 0 20px', boxSizing: 'border-box', border: 0, borderRadius: 'var(--adm-radius-sm)', font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer', flex: '0 0 auto',
     background: `radial-gradient(circle at 10px 50%, ${c} 3px, transparent 3.6px), ${bad ? 'var(--adm-danger-soft)' : 'var(--adm-gray-100)'}`, boxShadow: `inset 0 0 0 1px ${bad ? 'var(--adm-danger-line)' : 'var(--adm-line-subtle)'}`, color: bad ? 'var(--adm-danger)' : V7_INK, ...(x || {}) });
 
 export const checkBox = (on: boolean): Css => ({ width: 18, height: 18, padding: 0, borderRadius: 'var(--adm-radius-xs)', border: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -47,8 +47,8 @@ export const checkBox = (on: boolean): Css => ({ width: 18, height: 18, padding:
 
 export const card: Css = { display: 'flex', flexDirection: 'column', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)', scrollMarginTop: 88 };
 export const iconTile = (size = 30): Css => ({ width: size, height: size, flex: 'none', borderRadius: size >= 34 ? 10 : size >= 30 ? 10 : 9, background: 'var(--adm-gray-100)', color: 'var(--adm-text-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' });
-export const ghostBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 14px', border: 0, borderRadius: 999, background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px var(--adm-line)', font: 'inherit', fontSize: 13, fontWeight: 700, color: V7_INK, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
-export const inkBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 16px', border: 0, borderRadius: 999, background: 'var(--adm-primary-bg)', font: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
+export const ghostBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 14px', border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px var(--adm-line)', font: 'inherit', fontSize: 13, fontWeight: 700, color: V7_INK, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
+export const inkBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 16px', border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-primary-bg)', font: 'inherit', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
 
 export const Ico = ({ name, size = 14, color }: { name: DashboardIconName; size?: number; color?: string }) => <DashboardIcon name={name} size={size} color={color} />;
 
