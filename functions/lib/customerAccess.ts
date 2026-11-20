@@ -56,6 +56,37 @@ export function readCustomerRequestData(json: string | null) {
     return {};
 }
 
+const VALID_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+/**
+ * Google 로그인 이메일로 아직 아무 계정에도 연결되지 않은 맞춤 견적(`requests`)을 연결한다.
+ * - Google이 로그인 때 `email_verified=true`로 이 이메일의 주인임을 확인했다. 기록에 적힌 이메일로
+ *   인증번호를 보내 확인하는 것과 같은 수준의 본인 확인이다(오너 결정 2026-11-20).
+ * - 기록의 이메일(`data.email`, 관리자가 견적서 만들기에서 입력하거나 고객이 문의 때 적은 값)과 정확히 같을 때만.
+ * - 이미 다른 계정에 연결된 기록, 받는 사람이 정해지지 않은 공유 견적은 건드리지 않는다.
+ * - 연결과 이메일 확인을 한 문장(조건부 INSERT)으로 해, 확인 뒤 이메일이 바뀐 기록은 연결하지 않는다.
+ * `requestId`를 주면 그 기록만, 없으면 이 이메일의 기록을 모두(최대 50건) 연결한다. 연결한 건수를 돌려준다.
+ */
+export async function claimRequestsByGoogleEmail(env: AccessEnv, user: any, requestId?: string): Promise<number> {
+    const email = String(user?.email || '').trim().toLowerCase();
+    if (!user?.googleId || user.role === 'admin' || !VALID_EMAIL.test(email)) return 0;
+    await ensureCustomerAccessTables(env);
+    const unowned = "NOT EXISTS(SELECT 1 FROM customer_resource_links l WHERE l.source='request' AND l.resource_id=r.id)";
+    const sameEmail = "lower(trim(COALESCE(json_extract(r.data,'$.email'),'')))=?";
+    const candidates = requestId
+        ? await env.DB.prepare(`SELECT r.id,r.name,r.data FROM requests r WHERE r.id=? AND ${unowned} AND json_valid(r.data) AND ${sameEmail}`).bind(requestId, email).all()
+        : await env.DB.prepare(`SELECT r.id,r.name,r.data FROM requests r WHERE ${unowned} AND json_valid(r.data) AND ${sameEmail} ORDER BY r.received_at DESC LIMIT 50`).bind(email).all();
+    let linked = 0;
+    for (const row of candidates.results || []) {
+        const data = readCustomerRequestData(row.data);
+        if (!isPersonalCustomerRequest(data.source, data.name ?? row.name)) continue;
+        const result = await env.DB.prepare(`INSERT OR IGNORE INTO customer_resource_links(source,resource_id,user_id,created_at)
+            SELECT 'request',r.id,?,? FROM requests r WHERE r.id=? AND COALESCE(r.data,'')=? AND ${unowned} AND ${sameEmail}`)
+            .bind(user.id, new Date().toISOString(), row.id, row.data || '', email).run();
+        if (Number(result?.meta?.changes) === 1) linked++;
+    }
+    return linked;
+}
+
 const verificationPhone = (value: unknown) => String(value ?? '').replace(/\D/g, '').replace(/^(?:0082|82)0?(?=1\d{8,9}$)/, '0');
 
 export async function customerResource(env: AccessEnv, source: CustomerSource, key: string) {

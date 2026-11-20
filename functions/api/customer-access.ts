@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { accessJson, customerAdminToken, customerResource, customerSession, customerWriteOrigin, isPersonalCustomerRequest,
+import { accessJson, claimRequestsByGoogleEmail, customerAdminToken, customerResource, customerSession, customerWriteOrigin, isPersonalCustomerRequest,
     ensureCustomerAccessTables, readCustomerRequestData, validCustomerResource, type CustomerSource } from '../lib/customerAccess.ts';
 import { sendEmail, baseLayout } from '../lib/mailer';
 import { sendSms, kakaoDeliveryResult } from './_solapi.js';
@@ -75,6 +75,8 @@ app.get('/status', async c => {
     if (!resource) return deny('not_found', '기록을 찾을 수 없습니다.', 404);
     if (admin || resource.owner === user?.id) return accessJson({ ok: true, state: 'linked', channels: [], codeLength: 8 });
     if (resource.owner) return deny('access_denied', '이 계정으로 확인할 수 없는 기록입니다.', 403);
+    // 견적에 적힌 이메일과 Google이 확인한 로그인 이메일이 같으면 인증번호 없이 바로 연결한다.
+    if (source === 'request' && await claimRequestsByGoogleEmail(c.env, user, resource.id)) return accessJson({ ok: true, state: 'linked', channels: [], codeLength: 8 });
     const channels = secret(c.env) ? contacts(resource, c.env).map(({ kind, masked }) => ({ kind, masked })) : [];
     return accessJson({ ok: true, state: channels.length ? 'verification_required' : 'unavailable', channels, codeLength: 8,
         staffReviewAvailable: source === 'request' && canRequestStaffReview(resource.data, resource.row.name, resource.row.status) });
@@ -257,6 +259,8 @@ app.get('/history', async c => {
     const user = await customerSession(c.req.raw, c.env);
     if (!user?.googleId) return login();
     await ensureCustomerAccessTables(c.env);
+    // 마이페이지를 열면 이 Google 이메일로 받은 견적·예약(아직 미연결)을 먼저 연결한다.
+    await claimRequestsByGoogleEmail(c.env, user);
     const requests = await c.env.DB.prepare(`SELECT r.* FROM requests r JOIN customer_resource_links l
         ON l.source='request' AND l.resource_id=r.id WHERE l.user_id=? ORDER BY r.received_at DESC LIMIT 200`).bind(user.id).all();
     const quotes = await c.env.DB.prepare('SELECT id,status,destination,period,headcount,created_at FROM quotes WHERE user_id=? ORDER BY created_at DESC LIMIT 200').bind(user.id).all();
