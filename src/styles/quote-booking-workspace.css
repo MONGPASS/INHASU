@@ -8,7 +8,7 @@
 .quote-customer-editor-shell.is-expanded{flex:1;height:auto;min-height:0;max-width:none;margin:0;border:0;border-radius:0}
 /* Customer editor heading — Admin Dashboard v3 "일정표 편집": back pill, name + glow badge.
    The share/guide actions continue directly below inside the frame (body>header). */
-.quote-customer-editor-heading{position:relative;z-index:3;display:flex;flex:none;align-items:center;gap:14px;padding:10px 28px;border-bottom:1px solid var(--adm-line);background:var(--adm-surface);font-family:Pretendard,system-ui,sans-serif}
+.quote-customer-editor-heading{position:relative;z-index:3;display:flex;flex:none;align-items:center;gap:14px;padding:10px var(--adm-pad-page);border-bottom:1px solid var(--adm-line);background:var(--adm-surface);font-family:Pretendard,system-ui,sans-serif}
 .quote-customer-editor-heading>div{min-width:0}
 .quote-customer-focus-identity{flex:1}
 .quote-customer-editor-heading h2{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:0;color:var(--adm-ink);font-size:20px;font-weight:var(--adm-fw-bold);letter-spacing:-.03em;line-height:1.4;overflow-wrap:anywhere}
@@ -144,7 +144,7 @@
 .customer-booking-editor #resetSignBtn{border-color:transparent;background:var(--adm-danger-soft);color:var(--adm-danger)!important}
 
 /* Underline tab bar. */
-.customer-booking-editor #admin-booking-navigation{top:var(--cbe-head);max-width:none;margin:0;padding:0 28px;border-bottom:1px solid var(--cbe-line);background:var(--adm-surface)}
+.customer-booking-editor #admin-booking-navigation{top:var(--cbe-head);max-width:none;margin:0;padding:0 var(--adm-pad-page);border-bottom:1px solid var(--cbe-line);background:var(--adm-surface)}
 .customer-booking-editor .quote-native-tabs{gap:2px;margin:0;padding:0;border:0;border-radius:0;background:transparent;scrollbar-width:none}
 .customer-booking-editor .quote-native-tabs button{min-height:48px;height:48px;padding:0 14px;border-radius:0;background:transparent;color:var(--cbe-sub);font:500 14px/1 Pretendard,system-ui,sans-serif;box-shadow:inset 0 -2px 0 transparent}
 .customer-booking-editor .quote-native-tabs button:hover{background:transparent;color:var(--cbe-text)}
@@ -152,7 +152,7 @@
 .customer-booking-editor .quote-native-tabs button:focus-visible{outline:2px solid var(--cbe-ink);outline-offset:-4px}
 
 /* Content column and borderless white cards. */
-.customer-booking-editor main,.customer-booking-editor #admin-booking-history{max-width:none;margin:0;padding:20px 28px 24px}
+.customer-booking-editor main,.customer-booking-editor #admin-booking-history{box-sizing:border-box;max-width:var(--adm-content-max);margin:0;padding:20px var(--adm-pad-page) 24px}
 .customer-booking-editor main{gap:16px}
 .customer-booking-editor section.card{padding:22px 24px;border:0;border-radius:var(--adm-radius-md);background:var(--adm-surface);box-shadow:var(--cbe-shadow)}
 .customer-booking-editor .sec-h{align-items:center;gap:8px 12px;margin-bottom:16px}
@@ -268,7 +268,7 @@
 .customer-booking-editor .spot-order{flex:none;color:var(--cbe-mint);font-size:13px;font-weight:var(--adm-fw-bold)}
 
 /* Bottom bar: step text left, white secondary + one black primary right. */
-.customer-booking-editor .savebar{justify-content:flex-start;gap:16px;padding:14px 28px;border-top:1px solid var(--cbe-line);background:rgba(255,255,255,.96);box-shadow: var(--adm-shadow-lg)}
+.customer-booking-editor .savebar{justify-content:flex-start;gap:16px;padding:14px var(--adm-pad-page);border-top:1px solid var(--cbe-line);background:rgba(255,255,255,.96);box-shadow: var(--adm-shadow-lg)}
 .customer-booking-editor .save-context{flex:1;width:auto;min-width:0}
 .customer-booking-editor .save-context small{color:var(--cbe-mint);font-size:12px;font-weight:var(--adm-fw-bold)}
 .customer-booking-editor .save-context b{margin-top:2px;color:var(--cbe-text);font-size:14px;font-weight:var(--adm-fw-bold)}
