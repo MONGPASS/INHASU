@@ -125,7 +125,7 @@ DB에는 일본어 시절 값이 남을 수 있다(매거진 카테고리 `観�
 - 화면 안 알림 상자(초안 복원·주의·오류 안내)는 `className="adm-msg"`(+ `is-cautionary`/`is-negative`/`is-positive`, Montage SectionMessage 모양, 정의는 `admin-tokens.css` 끝)를 쓰고 상태색 바탕 상자를 새로 그리지 말 것.
 - 알림은 `adminNotify()`, 확인 창은 `await adminConfirm()`(`src/components/admin/ui/adminFeedback.tsx`)을 쓴다. 관리자 코드에 `alert()`·`confirm()`을 새로 쓰지 말 것(`tests/admin-design-tokens.test.mjs`가 검사). 화면 이동 차단(`useBlocker`)의 확인은 `adminConfirmLeave(blocker, 문구)`(`ui/adminLeaveConfirm.ts`)를 쓴다. 그 자리에서 참·거짓을 돌려줘야 하는 나가기 보호 6곳만 `window.confirm`을 유지한다(디자인 문서 7절).
 - 견적 도구의 확인·입력 창은 `await AdminDialog.confirm()`/`AdminDialog.prompt()`(`public/admin-dialog.js`)을 쓴다. 견적 문의·견적 예약 목록·견적서 만들기는 테스트가 `confirm`을 바꿔 끼우므로 `await (typeof AdminDialog !== "undefined" ? AdminDialog.confirm : confirm)(…)` 꼴로 쓴다(화면에서는 공통 창).
-- 견적 도구의 편집 서랍은 짧은 입력 600px, 코스 추가·편집은 가운데 넓은 창(최대 960px, 두 칸)이다. 서랍 뒤 막(`#overlay.on`)이 열리면 `admin-embed.js`가 바깥에 `inhasu-embed-overlay`를 보내 `AdminQuoteDesk`가 바깥 메뉴·제목도 덮는다(새 도구도 `#overlay`를 쓰면 자동 적용).
+- 견적 도구의 추가·편집 창()은 데스크톱에서 모두 가운데 창이다: 일정·명소·등록 정보·견적 문의 상세 640px, 코스 추가·편집 960px(두 칸). 휴대폰은 아래 시트. 서랍 뒤 막(`#overlay.on`)이 열리면 `admin-embed.js`가 바깥에 `inhasu-embed-overlay`를 보내 `AdminQuoteDesk`가 바깥 메뉴·제목도 덮는다(새 도구도 `#overlay`를 쓰면 자동 적용).
 - 견적 도구(iframe)의 버튼·입력창·서랍·알림 모양은 `public/admin-tools.css` 한 파일이 관리자 안(`html.admin-embedded`)에서만 맞춘다. 각 문서의 `<style>`에 관리자용 모양을 따로 덧붙이지 말 것. `예약관리.html`은 아직 연결하지 않았다.
 - 적용은 단계별이다(문서 1절). 공통 변수·휴대폰 앱 틀·공통 알림까지 끝났고 확인 창 교체·견적 도구 규격·필수 입력 표시(일부 화면)까지 끝났고 나머지 공통 부품·유형별 틀·나가기 보호는 남아 있다.
 - 필수 입력은 라벨 `className="adm-req"` + 저장 함수의 `adminValidateRequired()`(`src/components/admin/ui/adminForm.ts`)를 쓴다. 라벨 글자에 `*`를 직접 적거나 알림으로 필수 입력을 알리지 말 것.
