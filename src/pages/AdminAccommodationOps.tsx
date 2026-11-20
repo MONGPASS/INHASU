@@ -655,9 +655,9 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             title="숙소 배정 · 현지 운영"
         >
             <div className="lo-board">
-            {notice && <div className="lo-notice" role="status">{notice}</div>}
-            {loadWarnings.map((warning, i) => <div key={i} role="alert" className="lo-notice is-warn">{warning}</div>)}
-            {Object.keys(pendingDrafts).length > 0 && <div className="lo-notice is-draft" role="status">복구 가능한 배정 초안 {Object.keys(pendingDrafts).length}건이 있어요. 펼친 예약에서 복원 또는 버리기를 골라 주세요.</div>}
+            {notice && <div className="lo-notice adm-msg" role="status">{notice}</div>}
+            {loadWarnings.map((warning, i) => <div key={i} role="alert" className="lo-notice is-warn adm-msg is-cautionary">{warning}</div>)}
+            {Object.keys(pendingDrafts).length > 0 && <div className="lo-notice is-draft adm-msg is-cautionary" role="status">복구 가능한 배정 초안 {Object.keys(pendingDrafts).length}건이 있어요. 펼친 예약에서 복원 또는 버리기를 골라 주세요.</div>}
 
             {view === 'card-view' && <>
             <div className="lo-summary">
@@ -787,7 +787,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                             </div>
                             {open && (
                                 <div className="lo-detail">
-                                    {pendingDrafts[r.id] && <div className="lo-notice is-draft" role="status">
+                                    {pendingDrafts[r.id] && <div className="lo-notice is-draft adm-msg is-cautionary" role="status">
                                         <p>{pendingDrafts[r.id].conflict ? '초안 보관 후 서버 예약이 변경되었습니다. 현재 예약에 초안 배정을 적용할지 확인하세요.' : '이 계정과 예약에 보관된 배정 초안이 있습니다.'}</p>
                                         <span className="lo-actions">
                                             <button type="button" className="lo-btn is-ink" disabled={!!savingId} onClick={() => resolveDraft(r, true)}>초안 복원</button>

@@ -1891,8 +1891,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     return (<>
         <div className={fullPage ? `product-customer-page${workflowOpen ? ' cw-is-working' : ''}` : 'drawer-scrim reservation-workspace-scrim'} onClick={fullPage ? undefined : closeWorkspace}>
             <div className={`drawer reservation-workspace product-workspace tcom${fullPage ? ' product-customer-fullpage' : ''}`} role={fullPage ? 'region' : 'dialog'} aria-modal={fullPage ? undefined : true} aria-label="상품 예약 상세 작업" onClick={e => e.stopPropagation()}>
-                {navigationNotice && (!fullPage || !workflowOpen) && <div role="status" aria-live="polite" style={{ padding: '10px 16px', background: 'var(--adm-warn-soft)', color: 'var(--adm-warn-strong)', fontSize: 13 }}>{navigationNotice}</div>}
-                {docDraftPending && (!fullPage || !workflowOpen) && <div role="status" style={{ padding: '10px 16px', background: 'var(--adm-accent-soft)', color: 'var(--adm-accent-strong)', fontSize: 13, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><button type="button" className="btn btn-ghost btn-sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</button></div>}
+                {navigationNotice && (!fullPage || !workflowOpen) && <div role="status" aria-live="polite" className="adm-msg is-cautionary" style={{ margin: '12px 16px 0' }}>{navigationNotice}</div>}
+                {docDraftPending && (!fullPage || !workflowOpen) && <div role="status" className="adm-msg is-cautionary" style={{ margin: '12px 16px 0' }}><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><button type="button" className="btn btn-ghost btn-sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</button></div>}
 
                 {fullPage && <>
                     <div id="product-customer-overview" hidden={workflowOpen}>

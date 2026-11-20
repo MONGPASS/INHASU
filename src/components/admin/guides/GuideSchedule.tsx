@@ -698,7 +698,7 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                             <i style={{ background: c.on ? 'var(--adm-surface)' : t[2] }} />{c.label}<b>{c.n}</b>{c.unit}</button>; })}
                 </div>
             </div>
-            {warnings.map((w, i) => <div key={i} className="gs-notice" role="alert">{w}</div>)}
+            {warnings.map((w, i) => <div key={i} className="gs-notice adm-msg is-cautionary" role="alert">{w}</div>)}
 
             {loading && !items.length ? <p className="gs-empty">배정 현황을 불러오고 있어요…</p> : view === 'cal' ? (
                 <div className="gs-cal-wrap">

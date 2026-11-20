@@ -137,3 +137,52 @@
     --adm-gap-section: 16px;
   }
 }
+
+
+/* ============================================================
+   화면 안 알림 = Montage SectionMessage (React 관리자·견적 도구 공통)
+   - 모서리 12px·안쪽 12px, 흰 바탕 위에 상태색 5%, 왼쪽 20px 상태 아이콘(Montage 아이콘 모양)
+   - 제목 15px 500(진한 글자), 설명 14px(보조 글자), 아래 글자 버튼(첫 버튼 민트, 나머지 회색)
+   - 종류: 기본 안내(민트) · .is-cautionary(주의, 주황) · .is-negative(오류, 빨강) · .is-positive(완료, 초록)
+   - 견적 도구 스크립트가 만드는 초안 복원·원본 오류 알림([data-quote-recovery])도 같은 모양으로 덮는다(스크립트는 그대로).
+   ============================================================ */
+:root {
+  --adm-msg-icon-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M2.09998 11.9996C2.09998 6.53199 6.53234 2.09961 11.9999 2.09961C17.4675 2.09961 21.8999 6.53199 21.8999 11.9996C21.8999 17.4672 17.4675 21.8996 11.9999 21.8996C6.53234 21.8996 2.09998 17.4672 2.09998 11.9996ZM12.9999 7.99951C12.9999 8.5518 12.5522 8.99951 11.9999 8.99951C11.4476 8.99951 10.9999 8.5518 10.9999 7.99951C10.9999 7.44723 11.4476 6.99951 11.9999 6.99951C12.5522 6.99951 12.9999 7.44723 12.9999 7.99951ZM12 10.5995C12.4971 10.5995 12.9 11.0025 12.9 11.4995V15.9995C12.9 16.4966 12.4971 16.8995 12 16.8995C11.503 16.8995 11.1 16.4966 11.1 15.9995V11.4995C11.1 11.0025 11.503 10.5995 12 10.5995Z'/%3E%3C/svg%3E");
+  --adm-msg-icon-cautionary: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M10.8203 3.10033C11.5711 2.76604 12.4285 2.76604 13.1793 3.10033C13.7027 3.33333 14.0805 3.76043 14.4088 4.22516C14.7343 4.68589 15.0924 5.30622 15.5282 6.06096L20.639 14.9133C21.0748 15.668 21.4329 16.2883 21.6692 16.8006C21.9075 17.3173 22.0885 17.858 22.0286 18.4277C21.9427 19.2451 21.514 19.9877 20.8491 20.4708C20.3856 20.8075 19.8268 20.9211 19.2602 20.9731C18.6984 21.0246 17.9821 21.0246 17.1106 21.0246H6.88896C6.01747 21.0246 5.30117 21.0246 4.73942 20.9731C4.17278 20.9211 3.614 20.8075 3.15055 20.4708C2.48563 19.9877 2.05693 19.2451 1.97102 18.4277C1.91114 17.858 2.09211 17.3173 2.33041 16.8006C2.56666 16.2883 2.92482 15.668 3.36057 14.9132L8.47142 6.06097C8.90715 5.30622 9.26529 4.68589 9.5908 4.22516C9.91914 3.76043 10.2969 3.33333 10.8203 3.10033ZM12 8.09961C12.497 8.09961 12.9 8.50255 12.9 8.99961V12.9996C12.9 13.4967 12.497 13.8996 12 13.8996C11.5029 13.8996 11.1 13.4967 11.1 12.9996V8.99961C11.1 8.50255 11.5029 8.09961 12 8.09961ZM12.9998 16.4996C12.9998 17.0519 12.5521 17.4996 11.9998 17.4996C11.4476 17.4996 10.9998 17.0519 10.9998 16.4996C10.9998 15.9473 11.4476 15.4996 11.9998 15.4996C12.5521 15.4996 12.9998 15.9473 12.9998 16.4996Z'/%3E%3C/svg%3E");
+  --adm-msg-icon-negative: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M2.10004 11.9996C2.10004 6.53199 6.5324 2.09961 12 2.09961C17.4676 2.09961 21.9 6.53199 21.9 11.9996C21.9 17.4672 17.4676 21.8996 12 21.8996C6.5324 21.8996 2.10004 17.4672 2.10004 11.9996ZM9.1364 7.86324C8.78493 7.51177 8.21508 7.51177 7.86361 7.86324C7.51214 8.21471 7.51214 8.78456 7.86361 9.13603L10.7272 11.9996L7.86361 14.8632C7.51214 15.2147 7.51214 15.7846 7.86361 16.136C8.21508 16.4875 8.78493 16.4875 9.1364 16.136L12 13.2724L14.8636 16.136C15.2151 16.4875 15.7849 16.4875 16.1364 16.136C16.4878 15.7846 16.4878 15.2147 16.1364 14.8632L13.2728 11.9996L16.1364 9.13603C16.4878 8.78456 16.4878 8.21471 16.1364 7.86324C15.7849 7.51177 15.2151 7.51177 14.8636 7.86324L12 10.7268L9.1364 7.86324Z'/%3E%3C/svg%3E");
+  --adm-msg-icon-positive: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M2.10004 11.9996C2.10004 6.53199 6.5324 2.09961 12 2.09961C17.4676 2.09961 21.9 6.53199 21.9 11.9996C21.9 17.4672 17.4676 21.8996 12 21.8996C6.5324 21.8996 2.10004 17.4672 2.10004 11.9996ZM16.6467 9.87545C16.9924 9.51829 16.9831 8.94852 16.6259 8.60283C16.2688 8.25713 15.699 8.26642 15.3533 8.62357L10.6774 13.4545L8.64757 11.3517C8.30236 10.9941 7.73261 10.984 7.37498 11.3292C7.01736 11.6745 7.0073 12.2442 7.3525 12.6018L10.029 15.3746C10.1984 15.5501 10.4319 15.6493 10.6759 15.6495C10.9199 15.6497 11.1535 15.5508 11.3232 15.3754L16.6467 9.87545Z'/%3E%3C/svg%3E");
+}
+.adm-msg, [data-quote-recovery] {
+  --msg-tone: var(--adm-accent); --msg-icon-color: var(--adm-accent-strong); --msg-icon: var(--adm-msg-icon-info);
+  position: relative; box-sizing: border-box; margin: 0;
+  padding: 12px 12px 12px 40px !important; border: 0 !important; border-radius: 12px !important;
+  background: color-mix(in srgb, var(--msg-tone) 5%, var(--adm-surface)) !important; color: var(--adm-text-2) !important;
+  font-family: var(--adm-font) !important; font-size: var(--adm-fs-body) !important; font-weight: var(--adm-fw-regular) !important; line-height: 1.5 !important; text-align: left;
+}
+.adm-msg:not([hidden]), [data-quote-recovery] { display: block !important;
+}
+.adm-msg::before, [data-quote-recovery]::before {
+  content: ""; position: absolute; top: 13px; left: 12px; width: 20px; height: 20px; background: var(--msg-icon-color);
+  -webkit-mask: var(--msg-icon) center / 20px 20px no-repeat; mask: var(--msg-icon) center / 20px 20px no-repeat;
+}
+.adm-msg.is-cautionary, [data-quote-recovery] { --msg-tone: var(--adm-warn); --msg-icon-color: var(--adm-warn); --msg-icon: var(--adm-msg-icon-cautionary); }
+.adm-msg.is-negative, [data-quote-recovery="source"] { --msg-tone: var(--adm-danger); --msg-icon-color: var(--adm-danger); --msg-icon: var(--adm-msg-icon-negative); }
+.adm-msg.is-positive { --msg-tone: var(--adm-success); --msg-icon-color: var(--adm-success); --msg-icon: var(--adm-msg-icon-positive); }
+/* 제목: 첫 줄(strong) 또는 문장 하나뿐인 알림의 문장 */
+.adm-msg > strong:first-child, .adm-msg > b:first-child, .adm-msg > p:only-child, [data-quote-recovery] > p:first-child {
+  display: block; margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-medium); line-height: 22px;
+}
+.adm-msg p, .adm-msg > div { margin: 4px 0 0; }
+.adm-msg > p:first-child { margin-top: 0; }
+/* 아래 버튼 = Montage TextButton: 첫 버튼은 민트 글자, 나머지는 회색 글자 */
+.adm-msg button, [data-quote-recovery] > button {
+  display: inline-flex; align-items: center; height: 24px !important; min-height: 0 !important; margin: 8px 16px 0 0 !important; padding: 0 !important;
+  border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important;
+  color: var(--adm-text-2) !important; font: inherit; font-size: var(--adm-fs-body) !important; font-weight: var(--adm-fw-semibold) !important; cursor: pointer;
+}
+.adm-msg button:first-of-type, [data-quote-recovery] > button:first-of-type { color: var(--adm-accent-strong) !important; }
+.adm-msg button:hover:not(:disabled), [data-quote-recovery] > button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.adm-msg button:disabled { opacity: .4; cursor: default; }
+.adm-msg button:focus-visible, [data-quote-recovery] > button:focus-visible { outline: 0; box-shadow: var(--adm-ring) !important; border-radius: 4px !important; }
+/* 견적 도구의 떠 있는 알림: 화면 위에 붙고 본문 폭을 넘지 않는다 */
+[data-quote-recovery] { position: fixed !important; top: 12px !important; left: var(--adm-pad-page) !important; right: auto !important; z-index: 10000; width: min(640px, calc(100vw - 2 * var(--adm-pad-page))); box-shadow: var(--adm-shadow-md) !important; }

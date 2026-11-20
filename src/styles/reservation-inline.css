@@ -90,8 +90,8 @@
 
 /* One work surface: the parent toolbar owns save and preview. */
 .reservation-workspace.product-workspace .ri-editor-workflow { border:0; border-radius:0; background:var(--adm-surface); overflow:visible; }
-.reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status { margin:0; padding:14px 24px; border-width:0 0 1px; border-color:var(--adm-line); border-radius:0; background:var(--adm-gray-50); color:var(--adm-text-2); font-size:12px; }
-.reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status strong { color:var(--adm-text-2); font-weight:650; }
+.reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status { margin:12px 16px; padding:14px 24px; border-width:0 0 1px; border-color:var(--adm-line); border-radius:0; background:var(--adm-gray-50); color:var(--adm-text-2); font-size:12px; }
+.reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status strong { color:var(--adm-ink); font-weight:var(--adm-fw-medium); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status.is-warning { background:var(--adm-warn-soft); border-color:var(--adm-warn-line); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-modes { padding:16px 24px; gap:8px; background:var(--adm-surface); border-bottom:1px solid var(--adm-line-subtle); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-modes button { min-height:40px; padding:9px 18px; border-radius:var(--adm-radius-sm); font-size:14px; }
