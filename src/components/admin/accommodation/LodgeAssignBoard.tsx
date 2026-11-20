@@ -172,7 +172,7 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
     const patchNight = (m: typeof model[number], index: number, patch: Patch) => onPatch(m.tour.id, index, patch, m.fill);
     const choose = <T extends string,>(items: Array<{ value: T; label: string; sub?: string }>, current: string, pick: (v: T) => void) => items.map(o => (
         <button key={o.value || '__none'} type="button" className="la-pop-item" onClick={() => { pick(o.value); setPop(null); }}>
-            <span><b>{o.label}</b>{o.sub && <small>{o.sub}</small>}</span>{current === o.value && <DashboardIcon name="lc-check" size={16} color="#057a61" />}
+            <span><b>{o.label}</b>{o.sub && <small>{o.sub}</small>}</span>{current === o.value && <DashboardIcon name="lc-check" size={16} color="var(--adm-accent-strong)" />}
         </button>
     ));
     const renderPop = () => {
@@ -251,11 +251,11 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
                 <div className="la-pop-tabs">{tabs.map(t => <button key={t} type="button" className={t === tab ? 'is-on' : ''} onClick={() => setPop({ ...pop, tab: t })}>{t}</button>)}</div>
                 <label className="la-pop-search"><DashboardIcon name="lc-search" size={14} /><input autoFocus value={hotelQ} onChange={e => setHotelQ(e.target.value)} placeholder="숙소 이름으로 찾기" /></label>
                 <div className="la-pop-list">
-                    <button type="button" className="la-pop-item" onClick={() => { patchNight(m, idx, CLEAR_LODGE); setPop(null); }}><span><b>미배정</b><small>숙소 선택 해제</small></span>{!acc.name?.trim() && <DashboardIcon name="lc-check" size={16} color="#057a61" />}</button>
+                    <button type="button" className="la-pop-item" onClick={() => { patchNight(m, idx, CLEAR_LODGE); setPop(null); }}><span><b>미배정</b><small>숙소 선택 해제</small></span>{!acc.name?.trim() && <DashboardIcon name="lc-check" size={16} color="var(--adm-accent-strong)" />}</button>
                     {list.map(l => <button key={l.id} type="button" className="la-pop-item" onClick={() => {
                         onPatch(m.tour.id, idx, { ...selectResourceLodge(n.night, l).accommodation, ...(n.area ? { location: n.area, region: n.area } : {}) }, m.fill);
                         setPop(null); flash(`${label} · ${l.name} 선택했어요`);
-                    }}><span><b>{l.name}</b><small>{[l.region || l.location, l.type].filter(Boolean).join(' · ')}</small></span>{(acc.id ? acc.id === l.id : same(acc.name, l.name)) && <DashboardIcon name="lc-check" size={16} color="#057a61" />}</button>)}
+                    }}><span><b>{l.name}</b><small>{[l.region || l.location, l.type].filter(Boolean).join(' · ')}</small></span>{(acc.id ? acc.id === l.id : same(acc.name, l.name)) && <DashboardIcon name="lc-check" size={16} color="var(--adm-accent-strong)" />}</button>)}
                     {!list.length && <p className="la-pop-empty">{resourcesLoading ? '숙소를 불러오고 있어요…' : '조건에 맞는 등록 숙소가 없어요.'}</p>}
                     <button type="button" className="la-pop-item is-manual" onClick={() => {
                         setPop(null);

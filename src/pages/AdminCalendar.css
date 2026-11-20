@@ -123,7 +123,7 @@
 
 .tour-calendar .tc-tour-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
 .tour-calendar .tc-tour-card.is-selected { border: 1.5px solid var(--mrt-ink); padding: 13.5px; }
-.tour-calendar .tc-tour-card.is-conflict { border-color: color-mix(in srgb, var(--adm-danger) 32%, transparent); }
+.tour-calendar .tc-tour-card.is-conflict { border-color: var(--adm-danger-line); }
 .tour-calendar .tc-tour-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
 .tour-calendar .tc-tour-title { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
 .tour-calendar .tc-tour-title h3 { margin: 0; color: var(--text-strong); font-size: 17px; font-weight: var(--adm-fw-bold); letter-spacing: -.02em; overflow-wrap: anywhere; }

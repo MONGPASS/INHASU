@@ -10,8 +10,8 @@ export const V7_INK = 'var(--adm-ink)';
 export const V7_MUTED = 'var(--adm-text-3)';
 
 const CT: Record<string, [string, string, string, string]> = {
-    red: ['var(--adm-danger-soft)', 'var(--adm-danger-soft)', 'color-mix(in srgb, var(--adm-danger) 32%, transparent)', 'var(--adm-danger)'], mint: ['var(--adm-accent-soft)', 'var(--adm-accent-soft)', 'var(--adm-accent-line)', 'var(--adm-accent-strong)'],
-    amber: ['var(--adm-warn-soft)', 'var(--adm-warn-soft)', 'color-mix(in srgb, var(--adm-warn) 40%, transparent)', 'var(--adm-warn)'], blue: ['var(--adm-accent-soft)', 'var(--adm-accent-soft)', 'var(--adm-accent-line)', 'var(--adm-accent-strong)'],
+    red: ['var(--adm-danger-soft)', 'var(--adm-danger-soft)', 'var(--adm-danger-line)', 'var(--adm-danger)'], mint: ['var(--adm-accent-soft)', 'var(--adm-accent-soft)', 'var(--adm-accent-line)', 'var(--adm-accent-strong)'],
+    amber: ['var(--adm-warn-soft)', 'var(--adm-warn-soft)', 'var(--adm-warn-line)', 'var(--adm-warn)'], blue: ['var(--adm-accent-soft)', 'var(--adm-accent-soft)', 'var(--adm-accent-line)', 'var(--adm-accent-strong)'],
     gray: ['var(--adm-surface)', 'var(--adm-gray-100)', 'var(--adm-line)', 'var(--adm-text-2)'], solid: ['var(--adm-accent)', 'var(--adm-accent-strong)', 'var(--adm-accent-strong)', '#ffffff'],
 };
 export type V7Tone = 'red' | 'mint' | 'amber' | 'blue' | 'gray' | 'solid';
@@ -36,11 +36,11 @@ export const pill = (tone: PillTone, x?: Css): Css => {
 
 /** 선택 상자 모양 버튼. empty면 빨간 테두리(선택 필요). */
 export const sel = (empty: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 10px 0 12px', boxSizing: 'border-box', border: 0, borderRadius: 'var(--adm-radius-sm)', font: 'inherit', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
-    background: 'var(--adm-surface)', boxShadow: empty ? 'inset 0 0 0 1.5px color-mix(in srgb, var(--adm-danger) 32%, transparent)' : 'inset 0 0 0 1px var(--adm-line)', color: empty ? 'var(--adm-danger)' : V7_INK, ...(x || {}) });
+    background: 'var(--adm-surface)', boxShadow: empty ? 'inset 0 0 0 1.5px var(--adm-danger-line)' : 'inset 0 0 0 1px var(--adm-line)', color: empty ? 'var(--adm-danger)' : V7_INK, ...(x || {}) });
 
 /** 배정 칩(목록의 가이드·차량·숙소). c는 점 색. */
 export const dchip = (c: string, bad: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 5, height: 28, padding: '0 10px 0 20px', boxSizing: 'border-box', border: 0, borderRadius: 999, font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer', flex: '0 0 auto',
-    background: `radial-gradient(circle at 10px 50%, ${c} 3px, transparent 3.6px), ${bad ? 'var(--adm-danger-soft)' : 'var(--adm-gray-100)'}`, boxShadow: `inset 0 0 0 1px ${bad ? 'color-mix(in srgb, var(--adm-danger) 32%, transparent)' : 'var(--adm-line-subtle)'}`, color: bad ? 'var(--adm-danger)' : V7_INK, ...(x || {}) });
+    background: `radial-gradient(circle at 10px 50%, ${c} 3px, transparent 3.6px), ${bad ? 'var(--adm-danger-soft)' : 'var(--adm-gray-100)'}`, boxShadow: `inset 0 0 0 1px ${bad ? 'var(--adm-danger-line)' : 'var(--adm-line-subtle)'}`, color: bad ? 'var(--adm-danger)' : V7_INK, ...(x || {}) });
 
 export const checkBox = (on: boolean): Css => ({ width: 18, height: 18, padding: 0, borderRadius: 'var(--adm-radius-xs)', border: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: on ? 'linear-gradient(135deg,var(--adm-accent),var(--adm-accent-strong))' : '#fff', boxShadow: on ? 'none' : 'inset 0 0 0 1.5px var(--adm-line-strong)' });

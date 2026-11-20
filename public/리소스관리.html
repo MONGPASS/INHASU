@@ -45,7 +45,7 @@
   .rg-seg.sm { border-radius:var(--adm-radius-xs); }
   .tab, .cat-tab, .rg-view { display:inline-flex; align-items:center; gap:6px; flex:none; height:36px; padding:0 14px; border:0; border-radius:var(--adm-radius-xs); background:transparent; color:var(--low); font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap; }
   .tab:hover, .cat-tab:hover, .rg-view:hover { color:var(--ink); }
-  .tab.on, .cat-tab.on, .rg-view.on { background:var(--paper); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .tab.on, .cat-tab.on, .rg-view.on { background:var(--paper); color:var(--ink); box-shadow: var(--adm-shadow-xs); }
   .tab .cnt, .cat-tab .cnt { font-size:12px; font-weight:700; color:var(--low); }
   .cat-tab.on .cnt { color:var(--mint700); }
   .rg-view { height:34px; padding:0 10px; font-size:13px; }
@@ -72,11 +72,11 @@
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(232px,1fr)); gap:12px; }
   .res-card { display:flex; flex-direction:column; border-radius:var(--adm-radius-md); background:var(--paper); overflow:hidden; cursor:pointer; transition:box-shadow .14s; }
   .res-card.is-warn { box-shadow:inset 0 0 0 1px var(--div2); }
-  .res-card:hover { box-shadow:0 4px 16px rgba(33,33,36,.08); }
+  .res-card:hover { box-shadow: var(--adm-shadow-md); }
   .thumb { position:relative; aspect-ratio:4/3; background:var(--g100); display:flex; align-items:center; justify-content:center; color:var(--low); overflow:hidden; }
   .thumb img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
   .thumb .noimg { display:flex; flex-direction:column; align-items:center; gap:6px; font-size:13px; }
-  .thumb .type { position:absolute; left:10px; bottom:10px; height:24px; padding:0 8px; border-radius:var(--adm-radius-xs); display:inline-flex; align-items:center; background:var(--paper); font-size:12px; font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,.16); pointer-events:none; }
+  .thumb .type { position:absolute; left:10px; bottom:10px; height:24px; padding:0 8px; border-radius:var(--adm-radius-xs); display:inline-flex; align-items:center; background:var(--paper); font-size:12px; font-weight:700; box-shadow: var(--adm-shadow-xs); pointer-events:none; }
   .res-card .body { display:flex; flex-direction:column; gap:6px; padding:14px 16px 12px; }
   .res-card .nm { display:flex; align-items:baseline; gap:6px; min-width:0; }
   .res-card .nm b { font-size:16px; line-height:135%; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -116,7 +116,7 @@
   /* 편집 패널 */
   .overlay { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.2); opacity:0; pointer-events:none; transition:opacity .2s; }
   .overlay.on { opacity:1; pointer-events:auto; }
-  .drawer { position:fixed; top:0; right:0; bottom:0; z-index:41; width:min(460px,100vw); display:flex; flex-direction:column; background:var(--paper); box-shadow:-8px 0 24px rgba(0,0,0,.12); transform:translateX(105%); transition:transform .2s ease-out; }
+  .drawer { position:fixed; top:0; right:0; bottom:0; z-index:41; width:min(460px,100vw); display:flex; flex-direction:column; background:var(--paper); box-shadow: var(--adm-shadow-lg); transform:translateX(105%); transition:transform .2s ease-out; }
   .drawer.on { transform:none; }
   .dh { display:flex; align-items:center; gap:8px; height:60px; padding:0 20px; border-bottom:1px solid var(--div1); flex:none; }
   .dh h2 { font-size:17px; font-weight:700; }
@@ -266,7 +266,7 @@ const TYPES = {
 /* 종류 표시 색(디자인 TC) — 공백을 무시하고 맞춘다. 모르는 값은 회색. */
 const TONE_OF = { "가이드":"carrot", "전문가이드":"blue", "드라이빙가이드":"yellow", "가이드겸드라이버":"purple", "전문가이드+기사":"blue",
   "고급게르":"carrot", "일반게르":"gray", "호텔":"purple", "5성급":"purple", "4성급":"blue", "게스트하우스":"yellow" };
-const TONES = { carrot:["#ECFDF7","#067661"], blue:["#EDF6FC","#0178AD"], yellow:["#E2F8F4","#059176"], purple:["#F4F5FD","#5755BD"], gray:["#f2f3f6","#868b94"] };
+const TONES = { carrot:["#F3FCFA","#03866E"], blue:["#E5F6FE","#008DCF"], yellow:["#FEF4E6","#9C5800"], purple:["#F0ECFE","#5B37ED"], gray:["#F4F4F5","#5A5C63"] }; // Montage: 민트(브랜드 옅은 바탕을 흰 위에 섞은 값)·lightBlue-95·orange-95·violet-95·coolNeutral-98 / 글자 단계
 const toneOf = t => TONES[TONE_OF[String(t || "").replace(/\s+/g, "")] || "gray"];
 
 const requestedResourceType = new URLSearchParams(location.search).get("resourceType");

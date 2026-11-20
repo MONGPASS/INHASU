@@ -12,8 +12,8 @@
   background: var(--adm-surface); font: inherit; font-size: 13px; font-weight: 700; color: var(--text-strong); white-space: nowrap; text-decoration: none; cursor: pointer; transition: background 160ms, border-color 160ms; }
 .action:hover { background: var(--mrt-gray-50); }
 .action:disabled { cursor: default; opacity: .6; }
-.actionMain { border: 0; background: linear-gradient(135deg, var(--adm-accent), var(--adm-accent-deep)); color: #fff; box-shadow: 0 4px 12px rgba(18,168,128,.25); }
-.actionMain:hover { background: linear-gradient(135deg, var(--adm-accent), var(--adm-accent-deep)); }
+.actionMain { border: 0; background: var(--adm-accent); color: #fff; box-shadow: var(--adm-shadow-md); }
+.actionMain:hover { background: var(--adm-accent); }
 
 .warning { padding: 14px 18px; border: 1px solid var(--adm-warn); border-radius: var(--r-md); background: var(--adm-warn-soft); color: var(--adm-warn-strong); font-size: 13px; line-height: 1.6; }
 .warning ul { margin: 4px 0; padding-left: 20px; }
@@ -26,21 +26,21 @@
 .tile { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; min-height: 150px; padding: 22px 22px 20px; box-sizing: border-box;
   border-radius: var(--adm-radius-md); background: var(--adm-surface); box-shadow: var(--dash-shadow); color: inherit; text-decoration: none; transition: transform 160ms, box-shadow 160ms;
   container-type: inline-size; }
-.tile:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(16,24,40,.09), 0 1px 2px rgba(16,24,40,.04); }
+.tile:hover { transform: translateY(-2px); box-shadow: var(--adm-shadow-lg); }
 .tileIcon { display: flex; margin-bottom: auto; color: var(--adm-accent); }
 .tileLabel { margin-top: 18px; font-size: 13px; font-weight: 600; color: var(--text-tertiary); }
 /* 28px as designed; a long won total shrinks with its tile instead of being cut off. */
 .tileValue { max-width: 100%; font-family: var(--font-sans); font-size: clamp(18px, 13.5cqi, 28px); font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; line-height: 1.1; color: var(--text-strong);
   font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tileHot { background: linear-gradient(150deg, var(--adm-accent) 0%, var(--adm-accent) 55%, var(--adm-accent) 100%); box-shadow: 0 16px 36px rgba(var(--adm-accent-rgb),.32); }
-.tileHot:hover { box-shadow: 0 20px 40px rgba(var(--adm-accent-rgb),.38); }
+.tileHot { background: var(--adm-accent); box-shadow: var(--adm-shadow-lg); }
+.tileHot:hover { box-shadow: var(--adm-shadow-lg); }
 .tileHot .tileIcon, .tileHot .tileValue { color: #fff; }
 .tileHot .tileLabel { color: rgba(255,255,255,.88); }
 
 /* 구역 제목 */
 .sectionTitle { display: flex; align-items: center; gap: 10px; padding: 6px 2px 0; margin-bottom: -4px; }
 .sectionTitle h2 { margin: 0; font-size: 17px; font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; color: var(--text-strong); }
-.sectionNote { display: inline-flex; align-items: center; height: 26px; padding: 0 12px; border-radius:var(--adm-radius-sm); background: var(--adm-surface); box-shadow: 0 2px 8px rgba(16,24,40,.06);
+.sectionNote { display: inline-flex; align-items: center; height: 26px; padding: 0 12px; border-radius:var(--adm-radius-sm); background: var(--adm-surface); box-shadow: var(--adm-shadow-sm);
   font-size: 11px; font-weight: 700; letter-spacing: .02em; color: var(--text-tertiary); }
 
 .row420, .row520 { display: grid; gap: 16px; }
@@ -59,11 +59,11 @@
 .toneAlert { --tone: var(--adm-danger); }
 .toneNeutral { --tone: var(--adm-text-3); }
 .glow { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px; box-sizing: border-box; border-radius:var(--adm-radius-xs); font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap;
-  color: var(--tone); background: radial-gradient(75% 150% at 20% 50%, color-mix(in srgb, var(--tone) 22%, transparent) 0%, color-mix(in srgb, var(--tone) 0%, transparent) 72%), var(--adm-surface);
+  color: var(--tone); background: color-mix(in srgb, var(--tone) 10%, var(--adm-surface));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 20%, transparent), 0 1px 2px rgba(16,24,40,.05); }
 .dot { gap: 5px; padding: 0 10px; }
 .dot::before { content: ''; width: 6px; height: 6px; flex: none; border-radius: 999px; background: var(--tone); box-shadow: 0 0 6px color-mix(in srgb, var(--tone) 60%, transparent); }
-.glow.toneInk { background: var(--adm-ink); color: #fff; box-shadow: 0 2px 8px rgba(26,27,30,.18); }
+.glow.toneInk { background: var(--adm-ink); color: #fff; box-shadow: var(--adm-shadow-sm); }
 
 /* 오늘 확인할 업무 */
 .taskHead { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 20px 22px 12px; }
@@ -88,7 +88,7 @@
 .chips > .glow { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .taskActionCell { display: flex; justify-content: flex-end; }
 .taskAction { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 12px; border-radius: var(--adm-radius-sm); white-space: nowrap;
-  background: linear-gradient(135deg, var(--adm-accent), var(--adm-accent-strong)); box-shadow: 0 4px 12px rgba(18,168,128,.28); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
+  background: var(--adm-accent); box-shadow: var(--adm-shadow-md); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
 .taskAction:hover { background: var(--adm-accent-strong); }
 .taskFoot { display: flex; align-items: center; gap: 10px; margin-top: auto; padding: 12px 22px; background: var(--mrt-gray-50); font-size: 13px; color: var(--text-secondary); }
 .taskFoot a { display: inline-flex; align-items: center; gap: 4px; color: inherit; text-decoration: none; }
@@ -124,14 +124,14 @@
 
 /* 확정 매출 */
 .revenue { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 20px 22px; border-radius: var(--adm-radius-md); color: var(--adm-ink);
-  background: radial-gradient(120% 90% at 100% 0%, var(--adm-accent-line) 0%, rgba(201,245,230,0) 55%), radial-gradient(90% 80% at 0% 100%, var(--adm-accent-soft) 0%, rgba(216,248,238,0) 60%), linear-gradient(160deg, var(--adm-accent-soft) 0%, var(--adm-accent-soft) 100%);
+  background: var(--adm-surface);
   border: 1px solid rgba(255,255,255,.9); box-shadow: 0 10px 30px rgba(18,168,128,.12), inset 0 1px 0 #fff; }
 .revHead { display: flex; align-items: center; gap: 6px; }
 .revTitle { font-size: 15px; font-weight: 700; color: var(--adm-ink); }
 .info { display: flex; cursor: help; }
 .revPicker { margin-left: auto; position: relative; }
 .revButton { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--adm-surface); border-radius: var(--adm-radius-sm); background: rgba(255,255,255,.72);
-  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 2px 8px rgba(18,168,128,.10);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: var(--adm-shadow-sm);
   font: inherit; font-size: 13px; font-weight: 600; color: var(--adm-accent-strong); cursor: pointer; transition: background 200ms; }
 .revButton:hover { background: var(--adm-surface); }
 .chevron { display: flex; transition: transform 200ms; }
@@ -152,7 +152,7 @@
 .revSplitHead b { color: var(--adm-accent-strong); font-family: var(--font-sans); }
 .split { display: flex; gap: 4px; height: 44px; }
 .splitSeg { min-width: 0; display: block; line-height: 44px; border-radius: var(--adm-radius-md); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-.splitConfirmed { background: linear-gradient(135deg, var(--adm-accent) 0%, var(--adm-accent) 100%); color: #fff; }
+.splitConfirmed { background: var(--adm-accent); color: #fff; }
 .splitWaiting { background: rgba(255,255,255,.85); color: var(--adm-accent-strong); }
 .splitEmpty { flex: 1; display: flex; align-items: center; padding: 0 14px; border-radius: var(--adm-radius-md); background: rgba(255,255,255,.72); color: var(--adm-accent-strong); font-size: 13px; }
 
@@ -241,7 +241,7 @@
 .tileLabel { margin-top: 0; color: var(--adm-text-2); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-medium); }
 .tileValue { color: var(--adm-ink); font-size: clamp(18px, 13.5cqi, 32px); font-weight: var(--adm-fw-bold); letter-spacing: -0.0253em; }
 /* 처리가 필요한 지표: 채움 대신 주의 테두리 + 주의 아이콘(색만으로 알리지 않고 이름표와 함께) */
-.tileHot { border-color: color-mix(in srgb, var(--adm-warn) 43%, transparent); background: var(--adm-surface); box-shadow: none; }
+.tileHot { border-color: var(--adm-warn-line); background: var(--adm-surface); box-shadow: none; }
 .tileHot:hover { border-color: var(--adm-warn); box-shadow: none; }
 .tileHot .tileIcon { color: var(--adm-warn-strong); }
 .tileHot .tileValue { color: var(--adm-ink); }

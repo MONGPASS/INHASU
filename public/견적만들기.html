@@ -289,7 +289,7 @@
   /* 발행 결과: 고객 링크 패널 */
   .linkmask { position:fixed; inset:0; background:rgba(16,24,40,.32); z-index:60; display:none; align-items:center; justify-content:center; padding:20px; }
   .linkmask.on { display:flex; }
-  .linkbox { background:var(--adm-surface); border-radius:var(--adm-radius-md); max-width:480px; width:100%; padding:26px 24px; box-shadow:0 20px 60px rgba(16,24,40,.25); }
+  .linkbox { background:var(--adm-surface); border-radius:var(--adm-radius-md); max-width:480px; width:100%; padding:26px 24px; box-shadow: var(--adm-shadow-lg); }
   .linkbox h3 { font-size:18px; font-weight:var(--adm-fw-bold); margin-bottom:4px; }
   .linkbox p { font-size:13px; color:var(--sub); margin-bottom:16px; line-height:1.6; }
   .linkbox .urlrow { display:flex; gap:8px; }
@@ -843,7 +843,7 @@ function dayCountNote() {
   const need = (n && n > 0) ? n + 1 : null;
   if (!need) return "";
   if (ST.days.length === need) return `<span style="color:var(--accent)">✓ 여행 기간(${n}박 ${need}일)과 일정 칸 수가 맞습니다.</span>`;
-  return `<span style="color:#d98a3a;font-weight:700">⚠ 여행 기간은 ${n}박 ${need}일인데 일정 칸은 ${ST.days.length}개입니다. 아래에서 일자를 추가/삭제해 맞춰주세요.</span>`;
+  return `<span style="color:var(--adm-warn-strong);font-weight:700">⚠ 여행 기간은 ${n}박 ${need}일인데 일정 칸은 ${ST.days.length}개입니다. 아래에서 일자를 추가/삭제해 맞춰주세요.</span>`;
 }
 
 let quoteDayWidget = null;
@@ -1332,7 +1332,7 @@ async function initializeQuoteEditor() {
     document.querySelector('[data-quote-source-error]')?.remove();
     const alert = document.createElement('div');
     alert.setAttribute('data-quote-source-error', ''); alert.setAttribute('data-quote-recovery', 'source'); alert.setAttribute('role', 'alert');
-    alert.style.cssText = 'position:fixed;top:12px;left:12px;right:12px;z-index:10000;padding:16px;border:1px solid #efcf94;border-radius:12px;background:#fff8e8;font:13px/1.7 sans-serif';
+    alert.style.cssText = 'position:fixed;top:12px;left:12px;right:12px;z-index:10000;padding:16px;border:1px solid var(--adm-warn-line);border-radius:12px;background:#FEF4E6;font:13px/1.7 sans-serif';
     const message = document.createElement('p'); message.textContent = error.message; alert.appendChild(message);
     const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = '원본 다시 불러오기';
     retry.onclick = () => { alert.remove(); initializeQuoteEditor(); }; alert.appendChild(retry); document.body.appendChild(alert);

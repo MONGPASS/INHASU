@@ -1918,7 +1918,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                 <div className="pa-body">
                 <div className="pa-main">
 
-                <div className="pa-draft-status" role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 'var(--adm-radius-md)', background: draftError || pendingDraft?.conflict ? 'var(--adm-warn-soft)' : 'var(--adm-accent-soft)', border: '1px solid ' + (draftError || pendingDraft?.conflict ? 'color-mix(in srgb, var(--adm-warn) 32%, transparent)' : 'var(--adm-accent-line)'), fontSize: 13, lineHeight: 1.7 }}>
+                <div className="pa-draft-status" role="status" aria-live="polite" style={{ margin: '14px 20px', padding: '12px 14px', borderRadius: 'var(--adm-radius-md)', background: draftError || pendingDraft?.conflict ? 'var(--adm-warn-soft)' : 'var(--adm-accent-soft)', border: '1px solid ' + (draftError || pendingDraft?.conflict ? 'var(--adm-warn-line)' : 'var(--adm-accent-line)'), fontSize: 13, lineHeight: 1.7 }}>
                     {!adminUserId ? '관리자 계정을 확인하고 있습니다. 확인이 끝난 뒤 편집할 수 있습니다.' : pendingDraft ? <>
                         <strong>{pendingDraft.conflict ? '상품이 변경된 뒤 남아 있는 초안입니다.' : '이 브라우저에 저장하지 않은 상품 초안이 있습니다.'}</strong>
                         <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')}{pendingDraft.conflict ? ' · 서버 상품과 다른 버전입니다. 내용을 복원해 검토하거나 초안을 버리고 최신 상품으로 시작하세요.' : ' · 아래 버튼 중 하나를 고르면 다른 탭과 입력 칸이 열립니다.'}</div>

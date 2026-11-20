@@ -381,7 +381,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
 
     return (
         <div className="fixed inset-0 z-[210] bg-slate-900/50 backdrop-blur-sm p-3 sm:p-6">
-            <div className="bg-[#F5F7FA] dark:bg-slate-900 rounded-2xl w-full h-full flex flex-col overflow-hidden shadow-2xl" inert={saving} aria-busy={saving}>
+            <div className="bg-[color:var(--adm-gray-50)] dark:bg-slate-900 rounded-2xl w-full h-full flex flex-col overflow-hidden shadow-2xl" inert={saving} aria-busy={saving}>
                 <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-center gap-3 min-w-0">
                         <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
@@ -462,11 +462,11 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                         </button>
                     </div>
                 )}
-                <div className="flex-1 overflow-hidden bg-[#F5F7FA] dark:bg-slate-900" onInputCapture={() => { autoImportRef.current = false; }}>
+                <div className="flex-1 overflow-hidden bg-[color:var(--adm-gray-50)] dark:bg-slate-900" onInputCapture={() => { autoImportRef.current = false; }}>
                     {(
                     <div className="grid h-full grid-cols-[240px_minmax(560px,1fr)_280px] overflow-hidden max-xl:grid-cols-[210px_minmax(520px,1fr)] max-lg:block max-lg:overflow-y-auto">
                         <aside className="overflow-y-auto border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 max-lg:border-b max-lg:border-r-0">
-                            <div className="mb-4 rounded-xl border border-[color:var(--adm-accent-line)] bg-[#F5F7FA] p-3">
+                            <div className="mb-4 rounded-xl border border-[color:var(--adm-accent-line)] bg-[color:var(--adm-gray-50)] p-3">
                                 <div className="flex items-center gap-2">
                                     <span className="material-symbols-outlined text-[18px] text-[color:var(--adm-accent)]">inventory_2</span>
                                     <div>
@@ -634,7 +634,7 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                     </div>
                                     <div className="rounded-lg bg-slate-50 p-2">
                                         <p className="text-[9px] font-bold text-slate-400">총 금액</p>
-                                        <p className="mt-1 text-xs font-black text-[#FF6F00]">{totalAmount ? `${totalAmount.toLocaleString('ko-KR')}원` : "-"}</p>
+                                        <p className="mt-1 text-xs font-black text-[color:var(--adm-warn-strong)]">{totalAmount ? `${totalAmount.toLocaleString('ko-KR')}원` : "-"}</p>
                                     </div>
                                 </div>
                             </div>

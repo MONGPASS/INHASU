@@ -125,7 +125,7 @@
 .gs-sub { display: flex; padding: 3px; border-radius: var(--adm-radius-xs); background: var(--gs-gray100); }
 .gs-sub button { height: 32px; padding: 0 14px; border: 0; border-radius: var(--adm-radius-xs); background: transparent; color: var(--gs-low) !important; font-size: 13px !important; font-weight: 700; cursor: pointer; }
 .gs-range .gs-sub button { height: 28px; padding: 0 12px; }
-.gs-sub button.is-on { background: var(--gs-paper); color: var(--gs-ink) !important; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.gs-sub button.is-on { background: var(--gs-paper); color: var(--gs-ink) !important; box-shadow: var(--adm-shadow-xs); }
 .gs-hint { color: var(--gs-low); font-size: 13px; }
 .gs-range { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .gs-range b { min-width: 112px; text-align: center; font-size: 14px; font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -204,7 +204,7 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 .gs-tl-bars { position: relative; box-sizing: border-box; min-height: 84px; padding: 12px 0; row-gap: 6px; align-content: center; pointer-events: none; }
 .gs-tl-bar { position: relative; z-index: 2; display: flex; align-items: center; gap: 6px; min-width: 0; height: 44px; margin: 0 3px; padding: 0 10px 0 13px; border: 0; border-radius: var(--adm-radius-sm); text-align: left; cursor: pointer; pointer-events: auto;
   transition: opacity .15s, transform .15s, box-shadow .15s; transform-origin: left center; animation: gsBarIn 360ms both cubic-bezier(.2,.8,.2,1); }
-.gs-tl-bar:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(16,24,40,.12) !important; }
+.gs-tl-bar:hover { transform: translateY(-1px); box-shadow: var(--adm-shadow-md) !important; }
 .gs-tl-bar:disabled { opacity: .6; cursor: progress; }
 .gs-tl-bar.is-active { outline: 2px solid var(--gs-ink); outline-offset: -2px; }
 .gs-prog { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 8px 0 0 8px; pointer-events: none; }
@@ -297,7 +297,7 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 /* 가이드 상세 패널 */
 .gs-dim { position: fixed; inset: 0; z-index: 44; background: rgba(0,0,0,.2); }
 .gs-dim.is-dark { z-index: 50; background: rgba(0,0,0,.5); }
-.gs-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 45; width: min(440px, 100vw); display: flex; flex-direction: column; background: var(--gs-paper); box-shadow: -4px 0 16px rgba(0,0,0,.08); animation: gsDrawer 200ms ease-out; }
+.gs-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 45; width: min(440px, 100vw); display: flex; flex-direction: column; background: var(--gs-paper); box-shadow: var(--adm-shadow-md); animation: gsDrawer 200ms ease-out; }
 .gs-dr-head { display: flex; align-items: center; gap: 14px; padding: 24px 24px 16px; }
 .gs-dr-who { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
 .gs-dr-who b { font-size: 20px; line-height: 135%; font-weight: 700; }
@@ -358,7 +358,7 @@ button.gs-tl-cell:hover { background: var(--gs-mint-low); }
 .gs-picket-wait { color: var(--gs-low); font-size: 14px; font-weight: 600; }
 
 /* 막대 말풍선 · 토스트 */
-.gs-tip { position: fixed; z-index: 80; width: 280px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: var(--adm-radius-sm); background: var(--gs-dark); color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.24); pointer-events: none; animation: gsPopIn 120ms ease-out; }
+.gs-tip { position: fixed; z-index: 80; width: 280px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: var(--adm-radius-sm); background: var(--gs-dark); color: #fff; box-shadow: var(--adm-shadow-lg); pointer-events: none; animation: gsPopIn 120ms ease-out; }
 .gs-tip-head { display: flex; align-items: center; gap: 8px; }
 .gs-tip-head b { flex: 1; min-width: 0; overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .gs-tip-head span { flex: none; display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: var(--adm-radius-xs); background: rgba(255,255,255,.1); font-size: 11px; font-weight: 700; }
