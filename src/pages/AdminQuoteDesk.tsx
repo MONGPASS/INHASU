@@ -171,6 +171,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         try { (frameRef.current?.contentWindow as EditorWindow | null)?.InhasuQuoteBookingWorkspace?.navigate(section); }
         catch { setEditorNotice('예약 화면을 새로고침한 뒤 다시 선택해 주세요.'); }
     };
+    const clickFrameButton = (id: string) => {
+        try {
+            const button = frameRef.current?.contentDocument?.getElementById(id) as HTMLButtonElement | null;
+            if (button && !button.disabled) button.click();
+            else setEditorNotice('화면을 불러오는 중입니다. 잠시 뒤 다시 눌러 주세요.');
+        } catch { setEditorNotice('화면을 새로고침한 뒤 다시 눌러 주세요.'); }
+    };
     const flushFrame = useCallback(() => {
         if (sendingKakao) return { ok: false, busy: true, error: '카카오 알림 발송이 끝난 뒤 이동해 주세요.' };
         try {
@@ -556,6 +563,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                                         background: scheduleView === on ? 'var(--adm-surface)' : 'transparent', color: scheduleView === on ? 'var(--adm-ink)' : 'var(--adm-text-3)', boxShadow: scheduleView === on ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}>{label}</button>
                             ))}
                         </span>
+                    )}
+                    {/* 코스·일정·여행지: 도구 안 머리의 추가 버튼을 제목 줄로 올린다(도구 안의 원래 버튼을 대신 눌러 동작은 그대로). 도구 안 머리는 admin-tools.css가 숨긴다. */}
+                    {tool.key === 'spots' && <button type="button" className="btn btn-ghost" disabled={!frameIsMounted} onClick={() => clickFrameButton('copyBtn')}>문구 초안 가져오기</button>}
+                    {(['courses', 'itinerary', 'spots'] as string[]).includes(tool.key) && (
+                        <button type="button" className="btn btn-ink" disabled={!frameIsMounted} onClick={() => clickFrameButton('addBtn')}>
+                            <Icon name="add" />{tool.key === 'courses' ? '새 코스 추가' : tool.key === 'itinerary' ? '새 일정 추가' : '새 명소 추가'}
+                        </button>
                     )}
                     {tool.key === 'inbox' && (
                         <button type="button" className="btn btn-blue" onClick={() => navigate(quoteDeskHref('builder'))}>

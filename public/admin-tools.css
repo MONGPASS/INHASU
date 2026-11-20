@@ -191,3 +191,14 @@ html.admin-embedded #dayList.quote-day-editor .day-edit:not(.is-collapsed) { pad
 html.admin-embedded #dayList.quote-day-editor .day-edit :is(.dh input, .row.c2 input, textarea.items) { border: 1px solid var(--adm-line); border-radius: var(--adm-radius-sm); }
 html.admin-embedded #dayList.quote-day-editor .day-edit .dh input { height: var(--adm-control-h); }
 html.admin-embedded #dayList.quote-day-editor .day-edit .dh .day-toggle { height: 32px; min-height: 32px; border-radius: var(--adm-radius-sm); background: var(--adm-fill-subtle); color: var(--adm-text-2); font-weight: var(--adm-fw-semibold); }
+
+/* ── 위쪽 간격(Montage 시안: 화면 설명 아래 → 첫 내용 24px) ──
+   바깥 제목 줄이 추가 버튼을 맡는 도구(코스·일정·여행지)는 도구 안 머리 줄을 숨긴다(버튼은 그대로 두고 바깥에서 대신 누른다).
+   목록·편집 도구 본문 위 여백은 8px — 바깥 본문 위 여백 16px과 합쳐 24px. */
+html.admin-embedded .page-head:has(> #addBtn.add) { display: none; }
+html.admin-embedded .shell > main.content { padding-top: var(--adm-space-2); }
+/* 견적 예약 목록: 묶음 사이 간격을 4px 단위(16·12)로, 카드 안쪽 여백도 4px 단위로 */
+html.admin-embedded .shell > main.content > .page-head { margin-bottom: var(--adm-space-4); }
+html.admin-embedded .shell > main.content > :is(.mbar, .bulkbar) { margin-bottom: var(--adm-space-3); }
+html.admin-embedded .shell > main.content > .stats { gap: var(--adm-space-3); }
+html.admin-embedded .shell > main.content > :is(.toolcard, .mbar) { padding: var(--adm-space-3); }
