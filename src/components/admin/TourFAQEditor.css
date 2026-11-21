@@ -1,0 +1,13 @@
+/* 투어 공통 FAQ 편집(FAQ 관리 ‘투어 공통 FAQ’ 탭, /admin/tour-faqs). 배치만 두고 값은 --adm-* 변수만 쓴다. */
+.tf-root { display: flex; flex-direction: column; gap: var(--adm-space-4); }
+.tf-notes { margin: 0; padding-left: var(--adm-space-5); color: var(--adm-text-2); font-size: var(--adm-fs-small); line-height: var(--adm-lh); }
+.tf-notes strong { color: var(--adm-text); font-weight: var(--adm-fw-semibold); }
+.tf-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--adm-space-3); }
+.tf-bar-end { display: flex; align-items: center; gap: var(--adm-space-3); }
+.tf-count { color: var(--adm-text-3); font-size: var(--adm-fs-small); }
+.tf-saved { color: var(--adm-accent-strong); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
+.tf-row { display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
+.tf-row-head { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); }
+.tf-no { color: var(--adm-accent-strong); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.tf-row-actions { display: inline-flex; align-items: center; gap: var(--adm-space-1); }
+.tf-danger:hover { color: var(--adm-danger); }

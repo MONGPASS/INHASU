@@ -225,8 +225,8 @@
   "nativeDialog": 0
  },
  "src/components/admin/TourFAQEditor.tsx": {
-  "rawButton": 5,
-  "rawField": 2,
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 0,
   "px": 0,
@@ -531,10 +531,10 @@
   "nativeDialog": 0
  },
  "src/pages/AdminFAQManage.tsx": {
-  "rawButton": 20,
-  "rawField": 5,
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 2,
+  "inlineStyle": 0,
   "px": 0,
   "hex": 0,
   "nativeDialog": 0
@@ -706,6 +706,11 @@
   "important": 8,
   "rawPx": 248
  },
+ "src/components/admin/TourFAQEditor.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
+ },
  "src/components/admin/accommodation/LodgeAssignBoard.css": {
   "hex": 10,
   "important": 33,
@@ -765,6 +770,11 @@
   "hex": 6,
   "important": 0,
   "rawPx": 170
+ },
+ "src/pages/AdminFAQManage.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
  },
  "src/pages/AdminProductEditor.css": {
   "hex": 2,

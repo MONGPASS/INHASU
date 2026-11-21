@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { adminConfirm, adminNotify } from './ui/adminFeedback';
+import { AdminButton, AdminEmpty, AdminField, AdminIconButton, AdminLoading, AdminMessage, AdminTextArea, AdminTextInput } from './ui';
+import { IconArrowDown, IconArrowUp, IconPlus, IconTrash } from '@montage-ui/icon';
+import './TourFAQEditor.css';
 
 /**
  * Editor for the site-wide "tour common FAQ" — the FAQ block displayed at
@@ -70,6 +73,7 @@ export const TourFAQEditor: React.FC = () => {
     };
 
     const handleSave = async () => {
+        if (saving) return;
         const clean = rows
             .map((r) => ({ id: r.id, question: r.question.trim(), answer: r.answer.trim() }))
             .filter((r) => r.question || r.answer);
@@ -91,120 +95,58 @@ export const TourFAQEditor: React.FC = () => {
         }
     };
 
-    if (loading) {
-        return <div className="py-20 text-center text-slate-500">불러오는 중...</div>;
-    }
+    if (loading) return <AdminLoading label="투어 공통 FAQ를 불러오는 중…" />;
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-start justify-between gap-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <div className="flex gap-3 items-start text-sm text-blue-800 dark:text-blue-200">
-                    <span className="material-symbols-outlined text-base mt-0.5">info</span>
-                    <div>
-                        <div className="font-semibold mb-1">상품 페이지 하단 FAQ — 한 번 작성하면 모든 상품에 적용</div>
-                        <ul className="space-y-1 text-xs leading-relaxed">
-                            <li>• 여기에 등록한 FAQ 가 <strong>모든 상품 상세 페이지</strong>의 '유의 사항·자주 묻는 질문' 섹션에 자동으로 표시됩니다.</li>
-                            <li>• 특정 상품에만 다른 FAQ 를 보여주려면 해당 상품 편집 페이지에서 별도로 입력 (그 상품에서는 우선 적용).</li>
-                            <li>• 「FAQ 목록」/「카테고리 관리」 탭은 <strong>고객센터 페이지(/faq)</strong> 콘텐츠를 다룹니다. 서로 다릅니다.</li>
-                        </ul>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                    {savedAt && (
-                        <span className="text-xs text-teal-600 dark:text-teal-400">
-                            저장됨 ({savedAt})
-                        </span>
-                    )}
-                    <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="px-4 py-2 text-sm font-bold bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-white rounded-lg transition-colors"
-                    >
-                        {saving ? '저장 중...' : '전체 저장'}
-                    </button>
-                </div>
+        <div className="tf-root">
+            <AdminMessage title="상품 페이지 아래 FAQ — 한 번 작성하면 모든 상품에 적용">
+                <ul className="tf-notes">
+                    <li>여기에 등록한 FAQ는 <strong>모든 상품 상세 페이지</strong>의 ‘유의 사항·자주 묻는 질문’에 자동으로 보입니다.</li>
+                    <li>특정 상품에만 다른 FAQ를 보여 주려면 그 상품 편집 화면에서 따로 입력합니다(그 상품에서는 그쪽이 먼저).</li>
+                    <li>‘FAQ 목록’·‘카테고리 관리’ 탭은 <strong>고객센터 페이지(/faq)</strong> 내용이라 서로 다릅니다.</li>
+                </ul>
+            </AdminMessage>
+
+            <div className="tf-bar">
+                <span className="tf-count">질문 {rows.length}개</span>
+                <span className="tf-bar-end">
+                    {savedAt && <span className="tf-saved" role="status">저장됨 ({savedAt})</span>}
+                    <AdminButton variant="primary" loading={saving} onClick={handleSave}>{saving ? '저장 중…' : '전체 저장'}</AdminButton>
+                </span>
             </div>
 
-            <div className="space-y-3">
-                {rows.map((row, i) => (
-                    <div
-                        key={i}
-                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-bold text-teal-600 dark:text-teal-400">
-                                Q{i + 1}.
-                            </span>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    type="button"
-                                    onClick={() => move(i, -1)}
-                                    disabled={i === 0}
-                                    className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
-                                    title="위로"
-                                >
-                                    <span className="material-symbols-outlined text-base">arrow_upward</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => move(i, 1)}
-                                    disabled={i === rows.length - 1}
-                                    className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
-                                    title="아래로"
-                                >
-                                    <span className="material-symbols-outlined text-base">arrow_downward</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => removeRow(i)}
-                                    className="w-8 h-8 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 flex items-center justify-center"
-                                    title="삭제"
-                                >
-                                    <span className="material-symbols-outlined text-base">delete</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
-                            질문 (한국어)
-                        </label>
-                        <input
-                            type="text"
+            {rows.length === 0 && <AdminEmpty title="등록된 FAQ가 없습니다." description="아래 ‘질문 추가’로 시작하세요." />}
+            {rows.map((row, i) => (
+                <section key={i} className="tf-row" aria-label={`질문 ${i + 1}`}>
+                    <div className="tf-row-head">
+                        <span className="tf-no">Q{i + 1}.</span>
+                        <span className="tf-row-actions">
+                            <AdminIconButton size="sm" label={`질문 ${i + 1} 위로`} onClick={() => move(i, -1)} disabled={i === 0}><IconArrowUp /></AdminIconButton>
+                            <AdminIconButton size="sm" label={`질문 ${i + 1} 아래로`} onClick={() => move(i, 1)} disabled={i === rows.length - 1}><IconArrowDown /></AdminIconButton>
+                            <AdminIconButton size="sm" label={`질문 ${i + 1} 삭제`} className="tf-danger" onClick={() => removeRow(i)}><IconTrash /></AdminIconButton>
+                        </span>
+                    </div>
+                    <AdminField id={`tf-q-${i}`} label="질문 (한국어)">
+                        <AdminTextInput
+                            id={`tf-q-${i}`}
                             value={row.question}
                             onChange={(e) => update(i, { question: e.target.value })}
                             placeholder="예) 출발 전에 무엇을 준비해야 하나요?"
-                            className="w-full px-3 py-2 mb-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                         />
-
-                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
-                            답변 (한국어)
-                        </label>
-                        <textarea
+                    </AdminField>
+                    <AdminField id={`tf-a-${i}`} label="답변 (한국어)">
+                        <AdminTextArea
+                            id={`tf-a-${i}`}
+                            minRows={3}
                             value={row.answer}
                             onChange={(e) => update(i, { answer: e.target.value })}
-                            rows={3}
                             placeholder="예) 국제선 항공권과 여권(유효기간 6개월 이상)이 필요합니다..."
-                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-teal-500 outline-none resize-y min-h-[80px]"
                         />
-                    </div>
-                ))}
+                    </AdminField>
+                </section>
+            ))}
 
-                {rows.length === 0 && (
-                    <div className="text-center py-12 text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
-                        등록된 FAQ 가 없습니다. 아래 "질문 추가" 버튼으로 시작하세요.
-                    </div>
-                )}
-
-                <button
-                    type="button"
-                    onClick={addRow}
-                    className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-500 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50/40 dark:hover:bg-teal-900/20 transition-colors flex items-center justify-center gap-2"
-                >
-                    <span className="material-symbols-outlined text-base">add</span>
-                    질문 추가
-                </button>
-            </div>
+            <AdminButton variant="weak" fullWidth leading={<IconPlus />} onClick={addRow}>질문 추가</AdminButton>
         </div>
     );
 };

@@ -1,0 +1,44 @@
+/*
+ * FAQ 관리(/admin/faq) — 목록형 기준(통합 예약 목록)과 같은 틀: 머리 → 카드 하나 안에 탭 → 검색·칩 → 표.
+ * 모양은 우리 관리자 부품이 정하고, 이 파일은 배치(칸 너비·간격)만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.fq-page { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.fq-card { min-width: 0; }
+.fq-tabs { padding: 0 var(--adm-space-5); border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
+.fq-filters { display: flex; align-items: center; flex-wrap: wrap; gap: var(--adm-space-3); padding: var(--adm-space-4) var(--adm-space-5); }
+.fq-pad { padding: var(--adm-space-5); }
+.fq-cat-input { flex: 1; min-width: 0; max-width: calc(var(--adm-space-8) * 12); }
+.fq-note { margin: 0; padding: var(--adm-space-4) var(--adm-space-5); border-top: var(--adm-border-width) solid var(--adm-line-subtle); color: var(--adm-text-3); font-size: var(--adm-fs-caption); line-height: var(--adm-lh); }
+
+/* 표 */
+.fq-table { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.fq-table .adm-ui-table-el { table-layout: fixed; width: 100%; }
+.fq-c-order { width: calc(var(--adm-space-8) * 3.5); }
+.fq-c-cat { width: calc(var(--adm-space-8) * 4); }
+.fq-c-views { width: calc(var(--adm-space-8) * 2.5); }
+.fq-c-count { width: calc(var(--adm-space-8) * 3); }
+.fq-c-active { width: calc(var(--adm-space-8) * 2.5); }
+.fq-c-actions { width: calc(var(--adm-space-8) * 3.5); }
+.fq-table .is-hidden > td:not(.fq-c-active):not(.fq-c-actions):not(.fq-c-order) { opacity: .55; }
+.fq-order { display: inline-flex; align-items: center; gap: var(--adm-space-1); }
+.fq-order-no { min-width: var(--adm-space-5); color: var(--adm-text); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; text-align: center; }
+.fq-question-row { display: flex; align-items: center; gap: var(--adm-space-2); min-width: 0; }
+.fq-q-mark, .fq-a-mark { flex: none; color: var(--adm-accent-strong); font-weight: var(--adm-fw-bold); }
+.fq-a-mark { color: var(--adm-text-3); }
+.fq-q-text { flex: 1; min-width: 0; color: var(--adm-text); font-weight: var(--adm-fw-semibold); line-height: var(--adm-lh); }
+.fq-c-views, .fq-c-count { color: var(--adm-text-2); font-variant-numeric: tabular-nums; }
+.fq-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--adm-space-1); }
+.fq-danger:hover { color: var(--adm-danger); }
+.fq-answer-row > td { background: var(--adm-gray-50); }
+.fq-answer { display: flex; gap: var(--adm-space-2); padding: var(--adm-space-1) 0 var(--adm-space-1) calc(var(--adm-space-8) * 7.5); }
+.fq-a-text { margin: 0; color: var(--adm-text-2); line-height: var(--adm-lh); white-space: pre-wrap; }
+
+@media (max-width: 760px) {
+  .fq-tabs { padding: 0 var(--adm-space-3); }
+  .fq-filters, .fq-note { padding-inline: var(--adm-space-4); }
+  .fq-pad { padding: var(--adm-space-4); }
+  .fq-answer { padding-left: 0; }
+  .fq-c-order, .fq-c-cat, .fq-c-views, .fq-c-count, .fq-c-active, .fq-c-actions { width: auto; }
+  /* 카드에서 질문은 카테고리(제목 칸) 바로 아래 한 줄 전체 */
+  .fq-table td.fq-question { grid-column: 1 / -1; order: -1; }
+}
