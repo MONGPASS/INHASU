@@ -79,11 +79,17 @@ export interface AdminPickCardProps {
     className?: string;
     'aria-label'?: string;
     'aria-controls'?: string;
+    /**
+     * card 테두리 카드(기본) · row 목록 한 줄(앞에 동그라미, 아래 구분선, 고르면 민트) · nav 옆 메뉴 한 칸(고르면 흰 바탕).
+     * row·nav는 고르기 창 안의 목록·메뉴에 쓴다.
+     */
+    variant?: 'card' | 'row' | 'nav';
     children: React.ReactNode;
 }
-export const AdminPickCard: React.FC<AdminPickCardProps> = ({ onClick, selected, expanded, disabled, className, children, ...rest }) => (
-    <button type="button" className={cx('adm-ui-pick', selected && 'is-selected', expanded && 'is-expanded', className)}
+export const AdminPickCard: React.FC<AdminPickCardProps> = ({ onClick, selected, expanded, disabled, variant = 'card', className, children, ...rest }) => (
+    <button type="button" className={cx('adm-ui-pick', variant !== 'card' && `is-${variant}`, selected && 'is-selected', expanded && 'is-expanded', className)}
         aria-pressed={expanded === undefined ? !!selected : undefined} aria-expanded={expanded} disabled={disabled} onClick={onClick} {...rest}>
+        {variant === 'row' && <span className="adm-ui-pick-radio" aria-hidden="true" />}
         {children}
     </button>
 );

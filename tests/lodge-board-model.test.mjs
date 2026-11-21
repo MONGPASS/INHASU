@@ -74,11 +74,37 @@ test('숙소 고르기: 이름·지역·등급·주소로 찾고(띄어쓰기·�
     assert.equal(m.lodgeRegionOf({ region: ' ', location: '' }), '지역 미정');
 });
 
-test('배정 보드의 숙소정보는 찾기·지역 칩이 있는 숙소 고르기 창을 쓴다', () => {
+test('배정 보드의 숙소정보는 찾기·지역 메뉴가 있는 숙소 고르기 창을 쓴다', () => {
     const queue = readFileSync('src/components/admin/accommodation/LodgeAssignQueue.tsx', 'utf8');
     assert.match(queue, /<LodgePicker[\s\S]*onPick=/);
     const picker = readFileSync('src/components/admin/accommodation/LodgePicker.tsx', 'utf8');
     assert.match(picker, /<AdminSearch/);
-    assert.match(picker, /<AdminChipGroup label="숙소 지역"/);
+    assert.match(picker, /<nav className="lp-nav" aria-label="지역">/, '왼쪽 지역 메뉴');
+    assert.match(picker, /variant="row"/, '동그라미 줄 목록');
+    assert.match(picker, /submitLabel=\{pickedLodge \? '이 숙소로 배정'/, '고른 뒤 이 숙소로 배정');
     assert.doesNotMatch(picker, /@montage-ui\/core/);
 });
+
+test('숙소 고르기 지역 묶음: 한글·영문 지명으로 나누고 모르면 기타 지역', () => {
+    assert.equal(m.lodgeZoneOf('UB'), '울란바타르 · 근교');
+    assert.equal(m.lodgeZoneOf('테를지 국립 공원'), '울란바타르 · 근교');
+    assert.equal(m.lodgeZoneOf('Elsen tasarkhai'), '중부');
+    assert.equal(m.lodgeZoneOf('미니사막'), '중부');
+    assert.equal(m.lodgeZoneOf('Khongoriin els'), '고비 · 남부');
+    assert.equal(m.lodgeZoneOf('Tsagaansuvarga'), '고비 · 남부');
+    assert.equal(m.lodgeZoneOf('Tsagaannuur'), '북부');
+    assert.equal(m.lodgeZoneOf('Huvsgul'), '북부');
+    assert.equal(m.lodgeZoneOf('어딘가'), '기타 지역');
+});
+
+test('숙소 고르기 등급 묶음: 호텔·고급게르·일반게르·기타', () => {
+    assert.equal(m.lodgeGradeGroupOf('5성급 호텔'), '호텔');
+    assert.equal(m.lodgeGradeGroupOf('4성급호텔'), '호텔');
+    assert.equal(m.lodgeGradeGroupOf('고급 게르'), '고급게르');
+    assert.equal(m.lodgeGradeGroupOf('디럭스 게르'), '고급게르');
+    assert.equal(m.lodgeGradeGroupOf('일반 게르'), '일반게르');
+    assert.equal(m.lodgeGradeGroupOf('게르'), '일반게르');
+    assert.equal(m.lodgeGradeGroupOf('목조하우스'), '기타');
+    assert.equal(m.lodgeGradeGroupOf(''), '기타');
+});
+

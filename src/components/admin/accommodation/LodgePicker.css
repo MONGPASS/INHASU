@@ -1,5 +1,5 @@
 /*
- * 숙소 고르기(LodgePicker) — 칸 모양의 버튼 + 찾기·지역·등급으로 좁히는 창.
+ * 숙소 고르기(LodgePicker) — 칸 모양의 버튼 + 넓은 고르기 창(위 찾기 · 왼쪽 지역 메뉴 · 오른쪽 숙소 목록).
  * 모양은 우리 관리자 부품이 정하고, 이 파일은 배치·간격만 둔다. 값은 --adm-* 변수만 쓴다.
  */
 .lp-trigger.adm-ui-pick { flex-direction: row; align-items: center; gap: var(--adm-space-2); min-height: var(--adm-control-h-lg); padding: var(--adm-space-1) var(--adm-space-3); border-radius: var(--adm-radius-sm); }
@@ -9,18 +9,47 @@
 .lp-trigger-icon { flex: none; color: var(--adm-text-3); font-size: var(--adm-fs-lead); }
 .lp-sub { overflow: hidden; color: var(--adm-text-3); font-size: var(--adm-fs-caption); line-height: var(--adm-lh); text-overflow: ellipsis; white-space: nowrap; }
 
-/* 창 */
-.lp-tools { position: sticky; top: calc(var(--adm-space-2) * -1); z-index: 1; display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-2) 0 var(--adm-space-3); background: var(--adm-surface); }
-.lp-group { display: flex; flex-direction: column; gap: var(--adm-space-2); }
-.lp-group-title { display: flex; align-items: center; gap: var(--adm-space-2); margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); }
-.lp-count { color: var(--adm-text-3); font-weight: var(--adm-fw-medium); }
-.lp-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-2); margin: 0; padding: 0; list-style: none; }
-.lp-item.adm-ui-pick { flex-direction: row; align-items: center; gap: var(--adm-space-2); height: 100%; }
-.lp-item-main { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
-.lp-item-main b { overflow: hidden; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); text-overflow: ellipsis; white-space: nowrap; }
-.lp-check { flex: none; color: var(--adm-accent-strong); font-size: var(--adm-fs-lead); }
-.lp-foot-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-3); }
+/* 창: 높이를 정해 두고 메뉴·목록이 따로 스크롤한다 */
+.lp-dialog.adm-ui-dialog { height: min(calc(var(--adm-space-8) * 24), 88vh); }
+.lp-search { flex: none; padding: 0 var(--adm-space-6) var(--adm-space-4); }
+.lp-body { display: flex; flex: 1 1 auto; min-height: 0; border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
 
+/* 왼쪽 지역 메뉴 */
+.lp-nav { display: flex; flex: 0 0 calc(var(--adm-space-8) * 7.5); flex-direction: column; gap: var(--adm-space-1); min-width: 0; overflow-y: auto; padding: var(--adm-space-3); background: var(--adm-sunken); }
+.lp-zone { display: flex; flex-direction: column; gap: var(--adm-space-1); }
+.lp-zone-title { padding: var(--adm-space-3) var(--adm-space-3) var(--adm-space-1); color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
+.lp-nav-label { display: flex; align-items: center; gap: var(--adm-space-2); min-width: 0; }
+.lp-nav-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-nav-count { flex: none; color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-medium); }
+.adm-ui-pick.is-selected .lp-nav-count { color: var(--adm-ink); }
+
+/* 오른쪽 숙소 목록 */
+.lp-main { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+.lp-main-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--adm-space-2); padding: var(--adm-space-4) var(--adm-space-5) var(--adm-space-3); }
+.lp-main-head h3 { margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-semibold); }
+.lp-count { color: var(--adm-text-2); font-weight: var(--adm-fw-medium); }
+.lp-frequent { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); padding: 0 var(--adm-space-5) var(--adm-space-3); }
+.lp-frequent-title { color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
+.lp-scroll { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; overflow-y: auto; padding: 0 var(--adm-space-3) var(--adm-space-3); }
+.lp-list { display: flex; flex-direction: column; gap: var(--adm-space-1); margin: 0; padding: 0; list-style: none; }
+.lp-item-main { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
+.lp-item-main b { overflow: hidden; color: var(--adm-ink); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-semibold); text-overflow: ellipsis; white-space: nowrap; }
+.lp-item-region { flex: none; color: var(--adm-text-2); font-size: var(--adm-fs-caption); }
+.lp-more { align-self: center; margin-top: var(--adm-space-2); }
+.lp-empty { display: flex; flex-direction: column; align-items: center; gap: var(--adm-space-2); padding: var(--adm-space-8) var(--adm-space-4); text-align: center; }
+.lp-empty b { color: var(--adm-ink); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-semibold); }
+.lp-empty .lp-sub { white-space: normal; }
+.lp-picked { color: var(--adm-ink); font-weight: var(--adm-fw-semibold); }
+
+/* 휴대폰: 지역 메뉴를 위 가로 줄로 */
 @media (max-width: 760px) {
-  .lp-list { grid-template-columns: minmax(0, 1fr); }
+  .lp-dialog.adm-ui-dialog { height: 92vh; }
+  .lp-search { padding: 0 var(--adm-space-4) var(--adm-space-3); }
+  .lp-body { flex-direction: column; }
+  .lp-nav { flex: none; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: var(--adm-space-2) var(--adm-space-3); }
+  .lp-zone { flex-direction: row; }
+  .lp-zone-title { display: none; }
+  .lp-nav .adm-ui-pick.is-nav { flex: none; width: auto; white-space: nowrap; }
+  .lp-main-head, .lp-frequent { padding-left: var(--adm-space-4); padding-right: var(--adm-space-4); }
+  .lp-item-region { display: none; }
 }

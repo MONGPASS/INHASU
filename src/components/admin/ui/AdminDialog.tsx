@@ -18,8 +18,12 @@ export interface AdminDialogProps {
     onClose: () => void;
     title: React.ReactNode;
     description?: React.ReactNode;
-    /** sm 440 · md 640 */
-    size?: 'sm' | 'md';
+    /** sm 440 · md 640 · lg 920(목록 + 옆 메뉴처럼 넓은 고르기 창) */
+    size?: 'sm' | 'md' | 'lg';
+    /** 본문 여백·스크롤을 없앤다 — 안에서 칸마다 따로 스크롤할 때 */
+    flush?: boolean;
+    /** 발 오른쪽, 버튼 바로 앞에 둘 글(고른 항목 요약 등) */
+    footNote?: React.ReactNode;
     /** 고친 내용이 있으면 닫기 전에 묻는다 */
     dirty?: boolean;
     /** 저장 버튼(주요). 없으면 발에 ‘닫기’만 */
@@ -40,7 +44,7 @@ export interface AdminDialogProps {
 }
 
 export const AdminDialog: React.FC<AdminDialogProps> = ({
-    open, onClose, title, description, size = 'md', dirty = false,
+    open, onClose, title, description, size = 'md', flush = false, footNote, dirty = false,
     onSubmit, submitLabel = '저장', submitting = false, submitDisabled = false, cancelLabel = '취소',
     onDelete, deleteLabel = '삭제', footStart, footer, className, children,
 }) => {
@@ -70,6 +74,7 @@ export const AdminDialog: React.FC<AdminDialogProps> = ({
                 {footStart}
             </div>
             <div className="adm-ui-dialog-foot-end">
+                {footNote && <span className="adm-ui-dialog-note">{footNote}</span>}
                 {onSubmit ? <>
                     <AdminButton variant="secondary" disabled={submitting} onClick={requestClose}>{cancelLabel}</AdminButton>
                     <AdminButton variant="primary" loading={submitting} disabled={submitDisabled} onClick={onSubmit}>{submitting ? '저장 중…' : submitLabel}</AdminButton>
@@ -95,7 +100,7 @@ export const AdminDialog: React.FC<AdminDialogProps> = ({
                     </div>
                     <AdminIconButton label="닫기" onClick={requestClose} disabled={submitting}><IconClose /></AdminIconButton>
                 </header>
-                <div className="adm-ui-dialog-body adm-form">{children}</div>
+                <div className={cx('adm-ui-dialog-body', 'adm-form', flush && 'is-flush')}>{children}</div>
                 {foot}
             </ModalContainer>
         </Modal>
