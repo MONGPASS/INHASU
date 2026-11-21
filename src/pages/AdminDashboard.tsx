@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, ContentBadge, IconButton, Tab, TabList, TabListItem, TextButton } from '@montage-ui/core';
 import { IconCheck, IconChevronRight, IconClock, IconDocumentText, IconRefresh } from '@montage-ui/icon';
 import { AdminLayout } from '../components/admin/AdminLayout';
+import { AdminBadge, AdminButton, AdminIconButton, AdminTabs, AdminTextButton } from '../components/admin/ui';
 import { useAdminWorkspace } from '../components/admin/AdminWorkspaceContext';
 import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
 import { TrafficSources } from '../components/admin/dashboard/TrafficSources';
@@ -157,10 +157,10 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
             <p className={styles.today}>
                 {data ? `${dashboardDate(data.today)} · 한국시간 기준` : '오늘의 운영 현황'}
                 <span>{data ? `최근 조회 ${dashboardTimestamp(data.generatedAt)}` : initialLoading ? '상품·견적 자료를 확인하고 있습니다.' : '운영 자료를 다시 조회해 주세요.'}</span>
-                <IconButton variant="normal" size="large" aria-label={loading ? '조회 중…' : '새로고침'} title={loading ? '조회 중…' : '새로고침'}
-                    disabled={loading} onClick={() => { void refresh(); }}><IconRefresh /></IconButton>
+                <AdminIconButton size="lg" label={loading ? '조회 중…' : '새로고침'}
+                    disabled={loading} onClick={() => { void refresh(); }}><IconRefresh /></AdminIconButton>
             </p>
-            <Button as={Link} to="/admin/quote-desk/builder" variant="solid" color="primary" size="medium" className="adm-on-primary" leadingContent={<IconDocumentText />}>견적서 작성</Button>
+            <AdminButton to="/admin/quote-desk/builder" variant="primary" leading={<IconDocumentText />}>견적서 작성</AdminButton>
         </div>
 
         {error && <div className={styles.warning} role="alert">{error}{data && <span>마지막으로 불러온 자료를 표시하고 있습니다.</span>}</div>}
@@ -194,13 +194,8 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                         : initialLoading ? '업무를 확인하고 있습니다.' : '업무 자료를 다시 조회해 주세요.'}</span>
                 </div>
                 <div className={styles.tabs}>
-                    <Tab value={activeTab} onValueChange={value => setTaskTab(value as DashboardTaskKind)}>
-                        <TabList size="small" aria-label="업무 종류">
-                            {TASK_TABS.map(tab => <TabListItem key={tab.kind} value={tab.kind} id={`dashboard-tab-${tab.kind}`} aria-controls={`dashboard-panel-${tab.kind}`}>
-                                {tab.label} {taskCards[tab.kind].length}
-                            </TabListItem>)}
-                        </TabList>
-                    </Tab>
+                    <AdminTabs size="sm" label="업무 종류" value={activeTab} onChange={value => setTaskTab(value as DashboardTaskKind)}
+                        items={TASK_TABS.map(tab => ({ value: tab.kind, label: tab.label, count: taskCards[tab.kind].length, id: `dashboard-tab-${tab.kind}`, controls: `dashboard-panel-${tab.kind}` }))} />
                 </div>
                 {!availability.tasks && data && <p className={`${styles.partial} ${styles.partialInset}`}>확인된 업무만 표시합니다. 불러오지 못한 자료에 추가 업무가 있을 수 있습니다.</p>}
                 {!data || !anyTask ? <div className={styles.taskPanel}>
@@ -215,9 +210,9 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                         const soon = card.dday !== null && card.dday <= 90;
                         return <div key={card.task.key} className={`${styles.taskGrid} ${styles.taskRow}`}>
                             <span className={styles.ddayCell}>
-                                <ContentBadge variant={soon ? 'solid' : 'outlined'} color="neutral" size="small">
+                                <AdminBadge size="md" outlined={!soon}>
                                     {card.dday === null ? '미정' : card.dday === 0 ? 'D-DAY' : card.dday < 0 ? `D+${-card.dday}` : `D-${card.dday}`}
-                                </ContentBadge>
+                                </AdminBadge>
                             </span>
                             <span className={styles.stack2}>
                                 <span className={styles.rowName}>{card.name}</span>
@@ -225,10 +220,10 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                             </span>
                             <span className={styles.taskRange}>{taskRange(card.start, card.end)}</span>
                             <span className={styles.chips}>
-                                <ContentBadge variant="outlined" color="neutral" size="small" leadingContent={<PageIcon name={tab.chip} size={14} />}>{card.task.title}</ContentBadge>
+                                <AdminBadge size="md" outlined icon={<PageIcon name={tab.chip} size={14} />}>{card.task.title}</AdminBadge>
                             </span>
                             <span className={styles.taskActionCell}>
-                                <Button as={Link} to={card.task.href} variant="outlined" color="assistive" size="small">{tab.action}</Button>
+                                <AdminButton to={card.task.href} size="sm">{tab.action}</AdminButton>
                             </span>
                         </div>;
                     })}
@@ -244,7 +239,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                             ? <>답변을 기다리는 견적 문의 <b>{pendingInquiries.length}</b>건</>
                             : '답변을 기다리는 문의가 없습니다.'}</span>
                     {availability.inquiries && !!pendingInquiries.length
-                        && <TextButton as={Link} to="/admin/quotes" color="primary" size="small">견적 문의 보기</TextButton>}
+                        && <AdminTextButton to="/admin/quotes" size="sm">견적 문의 보기</AdminTextButton>}
                 </div>
             </section>
 
@@ -262,7 +257,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                             <div className={styles.quoteTop}>
                                 <span className={styles.quoteName}>{inquiry.name || '이름 미정'}</span>
                                 {inquiry.phone && <span className={styles.quotePhone}>{dashboardPhone(inquiry.phone)}</span>}
-                                <ContentBadge size="xsmall" variant="solid" color="accent" accentColor="semantic.foreground.brand.primary" className={styles.quoteStatus}>{inquiry.statusLabel || inquiry.status}</ContentBadge>
+                                <AdminBadge tone="info" className={styles.quoteStatus}>{inquiry.statusLabel || inquiry.status}</AdminBadge>
                             </div>
                             <div className={styles.quoteDest}><b>{inquiry.destination || '희망 여행 미정'}</b></div>
                             <div className={styles.quoteMeta}>
@@ -274,7 +269,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                     })}
                     {!pendingInquiries.length && <SectionState loading={initialLoading} complete={availability.inquiries} error={error} empty="답변을 기다리는 문의가 없습니다." />}
                 </div>
-                <div className={styles.moreRow}><TextButton as={Link} to="/admin/quotes" color="primary" size="small" trailingContent={<IconChevronRight />}>견적 문의 전체 보기</TextButton></div>
+                <div className={styles.moreRow}><AdminTextButton to="/admin/quotes" size="sm" trailing={<IconChevronRight />}>견적 문의 전체 보기</AdminTextButton></div>
             </section>
         </div>
 
@@ -284,15 +279,12 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
             <section className={`${styles.card} ${styles.recent}`}>
                 <div className={styles.recentHead}>
                     <span className={styles.cardTitle}>최근 통합 예약</span>
-                    <ContentBadge variant="solid" color="neutral" size="small">상품 · 견적</ContentBadge>
-                    <TextButton as={Link} to="/admin/reservations" color="primary" size="small" className={styles.headLink} trailingContent={<IconChevronRight />}>전체 보기</TextButton>
+                    <AdminBadge size="md">상품 · 견적</AdminBadge>
+                    <AdminTextButton to="/admin/reservations" size="sm" className={styles.headLink} trailing={<IconChevronRight />}>전체 보기</AdminTextButton>
                 </div>
                 <div className={styles.pills}>
-                    <Tab value={bookingFilter} onValueChange={value => setBookingFilter(value as BookingFilter)}>
-                        <TabList size="small" aria-label="예약 상태">
-                            {BOOKING_FILTERS.map(filter => <TabListItem key={filter} value={filter}>{filter} {data ? bookingCounts[filter] : '—'}</TabListItem>)}
-                        </TabList>
-                    </Tab>
+                    <AdminTabs size="sm" label="예약 상태" value={bookingFilter} onChange={value => setBookingFilter(value as BookingFilter)}
+                        items={BOOKING_FILTERS.map(filter => ({ value: filter, label: filter, count: data ? bookingCounts[filter] : '—' }))} />
                 </div>
                 {!availability.bookings && data && <p className={styles.partial}>불러온 예약만 표시합니다. 일부 예약 자료는 확인이 필요합니다.</p>}
                 <div className={styles.table}>
@@ -318,10 +310,10 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                             <span className={styles.rowAmount} aria-label={`팀 금액 ${dashboardNumber(booking.totalAmount)}${booking.totalAmount != null ? '원' : ''}`}>{dashboardWon(booking.totalAmount)}</span>
                             <span className={styles.statusCell}>
                                 {/* 상태는 색과 함께 아이콘·문구로(확정 ✓, 대기 시계) */}
-                                <ContentBadge size="small" variant="solid" color={group === 'confirmed' ? 'accent' : 'neutral'} accentColor="semantic.foreground.brand.primary"
-                                    leadingContent={group === 'confirmed' ? <IconCheck /> : group === 'waiting' ? <IconClock /> : undefined}>
+                                <AdminBadge size="md" tone={group === 'confirmed' ? 'info' : 'neutral'}
+                                    icon={group === 'confirmed' ? <IconCheck /> : group === 'waiting' ? <IconClock /> : undefined}>
                                     {booking.statusLabel || booking.status || '상태 미정'}
-                                </ContentBadge>
+                                </AdminBadge>
                             </span>
                         </Link>;
                     })}

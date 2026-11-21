@@ -12,27 +12,28 @@
 |---|---|---|---|---|---|
 | (없음) | 관리자 로그인·처음 설정 | `/admin/login` | `pages/AdminLogin.tsx` | 입력형 | 없음 |
 | 대시보드 | 대시보드 | `/admin` | `pages/AdminDashboard.tsx` | 대시보드형 | 기간 선택 팝오버 |
-| 예약 관리 | 통합 예약 목록 | `/admin/reservations` | `pages/AdminReservationManage.tsx` + `components/admin/v7/ReservationListV7.tsx` | 목록형 | 예약 상세 서랍, 가이드·숙소 고르기 창, 견적 상세 서랍, 예약 전환 선택 창, 수동 예약 추가 창, 줄별 더보기 메뉴, 일괄 작업 막대 |
+| 예약 관리 | 통합 예약 목록 | `/admin/reservations` | `pages/AdminReservationManage.tsx` + `components/admin/v7/ReservationListV7.tsx`(+ `reservation-list.css`) | 목록형(기준 화면, 2026-11-21 리뉴얼) | 머리 Excel 범위 메뉴(`AdminMenu`), 수동 예약 추가 창(`AdminDialog`), 줄 펼침 작업 패널, 가이드·차량·진행상황·입금·분류 고르기 창(`V7Menu`), 일괄 작업 막대, 예약 상세 서랍, 견적 상세 서랍, 예약 전환 선택 창 |
 | 예약 관리 | 투어 캘린더 | `/admin/calendar` | `pages/AdminCalendar.tsx` | 대시보드형 | 날짜 옆 패널(화면 안에 고정) |
 | (목록에서 진입) | 고객 예약 관리 — 상품 예약 | `/admin/customer-workspace/product/:id` | `AdminReservationManage.tsx`(`customerPage`) + `v7/ReservationDetailV7.tsx` | 상세형 | 가이드·숙소·차량 고르기, 저장 전 미리보기(전체 화면), 일정표·계약 편집기(전체 화면), 휴대폰용 메뉴 |
 | (목록에서 진입) | 고객 예약 관리 — 이전 견적 | `/admin/customer-workspace/legacy-quote/:id` | 위와 같음(`customerSource="quote"`) | 상세형 | 위와 같음 |
 | (목록에서 진입) | 고객 통합 작업 — 견적 예약 | `/admin/customer-workspace/quote/:id` | `pages/AdminQuoteDesk.tsx`(`customerPage`) | 상세형(+견적 도구) | 더보기 메뉴, 발송 이력 옆 패널, 예약 편집기(`예약관리.html`)의 확인 창 |
 | (목록 필터) | 맞춤견적 관리(이전 MILKYWAY 견적) | `/admin/quotes` | `pages/AdminQuoteManage.tsx` | 목록형 | 견적 상세 서랍, 예약 전환 선택 창 |
-| 배정·자원 | 숙소 배정 · 현지 운영 | `/admin/accommodation-ops` | `pages/AdminAccommodationOps.tsx` + `accommodation/LodgeAssignBoard.tsx` | 목록형(칸에서 바로 고침) | 숙소·등급·상태 고르기 창, 숙박 추가 시트 |
+| 배정·자원 | 숙소 배정(옛 이름 ‘숙소 배정 · 현지 운영’) | `/admin/accommodation-ops` | `pages/AdminAccommodationOps.tsx` + **배정 보드(기본, 2026-11-21 새 디자인)** `accommodation/LodgeAssignQueue.tsx` · 표로 보기 `accommodation/LodgeAssignBoard.tsx` · 카드 보기(여행자·일정·가이드·차량). 계산 공용 `accommodation/lodgeBoardModel.ts` | 작업대형(대기열 + 상세) / 목록형(칸에서 바로 고침) | 숙소·등급·상태 고르기 창, 숙박 추가 |
 | 배정·자원 | 가이드·숙소·차량 — 가이드 배정 현황 | `/admin/quote-desk/resources?view=schedule` | `components/admin/guides/GuideSchedule.tsx` | 대시보드형 | 가이드 상세 옆 패널, 가이드 피켓 미리보기, 배정 고르기 창 |
 | 상품 관리 | 상품 목록 | `/admin/products` | `pages/AdminProductManage.tsx` | 목록형 | 없음(삭제 확인만) |
 | 상품 관리 | 상품 추가·수정 | `/admin/products`(같은 주소에서 전환) | `AdminProductManage.tsx`의 `ProductModal` | 입력형 | 호텔 고르기, 코스에서 불러오기, 일정 가져오기, 관광지 고르기, 디자인 블록의 문구·사진 팝오버 |
-| 상품 관리 | 상품 카테고리 | `/admin/categories` | `pages/AdminCategoryManage.tsx` | 목록형 | 카테고리 편집 서랍 |
+| 상품 관리 | 상품 카테고리 | `/admin/categories` | `pages/AdminCategoryManage.tsx`(+ `AdminCategoryManage.css`) | 목록형(2026-11-21 우리 부품 전환) | 카테고리 편집 창(`AdminDialog`, 접히는 랜딩 페이지 편집: 히어로 이미지·하이라이트 섹션·카드) |
 | 상품 관리 | 문서 템플릿 | `/admin/templates` | `pages/AdminTemplateManage.tsx` | 목록형 | 일정표 편집기(전체 화면), 가이드·숙소 등록 창, 호텔·관광지 고르기 |
 | 고객·콘텐츠 | 일반 문의 | `/admin/inquiries` | `pages/AdminInquiryManage.tsx` | 목록형 | 문의 상세 옆 패널(화면 안에 고정) |
-| 고객·콘텐츠 | 후기 관리 | `/admin/reviews` | `pages/AdminReviewManage.tsx` | 목록형 | 후기 등록·수정 창 |
-| 고객·콘텐츠 | FAQ 관리 | `/admin/faq` | `pages/AdminFAQManage.tsx` | 목록형 | FAQ 편집 창, 분류 편집 창 |
-| (FAQ에서 진입) | 상품별 FAQ | `/admin/tour-faqs` | `pages/AdminTourFAQManage.tsx` + `TourFAQEditor.tsx` | 입력형 | 없음 |
+| 고객·콘텐츠 | 후기 관리 | `/admin/reviews` | `pages/AdminReviewManage.tsx`(+ `AdminReviewManage.css`) | 목록형(2026-11-21 우리 부품 전환) | 수동 후기 등록 창(`AdminDialog`, 사진 5장까지) |
+| 고객·콘텐츠 | FAQ 관리 | `/admin/faq` | `pages/AdminFAQManage.tsx`(+ `AdminFAQManage.css`) | 목록형(2026-11-21 우리 부품 전환) | FAQ 편집 창·분류 이름 수정 창(`AdminDialog`). 탭 FAQ 목록·카테고리 관리·투어 공통 FAQ |
+| (FAQ에서 진입) | 상품별 FAQ | `/admin/tour-faqs` | `pages/AdminTourFAQManage.tsx` + `TourFAQEditor.tsx`(+ `.css`) | 입력형(2026-11-21 우리 부품 전환) | 없음 |
 | 고객·콘텐츠 | 매거진 관리 | `/admin/magazines` | `pages/AdminMagazineManage.tsx` | 목록형 → 입력형(글 쓰기) | 지도 위치 고르기, 분류 편집 창 |
 | 사이트 관리 | 홈 화면 관리(배너) | `/admin/banners` | `pages/AdminBannerManage.tsx` | 입력형 | 없음 |
 | 사이트 관리 | 여행기획전 관리 | `/admin/promotions` | `pages/AdminPromotionManage.tsx` | 목록형 | 기획전 편집 창 |
 | (메뉴 없음) | 상품용 가이드 | `/admin/guides` | `pages/AdminGuideManage.tsx` | 목록형 | 가이드 등록 창 |
 | (메뉴 없음) | 상품용 숙소 | `/admin/accommodations` | `pages/AdminAccommodationManage.tsx` | 목록형 | 숙소 등록 창 |
+| (메뉴 없음, 개발용) | 관리자 부품 미리보기 | `/admin/__ui`(`?frame=parts·list·form·detail·dashboard`) | `pages/AdminUiPreview.tsx` | 부품 모음 + 유형별 틀 4종 | 입력 팝업(640, 고친 내용 확인·필수 입력), 짧은 팝업(440), 공통 확인 창 |
 | 모든 화면 | 상단 바의 업무 알림·통합 검색 | — | `components/admin/AdminToolbar.tsx` | — | 업무 알림 패널, 검색 결과 |
 
 다른 화면으로 넘기기만 하는 주소: `/admin/hotels`·`/admin/guide-intro` → 가이드·숙소·차량, `/admin/tourist-spots`·`/admin/design-spots` → 여행지 관리.
@@ -49,8 +50,8 @@
 | (목록에서 진입) | 견적 예약 편집 | 고객 통합 작업 화면 안 | `예약관리.html` | 상세형 | 확인 창(`#confirmLayer`), 더보기 메뉴, 확정일정표 알림 창 |
 | 견적 관리 | 견적서 만들기 | `/admin/quote-desk/builder` | `견적만들기.html` | 입력형(4단계) | 고객 링크 창(`#linkMask`) |
 | 견적 관리 | 코스 관리 | `/admin/quote-desk/courses` | `코스관리.html` | 목록형 | 코스 편집 서랍 |
-| 견적 관리 | 일정관리 | `/admin/quote-desk/itinerary` | `일정관리.html` | 목록형 | 일정 문구 편집 서랍 |
-| 견적 관리 | 여행지 관리 | `/admin/quote-desk/spots` | `명소관리.html` | 목록형(카드) | 여행지 편집 서랍 |
+| 견적 관리 | 일정 관리 | `/admin/quote-desk/itinerary` | **React로 전환(2026-11-21)**: `src/pages/AdminItineraryManage.tsx`(+ `.css`). 옛 `일정관리.html`은 비교용으로만 남음 | 목록형 | 일정 추가·편집 창, 지역 추가·이름 바꾸기 창(`AdminDialog`) |
+| 견적 관리 | 여행지 관리 | `/admin/quote-desk/spots` | **React로 전환(2026-11-21)**: `src/pages/AdminSpotManage.tsx`(+ `.css`). 옛 `명소관리.html`은 비교용으로만 남음 | 목록형 | 여행지 추가·편집 창(사진 올리기 포함), 지역 추가·이름 바꾸기 창, 문구 초안 가져오기 창(`AdminDialog`) |
 | 배정·자원 | 가이드·숙소·차량 — 등록 정보 | `/admin/quote-desk/resources?view=registry` | `리소스관리.html` | 목록형(카드/목록) | 등록 정보 편집 서랍 |
 | (휴대폰 전용) | 모바일 관리자 | `/견적관리-모바일` | `견적관리-모바일.html` | 여러 유형 | 아래 시트·전체 화면 시트·확인 창(`appConfirm`) |
 | (새 창 문서) | 가이드 시트 | `/가이드시트?id=` | `가이드시트.html` | 인쇄 문서 — 관리자 규격 대상 아님 | 없음 |

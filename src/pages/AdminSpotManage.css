@@ -1,0 +1,58 @@
+/*
+ * 여행지 관리(/admin/quote-desk/spots) — 목록형 기준(통합 예약 목록)과 같은 틀: 머리 → 카드 하나 안에 검색·지역 칩 → 표.
+ * 모양은 우리 관리자 부품이 정하고, 이 파일은 배치(칸 너비·간격·사진 칸)만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.sp-page { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.sp-card { min-width: 0; }
+.sp-filters { display: flex; align-items: center; flex-wrap: wrap; gap: var(--adm-space-3); padding: var(--adm-space-4) var(--adm-space-5); }
+.sp-region-tools { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--adm-space-2); }
+.sp-count-all { margin-left: auto; color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.sp-count-all b { color: var(--adm-text); font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; }
+.sp-note { margin: 0; padding: var(--adm-space-4) var(--adm-space-5); border-top: var(--adm-border-width) solid var(--adm-line-subtle); color: var(--adm-text-3); font-size: var(--adm-fs-caption); line-height: var(--adm-lh); }
+
+/* 표 */
+.sp-table { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.sp-table .adm-ui-table-el { table-layout: fixed; width: 100%; }
+.sp-table td { vertical-align: top; }
+.sp-c-photo { width: calc(var(--adm-space-8) * 3); }
+.sp-table th:nth-child(2) { width: calc(var(--adm-space-8) * 6); }
+.sp-c-alias { width: calc(var(--adm-space-8) * 6); color: var(--adm-text-2); overflow-wrap: anywhere; }
+.sp-c-count { width: calc(var(--adm-space-8) * 2.5); }
+.sp-c-actions { width: calc(var(--adm-space-8) * 2.5); }
+.sp-thumb { display: block; width: calc(var(--adm-space-8) * 2.25); aspect-ratio: 4 / 3; border-radius: var(--adm-radius-sm); background: var(--adm-gray-50); object-fit: cover; }
+.sp-thumb.is-empty { display: flex; align-items: center; justify-content: center; color: var(--adm-text-disabled); }
+.sp-stack { display: flex; flex-direction: column; align-items: flex-start; gap: var(--adm-space-1); min-width: 0; }
+.sp-name-btn { color: var(--adm-text); font-weight: var(--adm-fw-semibold); text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.sp-short { color: var(--adm-text-2); line-height: var(--adm-lh); overflow-wrap: anywhere; }
+.sp-sub { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.sp-count { color: var(--adm-text-2); font-variant-numeric: tabular-nums; }
+.sp-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--adm-space-1); }
+.sp-danger:hover { color: var(--adm-danger); }
+
+/* 편집 창 */
+.sp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3); }
+.sp-main-photo { display: flex; align-items: flex-end; flex-wrap: wrap; gap: var(--adm-space-3); }
+.sp-main-photo img, .sp-main-empty { display: block; width: min(100%, calc(var(--adm-space-8) * 8)); aspect-ratio: 16 / 9; border-radius: var(--adm-radius-md); background: var(--adm-gray-50); object-fit: cover; }
+.sp-main-empty { display: flex; align-items: center; justify-content: center; color: var(--adm-text-disabled); }
+.sp-photo-tools { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--adm-space-2); }
+.sp-subs { display: grid; grid-template-columns: repeat(4, minmax(0, calc(var(--adm-space-8) * 3.5))); gap: var(--adm-space-2); }
+.sp-sub-slot { display: flex; flex-direction: column; align-items: center; gap: var(--adm-space-1); margin: 0; min-width: 0; }
+.sp-sub-slot img, .sp-sub-empty { display: block; width: 100%; aspect-ratio: 1; border-radius: var(--adm-radius-md); background: var(--adm-gray-50); object-fit: cover; }
+.sp-sub-empty { display: flex; align-items: center; justify-content: center; color: var(--adm-text-disabled); }
+
+/* 문구 초안 */
+.sp-copy { display: flex; flex-direction: column; gap: var(--adm-space-3); }
+.sp-copy-list { display: flex; flex-direction: column; gap: var(--adm-space-2); margin: 0; padding: 0; list-style: none; }
+.sp-copy-item { display: flex; align-items: flex-start; gap: var(--adm-space-3); padding: var(--adm-space-3); border: var(--adm-border-width) solid var(--adm-line-subtle); border-radius: var(--adm-radius-md); }
+.sp-copy-text { display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: 0; line-height: var(--adm-lh); overflow-wrap: anywhere; }
+.sp-copy-kind { color: var(--adm-accent-strong); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
+
+@media (max-width: 760px) {
+  .sp-filters, .sp-note { padding-inline: var(--adm-space-4); }
+  .sp-count-all { margin-left: 0; }
+  .sp-c-photo, .sp-c-alias, .sp-c-count, .sp-c-actions, .sp-table th:nth-child(2) { width: auto; }
+  /* 카드에서 한 줄 소개는 이름 아래 한 줄 전체 */
+  .sp-table td.sp-short { grid-column: 1 / -1; order: -1; }
+  .sp-grid { grid-template-columns: minmax(0, 1fr); }
+  .sp-subs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

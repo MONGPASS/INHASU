@@ -74,9 +74,13 @@ test('휴대폰에서 목록 표는 카드로 바뀐다', () => {
     const layout = read('src/components/admin/AdminLayout.tsx');
     assert.ok(layout.includes('useCardTables(contentRef)'));
     const mobile = read('src/styles/admin-mobile.css');
-    assert.ok(mobile.includes('[data-card-table="on"]') && mobile.includes('.v7-list-row'));
+    assert.ok(mobile.includes('[data-card-table="on"]'));
+    // 통합 예약 목록은 공통 표 부품(AdminTable)을 쓰고, 휴대폰 칸 배치는 목록 CSS에 둔다.
     const list = read('src/components/admin/v7/ReservationListV7.tsx');
-    for (const name of ['check', 'cust', 'period', 'people', 'region', 'assign', 'pay', 'status']) assert.ok(list.includes('v7-c-' + name), name);
+    assert.ok(list.includes('<AdminTable') && !/<(button|input|select|table)/.test(list));
+    for (const name of ['check', 'cust', 'date', 'product', 'people', 'assign', 'pay', 'step', 'more']) assert.ok(list.includes('rl-c-' + name), name);
+    const listCss = read('src/components/admin/v7/reservation-list.css');
+    assert.ok(listCss.includes('@media (max-width: 760px)') && listCss.includes('.rl-c-check'));
 });
 
 test('삭제·변경 확인은 공통 확인 창을 쓰고, 브라우저 확인창은 나가기 보호에만 남긴다', () => {
@@ -139,13 +143,10 @@ test('민트 채움 위 글자는 --adm-on-primary를 쓴다(흰 글자 금지)'
             if (FILL.test(body)) assert.doesNotMatch(body, WHITE, `${file}: ${sel.trim().slice(0, 80)} — 민트 채움 위는 var(--adm-on-primary)`);
         }
     }
-    // Montage Button(solid·primary)은 글자를 흰색으로 그리므로 adm-on-primary 클래스를 함께 준다.
-    const tsx = ['src/pages/AdminDashboard.tsx', 'src/components/admin/v7/ReservationListV7.tsx'];
-    for (const file of tsx) {
-        for (const m of read(file).matchAll(/<Button\b[^>]*>/g)) {
-            const tag = m[0];
-            const solidPrimary = !/variant="(outlined)"/.test(tag) && !/color="(assistive|negative)"/.test(tag);
-            if (solidPrimary) assert.ok(tag.includes('adm-on-primary'), `${file}: ${tag.slice(0, 80)}`);
-        }
-    }
+    // Montage Button(solid·primary)은 글자를 흰색으로 그린다. 화면은 Montage Button을 직접 쓰지 않고(tests/admin-ui-boundary.test.mjs)
+    // 우리 AdminButton만 쓰므로, AdminButton이 주요 버튼에 adm-on-primary를 붙이고 그 규칙이 --adm-on-primary 글자를 주는지 본다.
+    const button = read('src/components/admin/ui/AdminButton.tsx');
+    assert.match(button, /variant === 'primary' && 'adm-on-primary'/, 'AdminButton 주요 버튼에 adm-on-primary');
+    const partsCss = read('src/components/admin/ui/admin-components.css');
+    assert.match(partsCss, /\.adm-ui-btn\.is-primary\.adm-on-primary[^{]*\{[^}]*color:\s*var\(--adm-on-primary\)/, 'admin-components.css: 주요 버튼 글자는 var(--adm-on-primary)');
 });

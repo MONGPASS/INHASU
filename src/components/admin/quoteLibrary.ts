@@ -2,7 +2,7 @@ import type { RepresentativeSpotSnapshot } from '../../types/product';
 import type { Course } from './courseImport';
 
 export type QuoteSpotLibrary = Record<string, Omit<RepresentativeSpotSnapshot, 'name'>>;
-interface QuotePresets { courses: Record<string, Course>; spots: QuoteSpotLibrary }
+interface QuotePresets { courses: Record<string, Course>; spots: QuoteSpotLibrary; snippets: Record<string, unknown> }
 let presets: Promise<QuotePresets> | undefined;
 
 // presets.js also defines globals for the quote editor. Read its fallback data in isolation.
@@ -20,7 +20,7 @@ function loadPresets(): Promise<QuotePresets> {
         script.onload = () => {
             const data = (frame.contentWindow as (Window & { PRESETS?: QuotePresets }) | null)?.PRESETS;
             if (!data?.courses || !data.spots) return fail();
-            resolve(structuredClone({ courses: data.courses, spots: data.spots }));
+            resolve(structuredClone({ courses: data.courses, spots: data.spots, snippets: data.snippets || {} }));
             frame.remove();
         };
         script.onerror = fail;
@@ -60,6 +60,19 @@ export async function loadQuoteSpots(signal: AbortSignal): Promise<QuoteSpotLibr
     if (data == null) return localMap('spots') ?? (await loadPresets()).spots;
     if (typeof data !== 'object' || Array.isArray(data)) throw new Error('명소 자료 형식을 확인할 수 없습니다.');
     return data;
+}
+
+/**
+ * 기본 일정 조각(presets.js의 PRESETS.snippets). 서버·이 브라우저에 저장된 일정이 없을 때 옛 일정 관리·견적서 만들기가 보여 주던 값.
+ * 이 브라우저 저장분(localStorage `leaders_snippets`)이 있으면 그것을 먼저 쓴다.
+ */
+export async function loadFallbackSnippets(): Promise<Record<string, unknown>> {
+    return localMap('snippets') ?? (await loadPresets()).snippets;
+}
+
+/** 기본 여행지(presets.js의 PRESETS.spots). 서버에 저장된 여행지가 없을 때 옛 여행지 관리가 보여 주던 값(이 브라우저 저장분 우선). */
+export async function loadFallbackSpots(): Promise<QuoteSpotLibrary> {
+    return localMap('spots') ?? (await loadPresets()).spots;
 }
 
 export async function loadQuoteSpotCategories(signal: AbortSignal): Promise<string[]> {

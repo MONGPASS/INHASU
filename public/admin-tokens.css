@@ -82,7 +82,7 @@
   --adm-fs-section: 20px;   /* 구역 제목 */
   --adm-fs-title: 28px;     /* 화면 제목 */
   --adm-fs-title-sm: 22px;  /* 좁은 화면의 화면 제목 */
-  --adm-fw-regular: 400; --adm-fw-medium: 500; --adm-fw-semibold: 600; --adm-fw-bold: 700;
+  --adm-fw-regular: 400; --adm-fw-medium: 500; --adm-fw-semibold: 600; --adm-fw-bold: 700; --adm-fw-black: 900; /* Pretendard Black — 강조 문구만 */
   --adm-lh: 1.5;
 
   /* ── 간격 ── */

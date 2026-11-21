@@ -41,13 +41,14 @@ export function adminDesignFiles() {
 
 // ── 화면 묶음(docs/admin-screen-inventory.md 기준). 어디에도 안 맞는 파일은 '기타'로 센다 ──
 const SCREENS = [
-    ['공통 틀·부품', /^(src\/components\/admin\/(AdminLayout|AdminSidebar|AdminToolbar|adminNav|AdminWorkspaceContext|Admin3DIcon)|src\/components\/admin\/(ui|console)\/|src\/styles\/admin-)/],
+    ['공통 틀·부품', /^(src\/components\/admin\/(AdminLayout|AdminSidebar|AdminToolbar|adminNav|AdminWorkspaceContext|Admin3DIcon)|src\/components\/admin\/(ui|console)\/|src\/pages\/AdminUiPreview|src\/styles\/admin-)/],
     ['대시보드', /(AdminDashboard|components\/admin\/dashboard\/)/],
     ['통합 예약 목록', /(AdminReservationManage|AdminReservationBoard|v7\/ReservationListV7)/],
     ['고객 예약 상세(상품·이전 견적)', /(v7\/(ReservationDetailV7|v7Ui|guideMenuItems)|CustomerWorkspaceOverview|Reservation(Workflow|Documents|DocumentEditor|InlineEditor|Operations|DraftPreview)|CustomerKakaoActions|CustomerVehicleAssignment|CustomerResourcePicker|AdminDeliveryHistory|QuoteAccountLinkDialog|customer-workspace-editor|reservation-|product-customer-workspace)/],
     ['고객 통합 작업(견적)·견적 도구 틀', /(AdminQuoteDesk|quote-booking-workspace)/],
     ['투어 캘린더', /AdminCalendar/],
     ['맞춤견적 관리(이전)', /(AdminQuoteManage|QuoteModals)/],
+    ['숙소 배정 · 배정 보드(새 디자인)', /(LodgeAssignQueue|lodgeBoardModel)/],
     ['숙소 배정·현지 운영', /(AdminAccommodationOps|accommodation\/)/],
     ['가이드 배정 현황', /components\/admin\/guides\//],
     ['상품 목록·추가·수정', /(AdminProduct|DesignTemplateBlockEditor|designEditor\/|HotelPickerModal|TouristSpotPickerModal|CourseImportModal|ItineraryImportModal|ProductTermsChecklist|QuoteDayEditor|QuoteSpotSelector|SelectionModals|quote-day-editor|quote-spot-selector)/],
@@ -62,6 +63,8 @@ const SCREENS = [
     ['상품용 가이드·숙소', /(AdminGuideManage|AdminAccommodationManage)/],
     ['콘텐츠 공통 CSS', /AdminContentManage\.css/],
     ['관리자 로그인', /AdminLogin/],
+    ['일정 관리(React 전환)', /AdminItineraryManage/],
+    ['여행지 관리(React 전환)', /AdminSpotManage/],
     ['견적 도구 공통 CSS', /public\/admin-tools\.css/],
     ['(쓰이지 않는 파일)', /AdminAssignment/],
     ...QUOTE_TOOLS.map((t) => [`견적 도구: ${t}`, new RegExp(`public/${t}\\.html$`)]),
@@ -69,6 +72,8 @@ const SCREENS = [
 export const screenOf = (file) => (SCREENS.find(([, re]) => re.test(file)) || ['기타'])[0];
 
 const HEX = /#[0-9a-fA-F]{3,8}\b/g;
+/** 우리 관리자 부품을 가져오는 경로: …/components/admin/ui, ../ui, (부품 폴더 안) ./AdminButton */
+const UI_IMPORT = /(^|\/)components\/admin\/ui(\/[\w-]+)?$|^(\.\.\/)+ui(\/[\w-]+)?$|^\.\/(Admin\w+|index)$/;
 const count = (s, re) => (s.match(re) || []).length;
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');
 const SIZE_PROPS = 'fontSize|padding(?:Top|Bottom|Left|Right|Inline|Block)?|margin(?:Top|Bottom|Left|Right|Inline|Block)?|height|minHeight|maxHeight|width|minWidth|maxWidth|borderRadius|gap|rowGap|columnGap|top|left|right|bottom|lineHeight|letterSpacing';
@@ -76,15 +81,25 @@ const SIZE_PROPS = 'fontSize|padding(?:Top|Bottom|Left|Right|Inline|Block)?|marg
 /** TSX 한 파일의 수치 */
 export function measureTsx(src) {
     const s = stripComments(src);
+    // 공통 부품 = 우리 관리자 부품(components/admin/ui의 Admin*·*Page) + (ui 폴더 안에서만) Montage 부품
     const imported = new Set();
-    for (const m of s.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]@montage-ui\/core['"]/g)) {
-        for (const name of m[1].split(',')) { const n = name.trim().split(/\s+as\s+/).pop(); if (/^[A-Z]/.test(n || '')) imported.add(n); }
+    for (const m of s.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
+        const from = m[2];
+        const isMontage = from === '@montage-ui/core';
+        const isOurs = UI_IMPORT.test(from);
+        if (!isMontage && !isOurs) continue;
+        for (const name of m[1].split(',')) {
+            const n = name.trim().replace(/^type\s+/, '').split(/\s+as\s+/).pop();
+            if (!/^[A-Z]/.test(n || '')) continue;
+            if (isOurs && !/^(Admin[A-Z]\w*|ListPage|FormPage|DetailPage|DashboardPage)$/.test(n)) continue;
+            imported.add(n);
+        }
     }
-    const montage = [...imported].reduce((n, name) => n + count(s, new RegExp(`<${name}\\b`, 'g')), 0);
+    const parts = [...imported].reduce((n, name) => n + count(s, new RegExp(`<${name}\\b`, 'g')), 0);
     const buttons = [...s.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
     const fields = [...s.matchAll(/<(input|select|textarea)\b[^>]*>/g)].map((m) => m[0]).filter((t) => !/type=["'](hidden|file)["']/.test(t));
     return {
-        montage,
+        parts,
         rawButton: buttons.filter((t) => !/className=[^>]*\badm-/.test(t)).length,
         rawField: fields.length,
         rawTable: count(s, /<table\b/g),
@@ -130,41 +145,41 @@ export function summarize(files) {
     const by = new Map();
     for (const [f, m] of Object.entries(files)) {
         const name = screenOf(f);
-        const r = by.get(name) || { screen: name, files: 0, montage: 0, raw: 0, inlineStyle: 0, px: 0, hex: 0, important: 0, cssRawPx: 0, nativeDialog: 0 };
+        const r = by.get(name) || { screen: name, files: 0, parts: 0, raw: 0, inlineStyle: 0, px: 0, hex: 0, important: 0, cssRawPx: 0, nativeDialog: 0 };
         r.files++;
-        if (m.kind === 'tsx') { r.montage += m.montage; r.raw += m.rawButton + m.rawField + m.rawTable; r.inlineStyle += m.inlineStyle; r.px += m.px; r.hex += m.hex; r.nativeDialog += m.nativeDialog; }
+        if (m.kind === 'tsx') { r.parts += m.parts; r.raw += m.rawButton + m.rawField + m.rawTable; r.inlineStyle += m.inlineStyle; r.px += m.px; r.hex += m.hex; r.nativeDialog += m.nativeDialog; }
         if (m.kind === 'css') { r.hex += m.hex; r.important += m.important; r.cssRawPx += m.rawPx; }
         if (m.kind === 'html') { r.hex += m.hex; r.important += m.important; r.cssRawPx += m.rawPx; r.inlineStyle += m.inlineStyle; r.nativeDialog += m.nativeDialog; }
         by.set(name, r);
     }
     const order = SCREENS.map(([n]) => n).concat('기타');
-    return [...by.values()].map((r) => ({ ...r, adoption: r.montage + r.raw ? Math.round((r.montage / (r.montage + r.raw)) * 100) : null }))
+    return [...by.values()].map((r) => ({ ...r, adoption: r.parts + r.raw ? Math.round((r.parts / (r.parts + r.raw)) * 100) : null }))
         .sort((a, b) => order.indexOf(a.screen) - order.indexOf(b.screen));
 }
 
-// 기준선에 오르는 수치(줄이기만 한다). montage·lines는 늘어나도 되므로 빼고, 새로 생긴 파일은 아래 NEW_FILE_LIMIT을 따른다.
+// 기준선에 오르는 수치(줄이기만 한다). parts·lines는 늘어나도 되므로 빼고, 새로 생긴 파일은 아래 NEW_FILE_LIMIT을 따른다.
 export const BUDGET_KEYS = { tsx: ['rawButton', 'rawField', 'rawTable', 'inlineStyle', 'px', 'hex', 'nativeDialog'], css: ['hex', 'important', 'rawPx'], html: ['hex', 'important', 'rawPx', 'inlineStyle', 'nativeDialog'] };
-/** 기준선에 없는 새 파일의 상한 — 새 화면은 처음부터 Montage 부품과 --adm-* 변수만 쓴다 */
+/** 기준선에 없는 새 파일의 상한 — 새 화면은 처음부터 우리 관리자 부품(components/admin/ui)과 --adm-* 변수만 쓴다 */
 export const NEW_FILE_LIMIT = { tsx: { rawButton: 0, rawField: 0, rawTable: 0, px: 0, hex: 0, nativeDialog: 0 }, css: { hex: 0, important: 0, rawPx: 0 }, html: { hex: 0, important: 0, rawPx: 0, nativeDialog: 0 } };
 export const BASELINE_PATH = 'scripts/admin-design-baseline.json';
 
 function toMarkdown(files, rows) {
-    const total = rows.reduce((a, r) => ({ montage: a.montage + r.montage, raw: a.raw + r.raw, inlineStyle: a.inlineStyle + r.inlineStyle, px: a.px + r.px, hex: a.hex + r.hex, important: a.important + r.important, cssRawPx: a.cssRawPx + r.cssRawPx }), { montage: 0, raw: 0, inlineStyle: 0, px: 0, hex: 0, important: 0, cssRawPx: 0 });
+    const total = rows.reduce((a, r) => ({ parts: a.parts + r.parts, raw: a.raw + r.raw, inlineStyle: a.inlineStyle + r.inlineStyle, px: a.px + r.px, hex: a.hex + r.hex, important: a.important + r.important, cssRawPx: a.cssRawPx + r.cssRawPx }), { parts: 0, raw: 0, inlineStyle: 0, px: 0, hex: 0, important: 0, cssRawPx: 0 });
     const pct = (r) => r.adoption == null ? '—' : `${r.adoption}%`;
     const lines = [
         '# 관리자 디자인 전환 현황',
         '',
         '`node scripts/check-admin-design.mjs --md`가 만든 문서다. 손으로 고치지 않는다. 규칙은 [admin-design-system.md](admin-design-system.md), 화면 목록은 [admin-screen-inventory.md](admin-screen-inventory.md).',
         '',
-        '- **Montage 전환율** = Montage 부품 수 ÷ (Montage 부품 + 생 `<button>`·`<input>`·`<select>`·`<textarea>`·`<table>`). `adm-` 클래스를 단 버튼은 공통 부품으로 센다.',
+        '- **부품 전환율** = 공통 부품 수 ÷ (공통 부품 + 생 `<button>`·`<input>`·`<select>`·`<textarea>`·`<table>`). 공통 부품은 우리 관리자 부품(`components/admin/ui`의 `Admin*`·`ListPage` 등)이고, 그 폴더 안에서 쓴 Montage 부품도 센다. 화면 파일은 Montage를 직접 가져오지 않는다(`tests/admin-ui-boundary.test.mjs`). `adm-` 클래스를 단 버튼은 공통 부품으로 센다.',
         '- **직접 지정**: 인라인 `style={{}}` 수, 숫자로 적은 크기(px), 직접 적은 색(hex), `!important`, CSS에 숫자로 적은 크기(글자·모서리·높이·여백).',
         '- 이 수치는 `scripts/admin-design-baseline.json`의 상한보다 늘어나면 `tests/admin-design-budget.test.mjs`가 실패한다(PR마다 CI에서 검사). 줄였으면 `--write-baseline`으로 상한을 낮춘다.',
         '',
-        `전체: Montage 부품 ${total.montage}개 / 생 HTML 부품 ${total.raw}개 → **전환율 ${Math.round(total.montage / Math.max(1, total.montage + total.raw) * 100)}%** · 인라인 style ${total.inlineStyle} · 숫자 크기 ${total.px + total.cssRawPx} · 직접 색 ${total.hex} · !important ${total.important}`,
+        `전체: 공통 부품 ${total.parts}개 / 생 HTML 부품 ${total.raw}개 → **전환율 ${Math.round(total.parts / Math.max(1, total.parts + total.raw) * 100)}%** · 인라인 style ${total.inlineStyle} · 숫자 크기 ${total.px + total.cssRawPx} · 직접 색 ${total.hex} · !important ${total.important}`,
         '',
-        '| 화면 | 파일 | Montage 전환율 | Montage | 생 HTML 부품 | 인라인 style | 숫자 크기(TSX/CSS) | 직접 색 | !important | 기본 확인창 |',
+        '| 화면 | 파일 | 부품 전환율 | 공통 부품 | 생 HTML 부품 | 인라인 style | 숫자 크기(TSX/CSS) | 직접 색 | !important | 기본 확인창 |',
         '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|',
-        ...rows.map((r) => `| ${r.screen} | ${r.files} | ${pct(r)} | ${r.montage} | ${r.raw} | ${r.inlineStyle} | ${r.px} / ${r.cssRawPx} | ${r.hex} | ${r.important} | ${r.nativeDialog} |`),
+        ...rows.map((r) => `| ${r.screen} | ${r.files} | ${pct(r)} | ${r.parts} | ${r.raw} | ${r.inlineStyle} | ${r.px} / ${r.cssRawPx} | ${r.hex} | ${r.important} | ${r.nativeDialog} |`),
         '',
         '## 파일별 상위 20 (생 부품 + 인라인 style + 숫자 크기)',
         '',
@@ -193,6 +208,6 @@ if (isMain) {
         fs.writeFileSync(path.join(root, 'docs/admin-design-adoption.md'), toMarkdown(files, rows));
         console.log('문서 저장: docs/admin-design-adoption.md');
     }
-    console.table(rows.map((r) => ({ 화면: r.screen, 파일: r.files, 전환율: r.adoption == null ? '—' : r.adoption + '%', Montage: r.montage, 생부품: r.raw, 인라인: r.inlineStyle, 숫자크기: r.px + r.cssRawPx, 직접색: r.hex, important: r.important })));
+    console.table(rows.map((r) => ({ 화면: r.screen, 파일: r.files, 전환율: r.adoption == null ? '—' : r.adoption + '%', 공통부품: r.parts, 생부품: r.raw, 인라인: r.inlineStyle, 숫자크기: r.px + r.cssRawPx, 직접색: r.hex, important: r.important })));
     void rel;
 }

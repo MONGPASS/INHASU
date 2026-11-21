@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
-import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import { TourFAQEditor } from '../components/admin/TourFAQEditor';
 import { api } from '../lib/api';
-import './AdminContentManage.css';
+import {
+    AdminBadge, AdminButton, AdminCard, AdminChipGroup, AdminDialog, AdminEmpty, AdminError, AdminField, AdminIconButton,
+    AdminLoading, AdminMessage, AdminSearch, AdminSwitch, AdminTable, AdminTabs, AdminTbody, AdminTd, AdminTextArea,
+    AdminTextInput, AdminTh, AdminThead, AdminTr, type AdminTagTone,
+} from '../components/admin/ui';
+import { IconArrowDown, IconArrowUp, IconChevronDown, IconChevronUp, IconPencil, IconPlus, IconTrash } from '@montage-ui/icon';
+import './AdminFAQManage.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminValidateRequired } from '../components/admin/ui/adminForm';
 
@@ -27,41 +32,19 @@ interface FAQCategory {
 
 type Tab = 'faq' | 'category' | 'tour-common';
 
-const TABS: Array<{ key: Tab; label: string; title: string }> = [
-    { key: 'faq', label: 'FAQ 목록', title: '고객센터 페이지(/faq)의 FAQ' },
-    { key: 'category', label: '카테고리 관리', title: '고객센터 FAQ 의 카테고리' },
-    { key: 'tour-common', label: '투어 공통 FAQ', title: '모든 상품 상세 페이지 하단에 공통으로 표시되는 FAQ' },
-];
+const TAB_HINT: Record<Tab, string> = {
+    faq: '고객센터 페이지(/faq)에 보이는 FAQ입니다.',
+    category: '고객센터 FAQ의 카테고리입니다.',
+    'tour-common': '모든 상품 상세 페이지 아래에 공통으로 보이는 FAQ입니다.',
+};
 
-/** 카테고리 배지 색 — 카테고리 순서대로 돌려 쓴다. */
-const CATEGORY_TONES = 5;
-
-const ChevronUp: React.FC<{ size?: number }> = ({ size = 14 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flex: 'none', display: 'block' }}>
-        <path d="m18 15-6-6-6 6" />
-    </svg>
-);
-
-const InboxIcon: React.FC = () => (
-    <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flex: 'none', display: 'block' }}>
-        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
-    </svg>
-);
+/** 카테고리 배지 색 — 카테고리 순서대로 돌려 쓰고, 카테고리 표에 없는 옛 값은 회색 */
+const CATEGORY_TONES: AdminTagTone[] = ['tag-blue', 'tag-violet', 'tag-orange', 'tag-cyan', 'tag-pink'];
 
 const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-const VisibilitySwitch: React.FC<{ on: boolean; onToggle: () => void; onLabel?: string; offLabel?: string; disabled?: boolean }> = ({ on, onToggle, onLabel = '노출', offLabel = '숨김', disabled }) => (
-    <button type="button" className="cm-switch" aria-pressed={on} title={on ? onLabel : offLabel} onClick={onToggle} disabled={disabled}>
-        <span className="cm-switch-track"><span className="cm-switch-knob" /></span>{on ? onLabel : offLabel}
-    </button>
-);
-
-const OrderArrows: React.FC<{ onUp: () => void; onDown: () => void; upDisabled: boolean; downDisabled: boolean }> = ({ onUp, onDown, upDisabled, downDisabled }) => (
-    <span className="cm-order">
-        <button type="button" onClick={onUp} disabled={upDisabled} title="위로" aria-label="위로 옮기기"><ChevronUp /></button>
-        <button type="button" onClick={onDown} disabled={downDisabled} title="아래로" aria-label="아래로 옮기기"><DashboardIcon name="lc-chevron-down" size={14} /></button>
-    </span>
-);
+const EMPTY_FAQ_FORM = { category: '', question: '', answer: '', isActive: true };
+const EMPTY_CATEGORY_FORM = { name: '', isActive: true };
 
 export const AdminFAQManage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('faq');
@@ -78,20 +61,15 @@ export const AdminFAQManage: React.FC = () => {
     const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
     const [newCategoryName, setNewCategoryName] = useState('');
     const [busy, setBusy] = useState(false);
+    const [saving, setSaving] = useState(false);
 
-    // FAQ Form
-    const [faqForm, setFaqForm] = useState({
-        category: '',
-        question: '',
-        answer: '',
-        isActive: true
-    });
+    // FAQ Form (처음 값과 비교해 고친 내용이 있으면 닫을 때 묻는다)
+    const [faqForm, setFaqForm] = useState(EMPTY_FAQ_FORM);
+    const [faqFormStart, setFaqFormStart] = useState(EMPTY_FAQ_FORM);
 
     // Category Form
-    const [categoryForm, setCategoryForm] = useState({
-        name: '',
-        isActive: true
-    });
+    const [categoryForm, setCategoryForm] = useState(EMPTY_CATEGORY_FORM);
+    const [categoryFormStart, setCategoryFormStart] = useState(EMPTY_CATEGORY_FORM);
 
     // Fetch data from API
     useEffect(() => {
@@ -124,21 +102,35 @@ export const AdminFAQManage: React.FC = () => {
         return matchesCategory && matchesSearch;
     });
 
-    const categoryTone = (name: string) => {
+    const categoryTone = (name: string): AdminTagTone | 'neutral' => {
         const index = sortedCategories.findIndex(c => c.name === name);
-        return index < 0 ? CATEGORY_TONES - 1 : index % CATEGORY_TONES;
+        return index < 0 ? 'neutral' : CATEGORY_TONES[index % CATEGORY_TONES.length];
     };
     // 카테고리 표에 없는 옛 값도 칩으로 걸러 볼 수 있게 한다.
     const chipCategories = [...sortedCategories.map(c => c.name), ...[...new Set(faqs.map(f => f.category))].filter(name => name && !categories.some(c => c.name === name))];
 
-    const openNewFAQ = () => {
-        setSelectedFAQ(null);
-        setFaqForm({ category: filterCategory !== 'all' ? filterCategory : sortedCategories[0]?.name || '', question: '', answer: '', isActive: true });
+    const openFaqEditor = (faq: FAQ | null) => {
+        const form = faq
+            ? { category: faq.category, question: faq.question, answer: faq.answer, isActive: faq.isActive }
+            : { ...EMPTY_FAQ_FORM, category: filterCategory !== 'all' ? filterCategory : sortedCategories[0]?.name || '' };
+        setSelectedFAQ(faq);
+        setFaqForm(form);
+        setFaqFormStart(form);
         setIsModalOpen(true);
     };
+    const closeFaqEditor = () => { setIsModalOpen(false); setSelectedFAQ(null); };
+    const openCategoryEditor = (cat: FAQCategory) => {
+        const form = { name: cat.name, isActive: cat.isActive };
+        setSelectedCategoryEdit(cat);
+        setCategoryForm(form);
+        setCategoryFormStart(form);
+        setIsCategoryModalOpen(true);
+    };
+    const closeCategoryEditor = () => { setIsCategoryModalOpen(false); setSelectedCategoryEdit(null); };
 
     // Add/Edit FAQ
     const handleSaveFAQ = async () => {
+        if (saving) return;
         // 빈 필수 칸은 그 칸 아래에 안내한다. 카테고리는 고르는 칸이라 알림으로 알린다.
         const filled = adminValidateRequired();
         if (!filled || !faqForm.question || !faqForm.answer || !faqForm.category) {
@@ -148,6 +140,7 @@ export const AdminFAQManage: React.FC = () => {
 
         const now = new Date().toISOString();
 
+        setSaving(true);
         try {
             if (selectedFAQ) {
                 const result = await api.faqs.update(selectedFAQ.id, {
@@ -163,7 +156,7 @@ export const AdminFAQManage: React.FC = () => {
                     return;
                 }
 
-                setFaqs(faqs.map(f => f.id === selectedFAQ.id ? { ...f, ...faqForm } : f));
+                setFaqs(list => list.map(f => f.id === selectedFAQ.id ? { ...f, ...faqForm } : f));
             } else {
                 const maxOrder = faqs.length > 0 ? Math.max(...faqs.map(f => f.order)) : 0;
                 const newFaq = {
@@ -184,16 +177,17 @@ export const AdminFAQManage: React.FC = () => {
                     return;
                 }
 
-                setFaqs([...faqs, { id: newFaq.id, category: newFaq.category, question: newFaq.question, answer: newFaq.answer, order: newFaq.order, isActive: newFaq.is_active, viewCount: null }]);
+                setFaqs(list => [...list, { id: newFaq.id, category: newFaq.category, question: newFaq.question, answer: newFaq.answer, order: newFaq.order, isActive: newFaq.is_active, viewCount: null }]);
             }
         } catch (e) {
             adminNotify(`FAQ 저장 실패: ${errorMessage(e)}`);
             return;
+        } finally {
+            setSaving(false);
         }
 
-        setIsModalOpen(false);
-        setSelectedFAQ(null);
-        setFaqForm({ category: '', question: '', answer: '', isActive: true });
+        closeFaqEditor();
+        setFaqForm(EMPTY_FAQ_FORM);
     };
 
     // Delete FAQ
@@ -257,8 +251,9 @@ export const AdminFAQManage: React.FC = () => {
         setCategories(list => [...list, { id: newCat.id, name: newCat.name, order: newCat.order, isActive: newCat.is_active }]);
     };
 
-    // Add/Edit Category
+    // Edit Category (추가는 카테고리 탭의 빠른 추가 줄에서 한다)
     const handleSaveCategory = async () => {
+        if (saving) return;
         const name = categoryForm.name.trim();
         if (!name) { adminValidateRequired(); return; }
         if (categories.some(c => c.name === name && c.id !== selectedCategory?.id)) {
@@ -266,6 +261,7 @@ export const AdminFAQManage: React.FC = () => {
             return;
         }
 
+        setSaving(true);
         try {
             if (selectedCategory) {
                 await api.faqCategories.update(selectedCategory.id, {
@@ -275,22 +271,23 @@ export const AdminFAQManage: React.FC = () => {
 
                 // The server moves the FAQ rows that carried the old name in the same request.
                 if (selectedCategory.name !== name) {
-                    setFaqs(faqs.map(f => f.category === selectedCategory.name ? { ...f, category: name } : f));
+                    setFaqs(list => list.map(f => f.category === selectedCategory.name ? { ...f, category: name } : f));
                     if (filterCategory === selectedCategory.name) setFilterCategory(name);
                 }
 
-                setCategories(categories.map(c => c.id === selectedCategory.id ? { ...c, name, isActive: categoryForm.isActive } : c));
+                setCategories(list => list.map(c => c.id === selectedCategory.id ? { ...c, name, isActive: categoryForm.isActive } : c));
             } else {
                 await createCategory(name, categoryForm.isActive);
             }
         } catch (e) {
             alertCategoryError(selectedCategory ? '카테고리 수정' : '카테고리 추가', e);
             return;
+        } finally {
+            setSaving(false);
         }
 
-        setIsCategoryModalOpen(false);
-        setSelectedCategoryEdit(null);
-        setCategoryForm({ name: '', isActive: true });
+        closeCategoryEditor();
+        setCategoryForm(EMPTY_CATEGORY_FORM);
     };
 
     // Quick add from the category tab (same rules as the modal; new categories start visible).
@@ -358,283 +355,248 @@ export const AdminFAQManage: React.FC = () => {
     };
 
     const headerActions = activeTab === 'tour-common' ? null : (
-        <button type="button" className="btn btn-ink" onClick={openNewFAQ}>
-            <DashboardIcon name="lc-plus" />
-            FAQ 추가
-        </button>
+        <AdminButton variant="primary" leading={<IconPlus />} onClick={() => openFaqEditor(null)}>FAQ 추가</AdminButton>
     );
 
-    const emptyFaqText = !loaded ? '불러오는 중…' : loadFailed && !faqs.length ? '목록을 불러오지 못했습니다. 새로고침해 주세요.' : faqs.length ? '조건에 맞는 FAQ가 없어요.' : '등록된 FAQ가 없어요.';
+    const faqDirty = JSON.stringify(faqForm) !== JSON.stringify(faqFormStart);
+    const categoryDirty = JSON.stringify(categoryForm) !== JSON.stringify(categoryFormStart);
+
+    const faqList = !loaded ? <AdminLoading label="FAQ를 불러오는 중…" />
+        : loadFailed && !faqs.length ? <AdminError reason="목록을 불러오지 못했습니다. 새로고침해 주세요." />
+        : filteredFaqs.length === 0 ? <AdminEmpty title={faqs.length ? '조건에 맞는 FAQ가 없어요.' : '등록된 FAQ가 없어요.'} description={faqs.length ? '검색어나 카테고리를 바꿔 보세요.' : '‘FAQ 추가’로 첫 질문을 만들어 주세요.'} />
+        : (
+            <AdminTable label="FAQ 목록" className="fq-table">
+                <AdminThead>
+                    <AdminTr>
+                        <AdminTh className="fq-c-order">순서</AdminTh>
+                        <AdminTh className="fq-c-cat">카테고리</AdminTh>
+                        <AdminTh>질문</AdminTh>
+                        <AdminTh align="right" className="fq-c-views">조회</AdminTh>
+                        <AdminTh align="center" className="fq-c-active">노출</AdminTh>
+                        <AdminTh align="right" className="fq-c-actions">관리</AdminTh>
+                    </AdminTr>
+                </AdminThead>
+                <AdminTbody>
+                    {filteredFaqs.map((faq, index) => {
+                        const open = !!openIds[faq.id];
+                        return (
+                            <React.Fragment key={faq.id}>
+                                <AdminTr className={faq.isActive ? undefined : 'is-hidden'}>
+                                    <AdminTd className="fq-c-order">
+                                        <span className="fq-order">
+                                            <AdminIconButton size="sm" label={`${index + 1}번 FAQ 위로`} onClick={() => void moveFAQOrder(faq, 'up')} disabled={busy || index === 0}><IconArrowUp /></AdminIconButton>
+                                            <AdminIconButton size="sm" label={`${index + 1}번 FAQ 아래로`} onClick={() => void moveFAQOrder(faq, 'down')} disabled={busy || index === filteredFaqs.length - 1}><IconArrowDown /></AdminIconButton>
+                                            <b className="fq-order-no">{index + 1}</b>
+                                        </span>
+                                    </AdminTd>
+                                    <AdminTd className="fq-c-cat"><AdminBadge tone={categoryTone(faq.category)}>{faq.category || '없음'}</AdminBadge></AdminTd>
+                                    <AdminTd className="fq-question">
+                                        <span className="fq-question-row">
+                                            <span className="fq-q-mark" aria-hidden="true">Q</span>
+                                            <span className="fq-q-text">{faq.question}</span>
+                                            <AdminIconButton size="sm" label={open ? '답변 접기' : '답변 보기'} aria-expanded={open}
+                                                onClick={() => setOpenIds(ids => ({ ...ids, [faq.id]: !ids[faq.id] }))}>
+                                                {open ? <IconChevronUp /> : <IconChevronDown />}
+                                            </AdminIconButton>
+                                        </span>
+                                    </AdminTd>
+                                    <AdminTd align="right" className="fq-c-views">{faq.viewCount !== null ? faq.viewCount.toLocaleString('ko-KR') : '—'}</AdminTd>
+                                    <AdminTd align="center" className="fq-c-active">
+                                        <AdminSwitch size="sm" aria-label={`${index + 1}번 FAQ 노출`} checked={faq.isActive} onChange={() => void toggleFAQActive(faq)} />
+                                    </AdminTd>
+                                    <AdminTd align="right" className="fq-c-actions">
+                                        <span className="fq-actions">
+                                            <AdminIconButton label="FAQ 수정" onClick={() => openFaqEditor(faq)}><IconPencil /></AdminIconButton>
+                                            <AdminIconButton label="FAQ 삭제" className="fq-danger" onClick={() => void handleDeleteFAQ(faq.id)}><IconTrash /></AdminIconButton>
+                                        </span>
+                                    </AdminTd>
+                                </AdminTr>
+                                {open && (
+                                    <AdminTr className="fq-answer-row">
+                                        <AdminTd colSpan={6}>
+                                            <div className="fq-answer">
+                                                <span className="fq-a-mark" aria-hidden="true">A</span>
+                                                <p className="fq-a-text">{faq.answer}</p>
+                                            </div>
+                                        </AdminTd>
+                                    </AdminTr>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
+                </AdminTbody>
+            </AdminTable>
+        );
+
+    const categoryList = !loaded ? <AdminLoading label="카테고리를 불러오는 중…" />
+        : categories.length === 0 ? <AdminEmpty title="등록된 카테고리가 없어요." description="위 칸에 이름을 적고 ‘추가’를 눌러 주세요." />
+        : (
+            <AdminTable label="FAQ 카테고리" className="fq-table">
+                <AdminThead>
+                    <AdminTr>
+                        <AdminTh className="fq-c-order">순서</AdminTh>
+                        <AdminTh>이름</AdminTh>
+                        <AdminTh align="right" className="fq-c-count">FAQ</AdminTh>
+                        <AdminTh align="center" className="fq-c-active">노출</AdminTh>
+                        <AdminTh align="right" className="fq-c-actions">관리</AdminTh>
+                    </AdminTr>
+                </AdminThead>
+                <AdminTbody>
+                    {sortedCategories.map((cat, index) => {
+                        const count = faqs.filter(f => f.category === cat.name).length;
+                        return (
+                            <AdminTr key={cat.id} className={cat.isActive ? undefined : 'is-hidden'}>
+                                <AdminTd className="fq-c-order">
+                                    <span className="fq-order">
+                                        <AdminIconButton size="sm" label={`${cat.name} 위로`} onClick={() => void moveCategoryOrder(cat, 'up')} disabled={busy || index === 0}><IconArrowUp /></AdminIconButton>
+                                        <AdminIconButton size="sm" label={`${cat.name} 아래로`} onClick={() => void moveCategoryOrder(cat, 'down')} disabled={busy || index === sortedCategories.length - 1}><IconArrowDown /></AdminIconButton>
+                                        <b className="fq-order-no">{index + 1}</b>
+                                    </span>
+                                </AdminTd>
+                                <AdminTd className="fq-cat-name"><AdminBadge tone={CATEGORY_TONES[index % CATEGORY_TONES.length]}>{cat.name}</AdminBadge></AdminTd>
+                                <AdminTd align="right" className="fq-c-count">{count}개</AdminTd>
+                                <AdminTd align="center" className="fq-c-active">
+                                    <AdminSwitch size="sm" aria-label={`${cat.name} 노출`} checked={cat.isActive} onChange={() => void toggleCategoryActive(cat)} />
+                                </AdminTd>
+                                <AdminTd align="right" className="fq-c-actions">
+                                    <span className="fq-actions">
+                                        <AdminIconButton label={`${cat.name} 이름·노출 수정`} onClick={() => openCategoryEditor(cat)}><IconPencil /></AdminIconButton>
+                                        <AdminIconButton label={count ? `${cat.name}: FAQ가 있어 지울 수 없어요` : `${cat.name} 삭제`} className="fq-danger" disabled={count > 0} onClick={() => void handleDeleteCategory(cat.id)}><IconTrash /></AdminIconButton>
+                                    </span>
+                                </AdminTd>
+                            </AdminTr>
+                        );
+                    })}
+                </AdminTbody>
+            </AdminTable>
+        );
 
     return (
-        <AdminLayout activePage="faq" title="FAQ 관리" actions={headerActions}>
-            <div className="cm-page fq-page route-anim">
-                {/* Tabs */}
-                <div className="cm-tabs" role="tablist" aria-label="FAQ 관리 화면">
-                    {TABS.map(tab => (
-                        <button
-                            key={tab.key}
-                            type="button"
-                            role="tab"
-                            aria-selected={activeTab === tab.key}
-                            className="cm-tab"
-                            onClick={() => setActiveTab(tab.key)}
-                            title={tab.title}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
+        <AdminLayout activePage="faq" title="FAQ 관리" description={TAB_HINT[activeTab]} actions={headerActions}>
+            <div className="fq-page">
+                <AdminCard flush className="fq-card">
+                    <div className="fq-tabs">
+                        <AdminTabs
+                            label="FAQ 관리 화면"
+                            value={activeTab}
+                            onChange={setActiveTab}
+                            items={[
+                                { value: 'faq', label: 'FAQ 목록', count: loaded ? faqs.length : null },
+                                { value: 'category', label: '카테고리 관리', count: loaded ? categories.length : null },
+                                { value: 'tour-common', label: '투어 공통 FAQ' },
+                            ]}
+                        />
+                    </div>
 
-                {activeTab === 'tour-common' ? (
-                    <TourFAQEditor />
-                ) : activeTab === 'faq' ? (
-                    <>
-                        {/* Filters */}
-                        <div className="cm-toolbar">
-                            <label className="cm-search">
-                                <DashboardIcon name="lc-search" color="var(--text-tertiary)" />
-                                <input
-                                    type="text"
-                                    placeholder="질문 · 답변 검색"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    aria-label="FAQ 검색"
+                    {activeTab === 'tour-common' ? (
+                        <div className="fq-pad"><TourFAQEditor /></div>
+                    ) : activeTab === 'faq' ? (
+                        <>
+                            <div className="fq-filters">
+                                <AdminSearch value={searchQuery} onChange={setSearchQuery} placeholder="질문 · 답변 검색" aria-label="FAQ 검색" />
+                                <AdminChipGroup
+                                    label="카테고리"
+                                    value={filterCategory}
+                                    onChange={setFilterCategory}
+                                    items={[
+                                        { value: 'all', label: '전체', count: faqs.length },
+                                        ...chipCategories.map(name => ({ value: name, label: name, count: faqs.filter(f => f.category === name).length })),
+                                    ]}
                                 />
-                            </label>
-                            <div className="cm-chips" aria-label="카테고리">
-                                <button type="button" className="cm-chip" aria-pressed={filterCategory === 'all'} onClick={() => setFilterCategory('all')}>
-                                    전체<span className="cm-chip-n">{faqs.length}</span>
-                                </button>
-                                {chipCategories.map(name => (
-                                    <button key={name} type="button" className="cm-chip" aria-pressed={filterCategory === name} onClick={() => setFilterCategory(name)}>
-                                        {name}<span className="cm-chip-n">{faqs.filter(f => f.category === name).length}</span>
-                                    </button>
-                                ))}
                             </div>
-                        </div>
-
-                        {/* FAQ List */}
-                        <section className="cm-card" aria-label="FAQ 목록">
-                            {filteredFaqs.map((faq, index) => {
-                                const open = !!openIds[faq.id];
-                                return (
-                                    <div key={faq.id} className="fq-item" data-hidden={!faq.isActive || undefined}>
-                                        <div className="fq-row">
-                                            <OrderArrows
-                                                onUp={() => void moveFAQOrder(faq, 'up')}
-                                                onDown={() => void moveFAQOrder(faq, 'down')}
-                                                upDisabled={busy || index === 0}
-                                                downDisabled={busy || index === filteredFaqs.length - 1}
-                                            />
-                                            <span className="fq-num">{index + 1}</span>
-                                            <span className="cm-cat" data-tone={categoryTone(faq.category)}>{faq.category}</span>
-                                            <button
-                                                type="button"
-                                                className="fq-q"
-                                                aria-expanded={open}
-                                                onClick={() => setOpenIds(ids => ({ ...ids, [faq.id]: !ids[faq.id] }))}
-                                            >
-                                                <span className="fq-q-mark">Q</span>
-                                                <span className="fq-q-text">{faq.question}</span>
-                                                <span className="fq-chev"><DashboardIcon name="lc-chevron-down" /></span>
-                                            </button>
-                                            {faq.viewCount !== null && <span className="fq-views">조회 {faq.viewCount.toLocaleString('ko-KR')}</span>}
-                                            <VisibilitySwitch on={faq.isActive} onToggle={() => void toggleFAQActive(faq)} />
-                                            <button
-                                                type="button"
-                                                className="cm-icon-btn"
-                                                title="수정"
-                                                aria-label="FAQ 수정"
-                                                onClick={() => {
-                                                    setSelectedFAQ(faq);
-                                                    setFaqForm({ category: faq.category, question: faq.question, answer: faq.answer, isActive: faq.isActive });
-                                                    setIsModalOpen(true);
-                                                }}
-                                            >
-                                                <DashboardIcon name="lc-pencil" />
-                                            </button>
-                                            <button type="button" className="cm-icon-btn is-danger" title="삭제" aria-label="FAQ 삭제" onClick={() => void handleDeleteFAQ(faq.id)}>
-                                                <DashboardIcon name="lc-trash" />
-                                            </button>
-                                        </div>
-                                        {open && (
-                                            <div className="fq-answer">
-                                                <span className="fq-a-mark">A</span>
-                                                <span className="fq-a-text">{faq.answer}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                            {filteredFaqs.length === 0 && (
-                                <div className="cm-empty">
-                                    <InboxIcon />
-                                    <span>{emptyFaqText}</span>
-                                </div>
-                            )}
-                        </section>
-                    </>
-                ) : (
-                    /* Category Management */
-                    <section className="cm-card fq-cats" aria-label="FAQ 카테고리">
-                        <form
-                            className="fq-cat-add"
-                            onSubmit={(e) => { e.preventDefault(); void handleQuickAddCategory(); }}
-                        >
-                            <input
-                                className="cm-input"
-                                value={newCategoryName}
-                                onChange={(e) => setNewCategoryName(e.target.value)}
-                                placeholder="새 카테고리 이름 (예: 비자·여권)"
-                                aria-label="새 카테고리 이름"
-                            />
-                            <button type="submit" className="cm-btn is-primary is-tall" disabled={busy || !newCategoryName.trim()}>추가</button>
-                        </form>
-                        {sortedCategories.map((cat, index) => {
-                            const count = faqs.filter(f => f.category === cat.name).length;
-                            return (
-                                <div key={cat.id} className="fq-cat-row" data-hidden={!cat.isActive || undefined}>
-                                    <OrderArrows
-                                        onUp={() => void moveCategoryOrder(cat, 'up')}
-                                        onDown={() => void moveCategoryOrder(cat, 'down')}
-                                        upDisabled={busy || index === 0}
-                                        downDisabled={busy || index === sortedCategories.length - 1}
-                                    />
-                                    <span className="fq-cat-dot" data-tone={index % CATEGORY_TONES} />
-                                    <span className="fq-cat-name">{cat.name}</span>
-                                    <span className="fq-cat-count">FAQ {count}개</span>
-                                    <VisibilitySwitch on={cat.isActive} onToggle={() => void toggleCategoryActive(cat)} />
-                                    <button
-                                        type="button"
-                                        className="cm-icon-btn"
-                                        title="이름·노출 수정"
-                                        aria-label="카테고리 수정"
-                                        onClick={() => {
-                                            setSelectedCategoryEdit(cat);
-                                            setCategoryForm({ name: cat.name, isActive: cat.isActive });
-                                            setIsCategoryModalOpen(true);
-                                        }}
-                                    >
-                                        <DashboardIcon name="lc-pencil" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="cm-icon-btn is-danger"
-                                        title={count ? 'FAQ가 있어 지울 수 없어요' : '삭제'}
-                                        aria-label="카테고리 삭제"
-                                        disabled={count > 0}
-                                        onClick={() => void handleDeleteCategory(cat.id)}
-                                    >
-                                        <DashboardIcon name="lc-trash" />
-                                    </button>
-                                </div>
-                            );
-                        })}
-                        {categories.length === 0 && (
-                            <div className="cm-empty">
-                                <InboxIcon />
-                                <span>{loaded ? '등록된 카테고리가 없어요.' : '불러오는 중…'}</span>
-                            </div>
-                        )}
-                        <p className="fq-cat-note">FAQ가 들어 있는 카테고리는 지울 수 없어요. 먼저 FAQ를 다른 카테고리로 옮겨 주세요. 이름을 바꾸면 그 카테고리의 FAQ도 함께 옮겨집니다.</p>
-                    </section>
-                )}
+                            {faqList}
+                        </>
+                    ) : (
+                        <>
+                            <form className="fq-filters fq-cat-add" onSubmit={(e) => { e.preventDefault(); void handleQuickAddCategory(); }}>
+                                <AdminTextInput
+                                    className="fq-cat-input"
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    placeholder="새 카테고리 이름 (예: 비자·여권)"
+                                    aria-label="새 카테고리 이름"
+                                />
+                                <AdminButton type="submit" leading={<IconPlus />} disabled={busy || !newCategoryName.trim()}>추가</AdminButton>
+                            </form>
+                            {categoryList}
+                            <p className="fq-note">FAQ가 들어 있는 카테고리는 지울 수 없어요. 먼저 FAQ를 다른 카테고리로 옮겨 주세요. 이름을 바꾸면 그 카테고리의 FAQ도 함께 옮겨집니다.</p>
+                        </>
+                    )}
+                </AdminCard>
             </div>
 
-            {/* FAQ Modal */}
-            {isModalOpen && (
-                <div className="cm-scrim" onClick={() => setIsModalOpen(false)}>
-                    <div className="cm-modal" role="dialog" aria-modal="true" aria-labelledby="fq-modal-title" onClick={(e) => e.stopPropagation()}>
-                        <div className="cm-modal-head">
-                            <h2 id="fq-modal-title">{selectedFAQ ? 'FAQ 수정' : 'FAQ 추가'}</h2>
-                            <button type="button" className="cm-icon-btn" title="닫기" aria-label="닫기" onClick={() => setIsModalOpen(false)}>
-                                <DashboardIcon name="lc-x" />
-                            </button>
-                        </div>
-                        <div className="cm-modal-body">
-                            <div className="cm-field">
-                                <span className="cm-label">카테고리</span>
-                                {sortedCategories.length > 0 ? (
-                                    <div className="cm-picks">
-                                        {sortedCategories.map(cat => (
-                                            <button key={cat.id} type="button" className="cm-pick" aria-pressed={faqForm.category === cat.name}
-                                                onClick={() => setFaqForm({ ...faqForm, category: cat.name })}>
-                                                {cat.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <span className="cm-hint">먼저 「카테고리 관리」에서 카테고리를 추가해 주세요.</span>
-                                )}
-                            </div>
-                            <label className="cm-field">
-                                <span className="cm-label adm-req">질문</span>
-                                <input
-                                    className="cm-input"
-                                    type="text"
-                                    value={faqForm.question}
-                                    onChange={(e) => setFaqForm({ ...faqForm, question: e.target.value })}
-                                    placeholder="질문을 입력하세요"
-                                />
-                            </label>
-                            <label className="cm-field">
-                                <span className="cm-label adm-req">답변</span>
-                                <textarea
-                                    className="cm-textarea"
-                                    value={faqForm.answer}
-                                    onChange={(e) => setFaqForm({ ...faqForm, answer: e.target.value })}
-                                    placeholder="답변을 입력하세요"
-                                />
-                            </label>
-                            <div className="cm-field">
-                                <span className="cm-label">노출 상태</span>
-                                <VisibilitySwitch on={faqForm.isActive} onLabel="활성화" offLabel="숨김" onToggle={() => setFaqForm({ ...faqForm, isActive: !faqForm.isActive })} />
-                            </div>
-                        </div>
-                        <div className="cm-modal-foot">
-                            <button type="button" className="cm-btn" onClick={() => setIsModalOpen(false)}>취소</button>
-                            <button type="button" className="cm-btn is-primary"
-                                disabled={!faqForm.category || !faqForm.question.trim() || !faqForm.answer.trim()}
-                                onClick={() => void handleSaveFAQ()}>저장</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* FAQ 추가·수정 창 */}
+            <AdminDialog
+                open={isModalOpen}
+                onClose={closeFaqEditor}
+                title={selectedFAQ ? 'FAQ 수정' : 'FAQ 추가'}
+                dirty={faqDirty}
+                onSubmit={() => void handleSaveFAQ()}
+                submitting={saving}
+                submitDisabled={!faqForm.category || !faqForm.question.trim() || !faqForm.answer.trim()}
+            >
+                <AdminField id="fq-category" label="카테고리" required>
+                    {sortedCategories.length > 0 ? (
+                        <AdminChipGroup
+                            label="카테고리"
+                            value={faqForm.category}
+                            onChange={(category) => setFaqForm({ ...faqForm, category })}
+                            items={sortedCategories.map(cat => ({ value: cat.name, label: cat.name }))}
+                        />
+                    ) : (
+                        <AdminMessage tone="cautionary">먼저 ‘카테고리 관리’ 탭에서 카테고리를 추가해 주세요.</AdminMessage>
+                    )}
+                </AdminField>
+                <AdminField id="fq-question" label="질문" required>
+                    <AdminTextInput
+                        id="fq-question"
+                        value={faqForm.question}
+                        onChange={(e) => setFaqForm({ ...faqForm, question: e.target.value })}
+                        placeholder="질문을 입력하세요"
+                    />
+                </AdminField>
+                <AdminField id="fq-answer" label="답변" required>
+                    <AdminTextArea
+                        id="fq-answer"
+                        minRows={5}
+                        value={faqForm.answer}
+                        onChange={(e) => setFaqForm({ ...faqForm, answer: e.target.value })}
+                        placeholder="답변을 입력하세요"
+                    />
+                </AdminField>
+                <AdminSwitch
+                    checked={faqForm.isActive}
+                    onChange={(isActive) => setFaqForm({ ...faqForm, isActive })}
+                    label="고객센터에 노출"
+                    description="끄면 /faq 페이지에서 숨겨져요"
+                />
+            </AdminDialog>
 
-            {/* Category Modal */}
-            {isCategoryModalOpen && (
-                <div className="cm-scrim" onClick={() => setIsCategoryModalOpen(false)}>
-                    <div className="cm-modal is-narrow" role="dialog" aria-modal="true" aria-labelledby="fq-cat-modal-title" onClick={(e) => e.stopPropagation()}>
-                        <div className="cm-modal-head">
-                            <h2 id="fq-cat-modal-title">{selectedCategory ? '카테고리 수정' : '카테고리 추가'}</h2>
-                            <button type="button" className="cm-icon-btn" title="닫기" aria-label="닫기" onClick={() => setIsCategoryModalOpen(false)}>
-                                <DashboardIcon name="lc-x" />
-                            </button>
-                        </div>
-                        <div className="cm-modal-body">
-                            <label className="cm-field">
-                                <span className="cm-label adm-req">카테고리명</span>
-                                <input
-                                    className="cm-input"
-                                    type="text"
-                                    value={categoryForm.name}
-                                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                                    placeholder="예: 여행 준비"
-                                />
-                            </label>
-                            <div className="cm-field">
-                                <span className="cm-label">노출 상태</span>
-                                <VisibilitySwitch on={categoryForm.isActive} onLabel="활성화" offLabel="숨김" onToggle={() => setCategoryForm({ ...categoryForm, isActive: !categoryForm.isActive })} />
-                            </div>
-                        </div>
-                        <div className="cm-modal-foot">
-                            <button type="button" className="cm-btn" onClick={() => setIsCategoryModalOpen(false)}>취소</button>
-                            <button type="button" className="cm-btn is-primary" onClick={() => void handleSaveCategory()}>저장</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* 카테고리 이름·노출 수정 창 */}
+            <AdminDialog
+                open={isCategoryModalOpen}
+                onClose={closeCategoryEditor}
+                size="sm"
+                title={selectedCategory ? '카테고리 수정' : '카테고리 추가'}
+                dirty={categoryDirty}
+                onSubmit={() => void handleSaveCategory()}
+                submitting={saving}
+            >
+                <AdminField id="fq-cat-name" label="카테고리명" required hint="이름을 바꾸면 이 카테고리의 FAQ도 새 이름으로 옮겨집니다.">
+                    <AdminTextInput
+                        id="fq-cat-name"
+                        aria-describedby="fq-cat-name-hint"
+                        value={categoryForm.name}
+                        onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                        placeholder="예: 여행 준비"
+                    />
+                </AdminField>
+                <AdminSwitch
+                    checked={categoryForm.isActive}
+                    onChange={(isActive) => setCategoryForm({ ...categoryForm, isActive })}
+                    label="고객센터에 노출"
+                />
+            </AdminDialog>
         </AdminLayout>
     );
 };

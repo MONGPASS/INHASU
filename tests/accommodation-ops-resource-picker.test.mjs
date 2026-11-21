@@ -16,6 +16,8 @@ const built = await build({
             [/\/contexts\/UserContext$/, 'user'], [/\/admin\/AdminLayout$/, 'layout'],
             [/\/admin\/console\/Icon$/, 'icon'], [/\/lib\/api$/, 'api'],
             [/\/registeredAssignmentResources$/, 'resources'], [/\/ui\/adminFeedback$/, 'feedback'],
+            // 배정 보드(LodgeAssignQueue)와 보기 전환(AdminSegmented)은 Montage 화면 부품이라 대역으로 둔다. 이 파일은 카드·표 보기의 편집 흐름을 검사한다.
+            [/\/accommodation\/LodgeAssignQueue$/, 'queue'], [/\/components\/admin\/ui$/, 'ui'],
         ]) builder.onResolve({ filter }, () => ({ path, namespace: 'ops-events' }));
         builder.onLoad({ filter: /.*/, namespace: 'ops-events' }, ({ path }) => ({ loader: 'js', contents: {
             react: `export const useState=(...a)=>globalThis.h.useState(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useMemo=(...a)=>globalThis.h.useMemo(...a),useRef=(...a)=>globalThis.h.useRef(...a),useCallback=(f,d)=>useMemo(()=>f,d);export default {Fragment:'fragment'};`,
@@ -23,6 +25,7 @@ const built = await build({
             'react-router-dom': `export const useBlocker=()=>({state:'unblocked',reset(){},proceed(){}});`,
             user: `export const useUser=()=>({user:{id:'admin-fixture',role:'admin'},loading:false});`,
             layout: `export const AdminLayout=()=>null;`, icon: `export const Icon=()=>null;`,
+            queue: `export const LodgeAssignQueue=()=>null;`, ui: `export const AdminSegmented=()=>null;`,
             api: `export const api=globalThis.api;`,
             resources: `export const loadRegisteredAssignmentResources=(...a)=>globalThis.loadResources(...a);`,
             // 공통 알림·확인 창은 화면 부품이라, 같은 약속(Promise<boolean>)의 대역으로 바꾼다.

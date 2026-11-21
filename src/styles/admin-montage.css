@@ -9,7 +9,7 @@
          상태색은 아이콘·문장과 함께 쓴다.
    ============================================================ */
 .admin-app-wrapper {
-  --side-w: 248px; --side-rail-w: 68px; --shell-gap: 0px;
+  --side-w: 248px; --side-rail-w: 72px; --shell-gap: 0px;
   font-family: var(--adm-font); color: var(--adm-text);
 }
 
@@ -222,9 +222,8 @@
 .admin-app-wrapper .v7-list-card { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
 .admin-app-wrapper .v7-list-tabs { padding: var(--adm-space-2) var(--adm-pad-card) 0; overflow-x: auto; }
 .admin-app-wrapper .v7-list-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-3); padding: var(--adm-space-4) var(--adm-pad-card); border-top: 1px solid var(--adm-line-subtle); }
-.admin-app-wrapper .v7-list-search { display: flex; align-items: center; gap: var(--adm-space-2); flex: 1 1 240px; min-width: 200px; max-width: 320px; height: var(--adm-control-h); padding: 0 var(--adm-space-1) 0 var(--adm-space-3); border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); color: var(--adm-text-3); font-size: 18px; }
-.admin-app-wrapper .v7-list-search:focus-within { box-shadow: var(--adm-ring); background: var(--adm-surface); outline: 1px solid var(--adm-accent); }
-.admin-app-wrapper .v7-list-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--adm-text); font: inherit; font-size: var(--adm-fs-input); }
+/* 검색창은 AdminSearch(Montage SearchField). 여기서는 검색 줄 안 자리만 잡는다 */
+.admin-app-wrapper .v7-list-search { flex: 1 1 240px; min-width: 200px; max-width: 320px; }
 .admin-app-wrapper .v7-list-quick { display: flex; flex-wrap: wrap; gap: var(--adm-space-2); }
 .admin-app-wrapper .v7-list-note { font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
 .admin-app-wrapper .v7-list-sort { flex: none; width: 264px; margin-left: auto; } /* 세 항목이 잘리지 않는 폭 */

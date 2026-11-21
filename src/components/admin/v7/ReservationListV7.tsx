@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Chip, IconButton, SegmentedControl, SegmentedControlItem, Tab, TabList, TabListItem } from '@montage-ui/core';
-import { IconClose, IconInbox, IconSearch } from '@montage-ui/icon';
-import type { DashboardIconName } from '../dashboard/DashboardIcon';
+import { IconArrowUpRight, IconCheckThick, IconChevronDown, IconChevronDownSmall, IconChevronUp, IconCircleExclamation, IconClose, IconInbox } from '@montage-ui/icon';
+import {
+    AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminEmpty, AdminIconButton, AdminPagination, AdminSearch, AdminSegmented, AdminSelect,
+    AdminStat, AdminStatRow, AdminTable, AdminTabs, AdminTbody, AdminTd, AdminTextButton, AdminTh, AdminThead, AdminTr, cx, type AdminTone,
+} from '../ui';
 import { dashboardSeoulDate } from '../../../utils/adminDashboard';
 import { confirmGuideConflict, guideMenuItems } from './guideMenuItems';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../../../utils/registeredAssignmentResources';
@@ -9,15 +11,15 @@ import { selectResourceGuide, selectResourceVehicle } from '../../../utils/accom
 import { AIRFARE_OPTIONS, CATEGORY_OPTIONS, JOINING_LABELS, RECEIPT_LABELS, SERVICE_TYPE_OPTIONS, type ReceiptStatus, type ReservationOperations } from '../../../utils/reservationWorkspace';
 import {
     V7_QUICK, V7_TABS, fetchV7Assignments, saveV7Assignment, v7Dday, v7Matches, v7Range, v7Row, v7Sort, v7StepLabel, v7StepSubs, v7Won, withGuide, withVehicle,
-    type V7AssignmentItem, type V7Quick, type V7Row, type V7Sort, type V7Source, type V7Tab,
+    type V7AssignmentItem, type V7Quick, type V7Row, type V7Source, type V7Tab,
 } from '../../../utils/reservationV7';
 import {
-    Ico, V7Menu, V7Steps, V7StepHead, V7Styles, V7Toast, V7_INK, V7_MUTED, checkBox, chip, dchip, inkBtn, ghostBtn, menuAt, pill, sel,
-    type PillTone, type V7MenuItem, type V7MenuState,
-} from './v7Ui';
+    RESERVATION_PAGE_SIZES, readReservationListView, reservationListViewSearch, reservationPage, reservationPageSummary, type ReservationListView,
+} from '../../../utils/reservationListView';
+import { V7Menu, V7Steps, V7StepHead, V7Styles, V7Toast, menuAt, type V7MenuItem, type V7MenuState } from './v7Ui';
 import { adminConfirm } from '../ui/adminFeedback';
+import './reservation-list.css';
 
-type Css = React.CSSProperties;
 export type V7OpenAction = 'edit-itinerary' | 'contract' | 'documents' | 'payments' | 'guide' | 'vehicle' | 'stay' | 'notes' | 'history';
 export type V7NoticeKind = 'quote' | 'contract' | 'itinerary' | 'travel_notice';
 
@@ -29,13 +31,19 @@ const QUOTE_STATUS_LABELS: Record<string, string> = { reservation_requested: '�
 export const statusLabelOf = (r: V7Source) => r.type === 'quote_booking'
     ? QUOTE_STATUS_LABELS[r.status] || r.quoteBooking?.label || '견적 예약'
     : PRODUCT_STATUS_OPTIONS.find(o => o.value === r.status)?.label || r.status;
-const TAB_TONE: Record<V7Tab, PillTone> = { contract: 'gray', ongoing: 'solid', ended: 'mint', cancel: 'gray' };
 const NOTICE_KINDS: Array<{ kind: V7NoticeKind; label: string }> = [
     { kind: 'contract', label: '계약서 안내' }, { kind: 'itinerary', label: '확정 일정표' }, { kind: 'travel_notice', label: '여행 주의사항' }, { kind: 'quote', label: '견적서' },
 ];
-const GRID = '20px minmax(150px,1.1fr) 176px 48px minmax(150px,1fr) minmax(330px,1.6fr) 148px 120px 20px';
+const QUICK_HINT: Record<V7Quick, string> = { all: '이 탭의 모든 예약', week: '7일 안에 출발', bal: '잔금 미입금', asg: '가이드 · 차량 · 숙소', ct: '서명 요청 필요', dep: '입금 확인 필요' };
+/** 처리할 일이 있으면 주의 표시를 하는 빠른 필터 */
+const QUICK_ATTENTION = new Set<V7Quick>(['bal', 'asg', 'ct', 'dep']);
+const SORT_TEXT = { pri: '처리할 일이 많은 순', dep: '출발일순', bk: '최근 예약순' } as const;
+const STEP_TONE: Record<'red' | 'mint' | 'gray', AdminTone> = { red: 'danger', mint: 'info', gray: 'neutral' };
 const dot = (key: string) => key.replaceAll('-', '.');
 const monthOf = (value?: string) => /^\d{4}-(\d{2})/.exec(value || '')?.[1];
+
+/** Excel 범위 메뉴가 쓰는 지금 목록의 키(`product:<id>` / `quote_booking:<id>`) */
+export interface ReservationListScope { visible: string[]; selected: string[]; label: string }
 
 export interface ReservationListV7Props {
     reservations: V7Source[];
@@ -47,14 +55,25 @@ export interface ReservationListV7Props {
     onPayment: (r: V7Source, field: 'deposit' | 'final', paid: boolean) => Promise<boolean>;
     onOperations: (r: V7Source, patch: Partial<ReservationOperations>) => Promise<boolean>;
     onExport: (keys: string[]) => void;
+    /** 지금 보이는 목록(모든 페이지)과 선택이 바뀔 때 — 머리의 Excel 범위 메뉴가 같은 기준을 쓴다 */
+    onScopeChange?: (scope: ReservationListScope) => void;
 }
 
 export function ReservationListV7(p: ReservationListV7Props) {
     const today = dashboardSeoulDate(new Date().toISOString());
-    const [tab, setTab] = useState<V7Tab>('contract');
-    const [quick, setQuick] = useState<V7Quick>('all');
-    const [sort, setSort] = useState<V7Sort>('pri');
-    const [q, setQ] = useState('');
+    // 탭·빠른 필터·검색·정렬·페이지·쪽당 건수는 주소에 보관한다(상세에 갔다 돌아와도 같은 목록).
+    const [view, setView] = useState<ReservationListView>(() => readReservationListView(window.location.search));
+    const { tab, quick, q, sort } = view;
+    const change = useCallback((patch: Partial<ReservationListView>) => setView(prev => ({ ...prev, page: 1, ...patch })), []);
+    useEffect(() => {
+        const search = reservationListViewSearch(view, window.location.search);
+        if (search !== window.location.search) window.history.replaceState(window.history.state, '', window.location.pathname + search + window.location.hash);
+    }, [view]);
+    useEffect(() => {
+        const restore = () => setView(readReservationListView(window.location.search));
+        window.addEventListener('popstate', restore); return () => window.removeEventListener('popstate', restore);
+    }, []);
+
     const [open, setOpen] = useState<string | null>(null);
     const [sel, setSel] = useState<Set<string>>(() => new Set());
     const [menu, setMenu] = useState<V7MenuState | null>(null);
@@ -90,12 +109,24 @@ export function ReservationListV7(p: ReservationListV7Props) {
 
     const rows = useMemo(() => p.reservations.filter(r => r.type !== 'quote')
         .map(r => v7Row(r, items.get(`${r.type === 'quote_booking' ? 'quote_booking' : 'product'}:${r.id}`), today)), [p.reservations, items, today]);
-    const inTab = rows.filter(r => r.tab === tab);
+    const inTab = useMemo(() => rows.filter(r => r.tab === tab), [rows, tab]);
     const quickDef = V7_QUICK.find(x => x.key === quick) || V7_QUICK[0];
-    const list = v7Sort(inTab.filter(quickDef.test).filter(r => v7Matches(r, q)), sort);
+    const list = useMemo(() => v7Sort(inTab.filter(quickDef.test).filter(r => v7Matches(r, q)), sort), [inTab, quickDef, q, sort]);
+    const page = reservationPage(list, view.page, view.size);
+    // 필터를 바꿔 건수가 줄면 마지막 쪽으로 맞춘다(불러오는 동안은 주소의 쪽 번호를 지킨다).
+    useEffect(() => { if (p.loadedOnce && !p.loading && page.page !== view.page) setView(prev => ({ ...prev, page: page.page })); }, [p.loadedOnce, p.loading, page.page, view.page]);
     const selected = rows.filter(r => sel.has(r.key));
-    const allOn = list.length > 0 && list.every(r => sel.has(r.key));
+    const pageKeys = page.rows.map(r => r.key);
+    const pageOn = pageKeys.filter(k => sel.has(k)).length;
     useEffect(() => { setSel(prev => { const valid = new Set(rows.map(r => r.key)); const next = new Set([...prev].filter(k => valid.has(k))); return next.size === prev.size ? prev : next; }); }, [rows]);
+
+    const tabLabel = V7_TABS.find(t => t.key === tab)?.label || '';
+    const scopeLabel = [tabLabel, quick !== 'all' ? quickDef.label : '', q.trim() ? `검색 ‘${q.trim()}’` : ''].filter(Boolean).join(' · ');
+    const visibleKey = list.map(r => r.key).join('|'), selectedKey = selected.map(r => r.key).join('|');
+    const onScopeChange = p.onScopeChange;
+    useEffect(() => {
+        onScopeChange?.({ visible: visibleKey ? visibleKey.split('|') : [], selected: selectedKey ? selectedKey.split('|') : [], label: scopeLabel });
+    }, [onScopeChange, visibleKey, selectedKey, scopeLabel]);
 
     const openMenu = (e: React.MouseEvent, title: string, menuItems: V7MenuItem[], wide = false) => { e.stopPropagation(); setMenu(menuAt(e.currentTarget as HTMLElement, title, menuItems, wide)); };
     const closeMenu = useCallback(() => setMenu(null), []);
@@ -159,7 +190,7 @@ export function ReservationListV7(p: ReservationListV7Props) {
             if (await p.onPayment(row.source, field, i === 0)) flash(`${row.source.customerName} · ${field === 'deposit' ? '예약금' : '잔금'} ${label}(으)로 변경했어요`);
         } })));
     };
-    const opsMenu = (e: React.MouseEvent, row: V7Row, key: 'joining' | 'category' | 'serviceType' | 'airfare' | 'receipt') => {
+    const opsMenu = (e: React.MouseEvent, row: V7Row, key: OpsKey) => {
         if (row.source.type === 'quote_booking') { e.stopPropagation(); quoteOnly(row, 'payments', key === 'receipt' ? '현금영수증' : '분류 정보'); return; }
         const save = (patch: Partial<ReservationOperations>, label: string) => void p.onOperations(row.source, patch).then(ok => ok && flash(`${row.source.customerName} · ${label}(으)로 변경했어요`));
         const titles = { joining: '조인여부', category: '분류', serviceType: '구분', airfare: '항공', receipt: '현금영수증' };
@@ -206,72 +237,84 @@ export function ReservationListV7(p: ReservationListV7Props) {
         flash(`${n.label} 접수 ${accepted}건${skipped ? ` · 준비 안 됨 ${skipped}건` : ''}${failed ? ` · 확인 필요 ${failed}건` : ''}`);
     } })), true);
 
-    // 관리자 화면은 디자인 원본보다 좁아 표가 가로로 스크롤된다. 펼친 패널은 보이는 폭에 고정한다.
-    const scroller = useRef<HTMLDivElement>(null);
-    const [visibleWidth, setVisibleWidth] = useState(0);
-    useEffect(() => {
-        const el = scroller.current; if (!el) return;
-        const measure = () => setVisibleWidth(el.clientWidth);
-        measure(); const observer = new ResizeObserver(measure); observer.observe(el);
-        return () => observer.disconnect();
-    }, []);
+    const toggleKey = (key: string) => setSel(prev => { const next = new Set(prev); if (next.has(key)) next.delete(key); else next.add(key); return next; });
+    const togglePage = (on: boolean) => setSel(prev => { const next = new Set(prev); pageKeys.forEach(k => on ? next.add(k) : next.delete(k)); return next; });
     const tabCount = (key: V7Tab) => rows.filter(r => r.tab === key).length;
-    // Montage 시안(② 목록형): 카드 하나 안에 탭 → 필터 줄(검색·빠른 필터 칩·정렬) → 표. 행·펼침 작업 패널은 그대로.
-    return <div className="v7-root" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--adm-space-5)' }}>
+    const counted = (n: number) => p.loadedOnce ? n : '–';
+
+    // Claude Design ‘통합 예약 목록 리뉴얼 시안’(2026-11-21 오너 확인): 빠른 필터 6칸 → 카드(탭 · 검색·정렬 · 표 · 페이지) → 선택 시 일괄 작업 줄.
+    return <div className="rl-root">
         <V7Styles />
-        <section aria-label="예약 목록" className="v7-list-card">
-            <div className="v7-list-tabs">
-                <Tab value={tab} onValueChange={value => { setTab(value as V7Tab); setQuick('all'); setSel(new Set()); setOpen(null); }}>
-                    <TabList size="medium" aria-label="예약 진행 상태">
-                        {V7_TABS.map(t => <TabListItem key={t.key} value={t.key}>{t.label} {p.loadedOnce ? tabCount(t.key) : '–'}</TabListItem>)}
-                    </TabList>
-                </Tab>
+        <AdminStatRow label="빠른 필터" className="rl-stats">
+            {V7_QUICK.map(x => {
+                const n = inTab.filter(x.test).length, on = quick === x.key;
+                return <AdminStat key={x.key} label={x.label} value={counted(n)} unit="건" hint={on ? '보는 중' : x.key === 'all' ? `${tabLabel} 탭` : QUICK_HINT[x.key]}
+                    attention={QUICK_ATTENTION.has(x.key) && p.loadedOnce && n > 0} active={on}
+                    onClick={() => { change({ quick: on && x.key !== 'all' ? 'all' : x.key }); setOpen(null); }} />;
+            })}
+        </AdminStatRow>
+
+        <section aria-label="예약 목록" className="rl-card">
+            <div className="rl-tabs">
+                <AdminTabs label="예약 진행 상태" value={tab} onChange={value => { change({ tab: value as V7Tab, quick: 'all' }); setSel(new Set()); setOpen(null); }}
+                    items={V7_TABS.map(t => ({ value: t.key, label: t.label, count: counted(tabCount(t.key)) }))} />
             </div>
 
-            <div className="v7-list-filters">
-                <label className="v7-list-search">
-                    <IconSearch aria-hidden="true" />
-                    <input value={q} onChange={e => setQ(e.target.value)} aria-label="예약 검색" placeholder="고객명, 전화번호, 가이드 이름 검색" />
-                    {q && <IconButton variant="normal" size="medium" aria-label="검색어 지우기" onClick={() => setQ('')}><IconClose /></IconButton>}
-                </label>
-                <div role="group" aria-label="빠른 필터" className="v7-kpis v7-list-quick">
-                    {V7_QUICK.map(x => {
-                        const on = quick === x.key, n = inTab.filter(x.test).length;
-                        return <Chip key={x.key} size="small" variant="solid" active={on} aria-pressed={on} onClick={() => setQuick(on && x.key !== 'all' ? 'all' : x.key)}>
-                            {x.label} {p.loadedOnce ? n : '–'}
-                        </Chip>;
-                    })}
+            <div className="rl-filters">
+                <div className="rl-filters-start">
+                    <AdminSearch value={q} onChange={value => change({ q: value })} aria-label="예약 검색" placeholder="고객 이름 · 연락처 · 가이드 · 예약번호" className="rl-search" />
+                    <span className="rl-count" role="status"><b>{p.loadedOnce ? `${list.length}건` : '불러오는 중…'}</b>{p.loadedOnce && ` · ${SORT_TEXT[sort]}`}</span>
+                    {assignmentNote && !p.loading && <span className="rl-note">{assignmentNote}</span>}
                 </div>
-                {(assignmentNote || p.loading) && <span role="status" className="v7-list-note" style={{ color: p.loading ? 'var(--adm-text-3)' : 'var(--adm-warn-strong)' }}>{p.loading ? '예약을 불러오는 중…' : assignmentNote}</span>}
-                <div className="v7-list-sort">
-                    <SegmentedControl size="small" value={sort} onValueChange={value => setSort(value as typeof sort)} aria-label="정렬">
-                        <SegmentedControlItem value="pri">우선순위</SegmentedControlItem>
-                        <SegmentedControlItem value="dep">출발일순</SegmentedControlItem>
-                        <SegmentedControlItem value="bk">최근 예약순</SegmentedControlItem>
-                    </SegmentedControl>
-                </div>
+                <AdminSegmented label="정렬" value={sort} onChange={value => change({ sort: value })}
+                    items={[{ value: 'pri', label: '처리 우선' }, { value: 'dep', label: '출발일순' }, { value: 'bk', label: '예약일순' }]} />
             </div>
 
-            <div ref={scroller} className="v7-list-scroll" style={{ overflowX: 'auto' }}><div className="v7-list-inner" style={{ minWidth: 1380 }} aria-label="통합 예약 목록">
-                <div role="row" className="v7-list-head" style={{ display: 'grid', gridTemplateColumns: GRID, columnGap: 20, alignItems: 'center', height: 40, padding: '0 24px', position: 'sticky', top: 0, zIndex: 2, background: 'var(--adm-gray-50)', borderBottom: '1px solid var(--adm-line)', fontSize: 12, fontWeight: 700, color: V7_MUTED }}>
-                    <button type="button" aria-label="이 목록 전체 선택" aria-pressed={allOn} onClick={() => setSel(prev => { const next = new Set(prev); list.forEach(r => allOn ? next.delete(r.key) : next.add(r.key)); return next; })} style={checkBox(allOn)}>{allOn && <Ico name="lc-check" size={12} color="#fff" />}</button>
-                    <span>고객</span><span>투어 기간</span><span style={{ textAlign: 'center' }}>인원</span><span>지역 · 분류</span><span>배정</span><span style={{ textAlign: 'right' }}>결제</span><span>진행상황</span><span />
-                </div>
-                {list.map(row => <ListRow key={row.key} row={row} panelWidth={visibleWidth} open={open === row.key} dimmed={open !== null && open !== row.key} selected={sel.has(row.key)} busy={busy === row.key}
-                    onToggle={() => setOpen(open === row.key ? null : row.key)}
-                    onCheck={() => setSel(prev => { const next = new Set(prev); if (next.has(row.key)) next.delete(row.key); else next.add(row.key); return next; })}
-                    onOpen={action => p.onOpen(row.source, action)}
-                    guideMenu={e => void guideMenu(e, row)} vehicleMenu={e => void vehicleMenu(e, row)} statusMenu={e => statusMenu(e, row)}
-                    paymentMenu={(e, field) => paymentMenu(e, row, field)} opsMenu={(e, key) => opsMenu(e, row, key)} />)}
-                {!list.length && <div className="v7-list-empty"><IconInbox aria-hidden="true" /><span>{p.loading && !p.loadedOnce ? '예약을 불러오는 중…' : '이 조건에 해당하는 예약이 없어요.'}</span></div>}
-            </div></div>
+            {page.rows.length ? <AdminTable label={`${scopeLabel} 예약 목록`} className="rl-table">
+                <colgroup>
+                    <col className="rl-col-check" /><col className="rl-col-cust" /><col className="rl-col-date" /><col className="rl-col-product" /><col className="rl-col-people" />
+                    <col className="rl-col-assign" /><col className="rl-col-pay" /><col className="rl-col-step" /><col className="rl-col-more" />
+                </colgroup>
+                <AdminThead>
+                    <AdminTr>
+                        <AdminTh><span className="adm-ui-sr">선택</span>
+                            <AdminCheckbox size="sm" aria-label="이 쪽 모두 선택" checked={pageOn > 0 && pageOn === pageKeys.length} indeterminate={pageOn > 0 && pageOn < pageKeys.length} onChange={togglePage} />
+                        </AdminTh>
+                        <AdminTh>고객</AdminTh><AdminTh>출발</AdminTh><AdminTh>상품 · 지역</AdminTh><AdminTh align="right">인원</AdminTh>
+                        <AdminTh>배정</AdminTh><AdminTh align="right">결제</AdminTh><AdminTh>진행</AdminTh><AdminTh><span className="adm-ui-sr">관리</span></AdminTh>
+                    </AdminTr>
+                </AdminThead>
+                <AdminTbody>
+                    {page.rows.map(row => <ListRow key={row.key} row={row} open={open === row.key} selected={sel.has(row.key)} busy={busy === row.key}
+                        onToggle={() => setOpen(open === row.key ? null : row.key)} onCheck={() => toggleKey(row.key)}
+                        onOpen={action => p.onOpen(row.source, action)}
+                        guideMenu={e => void guideMenu(e, row)} vehicleMenu={e => void vehicleMenu(e, row)} statusMenu={e => statusMenu(e, row)}
+                        paymentMenu={(e, field) => paymentMenu(e, row, field)} opsMenu={(e, key) => opsMenu(e, row, key)} />)}
+                </AdminTbody>
+            </AdminTable>
+                : <AdminEmpty icon={<IconInbox aria-hidden="true" />} title={p.loading && !p.loadedOnce ? '예약을 불러오는 중…' : '이 조건에 해당하는 예약이 없어요.'}
+                    description={!p.loading && (quick !== 'all' || q.trim()) ? '빠른 필터나 검색어를 바꿔 보세요.' : undefined}
+                    action={!p.loading && (quick !== 'all' || q.trim()) ? <AdminButton size="sm" variant="weak" onClick={() => change({ quick: 'all', q: '' })}>필터 지우기</AdminButton> : undefined} />}
+
+            {list.length > 0 && <AdminPagination className="rl-pagination" page={page.page} totalPages={page.totalPages} onChange={next => { setView(prev => ({ ...prev, page: next })); setOpen(null); }}
+                summary={<span className="rl-page-summary">{reservationPageSummary(list.length, page.start, page.end)}
+                    <AdminSelect aria-label="쪽당 건수" className="rl-page-size" value={String(view.size)} onChange={value => change({ size: Number(value) })}
+                        options={RESERVATION_PAGE_SIZES.map(n => ({ value: String(n), label: `${n}건씩` }))} />
+                </span>} />}
         </section>
 
-        {selected.length > 0 && <div role="toolbar" aria-label="선택한 예약 작업" className="v7-list-bulk">
-            <b>{selected.length}건 선택</b>
-            {([['진행상황 변경', bulkStatus], ['입금 확인', bulkPayment], ['안내 알림 발송', bulkNotice], ['엑셀 내보내기', exportSelected]] as const).map(([label, go]) =>
-                <Button key={label} variant="solid" color="assistive" size="small" onClick={go as any}>{label}</Button>)}
-            <IconButton variant="normal" size="medium" aria-label="선택 해제" title="선택 해제" onClick={() => setSel(new Set())}><IconClose /></IconButton>
+        {selected.length > 0 && <div role="toolbar" aria-label="선택한 예약 일괄 작업" className="rl-bulk">
+            <div className="rl-bulk-start">
+                <b>{selected.length}건 선택</b>
+                <AdminTextButton tone="assistive" size="sm" onClick={() => setSel(new Set())}>선택 해제</AdminTextButton>
+            </div>
+            <div className="rl-bulk-actions">
+                <AdminButton variant="weak" size="sm" trailing={<IconChevronDownSmall aria-hidden="true" />} onClick={bulkStatus}>진행상황 바꾸기</AdminButton>
+                <AdminButton variant="weak" size="sm" trailing={<IconChevronDownSmall aria-hidden="true" />} onClick={bulkPayment}>입금 확인</AdminButton>
+                <AdminButton variant="secondary" size="sm" trailing={<IconChevronDownSmall aria-hidden="true" />} onClick={bulkNotice}>안내 알림 보내기</AdminButton>
+                <AdminButton variant="weak" size="sm" onClick={exportSelected}>선택 {selected.length}건 Excel</AdminButton>
+                <AdminIconButton label="선택 해제" size="sm" onClick={() => setSel(new Set())}><IconClose /></AdminIconButton>
+            </div>
         </div>}
         <V7Menu menu={menu} onClose={closeMenu} />
         <V7Toast text={toast} />
@@ -279,96 +322,122 @@ export function ReservationListV7(p: ReservationListV7Props) {
 }
 
 type OpsKey = 'joining' | 'category' | 'serviceType' | 'airfare' | 'receipt';
-function ListRow({ row, panelWidth, open, dimmed, selected, busy, onToggle, onCheck, onOpen, guideMenu, vehicleMenu, statusMenu, paymentMenu, opsMenu }: {
-    row: V7Row; panelWidth: number; open: boolean; dimmed: boolean; selected: boolean; busy: boolean;
+type Tone = 'ok' | 'warn' | 'plain';
+interface PanelItem { label: string; sub?: string; value?: string; tone?: Tone; go?: (e: React.MouseEvent) => void; link?: () => void }
+
+function ListRow({ row, open, selected, busy, onToggle, onCheck, onOpen, guideMenu, vehicleMenu, statusMenu, paymentMenu, opsMenu }: {
+    row: V7Row; open: boolean; selected: boolean; busy: boolean;
     onToggle: () => void; onCheck: () => void; onOpen: (action?: V7OpenAction) => void;
     guideMenu: (e: React.MouseEvent) => void; vehicleMenu: (e: React.MouseEvent) => void; statusMenu: (e: React.MouseEvent) => void;
     paymentMenu: (e: React.MouseEvent, field: 'deposit' | 'final') => void; opsMenu: (e: React.MouseEvent, key: OpsKey) => void;
 }) {
     const r = row.source, cancel = row.tab === 'cancel', contractTab = row.tab === 'contract';
     const dd = v7Dday(row), period = v7Range(row), step = v7StepLabel(row), subs = v7StepSubs(row);
-    const payT = cancel ? '취소' : !row.depositPaid ? '예약금 미입금' : row.balancePaid ? '완납' : `잔금 ${v7Won(r.balance)} 미수`;
-    const payC = cancel ? 'var(--adm-text-3)' : !row.depositPaid || (!row.balancePaid && !contractTab) ? 'var(--adm-danger)' : row.balancePaid ? 'var(--adm-accent-strong)' : V7_MUTED;
+    const payText = cancel ? '취소' : !row.depositPaid ? '예약금 미입금' : row.balancePaid ? '완납' : `잔금 ${v7Won(r.balance)} 미수`;
+    const payWarn = !cancel && (!row.depositPaid || (!row.balancePaid && (!contractTab || (row.dday !== null && row.dday <= 7))));
     const stop = (fn: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); fn(); };
-    const kind = r.type === 'quote_booking' ? '맞춤 견적' : '상품 예약';
+    const kind = r.type === 'quote_booking' ? '견적' : '상품';
     const bookedKey = r.bookedAtMs ? dashboardSeoulDate(new Date(r.bookedAtMs).toISOString()) : '';
     const signedMonth = monthOf((r.contractData?.agreement as any)?.agreedAt);
     const left = (arr: boolean[]) => arr.filter(Boolean).length;
-    const btn = (v: string, tone: PillTone | 'sel' | 'empty', go: (e: React.MouseEvent) => void, icon: DashboardIconName = 'lc-chevron-down') => ({ v, go, icon, s: tone === 'sel' ? sel(false) : tone === 'empty' ? sel(true) : pill(tone) });
     const receiptLate = row.ended && ['pending', 'info_missing'].includes(row.receipt);
-    const cards: Array<{ icon: DashboardIconName; title: string; left: number; items: Array<{ label: string; sub?: string; btn?: ReturnType<typeof btn>; link?: () => void }> }> = [
-        { icon: 'lc-wallet', title: '결제', left: left([!row.depositPaid, !row.balancePaid, receiptLate]), items: [
-            { label: '총 매출', sub: v7Won(r.totalAmount) },
-            { label: '예약금', sub: v7Won(r.deposit), btn: btn(row.depositPaid ? '입금 완료' : '미입금', row.depositPaid ? 'mint' : 'red', e => paymentMenu(e, 'deposit')) },
-            { label: '잔금', sub: v7Won(r.balance), btn: btn(row.balancePaid ? '완납' : '미수', row.balancePaid ? 'mint' : 'red', e => paymentMenu(e, 'final')) },
-            { label: '현금영수증', btn: btn(RECEIPT_LABELS[row.receipt as ReceiptStatus] || row.receipt, receiptLate ? 'red' : 'sel', e => opsMenu(e, 'receipt')) }] },
-        { icon: 'lc-users', title: '배정', left: left([!row.guide, !row.vehicle, !row.accDone]), items: [
-            { label: '가이드', btn: btn(row.guide?.name || '선택', row.guide ? 'sel' : 'empty', guideMenu) },
-            { label: '차량', btn: btn(row.vehicle?.type || '선택', row.vehicle ? 'sel' : 'empty', vehicleMenu) },
-            { label: '숙소', sub: row.accN ? `${row.accC}/${row.accN}박 확정` : '숙박 없음', btn: btn('박별 관리', 'sel', stop(() => onOpen('stay')), 'lc-chevron-right') }] },
-        { icon: 'lc-tags', title: '분류', left: 0, items: [
-            { label: '조인여부', btn: btn(JOINING_LABELS[row.joining as keyof typeof JOINING_LABELS] || '미정', 'sel', e => opsMenu(e, 'joining')) },
-            { label: '분류', btn: btn(row.category || '미정', 'sel', e => opsMenu(e, 'category')) },
-            { label: '구분', btn: btn(row.serviceType || '미정', 'sel', e => opsMenu(e, 'serviceType')) },
-            { label: '항공', btn: btn(row.airfare || '미정', 'sel', e => opsMenu(e, 'airfare')) }] },
-        { icon: 'lc-file-text', title: '서류', left: left([!row.signed]), items: [
+    const asg = cancel ? [] : [
+        { key: 'guide', label: '가이드', done: !!row.guide, title: row.guide ? `가이드 · ${row.guide.name}` : '가이드 미배정' },
+        { key: 'car', label: '차량', done: !!row.vehicle, title: row.vehicle ? `차량 · ${row.vehicle.type}` : '차량 미배정' },
+        { key: 'stay', label: row.accN && !row.accDone ? `숙소 ${row.accC}/${row.accN}` : '숙소', done: row.accDone, title: row.accN ? `숙소 ${row.accC}/${row.accN}박 확정` : '숙박 없음' },
+    ];
+    const cards: Array<{ title: string; todo: number; items: PanelItem[] }> = [
+        { title: '결제', todo: left([!row.depositPaid, !row.balancePaid, receiptLate]), items: [
+            { label: '팀 총액', sub: v7Won(r.totalAmount) },
+            { label: '예약금', sub: v7Won(r.deposit), value: row.depositPaid ? '입금 완료' : '미입금', tone: row.depositPaid ? 'ok' : 'warn', go: e => paymentMenu(e, 'deposit') },
+            { label: '잔금', sub: v7Won(r.balance), value: row.balancePaid ? '완납' : '미수', tone: row.balancePaid ? 'ok' : 'warn', go: e => paymentMenu(e, 'final') },
+            { label: '현금영수증', value: RECEIPT_LABELS[row.receipt as ReceiptStatus] || row.receipt, tone: receiptLate ? 'warn' : 'plain', go: e => opsMenu(e, 'receipt') }] },
+        { title: '배정', todo: left([!row.guide, !row.vehicle, !row.accDone]), items: [
+            { label: '가이드', value: row.guide?.name || '고르기', tone: row.guide ? 'plain' : 'warn', go: guideMenu },
+            { label: '차량', value: row.vehicle?.type || '고르기', tone: row.vehicle ? 'plain' : 'warn', go: vehicleMenu },
+            { label: '숙소', sub: row.accN ? `${row.accC}/${row.accN}박 확정` : '숙박 없음', value: '박별 관리', tone: row.accDone ? 'plain' : 'warn', go: stop(() => onOpen('stay')) }] },
+        { title: '분류', todo: 0, items: [
+            { label: '조인여부', value: JOINING_LABELS[row.joining as keyof typeof JOINING_LABELS] || '미정', go: e => opsMenu(e, 'joining') },
+            { label: '분류', value: row.category || '미정', go: e => opsMenu(e, 'category') },
+            { label: '구분', value: row.serviceType || '미정', go: e => opsMenu(e, 'serviceType') },
+            { label: '항공', value: row.airfare || '미정', go: e => opsMenu(e, 'airfare') }] },
+        { title: '서류', todo: left([!row.signed]), items: [
             { label: r.type === 'quote_booking' ? '견적서' : '일정표', link: () => r.type === 'quote_booking' ? onOpen('documents') : window.open(`/documents/itinerary/${encodeURIComponent(r.id)}?preview=1`, '_blank', 'noopener') },
-            { label: '계약서', btn: btn(row.signed ? '서명 완료' : '미작성', row.signed ? 'mint' : 'red', stop(() => onOpen('contract'))),
+            { label: '계약서', value: row.signed ? '서명 완료' : '미작성', tone: row.signed ? 'ok' : 'warn', go: stop(() => onOpen('contract')),
                 link: () => r.type === 'quote_booking' ? onOpen('contract') : window.open(`/documents/contract/${encodeURIComponent(r.id)}`, '_blank', 'noopener') }] },
     ];
-    const asg = cancel ? [] : [
-        { key: 'guide', label: '가이드', icon: 'lc-user-round' as const, v: `가이드 ${row.guide ? '배정' : '미배정'}`, title: row.guide ? `가이드 · ${row.guide.name}` : '가이드 선택', go: guideMenu,
-            s: dchip(row.guide ? 'var(--adm-accent)' : contractTab ? 'var(--adm-danger)' : 'var(--adm-text-3)', !row.guide && contractTab) },
-        { key: 'car', label: '차량', icon: 'lc-car' as const, v: `차량 ${row.vehicle ? '배정' : '미배정'}`, title: row.vehicle ? `차량 · ${row.vehicle.type}` : '차량 선택', go: vehicleMenu,
-            s: dchip(row.vehicle ? 'var(--adm-accent)' : contractTab ? 'var(--adm-danger)' : 'var(--adm-text-3)', !row.vehicle && contractTab) },
-        { key: 'stay', label: '숙소', icon: 'lc-bed-double' as const, v: `숙소 ${row.accN ? `${row.accC}/${row.accN}박` : '없음'}`, title: '박별 숙소 · 현지 운영 수배 상태', go: stop(() => onOpen('stay')),
-            s: dchip(row.accDone ? 'var(--adm-accent)' : row.accN - row.accA ? 'var(--adm-danger)' : 'var(--adm-warn)', row.accN - row.accA > 0 && contractTab) },
-    ];
-    const wrap: Css = { borderBottom: '1px solid var(--adm-line-subtle)', transition: 'filter 220ms ease, opacity 220ms ease', filter: dimmed ? 'grayscale(1)' : 'none', opacity: dimmed ? 0.45 : 1,
-        boxShadow: open ? '0 8px 28px rgba(16,24,40,.10), 0 0 0 1px var(--adm-accent-line)' : 'none', position: 'relative', zIndex: open ? 1 : 0 };
-    return <div role="rowgroup" className={dimmed ? 'v7-dim' : undefined} style={wrap} aria-busy={busy}>
-        <div role="row" tabIndex={0} aria-expanded={open} className={`v7-list-row${open || selected ? '' : ' v7-hover-row'}`} onClick={onToggle} onKeyDown={e => { if (e.key === 'Enter' && e.target === e.currentTarget) onToggle(); }}
-            style={{ display: 'grid', gridTemplateColumns: GRID, columnGap: 20, alignItems: 'center', minHeight: 64, padding: '10px 24px', boxSizing: 'border-box', cursor: 'pointer',
-                background: open ? 'var(--adm-gray-50)' : selected ? 'var(--adm-accent-soft)' : '#fff', boxShadow: open || selected ? 'inset 3px 0 0 var(--adm-accent)' : 'none', opacity: cancel ? .6 : 1 }}>
-            <button type="button" aria-label={`${r.customerName} 선택`} aria-pressed={selected} onClick={stop(onCheck)} className="v7-c-check" style={checkBox(selected)}>{selected && <Ico name="lc-check" size={12} color="#fff" />}</button>
-            <span className="v7-c-cust" style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><b style={{ fontSize: 14, fontWeight: 700, lineHeight: '20px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.customerName || '이름 미정'}</b><span style={{ fontSize: 12, lineHeight: '18px', color: V7_MUTED, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{r.phone || r.email || '연락처 미입력'}</span></span>
-            <span className="v7-c-period" style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><b style={{ fontSize: 13, fontWeight: 700, lineHeight: '20px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{period.range}</b><span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 18, fontSize: 12, color: V7_MUTED, whiteSpace: 'nowrap' }}>{period.sch}<span style={chip(dd.tone, dd.dot, { height: 20 })}>{dd.label}</span></span></span>
-            <span className="v7-c-people" style={{ textAlign: 'center', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{r.totalPeople ? `${r.totalPeople}명` : r.headcount || '–'}</span>
-            <span className="v7-c-region" style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><span style={{ fontSize: 13, fontWeight: 700, lineHeight: '20px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={row.region}>{row.region}</span><span style={{ fontSize: 12, lineHeight: '18px', color: V7_MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.category || '분류 미정'} · {row.serviceType || kind}</span></span>
-            <span className="v7-c-assign" style={{ display: 'flex', gap: 6, minWidth: 0, flexWrap: 'wrap' }}>
-                {asg.map(a => <button key={a.key} type="button" onClick={a.go} title={a.title} style={a.s}><Ico name={a.icon} size={12} /><span style={{ whiteSpace: 'nowrap' }}>{a.v}</span></button>)}
-            </span>
-            <span className="v7-c-pay" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}><b style={{ fontSize: 14, fontWeight: 700, lineHeight: '20px', fontVariantNumeric: 'tabular-nums' }}>{v7Won(r.totalAmount)}</b><span style={{ fontSize: 12, lineHeight: '18px', fontWeight: 700, whiteSpace: 'nowrap', color: payC }}>{payT}</span></span>
-            <span className="v7-c-status"><button type="button" onClick={statusMenu} style={pill(TAB_TONE[row.tab])}>{statusLabelOf(r)}<Ico name="lc-chevron-down" size={12} /></button></span>
-            <span className="v7-c-chev" style={{ display: 'flex', color: open ? 'var(--adm-accent-strong)' : 'var(--adm-text-3)', transition: 'transform 200ms', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={18} /></span>
-        </div>
-        {open && <div className="v7-list-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 24px 22px 64px', background: 'var(--adm-gray-50)', boxShadow: 'inset 3px 0 0 var(--adm-accent)',
-            position: 'sticky', left: 0, boxSizing: 'border-box', ...(panelWidth ? { width: panelWidth } : {}) }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, color: V7_MUTED, whiteSpace: 'nowrap' }}>예약일 {bookedKey ? dot(bookedKey) : '–'} · 계약 {signedMonth ? `${+signedMonth}월` : '서명 전'} · 투어 {monthOf(r.startDate) ? `${+monthOf(r.startDate)!}월` : '미정'}{r.reservationNumber ? ` · 예약번호 ${r.reservationNumber}` : ''}</span>
-                <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                    <button type="button" onClick={stop(() => onOpen('edit-itinerary'))} style={ghostBtn()}><Ico name="lc-calendar-check" size={15} color="var(--adm-accent-strong)" />일정표 편집</button>
-                    <button type="button" onClick={stop(() => onOpen())} style={inkBtn()}>예약 상세 열기<Ico name="lc-chevron-right" size={15} /></button>
+    const rowClass = cx('rl-row', open && 'is-open', cancel && 'is-cancel');
+    return <>
+        <AdminTr selected={selected} className={cx(rowClass, 'is-clickable')} aria-busy={busy || undefined}
+            onClick={e => { if (!(e.target as Element).closest('button, a, input, label, [role="menuitem"]')) onToggle(); }}>
+            <AdminTd className="rl-c-check"><AdminCheckbox size="sm" aria-label={`${r.customerName || '이름 미정'} 선택`} checked={selected} onChange={onCheck} /></AdminTd>
+            <AdminTd className="rl-c-cust">
+                <span className="rl-line"><b className="rl-name">{r.customerName || '이름 미정'}</b><AdminBadge outlined>{kind}</AdminBadge></span>
+                <span className="rl-sub">{r.reservationNumber || r.phone || r.email || '연락처 미입력'}</span>
+            </AdminTd>
+            <AdminTd className="rl-c-date">
+                <span className="rl-nowrap">{period.range}</span>
+                <span className="rl-line"><AdminBadge tone={dd.tone === 'red' ? 'neutral' : dd.tone === 'mint' ? 'info' : 'neutral'} strong={dd.tone === 'red'}>{dd.label}</AdminBadge>{period.sch && <span className="rl-sub">{period.sch}</span>}</span>
+            </AdminTd>
+            <AdminTd className="rl-c-product">
+                <span className="rl-ellipsis" title={r.productName}>{r.productName || '상품 미정'}</span>
+                <span className="rl-sub rl-ellipsis">{[row.region !== r.productName ? row.region : '', row.category || '분류 미정'].filter(Boolean).join(' · ')}</span>
+            </AdminTd>
+            <AdminTd align="right" className="rl-c-people">{r.totalPeople ? `${r.totalPeople}명` : r.headcount || '–'}</AdminTd>
+            <AdminTd className="rl-c-assign">
+                <span className="rl-asg">{asg.map(a => a.done
+                    ? <AdminBadge key={a.key} title={a.title} icon={<IconCheckThick aria-hidden="true" className="rl-ok" />}>{a.label}</AdminBadge>
+                    : <AdminBadge key={a.key} title={a.title} tone={contractTab ? 'danger' : 'neutral'} icon={contractTab ? <IconCircleExclamation aria-hidden="true" /> : undefined}>{a.label}</AdminBadge>)}
+                    {cancel && <span className="rl-sub">–</span>}
                 </span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 22px', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)' }}>
-                <V7StepHead label={step.label} tone={step.tone} count={cancel ? '' : `${row.steps.filter(s => s.done).length} / 5 단계 완료`} />
-                <V7Steps steps={row.steps.map((s, i) => ({ ...s, sub: subs[i] }))} cancelled={cancel} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 12 }}>
-                {cards.map(c => <div key={c.title} style={{ display: 'flex', flexDirection: 'column', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 10px' }}>
-                        <span style={{ width: 28, height: 28, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-gray-100)', color: 'var(--adm-text-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={c.icon} size={15} /></span>
-                        <b style={{ fontSize: 14, fontWeight: 700 }}>{c.title}</b>
-                        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: c.left ? 'var(--adm-danger)' : 'var(--adm-accent-strong)' }}>{c.left ? `${c.left}건 남음` : '완료'}</span>
+            </AdminTd>
+            <AdminTd align="right" className="rl-c-pay">
+                <b className="rl-nowrap">{v7Won(r.totalAmount)}</b>
+                <span className={cx('rl-sub', 'rl-nowrap', payWarn && 'is-warn', !payWarn && row.balancePaid && !cancel && 'is-ok')}>{payText}</span>
+            </AdminTd>
+            <AdminTd className="rl-c-step">
+                <AdminBadge tone={STEP_TONE[step.tone]} size="md">{step.label}</AdminBadge>
+                <span className="rl-sub">{statusLabelOf(r)}</span>
+            </AdminTd>
+            <AdminTd className="rl-c-more">
+                <AdminIconButton label={`${r.customerName || '예약'} ${open ? '접기' : '펼치기'}`} aria-expanded={open} onClick={onToggle}>
+                    {open ? <IconChevronUp /> : <IconChevronDown />}
+                </AdminIconButton>
+            </AdminTd>
+        </AdminTr>
+        {open && <AdminTr className="rl-panel-row">
+            <AdminTd colSpan={9} className="rl-panel-cell">
+                <div className="rl-panel">
+                    <div className="rl-panel-head">
+                        <span className="rl-sub">{[r.reservationNumber && `예약번호 ${r.reservationNumber}`, `예약일 ${bookedKey ? dot(bookedKey) : '–'}`, `계약 ${signedMonth ? `${+signedMonth}월` : '서명 전'}`,
+                            `투어 ${monthOf(r.startDate) ? `${+monthOf(r.startDate)!}월` : '미정'}`, r.type === 'quote_booking' ? '맞춤 견적' : '상품 예약'].filter(Boolean).join(' · ')}</span>
+                        <span className="rl-panel-actions">
+                            <AdminButton size="sm" variant="weak" trailing={<IconChevronDownSmall aria-hidden="true" />} onClick={statusMenu} disabled={busy}>진행상황 · {statusLabelOf(r)}</AdminButton>
+                            <AdminButton size="sm" variant="weak" onClick={stop(() => onOpen('edit-itinerary'))}>일정표 편집</AdminButton>
+                            <AdminTextButton size="sm" trailing={<IconArrowUpRight aria-hidden="true" />} onClick={stop(() => onOpen())}>예약 상세 열기</AdminTextButton>
+                        </span>
                     </div>
-                    {c.items.map(it => <div key={it.label} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid var(--adm-line-subtle)' }}>
-                        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}><span style={{ fontSize: 13, color: 'var(--adm-text-2)' }}>{it.label}</span>{it.sub && <span style={{ fontSize: 12, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums' }}>{it.sub}</span>}</span>
-                        {it.btn && <button type="button" onClick={it.btn.go} style={it.btn.s} disabled={busy}>{it.btn.v}<Ico name={it.btn.icon} size={12} /></button>}
-                        {it.link && <button type="button" onClick={stop(it.link)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-text-2)', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={12} /></button>}
-                    </div>)}
-                </div>)}
-            </div>
-        </div>}
-    </div>;
+                    <div className="rl-panel-steps">
+                        <V7StepHead label={step.label} tone={step.tone} count={cancel ? '' : `${row.steps.filter(s => s.done).length} / 5 단계 완료`} />
+                        <V7Steps steps={row.steps.map((s, i) => ({ ...s, sub: subs[i] }))} cancelled={cancel} />
+                    </div>
+                    <div className="rl-panel-cards">
+                        {cards.map(c => <AdminCard key={c.title} as="div" title={c.title} attention={c.todo > 0} className="rl-panel-card"
+                            actions={<AdminBadge tone={c.todo ? 'danger' : 'info'}>{c.todo ? `${c.todo}건 남음` : '완료'}</AdminBadge>}>
+                            <dl className="rl-items">
+                                {c.items.map(it => <div key={it.label} className="rl-item">
+                                    <dt>{it.label}{it.sub && <span className="rl-item-sub">{it.sub}</span>}</dt>
+                                    <dd>
+                                        {it.go && it.value && <AdminButton size="sm" variant="weak" disabled={busy} trailing={<IconChevronDownSmall aria-hidden="true" />} onClick={it.go}
+                                            className={cx('rl-item-btn', it.tone === 'warn' && 'is-warn', it.tone === 'ok' && 'is-ok')}>{it.value}</AdminButton>}
+                                        {it.link && <AdminTextButton size="sm" tone="assistive" trailing={<IconArrowUpRight aria-hidden="true" />} onClick={stop(it.link)}>열기</AdminTextButton>}
+                                    </dd>
+                                </div>)}
+                            </dl>
+                        </AdminCard>)}
+                    </div>
+                </div>
+            </AdminTd>
+        </AdminTr>}
+    </>;
 }

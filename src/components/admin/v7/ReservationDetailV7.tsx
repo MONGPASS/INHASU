@@ -403,7 +403,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                 <div id="sec-asg" style={{ ...card, overflow: 'hidden' }}>
                     {cardHead({ icon: 'lc-users', title: '숙소 · 가이드 · 차량', right: <>
                         {row && <span style={{ ...pill(row.board === '배정 완료' ? 'solid' : row.board === '진행 중' ? 'amber' : 'red'), cursor: 'default' }}>{row.board}</span>}
-                        <a className="v7-link" href="/admin/accommodation-ops" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', whiteSpace: 'nowrap' }}>숙소 배정 · 현지 운영<Ico name="lc-chevron-right" size={14} /></a>
+                        <a className="v7-link" href="/admin/accommodation-ops" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', whiteSpace: 'nowrap' }}>숙소 배정<Ico name="lc-chevron-right" size={14} /></a>
                     </> })}
                     {(['guide', 'vehicle'] as const).map(kind => {
                         const v = kind === 'guide' ? row?.guide : row?.vehicle, fallback = m.assignments.find(a => a.id === kind), label = kind === 'guide' ? '가이드' : '차량';

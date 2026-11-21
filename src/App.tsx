@@ -65,6 +65,8 @@ const AdminLogin = lazy(adminPageLoaders.login)
 const AdminDashboard = lazy(adminPageLoaders.dashboard)
 const AdminQuoteManage = lazy(adminPageLoaders.quotes)
 const AdminQuoteDesk = lazy(adminPageLoaders.quoteDesk)
+const AdminItineraryManage = lazy(adminPageLoaders.itinerary)
+const AdminSpotManage = lazy(adminPageLoaders.spots)
 const AdminReservationManage = lazy(adminPageLoaders.reservations)
 const AdminCalendar = lazy(adminPageLoaders.calendar)
 const AdminBannerManage = lazy(adminPageLoaders.banners)
@@ -80,6 +82,7 @@ const AdminFAQManage = lazy(adminPageLoaders.faq)
 const AdminPromotionManage = lazy(adminPageLoaders.promotions)
 const AdminInquiryManage = lazy(adminPageLoaders.inquiries)
 const AdminTourFAQManage = lazy(adminPageLoaders.tourFaqs)
+const AdminUiPreview = lazy(adminPageLoaders.uiPreview)
 
 // Loading Component
 const PageLoader = () => (
@@ -172,6 +175,9 @@ function App() {
             <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
             <Route path="/admin/quotes" element={<AdminGuard><AdminQuoteManage /></AdminGuard>} />
             {/* 맞춤 견적 데스크: 견적 관리 도구(public/*.html)를 관리자 안에 끼워 넣는다. tool = inbox | bookings | builder | courses | itinerary | spots | resources */}
+            {/* 견적 도구 중 React로 옮긴 화면. 주소는 그대로이고 옛 문서(public/일정관리.html·명소관리.html)는 비교용으로만 남는다. */}
+            <Route path="/admin/quote-desk/itinerary" element={<AdminGuard><AdminItineraryManage /></AdminGuard>} />
+            <Route path="/admin/quote-desk/spots" element={<AdminGuard><AdminSpotManage /></AdminGuard>} />
             <Route path="/admin/quote-desk/:tool?" element={<AdminGuard><AdminQuoteDesk /></AdminGuard>} />
             {/* Keep list selection and customer editor state in separate route instances. */}
             <Route path="/admin/reservations" element={<AdminGuard><AdminReservationManage key="reservation-list" /></AdminGuard>} />
@@ -197,6 +203,8 @@ function App() {
             <Route path="/admin/promotions" element={<AdminGuard><AdminPromotionManage /></AdminGuard>} />
             <Route path="/admin/inquiries" element={<AdminGuard><AdminInquiryManage /></AdminGuard>} />
             <Route path="/admin/tour-faqs" element={<AdminGuard><AdminTourFAQManage /></AdminGuard>} />
+            {/* 관리자 부품 미리보기(개발·확인용, 메뉴에 넣지 않는다). 합성 예시만 보여 주고 API를 부르지 않는다. */}
+            <Route path="/admin/__ui" element={<AdminGuard><AdminUiPreview /></AdminGuard>} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/promotions" element={<Promotions />} />

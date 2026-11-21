@@ -2,9 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { build } from 'esbuild';
+import { readFileSync } from 'node:fs';
 
 // Exercise the shipped component event handlers with deterministic hooks. The
 // HTTP/upload adapters are deferred; no DOM, browser or external service is used.
+// 우리 관리자 부품(components/admin/ui)·Montage 아이콘은 이름 문자열로 바꿔 얕게 그린다(부품 안쪽은 그리지 않는다).
+const PAGES = ['src/pages/AdminBannerManage.tsx', 'src/pages/AdminCategoryManage.tsx'];
+const namedImports = from => [...new Set(PAGES.flatMap(file => [...readFileSync(file, 'utf8').matchAll(new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*'${from}'`, 'g'))]
+    .flatMap(m => m[1].split(',').map(name => name.trim()).filter(name => name && !name.startsWith('type ')))))];
+const stubModule = names => names.map(name => name === 'cx' ? `export const cx=(...a)=>a.filter(Boolean).join(' ');` : `export const ${name}='${name}';`).join('');
 const result = await build({ stdin: { contents: `
     export { AdminBannerManage } from './src/pages/AdminBannerManage';
     export { AdminCategoryManage, CategoryModal } from './src/pages/AdminCategoryManage';
@@ -12,11 +18,15 @@ const result = await build({ stdin: { contents: `
     plugins: [{ name: 'content-event-fixture', setup(builder) {
         builder.onResolve({ filter: /^react$|^react\/jsx-runtime$|^react-router-dom$/ }, args => ({ path: args.path, namespace: 'fixture' }));
         builder.onResolve({ filter: /\/(AdminLayout|Icon|api|upload|adminFeedback)$/ }, args => ({ path: args.path.split('/').at(-1), namespace: 'fixture' }));
+        builder.onResolve({ filter: /\/components\/admin\/ui$/ }, () => ({ path: 'admin-ui', namespace: 'fixture' }));
+        builder.onResolve({ filter: /^@montage-ui\/icon$/ }, () => ({ path: 'montage-icon', namespace: 'fixture' }));
         builder.onLoad({ filter: /.*/, namespace: 'fixture' }, ({ path }) => ({ loader: 'js', contents:
             path === 'react' ? `export const useState=(...a)=>globalThis.h.useState(...a),useRef=(...a)=>globalThis.h.useRef(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useCallback=(...a)=>globalThis.h.useCallback(...a);export default {useState,useRef,useEffect,useCallback};`
             : path === 'react/jsx-runtime' ? `export const Fragment='fragment';export const jsx=(type,props,key)=>({type,props,key});export const jsxs=jsx;`
             : path === 'react-router-dom' ? `export const useBlocker=predicate=>{globalThis.h.predicate=predicate;return globalThis.h.blocker};`
             : path === 'AdminLayout' ? `export const AdminLayout='layout';`
+            : path === 'admin-ui' ? stubModule(namedImports('../components/admin/ui'))
+            : path === 'montage-icon' ? stubModule(namedImports('@montage-ui/icon'))
             : path === 'Icon' ? `export const Icon='icon';`
             : path === 'adminFeedback' ? `export const adminNotify=()=>{};export const adminConfirm=async m=>(typeof window!=='undefined'&&window.confirm?!!window.confirm(typeof m==='string'?m:m.message):true);`
             : path === 'api' ? `export const api=new Proxy({}, {get:(_,key)=>globalThis.adapters.api[key]});`
@@ -27,7 +37,6 @@ const deferred = () => { let resolve, reject; const promise = new Promise((a, b)
 const tick = () => new Promise(setImmediate);
 const nodes = root => !root || typeof root !== 'object' ? [] : Array.isArray(root) ? root.flatMap(nodes) : [root, ...nodes(root.props?.children)];
 const find = (root, predicate) => { const node = nodes(root).find(predicate); assert.ok(node, 'requested control is rendered'); return node; };
-const event = () => ({ preventDefault() {} });
 // 홈 화면 관리의 '변경사항 저장'은 본문 상단 고정 줄에 있다.
 const saveButton = root => find(root, n => n.type === 'button' && n.props.className === 'hm-save');
 const initialBanner = () => ({ banners: [
@@ -131,17 +140,19 @@ test('카테고리 모달은 실제 저장 성공 후에만 닫고 실패하면 
     const props = { category: { id: 'central', name: '중앙몽골', icon: 'landscape', description: '', isActive: true, order: 0 }, type: 'product',
         onClose: () => { closes++; }, onSave: value => { calls++; sent = structuredClone(value); return first.promise; } };
     const h = app.mount(app.CategoryModal, props);
-    find(h.tree, n => n.type === 'input' && n.props.value === '중앙몽골').props.onChange({ target: { value: '수정한 카테고리' } }); h.render();
-    await find(h.tree, n => n.type === 'input' && n.props.type === 'file').props.onChange({ target: { files: [{ name: 'icon.jpg' }], value: '' } });
+    assert.equal(h.tree.type, 'AdminDialog');
+    find(h.tree, n => n.type === 'AdminTextInput' && n.props.value === '중앙몽골').props.onChange({ target: { value: '수정한 카테고리' } }); h.render();
+    assert.equal(h.tree.props.dirty, true, 'dialog asks before closing edited input');
+    await find(h.tree, n => n.type === 'AdminFileButton').props.onFiles([{ name: 'icon.jpg' }]);
     await tick(); h.render();
-    const form = find(h.tree, n => n.type === 'form'), request = form.props.onSubmit(event());
-    await form.props.onSubmit(event()); assert.equal(calls, 1); assert.equal(closes, 0);
-    h.tree.props.onClick(); assert.equal(closes, 0, 'busy scrim cannot close');
+    const request = h.tree.props.onSubmit();
+    await h.tree.props.onSubmit(); assert.equal(calls, 1); assert.equal(closes, 0);
+    h.tree.props.onClose(); assert.equal(closes, 0, 'busy dialog cannot close');
     assert.equal(sent.name, '수정한 카테고리'); assert.equal(sent.icon, '/img/new-icon.webp');
     first.reject(new Error('로컬 저장 실패')); await request; h.render();
     assert.equal(closes, 0); assert.ok(nodes(h.tree).some(n => n.props?.value === '수정한 카테고리'));
     assert.ok(nodes(h.tree).some(n => n.props?.src === '/img/new-icon.webp'));
-    props.onSave = async () => true; h.render(); await find(h.tree, n => n.type === 'form').props.onSubmit(event()); assert.equal(closes, 1);
+    props.onSave = async () => true; h.render(); await h.tree.props.onSubmit(); assert.equal(closes, 1);
 });
 
 test('카테고리 업로드 중 저장·닫기·중복 업로드가 차단되고 실패 입력은 남는다', async () => {
@@ -149,12 +160,14 @@ test('카테고리 업로드 중 저장·닫기·중복 업로드가 차단되�
     const app = setup({ upload: () => { uploads++; return upload.promise; } });
     const h = app.mount(app.CategoryModal, { category: null, type: 'product', onClose: () => { closes++; },
         onSave: async () => { saves++; return true; }, onEditorState: state => { editorState = state; } });
-    find(h.tree, n => n.type === 'input' && n.props.placeholder === '예: 서부몽골').props.onChange({ target: { value: '서부몽골' } }); h.render();
-    const input = find(h.tree, n => n.type === 'input' && n.props.type === 'file');
-    input.props.onChange({ target: { files: [{ name: 'first.jpg' }], value: '' } });
-    input.props.onChange({ target: { files: [{ name: 'second.jpg' }], value: '' } });
+    find(h.tree, n => n.type === 'AdminTextInput' && n.props.placeholder === '예: 서부몽골').props.onChange({ target: { value: '서부몽골' } }); h.render();
+    const picker = find(h.tree, n => n.type === 'AdminFileButton');
+    picker.props.onFiles([{ name: 'first.jpg' }]);
+    picker.props.onFiles([{ name: 'second.jpg' }]);
     assert.equal(uploads, 1); assert.equal(editorState.busy, true);
-    await find(h.tree, n => n.type === 'form').props.onSubmit(event()); h.tree.props.onClick();
+    h.render(); assert.equal(h.tree.props.submitDisabled, true); assert.equal(h.tree.props.dirty, false, 'busy close goes to the in-dialog notice');
+    assert.equal(find(h.tree, n => n.type === 'fieldset').props.disabled, true);
+    await h.tree.props.onSubmit(); h.tree.props.onClose();
     assert.equal(saves, 0); assert.equal(closes, 0);
     upload.reject(new Error('로컬 업로드 실패')); await tick(); h.render();
     assert.equal(editorState.busy, false); assert.equal(editorState.dirty, true);
@@ -166,11 +179,11 @@ test('카테고리 순서 버튼의 연속 클릭은 실제 reorder 요청 하�
     const categories = [{ id: 'central', name: '중앙', icon: 'category', sort_order: 0, is_active: 1, type: 'product' }, { id: 'gobi', name: '고비', icon: 'category', sort_order: 1, is_active: 1, type: 'product' }];
     const app = setup({ api: { categories: { list: async () => categories, reorder: () => { calls++; return update.promise; } } } });
     const h = app.mount(app.AdminCategoryManage); await tick(); h.render();
-    const down = nodes(h.tree).filter(n => n.type === 'button' && nodes(n).some(child => child.props?.name === 'arrow_downward'))[0];
+    const down = nodes(h.tree).filter(n => n.type === 'AdminIconButton' && String(n.props.label).endsWith(' 아래로'))[0];
     const first = down.props.onClick(); await down.props.onClick(); assert.equal(calls, 1); assert.equal(readBusy(h), true);
     update.reject(new Error('로컬 순서 저장 실패')); await first; h.render();
     assert.equal(readBusy(h), false); assert.ok(nodes(h.tree).some(n => n.props?.role === 'alert'));
-    const names = nodes(h.tree).filter(n => n.type === 'td' && n.props.className === 'cell-strong').map(n => n.props.children);
+    const names = nodes(h.tree).filter(n => n.type === 'AdminTd' && n.props.className === 'cg-name').map(n => n.props.children);
     assert.deepEqual(names, ['중앙', '고비']);
 });
 
@@ -181,14 +194,14 @@ test('카테고리 히어로 다중 업로드는 중간 실패 후 멈추며 성
         onClose() {}, onSave: async value => { saved = structuredClone(value); return true; }, onEditorState: value => { editorState = value; } });
     const landingNode = find(modal.tree, n => n.props?.formData && n.props.uploadImageTo);
     const landing = app.mount(landingNode.type, landingNode.props);
-    find(landing.tree, n => n.type === 'button' && n.props.className === 'edit-sec-head').props.onClick(); landing.render();
+    find(landing.tree, n => n.type === 'AdminTextButton' && 'aria-expanded' in n.props).props.onClick(); landing.render();
     const heroNode = find(landing.tree, n => Array.isArray(n.props?.images) && n.props.uploadImageTo);
     const hero = app.mount(heroNode.type, heroNode.props);
-    find(hero.tree, n => n.type === 'input' && n.props.type === 'file').props.onChange({ target: { files: [{ name: 'one.jpg' }, { name: 'two.jpg' }, { name: 'three.jpg' }], value: '' } });
+    find(hero.tree, n => n.type === 'AdminFileButton' && n.props.multiple).props.onFiles([{ name: 'one.jpg' }, { name: 'two.jpg' }, { name: 'three.jpg' }]);
     assert.equal(editorState.busy, true); first.resolve('/img/success.webp'); await tick(); assert.equal(calls, 2);
     second.reject(new Error('로컬 두 번째 업로드 실패')); await tick();
     assert.equal(calls, 2); assert.equal(editorState.busy, false);
-    modal.render(); await find(modal.tree, n => n.type === 'form').props.onSubmit(event());
+    modal.render(); await modal.tree.props.onSubmit();
     assert.deepEqual(Array.from(saved.landing_hero_images), ['/img/success.webp']);
     assert.equal(saved.landing_hero_image, '/img/success.webp');
 });
