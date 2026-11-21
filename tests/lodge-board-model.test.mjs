@@ -60,3 +60,25 @@ test('숙소 배정 화면: 배정 보드가 기본이고, 표로 보기·카드
     assert.doesNotMatch(queue, /@montage-ui\/core/, '화면은 Montage를 직접 부르지 않는다');
     assert.doesNotMatch(queue, /window\.prompt|window\.confirm|alert\(/, '기본 확인창을 쓰지 않는다');
 });
+
+test('숙소 고르기: 이름·지역·등급·주소로 찾고(띄어쓰기·대소문자 무시) 지역이 없으면 지역 미정', () => {
+    const terelj = { name: '테를지 Star 캠프', region: '중앙몽골', location: '', type: '게르', address: '테를지 국립공원' };
+    assert.equal(m.lodgeMatches(terelj, ''), true);
+    assert.equal(m.lodgeMatches(terelj, '테를지star'), true);
+    assert.equal(m.lodgeMatches(terelj, '중앙 몽골'), true);
+    assert.equal(m.lodgeMatches(terelj, '게르'), true);
+    assert.equal(m.lodgeMatches(terelj, '국립공원'), true);
+    assert.equal(m.lodgeMatches(terelj, '고비'), false);
+    assert.equal(m.lodgeRegionOf(terelj), '중앙몽골');
+    assert.equal(m.lodgeRegionOf({ region: '', location: '홉스골' }), '홉스골');
+    assert.equal(m.lodgeRegionOf({ region: ' ', location: '' }), '지역 미정');
+});
+
+test('배정 보드의 숙소정보는 찾기·지역 칩이 있는 숙소 고르기 창을 쓴다', () => {
+    const queue = readFileSync('src/components/admin/accommodation/LodgeAssignQueue.tsx', 'utf8');
+    assert.match(queue, /<LodgePicker[\s\S]*onPick=/);
+    const picker = readFileSync('src/components/admin/accommodation/LodgePicker.tsx', 'utf8');
+    assert.match(picker, /<AdminSearch/);
+    assert.match(picker, /<AdminChipGroup label="숙소 지역"/);
+    assert.doesNotMatch(picker, /@montage-ui\/core/);
+});

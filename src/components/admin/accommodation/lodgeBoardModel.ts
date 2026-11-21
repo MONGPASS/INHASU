@@ -3,6 +3,7 @@ import { NEW_LODGE_WORKFLOW, isLodgeBookingConfirmed, lodgeMailStatus, lodgeRese
 import { packagePlanFromGrades, sheetAreaFor, type PackagePlan } from '../../../utils/accommodationSheet';
 import { scheduleStayRegion, type AccommodationSchedule } from '../../../utils/accommodationSchedule';
 import { toTourDateKey } from '../../../utils/formatDate';
+import type { RegisteredLodge } from '../../../utils/registeredAssignmentResources';
 
 /**
  * 숙소 배정 계산 — 표로 보기(LodgeAssignBoard)와 배정 보드(LodgeAssignQueue)가 같은 계산을 쓴다.
@@ -109,4 +110,14 @@ export const nextMailStage = (acc: LodgePatch): string | null => {
 export const daysUntil = (dateKey: string, today = new Date()) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return null;
     return Math.round((Date.parse(`${dateKey}T00:00:00Z`) - Date.parse(`${dateKeyOf(today)}T00:00:00Z`)) / 86400000);
+};
+
+/** 숙소 고르기: 등록 숙소의 지역(지역이 없으면 ‘지역 미정’) */
+export const NO_LODGE_REGION = '지역 미정';
+export const lodgeRegionOf = (l: Pick<RegisteredLodge, 'region' | 'location'>) => (l.region || l.location || '').trim() || NO_LODGE_REGION;
+const squash = (value: string) => value.toLowerCase().replace(/\s+/g, '');
+/** 숙소 고르기 검색: 이름·지역·등급·주소 어디에 있어도 찾는다(대소문자·띄어쓰기 무시) */
+export const lodgeMatches = (l: Pick<RegisteredLodge, 'name' | 'region' | 'location' | 'type' | 'address'>, query: string) => {
+    const q = squash(query);
+    return !q || squash([l.name, l.region, l.location, l.type, l.address].filter(Boolean).join(' ')).includes(q);
 };

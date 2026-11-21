@@ -12,9 +12,10 @@ import { LODGE_MAIL_STAGES, LODGE_RESERVATION_STATES, changeLodgeReservation, lo
 import { ASSIGN_TYPE_OPTIONS, LODGE_AREA_OPTIONS, LODGE_GRADE_OPTIONS, PACKAGE_LABELS } from '../../../utils/accommodationSheet';
 import { productCustomerHref, quoteCustomerHref } from '../../../utils/customerWorkspaceRoutes';
 import {
-    CLEAR_LODGE, LODGE_CONTACT_STEPS, buildLodgeModel, contactStepsDone, dateKeyOf, daysUntil, dotted, nextMailStage, sameText, tourNameOf, tourStateOf,
+    CLEAR_LODGE, LODGE_CONTACT_STEPS, buildLodgeModel, contactStepsDone, dateKeyOf, daysUntil, dotted, nextMailStage, tourNameOf, tourStateOf,
     withCurrent, type LodgeBoardTour, type LodgeModel, type LodgePatch, type NightState,
 } from './lodgeBoardModel';
+import { LodgePicker } from './LodgePicker';
 import './LodgeAssignQueue.css';
 
 /**
@@ -40,8 +41,6 @@ const PACKAGE_OPTIONS = [
     { value: AUTO, label: '자동 표시 · 숙소 등급 기준' },
 ];
 const AREA_OPTIONS = [...LODGE_AREA_OPTIONS];
-const MANUAL = '__manual__';
-const CURRENT = '__current__';
 
 const weekday = (key: string) => key ? WD[new Date(`${key}T00:00:00`).getDay()] : '';
 const shortDate = (key: string) => key ? `${key.slice(5, 7)}.${key.slice(8, 10)}` : '날짜 미정';
@@ -238,8 +237,7 @@ function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending,
                     const mail = lodgeMailStatus(acc), status = lodgeReservationStatus(acc.bookingStatus);
                     const summary = [n.area, acc.type, acc.assignType, acc.adminMemo?.trim() ? '메모 있음' : ''].filter(Boolean).join(' · ') || '지역·등급 미정';
                     const stage = done >= LODGE_CONTACT_STEPS.length ? '연락 완료' : `다음: ${LODGE_CONTACT_STEPS[done]}`;
-                    const lodgeOptions = lodgeChoices(lodges, n.area);
-                    const isManual = manual.has(n.index) || (hasLodge && !lodgeOptions.some(o => o.value === acc.id));
+                    const isManual = manual.has(n.index) || (hasLodge && !lodges.some(l => l.id === acc.id));
                     const added = n.index >= m.planned;
                     return (
                         <div key={n.index} className={`lq-night${isOpen ? ' is-open' : ''}`}>
@@ -266,23 +264,16 @@ function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending,
                                             options={[{ value: '', label: '미정' }, ...withCurrent(LODGE_GRADE_OPTIONS, acc.type).map(v => ({ value: v, label: v }))]}
                                             onChange={v => patch(n.index, { type: v || undefined })} />
                                     </AdminField>
-                                    <AdminField id={`${key}-lodge`} label="숙소정보" className="lq-span-2" hint={resourcesLoading ? '등록 숙소를 불러오는 중…' : `등록 숙소 ${lodges.length}곳 · 고른 지역 숙소가 먼저 나와요`}>
-                                        <AdminSelect id={`${key}-lodge`} aria-label="숙소정보" disabled={locked || resourcesLoading} placeholder="숙소를 선택해 주세요"
-                                            value={isManual ? (manual.has(n.index) && !hasLodge ? MANUAL : CURRENT) : acc.id || ''}
-                                            options={[
-                                                { value: '', label: '미배정 · 숙소 선택 해제' },
-                                                ...(isManual && hasLodge ? [{ value: CURRENT, label: `직접 입력: ${acc.name}` }] : []),
-                                                ...lodgeOptions,
-                                                { value: MANUAL, label: '직접 입력 (목록에 없는 숙소)' },
-                                            ]}
-                                            onChange={v => {
-                                                if (v === MANUAL) { setManual(prev => new Set(prev).add(n.index)); return; }
-                                                if (v === CURRENT) return;
+                                    <AdminField id={`${key}-lodge`} label="숙소정보" className="lq-span-2" hint={resourcesLoading ? '등록 숙소를 불러오는 중…' : '눌러서 이름·지역·등급으로 찾아요'}>
+                                        <LodgePicker id={`${key}-lodge`} lodges={lodges} regions={lodgeRegions} area={n.area} nightLabel={dayLabel(n.date)}
+                                            currentId={isManual ? undefined : acc.id} currentName={acc.name} manual={isManual && hasLodge}
+                                            disabled={locked} loading={resourcesLoading}
+                                            onPick={lodge => {
                                                 setManual(prev => { const next = new Set(prev); next.delete(n.index); return next; });
-                                                if (!v) { patch(n.index, CLEAR_LODGE); return; }
-                                                const lodge = lodges.find(l => l.id === v);
-                                                if (lodge) patch(n.index, { ...selectResourceLodge(n.night, lodge).accommodation, ...(n.area ? { location: n.area, region: n.area } : {}) });
-                                            }} />
+                                                patch(n.index, { ...selectResourceLodge(n.night, lodge).accommodation, ...(n.area ? { location: n.area, region: n.area } : {}) });
+                                            }}
+                                            onClear={() => { setManual(prev => { const next = new Set(prev); next.delete(n.index); return next; }); patch(n.index, CLEAR_LODGE); }}
+                                            onManual={() => setManual(prev => new Set(prev).add(n.index))} />
                                         {isManual && <AdminTextInput large aria-label="숙소명 직접 입력" placeholder="숙소명 직접 입력" value={acc.name || ''} disabled={locked} className="lq-manual"
                                             onChange={e => { if (e.target.value !== acc.name) patch(n.index, { ...CLEAR_LODGE, name: e.target.value }); }} />}
                                     </AdminField>
@@ -345,12 +336,4 @@ function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending,
             </footer>
         </AdminCard>
     );
-}
-
-/** 숙소 고르기 목록: 이 숙박 지역의 등록 숙소를 먼저, 나머지는 뒤에 */
-// 등록 숙소에 없는 숙소(직접 입력·삭제된 숙소)는 화면이 ‘직접 입력’으로 보여 준다.
-function lodgeChoices(lodges: RegisteredLodge[], area: string) {
-    const inArea = (l: RegisteredLodge) => !!area && (sameText(l.region, area) || sameText(l.location, area));
-    return [...lodges].sort((a, b) => Number(inArea(b)) - Number(inArea(a)) || a.name.localeCompare(b.name, 'ko-KR'))
-        .map(l => ({ value: l.id, label: [l.name, l.region || l.location, l.type].filter(Boolean).join(' · ') }));
 }
