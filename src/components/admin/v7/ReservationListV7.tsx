@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Chip, IconButton, SegmentedControl, SegmentedControlItem, Tab, TabList, TabListItem } from '@montage-ui/core';
-import { IconClose, IconInbox, IconSearch } from '@montage-ui/icon';
+import { IconClose, IconInbox } from '@montage-ui/icon';
+import { AdminButton, AdminChip, AdminIconButton, AdminSearch, AdminSegmented, AdminTabs } from '../ui';
 import type { DashboardIconName } from '../dashboard/DashboardIcon';
 import { dashboardSeoulDate } from '../../../utils/adminDashboard';
 import { confirmGuideConflict, guideMenuItems } from './guideMenuItems';
@@ -221,34 +221,26 @@ export function ReservationListV7(p: ReservationListV7Props) {
         <V7Styles />
         <section aria-label="예약 목록" className="v7-list-card">
             <div className="v7-list-tabs">
-                <Tab value={tab} onValueChange={value => { setTab(value as V7Tab); setQuick('all'); setSel(new Set()); setOpen(null); }}>
-                    <TabList size="medium" aria-label="예약 진행 상태">
-                        {V7_TABS.map(t => <TabListItem key={t.key} value={t.key}>{t.label} {p.loadedOnce ? tabCount(t.key) : '–'}</TabListItem>)}
-                    </TabList>
-                </Tab>
+                <AdminTabs label="예약 진행 상태" value={tab} onChange={value => { setTab(value as V7Tab); setQuick('all'); setSel(new Set()); setOpen(null); }}
+                    items={V7_TABS.map(t => ({ value: t.key, label: t.label, count: p.loadedOnce ? tabCount(t.key) : '–' }))} />
             </div>
 
             <div className="v7-list-filters">
-                <label className="v7-list-search">
-                    <IconSearch aria-hidden="true" />
-                    <input value={q} onChange={e => setQ(e.target.value)} aria-label="예약 검색" placeholder="고객명, 전화번호, 가이드 이름 검색" />
-                    {q && <IconButton variant="normal" size="medium" aria-label="검색어 지우기" onClick={() => setQ('')}><IconClose /></IconButton>}
-                </label>
+                <div className="v7-list-search">
+                    <AdminSearch value={q} onChange={setQ} aria-label="예약 검색" placeholder="고객명, 전화번호, 가이드 이름 검색" wide />
+                </div>
                 <div role="group" aria-label="빠른 필터" className="v7-kpis v7-list-quick">
                     {V7_QUICK.map(x => {
                         const on = quick === x.key, n = inTab.filter(x.test).length;
-                        return <Chip key={x.key} size="small" variant="solid" active={on} aria-pressed={on} onClick={() => setQuick(on && x.key !== 'all' ? 'all' : x.key)}>
-                            {x.label} {p.loadedOnce ? n : '–'}
-                        </Chip>;
+                        return <AdminChip key={x.key} active={on} count={p.loadedOnce ? n : '–'} onClick={() => setQuick(on && x.key !== 'all' ? 'all' : x.key)}>
+                            {x.label}
+                        </AdminChip>;
                     })}
                 </div>
                 {(assignmentNote || p.loading) && <span role="status" className="v7-list-note" style={{ color: p.loading ? 'var(--adm-text-3)' : 'var(--adm-warn-strong)' }}>{p.loading ? '예약을 불러오는 중…' : assignmentNote}</span>}
                 <div className="v7-list-sort">
-                    <SegmentedControl size="small" value={sort} onValueChange={value => setSort(value as typeof sort)} aria-label="정렬">
-                        <SegmentedControlItem value="pri">우선순위</SegmentedControlItem>
-                        <SegmentedControlItem value="dep">출발일순</SegmentedControlItem>
-                        <SegmentedControlItem value="bk">최근 예약순</SegmentedControlItem>
-                    </SegmentedControl>
+                    <AdminSegmented label="정렬" value={sort} onChange={value => setSort(value)}
+                        items={[{ value: 'pri', label: '우선순위' }, { value: 'dep', label: '출발일순' }, { value: 'bk', label: '최근 예약순' }]} />
                 </div>
             </div>
 
@@ -270,8 +262,8 @@ export function ReservationListV7(p: ReservationListV7Props) {
         {selected.length > 0 && <div role="toolbar" aria-label="선택한 예약 작업" className="v7-list-bulk">
             <b>{selected.length}건 선택</b>
             {([['진행상황 변경', bulkStatus], ['입금 확인', bulkPayment], ['안내 알림 발송', bulkNotice], ['엑셀 내보내기', exportSelected]] as const).map(([label, go]) =>
-                <Button key={label} variant="solid" color="assistive" size="small" onClick={go as any}>{label}</Button>)}
-            <IconButton variant="normal" size="medium" aria-label="선택 해제" title="선택 해제" onClick={() => setSel(new Set())}><IconClose /></IconButton>
+                <AdminButton key={label} variant="weak" size="sm" onClick={go as any}>{label}</AdminButton>)}
+            <AdminIconButton label="선택 해제" onClick={() => setSel(new Set())}><IconClose /></AdminIconButton>
         </div>}
         <V7Menu menu={menu} onClose={closeMenu} />
         <V7Toast text={toast} />

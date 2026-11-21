@@ -211,7 +211,8 @@
   .admin-app-wrapper .v7-list-tabs { margin: calc(var(--adm-space-4) * -1) calc(var(--adm-pad-page) * -1) 0; padding: 0 var(--adm-pad-page) !important; border-bottom: 1px solid var(--adm-line-subtle); background: var(--adm-surface); scrollbar-width: none; }
   .admin-app-wrapper .v7-list-tabs::-webkit-scrollbar { display: none; }
   .admin-app-wrapper .v7-list-filters { gap: var(--adm-space-3); padding: var(--adm-space-3) 0 !important; border-top: 0; }
-  .admin-app-wrapper .v7-list-search { min-width: 0; background: var(--adm-surface); box-shadow: inset 0 0 0 1px var(--adm-line); }
+  .admin-app-wrapper .v7-list-search { min-width: 0; }
+  .admin-app-wrapper .v7-list-search > * { background: var(--adm-surface); box-shadow: inset 0 0 0 1px var(--adm-line); border-radius: var(--adm-radius-sm); }
   .admin-app-wrapper .v7-list-quick { flex: 0 0 100%; flex-wrap: nowrap; margin: 0 calc(var(--adm-pad-page) * -1); padding: 0 var(--adm-pad-page) var(--adm-space-1); overflow-x: auto; scrollbar-width: none; }
   .admin-app-wrapper .v7-list-quick::-webkit-scrollbar { display: none; }
   .admin-app-wrapper .v7-list-quick > * { flex: none; }

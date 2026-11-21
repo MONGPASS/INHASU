@@ -29,7 +29,9 @@ export function adminValidateRequired(root?: ParentNode | null): boolean {
     let first: HTMLElement | null = null;
     scope.querySelectorAll<HTMLElement>('.adm-req').forEach(label => {
         // 이름표가 입력 칸을 감싼 label 안에 있으면(<label><span class="adm-req">…</span><input/></label>) 그 label이 한 칸이다.
-        const wrap = label.closest<HTMLElement>('label, .cm-field, .field');
+        // 공통 부품 AdminField(.adm-ui-field)는 칸 묶음 전체가 한 칸이다(안내는 입력 칸 아래).
+        const field = label.closest<HTMLElement>('.adm-ui-field');
+        const wrap = field || label.closest<HTMLElement>('label, .cm-field, .field');
         const holder = wrap && wrap !== label ? wrap : label.parentElement;
         const control = (wrap && wrap !== label ? wrap.querySelector<HTMLInputElement>(CONTROLS) : null) || controlFor(label);
         if (!control || !holder || control.disabled) return;
