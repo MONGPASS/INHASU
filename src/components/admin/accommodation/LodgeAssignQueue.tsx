@@ -261,7 +261,12 @@ function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending,
                                             options={[{ value: '', label: '미정' }, ...withCurrent([...new Set([...AREA_OPTIONS, ...lodgeRegions])], n.area).map(v => ({ value: v, label: v }))]}
                                             onChange={v => { onAreaCleared(key, !v); patch(n.index, { location: v, region: v }); }} />
                                     </AdminField>
-                                    <AdminField id={`${key}-lodge`} label="숙소정보" className="lq-span-3" hint={resourcesLoading ? '등록 숙소를 불러오는 중…' : `등록 숙소 ${lodges.length}곳 · 고른 지역 숙소가 먼저 나와요`}>
+                                    <AdminField id={`${key}-grade`} label="등급">
+                                        <AdminSelect id={`${key}-grade`} aria-label="등급" value={acc.type || ''} disabled={locked} placeholder="미정"
+                                            options={[{ value: '', label: '미정' }, ...withCurrent(LODGE_GRADE_OPTIONS, acc.type).map(v => ({ value: v, label: v }))]}
+                                            onChange={v => patch(n.index, { type: v || undefined })} />
+                                    </AdminField>
+                                    <AdminField id={`${key}-lodge`} label="숙소정보" className="lq-span-2" hint={resourcesLoading ? '등록 숙소를 불러오는 중…' : `등록 숙소 ${lodges.length}곳 · 고른 지역 숙소가 먼저 나와요`}>
                                         <AdminSelect id={`${key}-lodge`} aria-label="숙소정보" disabled={locked || resourcesLoading} placeholder="숙소를 선택해 주세요"
                                             value={isManual ? (manual.has(n.index) && !hasLodge ? MANUAL : CURRENT) : acc.id || ''}
                                             options={[
@@ -278,19 +283,14 @@ function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending,
                                                 const lodge = lodges.find(l => l.id === v);
                                                 if (lodge) patch(n.index, { ...selectResourceLodge(n.night, lodge).accommodation, ...(n.area ? { location: n.area, region: n.area } : {}) });
                                             }} />
-                                        {isManual && <AdminTextInput aria-label="숙소명 직접 입력" placeholder="숙소명 직접 입력" value={acc.name || ''} disabled={locked} className="lq-manual"
+                                        {isManual && <AdminTextInput large aria-label="숙소명 직접 입력" placeholder="숙소명 직접 입력" value={acc.name || ''} disabled={locked} className="lq-manual"
                                             onChange={e => { if (e.target.value !== acc.name) patch(n.index, { ...CLEAR_LODGE, name: e.target.value }); }} />}
                                     </AdminField>
-                                    <AdminField id={`${key}-grade`} label="등급" className="lq-span-2">
-                                        <AdminSelect id={`${key}-grade`} aria-label="등급" value={acc.type || ''} disabled={locked} placeholder="미정"
-                                            options={[{ value: '', label: '미정' }, ...withCurrent(LODGE_GRADE_OPTIONS, acc.type).map(v => ({ value: v, label: v }))]}
-                                            onChange={v => patch(n.index, { type: v || undefined })} />
-                                    </AdminField>
                                     <AdminField id={`${key}-rooms`} label="방수">
-                                        <AdminTextInput id={`${key}-rooms`} inputMode="numeric" placeholder={`1–${MAX_ROOMS_PER_NIGHT}`} value={acc.roomCount == null ? '' : String(acc.roomCount)} disabled={locked}
+                                        <AdminTextInput large id={`${key}-rooms`} inputMode="numeric" placeholder={`1–${MAX_ROOMS_PER_NIGHT}`} value={acc.roomCount == null ? '' : String(acc.roomCount)} disabled={locked}
                                             onChange={e => { const count = roomValue(e.target.value.trim()); if (count !== undefined) patch(n.index, { roomCount: count }); }} />
                                     </AdminField>
-                                    <AdminField id={`${key}-assign`} label="배정 구분" className="lq-span-2">
+                                    <AdminField id={`${key}-assign`} label="배정 구분">
                                         <AdminSelect id={`${key}-assign`} aria-label="배정 구분" value={acc.assignType || ''} disabled={locked} placeholder="미정"
                                             options={[{ value: '', label: '미정' }, ...withCurrent(ASSIGN_TYPE_OPTIONS, acc.assignType).map(v => ({ value: v, label: v }))]}
                                             onChange={v => patch(n.index, { assignType: v })} />
@@ -310,7 +310,7 @@ function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending,
                                                 onChange={v => patch(n.index, { mailStatus: v })} />
                                         </AdminField>
                                         <AdminField id={`${key}-maildate`} label="메일발송일자">
-                                            <AdminTextInput id={`${key}-maildate`} type="date" value={acc.mailSentDate || ''} disabled={locked} onChange={e => patch(n.index, { mailSentDate: e.target.value })} />
+                                            <AdminTextInput large id={`${key}-maildate`} type="date" value={acc.mailSentDate || ''} disabled={locked} onChange={e => patch(n.index, { mailSentDate: e.target.value })} />
                                         </AdminField>
                                         <AdminField id={`${key}-status`} label="예약상태">
                                             <AdminSelect id={`${key}-status`} aria-label="예약상태" value={status} disabled={locked} placeholder="미정"
@@ -321,15 +321,15 @@ function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending,
                                                 onChange={v => patch(n.index, changeLodgeReservation(acc, v))} />
                                         </AdminField>
                                         <span className="lq-contact-action">
-                                            {!hasLodge ? <AdminButton variant="secondary" disabled>숙소를 먼저 선택</AdminButton>
-                                                : next && <AdminButton variant="secondary" disabled={locked} onClick={() => patch(n.index, { mailStatus: next, mailSentDate: dateKeyOf(new Date()) })}>{next.replace('완료', ' 보냄')}으로 표시</AdminButton>}
+                                            {!hasLodge ? <AdminButton variant="secondary" size="lg" disabled>숙소를 먼저 선택</AdminButton>
+                                                : next && <AdminButton variant="secondary" size="lg" disabled={locked} onClick={() => patch(n.index, { mailStatus: next, mailSentDate: dateKeyOf(new Date()) })}>{next.replace('완료', ' 보냄')}으로 표시</AdminButton>}
                                         </span>
                                     </div>
                                     <p className="lq-contact-note">요청 메일은 숙소에 직접 보내고, 보낸 뒤 여기서 회차를 표시해요(오늘 날짜가 함께 들어가요).</p>
                                 </div>
 
                                 <AdminField id={`${key}-memo`} label="예약메모">
-                                    <AdminTextInput id={`${key}-memo`} maxLength={2000} placeholder="메모를 입력해 주세요" value={acc.adminMemo || ''} disabled={locked} onChange={e => patch(n.index, { adminMemo: e.target.value })} />
+                                    <AdminTextInput large id={`${key}-memo`} maxLength={2000} placeholder="메모를 입력해 주세요" value={acc.adminMemo || ''} disabled={locked} onChange={e => patch(n.index, { adminMemo: e.target.value })} />
                                 </AdminField>
                                 {added && <AdminTextButton size="sm" tone="assistive" className="lq-remove" disabled={locked}
                                     onClick={async () => { if (await adminConfirm({ title: '숙박 삭제', message: `${dayLabel(n.date)} 숙박을 삭제할까요? 배정 저장을 눌러야 반영됩니다.`, confirmLabel: '삭제', danger: true })) onRemoveNight(id, n.index); }}>추가한 숙박 삭제</AdminTextButton>}
