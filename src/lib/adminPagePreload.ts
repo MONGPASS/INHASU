@@ -5,6 +5,7 @@ export const adminPageLoaders = {
     dashboard: () => import('../pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })),
     quotes: () => import('../pages/AdminQuoteManage').then(module => ({ default: module.AdminQuoteManage })),
     quoteDesk: () => import('../pages/AdminQuoteDesk').then(module => ({ default: module.AdminQuoteDesk })),
+    itinerary: () => import('../pages/AdminItineraryManage').then(module => ({ default: module.AdminItineraryManage })),
     reservations: () => import('../pages/AdminReservationManage').then(module => ({ default: module.AdminReservationManage })),
     calendar: () => import('../pages/AdminCalendar').then(module => ({ default: module.AdminCalendar })),
     banners: () => import('../pages/AdminBannerManage').then(module => ({ default: module.AdminBannerManage })),
@@ -32,6 +33,7 @@ const routes: Record<string, AdminPageKey> = {
     '/admin/accommodations': 'accommodations', '/admin/accommodation-ops': 'accommodationOps',
     '/admin/templates': 'templates', '/admin/reviews': 'reviews', '/admin/faq': 'faq',
     '/admin/promotions': 'promotions', '/admin/inquiries': 'inquiries', '/admin/tour-faqs': 'tourFaqs',
+    '/admin/quote-desk/itinerary': 'itinerary',
     '/admin/hotels': 'quoteDesk', '/admin/tourist-spots': 'quoteDesk',
     '/admin/design-spots': 'quoteDesk', '/admin/guide-intro': 'quoteDesk',
 };
@@ -40,8 +42,9 @@ const prefetched = new Set<AdminPageKey>();
 /** Warm only the intended destination, never every admin screen on entry. */
 export function preloadAdminPage(href: string): void {
     const pathname = href.split(/[?#]/, 1)[0].replace(/\/+$/, '');
-    const page = pathname.startsWith('/admin/quote-desk/') || pathname.startsWith('/admin/customer-workspace/quote/')
-        ? 'quoteDesk' : pathname.startsWith('/admin/customer-workspace/') ? 'reservations' : routes[pathname];
+    // 견적 도구 중 React로 옮긴 화면(일정 관리)은 그 화면 코드를 받는다.
+    const page = routes[pathname] ? routes[pathname] : pathname.startsWith('/admin/quote-desk/') || pathname.startsWith('/admin/customer-workspace/quote/')
+        ? 'quoteDesk' : pathname.startsWith('/admin/customer-workspace/') ? 'reservations' : undefined;
     if (!page || prefetched.has(page)) return;
     prefetched.add(page);
     // A failed speculative fetch must not create an unhandled rejection or

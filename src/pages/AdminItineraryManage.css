@@ -1,0 +1,46 @@
+/*
+ * 일정 관리(/admin/quote-desk/itinerary) — 목록형 기준(통합 예약 목록)과 같은 틀: 머리 → 카드 하나 안에 검색·지역 칩 → 표.
+ * 모양은 우리 관리자 부품이 정하고, 이 파일은 배치(칸 너비·간격)만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.it-page { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.it-card { min-width: 0; }
+.it-filters { display: flex; align-items: center; flex-wrap: wrap; gap: var(--adm-space-3); padding: var(--adm-space-4) var(--adm-space-5); }
+.it-cat-tools { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--adm-space-2); }
+.it-count { margin-left: auto; color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.it-count b { color: var(--adm-text); font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; }
+.it-note { margin: 0; padding: var(--adm-space-4) var(--adm-space-5); border-top: var(--adm-border-width) solid var(--adm-line-subtle); color: var(--adm-text-3); font-size: var(--adm-fs-caption); line-height: var(--adm-lh); }
+.it-note b { color: var(--adm-text-2); }
+
+/* 표 */
+.it-table { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.it-table .adm-ui-table-el { table-layout: fixed; width: 100%; }
+.it-table td { vertical-align: top; }
+.it-c-dest { width: calc(var(--adm-space-8) * 5); }
+.it-c-stay { width: calc(var(--adm-space-8) * 5); }
+.it-c-meals { width: calc(var(--adm-space-8) * 5); color: var(--adm-text-2); }
+.it-c-actions { width: calc(var(--adm-space-8) * 2.5); }
+.it-table th:first-child { width: calc(var(--adm-space-8) * 7); }
+.it-name-in { display: flex; flex-direction: column; align-items: flex-start; gap: var(--adm-space-1); min-width: 0; }
+.it-name-btn { color: var(--adm-text); font-weight: var(--adm-fw-semibold); text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.it-stack { display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: 0; line-height: var(--adm-lh); overflow-wrap: anywhere; }
+.it-dest { color: var(--adm-text); }
+.it-sub { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.it-line { color: var(--adm-text-2); }
+.it-line.is-strong { color: var(--adm-accent-strong); font-weight: var(--adm-fw-semibold); }
+.it-line.is-sub { color: var(--adm-text-3); }
+.it-more { color: var(--adm-accent-strong); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
+.it-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--adm-space-1); }
+.it-danger:hover { color: var(--adm-danger); }
+
+/* 편집 창 */
+.it-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3); }
+.it-grid.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 760px) {
+  .it-filters, .it-note { padding-inline: var(--adm-space-4); }
+  .it-count { margin-left: 0; }
+  .it-c-dest, .it-c-stay, .it-c-meals, .it-c-actions, .it-table th:first-child { width: auto; }
+  /* 카드에서 세부 일정은 이름 아래 한 줄 전체 */
+  .it-table td.it-items { grid-column: 1 / -1; order: -1; }
+  .it-grid, .it-grid.is-3 { grid-template-columns: minmax(0, 1fr); }
+}

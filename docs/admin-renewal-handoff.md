@@ -170,6 +170,14 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 4. 공유되는 공통 모듈(`quote-day-editor.js`·`quote-spot-selector.js`)은 React 래퍼(`QuoteDayEditor`, `QuoteSpotSelector`)가 이미 있으니 그대로 쓴다.
 5. 돈·계약 흐름(견적 발행·예약금 확인·서명 요청·예약 확정·확정일정표 공개)은 `tests/quote-booking-flow.test.mjs`와 `scripts/check-reservation-workspace.mjs`로 전후 동일함을 확인한다.
 
+> **일정관리 완료(2026-11-21, `feature/quote-tool-itinerary`)** — `/admin/quote-desk/itinerary`가 iframe 대신 React 화면 `pages/AdminItineraryManage.tsx`를 연다(라우트가 `:tool?`보다 앞). 옛 `public/일정관리.html`은 비교용으로 남고, 데스크톱 단독 접속은 기존 `admin-legacy-redirect.js`가 같은 주소로 보낸다.
+> - 목록형 기준: 머리(‘새 일정 추가’) → 카드 안 검색(`AdminSearch`)·지역 칩(`AdminChipGroup`, 전체·지역·미분류 건수)·지역 추가/이름 바꾸기/삭제 → 표(일정 이름·지역 배지 · 목적지·이동 · 세부 일정 3줄(`*` 강조·`(` 회색) · 숙소·태그 · 식사 · 편집/삭제). 휴대폰 카드에서는 세부 일정이 이름 아래 한 줄 전체.
+> - 편집 창(`AdminDialog`): 일정 이름(필수, 같은 이름이 있으면 막음) · 지역(`AdminSelect`, ‘새 지역 만들기’를 고르면 이름 칸) · 목적지 · 이동(마지막 괄호가 거리) · 세부 일정 · 숙소 · 숙소 태그 · 조식/중식/석식. 지역 추가·이름 바꾸기도 작은 `AdminDialog`(옛 `AdminDialog.prompt` 대신).
+> - **저장 형식 그대로**: `/api/data/snippets`(이름 → `{cat,dest,move,dist,items,stay:{name,tags},meals}`)·`snippet_cats`(순서·빈 지역 보존). 읽기·쓰기는 `components/admin/quoteLibraryStore.ts`(옛 `presets.js`의 cloudPull·cloudPush와 같은 약속: `x-admin-token`, `?base=` 충돌 확인 → 409면 ‘덮어쓰기’ 확인, 취소하면 최신 목록을 다시 불러오고 편집 창은 유지, 브라우저 캐시 `leaders_snippets`·`leaders_snippet_cats`도 갱신). 서버에 저장된 일정이 없으면 옛 도구처럼 이 브라우저 저장분 → `presets.js` 기본 일정을 보여 준다(`quoteLibrary.ts`의 `loadFallbackSnippets`).
+> - 옛 도구와 달라진 점(데이터 보존 쪽으로만): 편집해도 이 화면이 다루지 않는 칸(일정·숙소 사진 `images`·`stay.img`·`stay.desc` 등)과 4번째 이후 식사 칸을 지우지 않는다. 목적지·숙소 이름을 고치지 않으면 저장된 `<br>` 줄바꿈도 그대로 둔다. 다른 일정과 같은 이름으로 바꾸면 덮어쓰지 않고 막는다. 관리자 값이 없을 때 ‘이 브라우저에만 저장’하던 동작은 없애고 연결 오류를 보여 준다.
+> - 계산은 `components/admin/itinerarySnippets.ts`, 테스트 `tests/itinerary-snippets.test.mjs`(형식 보존·이동 나누기·지역 이름 바꾸기/삭제·거르기·라우트 순서).
+> - 로컬 확인(8804, 실제 `/api/data` 함수 + 메모리 DB): 1440 — 목록, 새 지역과 함께 추가, 기존 일정 점심만 고쳐 저장(사진 2장·숙소 사진·설명 보존), 다른 탭 저장 뒤 편집 → 충돌 창 → 취소(최신 목록, 편집 유지) → 다시 저장(다른 탭 일정 유지), 지역 이름 바꾸기(일정 함께 이동)·삭제(일정은 미분류로 남음)·일정 삭제. 375 — 가로 넘침 0, 카드.
+
 ## 7. 반드시 지킬 것 (요약 — 정본은 CLAUDE.md)
 
 - 고객 링크 주소·파일명 변경 금지(3.1). 견적 페이지의 id·class·함수·API·`?t=`·`?adminId=`·`?adminPrint=1`·`leaders_*` 키 변경 금지(3.3) — React 전환 전까지.

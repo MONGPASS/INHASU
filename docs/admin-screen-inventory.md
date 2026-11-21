@@ -50,7 +50,7 @@
 | (목록에서 진입) | 견적 예약 편집 | 고객 통합 작업 화면 안 | `예약관리.html` | 상세형 | 확인 창(`#confirmLayer`), 더보기 메뉴, 확정일정표 알림 창 |
 | 견적 관리 | 견적서 만들기 | `/admin/quote-desk/builder` | `견적만들기.html` | 입력형(4단계) | 고객 링크 창(`#linkMask`) |
 | 견적 관리 | 코스 관리 | `/admin/quote-desk/courses` | `코스관리.html` | 목록형 | 코스 편집 서랍 |
-| 견적 관리 | 일정 관리 | `/admin/quote-desk/itinerary` | `일정관리.html` | 목록형 | 일정 문구 편집 서랍 |
+| 견적 관리 | 일정 관리 | `/admin/quote-desk/itinerary` | **React로 전환(2026-11-21)**: `src/pages/AdminItineraryManage.tsx`(+ `.css`). 옛 `일정관리.html`은 비교용으로만 남음 | 목록형 | 일정 추가·편집 창, 지역 추가·이름 바꾸기 창(`AdminDialog`) |
 | 견적 관리 | 여행지 관리 | `/admin/quote-desk/spots` | `명소관리.html` | 목록형(카드) | 여행지 편집 서랍 |
 | 배정·자원 | 가이드·숙소·차량 — 등록 정보 | `/admin/quote-desk/resources?view=registry` | `리소스관리.html` | 목록형(카드/목록) | 등록 정보 편집 서랍 |
 | (휴대폰 전용) | 모바일 관리자 | `/견적관리-모바일` | `견적관리-모바일.html` | 여러 유형 | 아래 시트·전체 화면 시트·확인 창(`appConfirm`) |
