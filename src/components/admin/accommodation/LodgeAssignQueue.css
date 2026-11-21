@@ -47,7 +47,7 @@
 .lq-night-date small { color: var(--adm-text-3); font-size: var(--adm-fs-small); }
 .lq-night-main { display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
 .lq-night-main b { overflow: hidden; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); text-overflow: ellipsis; white-space: nowrap; }
-.lq-night-main b.is-empty { color: var(--adm-text-3); }
+.lq-night-main b.is-empty { color: var(--adm-ink); font-weight: var(--adm-fw-black); }
 .lq-night-main .lq-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lq-night-stage { display: inline-flex; align-items: center; gap: var(--adm-space-2); white-space: nowrap; }
 .lq-chev { color: var(--adm-text-3); font-size: var(--adm-fs-lead); }
