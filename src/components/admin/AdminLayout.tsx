@@ -11,6 +11,8 @@ import '../../styles/admin-console.css';
 import '../../styles/admin-shell-v3.css';
 import '../../styles/admin-montage.css';
 import '../../styles/admin-mobile.css';
+import '../../styles/admin-refresh-tokens.css';
+import '../../styles/admin-refresh-shell.css';
 
 const RAIL_KEY = 'mw-admin-side-rail';
 const readRail = () => { try { return window.localStorage.getItem(RAIL_KEY) === '1'; } catch { return false; } };
