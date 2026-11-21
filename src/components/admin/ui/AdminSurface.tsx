@@ -65,6 +65,29 @@ export const AdminStat: React.FC<AdminStatProps> = ({ label, value, unit, hint, 
 };
 
 /** 지표 카드 줄(넓으면 4칸, 좁으면 2칸) */
+/**
+ * 고를 수 있는 카드 — 목록에서 한 건 고르기(selected)나 접힌 줄 펼치기(expanded). 안쪽 배치는 화면이 정한다.
+ * 버튼 하나로 그려 키보드(Tab·Enter·Space)로 고를 수 있다.
+ */
+export interface AdminPickCardProps {
+    onClick: () => void;
+    /** 고른 카드(aria-pressed) */
+    selected?: boolean;
+    /** 펼침 토글로 쓸 때(aria-expanded). 주면 selected 대신 이 상태를 알린다. */
+    expanded?: boolean;
+    disabled?: boolean;
+    className?: string;
+    'aria-label'?: string;
+    'aria-controls'?: string;
+    children: React.ReactNode;
+}
+export const AdminPickCard: React.FC<AdminPickCardProps> = ({ onClick, selected, expanded, disabled, className, children, ...rest }) => (
+    <button type="button" className={cx('adm-ui-pick', selected && 'is-selected', expanded && 'is-expanded', className)}
+        aria-pressed={expanded === undefined ? !!selected : undefined} aria-expanded={expanded} disabled={disabled} onClick={onClick} {...rest}>
+        {children}
+    </button>
+);
+
 export const AdminStatRow: React.FC<{ children: React.ReactNode; label?: string; className?: string }> = ({ children, label = '요약', className }) => (
     <div role="group" aria-label={label} className={cx('adm-ui-stat-row', className)}>{children}</div>
 );

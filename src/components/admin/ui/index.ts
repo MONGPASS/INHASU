@@ -11,8 +11,8 @@ export { AdminTable, AdminThead, AdminTbody, AdminTr, AdminTh, AdminTd, AdminDat
 export type { AdminColumn, AdminDataTableProps, AdminPaginationProps } from './AdminTable';
 export { AdminBadge, AdminChip, AdminChipGroup, AdminSegmented, AdminTabs } from './AdminChoice';
 export type { AdminTone, AdminTagTone, AdminBadgeProps, AdminChipProps, AdminChoiceItem, AdminTabItem } from './AdminChoice';
-export { AdminCard, AdminStat, AdminStatRow, AdminMessage, AdminLoading, AdminEmpty, AdminError } from './AdminSurface';
-export type { AdminCardProps, AdminStatProps, AdminMessageProps, AdminEmptyProps, AdminErrorProps } from './AdminSurface';
+export { AdminCard, AdminStat, AdminStatRow, AdminPickCard, AdminMessage, AdminLoading, AdminEmpty, AdminError } from './AdminSurface';
+export type { AdminCardProps, AdminStatProps, AdminPickCardProps, AdminMessageProps, AdminEmptyProps, AdminErrorProps } from './AdminSurface';
 export { AdminDialog } from './AdminDialog';
 export { AdminMenu } from './AdminMenu';
 export type { AdminMenuItem, AdminMenuProps } from './AdminMenu';
