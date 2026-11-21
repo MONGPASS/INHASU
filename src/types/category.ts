@@ -33,6 +33,9 @@ export interface Category {
     landing_product_grid_title?: string;
 }
 
+/** 랜딩 강조 색상 칸의 옛 기본값(청록). 이 값이면 사이트는 새 디자인 색을 쓴다(components/category/categoryContent.ts) */
+export const LEGACY_LANDING_ACCENT = '#0f766e';
+
 export const DEFAULT_CATEGORIES: Category[] = [
     {
         id: 'all',

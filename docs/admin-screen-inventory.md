@@ -22,7 +22,7 @@
 | 배정·자원 | 가이드·숙소·차량 — 가이드 배정 현황 | `/admin/quote-desk/resources?view=schedule` | `components/admin/guides/GuideSchedule.tsx` | 대시보드형 | 가이드 상세 옆 패널, 가이드 피켓 미리보기, 배정 고르기 창 |
 | 상품 관리 | 상품 목록 | `/admin/products` | `pages/AdminProductManage.tsx` | 목록형 | 없음(삭제 확인만) |
 | 상품 관리 | 상품 추가·수정 | `/admin/products`(같은 주소에서 전환) | `AdminProductManage.tsx`의 `ProductModal` | 입력형 | 호텔 고르기, 코스에서 불러오기, 일정 가져오기, 관광지 고르기, 디자인 블록의 문구·사진 팝오버 |
-| 상품 관리 | 상품 카테고리 | `/admin/categories` | `pages/AdminCategoryManage.tsx` | 목록형 | 카테고리 편집 서랍 |
+| 상품 관리 | 상품 카테고리 | `/admin/categories` | `pages/AdminCategoryManage.tsx`(+ `AdminCategoryManage.css`) | 목록형(2026-11-21 우리 부품 전환) | 카테고리 편집 창(`AdminDialog`, 접히는 랜딩 페이지 편집: 히어로 이미지·하이라이트 섹션·카드) |
 | 상품 관리 | 문서 템플릿 | `/admin/templates` | `pages/AdminTemplateManage.tsx` | 목록형 | 일정표 편집기(전체 화면), 가이드·숙소 등록 창, 호텔·관광지 고르기 |
 | 고객·콘텐츠 | 일반 문의 | `/admin/inquiries` | `pages/AdminInquiryManage.tsx` | 목록형 | 문의 상세 옆 패널(화면 안에 고정) |
 | 고객·콘텐츠 | 후기 관리 | `/admin/reviews` | `pages/AdminReviewManage.tsx` | 목록형 | 후기 등록·수정 창 |

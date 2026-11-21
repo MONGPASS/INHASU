@@ -513,12 +513,12 @@
   "nativeDialog": 0
  },
  "src/pages/AdminCategoryManage.tsx": {
-  "rawButton": 19,
-  "rawField": 14,
-  "rawTable": 1,
-  "inlineStyle": 62,
-  "px": 78,
-  "hex": 5,
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
   "nativeDialog": 0
  },
  "src/pages/AdminDashboard.tsx": {
@@ -753,8 +753,8 @@
  },
  "src/pages/AdminCategoryManage.css": {
   "hex": 0,
-  "important": 1,
-  "rawPx": 42
+  "important": 0,
+  "rawPx": 0
  },
  "src/pages/AdminContentManage.css": {
   "hex": 2,

@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { IconCalendar, IconDownload, IconMoreHorizontal, IconPlus, IconTrash } from '@montage-ui/icon';
+import { IconCalendar, IconDownload, IconMoreHorizontal, IconPlus, IconTrash, IconUpload } from '@montage-ui/icon';
 import {
     AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminChip, AdminChipGroup, AdminDataTable, AdminDialog,
-    AdminEmpty, AdminError, AdminField, AdminIconButton, AdminLoading, AdminMenu, AdminMessage,
+    AdminEmpty, AdminError, AdminField, AdminFileButton, AdminIconButton, AdminLoading, AdminMenu, AdminMessage,
     AdminPagination, AdminSearch, AdminSegmented, AdminSelect, AdminStat, AdminStatRow, AdminTabs, AdminTextArea,
-    AdminTextButton, AdminTextInput, adminConfirm, adminNotify, adminValidateRequired,
+    AdminSwitch, AdminTextButton, AdminTextInput, adminConfirm, adminNotify, adminValidateRequired,
     type AdminColumn, type AdminTone,
 } from '../components/admin/ui';
 import {
@@ -56,6 +56,8 @@ function PartsPreview() {
     const [memo, setMemo] = useState('');
     const [region, setRegion] = useState('gobi');
     const [agree, setAgree] = useState(true);
+    const [visible, setVisible] = useState(true);
+    const [picked, setPicked] = useState('');
     const [q, setQ] = useState('');
     const [chip, setChip] = useState('all');
     const [seg, setSeg] = useState('card');
@@ -112,6 +114,10 @@ function PartsPreview() {
                         {(id) => <AdminTextArea id={id} value={memo} maxLength={200} onChange={(e) => setMemo(e.target.value)} placeholder="고객에게 보이지 않습니다" />}
                     </AdminField>
                     <div className="is-full"><AdminCheckbox checked={agree} onChange={setAgree} label="출발 3일 전 안내 자동 발송" /></div>
+                    <div className="is-full"><AdminSwitch checked={visible} onChange={setVisible} label="사이트에 노출" description="끄면 고객 화면에서 숨겨져요" /></div>
+                    <AdminField id="ui-file" label="이미지 올리기" hint={picked || '고른 파일 이름이 여기 보입니다(올리지는 않음)'}>
+                        <AdminFileButton id="ui-file" size="sm" accept="image/*" multiple leading={<IconUpload aria-hidden="true" />} onFiles={(files) => setPicked(files.map(f => f.name).join(', '))}>파일 고르기</AdminFileButton>
+                    </AdminField>
                 </div>
             </AdminCard>
 
