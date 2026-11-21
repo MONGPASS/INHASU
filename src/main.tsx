@@ -8,7 +8,6 @@ if (typeof window !== 'undefined') {
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
-import './styles/admin-refresh-tokens.css'
 import App from './App.tsx'
 import './i18n';
 import { UserProvider } from './contexts/UserContext'
