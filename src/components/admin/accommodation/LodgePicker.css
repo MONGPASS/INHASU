@@ -1,0 +1,26 @@
+/*
+ * 숙소 고르기(LodgePicker) — 칸 모양의 버튼 + 찾기·지역·등급으로 좁히는 창.
+ * 모양은 우리 관리자 부품이 정하고, 이 파일은 배치·간격만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.lp-trigger.adm-ui-pick { flex-direction: row; align-items: center; gap: var(--adm-space-2); min-height: var(--adm-control-h-lg); padding: var(--adm-space-1) var(--adm-space-3); border-radius: var(--adm-radius-sm); }
+.lp-trigger-main { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+.lp-trigger-main b { overflow: hidden; color: var(--adm-ink); font-size: var(--adm-fs-input); font-weight: var(--adm-fw-medium); text-overflow: ellipsis; white-space: nowrap; }
+.lp-trigger-main b.is-empty { color: var(--adm-text-3); font-weight: var(--adm-fw-regular); }
+.lp-trigger-icon { flex: none; color: var(--adm-text-3); font-size: var(--adm-fs-lead); }
+.lp-sub { overflow: hidden; color: var(--adm-text-3); font-size: var(--adm-fs-caption); line-height: var(--adm-lh); text-overflow: ellipsis; white-space: nowrap; }
+
+/* 창 */
+.lp-tools { position: sticky; top: calc(var(--adm-space-2) * -1); z-index: 1; display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-2) 0 var(--adm-space-3); background: var(--adm-surface); }
+.lp-group { display: flex; flex-direction: column; gap: var(--adm-space-2); }
+.lp-group-title { display: flex; align-items: center; gap: var(--adm-space-2); margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); }
+.lp-count { color: var(--adm-text-3); font-weight: var(--adm-fw-medium); }
+.lp-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-2); margin: 0; padding: 0; list-style: none; }
+.lp-item.adm-ui-pick { flex-direction: row; align-items: center; gap: var(--adm-space-2); height: 100%; }
+.lp-item-main { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
+.lp-item-main b { overflow: hidden; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); text-overflow: ellipsis; white-space: nowrap; }
+.lp-check { flex: none; color: var(--adm-accent-strong); font-size: var(--adm-fs-lead); }
+.lp-foot-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-3); }
+
+@media (max-width: 760px) {
+  .lp-list { grid-template-columns: minmax(0, 1fr); }
+}

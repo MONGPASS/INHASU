@@ -260,6 +260,15 @@
   "hex": 0,
   "nativeDialog": 0
  },
+ "src/components/admin/accommodation/LodgePicker.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
  "src/components/admin/accommodation/RoomCountInput.tsx": {
   "rawButton": 0,
   "rawField": 1,
@@ -749,6 +758,11 @@
   "rawPx": 178
  },
  "src/components/admin/accommodation/LodgeAssignQueue.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
+ },
+ "src/components/admin/accommodation/LodgePicker.css": {
   "hex": 0,
   "important": 0,
   "rawPx": 0

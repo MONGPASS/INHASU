@@ -48,7 +48,7 @@ const SCREENS = [
     ['고객 통합 작업(견적)·견적 도구 틀', /(AdminQuoteDesk|quote-booking-workspace)/],
     ['투어 캘린더', /AdminCalendar/],
     ['맞춤견적 관리(이전)', /(AdminQuoteManage|QuoteModals)/],
-    ['숙소 배정 · 배정 보드(새 디자인)', /(LodgeAssignQueue|lodgeBoardModel)/],
+    ['숙소 배정 · 배정 보드(새 디자인)', /(LodgeAssignQueue|LodgePicker|lodgeBoardModel)/],
     ['숙소 배정·현지 운영', /(AdminAccommodationOps|accommodation\/)/],
     ['가이드 배정 현황', /components\/admin\/guides\//],
     ['상품 목록·추가·수정', /(AdminProduct|DesignTemplateBlockEditor|designEditor\/|HotelPickerModal|TouristSpotPickerModal|CourseImportModal|ItineraryImportModal|ProductTermsChecklist|QuoteDayEditor|QuoteSpotSelector|SelectionModals|quote-day-editor|quote-spot-selector)/],
