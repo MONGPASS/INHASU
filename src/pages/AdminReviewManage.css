@@ -1,0 +1,45 @@
+/*
+ * 후기 관리(/admin/reviews) — 목록형 기준(통합 예약 목록)과 같은 틀: 머리 → 지표 → 카드 하나 안에 검색·평점 칩 → 표.
+ * 모양은 우리 관리자 부품이 정하고, 이 파일은 배치(칸 너비·간격)만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.rv-page { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.rv-card { min-width: 0; }
+.rv-filters { display: flex; align-items: center; flex-wrap: wrap; gap: var(--adm-space-3); padding: var(--adm-space-4) var(--adm-space-5); }
+.rv-count { margin-left: auto; color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.rv-count b { color: var(--adm-text); font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; }
+.rv-note { margin: 0; padding: var(--adm-space-4) var(--adm-space-5); border-top: var(--adm-border-width) solid var(--adm-line-subtle); color: var(--adm-text-3); font-size: var(--adm-fs-caption); line-height: var(--adm-lh); }
+
+/* 표 */
+.rv-table { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.rv-table .adm-ui-table-el { table-layout: fixed; width: 100%; }
+.rv-c-author { width: calc(var(--adm-space-8) * 3.5); }
+.rv-c-product { width: calc(var(--adm-space-8) * 5); }
+.rv-c-date { width: calc(var(--adm-space-8) * 3.5); }
+.rv-c-active { width: calc(var(--adm-space-8) * 2.5); }
+.rv-c-actions { width: calc(var(--adm-space-8) * 2.5); }
+.rv-table .is-hidden > td:not(.rv-c-active):not(.rv-c-actions) { opacity: .55; }
+.rv-review-in { display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
+.rv-stars { display: inline-flex; gap: var(--adm-border-width); color: var(--adm-text-disabled); font-size: var(--adm-fs-caption); line-height: 1; }
+.rv-stars .is-on { color: var(--adm-warn-strong); }
+.rv-title { color: var(--adm-text); font-weight: var(--adm-fw-semibold); line-height: var(--adm-lh); overflow-wrap: anywhere; }
+.rv-body { display: -webkit-box; overflow: hidden; color: var(--adm-text-2); line-height: var(--adm-lh); -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.rv-photos { display: flex; flex-wrap: wrap; gap: var(--adm-space-1); margin-top: var(--adm-space-1); }
+.rv-photos a { display: block; width: var(--adm-space-8); height: var(--adm-space-8); overflow: hidden; border-radius: var(--adm-radius-sm); background: var(--adm-gray-50); }
+.rv-photos img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.rv-author { color: var(--adm-text); font-weight: var(--adm-fw-semibold); }
+.rv-c-product, .rv-c-date { color: var(--adm-text-2); }
+.rv-c-date { font-variant-numeric: tabular-nums; }
+.rv-danger:hover { color: var(--adm-danger); }
+
+/* 등록 창 */
+.rv-form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--adm-space-3); }
+.rv-upload { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--adm-space-2); }
+.rv-upload-item { display: flex; flex-direction: column; align-items: center; gap: var(--adm-space-1); margin: 0; }
+.rv-upload-item img { display: block; width: calc(var(--adm-space-8) * 2); height: calc(var(--adm-space-8) * 2); border-radius: var(--adm-radius-md); background: var(--adm-gray-50); object-fit: cover; }
+
+@media (max-width: 760px) {
+  .rv-filters, .rv-note { padding-inline: var(--adm-space-4); }
+  .rv-count { margin-left: 0; }
+  .rv-c-author, .rv-c-product, .rv-c-date, .rv-c-active, .rv-c-actions { width: auto; }
+  .rv-form-grid { grid-template-columns: minmax(0, 1fr); }
+}

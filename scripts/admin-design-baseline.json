@@ -621,12 +621,12 @@
   "nativeDialog": 0
  },
  "src/pages/AdminReviewManage.tsx": {
-  "rawButton": 11,
-  "rawField": 6,
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 1,
+  "inlineStyle": 0,
   "px": 0,
-  "hex": 1,
+  "hex": 0,
   "nativeDialog": 0
  },
  "src/pages/AdminTemplateManage.tsx": {
@@ -769,7 +769,7 @@
  "src/pages/AdminContentManage.css": {
   "hex": 2,
   "important": 0,
-  "rawPx": 200
+  "rawPx": 174
  },
  "src/pages/AdminDashboard.module.css": {
   "hex": 6,
@@ -795,6 +795,11 @@
   "hex": 1,
   "important": 0,
   "rawPx": 190
+ },
+ "src/pages/AdminReviewManage.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
  },
  "src/styles/admin-console.css": {
   "hex": 23,
