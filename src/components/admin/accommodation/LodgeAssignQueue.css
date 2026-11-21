@@ -1,0 +1,92 @@
+/*
+ * 숙소 배정 — 배정 보드(LodgeAssignQueue). 상태 카드 4장 → 왼쪽 예약 대기열 + 오른쪽 숙박별 배정.
+ * 모양은 우리 관리자 부품이 정하고, 이 파일은 배치·간격만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.lq { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.lq-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.lq-work { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--adm-space-4); min-width: 0; }
+.lq-queue { display: flex; flex-direction: column; gap: var(--adm-space-3); flex: 1 1 calc(var(--adm-space-8) * 11); max-width: calc(var(--adm-space-8) * 14); min-width: 0; }
+.lq-detail-wrap { flex: 999 1 calc(var(--adm-space-8) * 17); min-width: 0; }
+.lq-count { color: var(--adm-text-3); font-weight: var(--adm-fw-medium); }
+.lq-sort { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.lq-sub { color: var(--adm-text-3); font-size: var(--adm-fs-caption); line-height: var(--adm-lh); }
+.lq-gap { flex: 1 1 auto; }
+
+/* 예약 대기열 */
+.lq-list { display: flex; flex-direction: column; gap: var(--adm-space-2); margin: 0; padding: 0; list-style: none; }
+.lq-item-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); min-width: 0; }
+.lq-item-name { color: var(--adm-ink); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-semibold); }
+.lq-segs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-1); }
+.lq-seg { display: inline-flex; align-items: center; gap: var(--adm-space-1); padding: 0 var(--adm-space-2); border-radius: var(--adm-radius-pill); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); line-height: var(--adm-lh); white-space: nowrap; }
+.lq-seg[data-state="done"] { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
+.lq-seg[data-state="none"] { box-shadow: inset 0 0 0 var(--adm-border-width) var(--adm-line); background: var(--adm-surface); color: var(--adm-text-2); }
+.lq-seg i { width: var(--adm-space-1); height: var(--adm-space-1); border-radius: var(--adm-radius-pill); background: var(--adm-danger); }
+.lq-progress { margin-left: auto; color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.lq-more { align-self: center; }
+
+/* 상세 */
+.lq-detail { display: flex; flex-direction: column; gap: var(--adm-space-5); }
+.lq-detail-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--adm-space-4); }
+.lq-title { display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
+.lq-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
+.lq-title h2 { margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-title-sm); font-weight: var(--adm-fw-bold); }
+.lq-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); margin-top: var(--adm-space-1); }
+.lq-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
+.lq-package { width: calc(var(--adm-space-8) * 7); }
+.lq-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.lq-nights { display: flex; flex-direction: column; gap: var(--adm-space-2); }
+.lq-nights-head { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-3); }
+.lq-nights-head h3 { margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-semibold); }
+.lq-night { border-radius: var(--adm-radius-md); background: var(--adm-sunken); }
+.lq-night.is-open { background: var(--adm-surface); box-shadow: var(--adm-shadow-sm), inset 0 0 0 var(--adm-border-width) var(--adm-line); }
+.lq-night .lq-night-head { display: grid; grid-template-columns: calc(var(--adm-space-8) * 2.5) minmax(0, 1fr) auto var(--adm-space-5); align-items: center; gap: var(--adm-space-3); border-color: transparent; background: transparent; }
+.lq-night .lq-night-head:hover { border-color: var(--adm-line-strong); }
+.lq-night-date { display: flex; flex-direction: column; color: var(--adm-ink); }
+.lq-night-date b { font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); }
+.lq-night-date small { color: var(--adm-text-3); font-size: var(--adm-fs-small); }
+.lq-night-main { display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
+.lq-night-main b { overflow: hidden; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); text-overflow: ellipsis; white-space: nowrap; }
+.lq-night-main b.is-empty { color: var(--adm-text-3); }
+.lq-night-main .lq-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lq-night-stage { display: inline-flex; align-items: center; gap: var(--adm-space-2); white-space: nowrap; }
+.lq-chev { color: var(--adm-text-3); font-size: var(--adm-fs-lead); }
+
+.lq-night-body { display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-4); border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.lq-fields { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--adm-space-3) var(--adm-space-2); }
+.lq-fields > * { min-width: 0; }
+.lq-span-2 { grid-column: span 2; }
+.lq-span-3 { grid-column: span 3; }
+.lq-readonly { display: flex; align-items: center; min-height: var(--adm-control-h); padding: 0 var(--adm-space-3); border-radius: var(--adm-radius-sm); background: var(--adm-fill-subtle); color: var(--adm-text); font-size: var(--adm-fs-input); white-space: nowrap; }
+.lq-manual { margin-top: var(--adm-space-2); }
+
+.lq-contact { display: flex; flex-direction: column; gap: var(--adm-space-3); padding: var(--adm-space-3); border-radius: var(--adm-radius-md); background: var(--adm-sunken); }
+.lq-steps { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); margin: 0; padding: 0; list-style: none; }
+.lq-steps li { display: inline-flex; align-items: center; gap: var(--adm-space-1); color: var(--adm-text-3); font-size: var(--adm-fs-small); white-space: nowrap; }
+.lq-steps li + li::before { content: ""; width: var(--adm-space-4); height: var(--adm-border-width); margin-right: var(--adm-space-1); background: var(--adm-line-strong); }
+.lq-steps li i { display: inline-flex; align-items: center; justify-content: center; width: var(--adm-space-4); height: var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line-strong); border-radius: var(--adm-radius-pill); color: var(--adm-on-primary); font-size: var(--adm-fs-micro); }
+.lq-steps li[data-state="done"] { color: var(--adm-text); }
+.lq-steps li[data-state="done"] i { border-color: var(--adm-accent); background: var(--adm-accent); }
+.lq-steps li[data-state="current"] { color: var(--adm-ink); font-weight: var(--adm-fw-semibold); }
+.lq-steps li[data-state="current"] i { border-color: var(--adm-ink); }
+.lq-contact-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; gap: var(--adm-space-2); }
+.lq-contact-fields > * { min-width: 0; }
+.lq-contact-action { display: flex; }
+.lq-contact-note { margin: 0; color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.lq-remove { align-self: flex-start; }
+.lq-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--adm-space-3); }
+
+@media (max-width: 1100px) {
+  .lq-queue { max-width: none; flex-basis: 100%; }
+}
+@media (max-width: 760px) {
+  .lq-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lq-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lq-package { width: 100%; }
+  .lq-head-actions { width: 100%; }
+  .lq-night .lq-night-head { grid-template-columns: calc(var(--adm-space-8) * 2) minmax(0, 1fr) var(--adm-space-5); }
+  .lq-night-stage { grid-column: 2 / 3; }
+  .lq-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lq-span-2, .lq-span-3 { grid-column: 1 / -1; }
+  .lq-contact-fields { grid-template-columns: minmax(0, 1fr); }
+}

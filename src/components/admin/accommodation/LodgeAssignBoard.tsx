@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { AssignmentAccommodation, AssignmentSource, ContractPackageType } from '../../../utils/reservationAssignment';
+import type { AssignmentAccommodation, ContractPackageType } from '../../../utils/reservationAssignment';
 import type { RegisteredLodge } from '../../../utils/registeredAssignmentResources';
 import { selectResourceLodge } from '../../../utils/accommodationResourceSelection';
-import { LODGE_BOOKING_STATUSES, LODGE_MAIL_STAGES, LODGE_RESERVATION_STATES, NEW_LODGE_WORKFLOW, changeLodgeReservation, isLodgeBookingConfirmed, lodgeMailStatus, lodgeReservationStatus } from '../../../utils/lodgeBookingStatus';
-import { ASSIGN_TYPE_OPTIONS, LODGE_AREA_OPTIONS, LODGE_GRADE_OPTIONS, PACKAGE_LABELS, packagePlanFromGrades, sheetAreaFor, type PackagePlan } from '../../../utils/accommodationSheet';
+import { LODGE_BOOKING_STATUSES, LODGE_MAIL_STAGES, LODGE_RESERVATION_STATES, changeLodgeReservation, lodgeMailStatus, lodgeReservationStatus } from '../../../utils/lodgeBookingStatus';
+import { ASSIGN_TYPE_OPTIONS, LODGE_AREA_OPTIONS, LODGE_GRADE_OPTIONS, PACKAGE_LABELS } from '../../../utils/accommodationSheet';
 import { RoomCountInput } from './RoomCountInput';
-import { scheduleStayRegion, type AccommodationSchedule } from '../../../utils/accommodationSchedule';
+import { CLEAR_LODGE, buildLodgeModel, dateKeyOf as keyOf, dotted, sameText as same, tourNameOf as nameOf, withCurrent, type LodgeBoardTour, type LodgePatch as Patch, type NightState } from './lodgeBoardModel';
 import { CATEGORY_OPTIONS } from '../../../utils/reservationWorkspace';
 import { productCustomerHref, quoteCustomerHref } from '../../../utils/customerWorkspaceRoutes';
-import { toTourDateKey } from '../../../utils/formatDate';
 import { DashboardIcon } from '../dashboard/DashboardIcon';
 import './LodgeAssignBoard.css';
 
@@ -17,41 +16,12 @@ import './LodgeAssignBoard.css';
  * 위: 숙박 일정(월 선택·14일 띠·일/주/월), 가운데: 검색·상태 탭(숙박 수), 아래: 예약별 접히는 줄과 숙박일 표.
  * 값·저장은 기존 시트와 같다(예약 단위 배정 API, 브라우저 초안, 계약 일정 지역 불러오기).
  */
-type Patch = Partial<AssignmentAccommodation['accommodation']>;
-type NightState = 'none' | 'sel' | 'req' | 'ok';
-/** 시트에 필요한 예약 정보만 받는다(페이지의 Reservation과 호환). */
-export interface LodgeBoardTour {
-    id: string; bookingId: string; source: AssignmentSource; customerName?: string; startDate?: string; endDate?: string;
-    travelers?: number; assignmentCategory?: string; reservationNumber?: string | null;
-    /** 대표 1인 이름(서버 계산). 없으면 예약 이름을 쓴다. */
-    leadName?: string;
-    /** 고객이 고른 패키지(서버 계산). 숙박 등급을 고르면 그 등급으로 다시 판단한다. */
-    packagePlan?: PackagePlan | null;
-    contractPackageType?: ContractPackageType;
-    /** 계약 일정 — 숙박일마다 지역을 불러온다 */
-    schedule?: AccommodationSchedule;
-}
-
-/** 숙박일 상태: 숙소 없음 → 미배정, 미발송·배정X·취소완료 → 요청 전, 확정 계열 → 배정 완료, 나머지 → 진행 중 */
-const nightStateOf = (acc: Patch | undefined): NightState => {
-    if (!acc?.name?.trim()) return 'none';
-    const status = lodgeReservationStatus(acc.bookingStatus);
-    if (isLodgeBookingConfirmed(status)) return 'ok';
-    if (status === '배정X' || status === '취소완료') return 'sel';
-    return status || !['발송전', '배정X'].includes(lodgeMailStatus(acc)) ? 'req' : 'sel';
-};
+export type { LodgeBoardTour } from './lodgeBoardModel';
 const STATE_TABS: Array<[NightState | '', string]> = [['', '전체'], ['none', '미배정'], ['sel', '배정 · 요청 전'], ['req', '진행 중'], ['ok', '배정 완료']];
 const STATUS_TONE: Record<string, string> = { solid: 'mint', amber: 'orange', blue: 'blue', gray: 'gray' };
 const toneOfStatus = (value: string) => value === '배정X' ? 'gray' : value === '취소요청' ? 'red' : STATUS_TONE[LODGE_BOOKING_STATUSES.find(s => s.value === value)?.tone || 'gray'];
 const WD = '일월화수목금토';
 const pad = (n: number) => String(n).padStart(2, '0');
-const keyOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const dateOnly = (value?: string) => { const k = value ? toTourDateKey(value) : ''; return /^\d{4}-\d{2}-\d{2}$/.test(k) ? k : ''; };
-const dotted = (k: string) => k ? `${k.slice(0, 4)}.${Number(k.slice(5, 7))}.${k.slice(8, 10)}` : '-';
-const nameOf = (t: { leadName?: string; customerName?: string }) => t.leadName?.trim() || t.customerName || '-';
-const withCurrent = (options: string[], current?: string) => current && !options.includes(current) ? [current, ...options] : options;
-const same = (a?: string, b?: string) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
-const CLEAR_LODGE: Patch = { id: undefined, name: '', images: [], description: '', facilities: [], address: '', roomAmenities: [], sharedFacilities: [], ...NEW_LODGE_WORKFLOW };
 
 type Pop = { kind: 'hotel' | 'area' | 'grade' | 'assign' | 'mail' | 'status' | 'category' | 'contractPackage' | 'month' | 'info'; tourId: string; idx?: number; x: number; y: number; top: number; tab?: string; year?: number };
 
@@ -110,25 +80,7 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
 
     // ── 숙박일 계산 ──
     const areaOptions = useMemo(() => [...new Set([...LODGE_AREA_OPTIONS, ...lodgeRegions])], [lodgeRegions]);
-    const model = useMemo(() => tours.map(tour => {
-        const rows = rowsOf(tour);
-        const storedAreaOf = (acc: Patch) => (typeof acc.region === 'string' && acc.region) || acc.location || '';
-        // 저장된 지역 → (관리자가 비우지 않았으면) 계약 일정의 그날 지역을 시트 지명으로. 한 칸이라도 고치면 함께 저장한다.
-        const planned = rows.map((night, index) => {
-            const d = tour.schedule?.days?.find(item => item.day === night.day);
-            return !storedAreaOf(night.accommodation || {}) && !clearedAreas.has(`${tour.id}:${index}`) && d ? sheetAreaFor(scheduleStayRegion(d, lodgeRegions, tour.schedule?.source)) : '';
-        });
-        const fill = Object.fromEntries(planned.map((area, index) => [index, area]).filter(([, area]) => area)) as Record<number, string>;
-        const nights = rows.map((night, index) => {
-            const acc = night.accommodation || {}, stored = storedAreaOf(acc);
-            return { night, index, acc, date: dateOnly(night.date), area: stored || planned[index], fromPlan: !stored && !!planned[index], state: nightStateOf(acc) };
-        });
-        const states = nights.map(n => n.state);
-        const bs: NightState = states.some(s => s === 'none') ? 'none' : states.some(s => s !== 'ok') ? 'req' : 'ok';
-        const start = dateOnly(tour.startDate), end = dateOnly(tour.endDate);
-        const plan = tour.contractPackageType || packagePlanFromGrades(rows.map(n => n.accommodation?.type)) || tour.packagePlan || null;
-        return { tour, rows, nights, fill, bs, start, end, plan, planned: plannedNights(tour) };
-    }), [tours, rowsOf, plannedNights, clearedAreas, lodgeRegions]);
+    const model = useMemo(() => tours.map(tour => buildLodgeModel(tour, { rows: rowsOf(tour), planned: plannedNights(tour), clearedAreas, lodgeRegions })), [tours, rowsOf, plannedNights, clearedAreas, lodgeRegions]);
 
     // 달 선택의 기준 달: 이번 달 — 이번 달에 숙박이 없으면 가장 가까운 다음 숙박이 있는 달.
     const firstMonthKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;

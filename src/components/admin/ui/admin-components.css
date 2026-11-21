@@ -153,6 +153,12 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
 .adm-ui-stat-value { color: var(--adm-ink); font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); line-height: 1.25; font-variant-numeric: tabular-nums; }
 .adm-ui-stat-value small { margin-left: var(--adm-space-1); color: var(--adm-text-3); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); }
 .adm-ui-stat-hint { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+/* 고를 수 있는 카드(AdminPickCard) — 고르면 민트 선·옅은 민트 바탕 */
+.adm-ui-pick { display: flex; flex-direction: column; align-items: stretch; gap: var(--adm-space-2); width: 100%; min-width: 0; margin: 0; padding: var(--adm-space-3) var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--adm-text); font: inherit; font-family: var(--adm-font); text-align: left; cursor: pointer; transition: border-color var(--adm-dur) var(--adm-ease), background var(--adm-dur) var(--adm-ease); }
+.adm-ui-pick:hover { border-color: var(--adm-line-strong); }
+.adm-ui-pick:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+.adm-ui-pick.is-selected, .adm-ui-pick.is-selected:hover { border-color: var(--adm-accent); background: var(--adm-accent-soft); }
+.adm-ui-pick:disabled { cursor: default; opacity: .6; }
 
 /* ── 빈 목록·불러오는 중·오류 ── */
 .adm-ui-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--adm-space-2); padding: var(--adm-space-8) var(--adm-space-5); color: var(--adm-text-2); text-align: center; }

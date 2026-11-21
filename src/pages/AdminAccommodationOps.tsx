@@ -14,6 +14,8 @@ import './AdminAccommodationOps.css';
 import { LODGE_MAIL_STAGES, LODGE_RESERVATION_STATES, NEW_LODGE_WORKFLOW, changeLodgeReservation, isLodgeBookingConfirmed, lodgeMailStatus, lodgeReservationStatus, resetLodgeWorkflow } from '../utils/lodgeBookingStatus';
 import { LODGE_GRADE_OPTIONS, ROOM_PLAN_OPTIONS, isUpcomingTour, tourSerials } from '../utils/accommodationSheet';
 import { LodgeAssignBoard } from '../components/admin/accommodation/LodgeAssignBoard';
+import { LodgeAssignQueue } from '../components/admin/accommodation/LodgeAssignQueue';
+import { AdminSegmented } from '../components/admin/ui';
 import { RoomCountInput } from '../components/admin/accommodation/RoomCountInput';
 import { guideOverlaps, overlapLabel, sameGuide } from '../utils/assignmentAvailability';
 import { adminConfirm } from '../components/admin/ui/adminFeedback';
@@ -30,10 +32,13 @@ const OCCUPANCY_OPTIONS = ['', ...ROOM_PLAN_OPTIONS.map(o => o.value)];
 // 숙소 등급 — 선택명은 한국어로 유지(요청)
 // 저장 값은 그대로 쓴다(기존 '4성급호텔' 표기 유지). 목록에 없는 기존 값은 선택창이 따로 보여 준다.
 const GRADE_OPTIONS = ['', ...LODGE_GRADE_OPTIONS];
-// 시트 보기(숙소 배정 스프레드시트와 같은 열)와 카드 보기. 고른 보기는 이 브라우저에만 기억한다.
-type BoardView = 'sheet-view' | 'card-view';
+// 배정 보드(예약 대기열 + 숙박별 배정, 기본), 표로 보기(숙소 배정 스프레드시트와 같은 열), 카드 보기(여행자·일정·가이드·차량까지).
+// 고른 보기는 이 브라우저에만 기억한다.
+type BoardView = 'board-view' | 'sheet-view' | 'card-view';
 const VIEW_KEY = 'inhasu:accommodation-board:view';
-const storedView = (): BoardView => { try { return window.localStorage.getItem(VIEW_KEY) === 'card-view' ? 'card-view' : 'sheet-view'; } catch { return 'sheet-view'; } };
+const VIEWS: BoardView[] = ['board-view', 'sheet-view', 'card-view'];
+const storedView = (): BoardView => { try { const v = window.localStorage.getItem(VIEW_KEY) as BoardView | null; return v && VIEWS.includes(v) ? v : 'board-view'; } catch { return 'board-view'; } };
+const VIEW_ITEMS: Array<{ value: BoardView; label: string }> = [{ value: 'board-view', label: '배정 보드' }, { value: 'sheet-view', label: '표로 보기' }];
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const occupancyLabel = (value: string) => value ? value.replace(/^(\d+) хүн\/өрөө$/, '$1인 / 객실') : '미정';
 type BoardStatus = '미배정' | '진행 중' | '배정 완료';
@@ -374,6 +379,16 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [reservations]);
 
+    // 배정 보드에서 ‘여행자·일정·가이드·차량 보기’ — 카드 보기에서 그 예약을 펼친다.
+    const openInCards = (id: string) => {
+        const target = rowsRef.current.find(r => r.id === id);
+        if (!target) return;
+        setView('card-view'); setStatusFilter('all'); setMonth('all'); setRegion('all'); setQ('');
+        setPinned(prev => new Set(prev).add(target.id));
+        openRow(target);
+        setTimeout(() => { if (mounted.current) document.getElementById(`acc-row-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
+    };
+
     // ── 편집 ──
     const markDirty = (rId: string) => { dirtyRef.current = new Set(dirtyRef.current).add(rId); setDirty(new Set(dirtyRef.current)); };
     useEffect(() => {
@@ -653,6 +668,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             activePage="accommodation-ops"
             eyebrow={null}
             title="숙소 배정"
+            description="체크인이 가까운 예약부터 숙박별로 배정하고, 숙소 연락 단계까지 한곳에서 확인합니다."
+            actions={<AdminSegmented label="보기 방식" items={VIEW_ITEMS} value={view} onChange={setView} />}
         >
             <div className="lo-board">
             {notice && <div className="lo-notice adm-msg" role="status">{notice}</div>}
@@ -722,6 +739,14 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             </div>
             </>}
 
+            {view === 'board-view' && <LodgeAssignQueue tours={base} loading={loading} rowsOf={sheetRowsOf} plannedNights={t => getAccommodationPlan(t as Reservation).nights.length}
+                lodges={resources.lodges} lodgeRegions={lodgeRegions} resourcesLoading={resourcesLoading} dirty={dirty} pending={pendingDrafts} savingId={savingId}
+                clearedAreas={clearedRegions} onAreaCleared={(key, cleared) => setClearedRegions(prev => { const next = new Set(prev); if (cleared) next.add(key); else next.delete(key); return next; })}
+                onPatch={patchDay} onPackage={savePackage}
+                onSave={id => { const row = rowsRef.current.find(r => r.id === id); if (row) void save(row); }}
+                onDiscard={id => { const row = rowsRef.current.find(r => r.id === id); if (row) void resetRow(row); }}
+                onResolveDraft={(id, restore) => { const row = rowsRef.current.find(r => r.id === id); if (row) resolveDraft(row, restore); }}
+                onAddNight={addSheetNight} onRemoveNight={removeDay} onOpenCard={openInCards} />}
             {view === 'sheet-view' && <LodgeAssignBoard tours={base} loading={loading} rowsOf={sheetRowsOf} plannedNights={t => getAccommodationPlan(t as Reservation).nights.length}
                 regionOf={t => regionOf(t as Reservation)} contactOf={t => (t as Reservation).contractData?.travelers?.find(x => x.phone?.trim())?.phone?.trim() || ''}
                 serials={serials} lodges={resources.lodges} lodgeRegions={lodgeRegions} resourcesLoading={resourcesLoading} dirty={dirty} pending={pendingDrafts} savingId={savingId} savingAll={savingAll}
