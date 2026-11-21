@@ -95,6 +95,8 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 - Preview 환경도 운영 D1·R2를 쓰므로 저장·발송 버튼은 누르지 않는다.
 
 ### 단계 1. 우리 관리자 부품 세트 (`src/components/admin/ui/`)
+> **완료(2026-11-21, `feature/admin-ui-components`)** — 부품 목록과 쓰는 법은 `docs/admin-design-system.md` 3절, 미리보기 `/admin/__ui`. 아래는 처음 계획이다.
+
 만들 부품(모두 Montage를 감싸고, 색·크기는 `--adm-*`만):
 - `AdminButton` — 종류 primary(민트 채움 + `--adm-on-primary` 글자) / secondary(흰 바탕 테두리) / weak(회색) / danger, 크기 32·40·48(휴대폰 36·44·48), loading·disabled. 화면당 primary 하나.
 - `AdminIconButton`, `AdminTextButton`

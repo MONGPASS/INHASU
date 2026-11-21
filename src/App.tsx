@@ -80,6 +80,7 @@ const AdminFAQManage = lazy(adminPageLoaders.faq)
 const AdminPromotionManage = lazy(adminPageLoaders.promotions)
 const AdminInquiryManage = lazy(adminPageLoaders.inquiries)
 const AdminTourFAQManage = lazy(adminPageLoaders.tourFaqs)
+const AdminUiPreview = lazy(adminPageLoaders.uiPreview)
 
 // Loading Component
 const PageLoader = () => (
@@ -197,6 +198,8 @@ function App() {
             <Route path="/admin/promotions" element={<AdminGuard><AdminPromotionManage /></AdminGuard>} />
             <Route path="/admin/inquiries" element={<AdminGuard><AdminInquiryManage /></AdminGuard>} />
             <Route path="/admin/tour-faqs" element={<AdminGuard><AdminTourFAQManage /></AdminGuard>} />
+            {/* 관리자 부품 미리보기(개발·확인용, 메뉴에 넣지 않는다). 합성 예시만 보여 주고 API를 부르지 않는다. */}
+            <Route path="/admin/__ui" element={<AdminGuard><AdminUiPreview /></AdminGuard>} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/promotions" element={<Promotions />} />

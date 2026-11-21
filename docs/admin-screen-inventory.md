@@ -33,6 +33,7 @@
 | 사이트 관리 | 여행기획전 관리 | `/admin/promotions` | `pages/AdminPromotionManage.tsx` | 목록형 | 기획전 편집 창 |
 | (메뉴 없음) | 상품용 가이드 | `/admin/guides` | `pages/AdminGuideManage.tsx` | 목록형 | 가이드 등록 창 |
 | (메뉴 없음) | 상품용 숙소 | `/admin/accommodations` | `pages/AdminAccommodationManage.tsx` | 목록형 | 숙소 등록 창 |
+| (메뉴 없음, 개발용) | 관리자 부품 미리보기 | `/admin/__ui`(`?frame=parts·list·form·detail·dashboard`) | `pages/AdminUiPreview.tsx` | 부품 모음 + 유형별 틀 4종 | 입력 팝업(640, 고친 내용 확인·필수 입력), 짧은 팝업(440), 공통 확인 창 |
 | 모든 화면 | 상단 바의 업무 알림·통합 검색 | — | `components/admin/AdminToolbar.tsx` | — | 업무 알림 패널, 검색 결과 |
 
 다른 화면으로 넘기기만 하는 주소: `/admin/hotels`·`/admin/guide-intro` → 가이드·숙소·차량, `/admin/tourist-spots`·`/admin/design-spots` → 여행지 관리.

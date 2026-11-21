@@ -2,17 +2,17 @@
 
 `node scripts/check-admin-design.mjs --md`가 만든 문서다. 손으로 고치지 않는다. 규칙은 [admin-design-system.md](admin-design-system.md), 화면 목록은 [admin-screen-inventory.md](admin-screen-inventory.md).
 
-- **Montage 전환율** = Montage 부품 수 ÷ (Montage 부품 + 생 `<button>`·`<input>`·`<select>`·`<textarea>`·`<table>`). `adm-` 클래스를 단 버튼은 공통 부품으로 센다.
+- **부품 전환율** = 공통 부품 수 ÷ (공통 부품 + 생 `<button>`·`<input>`·`<select>`·`<textarea>`·`<table>`). 공통 부품은 우리 관리자 부품(`components/admin/ui`의 `Admin*`·`ListPage` 등)이고, 그 폴더 안에서 쓴 Montage 부품도 센다. 화면 파일은 Montage를 직접 가져오지 않는다(`tests/admin-ui-boundary.test.mjs`). `adm-` 클래스를 단 버튼은 공통 부품으로 센다.
 - **직접 지정**: 인라인 `style={{}}` 수, 숫자로 적은 크기(px), 직접 적은 색(hex), `!important`, CSS에 숫자로 적은 크기(글자·모서리·높이·여백).
 - 이 수치는 `scripts/admin-design-baseline.json`의 상한보다 늘어나면 `tests/admin-design-budget.test.mjs`가 실패한다(PR마다 CI에서 검사). 줄였으면 `--write-baseline`으로 상한을 낮춘다.
 
-전체: Montage 부품 29개 / 생 HTML 부품 924개 → **전환율 3%** · 인라인 style 1900 · 숫자 크기 7059 · 직접 색 481 · !important 401
+전체: 공통 부품 199개 / 생 HTML 부품 923개 → **전환율 18%** · 인라인 style 1900 · 숫자 크기 7058 · 직접 색 481 · !important 401
 
-| 화면 | 파일 | Montage 전환율 | Montage | 생 HTML 부품 | 인라인 style | 숫자 크기(TSX/CSS) | 직접 색 | !important | 기본 확인창 |
+| 화면 | 파일 | 부품 전환율 | 공통 부품 | 생 HTML 부품 | 인라인 style | 숫자 크기(TSX/CSS) | 직접 색 | !important | 기본 확인창 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 공통 틀·부품 | 17 | 8% | 1 | 12 | 4 | 7 / 794 | 35 | 111 | 0 |
-| 대시보드 | 5 | 81% | 17 | 4 | 10 | 0 / 209 | 18 | 0 | 0 |
-| 통합 예약 목록 | 3 | 9% | 11 | 108 | 216 | 277 / 190 | 31 | 0 | 0 |
+| 공통 틀·부품 | 26 | 94% | 180 | 12 | 4 | 7 / 793 | 35 | 111 | 0 |
+| 대시보드 | 5 | 76% | 13 | 4 | 10 | 0 / 209 | 18 | 0 | 0 |
+| 통합 예약 목록 | 3 | 5% | 6 | 107 | 216 | 277 / 190 | 31 | 0 | 0 |
 | 고객 예약 상세(상품·이전 견적) | 22 | 0% | 0 | 126 | 204 | 369 / 1114 | 34 | 31 | 1 |
 | 고객 통합 작업(견적)·견적 도구 틀 | 2 | 0% | 0 | 18 | 22 | 28 / 302 | 9 | 19 | 2 |
 | 투어 캘린더 | 2 | 0% | 0 | 20 | 0 | 1 / 184 | 1 | 0 | 0 |
@@ -54,7 +54,7 @@
 | `src/pages/AdminTemplateManage.tsx` | 문서 템플릿 | 45 | 86 | 50 | 49 |
 | `src/pages/AdminCategoryManage.tsx` | 상품 카테고리 | 34 | 62 | 78 | 5 |
 | `src/components/admin/DesignTemplateBlockEditor.tsx` | 상품 목록·추가·수정 | 13 | 60 | 93 | 17 |
-| `src/components/admin/v7/ReservationListV7.tsx` | 통합 예약 목록 | 9 | 40 | 63 | 3 |
+| `src/components/admin/v7/ReservationListV7.tsx` | 통합 예약 목록 | 8 | 40 | 63 | 3 |
 | `src/pages/AdminPromotionManage.tsx` | 여행기획전 | 20 | 34 | 52 | 1 |
 | `src/pages/AdminMagazineManage.tsx` | 매거진 관리 | 37 | 20 | 48 | 13 |
 | `src/components/admin/v7/v7Ui.tsx` | 고객 예약 상세(상품·이전 견적) | 2 | 19 | 65 | 9 |

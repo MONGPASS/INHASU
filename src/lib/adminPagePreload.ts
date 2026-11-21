@@ -20,6 +20,7 @@ export const adminPageLoaders = {
     promotions: () => import('../pages/AdminPromotionManage').then(module => ({ default: module.AdminPromotionManage })),
     inquiries: () => import('../pages/AdminInquiryManage').then(module => ({ default: module.AdminInquiryManage })),
     tourFaqs: () => import('../pages/AdminTourFAQManage').then(module => ({ default: module.AdminTourFAQManage })),
+    uiPreview: () => import('../pages/AdminUiPreview').then(module => ({ default: module.AdminUiPreview })),
 };
 
 type AdminPageKey = keyof typeof adminPageLoaders;
