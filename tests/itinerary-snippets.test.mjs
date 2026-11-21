@@ -78,9 +78,11 @@ test('일정 관리 메뉴는 React 화면으로 열리고, 같은 자료(/api/d
     const own = app.indexOf('path="/admin/quote-desk/itinerary"');
     assert.ok(own > 0 && own < app.indexOf('path="/admin/quote-desk/:tool?"'), '일정 관리 주소는 견적 도구 iframe보다 앞에서 잡는다');
     const page = readFileSync('src/pages/AdminItineraryManage.tsx', 'utf8');
-    assert.match(page, /readQuoteLibrary\('snippets'/);
-    assert.match(page, /readQuoteLibrary\('snippet_cats'/);
+    assert.match(page, /mapKey: 'snippets'/);
+    assert.match(page, /catsKey: 'snippet_cats'/);
     assert.match(page, /quoteDeskPageId\('itinerary'\)/, '사이드바의 일정 관리 메뉴가 선택된다');
+    const hook = readFileSync('src/components/admin/useQuoteLibrary.ts', 'utf8');
+    assert.match(hook, /readQuoteLibrary\(mapKey/, '공통 저장 훅이 항목·지역 목록을 함께 읽는다');
     const store = readFileSync('src/components/admin/quoteLibraryStore.ts', 'utf8');
     assert.match(store, /base=/, '충돌 확인(?base=)을 보낸다');
     assert.match(store, /force=1/);

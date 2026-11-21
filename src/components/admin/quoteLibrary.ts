@@ -70,6 +70,11 @@ export async function loadFallbackSnippets(): Promise<Record<string, unknown>> {
     return localMap('snippets') ?? (await loadPresets()).snippets;
 }
 
+/** 기본 여행지(presets.js의 PRESETS.spots). 서버에 저장된 여행지가 없을 때 옛 여행지 관리가 보여 주던 값(이 브라우저 저장분 우선). */
+export async function loadFallbackSpots(): Promise<QuoteSpotLibrary> {
+    return localMap('spots') ?? (await loadPresets()).spots;
+}
+
 export async function loadQuoteSpotCategories(signal: AbortSignal): Promise<string[]> {
     const data = (await readQuoteData('spot_cats', signal)) ?? [];
     if (!Array.isArray(data) || data.some(item => typeof item !== 'string')) throw new Error('명소 카테고리 형식을 확인할 수 없습니다.');

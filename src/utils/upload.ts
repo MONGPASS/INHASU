@@ -96,7 +96,7 @@ async function sendUpload(prepared: PreparedImage, folder: string): Promise<stri
     return data.url;
 }
 
-async function decodeImage(file: File): Promise<{ source: CanvasImageSource; width: number; height: number; release: () => void }> {
+export async function decodeImage(file: File): Promise<{ source: CanvasImageSource; width: number; height: number; release: () => void }> {
     if (typeof createImageBitmap === 'function') {
         try {
             const bitmap = await createImageBitmap(file);
@@ -115,7 +115,7 @@ async function decodeImage(file: File): Promise<{ source: CanvasImageSource; wid
     }
 }
 
-async function encodeWebP(source: CanvasImageSource, width: number, height: number, quality: number, name: string): Promise<File> {
+export async function encodeWebP(source: CanvasImageSource, width: number, height: number, quality: number, name: string): Promise<File> {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;

@@ -178,6 +178,15 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 > - 계산은 `components/admin/itinerarySnippets.ts`, 테스트 `tests/itinerary-snippets.test.mjs`(형식 보존·이동 나누기·지역 이름 바꾸기/삭제·거르기·라우트 순서).
 > - 로컬 확인(8804, 실제 `/api/data` 함수 + 메모리 DB): 1440 — 목록, 새 지역과 함께 추가, 기존 일정 점심만 고쳐 저장(사진 2장·숙소 사진·설명 보존), 다른 탭 저장 뒤 편집 → 충돌 창 → 취소(최신 목록, 편집 유지) → 다시 저장(다른 탭 일정 유지), 지역 이름 바꾸기(일정 함께 이동)·삭제(일정은 미분류로 남음)·일정 삭제. 375 — 가로 넘침 0, 카드.
 
+> **명소관리 완료(2026-11-21, `feature/quote-tool-spots`)** — `/admin/quote-desk/spots`(메뉴 이름 ‘여행지 관리’)가 React 화면 `pages/AdminSpotManage.tsx`를 연다(라우트가 `:tool?`보다 앞, 옛 주소 `/admin/tourist-spots`·`/admin/design-spots`도 이 화면). 옛 `public/명소관리.html`은 비교용으로 남는다.
+> - 공통 저장 훅 `components/admin/useQuoteLibrary.ts`: ‘항목 + 지역 목록’ 한 쌍(`snippets`+`snippet_cats`, `spots`+`spot_cats`)의 연결·불러오기·충돌 확인·저장을 한곳에 모았다. 일정 관리도 이 훅으로 옮겼다(동작 같음, 로컬 재확인). 다음 도구(코스·리소스)도 같은 훅을 쓴다.
+> - 목록형 기준: 머리(‘문구 초안 가져오기’·‘새 여행지 추가’) → 카드 안 검색(이름·몽골어 지명·소개·다른 이름)·지역 칩(전체·지역·미분류·**사진 필요**)·지역 추가/이름 바꾸기/삭제 → 표(사진 · 여행지·몽골어 지명·지역 · 한 줄 소개 · 다른 이름 · 사진 수(2장 미만은 경고 배지) · 편집/삭제).
+> - 편집 창: 대표 사진(가로 1000px·화질 0.82 WebP) + 추가 사진 4칸(500px·0.72) — 옛 도구와 같은 크기로 줄여 같은 `/api/upload?folder=images`에 올린다(`quoteLibraryStore.uploadQuoteImage`, 올리는 동안 저장·닫기 잠금). 이름(필수, 같은 이름 막음) · 몽골어 지명 · 지역(새 지역 만들기) · 한 줄 소개 · 다른 이름(쉼표) · 상세 설명 · 위도/경도.
+> - 문구 초안 가져오기: `/spot-copy-draft.json`을 읽어 옛 도구와 같은 규칙으로 바꿀 항목을 보여 주고(한 줄 소개는 비었거나 `replaceShort`일 때만, 다른 이름은 없는 것만, 새 여행지는 소개가 있을 때만), 고른 것만 반영한다. 사진·상세 설명은 바꾸지 않고, 사진이 필요한 여행지가 있으면 ‘사진 필요’로 넘어간다.
+> - **저장 형식 그대로**: `/api/data/spots`(이름 → `{nameMn,region,short,aliases[],desc,lat?,lng?,img,subImgs[4]}`)·`spot_cats`. 옛 도구와 달라진 점(보존 쪽으로만): 이 화면이 모르는 칸은 지우지 않고, 같은 이름으로 바꾸면 막는다. 서버 자료가 없으면 이 브라우저 저장분 → `presets.js` 기본값(`quoteLibrary.loadFallbackSpots`).
+> - 계산은 `components/admin/spotLibrary.ts`, 테스트 `tests/spot-library.test.mjs`.
+> - 로컬 확인(8804, `/api/upload`만 브라우저에서 가짜 응답): 1440 — 새 지역과 함께 추가(대표·추가 사진 WebP 변환 후 올림), 다른 탭 저장 뒤 편집 → 충돌 창 → 취소 → 다시 저장(다른 탭 여행지 유지·모르는 칸 보존), 지역 이름 바꾸기·삭제, 문구 초안 2건 반영(‘사진 필요’로 전환), 여행지 삭제. 375 — 가로 넘침 0, 카드. 일정 관리 추가·삭제 재확인.
+
 ## 7. 반드시 지킬 것 (요약 — 정본은 CLAUDE.md)
 
 - 고객 링크 주소·파일명 변경 금지(3.1). 견적 페이지의 id·class·함수·API·`?t=`·`?adminId=`·`?adminPrint=1`·`leaders_*` 키 변경 금지(3.3) — React 전환 전까지.

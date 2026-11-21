@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import {
     AdminBadge, AdminButton, AdminCard, AdminChipGroup, AdminDialog, AdminEmpty, AdminError, AdminField, AdminIconButton,
@@ -8,18 +8,16 @@ import {
 import { IconPencil, IconPlus, IconTrash } from '@montage-ui/icon';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminValidateRequired } from '../components/admin/ui/adminForm';
-import { useUser } from '../contexts/UserContext';
-import { connectQuoteDesk, quoteDeskPageId } from '../components/admin/quoteDesk';
+import { quoteDeskPageId } from '../components/admin/quoteDesk';
 import { loadFallbackSnippets } from '../components/admin/quoteLibrary';
-import { readQuoteLibrary, writeQuoteLibrary, type QuoteLibraryKey } from '../components/admin/quoteLibraryStore';
+import { useQuoteLibrary } from '../components/admin/useQuoteLibrary';
 import {
     ALL, NONE, UNCAT, catOf, categoryNameProblem, countIn, countNone, deleteCategory, filterSnippets, formFromSnippet, mergeCats,
-    moveText, putSnippet, readCats, readLibrary, removeSnippet, renameCategory, snippetFromForm, stripBr,
+    moveText, putSnippet, readLibrary, removeSnippet, renameCategory, snippetFromForm, stripBr,
     type Snippet, type SnippetForm, type SnippetLibrary,
 } from '../components/admin/itinerarySnippets';
 import './AdminItineraryManage.css';
 
-type Phase = 'connecting' | 'loading' | 'ready' | 'unset' | 'error';
 /** 카테고리 고르기의 ‘새 지역’ 값(지역 이름과 겹치지 않게) */
 const NEW_CAT = '__new';
 const PREVIEW_LINES = 3;
@@ -42,99 +40,16 @@ const ItemLine: React.FC<{ text: string }> = ({ text }) => (
  * 목록형 기준: 머리(‘새 일정 추가’) → 카드 하나 안에 검색·지역 칩 → 표. 저장은 옛 도구와 같은 `/api/data/snippets`·`snippet_cats`(충돌 확인 포함).
  */
 export const AdminItineraryManage: React.FC = () => {
-    const { user } = useUser();
-    const accountId = user?.role === 'admin' ? user.id : '';
-    const [phase, setPhase] = useState<Phase>('connecting');
-    const [loadError, setLoadError] = useState('');
-    const [library, setLibrary] = useState<SnippetLibrary>({});
-    const [cats, setCats] = useState<string[]>([]);
-    const token = useRef('');
-    const meta = useRef<Record<'snippets' | 'snippet_cats', string | null>>({ snippets: null, snippet_cats: null });
+    // 서버에 아직 저장된 일정이 없으면 옛 도구처럼 이 브라우저 저장분 → 기본 일정을 보여 준다(저장하면 서버에 올라간다).
+    const { phase, loadError, map: library, cats, saving, load, persist, isSaving } = useQuoteLibrary<SnippetLibrary>({
+        mapKey: 'snippets', catsKey: 'snippet_cats', readMap: readLibrary, mergeCats, fallback: loadFallbackSnippets,
+    });
     const [active, setActive] = useState(ALL);
     const [query, setQuery] = useState('');
     const [editor, setEditor] = useState<Editor | null>(null);
     const [catEditor, setCatEditor] = useState<CatEditor | null>(null);
-    const [saving, setSaving] = useState(false);
-    const savingRef = useRef(false);
-    const loadRequest = useRef(0);
-
-    const load = useCallback(async () => {
-        const request = ++loadRequest.current;
-        if (!accountId) return;
-        setLoadError('');
-        try {
-            if (!token.current) {
-                setPhase('connecting');
-                const value = await connectQuoteDesk({ accountId });
-                if (request !== loadRequest.current) return;
-                if (!value) { setPhase('unset'); return; }
-                token.current = value;
-            }
-            setPhase((current) => (current === 'ready' ? current : 'loading'));
-            const [snippets, snippetCats] = await Promise.all([
-                readQuoteLibrary('snippets', token.current), readQuoteLibrary('snippet_cats', token.current),
-            ]);
-            if (request !== loadRequest.current) return;
-            // 서버에 아직 저장된 일정이 없으면 옛 도구처럼 이 브라우저 저장분 → 기본 일정을 보여 준다(저장하면 서버에 올라간다).
-            const nextLibrary = snippets.data == null ? readLibrary(await loadFallbackSnippets().catch(() => ({}))) : readLibrary(snippets.data);
-            if (request !== loadRequest.current) return;
-            const nextCats = mergeCats(nextLibrary, readCats(snippetCats.data));
-            meta.current = { snippets: snippets.updatedAt, snippet_cats: snippetCats.updatedAt };
-            setLibrary(nextLibrary);
-            setCats(nextCats);
-            setActive((current) => (current === ALL || current === NONE || nextCats.includes(current) ? current : ALL));
-            setPhase('ready');
-        } catch (error) {
-            if (request !== loadRequest.current) return;
-            setLoadError(error instanceof Error ? error.message : String(error));
-            setPhase('error');
-        }
-    }, [accountId]);
-
-    useEffect(() => {
-        token.current = '';
-        void load();
-        return () => { loadRequest.current++; };
-    }, [load]);
-
-    /** 서버에 저장. 다른 기기가 먼저 저장했으면 덮어쓸지 묻는다. 모두 저장됐으면 true. */
-    const writeKey = async (key: 'snippets' | 'snippet_cats', data: unknown): Promise<boolean> => {
-        let result = await writeQuoteLibrary(key as QuoteLibraryKey, data, token.current, { base: meta.current[key] });
-        if (!result.ok) {
-            const overwrite = await adminConfirm({
-                title: '먼저 저장된 내용이 있어요',
-                message: '다른 기기(또는 다른 탭)에서 이 목록을 먼저 저장했어요. 지금 화면의 내용으로 덮어쓸까요? 취소하면 저장하지 않고 최신 목록을 다시 불러옵니다.',
-                confirmLabel: '덮어쓰기', danger: true,
-            });
-            if (!overwrite) return false;
-            result = await writeQuoteLibrary(key as QuoteLibraryKey, data, token.current, { base: null, force: true });
-            if (!result.ok) return false;
-        }
-        meta.current[key] = result.updatedAt;
-        return true;
-    };
-
-    /** 바뀐 쪽만 저장하고, 저장된 쪽만 화면에 반영한다. */
-    const persist = async (next: { library?: SnippetLibrary; cats?: string[] }): Promise<boolean> => {
-        if (savingRef.current) return false;
-        savingRef.current = true; setSaving(true);
-        try {
-            if (next.library) {
-                if (!await writeKey('snippets', next.library)) { await load(); return false; }
-                setLibrary(next.library);
-            }
-            if (next.cats) {
-                if (!await writeKey('snippet_cats', next.cats)) { await load(); return false; }
-                setCats(next.cats);
-            }
-            return true;
-        } catch (error) {
-            adminNotify(error instanceof Error ? error.message : '저장하지 못했습니다.');
-            return false;
-        } finally {
-            savingRef.current = false; setSaving(false);
-        }
-    };
+    // 다시 불러온 목록에 지금 고른 지역이 없으면 전체로
+    useEffect(() => { if (active !== ALL && active !== NONE && !cats.includes(active)) setActive(ALL); }, [cats, active]);
 
     /* ── 일정 추가·편집 ── */
     const openEditor = (name: string | null) => {
@@ -143,7 +58,7 @@ export const AdminItineraryManage: React.FC = () => {
         setEditor({ previousName: name, form, newCat: '', initial: JSON.stringify(form) });
     };
     const setForm = (patch: Partial<SnippetForm>) => setEditor((current) => (current ? { ...current, form: { ...current.form, ...patch } } : current));
-    const closeEditor = () => { if (!savingRef.current) setEditor(null); };
+    const closeEditor = () => { if (!isSaving()) setEditor(null); };
 
     const saveEditor = async () => {
         if (!editor) return;
@@ -161,7 +76,7 @@ export const AdminItineraryManage: React.FC = () => {
         }
         const original = editor.previousName === null ? undefined : library[editor.previousName];
         const snippet: Snippet = snippetFromForm({ ...editor.form, name, cat }, original);
-        const ok = await persist({ library: putSnippet(library, editor.previousName, name, snippet), cats: nextCats });
+        const ok = await persist({ map: putSnippet(library, editor.previousName, name, snippet), cats: nextCats });
         if (!ok) return;
         setEditor(null);
         if (editor.previousName === null && cat) setActive(cat);
@@ -170,7 +85,7 @@ export const AdminItineraryManage: React.FC = () => {
 
     const deleteSnippet = async (name: string) => {
         if (!await adminConfirm({ title: '일정 삭제', message: `‘${name}’ 일정을 삭제할까요? 이미 만든 견적서에 불러온 내용은 그대로입니다.`, confirmLabel: '삭제', danger: true })) return false;
-        const ok = await persist({ library: removeSnippet(library, name) });
+        const ok = await persist({ map: removeSnippet(library, name) });
         if (ok) adminNotify('삭제했습니다.');
         return ok;
     };
@@ -188,7 +103,7 @@ export const AdminItineraryManage: React.FC = () => {
         } else if (name !== catEditor.from) {
             const next = renameCategory(library, cats, catEditor.from, name);
             const moved = countIn(library, catEditor.from) > 0;
-            if (!await persist({ library: moved ? next.library : undefined, cats: next.cats })) return;
+            if (!await persist({ map: moved ? next.library : undefined, cats: next.cats })) return;
             if (active === catEditor.from) setActive(name);
             adminNotify('지역 이름을 바꿨습니다.');
         }
@@ -202,7 +117,7 @@ export const AdminItineraryManage: React.FC = () => {
             : `‘${cat}’ 지역을 삭제할까요?`;
         if (!await adminConfirm({ title: '지역 삭제', message, confirmLabel: '삭제', danger: true })) return;
         const next = deleteCategory(library, cats, cat);
-        if (!await persist({ library: count ? next.library : undefined, cats: next.cats })) return;
+        if (!await persist({ map: count ? next.library : undefined, cats: next.cats })) return;
         if (active === cat) setActive(ALL);
         adminNotify('지역을 삭제했습니다.');
     };
@@ -383,7 +298,7 @@ export const AdminItineraryManage: React.FC = () => {
 
             <AdminDialog
                 open={!!catEditor}
-                onClose={() => { if (!savingRef.current) setCatEditor(null); }}
+                onClose={() => { if (!isSaving()) setCatEditor(null); }}
                 title={catEditor?.from ? '지역 이름 바꾸기' : '지역 추가'}
                 size="sm"
                 dirty={!!catEditor && catEditor.value.trim() !== (catEditor.from ?? '')}

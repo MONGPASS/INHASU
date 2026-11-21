@@ -4,6 +4,8 @@
  * - 쓰기는 마지막으로 읽은 updatedAt을 `?base=`로 보내 그 사이 다른 기기가 저장했으면 409를 받는다. 덮어쓰기는 `?force=1`.
  * - 같은 브라우저의 옛 도구가 서버에 닿지 못할 때 쓰는 캐시(localStorage `leaders_*`)도 옛 도구처럼 함께 고친다.
  */
+import { decodeImage, encodeWebP } from '../../utils/upload';
+
 export type QuoteLibraryKey = 'spots' | 'spot_cats' | 'courses' | 'snippets' | 'snippet_cats' | 'guides' | 'drivers' | 'lodges' | 'lodge_cats' | 'vehicles';
 
 const CACHE_KEYS: Record<QuoteLibraryKey, string> = {
@@ -45,4 +47,26 @@ export async function writeQuoteLibrary(key: QuoteLibraryKey, data: unknown, tok
     if (!res.ok || !body?.ok) throw new QuoteLibraryError(body?.error ? `저장하지 못했습니다: ${body.error}` : `저장하지 못했습니다(${res.status}).`, res.status);
     writeCache(key, data);
     return { ok: true, updatedAt: body.updatedAt ?? null };
+}
+
+/**
+ * 견적 공개 사진 올리기 — 옛 여행지 관리와 같이 가로 maxWidth 이하 WebP로 줄여 `/api/upload?folder=images`(R2 FILES `images/`)에 올리고
+ * 공개 주소(`/api/img/…`)를 돌려준다. 사이트 이미지(`/api/site-upload`, BUCKET)와는 다른 저장소다.
+ */
+export async function uploadQuoteImage(file: File, token: string, maxWidth: number, quality: number): Promise<string> {
+    const image = await decodeImage(file);
+    let webp: File;
+    try {
+        const scale = Math.min(1, maxWidth / image.width);
+        webp = await encodeWebP(image.source, Math.round(image.width * scale), Math.round(image.height * scale), quality, 'spot');
+    } finally {
+        image.release();
+    }
+    const form = new FormData();
+    form.append('file', webp, 'spot.webp');
+    const res = await fetch('/api/upload?folder=images', { method: 'POST', body: form, headers: { 'x-admin-token': token } });
+    const body = await res.json().catch(() => null);
+    if (res.status === 401) throw new QuoteLibraryError('관리자 인증이 만료됐어요. 화면을 새로 고친 뒤 다시 올려 주세요.', 401);
+    if (!res.ok || !body?.ok || !body.url) throw new QuoteLibraryError(body?.error ? `사진을 올리지 못했습니다: ${body.error}` : '사진을 올리지 못했습니다.', res.status);
+    return String(body.url);
 }
