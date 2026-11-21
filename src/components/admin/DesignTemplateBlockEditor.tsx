@@ -76,9 +76,9 @@ function SpotCardsField({ value, onChange, onBusyChange }: { value: string; onCh
                 const { title, img } = parseLine(line);
                 return (
                     <div key={i} className="row" style={{ gap: 6, alignItems: 'center', padding: '6px 8px', border: '1px solid var(--border-default)', borderRadius: 8, background: 'var(--bg-muted, #f8f9fa)' }}>
-                        <label title={img ? '사진 변경' : '사진 업로드'} style={{ flex: 'none', width: 44, height: 44, borderRadius: 8, overflow: 'hidden', border: img ? '2px solid #06C4A0' : '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', background: '#fff' }}>
+                        <label title={img ? '사진 변경' : '사진 업로드'} style={{ flex: 'none', width: 44, height: 44, borderRadius: 8, overflow: 'hidden', border: img ? '2px solid var(--adm-accent)' : '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', background: '#fff' }}>
                             {uploadingIdx === i
-                                ? <Icon name="progress_activity" style={{ fontSize: 16, color: '#06C4A0' }} />
+                                ? <Icon name="progress_activity" style={{ fontSize: 16, color: 'var(--adm-accent-strong)' }} />
                                 : img
                                     ? <img src={img} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     : <Icon name="add_a_photo" style={{ fontSize: 15, color: 'var(--text-muted)' }} />}
@@ -101,7 +101,7 @@ function SpotCardsField({ value, onChange, onBusyChange }: { value: string; onCh
             <div style={{ border: '1px dashed var(--border-default)', borderRadius: 8, padding: '8px 10px' }}>
                 <div className="cell-muted" style={{ fontSize: 12, marginBottom: 6 }}>
                     등록된 여행지 — 누르면 카드에 추가됩니다
-                    <a href="/admin/quote-desk/spots" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, color: '#06C4A0', fontWeight: 700 }}>여행지 등록 관리 ↗</a>
+                    <a href="/admin/quote-desk/spots" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, color: 'var(--adm-accent-strong)', fontWeight: 700 }}>여행지 등록 관리 ↗</a>
                 </div>
                 {loading ? (
                     <div className="cell-muted" style={{ fontSize: 12 }} role="status">여행지를 불러오는 중입니다…</div>
@@ -196,11 +196,11 @@ function MapStopsField({ value, onChange, onBusyChange }: { value: string; onCha
                 const { ko, ja, img } = parseLine(line);
                 return (
                     <div key={`${ko}-${i}`} className="row" style={{ gap: 6, alignItems: 'center', padding: '6px 8px', border: '1px solid var(--border-default)', borderRadius: 8, background: 'var(--bg-muted, #f8f9fa)' }}>
-                        <span style={{ flex: 'none', width: 20, height: 20, borderRadius: '50%', background: '#06C4A0', color: '#fff', fontSize: 11, fontWeight: 800, display: 'grid', placeItems: 'center' }}>{i + 1}</span>
+                        <span style={{ flex: 'none', width: 20, height: 20, borderRadius: '50%', background: 'var(--adm-accent)', color: 'var(--adm-on-primary)', fontSize: 11, fontWeight: 800, display: 'grid', placeItems: 'center' }}>{i + 1}</span>
                         {/* 원형 버블에 표시될 사진 — 클릭해서 업로드/변경 */}
-                        <label title={img ? '사진 변경' : '사진 업로드 (지도 원형에 표시)'} style={{ flex: 'none', width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', border: img ? '2px solid #06C4A0' : '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', background: '#fff' }}>
+                        <label title={img ? '사진 변경' : '사진 업로드 (지도 원형에 표시)'} style={{ flex: 'none', width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', border: img ? '2px solid var(--adm-accent)' : '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', background: '#fff' }}>
                             {uploadingIdx === i
-                                ? <Icon name="progress_activity" style={{ fontSize: 16, color: '#06C4A0' }} />
+                                ? <Icon name="progress_activity" style={{ fontSize: 16, color: 'var(--adm-accent-strong)' }} />
                                 : img
                                     ? <img src={img} alt={ko} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     : <Icon name="add_a_photo" style={{ fontSize: 15, color: 'var(--text-muted)' }} />}
@@ -610,7 +610,7 @@ export function DesignTemplateBlockEditor({
                             ? '이 상품에 직접 올린 사진이 없습니다'
                             : '미리보기에서 올린 사진들을 모든 상품이 함께 쓰는 공통 사진으로 저장합니다'
                     }
-                    style={ownImageKeys.length > 0 ? { borderColor: '#06C4A0', color: '#029F85' } : undefined}
+                    style={ownImageKeys.length > 0 ? { borderColor: 'var(--adm-accent)', color: 'var(--adm-accent-strong)' } : undefined}
                 >
                     <Icon name="photo_library" style={{ fontSize: 16 }} />
                     {savingShared ? '저장 중…' : `올린 사진 ${ownImageKeys.length}장을 공통으로 저장`}
@@ -728,7 +728,7 @@ export function DesignTemplateBlockEditor({
                                                 <div
                                                     ref={el => { if (el) fieldRefs.current.set(fk, el); else fieldRefs.current.delete(fk); }}
                                                     className="row"
-                                                    style={{ gap: 10, alignItems: 'center', ...(selectedField === fk ? { outline: '2px solid rgba(6,196,160,0.5)', outlineOffset: 4, borderRadius: 6 } : {}) }}
+                                                    style={{ gap: 10, alignItems: 'center', ...(selectedField === fk ? { outline: '2px solid rgba(var(--adm-accent-rgb), 0.5)', outlineOffset: 4, borderRadius: 6 } : {}) }}
                                                 >
                                                     {values[fk] ? (
                                                         <div style={{ position: 'relative', flex: 'none' }}>
@@ -752,11 +752,11 @@ export function DesignTemplateBlockEditor({
                                                             <img
                                                                 src={sharedAssets[baseKey(fk)]}
                                                                 alt={f.label}
-                                                                style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid #06C4A0' }}
+                                                                style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid var(--adm-accent)' }}
                                                             />
                                                             <span
                                                                 title="공통 이미지를 사용 중입니다. 이 상품만 다르게 하려면 업로드하세요."
-                                                                style={{ position: 'absolute', left: -4, bottom: -6, padding: '1px 6px', borderRadius: 500, background: '#06C4A0', color: '#fff', fontSize: 11, fontWeight: 800 }}
+                                                                style={{ position: 'absolute', left: -4, bottom: -6, padding: '1px 6px', borderRadius: 500, background: 'var(--adm-accent)', color: 'var(--adm-on-primary)', fontSize: 11, fontWeight: 800 }}
                                                             >
                                                                 공통
                                                             </span>
@@ -814,7 +814,7 @@ export function DesignTemplateBlockEditor({
                                                     placeholder={f.default || ''}
                                                     onChange={(e) => setValue(fk, e.target.value)}
                                                     onFocus={() => handleFieldFocus(fk)}
-                                                    style={selectedField === fk ? { borderColor: '#06C4A0', boxShadow: '0 0 0 2px rgba(6,196,160,0.25)' } : undefined}
+                                                    style={selectedField === fk ? { borderColor: 'var(--adm-accent)', boxShadow: '0 0 0 2px rgba(var(--adm-accent-rgb), 0.25)' } : undefined}
                                                 />
                                                 </>
                                             ) : (
@@ -842,7 +842,7 @@ export function DesignTemplateBlockEditor({
                                                     placeholder={f.default || ''}
                                                     onChange={(e) => setValue(fk, e.target.value)}
                                                     onFocus={() => handleFieldFocus(fk)}
-                                                    style={selectedField === fk ? { borderColor: '#06C4A0', boxShadow: '0 0 0 2px rgba(6,196,160,0.25)' } : undefined}
+                                                    style={selectedField === fk ? { borderColor: 'var(--adm-accent)', boxShadow: '0 0 0 2px rgba(var(--adm-accent-rgb), 0.25)' } : undefined}
                                                 />
                                                 </>
                                             )}

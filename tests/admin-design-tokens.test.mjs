@@ -9,7 +9,7 @@ const read = (p) => readFileSync(new URL(p, root), 'utf8');
 
 const QUOTE_TOOLS = ['견적관리', '견적관리-모바일', '예약목록', '예약관리', '견적만들기', '코스관리', '일정관리', '명소관리', '리소스관리'];
 // 화면마다 따로 쓰던 민트 값. 관리자 CSS에 다시 적지 않는다.
-const OLD_MINT = /#(12b28c|0e9e7a|06c4a0|1cc497|2fd3a7|0a7f62|057a61|16987d|109b87)(?![0-9a-f])/i;
+const OLD_MINT = /#(03866e|02795f|05b091|12b28c|0e9e7a|06c4a0|1cc497|2fd3a7|0a7f62|057a61|16987d|109b87)(?![0-9a-f])/i;
 
 const cssUnder = (dir) => readdirSync(new URL(dir, root), { withFileTypes: true }).flatMap((e) =>
     e.isDirectory() ? cssUnder(join(dir, e.name)) : e.name.endsWith('.css') ? [join(dir, e.name)] : []);
@@ -19,8 +19,11 @@ test('공통 변수 파일이 색·글자·간격·모서리·높이 변수를 �
     for (const name of ['--adm-accent', '--adm-ink', '--adm-line', '--adm-fs-body', '--adm-space-4', '--adm-radius-sm', '--adm-control-h', '--adm-danger']) {
         assert.match(tokens, new RegExp(name + '\\s*:'), name);
     }
-    assert.match(tokens, /--adm-accent:\s*#06C4A0/i, '브랜드 민트(Montage)를 유지한다');
-    assert.match(tokens, /--adm-accent-strong:\s*#03866E/i, '글자로 쓰는 브랜드색');
+    assert.match(tokens, /--adm-accent:\s*#0CEFD3/i, '브랜드 민트 = 배민 민트(2026-11-21)');
+    assert.match(tokens, /--adm-accent-strong:\s*#06796B/i, '글자로 쓰는 브랜드색(흰 바탕 4.5:1 이상)');
+    assert.match(tokens, /--adm-on-primary:\s*#222222/i, '민트 채움 위 글자색');
+    assert.match(tokens, /--adm-text:\s*#222222/i, '본문 글자색');
+    assert.match(tokens, /--adm-canvas:\s*#F6F6F6/i, '작업 바탕(패널)');
     assert.match(tokens, /--adm-content-max:\s*1440px/, '본문 최대 폭');
 });
 
@@ -115,5 +118,34 @@ test('견적 도구 문서는 공통 확인·입력 창을 쓴다', () => {
         // 비밀번호를 묻는 줄만 기본 입력창을 쓴다.
         const native = html.split('\n').filter((line) => /(^|[^.\w])(confirm|prompt)\(/.test(line) && !line.includes('비밀번호'));
         assert.deepEqual(native, [], `${tool}: await AdminDialog.confirm/prompt 를 쓴다`);
+    }
+});
+
+// 배민 민트(#0CEFD3)는 밝은 채움색이다. 민트 채움 위에 흰 글자를 올리면 대비가 1.5:1이라 읽히지 않는다.
+test('민트 채움 위 글자는 --adm-on-primary를 쓴다(흰 글자 금지)', () => {
+    const FILL = /background(?:-color)?\s*:\s*[^;}]*var\(--(?:adm-accent|adm-primary-bg|accent|book|brand|deep|mint|p|primary|cbe-mint|gs-mint|la-mint|lo-mint|lo-mint-seg|lo-tone|mrt-blue|gs-blue|la-blue)(?:-hover)?\)/;
+    const WHITE = /(?<![-\w])color\s*:\s*(?:#fff\b|#ffffff\b|white\b|var\(--adm-surface\))/i;
+    const blocks = (css) => [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*)\{([^{}]*)\}/g)];
+    const files = [
+        ...cssUnder('src/components/admin'),
+        ...readdirSync(new URL('src/pages', root)).filter((n) => /^Admin.*\.css$/.test(n)).map((n) => join('src/pages', n)),
+        ...readdirSync(new URL('src/styles', root)).filter((n) => n.endsWith('.css')).map((n) => join('src/styles', n)),
+        'public/admin-tools.css', 'public/admin-tokens.css', 'public/quote-day-editor.css', 'public/quote-spot-selector.css',
+    ];
+    const sources = files.map((f) => [f, read(f.replace(/\\/g, '/'))]).filter(([f, s]) => !f.startsWith('src/styles') || s.includes('--adm-'));
+    for (const tool of QUOTE_TOOLS) sources.push([tool, (read(`public/${tool}.html`).match(/<style[^>]*>[\s\S]*?<\/style>/g) || []).join('\n')]);
+    for (const [file, css] of sources) {
+        for (const [, sel, body] of blocks(css)) {
+            if (FILL.test(body)) assert.doesNotMatch(body, WHITE, `${file}: ${sel.trim().slice(0, 80)} — 민트 채움 위는 var(--adm-on-primary)`);
+        }
+    }
+    // Montage Button(solid·primary)은 글자를 흰색으로 그리므로 adm-on-primary 클래스를 함께 준다.
+    const tsx = ['src/pages/AdminDashboard.tsx', 'src/components/admin/v7/ReservationListV7.tsx'];
+    for (const file of tsx) {
+        for (const m of read(file).matchAll(/<Button\b[^>]*>/g)) {
+            const tag = m[0];
+            const solidPrimary = !/variant="(outlined)"/.test(tag) && !/color="(assistive|negative)"/.test(tag);
+            if (solidPrimary) assert.ok(tag.includes('adm-on-primary'), `${file}: ${tag.slice(0, 80)}`);
+        }
     }
 });

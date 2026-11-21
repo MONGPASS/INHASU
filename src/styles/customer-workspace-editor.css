@@ -150,7 +150,7 @@
 .product-customer-page .cw-focus-workspace .cw-action-buttons .btn { height: var(--adm-control-h); min-height: var(--adm-control-h); padding: 0 18px; border-radius:var(--adm-radius-sm); font-size: 14px; font-weight: 700; }
 .product-customer-page .cw-focus-workspace .cw-action-buttons .btn-ghost { border: 1px solid var(--border-default); background: var(--adm-surface); color: var(--text-strong); }
 .product-customer-page .cw-focus-workspace .cw-action-buttons .btn-ghost:hover:not(:disabled) { border-color: var(--mrt-ink); background: var(--adm-surface); }
-.product-customer-page .cw-focus-workspace .cw-action-buttons .btn.btn-ink { border: 0; background: var(--adm-primary-bg); color: #fff; }
+.product-customer-page .cw-focus-workspace .cw-action-buttons .btn.btn-ink { border: 0; background: var(--adm-primary-bg); color: var(--adm-on-primary); }
 .product-customer-page .cw-focus-workspace .cw-action-buttons .btn.btn-ink:hover:not(:disabled) { background: var(--adm-primary-bg-hover); }
 .cw-action-status[role=alert] span { color: var(--adm-warn-strong); }
 .cw-action-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
@@ -219,5 +219,5 @@
 
 /* 고객 공개·전달 묶음의 버튼도 관리자 공통 규격(높이·모서리·주 버튼 민트)을 따른다 — public/admin-tokens.css */
 .rw-delivery-panel button { height: var(--adm-control-h-sm); border-radius: var(--adm-radius-sm); }
-.rw-delivery-panel button.is-primary { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff; }
-.rw-delivery-panel button.is-primary:hover:not(:disabled) { border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover); color: #fff; }
+.rw-delivery-panel button.is-primary { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: var(--adm-on-primary); }
+.rw-delivery-panel button.is-primary:hover:not(:disabled) { border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover); color: var(--adm-on-primary); }

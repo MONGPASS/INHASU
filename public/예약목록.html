@@ -18,19 +18,19 @@
   .shell { display:flex; min-height:100vh; }
   .side { width:232px; flex:0 0 232px; background:var(--adm-surface); border-right:1px solid var(--line); display:flex; flex-direction:column; padding:20px 14px; position:sticky; top:0; height:100vh; }
   .side-brand { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; }
-  .side-brand .logo { width:38px; height:38px; border-radius:var(--adm-radius-sm); background: var(--adm-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow: var(--adm-shadow-md); }
+  .side-brand .logo { width:38px; height:38px; border-radius:var(--adm-radius-sm); background: var(--adm-accent); color:var(--adm-on-primary); display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow: var(--adm-shadow-md); }
   .side-brand b { font-size:15px; font-weight:var(--adm-fw-bold); display:block; line-height:1.2; }
   .side-brand small { font-size:11.5px; color:var(--gray); font-weight:600; }
   .mi { display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:var(--adm-radius-sm); color:var(--sub); font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; margin-bottom:2px; border:none; background:none; width:100%; font-family:inherit; transition:.12s; }
-  .mi:hover { background:var(--soft); color:var(--deep); }
-  .mi.on { background:var(--deep); color:#fff; box-shadow: var(--adm-shadow-md); }
+  .mi:hover { background:var(--soft); color:var(--adm-accent-strong); }
+  .mi.on { background:var(--deep); color:var(--adm-on-primary); box-shadow: var(--adm-shadow-md); }
   .content { flex:1; min-width:0; width:calc(100vw - 232px); padding:26px 24px 60px; max-width:none; }
   .page-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
   .page-head h1 { font-size:22px; font-weight:var(--adm-fw-bold); }
   .page-head p { color:var(--sub); font-size:13px; margin-top:5px; }
   .head-meta { color:var(--gray); font-size:12px; font-weight:700; white-space:nowrap; }
   .btn { border:1px solid var(--line); background:var(--adm-surface); color:var(--ink); border-radius:var(--adm-radius-sm); padding:10px 14px; font:600 13px Pretendard; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
-  .btn.primary { background:var(--deep); color:#fff; border-color:var(--deep); }
+  .btn.primary { background:var(--deep); color:var(--adm-on-primary); border-color:var(--deep); }
   /* 통계 카드 — 옅은 틴트 배경 + 원형 아이콘 + 상태 배지 + 실제 데이터 미니 차트 */
   .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:12px; }
   .stat { background:var(--cs,var(--adm-accent-soft)); border:1px solid var(--cb,var(--adm-accent-line)); border-radius:var(--adm-radius-md); padding:14px 16px 13px; cursor:pointer; transition:.12s; text-align:left; font-family:inherit; display:block; width:100%; }
@@ -64,7 +64,7 @@
   .chip { border:none; background:none; color:var(--sub); border-radius:var(--adm-radius-sm); padding:7px 11px; font:600 12.5px Pretendard; cursor:pointer; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
   .chip b { font-size:11px; font-weight:var(--adm-fw-bold); color:var(--gray); }
   .chip:hover { color:var(--ink); }
-  .chip.on { background:var(--deep); color:#fff; box-shadow: var(--adm-shadow-sm); }
+  .chip.on { background:var(--deep); color:var(--adm-on-primary); box-shadow: var(--adm-shadow-sm); }
   .chip.on b { color:rgba(255,255,255,.82); }
   /* 월별 예약 필터 — 연도 이동 + 12개월 고정 그리드 (연도가 늘어도 폭이 일정) */
   .mbar { display:flex; align-items:center; gap:11px; flex-wrap:wrap; background:var(--adm-surface); border:1px solid var(--line); border-radius:var(--adm-radius-md); padding:10px 13px; margin:0 0 14px; box-shadow: var(--adm-shadow-md); }
@@ -74,7 +74,7 @@
   .mpill { border:1px solid var(--line); background:var(--adm-surface); color:var(--sub); border-radius:var(--adm-radius-sm); padding:7px 12px; font:600 12.5px Pretendard; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
   .mpill:hover { border-color:var(--adm-line-strong); background:var(--adm-gray-50); }
   .mpill b { font-size:11px; font-weight:var(--adm-fw-bold); color:var(--gray); background:var(--adm-gray-100); border-radius:var(--adm-radius-xs); padding:2px 7px; }
-  .mpill.on { background:var(--deep); border-color:var(--deep); color:#fff; }
+  .mpill.on { background:var(--deep); border-color:var(--deep); color:var(--adm-on-primary); }
   .mpill.on b { background:rgba(255,255,255,.24); color:#fff; }
   .yrnav { display:inline-flex; align-items:center; gap:2px; flex:none; }
   .yrbtn { border:1px solid var(--line); background:var(--adm-surface); color:var(--sub); width:27px; height:27px; border-radius:var(--adm-radius-sm); font:700 15px Pretendard; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
@@ -83,26 +83,26 @@
   .yrname { border:none; background:none; font:700 14px Pretendard; color:var(--ink); cursor:pointer; padding:5px 9px; border-radius:var(--adm-radius-sm); white-space:nowrap; }
   .yrname small { font-size:11px; font-weight:var(--adm-fw-bold); color:var(--gray); margin-left:1px; }
   .yrname:hover { background:var(--soft); }
-  .yrname.on { background:var(--deep); color:#fff; }
+  .yrname.on { background:var(--deep); color:var(--adm-on-primary); }
   .yrname.on small { color:rgba(255,255,255,.72); }
   /* 12개월은 남은 폭을 균등 분할 — 화면 폭이 달라져도 항상 한 줄에 12칸 */
   .mcells { flex:1 1 430px; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:4px; }
   .mcell { border:1px solid var(--line); background:var(--adm-surface); border-radius:var(--adm-radius-sm); padding:5px 2px 6px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:1px; min-width:0; }
   .mcell .m { font-size:12px; font-weight:var(--adm-fw-bold); color:var(--ink); line-height:1.3; }
-  .mcell .n { font-size:10.5px; font-weight:var(--adm-fw-bold); color:var(--accent); line-height:1.3; }
+  .mcell .n { font-size:10.5px; font-weight:var(--adm-fw-bold); color:var(--adm-accent-strong); line-height:1.3; }
   .mcell:hover:not(:disabled) { border-color:var(--accent); background:var(--adm-gray-50); }
   .mcell.on { background:var(--deep); border-color:var(--deep); box-shadow: var(--adm-shadow-md); }
   .mcell.on .m, .mcell.on .n { color:#fff; }
   .mcell:disabled { background:var(--adm-gray-50); cursor:default; }
   .mcell:disabled .m { color:var(--adm-text-3); font-weight:700; }
-  .mcell:disabled .n { color:var(--adm-accent); }
+  .mcell:disabled .n { color:var(--adm-accent-strong); }
   /* 폭이 모자라면 6칸 2줄로 접되, 칸이 과하게 넓어지지 않도록 폭을 묶어둔다 */
   @media (max-width:900px){ .mcells { grid-template-columns:repeat(6,minmax(0,1fr)); flex:1 1 260px; max-width:360px; } }
   .bulkbar { display:flex; align-items:center; gap:8px; margin:0 0 14px; flex-wrap:wrap; }
   .bulkbar .count { color:var(--sub); font-size:12.5px; font-weight:var(--adm-fw-bold); margin-right:4px; }
   .bulkbtn { border:1px solid var(--line); background:var(--adm-surface); color:var(--ink); border-radius:var(--adm-radius-sm); padding:8px 11px; font:600 12.5px Pretendard; cursor:pointer; }
   .bulkbtn:hover:not(:disabled) { border-color:var(--adm-line-strong); background:var(--adm-gray-50); }
-  .bulkbtn.primary { background:var(--deep); border-color:var(--deep); color:#fff; }
+  .bulkbtn.primary { background:var(--deep); border-color:var(--deep); color:var(--adm-on-primary); }
   .bulkbtn.danger { background:var(--adm-danger-soft); border-color:var(--adm-danger-line); color:var(--adm-danger); }
   .bulkbtn:disabled { opacity:.45; cursor:not-allowed; }
   .rowcheck { width:16px; height:16px; accent-color:var(--deep); cursor:pointer; }
@@ -156,7 +156,7 @@
   tr:last-child td { border-bottom:none; }
   tbody tr:hover { background:var(--adm-gray-50); }
   .mini { border:1px solid var(--line); background:var(--adm-surface); color:var(--ink); border-radius:var(--adm-radius-sm); padding:7px 10px; font:600 12px Pretendard; text-decoration:none; cursor:pointer; }
-  .mini.green { border-color:var(--deep); color:#fff; background:var(--deep); }
+  .mini.green { border-color:var(--deep); color:var(--adm-on-primary); background:var(--deep); }
   .empty { text-align:center; padding:70px 20px; color:var(--gray); line-height:1.6; }
   .empty b { color:var(--ink); }
   .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--adm-accent-strong); color:#fff; padding:12px 22px; border-radius:var(--adm-radius-md); font-size:14px; font-weight:700; opacity:0; transition:.25s; z-index:80; pointer-events:none; }
@@ -599,7 +599,7 @@ function render() {
   all.forEach(r => { const dd = dDay(r); if (dd !== null && dd >= 0 && dd <= 13) soonBuckets[Math.floor(dd / 2)] += 1; });
   const statDefs = [
     { c:"c-teal", ico:ICO.clip, pill:"전체", dot:false, k:"예약 확정", v:all.length, sub:"전체 확정 고객", f:"전체",
-      chart:sparkArea(countByMonth(all, bookMonth, past6), "#06c4a0"), tip:"최근 6개월 예약 확정 추이" },
+      chart:sparkArea(countByMonth(all, bookMonth, past6), "#06796B"), tip:"최근 6개월 예약 확정 추이" },
     { c:"c-red", ico:ICO.pen, pill:"조치 필요", dot:true, k:"계약 미서명", v:unsigned, sub:"서명 요청 필요", f:"계약미서명",
       chart:barChart(countByMonth(all.filter(r => !signed(r)), ymOf, next6), "#E52222"), tip:"출발월별 미서명 건수 (이번 달부터 6개월)" },
     { c:"c-amber", ico:ICO.users, pill:"조치 필요", dot:true, k:"배정 미완료", v:incomplete, sub:"가이드·차량·숙소 확인", f:"배정미완료",

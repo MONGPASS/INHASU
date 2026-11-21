@@ -10,31 +10,34 @@
    규칙·예외는 docs/admin-design-system.md 참고.
    ============================================================ */
 :root {
-  /* ── 브랜드 민트 ── */
-  --adm-accent: #06C4A0;          /* 강조·선택·주요 버튼 */
-  --adm-accent-hover: #05B091;    /* 마우스를 올렸을 때 */
-  --adm-accent-strong: #03866E;   /* 밝은 바탕 위의 민트 글자·링크 */
-  --adm-accent-deep: #02795F;     /* 아주 진한 민트(강조 글자) */
-  --adm-accent-soft: #06C4A00D;   /* 옅은 민트 바탕 */
-  --adm-accent-line: #06C4A047;   /* 민트 테두리 */
-  --adm-accent-rgb: 6, 196, 160;  /* rgba(var(--adm-accent-rgb), .16) 처럼 쓴다 */
+  /* ── 브랜드 민트 — 배민 민트(2026-11-21 오너 결정) ──
+     #0CEFD3은 밝은 채움색이라 흰 글자를 올리면 대비가 1.5:1이다. 민트 채움 위 글자는 반드시 --adm-on-primary(#222222, 10.8:1).
+     민트를 글자로 쓸 때는 --adm-accent-strong(#06796B, 흰 바탕 5.3:1 · #F6F6F6 바탕 4.9:1). 같은 색상(172.6°)에서 밝기만 낮춘 단계다. */
+  --adm-accent: #0CEFD3;          /* 강조·선택·주요 버튼 채움 */
+  --adm-accent-hover: #0BDFC5;    /* 마우스를 올렸을 때 */
+  --adm-accent-strong: #06796B;   /* 밝은 바탕 위의 민트 글자·링크·아이콘 */
+  --adm-accent-deep: #056B5E;     /* 아주 진한 민트(강조 글자) */
+  --adm-accent-soft: #0CEFD31A;   /* 옅은 민트 바탕 */
+  --adm-accent-line: #0CEFD38C;   /* 민트 테두리 */
+  --adm-accent-rgb: 12, 239, 211; /* rgba(var(--adm-accent-rgb), .16) 처럼 쓴다 */
 
   --adm-primary-bg: var(--adm-accent);            /* 주요 버튼 바탕(한 화면에 하나) */
   --adm-primary-bg-hover: var(--adm-accent-hover);
+  --adm-on-primary: #222222;                      /* 민트 채움 위의 글자·아이콘 — 흰 글자 금지 */
 
   /* ── 글자·무채색 ── */
-  --adm-ink: #171719;             /* 제목·가장 진한 글자 */
-  --adm-text: #171719;            /* 본문 */
+  --adm-ink: #222222;             /* 제목·가장 진한 글자 (배민 글자색) */
+  --adm-text: #222222;            /* 본문 */
   --adm-text-2: #2E2F33E0;        /* 보조 글자 */
   --adm-text-3: #37383C9C;        /* 설명·안내 글자 */
   --adm-text-disabled: #37383C29;
-  --adm-gray-50: #F7F7F8;
+  --adm-gray-50: #F6F6F6;
   --adm-gray-100: #F4F4F5;
   --adm-gray-200: #EAEBEC;
   --adm-gray-300: #E1E2E4;
 
   /* ── 바탕·테두리 ── */
-  --adm-canvas: #F7F7F8;          /* 작업 배경 */
+  --adm-canvas: #F6F6F6;          /* 작업 배경 (배민 패널색) */
   --adm-surface: #FFFFFF;         /* 카드·팝업 */
   --adm-sunken: #F4F4F5;          /* 눌린 칸·표 머리 */
   --adm-line: #70737C29;          /* 기본 테두리 */
@@ -46,7 +49,7 @@
   --adm-danger: #E52222;    --adm-danger-soft: #FF424214;   /* 삭제·오류·미처리 */
   --adm-warn: #FF9200;      --adm-warn-soft: #FF920014;     /* 주의·대기 */
   --adm-success: #00BF40;   --adm-success-soft: #00BF4014;  /* 완료 */
-  --adm-info: #03866E;      --adm-info-soft: #06C4A00D;     /* 안내·진행 */
+  --adm-info: #06796B;      --adm-info-soft: #0CEFD31A;     /* 안내·진행 */
   --adm-neutral: #2E2F33E0; --adm-neutral-soft: #70737C14;  /* 보류·종료 */
   --adm-fill-subtle: #70737C0D;   /* 칩 바탕 — Montage surface neutral tertiary */
   /* 상태색을 글자로 쓸 때: 주의·완료의 Montage 값은 흰 바탕에서 대비가 2.2~2.5:1이라 같은 계열의 진한 단계(Montage atomic)를 쓴다.
@@ -110,7 +113,7 @@
   --adm-shadow-sm: 0px 2px 4px -2px #1717170F, 0px 4px 6px -1px #1717170F;
   --adm-shadow-md: 0px 4px 6px -2px #17171712, 0px 10px 15px -3px #17171712;
   --adm-shadow-lg: 0px 10px 15px -5px #1717171A, 0px 24px 38px -10px #1717171F;
-  --adm-ring: 0 0 0 3px #06C4A01F;
+  --adm-ring: 0 0 0 3px #0CEFD340;
   --adm-scrim: #17171985;  /* 팝업 뒤 어두운 막 */
   --adm-z-dropdown: 60; --adm-z-drawer: 80; --adm-z-modal: 230; --adm-z-toast: 300;
   --adm-ease: cubic-bezier(.2, 0, .1, 1);

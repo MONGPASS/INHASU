@@ -106,7 +106,7 @@
 .tab[aria-pressed="true"] { font-weight: var(--adm-fw-bold); color: var(--text-strong); box-shadow: inset 0 -3px 0 var(--adm-accent); }
 .tabCount { font-family: var(--font-sans); font-size: 12px; font-weight: var(--adm-fw-bold); min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: var(--adm-radius-sm);
   display: inline-flex; align-items: center; justify-content: center; background: var(--mrt-gray-100); color: var(--text-secondary); }
-.tab[aria-pressed="true"] .tabCount { background: var(--adm-accent); color: #fff; }
+.tab[aria-pressed="true"] .tabCount { background: var(--adm-accent); color: var(--adm-on-primary); }
 .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 24px; border-bottom: 1px solid var(--border-default); }
 .filterLabel { display: flex; align-items: center; gap: 6px; margin-right: 4px; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
 .dd { position: relative; }
@@ -174,7 +174,7 @@
 .dday { flex: none; display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--adm-radius-xs); font-family: var(--font-sans); font-size: 11px; font-weight: var(--adm-fw-bold); white-space: nowrap; }
 .dday_none { background: var(--mrt-gray-100); color: var(--text-tertiary); }
 .dday_past { background: var(--mrt-gray-100); color: var(--text-secondary); }
-.dday_near, .dday_soon { background: var(--adm-accent); color: #fff; }
+.dday_near, .dday_soon { background: var(--adm-accent); color: var(--adm-on-primary); }
 .dday_soon { animation: ddPulse 2.4s cubic-bezier(.2,0,.1,1) infinite; }
 .dday_far { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
 .nights { font-size: 12px; font-weight: var(--adm-fw-bold); color: var(--text-tertiary); }

@@ -27,7 +27,7 @@ export function ImagePopover({ label, value, sharedUrl, uploading, disabled = fa
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <div style={{ position: 'relative', width: 96, height: 96, flex: 'none', borderRadius: 'var(--adm-radius-md)', overflow: 'hidden', background: 'var(--adm-gray-100)', border: `1px ${shown ? 'solid' : 'dashed'} ${value ? 'var(--adm-line)' : 'var(--adm-accent)'}`, display: 'grid', placeItems: 'center', color: 'var(--adm-text-3)' }}>
                 {shown ? <img src={shown} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: uploading ? .5 : 1 }} /> : <Ico name="lc-image-plus" size={26} color="var(--adm-text-3)" />}
-                {!value && sharedUrl && <span style={{ position: 'absolute', left: 6, bottom: 6, padding: '1px 7px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--adm-accent)', color: '#fff', fontSize: 11, fontWeight: 700 }}>공통</span>}
+                {!value && sharedUrl && <span style={{ position: 'absolute', left: 6, bottom: 6, padding: '1px 7px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--adm-accent)', color: 'var(--adm-on-primary)', fontSize: 11, fontWeight: 700 }}>공통</span>}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
                 <label style={{ ...btn(true), opacity: locked ? .5 : 1, cursor: locked ? 'not-allowed' : 'pointer' }}>

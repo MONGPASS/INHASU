@@ -27,7 +27,7 @@
   .shell { display:flex; min-height:100vh; }
   .side { width:232px; flex:0 0 232px; background:var(--adm-surface); border-right:1px solid var(--div2); display:flex; flex-direction:column; padding:20px 14px; position:sticky; top:0; height:100vh; }
   .side-brand { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; }
-  .side-brand .logo { width:38px; height:38px; border-radius:var(--adm-radius-sm); background:var(--primary-hover); color:#fff; display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .side-brand .logo { width:38px; height:38px; border-radius:var(--adm-radius-sm); background:var(--primary-hover); color:var(--adm-on-primary); display:flex; align-items:center; justify-content:center; font-size:17px; }
   .side-brand b { font-size:15px; font-weight:var(--adm-fw-bold); display:block; line-height:1.2; }
   .side-brand small { font-size:11.5px; color:var(--low); font-weight:600; }
   .mi { display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:var(--adm-radius-sm); color:var(--low); font-size:14px; font-weight:600; text-decoration:none; margin-bottom:2px; }
@@ -50,7 +50,7 @@
   .cat-tab.on .cnt { color:var(--mint700); }
   .rg-view { height:34px; padding:0 10px; font-size:13px; }
   .rg-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
-  .rg-add { display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px; border:0; border-radius:var(--adm-radius-xs); background:var(--primary); font-size:14px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; }
+  .rg-add { display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px; border:0; border-radius:var(--adm-radius-xs); background:var(--primary); font-size:14px; font-weight:700; color:var(--adm-on-primary); cursor:pointer; white-space:nowrap; }
   .rg-add:hover { background:var(--primary-hover); }
 
   /* 숙소 지역 탭 (영구 저장 카테고리) */
@@ -162,7 +162,7 @@
   .df { display:flex; gap:8px; padding:12px 20px; border-top:1px solid var(--div1); flex:none; }
   .df .del { height:48px; padding:0 16px; border:0; border-radius:var(--adm-radius-xs); background:transparent; font-size:15px; font-weight:700; color:var(--danger); cursor:pointer; }
   .df .del:hover { background:var(--danger-low); }
-  .df .save { flex:1; height:48px; border:0; border-radius:var(--adm-radius-xs); background:var(--primary); font-size:16px; font-weight:700; color:#fff; cursor:pointer; }
+  .df .save { flex:1; height:48px; border:0; border-radius:var(--adm-radius-xs); background:var(--primary); font-size:16px; font-weight:700; color:var(--adm-on-primary); cursor:pointer; }
   .df .save:hover { background:var(--primary-hover); }
   .df .save:disabled { opacity:.5; cursor:wait; }
 

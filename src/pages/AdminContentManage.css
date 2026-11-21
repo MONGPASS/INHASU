@@ -81,7 +81,7 @@
 .admin-app-wrapper .cm-btn:disabled { color: var(--text-tertiary); cursor: default; }
 .admin-app-wrapper .cm-btn.is-sm { height: 32px; padding: 0 12px; border-radius: var(--adm-radius-sm); font-size: 13px; }
 .admin-app-wrapper .cm-btn.is-tall { height: 44px; }
-.admin-app-wrapper .cm-btn.is-primary { border: 0; background: var(--adm-primary-bg); color: #fff; font-weight: 700; padding: 0 18px; }
+.admin-app-wrapper .cm-btn.is-primary { border: 0; background: var(--adm-primary-bg); color: var(--adm-on-primary); font-weight: 700; padding: 0 18px; }
 .admin-app-wrapper .cm-btn.is-primary:hover:not(:disabled) { opacity: .88; }
 .admin-app-wrapper .cm-btn.is-primary:disabled { background: var(--mrt-gray-100); color: var(--text-tertiary); }
 .admin-app-wrapper .cm-order { display: flex; flex-direction: column; gap: 2px; flex: none; }
@@ -162,7 +162,7 @@
 .admin-app-wrapper .iq-note-foot > span { flex: 1; color: var(--text-tertiary); font-size: 12px; font-variant-numeric: tabular-nums; }
 .admin-app-wrapper .iq-panel-foot { display: flex; align-items: center; gap: 8px; padding: 14px 22px; border-top: 1px solid var(--border-subtle); background: var(--mrt-gray-50); }
 .admin-app-wrapper .iq-send { margin-left: auto; padding: 0 18px; border: 0; background: var(--mrt-gray-100); color: var(--text-secondary); font-weight: 700; }
-.admin-app-wrapper .iq-send.is-ready { background: var(--mrt-blue); color: #fff; }
+.admin-app-wrapper .iq-send.is-ready { background: var(--mrt-blue); color: var(--adm-on-primary); }
 .admin-app-wrapper .iq-send:hover { opacity: .9; }
 @media (max-width: 900px) { .admin-app-wrapper .iq-panel { position: static; } }
 
@@ -237,7 +237,7 @@
 .admin-app-wrapper .mg-badges { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; }
 .admin-app-wrapper :is(.mg-status, .mg-hot) { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius:var(--adm-radius-xs); font-size: 11px; font-weight: 700; }
 .admin-app-wrapper .mg-status { background: var(--adm-surface); color: var(--text-secondary); }
-.admin-app-wrapper .mg-status[data-published] { background: var(--adm-accent); color: #fff; }
+.admin-app-wrapper .mg-status[data-published] { background: var(--adm-accent); color: var(--adm-on-primary); }
 .admin-app-wrapper .mg-hot { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
 .admin-app-wrapper .mg-body { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 12px; }
 .admin-app-wrapper .mg-cat { color: var(--mrt-blue-strong); font-size: 12px; font-weight: 700; }

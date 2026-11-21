@@ -139,7 +139,7 @@
 .ci-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
 .ci-thumb-box .material-symbols-outlined { font-size: 18px; }
 .ci-pick { display: inline-flex; align-items: center; white-space: nowrap; height: var(--adm-control-h-sm); padding: 0 12px; border: 1px solid var(--adm-line-strong); border-radius: var(--adm-radius-sm); background: var(--adm-surface); color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
-.ci-pickrow:hover .ci-pick { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff; }
+.ci-pickrow:hover .ci-pick { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: var(--adm-on-primary); }
 .ci-tag { display: inline-block; margin-right: 8px; padding: 2px 7px; border-radius: var(--adm-radius-xs); background: var(--adm-gray-100); color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); vertical-align: middle; }
 .ci-group > td { padding: 8px var(--adm-space-4); background: var(--adm-sunken); border-top: 1px solid var(--adm-line); }
 .ci-group .ci-check b { color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }

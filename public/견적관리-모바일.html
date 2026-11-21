@@ -31,7 +31,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: var(--g100); }
 body { font-family: var(--font); color: var(--g900); -webkit-font-smoothing: antialiased; font-size: 14px; }
-a { color: var(--brand); text-decoration: none; }
+a { color: var(--adm-accent-strong); text-decoration: none; }
 button, input, select, textarea { font-family: inherit; }
 button { cursor: pointer; }
 input, select, textarea { font-size: 14px; color: var(--g900); }
@@ -45,7 +45,7 @@ input, select, textarea { font-size: 14px; color: var(--g900); }
 #app { display: none; flex-direction: column; min-height: 100vh; width: 100%; max-width: 430px; margin: 0 auto; box-shadow: 0 0 0 1px var(--g200); background: var(--g100); }
 #app.on { display: flex; }
 header.appbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #fff; border-bottom: 1px solid var(--g200); }
-.logo { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--brand); color: #fff; font-size: 13px; font-weight: bold; flex: none; }
+.logo { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--brand); color: var(--adm-on-primary); font-size: 13px; font-weight: bold; flex: none; }
 .appbar .tit { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .appbar .tit b { font-size: 15px; line-height: 135%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .appbar .tit span { font-size: 12px; line-height: 135%; color: var(--g600); }
@@ -55,19 +55,19 @@ main#main { flex: 1; overflow-y: auto; padding-bottom: 24px; }
 /* ── 하단 탭 ── */
 nav.tabbar { position: sticky; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr); background: #fff; border-top: 1px solid var(--g200); padding-bottom: max(6px, env(safe-area-inset-bottom)); }
 .tabbar button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; height: 56px; border: none; background: transparent; color: var(--g600); font-size: 11px; }
-.tabbar button.on { color: var(--brand); font-weight: bold; }
+.tabbar button.on { color: var(--adm-accent-strong); font-weight: bold; }
 .tabbar .ic { position: relative; display: flex; }
-.tabbar .badge { position: absolute; top: -4px; left: 14px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 10px; font-weight: bold; line-height: 16px; text-align: center; }
+.tabbar .badge { position: absolute; top: -4px; left: 14px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--brand); color: var(--adm-on-primary); font-size: 10px; font-weight: bold; line-height: 16px; text-align: center; }
 
 /* ── 공용 컴포넌트 ── */
 .sec { background: #fff; }
 .card { border: 1px solid var(--g200); border-radius: 10px; background: #fff; }
 .chip { flex: none; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--g300); background: #fff; color: var(--g700); font-size: 13px; white-space: nowrap; }
-.chip.on { border-color: var(--brand); background: var(--brand); color: #fff; font-weight: bold; }
-.cta { display: flex; align-items: center; justify-content: center; width: 100%; height: 52px; border: none; border-radius: 6px; background: var(--brand); color: #fff; font-size: 18px; font-weight: bold; line-height: 135%; transition: transform 100ms var(--ease), background-color 100ms var(--ease); }
+.chip.on { border-color: var(--brand); background: var(--brand); color: var(--adm-on-primary); font-weight: bold; }
+.cta { display: flex; align-items: center; justify-content: center; width: 100%; height: 52px; border: none; border-radius: 6px; background: var(--brand); color: var(--adm-on-primary); font-size: 18px; font-weight: bold; line-height: 135%; transition: transform 100ms var(--ease), background-color 100ms var(--ease); }
 .cta:active { background: var(--brand-active); transform: scale(0.97); }
 .btn { height: 44px; padding: 0 12px; border: 1px solid var(--g300); border-radius: 6px; background: #fff; font-size: 13px; color: var(--g700); }
-.btn.mint { border: none; background: var(--brand); color: #fff; font-weight: bold; }
+.btn.mint { border: none; background: var(--brand); color: var(--adm-on-primary); font-weight: bold; }
 .btn.mint:active { background: var(--brand-active); }
 .btn.line-mint { border: 1px solid var(--brand); color: var(--brand-deep); font-weight: bold; }
 .btn.dashed { border: 1px dashed var(--brand); color: var(--brand-deep); }
@@ -84,7 +84,7 @@ nav.tabbar { position: sticky; bottom: 0; z-index: 30; display: grid; grid-templ
 .statgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stat { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--g200); border-radius: 10px; background: #fff; }
 .stat .h { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--g700); }
-.stat .h .ic { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; background: var(--brand-bg); color: var(--brand); }
+.stat .h .ic { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; background: var(--brand-bg); color: var(--adm-accent-strong); }
 .stat .n { display: flex; align-items: baseline; gap: 6px; }
 .stat .n b { font-size: 28px; font-weight: bold; line-height: 1; }
 .stat .n span { padding: 2px 6px; border-radius: 4px; background: var(--g100); font-size: 11px; color: var(--g700); }
@@ -130,7 +130,7 @@ nav.tabbar { position: sticky; bottom: 0; z-index: 30; display: grid; grid-templ
 .alert-row .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .alert-row .tx b { font-size: 14px; line-height: 140%; color: var(--g900); }
 .alert-row .tx span { font-size: 12px; line-height: 145%; color: var(--g600); }
-.alert-row .go { flex: none; display: flex; align-items: center; gap: 2px; font-size: 13px; font-weight: bold; color: var(--brand); }
+.alert-row .go { flex: none; display: flex; align-items: center; gap: 2px; font-size: 13px; font-weight: bold; color: var(--adm-accent-strong); }
 
 /* 예약 카드 */
 .bk-head { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 14px 16px; border: none; background: #fff; text-align: left; }
@@ -151,7 +151,7 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 @media (max-width: 430px) { aside.drawer { left: 0; margin-left: 0; } }
 .drawer nav { flex: 1; overflow-y: auto; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
 .drawer nav button { display: flex; align-items: center; gap: 12px; width: 100%; height: 50px; padding: 0 16px; border: none; border-radius: 10px; background: transparent; color: var(--g700); font-size: 15px; font-weight: bold; text-align: left; }
-.drawer nav button.on { background: var(--brand); color: #fff; }
+.drawer nav button.on { background: var(--brand); color: var(--adm-on-primary); }
 .drawer .foot { flex: none; padding: 12px 10px 16px; border-top: 1px solid var(--g200); display: flex; flex-direction: column; gap: 2px; }
 .drawer .foot button { display: flex; align-items: center; gap: 12px; height: 46px; padding: 0 16px; border: none; border-radius: 10px; background: transparent; font-size: 14px; color: var(--g700); text-align: left; }
 
@@ -168,9 +168,9 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 
 /* 배정 화면 */
 .asec { padding: 16px; border-radius: 12px; background: #fff; }
-.abadge { padding: 4px 8px; border-radius: 6px; background: var(--brand); color: #fff; font-size: 11px; font-weight: bold; }
+.abadge { padding: 4px 8px; border-radius: 6px; background: var(--brand); color: var(--adm-on-primary); font-size: 11px; font-weight: bold; }
 .abadge.gray { background: var(--g100); color: var(--g700); }
-.step-dot { flex: none; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 999px; font-size: 13px; font-weight: bold; background: var(--brand); color: #fff; }
+.step-dot { flex: none; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 999px; font-size: 13px; font-weight: bold; background: var(--brand); color: var(--adm-on-primary); }
 .step-dot.todo { background: #fff; border: 1.5px solid var(--g300); color: var(--g500); }
 .ready-cell { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 10px; background: var(--brand-bg); }
 .ready-cell .l { font-size: 11px; color: var(--g600); }
@@ -182,12 +182,12 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 .daycard { border: 1px solid var(--g200); border-radius: 10px; overflow: hidden; }
 .daycard .dh { display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--brand-bg); }
 .daycard .db { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-.dtag { padding: 3px 8px; border-radius: 6px; background: var(--brand); color: #fff; font-size: 11px; font-weight: bold; flex: none; }
+.dtag { padding: 3px 8px; border-radius: 6px; background: var(--brand); color: var(--adm-on-primary); font-size: 11px; font-weight: bold; flex: none; }
 .spot-btn { position: relative; display: flex; align-items: flex-start; gap: 8px; min-width: 0; padding: 12px 34px 12px 12px; border-radius: 10px; border: 1px solid var(--g200); background: #fff; text-align: left; }
 .spot-btn.on { border-color: var(--brand); background: var(--brand-bg3); }
 .spot-btn .box { flex: none; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-top: 1px; border-radius: 5px; font-size: 12px; color: #fff; background: #fff; border: 1.5px solid var(--g300); }
 .spot-btn.on .box { background: var(--brand); border: none; }
-.spot-btn .ord { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); display: none; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 11px; font-weight: bold; }
+.spot-btn .ord { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); display: none; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 999px; background: var(--brand); color: var(--adm-on-primary); font-size: 11px; font-weight: bold; }
 .spot-btn.on .ord { display: flex; }
 .res-pick { display: flex; gap: 10px; padding: 12px; border-radius: 8px; background: var(--g50); }
 .res-pick .thumb { flex: none; width: 40px; height: 40px; border-radius: 8px; background: var(--g200); background-size: cover; background-position: center; }
@@ -197,12 +197,12 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 .qstep-chip.cur { border-color: var(--brand); background: var(--brand-bg); color: var(--brand-deep); font-weight: bold; }
 .qstep-chip.done { color: var(--brand-deep); }
 .qstep-chip .num { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; font-size: 11px; font-weight: bold; background: var(--g200); color: var(--g600); }
-.qstep-chip.cur .num, .qstep-chip.done .num { background: var(--brand); color: #fff; }
+.qstep-chip.cur .num, .qstep-chip.done .num { background: var(--brand); color: var(--adm-on-primary); }
 .qbar { flex: 1; height: 3px; border-radius: 999px; background: var(--g200); }
 .qbar.on { background: var(--brand); }
 .course-btn { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; padding: 14px 12px; border: 1px solid var(--g200); border-radius: 12px; background: #fff; text-align: left; }
 .course-btn.on { border-color: var(--brand); background: var(--brand-bg2); }
-.course-btn .mk { position: absolute; top: 10px; right: 10px; display: none; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 11px; font-weight: bold; }
+.course-btn .mk { position: absolute; top: 10px; right: 10px; display: none; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; background: var(--brand); color: var(--adm-on-primary); font-size: 11px; font-weight: bold; }
 .course-btn.on .mk { display: flex; }
 .baltable { border: 1px solid var(--g200); border-radius: 10px; overflow: hidden; }
 .baltable .hd, .baltable .rw { display: grid; grid-template-columns: 64px 1fr 1fr 34px; align-items: center; }
@@ -218,7 +218,7 @@ aside.drawer { position: fixed; left: 50%; margin-left: -215px; top: 0; bottom: 
 .res-card .bd { display: flex; flex-direction: column; gap: 4px; padding: 10px 10px 12px; }
 .res-card .bd .nm { font-size: 13px; line-height: 140%; color: var(--g900); font-weight: bold; }
 .res-card .bd .dc { font-size: 11px; line-height: 140%; color: var(--g600); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.res-card .bd .kd { font-size: 10px; font-weight: bold; color: var(--brand); }
+.res-card .bd .kd { font-size: 10px; font-weight: bold; color: var(--adm-accent-strong); }
 
 /* 토스트 */
 #toast { position: fixed; left: 50%; bottom: 86px; transform: translateX(-50%); z-index: 99; max-width: 86vw; padding: 11px 18px; border-radius: 999px; background: rgba(33,33,36,0.92); color: #fff; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity 200ms; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -842,7 +842,7 @@ function inquirySheet(r) {
   const quoteBox = r.quote ? `
     <div style="display:flex; flex-direction:column; gap:10px; padding:16px 14px; border-radius:14px; background:var(--brand-bg2);">
       <span style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:bold; color:var(--brand-deep);">
-        <span style="display:flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:999px; background:var(--brand); color:#fff; font-size:11px;">✓</span>
+        <span style="display:flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:999px; background:var(--brand); color:var(--adm-on-primary, #222222); font-size:11px;">✓</span>
         견적서 발행됨${r.quoteExpiresAt ? " · 유효기간 " + dotDate(r.quoteExpiresAt) : ""}
       </span>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
@@ -2200,7 +2200,7 @@ function qeStep1() {
     ["manager", "담당자", "예) 볼라"], ["paxNote", "인원 표기", `예) ${QE.pax}인 (남2/여4)`],
   ];
   const pickupFields = [["pickup", "픽업", "비우면 '항공 IN + 공항' 자동"], ["drop", "드랍", "비우면 '항공 OUT + 공항' 자동"]];
-  const dots = [1, 2, 3, 4, 5].map(n => `<button type="button" style="flex:none; width:40px; height:40px; border-radius:8px; ${n <= QE.intensity ? "border:none; background:var(--brand); color:#fff;" : "border:1px solid var(--g300); background:#fff; color:var(--g600);"} font-size:13px; font-weight:bold;" onclick="App.qeIntensity(${n})">${n}</button>`).join("");
+  const dots = [1, 2, 3, 4, 5].map(n => `<button type="button" style="flex:none; width:40px; height:40px; border-radius:8px; ${n <= QE.intensity ? "border:none; background:var(--brand); color:var(--adm-on-primary, #222222);" : "border:1px solid var(--g300); background:#fff; color:var(--g600);"} font-size:13px; font-weight:bold;" onclick="App.qeIntensity(${n})">${n}</button>`).join("");
   const intensityLabel = { 1: "1단계 · 매우 여유", 2: "2단계 · 여유", 3: "3단계 · 보통", 4: "4단계 · 많음", 5: "5단계 · 매우 많음" }[QE.intensity];
   const courses = getCourses();
   const regions = ["전체", ...new Set(Object.values(courses).map(c => c.destination).filter(Boolean))];
@@ -2312,8 +2312,8 @@ function qeStep3() {
     </label>
     <span style="font-size:13px; color:var(--g600);">하단 총액 계산 기준 숙소</span>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-      <button type="button" style="height:48px; border:none; border-radius:10px; font-size:15px; font-weight:bold; ${QE.roomType === "eco" ? "background:var(--brand); color:#fff;" : "background:#fff; box-shadow:inset 0 0 0 1px var(--g300); color:var(--g700);"}" onclick="App.qeRoom('eco')">실속형</button>
-      <button type="button" style="height:48px; border:none; border-radius:10px; font-size:15px; font-weight:bold; ${QE.roomType === "full" ? "background:var(--brand); color:#fff;" : "background:#fff; box-shadow:inset 0 0 0 1px var(--g300); color:var(--g700);"}" onclick="App.qeRoom('full')">풀패키지</button>
+      <button type="button" style="height:48px; border:none; border-radius:10px; font-size:15px; font-weight:bold; ${QE.roomType === "eco" ? "background:var(--brand); color:var(--adm-on-primary, #222222);" : "background:#fff; box-shadow:inset 0 0 0 1px var(--g300); color:var(--g700);"}" onclick="App.qeRoom('eco')">실속형</button>
+      <button type="button" style="height:48px; border:none; border-radius:10px; font-size:15px; font-weight:bold; ${QE.roomType === "full" ? "background:var(--brand); color:var(--adm-on-primary, #222222);" : "background:#fff; box-shadow:inset 0 0 0 1px var(--g300); color:var(--g700);"}" onclick="App.qeRoom('full')">풀패키지</button>
     </div>
   </section>
   <section style="padding:18px 16px; border-radius:14px; background:#fff; display:flex; flex-direction:column; gap:12px;">
@@ -2356,7 +2356,7 @@ function qeStep4() {
   Object.entries(lib).forEach(([name, s2]) => { const rg = s2.region || "기타"; (byRegion[rg] = byRegion[rg] || []).push({ name, ...s2 }); });
   const chips = Object.entries(byRegion).map(([rg, items]) => {
     const n = items.filter(it => QE.spots.includes(it.name)).length;
-    return n ? `<span style="flex:none; display:flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:#fff; font-size:12px; color:var(--g700);">${esc(rg)}<span style="display:flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:999px; background:var(--brand); color:#fff; font-size:10px; font-weight:bold;">${n}</span></span>` : "";
+    return n ? `<span style="flex:none; display:flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:#fff; font-size:12px; color:var(--g700);">${esc(rg)}<span style="display:flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:999px; background:var(--brand); color:var(--adm-on-primary, #222222); font-size:10px; font-weight:bold;">${n}</span></span>` : "";
   }).join("");
   return `
   <div style="display:flex; align-items:center; gap:8px; padding:12px 14px; border-radius:12px; background:var(--g100);">

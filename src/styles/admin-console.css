@@ -60,7 +60,7 @@
 }
 .admin-app-wrapper .brand-mark {
   width: 40px; height: 40px; border-radius: var(--adm-radius-md); flex: none;
-  display: grid; place-items: center; color: #fff;
+  display: grid; place-items: center; color: var(--adm-on-primary);
   background: var(--adm-accent);
   box-shadow: var(--adm-shadow-md);
 }
@@ -177,9 +177,9 @@
 }
 .admin-app-wrapper .btn:active { transform: scale(0.97); }
 .admin-app-wrapper .btn .material-symbols-outlined { font-size: 19px; }
-.admin-app-wrapper .btn-ink { background: var(--adm-primary-bg); color: #fff; }
+.admin-app-wrapper .btn-ink { background: var(--adm-primary-bg); color: var(--adm-on-primary); }
 .admin-app-wrapper .btn-ink:hover { background: var(--adm-primary-bg-hover); }
-.admin-app-wrapper .btn-blue { background: var(--mrt-blue); color: #fff; box-shadow: var(--adm-shadow-md); }
+.admin-app-wrapper .btn-blue { background: var(--mrt-blue); color: var(--adm-on-primary); box-shadow: var(--adm-shadow-md); }
 .admin-app-wrapper .btn-blue:hover { background: var(--mrt-blue-strong); }
 .admin-app-wrapper .btn-ghost { background: var(--adm-surface); color: var(--text-secondary); border-color: var(--border-default); }
 .admin-app-wrapper .btn-ghost:hover { background: var(--mrt-gray-50); border-color: var(--border-strong); color: var(--text-strong); }
@@ -737,7 +737,7 @@
 .admin-app-wrapper .dtab .material-symbols-outlined { font-size: 18px; }
 .admin-app-wrapper .dtab:hover { color: var(--text-secondary); }
 .admin-app-wrapper .dtab.active { color: var(--text-strong); border-bottom-color: var(--mrt-ink); }
-.admin-app-wrapper .dtab-ct { font-size: 11px; font-weight: var(--adm-fw-bold); background: var(--mrt-blue); color: #fff; border-radius:var(--adm-radius-xs); padding: 0 6px; min-width: 16px; text-align: center; }
+.admin-app-wrapper .dtab-ct { font-size: 11px; font-weight: var(--adm-fw-bold); background: var(--mrt-blue); color: var(--adm-on-primary); border-radius:var(--adm-radius-xs); padding: 0 6px; min-width: 16px; text-align: center; }
 
 /* ============ Operation steps (overview) ============ */
 .admin-app-wrapper .op-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
@@ -752,7 +752,7 @@
 .admin-app-wrapper .op-d { font-size: 11px; font-weight: 600; color: var(--text-tertiary); line-height: 1.3; }
 
 /* ============ Trip hero ============ */
-.admin-app-wrapper .trip-hero { position: relative; overflow: hidden; border-radius: var(--r-lg); padding: 18px 20px; color: #fff;
+.admin-app-wrapper .trip-hero { position: relative; overflow: hidden; border-radius: var(--r-lg); padding: 18px 20px; color: var(--adm-on-primary);
   background: var(--adm-accent); box-shadow: var(--shadow-md); }
 .admin-app-wrapper .trip-hero::after { content: ''; position: absolute; top: -30px; right: -20px; width: 130px; height: 130px; border-radius: 50%; background: rgba(255,255,255,0.07); }
 .admin-app-wrapper .th-label { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
@@ -825,7 +825,7 @@
 .admin-app-wrapper .cal-cell { background: var(--adm-surface); min-height: 116px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
 .admin-app-wrapper .cal-cell.out { background: var(--mrt-gray-50); }
 .admin-app-wrapper .cal-date { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; }
-.admin-app-wrapper .cal-cell.today .cal-date { color: #fff; background: var(--mrt-blue); width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; }
+.admin-app-wrapper .cal-cell.today .cal-date { color: var(--adm-on-primary); background: var(--mrt-blue); width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; }
 .admin-app-wrapper .cal-ev { font-size: 11px; font-weight: 700; padding: 4px 7px; border-radius: var(--adm-radius-xs); cursor: pointer; line-height: 1.3; overflow: hidden; }
 .admin-app-wrapper .cal-ev b { font-weight: var(--adm-fw-bold); }
 .admin-app-wrapper .ev-blue { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
@@ -882,7 +882,7 @@
 
 /* ============ Login ============ */
 .admin-app-wrapper .login-wrap { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 100vh; }
-.admin-app-wrapper .login-brand { position: relative; overflow: hidden; color: #fff;
+.admin-app-wrapper .login-brand { position: relative; overflow: hidden; color: var(--adm-on-primary);
   background: var(--adm-accent); }
 .admin-app-wrapper .login-brand::after { content: ''; position: absolute; inset: 0;
   background: none; /* Montage: 장식 빛 없이 브랜드 채움 한 색 */ }
@@ -901,7 +901,7 @@
 /* ============ Template cards ============ */
 .admin-app-wrapper .tpl-card { display: flex; flex-direction: column; text-align: left; background: var(--adm-surface); border: 1px solid var(--border-default); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-xs); cursor: pointer; transition: transform var(--dur-fast), box-shadow var(--dur-fast); padding: 0; }
 .admin-app-wrapper .tpl-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
-.admin-app-wrapper .tpl-hero { position: relative; height: 96px; display: grid; place-items: center; color: #fff; background: var(--adm-accent); }
+.admin-app-wrapper .tpl-hero { position: relative; height: 96px; display: grid; place-items: center; color: var(--adm-on-primary); background: var(--adm-accent); }
 .admin-app-wrapper .tpl-hero .material-symbols-outlined { font-size: 34px; opacity: 0.85; }
 .admin-app-wrapper .tpl-days { position: absolute; bottom: 10px; left: 12px; font-size: 11px; font-weight: var(--adm-fw-bold); background: rgba(0,0,0,0.28); padding: 3px 9px; border-radius:var(--adm-radius-sm); backdrop-filter: blur(4px); }
 .admin-app-wrapper .tpl-body { padding: 14px 16px 14px; }
@@ -1025,7 +1025,7 @@
 .admin-app-wrapper .card-muted-note .material-symbols-outlined { font-size: 19px; flex: none; }
 .admin-app-wrapper .sec-label { font-size: 11px; font-weight: var(--adm-fw-bold); text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-tertiary); margin-bottom: 10px; }
 .admin-app-wrapper .gi-preview { border: 1px solid var(--adm-accent-line); border-radius: var(--r-lg); padding: 18px; background: var(--adm-surface); }
-.admin-app-wrapper .gi-ava { width: 46px; height: 46px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #fff; background: var(--adm-accent); box-shadow: var(--shadow-sm); }
+.admin-app-wrapper .gi-ava { width: 46px; height: 46px; border-radius: 50%; flex: none; display: grid; place-items: center; color: var(--adm-on-primary); background: var(--adm-accent); box-shadow: var(--shadow-sm); }
 .admin-app-wrapper .gi-ava .material-symbols-outlined { font-size: 24px; }
 .admin-app-wrapper .gi-eyebrow { font-size: 11px; font-weight: var(--adm-fw-bold); letter-spacing: 0.12em; text-transform: uppercase; color: var(--mrt-blue-strong); margin-bottom: 2px; }
 .admin-app-wrapper .gi-body { font-size: 13px; color: var(--text-secondary); line-height: 1.65; margin: 0 0 12px; white-space: pre-wrap; }
@@ -1111,7 +1111,7 @@
 .admin-app-wrapper .tc-anchors { display: flex; gap: 2px; padding: 0 22px; background: var(--adm-surface); border-bottom: 1px solid var(--border-default); flex: none; }
 .admin-app-wrapper .tc-anchors button { border: none; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--text-tertiary); padding: 10px 13px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .admin-app-wrapper .tc-anchors button:hover { color: var(--text-secondary); }
-.admin-app-wrapper .tc-anchors button.active { color: var(--adm-accent); border-bottom-color: var(--adm-accent); }
+.admin-app-wrapper .tc-anchors button.active { color: var(--adm-accent-strong); border-bottom-color: var(--adm-accent); }
 .admin-app-wrapper .tcom { letter-spacing: -0.01em; }
 .admin-app-wrapper .tcom .drawer-head { padding: 12px 22px; }
 .admin-app-wrapper .tcom .drawer-head .page-title { font-size: 17px; }
@@ -1133,11 +1133,11 @@
 .admin-app-wrapper .tcom .pay-cell { border-radius: var(--adm-radius-sm); }
 .admin-app-wrapper .tcom .inp { height: 36px; font-size: 13px; border-radius: var(--adm-radius-xs); }
 .admin-app-wrapper .tcom .next-bar { background: var(--adm-accent-soft); }
-.admin-app-wrapper .tcom .next-bar .nb-label { color: var(--adm-accent-hover); }
+.admin-app-wrapper .tcom .next-bar .nb-label { color: var(--adm-accent-strong); }
 .admin-app-wrapper .tcom .step-dots .sd.on { background: var(--adm-accent); }
 .admin-app-wrapper .tcom .reservation-workspace-body { padding: 16px 20px 24px; }
 .admin-app-wrapper .tcom .reservation-action-rail { font-size: 12px; }
-.admin-app-wrapper .tcom .link-action { color: var(--adm-accent); font-size: 12px; }
+.admin-app-wrapper .tcom .link-action { color: var(--adm-accent-strong); font-size: 12px; }
 .admin-app-wrapper .tcom .link-action:hover { background: var(--adm-accent-soft); }
 
 /* A customer workspace needs the full narrow viewport for its forms. The same

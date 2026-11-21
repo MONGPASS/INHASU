@@ -426,7 +426,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         <b style={{ fontSize: 14, fontWeight: 700 }}>일자별 숙소</b>
                         {!asgLocked && <button type="button" disabled={busy || saving} onClick={requestLodging} style={{ ...ghostBtn(34), marginLeft: 'auto', padding: '0 14px' }}>
                             <Ico name="lc-send" size={14} />현지 운영에 수배 요청
-                            {pendingNights.length > 0 && <span style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999, alignItems: 'center', justifyContent: 'center', background: 'var(--adm-accent)', color: '#fff', fontSize: 11, fontWeight: 700 }}>{pendingNights.length}</span>}
+                            {pendingNights.length > 0 && <span style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999, alignItems: 'center', justifyContent: 'center', background: 'var(--adm-accent)', color: 'var(--adm-on-primary)', fontSize: 11, fontWeight: 700 }}>{pendingNights.length}</span>}
                         </button>}
                     </div>
                     <div className="v7-stay-head" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', height: 34, padding: '0 18px', background: 'var(--adm-gray-50)', fontSize: 11, fontWeight: 700, color: V7_MUTED }}><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
