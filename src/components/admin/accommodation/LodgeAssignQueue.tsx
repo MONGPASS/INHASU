@@ -156,7 +156,7 @@ function QueueItem({ m, selected, dirty, draft, onPick }: { m: LodgeModel & { st
     return (
         <AdminPickCard selected={selected} onClick={onPick} className="lq-item" aria-label={`${tourNameOf(m.tour)} 예약 · ${status}`}>
             <span className="lq-item-head">
-                {dday && <AdminBadge tone={dday.soon ? 'warn' : 'neutral'} strong={dday.soon}>{dday.label}</AdminBadge>}
+                {dday && <AdminBadge tone="neutral" strong={dday.soon}>{dday.label}</AdminBadge>}
                 <b className="lq-item-name">{tourNameOf(m.tour)}</b>
                 {m.tour.reservationNumber && <span className="lq-sub">#{m.tour.reservationNumber}</span>}
                 <span className="lq-gap" />
@@ -197,7 +197,7 @@ function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending,
                     <div className="lq-title-row">
                         <h2>{tourNameOf(t)}</h2>
                         {t.reservationNumber && <span className="lq-sub">#{t.reservationNumber}</span>}
-                        {dday && <AdminBadge tone={dday.soon ? 'warn' : 'neutral'} strong={dday.soon}>{dday.label}</AdminBadge>}
+                        {dday && <AdminBadge tone="neutral" strong={dday.soon}>{dday.label}</AdminBadge>}
                         <AdminBadge outlined>{t.source === 'quote_booking' ? '견적 예약' : '상품 예약'}</AdminBadge>
                     </div>
                     <span className="lq-sub">{dotted(m.start)} ({weekday(m.start)}) → {dotted(m.end)} ({weekday(m.end)}) · {spanLabel(N)} · {t.travelers ? `${t.travelers}명` : '인원 미정'}</span>
