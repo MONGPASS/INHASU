@@ -25,7 +25,7 @@
 | 상품 관리 | 상품 카테고리 | `/admin/categories` | `pages/AdminCategoryManage.tsx`(+ `AdminCategoryManage.css`) | 목록형(2026-11-21 우리 부품 전환) | 카테고리 편집 창(`AdminDialog`, 접히는 랜딩 페이지 편집: 히어로 이미지·하이라이트 섹션·카드) |
 | 상품 관리 | 문서 템플릿 | `/admin/templates` | `pages/AdminTemplateManage.tsx` | 목록형 | 일정표 편집기(전체 화면), 가이드·숙소 등록 창, 호텔·관광지 고르기 |
 | 고객·콘텐츠 | 일반 문의 | `/admin/inquiries` | `pages/AdminInquiryManage.tsx` | 목록형 | 문의 상세 옆 패널(화면 안에 고정) |
-| 고객·콘텐츠 | 후기 관리 | `/admin/reviews` | `pages/AdminReviewManage.tsx` | 목록형 | 후기 등록·수정 창 |
+| 고객·콘텐츠 | 후기 관리 | `/admin/reviews` | `pages/AdminReviewManage.tsx`(+ `AdminReviewManage.css`) | 목록형(2026-11-21 우리 부품 전환) | 수동 후기 등록 창(`AdminDialog`, 사진 5장까지) |
 | 고객·콘텐츠 | FAQ 관리 | `/admin/faq` | `pages/AdminFAQManage.tsx`(+ `AdminFAQManage.css`) | 목록형(2026-11-21 우리 부품 전환) | FAQ 편집 창·분류 이름 수정 창(`AdminDialog`). 탭 FAQ 목록·카테고리 관리·투어 공통 FAQ |
 | (FAQ에서 진입) | 상품별 FAQ | `/admin/tour-faqs` | `pages/AdminTourFAQManage.tsx` + `TourFAQEditor.tsx`(+ `.css`) | 입력형(2026-11-21 우리 부품 전환) | 없음 |
 | 고객·콘텐츠 | 매거진 관리 | `/admin/magazines` | `pages/AdminMagazineManage.tsx` | 목록형 → 입력형(글 쓰기) | 지도 위치 고르기, 분류 편집 창 |
