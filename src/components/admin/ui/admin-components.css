@@ -48,6 +48,8 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
 .adm-ui-field :is(.adm-ui-input, .adm-ui-select, .adm-ui-textarea) { width: 100%; }
 .adm-ui-input.adm-ui-input :is(input), .adm-ui-search.adm-ui-search :is(input), .adm-ui-textarea.adm-ui-textarea textarea { font-family: var(--adm-font); font-size: var(--adm-fs-input); color: var(--adm-text); }
 .adm-ui-search.adm-ui-search { max-width: 320px; }
+/* 칸 안의 실제 입력에는 초점 테두리를 그리지 않는다 — 바깥 칸이 민트 초점 링을 그린다. 화면 CSS의 옛 규칙(… input:focus-visible { outline })이 칸 안에 검은 상자를 만들지 않게 한다. */
+.adm-ui-input.adm-ui-input input:focus-visible, .adm-ui-search.adm-ui-search input:focus-visible, .adm-ui-textarea.adm-ui-textarea textarea:focus-visible { outline: 0; }
 .adm-ui-search.is-wide.is-wide { max-width: none; }
 .adm-ui-select.is-invalid.is-invalid, .adm-ui-textarea.is-invalid.is-invalid { box-shadow: 0 0 0 1px var(--adm-danger); border-radius: var(--adm-radius-sm); }
 
@@ -156,7 +158,7 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
 /* 고를 수 있는 카드(AdminPickCard) — 고르면 민트 선·옅은 민트 바탕 */
 .adm-ui-pick { display: flex; flex-direction: column; align-items: stretch; gap: var(--adm-space-2); width: 100%; min-width: 0; margin: 0; padding: var(--adm-space-3) var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--adm-text); font: inherit; font-family: var(--adm-font); text-align: left; cursor: pointer; transition: border-color var(--adm-dur) var(--adm-ease), background var(--adm-dur) var(--adm-ease); }
 .adm-ui-pick:hover { border-color: var(--adm-line-strong); }
-.adm-ui-pick:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+.adm-ui-pick.adm-ui-pick:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
 .adm-ui-pick.is-selected, .adm-ui-pick.is-selected:hover { border-color: var(--adm-accent); background: var(--adm-accent-soft); }
 .adm-ui-pick:disabled { cursor: default; opacity: .6; }
 
