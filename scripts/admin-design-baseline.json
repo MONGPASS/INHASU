@@ -557,6 +557,15 @@
   "hex": 0,
   "nativeDialog": 1
  },
+ "src/pages/AdminItineraryManage.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
  "src/pages/AdminLogin.tsx": {
   "rawButton": 5,
   "rawField": 6,
@@ -777,6 +786,11 @@
   "rawPx": 170
  },
  "src/pages/AdminFAQManage.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
+ },
+ "src/pages/AdminItineraryManage.css": {
   "hex": 0,
   "important": 0,
   "rawPx": 0
