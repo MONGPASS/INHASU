@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, IconButton, TextButton } from '@montage-ui/core';
 import { cx, MONTAGE_SIZE, type AdminSize } from './adminUiUtils';
@@ -127,3 +127,36 @@ export const AdminTextButton = React.forwardRef<HTMLButtonElement, AdminTextButt
         </TextButton>
     );
 });
+
+export interface AdminFileButtonProps extends Omit<AdminButtonProps, 'onClick' | 'onChange' | 'to' | 'replace' | 'type'> {
+    /** 받을 파일 종류(예: image/*) */
+    accept?: string;
+    multiple?: boolean;
+    /** 고른 파일(한 개 이상)을 넘긴다. 같은 파일을 다시 고를 수 있게 칸은 바로 비운다 */
+    onFiles: (files: File[]) => unknown;
+}
+
+/** 파일 고르기 버튼. 모양은 AdminButton 그대로이고, 숨은 파일 칸을 연다 */
+export const AdminFileButton: React.FC<AdminFileButtonProps> = ({ accept, multiple, onFiles, disabled, variant = 'secondary', ...rest }) => {
+    const input = useRef<HTMLInputElement>(null);
+    return (
+        <>
+            <AdminButton {...rest} variant={variant} disabled={disabled} onClick={() => input.current?.click()} />
+            <input
+                ref={input}
+                type="file"
+                className="adm-ui-file-input"
+                accept={accept}
+                multiple={multiple}
+                disabled={disabled}
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={(event) => {
+                    const files = Array.from(event.target.files || []);
+                    event.target.value = '';
+                    if (files.length) void onFiles(files);
+                }}
+            />
+        </>
+    );
+};

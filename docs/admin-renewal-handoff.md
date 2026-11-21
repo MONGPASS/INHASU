@@ -131,6 +131,15 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 
 ### 단계 3. 목록형 작은 화면 일괄
 카테고리 → FAQ·상품별 FAQ → 후기 → 일반 문의 → 기획전 → 매거진 목록 → 상품용 가이드·숙소 → 문서 템플릿 → 맞춤견적 관리(이전). 틀이 같아 빠르다.
+브랜치 `feature/admin-list-screens`(단계 2 PR 위에 쌓음). 화면마다 새 시안은 만들지 않고 단계 2 목록 기준을 따른다.
+
+> **상품 카테고리 완료(2026-11-21)** — 머리 ‘카테고리 추가’(primary) → 카드 하나(제목 ‘카테고리 N개’, 저장 중 상태 글) 안의 표(`AdminTable`: 순서 위·아래 `AdminIconButton` · 아이콘 · 이름 · 설명 · 상품 수 · 노출 `AdminSwitch` · 수정/삭제, ‘전체’는 `AdminBadge` 기본). 읽기 실패는 `AdminError`(다시 시도), 빈 목록은 `AdminEmpty`.
+> - 오른쪽 서랍이던 편집을 `AdminDialog`(md)로 바꿨다. 고친 내용이 있으면 닫을 때 창 안에서 묻고(옛 브라우저 확인 대신), 저장·업로드 중에는 닫기·저장을 막는다(업로드 중 닫기는 ‘끝난 뒤 닫아 주세요’). 저장 성공 때만 닫고 실패하면 입력·올린 사진을 유지하는 기존 보호(`useAdminContentGuard`·`createAdminContentTask`)는 그대로다.
+> - 새 부품 `AdminSwitch`(Montage `Switch`)·`AdminFileButton`(숨은 파일 칸을 여는 버튼). 히어로 이미지의 순서·삭제 버튼은 사진 위 검은 덧칠 대신 사진 아래 줄로 옮겼다. 랜딩 강조 색상의 옛 기본값은 `types/category.ts`의 `LEGACY_LANDING_ACCENT` 한 곳에 둔다(사이트 `accentOf`도 같은 값).
+> - 공통 `AdminDialog`: 긴 창에서 Montage 스크롤 상자가 머리·저장 줄까지 굴리던 것을 본문만 스크롤하도록 고쳤다(수동 예약 추가 창도 같은 혜택).
+> - 수치: 생 부품 34→0 · 인라인 style 62→0 · 숫자 크기 78/42→0/0 · 직접 색 5→0 · `!important` 1→0, 전환율 0%→100%. `tests/admin-content-workflow.test.mjs`의 얕은 렌더 하네스는 우리 부품·Montage 아이콘을 이름 문자열로 바꿔 같은 보호 시나리오를 그대로 검사한다.
+> - 로컬 확인(8804, 합성 자료): 1440·375에서 표·휴대폰 카드(가로 넘침 0), 수정 창(머리·저장 줄 고정), 고친 뒤 취소 → 창 안 확인, 설명 저장 → 목록 반영, 순서 위·아래, 노출 스위치 켜고 끄기(원래대로 되돌림).
+
 
 ### 단계 4. 상세형·입력형·대시보드형
 - 고객 예약 상세(`v7/ReservationDetailV7.tsx`, `CustomerWorkspaceOverview`, `Reservation*`) — 상세형 기준

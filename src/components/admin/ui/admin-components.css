@@ -54,6 +54,13 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
 .adm-ui-check { display: inline-flex; align-items: center; gap: var(--adm-space-2); min-height: var(--adm-control-h-sm); }
 .adm-ui-check-label { color: var(--adm-text); font-size: var(--adm-fs-body); line-height: var(--adm-lh); cursor: pointer; user-select: none; }
 .adm-ui-check.is-disabled .adm-ui-check-label { color: var(--adm-text-disabled); cursor: not-allowed; }
+.adm-ui-switch { display: inline-flex; align-items: flex-start; gap: var(--adm-space-3); min-height: var(--adm-control-h-sm); }
+.adm-ui-switch > button { flex: none; }
+.adm-ui-switch-text { display: flex; flex-direction: column; gap: var(--adm-space-1); cursor: pointer; user-select: none; }
+.adm-ui-switch-label { color: var(--adm-text); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh); }
+.adm-ui-switch-desc { color: var(--adm-text-3); font-size: var(--adm-fs-caption); line-height: var(--adm-lh); }
+.adm-ui-switch.is-disabled .adm-ui-switch-text { color: var(--adm-text-disabled); cursor: not-allowed; }
+.adm-ui-file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ── 표: 머리 13px 보조 글자, 줄 14px·좌우 16, 줄 사이 옅은 선 ── */
 .adm-ui-table { min-width: 0; overflow-x: auto; }
@@ -167,6 +174,8 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
 .adm-ui-dialog-title { margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh); }
 .adm-ui-dialog-desc { margin: var(--adm-space-1) 0 0; color: var(--adm-text-2); font-size: var(--adm-fs-body); line-height: var(--adm-lh); }
 .adm-ui-dialog-body { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--adm-space-4); min-height: 0; overflow-y: auto; padding: var(--adm-space-2) var(--adm-space-6) var(--adm-space-6); color: var(--adm-text-2); font-size: var(--adm-fs-base); line-height: var(--adm-lh); }
+/* Montage 창 안쪽 스크롤 상자(Radix ScrollArea)가 머리·발까지 함께 굴리지 않게: 본문만 스크롤하고 머리·저장 줄은 늘 보인다 */
+.adm-ui-dialog.adm-ui-dialog div:has(.adm-ui-dialog-body) { min-height: 0; overflow: hidden; }
 .adm-ui-dialog-foot { display: flex; flex: none; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--adm-gap-control); padding: var(--adm-space-3) var(--adm-space-6) var(--adm-space-5); border-top: 1px solid var(--adm-line-subtle); background: var(--adm-surface); }
 .adm-ui-dialog-foot-start, .adm-ui-dialog-foot-end { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-gap-control); }
 .adm-ui-dialog-foot-end { margin-left: auto; }

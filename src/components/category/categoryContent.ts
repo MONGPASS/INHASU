@@ -1,4 +1,4 @@
-import type { HighlightCardData, HighlightSectionData } from '../../types/category';
+import { LEGACY_LANDING_ACCENT, type HighlightCardData, type HighlightSectionData } from '../../types/category';
 import { MW } from '../desktop-primitives/mwTokens';
 import type { HomeProduct } from '../home-desktop/homeDesktopData';
 
@@ -55,7 +55,7 @@ export const visibleHighlights = (c: CategoryLandingContent): HighlightSection[]
         .filter((s) => s.title || s.cards.length > 0);
 
 // The admin colour picker's default from the previous (teal) design.
-const LEGACY_ACCENT = '#0f766e';
+const LEGACY_ACCENT = LEGACY_LANDING_ACCENT;
 
 /** Admin accent colour when one was chosen on purpose; the redesign's mint otherwise. */
 export const accentOf = (c: CategoryLandingContent): string => {

@@ -101,6 +101,8 @@
 | `AdminTextButton` | 글자 버튼(‘전체 보기’, ‘목록으로’). `tone` primary(민트 글자)·assistive(회색) | `TextButton` |
 | `AdminField` | 라벨(위, 13px 600) + 칸 + 칸 아래 보조 설명·오류. `required`면 `adm-req`(빨간 `*`), `error`면 빨간 테두리와 칸 아래 문구. 자식에 `(id) => 칸`을 넘기면 라벨과 칸이 이어진다 | — |
 | `AdminTextInput` · `AdminTextArea` · `AdminSelect` · `AdminCheckbox` | 입력칸(높이 40·휴대폰 44, 모서리 10, 글자 14·휴대폰 16) · 여러 줄(글자 수 표시) · 선택 상자(`onChange(value)`) · 체크(`onChange(boolean)`, 일부 선택) | `TextField` · `TextArea` · `Select`·`Option` · `Checkbox` |
+| `AdminSwitch` | 켜기·끄기 스위치(즉시 반영되는 노출·사용 여부). `label`·`description`을 주면 오른쪽에 이름과 설명, 표 칸 안처럼 이름 없이 쓰면 `aria-label`을 꼭 준다. `size` sm·md | `Switch` |
+| `AdminFileButton` | 파일 고르기 버튼. 모양은 `AdminButton` 그대로(`variant`·`size`·`leading`), 숨은 파일 칸을 열고 `onFiles(files)`로 넘긴다. `accept`·`multiple`. 같은 파일을 다시 고를 수 있게 칸은 바로 비운다. 예: 카테고리 아이콘·히어로 이미지 올리기 | (`Button`) |
 | `AdminSearch` | 검색칸(돋보기 + 지우기). 검색 줄 맨 왼쪽, 최대 320px(`wide`면 넓게) | `SearchField` |
 | `AdminTable`(+ `AdminThead`·`AdminTbody`·`AdminTr`·`AdminTh`·`AdminTd`) · `AdminDataTable` | 표. 머리 13px·줄 14px·여백 16px. `AdminDataTable`은 열 정의(`columns`) + 자료(`rows`)로 그리고 줄 누르기(`onRowClick`, 줄 안 버튼·링크는 제외)·선택 줄·빈 목록(`empty`)을 받는다. 휴대폰에서는 한 줄이 카드 한 장(`useCardTables`가 머리글을 이름표로 붙인다). `cardOff`면 표 그대로(7절에 이유) | `Table` 계열 |
 | `AdminPagination` | 표 아래 페이지 이동(+ 왼쪽 ‘전체 N건’). 한 쪽뿐이면 그리지 않는다 | `Pagination` |
@@ -112,7 +114,7 @@
 | `AdminStat` · `AdminStatRow` | 지표 카드(이름·숫자 28px 700·단위·보조 글자). 처리할 일은 `attention`(주의 테두리 + 아이콘), `onClick`이면 필터를 겸하고 `active`면 민트 선택 | — |
 | `AdminMessage` | 화면 안 알림 상자(`adm-msg`). `tone` info·cautionary·negative·positive, 제목·설명·아래 글자 버튼 | (`SectionMessage` 모양) |
 | `AdminLoading` · `AdminEmpty` · `AdminError` | 본문 자리의 같은 틀: 불러오는 중 / 빈 목록(안내 + 첫 행동) / 오류(이유 + ‘다시 시도’) | `Loading` |
-| `AdminDialog` | 가운데 팝업(`size` sm 440 · md 640, 모서리 24). 머리(제목·설명·닫기) / 본문(`.adm-form`, `adminValidateRequired`가 이 안을 검사) / 발(왼쪽 `onDelete` 삭제, 오른쪽 취소·저장). Esc·바깥 누르기·닫기로 닫히고 `dirty`면 발에서 한 번 묻는다(팝업 위에 확인 창을 겹치지 않는다). `submitting`이면 ‘저장 중…’과 잠금. 휴대폰은 아래 시트. 겹침 순서는 `--adm-z-modal`이라 알림·확인 창이 위에 뜬다 | `Modal`·`ModalContainer` |
+| `AdminDialog` | 가운데 팝업(`size` sm 440 · md 640, 모서리 24). 머리(제목·설명·닫기) / 본문(`.adm-form`, `adminValidateRequired`가 이 안을 검사) / 발(왼쪽 `onDelete` 삭제, 오른쪽 취소·저장). Esc·바깥 누르기·닫기로 닫히고 `dirty`면 발에서 한 번 묻는다(팝업 위에 확인 창을 겹치지 않는다). `submitting`이면 ‘저장 중…’과 잠금. 내용이 길면 본문만 스크롤하고 머리·저장 줄은 늘 보인다. 휴대폰은 아래 시트. 겹침 순서는 `--adm-z-modal`이라 알림·확인 창이 위에 뜬다 | `Modal`·`ModalContainer` |
 | `AdminMenu` | 버튼을 누르면 뜨는 고르기 메뉴(이름 + 설명 한 줄, `disabled`). 트리거는 우리 버튼을 그대로 넘기고, 항목을 고르면 닫힌다. 예: 통합 예약 목록 머리의 ‘Excel’ 범위 | `Menu`·`MenuItem` |
 | `ListPage`(+ `AdminFilterBar`) | 목록형 틀: 제목·오른쪽 ‘추가’(`actions`) → 요약 지표(`summary`) → 카드 하나 안에 탭 → 검색 줄(왼쪽 검색·가운데 필터·오른쪽 정렬) → 표 → 페이지 이동 | — |
 | `FormPage`(+ `AdminFormSection`) | 입력형 틀: ‘목록으로’ → 구역 카드(구역 제목 18px, 본문 960px) → 아래 고정 막대(왼쪽 상태, 오른쪽 취소·저장) | — |

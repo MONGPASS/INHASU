@@ -46,7 +46,7 @@ test('우리 부품은 index.ts, 화면 틀은 AdminPage.tsx에서 내보내고 
     const index = readFileSync(join(root, UI_DIR, 'index.ts'), 'utf8');
     for (const name of ['AdminButton', 'AdminIconButton', 'AdminTextButton', 'AdminField', 'AdminTextInput', 'AdminSelect', 'AdminCheckbox', 'AdminSearch',
         'AdminTable', 'AdminDataTable', 'AdminPagination', 'AdminBadge', 'AdminChip', 'AdminSegmented', 'AdminTabs', 'AdminCard', 'AdminStat',
-        'AdminMessage', 'AdminLoading', 'AdminEmpty', 'AdminError', 'AdminDialog', 'AdminMenu',
+        'AdminMessage', 'AdminLoading', 'AdminEmpty', 'AdminError', 'AdminDialog', 'AdminMenu', 'AdminSwitch', 'AdminFileButton',
         'adminNotify', 'adminConfirm', 'adminValidateRequired']) {
         assert.match(index, new RegExp(`\\b${name}\\b`), `index.ts가 ${name}을 내보내야 한다`);
     }

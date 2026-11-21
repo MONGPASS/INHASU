@@ -6,10 +6,21 @@ import { useAdminContentGuard, type AdminContentState } from '../hooks/useAdminC
 import { createAdminContentTask, moveAdminRow } from '../utils/adminContentWorkflow';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
-import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
+import {
+    AdminBadge, AdminButton, AdminCard, AdminDialog, AdminEmpty, AdminError, AdminField, AdminFileButton, AdminIconButton,
+    AdminLoading, AdminMessage, AdminSwitch, AdminTable, AdminTbody, AdminTd, AdminTextArea, AdminTextButton, AdminTextInput,
+    AdminTh, AdminThead, AdminTr, cx,
+} from '../components/admin/ui';
+import {
+    IconArrowDown, IconArrowUp, IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconClose, IconImage,
+    IconPencil, IconPlus, IconTrash, IconUpload,
+} from '@montage-ui/icon';
 import './AdminCategoryManage.css';
-import { DEFAULT_CATEGORIES, DEFAULT_MAGAZINE_CATEGORIES, type Category } from '../types/category';
+import { DEFAULT_CATEGORIES, DEFAULT_MAGAZINE_CATEGORIES, LEGACY_LANDING_ACCENT, type Category } from '../types/category';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+
+/** 저장된 아이콘이 이미지 주소인지(아니면 Material Symbols 이름) */
+const isImageIcon = (icon?: string) => !!icon && (icon.startsWith('data:') || icon.startsWith('http') || icon.startsWith('/'));
 
 export const AdminCategoryManage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -192,143 +203,92 @@ export const AdminCategoryManage: React.FC = () => {
         } finally { release(); if (mounted.current) setActionBusy(false); }
     };
 
+    const locked = busy || loading || !!loadError || isModalOpen;
+    const openEditor = (category: Category | null) => { setSelectedCategory(category); setIsModalOpen(true); };
+
     return (
         <AdminLayout
             activePage="categories"
             title="상품 카테고리"
             description="화살표로 노출 순서를 바꾸고, 스위치로 사이트 노출을 켜고 꺼요."
             actions={
-                <button
-                    onClick={() => {
-                        setSelectedCategory(null);
-                        setIsModalOpen(true);
-                    }}
-                    className="btn btn-ink"
-                    disabled={busy || loading || !!loadError || isModalOpen}
-                >
-                    <Icon name="add" />
+                <AdminButton variant="primary" leading={<IconPlus />} onClick={() => openEditor(null)} disabled={locked}>
                     카테고리 추가
-                </button>
+                </AdminButton>
             }
         >
-            {notice && <p role="alert" className="card card-pad">{notice}</p>}
-            {loadError && <div role="alert" className="card card-pad">{loadError}<button type="button" className="btn btn-ghost" onClick={fetchCategories} disabled={busy || loading}>다시 불러오기</button></div>}
-            {(loading || actionBusy) && <p role="status">{loading ? '카테고리를 불러오는 중…' : '카테고리 변경 내용을 저장하는 중…'}</p>}
-            <fieldset disabled={busy || loading || !!loadError || isModalOpen} inert={busy || loading || !!loadError || isModalOpen} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-            <div className="route-anim cg-page">
-                <div className="card cg-card">
-                    <div className="tbl-wrap">
-                        <table className="tbl cg-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: 60 }}>순서</th>
-                                    <th style={{ width: 80 }}>아이콘</th>
-                                    <th>이름</th>
-                                    <th>설명</th>
-                                    <th className="r">상품</th>
-                                    <th className="c">노출</th>
-                                    <th className="r">관리</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sortedCategories.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7}>
-                                            <div className="empty">
-                                                <Icon name="category" />
-                                                <p>등록된 카테고리가 없습니다.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    sortedCategories.map((category, index) => (
-                                        <tr key={category.id} className={category.isActive ? undefined : 'is-hidden'}>
-                                            <td>
-                                                <span className="row" style={{ gap: 6 }}>
-                                                    <span className="edit-move">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => moveCategory(index, 'up')}
-                                                            disabled={index === 0}
-                                                        >
-                                                            <Icon name="arrow_upward" />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => moveCategory(index, 'down')}
-                                                            disabled={index === sortedCategories.length - 1}
-                                                        >
-                                                            <Icon name="arrow_downward" />
-                                                        </button>
+            <div className="cg-page">
+                {notice && <AdminMessage tone="cautionary" role="alert">{notice}</AdminMessage>}
+                {loadError ? (
+                    <AdminCard>
+                        <AdminError reason={loadError} onRetry={fetchCategories} retrying={loading} />
+                    </AdminCard>
+                ) : (
+                    <fieldset className="cg-lock" disabled={locked} inert={locked}>
+                        <AdminCard
+                            flush
+                            title={`카테고리 ${sortedCategories.length}개`}
+                            actions={actionBusy ? <span className="cg-status" role="status">변경 내용을 저장하는 중…</span> : undefined}
+                        >
+                            {loading && sortedCategories.length === 0 ? (
+                                <AdminLoading label="카테고리를 불러오는 중…" />
+                            ) : sortedCategories.length === 0 ? (
+                                <AdminEmpty title="등록된 카테고리가 없습니다." description="‘카테고리 추가’로 첫 카테고리를 만들어 주세요." />
+                            ) : (
+                                <AdminTable label="상품 카테고리" className="cg-table">
+                                    <AdminThead>
+                                        <AdminTr>
+                                            <AdminTh className="cg-c-order">순서</AdminTh>
+                                            <AdminTh className="cg-c-icon">아이콘</AdminTh>
+                                            <AdminTh className="cg-c-name">이름</AdminTh>
+                                            <AdminTh>설명</AdminTh>
+                                            <AdminTh align="right" className="cg-c-count">상품</AdminTh>
+                                            <AdminTh align="center" className="cg-c-active">노출</AdminTh>
+                                            <AdminTh align="right" className="cg-c-actions">관리</AdminTh>
+                                        </AdminTr>
+                                    </AdminThead>
+                                    <AdminTbody>
+                                        {sortedCategories.map((category, index) => (
+                                            <AdminTr key={category.id} className={category.isActive ? undefined : 'is-hidden'}>
+                                                <AdminTd className="cg-c-order">
+                                                    <span className="cg-order">
+                                                        <AdminIconButton size="sm" label={`${category.name} 위로`} onClick={() => moveCategory(index, 'up')} disabled={index === 0}>
+                                                            <IconArrowUp />
+                                                        </AdminIconButton>
+                                                        <AdminIconButton size="sm" label={`${category.name} 아래로`} onClick={() => moveCategory(index, 'down')} disabled={index === sortedCategories.length - 1}>
+                                                            <IconArrowDown />
+                                                        </AdminIconButton>
+                                                        <b className="cg-order-no">{index + 1}</b>
                                                     </span>
-                                                    <b className="cell-mono">{index + 1}</b>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                {category.icon.startsWith('data:') || category.icon.startsWith('http') || category.icon.startsWith('/') ? (
-                                                    <img
-                                                        src={category.icon}
-                                                        alt={category.name}
-                                                        className="thumb sq cg-icon"
-                                                    />
-                                                ) : (
-                                                    <span className="thumb sq cg-icon">
-                                                        <Icon name={category.icon} />
+                                                </AdminTd>
+                                                <AdminTd className="cg-c-icon">
+                                                    {isImageIcon(category.icon)
+                                                        ? <img src={category.icon} alt={category.name} className="cg-icon" />
+                                                        : <span className="cg-icon" aria-hidden="true"><Icon name={category.icon} /></span>}
+                                                </AdminTd>
+                                                <AdminTd className="cg-name" nowrap>{category.name}</AdminTd>
+                                                <AdminTd className="cg-desc">{category.description || '—'}</AdminTd>
+                                                <AdminTd align="right" className="cg-count">{productCount(category)}</AdminTd>
+                                                <AdminTd align="center" className="cg-c-active">
+                                                    <AdminSwitch size="sm" aria-label={`${category.name} 사이트 노출`} checked={!!category.isActive} onChange={() => toggleActive(category.id, category.isActive)} />
+                                                </AdminTd>
+                                                <AdminTd align="right" className="cg-c-actions">
+                                                    <span className="cg-actions">
+                                                        <AdminIconButton label={`${category.name} 수정`} onClick={() => openEditor(category)}><IconPencil /></AdminIconButton>
+                                                        {category.id !== 'all'
+                                                            ? <AdminIconButton label={`${category.name} 삭제`} className="cg-danger" onClick={() => deleteCategory(category.id)}><IconTrash /></AdminIconButton>
+                                                            : <AdminBadge tone="neutral">기본</AdminBadge>}
                                                     </span>
-                                                )}
-                                            </td>
-                                            <td className="cell-strong">{category.name}</td>
-                                            <td className="cell-muted">{category.description || '—'}</td>
-                                            <td className="r cg-count">{productCount(category)}</td>
-                                            <td className="c">
-                                                <button
-                                                    type="button"
-                                                    className={`switch${category.isActive ? ' on' : ''}`}
-                                                    aria-pressed={category.isActive}
-                                                    aria-label={`${category.name} 사이트 노출`}
-                                                    onClick={() => toggleActive(category.id, category.isActive)}
-                                                >
-                                                    <span className="knob" />
-                                                </button>
-                                            </td>
-                                            <td className="r">
-                                                <span className="row-actions">
-                                                    <button
-                                                        type="button"
-                                                        className="act-btn"
-                                                        title="수정"
-                                                        aria-label={`${category.name} 수정`}
-                                                        onClick={() => {
-                                                            setSelectedCategory(category);
-                                                            setIsModalOpen(true);
-                                                        }}
-                                                    >
-                                                        <DashboardIcon name="lc-pencil" size={16} />
-                                                    </button>
-                                                    {category.id !== 'all' ? (
-                                                        <button
-                                                            type="button"
-                                                            className="act-btn danger"
-                                                            title="삭제"
-                                                            aria-label={`${category.name} 삭제`}
-                                                            onClick={() => deleteCategory(category.id)}
-                                                        >
-                                                            <DashboardIcon name="lc-trash" size={16} />
-                                                        </button>
-                                                    ) : <span className="cg-fixed" title="기본 카테고리는 삭제할 수 없어요">기본</span>}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                                </AdminTd>
+                                            </AdminTr>
+                                        ))}
+                                    </AdminTbody>
+                                </AdminTable>
+                            )}
+                        </AdminCard>
+                    </fieldset>
+                )}
             </div>
-
-            </fieldset>
-            {/* Modal */}
             {isModalOpen && (
                 <CategoryModal
                     category={selectedCategory}
@@ -375,9 +335,9 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
         report.current?.({ busy: task.current.busy(), dirty: dirty() });
     };
     useEffect(() => { mounted.current = true; report.current?.({ busy: false, dirty: dirty() }); return () => { mounted.current = false; report.current?.({ busy: false, dirty: false }); }; }, []);
-    const close = async () => {
+    // 고친 내용이 있으면 AdminDialog가 닫기 전에 묻는다(dirty). 저장·업로드 중에는 닫지 않는다.
+    const close = () => {
         if (task.current.busy()) { setError('저장·이미지 업로드가 끝난 뒤 닫아 주세요.'); return; }
-        if (dirty() && !await adminConfirm('저장하지 않은 카테고리 변경사항을 버리고 닫을까요?')) return;
         onClose();
     };
     const uploadImageTo = async (file: File, apply: (url: string) => void): Promise<boolean> => {
@@ -387,8 +347,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
         catch (reason: any) { if (mounted.current) setError(reason?.message || '이미지 업로드에 실패했습니다. 기존 입력은 유지됩니다. 다시 선택해 주세요.'); return false; }
         finally { release(); if (mounted.current) { setBusy(null); report.current?.({ busy: false, dirty: dirty() }); } }
     };
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
         const release = task.current.begin('save'); if (!release) return;
         if (!formRef.current.name?.trim() || !formRef.current.icon) { release(); setError('카테고리 이름과 아이콘을 입력해 주세요.'); return; }
         setBusy('save'); setError(''); report.current?.({ busy: true, dirty: dirty() });
@@ -399,160 +358,93 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ category, type, on
         } catch (reason: any) { if (mounted.current) setError(reason?.message || '저장에 실패했습니다. 입력을 확인한 뒤 다시 시도해 주세요.'); }
         finally { release(); if (mounted.current) { setBusy(null); report.current?.({ busy: false, dirty: dirty() }); } }
     };
+    const hasImageIcon = isImageIcon(formData.icon);
 
     return (
-        <div className="picker-scrim cg-drawer-scrim" onClick={close}>
-            <div
-                className="picker cg-drawer"
-                role="dialog"
-                aria-modal="true"
-                aria-label={category ? '카테고리 수정' : '카테고리 추가'}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                    {error && <p role="alert" style={{ padding: '12px 20px', color: 'var(--adm-warn-strong)' }}>{error}</p>}
-                    {busy && <p role="status" style={{ padding: '12px 20px' }}>{busy === 'upload' ? '이미지 업로드 중…' : '카테고리 저장 중…'}</p>}
-                    <fieldset disabled={!!busy} inert={!!busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, display: 'contents' }}>
-                    {/* Header */}
-                    <div className="card-head">
-                        <h2>
-                            {category ? '카테고리 수정' : `${type === 'product' ? '상품' : '매거진'} 카테고리 추가`}
-                        </h2>
-                        <div className="spacer" />
-                        <button
-                            type="button"
-                            onClick={close}
-                            className="act-btn"
-                            title="닫기"
-                            aria-label="닫기"
+        <AdminDialog
+            open
+            size="md"
+            className="cg-dialog"
+            title={category ? '카테고리 수정' : `${type === 'product' ? '상품' : '매거진'} 카테고리 추가`}
+            onClose={close}
+            // 업로드 중에는 확인 대신 close()가 ‘끝난 뒤 닫아 주세요’를 보인다
+            dirty={!busy && dirty()}
+            onSubmit={handleSubmit}
+            submitLabel={category ? '수정 완료' : '추가 완료'}
+            submitting={busy === 'save'}
+            submitDisabled={busy === 'upload'}
+        >
+            {error && <AdminMessage tone="negative" role="alert">{error}</AdminMessage>}
+            {busy === 'upload' && <AdminMessage tone="info">이미지 업로드 중…</AdminMessage>}
+            <fieldset className="cg-lock cg-form" disabled={!!busy} inert={!!busy}>
+                <AdminField id="cg-name" label="카테고리 이름" required>
+                    <AdminTextInput
+                        id="cg-name"
+                        value={formData.name || ''}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder={type === 'product' ? '예: 서부몽골' : '예: 몽골 기본 정보'}
+                    />
+                </AdminField>
+
+                {/* URL 슬러그: 수정할 때만, ‘전체’ 카테고리는 바꾸지 않는다 */}
+                {category && category.id !== 'all' && (
+                    <AdminField id="cg-slug" label="URL 슬러그 (ID)" hint="영문 소문자·숫자·하이픈만 쓸 수 있어요. 바꾸면 기존 주소는 더 이상 열리지 않아요.">
+                        <AdminTextInput
+                            id="cg-slug"
+                            aria-describedby="cg-slug-hint"
+                            className="cg-mono"
+                            leading={<span className="cg-prefix">/category/</span>}
+                            value={formData.id || ''}
+                            onChange={(e) => setFormData({ ...formData, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                            placeholder="예: gobi"
+                        />
+                    </AdminField>
+                )}
+
+                <AdminField id="cg-desc" label="설명">
+                    <AdminTextInput
+                        id="cg-desc"
+                        value={formData.description || ''}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder={type === 'product' ? '예: 알타이 산맥 트레킹' : '예: 환전, 유심, 날씨 등'}
+                    />
+                </AdminField>
+
+                <AdminField id="cg-icon" label="아이콘 이미지" required aside="1:1 이미지 · 사용자 화면에선 원형으로 보여요">
+                    <div className="cg-icon-row">
+                        {hasImageIcon
+                            ? <img src={formData.icon} alt="카테고리 아이콘" className="cg-icon is-lg" />
+                            : <span className="cg-icon is-lg" aria-hidden="true"><IconImage /></span>}
+                        <AdminFileButton
+                            id="cg-icon"
+                            size="sm"
+                            accept="image/*"
+                            leading={<IconUpload />}
+                            onFiles={(files) => uploadImageTo(files[0], url => setFormData(previous => ({ ...previous, icon: url })))}
                         >
-                            <DashboardIcon name="lc-x" size={18} />
-                        </button>
+                            {hasImageIcon ? '이미지 바꾸기' : '이미지 올리기'}
+                        </AdminFileButton>
                     </div>
+                </AdminField>
 
-                    {/* Body */}
-                    <div className="cg-drawer-body">
-                        {/* Name */}
-                        <div className="field">
-                            <label className="adm-req">카테고리 이름</label>
-                            <input
-                                type="text"
-                                className="inp"
-                                value={formData.name || ''}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder={type === 'product' ? "예: 서부몽골" : "예: 몽골 기본 정보"}
-                            />
-                        </div>
+                <AdminSwitch
+                    className="cg-visible"
+                    checked={!!formData.isActive}
+                    onChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                    label="사이트에 노출"
+                    description="끄면 카테고리 메뉴와 랜딩 페이지가 숨겨져요"
+                />
 
-                        {/* URL Slug (editable only in edit mode, and not for the "all" category) */}
-                        {category && category.id !== 'all' && (
-                            <div className="field">
-                                <label>URL 슬러그 (ID)</label>
-                                <div className="row" style={{ gap: 8 }}>
-                                    <span className="cell-muted" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>/category/</span>
-                                    <input
-                                        type="text"
-                                        className="inp"
-                                        style={{ flex: 1, fontFamily: 'var(--font-mono)' }}
-                                        value={formData.id || ''}
-                                        onChange={(e) => setFormData({ ...formData, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                                        placeholder="예: gobi"
-                                    />
-                                </div>
-                                <p className="cell-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                                    영문 소문자/숫자/하이픈만 허용. 변경 시 기존 URL이 더이상 열리지 않으니 주의하세요.
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Description */}
-                        <div className="field">
-                            <label>설명</label>
-                            <input
-                                type="text"
-                                className="inp"
-                                value={formData.description || ''}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                placeholder={type === 'product' ? "예: 알타이 산맥 트레킹" : "예: 환전, 유심, 날씨 등"}
-                            />
-                        </div>
-
-                        {/* Icon */}
-                        <div className="field">
-                            <label>아이콘 이미지 * <span className="cg-hint">1:1 이미지 · 사용자 화면에선 원형으로 보여요</span></label>
-
-                            {/* Image Preview */}
-                            {formData.icon && (formData.icon.startsWith('data:') || formData.icon.startsWith('http') || formData.icon.startsWith('/')) && (
-                                <div style={{ marginBottom: 12 }}>
-                                    <img
-                                        src={formData.icon}
-                                        alt="Category icon"
-                                        className="thumb sq"
-                                        style={{ width: 80, height: 80 }}
-                                    />
-                                </div>
-                            )}
-
-                            {/* File Upload */}
-                            <label className="cg-upload">
-                                <DashboardIcon name="lc-image-plus" size={18} />
-                                <span>{formData.icon && (formData.icon.startsWith('data:') || formData.icon.startsWith('http') || formData.icon.startsWith('/')) ? '이미지 바꾸기' : '이미지 올리기'}</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={e => {
-                                        const input = e.target, file = input.files?.[0];
-                                        if (file) void uploadImageTo(file, url => setFormData(previous => ({ ...previous, icon: url }))).finally(() => { input.value = ''; });
-                                    }}
-                                />
-                            </label>
-                        </div>
-
-                        {/* Active Status */}
-                        <div className="toggle-row cg-visible">
-                            <button
-                                type="button"
-                                className={`switch${formData.isActive ? ' on' : ''}`}
-                                aria-pressed={!!formData.isActive}
-                                aria-label="사이트에 노출"
-                                onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
-                            >
-                                <span className="knob" />
-                            </button>
-                            <span><b>사이트에 노출</b><small>끄면 카테고리 메뉴와 랜딩 페이지가 숨겨져요</small></span>
-                        </div>
-
-                        {/* Landing page editor — only for product categories */}
-                        {type === 'product' && (
-                            <LandingPageEditor
-                                formData={formData}
-                                setFormData={setFormData}
-                                uploadImageTo={uploadImageTo}
-                            />
-                        )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="drawer-foot cg-drawer-foot">
-                        <div className="spacer" style={{ flex: 1 }} />
-                        <button
-                            type="button"
-                            onClick={close}
-                            className="btn btn-ghost"
-                        >
-                            취소
-                        </button>
-                        <button
-                            type="submit"
-                            className="btn btn-ink"
-                        >
-                            {category ? '수정 완료' : '추가 완료'}
-                        </button>
-                    </div>
-                    </fieldset>
-                </form>
-            </div>
-        </div>
+                {/* 랜딩 페이지 편집 — 상품 카테고리만 */}
+                {type === 'product' && (
+                    <LandingPageEditor
+                        formData={formData}
+                        setFormData={setFormData}
+                        uploadImageTo={uploadImageTo}
+                    />
+                )}
+            </fieldset>
+        </AdminDialog>
     );
 };
 
@@ -598,24 +490,27 @@ const LandingPageEditor: React.FC<LandingEditorProps> = ({ formData, setFormData
     };
 
     return (
-        <div className="edit-sec" style={{ padding: 0 }}>
-            <button
-                type="button"
-                onClick={() => setExpanded(!expanded)}
-                className="edit-sec-head"
-                style={{ width: '100%', padding: '14px 16px', margin: 0, border: 'none', background: 'none', cursor: 'pointer' }}
-            >
-                <DashboardIcon name="lc-panels-top-left" size={16} />
-                <h4 style={{ fontSize: 14 }}>랜딩 페이지 <span className="cg-slug">/category/{formData.id || '…'}</span></h4>
-                <span className="spacer" style={{ flex: 1 }} />
-                <Icon name="expand_more" className={expanded ? 'rotate' : ''} style={expanded ? { transform: 'rotate(180deg)' } : undefined} />
-            </button>
+        <section className="cg-landing" aria-label="랜딩 페이지">
+            <div className="cg-landing-head">
+                <div className="cg-landing-titles">
+                    <p className="cg-landing-title">랜딩 페이지</p>
+                    <p className="cg-landing-slug">/category/{formData.id || '…'}</p>
+                </div>
+                <AdminTextButton
+                    tone="assistive"
+                    aria-expanded={expanded}
+                    trailing={expanded ? <IconChevronUp /> : <IconChevronDown />}
+                    onClick={() => setExpanded(!expanded)}
+                >
+                    {expanded ? '접기' : '펼치기'}
+                </AdminTextButton>
+            </div>
 
             {expanded && (
-                <div style={{ padding: 16, borderTop: '1px solid var(--border-default)' }}>
-                    {/* Hero */}
-                    <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--border-subtle)' }}>
-                        <p className="sec-label">히어로 배너</p>
+                <div className="cg-landing-body">
+                    {/* 히어로 */}
+                    <div className="cg-block">
+                        <p className="cg-sub">히어로 배너</p>
 
                         <HeroImagesEditor
                             images={(() => {
@@ -632,179 +527,136 @@ const LandingPageEditor: React.FC<LandingEditorProps> = ({ formData, setFormData
                             uploadImageTo={uploadImageTo}
                         />
 
-                        <div className="field-row" style={{ marginTop: 12 }}>
-                            <div className="field" style={{ marginBottom: 0 }}>
-                                <label>소제목 (tagline)</label>
-                                <input
-                                    type="text"
-                                    className="inp"
+                        <div className="cg-grid-2">
+                            <AdminField id="cg-tagline" label="소제목 (tagline)">
+                                <AdminTextInput
+                                    id="cg-tagline"
                                     value={formData.landing_hero_tagline || ''}
                                     onChange={(e) => setFormData({ ...formData, landing_hero_tagline: e.target.value })}
                                     placeholder="예: 쏟아지는 별밤이 기다리고 있어요"
                                 />
-                            </div>
-                            <div className="field" style={{ marginBottom: 0 }}>
-                                <label>강조 색상 (accent)</label>
-                                <input
+                            </AdminField>
+                            <AdminField id="cg-accent" label="강조 색상 (accent)">
+                                <AdminTextInput
+                                    id="cg-accent"
                                     type="color"
-                                    className="inp"
-                                    style={{ padding: 4 }}
-                                    value={formData.landing_accent_color || '#0f766e'}
+                                    className="cg-color"
+                                    value={formData.landing_accent_color || LEGACY_LANDING_ACCENT}
                                     onChange={(e) => setFormData({ ...formData, landing_accent_color: e.target.value })}
                                 />
-                            </div>
+                            </AdminField>
                         </div>
 
-                        <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
-                            <label>메인 제목</label>
-                            <input
-                                type="text"
-                                className="inp"
+                        <AdminField id="cg-hero-title" label="메인 제목">
+                            <AdminTextInput
+                                id="cg-hero-title"
                                 value={formData.landing_hero_title || ''}
                                 onChange={(e) => setFormData({ ...formData, landing_hero_title: e.target.value })}
                                 placeholder="예: 고비사막 투어"
                             />
-                        </div>
+                        </AdminField>
 
-                        <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
-                            <label>서브 제목 (설명)</label>
-                            <textarea
-                                className="inp"
+                        <AdminField id="cg-hero-subtitle" label="서브 제목 (설명)">
+                            <AdminTextArea
+                                id="cg-hero-subtitle"
+                                minRows={2}
                                 value={formData.landing_hero_subtitle || ''}
                                 onChange={(e) => setFormData({ ...formData, landing_hero_subtitle: e.target.value })}
-                                rows={2}
                                 placeholder="예: 은하수가 또렷이 보이는 하늘, 노을에 물드는 사구..."
                             />
-                        </div>
+                        </AdminField>
 
-                        <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
-                            <label>상품 섹션 제목</label>
-                            <input
-                                type="text"
-                                className="inp"
+                        <AdminField id="cg-grid-title" label="상품 섹션 제목">
+                            <AdminTextInput
+                                id="cg-grid-title"
                                 value={formData.landing_product_grid_title || ''}
                                 onChange={(e) => setFormData({ ...formData, landing_product_grid_title: e.target.value })}
                                 placeholder="예: 고비사막 인기 투어"
                             />
-                        </div>
+                        </AdminField>
                     </div>
 
-                    {/* Highlights */}
-                    <div>
-                        <div className="row" style={{ marginBottom: 12 }}>
-                            <p className="sec-label" style={{ margin: 0 }}>하이라이트 섹션 ({highlights.length})</p>
-                            <span className="spacer" style={{ flex: 1 }} />
-                            <button type="button" onClick={addSection} className="btn btn-ghost btn-sm">
-                                <Icon name="add" />섹션 추가
-                            </button>
+                    {/* 하이라이트 */}
+                    <div className="cg-block">
+                        <div className="cg-block-head">
+                            <p className="cg-sub">하이라이트 섹션 ({highlights.length})</p>
+                            <AdminButton size="sm" leading={<IconPlus />} onClick={addSection}>섹션 추가</AdminButton>
                         </div>
 
-                        <div className="stack" style={{ gap: 12 }}>
-                            {highlights.map((section: any, sIdx: number) => (
-                                <div key={sIdx} className="edit-sec">
-                                    <div className="row" style={{ marginBottom: 8 }}>
-                                        <span className="cell-mono" style={{ fontSize: 11 }}>섹션 {sIdx + 1}</span>
-                                        <span className="spacer" style={{ flex: 1 }} />
-                                        <button type="button" onClick={() => removeSection(sIdx)} className="act-btn danger" title="삭제">
-                                            <Icon name="delete" />
-                                        </button>
-                                    </div>
-                                    <div className="field-row">
-                                        <input
-                                            type="text"
-                                            className="inp"
-                                            value={section.label || ''}
-                                            onChange={(e) => updateSection(sIdx, { label: e.target.value })}
-                                            placeholder="뱃지 라벨 (예: 하이라이트 1)"
-                                        />
-                                        <input
-                                            type="text"
-                                            className="inp"
-                                            value={section.title || ''}
-                                            onChange={(e) => updateSection(sIdx, { title: e.target.value })}
-                                            placeholder="섹션 제목"
-                                        />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        className="inp"
-                                        style={{ marginTop: 8 }}
-                                        value={section.subtitle || ''}
-                                        onChange={(e) => updateSection(sIdx, { subtitle: e.target.value })}
-                                        placeholder="섹션 서브타이틀"
+                        {highlights.length === 0 && <p className="cg-note">‘섹션 추가’로 하이라이트를 만드세요.</p>}
+                        {highlights.map((section: any, sIdx: number) => (
+                            <div key={sIdx} className="cg-section">
+                                <div className="cg-block-head">
+                                    <span className="cg-section-no">섹션 {sIdx + 1}</span>
+                                    <AdminIconButton size="sm" label={`섹션 ${sIdx + 1} 삭제`} className="cg-danger" onClick={() => removeSection(sIdx)}><IconTrash /></AdminIconButton>
+                                </div>
+                                <div className="cg-grid-2">
+                                    <AdminTextInput
+                                        aria-label={`섹션 ${sIdx + 1} 뱃지 라벨`}
+                                        value={section.label || ''}
+                                        onChange={(e) => updateSection(sIdx, { label: e.target.value })}
+                                        placeholder="뱃지 라벨 (예: 하이라이트 1)"
                                     />
+                                    <AdminTextInput
+                                        aria-label={`섹션 ${sIdx + 1} 제목`}
+                                        value={section.title || ''}
+                                        onChange={(e) => updateSection(sIdx, { title: e.target.value })}
+                                        placeholder="섹션 제목"
+                                    />
+                                </div>
+                                <AdminTextInput
+                                    aria-label={`섹션 ${sIdx + 1} 서브타이틀`}
+                                    value={section.subtitle || ''}
+                                    onChange={(e) => updateSection(sIdx, { subtitle: e.target.value })}
+                                    placeholder="섹션 서브타이틀"
+                                />
 
-                                    {/* Cards */}
-                                    <div className="stack" style={{ gap: 8, marginTop: 12 }}>
-                                        {(section.cards || []).map((card: any, cIdx: number) => (
-                                            <div key={cIdx} className="card card-pad" style={{ padding: 10 }}>
-                                                <div className="row" style={{ alignItems: 'flex-start', gap: 10 }}>
-                                                    <div className="thumb sq" style={{ overflow: 'hidden', display: 'grid', placeItems: 'center', color: 'var(--mrt-gray-400)' }}>
-                                                        {card.image ? (
-                                                            <img src={card.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                        ) : (
-                                                            <Icon name="image" />
-                                                        )}
-                                                    </div>
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <div className="row" style={{ gap: 6 }}>
-                                                            <input
-                                                                type="file"
-                                                                accept="image/*"
-                                                                style={{ fontSize: 11, width: 112 }}
-                                                                onChange={(e) => {
-                                                                    const input = e.target, file = input.files?.[0];
-                                                                    if (file) void uploadImageTo(file, url => updateCard(sIdx, cIdx, { image: url })).finally(() => { input.value = ''; });
-                                                                }}
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                className="inp"
-                                                                style={{ flex: 1, height: 34, fontSize: 12 }}
-                                                                value={(card.tags || []).join(', ')}
-                                                                onChange={(e) => updateCard(sIdx, cIdx, { tags: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                                                                placeholder="태그 (콤마 구분)"
-                                                            />
-                                                            <button type="button" onClick={() => removeCard(sIdx, cIdx)} className="act-btn danger" title="삭제">
-                                                                <Icon name="close" />
-                                                            </button>
-                                                        </div>
-                                                        <input
-                                                            type="text"
-                                                            className="inp"
-                                                            style={{ marginTop: 6, height: 34, fontSize: 12 }}
-                                                            value={card.title || ''}
-                                                            onChange={(e) => updateCard(sIdx, cIdx, { title: e.target.value })}
-                                                            placeholder="카드 제목"
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            className="inp"
-                                                            style={{ marginTop: 6, height: 34, fontSize: 12 }}
-                                                            value={card.description || ''}
-                                                            onChange={(e) => updateCard(sIdx, cIdx, { description: e.target.value })}
-                                                            placeholder="카드 설명"
-                                                        />
-                                                    </div>
-                                                </div>
+                                {(section.cards || []).map((card: any, cIdx: number) => (
+                                    <div key={cIdx} className="cg-hl-card">
+                                        <div className="cg-hl-thumb">
+                                            {card.image ? <img src={card.image} alt="" /> : <IconImage aria-hidden="true" />}
+                                        </div>
+                                        <div className="cg-hl-fields">
+                                            <div className="cg-hl-row">
+                                                <AdminFileButton
+                                                    size="sm"
+                                                    accept="image/*"
+                                                    leading={<IconUpload />}
+                                                    onFiles={(files) => uploadImageTo(files[0], url => updateCard(sIdx, cIdx, { image: url }))}
+                                                >
+                                                    {card.image ? '사진 바꾸기' : '사진 올리기'}
+                                                </AdminFileButton>
+                                                <AdminTextInput
+                                                    aria-label={`카드 ${cIdx + 1} 태그`}
+                                                    className="cg-grow"
+                                                    value={(card.tags || []).join(', ')}
+                                                    onChange={(e) => updateCard(sIdx, cIdx, { tags: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                                                    placeholder="태그 (콤마 구분)"
+                                                />
+                                                <AdminIconButton size="sm" label={`카드 ${cIdx + 1} 삭제`} className="cg-danger" onClick={() => removeCard(sIdx, cIdx)}><IconClose /></AdminIconButton>
                                             </div>
-                                        ))}
-                                        <button type="button" onClick={() => addCard(sIdx)} className="add-line">
-                                            <Icon name="add" /> 카드 추가
-                                        </button>
+                                            <AdminTextInput
+                                                aria-label={`카드 ${cIdx + 1} 제목`}
+                                                value={card.title || ''}
+                                                onChange={(e) => updateCard(sIdx, cIdx, { title: e.target.value })}
+                                                placeholder="카드 제목"
+                                            />
+                                            <AdminTextInput
+                                                aria-label={`카드 ${cIdx + 1} 설명`}
+                                                value={card.description || ''}
+                                                onChange={(e) => updateCard(sIdx, cIdx, { description: e.target.value })}
+                                                placeholder="카드 설명"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                            {highlights.length === 0 && (
-                                <div className="empty" style={{ padding: '32px 20px' }}>
-                                    <p>위 "섹션 추가" 버튼으로 하이라이트를 만드세요</p>
-                                </div>
-                            )}
-                        </div>
+                                ))}
+                                <AdminButton size="sm" variant="weak" leading={<IconPlus />} onClick={() => addCard(sIdx)} className="cg-add">카드 추가</AdminButton>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
-        </div>
+        </section>
     );
 };
 
@@ -834,71 +686,29 @@ const HeroImagesEditor: React.FC<HeroImagesEditorProps> = ({ images, onChange, u
     };
 
     return (
-        <div>
-            <div className="row" style={{ marginBottom: 6 }}>
-                <label className="cell-strong" style={{ fontSize: 12 }}>
-                    배경 이미지 슬라이드 ({images.length})
-                </label>
-                <span className="spacer" style={{ flex: 1 }} />
-                <span className="cell-muted" style={{ fontSize: 11 }}>첫 번째 이미지가 대표 이미지로 사용됩니다</span>
+        <div className="cg-hero">
+            <div className="cg-block-head">
+                <span className="cg-hero-title">배경 이미지 슬라이드 ({images.length})</span>
+                <span className="cg-note">첫 번째 이미지가 대표 이미지로 사용됩니다</span>
             </div>
 
             {images.length > 0 && (
-                <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                <ol className="cg-hero-grid">
                     {images.map((url, idx) => (
-                        <div key={idx} style={{ position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
-                            <img src={url} alt={`hero-${idx + 1}`} style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', display: 'block' }} />
-                            <div style={{ position: 'absolute', top: 4, left: 4, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
-                                {idx + 1}
+                        <li key={idx} className={cx('cg-hero-item', idx === 0 && 'is-first')}>
+                            <img src={url} alt={`배경 이미지 ${idx + 1}`} />
+                            <div className="cg-hero-bar">
+                                <span className="cg-hero-no">{idx === 0 ? '1 · 대표' : idx + 1}</span>
+                                <AdminIconButton size="sm" label={`배경 이미지 ${idx + 1} 앞으로`} onClick={() => moveImage(idx, 'left')} disabled={idx === 0}><IconChevronLeft /></AdminIconButton>
+                                <AdminIconButton size="sm" label={`배경 이미지 ${idx + 1} 뒤로`} onClick={() => moveImage(idx, 'right')} disabled={idx === images.length - 1}><IconChevronRight /></AdminIconButton>
+                                <AdminIconButton size="sm" label={`배경 이미지 ${idx + 1} 삭제`} className="cg-danger" onClick={() => removeImage(idx)}><IconTrash /></AdminIconButton>
                             </div>
-                            <div className="row" style={{ position: 'absolute', top: 4, right: 4, gap: 4 }}>
-                                <button
-                                    type="button"
-                                    onClick={() => moveImage(idx, 'left')}
-                                    disabled={idx === 0}
-                                    style={{ padding: 4, borderRadius: 'var(--adm-radius-xs)', border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
-                                    aria-label="move left"
-                                >
-                                    <Icon name="chevron_left" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => moveImage(idx, 'right')}
-                                    disabled={idx === images.length - 1}
-                                    style={{ padding: 4, borderRadius: 'var(--adm-radius-xs)', border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
-                                    aria-label="move right"
-                                >
-                                    <Icon name="chevron_right" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => removeImage(idx)}
-                                    style={{ padding: 4, borderRadius: 'var(--adm-radius-xs)', border: 'none', background: 'rgba(255,79,79,0.9)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
-                                    aria-label="delete"
-                                >
-                                    <Icon name="close" />
-                                </button>
-                            </div>
-                        </div>
+                        </li>
                     ))}
-                </div>
+                </ol>
             )}
 
-            <label className="add-line" style={{ cursor: 'pointer' }}>
-                <Icon name="add_photo_alternate" />
-                이미지 추가
-                <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        handleFiles(files);
-                        e.target.value = '';
-                    }}
-                />
-            </label>
+            <AdminFileButton size="sm" accept="image/*" multiple leading={<IconPlus />} onFiles={handleFiles}>이미지 추가</AdminFileButton>
         </div>
     );
 };

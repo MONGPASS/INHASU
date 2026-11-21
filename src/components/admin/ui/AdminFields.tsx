@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import { Checkbox, Option, SearchField, Select, TextArea, TextField } from '@montage-ui/core';
+import { Checkbox, Option, SearchField, Select, Switch, TextArea, TextField } from '@montage-ui/core';
 import { cx, type AdminSize } from './adminUiUtils';
 import './admin-components.css';
 
@@ -161,6 +161,46 @@ export const AdminCheckbox: React.FC<AdminCheckboxProps> = ({ checked, onChange,
         <span className={cx('adm-ui-check', disabled && 'is-disabled', className)}>
             {box}
             <label htmlFor={boxId} className="adm-ui-check-label">{label}</label>
+        </span>
+    );
+};
+
+export interface AdminSwitchProps {
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+    /** 스위치 오른쪽 이름. 없으면 `aria-label`을 꼭 준다(표 칸 안 등) */
+    label?: React.ReactNode;
+    /** 이름 아래 작은 설명 */
+    description?: React.ReactNode;
+    'aria-label'?: string;
+    disabled?: boolean;
+    id?: string;
+    className?: string;
+    size?: 'sm' | 'md';
+}
+
+/** 켜기·끄기 스위치(즉시 반영되는 노출·사용 여부). 고르기 여러 개는 AdminCheckbox를 쓴다 */
+export const AdminSwitch: React.FC<AdminSwitchProps> = ({ checked, onChange, label, description, disabled, size = 'md', className, id, ...rest }) => {
+    const auto = useId();
+    const switchId = id || `adm-s${auto.replace(/:/g, '')}`;
+    const control = (
+        <Switch
+            {...rest}
+            id={switchId}
+            checked={checked}
+            disabled={disabled}
+            size={size === 'sm' ? 'small' : 'medium'}
+            onCheckedChange={(state) => onChange(state)}
+        />
+    );
+    if (!label) return <span className={cx('adm-ui-switch', className)}>{control}</span>;
+    return (
+        <span className={cx('adm-ui-switch', disabled && 'is-disabled', className)}>
+            {control}
+            <label htmlFor={switchId} className="adm-ui-switch-text">
+                <span className="adm-ui-switch-label">{label}</span>
+                {description && <span className="adm-ui-switch-desc">{description}</span>}
+            </label>
         </span>
     );
 };

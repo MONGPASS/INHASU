@@ -3,10 +3,10 @@
  * (tests/admin-ui-boundary.test.mjs). Montage를 바꾸거나 갈아탈 때는 이 폴더만 고친다.
  * 규격: docs/admin-design-system.md 3절(부품)·4절(화면 틀). 미리보기: /admin/__ui
  */
-export { AdminButton, AdminIconButton, AdminTextButton } from './AdminButton';
-export type { AdminButtonProps, AdminButtonVariant, AdminIconButtonProps, AdminTextButtonProps } from './AdminButton';
-export { AdminField, AdminTextInput, AdminTextArea, AdminSelect, AdminCheckbox, AdminSearch } from './AdminFields';
-export type { AdminFieldProps, AdminTextInputProps, AdminTextAreaProps, AdminSelectProps, AdminSelectOption, AdminCheckboxProps, AdminSearchProps } from './AdminFields';
+export { AdminButton, AdminIconButton, AdminTextButton, AdminFileButton } from './AdminButton';
+export type { AdminButtonProps, AdminButtonVariant, AdminIconButtonProps, AdminTextButtonProps, AdminFileButtonProps } from './AdminButton';
+export { AdminField, AdminTextInput, AdminTextArea, AdminSelect, AdminCheckbox, AdminSwitch, AdminSearch } from './AdminFields';
+export type { AdminFieldProps, AdminTextInputProps, AdminTextAreaProps, AdminSelectProps, AdminSelectOption, AdminCheckboxProps, AdminSwitchProps, AdminSearchProps } from './AdminFields';
 export { AdminTable, AdminThead, AdminTbody, AdminTr, AdminTh, AdminTd, AdminDataTable, AdminPagination } from './AdminTable';
 export type { AdminColumn, AdminDataTableProps, AdminPaginationProps } from './AdminTable';
 export { AdminBadge, AdminChip, AdminChipGroup, AdminSegmented, AdminTabs } from './AdminChoice';
