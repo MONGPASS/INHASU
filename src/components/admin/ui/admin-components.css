@@ -161,6 +161,16 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
 .adm-ui-pick.adm-ui-pick:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
 .adm-ui-pick.is-selected, .adm-ui-pick.is-selected:hover { border-color: var(--adm-accent); background: var(--adm-accent-soft); }
 .adm-ui-pick:disabled { cursor: default; opacity: .6; }
+/* 고르기 창 목록 한 줄(row): 테두리 없이 아래 구분선, 앞 동그라미, 고르면 민트 바탕 + 민트 테두리 */
+.adm-ui-pick.is-row { flex-direction: row; align-items: center; gap: var(--adm-space-3); padding: var(--adm-space-3); border-color: transparent; border-radius: var(--adm-radius-md); background: transparent; box-shadow: inset 0 calc(var(--adm-border-width) * -1) 0 var(--adm-line-subtle); }
+.adm-ui-pick.is-row:hover { border-color: transparent; background: var(--adm-fill-subtle); }
+.adm-ui-pick.is-row.is-selected, .adm-ui-pick.is-row.is-selected:hover { border-color: transparent; background: var(--adm-accent-soft); box-shadow: inset 0 0 0 calc(var(--adm-border-width) * 1.5) var(--adm-accent); }
+.adm-ui-pick-radio { flex: none; box-sizing: border-box; width: var(--adm-space-5); height: var(--adm-space-5); border: calc(var(--adm-border-width) * 1.5) solid var(--adm-line-strong); border-radius: var(--adm-radius-pill); background: var(--adm-surface); }
+.adm-ui-pick.is-selected .adm-ui-pick-radio { border: calc(var(--adm-space-1) * 1.5) solid var(--adm-accent); }
+/* 옆 메뉴 한 칸(nav): 글자 줄, 고르면 흰 바탕 + 그림자 */
+.adm-ui-pick.is-nav { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--adm-space-2); min-height: var(--adm-control-h); padding: 0 var(--adm-space-3); border-color: transparent; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-medium); }
+.adm-ui-pick.is-nav:hover { border-color: transparent; background: var(--adm-fill-subtle); }
+.adm-ui-pick.is-nav.is-selected, .adm-ui-pick.is-nav.is-selected:hover { border-color: transparent; background: var(--adm-surface); box-shadow: var(--adm-shadow-sm); font-weight: var(--adm-fw-semibold); }
 
 /* ── 빈 목록·불러오는 중·오류 ── */
 .adm-ui-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--adm-space-2); padding: var(--adm-space-8) var(--adm-space-5); color: var(--adm-text-2); text-align: center; }
@@ -176,6 +186,7 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
 .adm-ui-dialog-layer.adm-ui-dialog-layer { z-index: var(--adm-z-modal); }
 .adm-ui-dialog.adm-ui-dialog { display: flex; flex-direction: column; width: min(640px, calc(100vw - var(--adm-space-8))); max-height: min(88vh, 900px); overflow: hidden; border-radius: var(--adm-radius-lg); background: var(--adm-surface); color: var(--adm-text); font-family: var(--adm-font); }
 .adm-ui-dialog.is-sm.is-sm { width: min(440px, calc(100vw - var(--adm-space-8))); }
+.adm-ui-dialog.is-lg.is-lg { width: min(920px, calc(100vw - var(--adm-space-8))); }
 .adm-ui-dialog.is-sheet.is-sheet { width: 100%; max-height: 92vh; border-radius: var(--adm-radius-md) var(--adm-radius-md) 0 0; }
 .adm-ui-dialog-head { display: flex; flex: none; align-items: flex-start; justify-content: space-between; gap: var(--adm-space-3); padding: var(--adm-space-6) var(--adm-space-6) var(--adm-space-3); }
 .adm-ui-dialog-titles { min-width: 0; }
@@ -187,6 +198,8 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
 .adm-ui-dialog-foot { display: flex; flex: none; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--adm-gap-control); padding: var(--adm-space-3) var(--adm-space-6) var(--adm-space-5); border-top: 1px solid var(--adm-line-subtle); background: var(--adm-surface); }
 .adm-ui-dialog-foot-start, .adm-ui-dialog-foot-end { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-gap-control); }
 .adm-ui-dialog-foot-end { margin-left: auto; }
+.adm-ui-dialog-note { color: var(--adm-text-2); font-size: var(--adm-fs-small); line-height: var(--adm-lh); }
+.adm-ui-dialog-body.is-flush { gap: 0; padding: 0; overflow: hidden; }
 .adm-ui-dialog-delete.adm-ui-dialog-delete { color: var(--adm-danger); }
 .adm-ui-dialog-foot.is-asking { background: var(--adm-warn-soft); }
 .adm-ui-dialog-ask { color: var(--adm-warn-strong); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); }
