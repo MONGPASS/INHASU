@@ -121,3 +121,33 @@ export const lodgeMatches = (l: Pick<RegisteredLodge, 'name' | 'region' | 'locat
     const q = squash(query);
     return !q || squash([l.name, l.region, l.location, l.type, l.address].filter(Boolean).join(' ')).includes(q);
 };
+
+/**
+ * 숙소 고르기의 지역 묶음(옆 메뉴 제목). 등록 정보에는 묶음이 없어서 지명으로 나눈다(한글·영문 표기 모두).
+ * 맞는 묶음이 없으면 ‘기타 지역’.
+ */
+export const LODGE_ZONES: ReadonlyArray<{ title: string; match: RegExp }> = [
+    { title: '울란바타르 · 근교', match: /울란|^ub$|ulaan|테를지|terelj|호스타이|hustai|khustai/i },
+    { title: '중부', match: /중앙|central|미니사막|엘승|elsen|하르호린|하라호름|kharkhorin|karakorum|오르홍|orkhon|챙헤르|tsenh|tsenkh|어기|ugii|ogii|에르덴|erdenet|볼강|bulgan|shine|아르항가이|arkhangai/i },
+    { title: '고비 · 남부', match: /고비|gobi|바양작|bayanzag|욜린|욜링|yol|홍고|khongor|바가\s*가즈|baga\s*gaz|차강\s*소브|tsagaan\s*suv|달란자드가드|dalanzadgad/i },
+    { title: '북부', match: /홉스골|h[uö]vsg[uö]l|khuvsgul|무릉|moron|m[uö]r[uö]n|차강\s*누르|tsagaan\s*nuur|하트갈|khatgal/i },
+    { title: '서부', match: /서부|울기|[uö]lgii|호브드|khovd|알타이|altai|타왕|tavan/i },
+    { title: '동부', match: /동부|헨티|khentii|칭기스|chinggis|도르노드|dornod/i },
+];
+export const OTHER_LODGE_ZONE = '기타 지역';
+export const lodgeZoneOf = (region: string) => LODGE_ZONES.find(z => z.match.test(region.trim()))?.title || OTHER_LODGE_ZONE;
+
+/** 숙소 고르기의 등급 칩: 등록 등급 표기(고급 게르·5성급 호텔 …)를 네 묶음으로 */
+export type LodgeGradeGroup = '호텔' | '고급게르' | '일반게르' | '기타';
+export const LODGE_GRADE_GROUPS: ReadonlyArray<{ value: LodgeGradeGroup; label: string }> = [
+    { value: '호텔', label: '호텔' },
+    { value: '고급게르', label: '고급게르' },
+    { value: '일반게르', label: '일반게르' },
+    { value: '기타', label: '목조·게스트하우스·기타' },
+];
+export const lodgeGradeGroupOf = (type?: string): LodgeGradeGroup => {
+    const t = (type || '').toLowerCase();
+    if (/호텔|hotel/.test(t)) return '호텔';
+    if (/게르|ger\b|yurt/.test(t)) return /고급|디럭스|럭셔리|프리미엄|luxury|deluxe|premium/.test(t) ? '고급게르' : '일반게르';
+    return '기타';
+};

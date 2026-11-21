@@ -173,7 +173,7 @@ function QueueItem({ m, selected, dirty, draft, onPick }: { m: LodgeModel & { st
     );
 }
 
-function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending, savingId, onAreaCleared, onPatch, onPackage, onSave, onDiscard, onResolveDraft, onAddNight, onRemoveNight, onOpenCard }:
+function TourDetail({ m, tours, rowsOf, lodges, lodgeRegions, resourcesLoading, dirty, pending, savingId, onAreaCleared, onPatch, onPackage, onSave, onDiscard, onResolveDraft, onAddNight, onRemoveNight, onOpenCard }:
     { m: LodgeModel & { state: NightState } } & LodgeAssignQueueProps) {
     const t = m.tour, N = m.nights.length, id = t.id;
     const locked = !!pending[id] || savingId === id, isDirty = dirty.has(id), dday = ddayOf(m.start);
@@ -187,6 +187,12 @@ function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending,
     const mailed = m.nights.filter(n => !['발송전', '배정X'].includes(lodgeMailStatus(n.acc))).length;
     const confirmed = m.nights.filter(n => n.state === 'ok').length;
     const nextDate = (() => { const last = m.nights[N - 1]?.date || m.end; if (!last) return ''; const d = new Date(`${last}T00:00:00`); d.setDate(d.getDate() + 1); return dotted(dateKeyOf(d)); })();
+    /** 숙소 이름(소문자) → 불러온 예약에서 배정된 숙박 수(숙소 고르기의 ‘자주 쓴 숙소’) */
+    const usage = useMemo(() => {
+        const count: Record<string, number> = {};
+        tours.forEach(tour => rowsOf(tour).forEach(row => { const name = row.accommodation?.name?.trim().toLowerCase(); if (name) count[name] = (count[name] || 0) + 1; }));
+        return count;
+    }, [tours, rowsOf]);
     const href = t.source === 'quote_booking' ? quoteCustomerHref(t.bookingId, '/admin/accommodation-ops') : productCustomerHref(t.bookingId, '/admin/accommodation-ops');
 
     return (
@@ -265,7 +271,8 @@ function TourDetail({ m, lodges, lodgeRegions, resourcesLoading, dirty, pending,
                                             onChange={v => patch(n.index, { type: v || undefined })} />
                                     </AdminField>
                                     <AdminField id={`${key}-lodge`} label="숙소정보" className="lq-span-2" hint={resourcesLoading ? '등록 숙소를 불러오는 중…' : '눌러서 이름·지역·등급으로 찾아요'}>
-                                        <LodgePicker id={`${key}-lodge`} lodges={lodges} regions={lodgeRegions} area={n.area} nightLabel={dayLabel(n.date)}
+                                        <LodgePicker id={`${key}-lodge`} lodges={lodges} regions={lodgeRegions} area={n.area} nightLabel={dayLabel(n.date)} usage={usage}
+                                            context={[`${tourNameOf(t)}${t.reservationNumber ? ` #${t.reservationNumber}` : ''}`, `${n.index + 1}박째`, t.travelers ? `${t.travelers}명` : '', n.area ? `숙소지역 ${n.area}` : ''].filter(Boolean).join(' · ')}
                                             currentId={isManual ? undefined : acc.id} currentName={acc.name} manual={isManual && hasLodge}
                                             disabled={locked} loading={resourcesLoading}
                                             onPick={lodge => {
