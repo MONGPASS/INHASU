@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { IconCalendar, IconDownload, IconMoreHorizontal, IconPlus, IconTrash } from '@montage-ui/icon';
 import {
     AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminChip, AdminChipGroup, AdminDataTable, AdminDialog,
-    AdminEmpty, AdminError, AdminField, AdminIconButton, AdminLoading, AdminMessage,
+    AdminEmpty, AdminError, AdminField, AdminIconButton, AdminLoading, AdminMenu, AdminMessage,
     AdminPagination, AdminSearch, AdminSegmented, AdminSelect, AdminStat, AdminStatRow, AdminTabs, AdminTextArea,
     AdminTextButton, AdminTextInput, adminConfirm, adminNotify, adminValidateRequired,
     type AdminColumn, type AdminTone,
@@ -170,6 +170,12 @@ function PartsPreview() {
                 <AdminButton onClick={() => { void adminConfirm({ message: '‘R-1031 김하늘’ 예약을 삭제할까요? 되돌릴 수 없습니다.', danger: true }).then((ok) => adminNotify(ok ? '삭제 예시를 눌렀습니다(실제로 지우지 않음).' : '취소했습니다.', 'info')); }}>삭제 확인 창</AdminButton>
                 <AdminButton onClick={() => adminNotify('저장했습니다.')}>알림(성공)</AdminButton>
                 <AdminButton onClick={() => adminNotify('저장하지 못했습니다.', 'error')}>알림(오류)</AdminButton>
+                <AdminMenu label="Excel 내보내기 범위" heading="어떤 예약을 내보낼까요?" trigger={<AdminButton variant="weak" leading={<IconDownload aria-hidden="true" />}>고르기 메뉴</AdminButton>}
+                    items={[
+                        { key: 'visible', label: '지금 보이는 목록 · 18건', description: '투어 종료', onSelect: () => adminNotify('지금 보이는 목록을 골랐습니다(예시).', 'info') },
+                        { key: 'selected', label: '선택한 예약 · 0건', description: '목록에서 예약을 먼저 선택해 주세요', disabled: true, onSelect: () => undefined },
+                        { key: 'confirmed', label: '전체 확정 팀 · 15팀', description: '예약 확정 · 결제 완료 전체', onSelect: () => adminNotify('전체 확정 팀을 골랐습니다(예시).', 'info') },
+                    ]} />
             </Section>
 
             <AdminDialog open={dialog === 'md'} onClose={() => setDialog(null)} title="예약 추가" description="상품을 고르거나 맞춤 예약으로 작성합니다."

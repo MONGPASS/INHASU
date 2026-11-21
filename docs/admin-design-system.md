@@ -113,6 +113,7 @@
 | `AdminMessage` | 화면 안 알림 상자(`adm-msg`). `tone` info·cautionary·negative·positive, 제목·설명·아래 글자 버튼 | (`SectionMessage` 모양) |
 | `AdminLoading` · `AdminEmpty` · `AdminError` | 본문 자리의 같은 틀: 불러오는 중 / 빈 목록(안내 + 첫 행동) / 오류(이유 + ‘다시 시도’) | `Loading` |
 | `AdminDialog` | 가운데 팝업(`size` sm 440 · md 640, 모서리 24). 머리(제목·설명·닫기) / 본문(`.adm-form`, `adminValidateRequired`가 이 안을 검사) / 발(왼쪽 `onDelete` 삭제, 오른쪽 취소·저장). Esc·바깥 누르기·닫기로 닫히고 `dirty`면 발에서 한 번 묻는다(팝업 위에 확인 창을 겹치지 않는다). `submitting`이면 ‘저장 중…’과 잠금. 휴대폰은 아래 시트. 겹침 순서는 `--adm-z-modal`이라 알림·확인 창이 위에 뜬다 | `Modal`·`ModalContainer` |
+| `AdminMenu` | 버튼을 누르면 뜨는 고르기 메뉴(이름 + 설명 한 줄, `disabled`). 트리거는 우리 버튼을 그대로 넘기고, 항목을 고르면 닫힌다. 예: 통합 예약 목록 머리의 ‘Excel’ 범위 | `Menu`·`MenuItem` |
 | `ListPage`(+ `AdminFilterBar`) | 목록형 틀: 제목·오른쪽 ‘추가’(`actions`) → 요약 지표(`summary`) → 카드 하나 안에 탭 → 검색 줄(왼쪽 검색·가운데 필터·오른쪽 정렬) → 표 → 페이지 이동 | — |
 | `FormPage`(+ `AdminFormSection`) | 입력형 틀: ‘목록으로’ → 구역 카드(구역 제목 18px, 본문 960px) → 아래 고정 막대(왼쪽 상태, 오른쪽 취소·저장) | — |
 | `DetailPage`(+ `AdminDetailHeader`·`AdminSteps`) | 상세형 틀: 머리 카드(이름·상태 배지·정보·주요 행동) → 진행 단계 → 왼쪽 업무 / 오른쪽 고정 정보(360px) → 이력 | — |
@@ -222,5 +223,6 @@ PC와 같은 화면·같은 부품이 휴대폰 폭에서 앱 모양으로 바�
 | 본문 안쪽의 좁은 묶음(옛 예약 서랍 본문 `.stack` 980·1100px, 상품 등록 탭 구역 760·860px, 대표 명소 고르기 1000px) | 그대로 둠(M-2) | 화면 본문 폭이 아니라 서랍·폼 안 구역의 읽기 폭이다. 입력형 틀(4절) 적용 때 `--adm-content-max-narrow`로 맞춘다 |
 | 지표 숫자(`AdminStat`) | 28px(시안 32px) | 32px는 Montage 글자 크기 단계에 없다(`tests/admin-font-scale.test.mjs`). 가장 가까운 단계 28px(`--adm-fs-title`) |
 | 위험 버튼(`AdminButton variant="danger"`) | Montage `negative`의 옅은 빨강 대신 빨강 채움 + 흰 글자 | 공통 확인 창의 삭제 버튼과 같은 모양으로 맞췄다(흰 글자 대비 4.6:1) |
+| 통합 예약 목록의 진행 단계 줄·바로 고르기 창·알림(`V7Steps`·`V7StepHead`·`V7Menu`·`V7Toast`, `v7/v7Ui.tsx`) | 기존 v7 부품 그대로 | 고객 예약 상세(v7)와 함께 쓰는 부품이라 상세형 화면(4단계)을 바꿀 때 함께 우리 부품으로 옮긴다. 목록 파일 자체(`ReservationListV7.tsx`·`reservation-list.css`)는 생 부품·인라인 style·숫자 크기 0 |
 | 개발용 부품 미리보기 `/admin/__ui` | 운영 메뉴에 넣지 않음 | 부품 확인용 화면이다. 관리자 로그인은 필요하고 합성 자료만 쓰며 API를 부르지 않는다(`tests/admin-ui-boundary.test.mjs`) |
 | 견적서 만들기의 위 도구줄·단계 표시·아래 합계 막대 | 본문(960px)보다 넓게 화면 전체 폭 | 편집 중 계속 보이는 고정 도구줄이다. 왼쪽 여백만 `--adm-pad-page`로 본문과 맞췄다 |

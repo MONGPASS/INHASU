@@ -74,9 +74,13 @@ test('휴대폰에서 목록 표는 카드로 바뀐다', () => {
     const layout = read('src/components/admin/AdminLayout.tsx');
     assert.ok(layout.includes('useCardTables(contentRef)'));
     const mobile = read('src/styles/admin-mobile.css');
-    assert.ok(mobile.includes('[data-card-table="on"]') && mobile.includes('.v7-list-row'));
+    assert.ok(mobile.includes('[data-card-table="on"]'));
+    // 통합 예약 목록은 공통 표 부품(AdminTable)을 쓰고, 휴대폰 칸 배치는 목록 CSS에 둔다.
     const list = read('src/components/admin/v7/ReservationListV7.tsx');
-    for (const name of ['check', 'cust', 'period', 'people', 'region', 'assign', 'pay', 'status']) assert.ok(list.includes('v7-c-' + name), name);
+    assert.ok(list.includes('<AdminTable') && !/<(button|input|select|table)/.test(list));
+    for (const name of ['check', 'cust', 'date', 'product', 'people', 'assign', 'pay', 'step', 'more']) assert.ok(list.includes('rl-c-' + name), name);
+    const listCss = read('src/components/admin/v7/reservation-list.css');
+    assert.ok(listCss.includes('@media (max-width: 760px)') && listCss.includes('.rl-c-check'));
 });
 
 test('삭제·변경 확인은 공통 확인 창을 쓰고, 브라우저 확인창은 나가기 보호에만 남긴다', () => {

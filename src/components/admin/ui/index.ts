@@ -14,6 +14,8 @@ export type { AdminTone, AdminTagTone, AdminBadgeProps, AdminChipProps, AdminCho
 export { AdminCard, AdminStat, AdminStatRow, AdminMessage, AdminLoading, AdminEmpty, AdminError } from './AdminSurface';
 export type { AdminCardProps, AdminStatProps, AdminMessageProps, AdminEmptyProps, AdminErrorProps } from './AdminSurface';
 export { AdminDialog } from './AdminDialog';
+export { AdminMenu } from './AdminMenu';
+export type { AdminMenuItem, AdminMenuProps } from './AdminMenu';
 export type { AdminDialogProps } from './AdminDialog';
 // 화면 틀 4종(ListPage·FormPage·DetailPage·DashboardPage와 AdminFilterBar·AdminFormSection·AdminDetailHeader·AdminSteps·AdminGrid)은
 // AdminLayout(→ 모든 관리자 화면 미리 읽기)을 끌어오므로 여기서 내보내지 않는다. 화면 파일은 './ui/AdminPage'에서 직접 가져온다.

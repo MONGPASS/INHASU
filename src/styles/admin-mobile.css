@@ -75,21 +75,7 @@
   .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-actions]::before { display: none; }
   .admin-app-wrapper .app table:is(.tbl, .pd-table)[data-card-table="on"] td[data-actions] > * { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--adm-gap-control); }
 
-  /* ── 통합 예약 목록: 한 줄이 카드 한 장 ── */
-  .admin-app-wrapper .v7-list-scroll { overflow-x: visible !important; }
-  .admin-app-wrapper .v7-list-inner { min-width: 0 !important; }
-  .admin-app-wrapper .v7-list-head { display: none !important; }
-  .admin-app-wrapper .v7-list-row { grid-template-columns: 22px minmax(0, 1fr) auto !important; grid-template-areas: "check cust status" ". region people" ". period pay" "assign assign assign"; gap: var(--adm-space-2) var(--adm-space-3) !important; align-items: start !important; padding: var(--adm-space-4) !important; }
-  .admin-app-wrapper .v7-list-row > .v7-c-check { grid-area: check; margin-top: 1px; }
-  .admin-app-wrapper .v7-list-row > .v7-c-cust { grid-area: cust; }
-  .admin-app-wrapper .v7-list-row > .v7-c-status { grid-area: status; justify-self: end; }
-  .admin-app-wrapper .v7-list-row > .v7-c-period { grid-area: period; }
-  .admin-app-wrapper .v7-list-row > .v7-c-pay { grid-area: pay; }
-  .admin-app-wrapper .v7-list-row > .v7-c-region { grid-area: region; }
-  .admin-app-wrapper .v7-list-row > .v7-c-people { grid-area: people; justify-self: end; text-align: right !important; color: var(--adm-text-2); }
-  .admin-app-wrapper .v7-list-row > .v7-c-assign { grid-area: assign; }
-  .admin-app-wrapper .v7-list-row > .v7-c-chev { display: none !important; }
-  .admin-app-wrapper .v7-list-panel { position: static !important; width: auto !important; padding: var(--adm-space-1) var(--adm-space-4) var(--adm-space-4) !important; }
+  /* 통합 예약 목록은 공통 표(AdminTable) 카드 모양 + components/admin/v7/reservation-list.css의 휴대폰 배치를 쓴다 */
 
   /* ── 팝업은 아래에서 올라오는 시트 ── */
   .admin-app-wrapper.admin-app-wrapper :is(.picker-scrim, .cm-scrim) { place-items: end stretch; padding: 0; }

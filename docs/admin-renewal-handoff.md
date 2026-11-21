@@ -53,7 +53,7 @@ https://github.com/MONGPASS/INHASU/pull/119 (브랜치 `feature/admin-baemin-min
 | 화면 | Montage 전환율 | 생 HTML 부품 | 인라인 style |
 |---|---:|---:|---:|
 | 대시보드 | 81% | 4 | 10 |
-| 통합 예약 목록 | 9% | 108 | 216 |
+| 통합 예약 목록 | 53% (2단계 후) | 78 (고객 상세 부분) | 154 |
 | 고객 예약 상세(상품·이전 견적) | 0% | 126 | 204 |
 | 상품 목록·추가·수정 | 0% | 162 | 210 |
 | 숙소 배정·현지 운영 | 0% | 85 | 7 |
@@ -115,6 +115,15 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 - 부품 미리보기 화면(개발용 `/admin/__ui`, 운영 메뉴에는 넣지 않음)을 두면 오너가 부품을 한눈에 확인할 수 있다.
 
 ### 단계 2. 기준 화면 — 통합 예약 목록 (목록형)
+> **완료(2026-11-21, `feature/admin-reservation-list`)** — Claude Design 시안(Montage, 오너 확인 ‘이대로 진행’)대로 다시 짰다.
+> - 머리: 새로고침(`AdminIconButton`) · Excel 범위 메뉴(`AdminMenu`: 지금 보이는 목록 N건 / 선택한 예약 N건 / 전체 확정 팀 N팀) · 수동 예약 추가(primary).
+> - 빠른 필터 6칸(`AdminStatRow`·`AdminStat`, 처리할 일은 주의 테두리) → 카드 하나 안에 탭 4개(`AdminTabs`) → 검색·건수·정렬(`AdminSearch`·`AdminSegmented`) → 표(`AdminTable`, 9칸 고정 너비로 1440 화면에서 가로 스크롤 없음) → 페이지(`AdminPagination` + 쪽당 10·20·50건).
+> - 줄을 누르면 아래에 작업 패널(메타·진행상황·일정표 편집·예약 상세 열기 → 진행 단계 → 결제·배정·분류·서류 카드 4개). 선택하면 아래 고정 일괄 작업 줄.
+> - 주소 보관: `tab`·`quick`·`q`·`sort`·`page`·`size`(`src/utils/reservationListView.ts`, 기본값은 주소에 적지 않고 옛 목록 키는 지운다). Excel ‘지금 보이는 목록’은 목록이 알려 준 `product:<id>`/`quote_booking:<id>` 키(모든 쪽)를 그대로 쓴다(`onScopeChange` → `reservationsByKeys`). 예전에는 숨겨진 옛 필터 기준이라 화면과 어긋났다.
+> - 수동 예약 추가 창은 `AdminDialog` + `AdminField`(필수 고객명, 고친 내용이 있으면 닫을 때 묻는다). 휴대폰은 공통 카드 표(셀 높이 고정 해제를 공통 규칙에 추가).
+> - 수치: 목록 파일 `ReservationListV7.tsx` 생 부품 8→0·인라인 style 40→0·숫자 크기 63→0. 화면 전체 전환율 5%→53%. 남은 생 부품 78개는 같은 페이지 파일의 고객 예약 상세 부분(4단계)이다.
+> - 로컬 확인: 1440·375에서 합성 자료로 탭·검색·정렬 주소 복원, 펼침, 선택·일괄 줄, Excel 메뉴(고르면 닫힘), 수동 예약 추가 저장까지 확인. `npm run dev`(5173)에서는 개발 프록시가 `Origin`을 5173으로 넘겨 쓰기 요청이 403(`invalid_origin`)이 되므로 저장은 8804 서버(빌드본)에서 확인했다.
+
 - `src/pages/AdminReservationManage.tsx`(4,012줄) + `components/admin/v7/ReservationListV7.tsx`.
 - 레이아웃·UX를 다시 설계한다(색만 바꾸지 않기). 시안은 Claude Design으로 보여 주고 오너 확인 후 코드로.
 - 완료 기준: 이 화면 파일들의 생 부품 0에 가깝게, 인라인 style·숫자 크기 대폭 감소, 기준선·현황 문서 갱신. 이 화면이 **목록형 화면의 기준**이 된다.
@@ -170,7 +179,7 @@ node scripts/check-reservation-workspace.mjs --serve --usability --customer-work
 ## 9. 오너가 정할 것 / 열린 질문
 
 - PR #119 머지 여부(미리보기 확인 후).
-- 단계 2 통합 예약 목록의 새 레이아웃 시안 확인.
+- 단계 2 통합 예약 목록 PR 미리보기 확인·머지(시안은 2026-11-21 확인 완료).
 - `견적관리-모바일` 제거 시점(React 휴대폰 관리자가 같은 기능을 갖춘 뒤).
 - 숙소 배정 시트·가이드 타임라인처럼 Montage에 없는 화면의 디자인 방향.
 

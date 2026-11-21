@@ -12,7 +12,7 @@
 |---|---|---|---|---|---|
 | (없음) | 관리자 로그인·처음 설정 | `/admin/login` | `pages/AdminLogin.tsx` | 입력형 | 없음 |
 | 대시보드 | 대시보드 | `/admin` | `pages/AdminDashboard.tsx` | 대시보드형 | 기간 선택 팝오버 |
-| 예약 관리 | 통합 예약 목록 | `/admin/reservations` | `pages/AdminReservationManage.tsx` + `components/admin/v7/ReservationListV7.tsx` | 목록형 | 예약 상세 서랍, 가이드·숙소 고르기 창, 견적 상세 서랍, 예약 전환 선택 창, 수동 예약 추가 창, 줄별 더보기 메뉴, 일괄 작업 막대 |
+| 예약 관리 | 통합 예약 목록 | `/admin/reservations` | `pages/AdminReservationManage.tsx` + `components/admin/v7/ReservationListV7.tsx`(+ `reservation-list.css`) | 목록형(기준 화면, 2026-11-21 리뉴얼) | 머리 Excel 범위 메뉴(`AdminMenu`), 수동 예약 추가 창(`AdminDialog`), 줄 펼침 작업 패널, 가이드·차량·진행상황·입금·분류 고르기 창(`V7Menu`), 일괄 작업 막대, 예약 상세 서랍, 견적 상세 서랍, 예약 전환 선택 창 |
 | 예약 관리 | 투어 캘린더 | `/admin/calendar` | `pages/AdminCalendar.tsx` | 대시보드형 | 날짜 옆 패널(화면 안에 고정) |
 | (목록에서 진입) | 고객 예약 관리 — 상품 예약 | `/admin/customer-workspace/product/:id` | `AdminReservationManage.tsx`(`customerPage`) + `v7/ReservationDetailV7.tsx` | 상세형 | 가이드·숙소·차량 고르기, 저장 전 미리보기(전체 화면), 일정표·계약 편집기(전체 화면), 휴대폰용 메뉴 |
 | (목록에서 진입) | 고객 예약 관리 — 이전 견적 | `/admin/customer-workspace/legacy-quote/:id` | 위와 같음(`customerSource="quote"`) | 상세형 | 위와 같음 |

@@ -39,6 +39,12 @@ export function reservationReturnTo(value: string | null | undefined): string {
     } catch { return '/admin/reservations?type=quote_booking'; }
 }
 export const reservationSelectionKey = (row: { id: string; type: string }) => `${row.type}:${row.id}`;
-export function reservationExportRows<T extends { id: string; type: string; status: string }>(all: T[], filtered: T[], selected: Set<string>, mode: 'filtered' | 'selected' | 'confirmed') {
+export type ReservationExportMode = 'filtered' | 'selected' | 'confirmed';
+/** 목록 화면이 알려 준 키(`product:<id>` / `quote_booking:<id>`) 순서대로 예약을 고른다 — Excel ‘지금 보이는 목록’ */
+export function reservationsByKeys<T extends { id: string; type: string }>(all: T[], keys: string[]): T[] {
+    const byKey = new Map(all.map(r => [reservationSelectionKey(r), r] as const));
+    return keys.map(key => byKey.get(key)).filter((r): r is T => !!r);
+}
+export function reservationExportRows<T extends { id: string; type: string; status: string }>(all: T[], filtered: T[], selected: Set<string>, mode: ReservationExportMode) {
     return (mode === 'confirmed' ? all.filter(r => ['confirmed', 'paid'].includes(r.status)) : mode === 'selected' ? all.filter(r => selected.has(reservationSelectionKey(r))) : filtered).filter(r => r.type !== 'quote');
 }

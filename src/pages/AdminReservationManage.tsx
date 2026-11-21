@@ -28,7 +28,7 @@ import { ReservationInlineEditor, type ReservationInlineEditorControl, type Rese
 import { createInlineDocument } from '../utils/reservationInline';
 import { readReservationDraft, reservationDraftNavigationDecision, type ReservationDraftNavigationDecision, type ReservationDraftSnapshot } from '../utils/adminReservationDraft';
 import '../styles/reservation-inline.css';
-import { readReservationList, reservationListSearch, reservationExportRows, reservationSelectionKey } from '../utils/adminReservationList';
+import { reservationExportRows, reservationsByKeys, type ReservationExportMode } from '../utils/adminReservationList';
 import {
     STATUS_GROUP_CONFIRMED, STATUS_GROUP_WAITING, highlightMatch, isConfirmedReservation, isWaitingReservation, reservationAssignments,
     reservationDday, reservationKpis, reservationPayNote, reservationPeriod, reservationSteps, type BoardKpi,
@@ -39,7 +39,9 @@ import board from './AdminReservationBoard.module.css';
 import { readProductVehicle } from '../utils/reservationAssignment';
 import { guideAssignmentConflicts, validAssignmentPeriod } from '../utils/assignmentAvailability';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
-import { ReservationListV7, type V7OpenAction } from '../components/admin/v7/ReservationListV7';
+import { ReservationListV7, type ReservationListScope, type V7OpenAction } from '../components/admin/v7/ReservationListV7';
+import { AdminButton, AdminDialog, AdminField, AdminIconButton, AdminMenu, AdminMessage, AdminSelect, AdminTextArea, AdminTextInput } from '../components/admin/ui';
+import { IconDownload, IconPlus, IconRefresh } from '@montage-ui/icon';
 import type { V7Source } from '../utils/reservationV7';
 import type { ReservationDetailV7Links } from '../components/admin/v7/ReservationDetailV7';
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
@@ -2785,49 +2787,21 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
     const listPending = useRef<Promise<void> | null>(null);
     const [isLoading, setIsLoading] = useState(!customerPage && !initialList);
     const [loadWarnings, setLoadWarnings] = useState<string[]>([]);
-    const [sortOrder, setSortOrder] = useState(() => readReservationList(window.location.search).sortOrder);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
     const [customerEditing, setCustomerEditing] = useState(false);
     const [updatingCount, setUpdatingCount] = useState(0);
     useEffect(() => { setUpdatingCount(0); }, [customerScope]);
 
-    // Filter States
-    const [searchTerm, setSearchTerm] = useState(() => readReservationList(window.location.search).searchTerm);
-    const [filterStatus, setFilterStatus] = useState(() => readReservationList(window.location.search).filterStatus);
-    const [filterPayment, setFilterPayment] = useState(() => readReservationList(window.location.search).filterPayment);
-    const [filterType, setFilterType] = useState(() => readReservationList(window.location.search).filterType);
-    const [filterDeparture, setFilterDeparture] = useState(() => readReservationList(window.location.search).filterDeparture);
-    const [filterSource, setFilterSource] = useState(() => readReservationList(window.location.search).filterSource);
     const [convertTarget, setConvertTarget] = useState<QuoteRequest | null>(null);
     // 수동 예약 추가(카카오톡·메일 등 사이트 외 주문)
     const [showAddModal, setShowAddModal] = useState(false);
     const [creating, setCreating] = useState(false);
     const [addForm, setAddForm] = useState({ ...BLANK_ADD });
 
-    // Pagination State
-    const [currentPage, setCurrentPage] = useState(() => readReservationList(window.location.search).currentPage);
     const [loadedOnce, setLoadedOnce] = useState(Boolean(initialList));
-    const [selectedRows, setSelectedRows] = useState<Set<string>>(() => new Set());
-    const [exportMode, setExportMode] = useState<'filtered' | 'selected' | 'confirmed'>('filtered');
-    const itemsPerPage = 8;
-    // 통합 예약 목록 board: search suggestions, filter dropdowns and the "/" search shortcut.
-    const [searchFocused, setSearchFocused] = useState(false);
-    const [openFilter, setOpenFilter] = useState('');
-    const searchInputRef = useRef<HTMLInputElement>(null);
-    useEffect(() => {
-        if (customerPage) return;
-        const onKey = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') { setOpenFilter(''); return; }
-            if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
-            const target = event.target as HTMLElement | null;
-            if (target && (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable)) return;
-            if (!searchInputRef.current) return;
-            event.preventDefault(); searchInputRef.current.focus();
-        };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, [customerPage]);
+    // 머리의 Excel 범위 메뉴가 쓰는 지금 목록 — ReservationListV7이 탭·빠른 필터·검색 결과(모든 쪽)와 선택을 알려 준다.
+    const [listScope, setListScope] = useState<ReservationListScope>({ visible: [], selected: [], label: '' });
 
     // Reservations State
     const [reservations, setReservations] = useState<Reservation[]>(() => initialList || []);
@@ -2864,25 +2838,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         });
         return () => { cancelled = true; };
     }, [customerPage, customerSource, customerScope, loadedCustomerScope, selectedReservation?.userId, userLoading, user?.role]);
-    useEffect(() => { if (!loadedOnce || isLoading) return;
-        const valid = new Set(reservations.map(reservationSelectionKey));
-        setSelectedRows(prev => { const next = new Set([...prev].filter(key => valid.has(key))); return next.size === prev.size ? prev : next; });
-    }, [reservations, loadedOnce, isLoading]);
 
-    useEffect(() => {
-        if (customerPage) return;
-        // Replace this list's URL without creating one browser-history entry per keystroke.
-        const search = reservationListSearch({ searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, sortOrder, currentPage }, window.location.search);
-        if (search !== window.location.search) window.history.replaceState(window.history.state, '', window.location.pathname + search + window.location.hash);
-    }, [customerPage, searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, sortOrder, currentPage]);
-    useEffect(() => {
-        if (customerPage) return;
-        const restore = () => { const state = readReservationList(window.location.search);
-            setSearchTerm(state.searchTerm); setFilterStatus(state.filterStatus); setFilterPayment(state.filterPayment); setFilterType(state.filterType);
-            setFilterDeparture(state.filterDeparture); setFilterSource(state.filterSource); setSortOrder(state.sortOrder); setCurrentPage(state.currentPage);
-        };
-        window.addEventListener('popstate', restore); return () => window.removeEventListener('popstate', restore);
-    }, [customerPage]);
 
 
     const fetchReservations = async () => {
@@ -3353,139 +3309,13 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         }
     };
 
-    // Each list filter is a separate test so the board can count options with the other filters applied.
-    const matchesSearch = (res: Reservation, term = searchTerm) => {
-        const normalizedSearch = term.trim().toLowerCase();
-        if (!normalizedSearch) return true;
-        const haystack = [res.id, res.reservationNumber, res.customerName, res.email, res.phone, res.productName, res.country, res.headcount]
-            .filter(Boolean).join(' ').toLowerCase();
-        const digits = normalizedSearch.replace(/[-\s]/g, '');
-        return haystack.includes(normalizedSearch) || (/^\d+$/.test(digits) && (res.phone || '').replace(/\D/g, '').includes(digits));
-    };
-    const matchesStatus = (res: Reservation, value = filterStatus) => value === '전체 상태' ||
-        (value === STATUS_GROUP_WAITING && isWaitingReservation(res)) ||
-        (value === STATUS_GROUP_CONFIRMED && isConfirmedReservation(res)) ||
-        (value === '계약 서명 대기' && res.quoteBooking?.label === '계약 서명 대기') ||
-        (value === '최종 확정 대기' && res.quoteBooking?.label === '최종 확정 대기') ||
-        (value === '입금 대기' && res.status === 'pending_payment') ||
-        (value === '결제 완료' && res.status === 'paid') ||
-        (value === '예약 확정' && res.status === 'confirmed') ||
-        (value === '취소됨' && res.status === 'cancelled') ||
-        (value === '신규 견적' && res.status === 'new') ||
-        (value === '견적 작성 중' && res.status === 'processing') ||
-        (value === '견적 발송 완료' && res.status === 'answered') ||
-        (value === '예약 요청' && res.status === 'reservation_requested') ||
-        (value === '보류' && res.status === 'on_hold') ||
-        (value === '여행 완료' && res.status === 'completed');
-    const matchesType = (res: Reservation, value = filterType) => (value === '전체 유형' && res.type !== 'quote') ||
-        (value === '맞춤 견적 예약' && res.type === 'quote_booking') ||
-        (value === '이전 견적 문의' && res.type === 'quote') ||
-        (value === '일반 상품' && res.type === 'product');
-    const matchesPayment = (res: Reservation, value = filterPayment) => value === '전체 결제' ||
-        (value === '예약금 미입금' && res.depositStatus !== 'paid') ||
-        (value === '예약금 입금' && res.depositStatus === 'paid') ||
-        (value === '잔금 미입금' && res.balanceStatus !== 'paid') ||
-        (value === '잔금 입금' && res.balanceStatus === 'paid');
-    // 출발일 필터는 그날 이후 출발하는 예약을 보여 준다(디자인 "출발일 … 이후").
-    const matchesDeparture = (res: Reservation) => !filterDeparture || (!!res.startDate && toTourDateKey(res.startDate) >= filterDeparture);
-    const matchesSource = (res: Reservation, value = filterSource) => value === '전체 경로' || (res.source || '') === value;
-    type ListFilter = 'status' | 'payment' | 'type' | 'source';
-    const passesFilters = (res: Reservation, skip?: ListFilter) => matchesSearch(res) && matchesDeparture(res)
-        && (skip === 'status' || matchesStatus(res)) && (skip === 'type' || matchesType(res))
-        && (skip === 'payment' || matchesPayment(res)) && (skip === 'source' || matchesSource(res));
-    const filteredReservations = useMemo(() => reservations.filter(res => passesFilters(res)).sort((a, b) => sortOrder === 'departure'
-        ? (a.departureMs || Number.MAX_SAFE_INTEGER) - (b.departureMs || Number.MAX_SAFE_INTEGER)
-        : sortOrder === 'amount' ? (b.totalAmount || 0) - (a.totalAmount || 0)
-        : (b.bookedAtMs || 0) - (a.bookedAtMs || 0)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the matchers read exactly these filter values
-    [searchTerm, filterStatus, filterPayment, filterType, filterDeparture, filterSource, reservations, sortOrder]);
-    useEffect(() => { if (loadedOnce && !isLoading) setCurrentPage(page => Math.min(page, Math.max(1, Math.ceil(filteredReservations.length / itemsPerPage)))); }, [filteredReservations.length, loadedOnce, isLoading]);
-
-    // Pagination Logic
-    const totalPages = Math.ceil(filteredReservations.length / itemsPerPage);
-    const displayedReservations = filteredReservations.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
-
-    const upcomingTours = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayMs = today.getTime();
-        const horizonMs = todayMs + 30 * 86400000;
-
-        return reservations
-            .filter((reservation) => {
-                const departureMs = reservation.departureMs || toTime(reservation.startDate);
-                // 입금 대기·취소·견적은 제외하고 확정된 팀(예약 확정 / 결제 완료)만 노출한다.
-                return reservation.type !== 'quote'
-                    && CONFIRMED_TOUR_STATUSES.has(reservation.status)
-                    && departureMs >= todayMs
-                    && departureMs <= horizonMs;
-            })
-            .sort((a, b) => (a.departureMs || toTime(a.startDate)) - (b.departureMs || toTime(b.startDate)))
-            .map((reservation) => {
-                const departureMs = reservation.departureMs || toTime(reservation.startDate);
-                return {
-                    reservation,
-                    departureMs,
-                    daysUntil: Math.max(0, Math.round((departureMs - todayMs) / 86400000)),
-                };
-            });
-    }, [reservations]);
-
-    // 통합 예약 목록 board (Admin Dashboard v3 · Page 02)
-    const todayKey = dashboardSeoulDate(new Date().toISOString());
-    const kpis = useMemo(() => reservationKpis(reservations, todayKey), [reservations, todayKey]);
-    const KPI_FILTERS: Record<BoardKpi['key'], { status: string; payment: string; departure: string }> = {
-        all: { status: '전체 상태', payment: '전체 결제', departure: '' },
-        waiting: { status: STATUS_GROUP_WAITING, payment: '전체 결제', departure: '' },
-        confirmed: { status: STATUS_GROUP_CONFIRMED, payment: '전체 결제', departure: '' },
-        balanceDue: { status: '전체 상태', payment: '잔금 미입금', departure: '' },
-        departing: { status: '전체 상태', payment: '전체 결제', departure: todayKey },
-    };
-    const kpiActive = (key: BoardKpi['key']) => key !== 'all' && filterStatus === KPI_FILTERS[key].status && filterPayment === KPI_FILTERS[key].payment
-        && filterDeparture === KPI_FILTERS[key].departure && filterSource === '전체 경로' && filterType === '전체 유형';
-    const applyKpi = (key: BoardKpi['key']) => {
-        const active = kpiActive(key), next = active ? KPI_FILTERS.all : KPI_FILTERS[key];
-        setFilterStatus(next.status); setFilterPayment(next.payment); setFilterDeparture(next.departure);
-        if (!active) { setFilterSource('전체 경로'); setFilterType('전체 유형'); }
-        setCurrentPage(1);
-    };
-    const statusTabs = ([['전체 예약', '전체 상태'], ['확정 대기', STATUS_GROUP_WAITING], ['예약 확정', STATUS_GROUP_CONFIRMED]] as const)
-        .map(([label, value]) => ({ label, value, count: reservations.filter(r => passesFilters(r, 'status') && matchesStatus(r, value)).length }));
-    const detailedStatuses = ['전체 상태', '입금 대기', '결제 완료', '예약 확정', '계약 서명 대기', '최종 확정 대기',
-        ...(filterType === '이전 견적 문의' ? ['신규 견적', '견적 작성 중', '견적 발송 완료', '예약 요청'] : []), '보류', '여행 완료', '취소됨'];
-    const filterGroups: Array<{ key: 'status' | 'payment' | 'source' | 'type'; label: string; value: string; defaultValue: string;
-        options: Array<{ value: string; label: string }>; set: (value: string) => void; test: (res: Reservation, value: string) => boolean }> = [
-        { key: 'status', label: '상태', value: filterStatus, defaultValue: '전체 상태', options: detailedStatuses.map(value => ({ value, label: value === '전체 상태' ? '전체' : value })), set: setFilterStatus, test: matchesStatus },
-        { key: 'payment', label: '결제', value: filterPayment, defaultValue: '전체 결제', options: ['전체 결제', '예약금 미입금', '예약금 입금', '잔금 미입금', '잔금 입금'].map(value => ({ value, label: value === '전체 결제' ? '전체' : value })), set: setFilterPayment, test: matchesPayment },
-        { key: 'source', label: '경로', value: filterSource, defaultValue: '전체 경로', options: [{ value: '전체 경로', label: '전체' }, ...SOURCE_OPTIONS.map(s => ({ value: s.v, label: s.l }))], set: setFilterSource, test: matchesSource },
-        { key: 'type', label: '유형', value: filterType, defaultValue: '전체 유형', options: ['전체 유형', '일반 상품', '맞춤 견적 예약', '이전 견적 문의'].map(value => ({ value, label: value === '전체 유형' ? '전체' : value })), set: setFilterType, test: matchesType },
-    ];
-    const searchMatches = searchTerm.trim() ? reservations.filter(r => matchesType(r) && matchesSearch(r)) : [];
-    const searchNumber = (r: Reservation) => r.reservationNumber || r.id.slice(0, 8).toUpperCase();
-    const showSuggest = searchFocused && searchMatches.length > 0
-        && !(searchMatches.length === 1 && searchNumber(searchMatches[0]).toLowerCase() === searchTerm.trim().toLowerCase());
-    const recentCustomers = reservations.filter(r => r.type !== 'quote' && r.customerName.trim())
-        .sort((a, b) => (b.bookedAtMs || 0) - (a.bookedAtMs || 0))
-        .filter((r, index, list) => list.findIndex(x => x.customerName === r.customerName) === index).slice(0, 4);
-    const hasActiveFilters = !!searchTerm.trim() || filterStatus !== '전체 상태' || filterPayment !== '전체 결제' || filterType !== '전체 유형' || !!filterDeparture || filterSource !== '전체 경로';
-    const totalBookings = reservations.filter(r => r.type !== 'quote').length;
-    const resetListFilters = () => { setSearchTerm(''); setFilterStatus('전체 상태'); setFilterPayment('전체 결제'); setFilterType('전체 유형'); setFilterDeparture(''); setFilterSource('전체 경로'); setSortOrder('recent'); setCurrentPage(1); };
-    const statusPillClass = (status: string) => isConfirmedReservation({ status }) ? board.pillOk : isWaitingReservation({ status }) ? board.pillWait : board.pillMuted;
-    const shortDow = (value?: string) => {
-        const key = toTourDateKey(value || '');
-        return /^\d{4}-\d{2}-\d{2}$/.test(key) ? `${key.slice(5).replace('-', '.')} ${'일월화수목금토'[new Date(`${key}T00:00:00Z`).getUTCDay()]}` : '';
-    };
-
-    const downloadConfirmedReservationsExcel = (mode: typeof exportMode = exportMode, keys: Set<string> = selectedRows) => {
+    const downloadConfirmedReservationsExcel = (mode: ReservationExportMode, keys: Set<string> = new Set(listScope.selected)) => {
         if (productsLoading) {
             adminNotify('상품 정보를 불러오는 중입니다. 잠시 후 다시 내보내 주세요.');
             return;
         }
         const exportMode = mode;
-        const confirmedReservations = reservationExportRows(reservations, filteredReservations, keys, mode)
+        const confirmedReservations = reservationExportRows(reservations, reservationsByKeys(reservations, listScope.visible), keys, mode)
             .sort((a: any, b: any) => toTime(a.startDate) - toTime(b.startDate));
 
         if (confirmedReservations.length === 0) {
@@ -3673,7 +3503,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
           td{border:1px solid #cbd5e1;padding:6px 8px;white-space:pre-wrap;vertical-align:top}
           .meta td{background:#f8fafc;font-weight:700}
         </style></head><body>
-          <table class="meta"><tr><td>예약 숙소 수배 통합 시트 · ${esc(exportMode === 'selected' ? '선택 예약' : exportMode === 'confirmed' ? '전체 확정·결제 팀' : '현재 조회 결과')}</td><td>${confirmedReservations.length}건</td><td>${new Date().toISOString().slice(0, 10)}</td></tr></table>
+          <table class="meta"><tr><td>예약 숙소 수배 통합 시트 · ${esc(exportMode === 'selected' ? '선택 예약' : exportMode === 'confirmed' ? '전체 확정·결제 팀' : `지금 보이는 목록${listScope.label ? ` (${listScope.label})` : ''}`)}</td><td>${confirmedReservations.length}건</td><td>${new Date().toISOString().slice(0, 10)}</td></tr></table>
           <br>
           <table><thead><tr>${headers.map(([, label]) => `<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${tableRows}</tbody></table>
         </body></html>`;
@@ -3892,6 +3722,15 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         }
     };
 
+    // 머리 Excel 메뉴 — 지금 보이는 목록(모든 쪽) · 선택한 예약 · 전체 확정 팀(confirmed + paid)
+    const confirmedTeams = reservations.filter(r => r.type !== 'quote' && ['confirmed', 'paid'].includes(r.status)).length;
+    const excelItems = [
+        { key: 'filtered', label: `지금 보이는 목록 · ${listScope.visible.length}건`, description: listScope.label || '지금 탭·필터·검색 결과(모든 쪽)', disabled: !listScope.visible.length, onSelect: () => downloadConfirmedReservationsExcel('filtered') },
+        { key: 'selected', label: `선택한 예약 · ${listScope.selected.length}건`, description: listScope.selected.length ? '목록에서 체크한 예약' : '목록에서 예약을 먼저 선택해 주세요', disabled: !listScope.selected.length, onSelect: () => downloadConfirmedReservationsExcel('selected') },
+        { key: 'confirmed', label: `전체 확정 팀 · ${confirmedTeams}팀`, description: '예약 확정 · 결제 완료 전체', disabled: !confirmedTeams, onSelect: () => downloadConfirmedReservationsExcel('confirmed') },
+    ];
+    const addDirty = (Object.keys(BLANK_ADD) as Array<keyof typeof BLANK_ADD>).some(key => addForm[key] !== BLANK_ADD[key]);
+
     const toggleTheme = () => {
         setIsDarkMode(!isDarkMode);
         document.documentElement.classList.toggle('dark');
@@ -3919,38 +3758,19 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                 toggleTheme={toggleTheme}
                 actions={
                     <>
-                        <button
-                            type="button"
-                            onClick={() => { setAddForm({ ...BLANK_ADD }); setShowAddModal(true); }}
-                            className="btn btn-ink"
-                            title="카카오톡·메일·전화 등 사이트 외 주문을 수동으로 예약에 추가"
-                        >
-                            <Icon name="add" />
-                            수동 예약 추가
-                        </button>
-                        <select className="select" aria-label="Excel 내보내기 범위" value={exportMode} onChange={e => setExportMode(e.target.value as typeof exportMode)}>
-                            <option value="filtered">현재 조회 결과</option><option value="selected">선택 예약 {selectedRows.size}건</option><option value="confirmed">전체 확정·결제 팀</option>
-                        </select>
-                        <button type="button" onClick={() => downloadConfirmedReservationsExcel()} className="btn btn-soft" disabled={isLoading || productsLoading || (exportMode === 'selected' && !selectedRows.size)} title="선택한 범위의 일차별 숙소 수배 정보를 다운로드">
-                            <Icon name="table_view" />예약 Excel
-                        </button>
-                        <button
-                            type="button"
-                            onClick={refreshReservationList}
-                            disabled={isLoading}
-                            className="btn btn-ghost"
-                        >
-                            <Icon name="refresh" />
-                            새로고침
-                        </button>
+                        <AdminIconButton label="새로고침" variant="outlined" onClick={refreshReservationList} disabled={isLoading}><IconRefresh /></AdminIconButton>
+                        <AdminMenu label="Excel 내보내기 범위" heading="어떤 예약을 내보낼까요?" items={excelItems}
+                            trigger={<AdminButton variant="weak" leading={<IconDownload aria-hidden="true" />} disabled={isLoading || productsLoading}>Excel</AdminButton>} />
+                        <AdminButton variant="primary" leading={<IconPlus aria-hidden="true" />} title="카카오톡·메일·전화 등 사이트 외 주문을 수동으로 예약에 추가"
+                            onClick={() => { setAddForm({ ...BLANK_ADD }); setShowAddModal(true); }}>수동 예약 추가</AdminButton>
                     </>
                 }
             >
                 <div className="route-anim">
-                    {(loadWarnings.length > 0 || productLoadError) && <div className={board.warning} role="alert">
-                        {[...loadWarnings, ...(productLoadError ? [productLoadError] : [])].map(message => <div key={message}>{message}</div>)}
-                        <button type="button" className="btn btn-sm btn-ghost" disabled={isLoading} onClick={refreshReservationList}>다시 불러오기</button>
-                    </div>}
+                    {(loadWarnings.length > 0 || productLoadError) && <AdminMessage tone="cautionary" role="alert" className="rl-warning"
+                        actions={<AdminButton size="sm" variant="weak" disabled={isLoading} onClick={refreshReservationList}>다시 불러오기</AdminButton>}>
+                        {[...loadWarnings, ...(productLoadError ? [productLoadError] : [])].join(' · ')}
+                    </AdminMessage>}
                     <ReservationListV7
                         reservations={listAccount === user?.id ? reservations : []}
                         loading={isLoading || listAccount !== user?.id}
@@ -3961,51 +3781,34 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                         onPayment={updateV7Payment}
                         onOperations={updateV7Operations}
                         onExport={keys => downloadConfirmedReservationsExcel('selected', new Set(keys))}
+                        onScopeChange={setListScope}
                     />
                 </div>
             </AdminLayout>
 
-            {showAddModal && (
-                <div className="adm-sheet-scrim" onClick={() => !creating && setShowAddModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-                    <div className="adm-sheet adm-form" role="dialog" aria-modal="true" aria-label="수동 예약 추가" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', padding: '20px 22px', boxShadow: '0 20px 60px rgba(0,0,0,.25)', fontFamily: 'var(--font-sans)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text-strong)' }}>수동 예약 추가</h2>
-                            <button className="icon-btn" style={{ width: 34, height: 34 }} onClick={() => setShowAddModal(false)}><Icon name="close" /></button>
-                        </div>
-                        <p className="cell-muted" style={{ fontSize: 12, margin: '0 0 16px' }}>카카오톡·메일·전화 등 사이트 외 주문을 직접 등록합니다.</p>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                            <label style={{ gridColumn: '1 / -1' }} className="rw-field"><span>예약 상품 선택</span>
-                                <select className="inp" aria-label="예약 상품 선택" value={addForm.productId} disabled={creating || productsLoading} onChange={e => { const id = e.target.value; const product = products.find(p => p.id === id); setAddForm(f => ({ ...f, productId: id, ...(product ? { productName: product.name } : {}) })); }}>
-                                    <option value="">{productsLoading ? '상품 정보를 불러오는 중…' : '맞춤 예약 · 직접 입력'}</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select><small>기존 상품을 선택하면 해당 상품의 일정·사진·대표 명소를 사용합니다.</small>
-                            </label>
-                            {[
-                                { k: 'customerName', label: '고객명', req: true, el: <input className="inp" style={{ width: '100%' }} value={addForm.customerName} onChange={e => setAddForm(f => ({ ...f, customerName: e.target.value }))} placeholder="고객명" /> },
-                                { k: 'source', label: '주문 경로', el: <select className="select" style={{ width: '100%' }} value={addForm.source} onChange={e => setAddForm(f => ({ ...f, source: e.target.value }))}>{SOURCE_OPTIONS.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}</select> },
-                                { k: 'phone', label: '연락처', el: <input className="inp" style={{ width: '100%' }} value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} placeholder="010-1234-5678" /> },
-                                { k: 'email', label: '이메일', el: <input className="inp" style={{ width: '100%' }} value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} placeholder="example@mail.com" /> },
-                                { k: 'productName', label: '상품 / 투어명', full: true, el: <input className="inp" style={{ width: '100%' }} value={addForm.productName} readOnly={!!addForm.productId} onChange={e => setAddForm(f => ({ ...f, productName: e.target.value }))} placeholder="예: 은하수 대자연 만끽 투어 (4일)" /> },
-                                { k: 'startDate', label: '여행 시작일', el: <input type="date" className="inp" style={{ width: '100%' }} value={addForm.startDate} onChange={e => setAddForm(f => ({ ...f, startDate: e.target.value }))} /> },
-                                { k: 'endDate', label: '여행 종료일', el: <input type="date" className="inp" style={{ width: '100%' }} value={addForm.endDate} onChange={e => setAddForm(f => ({ ...f, endDate: e.target.value }))} /> },
-                                { k: 'people', label: '인원', el: <input type="number" min={1} className="inp" style={{ width: '100%' }} value={addForm.people} onChange={e => setAddForm(f => ({ ...f, people: e.target.value }))} /> },
-                                { k: 'status', label: '상태', el: <select className="select" style={{ width: '100%' }} value={addForm.status} onChange={e => setAddForm(f => ({ ...f, status: e.target.value }))}><option value="pending_payment">입금 대기</option><option value="confirmed">예약 확정</option><option value="paid">결제 완료</option></select> },
-                                { k: 'totalAmount', label: '총금액 (원)', el: <input type="number" min={0} className="inp" style={{ width: '100%' }} value={addForm.totalAmount} onChange={e => setAddForm(f => ({ ...f, totalAmount: e.target.value }))} placeholder="0" /> },
-                                { k: 'deposit', label: '예약금 (원)', el: <input type="number" min={0} className="inp" style={{ width: '100%' }} value={addForm.deposit} onChange={e => setAddForm(f => ({ ...f, deposit: e.target.value }))} placeholder="0" /> },
-                                { k: 'notes', label: '메모', full: true, el: <textarea className="inp" style={{ width: '100%', minHeight: 60, resize: 'vertical' }} value={addForm.notes} onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))} placeholder="주문 메모 (카카오톡 ID 등)" /> },
-                            ].map(field => (
-                                <div key={field.k} style={field.full ? { gridColumn: '1 / -1' } : undefined}>
-                                    <label className={`cell-muted${'req' in field && field.req ? ' adm-req' : ''}`} style={{ fontSize: 11, fontWeight: 700, display: 'block', marginBottom: 5 }}>{field.label}</label>
-                                    {field.el}
-                                </div>
-                            ))}
-                        </div>
-                        <div className="adm-sheet-foot" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
-                            <button className="btn btn-ghost" onClick={() => setShowAddModal(false)} disabled={creating}>취소</button>
-                            <button className="btn btn-ink" onClick={handleCreateReservation} disabled={creating}><Icon name="check" />{creating ? '추가 중…' : '예약 추가'}</button>
-                        </div>
-                    </div>
+            <AdminDialog open={showAddModal} onClose={() => setShowAddModal(false)} title="수동 예약 추가" description="카카오톡·메일·전화 등 사이트 외 주문을 직접 등록합니다."
+                dirty={addDirty} onSubmit={() => void handleCreateReservation()} submitLabel="예약 추가" submitting={creating}>
+                <div className="rl-add">
+                    <AdminField label="예약 상품 선택" className="rl-add-full" hint="기존 상품을 선택하면 해당 상품의 일정·사진·대표 명소를 사용합니다.">
+                        {id => <AdminSelect id={id} value={addForm.productId} disabled={creating || productsLoading} placeholder={productsLoading ? '상품 정보를 불러오는 중…' : '맞춤 예약 · 직접 입력'}
+                            onChange={value => { const product = products.find(p => p.id === value); setAddForm(f => ({ ...f, productId: value, ...(product ? { productName: product.name } : {}) })); }}
+                            options={[{ value: '', label: productsLoading ? '상품 정보를 불러오는 중…' : '맞춤 예약 · 직접 입력' }, ...products.filter(p => p.id).map(p => ({ value: String(p.id), label: p.name || String(p.id) }))]} />}
+                    </AdminField>
+                    <AdminField label="고객명" required>{id => <AdminTextInput id={id} value={addForm.customerName} onChange={e => setAddForm(f => ({ ...f, customerName: e.target.value }))} placeholder="고객명" />}</AdminField>
+                    <AdminField label="주문 경로">{id => <AdminSelect id={id} value={addForm.source} onChange={value => setAddForm(f => ({ ...f, source: value }))} options={SOURCE_OPTIONS.map(s => ({ value: s.v, label: s.l }))} />}</AdminField>
+                    <AdminField label="연락처">{id => <AdminTextInput id={id} value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} placeholder="010-1234-5678" />}</AdminField>
+                    <AdminField label="이메일">{id => <AdminTextInput id={id} type="email" value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} placeholder="example@mail.com" />}</AdminField>
+                    <AdminField label="상품 / 투어명" className="rl-add-full">{id => <AdminTextInput id={id} value={addForm.productName} readOnly={!!addForm.productId} onChange={e => setAddForm(f => ({ ...f, productName: e.target.value }))} placeholder="예: 은하수 대자연 만끽 투어 (4일)" />}</AdminField>
+                    <AdminField label="여행 시작일">{id => <AdminTextInput id={id} type="date" value={addForm.startDate} onChange={e => setAddForm(f => ({ ...f, startDate: e.target.value }))} />}</AdminField>
+                    <AdminField label="여행 종료일">{id => <AdminTextInput id={id} type="date" value={addForm.endDate} onChange={e => setAddForm(f => ({ ...f, endDate: e.target.value }))} />}</AdminField>
+                    <AdminField label="인원">{id => <AdminTextInput id={id} type="number" min={1} value={addForm.people} onChange={e => setAddForm(f => ({ ...f, people: e.target.value }))} />}</AdminField>
+                    <AdminField label="상태">{id => <AdminSelect id={id} value={addForm.status} onChange={value => setAddForm(f => ({ ...f, status: value }))}
+                        options={[{ value: 'pending_payment', label: '입금 대기' }, { value: 'confirmed', label: '예약 확정' }, { value: 'paid', label: '결제 완료' }]} />}</AdminField>
+                    <AdminField label="총금액 (원)">{id => <AdminTextInput id={id} type="number" min={0} value={addForm.totalAmount} onChange={e => setAddForm(f => ({ ...f, totalAmount: e.target.value }))} placeholder="0" />}</AdminField>
+                    <AdminField label="예약금 (원)">{id => <AdminTextInput id={id} type="number" min={0} value={addForm.deposit} onChange={e => setAddForm(f => ({ ...f, deposit: e.target.value }))} placeholder="0" />}</AdminField>
+                    <AdminField label="메모" className="rl-add-full">{id => <AdminTextArea id={id} minRows={2} value={addForm.notes} onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))} placeholder="주문 메모 (카카오톡 ID 등)" />}</AdminField>
                 </div>
-            )}
+            </AdminDialog>
 
         </>
     );

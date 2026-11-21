@@ -261,7 +261,7 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
   .adm-ui-table:not([data-card-off]) table[data-card-table="on"] tbody { display: block; }
   .adm-ui-table:not([data-card-off]) table[data-card-table="on"] tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3) var(--adm-space-4); padding: var(--adm-space-4); border-bottom: 1px solid var(--adm-line-subtle); }
   .adm-ui-table:not([data-card-off]) table[data-card-table="on"] tr[data-card-row="plain"] { display: block; }
-  .adm-ui-table:not([data-card-off]) table[data-card-table="on"] td { display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--adm-space-1) / 2); min-width: 0; width: auto; padding: 0; border: 0; text-align: left; white-space: normal; font-size: var(--adm-fs-body); }
+  .adm-ui-table:not([data-card-off]) table[data-card-table="on"] td { display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--adm-space-1) / 2); min-width: 0; width: auto; height: auto; padding: 0; border: 0; text-align: left; white-space: normal; font-size: var(--adm-fs-body); }
   .adm-ui-table:not([data-card-off]) table[data-card-table="on"] td[data-label]:not([data-label=""])::before { content: attr(data-label); color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
   .adm-ui-table:not([data-card-off]) table[data-card-table="on"] td[data-label=""] { display: none; }
   .adm-ui-table:not([data-card-off]) table[data-card-table="on"] td[data-primary] { grid-column: 1 / -1; order: -1; font-size: var(--adm-fs-base); }
@@ -275,6 +275,11 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
   .adm-ui-dialog-foot-end { flex: 1; }
   .adm-ui-dialog-foot-end .adm-ui-btn { flex: 1; }
 }
+
+/* ── 고르기 메뉴(AdminMenu): 이름 + 설명 한 줄 ── */
+.adm-ui-menu { box-sizing: border-box; width: calc(var(--adm-space-8) * 10); max-width: calc(100vw - var(--adm-space-8)); padding: var(--adm-space-1) 0; font-family: var(--adm-font); }
+.adm-ui-menu-heading { margin: 0; padding: var(--adm-space-2) var(--adm-space-4) var(--adm-space-1); color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
+.adm-ui-menu-item.adm-ui-menu-item { cursor: pointer; }
 
 /* ── 부품 미리보기(/admin/__ui) 배치 ── */
 .adm-ui-preview-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-3); }
