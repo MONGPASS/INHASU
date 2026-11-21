@@ -1,0 +1,29 @@
+/* Milkyway Admin UI refresh — foundation tokens.
+ * Scoped to the admin wrapper; no changes to customer-facing routes.
+ * Import after the existing admin styles when the first migrated screen is ready.
+ */
+.admin-app-wrapper {
+  --mw-primary: #06c4a0;
+  --mw-primary-hover: #05b091;
+  --mw-primary-pressed: #049c80;
+  --mw-primary-soft: #e7faf5;
+  --mw-canvas: #f7f9fa;
+  --mw-surface: #ffffff;
+  --mw-text-primary: #191f28;
+  --mw-text-secondary: #4e5968;
+  --mw-text-tertiary: #8b95a1;
+  --mw-border: #e5e8eb;
+  --mw-focus-ring: rgba(6, 196, 160, .25);
+  --mw-radius-sm: 8px;
+  --mw-radius-md: 12px;
+  --mw-radius-lg: 16px;
+  --mw-shadow-card: 0 2px 12px rgba(25, 31, 40, .045);
+  --mw-space-1: 4px;
+  --mw-space-2: 8px;
+  --mw-space-3: 12px;
+  --mw-space-4: 16px;
+  --mw-space-5: 20px;
+  --mw-space-6: 24px;
+  --mw-space-8: 32px;
+  --mw-font: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
