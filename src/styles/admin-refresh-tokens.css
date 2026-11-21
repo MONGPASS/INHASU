@@ -27,3 +27,27 @@
   --mw-space-8: 32px;
   --mw-font: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
+
+/* First visual pass: low-risk shared admin surfaces. */
+.admin-app-wrapper {
+  font-family: var(--mw-font);
+  color: var(--mw-text-primary);
+}
+.admin-app-wrapper :is(button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--mw-focus-ring);
+  outline-offset: 2px;
+}
+.admin-app-wrapper :is(.nav-item, .nav-group-toggle) {
+  border-radius: var(--mw-radius-md);
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.admin-app-wrapper :is(.nav-item, .nav-group-toggle):hover {
+  background-color: var(--mw-primary-soft);
+}
+.admin-app-wrapper :is(.page-title, .admin-layout-heading h1) {
+  color: var(--mw-text-primary);
+  letter-spacing: -0.025em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-app-wrapper :is(.nav-item, .nav-group-toggle) { transition: none; }
+}
