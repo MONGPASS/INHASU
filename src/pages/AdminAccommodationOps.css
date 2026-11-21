@@ -30,7 +30,7 @@
 .lo-kpi.is-hot .lo-kpi-num b { color: var(--adm-danger); }
 .lo-kpi.is-filled .lo-kpi-num b { color: var(--adm-accent-strong); }
 .lo-kpi.is-on { border: 1.5px solid var(--lo-tone); box-shadow: 0 6px 18px color-mix(in srgb, var(--lo-tone) 16%, transparent); }
-.lo-kpi.is-on .lo-kpi-hint { color: var(--lo-tone); }
+.lo-kpi.is-on .lo-kpi-hint { color: var(--adm-accent-strong); }
 
 /* 검색·필터 */
 .lo-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -53,7 +53,7 @@
 .lo-year button { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border-default); border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-strong); cursor: pointer; }
 .lo-year button:disabled { opacity: .4; cursor: default; }
 .lo-year-all { flex: none; height: 32px; padding: 0 14px; border: 0; border-radius:var(--adm-radius-sm); background: var(--mrt-gray-100); color: var(--text-secondary); font-size: 13px; font-weight: var(--adm-fw-bold); white-space: nowrap; cursor: pointer; }
-.lo-year-all.is-on { background: var(--adm-accent); color: #fff; }
+.lo-year-all.is-on { background: var(--adm-accent); color: var(--adm-on-primary); }
 .lo-month-scroll { overflow-x: auto; }
 .lo-month-grid { display: grid; grid-template-columns: repeat(12, minmax(64px, 1fr)); gap: 8px; min-width: 820px; }
 .lo-month { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 48px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--text-tertiary); cursor: pointer; }
@@ -62,7 +62,7 @@
 .lo-month:disabled { cursor: default; }
 .lo-month.has-tours { border-color: var(--lo-mint-line); background: var(--adm-accent-soft); color: var(--text-strong); }
 .lo-month.has-tours small { color: var(--lo-mint-strong); }
-.lo-month.is-on { border: 1.5px solid var(--lo-mint); background: var(--adm-accent); color: #fff; }
+.lo-month.is-on { border: 1.5px solid var(--lo-mint); background: var(--adm-accent); color: var(--adm-on-primary); }
 .lo-month.is-on small { color: #fff; }
 
 /* 예약 목록 */
@@ -216,7 +216,7 @@ select.lo-input { padding-right: 30px; background: var(--adm-surface) var(--lo-c
 .lo-btn { display: inline-flex; flex: none; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid var(--border-default); border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-strong); font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; cursor: pointer; }
 .lo-btn:hover:not(:disabled) { border-color: var(--mrt-ink); }
 .lo-btn:disabled { color: var(--text-tertiary); opacity: .6; cursor: default; }
-.lo-btn.is-ink { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff; }
+.lo-btn.is-ink { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: var(--adm-on-primary); }
 .lo-btn.is-ink:hover:not(:disabled) { border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover); }
 .lo-btn.is-dashed { height: 38px; padding: 0 16px; border: 1.5px dashed var(--lo-mint-seg); background: transparent; color: var(--lo-mint-strong); }
 .lo-btn.is-dashed:hover:not(:disabled) { border-color: var(--lo-mint); }
@@ -228,7 +228,7 @@ select.lo-input { padding-right: 30px; background: var(--adm-surface) var(--lo-c
 .lo-savebar-text { flex: 1; min-width: 200px; color: var(--text-tertiary); font-size: 12px; font-weight: 500; }
 .lo-savebar-text.is-dirty { color: var(--lo-mint-strong); font-weight: 700; }
 .lo-reset-row { height: 40px; padding: 0 16px; }
-.lo-save { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 20px; border: 0; border-radius:var(--adm-radius-sm); background: var(--adm-accent); box-shadow: var(--adm-shadow-md); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+.lo-save { display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 20px; border: 0; border-radius:var(--adm-radius-sm); background: var(--adm-accent); box-shadow: var(--adm-shadow-md); color: var(--adm-on-primary); font-size: 14px; font-weight: 700; cursor: pointer; }
 .lo-save:disabled { background: var(--mrt-gray-300); box-shadow: none; cursor: default; }
 
 @media (max-width: 1100px) {

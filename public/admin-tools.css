@@ -43,7 +43,7 @@ html.admin-embedded .df button { height: var(--adm-control-h-lg); padding-top: 0
 
 /* ── 주요 버튼은 민트 하나 ── */
 html.admin-embedded :is(.btn.primary, .page-head .add, .rg-add, .df .save, .bottom :is(.next, .publish)) {
-  border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff;
+  border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: var(--adm-on-primary);
 }
 html.admin-embedded :is(.btn.primary, .page-head .add, .rg-add, .df .save, .bottom :is(.next, .publish)):hover:not(:disabled) {
   border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover);
@@ -182,7 +182,7 @@ html.admin-embedded .day-edit .dh .badge { height: 24px; padding: 0 var(--adm-sp
 html.admin-embedded .snip-sel { border: 1px solid var(--adm-line); color: var(--adm-text); font-weight: var(--adm-fw-medium); }
 html.admin-embedded .quote-spot-selector .spot-chk.on { border: 1px solid var(--adm-accent); background: var(--adm-accent-soft); padding: 10px 11px; }
 html.admin-embedded #spotGroups.quote-spot-selector .spot-chk.on { padding: 12px; border: 1px solid var(--adm-accent); background: var(--adm-accent-soft); }
-html.admin-embedded #spotGroups.quote-spot-selector .spot-chk.on .box, html.admin-embedded .quote-spot-selector .spot-chk.on .box { background: var(--adm-accent); color: #fff; }
+html.admin-embedded #spotGroups.quote-spot-selector .spot-chk.on .box, html.admin-embedded .quote-spot-selector .spot-chk.on .box { background: var(--adm-accent); color: var(--adm-on-primary); }
 html.admin-embedded :is(.opt-row .del, .bal-row .del) { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: transparent; font-size: 0; }
 html.admin-embedded :is(.opt-row .del, .bal-row .del)::before { content: ""; width: 18px; height: 18px; background: var(--adm-text-3); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M4.8637 4.86346C5.21517 4.51199 5.78502 4.51199 6.13649 4.86346L12.0001 10.7271L17.8637 4.86346C18.2151 4.51199 18.785 4.51199 19.1364 4.86346C19.4879 5.21493 19.4879 5.78478 19.1365 6.13625L13.2729 11.9999L19.1365 17.8635C19.4879 18.2149 19.4879 18.7848 19.1364 19.1363C18.785 19.4877 18.2151 19.4877 17.8637 19.1363L12.0001 13.2727L6.13649 19.1363C5.78502 19.4877 5.21517 19.4877 4.8637 19.1363C4.51223 18.7848 4.51223 18.2149 4.8637 17.8635L10.7273 11.9999L4.8637 6.13625C4.51223 5.78478 4.51223 5.21493 4.8637 4.86346Z'/%3E%3C/svg%3E") center / 18px 18px no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M4.8637 4.86346C5.21517 4.51199 5.78502 4.51199 6.13649 4.86346L12.0001 10.7271L17.8637 4.86346C18.2151 4.51199 18.785 4.51199 19.1364 4.86346C19.4879 5.21493 19.4879 5.78478 19.1365 6.13625L13.2729 11.9999L19.1365 17.8635C19.4879 18.2149 19.4879 18.7848 19.1364 19.1363C18.785 19.4877 18.2151 19.4877 17.8637 19.1363L12.0001 13.2727L6.13649 19.1363C5.78502 19.4877 5.21517 19.4877 4.8637 19.1363C4.51223 18.7848 4.51223 18.2149 4.8637 17.8635L10.7273 11.9999L4.8637 6.13625C4.51223 5.78478 4.51223 5.21493 4.8637 4.86346Z'/%3E%3C/svg%3E") center / 18px 18px no-repeat; }
 html.admin-embedded :is(.opt-row .del, .bal-row .del):hover { background: var(--adm-danger-soft); }

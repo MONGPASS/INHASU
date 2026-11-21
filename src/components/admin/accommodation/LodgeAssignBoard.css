@@ -23,7 +23,7 @@
 .la-today { height: 32px; padding: 0 12px; border-radius: var(--adm-radius-sm); border: 1px solid var(--la-line); background: var(--adm-surface); font-size: 13px; font-weight: 600; }
 .la-range { margin-left: auto; display: inline-flex; padding: 3px; border-radius: var(--adm-radius-sm); background: var(--la-g100); }
 .la-range button { min-width: 40px; height: 30px; border: 0; border-radius: var(--adm-radius-sm); background: transparent; font-size: 13px; font-weight: 600; color: var(--la-ink-low) !important; }
-.la-range button.is-on { background: var(--la-mint); color: #fff !important; }
+.la-range button.is-on { background: var(--la-mint); color: var(--adm-on-primary) !important; }
 .la-range button:disabled { opacity: .4; }
 .la-strip-row { display: flex; gap: 8px; align-items: stretch; }
 .la-strip { flex: 1; display: grid; gap: 6px; min-width: 0; overflow-x: auto; }
@@ -35,7 +35,7 @@
 .la-day:disabled { opacity: .5; }
 .la-day-w { font-size: 11px; color: var(--la-ink-low); }
 .la-day-w[data-w="0"] { color: var(--la-red); }
-.la-day-w[data-w="6"] { color: var(--la-blue); }
+.la-day-w[data-w="6"] { color: var(--adm-accent-strong); }
 .la-day-n { font-size: 17px; font-weight: 700; line-height: 1.2; }
 .la-day-n.is-today { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
 .la-day i { position: absolute; top: 7px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--la-orange); }
@@ -183,7 +183,7 @@
 .la-month-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .la-month-grid button { position: relative; height: 40px; border-radius: var(--adm-radius-sm); border: 0; background: var(--la-g50); font-size: 13px; font-weight: 600; color: var(--la-g400) !important; }
 .la-month-grid button.has { color: var(--la-ink) !important; }
-.la-month-grid button.is-on { background: var(--la-mint); color: #fff !important; }
+.la-month-grid button.is-on { background: var(--la-mint); color: var(--adm-on-primary) !important; }
 .la-month-grid i { position: absolute; top: 5px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--la-mint); }
 .la-month-grid i[data-bad] { background: var(--la-red); }
 .la-month-all { height: 36px; border-radius: var(--adm-radius-sm); border: 1px solid var(--la-line); background: var(--adm-surface); font-size: 13px; font-weight: 600; }

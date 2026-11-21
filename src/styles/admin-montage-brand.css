@@ -1,18 +1,22 @@
 @import "@montage-ui/core/theme.css";
 /* ============================================================
-   Montage 부품(@montage-ui/core)의 브랜드 값을 은하수 민트로 바꾼다.
+   Montage 부품(@montage-ui/core)의 브랜드 값을 은하수 민트(배민 민트 #0CEFD3)로 바꾼다.
    - @montage-ui/core/theme.css(Montage 기본 브랜드 파랑) 다음에 읽힌다.
    - 값은 Claude Design "은하수 관리자 (Montage)" 시안의 덮어쓰기와 같고, public/admin-tokens.css의
      --adm-accent* 와 같은 색이다. 관리자 화면 묶음에만 들어가므로 고객 화면에는 영향이 없다.
    ============================================================ */
 :root {
-  --semantic-surface-brand-primary: var(--adm-accent);         --semantic-surface-brand-primary-rgb: 6, 196, 160;
-  --semantic-surface-brand-strong: var(--adm-accent-hover);    --semantic-surface-brand-strong-rgb: 5, 176, 145;
-  --semantic-surface-brand-heavy: #049C80;                     --semantic-surface-brand-heavy-rgb: 4, 156, 128;
-  --semantic-surface-brand-subtle: var(--adm-accent-soft);     --semantic-surface-brand-subtle-rgb: 6, 196, 160;
-  --semantic-foreground-brand-primary: var(--adm-accent-strong); --semantic-foreground-brand-primary-rgb: 3, 134, 110;
-  --semantic-foreground-brand-inverse: var(--adm-accent);      --semantic-foreground-brand-inverse-rgb: 6, 196, 160;
-  --semantic-line-brand-primary: var(--adm-accent-line);       --semantic-line-brand-primary-rgb: 6, 196, 160;
-  --semantic-line-brand-strong: #06C4A06E;                     --semantic-line-brand-strong-rgb: 6, 196, 160;
-  --semantic-line-brand-focus: #06C4A01F;                      --semantic-line-brand-focus-rgb: 6, 196, 160;
+  --semantic-surface-brand-primary: var(--adm-accent);         --semantic-surface-brand-primary-rgb: 12, 239, 211;
+  --semantic-surface-brand-strong: var(--adm-accent-hover);    --semantic-surface-brand-strong-rgb: 11, 223, 197;
+  --semantic-surface-brand-heavy: #0ACCB4;                     --semantic-surface-brand-heavy-rgb: 10, 204, 180;
+  --semantic-surface-brand-subtle: var(--adm-accent-soft);     --semantic-surface-brand-subtle-rgb: 12, 239, 211;
+  --semantic-foreground-brand-primary: var(--adm-accent-strong); --semantic-foreground-brand-primary-rgb: 6, 121, 107;
+  --semantic-foreground-brand-inverse: var(--adm-accent);      --semantic-foreground-brand-inverse-rgb: 12, 239, 211;
+  --semantic-line-brand-primary: var(--adm-accent-line);       --semantic-line-brand-primary-rgb: 12, 239, 211;
+  --semantic-line-brand-strong: #0ACCB4;                       --semantic-line-brand-strong-rgb: 10, 204, 180;
+  --semantic-line-brand-focus: #0CEFD340;                      --semantic-line-brand-focus-rgb: 12, 239, 211;
 }
+/* Montage Button(solid·primary)은 글자를 static white로 그린다. 배민 민트 위 흰 글자는 대비 1.5:1이라
+   관리자에서는 민트 채움 버튼에 className="adm-on-primary"를 주어 글자·아이콘을 --adm-on-primary로 바꾼다.
+   tests/admin-design-tokens.test.mjs가 solid primary Button에 이 클래스가 있는지 검사한다. */
+.admin-app-wrapper .adm-on-primary, .admin-app-wrapper .adm-on-primary * { color: var(--adm-on-primary) !important; }

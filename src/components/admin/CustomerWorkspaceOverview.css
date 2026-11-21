@@ -58,7 +58,7 @@
 .cw-package { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 0 10px; max-width: 100%; min-height: 30px; padding: 3px 14px; border: 1px solid transparent; border-radius: var(--adm-radius-md); font-size: 13px; line-height: 1.5; text-align: left; }
 .cw-package > span { font-size: 12px; font-weight: 600; }
 .cw-package strong { font-weight: var(--adm-fw-bold); }
-.cw-package.is-full { background: var(--adm-accent); color: #fff; box-shadow: var(--adm-shadow-md); }
+.cw-package.is-full { background: var(--adm-accent); color: var(--adm-on-primary); box-shadow: var(--adm-shadow-md); }
 .cw-package.is-value { border-color: var(--adm-accent-line); background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
 .cw-package.is-value > span { color: var(--adm-accent-strong); }
 .cw-package.is-unknown { border: 1px dashed var(--border-strong, var(--adm-accent-line)); background: var(--adm-surface); color: var(--text-secondary); }
@@ -94,7 +94,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: var(--adm
 .cw-journey li.is-done::before { background: var(--adm-accent); }
 .cw-journey li.is-current::before { background: repeating-linear-gradient(90deg, var(--adm-accent) 0 8px, var(--adm-accent-line) 8px 12px); background-size: 24px 100%; animation: cwFlow .9s linear infinite; }
 .cw-step-dot { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--adm-surface); border: 1.5px solid var(--border-default); color: var(--text-tertiary); font-family: var(--font-sans); font-size: 14px; font-weight: 700; }
-.cw-journey .is-done .cw-step-dot { border: 0; background: var(--adm-accent); color: #fff; }
+.cw-journey .is-done .cw-step-dot { border: 0; background: var(--adm-accent); color: var(--adm-on-primary); }
 .cw-journey .is-current .cw-step-dot { border: 2px solid var(--adm-accent); color: var(--mrt-blue-strong); box-shadow: 0 0 0 5px rgba(var(--adm-accent-rgb),.16); animation: cwPulse 1.8s cubic-bezier(.2,0,.1,1) infinite; }
 .cw-step-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 100%; }
 .cw-step-copy > span { font-size: 14px; font-weight: var(--adm-fw-bold); color: var(--text-secondary); overflow-wrap: anywhere; }

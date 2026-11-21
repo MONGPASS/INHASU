@@ -6,6 +6,8 @@
 **새 화면을 만들 때의 규칙**
 
 1. 색·글자 크기·간격·모서리·높이는 `public/admin-tokens.css`의 `--adm-*` 변수만 쓴다. 화면별 CSS나 인라인 `style`에 값을 새로 적지 않는다.
+   - **이 규칙은 테스트가 강제한다**(2026-11-21): `tests/admin-design-budget.test.mjs`가 파일마다 생 `<button>`·`<input>`·`<table>`, 인라인 `style`, 숫자 크기, 직접 적은 색, `!important`, 기본 확인창 수를 세어 `scripts/admin-design-baseline.json`보다 늘면 실패한다. 새 파일은 처음부터 0이어야 한다. 줄였으면 `node scripts/check-admin-design.mjs --write-baseline --md`로 기준선과 [전환 현황](admin-design-adoption.md)을 함께 낮춘다. 기준선을 올리는 변경은 7절 예외 기록 없이 받지 않는다.
+   - 민트 채움(`--adm-primary-bg`·`--adm-accent`) 위의 글자·아이콘은 `--adm-on-primary`(#222222)만 쓴다. 흰 글자는 대비 1.5:1이라 금지(`tests/admin-design-tokens.test.mjs`). Montage `Button`(solid·primary)에는 `className="adm-on-primary"`를 준다.
 2. 제목·버튼·입력창·검색·표·배지·탭·팝업·알림은 3절의 공통 부품을 쓴다. 같은 일을 하는 부품을 새로 만들지 않는다.
 3. 화면은 4절의 네 가지 유형 중 하나의 틀을 따른다.
 4. 저장·취소·삭제·오류·알림은 5절의 방식으로 동작하게 한다.
@@ -43,6 +45,7 @@
 | M-10 | 견적 도구 편집 서랍의 공간 활용(2026-11-20): 모든 추가·편집 창을 가운데 창(모서리 24)으로 통일: 일정·명소·등록 정보·견적 문의 상세는 640px(높이는 내용만큼), 코스 추가·편집은 960px + 두 칸(왼쪽 기본 정보·예약금·추가 및 할인, 오른쪽 인원별 잔금 표, 아래 명소·일자별 일정은 넓게). 아래 줄은 오른쪽 저장 버튼(보통 크기)·왼쪽 삭제 글자 버튼(휴대폰은 꽉 찬 버튼 그대로). 서랍이 열리면 바깥 메뉴·제목·아래 메뉴도 같은 막으로 덮고(`admin-embed.js`의 `inhasu-embed-overlay` 신호 → `AdminQuoteDesk`의 `EmbedDim`), 바깥 막을 누르면 도구의 뒤 막을 누른 것과 같이 닫힌다. CSS 외 변경은 이 신호 하나다 | 완료(2026-11-20) |
 | M-11 | 새 기준(고른 상태의 검정 채움·이모지 아이콘·색 테두리 선택 상자·회색 채운 아이콘 버튼)으로 다시 점검해 고침(2026-11-20). 견적서 만들기: 단계 완료 점 브랜드 채움 + 체크 아이콘, 여행강도·고른 코스·실속형/풀패키지·대표 명소 선택을 민트 선택 모양으로, 일차 배지 회색 채움, 일정 불러오기 선택 상자 회색 테두리, 펼친 일자 카드·입력창 1px·모서리 10, ✕ 글자 → Montage 닫기 아이콘(공통 `quote-day-editor.css`), 📅·📋 이모지 삭제(버튼은 Montage 달력 아이콘). 숙소 배정: 날짜 띠 다음 버튼·예약 정보(i) 버튼. 가이드 상세: 닫기 버튼 바탕 없음, 오늘 민트 테두리, 일정표·가이드 피켓 보조 버튼. 매거진 발행 배지 민트, 홈 배너 테마 이름 흰 배지, 후기 별점 칩의 ★ 글자·배너 요약의 ✓ 글자 제거. 이모지 두 개는 문구만 바꿨다(`견적만들기.html`의 버튼 글자, `quote-day-editor.js`의 첫 선택지 글자 — id·class·함수는 그대로) | 완료(2026-11-20) |
 | M-12 | 견적 도구 화면의 위쪽 간격을 시안대로(2026-11-20): 코스·일정·여행지의 추가 버튼(여행지는 문구 초안 가져오기 포함)을 바깥 제목 줄 오른쪽으로 올리고(바깥 버튼이 도구 안 원래 버튼을 대신 누름, `AdminQuoteDesk`의 `clickFrameButton`), 도구 안 머리 줄은 숨김. 도구 본문 위 여백 26 → 8px(바깥 16px과 합쳐 화면 설명 아래 → 첫 내용 24px). 코스 관리 기준 설명 아래 → 필터 123 → 59px. 견적 예약 목록의 4px 단위가 아닌 간격(18·14·11·13px)을 16·12px로 | 완료(2026-11-20) |
+| M-14 | 브랜드 민트를 배민 민트로(2026-11-21): 채움 `#0CEFD3`, 글자용 `#06796B`(흰 바탕 5.3:1), 글자 `#222222`, 작업 바탕 `#F6F6F6`. 민트 채움 위 글자를 흰색 → `--adm-on-primary`(#222222, 10.8:1)로 CSS 120곳·견적 도구 인라인 5곳·TSX 4곳, 민트를 글자색으로 쓴 64곳을 `--adm-accent-strong`으로. 관리자 TSX에 남아 있던 옛 민트 hex 정리. 화면별 전환 현황 문서와 줄이기만 하는 기준선 테스트 추가 | 완료(2026-11-21) |
 | M-13 | 고객 상세 편집 화면(2026-11-20): 편집 화면이라고 사이드바를 자동으로 접지 않음(사용자가 직접 접은 설정만 따름). 견적 예약 편집기 본문 최대 폭을 `--adm-content-max`(1440px)로, 머리·구역 탭·아래 막대의 좌우 여백을 `--adm-pad-page`로 | 완료(2026-11-20) |
 
 ## 2. 공통 변수 — `public/admin-tokens.css`
@@ -51,16 +54,17 @@
 
 | 종류 | 변수 | 값 |
 |---|---|---|
-값은 Montage 디자인 시스템 기준이다(2026-11-20, Claude Design "은하수 관리자 (Montage)").
+값은 Montage 디자인 시스템 기준이다(2026-11-20, Claude Design "은하수 관리자 (Montage)"). 브랜드 민트·글자·작업 바탕만 배민 값이다(2026-11-21).
 
 | 종류 | 변수 | 값 |
 |---|---|---|
-| 강조색 | `--adm-accent` / `-hover` / `-strong` / `-deep` / `-soft` / `-line` | `#06C4A0` / `#05B091` / `#03866E` / `#02795F` / `#06C4A00D` / `#06C4A047` |
-| 글자 | `--adm-ink` / `--adm-text` / `-2` / `-3` / `-disabled` | `#171719` / `#171719` / `#2E2F33E0` / `#37383C9C` / `#37383C29` |
-| 무채색 | `--adm-gray-50` / `-100` / `-200` / `-300` | `#F7F7F8` / `#F4F4F5` / `#EAEBEC` / `#E1E2E4` |
-| 바탕 | `--adm-canvas` / `--adm-surface` / `--adm-sunken` | `#F7F7F8` / `#FFFFFF` / `#F4F4F5` |
+| 강조색 | `--adm-accent` / `-hover` / `-strong` / `-deep` / `-soft` / `-line` | `#0CEFD3` / `#0BDFC5` / `#06796B` / `#056B5E` / `#0CEFD31A` / `#0CEFD38C` (배민 민트, 같은 색상에서 밝기만 낮춘 단계) |
+| 민트 채움 위 글자 | `--adm-on-primary` | `#222222` — 주요 버튼·민트 배지·민트 채움 위의 글자와 아이콘. 흰 글자 금지 |
+| 글자 | `--adm-ink` / `--adm-text` / `-2` / `-3` / `-disabled` | `#222222` / `#222222` / `#2E2F33E0` / `#37383C9C` / `#37383C29` |
+| 무채색 | `--adm-gray-50` / `-100` / `-200` / `-300` | `#F6F6F6` / `#F4F4F5` / `#EAEBEC` / `#E1E2E4` |
+| 바탕 | `--adm-canvas` / `--adm-surface` / `--adm-sunken` | `#F6F6F6` / `#FFFFFF` / `#F4F4F5` |
 | 테두리 | `--adm-line` / `-subtle` / `-strong`, 굵기 `--adm-border-width` | `#70737C29` / `#70737C14` / `#70737C38`, 1px |
-| 상태색 | `--adm-danger` / `--adm-warn` / `--adm-success` / `--adm-info` / `--adm-neutral` (+ 각 `-soft`) | 빨강 `#E52222` / 주황 `#FF9200` / 초록 `#00BF40` / 안내(민트 글자) `#03866E` / 회색 `#2E2F33E0` |
+| 상태색 | `--adm-danger` / `--adm-warn` / `--adm-success` / `--adm-info` / `--adm-neutral` (+ 각 `-soft`) | 빨강 `#E52222` / 주황 `#FF9200` / 초록 `#00BF40` / 안내(민트 글자) `#06796B` / 회색 `#2E2F33E0` |
 | 칩 바탕 | `--adm-fill-subtle` | `#70737C0D` (Montage surface neutral tertiary — 필터 칩의 기본 바탕) |
 | 상태색 글자 | `--adm-warn-strong` / `--adm-success-strong` | `#9C5800`(Montage orange-30) / `#006E25`(green-30) — 주의·완료를 **글자**로 쓸 때(흰 바탕 5.5 / 6.5:1). Montage 기본 `#FF9200`·`#00BF40`은 글자 대비가 2.2~2.5:1이라 채움·아이콘·테두리·점에만 쓴다 |
 | 상태 테두리 | `--adm-danger-line` / `--adm-warn-line` / `--adm-success-line` | `#FF42426E` / `#FF92006E` / `#00BF406E` (Montage `semantic-line-negative/cautionary/positive`). 조치가 필요한 카드·옅은 상태 상자의 테두리 |
@@ -73,10 +77,10 @@
 | 본문 폭 | `--adm-content-max` / `--adm-content-max-narrow` | 1440px(목록·상세·대시보드) / 960px(입력 폼). 여백 포함, 왼쪽 정렬 |
 | 모서리 | `--adm-radius-xs` / `-sm` / `-md` / `-lg` / `-pill` | 4(배지) / 10(버튼·입력) / 16(카드) / 24(팝업) / 9999px |
 | 높이 | `--adm-control-h` / `-sm` / `-lg`, 좌우 여백 `--adm-control-pad-x` | 40 / 32 / 48px, 16px |
-| 그 밖 | `--adm-shadow-*`, `--adm-ring`, `--adm-scrim`, `--adm-z-*`, `--adm-ease`, `--adm-dur` | Montage 그림자 4단계, 포커스 테두리 `#06C4A01F` 3px, 팝업 뒤 막 `#17171985`, 겹침 순서 |
+| 그 밖 | `--adm-shadow-*`, `--adm-ring`, `--adm-scrim`, `--adm-z-*`, `--adm-ease`, `--adm-dur` | Montage 그림자 4단계, 포커스 테두리 `#0CEFD340` 3px, 팝업 뒤 막 `#17171985`, 겹침 순서 |
 | 휴대폰(760px 이하) | `--adm-control-h` / `-sm` / `-lg`, `--adm-fs-input`, `--adm-fs-title` / `-section`, `--adm-pad-page` / `-card`, `--adm-gap-section`, `--adm-tabbar-h` | 44 / 36 / 48px, 16px, 20 / 18px, 16 / 16px, 16px, 아래 메뉴 56px |
 
-- 민트 글자를 흰 바탕에 쓸 때는 `--adm-accent-strong`(`#03866E`)을 쓴다(`--adm-accent` `#06C4A0`은 채움색이며 글자로 쓰기에 옅다).
+- 민트 글자를 흰 바탕에 쓸 때는 `--adm-accent-strong`(`#06796B`)을 쓴다(`--adm-accent` `#0CEFD3`은 채움색이며 글자로 쓰면 1.5:1로 읽히지 않는다). 민트 채움 위 글자는 `--adm-on-primary`(`#222222`).
 - 간격은 4px 단위, 주요(채움) 버튼은 화면당 하나.
 - 상태색은 의미가 정해져 있다: 빨강=삭제·오류·미처리, 주황=주의·대기, 초록=완료, 민트 글자=안내·진행, 회색=보류·종료. 꾸밈용으로 쓰지 않고, 색만으로 알리지 않고 아이콘·문장과 함께 쓴다.
 - 화면 본문은 `--adm-content-max`까지 넓어지고 왼쪽에 붙는다. 화면 제목과 본문의 왼쪽 선은 `--adm-pad-page`로 같다. 화면별 CSS에 최대 폭을 따로 적지 않는다(React는 `AdminLayout`의 `.content`, 견적 도구는 `admin-tools.css`가 정한다).
@@ -95,7 +99,7 @@
 - 필수 입력 — 라벨에 `className="adm-req"`를 주면 빨간 `*`가 붙는다(글자에 `*`를 직접 적지 않는다). 저장 함수 맨 앞에서 `if (!adminValidateRequired()) return;`을 부르면 열려 있는 팝업 안의 빈 필수 칸 아래에 안내가 뜨고 첫 칸으로 이동한다(`ui/adminForm.ts`).
 - 홈 화면에 추가 — `useAdminInstallMeta`가 관리자 화면에서만 `admin.webmanifest`와 앱 아이콘 표시를 넣는다(고객 사이트에는 넣지 않는다. 오프라인 기능은 없다).
 
-주요 버튼(`.btn-ink`, v7 `inkBtn`)의 바탕은 `--adm-primary-bg`(브랜드 민트) 하나다.
+주요 버튼(`.btn-ink`, v7 `inkBtn`)의 바탕은 `--adm-primary-bg`(브랜드 민트) 하나이고 글자는 `--adm-on-primary`다.
 
 | 부품 | 규격 |
 |---|---|

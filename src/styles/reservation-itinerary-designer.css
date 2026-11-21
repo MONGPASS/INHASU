@@ -96,7 +96,7 @@
 .product-customer-page .cw-focus-workspace .ri-spots-collapsible > summary { padding: 22px; }
 .product-customer-page .cw-focus-workspace .ri-spots-collapsible > summary strong { color: var(--text-strong); font-size: 18px; font-weight: var(--adm-fw-bold); letter-spacing: -.03em; }
 .product-customer-page .cw-focus-workspace .ri-spots-collapsible > summary small { color: var(--text-tertiary); font-size: 13px; }
-.product-customer-page .cw-focus-workspace .ri-spots-collapsible > summary > b { color: var(--mrt-blue); font-size: 13px; font-weight: var(--adm-fw-bold); }
+.product-customer-page .cw-focus-workspace .ri-spots-collapsible > summary > b { color: var(--adm-accent-strong); font-size: 13px; font-weight: var(--adm-fw-bold); }
 .product-customer-page .cw-focus-workspace .ri-spots-content { padding: 0 22px 22px; }
 .product-customer-page .cw-focus-workspace .quote-spot-selector .spot-cat { margin-top: 16px; }
 .product-customer-page .cw-focus-workspace .quote-spot-selector .spot-cat:first-child { margin-top: 0; }
@@ -117,7 +117,7 @@
 .ri-aside-card { display: flex; flex-direction: column; gap: 12px; padding: 20px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
 .ri-aside-card > header { display: flex; align-items: baseline; gap: 8px; }
 .ri-aside-card h3 { margin: 0; color: var(--text-strong); font-size: 16px; font-weight: var(--adm-fw-bold); letter-spacing: -.02em; }
-.ri-aside-card > header > b { color: var(--mrt-blue); font-size: 13px; font-weight: var(--adm-fw-bold); }
+.ri-aside-card > header > b { color: var(--adm-accent-strong); font-size: 13px; font-weight: var(--adm-fw-bold); }
 .ri-aside-card > header > button { margin-left: auto; padding: 0; border: 0; background: transparent; color: var(--text-tertiary); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ri-aside-card > header > button:hover:not(:disabled) { color: var(--text-strong); }
 .ri-spot-order { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }

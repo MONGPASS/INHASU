@@ -1,0 +1,811 @@
+{
+ "src/components/admin/Admin3DIcon.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 1,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/AdminDeliveryHistory.tsx": {
+  "rawButton": 2,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/AdminLayout.tsx": {
+  "rawButton": 4,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 3,
+  "px": 7,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/AdminSidebar.tsx": {
+  "rawButton": 2,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/AdminToolbar.tsx": {
+  "rawButton": 5,
+  "rawField": 1,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/AdminWorkspaceContext.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/CourseImportModal.tsx": {
+  "rawButton": 12,
+  "rawField": 4,
+  "rawTable": 0,
+  "inlineStyle": 1,
+  "px": 1,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/CustomerKakaoActions.tsx": {
+  "rawButton": 3,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/CustomerVehicleAssignment.tsx": {
+  "rawButton": 5,
+  "rawField": 2,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/CustomerWorkspaceOverview.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/DesignTemplateBlockEditor.tsx": {
+  "rawButton": 11,
+  "rawField": 2,
+  "rawTable": 0,
+  "inlineStyle": 60,
+  "px": 93,
+  "hex": 17,
+  "nativeDialog": 0
+ },
+ "src/components/admin/HotelPickerModal.tsx": {
+  "rawButton": 1,
+  "rawField": 1,
+  "rawTable": 1,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/ItineraryImportModal.tsx": {
+  "rawButton": 2,
+  "rawField": 3,
+  "rawTable": 1,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/ProductTermsChecklist.tsx": {
+  "rawButton": 1,
+  "rawField": 2,
+  "rawTable": 0,
+  "inlineStyle": 1,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/QuoteAccountLinkDialog.tsx": {
+  "rawButton": 0,
+  "rawField": 2,
+  "rawTable": 0,
+  "inlineStyle": 2,
+  "px": 2,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/QuoteDayEditor.tsx": {
+  "rawButton": 1,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/QuoteModals.tsx": {
+  "rawButton": 23,
+  "rawField": 18,
+  "rawTable": 0,
+  "inlineStyle": 84,
+  "px": 88,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/QuoteSpotSelector.tsx": {
+  "rawButton": 2,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 3,
+  "px": 5,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/ReservationDocumentEditor.tsx": {
+  "rawButton": 7,
+  "rawField": 6,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/ReservationDocuments.tsx": {
+  "rawButton": 29,
+  "rawField": 2,
+  "rawTable": 0,
+  "inlineStyle": 4,
+  "px": 2,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/ReservationDraftPreview.tsx": {
+  "rawButton": 2,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 5,
+  "px": 4,
+  "hex": 3,
+  "nativeDialog": 0
+ },
+ "src/components/admin/ReservationInlineEditor.tsx": {
+  "rawButton": 18,
+  "rawField": 4,
+  "rawTable": 0,
+  "inlineStyle": 4,
+  "px": 6,
+  "hex": 0,
+  "nativeDialog": 1
+ },
+ "src/components/admin/ReservationOperations.tsx": {
+  "rawButton": 2,
+  "rawField": 11,
+  "rawTable": 0,
+  "inlineStyle": 1,
+  "px": 1,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/ReservationWorkflow.tsx": {
+  "rawButton": 3,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 1,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/SelectionModals.tsx": {
+  "rawButton": 2,
+  "rawField": 2,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/TourFAQEditor.tsx": {
+  "rawButton": 5,
+  "rawField": 2,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/TouristSpotPickerModal.tsx": {
+  "rawButton": 2,
+  "rawField": 1,
+  "rawTable": 1,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/accommodation/LodgeAssignBoard.tsx": {
+  "rawButton": 37,
+  "rawField": 5,
+  "rawTable": 0,
+  "inlineStyle": 6,
+  "px": 4,
+  "hex": 0,
+  "nativeDialog": 1
+ },
+ "src/components/admin/accommodation/RoomCountInput.tsx": {
+  "rawButton": 0,
+  "rawField": 1,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/console/Icon.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/dashboard/DashboardIcon.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 1,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/dashboard/TrafficSources.tsx": {
+  "rawButton": 2,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 4,
+  "px": 0,
+  "hex": 11,
+  "nativeDialog": 0
+ },
+ "src/components/admin/designEditor/FieldPopover.tsx": {
+  "rawButton": 7,
+  "rawField": 3,
+  "rawTable": 0,
+  "inlineStyle": 15,
+  "px": 40,
+  "hex": 1,
+  "nativeDialog": 0
+ },
+ "src/components/admin/designEditor/ImagePopover.tsx": {
+  "rawButton": 3,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 13,
+  "px": 22,
+  "hex": 1,
+  "nativeDialog": 0
+ },
+ "src/components/admin/designEditor/PopoverShell.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 1,
+  "px": 1,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/designEditor/PresetChips.tsx": {
+  "rawButton": 2,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 4,
+  "px": 11,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/designEditor/SectionToolbar.tsx": {
+  "rawButton": 4,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 2,
+  "px": 9,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/guides/GuideSchedule.tsx": {
+  "rawButton": 38,
+  "rawField": 6,
+  "rawTable": 0,
+  "inlineStyle": 23,
+  "px": 2,
+  "hex": 7,
+  "nativeDialog": 0
+ },
+ "src/components/admin/ui/AdminMobileTabBar.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/ui/AdminMontageProvider.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/ui/adminFeedback.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/v7/ReservationDetailV7.tsx": {
+  "rawButton": 26,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 168,
+  "px": 289,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/v7/ReservationListV7.tsx": {
+  "rawButton": 8,
+  "rawField": 1,
+  "rawTable": 0,
+  "inlineStyle": 40,
+  "px": 63,
+  "hex": 3,
+  "nativeDialog": 0
+ },
+ "src/components/admin/v7/v7Ui.tsx": {
+  "rawButton": 2,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 19,
+  "px": 65,
+  "hex": 9,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminAccommodationManage.tsx": {
+  "rawButton": 10,
+  "rawField": 4,
+  "rawTable": 1,
+  "inlineStyle": 16,
+  "px": 17,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminAccommodationOps.tsx": {
+  "rawButton": 21,
+  "rawField": 20,
+  "rawTable": 1,
+  "inlineStyle": 1,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminAssignment.tsx": {
+  "rawButton": 4,
+  "rawField": 0,
+  "rawTable": 1,
+  "inlineStyle": 8,
+  "px": 8,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminBannerManage.tsx": {
+  "rawButton": 31,
+  "rawField": 17,
+  "rawTable": 0,
+  "inlineStyle": 5,
+  "px": 0,
+  "hex": 8,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminCalendar.tsx": {
+  "rawButton": 17,
+  "rawField": 2,
+  "rawTable": 1,
+  "inlineStyle": 0,
+  "px": 1,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminCategoryManage.tsx": {
+  "rawButton": 19,
+  "rawField": 14,
+  "rawTable": 1,
+  "inlineStyle": 62,
+  "px": 78,
+  "hex": 5,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminDashboard.tsx": {
+  "rawButton": 2,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 5,
+  "px": 0,
+  "hex": 1,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminFAQManage.tsx": {
+  "rawButton": 20,
+  "rawField": 5,
+  "rawTable": 0,
+  "inlineStyle": 2,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminGuideManage.tsx": {
+  "rawButton": 10,
+  "rawField": 6,
+  "rawTable": 0,
+  "inlineStyle": 20,
+  "px": 24,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminInquiryManage.tsx": {
+  "rawButton": 10,
+  "rawField": 3,
+  "rawTable": 0,
+  "inlineStyle": 4,
+  "px": 1,
+  "hex": 0,
+  "nativeDialog": 1
+ },
+ "src/pages/AdminLogin.tsx": {
+  "rawButton": 5,
+  "rawField": 6,
+  "rawTable": 0,
+  "inlineStyle": 14,
+  "px": 27,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminMagazineManage.tsx": {
+  "rawButton": 26,
+  "rawField": 11,
+  "rawTable": 0,
+  "inlineStyle": 20,
+  "px": 48,
+  "hex": 13,
+  "nativeDialog": 1
+ },
+ "src/pages/AdminProductManage.tsx": {
+  "rawButton": 58,
+  "rawField": 32,
+  "rawTable": 1,
+  "inlineStyle": 110,
+  "px": 127,
+  "hex": 2,
+  "nativeDialog": 1
+ },
+ "src/pages/AdminPromotionManage.tsx": {
+  "rawButton": 14,
+  "rawField": 5,
+  "rawTable": 1,
+  "inlineStyle": 34,
+  "px": 52,
+  "hex": 1,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminQuoteDesk.tsx": {
+  "rawButton": 18,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 22,
+  "px": 28,
+  "hex": 1,
+  "nativeDialog": 2
+ },
+ "src/pages/AdminQuoteManage.tsx": {
+  "rawButton": 9,
+  "rawField": 1,
+  "rawTable": 1,
+  "inlineStyle": 12,
+  "px": 12,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminReservationManage.tsx": {
+  "rawButton": 67,
+  "rawField": 26,
+  "rawTable": 6,
+  "inlineStyle": 176,
+  "px": 214,
+  "hex": 27,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminReviewManage.tsx": {
+  "rawButton": 11,
+  "rawField": 6,
+  "rawTable": 0,
+  "inlineStyle": 1,
+  "px": 0,
+  "hex": 1,
+  "nativeDialog": 0
+ },
+ "src/pages/AdminTemplateManage.tsx": {
+  "rawButton": 22,
+  "rawField": 23,
+  "rawTable": 0,
+  "inlineStyle": 86,
+  "px": 50,
+  "hex": 49,
+  "nativeDialog": 1
+ },
+ "src/pages/AdminTourFAQManage.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "public/admin-tools.css": {
+  "hex": 2,
+  "important": 8,
+  "rawPx": 24
+ },
+ "public/quote-day-editor.css": {
+  "hex": 0,
+  "important": 137,
+  "rawPx": 58
+ },
+ "public/quote-spot-selector.css": {
+  "hex": 11,
+  "important": 0,
+  "rawPx": 15
+ },
+ "src/components/admin/Admin3DIcon.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
+ },
+ "src/components/admin/AdminDeliveryHistory.css": {
+  "hex": 1,
+  "important": 0,
+  "rawPx": 25
+ },
+ "src/components/admin/AdminToolbar.css": {
+  "hex": 3,
+  "important": 0,
+  "rawPx": 40
+ },
+ "src/components/admin/CourseImportModal.css": {
+  "hex": 2,
+  "important": 0,
+  "rawPx": 57
+ },
+ "src/components/admin/CustomerKakaoActions.css": {
+  "hex": 0,
+  "important": 4,
+  "rawPx": 49
+ },
+ "src/components/admin/CustomerResourcePicker.css": {
+  "hex": 2,
+  "important": 2,
+  "rawPx": 55
+ },
+ "src/components/admin/CustomerWorkspaceOverview.css": {
+  "hex": 1,
+  "important": 8,
+  "rawPx": 248
+ },
+ "src/components/admin/accommodation/LodgeAssignBoard.css": {
+  "hex": 10,
+  "important": 33,
+  "rawPx": 178
+ },
+ "src/components/admin/dashboard/TrafficSources.module.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 39
+ },
+ "src/components/admin/guides/GuideSchedule.css": {
+  "hex": 10,
+  "important": 33,
+  "rawPx": 314
+ },
+ "src/components/admin/ui/admin-ui.css": {
+  "hex": 2,
+  "important": 2,
+  "rawPx": 12
+ },
+ "src/pages/AdminAccommodationOps.css": {
+  "hex": 4,
+  "important": 0,
+  "rawPx": 193
+ },
+ "src/pages/AdminBannerManage.css": {
+  "hex": 3,
+  "important": 0,
+  "rawPx": 133
+ },
+ "src/pages/AdminCalendar.css": {
+  "hex": 1,
+  "important": 0,
+  "rawPx": 184
+ },
+ "src/pages/AdminCategoryManage.css": {
+  "hex": 0,
+  "important": 1,
+  "rawPx": 42
+ },
+ "src/pages/AdminContentManage.css": {
+  "hex": 2,
+  "important": 0,
+  "rawPx": 200
+ },
+ "src/pages/AdminDashboard.module.css": {
+  "hex": 6,
+  "important": 0,
+  "rawPx": 170
+ },
+ "src/pages/AdminProductEditor.css": {
+  "hex": 2,
+  "important": 9,
+  "rawPx": 80
+ },
+ "src/pages/AdminProductList.css": {
+  "hex": 1,
+  "important": 0,
+  "rawPx": 65
+ },
+ "src/pages/AdminReservationBoard.module.css": {
+  "hex": 1,
+  "important": 0,
+  "rawPx": 190
+ },
+ "src/styles/admin-console.css": {
+  "hex": 23,
+  "important": 0,
+  "rawPx": 606
+ },
+ "src/styles/admin-mobile.css": {
+  "hex": 0,
+  "important": 99,
+  "rawPx": 32
+ },
+ "src/styles/admin-montage-brand.css": {
+  "hex": 3,
+  "important": 1,
+  "rawPx": 0
+ },
+ "src/styles/admin-montage.css": {
+  "hex": 3,
+  "important": 6,
+  "rawPx": 57
+ },
+ "src/styles/admin-shell-v3.css": {
+  "hex": 1,
+  "important": 3,
+  "rawPx": 47
+ },
+ "src/styles/customer-workspace-editor.css": {
+  "hex": 4,
+  "important": 13,
+  "rawPx": 229
+ },
+ "src/styles/product-customer-workspace.css": {
+  "hex": 0,
+  "important": 2,
+  "rawPx": 59
+ },
+ "src/styles/quote-booking-workspace.css": {
+  "hex": 8,
+  "important": 19,
+  "rawPx": 302
+ },
+ "src/styles/reservation-inline.css": {
+  "hex": 4,
+  "important": 0,
+  "rawPx": 171
+ },
+ "src/styles/reservation-itinerary-designer.css": {
+  "hex": 6,
+  "important": 1,
+  "rawPx": 140
+ },
+ "src/styles/reservation-workspace.css": {
+  "hex": 4,
+  "important": 1,
+  "rawPx": 138
+ },
+ "public/견적관리.html": {
+  "hex": 19,
+  "important": 6,
+  "rawPx": 285,
+  "inlineStyle": 19,
+  "nativeDialog": 0
+ },
+ "public/견적관리-모바일.html": {
+  "hex": 134,
+  "important": 0,
+  "rawPx": 229,
+  "inlineStyle": 689,
+  "nativeDialog": 0
+ },
+ "public/예약목록.html": {
+  "hex": 8,
+  "important": 0,
+  "rawPx": 159,
+  "inlineStyle": 14,
+  "nativeDialog": 0
+ },
+ "public/예약관리.html": {
+  "hex": 2,
+  "important": 3,
+  "rawPx": 192,
+  "inlineStyle": 51,
+  "nativeDialog": 0
+ },
+ "public/견적만들기.html": {
+  "hex": 11,
+  "important": 10,
+  "rawPx": 241,
+  "inlineStyle": 28,
+  "nativeDialog": 0
+ },
+ "public/코스관리.html": {
+  "hex": 2,
+  "important": 0,
+  "rawPx": 120,
+  "inlineStyle": 5,
+  "nativeDialog": 1
+ },
+ "public/일정관리.html": {
+  "hex": 1,
+  "important": 0,
+  "rawPx": 63,
+  "inlineStyle": 2,
+  "nativeDialog": 1
+ },
+ "public/명소관리.html": {
+  "hex": 5,
+  "important": 0,
+  "rawPx": 77,
+  "inlineStyle": 22,
+  "nativeDialog": 0
+ },
+ "public/리소스관리.html": {
+  "hex": 19,
+  "important": 0,
+  "rawPx": 139,
+  "inlineStyle": 6,
+  "nativeDialog": 0
+ }
+}

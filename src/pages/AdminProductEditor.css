@@ -19,7 +19,7 @@
 .admin-app-wrapper .pa-editor .pa-back { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 36px; padding: 0 14px 0 10px; border: 1.5px solid var(--border-default); border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-strong); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .admin-app-wrapper .pa-editor .pa-back:hover:not(:disabled) { border-color: var(--mrt-ink); }
 .admin-app-wrapper .pa-editor .pa-title { display: flex; flex-direction: column; min-width: 0; }
-.admin-app-wrapper .pa-editor .pa-title span { color: var(--mrt-blue); font-size: 12px; font-weight: var(--adm-fw-bold); }
+.admin-app-wrapper .pa-editor .pa-title span { color: var(--adm-accent-strong); font-size: 12px; font-weight: var(--adm-fw-bold); }
 .admin-app-wrapper .pa-editor .pa-title h2 { margin: 0; color: var(--text-strong); font-size: 20px; font-weight: var(--adm-fw-bold); letter-spacing: -.03em; }
 
 /* 탭 — 아이콘 없이 밑줄형 */
@@ -72,7 +72,7 @@
 .admin-app-wrapper .pa-editor .pa-save-note b { color: var(--text-strong); font-weight: var(--adm-fw-bold); }
 .admin-app-wrapper .pa-editor .pa-savebar .btn { height: 44px; padding: 0 18px; border-radius:var(--adm-radius-sm); font-size: 14px; font-weight: 700; }
 .admin-app-wrapper .pa-editor .pa-savebar .btn-ghost { border: 1.5px solid var(--border-default); background: var(--adm-surface); color: var(--text-strong); }
-.admin-app-wrapper .pa-editor .pa-savebar .btn-ink { background: var(--adm-primary-bg); color: #fff; }
+.admin-app-wrapper .pa-editor .pa-savebar .btn-ink { background: var(--adm-primary-bg); color: var(--adm-on-primary); }
 
 /* 오른쪽 열 — 미리보기·필수 항목 */
 .admin-app-wrapper .pa-editor .pa-aside { position: sticky; top: calc(var(--header-h, 72px) + 16px); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -125,7 +125,7 @@
 .admin-app-wrapper .pa-start-acts .select { height: var(--adm-control-h); min-width: 76px; font-size: var(--adm-fs-body); }
 .admin-app-wrapper .pa-start-drop { cursor: pointer; background: var(--adm-gray-50); border-top-style: dashed; border-top-color: var(--adm-line-strong); transition: background var(--adm-dur) var(--adm-ease); }
 .admin-app-wrapper .pa-start-drop:hover, .admin-app-wrapper .pa-start-drop.is-drag { background: var(--adm-accent-soft); }
-.admin-app-wrapper .pa-start-drop.is-drag .pa-start-ico { background: var(--adm-accent); color: #fff; }
+.admin-app-wrapper .pa-start-drop.is-drag .pa-start-ico { background: var(--adm-accent); color: var(--adm-on-primary); }
 .admin-app-wrapper .pa-start-drop.is-busy { cursor: wait; }
 .admin-app-wrapper .pa-start-drop:focus-visible { outline: 0; box-shadow: inset var(--adm-ring); }
 /* 작성 요령: 접어 두고 필요할 때만 편다 */

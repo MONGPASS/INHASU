@@ -118,7 +118,7 @@
 /* ── 버튼: 주요(채움 민트)·보조(테두리)·약한(회색)·위험 ── */
 .admin-app-wrapper .btn { height: var(--adm-control-h); padding: 0 var(--adm-control-pad-x); border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); letter-spacing: 0; }
 .admin-app-wrapper .btn:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
-.admin-app-wrapper :is(.btn-ink, .btn-blue) { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: #fff; box-shadow: none; }
+.admin-app-wrapper :is(.btn-ink, .btn-blue) { border-color: var(--adm-primary-bg); background: var(--adm-primary-bg); color: var(--adm-on-primary); box-shadow: none; }
 .admin-app-wrapper :is(.btn-ink, .btn-blue):hover:not(:disabled) { border-color: var(--adm-primary-bg-hover); background: var(--adm-primary-bg-hover); }
 .admin-app-wrapper .btn-ghost { border-color: var(--adm-line-strong); background: var(--adm-surface); color: var(--adm-text); }
 .admin-app-wrapper .btn-ghost:hover:not(:disabled) { border-color: var(--adm-line-strong); background: var(--adm-gray-50); color: var(--adm-ink); }

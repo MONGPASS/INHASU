@@ -160,7 +160,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                 <IconButton variant="normal" size="large" aria-label={loading ? '조회 중…' : '새로고침'} title={loading ? '조회 중…' : '새로고침'}
                     disabled={loading} onClick={() => { void refresh(); }}><IconRefresh /></IconButton>
             </p>
-            <Button as={Link} to="/admin/quote-desk/builder" variant="solid" color="primary" size="medium" leadingContent={<IconDocumentText />}>견적서 작성</Button>
+            <Button as={Link} to="/admin/quote-desk/builder" variant="solid" color="primary" size="medium" className="adm-on-primary" leadingContent={<IconDocumentText />}>견적서 작성</Button>
         </div>
 
         {error && <div className={styles.warning} role="alert">{error}{data && <span>마지막으로 불러온 자료를 표시하고 있습니다.</span>}</div>}
@@ -414,7 +414,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                                 {...tipFor(`${answer.month}월 견적 답변 처리율`, [{ k: '접수', v: `${answer.received}건` }, { k: '답변 완료', v: `${answer.answered}건` },
                                     { k: '처리율', v: answerPct == null ? '—' : `${answerPct.toFixed(1)}%` }])}>
                                 <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-                                    <defs><linearGradient id="dashboard-mint-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#06C4A0" /><stop offset="1" stopColor="#06C4A0" /></linearGradient></defs>
+                                    <defs><linearGradient id="dashboard-mint-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="var(--adm-accent)" /><stop offset="1" stopColor="var(--adm-accent)" /></linearGradient></defs>
                                     <circle cx="32" cy="32" r="26" fill="none" stroke="#F4F4F5" strokeWidth="7" />
                                     <circle cx="32" cy="32" r="26" fill="none" stroke="url(#dashboard-mint-ring)" strokeWidth="7" strokeLinecap="round" pathLength={100}
                                         transform="rotate(-90 32 32)" style={{ strokeDasharray: `${(answerPct ?? 0) * t} 100` }} />

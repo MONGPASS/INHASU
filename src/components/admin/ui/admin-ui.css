@@ -7,7 +7,7 @@
 .adm-btn:hover { background: var(--adm-gray-50); }
 .adm-btn:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
 .adm-btn:disabled { opacity: .5; cursor: not-allowed; }
-.adm-btn.is-primary { border-color: var(--adm-accent); background: var(--adm-accent); color: #fff; }
+.adm-btn.is-primary { border-color: var(--adm-accent); background: var(--adm-accent); color: var(--adm-on-primary); }
 .adm-btn.is-primary:hover { border-color: var(--adm-accent-hover); background: var(--adm-accent-hover); }
 .adm-btn.is-danger { border-color: var(--adm-danger); background: var(--adm-danger); color: #fff; }
 .adm-btn.is-danger:hover { filter: brightness(.94); }

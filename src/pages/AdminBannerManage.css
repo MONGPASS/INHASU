@@ -36,7 +36,7 @@
 }
 .admin-app-wrapper .hm-revert:hover:not(:disabled) { color: var(--text-strong); }
 .admin-app-wrapper .hm-save {
-  height: 40px; padding: 0 18px; border: 0; border-radius: var(--adm-radius-md); background: var(--mrt-blue); color: #fff;
+  height: 40px; padding: 0 18px; border: 0; border-radius: var(--adm-radius-md); background: var(--mrt-blue); color: var(--adm-on-primary);
   font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background 160ms;
 }
 .admin-app-wrapper .hm-save:hover:not(:disabled) { background: var(--mrt-blue-strong); }
@@ -97,7 +97,7 @@
 .admin-app-wrapper .hm-media-label em { margin-left: auto; font-style: normal; font-weight: 500; color: var(--text-tertiary); }
 .admin-app-wrapper .hm-mbox, .admin-app-wrapper .hm-ev-pv {
   position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; padding: 0; border: 0; border-radius: var(--adm-radius-md); overflow: hidden;
-  background-color: var(--mrt-blue); color: #fff; font: inherit; text-align: left; cursor: pointer;
+  background-color: var(--mrt-blue); color: var(--adm-on-primary); font: inherit; text-align: left; cursor: pointer;
 }
 .admin-app-wrapper .hm-mov { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; padding: 12px; }
 .admin-app-wrapper .hm-mbox.has-image .hm-mov { background: rgba(0,0,0,.28); }
