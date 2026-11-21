@@ -18,7 +18,7 @@
 | (목록에서 진입) | 고객 예약 관리 — 이전 견적 | `/admin/customer-workspace/legacy-quote/:id` | 위와 같음(`customerSource="quote"`) | 상세형 | 위와 같음 |
 | (목록에서 진입) | 고객 통합 작업 — 견적 예약 | `/admin/customer-workspace/quote/:id` | `pages/AdminQuoteDesk.tsx`(`customerPage`) | 상세형(+견적 도구) | 더보기 메뉴, 발송 이력 옆 패널, 예약 편집기(`예약관리.html`)의 확인 창 |
 | (목록 필터) | 맞춤견적 관리(이전 MILKYWAY 견적) | `/admin/quotes` | `pages/AdminQuoteManage.tsx` | 목록형 | 견적 상세 서랍, 예약 전환 선택 창 |
-| 배정·자원 | 숙소 배정 · 현지 운영 | `/admin/accommodation-ops` | `pages/AdminAccommodationOps.tsx` + `accommodation/LodgeAssignBoard.tsx` | 목록형(칸에서 바로 고침) | 숙소·등급·상태 고르기 창, 숙박 추가 시트 |
+| 배정·자원 | 숙소 배정(옛 이름 ‘숙소 배정 · 현지 운영’) | `/admin/accommodation-ops` | `pages/AdminAccommodationOps.tsx` + `accommodation/LodgeAssignBoard.tsx` | 목록형(칸에서 바로 고침) | 숙소·등급·상태 고르기 창, 숙박 추가 시트 |
 | 배정·자원 | 가이드·숙소·차량 — 가이드 배정 현황 | `/admin/quote-desk/resources?view=schedule` | `components/admin/guides/GuideSchedule.tsx` | 대시보드형 | 가이드 상세 옆 패널, 가이드 피켓 미리보기, 배정 고르기 창 |
 | 상품 관리 | 상품 목록 | `/admin/products` | `pages/AdminProductManage.tsx` | 목록형 | 없음(삭제 확인만) |
 | 상품 관리 | 상품 추가·수정 | `/admin/products`(같은 주소에서 전환) | `AdminProductManage.tsx`의 `ProductModal` | 입력형 | 호텔 고르기, 코스에서 불러오기, 일정 가져오기, 관광지 고르기, 디자인 블록의 문구·사진 팝오버 |
@@ -50,7 +50,7 @@
 | (목록에서 진입) | 견적 예약 편집 | 고객 통합 작업 화면 안 | `예약관리.html` | 상세형 | 확인 창(`#confirmLayer`), 더보기 메뉴, 확정일정표 알림 창 |
 | 견적 관리 | 견적서 만들기 | `/admin/quote-desk/builder` | `견적만들기.html` | 입력형(4단계) | 고객 링크 창(`#linkMask`) |
 | 견적 관리 | 코스 관리 | `/admin/quote-desk/courses` | `코스관리.html` | 목록형 | 코스 편집 서랍 |
-| 견적 관리 | 일정관리 | `/admin/quote-desk/itinerary` | `일정관리.html` | 목록형 | 일정 문구 편집 서랍 |
+| 견적 관리 | 일정 관리 | `/admin/quote-desk/itinerary` | `일정관리.html` | 목록형 | 일정 문구 편집 서랍 |
 | 견적 관리 | 여행지 관리 | `/admin/quote-desk/spots` | `명소관리.html` | 목록형(카드) | 여행지 편집 서랍 |
 | 배정·자원 | 가이드·숙소·차량 — 등록 정보 | `/admin/quote-desk/resources?view=registry` | `리소스관리.html` | 목록형(카드/목록) | 등록 정보 편집 서랍 |
 | (휴대폰 전용) | 모바일 관리자 | `/견적관리-모바일` | `견적관리-모바일.html` | 여러 유형 | 아래 시트·전체 화면 시트·확인 창(`appConfirm`) |

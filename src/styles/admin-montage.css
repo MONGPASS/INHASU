@@ -9,7 +9,7 @@
          상태색은 아이콘·문장과 함께 쓴다.
    ============================================================ */
 .admin-app-wrapper {
-  --side-w: 248px; --side-rail-w: 68px; --shell-gap: 0px;
+  --side-w: 248px; --side-rail-w: 72px; --shell-gap: 0px;
   font-family: var(--adm-font); color: var(--adm-text);
 }
 

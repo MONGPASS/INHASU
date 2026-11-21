@@ -118,8 +118,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
                         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
                     }}>
-                    <button type="button" className="admin-customer-menu-close" aria-label="관리자 메뉴 닫기" onClick={closeMenu}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>
-                    <AdminSidebar activePage={activePage} rail={railShown && !menuShown} onToggleRail={menuShown || hideHeading ? undefined : toggleRail} />
+                    {/* 휴대폰 서랍이면 사이드바가 닫기 버튼·큰 줄·사이트 보기/로그아웃을 그린다 */}
+                    <AdminSidebar activePage={activePage} rail={railShown && !menuShown} onToggleRail={menuShown || hideHeading ? undefined : toggleRail} onClose={menuShown ? closeMenu : undefined} />
                 </div>
             </>
             <div className={`main${flush ? ' is-flush' : ''}`} inert={menuShown}>

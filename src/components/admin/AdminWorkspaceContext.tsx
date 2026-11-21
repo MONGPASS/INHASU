@@ -71,6 +71,11 @@ export function AdminWorkspaceProvider({ enabled, children }: { enabled: boolean
     }, [account, refresh]);
     return <WorkspaceContext.Provider value={{ data: dataAccount === account ? data : null, loading, error, refresh }}>{children}</WorkspaceContext.Provider>;
 }
+/** 공급자가 없는 곳(얕은 렌더 테스트 등)에서도 쓰는 읽기. 없으면 null. */
+export function useAdminWorkspaceOptional(): WorkspaceState | null {
+    return useContext(WorkspaceContext);
+}
+
 export function useAdminWorkspace() {
     const value = useContext(WorkspaceContext);
     if (!value) throw new Error('AdminWorkspaceProvider 안에서 관리자 업무 현황을 사용하세요.');

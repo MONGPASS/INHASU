@@ -18,7 +18,7 @@
   "nativeDialog": 0
  },
  "src/components/admin/AdminLayout.tsx": {
-  "rawButton": 4,
+  "rawButton": 3,
   "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 3,
@@ -27,7 +27,7 @@
   "nativeDialog": 0
  },
  "src/components/admin/AdminSidebar.tsx": {
-  "rawButton": 2,
+  "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 0,
@@ -680,6 +680,11 @@
   "hex": 1,
   "important": 0,
   "rawPx": 25
+ },
+ "src/components/admin/AdminSidebar.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
  },
  "src/components/admin/AdminToolbar.css": {
   "hex": 3,

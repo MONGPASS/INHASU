@@ -160,7 +160,7 @@ const CONFIRMED_STATUSES = ['confirmed', 'paid', 'completed'];
 
 export const AdminAccommodationOps: React.FC = () => {
     const { user, loading } = useUser();
-    if (loading || !user || user.role !== 'admin') return <AdminLayout activePage="accommodation-ops" title="숙소 배정 · 현지 운영"><div className="empty">관리자 계정을 확인하고 있습니다.</div></AdminLayout>;
+    if (loading || !user || user.role !== 'admin') return <AdminLayout activePage="accommodation-ops" title="숙소 배정"><div className="empty">관리자 계정을 확인하고 있습니다.</div></AdminLayout>;
     return <AccommodationBoard key={user.id} userId={user.id} />;
 };
 
@@ -652,7 +652,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
         <AdminLayout
             activePage="accommodation-ops"
             eyebrow={null}
-            title="숙소 배정 · 현지 운영"
+            title="숙소 배정"
         >
             <div className="lo-board">
             {notice && <div className="lo-notice adm-msg" role="status">{notice}</div>}
