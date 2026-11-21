@@ -1,0 +1,59 @@
+/* Admin UI refresh v1 — scoped, reversible visual layer.
+   Preserves React handlers, routing, forms and all backend integrations. */
+@media (min-width: 761px) {
+  .admin-app-wrapper .app { background: var(--mw-canvas); }
+  .admin-app-wrapper .side { background: var(--mw-canvas); }
+  .admin-app-wrapper .main {
+    background: var(--mw-surface);
+    border: 1px solid var(--mw-border);
+    box-shadow: var(--mw-shadow-card);
+    border-radius: var(--mw-radius-lg);
+  }
+  .admin-app-wrapper .header { background: var(--mw-surface); }
+  .admin-app-wrapper .header .admin-toolbar { border-bottom-color: var(--mw-border); }
+}
+.admin-app-wrapper .side-brand { border-radius: var(--mw-radius-md); }
+.admin-app-wrapper .side-brand-text b { color: var(--mw-text-primary); font-weight: 700; letter-spacing: -.035em; }
+.admin-app-wrapper .side-brand-text small { color: var(--mw-text-tertiary); }
+.admin-app-wrapper .side-nav { scrollbar-width: thin; }
+.admin-app-wrapper .nav-section-title, .admin-app-wrapper .nav-group-title {
+  color: var(--mw-text-tertiary);
+  letter-spacing: .02em;
+}
+.admin-app-wrapper .nav-item {
+  color: var(--mw-text-secondary);
+  border-radius: var(--mw-radius-sm);
+  font-weight: 500;
+}
+.admin-app-wrapper .nav-item:hover:not(.active) {
+  color: var(--mw-text-primary);
+  background: #edf2f3;
+}
+.admin-app-wrapper .nav-item.active,
+.admin-app-wrapper .nav-item[aria-current="page"] {
+  color: #087e6a;
+  background: var(--mw-primary-soft);
+  box-shadow: none;
+  font-weight: 700;
+}
+.admin-app-wrapper .nav-item.active .nav-icon,
+.admin-app-wrapper .nav-item[aria-current="page"] .nav-icon { color: #087e6a; }
+.admin-app-wrapper .side-rail-toggle {
+  border-color: var(--mw-border);
+  border-radius: var(--mw-radius-sm);
+  box-shadow: none;
+}
+.admin-app-wrapper .page-title {
+  color: var(--mw-text-primary);
+  letter-spacing: -.035em;
+  font-weight: 700;
+}
+.admin-app-wrapper .eyebrow { color: var(--mw-text-tertiary); letter-spacing: .035em; }
+.admin-app-wrapper :is(.btn, .side-rail-toggle, .nav-item) { transition-duration: 160ms; }
+.admin-app-wrapper :is(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid var(--mw-focus-ring);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-app-wrapper :is(.btn, .side-rail-toggle, .nav-item) { transition: none; }
+}
