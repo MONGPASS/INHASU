@@ -394,3 +394,24 @@ test('이미 다른 계정에 연결된 견적과 받는 사람이 없는 공유
     assert.equal(f.linkOwner('request', 'legacy-request'), 'other');
     assert.equal(f.linkOwner('request', 'shared-course'), undefined);
 });
+
+// 2026-11-23 오너 결정: 관리자가 만든 수동 예약(주문 경로가 있는 예약)도 같은 Google 이메일이면 인증번호 없이 연결한다.
+test('수동 예약 이메일과 같은 Google 계정은 예약 연결 화면·마이페이지 이력에서 바로 연결된다', async t => {
+    const f = await fixture(t);
+    f.raw.prepare('INSERT INTO reservations(id,customer_name,customer_email,customer_phone,user_id,product_name,status,source) VALUES(?,?,?,?,?,?,?,?)')
+        .run('manual-reservation', '수동 고객', storedEmail, storedPhone, null, '수동 예약', 'confirmed', 'kakao');
+    addGoogleUser(f, 'mail-owner', storedEmail);
+    const status = await f.request('/status?source=reservation&key=manual-reservation', { user: 'mail-owner' });
+    assert.equal(status.status, 200); assert.equal((await status.json()).state, 'linked');
+    assert.equal(f.raw.prepare('SELECT user_id FROM reservations WHERE id=?').get('manual-reservation').user_id, 'mail-owner');
+    assert.equal(f.linkOwner('reservation', 'manual-reservation'), 'mail-owner');
+    assert.equal(f.outbox.length, 0, '인증번호를 보내지 않는다');
+    // 고객이 직접 한 예전 예약(주문 경로 없음)은 이메일이 같아도 인증번호로만 연결한다.
+    const legacy = await f.request('/status?source=reservation&key=legacy-reservation', { user: 'mail-owner' });
+    assert.equal((await legacy.json()).state, 'verification_required');
+    await f.request('/history', { user: 'mail-owner' });
+    assert.equal(f.raw.prepare('SELECT user_id FROM reservations WHERE id=?').get('legacy-reservation').user_id, null);
+    // 이미 연결된 수동 예약은 다른 계정이 가져갈 수 없다.
+    const other = await f.request('/status?source=reservation&key=manual-reservation', { user: 'other' });
+    assert.equal(other.status, 403);
+});

@@ -100,11 +100,11 @@ export interface AdminTabItem<V extends string = string> extends AdminChoiceItem
     controls?: string;
 }
 
-export function AdminTabs<V extends string>({ label, items, value, onChange, size = 'md', className }: { label: string; items: AdminTabItem<V>[]; value: V; onChange: (value: V) => void; size?: 'sm' | 'md'; className?: string }) {
+export function AdminTabs<V extends string>({ label, items, value, onChange, size = 'md', className }: { label: string; items: AdminTabItem<V>[]; value: V; onChange: (value: V) => void; size?: 'sm' | 'md' | 'lg'; className?: string }) {
     return (
         <div className={cx('adm-ui-tabs', className)}>
             <Tab value={value} onValueChange={(next) => onChange(next as V)}>
-                <TabList size={size === 'sm' ? 'small' : 'medium'} aria-label={label}>
+                <TabList size={size === 'sm' ? 'small' : size === 'lg' ? 'large' : 'medium'} aria-label={label}>
                     {items.map((item) => (
                         <TabListItem key={item.value} value={item.value} disabled={item.disabled} id={item.id} aria-controls={item.controls}>
                             {item.tone && <span className={cx('adm-ui-tab-dot', `is-${item.tone}`)} aria-hidden="true" />}

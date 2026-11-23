@@ -7,7 +7,7 @@ import { preserveProductCustomerEvidence, publicProductContract } from '../../sr
 import { initializeLucia } from '../lib/auth';
 import { getCookie } from 'hono/cookie';
 import { sendPayPalInvoice } from '../lib/paypal';
-import { customerSession, customerWriteOrigin, requireResourceAccess } from '../lib/customerAccess';
+import { claimReservationsByGoogleEmail, cleanContact, customerSession, customerWriteOrigin, requireResourceAccess } from '../lib/customerAccess';
 import { sendEmail } from '../lib/mailer';
 import { tplAdminDepositReported } from './notifications/email';
 import { COMPANY_INFO } from '../../src/constants/company';
@@ -275,6 +275,8 @@ app.get('/', async (c) => {
     } else {
         // A shared e-mail address never grants access to another person's booking.
         // Legacy reservations enter this list only after one-time verification links user_id.
+        // 관리자가 만든 수동 예약은 적힌 이메일과 Google이 확인한 로그인 이메일이 같으면 이 계정에 연결한다(2026-11-23 오너 결정).
+        await claimReservationsByGoogleEmail(c.env, user);
         result = await db.select().from(reservations).where(eq(reservations.userId, user.id)).orderBy(desc(reservations.createdAt)).all();
     }
 
@@ -288,8 +290,8 @@ app.get('/', async (c) => {
     // Parse JSON fields and map to legacy frontend schema interface
     const parsed = result.map((r: any) => ({
         ...reservationForRole(r, user.role === 'admin'),
-        email: r.customerEmail,
-        phone: r.customerPhone,
+        email: cleanContact(r.customerEmail),
+        phone: cleanContact(r.customerPhone),
         date: r.startDate,
         headcount: `${r.travelers}명`,
         totalPeople: r.travelers,
@@ -330,8 +332,8 @@ app.get('/:id', async (c) => {
 
     const parsed = {
         ...reservationForRole(result, user?.role === 'admin'),
-        email: result.customerEmail,
-        phone: result.customerPhone,
+        email: cleanContact(result.customerEmail),
+        phone: cleanContact(result.customerPhone),
         date: result.startDate,
         headcount: `${result.travelers}명`,
         totalPeople: result.travelers,
@@ -483,8 +485,8 @@ app.put('/:id', async (c) => {
 
     const parsed = {
         ...reservationForRole(updated!, true),
-        email: updated?.customerEmail,
-        phone: updated?.customerPhone,
+        email: cleanContact(updated?.customerEmail),
+        phone: cleanContact(updated?.customerPhone),
         date: updated?.startDate,
         headcount: `${updated?.travelers}명`,
         totalPeople: updated?.travelers,
@@ -539,8 +541,9 @@ app.post('/', async (c) => {
     const productName = body.product_name || body.productName;
     const customerInfo = body.customer_info || {};
     const customerName = customerInfo.name || body.customerName;
-    const customerEmail = customerInfo.email || body.email;
-    const customerPhone = customerInfo.phone || body.phone;
+    // 비어 있으면 빈칸으로 저장한다(예전에는 String(undefined)로 글자 'undefined'가 저장됐다).
+    const customerEmail = cleanContact(customerInfo.email || body.email);
+    const customerPhone = cleanContact(customerInfo.phone || body.phone);
 
     if (!productName || !customerName) {
         return c.json({ error: 'Missing required fields' }, 400);
@@ -575,8 +578,8 @@ app.post('/', async (c) => {
                 ? ((body.user_id || body.userId) ? String(body.user_id || body.userId) : null)
                 : user.id,
             customerName: String(customerName),
-            customerEmail: String(customerEmail),
-            customerPhone: String(customerPhone),
+            customerEmail,
+            customerPhone,
             travelers: Number(body.total_people || body.totalPeople || 1),
             startDate: (body.start_date || body.date) ? String(body.start_date || body.date) : null,
             endDate: body.end_date ? String(body.end_date) : null,

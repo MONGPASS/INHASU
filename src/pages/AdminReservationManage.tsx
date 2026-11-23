@@ -171,6 +171,9 @@ const sourceColor = (s?: string): { bg: string; fg: string } => ({
     visit: { bg: 'var(--adm-accent-soft)', fg: 'var(--adm-accent-strong)' },
     other: { bg: 'var(--adm-gray-100)', fg: 'var(--adm-text-3)' },
 }[s || ''] || { bg: 'var(--adm-gray-100)', fg: 'var(--adm-text-3)' });
+/** 수동 예약 연락처(하이픈·공백을 뺀 숫자 9~11자리)와 이메일 형식 */
+const MANUAL_PHONE = /^\d{9,11}$/;
+const MANUAL_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const BLANK_ADD = { customerName: '', phone: '', email: '', source: 'kakao', productName: '', productId: '', startDate: '', endDate: '', people: '1', totalAmount: '', deposit: '', status: 'pending_payment', notes: '' };
 
 /** 고객이 '입금 완료'를 신고했는데 아직 입금 확인을 하지 않은 예약 — 목록의 「입금 신고」 배지와 상세의 강조 표시에 쓴다. */
@@ -3280,7 +3283,12 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
 
     // Filter Logic
     const handleCreateReservation = async () => {
-        if (!addForm.customerName.trim()) { adminValidateRequired(); return; }
+        const phone = addForm.phone.trim(), email = addForm.email.trim();
+        if (!addForm.customerName.trim() || !phone || !email) { adminValidateRequired(); return; }
+        // 연락처는 카카오 알림톡, 이메일은 고객의 Google 로그인 마이페이지 연결에 쓴다(2026-11-23 오너 결정).
+        if (!MANUAL_PHONE.test(phone.replace(/[\s-]/g, ''))) { adminNotify('연락처는 숫자 9~11자리로 입력해 주세요. (예: 010-1234-5678)'); return; }
+        if (!MANUAL_EMAIL.test(email)) { adminNotify('이메일 형식을 확인해 주세요. (예: name@gmail.com)'); return; }
+        if (!await adminConfirm(`고객 이메일이 ${email} 맞나요?\n고객이 이 이메일의 Google 계정으로 로그인하면 마이페이지에서 이 예약을 볼 수 있습니다. 잘못 적으면 다른 사람이 예약을 볼 수 있으니 한 번 더 확인해 주세요.`)) return;
         setCreating(true);
         try {
             const total = Number(addForm.totalAmount) || 0;
@@ -3706,22 +3714,6 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
             : { ...res, balanceStatus: paid ? 'paid' : 'unpaid' };
         return handleUpdateReservation(updated, true);
     };
-    const updateV7Operations = async (source: V7Source, patch: Partial<Operations>) => {
-        if (source.type !== 'product' || user?.role !== 'admin') return false;
-        try {
-            await api.reservations.update(source.id, { admin_operations: patch });
-            setReservations(prev => prev.map(x => {
-                if (x.id !== source.id || x.type !== 'product') return x;
-                const current = { ...emptyReservationOperations(), ...(x.adminOperations || {}) };
-                return { ...x, adminOperations: { ...current, ...patch, receipt: { ...current.receipt, ...(patch.receipt || {}) } } };
-            }));
-            return true;
-        } catch (error: any) {
-            adminNotify(`운영 정보를 저장하지 못했습니다. ${error?.message || ''}`.trim());
-            return false;
-        }
-    };
-
     // 머리 Excel 메뉴 — 지금 보이는 목록(모든 쪽) · 선택한 예약 · 전체 확정 팀(confirmed + paid)
     const confirmedTeams = reservations.filter(r => r.type !== 'quote' && ['confirmed', 'paid'].includes(r.status)).length;
     const excelItems = [
@@ -3775,11 +3767,9 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                         reservations={listAccount === user?.id ? reservations : []}
                         loading={isLoading || listAccount !== user?.id}
                         loadedOnce={loadedOnce && listAccount === user?.id}
-                        userId={user?.id || ''}
                         onOpen={openV7}
                         onStatus={(r, status) => handleStatusChange(r.id, status, r.type)}
                         onPayment={updateV7Payment}
-                        onOperations={updateV7Operations}
                         onExport={keys => downloadConfirmedReservationsExcel('selected', new Set(keys))}
                         onScopeChange={setListScope}
                     />
@@ -3796,8 +3786,8 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                     </AdminField>
                     <AdminField label="고객명" required>{id => <AdminTextInput id={id} value={addForm.customerName} onChange={e => setAddForm(f => ({ ...f, customerName: e.target.value }))} placeholder="고객명" />}</AdminField>
                     <AdminField label="주문 경로">{id => <AdminSelect id={id} value={addForm.source} onChange={value => setAddForm(f => ({ ...f, source: value }))} options={SOURCE_OPTIONS.map(s => ({ value: s.v, label: s.l }))} />}</AdminField>
-                    <AdminField label="연락처">{id => <AdminTextInput id={id} value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} placeholder="010-1234-5678" />}</AdminField>
-                    <AdminField label="이메일">{id => <AdminTextInput id={id} type="email" value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} placeholder="example@mail.com" />}</AdminField>
+                    <AdminField label="연락처" required>{id => <AdminTextInput id={id} type="tel" value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} placeholder="010-1234-5678" />}</AdminField>
+                    <AdminField label="이메일" required hint="고객이 이 이메일의 Google 계정으로 로그인하면 마이페이지에서 예약을 볼 수 있어요.">{id => <AdminTextInput id={id} type="email" value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} placeholder="example@gmail.com" />}</AdminField>
                     <AdminField label="상품 / 투어명" className="rl-add-full">{id => <AdminTextInput id={id} value={addForm.productName} readOnly={!!addForm.productId} onChange={e => setAddForm(f => ({ ...f, productName: e.target.value }))} placeholder="예: 은하수 대자연 만끽 투어 (4일)" />}</AdminField>
                     <AdminField label="여행 시작일">{id => <AdminTextInput id={id} type="date" value={addForm.startDate} onChange={e => setAddForm(f => ({ ...f, startDate: e.target.value }))} />}</AdminField>
                     <AdminField label="여행 종료일">{id => <AdminTextInput id={id} type="date" value={addForm.endDate} onChange={e => setAddForm(f => ({ ...f, endDate: e.target.value }))} />}</AdminField>

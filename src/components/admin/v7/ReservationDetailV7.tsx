@@ -17,6 +17,8 @@ import {
     type PillTone, type V7MenuItem, type V7MenuState,
 } from './v7Ui';
 import { adminConfirm } from '../ui/adminFeedback';
+import { IconCheckThick, IconCoins, IconDocument, IconListCategory, IconPersons } from '@montage-ui/icon';
+import './reservation-detail-cards.css';
 
 type Css = React.CSSProperties;
 type Model = CustomerWorkspaceOverviewModel;
@@ -291,11 +293,12 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const docAlerts = m.documents.filter(d => /실패|필요|미작성|미발송|전/.test(d.status || '')).length;
     const logs = [...(m.recentHistory || [])];
 
-    const btnSel = (value: string, empty: boolean, go: (e: React.MouseEvent) => void, icon: DashboardIconName = 'lc-chevron-down', x?: Css) =>
-        <button type="button" disabled={busy || saving} onClick={go} style={sel(empty, x)}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span><Ico name={icon} size={12} /></button>;
+    /** className을 주면 모양은 CSS(reservation-detail-cards.css)가 정한다. */
+    const btnSel = (value: string, empty: boolean, go: (e: React.MouseEvent) => void, icon: DashboardIconName = 'lc-chevron-down', x?: Css, className?: string) =>
+        <button type="button" disabled={busy || saving} onClick={go} className={className} style={className ? undefined : sel(empty, x)}><span className={className ? 'rdc-sel-text' : undefined} style={className ? undefined : { overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span><Ico name={icon} size={className ? 16 : 12} /></button>;
     const btnPill = (value: string, tone: PillTone, go: (e: React.MouseEvent) => void) => <button type="button" disabled={busy || saving} onClick={go} style={pill(tone)}>{value}<Ico name="lc-chevron-down" size={12} /></button>;
-    const openLink = (label: string, go: () => void, disabled = false) => <button type="button" aria-label={`${label} 열기`} disabled={busy || disabled} onClick={go}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-text-2)', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={12} /></button>;
+    const openLink = (label: string, go: () => void, disabled = false, className?: string) => <button type="button" aria-label={`${label} 열기`} disabled={busy || disabled} onClick={go} className={className}
+        style={className ? undefined : { display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-text-2)', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={className ? 14 : 12} /></button>;
     const editLink = (label: string, go: () => void) => <button type="button" aria-label={label} disabled={busy} onClick={go}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 12, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>수정<Ico name="lc-pencil" size={12} /></button>;
     const guideValue = row?.guide?.name || (m.assignments.find(a => a.id === 'guide')?.state === 'ready' ? m.assignments.find(a => a.id === 'guide')!.value : '');
@@ -305,42 +308,99 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const asgLocked = !!m.disabledActions?.includes('assignments'), payLocked = !!m.disabledActions?.includes('payments');
     const mutedNote = (text: string) => <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--adm-text-3)', whiteSpace: 'nowrap' }}>{text}</span>;
     const lockedNote = mutedNote('예약 후 배정할 수 있어요'), payNote = mutedNote('예약 후 관리할 수 있어요');
-    // 디자인 v7: 바로가기 아래 결제·배정·분류·서류 네 칸 요약
-    type QuadItem = { label: string; sub?: ReactNode; control?: ReactNode };
-    const quad: Array<{ sid: string; icon: DashboardIconName; title: string; left: number | null; badge?: string; muted?: boolean; items: QuadItem[] }> = [
-        payLocked ? { sid: 'sec-pay', icon: 'lc-wallet', title: '결제', left: null, badge: '예약 전', muted: true, items: [
-            { label: '총 매출', sub: v7Won(pay.total) }, { label: '예약금', control: payNote }, { label: '잔금', control: payNote }, { label: '현금영수증', control: payNote }] }
-        : { sid: 'sec-pay', icon: 'lc-wallet', title: '결제', left: [!depositPaid, !balancePaid, receiptLate].filter(Boolean).length, items: [
-            { label: '총 매출', sub: v7Won(pay.total) },
-            { label: '예약금', sub: v7Won(pay.deposit), control: btnPill(depositPaid ? '입금 완료' : '미입금', depositPaid ? 'mint' : 'red', e => paymentMenu(e, 'deposit')) },
-            { label: '잔금', sub: v7Won(pay.balance), control: btnPill(balancePaid ? '완납' : '미수', balancePaid ? 'mint' : 'red', e => paymentMenu(e, 'final')) },
-            { label: '현금영수증', control: ops ? (receiptLate ? btnPill(RECEIPT_LABELS[receipt], 'red', e => opsMenu(e, 'receipt')) : btnSel(RECEIPT_LABELS[receipt], false, e => opsMenu(e, 'receipt'))) : btnSel('결제 화면', false, action('payments'), 'lc-chevron-right') }] },
-        asgLocked ? { sid: 'sec-asg-s', icon: 'lc-users', title: '배정', left: null, badge: '예약 전', muted: true, items: [
-            { label: '가이드', control: lockedNote }, { label: '차량', control: lockedNote }, { label: '숙소', control: lockedNote }] }
-        : { sid: 'sec-asg-s', icon: 'lc-users', title: '배정', left: [!guideValue, !vehicleValue, !stayReady].filter(Boolean).length, items: [
-            { label: '가이드', control: btnSel(guideValue || '선택', !guideValue, e => void peopleMenu(e, 'guide')) },
-            { label: '차량', control: btnSel(vehicleValue || '선택', !vehicleValue, e => void peopleMenu(e, 'vehicle')) },
-            { label: '숙소', sub: row ? row.accN ? `${row.accC}/${row.accN}박 확정` : '숙박 없음' : m.assignments.find(a => a.id === 'stay')?.value, control: btnSel('박별 관리', false, () => goSec('sec-asg'), 'lc-chevron-right') }] },
-        { sid: 'sec-cls', icon: 'lc-tags', title: '분류', left: null, badge: ops ? '완료' : '견적 편집기에서 관리', items: ([['조인여부', 'joining'], ['분류', 'category'], ['구분', 'serviceType'], ['항공', 'airfare']] as const).map(([label, key]) => {
-            const value = ops ? key === 'joining' ? JOINING_LABELS[ops.joining] : (ops[key] || '') as string : key === 'category' ? row?.category || '' : '';
-            return { label, control: btnSel(value || '미정', false, e => opsMenu(e, key)) };
-        }) },
-        { sid: 'sec-doc', icon: 'lc-file-text', title: '서류', left: docAlerts, items: [
-            ...m.documents.map(doc => ({ label: doc.label, sub: <span style={{ color: /실패|필요|미작성|미발송|전/.test(doc.status || '') ? 'var(--adm-danger)' : doc.status ? 'var(--adm-accent-strong)' : V7_INK }}>{doc.status || doc.detail || '내용 확인'}</span>,
-                control: <>{doc.editAction && editLink(doc.editLabel || `${doc.label} 수정`, action(doc.editAction, doc.id))}{openLink(doc.label, action(doc.action || doc.id, doc.id), doc.disabled)}</> })),
-            ...(m.agreement ? [{ label: '계약 동의', sub: [m.agreement.label, m.agreement.name && `서명자 ${m.agreement.name}`].filter(Boolean).join(' · ') }] : []),
-            { label: '공개·전달', control: btnSel('관리', false, action('documents'), 'lc-chevron-right') }] },
-    ];
-    const compactCard = (c: typeof quad[number]) => <div key={c.sid} id={c.sid} style={{ display: 'flex', flexDirection: 'column', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)', scrollMarginTop: 88 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 10px' }}>
-            <span style={iconTile(28)}><Ico name={c.icon} size={15} /></span><b style={{ fontSize: 14, fontWeight: 700 }}>{c.title}</b>
-            <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: c.muted ? 'var(--adm-text-3)' : c.left ? 'var(--adm-danger)' : 'var(--adm-accent-strong)' }}>{c.left === null ? c.badge : c.left ? `${c.left}건 남음` : '완료'}</span>
-        </div>
-        {c.items.map((it, i) => <div key={`${it.label}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '0 16px', borderTop: '1px solid var(--adm-line-subtle)' }}>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}><span style={{ fontSize: 13, color: 'var(--adm-text-2)' }}>{it.label}</span>{it.sub && <span style={{ fontSize: 12, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub}</span>}</span>
-            {it.control}
-        </div>)}
+    // Claude Design ‘예약 관리 · 강력 개선안’ 예약상세 카드(2026-11-23): 결제·배정·분류·서류 네 칸.
+    // 모양은 reservation-detail-cards.css(rdc-*)가 정하고, 버튼 동작은 예전 카드와 같다(입금·배정·분류 고르기, 서류 열기, 업무 화면 열기).
+    const cls = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(' ');
+    const cardBadge = (left: number | null, badge?: string, muted = false) => {
+        const done = left === 0 || (left === null && badge === '완료' && !muted);
+        return <span className={cls('rdc-badge', muted ? 'is-muted' : done ? 'is-done' : left ? 'is-left' : 'is-muted')}>
+            {done ? <><IconCheckThick aria-hidden="true" />완료</> : left ? `${left}건 남음` : badge}
+        </span>;
+    };
+    const rdcHead = (Icon: React.ComponentType<{ 'aria-hidden'?: boolean | 'true' }>, title: string, badge: ReactNode) =>
+        <header className="rdc-head"><span className="rdc-tile"><Icon aria-hidden="true" /></span><h2 className="rdc-title">{title}</h2>{badge}</header>;
+    const dot = (done: boolean) => <span className={cls('rdc-dot', done ? 'is-done' : 'is-open')} aria-hidden="true" />;
+    const selClass = (warn: boolean, full = false) => cls('rdc-sel', full && 'is-full', warn && 'is-warn');
+
+    // 결제: 총 매출 + 예약금·잔금 막대, 예약금·잔금·현금영수증
+    const payLeft = [!depositPaid, !balancePaid, receiptLate].filter(Boolean).length;
+    const depositAmount = pay.deposit ?? 0, balanceAmount = pay.balance ?? 0;
+    const payRow = (label: string, amount: string, control: ReactNode) => <div className="rdc-row">
+        <span className="rdc-row-main"><span className="rdc-label">{label}</span><span className="rdc-amount">{amount}</span></span>{control}
     </div>;
+    const payCard = <section key="sec-pay" id="sec-pay" className="rdc-card" aria-label="결제">
+        {rdcHead(IconCoins, '결제', payLocked ? cardBadge(null, '예약 전', true) : cardBadge(payLeft))}
+        <div className="rdc-total">
+            <span className="rdc-label">총 매출</span>
+            <span className="rdc-total-value">{v7Won(pay.total)}</span>
+            {!payLocked && depositAmount + balanceAmount > 0 && <span className="rdc-bar" role="img"
+                aria-label={`예약금 ${v7Won(pay.deposit)} ${depositPaid ? '입금 완료' : '미입금'}, 잔금 ${v7Won(pay.balance)} ${balancePaid ? '완납' : '미수'}`}>
+                <span className={cls('rdc-bar-part', depositPaid && 'is-paid')} style={{ flexGrow: depositAmount }} />
+                <span className={cls('rdc-bar-part', 'is-balance', balancePaid && 'is-paid')} style={{ flexGrow: balanceAmount }} />
+            </span>}
+        </div>
+        <div className="rdc-rows">
+            {payRow('예약금', v7Won(pay.deposit), payLocked ? payNote : btnSel(depositPaid ? '입금 완료' : '미입금', !depositPaid, e => paymentMenu(e, 'deposit'), undefined, undefined, selClass(!depositPaid)))}
+            {payRow('잔금', v7Won(pay.balance), payLocked ? payNote : btnSel(balancePaid ? '완납' : '미수', !balancePaid, e => paymentMenu(e, 'final'), undefined, undefined, selClass(!balancePaid)))}
+            <div className="rdc-row is-split"><span className="rdc-row-title">현금영수증</span>
+                {payLocked ? payNote : ops ? btnSel(RECEIPT_LABELS[receipt], false, e => opsMenu(e, 'receipt'), undefined, undefined, selClass(receiptLate))
+                    : btnSel('결제 화면', false, action('payments'), 'lc-chevron-right', undefined, selClass(false))}
+            </div>
+        </div>
+    </section>;
+
+    // 배정: 가이드·차량 고르기 + 숙소 상자(박별 상태, 박별 관리)
+    const asgLeft = [!guideValue, !vehicleValue, !stayReady].filter(Boolean).length;
+    const nights = row?.stays || [];
+    const stayText = row ? row.accN ? `${row.accC} / ${row.accN}박 확정` : '숙박 없음' : m.assignments.find(a => a.id === 'stay')?.value || '';
+    const stayAlert = !asgLocked && !stayReady;
+    const asgField = (label: string, done: boolean, control: ReactNode) => <div className="rdc-field"><span className="rdc-label">{dot(done)}{label}</span>{control}</div>;
+    const asgCard = <section key="sec-asg-s" id="sec-asg-s" className="rdc-card" aria-label="배정">
+        {rdcHead(IconPersons, '배정', asgLocked ? cardBadge(null, '예약 전', true) : cardBadge(asgLeft))}
+        <div className="rdc-body">
+            {asgField('가이드', !!guideValue, asgLocked ? lockedNote : btnSel(guideValue || '선택', !guideValue, e => void peopleMenu(e, 'guide'), undefined, undefined, selClass(!guideValue, true)))}
+            {asgField('차량', !!vehicleValue, asgLocked ? lockedNote : btnSel(vehicleValue || '선택', !vehicleValue, e => void peopleMenu(e, 'vehicle'), undefined, undefined, selClass(!vehicleValue, true)))}
+            <div className={cls('rdc-box', stayAlert ? 'is-alert' : 'is-soft')}>
+                <div className="rdc-box-head"><span className={cls('rdc-label', stayAlert && 'is-alert')}>{dot(!stayAlert)}숙소{stayAlert ? ' · 확정 필요' : ''}</span><span className="rdc-box-value">{stayText}</span></div>
+                {nights.length > 0 && <div className="rdc-nights">
+                    {nights.slice(0, 6).map(n => <span key={n.rowIndex} className="rdc-night">{n.day}박째 · {n.hotel ? bookingStatusMeta(n.bookingStatus).label : '숙소 미정'}</span>)}
+                    {nights.length > 6 && <span className="rdc-night">+{nights.length - 6}박 더</span>}
+                </div>}
+                {asgLocked ? lockedNote : btnSel('박별 관리', false, () => goSec('sec-asg'), 'lc-arrow-right', undefined, 'rdc-sel is-full is-primary')}
+            </div>
+        </div>
+    </section>;
+
+    // 분류: 2×2 고르기
+    const clsCard = <section key="sec-cls" id="sec-cls" className="rdc-card" aria-label="분류">
+        {rdcHead(IconListCategory, '분류', cardBadge(null, ops ? '완료' : '견적 편집기에서 관리', !ops))}
+        <div className="rdc-grid2">
+            {([['조인여부', 'joining'], ['분류', 'category'], ['구분', 'serviceType'], ['항공', 'airfare']] as const).map(([label, key]) => {
+                const value = ops ? key === 'joining' ? JOINING_LABELS[ops.joining] : (ops[key] || '') as string : key === 'category' ? row?.category || '' : '';
+                return <div key={key} className="rdc-field"><span className="rdc-label">{label}</span>{btnSel(value || '미정', false, e => opsMenu(e, key), undefined, undefined, selClass(false, true))}</div>;
+            })}
+        </div>
+    </section>;
+
+    // 서류: 문서별 상태 꼬리표 + 열기, 아래 계약 동의·공개·전달 상자
+    const docAlert = (status?: string) => /실패|필요|미작성|미발송|전/.test(status || '');
+    const agreeAlert = !!m.agreement && /전|필요|미/.test(m.agreement.label);
+    const docCard = <section key="sec-doc" id="sec-doc" className="rdc-card" aria-label="서류">
+        {rdcHead(IconDocument, '서류', cardBadge(docAlerts))}
+        <div className="rdc-body">
+            {m.documents.map(doc => <div key={doc.id} className="rdc-row">
+                <span className="rdc-row-main"><span className="rdc-row-title">{doc.label}</span>
+                    <span className={cls('rdc-tag', docAlert(doc.status) ? 'is-alert' : doc.status ? 'is-info' : 'is-neutral')}>{doc.status || doc.detail || '내용 확인'}</span></span>
+                {doc.editAction && editLink(doc.editLabel || `${doc.label} 수정`, action(doc.editAction, doc.id))}{openLink(doc.label, action(doc.action || doc.id, doc.id), doc.disabled, 'rdc-open')}
+            </div>)}
+            <div className={cls('rdc-box', 'is-row', agreeAlert ? 'is-alert' : 'is-soft')}>
+                <span className="rdc-row-main"><span className="rdc-row-title">{m.agreement && dot(!agreeAlert)}{m.agreement ? '계약 동의' : '공개·전달'}</span>
+                    <span className={cls('rdc-box-note', agreeAlert && 'is-alert')}>{m.agreement ? [m.agreement.label, m.agreement.name && `서명자 ${m.agreement.name}`].filter(Boolean).join(' · ') : '고객 문서 공개와 알림 발송'}</span></span>
+                {btnSel('공개·전달 관리', false, action('documents'), 'lc-arrow-right', undefined, 'rdc-sel is-brand')}
+            </div>
+        </div>
+    </section>;
+    const quadCards = [payCard, asgCard, clsCard, docCard];
 
     const element = <section ref={rootRef as React.RefObject<HTMLElement>} className="v7-root cw-overview" aria-label="예약 상세" aria-busy={busy || saving} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <V7Styles />
@@ -394,8 +454,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                 onClick={() => { set({ navSid: n.sid }); goSec(n.sid); }}>{n.label}</button>)}
         </nav>
         {notificationActions}
-        <div className="v7-quad" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(max(calc((100% - 36px) / 4), min(calc((100% - 12px) / 2), calc((1100px - 100%) * 999))),1fr))', gap: 12 }}>
-            {quad.map(compactCard)}
+        <div className="v7-quad rdc-grid">
+            {quadCards}
         </div>
 
         <div className="v7-cols" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start' }}>

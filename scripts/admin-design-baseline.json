@@ -459,11 +459,11 @@
   "nativeDialog": 0
  },
  "src/components/admin/v7/ReservationDetailV7.tsx": {
-  "rawButton": 26,
+  "rawButton": 25,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 168,
-  "px": 289,
+  "inlineStyle": 158,
+  "px": 277,
   "hex": 0,
   "nativeDialog": 0
  },
@@ -786,6 +786,11 @@
   "hex": 2,
   "important": 2,
   "rawPx": 12
+ },
+ "src/components/admin/v7/reservation-detail-cards.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
  },
  "src/components/admin/v7/reservation-list.css": {
   "hex": 0,
