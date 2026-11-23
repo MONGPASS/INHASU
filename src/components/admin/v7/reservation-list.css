@@ -7,10 +7,10 @@
 /* 빠른 필터 6칸 */
 .rl-stats.rl-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 
-/* 목록 카드: 탭 → 검색·정렬 → 표 → 페이지 */
-.rl-card { min-width: 0; background: var(--adm-surface); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-lg); overflow: hidden; }
-.rl-tabs { padding: 0 var(--adm-space-5); border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
-.rl-filters { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--adm-space-3); padding: var(--adm-space-4) var(--adm-space-5); }
+/* 강력 개선안(2026-11-23): 큰 탭과 검색·정렬은 회색 작업 바탕 위, 흰 카드에는 표와 페이지만 */
+.rl-tabs { min-width: 0; border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
+.rl-filters { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--adm-space-3); }
+.rl-card { min-width: 0; background: var(--adm-surface); border-radius: var(--adm-radius-lg); box-shadow: var(--adm-shadow-xs); overflow: hidden; }
 .rl-filters-start { display: flex; align-items: center; flex-wrap: wrap; gap: var(--adm-space-3); min-width: 0; }
 .rl-search { width: calc(var(--adm-space-8) * 10); max-width: 100%; }
 .rl-count { color: var(--adm-text-3); font-size: var(--adm-fs-small); white-space: nowrap; }
@@ -18,14 +18,14 @@
 .rl-note { color: var(--adm-warn-strong); font-size: var(--adm-fs-caption); }
 
 /* 표: 1440 화면 본문(약 1136) 안에 가로 스크롤 없이 들어가도록 칸 너비를 고정한다 */
-.rl-table { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
 .rl-table .adm-ui-table-el { table-layout: fixed; width: 100%; }
+.rl-table td.adm-ui-td { padding-top: var(--adm-space-4); padding-bottom: var(--adm-space-4); }
 .rl-col-check { width: calc(var(--adm-space-8) + var(--adm-space-3)); }
 .rl-col-cust { width: calc(var(--adm-space-8) * 5); }
-.rl-col-date { width: calc(var(--adm-space-8) * 5); }
+.rl-col-date { width: calc(var(--adm-space-8) * 4.5); }
 .rl-col-product { width: auto; }
 .rl-col-people { width: calc(var(--adm-space-8) * 2); }
-.rl-col-assign { width: calc(var(--adm-space-8) * 6); }
+.rl-col-assign { width: calc(var(--adm-space-8) * 7); }
 .rl-col-pay { width: calc(var(--adm-space-8) * 4.5); }
 .rl-col-step { width: calc(var(--adm-space-8) * 4); }
 .rl-col-more { width: calc(var(--adm-space-8) + var(--adm-space-4)); }
@@ -38,30 +38,23 @@
 .rl-line .rl-sub { margin-top: 0; }
 .rl-sub.is-warn { color: var(--adm-danger); font-weight: var(--adm-fw-semibold); }
 .rl-sub.is-ok { color: var(--adm-success-strong); }
+.rl-strong { color: var(--adm-text); font-weight: var(--adm-fw-medium); }
+.rl-total { color: var(--adm-text); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); }
+.rl-more { margin-left: var(--adm-space-1); opacity: 0.7; }
+
+/* 배정 칩: 완료 = 옅은 민트 + 체크, 남음 = 흰 바탕 + 회색 점, 2주 안 출발인데 남음 = 빨강 */
+.rl-asg .adm-ui-badge.rl-chip.rl-chip { --badge-bg: var(--adm-surface); --badge-fg: var(--adm-text-2); min-height: calc(var(--adm-space-5) + var(--adm-space-1)); padding: 0 var(--adm-space-2);
+  border-radius: var(--adm-radius-pill); box-shadow: inset 0 0 0 var(--adm-border-width) var(--adm-line); }
+.rl-asg .adm-ui-badge.rl-chip.is-done { --badge-bg: var(--adm-accent-soft); --badge-fg: var(--adm-accent-strong); box-shadow: none; }
+.rl-asg .adm-ui-badge.rl-chip.is-urgent { --badge-bg: var(--adm-danger-soft); --badge-fg: var(--adm-danger); box-shadow: none; }
+.rl-chip-dot { display: inline-block; width: calc(var(--adm-space-1) * 1.5); height: calc(var(--adm-space-1) * 1.5); border-radius: var(--adm-radius-pill); background: var(--adm-text-3); }
+.rl-chip.is-urgent .rl-chip-dot { background: var(--adm-danger); }
 .rl-nowrap { white-space: nowrap; }
 .rl-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rl-c-date .rl-line { margin-top: var(--adm-space-1); }
 .rl-asg { display: flex; flex-wrap: wrap; gap: var(--adm-space-1); }
-.rl-ok { color: var(--adm-success); }
 .rl-c-step .rl-sub { white-space: nowrap; }
-.rl-row.is-open > td { border-bottom-color: transparent; }
 .rl-row.is-cancel > td:not(.rl-c-check):not(.rl-c-more) { color: var(--adm-text-3); }
-
-/* 펼침 패널 */
-.rl-panel-row > td.rl-panel-cell { padding: 0; background: var(--adm-sunken); }
-.rl-panel { display: flex; flex-direction: column; gap: var(--adm-space-4); padding: var(--adm-space-4) var(--adm-space-5) var(--adm-space-5); }
-.rl-panel-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--adm-space-3); }
-.rl-panel-head .rl-sub { margin-top: 0; }
-.rl-panel-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--adm-space-2); }
-.rl-panel-steps { padding: var(--adm-space-4); background: var(--adm-surface); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); }
-.rl-panel-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--adm-space-3); }
-.rl-items { display: flex; flex-direction: column; gap: var(--adm-space-2); margin: 0; }
-.rl-item { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); min-height: var(--adm-control-h-sm); }
-.rl-item dt { display: flex; flex-direction: column; min-width: 0; color: var(--adm-text-2); font-size: var(--adm-fs-small); }
-.rl-item-sub { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
-.rl-item dd { display: flex; align-items: center; gap: var(--adm-space-1); margin: 0; }
-.rl-item-btn.rl-item-btn.is-warn { color: var(--adm-danger); }
-.rl-item-btn.rl-item-btn.is-ok { color: var(--adm-success-strong); }
 
 /* 페이지 */
 .rl-pagination { padding: var(--adm-space-3) var(--adm-space-5); border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
@@ -76,14 +69,13 @@
 
 @media (max-width: 1280px) {
   .rl-stats.rl-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .rl-panel-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* 휴대폰: 표는 공통 카드 모양(admin-components.css)을 쓰고, 이 목록에 맞게 칸 배치만 고친다 */
 @media (max-width: 760px) {
   .rl-stats.rl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .rl-tabs, .rl-filters { padding-left: var(--adm-space-4); padding-right: var(--adm-space-4); }
   .rl-search { width: 100%; }
+  .rl-sort { width: 100%; }
   .rl-filters-start { width: 100%; }
   .rl-table .adm-ui-table-el { table-layout: auto; }
   .rl-table colgroup { display: none; }
@@ -95,8 +87,6 @@
   .rl-table td.rl-c-assign, .rl-table td.rl-c-step { grid-column: 1 / -1; order: 1; }
   .rl-table td.rl-c-step { order: 2; }
   .rl-table td.rl-c-pay, .rl-table td.rl-c-people { align-items: flex-start; }
-  .rl-panel { padding: var(--adm-space-3); }
-  .rl-panel-cards { grid-template-columns: minmax(0, 1fr); }
   .rl-bulk { bottom: calc(var(--adm-tabbar-h) + var(--adm-safe-bottom) + var(--adm-space-2)); }
   .rl-bulk-actions { width: 100%; }
 }

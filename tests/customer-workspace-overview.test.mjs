@@ -136,7 +136,7 @@ test('서류 카드는 저장된 문서의 기존 액션만 열고 없는 문서
     assert.equal(opens[2].props.disabled, true);
     opens[0].props.onClick(); opens[1].props.onClick();
     assert.deepEqual(calls, [['quote-preview', 'quote'], ['contract', 'contract']]);
-    byText(card, '관리').props.onClick();
+    byText(card, '공개·전달 관리').props.onClick();
     assert.deepEqual(calls.at(-1), ['documents', undefined]);
     assert.ok(childrenText(card).includes('1건 남음') || childrenText(card).includes('2건 남음'));
 });
@@ -178,7 +178,7 @@ test('머리·고객 정보·일정 버튼은 선택한 업무 액션에 연결�
 
 test('처리 중에는 업무·문서 버튼을 잠근다', () => {
     const { tree } = view({ model: { ...model, documents: [{ id: 'contract', label: '계약서' }] }, busy: true });
-    for (const text of ['알림 보내기', '일정표 편집', '관리', '결제 화면']) assert.equal(byText(tree, text).props.disabled, true, text);
+    for (const text of ['알림 보내기', '일정표 편집', '공개·전달 관리', '결제 화면']) assert.equal(byText(tree, text).props.disabled, true, text);
     assert.equal(byLabel(tree, '고객 정보 수정').props.disabled, true);
     assert.equal(byLabel(tree, '계약서 열기').props.disabled, true);
 });

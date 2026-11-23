@@ -1,0 +1,89 @@
+/*
+ * 예약 상세의 결제·배정·분류·서류 네 칸 — Claude Design ‘예약 관리 · 강력 개선안’ 예약상세 카드(2026-11-23).
+ * 값은 --adm-* 변수만 쓴다. 버튼 동작은 ReservationDetailV7.tsx가 정한다.
+ */
+.rdc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--adm-space-4); align-items: stretch; }
+.rdc-card { display: flex; flex-direction: column; min-width: 0; background: var(--adm-surface); border-radius: var(--adm-radius-lg); box-shadow: var(--adm-shadow-xs);
+  scroll-margin-top: calc(var(--adm-space-8) * 2.75); overflow: hidden; }
+
+/* 머리: 아이콘 칸 · 제목 · 남은 건수 */
+.rdc-head { display: flex; align-items: center; gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); padding: var(--adm-space-5) var(--adm-space-5) 0; }
+.rdc-tile { display: inline-flex; flex: none; align-items: center; justify-content: center; width: calc(var(--adm-space-8) + var(--adm-space-1)); height: calc(var(--adm-space-8) + var(--adm-space-1));
+  border-radius: var(--adm-radius-sm); background: var(--adm-gray-100); color: var(--adm-text-2); font-size: var(--adm-fs-section); }
+.rdc-tile svg, .rdc-badge svg { width: 1em; height: 1em; }
+.rdc-title { flex: 1 1 auto; margin: 0; color: var(--adm-text); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); }
+.rdc-badge { display: inline-flex; align-items: center; gap: var(--adm-space-1); padding: var(--adm-space-1) var(--adm-space-2); border-radius: var(--adm-radius-xs);
+  font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); white-space: nowrap; }
+.rdc-badge.is-done { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
+.rdc-badge.is-left { background: var(--adm-danger-soft); color: var(--adm-danger); }
+.rdc-badge.is-muted { background: var(--adm-gray-100); color: var(--adm-text-3); }
+
+/* 결제: 총 매출과 예약금·잔금 막대 */
+.rdc-total { display: flex; flex-direction: column; gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); padding: var(--adm-space-5) var(--adm-space-5) var(--adm-space-4); }
+.rdc-total-value { color: var(--adm-text); font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.rdc-bar { display: flex; gap: calc(var(--adm-space-1) / 2); height: var(--adm-space-2); border-radius: var(--adm-radius-pill); overflow: hidden; }
+.rdc-bar-part { flex: 1 1 0; min-width: var(--adm-space-1); background: var(--adm-line); }
+.rdc-bar-part.is-paid { background: var(--adm-accent); }
+.rdc-bar-part.is-balance.is-paid { opacity: 0.55; }
+
+/* 줄·칸 */
+.rdc-rows, .rdc-body { display: flex; flex-direction: column; gap: var(--adm-space-1); padding: 0 var(--adm-space-3) var(--adm-space-3); }
+.rdc-body { padding-top: var(--adm-space-4); }
+.rdc-row { display: flex; align-items: center; gap: var(--adm-space-3); padding: calc(var(--adm-space-2) + var(--adm-space-1) / 2) var(--adm-space-2); }
+.rdc-row.is-split { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.rdc-row-main { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
+.rdc-row-title { display: flex; flex: 1 1 auto; align-items: center; gap: calc(var(--adm-space-1) * 1.5); color: var(--adm-text); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); }
+.rdc-row-main .rdc-row-title { flex: none; }
+.rdc-label { display: flex; align-items: center; gap: calc(var(--adm-space-1) * 1.5); color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
+.rdc-label.is-alert { color: var(--adm-danger); }
+.rdc-amount { color: var(--adm-text); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); font-variant-numeric: tabular-nums; }
+.rdc-dot { flex: none; width: var(--adm-space-2); height: var(--adm-space-2); border-radius: var(--adm-radius-pill); }
+.rdc-dot.is-done { background: var(--adm-accent); }
+.rdc-dot.is-open { background: var(--adm-danger); }
+.rdc-field { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) * 1.5); min-width: 0; padding: calc(var(--adm-space-2) + var(--adm-space-1) / 2) var(--adm-space-2); }
+.rdc-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3) calc(var(--adm-space-2) + var(--adm-space-1) / 2); padding: var(--adm-space-5); }
+.rdc-grid2 .rdc-field { padding: 0; }
+
+/* 고르기 버튼: Montage Select 모양(흰 바탕 · 선 · 오른쪽 화살표). 누르면 기존 고르기 창이 열린다. */
+.rdc-sel { display: inline-flex; flex: none; align-items: center; justify-content: space-between; gap: var(--adm-space-2); box-sizing: border-box; width: calc(var(--adm-space-8) * 4); max-width: 100%;
+  height: calc(var(--adm-space-8) + var(--adm-space-2)); padding: 0 var(--adm-space-3); border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-surface);
+  box-shadow: inset 0 0 0 var(--adm-border-width) var(--adm-line); color: var(--adm-text); font: inherit; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-medium); text-align: left; cursor: pointer; }
+.rdc-sel > :last-child { flex: none; color: var(--adm-text-3); }
+.rdc-sel:hover:not(:disabled) { box-shadow: inset 0 0 0 var(--adm-border-width) var(--adm-line-strong); }
+.rdc-sel:focus-visible, .rdc-open:focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-accent-strong); outline-offset: var(--adm-border-width); }
+.rdc-sel:disabled { opacity: 0.5; cursor: not-allowed; }
+.rdc-sel-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rdc-sel.is-full { width: 100%; }
+.rdc-sel.is-warn { box-shadow: inset 0 0 0 var(--adm-border-width) var(--adm-danger-line); color: var(--adm-danger); }
+.rdc-sel.is-primary { justify-content: center; background: var(--adm-primary-bg); box-shadow: none; color: var(--adm-on-primary); font-weight: var(--adm-fw-bold); }
+.rdc-sel.is-brand { width: auto; height: var(--adm-control-h-sm); background: var(--adm-accent-soft); box-shadow: none; color: var(--adm-accent-strong); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+.rdc-sel.is-primary > :last-child, .rdc-sel.is-brand > :last-child { color: inherit; }
+
+/* 숙소·계약 동의 상자 */
+.rdc-box { display: flex; flex-direction: column; gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); margin-top: var(--adm-space-1); padding: var(--adm-space-3); border-radius: var(--adm-radius-md); }
+.rdc-box.is-alert { background: var(--adm-danger-soft); }
+.rdc-box.is-soft { background: var(--adm-gray-100); }
+.rdc-box.is-row { flex-direction: row; align-items: center; }
+.rdc-box-head { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); }
+.rdc-box-value { color: var(--adm-text); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); white-space: nowrap; }
+.rdc-box-note { color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
+.rdc-box-note.is-alert { color: var(--adm-danger); }
+.rdc-nights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--adm-space-1) * 1.5); }
+.rdc-night { display: flex; align-items: center; justify-content: center; min-height: var(--adm-control-h-sm); padding: 0 var(--adm-space-2); border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface); color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); text-align: center; }
+
+/* 서류 */
+.rdc-tag { align-self: flex-start; padding: calc(var(--adm-space-1) / 2) calc(var(--adm-space-1) * 1.5); border-radius: var(--adm-radius-xs); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-semibold); }
+.rdc-tag.is-alert { background: var(--adm-danger-soft); color: var(--adm-danger); }
+.rdc-tag.is-info { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
+.rdc-tag.is-neutral { background: var(--adm-gray-100); color: var(--adm-text-2); }
+.rdc-open { display: inline-flex; flex: none; align-items: center; gap: calc(var(--adm-space-1) / 2); padding: var(--adm-space-1) 0; border: 0; background: transparent; color: var(--adm-text);
+  font: inherit; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); cursor: pointer; }
+.rdc-open:disabled { color: var(--adm-text-disabled); cursor: not-allowed; }
+
+@media (max-width: 1280px) { .rdc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .rdc-grid { grid-template-columns: minmax(0, 1fr); }
+  .rdc-head { padding: var(--adm-space-4) var(--adm-space-4) 0; }
+  .rdc-total, .rdc-grid2 { padding-left: var(--adm-space-4); padding-right: var(--adm-space-4); }
+}

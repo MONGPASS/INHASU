@@ -160,3 +160,37 @@ test('Google 계정 예약의 소유자는 세션으로 저장하며 부적합�
     assert.equal(row.user_id, 'google-customer'); assert.equal(row.product_id, 'local-tour'); assert.equal(row.status, 'pending_payment'); assert.equal(row.source, null);
     assert.equal(row.customer_name, '실제 예약자'); assert.equal(row.customer_phone, '01098765432'); assert.equal(f.env.localAttempts.length, 0);
 });
+
+// 2026-11-23: 수동 예약을 연락처 없이 만들어도 글자 'undefined'를 저장하지 않는다.
+test('관리자 수동 예약의 빈 연락처·이메일은 빈칸으로 저장하고 예전 undefined 값은 응답에서 지운다', async t => {
+    const f = await fixture(t);
+    const response = await f.request('/reservations', 'POST', { status: 'pending_payment', source: 'kakao', product_name: '맞춤 예약', customer_info: { name: '연락처 없는 고객', email: '', phone: '' }, total_people: 1, price_breakdown: { total: 0, deposit: 0, local: 0 } });
+    assert.equal(response.status, 201);
+    const row = f.raw.prepare('SELECT customer_email, customer_phone FROM reservations WHERE id=?').get((await response.json()).id);
+    assert.equal(row.customer_email, ''); assert.equal(row.customer_phone, '');
+    f.set({ customer_email: 'undefined', customer_phone: 'undefined' });
+    const listed = (await (await f.request('/reservations')).json()).find(item => item.id === 'local-booking');
+    assert.equal(listed.email, ''); assert.equal(listed.phone, '');
+});
+
+// 2026-11-23 오너 결정: 관리자가 만든 수동 예약은 적힌 이메일 = Google 로그인 이메일이면 고객 계정에 연결한다.
+test('고객 예약 목록은 같은 Google 이메일의 미연결 수동 예약만 연결하고 고객 직접 예약·다른 계정 예약은 건드리지 않는다', async t => {
+    const f = await fixture(t);
+    const insert = (id, email, source, userId = null) => f.raw.prepare('INSERT INTO reservations(id,product_name,customer_name,customer_email,customer_phone,user_id,status,source) VALUES(?,?,?,?,?,?,?,?)')
+        .run(id, '수동 예약', '수동 고객', email, '01011112222', userId, 'confirmed', source);
+    insert('manual-mine', ' Google-Customer@Example.invalid ', 'kakao');
+    insert('manual-other-mail', 'someone@example.invalid', 'kakao');
+    insert('direct-same-mail', 'google-customer@example.invalid', null);
+    insert('manual-owned', 'google-customer@example.invalid', 'phone', 'other');
+    const mine = (await (await f.request('/reservations', 'GET', undefined, 'google-customer')).json()).map(item => item.id);
+    assert.ok(mine.includes('manual-mine'));
+    for (const id of ['manual-other-mail', 'direct-same-mail', 'manual-owned']) assert.ok(!mine.includes(id), id);
+    const owner = id => f.raw.prepare('SELECT user_id FROM reservations WHERE id=?').get(id).user_id;
+    assert.equal(owner('manual-mine'), 'google-customer'); assert.equal(owner('manual-other-mail'), null);
+    assert.equal(owner('direct-same-mail'), null); assert.equal(owner('manual-owned'), 'other');
+    assert.equal(f.raw.prepare("SELECT user_id FROM customer_resource_links WHERE source='reservation' AND resource_id=?").get('manual-mine').user_id, 'google-customer');
+    // 관리자 세션은 목록을 봐도 연결하지 않는다.
+    insert('manual-admin-view', 'admin@example.invalid', 'kakao');
+    await f.request('/reservations', 'GET', undefined, 'admin');
+    assert.equal(owner('manual-admin-view'), null);
+});

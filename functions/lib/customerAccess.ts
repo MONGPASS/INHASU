@@ -87,6 +87,45 @@ export async function claimRequestsByGoogleEmail(env: AccessEnv, user: any, requ
     return linked;
 }
 
+/** 연락처·이메일 값. 비었거나 예전 저장 실수(String(undefined))로 남은 'undefined'·'null'은 빈칸으로 본다. */
+export const cleanContact = (value: unknown) => {
+    const text = String(value ?? '').trim();
+    return text === 'undefined' || text === 'null' ? '' : text;
+};
+
+/**
+ * Google 로그인 이메일로 관리자가 만든 수동 예약(`reservations`)을 그 계정에 연결한다(오너 결정 2026-11-23).
+ * - 맞춤 견적(`claimRequestsByGoogleEmail`)과 같은 본인 확인 수준: Google이 확인한 이메일 = 예약에 적힌 이메일.
+ *   관리자가 이메일을 잘못 적으면 그 주소의 주인이 예약을 보게 되는 위험은 견적과 같은 수준으로 받아들인다.
+ * - 대상은 주문 경로(`source`)가 적힌 수동 예약만이다. 고객이 사이트에서 직접 한 예약(`source` 없음)은
+ *   예전처럼 인증번호로만 연결한다.
+ * - 이미 계정이 있는 예약, 다른 계정에 연결된 예약은 건드리지 않는다. 이름·전화번호로는 연결하지 않는다.
+ * - 조건 확인과 연결을 한 batch의 조건부 UPDATE로 해, 확인 뒤 이메일이 바뀌거나 먼저 연결된 예약은 건너뛴다.
+ * `reservationId`를 주면 그 예약만, 없으면 이 이메일의 예약을 모두(최대 50건) 연결한다. 연결한 건수를 돌려준다.
+ */
+export async function claimReservationsByGoogleEmail(env: AccessEnv, user: any, reservationId?: string): Promise<number> {
+    const email = String(user?.email || '').trim().toLowerCase();
+    if (!user?.googleId || user.role === 'admin' || !VALID_EMAIL.test(email)) return 0;
+    await ensureCustomerAccessTables(env);
+    // 연결해도 되는 예약: 계정 없음 · 주문 경로가 적힌 수동 예약 · 이메일 일치 · 다른 계정 연결 기록 없음
+    const claimable = (t: string) => `(${t}.user_id IS NULL OR ${t}.user_id='') AND COALESCE(${t}.source,'')<>'' AND lower(trim(COALESCE(${t}.customer_email,'')))=?`
+        + ` AND NOT EXISTS(SELECT 1 FROM customer_resource_links l WHERE l.source='reservation' AND l.resource_id=${t}.id)`;
+    const candidates = reservationId
+        ? await env.DB.prepare(`SELECT r.id FROM reservations r WHERE r.id=? AND ${claimable('r')}`).bind(reservationId, email).all()
+        : await env.DB.prepare(`SELECT r.id FROM reservations r WHERE ${claimable('r')} ORDER BY r.created_at DESC LIMIT 50`).bind(email).all();
+    let linked = 0;
+    for (const row of candidates.results || []) {
+        const id = String(row.id), now = new Date().toISOString();
+        const [updated] = await env.DB.batch([
+            env.DB.prepare(`UPDATE reservations SET user_id=? WHERE reservations.id=? AND ${claimable('reservations')}`).bind(user.id, id, email),
+            env.DB.prepare(`INSERT OR IGNORE INTO customer_resource_links(source,resource_id,user_id,created_at)
+                SELECT 'reservation',?,?,? WHERE EXISTS(SELECT 1 FROM reservations WHERE id=? AND user_id=?)`).bind(id, user.id, now, id, user.id),
+        ]);
+        if (Number(updated?.meta?.changes) === 1) linked++;
+    }
+    return linked;
+}
+
 const verificationPhone = (value: unknown) => String(value ?? '').replace(/\D/g, '').replace(/^(?:0082|82)0?(?=1\d{8,9}$)/, '0');
 
 export async function customerResource(env: AccessEnv, source: CustomerSource, key: string) {

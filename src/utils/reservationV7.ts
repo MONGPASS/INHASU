@@ -132,10 +132,11 @@ export function v7Row(source: V7Source, item: V7AssignmentItem | undefined, toda
 const NEXT: Record<string, string> = { 계약서: '계약서 서명', 예약금: '예약금 확인', 배정: '배정 필요', 잔금: '잔금 확인', 출발: '출발 대기 중' };
 /** 진행 단계 머리의 '지금 단계' 문구. */
 export function v7StepLabel(row: V7Row) {
-    if (row.tab === 'cancel') return { label: '취소된 예약', tone: 'gray' as const };
+    if (row.tab === 'cancel') return { label: '취소된 예약', tone: 'gray' as const, next: '취소된 예약', more: 0 };
     const cur = row.steps.findIndex(s => !s.done);
-    if (cur < 0) return { label: '모든 단계 완료', tone: 'mint' as const };
-    return { label: NEXT[row.steps[cur].label] + (row.todos.length > 1 ? ` +${row.todos.length - 1}` : ''), tone: 'red' as const };
+    if (cur < 0) return { label: '모든 단계 완료', tone: 'mint' as const, next: '모든 단계 완료', more: 0 };
+    const more = Math.max(0, row.todos.length - 1);
+    return { label: NEXT[row.steps[cur].label] + (more ? ` +${more}` : ''), tone: 'red' as const, next: NEXT[row.steps[cur].label], more };
 }
 
 export const v7Won = (n: number | null | undefined) => typeof n === 'number' && Number.isFinite(n) ? `₩${n.toLocaleString('ko-KR')}` : '–';
