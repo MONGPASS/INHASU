@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/api';
 import { getOptimizedImageUrl } from '../../utils/cloudflareImage';
 import { splitItineraryDays, toItinerarySource, type DaySource, type ItinerarySource } from './itineraryImport';
+import { AdminButton, AdminCheckbox, AdminDialog, AdminSearch, AdminTable, AdminTbody, AdminTd, AdminTr } from './ui';
 import './CourseImportModal.css';
 
 interface ItineraryImportModalProps {
@@ -20,26 +21,14 @@ interface ItineraryImportModalProps {
  */
 export const ItineraryImportModal: React.FC<ItineraryImportModalProps> = ({ open, currentProductId, onPick, onClose }) => {
     if (!open) return null;
-    return (
-        <div className="ci-scrim" onClick={onClose}>
-            <div className="ci-modal" role="dialog" aria-modal="true" aria-label="일정표 불러오기" onClick={(e) => e.stopPropagation()}>
-                <div className="ci-head">
-                    <div className="ci-head-text">
-                        <h2>일정표 불러오기</h2>
-                        <p>다른 상품의 일정을 일차 단위로 골라 가져옵니다. 여러 상품의 일차를 섞어서 선택할 수 있고, 일차 번호는 자동으로 다시 매겨집니다.</p>
-                    </div>
-                    <button type="button" onClick={onClose} className="ci-close" aria-label="닫기">
-                        <span className="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-                {/* 열릴 때마다 새로 마운트되어 목록을 다시 읽는다 */}
-                <DayPicker currentProductId={currentProductId} onPick={onPick} />
-            </div>
-        </div>
-    );
+    // 열릴 때마다 새로 마운트되어 목록을 다시 읽는다
+    return <DayPicker currentProductId={currentProductId} onPick={onPick} onClose={onClose} />;
 };
 
-function DayPicker({ currentProductId, onPick }: { currentProductId?: string; onPick: (selection: ItinerarySource) => void }) {
+/** 줄 전체를 눌러도 고르므로, 체크 칸을 누른 것이 줄까지 올라가 두 번 바뀌지 않게 막는다 */
+const stopRowClick = (event: React.MouseEvent) => event.stopPropagation();
+
+function DayPicker({ currentProductId, onPick, onClose }: { currentProductId?: string; onPick: (selection: ItinerarySource) => void; onClose: () => void }) {
     const [days, setDays] = useState<DaySource[]>([]);
     const [loading, setLoading] = useState(true);
     const [q, setQ] = useState('');
@@ -97,87 +86,85 @@ function DayPicker({ currentProductId, onPick }: { currentProductId?: string; on
         });
     };
 
+    const footer = (
+        <div className="adm-ui-dialog-foot cim-foot">
+            <div className="adm-ui-dialog-foot-start cim-foot-text cim-foot-line">
+                {selected.length > 0 ? <><b>{selected.length}일차</b> 선택됨 — 체크한 순서대로 들어갑니다</> : '불러올 일차를 체크하세요'}
+            </div>
+            <div className="adm-ui-dialog-foot-end">
+                {selected.length > 0 && (
+                    <AdminButton variant="secondary" onClick={() => setSelected([])}>선택 해제</AdminButton>
+                )}
+                <AdminButton variant="primary" onClick={submit} disabled={selected.length === 0} data-import-submit>
+                    선택한 일차 불러오기
+                </AdminButton>
+            </div>
+        </div>
+    );
+
     return (
-        <>
-            <div className="ci-search">
-                <input
-                    type="text"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="여행지·일정 제목·상품명 검색 (예: Terelj, 테를지, 미니 고비)"
-                    className="ci-input"
-                />
+        <AdminDialog open onClose={onClose} size="lg" flush footer={footer} className="cim-dialog"
+            title="일정표 불러오기"
+            description="다른 상품의 일정을 일차 단위로 골라 가져옵니다. 여러 상품의 일차를 섞어서 선택할 수 있고, 일차 번호는 자동으로 다시 매겨집니다.">
+            <div className="cim-search">
+                <AdminSearch wide value={q} onChange={setQ} placeholder="여행지·일정 제목·상품명 검색 (예: Terelj, 테를지, 미니 고비)" />
             </div>
 
-            <div className="ci-list">
+            <div className="cim-list">
                 {loading ? (
-                    <div className="ci-empty" role="status">불러오는 중...</div>
+                    <div className="cim-empty" role="status">불러오는 중...</div>
                 ) : groups.length === 0 ? (
-                    <div className="ci-empty">{q ? '검색 결과가 없습니다.' : '일정표가 있는 다른 상품이 없습니다.'}</div>
+                    <div className="cim-empty">{q ? '검색 결과가 없습니다.' : '일정표가 있는 다른 상품이 없습니다.'}</div>
                 ) : (
-                    <table className="ci-table">
-                        <tbody>
+                    // 상품 묶음 줄(colSpan)이 섞인 고르기 표라 휴대폰에서도 카드로 바꾸지 않고 칸만 줄인다(CourseImportModal.css)
+                    <AdminTable label="불러올 일차" cardOff className="cim-table">
+                        <AdminTbody>
                             {groups.map(g => {
                                 const allOn = g.days.every(d => selected.includes(d.key));
                                 return (
                                     <React.Fragment key={g.productId}>
-                                        <tr className="ci-group" data-import-product={g.productId}>
-                                            <td colSpan={5}>
-                                                <label className="ci-check">
-                                                    <input type="checkbox" checked={allOn} onChange={() => toggleProduct(g)} />
-                                                    <b>{g.productName}</b>
-                                                    <span className="ci-note">{g.productId} · {g.days.length}일</span>
-                                                </label>
-                                            </td>
-                                        </tr>
+                                        <AdminTr className="cim-group" data-import-product={g.productId}>
+                                            <AdminTd colSpan={5}>
+                                                <AdminCheckbox size="sm" checked={allOn} onChange={() => toggleProduct(g)}
+                                                    label={<><b>{g.productName}</b><span className="cim-note">{g.productId} · {g.days.length}일</span></>} />
+                                            </AdminTd>
+                                        </AdminTr>
                                         {g.days.map(d => {
                                             const on = selected.includes(d.key);
                                             return (
-                                                <tr key={d.key} data-import-day={d.key} onClick={() => toggle(d.key)} className={`ci-pickrow${on ? ' is-on' : ''}`}>
-                                                    <td className="ci-col-check">
-                                                        <input type="checkbox" checked={on} onChange={() => toggle(d.key)} onClick={(e) => e.stopPropagation()} />
-                                                    </td>
-                                                    <td className="ci-col-thumb">
+                                                <AdminTr key={d.key} data-import-day={d.key} onClick={() => toggle(d.key)} selected={on} className="is-clickable cim-pickrow">
+                                                    <AdminTd className="cim-col-check">
+                                                        <span onClick={stopRowClick}>
+                                                            <AdminCheckbox size="sm" checked={on} onChange={() => toggle(d.key)} aria-label={`${d.title || d.dayLabel || d.productName} 선택`} />
+                                                        </span>
+                                                    </AdminTd>
+                                                    <AdminTd className="cim-col-thumb">
                                                         {d.thumb
-                                                            ? <img src={getOptimizedImageUrl(d.thumb, 'productThumbnail')} alt="" className="ci-thumb" onError={(e) => { const el = e.currentTarget; if (el.src !== d.thumb) el.src = d.thumb; else el.style.visibility = 'hidden'; }} />
-                                                            : <div className="ci-thumb" />}
-                                                    </td>
-                                                    <td className="ci-col-name">
+                                                            ? <img src={getOptimizedImageUrl(d.thumb, 'productThumbnail')} alt="" className="cim-thumb" onError={(e) => { const el = e.currentTarget; if (el.src !== d.thumb) el.src = d.thumb; else el.style.visibility = 'hidden'; }} />
+                                                            : <div className="cim-thumb" />}
+                                                    </AdminTd>
+                                                    <AdminTd className="cim-col-name">
                                                         {d.tags.length > 0 && (
-                                                            <div data-import-tags className="ci-day-sub">{d.tags.join(' / ')}</div>
+                                                            <div data-import-tags className="cim-day-sub">{d.tags.join(' / ')}</div>
                                                         )}
-                                                        <div className="ci-day-title">
+                                                        <div className="cim-day-title">
                                                             {d.dayLabel && <span>{d.dayLabel}</span>}
                                                             {d.title || '(제목 없음)'}
                                                         </div>
-                                                        {d.description && <div className="ci-hint ci-clip">{d.description}</div>}
-                                                    </td>
-                                                    <td className="ci-col-num">일정 {d.eventCount}</td>
-                                                    <td className="ci-col-num">사진 {d.photoCount}</td>
-                                                </tr>
+                                                        {d.description && <div className="cim-hint cim-clip">{d.description}</div>}
+                                                    </AdminTd>
+                                                    <AdminTd className="cim-col-num">일정 {d.eventCount}</AdminTd>
+                                                    <AdminTd className="cim-col-num">사진 {d.photoCount}</AdminTd>
+                                                </AdminTr>
                                             );
                                         })}
                                     </React.Fragment>
                                 );
                             })}
-                        </tbody>
-                    </table>
+                        </AdminTbody>
+                    </AdminTable>
                 )}
             </div>
-
-            <div className="ci-foot">
-                <div className="ci-foot-text ci-foot-line">
-                    {selected.length > 0 ? <><b>{selected.length}일차</b> 선택됨 — 체크한 순서대로 들어갑니다</> : '불러올 일차를 체크하세요'}
-                </div>
-                <div className="ci-foot-acts">
-                    {selected.length > 0 && (
-                        <button type="button" onClick={() => setSelected([])} className="adm-btn">선택 해제</button>
-                    )}
-                    <button type="button" onClick={submit} disabled={selected.length === 0} data-import-submit className="adm-btn is-primary">
-                        선택한 일차 불러오기
-                    </button>
-                </div>
-            </div>
-        </>
+        </AdminDialog>
     );
 }

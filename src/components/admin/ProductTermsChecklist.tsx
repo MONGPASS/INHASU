@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { quoteExclusions, quoteIncludedLabels } from '../../../public/quote-inclusions.js';
+import { AdminButton, AdminCheckbox, AdminTextInput } from './ui';
+import './CourseImportModal.css';
 
 interface Props {
     kind: 'included' | 'excluded';
@@ -25,19 +27,17 @@ export function ProductTermsChecklist({ kind, selected, onChange }: Props) {
 
     return <section className="edit-sec pa-terms" aria-label={title}>
         <div className="edit-sec-head">
-            <span className="material-symbols-outlined" aria-hidden="true" style={{ color: included ? 'var(--mrt-green)' : 'var(--mrt-red)' }}>{included ? 'check_circle' : 'cancel'}</span>
+            <span className={`material-symbols-outlined cim-term-icon ${included ? 'is-included' : 'is-excluded'}`} aria-hidden="true">{included ? 'check_circle' : 'cancel'}</span>
             <h4>{title}</h4>
         </div>
         <div className="pa-term-choices">
-            {choices.map(item => <label className="pa-term-choice" key={item}>
-                <input type="checkbox" checked={selected.includes(item)} onChange={event => {
-                    onChange(event.target.checked ? [...selected, item] : selected.filter(value => value !== item));
-                }} />
-                {item}
-            </label>)}
+            {choices.map(item => <AdminCheckbox key={item} className="cim-term-choice" label={item}
+                checked={selected.includes(item)} onChange={checked => {
+                    onChange(checked ? [...selected, item] : selected.filter(value => value !== item));
+                }} />)}
         </div>
         <div className="pa-term-add">
-            <input type="text" className="inp" aria-label={title + ' 직접 입력'} placeholder="직접 입력"
+            <AdminTextInput className="cim-term-input" aria-label={title + ' 직접 입력'} placeholder="직접 입력"
                 value={input} onChange={event => setInput(event.target.value)}
                 onKeyDown={event => {
                     if (event.key === 'Enter') {
@@ -45,7 +45,7 @@ export function ProductTermsChecklist({ kind, selected, onChange }: Props) {
                         if (!event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) add();
                     }
                 }} />
-            <button type="button" className="btn btn-ghost btn-sm" onClick={add} disabled={!input.trim()}>추가</button>
+            <AdminButton variant="secondary" onClick={add} disabled={!input.trim()}>추가</AdminButton>
         </div>
     </section>;
 }

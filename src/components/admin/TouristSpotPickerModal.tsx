@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/api';
 import type { TouristSpot } from '../../types/touristSpot';
 import { touristSpotRegionGroups, touristSpotRegionLabel } from '../../types/touristSpot';
+// 부품 묶음(./ui)이 아니라 파일을 하나씩 가져온다 — 테스트의 가짜 React로도 묶이는 것만(HotelPickerModal 창 틀 주석)
+import { AdminTable, AdminTbody, AdminTd, AdminTh, AdminThead, AdminTr } from './ui/AdminTable';
+import { IconClose, IconImage, IconSearch } from './ui/AdminIcons';
 import './CourseImportModal.css';
 
 interface TouristSpotPickerModalProps {
@@ -67,130 +70,143 @@ export const TouristSpotPickerModal: React.FC<TouristSpotPickerModalProps> = ({
 
     if (!open) return null;
 
+    // 창 틀·지역 탭·검색 칸·줄은 생 요소에 부품과 같은 클래스(adm-ui-*)를 단다 — tests/shared-travel-pickers.test.mjs가
+    // 가짜 React로 이 파일을 묶어 생 <button>(지역 탭)과 <tr onClick>(줄)을 찾는다(HotelPickerModal 창 틀 주석).
     return (
         <div
-            className="ci-scrim is-top"
+            className="adm-ui-dialog-layer cim-picker-layer"
             onClick={onClose}
         >
             <div
-                className="ci-modal is-wide" role="dialog" aria-modal="true" aria-label={title}
+                className="adm-ui-dialog is-lg cim-picker" role="dialog" aria-modal="true" aria-label={title}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="ci-head">
-                    <div className="ci-head-text">
-                        <h2>{title}</h2>
-                        <p>
+                <header className="adm-ui-dialog-head">
+                    <div className="adm-ui-dialog-titles">
+                        <h2 className="adm-ui-dialog-title">{title}</h2>
+                        <p className="adm-ui-dialog-desc">
                             검색 후 행을 클릭하면 일정의 제목·설명·사진이 자동으로 채워집니다.
                         </p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="ci-close"
+                        className="adm-ui-icon-btn is-normal is-md"
+                        aria-label="닫기"
+                        title="닫기"
                     >
-                        <span className="material-symbols-outlined">close</span>
+                        <IconClose />
                     </button>
-                </div>
+                </header>
 
-                {/* Region tabs — same filter as the master page so admin
-                    can quickly switch between 중앙몽골 / 고비사막 / 홉스굴 */}
-                <div className="ci-tabs" role="tablist" aria-label="지역">
-                    {regionTabs.map((tab) => {
-                        const count = tab.count;
-                        const on = region === tab.value;
-                        return (
-                            <button
-                                key={tab.value ?? '__all'}
-                                type="button"
-                                onClick={() => setRegion(tab.value)}
-                                className={on ? 'is-on' : undefined}
-                            >
-                                {tab.label}
-                                <span>
-                                    {count}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                <div className="ci-search">
-                    <input
-                        type="text"
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="여행지명으로 검색"
-                        autoFocus
-                        className="ci-input"
-                    />
-                </div>
-
-                <div className="ci-list">
-                    {loading ? (
-                        <div className="ci-empty" role="status">불러오는 중...</div>
-                    ) : filtered.length === 0 ? (
-                        <div className="ci-empty">
-                            {spots.length === 0
-                                ? '아직 등록된 여행지가 없습니다. 견적 관리 → "여행지 관리"에서 먼저 등록해주세요.'
-                                : '조건에 맞는 여행지가 없습니다.'}
+                <div className="adm-ui-dialog-body is-flush">
+                    {/* Region tabs — same filter as the master page so admin
+                        can quickly switch between 중앙몽골 / 고비사막 / 홉스굴 */}
+                    <div className="adm-ui-tabs is-md cim-tabs">
+                        <div className="adm-ui-tablist" role="tablist" aria-label="지역">
+                            {regionTabs.map((tab) => {
+                                const count = tab.count;
+                                const on = region === tab.value;
+                                return (
+                                    <button
+                                        key={tab.value ?? '__all'}
+                                        type="button"
+                                        className={on ? 'adm-ui-tab is-selected' : 'adm-ui-tab'}
+                                        onClick={() => setRegion(tab.value)}
+                                    >
+                                        {tab.label}
+                                        <span className="adm-ui-tab-count">
+                                            {count}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
-                    ) : (
-                        <table className="ci-table">
-                            <thead>
-                                <tr>
-                                    <th className="ci-col-thumb">대표</th>
-                                    <th>여행지명</th>
-                                    <th>주소</th>
-                                    <th className="ci-col-num">사진</th>
-                                    <th className="ci-col-act">선택</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filtered.map((s) => {
-                                    const thumb = (s.images || []).find((url) => !!url);
-                                    return (
-                                        <tr
-                                            key={s.id}
-                                            onClick={() => onPick(s)}
-                                            className="ci-pickrow"
-                                        >
-                                            <td className="ci-col-thumb">
-                                                <div className="ci-thumb ci-thumb-box">
-                                                    {thumb ? (
-                                                        <img src={thumb} alt={s.name_kr} loading="lazy" />
-                                                    ) : (
-                                                        <span className="material-symbols-outlined">image</span>
+                    </div>
+
+                    <div className="cim-search">
+                        <div className="adm-ui-search is-md is-wide">
+                            <span className="adm-ui-search-icon" aria-hidden="true"><IconSearch /></span>
+                            <input
+                                type="text"
+                                value={q}
+                                onChange={(e) => setQ(e.target.value)}
+                                placeholder="여행지명으로 검색"
+                                aria-label="여행지명으로 검색"
+                                autoFocus
+                                className="adm-ui-search-el"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="cim-list">
+                        {loading ? (
+                            <div className="cim-empty" role="status">불러오는 중...</div>
+                        ) : filtered.length === 0 ? (
+                            <div className="cim-empty">
+                                {spots.length === 0
+                                    ? '아직 등록된 여행지가 없습니다. 견적 관리 → "여행지 관리"에서 먼저 등록해주세요.'
+                                    : '조건에 맞는 여행지가 없습니다.'}
+                            </div>
+                        ) : (
+                            // 줄 전체를 눌러 고르는 표라 휴대폰에서도 카드로 바꾸지 않고 칸만 줄인다(CourseImportModal.css)
+                            <AdminTable label={title} cardOff className="cim-table">
+                                <AdminThead>
+                                    <AdminTr>
+                                        <AdminTh className="cim-col-thumb">대표</AdminTh>
+                                        <AdminTh>여행지명</AdminTh>
+                                        <AdminTh>주소</AdminTh>
+                                        <AdminTh align="center" className="cim-col-num">사진</AdminTh>
+                                        <AdminTh align="right" className="cim-col-act">선택</AdminTh>
+                                    </AdminTr>
+                                </AdminThead>
+                                <AdminTbody>
+                                    {filtered.map((s) => {
+                                        const thumb = (s.images || []).find((url) => !!url);
+                                        return (
+                                            <tr
+                                                key={s.id}
+                                                onClick={() => onPick(s)}
+                                                className="adm-ui-tr is-clickable cim-pickrow"
+                                            >
+                                                <AdminTd className="cim-col-thumb">
+                                                    <div className="cim-thumb cim-thumb-box">
+                                                        {thumb ? (
+                                                            <img src={thumb} alt={s.name_kr} loading="lazy" />
+                                                        ) : (
+                                                            <IconImage />
+                                                        )}
+                                                    </div>
+                                                </AdminTd>
+                                                <AdminTd className="cim-col-name">
+                                                    {regionLabel(s.region) && (
+                                                        <span className="cim-tag">
+                                                            {regionLabel(s.region)}
+                                                        </span>
                                                     )}
-                                                </div>
-                                            </td>
-                                            <td className="ci-col-name">
-                                                {regionLabel(s.region) && (
-                                                    <span className="ci-tag">
-                                                        {regionLabel(s.region)}
+                                                    {s.name_kr}
+                                                    {s.name_local && (
+                                                        <span className="cim-note">{s.name_local}</span>
+                                                    )}
+                                                </AdminTd>
+                                                <AdminTd className="cim-col-sub">
+                                                    {s.address || '-'}
+                                                </AdminTd>
+                                                <AdminTd align="center" className="cim-col-num">
+                                                    {(s.images || []).length}장
+                                                </AdminTd>
+                                                <AdminTd align="right" className="cim-col-act">
+                                                    <span className="cim-pick">
+                                                        선택
                                                     </span>
-                                                )}
-                                                {s.name_kr}
-                                                {s.name_local && (
-                                                    <span className="ci-note">{s.name_local}</span>
-                                                )}
-                                            </td>
-                                            <td className="ci-col-sub">
-                                                {s.address || '-'}
-                                            </td>
-                                            <td className="ci-col-num">
-                                                {(s.images || []).length}장
-                                            </td>
-                                            <td className="ci-col-act">
-                                                <span className="ci-pick">
-                                                    선택
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    )}
+                                                </AdminTd>
+                                            </tr>
+                                        );
+                                    })}
+                                </AdminTbody>
+                            </AdminTable>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
