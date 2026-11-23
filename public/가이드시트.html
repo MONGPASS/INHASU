@@ -361,7 +361,11 @@ const vehicle = { ...(assign.vehicle || {}) };
 if (!(vehicle.driver || vehicle.driverName)) vehicle.driver = vehicleLib.driver || "";
 if (!(vehicle.phone || vehicle.driverPhone)) vehicle.phone = vehicleLib.phone || "";
 if (!vehicle.plate) vehicle.plate = vehicleLib.plate || "";
-const travelers = Array.isArray(BK.travelers) ? BK.travelers : [];
+/* 여행자 명단: 예약의 명단 → 없으면 계약서 서명 때 동결한 명단 */
+const hasPerson = t => t && (noBr(t.nameKo) || noBr(t.passportName) || noBr(t.phone));
+const bookingTravelers = (Array.isArray(BK.travelers) ? BK.travelers : []).filter(hasPerson);
+const signedTravelers = (Array.isArray(BK.contract?.snapshot?.travelers) ? BK.contract.snapshot.travelers : []).filter(hasPerson);
+const travelers = bookingTravelers.length ? bookingTravelers : signedTravelers;
 const ci = BK.contractInfo || {};
 
 const departDate = parseDate(fl.inDate || REC.depart);
@@ -422,7 +426,10 @@ const lodgeRows = Array.from({ length: nights }, (_, i) => {
 const assignedNights = lodgeRows.filter(r => r.name).length;
 
 /* 고객 명단: 입력된 여행자 + 예정 인원만큼 빈 줄 */
-const listRows = Math.min(Math.max(travelers.length, paxTotal), 30);
+/* 명단이 아직 없으면 예약자 본인(이름·연락처)을 첫 줄에 넣어 가이드가 바로 연락할 수 있게 한다 */
+const leadRow = { nameKo: noBr(REC.name), phone: noBr(REC.phone), lead: true };
+const listPeople = travelers.length ? travelers : (leadRow.nameKo || leadRow.phone ? [leadRow] : []);
+const listRows = Math.min(Math.max(listPeople.length, paxTotal), 30);
 const travelerDone = travelers.length > 0 && travelers.length >= paxTotal;
 const cell = v => esc(noBr(v));
 
@@ -481,12 +488,12 @@ const page1 = `
   </section>
 
   <section class="sec">
-    ${secHead("persons", "고객 명단", travelerDone ? badge("b-new", `${travelers.length}명 입력 완료`) : badge("b-progress", `${travelers.length}/${paxTotal || "?"} 입력 · 예약관리에서 입력 요청`))}
+    ${secHead("persons", "고객 명단", travelerDone ? badge("b-new", `${travelers.length}명 입력 완료`) : badge("b-progress", `여행자 정보 ${travelers.length}/${paxTotal || "?"} 입력 · 예약관리에서 입력 요청`))}
     <div class="box"><table>
       <thead><tr><th class="c" style="width:40px">No</th><th style="width:150px">여권 영문명</th><th style="width:96px">한글명</th><th style="width:104px">생년월일</th><th class="c" style="width:56px">성별</th><th>연락처</th></tr></thead>
       <tbody>${listRows ? Array.from({ length: listRows }, (_, i) => {
-        const t = travelers[i] || {};
-        return `<tr><td class="c num">${i + 1}</td><td class="pp">${cell(t.passportName)}</td><td>${cell(t.nameKo)}</td><td>${cell(t.birth)}</td><td class="c">${cell(t.gender)}</td><td>${cell(t.phone)}</td></tr>`;
+        const t = listPeople[i] || {};
+        return `<tr><td class="c num">${i + 1}</td><td class="pp">${cell(t.passportName)}</td><td>${cell(t.nameKo)}${t.lead ? ` ${badge("b-new", "예약자", true)}` : ""}</td><td>${cell(t.birth)}</td><td class="c">${cell(t.gender)}</td><td>${cell(t.phone)}</td></tr>`;
       }).join("") : `<tr><td colspan="6" class="c num">여행자 정보 미입력</td></tr>`}</tbody>
     </table></div>
   </section>
@@ -524,7 +531,7 @@ const tagHtml = raw => {
 };
 const mealHtml = (label, raw) => {
   const v = noBr(raw);
-  const none = !v || /^[Xx×✕-]$|^없음$/.test(v);
+  const none = !v || /^(?:[조중석]식\s*)?[Xx×✕-]$|^없음$/.test(v);
   return `<div class="meal"><span>${label}</span><em class="${none ? "none" : ""}">${none ? (v ? "없음" : "—") : esc(v)}</em></div>`;
 };
 const dayRow = (d, i) => {
@@ -538,10 +545,15 @@ const dayRow = (d, i) => {
   const assignedName = assigned ? noBr(assigned.name) : "";
   const assignedGrade = assignedName ? noBr(assigned.grade || (LODGE_LIB[assignedName] || {}).grade) : "";
   const stayHtml = assignedName
-    ? `<div class="stay">${esc(assignedName)}</div><div class="stay-sub">${assignedGrade ? badge("b-new", assignedGrade, true) : ""}${stayName ? `<small>${esc(stayName)}</small>` : ""}</div>`
+    ? `<div class="stay">${esc(assignedName)}</div>${assignedGrade ? `<div class="stay-sub">${badge("b-new", assignedGrade, true)}</div>` : ""}`
     : stayName ? `<div class="stay">${esc(stayName)}</div><div class="stay-sub">${badge("b-progress", "숙소 미배정", true)}</div>` : "";
   const isLast = i === days.length - 1;
-  const tags = Array.isArray(stay.tags) ? stay.tags.filter(Boolean) : [];
+  /* "전기 O 샤워 O 인터넷 O"처럼 한 칸에 여러 시설을 적은 값도 시설별로 나눈다 */
+  const tags = (Array.isArray(stay.tags) ? stay.tags : []).flatMap(raw => {
+    const t = noBr(raw);
+    const parts = [...t.matchAll(/(.+?)\s+([OoXx○×✕])(?=\s|$)/g)].map(m => `${m[1].trim()} ${m[2]}`);
+    return parts.length > 1 ? parts : [t];
+  }).filter(Boolean);
   const move = [noBr(d.move), noBr(d.dist).replace(/^\((.*)\)$/, "$1")].filter(Boolean).join(" · ");
   return `<div class="day">
     <div class="day-n"><i class="${isLast && !stayName ? "end" : ""}">${esc(d.d || i + 1)}</i><b>${mdWd(date)}</b></div>
