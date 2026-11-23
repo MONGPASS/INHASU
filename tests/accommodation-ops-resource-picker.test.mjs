@@ -513,7 +513,13 @@ test('당일 투어와 여행 기간이 없는 예약은 잘못된 0박 확정 �
 // 숙소 배정 시트(LodgeAssignBoard)는 별도 컴포넌트라 직접 그려서 칸을 찾고, 칸을 누르면 뜨는 고르기 창에서 값을 고른다.
 const boardEl = h => { const el = nodes(h.tree).find(node => typeof node.type === 'function' && Array.isArray(node.props?.tours)); assert.ok(el, '시트 보기'); return el; };
 // 보드도 hook을 쓰므로 페이지를 먼저 다시 그려 hook 순서를 맞춘 뒤 보드를 그린다.
-const boardNodes = h => { h.render(); const el = boardEl(h); return nodes(el.type(el.props)); };
+// 표로 보기는 예약 줄이 접힌 채로 시작한다. 숙박 칸을 찾기 전에 아래 ‘모두 펼치기’를 한 번 누른다(이미 펼쳤으면 그대로).
+const boardNodes = h => {
+    h.render(); let el = boardEl(h), found = nodes(el.type(el.props));
+    const expand = found.find(n => typeof n.type === 'function' && text(n) === '모두 펼치기');
+    if (expand) { expand.props.onClick(); h.render(); el = boardEl(h); found = nodes(el.type(el.props)); }
+    return found;
+};
 const fakeClick = { stopPropagation() {}, preventDefault() {}, currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 0, bottom: 0 }) } };
 const boardField = (h, label) => { const node = boardNodes(h).find(n => n.props?.['aria-label'] === label); assert.ok(node, label); return node; };
 const boardPick = (h, label, value) => {

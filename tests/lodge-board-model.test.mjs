@@ -115,3 +115,9 @@ test('표로 보기는 디자인의 조작부 한 줄과 머리글 한 줄을 �
     assert.match(board, /from '\.\.\/ui'/, '우리 관리자 부품을 쓴다');
     assert.doesNotMatch(board, /la-strip|la-cal|la-month/, '숙박 일정 달력 띠는 디자인에서 빠졌다');
 });
+
+test('표로 보기에 들어오면 예약 줄은 모두 접힌 채로 시작한다', () => {
+    const board = readFileSync('src/components/admin/accommodation/LodgeAssignBoard.tsx', 'utf8');
+    assert.match(board, /const \[opened, setOpened\] = useState<Set<string>>\(new Set\(\)\);/, '처음에는 펼친 예약이 없다');
+    assert.match(board, /open = opened\.has\(t\.id\)/);
+});

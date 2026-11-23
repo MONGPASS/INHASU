@@ -58,7 +58,8 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
     const [period, setPeriod] = useState<Period>('all');
     const [q, setQ] = useState('');
     const [kf, setKf] = useState<NightState | ''>('');
-    const [closed, setClosed] = useState<Set<string>>(new Set());
+    // 표로 보기에 들어오면 예약 줄은 모두 접힌 채로 시작한다(오너 요청). 펼침 버튼이나 ‘모두 펼치기’로 연다.
+    const [opened, setOpened] = useState<Set<string>>(new Set());
     const [pop, setPop] = useState<Pop | null>(null);
     const [hotelQ, setHotelQ] = useState('');
     const [toast, setToast] = useState('');
@@ -93,8 +94,8 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
     const matches = model.filter(m => (!needle || `${m.tour.leadName || ''} ${m.tour.customerName || ''} ${m.tour.reservationNumber || ''} ${m.nights.map(n => n.acc.name || '').join(' ')}`.toLowerCase().includes(needle)) && inPeriod(m));
     const count = (k: NightState | '') => k ? matches.filter(m => stateOf(m) === k).length : matches.length;
     const visible = matches.filter(m => !kf || stateOf(m) === kf).sort((a, b) => (a.start || '9').localeCompare(b.start || '9'));
-    const allOpen = visible.every(m => !closed.has(m.tour.id));
-    const toggleAll = () => setClosed(allOpen ? new Set(visible.map(m => m.tour.id)) : new Set());
+    const allOpen = visible.length > 0 && visible.every(m => opened.has(m.tour.id));
+    const toggleAll = () => setOpened(allOpen ? new Set() : new Set(visible.map(m => m.tour.id)));
     const daysLeft = (start: string) => start ? Math.round((new Date(`${start}T00:00:00`).getTime() - new Date(`${todayK}T00:00:00`).getTime()) / 864e5) : null;
 
     // ── 고르기 창 ──
@@ -217,14 +218,14 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
                 {loading ? <p className="la-empty">예약을 불러오고 있어요…</p>
                     : !visible.length ? <p className="la-empty">조건에 맞는 예약이 없어요.</p>
                     : <div className="la-scroll"><div className="la-inner">{head}{visible.map(m => {
-                        const t = m.tour, open = !closed.has(t.id), N = m.nights.length, done = m.nights.filter(n => n.state !== 'none').length, ok = m.nights.filter(n => n.state === 'ok').length;
+                        const t = m.tour, open = opened.has(t.id), N = m.nights.length, done = m.nights.filter(n => n.state !== 'none').length, ok = m.nights.filter(n => n.state === 'ok').length;
                         const locked = !!pending[t.id] || savingId === t.id, isDirty = dirty.has(t.id), serial = serials.get(t.id) || 0;
                         const dl = daysLeft(m.start), urgent = dl !== null && dl >= 0 && dl <= URGENT_DAYS, missing = N - done;
                         const badge = !N ? { text: '숙박 없음', tone: 'neutral' as const, strong: false }
                             : ok === N ? { text: '모두 확정', tone: 'info' as const, strong: false }
                             : missing && urgent ? { text: `${missing}박 미배정 · 출발 ${dl}일 전`, tone: 'danger' as const, strong: false }
                             : { text: `${done} / ${N}박 배정`, tone: missing ? 'warn' as const : 'neutral' as const, strong: false };
-                        const toggle = () => setClosed(prev => { const next = new Set(prev); if (next.has(t.id)) next.delete(t.id); else next.add(t.id); return next; });
+                        const toggle = () => setOpened(prev => { const next = new Set(prev); if (next.has(t.id)) next.delete(t.id); else next.add(t.id); return next; });
                         const nextDate = (() => { const last = m.nights[N - 1]?.date || m.end; if (!last) return ''; const d = new Date(`${last}T00:00:00`); d.setDate(d.getDate() + 1); return dotted(keyOf(d)); })();
                         const endShort = m.end && m.start && m.end.slice(0, 4) === m.start.slice(0, 4) ? m.end.slice(5).replace('-', '.') : dotted(m.end);
                         const addNight = () => { onAddNight(t.id, m.fill); flash(`${t.leadName || t.customerName || ''} · ${nextDate} 숙박을 추가했어요`); };
