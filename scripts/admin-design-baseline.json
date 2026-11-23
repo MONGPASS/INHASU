@@ -243,13 +243,13 @@
   "nativeDialog": 0
  },
  "src/components/admin/accommodation/LodgeAssignBoard.tsx": {
-  "rawButton": 37,
+  "rawButton": 5,
   "rawField": 5,
   "rawTable": 0,
-  "inlineStyle": 6,
-  "px": 4,
+  "inlineStyle": 0,
+  "px": 0,
   "hex": 0,
-  "nativeDialog": 1
+  "nativeDialog": 0
  },
  "src/components/admin/accommodation/LodgeAssignQueue.tsx": {
   "rawButton": 0,
@@ -513,10 +513,10 @@
   "nativeDialog": 0
  },
  "src/pages/AdminAccommodationOps.tsx": {
-  "rawButton": 21,
+  "rawButton": 0,
   "rawField": 20,
-  "rawTable": 1,
-  "inlineStyle": 1,
+  "rawTable": 0,
+  "inlineStyle": 0,
   "px": 0,
   "hex": 0,
   "nativeDialog": 0
@@ -771,9 +771,9 @@
   "rawPx": 0
  },
  "src/components/admin/accommodation/LodgeAssignBoard.css": {
-  "hex": 10,
-  "important": 33,
-  "rawPx": 178
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
  },
  "src/components/admin/accommodation/LodgeAssignQueue.css": {
   "hex": 0,
@@ -826,9 +826,9 @@
   "rawPx": 0
  },
  "src/pages/AdminAccommodationOps.css": {
-  "hex": 4,
+  "hex": 0,
   "important": 0,
-  "rawPx": 193
+  "rawPx": 0
  },
  "src/pages/AdminBannerManage.css": {
   "hex": 3,
