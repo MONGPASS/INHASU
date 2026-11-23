@@ -44,7 +44,7 @@
 .rdc-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3) calc(var(--adm-space-2) + var(--adm-space-1) / 2); padding: var(--adm-space-5); }
 .rdc-grid2 .rdc-field { padding: 0; }
 
-/* 고르기 버튼: Montage Select 모양(흰 바탕 · 선 · 오른쪽 화살표). 누르면 기존 고르기 창이 열린다. */
+/* 고르기 버튼: AdminSelect 모양(흰 바탕 · 선 · 오른쪽 화살표). 누르면 기존 고르기 창이 열린다. */
 .rdc-sel { display: inline-flex; flex: none; align-items: center; justify-content: space-between; gap: var(--adm-space-2); box-sizing: border-box; width: calc(var(--adm-space-8) * 4); max-width: 100%;
   height: calc(var(--adm-space-8) + var(--adm-space-2)); padding: 0 var(--adm-space-3); border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-surface);
   box-shadow: inset 0 0 0 var(--adm-border-width) var(--adm-line); color: var(--adm-text); font: inherit; font-size: var(--adm-fs-body); font-weight: var(--adm-fw-medium); text-align: left; cursor: pointer; }

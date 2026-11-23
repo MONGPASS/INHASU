@@ -1,5 +1,4 @@
 import React from 'react';
-import { Loading } from '@montage-ui/core';
 import { IconCircleExclamationFill, IconInbox } from '@montage-ui/icon';
 import { AdminButton } from './AdminButton';
 import { cx } from './adminUiUtils';
@@ -98,7 +97,7 @@ export const AdminStatRow: React.FC<{ children: React.ReactNode; label?: string;
     <div role="group" aria-label={label} className={cx('adm-ui-stat-row', className)}>{children}</div>
 );
 
-/** 화면 안 알림(Montage SectionMessage 모양, `adm-msg` — 견적 도구와 같은 모양). 상태색 상자를 새로 그리지 않는다 */
+/** 화면 안 알림(Seed Callout 모양, `adm-msg` — 견적 도구와 같은 모양). 상태색 상자를 새로 그리지 않는다 */
 export interface AdminMessageProps {
     tone?: 'info' | 'cautionary' | 'negative' | 'positive';
     title?: React.ReactNode;
@@ -120,7 +119,7 @@ export const AdminMessage: React.FC<AdminMessageProps> = ({ tone = 'info', title
 /** 불러오는 중: 본문 자리에 회전 표시 + 글자 */
 export const AdminLoading: React.FC<{ label?: string; className?: string; inline?: boolean }> = ({ label = '불러오는 중…', className, inline }) => (
     <div className={cx('adm-ui-state', 'is-loading', inline && 'is-inline', className)} role="status" aria-live="polite">
-        <Loading variant="circular" size={inline ? 20 : 28} />
+        <span className={cx('adm-ui-spinner', inline && 'is-sm')} aria-hidden="true" />
         <p className="adm-ui-state-text">{label}</p>
     </div>
 );

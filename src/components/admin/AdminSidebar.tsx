@@ -30,7 +30,7 @@ interface AdminSidebarProps {
 }
 
 type IconComponent = typeof IconApps;
-/** 메뉴별 Montage 아이콘 — Claude Design ‘관리자 사이드바 개선’과 같다. */
+/** 메뉴별 아이콘(@montage-ui/icon — 단계 3에서 Seed 아이콘으로) — Claude Design ‘관리자 사이드바 개선’과 같다. */
 const MENU_ICONS: Record<string, IconComponent> = {
     dashboard: IconApps, reservations: IconTicket, calendar: IconCalendar,
     [quoteDeskPageId('inbox')]: IconDocumentText, [quoteDeskPageId('courses')]: IconFlag, [quoteDeskPageId('itinerary')]: IconClock, [quoteDeskPageId('spots')]: IconLocation,

@@ -1,13 +1,36 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, ModalContainer } from '@montage-ui/core';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { IconClose } from '@montage-ui/icon';
 import { AdminButton, AdminIconButton } from './AdminButton';
 import { cx, useAdminNarrow } from './adminUiUtils';
 import './admin-components.css';
 
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+/** 열린 창 수 — 여러 겹이 열려도 마지막 창이 닫힐 때 문서 스크롤을 되돌린다 */
+let openCount = 0;
+let savedOverflow = '';
+
+/** 창이 열려 있는 동안 문서 스크롤을 막고, 닫히면 열기 전 초점 자리로 돌려준다 */
+function useModalEffects(open: boolean, panel: React.RefObject<HTMLDivElement | null>) {
+    useLayoutEffect(() => {
+        if (!open || typeof document === 'undefined') return undefined;
+        const before = document.activeElement as HTMLElement | null;
+        if (openCount++ === 0) { savedOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; }
+        const el = panel.current;
+        // 본문 첫 입력 칸 → 없으면 창 자체에 초점(닫기 버튼에 먼저 가지 않게)
+        const first = el?.querySelector<HTMLElement>('.adm-ui-dialog-body :is(input, select, textarea):not([disabled]):not([type="hidden"])');
+        (first || el)?.focus({ preventScroll: true });
+        return () => {
+            if (--openCount === 0) document.body.style.overflow = savedOverflow;
+            if (before && document.contains(before)) before.focus({ preventScroll: true });
+        };
+    }, [open, panel]);
+}
+
 /**
  * 팝업(가운데 창). 폭 440(확인·짧은 입력) / 640(입력), 모서리 24, 머리(제목·닫기) / 본문 / 발.
  * 발은 왼쪽 삭제(`onDelete`), 오른쪽 취소·저장(`onSubmit`) 순서다. 휴대폰에서는 아래에서 올라오는 시트.
+ * 문서 body에 붙어 뜬다(검정 50% 막 위, 겹침 --adm-z-modal). 초점은 창 안에서만 돈다.
  * Esc·바깥 누르기·닫기 버튼으로 닫히고, `dirty`(고친 내용 있음)이면 바로 닫지 않고 발에서 한 번 묻는다.
  * 저장 중(`submitting`)에는 버튼을 잠그고 ‘저장 중…’을 보인다. 필수 입력 검사(`adminValidateRequired`)는 본문(.adm-form) 안에서 한다.
  *
@@ -58,6 +81,20 @@ export const AdminDialog: React.FC<AdminDialogProps> = ({
         onClose();
     };
     const titleId = React.useId();
+    const panel = useRef<HTMLDivElement>(null);
+    const pressedOutside = useRef(false);
+    useModalEffects(open, panel);
+
+    const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'Escape') { event.stopPropagation(); event.preventDefault(); requestClose(); return; }
+        if (event.key !== 'Tab' || !panel.current) return;
+        const items = [...panel.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement);
+        if (!items.length) { event.preventDefault(); return; }
+        const first = items[0], last = items[items.length - 1];
+        const active = document.activeElement;
+        if (event.shiftKey && (active === first || active === panel.current)) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && active === last) { event.preventDefault(); first.focus(); }
+    };
 
     const foot = askClose ? (
         <div className="adm-ui-dialog-foot is-asking" role="alert">
@@ -83,14 +120,21 @@ export const AdminDialog: React.FC<AdminDialogProps> = ({
         </div>
     );
 
-    return (
-        <Modal open={open} onOpenChange={(next) => { if (!next) requestClose(); }}>
-            <ModalContainer
-                variant={narrow ? 'bottom' : 'popup'}
-                size="medium"
+    if (!open || typeof document === 'undefined') return null;
+    return createPortal(
+        <div
+            className={cx('adm-ui-dialog-layer', narrow && 'is-sheet')}
+            // 바깥(막)을 눌렀다 뗀 경우만 닫는다 — 창 안에서 끌다가 막에서 놓은 것은 닫지 않는다
+            onMouseDown={(event) => { pressedOutside.current = event.target === event.currentTarget; }}
+            onClick={(event) => { if (pressedOutside.current && event.target === event.currentTarget) requestClose(); pressedOutside.current = false; }}
+        >
+            <div
+                ref={panel}
+                role="dialog"
+                aria-modal="true"
                 aria-labelledby={titleId}
-                // 겹침 순서를 관리자 규격(--adm-z-modal)으로: 공통 알림·확인 창이 팝업 위에 뜬다
-                wrapperProps={{ className: 'adm-ui-dialog-layer' }}
+                tabIndex={-1}
+                onKeyDown={onKeyDown}
                 className={cx('adm-ui-dialog', `is-${size}`, narrow && 'is-sheet', className)}
             >
                 <header className="adm-ui-dialog-head">
@@ -102,7 +146,8 @@ export const AdminDialog: React.FC<AdminDialogProps> = ({
                 </header>
                 <div className={cx('adm-ui-dialog-body', 'adm-form', flush && 'is-flush')}>{children}</div>
                 {foot}
-            </ModalContainer>
-        </Modal>
+            </div>
+        </div>,
+        document.body,
     );
 };

@@ -226,7 +226,7 @@
 .admin-app-wrapper .v7-list-card { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
 .admin-app-wrapper .v7-list-tabs { padding: var(--adm-space-2) var(--adm-pad-card) 0; overflow-x: auto; }
 .admin-app-wrapper .v7-list-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-3); padding: var(--adm-space-4) var(--adm-pad-card); border-top: 1px solid var(--adm-line-subtle); }
-/* 검색창은 AdminSearch(Montage SearchField). 여기서는 검색 줄 안 자리만 잡는다 */
+/* 검색창은 AdminSearch. 여기서는 검색 줄 안 자리만 잡는다 */
 .admin-app-wrapper .v7-list-search { flex: 1 1 240px; min-width: 200px; max-width: 320px; }
 .admin-app-wrapper .v7-list-quick { display: flex; flex-wrap: wrap; gap: var(--adm-space-2); }
 .admin-app-wrapper .v7-list-note { font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
@@ -260,22 +260,22 @@
   .admin-app-wrapper .v7-root .v7-tab { padding: 0 var(--adm-space-3); font-size: var(--adm-fs-body); }
 }
 
-/* ── 남은 화면 공통(Montage 점검): 필터 칩 · 묶음 전환 · 크기 ──
+/* ── 남은 화면 공통: 필터 칩 · 묶음 전환 · 크기 — 우리 부품(AdminChip·AdminSegmented, Seed 모양)과 같게 ──
    화면별 CSS가 이 파일보다 늦게 읽히므로 .app을 더해 우선한다. */
-/* 필터 칩 = Montage Chip: 회색 5% 바탕·테두리 없음·높이 32, 선택은 옅은 민트 바탕 + 민트 글자 */
-.admin-app-wrapper .app :is(.cm-chips .cm-chip, .pd-chips button) { gap: 4px; height: 32px; padding: 0 var(--adm-space-3); border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-fill-subtle); color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-medium); box-shadow: none; }
-.admin-app-wrapper .app :is(.cm-chips .cm-chip, .pd-chips button):hover:not(:disabled) { border-color: transparent; background: var(--adm-neutral-soft); }
+/* 필터 칩 = AdminChip 모양: 알약형·흰 바탕·옅은 테두리·높이 32, 선택은 옅은 민트 바탕 + 민트 글자 */
+.admin-app-wrapper .app :is(.cm-chips .cm-chip, .pd-chips button) { gap: var(--adm-space-1); height: var(--adm-control-h-sm); padding: 0 var(--adm-space-3); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-pill); background: var(--adm-surface); color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-medium); box-shadow: none; }
+.admin-app-wrapper .app :is(.cm-chips .cm-chip, .pd-chips button):hover:not(:disabled) { background: var(--adm-fill-subtle); }
 .admin-app-wrapper .app :is(.cm-chips .cm-chip[aria-pressed="true"], .pd-chips button.is-active),
-.admin-app-wrapper .app :is(.cm-chips .cm-chip[aria-pressed="true"], .pd-chips button.is-active):hover:not(:disabled) { background: var(--adm-accent-soft); color: var(--adm-accent-strong); font-weight: var(--adm-fw-semibold); }
+.admin-app-wrapper .app :is(.cm-chips .cm-chip[aria-pressed="true"], .pd-chips button.is-active):hover:not(:disabled) { border-color: var(--adm-accent-line); background: var(--adm-accent-soft); color: var(--adm-accent-strong); font-weight: var(--adm-fw-semibold); }
 .admin-app-wrapper .app :is(.cm-chips .cm-chip, .pd-chips button) :is(.cm-chip-n, span) { color: inherit; font-size: inherit; font-weight: inherit; opacity: .8; }
-/* 묶음 전환 = Montage SegmentedControl: 회색 바탕 안에서 고른 칸만 흰색 + 옅은 그림자 */
-.admin-app-wrapper .app :is(.cm-tabs, .seg, .hm-seg, .gs-seg, .gs-sub, .la-range) { gap: 0; padding: 4px; border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); box-shadow: none; }
-.admin-app-wrapper .app :is(.cm-tabs, .seg, .hm-seg, .gs-seg, .gs-sub, .la-range) > button { height: 32px; padding: 0 var(--adm-space-3); border: 0; border-radius: calc(var(--adm-radius-sm) - 2px); background: transparent; color: var(--adm-text-3) !important; font-size: var(--adm-fs-small) !important; font-weight: var(--adm-fw-medium); box-shadow: none; }
+/* 묶음 전환 = AdminSegmented 모양: 회색 바탕 안에서 고른 칸만 흰색 + 옅은 그림자 */
+.admin-app-wrapper .app :is(.cm-tabs, .seg, .hm-seg, .gs-seg, .gs-sub, .la-range) { gap: 0; padding: var(--adm-space-1); border: 0; border-radius: var(--adm-radius-md); background: var(--adm-gray-100); box-shadow: none; }
+.admin-app-wrapper .app :is(.cm-tabs, .seg, .hm-seg, .gs-seg, .gs-sub, .la-range) > button { height: 32px; padding: 0 var(--adm-space-3); border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-3) !important; font-size: var(--adm-fs-small) !important; font-weight: var(--adm-fw-medium); box-shadow: none; }
 .admin-app-wrapper .app :is(.cm-tabs, .seg, .hm-seg, .gs-seg, .gs-sub, .la-range) > button:hover:not(:disabled) { background: transparent; color: var(--adm-ink) !important; }
 .admin-app-wrapper .app :is(.cm-tabs > button[aria-selected="true"], .seg > button.active, .hm-seg > button.is-on, .gs-seg > button.is-on, .gs-sub > button.is-on, .la-range > button.is-on),
-.admin-app-wrapper .app :is(.cm-tabs > button[aria-selected="true"], .seg > button.active, .hm-seg > button.is-on, .gs-seg > button.is-on, .gs-sub > button.is-on, .la-range > button.is-on):hover { background: var(--adm-surface); color: var(--adm-ink) !important; font-weight: var(--adm-fw-semibold); box-shadow: var(--adm-shadow-xs); }
+.admin-app-wrapper .app :is(.cm-tabs > button[aria-selected="true"], .seg > button.active, .hm-seg > button.is-on, .gs-seg > button.is-on, .gs-sub > button.is-on, .la-range > button.is-on):hover { background: var(--adm-surface); color: var(--adm-ink) !important; font-weight: var(--adm-fw-semibold); box-shadow: var(--adm-shadow-sm); }
 .admin-app-wrapper .app .gs-range .gs-sub > button { height: 28px; }
-/* 크기: 버튼 32/40, 입력창 40(Montage 규격) */
+/* 크기: 버튼 32/40, 입력창 40(Seed 규격) */
 .admin-app-wrapper .app :is(.pd-actions button, .act-btn) { width: 32px; height: 32px; }
 .admin-app-wrapper .app .pd-preview { height: 32px; }
 .admin-app-wrapper .app .pd-search { height: 40px; border-width: 1px; }

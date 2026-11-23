@@ -72,6 +72,8 @@ const SCREENS = [
 export const screenOf = (file) => (SCREENS.find(([, re]) => re.test(file)) || ['기타'])[0];
 
 const HEX = /#[0-9a-fA-F]{3,8}\b/g;
+/** 우리 관리자 부품 폴더 — 생 <button>·<input>·<table>로 부품을 만드는 유일한 곳 */
+export const UI_DIR = /^src\/components\/admin\/ui\//;
 /** 우리 관리자 부품을 가져오는 경로: …/components/admin/ui, ../ui, (부품 폴더 안) ./AdminButton */
 const UI_IMPORT = /(^|\/)components\/admin\/ui(\/[\w-]+)?$|^(\.\.\/)+ui(\/[\w-]+)?$|^\.\/(Admin\w+|index)$/;
 const count = (s, re) => (s.match(re) || []).length;
@@ -81,17 +83,15 @@ const SIZE_PROPS = 'fontSize|padding(?:Top|Bottom|Left|Right|Inline|Block)?|marg
 /** TSX 한 파일의 수치 */
 export function measureTsx(src) {
     const s = stripComments(src);
-    // 공통 부품 = 우리 관리자 부품(components/admin/ui의 Admin*·*Page) + (ui 폴더 안에서만) Montage 부품
+    // 공통 부품 = 우리 관리자 부품(components/admin/ui의 Admin*·*Page)
     const imported = new Set();
     for (const m of s.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
         const from = m[2];
-        const isMontage = from === '@montage-ui/core';
-        const isOurs = UI_IMPORT.test(from);
-        if (!isMontage && !isOurs) continue;
+        if (!UI_IMPORT.test(from)) continue;
         for (const name of m[1].split(',')) {
             const n = name.trim().replace(/^type\s+/, '').split(/\s+as\s+/).pop();
             if (!/^[A-Z]/.test(n || '')) continue;
-            if (isOurs && !/^(Admin[A-Z]\w*|ListPage|FormPage|DetailPage|DashboardPage)$/.test(n)) continue;
+            if (!/^(Admin[A-Z]\w*|ListPage|FormPage|DetailPage|DashboardPage)$/.test(n)) continue;
             imported.add(n);
         }
     }
@@ -134,7 +134,12 @@ export function measureHtml(src) {
 export function measureAll() {
     const { tsx, css, html } = adminDesignFiles();
     const files = {};
-    for (const f of tsx) files[f] = { kind: 'tsx', ...measureTsx(read(f)) };
+    for (const f of tsx) {
+        const m = measureTsx(read(f));
+        // 우리 관리자 부품 폴더는 생 HTML 요소로 부품을 만드는 곳이라 생 부품 수를 세지 않는다(인라인 style·숫자 크기·색은 센다)
+        if (UI_DIR.test(f)) Object.assign(m, { rawButton: 0, rawField: 0, rawTable: 0 });
+        files[f] = { kind: 'tsx', ...m };
+    }
     for (const f of css) if (fs.existsSync(path.join(root, f))) files[f] = { kind: 'css', ...measureCss(read(f)) };
     for (const f of html) files[f] = { kind: 'html', ...measureHtml(read(f)) };
     return files;
@@ -171,7 +176,7 @@ function toMarkdown(files, rows) {
         '',
         '`node scripts/check-admin-design.mjs --md`가 만든 문서다. 손으로 고치지 않는다. 규칙은 [admin-design-system.md](admin-design-system.md), 화면 목록은 [admin-screen-inventory.md](admin-screen-inventory.md).',
         '',
-        '- **부품 전환율** = 공통 부품 수 ÷ (공통 부품 + 생 `<button>`·`<input>`·`<select>`·`<textarea>`·`<table>`). 공통 부품은 우리 관리자 부품(`components/admin/ui`의 `Admin*`·`ListPage` 등)이고, 그 폴더 안에서 쓴 Montage 부품도 센다. 화면 파일은 Montage를 직접 가져오지 않는다(`tests/admin-ui-boundary.test.mjs`). `adm-` 클래스를 단 버튼은 공통 부품으로 센다.',
+        '- **부품 전환율** = 공통 부품 수 ÷ (공통 부품 + 생 `<button>`·`<input>`·`<select>`·`<textarea>`·`<table>`). 공통 부품은 우리 관리자 부품(`components/admin/ui`의 `Admin*`·`ListPage` 등, 당근 Seed 모양)이다. 그 폴더는 생 HTML 요소로 부품을 만드는 곳이라 생 부품 수를 세지 않는다. `adm-` 클래스를 단 버튼은 공통 부품으로 센다.',
         '- **직접 지정**: 인라인 `style={{}}` 수, 숫자로 적은 크기(px), 직접 적은 색(hex), `!important`, CSS에 숫자로 적은 크기(글자·모서리·높이·여백).',
         '- 이 수치는 `scripts/admin-design-baseline.json`의 상한보다 늘어나면 `tests/admin-design-budget.test.mjs`가 실패한다(PR마다 CI에서 검사). 줄였으면 `--write-baseline`으로 상한을 낮춘다.',
         '',

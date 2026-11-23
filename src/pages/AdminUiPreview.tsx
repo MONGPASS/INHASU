@@ -110,7 +110,7 @@ function PartsPreview() {
                     <AdminField label="검색 칸">
                         {() => <AdminSearch value={q} onChange={setQ} placeholder="고객·예약번호 검색" wide />}
                     </AdminField>
-                    <AdminField label="내부 메모" aside={`${memo.length}/200`}>
+                    <AdminField label="내부 메모">
                         {(id) => <AdminTextArea id={id} value={memo} maxLength={200} onChange={(e) => setMemo(e.target.value)} placeholder="고객에게 보이지 않습니다" />}
                     </AdminField>
                     <div className="is-full"><AdminCheckbox checked={agree} onChange={setAgree} label="출발 3일 전 안내 자동 발송" /></div>
@@ -267,7 +267,7 @@ export const AdminUiPreview: React.FC = () => {
     );
 
     return (
-        <DashboardPage {...common} title="관리자 부품 미리보기" description="components/admin/ui — 화면은 이 부품만 씁니다(Montage는 부품 안에서만)." actions={frameSwitch(frame, go)}>
+        <DashboardPage {...common} title="관리자 부품 미리보기" description="components/admin/ui — 화면은 이 부품만 씁니다(당근 Seed 모양, docs/seed-design)." actions={frameSwitch(frame, go)}>
             <PartsPreview />
         </DashboardPage>
     );

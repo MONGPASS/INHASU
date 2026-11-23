@@ -1,6 +1,6 @@
-// 관리자 화면은 우리 관리자 부품(src/components/admin/ui)만 쓴다.
-// Montage(@montage-ui/core)는 그 폴더 안에서만 감싸 쓰고, 화면 파일이 직접 가져오면 실패한다.
-// (아이콘 @montage-ui/icon은 어디서나 써도 된다. Montage 테마 CSS는 src/styles의 CSS가 읽는다.)
+// 관리자 화면은 우리 관리자 부품(src/components/admin/ui, 당근 Seed 모양)만 쓴다.
+// Montage 부품 묶음(@montage-ui/core)은 2026-11-23 단계 2에서 걷어냈다 — 어디서도 다시 가져오지 않는다.
+// (아이콘 @montage-ui/icon은 단계 3에서 Seed 아이콘으로 바꿀 때까지 어디서나 써도 된다.)
 // 규칙: docs/admin-design-system.md 3절, 부품 미리보기: /admin/__ui (src/pages/AdminUiPreview.tsx)
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -22,13 +22,16 @@ const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'
 // import … from '@montage-ui/core', import '@montage-ui/core/…', import('@montage-ui/core'), require('@montage-ui/core'), export … from
 const MONTAGE_CORE = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]@montage-ui\/core(?:\/[^'"]*)?['"]/;
 
-test('관리자 부품 폴더 밖의 코드는 @montage-ui/core를 직접 가져오지 않는다', () => {
+test('어떤 코드도 @montage-ui/core를 가져오지 않고, 패키지 의존성에도 없다', () => {
     const files = walk('src');
     assert.ok(files.length > 100, '검사 대상 파일을 찾지 못했다');
-    const offenders = files
-        .filter((f) => !f.startsWith(UI_DIR))
-        .filter((f) => MONTAGE_CORE.test(stripComments(readFileSync(join(root, f), 'utf8'))));
-    assert.deepEqual(offenders, [], `Montage 부품은 ${UI_DIR}의 우리 부품(AdminButton·AdminTable·AdminDialog …)으로 감싸 쓴다:\n${offenders.join('\n')}`);
+    const offenders = files.filter((f) => MONTAGE_CORE.test(stripComments(readFileSync(join(root, f), 'utf8'))));
+    assert.deepEqual(offenders, [], `부품은 ${UI_DIR}의 우리 부품(AdminButton·AdminTable·AdminDialog …)을 쓴다:\n${offenders.join('\n')}`);
+    const css = readdirSync(join(root, 'src/styles')).filter((n) => n.endsWith('.css'))
+        .filter((n) => /@montage-ui\/core/.test(readFileSync(join(root, 'src/styles', n), 'utf8')));
+    assert.deepEqual(css, [], 'Montage 테마 CSS를 읽지 않는다');
+    const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    assert.equal({ ...pkg.dependencies, ...pkg.devDependencies }['@montage-ui/core'], undefined, 'package.json에 @montage-ui/core가 없다');
 });
 
 test('검사 정규식은 여러 import 꼴을 잡는다', () => {

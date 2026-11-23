@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pagination, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from '@montage-ui/core';
+import { IconChevronLeft, IconChevronRight } from '@montage-ui/icon';
 import { cx } from './adminUiUtils';
 import './admin-components.css';
 
@@ -22,26 +22,26 @@ export interface AdminTableProps {
 export const AdminTable: React.FC<AdminTableProps> = ({ label, className, cardOff, children }) => (
     // 휴대폰 카드 모양은 admin-components.css의 .adm-ui-table 규칙(옛 .tbl 규칙은 쓰지 않는다). cardOff면 표 그대로.
     <div className={cx('adm-ui-table', className)} data-card-off={cardOff ? '' : undefined}>
-        <Table aria-label={label} className="adm-ui-table-el" data-card-off={cardOff ? '' : undefined}>{children}</Table>
+        <table aria-label={label} className="adm-ui-table-el" data-card-off={cardOff ? '' : undefined}>{children}</table>
     </div>
 );
 
-export const AdminThead: React.FC<{ children: React.ReactNode }> = ({ children }) => <TableHead>{children}</TableHead>;
-export const AdminTbody: React.FC<{ children: React.ReactNode }> = ({ children }) => <TableBody>{children}</TableBody>;
+export const AdminThead: React.FC<{ children: React.ReactNode }> = ({ children }) => <thead className="adm-ui-thead">{children}</thead>;
+export const AdminTbody: React.FC<{ children: React.ReactNode }> = ({ children }) => <tbody className="adm-ui-tbody">{children}</tbody>;
 
 export interface AdminTrProps extends React.HTMLAttributes<HTMLTableRowElement> { selected?: boolean }
 export const AdminTr: React.FC<AdminTrProps> = ({ selected, className, ...rest }) => (
-    <TableRow {...rest} aria-selected={selected || undefined} className={cx('adm-ui-tr', selected && 'is-selected', className)} />
+    <tr {...rest} aria-selected={selected || undefined} className={cx('adm-ui-tr', selected && 'is-selected', className)} />
 );
 
 type Align = 'left' | 'center' | 'right';
 export interface AdminCellProps extends Omit<React.TdHTMLAttributes<HTMLTableCellElement>, 'align' | 'color'> { align?: Align; nowrap?: boolean }
 
 export const AdminTh: React.FC<AdminCellProps> = ({ align = 'left', nowrap = true, className, ...rest }) => (
-    <TableHeadCell {...rest} scope="col" className={cx('adm-ui-th', `is-${align}`, nowrap && 'is-nowrap', className)} />
+    <th {...rest} scope="col" className={cx('adm-ui-th', `is-${align}`, nowrap && 'is-nowrap', className)} />
 );
 export const AdminTd: React.FC<AdminCellProps> = ({ align = 'left', nowrap, className, ...rest }) => (
-    <TableCell {...rest} className={cx('adm-ui-td', `is-${align}`, nowrap && 'is-nowrap', className)} />
+    <td {...rest} className={cx('adm-ui-td', `is-${align}`, nowrap && 'is-nowrap', className)} />
 );
 
 export interface AdminColumn<T> {
@@ -107,7 +107,28 @@ export const AdminPagination: React.FC<AdminPaginationProps> = ({ page, totalPag
     return (
         <nav className={cx('adm-ui-pagination', className)} aria-label="페이지 이동">
             {summary && <span className="adm-ui-pagination-summary">{summary}</span>}
-            {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onChange={(next) => { if (next && next !== page) onChange(next); }} />}
+            {totalPages > 1 && <PageButtons page={page} totalPages={totalPages} onChange={(next) => { if (next && next !== page) onChange(next); }} />}
         </nav>
     );
 };
+
+/** 보일 쪽 번호: 처음·끝과 지금 쪽 앞뒤 하나, 사이는 ‘…’ */
+export function pageWindow(page: number, totalPages: number): Array<number | 'gap'> {
+    const keep = new Set([1, totalPages, page - 1, page, page + 1]);
+    if (page <= 3) [2, 3, 4].forEach((n) => keep.add(n));
+    if (page >= totalPages - 2) [totalPages - 1, totalPages - 2, totalPages - 3].forEach((n) => keep.add(n));
+    const list = [...keep].filter((n) => n >= 1 && n <= totalPages).sort((a, b) => a - b);
+    const out: Array<number | 'gap'> = [];
+    list.forEach((n, i) => { if (i && n - list[i - 1] > 1) out.push('gap'); out.push(n); });
+    return out;
+}
+
+const PageButtons: React.FC<{ page: number; totalPages: number; onChange: (page: number) => void }> = ({ page, totalPages, onChange }) => (
+    <div className="adm-ui-pages">
+        <button type="button" className="adm-ui-page-btn is-arrow" aria-label="이전 쪽" disabled={page <= 1} onClick={() => onChange(page - 1)}><IconChevronLeft /></button>
+        {pageWindow(page, totalPages).map((n, i) => n === 'gap'
+            ? <span key={`gap${i}`} className="adm-ui-page-gap" aria-hidden="true">…</span>
+            : <button key={n} type="button" className={cx('adm-ui-page-btn', n === page && 'is-current')} aria-current={n === page ? 'page' : undefined} aria-label={`${n}쪽`} onClick={() => onChange(n)}>{n}</button>)}
+        <button type="button" className="adm-ui-page-btn is-arrow" aria-label="다음 쪽" disabled={page >= totalPages} onClick={() => onChange(page + 1)}><IconChevronRight /></button>
+    </div>
+);

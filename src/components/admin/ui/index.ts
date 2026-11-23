@@ -1,6 +1,6 @@
 /**
- * 관리자 공통 부품(우리 부품). 관리자 화면은 이 폴더의 부품만 쓰고 `@montage-ui/core`를 직접 import하지 않는다
- * (tests/admin-ui-boundary.test.mjs). Montage를 바꾸거나 갈아탈 때는 이 폴더만 고친다.
+ * 관리자 공통 부품(우리 부품, 당근 Seed 모양을 --adm-* 변수로 직접 그린다 — 설계 docs/seed-design/components).
+ * 관리자 화면은 이 폴더의 부품만 쓴다. 바깥 부품 묶음(@montage-ui/core 등)은 쓰지 않는다(tests/admin-ui-boundary.test.mjs).
  * 규격: docs/admin-design-system.md 3절(부품)·4절(화면 틀). 미리보기: /admin/__ui
  */
 export { AdminButton, AdminIconButton, AdminTextButton, AdminFileButton } from './AdminButton';
