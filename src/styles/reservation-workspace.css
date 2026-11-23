@@ -934,3 +934,129 @@
         min-width: 160px;
     }
 }
+
+/* ── 예약 상세 창(AdminReservationManage의 ReservationDetailModal) — 우리 부품으로 바꾸며 인라인 style을 옮긴 자리(2026-11-23).
+   접두어 rw-dm-. 상세 창 본문(.reservation-workspace.product-workspace)과 가이드·숙소 고르기 창(.crp-picker) 안에서만 쓴다. */
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-grow { flex: 1; }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-shrink { min-width: 0; }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-head-copy { flex: 1; min-width: 0; }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-fs-micro { font-size: var(--adm-fs-micro); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-fs-caption { font-size: var(--adm-fs-caption); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-fs-small { font-size: var(--adm-fs-small); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-pre-line { white-space: pre-line; }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-stack { gap: var(--adm-space-3); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-stack-sm { gap: var(--adm-space-2); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-stack-lg { gap: var(--adm-space-4); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-thumb-empty { display: grid; place-items: center; color: var(--adm-text-3); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-thumb-dim { opacity: .7; }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-badge-gap { margin-left: var(--adm-space-1); font-size: var(--adm-fs-micro); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag {
+    display: inline-flex; margin-left: var(--adm-space-1); padding: 1px var(--adm-space-1); border-radius: var(--adm-radius-xs);
+    font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-bold); white-space: nowrap;
+}
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-danger { background: var(--adm-danger-soft); color: var(--adm-danger); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-muted { background: var(--adm-gray-100); color: var(--adm-text-3); }
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-accent { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
+/* 숙소 보드 수배 상태: 색이 상태마다 달라 TSX가 --rw-dm-tag-bg/fg로 넘긴다 */
+:is(.reservation-workspace.product-workspace, .crp-picker) .rw-dm-tag.is-status {
+    margin-left: 0; padding: calc(var(--adm-space-1) / 2) var(--adm-space-2);
+    background: var(--rw-dm-tag-bg, var(--adm-gray-100)); color: var(--rw-dm-tag-fg, var(--adm-text-2));
+}
+
+/* 상태 고르기(StatusDropdown) — 생 버튼(adm-)에 옛 .statusdd 모양을 두고 아이콘·초점만 토큰으로 */
+.adm-rw-dm-status:focus-visible, .adm-rw-dm-status-item:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+.rw-dm-status-caret { display: inline-flex; font-size: var(--adm-fs-body); opacity: .7; }
+.rw-dm-status-check { display: inline-flex; color: var(--adm-accent-strong); font-size: var(--adm-fs-body); }
+.adm-rw-dm-status-item .rw-dm-grow { flex: 1; }
+
+/* 머리 */
+.reservation-workspace.product-workspace .rw-dm-notice { margin: var(--adm-space-3) var(--adm-space-4) 0; }
+.reservation-workspace.product-workspace .rw-dm-product-thumb {
+    flex: none; width: var(--adm-control-h-xl); height: var(--adm-control-h-xl); object-fit: cover;
+    border: 1px solid var(--adm-line); border-radius: var(--adm-radius-md);
+}
+.reservation-workspace.product-workspace .rw-dm-head-meta { flex-wrap: wrap; gap: var(--adm-space-2); margin-bottom: var(--adm-space-1); }
+.reservation-workspace.product-workspace .rw-dm-head-title { overflow: hidden; font-size: var(--adm-fs-lead); text-overflow: ellipsis; white-space: nowrap; }
+.adm-rw-dm-anchor:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+
+/* 고객 현황: 같은 고객의 다른 예약 고르기 · 내부 메모 작성 */
+.reservation-workspace.product-workspace .rw-dm-bookings { width: 100%; max-width: 100%; min-width: 0; margin: 0; padding: 0; border: 0; font-size: var(--adm-fs-small); }
+.reservation-workspace.product-workspace .rw-dm-bookings label { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); color: var(--adm-text-2); font-weight: var(--adm-fw-semibold); }
+.reservation-workspace.product-workspace .rw-dm-bookings .adm-ui-select { max-width: calc(var(--adm-space-8) * 13); }
+.reservation-workspace.product-workspace .rw-dm-note { display: grid; gap: var(--adm-space-3); margin-top: var(--adm-space-4); font-size: var(--adm-fs-body); }
+.reservation-workspace.product-workspace .rw-dm-note > .adm-ui-btn { justify-self: end; }
+
+/* 본문 구역·카드 */
+.reservation-workspace.product-workspace .rw-dm-section { scroll-margin-top: var(--adm-space-2); }
+.reservation-workspace.product-workspace .rw-dm-grid { grid-template-columns: 1fr 1fr; gap: var(--adm-space-3); }
+.reservation-workspace.product-workspace .rw-dm-grid-lg { align-items: stretch; }
+.reservation-workspace.product-workspace .rw-dm-head-icon { color: var(--adm-text-3); }
+.reservation-workspace.product-workspace .rw-dm-head-action { flex: none; }
+.reservation-workspace.product-workspace :is(.rw-dm-card-body, .rw-dm-card-body-sm) { padding-top: var(--adm-space-3); }
+.reservation-workspace.product-workspace .rw-dm-card-gap { margin-top: var(--adm-space-3); }
+.reservation-workspace.product-workspace .rw-dm-kv-last { border-bottom: none; }
+.reservation-workspace.product-workspace .rw-dm-value-right { text-align: right; }
+.reservation-workspace.product-workspace .rw-dm-value-wrap { text-align: right; white-space: normal; }
+.reservation-workspace.product-workspace .rw-dm-num { font-variant-numeric: tabular-nums; }
+.reservation-workspace.product-workspace .rw-dm-upper { text-transform: uppercase; }
+.reservation-workspace.product-workspace .rw-dm-inline { gap: var(--adm-space-1); }
+.reservation-workspace.product-workspace .rw-dm-kv-input { flex: 1; min-width: 0; }
+.reservation-workspace.product-workspace .adm-ui-input.rw-dm-input-people { width: calc(var(--adm-space-8) * 2.25); height: var(--adm-control-h-sm); }
+.reservation-workspace.product-workspace .adm-ui-input.rw-dm-input-amount { width: calc(var(--adm-space-8) * 4 + var(--adm-space-3)); }
+
+/* 여행자·항공편 */
+.reservation-workspace.product-workspace .rw-dm-empty-box { margin-bottom: var(--adm-space-4); padding: var(--adm-space-4); border-radius: var(--adm-radius-md); background: var(--adm-gray-50); }
+.reservation-workspace.product-workspace .rw-dm-empty-box > p { margin: 0 0 var(--adm-space-3); color: var(--adm-text-3); font-size: var(--adm-fs-small); }
+.reservation-workspace.product-workspace .rw-dm-flights { margin-bottom: var(--adm-space-3); scroll-margin-top: var(--adm-space-5); }
+.reservation-workspace.product-workspace .rw-dm-flight-label { gap: var(--adm-space-1); margin-bottom: var(--adm-space-1); color: var(--adm-text-2); }
+.reservation-workspace.product-workspace .rw-dm-flight-label > span:last-child { font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.reservation-workspace.product-workspace .rw-dm-flight-value { font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); }
+.reservation-workspace.product-workspace .rw-dm-travelers { scroll-margin-top: var(--adm-space-5); }
+.reservation-workspace.product-workspace .rw-dm-empty-note { margin: 0; padding: var(--adm-space-4); border-radius: var(--adm-radius-md); background: var(--adm-gray-50); color: var(--adm-text-3); font-size: var(--adm-fs-small); }
+.reservation-workspace.product-workspace .rw-dm-traveler + .rw-dm-traveler { margin-top: var(--adm-space-2); padding-top: var(--adm-space-2); border-top: 1px solid var(--adm-line-subtle); }
+.reservation-workspace.product-workspace .rw-dm-traveler-title { margin-bottom: var(--adm-space-1); color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.reservation-workspace.product-workspace .rw-dm-signature { margin-top: var(--adm-space-2); padding-top: var(--adm-space-2); border-top: 1px solid var(--adm-line-subtle); }
+
+/* 결제 */
+.reservation-workspace.product-workspace .rw-dm-pay-summary { gap: var(--adm-space-4); margin-bottom: var(--adm-space-4); }
+.reservation-workspace.product-workspace .rw-dm-ring-bar { stroke: var(--adm-accent); transition: stroke-dashoffset 500ms cubic-bezier(0.16, 1, 0.3, 1); }
+.reservation-workspace.product-workspace .rw-dm-pay-total { gap: var(--adm-space-1); margin-top: calc(var(--adm-space-1) / 2); }
+.reservation-workspace.product-workspace .rw-dm-price-lg { font-size: var(--adm-fs-section); }
+.reservation-workspace.product-workspace .rw-dm-price { font-size: var(--adm-fs-base); }
+.reservation-workspace.product-workspace .rw-dm-pay-head { justify-content: space-between; margin-bottom: var(--adm-space-1); }
+.reservation-workspace.product-workspace .rw-dm-pay-label { color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
+.reservation-workspace.product-workspace .rw-dm-deposit-report {
+    margin-top: var(--adm-space-2); padding: var(--adm-space-2) var(--adm-space-3); border-radius: var(--adm-radius-sm);
+    background: var(--adm-surface); color: var(--adm-text-2); font-size: var(--adm-fs-caption); line-height: var(--adm-lh);
+}
+.reservation-workspace.product-workspace .rw-dm-deposit-report.is-open { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
+.reservation-workspace.product-workspace .rw-dm-pay-action { margin-top: var(--adm-space-2); }
+.reservation-workspace.product-workspace .rw-dm-deposit-guide { flex-wrap: wrap; gap: var(--adm-space-2); margin-top: var(--adm-space-3); }
+
+/* 가이드·숙소 배정 */
+.reservation-workspace.product-workspace .rw-dm-accom-hint { margin-bottom: var(--adm-space-2); font-size: var(--adm-fs-micro); line-height: var(--adm-lh); }
+.reservation-workspace.product-workspace .rw-dm-day-label { display: flex; flex-direction: column; align-items: flex-start; }
+.reservation-workspace.product-workspace .rw-dm-day-date { color: var(--adm-text-3); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-semibold); }
+.reservation-workspace.product-workspace .rw-dm-assign-fill { flex: 1; padding: 0; }
+.reservation-workspace.product-workspace .rw-dm-booking-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); margin-top: var(--adm-space-1); }
+.reservation-workspace.product-workspace .rw-dm-rooms { color: var(--adm-text-3); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-semibold); }
+.reservation-workspace.product-workspace .rw-dm-no-stay { flex: 1; align-self: center; font-size: var(--adm-fs-caption); }
+.reservation-workspace.product-workspace .rw-dm-muted-strong { color: var(--adm-text-3); }
+.adm-rw-dm-accom-empty { border-radius: var(--adm-radius-md); font-size: var(--adm-fs-small); }
+.adm-rw-dm-accom-empty:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+
+/* 메모·처리 이력 */
+.reservation-workspace.product-workspace .rw-dm-memo-foot { justify-content: space-between; margin-top: var(--adm-space-2); }
+.reservation-workspace.product-workspace .rw-dm-memo-list { gap: var(--adm-space-2); margin-top: var(--adm-space-3); }
+.reservation-workspace.product-workspace .rw-dm-memo-meta { gap: var(--adm-space-1); margin-top: var(--adm-space-1); }
+.reservation-workspace.product-workspace .rw-dm-memo-meta > b { color: var(--adm-text-2); font-size: var(--adm-fs-micro); }
+.reservation-workspace.product-workspace .rw-dm-danger-icon:hover:not(:disabled) { background: var(--adm-danger-soft); color: var(--adm-danger); }
+.reservation-workspace.product-workspace .rw-dm-timeline { padding: var(--adm-space-2) var(--adm-space-5) var(--adm-space-4); }
+.reservation-workspace.product-workspace .rw-dm-tl-title { font-size: var(--adm-fs-small); white-space: normal; }
+
+/* 가이드·숙소 고르기 창: 줄 전체가 눌리는 생 버튼(adm-)과 일차 탭 */
+.crp-picker .adm-rw-dm-pick:focus-visible, .crp-picker .adm-rw-dm-day-tab:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+.crp-picker .rw-dm-langs { flex-wrap: wrap; gap: var(--adm-space-1); margin-top: var(--adm-space-1); }
+.crp-picker .rw-dm-langs .rw-dm-lang { padding: 1px var(--adm-space-2); font-size: var(--adm-fs-micro); }
+.crp-picker .crp-search :is(.adm-ui-input, .adm-ui-select) { width: 100%; }

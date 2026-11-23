@@ -162,8 +162,8 @@
   "nativeDialog": 0
  },
  "src/components/admin/ReservationDocumentEditor.tsx": {
-  "rawButton": 7,
-  "rawField": 6,
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 0,
   "px": 0,
@@ -171,43 +171,43 @@
   "nativeDialog": 0
  },
  "src/components/admin/ReservationDocuments.tsx": {
-  "rawButton": 29,
+  "rawButton": 0,
   "rawField": 2,
   "rawTable": 0,
-  "inlineStyle": 4,
-  "px": 2,
+  "inlineStyle": 0,
+  "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
  "src/components/admin/ReservationDraftPreview.tsx": {
-  "rawButton": 2,
+  "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 5,
-  "px": 4,
-  "hex": 3,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
   "nativeDialog": 0
  },
  "src/components/admin/ReservationInlineEditor.tsx": {
-  "rawButton": 18,
-  "rawField": 4,
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 4,
-  "px": 6,
+  "inlineStyle": 0,
+  "px": 1,
   "hex": 0,
   "nativeDialog": 1
  },
  "src/components/admin/ReservationOperations.tsx": {
-  "rawButton": 2,
+  "rawButton": 0,
   "rawField": 11,
   "rawTable": 0,
-  "inlineStyle": 1,
-  "px": 1,
+  "inlineStyle": 0,
+  "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
  "src/components/admin/ReservationWorkflow.tsx": {
-  "rawButton": 3,
+  "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 1,
@@ -477,11 +477,11 @@
   "nativeDialog": 0
  },
  "src/components/admin/v7/ReservationDetailV7.tsx": {
-  "rawButton": 25,
+  "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 158,
-  "px": 277,
+  "inlineStyle": 2,
+  "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
@@ -495,12 +495,12 @@
   "nativeDialog": 0
  },
  "src/components/admin/v7/v7Ui.tsx": {
-  "rawButton": 2,
+  "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 19,
-  "px": 65,
-  "hex": 9,
+  "inlineStyle": 1,
+  "px": 0,
+  "hex": 0,
   "nativeDialog": 0
  },
  "src/pages/AdminAccommodationManage.tsx": {
@@ -657,12 +657,12 @@
   "nativeDialog": 0
  },
  "src/pages/AdminReservationManage.tsx": {
-  "rawButton": 60,
-  "rawField": 12,
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 6,
-  "inlineStyle": 154,
-  "px": 184,
-  "hex": 27,
+  "inlineStyle": 1,
+  "px": 33,
+  "hex": 26,
   "nativeDialog": 0
  },
  "src/pages/AdminReviewManage.tsx": {
@@ -921,9 +921,9 @@
   "rawPx": 302
  },
  "src/styles/reservation-inline.css": {
-  "hex": 4,
+  "hex": 0,
   "important": 0,
-  "rawPx": 171
+  "rawPx": 144
  },
  "src/styles/reservation-itinerary-designer.css": {
   "hex": 6,

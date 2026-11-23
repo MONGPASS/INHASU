@@ -63,7 +63,7 @@ export function ReservationWorkflow({ steps, readiness, cancelled = false }: Res
                             <li key={step.id} className={`rw-step-item${step.done ? ' is-done' : ''}${isNext ? ' is-next' : ''}`}>
                                 <button
                                     type="button"
-                                    className="rw-step-button"
+                                    className="rw-step-button adm-ri-flow-btn"
                                     onClick={step.onAction}
                                     disabled={cancelled || step.disabled}
                                     aria-current={isNext || undefined}
@@ -86,7 +86,7 @@ export function ReservationWorkflow({ steps, readiness, cancelled = false }: Res
                         <p>{cancelled ? '예약 내용과 기존 문서는 아래에서 확인할 수 있습니다.' : allDone ? '문서와 배정 정보를 확인하고 필요한 경우 수정할 수 있습니다.' : nextStep?.description || '예약 정보를 불러온 뒤 진행 상태가 표시됩니다.'}</p>
                     </div>
                     {!cancelled && nextStep && (
-                        <button type="button" className="rw-primary-action" onClick={nextStep.onAction} disabled={nextStep.disabled}>
+                        <button type="button" className="rw-primary-action adm-ri-flow-btn" onClick={nextStep.onAction} disabled={nextStep.disabled}>
                             {nextStep.actionLabel}<WorkflowArrow />
                         </button>
                     )}
@@ -103,7 +103,7 @@ export function ReservationWorkflow({ steps, readiness, cancelled = false }: Res
                 </div>
                 <div className="rw-readiness-grid">
                     {readiness.map(item => (
-                        <button key={item.title} type="button" className={`rw-readiness-item${item.ready ? ' is-ready' : ''}`} onClick={item.onAction}>
+                        <button key={item.title} type="button" className={`rw-readiness-item adm-ri-flow-btn${item.ready ? ' is-ready' : ''}`} onClick={item.onAction}>
                             <span className="rw-readiness-top"><span>{item.title}</span><span className="rw-readiness-state">{item.ready ? <WorkflowCheck /> : '확인 필요'}</span></span>
                             <strong className="rw-readiness-value">{item.value}</strong>
                             <span className="rw-readiness-description">{item.description}</span>

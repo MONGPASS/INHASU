@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+// tests/reservation-operations-actions.test.mjs가 React를 바꿔 끼워 이 파일만 묶고, 칸은 label 바로 아래의 생 input·select·textarea로 찾는다.
+// 그래서 ./ui 부품을 가져오지 않고 버튼에 우리 부품과 같은 클래스(adm-ui-btn)를 단다.
 import { AIRFARE_OPTIONS, CATEGORY_OPTIONS, RECEIPT_LABELS, SERVICE_TYPE_OPTIONS, emptyReservationOperations, type ReceiptStatus, type ReservationOperations as Operations } from '../../utils/reservationWorkspace';
 
 export interface ReservationOperationsControl {
@@ -61,7 +63,7 @@ export function ReservationOperations(p: Props) {
         finally { savingRef.current = false; setSaving(false); }
     };
     return <section id="sec-ops" className="card rw-operations" aria-label="주문 운영 정보">
-        <div className="card-head rw-section-head"><div><span className="rw-kicker">주문서</span><h2>예약 운영 정보</h2><p>예약별 차량과 정산 정보를 기록하세요. 관리자에게만 표시됩니다.</p></div>{!externalActions && <div className="row" style={{ gap: 8 }}><button type="button" className="btn btn-sm btn-ghost" disabled={!dirty || saving || disabled} onClick={cancel}>변경 취소</button><button type="submit" form={formId || `reservation-operations-${reservationId}`} className="btn btn-sm btn-ink" disabled={!dirty || saving || disabled}>{saving ? '저장 중…' : '운영 정보 저장'}</button></div>}</div>
+        <div className="card-head rw-section-head"><div><span className="rw-kicker">주문서</span><h2>예약 운영 정보</h2><p>예약별 차량과 정산 정보를 기록하세요. 관리자에게만 표시됩니다.</p></div>{!externalActions && <div className="row ri-ops-actions"><button type="button" className="adm-ui-btn is-secondary is-sm" disabled={!dirty || saving || disabled} onClick={cancel}>변경 취소</button><button type="submit" form={formId || `reservation-operations-${reservationId}`} className="adm-ui-btn is-primary is-sm adm-on-primary" disabled={!dirty || saving || disabled}>{saving ? '저장 중…' : '운영 정보 저장'}</button></div>}</div>
         <form id={formId || `reservation-operations-${reservationId}`} noValidate onSubmit={event => { event.preventDefault(); void save(); }}>
         <fieldset disabled={saving || disabled} className="rw-operations-fields">
             <section className="rw-operations-group" aria-label="투어·차량 정보">

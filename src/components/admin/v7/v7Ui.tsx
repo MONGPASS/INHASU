@@ -1,54 +1,30 @@
 import React, { useEffect } from 'react';
 import { DashboardIcon, type DashboardIconName } from '../dashboard/DashboardIcon';
+import { AdminBadge, type AdminTone } from '../ui';
+import './reservation-detail-cards.css';
 
 /**
- * 예약 관리 v7(Claude Design `예약 관리 v7.dc.html`)의 칩·버튼·드롭다운·진행 단계.
- * 디자인 원본이 인라인 style로 그려져 있어 같은 값을 style 객체로 옮겼다.
+ * 예약 관리 v7(Claude Design `예약 관리 v7.dc.html`)의 메뉴·알림·진행 단계.
+ * 모양은 reservation-detail-cards.css(v7-*·adm-v7-*)가 --adm-* 변수로 정한다. 실행 중 계산되는 값(위치·너비·순서)만 인라인으로 넘긴다.
  */
 type Css = React.CSSProperties;
-export const V7_INK = 'var(--adm-ink)';
-export const V7_MUTED = 'var(--adm-text-3)';
 
-const CT: Record<string, [string, string, string, string]> = {
-    red: ['var(--adm-danger-soft)', 'var(--adm-danger-soft)', 'var(--adm-danger-line)', 'var(--adm-danger)'], mint: ['var(--adm-accent-soft)', 'var(--adm-accent-soft)', 'var(--adm-accent-line)', 'var(--adm-accent-strong)'],
-    amber: ['var(--adm-warn-soft)', 'var(--adm-warn-soft)', 'var(--adm-warn-line)', 'var(--adm-warn)'], blue: ['var(--adm-accent-soft)', 'var(--adm-accent-soft)', 'var(--adm-accent-line)', 'var(--adm-accent-strong)'],
-    gray: ['var(--adm-surface)', 'var(--adm-gray-100)', 'var(--adm-line)', 'var(--adm-text-2)'], solid: ['var(--adm-accent)', 'var(--adm-accent-strong)', 'var(--adm-accent-strong)', '#ffffff'],
-};
+/** 읽기 전용 상태 표시의 색 이름(예전 chip). AdminBadge 톤으로 바꿔 그린다. */
 export type V7Tone = 'red' | 'mint' | 'amber' | 'blue' | 'gray' | 'solid';
-
-/** 상태 표시 칩(읽기 전용). dot은 왼쪽 점. */
-export const chip = (tone: V7Tone, dot: boolean, x?: Css): Css => {
-    const T = CT[tone] || CT.gray, d = tone === 'solid' ? '#fff' : T[3];
-    return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: dot ? '0 9px 0 19px' : '0 9px', boxSizing: 'border-box', borderRadius: 'var(--adm-radius-xs)', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
-        background: (dot ? `radial-gradient(circle at 10px 50%, ${d} 2.6px, ${tone === 'solid' ? 'transparent' : T[2]} 3px, transparent 4.6px), ` : '') + `linear-gradient(180deg,${T[0]},${T[1]})`,
-        boxShadow: `inset 0 0 0 1px ${T[2]}` + (tone === 'solid' ? ', 0 2px 8px rgba(var(--adm-accent-rgb),.22)' : ''), color: T[3], ...(x || {}) };
-};
-
-/** 눌러서 바꾸는 상태 버튼(점 + 그라데이션). */
+/** 눌러서 바꾸는 상태 버튼의 색 이름(예전 pill). 모양은 .adm-v7-pill.is-{tone} */
 export type PillTone = 'red' | 'mint' | 'gray' | 'amber' | 'blue' | 'ink' | 'solid';
-export const pill = (tone: PillTone, x?: Css): Css => {
-    const T = ({ red: CT.red, mint: CT.mint, gray: ['#fff', 'var(--adm-gray-100)', 'var(--adm-line)', 'var(--adm-text-2)'], amber: CT.amber, blue: CT.blue, ink: [V7_INK, V7_INK, V7_INK, '#fff'], solid: ['var(--adm-accent)', 'var(--adm-accent-strong)', 'var(--adm-accent-strong)', '#fff'] } as Record<PillTone, string[]>)[tone];
-    const filled = tone === 'ink' || tone === 'solid', dot = filled ? '#fff' : T[3];
-    return { display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px 0 20px', border: 0, borderRadius: 'var(--adm-radius-sm)', font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
-        background: `radial-gradient(circle at 11px 50%, ${dot} 3px, ${filled ? 'transparent' : T[2]} 3.4px, transparent 5px), linear-gradient(180deg,${T[0]},${T[1]})`,
-        boxShadow: `inset 0 0 0 1px ${T[2]}` + (tone === 'solid' ? ', 0 2px 8px rgba(var(--adm-accent-rgb),.22)' : ''), color: T[3], ...(x || {}) };
+
+/** v7 색 이름 → Seed 배지 톤(완료 초록 · 안내 민트 · 주의 노랑 · 미처리 빨강 · 보류 회색). solid는 민트 채움. */
+export const v7BadgeTone = (tone: V7Tone | PillTone): { tone: AdminTone; strong: boolean } => ({
+    red: { tone: 'danger', strong: false }, mint: { tone: 'success', strong: false }, amber: { tone: 'warn', strong: false }, blue: { tone: 'info', strong: false },
+    gray: { tone: 'neutral', strong: false }, solid: { tone: 'info', strong: true }, ink: { tone: 'neutral', strong: true },
+} as Record<V7Tone | PillTone, { tone: AdminTone; strong: boolean }>)[tone] || { tone: 'neutral', strong: false };
+
+/** 읽기 전용 상태 배지(AdminBadge). */
+export const V7Badge = ({ tone, size = 'md', title, className, children }: { tone: V7Tone | PillTone; size?: 'sm' | 'md'; title?: string; className?: string; children: React.ReactNode }) => {
+    const t = v7BadgeTone(tone);
+    return <AdminBadge tone={t.tone} strong={t.strong} size={size} title={title} className={className}>{children}</AdminBadge>;
 };
-
-/** 선택 상자 모양 버튼. empty면 빨간 테두리(선택 필요). */
-export const sel = (empty: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 10px 0 12px', boxSizing: 'border-box', border: 0, borderRadius: 'var(--adm-radius-sm)', font: 'inherit', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer',
-    background: 'var(--adm-surface)', boxShadow: empty ? 'inset 0 0 0 1px var(--adm-danger-line)' : 'inset 0 0 0 1px var(--adm-line)', color: empty ? 'var(--adm-danger)' : V7_INK, ...(x || {}) });
-
-/** 배정 칩(목록의 가이드·차량·숙소). c는 점 색. */
-export const dchip = (c: string, bad: boolean, x?: Css): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 5, height: 28, padding: '0 10px 0 20px', boxSizing: 'border-box', border: 0, borderRadius: 'var(--adm-radius-sm)', font: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer', flex: '0 0 auto',
-    background: `radial-gradient(circle at 10px 50%, ${c} 3px, transparent 3.6px), ${bad ? 'var(--adm-danger-soft)' : 'var(--adm-gray-100)'}`, boxShadow: `inset 0 0 0 1px ${bad ? 'var(--adm-danger-line)' : 'var(--adm-line-subtle)'}`, color: bad ? 'var(--adm-danger)' : V7_INK, ...(x || {}) });
-
-export const checkBox = (on: boolean): Css => ({ width: 18, height: 18, padding: 0, borderRadius: 'var(--adm-radius-xs)', border: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: on ? 'linear-gradient(135deg,var(--adm-accent),var(--adm-accent-strong))' : '#fff', boxShadow: on ? 'none' : 'inset 0 0 0 1.5px var(--adm-line-strong)' });
-
-export const card: Css = { display: 'flex', flexDirection: 'column', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)', scrollMarginTop: 88 };
-export const iconTile = (size = 30): Css => ({ width: size, height: size, flex: 'none', borderRadius: size >= 34 ? 10 : size >= 30 ? 10 : 9, background: 'var(--adm-gray-100)', color: 'var(--adm-text-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' });
-export const ghostBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 14px', border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px var(--adm-line)', font: 'inherit', fontSize: 13, fontWeight: 700, color: V7_INK, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
-export const inkBtn = (h = 36): Css => ({ display: 'inline-flex', alignItems: 'center', gap: 6, height: h, padding: '0 16px', border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-primary-bg)', font: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--adm-on-primary)', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' });
 
 export const Ico = ({ name, size = 14, color }: { name: DashboardIconName; size?: number; color?: string }) => <DashboardIcon name={name} size={size} color={color} />;
 
@@ -87,27 +63,29 @@ export function V7Menu({ menu, onClose }: { menu: V7MenuState | null; onClose: (
         window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
     }, [menu, onClose]);
     if (!menu) return null;
+    // 위치는 누른 버튼에 따라 실행 중에 정해진다.
+    const at: Css = menu.y !== null ? { left: menu.x, top: menu.y } : { left: menu.x, bottom: menu.b ?? 0 };
     return <>
-        <div onClick={onClose} onWheel={onClose} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
-        <div role="menu" aria-label={menu.title} style={{ position: 'fixed', left: menu.x, ...(menu.y !== null ? { top: menu.y } : { bottom: menu.b ?? 0 }), zIndex: 61, width: menu.wide ? 260 : 228, maxHeight: 340, overflowY: 'auto', boxSizing: 'border-box', padding: 6, display: 'flex', flexDirection: 'column', gap: 2, background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px rgba(16,24,40,.06),0 12px 32px rgba(16,24,40,.16)', animation: 'rvPop 140ms ease-out' }}>
-            {menu.title && <span style={{ padding: '6px 8px 4px', fontSize: 11, fontWeight: 700, color: V7_MUTED }}>{menu.title}</span>}
-            {menu.items.map(o => <button key={o.key} type="button" role="menuitemradio" aria-checked={!!o.on} disabled={o.disabled} className="v7-dd-row"
-                onClick={e => { e.stopPropagation(); onClose(); o.onPick(); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', minHeight: o.sub ? 44 : 36, padding: '4px 10px', border: 0, borderRadius: 'var(--adm-radius-sm)', font: 'inherit', cursor: o.disabled ? 'not-allowed' : 'pointer', opacity: o.disabled ? .5 : 1, background: o.on ? 'var(--adm-gray-50)' : 'transparent', textAlign: 'left' }}>
-                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <span style={{ fontSize: 13, fontWeight: o.on ? 800 : 600, color: o.muted ? V7_MUTED : V7_INK }}>{o.label}</span>
-                    {o.sub && <span style={{ fontSize: 11, fontWeight: 600, color: o.subTone === 'warn' ? 'var(--adm-danger)' : o.subTone === 'muted' ? V7_MUTED : 'var(--adm-accent-strong)' }}>{o.sub}</span>}
+        <div className="v7-menu-scrim" onClick={onClose} onWheel={onClose} />
+        <div role="menu" aria-label={menu.title} className={menu.wide ? 'v7-menu is-wide' : 'v7-menu'} style={at}>
+            {menu.title && <span className="v7-menu-title">{menu.title}</span>}
+            {menu.items.map(o => <button key={o.key} type="button" role="menuitemradio" aria-checked={!!o.on} disabled={o.disabled}
+                className={['adm-v7-menu-row', 'v7-dd-row', o.sub && 'has-sub', o.on && 'is-on'].filter(Boolean).join(' ')}
+                onClick={e => { e.stopPropagation(); onClose(); o.onPick(); }}>
+                <span className="v7-menu-text">
+                    <span className={o.muted ? 'v7-menu-label is-muted' : 'v7-menu-label'}>{o.label}</span>
+                    {o.sub && <span className={`v7-menu-sub is-${o.subTone || 'ok'}`}>{o.sub}</span>}
                 </span>
                 {o.on && <Ico name="lc-check" size={15} color="var(--adm-accent-strong)" />}
             </button>)}
-            {!menu.items.length && <span style={{ padding: '8px 10px', fontSize: 12, color: V7_MUTED }}>선택할 수 있는 항목이 없어요.</span>}
+            {!menu.items.length && <span className="v7-menu-empty">선택할 수 있는 항목이 없어요.</span>}
         </div>
     </>;
 }
 
 export function V7Toast({ text }: { text: string }) {
     if (!text) return null;
-    return <div role="status" style={{ position: 'fixed', left: '50%', top: 20, transform: 'translateX(-50%)', zIndex: 70, display: 'flex', alignItems: 'center', gap: 8, padding: '12px 18px', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle),0 12px 32px rgba(16,24,40,.16)', fontSize: 14, fontWeight: 700, animation: 'rvUp 180ms ease-out' }}>
+    return <div role="status" className="v7-toast">
         <Ico name="lc-circle-check" size={16} color="var(--adm-accent-strong)" />{text}
     </div>;
 }
@@ -115,38 +93,38 @@ export function V7Toast({ text }: { text: string }) {
 export interface V7Step { label: string; done: boolean; sub: string }
 /** 진행 단계 5칸. cancelled면 채우지 않는다. large는 상세 화면 크기. */
 export function V7Steps({ steps, cancelled, large = false, onStep }: { steps: V7Step[]; cancelled: boolean; large?: boolean; onStep?: (index: number) => void }) {
-    const cur = steps.findIndex(s => !s.done), dotSize = large ? 28 : 28;
-    const fill: Css = { position: 'absolute', left: '10%', top: 13, height: 3, borderRadius: 'var(--adm-radius-xs)', transformOrigin: 'left center', background: 'linear-gradient(90deg,var(--adm-accent),var(--adm-accent),var(--adm-accent))', backgroundSize: '40px 100%',
-        animation: 'rvGrow 700ms cubic-bezier(.2,.8,.2,1) both, rvFlow 1.2s linear 700ms infinite', width: cancelled ? 0 : `${(cur < 0 ? steps.length - 1 : Math.max(cur, 0)) * (80 / Math.max(1, steps.length - 1))}%` };
-    return <div className={steps.length > 5 ? 'v7-steps v7-steps-many' : 'v7-steps'} style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${steps.length},minmax(0,1fr))` }}>
-        <span style={{ position: 'absolute', left: '10%', right: '10%', top: 13, height: 3, borderRadius: 'var(--adm-radius-xs)', background: 'var(--adm-gray-200)' }} />
-        <span style={fill} />
+    const cur = steps.findIndex(s => !s.done);
+    // 채운 막대 너비는 지금 단계에 따라 실행 중에 정해진다.
+    const fillWidth = cancelled ? '0%' : `${(cur < 0 ? steps.length - 1 : Math.max(cur, 0)) * (80 / Math.max(1, steps.length - 1))}%`;
+    return <div className={['v7-steps', steps.length > 5 && 'v7-steps-many', large && 'is-large'].filter(Boolean).join(' ')}>
+        <span className="v7-steps-track" />
+        <span className="v7-steps-fill" style={{ width: fillWidth }} />
         {steps.map((s, j) => {
             const ok = s.done && !cancelled, now = j === cur && !cancelled;
+            const state = ok ? 'is-ok' : now ? 'is-now' : 'is-wait';
             const inner = <>
-                <span style={{ position: 'relative', zIndex: 1, width: dotSize, height: dotSize, borderRadius: 999, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: ok ? 'linear-gradient(135deg,var(--adm-accent),var(--adm-accent-strong))' : now ? 'var(--adm-danger)' : '#fff', border: ok || now ? '0' : '2px solid var(--adm-line)',
-                    boxShadow: now ? '0 0 0 5px var(--adm-danger-soft)' : ok ? '0 2px 8px rgba(var(--adm-accent-rgb),.22)' : 'none',
-                    animation: now ? `rvDot 420ms ${j * 120}ms both cubic-bezier(.2,.8,.2,1), rvPulse 1.8s ${j * 120 + 500}ms ease-out infinite` : ok ? `rvDot 420ms ${j * 120}ms both cubic-bezier(.2,.8,.2,1)` : 'none' }}>
-                    {ok && <Ico name="lc-check" size={14} color="#fff" />}
-                    {now && <span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--adm-surface)' }} />}
+                <span className={`v7-step-dot ${state}`}>
+                    {ok && <Ico name="lc-check" size={14} color="var(--adm-on-primary)" />}
+                    {now && <span className="v7-step-core" />}
                 </span>
-                <span className="v7-step-label" style={{ fontSize: 13, fontWeight: now ? 800 : 700, whiteSpace: 'nowrap', color: ok ? 'var(--adm-accent-strong)' : now ? 'var(--adm-danger)' : 'var(--adm-text-3)' }}>{s.label}</span>
-                <span className="v7-step-sub" style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', fontVariantNumeric: 'tabular-nums', color: now ? 'var(--adm-danger)' : ok ? 'var(--adm-text-2)' : 'var(--adm-text-3)', animation: now ? 'rvBlink 1.8s ease-in-out infinite' : 'none' }}>{s.sub}</span>
+                <span className={`v7-step-label ${state}`}>{s.label}</span>
+                <span className={`v7-step-sub ${state}`}>{s.sub}</span>
             </>;
-            const box: Css = { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center', minWidth: 0 };
+            const title = `${s.label} · ${ok ? '완료' : now ? '지금 처리할 단계' : '대기'}`;
+            // 단계 순서(애니메이션 지연)만 변수로 넘긴다.
+            const order = { '--v7-i': j } as Css;
             return onStep
-                ? <button key={s.label} data-now={now ? '' : undefined} type="button" onClick={() => onStep(j)} title={`${s.label} · ${ok ? '완료' : now ? '지금 처리할 단계' : '대기'}`} style={{ ...box, padding: 0, border: 0, background: 'transparent', font: 'inherit', cursor: 'pointer' }}>{inner}</button>
-                : <span key={s.label} data-now={now ? '' : undefined} style={box} title={`${s.label} · ${ok ? '완료' : now ? '지금 처리할 단계' : '대기'}`}>{inner}</span>;
+                ? <button key={s.label} data-now={now ? '' : undefined} type="button" className="adm-v7-step v7-step" onClick={() => onStep(j)} title={title} style={order}>{inner}</button>
+                : <span key={s.label} data-now={now ? '' : undefined} className="v7-step" title={title} style={order}>{inner}</span>;
         })}
     </div>;
 }
 
-/** 진행 단계 카드 머리: '진행 단계' + 지금 단계 칩 + 완료 수. */
+/** 진행 단계 카드 머리: '진행 단계' + 지금 단계 배지 + 완료 수. */
 export function V7StepHead({ label, tone, count, big = false }: { label: string; tone: 'red' | 'mint' | 'gray'; count: string; big?: boolean }) {
-    return <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <b style={{ fontSize: big ? 15 : 14, fontWeight: 700 }}>진행 단계</b>
-        <span style={chip(tone, tone !== 'gray', { alignSelf: 'center', height: 24, fontSize: 12, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' })}>{label}</span>
-        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: V7_MUTED }}>{count}</span>
+    return <div className="v7-stephead">
+        <b className={big ? 'v7-stephead-title is-big' : 'v7-stephead-title'}>진행 단계</b>
+        <V7Badge tone={tone} className="v7-stephead-badge">{label}</V7Badge>
+        <span className="v7-stephead-count">{count}</span>
     </div>;
 }

@@ -41,8 +41,8 @@ import { guideAssignmentConflicts, validAssignmentPeriod } from '../utils/assign
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
 import { ReservationListV7, type ReservationListScope, type V7OpenAction } from '../components/admin/v7/ReservationListV7';
 import {
-    AdminButton, AdminDialog, AdminField, AdminIconButton, AdminMenu, AdminMessage, AdminSelect, AdminTextArea, AdminTextInput, IconDownload,
-    IconPlus, IconRefresh,
+    AdminButton, AdminDialog, AdminField, AdminIconButton, AdminMenu, AdminMessage, AdminSelect, AdminTextArea, AdminTextButton, AdminTextInput,
+    IconCheck, IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconClose, IconDownload, IconPencil, IconPlus, IconRefresh, IconTrash,
 } from '../components/admin/ui';
 import type { V7Source } from '../utils/reservationV7';
 import type { ReservationDetailV7Links } from '../components/admin/v7/ReservationDetailV7';
@@ -401,28 +401,28 @@ const StatusDropdown = ({ status, onChange, disabled = false }: { status: string
     return (
         <div className="statusdd" ref={dropdownRef}>
             <button
+                className={`adm-rw-dm-status badge statusdd-btn ${tone}`}
                 type="button"
                 disabled={disabled}
                 onClick={() => setIsOpen(!isOpen)}
-                className={`badge statusdd-btn ${tone}`}
             >
                 <span className={`sd-dot ${tone}`} />
                 <span>{labels[statusKey] || status}</span>
-                <Icon name={isOpen ? 'expand_less' : 'expand_more'} style={{ fontSize: 16, opacity: 0.7 }} />
+                <span className="rw-dm-status-caret" aria-hidden="true">{isOpen ? <IconChevronUp /> : <IconChevronDown />}</span>
             </button>
 
             {isOpen && (
                 <div className="statusdd-menu">
                     {(Object.keys(labels) as Array<keyof typeof labels>).map((key) => (
                         <button
+                            className={`adm-rw-dm-status-item statusdd-item${status === key ? ' on' : ''}`}
                             key={key}
                             type="button"
                             onClick={() => handleSelect(key as Reservation['status'])}
-                            className={`statusdd-item${status === key ? ' on' : ''}`}
                         >
                             <span className={`sd-dot ${STATUS_TONE[key] || 'b-gray'}`} />
-                            <span style={{ flex: 1 }}>{labels[key]}</span>
-                            {status === key && <Icon name="check" style={{ fontSize: 14 }} />}
+                            <span className="rw-dm-grow">{labels[key]}</span>
+                            {status === key && <span className="rw-dm-status-check" aria-hidden="true"><IconCheck /></span>}
                         </button>
                     ))}
                 </div>
@@ -1798,7 +1798,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         onHistory={() => overviewAction('history')} />;
     const refreshHint = '고객 제출·결제·배정·문서의 저장된 정보를 다시 불러옵니다. 고객에게 발송하지 않습니다.';
     const refreshControl = <div className="cw-refresh-control">
-        <button type="button" className="cw-text-button" title={refreshHint} disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()} aria-busy={refreshing} onClick={refreshWorkspace}><Icon name="refresh" />예약 정보 새로고침</button>
+        <AdminTextButton tone="assistive" size="sm" title={refreshHint} disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()} loading={refreshing} leading={<IconRefresh aria-hidden="true" />} onClick={refreshWorkspace}>예약 정보 새로고침</AdminTextButton>
         <span className="cw-refresh-status" role="status" aria-live="polite">{refreshing ? '저장된 예약 정보를 불러오는 중…' : refreshedAt ? `불러온 시각 ${new Date(refreshedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '고객 제출·결제·배정·문서 다시 불러오기'}</span>
         <p className="cw-refresh-hint">고객 제출·결제·배정·문서의 저장된 정보를 불러옵니다.</p>
         {refreshError && <p className="cw-refresh-notice" role="alert">{refreshError}</p>}
@@ -1827,7 +1827,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const quickAssignmentEditor = quickAssignment === 'vehicle'
         ? <CustomerVehicleAssignment key={reservation.id} value={readProductVehicle(reservation.adminOperations, reservation.contractData)} vehicles={registered?.vehicles || []} loading={registeredPending} resourceNotice={registeredNotice} onRetry={() => setRegisteredRevision(value => value + 1)} disabled={workspaceIsBusy()} onSave={saveQuickVehicle} onDirtyChange={setQuickAssignmentDirty} onClose={closeQuickAssignment} onSaved={() => { setQuickAssignmentDirty(false); setQuickAssignment(null); }} />
         : quickAssignment === 'stay' && workspace.nights <= 0 ? <section className="cw-quick-assignment" aria-label="숙소 바로 배정">
-            <header><strong>일자별 숙소 바로 배정</strong><button type="button" className="cw-text-button" disabled={workspaceIsBusy()} onClick={closeQuickAssignment}>닫기</button></header>
+            <header><strong>일자별 숙소 바로 배정</strong><AdminTextButton size="sm" disabled={workspaceIsBusy()} onClick={closeQuickAssignment}>닫기</AdminTextButton></header>
             <p>{validAssignmentPeriod(reservation) ? '당일 투어는 숙소 배정이 필요하지 않습니다.' : '여행 시작일과 종료일을 먼저 확인해 주세요.'}</p>
         </section> : null;
     // 예약 관리 v7 상세: 결제·진행상황·운영 정보·배정을 상세 카드에서 바로 저장한다.
@@ -1898,13 +1898,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     return (<>
         <div className={fullPage ? `product-customer-page${workflowOpen ? ' cw-is-working' : ''}` : 'drawer-scrim reservation-workspace-scrim'} onClick={fullPage ? undefined : closeWorkspace}>
             <div className={`drawer reservation-workspace product-workspace tcom${fullPage ? ' product-customer-fullpage' : ''}`} role={fullPage ? 'region' : 'dialog'} aria-modal={fullPage ? undefined : true} aria-label="상품 예약 상세 작업" onClick={e => e.stopPropagation()}>
-                {navigationNotice && (!fullPage || !workflowOpen) && <div role="status" aria-live="polite" className="adm-msg is-cautionary" style={{ margin: '12px 16px 0' }}>{navigationNotice}</div>}
-                {docDraftPending && (!fullPage || !workflowOpen) && <div role="status" className="adm-msg is-cautionary" style={{ margin: '12px 16px 0' }}><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><button type="button" className="btn btn-ghost btn-sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</button></div>}
+                {navigationNotice && (!fullPage || !workflowOpen) && <div role="status" aria-live="polite" className="adm-msg is-cautionary rw-dm-notice">{navigationNotice}</div>}
+                {docDraftPending && (!fullPage || !workflowOpen) && <div role="status" className="adm-msg is-cautionary rw-dm-notice"><span>미저장 문서 초안이 있습니다. 일정 편집에서 복원·버리기를 선택한 뒤 저장하세요.</span><AdminTextButton size="sm" disabled={workspaceIsBusy() || reservation.status === 'cancelled'} onClick={() => openInlineDocument('itinerary')}>초안 확인</AdminTextButton></div>}
 
                 {fullPage && <>
                     <div id="product-customer-overview" hidden={workflowOpen}>
-                    {resumeWorkLabel && <div className="cw-resume-work"><div><strong>{resumeWorkLabel} 내용이 저장되지 않았습니다.</strong><span>입력한 내용을 이어서 확인하고 저장하세요.</span></div><button type="button" className="btn btn-ink" disabled={workspaceIsBusy()} onClick={() => setWorkflowOpen(true)}>{resumeWorkLabel} 이어서 하기<Icon name="arrow_forward" /></button></div>}
-                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} links={v7Links} notificationActions={notificationActions} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="product-customer-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="product-customer-note"><textarea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} rows={3} placeholder="고객 상담 내용을 기록하세요." /><button type="button" className="btn btn-ink btn-sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</button></div>} />
+                    {resumeWorkLabel && <div className="cw-resume-work"><div><strong>{resumeWorkLabel} 내용이 저장되지 않았습니다.</strong><span>입력한 내용을 이어서 확인하고 저장하세요.</span></div><AdminButton variant="primary" disabled={workspaceIsBusy()} trailing={<IconChevronRight aria-hidden="true" />} onClick={() => setWorkflowOpen(true)}>{resumeWorkLabel} 이어서 하기</AdminButton></div>}
+                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} links={v7Links} notificationActions={notificationActions} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="rw-dm-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="rw-dm-note"><AdminTextArea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} minRows={3} placeholder="고객 상담 내용을 기록하세요." /><AdminButton variant="primary" size="sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</AdminButton></div>} />
 
                     </div>
                 </>}
@@ -1913,19 +1913,18 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
                 {/* Header */}
                 <div className={`drawer-head${fullPage ? ' cw-detail-toolbar' : ''}`}>
-                    {fullPage ? <><button type="button" className="btn btn-ghost cw-overview-back" disabled={workspaceIsBusy()} onClick={returnToCustomerOverview}><Icon name="arrow_back" />고객 현황</button><div className="cw-detail-identity"><h2>{reservation.customerName || '고객'}<span className="cw-detail-badge">{detailSection === 'docs' && inlineEditorOpen ? '일정표 편집' : currentSection.label}</span></h2><p><b>{reservation.headcount}</b> · <b>{reservation.date}</b> · {reservation.productName}</p></div></> : <>
+                    {fullPage ? <><AdminButton className="cw-overview-back" disabled={workspaceIsBusy()} leading={<IconChevronLeft aria-hidden="true" />} onClick={returnToCustomerOverview}>고객 현황</AdminButton><div className="cw-detail-identity"><h2>{reservation.customerName || '고객'}<span className="cw-detail-badge">{detailSection === 'docs' && inlineEditorOpen ? '일정표 편집' : currentSection.label}</span></h2><p><b>{reservation.headcount}</b> · <b>{reservation.date}</b> · {reservation.productName}</p></div></> : <>
                     {productImage && (
-                        <img src={productImage} alt={reservation.productName} loading="lazy"
-                            style={{ width: 52, height: 52, flex: 'none', borderRadius: 'var(--adm-radius-md)', objectFit: 'cover', border: '1px solid var(--mrt-gray-200, var(--adm-line))' }} />
+                        <img className="rw-dm-product-thumb" src={productImage} alt={reservation.productName} loading="lazy" />
                     )}
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                        <div className="row" style={{ gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
+                    <div className="rw-dm-head-copy">
+                        <div className="row rw-dm-head-meta">
                             <span className={`tag-type ${reservation.type !== 'quote' ? 'reservation' : 'quote'}`}>
                                 {reservation.type !== 'quote' ? '일반상품' : '맞춤견적'}
                             </span>
-                            <span className="cell-mono" style={{ fontSize: 13 }}>#{(reservation as any).reservationNumber || reservation.id.slice(0, 8).toUpperCase()}</span>
+                            <span className="cell-mono rw-dm-fs-small">#{(reservation as any).reservationNumber || reservation.id.slice(0, 8).toUpperCase()}</span>
                         </div>
-                        <div className="page-title" style={{ fontSize: 18, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reservation.productName}</div>
+                        <div className="page-title rw-dm-head-title">{reservation.productName}</div>
                         <p className="rw-customer-line">{reservation.customerName} · {reservation.date} · {reservation.headcount}</p>
                     </div>
                     </>}
@@ -1934,13 +1933,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                         disabled={workspaceIsBusy()}
                         onChange={(s) => { if (workspaceIsBusy()) return; setEditForm({ ...editForm, status: s }); if (!isEditing) onUpdate({ ...editForm, status: s }); }}
                     />
-                    {fullPage ? refreshControl : <button type="button" className="btn btn-sm btn-ghost" title={refreshHint} onClick={refreshWorkspace} disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()}><Icon name="refresh" />예약 정보 새로고침</button>}
-                    {!fullPage && <button className="icon-btn" aria-label="예약 상세 닫기" style={{ width: 36, height: 36 }} onClick={closeWorkspace}><Icon name="close" /></button>}
+                    {fullPage ? refreshControl : <AdminButton size="sm" title={refreshHint} leading={<IconRefresh aria-hidden="true" />} onClick={refreshWorkspace} disabled={workspaceIsBusy() || isEditing || operationsDirty || quickAssignmentDirty || !!memoDraft.trim()}>예약 정보 새로고침</AdminButton>}
+                    {!fullPage && <AdminIconButton label="예약 상세 닫기" onClick={closeWorkspace}><IconClose /></AdminIconButton>}
                 </div>
 
                 <div className={`tc-anchors${fullPage ? ' cw-work-tabs' : ''}`} role={fullPage ? 'tablist' : undefined} aria-label="예약 상세 업무">
                     {SECTION_ANCHORS.map(a => (
-                        <button key={a.id} id={`customer-work-${a.id}`} type="button" role={fullPage ? 'tab' : undefined} aria-selected={fullPage ? detailSection === a.id : undefined} aria-controls={fullPage ? a.id === 'docs' ? 'customer-documents-panel' : a.id === 'ops' ? 'customer-operations-panel' : `sec-${a.id}` : undefined} tabIndex={fullPage && detailSection !== a.id ? -1 : undefined} disabled={workspaceIsBusy()} className={(fullPage ? detailSection : activeSec) === a.id ? 'active' : ''} onClick={() => scrollToSec(a.id)} onKeyDown={event => {
+                        <button className={`adm-rw-dm-anchor${((fullPage ? detailSection : activeSec) === a.id) ? ' active' : ''}`} key={a.id} id={`customer-work-${a.id}`} type="button" role={fullPage ? 'tab' : undefined} aria-selected={fullPage ? detailSection === a.id : undefined} aria-controls={fullPage ? a.id === 'docs' ? 'customer-documents-panel' : a.id === 'ops' ? 'customer-operations-panel' : `sec-${a.id}` : undefined} tabIndex={fullPage && detailSection !== a.id ? -1 : undefined} disabled={workspaceIsBusy()} onClick={() => scrollToSec(a.id)} onKeyDown={event => {
                             if (!fullPage || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
                             event.preventDefault();
                             const index = SECTION_ANCHORS.findIndex(item => item.id === a.id);
@@ -1958,7 +1957,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 <div className="reservation-workspace-main">
                 {/* Body */}
                 <div className="drawer-body reservation-workspace-body" ref={bodyRef} inert={workspaceIsBusy()} aria-busy={workspaceIsBusy()}>
-                    <div className="stack" style={{ gap: 18 }}>
+                    <div className="stack rw-dm-stack-lg">
                     {fullPage && !(detailSection === 'docs' && inlineEditorOpen) && <div className="cw-panel-heading"><div><h2>{currentSection.label}</h2><p>{currentSection.hint}</p></div><span>{inlineDirty && detailSection === 'docs' || operationsDirty && detailSection === 'ops' || isEditing && (detailSection === 'info' || detailSection === 'pay') ? '저장하지 않은 변경사항' : '선택한 업무만 표시됩니다'}</span></div>}
                     {!fullPage && <ReservationWorkflow steps={steps} readiness={readiness} cancelled={workspace.cancelled} />}
                     <div id="customer-documents-panel" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-docs' : undefined} hidden={fullPage && detailSection !== 'docs'}>
@@ -1992,105 +1991,105 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                             scrollToSec('docs'); setActiveDocument(kind === 'contract' ? 'contract' : 'itinerary');
                         }} />
                     </div>
-                    <section id="sec-info" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-info' : undefined} hidden={fullPage && detailSection !== 'info'} style={{ scrollMarginTop: 8 }}>
+                    <section id="sec-info" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-info' : undefined} hidden={fullPage && detailSection !== 'info'} className="rw-dm-section">
                         {/* 주문 정보 — 여행/예약자 */}
-                        <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'stretch' }}>
+                        <div className="grid-2 rw-dm-grid rw-dm-grid-lg">
                             <div className="card">
-                                <div className="card-head"><Icon name="flight_takeoff" style={{ color: 'var(--mrt-gray-600)' }} /><h2>여행 정보</h2></div>
-                                <div className="card-pad" style={{ paddingTop: 14 }}>
+                                <div className="card-head"><Icon name="flight_takeoff" className="rw-dm-head-icon" /><h2>여행 정보</h2></div>
+                                <div className="card-pad rw-dm-card-body">
                                     <div className="kv"><span>여행 기간</span><b>{reservation.date}</b></div>
                                     <div className="kv">
                                         <span>인원</span>
                                         {isEditing ? (
-                                            <span className="row" style={{ gap: 4 }}>
-                                                <input
+                                            <span className="row rw-dm-inline">
+                                                <AdminTextInput
                                                     type="number"
                                                     value={editForm.totalPeople || ''}
                                                     onChange={(e) => setEditForm(prev => prev ? ({ ...prev, totalPeople: parseInt(e.target.value) || 0, headcount: `${e.target.value}명` }) : null)}
-                                                    className="inp"
-                                                    style={{ width: 72, height: 32 }}
+                                                    className="rw-dm-input-people"
                                                 />
-                                                <span className="cell-muted" style={{ fontSize: 12 }}>명</span>
+                                                <span className="cell-muted rw-dm-fs-caption">명</span>
                                             </span>
                                         ) : (
                                             <b>{reservation.headcount}</b>
                                         )}
                                     </div>
                                     <div className="kv"><span>접수일</span><b>{reservation.bookedAt}</b></div>
-                                    <div className="kv" style={{ borderBottom: 'none' }}><span>상품</span><b style={{ textAlign: 'right', whiteSpace: 'normal' }}>{reservation.productName}</b></div>
+                                    <div className="kv rw-dm-kv-last"><span>상품</span><b className="rw-dm-value-wrap">{reservation.productName}</b></div>
                                 </div>
                             </div>
                             <div className="card">
-                                <div className="card-head"><Icon name="person" style={{ color: 'var(--mrt-gray-600)' }} /><h2>예약자 정보</h2></div>
-                                <div className="card-pad" style={{ paddingTop: 14 }}>
-                                    <div className="kv"><span>이름</span>{isEditing ? <input className="inp" aria-label="예약자 이름" value={editForm.customerName} onChange={e => setEditForm({ ...editForm, customerName: e.target.value })}/> : <b>{reservation.customerName}</b>}</div>
-                                    <div className="kv"><span>연락처</span>{isEditing ? <input className="inp" type="tel" aria-label="예약자 연락처" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })}/> : <b style={{ fontVariantNumeric: 'tabular-nums' }}>{reservation.phone || '—'}</b>}</div>
-                                    <div className="kv" style={{ borderBottom: 'none' }}><span>이메일</span>{isEditing ? <input className="inp" type="email" aria-label="예약자 이메일" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })}/> : <b style={{ textAlign: 'right' }}>{reservation.email || '—'}</b>}</div>
+                                <div className="card-head"><Icon name="person" className="rw-dm-head-icon" /><h2>예약자 정보</h2></div>
+                                <div className="card-pad rw-dm-card-body">
+                                    <div className="kv"><span>이름</span>{isEditing ? <AdminTextInput className="rw-dm-kv-input" aria-label="예약자 이름" value={editForm.customerName} onChange={e => setEditForm({ ...editForm, customerName: e.target.value })}/> : <b>{reservation.customerName}</b>}</div>
+                                    <div className="kv"><span>연락처</span>{isEditing ? <AdminTextInput className="rw-dm-kv-input" type="tel" aria-label="예약자 연락처" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })}/> : <b className="rw-dm-num">{reservation.phone || '—'}</b>}</div>
+                                    <div className="kv rw-dm-kv-last"><span>이메일</span>{isEditing ? <AdminTextInput className="rw-dm-kv-input" type="email" aria-label="예약자 이메일" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })}/> : <b className="rw-dm-value-right">{reservation.email || '—'}</b>}</div>
                                 </div>
                             </div>
                         </div>
 
                         {/* 고객이 계약서에서 직접 작성·제출한 내용(여권·항공편·동의)을 이 페이지에 바로 표시 */}
                         {(fullPage || contractSubmitted) && (
-                            <div className="card" style={{ marginTop: 14 }}>
+                            <div className="card rw-dm-card-gap">
                                 <div className="card-head">
-                                    <Icon name="assignment_ind" style={{ color: 'var(--mrt-gray-600)' }} />
+                                    <Icon name="assignment_ind" className="rw-dm-head-icon" />
                                     <h2>여행자·항공편 정보</h2>
-                                    <div style={{ flex: 1 }} />
-                                    <button type="button" className="btn btn-sm btn-ghost" style={{ flex: 'none' }} onClick={copyBookingText} title="여행자·항공편 정보를 텍스트로 복사 (카톡·메일에 붙여넣기)">
-                                        <Icon name={copiedDocId === 'booking' ? 'check' : 'content_copy'} />{copiedDocId === 'booking' ? '복사됨' : '복사'}
-                                    </button>
-                                    <button type="button" className="btn btn-sm btn-blue" style={{ flex: 'none' }} onClick={printBookingSheet} title="숙소 수배 의뢰서를 PDF로 저장·인쇄">
-                                        <Icon name="picture_as_pdf" />수배서 PDF
-                                    </button>
-                                    <button type="button" className="btn btn-sm btn-ink" style={{ flex: 'none' }} onClick={printGuideSheet} title="가이드 시트와 거래명세서를 PDF로 저장·인쇄">
-                                        <Icon name="hiking" />가이드 PDF
-                                    </button>
-                                    <button type="button" className="btn btn-sm btn-ink" style={{ flex: 'none' }} onClick={downloadGuidePicket} title="고객명과 투어 기간이 자동 입력된 공항 미팅 피켓을 PNG로 다운로드">
-                                        <Icon name="badge" />가이드 피켓
-                                    </button>
-                                    <button type="button" className="btn btn-sm btn-ghost" style={{ flex: 'none' }} onClick={downloadBookingSheetExcel} title="일차별 숙소 수배 정보를 Excel 파일로 다운로드">
-                                        <Icon name="table_view" />수배서 Excel
-                                    </button>
+                                    <div className="rw-dm-grow" />
+                                    <AdminButton size="sm" className="rw-dm-head-action" onClick={copyBookingText} title="여행자·항공편 정보를 텍스트로 복사 (카톡·메일에 붙여넣기)"
+                                        leading={<Icon name={copiedDocId === 'booking' ? 'check' : 'content_copy'} />}>
+                                        {copiedDocId === 'booking' ? '복사됨' : '복사'}
+                                    </AdminButton>
+                                    <AdminButton size="sm" variant="weak" className="rw-dm-head-action" onClick={printBookingSheet} title="숙소 수배 의뢰서를 PDF로 저장·인쇄" leading={<Icon name="picture_as_pdf" />}>
+                                        수배서 PDF
+                                    </AdminButton>
+                                    <AdminButton size="sm" variant="weak" className="rw-dm-head-action" onClick={printGuideSheet} title="가이드 시트와 거래명세서를 PDF로 저장·인쇄" leading={<Icon name="hiking" />}>
+                                        가이드 PDF
+                                    </AdminButton>
+                                    <AdminButton size="sm" variant="weak" className="rw-dm-head-action" onClick={downloadGuidePicket} title="고객명과 투어 기간이 자동 입력된 공항 미팅 피켓을 PNG로 다운로드" leading={<Icon name="badge" />}>
+                                        가이드 피켓
+                                    </AdminButton>
+                                    <AdminButton size="sm" className="rw-dm-head-action" onClick={downloadBookingSheetExcel} title="일차별 숙소 수배 정보를 Excel 파일로 다운로드" leading={<Icon name="table_view" />}>
+                                        수배서 Excel
+                                    </AdminButton>
                                     {contractAgreement?.agreed
-                                        ? <span className="badge b-green" style={{ flex: 'none' }}>동의 완료{contractAgreement.agreedAt ? ` · ${contractAgreement.agreedAt.split('T')[0]}` : ''}</span>
-                                        : <span className="badge b-amber" style={{ flex: 'none' }}>미동의</span>}
+                                        ? <span className="badge b-green rw-dm-head-action">동의 완료{contractAgreement.agreedAt ? ` · ${contractAgreement.agreedAt.split('T')[0]}` : ''}</span>
+                                        : <span className="badge b-amber rw-dm-head-action">미동의</span>}
                                 </div>
-                                <div className="card-pad" style={{ paddingTop: 14 }}>
-                                    {!contractSubmitted && <div style={{ marginBottom: 16, padding: 16, background: 'var(--adm-gray-50)', borderRadius: 'var(--adm-radius-md)' }}><p style={{ fontSize: 13, color: 'var(--adm-text-3)', margin: '0 0 12px' }}>고객이 계약서에서 여행자와 항공편을 입력하면 이곳에 반영됩니다. 계약서 전달 후 고객 입력 내용을 확인해 주세요.</p><button type="button" className="btn btn-sm btn-ghost" disabled={workspaceIsBusy()} onClick={() => overviewAction('documents', 'contract')}>계약서 전달 관리</button></div>}
+                                <div className="card-pad rw-dm-card-body">
+                                    {!contractSubmitted && <div className="rw-dm-empty-box"><p>고객이 계약서에서 여행자와 항공편을 입력하면 이곳에 반영됩니다. 계약서 전달 후 고객 입력 내용을 확인해 주세요.</p><AdminButton size="sm" disabled={workspaceIsBusy()} onClick={() => overviewAction('documents', 'contract')}>계약서 전달 관리</AdminButton></div>}
                                     {/* 항공편 — 픽업·샌딩 수배용, 가장 중요 */}
-                                    <div id="product-customer-flights" className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14, scrollMarginTop: 20 }}>
+                                    <div id="product-customer-flights" className="grid-2 rw-dm-grid rw-dm-flights">
                                         <div className="pay-cell">
-                                            <div className="row" style={{ gap: 6, marginBottom: 6, color: 'var(--text-secondary)' }}>
-                                                <Icon name="flight_land" /><span style={{ fontSize: 12, fontWeight: 700 }}>도착편 (몽골 도착)</span>
+                                            <div className="row rw-dm-flight-label">
+                                                <Icon name="flight_land" /><span>도착편 (몽골 도착)</span>
                                             </div>
-                                            <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtFlightLine(editForm.contractData?.arrival)}</div>
+                                            <div className="rw-dm-flight-value">{fmtFlightLine(editForm.contractData?.arrival)}</div>
                                         </div>
                                         <div className="pay-cell">
-                                            <div className="row" style={{ gap: 6, marginBottom: 6, color: 'var(--text-secondary)' }}>
-                                                <Icon name="flight_takeoff" /><span style={{ fontSize: 12, fontWeight: 700 }}>출발편 (몽골 출발)</span>
+                                            <div className="row rw-dm-flight-label">
+                                                <Icon name="flight_takeoff" /><span>출발편 (몽골 출발)</span>
                                             </div>
-                                            <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtFlightLine(editForm.contractData?.departure)}</div>
+                                            <div className="rw-dm-flight-value">{fmtFlightLine(editForm.contractData?.departure)}</div>
                                         </div>
                                     </div>
 
                                     {/* 여행자별 여권 정보 */}
-                                    <div id="product-customer-travelers" style={{ scrollMarginTop: 20 }}>
-                                    {!contractTravelers.length && <p style={{ padding: 16, margin: 0, borderRadius: 'var(--adm-radius-md)', background: 'var(--adm-gray-50)', color: 'var(--adm-text-3)', fontSize: 13 }}>등록된 여행자가 없습니다. 예약 인원 {reservation.totalPeople || '미정'}명과 고객 제출 내용을 확인해 주세요.</p>}
+                                    <div id="product-customer-travelers" className="rw-dm-travelers">
+                                    {!contractTravelers.length && <p className="rw-dm-empty-note">등록된 여행자가 없습니다. 예약 인원 {reservation.totalPeople || '미정'}명과 고객 제출 내용을 확인해 주세요.</p>}
                                     {contractTravelers.map((t, i) => (
-                                        <div key={i} style={{ paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0, borderTop: i ? '1px solid var(--mrt-gray-100)' : 'none' }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 4 }}>여행자 {i + 1}</div>
-                                            <div className="kv"><span>여권 표기명</span><b style={{ textTransform: 'uppercase', textAlign: 'right' }}>{t.passportName || '—'}</b></div>
-                                            <div className="kv"><span>이름</span><b style={{ textAlign: 'right' }}>{t.name || '—'}</b></div>
-                                            <div className="kv"><span>생년월일 · 성별</span><b style={{ textAlign: 'right' }}>{[t.birthdate, t.gender].filter(Boolean).join(' · ') || '—'}</b></div>
-                                            <div className="kv" style={{ borderBottom: 'none' }}><span>연락처</span><b style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{t.phone || '—'}</b></div>
+                                        <div key={i} className="rw-dm-traveler">
+                                            <div className="rw-dm-traveler-title">여행자 {i + 1}</div>
+                                            <div className="kv"><span>여권 표기명</span><b className="rw-dm-value-right rw-dm-upper">{t.passportName || '—'}</b></div>
+                                            <div className="kv"><span>이름</span><b className="rw-dm-value-right">{t.name || '—'}</b></div>
+                                            <div className="kv"><span>생년월일 · 성별</span><b className="rw-dm-value-right">{[t.birthdate, t.gender].filter(Boolean).join(' · ') || '—'}</b></div>
+                                            <div className="kv rw-dm-kv-last"><span>연락처</span><b className="rw-dm-value-right rw-dm-num">{t.phone || '—'}</b></div>
                                         </div>
                                     ))}
                                     </div>
 
                                     {contractAgreement?.agreed && (
-                                        <div className="kv" style={{ borderBottom: 'none', borderTop: '1px solid var(--mrt-gray-100)', marginTop: 10, paddingTop: 10 }}>
-                                            <span>전자 서명</span><b style={{ textAlign: 'right' }}>{contractAgreement.name || '—'}</b>
+                                        <div className="kv rw-dm-kv-last rw-dm-signature">
+                                            <span>전자 서명</span><b className="rw-dm-value-right">{contractAgreement.name || '—'}</b>
                                         </div>
                                     )}
                                 </div>
@@ -2099,127 +2098,118 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     </section>
 
                     <div id="customer-operations-panel" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-ops' : undefined} hidden={fullPage && detailSection !== 'ops'}><ReservationOperations reservationId={reservation.id} value={{ ...(reservation.adminOperations || emptyReservationOperations()), vehicle: readProductVehicle(reservation.adminOperations, reservation.contractData).type, driverPhone: readProductVehicle(reservation.adminOperations, reservation.contractData).phone } as Operations} onSave={next => workspaceIsBusy() ? Promise.resolve(false) : onUpdate({ ...reservation, adminOperations: next }, true)} disabled={workspaceIsBusy() || isEditing} onDirtyChange={setOperationsDirty} externalActions={fullPage} formId={`reservation-operations-${reservation.id}`} onControlChange={control => { operationsControlRef.current = control; }} onStatusChange={setOperationsUiStatus}/></div>
-                    <section id="sec-pay" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-pay' : undefined} hidden={fullPage && detailSection !== 'pay'} style={{ scrollMarginTop: 8 }}>
-                    <div className="stack" style={{ gap: 14 }}>
+                    <section id="sec-pay" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-pay' : undefined} hidden={fullPage && detailSection !== 'pay'} className="rw-dm-section">
+                    <div className="stack rw-dm-stack">
                             {/* Payment with Progress Ring */}
                             <div className="card card-pad">
-                                <div className="row" style={{ marginBottom: 16, gap: 16 }}>
+                                <div className="row rw-dm-pay-summary">
                                     <div className="ring">
                                         <svg width="62" height="62" viewBox="0 0 62 62">
                                             <circle cx="31" cy="31" r="26" fill="none" stroke="var(--mrt-gray-100)" strokeWidth="6" />
-                                            <circle cx="31" cy="31" r="26" fill="none" stroke="#0f766e" strokeWidth="6" strokeLinecap="round"
+                                            <circle className="rw-dm-ring-bar" cx="31" cy="31" r="26" fill="none" strokeWidth="6" strokeLinecap="round"
                                                 strokeDasharray={2 * Math.PI * 26}
                                                 strokeDashoffset={2 * Math.PI * 26 * (1 - paidPercent / 100)}
                                                 transform="rotate(-90 31 31)"
-                                                style={{ transition: 'stroke-dashoffset 500ms cubic-bezier(0.16, 1, 0.3, 1)' }}
                                             />
                                         </svg>
                                         <span className="ring-n">{paidPercent}<small>%</small></span>
                                     </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div className="cell-muted" style={{ fontSize: 12 }}>
+                                    <div className="rw-dm-head-copy">
+                                        <div className="cell-muted rw-dm-fs-caption">
                                             {paidPercent >= 100 ? '완납 완료' : `잔액 ${won((editForm.totalAmount || 0) - paidAmount)}`}
                                         </div>
-                                        <div className="row" style={{ gap: 6, marginTop: 2 }}>
+                                        <div className="row rw-dm-pay-total">
                                             {isEditing ? (
-                                                <input
+                                                <AdminTextInput
                                                     type="number"
                                                     aria-label="총 여행금액"
                                                     value={editForm.totalAmount}
                                                     onChange={(e) => setEditForm({ ...editForm, totalAmount: Number(e.target.value), balance: Number(e.target.value) - editForm.deposit })}
-                                                    className="inp"
-                                                    style={{ width: 140, height: 36 }}
+                                                    className="rw-dm-input-amount"
                                                 />
                                             ) : (
                                                 <>
-                                                    <span className="cell-price" style={{ fontSize: 20 }}>{won(paidAmount || 0)}</span>
-                                                    <span className="cell-muted" style={{ fontSize: 12 }}>/ {won(editForm.totalAmount || 0)}</span>
+                                                    <span className="cell-price rw-dm-price-lg">{won(paidAmount || 0)}</span>
+                                                    <span className="cell-muted rw-dm-fs-caption">/ {won(editForm.totalAmount || 0)}</span>
                                                 </>
                                             )}
                                         </div>
                                     </div>
-                                    <button
+                                    <AdminButton
+                                        size="sm"
+                                        variant={editForm.status === 'paid' ? 'weak' : 'secondary'}
                                         onClick={toggleTotalStatus}
-                                        className={`btn btn-sm ${editForm.status === 'paid' ? 'btn-blue' : 'btn-ghost'}`}
+                                        leading={<Icon name="done_all" />}
                                     >
-                                        <Icon name="done_all" />
                                         {editForm.status === 'paid' ? '전액완납' : '완납 처리'}
-                                    </button>
+                                    </AdminButton>
                                 </div>
                                 {/* Deposit + Balance cells */}
-                                <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                <div className="grid-2 rw-dm-grid">
                                     <div className={`pay-cell${editForm.depositStatus === 'paid' ? ' paid' : ''}`}>
-                                        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>예약금</span>
+                                        <div className="row rw-dm-pay-head">
+                                            <span className="rw-dm-pay-label">예약금</span>
                                             <span className={`badge ${editForm.depositStatus === 'paid' ? 'b-green' : 'b-amber'}`}>
                                                 {editForm.depositStatus === 'paid' ? '입금' : '미납'}
                                             </span>
                                         </div>
                                         {isEditing ? (
-                                            <input
+                                            <AdminTextInput
                                                 type="number"
                                                 aria-label="예약금 금액"
                                                 value={editForm.deposit}
                                                 onChange={(e) => setEditForm({ ...editForm, deposit: Number(e.target.value), balance: editForm.totalAmount - Number(e.target.value) })}
-                                                className="inp"
-                                                style={{ height: 36 }}
                                             />
                                         ) : (
-                                            <div className="cell-price" style={{ fontSize: 16 }}>{won(editForm.deposit || 0)}</div>
+                                            <div className="cell-price rw-dm-price">{won(editForm.deposit || 0)}</div>
                                         )}
                                         {/* 고객이 마이페이지에서 알린 입금 신고 — 입금 확인 전에는 강조, 확인 후에는 기록으로 남긴다 */}
                                         {editForm.type !== 'quote' && editForm.depositReport && (
-                                            <div
-                                                style={{
-                                                    marginTop: 8, padding: '8px 10px', borderRadius: 'var(--adm-radius-sm)', fontSize: 12, lineHeight: 1.55,
-                                                    background: hasOpenDepositReport(editForm) ? 'var(--adm-warn-soft)' : 'rgba(255,255,255,0.7)',
-                                                    color: hasOpenDepositReport(editForm) ? 'var(--adm-warn-strong)' : 'var(--text-secondary)',
-                                                }}
-                                            >
+                                            <div className={`rw-dm-deposit-report${hasOpenDepositReport(editForm) ? ' is-open' : ''}`}>
                                                 <b>고객 입금 신고</b>: 입금자명 {editForm.depositReport.name || '—'}
                                                 {formatReportTime(editForm.depositReport.reportedAt) ? ` · ${formatReportTime(editForm.depositReport.reportedAt)}` : ''}
                                             </div>
                                         )}
                                         {editForm.depositStatus !== 'paid' && (
-                                            <button onClick={toggleDepositStatus} className="btn btn-sm btn-blue" style={{ width: '100%', marginTop: 10 }}>
-                                                <Icon name="check" />입금 확인
-                                            </button>
+                                            <AdminButton size="sm" variant="weak" fullWidth className="rw-dm-pay-action" onClick={toggleDepositStatus} leading={<IconCheck />}>
+                                                입금 확인
+                                            </AdminButton>
                                         )}
                                         {editForm.depositStatus === 'paid' && (
-                                            <button onClick={toggleDepositStatus} className="btn btn-sm btn-ghost" style={{ width: '100%', marginTop: 10 }}>
+                                            <AdminButton size="sm" fullWidth className="rw-dm-pay-action" onClick={toggleDepositStatus}>
                                                 입금 취소
-                                            </button>
+                                            </AdminButton>
                                         )}
                                     </div>
                                     <div className={`pay-cell${editForm.balanceStatus === 'paid' ? ' paid' : ''}`}>
-                                        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>잔금</span>
+                                        <div className="row rw-dm-pay-head">
+                                            <span className="rw-dm-pay-label">잔금</span>
                                             <span className={`badge ${editForm.balanceStatus === 'paid' ? 'b-green' : 'b-amber'}`}>
                                                 {editForm.balanceStatus === 'paid' ? '입금' : '미납'}
                                             </span>
                                         </div>
-                                        <div className="cell-price" style={{ fontSize: 16 }}>
+                                        <div className="cell-price rw-dm-price">
                                             {won((editForm.totalAmount || 0) - (editForm.deposit || 0))}
                                         </div>
                                         {editForm.balanceStatus !== 'paid' && (
-                                            <button onClick={toggleBalanceStatus} className="btn btn-sm btn-blue" style={{ width: '100%', marginTop: 10 }}>
-                                                <Icon name="check" />입금 확인
-                                            </button>
+                                            <AdminButton size="sm" variant="weak" fullWidth className="rw-dm-pay-action" onClick={toggleBalanceStatus} leading={<IconCheck />}>
+                                                입금 확인
+                                            </AdminButton>
                                         )}
                                         {editForm.balanceStatus === 'paid' && (
-                                            <button onClick={toggleBalanceStatus} className="btn btn-sm btn-ghost" style={{ width: '100%', marginTop: 10 }}>
+                                            <AdminButton size="sm" fullWidth className="rw-dm-pay-action" onClick={toggleBalanceStatus}>
                                                 입금 취소
-                                            </button>
+                                            </AdminButton>
                                         )}
                                     </div>
                                 </div>
                                 {/* 예약금 미입금 예약: 고객에게 카카오톡으로 보낼 입금 안내문(계좌·금액·신고 방법) */}
                                 {editForm.type !== 'quote' && editForm.depositStatus !== 'paid' && editForm.status !== 'cancelled' && (
-                                    <div className="row" style={{ gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-                                        <button type="button" className="btn btn-sm btn-ghost" style={{ flex: 'none' }} onClick={copyDepositGuide} title="예약번호·예약금·입금 계좌·입금 후 신고 방법을 담은 고객 안내문을 복사합니다">
-                                            <Icon name="content_copy" />{copiedDocId === 'deposit-guide' ? '복사됨' : '입금 안내문 복사'}
-                                        </button>
-                                        <span className="cell-muted" style={{ fontSize: 12, minWidth: 0 }}>
+                                    <div className="row rw-dm-deposit-guide">
+                                        <AdminButton size="sm" className="rw-dm-head-action" onClick={copyDepositGuide} title="예약번호·예약금·입금 계좌·입금 후 신고 방법을 담은 고객 안내문을 복사합니다" leading={<Icon name="content_copy" />}>
+                                            {copiedDocId === 'deposit-guide' ? '복사됨' : '입금 안내문 복사'}
+                                        </AdminButton>
+                                        <span className="cell-muted rw-dm-fs-caption rw-dm-shrink">
                                             입금 계좌: {DEPOSIT_ACCOUNT.bank} {DEPOSIT_ACCOUNT.number} ({DEPOSIT_ACCOUNT.holder})
                                         </span>
                                     </div>
@@ -2229,18 +2219,18 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     </div>
                     </section>
 
-                    <section id="sec-assign" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-assign' : undefined} hidden={fullPage && detailSection !== 'assign'} style={{ scrollMarginTop: 8 }}>
-                    <div className="stack" style={{ gap: 14 }}>
+                    <section id="sec-assign" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-assign' : undefined} hidden={fullPage && detailSection !== 'assign'} className="rw-dm-section">
+                    <div className="stack rw-dm-stack">
                             {/* 담당 가이드 */}
                             <div className="card">
                                 <div className="card-head">
-                                    <Icon name="badge" style={{ color: 'var(--mrt-gray-600)' }} /><h2>담당 가이드</h2>
-                                    <div className="spacer" style={{ flex: 1 }} />
-                                    <button className="link-action" onClick={() => setShowGuideModal(true)}>
-                                        {reservation.assignedGuide ? '변경' : '배정'}<Icon name="chevron_right" />
-                                    </button>
+                                    <Icon name="badge" className="rw-dm-head-icon" /><h2>담당 가이드</h2>
+                                    <div className="spacer rw-dm-grow" />
+                                    <AdminTextButton size="sm" trailing={<IconChevronRight />} onClick={() => setShowGuideModal(true)}>
+                                        {reservation.assignedGuide ? '변경' : '배정'}
+                                    </AdminTextButton>
                                 </div>
-                                <div className="card-pad" style={{ paddingTop: 12 }}>
+                                <div className="card-pad rw-dm-card-body-sm">
                                     {reservation.assignedGuide ? (
                                         <div className="assign-row">
                                             {reservation.assignedGuide.image ? (
@@ -2248,9 +2238,9 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                             ) : (
                                                 <span className="avatar round tint-blue">{getInitials(reservation.assignedGuide.name)}</span>
                                             )}
-                                            <div style={{ minWidth: 0 }}>
+                                            <div className="rw-dm-shrink">
                                                 <div className="cell-strong">{reservation.assignedGuide.name}</div>
-                                                <div className="cell-muted" style={{ fontSize: 12 }}>{reservation.assignedGuide.phone}</div>
+                                                <div className="cell-muted rw-dm-fs-caption">{reservation.assignedGuide.phone}</div>
                                             </div>
                                         </div>
                                     ) : (
@@ -2264,13 +2254,13 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                             {/* 일자별 숙소 배정 + 고객 알림 발송 */}
                             <div className="card">
                                 <div className="card-head">
-                                    <Icon name="hotel" style={{ color: 'var(--mrt-gray-600)' }} /><h2>일자별 숙소 배정</h2>
-                                    <div className="spacer" style={{ flex: 1 }} />
+                                    <Icon name="hotel" className="rw-dm-head-icon" /><h2>일자별 숙소 배정</h2>
+                                    <div className="spacer rw-dm-grow" />
                                     <a className="link-action" href={`/admin/accommodation-ops?open=${reservation.id}`} title="숙소 배정 보드(Байр захиалга)에서 이 예약의 수배 상태·방·인실을 관리합니다.">
                                         <Icon name="night_shelter" />숙소 보드에서 수배 관리
                                     </a>
-                                    <button
-                                        className="link-action"
+                                    <AdminTextButton
+                                        size="sm"
                                         onClick={async () => {
                                             if (!reservation.assignedGuide && (!reservation.dailyAccommodations || reservation.dailyAccommodations.length === 0)) {
                                                 adminNotify('배정된 가이드나 숙소가 없습니다.');
@@ -2297,38 +2287,38 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                             } catch (e) { console.error('GUIDE_ASSIGNED email failed', e); }
                                         }}
                                         title="가이드/숙소 확정 안내를 고객에게 이메일+사이트 알림으로 보냅니다."
+                                        leading={<Icon name={reservation.areAssignmentsVisibleToUser ? 'mark_email_read' : 'send'} />}
                                     >
-                                        <Icon name={reservation.areAssignmentsVisibleToUser ? 'mark_email_read' : 'send'} />
                                         {reservation.areAssignmentsVisibleToUser ? '알림 재발송' : '고객에게 알림 발송'}
-                                    </button>
+                                    </AdminTextButton>
                                 </div>
-                                <div className="card-pad" style={{ paddingTop: 12 }}>
-                                    <p className="cell-muted" style={{ fontSize: 11, marginBottom: 10, lineHeight: 1.5 }}>
+                                <div className="card-pad rw-dm-card-body-sm">
+                                    <p className="cell-muted rw-dm-accom-hint">
                                         비워두면 <b>상품 일정의 기본 숙소</b>가 그대로 일정표에 적용됩니다. 실제 묵을 숙소를 확정하려면 날짜별로 「직접 지정」하세요.
                                     </p>
-                                    <div className="stack" style={{ gap: 8 }}>
+                                    <div className="stack rw-dm-stack-sm">
                                         {Array.from({ length: accomRowCount }, (_, i) => i + 1).map((day) => {
                                             const assigned = reservation.dailyAccommodations?.find(d => d.day === day);
                                             const overNights = day > stayNights; // 출발일 이후 — 숙박이 없어야 하는 일차
                                             return (
                                                 <div className="accom-day" key={day}>
-                                                    <span className="th-day" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+                                                    <span className="th-day rw-dm-day-label">
                                                         <span>{day}일차</span>
-                                                        {stayDateLabel(day) && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--mrt-gray-400)' }}>{stayDateLabel(day)} 밤</span>}
+                                                        {stayDateLabel(day) && <span className="rw-dm-day-date">{stayDateLabel(day)} 밤</span>}
                                                     </span>
                                                     {assigned ? (
-                                                        <div className="assign-row" style={{ flex: 1, padding: 0 }}>
+                                                        <div className="assign-row rw-dm-assign-fill">
                                                             {(assigned.accommodation.images && assigned.accommodation.images[0]) ? (
                                                                 <img className="thumb" src={assigned.accommodation.images[0]} alt={assigned.accommodation.name} loading="lazy" />
                                                             ) : (
-                                                                <span className="thumb" style={{ display: 'grid', placeItems: 'center', color: 'var(--mrt-gray-400)' }}><Icon name="hotel" /></span>
+                                                                <span className="thumb rw-dm-thumb-empty"><Icon name="hotel" /></span>
                                                             )}
-                                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                                            <div className="rw-dm-head-copy">
                                                                 <div className="cell-strong">
                                                                     {assigned.accommodation.name}
-                                                                    {overNights && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--adm-danger-soft)', color: 'var(--adm-danger)' }}>박수 초과 · 출발일</span>}
+                                                                    {overNights && <span className="rw-dm-tag is-danger">박수 초과 · 출발일</span>}
                                                                 </div>
-                                                                <div className="cell-muted" style={{ fontSize: 12 }}>{assigned.accommodation.location || '—'}</div>
+                                                                <div className="cell-muted rw-dm-fs-caption">{assigned.accommodation.location || '—'}</div>
                                                                 {(() => {
                                                                     // 보드에서 관리하는 수배 진행 상황을 상세에서도 보이게 (읽기 전용)
                                                                     const acc: any = assigned.accommodation;
@@ -2336,42 +2326,42 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                                                     const rooms = [acc.roomCount != null && acc.roomCount !== '' ? `방 ${acc.roomCount}` : '', acc.occupancy || ''].filter(Boolean).join(' · ');
                                                                     if (!bs && !rooms) return null;
                                                                     return (
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 4, flexWrap: 'wrap' }}>
-                                                                            {bs && <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--adm-radius-xs)', background: bs.bg, color: bs.fg }}>{bs.label}</span>}
-                                                                            {rooms && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--mrt-gray-500)' }}>{rooms}</span>}
+                                                                        <div className="rw-dm-booking-line">
+                                                                            {bs && <span className="rw-dm-tag is-status" style={{ '--rw-dm-tag-bg': bs.bg, '--rw-dm-tag-fg': bs.fg } as React.CSSProperties}>{bs.label}</span>}
+                                                                            {rooms && <span className="rw-dm-rooms">{rooms}</span>}
                                                                         </div>
                                                                     );
                                                                 })()}
                                                             </div>
-                                                            <button className="act-btn" title="변경" onClick={() => { setSelectedDay(day); setShowAccommodationModal(true); }}><Icon name="edit" /></button>
-                                                            <button className="act-btn" title="배정 해제" onClick={() => handleAccommodationUnassign(day)}><Icon name="close" /></button>
+                                                            <AdminIconButton label="변경" variant="outlined" size="sm" onClick={() => { setSelectedDay(day); setShowAccommodationModal(true); }}><IconPencil /></AdminIconButton>
+                                                            <AdminIconButton label="배정 해제" variant="outlined" size="sm" onClick={() => handleAccommodationUnassign(day)}><IconClose /></AdminIconButton>
                                                         </div>
                                                     ) : (() => {
-                                                        if (overNights) return <div className="cell-muted" style={{ flex: 1, fontSize: 12, alignSelf: 'center' }}>출발일 — 숙박 없음</div>;
+                                                        if (overNights) return <div className="cell-muted rw-dm-no-stay">출발일 — 숙박 없음</div>;
                                                         const def = defaultAccomForDay(day);
                                                         if (def?.name) {
                                                             return (
-                                                                <div className="assign-row" style={{ flex: 1, padding: 0 }}>
+                                                                <div className="assign-row rw-dm-assign-fill">
                                                                     {def.images && def.images[0] ? (
-                                                                        <img className="thumb" src={def.images[0]} alt={def.name} loading="lazy" style={{ opacity: 0.7 }} />
+                                                                        <img className="thumb rw-dm-thumb-dim" src={def.images[0]} alt={def.name} loading="lazy" />
                                                                     ) : (
-                                                                        <span className="thumb" style={{ display: 'grid', placeItems: 'center', color: 'var(--mrt-gray-400)' }}><Icon name="hotel" /></span>
+                                                                        <span className="thumb rw-dm-thumb-empty"><Icon name="hotel" /></span>
                                                                     )}
-                                                                    <div style={{ minWidth: 0, flex: 1 }}>
-                                                                        <div className="cell-strong" style={{ color: 'var(--mrt-gray-500)' }}>
+                                                                    <div className="rw-dm-head-copy">
+                                                                        <div className="cell-strong rw-dm-muted-strong">
                                                                             {def.name}
-                                                                            <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>상품 기본</span>
+                                                                            <span className="rw-dm-tag is-muted">상품 기본</span>
                                                                         </div>
-                                                                        <div className="cell-muted" style={{ fontSize: 12 }}>{def.location || '일정표에 적용 중 · 비워두면 이대로 발송'}</div>
+                                                                        <div className="cell-muted rw-dm-fs-caption">{def.location || '일정표에 적용 중 · 비워두면 이대로 발송'}</div>
                                                                     </div>
-                                                                    <button className="btn btn-sm btn-ghost" onClick={() => { setSelectedDay(day); setShowAccommodationModal(true); }}>
-                                                                        <Icon name="edit" />직접 지정
-                                                                    </button>
+                                                                    <AdminButton size="sm" leading={<IconPencil />} onClick={() => { setSelectedDay(day); setShowAccommodationModal(true); }}>
+                                                                        직접 지정
+                                                                    </AdminButton>
                                                                 </div>
                                                             );
                                                         }
                                                         return (
-                                                            <button className="accom-empty" onClick={() => { setSelectedDay(day); setShowAccommodationModal(true); }}>
+                                                            <button className="adm-rw-dm-accom-empty accom-empty" onClick={() => { setSelectedDay(day); setShowAccommodationModal(true); }}>
                                                                 <Icon name="add" />숙소 선택
                                                             </button>
                                                         );
@@ -2386,49 +2376,50 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     </div>
                     </section>
 
-                    <section id="sec-log" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-log' : undefined} hidden={fullPage && detailSection !== 'log'} style={{ scrollMarginTop: 8 }}>
-                    <div className="stack" style={{ gap: 14 }}>
+                    <section id="sec-log" role={fullPage ? 'tabpanel' : undefined} aria-labelledby={fullPage ? 'customer-work-log' : undefined} hidden={fullPage && detailSection !== 'log'} className="rw-dm-section">
+                    <div className="stack rw-dm-stack">
                             {/* Admin Memo */}
                             <div className="card">
                                 <div className="card-head">
-                                    <Icon name="sticky_note_2" style={{ color: 'var(--mrt-gray-600)' }} /><h2>관리자 메모</h2>
-                                    <div className="spacer" style={{ flex: 1 }} />
-                                    <span className="cell-muted" style={{ fontSize: 11 }}>고객 비공개 · 내부 전용</span>
+                                    <Icon name="sticky_note_2" className="rw-dm-head-icon" /><h2>관리자 메모</h2>
+                                    <div className="spacer rw-dm-grow" />
+                                    <span className="cell-muted rw-dm-fs-micro">고객 비공개 · 내부 전용</span>
                                 </div>
-                                <div className="card-pad" style={{ paddingTop: 12 }}>
-                                    <div className="memo-box">
-                                        <textarea
+                                <div className="card-pad rw-dm-card-body-sm">
+                                    <div className="rw-dm-memo-box">
+                                        <AdminTextArea
                                             value={memoDraft}
                                             onChange={e => setMemoDraft(e.target.value)}
                                             onFocus={() => setMemoFocused(true)}
                                             onBlur={() => setMemoFocused(false)}
                                             onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') addMemo(); }}
                                             placeholder="이 예약에 대한 메모를 남기세요. (예: 고객 특이사항, 파트너 연락 결과…)"
-                                            rows={memoFocused || memoDraft ? 3 : 2}
+                                            minRows={memoFocused || memoDraft ? 3 : 2}
                                         />
-                                        <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
-                                            <span className="cell-muted" style={{ fontSize: 11 }}>⌘ + Enter 로 저장</span>
-                                            <button
+                                        <div className="row rw-dm-memo-foot">
+                                            <span className="cell-muted rw-dm-fs-micro">⌘ + Enter 로 저장</span>
+                                            <AdminButton
+                                                size="sm"
+                                                variant={memoDraft.trim() ? 'primary' : 'secondary'}
                                                 onClick={addMemo}
                                                 disabled={!memoDraft.trim()}
-                                                className={`btn btn-sm ${memoDraft.trim() ? 'btn-ink' : 'btn-soft'}`}
                                             >
                                                 메모 추가
-                                            </button>
+                                            </AdminButton>
                                         </div>
                                     </div>
                                     {memos.length > 0 && (
-                                        <div className="stack" style={{ gap: 8, marginTop: 12 }}>
+                                        <div className="stack rw-dm-memo-list">
                                             {[...memos].reverse().map((m: any) => (
                                                 <div className="memo-item" key={m.timestamp}>
                                                     <p>{m.description}</p>
-                                                    <div className="row" style={{ gap: 6, marginTop: 6 }}>
-                                                        <b style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Admin</b>
-                                                        <span className="cell-muted" style={{ fontSize: 11 }}>· {new Date(m.timestamp).toLocaleString('ko-KR')}</span>
-                                                        <div className="spacer" style={{ flex: 1 }} />
-                                                        <button className="act-btn danger" style={{ width: 26, height: 26 }} onClick={() => deleteMemo(m.timestamp)} title="메모 삭제">
-                                                            <Icon name="delete_outline" style={{ fontSize: 15 }} />
-                                                        </button>
+                                                    <div className="row rw-dm-memo-meta">
+                                                        <b>Admin</b>
+                                                        <span className="cell-muted rw-dm-fs-micro">· {new Date(m.timestamp).toLocaleString('ko-KR')}</span>
+                                                        <div className="spacer rw-dm-grow" />
+                                                        <AdminIconButton label="메모 삭제" size="sm" className="rw-dm-danger-icon" onClick={() => deleteMemo(m.timestamp)}>
+                                                            <IconTrash />
+                                                        </AdminIconButton>
                                                     </div>
                                                 </div>
                                             ))}
@@ -2439,17 +2430,17 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
 
                             {/* History Timeline */}
                             <div className="card">
-                                <div className="card-head"><Icon name="history" style={{ color: 'var(--mrt-gray-600)' }} /><h2>처리 이력</h2></div>
+                                <div className="card-head"><Icon name="history" className="rw-dm-head-icon" /><h2>처리 이력</h2></div>
                                 {timelineEvents.length > 0 ? (
-                                    <div style={{ padding: '8px 20px 16px' }}>
+                                    <div className="rw-dm-timeline">
                                         {[...timelineEvents].reverse().map((e: any, i: number, arr: any[]) => (
                                             <div key={i} className="tl-row">
                                                 <span className="tl-ico tint-blue"><Icon name={timelineIcon[e.type] || 'radio_button_checked'} /></span>
                                                 {i < arr.length - 1 && <span className="tl-line" />}
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div className="cell-strong" style={{ fontSize: 13, whiteSpace: 'normal' }}>{e.description}</div>
-                                                    {e.detail && <div className="cell-muted" style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.detail}</div>}
-                                                    <div className="cell-muted" style={{ fontSize: 11 }}>
+                                                <div className="rw-dm-head-copy">
+                                                    <div className="cell-strong rw-dm-tl-title">{e.description}</div>
+                                                    {e.detail && <div className="cell-muted rw-dm-fs-micro rw-dm-ellipsis">{e.detail}</div>}
+                                                    <div className="cell-muted rw-dm-fs-micro">
                                                         {e.timestamp ? new Date(e.timestamp).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                                                     </div>
                                                 </div>
@@ -2472,28 +2463,28 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                     {fullPage ? <>
                         <div className="cw-action-status" role={(inlineUiStatus.failed && detailSection === 'docs' && inlineEditorOpen) || (detailSection === 'ops' && operationsUiStatus.failed) ? 'alert' : 'status'}><strong>{detailSection === 'docs' && inlineEditorOpen ? activeDocument === 'contract' ? '계약서 편집' : '일정표 편집' : currentSection.label}</strong><span>{detailSection === 'docs' && inlineEditorOpen ? inlineUiStatus.message : detailSection === 'ops' ? operationsUiStatus.message : isEditing ? '변경사항을 저장하거나 취소할 수 있습니다.' : '고객 현황으로 돌아가도 현재 작업은 유지됩니다.'}</span></div>
                         <div className="cw-action-buttons">
-                            {isEditing ? <><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy()} onClick={handleCancel}>취소</button><button type="button" className="btn btn-ink" disabled={workspaceIsBusy()} onClick={handleSave}><Icon name="save" />{updating ? '저장 중…' : detailSection === 'pay' ? '결제 금액 저장' : '주문자 정보 저장'}</button></>
+                            {isEditing ? <><AdminButton disabled={workspaceIsBusy()} onClick={handleCancel}>취소</AdminButton><AdminButton variant="primary" disabled={workspaceIsBusy()} leading={<Icon name="save" />} onClick={handleSave}>{updating ? '저장 중…' : detailSection === 'pay' ? '결제 금액 저장' : '주문자 정보 저장'}</AdminButton></>
                                 : detailSection === 'docs' && inlineEditorOpen ? <>
-                                    <button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || inlineUiStatus.locked} onClick={() => inlineControlRef.current?.preview(activeDocument)}><Icon name="visibility" />미리보기</button>
-                                    <button type="button" className="btn btn-ghost" disabled={workspaceIsBusy()} title={inlineDirty || docDraftPending ? '변경사항을 저장한 뒤 고객에게 공개·전달할 수 있습니다.' : undefined} onClick={() => bodyRef.current?.querySelector('.rw-delivery-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>공개·전달</button>
-                                    <button type="submit" form={`reservation-inline-${reservation.id}`} className="btn btn-ink" disabled={workspaceIsBusy() || inlineUiStatus.locked || workspace.cancelled}><Icon name="save" />{workspaceIsBusy() ? '저장 중…' : activeDocument === 'contract' ? '계약서 저장' : '일정 저장'}</button>
-                                </> : detailSection === 'docs' ? <><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || workspace.cancelled} onClick={() => openInlineDocument('contract')}>계약서 편집</button><button type="button" className="btn btn-ink" disabled={workspaceIsBusy() || workspace.cancelled} onClick={() => openInlineDocument('itinerary')}><Icon name="edit" />일정표 편집</button></>
-                                    : detailSection === 'ops' ? <><button type="button" className="btn btn-ghost" disabled={workspaceIsBusy() || !operationsUiStatus.dirty} onClick={() => operationsControlRef.current?.cancel()}>변경 취소</button><button type="submit" className="btn btn-ink" form={`reservation-operations-${reservation.id}`} disabled={workspaceIsBusy() || !operationsUiStatus.dirty}><Icon name="save" />{operationsUiStatus.busy ? '저장 중…' : '운영 정보 저장'}</button></>
-                                        : detailSection === 'info' || detailSection === 'pay' ? <button type="button" className="btn btn-ink" disabled={workspaceIsBusy()} onClick={() => setIsEditing(true)}><Icon name="edit" />{detailSection === 'pay' ? '결제 금액 수정' : '주문자 정보 수정'}</button> : null}
+                                    <AdminButton disabled={workspaceIsBusy() || inlineUiStatus.locked} leading={<Icon name="visibility" />} onClick={() => inlineControlRef.current?.preview(activeDocument)}>미리보기</AdminButton>
+                                    <AdminButton disabled={workspaceIsBusy()} title={inlineDirty || docDraftPending ? '변경사항을 저장한 뒤 고객에게 공개·전달할 수 있습니다.' : undefined} onClick={() => bodyRef.current?.querySelector('.rw-delivery-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>공개·전달</AdminButton>
+                                    <AdminButton type="submit" form={`reservation-inline-${reservation.id}`} variant="primary" disabled={workspaceIsBusy() || inlineUiStatus.locked || workspace.cancelled} leading={<Icon name="save" />}>{workspaceIsBusy() ? '저장 중…' : activeDocument === 'contract' ? '계약서 저장' : '일정 저장'}</AdminButton>
+                                </> : detailSection === 'docs' ? <><AdminButton disabled={workspaceIsBusy() || workspace.cancelled} onClick={() => openInlineDocument('contract')}>계약서 편집</AdminButton><AdminButton variant="primary" disabled={workspaceIsBusy() || workspace.cancelled} leading={<IconPencil />} onClick={() => openInlineDocument('itinerary')}>일정표 편집</AdminButton></>
+                                    : detailSection === 'ops' ? <><AdminButton disabled={workspaceIsBusy() || !operationsUiStatus.dirty} onClick={() => operationsControlRef.current?.cancel()}>변경 취소</AdminButton><AdminButton type="submit" variant="primary" form={`reservation-operations-${reservation.id}`} disabled={workspaceIsBusy() || !operationsUiStatus.dirty} leading={<Icon name="save" />}>{operationsUiStatus.busy ? '저장 중…' : '운영 정보 저장'}</AdminButton></>
+                                        : detailSection === 'info' || detailSection === 'pay' ? <AdminButton variant="primary" disabled={workspaceIsBusy()} leading={<IconPencil />} onClick={() => setIsEditing(true)}>{detailSection === 'pay' ? '결제 금액 수정' : '주문자 정보 수정'}</AdminButton> : null}
                         </div>
                     </> : isEditing ? (
                         <>
-                            <button onClick={handleCancel} className="btn btn-ghost" disabled={workspaceIsBusy()}>취소</button>
-                            <div className="spacer" style={{ flex: 1 }} />
-                            <button onClick={handleSave} className="btn btn-ink" disabled={workspaceIsBusy()}><Icon name="check" />{updating ? '저장 중…' : '저장'}</button>
+                            <AdminButton onClick={handleCancel} disabled={workspaceIsBusy()}>취소</AdminButton>
+                            <div className="spacer rw-dm-grow" />
+                            <AdminButton variant="primary" onClick={handleSave} disabled={workspaceIsBusy()} leading={<IconCheck />}>{updating ? '저장 중…' : '저장'}</AdminButton>
                         </>
                     ) : (
                         <>
-                            <button onClick={closeWorkspace} className="btn btn-ghost" disabled={workspaceIsBusy()}>예약 목록으로</button>
-                            <div className="spacer" style={{ flex: 1 }} />
-                            {inlineEditorOpen && (!fullPage || detailSection === 'docs') ? <button type="submit" form={`reservation-inline-${reservation.id}`} className="btn btn-ink" disabled={workspaceIsBusy() || workspace.cancelled}><Icon name="save" />{workspaceIsBusy() ? '처리 중…' : '문서 저장'}</button>
-                                : !fullPage || detailSection === 'info' || detailSection === 'pay' ? <button onClick={() => setIsEditing(true)} className="btn btn-ink" disabled={workspaceIsBusy()}><Icon name="edit" />{fullPage ? detailSection === 'pay' ? '결제 금액 수정' : '주문자 정보 수정' : '수정'}</button>
-                                : fullPage && detailSection === 'docs' ? <button type="button" onClick={() => openInlineDocument('itinerary')} className="btn btn-ink" disabled={workspaceIsBusy() || workspace.cancelled}><Icon name="edit" />일정표 편집</button> : null}
+                            <AdminButton onClick={closeWorkspace} disabled={workspaceIsBusy()}>예약 목록으로</AdminButton>
+                            <div className="spacer rw-dm-grow" />
+                            {inlineEditorOpen && (!fullPage || detailSection === 'docs') ? <AdminButton type="submit" form={`reservation-inline-${reservation.id}`} variant="primary" disabled={workspaceIsBusy() || workspace.cancelled} leading={<Icon name="save" />}>{workspaceIsBusy() ? '처리 중…' : '문서 저장'}</AdminButton>
+                                : !fullPage || detailSection === 'info' || detailSection === 'pay' ? <AdminButton variant="primary" onClick={() => setIsEditing(true)} disabled={workspaceIsBusy()} leading={<IconPencil />}>{fullPage ? detailSection === 'pay' ? '결제 금액 수정' : '주문자 정보 수정' : '수정'}</AdminButton>
+                                : fullPage && detailSection === 'docs' ? <AdminButton variant="primary" onClick={() => openInlineDocument('itinerary')} disabled={workspaceIsBusy() || workspace.cancelled} leading={<IconPencil />}>일정표 편집</AdminButton> : null}
                         </>
                     )}
                 </div>
@@ -2511,20 +2502,20 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 <div className="picker crp-picker" role="dialog" aria-modal="true" aria-label="등록된 가이드 선택" onClick={e => e.stopPropagation()}>
                     <div className="card-head">
                         <div><h2>등록 가이드 선택</h2><span className="crp-current">현재 배정 · {reservation.assignedGuide?.name || '미배정'}</span></div>
-                        <div className="spacer" style={{ flex: 1 }} />
-                        <button className="icon-btn" aria-label="가이드 선택 닫기" disabled={workspaceIsBusy()} style={{ width: 34, height: 34 }} onClick={() => setShowGuideModal(false)}><Icon name="close" /></button>
+                        <div className="spacer rw-dm-grow" />
+                        <AdminIconButton label="가이드 선택 닫기" disabled={workspaceIsBusy()} onClick={() => setShowGuideModal(false)}><IconClose /></AdminIconButton>
                     </div>
-                    <div className="crp-search"><input className="inp" aria-label="가이드 이름·연락처 검색" placeholder="이름·연락처·언어로 가이드 찾기" value={guideSearch} onChange={e => setGuideSearch(e.target.value)} /><div className="crp-results-caption"><span>가이드 {visibleGuides.length}명</span><small>이름을 누르면 배정이 저장됩니다.</small></div><p role="status" className="cell-muted">{registeredPending ? '등록된 가이드 목록을 불러오는 중입니다…' : resourceLoading ? '최신 배정 일정을 확인하고 있습니다…' : resourceNotice || '기간이 겹치는 가이드는 확인 후 배정할 수 있습니다.'}</p></div>
-                    {registeredNotice && <div className="product-customer-warning" role="status">{registeredNotice}<button type="button" className="cw-text-button" disabled={registeredLoading} onClick={() => setRegisteredRevision(value => value + 1)}>자원 목록 다시 불러오기</button></div>}
-                    {guideConfirmation && <div className="product-customer-warning" role="alert"><strong>{guideConfirmation.guide.name} 배정 확인</strong><p style={{ whiteSpace: 'pre-line' }}>{guideConfirmation.message}</p><div className="row" style={{ gap: 8 }}><button type="button" className="btn btn-sm btn-ink" disabled={workspaceIsBusy() || registeredLoading || resourceLoading} onClick={() => void handleGuideAssign(guideConfirmation.guide, true)}>일정 확인 후 배정</button><button type="button" className="btn btn-sm btn-ghost" disabled={workspaceIsBusy()} onClick={() => setGuideConfirmation(null)}>취소</button></div></div>}
+                    <div className="crp-search"><AdminTextInput aria-label="가이드 이름·연락처 검색" placeholder="이름·연락처·언어로 가이드 찾기" value={guideSearch} onChange={e => setGuideSearch(e.target.value)} /><div className="crp-results-caption"><span>가이드 {visibleGuides.length}명</span><small>이름을 누르면 배정이 저장됩니다.</small></div><p role="status" className="cell-muted">{registeredPending ? '등록된 가이드 목록을 불러오는 중입니다…' : resourceLoading ? '최신 배정 일정을 확인하고 있습니다…' : resourceNotice || '기간이 겹치는 가이드는 확인 후 배정할 수 있습니다.'}</p></div>
+                    {registeredNotice && <div className="product-customer-warning" role="status">{registeredNotice}<AdminTextButton size="sm" disabled={registeredLoading} onClick={() => setRegisteredRevision(value => value + 1)}>자원 목록 다시 불러오기</AdminTextButton></div>}
+                    {guideConfirmation && <div className="product-customer-warning" role="alert"><strong>{guideConfirmation.guide.name} 배정 확인</strong><p className="rw-dm-pre-line">{guideConfirmation.message}</p><div className="row rw-dm-stack-sm"><AdminButton size="sm" variant="primary" disabled={workspaceIsBusy() || registeredLoading || resourceLoading} onClick={() => void handleGuideAssign(guideConfirmation.guide, true)}>일정 확인 후 배정</AdminButton><AdminButton size="sm" disabled={workspaceIsBusy()} onClick={() => setGuideConfirmation(null)}>취소</AdminButton></div></div>}
                     {pickerSaveError && <div className="product-customer-warning" role="alert">{pickerSaveError}</div>}
                     <div className="picker-list">
                         {visibleGuides.length === 0 ? (
-                            <div className="empty"><Icon name="person_off" /><p>{registeredPending ? '등록 가이드를 불러오고 있습니다…' : '조건에 맞는 가이드가 없습니다'}</p>{guideSearch && <button type="button" className="cw-text-button" onClick={() => setGuideSearch('')}>검색어 지우기</button>}</div>
+                            <div className="empty"><Icon name="person_off" /><p>{registeredPending ? '등록 가이드를 불러오고 있습니다…' : '조건에 맞는 가이드가 없습니다'}</p>{guideSearch && <AdminTextButton size="sm" onClick={() => setGuideSearch('')}>검색어 지우기</AdminTextButton>}</div>
                         ) : visibleGuides.map((guide: any) => (
                             <button
+                                className={`adm-rw-dm-pick picker-item${isCurrentGuide(guide) ? ' is-current' : ''}`}
                                 key={guide.id}
-                                className={`picker-item${isCurrentGuide(guide) ? ' is-current' : ''}`}
                                 aria-label={`${guide.name} ${isCurrentGuide(guide) ? '현재 배정 · 다시 선택' : '가이드 배정'}`}
                                 disabled={workspaceIsBusy() || resourceLoading || registeredPending}
                                 onClick={() => { void handleGuideAssign(guide); }}
@@ -2534,15 +2525,15 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                 ) : (
                                     <span className="avatar round tint-blue"><Icon name="person" /></span>
                                 )}
-                                <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div className="cell-strong">{guide.name}{isCurrentGuide(guide) && <span className="crp-current-badge">현재 배정</span>}{guide._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 11 }}>배정 자원</span>}</div>
+                                <div className="rw-dm-head-copy">
+                                    <div className="cell-strong">{guide.name}{isCurrentGuide(guide) && <span className="crp-current-badge">현재 배정</span>}{guide._fromResources && <span className="badge b-green rw-dm-badge-gap">배정 자원</span>}</div>
                                     {!!guideConflicts(guide).length && <div className="badge b-amber">같은 기간 배정 {guideConflicts(guide).length}건</div>}
-                                    <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{guide.phone}</div>
+                                    <div className="cell-muted rw-dm-fs-caption rw-dm-ellipsis">{guide.phone}</div>
                                     {(guide.introduction || guide.bio) && <div className="crp-introduction">{guide.introduction || guide.bio}</div>}
                                     {!!guideLanguages(guide.languages).length && (
-                                        <div className="row" style={{ gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                                        <div className="row rw-dm-langs">
                                             {guideLanguages(guide.languages).map((l: string) => (
-                                                <span key={l} className="badge b-blue" style={{ fontSize: 11, padding: '1px 7px' }}>{l}</span>
+                                                <span key={l} className="badge b-blue rw-dm-lang">{l}</span>
                                             ))}
                                         </div>
                                     )}
@@ -2561,23 +2552,23 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 <div className="picker crp-picker" role="dialog" aria-modal="true" aria-label={`${selectedDay}일차 등록된 숙소 선택`} onClick={e => e.stopPropagation()}>
                     <div className="card-head">
                         <div><h2>{selectedDay}일차 등록 숙소 선택</h2><span className="crp-current">현재 배정 · {selectedAccommodation?.name || '미배정'}</span></div>
-                        <div className="spacer" style={{ flex: 1 }} />
-                        <button className="icon-btn" aria-label="숙소 선택 닫기" disabled={workspaceIsBusy()} style={{ width: 34, height: 34 }} onClick={() => setShowAccommodationModal(false)}><Icon name="close" /></button>
+                        <div className="spacer rw-dm-grow" />
+                        <AdminIconButton label="숙소 선택 닫기" disabled={workspaceIsBusy()} onClick={() => setShowAccommodationModal(false)}><IconClose /></AdminIconButton>
                     </div>
                     {workspace.nights > 1 && <div className="crp-day-tabs" aria-label="숙소 배정 일차 선택">{Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => {
                         const day = index + 1, stay = reservation.dailyAccommodations?.find(item => Number(item.day) === day)?.accommodation;
-                        return <button type="button" key={day} aria-pressed={selectedDay === day} disabled={workspaceIsBusy()} onClick={() => { setSelectedDay(day); setPickerSaveError(''); }}><strong>{day}일차</strong><small>{stay?.name || '미배정 · 숙소 선택'}</small></button>;
+                        return <button className="adm-rw-dm-day-tab" type="button" key={day} aria-pressed={selectedDay === day} disabled={workspaceIsBusy()} onClick={() => { setSelectedDay(day); setPickerSaveError(''); }}><strong>{day}일차</strong><small>{stay?.name || '미배정 · 숙소 선택'}</small></button>;
                     })}</div>}
-                    <div className="crp-search"><div className="crp-search-filters"><input className="inp" aria-label="숙소 이름·지역 검색" placeholder="이름·지역으로 숙소 찾기" value={accommodationSearch} onChange={e => setAccommodationSearch(e.target.value)}/><select className="inp" aria-label="숙소 지역" value={accommodationRegion} onChange={e => setAccommodationRegion(e.target.value)}><option value="">전체 지역</option>{accommodationRegions.map(region => <option key={region} value={region}>{region}</option>)}</select></div><div className="crp-results-caption"><span>숙소 {visibleAccommodations.length}곳</span><small>선택하면 {selectedDay}일차에 저장됩니다.</small></div></div>
-                    {(registeredLoading || registeredNotice) && <div className="product-customer-warning" role="status">{registeredLoading ? '등록된 숙소 목록을 불러오는 중입니다…' : registeredNotice}{!registeredLoading && <button type="button" className="cw-text-button" onClick={() => setRegisteredRevision(value => value + 1)}>자원 목록 다시 불러오기</button>}</div>}
+                    <div className="crp-search"><div className="crp-search-filters"><AdminTextInput aria-label="숙소 이름·지역 검색" placeholder="이름·지역으로 숙소 찾기" value={accommodationSearch} onChange={e => setAccommodationSearch(e.target.value)}/><AdminSelect aria-label="숙소 지역" value={accommodationRegion} onChange={setAccommodationRegion} options={[{ value: '', label: '전체 지역' }, ...accommodationRegions.map(region => ({ value: region, label: region }))]} /></div><div className="crp-results-caption"><span>숙소 {visibleAccommodations.length}곳</span><small>선택하면 {selectedDay}일차에 저장됩니다.</small></div></div>
+                    {(registeredLoading || registeredNotice) && <div className="product-customer-warning" role="status">{registeredLoading ? '등록된 숙소 목록을 불러오는 중입니다…' : registeredNotice}{!registeredLoading && <AdminTextButton size="sm" onClick={() => setRegisteredRevision(value => value + 1)}>자원 목록 다시 불러오기</AdminTextButton>}</div>}
                     {pickerSaveError && <div className="product-customer-warning" role="alert">{pickerSaveError}</div>}
                     <div className="picker-list">
                         {visibleAccommodations.length === 0 ? (
-                            <div className="empty"><Icon name="hotel" /><p>{registeredPending ? '등록 숙소를 불러오고 있습니다…' : '조건에 맞는 숙소가 없습니다'}</p>{(accommodationSearch || accommodationRegion) && <button type="button" className="cw-text-button" onClick={() => { setAccommodationSearch(''); setAccommodationRegion(''); }}>검색 조건 지우기</button>}</div>
+                            <div className="empty"><Icon name="hotel" /><p>{registeredPending ? '등록 숙소를 불러오고 있습니다…' : '조건에 맞는 숙소가 없습니다'}</p>{(accommodationSearch || accommodationRegion) && <AdminTextButton size="sm" onClick={() => { setAccommodationSearch(''); setAccommodationRegion(''); }}>검색 조건 지우기</AdminTextButton>}</div>
                         ) : visibleAccommodations.map((acc: any) => (
                             <button
+                                className={`adm-rw-dm-pick picker-item${isCurrentAccommodation(acc) ? ' is-current' : ''}`}
                                 key={acc.id}
-                                className={`picker-item${isCurrentAccommodation(acc) ? ' is-current' : ''}`}
                                 aria-label={`${selectedDay}일차 ${acc.name} ${isCurrentAccommodation(acc) ? '현재 배정 · 다시 선택' : '숙소 배정'}`}
                                 disabled={workspaceIsBusy() || registeredPending}
                                 onClick={() => { void handleAccommodationAssign(acc); }}
@@ -2585,17 +2576,17 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                 {acc._thumb ? (
                                     <img className="thumb sq" src={acc._thumb} alt={acc.name} loading="lazy" />
                                 ) : (
-                                    <span className="thumb sq" style={{ display: 'grid', placeItems: 'center', color: 'var(--mrt-gray-400)' }}><Icon name="hotel" /></span>
+                                    <span className="thumb sq rw-dm-thumb-empty"><Icon name="hotel" /></span>
                                 )}
-                                <div style={{ minWidth: 0, flex: 1 }}>
+                                <div className="rw-dm-head-copy">
                                     <div className="cell-strong">
                                         {acc.name}
                                         {isCurrentAccommodation(acc) && <span className="crp-current-badge">현재 배정</span>}
-                                        {acc._fromResources && <span className="badge b-green" style={{ marginLeft: 6, fontSize: 11 }}>배정 자원</span>}{acc._fromHotelMaster && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--adm-accent-soft)', color: 'var(--adm-accent-strong)' }}>호텔 마스터</span>}
-                                        {acc._fromItinerary && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--adm-radius-xs)', background: 'var(--mrt-gray-100)', color: 'var(--mrt-gray-500)' }}>이 상품 일정</span>}
+                                        {acc._fromResources && <span className="badge b-green rw-dm-badge-gap">배정 자원</span>}{acc._fromHotelMaster && <span className="rw-dm-tag is-accent">호텔 마스터</span>}
+                                        {acc._fromItinerary && <span className="rw-dm-tag is-muted">이 상품 일정</span>}
                                     </div>
-                                    {acc.type && <div className="cell-muted" style={{ fontSize: 12 }}>{acc.type}</div>}
-                                    {acc.location && <div className="cell-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.location}</div>}
+                                    {acc.type && <div className="cell-muted rw-dm-fs-caption">{acc.type}</div>}
+                                    {acc.location && <div className="cell-muted rw-dm-fs-caption rw-dm-ellipsis">{acc.location}</div>}
                                 </div>
                                 <span className="crp-pick-action">{isCurrentAccommodation(acc) ? '선택됨' : `${selectedDay}일차 배정`}<Icon name={isCurrentAccommodation(acc) ? 'check' : 'add'} /></span>
                             </button>
@@ -3540,7 +3531,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
                     refreshedAt={customerSync.scope === customerScope ? customerSync.at : undefined}
                     refreshError={customerSync.scope === customerScope ? customerSync.error : undefined}
                     products={products}
-                    bookingSelector={customerPage && sameBookings.scope === customerScope ? sameBookings.items.length > 1 ? <label>같은 고객의 예약 <select aria-label="같은 계정의 다른 상품 예약" value={selectedReservation.id} onChange={event => navigate(productCustomerHref(event.target.value, returnTo))}>{sameBookings.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label> : sameBookings.warning ? <span role="status">{sameBookings.warning}</span> : undefined : undefined}
+                    bookingSelector={customerPage && sameBookings.scope === customerScope ? sameBookings.items.length > 1 ? <label>같은 고객의 예약 <AdminSelect aria-label="같은 계정의 다른 상품 예약" value={selectedReservation.id} onChange={value => navigate(productCustomerHref(value, returnTo))} options={sameBookings.items.map(item => ({ value: item.id, label: item.label }))} /></label> : sameBookings.warning ? <span role="status">{sameBookings.warning}</span> : undefined : undefined}
                 />
             )}
 
@@ -3735,7 +3726,7 @@ export const AdminReservationManage: React.FC<{ customerPage?: boolean; customer
         const loading = userLoading || !validScope || (isLoading && !selectedReservation);
         return <AdminLayout activePage="reservations" hideHeading={customerEditing} title="고객 예약 관리" description="선택한 고객의 일정·계약·결제·배정을 한 화면에서 관리합니다." showSearch={false}>
             {loading ? <div className="card product-customer-loading" role="status">고객 정보를 불러오고 있습니다…</div>
-                : customerLoadError || !selectedReservation ? <div className="card product-customer-loading" role="alert"><h2>고객 정보를 확인해 주세요</h2><p>{customerLoadError || '선택한 예약을 찾지 못했습니다.'}</p><div className="row"><button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>목록으로</button><button type="button" className="btn btn-ink" onClick={() => void fetchReservations()}>다시 불러오기</button></div></div>
+                : customerLoadError || !selectedReservation ? <div className="card product-customer-loading" role="alert"><h2>고객 정보를 확인해 주세요</h2><p>{customerLoadError || '선택한 예약을 찾지 못했습니다.'}</p><div className="row"><AdminButton onClick={() => navigate(returnTo)}>목록으로</AdminButton><AdminButton variant="primary" onClick={() => void fetchReservations()}>다시 불러오기</AdminButton></div></div>
                     : <>{customerSource === 'quote' && isLoading && <div role="status">저장된 문의·견적 정보를 불러오고 있습니다…</div>}{customerSource === 'quote' && customerSync.scope === customerScope && customerSync.error && <div className="product-customer-warning" role="alert">{customerSync.error}</div>}{loadWarnings.map((warning, i) => <div className="product-customer-warning" role="status" key={i}>{warning}</div>)}{detailWorkspaces}</>}
         </AdminLayout>;
     }

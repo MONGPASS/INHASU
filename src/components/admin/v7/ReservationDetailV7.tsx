@@ -13,14 +13,13 @@ import {
 } from '../../../utils/reservationV7';
 import { PRODUCT_STATUS_OPTIONS, statusLabelOf } from './ReservationListV7';
 import {
-    Ico, V7Menu, V7Steps, V7StepHead, V7Styles, V7Toast, V7_INK, V7_MUTED, card, chip, ghostBtn, iconTile, inkBtn, menuAt, pill, sel,
+    Ico, V7Badge, V7Menu, V7Steps, V7StepHead, V7Styles, V7Toast, menuAt,
     type PillTone, type V7MenuItem, type V7MenuState,
 } from './v7Ui';
 import { adminConfirm } from '../ui/adminFeedback';
-import { IconCheckThick, IconCoins, IconDocument, IconListCategory, IconPersons } from '../ui';
+import { AdminButton, AdminIconButton, AdminTextButton, IconCheckThick, IconCoins, IconDocument, IconListCategory, IconPersons } from '../ui';
 import './reservation-detail-cards.css';
 
-type Css = React.CSSProperties;
 type Model = CustomerWorkspaceOverviewModel;
 type HistoryKind = NonNullable<Model['recentHistory']>[number]['kind'];
 
@@ -57,26 +56,19 @@ const shortDate = (key: string) => { const d = new Date(`${key}T00:00:00Z`); ret
 const historyTime = (at: string) => at.length === 10 ? at.replaceAll('-', '.') : Number.isFinite(Date.parse(at)) ? new Date(at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).replace(/\. /g, '.').replace(/\.$/, '') : at;
 
 function cardHead({ icon, title, right }: { icon: DashboardIconName; title: string; right?: ReactNode }) {
-    return <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '16px 18px 12px' }}>
-        <span style={iconTile(30)}><Ico name={icon} size={16} /></span><b style={{ fontSize: 15, fontWeight: 700 }}>{title}</b>{right}
+    return <div className="v7-card-head">
+        <span className="v7-tile"><Ico name={icon} size={16} /></span><b className="v7-card-title">{title}</b>{right}
     </div>;
 }
-function left(n: number) { return <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: n ? 'var(--adm-danger)' : 'var(--adm-accent-strong)' }}>{n ? `${n}건 남음` : '완료'}</span>; }
-function itemRow({ label, sub, children, key }: { label: string; sub?: ReactNode; children?: ReactNode; key?: string }) {
-    return <div key={key || label} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 52, padding: '0 18px', borderTop: '1px solid var(--adm-line-subtle)' }}>
-        <span style={{ width: 96, flex: 'none', fontSize: 13, color: V7_MUTED }}>{label}</span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: V7_INK, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>
-        {children}
-    </div>;
-}
+/** 접는 줄(고객 정보 카드 안). 머리 전체가 눌리는 모양이라 생 button + adm-v7-* 클래스로 그린다. */
 function disclosure({ icon, title, sub, badge, open, onToggle, children }: { icon: DashboardIconName; title: string; sub: string; badge?: string; open: boolean; onToggle: () => void; children: ReactNode }) {
     return <React.Fragment key={title}>
-        <div style={{ height: 1, background: 'var(--adm-gray-100)' }} />
-        <button type="button" aria-expanded={!!open} onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 0', border: 0, background: 'transparent', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
-            <span style={{ width: 36, height: 36, flex: 'none', borderRadius: 'var(--adm-radius-md)', background: 'var(--adm-gray-50)', color: 'var(--adm-text-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={icon} size={17} /></span>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}><b style={{ fontSize: 14, fontWeight: 700, color: V7_INK }}>{title}</b><span style={{ fontSize: 12, color: V7_MUTED }}>{sub}</span></span>
-            {badge && <span style={chip('mint', true)}>{badge}</span>}
-            <span style={{ display: 'flex', color: 'var(--adm-text-3)', transition: 'transform 200ms', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={16} /></span>
+        <div className="v7-rule" />
+        <button type="button" aria-expanded={!!open} className="adm-v7-disclosure" onClick={onToggle}>
+            <span className="v7-disclosure-icon"><Ico name={icon} size={17} /></span>
+            <span className="v7-disclosure-text"><b className="v7-disclosure-title">{title}</b><span className="v7-disclosure-sub">{sub}</span></span>
+            {badge && <V7Badge tone="mint">{badge}</V7Badge>}
+            <span className={open ? 'v7-chevron is-open' : 'v7-chevron'}><Ico name="lc-chevron-down" size={16} /></span>
         </button>
         {open && children}
     </React.Fragment>;
@@ -293,24 +285,31 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const docAlerts = m.documents.filter(d => /실패|필요|미작성|미발송|전/.test(d.status || '')).length;
     const logs = [...(m.recentHistory || [])];
 
-    /** className을 주면 모양은 CSS(reservation-detail-cards.css)가 정한다. */
-    const btnSel = (value: string, empty: boolean, go: (e: React.MouseEvent) => void, icon: DashboardIconName = 'lc-chevron-down', x?: Css, className?: string) =>
-        <button type="button" disabled={busy || saving} onClick={go} className={className} style={className ? undefined : sel(empty, x)}><span className={className ? 'rdc-sel-text' : undefined} style={className ? undefined : { overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span><Ico name={icon} size={className ? 16 : 12} /></button>;
-    const btnPill = (value: string, tone: PillTone, go: (e: React.MouseEvent) => void) => <button type="button" disabled={busy || saving} onClick={go} style={pill(tone)}>{value}<Ico name="lc-chevron-down" size={12} /></button>;
-    const openLink = (label: string, go: () => void, disabled = false, className?: string) => <button type="button" aria-label={`${label} 열기`} disabled={busy || disabled} onClick={go} className={className}
-        style={className ? undefined : { display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-text-2)', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={className ? 14 : 12} /></button>;
-    const editLink = (label: string, go: () => void) => <button type="button" aria-label={label} disabled={busy} onClick={go}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 12, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>수정<Ico name="lc-pencil" size={12} /></button>;
+    const cls = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(' ');
+    /** 고르기 버튼(누르면 고르기 메뉴가 열린다). look: 'rdc-sel …'(네 칸 카드) 또는 'v7-sel …'(배정·숙소 줄) — 앞에 adm-를 붙여 클래스가 된다. */
+    const btnSel = (value: string, empty: boolean, go: (e: React.MouseEvent) => void, icon: DashboardIconName = 'lc-chevron-down', look = cls('v7-sel', empty && 'is-warn')) =>
+        <button type="button" disabled={busy || saving} className={`adm-${look}`} onClick={go}><span className="rdc-sel-text">{value}</span><Ico name={icon} size={look.startsWith('rdc-sel') ? 16 : 12} /></button>;
+    /** 눌러서 상태 메뉴를 여는 알약(Seed 배지 모양 + 아래 화살표). */
+    const btnPill = (value: string, tone: PillTone, go: (e: React.MouseEvent) => void) => <button type="button" disabled={busy || saving} className={`adm-v7-pill is-${tone}`} onClick={go}>{value}<Ico name="lc-chevron-down" size={12} /></button>;
+    const openLink = (label: string, go: () => void, disabled = false) => <button type="button" aria-label={`${label} 열기`} disabled={busy || disabled} className="adm-rdc-open" onClick={go}>열기<Ico name="lc-external-link" size={14} /></button>;
+    // 테스트(tests/customer-workspace-overview.test.mjs)가 생 <button>으로 찾는 버튼은 우리 부품과 같은 클래스·구조(adm-ui-btn·adm-ui-text-btn·adm-ui-icon-btn)의 생 button으로 그린다.
+    // 모양은 AdminButton·AdminTextButton·AdminIconButton과 같다(admin-components.css). 나머지 버튼은 부품을 그대로 쓴다.
+    const likeBtn = (look: string, props: React.ButtonHTMLAttributes<HTMLButtonElement>, label: ReactNode, lead?: ReactNode, trail?: ReactNode) =>
+        <button type="button" {...props} className={`adm-ui-${look}`}>
+            {lead && <span className="adm-ui-btn-icon">{lead}</span>}<span className={look.startsWith('btn ') ? 'adm-ui-btn-label' : undefined}>{label}</span>{trail && <span className="adm-ui-btn-icon">{trail}</span>}
+        </button>;
+    const likeIconBtn = (label: string, props: React.ButtonHTMLAttributes<HTMLButtonElement>, icon: ReactNode) =>
+        <button type="button" {...props} aria-label={label} title={label} className="adm-ui-icon-btn is-outlined is-md">{icon}</button>;
+    const editLink = (label: string, go: () => void) => likeBtn('text-btn is-primary is-sm v7-edit-link', { 'aria-label': label, disabled: busy, onClick: go }, '수정', undefined, <Ico name="lc-pencil" size={12} />);
     const guideValue = row?.guide?.name || (m.assignments.find(a => a.id === 'guide')?.state === 'ready' ? m.assignments.find(a => a.id === 'guide')!.value : '');
     const vehicleValue = row?.vehicle?.type || (m.assignments.find(a => a.id === 'vehicle')?.state === 'ready' ? m.assignments.find(a => a.id === 'vehicle')!.value : '');
     const stayReady = row ? row.accDone : m.assignments.find(a => a.id === 'stay')?.state === 'ready';
     // 예약 전 견적 문의: 배정은 예약으로 전환한 뒤에 한다. '선택' 버튼 대신 회색 안내 글자를 둔다(눌러서 다른 화면으로 넘어가지 않게).
     const asgLocked = !!m.disabledActions?.includes('assignments'), payLocked = !!m.disabledActions?.includes('payments');
-    const mutedNote = (text: string) => <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--adm-text-3)', whiteSpace: 'nowrap' }}>{text}</span>;
+    const mutedNote = (text: string) => <span className="v7-muted-note">{text}</span>;
     const lockedNote = mutedNote('예약 후 배정할 수 있어요'), payNote = mutedNote('예약 후 관리할 수 있어요');
     // Claude Design ‘예약 관리 · 강력 개선안’ 예약상세 카드(2026-11-23): 결제·배정·분류·서류 네 칸.
     // 모양은 reservation-detail-cards.css(rdc-*)가 정하고, 버튼 동작은 예전 카드와 같다(입금·배정·분류 고르기, 서류 열기, 업무 화면 열기).
-    const cls = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(' ');
     const cardBadge = (left: number | null, badge?: string, muted = false) => {
         const done = left === 0 || (left === null && badge === '완료' && !muted);
         return <span className={cls('rdc-badge', muted ? 'is-muted' : done ? 'is-done' : left ? 'is-left' : 'is-muted')}>
@@ -340,11 +339,11 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             </span>}
         </div>
         <div className="rdc-rows">
-            {payRow('예약금', v7Won(pay.deposit), payLocked ? payNote : btnSel(depositPaid ? '입금 완료' : '미입금', !depositPaid, e => paymentMenu(e, 'deposit'), undefined, undefined, selClass(!depositPaid)))}
-            {payRow('잔금', v7Won(pay.balance), payLocked ? payNote : btnSel(balancePaid ? '완납' : '미수', !balancePaid, e => paymentMenu(e, 'final'), undefined, undefined, selClass(!balancePaid)))}
+            {payRow('예약금', v7Won(pay.deposit), payLocked ? payNote : btnSel(depositPaid ? '입금 완료' : '미입금', !depositPaid, e => paymentMenu(e, 'deposit'), undefined, selClass(!depositPaid)))}
+            {payRow('잔금', v7Won(pay.balance), payLocked ? payNote : btnSel(balancePaid ? '완납' : '미수', !balancePaid, e => paymentMenu(e, 'final'), undefined, selClass(!balancePaid)))}
             <div className="rdc-row is-split"><span className="rdc-row-title">현금영수증</span>
-                {payLocked ? payNote : ops ? btnSel(RECEIPT_LABELS[receipt], false, e => opsMenu(e, 'receipt'), undefined, undefined, selClass(receiptLate))
-                    : btnSel('결제 화면', false, action('payments'), 'lc-chevron-right', undefined, selClass(false))}
+                {payLocked ? payNote : ops ? btnSel(RECEIPT_LABELS[receipt], false, e => opsMenu(e, 'receipt'), undefined, selClass(receiptLate))
+                    : btnSel('결제 화면', false, action('payments'), 'lc-chevron-right', selClass(false))}
             </div>
         </div>
     </section>;
@@ -358,15 +357,15 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const asgCard = <section key="sec-asg-s" id="sec-asg-s" className="rdc-card" aria-label="배정">
         {rdcHead(IconPersons, '배정', asgLocked ? cardBadge(null, '예약 전', true) : cardBadge(asgLeft))}
         <div className="rdc-body">
-            {asgField('가이드', !!guideValue, asgLocked ? lockedNote : btnSel(guideValue || '선택', !guideValue, e => void peopleMenu(e, 'guide'), undefined, undefined, selClass(!guideValue, true)))}
-            {asgField('차량', !!vehicleValue, asgLocked ? lockedNote : btnSel(vehicleValue || '선택', !vehicleValue, e => void peopleMenu(e, 'vehicle'), undefined, undefined, selClass(!vehicleValue, true)))}
+            {asgField('가이드', !!guideValue, asgLocked ? lockedNote : btnSel(guideValue || '선택', !guideValue, e => void peopleMenu(e, 'guide'), undefined, selClass(!guideValue, true)))}
+            {asgField('차량', !!vehicleValue, asgLocked ? lockedNote : btnSel(vehicleValue || '선택', !vehicleValue, e => void peopleMenu(e, 'vehicle'), undefined, selClass(!vehicleValue, true)))}
             <div className={cls('rdc-box', stayAlert ? 'is-alert' : 'is-soft')}>
                 <div className="rdc-box-head"><span className={cls('rdc-label', stayAlert && 'is-alert')}>{dot(!stayAlert)}숙소{stayAlert ? ' · 확정 필요' : ''}</span><span className="rdc-box-value">{stayText}</span></div>
                 {nights.length > 0 && <div className="rdc-nights">
                     {nights.slice(0, 6).map(n => <span key={n.rowIndex} className="rdc-night">{n.day}박째 · {n.hotel ? bookingStatusMeta(n.bookingStatus).label : '숙소 미정'}</span>)}
                     {nights.length > 6 && <span className="rdc-night">+{nights.length - 6}박 더</span>}
                 </div>}
-                {asgLocked ? lockedNote : btnSel('박별 관리', false, () => goSec('sec-asg'), 'lc-arrow-right', undefined, 'rdc-sel is-full is-primary')}
+                {asgLocked ? lockedNote : btnSel('박별 관리', false, () => goSec('sec-asg'), 'lc-arrow-right', 'rdc-sel is-full is-primary')}
             </div>
         </div>
     </section>;
@@ -377,7 +376,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         <div className="rdc-grid2">
             {([['조인여부', 'joining'], ['분류', 'category'], ['구분', 'serviceType'], ['항공', 'airfare']] as const).map(([label, key]) => {
                 const value = ops ? key === 'joining' ? JOINING_LABELS[ops.joining] : (ops[key] || '') as string : key === 'category' ? row?.category || '' : '';
-                return <div key={key} className="rdc-field"><span className="rdc-label">{label}</span>{btnSel(value || '미정', false, e => opsMenu(e, key), undefined, undefined, selClass(false, true))}</div>;
+                return <div key={key} className="rdc-field"><span className="rdc-label">{label}</span>{btnSel(value || '미정', false, e => opsMenu(e, key), undefined, selClass(false, true))}</div>;
             })}
         </div>
     </section>;
@@ -391,66 +390,66 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             {m.documents.map(doc => <div key={doc.id} className="rdc-row">
                 <span className="rdc-row-main"><span className="rdc-row-title">{doc.label}</span>
                     <span className={cls('rdc-tag', docAlert(doc.status) ? 'is-alert' : doc.status ? 'is-info' : 'is-neutral')}>{doc.status || doc.detail || '내용 확인'}</span></span>
-                {doc.editAction && editLink(doc.editLabel || `${doc.label} 수정`, action(doc.editAction, doc.id))}{openLink(doc.label, action(doc.action || doc.id, doc.id), doc.disabled, 'rdc-open')}
+                {doc.editAction && editLink(doc.editLabel || `${doc.label} 수정`, action(doc.editAction, doc.id))}{openLink(doc.label, action(doc.action || doc.id, doc.id), doc.disabled)}
             </div>)}
             <div className={cls('rdc-box', 'is-row', agreeAlert ? 'is-alert' : 'is-soft')}>
                 <span className="rdc-row-main"><span className="rdc-row-title">{m.agreement && dot(!agreeAlert)}{m.agreement ? '계약 동의' : '공개·전달'}</span>
                     <span className={cls('rdc-box-note', agreeAlert && 'is-alert')}>{m.agreement ? [m.agreement.label, m.agreement.name && `서명자 ${m.agreement.name}`].filter(Boolean).join(' · ') : '고객 문서 공개와 알림 발송'}</span></span>
-                {btnSel('공개·전달 관리', false, action('documents'), 'lc-arrow-right', undefined, 'rdc-sel is-brand')}
+                {btnSel('공개·전달 관리', false, action('documents'), 'lc-arrow-right', 'rdc-sel is-brand')}
             </div>
         </div>
     </section>;
     const quadCards = [payCard, asgCard, clsCard, docCard];
 
-    const element = <section ref={rootRef as React.RefObject<HTMLElement>} className="v7-root cw-overview" aria-label="예약 상세" aria-busy={busy || saving} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    const element = <section ref={rootRef as React.RefObject<HTMLElement>} className="v7-root cw-overview" aria-label="예약 상세" aria-busy={busy || saving}>
         <V7Styles />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <button type="button" className="v7-back" disabled={busy} onClick={action('back')}><Ico name="lc-chevron-left" size={16} />{m.backLabel || '통합 예약 목록'}</button>
-            <span style={{ fontSize: 13, color: V7_MUTED }}>예약 관리 · {m.backLabel || '통합 예약 목록'}{tabName ? ` · ${tabName}` : ''}{m.bookingNumber ? ` · 예약번호 ${m.bookingNumber}` : ''} · {m.sourceLabel}</span>
+        <div className="v7-crumb">
+            <button type="button" className="adm-v7-back v7-back" disabled={busy} onClick={action('back')}><Ico name="lc-chevron-left" size={16} />{m.backLabel || '통합 예약 목록'}</button>
+            <span className="v7-crumb-text">예약 관리 · {m.backLabel || '통합 예약 목록'}{tabName ? ` · ${tabName}` : ''}{m.bookingNumber ? ` · 예약번호 ${m.bookingNumber}` : ''} · {m.sourceLabel}</span>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px 24px', padding: '24px 28px', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)' }}>
-            <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, letterSpacing: '-0.03em' }}>{name}</h1>
-                    <button type="button" disabled={busy} onClick={statusMenu} style={pill(statusTone)}>{source ? statusLabelOf(source) : m.statusLabel}<Ico name="lc-chevron-down" size={12} /></button>
-                    {dd && <span style={chip(dd.tone, dd.dot, { height: 24, fontSize: 12 })}>{dd.label}</span>}
-                    {m.packageInfo && <span style={chip(m.packageInfo.tier === 'full' ? 'mint' : m.packageInfo.tier === 'value' ? 'blue' : 'gray', !!m.packageInfo.tier, { height: 24, fontSize: 12 })} title={m.packageInfo.detail}>{m.packageInfo.tier === 'full' ? '풀패키지' : m.packageInfo.tier === 'value' ? '실속형' : '패키지 미지정'}</span>}
+        <div className="v7-panel v7-hero">
+            <div className="v7-hero-main">
+                <div className="v7-hero-title">
+                    <h1 className="v7-hero-name">{name}</h1>
+                    <button type="button" disabled={busy} className={`adm-v7-pill is-${statusTone}`} onClick={statusMenu}>{source ? statusLabelOf(source) : m.statusLabel}<Ico name="lc-chevron-down" size={12} /></button>
+                    {dd && <V7Badge tone={dd.tone}>{dd.label}</V7Badge>}
+                    {m.packageInfo && <V7Badge tone={m.packageInfo.tier === 'full' ? 'mint' : m.packageInfo.tier === 'value' ? 'blue' : 'gray'} title={m.packageInfo.detail}>{m.packageInfo.tier === 'full' ? '풀패키지' : m.packageInfo.tier === 'value' ? '실속형' : '패키지 미지정'}</V7Badge>}
                 </div>
-                <div style={{ display: 'flex', gap: '6px 18px', flexWrap: 'wrap', fontSize: 13, fontWeight: 600, color: 'var(--adm-text-2)' }}>
-                    {phoneFact && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontVariantNumeric: 'tabular-nums' }}><Ico name="lc-phone" size={14} color={V7_MUTED} />{maskFact('연락처', phoneFact, maskOn)}</span>}
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontVariantNumeric: 'tabular-nums' }}><Ico name="lc-calendar" size={14} color={V7_MUTED} />{period ? `${period.range}${period.sch ? ` · ${period.sch}` : ''}` : m.period || '일정 미정'}</span>
-                    {m.partyLabel && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ico name="lc-users" size={14} color={V7_MUTED} />{m.partyLabel}</span>}
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ico name="lc-map-pin" size={14} color={V7_MUTED} />{m.placeLabel || row?.region || m.bookedProduct?.name || '지역 미정'}</span>
-                    {m.bookedProduct?.href && <a className="v7-link" href={m.bookedProduct.href} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 700 }}>{m.bookedProduct.name}<Ico name="lc-external-link" size={12} /></a>}
+                <div className="v7-hero-facts">
+                    {phoneFact && <span className="v7-fact is-num"><Ico name="lc-phone" size={14} color="var(--adm-text-3)" />{maskFact('연락처', phoneFact, maskOn)}</span>}
+                    <span className="v7-fact is-num"><Ico name="lc-calendar" size={14} color="var(--adm-text-3)" />{period ? `${period.range}${period.sch ? ` · ${period.sch}` : ''}` : m.period || '일정 미정'}</span>
+                    {m.partyLabel && <span className="v7-fact"><Ico name="lc-users" size={14} color="var(--adm-text-3)" />{m.partyLabel}</span>}
+                    <span className="v7-fact"><Ico name="lc-map-pin" size={14} color="var(--adm-text-3)" />{m.placeLabel || row?.region || m.bookedProduct?.name || '지역 미정'}</span>
+                    {m.bookedProduct?.href && <a className="v7-link v7-fact is-link" href={m.bookedProduct.href} target="_blank" rel="noopener noreferrer">{m.bookedProduct.name}<Ico name="lc-external-link" size={12} /></a>}
                 </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button type="button" disabled={busy} onClick={openNotices} style={ghostBtn(40)}><Ico name="lc-send" size={15} color="var(--adm-accent-strong)" />{m.documentAction === 'documents' ? m.documentLabel || '견적서 확인·전달' : '알림 보내기'}</button>
-                <button type="button" disabled={busy} onClick={action('edit-itinerary')} style={{ ...inkBtn(40), padding: '0 18px' }}><Ico name="lc-calendar-check" size={15} />일정표 편집</button>
+            <div className="v7-hero-actions">
+                {likeBtn('btn is-secondary is-md', { disabled: busy, onClick: openNotices }, m.documentAction === 'documents' ? m.documentLabel || '견적서 확인·전달' : '알림 보내기', <Ico name="lc-send" size={15} color="var(--adm-accent-strong)" />)}
+                {likeBtn('btn is-primary is-md adm-on-primary', { disabled: busy, onClick: action('edit-itinerary') }, '일정표 편집', <Ico name="lc-calendar-check" size={15} />)}
             </div>
         </div>
         {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px 24px', background: 'var(--adm-surface)', borderRadius: 'var(--adm-radius-md)', boxShadow: '0 0 0 1px var(--adm-line-subtle)' }}>
+        <div className="v7-panel v7-progress">
             <V7StepHead big label={stepHead.label} tone={stepHead.tone} count={cancelled ? '' : `${steps.filter(s => s.done).length} / ${steps.length} 단계 완료`} />
             <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => flow ? goSec(flowStepSec[flow.steps[i]?.id] || 'sec-plan') : stepTargets[i] ? goSec(stepTargets[i]) : onAction(m.steps[i]?.id || 'payments')} />
-            {flow && <div className="v7-next" role="group" aria-label="지금 할 일" style={{ display: 'flex', alignItems: 'center', gap: '12px 16px', flexWrap: 'wrap', padding: '14px 16px', borderRadius: 'var(--adm-radius-md)', background: flow.next.waiting ? 'var(--adm-fill-subtle)' : 'var(--adm-accent-soft)' }}>
-                <div style={{ flex: '1 1 320px', minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: flow.next.waiting ? V7_MUTED : 'var(--adm-accent-strong)' }}>{flow.current >= flow.steps.length ? '완료' : flow.next.waiting ? '고객 응답을 기다리는 중' : '지금 할 일'}</div>
-                    <div style={{ marginTop: 2, fontSize: 16, fontWeight: 700, color: 'var(--adm-text)' }}>{flow.next.title}</div>
-                    {flow.next.detail && <div style={{ marginTop: 4, fontSize: 13, fontWeight: 500, lineHeight: 1.5, color: 'var(--adm-text-2)' }}>{flow.next.detail}</div>}
+            {flow && <div className={flow.next.waiting ? 'v7-next is-waiting' : 'v7-next'} role="group" aria-label="지금 할 일">
+                <div className="v7-next-text">
+                    <div className="v7-next-kicker">{flow.current >= flow.steps.length ? '완료' : flow.next.waiting ? '고객 응답을 기다리는 중' : '지금 할 일'}</div>
+                    <div className="v7-next-title">{flow.next.title}</div>
+                    {flow.next.detail && <div className="v7-next-detail">{flow.next.detail}</div>}
                 </div>
-                {(flow.next.primary || flow.next.secondary) && <div className="v7-next-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {flow.next.secondary && <button type="button" disabled={busy} onClick={action(flow.next.secondary.action)} style={ghostBtn(40)}>{flow.next.secondary.label}</button>}
-                    {flow.next.primary && <button type="button" disabled={busy} onClick={action(flow.next.primary.action)} style={{ ...inkBtn(40), padding: '0 18px', background: 'var(--adm-accent)' }}>{flow.next.primary.label}</button>}
+                {(flow.next.primary || flow.next.secondary) && <div className="v7-next-actions">
+                    {flow.next.secondary && <AdminButton variant="secondary" disabled={busy} onClick={action(flow.next.secondary.action)}>{flow.next.secondary.label}</AdminButton>}
+                    {flow.next.primary && <AdminButton variant="primary" disabled={busy} onClick={action(flow.next.primary.action)}>{flow.next.primary.label}</AdminButton>}
                 </div>}
             </div>}
         </div>
 
         {/* Montage 시안: 구역 탭(밑줄). 누르면 해당 카드로 이동만 하고 업무를 실행하지 않는다. */}
         <nav aria-label="예약 상세 바로가기" className="v7-nav v7-tabs">
-            {NAV.map(n => <button key={n.sid} type="button" className="v7-tab" aria-label={`${n.label} 위치로 이동`} aria-current={st.navSid === n.sid ? 'true' : undefined}
+            {NAV.map(n => <button key={n.sid} type="button" className="adm-v7-tab v7-tab" aria-label={`${n.label} 위치로 이동`} aria-current={st.navSid === n.sid ? 'true' : undefined}
                 onClick={() => { set({ navSid: n.sid }); goSec(n.sid); }}>{n.label}</button>)}
         </nav>
         {notificationActions}
@@ -458,12 +457,12 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             {quadCards}
         </div>
 
-        <div className="v7-cols" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start' }}>
-            <div className="v7-main" style={{ flex: '1 1 560px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div id="sec-asg" style={{ ...card, overflow: 'hidden' }}>
+        <div className="v7-cols">
+            <div className="v7-main">
+                <div id="sec-asg" className="v7-card is-clip">
                     {cardHead({ icon: 'lc-users', title: '숙소 · 가이드 · 차량', right: <>
-                        {row && <span style={{ ...pill(row.board === '배정 완료' ? 'solid' : row.board === '진행 중' ? 'amber' : 'red'), cursor: 'default' }}>{row.board}</span>}
-                        <a className="v7-link" href="/admin/accommodation-ops" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', whiteSpace: 'nowrap' }}>숙소 배정<Ico name="lc-chevron-right" size={14} /></a>
+                        {row && <V7Badge tone={row.board === '배정 완료' ? 'solid' : row.board === '진행 중' ? 'amber' : 'red'}>{row.board}</V7Badge>}
+                        <a className="v7-link v7-head-link" href="/admin/accommodation-ops">숙소 배정<Ico name="lc-chevron-right" size={14} /></a>
                     </> })}
                     {(['guide', 'vehicle'] as const).map(kind => {
                         const v = kind === 'guide' ? row?.guide : row?.vehicle, fallback = m.assignments.find(a => a.id === kind), label = kind === 'guide' ? '가이드' : '차량';
@@ -471,46 +470,44 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         const tel = v?.phone ? maskFact('연락처', v.phone, maskOn) : value ? fallback?.detail || '연락처 미등록' : '배정 전';
                         const photo = kind === 'guide' ? item?.assignment.guide?.image : item?.assignment.vehicle?.resource?.img || item?.assignment.vehicle?.resource?.images?.[0];
                         const icon = kind === 'guide' ? 'lc-user-round' : 'lc-car';
-                        return <div key={kind} className="v7-asg-row" style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 76, padding: '10px 18px', boxSizing: 'border-box', borderTop: '1px solid var(--adm-line-subtle)' }}>
-                            <span style={{ width: 72, flex: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: V7_MUTED }}><Ico name={icon} size={14} />{label}</span>
-                            {value && photo ? <img src={photo} alt={`${label} ${value} 사진`} loading="lazy" style={{ width: 56, height: 56, flex: 'none', borderRadius: 999, objectFit: 'cover', background: 'var(--adm-gray-50)' }} />
-                                : <span aria-hidden="true" style={{ width: 56, height: 56, flex: 'none', borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--adm-gray-50)', boxShadow: 'inset 0 0 0 1.5px var(--adm-line-subtle)', color: 'var(--adm-text-disabled)' }}>{value ? <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--adm-text-3)' }}>사진</span> : <Ico name={icon} size={20} color="var(--adm-line-strong)" />}</span>}
-                            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <b style={{ fontSize: 14, fontWeight: 700, color: V7_INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value || `${label} 미배정`}</b>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: value ? 'var(--adm-text-2)' : 'var(--adm-text-3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tel}</span>
+                        return <div key={kind} className="v7-asg-row">
+                            <span className="v7-asg-kind"><Ico name={icon} size={14} />{label}</span>
+                            {value && photo ? <img src={photo} alt={`${label} ${value} 사진`} loading="lazy" className="v7-avatar" />
+                                : <span aria-hidden="true" className="v7-avatar is-empty">{value ? <span className="v7-avatar-text">사진</span> : <Ico name={icon} size={20} color="var(--adm-line-strong)" />}</span>}
+                            <span className="v7-asg-text">
+                                <b className="v7-asg-name">{value || `${label} 미배정`}</b>
+                                <span className={value ? 'v7-asg-tel' : 'v7-asg-tel is-empty'}>{tel}</span>
                             </span>
                             {asgLocked ? lockedNote : btnSel(value || `${label} 선택`, !value, e => void peopleMenu(e, kind))}
                         </div>;
                     })}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '16px 18px 10px', borderTop: '1px solid var(--adm-line-subtle)' }}>
-                        <b style={{ fontSize: 14, fontWeight: 700 }}>일자별 숙소</b>
-                        {!asgLocked && <button type="button" disabled={busy || saving} onClick={requestLodging} style={{ ...ghostBtn(34), marginLeft: 'auto', padding: '0 14px' }}>
-                            <Ico name="lc-send" size={14} />현지 운영에 수배 요청
-                            {pendingNights.length > 0 && <span style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999, alignItems: 'center', justifyContent: 'center', background: 'var(--adm-accent)', color: 'var(--adm-on-primary)', fontSize: 11, fontWeight: 700 }}>{pendingNights.length}</span>}
-                        </button>}
+                    <div className="v7-sub-head">
+                        <b className="v7-sub-title">일자별 숙소</b>
+                        {!asgLocked && <AdminButton variant="secondary" size="sm" className="v7-push" disabled={busy || saving} onClick={requestLodging}
+                            leading={<Ico name="lc-send" size={14} />} trailing={pendingNights.length > 0 ? <span className="v7-count">{pendingNights.length}</span> : undefined}>현지 운영에 수배 요청</AdminButton>}
                     </div>
-                    <div className="v7-stay-head" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', height: 34, padding: '0 18px', background: 'var(--adm-gray-50)', fontSize: 11, fontWeight: 700, color: V7_MUTED }}><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
+                    <div className="v7-stay-head v7-stay-grid"><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
                     {(row?.stays || []).map(nt => {
                         const st = bookingStatusMeta(nt.bookingStatus);
-                        return <div key={nt.day} className="v7-stay-row" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', minHeight: 62, padding: '8px 18px', boxSizing: 'border-box', borderTop: '1px solid var(--adm-line-subtle)' }}>
-                            <b style={{ fontSize: 13, fontWeight: 700, color: V7_INK }}>{nt.day}박</b>
-                            <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><b style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{nt.date ? shortDate(nt.date) : '날짜 확인'}</b><span style={{ fontSize: 12, color: V7_MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nt.region || '지역 미정'}</span></span>
-                            <span style={{ display: 'flex', minWidth: 0 }}>{btnSel(nt.hotel || '숙소 선택', !nt.hotel, e => void nightMenu(e, nt.day, 'hotel'), 'lc-chevron-down', { maxWidth: '100%', minWidth: 0, overflow: 'hidden' })}</span>
-                            <span>{btnSel(nt.grade || '등급 선택', !nt.grade && !nt.hotel, e => void nightMenu(e, nt.day, 'grade'), 'lc-chevron-down', { maxWidth: '100%' })}</span>
-                            <span>{btnSel(occupancyLabel(nt.occupancy), false, e => void nightMenu(e, nt.day, 'occ'))}</span>
-                            <span>{nt.hotel ? btnPill(st.label, st.tone, e => void nightMenu(e, nt.day, 'status')) : <button type="button" onClick={e => void nightMenu(e, nt.day, 'status')} style={{ ...pill('gray'), opacity: .5, cursor: 'not-allowed' }}>숙소 먼저 선택<Ico name="lc-chevron-down" size={12} /></button>}</span>
+                        return <div key={nt.day} className="v7-stay-row v7-stay-grid">
+                            <b className="v7-stay-day">{nt.day}박</b>
+                            <span className="v7-stay-when"><b className="v7-stay-date">{nt.date ? shortDate(nt.date) : '날짜 확인'}</b><span className="v7-stay-region">{nt.region || '지역 미정'}</span></span>
+                            <span className="v7-stay-cell is-hotel">{btnSel(nt.hotel || '숙소 선택', !nt.hotel, e => void nightMenu(e, nt.day, 'hotel'), 'lc-chevron-down', cls('v7-sel is-fit', !nt.hotel && 'is-warn'))}</span>
+                            <span className="v7-stay-cell">{btnSel(nt.grade || '등급 선택', !nt.grade && !nt.hotel, e => void nightMenu(e, nt.day, 'grade'), 'lc-chevron-down', cls('v7-sel is-fit', !nt.grade && !nt.hotel && 'is-warn'))}</span>
+                            <span className="v7-stay-cell">{btnSel(occupancyLabel(nt.occupancy), false, e => void nightMenu(e, nt.day, 'occ'))}</span>
+                            <span className="v7-stay-cell">{nt.hotel ? btnPill(st.label, st.tone, e => void nightMenu(e, nt.day, 'status')) : <button type="button" className="adm-v7-pill is-gray is-blocked" onClick={e => void nightMenu(e, nt.day, 'status')}>숙소 먼저 선택<Ico name="lc-chevron-down" size={12} /></button>}</span>
                         </div>;
                     })}
-                    {row && !row.stays.length && <div style={{ padding: 18, borderTop: '1px solid var(--adm-line-subtle)', fontSize: 13, color: V7_MUTED }}>{row.accN === 0 && startKey ? '숙박이 없는 당일 일정이에요.' : '여행 시작일·종료일을 먼저 확인해 주세요.'}</div>}
-                    {!row && <div style={{ padding: 18, borderTop: '1px solid var(--adm-line-subtle)', fontSize: 13, color: V7_MUTED }}>{asgLocked ? (m.disabledActionReason || '예약 진행 후 배정할 수 있습니다.') : m.assignments.find(a => a.id === 'stay')?.detail || '숙소 배정은 배정 업무 화면에서 관리합니다.'}</div>}
+                    {row && !row.stays.length && <div className="v7-card-note">{row.accN === 0 && startKey ? '숙박이 없는 당일 일정이에요.' : '여행 시작일·종료일을 먼저 확인해 주세요.'}</div>}
+                    {!row && <div className="v7-card-note">{asgLocked ? (m.disabledActionReason || '예약 진행 후 배정할 수 있습니다.') : m.assignments.find(a => a.id === 'stay')?.detail || '숙소 배정은 배정 업무 화면에서 관리합니다.'}</div>}
                     {assignmentEditor}
                 </div>
 
-                <div id="sec-plan" style={card}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px 12px' }}>
-                        <span style={iconTile(30)}><Ico name="lc-route" size={16} /></span><b style={{ fontSize: 15, fontWeight: 700 }}>일정</b>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: V7_MUTED }}>{period?.sch || (m.days.length ? `${m.days.length}일` : '')}</span>
-                        <button type="button" disabled={busy} onClick={action('edit-itinerary')} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', cursor: 'pointer' }}>일정표 편집<Ico name="lc-chevron-right" size={14} /></button>
+                <div id="sec-plan" className="v7-card">
+                    <div className="v7-card-head is-nowrap">
+                        <span className="v7-tile"><Ico name="lc-route" size={16} /></span><b className="v7-card-title">일정</b>
+                        <span className="v7-card-meta">{period?.sch || (m.days.length ? `${m.days.length}일` : '')}</span>
+                        <AdminTextButton tone="assistive" size="sm" className="v7-push" disabled={busy} onClick={action('edit-itinerary')} trailing={<Ico name="lc-chevron-right" size={14} />}>일정표 편집</AdminTextButton>
                     </div>
                     {m.days.map((day, i) => {
                         const open = !!dayOpen[day.id], last = i === m.days.length - 1;
@@ -518,108 +515,109 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         const stayText = day.stayRequired === false || (last && !night) ? '숙박 없음' : night?.hotel ? `${night.hotel} · ${bookingStatusMeta(night.bookingStatus).label}` : day.stayAssigned && day.stay ? day.stay : '숙소 미정';
                         const has = stayText !== '숙소 미정', none = stayText === '숙박 없음', c = none ? 'var(--adm-line-strong)' : night?.hotel ? bookingStatusMeta(night.bookingStatus).color : has ? 'var(--adm-accent-strong)' : 'var(--adm-danger)';
                         const activities = day.activities?.length ? day.activities : scheduleTimeline(day.summary || '').map(s => ({ time: s.time, title: s.text }));
-                        return <div key={day.id} style={{ borderTop: '1px solid var(--adm-line-subtle)' }}>
-                            <button type="button" aria-expanded={open} onClick={() => setDayOpen(prev => ({ ...prev, [day.id]: !open }))} className="v7-day-btn"
-                                style={{ display: 'grid', gridTemplateColumns: '64px 96px minmax(0,1fr) auto 20px', alignItems: 'center', gap: 12, width: '100%', minHeight: 52, padding: '0 18px', border: 0, background: open ? 'var(--adm-surface)' : 'transparent', font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
-                                <b style={{ fontSize: 13, fontWeight: 700, color: V7_INK, textAlign: 'left' }}>{day.day}일차</b>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: V7_MUTED, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', textAlign: 'left' }}>{day.date ? (/^\d{4}-\d{2}-\d{2}$/.test(day.date) ? shortDate(day.date) : day.date) : startKey ? shortDate(new Date(Date.parse(`${startKey}T00:00:00Z`) + (day.day - 1) * 864e5).toISOString().slice(0, 10)) : ''}</span>
-                                <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'left' }}>{day.title || `${day.day}일차 일정 작성`}</span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 26, padding: '0 10px 0 20px', borderRadius: 'var(--adm-radius-xs)', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', background: `radial-gradient(circle at 10px 50%, ${c} 3px, transparent 3.6px), ${has ? 'var(--adm-gray-100)' : 'var(--adm-danger-soft)'}`, boxShadow: `inset 0 0 0 1px ${has ? 'var(--adm-line-subtle)' : 'var(--adm-danger-line)'}`, color: none ? V7_MUTED : has ? V7_INK : 'var(--adm-danger)' }}><Ico name="lc-bed-double" size={13} />{stayText}</span>
-                                <span style={{ display: 'flex', transition: 'transform .2s', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={16} color={V7_MUTED} /></span>
+                        // 숙소 점 색은 수배 상태 원본(bookingStatusMeta.color)에서 실행 중에 정해진다.
+                        const dotColor = { '--v7-stay-dot': c } as React.CSSProperties;
+                        return <div key={day.id} className="v7-day">
+                            <button type="button" aria-expanded={open} className={open ? 'adm-v7-day v7-day-btn is-open' : 'adm-v7-day v7-day-btn'} onClick={() => setDayOpen(prev => ({ ...prev, [day.id]: !open }))}>
+                                <b className="v7-day-no">{day.day}일차</b>
+                                <span className="v7-day-date">{day.date ? (/^\d{4}-\d{2}-\d{2}$/.test(day.date) ? shortDate(day.date) : day.date) : startKey ? shortDate(new Date(Date.parse(`${startKey}T00:00:00Z`) + (day.day - 1) * 864e5).toISOString().slice(0, 10)) : ''}</span>
+                                <span className="v7-day-title">{day.title || `${day.day}일차 일정 작성`}</span>
+                                <span className={none ? 'v7-day-stay is-none' : has ? 'v7-day-stay' : 'v7-day-stay is-missing'} style={dotColor}><Ico name="lc-bed-double" size={13} />{stayText}</span>
+                                <span className={open ? 'v7-chevron is-open' : 'v7-chevron'}><Ico name="lc-chevron-down" size={16} color="var(--adm-text-3)" /></span>
                             </button>
-                            {open && <div style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '0 18px 16px 94px', padding: '4px 0 0', animation: 'rvPop 180ms ease-out' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    {activities.length ? activities.map((it, k) => <div key={k} style={{ display: 'grid', gridTemplateColumns: '52px 14px minmax(0,1fr)', gap: 10, alignItems: 'start' }}>
-                                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', fontVariantNumeric: 'tabular-nums', lineHeight: '20px' }}>{it.time || ''}</span>
-                                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', alignSelf: 'stretch' }}><span style={{ width: 8, height: 8, marginTop: 6, borderRadius: 999, background: 'var(--adm-accent)', boxShadow: '0 0 0 3px var(--adm-accent-line)' }} /><span style={{ flex: 1, width: 2, marginTop: 4, background: k === activities.length - 1 ? 'transparent' : 'var(--adm-accent-line)' }} /></span>
-                                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 12, minWidth: 0 }}><b style={{ fontSize: 14, fontWeight: 700, lineHeight: '20px' }}>{it.title}</b>{(it as any).description && <span style={{ fontSize: 12, lineHeight: '18px', color: V7_MUTED }}>{(it as any).description}</span>}</span>
-                                    </div>) : <span style={{ fontSize: 13, color: V7_MUTED, paddingBottom: 8 }}>상세 일정이 입력되지 않았습니다.</span>}
+                            {open && <div className="v7-day-body">
+                                <div className="v7-timeline">
+                                    {activities.length ? activities.map((it, k) => <div key={k} className="v7-tl-row">
+                                        <span className="v7-tl-time">{it.time || ''}</span>
+                                        <span className="v7-tl-rail"><span className="v7-tl-dot" /><span className={k === activities.length - 1 ? 'v7-tl-line is-last' : 'v7-tl-line'} /></span>
+                                        <span className="v7-tl-text"><b className="v7-tl-title">{it.title}</b>{(it as any).description && <span className="v7-tl-desc">{(it as any).description}</span>}</span>
+                                    </div>) : <span className="v7-empty-text">상세 일정이 입력되지 않았습니다.</span>}
                                 </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', paddingTop: 10, borderTop: '1px dashed var(--adm-accent-line)', fontSize: 12, color: 'var(--adm-text-2)' }}>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ico name="lc-utensils" size={13} color="var(--adm-accent-strong)" /><b style={{ fontWeight: 700 }}>식사</b>{day.meals || '미입력'}</span>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ico name="lc-car" size={13} color="var(--adm-accent-strong)" /><b style={{ fontWeight: 700 }}>이동</b>{day.travel || '미입력'}</span>
-                                    <button type="button" disabled={busy} onClick={action('edit-itinerary', day.id)} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}><Ico name="lc-pencil" size={12} />{day.day}일차 편집</button>
+                                <div className="v7-day-foot">
+                                    <span className="v7-fact"><Ico name="lc-utensils" size={13} color="var(--adm-accent-strong)" /><b>식사</b>{day.meals || '미입력'}</span>
+                                    <span className="v7-fact"><Ico name="lc-car" size={13} color="var(--adm-accent-strong)" /><b>이동</b>{day.travel || '미입력'}</span>
+                                    {likeBtn('text-btn is-primary is-sm v7-push', { disabled: busy, onClick: action('edit-itinerary', day.id) }, `${day.day}일차 편집`, <Ico name="lc-pencil" size={12} />)}
                                 </div>
                             </div>}
                         </div>;
                     })}
-                    {!m.days.length && <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 18, borderTop: '1px solid var(--adm-line-subtle)' }}><span style={{ flex: 1, fontSize: 13, color: V7_MUTED }}>아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><button type="button" disabled={busy} onClick={action('edit-itinerary')} style={ghostBtn(34)}>일정 작성하기</button></div>}
+                    {!m.days.length && <div className="v7-card-note is-row"><span className="v7-grow">아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><AdminButton variant="secondary" size="sm" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</AdminButton></div>}
                 </div>
 
             </div>
 
-            <div className="v7-side" style={{ flex: '1 1 320px', maxWidth: 440, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 84 }}>
-                <div id="sec-info" style={{ ...card, padding: '18px 20px 6px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 10 }}>
-                        <b style={{ flex: 1, fontSize: 16, fontWeight: 700 }}>고객 정보</b>
-                        <button type="button" title="고객 정보 복사" aria-label="고객 정보 복사" onClick={() => void copyInfo()} style={{ width: 38, height: 38, border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px var(--adm-line)', color: 'var(--adm-text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-copy" size={16} /></button>
-                        <button type="button" title={maskOn ? '개인정보 보기' : '개인정보 가리기'} aria-label={maskOn ? '개인정보 보기' : '개인정보 가리기'} aria-pressed={!maskOn} onClick={() => setMaskOn(!maskOn)} style={{ width: 38, height: 38, border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px var(--adm-line)', color: 'var(--adm-text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name={maskOn ? 'lc-eye' : 'lc-eye-off'} size={16} /></button>
-                        <button type="button" title="고객 정보 수정" aria-label="고객 정보 수정" disabled={busy} onClick={action('edit-info')} style={{ width: 38, height: 38, border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-surface)', boxShadow: 'inset 0 0 0 1px var(--adm-line)', color: 'var(--adm-text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-pencil" size={16} /></button>
+            <div className="v7-side">
+                <div id="sec-info" className="v7-card v7-info">
+                    <div className="v7-info-head">
+                        <b className="v7-info-title">고객 정보</b>
+                        <AdminIconButton label="고객 정보 복사" variant="outlined" onClick={() => void copyInfo()}><Ico name="lc-copy" size={16} /></AdminIconButton>
+                        {likeIconBtn(maskOn ? '개인정보 보기' : '개인정보 가리기', { 'aria-pressed': !maskOn, onClick: () => setMaskOn(!maskOn) }, <Ico name={maskOn ? 'lc-eye' : 'lc-eye-off'} size={16} />)}
+                        {likeIconBtn('고객 정보 수정', { disabled: busy, onClick: action('edit-info') }, <Ico name="lc-pencil" size={16} />)}
                     </div>
-                    {m.facts.slice(0, 3).map((f, i) => <div key={`${f.label}-${i}`} style={{ display: 'grid', gridTemplateColumns: '84px minmax(0,1fr)', gap: 10, padding: '6px 0', alignItems: 'center' }}>
-                        <span style={{ fontSize: 13, color: V7_MUTED }}>{f.label}</span>
-                        <span style={{ fontSize: 14, fontWeight: f.value ? 800 : 600, color: f.value ? V7_INK : 'var(--adm-text-3)', fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span>
+                    {m.facts.slice(0, 3).map((f, i) => <div key={`${f.label}-${i}`} className="v7-info-row">
+                        <span className="v7-info-label">{f.label}</span>
+                        <span className={f.value ? 'v7-info-value' : 'v7-info-value is-empty'}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span>
                     </div>)}
-                    <div style={{ height: 1, background: 'var(--adm-gray-100)', marginTop: 10 }} />
+                    <div className="v7-rule is-spaced" />
                     {m.facts.length > 3 && disclosure({ icon: 'lc-file-text', title: '예약 상세 정보', sub: `접수 · 주문 경로 등 ${m.facts.length - 3}개 항목`, open: sections.bk, onToggle: () => setSections(s => s.bk ? {} as Record<string, boolean> : { bk: true }), children:
-                        <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 16px', marginBottom: 12, background: 'var(--adm-gray-50)', borderRadius: 'var(--adm-radius-md)' }}>
-                            {m.facts.slice(3).map((f, i) => <div key={`${f.label}-${i}`} style={{ display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: 10, padding: '7px 0', fontSize: 13 }}><span style={{ color: V7_MUTED }}>{f.label}</span><span style={{ fontWeight: 700, color: f.value ? V7_INK : 'var(--adm-text-3)', lineHeight: 1.55, overflowWrap: 'anywhere' }}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span></div>)}
+                        <div className="v7-soft-box v7-kv-list">
+                            {m.facts.slice(3).map((f, i) => <div key={`${f.label}-${i}`} className="v7-kv is-wide"><span className="v7-kv-key">{f.label}</span><span className={f.value ? 'v7-kv-value' : 'v7-kv-value is-empty'}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span></div>)}
                         </div>
                     })}
                     {!!m.flights?.length && disclosure({ icon: 'lc-plane', title: '항공편', sub: `${confirmedFlights}/${m.flights.length}편 정보 등록`, badge: confirmedFlights === m.flights.length ? '등록됨' : undefined, open: sections.fl, onToggle: () => setSections(s => s.fl ? {} as Record<string, boolean> : { fl: true }), children:
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
-                            {m.flights.map(f => { const ok = !!(f.date && f.time && f.flight); return <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '14px 16px', background: 'var(--adm-gray-50)', borderRadius: 'var(--adm-radius-md)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Ico name={f.id === 'departure' ? 'lc-plane-takeoff' : 'lc-plane-landing'} size={15} /><b style={{ flex: 1, fontSize: 13, fontWeight: 700 }}>{f.label}</b><span style={chip(ok ? 'mint' : 'red', true)}>{ok ? '등록됨' : '미등록'}</span></div>
-                                <b style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', color: f.flight ? V7_INK : 'var(--adm-text-3)' }}>{f.flight || '미등록'}</b>
-                                {[{ k: '날짜', v: f.date }, { k: f.id === 'departure' ? '몽골 출발' : '몽골 도착', v: f.time }, ...(f.extra || []).map(x => ({ k: x.label, v: x.value }))].map((kv, i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13 }}><span style={{ color: V7_MUTED }}>{kv.k}</span><b style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{kv.v || '미입력'}</b></div>)}
+                        <div className="v7-stack">
+                            {m.flights.map(f => { const ok = !!(f.date && f.time && f.flight); return <div key={f.id} className="v7-soft-box v7-flight">
+                                <div className="v7-flight-head"><Ico name={f.id === 'departure' ? 'lc-plane-takeoff' : 'lc-plane-landing'} size={15} /><b className="v7-grow">{f.label}</b><V7Badge tone={ok ? 'mint' : 'red'} size="sm">{ok ? '등록됨' : '미등록'}</V7Badge></div>
+                                <b className={f.flight ? 'v7-flight-no' : 'v7-flight-no is-empty'}>{f.flight || '미등록'}</b>
+                                {[{ k: '날짜', v: f.date }, { k: f.id === 'departure' ? '몽골 출발' : '몽골 도착', v: f.time }, ...(f.extra || []).map(x => ({ k: x.label, v: x.value }))].map((kv, i) => <div key={i} className="v7-kv is-split"><span className="v7-kv-key">{kv.k}</span><b className="v7-kv-num">{kv.v || '미입력'}</b></div>)}
                             </div>; })}
-                            <button type="button" disabled={busy} onClick={action('flights')} style={{ alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>항공편 수정<Ico name="lc-chevron-right" size={12} /></button>
+                            <AdminTextButton size="sm" className="v7-end" disabled={busy} onClick={action('flights')} trailing={<Ico name="lc-chevron-right" size={12} />}>항공편 수정</AdminTextButton>
                         </div>
                     })}
                     {travelers && disclosure({ icon: 'lc-users', title: '여행자 정보', sub: `${travelers.registered}${travelers.expected !== null ? `/${travelers.expected}` : ''}명 등록`, open: sections.tr, onToggle: () => setSections(s => s.tr ? {} as Record<string, boolean> : { tr: true }), children: <>
-                        <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 12, borderRadius: 'var(--adm-radius-md)', boxShadow: 'inset 0 0 0 1px var(--adm-line-subtle)', overflow: 'hidden' }}>
-                            {travelers.people.map((person, i) => { const open = travelerOpen === i; return <div key={person.id} style={{ borderTop: i ? '1px solid var(--adm-line-subtle)' : 0 }}>
-                                <button type="button" aria-expanded={open} onClick={() => setTravelerOpen(open ? -1 : i)} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: 48, padding: '0 14px', border: 0, background: 'var(--adm-surface)', font: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
-                                    <span style={{ width: 24, height: 24, flex: 'none', borderRadius: 999, boxShadow: 'inset 0 0 0 1px var(--adm-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--adm-text-2)' }}>{i + 1}</span>
-                                    <b style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{person.name || '이름 미입력'}</b>
-                                    <span style={{ fontSize: 12, color: V7_MUTED }}>{person.details.find(d => /구분|성인|아동/.test(d.label))?.value || ''}</span>
-                                    <span style={{ display: 'flex', color: 'var(--adm-text-3)', transition: 'transform 200ms', transform: open ? 'rotate(180deg)' : 'none' }}><Ico name="lc-chevron-down" size={15} /></span>
+                        <div className="v7-travelers">
+                            {travelers.people.map((person, i) => { const open = travelerOpen === i; return <div key={person.id} className="v7-traveler">
+                                <button type="button" aria-expanded={open} className="adm-v7-traveler" onClick={() => setTravelerOpen(open ? -1 : i)}>
+                                    <span className="v7-traveler-no">{i + 1}</span>
+                                    <b className="v7-traveler-name">{person.name || '이름 미입력'}</b>
+                                    <span className="v7-traveler-kind">{person.details.find(d => /구분|성인|아동/.test(d.label))?.value || ''}</span>
+                                    <span className={open ? 'v7-chevron is-open' : 'v7-chevron'}><Ico name="lc-chevron-down" size={15} /></span>
                                 </button>
-                                {open && <div style={{ display: 'flex', flexDirection: 'column', gap: 2, margin: '0 12px 12px', padding: '10px 14px', background: 'var(--adm-gray-50)', borderRadius: 'var(--adm-radius-md)' }}>
-                                    {person.details.map((kv, k) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '5px 0', fontSize: 13 }}><span style={{ color: V7_MUTED }}>{kv.label}</span><b style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', textAlign: 'right', overflowWrap: 'anywhere' }}>{kv.value ? maskFact(kv.label, kv.value, maskOn) : '미입력'}</b></div>)}
+                                {open && <div className="v7-soft-box v7-traveler-body">
+                                    {person.details.map((kv, k) => <div key={k} className="v7-kv is-split"><span className="v7-kv-key">{kv.label}</span><b className="v7-kv-num is-end">{kv.value ? maskFact(kv.label, kv.value, maskOn) : '미입력'}</b></div>)}
                                 </div>}
                             </div>; })}
-                            {!travelers.people.length && <div style={{ padding: '12px 14px', fontSize: 13, color: V7_MUTED }}>등록된 여행자가 없습니다.</div>}
-                            {missingTravelers > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderTop: '1px solid var(--adm-line-subtle)', background: 'var(--adm-danger-soft)', fontSize: 13, fontWeight: 700, color: 'var(--adm-danger)' }}><Ico name="lc-circle-alert" size={14} />{missingTravelers}명 여권 정보 미제출</div>}
+                            {!travelers.people.length && <div className="v7-travelers-empty">등록된 여행자가 없습니다.</div>}
+                            {missingTravelers > 0 && <div className="v7-travelers-alert"><Ico name="lc-circle-alert" size={14} />{missingTravelers}명 여권 정보 미제출</div>}
                         </div>
-                        <button type="button" disabled={busy} onClick={action('travelers')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 12, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>여행자 전체 상세보기<Ico name="lc-chevron-right" size={12} /></button>
+                        <AdminTextButton size="sm" className="v7-after" disabled={busy} onClick={action('travelers')} trailing={<Ico name="lc-chevron-right" size={12} />}>여행자 전체 상세보기</AdminTextButton>
                     </> })}
                     {disclosure({ icon: 'lc-message-circle', title: '고객 요청 사항', sub: m.preferences?.length ? `요청 ${m.preferences.length}건` : '등록된 요청 없음', open: sections.rq, onToggle: () => setSections(s => s.rq ? {} as Record<string, boolean> : { rq: true }), children:
-                        <div style={m.preferences?.length ? { margin: '0 0 14px', padding: '12px 14px', background: 'var(--adm-gray-50)', borderRadius: 'var(--adm-radius-md)', fontSize: 13, fontWeight: 600, lineHeight: 1.6, color: V7_INK, whiteSpace: 'pre-wrap' } : { margin: '0 0 14px', fontSize: 13, color: V7_MUTED }}>{m.preferences?.length ? m.preferences.join('\n') : '등록된 요청 사항이 없어요.'}</div>
+                        <div className={m.preferences?.length ? 'v7-soft-box v7-requests' : 'v7-requests is-empty'}>{m.preferences?.length ? m.preferences.join('\n') : '등록된 요청 사항이 없어요.'}</div>
                     })}
                 </div>
 
-                <div id="sec-memo" className="v7-memo" style={{ ...card, gap: 10, padding: '16px 18px' }}>
-                    <b style={{ fontSize: 15, fontWeight: 700 }}>운영 메모</b>
-                    {m.notes.length > 0 && <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>{m.notes.slice(-4).map(note => <li key={note.id} style={{ padding: '10px 12px', background: 'var(--adm-gray-50)', borderRadius: 'var(--adm-radius-md)' }}>
-                        <div style={{ display: 'flex', gap: 8, fontSize: 12, color: V7_MUTED }}><b style={{ color: 'var(--adm-text-2)' }}>{note.author || '관리자 메모'}</b>{note.at && <span>{note.at}</span>}</div>
-                        <p style={{ margin: '4px 0 0', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{note.body}</p>
+                <div id="sec-memo" className="v7-memo v7-card v7-card-pad">
+                    <b className="v7-card-title">운영 메모</b>
+                    {m.notes.length > 0 && <ol className="v7-notes">{m.notes.slice(-4).map(note => <li key={note.id} className="v7-note">
+                        <div className="v7-note-meta"><b>{note.author || '관리자 메모'}</b>{note.at && <span>{note.at}</span>}</div>
+                        <p className="v7-note-body">{note.body}</p>
                     </li>)}</ol>}
-                    {noteComposer || <button type="button" disabled={busy} onClick={action('notes')} style={ghostBtn()}>메모 작성</button>}
+                    {noteComposer || likeBtn('btn is-secondary is-md', { disabled: busy, onClick: action('notes') }, '메모 작성')}
                 </div>
 
-                <div id="sec-log" style={{ ...card, gap: 4, padding: '16px 18px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}><b style={{ fontSize: 15, fontWeight: 700 }}>알림 · 변경 이력</b><span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: V7_MUTED }}>{logs.length}건</span></div>
-                    {logs.map((lg, i) => { const tag = LOG_TAGS[lg.kind] || LOG_TAGS.change; return <div key={lg.id} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr)', gap: 10 }}>
-                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}><span style={{ width: 10, height: 10, marginTop: 5, borderRadius: 999, boxSizing: 'border-box', background: i === 0 ? 'var(--adm-accent)' : 'var(--adm-surface)', border: i === 0 ? '0' : '2px solid var(--adm-line-strong)', boxShadow: i === 0 ? '0 0 0 4px var(--adm-accent-soft)' : 'none' }} /><span style={{ flex: 1, width: 2, background: 'var(--adm-gray-100)', marginTop: 4 }} /></span>
-                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 14, minWidth: 0 }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><span style={chip(tag.tone, false, { height: 20 })}>{tag.tag}</span><span style={{ fontSize: 14, fontWeight: 700 }}>{lg.title}</span>{lg.internal && <span style={{ fontSize: 11, color: V7_MUTED }}>내부</span>}</span>
-                            {lg.detail && <span style={{ fontSize: 12, color: 'var(--adm-text-2)' }}>{lg.detail}</span>}
-                            <span style={{ fontSize: 12, color: V7_MUTED, fontVariantNumeric: 'tabular-nums' }}>{historyTime(lg.at)}</span>
+                <div id="sec-log" className="v7-card v7-card-pad v7-log">
+                    <div className="v7-log-head"><b className="v7-card-title">알림 · 변경 이력</b><span className="v7-log-count">{logs.length}건</span></div>
+                    {logs.map((lg, i) => { const tag = LOG_TAGS[lg.kind] || LOG_TAGS.change; return <div key={lg.id} className="v7-log-row">
+                        <span className="v7-log-rail"><span className={i === 0 ? 'v7-log-dot is-latest' : 'v7-log-dot'} /><span className="v7-log-line" /></span>
+                        <span className="v7-log-text">
+                            <span className="v7-log-title-row"><V7Badge tone={tag.tone} size="sm">{tag.tag}</V7Badge><span className="v7-log-title">{lg.title}</span>{lg.internal && <span className="v7-log-internal">내부</span>}</span>
+                            {lg.detail && <span className="v7-log-detail">{lg.detail}</span>}
+                            <span className="v7-log-time">{historyTime(lg.at)}</span>
                         </span>
                     </div>; })}
-                    {!logs.length && <span style={{ fontSize: 13, color: V7_MUTED, paddingBottom: 8 }}>저장된 처리 이력이 없습니다.</span>}
-                    <button type="button" disabled={busy} onClick={action('history')} style={{ alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>전체 이력<Ico name="lc-chevron-right" size={14} /></button>
+                    {!logs.length && <span className="v7-empty-text">저장된 처리 이력이 없습니다.</span>}
+                    {likeBtn('text-btn is-primary is-md v7-end', { disabled: busy, onClick: action('history') }, '전체 이력', undefined, <Ico name="lc-chevron-right" size={14} />)}
                 </div>
             </div>
         </div>
