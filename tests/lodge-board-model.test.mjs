@@ -108,3 +108,16 @@ test('숙소 고르기 등급 묶음: 호텔·고급게르·일반게르·기타
     assert.equal(m.lodgeGradeGroupOf(''), '기타');
 });
 
+
+test('표로 보기는 디자인의 조작부 한 줄과 머리글 한 줄을 쓰고 달력 띠는 없다', () => {
+    const board = readFileSync('src/components/admin/accommodation/LodgeAssignBoard.tsx', 'utf8');
+    for (const label of ['고객명·숙소명으로 찾기', '숙박 기간', '이번 주 체크인', '이번 달 체크인', '배정 상태로 거르기', '+ 숙소 고르기', '숙박이 아직 없습니다', '모두 접기']) assert.ok(board.includes(label), label);
+    assert.match(board, /from '\.\.\/ui'/, '우리 관리자 부품을 쓴다');
+    assert.doesNotMatch(board, /la-strip|la-cal|la-month/, '숙박 일정 달력 띠는 디자인에서 빠졌다');
+});
+
+test('표로 보기에 들어오면 예약 줄은 모두 접힌 채로 시작한다', () => {
+    const board = readFileSync('src/components/admin/accommodation/LodgeAssignBoard.tsx', 'utf8');
+    assert.match(board, /const \[opened, setOpened\] = useState<Set<string>>\(new Set\(\)\);/, '처음에는 펼친 예약이 없다');
+    assert.match(board, /open = opened\.has\(t\.id\)/);
+});

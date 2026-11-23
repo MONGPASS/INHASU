@@ -17,7 +17,8 @@ const built = await build({
             [/\/admin\/console\/Icon$/, 'icon'], [/\/lib\/api$/, 'api'],
             [/\/registeredAssignmentResources$/, 'resources'], [/\/ui\/adminFeedback$/, 'feedback'],
             // 배정 보드(LodgeAssignQueue)와 보기 전환(AdminSegmented)은 Montage 화면 부품이라 대역으로 둔다. 이 파일은 카드·표 보기의 편집 흐름을 검사한다.
-            [/\/accommodation\/LodgeAssignQueue$/, 'queue'], [/\/components\/admin\/ui$/, 'ui'],
+            // 표로 보기(LodgeAssignBoard)의 찾기·고르기·칩·배지도 우리 관리자 부품이라 같은 대역을 쓴다(값은 props로 확인).
+            [/\/accommodation\/LodgeAssignQueue$/, 'queue'], [/\/components\/admin\/ui$|^\.\.\/ui$/, 'ui'],
         ]) builder.onResolve({ filter }, () => ({ path, namespace: 'ops-events' }));
         builder.onLoad({ filter: /.*/, namespace: 'ops-events' }, ({ path }) => ({ loader: 'js', contents: {
             react: `export const useState=(...a)=>globalThis.h.useState(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useMemo=(...a)=>globalThis.h.useMemo(...a),useRef=(...a)=>globalThis.h.useRef(...a),useCallback=(f,d)=>useMemo(()=>f,d);export default {Fragment:'fragment'};`,
@@ -25,7 +26,7 @@ const built = await build({
             'react-router-dom': `export const useBlocker=()=>({state:'unblocked',reset(){},proceed(){}});`,
             user: `export const useUser=()=>({user:{id:'admin-fixture',role:'admin'},loading:false});`,
             layout: `export const AdminLayout=()=>null;`, icon: `export const Icon=()=>null;`,
-            queue: `export const LodgeAssignQueue=()=>null;`, ui: `export const AdminSegmented=()=>null;`,
+            queue: `export const LodgeAssignQueue=()=>null;`, ui: `export const AdminSegmented=()=>null,AdminBadge=()=>null,AdminChipGroup=()=>null,AdminIconButton=()=>null,AdminSearch=()=>null,AdminSelect=()=>null,AdminTextButton=()=>null;`,
             api: `export const api=globalThis.api;`,
             resources: `export const loadRegisteredAssignmentResources=(...a)=>globalThis.loadResources(...a);`,
             // 공통 알림·확인 창은 화면 부품이라, 같은 약속(Promise<boolean>)의 대역으로 바꾼다.
@@ -512,7 +513,13 @@ test('당일 투어와 여행 기간이 없는 예약은 잘못된 0박 확정 �
 // 숙소 배정 시트(LodgeAssignBoard)는 별도 컴포넌트라 직접 그려서 칸을 찾고, 칸을 누르면 뜨는 고르기 창에서 값을 고른다.
 const boardEl = h => { const el = nodes(h.tree).find(node => typeof node.type === 'function' && Array.isArray(node.props?.tours)); assert.ok(el, '시트 보기'); return el; };
 // 보드도 hook을 쓰므로 페이지를 먼저 다시 그려 hook 순서를 맞춘 뒤 보드를 그린다.
-const boardNodes = h => { h.render(); const el = boardEl(h); return nodes(el.type(el.props)); };
+// 표로 보기는 예약 줄이 접힌 채로 시작한다. 숙박 칸을 찾기 전에 아래 ‘모두 펼치기’를 한 번 누른다(이미 펼쳤으면 그대로).
+const boardNodes = h => {
+    h.render(); let el = boardEl(h), found = nodes(el.type(el.props));
+    const expand = found.find(n => typeof n.type === 'function' && text(n) === '모두 펼치기');
+    if (expand) { expand.props.onClick(); h.render(); el = boardEl(h); found = nodes(el.type(el.props)); }
+    return found;
+};
 const fakeClick = { stopPropagation() {}, preventDefault() {}, currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 0, bottom: 0 }) } };
 const boardField = (h, label) => { const node = boardNodes(h).find(n => n.props?.['aria-label'] === label); assert.ok(node, label); return node; };
 const boardPick = (h, label, value) => {
@@ -549,7 +556,7 @@ test('시트 보기: 오늘 이후 투어만 보여 주고 분류·배정 구분
     assert.deepEqual(plain(boardEl(h).props.tours.map(t => t.customerName)).sort(), ['견적 고객', '상품 고객'], '지난 투어는 목록에 없다');
     assert.ok(!nodes(h.tree).some(node => node.props?.id === 'acc-row-product:same / #?'), '시트 보기에서는 카드 목록을 그리지 않는다');
     // 들어오면 달을 고르지 않고 전체 기간의 예약을 모두 보여 준다.
-    assert.ok(boardNodes(h).some(n => n.type === 'b' && text(n) === '전체 기간'), '처음에는 전체 기간');
+    assert.equal(boardField(h, '숙박 기간').props.value, 'all', '처음에는 전체 기간');
 
     boardField(h, '상품 고객 예약 정보 보기').props.onClick(fakeClick); h.render();
     boardPick(h, '상품 고객 분류', '골프투어');
@@ -590,7 +597,7 @@ test('시트 보기: 숙소지역은 계약 일정의 그날 지역을 불러오
     assert.equal(text(boardField(h, '대표 고객 1박 숙소지역')), 'Terelj', '저장된 지역이 없으면 계약 일정의 지역');
     assert.match(boardField(h, '대표 고객 1박 숙소지역').props.className, /is-planned/);
     assert.equal(text(boardField(h, '대표 고객 2박 숙소지역')), 'UB', '저장된 지역이 우선');
-    assert.match(text(boardField(h, '대표 고객 1박 숙소정보')), /미배정/, '숙소가 없으면 미배정');
+    assert.match(text(boardField(h, '대표 고객 1박 숙소정보')), /숙소 고르기/, '숙소가 없으면 숙소 고르기 칸');
     // 그 숙박일을 고치면 불러온 지역이 함께 저장된다.
     boardPick(h, '대표 고객 1박 등급', '고급 게르');
     assert.equal(plan(), '풀패키지', '배정한 등급으로 다시 판단');
@@ -653,7 +660,7 @@ test('시트 보기: 숙소를 고르면 지역을 함께 넣고, 숙박 추가�
     assert.equal(boardNodes(h).filter(n => n.props?.className === 'la-remove').length, 0, '계약 일정 숙박은 지울 수 없다');
     boardButton(h, '숙박 추가').props.onClick(); h.render();
     assert.equal(boardNodes(h).filter(n => n.props?.className === 'la-remove').length, 1, '추가한 숙박만 지울 수 있다');
-    assert.ok(boardNodes(h).some(n => n.props?.className === 'la-date' && text(n).startsWith('2026-11-02')), '마지막 숙박 다음 날');
+    assert.ok(boardNodes(h).some(n => n.props?.className === 'la-date' && text(n).startsWith('11.02')), '마지막 숙박 다음 날');
     boardPick(h, '상품 고객 2박 숙소지역', '중앙몽골');
     boardPick(h, '상품 고객 2박 숙소정보', '등록 게르 / #?');
     assert.match(text(boardField(h, '상품 고객 2박 메일발송')), /발송전/);

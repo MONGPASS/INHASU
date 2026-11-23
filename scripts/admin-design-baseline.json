@@ -243,10 +243,10 @@
   "nativeDialog": 0
  },
  "src/components/admin/accommodation/LodgeAssignBoard.tsx": {
-  "rawButton": 37,
-  "rawField": 5,
+  "rawButton": 22,
+  "rawField": 3,
   "rawTable": 0,
-  "inlineStyle": 6,
+  "inlineStyle": 4,
   "px": 4,
   "hex": 0,
   "nativeDialog": 1
@@ -771,9 +771,9 @@
   "rawPx": 0
  },
  "src/components/admin/accommodation/LodgeAssignBoard.css": {
-  "hex": 10,
-  "important": 33,
-  "rawPx": 178
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
  },
  "src/components/admin/accommodation/LodgeAssignQueue.css": {
   "hex": 0,
