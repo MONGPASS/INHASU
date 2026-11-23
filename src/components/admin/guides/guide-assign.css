@@ -24,6 +24,9 @@
   border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
 .adm-ga-row.is-head { color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); border-bottom-color: var(--adm-line); }
 .adm-ga-row.is-sel { background: var(--adm-accent-soft); }
+/* 예약 상세의 ‘편집’으로 들어온 예약 */
+.adm-ga-row.is-focus { background: var(--adm-accent-soft); box-shadow: inset calc(var(--adm-border-width) * 3) 0 0 var(--adm-accent); }
+.adm-ga-focus { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-3); margin-bottom: var(--adm-space-3); }
 .adm-ga-c-acts { display: flex; align-items: center; justify-content: flex-end; gap: var(--adm-space-1); }
 .adm-ga-stack { display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
 .adm-ga-line { display: flex; align-items: center; gap: calc(var(--adm-space-1) * 1.5); }

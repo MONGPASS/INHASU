@@ -81,6 +81,21 @@
   font: inherit; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); cursor: pointer; }
 .rdc-open:disabled { color: var(--adm-text-disabled); cursor: not-allowed; }
 
+/* 배정은 보기 전용(2026-11-23): 값 + 해당 메뉴로 가는 편집 링크 */
+.rdc-value-row { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); min-height: var(--adm-control-h-sm); }
+.rdc-value { min-width: 0; overflow: hidden; color: var(--adm-text); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.rdc-value.is-empty { color: var(--adm-danger); }
+.rdc-edit { display: inline-flex; flex: none; align-items: center; gap: calc(var(--adm-space-1) / 2); padding: var(--adm-space-1) 0; border: 0; background: transparent; color: var(--adm-accent-strong);
+  font: inherit; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); text-decoration: none; white-space: nowrap; cursor: pointer; }
+.rdc-edit:hover { text-decoration: underline; }
+.rdc-edit:focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-accent-strong); outline-offset: var(--adm-border-width); }
+.rdc-edit:disabled { color: var(--adm-text-disabled); cursor: not-allowed; }
+a.rdc-sel { text-decoration: none; }
+.rdc-asg-note { margin-left: auto; color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); white-space: nowrap; }
+.rdc-cell { min-width: 0; overflow: hidden; color: var(--adm-text); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.rdc-cell.is-empty { color: var(--adm-text-3); font-weight: var(--adm-fw-semibold); }
+.v7-asg-row .rdc-edit, #sec-asg .rdc-edit { margin-left: auto; }
+
 @media (max-width: 1280px) { .rdc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) {
   .rdc-grid { grid-template-columns: minmax(0, 1fr); }
