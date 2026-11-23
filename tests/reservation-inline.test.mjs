@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildSync } from 'esbuild';
-import { createRequire } from 'node:module';
+import { requireAdminUi } from './helpers/require-admin-ui.mjs';
 import { fileURLToPath } from 'node:url';
 import { buildProductQuote, mergeProductDays } from '../functions/lib/productItinerary.ts';
 
@@ -18,7 +18,7 @@ const bundle = buildSync({
     define: { 'import.meta.env': '{}' },
 }).outputFiles[0].text;
 const module = { exports: {} };
-const require = createRequire(import.meta.url);
+const require = requireAdminUi(import.meta.url);
 const editorRequire = id => id.endsWith('/adminPagePreload') ? { preloadAdminPage() {} } : require(id);
 new Function('require', 'module', 'exports', bundle)(editorRequire, module, module.exports);
 const { createInlineDocument, applyQuoteSnippet, groupQuoteLibrary, quoteDayFields, updateQuoteDay, quoteDateForStart, fillQuoteDayDates, parseQuoteMove } = module.exports;

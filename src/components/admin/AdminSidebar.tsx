@@ -13,7 +13,7 @@ import {
     badgeText, findMenus, groupOfPage, groupSummary, moveIndex, navBadges, OPEN_KEY, pushRecent, readJson, RECENT_KEY, recentMenus,
     resolveOpenGroups, writeJson, type NavBadge,
 } from './adminSidebarModel';
-import { AdminButton, AdminIconButton, AdminSearch, AdminTextButton, cx } from './ui';
+import { AdminBadge, AdminButton, AdminIconButton, AdminSearch, AdminTextButton, cx } from './ui';
 import { preloadAdminPage } from '../../lib/adminPagePreload';
 import './AdminSidebar.css';
 
@@ -44,7 +44,7 @@ const GROUP_ICONS: Record<string, IconComponent> = { 'customer-content': IconMai
 const iconOf = (item: NavItem) => MENU_ICONS[item.id] || IconDocument;
 
 const Badge: React.FC<{ badge: NavBadge }> = ({ badge }) => (
-    <span className={cx('adm-side-badge', `is-${badge.kind}`)} aria-label={badge.label}>{badgeText(badge.count)}</span>
+    <AdminBadge className="adm-side-badge" tone={badge.kind === 'alert' ? 'danger' : 'info'} aria-label={badge.label}>{badgeText(badge.count)}</AdminBadge>
 );
 
 /** 메뉴 이름에서 찾은 글자를 표시한다. */

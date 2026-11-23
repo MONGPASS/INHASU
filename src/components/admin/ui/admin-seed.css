@@ -1,0 +1,7 @@
+@import '@seed-design/css/base.css';
+
+[data-admin-seed="button"] {
+    --seed-color-bg-brand-solid: var(--adm-seed-brand);
+    --seed-color-bg-brand-solid-pressed: var(--adm-seed-brand-hover);
+    --seed-color-fg-on-brand-solid: var(--adm-on-primary);
+}

@@ -1445,7 +1445,8 @@ if (process.argv.includes('--serve')) {
         try {
             const url = new URL(req.url, `http://${req.headers.host || `localhost:${port}`}`);
             if (url.pathname === '/__local-admin') {
-                res.writeHead(302, { Location: '/admin/reservations', 'Set-Cookie': `${admin.cookie}; Path=/; HttpOnly; SameSite=Lax; Secure`, 'Cache-Control': 'no-store' });
+                const location = url.searchParams.get('view') === 'inbox' ? '/admin/quote-desk/inbox' : '/admin/reservations';
+                res.writeHead(302, { Location: location, 'Set-Cookie': `${admin.cookie}; Path=/; HttpOnly; SameSite=Lax; Secure`, 'Cache-Control': 'no-store' });
                 res.end(); return;
             }
             if (url.pathname === '/__local-customer' || url.pathname === '/__local-anonymous') {

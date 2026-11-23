@@ -19,6 +19,7 @@
 .adm-ui-btn.is-danger.is-danger { background: var(--adm-danger); }
 .adm-ui-btn.is-danger.is-danger, .adm-ui-btn.is-danger.is-danger * { color: var(--adm-surface); }
 /* 저장 중: 글자는 그대로, 앞에 작은 회전 표시, 누르기 막음 */
+.adm-ui-btn.is-full-width { width: 100%; }
 .adm-ui-btn.is-loading.is-loading { pointer-events: none; cursor: progress; }
 .adm-ui-btn-spinner {
   display: inline-block; flex: none; box-sizing: border-box;
@@ -87,8 +88,8 @@ a.adm-ui-btn, a.adm-ui-text-btn, a.adm-ui-icon-btn { text-decoration: none; }
 .adm-ui-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--adm-space-4); padding: var(--adm-space-3) 0; }
 .adm-ui-pagination-summary { margin-right: auto; color: var(--adm-text-3); font-size: var(--adm-fs-small); }
 
-/* ── 배지: 모서리 4, 12px 600, 옅은 상태색 바탕 + 상태색 글자 ── */
-.adm-ui-badge.adm-ui-badge { --badge-fg: var(--adm-text-2); --badge-bg: var(--adm-neutral-soft); border-radius: var(--adm-radius-xs); background: var(--badge-bg); color: var(--badge-fg); font-family: var(--adm-font); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); white-space: nowrap; }
+/* ── 배지: 모서리 6, 12px 600, 옅은 상태색 바탕 + 상태색 글자 ── */
+.adm-ui-badge.adm-ui-badge { --badge-fg: var(--adm-text-2); --badge-bg: var(--adm-neutral-soft); border-radius: var(--adm-radius-badge); background: var(--badge-bg); color: var(--badge-fg); font-family: var(--adm-font); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); white-space: nowrap; }
 .adm-ui-badge.adm-ui-badge * { color: inherit; }
 .adm-ui-badge.is-info { --badge-fg: var(--adm-accent-strong); --badge-bg: var(--adm-accent-soft); }
 .adm-ui-badge.is-success { --badge-fg: var(--adm-success-strong); --badge-bg: var(--adm-success-soft); }

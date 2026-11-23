@@ -3,6 +3,7 @@ import { useBlocker, useLocation, useNavigate, useParams, useSearchParams } from
 import { useUser } from '../contexts/UserContext';
 import { AdminDeliveryHistory } from '../components/admin/AdminDeliveryHistory';
 import type { AdminDeliveryData } from '../types/adminDelivery';
+import { AdminBadge } from '../components/admin/ui';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import { createPortal } from 'react-dom';
@@ -627,7 +628,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                     {customerPage && editorExpanded && customerModel && <div className="quote-customer-editor-heading">
                         <button type="button" className="btn btn-ghost quote-customer-return" disabled={editorBusy} onClick={closeCustomerEditor}><Icon name="arrow_back" />고객 현황</button>
                         <div className="quote-customer-focus-identity"><h2 ref={customerEditorTitleRef} tabIndex={-1} id="quote-customer-editor-title">{customerModel.customerName}<span>{customerEditorLabel.title}</span></h2><p>{customerModel.partyLabel}<span aria-hidden="true">·</span>{customerModel.period}</p></div>
-                        <span className="quote-customer-focus-status" role="status">{editorBusy ? '작업 처리 중' : customerModel.statusLabel}</span>
+                        <AdminBadge className="quote-customer-focus-status" role="status" tone={editorBusy ? 'tag-blue' : 'neutral'}>{editorBusy ? '작업 처리 중' : customerModel.statusLabel}</AdminBadge>
                         <div className="quote-customer-editor-tools">
                             {bookingEditor && <button ref={deliveryButtonRef} type="button" disabled={editorBusy} aria-haspopup="menu" onClick={event => deliveryMenu(event.currentTarget)}><Ico name="lc-send" size={15} color="#0E9E7A" /><span className="label">고객에게 전달</span><Ico name="lc-chevron-down" size={12} /></button>}
                             {bookingEditor && <button type="button" disabled={editorBusy} aria-haspopup="menu" onClick={event => guideMenu(event.currentTarget)}><Ico name="lc-file-text" size={15} /><span className="label">가이드 전달</span><Ico name="lc-chevron-down" size={12} /></button>}

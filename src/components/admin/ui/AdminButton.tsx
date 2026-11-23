@@ -1,11 +1,13 @@
 import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, IconButton, TextButton } from '@montage-ui/core';
-import { cx, MONTAGE_SIZE, type AdminSize } from './adminUiUtils';
+import { IconButton, TextButton } from '@montage-ui/core';
+import { ActionButton } from '@seed-design/react';
+import { cx, type AdminSize } from './adminUiUtils';
+import './admin-seed.css';
 import './admin-components.css';
 
 /**
- * 관리자 버튼 세 가지. 화면 파일은 Montage를 직접 쓰지 않고 이 부품만 쓴다(docs/admin-design-system.md 3절).
+ * 관리자 버튼 세 가지. 화면 파일은 이 부품만 쓴다(docs/admin-design-system.md 3절).
  * - AdminButton: 주요(민트 채움 + --adm-on-primary 글자) · 보조(흰 바탕 테두리) · 약한(회색) · 위험(빨강). 화면당 주요 하나.
  * - AdminIconButton: 아이콘만 있는 버튼. 이름(label)은 꼭 준다(화면 읽기·툴팁).
  * - AdminTextButton: 글자 버튼(더 보기·목록으로 같은 가벼운 이동).
@@ -30,12 +32,14 @@ export interface AdminButtonProps extends NativeButtonProps {
     replace?: boolean;
 }
 
-const MONTAGE_VARIANT: Record<AdminButtonVariant, { variant: 'solid' | 'outlined'; color: 'primary' | 'assistive' | 'negative' }> = {
-    primary: { variant: 'solid', color: 'primary' },
-    secondary: { variant: 'outlined', color: 'assistive' },
-    weak: { variant: 'solid', color: 'assistive' },
-    danger: { variant: 'solid', color: 'negative' },
-};
+const SEED_VARIANT = {
+    primary: 'brandSolid',
+    secondary: 'neutralOutline',
+    weak: 'neutralWeak',
+    danger: 'criticalSolid',
+} as const;
+
+const SEED_SIZE = { sm: 'small', md: 'medium', lg: 'large' } as const;
 
 const linkOrButton = (to: string | undefined, replace: boolean | undefined, type: NativeButtonProps['type']) =>
     (to ? { as: Link, to, replace } : { type: type ?? 'button' }) as Record<string, unknown>;
@@ -43,27 +47,30 @@ const linkOrButton = (to: string | undefined, replace: boolean | undefined, type
 export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>(function AdminButton(
     { variant = 'secondary', size = 'md', loading = false, fullWidth = false, leading, trailing, to, replace, type, className, children, onClick, ...rest }, ref,
 ) {
-    const m = MONTAGE_VARIANT[variant];
-    // 저장 중: Montage loading은 글자를 감추므로 쓰지 않는다. 글자(‘저장 중…’)를 그대로 보이고 앞에 작은 회전 표시,
-    // 누르기·제출을 막는다(onClick 떼기 + type=button + CSS pointer-events). disabled·aria-disabled는 Montage가 회색으로 바꾸므로 쓰지 않는다.
-    return (
-        <Button
-            ref={ref}
-            {...linkOrButton(to, replace, loading ? 'button' : type)}
-            {...rest}
-            onClick={loading ? undefined : onClick}
-            aria-busy={loading || undefined}
-            variant={m.variant}
-            color={m.color}
-            size={MONTAGE_SIZE[size]}
-            fullWidth={fullWidth}
-            leadingContent={loading ? <span className="adm-ui-btn-spinner" aria-hidden="true" /> : leading}
-            trailingContent={trailing}
-            // 민트 채움 위 글자·아이콘은 --adm-on-primary(흰 글자 대비 1.5:1 금지, tests/admin-design-tokens.test.mjs)
-            className={cx('adm-ui-btn', `is-${variant}`, `is-${size}`, variant === 'primary' && 'adm-on-primary', loading && 'is-loading', className)}
-        >
+    const content = (
+        <>
+            {loading ? <span className="adm-ui-btn-spinner" aria-hidden="true" /> : leading}
             {children}
-        </Button>
+            {trailing}
+        </>
+    );
+    return (
+        <ActionButton
+            ref={ref}
+            {...rest}
+            asChild={!!to}
+            type={to ? undefined : loading ? 'button' : type ?? 'button'}
+            onClick={loading ? event => event.preventDefault() : onClick}
+            aria-busy={loading || undefined}
+            aria-disabled={loading || rest.disabled || undefined}
+            data-admin-seed="button"
+            data-seed-color-mode="light-only"
+            variant={SEED_VARIANT[variant]}
+            size={SEED_SIZE[size]}
+            className={cx('adm-ui-btn', `is-${variant}`, `is-${size}`, variant === 'primary' && 'adm-on-primary', loading && 'is-loading', fullWidth && 'is-full-width', className)}
+        >
+            {to ? <Link to={to} replace={replace}>{content}</Link> : content}
+        </ActionButton>
     );
 });
 

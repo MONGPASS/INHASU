@@ -1,10 +1,12 @@
 import React from 'react';
-import { Chip, ContentBadge, SegmentedControl, SegmentedControlItem, Tab, TabList, TabListItem } from '@montage-ui/core';
+import { Chip, SegmentedControl, SegmentedControlItem, Tab, TabList, TabListItem } from '@montage-ui/core';
+import { Badge } from '@seed-design/react';
 import { cx } from './adminUiUtils';
+import './admin-seed.css';
 import './admin-components.css';
 
 /**
- * 상태 배지: 모서리 4px, 12px 600, 옅은 상태색 바탕 + 상태색 글자. 색만으로 알리지 않도록 글자(문장)를 꼭 넣는다.
+ * 상태 배지: 모서리 6px, 12px 600, 옅은 상태색 바탕 + 상태색 글자. 색만으로 알리지 않도록 글자(문장)를 꼭 넣는다.
  * 상태색 뜻: danger 삭제·오류·미처리 · warn 주의·대기 · success 완료 · info 안내·진행(민트 글자) · neutral 보류·종료.
  * 사람·출처처럼 구분만 하는 색은 tag-*(Montage accent).
  */
@@ -22,19 +24,23 @@ export interface AdminBadgeProps {
     className?: string;
     title?: string;
     children: React.ReactNode;
+    'aria-label'?: string;
+    role?: 'status';
 }
 
-export const AdminBadge: React.FC<AdminBadgeProps> = ({ tone = 'neutral', strong, outlined, size = 'sm', icon, className, title, children }) => (
-    <ContentBadge
-        variant={outlined ? 'outlined' : 'solid'}
-        color="neutral"
-        size={size === 'sm' ? 'xsmall' : 'small'}
-        leadingContent={icon}
+export const AdminBadge: React.FC<AdminBadgeProps> = ({ tone = 'neutral', strong, outlined, size = 'sm', icon, className, title, children, ...attributes }) => (
+    <Badge.Root
+        {...attributes}
+        data-admin-seed="badge"
+        data-seed-color-mode="light-only"
+        variant={outlined ? 'outline' : strong ? 'solid' : 'weak'}
+        size={size === 'sm' ? 'medium' : 'large'}
         title={title}
         className={cx('adm-ui-badge', `is-${tone}`, strong && 'is-strong', outlined && 'is-outlined', className)}
     >
-        {children}
-    </ContentBadge>
+        {icon && <Badge.Prefix>{icon}</Badge.Prefix>}
+        <Badge.Label>{children}</Badge.Label>
+    </Badge.Root>
 );
 
 /** 필터 칩: 높이 32·테두리 없음, 고르면 옅은 민트 바탕 + 민트 글자. 숫자는 `count`로 */

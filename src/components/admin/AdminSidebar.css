@@ -52,11 +52,9 @@
 /* 처리할 일 숫자 */
 .adm-side-badge {
   display: inline-flex; align-items: center; justify-content: center; flex: none; box-sizing: border-box;
-  min-width: var(--adm-space-5); height: var(--adm-space-5); padding: 0 calc(var(--adm-space-1) * 1.5); border-radius: var(--adm-radius-pill);
+  min-width: var(--adm-space-5); height: var(--adm-space-5); padding: 0 calc(var(--adm-space-1) * 1.5);
   font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); font-variant-numeric: tabular-nums; line-height: 1;
 }
-.adm-side-badge.is-alert { background: var(--adm-danger-soft); color: var(--adm-danger); }
-.adm-side-badge.is-new { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
 
 /* 묶음 제목(접고 펼침) */
 .adm-side-group-btn {
