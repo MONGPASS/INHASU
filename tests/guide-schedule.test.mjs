@@ -149,8 +149,11 @@ test('가이드 상세의 배정 내역과 가이드 일정표에 차종·기사
     const read = p => fs.readFileSync(fileURLToPath(new URL(`../${p}`, import.meta.url)), 'utf8');
     const schedule = read('src/components/admin/guides/GuideSchedule.tsx');
     assert.match(schedule, /driver: String\(v\?\.driver \|\| reg\?\.driver \|\| ''\)/);
-    assert.match(schedule, /기사 \{\[car\.driver, car\.phone\]/);
-    assert.match(schedule, /onClick=\{\(\) => openItinerary\(b\)\}/, '일정표에도 보충한 기사 정보를 넘긴다');
+    // 상세 패널은 GuideDrawer.tsx(2026-11-23 강력 개선안)로 옮겼다. carInfo·일정표 열기는 GuideSchedule이 넘긴다.
+    const drawer = read('src/components/admin/guides/GuideDrawer.tsx');
+    assert.match(drawer, /기사 \$\{\[car\.driver, car\.phone\]/);
+    assert.match(schedule, /carInfo=\{carInfo\}[\s\S]*onItinerary=\{openItinerary\}/, '일정표에도 보충한 기사 정보를 넘긴다');
+    assert.match(drawer, /onClick=\{\(\) => onItinerary\(b\)\}/);
     const sheet = read('public/가이드시트.html');
     assert.match(sheet, /fetch\("\/api\/data\/vehicles", \{ cache:"no-store", headers:adminHeaders \}\)/);
     assert.match(sheet, /if \(!\(vehicle\.driver \|\| vehicle\.driverName\)\) vehicle\.driver = vehicleLib\.driver/);
