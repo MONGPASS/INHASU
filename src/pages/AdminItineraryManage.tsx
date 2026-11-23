@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import {
-    AdminBadge, AdminButton, AdminCard, AdminChipGroup, AdminDialog, AdminEmpty, AdminError, AdminField, AdminIconButton,
-    AdminLoading, AdminSearch, AdminSelect, AdminTable, AdminTbody, AdminTd, AdminTextArea, AdminTextButton, AdminTextInput,
-    AdminTh, AdminThead, AdminTr,
+    AdminBadge, AdminButton, AdminCard, AdminChipGroup, AdminDialog, AdminEmpty, AdminError, AdminField, AdminIconButton, AdminLoading,
+    AdminSearch, AdminSelect, AdminTable, AdminTbody, AdminTd, AdminTextArea, AdminTextButton, AdminTextInput, AdminTh, AdminThead, AdminTr,
+    IconPencil, IconPlus, IconTrash,
 } from '../components/admin/ui';
-import { IconPencil, IconPlus, IconTrash } from '@montage-ui/icon';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminValidateRequired } from '../components/admin/ui/adminForm';
 import { quoteDeskPageId } from '../components/admin/quoteDesk';

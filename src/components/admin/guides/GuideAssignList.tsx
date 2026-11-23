@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { IconChevronDown, IconMoreVertical } from '@montage-ui/icon';
-import { AdminBadge, AdminButton, AdminCheckbox, AdminChipGroup, AdminIconButton, AdminPagination, AdminSearch, AdminSelect, cx, type AdminTone, type AdminTagTone } from '../ui';
+import {
+    AdminBadge, AdminButton, AdminCheckbox, AdminChipGroup, AdminIconButton, AdminPagination, AdminSearch, AdminSelect, cx, type AdminTone,
+    type AdminTagTone, IconChevronDown, IconMoreVertical,
+} from '../ui';
 import type { RegisteredVehicle } from '../../../utils/registeredAssignmentResources';
 import { guideOverlaps, overlapLabel } from '../../../utils/assignmentAvailability';
 import { hasGuide, vehicleClash } from './guideScheduleModel';

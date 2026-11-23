@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { IconCheckThick, IconChevronDownSmall, IconChevronRight, IconClose, IconInbox } from '@montage-ui/icon';
 import {
-    AdminBadge, AdminButton, AdminCheckbox, AdminEmpty, AdminIconButton, AdminPagination, AdminSearch, AdminSegmented, AdminSelect,
-    AdminStat, AdminStatRow, AdminTable, AdminTabs, AdminTbody, AdminTd, AdminTextButton, AdminTh, AdminThead, AdminTr, cx, type AdminTone,
+    AdminBadge, AdminButton, AdminCheckbox, AdminEmpty, AdminIconButton, AdminPagination, AdminSearch, AdminSegmented, AdminSelect, AdminStat,
+    AdminStatRow, AdminTable, AdminTabs, AdminTbody, AdminTd, AdminTextButton, AdminTh, AdminThead, AdminTr, cx, type AdminTone, IconCheckThick,
+    IconChevronDownSmall, IconChevronRight, IconClose, IconInbox,
 } from '../ui';
 import { dashboardSeoulDate } from '../../../utils/adminDashboard';
 import {

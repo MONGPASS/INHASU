@@ -18,8 +18,7 @@ import {
 import { endOf, initial, md, nameOf, nights, norm, people, period, startOf, todayKey, type CarInfo, type GuideItem as Item, type GuideRow as Row } from './guideScheduleFormat';
 import { GuideAssignList } from './GuideAssignList';
 import { GuideDrawer } from './GuideDrawer';
-import { IconCheck, IconChevronLeft, IconChevronRight, IconPlus } from '@montage-ui/icon';
-import { AdminButton, AdminChip, AdminIconButton, AdminSegmented } from '../ui';
+import { AdminButton, AdminChip, AdminIconButton, AdminSegmented, IconCheck, IconChevronLeft, IconChevronRight, IconPlus } from '../ui';
 import './GuideSchedule.css';
 import { adminConfirm, adminNotify } from '../ui/adminFeedback';
 

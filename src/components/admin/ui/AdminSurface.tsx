@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconCircleExclamationFill, IconInbox } from '@montage-ui/icon';
+import { IconCircleExclamationFill, IconInbox } from './AdminIcons';
 import { AdminButton } from './AdminButton';
 import { cx } from './adminUiUtils';
 import './admin-components.css';

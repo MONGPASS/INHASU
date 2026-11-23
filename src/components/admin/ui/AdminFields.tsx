@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useLayoutEffect, useRef } from 'react';
-import { IconCheckThick, IconChevronDown, IconCircleCloseFill, IconMinus, IconSearch } from '@montage-ui/icon';
+import { IconCheckThick, IconChevronDown, IconCircleCloseFill, IconMinus, IconSearch } from './AdminIcons';
 import { cx, type AdminSize } from './adminUiUtils';
 import './admin-components.css';
 

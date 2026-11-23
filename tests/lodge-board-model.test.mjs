@@ -57,7 +57,7 @@ test('숙소 배정 화면: 배정 보드가 기본이고, 표로 보기·카드
     const board = readFileSync('src/components/admin/accommodation/LodgeAssignBoard.tsx', 'utf8');
     assert.match(board, /buildLodgeModel/, '표로 보기도 같은 계산을 쓴다');
     const queue = readFileSync('src/components/admin/accommodation/LodgeAssignQueue.tsx', 'utf8');
-    assert.doesNotMatch(queue, /@montage-ui\/core/, '화면은 Montage를 직접 부르지 않는다');
+    assert.doesNotMatch(queue, /@montage-ui\//, '화면은 Montage를 부르지 않는다');
     assert.doesNotMatch(queue, /window\.prompt|window\.confirm|alert\(/, '기본 확인창을 쓰지 않는다');
 });
 
@@ -82,7 +82,7 @@ test('배정 보드의 숙소정보는 찾기·지역 메뉴가 있는 숙소 �
     assert.match(picker, /<nav className="lp-nav" aria-label="지역">/, '왼쪽 지역 메뉴');
     assert.match(picker, /variant="row"/, '동그라미 줄 목록');
     assert.match(picker, /submitLabel=\{pickedLodge \? '이 숙소로 배정'/, '고른 뒤 이 숙소로 배정');
-    assert.doesNotMatch(picker, /@montage-ui\/core/);
+    assert.doesNotMatch(picker, /@montage-ui\//);
 });
 
 test('숙소 고르기 지역 묶음: 한글·영문 지명으로 나누고 모르면 기타 지역', () => {

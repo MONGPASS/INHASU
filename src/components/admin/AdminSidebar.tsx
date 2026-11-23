@@ -1,10 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-    IconApps, IconBook, IconCalendar, IconChevronDown, IconChevronLeft, IconChevronRight, IconCircleQuestion, IconClock, IconClose, IconDocument,
-    IconDocumentText, IconFlag, IconFolder, IconHome, IconImage, IconLocation, IconLogout, IconMail, IconMegaphone, IconPerson, IconPersons,
-    IconSearch, IconStar, IconTag, IconTicket,
-} from '@montage-ui/icon';
 import { useUser } from '../../contexts/UserContext';
 import { disconnectQuoteDesk, quoteDeskPageId } from './quoteDesk';
 import { dashboardItem, navGroups, type NavGroup, type NavItem } from './adminNav';
@@ -13,7 +8,11 @@ import {
     badgeText, findMenus, groupOfPage, groupSummary, moveIndex, navBadges, OPEN_KEY, pushRecent, readJson, RECENT_KEY, recentMenus,
     resolveOpenGroups, writeJson, type NavBadge,
 } from './adminSidebarModel';
-import { AdminButton, AdminIconButton, AdminSearch, AdminTextButton, cx } from './ui';
+import {
+    AdminButton, AdminIconButton, AdminSearch, AdminTextButton, cx, IconApps, IconBook, IconCalendar, IconChevronDown, IconChevronLeft,
+    IconChevronRight, IconCircleQuestion, IconClock, IconClose, IconDocument, IconDocumentText, IconFlag, IconFolder, IconHome, IconImage,
+    IconLocation, IconLogout, IconMail, IconMegaphone, IconPerson, IconPersons, IconSearch, IconStar, IconTag, IconTicket,
+} from './ui';
 import { preloadAdminPage } from '../../lib/adminPagePreload';
 import './AdminSidebar.css';
 
@@ -30,7 +29,7 @@ interface AdminSidebarProps {
 }
 
 type IconComponent = typeof IconApps;
-/** 메뉴별 아이콘(@montage-ui/icon — 단계 3에서 Seed 아이콘으로) — Claude Design ‘관리자 사이드바 개선’과 같다. */
+/** 메뉴별 아이콘(당근 Seed 아이콘, ui/AdminIcons) — Claude Design ‘관리자 사이드바 개선’과 같다. */
 const MENU_ICONS: Record<string, IconComponent> = {
     dashboard: IconApps, reservations: IconTicket, calendar: IconCalendar,
     [quoteDeskPageId('inbox')]: IconDocumentText, [quoteDeskPageId('courses')]: IconFlag, [quoteDeskPageId('itinerary')]: IconClock, [quoteDeskPageId('spots')]: IconLocation,

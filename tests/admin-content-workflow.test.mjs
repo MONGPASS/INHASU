@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 
 // Exercise the shipped component event handlers with deterministic hooks. The
 // HTTP/upload adapters are deferred; no DOM, browser or external service is used.
-// 우리 관리자 부품(components/admin/ui)·Montage 아이콘은 이름 문자열로 바꿔 얕게 그린다(부품 안쪽은 그리지 않는다).
+// 우리 관리자 부품·아이콘(components/admin/ui)은 이름 문자열로 바꿔 얕게 그린다(부품 안쪽은 그리지 않는다).
 const PAGES = ['src/pages/AdminBannerManage.tsx', 'src/pages/AdminCategoryManage.tsx'];
 const namedImports = from => [...new Set(PAGES.flatMap(file => [...readFileSync(file, 'utf8').matchAll(new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*'${from}'`, 'g'))]
     .flatMap(m => m[1].split(',').map(name => name.trim()).filter(name => name && !name.startsWith('type ')))))];
@@ -19,14 +19,12 @@ const result = await build({ stdin: { contents: `
         builder.onResolve({ filter: /^react$|^react\/jsx-runtime$|^react-router-dom$/ }, args => ({ path: args.path, namespace: 'fixture' }));
         builder.onResolve({ filter: /\/(AdminLayout|Icon|api|upload|adminFeedback)$/ }, args => ({ path: args.path.split('/').at(-1), namespace: 'fixture' }));
         builder.onResolve({ filter: /\/components\/admin\/ui$/ }, () => ({ path: 'admin-ui', namespace: 'fixture' }));
-        builder.onResolve({ filter: /^@montage-ui\/icon$/ }, () => ({ path: 'montage-icon', namespace: 'fixture' }));
         builder.onLoad({ filter: /.*/, namespace: 'fixture' }, ({ path }) => ({ loader: 'js', contents:
             path === 'react' ? `export const useState=(...a)=>globalThis.h.useState(...a),useRef=(...a)=>globalThis.h.useRef(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useCallback=(...a)=>globalThis.h.useCallback(...a);export default {useState,useRef,useEffect,useCallback};`
             : path === 'react/jsx-runtime' ? `export const Fragment='fragment';export const jsx=(type,props,key)=>({type,props,key});export const jsxs=jsx;`
             : path === 'react-router-dom' ? `export const useBlocker=predicate=>{globalThis.h.predicate=predicate;return globalThis.h.blocker};`
             : path === 'AdminLayout' ? `export const AdminLayout='layout';`
             : path === 'admin-ui' ? stubModule(namedImports('../components/admin/ui'))
-            : path === 'montage-icon' ? stubModule(namedImports('@montage-ui/icon'))
             : path === 'Icon' ? `export const Icon='icon';`
             : path === 'adminFeedback' ? `export const adminNotify=()=>{};export const adminConfirm=async m=>(typeof window!=='undefined'&&window.confirm?!!window.confirm(typeof m==='string'?m:m.message):true);`
             : path === 'api' ? `export const api=new Proxy({}, {get:(_,key)=>globalThis.adapters.api[key]});`

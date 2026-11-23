@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { IconChevronLeft, IconChevronRight, IconClose } from '@montage-ui/icon';
-import { AdminBadge, AdminButton, AdminIconButton, cx } from '../ui';
+import { AdminBadge, AdminButton, AdminIconButton, cx, IconChevronLeft, IconChevronRight, IconClose } from '../ui';
 import { coversDay, inMonth, monthDays, shiftMonth } from './guideScheduleModel';
 import { GuideAvatar } from './GuideAssignList';
 import { dday, endOf, md, nameOf, nights, people, period, regionOf, startOf, tourName, type CarInfo, type GuideItem, type GuideRow } from './guideScheduleFormat';

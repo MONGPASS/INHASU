@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { IconCheck, IconChevronDown, IconChevronUp, IconPlus } from '@montage-ui/icon';
 import {
     AdminBadge, AdminButton, AdminCard, AdminEmpty, AdminField, AdminLoading, AdminMessage, AdminPickCard, AdminSearch, AdminSelect, AdminStat,
-    AdminStatRow, AdminTextButton, AdminTextInput, adminConfirm,
+    AdminStatRow, AdminTextButton, AdminTextInput, adminConfirm, IconCheck, IconChevronDown, IconChevronUp, IconPlus,
 } from '../ui';
 import type { AssignmentAccommodation, ContractPackageType } from '../../../utils/reservationAssignment';
 import { MAX_ROOMS_PER_NIGHT } from '../../../utils/reservationAssignment';
