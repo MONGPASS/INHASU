@@ -33,7 +33,7 @@ test('가이드 피켓은 가이드 상세·상품 가이드용 일정표·견�
     assert.match(read('src/components/document/GuideItineraryPrint.tsx'), /<GuidePicketPage /);
     const sheet = read('public/가이드시트.html');
     assert.match(sheet, /<script src="guide-picket\.js"><\/script>/);
-    assert.match(sheet, /root\.innerHTML = page1 \+ page2 \+ statementPage \+ cashPage \+ picketPage;/, '피켓은 마지막 페이지');
+    assert.match(sheet, /root\.innerHTML = page1 \+ page2 \+ cashPage \+ picketPage;/, '피켓은 마지막 페이지');
     assert.match(sheet, /@page picket\{ size:A4 landscape; margin:0; \}/);
     assert.ok(fs.existsSync(new URL('../public/img/brand/guide-picket-logo.png', import.meta.url)));
 });

@@ -142,6 +142,26 @@ function cashReceiptPayload(rec, booking, now = new Date()) {
   };
 }
 
+/* 영수증의 한글 금액 — 5160000 → "오백십육만" ("금 ○○ 원정"에 넣는다) */
+function koreanAmount(value) {
+  let n = Math.floor(Number(value) || 0);
+  if (n <= 0) return "영";
+  const DIGITS = ["", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"];
+  const UNITS = ["", "만", "억", "조"];
+  let out = "";
+  for (let i = 0; n > 0 && i < UNITS.length; i += 1, n = Math.floor(n / 10000)) {
+    const chunk = n % 10000;
+    if (!chunk) continue;
+    let text = "";
+    [[1000, "천"], [100, "백"], [10, "십"], [1, ""]].forEach(([place, unit]) => {
+      const digit = Math.floor(chunk / place) % 10;
+      if (digit) text += (digit === 1 && unit ? "" : DIGITS[digit]) + unit;
+    });
+    out = text + UNITS[i] + out;
+  }
+  return out;
+}
+
 /* 예약확정 순간 호출 — 발행된 견적(rec.quote)과 문의 레코드 기본정보에서 booking 스켈레톤 생성.
    예약관리 init()의 승계 규칙과 동일하되, 견적 일정·대표명소를 자동으로 끌어온다
    (예약관리에서 "↺ 견적 일정 불러오기"를 누르지 않아도 확정 시점에 일정이 채워지게).
