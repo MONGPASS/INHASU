@@ -2,14 +2,14 @@ import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 
 import type { DashboardIconName } from '../dashboard/DashboardIcon';
 import type { CustomerWorkspaceOverviewModel } from '../CustomerWorkspaceOverview';
 import { dashboardSeoulDate } from '../../../utils/adminDashboard';
-import { confirmGuideConflict, guideMenuItems } from './guideMenuItems';
+import { confirmGuideConflict } from './guideMenuItems';
 import { scheduleTimeline } from '../../../utils/accommodationSchedule';
-import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../../../utils/registeredAssignmentResources';
-import { selectResourceGuide, selectResourceLodge, selectResourceVehicle } from '../../../utils/accommodationResourceSelection';
+import type { RegisteredAssignmentResources } from '../../../utils/registeredAssignmentResources';
+import { guideAssignHref, lodgeAssignHref, type AssignmentSourceType } from '../../../utils/assignmentLinks';
 import { AIRFARE_OPTIONS, CATEGORY_OPTIONS, JOINING_LABELS, RECEIPT_LABELS, SERVICE_TYPE_OPTIONS, type ReceiptStatus, type ReservationOperations } from '../../../utils/reservationWorkspace';
 import {
-    BOOKING_STATUS, BOOKING_STATUS_OPTIONS, OCCUPANCY_OPTIONS, V7_TABS, bookingStatusMeta, changeV7StayStatus, fetchV7Assignments, occupancyLabel, saveV7Assignment,
-    v7Dday, v7Range, v7Row, v7StepLabel, v7StepSubs, v7Won, withGuide, withNight, withVehicle, type V7AssignmentItem, type V7Row, type V7Source,
+    BOOKING_STATUS, V7_TABS, bookingStatusMeta, changeV7StayStatus, fetchV7Assignments, occupancyLabel, saveV7Assignment,
+    v7Dday, v7Range, v7Row, v7StepLabel, v7StepSubs, v7Won, withNight, type V7AssignmentItem, type V7Row, type V7Source,
 } from '../../../utils/reservationV7';
 import { PRODUCT_STATUS_OPTIONS, statusLabelOf } from './ReservationListV7';
 import {
@@ -46,8 +46,6 @@ const LOG_TAGS: Record<HistoryKind, { tag: string; tone: 'gray' | 'blue' | 'mint
     contract: { tag: '완료', tone: 'mint' }, customer: { tag: '고객', tone: 'gray' }, assignment: { tag: '숙소', tone: 'mint' }, document: { tag: '알림', tone: 'blue' },
     memo: { tag: '메모', tone: 'gray' }, change: { tag: '변경', tone: 'amber' },
 };
-/** 숙소 등급 선택지(디자인 v7). 저장 값은 배정 숙소의 type(등급) 칸이다. */
-const LODGE_GRADES = ['고급 게르', '디럭스 게르', '일반 게르', '5성급 호텔', '4성급 호텔', '3성급 호텔', '게스트하우스', '캠핑'];
 const PRIVATE_LABEL = /연락처|전화|휴대|이메일|메일|여권|생년월일|생일/;
 const mask = (value: string, keep: number) => value.length <= keep ? value : value.slice(0, keep) + '*'.repeat(value.length - keep);
 const maskFact = (label: string, value: string, on: boolean) => !on || !value || !PRIVATE_LABEL.test(label) ? value
@@ -116,10 +114,9 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     st: DetailState, set: DetailSet, env: DetailEnv) {
     const today = dashboardSeoulDate(new Date().toISOString());
     const rootRef = env.root, mounted = env.mounted, toastTimer = env.toastTimer;
-    const { item, resources, allItems, menu, toast, saving, maskOn, sections, travelerOpen, dayOpen } = st;
+    const { item, menu, toast, saving, maskOn, sections, travelerOpen, dayOpen } = st;
     const setItem = (value: V7AssignmentItem | undefined) => set({ item: value });
     const setAllItems = (value: V7AssignmentItem[] | ((prev: V7AssignmentItem[]) => V7AssignmentItem[])) => set(s => ({ allItems: typeof value === 'function' ? value(s.allItems) : value }));
-    const setResources = (value: RegisteredAssignmentResources) => set({ resources: value });
     const setMenu = (value: V7MenuState | null) => set({ menu: value });
     const setToast = (value: string) => set({ toast: value });
     const setSaving = (value: boolean) => set({ saving: value });
@@ -138,12 +135,11 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             set({ allItems: data.items, item: data.items.find(x => x.key === assignmentKey) });
         } catch { /* 배정 원본을 못 읽으면 저장된 예약 값으로 표시하고 버튼은 기존 화면을 연다. */ }
     };
-    const ensureResources = async () => {
-        if (resources) return resources;
-        if (!links?.userId) return null;
-        try { const loaded = await loadRegisteredAssignmentResources({ accountId: links.userId }); if (mounted.current) setResources(loaded); if (loaded.warnings[0]) flash(loaded.warnings[0]); return loaded; }
-        catch { flash('등록된 가이드·숙소·차량 자료를 불러오지 못했습니다.'); return null; }
-    };
+    // 배정은 이 화면에서 바꾸지 않는다(2026-11-23 오너 결정). 편집은 숙소 배정·가이드 배정 현황에서 그 예약을 바로 열고, 돌아올 주소를 함께 넘긴다.
+    const linkType: AssignmentSourceType | null = source && source.type !== 'quote' ? source.type === 'quote_booking' ? 'quote_booking' : 'product' : null;
+    const loc = typeof window === 'undefined' ? undefined : window.location, here = loc ? `${loc.pathname}${loc.search}` : '';
+    const assignHref = { guide: linkType && source ? guideAssignHref(linkType, source.id, 'guide', here) : '', vehicle: linkType && source ? guideAssignHref(linkType, source.id, 'car', here) : '',
+        stay: linkType && source ? lodgeAssignHref(linkType, source.id, here) : '' };
 
     const row: V7Row | null = source && source.type !== 'quote' ? v7Row(source, item, today) : null;
     const [startKey, endKey] = dateKeys(m.period || '');
@@ -184,42 +180,6 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             if (mounted.current) setSaving(false);
             if (retry) window.setTimeout(() => { void save(build, done, true); }, 0);
         }
-    };
-    const peopleMenu = async (e: React.MouseEvent, kind: 'guide' | 'vehicle') => {
-        e.stopPropagation();
-        if (!row || !item) { onAction(kind); return; }
-        const target = e.currentTarget as HTMLElement, loaded = await ensureResources();
-        const items: V7MenuItem[] = kind === 'guide' ? [
-            { key: 'none', label: '배정 해제', muted: true, on: !row.guide, onPick: () => { if (row.guide) void save(it => withGuide(it, { id: '', name: '', phone: '' }), '가이드 배정을 해제했어요'); } },
-            ...guideMenuItems(loaded?.guides || [], allItems, { id: item.id, source: item.source, startDate: item.startDate, endDate: item.endDate }, row.guide?.name,
-                (g, confirmed) => { void save(it => withGuide(it, selectResourceGuide(it.assignment.guide, g)), `${g.name} 가이드를 배정했어요`, confirmed); }),
-        ] : [
-            { key: 'none', label: '배정 해제', muted: true, on: !row.vehicle, onPick: () => { if (row.vehicle) void save(it => withVehicle(it, { type: '', phone: '' }), '차량 배정을 해제했어요'); } },
-            ...(loaded?.vehicles || []).map(v => ({ key: v.name, label: v.name, on: row.vehicle?.type === v.type, sub: [v.snapshot.seats && `${v.snapshot.seats}인승`, v.snapshot.plate].filter(Boolean).join(' · ') || undefined, subTone: 'muted' as const,
-                onPick: () => void save(it => withVehicle(it, selectResourceVehicle(it.assignment.vehicle, v)), `${v.name} 차량을 배정했어요`) })),
-        ];
-        setMenu(menuAt(target, kind === 'guide' ? '가이드 선택' : '차량 선택', items, true));
-    };
-    const nightMenu = async (e: React.MouseEvent, day: number, field: 'hotel' | 'occ' | 'status' | 'grade') => {
-        e.stopPropagation();
-        if (!row || !item) { onAction('stay'); return; }
-        const night = row.stays.find(s => s.day === day);
-        if (!night) return;
-        if (field === 'status' && !night.hotel) { flash('숙소를 먼저 골라 주세요'); return; }
-        const target = e.currentTarget as HTMLElement;
-        if (field === 'occ') { setMenu(menuAt(target, `${day}박 객실 인원`, OCCUPANCY_OPTIONS.map(o => ({ key: o, label: occupancyLabel(o), on: night.occupancy === o,
-            onPick: () => void save(it => withNight(it, day, r => ({ ...r, accommodation: { ...r.accommodation, occupancy: o } })), `${day}박 객실을 ${occupancyLabel(o)}(으)로 바꿨어요`) })))); return; }
-        if (field === 'grade') { setMenu(menuAt(target, `${day}박 숙소 등급`, [...(night.grade && !LODGE_GRADES.includes(night.grade) ? [night.grade] : []), ...LODGE_GRADES].map(g => ({ key: g, label: g, on: night.grade === g,
-            onPick: () => void save(it => withNight(it, day, r => ({ ...r, accommodation: { ...r.accommodation, type: g } })), `${day}박 숙소 등급을 ${g}(으)로 바꿨어요`) })))); return; }
-        if (field === 'status') { setMenu(menuAt(target, `${day}박 수배 상태`, BOOKING_STATUS_OPTIONS.map(o => ({ key: o.value, label: o.label, on: night.bookingStatus === o.value,
-            onPick: () => void save(it => withNight(it, day, r => ({ ...r, accommodation: { ...r.accommodation, ...changeV7StayStatus(r.accommodation, o.value) } })), `${day}박 ${o.label}(으)로 변경했어요`) })))); return; }
-        const loaded = await ensureResources(), place = night.region.replace(/\s+/g, '');
-        const lodges = [...(loaded?.lodges || [])].sort((a, b) => Number(!!place && (b.region || b.location).replace(/\s+/g, '').includes(place)) - Number(!!place && (a.region || a.location).replace(/\s+/g, '').includes(place)));
-        setMenu(menuAt(target, `${day}박 숙소 선택`, [
-            { key: 'none', label: '숙소 비우기', muted: true, on: !night.hotel, onPick: () => { if (night.hotel) void save(it => withNight(it, day, r => ({ day: r.day, ...(r.date ? { date: r.date } : {}), accommodation: night.region ? { location: night.region, region: night.region } : {} })), `${day}박 숙소를 비웠어요`); } },
-            ...lodges.map(l => ({ key: l.id, label: l.name, on: night.hotel === l.name, sub: [l.type, l.region || l.location].filter(Boolean).join(' · ') + ' · 고르면 미발송부터 시작', subTone: 'muted' as const,
-                onPick: () => void save(it => withNight(it, day, r => selectResourceLodge(r, l)), `${day}박 ${l.name} 선택`) })),
-        ], true));
     };
     const pendingNights = row ? row.stays.filter(s => s.hotel && s.bookingStatus === BOOKING_STATUS.unsent) : [];
     const requestLodging = async () => {
@@ -296,7 +256,6 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     /** className을 주면 모양은 CSS(reservation-detail-cards.css)가 정한다. */
     const btnSel = (value: string, empty: boolean, go: (e: React.MouseEvent) => void, icon: DashboardIconName = 'lc-chevron-down', x?: Css, className?: string) =>
         <button type="button" disabled={busy || saving} onClick={go} className={className} style={className ? undefined : sel(empty, x)}><span className={className ? 'rdc-sel-text' : undefined} style={className ? undefined : { overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span><Ico name={icon} size={className ? 16 : 12} /></button>;
-    const btnPill = (value: string, tone: PillTone, go: (e: React.MouseEvent) => void) => <button type="button" disabled={busy || saving} onClick={go} style={pill(tone)}>{value}<Ico name="lc-chevron-down" size={12} /></button>;
     const openLink = (label: string, go: () => void, disabled = false, className?: string) => <button type="button" aria-label={`${label} 열기`} disabled={busy || disabled} onClick={go} className={className}
         style={className ? undefined : { display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--adm-text-2)', cursor: 'pointer' }}>열기<Ico name="lc-external-link" size={className ? 14 : 12} /></button>;
     const editLink = (label: string, go: () => void) => <button type="button" aria-label={label} disabled={busy} onClick={go}
@@ -355,18 +314,26 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const stayText = row ? row.accN ? `${row.accC} / ${row.accN}박 확정` : '숙박 없음' : m.assignments.find(a => a.id === 'stay')?.value || '';
     const stayAlert = !asgLocked && !stayReady;
     const asgField = (label: string, done: boolean, control: ReactNode) => <div className="rdc-field"><span className="rdc-label">{dot(done)}{label}</span>{control}</div>;
+    /** 편집: 예약 원본이 연결되면 해당 메뉴로 이동, 없으면 기존 업무 화면을 연다. */
+    const editTo = (kind: 'guide' | 'vehicle' | 'stay', label: string, text = '편집') => assignHref[kind]
+        ? <a className="rdc-edit" href={assignHref[kind]} aria-label={`${label} 편집 — ${kind === 'stay' ? '숙소 배정' : '가이드 배정 현황'}에서 열기`}>{text}<Ico name="lc-chevron-right" size={14} /></a>
+        : <button type="button" className="rdc-edit" disabled={busy} aria-label={`${label} 편집`} onClick={() => onAction(kind)}>{text}<Ico name="lc-chevron-right" size={14} /></button>;
+    const asgValue = (kind: 'guide' | 'vehicle', label: string, value: string) => <span className="rdc-value-row">
+        <span className={cls('rdc-value', !value && 'is-empty')}>{value || `${label} 미배정`}</span>{editTo(kind, label)}
+    </span>;
     const asgCard = <section key="sec-asg-s" id="sec-asg-s" className="rdc-card" aria-label="배정">
         {rdcHead(IconPersons, '배정', asgLocked ? cardBadge(null, '예약 전', true) : cardBadge(asgLeft))}
         <div className="rdc-body">
-            {asgField('가이드', !!guideValue, asgLocked ? lockedNote : btnSel(guideValue || '선택', !guideValue, e => void peopleMenu(e, 'guide'), undefined, undefined, selClass(!guideValue, true)))}
-            {asgField('차량', !!vehicleValue, asgLocked ? lockedNote : btnSel(vehicleValue || '선택', !vehicleValue, e => void peopleMenu(e, 'vehicle'), undefined, undefined, selClass(!vehicleValue, true)))}
+            {asgField('가이드', !!guideValue, asgLocked ? lockedNote : asgValue('guide', '가이드', guideValue))}
+            {asgField('차량', !!vehicleValue, asgLocked ? lockedNote : asgValue('vehicle', '차량', vehicleValue))}
             <div className={cls('rdc-box', stayAlert ? 'is-alert' : 'is-soft')}>
                 <div className="rdc-box-head"><span className={cls('rdc-label', stayAlert && 'is-alert')}>{dot(!stayAlert)}숙소{stayAlert ? ' · 확정 필요' : ''}</span><span className="rdc-box-value">{stayText}</span></div>
                 {nights.length > 0 && <div className="rdc-nights">
                     {nights.slice(0, 6).map(n => <span key={n.rowIndex} className="rdc-night">{n.day}박째 · {n.hotel ? bookingStatusMeta(n.bookingStatus).label : '숙소 미정'}</span>)}
                     {nights.length > 6 && <span className="rdc-night">+{nights.length - 6}박 더</span>}
                 </div>}
-                {asgLocked ? lockedNote : btnSel('박별 관리', false, () => goSec('sec-asg'), 'lc-arrow-right', undefined, 'rdc-sel is-full is-primary')}
+                {asgLocked ? lockedNote : assignHref.stay ? <a className="rdc-sel is-full is-primary" href={assignHref.stay}><span className="rdc-sel-text">숙소 배정에서 관리</span><Ico name="lc-arrow-right" size={16} /></a>
+                    : btnSel('숙소 배정에서 관리', false, () => onAction('stay'), 'lc-arrow-right', undefined, 'rdc-sel is-full is-primary')}
             </div>
         </div>
     </section>;
@@ -463,7 +430,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                 <div id="sec-asg" style={{ ...card, overflow: 'hidden' }}>
                     {cardHead({ icon: 'lc-users', title: '숙소 · 가이드 · 차량', right: <>
                         {row && <span style={{ ...pill(row.board === '배정 완료' ? 'solid' : row.board === '진행 중' ? 'amber' : 'red'), cursor: 'default' }}>{row.board}</span>}
-                        <a className="v7-link" href="/admin/accommodation-ops" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--adm-text-2)', whiteSpace: 'nowrap' }}>숙소 배정<Ico name="lc-chevron-right" size={14} /></a>
+                        <span className="rdc-asg-note">보기 전용 · 편집은 각 메뉴에서</span>
                     </> })}
                     {(['guide', 'vehicle'] as const).map(kind => {
                         const v = kind === 'guide' ? row?.guide : row?.vehicle, fallback = m.assignments.find(a => a.id === kind), label = kind === 'guide' ? '가이드' : '차량';
@@ -479,11 +446,12 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                                 <b style={{ fontSize: 14, fontWeight: 700, color: V7_INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value || `${label} 미배정`}</b>
                                 <span style={{ fontSize: 12, fontWeight: 600, color: value ? 'var(--adm-text-2)' : 'var(--adm-text-3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tel}</span>
                             </span>
-                            {asgLocked ? lockedNote : btnSel(value || `${label} 선택`, !value, e => void peopleMenu(e, kind))}
+                            {asgLocked ? lockedNote : editTo(kind, label, `${label} 배정에서 편집`)}
                         </div>;
                     })}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '16px 18px 10px', borderTop: '1px solid var(--adm-line-subtle)' }}>
                         <b style={{ fontSize: 14, fontWeight: 700 }}>일자별 숙소</b>
+                        {!asgLocked && editTo('stay', '일자별 숙소', '숙소 배정에서 편집')}
                         {!asgLocked && <button type="button" disabled={busy || saving} onClick={requestLodging} style={{ ...ghostBtn(34), marginLeft: 'auto', padding: '0 14px' }}>
                             <Ico name="lc-send" size={14} />현지 운영에 수배 요청
                             {pendingNights.length > 0 && <span style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999, alignItems: 'center', justifyContent: 'center', background: 'var(--adm-accent)', color: 'var(--adm-on-primary)', fontSize: 11, fontWeight: 700 }}>{pendingNights.length}</span>}
@@ -495,10 +463,10 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         return <div key={nt.day} className="v7-stay-row" style={{ display: 'grid', gridTemplateColumns: '44px 108px minmax(0,1fr) 128px 104px 112px', columnGap: 10, alignItems: 'center', minHeight: 62, padding: '8px 18px', boxSizing: 'border-box', borderTop: '1px solid var(--adm-line-subtle)' }}>
                             <b style={{ fontSize: 13, fontWeight: 700, color: V7_INK }}>{nt.day}박</b>
                             <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}><b style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{nt.date ? shortDate(nt.date) : '날짜 확인'}</b><span style={{ fontSize: 12, color: V7_MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nt.region || '지역 미정'}</span></span>
-                            <span style={{ display: 'flex', minWidth: 0 }}>{btnSel(nt.hotel || '숙소 선택', !nt.hotel, e => void nightMenu(e, nt.day, 'hotel'), 'lc-chevron-down', { maxWidth: '100%', minWidth: 0, overflow: 'hidden' })}</span>
-                            <span>{btnSel(nt.grade || '등급 선택', !nt.grade && !nt.hotel, e => void nightMenu(e, nt.day, 'grade'), 'lc-chevron-down', { maxWidth: '100%' })}</span>
-                            <span>{btnSel(occupancyLabel(nt.occupancy), false, e => void nightMenu(e, nt.day, 'occ'))}</span>
-                            <span>{nt.hotel ? btnPill(st.label, st.tone, e => void nightMenu(e, nt.day, 'status')) : <button type="button" onClick={e => void nightMenu(e, nt.day, 'status')} style={{ ...pill('gray'), opacity: .5, cursor: 'not-allowed' }}>숙소 먼저 선택<Ico name="lc-chevron-down" size={12} /></button>}</span>
+                            <span className={cls('rdc-cell', !nt.hotel && 'is-empty')}>{nt.hotel || '숙소 미배정'}</span>
+                            <span className={cls('rdc-cell', !nt.grade && 'is-empty')}>{nt.grade || '—'}</span>
+                            <span className="rdc-cell">{occupancyLabel(nt.occupancy)}</span>
+                            <span>{nt.hotel ? <span style={{ ...pill(st.tone), cursor: 'default' }}>{st.label}</span> : <span className="rdc-cell is-empty">숙소 배정 전</span>}</span>
                         </div>;
                     })}
                     {row && !row.stays.length && <div style={{ padding: 18, borderTop: '1px solid var(--adm-line-subtle)', fontSize: 13, color: V7_MUTED }}>{row.accN === 0 && startKey ? '숙박이 없는 당일 일정이에요.' : '여행 시작일·종료일을 먼저 확인해 주세요.'}</div>}

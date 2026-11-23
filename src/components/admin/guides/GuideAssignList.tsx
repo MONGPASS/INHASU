@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { IconChevronDown, IconMoreVertical } from '@montage-ui/icon';
 import { AdminBadge, AdminButton, AdminCheckbox, AdminChipGroup, AdminIconButton, AdminPagination, AdminSearch, AdminSelect, cx, type AdminTone, type AdminTagTone } from '../ui';
@@ -6,6 +6,7 @@ import type { RegisteredVehicle } from '../../../utils/registeredAssignmentResou
 import { guideOverlaps, overlapLabel } from '../../../utils/assignmentAvailability';
 import { hasGuide, vehicleClash } from './guideScheduleModel';
 import { dday, initial, nameOf, people, rangeFull, rangeShort, regionOf, sourceLabel, startOf, tourName, nights, norm, type CarInfo, type GuideItem, type GuideRow } from './guideScheduleFormat';
+import type { AssignmentPick } from '../../../utils/assignmentLinks';
 import './guide-assign.css';
 
 /** 목록의 배정 상태: 가이드·차량 둘 다 = 배정 완료, 하나만 = 부분 배정, 둘 다 없음 = 미배정. 가이드·차량이 다른 투어와 겹치면 중복. */
@@ -17,7 +18,7 @@ const STATE: Record<ListState, { label: string; tone: AdminTone | AdminTagTone; 
 const URGENT_DAYS = 14;
 const PAGE_SIZES = [10, 20, 50];
 
-interface Pop { key: string; kind: 'guide' | 'car'; x: number; y: number }
+interface Pop { key: string; kind: 'guide' | 'car'; x: number; y: number; /** 칸 위에 열 때: 화면 아래에서 띄울 거리(창 높이와 관계없이 칸에 붙는다) */ up?: number }
 
 export interface GuideAssignListProps {
     /** 오늘 이후 투어(출발 빠른 순) */
@@ -39,12 +40,14 @@ export interface GuideAssignListProps {
     onAssignCar: (b: GuideItem, vehicle: RegisteredVehicle | null) => void;
     onDetail: (b: GuideItem, target: HTMLElement) => void;
     onMore: (target: HTMLElement, b: GuideItem) => void;
+    /** 예약 상세의 ‘편집’으로 들어온 예약(주소 `booking`·`pick`·`returnTo`). 그 예약을 강조하고 고르기 창을 연다. */
+    focus?: { key: string; pick: AssignmentPick; returnTo: string } | null;
 }
 
-/** 팝오버를 버튼 아래(공간이 없으면 위)에 연다 */
+/** 팝오버를 버튼 아래(공간이 없으면 위)에 연다. 위에 열 때는 창의 아래쪽을 칸 바로 위에 붙인다. */
 const popAt = (target: HTMLElement, width: number, height: number) => {
-    const r = target.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
-    return { x: Math.max(12, Math.min(r.left, vw - width - 12)), y: r.bottom + 6 > vh - height ? Math.max(12, r.top - height) : r.bottom + 6 };
+    const r = target.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight, x = Math.max(12, Math.min(r.left, vw - width - 12));
+    return r.bottom + 6 > vh - height ? { x, y: 12, up: vh - r.top + 6 } : { x, y: r.bottom + 6 };
 };
 
 export function GuideAvatar({ name, img, large }: { name: string; img?: string; large?: boolean }) {
@@ -67,6 +70,31 @@ export function GuideAssignList(props: GuideAssignListProps) {
     const [selected, setSelected] = useState<Record<string, boolean>>({});
     const [pop, setPop] = useState<Pop | null>(null);
     const [search, setSearch] = useState('');
+    // 예약 상세에서 지정한 예약: 필터를 풀고 그 예약이 있는 페이지로 간 뒤(렌더 중 한 번), 화면에 그려지면 고르기 창을 연다.
+    const focus = props.focus || null;
+    const focusIdx = focus ? bookings.findIndex(b => b.key === focus.key) : -1;
+    const [focusDone, setFocusDone] = useState(false);
+    if (focus && !focusDone && focusIdx >= 0) {
+        setFocusDone(true); setTab('all'); setRegion('all'); setMonth('all'); setPage(Math.floor(focusIdx / pageSize) + 1);
+    }
+    const focusOpened = useRef(false);
+    useEffect(() => {
+        if (!focus || !focusDone || focusOpened.current) return;
+        const timer = window.setTimeout(() => {
+            const rowEl = document.querySelector<HTMLElement>(`[data-ga-key="${CSS.escape(focus.key)}"]`);
+            const slot = rowEl?.querySelector<HTMLElement>(`[data-ga-slot="${focus.pick}"]`);
+            const target = bookings.find(b => b.key === focus.key);
+            if (!rowEl || !slot || !target) return;
+            focusOpened.current = true;
+            rowEl.scrollIntoView({ block: 'center', behavior: 'instant' });
+            // 스크롤이 끝난 다음 프레임에 칸 위치를 재야 고르기 창이 칸 바로 아래에 붙는다.
+            window.requestAnimationFrame(() => {
+                if (!slot.hasAttribute('disabled')) { setSearch(''); setPop({ key: target.key, kind: focus.pick, ...popAt(slot, focus.pick === 'guide' ? 340 : 300, 380) }); }
+            });
+        }, 150);
+        return () => window.clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- 지정한 예약이 처음 그려졌을 때 한 번만 연다
+    }, [focus, focusDone]);
     useEffect(() => {
         if (!pop) return;
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setPop(null); } };
@@ -109,7 +137,7 @@ export function GuideAssignList(props: GuideAssignListProps) {
             return { row, overlap, handover, cur, rank: cur ? -1 : overlap ? 2 : handover ? 1 : 0 };
         }).filter(x => !q || norm(x.row.guide.name).includes(q) || norm(x.row.resource?.phone).includes(q))
             .sort((a, c) => a.rank - c.rank || a.row.guide.name.localeCompare(c.row.guide.name, 'ko-KR'));
-        return <div className="adm-ga-pop is-guide" role="dialog" aria-label="가이드 고르기" style={{ left: pop.x, top: pop.y }}>
+        return <div className="adm-ga-pop is-guide" role="dialog" aria-label="가이드 고르기" style={pop.up !== undefined ? { left: pop.x, bottom: pop.up } : { left: pop.x, top: pop.y }}>
             <div className="adm-ga-pop-head"><b>가이드 고르기</b><span>{rangeFull(b)}</span></div>
             <AdminSearch value={search} onChange={setSearch} placeholder="이름으로 찾기" wide autoFocus />
             <div className="adm-ga-opts" role="listbox" aria-label="가이드">
@@ -134,7 +162,7 @@ export function GuideAssignList(props: GuideAssignListProps) {
     // ── 차량 고르기 ──
     const carPop = popBooking && pop?.kind === 'car' && (() => {
         const b = popBooking, cur = vehicleOf(b);
-        return <div className="adm-ga-pop is-car" role="dialog" aria-label="차량 고르기" style={{ left: pop.x, top: pop.y }}>
+        return <div className="adm-ga-pop is-car" role="dialog" aria-label="차량 고르기" style={pop.up !== undefined ? { left: pop.x, bottom: pop.up } : { left: pop.x, top: pop.y }}>
             <div className="adm-ga-pop-head"><b>차량 고르기 · {people(b)}</b><span>{rangeShort(b)}</span></div>
             <div className="adm-ga-opts" role="listbox" aria-label="차량">
                 {vehicles.map(v => {
@@ -156,6 +184,11 @@ export function GuideAssignList(props: GuideAssignListProps) {
 
     return (
         <div className="adm-ga">
+            {focus && <div className="adm-ga-focus adm-msg" role="status">
+                <span>{focusIdx >= 0 ? <>예약 상세에서 연 예약 <b>{nameOf(bookings[focusIdx])}</b> · {rangeShort(bookings[focusIdx])} — {focus.pick === 'car' ? '차량' : '가이드'}을 골라 주세요.</>
+                    : bookings.length ? '예약 상세에서 연 예약이 오늘 이후 투어 목록에 없어요(지난 투어이거나 취소된 예약).' : '예약 상세에서 연 예약을 찾는 중이에요.'}</span>
+                {focus.returnTo && <AdminButton variant="weak" size="sm" onClick={() => window.location.assign(focus.returnTo)}>예약 상세로 돌아가기</AdminButton>}
+            </div>}
             <div className="adm-ga-bar">
                 <AdminChipGroup label="배정 상태" items={tabs} value={tab} onChange={v => go(() => setTab(v))} />
                 <div className="adm-ga-selects">
@@ -181,7 +214,7 @@ export function GuideAssignList(props: GuideAssignListProps) {
                             const urgent = d.days !== null && d.days <= URGENT_DAYS, gOpen = pop?.key === b.key && pop.kind === 'guide', cOpen = pop?.key === b.key && pop.kind === 'car';
                             const busy = savingKey === b.key;
                             return (
-                                <div key={b.key} className={cx('adm-ga-row', selected[b.key] && 'is-sel')}>
+                                <div key={b.key} className={cx('adm-ga-row', selected[b.key] && 'is-sel', focus?.key === b.key && 'is-focus')} data-ga-key={b.key}>
                                     <span className="adm-ga-c-check"><AdminCheckbox size="sm" aria-label={`${nameOf(b)} 선택`} checked={!!selected[b.key]}
                                         onChange={() => setSelected(s => ({ ...s, [b.key]: !s[b.key] }))} /></span>
                                     <span className="adm-ga-stack">
@@ -199,7 +232,7 @@ export function GuideAssignList(props: GuideAssignListProps) {
                                     </span>
                                     <span>
                                         <button type="button" className={cx('adm-ga-slot', assigned ? 'is-filled' : 'is-empty', !assigned && urgent && 'is-urgent', dup.has(b.key) && 'is-dup', gOpen && 'is-open')}
-                                            disabled={busy} aria-haspopup="dialog" aria-expanded={gOpen} onClick={e => openPop(e.currentTarget, b, 'guide')}>
+                                            data-ga-slot="guide" disabled={busy} aria-haspopup="dialog" aria-expanded={gOpen} onClick={e => openPop(e.currentTarget, b, 'guide')}>
                                             {assigned ? <GuideAvatar name={g?.name || ''} img={guideImg(b)} /> : <span className="adm-ga-plus" aria-hidden="true">+</span>}
                                             <span className="adm-ga-slot-text">{assigned ? <><b>{g?.name}</b><span>{dup.has(b.key) ? '일정 겹침 · 바꾸기' : '배정됨 · 바꾸기'}</span></> : <b>가이드 배정</b>}</span>
                                             <IconChevronDown className="adm-ga-caret" aria-hidden="true" />
@@ -207,7 +240,7 @@ export function GuideAssignList(props: GuideAssignListProps) {
                                     </span>
                                     <span>
                                         <button type="button" className={cx('adm-ga-slot', car.type ? 'is-filled' : 'is-empty', !car.type && urgent && 'is-urgent', carDup.has(b.key) && 'is-dup', cOpen && 'is-open')}
-                                            disabled={busy} aria-haspopup="dialog" aria-expanded={cOpen} onClick={e => openPop(e.currentTarget, b, 'car')}>
+                                            data-ga-slot="car" disabled={busy} aria-haspopup="dialog" aria-expanded={cOpen} onClick={e => openPop(e.currentTarget, b, 'car')}>
                                             {!car.type && <span className="adm-ga-plus" aria-hidden="true">+</span>}
                                             <span className="adm-ga-slot-text">{car.type ? <><b>{car.plate ? `${car.type} · ${car.plate}` : car.type}</b>
                                                 {car.driver || car.phone ? <span>기사 {[car.driver, car.phone].filter(Boolean).join(' · ')}</span> : <span className="is-warn">기사 정보 없음</span>}</> : <b>차량 배정</b>}</span>

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { build } from 'esbuild';
+import { readFileSync } from 'node:fs';
 const require = createRequire(import.meta.url), React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const load = async entry => {
@@ -269,4 +270,38 @@ test('서류 카드의 견적서 수정 버튼은 견적 작성기 액션을 보
     byLabel(tree, '견적서 열기').props.onClick(); assert.deepEqual(calls.at(-1), ['quote-preview', 'quote']);
     assert.equal(byLabel(view({ model: { ...model, documents }, busy: true }).tree, '견적서 수정').props.disabled, true);
     assert.equal(byLabel(view({ model }).tree, '계약서 수정'), undefined);
+});
+
+test('예약 상세의 배정은 보기 전용이고 편집은 숙소 배정·가이드 배정 현황에서 그 예약을 연다', async () => {
+    const source = { id: 'r1', type: 'product', status: 'confirmed', customerName: '합성 고객', productName: '테를지', startDate: '2099-10-24', endDate: '2099-10-26',
+        totalAmount: 3000000, deposit: 600000, balance: 2400000, depositStatus: 'paid', balanceStatus: 'unpaid', contractData: { agreement: { agreed: false } } };
+    const calls = [];
+    const { tree } = view({ model, links: { source, userId: 'admin' }, onAction: (...args) => calls.push(args) });
+    const hrefs = elements(tree, node => node.type === 'a' && /rdc-/.test(node.props.className || '')).map(a => a.props.href);
+    assert.ok(hrefs.some(h => h.startsWith('/admin/quote-desk/resources?view=schedule&booking=product%3Ar1&pick=guide')), '가이드 편집');
+    assert.ok(hrefs.some(h => h.startsWith('/admin/quote-desk/resources?view=schedule&booking=product%3Ar1&pick=car')), '차량 편집');
+    assert.ok(hrefs.some(h => h.startsWith('/admin/accommodation-ops?open=r1&source=product')), '숙소 편집');
+    const markup = renderToStaticMarkup(tree);
+    for (const gone of ['가이드 선택', '차량 선택', '숙소 선택', '등급 선택', '박별 관리']) assert.ok(!markup.includes(`>${gone}<`), gone);
+    assert.ok(markup.includes('보기 전용 · 편집은 각 메뉴에서'));
+    assert.deepEqual(calls, []);
+
+    const { safeAdminReturnTo, guideAssignHref, lodgeAssignHref, readAssignmentFocus } = await load('src/utils/assignmentLinks.ts');
+    for (const bad of ['https://evil.example/admin/', '//evil.example', '/products', '/admin/x\nSet-Cookie:1', `/admin/${String.fromCharCode(92)}evil`]) assert.equal(safeAdminReturnTo(bad), '', bad);
+    assert.equal(safeAdminReturnTo('/admin/customer-workspace/quote/q1?x=1'), '/admin/customer-workspace/quote/q1?x=1');
+    assert.equal(lodgeAssignHref('quote_booking', 'q1', 'https://evil.example'), '/admin/accommodation-ops?open=q1&source=quote_booking');
+    const href = guideAssignHref('quote_booking', 'q1', 'car', '/admin/customer-workspace/quote/q1');
+    assert.deepEqual(readAssignmentFocus(href.slice(href.indexOf('?'))), { key: 'quote_booking:q1', pick: 'car', returnTo: '/admin/customer-workspace/quote/q1' });
+    assert.equal(readAssignmentFocus('?booking=quote:q1'), null, '견적 문의(예약 전)는 배정 대상이 아니다');
+});
+
+test('가이드 배정 현황·숙소 배정은 예약 상세에서 지정한 예약을 열고 돌아갈 버튼을 둔다', () => {
+    const read = path => readFileSync(path, 'utf8');
+    const schedule = read('src/components/admin/guides/GuideSchedule.tsx'), list = read('src/components/admin/guides/GuideAssignList.tsx'), ops = read('src/pages/AdminAccommodationOps.tsx');
+    assert.match(schedule, /readAssignmentFocus\(window\.location\.search\)/);
+    assert.match(schedule, /useState<ViewKey>\(focus \? 'tbl' : 'cal'\)/, '지정한 예약이 있으면 가이드 배정하기 목록으로 연다');
+    assert.match(list, /data-ga-key=\{b\.key\}/);
+    assert.match(list, /data-ga-slot="guide"/); assert.match(list, /data-ga-slot="car"/);
+    assert.match(list, /예약 상세로 돌아가기/); assert.match(ops, /예약 상세로 돌아가기/);
+    assert.match(ops, /safeAdminReturnTo\(new URLSearchParams\(window\.location\.search\)\.get\('returnTo'\)\)/);
 });

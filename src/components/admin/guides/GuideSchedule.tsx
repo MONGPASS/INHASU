@@ -16,6 +16,7 @@ import {
     guideItineraryExtra, guideItineraryHref, shiftMonth, timelineWindow, vehicleClash, weekLanes, type TimelineRange,
 } from './guideScheduleModel';
 import { endOf, initial, md, nameOf, nights, norm, people, period, startOf, todayKey, type CarInfo, type GuideItem as Item, type GuideRow as Row } from './guideScheduleFormat';
+import { readAssignmentFocus } from '../../../utils/assignmentLinks';
 import { GuideAssignList } from './GuideAssignList';
 import { GuideDrawer } from './GuideDrawer';
 import { IconCheck, IconChevronLeft, IconChevronRight, IconPlus } from '@montage-ui/icon';
@@ -78,7 +79,9 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
     const [toast, setToast] = useState('');
     const [savingKey, setSavingKey] = useState('');
     const [month, setMonth] = useState(() => todayKey().slice(0, 7));
-    const [view, setView] = useState<ViewKey>('cal');
+    // 예약 상세의 ‘편집’에서 들어오면(?booking=출처:ID&pick=guide|car) 가이드 배정하기 목록에서 그 예약을 연다.
+    const [focus] = useState(() => readAssignmentFocus(window.location.search));
+    const [view, setView] = useState<ViewKey>(focus ? 'tbl' : 'cal');
     const [sub, setSub] = useState<'month' | 'line'>('month');
     const [range, setRange] = useState<TimelineRange>('w2');
     const [rangeStart, setRangeStart] = useState<number | null>(null);
@@ -554,7 +557,7 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
         rowOf={rowOf} vehicleOf={vehicleOf} carInfo={carInfo} guideImg={guideImg}
         onAssignGuide={(b, row) => void assignRow(b, row)} onClearGuide={b => void assign(b, null, '')} onAssignCar={(b, v) => void saveVehicle(b, v)}
         onDetail={(b, target) => { const r = rowOf(b); if (r) { setMonth(startOf(b).slice(0, 7)); setDrawer(r.key); setPop(null); } else openGuidePop(target, b); }}
-        onMore={openMorePop} />;
+        onMore={openMorePop} focus={focus} />;
 
     return (
         <div className="gs">
