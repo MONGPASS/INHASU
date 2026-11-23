@@ -20,7 +20,7 @@
 .admin-app-wrapper .cm-kpi-ico[data-tone="warn"] { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
 .admin-app-wrapper .cm-kpi-label { flex: 1; color: var(--text-secondary); font-size: 13px; font-weight: 600; }
 .admin-app-wrapper .cm-kpi-value { display: flex; align-items: baseline; gap: 3px; }
-.admin-app-wrapper .cm-kpi-num { color: var(--text-strong); font-size: 28px; font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.admin-app-wrapper .cm-kpi-num { color: var(--text-strong); font-size: 26px; font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .admin-app-wrapper .cm-kpi-num[data-zero] { color: var(--mrt-gray-400); }
 .admin-app-wrapper .cm-kpi-unit { color: var(--text-secondary); font-size: 14px; }
 

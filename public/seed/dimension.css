@@ -1,0 +1,34 @@
+/* Seed Design — dimension: radii and layout constants.
+   Seed publishes no abstract radius/space scale; these are the literal values
+   the component specs state (in pt, 1pt = 1px on web). Named for reuse. */
+
+:root {
+  --seed-radius-xsmall: 4px;   /* box-button small/xsmall, chip-button */
+  --seed-radius-small: 6px;    /* box-button medium/large/xlarge, text-field */
+  --seed-radius-medium: 8px;   /* callout, inline-alert, select-box */
+  --seed-radius-large: 10px;   /* action sheet, snackbar */
+  --seed-radius-xlarge: 16px;  /* bottom sheet top corners */
+  --seed-radius-full: 9999px;  /* capsule / chip toggle / FAB / avatar */
+
+  /* control heights lifted from the component specs */
+  --seed-control-height-xsmall: 32px;
+  --seed-control-height-small: 36px;
+  --seed-control-height-medium: 40px;
+  --seed-control-height-large: 48px;
+  --seed-control-height-xlarge: 52px;
+
+  /* the 4pt rhythm the specs' paddings and gaps sit on */
+  --seed-space-2: 2px;
+  --seed-space-4: 4px;
+  --seed-space-6: 6px;
+  --seed-space-8: 8px;
+  --seed-space-10: 10px;
+  --seed-space-12: 12px;
+  --seed-space-16: 16px;
+  --seed-space-20: 20px;
+  --seed-space-24: 24px;
+  --seed-space-32: 32px;
+
+  /* focus ring — $scale.color.blue-600 at 2pt, per every component spec */
+  --seed-focus-ring: 0 0 0 2px var(--seed-scale-color-blue-600);
+}

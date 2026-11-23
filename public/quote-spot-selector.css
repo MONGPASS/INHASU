@@ -1,5 +1,5 @@
 /* 견적만들기 STEP 4의 지역별 카드와 선택 순서를 그대로 공유합니다. */
-.quote-spot-selector { --p:var(--adm-accent, #0CEFD3); --pl:var(--adm-accent-soft, #E7FDFA); --pb:var(--adm-accent-line, #86F7E9); --ink2:#1F2937; --gray:#98A2B3; --dim:#B6BCC6; --line:#EAECF0; --hair:#F4F6F8; min-width:0; font-family:inherit; }
+.quote-spot-selector { --p:var(--adm-accent, #36D1A7); --pl:var(--adm-accent-soft, #36D1A724); --pb:var(--adm-accent-line, #70E5C2); --ink2:#1F2937; --gray:#98A2B3; --dim:#B6BCC6; --line:#EAECF0; --hair:#F4F6F8; min-width:0; font-family:inherit; }
 .quote-spot-selector *, .quote-spot-selector *::before, .quote-spot-selector *::after { box-sizing:border-box; }
 .quote-spot-selector .spot-cat { margin-top:20px; }
 .quote-spot-selector .spot-cat:first-child { margin-top:0; }

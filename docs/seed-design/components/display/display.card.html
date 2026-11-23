@@ -1,0 +1,25 @@
+<!-- @dsCard group="Components" viewport="700x220" name="Display" subtitle="Avatar, AvatarGroup, Tabs" -->
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>window.__seedIconBase="../../assets/svg"</script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:16px;background:var(--seed-semantic-color-paper-default)}.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px}[role=tab]>span[style*="carrot-500"]{background-color:#36D1A7!important}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Avatar, AvatarGroup, Tabs, Icon } = window.SeedDesignSystem_ee0fab;
+const people=[{fallback:"당"},{fallback:"근"},{fallback:"마"},{fallback:"켓"},{fallback:"이"}];
+function Card(){return (<div>
+<div className="row">
+<Avatar size="xxsmall" fallback="당" /><Avatar size="xsmall" fallback="당" /><Avatar size="small" fallback="당" /><Avatar size="medium" fallback="당" /><Avatar size="large" fallback="당" />
+<Avatar size="medium" fallback="근" badge={<Icon name="check_fill" size={14} color="#36D1A7" />} />
+<AvatarGroup size="small" limit={3} items={people} />
+<AvatarGroup size="medium" limit={4} items={people} />
+</div>
+<Tabs layout="fill" defaultValue="sell" items={[{value:"sell",label:"판매중"},{value:"sold",label:"거래완료",dot:true},{value:"hide",label:"숨김"}]} />
+<div style={{height:12}}></div>
+<Tabs layout="hug" defaultValue="feed" items={[{value:"feed",label:"동네생활"},{value:"near",label:"동네가게"},{value:"job",label:"알바"}]} />
+</div>)}
+ReactDOM.createRoot(document.getElementById("root")).render(<Card />);
+</script></body></html>

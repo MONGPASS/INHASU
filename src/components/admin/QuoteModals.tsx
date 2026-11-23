@@ -730,7 +730,7 @@ export const QuoteDetailModal: React.FC<{
                             <span className="tag-type quote">맞춤견적</span>
                             <span className="cell-mono" style={{ fontSize: 13 }}>#{request.id.slice(0, 8).toUpperCase()}</span>
                         </div>
-                        <div className="page-title" style={{ fontSize: 17, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{request.destination || '맞춤 견적'} · {request.name}</div>
+                        <div className="page-title" style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{request.destination || '맞춤 견적'} · {request.name}</div>
                     </div>
                     <span className={`badge ${statusTone[request.status] || 'b-gray'}`}>{statusMeta.label}</span>
                     <button className="icon-btn" style={{ width: 36, height: 36 }} onClick={closeWorkspace}><span className="material-symbols-outlined">close</span></button>

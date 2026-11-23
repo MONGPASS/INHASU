@@ -1,0 +1,45 @@
+<!-- @dsCard group="Components" viewport="700x230" name="Buttons" subtitle="BoxButton, TextButton, ChipButton, FABs" -->
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>window.__seedIconBase="../../assets/svg"</script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:16px;background:var(--seed-semantic-color-paper-default)}.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { BoxButton, TextButton, ChipButton, FloatingActionButton, ExtendedFloatingActionButton, Icon } = window.SeedDesignSystem_ee0fab;
+function Card(){return (<div>
+<div className="row">
+<BoxButton size="xsmall">xsmall</BoxButton>
+<BoxButton size="small">small</BoxButton>
+<BoxButton size="medium">medium</BoxButton>
+<BoxButton size="large">large</BoxButton>
+<BoxButton size="xlarge">xlarge</BoxButton>
+</div>
+<div className="row">
+<BoxButton variant="primary">채팅하기</BoxButton>
+<BoxButton variant="secondary">관심</BoxButton>
+<BoxButton variant="tertiary">공유</BoxButton>
+<BoxButton variant="danger">삭제</BoxButton>
+<BoxButton disabled>비활성</BoxButton>
+<BoxButton variant="outlined" prefix={<Icon name="heart_regular" size={16} />}>아이콘</BoxButton>
+<BoxButton variant="ghost">고스트</BoxButton>
+</div>
+<div className="row">
+<TextButton variant="primary">전체보기</TextButton>
+<TextButton variant="secondary" bold>수정</TextButton>
+<TextButton variant="secondary-low" suffixIcon={<Icon name="chevron_right_regular" size={14} />}>더보기</TextButton>
+<TextButton variant="accent" buttonStyle="underlined">약관</TextButton>
+<TextButton variant="danger">신고</TextButton>
+</div>
+<div className="row">
+<ChipButton count={12} suffixIcon={<Icon name="expand_more_regular" size={14} />}>동네</ChipButton>
+<ChipButton size="small" prefixIcon={<Icon name="sort_regular" size={14} />}>최신순</ChipButton>
+<FloatingActionButton size="small" icon={<Icon name="add_regular" size={20} />} />
+<FloatingActionButton icon={<Icon name="write_regular" size={22} />} />
+<ExtendedFloatingActionButton icon={<Icon name="map_regular" size={16} />}>지도 보기</ExtendedFloatingActionButton>
+</div>
+</div>)}
+ReactDOM.createRoot(document.getElementById("root")).render(<Card />);
+</script></body></html>

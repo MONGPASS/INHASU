@@ -36,7 +36,7 @@
 .la-day-w { font-size: 11px; color: var(--la-ink-low); }
 .la-day-w[data-w="0"] { color: var(--la-red); }
 .la-day-w[data-w="6"] { color: var(--adm-accent-strong); }
-.la-day-n { font-size: 17px; font-weight: 700; line-height: 1.2; }
+.la-day-n { font-size: 16px; font-weight: 700; line-height: 1.2; }
 .la-day-n.is-today { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
 .la-day i { position: absolute; top: 7px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--la-orange); }
 .la-day i[data-tone="red"] { background: var(--la-red); }

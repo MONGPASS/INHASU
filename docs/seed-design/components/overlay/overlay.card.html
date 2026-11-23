@@ -1,0 +1,18 @@
+<!-- @dsCard group="Components" viewport="700x360" name="Overlay" subtitle="AlertDialog, ActionSheet, BottomSheet" -->
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>window.__seedIconBase="../../assets/svg"</script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:16px;background:var(--seed-semantic-color-paper-background)}.stage{position:relative;width:216px;height:320px;overflow:hidden;border-radius:12px;background:var(--seed-semantic-color-paper-default);box-shadow:0 1px 3px rgba(0,0,0,.12)}.row{display:flex;gap:16px}button[style*="background: var(--seed-semantic-color-primary);"]{background-color:#36D1A7!important}button[style*="color: var(--seed-semantic-color-danger);"]{color:#36D1A7!important}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { AlertDialog, ActionSheet, BottomSheet, BoxButton, TextField, Icon } = window.SeedDesignSystem_ee0fab;
+function Card(){return (<div className="row">
+<div className="stage"><AlertDialog title="채팅방을 나갈까요?" description="나가면 대화 내용이 모두 삭제돼요." primaryLabel="나가기" secondaryLabel="취소" /></div>
+<div className="stage"><ActionSheet title="게시글" description="이 글에 대해 무엇을 할까요?" actions={[{label:"수정하기"},{label:"끌어올리기"},{label:"삭제하기",variant:"destructive"}]} /></div>
+<div className="stage"><BottomSheet title="가격 제안하기" closeIcon={<Icon name="close_regular" size={24} />} footer={<BoxButton size="large" layout="fullWidth">제안 보내기</BoxButton>}><TextField placeholder="₩ 제안할 금액" style={{minWidth:0}} /></BottomSheet></div>
+</div>)}
+ReactDOM.createRoot(document.getElementById("root")).render(<Card />);
+</script></body></html>

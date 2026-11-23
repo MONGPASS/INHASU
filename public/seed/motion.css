@@ -1,0 +1,16 @@
+/* Seed Design — motion.
+   Upstream references $scale.timing-function.* by name in the component specs
+   but does not publish numeric curves in this repo. Durations below are the
+   ones the specs state literally (100ms press, 300ms sheet/snackbar). The
+   curves are stand-ins — replace with the real values if you have them. */
+
+:root {
+  --seed-duration-press: 100ms; /* @kind other */
+  --seed-duration-fade: 200ms; /* @kind other */
+  --seed-duration-transition: 300ms; /* @kind other */
+  --seed-timing-function-standard-easing: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+  --seed-timing-function-standard-entrance: cubic-bezier(0, 0, 0.2, 1); /* @kind other */
+  --seed-timing-function-standard-exit: cubic-bezier(0.4, 0, 1, 1); /* @kind other */
+  --seed-timing-function-spring-entrance: cubic-bezier(0.2, 0.9, 0.3, 1.2); /* @kind other */
+  --seed-press-scale: 0.95; /* @kind other */
+}
