@@ -34,6 +34,7 @@ import {
 } from '../components/admin/quoteDesk';
 import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { AdminTabs } from '../components/admin/ui';
 
 /**
  * 맞춤 견적 데스크 — `/admin/quote-desk/:tool?`
@@ -89,7 +90,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const scheduleView = toolParam === 'resources' && resourceScheduleView(searchParams);
     const setScheduleView = (on: boolean) => { const next = new URLSearchParams(searchParams); next.set('view', on ? 'schedule' : 'registry'); navigate({ search: `?${next}` }, { replace: true }); };
     const [embedOverlay, setEmbedOverlay] = useState(false);
-    const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: any } | null>(null);
+    const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: Record<string, unknown> } | null>(null);
     const customerRecord = customerResult?.accountId === accountId && customerResult.id === bookingId ? customerResult.record : null;
     const [customerError, setCustomerError] = useState('');
     const [customerRefreshing, setCustomerRefreshing] = useState(false);
@@ -576,6 +577,9 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
             description={customerPage ? '선택한 문의·견적의 고객 정보와 일정·문서·예약 업무를 한곳에서 확인합니다.' : bookingId && tool.key === 'bookings' ? '선택한 고객의 입금·계약·배정·일정표를 관리합니다.' : tool.key === 'resources' ? undefined : tool.description}
             flush
             hideHeading={customerPage && editorExpanded}
+            // 가이드·숙소·차량: 제목 옆 밑줄 탭(Claude Design ‘가이드 배정 현황 · 상단 조작부’ 1단, 2026-11-23)
+            titleAside={tool.key === 'resources' && !customerPage ? <AdminTabs size="lg" label="가이드·숙소·차량 화면" value={scheduleView ? 'schedule' : 'registry'}
+                onChange={v => setScheduleView(v === 'schedule')} items={[{ value: 'registry', label: '등록 정보' }, { value: 'schedule', label: '가이드 배정 현황' }]} /> : undefined}
             actions={customerPage ? <>
                     {/* 고객 현황 머리: 목록 복귀와 ⋯(견적서 수정 · 발송 이력)만. 나머지는 v7 상세 카드와 편집 도구줄이 맡는다. */}
                     <button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>
@@ -585,16 +589,6 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         <Icon name="more_horiz" />
                     </button>
                 </> : <>
-                    {tool.key === 'resources' && (
-                        // 디자인 v4: 회색 바탕 알약 안에서 선택한 쪽만 흰 바탕·그림자
-                        <span role="group" aria-label="보기" style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-gray-100)' }}>
-                            {([[false, '등록 정보'], [true, '가이드 배정 현황']] as const).map(([on, label]) => (
-                                <button key={label} type="button" aria-pressed={scheduleView === on} onClick={() => setScheduleView(on)}
-                                    style={{ display: 'flex', alignItems: 'center', height: 38, padding: '0 18px', border: 0, borderRadius: 8, font: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                                        background: scheduleView === on ? 'var(--adm-surface)' : 'transparent', color: scheduleView === on ? 'var(--adm-ink)' : 'var(--adm-text-3)', boxShadow: scheduleView === on ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}>{label}</button>
-                            ))}
-                        </span>
-                    )}
                     {/* 코스·일정·여행지: 도구 안 머리의 추가 버튼을 제목 줄로 올린다(도구 안의 원래 버튼을 대신 눌러 동작은 그대로). 도구 안 머리는 admin-tools.css가 숨긴다. */}
                     {tool.key === 'spots' && <button type="button" className="btn btn-ghost" disabled={!frameIsMounted} onClick={() => clickFrameButton('copyBtn')}>문구 초안 가져오기</button>}
                     {(['courses', 'itinerary', 'spots'] as string[]).includes(tool.key) && (

@@ -27,6 +27,8 @@ interface AdminLayoutProps {
     isDarkMode?: boolean;
     toggleTheme?: () => void;
     actions?: React.ReactNode;
+    /** 제목 바로 옆(같은 줄)에 두는 화면 안 이동 탭. 주면 제목 줄 아래에 구분선을 긋는다. */
+    titleAside?: React.ReactNode;
     /**
      * 본문 여백·최대 폭 없이 children 이 상단 바 아래 영역(뷰포트 − 상단 바)을 꽉 채운다.
      * 끼워 넣은 화면(맞춤 견적 데스크의 iframe)용 — children 의 최상위 요소에 `flex: 1` 을 주면 된다.
@@ -47,7 +49,7 @@ const EYEBROW: Record<string, string> = {
 };
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
-    activePage, title, description, eyebrow, showSearch = true, actions, flush = false, hideHeading = false, children,
+    activePage, title, description, eyebrow, showSearch = true, actions, titleAside, flush = false, hideHeading = false, children,
 }) => {
     const eb = eyebrow === null ? null : eyebrow || EYEBROW[activePage] || '관리자 콘솔';
     const location = useLocation();
@@ -85,7 +87,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         update(); viewport.addEventListener('change', update);
         return () => viewport.removeEventListener('change', update);
     }, []);
-    useEffect(() => { setMobileMenuOpen(false); setMobileActionsOpen(false); }, [location.key]);
+    // 화면을 옮기면 휴대폰 메뉴·작업 패널을 닫는다. effect가 아니라 그리는 중에 맞춰 한 번 더 그리지 않게 한다(React 권장 방식).
+    const [seenLocationKey, setSeenLocationKey] = useState(location.key);
+    if (seenLocationKey !== location.key) { setSeenLocationKey(location.key); setMobileMenuOpen(false); setMobileActionsOpen(false); }
     useEffect(() => {
         if (!menuShown) return;
         const previousOverflow = document.body.style.overflow;
@@ -127,9 +131,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                     <div className="header-in">
                         {<button ref={menuButtonRef} type="button" className="admin-customer-menu-toggle" aria-label="관리자 메뉴 열기" aria-expanded={menuShown} aria-controls={menuId} onClick={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }}><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg></button>}
                         {!hideHeading && <nav className="admin-breadcrumb" aria-label="현재 위치"><span>{adminSectionLabel(activePage)}</span><span aria-hidden="true">/</span><b aria-current="page">{title}</b></nav>}
-                        {!hideHeading && <div className="admin-layout-heading" style={{ minWidth: 0 }}>
+                        {!hideHeading && <div className={`admin-layout-heading${titleAside ? ' has-aside' : ''}`} style={{ minWidth: 0 }}>
                             {eb && <div className="eyebrow"><span className="dot" />{eb}</div>}
                             <div className="page-title">{title}</div>
+                            {titleAside && <div className="admin-layout-title-aside">{titleAside}</div>}
                             {description && (
                                 <div className="cell-muted" style={{ fontSize: 12, marginTop: 2 }}>{description}</div>
                             )}

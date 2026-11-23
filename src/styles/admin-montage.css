@@ -102,6 +102,10 @@
 /* ── 화면 제목 ── */
 .admin-app-wrapper .eyebrow { display: none; }
 .admin-app-wrapper .page-title { color: var(--adm-ink); font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); line-height: 1.36; letter-spacing: -0.0236em; }
+/* 제목 옆 밑줄 탭(AdminLayout titleAside): 제목과 탭이 한 줄, 아래에 구분선 */
+.admin-app-wrapper .admin-layout-heading.has-aside { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--adm-space-2) var(--adm-space-8); border-bottom: var(--adm-border-width) solid var(--adm-line); }
+.admin-app-wrapper .admin-layout-heading.has-aside .page-title { padding-bottom: var(--adm-space-3); }
+.admin-app-wrapper .admin-layout-title-aside { min-width: 0; margin-bottom: calc(-1 * var(--adm-border-width)); }
 .admin-app-wrapper .admin-layout-heading > .cell-muted { margin-top: var(--adm-space-1) !important; color: var(--adm-text-2); font-size: var(--adm-fs-base) !important; line-height: 22px; }
 
 /* ── 상단 바 도구: 검색(회색 채움)·알림·사이트 보기 ── */
