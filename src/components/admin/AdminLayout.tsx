@@ -87,7 +87,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         update(); viewport.addEventListener('change', update);
         return () => viewport.removeEventListener('change', update);
     }, []);
-    useEffect(() => { setMobileMenuOpen(false); setMobileActionsOpen(false); }, [location.key]);
+    // 화면을 옮기면 휴대폰 메뉴·작업 패널을 닫는다. effect가 아니라 그리는 중에 맞춰 한 번 더 그리지 않게 한다(React 권장 방식).
+    const [seenLocationKey, setSeenLocationKey] = useState(location.key);
+    if (seenLocationKey !== location.key) { setSeenLocationKey(location.key); setMobileMenuOpen(false); setMobileActionsOpen(false); }
     useEffect(() => {
         if (!menuShown) return;
         const previousOverflow = document.body.style.overflow;

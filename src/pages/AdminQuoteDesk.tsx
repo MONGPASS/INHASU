@@ -90,7 +90,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     const scheduleView = toolParam === 'resources' && resourceScheduleView(searchParams);
     const setScheduleView = (on: boolean) => { const next = new URLSearchParams(searchParams); next.set('view', on ? 'schedule' : 'registry'); navigate({ search: `?${next}` }, { replace: true }); };
     const [embedOverlay, setEmbedOverlay] = useState(false);
-    const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: any } | null>(null);
+    const [customerResult, setCustomerResult] = useState<{ accountId: string; id: string; record: Record<string, unknown> } | null>(null);
     const customerRecord = customerResult?.accountId === accountId && customerResult.id === bookingId ? customerResult.record : null;
     const [customerError, setCustomerError] = useState('');
     const [customerRefreshing, setCustomerRefreshing] = useState(false);
