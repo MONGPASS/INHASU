@@ -76,16 +76,21 @@ test('바로가기 6개는 디자인대로 화면 안 카드로 이동만 하고
     assert.ok(elements(busyNav, node => node.type === 'button').every(b => b.props.disabled !== true));
 });
 
-test('알림 보내기는 같은 화면의 고객 알림 패널을 펼치고 문의 단계에서는 문서 화면을 연다', () => {
-    const calls = [];
-    let opened = false, scrolled = 0, focused = 0;
-    const panel = { set open(value) { opened = value; }, get open() { return opened; }, scrollIntoView: () => scrolled++, querySelector: () => ({ focus: () => focused++ }) };
-    const event = { currentTarget: { closest: () => ({ querySelector: selector => selector === 'details.cw-kakao' ? panel : null }) } };
-    const notices = React.createElement('details', { className: 'cw-kakao' });
-    byText(view({ model, notificationActions: notices, onAction: (...args) => calls.push(args) }).tree, '알림 보내기').props.onClick(event);
-    assert.deepEqual(calls, []); assert.equal(opened, true); assert.equal(scrolled, 1); assert.equal(focused, 1);
+test('알림 보내기는 위쪽 ‘고객 알림 · 처리 이력’ 카드의 고객 알림 탭으로 가고 문의 단계에서는 문서 화면을 연다', () => {
+    const calls = [], scrolled = [];
+    const st = initialDetailState(); st.logTab = 'log';
+    const set = patch => Object.assign(st, typeof patch === 'function' ? patch(st) : patch);
+    const env = { mounted: { current: true }, toastTimer: { current: undefined }, root: { current: { querySelector: selector => sectionStub(selector, () => scrolled.push(selector)) } } };
+    const notices = React.createElement('div', { className: 'cw-kakao is-embedded' }, '고객 알림 본문');
+    const render = () => reservationDetailView({ model, notificationActions: notices, onAction: (...args) => calls.push(args) }, st, set, env).element;
+    const card = () => elements(render(), node => node.props.id === 'sec-log')[0];
+    assert.equal(elements(card(), node => node === notices).length, 0, '처리 이력 탭에서는 알림 본문을 그리지 않는다');
+    byText(render(), '알림 보내기').props.onClick();
+    assert.deepEqual(calls, []); assert.equal(st.logTab, 'notice'); assert.deepEqual(scrolled, ['#sec-log']);
+    assert.equal(elements(card(), node => node === notices).length, 1, '고객 알림 탭은 위쪽 카드 안에 알림 본문을 그린다');
+    assert.equal(elements(render(), node => node.props.id === 'sec-log').length, 1, '알림·이력 카드는 하나뿐이다');
     const inquiry = view({ model: { ...model, documentAction: 'documents', documentLabel: '견적서 확인·전달' }, notificationActions: notices, onAction: (...args) => calls.push(args) }).tree;
-    byText(inquiry, '견적서 확인·전달').props.onClick(event);
+    byText(inquiry, '견적서 확인·전달').props.onClick();
     assert.deepEqual(calls, [['documents']]);
 });
 

@@ -215,9 +215,10 @@ test('자동 안내와 수동 재안내는 기본 접힌 상태로 나뉘며 기
     await h.settle(); assert.equal(h.tree.type, 'details'); assert.equal(h.tree.props.open, undefined); assert.equal(h.tree.props.onToggle, undefined);
     const summary = nodes(h.tree).find(node => node.type === 'summary'); assert.ok(summary); assert.equal(summary.props.onClick, undefined);
     assert.equal(nodes(summary).some(node => node.type === 'button'), false); assert.match(text(summary), /고객 알림 자동발송 · 이력\/다시 보내기/);
-    assert.match(text(summary), /발송 상태 확인 1건/);
+    assert.match(text(summary), /확인 필요 1건 · 카카오 발송 설정 필요 1/, '접힌 줄에서도 무엇을 확인할지 보인다');
     const html = renderToStaticMarkup(h.tree);
-    for (const value of ['자동 안내', '수동 재안내', '문의 접수 안내', '신규 문의 저장 시', '자동 발송 기록 없음', '발송 설정 필요', '전용 승인 템플릿이 없습니다.', '발송 서비스 접수']) assert.ok(html.includes(value), value);
+    for (const value of ['자동 안내', '수동 재안내', '문의 접수 안내', '신규 문의 저장 시', '자동 발송 기록 없음', '발송 설정 필요', '전용 승인 템플릿이 없습니다.', '발송 서비스 접수',
+        '확인이 필요한 자동 안내 1건', '카카오 발송 설정 필요 1건', 'Solapi 키와 알림별 승인 템플릿 ID']) assert.ok(html.includes(value), value);
     assert.doesNotMatch(html, /수신 완료<|전달 완료<|자동발송 켜기/); assert.equal(posts(h).length, 0);
 });
 
@@ -254,4 +255,23 @@ test('두 부모의 안정적인 원장 revision은 자동 알림 결과 변경 
         assert.match(text(automation), /발송 서비스 접수/); assert.doesNotMatch(text(automation), /발송 처리 중/);
         h.props = { ...h.props, revision: revision('accepted') }; h.render(); await h.settle(); assert.equal(h.calls.length, 2, 'equal receipt revisions do not form a render/query loop');
     }
+});
+
+test('확인이 필요한 자동 안내는 원인별(실패·결과 확인·연락처·설정)로 묶고 취소된 예약의 중지는 세지 않으며 예약 상세 카드 안에서는 확인할 일만 늘 보인다', async t => {
+    const h = mount(t, { embedded: true }, (call, current) => call.method === 'GET' ? Response.json({ ...current.data(), automation: { enabled: true, notices: [
+        { kind: 'contract', label: '여행 계약서', trigger: '입금 확인 후', state: 'failed', reason: '수신 거부', lastAttempt: { state: 'failed', at: '2026-10-20T01:00:00Z', error: '수신 거부' } },
+        { kind: 'itinerary', label: '확정 일정표', trigger: '공개 후', state: 'unknown', lastAttempt: { state: 'unknown', at: '2026-10-20T01:00:00Z' } },
+        { kind: 'booking_confirmed', label: '예약 확정 안내', trigger: '확정 후', state: 'unavailable', reason: '고객 연락처를 확인해 주세요.', reasonCode: 'phone' },
+        { kind: 'contract_signed', label: '계약서 서명 접수', trigger: '서명 후', state: 'unavailable', reason: '카카오 발송 설정과 해당 단계의 승인 템플릿을 확인해 주세요.', reasonCode: 'template' },
+        { kind: 'travel_notice', label: '여행 주의사항', trigger: '서명 후', state: 'unavailable', reason: '취소된 예약의 자동 안내는 중지됩니다.', reasonCode: 'cancelled' },
+    ] } }) : undefined);
+    await h.settle();
+    assert.equal(h.tree.type, 'div', '예약 상세 카드 안에서는 바깥 접힘 상자 없이 본문만');
+    const more = nodes(h.tree).filter(node => node.type === 'details');
+    assert.equal(more.length, 1); assert.equal(more[0].props.className, 'cw-kakao-more', '자동 안내 목록·다시 보내기만 접어 둔다');
+    const issues = nodes(h.tree).find(node => node.props?.className?.includes?.('cw-kakao-issues'));
+    assert.ok(issues); assert.equal(nodes(more[0]).includes(issues), false, '확인할 일은 접힌 곳 밖에 늘 보인다');
+    const html = renderToStaticMarkup(h.tree);
+    for (const value of ['확인이 필요한 자동 안내 4건', '발송 실패 1건', '결과 확인 필요 1건', '고객 연락처 확인 필요 1건', '카카오 발송 설정 필요 1건', '이 예약이 아니라 사이트 전체 설정이에요']) assert.ok(html.includes(value), value);
+    assert.equal(posts(h).length, 0);
 });

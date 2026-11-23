@@ -17,6 +17,7 @@ import {
     type PillTone, type V7MenuItem, type V7MenuState,
 } from './v7Ui';
 import { adminConfirm } from '../ui/adminFeedback';
+import { AdminTabs } from '../ui';
 import { IconCheckThick, IconCoins, IconDocument, IconListCategory, IconPersons } from '@montage-ui/icon';
 import './reservation-detail-cards.css';
 
@@ -90,9 +91,11 @@ export interface DetailState {
     maskOn: boolean; sections: Record<string, boolean>; travelerOpen: number; dayOpen: Record<string, boolean>;
     /** 구역 탭에서 마지막으로 고른 구역(밑줄 표시용). */
     navSid: string;
+    /** ‘고객 알림 · 처리 이력’ 카드의 탭. 빈 값이면 고객 알림(없으면 처리 이력). */
+    logTab: '' | 'notice' | 'log';
 }
 export const initialDetailState = (): DetailState => ({ allItems: [], resources: null, menu: null, toast: '', saving: false, maskOn: true,
-    sections: {}, travelerOpen: 0, dayOpen: {}, navSid: 'sec-plan' });
+    sections: {}, travelerOpen: 0, dayOpen: {}, navSid: 'sec-plan', logTab: '' });
 export type DetailSet = (patch: Partial<DetailState> | ((s: DetailState) => Partial<DetailState>)) => void;
 export interface DetailEnv { mounted: { current: boolean }; toastTimer: { current: number | undefined }; root: { current: HTMLElement | null } }
 
@@ -223,10 +226,12 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             void links.onStatus!(o.value).then(() => flash(`${o.label}(으)로 변경했어요`));
         } })));
     };
-    const openNotices = (event: React.MouseEvent) => {
-        const panel = notificationActions && m.documentAction !== 'documents' ? (event.currentTarget as HTMLElement).closest('.v7-root')?.querySelector<HTMLDetailsElement>('details.cw-kakao') : null;
-        if (!panel) { onAction('documents'); return; }
-        panel.open = true; panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); panel.querySelector('summary')?.focus({ preventScroll: true });
+    // 알림 보내기: 같은 화면 위쪽 ‘고객 알림 · 처리 이력’ 카드의 고객 알림 탭으로 간다. 견적 문의 단계는 문서 화면을 연다.
+    const openNotices = () => {
+        if (!notificationActions || m.documentAction === 'documents') { onAction('documents'); return; }
+        set({ logTab: 'notice' }); goSec('sec-log');
+        // 다시 보내기 목록이 접혀 있으면 펼친다(탭이 바뀐 뒤 그려진 다음).
+        window.setTimeout(() => { const more = rootRef.current?.querySelector<HTMLDetailsElement>('#sec-log details.cw-kakao-more'); if (more) more.open = true; }, 0);
     };
     const copyInfo = async () => {
         const text = [name, phoneFact, emailFact, m.placeLabel || row?.region || '', m.period, m.partyLabel].filter(Boolean).join('\n');
@@ -369,6 +374,33 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     </section>;
     const quadCards = [payCard, asgCard, clsCard, docCard];
 
+    // 고객 알림 · 처리 이력(2026-11-23 오너 요청): 아래 고정 열의 ‘알림 · 변경 이력’과 위쪽 ‘고객 알림 자동발송’ 상자를 위쪽 카드 하나로 합쳤다.
+    // 고객 알림 탭 = 자동 안내 상태·확인할 일·다시 보내기, 처리 이력 탭 = 이 예약에 있었던 일(발송 결과 포함).
+    const logTab = st.logTab || (notificationActions ? 'notice' : 'log');
+    const logCard = <section key="sec-log" id="sec-log" className="v7-logcard" aria-label="고객 알림 · 처리 이력">
+        <header className="v7-logcard-head">
+            <span className="v7-logcard-icon"><Ico name="lc-message-circle" size={16} /></span>
+            <h2 className="v7-logcard-title">고객 알림 · 처리 이력</h2>
+            {notificationActions ? <AdminTabs size="sm" className="v7-logcard-tabs" label="고객 알림 · 처리 이력 보기" value={logTab} onChange={v => set({ logTab: v })}
+                items={[{ value: 'notice' as const, label: '고객 알림' }, { value: 'log' as const, label: `처리 이력 ${logs.length}건` }]} />
+                : <span className="v7-logcard-count">{logs.length}건</span>}
+        </header>
+        <div className="v7-logcard-body">
+            {logTab === 'notice' && notificationActions ? notificationActions : <div className="v7-logcard-log">
+                    {logs.map((lg, i) => { const tag = LOG_TAGS[lg.kind] || LOG_TAGS.change; return <div key={lg.id} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr)', gap: 10 }}>
+                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}><span style={{ width: 10, height: 10, marginTop: 5, borderRadius: 999, boxSizing: 'border-box', background: i === 0 ? 'var(--adm-accent)' : 'var(--adm-surface)', border: i === 0 ? '0' : '2px solid var(--adm-line-strong)', boxShadow: i === 0 ? '0 0 0 4px var(--adm-accent-soft)' : 'none' }} /><span style={{ flex: 1, width: 2, background: 'var(--adm-gray-100)', marginTop: 4 }} /></span>
+                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 14, minWidth: 0 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><span style={chip(tag.tone, false, { height: 20 })}>{tag.tag}</span><span style={{ fontSize: 14, fontWeight: 700 }}>{lg.title}</span>{lg.internal && <span style={{ fontSize: 11, color: V7_MUTED }}>내부</span>}</span>
+                            {lg.detail && <span style={{ fontSize: 12, color: 'var(--adm-text-2)' }}>{lg.detail}</span>}
+                            <span style={{ fontSize: 12, color: V7_MUTED, fontVariantNumeric: 'tabular-nums' }}>{historyTime(lg.at)}</span>
+                        </span>
+                    </div>; })}
+                    {!logs.length && <span style={{ fontSize: 13, color: V7_MUTED, paddingBottom: 8 }}>저장된 처리 이력이 없습니다.</span>}
+                    <button type="button" disabled={busy} onClick={action('history')} style={{ alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>전체 이력<Ico name="lc-chevron-right" size={14} /></button>
+            </div>}
+        </div>
+    </section>;
+
     const element = <section ref={rootRef as React.RefObject<HTMLElement>} className="v7-root cw-overview" aria-label="예약 상세" aria-busy={busy || saving} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <V7Styles />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -420,7 +452,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             {NAV.map(n => <button key={n.sid} type="button" className="v7-tab" aria-label={`${n.label} 위치로 이동`} aria-current={st.navSid === n.sid ? 'true' : undefined}
                 onClick={() => { set({ navSid: n.sid }); goSec(n.sid); }}>{n.label}</button>)}
         </nav>
-        {notificationActions}
+        {logCard}
         <div className="v7-quad rdc-grid">
             {quadCards}
         </div>
@@ -576,19 +608,6 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     {noteComposer || <button type="button" disabled={busy} onClick={action('notes')} style={ghostBtn()}>메모 작성</button>}
                 </div>
 
-                <div id="sec-log" style={{ ...card, gap: 4, padding: '16px 18px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}><b style={{ fontSize: 15, fontWeight: 700 }}>알림 · 변경 이력</b><span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: V7_MUTED }}>{logs.length}건</span></div>
-                    {logs.map((lg, i) => { const tag = LOG_TAGS[lg.kind] || LOG_TAGS.change; return <div key={lg.id} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0,1fr)', gap: 10 }}>
-                        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}><span style={{ width: 10, height: 10, marginTop: 5, borderRadius: 999, boxSizing: 'border-box', background: i === 0 ? 'var(--adm-accent)' : 'var(--adm-surface)', border: i === 0 ? '0' : '2px solid var(--adm-line-strong)', boxShadow: i === 0 ? '0 0 0 4px var(--adm-accent-soft)' : 'none' }} /><span style={{ flex: 1, width: 2, background: 'var(--adm-gray-100)', marginTop: 4 }} /></span>
-                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingBottom: 14, minWidth: 0 }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}><span style={chip(tag.tone, false, { height: 20 })}>{tag.tag}</span><span style={{ fontSize: 14, fontWeight: 700 }}>{lg.title}</span>{lg.internal && <span style={{ fontSize: 11, color: V7_MUTED }}>내부</span>}</span>
-                            {lg.detail && <span style={{ fontSize: 12, color: 'var(--adm-text-2)' }}>{lg.detail}</span>}
-                            <span style={{ fontSize: 12, color: V7_MUTED, fontVariantNumeric: 'tabular-nums' }}>{historyTime(lg.at)}</span>
-                        </span>
-                    </div>; })}
-                    {!logs.length && <span style={{ fontSize: 13, color: V7_MUTED, paddingBottom: 8 }}>저장된 처리 이력이 없습니다.</span>}
-                    <button type="button" disabled={busy} onClick={action('history')} style={{ alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', padding: 0, font: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--adm-accent-strong)', cursor: 'pointer' }}>전체 이력<Ico name="lc-chevron-right" size={14} /></button>
-                </div>
             </div>
         </div>
         <V7Menu menu={menu} onClose={closeMenu} />

@@ -1789,7 +1789,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     else if (bookedProduct && bookedProduct.match !== 'stored') overview.packageInfo = bookedProduct.packageType ? { tier: bookedProduct.packageType } : { tier: null, detail: '상품 관리에서 여행 타입을 지정해 주세요' };
     overview.backLabel = customerWorkspaceBackLabel(customerWorkspaceReturnTo(new URLSearchParams(workspaceLocation.search).get('returnTo')));
     const kakaoDirty = inlineDirty || docDraftPending || isEditing || operationsDirty || quickAssignmentDirty;
-    const notificationActions = <CustomerKakaoActions key={reservation.id} source="product" bookingId={reservation.id}
+    const notificationActions = <CustomerKakaoActions embedded key={reservation.id} source="product" bookingId={reservation.id}
         revision={JSON.stringify([deliveryRevision, reservation, recordedDelivery?.items.map(item => [item.id, item.kind, item.channel, item.state, item.at, item.error])])} disabled={workspaceIsBusy() || kakaoDirty}
         disabledReason={kakaoDirty ? '변경사항과 보관된 초안을 먼저 저장한 뒤 고객에게 발송해 주세요.' : undefined}
         beforeSend={canStartDelivery} onBusyChange={setSendingKakao} onResult={() => setDeliveryRevision(value => value + 1)}
