@@ -1,31 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { fetchV7Assignments, saveV7Assignment, withGuide, withVehicle, type V7AssignmentItem } from '../../../utils/reservationV7';
+import { fetchV7Assignments, saveV7Assignment, withGuide, withVehicle } from '../../../utils/reservationV7';
 import { loadRegisteredAssignmentResources, type RegisteredGuide, type RegisteredVehicle } from '../../../utils/registeredAssignmentResources';
 import { selectResourceGuide, selectResourceVehicle } from '../../../utils/accommodationResourceSelection';
 import { guideOverlaps, overlapLabel } from '../../../utils/assignmentAvailability';
-import { isUpcomingTour, tripLengthLabel } from '../../../utils/accommodationSheet';
+import { isUpcomingTour } from '../../../utils/accommodationSheet';
 import { productCustomerHref, quoteCustomerHref } from '../../../utils/customerWorkspaceRoutes';
 import type { AssignmentGuide } from '../../../utils/reservationAssignment';
 import { Ico } from '../v7/v7Ui';
 import { printGuidePicket, saveGuidePicket, useGuidePicketImage, type GuidePicketInput } from '../../../utils/guidePicket';
 import { confirmGuideConflict } from '../v7/guideMenuItems';
 import {
-    activeBooking, assignState, coversDay, dayDiff, guideRows, hasGuide, inMonth, laneBookings, matchesGuide, monthDays, monthWeeks,
-    guideItineraryExtra, guideItineraryHref, shiftMonth, timelineWindow, vehicleClash, weekLanes, type AssignState, type ScheduleBooking, type TimelineRange,
+    activeBooking, coversDay, dayDiff, guideRows, hasGuide, inMonth, laneBookings, matchesGuide, monthDays, monthWeeks,
+    guideItineraryExtra, guideItineraryHref, shiftMonth, timelineWindow, vehicleClash, weekLanes, type TimelineRange,
 } from './guideScheduleModel';
+import { endOf, initial, md, nameOf, nights, norm, people, period, startOf, todayKey, type CarInfo, type GuideItem as Item, type GuideRow as Row } from './guideScheduleFormat';
+import { GuideAssignList } from './GuideAssignList';
+import { GuideDrawer } from './GuideDrawer';
+import { IconCheck, IconChevronLeft, IconChevronRight, IconPlus } from '@montage-ui/icon';
+import { AdminButton, AdminChip, AdminIconButton, AdminSegmented } from '../ui';
 import './GuideSchedule.css';
 import { adminConfirm, adminNotify } from '../ui/adminFeedback';
 
-type Item = V7AssignmentItem & ScheduleBooking & {
-    customerName?: string; leadName?: string; travelers?: number; productName?: string; reservationNumber?: string; createdAt?: string;
-    contractData?: { region?: string; arrival?: { date?: string; time?: string; flight?: string }; departure?: { date?: string; time?: string; flight?: string } };
-};
 type Tone = 'cur' | 'mint' | 'red' | 'orange' | 'gray';
 interface PopItem { key: string; name: string; sub: string; tag?: { label: string; tone: Tone }; muted?: boolean; onPick: (target: HTMLElement) => void }
 interface Pop { x: number; y: number; title: string; items: PopItem[]; emptyText?: string; activeKey?: string }
-interface Row { key: string; guide: { id?: string; name: string }; registered: boolean; resource?: RegisteredGuide; bookings: Item[]; color: string[] }
 type ViewKey = 'cal' | 'tbl';
 type StateKey = 'ok' | 'none' | 'dup';
 interface Stat { n: number; days: number; dupN: number; run: boolean; nx?: Item }
@@ -39,23 +39,7 @@ const PALETTE = [['var(--adm-accent-soft)', 'var(--adm-accent-strong)', 'var(--a
 const NONE_COLOR = [ORANGE.bg, ORANGE.text, ORANGE.line];
 // 막대 색: 중복 빨강 · 미배정 주황 · 배정 민트 (배경, 글자, 선)
 const stateColors = (dup: boolean, none: boolean) => dup ? ['var(--adm-danger-soft)', 'var(--adm-danger)', 'var(--adm-danger)'] : none ? NONE_COLOR : ['var(--adm-accent-soft)', 'var(--adm-accent-strong)', 'var(--adm-accent)'];
-const STATE_CHIP: Record<AssignState, { bg: string; fg: string; icon: 'lc-circle-check' | 'lc-loader' | 'lc-hourglass' | 'lc-circle-alert' }> = {
-    '배정완료': { bg: 'var(--adm-accent-soft)', fg: 'var(--adm-accent-strong)', icon: 'lc-circle-check' }, '부분 배정': { bg: 'var(--adm-accent-soft)', fg: 'var(--adm-accent-strong)', icon: 'lc-loader' },
-    '미배정': { bg: ORANGE.bg, fg: ORANGE.text, icon: 'lc-hourglass' }, '중복': { bg: 'var(--adm-danger-soft)', fg: 'var(--adm-danger)', icon: 'lc-circle-alert' },
-};
-
-const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const norm = (value?: string) => String(value || '').replace(/\s+/g, '').toLowerCase();
 const rowKeyOf = (guide: { id?: string; name?: string }) => guide.id ? `id:${guide.id}` : `name:${norm(guide.name)}`;
-const nameOf = (b: Item) => (b.leadName || b.customerName || '이름 없음').trim();
-const regionOf = (b: Item) => (b.contractData?.region || '').trim();
-const md = (key?: string) => (key || '').slice(5).replace('-', '.');
-const startOf = (b: Item) => (b.startDate || '').slice(0, 10);
-const endOf = (b: Item) => (b.endDate || b.startDate || '').slice(0, 10);
-const period = (b: Item) => `${md(startOf(b))}→${md(endOf(b))}`;
-const people = (b: Item) => (b.travelers ? `${b.travelers}명` : '인원 미정');
-const nights = (b: Item) => tripLengthLabel(b.startDate, b.endDate);
-const initial = (name: string) => name.replace(/^로컬\s*/, '').trim().slice(0, 1) || '?';
 const customerHref = (b: Item, action?: string) => {
     const href = b.source === 'quote_booking' ? quoteCustomerHref(b.id, RETURN_TO) : productCustomerHref(b.id, RETURN_TO);
     return action ? `${href}&action=${encodeURIComponent(action)}` : href;
@@ -107,10 +91,6 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
     const [drawer, setDrawer] = useState<string | null>(null);
     const [picket, setPicket] = useState<string | null>(null);
     const [tip, setTip] = useState<{ key: string; x: number; y: number; top: number } | null>(null);
-    const [filters, setFilters] = useState({ region: 'all', month: 'all', state: 'all' as 'all' | AssignState });
-    const [pageSize, setPageSize] = useState(10);
-    const [page, setPage] = useState(1);
-    const [selected, setSelected] = useState<Record<string, boolean>>({});
     const mounted = useRef(true), generation = useRef(0), toastTimer = useRef<number | undefined>(undefined);
     // 개발 모드에서는 화면이 두 번 붙었다 떨어지므로 붙을 때마다 다시 켠다.
     useEffect(() => { mounted.current = true; return () => { mounted.current = false; generation.current++; window.clearTimeout(toastTimer.current); }; }, []);
@@ -166,7 +146,7 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
     const visible = (b: Item) => (!focusG || rowOf(b)?.key === focusG) && (!stateFilter || stateOf(b) === stateFilter);
     const vehicleOf = (b: Item) => { const name = norm(b.assignment?.vehicle?.type); return name ? vehicles.find(v => norm(v.name) === name) : undefined; };
     /** 차종·차량 번호·기사 이름·연락처 — 예약에 저장된 값이 우선이고, 비어 있으면 등록 정보 차량의 기사로 보충한다. */
-    const carInfo = (b: Item) => {
+    const carInfo = (b: Item): CarInfo => {
         const v = b.assignment?.vehicle, reg = vehicleOf(b);
         return { type: String(v?.type || '').trim(), plate: String(reg?.snapshot.plate || '').trim(),
             driver: String(v?.driver || reg?.driver || '').trim(), phone: String(v?.phone || reg?.phone || '').trim() };
@@ -299,13 +279,8 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
     // ── 공통 계산 ──────────────────────────────────────
     const unM = inM.filter(b => !hasGuide(b));
     const upcoming = useMemo(() => active.filter(b => isUpcomingTour(b, today)).sort((a, b) => startOf(a).localeCompare(startOf(b))), [active, today]);
-    const stateList = (b: Item) => assignState(hasGuide(b), !!b.assignment?.vehicle?.type, dup.has(b.key) || carDup.has(b.key));
-    const chips: Array<{ label: string; n: number; unit: string; key: StateKey | 'all'; on: boolean; go: () => void }> = view === 'cal'
-        ? ([['배정', inM.length - unM.length, '팀', 'ok'], ['미배정', unM.length, '팀', 'none'], ['중복', inM.filter(b => dup.has(b.key)).length, '건', 'dup']] as const).map(([label, n, unit, key]) => ({
-            label, n, unit, key, on: stateFilter === key, go: () => { setStateFilter(stateFilter === key ? null : key); setPop(null); } }))
-        : [{ label: '오늘 이후 투어', n: upcoming.length, unit: '팀', key: 'ok' as const, on: false, go: () => { setFilters(f => ({ ...f, state: 'all' })); setPage(1); } },
-            { label: '미배정', n: upcoming.filter(b => !hasGuide(b)).length, unit: '팀', key: 'none' as const, on: filters.state === '미배정', go: () => { setFilters(f => ({ ...f, state: f.state === '미배정' ? 'all' : '미배정' })); setPage(1); } }];
-    const chipColor = { ok: ['var(--adm-accent-soft)', 'var(--adm-accent-strong)', 'var(--adm-accent)'], none: NONE_COLOR, dup: ['var(--adm-danger-soft)', 'var(--adm-danger)', 'var(--adm-danger)'], all: NONE_COLOR };
+    const chips = ([['배정', inM.length - unM.length, '팀', 'ok'], ['미배정', unM.length, '팀', 'none'], ['중복', inM.filter(b => dup.has(b.key)).length, '건', 'dup']] as const).map(([label, n, unit, key]) => ({
+        label, n, unit, key, on: stateFilter === key, go: () => { if (!n && stateFilter !== key) return; setStateFilter(stateFilter === key ? null : key); setPop(null); } }));
     const weeks = useMemo(() => monthWeeks(month), [month]);
     const vis = active.filter(visible);
     const monthLabel = `${month.slice(0, 4)}년 ${Number(month.slice(5))}월`;
@@ -495,148 +470,9 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
         </div>
     );
 
-    // ── 가이드 배정하기(목록) ───────────────────────────
-    const regionOpts = [...new Set(upcoming.map(b => regionOf(b) || '지역 미정'))];
-    const monthOpts = [...new Set(upcoming.map(b => startOf(b).slice(0, 7)).filter(Boolean))];
-    const rowsFiltered = upcoming.filter(b => (filters.region === 'all' || (regionOf(b) || '지역 미정') === filters.region)
-        && (filters.month === 'all' || startOf(b).slice(0, 7) === filters.month) && (filters.state === 'all' || stateList(b) === filters.state));
-    const pages = Math.max(1, Math.ceil(rowsFiltered.length / pageSize)), pageNow = Math.min(page, pages);
-    const pageRows = rowsFiltered.slice((pageNow - 1) * pageSize, pageNow * pageSize);
-    const allSel = pageRows.length > 0 && pageRows.every(b => selected[b.key]), selN = Object.values(selected).filter(Boolean).length;
-    const setFilter = (k: keyof typeof filters, v: string) => { setFilters(f => ({ ...f, [k]: v })); setPage(1); };
-    const table = <>
-        <div className="gs-filters">
-            <select value={filters.region} onChange={e => setFilter('region', e.target.value)} aria-label="지역"><option value="all">전체 지역</option>{regionOpts.map(v => <option key={v} value={v}>{v}</option>)}</select>
-            <select value={filters.month} onChange={e => setFilter('month', e.target.value)} aria-label="월"><option value="all">전체 월</option>{monthOpts.map(v => <option key={v} value={v}>{v.slice(0, 4)}년 {Number(v.slice(5))}월</option>)}</select>
-            <select value={filters.state} onChange={e => setFilter('state', e.target.value)} aria-label="배정 상태"><option value="all">배정 상태</option>{(['배정완료', '부분 배정', '미배정', '중복'] as const).map(v => <option key={v} value={v}>{v}</option>)}</select>
-            {selN > 0 && <span className="gs-sel-n">{selN}개 선택</span>}
-            <span className="gs-spacer" />
-            <Link to="/admin/reservations" className="gs-cta"><Ico name="lc-plus" size={16} color="#fff" />새 투어 등록</Link>
-        </div>
-        <div className="gs-card">
-            <div className="gs-scroll">
-                <div className="gs-table">
-                    <div className="gs-trow is-head">
-                        <span className="is-c"><input type="checkbox" checked={allSel} aria-label="전체 선택" onChange={() => setSelected(s => { const n = { ...s }; pageRows.forEach(b => { n[b.key] = !allSel; }); return n; })} /></span>
-                        <span className="is-c">고객명</span><span>투어명</span><span>여행기간</span><span className="is-c">인원</span><span>지역</span>
-                        <span className="is-c is-g">가이드 배정</span><span className="is-c is-v">차량(기사) 배정</span><span className="is-c">배정 상태</span><span className="is-c">관리</span>
-                    </div>
-                    {pageRows.map(b => {
-                        const g = b.assignment?.guide, assigned = hasGuide(b), gd = dup.has(b.key), cd = carDup.has(b.key), v = vehicleOf(b), car = b.assignment?.vehicle?.type || '';
-                        const carImg = b.assignment?.vehicle?.resource?.img || String(v?.snapshot.img || ''), plate = String(v?.snapshot.plate || ''), st = stateList(b), chip = STATE_CHIP[st];
-                        return (
-                            <div key={b.key} className={`gs-trow${selected[b.key] ? ' is-sel' : ''}`}>
-                                <span className="is-c"><input type="checkbox" checked={!!selected[b.key]} aria-label="선택" onChange={() => setSelected(s => ({ ...s, [b.key]: !s[b.key] }))} /></span>
-                                <b className="gs-tname">{nameOf(b)}</b>
-                                <span className="gs-tprod">
-                                    <span><b>{b.productName || (b.source === 'quote_booking' ? '맞춤 견적 여행' : '상품 미지정')}</b><span>{b.reservationNumber ? `#${b.reservationNumber}` : b.source === 'quote_booking' ? '견적 예약' : '상품 예약'}</span></span></span>
-                                <span className="gs-tperiod" title={`${startOf(b)} ~ ${endOf(b)} · ${nights(b)}`}><span><span>{startOf(b)} ~</span><span>{endOf(b)}</span><span className="is-low">{nights(b)}</span></span></span>
-                                <span className="is-c gs-ticon"><Ico name="lc-user" size={16} color="var(--adm-text-3)" />{b.travelers ? `${b.travelers}명` : '-'}</span>
-                                <span className="gs-ticon" title={regionOf(b) || '지역 미정'}><Ico name="lc-map-pin" size={16} color="var(--adm-text-3)" /><span className="gs-ell">{regionOf(b) || <span className="is-low">지역 미정</span>}</span></span>
-                                <span className="gs-tassign">
-                                    {assigned ? <Avatar name={g?.name || ''} img={guideImg(b)} size={36} color={colorOf(b)} /> : <span className="gs-ph is-round"><Ico name="lc-user" size={18} color="var(--adm-text-disabled)" /></span>}
-                                    <button type="button" disabled={savingKey === b.key} title={assigned ? `${g?.name} · ${g?.phone || '연락처 없음'}` : '가이드를 배정해 주세요'} onClick={e => openGuidePop(e.currentTarget, b)}>
-                                        <span className="gs-tassign-name"><b style={{ color: gd ? 'var(--adm-danger)' : assigned ? undefined : ORANGE.text }}>{assigned ? g?.name : '가이드 선택'}</b>{gd && <span className="gs-badge-red">중복</span>}</span>
-                                        <span className="gs-tassign-sub">{assigned ? '변경하기' : '배정하기'}<Ico name="lc-chevron-down" size={14} /></span>
-                                    </button>
-                                </span>
-                                <span className="gs-tassign">
-                                    {car ? (carImg ? <img className="gs-car" src={carImg} alt="" /> : <span className="gs-ph"><Ico name="lc-car" size={18} color="var(--adm-text-3)" /></span>) : <span className="gs-ph"><Ico name="lc-car" size={18} color="var(--adm-text-disabled)" /></span>}
-                                    <button type="button" disabled={savingKey === b.key} title={car ? `${car} · 기사 ${b.assignment?.vehicle?.phone || '연락처 없음'}` : '차량을 배정해 주세요'} onClick={e => openCarPop(e.currentTarget, b)}>
-                                        <span className="gs-tassign-name"><b style={{ color: cd ? 'var(--adm-danger)' : car ? undefined : ORANGE.text }}>{car || '차량 선택'}</b>{cd && <span className="gs-badge-red">중복</span>}</span>
-                                        <span className="gs-tassign-sub">{car ? (plate || '변경하기') : '배정하기'}<Ico name="lc-chevron-down" size={14} /></span>
-                                    </button>
-                                </span>
-                                <span className="is-c gs-tcell"><span className="gs-state" style={{ background: chip.bg, color: chip.fg }}><Ico name={chip.icon} size={15} color={chip.fg} />{st}</span></span>
-                                <span className="is-c gs-tcell gs-tacts">
-                                    <button type="button" title={assigned ? `${g?.name}의 전체 일정 보기` : '가이드를 먼저 배정해 주세요'} onClick={e => { const r = rowOf(b); if (r) { setMonth(startOf(b).slice(0, 7)); setDrawer(r.key); setPop(null); } else openGuidePop(e.currentTarget, b); }}><Ico name="lc-file-text" size={14} />상세</button>
-                                    <button type="button" className="is-icon" aria-label="더보기" onClick={e => openMorePop(e.currentTarget, b)}>⋮</button>
-                                </span>
-                            </div>
-                        );
-                    })}
-                    {!rowsFiltered.length && <div className="gs-empty">{upcoming.length ? '조건에 맞는 투어가 없어요.' : '오늘 이후 진행하는 투어가 없어요.'}</div>}
-                </div>
-            </div>
-            <div className="gs-pager">
-                <b>총 {rowsFiltered.length}건</b>
-                <select value={String(pageSize)} aria-label="페이지당 개수" onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}>
-                    {[10, 20, 50].map(n => <option key={n} value={n}>페이지당 {n}개</option>)}
-                </select>
-                <span className="gs-spacer" />
-                <button type="button" className="gs-pg" aria-label="이전 페이지" disabled={pageNow <= 1} onClick={() => setPage(pageNow - 1)}><Ico name="lc-chevron-left" size={16} /></button>
-                {Array.from({ length: pages }, (_, i) => i + 1).map(n => <button key={n} type="button" className={`gs-pg${n === pageNow ? ' is-on' : ''}`} onClick={() => setPage(n)}>{n}</button>)}
-                <button type="button" className="gs-pg" aria-label="다음 페이지" disabled={pageNow >= pages} onClick={() => setPage(pageNow + 1)}><Ico name="lc-chevron-right" size={16} /></button>
-            </div>
-        </div>
-    </>;
-
     // ── 가이드 상세 패널 ────────────────────────────────
-    const drawerView = drawerRow && (() => {
-        const mine = drawerRow.bookings.slice().sort((a, b) => startOf(a).localeCompare(startOf(b)));
-        const next = mine.filter(b => endOf(b) >= today), dupN = mine.filter(b => dup.has(b.key)).length;
-        const firstWd = new Date(`${days[0]}T00:00:00`).getDay();
-        const cells = days.map(day => {
-            const on = mine.filter(b => coversDay(b, day));
-            const clash = on.some(x => on.some(z => x.key !== z.key && !(endOf(x) === day && startOf(z) === day) && !(endOf(z) === day && startOf(x) === day)));
-            return { day, on, clash };
-        });
-        const phone = drawerRow.resource?.phone || String(mine.find(b => b.assignment?.guide?.phone)?.assignment?.guide?.phone || '');
-        return <>
-            <div className="gs-dim" onClick={() => setDrawer(null)} />
-            <aside className="gs-drawer" aria-label={`${drawerRow.guide.name} 일정`}>
-                <div className="gs-dr-head">
-                    <Avatar name={drawerRow.guide.name} img={drawerRow.resource?.image} size={56} color={drawerRow.color} />
-                    <div className="gs-dr-who"><b>{drawerRow.guide.name}</b><span className={drawerRow.registered ? '' : 'is-warn'}>{drawerRow.registered ? '등록된 가이드' : '등록 안 된 가이드'}{phone ? ` · ${phone}` : ''}</span></div>
-                    <button type="button" className="gs-close" aria-label="닫기" onClick={() => setDrawer(null)}><Ico name="lc-x" size={16} /></button>
-                </div>
-                <div className="gs-dr-stats">
-                    {([['예정 투어', `${next.length}팀`, false], ['이번 달 근무', `${mine.filter(b => inMonth(b, days)).length}팀`, false], ['일정 겹침', `${dupN}건`, dupN > 0]] as const).map(([l, v, warn]) =>
-                        <div key={l} className={`gs-dr-stat${warn ? ' is-warn' : ''}`}><span>{l}</span><b>{v}</b></div>)}
-                </div>
-                <div className="gs-dr-cal">
-                    <span className="gs-dr-cal-title"><span>{monthLabel} 근무일</span><span>일정 있는 날 {cells.filter(c => c.on.length).length}일</span></span>
-                    <div className="gs-dr-grid">
-                        {WD.map(w => <span key={w} className="gs-dr-wd">{w}</span>)}
-                        {Array.from({ length: firstWd }, (_, i) => <span key={`e${i}`} />)}
-                        {cells.map(c => <span key={c.day} title={c.on.map(nameOf).join(', ')} className={`gs-dr-day${c.clash ? ' is-dup' : c.on.length ? ' is-busy' : ''}${c.day === today ? ' is-today' : ''}`}>{Number(c.day.slice(8))}</span>)}
-                    </div>
-                </div>
-                <div className="gs-dr-gap" />
-                <div className="gs-dr-list">
-                    <span className="gs-dr-list-title">일정 · 배정 내역 {mine.length}건</span>
-                    {mine.map(b => {
-                        const d = dup.has(b.key), past = endOf(b) < today, run = coversDay(b, today);
-                        const other = d ? mine.find(o => o.key !== b.key && startOf(o) < endOf(b) && startOf(b) < endOf(o)) : undefined;
-                        return (
-                            <div key={b.key} className="gs-dr-item">
-                                <span className="gs-dr-rail"><span className={`gs-dr-dot${d ? ' is-dup' : past ? ' is-past' : ''}${run ? ' is-run' : ''}`} /><span className="gs-dr-line" /></span>
-                                <div className="gs-dr-body">
-                                    <span className="gs-dr-row"><b>{md(startOf(b))} → {md(endOf(b))}</b><span className="is-low">{nights(b)}</span>
-                                        <span className="gs-tag" data-tone={d ? 'red' : past ? 'gray' : run ? 'cur' : 'mint'}>{d ? '중복' : past ? '완료' : run ? '진행 중' : '예정'}</span></span>
-                                    <b className="gs-dr-name">{nameOf(b)} · {people(b)}</b>
-                                    <span className="gs-dr-prod">{b.productName || (b.source === 'quote_booking' ? '맞춤 견적 여행' : '상품 미지정')}</span>
-                                    {(() => {
-                                        const car = carInfo(b);
-                                        if (!car.type) return <span className="gs-dr-car is-empty"><Ico name="lc-car" size={13} />차량 미배정</span>;
-                                        return <span className="gs-dr-car"><Ico name="lc-car" size={13} /><b>{car.type}{car.plate ? ` · ${car.plate}` : ''}</b>
-                                            {car.driver || car.phone ? <span>기사 {[car.driver, car.phone].filter(Boolean).join(' · ')}</span> : <span className="is-warn">기사 정보 없음</span>}</span>;
-                                    })()}
-                                    {other && <span className="gs-dr-warn"><Ico name="lc-circle-alert" size={14} color="var(--adm-danger)" />{nameOf(other)} ({period(other)})와 겹쳐요</span>}
-                                    {b.createdAt && <span className="gs-dr-log"><Ico name="lc-history" size={12} />예약 접수 {b.createdAt.slice(0, 10).replace(/-/g, '.')}</span>}
-                                    <div className="gs-dr-acts">
-                                        <button type="button" title="담당 가이드에게 전달하는 일정표 열기" onClick={() => openItinerary(b)}><Ico name="lc-calendar" size={14} />일정표</button>
-                                        <button type="button" title="공항 미팅용 피켓 열기" onClick={() => setPicket(b.key)}><Ico name="lc-user-round" size={14} />가이드 피켓</button>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                    {!mine.length && <div className="gs-empty">배정된 투어가 없어요.</div>}
-                </div>
-            </aside>
-        </>;
-    })();
+    const drawerView = drawerRow && <GuideDrawer key={drawerRow.key} row={drawerRow} today={today} month={month} dup={dup} carInfo={carInfo}
+        onClose={() => setDrawer(null)} onItinerary={openItinerary} onPicket={b => setPicket(b.key)} onAssignCar={openCarPop} />;
 
     // ── 가이드 피켓 ────────────────────────────────────
     const picketInput: GuidePicketInput | null = picketBooking ? {
@@ -677,27 +513,52 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
         </div>;
     })();
 
+    // ── 상단 조작부(Claude Design ‘가이드 배정 현황 · 상단 조작부’, 2026-11-23): 보기 3칸 · 달 이동 · 상태 칩 한 줄 + 지금 보는 범위 ──
+    const viewKey = view === 'tbl' ? 'tbl' : sub;
+    const setViewKey = (v: string) => { if (v === 'tbl') setView('tbl'); else { setView('cal'); setSub(v as 'month' | 'line'); } setPop(null); };
+    const thisMonth = month === today.slice(0, 7);
+    const focusName = focusG ? rows.find(r => r.key === focusG)?.guide.name || '' : '';
+    const scope = [stateFilter && ({ ok: '배정된 투어만', none: '미배정 투어만', dup: '일정이 겹친 투어만' })[stateFilter], focusName && `${focusName} 가이드만`].filter(Boolean).join(' · ');
+    const caption = view === 'tbl' ? `가이드 배정하기 · 오늘 이후 투어 ${upcoming.length}팀`
+        : `${sub === 'month' ? '월간 달력' : '가이드별 타임라인'} · ${monthLabel} · ${scope ? `${scope} 보는 중` : '전체 보는 중'}`;
+    const toolbar = <div className="adm-gs-toolbar-wrap">
+        <div className="adm-gs-toolbar">
+            <div className="adm-gs-tb-group">
+                <span className="adm-gs-tb-label">보기</span>
+                <AdminSegmented label="보기" size="md" value={viewKey} onChange={setViewKey} className="adm-gs-tb-views"
+                    items={[{ value: 'tbl', label: '가이드 배정하기' }, { value: 'line', label: '가이드별 타임라인' }, { value: 'month', label: '월간 달력' }]} />
+            </div>
+            {view === 'cal' ? <>
+                <div className="adm-gs-tb-group">
+                    <div className="adm-gs-tb-month">
+                        <AdminIconButton label="이전 달" size="lg" onClick={() => goMonth(-1)}><IconChevronLeft aria-hidden="true" /></AdminIconButton>
+                        <b aria-live="polite">{monthLabel}</b>
+                        <AdminIconButton label="다음 달" size="lg" onClick={() => goMonth(1)}><IconChevronRight aria-hidden="true" /></AdminIconButton>
+                    </div>
+                    <AdminButton variant="weak" size="sm" disabled={thisMonth} onClick={() => { setMonth(today.slice(0, 7)); setRangeStart(null); setPop(null); }}>{thisMonth ? '이번 달' : '이번 달로'}</AdminButton>
+                </div>
+                <div className="adm-gs-tb-group" role="group" aria-label="배정 상태로 거르기">
+                    {chips.map(c => {
+                        const none = c.key === 'dup' && c.n === 0;
+                        return <AdminChip key={c.key} active={c.on} onClick={c.go} title={c.on ? '전체 보기' : `${c.label} 투어만 보기`}
+                            className={`adm-gs-tb-chip is-${c.key}${c.n ? '' : ' is-zero'}`}
+                            leading={none ? <IconCheck className="adm-gs-tb-check" aria-hidden="true" /> : <span className="adm-gs-tb-dot" aria-hidden="true" />}>
+                            {c.label} <b>{none ? '없음' : `${c.n}${c.unit}`}</b></AdminChip>;
+                    })}
+                </div>
+            </> : <AdminButton variant="primary" to="/admin/reservations" leading={<IconPlus aria-hidden="true" />}>새 투어 등록</AdminButton>}
+        </div>
+        <span className="adm-gs-tb-caption" role="status">{caption}</span>
+    </div>;
+    const assignList = <GuideAssignList bookings={upcoming} active={active} today={today} rows={rows} vehicles={vehicles} dup={dup} carDup={carDup} savingKey={savingKey}
+        rowOf={rowOf} vehicleOf={vehicleOf} carInfo={carInfo} guideImg={guideImg}
+        onAssignGuide={(b, row) => void assignRow(b, row)} onClearGuide={b => void assign(b, null, '')} onAssignCar={(b, v) => void saveVehicle(b, v)}
+        onDetail={(b, target) => { const r = rowOf(b); if (r) { setMonth(startOf(b).slice(0, 7)); setDrawer(r.key); setPop(null); } else openGuidePop(target, b); }}
+        onMore={openMorePop} />;
+
     return (
         <div className="gs">
-            <div className="gs-top">
-                <div className="gs-seg" role="group" aria-label="보기">
-                    {([['cal', '달력 보기'], ['tbl', '가이드 배정하기']] as const).map(([k, label]) =>
-                        <button key={k} type="button" aria-pressed={view === k} className={view === k ? 'is-on' : ''} onClick={() => { setView(k); setPop(null); }}>{label}</button>)}
-                </div>
-                {view === 'cal' && <div className="gs-month">
-                    <button type="button" className="gs-round" aria-label="이전 달" onClick={() => goMonth(-1)}><Ico name="lc-chevron-left" size={16} /></button>
-                    <b>{monthLabel}</b>
-                    <button type="button" className="gs-round" aria-label="다음 달" onClick={() => goMonth(1)}><Ico name="lc-chevron-right" size={16} /></button>
-                    <button type="button" className="gs-pill" onClick={() => { setMonth(today.slice(0, 7)); setRangeStart(null); setPop(null); }}>이번 달</button>
-                </div>}
-                <span className="gs-spacer" />
-                <div className="gs-chips">
-                    {chips.map(c => { const t = chipColor[c.key];
-                        return <button key={c.label} type="button" title={c.on ? '전체 보기' : `${c.label} 투어만 보기`} aria-pressed={c.on} onClick={c.go}
-                            className="gs-chip" style={{ background: c.on ? t[2] : t[0], color: c.on ? '#fff' : t[1], boxShadow: c.on ? `0 0 0 2px #fff, 0 0 0 3.5px ${t[2]}` : 'none' }}>
-                            <i style={{ background: c.on ? 'var(--adm-surface)' : t[2] }} />{c.label}<b>{c.n}</b>{c.unit}</button>; })}
-                </div>
-            </div>
+            {toolbar}
             {warnings.map((w, i) => <div key={i} className="gs-notice adm-msg is-cautionary" role="alert">{w}</div>)}
 
             {loading && !items.length ? <p className="gs-empty">배정 현황을 불러오고 있어요…</p> : view === 'cal' ? (
@@ -709,12 +570,7 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                         {picker}
                     </aside>
                     <div className="gs-main">
-                        <div className="gs-main-top">
-                            <div className="gs-sub" role="group" aria-label="달력 종류">
-                                {([['month', '월간'], ['line', '가이드별 타임라인']] as const).map(([k, label]) =>
-                                    <button key={k} type="button" aria-pressed={sub === k} className={sub === k ? 'is-on' : ''} onClick={() => { setSub(k); setPop(null); }}>{label}</button>)}
-                            </div>
-                            {(focusG || stateFilter) && <span className="gs-hint">{stateFilter ? `${({ ok: '배정', none: '미배정', dup: '중복' })[stateFilter]} 투어만` : ''}{stateFilter && focusG ? ' · ' : ''}{focusG ? `${rows.find(r => r.key === focusG)?.guide.name || ''} 가이드만` : ''} 보는 중</span>}
+                        {sub === 'line' && <div className="gs-main-top">
                             {sub === 'line' && <div className="gs-range">
                                 <button type="button" className="gs-range-nav" aria-label="이전" disabled={win.from <= 0} onClick={() => setRangeStart(Math.max(0, win.from - winDays.length))}>‹</button>
                                 <b>{Number(month.slice(5))}.{win.from + 1} – {Number(month.slice(5))}.{win.to + 1}</b>
@@ -722,11 +578,11 @@ export function GuideSchedule({ accountId }: { accountId: string }) {
                                 <div className="gs-sub">{([['w1', '1주'], ['w2', '2주'], ['m', '한 달']] as const).map(([k, label]) =>
                                     <button key={k} type="button" aria-pressed={range === k} className={range === k ? 'is-on' : ''} onClick={() => { setRange(k); setRangeStart(k === 'm' ? 0 : win.from); }}>{label}</button>)}</div>
                             </div>}
-                        </div>
+                        </div>}
                         {sub === 'month' ? monthGrid : timeline}
                     </div>
                 </div>
-            ) : table}
+            ) : assignList}
 
             {/* 팝오버·상세 패널·피켓·안내는 문서 맨 위에 그린다. .gs(z-index:2) 안에 두면 관리자 상단바·탭 아래로 깔린다. */}
             {createPortal(<div className="gs-layer">

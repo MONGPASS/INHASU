@@ -350,13 +350,31 @@
   "hex": 0,
   "nativeDialog": 0
  },
- "src/components/admin/guides/GuideSchedule.tsx": {
-  "rawButton": 38,
-  "rawField": 6,
+ "src/components/admin/guides/GuideAssignList.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 23,
+  "inlineStyle": 2,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/guides/GuideDrawer.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
+ "src/components/admin/guides/GuideSchedule.tsx": {
+  "rawButton": 22,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 18,
   "px": 2,
-  "hex": 7,
+  "hex": 4,
   "nativeDialog": 0
  },
  "src/components/admin/ui/AdminButton.tsx": {
@@ -621,11 +639,11 @@
   "nativeDialog": 0
  },
  "src/pages/AdminQuoteDesk.tsx": {
-  "rawButton": 18,
+  "rawButton": 17,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 22,
-  "px": 28,
+  "inlineStyle": 20,
+  "px": 22,
   "hex": 1,
   "nativeDialog": 2
  },
@@ -776,6 +794,11 @@
   "hex": 10,
   "important": 33,
   "rawPx": 314
+ },
+ "src/components/admin/guides/guide-assign.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
  },
  "src/components/admin/ui/admin-components.css": {
   "hex": 0,
