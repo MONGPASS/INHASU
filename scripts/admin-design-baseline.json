@@ -354,7 +354,7 @@
   "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 2,
+  "inlineStyle": 0,
   "px": 0,
   "hex": 0,
   "nativeDialog": 0
@@ -477,11 +477,11 @@
   "nativeDialog": 0
  },
  "src/components/admin/v7/ReservationDetailV7.tsx": {
-  "rawButton": 25,
+  "rawButton": 24,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 158,
-  "px": 277,
+  "inlineStyle": 152,
+  "px": 265,
   "hex": 0,
   "nativeDialog": 0
  },

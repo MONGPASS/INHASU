@@ -15,7 +15,8 @@ import { LODGE_MAIL_STAGES, LODGE_RESERVATION_STATES, NEW_LODGE_WORKFLOW, change
 import { LODGE_GRADE_OPTIONS, ROOM_PLAN_OPTIONS, isUpcomingTour, tourSerials } from '../utils/accommodationSheet';
 import { LodgeAssignBoard } from '../components/admin/accommodation/LodgeAssignBoard';
 import { LodgeAssignQueue } from '../components/admin/accommodation/LodgeAssignQueue';
-import { AdminSegmented } from '../components/admin/ui';
+import { AdminButton, AdminSegmented } from '../components/admin/ui';
+import { safeAdminReturnTo } from '../utils/assignmentLinks';
 import { RoomCountInput } from '../components/admin/accommodation/RoomCountInput';
 import { guideOverlaps, overlapLabel, sameGuide } from '../utils/assignmentAvailability';
 import { adminConfirm } from '../components/admin/ui/adminFeedback';
@@ -217,6 +218,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
     const [scope, setScope] = useState<'confirmed' | 'all'>('all');
     const [view, setViewState] = useState<BoardView>(() => new URLSearchParams(window.location.search).get('open') ? 'card-view' : storedView());
     const setView = (next: BoardView) => { setViewState(next); try { window.localStorage.setItem(VIEW_KEY, next); } catch { /* 보기 기억은 편의 기능 */ } };
+    // 예약 상세의 ‘편집’으로 들어오면 돌아갈 주소를 받는다(관리자 안 상대 경로만).
+    const [returnTo] = useState(() => safeAdminReturnTo(new URLSearchParams(window.location.search).get('returnTo')));
     // 지난 투어는 숨기되, 예약 상세의 링크로 직접 연 예약은 보여 준다.
     const [pinned, setPinned] = useState<Set<string>>(new Set());
     const [savingAll, setSavingAll] = useState(false);
@@ -669,7 +672,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             eyebrow={null}
             title="숙소 배정"
             description="체크인이 가까운 예약부터 숙박별로 배정하고, 숙소 연락 단계까지 한곳에서 확인합니다."
-            actions={<AdminSegmented label="보기 방식" items={VIEW_ITEMS} value={view} onChange={setView} />}
+            actions={<>{returnTo && <AdminButton variant="weak" size="sm" onClick={() => window.location.assign(returnTo)}>예약 상세로 돌아가기</AdminButton>}<AdminSegmented label="보기 방식" items={VIEW_ITEMS} value={view} onChange={setView} /></>}
         >
             <div className="lo-board">
             {notice && <div className="lo-notice adm-msg" role="status">{notice}</div>}

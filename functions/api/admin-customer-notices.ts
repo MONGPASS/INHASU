@@ -165,12 +165,14 @@ function automaticNotices(env: Env, source: Source, record: NonNullable<Awaited<
         const last = history.find(item => item.kind === kind && ['kakao', 'message'].includes(item.channel));
         const pending = history.find(item => item.kind === kind && ['sending', 'unknown'].includes(item.state));
         const template = resolveNotificationTemplate(env, kind);
-        const ready = !!template && !!env.SOLAPI_API_KEY && !!env.SOLAPI_API_SECRET;
-        const reason = cancelled(record.row) ? '취소된 예약의 자동 안내는 중지됩니다.' : !/^0\d{8,10}$/.test(record.phone) ? '고객 연락처를 확인해 주세요.'
-            : !ready ? '카카오 발송 설정과 해당 단계의 승인 템플릿을 확인해 주세요.' : undefined;
+        // reasonCode: 화면이 ‘이 예약에서 고칠 것(연락처)’과 ‘전체 설정(카카오 키·템플릿)’, ‘확인할 필요 없음(취소)’을 나눠 보여 준다.
+        const reasonCode = cancelled(record.row) ? 'cancelled' : !/^0\d{8,10}$/.test(record.phone) ? 'phone'
+            : !env.SOLAPI_API_KEY || !env.SOLAPI_API_SECRET ? 'config' : !template ? 'template' : undefined;
+        const reason = reasonCode === 'cancelled' ? '취소된 예약의 자동 안내는 중지됩니다.' : reasonCode === 'phone' ? '고객 연락처를 확인해 주세요.'
+            : reasonCode ? '카카오 발송 설정과 해당 단계의 승인 템플릿을 확인해 주세요.' : undefined;
         const attempt = pending || last;
         return { kind, label: ADMIN_DELIVERY_NAMES[kind], trigger: triggers[kind], state: attempt?.state || (reason ? 'unavailable' : 'not_triggered'),
-            ...(reason ? { reason } : attempt?.error ? { reason: attempt.error } : {}), ...(attempt ? { lastAttempt: { state: attempt.state, at: attempt.at, error: attempt.error } } : {}) };
+            ...(reason ? { reason, reasonCode } : attempt?.error ? { reason: attempt.error } : {}), ...(attempt ? { lastAttempt: { state: attempt.state, at: attempt.at, error: attempt.error } } : {}) };
     }) };
 }
 

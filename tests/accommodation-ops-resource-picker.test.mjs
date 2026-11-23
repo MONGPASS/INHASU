@@ -25,7 +25,7 @@ const built = await build({
             'react-router-dom': `export const useBlocker=()=>({state:'unblocked',reset(){},proceed(){}});`,
             user: `export const useUser=()=>({user:{id:'admin-fixture',role:'admin'},loading:false});`,
             layout: `export const AdminLayout=()=>null;`, icon: `export const Icon=()=>null;`,
-            queue: `export const LodgeAssignQueue=()=>null;`, ui: `export const AdminSegmented=()=>null;`,
+            queue: `export const LodgeAssignQueue=()=>null;`, ui: `export const AdminSegmented=()=>null;export const AdminButton=()=>null;`,
             api: `export const api=globalThis.api;`,
             resources: `export const loadRegisteredAssignmentResources=(...a)=>globalThis.loadResources(...a);`,
             // 공통 알림·확인 창은 화면 부품이라, 같은 약속(Promise<boolean>)의 대역으로 바꾼다.

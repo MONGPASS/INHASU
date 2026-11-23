@@ -81,9 +81,36 @@
   font: inherit; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); cursor: pointer; }
 .rdc-open:disabled { color: var(--adm-text-disabled); cursor: not-allowed; }
 
+/* 배정은 보기 전용(2026-11-23): 값 + 해당 메뉴로 가는 편집 링크 */
+.rdc-value-row { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); min-height: var(--adm-control-h-sm); }
+.rdc-value { min-width: 0; overflow: hidden; color: var(--adm-text); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.rdc-value.is-empty { color: var(--adm-danger); }
+.rdc-edit { display: inline-flex; flex: none; align-items: center; gap: calc(var(--adm-space-1) / 2); padding: var(--adm-space-1) 0; border: 0; background: transparent; color: var(--adm-accent-strong);
+  font: inherit; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); text-decoration: none; white-space: nowrap; cursor: pointer; }
+.rdc-edit:hover { text-decoration: underline; }
+.rdc-edit:focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-accent-strong); outline-offset: var(--adm-border-width); }
+.rdc-edit:disabled { color: var(--adm-text-disabled); cursor: not-allowed; }
+a.rdc-sel { text-decoration: none; }
+.rdc-asg-note { margin-left: auto; color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); white-space: nowrap; }
+.rdc-cell { min-width: 0; overflow: hidden; color: var(--adm-text); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.rdc-cell.is-empty { color: var(--adm-text-3); font-weight: var(--adm-fw-semibold); }
+.v7-asg-row .rdc-edit, #sec-asg .rdc-edit { margin-left: auto; }
+
 @media (max-width: 1280px) { .rdc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) {
   .rdc-grid { grid-template-columns: minmax(0, 1fr); }
   .rdc-head { padding: var(--adm-space-4) var(--adm-space-4) 0; }
   .rdc-total, .rdc-grid2 { padding-left: var(--adm-space-4); padding-right: var(--adm-space-4); }
 }
+
+/* 고객 알림 · 처리 이력(2026-11-23): 위쪽 카드 하나에 고객 알림(자동 안내·다시 보내기)과 처리 이력을 탭으로 */
+.v7-logcard { display: flex; flex-direction: column; min-width: 0; background: var(--adm-surface); border-radius: var(--adm-radius-lg); box-shadow: var(--adm-shadow-xs); scroll-margin-top: calc(var(--adm-space-8) * 2.75); }
+.v7-logcard-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2) var(--adm-space-3); padding: var(--adm-space-5) var(--adm-space-5) 0; }
+.v7-logcard-icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: calc(var(--adm-space-8) + var(--adm-space-1)); height: calc(var(--adm-space-8) + var(--adm-space-1));
+  border-radius: var(--adm-radius-md); background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
+.v7-logcard-title { margin: 0; color: var(--adm-text); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); }
+.v7-logcard-tabs { margin-left: auto; }
+.v7-logcard-count { margin-left: auto; color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.v7-logcard-body { padding: var(--adm-space-4) var(--adm-space-5) var(--adm-space-5); }
+.v7-logcard-log { display: flex; flex-direction: column; gap: var(--adm-space-1); }
+@media (max-width: 760px) { .v7-logcard-head, .v7-logcard-body { padding-left: var(--adm-space-4); padding-right: var(--adm-space-4); } .v7-logcard-tabs { margin-left: 0; width: 100%; } }
