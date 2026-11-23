@@ -8,15 +8,23 @@ import { build } from 'esbuild';
 
 const require = createRequire(import.meta.url), React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
+// 우리 관리자 부품(./ui)은 이름 문자열로 바꿔 끼운다: 버튼은 그 이름의 태그(admin-button·admin-text-button)로 찾고,
+// 같은 props(onClick·disabled·aria-label·children)를 그대로 검사한다.
+const componentSource = fs.readFileSync(new URL('../src/components/admin/CustomerKakaoActions.tsx', import.meta.url), 'utf8');
+const uiNames = [...componentSource.matchAll(/import\s*\{([^}]*)\}\s*from\s*'\.\/ui'/g)].flatMap(m => m[1].split(',').map(name => name.trim()).filter(Boolean));
+// SSR이 대문자 태그 경고를 내지 않도록 'AdminButton' → 'admin-button'처럼 사용자 정의 태그 이름으로 둔다.
+const uiTag = name => name.replace(/[A-Z]/g, (c, i) => (i ? '-' : '') + c.toLowerCase());
+const BUTTON_TYPES = new Set(['button', uiTag('AdminButton'), uiTag('AdminTextButton')]);
 // Run the shipped handlers with deterministic hooks and real JSX/SSR. Every
 // fetch is an in-memory adapter; no browser, customer or provider is contacted.
 const bundle = await build({
     entryPoints: [fileURLToPath(new URL('../src/components/admin/CustomerKakaoActions.tsx', import.meta.url))],
     bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', packages: 'external', write: false, loader: { '.css': 'empty' },
     plugins: [{ name: 'customer-notice-hooks', setup(builder) {
-        builder.onResolve({ filter: /^react$|\/contexts\/UserContext$/ }, args => ({ path: args.path === 'react' ? 'react' : 'user', namespace: 'notice-fixture' }));
+        builder.onResolve({ filter: /^react$|\/contexts\/UserContext$|^\.\/ui$/ }, args => ({ path: args.path === 'react' ? 'react' : args.path === './ui' ? 'admin-ui' : 'user', namespace: 'notice-fixture' }));
         builder.onLoad({ filter: /.*/, namespace: 'notice-fixture' }, ({ path }) => ({ loader: 'js', contents: path === 'user'
             ? 'export const useUser=()=>({user:globalThis.h.user});'
+            : path === 'admin-ui' ? uiNames.map(name => `export const ${name}='${uiTag(name)}';`).join('')
             : 'export const useState=(...a)=>globalThis.h.useState(...a),useRef=(...a)=>globalThis.h.useRef(...a),useEffect=(...a)=>globalThis.h.useEffect(...a);export default globalThis.react;' }));
     } }],
 });
@@ -30,7 +38,7 @@ const notices = () => [
     { kind: 'travel_notice', label: '여행 주의사항', available: false, reason: '승인된 템플릿을 설정해 주세요.' },
 ];
 const noticeButton = (h, label = '여행 계약서') => {
-    const button = nodes(h.tree).find(node => node.type === 'button' && node.props['aria-label'] === `${label} 카카오 알림 발송`);
+    const button = nodes(h.tree).find(node => BUTTON_TYPES.has(node.type) && node.props['aria-label'] === `${label} 카카오 알림 발송`);
     assert.ok(button, `${label} 발송 버튼`); return button;
 };
 const posts = h => h.calls.filter(call => call.method === 'POST');
@@ -202,7 +210,7 @@ test('발송 후 대기 시간은 비활성 버튼과 handler 양쪽에서 차�
     ] }) : undefined);
     await h.settle(); assert.equal(noticeButton(h).props.disabled, true); assert.match(text(noticeButton(h)), /초 후 재발송/);
     noticeButton(h).props.onClick(); assert.equal(posts(h).length, 0); assert.match(text(h.tree), /발송 서비스 접수/);
-    const historyButton = nodes(h.tree).find(node => node.type === 'button' && text(node).includes('발송 이력'));
+    const historyButton = nodes(h.tree).find(node => BUTTON_TYPES.has(node.type) && text(node).includes('발송 이력'));
     assert.ok(historyButton); historyButton.props.onClick(); assert.equal(history, 1); assert.equal(posts(h).length, 0);
 });
 
@@ -214,7 +222,7 @@ test('자동 안내와 수동 재안내는 기본 접힌 상태로 나뉘며 기
     ] } }) : undefined);
     await h.settle(); assert.equal(h.tree.type, 'details'); assert.equal(h.tree.props.open, undefined); assert.equal(h.tree.props.onToggle, undefined);
     const summary = nodes(h.tree).find(node => node.type === 'summary'); assert.ok(summary); assert.equal(summary.props.onClick, undefined);
-    assert.equal(nodes(summary).some(node => node.type === 'button'), false); assert.match(text(summary), /고객 알림 자동발송 · 이력\/다시 보내기/);
+    assert.equal(nodes(summary).some(node => BUTTON_TYPES.has(node.type)), false); assert.match(text(summary), /고객 알림 자동발송 · 이력\/다시 보내기/);
     assert.match(text(summary), /발송 상태 확인 1건/);
     const html = renderToStaticMarkup(h.tree);
     for (const value of ['자동 안내', '수동 재안내', '문의 접수 안내', '신규 문의 저장 시', '자동 발송 기록 없음', '발송 설정 필요', '전용 승인 템플릿이 없습니다.', '발송 서비스 접수']) assert.ok(html.includes(value), value);

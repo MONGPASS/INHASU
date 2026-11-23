@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-// tests/reservation-operations-actions.test.mjs가 React를 바꿔 끼워 이 파일만 묶고, 칸은 label 바로 아래의 생 input·select·textarea로 찾는다.
-// 그래서 ./ui 부품을 가져오지 않고 버튼에 우리 부품과 같은 클래스(adm-ui-btn)를 단다.
+import { AdminButton, AdminSelect, AdminTextArea, AdminTextInput } from './ui';
 import { AIRFARE_OPTIONS, CATEGORY_OPTIONS, RECEIPT_LABELS, SERVICE_TYPE_OPTIONS, emptyReservationOperations, type ReceiptStatus, type ReservationOperations as Operations } from '../../utils/reservationWorkspace';
+
+const JOINING_CHOICES = [{ value: 'undecided', label: '미정' }, { value: 'private', label: '단독 투어' }, { value: 'join', label: '조인 투어' }];
+const SERVICE_TYPE_CHOICES = [{ value: '', label: '미정' }, ...SERVICE_TYPE_OPTIONS.map(o => ({ value: o, label: o }))];
+const AIRFARE_CHOICES = [{ value: '', label: '미정' }, ...AIRFARE_OPTIONS.map(o => ({ value: o, label: o }))];
+const RECEIPT_CHOICES = (Object.keys(RECEIPT_LABELS) as ReceiptStatus[]).map(status => ({ value: status, label: RECEIPT_LABELS[status] }));
 
 export interface ReservationOperationsControl {
     cancel: () => void;
@@ -63,30 +67,30 @@ export function ReservationOperations(p: Props) {
         finally { savingRef.current = false; setSaving(false); }
     };
     return <section id="sec-ops" className="card rw-operations" aria-label="주문 운영 정보">
-        <div className="card-head rw-section-head"><div><span className="rw-kicker">주문서</span><h2>예약 운영 정보</h2><p>예약별 차량과 정산 정보를 기록하세요. 관리자에게만 표시됩니다.</p></div>{!externalActions && <div className="row ri-ops-actions"><button type="button" className="adm-ui-btn is-secondary is-sm" disabled={!dirty || saving || disabled} onClick={cancel}>변경 취소</button><button type="submit" form={formId || `reservation-operations-${reservationId}`} className="adm-ui-btn is-primary is-sm adm-on-primary" disabled={!dirty || saving || disabled}>{saving ? '저장 중…' : '운영 정보 저장'}</button></div>}</div>
+        <div className="card-head rw-section-head"><div><span className="rw-kicker">주문서</span><h2>예약 운영 정보</h2><p>예약별 차량과 정산 정보를 기록하세요. 관리자에게만 표시됩니다.</p></div>{!externalActions && <div className="row ri-ops-actions"><AdminButton variant="secondary" size="sm" disabled={!dirty || saving || disabled} onClick={cancel}>변경 취소</AdminButton><AdminButton type="submit" form={formId || `reservation-operations-${reservationId}`} variant="primary" size="sm" disabled={!dirty || saving || disabled}>{saving ? '저장 중…' : '운영 정보 저장'}</AdminButton></div>}</div>
         <form id={formId || `reservation-operations-${reservationId}`} noValidate onSubmit={event => { event.preventDefault(); void save(); }}>
         <fieldset disabled={saving || disabled} className="rw-operations-fields">
             <section className="rw-operations-group" aria-label="투어·차량 정보">
                 <h3>투어·차량 정보</h3>
                 <div className="rw-operations-group-fields">
-                    <label className="rw-field"><span>조인 여부</span><select className="inp" value={draft.joining} onChange={e => change('joining', e.target.value)}><option value="undecided">미정</option><option value="private">단독 투어</option><option value="join">조인 투어</option></select></label>
-                    <label className="rw-field"><span>지역</span><input className="inp" value={draft.region} maxLength={200} placeholder="예: 고비사막 · 테를지" onChange={e => change('region', e.target.value)}/></label>
-                    <label className="rw-field"><span>분류</span><input className="inp" value={draft.category} maxLength={200} placeholder="예: 가족여행" list={`reservation-categories-${reservationId}`} onChange={e => change('category', e.target.value)}/><datalist id={`reservation-categories-${reservationId}`}>{CATEGORY_OPTIONS.map(o => <option key={o} value={o} />)}</datalist></label>
-                    <label className="rw-field"><span>구분</span><select className="inp" value={draft.serviceType || ''} onChange={e => change('serviceType', e.target.value)}><option value="">미정</option>{SERVICE_TYPE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></label>
-                    <label className="rw-field"><span>항공</span><select className="inp" value={draft.airfare || ''} onChange={e => change('airfare', e.target.value)}><option value="">미정</option>{AIRFARE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></label>
-                    <label className="rw-field"><span>차량</span><input className="inp" value={draft.vehicle} maxLength={200} placeholder="배정 차량" onChange={e => change('vehicle', e.target.value)}/></label>
-                    <label className="rw-field"><span>기사 연락처</span><input className="inp" type="tel" value={draft.driverPhone} maxLength={60} onChange={e => change('driverPhone', e.target.value)}/></label>
+                    <label className="rw-field"><span>조인 여부</span><AdminSelect value={draft.joining} onChange={next => change('joining', next)} options={JOINING_CHOICES} /></label>
+                    <label className="rw-field"><span>지역</span><AdminTextInput value={draft.region} maxLength={200} placeholder="예: 고비사막 · 테를지" onChange={e => change('region', e.target.value)}/></label>
+                    <label className="rw-field"><span>분류</span><AdminTextInput value={draft.category} maxLength={200} placeholder="예: 가족여행" list={`reservation-categories-${reservationId}`} onChange={e => change('category', e.target.value)}/><datalist id={`reservation-categories-${reservationId}`}>{CATEGORY_OPTIONS.map(o => <option key={o} value={o} />)}</datalist></label>
+                    <label className="rw-field"><span>구분</span><AdminSelect value={draft.serviceType || ''} onChange={next => change('serviceType', next)} options={SERVICE_TYPE_CHOICES} /></label>
+                    <label className="rw-field"><span>항공</span><AdminSelect value={draft.airfare || ''} onChange={next => change('airfare', next)} options={AIRFARE_CHOICES} /></label>
+                    <label className="rw-field"><span>차량</span><AdminTextInput value={draft.vehicle} maxLength={200} placeholder="배정 차량" onChange={e => change('vehicle', e.target.value)}/></label>
+                    <label className="rw-field"><span>기사 연락처</span><AdminTextInput type="tel" value={draft.driverPhone} maxLength={60} onChange={e => change('driverPhone', e.target.value)}/></label>
                 </div>
             </section>
             <section className="rw-operations-group" aria-label="현금영수증 기록">
                 <h3>현금영수증 기록</h3>
                 <div className="rw-operations-group-fields">
-                    <label className="rw-field"><span>현금영수증 상태</span><select className="inp" value={draft.receipt.status} onChange={e => receipt('status', e.target.value)}>{(Object.keys(RECEIPT_LABELS) as ReceiptStatus[]).map(status => <option key={status} value={status}>{RECEIPT_LABELS[status]}</option>)}</select></label>
-                    <label className="rw-field"><span>발급수단 번호</span><input className="inp" value={draft.receipt.number} maxLength={60} placeholder="요청받은 휴대폰·사업자 번호" onChange={e => receipt('number', e.target.value)}/></label>
-                    <label className="rw-field"><span>현금영수증 발행일</span><input className="inp" type="date" value={draft.receipt.issuedDate} onChange={e => receipt('issuedDate', e.target.value)}/></label>
+                    <label className="rw-field"><span>현금영수증 상태</span><AdminSelect value={draft.receipt.status} onChange={next => receipt('status', next)} options={RECEIPT_CHOICES} /></label>
+                    <label className="rw-field"><span>발급수단 번호</span><AdminTextInput value={draft.receipt.number} maxLength={60} placeholder="요청받은 휴대폰·사업자 번호" onChange={e => receipt('number', e.target.value)}/></label>
+                    <label className="rw-field"><span>현금영수증 발행일</span><AdminTextInput type="date" value={draft.receipt.issuedDate} onChange={e => receipt('issuedDate', e.target.value)}/></label>
                 </div>
             </section>
-            <label className="rw-field rw-wide rw-operations-group rw-operations-group-wide"><span>내부 운영 메모</span><textarea className="inp" rows={3} value={draft.opsNote} maxLength={3000} onChange={e => change('opsNote', e.target.value)}/></label>
+            <label className="rw-field rw-wide rw-operations-group rw-operations-group-wide"><span>내부 운영 메모</span><AdminTextArea minRows={3} value={draft.opsNote} maxLength={3000} onChange={e => change('opsNote', e.target.value)}/></label>
         </fieldset>
         <div className="rw-operations-note"><span role={failed ? 'alert' : 'status'}>{saving ? '운영 정보를 저장하고 있습니다…' : message}</span></div>
         </form>

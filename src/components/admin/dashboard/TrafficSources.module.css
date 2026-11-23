@@ -1,54 +1,61 @@
-/* 유입 경로 — Admin Dashboard v3 (Claude Design handoff). */
-.card { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 20px 22px; border: 0; border-radius: var(--adm-radius-md); background: var(--adm-surface);
-  box-shadow: var(--adm-shadow-lg); }
-.head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.title { font-size: 18px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--text-strong); }
+/* 유입 경로 — 대시보드 카드(Seed 은하수 판). 값은 --adm-* 토큰, 채널 바탕은 Seed 색 단계. */
+.card { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; padding: var(--adm-pad-card); container-type: inline-size;
+  border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
+.head { display: flex; align-items: center; gap: var(--adm-space-2); flex-wrap: wrap; }
+.title { font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--adm-ink); }
 .info { display: flex; cursor: help; }
-.seg { margin-left: auto; display: flex; gap: 4px; padding: 3px; background: var(--mrt-gray-100); border-radius: var(--adm-radius-sm); }
-.segButton { height: 30px; padding: 0 12px; border: 0; border-radius: var(--adm-radius-sm); background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
-.segButton[aria-pressed="true"] { background: var(--adm-surface); color: var(--text-strong); box-shadow: var(--shadow-sm); }
-.segButton:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.seg { margin-left: auto; }
 
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--border-subtle); }
-.kpi { display: flex; flex-direction: column; gap: 4px; }
-.kpiLabel { font-size: 13px; color: var(--text-secondary); }
-.kpiRow { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.kpiValue { font-family: var(--font-sans); font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-strong); font-variant-numeric: tabular-nums; }
-.kpiUnit { font-size: 13px; color: var(--text-secondary); }
-.kpiDelta { font-family: var(--font-sans); font-size: 12px; font-weight: 600; color: var(--adm-accent-strong); }
-.kpiDown { color: var(--mrt-red); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--adm-space-3); padding-bottom: var(--adm-space-4); border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
+.kpi { display: flex; flex-direction: column; gap: var(--adm-space-1); }
+.kpiLabel { font-size: var(--adm-fs-small); color: var(--adm-text-2); }
+.kpiRow { display: flex; align-items: baseline; gap: var(--adm-space-1); flex-wrap: wrap; }
+.kpiValue { font-size: var(--adm-fs-title); font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; color: var(--adm-ink); font-variant-numeric: tabular-nums; }
+.kpiUnit { font-size: var(--adm-fs-small); color: var(--adm-text-2); }
+.kpiDelta { font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); color: var(--adm-accent-strong); }
+.kpiDown { color: var(--adm-danger); }
 
-.track { height: 14px; border-radius: var(--adm-radius-xs); background: var(--mrt-gray-100); overflow: hidden; }
-.segments { display: flex; gap: 3px; height: 100%; }
+.track { height: calc(var(--adm-space-3) + var(--adm-space-1) / 2); border-radius: var(--adm-radius-xs); background: var(--adm-gray-100); overflow: hidden; }
+.segments { display: flex; gap: calc(var(--adm-space-1) * .75); height: 100%; }
 .segments > span { cursor: pointer; }
 
-.table { display: flex; flex-direction: column; gap: 2px; }
-.tableHead, .row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr) 64px 44px 56px; gap: 12px; }
-.tableHead { padding: 0 4px 6px; font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+.table { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) / 2); }
+.tableHead, .row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr) 64px 44px 56px; gap: var(--adm-space-3); }
+.tableHead { padding: 0 var(--adm-space-1) var(--adm-space-1); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-medium); color: var(--adm-text-3); }
 .right { text-align: right; }
-.row { align-items: center; padding: 8px 4px; border-radius: var(--adm-radius-sm); font-size: 14px; }
-.row:hover { background: var(--mrt-gray-50); }
-.channel { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.dot { width: 30px; height: 30px; flex: none; border-radius: var(--adm-radius-sm); box-sizing: border-box; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
-.dot img { display: block; width: 16px; height: 16px; }
-.channelName { font-weight: 500; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.shareCell { display: flex; align-items: center; gap: 8px; }
-.bar { flex: 1; height: 8px; border-radius: var(--adm-radius-xs); background: var(--mrt-gray-100); overflow: hidden; cursor: pointer; }
+.row { align-items: center; padding: var(--adm-space-2) var(--adm-space-1); border-radius: var(--adm-radius-sm); font-size: var(--adm-fs-body); }
+.row:hover { background: var(--adm-gray-50); }
+.channel { display: flex; align-items: center; gap: var(--adm-space-2); min-width: 0; }
+.dot { width: calc(var(--adm-space-8) - var(--adm-space-1) / 2); height: calc(var(--adm-space-8) - var(--adm-space-1) / 2); flex: none; display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  border: var(--adm-border-width) solid transparent; border-radius: var(--adm-radius-sm); color: var(--adm-text-2); }
+.dot img { display: block; width: var(--adm-space-4); height: var(--adm-space-4); }
+/* 채널 바탕: 브랜드와 가까운 Seed 색 단계(로고 색은 로고 주소에) */
+.dotNaver { background: var(--seed-scale-color-green-500); }
+.dotPaper { border-color: var(--adm-line); background: var(--adm-surface); }
+.dotInstagram { background: linear-gradient(135deg, var(--adm-warn) 0%, var(--seed-scale-color-red-500) 35%, var(--seed-scale-color-pink-500) 60%, var(--seed-scale-color-purple-500) 100%); }
+.dotFacebook { background: var(--seed-scale-color-blue-500); }
+.dotYoutube { background: var(--seed-scale-color-red-500); }
+.dotKakao { background: var(--adm-warn-line); }
+.dotPlain { background: var(--adm-gray-100); }
+.channelName { font-weight: var(--adm-fw-medium); color: var(--adm-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shareCell { display: flex; align-items: center; gap: var(--adm-space-2); }
+.bar { flex: 1; height: var(--adm-space-2); border-radius: var(--adm-radius-xs); background: var(--adm-gray-100); overflow: hidden; cursor: pointer; }
 .bar > span { display: block; height: 100%; border-radius: var(--adm-radius-xs); }
-.share { width: 36px; font-family: var(--font-sans); font-size: 12px; color: var(--text-secondary); text-align: right; }
-.visits { text-align: right; font-family: var(--font-sans); font-weight: 600; color: var(--text-strong); font-variant-numeric: tabular-nums; }
-.leads { text-align: right; font-family: var(--font-sans); color: var(--text-body); font-variant-numeric: tabular-nums; }
-.cvr { text-align: right; font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--adm-accent-strong); }
-.note { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-tertiary); }
+.share { width: 36px; font-size: var(--adm-fs-caption); color: var(--adm-text-2); text-align: right; }
+.visits { text-align: right; font-weight: var(--adm-fw-semibold); color: var(--adm-ink); font-variant-numeric: tabular-nums; }
+.leads { text-align: right; color: var(--adm-text); font-variant-numeric: tabular-nums; }
+.cvr { text-align: right; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); color: var(--adm-accent-strong); }
+.note { margin: 0; font-size: var(--adm-fs-caption); line-height: var(--adm-lh); color: var(--adm-text-3); }
 
-.state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 200px; padding: 24px 16px; border-radius: var(--adm-radius-md); background: var(--mrt-gray-50); text-align: center; }
-.state strong { font-size: 14px; font-weight: 700; color: var(--text-strong); }
-.state p { margin: 0; max-width: 380px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
-.stateIcon { width: 40px; height: 40px; border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--mrt-blue-strong); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
+.state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--adm-space-2); min-height: calc(var(--adm-space-8) * 6.25); padding: var(--adm-space-6) var(--adm-space-4);
+  border-radius: var(--adm-radius-md); background: var(--adm-gray-50); text-align: center; }
+.state strong { font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); color: var(--adm-ink); }
+.state p { margin: 0; max-width: 380px; font-size: var(--adm-fs-small); line-height: var(--adm-lh); color: var(--adm-text-2); }
+.stateIcon { width: var(--adm-control-h); height: var(--adm-control-h); display: flex; align-items: center; justify-content: center; border: var(--adm-border-width) solid var(--adm-line);
+  border-radius: var(--adm-radius-md); background: var(--adm-surface); color: var(--adm-accent-strong); }
 
-/* Narrow cards keep channel, visits and leads; share bar and rate move out of the way. */
+/* 좁은 카드: 채널·방문·문의·전환율만 남기고 비중 막대를 뺀다 */
 @container (max-width: 480px) {
   .tableHead, .row { grid-template-columns: minmax(0, 1fr) 56px 40px 52px; }
   .tableHead > span:nth-child(2), .shareCell { display: none; }
 }
-.card { container-type: inline-size; }

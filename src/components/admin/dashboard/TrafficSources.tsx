@@ -4,20 +4,22 @@ import { trafficKpis, trafficRows } from '../../../utils/adminTraffic';
 import { dashboardTimestamp } from '../../../utils/adminDashboard';
 import { DashboardIcon, type DashboardIconName } from './DashboardIcon';
 import { useEntrance, type DashboardTipFor } from './dashboardMotion';
+import { AdminButton, AdminSegmented } from '../ui';
 import styles from './TrafficSources.module.css';
 
 const PERIODS: { key: AdminTrafficPeriod; label: string }[] = [{ key: 'today', label: '오늘' }, { key: '7d', label: '7일' }, { key: '30d', label: '30일' }];
 const logo = (slug: string, color: string) => `https://cdn.simpleicons.org/${slug}/${color}`;
-const BRAND: Record<AdminTrafficChannel, { bg: string; border?: boolean; logo?: string; icon?: DashboardIconName }> = {
-    '네이버 검색': { bg: '#03C75A', logo: logo('naver', 'ffffff') },
-    '네이버 블로그': { bg: '#fff', border: true, logo: logo('naver', '03C75A') },
-    '인스타그램': { bg: 'linear-gradient(135deg,#FEDA75,#FA7E1E 30%,#D62976 60%,#962FBF 85%,#4F5BD5)', logo: logo('instagram', 'ffffff') },
-    '페이스북': { bg: '#0866FF', logo: logo('facebook', 'ffffff') },
-    '구글 검색': { bg: '#fff', border: true, logo: logo('google', '4285F4') },
-    '유튜브': { bg: '#FF0000', logo: logo('youtube', 'ffffff') },
-    '카카오톡 채널': { bg: '#FEE500', logo: logo('kakaotalk', '191919') },
-    '직접 방문': { bg: 'var(--mrt-gray-100)', icon: 'lc-mouse-pointer-click' },
-    '기타·추천': { bg: 'var(--mrt-gray-100)', icon: 'lc-link' },
+// 채널 바탕색은 CSS 클래스(Seed 색 단계)로. 로고 색은 로고 주소 안에만 있다.
+const BRAND: Record<AdminTrafficChannel, { tone: string; logo?: string; icon?: DashboardIconName }> = {
+    '네이버 검색': { tone: styles.dotNaver, logo: logo('naver', 'ffffff') },
+    '네이버 블로그': { tone: styles.dotPaper, logo: logo('naver', '03C75A') },
+    '인스타그램': { tone: styles.dotInstagram, logo: logo('instagram', 'ffffff') },
+    '페이스북': { tone: styles.dotFacebook, logo: logo('facebook', 'ffffff') },
+    '구글 검색': { tone: styles.dotPaper, logo: logo('google', '4285F4') },
+    '유튜브': { tone: styles.dotYoutube, logo: logo('youtube', 'ffffff') },
+    '카카오톡 채널': { tone: styles.dotKakao, logo: logo('kakaotalk', '191919') },
+    '직접 방문': { tone: styles.dotPlain, icon: 'lc-mouse-pointer-click' },
+    '기타·추천': { tone: styles.dotPlain, icon: 'lc-link' },
 };
 /** Mint scale from the design (largest channel darkest); the 7th step is added for the ninth channel, 페이스북. */
 // 순위 막대: 브랜드 민트를 진한 것부터 옅게, 하위는 회색(--adm-* 토큰). 평평한 색만 쓴다.
@@ -57,19 +59,17 @@ export function TrafficSources({ tipFor }: { tipFor: DashboardTipFor }) {
             <span className={styles.title}>유입 경로</span>
             <span className={styles.info} role="img" aria-label="GA4 기준. 최대 15분 단위로 갱신되며 오늘 자료는 GA 반영까지 몇 시간 걸릴 수 있습니다."
                 title="GA4 기준 · 15분 단위 갱신 · 오늘 자료는 GA 반영까지 몇 시간 걸릴 수 있습니다">
-                <DashboardIcon name="lc-info" size={14} color="var(--mrt-gray-400)" />
+                <DashboardIcon name="lc-info" size={14} color="var(--adm-text-3)" />
             </span>
-            <div className={styles.seg} role="group" aria-label="유입 경로 기간">
-                {PERIODS.map(option => <button key={option.key} type="button" aria-pressed={period === option.key}
-                    className={styles.segButton} onClick={() => choose(option.key)}>{option.label}</button>)}
-            </div>
+            <AdminSegmented label="유입 경로 기간" className={styles.seg} value={period} onChange={choose}
+                items={PERIODS.map(option => ({ value: option.key, label: option.label }))} />
         </div>
 
         {load.status === 'loading' && <div className={styles.state} role="status"><p>유입 통계를 불러오고 있습니다.</p></div>}
         {load.status === 'error' && <div className={styles.state} role="alert">
             <span className={styles.stateIcon}><DashboardIcon name="lc-circle-alert" size={20} /></span>
             <p>{load.message}</p>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={retry}>다시 시도</button>
+            <AdminButton variant="weak" size="sm" onClick={retry}>다시 시도</AdminButton>
         </div>}
         {load.status === 'ready' && !load.data.configured && <div className={styles.state}>
             <span className={styles.stateIcon}><DashboardIcon name="lc-trending-up" size={20} /></span>
@@ -88,6 +88,7 @@ export function TrafficSources({ tipFor }: { tipFor: DashboardTipFor }) {
                     </div>
                 </div>)}
             </div>
+            {/* 막대 길이·채널 순위 색만 실행 중 계산값이라 인라인 */}
             <div className={styles.track}>
                 <div className={styles.segments} style={{ width: `${t * 100}%` }}>
                     {rows.map((row, index) => <span key={row.name} style={{ flex: row.sessions, background: TONES[index] }}
@@ -103,7 +104,7 @@ export function TrafficSources({ tipFor }: { tipFor: DashboardTipFor }) {
                     const brand = BRAND[row.name];
                     return <div key={row.name} className={styles.row}>
                         <span className={styles.channel}>
-                            <span className={styles.dot} style={{ background: brand.bg, border: brand.border ? '1px solid var(--border-default)' : 0 }}>
+                            <span className={`${styles.dot} ${brand.tone}`}>
                                 {brand.logo ? <img src={brand.logo} alt="" width={16} height={16} loading="lazy" /> : brand.icon && <DashboardIcon name={brand.icon} size={15} />}
                             </span>
                             <span className={styles.channelName}>{row.name}</span>
