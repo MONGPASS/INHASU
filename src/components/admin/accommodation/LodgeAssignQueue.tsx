@@ -78,7 +78,7 @@ export interface LodgeAssignQueueProps {
     onResolveDraft: (tourId: string, restore: boolean) => void;
     onAddNight: (tourId: string, fill?: Record<number, string>) => void;
     onRemoveNight: (tourId: string, index: number) => void;
-    /** 여행자·항공·고객 일정·가이드·차량은 카드 보기에서 본다 */
+    /** 여행자·항공·계약서는 표로 보기의 예약 정보 창에서 본다(가이드·차량은 가이드 배정 현황) */
     onOpenCard: (tourId: string) => void;
 }
 
@@ -208,7 +208,7 @@ function TourDetail({ m, tours, rowsOf, lodges, lodgeRegions, resourcesLoading, 
                     <span className="lq-sub">{dotted(m.start)} ({weekday(m.start)}) → {dotted(m.end)} ({weekday(m.end)}) · {spanLabel(N)} · {t.travelers ? `${t.travelers}명` : '인원 미정'}</span>
                     <span className="lq-links">
                         <AdminButton size="sm" variant="weak" to={href}>예약 상세</AdminButton>
-                        <AdminTextButton size="sm" tone="assistive" onClick={() => onOpenCard(id)}>여행자·일정·가이드·차량 보기</AdminTextButton>
+                        <AdminTextButton size="sm" tone="assistive" onClick={() => onOpenCard(id)}>여행자·일정 보기</AdminTextButton>
                     </span>
                 </div>
                 <div className="lq-head-actions">
