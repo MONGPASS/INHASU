@@ -9,7 +9,8 @@ import { CLEAR_LODGE, buildLodgeModel, dateKeyOf as keyOf, dotted, sameText as s
 import { CATEGORY_OPTIONS } from '../../../utils/reservationWorkspace';
 import { productCustomerHref, quoteCustomerHref } from '../../../utils/customerWorkspaceRoutes';
 import { DashboardIcon } from '../dashboard/DashboardIcon';
-// 버튼·입력 칸 모양은 우리 관리자 부품과 같은 클래스(adm-ui-*)를 쓴다. 부품 파일보다 이 화면 CSS가 뒤에 오도록 먼저 읽는다.
+import { AdminButton, AdminChip, AdminIconButton, AdminSearch, AdminSegmented, AdminSelect, AdminTextButton, AdminTextInput, cx } from '../ui';
+// 버튼·입력 칸은 우리 관리자 부품을 쓴다. 부품 모양 파일보다 이 화면 CSS가 뒤에 오도록 먼저 읽는다.
 import '../ui/admin-components.css';
 import './LodgeAssignBoard.css';
 
@@ -126,11 +127,15 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
     const popTour = pop ? model.find(m => m.tour.id === pop.tourId) : undefined;
     const popNight = popTour && pop?.idx != null ? popTour.nights[pop.idx] : undefined;
     const patchNight = (m: typeof model[number], index: number, patch: Patch) => onPatch(m.tour.id, index, patch, m.fill);
-    const choose = <T extends string,>(items: Array<{ value: T; label: string; sub?: string }>, current: string, pick: (v: T) => void) => items.map(o => (
-        <button key={o.value || '__none'} type="button" className="la-pop-item" onClick={() => { pick(o.value); setPop(null); }}>
-            <span><b>{o.label}</b>{o.sub && <small>{o.sub}</small>}</span>{current === o.value && <DashboardIcon name="lc-check" size={16} color="var(--adm-accent-strong)" />}
-        </button>
-    ));
+    // 고르기 창의 한 줄(부품 버튼, 모양은 LodgeAssignBoard.css의 .la-pop-item). 고른 값이면 뒤에 체크.
+    const popItem = (key: string, className: string, onClick: () => void, title: React.ReactNode, sub: React.ReactNode, checked: boolean) => (
+        <AdminButton key={key} variant="weak" fullWidth className={className} onClick={onClick}
+            trailing={checked && <DashboardIcon name="lc-check" size={16} color="var(--adm-accent-strong)" />}>
+            <span><b>{title}</b>{sub && <small>{sub}</small>}</span>
+        </AdminButton>
+    );
+    const choose = <T extends string,>(items: Array<{ value: T; label: string; sub?: string }>, current: string, pick: (v: T) => void) => items.map(o =>
+        popItem(o.value || '__none', 'la-pop-item', () => { pick(o.value); setPop(null); }, o.label, o.sub, current === o.value));
     const renderPop = () => {
         if (!pop) return null;
         const style: React.CSSProperties = { left: pop.x, top: pop.y };
@@ -138,9 +143,9 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
             const y = pop.year ?? cal.y;
             return <div className="la-pop la-month-pop" style={style}>
                 <div className="la-month-head">
-                    <button type="button" className="adm-ui-icon-btn is-sm is-background" aria-label="이전 해" onClick={() => setPop({ ...pop, year: y - 1 })}><DashboardIcon name="lc-chevron-left" size={16} /></button>
+                    <AdminIconButton label="이전 해" size="sm" variant="background" onClick={() => setPop({ ...pop, year: y - 1 })}><DashboardIcon name="lc-chevron-left" size={16} /></AdminIconButton>
                     <b>{y}년</b>
-                    <button type="button" className="adm-ui-icon-btn is-sm is-background" aria-label="다음 해" onClick={() => setPop({ ...pop, year: y + 1 })}><DashboardIcon name="lc-chevron-right" size={16} /></button>
+                    <AdminIconButton label="다음 해" size="sm" variant="background" onClick={() => setPop({ ...pop, year: y + 1 })}><DashboardIcon name="lc-chevron-right" size={16} /></AdminIconButton>
                 </div>
                 <div className="la-month-grid">
                     {Array.from({ length: 12 }, (_, i) => {
@@ -150,7 +155,7 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
                         </button>;
                     })}
                 </div>
-                <button type="button" className={`adm-ui-btn is-sm is-full la-month-all${allPeriod ? ' is-on is-primary adm-on-primary' : ''}`} onClick={() => { setAllPeriod(true); setDay(null); setRange('m'); setPop(null); }}>전체 기간 보기</button>
+                <AdminButton size="sm" fullWidth variant={allPeriod ? 'primary' : 'secondary'} className="la-month-all" onClick={() => { setAllPeriod(true); setDay(null); setRange('m'); setPop(null); }}>전체 기간 보기</AdminButton>
             </div>;
         }
         if (!popTour) return null;
@@ -169,14 +174,15 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
             const done = m.nights.filter(n => n.state !== 'none').length, ok = m.nights.filter(n => n.state === 'ok').length;
             return <div className="la-pop la-info" role="region" aria-label={`${nameOf(m.tour)} 예약 정보`} style={style}>
                 <div className="la-info-head"><b>{nameOf(m.tour)}</b><em>{m.tour.source === 'quote_booking' ? '견적 예약' : '상품 예약'}</em><small>{m.tour.reservationNumber ? `#${m.tour.reservationNumber}` : ''}</small>
-                    <button type="button" className="adm-ui-icon-btn is-sm la-info-close" aria-label="예약 정보 닫기" onClick={() => setPop(null)}><DashboardIcon name="lc-x" size={16} /></button>
+                    <AdminIconButton label="예약 정보 닫기" size="sm" className="la-info-close" onClick={() => setPop(null)}><DashboardIcon name="lc-x" size={16} /></AdminIconButton>
                 </div>
                 <dl>
                     <div><dt>연락처</dt><dd>{contactOf(m.tour) || '등록 안 됨'}</dd></div>
                     <div><dt>여행 기간</dt><dd>{dotted(m.start)} → {dotted(m.end)}</dd></div>
                     <div><dt>인원</dt><dd>{m.tour.travelers ? `${m.tour.travelers}명` : '-'} · {m.plan ? PACKAGE_LABELS[m.plan] : '패키지 미정'}</dd></div>
                     <div><dt>지역</dt><dd>{regionOf(m.tour)}</dd></div>
-                    <div><dt>분류</dt><dd><button type="button" className="adm-ui-btn is-sm la-info-pick" data-la-pop aria-label={`${nameOf(m.tour)} 분류`} disabled={!!pending[m.tour.id] || savingId === m.tour.id} onClick={e => openPop(e, { kind: 'category', tourId: m.tour.id }, 220, 420)}>{m.tour.assignmentCategory || '미정'}<DashboardIcon name="lc-chevron-down" size={12} /></button></dd></div>
+                    <div><dt>분류</dt><dd><AdminButton size="sm" className="la-info-pick" data-la-pop aria-label={`${nameOf(m.tour)} 분류`} disabled={!!pending[m.tour.id] || savingId === m.tour.id} onClick={e => openPop(e, { kind: 'category', tourId: m.tour.id }, 220, 420)}
+                        trailing={<DashboardIcon name="lc-chevron-down" size={12} />}>{m.tour.assignmentCategory || '미정'}</AdminButton></dd></div>
                     <div><dt>숙소</dt><dd>{done}/{m.nights.length}박 배정 · {ok}박 확정</dd></div>
                 </dl>
                 <section className="la-contract-preview">
@@ -187,7 +193,7 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
                 </section>
                 <div className="la-info-links">
                     <a href={href} className="adm-ui-btn is-sm is-primary adm-on-primary"><DashboardIcon name="lc-file-text" size={14} />예약 상세</a>
-                    <button type="button" className="adm-ui-btn is-sm" onClick={() => { setPop(null); onCardView(); }}><DashboardIcon name="lc-layers" size={14} />카드 보기</button>
+                    <AdminButton size="sm" leading={<DashboardIcon name="lc-layers" size={14} />} onClick={() => { setPop(null); onCardView(); }}>카드 보기</AdminButton>
                 </div>
             </div>;
         }
@@ -210,21 +216,22 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
             };
             return <div className="la-pop la-hotel-pop" style={style}>
                 <div className="la-pop-head"><b>{label} 숙소정보</b><small>{manual ? '목록에 없는 숙소명을 입력해 주세요.' : resourcesLoading ? '숙소 불러오는 중…' : `등록 숙소 ${lodges.length}곳`}</small></div>
-                {!manual && <div className="la-pop-tabs">{tabs.map(t => <button key={t} type="button" className={`adm-ui-chip${t === tab ? ' is-on' : ''}`} onClick={() => setPop({ ...pop, tab: t })}>{t}</button>)}</div>}
-                <label className="adm-ui-search is-wide la-pop-search">{!manual && <span className="adm-ui-search-icon" aria-hidden="true"><DashboardIcon name="lc-search" size={16} /></span>}<input key={manual ? 'manual' : 'find'} className="adm-ui-search-el" autoFocus
-                    aria-label={manual ? '직접 입력할 숙소명' : undefined} value={manual ? manualName ?? '' : hotelQ} placeholder={manual ? '숙소명' : '숙소 이름으로 찾기'}
-                    onChange={e => (manual ? setManualName : setHotelQ)(e.target.value)} onKeyDown={e => { if (manual && e.key === 'Enter') { e.preventDefault(); commitManual(); } }} /></label>
+                {!manual && <div className="la-pop-tabs">{tabs.map(t => <AdminChip key={t} active={t === tab} onClick={() => setPop({ ...pop, tab: t })}>{t}</AdminChip>)}</div>}
+                {manual
+                    ? <AdminTextInput key="manual" className="la-pop-search" autoFocus aria-label="직접 입력할 숙소명" value={manualName ?? ''} placeholder="숙소명"
+                        onChange={e => setManualName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitManual(); } }} />
+                    : <AdminSearch key="find" wide className="la-pop-search" autoFocus value={hotelQ} placeholder="숙소 이름으로 찾기" onChange={setHotelQ} />}
                 {manual ? <div className="la-pop-actions">
-                    <button type="button" className="adm-ui-btn is-sm is-weak" onClick={() => setManualName(null)}>취소</button>
-                    <button type="button" className="adm-ui-btn is-sm is-primary adm-on-primary" onClick={commitManual}>입력</button>
+                    <AdminButton size="sm" variant="weak" onClick={() => setManualName(null)}>취소</AdminButton>
+                    <AdminButton size="sm" variant="primary" onClick={commitManual}>입력</AdminButton>
                 </div> : <div className="la-pop-list">
-                    <button type="button" className="la-pop-item" onClick={() => { patchNight(m, idx, CLEAR_LODGE); setPop(null); }}><span><b>미배정</b><small>숙소 선택 해제</small></span>{!acc.name?.trim() && <DashboardIcon name="lc-check" size={16} color="var(--adm-accent-strong)" />}</button>
-                    {list.map(l => <button key={l.id} type="button" className="la-pop-item" onClick={() => {
+                    {popItem('__none', 'la-pop-item', () => { patchNight(m, idx, CLEAR_LODGE); setPop(null); }, '미배정', '숙소 선택 해제', !acc.name?.trim())}
+                    {list.map(l => popItem(l.id, 'la-pop-item', () => {
                         onPatch(m.tour.id, idx, { ...selectResourceLodge(n.night, l).accommodation, ...(n.area ? { location: n.area, region: n.area } : {}) }, m.fill);
                         setPop(null); flash(`${label} · ${l.name} 선택했어요`);
-                    }}><span><b>{l.name}</b><small>{[l.region || l.location, l.type].filter(Boolean).join(' · ')}</small></span>{(acc.id ? acc.id === l.id : same(acc.name, l.name)) && <DashboardIcon name="lc-check" size={16} color="var(--adm-accent-strong)" />}</button>)}
+                    }, l.name, [l.region || l.location, l.type].filter(Boolean).join(' · '), acc.id ? acc.id === l.id : same(acc.name, l.name)))}
                     {!list.length && <p className="la-pop-empty">{resourcesLoading ? '숙소를 불러오고 있어요…' : '조건에 맞는 등록 숙소가 없어요.'}</p>}
-                    <button type="button" className="adm-lab-btn la-pop-item is-manual" onClick={() => setManualName(acc.name || '')}><span><b>직접 입력…</b><small>등록되지 않은 숙소</small></span></button>
+                    {popItem('__manual', 'la-pop-item is-manual', () => setManualName(acc.name || ''), '직접 입력…', '등록되지 않은 숙소', false)}
                 </div>}
             </div>;
         }
@@ -253,14 +260,14 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
             <section className="la-cal" aria-label="숙박 일정">
                 <b className="la-cal-title">숙박 일정</b>
                 <div className="la-cal-bar">
-                    <button type="button" className={`adm-ui-btn la-month-btn${pop?.kind === 'month' ? ' is-open' : ''}`} data-la-pop onClick={e => openPop(e, { kind: 'month', tourId: '', year: cal.y }, 280, 300)}>
-                        <i /><b>{monthLabel}</b><DashboardIcon name="lc-chevron-down" size={14} />
-                    </button>
-                    {day && <button type="button" className="adm-ui-chip la-filter-chip la-day-chip" onClick={() => { setDay(null); setRange('m'); }}>{dayLabel}<DashboardIcon name="lc-x" size={12} /></button>}
-                    <button type="button" className="adm-ui-btn is-sm la-today" onClick={goToday}>오늘</button>
-                    <div className="adm-ui-segmented la-range" role="group" aria-label="기간 단위">
-                        {([['d', '일'], ['w', '주'], ['m', '월']] as const).map(([k, l]) => <button key={k} type="button" className={`adm-ui-segmented-item${range === k ? ' is-on is-selected' : ''}`} aria-pressed={range === k} disabled={allPeriod && k !== 'm'} onClick={() => setRangeMode(k)}>{l}</button>)}
-                    </div>
+                    <AdminButton className={cx('la-month-btn', pop?.kind === 'month' && 'is-open')} data-la-pop onClick={e => openPop(e, { kind: 'month', tourId: '', year: cal.y }, 280, 300)}
+                        leading={<i />} trailing={<DashboardIcon name="lc-chevron-down" size={14} />}>
+                        <b>{monthLabel}</b>
+                    </AdminButton>
+                    {day && <AdminChip className="la-filter-chip la-day-chip" onClick={() => { setDay(null); setRange('m'); }}>{dayLabel}<DashboardIcon name="lc-x" size={12} /></AdminChip>}
+                    <AdminButton size="sm" className="la-today" onClick={goToday}>오늘</AdminButton>
+                    <AdminSegmented label="기간 단위" className="la-unit" value={range} onChange={setRangeMode}
+                        items={([['d', '일'], ['w', '주'], ['m', '월']] as const).map(([k, l]) => ({ value: k, label: l, disabled: allPeriod && k !== 'm' }))} />
                 </div>
                 <div className="la-strip-row">
                     {/* 띠는 늘 14칸(가장 짧은 달도 28일)이라 칸 수는 CSS가 정한다 */}
@@ -273,29 +280,25 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
                         </button>)}
                     </div>
                     <div className="la-strip-nav">
-                        <button type="button" className="adm-ui-icon-btn is-sm is-outlined la-strip-btn is-dark" aria-label="다음 날짜" disabled={allPeriod} onClick={winNext}><DashboardIcon name="lc-chevron-right" size={14} /></button>
-                        <button type="button" className="adm-ui-icon-btn is-sm is-outlined la-strip-btn" aria-label="이전 날짜" disabled={allPeriod} onClick={winPrev}><DashboardIcon name="lc-chevron-left" size={14} /></button>
+                        <AdminIconButton label="다음 날짜" size="sm" variant="outlined" className="la-strip-btn is-dark" disabled={allPeriod} onClick={winNext}><DashboardIcon name="lc-chevron-right" size={14} /></AdminIconButton>
+                        <AdminIconButton label="이전 날짜" size="sm" variant="outlined" className="la-strip-btn" disabled={allPeriod} onClick={winPrev}><DashboardIcon name="lc-chevron-left" size={14} /></AdminIconButton>
                     </div>
                 </div>
             </section>
 
             <div className="la-tools">
-                <label className="adm-ui-search la-search"><span className="adm-ui-search-icon" aria-hidden="true"><DashboardIcon name="lc-search" size={16} /></span><input className="adm-ui-search-el" aria-label="고객명·숙소명 검색" value={q} onChange={e => setQ(e.target.value)} placeholder="고객명·숙소명으로 찾기" /></label>
-                <span className="adm-ui-select la-scope">
-                    <select className="adm-ui-select-el" aria-label="예약 범위" value={scope} onChange={e => onScope(e.target.value as 'confirmed' | 'all')}>
-                        <option value="confirmed">확정 예약만</option><option value="all">전체 예약</option>
-                    </select>
-                    <span className="adm-ui-select-caret" aria-hidden="true"><DashboardIcon name="lc-chevron-down" size={16} /></span>
-                </span>
-                {kf && <button type="button" className="adm-ui-chip la-filter-chip la-kf" onClick={() => setKf('')}>{kfLabel}만 보기<DashboardIcon name="lc-x" size={14} /></button>}
+                <AdminSearch className="la-search" aria-label="고객명·숙소명 검색" value={q} onChange={setQ} placeholder="고객명·숙소명으로 찾기" />
+                <AdminSelect className="la-scope" aria-label="예약 범위" value={scope} onChange={v => onScope(v as 'confirmed' | 'all')}
+                    options={[{ value: 'confirmed', label: '확정 예약만' }, { value: 'all', label: '전체 예약' }]} />
+                {kf && <AdminChip className="la-filter-chip la-kf" onClick={() => setKf('')}>{kfLabel}만 보기<DashboardIcon name="lc-x" size={14} /></AdminChip>}
                 <span className="la-tools-gap" />
-                <button type="button" className="adm-ui-btn is-sm la-ghost" onClick={onCardView}>카드 보기</button>
-                <button type="button" className="adm-ui-btn is-sm la-ghost" onClick={toggleAll} disabled={!visible.length}>{allOpen ? '모두 접기' : '모두 펼치기'}</button>
+                <AdminButton size="sm" className="la-ghost" onClick={onCardView}>카드 보기</AdminButton>
+                <AdminButton size="sm" className="la-ghost" onClick={toggleAll} disabled={!visible.length}>{allOpen ? '모두 접기' : '모두 펼치기'}</AdminButton>
             </div>
 
             {dirty.size > 0 && <div className="adm-msg is-cautionary la-savebar" role="status">
                 <span>저장하지 않은 예약 <b>{dirty.size}</b>팀 · 변경 내용은 브라우저 초안으로도 보관돼요.</span>
-                <button type="button" className="adm-ui-text-btn" disabled={!!savingId || savingAll} onClick={onSaveAll}><DashboardIcon name="lc-check" size={15} />{savingAll ? '저장하는 중…' : '모두 저장'}</button>
+                <AdminTextButton disabled={!!savingId || savingAll} onClick={onSaveAll} leading={<DashboardIcon name="lc-check" size={15} />}>{savingAll ? '저장하는 중…' : '모두 저장'}</AdminTextButton>
             </div>}
 
             <div className="la-sheet">
@@ -323,15 +326,16 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
                                     <span className="la-meta is-first"><small>여행 기간</small><b>{dotted(m.start)} → {dotted(m.end)}</b></span>
                                     <span className="la-meta"><small>일정</small><b>{N ? `${N}박${N + 1}일` : '당일'}</b></span>
                                     <span className="la-meta"><small>인원</small><b>{t.travelers ? `${t.travelers}명` : '-'}</b></span>
-                                    <span className="la-meta"><small>패키지</small><button type="button" className="la-pkg" data-plan={m.plan || 'none'} data-la-pop
+                                    {/* 패키지 표(눌러서 바꾸기) — 테스트가 className="la-pkg"로 찾으므로 클래스는 이것 하나 */}
+                                    <span className="la-meta"><small>패키지</small><AdminButton variant="weak" size="sm" className="la-pkg" data-plan={m.plan || 'none'} data-la-pop
                                         disabled={!!pending[t.id] || !!savingId || savingAll} aria-label={`${nameOf(t)} 계약 패키지 변경 · ${m.plan ? PACKAGE_LABELS[m.plan] : '미정'}`}
                                         aria-expanded={pop?.kind === 'contractPackage' && pop.tourId === t.id}
-                                        onClick={e => openPop(e, { kind: 'contractPackage', tourId: t.id }, 220, 200)}>
-                                        {m.plan ? (m.plan === 'value' ? '실속패키지' : PACKAGE_LABELS[m.plan]) : '미정'}<DashboardIcon name="lc-chevron-down" size={12} />
-                                    </button></span>
+                                        onClick={e => openPop(e, { kind: 'contractPackage', tourId: t.id }, 220, 200)} trailing={<DashboardIcon name="lc-chevron-down" size={12} />}>
+                                        {m.plan ? (m.plan === 'value' ? '실속패키지' : PACKAGE_LABELS[m.plan]) : '미정'}
+                                    </AdminButton></span>
                                     <span className="la-prog">
-                                        {pending[t.id] ? <span className="la-actions" onClick={e => e.stopPropagation()}><em>초안</em><button type="button" className="adm-ui-btn is-sm" onClick={() => onResolveDraft(t.id, true)}>복원</button><button type="button" className="adm-ui-btn is-sm is-weak" onClick={() => onResolveDraft(t.id, false)}>버리기</button></span>
-                                            : isDirty ? <span className="la-actions" onClick={e => e.stopPropagation()}><em data-kind="dirty">변경됨</em><button type="button" className="adm-ui-btn is-sm is-primary adm-on-primary is-save" disabled={!!savingId} onClick={() => onSave(t.id)}>{savingId === t.id ? '저장 중…' : '저장'}</button></span>
+                                        {pending[t.id] ? <span className="la-actions" onClick={e => e.stopPropagation()}><em>초안</em><AdminButton size="sm" onClick={() => onResolveDraft(t.id, true)}>복원</AdminButton><AdminButton size="sm" variant="weak" onClick={() => onResolveDraft(t.id, false)}>버리기</AdminButton></span>
+                                            : isDirty ? <span className="la-actions" onClick={e => e.stopPropagation()}><em data-kind="dirty">변경됨</em><AdminButton size="sm" variant="primary" className="is-save" disabled={!!savingId} onClick={() => onSave(t.id)}>{savingId === t.id ? '저장 중…' : '저장'}</AdminButton></span>
                                             : <em className="la-prog-pill" data-state={N ? m.bs : 'sel'}>{prog}</em>}
                                         <span className="la-segs">{m.nights.map(n => <i key={n.index} data-state={n.state} />)}</span>
                                     </span>
@@ -344,7 +348,8 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
                                         const added = n.index >= m.planned;
                                         const dd = (kind: Pop['kind'], value: string, empty: boolean, title: string) => <button type="button" className={`adm-lab-btn la-dd${empty ? ' is-empty' : ''}`} data-la-pop disabled={locked} aria-label={`${nameOf(t)} ${n.index + 1}박 ${title}`} onClick={e => openPop(e, { kind, tourId: t.id, idx: n.index }, 220, 380)}><span>{value}</span><DashboardIcon name="lc-chevron-down" size={14} /></button>;
                                         return <div key={n.index} className="la-grid la-night">
-                                            <span className="is-c">{added && <button type="button" className="la-remove" aria-label="숙박 삭제" title="추가한 숙박 삭제" disabled={locked} onClick={() => { onRemoveNight(t.id, n.index); flash(`${dotted(n.date)} 숙박을 삭제했어요`); }}><DashboardIcon name="lc-x" size={12} /></button>}</span>
+                                            {/* 추가한 숙박 지우기 — 테스트가 className="la-remove"로 세므로 클래스는 이것 하나 */}
+                                            <span className="is-c">{added && <AdminIconButton label="숙박 삭제" title="추가한 숙박 삭제" size="sm" className="la-remove" disabled={locked} onClick={() => { onRemoveNight(t.id, n.index); flash(`${dotted(n.date)} 숙박을 삭제했어요`); }}><DashboardIcon name="lc-x" size={12} /></AdminIconButton>}</span>
                                             <span className="la-date">{n.date ? `${n.date} (${WD[d!.getDay()]})` : '날짜 미정'}{added && <em>추가</em>}</span>
                                             <span className="is-c la-pax">{t.travelers || '-'}</span>
                                             <button type="button" className={`adm-lab-btn la-area${n.fromPlan ? ' is-planned' : ''}${!n.area ? ' is-empty' : ''}`} data-la-pop aria-label={`${nameOf(t)} ${n.index + 1}박 숙소지역`} disabled={locked} title={n.fromPlan ? '계약 일정에서 불러온 지역입니다. 이 숙박일을 고치면 함께 저장됩니다.' : undefined}
@@ -353,26 +358,26 @@ export function LodgeAssignBoard({ tours, rowsOf, plannedNights, regionOf, conta
                                                 <DashboardIcon name={hasLodge ? 'lc-bed-double' : 'lc-circle-plus'} size={16} /><b>{hasLodge ? acc.name : '미배정'}</b><DashboardIcon name="lc-chevron-down" size={14} />
                                             </button>
                                             {dd('grade', acc.type || '미정', !acc.type, '등급')}
-                                            <label className={`adm-ui-input la-room-count${locked ? ' is-disabled' : ''}`}><RoomCountInput className="adm-ui-input-el" aria-label={`${nameOf(t)} ${n.index + 1}박 방수`} disabled={locked}
-                                                value={acc.roomCount} onChange={count => patchNight(m, n.index, { roomCount: count })} /><span className="adm-ui-input-addon">개</span></label>
+                                            <RoomCountInput className="la-room-count" aria-label={`${nameOf(t)} ${n.index + 1}박 방수`} disabled={locked} trailing="개"
+                                                value={acc.roomCount} onChange={count => patchNight(m, n.index, { roomCount: count })} />
                                             {dd('assign', acc.assignType || '미정', !acc.assignType, '배정 구분')}
                                             <button type="button" className="adm-lab-btn la-status" data-la-pop aria-label={`${nameOf(t)} ${n.index + 1}박 메일발송`} data-tone={mail.endsWith('완료') ? 'orange' : 'gray'} disabled={locked}
                                                 onClick={e => openPop(e, { kind: 'mail', tourId: t.id, idx: n.index }, 220, 300)}>
                                                 <i /><small>메일발송</small><span>{mail}</span><DashboardIcon name="lc-chevron-down" size={12} />
                                             </button>
-                                            <label className={`adm-ui-input la-mail-date${locked ? ' is-disabled' : ''}`}><small>메일발송일자</small><input type="date" className="adm-ui-input-el" aria-label={`${nameOf(t)} ${n.index + 1}박 메일발송일자`} disabled={locked}
-                                                value={acc.mailSentDate || ''} onChange={e => patchNight(m, n.index, { mailSentDate: e.target.value })} /></label>
+                                            <AdminTextInput type="date" className="la-mail-date" leading={<small>메일발송일자</small>} aria-label={`${nameOf(t)} ${n.index + 1}박 메일발송일자`} disabled={locked}
+                                                value={acc.mailSentDate || ''} onChange={e => patchNight(m, n.index, { mailSentDate: e.target.value })} />
                                             <button type="button" className="adm-lab-btn la-status" data-la-pop aria-label={`${nameOf(t)} ${n.index + 1}박 예약상태`} data-tone={toneOfStatus(status)} disabled={locked}
                                                 onClick={e => openPop(e, { kind: 'status', tourId: t.id, idx: n.index }, 220, 340)}>
                                                 <i /><small>예약상태</small><span>{status || '미정'}</span><DashboardIcon name="lc-chevron-down" size={12} />
                                             </button>
-                                            <label className={`adm-ui-input la-memo${locked ? ' is-disabled' : ''}`}><input className="adm-ui-input-el" aria-label={`${nameOf(t)} ${n.index + 1}박 예약메모`} disabled={locked} maxLength={2000} value={acc.adminMemo || ''} placeholder="메모" onChange={e => patchNight(m, n.index, { adminMemo: e.target.value })} /></label>
+                                            <AdminTextInput className="la-memo" aria-label={`${nameOf(t)} ${n.index + 1}박 예약메모`} disabled={locked} maxLength={2000} value={acc.adminMemo || ''} placeholder="메모" onChange={e => patchNight(m, n.index, { adminMemo: e.target.value })} />
                                         </div>;
                                     })}
                                     <div className="la-add-row">
-                                        <button type="button" className="adm-ui-btn is-sm la-add" disabled={locked} onClick={() => { onAddNight(t.id, m.fill); flash(`${t.leadName || t.customerName || ''} · ${nextDate} 숙박을 추가했어요`); }}>
-                                            <DashboardIcon name="lc-plus" size={14} />숙박 추가{nextDate && <span>{nextDate}</span>}
-                                        </button>
+                                        <AdminButton size="sm" className="la-add" disabled={locked} leading={<DashboardIcon name="lc-plus" size={14} />} onClick={() => { onAddNight(t.id, m.fill); flash(`${t.leadName || t.customerName || ''} · ${nextDate} 숙박을 추가했어요`); }}>
+                                            숙박 추가{nextDate && <span className="la-add-date">{nextDate}</span>}
+                                        </AdminButton>
                                     </div>
                                 </div>}
                             </div>;

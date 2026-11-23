@@ -35,9 +35,12 @@ function elements(tree, predicate) {
     return found;
 }
 const childrenText = node => Array.isArray(node) ? node.map(childrenText).join('') : typeof node === 'string' || typeof node === 'number' ? String(node) : React.isValidElement(node) ? childrenText(node.props.children) : '';
-const buttons = tree => elements(tree, node => node.type === 'button');
+// 버튼은 생 <button> 또는 우리 관리자 버튼 부품(AdminButton·AdminTextButton·AdminIconButton — forwardRef 함수 이름, 묶을 때 뒤에 숫자가 붙을 수 있다)으로 찾는다.
+const isButton = node => node.type === 'button' || /^Admin(Text|Icon)?Button\d*$/.test(node.type?.render?.name || '');
+const buttons = tree => elements(tree, isButton);
 const byText = (tree, text) => buttons(tree).find(b => childrenText(b).trim() === text);
-const byLabel = (tree, label) => buttons(tree).find(b => b.props['aria-label'] === label);
+// AdminIconButton은 이름을 label로 받아 aria-label로 붙인다.
+const byLabel = (tree, label) => buttons(tree).find(b => (b.props['aria-label'] ?? b.props.label) === label);
 const html = props => renderToStaticMarkup(React.createElement(CustomerWorkspaceOverview, { onAction() {}, ...props }));
 const stop = { stopPropagation() {} };
 /** 바로가기 이동 대상 카드 흉내: 이동 호출과 잠깐 강조(class)만 받는다. */

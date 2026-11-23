@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useUser } from '../../contexts/UserContext';
 import type { AdminDeliveryData, AdminDeliveryKind } from '../../types/adminDelivery';
 import { ADMIN_DELIVERY_NAMES } from '../../types/adminDelivery';
+import { AdminButton } from './ui';
 import './AdminDeliveryHistory.css';
 
 const names = ADMIN_DELIVERY_NAMES;
@@ -46,7 +47,7 @@ export function AdminDeliveryHistory({ source, bookingId, revision = 0, busy = f
         return () => { controller.abort(); window.clearInterval(timer); window.removeEventListener('focus', focus); };
     }, [account, bookingId, source, scope, revision, attempt]);
     return <section className="delivery-history" aria-label="문서 발송 이력">
-        <header><div><h3>문서 발송 이력</h3><p>공개·발송·고객 동의를 각각 확인하세요.</p></div><button type="button" disabled={loading} onClick={() => setAttempt(v => v + 1)}>{loading ? '확인 중…' : '새로고침'}</button></header>
+        <header><div><h3>문서 발송 이력</h3><p>공개·발송·고객 동의를 각각 확인하세요.</p></div><AdminButton variant="secondary" size="sm" disabled={loading} onClick={() => setAttempt(v => v + 1)}>{loading ? '확인 중…' : '새로고침'}</AdminButton></header>
         {error && <p role="alert" className="delivery-error">{error}{data ? ' 마지막 확인한 자료입니다.' : ''}</p>}
         {data?.warnings.map(warning => <p key={warning} role="status" className="delivery-error">{warning}</p>)}
         {data && <>
@@ -59,7 +60,7 @@ export function AdminDeliveryHistory({ source, bookingId, revision = 0, busy = f
                 <p>{item.channel === 'email' ? '이메일' : item.channel === 'message' ? '메시지' : '카카오 알림톡'} · {Number.isFinite(Date.parse(item.at)) ? new Date(item.at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '일시 미확인'}</p>
                 {item.error && <p className="delivery-error">{item.error}</p>}
                 {item.providerId && <p className="delivery-receipt">접수 번호: {item.providerId}</p>}
-                {onOpenDocument && ['quote', 'contract', 'itinerary', 'travel_notice'].includes(item.kind) && ['failed', 'accepted', 'legacy'].includes(item.state) && <button type="button" disabled={busy} onClick={() => onOpenDocument(item.kind)}>{item.state === 'failed' ? '확인·재시도' : '문서·재발송 확인'}</button>}
+                {onOpenDocument && ['quote', 'contract', 'itinerary', 'travel_notice'].includes(item.kind) && ['failed', 'accepted', 'legacy'].includes(item.state) && <AdminButton variant="secondary" size="sm" className="delivery-open" disabled={busy} onClick={() => onOpenDocument(item.kind)}>{item.state === 'failed' ? '확인·재시도' : '문서·재발송 확인'}</AdminButton>}
             </li>)}</ul>}
         </>}
         {!data && !error && <p role="status" className="delivery-empty">{account ? '발송 이력을 불러오고 있습니다…' : '관리자 계정을 확인해 주세요.'}</p>}

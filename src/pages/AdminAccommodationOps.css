@@ -1,13 +1,12 @@
 /* 숙소 배정 · 현지 운영 — 카드 보기·공통 틀. 값은 public/admin-tokens.css의 --adm-* 변수만 쓴다(숫자 크기·직접 색·!important 없음).
-   버튼·배지·칩·표는 공통 부품 모양(adm-ui-*, admin-components.css)을 쓰고, 모양이 특수한 버튼만 adm-aao-* 로 그린다.
-   입력칸은 화면 동작 검사가 생 <input>·<select>를 찾으므로 생 요소에 .lo-input 으로 Seed TextField 모양을 준다. */
+   버튼·입력 칸·배지·칩·표는 우리 관리자 부품(components/admin/ui)이 모양을 정하고, 모양이 특수한 버튼(요약 카드·출발 월·접기 머리)만 adm-aao-* 로 그린다.
+   부품 모양을 이 화면에 맞춰 바꾸는 곳(일차 번호·날짜 알약)은 클래스를 두 개 이상 붙여 부품 규칙보다 앞서게 한다. */
 .lo-board {
-  --lo-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238A8F99' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0;
 }
 .lo-board button, .lo-board select, .lo-board input { font-family: inherit; }
 /* 공통 부품(adm-ui-*)은 자기 초점 고리(--adm-ring)를 쓴다 */
-.lo-board :is(button, a, select, input, summary):not([class*="adm-ui-"], .lo-input):focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-ink); outline-offset: calc(var(--adm-border-width) * 2); }
+.lo-board :is(button, a, select, input, summary):not([class*="adm-ui-"]):focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-ink); outline-offset: calc(var(--adm-border-width) * 2); }
 .lo-notice p { margin: 0; }
 .lo-notice .lo-actions { margin-top: var(--adm-space-2); }
 
@@ -41,7 +40,7 @@
 /* 검색·필터 */
 .lo-filters { display: flex; align-items: center; flex-wrap: wrap; gap: var(--adm-space-2); }
 .adm-ui-search.lo-search { flex: 0 1 300px; min-width: 220px; }
-.lo-input.lo-select { width: 140px; }
+.adm-ui-select.lo-select { flex: none; width: 140px; }
 .lo-count { margin-left: auto; color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
 .lo-count b { color: var(--adm-ink); font-weight: var(--adm-fw-bold); }
 .lo-count b.is-warn { color: var(--adm-danger); }
@@ -168,37 +167,29 @@
 .lo-field { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) * 1.5); min-width: 0; }
 .lo-field > span:first-child { display: flex; align-items: center; color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh-tight); white-space: nowrap; }
 
-/* 입력칸 — Seed TextField 모양(높이 40·모서리 6·회색 1px 선, 쓰는 중이면 진한 선) */
-.lo-input {
-  display: block; box-sizing: border-box; width: 100%; height: var(--adm-control-h); margin: 0; padding: 0 var(--adm-space-3);
-  border: var(--adm-border-width) solid var(--adm-gray-400); border-radius: var(--adm-radius-sm); background: var(--adm-surface);
-  color: var(--adm-text); font-family: var(--adm-font); font-size: var(--adm-fs-input); outline: 0;
-  transition: border-color var(--adm-dur) var(--adm-ease), background-color var(--adm-dur) var(--adm-ease);
-}
-.lo-input::placeholder { color: var(--adm-text-3); opacity: 1; }
-.lo-input:hover { border-color: var(--adm-gray-500); }
-.lo-input:focus { border-color: var(--adm-ink); }
-.lo-input:disabled { border-color: var(--adm-gray-300); background-color: var(--adm-gray-100); color: var(--adm-text-disabled); cursor: not-allowed; }
-select.lo-input { padding-right: var(--adm-space-8); background: var(--adm-surface) var(--lo-chevron) no-repeat right var(--adm-space-3) center; text-overflow: ellipsis; appearance: none; -webkit-appearance: none; cursor: pointer; }
-select.lo-input:disabled { background-color: var(--adm-gray-100); }
-.lo-input[type="number"] { text-align: center; appearance: textfield; -moz-appearance: textfield; }
-.lo-input[type="number"]::-webkit-inner-spin-button, .lo-input[type="number"]::-webkit-outer-spin-button, .lo-day-no input::-webkit-inner-spin-button, .lo-day-no input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
-/* 일차 번호: 숫자 자릿수만큼 넓어지는 칸(자릿수는 data-digits) */
+/* 객실 수: 가운데 정렬 숫자(브라우저 증감 단추 없이) */
+.lo-room-count .adm-ui-input-el { text-align: center; appearance: textfield; -moz-appearance: textfield; }
+:is(.lo-room-count, .lo-day-no) .adm-ui-input-el::-webkit-inner-spin-button, :is(.lo-room-count, .lo-day-no) .adm-ui-input-el::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+/* 일차 번호: 테두리 없는 칸(AdminTextInput)이 숫자 자릿수만큼 넓어진다(자릿수는 data-digits) */
 .lo-day-no { display: flex; flex: none; align-items: center; color: var(--adm-ink); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); }
-.lo-day-no input { box-sizing: content-box; width: 4.4ch; min-width: 1ch; padding: 0; border: 0; border-bottom: var(--adm-border-width) dashed transparent; background: transparent; color: inherit; font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); text-align: right; outline: 0; appearance: textfield; -moz-appearance: textfield; }
-.lo-day-no input[data-digits="1"] { width: 1.4ch; }
-.lo-day-no input[data-digits="2"] { width: 2.4ch; }
-.lo-day-no input[data-digits="3"] { width: 3.4ch; }
-.lo-day-no input:hover, .lo-day-no input:focus { border-bottom-color: var(--adm-text-3); }
+.lo-day-no .adm-ui-input { width: auto; height: auto; padding: 0; border: 0; background: transparent; }
+.lo-day-no .adm-ui-input-el { box-sizing: content-box; flex: none; width: 4.4ch; min-width: 1ch; height: auto; border-bottom: var(--adm-border-width) dashed transparent; color: inherit; font-size: var(--adm-fs-base); font-weight: var(--adm-fw-bold); text-align: right; appearance: textfield; -moz-appearance: textfield; }
+.lo-day-no .adm-ui-input-el[data-digits="1"] { width: 1.4ch; }
+.lo-day-no .adm-ui-input-el[data-digits="2"] { width: 2.4ch; }
+.lo-day-no .adm-ui-input-el[data-digits="3"] { width: 3.4ch; }
+.lo-day-no .adm-ui-input-el:is(:hover, :focus) { border-bottom: var(--adm-border-width) dashed var(--adm-text-3); }
+/* 숙박 날짜: 회색 알약 안의 테두리 없는 날짜 칸(AdminTextInput) + 요일 */
 .lo-date-pill { display: flex; flex: none; align-items: center; gap: calc(var(--adm-space-1) * 1.5); height: var(--adm-control-h-sm); padding: 0 var(--adm-space-1) 0 var(--adm-space-3); border-radius: var(--adm-radius-sm); background: var(--adm-gray-50); }
-.lo-date { width: 118px; height: 100%; padding: 0; border: 0; background: transparent; color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); outline: 0; }
+.lo-date-pill .adm-ui-input.lo-date { width: 118px; height: 100%; padding: 0; border: 0; background: transparent; color: var(--adm-ink); }
+.lo-date-pill .lo-date .adm-ui-input-el { font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
 .lo-dow { flex: none; padding-right: var(--adm-space-2); color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
 .lo-night.is-plan .lo-dow { padding-right: 0; }
 .lo-region-manual, .lo-hotel-manual { display: flex; align-items: center; gap: calc(var(--adm-space-1) * 1.5); min-width: 0; }
+:is(.lo-region-manual, .lo-hotel-manual) > .adm-ui-input { flex: 1; }
 /* 숙소 예약 상태: 고른 상태의 색 점을 칸 안 왼쪽에 둔다 */
 .lo-status-select { position: relative; display: block; min-width: 0; }
 .lo-status-select i { position: absolute; top: 50%; left: var(--adm-space-3); z-index: 1; width: var(--adm-space-2); height: var(--adm-space-2); border-radius: var(--adm-radius-pill); background: var(--adm-gray-300); transform: translateY(-50%); pointer-events: none; }
-.lo-status-select select.lo-input { padding-left: calc(var(--adm-space-6) + var(--adm-space-1)); }
+.lo-status-select .adm-ui-select-el { padding-left: calc(var(--adm-space-6) + var(--adm-space-1)); }
 .lo-status-select[data-status="Имэйл илгээсэн"] i { background: var(--adm-accent-line); }
 .lo-status-select[data-status="Хариу ирсэн"] i { background: var(--adm-accent); }
 .lo-status-select[data-status="Баталгаажсан"] i { background: var(--adm-accent-strong); }
@@ -207,9 +198,9 @@ select.lo-input:disabled { background-color: var(--adm-gray-100); }
 .lo-status-select[data-status="취소요청"] i { background: var(--adm-warn); }
 .lo-status-select[data-status="취소완료"] i { background: var(--adm-text-3); }
 .lo-status-select[data-status="배정X"] i { background: var(--adm-danger); }
-/* 숙박일 삭제(아이콘 버튼, 누르면 빨강) */
-.adm-ui-icon-btn.adm-aao-remove { color: var(--adm-text-3); }
-.adm-ui-icon-btn.adm-aao-remove:hover:not(:disabled) { background: var(--adm-danger-soft); color: var(--adm-danger); }
+/* 숙박일 삭제(AdminIconButton, 올리면 빨강) */
+.adm-ui-icon-btn.lo-remove { color: var(--adm-text-3); }
+.adm-ui-icon-btn.lo-remove:hover:not(:disabled) { background: var(--adm-danger-soft); color: var(--adm-danger); }
 .lo-empty-row { margin: 0; padding: var(--adm-space-3); color: var(--adm-text-3); font-size: var(--adm-fs-small); text-align: center; }
 .lo-actions { display: flex; flex-wrap: wrap; gap: var(--adm-space-2); }
 

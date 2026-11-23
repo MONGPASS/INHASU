@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import {
-    AdminBadge, AdminButton, AdminIconButton, AdminTabs, AdminTextButton, IconCheck, IconChevronRight, IconClock, IconDocumentText, IconRefresh,
+    AdminBadge, AdminButton, AdminIconButton, AdminMenu, AdminTabs, AdminTextButton, IconCheck, IconChevronDown, IconChevronRight, IconClock, IconDocumentText, IconRefresh,
 } from '../components/admin/ui';
 import { useAdminWorkspace } from '../components/admin/AdminWorkspaceContext';
 import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
@@ -43,7 +43,7 @@ type AnyIcon = DashboardIconName | PageIconName;
 function PageIcon({ name, size = 16 }: { name: AnyIcon; size?: number }) {
     if (!(name in PAGE_ICONS)) return <DashboardIcon name={name as DashboardIconName} size={size} />;
     return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
-        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flex: 'none', display: 'block' }}>
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" className={styles.pageIcon}>
         {PAGE_ICONS[name as PageIconName]}
     </svg>;
 }
@@ -98,7 +98,6 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
     const initialLoading = loading && !data;
     const metrics = data?.metrics;
     const [period, setPeriod] = useState<RevenuePeriod>('전체 기간');
-    const [periodOpen, setPeriodOpen] = useState(false);
     const [taskTab, setTaskTab] = useState<DashboardTaskKind | null>(null);
     const [bookingFilter, setBookingFilter] = useState<BookingFilter>('전체');
     const [tip, setTip] = useState<Tip | null>(null);
@@ -107,13 +106,6 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
         onMouseMove: (event: React.MouseEvent) => setTip({ x: event.clientX, y: event.clientY, title, lines }),
         onMouseLeave: () => setTip(null),
     });
-
-    useEffect(() => {
-        if (!periodOpen) return;
-        const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setPeriodOpen(false); };
-        document.addEventListener('keydown', escape);
-        return () => document.removeEventListener('keydown', escape);
-    }, [periodOpen]);
 
     const revenue = dashboardRevenue(data, period);
     const split = dashboardBookingSplit(data);
@@ -334,20 +326,18 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                         title="확정·결제·완료 예약의 팀 전체 금액 · 기간은 예약 접수일(한국시간) 기준">
                         <DashboardIcon name="lc-info" size={14} color="var(--adm-text-3)" />
                     </span>
+                    {/* 기간 고르기: 우리 고르기 메뉴(바깥 누르기·Esc로 닫힘). 고른 기간은 이름 앞 체크로 보인다 */}
                     <div className={styles.revPicker}>
-                        <button type="button" className={styles.revButton} aria-haspopup="menu" aria-expanded={periodOpen} onClick={() => setPeriodOpen(open => !open)}>
-                            {period}
-                            <span className={`${styles.chevron} ${periodOpen ? styles.chevronOpen : ''}`}><DashboardIcon name="lc-chevron-down" size={14} /></span>
-                        </button>
-                        {periodOpen && <>
-                            <div className={styles.scrim} onClick={() => setPeriodOpen(false)} />
-                            <div className={styles.revMenu} role="menu" aria-label="매출 기간">
-                                {REVENUE_PERIODS.map(option => <button key={option} type="button" role="menuitemradio" aria-checked={period === option}
-                                    className={styles.revOption} onClick={() => { setPeriod(option); setPeriodOpen(false); }}>
-                                    <span>{option}</span><span className={styles.revRange}>{dashboardRevenue(data, option).range}</span>
-                                </button>)}
-                            </div>
-                        </>}
+                        <AdminMenu label="매출 기간"
+                            trigger={<AdminButton variant="weak" size="sm" trailing={<IconChevronDown aria-hidden="true" />}>{period}</AdminButton>}
+                            items={REVENUE_PERIODS.map(option => ({
+                                key: option,
+                                label: <span className={`${styles.revOption} ${period === option ? styles.revOptionOn : ''}`}>
+                                    <IconCheck aria-hidden="true" className={styles.revCheck} />{option}{period === option && <span className={styles.srOnly}> (선택됨)</span>}
+                                </span>,
+                                description: dashboardRevenue(data, option).range || undefined,
+                                onSelect: () => setPeriod(option),
+                            }))} />
                     </div>
                 </div>
                 <div className={styles.revValueRow}>
@@ -361,10 +351,11 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                     <span>{availability.bookings ? '전체 예약' : '불러온 예약'} <b>{dashboardNumber(data ? split.total : null)}</b>건</span>
                 </div>
                 <div className={styles.split}>
-                    {splitBars.length ? splitBars.map(bar => <span key={bar.name} className={`${styles.splitSeg} ${bar.className}`}
+                    {/* 막대 길이·나타나기만 실행 중 계산값이라 인라인 */}
+                    {splitBars.length ? splitBars.map(bar => <span key={bar.name} className={`${styles.splitSeg} ${bar.className} ${t > 0.3 ? styles.splitSegOpen : ''}`}
                         {...tipFor(bar.name, [{ k: '예약', v: `${bar.count}건` }, { k: '비중', v: `${(bar.count / split.total * 100).toFixed(1)}%` },
                             { k: '팀 금액', v: dashboardWon(bar.amount) }])}
-                        style={{ flex: `0 1 ${bar.count / split.total * 100 * t}%`, padding: t > 0.3 ? '0 14px' : 0, opacity: Math.min(1, t * 2) }}>
+                        style={{ flex: `0 1 ${bar.count / split.total * 100 * t}%`, opacity: Math.min(1, t * 2) }}>
                         {bar.label}
                     </span>) : <span className={styles.splitEmpty}>{initialLoading ? '집계 중…' : data ? '예약 없음' : '자료 확인 필요'}</span>}
                 </div>
@@ -383,11 +374,8 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                             {!!days.length && <div className={styles.miniBars} aria-label="최근 7일 신규 예약">
                                 {days.map(day => <span key={day.key} className={styles.miniBar}
                                     {...tipFor(`${day.label}${day.today ? ' · 오늘' : ''}`, [{ k: '신규 예약', v: `${day.count}건` }])}>
-                                    <span className={styles.miniFill} style={{
-                                        height: `${Math.max(day.count ? 0 : 6, day.count / dayMax * 100 * t)}%`,
-                                        background: day.today ? 'var(--adm-accent-strong)'
-                                            : day.count && day.count === dayMax ? 'var(--adm-accent)' : 'var(--adm-accent-line)',
-                                    }} />
+                                    <span className={`${styles.miniFill} ${day.today ? styles.miniFillToday : day.count && day.count === dayMax ? styles.miniFillMax : ''}`}
+                                        style={{ height: `${Math.max(day.count ? 0 : 6, day.count / dayMax * 100 * t)}%` }} />
                                 </span>)}
                             </div>}
                         </div>
@@ -408,7 +396,7 @@ export function AdminDashboardBody({ data, loading, error, refresh }: DashboardS
                                     { k: '처리율', v: answerPct == null ? '—' : `${answerPct.toFixed(1)}%` }])}>
                                 <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
                                     <defs><linearGradient id="dashboard-mint-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="var(--adm-accent)" /><stop offset="1" stopColor="var(--adm-accent)" /></linearGradient></defs>
-                                    <circle cx="32" cy="32" r="26" fill="none" stroke="#F4F4F5" strokeWidth="7" />
+                                    <circle cx="32" cy="32" r="26" fill="none" className={styles.ringTrack} strokeWidth="7" />
                                     <circle cx="32" cy="32" r="26" fill="none" stroke="url(#dashboard-mint-ring)" strokeWidth="7" strokeLinecap="round" pathLength={100}
                                         transform="rotate(-90 32 32)" style={{ strokeDasharray: `${(answerPct ?? 0) * t} 100` }} />
                                 </svg>

@@ -20,6 +20,8 @@ import workspaceStyles from '../styles/reservation-workspace.css?inline';
 import nativeWorkspaceStyles from '../styles/quote-booking-workspace.css?inline';
 import '../styles/quote-booking-workspace.css';
 import deliveryStyles from '../components/admin/AdminDeliveryHistory.css?inline';
+// 예약 편집기(iframe) 안에 portal로 그리는 발송 이력의 우리 부품(AdminButton) 모양도 같은 style에 넣는다.
+import adminComponentStyles from '../components/admin/ui/admin-components.css?inline';
 import { GuideSchedule } from '../components/admin/guides/GuideSchedule';
 import { quoteFrameNeedsRemount, scheduleQuoteFrameDelay } from '../utils/quoteFrameRecovery';
 import {
@@ -34,7 +36,7 @@ import {
 } from '../components/admin/quoteDesk';
 import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
-import { AdminTabs } from '../components/admin/ui';
+import { AdminButton, AdminCard, AdminEmpty, AdminIconButton, AdminLoading, AdminTabs, AdminTextButton, IconChevronDown, IconChevronLeft, IconCircleExclamationFill, IconMoreHorizontal, IconPencil, IconPlus, IconRefresh } from '../components/admin/ui';
 
 /**
  * 맞춤 견적 데스크 — `/admin/quote-desk/:tool?`
@@ -337,7 +339,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                     doc.documentElement.classList.add('native-booking-workspace');
                     doc.documentElement.classList.toggle('customer-booking-editor', customerPage);
                     if (customerPage && !doc.documentElement.dataset.customerSection) doc.documentElement.dataset.customerSection = 'docs';
-                    if (!doc.getElementById('native-booking-workspace-style')) { const style = doc.createElement('style'); style.id = 'native-booking-workspace-style'; style.textContent = workspaceStyles + nativeWorkspaceStyles + deliveryStyles; doc.head.appendChild(style); }
+                    if (!doc.getElementById('native-booking-workspace-style')) { const style = doc.createElement('style'); style.id = 'native-booking-workspace-style'; style.textContent = workspaceStyles + nativeWorkspaceStyles + deliveryStyles + adminComponentStyles; doc.head.appendChild(style); }
                     setNativeHosts(old => old?.top === top && old.navigation === navigation && old.history === history ? old : { bookingId: innerId, top, navigation, history });
                     setBookingWorkspace(state);
                 }
@@ -370,10 +372,10 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
     syncFrameLocation.current = handleFrameLoad;
 
     // 안쪽 화면만 새로고침한다(안쪽 화면의 자체 새로고침 버튼은 메뉴와 함께 숨겨져 있다).
-    const reloadFrame = () => {
+    const reloadFrame = async () => {
         const result = flushFrame();
         if (result.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 새로고침해 주세요.'); return; }
-        if (!result.ok && !window.confirm((result.error || '초안을 보관하지 못했습니다.') + '\n\n초안을 보관하지 못한 상태로 새로고침할까요?')) return;
+        if (!result.ok && !await adminConfirm({ title: '작업 화면 새로고침', message: (result.error || '초안을 보관하지 못했습니다.') + '\n\n초안을 보관하지 못한 상태로 새로고침할까요?', confirmLabel: '새로고침' })) return;
         if (!result.ok) (frameRef.current?.contentWindow as EditorWindow | null)?.QuoteEditorState?.approveLeaveOnce?.();
         setFrameLoading(true); setFrameDelayed(false); setReloadAttempt(value => value + 1);
         try {
@@ -402,10 +404,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
         if (!customerPage || !editorExpanded || !pendingSection || frameLoading) return;
         if (focusCustomerEditor(pendingSection)) setPendingSection('');
     }, [customerPage, editorExpanded, pendingSection, frameLoading, bookingWorkspace, customerRecord, focusCustomerEditor]);
-    const openCustomerEditor = (editorTool: string, section: string) => {
+    const openCustomerEditor = async (editorTool: string, section: string) => {
         const result = flushFrame();
         if (result.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 작업을 선택해 주세요.'); return; }
-        if (!result.ok && !window.confirm((result.error || '초안을 보관하지 못했습니다.') + '\n\n초안을 보관하지 못한 상태로 다른 편집기를 열까요?')) return;
+        // 확인 창은 비동기라, 창이 떠 있는 동안 고객·계정이 바뀌면 열지 않는다.
+        const scope = customerEditorScope;
+        if (!result.ok && (!await adminConfirm({ title: '다른 편집기 열기', message: (result.error || '초안을 보관하지 못했습니다.') + '\n\n초안을 보관하지 못한 상태로 다른 편집기를 열까요?', confirmLabel: '열기' })
+            || scope !== JSON.stringify([activeCustomer.current.accountId, activeCustomer.current.id || '']))) return;
         if (!editorExpanded) overviewScrollRef.current = customerPageRef.current?.scrollTop || 0;
         setActiveSection(['guide', 'vehicle', 'stay'].includes(section) ? 'assign' : section === 'send' ? 'docs' : ['flights', 'travelers', 'view-info'].includes(section) ? 'info' : section);
         setPendingSection(section); setEditorExpanded(true); setEditorMountScope(customerEditorScope);
@@ -582,37 +587,33 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                 onChange={v => setScheduleView(v === 'schedule')} items={[{ value: 'registry', label: '등록 정보' }, { value: 'schedule', label: '가이드 배정 현황' }]} /> : undefined}
             actions={customerPage ? <>
                     {/* 고객 현황 머리: 목록 복귀와 ⋯(견적서 수정 · 발송 이력)만. 나머지는 v7 상세 카드와 편집 도구줄이 맡는다. */}
-                    <button type="button" className="btn btn-ghost" onClick={() => navigate(returnTo)}>
-                        <Icon name="arrow_back" />목록으로
-                    </button>
-                    <button type="button" className="btn btn-ghost" aria-label="기타 작업" aria-haspopup="menu" onClick={event => moreMenu(event.currentTarget)}>
-                        <Icon name="more_horiz" />
-                    </button>
+                    <AdminButton variant="secondary" leading={<IconChevronLeft />} onClick={() => navigate(returnTo)}>목록으로</AdminButton>
+                    <AdminIconButton variant="outlined" label="기타 작업" aria-haspopup="menu" onClick={event => moreMenu(event.currentTarget)}>
+                        <IconMoreHorizontal />
+                    </AdminIconButton>
                 </> : <>
                     {/* 코스·일정·여행지: 도구 안 머리의 추가 버튼을 제목 줄로 올린다(도구 안의 원래 버튼을 대신 눌러 동작은 그대로). 도구 안 머리는 admin-tools.css가 숨긴다. */}
-                    {tool.key === 'spots' && <button type="button" className="btn btn-ghost" disabled={!frameIsMounted} onClick={() => clickFrameButton('copyBtn')}>문구 초안 가져오기</button>}
+                    {tool.key === 'spots' && <AdminButton variant="secondary" disabled={!frameIsMounted} onClick={() => clickFrameButton('copyBtn')}>문구 초안 가져오기</AdminButton>}
                     {(['courses', 'itinerary', 'spots'] as string[]).includes(tool.key) && (
-                        <button type="button" className="btn btn-ink" disabled={!frameIsMounted} onClick={() => clickFrameButton('addBtn')}>
-                            <Icon name="add" />{tool.key === 'courses' ? '새 코스 추가' : tool.key === 'itinerary' ? '새 일정 추가' : '새 명소 추가'}
-                        </button>
+                        <AdminButton variant="primary" leading={<IconPlus />} disabled={!frameIsMounted} onClick={() => clickFrameButton('addBtn')}>
+                            {tool.key === 'courses' ? '새 코스 추가' : tool.key === 'itinerary' ? '새 일정 추가' : '새 명소 추가'}
+                        </AdminButton>
                     )}
                     {tool.key === 'inbox' && (
-                        <button type="button" className="btn btn-blue" onClick={() => navigate(quoteDeskHref('builder'))}>
-                            <Icon name="edit_document" />견적 작성
-                        </button>
+                        <AdminButton variant="primary" leading={<IconPencil />} onClick={() => navigate(quoteDeskHref('builder'))}>견적 작성</AdminButton>
                     )}
                     {/* 통합 예약 목록·새로고침·새 창으로 열기는 두지 않는다(메뉴는 사이드바, 새로고침은 브라우저). 새 창은 옛 도구를 단독으로 열어 옛 관리자 메뉴가 보였다. */}
-                    {linked && tool.key === 'bookings' && bookingId && <button type="button" className="btn btn-ghost" onClick={() => nativeHosts ? navigateWorkspace('log') : setShowDeliveries(v => !v)}>발송 이력</button>}
+                    {linked && tool.key === 'bookings' && bookingId && <AdminButton variant="secondary" onClick={() => nativeHosts ? navigateWorkspace('log') : setShowDeliveries(v => !v)}>발송 이력</AdminButton>}
                 </>}
         >
             {customerPage && <><V7Styles /><V7Menu menu={toolMenu} onClose={() => setToolMenu(null)} /></>}
-            {editorNotice && <div role="status" className="adm-msg is-cautionary" style={{ margin: '12px var(--adm-pad-page) 0', width: 'auto' }}>{editorNotice}</div>}
+            {editorNotice && <div role="status" className="adm-msg is-cautionary qd-notice">{editorNotice}</div>}
             {linked ? (
-                <div ref={customerPageRef} className={customerPage ? `quote-customer-page${editorExpanded ? ' is-editing' : ''}` : undefined} style={customerPage ? { flex: 1, minHeight: 0, overflow: editorExpanded ? 'hidden' : 'auto', background: 'var(--adm-gray-50)' } : { position: 'relative', flex: 1, minHeight: 0, background: 'var(--adm-surface)' }}>
+                <div ref={customerPageRef} className={customerPage ? `quote-customer-page${editorExpanded ? ' is-editing' : ''}` : 'qd-tool-page'}>
                     {customerPage && <>
                         {bookingId && accountReviewId === bookingId && customerModel && <QuoteAccountLinkDialog key={bookingId} requestId={bookingId}
                             customerName={customerModel.customerName} onClose={() => setAccountReviewId('')} />}
-                        {customerError && <div role="alert" className="adm-msg is-cautionary" style={{ margin: 20, width: 'auto' }}>{customerError} <button type="button" className="btn btn-ghost" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</button></div>}
+                        {customerError && <div role="alert" className="adm-msg is-cautionary qd-customer-error">{customerError} <AdminTextButton size="sm" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</AdminTextButton></div>}
                         {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
                             <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao || quickBusy}
                                 links={{ source: v7Source, userId: accountId, onAssignmentSaved: () => setCustomerRefresh(value => value + 1) }}
@@ -621,17 +622,19 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                                     disabledReason={editorDirty ? '편집 중인 내용을 먼저 저장한 뒤 고객에게 발송해 주세요.' : undefined}
                                     beforeSend={canSendCustomerKakao} onBusyChange={setSendingKakao} onResult={() => setCustomerRefresh(value => value + 1)} onHistory={() => customerAction('history')} />} />
                             {!editorExpanded && bookingId && <div hidden><AdminDeliveryHistory source="quote_booking" bookingId={bookingId} revision={customerRefresh} onData={receiveCustomerDelivery} /></div>}
-                        </div> : !customerError && <div role="status" style={{ padding: 32 }}>고객 정보를 불러오는 중입니다.</div>}
+                        </div> : !customerError && <div role="status" className="qd-customer-loading">고객 정보를 불러오는 중입니다.</div>}
                     </>}
-                    {(!customerPage || customerRecord) && <div id={customerPage ? 'quote-customer-editor' : undefined} className={customerPage ? `quote-customer-editor-shell${editorExpanded ? ' is-expanded' : ''}` : undefined} inert={customerPage && !editorExpanded} aria-hidden={customerPage && !editorExpanded ? true : undefined} aria-labelledby={customerPage && editorExpanded ? 'quote-customer-editor-title' : undefined} style={customerPage ? undefined : { position: 'absolute', inset: 0 }}>
+                    {(!customerPage || customerRecord) && <div id={customerPage ? 'quote-customer-editor' : undefined} className={customerPage ? `quote-customer-editor-shell${editorExpanded ? ' is-expanded' : ''}` : 'qd-tool-shell'} inert={customerPage && !editorExpanded} aria-hidden={customerPage && !editorExpanded ? true : undefined} aria-labelledby={customerPage && editorExpanded ? 'quote-customer-editor-title' : undefined}>
                     {customerPage && editorExpanded && customerModel && <div className="quote-customer-editor-heading">
-                        <button type="button" className="btn btn-ghost quote-customer-return" disabled={editorBusy} onClick={closeCustomerEditor}><Icon name="arrow_back" />고객 현황</button>
+                        <AdminButton variant="secondary" size="sm" className="quote-customer-return" leading={<IconChevronLeft />} disabled={editorBusy} onClick={closeCustomerEditor}>고객 현황</AdminButton>
                         <div className="quote-customer-focus-identity"><h2 ref={customerEditorTitleRef} tabIndex={-1} id="quote-customer-editor-title">{customerModel.customerName}<span>{customerEditorLabel.title}</span></h2><p>{customerModel.partyLabel}<span aria-hidden="true">·</span>{customerModel.period}</p></div>
                         <span className="quote-customer-focus-status" role="status">{editorBusy ? '작업 처리 중' : customerModel.statusLabel}</span>
                         <div className="quote-customer-editor-tools">
-                            {bookingEditor && <button ref={deliveryButtonRef} type="button" disabled={editorBusy} aria-haspopup="menu" onClick={event => deliveryMenu(event.currentTarget)}><Ico name="lc-send" size={15} color="#0E9E7A" /><span className="label">고객에게 전달</span><Ico name="lc-chevron-down" size={12} /></button>}
-                            {bookingEditor && <button type="button" disabled={editorBusy} aria-haspopup="menu" onClick={event => guideMenu(event.currentTarget)}><Ico name="lc-file-text" size={15} /><span className="label">가이드 전달</span><Ico name="lc-chevron-down" size={12} /></button>}
-                            <button type="button" className="is-icon" disabled={editorBusy} aria-label="기타 작업" aria-haspopup="menu" onClick={event => moreMenu(event.currentTarget)}><Icon name="more_horiz" /></button>
+                            {bookingEditor && <AdminButton ref={deliveryButtonRef} variant="secondary" size="sm" disabled={editorBusy} aria-haspopup="menu" onClick={event => deliveryMenu(event.currentTarget)}
+                                leading={<Ico name="lc-send" size={15} color="var(--adm-accent-strong)" />} trailing={<IconChevronDown />}><span className="label">고객에게 전달</span></AdminButton>}
+                            {bookingEditor && <AdminButton variant="secondary" size="sm" disabled={editorBusy} aria-haspopup="menu" onClick={event => guideMenu(event.currentTarget)}
+                                leading={<Ico name="lc-file-text" size={15} />} trailing={<IconChevronDown />}><span className="label">가이드 전달</span></AdminButton>}
+                            <AdminIconButton variant="outlined" size="sm" disabled={editorBusy} label="기타 작업" aria-haspopup="menu" onClick={event => moreMenu(event.currentTarget)}><IconMoreHorizontal /></AdminIconButton>
                         </div>
                     </div>}
                     {frameIsMounted && <iframe
@@ -642,13 +645,12 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         tabIndex={customerPage && !editorExpanded ? -1 : undefined}
                         title={`맞춤 견적 · ${tool.label}`}
                         onLoad={handleFrameLoad}
-                        className={customerPage ? 'quote-customer-editor-frame' : undefined}
-                        style={customerPage ? undefined : { position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, display: 'block' }}
+                        className={customerPage ? 'quote-customer-editor-frame' : 'qd-tool-frame'}
                     />}
                     {embedOverlay && frameIsMounted && <EmbedDim frameRef={frameRef} onClose={() => frameRef.current?.contentWindow?.postMessage({ type: 'inhasu-embed-overlay-close', version: 1 }, window.location.origin)} />}
                     {scheduleView && accountId && <GuideSchedule accountId={accountId} />}
                     {showDeliveries && !nativeHosts && tool.key === 'bookings' && bookingId && <aside className="quote-delivery-panel" aria-label="견적 예약 발송 이력">
-                        <button type="button" onClick={() => setShowDeliveries(false)}>이력 닫기</button>
+                        <AdminButton variant="secondary" size="sm" onClick={() => setShowDeliveries(false)}>이력 닫기</AdminButton>
                         <AdminDeliveryHistory source="quote_booking" bookingId={bookingId} revision={customerRefresh} onData={receiveCustomerDelivery} onOpenDocument={kind => {
                             setShowDeliveries(false);
                             try {
@@ -660,69 +662,42 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                         }} />
                     </aside>}
                     {frameIsMounted && frameLoading && (
-                        <div
-                            role="status"
-                            aria-live="polite"
-                            style={{
-                                position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
-                                background: 'rgba(247,248,250,0.82)', pointerEvents: 'none',
-                            }}
-                        >
-                            <div style={{ display: 'grid', gap: 12, justifyItems: 'center', padding: 20 }}>
-                                <span className="row" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-tertiary)' }}>
+                        <div role="status" aria-live="polite" className="qd-frame-loading">
+                            <div className="qd-frame-loading-body">
+                                <span className="qd-loading-label">
                                     <Icon name="progress_activity" className="spin" />{frameDelayed ? '불러오기가 지연되고 있습니다' : '화면을 불러오는 중'}
                                 </span>
-                                {frameDelayed && <button type="button" className="btn btn-ink" style={{ pointerEvents: 'auto' }} onClick={reloadFrame}>다시 불러오기</button>}
+                                {frameDelayed && <AdminButton variant="primary" onClick={reloadFrame}>다시 불러오기</AdminButton>}
                             </div>
                         </div>
                     )}
                     </div>}
                 </div>
             ) : (
-                <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: 32 }}>
-                    {phase === 'connecting' && (
-                        <span className="row" role="status" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-tertiary)' }}>
-                            <Icon name="progress_activity" className="spin" />견적 데스크에 연결하는 중
-                        </span>
-                    )}
+                <div className="qd-connect">
+                    {phase === 'connecting' && <AdminLoading inline label="견적 데스크에 연결하는 중" />}
 
                     {phase === 'unset' && (
-                        <div className="card card-pad" style={{ maxWidth: 560 }}>
-                            <div className="empty" style={{ padding: '18px 8px 10px' }}>
-                                <Icon name="lock" />
-                                <p style={{ color: 'var(--text-strong)', fontSize: 16, fontWeight: 700 }}>견적 데스크가 아직 연결되지 않았습니다</p>
-                                <p style={{ lineHeight: 1.7, fontWeight: 500 }}>
+                        <AdminCard as="div" className="qd-connect-card">
+                            <AdminEmpty icon={<Icon name="lock" className="qd-glyph" />} title="견적 데스크가 아직 연결되지 않았습니다"
+                                description={<>
                                     서버에 견적 관리자 비밀번호(환경 변수 <b>ADMIN_TOKEN</b>)가 설정되어 있지 않아
                                     견적 문의·예약 화면을 이 관리자 안에서 열 수 없습니다.
                                     Cloudflare Pages의 설정 &gt; 환경 변수에 <b>ADMIN_TOKEN</b>을 등록하고 다시 배포한 뒤 새로고침해 주세요.
-                                </p>
-                            </div>
-                            <div className="row" style={{ justifyContent: 'center', marginTop: 8 }}>
-                                <button type="button" className="btn btn-ink" onClick={() => { void connect(); }}>
-                                    <Icon name="refresh" />다시 확인
-                                </button>
-                            </div>
-                        </div>
+                                </>}
+                                action={<AdminButton variant="primary" leading={<IconRefresh />} onClick={() => { void connect(); }}>다시 확인</AdminButton>} />
+                        </AdminCard>
                     )}
 
                     {phase === 'failed' && (
-                        <div className="card card-pad" style={{ maxWidth: 560 }}>
-                            <div className="empty" style={{ padding: '18px 8px 10px' }}>
-                                <Icon name="warning" />
-                                <p style={{ color: 'var(--text-strong)', fontSize: 16, fontWeight: 700 }}>견적 데스크에 연결하지 못했습니다</p>
-                                <p style={{ lineHeight: 1.7, fontWeight: 500 }}>
-                                    관리자 로그인이 만료되었거나 서버에 연결할 수 없습니다. 다시 시도해도 같으면 다시 로그인해 주세요.
-                                </p>
-                            </div>
-                            <div className="row" style={{ justifyContent: 'center', marginTop: 8 }}>
-                                <button type="button" className="btn btn-ink" onClick={() => { void connect(); }}>
-                                    <Icon name="refresh" />다시 시도
-                                </button>
-                                <button type="button" className="btn btn-ghost" onClick={() => { window.location.href = '/admin/login'; }}>
-                                    <Icon name="login" />다시 로그인
-                                </button>
-                            </div>
-                        </div>
+                        <AdminCard as="div" className="qd-connect-card">
+                            <AdminEmpty icon={<IconCircleExclamationFill />} title="견적 데스크에 연결하지 못했습니다"
+                                description="관리자 로그인이 만료되었거나 서버에 연결할 수 없습니다. 다시 시도해도 같으면 다시 로그인해 주세요."
+                                action={<>
+                                    <AdminButton variant="primary" leading={<IconRefresh />} onClick={() => { void connect(); }}>다시 시도</AdminButton>
+                                    <AdminButton variant="secondary" leading={<Icon name="login" className="qd-glyph" />} onClick={() => { window.location.href = '/admin/login'; }}>다시 로그인</AdminButton>
+                                </>} />
+                        </AdminCard>
                     )}
                 </div>
             )}
@@ -743,7 +718,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean }> = ({ customerP
                 ]} />
                 <p className="quote-native-info">일정·주문·결제·배정은 아래 예약 편집기에 연결됩니다. 저장·고객 공개·발송은 각각의 작업 버튼으로 진행하세요.</p>
             </div>, nativeHosts.top)}
-            {createPortal(<nav className="quote-native-tabs" aria-label="예약 상세 작업">{[['docs', '일정표'], ['contract', '계약서'], ['info', '주문자·여행자'], ['pay', '결제·영수증'], ['assign', '가이드·숙소'], ['notes', '운영·메모'], ['log', '변경·발송 이력']].map(([id, label]) => <button key={id} type="button" className={activeSection === id ? 'active' : ''} aria-current={activeSection === id ? 'location' : undefined} onClick={() => navigateWorkspace(id)}>{label}</button>)}</nav>, nativeHosts.navigation)}
+            {createPortal(<nav className="quote-native-tabs" aria-label="예약 상세 작업">{[['docs', '일정표'], ['contract', '계약서'], ['info', '주문자·여행자'], ['pay', '결제·영수증'], ['assign', '가이드·숙소'], ['notes', '운영·메모'], ['log', '변경·발송 이력']].map(([id, label]) => <button key={id} type="button" className={`adm-qd-native-tab${activeSection === id ? ' active' : ''}`} aria-current={activeSection === id ? 'location' : undefined} onClick={() => navigateWorkspace(id)}>{label}</button>)}</nav>, nativeHosts.navigation)}
             {createPortal(<AdminDeliveryHistory source="quote_booking" bookingId={bookingId} revision={customerRefresh} onData={receiveCustomerDelivery} onOpenDocument={kind => {
                 navigateWorkspace(kind === 'contract' ? 'contract' : 'docs');
                 if (kind === 'contract') { frameRef.current?.contentDocument?.getElementById('contractRequestBtn')?.focus({ preventScroll: false }); return; }

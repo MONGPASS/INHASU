@@ -1,23 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
 import { build } from 'esbuild';
+
+// 우리 관리자 부품(./ui)은 이름 문자열로 바꿔 끼운다: 요소 트리에서 부품 이름(type)과 넘긴 props로 찾는다.
+const uiNames = [...readFileSync('src/components/admin/ReservationOperations.tsx', 'utf8').matchAll(/import\s*\{([^}]*)\}\s*from\s*'\.\/ui'/g)].flatMap(m => m[1].split(',').map(name => name.trim()).filter(Boolean));
+const BUTTONS = ['button', 'AdminButton'];
 
 const result = await build({
     entryPoints: ['src/components/admin/ReservationOperations.tsx'],
     bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false,
     plugins: [{ name: 'operations-event-hooks', setup(builder) {
-        builder.onResolve({ filter: /^react$|^react\/jsx-runtime$/ }, args => ({ path: args.path, namespace: 'fixture' }));
-        builder.onLoad({ filter: /.*/, namespace: 'fixture' }, ({ path }) => ({ loader: 'js', contents: path === 'react'
+        builder.onResolve({ filter: /^react$|^react\/jsx-runtime$|^\.\/ui$/ }, args => ({ path: args.path, namespace: 'fixture' }));
+        builder.onLoad({ filter: /.*/, namespace: 'fixture' }, ({ path }) => ({ loader: 'js', contents: path === './ui' ? uiNames.map(name => `export const ${name}='${name}';`).join('')
+            : path === 'react'
             ? `export const useState=(...a)=>globalThis.h.useState(...a),useRef=(...a)=>globalThis.h.useRef(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useCallback=(...a)=>globalThis.h.useCallback(...a);`
             : `export const jsx=(type,props,key)=>({type,props,key});export const jsxs=jsx;` }));
     } }],
 });
 const nodes = root => !root || typeof root !== 'object' ? [] : Array.isArray(root) ? root.flatMap(nodes) : [root, ...nodes(root.props?.children)];
 const find = (h, predicate) => { const node = nodes(h.tree).find(predicate); assert.ok(node, 'requested control exists'); return node; };
+// label 바로 아래 칸(AdminTextInput·AdminTextArea는 입력 이벤트, AdminSelect는 고른 값을 받는다)
 const change = (h, label, value) => {
-    find(h, n => n.type === 'label' && nodes(n).some(child => child.type === 'span' && child.props.children === label))
-        .props.children.find(n => ['input', 'select', 'textarea'].includes(n?.type)).props.onChange({ target: { value } });
+    const control = find(h, n => n.type === 'label' && nodes(n).some(child => child.type === 'span' && child.props.children === label))
+        .props.children.find(n => ['AdminTextInput', 'AdminSelect', 'AdminTextArea'].includes(n?.type));
+    control.props.onChange(control.type === 'AdminSelect' ? value : { target: { value } });
     h.render();
 };
 const submit = h => find(h, n => n.type === 'form').props.onSubmit({ preventDefault() {} });
@@ -49,7 +57,7 @@ test('고정 업무바의 운영 form 저장은 중복 요청을 막고 실패 �
         onSave: value => { calls++; sent.push(value); return new Promise(resolve => { finish = resolve; }); } };
     const h = mount(props);
     assert.equal(find(h, n => n.type === 'form').props.id, props.formId);
-    assert.equal(nodes(h.tree).some(n => n.type === 'button'), false);
+    assert.equal(nodes(h.tree).some(n => BUTTONS.includes(n.type)), false);
     change(h, '내부 운영 메모', '수정 중 운영 메모');
     submit(h); submit(h); assert.equal(calls, 1);
     h.render(); assert.equal(statuses.at(-1).busy, true);
@@ -85,7 +93,7 @@ test('운영 form의 영수증 발행일 검증과 외부 취소는 최신 원�
 test('기존 모달도 운영 저장 form을 사용하고 비활성 상태에서는 외부 취소와 저장이 실행되지 않는다', () => {
     let calls = 0, control;
     const props = { reservationId: 'legacy-ops', value: initial(), onControlChange: value => { control = value; }, onSave: async () => { calls++; return true; } };
-    const h = mount(props), save = find(h, n => n.type === 'button' && n.props.type === 'submit');
+    const h = mount(props), save = find(h, n => BUTTONS.includes(n.type) && n.props.type === 'submit');
     assert.equal(save.props.form, 'reservation-operations-legacy-ops');
     change(h, '내부 운영 메모', '보존할 입력'); props.disabled = true; h.render();
     submit(h); control.cancel(); h.render();

@@ -15,12 +15,8 @@ import { LODGE_MAIL_STAGES, LODGE_RESERVATION_STATES, NEW_LODGE_WORKFLOW, change
 import { LODGE_GRADE_OPTIONS, ROOM_PLAN_OPTIONS, isUpcomingTour, tourSerials } from '../utils/accommodationSheet';
 import { LodgeAssignBoard } from '../components/admin/accommodation/LodgeAssignBoard';
 import { LodgeAssignQueue } from '../components/admin/accommodation/LodgeAssignQueue';
-import { AdminSegmented } from '../components/admin/ui';
-// 배지·칩·표는 부품 파일에서 바로 가져온다. 이 화면의 동작 검사(tests/accommodation-ops-resource-picker.test.mjs)가
-// ui 묶음을 AdminSegmented 대역으로 바꾸고, 요소 트리에서 생 <button>·<input>·<select>를 찾기 때문이다.
-// 그래서 검사가 찾는 버튼은 생 <button> + 부품과 같은 adm-ui-btn 클래스, 입력칸은 생 요소 + 토큰 CSS로 둔다.
-import { AdminBadge, AdminChip } from '../components/admin/ui/AdminChoice';
-import { AdminTable, AdminTbody, AdminTd, AdminTh, AdminThead, AdminTr } from '../components/admin/ui/AdminTable';
+// 버튼·입력 칸·배지·표는 우리 관리자 부품. 동작 검사(tests/accommodation-ops-resource-picker.test.mjs)는 부품 이름과 props로 칸을 찾는다.
+import { AdminBadge, AdminButton, AdminChip, AdminIconButton, AdminSearch, AdminSegmented, AdminSelect, AdminTable, AdminTbody, AdminTd, AdminTextButton, AdminTextInput, AdminTh, AdminThead, AdminTr } from '../components/admin/ui';
 import { RoomCountInput } from '../components/admin/accommodation/RoomCountInput';
 import { guideOverlaps, overlapLabel, sameGuide } from '../utils/assignmentAvailability';
 import { adminConfirm } from '../components/admin/ui/adminFeedback';
@@ -700,20 +696,13 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             </div>
 
             <div className="lo-filters">
-                <label className="adm-ui-search lo-search">
-                    <span className="adm-ui-search-icon"><DashboardIcon name="lc-search" size={16} /></span>
-                    <input className="adm-ui-search-el" aria-label="고객·여행·예약번호 검색" placeholder="고객, 여행, 예약번호로 검색" value={q} onChange={e => setQ(e.target.value)} />
-                </label>
-                <select className="lo-input lo-select" aria-label="예약 범위" value={scope} onChange={e => setScope(e.target.value as any)}>
-                    <option value="confirmed">확정 예약만</option>
-                    <option value="all">전체 예약</option>
-                </select>
-                <select className="lo-input lo-select" aria-label="지역" value={region} onChange={e => setRegion(e.target.value)}>
-                    <option value="all">전체 지역</option>
-                    {regionOptions.map(rg => <option key={rg} value={rg}>{rg}</option>)}
-                </select>
+                <AdminSearch className="lo-search" aria-label="고객·여행·예약번호 검색" placeholder="고객, 여행, 예약번호로 검색" value={q} onChange={setQ} />
+                <AdminSelect className="lo-select" aria-label="예약 범위" value={scope} onChange={v => setScope(v as 'confirmed' | 'all')}
+                    options={[{ value: 'confirmed', label: '확정 예약만' }, { value: 'all', label: '전체 예약' }]} />
+                <AdminSelect className="lo-select" aria-label="지역" value={region} onChange={setRegion}
+                    options={[{ value: 'all', label: '전체 지역' }, ...regionOptions.map(rg => ({ value: rg, label: rg }))]} />
                 <AdminSegmented label="보기 방식" items={CARD_VIEW_ITEMS} value="card-view" onChange={next => { if (next !== 'card-view') setView(next); }} />
-                {filtersOn && <button type="button" className="adm-ui-text-btn is-assistive is-sm" onClick={resetFilters}><span>필터 초기화</span></button>}
+                {filtersOn && <AdminTextButton tone="assistive" size="sm" onClick={resetFilters}>필터 초기화</AdminTextButton>}
                 <span className="lo-count">보이는 예약 <b>{counts.total}</b> · 숙소 확정 <b>{counts.done}</b> · 확인 필요 <b className="is-warn">{counts.pending}</b></span>
             </div>
 
@@ -722,9 +711,9 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                 <div className="lo-months-head">
                     <span className="lo-months-label"><DashboardIcon name="lc-calendar" size={16} />출발 월</span>
                     <span className="lo-year">
-                        <button type="button" className="adm-ui-icon-btn is-outlined is-sm" aria-label="이전 연도" disabled={year <= monthStats.minYear} onClick={() => setYear(y => y - 1)}><DashboardIcon name="lc-chevron-left" size={14} /></button>
+                        <AdminIconButton label="이전 연도" variant="outlined" size="sm" disabled={year <= monthStats.minYear} onClick={() => setYear(y => y - 1)}><DashboardIcon name="lc-chevron-left" size={14} /></AdminIconButton>
                         <b>{year}년</b>
-                        <button type="button" className="adm-ui-icon-btn is-outlined is-sm" aria-label="다음 연도" disabled={year >= monthStats.maxYear} onClick={() => setYear(y => y + 1)}><DashboardIcon name="lc-chevron-right" size={14} /></button>
+                        <AdminIconButton label="다음 연도" variant="outlined" size="sm" disabled={year >= monthStats.maxYear} onClick={() => setYear(y => y + 1)}><DashboardIcon name="lc-chevron-right" size={14} /></AdminIconButton>
                     </span>
                     <AdminChip active={month === 'all'} onClick={() => setMonth('all')}>전체 {monthStats.total}팀 · {year}년 {yearTotal}팀</AdminChip>
                 </div>
@@ -767,7 +756,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                     <span>고객</span><span>여행 일정</span><span>숙소</span><span>배정 진행</span><span>상태</span><span />
                 </div>
                 {loading && <p className="lo-empty">예약을 불러오고 있어요…</p>}
-                {!loading && filtered.length === 0 && <div className="lo-empty"><p>조건에 맞는 예약이 없어요.</p>{filtersOn && <button type="button" className="adm-ui-text-btn is-primary is-sm" onClick={resetFilters}><span>필터 초기화</span></button>}</div>}
+                {!loading && filtered.length === 0 && <div className="lo-empty"><p>조건에 맞는 예약이 없어요.</p>{filtersOn && <AdminTextButton size="sm" onClick={resetFilters}>필터 초기화</AdminTextButton>}</div>}
                 {!loading && filtered.map(r => {
                     const sum = summaryOf(r);
                     const status = boardStatusOf(r);
@@ -820,8 +809,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                     {pendingDrafts[r.id] && <div className="lo-notice is-draft adm-msg is-cautionary" role="status">
                                         <p>{pendingDrafts[r.id].conflict ? '초안 보관 후 서버 예약이 변경되었습니다. 현재 예약에 초안 배정을 적용할지 확인하세요.' : '이 계정과 예약에 보관된 배정 초안이 있습니다.'}</p>
                                         <span className="lo-actions">
-                                            <button type="button" className="adm-ui-btn is-primary is-sm adm-on-primary" disabled={!!savingId} onClick={() => resolveDraft(r, true)}><span className="adm-ui-btn-label">초안 복원</span></button>
-                                            <button type="button" className="adm-ui-btn is-secondary is-sm" disabled={!!savingId} onClick={() => resolveDraft(r, false)}><span className="adm-ui-btn-label">초안 버리기</span></button>
+                                            <AdminButton variant="primary" size="sm" disabled={!!savingId} onClick={() => resolveDraft(r, true)}>초안 복원</AdminButton>
+                                            <AdminButton size="sm" disabled={!!savingId} onClick={() => resolveDraft(r, false)}>초안 버리기</AdminButton>
                                         </span>
                                     </div>}
                                     <fieldset disabled={!!savingId || !!pendingDrafts[r.id]} className="lo-fieldset">
@@ -884,9 +873,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                             <a className="adm-ui-btn is-secondary is-sm" href={r.source === 'quote_booking' ? quoteCustomerHref(r.bookingId, '/admin/accommodation-ops') : productCustomerHref(r.bookingId, '/admin/accommodation-ops')} title="고객 통합 작업 화면에서 이 예약을 엽니다.">
                                                 <span className="adm-ui-btn-icon"><DashboardIcon name="lc-external-link" size={14} /></span><span className="adm-ui-btn-label">예약 상세</span>
                                             </a>
-                                            <button type="button" className="adm-ui-btn is-secondary is-sm" title="저장된 숙소와 객실은 유지하고 고객 일정의 해당 일차 날짜에 맞춥니다." disabled={!sum.plan.canAlignDates} onClick={() => alignDates(r.id)}>
-                                                <span className="adm-ui-btn-icon"><DashboardIcon name="lc-calendar" size={14} /></span><span className="adm-ui-btn-label">여행 날짜에 맞추기</span>
-                                            </button>
+                                            <AdminButton size="sm" title="저장된 숙소와 객실은 유지하고 고객 일정의 해당 일차 날짜에 맞춥니다." disabled={!sum.plan.canAlignDates} onClick={() => alignDates(r.id)}
+                                                leading={<DashboardIcon name="lc-calendar" size={14} />}>여행 날짜에 맞추기</AdminButton>
                                         </header>
                                         {!sum.total && <p className="lo-note">{sum.total === null ? '여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.' : '당일 여행으로 숙박 배정이 필요하지 않습니다.'}</p>}
                                         {pendingDrafts[r.id] && <div role="status" className="adm-msg is-cautionary">보관된 초안이 있어 잠겨 있어요. 이 예약 맨 위에서 ‘초안 복원’ 또는 ‘초안 버리기’를 고르면 수정할 수 있어요.</div>}
@@ -915,104 +903,102 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                     <article key={idx} className="lo-night" data-state={!hasName ? 'empty' : isLodgeBookingConfirmed(bookingStatus) ? 'confirmed' : 'assigned'}>
                                                         <header className="lo-night-head">
                                                             <label className="lo-day-no">
-                                                                <input type="number" min={1} aria-label="숙박 일차" data-digits={Math.min(String(d.day).length, 4)} value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })} /><span>일차</span></label>
+                                                                <AdminTextInput type="number" min={1} aria-label="숙박 일차" data-digits={Math.min(String(d.day).length, 4)} value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })} /><span>일차</span></label>
                                                             <span className="lo-date-pill">
-                                                                <input type="date" className="lo-date" aria-label="숙박 날짜" value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
+                                                                <AdminTextInput type="date" className="lo-date" aria-label="숙박 날짜" value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
                                                                 {d.date && <span className="lo-dow">{weekdayKo(d.date)}</span>}
                                                             </span>
                                                             <span className="lo-night-place" title={scheduleDay?.summary || undefined}><DashboardIcon name="lc-map-pin" size={14} />{nightRegion || scheduleDay?.title || '장소 미정'}</span>
                                                             <span className="lo-spacer" />
-                                                            {previous && <button type="button" className="adm-ui-btn is-secondary is-sm" disabled={!previous.name && !previous.location} title="앞 일차의 지역·숙소·등급·객실·인원을 가져옵니다. 새 숙박일은 발송전·예약 미정으로 시작합니다." onClick={() => copyPreviousDay(r.id, idx)}>
-                                                                <span className="adm-ui-btn-icon"><DashboardIcon name="lc-copy" size={14} /></span><span className="adm-ui-btn-label">앞 일차와 동일</span>
-                                                            </button>}
-                                                            <button type="button" className="adm-ui-icon-btn is-sm adm-aao-remove" title="이 숙박일 삭제" aria-label={`${d.day}일차 숙박 삭제`} onClick={async () => { if (await adminConfirm(`${d.day}일차 숙박을 삭제할까요?`)) removeDay(r.id, idx); }}>
+                                                            {previous && <AdminButton size="sm" disabled={!previous.name && !previous.location} title="앞 일차의 지역·숙소·등급·객실·인원을 가져옵니다. 새 숙박일은 발송전·예약 미정으로 시작합니다." onClick={() => copyPreviousDay(r.id, idx)}
+                                                                leading={<DashboardIcon name="lc-copy" size={14} />}>앞 일차와 동일</AdminButton>}
+                                                            <AdminIconButton label={`${d.day}일차 숙박 삭제`} title="이 숙박일 삭제" size="sm" className="lo-remove" onClick={async () => { if (await adminConfirm(`${d.day}일차 숙박을 삭제할까요?`)) removeDay(r.id, idx); }}>
                                                                 <DashboardIcon name="lc-trash" size={15} />
-                                                            </button>
+                                                            </AdminIconButton>
                                                         </header>
                                                         {(sum.plan.rowWarnings[idx] || []).map((warning, index) => <div key={index} role="alert" className="adm-msg is-negative">{warning}</div>)}
                                                         <div className="lo-night-fields">
                                                         <div className="lo-field"><span>지역</span>{regionManual ? (
                                                             // 등록 숙소의 지역에서 선택하며 과거 값과 직접 입력은 그대로 유지한다.
                                                             <div className="lo-region-manual">
-                                                                <input className="lo-input lo-region" aria-label="숙박 지역" value={loc} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value, region: e.target.value })} />
-                                                                <button type="button" className="adm-ui-icon-btn is-outlined is-md" title="등록 지역 목록에서 선택"
+                                                                <AdminTextInput aria-label="숙박 지역" value={loc} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value, region: e.target.value })} />
+                                                                <AdminIconButton label="등록 지역 목록에서 선택" variant="outlined"
                                                                     onClick={() => { setManualRegions(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListRegions(prev => new Set(prev).add(mKey)); }}>
                                                                     <DashboardIcon name="lc-search" size={14} />
-                                                                </button>
+                                                                </AdminIconButton>
                                                             </div>
                                                         ) : (
-                                                            <select className="lo-input lo-region" aria-label="숙박 지역 선택" disabled={resourcesLoading} value={shownRegion}
-                                                                onChange={e => {
-                                                                    const v = e.target.value;
+                                                            <AdminSelect aria-label="숙박 지역 선택" disabled={resourcesLoading} value={shownRegion}
+                                                                onChange={v => {
                                                                     if (v === '__manual__') { setManualRegions(prev => new Set(prev).add(mKey)); setListRegions(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
                                                                     setClearedRegions(prev => { const next = new Set(prev); if (v) next.delete(mKey); else next.add(mKey); return next; });
                                                                     patchDay(r.id, idx, { location: v, region: v });
-                                                                }}>
-                                                                <option value="">{resourcesLoading ? '지역 불러오는 중…' : '지역 선택…'}</option>
-                                                                {loc && !regionChoices.includes(loc) && <option value={loc}>{loc}</option>}
-                                                                {regionChoices.map(choice => <option key={choice} value={choice}>{choice}</option>)}
-                                                                <option value="__manual__">직접 입력</option>
-                                                            </select>
+                                                                }}
+                                                                options={[
+                                                                    { value: '', label: resourcesLoading ? '지역 불러오는 중…' : '지역 선택…' },
+                                                                    ...(loc && !regionChoices.includes(loc) ? [{ value: loc, label: loc }] : []),
+                                                                    ...regionChoices.map(choice => ({ value: choice, label: choice })),
+                                                                    { value: '__manual__', label: '직접 입력' },
+                                                                ]} />
                                                         )}</div>
                                                         <div className="lo-field"><span>숙소</span>{manual ? (
                                                             // 공통 숙소에서 선택하며 과거 배정과 직접 입력은 그대로 유지한다.
                                                             <div className="lo-hotel-manual">
-                                                                <input className="lo-input" value={nm} placeholder="숙소명 직접 입력" aria-label="숙소명 직접 입력"
+                                                                <AdminTextInput value={nm} placeholder="숙소명 직접 입력" aria-label="숙소명 직접 입력"
                                                                     onChange={e => {
                                                                         if (!manualHotels.has(mKey)) setManualHotels(prev => new Set(prev).add(mKey));
                                                                         if (e.target.value !== nm) patchDay(r.id, idx, { name: e.target.value, id: undefined, images: [], description: '', facilities: [], location: shownRegion, region: shownRegion, address: '', roomAmenities: [], sharedFacilities: [], ...resetLodgeWorkflow(acc) });
                                                                     }} />
-                                                                <button type="button" className="adm-ui-icon-btn is-outlined is-md" title="등록 숙소 목록에서 선택"
+                                                                <AdminIconButton label="등록 숙소 목록에서 선택" variant="outlined"
                                                                     onClick={() => { setManualHotels(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListHotels(prev => new Set(prev).add(mKey)); }}>
                                                                     <DashboardIcon name="lc-search" size={14} />
-                                                                </button>
+                                                                </AdminIconButton>
                                                             </div>
                                                         ) : (
-                                                            <select className="lo-input lo-hotel" aria-label="등록 숙소 선택" disabled={resourcesLoading} value={inMaster ? acc.id : nm ? '__current__' : ''}
-                                                                onChange={e => {
-                                                                    const v = e.target.value;
-                                                                    if (v === '__manual__') { setManualHotels(prev => new Set(prev).add(mKey)); setListHotels(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
-                                                                    const lodge = lodgeById.get(v);
-                                                                    if (lodge) patchDay(r.id, idx, selectResourceLodge(d, lodge).accommodation);
-                                                                }}>
-                                                                <option value="">{resourcesLoading ? '등록 숙소 불러오는 중…' : '등록 숙소 선택…'}</option>
-                                                                {!inMaster && nm && <option value="__current__">현재 배정: {nm}</option>}
-                                                                {nightRegion ? <>
-                                                                    <optgroup label={`${nightRegion === scheduleRegion ? '일정 지역' : '선택 지역'}: ${nightRegion}`}>{regionLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
-                                                                    <optgroup label="전체 다른 지역">{otherLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
-                                                                </> : resources.lodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}
-                                                                <option value="__manual__">직접 입력 (목록에 없는 숙소)</option>
-                                                            </select>
+                                                            // 일정 지역·다른 지역으로 묶어(optgroup) 보여 줘야 해서 AdminSelect(묶음 없음) 대신 생 select에 같은 칸 모양(adm-ui-select)을 준다.
+                                                            <span className={`adm-ui-select${resourcesLoading ? ' is-disabled' : ''}`}>
+                                                                <select className="adm-ui-select-el" aria-label="등록 숙소 선택" disabled={resourcesLoading} value={inMaster ? acc.id : nm ? '__current__' : ''}
+                                                                    onChange={e => {
+                                                                        const v = e.target.value;
+                                                                        if (v === '__manual__') { setManualHotels(prev => new Set(prev).add(mKey)); setListHotels(prev => { const next = new Set(prev); next.delete(mKey); return next; }); return; }
+                                                                        const lodge = lodgeById.get(v);
+                                                                        if (lodge) patchDay(r.id, idx, selectResourceLodge(d, lodge).accommodation);
+                                                                    }}>
+                                                                    <option value="">{resourcesLoading ? '등록 숙소 불러오는 중…' : '등록 숙소 선택…'}</option>
+                                                                    {!inMaster && nm && <option value="__current__">현재 배정: {nm}</option>}
+                                                                    {nightRegion ? <>
+                                                                        <optgroup label={`${nightRegion === scheduleRegion ? '일정 지역' : '선택 지역'}: ${nightRegion}`}>{regionLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
+                                                                        <optgroup label="전체 다른 지역">{otherLodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}</optgroup>
+                                                                    </> : resources.lodges.map(lodge => <option key={lodge.id} value={lodge.id}>{lodge.name}</option>)}
+                                                                    <option value="__manual__">직접 입력 (목록에 없는 숙소)</option>
+                                                                </select>
+                                                                <span className="adm-ui-select-caret" aria-hidden="true"><DashboardIcon name="lc-chevron-down" size={16} /></span>
+                                                            </span>
                                                         )}</div>
                                                         <div className="lo-field"><span>등급</span>
-                                                            <select className="lo-input" aria-label="숙소 등급" value={acc.type || ''} onChange={e => patchDay(r.id, idx, { type: e.target.value || undefined })}>
-                                                                {acc.type && !GRADE_OPTIONS.includes(acc.type) && <option value={acc.type}>{acc.type}</option>}
-                                                                {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g || '미정'}</option>)}
-                                                            </select>
+                                                            <AdminSelect aria-label="숙소 등급" value={acc.type || ''} onChange={v => patchDay(r.id, idx, { type: v || undefined })}
+                                                                options={[...(acc.type && !GRADE_OPTIONS.includes(acc.type) ? [acc.type] : []), ...GRADE_OPTIONS].map(g => ({ value: g, label: g || '미정' }))} />
                                                         </div>
-                                                        <div className="lo-field"><span>객실 수</span><RoomCountInput className="lo-input" aria-label="객실 수" value={acc.roomCount} onChange={count => patchDay(r.id, idx, { roomCount: count })} /></div>
+                                                        <div className="lo-field"><span>객실 수</span><RoomCountInput className="lo-room-count" aria-label="객실 수" value={acc.roomCount} onChange={count => patchDay(r.id, idx, { roomCount: count })} /></div>
                                                         <div className="lo-field"><span>인원</span>
-                                                            <select className="lo-input" aria-label="객실당 인원" value={acc.occupancy || ''} onChange={e => patchDay(r.id, idx, { occupancy: e.target.value || undefined })}>
-                                                                {acc.occupancy && !OCCUPANCY_OPTIONS.includes(acc.occupancy) && <option value={acc.occupancy}>{acc.occupancy}</option>}
-                                                                {OCCUPANCY_OPTIONS.map(o => <option key={o} value={o}>{occupancyLabel(o)}</option>)}
-                                                            </select>
+                                                            <AdminSelect aria-label="객실당 인원" value={acc.occupancy || ''} onChange={v => patchDay(r.id, idx, { occupancy: v || undefined })}
+                                                                options={[...(acc.occupancy && !OCCUPANCY_OPTIONS.includes(acc.occupancy) ? [{ value: acc.occupancy, label: acc.occupancy }] : []),
+                                                                    ...OCCUPANCY_OPTIONS.map(o => ({ value: o, label: occupancyLabel(o) }))]} />
                                                         </div>
                                                         <label className="lo-field"><span>메일발송</span>
-                                                            <select className="lo-input" aria-label="숙소 메일발송" value={lodgeMailStatus(acc)} onChange={e => patchDay(r.id, idx, { mailStatus: e.target.value })}>
-                                                                {LODGE_MAIL_STAGES.map(s => <option key={s} value={s} disabled={!hasName && s !== '발송전' && s !== '배정X'}>{s}</option>)}
-                                                            </select>
+                                                            <AdminSelect aria-label="숙소 메일발송" value={lodgeMailStatus(acc)} onChange={v => patchDay(r.id, idx, { mailStatus: v })}
+                                                                options={LODGE_MAIL_STAGES.map(s => ({ value: s, label: s, disabled: !hasName && s !== '발송전' && s !== '배정X' }))} />
                                                         </label>
                                                         <label className="lo-field"><span>메일발송일자</span>
-                                                            <input className="lo-input" type="date" aria-label="숙소 메일발송일자" value={acc.mailSentDate || ''} onChange={e => patchDay(r.id, idx, { mailSentDate: e.target.value })} />
+                                                            <AdminTextInput type="date" aria-label="숙소 메일발송일자" value={acc.mailSentDate || ''} onChange={e => patchDay(r.id, idx, { mailSentDate: e.target.value })} />
                                                         </label>
                                                         <div className="lo-field"><span>예약상태</span>
                                                             <span className="lo-status-select" data-status={hasName ? bookingStatus : 'none'}>
                                                                 <i />
-                                                                <select className="lo-input" aria-label="숙소 예약 상태" value={bookingStatus}
-                                                                    onChange={e => patchDay(r.id, idx, changeLodgeReservation(acc, e.target.value))}>
-                                                                    {!LODGE_RESERVATION_STATES.some(s => s === bookingStatus) && <option value={bookingStatus} disabled>{bookingStatus || '미정'}</option>}
-                                                                    {LODGE_RESERVATION_STATES.map(s => <option key={s} value={s} disabled={!hasName && s !== '배정X'}>{s}</option>)}
-                                                                </select>
+                                                                <AdminSelect aria-label="숙소 예약 상태" value={bookingStatus}
+                                                                    onChange={v => patchDay(r.id, idx, changeLodgeReservation(acc, v))}
+                                                                    options={[...(!LODGE_RESERVATION_STATES.some(s => s === bookingStatus) ? [{ value: bookingStatus, label: bookingStatus || '미정', disabled: true }] : []),
+                                                                        ...LODGE_RESERVATION_STATES.map(s => ({ value: s, label: s, disabled: !hasName && s !== '배정X' }))]} />
                                                             </span>
                                                         </div>
                                                         </div>
@@ -1032,8 +1018,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                 : rows.length === 0 && <p className="lo-empty-row">숙박일이 없어요. '숙박일 추가'로 추가해 주세요.</p>}
                                         </div>
                                         <div className="lo-actions">
-                                            <button type="button" className="adm-ui-btn is-secondary is-sm" onClick={() => addDay(r.id)}><span className="adm-ui-btn-icon"><DashboardIcon name="lc-plus" size={15} /></span><span className="adm-ui-btn-label">숙박일 추가</span></button>
-                                            {sum.plan.missingNights.length > 0 && <button type="button" className="adm-ui-btn is-secondary is-sm" disabled={sum.plan.addableNights.length === 0} onClick={() => addMissingNights(r)}><span className="adm-ui-btn-icon"><DashboardIcon name="lc-plus" size={15} /></span><span className="adm-ui-btn-label">누락 숙박일 추가</span></button>}
+                                            <AdminButton size="sm" leading={<DashboardIcon name="lc-plus" size={15} />} onClick={() => addDay(r.id)}>숙박일 추가</AdminButton>
+                                            {sum.plan.missingNights.length > 0 && <AdminButton size="sm" leading={<DashboardIcon name="lc-plus" size={15} />} disabled={sum.plan.addableNights.length === 0} onClick={() => addMissingNights(r)}>누락 숙박일 추가</AdminButton>}
                                         </div>
                                     </section>
 
@@ -1042,26 +1028,24 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                         <section className="lo-card">
                                             <header className="lo-card-head"><DashboardIcon name="lc-user-round" size={16} /><h3>담당 가이드</h3>
                                                 <AdminBadge tone={hasGuide ? 'success' : 'danger'} className="lo-crew-badge">{hasGuide ? '배정됨' : '미배정'}</AdminBadge></header>
-                                            <select className="lo-input" aria-label="등록 가이드 선택" disabled={resourcesLoading} value={resources.guides.some(guide => guide.id === r.assignedGuide?.id) ? r.assignedGuide?.id || '' : ''} onChange={e => chooseGuide(r.id, e.target.value)}>
-                                                <option value="">{resourcesLoading ? '등록 가이드 불러오는 중…' : '등록 가이드 선택 · 직접 입력 가능'}</option>
-                                                {open && guideChoices(r).map(({ guide, overlap, handover }) => <option key={guide.id} value={guide.id}>
-                                                    {guide.name}{overlap ? ` · 일정 겹침 (${overlapLabel(overlap.booking)})` : handover ? ` · 같은 날 교대 (${overlapLabel(handover.booking)})` : ' · 배정 가능'}</option>)}
-                                            </select>
+                                            <AdminSelect aria-label="등록 가이드 선택" disabled={resourcesLoading} value={resources.guides.some(guide => guide.id === r.assignedGuide?.id) ? r.assignedGuide?.id || '' : ''} onChange={v => chooseGuide(r.id, v)}
+                                                options={[{ value: '', label: resourcesLoading ? '등록 가이드 불러오는 중…' : '등록 가이드 선택 · 직접 입력 가능' },
+                                                    ...(open ? guideChoices(r).map(({ guide, overlap, handover }) => ({ value: guide.id,
+                                                        label: `${guide.name}${overlap ? ` · 일정 겹침 (${overlapLabel(overlap.booking)})` : handover ? ` · 같은 날 교대 (${overlapLabel(handover.booking)})` : ' · 배정 가능'}` })) : [])]} />
                                             <div className="lo-crew-row">
-                                                <input className="lo-input" aria-label="가이드 이름 직접 입력" value={r.assignedGuide?.name || ''} placeholder="가이드 이름 직접 입력" onChange={e => patchGuide(r.id, { name: e.target.value })} />
-                                                <input className="lo-input" aria-label="가이드 연락처" value={r.assignedGuide?.phone || ''} placeholder="가이드 연락처" onChange={e => patchGuide(r.id, { phone: e.target.value })} />
+                                                <AdminTextInput aria-label="가이드 이름 직접 입력" value={r.assignedGuide?.name || ''} placeholder="가이드 이름 직접 입력" onChange={e => patchGuide(r.id, { name: e.target.value })} />
+                                                <AdminTextInput aria-label="가이드 연락처" value={r.assignedGuide?.phone || ''} placeholder="가이드 연락처" onChange={e => patchGuide(r.id, { phone: e.target.value })} />
                                             </div>
                                         </section>
                                         <section className="lo-card">
                                             <header className="lo-card-head"><DashboardIcon name="lc-car" size={16} /><h3>투어 차량</h3>
                                                 <AdminBadge tone={hasVehicle ? 'success' : 'danger'} className="lo-crew-badge">{hasVehicle ? '배정됨' : '미배정'}</AdminBadge></header>
-                                            <select className="lo-input" aria-label="등록 차량 선택" disabled={resourcesLoading} value={r.contractData?.vehicle?.resource && resources.vehicles.some(vehicle => vehicle.type === r.contractData?.vehicle?.type) ? r.contractData.vehicle.type : ''} onChange={e => chooseVehicle(r.id, e.target.value)}>
-                                                <option value="">{resourcesLoading ? '등록 차량 불러오는 중…' : '등록 차량 선택 · 직접 입력 가능'}</option>
-                                                {resources.vehicles.map(vehicle => <option key={vehicle.type} value={vehicle.type}>{vehicle.name}</option>)}
-                                            </select>
+                                            <AdminSelect aria-label="등록 차량 선택" disabled={resourcesLoading} value={r.contractData?.vehicle?.resource && resources.vehicles.some(vehicle => vehicle.type === r.contractData?.vehicle?.type) ? r.contractData.vehicle.type : ''} onChange={v => chooseVehicle(r.id, v)}
+                                                options={[{ value: '', label: resourcesLoading ? '등록 차량 불러오는 중…' : '등록 차량 선택 · 직접 입력 가능' },
+                                                    ...resources.vehicles.map(vehicle => ({ value: vehicle.type, label: vehicle.name }))]} />
                                             <div className="lo-crew-row">
-                                                <input className="lo-input" aria-label="차종 직접 입력" value={r.contractData?.vehicle?.type || ''} placeholder="차종 직접 입력" onChange={e => patchVehicle(r.id, { type: e.target.value })} />
-                                                <input className="lo-input" aria-label="기사 연락처" value={r.contractData?.vehicle?.phone || ''} placeholder="기사 연락처" onChange={e => patchVehicle(r.id, { phone: e.target.value })} />
+                                                <AdminTextInput aria-label="차종 직접 입력" value={r.contractData?.vehicle?.type || ''} placeholder="차종 직접 입력" onChange={e => patchVehicle(r.id, { type: e.target.value })} />
+                                                <AdminTextInput aria-label="기사 연락처" value={r.contractData?.vehicle?.phone || ''} placeholder="기사 연락처" onChange={e => patchVehicle(r.id, { phone: e.target.value })} />
                                             </div>
                                         </section>
                                     </div>
@@ -1069,10 +1053,9 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
 
                                     <div className="lo-savebar">
                                         <span className={`lo-savebar-text${isDirty ? ' is-dirty' : ''}`}>{isDirty ? '저장하지 않은 변경 사항이 있어요.' : savedAt[r.id] ? `${savedAt[r.id]} 저장됨 · 저장된 배정 기준이에요.` : '저장된 배정 기준이에요.'}</span>
-                                        {isDirty && <button type="button" className="adm-ui-btn is-secondary is-md" disabled={!!savingId} onClick={() => resetRow(r)}><span className="adm-ui-btn-label">변경 취소</span></button>}
-                                        <button type="button" className="adm-ui-btn is-primary is-md adm-on-primary" disabled={!isDirty || !!savingId || !!pendingDrafts[r.id]} onClick={() => save(r)}>
-                                            <span className="adm-ui-btn-icon"><DashboardIcon name="lc-check" size={15} /></span><span className="adm-ui-btn-label">{savingId === r.id ? '저장하는 중…' : '배정 저장'}</span>
-                                        </button>
+                                        {isDirty && <AdminButton disabled={!!savingId} onClick={() => resetRow(r)}>변경 취소</AdminButton>}
+                                        <AdminButton variant="primary" disabled={!isDirty || !!savingId || !!pendingDrafts[r.id]} onClick={() => save(r)}
+                                            leading={<DashboardIcon name="lc-check" size={15} />}>{savingId === r.id ? '저장하는 중…' : '배정 저장'}</AdminButton>
                                     </div>
                                 </div>
                             )}

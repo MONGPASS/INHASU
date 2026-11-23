@@ -7,7 +7,7 @@ import { build, transform } from 'esbuild';
 
 const require = createRequire(import.meta.url), React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
-const result = await build({ entryPoints: ['src/components/admin/ReservationDocuments.tsx'], bundle: true, platform: 'node', format: 'cjs', packages: 'external', jsx: 'automatic', write: false });
+const result = await build({ entryPoints: ['src/components/admin/ReservationDocuments.tsx'], bundle: true, platform: 'node', format: 'cjs', packages: 'external', jsx: 'automatic', write: false, loader: { '.css': 'empty' } });
 const mod = { exports: {} }; new Function('require', 'module', 'exports', result.outputFiles[0].text)(require, mod, mod.exports);
 const { ReservationDocuments } = mod.exports;
 const source = fs.readFileSync(new URL('../src/pages/AdminReservationManage.tsx', import.meta.url), 'utf8');
@@ -24,6 +24,8 @@ const props = () => ({ days: [{ day: 1, title: '로컬 일정', activities: [] }
     itinerarySent: true, contractSent: true, itineraryEmailSent: false, contractEmailSent: false, itinerarySentAt: '', contractSentAt: '', signed: false, travelerCount: 0,
     email: 'local@example.invalid', sending: false, templates: [], templateId: '', applyingTemplate: false, copied: null,
     onTemplate() {}, onEdit() {}, onPreview() {}, onPublish() {}, onSend() {}, onCopy() {}, onSendAll() {}, onGuidePdf() {} });
+// 버튼은 생 <button> 또는 우리 관리자 버튼 부품(AdminButton·AdminTextButton — forwardRef 함수 이름 — 묶을 때 뒤에 숫자가 붙을 수 있다)으로 찾는다.
+const isButton = node => node.type === 'button' || /^Admin(Text|Icon)?Button\d*$/.test(node.type?.render?.name || '');
 const nodes = root => Array.isArray(root) ? root.flatMap(nodes) : React.isValidElement(root) ? [root, ...nodes(root.props.children)] : [];
 const text = root => Array.isArray(root) ? root.map(text).join('') : React.isValidElement(root) ? text(root.props.children) : typeof root === 'string' ? root : '';
 
@@ -51,7 +53,7 @@ test('카카오 접수만 있는 문서는 메일 완료로 표시하거나 메�
     let sends = 0; const tree = ReservationDocuments({ ...props(), onSendAll: () => sends++ });
     const html = renderToStaticMarkup(tree); assert.equal((html.match(/다른 채널 안내 접수 · 이메일 미발송/g) || []).length, 2);
     assert.doesNotMatch(html, /메일 발송 완료|이메일 서비스 접수/); assert.match(html, /고객 동의 대기/);
-    const button = nodes(tree).find(node => node.type === 'button' && text(node) === '미발송·수정본 메일 발송');
+    const button = nodes(tree).find(node => isButton(node) && text(node) === '미발송·수정본 메일 발송');
     assert.ok(button); assert.equal(Boolean(button.props.disabled), false); assert.equal(sends, 0); button.props.onClick(); assert.equal(sends, 1);
     const accepted = renderToStaticMarkup(ReservationDocuments({ ...props(), itineraryEmailSent: true, contractEmailSent: true }));
     assert.equal((accepted.match(/이메일 서비스 접수/g) || []).length, 2); assert.doesNotMatch(accepted, /메일 발송 완료/);

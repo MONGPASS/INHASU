@@ -1,46 +1,30 @@
 .product-customer-page { width:100%; min-width:0; }
 .product-customer-page .product-customer-fullpage.drawer { position:static; inset:auto; transform:none; display:block; width:100%; max-width:none; min-height:0; height:auto; max-height:none; border:0; border-radius:0; box-shadow:none; overflow:visible; background:transparent; }
-.product-customer-fullpage .product-customer-detail { margin-top:12px; border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-md); overflow:hidden; background:var(--adm-gray-50); }
+.product-customer-fullpage .product-customer-detail { margin-top:var(--adm-space-3); border:var(--adm-border-width) solid var(--adm-accent-line); border-radius:var(--adm-radius-md); overflow:hidden; background:var(--adm-gray-50); }
 .product-customer-fullpage .product-customer-detail[hidden] { display:none; }
 .product-customer-page .product-customer-fullpage .reservation-workspace-main { min-height:0; height:auto; overflow:visible; }
 .product-customer-page .product-customer-fullpage .reservation-workspace-body.drawer-body { min-height:0; max-height:none; height:auto; overflow:visible; overscroll-behavior:auto; }
-.product-customer-page .product-customer-fullpage .drawer-foot { position:sticky; bottom:0; z-index:4; border-top:1px solid var(--adm-accent-line); background:var(--adm-surface); }
+.product-customer-page .product-customer-fullpage .drawer-foot { position:sticky; bottom:0; z-index:4; border-top:var(--adm-border-width) solid var(--adm-accent-line); background:var(--adm-surface); }
 .product-customer-page .product-customer-fullpage .tc-anchors { position:sticky; top:0; z-index:3; background:var(--adm-surface); }
-.product-customer-controls { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin:20px 0 0; }
-.product-customer-note { display:grid; gap:12px; margin-top:16px; font-size:14px; }
-.product-customer-note textarea { width:100%; resize:vertical; min-height:104px; border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-md); padding:14px 16px; background:var(--adm-surface); color:var(--adm-accent-strong); font:inherit; font-size:14px; line-height:1.6; }
-.product-customer-note textarea::placeholder { color:var(--adm-text-3); }
-.product-customer-fullpage.tcom .product-customer-note > .btn { justify-self:end; min-height:40px; height:auto; padding:9px 16px; border-radius:var(--adm-radius-sm); font-size:14px; }
-.cw-quick-assignment { margin:16px 0; padding:16px; border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-md); background:var(--adm-gray-50); color:var(--adm-accent-strong); font-size:14px; line-height:1.6; }
-.cw-quick-assignment > header { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:16px; }
-.cw-quick-assignment > header > strong { font-size:15px; line-height:1.5; letter-spacing:-.2px; }
-.cw-quick-assignment > fieldset { padding:0; margin:0; border:0; display:grid; gap:14px; min-width:0; }
+.product-customer-controls { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:var(--adm-space-2); margin:var(--adm-space-5) 0 0; }
+/* 차량 바로 배정(CustomerVehicleAssignment). 안쪽 생 입력칸·라벨만 모양을 잡고, 우리 부품(.adm-ui-*)은 덮지 않는다. */
+.cw-quick-assignment { margin:var(--adm-space-4) 0; padding:var(--adm-space-4); border:var(--adm-border-width) solid var(--adm-accent-line); border-radius:var(--adm-radius-md); background:var(--adm-gray-50); color:var(--adm-accent-strong); font-size:var(--adm-fs-body); line-height:1.6; }
+.cw-quick-assignment > header { display:flex; justify-content:space-between; gap:var(--adm-space-3); align-items:center; margin-bottom:var(--adm-space-4); }
+.cw-quick-assignment > header > strong { font-size:var(--adm-fs-base); line-height:var(--adm-lh); letter-spacing:-.2px; }
+.cw-quick-assignment > fieldset { padding:0; margin:0; border:0; display:grid; gap:var(--adm-space-3); min-width:0; }
 .cw-quick-assignment > fieldset:disabled { opacity:.65; }
-.cw-quick-assignment label { display:grid; gap:7px; color:var(--adm-text-2); font-size:13px; font-weight:600; }
-.cw-quick-assignment input,.cw-quick-assignment select { width:100%; min-width:0; min-height: var(--adm-control-h); padding:10px 12px; background:var(--adm-surface); border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-sm); font:inherit; font-size:14px; font-weight:500; color:var(--adm-accent-strong); }
-.cw-quick-assignment .cw-button { min-height:40px; padding:9px 14px; border-radius:var(--adm-radius-sm); font-size:14px; }
-.cw-quick-assignment .cw-text-button { min-height:36px; padding:6px 8px; font-size:13px!important; color:var(--adm-text-2); }
+.cw-quick-assignment label:not([class*="adm-ui-"]) { display:grid; gap:var(--adm-space-2); color:var(--adm-text-2); font-size:var(--adm-fs-small); font-weight:var(--adm-fw-semibold); }
+.cw-quick-assignment :is(input, select):not([class*="adm-ui-"]) { width:100%; min-width:0; min-height:var(--adm-control-h); padding:var(--adm-space-2) var(--adm-space-3); background:var(--adm-surface); border:var(--adm-border-width) solid var(--adm-accent-line); border-radius:var(--adm-radius-sm); font:inherit; font-size:var(--adm-fs-body); font-weight:var(--adm-fw-medium); color:var(--adm-accent-strong); }
+.cw-quick-assignment .cw-button { min-height:var(--adm-control-h); padding:var(--adm-space-2) var(--adm-space-3); border-radius:var(--adm-radius-sm); font-size:var(--adm-fs-body); }
+.cw-quick-assignment .cw-text-button { min-height:var(--adm-control-h-sm); padding:var(--adm-space-1) var(--adm-space-2); font-size:var(--adm-fs-small); color:var(--adm-text-2); }
 .cw-quick-assignment > header > .cw-text-button { flex-shrink:0; }
-.cw-quick-assignment .cw-quick-resource-preview { display:flex; gap:12px; align-items:center; padding:16px 0; }
-.cw-quick-assignment .cw-quick-resource-preview > img { width:80px; height:60px; object-fit:cover; border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-sm); }
-.cw-quick-assignment .cw-quick-resource-preview > div { display:grid; gap:4px; min-width:0; }
-.cw-quick-assignment .cw-quick-resource-preview strong { font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
-.cw-quick-assignment .cw-quick-resource-preview small { font-size:12px; color:var(--adm-text-3); }
-.cw-quick-assignment > p { margin:12px 0; font-size:12px; line-height:1.6; color:var(--adm-text-3); overflow-wrap:anywhere; }
-.cw-quick-assignment > p[role=alert] { padding:10px 12px; border-radius:var(--adm-radius-sm); background:var(--adm-warn-soft); color:var(--adm-warn-strong); font-weight:600; }
-.cw-quick-assignment > .cw-quick-stays { margin:0; padding:0; list-style:none; }
-.cw-quick-assignment > .cw-quick-stays > li { display:flex; align-items:center; gap:12px; padding:14px 0; border-top:1px solid var(--adm-accent-line); }
-.cw-quick-assignment > .cw-quick-stays > li > div { display:grid; flex:1; min-width:0; gap:4px; }
-.cw-quick-assignment > .cw-quick-stays > li strong { font-size:14px; line-height:1.5; }
-.cw-quick-assignment > .cw-quick-stays > li span { font-size:12px; color:var(--adm-text-3); overflow-wrap:anywhere; }
-.cw-quick-assignment > .cw-quick-stays > li > .cw-button { flex-shrink:0; min-height:40px; padding:8px 12px; font-size:13px; }
-.product-customer-bookings { border:0; margin:0; padding:0; min-width:0; width:100%; max-width:100%; font-size:13px; }
-.product-customer-bookings label { display:flex; gap:10px; align-items:center; flex-wrap:wrap; color:var(--adm-text-2); font-weight:600; }
-.product-customer-bookings select { max-width:420px; width:100%; min-width:0; min-height:42px; border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-sm); background:var(--adm-surface); padding:9px 12px; color:var(--adm-accent-strong); font:inherit; font-size:14px; font-weight:500; }
-.product-customer-note textarea:focus-visible,.cw-quick-assignment input:focus-visible,.cw-quick-assignment select:focus-visible,.product-customer-bookings select:focus-visible { outline:3px solid var(--adm-accent-line); outline-offset:2px; border-color:var(--cw-green,var(--adm-accent-strong)); }
-.product-customer-loading { padding:32px; margin:12px 0; }
-.product-customer-loading p { margin:12px 0 20px; }
-.product-customer-warning { padding:12px 16px; margin-bottom:12px; background:var(--adm-warn-soft); color:var(--adm-warn-strong); border-radius:var(--adm-radius-sm); font-size:13px; }
+.cw-quick-assignment > p { margin:var(--adm-space-3) 0; font-size:var(--adm-fs-caption); line-height:1.6; color:var(--adm-text-3); overflow-wrap:anywhere; }
+.cw-quick-assignment > p[role=alert] { padding:var(--adm-space-2) var(--adm-space-3); border-radius:var(--adm-radius-sm); background:var(--adm-warn-soft); color:var(--adm-warn-strong); font-weight:var(--adm-fw-semibold); }
+.cw-quick-assignment :is(input, select):not([class*="adm-ui-"]):focus-visible { outline:3px solid var(--adm-accent-line); outline-offset:2px; border-color:var(--adm-accent-strong); }
+.product-customer-loading { padding:var(--adm-space-8); margin:var(--adm-space-3) 0; }
+.product-customer-loading p { margin:var(--adm-space-3) 0 var(--adm-space-5); }
+.product-customer-warning { padding:var(--adm-space-3) var(--adm-space-4); margin-bottom:var(--adm-space-3); background:var(--adm-warn-soft); color:var(--adm-warn-strong); border-radius:var(--adm-radius-sm); font-size:var(--adm-fs-small); }
 .product-customer-page .legacy-customer-fullpage .reservation-workspace-main { display:grid; grid-template-columns:minmax(0,1fr) 320px; align-items:start; }
 @media(max-width:1000px) { .product-customer-page .legacy-customer-fullpage .reservation-workspace-main { grid-template-columns:minmax(0,1fr); } }
-@media(max-width:640px) { .product-customer-page .product-customer-fullpage .drawer-head { padding:14px; flex-wrap:wrap; } .product-customer-page .product-customer-fullpage .reservation-workspace-body.drawer-body { padding:14px; } .product-customer-page .product-customer-fullpage .grid-2 { grid-template-columns:minmax(0,1fr)!important; } }
+/* .grid-2의 !important는 남긴다: 이전 견적 상세(QuoteModals.tsx)의 .grid-2가 인라인 style로 두 칸을 정해서, 좁은 화면에서 한 칸으로 바꾸려면 인라인 style을 이겨야 한다. */
+@media(max-width:640px) { .product-customer-page .product-customer-fullpage .drawer-head { padding:var(--adm-space-3); flex-wrap:wrap; } .product-customer-page .product-customer-fullpage .reservation-workspace-body.drawer-body { padding:var(--adm-space-3); } .product-customer-page .product-customer-fullpage .grid-2 { grid-template-columns:minmax(0,1fr)!important; } }

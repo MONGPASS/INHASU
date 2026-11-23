@@ -52,7 +52,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({ label, trigger, items, hea
         const above = rect.bottom + height + 8 > window.innerHeight && rect.top - height - 8 > 0;
         // 자리는 버튼 위치로 계산한 값이라 CSS 변수로 넘긴다(admin-components.css의 .adm-ui-menu가 top·right로 쓴다)
         el.style.setProperty('--adm-menu-top', `${above ? rect.top : rect.bottom}px`);
-        el.style.setProperty('--adm-menu-right', `${Math.max(8, window.innerWidth - rect.right)}px`);
+        el.style.setProperty('--adm-menu-right', `${Math.max(8, document.documentElement.clientWidth - rect.right)}px`);
         el.dataset.ready = '';
         setUp(above);
     }, []);

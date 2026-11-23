@@ -1,13 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
-const result = await build({ entryPoints: [fileURLToPath(new URL('../src/components/admin/CustomerVehicleAssignment.tsx', import.meta.url))], bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false, loader: { '.css': 'empty' },
+const entry = fileURLToPath(new URL('../src/components/admin/CustomerVehicleAssignment.tsx', import.meta.url));
+// 우리 관리자 부품(./ui)은 이름 문자열로 바꿔 끼운다: 요소 트리에서 부품 이름(type)과 넘긴 props로 찾는다.
+const uiNames = [...readFileSync(entry, 'utf8').matchAll(/import\s*\{([^}]*)\}\s*from\s*'\.\/ui'/g)].flatMap(m => m[1].split(',').map(name => name.trim()).filter(Boolean));
+
+const result = await build({ entryPoints: [entry], bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', write: false, loader: { '.css': 'empty' },
     plugins: [{ name: 'vehicle-selector-events', setup(builder) {
-        builder.onResolve({ filter: /^react$|^react\/jsx-runtime$/ }, args => ({ path: args.path, namespace: 'vehicle-selector-test' }));
-        builder.onLoad({ filter: /.*/, namespace: 'vehicle-selector-test' }, ({ path }) => ({ loader: 'js', contents: path === 'react'
+        builder.onResolve({ filter: /^react$|^react\/jsx-runtime$|^\.\/ui$/ }, args => ({ path: args.path, namespace: 'vehicle-selector-test' }));
+        builder.onLoad({ filter: /.*/, namespace: 'vehicle-selector-test' }, ({ path }) => ({ loader: 'js', contents: path === './ui' ? uiNames.map(name => `export const ${name}='${name}';`).join('')
+            : path === 'react'
             ? 'export const useState=(...args)=>globalThis.h.useState(...args),useRef=(...args)=>globalThis.h.useRef(...args),useEffect=(...args)=>globalThis.h.useEffect(...args);'
             : 'export const jsx=(type,props,key)=>({type,props,key});export const jsxs=jsx;' }));
     } }],
@@ -15,8 +21,10 @@ const result = await build({ entryPoints: [fileURLToPath(new URL('../src/compone
 const nodes = root => !root || typeof root !== 'object' ? [] : Array.isArray(root) ? root.flatMap(nodes) : [root, ...nodes(root.props?.children)];
 const find = (root, predicate) => { const node = nodes(root).find(predicate); assert.ok(node, 'requested resource control is rendered'); return node; };
 const text = root => typeof root === 'string' || typeof root === 'number' ? String(root) : Array.isArray(root) ? root.map(text).join('') : text(root?.props?.children ?? '');
-const vehicleButton = (h, name) => find(h.tree, node => node.type === 'button' && String(node.props.className).includes('crp-vehicle-choice') && text(node).includes(name));
-const saveButton = h => find(h.tree, node => node.type === 'button' && String(node.props.className).includes('cw-wide'));
+const isVehicleChoice = node => node.type === 'AdminPickCard' && String(node.props.className).includes('crp-vehicle-choice');
+const vehicleButton = (h, name) => find(h.tree, node => isVehicleChoice(node) && text(node).includes(name));
+const saveButton = h => find(h.tree, node => node.type === 'AdminButton' && String(node.props.className).includes('cva-save'));
+const field = (h, type) => find(h.tree, node => node.type === 'AdminTextInput' && node.props.type === type);
 const deferred = () => { let resolve; const promise = new Promise(yes => { resolve = yes; }); return { promise, resolve }; };
 const tick = () => new Promise(setImmediate);
 function mount(props) {
@@ -37,11 +45,11 @@ const baseProps = () => ({ value: { type: '', phone: '' }, vehicles: fixtures, l
 test('등록 차량은 사진·이름·번호로 검색하여 선택하고 저장 전까지 예약을 변경하지 않는다', async () => {
     const payloads = [], dirty = [];
     const h = mount({ ...baseProps(), onDirtyChange: value => dirty.push(value), onSave: async value => { payloads.push(value); return true; } });
-    assert.equal(nodes(h.tree).filter(node => node.type === 'button' && String(node.props.className).includes('crp-vehicle-choice')).length, 2);
-    find(h.tree, node => node.type === 'input' && node.props.type === 'search').props.onChange({ target: { value: '5678' } }); h.render();
-    assert.equal(nodes(h.tree).filter(node => node.type === 'button' && String(node.props.className).includes('crp-vehicle-choice')).length, 1);
+    assert.equal(nodes(h.tree).filter(isVehicleChoice).length, 2);
+    field(h, 'search').props.onChange({ target: { value: '5678' } }); h.render();
+    assert.equal(nodes(h.tree).filter(isVehicleChoice).length, 1);
     vehicleButton(h, '등록 SUV').props.onClick(); h.render(); assert.equal(payloads.length, 0); assert.equal(dirty.at(-1), true);
-    assert.equal(vehicleButton(h, '등록 SUV').props['aria-pressed'], true); assert.match(text(h.tree), /선택됨 · 저장 전/);
+    assert.equal(vehicleButton(h, '등록 SUV').props.selected, true); assert.match(text(h.tree), /선택됨 · 저장 전/);
     saveButton(h).props.onClick(); await tick(); h.render();
     assert.equal(payloads.length, 1); assert.equal(payloads[0].type, '등록 SUV'); assert.equal(payloads[0].resource, fixtures[1].snapshot);
 });
@@ -50,14 +58,14 @@ test('차량 저장 중 중복 선택을 잠그고 실패한 선택·연락처�
     const gate = deferred(), payloads = []; let saved = 0;
     const h = mount({ ...baseProps(), onSaved: () => saved++, onSave: async value => { payloads.push(value); return gate.promise; } });
     vehicleButton(h, '등록 하이이스').props.onClick(); h.render();
-    find(h.tree, node => node.type === 'input' && node.props.type === 'tel').props.onChange({ target: { value: 'UPDATED-DRIVER' } }); h.render();
+    field(h, 'tel').props.onChange({ target: { value: 'UPDATED-DRIVER' } }); h.render();
     vehicleButton(h, '등록 하이이스').props.onClick(); h.render();
-    assert.equal(find(h.tree, node => node.type === 'input' && node.props.type === 'tel').props.value, 'UPDATED-DRIVER');
+    assert.equal(field(h, 'tel').props.value, 'UPDATED-DRIVER');
     saveButton(h).props.onClick(); h.render(); assert.equal(saveButton(h).props.disabled, true);
     vehicleButton(h, '등록 SUV').props.onClick(); saveButton(h).props.onClick(); assert.equal(payloads.length, 1);
     gate.resolve(false); await tick(); h.render(); assert.equal(saved, 0); assert.equal(saveButton(h).props.disabled, false);
-    assert.equal(vehicleButton(h, '등록 하이이스').props['aria-pressed'], true); assert.equal(find(h.tree, node => node.props?.role === 'alert').type, 'p');
-    assert.equal(find(h.tree, node => node.type === 'input' && node.props.type === 'tel').props.value, 'UPDATED-DRIVER');
+    assert.equal(vehicleButton(h, '등록 하이이스').props.selected, true); assert.equal(find(h.tree, node => node.props?.role === 'alert').type, 'p');
+    assert.equal(field(h, 'tel').props.value, 'UPDATED-DRIVER');
     h.props.onSave = async value => { payloads.push(value); return true; }; h.render(); saveButton(h).props.onClick(); await tick();
     assert.equal(saved, 1); assert.equal(payloads[1].phone, 'UPDATED-DRIVER');
 });
@@ -66,10 +74,10 @@ test('현재 배정 표시·명시적 해제·조회와 작업 중 차단을 유
     const payloads = [];
     const h = mount({ ...baseProps(), value: { type: '과거 저장 차량', phone: 'LEGACY-DRIVER' }, onSave: async value => { payloads.push(value); return true; } });
     assert.match(text(h.tree), /현재 배정 · 과거 저장 차량/); assert.equal(saveButton(h).props.disabled, true);
-    assert.equal(nodes(h.tree).filter(node => node.type === 'button' && String(node.props.className).includes('crp-vehicle-choice')).length, 2);
+    assert.equal(nodes(h.tree).filter(isVehicleChoice).length, 2);
     h.props.loading = true; h.render(); vehicleButton(h, '등록 SUV').props.onClick(); assert.equal(saveButton(h).props.disabled, true); assert.equal(payloads.length, 0);
     h.props.loading = false; h.props.disabled = true; h.render(); vehicleButton(h, '등록 SUV').props.onClick(); assert.equal(saveButton(h).props.disabled, true);
-    h.props.disabled = false; h.render(); find(h.tree, node => node.type === 'button' && node.props.className === 'crp-clear').props.onClick(); h.render();
-    assert.equal(find(h.tree, node => node.type === 'input' && node.props.type === 'tel').props.value, ''); assert.match(text(h.tree), /기존 차량 배정이 해제됩니다/);
+    h.props.disabled = false; h.render(); find(h.tree, node => node.type === 'AdminTextButton' && node.props.className === 'crp-clear').props.onClick(); h.render();
+    assert.equal(field(h, 'tel').props.value, ''); assert.match(text(h.tree), /기존 차량 배정이 해제됩니다/);
     saveButton(h).props.onClick(); await tick(); assert.equal(payloads.length, 1); assert.equal(payloads[0].type, ''); assert.equal(payloads[0].phone, ''); assert.equal(payloads[0].resource, undefined);
 });

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { adminNotify } from './ui/adminFeedback';
+import { AdminButton, AdminCheckbox, AdminTextInput } from './ui';
+import '../../styles/reservation-inline.css';
 
 export function QuoteAccountLinkDialog({ requestId, customerName, onClose }: { requestId: string; customerName: string; onClose: () => void }) {
     const dialog = useRef<HTMLDialogElement>(null);
@@ -26,27 +28,27 @@ export function QuoteAccountLinkDialog({ requestId, customerName, onClose }: { r
         finally { setBusy(false); }
     };
 
-    return <dialog ref={dialog} className="adm-dialog" aria-labelledby="quote-account-title" onClose={onClose}
-        onCancel={event => { if (busy) event.preventDefault(); }} style={{ margin: 'auto', border: 0 }}>
+    return <dialog ref={dialog} className="adm-dialog qald-dialog" aria-labelledby="quote-account-title" onClose={onClose}
+        onCancel={event => { if (busy) event.preventDefault(); }}>
         <form onSubmit={event => { event.preventDefault(); void submit(); }}>
             <h2 id="quote-account-title" className="adm-dialog-title">고객 계정 연결</h2>
             <p className="adm-dialog-message">{customerName} 고객이 받은 연결 요청번호를 입력해 주세요.</p>
-            <label style={{ display: 'grid', gap: 6, marginTop: 12 }}>연결 요청번호
-                <input className="inp" autoFocus autoComplete="off" required maxLength={12} pattern="[a-fA-F0-9]{12}"
+            <label className="qald-field">연결 요청번호
+                <AdminTextInput autoFocus autoComplete="off" required maxLength={12} pattern="[a-fA-F0-9]{12}"
                     value={reference} disabled={busy} onChange={event => {
                         setReference(event.target.value.toUpperCase()); setAccount(null); setConfirmed(false); setError('');
                     }} />
             </label>
             {account && <div className="adm-dialog-message">
                 <p>연결할 Google 계정 <strong>{account.email}</strong></p>
-                <label><input type="checkbox" checked={confirmed} disabled={busy} onChange={event => setConfirmed(event.target.checked)} /> 예약 당시 연락처나 기존 상담 대화로 예약자 본인을 확인했습니다.</label>
+                <AdminCheckbox className="qald-confirm" checked={confirmed} disabled={busy} onChange={setConfirmed} label="예약 당시 연락처나 기존 상담 대화로 예약자 본인을 확인했습니다." />
             </div>}
             {error && <p role="alert" className="adm-dialog-message">{error}</p>}
             <div className="adm-dialog-foot">
-                <button type="button" className="adm-btn" disabled={busy} onClick={onClose}>닫기</button>
-                <button type="submit" className="adm-btn is-primary" disabled={busy || reference.trim().length !== 12 || (!!account && !confirmed)}>
+                <AdminButton variant="secondary" disabled={busy} onClick={onClose}>닫기</AdminButton>
+                <AdminButton type="submit" variant="primary" disabled={busy || reference.trim().length !== 12 || (!!account && !confirmed)}>
                     {busy ? '처리 중…' : account ? '이 계정에 연결' : '요청번호 확인'}
-                </button>
+                </AdminButton>
             </div>
         </form>
     </dialog>;

@@ -292,15 +292,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     /** 눌러서 상태 메뉴를 여는 알약(Seed 배지 모양 + 아래 화살표). */
     const btnPill = (value: string, tone: PillTone, go: (e: React.MouseEvent) => void) => <button type="button" disabled={busy || saving} className={`adm-v7-pill is-${tone}`} onClick={go}>{value}<Ico name="lc-chevron-down" size={12} /></button>;
     const openLink = (label: string, go: () => void, disabled = false) => <button type="button" aria-label={`${label} 열기`} disabled={busy || disabled} className="adm-rdc-open" onClick={go}>열기<Ico name="lc-external-link" size={14} /></button>;
-    // 테스트(tests/customer-workspace-overview.test.mjs)가 생 <button>으로 찾는 버튼은 우리 부품과 같은 클래스·구조(adm-ui-btn·adm-ui-text-btn·adm-ui-icon-btn)의 생 button으로 그린다.
-    // 모양은 AdminButton·AdminTextButton·AdminIconButton과 같다(admin-components.css). 나머지 버튼은 부품을 그대로 쓴다.
-    const likeBtn = (look: string, props: React.ButtonHTMLAttributes<HTMLButtonElement>, label: ReactNode, lead?: ReactNode, trail?: ReactNode) =>
-        <button type="button" {...props} className={`adm-ui-${look}`}>
-            {lead && <span className="adm-ui-btn-icon">{lead}</span>}<span className={look.startsWith('btn ') ? 'adm-ui-btn-label' : undefined}>{label}</span>{trail && <span className="adm-ui-btn-icon">{trail}</span>}
-        </button>;
-    const likeIconBtn = (label: string, props: React.ButtonHTMLAttributes<HTMLButtonElement>, icon: ReactNode) =>
-        <button type="button" {...props} aria-label={label} title={label} className="adm-ui-icon-btn is-outlined is-md">{icon}</button>;
-    const editLink = (label: string, go: () => void) => likeBtn('text-btn is-primary is-sm v7-edit-link', { 'aria-label': label, disabled: busy, onClick: go }, '수정', undefined, <Ico name="lc-pencil" size={12} />);
+    const editLink = (label: string, go: () => void) => <AdminTextButton size="sm" className="v7-edit-link" aria-label={label} disabled={busy} onClick={go} trailing={<Ico name="lc-pencil" size={12} />}>수정</AdminTextButton>;
     const guideValue = row?.guide?.name || (m.assignments.find(a => a.id === 'guide')?.state === 'ready' ? m.assignments.find(a => a.id === 'guide')!.value : '');
     const vehicleValue = row?.vehicle?.type || (m.assignments.find(a => a.id === 'vehicle')?.state === 'ready' ? m.assignments.find(a => a.id === 'vehicle')!.value : '');
     const stayReady = row ? row.accDone : m.assignments.find(a => a.id === 'stay')?.state === 'ready';
@@ -425,8 +417,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                 </div>
             </div>
             <div className="v7-hero-actions">
-                {likeBtn('btn is-secondary is-md', { disabled: busy, onClick: openNotices }, m.documentAction === 'documents' ? m.documentLabel || '견적서 확인·전달' : '알림 보내기', <Ico name="lc-send" size={15} color="var(--adm-accent-strong)" />)}
-                {likeBtn('btn is-primary is-md adm-on-primary', { disabled: busy, onClick: action('edit-itinerary') }, '일정표 편집', <Ico name="lc-calendar-check" size={15} />)}
+                <AdminButton variant="secondary" disabled={busy} onClick={openNotices} leading={<Ico name="lc-send" size={15} color="var(--adm-accent-strong)" />}>{m.documentAction === 'documents' ? m.documentLabel || '견적서 확인·전달' : '알림 보내기'}</AdminButton>
+                <AdminButton variant="primary" disabled={busy} onClick={action('edit-itinerary')} leading={<Ico name="lc-calendar-check" size={15} />}>일정표 편집</AdminButton>
             </div>
         </div>
         {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}
@@ -536,7 +528,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                                 <div className="v7-day-foot">
                                     <span className="v7-fact"><Ico name="lc-utensils" size={13} color="var(--adm-accent-strong)" /><b>식사</b>{day.meals || '미입력'}</span>
                                     <span className="v7-fact"><Ico name="lc-car" size={13} color="var(--adm-accent-strong)" /><b>이동</b>{day.travel || '미입력'}</span>
-                                    {likeBtn('text-btn is-primary is-sm v7-push', { disabled: busy, onClick: action('edit-itinerary', day.id) }, `${day.day}일차 편집`, <Ico name="lc-pencil" size={12} />)}
+                                    <AdminTextButton size="sm" className="v7-push" disabled={busy} onClick={action('edit-itinerary', day.id)} leading={<Ico name="lc-pencil" size={12} />}>{`${day.day}일차 편집`}</AdminTextButton>
                                 </div>
                             </div>}
                         </div>;
@@ -551,8 +543,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     <div className="v7-info-head">
                         <b className="v7-info-title">고객 정보</b>
                         <AdminIconButton label="고객 정보 복사" variant="outlined" onClick={() => void copyInfo()}><Ico name="lc-copy" size={16} /></AdminIconButton>
-                        {likeIconBtn(maskOn ? '개인정보 보기' : '개인정보 가리기', { 'aria-pressed': !maskOn, onClick: () => setMaskOn(!maskOn) }, <Ico name={maskOn ? 'lc-eye' : 'lc-eye-off'} size={16} />)}
-                        {likeIconBtn('고객 정보 수정', { disabled: busy, onClick: action('edit-info') }, <Ico name="lc-pencil" size={16} />)}
+                        <AdminIconButton label={maskOn ? '개인정보 보기' : '개인정보 가리기'} variant="outlined" aria-pressed={!maskOn} onClick={() => setMaskOn(!maskOn)}><Ico name={maskOn ? 'lc-eye' : 'lc-eye-off'} size={16} /></AdminIconButton>
+                        <AdminIconButton label="고객 정보 수정" variant="outlined" disabled={busy} onClick={action('edit-info')}><Ico name="lc-pencil" size={16} /></AdminIconButton>
                     </div>
                     {m.facts.slice(0, 3).map((f, i) => <div key={`${f.label}-${i}`} className="v7-info-row">
                         <span className="v7-info-label">{f.label}</span>
@@ -603,7 +595,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         <div className="v7-note-meta"><b>{note.author || '관리자 메모'}</b>{note.at && <span>{note.at}</span>}</div>
                         <p className="v7-note-body">{note.body}</p>
                     </li>)}</ol>}
-                    {noteComposer || likeBtn('btn is-secondary is-md', { disabled: busy, onClick: action('notes') }, '메모 작성')}
+                    {noteComposer || <AdminButton variant="secondary" disabled={busy} onClick={action('notes')}>메모 작성</AdminButton>}
                 </div>
 
                 <div id="sec-log" className="v7-card v7-card-pad v7-log">
@@ -617,7 +609,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                         </span>
                     </div>; })}
                     {!logs.length && <span className="v7-empty-text">저장된 처리 이력이 없습니다.</span>}
-                    {likeBtn('text-btn is-primary is-md v7-end', { disabled: busy, onClick: action('history') }, '전체 이력', undefined, <Ico name="lc-chevron-right" size={14} />)}
+                    <AdminTextButton className="v7-end" disabled={busy} onClick={action('history')} trailing={<Ico name="lc-chevron-right" size={14} />}>전체 이력</AdminTextButton>
                 </div>
             </div>
         </div>

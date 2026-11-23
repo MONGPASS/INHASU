@@ -30,7 +30,8 @@ function harness() {
         customerEditorScope: 'admin-a:quote-a', bookingId: 'quote-a',
         flushFrame: () => ({ ok: true, busy: false }),
         requestAnimationFrame: callback => frames.push(callback),
-        window: { confirm: () => false },
+        // 초안 보관 실패 때의 확인은 공통 확인 창(adminConfirm)이다. 여기서는 취소를 고른다.
+        adminConfirm: async () => false,
         setEditorNotice: value => calls.push(['notice', value]),
         setActiveSection: value => calls.push(['section', value]),
         setPendingSection: value => calls.push(['pending', value]),
