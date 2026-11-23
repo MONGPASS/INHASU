@@ -31,6 +31,11 @@ import { ProductTermsChecklist } from '../components/admin/ProductTermsChecklist
 import { bookableAccommodationOptions, normalizeAccommodationOptions } from '../utils/productAccommodationOptions';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
+import {
+    AdminButton, AdminIconButton, AdminTextButton, AdminTextInput, AdminTextArea, AdminSelect, AdminSwitch, AdminSearch,
+    AdminTable, AdminThead, AdminTbody, AdminTr, AdminTh, AdminTd, AdminPagination, AdminChip, AdminChipGroup, AdminSegmented, AdminTabs,
+    IconArrowDown, IconArrowUp, IconCheck, IconChevronDown, IconChevronLeft, IconChevronUp, IconClose, IconLocation, IconPencil, IconPlus, IconTrash,
+} from '../components/admin/ui';
 
 
 
@@ -412,23 +417,24 @@ export const AdminProductManage: React.FC = () => {
             title={isModalOpen ? (selectedProduct ? '상품 수정' : '상품 추가') : '상품 목록'}
             description={isModalOpen ? undefined : '판매 상태와 추천 노출을 한 화면에서 관리해요.'}
             actions={!isModalOpen && (
-                <button
-                    className="btn btn-ink"
+                <AdminButton
+                    variant="primary"
+                    leading={<IconPlus />}
                     onClick={() => {
                         setSelectedProduct(null);
                         setIsModalOpen(true);
                     }}
                 >
-                    <Icon name="add" />상품 추가
-                </button>
+                    상품 추가
+                </AdminButton>
             )}
         >
-            {productOpenNotice && <div className="adm-msg is-cautionary" role="status" style={{ marginBottom: 16 }}>{productOpenNotice}</div>}
-            <div className="route-anim" style={{ display: isModalOpen ? 'none' : undefined }}>
+            {productOpenNotice && <div className="adm-msg is-cautionary apl-notice" role="status">{productOpenNotice}</div>}
+            <div className={`route-anim${isModalOpen ? ' apl-hidden' : ''}`}>
                 <div className="pd-list">
                 <div className="pd-kpis">
                     {STAT_CARDS.map(card => (
-                        <button key={card.key} type="button" className={`pd-kpi${activeCard === card.key ? ' is-active' : ''}`} aria-pressed={activeCard === card.key} onClick={() => pickCard(card.key)}>
+                        <button key={card.key} type="button" className={`adm-apl-kpi pd-kpi${activeCard === card.key ? ' is-active' : ''}`} aria-pressed={activeCard === card.key} onClick={() => pickCard(card.key)}>
                             <span className="pd-kpi-icon" data-tone={card.tone}><DashboardIcon name={card.icon} size={18} /></span>
                             <span><span className="pd-kpi-label">{card.label}</span><strong>{card.value}</strong></span>
                         </button>
@@ -437,144 +443,115 @@ export const AdminProductManage: React.FC = () => {
 
                 <section className="pd-card" aria-label="상품 목록">
                     <div className="pd-toolbar">
-                        <label className="pd-search">
-                            <DashboardIcon name="lc-search" size={16} />
-                            <input type="text" aria-label="상품명 검색" placeholder="상품명 검색" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
-                        </label>
-                        <div className="pd-chips" role="group" aria-label="카테고리">
-                            {categoryChips.map(chip => (
-                                <button key={chip.value} type="button" className={categoryFilter === chip.value ? 'is-active' : ''} aria-pressed={categoryFilter === chip.value} onClick={() => { setCategoryFilter(chip.value); setCurrentPage(1); }}>
-                                    {chip.label}<span>{chip.count}</span>
-                                </button>
-                            ))}
-                        </div>
+                        <AdminSearch className="pd-search" aria-label="상품명 검색" placeholder="상품명 검색" value={searchQuery} onChange={(value) => { setSearchQuery(value); setCurrentPage(1); }} />
+                        <AdminChipGroup
+                            label="카테고리"
+                            className="pd-chips"
+                            items={categoryChips.map(chip => ({ value: chip.value, label: chip.label, count: chip.count }))}
+                            value={categoryFilter}
+                            onChange={(value) => { setCategoryFilter(value); setCurrentPage(1); }}
+                        />
                         <span className="pd-count"><b>{filteredProducts.length}</b>개 상품</span>
                     </div>
-                    <div className="pd-table-wrap">
-                        <table className="pd-table">
-                            <thead>
-                                <tr>
-                                    <th>상품</th>
-                                    <th>카테고리</th>
-                                    <th>기간</th>
-                                    <th className="r">가격 (1인~)</th>
-                                    <th>상태</th>
-                                    <th>추천 · 인기</th>
-                                    <th>조회 / 예약</th>
-                                    <th className="r">관리</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paginatedProducts.map((product, index) => {
-                                    const price = typeof product.price === 'number' ? product.price : Number(product.price) || 0;
-                                    const original = typeof product.originalPrice === 'number' ? product.originalPrice : Number(product.originalPrice) || 0;
-                                    const bookings = Number(product.bookingCount) || 0;
-                                    return <tr
-                                        key={product.id}
-                                        draggable
-                                        onDragStart={(e) => handleProductDragStart(e, index)}
-                                        onDragOver={(e) => handleProductDragOver(e, index)}
-                                        onDrop={handleProductDragEnd}
-                                        onDragEnd={handleProductDragEnd}
-                                        className={draggedProductIndex === index ? 'is-dragging' : undefined}
-                                    >
-                                        <td>
-                                            <div className="pd-product">
-                                                <span className="pd-grip" title="끌어서 순서 변경"><DashboardIcon name="lc-grip-vertical" size={16} /></span>
-                                                <span className="pd-thumb">
-                                                    {product.mainImages?.[0]
-                                                        ? <img src={getOptimizedImageUrl(product.mainImages[0], 'productThumbnail')} alt={product.name} />
-                                                        : product.name.replace('은하수 ', '').slice(0, 1)}
-                                                </span>
-                                                <span className="pd-name">
-                                                    <b>{product.name}</b>
-                                                    <small>{product.isPopular ? <em>인기</em> : null}{product.id}</small>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="pd-muted">{product.category}</td>
-                                        <td className="pd-dur">{product.duration}</td>
-                                        <td className="r">
-                                            <span className="pd-price">{price ? `${price.toLocaleString('ko-KR')}원` : '미정'}</span>
-                                            {original ? <s className="pd-original">{original.toLocaleString('ko-KR')}원</s> : null}
-                                        </td>
-                                        <td>
-                                            <button type="button" className="pd-status" data-status={product.status} title="눌러서 판매중 / 비활성 전환" onClick={() => toggleStatus(product.id)}>
-                                                {statusLabels[product.status] || product.status}
-                                            </button>
-                                        </td>
-                                        <td>
-                                            <span className="pd-flags">
-                                                <button type="button" className={`pd-flag${product.isFeatured ? ' is-on' : ''}`} data-flag="featured" aria-pressed={!!product.isFeatured} aria-label={`${product.name} 추천`} title="추천" onClick={() => toggleFeatured(product.id)}><DashboardIcon name="lc-star" size={16} /></button>
-                                                <button type="button" className={`pd-flag${product.isPopular ? ' is-on' : ''}`} data-flag="popular" aria-pressed={!!product.isPopular} aria-label={`${product.name} 인기`} title="인기" onClick={() => togglePopular(product.id)}><DashboardIcon name="lc-heart" size={16} /></button>
+                    <AdminTable label="상품 목록" className="pd-table-wrap apl-table">
+                        <AdminThead>
+                            <AdminTr>
+                                <AdminTh>상품</AdminTh>
+                                <AdminTh>카테고리</AdminTh>
+                                <AdminTh>기간</AdminTh>
+                                <AdminTh align="right">가격 (1인~)</AdminTh>
+                                <AdminTh>상태</AdminTh>
+                                <AdminTh>추천 · 인기</AdminTh>
+                                <AdminTh>조회 / 예약</AdminTh>
+                                <AdminTh align="right">관리</AdminTh>
+                            </AdminTr>
+                        </AdminThead>
+                        <AdminTbody>
+                            {paginatedProducts.map((product, index) => {
+                                const price = typeof product.price === 'number' ? product.price : Number(product.price) || 0;
+                                const original = typeof product.originalPrice === 'number' ? product.originalPrice : Number(product.originalPrice) || 0;
+                                const bookings = Number(product.bookingCount) || 0;
+                                return <AdminTr
+                                    key={product.id}
+                                    draggable
+                                    onDragStart={(e) => handleProductDragStart(e, index)}
+                                    onDragOver={(e) => handleProductDragOver(e, index)}
+                                    onDrop={handleProductDragEnd}
+                                    onDragEnd={handleProductDragEnd}
+                                    className={`apl-row${draggedProductIndex === index ? ' is-dragging' : ''}`}
+                                >
+                                    <AdminTd>
+                                        <div className="pd-product">
+                                            <span className="pd-grip" title="끌어서 순서 변경"><DashboardIcon name="lc-grip-vertical" size={16} /></span>
+                                            <span className="pd-thumb">
+                                                {product.mainImages?.[0]
+                                                    ? <img src={getOptimizedImageUrl(product.mainImages[0], 'productThumbnail')} alt={product.name} />
+                                                    : product.name.replace('은하수 ', '').slice(0, 1)}
                                             </span>
-                                        </td>
-                                        <td>
-                                            <span className="pd-stats">
-                                                <span><b>{(Number(product.viewCount) || 0).toLocaleString('ko-KR')}</b> · 예약 <b>{bookings}</b></span>
-                                                <span className="pd-bar"><span style={{ width: `${bookings / maxBookings * 100}%` }} /></span>
+                                            <span className="pd-name">
+                                                <b>{product.name}</b>
+                                                <small>{product.isPopular ? <em>인기</em> : null}{product.id}</small>
                                             </span>
-                                        </td>
-                                        <td className="r">
-                                            <span className="pd-actions">
-                                                <a className="pd-preview" href={`/admin/products/${encodeURIComponent(product.id)}/preview`} target="_blank" rel="noopener noreferrer"
-                                                    aria-label={`${product.name} 미리보기 (새 탭)`}><DashboardIcon name="lc-eye" size={16} />미리보기</a>
-                                                <button type="button" aria-label={`${product.name} 수정`} title="수정" onClick={() => { void editProduct(product); }}><DashboardIcon name="lc-pencil" size={16} /></button>
-                                                <button type="button" aria-label={`${product.name} 복제`} title="복제" onClick={() => duplicateProduct(product)}><DashboardIcon name="lc-copy" size={16} /></button>
-                                                <button type="button" className="is-danger" aria-label={`${product.name} 삭제`} title="삭제" onClick={() => deleteProduct(product.id)}><DashboardIcon name="lc-trash" size={16} /></button>
-                                            </span>
-                                        </td>
-                                    </tr>;
-                                })}
-                            </tbody>
-                        </table>
-                        {paginatedProducts.length === 0 && (
-                            <div className="pd-empty">
-                                <DashboardIcon name="lc-archive" size={28} />
-                                {listState === 'loading' ? <p role="status">상품을 불러오는 중…</p>
-                                    : listState === 'error' && !products.length ? <><p role="alert">상품을 불러오지 못했습니다.</p><button type="button" onClick={() => { setListState('loading'); void fetchProducts(); }}>다시 시도</button></>
-                                    : <><p>{products.length ? '조건에 맞는 상품이 없어요.' : '등록된 상품이 없어요.'}</p>{products.length > 0 && <button type="button" onClick={clearFilters}>필터 지우기</button>}</>}
-                            </div>
-                        )}
-                    </div>
+                                        </div>
+                                    </AdminTd>
+                                    <AdminTd className="pd-muted">{product.category}</AdminTd>
+                                    <AdminTd className="pd-dur">{product.duration}</AdminTd>
+                                    <AdminTd align="right">
+                                        <span className="pd-price">{price ? `${price.toLocaleString('ko-KR')}원` : '미정'}</span>
+                                        {original ? <s className="pd-original">{original.toLocaleString('ko-KR')}원</s> : null}
+                                    </AdminTd>
+                                    <AdminTd>
+                                        <button type="button" className="adm-apl-status pd-status" data-status={product.status} title="눌러서 판매중 / 비활성 전환" onClick={() => toggleStatus(product.id)}>
+                                            {statusLabels[product.status] || product.status}
+                                        </button>
+                                    </AdminTd>
+                                    <AdminTd>
+                                        <span className="pd-flags">
+                                            <AdminIconButton size="sm" className={`pd-flag${product.isFeatured ? ' is-on' : ''}`} data-flag="featured" aria-pressed={!!product.isFeatured} label={`${product.name} 추천`} title="추천" onClick={() => toggleFeatured(product.id)}><DashboardIcon name="lc-star" size={16} /></AdminIconButton>
+                                            <AdminIconButton size="sm" className={`pd-flag${product.isPopular ? ' is-on' : ''}`} data-flag="popular" aria-pressed={!!product.isPopular} label={`${product.name} 인기`} title="인기" onClick={() => togglePopular(product.id)}><DashboardIcon name="lc-heart" size={16} /></AdminIconButton>
+                                        </span>
+                                    </AdminTd>
+                                    <AdminTd>
+                                        <span className="pd-stats">
+                                            <span><b>{(Number(product.viewCount) || 0).toLocaleString('ko-KR')}</b> · 예약 <b>{bookings}</b></span>
+                                            <span className="pd-bar"><span style={{ width: `${bookings / maxBookings * 100}%` }} /></span>
+                                        </span>
+                                    </AdminTd>
+                                    <AdminTd align="right">
+                                        <span className="pd-actions">
+                                            <a className="pd-preview" href={`/admin/products/${encodeURIComponent(product.id)}/preview`} target="_blank" rel="noopener noreferrer"
+                                                aria-label={`${product.name} 미리보기 (새 탭)`}><DashboardIcon name="lc-eye" size={16} />미리보기</a>
+                                            <AdminIconButton size="sm" label={`${product.name} 수정`} title="수정" onClick={() => { void editProduct(product); }}><IconPencil /></AdminIconButton>
+                                            <AdminIconButton size="sm" label={`${product.name} 복제`} title="복제" onClick={() => duplicateProduct(product)}><DashboardIcon name="lc-copy" size={16} /></AdminIconButton>
+                                            <AdminIconButton size="sm" className="is-danger" label={`${product.name} 삭제`} title="삭제" onClick={() => deleteProduct(product.id)}><IconTrash /></AdminIconButton>
+                                        </span>
+                                    </AdminTd>
+                                </AdminTr>;
+                            })}
+                        </AdminTbody>
+                    </AdminTable>
+                    {paginatedProducts.length === 0 && (
+                        <div className="pd-empty">
+                            <DashboardIcon name="lc-archive" size={28} />
+                            {listState === 'loading' ? <p role="status">상품을 불러오는 중…</p>
+                                : listState === 'error' && !products.length ? <><p role="alert">상품을 불러오지 못했습니다.</p><AdminTextButton onClick={() => { setListState('loading'); void fetchProducts(); }}>다시 시도</AdminTextButton></>
+                                : <><p>{products.length ? '조건에 맞는 상품이 없어요.' : '등록된 상품이 없어요.'}</p>{products.length > 0 && <AdminTextButton onClick={clearFilters}>필터 지우기</AdminTextButton>}</>}
+                        </div>
+                    )}
 
                     {/* Pagination */}
                     {totalPages > 1 && (
-                        <div className="card-pad" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)' }}>
-                            <p className="cell-muted" style={{ fontSize: 13 }}>
-                                총 {filteredProducts.length}개 상품 중 {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredProducts.length)}개 표시
-                            </p>
-                            <div className="row" style={{ gap: 6 }}>
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                    className="btn btn-ghost btn-sm"
-                                >
-                                    이전
-                                </button>
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`btn btn-sm ${page === currentPage ? 'btn-ink' : 'btn-ghost'}`}
-                                    >
-                                        {page}
-                                    </button>
-                                ))}
-                                <button
-                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="btn btn-ghost btn-sm"
-                                >
-                                    다음
-                                </button>
-                            </div>
-                        </div>
+                        <AdminPagination
+                            className="apl-pagination"
+                            page={currentPage}
+                            totalPages={totalPages}
+                            onChange={setCurrentPage}
+                            summary={`총 ${filteredProducts.length}개 상품 중 ${((currentPage - 1) * itemsPerPage) + 1}-${Math.min(currentPage * itemsPerPage, filteredProducts.length)}개 표시`}
+                        />
                     )}
                 </section>
                 </div>
             </div>
-
             {/* Add/Edit Modal */}
             {isModalOpen && (
                 <ProductModal
@@ -621,6 +598,17 @@ interface ProductModalProps {
     /** 디자인 블록 ‘집중 편집’ 켜짐/꺼짐 — 바깥 레이아웃이 제목·오른쪽 열을 숨긴다 */
     onLayoutModeChange?: (designFocus: boolean) => void;
 }
+
+/** 상품 편집기 구역(탭) — 순서가 화면의 탭 순서다 */
+type EditorTab = 'basic' | 'details' | 'itinerary' | 'spots' | 'options' | 'includes';
+const EDITOR_TABS: Array<{ value: EditorTab; label: string }> = [
+    { value: 'basic', label: '기본 정보' },
+    { value: 'details', label: '상세 정보' },
+    { value: 'itinerary', label: '일정' },
+    { value: 'options', label: '가격/옵션' },
+    { value: 'spots', label: '대표 명소' },
+    { value: 'includes', label: '포함/불포함' },
+];
 
 /** 예전 골격이 저장한 후리가나 붙은 라벨('1日目（いちにちめ）')에서 괄호를 뗀다 — 폼에 올릴 때 한 번 정리 */
 const cleanDayLabels = (p: TourProduct): TourProduct => ({
@@ -853,7 +841,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
         onClose();
     };
 
-    const [currentTab, setCurrentTab] = useState<'basic' | 'details' | 'itinerary' | 'spots' | 'options' | 'includes'>('basic');
+    const [currentTab, setCurrentTab] = useState<EditorTab>('basic');
 
     // 페이지형 편집 화면 — 목록에서 진입할 때 스크롤을 맨 위로
     useEffect(() => {
@@ -1878,72 +1866,56 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
     ];
     const requiredDone = requiredChecks.filter(([, done]) => done).length;
     return (
-        <div className={`card product-draft-editor pa-editor${designFocus ? ' is-design-focus' : ''}`} style={{ width: '100%' }}>
+        <div className={`card product-draft-editor pa-editor ape-editor${designFocus ? ' is-design-focus' : ''}`}>
                 {/* Header */}
                 <div className="card-head pa-head">
-                    <button onClick={closeEditor} disabled={busy} className="pa-back" title="목록으로" type="button">
-                        <DashboardIcon name="lc-chevron-left" size={16} />상품 목록
-                    </button>
+                    <AdminButton size="sm" onClick={closeEditor} disabled={busy} className="pa-back" title="목록으로" leading={<IconChevronLeft />}>
+                        상품 목록
+                    </AdminButton>
                     <div className="pa-title"><span>카탈로그</span><h2>{product ? '상품 수정' : '상품 추가'}</h2></div>
                     <div className="spacer" />
                 </div>
 
-                {/* Tabs */}
-                <div className="card-pad pa-tabs-wrap" style={{ paddingTop: 10, paddingBottom: 0 }}>
-                    <div className="tabs pa-tabs" style={{ marginBottom: 0 }}>
-                        {[
-                            { id: 'basic', label: '기본 정보', icon: 'info' },
-                            { id: 'details', label: '상세 정보', icon: 'description' },
-                            { id: 'itinerary', label: '일정', icon: 'calendar_month' },
-                            { id: 'options', label: '가격/옵션', icon: 'attach_money' },
-                            { id: 'spots', label: '대표 명소', icon: 'location_on' },
-                            { id: 'includes', label: '포함/불포함', icon: 'checklist' }
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                type="button"
-                                disabled={busy || !!pendingDraft}
-                                onClick={() => setCurrentTab(tab.id as any)}
-                                className={`tab${currentTab === tab.id ? ' active' : ''}`}
-                                // 초안을 복원할지 정하기 전에는 탭이 잠긴다 — 눌러도 반응이 없는 이유가 보이게 흐리게 표시한다
-                                title={pendingDraft ? '아래에서 초안 복원 또는 초안 버리기를 먼저 선택하세요' : undefined}
-                                style={pendingDraft && currentTab !== tab.id ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
-                            >
-                                <Icon name={tab.icon} />{tab.label}
-                            </button>
-                        ))}
-                    </div>
+                {/* Tabs — 초안을 복원할지 정하기 전에는 탭이 잠긴다(흐리게 표시되고, 이유는 묶음의 도움말로 보인다) */}
+                <div className="pa-tabs-wrap" title={pendingDraft ? '아래에서 초안 복원 또는 초안 버리기를 먼저 선택하세요' : undefined}>
+                    <AdminTabs<EditorTab>
+                        label="상품 편집 구역"
+                        className="pa-tabs"
+                        items={EDITOR_TABS.map(tab => ({ ...tab, disabled: busy || !!pendingDraft }))}
+                        value={currentTab}
+                        onChange={setCurrentTab}
+                    />
                 </div>
 
                 <div className="pa-body">
                 <div className="pa-main">
 
-                <div className={`pa-draft-status adm-msg${draftError || pendingDraft?.conflict ? ' is-cautionary' : ''}`} role="status" aria-live="polite" style={{ margin: '14px 20px' }}>
+                <div className={`pa-draft-status adm-msg${draftError || pendingDraft?.conflict ? ' is-cautionary' : ''}`} role="status" aria-live="polite">
                     {!adminUserId ? '관리자 계정을 확인하고 있습니다. 확인이 끝난 뒤 편집할 수 있습니다.' : pendingDraft ? <>
                         <strong>{pendingDraft.conflict ? '상품이 변경된 뒤 남아 있는 초안입니다.' : '이 브라우저에 저장하지 않은 상품 초안이 있습니다.'}</strong>
                         <div>초안 보관: {new Date(pendingDraft.draft.savedAt).toLocaleString('ko-KR')}{pendingDraft.conflict ? ' · 서버 상품과 다른 버전입니다. 내용을 복원해 검토하거나 초안을 버리고 최신 상품으로 시작하세요.' : ' · 아래 버튼 중 하나를 고르면 다른 탭과 입력 칸이 열립니다.'}</div>
-                        <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                            <button type="button" className="btn btn-ink btn-sm" onClick={restoreDraft}>초안 복원</button>
-                            <button type="button" className="btn btn-ghost btn-sm" onClick={discardDraft}>초안 버리기</button>
+                        <div className="ape-draft-actions">
+                            <AdminButton variant="primary" size="sm" onClick={restoreDraft}>초안 복원</AdminButton>
+                            <AdminButton size="sm" onClick={discardDraft}>초안 버리기</AdminButton>
                         </div>
                     </> : <>
                         <strong>{saving ? '상품 저장 중…' : busy ? '사진 업로드 또는 자료 저장 중…' : dirty ? '변경 내용을 이 브라우저에 자동 보관합니다.' : '현재 저장된 상품 기준입니다.'}</strong>
                         <div>{draftSavedAt ? '마지막 초안 보관: ' + new Date(draftSavedAt).toLocaleString('ko-KR') + ' · ' : ''}초안은 현재 관리자 계정과 이 상품에서만 복원됩니다. 상품 저장 전에는 공개 상품에 반영되지 않습니다.</div>
                     </>}
-                    {draftError && <div role="alert" style={{ color: 'var(--adm-warn-strong)', marginTop: 6 }}>{draftError}<button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { if (savedRef.current) discardDraft(); else flushDraft(); }} style={{ marginLeft: 8 }}>다시 시도</button>{!pendingDraft && !dirty && <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={discardDraft}>초안 버리기</button>}</div>}
-                    {saveNotice && <div style={{ marginTop: 6 }}>{saveNotice}</div>}
+                    {draftError && <div role="alert" className="ape-draft-error">{draftError}<AdminButton size="sm" className="ape-draft-retry" disabled={busy} onClick={() => { if (savedRef.current) discardDraft(); else flushDraft(); }}>다시 시도</AdminButton>{!pendingDraft && !dirty && <AdminButton size="sm" disabled={busy} onClick={discardDraft}>초안 버리기</AdminButton>}</div>}
+                    {saveNotice && <div className="ape-draft-note">{saveNotice}</div>}
                 </div>
                 <form onSubmit={handleSubmit} aria-busy={busy}>
-                    <fieldset disabled={locked} inert={locked || undefined} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+                    <fieldset disabled={locked} inert={locked || undefined} className="ape-fieldset">
                     <div className="card-pad">
                         {/* Basic Info Tab */}
                         {currentTab === 'basic' && (
-                            <div style={{ maxWidth: 760 }}>
+                            <div className="ape-basic">
                                 <div className="field">
-                                    <label className="adm-req">상품명</label>
-                                    <input
+                                    <label htmlFor="ape-name" className="adm-req">상품명</label>
+                                    <AdminTextInput
+                                        id="ape-name"
                                         type="text"
-                                        className="inp"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         required
@@ -1951,20 +1923,20 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                 </div>
 
                                 <div className="field">
-                                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <span>상품 설명 / 개요 <span className="muted" style={{ fontWeight: 500 }}>(PC 상세페이지 '개요' + 검색 결과·공유 미리보기)</span></span>
-                                        <span className="muted" style={{ color: (formData.description?.length || 0) > 160 ? 'var(--mrt-red)' : undefined }}>
+                                    <label htmlFor="ape-description" className="ape-label-split">
+                                        <span>상품 설명 / 개요 <span className="muted ape-label-sub">(PC 상세페이지 '개요' + 검색 결과·공유 미리보기)</span></span>
+                                        <span className={`muted${(formData.description?.length || 0) > 160 ? ' ape-over' : ''}`}>
                                             {formData.description?.length || 0} / 160
                                         </span>
                                     </label>
-                                    <textarea
-                                        className="inp"
+                                    <AdminTextArea
+                                        id="ape-description"
                                         value={formData.description || ''}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        rows={3}
+                                        minRows={3}
                                         placeholder="예: 별이 쏟아지는 밤하늘과 노을에 물드는 대초원, 유목민 문화를 체험하는 중앙 몽골 3박 4일 투어. 한국어 가이드 동행, 전 일정 식사·숙박 포함."
                                     />
-                                    <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                                    <p className="muted ape-hint">
                                         Google 검색·카카오톡 공유 시 표시되는 짧은 소개글입니다. 100~160자가 가장 적당합니다.
                                     </p>
                                 </div>
@@ -1972,28 +1944,31 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                 <div className="field-row">
                                     <div className="field">
                                         <label id="pa-category-label" className="adm-req">카테고리</label>
-                                        <div className="pa-seg" role="radiogroup" aria-labelledby="pa-category-label">
-                                            {categories.map(cat => (
-                                                <button key={cat.id} type="button" role="radio" aria-checked={formData.category === cat.name} className={formData.category === cat.name ? 'is-on' : ''} onClick={() => setFormData({ ...formData, category: cat.name })}>{cat.name}</button>
-                                            ))}
-                                            {categories.length === 0 && <span className="cell-muted">상품 카테고리에서 먼저 카테고리를 등록하세요.</span>}
-                                        </div>
+                                        {categories.length > 0
+                                            ? <AdminSegmented
+                                                label="카테고리"
+                                                className="pa-seg"
+                                                items={categories.map(cat => ({ value: cat.name, label: cat.name }))}
+                                                value={formData.category || ''}
+                                                onChange={(value) => setFormData({ ...formData, category: value })}
+                                            />
+                                            : <span className="cell-muted">상품 카테고리에서 먼저 카테고리를 등록하세요.</span>}
                                     </div>
 
                                     <div className="field">
-                                        <label className="adm-req">기간</label>
-                                        <input
+                                        <label htmlFor="ape-duration" className="adm-req">기간</label>
+                                        <AdminTextInput
+                                            id="ape-duration"
                                             type="text"
-                                            className="inp"
                                             value={formData.duration}
                                             onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                                             placeholder="예: 4박 5일"
                                             required
                                         />
-                                        <div className="pa-seg pa-seg-sm" aria-label="기간 빠른 입력">
+                                        <div className="pa-seg-sm" role="group" aria-label="기간 빠른 입력">
                                             {[1, 2, 3, 4, 5, 6, 7].map(n => {
                                                 const label = `${n}박 ${n + 1}일`;
-                                                return <button key={n} type="button" className={formData.duration === label ? 'is-on' : ''} onClick={() => setFormData({ ...formData, duration: label })}>{n}박{n + 1}일</button>;
+                                                return <AdminChip key={n} active={formData.duration === label} onClick={() => setFormData({ ...formData, duration: label })}>{n}박{n + 1}일</AdminChip>;
                                             })}
                                         </div>
                                     </div>
@@ -2001,10 +1976,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
 
                                 <div className="field-row">
                                     <div className="field">
-                                        <label className="adm-req">판매가 (원)</label>
-                                        <input
+                                        <label htmlFor="ape-price" className="adm-req">판매가 (원)</label>
+                                        <AdminTextInput
+                                            id="ape-price"
                                             type="number"
-                                            className="inp"
                                             value={formData.price}
                                             onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
                                             required
@@ -2012,10 +1987,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                     </div>
 
                                     <div className="field">
-                                        <label>정가 (원, 선택)</label>
-                                        <input
+                                        <label htmlFor="ape-original-price">정가 (원, 선택)</label>
+                                        <AdminTextInput
+                                            id="ape-original-price"
                                             type="number"
-                                            className="inp"
                                             value={formData.originalPrice || ''}
                                             onChange={(e) => setFormData({ ...formData, originalPrice: Number(e.target.value) || undefined })}
                                         />
@@ -2038,53 +2013,53 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         onChange={(e) => handleMainImageUpload(e.target.files)}
                                         className="pa-file"
                                     />
-                                    <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>대표 사진은 홈 상품 카드와 상품 상세 슬라이드에 사용됩니다. 업로드 후 상품을 저장하고 ‘판매중’으로 설정해야 공개됩니다.</p>
+                                    <p className="muted ape-hint">대표 사진은 홈 상품 카드와 상품 상세 슬라이드에 사용됩니다. 업로드 후 상품을 저장하고 ‘판매중’으로 설정해야 공개됩니다.</p>
 
                                     {/* Main Images Grid */}
                                     {formData.mainImages && formData.mainImages.length > 0 && (
-                                        <div className="grid-3" style={{ marginTop: 14 }}>
+                                        <div className="grid-3 ape-main-grid">
                                             {formData.mainImages.map((img, imgIndex) => (
-                                                <div key={imgIndex} style={{ position: 'relative', border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--mrt-gray-100)' }}>
+                                                <div key={imgIndex} className="ape-main-thumb">
                                                     <img
                                                         src={getOptimizedImageUrl(img, 'productThumbnail')}
                                                         alt={`Main ${imgIndex + 1}`}
-                                                        style={{ width: '100%', height: 128, objectFit: 'cover', pointerEvents: 'none', display: 'block' }}
                                                     />
 
                                                     {/* Image Controls */}
-                                                    <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
+                                                    <div className="ape-main-tools">
                                                         {imgIndex > 0 && (
-                                                            <button
-                                                                type="button"
+                                                            <AdminIconButton
+                                                                variant="outlined"
+                                                                size="sm"
                                                                 onClick={() => moveMainImage(imgIndex, 'up')}
-                                                                className="act-btn"
-                                                                title="위로 이동"
+                                                                label="위로 이동"
                                                             >
-                                                                <Icon name="arrow_upward" />
-                                                            </button>
+                                                                <IconArrowUp />
+                                                            </AdminIconButton>
                                                         )}
                                                         {imgIndex < (formData.mainImages?.length || 0) - 1 && (
-                                                            <button
-                                                                type="button"
+                                                            <AdminIconButton
+                                                                variant="outlined"
+                                                                size="sm"
                                                                 onClick={() => moveMainImage(imgIndex, 'down')}
-                                                                className="act-btn"
-                                                                title="아래로 이동"
+                                                                label="아래로 이동"
                                                             >
-                                                                <Icon name="arrow_downward" />
-                                                            </button>
+                                                                <IconArrowDown />
+                                                            </AdminIconButton>
                                                         )}
-                                                        <button
-                                                            type="button"
+                                                        <AdminIconButton
+                                                            variant="outlined"
+                                                            size="sm"
+                                                            className="is-danger"
                                                             onClick={() => removeMainImage(imgIndex)}
-                                                            className="act-btn danger"
-                                                            title="삭제"
+                                                            label="삭제"
                                                         >
-                                                            <Icon name="delete" />
-                                                        </button>
+                                                            <IconTrash />
+                                                        </AdminIconButton>
                                                     </div>
 
                                                     {/* Image Number Badge */}
-                                                    <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11, padding: '2px 8px', borderRadius: 'var(--adm-radius-xs)' }}>
+                                                    <div className="ape-main-no">
                                                         {imgIndex + 1} / {formData.mainImages?.length || 0}
                                                     </div>
                                                 </div>
@@ -2096,83 +2071,74 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                 <div className="field-row">
                                     <div className="field">
                                         <label id="pa-status-label">판매 상태</label>
-                                        <div className="pa-seg" role="radiogroup" aria-labelledby="pa-status-label">
-                                            {([['active', '판매중'], ['inactive', '비활성'], ['soldout', '품절']] as const).map(([value, label]) => (
-                                                <button key={value} type="button" role="radio" aria-checked={formData.status === value} className={formData.status === value ? 'is-on' : ''} onClick={() => setFormData({ ...formData, status: value })}>{label}</button>
-                                            ))}
-                                        </div>
+                                        <AdminSegmented
+                                            label="판매 상태"
+                                            className="pa-seg"
+                                            items={([['active', '판매중'], ['inactive', '비활성'], ['soldout', '품절']] as const).map(([value, label]) => ({ value, label }))}
+                                            value={formData.status || ''}
+                                            onChange={(value) => setFormData({ ...formData, status: value as TourProduct['status'] })}
+                                        />
                                     </div>
 
                                     <div className="field">
                                         <label>노출 설정</label>
-                                        <div className="stack" style={{ gap: 10 }}>
+                                        <div className="stack ape-toggles">
                                             <div className="toggle-row">
-                                                <div>
-                                                    <div className="cell-strong">추천 상품</div>
-                                                    <div className="cell-muted" style={{ fontSize: 12 }}>홈 상품 목록에서 우선 정렬</div>
-                                                </div>
-                                                <div className="spacer" style={{ flex: 1 }} />
-                                                <button
-                                                    type="button"
-                                                    className={`switch${formData.isFeatured ? ' on' : ''}`}
-                                                    onClick={() => setFormData({ ...formData, isFeatured: !formData.isFeatured })}
-                                                >
-                                                    <span className="knob" />
-                                                </button>
+                                                <AdminSwitch
+                                                    checked={!!formData.isFeatured}
+                                                    onChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
+                                                    label="추천 상품"
+                                                    description="홈 상품 목록에서 우선 정렬"
+                                                />
                                             </div>
                                             <div className="toggle-row">
-                                                <div>
-                                                    <div className="cell-strong">인기 상품</div>
-                                                    <div className="cell-muted" style={{ fontSize: 12 }}>인기 뱃지 표시</div>
-                                                </div>
-                                                <div className="spacer" style={{ flex: 1 }} />
-                                                <button
-                                                    type="button"
-                                                    className={`switch${formData.isPopular ? ' on' : ''}`}
-                                                    onClick={() => setFormData({ ...formData, isPopular: !formData.isPopular })}
-                                                >
-                                                    <span className="knob" />
-                                                </button>
+                                                <AdminSwitch
+                                                    checked={!!formData.isPopular}
+                                                    onChange={(checked) => setFormData({ ...formData, isPopular: checked })}
+                                                    label="인기 상품"
+                                                    description="인기 뱃지 표시"
+                                                />
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="field">
                                         <label id="pa-package-label">여행 타입</label>
-                                        <div className="pa-seg" role="radiogroup" aria-labelledby="pa-package-label">
-                                            {([[null, '미지정', ''], ['full', '풀패키지', '4성급 호텔 + 디럭스 게르'], ['value', '실속형 패키지', '3성급 호텔 + 스탠다드 게르']] as const).map(([value, label, stays]) => (
-                                                <button key={label} type="button" role="radio" aria-checked={(formData.packageType ?? null) === value} title={stays || undefined} className={(formData.packageType ?? null) === value ? 'is-on' : ''} onClick={() => setFormData({ ...formData, packageType: value as PackageType | null })}>{label}</button>
-                                            ))}
-                                        </div>
-                                        <div className="cell-muted" style={{ fontSize: 12, marginTop: 6 }}>
+                                        <AdminSegmented
+                                            label="여행 타입"
+                                            className="pa-seg"
+                                            items={([['', '미지정', ''], ['full', '풀패키지', '4성급 호텔 + 디럭스 게르'], ['value', '실속형 패키지', '3성급 호텔 + 스탠다드 게르']] as const).map(([value, label, stays]) => ({ value, label: <span title={stays || undefined}>{label}</span> }))}
+                                            value={formData.packageType ?? ''}
+                                            onChange={(value) => setFormData({ ...formData, packageType: (value || null) as PackageType | null })}
+                                        />
+                                        <div className="cell-muted ape-hint">
                                             풀패키지는 4성급 호텔 + 디럭스 게르, 실속형 패키지는 3성급 호텔 + 스탠다드 게르예요. 고객 투어 목록의 여행 타입 필터에 사용됩니다.
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         )}
-
                         {/* Details Tab */}
                         {currentTab === 'details' && (
-                            <div className="stack" style={{ maxWidth: designFocus ? undefined : 860 }}>
+                            <div className={`stack ape-details${designFocus ? ' is-wide' : ''}`}>
                                 {/* Tags */}
-                                <div className="field" style={{ marginBottom: 0 }}>
-                                    <label>태그</label>
+                                <div className="field ape-field-flush">
+                                    <label htmlFor="ape-tag-input">태그</label>
                                     {formData.tags && formData.tags.length > 0 && (
-                                        <div className="chip-row" style={{ marginBottom: 8 }}>
+                                        <div className="chip-row ape-tag-row">
                                             {formData.tags?.map(tag => (
                                                 <span key={tag} className="chip active">
                                                     {tag}
-                                                    <button type="button" onClick={() => removeTag(tag)} style={{ border: 'none', background: 'none', color: 'inherit', cursor: 'pointer', display: 'inline-flex', padding: 0 }}>
-                                                        <Icon name="close" style={{ fontSize: 14 }} />
+                                                    <button type="button" className="adm-ape-tag-x" onClick={() => removeTag(tag)}>
+                                                        <IconClose />
                                                     </button>
                                                 </span>
                                             ))}
                                         </div>
                                     )}
-                                    <input
+                                    <AdminTextInput
+                                        id="ape-tag-input"
                                         type="text"
-                                        className="inp"
                                         placeholder="태그 입력 후 Enter"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
@@ -2197,33 +2163,31 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         <h4>FAQ (자주 묻는 질문)</h4>
                                         <span className="muted">비워두면 공통 FAQ가 표시됩니다</span>
                                     </div>
-                                    <div className="stack" style={{ gap: 10 }}>
+                                    <div className="stack ape-gap-md">
                                         {formData.faqs?.map((faq, index) => (
                                             <div className="edit-row" key={index}>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-                                                        <span className="cell-mono" style={{ fontSize: 12, paddingTop: 12, color: 'var(--mrt-blue-strong)' }}>Q{index + 1}.</span>
-                                                        <input
+                                                <div className="ape-grow">
+                                                    <div className="row ape-faq-q">
+                                                        <span className="cell-mono ape-faq-no">Q{index + 1}.</span>
+                                                        <AdminTextInput
                                                             type="text"
-                                                            className="inp"
-                                                            style={{ flex: 1 }}
+                                                            className="ape-grow"
                                                             value={faq.q}
                                                             onChange={(e) => updateFAQ(index, 'q', e.target.value)}
                                                             placeholder="질문"
                                                         />
                                                     </div>
-                                                    <textarea
-                                                        className="inp"
-                                                        style={{ marginTop: 8 }}
+                                                    <AdminTextArea
+                                                        className="ape-faq-a"
                                                         value={faq.a}
                                                         onChange={(e) => updateFAQ(index, 'a', e.target.value)}
                                                         placeholder="답변"
-                                                        rows={3}
+                                                        minRows={3}
                                                     />
                                                 </div>
-                                                <button type="button" className="act-btn danger" onClick={() => removeFAQ(index)} title="삭제">
-                                                    <Icon name="delete" />
-                                                </button>
+                                                <AdminIconButton variant="outlined" size="sm" className="is-danger" onClick={() => removeFAQ(index)} label="삭제">
+                                                    <IconTrash />
+                                                </AdminIconButton>
                                             </div>
                                         ))}
                                         {(!formData.faqs || formData.faqs.length === 0) && (
@@ -2232,7 +2196,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                 <span>Q&A를 추가하지 않으면 사이트 공통 FAQ가 사용됩니다.</span>
                                             </div>
                                         )}
-                                        <button type="button" className="add-line" onClick={addFAQ}><Icon name="add" />Q&A 추가</button>
+                                        <AdminButton fullWidth className="ape-add-line" leading={<IconPlus />} onClick={addFAQ}>Q&A 추가</AdminButton>
                                     </div>
                                 </section>
 
@@ -2242,74 +2206,51 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                     <div>
                                         <div className="block-add-bar">
                                             <span className="block-add-label"><Icon name="add" />블록 추가</span>
-                                            <button type="button" className="chip" onClick={() => addDetailBlock('image')}>
-                                                <Icon name="image" style={{ fontSize: 16 }} />이미지
-                                            </button>
-                                            <button type="button" className="chip" onClick={() => addDetailBlock('slide')}>
-                                                <Icon name="view_carousel" style={{ fontSize: 16 }} />슬라이드
-                                            </button>
-                                            <button type="button" className="chip" onClick={() => addDetailBlock('timeline')}>
-                                                <Icon name="schedule" style={{ fontSize: 16 }} />타임라인
-                                            </button>
-                                            <select
-                                                onChange={(e) => { if (e.target.value) { addDetailBlock('dayInfo', e.target.value); e.target.value = ''; } }}
-                                                defaultValue=""
-                                                className="select"
-                                                style={{ height: 36, fontSize: 13 }}
-                                            >
-                                                <option value="" disabled>📅 일차 추가</option>
-                                                <option value="1일차">1일차</option>
-                                                <option value="2일차">2일차</option>
-                                                <option value="3일차">3일차</option>
-                                                <option value="4일차">4일차</option>
-                                                <option value="5일차">5일차</option>
-                                                <option value="6일차">6일차</option>
-                                                <option value="7일차">7일차</option>
-                                                <option value="8일차">8일차</option>
-                                                <option value="9일차">9일차</option>
-                                                <option value="10일차">10일차</option>
-                                            </select>
-                                            <button type="button" className="chip" onClick={() => addDetailBlock('divider')}>
-                                                <Icon name="horizontal_rule" style={{ fontSize: 16 }} />구분선/여백
-                                            </button>
+                                            <AdminChip leading={<Icon name="image" />} onClick={() => addDetailBlock('image')}>이미지</AdminChip>
+                                            <AdminChip leading={<Icon name="view_carousel" />} onClick={() => addDetailBlock('slide')}>슬라이드</AdminChip>
+                                            <AdminChip leading={<Icon name="schedule" />} onClick={() => addDetailBlock('timeline')}>타임라인</AdminChip>
+                                            <AdminSelect
+                                                className="ape-add-select"
+                                                aria-label="일차 추가"
+                                                value=""
+                                                placeholder="📅 일차 추가"
+                                                options={DAY_LABELS_JP.map(label => ({ value: label, label }))}
+                                                onChange={(value) => { if (value) addDetailBlock('dayInfo', value); }}
+                                            />
+                                            <AdminChip leading={<Icon name="horizontal_rule" />} onClick={() => addDetailBlock('divider')}>구분선/여백</AdminChip>
                                             {designTemplates.length === 1 ? (
-                                                <button type="button" className="chip" onClick={() => addDetailBlock('design', undefined, designTemplates[0].id)}>
-                                                    <Icon name="auto_awesome" style={{ fontSize: 16 }} />디자인 템플릿
-                                                </button>
+                                                <AdminChip leading={<Icon name="auto_awesome" />} onClick={() => addDetailBlock('design', undefined, designTemplates[0].id)}>디자인 템플릿</AdminChip>
                                             ) : (
-                                                <select
-                                                    onChange={(e) => { if (e.target.value) { addDetailBlock('design', undefined, e.target.value); e.target.value = ''; } }}
-                                                    defaultValue=""
-                                                    className="select"
-                                                    style={{ height: 36, fontSize: 13 }}
-                                                >
-                                                    <option value="" disabled>✨ 디자인 템플릿</option>
-                                                    {designTemplates.map(t => (
-                                                        <option key={t.id} value={t.id}>{t.name}</option>
-                                                    ))}
-                                                </select>
+                                                <AdminSelect
+                                                    className="ape-add-select"
+                                                    aria-label="디자인 템플릿"
+                                                    value=""
+                                                    placeholder="✨ 디자인 템플릿"
+                                                    options={designTemplates.map(t => ({ value: t.id, label: t.name }))}
+                                                    onChange={(value) => { if (value) addDetailBlock('design', undefined, value); }}
+                                                />
                                             )}
                                         </div>
-                                        <div className="card-muted-note" style={{ marginBottom: 14 }}>
+                                        <div className="card-muted-note ape-note-gap">
                                             <Icon name="info" />
                                             <span>이미지와 슬라이드를 자유롭게 배치하여 상세 페이지를 구성하세요. 순서를 변경하거나 삭제할 수 있습니다.</span>
                                         </div>
 
-                                        <div className="stack" style={{ gap: 12 }}>
+                                        <div className="stack ape-gap-lg">
                                             {(formData.detailBlocks || []).map((block, index) => (
                                                 // 디자인 블록은 열 폭을 꽉 채운다(오른쪽 요약 열 아래로 넘치지 않게). 축소 없는 원본 크기는 ‘집중 편집’에서 본다
-                                                <div key={block.id} className="edit-row" style={block.type === 'design' ? { width: '100%' } : undefined}>
-                                                    <div className="edit-move">
-                                                        <button type="button" onClick={() => moveDetailBlock(index, index - 1)} disabled={index === 0}><Icon name="expand_less" /></button>
-                                                        <button type="button" onClick={() => moveDetailBlock(index, index + 1)} disabled={index === (formData.detailBlocks?.length || 0) - 1}><Icon name="expand_more" /></button>
+                                                <div key={block.id} className={`edit-row${block.type === 'design' ? ' ape-full' : ''}`}>
+                                                    <div className="ape-move">
+                                                        <AdminIconButton size="sm" label="위로" onClick={() => moveDetailBlock(index, index - 1)} disabled={index === 0}><IconChevronUp /></AdminIconButton>
+                                                        <AdminIconButton size="sm" label="아래로" onClick={() => moveDetailBlock(index, index + 1)} disabled={index === (formData.detailBlocks?.length || 0) - 1}><IconChevronDown /></AdminIconButton>
                                                     </div>
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div className="ape-grow">
                                                         {/* Block Header */}
-                                                        <div className="row" style={{ gap: 8, marginBottom: 10 }}>
+                                                        <div className="row ape-block-head">
                                                             <span className="badge b-gray">
                                                                 {block.type === 'image' ? 'SINGLE' : (block.type === 'slide' ? 'SLIDE' : (block.type === 'timeline' ? 'TIMELINE' : (block.type === 'dayInfo' ? 'DAY INFO' : (block.type === 'design' ? 'DESIGN' : 'DIVIDER'))))}
                                                             </span>
-                                                            <span className="cell-muted" style={{ fontSize: 12 }}>{index + 1}번째 블록</span>
+                                                            <span className="cell-muted ape-caption">{index + 1}번째 블록</span>
                                                         </div>
 
                                                         {/* Block Content */}
@@ -2317,22 +2258,22 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                             // IMAGE BLOCK
                                                             <div className="block-img">
                                                                 {block.content ? (
-                                                                    <div style={{ position: 'relative' }}>
+                                                                    <div className="ape-rel">
                                                                         <img
                                                                             src={getOptimizedImageUrl(block.content as string, 'productThumbnail')}
                                                                             alt={`Block ${index + 1}`}
                                                                         />
-                                                                        <button
-                                                                            type="button"
+                                                                        <AdminButton
+                                                                            variant="primary"
+                                                                            size="sm"
                                                                             onClick={() => updateBlockContent(index, '')}
-                                                                            className="btn btn-ink btn-sm"
-                                                                            style={{ position: 'absolute', top: 8, right: 8 }}
+                                                                            className="ape-img-change"
                                                                         >
                                                                             변경
-                                                                        </button>
+                                                                        </AdminButton>
                                                                     </div>
                                                                 ) : (
-                                                                    <label className="block-img-empty" style={{ cursor: 'pointer' }}>
+                                                                    <label className="block-img-empty ape-pointer">
                                                                         <Icon name="add_photo_alternate" />
                                                                         이미지 업로드
                                                                         <input
@@ -2341,43 +2282,41 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                             onChange={(e) => {
                                                                                 if (e.target.files?.[0]) handleBlockImageUpload(index, e.target.files[0]);
                                                                             }}
-                                                                            style={{ display: 'none' }}
+                                                                            hidden
                                                                         />
                                                                     </label>
                                                                 )}
                                                             </div>
                                                         ) : block.type === 'slide' ? (
                                                             // SLIDE BLOCK
-                                                            <div className="stack" style={{ gap: 8 }}>
-                                                                <input
+                                                            <div className="stack ape-gap-sm">
+                                                                <AdminTextInput
                                                                     type="text"
-                                                                    className="inp"
                                                                     value={(block.content as DetailSlide).title || ''}
                                                                     onChange={(e) => updateSlideInBlock(index, 'title', e.target.value)}
                                                                     placeholder="슬라이드 제목 (예: 1일차 숙소)"
                                                                 />
                                                                 <div>
-                                                                    <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>이미지 목록 (다중 업로드 가능)</label>
+                                                                    <label className="muted ape-mini-label">이미지 목록 (다중 업로드 가능)</label>
                                                                     <input
                                                                         type="file"
                                                                         accept="image/*"
                                                                         multiple
                                                                         onChange={(e) => handleSlideBlockImages(index, e.target.files)}
-                                                                        className="inp"
-                                                                        style={{ height: 'auto', paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
+                                                                        className="ape-file-input"
                                                                     />
                                                                 </div>
                                                                 {(block.content as DetailSlide).images?.length > 0 && (
-                                                                    <div className="row" style={{ gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
+                                                                    <div className="row ape-thumb-strip">
                                                                         {(block.content as DetailSlide).images.map((img, imgIdx) => (
-                                                                            <div key={imgIdx} style={{ position: 'relative', flex: 'none' }}>
-                                                                                <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`Slide Img ${imgIdx}`} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid var(--border-default)' }} />
+                                                                            <div key={imgIdx} className="ape-thumb">
+                                                                                <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`Slide Img ${imgIdx}`} className="ape-thumb-img is-lg" />
                                                                                 <button
                                                                                     type="button"
+                                                                                    className="adm-ape-thumb-x"
                                                                                     onClick={() => removeSlideBlockImage(index, imgIdx)}
-                                                                                    style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'var(--mrt-red)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
                                                                                 >
-                                                                                    <Icon name="close" style={{ fontSize: 14 }} />
+                                                                                    <IconClose />
                                                                                 </button>
                                                                             </div>
                                                                         ))}
@@ -2386,22 +2325,22 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                             </div>
                                                         ) : block.type === 'timeline' ? (
                                                             // TIMELINE BLOCK
-                                                            <div className="stack" style={{ gap: 8 }}>
-                                                                <div className="row" style={{ gap: 8 }}>
-                                                                    <input type="text" className="inp" style={{ width: 140 }} value={(block.content as TimelineContent).time || ''} onChange={(e) => updateTimelineInBlock('detail', index, 'time', e.target.value)} placeholder="시간 (예: 10:00)" />
-                                                                    <input type="text" className="inp" style={{ flex: 1, fontWeight: 700 }} value={(block.content as TimelineContent).title || ''} onChange={(e) => updateTimelineInBlock('detail', index, 'title', e.target.value)} placeholder="제목 (예: 자이승 전망대)" />
+                                                            <div className="stack ape-gap-sm">
+                                                                <div className="row ape-gap-sm">
+                                                                    <AdminTextInput type="text" className="ape-w-time" value={(block.content as TimelineContent).time || ''} onChange={(e) => updateTimelineInBlock('detail', index, 'time', e.target.value)} placeholder="시간 (예: 10:00)" />
+                                                                    <AdminTextInput type="text" className="ape-grow ape-strong" value={(block.content as TimelineContent).title || ''} onChange={(e) => updateTimelineInBlock('detail', index, 'title', e.target.value)} placeholder="제목 (예: 자이승 전망대)" />
                                                                 </div>
-                                                                <textarea className="inp" value={(block.content as TimelineContent).description || ''} onChange={(e) => updateTimelineInBlock('detail', index, 'description', e.target.value)} placeholder="설명" rows={3} />
+                                                                <AdminTextArea value={(block.content as TimelineContent).description || ''} onChange={(e) => updateTimelineInBlock('detail', index, 'description', e.target.value)} placeholder="설명" minRows={3} />
                                                                 <div>
-                                                                    <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>이미지 목록 (다중 업로드 기능)</label>
-                                                                    <input type="file" accept="image/*" multiple onChange={(e) => handleTimelineBlockImages('detail', index, e.target.files)} className="inp" style={{ height: 'auto', paddingTop: 8, paddingBottom: 8, fontSize: 13 }} />
+                                                                    <label className="muted ape-mini-label">이미지 목록 (다중 업로드 기능)</label>
+                                                                    <input type="file" accept="image/*" multiple onChange={(e) => handleTimelineBlockImages('detail', index, e.target.files)} className="ape-file-input" />
                                                                 </div>
                                                                 {(block.content as TimelineContent).images?.length > 0 && (
-                                                                    <div className="row" style={{ gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
+                                                                    <div className="row ape-thumb-strip">
                                                                         {(block.content as TimelineContent).images.map((img, imgIdx) => (
-                                                                            <div key={imgIdx} style={{ position: 'relative', flex: 'none' }}>
-                                                                                <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`TL Img ${imgIdx}`} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid var(--border-default)' }} />
-                                                                                <button type="button" onClick={() => removeTimelineBlockImage('detail', index, imgIdx)} style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'var(--mrt-red)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="close" style={{ fontSize: 14 }} /></button>
+                                                                            <div key={imgIdx} className="ape-thumb">
+                                                                                <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`TL Img ${imgIdx}`} className="ape-thumb-img is-lg" />
+                                                                                <button type="button" className="adm-ape-thumb-x" onClick={() => removeTimelineBlockImage('detail', index, imgIdx)}><IconClose /></button>
                                                                             </div>
                                                                         ))}
                                                                     </div>
@@ -2409,36 +2348,36 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                             </div>
                                                         ) : block.type === 'dayInfo' ? (
                                                             // DAY INFO BLOCK
-                                                            <div className="stack" style={{ gap: 8 }}>
+                                                            <div className="stack ape-gap-sm">
                                                                 <div className="field-row">
                                                                     <div>
-                                                                        <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>일차</label>
-                                                                        <div className="badge b-amber" style={{ height: 44, borderRadius: 'var(--r-md)', width: '100%', justifyContent: 'flex-start', padding: '0 14px', fontSize: 14 }}>{stripDayLabelReading((block.content as DayInfoContent).dayLabel) || '미지정'}</div>
+                                                                        <label className="muted ape-mini-label">일차</label>
+                                                                        <div className="badge b-amber ape-day-badge">{stripDayLabelReading((block.content as DayInfoContent).dayLabel) || '미지정'}</div>
                                                                     </div>
                                                                     <div>
-                                                                        <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>날짜 (예: 05/26(화))</label>
-                                                                        <input type="text" className="inp" value={(block.content as DayInfoContent).dayDate || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), dayDate: e.target.value })} placeholder="05/26(화)" />
+                                                                        <label className="muted ape-mini-label">날짜 (예: 05/26(화))</label>
+                                                                        <AdminTextInput type="text" value={(block.content as DayInfoContent).dayDate || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), dayDate: e.target.value })} placeholder="05/26(화)" />
                                                                     </div>
                                                                 </div>
                                                                 <div>
-                                                                    <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>일정 제목</label>
-                                                                    <input type="text" className="inp" value={(block.content as DayInfoContent).title || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), title: e.target.value })} placeholder="인천, 울란바토르, 고르히-테를지" />
+                                                                    <label className="muted ape-mini-label">일정 제목</label>
+                                                                    <AdminTextInput type="text" value={(block.content as DayInfoContent).title || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), title: e.target.value })} placeholder="인천, 울란바토르, 고르히-테를지" />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>주요 일정 요약</label>
-                                                                    <input type="text" className="inp" value={(block.content as DayInfoContent).description || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), description: e.target.value })} placeholder="대형마트, 테를지 국립공원, 거북 바위..." />
+                                                                    <label className="muted ape-mini-label">주요 일정 요약</label>
+                                                                    <AdminTextInput type="text" value={(block.content as DayInfoContent).description || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), description: e.target.value })} placeholder="대형마트, 테를지 국립공원, 거북 바위..." />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="cell-strong" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>🍽 식사 정보</label>
-                                                                    <div className="meal-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                                                                        <div className="inp-mini"><span className="pre" style={{ fontSize: 11 }}>조식</span><input value={(block.content as DayInfoContent).meals?.breakfast || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), meals: { ...(block.content as DayInfoContent).meals, breakfast: e.target.value } })} placeholder="캠프식" /></div>
-                                                                        <div className="inp-mini"><span className="pre" style={{ fontSize: 11 }}>중식</span><input value={(block.content as DayInfoContent).meals?.lunch || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), meals: { ...(block.content as DayInfoContent).meals, lunch: e.target.value } })} placeholder="현지식" /></div>
-                                                                        <div className="inp-mini"><span className="pre" style={{ fontSize: 11 }}>석식</span><input value={(block.content as DayInfoContent).meals?.dinner || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), meals: { ...(block.content as DayInfoContent).meals, dinner: e.target.value } })} placeholder="캠프식" /></div>
+                                                                    <label className="cell-strong ape-mini-label is-strong">🍽 식사 정보</label>
+                                                                    <div className="ape-meal-grid">
+                                                                        <AdminTextInput className="ape-mini" leading="조식" value={(block.content as DayInfoContent).meals?.breakfast || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), meals: { ...(block.content as DayInfoContent).meals, breakfast: e.target.value } })} placeholder="캠프식" />
+                                                                        <AdminTextInput className="ape-mini" leading="중식" value={(block.content as DayInfoContent).meals?.lunch || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), meals: { ...(block.content as DayInfoContent).meals, lunch: e.target.value } })} placeholder="현지식" />
+                                                                        <AdminTextInput className="ape-mini" leading="석식" value={(block.content as DayInfoContent).meals?.dinner || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), meals: { ...(block.content as DayInfoContent).meals, dinner: e.target.value } })} placeholder="캠프식" />
                                                                     </div>
                                                                 </div>
                                                                 <div>
-                                                                    <label className="cell-strong" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>🏠 숙소 정보</label>
-                                                                    <div className="inp-mini"><span className="pre"><Icon name="hotel" style={{ fontSize: 14 }} /></span><input value={(block.content as DayInfoContent).accommodation || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), accommodation: e.target.value })} placeholder="개별화장실과 샤워실이 구비된 디럭스게르" /></div>
+                                                                    <label className="cell-strong ape-mini-label is-strong">🏠 숙소 정보</label>
+                                                                    <AdminTextInput className="ape-mini" leading={<Icon name="hotel" className="ape-ico-sm" />} value={(block.content as DayInfoContent).accommodation || ''} onChange={(e) => updateBlockContent(index, { ...(block.content as DayInfoContent), accommodation: e.target.value })} placeholder="개별화장실과 샤워실이 구비된 디럭스게르" />
                                                                 </div>
                                                             </div>
                                                         ) : block.type === 'design' ? (
@@ -2453,30 +2392,19 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                             />
                                                         ) : (
                                                             // DIVIDER BLOCK
-                                                            <div className="row" style={{ gap: 16, alignItems: 'flex-end' }}>
-                                                                <div style={{ flex: 1 }}>
-                                                                    <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>스타일</label>
-                                                                    <div className="row" style={{ gap: 8 }}>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => updateBlockContent(index, { ...(block.content as DividerContent), style: 'line' })}
-                                                                            className={`btn btn-sm ${(block.content as DividerContent).style === 'line' ? 'btn-ink' : 'btn-ghost'}`}
-                                                                            style={{ flex: 1 }}
-                                                                        >
-                                                                            가로선
-                                                                        </button>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => updateBlockContent(index, { ...(block.content as DividerContent), style: 'space' })}
-                                                                            className={`btn btn-sm ${(block.content as DividerContent).style === 'space' ? 'btn-ink' : 'btn-ghost'}`}
-                                                                            style={{ flex: 1 }}
-                                                                        >
-                                                                            여백
-                                                                        </button>
-                                                                    </div>
+                                                            <div className="row ape-divider-row">
+                                                                <div className="ape-grow">
+                                                                    <label className="muted ape-mini-label">스타일</label>
+                                                                    <AdminSegmented
+                                                                        label="스타일"
+                                                                        className="ape-seg-fill"
+                                                                        items={[{ value: 'line', label: '가로선' }, { value: 'space', label: '여백' }]}
+                                                                        value={(block.content as DividerContent).style}
+                                                                        onChange={(value) => updateBlockContent(index, { ...(block.content as DividerContent), style: value as DividerContent['style'] })}
+                                                                    />
                                                                 </div>
-                                                                <div style={{ width: 140 }}>
-                                                                    <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>높이 ({(block.content as DividerContent).height}px)</label>
+                                                                <div className="ape-w-range">
+                                                                    <label className="muted ape-mini-label">높이 ({(block.content as DividerContent).height}px)</label>
                                                                     <input
                                                                         type="range"
                                                                         min="10"
@@ -2484,13 +2412,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                         step="10"
                                                                         value={(block.content as DividerContent).height}
                                                                         onChange={(e) => updateBlockContent(index, { ...(block.content as DividerContent), height: parseInt(e.target.value) })}
-                                                                        style={{ width: '100%' }}
+                                                                        className="ape-range"
                                                                     />
                                                                 </div>
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <button type="button" className="act-btn danger" onClick={() => removeDetailBlock(index)} title="삭제"><Icon name="delete" /></button>
+                                                    <AdminIconButton variant="outlined" size="sm" className="is-danger" onClick={() => removeDetailBlock(index)} label="삭제"><IconTrash /></AdminIconButton>
                                                 </div>
                                             ))}
                                         </div>
@@ -2498,13 +2426,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                 </div>
                             </div>
                         )}
-
                         {currentTab === 'spots' && <ProductRepresentativeSpots value={formData.representativeSpots || []}
                             onChange={representativeSpots => setFormData(current => ({ ...current, representativeSpots }))} />}
 
                         {/* Itinerary Tab */}
                         {currentTab === 'itinerary' && (
-                            <div className="stack" style={{ maxWidth: 860 }}>
+                            <div className="stack ape-narrow">
                                 {/* ─── Quick actions: bulk image upload + N-day skeleton ─── */}
                                 <ItineraryQuickActions
                                     onBulkImages={bulkAddItineraryImages}
@@ -2522,7 +2449,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                 <div>
                                     <details className="pa-tips">
                                         <summary><Icon name="lightbulb" />날짜별 카드에서 일정을 간단히 작성합니다<span>작성 방법 보기</span></summary>
-                                        <ul style={{ margin: '8px 0 0', paddingLeft: 20, listStyle: 'disc', lineHeight: 1.7 }}>
+                                        <ul>
                                             <li>아래 <strong>DAY 추가</strong> 버튼으로 일차를 추가하면 번호가 자동으로 정리됩니다.</li>
                                             <li>각 카드에 <strong>제목·날짜·식사·숙소</strong>를 입력하고, <strong>일정 항목 추가</strong>로 관광·이동·체험을 순서대로 구성합니다.</li>
                                             <li>일정 항목은 한 줄로 보입니다. 제목은 그 자리에서 고치고, <strong>연필 버튼</strong>을 누르면 설명·사진을 편집합니다.</li>
@@ -2541,33 +2468,33 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                 // 제목은 접힌 줄에서 고친다 — 여기는 설명·사진과, 가끔 쓰는 시간·강조 배지·숙소 불러오기
                                                 const showMore = withTitle || moreEvents.has(block.id) || !!c.time || !!c.badge;
                                                 return (
-                                                    <div className="stack" style={{ gap: 8 }}>
+                                                    <div className="stack ape-gap-sm">
                                                         {withTitle && (
-                                                            <input type="text" className="inp" style={{ fontWeight: 700 }} value={c.title || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'title', e.target.value)} placeholder="일정 제목 (예: 자이승 전망대)" />
+                                                            <AdminTextInput type="text" className="ape-strong" value={c.title || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'title', e.target.value)} placeholder="일정 제목 (예: 자이승 전망대)" />
                                                         )}
-                                                        <textarea className="inp" value={c.description || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'description', e.target.value)} placeholder="설명 (한두 줄로 짧게)" rows={c.description && c.description.length > 60 ? 3 : 1} style={{ minHeight: 0, resize: 'vertical' }} />
-                                                        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                                        <AdminTextArea value={c.description || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'description', e.target.value)} placeholder="설명 (한두 줄로 짧게)" minRows={c.description && c.description.length > 60 ? 3 : 1} />
+                                                        <div className="row ape-photo-row">
                                                             {(c.images || []).map((img, imgIdx) => (
-                                                                <div key={imgIdx} style={{ position: 'relative', flex: 'none' }}>
-                                                                    <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`일정 사진 ${imgIdx + 1}`} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid var(--border-default)' }} />
-                                                                    <button type="button" onClick={() => removeTimelineBlockImage('itinerary', flatIndex, imgIdx)} aria-label={`일정 사진 ${imgIdx + 1} 삭제`} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'var(--mrt-red)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="close" style={{ fontSize: 13 }} /></button>
+                                                                <div key={imgIdx} className="ape-thumb">
+                                                                    <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`일정 사진 ${imgIdx + 1}`} className="ape-thumb-img" />
+                                                                    <button type="button" className="adm-ape-thumb-x" onClick={() => removeTimelineBlockImage('itinerary', flatIndex, imgIdx)} aria-label={`일정 사진 ${imgIdx + 1} 삭제`}><IconClose /></button>
                                                                 </div>
                                                             ))}
-                                                            <label title="사진 추가" style={{ width: 64, height: 64, flex: 'none', borderRadius: 'var(--r-md)', border: '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--text-muted)', background: 'var(--adm-surface)' }}>
-                                                                <Icon name="add_a_photo" style={{ fontSize: 18 }} />
-                                                                <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => { handleTimelineBlockImages('itinerary', flatIndex, e.target.files); e.target.value = ''; }} />
+                                                            <label title="사진 추가" className="ape-photo-add">
+                                                                <Icon name="add_a_photo" />
+                                                                <input type="file" accept="image/*" multiple hidden onChange={(e) => { handleTimelineBlockImages('itinerary', flatIndex, e.target.files); e.target.value = ''; }} />
                                                             </label>
-                                                            <div style={{ flex: 1 }} />
-                                                            <button type="button" onClick={() => setSpotPickerForIndex(flatIndex)} className="btn btn-blue btn-sm" title="여행지 관리에서 제목·설명·사진을 불러옵니다"><Icon name="location_on" />여행지 선택</button>
+                                                            <div className="ape-grow" />
+                                                            <AdminButton size="sm" onClick={() => setSpotPickerForIndex(flatIndex)} title="여행지 관리에서 제목·설명·사진을 불러옵니다" leading={<IconLocation />}>여행지 선택</AdminButton>
                                                             {!showMore && (
-                                                                <button type="button" onClick={() => toggleEventMore(block.id)} className="btn btn-ghost btn-sm" style={{ fontSize: 12 }} title="시간·강조 배지·숙소 불러오기"><Icon name="tune" />더 보기</button>
+                                                                <AdminButton variant="weak" size="sm" onClick={() => toggleEventMore(block.id)} title="시간·강조 배지·숙소 불러오기" leading={<Icon name="tune" />}>더 보기</AdminButton>
                                                             )}
                                                         </div>
                                                         {showMore && (
-                                                            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                                                                <input type="text" className="inp" style={{ width: 120 }} value={c.time || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'time', e.target.value)} placeholder="시간 (선택)" />
-                                                                <input type="text" className="inp" style={{ flex: 1, minWidth: 200 }} value={c.badge || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'badge', e.target.value)} placeholder="강조 배지 (선택, 예: 환전 / 장보기)" title="넣으면 설명이 배지 달린 강조 박스로 표시됩니다" />
-                                                                <button type="button" onClick={() => setHotelPickerTarget({ kind: 'timeline', index: flatIndex })} className="btn btn-ghost btn-sm" title="등록 숙소에서 정보를 불러옵니다"><Icon name="hotel" />숙소 선택</button>
+                                                            <div className="row ape-wrap-row">
+                                                                <AdminTextInput type="text" className="ape-w-time-sm" value={c.time || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'time', e.target.value)} placeholder="시간 (선택)" />
+                                                                <AdminTextInput type="text" className="ape-grow ape-w-badge" value={c.badge || ''} onChange={(e) => updateTimelineInBlock('itinerary', flatIndex, 'badge', e.target.value)} placeholder="강조 배지 (선택, 예: 환전 / 장보기)" title="넣으면 설명이 배지 달린 강조 박스로 표시됩니다" />
+                                                                <AdminButton size="sm" onClick={() => setHotelPickerTarget({ kind: 'timeline', index: flatIndex })} title="등록 숙소에서 정보를 불러옵니다" leading={<Icon name="hotel" />}>숙소 선택</AdminButton>
                                                             </div>
                                                         )}
                                                     </div>
@@ -2577,14 +2504,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                 return (
                                                     <div className="block-img">
                                                         {block.content ? (
-                                                            <div style={{ position: 'relative' }}>
+                                                            <div className="ape-rel">
                                                                 <img src={getOptimizedImageUrl(block.content as string, 'productThumbnail')} alt="일정 이미지" />
-                                                                <button type="button" onClick={() => updateItineraryBlockContent(flatIndex, '')} className="btn btn-ink btn-sm" style={{ position: 'absolute', top: 8, right: 8 }}>변경</button>
+                                                                <AdminButton variant="primary" size="sm" onClick={() => updateItineraryBlockContent(flatIndex, '')} className="ape-img-change">변경</AdminButton>
                                                             </div>
                                                         ) : (
-                                                            <label className="block-img-empty" style={{ cursor: 'pointer' }}>
+                                                            <label className="block-img-empty ape-pointer">
                                                                 <Icon name="add_photo_alternate" />이미지 업로드
-                                                                <input type="file" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) handleItineraryBlockImageUpload(flatIndex, e.target.files[0]); }} style={{ display: 'none' }} />
+                                                                <input type="file" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) handleItineraryBlockImageUpload(flatIndex, e.target.files[0]); }} hidden />
                                                             </label>
                                                         )}
                                                     </div>
@@ -2593,15 +2520,15 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                             if (block.type === 'slide') {
                                                 const c = block.content as DetailSlide;
                                                 return (
-                                                    <div className="stack" style={{ gap: 8 }}>
-                                                        <input type="text" className="inp" value={c.title || ''} onChange={(e) => updateItinerarySlideInBlock(flatIndex, 'title', e.target.value)} placeholder="갤러리 제목 (선택)" />
-                                                        <input type="file" accept="image/*" multiple onChange={(e) => handleItinerarySlideBlockImages(flatIndex, e.target.files)} className="inp" style={{ height: 'auto', paddingTop: 8, paddingBottom: 8, fontSize: 13 }} />
+                                                    <div className="stack ape-gap-sm">
+                                                        <AdminTextInput type="text" value={c.title || ''} onChange={(e) => updateItinerarySlideInBlock(flatIndex, 'title', e.target.value)} placeholder="갤러리 제목 (선택)" />
+                                                        <input type="file" accept="image/*" multiple onChange={(e) => handleItinerarySlideBlockImages(flatIndex, e.target.files)} className="ape-file-input" />
                                                         {c.images?.length > 0 && (
-                                                            <div className="row" style={{ gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                                                            <div className="row ape-thumb-strip">
                                                                 {c.images.map((img, imgIdx) => (
-                                                                    <div key={imgIdx} style={{ position: 'relative', flex: 'none' }}>
-                                                                        <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`갤러리 ${imgIdx + 1}`} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid var(--border-default)' }} />
-                                                                        <button type="button" onClick={() => removeItinerarySlideBlockImage(flatIndex, imgIdx)} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'var(--mrt-red)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="close" style={{ fontSize: 13 }} /></button>
+                                                                    <div key={imgIdx} className="ape-thumb">
+                                                                        <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`갤러리 ${imgIdx + 1}`} className="ape-thumb-img" />
+                                                                        <button type="button" className="adm-ape-thumb-x" onClick={() => removeItinerarySlideBlockImage(flatIndex, imgIdx)}><IconClose /></button>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -2612,50 +2539,50 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                             // divider (line)
                                             const dvc = block.content as DividerContent;
                                             return (
-                                                <div className="row" style={{ gap: 16, alignItems: 'flex-end' }}>
-                                                    <div style={{ flex: 1 }}>
-                                                        <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>가로 구분선</label>
-                                                        <div style={{ height: 1, background: 'var(--border-strong)', width: '100%', marginBottom: 6 }} />
+                                                <div className="row ape-divider-row">
+                                                    <div className="ape-grow">
+                                                        <label className="muted ape-mini-label">가로 구분선</label>
+                                                        <div className="ape-rule" />
                                                     </div>
-                                                    <div style={{ width: 140 }}>
-                                                        <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>간격 ({dvc.height}px)</label>
-                                                        <input type="range" min="10" max="120" step="10" value={dvc.height} onChange={(e) => updateItineraryBlockContent(flatIndex, { ...dvc, height: parseInt(e.target.value) })} style={{ width: '100%' }} />
+                                                    <div className="ape-w-range">
+                                                        <label className="muted ape-mini-label">간격 ({dvc.height}px)</label>
+                                                        <input type="range" min="10" max="120" step="10" value={dvc.height} onChange={(e) => updateItineraryBlockContent(flatIndex, { ...dvc, height: parseInt(e.target.value) })} className="ape-range" />
                                                     </div>
                                                 </div>
                                             );
                                         };
 
                                         return (
-                                            <div className="stack" style={{ gap: 14 }}>
+                                            <div className="stack ape-gap-xl">
                                                 {pre.length > 0 && (
-                                                    <div className="stack" style={{ gap: 10, border: '1px dashed var(--border-strong)', borderRadius: 'var(--r-lg)', padding: 14 }}>
-                                                        <div className="row" style={{ gap: 6 }}><Icon name="info" /><span className="cell-strong" style={{ fontSize: 12 }}>일차가 지정되지 않은 기존 항목</span></div>
-                                                        <p className="muted" style={{ fontSize: 11, margin: 0 }}>DAY를 추가하면 이 항목들은 첫째 날 일정으로 정리할 수 있습니다.</p>
+                                                    <div className="stack ape-pre">
+                                                        <div className="row ape-pre-head"><Icon name="info" /><span className="cell-strong ape-caption">일차가 지정되지 않은 기존 항목</span></div>
+                                                        <p className="muted ape-micro">DAY를 추가하면 이 항목들은 첫째 날 일정으로 정리할 수 있습니다.</p>
                                                         {pre.map((ev) => (
-                                                            <div key={ev.block.id} data-itinerary-block={ev.block.id} className="edit-row" style={{ background: 'var(--mrt-gray-50, var(--adm-gray-50))', borderRadius: 'var(--r-md)', padding: 10 }}>
-                                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                                    <div className="row" style={{ gap: 8, marginBottom: 8 }}><span className="badge b-gray">{typeLabel(ev.block.type)}</span></div>
+                                                            <div key={ev.block.id} data-itinerary-block={ev.block.id} className="edit-row ape-event-card">
+                                                                <div className="ape-grow">
+                                                                    <div className="row ape-block-head"><span className="badge b-gray">{typeLabel(ev.block.type)}</span></div>
                                                                     {renderEventBody(ev.block, ev.flatIndex)}
                                                                 </div>
-                                                                <button type="button" className="act-btn danger" onClick={() => removeItineraryBlock(ev.flatIndex)} title="삭제"><Icon name="delete" /></button>
+                                                                <AdminIconButton variant="outlined" size="sm" className="is-danger" onClick={() => removeItineraryBlock(ev.flatIndex)} label="삭제"><IconTrash /></AdminIconButton>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 )}
 
                                                 {days.length === 0 && (
-                                                    <div style={{ textAlign: 'center', padding: '32px 16px', border: '1.5px dashed var(--border-strong)', borderRadius: 'var(--r-lg)', color: 'var(--mrt-gray-500)' }}>
-                                                        <Icon name="event_note" style={{ fontSize: 32, opacity: 0.4 }} />
-                                                        <div style={{ marginTop: 8, fontSize: 14 }}>등록된 DAY가 없습니다. 아래 버튼으로 첫 일차를 추가하세요.</div>
+                                                    <div className="ape-days-empty">
+                                                        <Icon name="event_note" />
+                                                        <div>등록된 DAY가 없습니다. 아래 버튼으로 첫 일차를 추가하세요.</div>
                                                     </div>
                                                 )}
 
                                                 {days.length > 1 && (
                                                     <div className="pa-day-bar">
                                                         <b>일차 {days.length}개</b>
-                                                        <span style={{ flex: 1 }} />
-                                                        <button type="button" className="adm-btn is-sm" onClick={() => setCollapsedDays(new Set(days.map((d) => d.dayInfo.id)))}>모두 접기</button>
-                                                        <button type="button" className="adm-btn is-sm" onClick={() => setCollapsedDays(new Set())}>모두 펼치기</button>
+                                                        <span className="ape-grow" />
+                                                        <AdminButton size="sm" onClick={() => setCollapsedDays(new Set(days.map((d) => d.dayInfo.id)))}>모두 접기</AdminButton>
+                                                        <AdminButton size="sm" onClick={() => setCollapsedDays(new Set())}>모두 펼치기</AdminButton>
                                                     </div>
                                                 )}
 
@@ -2664,20 +2591,21 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                     const collapsed = collapsedDays.has(day.dayInfo.id);
                                                     const showAdv = advancedDays.has(day.dayInfo.id);
                                                     const eventCount = day.events.filter((e) => e.block.type === 'timeline').length;
+                                                    const designOpen = designDays.has(day.dayInfo.id);
                                                     return (
                                                         <div key={day.dayInfo.id} data-itinerary-block={day.dayInfo.id} className={`pa-day${collapsed ? ' is-collapsed' : ''}`}>
                                                             {/* Day header */}
                                                             <div className="row pa-day-head">
-                                                                <button type="button" className="act-btn" onClick={() => toggleDayCollapsed(day.dayInfo.id)} title={collapsed ? '펼치기' : '접기'}><Icon name={collapsed ? 'expand_more' : 'expand_less'} /></button>
+                                                                <AdminIconButton variant="outlined" size="sm" onClick={() => toggleDayCollapsed(day.dayInfo.id)} label={collapsed ? '펼치기' : '접기'}>{collapsed ? <IconChevronDown /> : <IconChevronUp />}</AdminIconButton>
                                                                 <span className="pa-day-no">{dc.dayLabel || `${dayIdx + 1}일차`}</span>
-                                                                <input type="text" className="inp" style={{ flex: 1, fontWeight: 700 }} value={dc.title || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, title: e.target.value })} placeholder="일정 제목 (예: 울란바토르 → 테를지)" />
+                                                                <AdminTextInput type="text" className="ape-day-title ape-strong" value={dc.title || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, title: e.target.value })} placeholder="일정 제목 (예: 울란바토르 → 테를지)" />
                                                                 {collapsed && <span className="pa-day-sum">{[dc.dayDate, dc.accommodation && `숙소 ${dc.accommodation}`, `일정 ${eventCount}개`].filter(Boolean).join(' · ')}</span>}
-                                                                <div className="edit-move" style={{ flex: 'none' }}>
-                                                                    <button type="button" onClick={() => moveItineraryDay(dayIdx, -1)} disabled={dayIdx === 0}><Icon name="expand_less" /></button>
-                                                                    <button type="button" onClick={() => moveItineraryDay(dayIdx, 1)} disabled={dayIdx === days.length - 1}><Icon name="expand_more" /></button>
+                                                                <div className="ape-move">
+                                                                    <AdminIconButton size="sm" label="위로" onClick={() => moveItineraryDay(dayIdx, -1)} disabled={dayIdx === 0}><IconChevronUp /></AdminIconButton>
+                                                                    <AdminIconButton size="sm" label="아래로" onClick={() => moveItineraryDay(dayIdx, 1)} disabled={dayIdx === days.length - 1}><IconChevronDown /></AdminIconButton>
                                                                 </div>
-                                                                <button type="button" className="act-btn" style={{ flex: 'none' }} onClick={() => duplicateItineraryDay(dayIdx)} title="이 일차 복제 (식사·숙소·일정 그대로 복사)"><Icon name="content_copy" /></button>
-                                                                <button type="button" className="act-btn danger" style={{ flex: 'none' }} onClick={async () => { if (await adminConfirm(`${dc.dayLabel || `${dayIdx + 1}일차`} 전체를 삭제할까요?`)) removeItineraryDay(dayIdx); }} title="이 일차 삭제"><Icon name="delete" /></button>
+                                                                <AdminIconButton variant="outlined" size="sm" className="ape-none" onClick={() => duplicateItineraryDay(dayIdx)} label="이 일차 복제 (식사·숙소·일정 그대로 복사)"><Icon name="content_copy" /></AdminIconButton>
+                                                                <AdminIconButton variant="outlined" size="sm" className="ape-none is-danger" onClick={async () => { if (await adminConfirm(`${dc.dayLabel || `${dayIdx + 1}일차`} 전체를 삭제할까요?`)) removeItineraryDay(dayIdx); }} label="이 일차 삭제"><IconTrash /></AdminIconButton>
                                                             </div>
 
                                                             {!collapsed && (
@@ -2685,98 +2613,97 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                     <div className="field-row">
                                                                         <div>
                                                                             <label className="pa-label">날짜 (선택)</label>
-                                                                            <input type="text" className="inp" value={dc.dayDate || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, dayDate: e.target.value })} placeholder="05/26(화)" />
+                                                                            <AdminTextInput type="text" value={dc.dayDate || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, dayDate: e.target.value })} placeholder="05/26(화)" />
                                                                         </div>
                                                                         <div>
                                                                             <label className="pa-label">주요 일정 요약 (선택)</label>
-                                                                            <input type="text" className="inp" value={dc.description || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, description: e.target.value })} placeholder="대형마트, 테를지 국립공원, 거북바위..." />
+                                                                            <AdminTextInput type="text" value={dc.description || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, description: e.target.value })} placeholder="대형마트, 테를지 국립공원, 거북바위..." />
                                                                         </div>
                                                                     </div>
 
                                                                     <div>
                                                                         <label className="pa-label">식사 정보</label>
-                                                                        <div className="meal-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                                                                            <div className="inp-mini"><span className="pre" style={{ fontSize: 11 }}>조식</span><input value={dc.meals?.breakfast || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, meals: { ...dc.meals, breakfast: e.target.value } })} placeholder="호텔식" /></div>
-                                                                            <div className="inp-mini"><span className="pre" style={{ fontSize: 11 }}>중식</span><input value={dc.meals?.lunch || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, meals: { ...dc.meals, lunch: e.target.value } })} placeholder="현지식" /></div>
-                                                                            <div className="inp-mini"><span className="pre" style={{ fontSize: 11 }}>석식</span><input value={dc.meals?.dinner || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, meals: { ...dc.meals, dinner: e.target.value } })} placeholder="캠프식" /></div>
+                                                                        <div className="ape-meal-grid">
+                                                                            <AdminTextInput className="ape-mini" leading="조식" value={dc.meals?.breakfast || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, meals: { ...dc.meals, breakfast: e.target.value } })} placeholder="호텔식" />
+                                                                            <AdminTextInput className="ape-mini" leading="중식" value={dc.meals?.lunch || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, meals: { ...dc.meals, lunch: e.target.value } })} placeholder="현지식" />
+                                                                            <AdminTextInput className="ape-mini" leading="석식" value={dc.meals?.dinner || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, meals: { ...dc.meals, dinner: e.target.value } })} placeholder="캠프식" />
                                                                         </div>
                                                                     </div>
 
                                                                     <div>
-                                                                        <div className="row" style={{ marginBottom: 6 }}>
-                                                                            <label className="pa-label" style={{ marginBottom: 0 }}>숙소 정보</label>
-                                                                            <div className="spacer" style={{ flex: 1 }} />
-                                                                            <button type="button" onClick={() => setHotelPickerForIndex(day.dayInfoFlatIndex)} className="btn btn-ghost btn-sm"><Icon name="hotel" />등록 숙소 선택</button>
+                                                                        <div className="row ape-label-row">
+                                                                            <label className="pa-label">숙소 정보</label>
+                                                                            <div className="spacer ape-grow" />
+                                                                            <AdminButton size="sm" onClick={() => setHotelPickerForIndex(day.dayInfoFlatIndex)} leading={<Icon name="hotel" />}>등록 숙소 선택</AdminButton>
                                                                         </div>
-                                                                        <div className="inp-mini"><span className="pre"><Icon name="hotel" style={{ fontSize: 14 }} /></span>
-                                                                            <input value={dc.accommodation || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, accommodation: e.target.value, accommodationHotelId: undefined })} placeholder="숙소명을 입력하거나 등록 숙소에서 선택" />
-                                                                        </div>
+                                                                        <AdminTextInput className="ape-mini" leading={<Icon name="hotel" className="ape-ico-sm" />}
+                                                                            value={dc.accommodation || ''} onChange={(e) => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, accommodation: e.target.value, accommodationHotelId: undefined })} placeholder="숙소명을 입력하거나 등록 숙소에서 선택" />
                                                                         {dc.accommodationHotelId && (
-                                                                            <div className="row" style={{ gap: 4, marginTop: 6, fontSize: 11, color: 'var(--mrt-blue-strong)' }}><Icon name="link" style={{ fontSize: 14 }} />등록 숙소와 연결되었습니다. 직접 입력하면 연결이 해제됩니다.</div>
+                                                                            <div className="row ape-linked"><Icon name="link" className="ape-ico-sm" />등록 숙소와 연결되었습니다. 직접 입력하면 연결이 해제됩니다.</div>
                                                                         )}
                                                                     </div>
 
-                                                                    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
+                                                                    <div className="ape-day-sec">
                                                                         {/* 비워 두면 일정 사진으로 자동 채워지는 칸이라 평소에는 접어 둔다 */}
-                                                                        <button type="button" data-day-design-toggle onClick={() => toggleDayDesign(day.dayInfo.id)} aria-expanded={designDays.has(day.dayInfo.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
-                                                                            <Icon name="photo_library" style={{ fontSize: 16 }} />
-                                                                            <span className="cell-strong" style={{ fontSize: 12 }}>디자인 사진 (일정 상세 디자인 전용)</span>
-                                                                            <span className="muted" style={{ fontSize: 11 }}>{dc.heroImage || (dc.galleryImages || []).length ? `배경 ${dc.heroImage ? 1 : 0}장 · 상단 ${(dc.galleryImages || []).length}장` : '비워 두면 일정 사진으로 자동'}</span>
-                                                                            <span style={{ flex: 1 }} />
-                                                                            <Icon name={designDays.has(day.dayInfo.id) ? 'expand_less' : 'expand_more'} style={{ fontSize: 18, color: 'var(--mrt-gray-500)' }} />
+                                                                        <button type="button" className="adm-ape-disclosure" data-day-design-toggle onClick={() => toggleDayDesign(day.dayInfo.id)} aria-expanded={designOpen}>
+                                                                            <Icon name="photo_library" />
+                                                                            <span className="cell-strong ape-caption">디자인 사진 (일정 상세 디자인 전용)</span>
+                                                                            <span className="muted ape-micro">{dc.heroImage || (dc.galleryImages || []).length ? `배경 ${dc.heroImage ? 1 : 0}장 · 상단 ${(dc.galleryImages || []).length}장` : '비워 두면 일정 사진으로 자동'}</span>
+                                                                            <span className="ape-grow" />
+                                                                            {designOpen ? <IconChevronUp /> : <IconChevronDown />}
                                                                         </button>
-                                                                        {designDays.has(day.dayInfo.id) && <p className="muted" style={{ fontSize: 11, margin: '6px 0 8px' }}>히어로 배경 1장 + 카드 상단 사진 최대 5장. 비워 두면 이 일차의 일정 사진에서 자동으로 채워집니다.</p>}
-                                                                        <div className="row" style={{ gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', display: designDays.has(day.dayInfo.id) ? undefined : 'none' }}>
+                                                                        {designOpen && <p className="muted ape-micro ape-design-note">히어로 배경 1장 + 카드 상단 사진 최대 5장. 비워 두면 이 일차의 일정 사진에서 자동으로 채워집니다.</p>}
+                                                                        <div className={`ape-design-grid${designOpen ? '' : ' is-closed'}`}>
                                                                             <div>
-                                                                                <div className="muted" style={{ fontSize: 11, marginBottom: 4 }}>히어로 배경</div>
-                                                                                <label title={dc.heroImage ? '사진 변경' : '사진 업로드'} style={{ display: 'block', position: 'relative', width: 120, height: 72, borderRadius: 'var(--r-md)', overflow: 'hidden', border: dc.heroImage ? '2px solid var(--adm-accent)' : '2px dashed var(--border-default)', cursor: 'pointer', background: 'var(--bg-muted, var(--adm-gray-50))' }}>
+                                                                                <div className="muted ape-micro ape-sub-label">히어로 배경</div>
+                                                                                <label title={dc.heroImage ? '사진 변경' : '사진 업로드'} className={`ape-hero${dc.heroImage ? ' has-image' : ''}`}>
                                                                                     {dc.heroImage
-                                                                                        ? <img src={getOptimizedImageUrl(dc.heroImage, 'productThumbnail')} alt="히어로" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                                                        : <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'var(--text-muted)' }}><Icon name="add_a_photo" style={{ fontSize: 18 }} /></span>}
-                                                                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => { handleDayInfoDesignImages(day.dayInfoFlatIndex, 'hero', e.target.files); e.target.value = ''; }} />
+                                                                                        ? <img src={getOptimizedImageUrl(dc.heroImage, 'productThumbnail')} alt="히어로" />
+                                                                                        : <span className="ape-hero-empty"><Icon name="add_a_photo" /></span>}
+                                                                                    <input type="file" accept="image/*" hidden onChange={(e) => { handleDayInfoDesignImages(day.dayInfoFlatIndex, 'hero', e.target.files); e.target.value = ''; }} />
                                                                                 </label>
                                                                                 {dc.heroImage && (
-                                                                                    <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 4 }} onClick={() => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, heroImage: undefined })}>제거</button>
+                                                                                    <AdminButton size="sm" className="ape-hero-remove" onClick={() => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, heroImage: undefined })}>제거</AdminButton>
                                                                                 )}
                                                                             </div>
-                                                                            <div style={{ flex: 1, minWidth: 260 }}>
-                                                                                <div className="muted" style={{ fontSize: 11, marginBottom: 4 }}>카드 상단 사진 ({(dc.galleryImages || []).length}/5) — 2열 배치, 홀수 장이면 마지막이 와이드</div>
-                                                                                <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                                                                            <div className="ape-gallery">
+                                                                                <div className="muted ape-micro ape-sub-label">카드 상단 사진 ({(dc.galleryImages || []).length}/5) — 2열 배치, 홀수 장이면 마지막이 와이드</div>
+                                                                                <div className="row ape-photo-row">
                                                                                     {(dc.galleryImages || []).map((img, gi) => (
-                                                                                        <div key={gi} style={{ position: 'relative', flex: 'none' }}>
-                                                                                            <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`상단 사진 ${gi + 1}`} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid var(--border-default)' }} />
-                                                                                            <button type="button" onClick={() => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, galleryImages: (dc.galleryImages || []).filter((_, k) => k !== gi) })} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'var(--mrt-red)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="close" style={{ fontSize: 13 }} /></button>
+                                                                                        <div key={gi} className="ape-thumb">
+                                                                                            <img src={getOptimizedImageUrl(img, 'productThumbnail')} alt={`상단 사진 ${gi + 1}`} className="ape-thumb-img is-md" />
+                                                                                            <button type="button" className="adm-ape-thumb-x" onClick={() => updateItineraryBlockContent(day.dayInfoFlatIndex, { ...dc, galleryImages: (dc.galleryImages || []).filter((_, k) => k !== gi) })}><IconClose /></button>
                                                                                         </div>
                                                                                     ))}
                                                                                     {(dc.galleryImages || []).length < 5 && (
-                                                                                        <label title="사진 추가" style={{ width: 72, height: 72, borderRadius: 'var(--r-md)', border: '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--text-muted)', background: 'var(--bg-muted, var(--adm-gray-50))' }}>
-                                                                                            <Icon name="add_a_photo" style={{ fontSize: 18 }} />
-                                                                                            <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => { handleDayInfoDesignImages(day.dayInfoFlatIndex, 'gallery', e.target.files); e.target.value = ''; }} />
+                                                                                        <label title="사진 추가" className="ape-photo-add is-md">
+                                                                                            <Icon name="add_a_photo" />
+                                                                                            <input type="file" accept="image/*" multiple hidden onChange={(e) => { handleDayInfoDesignImages(day.dayInfoFlatIndex, 'gallery', e.target.files); e.target.value = ''; }} />
                                                                                         </label>
                                                                                     )}
                                                                                 </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
-                                                                        <label className="pa-label"><Icon name="timeline" style={{ fontSize: 16, verticalAlign: '-3px' }} /> 이 일차의 주요 일정</label>
+                                                                    <div className="ape-day-sec">
+                                                                        <label className="pa-label"><Icon name="timeline" className="ape-ico-inline" /> 이 일차의 주요 일정</label>
                                                                         {day.events.length === 0 && (
-                                                                            <p className="muted" style={{ fontSize: 12, padding: '2px 0 8px', margin: 0 }}>등록된 일정이 없습니다. 아래 버튼으로 추가하세요.</p>
+                                                                            <p className="muted ape-events-empty">등록된 일정이 없습니다. 아래 버튼으로 추가하세요.</p>
                                                                         )}
-                                                                        <div className="stack" style={{ gap: 6 }}>
+                                                                        <div className="stack ape-gap-xs">
                                                                             {day.events.map((ev, evIdx) => {
                                                                                 // 이미지·갤러리·구분선은 기존 카드 그대로 (일정 항목과 섞인 순서를 유지한다)
                                                                                 if (ev.block.type !== 'timeline') return (
-                                                                                <div key={ev.block.id} data-itinerary-block={ev.block.id} className="edit-row" style={{ background: 'var(--mrt-gray-50, var(--adm-gray-50))', borderRadius: 'var(--r-md)', padding: 10 }}>
-                                                                                    <div className="edit-move">
-                                                                                        <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, -1)} disabled={evIdx === 0}><Icon name="expand_less" /></button>
-                                                                                        <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, 1)} disabled={evIdx === day.events.length - 1}><Icon name="expand_more" /></button>
+                                                                                <div key={ev.block.id} data-itinerary-block={ev.block.id} className="edit-row ape-event-card">
+                                                                                    <div className="ape-move">
+                                                                                        <AdminIconButton size="sm" label="위로" onClick={() => moveItineraryEvent(dayIdx, evIdx, -1)} disabled={evIdx === 0}><IconChevronUp /></AdminIconButton>
+                                                                                        <AdminIconButton size="sm" label="아래로" onClick={() => moveItineraryEvent(dayIdx, evIdx, 1)} disabled={evIdx === day.events.length - 1}><IconChevronDown /></AdminIconButton>
                                                                                     </div>
-                                                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                                                        <div className="row" style={{ gap: 8, marginBottom: 8 }}><span className="badge b-gray">{typeLabel(ev.block.type)}</span></div>
+                                                                                    <div className="ape-grow">
+                                                                                        <div className="row ape-block-head"><span className="badge b-gray">{typeLabel(ev.block.type)}</span></div>
                                                                                         {renderEventBody(ev.block, ev.flatIndex)}
                                                                                     </div>
-                                                                                    <button type="button" className="act-btn danger" onClick={() => removeItineraryEvent(dayIdx, evIdx)} title="삭제"><Icon name="delete" /></button>
+                                                                                    <AdminIconButton variant="outlined" size="sm" className="is-danger" onClick={() => removeItineraryEvent(dayIdx, evIdx)} label="삭제"><IconTrash /></AdminIconButton>
                                                                                 </div>
                                                                                 );
                                                                                 // 일정 항목: 평소에는 한 줄(사진·시간·제목·설명 요약), 누른 항목만 아래로 펼친다
@@ -2784,46 +2711,45 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                                                 const open = openEvents.has(ev.block.id);
                                                                                 const photos = (tc.images || []).filter(Boolean);
                                                                                 return (
-                                                                                    <div key={ev.block.id} data-itinerary-block={ev.block.id} data-event-row={open ? 'open' : 'closed'} style={{ border: '1px solid', borderColor: open ? 'var(--mrt-blue)' : 'var(--border-default)', borderRadius: 'var(--r-md)', background: open ? 'var(--mrt-gray-50, var(--adm-gray-50))' : 'var(--adm-surface)' }}>
-                                                                                        <div className="row" style={{ gap: 8, alignItems: 'center', padding: '6px 8px' }}>
-                                                                                            <div className="edit-move">
-                                                                                                <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, -1)} disabled={evIdx === 0} aria-label="위로"><Icon name="expand_less" /></button>
-                                                                                                <button type="button" onClick={() => moveItineraryEvent(dayIdx, evIdx, 1)} disabled={evIdx === day.events.length - 1} aria-label="아래로"><Icon name="expand_more" /></button>
+                                                                                    <div key={ev.block.id} data-itinerary-block={ev.block.id} data-event-row={open ? 'open' : 'closed'} className={`ape-event${open ? ' is-open' : ''}`}>
+                                                                                        <div className="row ape-event-line">
+                                                                                            <div className="ape-move">
+                                                                                                <AdminIconButton size="sm" label="위로" onClick={() => moveItineraryEvent(dayIdx, evIdx, -1)} disabled={evIdx === 0}><IconChevronUp /></AdminIconButton>
+                                                                                                <AdminIconButton size="sm" label="아래로" onClick={() => moveItineraryEvent(dayIdx, evIdx, 1)} disabled={evIdx === day.events.length - 1}><IconChevronDown /></AdminIconButton>
                                                                                             </div>
-                                                                                            <button type="button" onClick={() => toggleEventOpen(ev.block.id)} title={photos.length ? `사진 ${photos.length}장` : '사진 없음'} style={{ position: 'relative', width: 40, height: 40, flex: 'none', padding: 0, borderRadius: 'var(--adm-radius-sm)', overflow: 'hidden', border: photos.length ? '1px solid var(--border-default)' : '1.5px dashed var(--border-default)', background: 'var(--mrt-gray-50, var(--adm-gray-50))', color: 'var(--mrt-gray-400)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+                                                                                            <button type="button" className={`adm-ape-event-photo${photos.length ? ' has-photo' : ''}`} onClick={() => toggleEventOpen(ev.block.id)} title={photos.length ? `사진 ${photos.length}장` : '사진 없음'}>
                                                                                                 {photos.length
-                                                                                                    ? <img src={getOptimizedImageUrl(photos[0], 'productThumbnail')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                                                                    : <Icon name="image" style={{ fontSize: 18 }} />}
-                                                                                                {photos.length > 1 && <span style={{ position: 'absolute', right: 2, bottom: 2, padding: '0 4px', borderRadius: 'var(--adm-radius-xs)', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 11, fontWeight: 700 }}>{photos.length}</span>}
+                                                                                                    ? <img src={getOptimizedImageUrl(photos[0], 'productThumbnail')} alt="" />
+                                                                                                    : <Icon name="image" />}
+                                                                                                {photos.length > 1 && <span className="ape-event-photo-count">{photos.length}</span>}
                                                                                             </button>
-                                                                                            {tc.time && <span className="cell-muted" style={{ flex: 'none', fontSize: 12, fontWeight: 700 }}>{tc.time}</span>}
-                                                                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                                                                <input type="text" value={tc.title || ''} onChange={(e) => updateTimelineInBlock('itinerary', ev.flatIndex, 'title', e.target.value)} placeholder="일정 제목 (예: 자이승 전망대)" aria-label="일정 제목"
-                                                                                                    style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', fontWeight: 700, fontSize: 14, padding: '2px 0', color: 'var(--text-strong)' }} />
+                                                                                            {tc.time && <span className="cell-muted ape-event-time">{tc.time}</span>}
+                                                                                            <div className="ape-grow">
+                                                                                                <AdminTextInput type="text" className="ape-event-title" value={tc.title || ''} onChange={(e) => updateTimelineInBlock('itinerary', ev.flatIndex, 'title', e.target.value)} placeholder="일정 제목 (예: 자이승 전망대)" aria-label="일정 제목" />
                                                                                                 {!open && (tc.badge || tc.description) && (
-                                                                                                    <div className="cell-muted" onClick={() => toggleEventOpen(ev.block.id)} style={{ fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}>
-                                                                                                        {tc.badge && <b style={{ marginRight: 6 }}>[{tc.badge}]</b>}{tc.description}
+                                                                                                    <div className="cell-muted ape-event-sum" onClick={() => toggleEventOpen(ev.block.id)}>
+                                                                                                        {tc.badge && <b>[{tc.badge}]</b>}{tc.description}
                                                                                                     </div>
                                                                                                 )}
                                                                                             </div>
-                                                                                            <button type="button" className="act-btn" style={{ flex: 'none' }} onClick={() => toggleEventOpen(ev.block.id)} title={open ? '접기' : '설명·사진 편집'} aria-expanded={open}><Icon name={open ? 'expand_less' : 'edit'} /></button>
-                                                                                            <button type="button" className="act-btn danger" style={{ flex: 'none' }} onClick={() => removeItineraryEvent(dayIdx, evIdx)} title="삭제"><Icon name="delete" /></button>
+                                                                                            <AdminIconButton variant="outlined" size="sm" className="ape-none" onClick={() => toggleEventOpen(ev.block.id)} label={open ? '접기' : '설명·사진 편집'} aria-expanded={open}>{open ? <IconChevronUp /> : <IconPencil />}</AdminIconButton>
+                                                                                            <AdminIconButton variant="outlined" size="sm" className="ape-none is-danger" onClick={() => removeItineraryEvent(dayIdx, evIdx)} label="삭제"><IconTrash /></AdminIconButton>
                                                                                         </div>
-                                                                                        {open && <div style={{ padding: '4px 10px 10px 40px' }}>{renderEventBody(ev.block, ev.flatIndex, false)}</div>}
+                                                                                        {open && <div className="ape-event-body">{renderEventBody(ev.block, ev.flatIndex, false)}</div>}
                                                                                     </div>
                                                                                 );
                                                                             })}
                                                                         </div>
 
-                                                                        <button type="button" onClick={() => addItineraryEvent(dayIdx, 'timeline')} className="add-line" style={{ marginTop: 10 }}><Icon name="add_circle" />일정 항목 추가</button>
+                                                                        <AdminButton fullWidth onClick={() => addItineraryEvent(dayIdx, 'timeline')} className="ape-add-line ape-add-event" leading={<Icon name="add_circle" />}>일정 항목 추가</AdminButton>
 
-                                                                        <div style={{ marginTop: 8 }}>
-                                                                            <button type="button" onClick={() => toggleDayAdvanced(day.dayInfo.id)} className="btn btn-ghost btn-sm" style={{ fontSize: 12 }}><Icon name={showAdv ? 'expand_less' : 'tune'} />고급 항목 (이미지·갤러리·구분선)</button>
+                                                                        <div className="ape-adv">
+                                                                            <AdminButton variant="weak" size="sm" onClick={() => toggleDayAdvanced(day.dayInfo.id)} leading={showAdv ? <IconChevronUp /> : <Icon name="tune" />}>고급 항목 (이미지·갤러리·구분선)</AdminButton>
                                                                             {showAdv && (
-                                                                                <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                                                                                    <button type="button" onClick={() => addItineraryEvent(dayIdx, 'image')} className="chip"><Icon name="image" style={{ fontSize: 16 }} />이미지 1장</button>
-                                                                                    <button type="button" onClick={() => addItineraryEvent(dayIdx, 'slide')} className="chip"><Icon name="view_carousel" style={{ fontSize: 16 }} />갤러리</button>
-                                                                                    <button type="button" onClick={() => addItineraryEvent(dayIdx, 'divider')} className="chip"><Icon name="horizontal_rule" style={{ fontSize: 16 }} />구분선</button>
+                                                                                <div className="row ape-adv-chips">
+                                                                                    <AdminChip onClick={() => addItineraryEvent(dayIdx, 'image')} leading={<Icon name="image" />}>이미지 1장</AdminChip>
+                                                                                    <AdminChip onClick={() => addItineraryEvent(dayIdx, 'slide')} leading={<Icon name="view_carousel" />}>갤러리</AdminChip>
+                                                                                    <AdminChip onClick={() => addItineraryEvent(dayIdx, 'divider')} leading={<Icon name="horizontal_rule" />}>구분선</AdminChip>
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -2834,17 +2760,16 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                     );
                                                 })}
 
-                                                <button type="button" onClick={addItineraryDay} className="add-line" style={{ padding: 14, fontSize: 14, fontWeight: 700, borderWidth: 1.5 }}><Icon name="add" />DAY 추가</button>
+                                                <AdminButton size="lg" fullWidth onClick={addItineraryDay} className="ape-add-line ape-add-day" leading={<IconPlus />}>DAY 추가</AdminButton>
                                             </div>
                                         );
                                     })()}
                                 </div>
                             </div>
                         )}
-
                         {/* Options Tab */}
                         {currentTab === 'options' && (
-                            <div className="stack" style={{ maxWidth: 860 }}>
+                            <div className="stack ape-narrow">
                                 {/* Pricing Options */}
                                 <section className="edit-sec">
                                     <div className="edit-sec-head">
@@ -2853,24 +2778,24 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         <span className="muted">1인 가격 · 예약금 · 현지결제</span>
                                     </div>
                                     <div className="opt-grid-head"><span>인원</span><span>1인 총가격</span><span>예약금</span><span>현지 결제</span><span></span></div>
-                                    <div className="stack" style={{ gap: 10 }}>
+                                    <div className="stack ape-gap-md">
                                         {formData.pricingOptions?.map((option, index) => (
                                             <div className="edit-row" key={index}>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div className="ape-grow">
                                                     <div className="opt-grid">
-                                                        <div className="inp-mini"><input type="number" value={option.people} onChange={(e) => updatePricingOption(index, 'people', Number(e.target.value))} /><span>명</span></div>
-                                                        <div className="inp-mini"><input type="number" value={option.pricePerPerson} onChange={(e) => updatePricingOption(index, 'pricePerPerson', Number(e.target.value))} /><span>원</span></div>
-                                                        <div className="inp-mini"><input type="number" value={option.depositPerPerson || 0} onChange={(e) => updatePricingOption(index, 'depositPerPerson', Number(e.target.value))} /><span>원</span></div>
-                                                        <div className="inp-mini"><input type="number" value={option.localPaymentPerPerson || 0} onChange={(e) => updatePricingOption(index, 'localPaymentPerPerson', Number(e.target.value))} /><span>원</span></div>
+                                                        <AdminTextInput className="ape-mini ape-num" type="number" aria-label="인원" value={option.people} onChange={(e) => updatePricingOption(index, 'people', Number(e.target.value))} trailing="명" />
+                                                        <AdminTextInput className="ape-mini ape-num" type="number" aria-label="1인 총가격" value={option.pricePerPerson} onChange={(e) => updatePricingOption(index, 'pricePerPerson', Number(e.target.value))} trailing="원" />
+                                                        <AdminTextInput className="ape-mini ape-num" type="number" aria-label="예약금" value={option.depositPerPerson || 0} onChange={(e) => updatePricingOption(index, 'depositPerPerson', Number(e.target.value))} trailing="원" />
+                                                        <AdminTextInput className="ape-mini ape-num" type="number" aria-label="현지 결제" value={option.localPaymentPerPerson || 0} onChange={(e) => updatePricingOption(index, 'localPaymentPerPerson', Number(e.target.value))} trailing="원" />
                                                     </div>
                                                 </div>
-                                                <button type="button" className="act-btn danger" onClick={() => removePricingOption(index)} title="삭제"><Icon name="delete" /></button>
+                                                <AdminIconButton variant="outlined" size="sm" className="is-danger" onClick={() => removePricingOption(index)} label="삭제"><IconTrash /></AdminIconButton>
                                             </div>
                                         ))}
                                         {(!formData.pricingOptions || formData.pricingOptions.length === 0) && (
-                                            <p className="muted" style={{ textAlign: 'center', padding: '8px 0', fontSize: 13 }}>등록된 가격 옵션이 없습니다.</p>
+                                            <p className="muted ape-options-empty">등록된 가격 옵션이 없습니다.</p>
                                         )}
-                                        <button type="button" className="add-line" onClick={addPricingOption}><Icon name="add" />인원 옵션 추가</button>
+                                        <AdminButton fullWidth className="ape-add-line" leading={<IconPlus />} onClick={addPricingOption}>인원 옵션 추가</AdminButton>
                                     </div>
                                 </section>
 
@@ -2881,7 +2806,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         <h4 id="pa-stay-title">숙소 옵션</h4>
                                         <span className="muted" aria-live="polite">옵션 {stays.length}개</span>
                                     </div>
-                                    <div className="stack" style={{ gap: 10 }}>
+                                    <div className="stack ape-gap-md">
                                         {stays.map((option, index) => (
                                             <div className="edit-row pa-stay-card" key={option.id}>
                                                 <div className="pa-stay-head">
@@ -2891,26 +2816,23 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                                             aria-label={`숙소 ${index + 1} 기본 옵션`} onChange={() => setDefaultAccommodation(option.id)} />
                                                         기본 숙소
                                                     </label>
-                                                    <button type="button" className="act-btn danger" onClick={() => removeAccommodationOption(option.id)}
-                                                        aria-label={`숙소 ${index + 1} 삭제`} title="숙소 삭제"><DashboardIcon name="lc-trash" size={16} /></button>
+                                                    <AdminIconButton variant="outlined" size="sm" className="is-danger" onClick={() => removeAccommodationOption(option.id)}
+                                                        label={`숙소 ${index + 1} 삭제`} title="숙소 삭제"><DashboardIcon name="lc-trash" size={16} /></AdminIconButton>
                                                 </div>
                                                 <div className="pa-stay-fields">
-                                                    <input className="inp" id={`pa-stay-name-${index}`} value={option.name} placeholder="숙소명 (예: 스탠다드 게르)"
+                                                    <AdminTextInput id={`pa-stay-name-${index}`} value={option.name} placeholder="숙소명 (예: 스탠다드 게르)"
                                                         onChange={e => updateAccommodationOption(option.id, { name: e.target.value })} />
-                                                    <label className="inp-mini"><span className="pre">차액</span>
-                                                        <input type="number" aria-label={`숙소 ${index + 1} 추가·할인 금액`} value={option.priceModifier}
-                                                            onChange={e => updateAccommodationOption(option.id, { priceModifier: Number(e.target.value) })} />
-                                                        <span>원</span>
-                                                    </label>
+                                                    <AdminTextInput className="ape-mini ape-num" type="number" leading="차액" trailing="원" aria-label={`숙소 ${index + 1} 추가·할인 금액`} value={option.priceModifier}
+                                                        onChange={e => updateAccommodationOption(option.id, { priceModifier: Number(e.target.value) })} />
                                                 </div>
-                                                <input className="inp" value={option.description} placeholder="숙소 설명 (선택)" aria-label={`숙소 ${index + 1} 설명`}
+                                                <AdminTextInput value={option.description} placeholder="숙소 설명 (선택)" aria-label={`숙소 ${index + 1} 설명`}
                                                     onChange={e => updateAccommodationOption(option.id, { description: e.target.value })} />
                                             </div>
                                         ))}
                                         <div className="pa-stay-add" role="group" aria-label="숙소 옵션 추가">
                                             {[1, 2, 3].map(count => (
-                                                <button type="button" className="add-line" key={count} onClick={() => addAccommodationOptions(count)}
-                                                    aria-label={`숙소 옵션 ${count}개 추가`}><DashboardIcon name="lc-plus" size={16} />{count}개 추가</button>
+                                                <AdminButton fullWidth className="ape-add-line" key={count} onClick={() => addAccommodationOptions(count)}
+                                                    aria-label={`숙소 옵션 ${count}개 추가`} leading={<DashboardIcon name="lc-plus" size={16} />}>{count}개 추가</AdminButton>
                                             ))}
                                         </div>
                                     </div>
@@ -2923,40 +2845,38 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                                         <h4>차량 옵션</h4>
                                         <span className="muted">기본 1개 선택</span>
                                     </div>
-                                    <div className="stack" style={{ gap: 10 }}>
+                                    <div className="stack ape-gap-md">
                                         {formData.vehicleOptions?.map((option, index) => (
                                             <div className="edit-row" key={index}>
-                                                <div style={{ flex: 1, minWidth: 0 }} className="opt-card">
-                                                    <div className="row" style={{ gap: 8 }}>
+                                                <div className="opt-card ape-grow">
+                                                    <div className="row ape-gap-sm">
                                                         <button
                                                             type="button"
-                                                            className={`radio${option.isDefault ? ' on' : ''}`}
+                                                            className={`adm-ape-radio${option.isDefault ? ' is-on' : ''}`}
                                                             onClick={() => updateVehicleOption(index, 'isDefault', true)}
                                                             title="기본 옵션"
                                                         />
-                                                        <input
+                                                        <AdminTextInput
                                                             type="text"
-                                                            className="inp"
-                                                            style={{ flex: 1 }}
+                                                            className="ape-grow"
                                                             value={option.name}
                                                             onChange={(e) => updateVehicleOption(index, 'name', e.target.value)}
                                                             placeholder="옵션명 (예: 스타렉스)"
                                                         />
-                                                        <div className="inp-mini" style={{ width: 130 }}><span className="pre">+</span><input type="number" value={option.priceModifier} onChange={(e) => updateVehicleOption(index, 'priceModifier', Number(e.target.value))} placeholder="0" /><span>원</span></div>
+                                                        <AdminTextInput className="ape-mini ape-num ape-w-price" type="number" leading="+" trailing="원" value={option.priceModifier} onChange={(e) => updateVehicleOption(index, 'priceModifier', Number(e.target.value))} placeholder="0" />
                                                     </div>
-                                                    <input
+                                                    <AdminTextInput
                                                         type="text"
-                                                        className="inp"
-                                                        style={{ marginTop: 8 }}
+                                                        className="ape-vehicle-desc"
                                                         value={option.description}
                                                         onChange={(e) => updateVehicleOption(index, 'description', e.target.value)}
                                                         placeholder="옵션 설명"
                                                     />
                                                 </div>
-                                                <button type="button" className="act-btn danger" onClick={() => removeVehicleOption(index)} title="삭제"><Icon name="delete" /></button>
+                                                <AdminIconButton variant="outlined" size="sm" className="is-danger" onClick={() => removeVehicleOption(index)} label="삭제"><IconTrash /></AdminIconButton>
                                             </div>
                                         ))}
-                                        <button type="button" className="add-line" onClick={addVehicleOption}><Icon name="add" />차량 옵션 추가</button>
+                                        <AdminButton fullWidth className="ape-add-line" leading={<IconPlus />} onClick={addVehicleOption}>차량 옵션 추가</AdminButton>
                                     </div>
                                 </section>
                             </div>
@@ -2973,14 +2893,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, categories,
                     </div>
 
                     {/* Footer — 페이지 스크롤 중에도 항상 보이는 저장 바 */}
-                    <div className="card-pad row pa-savebar" style={{ justifyContent: 'flex-end', gap: 10, borderTop: '1px solid var(--border-subtle)', position: 'sticky', bottom: 0, background: 'var(--bg-card, var(--adm-surface))', zIndex: 5 }}>
+                    <div className="card-pad row pa-savebar">
                         <span className="pa-save-note">필수 항목 <b>{requiredDone} / {requiredChecks.length}</b>{requiredDone < requiredChecks.length ? ' · 모두 채우면 공개 준비가 끝나요' : ' · 저장할 준비가 됐어요'}</span>
-                        <button type="button" onClick={closeEditor} disabled={busy} className="btn btn-ghost">
+                        <AdminButton onClick={closeEditor} disabled={busy}>
                             취소
-                        </button>
-                        <button type="submit" className="btn btn-ink" disabled={locked}>
-                            <Icon name="check" />{saving ? '저장 중…' : '상품 저장'}
-                        </button>
+                        </AdminButton>
+                        <AdminButton type="submit" variant="primary" disabled={locked} leading={<IconCheck />}>
+                            {saving ? '저장 중…' : '상품 저장'}
+                        </AdminButton>
                     </div>
                     </fieldset>
                 </form>
@@ -3075,7 +2995,7 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
                     <b>코스에서 불러오기</b>
                     <span>견적 관리의 코스를 고르면 일차별 일정, 식사, 숙소와 코스에 지정한 대표 명소를 함께 불러옵니다.</span>
                 </div>
-                <button type="button" onClick={onImportCourse} className="adm-btn is-primary" data-course-import-open>코스 선택</button>
+                <AdminButton variant="primary" onClick={onImportCourse} data-course-import-open>코스 선택</AdminButton>
             </div>
 
             {/* ─── 일정표 불러오기 ─── */}
@@ -3085,7 +3005,7 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
                     <b>일정표 불러오기</b>
                     <span>기존 상품의 일정표를 사진·내용 그대로 가져옵니다. 가져온 뒤 이 상품에 맞게 편집만 하면 됩니다.</span>
                 </div>
-                <button type="button" onClick={onImport} className="adm-btn">불러오기</button>
+                <AdminButton onClick={onImport}>불러오기</AdminButton>
             </div>
 
             {/* ─── N-day skeleton macro ─── */}
@@ -3096,19 +3016,13 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
                     <span>1일차 ~ N일차 헤더와 구분선을 한 번에 생성합니다. 각 날짜는 펼쳐서 내용 채우세요.</span>
                 </div>
                 <div className="pa-start-acts">
-                    <select
+                    <AdminSelect
                         aria-label="일수"
-                        value={skeletonDays}
-                        onChange={(e) => setSkeletonDays(Number(e.target.value))}
-                        className="select"
-                    >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                            <option key={n} value={n}>
-                                {n}일
-                            </option>
-                        ))}
-                    </select>
-                    <button type="button" onClick={() => onSkeleton(skeletonDays)} className="adm-btn">생성</button>
+                        value={String(skeletonDays)}
+                        onChange={(value) => setSkeletonDays(Number(value))}
+                        options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({ value: String(n), label: `${n}일` }))}
+                    />
+                    <AdminButton onClick={() => onSkeleton(skeletonDays)}>생성</AdminButton>
                 </div>
             </div>
 
@@ -3145,7 +3059,7 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
                     type="file"
                     accept="image/*"
                     multiple
-                    style={{ display: 'none' }}
+                    hidden
                     onChange={(e) => {
                         handleFiles(e.target.files);
                         // reset so picking the same files again still fires
@@ -3161,7 +3075,7 @@ const ItineraryQuickActions: React.FC<ItineraryQuickActionsProps> = ({
                     </b>
                     <span>여러 장의 사진을 이 박스에 드래그하거나 클릭해서 선택하세요. 각 사진이 자동으로 일정 끝에 추가됩니다.</span>
                 </div>
-                {!uploading && <span className="adm-btn" aria-hidden="true">사진 선택</span>}
+                {!uploading && <span className="adm-ui-btn is-secondary is-md" aria-hidden="true">사진 선택</span>}
             </div>
         </section>
     );

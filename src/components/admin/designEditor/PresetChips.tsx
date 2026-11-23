@@ -1,4 +1,6 @@
 import type { DesignPreset } from '../../product/designTemplates/types';
+import { AdminChip } from '../ui/AdminChoice';
+import './design-editor.css';
 
 /**
  * 프리셋을 { label, value }로 정규화.
@@ -7,11 +9,6 @@ import type { DesignPreset } from '../../product/designTemplates/types';
 export function normPresets(presets: DesignPreset[]): { label: string; value: string }[] {
     return presets.map(p => (typeof p === 'string' ? { label: p, value: p } : p));
 }
-
-const chipStyle = (on: boolean): React.CSSProperties => ({
-    padding: '2px 8px', borderRadius: 500, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: '1px solid',
-    ...(on ? { borderColor: 'var(--adm-accent)', background: 'rgba(var(--adm-accent-rgb), 0.12)', color: 'var(--adm-accent-strong)' } : { borderColor: 'var(--border-default)', background: 'transparent', color: 'var(--text-muted)' }),
-});
 
 /**
  * 자주 쓰는 값 버튼 — 누르면 입력칸이 그 값으로 채워진다.
@@ -22,15 +19,15 @@ export function PresetChips({ presets, value, onPick }: { presets: DesignPreset[
     const translated = items.some(p => p.label !== p.value);
     return (
         <>
-            <div className="row" style={{ gap: 4, flexWrap: 'wrap', marginBottom: 5 }}>
+            <div className="de-presets">
                 {items.map(p => (
-                    <button key={p.value} type="button" onClick={() => onPick(p.value)} style={chipStyle(value === p.value)}
+                    <AdminChip key={p.value} className="de-preset-chip" active={value === p.value} onClick={() => onPick(p.value)}
                         title={p.label === p.value ? `"${p.value}"(으)로 채우기` : `페이지에는 "${p.value}"로 표시됩니다`}>
                         {p.label}
-                    </button>
+                    </AdminChip>
                 ))}
             </div>
-            {translated && <div className="muted" style={{ fontSize: 11, marginBottom: 4 }}>버튼 이름과 페이지에 표시되는 문구가 다를 수 있습니다 (버튼에 마우스를 올리면 확인)</div>}
+            {translated && <div className="de-note-sm">버튼 이름과 페이지에 표시되는 문구가 다를 수 있습니다 (버튼에 마우스를 올리면 확인)</div>}
         </>
     );
 }
@@ -51,13 +48,13 @@ export function PresetLineChips({ presetLines, value, onChange, separator = '\n'
     };
     return (
         <>
-            <div className="row" style={{ gap: 4, flexWrap: 'wrap', marginBottom: 5 }}>
+            <div className="de-presets">
                 {items.map(p => {
                     const on = lines.includes(p.value);
-                    return <button key={p.value} type="button" onClick={() => toggle(p.value)} style={chipStyle(on)} title={`${on ? '빼기' : '추가'} — 페이지 표시: ${p.value}`}>{on ? '✓ ' : '+ '}{p.label}</button>;
+                    return <AdminChip key={p.value} className="de-preset-chip" active={on} onClick={() => toggle(p.value)} title={`${on ? '빼기' : '추가'} — 페이지 표시: ${p.value}`}>{on ? '✓ ' : '+ '}{p.label}</AdminChip>;
                 })}
             </div>
-            {translated && <div className="muted" style={{ fontSize: 11, marginBottom: 4 }}>버튼 이름과 페이지에 표시되는 문구가 다를 수 있습니다 (버튼에 마우스를 올리면 확인)</div>}
+            {translated && <div className="de-note-sm">버튼 이름과 페이지에 표시되는 문구가 다를 수 있습니다 (버튼에 마우스를 올리면 확인)</div>}
         </>
     );
 }

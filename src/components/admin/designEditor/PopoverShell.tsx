@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { placePopover, type PopoverPlacement } from './inlineEdit';
+import './design-editor.css';
 
 /**
  * 미리보기 요소 옆에 뜨는 작은 편집창의 껍데기.
@@ -50,10 +51,9 @@ export function PopoverShell({ anchor, label, width = 360, onClose, onEscape, ch
 
     if (!anchor || typeof document === 'undefined') return null;
     return createPortal(
-        <div ref={ref} role="dialog" aria-label={label} onKeyDown={onKeyDown} className="design-popover"
-            style={{ position: 'fixed', zIndex: 64, width, maxWidth: 'calc(100vw - 16px)', boxSizing: 'border-box', padding: 12, borderRadius: 'var(--adm-radius-md)', background: 'var(--adm-surface)',
-                boxShadow: '0 0 0 1px rgba(16,24,40,.08), 0 16px 40px rgba(16,24,40,.18)', fontFamily: 'Pretendard, system-ui, sans-serif',
-                left: placement?.left ?? anchor.left, ...(placement ? (placement.above ? { bottom: placement.bottom } : { top: placement.top }) : { top: anchor.bottom + 8 }),
+        <div ref={ref} role="dialog" aria-label={label} onKeyDown={onKeyDown} className="design-popover de-popover"
+            // 자리·너비는 앵커를 잰 뒤에 정해지는 값이라 그대로 둔다(모양은 design-editor.css의 .de-popover)
+            style={{ width, left: placement?.left ?? anchor.left, ...(placement ? (placement.above ? { bottom: placement.bottom } : { top: placement.top }) : { top: anchor.bottom + 8 }),
                 visibility: placement ? 'visible' : 'hidden' }}>
             {children}
         </div>,

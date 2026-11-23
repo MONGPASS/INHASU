@@ -54,11 +54,11 @@
   "nativeDialog": 0
  },
  "src/components/admin/CourseImportModal.tsx": {
-  "rawButton": 12,
-  "rawField": 4,
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 1,
-  "px": 1,
+  "inlineStyle": 0,
+  "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
@@ -90,37 +90,37 @@
   "nativeDialog": 0
  },
  "src/components/admin/DesignTemplateBlockEditor.tsx": {
-  "rawButton": 11,
-  "rawField": 2,
+  "rawButton": 0,
+  "rawField": 1,
   "rawTable": 0,
-  "inlineStyle": 60,
-  "px": 93,
-  "hex": 17,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
   "nativeDialog": 0
  },
  "src/components/admin/HotelPickerModal.tsx": {
-  "rawButton": 1,
+  "rawButton": 0,
   "rawField": 1,
-  "rawTable": 1,
+  "rawTable": 0,
   "inlineStyle": 0,
   "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
  "src/components/admin/ItineraryImportModal.tsx": {
-  "rawButton": 2,
-  "rawField": 3,
-  "rawTable": 1,
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
   "inlineStyle": 0,
   "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
  "src/components/admin/ProductTermsChecklist.tsx": {
-  "rawButton": 1,
-  "rawField": 2,
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 1,
+  "inlineStyle": 0,
   "px": 0,
   "hex": 0,
   "nativeDialog": 0
@@ -216,8 +216,8 @@
   "nativeDialog": 0
  },
  "src/components/admin/SelectionModals.tsx": {
-  "rawButton": 2,
-  "rawField": 2,
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 0,
   "px": 0,
@@ -234,9 +234,9 @@
   "nativeDialog": 0
  },
  "src/components/admin/TouristSpotPickerModal.tsx": {
-  "rawButton": 2,
+  "rawButton": 0,
   "rawField": 1,
-  "rawTable": 1,
+  "rawTable": 0,
   "inlineStyle": 0,
   "px": 0,
   "hex": 0,
@@ -306,21 +306,21 @@
   "nativeDialog": 0
  },
  "src/components/admin/designEditor/FieldPopover.tsx": {
-  "rawButton": 7,
-  "rawField": 3,
+  "rawButton": 0,
+  "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 15,
-  "px": 40,
-  "hex": 1,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
   "nativeDialog": 0
  },
  "src/components/admin/designEditor/ImagePopover.tsx": {
-  "rawButton": 3,
+  "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 13,
-  "px": 22,
-  "hex": 1,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
   "nativeDialog": 0
  },
  "src/components/admin/designEditor/PopoverShell.tsx": {
@@ -328,25 +328,25 @@
   "rawField": 0,
   "rawTable": 0,
   "inlineStyle": 1,
-  "px": 1,
+  "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
  "src/components/admin/designEditor/PresetChips.tsx": {
-  "rawButton": 2,
+  "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 4,
-  "px": 11,
+  "inlineStyle": 0,
+  "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
  "src/components/admin/designEditor/SectionToolbar.tsx": {
-  "rawButton": 4,
+  "rawButton": 0,
   "rawField": 0,
   "rawTable": 0,
-  "inlineStyle": 2,
-  "px": 9,
+  "inlineStyle": 1,
+  "px": 0,
   "hex": 0,
   "nativeDialog": 0
  },
@@ -621,12 +621,12 @@
   "nativeDialog": 1
  },
  "src/pages/AdminProductManage.tsx": {
-  "rawButton": 58,
-  "rawField": 32,
-  "rawTable": 1,
-  "inlineStyle": 110,
-  "px": 127,
-  "hex": 2,
+  "rawButton": 0,
+  "rawField": 1,
+  "rawTable": 0,
+  "inlineStyle": 1,
+  "px": 6,
+  "hex": 0,
   "nativeDialog": 1
  },
  "src/pages/AdminPromotionManage.tsx": {
@@ -746,9 +746,9 @@
   "rawPx": 40
  },
  "src/components/admin/CourseImportModal.css": {
-  "hex": 2,
+  "hex": 0,
   "important": 0,
-  "rawPx": 57
+  "rawPx": 0
  },
  "src/components/admin/CustomerKakaoActions.css": {
   "hex": 0,
@@ -789,6 +789,11 @@
   "hex": 0,
   "important": 0,
   "rawPx": 39
+ },
+ "src/components/admin/designEditor/design-editor.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
  },
  "src/components/admin/guides/GuideSchedule.css": {
   "hex": 10,
@@ -861,14 +866,14 @@
   "rawPx": 0
  },
  "src/pages/AdminProductEditor.css": {
-  "hex": 2,
-  "important": 9,
-  "rawPx": 80
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
  },
  "src/pages/AdminProductList.css": {
-  "hex": 1,
+  "hex": 0,
   "important": 0,
-  "rawPx": 65
+  "rawPx": 0
  },
  "src/pages/AdminReservationBoard.module.css": {
   "hex": 1,

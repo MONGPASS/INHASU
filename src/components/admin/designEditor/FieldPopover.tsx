@@ -1,18 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { DesignTemplateField } from '../../product/designTemplates/types';
 import { Ico } from '../v7/v7Ui';
+import { AdminButton, AdminIconButton } from '../ui/AdminButton';
+import { AdminTextArea, AdminTextInput } from '../ui/AdminFields';
+import { cx } from '../ui/adminUiUtils';
 import { PopoverShell } from './PopoverShell';
 import { PresetChips, PresetLineChips } from './PresetChips';
 import { isCommitKey } from './inlineEdit';
 import { TEXT_SIZE, clampTextSize } from '../../product/designTemplates/textStyles';
-
-const btn = (primary = false): React.CSSProperties => ({
-    display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none', whiteSpace: 'nowrap', height: 32, padding: '0 12px', borderRadius: 'var(--adm-radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer', font: 'inherit',
-    border: primary ? '1.5px solid var(--adm-ink)' : '1.5px solid var(--adm-line)', background: primary ? 'var(--adm-ink)' : 'var(--adm-surface)', color: primary ? '#fff' : 'var(--adm-ink)',
-});
-const stepBtn = (off: boolean): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, padding: 0, border: 0, borderRadius: 'var(--adm-radius-sm)', background: off ? 'transparent' : 'var(--adm-gray-100)', color: 'var(--adm-ink)', cursor: off ? 'default' : 'pointer', opacity: off ? .4 : 1,
-});
+import './design-editor.css';
 
 /**
  * 문구 한 칸을 그 자리에서 고치는 편집창. 입력하는 대로 미리보기에 반영되고,
@@ -57,35 +53,31 @@ export function FieldPopover({ field, value, anchor, disabled = false, readOnlyN
     const lineRows = Math.min(4, Math.max(1, draft.split(/\n/).length));
 
     return <PopoverShell anchor={anchor} label={`${field.label} 편집`} width={multiline ? 440 : onSizeChange ? 400 : 360} onClose={onClose} onEscape={cancel} isInside={isInside}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <b style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-ink)' }}>{field.label}</b>
-            <span style={{ fontSize: 11, color: 'var(--adm-text-3)' }}>{changed || sized ? '수정됨' : '원본 문구'}</span>
-            <button type="button" aria-label="닫기" onClick={onClose} style={{ marginLeft: 'auto', width: 28, height: 28, border: 0, borderRadius: 'var(--adm-radius-sm)', background: 'transparent', color: 'var(--adm-text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico name="lc-x" size={15} /></button>
+        <div className="de-pop-head">
+            <b className="de-pop-title">{field.label}</b>
+            <span className="de-pop-status">{changed || sized ? '수정됨' : '원본 문구'}</span>
+            <AdminIconButton label="닫기" size="sm" className="de-push" onClick={onClose}><Ico name="lc-x" size={15} /></AdminIconButton>
         </div>
-        {readOnlyNote ? <div style={{ padding: '10px 12px', borderRadius: 'var(--adm-radius-sm)', background: 'var(--adm-gray-50)', fontSize: 12, color: 'var(--adm-text-2)', lineHeight: 1.6 }}>{readOnlyNote}</div> : <>
+        {readOnlyNote ? <div className="de-pop-note">{readOnlyNote}</div> : <>
             {field.presets && <PresetChips presets={field.presets} value={draft} onPick={update} />}
             {field.presetLines && <PresetLineChips presetLines={field.presetLines} separator={field.presetSeparator} value={draft} onChange={update} />}
             {multiline
-                ? <textarea ref={inputRef as React.RefObject<HTMLTextAreaElement>} className="inp" rows={rows} value={draft} placeholder={field.default || ''} disabled={disabled} onChange={e => update(e.target.value)} onKeyDown={onKeyDown}
-                    style={{ width: '100%', boxSizing: 'border-box', fontSize: 14, lineHeight: 1.6, resize: 'vertical' }} />
+                ? <AdminTextArea ref={inputRef as React.RefObject<HTMLTextAreaElement>} className="de-pop-field is-multiline" minRows={rows} maxRows={Math.max(rows, 12)} value={draft} placeholder={field.default || ''} disabled={disabled} onChange={e => update(e.target.value)} onKeyDown={onKeyDown} />
                 : breakable
-                ? <textarea ref={inputRef as React.RefObject<HTMLTextAreaElement>} className="inp" rows={lineRows} value={draft} placeholder={field.default || ''} disabled={disabled} onChange={e => update(e.target.value)} onKeyDown={onKeyDown}
-                    style={{ width: '100%', boxSizing: 'border-box', fontSize: 14, lineHeight: 1.5, resize: 'none' }} />
-                : <input ref={inputRef as React.RefObject<HTMLInputElement>} type="text" className="inp" value={draft} placeholder={field.default || ''} disabled={disabled} onChange={e => update(e.target.value)} onKeyDown={onKeyDown}
-                    style={{ width: '100%', boxSizing: 'border-box', fontSize: 14 }} />}
-            {field.help && <div style={{ marginTop: 6, fontSize: 11, color: 'var(--adm-text-3)', lineHeight: 1.5 }}>{field.help}</div>}
-            <div style={{ marginTop: 4, fontSize: 11, color: 'var(--adm-text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{multiline ? 'Ctrl+Enter 적용 · Esc 취소' : breakable ? 'Enter 적용 · Shift+Enter 줄바꿈 · Esc 취소' : 'Enter 적용 · Esc 취소'}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                {onSizeChange && <div role="group" aria-label="글자 크기" style={{ display: 'flex', alignItems: 'center', gap: 2, height: 32, padding: '0 3px 0 10px', borderRadius: 'var(--adm-radius-sm)', boxShadow: 'inset 0 0 0 1.5px var(--adm-line)', flex: 'none' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--adm-text-3)', marginRight: 2 }}>크기</span>
-                    <button type="button" aria-label="글자 작게" disabled={disabled || size <= TEXT_SIZE.min} onClick={() => setSize(size - TEXT_SIZE.step)} style={stepBtn(size <= TEXT_SIZE.min)}><Ico name="lc-minus" size={13} /></button>
-                    <button type="button" aria-live="polite" title="눌러서 기본 크기(100%)로 되돌립니다" disabled={disabled || !sized} onClick={() => setSize(TEXT_SIZE.base)}
-                        style={{ minWidth: 44, height: 26, padding: 0, border: 0, background: 'transparent', font: 'inherit', fontSize: 12, fontWeight: 700, color: sized ? 'var(--adm-accent-strong)' : 'var(--adm-ink)', fontVariantNumeric: 'tabular-nums', cursor: sized ? 'pointer' : 'default' }}>{clampTextSize(size)}%</button>
-                    <button type="button" aria-label="글자 크게" disabled={disabled || size >= TEXT_SIZE.max} onClick={() => setSize(size + TEXT_SIZE.step)} style={stepBtn(size >= TEXT_SIZE.max)}><Ico name="lc-plus" size={13} /></button>
+                ? <AdminTextArea ref={inputRef as React.RefObject<HTMLTextAreaElement>} className="de-pop-field" minRows={lineRows} maxRows={lineRows} value={draft} placeholder={field.default || ''} disabled={disabled} onChange={e => update(e.target.value)} onKeyDown={onKeyDown} />
+                : <AdminTextInput ref={inputRef as React.RefObject<HTMLInputElement>} type="text" className="de-pop-field" value={draft} placeholder={field.default || ''} disabled={disabled} onChange={e => update(e.target.value)} onKeyDown={onKeyDown} />}
+            {field.help && <div className="de-pop-help">{field.help}</div>}
+            <div className="de-pop-keys">{multiline ? 'Ctrl+Enter 적용 · Esc 취소' : breakable ? 'Enter 적용 · Shift+Enter 줄바꿈 · Esc 취소' : 'Enter 적용 · Esc 취소'}</div>
+            <div className="de-pop-foot">
+                {onSizeChange && <div role="group" aria-label="글자 크기" className="de-size">
+                    <span className="de-size-label">크기</span>
+                    <AdminIconButton label="글자 작게" size="sm" className="de-size-step" disabled={disabled || size <= TEXT_SIZE.min} onClick={() => setSize(size - TEXT_SIZE.step)}><Ico name="lc-minus" size={13} /></AdminIconButton>
+                    <button type="button" className={cx('adm-de-size-value', sized && 'is-changed')} aria-live="polite" title="눌러서 기본 크기(100%)로 되돌립니다" disabled={disabled || !sized} onClick={() => setSize(TEXT_SIZE.base)}>{clampTextSize(size)}%</button>
+                    <AdminIconButton label="글자 크게" size="sm" className="de-size-step" disabled={disabled || size >= TEXT_SIZE.max} onClick={() => setSize(size + TEXT_SIZE.step)}><Ico name="lc-plus" size={13} /></AdminIconButton>
                 </div>}
-                <button type="button" disabled={disabled || !changed} title="비우고 디자인 원본 문구로 되돌립니다" onClick={() => { onClear(); onClose(); }} style={{ ...btn(), marginLeft: 'auto', opacity: changed ? 1 : .5 }}><Ico name="lc-rotate-ccw" size={13} />원본으로</button>
-                <button type="button" onClick={cancel} style={btn()}>취소</button>
-                <button type="button" disabled={disabled} onClick={onClose} style={btn(true)}><Ico name="lc-check" size={13} />적용</button>
+                <AdminButton size="sm" className="de-push" disabled={disabled || !changed} title="비우고 디자인 원본 문구로 되돌립니다" leading={<Ico name="lc-rotate-ccw" size={13} />} onClick={() => { onClear(); onClose(); }}>원본으로</AdminButton>
+                <AdminButton size="sm" onClick={cancel}>취소</AdminButton>
+                <AdminButton size="sm" variant="primary" disabled={disabled} leading={<Ico name="lc-check" size={13} />} onClick={onClose}>적용</AdminButton>
             </div>
         </>}
     </PopoverShell>;

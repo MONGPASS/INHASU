@@ -19,6 +19,15 @@ import { SectionToolbar } from './designEditor/SectionToolbar';
 import { useAnchorRect } from './designEditor/useAnchorRect';
 import { clampSectionAnchor, commitValue, fieldSelector, findDesignTarget, sectionSelector } from './designEditor/inlineEdit';
 import { adminConfirm, adminNotify } from './ui/adminFeedback';
+import { AdminButton, AdminIconButton } from './ui/AdminButton';
+import { AdminTextArea, AdminTextInput } from './ui/AdminFields';
+import { AdminBadge, AdminChip, AdminSegmented, type AdminChoiceItem } from './ui/AdminChoice';
+import { IconChevronDown } from './ui/AdminIcons';
+import { cx } from './ui/adminUiUtils';
+import './designEditor/design-editor.css';
+
+/** 미리보기 PC·모바일 전환 */
+const PREVIEW_VARIANTS: AdminChoiceItem<'desktop' | 'mobile'>[] = [{ value: 'desktop', label: 'PC' }, { value: 'mobile', label: '모바일' }];
 
 /**
  * 지도 경유지 선택 UI — 지도에 좌표가 등록된 여행지 목록에서 골라 담는다.
@@ -67,53 +76,55 @@ function SpotCardsField({ value, onChange, onBusyChange }: { value: string; onCh
         }
     };
 
+    // 테스트(tests/design-travel-spots.test.mjs)가 이 함수만 떼어 그리므로 안에서는 생 요소와 Icon만 쓴다(모양은 같은 클래스로 맞춘다)
     return (
-        <div className="stack" style={{ gap: 8 }}>
+        <div className="de-stack">
             {lines.length === 0 && (
-                <div className="cell-muted" style={{ fontSize: 12 }}>아래에서 여행지를 추가하면 카드가 순서대로 표시됩니다</div>
+                <div className="de-note">아래에서 여행지를 추가하면 카드가 순서대로 표시됩니다</div>
             )}
             {lines.map((line, i) => {
                 const { title, img } = parseLine(line);
                 return (
-                    <div key={i} className="row" style={{ gap: 6, alignItems: 'center', padding: '6px 8px', border: '1px solid var(--border-default)', borderRadius: 8, background: 'var(--bg-muted, #f8f9fa)' }}>
-                        <label title={img ? '사진 변경' : '사진 업로드'} style={{ flex: 'none', width: 44, height: 44, borderRadius: 8, overflow: 'hidden', border: img ? '2px solid var(--adm-accent)' : '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', background: '#fff' }}>
+                    <div key={i} className="de-item">
+                        <label title={img ? '사진 변경' : '사진 업로드'} className={img ? 'de-thumb is-filled' : 'de-thumb'}>
                             {uploadingIdx === i
-                                ? <Icon name="progress_activity" style={{ fontSize: 16, color: 'var(--adm-accent-strong)' }} />
+                                ? <Icon name="progress_activity" className="de-ico is-accent" />
                                 : img
-                                    ? <img src={img} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    : <Icon name="add_a_photo" style={{ fontSize: 15, color: 'var(--text-muted)' }} />}
-                            <input type="file" accept="image/*" style={{ display: 'none' }}
+                                    ? <img src={img} alt={title} />
+                                    : <Icon name="add_a_photo" className="de-ico is-muted" />}
+                            <input type="file" accept="image/*" className="de-file"
                                 onChange={(e) => { handleUpload(i, e.target.files?.[0]); e.target.value = ''; }} />
                         </label>
-                        <input
-                            className="inp"
-                            style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700 }}
-                            value={title}
-                            placeholder="여행지 이름 (한국어 표기)"
-                            onChange={(e) => patch(i, { title: e.target.value })}
-                        />
-                        <button type="button" className="act-btn" title="위로" onClick={() => move(i, -1)}><Icon name="arrow_upward" style={{ fontSize: 15 }} /></button>
-                        <button type="button" className="act-btn" title="아래로" onClick={() => move(i, 1)}><Icon name="arrow_downward" style={{ fontSize: 15 }} /></button>
-                        <button type="button" className="act-btn" title="카드 제거" onClick={() => setLines(lines.filter((_, j) => j !== i))}><Icon name="close" style={{ fontSize: 15, color: 'var(--mrt-red)' }} /></button>
+                        <div className="adm-ui-input de-grow">
+                            <input
+                                className="adm-ui-input-el de-spot-name"
+                                value={title}
+                                placeholder="여행지 이름 (한국어 표기)"
+                                onChange={(e) => patch(i, { title: e.target.value })}
+                            />
+                        </div>
+                        <button type="button" className="adm-ui-icon-btn is-normal is-sm" title="위로" onClick={() => move(i, -1)}><Icon name="arrow_upward" className="de-ico" /></button>
+                        <button type="button" className="adm-ui-icon-btn is-normal is-sm" title="아래로" onClick={() => move(i, 1)}><Icon name="arrow_downward" className="de-ico" /></button>
+                        <button type="button" className="adm-ui-icon-btn is-normal is-sm" title="카드 제거" onClick={() => setLines(lines.filter((_, j) => j !== i))}><Icon name="close" className="de-ico is-danger" /></button>
                     </div>
                 );
             })}
-            <div style={{ border: '1px dashed var(--border-default)', borderRadius: 8, padding: '8px 10px' }}>
-                <div className="cell-muted" style={{ fontSize: 12, marginBottom: 6 }}>
+            <div className="de-dashed-box">
+                <div className="de-note">
                     등록된 여행지 — 누르면 카드에 추가됩니다
-                    <a href="/admin/quote-desk/spots" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, color: 'var(--adm-accent-strong)', fontWeight: 700 }}>여행지 등록 관리 ↗</a>
+                    <a href="/admin/quote-desk/spots" target="_blank" rel="noopener noreferrer" className="de-link">여행지 등록 관리 ↗</a>
                 </div>
                 {loading ? (
-                    <div className="cell-muted" style={{ fontSize: 12 }} role="status">여행지를 불러오는 중입니다…</div>
+                    <div className="de-note" role="status">여행지를 불러오는 중입니다…</div>
                 ) : error ? (
-                    <div className="cell-muted" style={{ fontSize: 12 }} role="alert">{error}<button type="button" className="btn btn-ghost btn-sm" onClick={retry}>다시 불러오기</button></div>
+                    <div className="de-note" role="alert">{error}<button type="button" className="adm-ui-btn is-secondary is-sm de-retry" onClick={retry}>다시 불러오기</button></div>
                 ) : registered.length === 0 ? (
-                    <div className="cell-muted" style={{ fontSize: 12 }}>등록된 여행지가 없습니다. 여행지 관리에서 먼저 추가해 주세요.</div>
+                    <div className="de-note">등록된 여행지가 없습니다. 여행지 관리에서 먼저 추가해 주세요.</div>
                 ) : (
-                    <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                    <div className="de-row is-wrap is-tight">
                         {registered.map(sp => (
-                            <button key={sp.id} type="button" className="chip" title={`${sp.name} 카드 추가`} onClick={() => addRegistered(sp.name, sp.image)} style={{ paddingLeft: 4 }}>
-                                <img src={sp.image} alt="" style={{ width: 24, height: 24, borderRadius: 6, objectFit: 'cover' }} />
+                            <button key={sp.id} type="button" className="adm-ui-chip de-spot-chip" title={`${sp.name} 카드 추가`} onClick={() => addRegistered(sp.name, sp.image)}>
+                                <img src={sp.image} alt="" className="de-spot-chip-img" />
                                 {sp.name}
                             </button>
                         ))}
@@ -188,67 +199,70 @@ function MapStopsField({ value, onChange, onBusyChange }: { value: string; onCha
     }, []);
 
     return (
-        <div className="stack" style={{ gap: 8 }}>
+        <div className="de-stack">
             {lines.length === 0 && (
-                <div className="cell-muted" style={{ fontSize: 12 }}>아래에서 여행지를 추가하면 지도에 순서대로 표시됩니다</div>
+                <div className="de-note">아래에서 여행지를 추가하면 지도에 순서대로 표시됩니다</div>
             )}
             {lines.map((line, i) => {
                 const { ko, ja, img } = parseLine(line);
                 return (
-                    <div key={`${ko}-${i}`} className="row" style={{ gap: 6, alignItems: 'center', padding: '6px 8px', border: '1px solid var(--border-default)', borderRadius: 8, background: 'var(--bg-muted, #f8f9fa)' }}>
-                        <span style={{ flex: 'none', width: 20, height: 20, borderRadius: '50%', background: 'var(--adm-accent)', color: 'var(--adm-on-primary)', fontSize: 11, fontWeight: 800, display: 'grid', placeItems: 'center' }}>{i + 1}</span>
+                    <div key={`${ko}-${i}`} className="de-item">
+                        <span className="de-stop-no">{i + 1}</span>
                         {/* 원형 버블에 표시될 사진 — 클릭해서 업로드/변경 */}
-                        <label title={img ? '사진 변경' : '사진 업로드 (지도 원형에 표시)'} style={{ flex: 'none', width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', border: img ? '2px solid var(--adm-accent)' : '2px dashed var(--border-default)', cursor: 'pointer', display: 'grid', placeItems: 'center', background: '#fff' }}>
+                        <label title={img ? '사진 변경' : '사진 업로드 (지도 원형에 표시)'} className={cx('de-thumb is-round', img && 'is-filled')}>
                             {uploadingIdx === i
-                                ? <Icon name="progress_activity" style={{ fontSize: 16, color: 'var(--adm-accent-strong)' }} />
+                                ? <Icon name="progress_activity" className="de-ico is-accent" />
                                 : img
-                                    ? <img src={img} alt={ko} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    : <Icon name="add_a_photo" style={{ fontSize: 15, color: 'var(--text-muted)' }} />}
+                                    ? <img src={img} alt={ko} />
+                                    : <Icon name="add_a_photo" className="de-ico is-muted" />}
                             <input
                                 type="file"
                                 accept="image/*"
-                                style={{ display: 'none' }}
+                                className="de-file"
                                 onChange={(e) => { handleStopImageUpload(i, e.target.files?.[0]); e.target.value = ''; }}
                             />
                         </label>
-                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {ko}{ja ? <span className="cell-muted" style={{ fontWeight: 500, marginLeft: 6 }}>{ja}</span> : null}
+                        <span className="de-stop-name">
+                            {ko}{ja ? <span className="de-stop-sub">{ja}</span> : null}
                         </span>
                         {img && (
-                            <button type="button" className="act-btn" title="사진 제거" onClick={() => setLineImage(i, '')}><Icon name="image" style={{ fontSize: 15, color: 'var(--mrt-red)' }} /></button>
+                            <AdminIconButton label="사진 제거" size="sm" className="de-icon-danger" onClick={() => setLineImage(i, '')}><Icon name="image" className="de-ico" /></AdminIconButton>
                         )}
-                        <button type="button" className="act-btn" title="위로" disabled={i === 0} onClick={() => move(i, -1)}><Icon name="arrow_upward" style={{ fontSize: 15 }} /></button>
-                        <button type="button" className="act-btn" title="아래로" disabled={i === lines.length - 1} onClick={() => move(i, 1)}><Icon name="arrow_downward" style={{ fontSize: 15 }} /></button>
-                        <button type="button" className="act-btn danger" title="삭제" onClick={() => setLines(lines.filter((_, idx) => idx !== i))}><Icon name="close" style={{ fontSize: 15 }} /></button>
+                        <AdminIconButton label="위로" size="sm" disabled={i === 0} onClick={() => move(i, -1)}><Icon name="arrow_upward" className="de-ico" /></AdminIconButton>
+                        <AdminIconButton label="아래로" size="sm" disabled={i === lines.length - 1} onClick={() => move(i, 1)}><Icon name="arrow_downward" className="de-ico" /></AdminIconButton>
+                        <AdminIconButton label="삭제" size="sm" className="de-icon-danger" onClick={() => setLines(lines.filter((_, idx) => idx !== i))}><Icon name="close" className="de-ico" /></AdminIconButton>
                     </div>
                 );
             })}
-            <select
-                className="inp"
-                value=""
-                onChange={(e) => { addDestination(e.target.value); e.target.value = ''; }}
-            >
-                <option value="">＋ 여행지 추가…</option>
-                {groups.map(g => (
-                    <optgroup key={g.name} label={g.name}>
-                        {g.items.map(d => (
-                            <option key={d.ko} value={d.ko}>{d.ja} — {d.en}</option>
-                        ))}
-                    </optgroup>
-                ))}
-            </select>
-            <button type="button" className="chip" style={{ alignSelf: 'flex-start' }} onClick={() => setAdvanced(a => !a)}>
-                <Icon name="edit_note" style={{ fontSize: 15 }} />{advanced ? '직접 입력 닫기' : '직접 입력 (목록에 없는 지역·좌표·사진)'}
-            </button>
+            {/* 지역 묶음(optgroup)이 있는 목록이라 AdminSelect 대신 같은 모양 클래스의 생 select */}
+            <div className="adm-ui-select de-spot-select">
+                <select
+                    className="adm-ui-select-el"
+                    value=""
+                    onChange={(e) => { addDestination(e.target.value); e.target.value = ''; }}
+                >
+                    <option value="">＋ 여행지 추가…</option>
+                    {groups.map(g => (
+                        <optgroup key={g.name} label={g.name}>
+                            {g.items.map(d => (
+                                <option key={d.ko} value={d.ko}>{d.ja} — {d.en}</option>
+                            ))}
+                        </optgroup>
+                    ))}
+                </select>
+                <span className="adm-ui-select-caret" aria-hidden="true"><IconChevronDown /></span>
+            </div>
+            <AdminButton size="sm" className="de-self-start" leading={<Icon name="edit_note" className="de-ico" />} onClick={() => setAdvanced(a => !a)}>
+                {advanced ? '직접 입력 닫기' : '직접 입력 (목록에 없는 지역·좌표·사진)'}
+            </AdminButton>
             {advanced && (
                 <>
-                    <textarea
-                        className="inp"
-                        rows={Math.max(3, lines.length + 1)}
+                    <AdminTextArea
+                        minRows={Math.max(3, lines.length + 1)}
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
                     />
-                    <div className="muted" style={{ fontSize: 11 }}>
+                    <div className="de-note-sm">
                         한 줄에 한 곳: 지역명|표시문구|사진URL|위도,경도 (사진·좌표 생략 가능). 미등록 지역은 위도,경도를 넣으면 그 위치에 표시됩니다.
                     </div>
                 </>
@@ -468,9 +482,8 @@ export function DesignTemplateBlockEditor({
 
     if (!def) {
         return (
-            <div className="card-muted-note">
-                <Icon name="warning" />
-                <span>알 수 없는 디자인 템플릿입니다: {content?.templateId}</span>
+            <div className="adm-msg is-cautionary">
+                <p>알 수 없는 디자인 템플릿입니다: {content?.templateId}</p>
             </div>
         );
     }
@@ -572,37 +585,35 @@ export function DesignTemplateBlockEditor({
         }).length;
 
     return (
-        <div className="stack" style={{ gap: 10 }}>
-            <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span className="badge b-gray">{def.name}</span>
-                <span className="cell-muted" style={{ fontSize: 12 }}>
+        <div className="de-editor">
+            <div className="de-head">
+                <AdminBadge>{def.name}</AdminBadge>
+                <span className="de-note">
                     미리보기의 문구·사진을 클릭해 그 자리에서 고칩니다 — 비우면 원본으로 돌아갑니다
                 </span>
-                <div className="spacer" />
+                <div className="de-spacer" />
                 {removedDefs.length > 0 && (
-                    <button type="button" className="chip" aria-haspopup="menu" title="뺀 섹션을 다시 넣습니다. 입력했던 내용이 그대로 돌아옵니다"
+                    <AdminButton size="sm" aria-haspopup="menu" title="뺀 섹션을 다시 넣습니다. 입력했던 내용이 그대로 돌아옵니다" leading={<Ico name="lc-plus" size={14} />}
                         onClick={e => setRemovedMenu(menuAt(e.currentTarget, '뺀 섹션 다시 넣기', removedDefs.map(sec => ({ key: sec.id, label: sec.id, onPick: () => restoreSection(sec.id) })), true))}>
-                        <Ico name="lc-plus" size={14} />뺀 섹션 {removedDefs.length}
-                    </button>
+                        뺀 섹션 {removedDefs.length}
+                    </AdminButton>
                 )}
-                <button type="button" className="chip" aria-pressed={panelOpen} title="모든 입력칸을 섹션별 목록으로 봅니다" onClick={() => setPanelOpen(v => !v)}
-                    style={panelOpen ? { background: 'var(--mrt-navy, #1a2b4a)', color: '#fff' } : undefined}>
-                    <Ico name="lc-list" size={14} />목록으로 편집
-                </button>
+                <AdminChip active={panelOpen} title="모든 입력칸을 섹션별 목록으로 봅니다" leading={<Ico name="lc-list" size={14} />} onClick={() => setPanelOpen(v => !v)}>
+                    목록으로 편집
+                </AdminChip>
                 {onFocusModeChange && (
-                    <button type="button" className="chip" aria-pressed={focusMode} title="상품 편집창의 오른쪽 열과 제목을 숨기고 디자인을 넓게 봅니다" onClick={() => onFocusModeChange(!focusMode)}
-                        style={focusMode ? { background: 'var(--mrt-navy, #1a2b4a)', color: '#fff' } : undefined}>
-                        <Ico name="lc-panels-top-left" size={14} />{focusMode ? '집중 편집 끝' : '집중 편집'}
-                    </button>
+                    <AdminChip active={focusMode} title="상품 편집창의 오른쪽 열과 제목을 숨기고 디자인을 넓게 봅니다" leading={<Ico name="lc-panels-top-left" size={14} />} onClick={() => onFocusModeChange(!focusMode)}>
+                        {focusMode ? '집중 편집 끝' : '집중 편집'}
+                    </AdminChip>
                 )}
                 {sharedCount > 0 && (
-                    <span className="cell-muted" style={{ fontSize: 12 }}>
+                    <span className="de-note">
                         공통 사진 {sharedCount}장 사용 중
                     </span>
                 )}
-                <button
-                    type="button"
-                    className="chip"
+                <AdminButton
+                    size="sm"
+                    className={ownImageKeys.length > 0 ? 'de-btn-accent' : undefined}
                     onClick={saveOwnImagesAsShared}
                     disabled={ownImageKeys.length === 0 || savingShared}
                     title={
@@ -610,30 +621,22 @@ export function DesignTemplateBlockEditor({
                             ? '이 상품에 직접 올린 사진이 없습니다'
                             : '미리보기에서 올린 사진들을 모든 상품이 함께 쓰는 공통 사진으로 저장합니다'
                     }
-                    style={ownImageKeys.length > 0 ? { borderColor: 'var(--adm-accent)', color: 'var(--adm-accent-strong)' } : undefined}
+                    leading={<Icon name="photo_library" className="de-ico" />}
                 >
-                    <Icon name="photo_library" style={{ fontSize: 16 }} />
                     {savingShared ? '저장 중…' : `올린 사진 ${ownImageKeys.length}장을 공통으로 저장`}
-                </button>
+                </AdminButton>
                 {def.mobile && (
-                    <div className="row" style={{ gap: 6 }}>
-                        {(['desktop', 'mobile'] as const).map(vt => (
-                            <button
-                                key={vt}
-                                type="button"
-                                className="chip"
-                                onClick={() => setPreviewVariant(vt)}
-                                style={previewVariant === vt ? { background: 'var(--mrt-navy, #1a2b4a)', color: '#fff' } : undefined}
-                            >
-                                {vt === 'desktop' ? 'PC' : '모바일'}
-                            </button>
-                        ))}
-                    </div>
+                    <AdminSegmented
+                        label="미리보기 화면"
+                        items={PREVIEW_VARIANTS}
+                        value={previewVariant}
+                        onChange={setPreviewVariant}
+                    />
                 )}
             </div>
 
 
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div className="de-split">
                 {/* 좌: 클릭 가능한 미리보기 */}
                 <div
                     ref={previewRef}
@@ -642,9 +645,9 @@ export function DesignTemplateBlockEditor({
                     onDragOver={handlePreviewDragOver}
                     onDragLeave={() => setDropKey(null)}
                     onDrop={handlePreviewDrop}
-                    style={{ flex: 1, minWidth: 0, maxHeight: focusMode ? 'calc(100vh - 160px)' : '78vh', overflowY: 'auto', border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', background: '#fff' }}
+                    className={cx('de-preview', focusMode && 'is-focus')}
                 >
-                    <div style={{ maxWidth: previewVariant === 'mobile' ? 430 : undefined, margin: previewVariant === 'mobile' ? '0 auto' : undefined }}>
+                    <div className={cx('de-preview-inner', previewVariant === 'mobile' && 'is-mobile')}>
                         <DesignBlockView
                             content={content}
                             editing
@@ -654,7 +657,7 @@ export function DesignTemplateBlockEditor({
                             highlightSection={toolbarInst}
                             valueOverrides={valueOverrides}
                             itinerarySlot={(
-                                <div style={{ padding: '28px 16px', background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: 12, margin: '8px 0', textAlign: 'center', color: '#64748b', fontSize: 14 }}>
+                                <div className="de-itinerary-slot">
                                     📋 이 자리에 상품의 <b>일정탭</b>에서 작성한 일정표가 표시됩니다
                                 </div>
                             )}
@@ -663,116 +666,117 @@ export function DesignTemplateBlockEditor({
                 </div>
 
                 {/* 우: 섹션별 입력칸 목록 — 기본 숨김. 전용 편집기가 필요한 칸이나 ‘목록으로 편집’일 때 연다 */}
-                {panelOpen && <div className="stack" style={{ gap: 6, flex: '0 0 420px', maxHeight: '78vh', overflowY: 'auto' }}>
-                <div className="row" style={{ gap: 6, alignItems: 'center', padding: '2px 2px 4px' }}>
-                    <span className="cell-muted" style={{ fontSize: 12 }}>섹션별 입력칸</span><div className="spacer" />
-                    <button type="button" className="chip" onClick={() => setPanelOpen(false)}><Ico name="lc-x" size={13} />닫기</button>
+                {panelOpen && <div className="de-panel">
+                <div className="de-panel-head">
+                    <span className="de-note">섹션별 입력칸</span><div className="de-spacer" />
+                    <AdminButton size="sm" leading={<Ico name="lc-x" size={13} />} onClick={() => setPanelOpen(false)}>닫기</AdminButton>
                 </div>
                 {sections.map(sec => {
                     const open = openSection === sec.instId;
                     const filled = filledCount(sec.fields);
                     const repeatable = def.sectionDefs.find(s => s.id === sec.defId)?.repeatable;
                     return (
-                        <div key={sec.instId} style={{ flex: 'none', border: '1px solid var(--border-default)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
-                            <div className="row" style={{ gap: 0, alignItems: 'stretch', background: open ? 'var(--bg-muted, #f6f7f8)' : 'transparent' }}>
+                        <div key={sec.instId} className="de-sec">
+                            <div className={cx('de-sec-head', open && 'is-open')}>
+                                {/* 섹션 접기 머리(줄 전체가 눌리는 모양)라 부품 대신 adm- 클래스의 생 버튼 */}
                                 <button
                                     type="button"
+                                    className="adm-de-sec-toggle"
                                     onClick={() => setOpenSection(open ? null : sec.instId)}
-                                    style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 4px 10px 12px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                                 >
-                                    <Icon name={open ? 'expand_less' : 'expand_more'} style={{ fontSize: 18, flex: 'none' }} />
-                                    <span style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sec.name}</span>
-                                    <span className="cell-muted" style={{ fontSize: 12, marginLeft: 'auto', flex: 'none' }}>
+                                    <Icon name={open ? 'expand_less' : 'expand_more'} className="de-ico is-lg" />
+                                    <span className="de-sec-name">{sec.name}</span>
+                                    <span className="de-sec-count">
                                         {filled > 0 ? `${filled}개 수정됨` : '원본 그대로'}
                                     </span>
                                 </button>
-                                <div className="row" style={{ gap: 2, alignItems: 'center', padding: '0 8px 0 4px', flex: 'none' }}>
+                                <div className="de-sec-tools">
                                     {repeatable && (
-                                        <button
-                                            type="button"
-                                            className="act-btn"
-                                            title="이 섹션을 내용까지 복제해 아래에 추가"
+                                        <AdminIconButton
+                                            label="이 섹션을 내용까지 복제해 아래에 추가"
+                                            size="sm"
                                             onClick={() => duplicateSection(sec.instId)}
                                         >
-                                            <Icon name="content_copy" style={{ fontSize: 15 }} />
-                                        </button>
+                                            <Icon name="content_copy" className="de-ico" />
+                                        </AdminIconButton>
                                     )}
-                                    <button
-                                        type="button"
-                                        className="act-btn danger"
-                                        title="이 섹션을 상세페이지에서 빼기"
+                                    <AdminIconButton
+                                        label="이 섹션을 상세페이지에서 빼기"
+                                        size="sm"
+                                        className="de-icon-danger"
                                         onClick={() => removeSection(sec.instId)}
                                     >
-                                        <Icon name="delete" style={{ fontSize: 15 }} />
-                                    </button>
+                                        <Icon name="delete" className="de-ico" />
+                                    </AdminIconButton>
                                 </div>
                             </div>
                             {open && (
-                                <div className="stack" style={{ gap: 10, padding: '12px 12px 14px' }}>
+                                <div className="de-sec-body">
                                     {sec.fields.map(({ field: f, key: fk }) => (
                                         <div key={fk}>
-                                            <label className="muted" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+                                            <label className="de-field-label">
                                                 {f.label}
                                             </label>
                                             {valueOverrides?.[baseKey(fk)] !== undefined ? (
                                                 <div
                                                     ref={el => { if (el) fieldRefs.current.set(fk, el); else fieldRefs.current.delete(fk); }}
-                                                    style={{ border: '1px dashed var(--border-default)', borderRadius: 'var(--r-md)', padding: '10px 12px', background: 'var(--bg-muted, #f8fafc)' }}
+                                                    className="de-auto-box"
                                                 >
-                                                    <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>
+                                                    <div className="de-note">
                                                         「가격/옵션」 탭의 인원별 가격이 자동으로 반영됩니다. 수정은 그 탭에서 해 주세요.
                                                     </div>
-                                                    <pre style={{ margin: 0, fontSize: 12, whiteSpace: 'pre-wrap', color: 'var(--text-muted)' }}>{valueOverrides[baseKey(fk)]}</pre>
+                                                    <pre className="de-pre">{valueOverrides[baseKey(fk)]}</pre>
                                                 </div>
                                             ) : f.type === 'image' ? (
                                                 <div
                                                     ref={el => { if (el) fieldRefs.current.set(fk, el); else fieldRefs.current.delete(fk); }}
-                                                    className="row"
-                                                    style={{ gap: 10, alignItems: 'center', ...(selectedField === fk ? { outline: '2px solid rgba(var(--adm-accent-rgb), 0.5)', outlineOffset: 4, borderRadius: 6 } : {}) }}
+                                                    className={cx('de-img-field', selectedField === fk && 'is-selected')}
                                                 >
                                                     {values[fk] ? (
-                                                        <div style={{ position: 'relative', flex: 'none' }}>
+                                                        <div className="de-img-wrap">
                                                             <img
                                                                 src={values[fk]}
                                                                 alt={f.label}
-                                                                style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid var(--border-default)' }}
+                                                                className="de-img-thumb"
                                                             />
+                                                            {/* 사진 모서리에 붙는 동그란 지우기 표시라 부품 대신 adm- 클래스의 생 버튼 */}
                                                             <button
                                                                 type="button"
+                                                                className="adm-de-img-remove"
                                                                 onClick={() => clearValue(fk)}
                                                                 title="이미지 제거"
-                                                                style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'var(--mrt-red)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
                                                             >
-                                                                <Icon name="close" style={{ fontSize: 14 }} />
+                                                                <Icon name="close" className="de-ico" />
                                                             </button>
                                                         </div>
                                                     ) : sharedAssets[baseKey(fk)] ? (
                                                         // 상품에 따로 올리지 않았고 공통 이미지가 있는 경우
-                                                        <div style={{ position: 'relative', flex: 'none' }}>
+                                                        <div className="de-img-wrap">
                                                             <img
                                                                 src={sharedAssets[baseKey(fk)]}
                                                                 alt={f.label}
-                                                                style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid var(--adm-accent)' }}
+                                                                className="de-img-thumb is-shared"
                                                             />
                                                             <span
                                                                 title="공통 이미지를 사용 중입니다. 이 상품만 다르게 하려면 업로드하세요."
-                                                                style={{ position: 'absolute', left: -4, bottom: -6, padding: '1px 6px', borderRadius: 500, background: 'var(--adm-accent)', color: 'var(--adm-on-primary)', fontSize: 11, fontWeight: 800 }}
+                                                                className="de-shared-badge"
                                                             >
                                                                 공통
                                                             </span>
                                                         </div>
                                                     ) : (
-                                                        <div style={{ width: 72, height: 72, borderRadius: 'var(--r-md)', border: '1px dashed var(--border-default)', display: 'grid', placeItems: 'center', color: 'var(--text-muted)', flex: 'none' }}>
-                                                            <Icon name="image" style={{ fontSize: 20 }} />
+                                                        <div className="de-img-empty">
+                                                            <Icon name="image" className="de-ico is-xl" />
                                                         </div>
                                                     )}
-                                                    <label className="chip" style={{ cursor: 'pointer' }}>
-                                                        <Icon name="upload" style={{ fontSize: 16 }} />
-                                                        {uploadingKey === fk ? '업로드 중…' : (values[fk] ? '변경' : '업로드')}
+                                                    {/* 파일 칸을 감싼 라벨이라 부품 대신 같은 모양 클래스(AdminButton 보조·작게) */}
+                                                    <label className="adm-ui-btn is-secondary is-sm de-upload">
+                                                        <span className="adm-ui-btn-icon"><Icon name="upload" className="de-ico" /></span>
+                                                        <span className="adm-ui-btn-label">{uploadingKey === fk ? '업로드 중…' : (values[fk] ? '변경' : '업로드')}</span>
                                                         <input
                                                             type="file"
                                                             accept="image/*"
-                                                            style={{ display: 'none' }}
+                                                            className="de-file"
                                                             onChange={(e) => {
                                                                 handleImageUpload(fk, e.target.files?.[0]);
                                                                 e.target.value = '';
@@ -806,15 +810,14 @@ export function DesignTemplateBlockEditor({
                                                         onChange={(next) => setValue(fk, next)}
                                                     />
                                                 )}
-                                                <textarea
+                                                <AdminTextArea
                                                     ref={el => { if (el) fieldRefs.current.set(fk, el); else fieldRefs.current.delete(fk); }}
-                                                    className="inp"
-                                                    rows={Math.min(6, Math.max(2, (f.default?.split('\n').length ?? 2)))}
+                                                    className={selectedField === fk ? 'de-selected' : undefined}
+                                                    minRows={Math.min(6, Math.max(2, (f.default?.split('\n').length ?? 2)))}
                                                     value={values[fk] ?? f.default ?? ''}
                                                     placeholder={f.default || ''}
                                                     onChange={(e) => setValue(fk, e.target.value)}
                                                     onFocus={() => handleFieldFocus(fk)}
-                                                    style={selectedField === fk ? { borderColor: 'var(--adm-accent)', boxShadow: '0 0 0 2px rgba(var(--adm-accent-rgb), 0.25)' } : undefined}
                                                 />
                                                 </>
                                             ) : (
@@ -834,20 +837,19 @@ export function DesignTemplateBlockEditor({
                                                         onChange={(next) => setValue(fk, next)}
                                                     />
                                                 )}
-                                                <input
+                                                <AdminTextInput
                                                     ref={el => { if (el) fieldRefs.current.set(fk, el); else fieldRefs.current.delete(fk); }}
                                                     type="text"
-                                                    className="inp"
+                                                    className={selectedField === fk ? 'de-selected' : undefined}
                                                     value={values[fk] ?? f.default ?? ''}
                                                     placeholder={f.default || ''}
                                                     onChange={(e) => setValue(fk, e.target.value)}
                                                     onFocus={() => handleFieldFocus(fk)}
-                                                    style={selectedField === fk ? { borderColor: 'var(--adm-accent)', boxShadow: '0 0 0 2px rgba(var(--adm-accent-rgb), 0.25)' } : undefined}
                                                 />
                                                 </>
                                             )}
                                             {f.help && f.type !== 'map-stops' && (
-                                                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{f.help}</div>
+                                                <div className="de-help">{f.help}</div>
                                             )}
                                         </div>
                                     ))}
@@ -858,13 +860,13 @@ export function DesignTemplateBlockEditor({
                 })}
 
                 {removedDefs.length > 0 && (
-                    <div style={{ flex: 'none', border: '1px dashed var(--border-default)', borderRadius: 'var(--r-md)', padding: '10px 12px' }}>
-                        <div className="cell-muted" style={{ fontSize: 12, marginBottom: 8 }}>뺀 섹션 — 다시 넣으면 입력했던 내용이 그대로 돌아옵니다</div>
-                        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                    <div className="de-dashed-box">
+                        <div className="de-note">뺀 섹션 — 다시 넣으면 입력했던 내용이 그대로 돌아옵니다</div>
+                        <div className="de-row is-wrap is-tight">
                             {removedDefs.map(s => (
-                                <button key={s.id} type="button" className="chip" onClick={() => restoreSection(s.id)}>
-                                    <Icon name="add" style={{ fontSize: 15 }} />{s.id}
-                                </button>
+                                <AdminButton key={s.id} size="sm" leading={<Icon name="add" className="de-ico" />} onClick={() => restoreSection(s.id)}>
+                                    {s.id}
+                                </AdminButton>
                             ))}
                         </div>
                     </div>
