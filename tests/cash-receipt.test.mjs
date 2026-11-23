@@ -80,6 +80,9 @@ test("가이드 시트 1페이지는 디자인의 공항 픽업·숙소 정보·
   assert.ok(guide.includes("const assigned = lodgeByDay[i + 1];"), "일자별 일정의 숙소 칸도 배정 숙소를 쓴다");
   assert.ok(guide.includes("noBr(assigned.grade || (LODGE_LIB[assignedName] || {}).grade)"), "배정 숙소 등급은 배정 기록 → 숙소 등록 정보 순");
   assert.ok(guide.includes('badge("b-progress", "숙소 미배정", true)'));
+  assert.doesNotMatch(guide, /assignedGrade[^\n]*<small>\$\{esc\(stayName\)\}/, "배정 숙소가 있으면 일정상 숙소 종류를 같이 쓰지 않는다");
+  assert.ok(guide.includes("BK.contract?.snapshot?.travelers"), "예약 명단이 비면 계약서 서명 때 명단을 쓴다");
+  assert.ok(guide.includes("const leadRow = { nameKo: noBr(REC.name), phone: noBr(REC.phone), lead: true };"), "명단이 아직 없으면 예약자 이름·연락처를 첫 줄에");
   assert.ok(guide.includes("img/brand/mongolia-milkyway-logo-dark.png"));
 });
 
