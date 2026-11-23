@@ -7,7 +7,7 @@
 }
 .lo-board button, .lo-board select, .lo-board input { font-family: inherit; }
 /* 공통 부품(adm-ui-*)은 자기 초점 고리(--adm-ring)를 쓴다 */
-.lo-board :is(button, a, select, input, summary):not([class*="adm-ui-"]):focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-ink); outline-offset: calc(var(--adm-border-width) * 2); }
+.lo-board :is(button, a, select, input, summary):not([class*="adm-ui-"], .lo-input):focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-ink); outline-offset: calc(var(--adm-border-width) * 2); }
 .lo-notice p { margin: 0; }
 .lo-notice .lo-actions { margin-top: var(--adm-space-2); }
 
