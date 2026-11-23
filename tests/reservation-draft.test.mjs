@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildSync, transformSync } from 'esbuild';
-import { createRequire } from 'node:module';
+import { requireAdminUi } from './helpers/require-admin-ui.mjs';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import React from 'react';
@@ -191,7 +191,7 @@ test('실제 편집기는 data router에서 nullable legacy 일정·빈 계약 �
         external: ['*/adminPagePreload'],
         loader: { '.webp': 'dataurl', '.jpg': 'dataurl', '.png': 'dataurl', '.svg': 'dataurl', '.css': 'empty' }, define: { 'import.meta.env': '{}' } }).outputFiles[0].text;
     const module = { exports: {} };
-    const require = createRequire(import.meta.url);
+    const require = requireAdminUi(import.meta.url);
     const editorRequire = id => id.endsWith('/adminPagePreload') ? { preloadAdminPage() {} } : require(id);
     new Function('require', 'module', 'exports', bundle)(editorRequire, module, module.exports);
     const { ReservationInlineEditor } = module.exports;

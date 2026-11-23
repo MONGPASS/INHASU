@@ -13,6 +13,8 @@
   /* ── 브랜드 민트 — 배민 민트(2026-11-21 오너 결정) ──
      #0CEFD3은 밝은 채움색이라 흰 글자를 올리면 대비가 1.5:1이다. 민트 채움 위 글자는 반드시 --adm-on-primary(#222222, 10.8:1).
      민트를 글자로 쓸 때는 --adm-accent-strong(#06796B, 흰 바탕 5.3:1 · #F6F6F6 바탕 4.9:1). 같은 색상(172.6°)에서 밝기만 낮춘 단계다. */
+  --adm-seed-brand: #06C4A0;
+  --adm-seed-brand-hover: #04B08F;
   --adm-accent: #0CEFD3;          /* 강조·선택·주요 버튼 채움 */
   --adm-accent-hover: #0BDFC5;    /* 마우스를 올렸을 때 */
   --adm-accent-strong: #06796B;   /* 밝은 바탕 위의 민트 글자·링크·아이콘 */
@@ -96,6 +98,7 @@
   --adm-content-max-narrow: 960px;  /* 입력 폼 화면의 본문 최대 폭 */
 
   /* ── 모서리 ── */
+  --adm-radius-badge: 6px;
   --adm-radius-xs: 4px;      /* 배지·작은 버튼 */
   --adm-radius-sm: 10px;     /* 버튼·입력창 */
   --adm-radius-md: 16px;     /* 카드 */

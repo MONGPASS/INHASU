@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
+import { requireAdminUi } from './helpers/require-admin-ui.mjs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { dashboardAnswerRate, dashboardAvailability, dashboardBookingSplit, dashboardDailyNew, dashboardDate, dashboardNumber, dashboardPeriod,
     dashboardRevenue, dashboardSeoulDate, dashboardShortRange, dashboardTaskCards, dashboardTimestamp } from '../src/utils/adminDashboard.ts';
 
-const require = createRequire(import.meta.url);
+const require = requireAdminUi(import.meta.url);
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const { MemoryRouter } = require('react-router-dom');

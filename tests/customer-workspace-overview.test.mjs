@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
+import { requireAdminUi } from './helpers/require-admin-ui.mjs';
 import { build } from 'esbuild';
-const require = createRequire(import.meta.url), React = require('react');
+const require = requireAdminUi(import.meta.url), React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const load = async entry => {
     const result = await build({ entryPoints: [entry], bundle: true, format: 'cjs', platform: 'node', packages: 'external', jsx: 'automatic', write: false, loader: { '.css': 'empty' }, define: { 'import.meta.env': '{}' } });

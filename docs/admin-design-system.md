@@ -9,7 +9,7 @@
    - **이 규칙은 테스트가 강제한다**(2026-11-21): `tests/admin-design-budget.test.mjs`가 파일마다 생 `<button>`·`<input>`·`<table>`, 인라인 `style`, 숫자 크기, 직접 적은 색, `!important`, 기본 확인창 수를 세어 `scripts/admin-design-baseline.json`보다 늘면 실패한다. 새 파일은 처음부터 0이어야 한다. 줄였으면 `node scripts/check-admin-design.mjs --write-baseline --md`로 기준선과 [전환 현황](admin-design-adoption.md)을 함께 낮춘다. 기준선을 올리는 변경은 7절 예외 기록 없이 받지 않는다.
    - 민트 채움(`--adm-primary-bg`·`--adm-accent`) 위의 글자·아이콘은 `--adm-on-primary`(#222222)만 쓴다. 흰 글자는 대비 1.5:1이라 금지(`tests/admin-design-tokens.test.mjs`). 주요 버튼은 `AdminButton variant="primary"`가 이 글자색을 붙인다.
 2. 제목·버튼·입력창·검색·표·배지·탭·팝업·알림은 3절의 **우리 관리자 부품**(`src/components/admin/ui`, `import { AdminButton, … } from '…/components/admin/ui'`)을 쓴다. 같은 일을 하는 부품을 새로 만들지 않는다.
-   - 화면 파일은 `@montage-ui/core`를 직접 가져오지 않는다. Montage는 부품 폴더 안에서만 감싸 쓴다(`tests/admin-ui-boundary.test.mjs`가 막는다). 아이콘 `@montage-ui/icon`은 어디서나 쓴다.
+   - 관리자 UI의 신규·교체 부품은 공식 SEED React 컴포넌트를 `src/components/admin/ui`에서 감싸 사용한다. 기존 Montage 사용처는 전환 순서에 따라 줄인다. [SEED 전환 현황](admin-seed-migration.md)에 대응 관계와 잔여 범위가 있다.
    - 부품 모양은 개발용 미리보기 `/admin/__ui`(운영 메뉴에는 없음, 합성 자료만)에서 한눈에 본다. 부품을 고치면 미리보기도 함께 고친다.
 3. 화면은 4절의 네 가지 유형 중 하나의 틀을 따른다.
 4. 저장·취소·삭제·오류·알림은 5절의 방식으로 동작하게 한다.
