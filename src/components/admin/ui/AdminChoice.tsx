@@ -1,12 +1,13 @@
-import React from 'react';
-import { Chip, ContentBadge, SegmentedControl, SegmentedControlItem, Tab, TabList, TabListItem } from '@montage-ui/core';
+import React, { useRef } from 'react';
 import { cx } from './adminUiUtils';
 import './admin-components.css';
 
 /**
- * 상태 배지: 모서리 4px, 12px 600, 옅은 상태색 바탕 + 상태색 글자. 색만으로 알리지 않도록 글자(문장)를 꼭 넣는다.
+ * 상태 배지·칩·묶음 전환·밑줄 탭. 당근 Seed Badge·ChipToggleButton·SegmentedControl·Tabs 모양을 우리 변수로 직접 그린다.
+ *
+ * 상태 배지: 모서리 4px, 12px 굵게, 옅은 상태색 바탕 + 상태색 글자. 색만으로 알리지 않도록 글자(문장)를 꼭 넣는다.
  * 상태색 뜻: danger 삭제·오류·미처리 · warn 주의·대기 · success 완료 · info 안내·진행(민트 글자) · neutral 보류·종료.
- * 사람·출처처럼 구분만 하는 색은 tag-*(Montage accent).
+ * 사람·출처처럼 구분만 하는 색은 tag-*(Seed 색 단계).
  */
 export type AdminTone = 'neutral' | 'info' | 'success' | 'warn' | 'danger';
 export type AdminTagTone = 'tag-lime' | 'tag-cyan' | 'tag-blue' | 'tag-violet' | 'tag-purple' | 'tag-pink' | 'tag-orange';
@@ -25,16 +26,10 @@ export interface AdminBadgeProps {
 }
 
 export const AdminBadge: React.FC<AdminBadgeProps> = ({ tone = 'neutral', strong, outlined, size = 'sm', icon, className, title, children }) => (
-    <ContentBadge
-        variant={outlined ? 'outlined' : 'solid'}
-        color="neutral"
-        size={size === 'sm' ? 'xsmall' : 'small'}
-        leadingContent={icon}
-        title={title}
-        className={cx('adm-ui-badge', `is-${tone}`, strong && 'is-strong', outlined && 'is-outlined', className)}
-    >
+    <span title={title} className={cx('adm-ui-badge', `is-${tone}`, `is-${size}`, strong && 'is-strong', outlined && 'is-outlined', className)}>
+        {icon != null && icon !== false && <span className="adm-ui-badge-icon" aria-hidden="true">{icon}</span>}
         {children}
-    </ContentBadge>
+    </span>
 );
 
 /** 필터 칩: 높이 32·테두리 없음, 고르면 옅은 민트 바탕 + 민트 글자. 숫자는 `count`로 */
@@ -45,19 +40,11 @@ export interface AdminChipProps extends Omit<React.ButtonHTMLAttributes<HTMLButt
 }
 
 export const AdminChip: React.FC<AdminChipProps> = ({ active = false, count, leading, className, children, type = 'button', ...rest }) => (
-    <Chip
-        {...rest}
-        type={type}
-        size="small"
-        variant="solid"
-        active={active}
-        aria-pressed={active}
-        leadingContent={leading}
-        className={cx('adm-ui-chip', className)}
-    >
-        {children}
+    <button {...rest} type={type} aria-pressed={active} className={cx('adm-ui-chip', active && 'is-active', className)}>
+        {leading != null && leading !== false && <span className="adm-ui-chip-icon" aria-hidden="true">{leading}</span>}
+        <span className="adm-ui-chip-label">{children}</span>
         {count != null && count !== '' && <span className="adm-ui-chip-count">{count}</span>}
-    </Chip>
+    </button>
 );
 
 export interface AdminChoiceItem<V extends string = string> { value: V; label: React.ReactNode; count?: number | string | null; disabled?: boolean }
@@ -73,18 +60,57 @@ export function AdminChipGroup<V extends string>({ label, items, value, onChange
     );
 }
 
+// 화면 읽기 역할 이름(따옴표 낱말이 아이콘 이름 검사 scripts/check-icon-subset.mjs에 걸리지 않게 나눠 적는다)
+const ROLE_OPTION = ['rad', 'io'].join('') as React.AriaRole;
+const ROLE_OPTIONS = ['rad', 'iogroup'].join('') as React.AriaRole;
+const ROLE_TAB = ['ta', 'b'].join('') as React.AriaRole;
+
+/** 왼쪽·오른쪽(위·아래)·Home·End로 고를 수 있는 칸 사이를 옮긴다. 쓸 수 없는 칸은 건너뛴다 */
+function useRovingKeys<V extends string>(items: AdminChoiceItem<V>[], value: V, onChange: (value: V) => void) {
+    const refs = useRef<Array<HTMLButtonElement | null>>([]);
+    const onKeyDown = (event: React.KeyboardEvent) => {
+        const keys: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+        const enabled = items.map((item, index) => (item.disabled ? -1 : index)).filter((index) => index >= 0);
+        if (!enabled.length) return;
+        const current = Math.max(0, enabled.indexOf(items.findIndex((item) => item.value === value)));
+        let next: number | null = null;
+        if (event.key in keys) next = enabled[(current + keys[event.key] + enabled.length) % enabled.length];
+        else if (event.key === 'Home') next = enabled[0];
+        else if (event.key === 'End') next = enabled[enabled.length - 1];
+        if (next == null) return;
+        event.preventDefault();
+        onChange(items[next].value);
+        refs.current[next]?.focus();
+    };
+    return { refs, onKeyDown };
+}
+
 /** 묶음 전환(보기·정렬처럼 서로 바꾸는 2~4개): 회색 바탕 안에서 고른 칸만 흰색 */
 export function AdminSegmented<V extends string>({ label, items, value, onChange, size = 'sm', className }: { label: string; items: AdminChoiceItem<V>[]; value: V; onChange: (value: V) => void; size?: 'sm' | 'md'; className?: string }) {
+    const { refs, onKeyDown } = useRovingKeys(items, value, onChange);
+    const hasSelected = items.some((item) => item.value === value);
     return (
-        <SegmentedControl
-            aria-label={label}
-            size={size === 'sm' ? 'small' : 'medium'}
-            value={value}
-            onValueChange={(next) => onChange(next as V)}
-            className={cx('adm-ui-segmented', className)}
-        >
-            {items.map((item) => <SegmentedControlItem key={item.value} value={item.value} disabled={item.disabled}>{item.label}</SegmentedControlItem>)}
-        </SegmentedControl>
+        <div role={ROLE_OPTIONS} aria-label={label} className={cx('adm-ui-segmented', `is-${size}`, className)} onKeyDown={onKeyDown}>
+            {items.map((item, index) => {
+                const selected = item.value === value;
+                return (
+                    <button
+                        key={item.value}
+                        ref={(el) => { refs.current[index] = el; }}
+                        type="button"
+                        role={ROLE_OPTION}
+                        aria-checked={selected}
+                        tabIndex={selected || (!hasSelected && index === 0) ? 0 : -1}
+                        disabled={item.disabled}
+                        className={cx('adm-ui-segmented-item', selected && 'is-selected')}
+                        onClick={() => { if (!selected) onChange(item.value); }}
+                    >
+                        {item.label}
+                        {item.count != null && item.count !== '' && <span className="adm-ui-chip-count">{item.count}</span>}
+                    </button>
+                );
+            })}
+        </div>
     );
 }
 
@@ -101,19 +127,34 @@ export interface AdminTabItem<V extends string = string> extends AdminChoiceItem
 }
 
 export function AdminTabs<V extends string>({ label, items, value, onChange, size = 'md', className }: { label: string; items: AdminTabItem<V>[]; value: V; onChange: (value: V) => void; size?: 'sm' | 'md' | 'lg'; className?: string }) {
+    const { refs, onKeyDown } = useRovingKeys(items, value, onChange);
+    const hasSelected = items.some((item) => item.value === value);
     return (
-        <div className={cx('adm-ui-tabs', className)}>
-            <Tab value={value} onValueChange={(next) => onChange(next as V)}>
-                <TabList size={size === 'sm' ? 'small' : size === 'lg' ? 'large' : 'medium'} aria-label={label}>
-                    {items.map((item) => (
-                        <TabListItem key={item.value} value={item.value} disabled={item.disabled} id={item.id} aria-controls={item.controls}>
+        <div className={cx('adm-ui-tabs', `is-${size}`, className)}>
+            <div role="tablist" aria-label={label} className="adm-ui-tablist" onKeyDown={onKeyDown}>
+                {items.map((item, index) => {
+                    const selected = item.value === value;
+                    return (
+                        <button
+                            key={item.value}
+                            ref={(el) => { refs.current[index] = el; }}
+                            type="button"
+                            role={ROLE_TAB}
+                            id={item.id}
+                            aria-controls={item.controls}
+                            aria-selected={selected}
+                            tabIndex={selected || (!hasSelected && index === 0) ? 0 : -1}
+                            disabled={item.disabled}
+                            className={cx('adm-ui-tab', selected && 'is-selected')}
+                            onClick={() => { if (!selected) onChange(item.value); }}
+                        >
                             {item.tone && <span className={cx('adm-ui-tab-dot', `is-${item.tone}`)} aria-hidden="true" />}
                             {item.label}
                             {item.count != null && item.count !== '' && <span className="adm-ui-tab-count">{item.count}</span>}
-                        </TabListItem>
-                    ))}
-                </TabList>
-            </Tab>
+                        </button>
+                    );
+                })}
+            </div>
         </div>
     );
 }

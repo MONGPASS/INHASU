@@ -9,7 +9,7 @@
    - **이 규칙은 테스트가 강제한다**(2026-11-21): `tests/admin-design-budget.test.mjs`가 파일마다 생 `<button>`·`<input>`·`<table>`, 인라인 `style`, 숫자 크기, 직접 적은 색, `!important`, 기본 확인창 수를 세어 `scripts/admin-design-baseline.json`보다 늘면 실패한다. 새 파일은 처음부터 0이어야 한다. 줄였으면 `node scripts/check-admin-design.mjs --write-baseline --md`로 기준선과 [전환 현황](admin-design-adoption.md)을 함께 낮춘다. 기준선을 올리는 변경은 7절 예외 기록 없이 받지 않는다.
    - 민트 채움(`--adm-primary-bg`·`--adm-accent`) 위의 글자·아이콘은 `--adm-on-primary`(#032B25)만 쓴다. 흰 글자는 대비 1.9:1이라 금지(`tests/admin-design-tokens.test.mjs`). 주요 버튼은 `AdminButton variant="primary"`가 이 글자색을 붙인다.
 2. 제목·버튼·입력창·검색·표·배지·탭·팝업·알림은 3절의 **우리 관리자 부품**(`src/components/admin/ui`, `import { AdminButton, … } from '…/components/admin/ui'`)을 쓴다. 같은 일을 하는 부품을 새로 만들지 않는다.
-   - 화면 파일은 `@montage-ui/core`를 직접 가져오지 않는다. Montage는 부품 폴더 안에서만 감싸 쓴다(`tests/admin-ui-boundary.test.mjs`가 막는다). 아이콘 `@montage-ui/icon`은 어디서나 쓴다.
+   - 부품은 그 폴더가 당근 Seed 부품 설계(`docs/seed-design/components`)대로 생 HTML 요소로 직접 그린다. 바깥 부품 묶음(`@montage-ui/core` 등)은 쓰지 않는다(2026-11-23 지움, `tests/admin-ui-boundary.test.mjs`가 막는다). 아이콘 `@montage-ui/icon`은 단계 3(Seed 아이콘)까지 어디서나 쓴다.
    - 부품 모양은 개발용 미리보기 `/admin/__ui`(운영 메뉴에는 없음, 합성 자료만)에서 한눈에 본다. 부품을 고치면 미리보기도 함께 고친다.
 3. 화면은 4절의 네 가지 유형 중 하나의 틀을 따른다.
 4. 저장·취소·삭제·오류·알림은 5절의 방식으로 동작하게 한다.
@@ -49,7 +49,8 @@
 | M-12 | 견적 도구 화면의 위쪽 간격을 시안대로(2026-11-20): 코스·일정·여행지의 추가 버튼(여행지는 문구 초안 가져오기 포함)을 바깥 제목 줄 오른쪽으로 올리고(바깥 버튼이 도구 안 원래 버튼을 대신 누름, `AdminQuoteDesk`의 `clickFrameButton`), 도구 안 머리 줄은 숨김. 도구 본문 위 여백 26 → 8px(바깥 16px과 합쳐 화면 설명 아래 → 첫 내용 24px). 코스 관리 기준 설명 아래 → 필터 123 → 59px. 견적 예약 목록의 4px 단위가 아닌 간격(18·14·11·13px)을 16·12px로 | 완료(2026-11-20) |
 | M-14 | 브랜드 민트를 배민 민트로(2026-11-21): 채움 `#0CEFD3`, 글자용 `#06796B`(흰 바탕 5.3:1), 글자 `#222222`, 작업 바탕 `#F6F6F6`. 민트 채움 위 글자를 흰색 → `--adm-on-primary`(#222222, 10.8:1)로 CSS 120곳·견적 도구 인라인 5곳·TSX 4곳, 민트를 글자색으로 쓴 64곳을 `--adm-accent-strong`으로. 관리자 TSX에 남아 있던 옛 민트 hex 정리. 화면별 전환 현황 문서와 줄이기만 하는 기준선 테스트 추가 | 완료(2026-11-21) |
 | M-15 | 사이드바 개선(2026-11-21, Claude Design ‘관리자 사이드바 개선’): ‘업무 / 고객 · 사이트’ 2단 제목을 없애고 묶음 6개를 한 단계로, 묶음을 접고 펼침(고객·콘텐츠·사이트 관리는 처음 접힘, 지금 화면이 든 묶음은 늘 펼침, 이 브라우저에 기억). 맨 위 ‘메뉴 찾기’(Ctrl K·⌘ K, 메뉴 이름·묶음 이름, ↑↓·Enter·Esc, 최근 연 화면 3개). 메뉴 옆 처리할 일 숫자는 업무 알림과 같은 자료(통합 예약 목록 = 입금 신고·계약 확인, 견적 문의 = 답변 전 문의, 숙소 배정 = 출발 7일 안 배정 필요). 이름 통일: 일정 관리, 숙소 배정. 접기 버튼은 아래 계정 줄로, 접힌 메뉴(72px)는 묶음 사이 구분선과 숫자 점, 휴대폰 서랍은 큰 줄(48px)·닫기·사이트 보기·로그아웃. `AdminSidebar.tsx`·`AdminSidebar.css`(값은 `--adm-*`만)·계산 `adminSidebarModel.ts`(`tests/admin-sidebar.test.mjs`) | 완료(2026-11-21) |
-| S-1 | Montage → Seed 1단계(2026-11-23): 당근 Seed를 은하수 색으로 바꾼 판을 기준으로. Seed 토큰을 `public/seed/`에 그대로 두고 `admin-tokens.css`의 `--adm-*`를 그 값에 이음(색·모서리 4/6/10/16·높이 32~52·굵기 400/700·그림자·초점·움직임), 화면 안 알림을 Seed Callout 규격으로, 글자 크기 단계를 Seed로 바꾸고 35곳 맞춤, Montage 브랜드 덮어쓰기를 새 민트로. 부품 설계·아이콘 원본은 `docs/seed-design/`. 남은 일: 2단계 부품을 Montage 없이 Seed 모양으로 다시 만들고 `@montage-ui/core` 제거, 3단계 아이콘 교체 | 진행 중(1단계 완료) |
+| S-1 | Montage → Seed 1단계(2026-11-23): 당근 Seed를 은하수 색으로 바꾼 판을 기준으로. Seed 토큰을 `public/seed/`에 그대로 두고 `admin-tokens.css`의 `--adm-*`를 그 값에 이음(색·모서리 4/6/10/16·높이 32~52·굵기 400/700·그림자·초점·움직임), 화면 안 알림을 Seed Callout 규격으로, 글자 크기 단계를 Seed로 바꾸고 35곳 맞춤, Montage 브랜드 덮어쓰기를 새 민트로. 부품 설계·아이콘 원본은 `docs/seed-design/`. 남은 일: 3단계 아이콘 교체 | 완료(1단계) |
+| S-2 | Montage → Seed 2단계(2026-11-23): 우리 부품(3절)을 Montage 없이 Seed 설계대로 다시 만듦 — 같은 props라 화면은 그대로. 버튼(BoxButton·누르면 0.95)·글자 칸(회색 선, 쓰는 중 진한 선, 오류 빨강)·여러 줄(내용 따라 늘어남)·고르기(기본 `<select>` + 칸 모양)·체크·스위치(52×30)·검색·표·쪽 번호·배지·칩(알약형)·묶음 전환·밑줄 탭·불러오는 중(Spinner)·팝업(직접 portal, 초점 가두기·Esc·바깥 누르기·휴대폰 아래 시트)·고르기 메뉴. `AdminMontageProvider`·`admin-montage-brand.css`·`@montage-ui/core` 제거, 부품 CSS의 `.a.a` 덮어쓰기 정리, 옛 화면 칩·묶음 전환 규칙도 같은 모양으로. 부품 폴더는 생 요소로 부품을 만드는 곳이라 디자인 점검의 생 부품 수에서 뺀다. 남은 일: 3단계 아이콘 | 완료(2026-11-23) |
 | R-1 | 전면 리뉴얼 1단계 — 우리 관리자 부품 세트(2026-11-21, 3절): Montage를 감싸고 `--adm-*`만 쓰는 버튼 3종·입력 6종·표·페이지 이동·배지·칩·묶음 전환·밑줄 탭·카드·지표·화면 안 알림·불러오는 중/빈 목록/오류·팝업, 화면 틀 4종(`ListPage`·`FormPage`·`DetailPage`·`DashboardPage`). 부품 CSS는 `ui/admin-components.css` 한 파일(직접 색·숫자 크기·`!important` 0). 화면 파일의 `@montage-ui/core` 직접 import를 막는 테스트, 점검 스크립트의 전환율을 ‘공통 부품’(우리 부품 + 부품 폴더 안 Montage) 기준으로. Montage를 직접 쓰던 대시보드·통합 예약 목록 머리(탭·검색·칩·묶음 전환·일괄 작업)를 우리 부품으로 교체(검색 칸의 생 입력 1개, `admin-montage.css`의 숫자 크기 감소). 개발용 부품 미리보기 `/admin/__ui` | 완료(2026-11-21) |
 | M-13 | 고객 상세 편집 화면(2026-11-20): 편집 화면이라고 사이드바를 자동으로 접지 않음(사용자가 직접 접은 설정만 따름). 견적 예약 편집기 본문 최대 폭을 `--adm-content-max`(1440px)로, 머리·구역 탭·아래 막대의 좌우 여백을 `--adm-pad-page`로 | 완료(2026-11-20) |
 
@@ -94,30 +95,30 @@
 
 ## 3. 공통 부품
 
-부품은 `src/components/admin/ui/`에 두고 `index.ts` 한 곳에서 내보낸다. 화면은 `import { AdminButton, AdminTable, … } from '…/components/admin/ui'`로 쓴다. 화면 틀 4종(`ListPage` 등)만 `'…/components/admin/ui/AdminPage'`에서 가져온다(틀은 `AdminLayout`을 끌어와 묶음에 넣으면 순환 import가 된다). 부품마다 Montage 부품을 감싸고, 모양은 `ui/admin-components.css`(직접 색·숫자 크기·`!important` 없이 `--adm-*`만)가 정한다. 모든 부품과 화면 틀은 개발용 미리보기 **`/admin/__ui`**(`pages/AdminUiPreview.tsx`, `?frame=parts|list|form|detail|dashboard`)에서 볼 수 있다.
+부품은 `src/components/admin/ui/`에 두고 `index.ts` 한 곳에서 내보낸다. 화면은 `import { AdminButton, AdminTable, … } from '…/components/admin/ui'`로 쓴다. 화면 틀 4종(`ListPage` 등)만 `'…/components/admin/ui/AdminPage'`에서 가져온다(틀은 `AdminLayout`을 끌어와 묶음에 넣으면 순환 import가 된다). 부품은 당근 Seed 부품 설계(`docs/seed-design/components`)를 따라 생 HTML 요소(`<button>`·`<input>`·`<select>`·`<table>`)로 직접 그리고(2026-11-23 단계 2, Montage 제거), 모양은 `ui/admin-components.css`(직접 색·숫자 크기·`!important` 없이 `--adm-*`만)가 정한다. 이 폴더는 생 요소를 쓰는 유일한 곳이라 디자인 점검(`check-admin-design.mjs`)의 생 부품 수에서 뺀다. 모든 부품과 화면 틀은 개발용 미리보기 **`/admin/__ui`**(`pages/AdminUiPreview.tsx`, `?frame=parts|list|form|detail|dashboard`)에서 볼 수 있다.
 
-| 부품 | 쓰임 | 감싼 Montage |
+| 부품 | 쓰임 | Seed 설계 |
 |---|---|---|
-| `AdminButton` | `variant` primary(민트 채움 + `--adm-on-primary` 글자, 화면당 하나) · secondary(흰 바탕 테두리) · weak(회색) · danger(빨강 채움 + 흰 글자). `size` sm 32 · md 40 · lg 48(휴대폰 36·44·48). `loading`·`disabled`·`fullWidth`·`leading`/`trailing` 아이콘. `to`를 주면 화면 이동 링크. 기본 `type="button"` | `Button` |
-| `AdminIconButton` | 아이콘만 있는 버튼. `label`(화면 읽기·툴팁) 필수 | `IconButton` |
+| `AdminButton` | `variant` primary(민트 채움 + `--adm-on-primary` 글자, 화면당 하나) · secondary(흰 바탕 테두리) · weak(회색) · danger(빨강 채움 + 흰 글자). `size` sm 32 · md 40 · lg 48(휴대폰 40·48·52). `loading`·`disabled`·`fullWidth`·`leading`/`trailing` 아이콘. `to`를 주면 화면 이동 링크. 기본 `type="button"` | `BoxButton` |
+| `AdminIconButton` | 아이콘만 있는 버튼. `label`(화면 읽기·툴팁) 필수 | (아이콘 `<button>`) |
 | `AdminTextButton` | 글자 버튼(‘전체 보기’, ‘목록으로’). `tone` primary(민트 글자)·assistive(회색) | `TextButton` |
 | `AdminField` | 라벨(위, 13px 600) + 칸 + 칸 아래 보조 설명·오류. `required`면 `adm-req`(빨간 `*`), `error`면 빨간 테두리와 칸 아래 문구. 자식에 `(id) => 칸`을 넘기면 라벨과 칸이 이어진다 | — |
-| `AdminTextInput` · `AdminTextArea` · `AdminSelect` · `AdminCheckbox` | 입력칸(높이 40·휴대폰 44, 모서리 10, 글자 14·휴대폰 16) · 여러 줄(글자 수 표시) · 선택 상자(`onChange(value)`) · 체크(`onChange(boolean)`, 일부 선택) | `TextField` · `TextArea` · `Select`·`Option` · `Checkbox` |
+| `AdminTextInput` · `AdminTextArea` · `AdminSelect` · `AdminCheckbox` | 입력칸(높이 40·휴대폰 48, 모서리 6, 글자 14·휴대폰 16) · 여러 줄(내용 따라 늘어남, `maxLength`면 글자 수) · 선택 상자(기본 `<select>`, `onChange(value)`) · 체크(`onChange(boolean)`, 일부 선택) | `TextField` · `MultilineTextField` · (`TextField` 모양) · `Checkbox` |
 | `AdminSwitch` | 켜기·끄기 스위치(즉시 반영되는 노출·사용 여부). `label`·`description`을 주면 오른쪽에 이름과 설명, 표 칸 안처럼 이름 없이 쓰면 `aria-label`을 꼭 준다. `size` sm·md | `Switch` |
-| `AdminFileButton` | 파일 고르기 버튼. 모양은 `AdminButton` 그대로(`variant`·`size`·`leading`), 숨은 파일 칸을 열고 `onFiles(files)`로 넘긴다. `accept`·`multiple`. 같은 파일을 다시 고를 수 있게 칸은 바로 비운다. 예: 카테고리 아이콘·히어로 이미지 올리기 | (`Button`) |
-| `AdminSearch` | 검색칸(돋보기 + 지우기). 검색 줄 맨 왼쪽, 최대 320px(`wide`면 넓게) | `SearchField` |
-| `AdminTable`(+ `AdminThead`·`AdminTbody`·`AdminTr`·`AdminTh`·`AdminTd`) · `AdminDataTable` | 표. 머리 13px·줄 14px·여백 16px. `AdminDataTable`은 열 정의(`columns`) + 자료(`rows`)로 그리고 줄 누르기(`onRowClick`, 줄 안 버튼·링크는 제외)·선택 줄·빈 목록(`empty`)을 받는다. 휴대폰에서는 한 줄이 카드 한 장(`useCardTables`가 머리글을 이름표로 붙인다). `cardOff`면 표 그대로(7절에 이유) | `Table` 계열 |
-| `AdminPagination` | 표 아래 페이지 이동(+ 왼쪽 ‘전체 N건’). 한 쪽뿐이면 그리지 않는다 | `Pagination` |
-| `AdminBadge` | 상태 배지. `tone` neutral·info·success·warn·danger(+ 구분색 `tag-*`), `outlined`(테두리만)·`strong`(채움), `icon`. 색만으로 알리지 않게 글자를 꼭 넣는다 | `ContentBadge` |
-| `AdminChip` · `AdminChipGroup` | 필터 칩(높이 32, 고르면 옅은 민트 + 민트 글자, `count` 숫자) · 하나만 고르는 칩 묶음 | `Chip` |
-| `AdminSegmented` | 묶음 전환(보기·정렬 2~4개). 회색 바탕 안 고른 칸만 흰색 | `SegmentedControl` |
-| `AdminTabs` | 밑줄 탭(화면 안 구역·진행 상태). `count` 숫자, `tone`이면 이름 앞 상태색 점. 탭 내용은 화면이 고른 값으로 그린다 | `Tab`·`TabList`·`TabListItem` |
+| `AdminFileButton` | 파일 고르기 버튼. 모양은 `AdminButton` 그대로(`variant`·`size`·`leading`), 숨은 파일 칸을 열고 `onFiles(files)`로 넘긴다. `accept`·`multiple`. 같은 파일을 다시 고를 수 있게 칸은 바로 비운다. 예: 카테고리 아이콘·히어로 이미지 올리기 | (`BoxButton`) |
+| `AdminSearch` | 검색칸(돋보기 + 지우기). 검색 줄 맨 왼쪽, 최대 320px(`wide`면 넓게), Esc로 지움 | (`TextField` + 돋보기) |
+| `AdminTable`(+ `AdminThead`·`AdminTbody`·`AdminTr`·`AdminTh`·`AdminTd`) · `AdminDataTable` | 표. 머리 13px·줄 14px·여백 16px. `AdminDataTable`은 열 정의(`columns`) + 자료(`rows`)로 그리고 줄 누르기(`onRowClick`, 줄 안 버튼·링크는 제외)·선택 줄·빈 목록(`empty`)을 받는다. 휴대폰에서는 한 줄이 카드 한 장(`useCardTables`가 머리글을 이름표로 붙인다). `cardOff`면 표 그대로(7절에 이유) | (`<table>`) |
+| `AdminPagination` | 표 아래 페이지 이동(+ 왼쪽 ‘전체 N건’). 한 쪽뿐이면 그리지 않는다 | (쪽 번호 버튼) |
+| `AdminBadge` | 상태 배지. `tone` neutral·info·success·warn·danger(+ 구분색 `tag-*`), `outlined`(테두리만)·`strong`(채움), `icon`. 색만으로 알리지 않게 글자를 꼭 넣는다 | (Badge 모양) |
+| `AdminChip` · `AdminChipGroup` | 필터 칩(높이 32, 고르면 옅은 민트 + 민트 글자, `count` 숫자) · 하나만 고르는 칩 묶음 | `ChipToggleButton`(선택은 옅은 민트) |
+| `AdminSegmented` | 묶음 전환(보기·정렬 2~4개). 회색 바탕 안 고른 칸만 흰색, ←→ 키로 옮김 | (Seed에 없음) |
+| `AdminTabs` | 밑줄 탭(화면 안 구역·진행 상태). `count` 숫자, `tone`이면 이름 앞 상태색 점. 탭 내용은 화면이 고른 값으로 그린다, ←→ 키로 옮김 | `Tabs` |
 | `AdminCard` | 흰 카드(1px 선, 모서리 16, 안 여백 20). `title`·`description`·`actions`, `flush`(안 여백 없음, 표를 꽉 채울 때), `attention`(주의 테두리) | — |
 | `AdminStat` · `AdminStatRow` | 지표 카드(이름·숫자 28px 700·단위·보조 글자). 처리할 일은 `attention`(주의 테두리 + 아이콘), `onClick`이면 필터를 겸하고 `active`면 민트 선택 | — |
-| `AdminMessage` | 화면 안 알림 상자(`adm-msg`). `tone` info·cautionary·negative·positive, 제목·설명·아래 글자 버튼 | (`SectionMessage` 모양) |
-| `AdminLoading` · `AdminEmpty` · `AdminError` | 본문 자리의 같은 틀: 불러오는 중 / 빈 목록(안내 + 첫 행동) / 오류(이유 + ‘다시 시도’) | `Loading` |
-| `AdminDialog` | 가운데 팝업(`size` sm 440 · md 640, 모서리 24). 머리(제목·설명·닫기) / 본문(`.adm-form`, `adminValidateRequired`가 이 안을 검사) / 발(왼쪽 `onDelete` 삭제, 오른쪽 취소·저장). Esc·바깥 누르기·닫기로 닫히고 `dirty`면 발에서 한 번 묻는다(팝업 위에 확인 창을 겹치지 않는다). `submitting`이면 ‘저장 중…’과 잠금. 내용이 길면 본문만 스크롤하고 머리·저장 줄은 늘 보인다. 휴대폰은 아래 시트. 겹침 순서는 `--adm-z-modal`이라 알림·확인 창이 위에 뜬다 | `Modal`·`ModalContainer` |
-| `AdminMenu` | 버튼을 누르면 뜨는 고르기 메뉴(이름 + 설명 한 줄, `disabled`). 트리거는 우리 버튼을 그대로 넘기고, 항목을 고르면 닫힌다. 예: 통합 예약 목록 머리의 ‘Excel’ 범위 | `Menu`·`MenuItem` |
+| `AdminMessage` | 화면 안 알림 상자(`adm-msg`). `tone` info·cautionary·negative·positive, 제목·설명·아래 글자 버튼 | `Callout` |
+| `AdminLoading` · `AdminEmpty` · `AdminError` | 본문 자리의 같은 틀: 불러오는 중 / 빈 목록(안내 + 첫 행동) / 오류(이유 + ‘다시 시도’) | `Spinner` |
+| `AdminDialog` | 가운데 팝업(`size` sm 440 · md 640 · lg 920, 모서리 16, 문서 body에 붙고 초점은 창 안에서만 돈다). 머리(제목·설명·닫기) / 본문(`.adm-form`, `adminValidateRequired`가 이 안을 검사) / 발(왼쪽 `onDelete` 삭제, 오른쪽 취소·저장). Esc·바깥 누르기·닫기로 닫히고 `dirty`면 발에서 한 번 묻는다(팝업 위에 확인 창을 겹치지 않는다). `submitting`이면 ‘저장 중…’과 잠금. 내용이 길면 본문만 스크롤하고 머리·저장 줄은 늘 보인다. 휴대폰은 아래 시트. 겹침 순서는 `--adm-z-modal`이라 알림·확인 창이 위에 뜬다 | `AlertDialog`·`BottomSheet` |
+| `AdminMenu` | 버튼을 누르면 뜨는 고르기 메뉴(이름 + 설명 한 줄, `disabled`). 트리거는 우리 버튼을 그대로 넘기고, 항목을 고르면 닫힌다. 버튼 오른쪽 끝 아래(자리가 없으면 위), 바깥 누르기·Esc로 닫힘, ↑↓ 키. 예: 통합 예약 목록 머리의 ‘Excel’ 범위 | `ActionSheet` 내용 |
 | `ListPage`(+ `AdminFilterBar`) | 목록형 틀: 제목·오른쪽 ‘추가’(`actions`) → 요약 지표(`summary`) → 카드 하나 안에 탭 → 검색 줄(왼쪽 검색·가운데 필터·오른쪽 정렬) → 표 → 페이지 이동 | — |
 | `FormPage`(+ `AdminFormSection`) | 입력형 틀: ‘목록으로’ → 구역 카드(구역 제목 18px, 본문 960px) → 아래 고정 막대(왼쪽 상태, 오른쪽 취소·저장) | — |
 | `DetailPage`(+ `AdminDetailHeader`·`AdminSteps`) | 상세형 틀: 머리 카드(이름·상태 배지·정보·주요 행동) → 진행 단계 → 왼쪽 업무 / 오른쪽 고정 정보(360px) → 이력 | — |
@@ -138,17 +139,17 @@
 |---|---|
 | 공통 틀 | 흰 사이드바(248px, 오른쪽 1px 선, 위에 로고 묶음 → 메뉴 찾기 → 대시보드·접고 펴는 묶음 6개(묶음 제목 13px 600, 지금 화면의 묶음은 진하게) → 계정·접기·로그아웃, 선택 항목은 옅은 민트 바탕 + 민트 글자, 처리할 일 숫자 배지. M-15) · 흰 상단 바(64px, 왼쪽 `업무 묶음 / 화면 이름`, 오른쪽 검색 320px·알림·사이트 보기) · 회색 작업 바탕(`--adm-canvas`). `src/styles/admin-montage.css` |
 | 페이지 제목 | `AdminLayout`의 `title`·`description`·`actions`만 쓴다. 제목 28px 700, 설명 15px 보조 글자, 주요 행동 버튼은 제목 오른쪽. 제목 위 작은 라벨은 쓰지 않는다 |
-| 버튼 | 높이 40px(목록 안 32px, 큰 버튼 48px), 모서리 10px, 글자 14px 굵기 600. 종류는 주요(민트 채움)·보조(흰 바탕 테두리)·약한(회색 바탕)·위험(빨강) 네 가지. 한 화면의 주요 버튼은 하나, 줄마다 있는 행동은 보조 버튼 |
-| 입력창·선택 상자 | 높이 40px, 모서리 10px, 테두리 1px `--adm-line`, 글자 14px(휴대폰 16px). 포커스는 민트 테두리 + `--adm-ring`. 라벨은 위, 13px 굵기 600 |
+| 버튼 | 높이 40px(목록 안 32px, 큰 버튼 48px), 모서리 6px, 글자 14px 굵게(700), 누르면 살짝 작아진다(0.95). 종류는 주요(민트 채움)·보조(흰 바탕 테두리)·약한(회색 바탕)·위험(빨강) 네 가지. 한 화면의 주요 버튼은 하나, 줄마다 있는 행동은 보조 버튼 |
+| 입력창·선택 상자 | 높이 40px(휴대폰 48px), 모서리 6px, 테두리 1px `--adm-gray-400`, 글자 14px(휴대폰 16px). 쓰는 중이면 진한 테두리(`--adm-ink`), 오류는 빨강 테두리 + 옅은 빨강 바탕(Seed TextField). 라벨은 위, 13px 굵게 |
 | 검색 영역 | 본문 맨 위 한 줄: 왼쪽 검색창(돋보기 아이콘), 가운데 필터 칩·선택 상자, 오른쪽 정렬·보기 전환 |
-| 표 | 머리 13px 설명 글자·흰 바탕·아래 1px 선, 줄 14px·여백 16px, 줄 사이 `--adm-line-subtle`. 줄별 행동은 오른쪽 끝 32px 보조 버튼 |
+| 표 | 머리 13px 설명 글자·옅은 바탕(`--adm-sunken`)·아래 1px 선, 줄 14px·여백 16px, 줄 사이 `--adm-line-subtle`. 줄별 행동은 오른쪽 끝 32px 보조 버튼 |
 | 상태 배지 | 모서리 4px, 12px 굵기 600, 옅은 상태색 바탕 + 상태색 글자. 색만으로 알리지 않고 이름(문장)과 함께 |
 | 카드·지표 | 흰 바탕 + 1px `--adm-line`, 모서리 16px, 그림자 없음, 안 여백 20px. 지표 숫자 28px 700(휴대폰 22px). 처리할 일이 있는 지표는 채움 대신 주의 테두리 + 주의 아이콘 |
-| 칩·묶음 전환 | 필터 칩 = Montage `Chip`: 높이 32px·모서리 10px·테두리 없음, 바탕 `--adm-fill-subtle`, 선택은 옅은 민트(`--adm-accent-soft`) + 민트 글자(`--adm-accent-strong`). 묶음 전환 = Montage `SegmentedControl`: `--adm-neutral-soft` 바탕·안쪽 4px, 칸 높이 32px·모서리 8px, 고른 칸만 흰색 + `--adm-shadow-xs`. 요약 카드(=필터)의 선택은 민트 1px 테두리 + 옅은 민트 바탕 |
+| 칩·묶음 전환 | 필터 칩 = Seed 칩 모양(`AdminChip`): 높이 32px·알약형·흰 바탕·1px `--adm-line`, 선택은 검정 채움이 아니라 옅은 민트(`--adm-accent-soft`) + 민트 글자(`--adm-accent-strong`) + 민트 테두리. 묶음 전환(`AdminSegmented`): `--adm-gray-100` 바탕·안쪽 4px·모서리 10px, 칸 모서리 6px, 고른 칸만 흰색 + `--adm-shadow-sm`. 요약 카드(=필터)의 선택은 민트 1px 테두리 + 옅은 민트 바탕 |
 | 탭 | 밑줄형(화면·구역 전환, 선택은 진한 밑줄)과 묶음형(보기 방식 전환) 두 가지. 상태별 탭은 이름 앞 점으로 상태색을 보인다 |
-| 팝업 | 가운데 창(확인·짧은 입력, 폭 440/640px)과 견적 도구의 추가·편집 창(모두 가운데 창: 짧은 입력 640px·높이는 내용만큼, 코스 추가·편집 960px·두 칸) 두 가지. 뒤 막 `--adm-scrim`, 모서리 24px, 머리(제목·닫기) / 본문 / 발(왼쪽 삭제, 오른쪽 취소·저장). Esc와 바깥 누르기로 닫히되 고친 내용이 있으면 확인 |
+| 팝업 | 가운데 창(확인·짧은 입력, 폭 440/640px)과 견적 도구의 추가·편집 창(모두 가운데 창: 짧은 입력 640px·높이는 내용만큼, 코스 추가·편집 960px·두 칸) 두 가지. 뒤 막 `--adm-scrim`, 모서리 16px, 머리(제목·닫기) / 본문 / 발(왼쪽 삭제, 오른쪽 취소·저장). Esc와 바깥 누르기로 닫히되 고친 내용이 있으면 확인 |
 | 알림 | 화면 아래 가운데 토스트 하나. 성공(초록 점)·오류(빨강 점)·안내. 3초 뒤 사라지고 오류는 눌러서 닫는다 |
-| 화면 안 알림 | Montage `SectionMessage` 모양: 클래스 `adm-msg`(+ `is-cautionary` 주의 · `is-negative` 오류 · `is-positive` 완료, 없으면 안내). 모서리 12px·안쪽 12px, 흰 바탕 위 상태색 5%, 왼쪽 20px 상태 아이콘(Montage 아이콘 모양), 제목(첫 `strong`) 15px 500 진한 글자, 설명 14px 보조 글자, 아래 버튼은 글자 버튼(첫 버튼 민트, 나머지 회색). 정의는 `public/admin-tokens.css` 끝(React·견적 도구 공통). 견적 도구 스크립트가 만드는 초안 복원·원본 오류 알림(`[data-quote-recovery]`)도 스크립트를 바꾸지 않고 같은 모양으로 덮는다. 상태색 바탕 상자를 화면마다 새로 그리지 않는다 |
+| 화면 안 알림 | Seed `Callout` 모양: 클래스 `adm-msg`(+ `is-cautionary` 주의 · `is-negative` 오류 · `is-positive` 완료, 없으면 안내). 모서리 10px·안쪽 14/16px, 옅은 상태색 바탕, 왼쪽 16px 상태 아이콘, 제목(첫 `strong`) 굵게, 설명 14px 보조 글자, 아래 버튼은 글자 버튼(첫 버튼 민트, 나머지 회색). 정의는 `public/admin-tokens.css` 끝(React·견적 도구 공통). 견적 도구 스크립트가 만드는 초안 복원·원본 오류 알림(`[data-quote-recovery]`)도 스크립트를 바꾸지 않고 같은 모양으로 덮는다. 상태색 바탕 상자를 화면마다 새로 그리지 않는다 |
 | 확인 창 | 삭제·되돌릴 수 없는 일은 공통 확인 창. 무엇이 지워지는지 한 문장 + 위험 버튼 |
 | 빈 목록·불러오는 중·오류 | 본문 자리에 같은 틀: 불러오는 중(회전 표시 + "불러오는 중…"), 빈 목록(안내 한 줄 + 첫 행동 버튼), 오류(이유 + "다시 시도") |
 

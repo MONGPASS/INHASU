@@ -20,7 +20,7 @@ const BRAND: Record<AdminTrafficChannel, { bg: string; border?: boolean; logo?: 
     '기타·추천': { bg: 'var(--mrt-gray-100)', icon: 'lc-link' },
 };
 /** Mint scale from the design (largest channel darkest); the 7th step is added for the ninth channel, 페이스북. */
-// 순위 막대: 브랜드 민트를 진한 것부터 옅게, 하위는 회색(Montage 토큰). 평평한 색만 쓴다.
+// 순위 막대: 브랜드 민트를 진한 것부터 옅게, 하위는 회색(--adm-* 토큰). 평평한 색만 쓴다.
 const mint = (p: number) => `color-mix(in srgb, var(--adm-accent) ${p}%, var(--adm-surface))`;
 const TONES = ['var(--adm-accent-strong)', 'var(--adm-accent)', mint(80), mint(64), mint(50), mint(38), mint(28), 'var(--adm-gray-300)', 'var(--adm-gray-200)'];
 const numbers = new Intl.NumberFormat('ko-KR');

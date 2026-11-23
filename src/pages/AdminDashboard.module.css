@@ -257,10 +257,10 @@
 .revTitle { font-weight: var(--adm-fw-semibold); }
 .splitConfirmed { background: var(--adm-accent); }
 
-/* ── Montage 부품(@montage-ui/core) 자리 잡기 ── */
+/* ── 우리 관리자 부품 자리 잡기 ── */
 .today { display: flex; align-items: center; gap: var(--adm-space-2); flex-wrap: wrap; color: var(--adm-text-2); }
 .today span { margin-left: 0; color: var(--adm-text-3); font-size: var(--adm-fs-small); }
-/* Montage TabList가 밑줄을 그리므로 칸만 둔다 */
+/* AdminTabs가 밑줄을 그리므로 칸만 둔다 */
 .tabs { display: block; padding: var(--adm-space-2) var(--adm-pad-card) 0; border-bottom: 0; overflow-x: auto; }
 .pills { display: block; margin: 0 calc(var(--adm-pad-card) * -1); padding: 0 var(--adm-pad-card); }
 .taskFoot { padding: var(--adm-space-3) var(--adm-pad-card); background: var(--adm-gray-50); border-top: 1px solid var(--adm-line-subtle); color: var(--adm-text-2); font-size: var(--adm-fs-body); }

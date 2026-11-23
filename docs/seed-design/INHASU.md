@@ -26,5 +26,5 @@
 ## 진행
 
 1. 토큰 — `--adm-*`를 Seed 값으로(완료, 2026-11-23)
-2. 부품 — `src/components/admin/ui`를 Montage 없이 Seed 모양으로 다시 만들고 `@montage-ui/core` 제거
+2. 부품 — `src/components/admin/ui`를 Montage 없이 Seed 모양으로 다시 만들고 `@montage-ui/core` 제거(완료, 2026-11-23). 같은 props라 화면 코드는 그대로이고, 모양은 `ui/admin-components.css` 한 파일. 부품별 대응은 [admin-design-system.md](../admin-design-system.md) 3절 표의 ‘Seed 설계’ 칸
 3. 아이콘 — `@montage-ui/icon` → Seed 아이콘

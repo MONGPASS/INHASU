@@ -33,7 +33,7 @@ interface Stat { n: number; days: number; dupN: number; run: boolean; nx?: Item 
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const RETURN_TO = '/admin/quote-desk/resources?view=schedule';
 const ORANGE = { bg: 'var(--adm-warn-soft)', line: 'var(--adm-warn)', text: 'var(--adm-warn-strong)' };
-// 가이드별 구분색(배경 · 글자 · 선) — Montage accent 구분색(--adm-tag-*). 주황은 '미배정' 상태색과 헷갈리지 않게 쓰지 않는다.
+// 가이드별 구분색(배경 · 글자 · 선) — 구분색(--adm-tag-*, Seed 색 단계). 주황은 '미배정' 상태색과 헷갈리지 않게 쓰지 않는다.
 const tag = (n: string) => [`var(--adm-tag-${n}-soft)`, `var(--adm-tag-${n})`, `var(--adm-tag-${n}-solid)`];
 const PALETTE = [['var(--adm-accent-soft)', 'var(--adm-accent-strong)', 'var(--adm-accent)'], tag('blue'), tag('violet'), tag('lime'), tag('pink'), tag('cyan'), tag('purple')];
 const NONE_COLOR = [ORANGE.bg, ORANGE.text, ORANGE.line];

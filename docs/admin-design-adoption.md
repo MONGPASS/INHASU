@@ -2,15 +2,15 @@
 
 `node scripts/check-admin-design.mjs --md`가 만든 문서다. 손으로 고치지 않는다. 규칙은 [admin-design-system.md](admin-design-system.md), 화면 목록은 [admin-screen-inventory.md](admin-screen-inventory.md).
 
-- **부품 전환율** = 공통 부품 수 ÷ (공통 부품 + 생 `<button>`·`<input>`·`<select>`·`<textarea>`·`<table>`). 공통 부품은 우리 관리자 부품(`components/admin/ui`의 `Admin*`·`ListPage` 등)이고, 그 폴더 안에서 쓴 Montage 부품도 센다. 화면 파일은 Montage를 직접 가져오지 않는다(`tests/admin-ui-boundary.test.mjs`). `adm-` 클래스를 단 버튼은 공통 부품으로 센다.
+- **부품 전환율** = 공통 부품 수 ÷ (공통 부품 + 생 `<button>`·`<input>`·`<select>`·`<textarea>`·`<table>`). 공통 부품은 우리 관리자 부품(`components/admin/ui`의 `Admin*`·`ListPage` 등, 당근 Seed 모양)이다. 그 폴더는 생 HTML 요소로 부품을 만드는 곳이라 생 부품 수를 세지 않는다. `adm-` 클래스를 단 버튼은 공통 부품으로 센다.
 - **직접 지정**: 인라인 `style={{}}` 수, 숫자로 적은 크기(px), 직접 적은 색(hex), `!important`, CSS에 숫자로 적은 크기(글자·모서리·높이·여백).
 - 이 수치는 `scripts/admin-design-baseline.json`의 상한보다 늘어나면 `tests/admin-design-budget.test.mjs`가 실패한다(PR마다 CI에서 검사). 줄였으면 `--write-baseline`으로 상한을 낮춘다.
 
-전체: 공통 부품 698개 / 생 HTML 부품 784개 → **전환율 47%** · 인라인 style 1758 · 숫자 크기 6801 · 직접 색 466 · !important 388
+전체: 공통 부품 665개 / 생 HTML 부품 784개 → **전환율 46%** · 인라인 style 1758 · 숫자 크기 6797 · 직접 색 466 · !important 387
 
 | 화면 | 파일 | 부품 전환율 | 공통 부품 | 생 HTML 부품 | 인라인 style | 숫자 크기(TSX/CSS) | 직접 색 | !important | 기본 확인창 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 공통 틀·부품 | 28 | 96% | 191 | 9 | 4 | 7 / 793 | 32 | 99 | 0 |
+| 공통 틀·부품 | 26 | 95% | 158 | 9 | 4 | 7 / 789 | 32 | 98 | 0 |
 | 대시보드 | 5 | 76% | 13 | 4 | 10 | 0 / 209 | 18 | 0 | 0 |
 | 통합 예약 목록 | 3 | 50% | 78 | 78 | 154 | 184 / 190 | 28 | 0 | 0 |
 | 고객 예약 상세(상품·이전 견적) | 24 | 0% | 0 | 125 | 194 | 357 / 1114 | 34 | 31 | 1 |

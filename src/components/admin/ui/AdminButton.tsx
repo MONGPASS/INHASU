@@ -1,11 +1,11 @@
 import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, IconButton, TextButton } from '@montage-ui/core';
-import { cx, MONTAGE_SIZE, type AdminSize } from './adminUiUtils';
+import { cx, type AdminSize } from './adminUiUtils';
 import './admin-components.css';
 
 /**
- * 관리자 버튼 세 가지. 화면 파일은 Montage를 직접 쓰지 않고 이 부품만 쓴다(docs/admin-design-system.md 3절).
+ * 관리자 버튼 세 가지. 당근 Seed BoxButton·TextButton 모양을 우리 변수(--adm-*)로 직접 그린다
+ * (설계: docs/seed-design/components/actions/, 규칙: docs/admin-design-system.md 3절).
  * - AdminButton: 주요(민트 채움 + --adm-on-primary 글자) · 보조(흰 바탕 테두리) · 약한(회색) · 위험(빨강). 화면당 주요 하나.
  * - AdminIconButton: 아이콘만 있는 버튼. 이름(label)은 꼭 준다(화면 읽기·툴팁).
  * - AdminTextButton: 글자 버튼(더 보기·목록으로 같은 가벼운 이동).
@@ -17,7 +17,7 @@ type NativeButtonProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'co
 
 export interface AdminButtonProps extends NativeButtonProps {
     variant?: AdminButtonVariant;
-    /** sm 32 · md 40 · lg 48(휴대폰 36 · 44 · 48) */
+    /** sm 32 · md 40 · lg 48(휴대폰 40 · 48 · 52) */
     size?: AdminSize;
     loading?: boolean;
     fullWidth?: boolean;
@@ -30,40 +30,52 @@ export interface AdminButtonProps extends NativeButtonProps {
     replace?: boolean;
 }
 
-const MONTAGE_VARIANT: Record<AdminButtonVariant, { variant: 'solid' | 'outlined'; color: 'primary' | 'assistive' | 'negative' }> = {
-    primary: { variant: 'solid', color: 'primary' },
-    secondary: { variant: 'outlined', color: 'assistive' },
-    weak: { variant: 'solid', color: 'assistive' },
-    danger: { variant: 'solid', color: 'negative' },
-};
+type ClickableProps = NativeButtonProps & { to?: string; replace?: boolean };
 
-const linkOrButton = (to: string | undefined, replace: boolean | undefined, type: NativeButtonProps['type']) =>
-    (to ? { as: Link, to, replace } : { type: type ?? 'button' }) as Record<string, unknown>;
+/** to가 있으면 Link, 없으면 <button>. 링크에서는 disabled 대신 aria-disabled + 누르기 막기 */
+const Clickable = React.forwardRef<HTMLButtonElement, ClickableProps>(function Clickable({ to, replace, type, disabled, onClick, ...rest }, ref) {
+    if (to) {
+        const anchorProps = rest as unknown as React.AnchorHTMLAttributes<HTMLAnchorElement>;
+        return (
+            <Link
+                ref={ref as unknown as React.Ref<HTMLAnchorElement>}
+                to={to}
+                replace={replace}
+                {...anchorProps}
+                aria-disabled={disabled || undefined}
+                tabIndex={disabled ? -1 : anchorProps.tabIndex}
+                onClick={(event) => {
+                    if (disabled) { event.preventDefault(); return; }
+                    (onClick as unknown as React.MouseEventHandler<HTMLAnchorElement> | undefined)?.(event);
+                }}
+            />
+        );
+    }
+    return <button ref={ref} type={type ?? 'button'} disabled={disabled} onClick={onClick} {...rest} />;
+});
 
 export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>(function AdminButton(
     { variant = 'secondary', size = 'md', loading = false, fullWidth = false, leading, trailing, to, replace, type, className, children, onClick, ...rest }, ref,
 ) {
-    const m = MONTAGE_VARIANT[variant];
-    // 저장 중: Montage loading은 글자를 감추므로 쓰지 않는다. 글자(‘저장 중…’)를 그대로 보이고 앞에 작은 회전 표시,
-    // 누르기·제출을 막는다(onClick 떼기 + type=button + CSS pointer-events). disabled·aria-disabled는 Montage가 회색으로 바꾸므로 쓰지 않는다.
+    // 저장 중: 글자(‘저장 중…’)를 그대로 보이고 앞에 작은 회전 표시. 누르기·제출을 막는다(onClick 떼기 + type=button + CSS pointer-events).
+    // disabled는 회색으로 바뀌므로 쓰지 않는다.
+    const lead = loading ? <span className="adm-ui-btn-spinner" aria-hidden="true" /> : leading;
     return (
-        <Button
+        <Clickable
             ref={ref}
-            {...linkOrButton(to, replace, loading ? 'button' : type)}
+            to={to}
+            replace={replace}
+            type={loading ? 'button' : type}
             {...rest}
             onClick={loading ? undefined : onClick}
             aria-busy={loading || undefined}
-            variant={m.variant}
-            color={m.color}
-            size={MONTAGE_SIZE[size]}
-            fullWidth={fullWidth}
-            leadingContent={loading ? <span className="adm-ui-btn-spinner" aria-hidden="true" /> : leading}
-            trailingContent={trailing}
-            // 민트 채움 위 글자·아이콘은 --adm-on-primary(흰 글자 대비 1.5:1 금지, tests/admin-design-tokens.test.mjs)
-            className={cx('adm-ui-btn', `is-${variant}`, `is-${size}`, variant === 'primary' && 'adm-on-primary', loading && 'is-loading', className)}
+            // 민트 채움 위 글자·아이콘은 --adm-on-primary(흰 글자 대비 1.9:1 금지, tests/admin-design-tokens.test.mjs)
+            className={cx('adm-ui-btn', `is-${variant}`, `is-${size}`, variant === 'primary' && 'adm-on-primary', fullWidth && 'is-full', loading && 'is-loading', className)}
         >
-            {children}
-        </Button>
+            {lead != null && lead !== false && <span className="adm-ui-btn-icon">{lead}</span>}
+            {children != null && children !== false && <span className="adm-ui-btn-label">{children}</span>}
+            {trailing != null && trailing !== false && <span className="adm-ui-btn-icon">{trailing}</span>}
+        </Clickable>
     );
 });
 
@@ -77,24 +89,20 @@ export interface AdminIconButtonProps extends NativeButtonProps {
     children: React.ReactNode;
 }
 
-const ICON_SIZE = { sm: 'small', md: 'medium', lg: 'large' } as const;
-
 export const AdminIconButton = React.forwardRef<HTMLButtonElement, AdminIconButtonProps>(function AdminIconButton(
-    { label, variant = 'normal', size = 'md', to, type, title, className, children, ...rest }, ref,
+    { label, variant = 'normal', size = 'md', to, title, className, children, ...rest }, ref,
 ) {
     return (
-        <IconButton
+        <Clickable
             ref={ref}
-            {...linkOrButton(to, undefined, type)}
+            to={to}
             {...rest}
             aria-label={label}
             title={title ?? label}
-            variant={variant}
-            size={ICON_SIZE[size]}
-            className={cx('adm-ui-icon-btn', `is-${size}`, className)}
+            className={cx('adm-ui-icon-btn', `is-${variant}`, `is-${size}`, className)}
         >
             {children}
-        </IconButton>
+        </Clickable>
     );
 });
 
@@ -109,22 +117,23 @@ export interface AdminTextButtonProps extends NativeButtonProps {
 }
 
 export const AdminTextButton = React.forwardRef<HTMLButtonElement, AdminTextButtonProps>(function AdminTextButton(
-    { tone = 'primary', size = 'md', loading = false, leading, trailing, to, type, className, children, ...rest }, ref,
+    { tone = 'primary', size = 'md', loading = false, leading, trailing, to, type, className, children, onClick, ...rest }, ref,
 ) {
+    const lead = loading ? <span className="adm-ui-btn-spinner" aria-hidden="true" /> : leading;
     return (
-        <TextButton
+        <Clickable
             ref={ref}
-            {...linkOrButton(to, undefined, type)}
+            to={to}
+            type={loading ? 'button' : type}
             {...rest}
-            color={tone}
-            size={size === 'sm' ? 'small' : 'medium'}
-            loading={loading}
-            leadingContent={leading}
-            trailingContent={trailing}
-            className={cx('adm-ui-text-btn', className)}
+            onClick={loading ? undefined : onClick}
+            aria-busy={loading || undefined}
+            className={cx('adm-ui-text-btn', `is-${tone}`, `is-${size}`, loading && 'is-loading', className)}
         >
-            {children}
-        </TextButton>
+            {lead != null && lead !== false && <span className="adm-ui-btn-icon">{lead}</span>}
+            <span>{children}</span>
+            {trailing != null && trailing !== false && <span className="adm-ui-btn-icon">{trailing}</span>}
+        </Clickable>
     );
 });
 

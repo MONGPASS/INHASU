@@ -42,6 +42,8 @@
   --adm-gray-100: var(--seed-scale-color-gray-100);
   --adm-gray-200: var(--seed-scale-color-gray-200);
   --adm-gray-300: var(--seed-scale-color-gray-300);
+  --adm-gray-400: var(--seed-scale-color-gray-400);  /* #D1D3D8 입력 칸·보조 버튼 테두리(Seed TextField) */
+  --adm-gray-500: var(--seed-scale-color-gray-500);  /* #ADB1BA 꺼진 스위치 길(Seed Switch) */
 
   /* ── 바탕·테두리 (Seed paper · divider) ── */
   --adm-canvas: var(--seed-semantic-color-paper-background);  /* #F2F3F6 작업 배경 */

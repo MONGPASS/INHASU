@@ -20,6 +20,5 @@ export function useAdminNarrow(): boolean {
     return narrow;
 }
 
-/** 부품 크기 이름(32·40·48 — 휴대폰은 36·44·48). */
+/** 부품 크기 이름(32·40·48 — 휴대폰은 40·48·52). */
 export type AdminSize = 'sm' | 'md' | 'lg';
-export const MONTAGE_SIZE = { sm: 'small', md: 'medium', lg: 'large' } as const;

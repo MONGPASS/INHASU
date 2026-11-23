@@ -62,7 +62,7 @@
 /* 상태 탭 + 표 */
 .la-sheet { display: flex; flex-direction: column; min-width: 0; }
 .la-tabs { display: flex; align-items: flex-end; gap: 4px; overflow-x: auto; }
-/* Montage 밑줄 탭: 상태색은 이름 앞 점으로만(색만으로 알리지 않고 이름과 함께), 선택은 진한 밑줄 */
+/* 밑줄 탭(AdminTabs 모양): 상태색은 이름 앞 점으로만(색만으로 알리지 않고 이름과 함께), 선택은 진한 밑줄 */
 .la-tabs { gap: 0; border-bottom: 1px solid var(--adm-line); }
 .la-tabs button { min-width: 0; height: 48px; margin-bottom: -1px; padding: 0 var(--adm-space-4); display: flex; align-items: center; gap: var(--adm-space-2); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--adm-text-2) !important; font: inherit; cursor: pointer; }
 .la-tabs button::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--tab); }

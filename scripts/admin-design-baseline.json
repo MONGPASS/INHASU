@@ -431,15 +431,6 @@
   "hex": 0,
   "nativeDialog": 0
  },
- "src/components/admin/ui/AdminMontageProvider.tsx": {
-  "rawButton": 0,
-  "rawField": 0,
-  "rawTable": 0,
-  "inlineStyle": 0,
-  "px": 0,
-  "hex": 0,
-  "nativeDialog": 0
- },
  "src/components/admin/ui/AdminPage.tsx": {
   "rawButton": 0,
   "rawField": 0,
@@ -895,15 +886,10 @@
   "important": 87,
   "rawPx": 32
  },
- "src/styles/admin-montage-brand.css": {
-  "hex": 0,
-  "important": 1,
-  "rawPx": 0
- },
  "src/styles/admin-montage.css": {
   "hex": 3,
   "important": 6,
-  "rawPx": 56
+  "rawPx": 52
  },
  "src/styles/admin-shell-v3.css": {
   "hex": 1,

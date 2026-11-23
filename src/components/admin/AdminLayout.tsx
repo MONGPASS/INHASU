@@ -6,7 +6,6 @@ import { adminSectionLabel } from './adminNav';
 import { AdminMobileTabBar } from './ui/AdminMobileTabBar';
 import { useCardTables } from './ui/useCardTables';
 import { useAdminInstallMeta } from './ui/useAdminInstallMeta';
-import { AdminMontageProvider } from './ui/AdminMontageProvider';
 import '../../styles/admin-console.css';
 import '../../styles/admin-shell-v3.css';
 import '../../styles/admin-montage.css';
@@ -107,7 +106,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape); };
     }, [mobileActionsOpen, customerLayout, narrowCustomer]);
     return (
-        <AdminMontageProvider>
         <div className={`app${customerLayout ? ' admin-customer-layout' : ''}${menuShown ? ' admin-customer-menu-open' : ''}${railShown && !menuShown ? ' is-side-rail' : ''}${hideHeading ? ' is-editing' : ''}`}>
             <>
                 {menuShown && <button type="button" className="admin-customer-menu-backdrop" aria-label="관리자 메뉴 배경 닫기" tabIndex={-1} onClick={closeMenu} />}
@@ -160,6 +158,5 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             </div>
             {!hideHeading && <AdminMobileTabBar activePage={activePage} menuOpen={menuShown} menuId={menuId} onOpenMenu={() => { setMobileActionsOpen(false); setMobileMenuOpen(true); }} />}
         </div>
-        </AdminMontageProvider>
     );
 };
