@@ -16,6 +16,11 @@ import { LODGE_GRADE_OPTIONS, ROOM_PLAN_OPTIONS, isUpcomingTour, tourSerials } f
 import { LodgeAssignBoard } from '../components/admin/accommodation/LodgeAssignBoard';
 import { LodgeAssignQueue } from '../components/admin/accommodation/LodgeAssignQueue';
 import { AdminSegmented } from '../components/admin/ui';
+// 배지·칩·표는 부품 파일에서 바로 가져온다. 이 화면의 동작 검사(tests/accommodation-ops-resource-picker.test.mjs)가
+// ui 묶음을 AdminSegmented 대역으로 바꾸고, 요소 트리에서 생 <button>·<input>·<select>를 찾기 때문이다.
+// 그래서 검사가 찾는 버튼은 생 <button> + 부품과 같은 adm-ui-btn 클래스, 입력칸은 생 요소 + 토큰 CSS로 둔다.
+import { AdminBadge, AdminChip } from '../components/admin/ui/AdminChoice';
+import { AdminTable, AdminTbody, AdminTd, AdminTh, AdminThead, AdminTr } from '../components/admin/ui/AdminTable';
 import { RoomCountInput } from '../components/admin/accommodation/RoomCountInput';
 import { guideOverlaps, overlapLabel, sameGuide } from '../utils/assignmentAvailability';
 import { adminConfirm } from '../components/admin/ui/adminFeedback';
@@ -39,6 +44,9 @@ const VIEW_KEY = 'inhasu:accommodation-board:view';
 const VIEWS: BoardView[] = ['board-view', 'sheet-view', 'card-view'];
 const storedView = (): BoardView => { try { const v = window.localStorage.getItem(VIEW_KEY) as BoardView | null; return v && VIEWS.includes(v) ? v : 'board-view'; } catch { return 'board-view'; } };
 const VIEW_ITEMS: Array<{ value: BoardView; label: string }> = [{ value: 'board-view', label: '배정 보드' }, { value: 'sheet-view', label: '표로 보기' }];
+// 카드 보기 필터 줄의 시트/카드 전환(카드 보기에서만 보인다)
+const CARD_VIEW_ITEMS: Array<{ value: BoardView; label: string }> = [{ value: 'sheet-view', label: '시트' }, { value: 'card-view', label: '카드' }];
+const STATUS_TONE: Record<BoardStatus, 'danger' | 'success' | 'neutral'> = { '미배정': 'danger', '진행 중': 'success', '배정 완료': 'neutral' };
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const occupancyLabel = (value: string) => value ? value.replace(/^(\d+) хүн\/өрөө$/, '$1인 / 객실') : '미정';
 type BoardStatus = '미배정' | '진행 중' | '배정 완료';
@@ -682,7 +690,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                     const n = key === 'all' ? base.length : statusCounts[key];
                     const on = statusFilter === key, hot = tone === 'warn' && n > 0;
                     return (
-                        <button key={key} type="button" data-tone={tone} aria-pressed={on} className={`lo-kpi${on ? ' is-on' : ''}${hot ? ' is-hot' : ''}${tone === 'ok' && n > 0 ? ' is-filled' : ''}`} onClick={() => setStatusFilter(on || key === 'all' ? 'all' : key)}>
+                        <button key={key} type="button" data-tone={tone} aria-pressed={on} className={`adm-aao-kpi${on ? ' is-on' : ''}${hot ? ' is-hot' : ''}${tone === 'ok' && n > 0 ? ' is-filled' : ''}`} onClick={() => setStatusFilter(on || key === 'all' ? 'all' : key)}>
                             <span className="lo-kpi-icon"><DashboardIcon name={icon} size={18} /></span>
                             <span className="lo-kpi-body"><span className="lo-kpi-label">{label}</span><span className="lo-kpi-num"><b>{n}</b><small>팀</small></span></span>
                             <span className="lo-kpi-hint">{on ? '선택됨' : tone === 'warn' && n === 0 ? '' : hint}</span>
@@ -692,23 +700,20 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
             </div>
 
             <div className="lo-filters">
-                <label className="lo-search">
-                    <DashboardIcon name="lc-search" size={16} />
-                    <input aria-label="고객·여행·예약번호 검색" placeholder="고객, 여행, 예약번호로 검색" value={q} onChange={e => setQ(e.target.value)} />
+                <label className="adm-ui-search lo-search">
+                    <span className="adm-ui-search-icon"><DashboardIcon name="lc-search" size={16} /></span>
+                    <input className="adm-ui-search-el" aria-label="고객·여행·예약번호 검색" placeholder="고객, 여행, 예약번호로 검색" value={q} onChange={e => setQ(e.target.value)} />
                 </label>
-                <select className="lo-select" aria-label="예약 범위" value={scope} onChange={e => setScope(e.target.value as any)}>
+                <select className="lo-input lo-select" aria-label="예약 범위" value={scope} onChange={e => setScope(e.target.value as any)}>
                     <option value="confirmed">확정 예약만</option>
                     <option value="all">전체 예약</option>
                 </select>
-                <select className="lo-select" aria-label="지역" value={region} onChange={e => setRegion(e.target.value)}>
+                <select className="lo-input lo-select" aria-label="지역" value={region} onChange={e => setRegion(e.target.value)}>
                     <option value="all">전체 지역</option>
                     {regionOptions.map(rg => <option key={rg} value={rg}>{rg}</option>)}
                 </select>
-                <span className="lo-view-toggle" role="group" aria-label="보기 방식">
-                    <button type="button" aria-pressed={false} onClick={() => setView('sheet-view')}>시트</button>
-                    <button type="button" aria-pressed className="is-on">카드</button>
-                </span>
-                {filtersOn && <button type="button" className="lo-reset" onClick={resetFilters}>필터 초기화</button>}
+                <AdminSegmented label="보기 방식" items={CARD_VIEW_ITEMS} value="card-view" onChange={next => { if (next !== 'card-view') setView(next); }} />
+                {filtersOn && <button type="button" className="adm-ui-text-btn is-assistive is-sm" onClick={resetFilters}><span>필터 초기화</span></button>}
                 <span className="lo-count">보이는 예약 <b>{counts.total}</b> · 숙소 확정 <b>{counts.done}</b> · 확인 필요 <b className="is-warn">{counts.pending}</b></span>
             </div>
 
@@ -717,11 +722,11 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                 <div className="lo-months-head">
                     <span className="lo-months-label"><DashboardIcon name="lc-calendar" size={16} />출발 월</span>
                     <span className="lo-year">
-                        <button type="button" aria-label="이전 연도" disabled={year <= monthStats.minYear} onClick={() => setYear(y => y - 1)}><DashboardIcon name="lc-chevron-left" size={14} /></button>
+                        <button type="button" className="adm-ui-icon-btn is-outlined is-sm" aria-label="이전 연도" disabled={year <= monthStats.minYear} onClick={() => setYear(y => y - 1)}><DashboardIcon name="lc-chevron-left" size={14} /></button>
                         <b>{year}년</b>
-                        <button type="button" aria-label="다음 연도" disabled={year >= monthStats.maxYear} onClick={() => setYear(y => y + 1)}><DashboardIcon name="lc-chevron-right" size={14} /></button>
+                        <button type="button" className="adm-ui-icon-btn is-outlined is-sm" aria-label="다음 연도" disabled={year >= monthStats.maxYear} onClick={() => setYear(y => y + 1)}><DashboardIcon name="lc-chevron-right" size={14} /></button>
                     </span>
-                    <button type="button" className={`lo-year-all${month === 'all' ? ' is-on' : ''}`} onClick={() => setMonth('all')}>전체 {monthStats.total}팀 · {year}년 {yearTotal}팀</button>
+                    <AdminChip active={month === 'all'} onClick={() => setMonth('all')}>전체 {monthStats.total}팀 · {year}년 {yearTotal}팀</AdminChip>
                 </div>
                 <div className="lo-month-scroll"><div className="lo-month-grid">
                     {Array.from({ length: 12 }, (_, i) => {
@@ -729,8 +734,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                         const n = monthStats.perMonth.get(key) || 0;
                         const active = month === key;
                         return (
-                            <button key={key} type="button" disabled={n === 0} aria-pressed={active} onClick={() => setMonth(active ? 'all' : key)} title={n === 0 ? '이 달에 출발하는 예약이 없어요' : `${i + 1}월 출발 ${n}팀`}
-                                className={`lo-month${active ? ' is-on' : ''}${n ? ' has-tours' : ''}`}>
+                            <button key={key} type="button" className={`adm-aao-month${active ? ' is-on' : ''}${n ? ' has-tours' : ''}`} disabled={n === 0} aria-pressed={active}
+                                onClick={() => setMonth(active ? 'all' : key)} title={n === 0 ? '이 달에 출발하는 예약이 없어요' : `${i + 1}월 출발 ${n}팀`}>
                                 <span>{i + 1}월</span><small>{n ? `${n}팀` : '—'}</small>
                             </button>
                         );
@@ -762,7 +767,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                     <span>고객</span><span>여행 일정</span><span>숙소</span><span>배정 진행</span><span>상태</span><span />
                 </div>
                 {loading && <p className="lo-empty">예약을 불러오고 있어요…</p>}
-                {!loading && filtered.length === 0 && <div className="lo-empty"><p>조건에 맞는 예약이 없어요.</p>{filtersOn && <button type="button" onClick={resetFilters}>필터 초기화</button>}</div>}
+                {!loading && filtered.length === 0 && <div className="lo-empty"><p>조건에 맞는 예약이 없어요.</p>{filtersOn && <button type="button" className="adm-ui-text-btn is-primary is-sm" onClick={resetFilters}><span>필터 초기화</span></button>}</div>}
                 {!loading && filtered.map(r => {
                     const sum = summaryOf(r);
                     const status = boardStatusOf(r);
@@ -787,8 +792,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                 <span className="lo-customer">
                                     <span className="lo-customer-name">
                                         <b>{r.customerName || '-'}</b>
-                                        {isDirty && <em className="lo-kind" data-kind="dirty">변경됨</em>}
-                                        {pendingDrafts[r.id] && <em className="lo-kind" data-kind="draft">초안</em>}
+                                        {isDirty && <AdminBadge tone="warn">변경됨</AdminBadge>}
+                                        {pendingDrafts[r.id] && <AdminBadge tone="danger">초안</AdminBadge>}
                                     </span>
                                     <small>{isQuote ? '견적 고객' : '상품 예약'} · {regionOf(r)} · {r.travelers || '-'}명{r.reservationNumber && ` · #${r.reservationNumber}`}</small>
                                 </span>
@@ -807,7 +812,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                     </span>
                                     <span className="lo-segments" aria-hidden="true">{nightSegments.map((state, index) => <i key={index} data-state={state} />)}</span>
                                 </span>
-                                <span className="lo-status-cell"><span className="lo-status" data-status={status}><i />{status}</span></span>
+                                <span className="lo-status-cell"><AdminBadge tone={STATUS_TONE[status]} strong={status === '배정 완료'} size="md">{status}</AdminBadge></span>
                                 <span className="lo-chev"><DashboardIcon name="lc-chevron-down" size={18} /></span>
                             </div>
                             {open && (
@@ -815,15 +820,15 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                     {pendingDrafts[r.id] && <div className="lo-notice is-draft adm-msg is-cautionary" role="status">
                                         <p>{pendingDrafts[r.id].conflict ? '초안 보관 후 서버 예약이 변경되었습니다. 현재 예약에 초안 배정을 적용할지 확인하세요.' : '이 계정과 예약에 보관된 배정 초안이 있습니다.'}</p>
                                         <span className="lo-actions">
-                                            <button type="button" className="lo-btn is-ink" disabled={!!savingId} onClick={() => resolveDraft(r, true)}>초안 복원</button>
-                                            <button type="button" className="lo-btn" disabled={!!savingId} onClick={() => resolveDraft(r, false)}>초안 버리기</button>
+                                            <button type="button" className="adm-ui-btn is-primary is-sm adm-on-primary" disabled={!!savingId} onClick={() => resolveDraft(r, true)}><span className="adm-ui-btn-label">초안 복원</span></button>
+                                            <button type="button" className="adm-ui-btn is-secondary is-sm" disabled={!!savingId} onClick={() => resolveDraft(r, false)}><span className="adm-ui-btn-label">초안 버리기</span></button>
                                         </span>
                                     </div>}
                                     <fieldset disabled={!!savingId || !!pendingDrafts[r.id]} className="lo-fieldset">
 
                                     {/* 여행자 · 항공 */}
                                     <section className="lo-card">
-                                        <button type="button" className="lo-card-toggle" aria-expanded={travelersOpen} onClick={() => setTravelersClosed(prev => { const next = new Set(prev); if (next.has(r.id)) next.delete(r.id); else next.add(r.id); return next; })}>
+                                        <button type="button" className="adm-aao-disclosure" aria-expanded={travelersOpen} onClick={() => setTravelersClosed(prev => { const next = new Set(prev); if (next.has(r.id)) next.delete(r.id); else next.add(r.id); return next; })}>
                                             <DashboardIcon name="lc-users" size={16} /><h3>여행자 · 항공</h3>
                                             <span className="lo-card-chev"><DashboardIcon name="lc-chevron-down" size={18} /></span>
                                         </button>
@@ -833,16 +838,14 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                 <div><span><DashboardIcon name="lc-plane-takeoff" size={14} />출국 항공 (몽골 출발)</span><b>{flightLine(cd.departure)}</b></div>
                                             </div>
                                             {travelers.length > 0 ? (
-                                                <div className="lo-scroll">
-                                                    <table className="lo-mini">
-                                                        <thead><tr><th>#</th><th>여권 영문명</th><th>이름</th><th>생년월일</th><th>성별</th><th>연락처</th></tr></thead>
-                                                        <tbody>
-                                                            {travelers.map((t, i) => (
-                                                                <tr key={i}><td>{i + 1}</td><td><b>{t.passportName || '-'}</b></td><td>{t.name || '-'}</td><td>{t.birthdate || '-'}</td><td>{genderLabel(t.gender)}</td><td>{t.phone || '-'}</td></tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
+                                                <AdminTable label="여행자 명단" className="lo-mini">
+                                                    <AdminThead><AdminTr><AdminTh>#</AdminTh><AdminTh>여권 영문명</AdminTh><AdminTh>이름</AdminTh><AdminTh>생년월일</AdminTh><AdminTh>성별</AdminTh><AdminTh>연락처</AdminTh></AdminTr></AdminThead>
+                                                    <AdminTbody>
+                                                        {travelers.map((t, i) => (
+                                                            <AdminTr key={i}><AdminTd nowrap className="lo-mini-no">{i + 1}</AdminTd><AdminTd nowrap><b>{t.passportName || '-'}</b></AdminTd><AdminTd nowrap>{t.name || '-'}</AdminTd><AdminTd nowrap>{t.birthdate || '-'}</AdminTd><AdminTd nowrap>{genderLabel(t.gender)}</AdminTd><AdminTd nowrap>{t.phone || '-'}</AdminTd></AdminTr>
+                                                        ))}
+                                                    </AdminTbody>
+                                                </AdminTable>
                                             ) : <p className="lo-note">여행자 정보 없음 (계약서 제출 전)</p>}
                                             <details className="lo-schedule">
                                                 <summary><span className="lo-schedule-chev"><DashboardIcon name="lc-chevron-right" size={14} /></span>전체 고객 일정 보기</summary>
@@ -859,7 +862,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                 <span className="lo-plan-chev"><DashboardIcon name="lc-chevron-down" size={16} /></span>
                                                                 <b>{day.day}일차</b>
                                                                 <span className="lo-plan-date">{day.date || '날짜 미정'}{day.date && ` ${weekdayKo(day.date)}`}</span>
-                                                                <span className="lo-pill lo-plan-region" data-tone={dayRegion ? 'ok' : undefined} data-empty={dayRegion ? undefined : 'true'}>{dayRegion || '지역 미입력'}</span>
+                                                                <AdminBadge tone={dayRegion ? 'success' : 'neutral'} className="lo-plan-region">{dayRegion || '지역 미입력'}</AdminBadge>
                                                                 {day.title && day.title !== dayRegion && <span className="lo-plan-title">{day.title}</span>}
                                                                 <small>{steps.length}개 일정</small>
                                                             </summary>
@@ -876,18 +879,18 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                     {/* 일차별 숙소 */}
                                     <section className="lo-card">
                                         <header className="lo-card-head"><DashboardIcon name="lc-bed" size={16} /><h3>일차별 숙소</h3>
-                                            <span className="lo-pill" data-tone={sum.allConfirmed && sum.total ? 'ok' : 'info'}>{progress}</span>
+                                            <AdminBadge tone={sum.allConfirmed && sum.total ? 'success' : 'info'}>{progress}</AdminBadge>
                                             <span className="lo-spacer" />
-                                            <a className="lo-btn" href={r.source === 'quote_booking' ? quoteCustomerHref(r.bookingId, '/admin/accommodation-ops') : productCustomerHref(r.bookingId, '/admin/accommodation-ops')} title="고객 통합 작업 화면에서 이 예약을 엽니다.">
-                                                <DashboardIcon name="lc-external-link" size={14} />예약 상세
+                                            <a className="adm-ui-btn is-secondary is-sm" href={r.source === 'quote_booking' ? quoteCustomerHref(r.bookingId, '/admin/accommodation-ops') : productCustomerHref(r.bookingId, '/admin/accommodation-ops')} title="고객 통합 작업 화면에서 이 예약을 엽니다.">
+                                                <span className="adm-ui-btn-icon"><DashboardIcon name="lc-external-link" size={14} /></span><span className="adm-ui-btn-label">예약 상세</span>
                                             </a>
-                                            <button type="button" className="lo-btn" title="저장된 숙소와 객실은 유지하고 고객 일정의 해당 일차 날짜에 맞춥니다." disabled={!sum.plan.canAlignDates} onClick={() => alignDates(r.id)}>
-                                                <DashboardIcon name="lc-calendar" size={14} />여행 날짜에 맞추기
+                                            <button type="button" className="adm-ui-btn is-secondary is-sm" title="저장된 숙소와 객실은 유지하고 고객 일정의 해당 일차 날짜에 맞춥니다." disabled={!sum.plan.canAlignDates} onClick={() => alignDates(r.id)}>
+                                                <span className="adm-ui-btn-icon"><DashboardIcon name="lc-calendar" size={14} /></span><span className="adm-ui-btn-label">여행 날짜에 맞추기</span>
                                             </button>
                                         </header>
                                         {!sum.total && <p className="lo-note">{sum.total === null ? '여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.' : '당일 여행으로 숙박 배정이 필요하지 않습니다.'}</p>}
-                                        {pendingDrafts[r.id] && <div role="status" className="lo-warn">보관된 초안이 있어 잠겨 있어요. 이 예약 맨 위에서 ‘초안 복원’ 또는 ‘초안 버리기’를 고르면 수정할 수 있어요.</div>}
-                                        {sum.plan.warnings.map((warning, index) => <div key={index} role="alert" className="lo-warn">{warning}</div>)}
+                                        {pendingDrafts[r.id] && <div role="status" className="adm-msg is-cautionary">보관된 초안이 있어 잠겨 있어요. 이 예약 맨 위에서 ‘초안 복원’ 또는 ‘초안 버리기’를 고르면 수정할 수 있어요.</div>}
+                                        {sum.plan.warnings.map((warning, index) => <div key={index} role="alert" className="adm-msg is-negative">{warning}</div>)}
                                         <div className="lo-night-list">
                                             {rows.map((d, idx) => {
                                                 const acc = d.accommodation || {};
@@ -912,27 +915,27 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                     <article key={idx} className="lo-night" data-state={!hasName ? 'empty' : isLodgeBookingConfirmed(bookingStatus) ? 'confirmed' : 'assigned'}>
                                                         <header className="lo-night-head">
                                                             <label className="lo-day-no">
-                                                                <input type="number" min={1} aria-label="숙박 일차" style={{ width: `${String(d.day).length + 0.4}ch` }} value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })} /><span>일차</span></label>
+                                                                <input type="number" min={1} aria-label="숙박 일차" data-digits={Math.min(String(d.day).length, 4)} value={d.day} onChange={e => patchDayMeta(r.id, idx, { day: parseInt(e.target.value) || idx + 1 })} /><span>일차</span></label>
                                                             <span className="lo-date-pill">
                                                                 <input type="date" className="lo-date" aria-label="숙박 날짜" value={d.date || ''} onChange={e => patchDayMeta(r.id, idx, { date: e.target.value })} />
                                                                 {d.date && <span className="lo-dow">{weekdayKo(d.date)}</span>}
                                                             </span>
                                                             <span className="lo-night-place" title={scheduleDay?.summary || undefined}><DashboardIcon name="lc-map-pin" size={14} />{nightRegion || scheduleDay?.title || '장소 미정'}</span>
                                                             <span className="lo-spacer" />
-                                                            {previous && <button type="button" className="lo-btn lo-copy" disabled={!previous.name && !previous.location} title="앞 일차의 지역·숙소·등급·객실·인원을 가져옵니다. 새 숙박일은 발송전·예약 미정으로 시작합니다." onClick={() => copyPreviousDay(r.id, idx)}>
-                                                                <DashboardIcon name="lc-copy" size={14} />앞 일차와 동일
+                                                            {previous && <button type="button" className="adm-ui-btn is-secondary is-sm" disabled={!previous.name && !previous.location} title="앞 일차의 지역·숙소·등급·객실·인원을 가져옵니다. 새 숙박일은 발송전·예약 미정으로 시작합니다." onClick={() => copyPreviousDay(r.id, idx)}>
+                                                                <span className="adm-ui-btn-icon"><DashboardIcon name="lc-copy" size={14} /></span><span className="adm-ui-btn-label">앞 일차와 동일</span>
                                                             </button>}
-                                                            <button type="button" className="lo-icon-btn is-danger" title="이 숙박일 삭제" aria-label={`${d.day}일차 숙박 삭제`} onClick={async () => { if (await adminConfirm(`${d.day}일차 숙박을 삭제할까요?`)) removeDay(r.id, idx); }}>
+                                                            <button type="button" className="adm-ui-icon-btn is-sm adm-aao-remove" title="이 숙박일 삭제" aria-label={`${d.day}일차 숙박 삭제`} onClick={async () => { if (await adminConfirm(`${d.day}일차 숙박을 삭제할까요?`)) removeDay(r.id, idx); }}>
                                                                 <DashboardIcon name="lc-trash" size={15} />
                                                             </button>
                                                         </header>
-                                                        {(sum.plan.rowWarnings[idx] || []).map((warning, index) => <div key={index} role="alert" className="lo-night-warn">{warning}</div>)}
+                                                        {(sum.plan.rowWarnings[idx] || []).map((warning, index) => <div key={index} role="alert" className="adm-msg is-negative">{warning}</div>)}
                                                         <div className="lo-night-fields">
                                                         <div className="lo-field"><span>지역</span>{regionManual ? (
                                                             // 등록 숙소의 지역에서 선택하며 과거 값과 직접 입력은 그대로 유지한다.
                                                             <div className="lo-region-manual">
                                                                 <input className="lo-input lo-region" aria-label="숙박 지역" value={loc} placeholder="지역 입력" onChange={e => patchDay(r.id, idx, { location: e.target.value, region: e.target.value })} />
-                                                                <button type="button" className="lo-icon-btn" title="등록 지역 목록에서 선택"
+                                                                <button type="button" className="adm-ui-icon-btn is-outlined is-md" title="등록 지역 목록에서 선택"
                                                                     onClick={() => { setManualRegions(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListRegions(prev => new Set(prev).add(mKey)); }}>
                                                                     <DashboardIcon name="lc-search" size={14} />
                                                                 </button>
@@ -959,7 +962,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                                         if (!manualHotels.has(mKey)) setManualHotels(prev => new Set(prev).add(mKey));
                                                                         if (e.target.value !== nm) patchDay(r.id, idx, { name: e.target.value, id: undefined, images: [], description: '', facilities: [], location: shownRegion, region: shownRegion, address: '', roomAmenities: [], sharedFacilities: [], ...resetLodgeWorkflow(acc) });
                                                                     }} />
-                                                                <button type="button" className="lo-icon-btn" title="등록 숙소 목록에서 선택"
+                                                                <button type="button" className="adm-ui-icon-btn is-outlined is-md" title="등록 숙소 목록에서 선택"
                                                                     onClick={() => { setManualHotels(prev => { const n = new Set(prev); n.delete(mKey); return n; }); setListHotels(prev => new Set(prev).add(mKey)); }}>
                                                                     <DashboardIcon name="lc-search" size={14} />
                                                                 </button>
@@ -1029,8 +1032,8 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                                 : rows.length === 0 && <p className="lo-empty-row">숙박일이 없어요. '숙박일 추가'로 추가해 주세요.</p>}
                                         </div>
                                         <div className="lo-actions">
-                                            <button type="button" className="lo-btn is-dashed" onClick={() => addDay(r.id)}><DashboardIcon name="lc-plus" size={15} />숙박일 추가</button>
-                                            {sum.plan.missingNights.length > 0 && <button type="button" className="lo-btn is-dashed" disabled={sum.plan.addableNights.length === 0} onClick={() => addMissingNights(r)}><DashboardIcon name="lc-plus" size={15} />누락 숙박일 추가</button>}
+                                            <button type="button" className="adm-ui-btn is-secondary is-sm" onClick={() => addDay(r.id)}><span className="adm-ui-btn-icon"><DashboardIcon name="lc-plus" size={15} /></span><span className="adm-ui-btn-label">숙박일 추가</span></button>
+                                            {sum.plan.missingNights.length > 0 && <button type="button" className="adm-ui-btn is-secondary is-sm" disabled={sum.plan.addableNights.length === 0} onClick={() => addMissingNights(r)}><span className="adm-ui-btn-icon"><DashboardIcon name="lc-plus" size={15} /></span><span className="adm-ui-btn-label">누락 숙박일 추가</span></button>}
                                         </div>
                                     </section>
 
@@ -1038,7 +1041,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                     <div className="lo-crew">
                                         <section className="lo-card">
                                             <header className="lo-card-head"><DashboardIcon name="lc-user-round" size={16} /><h3>담당 가이드</h3>
-                                                <span className="lo-pill" data-tone={hasGuide ? 'ok' : 'alert'}>{hasGuide ? '배정됨' : '미배정'}</span></header>
+                                                <AdminBadge tone={hasGuide ? 'success' : 'danger'} className="lo-crew-badge">{hasGuide ? '배정됨' : '미배정'}</AdminBadge></header>
                                             <select className="lo-input" aria-label="등록 가이드 선택" disabled={resourcesLoading} value={resources.guides.some(guide => guide.id === r.assignedGuide?.id) ? r.assignedGuide?.id || '' : ''} onChange={e => chooseGuide(r.id, e.target.value)}>
                                                 <option value="">{resourcesLoading ? '등록 가이드 불러오는 중…' : '등록 가이드 선택 · 직접 입력 가능'}</option>
                                                 {open && guideChoices(r).map(({ guide, overlap, handover }) => <option key={guide.id} value={guide.id}>
@@ -1051,7 +1054,7 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
                                         </section>
                                         <section className="lo-card">
                                             <header className="lo-card-head"><DashboardIcon name="lc-car" size={16} /><h3>투어 차량</h3>
-                                                <span className="lo-pill" data-tone={hasVehicle ? 'ok' : 'alert'}>{hasVehicle ? '배정됨' : '미배정'}</span></header>
+                                                <AdminBadge tone={hasVehicle ? 'success' : 'danger'} className="lo-crew-badge">{hasVehicle ? '배정됨' : '미배정'}</AdminBadge></header>
                                             <select className="lo-input" aria-label="등록 차량 선택" disabled={resourcesLoading} value={r.contractData?.vehicle?.resource && resources.vehicles.some(vehicle => vehicle.type === r.contractData?.vehicle?.type) ? r.contractData.vehicle.type : ''} onChange={e => chooseVehicle(r.id, e.target.value)}>
                                                 <option value="">{resourcesLoading ? '등록 차량 불러오는 중…' : '등록 차량 선택 · 직접 입력 가능'}</option>
                                                 {resources.vehicles.map(vehicle => <option key={vehicle.type} value={vehicle.type}>{vehicle.name}</option>)}
@@ -1066,9 +1069,9 @@ const AccommodationBoard: React.FC<{ userId: string }> = ({ userId }) => {
 
                                     <div className="lo-savebar">
                                         <span className={`lo-savebar-text${isDirty ? ' is-dirty' : ''}`}>{isDirty ? '저장하지 않은 변경 사항이 있어요.' : savedAt[r.id] ? `${savedAt[r.id]} 저장됨 · 저장된 배정 기준이에요.` : '저장된 배정 기준이에요.'}</span>
-                                        {isDirty && <button type="button" className="lo-btn lo-reset-row" disabled={!!savingId} onClick={() => resetRow(r)}>변경 취소</button>}
-                                        <button type="button" className="lo-save" disabled={!isDirty || !!savingId || !!pendingDrafts[r.id]} onClick={() => save(r)}>
-                                            <DashboardIcon name="lc-check" size={15} />{savingId === r.id ? '저장하는 중…' : '배정 저장'}
+                                        {isDirty && <button type="button" className="adm-ui-btn is-secondary is-md" disabled={!!savingId} onClick={() => resetRow(r)}><span className="adm-ui-btn-label">변경 취소</span></button>}
+                                        <button type="button" className="adm-ui-btn is-primary is-md adm-on-primary" disabled={!isDirty || !!savingId || !!pendingDrafts[r.id]} onClick={() => save(r)}>
+                                            <span className="adm-ui-btn-icon"><DashboardIcon name="lc-check" size={15} /></span><span className="adm-ui-btn-label">{savingId === r.id ? '저장하는 중…' : '배정 저장'}</span>
                                         </button>
                                     </div>
                                 </div>
