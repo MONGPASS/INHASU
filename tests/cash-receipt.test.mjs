@@ -5,7 +5,7 @@ import { guideStatementContent } from "../public/guide-statement.js";
 
 const read = name => readFileSync(new URL(`../public/${name}`, import.meta.url), "utf8");
 
-const { cashReceiptPayload } = new Function(`${read("booking.js")}\nreturn { cashReceiptPayload };`)();
+const { cashReceiptPayload, koreanAmount } = new Function(`${read("booking.js")}\nreturn { cashReceiptPayload, koreanAmount };`)();
 
 test("현금영수증 출력 데이터가 예약의 잔금·기간·담당 가이드를 정확히 매핑한다", () => {
   const rec = { id:"req-abc12345", name:"김은하", adult:4, child:2, destination:"남고비", depart:"2026-09-03", return_:"2026-09-08" };
@@ -48,20 +48,39 @@ test("모바일 관리자도 별도 버튼 없이 가이드 시트 PDF에서 영
   assert.doesNotMatch(mobile, />현금영수증<\/button>/);
 });
 
-test("잔금이 있으면 가이드 시트 거래명세서 다음에 현금영수증 2부를 붙인다", () => {
+test("잔금이 있으면 가이드 시트 일정표 다음에 현금영수증 2부(고객용·회사 보관용)를 붙인다", () => {
   const guide = read("가이드시트.html");
   assert.match(guide, /<script src="booking\.js"><\/script>/);
   assert.match(guide, /cashReceiptPayload\(REC, BK\)/);
   assert.match(guide, /Number\(cash\.amount\) > 0/);
-  assert.match(guide, /고객용 \/ CUSTOMER COPY/);
-  assert.match(guide, /회사 보관용 \/ COMPANY COPY/);
-  assert.match(guide, /cash\.customerName/);
-  assert.match(guide, /cash\.receiptNo/);
-  assert.match(guide, /cash\.amount/);
-  assert.match(guide, /cash\.productName/);
-  assert.match(guide, /cash\.guideName/);
+  assert.match(guide, /고객용<small>CUSTOMER COPY<\/small>/);
+  assert.match(guide, /회사 보관용<small>COMPANY COPY<\/small>/);
+  assert.match(guide, /절취선 · CUT HERE/);
+  assert.match(guide, /금 \$\{koreanAmount\(cash\.amount\)\} 원정/);
+  for (const field of ["customerName", "receiptNo", "amount", "productName", "guideName"]) assert.ok(guide.includes(`cash.${field}`), field);
   assert.match(guide, /\.cash-page\{[^}]*page-break-before:always/);
-  assert.match(guide, /page1 \+ page2 \+ statementPage \+ cashPage/);
+  assert.match(guide, /root\.innerHTML = page1 \+ page2 \+ cashPage \+ picketPage;/);
+  assert.doesNotMatch(guide, /statementPage|guideStatementContent|guide-statement\.css/, "거래명세서 페이지는 1페이지 결제·잔금 칸과 영수증으로 합쳤다");
+});
+
+test("영수증의 한글 금액은 만 단위로 읽는다", () => {
+  assert.equal(koreanAmount(5160000), "오백십육만");
+  assert.equal(koreanAmount(6650000), "육백육십오만");
+  assert.equal(koreanAmount(10000), "일만");
+  assert.equal(koreanAmount(1234567), "백이십삼만사천오백육십칠");
+  assert.equal(koreanAmount(110000000), "일억천만");
+  assert.equal(koreanAmount(0), "영");
+});
+
+test("가이드 시트 1페이지는 디자인의 공항 픽업·숙소 정보·고객 명단·현지 수배·결제 잔금을 그린다", () => {
+  const guide = read("가이드시트.html");
+  for (const title of ["공항 픽업 · 샌딩", "숙소 정보", "고객 명단", "현지 수배", "결제 · 잔금", "일자별 일정", "내부용 · 고객 배포 금지"]) assert.ok(guide.includes(title), title);
+  assert.ok(guide.includes("숙소 배정 ${assignedNights}/${nights}박"));
+  assert.ok(guide.includes("편명 · 시각 미입력"));
+  assert.ok(guide.includes("const assigned = lodgeByDay[i + 1];"), "일자별 일정의 숙소 칸도 배정 숙소를 쓴다");
+  assert.ok(guide.includes("noBr(assigned.grade || (LODGE_LIB[assignedName] || {}).grade)"), "배정 숙소 등급은 배정 기록 → 숙소 등록 정보 순");
+  assert.ok(guide.includes('badge("b-progress", "숙소 미배정", true)'));
+  assert.ok(guide.includes("img/brand/mongolia-milkyway-logo-dark.png"));
 });
 
 test("가이드 거래명세서는 계약 총액과 예약금·잔금을 따로 표기하고 금액 미입력과 0원을 구분한다", () => {
