@@ -17,7 +17,7 @@ import {
     type PillTone, type V7MenuItem, type V7MenuState,
 } from './v7Ui';
 import { adminConfirm } from '../ui/adminFeedback';
-import { IconCheckThick, IconCoins, IconDocument, IconListCategory, IconPersons } from '@montage-ui/icon';
+import { IconCheckThick, IconCoins, IconDocument, IconListCategory, IconPersons } from '../ui';
 import './reservation-detail-cards.css';
 
 type Css = React.CSSProperties;

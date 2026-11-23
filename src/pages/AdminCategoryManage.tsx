@@ -7,14 +7,11 @@ import { createAdminContentTask, moveAdminRow } from '../utils/adminContentWorkf
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { Icon } from '../components/admin/console/Icon';
 import {
-    AdminBadge, AdminButton, AdminCard, AdminDialog, AdminEmpty, AdminError, AdminField, AdminFileButton, AdminIconButton,
-    AdminLoading, AdminMessage, AdminSwitch, AdminTable, AdminTbody, AdminTd, AdminTextArea, AdminTextButton, AdminTextInput,
-    AdminTh, AdminThead, AdminTr, cx,
+    AdminBadge, AdminButton, AdminCard, AdminDialog, AdminEmpty, AdminError, AdminField, AdminFileButton, AdminIconButton, AdminLoading,
+    AdminMessage, AdminSwitch, AdminTable, AdminTbody, AdminTd, AdminTextArea, AdminTextButton, AdminTextInput, AdminTh, AdminThead, AdminTr,
+    cx, IconArrowDown, IconArrowUp, IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconClose, IconImage, IconPencil,
+    IconPlus, IconTrash, IconUpload,
 } from '../components/admin/ui';
-import {
-    IconArrowDown, IconArrowUp, IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconClose, IconImage,
-    IconPencil, IconPlus, IconTrash, IconUpload,
-} from '@montage-ui/icon';
 import './AdminCategoryManage.css';
 import { DEFAULT_CATEGORIES, DEFAULT_MAGAZINE_CATEGORIES, LEGACY_LANDING_ACCENT, type Category } from '../types/category';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';

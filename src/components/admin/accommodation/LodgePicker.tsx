@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { IconSearch } from '@montage-ui/icon';
-import { AdminBadge, AdminButton, AdminChip, AdminChipGroup, AdminDialog, AdminPickCard, AdminSearch, AdminTextButton } from '../ui';
+import { AdminBadge, AdminButton, AdminChip, AdminChipGroup, AdminDialog, AdminPickCard, AdminSearch, AdminTextButton, IconSearch } from '../ui';
 import type { RegisteredLodge } from '../../../utils/registeredAssignmentResources';
 import {
     LODGE_GRADE_GROUPS, LODGE_ZONES, OTHER_LODGE_ZONE, lodgeGradeGroupOf, lodgeMatches, lodgeRegionOf, lodgeZoneOf, sameText,

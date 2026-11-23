@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconCheck, IconChevronLeft } from '@montage-ui/icon';
+import { IconCheck, IconChevronLeft } from './AdminIcons';
 import { AdminLayout } from '../AdminLayout';
 import { AdminButton, AdminTextButton } from './AdminButton';
 import { AdminCard } from './AdminSurface';

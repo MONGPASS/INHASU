@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { IconCheck, IconChevronRight, IconClock, IconDocumentText, IconRefresh } from '@montage-ui/icon';
 import { AdminLayout } from '../components/admin/AdminLayout';
-import { AdminBadge, AdminButton, AdminIconButton, AdminTabs, AdminTextButton } from '../components/admin/ui';
+import {
+    AdminBadge, AdminButton, AdminIconButton, AdminTabs, AdminTextButton, IconCheck, IconChevronRight, IconClock, IconDocumentText, IconRefresh,
+} from '../components/admin/ui';
 import { useAdminWorkspace } from '../components/admin/AdminWorkspaceContext';
 import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
 import { TrafficSources } from '../components/admin/dashboard/TrafficSources';

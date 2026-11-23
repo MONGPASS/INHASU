@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { adminConfirm, adminNotify } from './ui/adminFeedback';
-import { AdminButton, AdminEmpty, AdminField, AdminIconButton, AdminLoading, AdminMessage, AdminTextArea, AdminTextInput } from './ui';
-import { IconArrowDown, IconArrowUp, IconPlus, IconTrash } from '@montage-ui/icon';
+import {
+    AdminButton, AdminEmpty, AdminField, AdminIconButton, AdminLoading, AdminMessage, AdminTextArea, AdminTextInput, IconArrowDown, IconArrowUp,
+    IconPlus, IconTrash,
+} from './ui';
 import './TourFAQEditor.css';
 
 /**

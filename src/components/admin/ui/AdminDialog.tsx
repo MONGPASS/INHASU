@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { IconClose } from '@montage-ui/icon';
+import { IconClose } from './AdminIcons';
 import { AdminButton, AdminIconButton } from './AdminButton';
 import { cx, useAdminNarrow } from './adminUiUtils';
 import './admin-components.css';

@@ -3,11 +3,10 @@ import { AdminLayout } from '../components/admin/AdminLayout';
 import { TourFAQEditor } from '../components/admin/TourFAQEditor';
 import { api } from '../lib/api';
 import {
-    AdminBadge, AdminButton, AdminCard, AdminChipGroup, AdminDialog, AdminEmpty, AdminError, AdminField, AdminIconButton,
-    AdminLoading, AdminMessage, AdminSearch, AdminSwitch, AdminTable, AdminTabs, AdminTbody, AdminTd, AdminTextArea,
-    AdminTextInput, AdminTh, AdminThead, AdminTr, type AdminTagTone,
+    AdminBadge, AdminButton, AdminCard, AdminChipGroup, AdminDialog, AdminEmpty, AdminError, AdminField, AdminIconButton, AdminLoading,
+    AdminMessage, AdminSearch, AdminSwitch, AdminTable, AdminTabs, AdminTbody, AdminTd, AdminTextArea, AdminTextInput, AdminTh, AdminThead,
+    AdminTr, type AdminTagTone, IconArrowDown, IconArrowUp, IconChevronDown, IconChevronUp, IconPencil, IconPlus, IconTrash,
 } from '../components/admin/ui';
-import { IconArrowDown, IconArrowUp, IconChevronDown, IconChevronUp, IconPencil, IconPlus, IconTrash } from '@montage-ui/icon';
 import './AdminFAQManage.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminValidateRequired } from '../components/admin/ui/adminForm';

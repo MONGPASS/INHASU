@@ -40,8 +40,10 @@ import { readProductVehicle } from '../utils/reservationAssignment';
 import { guideAssignmentConflicts, validAssignmentPeriod } from '../utils/assignmentAvailability';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
 import { ReservationListV7, type ReservationListScope, type V7OpenAction } from '../components/admin/v7/ReservationListV7';
-import { AdminButton, AdminDialog, AdminField, AdminIconButton, AdminMenu, AdminMessage, AdminSelect, AdminTextArea, AdminTextInput } from '../components/admin/ui';
-import { IconDownload, IconPlus, IconRefresh } from '@montage-ui/icon';
+import {
+    AdminButton, AdminDialog, AdminField, AdminIconButton, AdminMenu, AdminMessage, AdminSelect, AdminTextArea, AdminTextInput, IconDownload,
+    IconPlus, IconRefresh,
+} from '../components/admin/ui';
 import type { V7Source } from '../utils/reservationV7';
 import type { ReservationDetailV7Links } from '../components/admin/v7/ReservationDetailV7';
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';

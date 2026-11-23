@@ -3,11 +3,10 @@ import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import {
-    AdminButton, AdminCard, AdminChipGroup, AdminDialog, AdminEmpty, AdminError, AdminField, AdminFileButton, AdminIconButton,
-    AdminLoading, AdminSearch, AdminStat, AdminStatRow, AdminSwitch, AdminTable, AdminTbody, AdminTd, AdminTextArea, AdminTextInput,
-    AdminTh, AdminThead, AdminTr,
+    AdminButton, AdminCard, AdminChipGroup, AdminDialog, AdminEmpty, AdminError, AdminField, AdminFileButton, AdminIconButton, AdminLoading,
+    AdminSearch, AdminStat, AdminStatRow, AdminSwitch, AdminTable, AdminTbody, AdminTd, AdminTextArea, AdminTextInput, AdminTh, AdminThead,
+    AdminTr, IconImage, IconPlus, IconTrash,
 } from '../components/admin/ui';
-import { IconImage, IconPlus, IconTrash } from '@montage-ui/icon';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
 import { adminValidateRequired } from '../components/admin/ui/adminForm';
 import './AdminReviewManage.css';

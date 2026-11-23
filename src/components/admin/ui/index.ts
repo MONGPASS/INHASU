@@ -1,5 +1,6 @@
 /**
  * 관리자 공통 부품(우리 부품, 당근 Seed 모양을 --adm-* 변수로 직접 그린다 — 설계 docs/seed-design/components).
+ * 아이콘도 여기서(AdminIcons — 당근 Seed 아이콘, scripts/build-seed-icons.mjs가 만든다).
  * 관리자 화면은 이 폴더의 부품만 쓴다. 바깥 부품 묶음(@montage-ui/core 등)은 쓰지 않는다(tests/admin-ui-boundary.test.mjs).
  * 규격: docs/admin-design-system.md 3절(부품)·4절(화면 틀). 미리보기: /admin/__ui
  */
@@ -22,5 +23,6 @@ export type { AdminDialogProps } from './AdminDialog';
 export { adminNotify, adminConfirm } from './adminFeedback';
 export { adminValidateRequired } from './adminForm';
 export { adminConfirmLeave } from './adminLeaveConfirm';
+export * from './AdminIcons';
 export { cx, useAdminNarrow } from './adminUiUtils';
 export type { AdminSize } from './adminUiUtils';

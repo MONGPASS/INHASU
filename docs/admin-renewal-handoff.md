@@ -9,7 +9,7 @@ Claude Code가 이 문서 하나로 관리자 리뉴얼을 이어서 진행할 �
 
 - `/admin`의 **모든 관리자 화면**을 사용하기 편하게 전면 리뉴얼한다(범위: Full — 일부 화면만 하는 Lite가 아님).
 - 같은 레이아웃에 색만 바꾸는 것이 아니라 **레이아웃·UX까지 실제로 다시 설계**한다.
-- **2026-11-23 변경: 디자인 시스템을 Montage → 당근 Seed(은하수 색 판)로 바꾼다.** 1단계(토큰: `public/seed/*.css` + `admin-tokens.css` 연결, 글자 크기 단계)·2단계(우리 부품을 Montage 없이 Seed 모양으로 다시 만들고 `@montage-ui/core` 제거, 같은 props) 완료, 3단계(아이콘 `@montage-ui/icon` → Seed 아이콘)가 남았다. 값은 `docs/admin-design-system.md` 2절, Seed 원본 자료는 `docs/seed-design/`. 아래의 Montage·배민 민트 내용은 그 전 기록이다.
+- **2026-11-23 변경: 디자인 시스템을 Montage → 당근 Seed(은하수 색 판)로 바꾼다.** 1단계(토큰: `public/seed/*.css` + `admin-tokens.css` 연결, 글자 크기 단계)·2단계(우리 부품을 Montage 없이 Seed 모양으로 다시 만들고 `@montage-ui/core` 제거, 같은 props) ·3단계(아이콘 `@montage-ui/icon` → Seed 아이콘, `ui/AdminIcons.tsx`) 모두 완료. 이제 Montage 패키지는 하나도 없다. 값은 `docs/admin-design-system.md` 2절, Seed 원본 자료는 `docs/seed-design/`. 아래의 Montage·배민 민트 내용은 그 전 기록이다.
 - (이전) 디자인 시스템은 **Montage**(원티드, `@montage-ui/core`·`@montage-ui/icon` 4.3.2, MIT). 관리자에만 쓰고 고객 사이트는 기존 색(민트 `#27AB8F` + 네이비 `#0A1F2E`)을 유지한다.
 - (이전) 브랜드 색은 배민 민트(2026-11-21): 채움 `#0CEFD3`. **2026-11-23부터 Seed 민트 `#36D1A7`**(글자용 `#067661`, 민트 위 글자 `#032B25`, 작업 바탕 `#F2F3F6`).
 - 디자인은 Figma 없이 Claude가 직접 만든다. 시안은 "보고 결정하는 용도"이며, 시안 HTML을 그대로 붙여 넣지 않고 **실제 부품으로 다시 짠다**.
@@ -198,7 +198,7 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 - 알림은 `adminNotify()`, 확인은 `await adminConfirm()`, 견적 도구는 `AdminDialog.confirm/prompt`. `alert()`·`confirm()` 새로 쓰지 않기.
 - 사이트 API 쓰기 라우트에 `requireAdmin`(3.7). 배정 저장은 CAS(`expectedVersion`), 예전 예약 전체 PUT 금지.
 - `main` 직접 푸시 금지. feature 브랜치 → PR → 미리보기 확인 → 머지. 커밋 메시지는 한국어 `[영역]: 설명`.
-- 부품은 `components/admin/ui`가 Seed 설계대로 직접 그린다. `@montage-ui/core`·`AdminMontageProvider`·`admin-montage-brand.css`는 2단계(2026-11-23)에서 지웠다 — 다시 들이지 않는다.
+- 부품은 `components/admin/ui`가 Seed 설계대로 직접 그린다. `@montage-ui/core`·`@montage-ui/icon`·`AdminMontageProvider`·`admin-montage-brand.css`는 2·3단계(2026-11-23)에서 지웠다 — 다시 들이지 않는다. 아이콘은 `components/admin/ui`의 `Icon*`(Seed).
 - 민트 채움 위 글자는 `--adm-on-primary`. 민트 글자는 `--adm-accent-strong`.
 - 위반 수치는 늘릴 수 없다. 줄였으면 기준선·현황 문서를 함께 낮춘다. 예외는 `admin-design-system.md` 7절에 한 줄 기록.
 

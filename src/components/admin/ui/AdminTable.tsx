@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconChevronLeft, IconChevronRight } from '@montage-ui/icon';
+import { IconChevronLeft, IconChevronRight } from './AdminIcons';
 import { cx } from './adminUiUtils';
 import './admin-components.css';
 

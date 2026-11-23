@@ -1,12 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { IconCalendar, IconDownload, IconMoreHorizontal, IconPlus, IconTrash, IconUpload } from '@montage-ui/icon';
 import {
-    AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminChip, AdminChipGroup, AdminDataTable, AdminDialog,
-    AdminEmpty, AdminError, AdminField, AdminFileButton, AdminIconButton, AdminLoading, AdminMenu, AdminMessage,
-    AdminPagination, AdminSearch, AdminSegmented, AdminSelect, AdminStat, AdminStatRow, AdminTabs, AdminTextArea,
-    AdminSwitch, AdminTextButton, AdminTextInput, adminConfirm, adminNotify, adminValidateRequired,
-    type AdminColumn, type AdminTone,
+    AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminChip, AdminChipGroup, AdminDataTable, AdminDialog, AdminEmpty, AdminError,
+    AdminField, AdminFileButton, AdminIconButton, AdminLoading, AdminMenu, AdminMessage, AdminPagination, AdminSearch, AdminSegmented,
+    AdminSelect, AdminStat, AdminStatRow, AdminTabs, AdminTextArea, AdminSwitch, AdminTextButton, AdminTextInput, adminConfirm, adminNotify,
+    adminValidateRequired, type AdminColumn, type AdminTone, IconCalendar, IconDownload, IconMoreHorizontal, IconPlus, IconTrash, IconUpload,
 } from '../components/admin/ui';
 import {
     AdminDetailHeader, AdminFilterBar, AdminFormSection, AdminGrid, AdminSteps, DashboardPage, DetailPage, FormPage, ListPage,
