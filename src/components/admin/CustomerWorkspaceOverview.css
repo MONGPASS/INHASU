@@ -49,7 +49,7 @@
 .cw-customer-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 24px; }
 .cw-identity-copy { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 6px; }
 .cw-customer-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cw-customer-title h1 { font-size: 28px; font-weight: var(--adm-fw-bold); letter-spacing: -0.035em; line-height: 1.3; color: var(--text-strong); overflow-wrap: anywhere; }
+.cw-customer-title h1 { font-size: 26px; font-weight: var(--adm-fw-bold); letter-spacing: -0.035em; line-height: 1.3; color: var(--text-strong); overflow-wrap: anywhere; }
 .cw-dday { font-family: var(--font-sans); }
 .cw-trip-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--text-secondary); }
 .cw-trip-meta > span { display: inline-flex; align-items: center; gap: 5px; }
@@ -165,7 +165,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: var(--adm
 .cw-flight-heading { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
 .cw-flight-heading strong { font-size: 13px; font-weight: 700; color: var(--text-strong); }
 .cw-flight-heading .cw-pill { margin-left: auto; }
-.cw-flight-number { font-family: var(--font-sans); font-size: 22px; font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; color: var(--text-strong); }
+.cw-flight-number { font-family: var(--font-sans); font-size: 20px; font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; color: var(--text-strong); }
 .cw-flight-number.is-missing { font-size: 14px; color: var(--text-tertiary); }
 .cw-flight dl { display: flex; flex-direction: column; gap: 4px; margin: 0; }
 .cw-flight dl > div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
@@ -264,7 +264,7 @@ a.cw-booked-product:hover { border-color: var(--mrt-blue); background: var(--adm
 /* 결제 현황 */
 .cw-payment-summary { display: flex; flex-direction: column; gap: 8px; }
 .cw-total-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.cw-total { font-family: var(--font-sans); font-size: 36px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; line-height: 1.1; color: var(--text-strong); }
+.cw-total { font-family: var(--font-sans); font-size: 34px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; line-height: 1.1; color: var(--text-strong); }
 .cw-total-label { font-size: 13px; color: var(--text-secondary); }
 .cw-payment-progress > div { height: 8px; border-radius: var(--adm-radius-xs); background: var(--mrt-gray-100); overflow: hidden; }
 .cw-payment-progress span { display: block; height: 100%; border-radius: var(--adm-radius-xs); background: var(--adm-accent); }

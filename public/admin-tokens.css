@@ -5,87 +5,99 @@
    - 색·글자 크기·간격·테두리·모서리·버튼/입력창 높이는 여기서만 정한다.
      화면별 CSS에는 값을 다시 적지 말고 var(--adm-*)를 쓴다.
    - 고객용 페이지·인쇄 문서는 이 파일을 쓰지 않는다(quote-theme.css, mwTokens.ts).
-   - 값은 Montage 디자인 시스템 기준(2026-11-20). 간격 4px 단위,
-     모서리 배지 4 / 버튼·입력 10 / 카드 16 / 팝업 24.
-   규칙·예외는 docs/admin-design-system.md 참고.
+   - 값의 기준은 당근 Seed 디자인 시스템을 은하수 색으로 바꾼 판(2026-11-23 오너 결정, Montage 대신).
+     Seed 원본 토큰은 public/seed/*.css(그대로 복사)이고, 여기서는 --adm-* 이름을 그 값에 잇는다.
+     모서리 4 / 버튼·입력 6 / 알림 8 / 카드 10 / 팝업 16, 버튼 높이 32·36·40·48·52, 글자 굵기 보통·굵게 두 가지.
+   규칙·예외는 docs/admin-design-system.md, Seed 자료는 docs/seed-design/ 참고.
    ============================================================ */
+@import "./seed/colors.css";
+@import "./seed/typography.css";
+@import "./seed/dimension.css";
+@import "./seed/motion.css";
+
 :root {
-  /* ── 브랜드 민트 — 배민 민트(2026-11-21 오너 결정) ──
-     #0CEFD3은 밝은 채움색이라 흰 글자를 올리면 대비가 1.5:1이다. 민트 채움 위 글자는 반드시 --adm-on-primary(#222222, 10.8:1).
-     민트를 글자로 쓸 때는 --adm-accent-strong(#06796B, 흰 바탕 5.3:1 · #F6F6F6 바탕 4.9:1). 같은 색상(172.6°)에서 밝기만 낮춘 단계다. */
-  --adm-accent: #0CEFD3;          /* 강조·선택·주요 버튼 채움 */
-  --adm-accent-hover: #0BDFC5;    /* 마우스를 올렸을 때 */
-  --adm-accent-strong: #06796B;   /* 밝은 바탕 위의 민트 글자·링크·아이콘 */
-  --adm-accent-deep: #056B5E;     /* 아주 진한 민트(강조 글자) */
-  --adm-accent-soft: #0CEFD31A;   /* 옅은 민트 바탕 */
-  --adm-accent-line: #0CEFD38C;   /* 민트 테두리 */
-  --adm-accent-rgb: 12, 239, 211; /* rgba(var(--adm-accent-rgb), .16) 처럼 쓴다 */
+  /* ── 브랜드 민트 — Seed primary(은하수 민트) ──
+     #36D1A7은 밝은 채움색이라 흰 글자를 올리면 대비가 1.9:1이다. 민트 채움 위 글자는 반드시 --adm-on-primary(#032B25, 7.9:1).
+     민트를 글자로 쓸 때는 --adm-accent-strong(#067661, 흰 바탕 5.6:1). 같은 민트 단계의 진한 쪽이다. */
+  --adm-accent: var(--seed-semantic-color-primary);              /* #36D1A7 강조·선택·주요 버튼 채움 */
+  --adm-accent-hover: var(--seed-semantic-color-primary-hover);  /* #12B28C 마우스를 올리거나 누를 때 */
+  --adm-accent-strong: var(--seed-scale-color-carrot-700);       /* #067661 밝은 바탕 위의 민트 글자·링크·아이콘 */
+  --adm-accent-deep: var(--seed-scale-color-carrot-800);         /* #075E4E 아주 진한 민트(강조 글자) */
+  --adm-accent-soft: var(--seed-semantic-color-primary-low);     /* 옅은 민트 바탕 */
+  --adm-accent-line: var(--seed-scale-color-carrot-300);         /* #70E5C2 민트 테두리 */
+  --adm-accent-rgb: 54, 209, 167; /* rgba(var(--adm-accent-rgb), .16) 처럼 쓴다 */
 
   --adm-primary-bg: var(--adm-accent);            /* 주요 버튼 바탕(한 화면에 하나) */
   --adm-primary-bg-hover: var(--adm-accent-hover);
-  --adm-on-primary: #222222;                      /* 민트 채움 위의 글자·아이콘 — 흰 글자 금지 */
+  /* Seed의 on-primary는 흰색이지만 #36D1A7 위 흰 글자는 읽히지 않아 관리자는 민트 가장 진한 단계를 쓴다. 흰 글자 금지 */
+  --adm-on-primary: var(--seed-scale-color-carrot-950);          /* #032B25 */
 
-  /* ── 글자·무채색 ── */
-  --adm-ink: #222222;             /* 제목·가장 진한 글자 (배민 글자색) */
-  --adm-text: #222222;            /* 본문 */
-  --adm-text-2: #2E2F33E0;        /* 보조 글자 */
-  --adm-text-3: #37383C9C;        /* 설명·안내 글자 */
-  --adm-text-disabled: #37383C29;
-  --adm-gray-50: #F6F6F6;
-  --adm-gray-100: #F4F4F5;
-  --adm-gray-200: #EAEBEC;
-  --adm-gray-300: #E1E2E4;
+  /* ── 글자·무채색 (Seed ink · gray) ── */
+  --adm-ink: var(--seed-semantic-color-ink-text);         /* #212124 제목·가장 진한 글자 */
+  --adm-text: var(--seed-semantic-color-ink-text);        /* #212124 본문 */
+  --adm-text-2: var(--seed-scale-color-gray-700);         /* #4D5159 보조 글자 */
+  --adm-text-3: var(--seed-semantic-color-ink-text-low);  /* #868B94 설명·안내 글자 */
+  --adm-text-disabled: var(--seed-scale-color-gray-500);  /* #ADB1BA 쓸 수 없는 글자(Seed 비활성 글자) */
+  --adm-gray-50: var(--seed-scale-color-gray-50);
+  --adm-gray-100: var(--seed-scale-color-gray-100);
+  --adm-gray-200: var(--seed-scale-color-gray-200);
+  --adm-gray-300: var(--seed-scale-color-gray-300);
 
-  /* ── 바탕·테두리 ── */
-  --adm-canvas: #F6F6F6;          /* 작업 배경 (배민 패널색) */
-  --adm-surface: #FFFFFF;         /* 카드·팝업 */
-  --adm-sunken: #F4F4F5;          /* 눌린 칸·표 머리 */
-  --adm-line: #70737C29;          /* 기본 테두리 */
-  --adm-line-subtle: #70737C14;   /* 옅은 구분선 */
-  --adm-line-strong: #70737C38;   /* 진한 테두리 */
+  /* ── 바탕·테두리 (Seed paper · divider) ── */
+  --adm-canvas: var(--seed-semantic-color-paper-background);  /* #F2F3F6 작업 배경 */
+  --adm-surface: var(--seed-semantic-color-paper-default);    /* #FFFFFF 카드·팝업 */
+  --adm-sunken: var(--seed-semantic-color-paper-contents);    /* #F7F8FA 눌린 칸·표 머리 */
+  --adm-line: var(--seed-semantic-color-divider-2);           /* #EAEBEE 기본 테두리 */
+  --adm-line-subtle: var(--seed-semantic-color-divider-1);    /* 옅은 구분선 */
+  --adm-line-strong: var(--seed-semantic-color-divider-3);    /* #DCDEE3 진한 테두리 */
   --adm-border-width: 1px;
 
-  /* ── 상태색(의미가 정해져 있다) ── */
-  --adm-danger: #E52222;    --adm-danger-soft: #FF424214;   /* 삭제·오류·미처리 */
-  --adm-warn: #FF9200;      --adm-warn-soft: #FF920014;     /* 주의·대기 */
-  --adm-success: #00BF40;   --adm-success-soft: #00BF4014;  /* 완료 */
-  --adm-info: #06796B;      --adm-info-soft: #0CEFD31A;     /* 안내·진행 */
-  --adm-neutral: #2E2F33E0; --adm-neutral-soft: #70737C14;  /* 보류·종료 */
-  --adm-fill-subtle: #70737C0D;   /* 칩 바탕 — Montage surface neutral tertiary */
-  /* 상태색을 글자로 쓸 때: 주의·완료의 Montage 값은 흰 바탕에서 대비가 2.2~2.5:1이라 같은 계열의 진한 단계(Montage atomic)를 쓴다.
-     채움·아이콘·테두리·점에는 위의 --adm-warn / --adm-success를 쓴다. */
-  --adm-warn-strong: #9C5800;    /* 주의 글자 — Montage orange-30 (흰 바탕 5.5:1) */
-  --adm-success-strong: #006E25; /* 완료 글자 — Montage green-30 (흰 바탕 6.5:1) */
-  /* 상태 테두리 — Montage semantic-line-* */
-  --adm-danger-line: #FF42426E;  /* 오류·미처리 카드 테두리 */
-  --adm-warn-line: #FF92006E;    /* 주의 카드 테두리 */
-  --adm-success-line: #00BF406E; /* 완료 카드 테두리 */
+  /* ── 상태색(의미가 정해져 있다) ──
+     오류: Seed danger(red-600)는 흰 바탕 글자 대비가 3.9:1이라 한 단계 진한 red-700(4.5:1)을 쓴다.
+     주의: 은하수 판 Seed는 yellow를 민트로 바꿔 주요 색·완료와 구분되지 않는다. 관리자의 주의(대기·확인 필요)는
+           당근 Seed 원래 노랑 단계를 쓴다(아래 hex는 그 원래 값).
+     안내: Seed accent(blue). */
+  --adm-danger: var(--seed-scale-color-red-700);   --adm-danger-soft: var(--seed-scale-color-red-alpha-100);   /* 삭제·오류·미처리 */
+  --adm-warn: #DEA651;                             --adm-warn-soft: #F7BE6824;                                 /* 주의·대기 — Seed 원래 yellow-400 */
+  --adm-success: var(--seed-semantic-color-success); --adm-success-soft: var(--seed-scale-color-green-alpha-100); /* 완료 */
+  --adm-info: var(--seed-scale-color-blue-700);    --adm-info-soft: var(--seed-scale-color-blue-alpha-100);    /* 안내·진행 */
+  --adm-neutral: var(--seed-scale-color-gray-700); --adm-neutral-soft: var(--seed-scale-color-gray-alpha-50); /* 보류·종료 */
+  --adm-fill-subtle: var(--seed-scale-color-gray-alpha-50);   /* 칩 바탕 */
+  /* 상태색을 글자로 쓸 때(흰 바탕 4.5:1 이상). 채움·아이콘·테두리·점에는 위의 --adm-warn / --adm-success를 쓴다. */
+  --adm-warn-strong: #805217;                              /* 주의 글자 — Seed 원래 yellow-700 (6.7:1) */
+  --adm-success-strong: var(--seed-scale-color-green-700); /* 완료 글자 — #077A5E (5.3:1) */
+  /* 상태 테두리 */
+  --adm-danger-line: var(--seed-scale-color-red-300);    /* 오류·미처리 카드 테두리 */
+  --adm-warn-line: #F7BE68;                              /* 주의 카드 테두리 — Seed 원래 yellow-300 */
+  --adm-success-line: var(--seed-scale-color-green-300); /* 완료 카드 테두리 */
 
-  /* ── 구분색(사람·출처·그래프 계열처럼 의미 없이 서로 구분만 하는 색) — Montage accent ──
-     -soft 옅은 바탕, 기본 글자·아이콘, -solid 채움(점·막대). 상태(완료·주의·오류)에는 쓰지 않는다. */
-  --adm-tag-lime: #429E00;      --adm-tag-lime-soft: #58CF0414;      --adm-tag-lime-solid: #58CF04;
-  --adm-tag-cyan: #0098B2;      --adm-tag-cyan-soft: #00BDDE14;      --adm-tag-cyan-solid: #00BDDE;
-  --adm-tag-blue: #008DCF;      --adm-tag-blue-soft: #00AEFF14;      --adm-tag-blue-solid: #00AEFF;
-  --adm-tag-violet: #5B37ED;    --adm-tag-violet-soft: #6541F214;    --adm-tag-violet-solid: #6541F2;
-  --adm-tag-purple: #AD36E3;    --adm-tag-purple-soft: #CB59FF14;    --adm-tag-purple-solid: #CB59FF;
-  --adm-tag-pink: #E846CD;      --adm-tag-pink-soft: #F553DA14;      --adm-tag-pink-solid: #F553DA;
-  --adm-tag-orange: #9C5800;    --adm-tag-orange-soft: #FF920014;    --adm-tag-orange-solid: #FF9200;
+  /* ── 구분색(사람·출처·그래프 계열처럼 의미 없이 서로 구분만 하는 색) — Seed 색 단계 ──
+     -soft 옅은 바탕(50), 기본 글자·아이콘(700, 흰 바탕 4.5:1 이상), -solid 채움(점·막대, 500). 상태(완료·주의·오류)에는 쓰지 않는다. */
+  --adm-tag-lime: var(--seed-scale-color-green-700);   --adm-tag-lime-soft: var(--seed-scale-color-green-50);   --adm-tag-lime-solid: var(--seed-scale-color-green-500);
+  --adm-tag-cyan: var(--seed-scale-color-carrot-700);  --adm-tag-cyan-soft: var(--seed-scale-color-carrot-50);  --adm-tag-cyan-solid: var(--seed-scale-color-carrot-500);
+  --adm-tag-blue: var(--seed-scale-color-blue-700);    --adm-tag-blue-soft: var(--seed-scale-color-blue-50);    --adm-tag-blue-solid: var(--seed-scale-color-blue-500);
+  --adm-tag-violet: var(--seed-scale-color-purple-700); --adm-tag-violet-soft: var(--seed-scale-color-purple-50); --adm-tag-violet-solid: var(--seed-scale-color-purple-500);
+  --adm-tag-purple: var(--seed-scale-color-purple-800); --adm-tag-purple-soft: var(--seed-scale-color-purple-100); --adm-tag-purple-solid: var(--seed-scale-color-purple-600);
+  --adm-tag-pink: var(--seed-scale-color-pink-700);    --adm-tag-pink-soft: var(--seed-scale-color-pink-50);    --adm-tag-pink-solid: var(--seed-scale-color-pink-500);
+  --adm-tag-orange: #805217;                           --adm-tag-orange-soft: #FFF7E6;                          --adm-tag-orange-solid: #C27F29; /* Seed 원래 yellow */
 
-  /* ── 글자 크기 ── */
+  /* ── 글자 (Seed 글자 크기 단계: 10·11·12·13·14·15·16·18·20·24·26·32·34px) ── */
   --adm-font: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, system-ui, sans-serif;
-  --adm-fs-micro: 11px;     /* 촘촘한 표·작은 배지(가장 작은 크기) */
-  --adm-fs-caption: 12px;   /* 배지·표 머리 */
-  --adm-fs-small: 13px;     /* 보조 설명 */
-  --adm-fs-body: 14px;      /* 목록·입력창·버튼 */
+  --adm-fs-micro: 11px;     /* 촘촘한 표·작은 배지 — Seed label5 */
+  --adm-fs-caption: 12px;   /* 배지·표 머리 — Seed caption2 */
+  --adm-fs-small: 13px;     /* 보조 설명 — Seed caption1 */
+  --adm-fs-body: 14px;      /* 목록·입력창·버튼 — Seed body-m2 */
   --adm-fs-base: 15px;      /* 본문 */
-  --adm-fs-lead: 18px;      /* 카드 제목 */
-  --adm-fs-section: 20px;   /* 구역 제목 */
-  --adm-fs-title: 28px;     /* 화면 제목 */
-  --adm-fs-title-sm: 22px;  /* 좁은 화면의 화면 제목 */
-  --adm-fw-regular: 400; --adm-fw-medium: 500; --adm-fw-semibold: 600; --adm-fw-bold: 700; --adm-fw-black: 900; /* Pretendard Black — 강조 문구만 */
-  --adm-lh: 1.5;
+  --adm-fs-lead: 18px;      /* 카드 제목 — Seed title3 */
+  --adm-fs-section: 20px;   /* 구역 제목 — Seed title2 */
+  --adm-fs-title: 24px;     /* 화면 제목 — Seed title1 */
+  --adm-fs-title-sm: 20px;  /* 좁은 화면의 화면 제목 */
+  /* Seed는 보통·굵게 두 굵기만 쓴다. 옛 이름(medium·semibold)도 그 둘 중 하나로 잇는다. */
+  --adm-fw-regular: 400; --adm-fw-medium: 400; --adm-fw-semibold: 700; --adm-fw-bold: 700; --adm-fw-black: 900; /* Pretendard Black — 강조 문구만 */
+  --adm-lh: 1.5;            /* 읽는 글 — Seed 150% */
+  --adm-lh-tight: 1.35;     /* 버튼·제목·한 줄 글 — Seed 135% */
 
-  /* ── 간격 ── */
+  /* ── 간격 (Seed 4px 단위) ── */
   --adm-space-1: 4px; --adm-space-2: 8px; --adm-space-3: 12px; --adm-space-4: 16px;
   --adm-space-5: 20px; --adm-space-6: 24px; --adm-space-8: 32px;
   --adm-gap-control: 8px;    /* 버튼·입력창 사이 */
@@ -95,29 +107,33 @@
   --adm-content-max: 1440px;        /* 화면 본문 최대 폭(여백 포함, 왼쪽 정렬) */
   --adm-content-max-narrow: 960px;  /* 입력 폼 화면의 본문 최대 폭 */
 
-  /* ── 모서리 ── */
-  --adm-radius-xs: 4px;      /* 배지·작은 버튼 */
-  --adm-radius-sm: 10px;     /* 버튼·입력창 */
-  --adm-radius-md: 16px;     /* 카드 */
-  --adm-radius-lg: 24px;     /* 팝업 */
-  --adm-radius-pill: 9999px; /* 칩·상태 */
+  /* ── 모서리 (Seed: 작은 버튼 4 · 버튼·입력 6 · 알림 8 · 카드 10 · 팝업 16) ── */
+  --adm-radius-xs: var(--seed-radius-xsmall);  /* 4px 배지·작은 버튼 */
+  --adm-radius-sm: var(--seed-radius-small);   /* 6px 버튼·입력창 */
+  --adm-radius-md: var(--seed-radius-large);   /* 10px 카드·알림 */
+  --adm-radius-lg: var(--seed-radius-xlarge);  /* 16px 팝업 */
+  --adm-radius-pill: var(--seed-radius-full);  /* 칩·상태 */
 
-  /* ── 버튼·입력창 높이 ── */
-  --adm-control-h: 40px;       /* 기본 */
-  --adm-control-h-sm: 32px;    /* 목록 안 작은 버튼 */
-  --adm-control-h-lg: 48px;    /* 저장 등 주요 버튼, 터치 화면 */
+  /* ── 버튼·입력창 높이 (Seed: 32 · 36 · 40 · 48 · 52) ── */
+  --adm-control-h: var(--seed-control-height-medium);     /* 40px 기본 */
+  --adm-control-h-sm: var(--seed-control-height-xsmall);  /* 32px 목록 안 작은 버튼 */
+  --adm-control-h-lg: var(--seed-control-height-large);   /* 48px 저장 등 주요 버튼, 터치 화면 */
+  --adm-control-h-xl: var(--seed-control-height-xlarge);  /* 52px 화면 아래에 붙는 큰 버튼 */
   --adm-control-pad-x: 16px;
 
-  /* ── 그림자·겹침 순서·움직임 ── */
-  --adm-shadow-xs: 0px 1px 2px -1px #1717171A;
-  --adm-shadow-sm: 0px 2px 4px -2px #1717170F, 0px 4px 6px -1px #1717170F;
-  --adm-shadow-md: 0px 4px 6px -2px #17171712, 0px 10px 15px -3px #17171712;
-  --adm-shadow-lg: 0px 10px 15px -5px #1717171A, 0px 24px 38px -10px #1717171F;
-  --adm-ring: 0 0 0 3px #0CEFD340;
-  --adm-scrim: #17171985;  /* 팝업 뒤 어두운 막 */
+  /* ── 그림자·겹침 순서·움직임 ──
+     Seed는 떠 있는 것에만 그림자를 쓴다. 카드·목록 줄은 그림자 없이 구분선으로 나눈다. */
+  --adm-shadow-xs: none;                              /* 카드 — 그림자 없음 */
+  --adm-shadow-sm: 0 1px 3px #00000029;               /* 작게 떠 있는 것 */
+  --adm-shadow-md: 0 2px 6px #00000029;               /* 메뉴·떠 있는 버튼 — Seed FAB */
+  --adm-shadow-lg: 0 4px 6px #00000026, 0 12px 32px #0000001F; /* 팝업·서랍 */
+  --adm-ring: var(--seed-focus-ring);  /* 키보드 초점 — Seed blue-600 2px */
+  --adm-scrim: var(--seed-semantic-color-overlay-dim);  /* 팝업 뒤 어두운 막(검정 50%) */
   --adm-z-dropdown: 60; --adm-z-drawer: 80; --adm-z-modal: 230; --adm-z-toast: 300;
-  --adm-ease: cubic-bezier(.2, 0, .1, 1);
-  --adm-dur: 160ms;
+  --adm-ease: var(--seed-timing-function-standard-easing);
+  --adm-dur: var(--seed-duration-fade);          /* 200ms 색·나타나기 */
+  --adm-dur-press: var(--seed-duration-press);   /* 100ms 누를 때 */
+  --adm-press-scale: var(--seed-press-scale);    /* 0.95 누르면 살짝 작아진다 */
 
   /* ── 휴대폰 앱 틀 ── */
   --adm-topbar-h: 56px;        /* 위 고정 바 */
@@ -126,13 +142,13 @@
   --adm-fs-input: var(--adm-fs-body);   /* 입력창 글자 */
 }
 
-/* 휴대폰 폭(760px 이하): 같은 변수 이름으로 손가락에 맞는 크기를 준다.
+/* 휴대폰 폭(760px 이하): 같은 변수 이름으로 손가락에 맞는 크기를 준다(Seed 높이 단계 한 칸 위).
    화면별 CSS에서 휴대폰용 크기를 따로 정하지 않는다. */
 @media (max-width: 760px) {
   :root {
-    --adm-control-h: 44px;
-    --adm-control-h-sm: 36px;
-    --adm-control-h-lg: 48px;
+    --adm-control-h: var(--seed-control-height-large);      /* 48px */
+    --adm-control-h-sm: var(--seed-control-height-medium);  /* 40px */
+    --adm-control-h-lg: var(--seed-control-height-xlarge);  /* 52px */
     --adm-fs-input: 16px;       /* 16px보다 작으면 휴대폰이 화면을 확대한다 */
     --adm-fs-title: 20px;
     --adm-fs-section: 18px;
@@ -144,10 +160,10 @@
 
 
 /* ============================================================
-   화면 안 알림 = Montage SectionMessage (React 관리자·견적 도구 공통)
-   - 모서리 12px·안쪽 12px, 흰 바탕 위에 상태색 5%, 왼쪽 20px 상태 아이콘(Montage 아이콘 모양)
-   - 제목 15px 500(진한 글자), 설명 14px(보조 글자), 아래 글자 버튼(첫 버튼 민트, 나머지 회색)
-   - 종류: 기본 안내(민트) · .is-cautionary(주의, 주황) · .is-negative(오류, 빨강) · .is-positive(완료, 초록)
+   화면 안 알림 = Seed Callout (React 관리자·견적 도구 공통)
+   - 모서리 10px·안쪽 14/16px, 흰 바탕 위에 상태색 5%(Seed alpha-50), 왼쪽 16px 상태 아이콘
+   - 제목 14px 굵게(진한 글자), 설명 14px(보조 글자), 줄 간격 135%, 아래 글자 버튼(첫 버튼 상태색, 나머지 회색)
+   - 종류: 기본 안내(파랑, Seed info) · .is-cautionary(주의, 노랑) · .is-negative(오류, 빨강) · .is-positive(완료, 초록)
    - 견적 도구 스크립트가 만드는 초안 복원·원본 오류 알림([data-quote-recovery])도 같은 모양으로 덮는다(스크립트는 그대로).
    ============================================================ */
 :root {
@@ -157,36 +173,39 @@
   --adm-msg-icon-positive: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' d='M2.10004 11.9996C2.10004 6.53199 6.5324 2.09961 12 2.09961C17.4676 2.09961 21.9 6.53199 21.9 11.9996C21.9 17.4672 17.4676 21.8996 12 21.8996C6.5324 21.8996 2.10004 17.4672 2.10004 11.9996ZM16.6467 9.87545C16.9924 9.51829 16.9831 8.94852 16.6259 8.60283C16.2688 8.25713 15.699 8.26642 15.3533 8.62357L10.6774 13.4545L8.64757 11.3517C8.30236 10.9941 7.73261 10.984 7.37498 11.3292C7.01736 11.6745 7.0073 12.2442 7.3525 12.6018L10.029 15.3746C10.1984 15.5501 10.4319 15.6493 10.6759 15.6495C10.9199 15.6497 11.1535 15.5508 11.3232 15.3754L16.6467 9.87545Z'/%3E%3C/svg%3E");
 }
 .adm-msg, [data-quote-recovery] {
-  --msg-tone: var(--adm-accent); --msg-icon-color: var(--adm-accent-strong); --msg-icon: var(--adm-msg-icon-info);
+  --msg-tone: var(--adm-info); --msg-icon-color: var(--adm-info); --msg-icon: var(--adm-msg-icon-info);
   position: relative; box-sizing: border-box; margin: 0;
-  padding: 12px 12px 12px 40px !important; border: 0 !important; border-radius: 12px !important;
+  padding: 14px 16px 14px 40px !important; border: 0 !important; border-radius: var(--adm-radius-md) !important;
   background: color-mix(in srgb, var(--msg-tone) 5%, var(--adm-surface)) !important; color: var(--adm-text-2) !important;
-  font-family: var(--adm-font) !important; font-size: var(--adm-fs-body) !important; font-weight: var(--adm-fw-regular) !important; line-height: 1.5 !important; text-align: left;
+  font-family: var(--adm-font) !important; font-size: var(--adm-fs-body) !important; font-weight: var(--adm-fw-regular) !important; line-height: var(--adm-lh-tight) !important; text-align: left;
 }
 .adm-msg:not([hidden]), [data-quote-recovery] { display: block !important;
 }
 .adm-msg::before, [data-quote-recovery]::before {
-  content: ""; position: absolute; top: 13px; left: 12px; width: 20px; height: 20px; background: var(--msg-icon-color);
-  -webkit-mask: var(--msg-icon) center / 20px 20px no-repeat; mask: var(--msg-icon) center / 20px 20px no-repeat;
+  content: ""; position: absolute; top: 16px; left: 16px; width: 16px; height: 16px; background: var(--msg-icon-color);
+  -webkit-mask: var(--msg-icon) center / 16px 16px no-repeat; mask: var(--msg-icon) center / 16px 16px no-repeat;
 }
 .adm-msg.is-cautionary, [data-quote-recovery] { --msg-tone: var(--adm-warn); --msg-icon-color: var(--adm-warn); --msg-icon: var(--adm-msg-icon-cautionary); }
 .adm-msg.is-negative, [data-quote-recovery="source"] { --msg-tone: var(--adm-danger); --msg-icon-color: var(--adm-danger); --msg-icon: var(--adm-msg-icon-negative); }
 .adm-msg.is-positive { --msg-tone: var(--adm-success); --msg-icon-color: var(--adm-success); --msg-icon: var(--adm-msg-icon-positive); }
 /* 제목: 첫 줄(strong) 또는 문장 하나뿐인 알림의 문장 */
 .adm-msg > strong:first-child, .adm-msg > b:first-child, .adm-msg > p:only-child, [data-quote-recovery] > p:first-child {
-  display: block; margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-base); font-weight: var(--adm-fw-medium); line-height: 22px;
+  display: block; margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh-tight);
 }
-.adm-msg p, .adm-msg > div { margin: 4px 0 0; }
+.adm-msg p, .adm-msg > div { margin: 2px 0 0; }
 .adm-msg > p:first-child { margin-top: 0; }
-/* 아래 버튼 = Montage TextButton: 첫 버튼은 민트 글자, 나머지는 회색 글자 */
+/* 아래 버튼 = Seed TextButton: 첫 버튼은 상태색 글자, 나머지는 회색 글자 */
 .adm-msg button, [data-quote-recovery] > button {
   display: inline-flex; align-items: center; height: 24px !important; min-height: 0 !important; margin: 8px 16px 0 0 !important; padding: 0 !important;
   border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important;
   color: var(--adm-text-2) !important; font: inherit; font-size: var(--adm-fs-body) !important; font-weight: var(--adm-fw-semibold) !important; cursor: pointer;
 }
-.adm-msg button:first-of-type, [data-quote-recovery] > button:first-of-type { color: var(--adm-accent-strong) !important; }
+.adm-msg button:first-of-type, [data-quote-recovery] > button:first-of-type { color: var(--adm-info) !important; }
+.adm-msg.is-cautionary button:first-of-type, [data-quote-recovery] > button:first-of-type { color: var(--adm-warn-strong) !important; }
+.adm-msg.is-negative button:first-of-type, [data-quote-recovery="source"] > button:first-of-type { color: var(--adm-danger) !important; }
+.adm-msg.is-positive button:first-of-type { color: var(--adm-success-strong) !important; }
 .adm-msg button:hover:not(:disabled), [data-quote-recovery] > button:hover { text-decoration: underline; text-underline-offset: 3px; }
 .adm-msg button:disabled { opacity: .4; cursor: default; }
-.adm-msg button:focus-visible, [data-quote-recovery] > button:focus-visible { outline: 0; box-shadow: var(--adm-ring) !important; border-radius: 4px !important; }
+.adm-msg button:focus-visible, [data-quote-recovery] > button:focus-visible { outline: 0; box-shadow: var(--adm-ring) !important; border-radius: var(--adm-radius-xs) !important; }
 /* 견적 도구의 떠 있는 알림: 화면 위에 붙고 본문 폭을 넘지 않는다 */
 [data-quote-recovery] { position: fixed !important; top: 12px !important; left: var(--adm-pad-page) !important; right: auto !important; z-index: 10000; width: min(640px, calc(100vw - 2 * var(--adm-pad-page))); box-shadow: var(--adm-shadow-md) !important; }

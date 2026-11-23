@@ -140,7 +140,7 @@
 .admin-app-wrapper .header-in { height: var(--header-h); display: flex; align-items: center; gap: 20px; max-width: var(--content-max); margin: 0 auto; }
 .admin-app-wrapper .eyebrow { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--mrt-blue-strong); margin-bottom: 3px; }
 .admin-app-wrapper .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mrt-blue); }
-.admin-app-wrapper .page-title { font-size: 22px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--text-strong); line-height: 1.1; white-space: nowrap; }
+.admin-app-wrapper .page-title { font-size: 20px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--text-strong); line-height: 1.1; white-space: nowrap; }
 .admin-app-wrapper .header-spacer { flex: 1; }
 .admin-app-wrapper .header-tools { display: flex; align-items: center; gap: 10px; flex: none; }
 
@@ -213,7 +213,7 @@
 .admin-app-wrapper .metric-ico { width: 44px; height: 44px; border-radius: var(--adm-radius-md); display: grid; place-items: center; }
 .admin-app-wrapper .metric-ico .material-symbols-outlined { font-size: 23px; }
 .admin-app-wrapper .metric-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
-.admin-app-wrapper .metric-value { font-size: 28px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--text-strong); margin-top: 3px; line-height: 1.05; white-space: nowrap; }
+.admin-app-wrapper .metric-value { font-size: 26px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; color: var(--text-strong); margin-top: 3px; line-height: 1.05; white-space: nowrap; }
 .admin-app-wrapper .metric-value small { font-size: 16px; font-weight: 700; color: var(--text-tertiary); margin-left: 1px; }
 .admin-app-wrapper .metric-trend { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius:var(--adm-radius-sm); white-space: nowrap; flex: none; }
 .admin-app-wrapper .metric-trend .material-symbols-outlined { font-size: 15px; }
@@ -408,7 +408,7 @@
 
 /* ============ Section header (in page) ============ */
 .admin-app-wrapper .sec-head { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
-.admin-app-wrapper .sec-head h3 { font-size: 17px; font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; color: var(--text-strong); margin: 0; }
+.admin-app-wrapper .sec-head h3 { font-size: 16px; font-weight: var(--adm-fw-bold); letter-spacing: -0.02em; color: var(--text-strong); margin: 0; }
 .admin-app-wrapper .sec-head .spacer { flex: 1; }
 
 /* ============ Status dropdown ============ */
@@ -508,7 +508,7 @@
 }
 .admin-app-wrapper .action-rail-head h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: var(--adm-fw-bold);
   letter-spacing: -0.025em;
   color: var(--text-strong);
@@ -887,10 +887,10 @@
 .admin-app-wrapper .login-brand::after { content: ''; position: absolute; inset: 0;
   background: none; /* Montage: 장식 빛 없이 브랜드 채움 한 색 */ }
 .admin-app-wrapper .login-brand-in { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; padding: 56px 60px; }
-.admin-app-wrapper .login-h { font-size: 36px; font-weight: var(--adm-fw-bold); letter-spacing: -0.035em; line-height: 1.22; margin: 0 0 18px; }
+.admin-app-wrapper .login-h { font-size: 34px; font-weight: var(--adm-fw-bold); letter-spacing: -0.035em; line-height: 1.22; margin: 0 0 18px; }
 .admin-app-wrapper .login-p { font-size: 16px; line-height: 1.65; color: rgba(255,255,255,0.74); max-width: 460px; margin: 0; }
 .admin-app-wrapper .login-stats { display: flex; gap: 40px; margin-top: 44px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.16); }
-.admin-app-wrapper .login-stats b { display: block; font-size: 28px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; }
+.admin-app-wrapper .login-stats b { display: block; font-size: 26px; font-weight: var(--adm-fw-bold); letter-spacing: -0.03em; }
 .admin-app-wrapper .login-stats span { font-size: 13px; color: rgba(255,255,255,0.66); }
 .admin-app-wrapper .login-form-side { display: grid; place-items: center; padding: 40px; background: var(--surface-canvas); }
 .admin-app-wrapper .login-card { width: 100%; max-width: 400px; background: var(--adm-surface); border: 1px solid var(--border-default); border-radius: var(--r-xl); padding: 38px 36px; box-shadow: var(--shadow-md); }
@@ -1114,7 +1114,7 @@
 .admin-app-wrapper .tc-anchors button.active { color: var(--adm-accent-strong); border-bottom-color: var(--adm-accent); }
 .admin-app-wrapper .tcom { letter-spacing: -0.01em; }
 .admin-app-wrapper .tcom .drawer-head { padding: 12px 22px; }
-.admin-app-wrapper .tcom .drawer-head .page-title { font-size: 17px; }
+.admin-app-wrapper .tcom .drawer-head .page-title { font-size: 16px; }
 .admin-app-wrapper .tcom .card { border-radius: var(--adm-radius-sm); box-shadow: none; }
 .admin-app-wrapper .tcom .card-head { padding: 9px 14px; }
 .admin-app-wrapper .tcom .card-head h2 { font-size: 13px; }

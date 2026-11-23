@@ -45,7 +45,7 @@
   .admin-app-wrapper .admin-page-actions,
   .admin-app-wrapper .admin-customer-header-actions { grid-area: acts; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 24px 0 6px; }
   .admin-app-wrapper .eyebrow { margin-bottom: 2px; font-size: 11px; letter-spacing: .08em; }
-  .admin-app-wrapper .page-title { font-size: 28px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
+  .admin-app-wrapper .page-title { font-size: 26px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
   .admin-app-wrapper .admin-layout-heading > .cell-muted { margin-top: 4px !important; font-size: 13px !important; }
   .admin-app-wrapper .content { padding: 20px var(--adm-pad-page) 40px; }
   .admin-app-wrapper .main.is-flush > .content { padding: 16px 0 0 !important; }

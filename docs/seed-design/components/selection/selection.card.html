@@ -1,0 +1,37 @@
+<!-- @dsCard group="Components" viewport="700x240" name="Selection" subtitle="Checkbox, Radio, Switch, toggle chips" -->
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>window.__seedIconBase="../../assets/svg"</script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:16px;background:var(--seed-semantic-color-paper-default)}.row{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-bottom:10px}.r1>label:nth-child(4)>span,.r1>label:nth-child(6)>span{background-color:#36D1A7!important}.r3>button:nth-child(1){background-color:#A8F2D724!important;color:#ECFDF7!important}.r3>button:nth-child(1)>span,.r3>button:nth-child(1)>span>span{color:#36D1A7!important}.r3>button:nth-child(2){background-color:#36D1A7!important}.r1>label:nth-child(1)>span,.r1>label:nth-child(2)>span,.r2 label:nth-child(1)>span{background-color:#36D1A7!important}.r1>label:nth-child(3) [data-seed-icon]{background-color:#36D1A7!important}.r3>button:nth-child(4){background-color:#A8F2D724!important}.r3>button:nth-child(4)>span{color:#36D1A7!important}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Checkbox, RadioGroup, Switch, BoxToggleButton, CapsuleToggleButton, ChipToggleButton, ChipRadioGroup, Icon } = window.SeedDesignSystem_ee0fab;
+function Card(){return (<div>
+<div className="row r1">
+<Checkbox defaultChecked>square</Checkbox>
+<Checkbox shape="circle" defaultChecked>circle</Checkbox>
+<Checkbox shape="ghost" defaultChecked>ghost</Checkbox>
+<Checkbox indeterminate>부분 선택</Checkbox>
+<Checkbox disabled>비활성</Checkbox>
+<Switch defaultChecked />
+<Switch />
+</div>
+<div className="row r2">
+<RadioGroup orientation="horizontal" defaultValue="recent" items={[{value:"recent",label:"최신순"},{value:"near",label:"가까운 순"},{value:"low",label:"낮은 가격순"}]} />
+</div>
+<div className="row r3">
+<BoxToggleButton variant="secondary" defaultSelected prefixIcon={<Icon name="heart_fill" size={16} />}>관심</BoxToggleButton>
+<BoxToggleButton variant="primary">팔로우</BoxToggleButton>
+<CapsuleToggleButton>팔로우</CapsuleToggleButton>
+<CapsuleToggleButton defaultSelected>팔로잉</CapsuleToggleButton>
+</div>
+<div className="row">
+<ChipRadioGroup defaultValue="all" items={[{value:"all",label:"전체"},{value:"free",label:"나눔"},{value:"near",label:"가까운 순"}]} />
+<ChipToggleButton size="small">거래 가능</ChipToggleButton>
+</div>
+</div>)}
+ReactDOM.createRoot(document.getElementById("root")).render(<Card />);
+</script></body></html>

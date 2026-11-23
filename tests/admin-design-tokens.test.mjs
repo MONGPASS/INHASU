@@ -19,11 +19,17 @@ test('공통 변수 파일이 색·글자·간격·모서리·높이 변수를 �
     for (const name of ['--adm-accent', '--adm-ink', '--adm-line', '--adm-fs-body', '--adm-space-4', '--adm-radius-sm', '--adm-control-h', '--adm-danger']) {
         assert.match(tokens, new RegExp(name + '\\s*:'), name);
     }
-    assert.match(tokens, /--adm-accent:\s*#0CEFD3/i, '브랜드 민트 = 배민 민트(2026-11-21)');
-    assert.match(tokens, /--adm-accent-strong:\s*#06796B/i, '글자로 쓰는 브랜드색(흰 바탕 4.5:1 이상)');
-    assert.match(tokens, /--adm-on-primary:\s*#222222/i, '민트 채움 위 글자색');
-    assert.match(tokens, /--adm-text:\s*#222222/i, '본문 글자색');
-    assert.match(tokens, /--adm-canvas:\s*#F6F6F6/i, '작업 바탕(패널)');
+    // 값의 기준은 Seed(은하수 판, 2026-11-23): public/seed/*.css를 그대로 읽고 --adm-*는 그 변수에 잇는다.
+    for (const file of ['colors', 'typography', 'dimension', 'motion']) assert.ok(tokens.includes(`@import "./seed/${file}.css";`), `Seed ${file} 토큰을 읽는다`);
+    const seed = read('public/seed/colors.css');
+    assert.match(seed, /--seed-scale-color-carrot-400:\s*#36D1A7/i, 'Seed primary = 은하수 민트');
+    assert.match(seed, /--seed-semantic-color-primary:\s*var\(--seed-scale-color-carrot-400\)/);
+    assert.match(tokens, /--adm-accent:\s*var\(--seed-semantic-color-primary\)/, '브랜드 민트 = Seed primary');
+    assert.match(tokens, /--adm-accent-strong:\s*var\(--seed-scale-color-carrot-700\)/, '글자로 쓰는 브랜드색(흰 바탕 4.5:1 이상)');
+    assert.match(tokens, /--adm-on-primary:\s*var\(--seed-scale-color-carrot-950\)/, '민트 채움 위 글자색(#032B25)');
+    assert.match(tokens, /--adm-text:\s*var\(--seed-semantic-color-ink-text\)/, '본문 글자색');
+    assert.match(tokens, /--adm-canvas:\s*var\(--seed-semantic-color-paper-background\)/, '작업 바탕');
+    assert.doesNotMatch(tokens, /#0CEFD3/i, '옛 배민 민트를 쓰지 않는다');
     assert.match(tokens, /--adm-content-max:\s*1440px/, '본문 최대 폭');
 });
 
@@ -63,7 +69,7 @@ test('관리자 화면은 브라우저 기본 알림창 대신 공통 알림을 
 test('휴대폰 앱 틀은 한 파일에서 정하고 크기는 공통 변수를 쓴다', () => {
     const mobile = read('src/styles/admin-mobile.css');
     for (const name of ['--adm-tabbar-h', '--adm-topbar-h', '--adm-control-h', '--adm-fs-input', '--adm-pad-page']) assert.ok(mobile.includes(`var(${name})`), name);
-    assert.match(read('public/admin-tokens.css'), /@media \(max-width: 760px\)\s*\{\s*:root\s*\{[^}]*--adm-control-h:\s*44px/);
+    assert.match(read('public/admin-tokens.css'), /@media \(max-width: 760px\)\s*\{\s*:root\s*\{[^}]*--adm-control-h:\s*var\(--seed-control-height-large\)/);
     const layout = read('src/components/admin/AdminLayout.tsx');
     assert.ok(layout.includes('AdminMobileTabBar') && layout.includes("admin-mobile.css"));
     const tabbar = read('src/components/admin/ui/AdminMobileTabBar.tsx');
@@ -125,7 +131,7 @@ test('견적 도구 문서는 공통 확인·입력 창을 쓴다', () => {
     }
 });
 
-// 배민 민트(#0CEFD3)는 밝은 채움색이다. 민트 채움 위에 흰 글자를 올리면 대비가 1.5:1이라 읽히지 않는다.
+// 은하수 민트(#36D1A7)는 밝은 채움색이다. 민트 채움 위에 흰 글자를 올리면 대비가 1.9:1이라 읽히지 않는다.
 test('민트 채움 위 글자는 --adm-on-primary를 쓴다(흰 글자 금지)', () => {
     const FILL = /background(?:-color)?\s*:\s*[^;}]*var\(--(?:adm-accent|adm-primary-bg|accent|book|brand|deep|mint|p|primary|cbe-mint|gs-mint|la-mint|lo-mint|lo-mint-seg|lo-tone|mrt-blue|gs-blue|la-blue)(?:-hover)?\)/;
     const WHITE = /(?<![-\w])color\s*:\s*(?:#fff\b|#ffffff\b|white\b|var\(--adm-surface\))/i;

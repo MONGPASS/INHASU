@@ -7,7 +7,7 @@
 
 1. 색·글자 크기·간격·모서리·높이는 `public/admin-tokens.css`의 `--adm-*` 변수만 쓴다. 화면별 CSS나 인라인 `style`에 값을 새로 적지 않는다.
    - **이 규칙은 테스트가 강제한다**(2026-11-21): `tests/admin-design-budget.test.mjs`가 파일마다 생 `<button>`·`<input>`·`<table>`, 인라인 `style`, 숫자 크기, 직접 적은 색, `!important`, 기본 확인창 수를 세어 `scripts/admin-design-baseline.json`보다 늘면 실패한다. 새 파일은 처음부터 0이어야 한다. 줄였으면 `node scripts/check-admin-design.mjs --write-baseline --md`로 기준선과 [전환 현황](admin-design-adoption.md)을 함께 낮춘다. 기준선을 올리는 변경은 7절 예외 기록 없이 받지 않는다.
-   - 민트 채움(`--adm-primary-bg`·`--adm-accent`) 위의 글자·아이콘은 `--adm-on-primary`(#222222)만 쓴다. 흰 글자는 대비 1.5:1이라 금지(`tests/admin-design-tokens.test.mjs`). 주요 버튼은 `AdminButton variant="primary"`가 이 글자색을 붙인다.
+   - 민트 채움(`--adm-primary-bg`·`--adm-accent`) 위의 글자·아이콘은 `--adm-on-primary`(#032B25)만 쓴다. 흰 글자는 대비 1.9:1이라 금지(`tests/admin-design-tokens.test.mjs`). 주요 버튼은 `AdminButton variant="primary"`가 이 글자색을 붙인다.
 2. 제목·버튼·입력창·검색·표·배지·탭·팝업·알림은 3절의 **우리 관리자 부품**(`src/components/admin/ui`, `import { AdminButton, … } from '…/components/admin/ui'`)을 쓴다. 같은 일을 하는 부품을 새로 만들지 않는다.
    - 화면 파일은 `@montage-ui/core`를 직접 가져오지 않는다. Montage는 부품 폴더 안에서만 감싸 쓴다(`tests/admin-ui-boundary.test.mjs`가 막는다). 아이콘 `@montage-ui/icon`은 어디서나 쓴다.
    - 부품 모양은 개발용 미리보기 `/admin/__ui`(운영 메뉴에는 없음, 합성 자료만)에서 한눈에 본다. 부품을 고치면 미리보기도 함께 고친다.
@@ -49,6 +49,7 @@
 | M-12 | 견적 도구 화면의 위쪽 간격을 시안대로(2026-11-20): 코스·일정·여행지의 추가 버튼(여행지는 문구 초안 가져오기 포함)을 바깥 제목 줄 오른쪽으로 올리고(바깥 버튼이 도구 안 원래 버튼을 대신 누름, `AdminQuoteDesk`의 `clickFrameButton`), 도구 안 머리 줄은 숨김. 도구 본문 위 여백 26 → 8px(바깥 16px과 합쳐 화면 설명 아래 → 첫 내용 24px). 코스 관리 기준 설명 아래 → 필터 123 → 59px. 견적 예약 목록의 4px 단위가 아닌 간격(18·14·11·13px)을 16·12px로 | 완료(2026-11-20) |
 | M-14 | 브랜드 민트를 배민 민트로(2026-11-21): 채움 `#0CEFD3`, 글자용 `#06796B`(흰 바탕 5.3:1), 글자 `#222222`, 작업 바탕 `#F6F6F6`. 민트 채움 위 글자를 흰색 → `--adm-on-primary`(#222222, 10.8:1)로 CSS 120곳·견적 도구 인라인 5곳·TSX 4곳, 민트를 글자색으로 쓴 64곳을 `--adm-accent-strong`으로. 관리자 TSX에 남아 있던 옛 민트 hex 정리. 화면별 전환 현황 문서와 줄이기만 하는 기준선 테스트 추가 | 완료(2026-11-21) |
 | M-15 | 사이드바 개선(2026-11-21, Claude Design ‘관리자 사이드바 개선’): ‘업무 / 고객 · 사이트’ 2단 제목을 없애고 묶음 6개를 한 단계로, 묶음을 접고 펼침(고객·콘텐츠·사이트 관리는 처음 접힘, 지금 화면이 든 묶음은 늘 펼침, 이 브라우저에 기억). 맨 위 ‘메뉴 찾기’(Ctrl K·⌘ K, 메뉴 이름·묶음 이름, ↑↓·Enter·Esc, 최근 연 화면 3개). 메뉴 옆 처리할 일 숫자는 업무 알림과 같은 자료(통합 예약 목록 = 입금 신고·계약 확인, 견적 문의 = 답변 전 문의, 숙소 배정 = 출발 7일 안 배정 필요). 이름 통일: 일정 관리, 숙소 배정. 접기 버튼은 아래 계정 줄로, 접힌 메뉴(72px)는 묶음 사이 구분선과 숫자 점, 휴대폰 서랍은 큰 줄(48px)·닫기·사이트 보기·로그아웃. `AdminSidebar.tsx`·`AdminSidebar.css`(값은 `--adm-*`만)·계산 `adminSidebarModel.ts`(`tests/admin-sidebar.test.mjs`) | 완료(2026-11-21) |
+| S-1 | Montage → Seed 1단계(2026-11-23): 당근 Seed를 은하수 색으로 바꾼 판을 기준으로. Seed 토큰을 `public/seed/`에 그대로 두고 `admin-tokens.css`의 `--adm-*`를 그 값에 이음(색·모서리 4/6/10/16·높이 32~52·굵기 400/700·그림자·초점·움직임), 화면 안 알림을 Seed Callout 규격으로, 글자 크기 단계를 Seed로 바꾸고 35곳 맞춤, Montage 브랜드 덮어쓰기를 새 민트로. 부품 설계·아이콘 원본은 `docs/seed-design/`. 남은 일: 2단계 부품을 Montage 없이 Seed 모양으로 다시 만들고 `@montage-ui/core` 제거, 3단계 아이콘 교체 | 진행 중(1단계 완료) |
 | R-1 | 전면 리뉴얼 1단계 — 우리 관리자 부품 세트(2026-11-21, 3절): Montage를 감싸고 `--adm-*`만 쓰는 버튼 3종·입력 6종·표·페이지 이동·배지·칩·묶음 전환·밑줄 탭·카드·지표·화면 안 알림·불러오는 중/빈 목록/오류·팝업, 화면 틀 4종(`ListPage`·`FormPage`·`DetailPage`·`DashboardPage`). 부품 CSS는 `ui/admin-components.css` 한 파일(직접 색·숫자 크기·`!important` 0). 화면 파일의 `@montage-ui/core` 직접 import를 막는 테스트, 점검 스크립트의 전환율을 ‘공통 부품’(우리 부품 + 부품 폴더 안 Montage) 기준으로. Montage를 직접 쓰던 대시보드·통합 예약 목록 머리(탭·검색·칩·묶음 전환·일괄 작업)를 우리 부품으로 교체(검색 칸의 생 입력 1개, `admin-montage.css`의 숫자 크기 감소). 개발용 부품 미리보기 `/admin/__ui` | 완료(2026-11-21) |
 | M-13 | 고객 상세 편집 화면(2026-11-20): 편집 화면이라고 사이드바를 자동으로 접지 않음(사용자가 직접 접은 설정만 따름). 견적 예약 편집기 본문 최대 폭을 `--adm-content-max`(1440px)로, 머리·구역 탭·아래 막대의 좌우 여백을 `--adm-pad-page`로 | 완료(2026-11-20) |
 
@@ -56,37 +57,37 @@
 
 이 파일이 정본이다. React 관리자는 `src/styles/admin-console.css` 첫 줄의 `@import`로, 견적 도구는 각 문서의 `<link rel="stylesheet" href="/admin-tokens.css">`로 같은 파일을 읽는다. 사본을 만들지 않는다.
 
-| 종류 | 변수 | 값 |
-|---|---|---|
-값은 Montage 디자인 시스템 기준이다(2026-11-20, Claude Design "은하수 관리자 (Montage)"). 브랜드 민트·글자·작업 바탕만 배민 값이다(2026-11-21).
+값의 기준은 **당근 Seed 디자인 시스템을 은하수 색으로 바꾼 판**이다(2026-11-23 오너 결정, Montage 대신). Seed 원본 토큰은 `public/seed/{colors,typography,dimension,motion}.css`(Claude Design ‘Seed Design System (당근)’ 내보내기를 그대로 복사)이고, `admin-tokens.css`가 첫머리에서 그 네 파일을 `@import`한 뒤 `--adm-*` 이름을 `--seed-*` 변수에 잇는다. Seed 값을 바꿀 때는 `public/seed/*.css`를 새 내보내기로 통째로 바꾸고, `--adm-*` 연결만 이 파일에서 고친다. 부품 설계·안내 문서·아이콘 원본은 [docs/seed-design/](seed-design/INHASU.md)에 있다.
 
-| 종류 | 변수 | 값 |
+| 종류 | 변수 | 값 (Seed 이름) |
 |---|---|---|
-| 강조색 | `--adm-accent` / `-hover` / `-strong` / `-deep` / `-soft` / `-line` | `#0CEFD3` / `#0BDFC5` / `#06796B` / `#056B5E` / `#0CEFD31A` / `#0CEFD38C` (배민 민트, 같은 색상에서 밝기만 낮춘 단계) |
-| 민트 채움 위 글자 | `--adm-on-primary` | `#222222` — 주요 버튼·민트 배지·민트 채움 위의 글자와 아이콘. 흰 글자 금지 |
-| 글자 | `--adm-ink` / `--adm-text` / `-2` / `-3` / `-disabled` | `#222222` / `#222222` / `#2E2F33E0` / `#37383C9C` / `#37383C29` |
-| 무채색 | `--adm-gray-50` / `-100` / `-200` / `-300` | `#F6F6F6` / `#F4F4F5` / `#EAEBEC` / `#E1E2E4` |
-| 바탕 | `--adm-canvas` / `--adm-surface` / `--adm-sunken` | `#F6F6F6` / `#FFFFFF` / `#F4F4F5` |
-| 테두리 | `--adm-line` / `-subtle` / `-strong`, 굵기 `--adm-border-width` | `#70737C29` / `#70737C14` / `#70737C38`, 1px |
-| 상태색 | `--adm-danger` / `--adm-warn` / `--adm-success` / `--adm-info` / `--adm-neutral` (+ 각 `-soft`) | 빨강 `#E52222` / 주황 `#FF9200` / 초록 `#00BF40` / 안내(민트 글자) `#06796B` / 회색 `#2E2F33E0` |
-| 칩 바탕 | `--adm-fill-subtle` | `#70737C0D` (Montage surface neutral tertiary — 필터 칩의 기본 바탕) |
-| 상태색 글자 | `--adm-warn-strong` / `--adm-success-strong` | `#9C5800`(Montage orange-30) / `#006E25`(green-30) — 주의·완료를 **글자**로 쓸 때(흰 바탕 5.5 / 6.5:1). Montage 기본 `#FF9200`·`#00BF40`은 글자 대비가 2.2~2.5:1이라 채움·아이콘·테두리·점에만 쓴다 |
-| 상태 테두리 | `--adm-danger-line` / `--adm-warn-line` / `--adm-success-line` | `#FF42426E` / `#FF92006E` / `#00BF406E` (Montage `semantic-line-negative/cautionary/positive`). 조치가 필요한 카드·옅은 상태 상자의 테두리 |
-| 구분색 | `--adm-tag-{lime,cyan,blue,violet,purple,pink,orange}` (+ `-soft` 옅은 바탕, `-solid` 채움) | Montage accent 색(`foreground/surface-accent-*`). 사람·출처·그래프 계열처럼 서로 구분만 하는 곳에. 상태(완료·주의·오류)에는 쓰지 않는다 |
+| 강조색 | `--adm-accent` / `-hover` / `-strong` / `-deep` / `-soft` / `-line` | `#36D1A7`(primary, carrot-400) / `#12B28C`(primary-hover, carrot-500) / `#067661`(carrot-700, 흰 바탕 5.6:1) / `#075E4E`(carrot-800) / primary-low(carrot-alpha-100) / `#70E5C2`(carrot-300). 토큰 이름의 `carrot`은 Seed 원래 이름이고 값은 은하수 민트다 |
+| 민트 채움 위 글자 | `--adm-on-primary` | `#032B25`(carrot-950, 7.9:1) — 주요 버튼·민트 배지·민트 채움 위의 글자와 아이콘. Seed의 on-primary는 흰색이지만 `#36D1A7` 위 흰 글자는 1.9:1이라 관리자에서는 금지 |
+| 글자 | `--adm-ink` / `--adm-text` / `-2` / `-3` / `-disabled` | `#212124`(ink-text) / `#212124` / `#4D5159`(gray-700) / `#868B94`(ink-text-low, gray-600) / `#ADB1BA`(gray-500) |
+| 무채색 | `--adm-gray-50` / `-100` / `-200` / `-300` | `#F7F8FA` / `#F2F3F6` / `#EAEBEE` / `#DCDEE3` |
+| 바탕 | `--adm-canvas` / `--adm-surface` / `--adm-sunken` | `#F2F3F6`(paper-background) / `#FFFFFF`(paper-default) / `#F7F8FA`(paper-contents) |
+| 테두리 | `--adm-line` / `-subtle` / `-strong`, 굵기 `--adm-border-width` | `#EAEBEE`(divider-2) / gray-alpha-50(divider-1) / `#DCDEE3`(divider-3), 1px |
+| 상태색 | `--adm-danger` / `--adm-warn` / `--adm-success` / `--adm-info` / `--adm-neutral` (+ 각 `-soft`) | 빨강 `#DB3743`(red-700) / 노랑 `#DEA651`(당근 Seed 원래 yellow-400) / 초록 `#1AA174`(success, green-500) / 파랑 `#0178AD`(blue-700, Seed accent) / 회색 `#4D5159`. `-soft`는 같은 색의 Seed alpha 단계 |
+| 칩 바탕 | `--adm-fill-subtle` | gray-alpha-50 — 필터 칩의 기본 바탕 |
+| 상태색 글자 | `--adm-warn-strong` / `--adm-success-strong` | `#805217`(Seed 원래 yellow-700, 6.7:1) / `#077A5E`(green-700, 5.3:1) — 주의·완료를 **글자**로 쓸 때. `--adm-warn`·`--adm-success`는 채움·아이콘·테두리·점에 |
+| 상태 테두리 | `--adm-danger-line` / `--adm-warn-line` / `--adm-success-line` | `#F7B0AD`(red-300) / `#F7BE68`(Seed 원래 yellow-300) / `#6ADEAC`(green-300) |
+| 구분색 | `--adm-tag-{lime,cyan,blue,violet,purple,pink,orange}` (+ `-soft` 옅은 바탕, `-solid` 채움) | Seed 색 단계(글자 700 · 바탕 50 · 채움 500): green · 민트 · blue · purple · purple(800/100/600) · pink · 원래 yellow. 사람·출처·그래프 계열처럼 서로 구분만 하는 곳에. 상태(완료·주의·오류)에는 쓰지 않는다 |
 | 글꼴 | `--adm-font` | `"Pretendard Variable"`, `"Pretendard"`, 시스템 글꼴 |
-| 글자 크기 | `--adm-fs-micro` / `-caption` / `-small` / `-body` / `-base` / `-lead` / `-section` / `-title` | 11 / 12 / 13 / 14 / 15 / 18 / 20 / 28px (좁은 화면 제목 22px) |
-| 글자 크기 단계 | Montage 글자 크기 단계만 쓴다 | 11 · 12 · 13 · 14 · 15 · 16 · 17 · 18 · 20 · 22 · 24 · 28 · 36 · 40px. 12.5px·11.5px 같은 중간 크기와 10px 이하는 쓰지 않는다. `tests/admin-font-scale.test.mjs`가 관리자 CSS와 인라인 style을 검사하고, `node scripts/check-admin-font-scale.mjs --fix`가 가장 가까운 단계(한가운데면 작은 쪽)로 바꾼다. 아이콘 글꼴 크기는 대상이 아니다. |
-| 글자 굵기·줄 간격 | `--adm-fw-*`, `--adm-lh` | 400 · 500 · 600(제목만 700), 1.5 |
-| 간격 | `--adm-space-1`~`8`, `--adm-gap-control`, `--adm-gap-section`, `--adm-pad-card`, `--adm-pad-page` | 4·8·12·16·20·24·32px, 8 / 24 / 20 / 32px |
+| 글자 크기 | `--adm-fs-micro` / `-caption` / `-small` / `-body` / `-base` / `-lead` / `-section` / `-title` | 11 / 12 / 13 / 14 / 15 / 18 / 20 / 24px (좁은 화면 제목 20px) |
+| 글자 크기 단계 | Seed 글자 크기 단계만 쓴다 | 11 · 12 · 13 · 14 · 15 · 16 · 18 · 20 · 24 · 26 · 32 · 34 · 42 · 48px(Seed font-size-25~1000. Seed의 10px은 관리자에서 쓰지 않는다). 중간 크기는 쓰지 않는다. `tests/admin-font-scale.test.mjs`가 관리자 CSS와 인라인 style을 검사하고, `node scripts/check-admin-font-scale.mjs --fix`가 가장 가까운 단계(한가운데면 작은 쪽)로 바꾼다 |
+| 글자 굵기·줄 간격 | `--adm-fw-*`, `--adm-lh` / `--adm-lh-tight` | Seed는 보통 400 · 굵게 700 두 가지만 쓴다(옛 이름 `medium`=400, `semibold`=700으로 이어 둠, 강조 문구만 `--adm-fw-black` 900). 읽는 글 1.5, 버튼·제목 1.35 |
+| 간격 | `--adm-space-1`~`8`, `--adm-gap-control`, `--adm-gap-section`, `--adm-pad-card`, `--adm-pad-page` | 4·8·12·16·20·24·32px, 8 / 24 / 20 / 32px (Seed 4px 단위) |
 | 본문 폭 | `--adm-content-max` / `--adm-content-max-narrow` | 1440px(목록·상세·대시보드) / 960px(입력 폼). 여백 포함, 왼쪽 정렬 |
-| 모서리 | `--adm-radius-xs` / `-sm` / `-md` / `-lg` / `-pill` | 4(배지) / 10(버튼·입력) / 16(카드) / 24(팝업) / 9999px |
-| 높이 | `--adm-control-h` / `-sm` / `-lg`, 좌우 여백 `--adm-control-pad-x` | 40 / 32 / 48px, 16px |
-| 그 밖 | `--adm-shadow-*`, `--adm-ring`, `--adm-scrim`, `--adm-z-*`, `--adm-ease`, `--adm-dur` | Montage 그림자 4단계, 포커스 테두리 `#0CEFD340` 3px, 팝업 뒤 막 `#17171985`, 겹침 순서 |
-| 휴대폰(760px 이하) | `--adm-control-h` / `-sm` / `-lg`, `--adm-fs-input`, `--adm-fs-title` / `-section`, `--adm-pad-page` / `-card`, `--adm-gap-section`, `--adm-tabbar-h` | 44 / 36 / 48px, 16px, 20 / 18px, 16 / 16px, 16px, 아래 메뉴 56px |
+| 모서리 | `--adm-radius-xs` / `-sm` / `-md` / `-lg` / `-pill` | 4(배지·작은 버튼) / 6(버튼·입력) / 10(카드·알림) / 16(팝업) / 9999px (Seed radius-xsmall·small·large·xlarge·full) |
+| 높이 | `--adm-control-h` / `-sm` / `-lg` / `-xl`, 좌우 여백 `--adm-control-pad-x` | 40 / 32 / 48 / 52px, 16px (Seed control-height) |
+| 그 밖 | `--adm-shadow-*`, `--adm-ring`, `--adm-scrim`, `--adm-z-*`, `--adm-ease`, `--adm-dur` / `-press`, `--adm-press-scale` | 그림자는 떠 있는 것에만(카드 `xs`는 없음), 키보드 초점 `#0489C5`(blue-600) 2px, 팝업 뒤 막 검정 50%(overlay-dim), 움직임 200ms·누름 100ms·누르면 0.95배 |
+| 휴대폰(760px 이하) | `--adm-control-h` / `-sm` / `-lg`, `--adm-fs-input`, `--adm-fs-title` / `-section`, `--adm-pad-page` / `-card`, `--adm-gap-section`, `--adm-tabbar-h` | 48 / 40 / 52px(Seed 높이 한 칸 위), 16px, 20 / 18px, 16 / 16px, 16px, 아래 메뉴 56px |
 
-- 민트 글자를 흰 바탕에 쓸 때는 `--adm-accent-strong`(`#06796B`)을 쓴다(`--adm-accent` `#0CEFD3`은 채움색이며 글자로 쓰면 1.5:1로 읽히지 않는다). 민트 채움 위 글자는 `--adm-on-primary`(`#222222`).
+- 민트 글자를 흰 바탕에 쓸 때는 `--adm-accent-strong`(`#067661`)을 쓴다(`--adm-accent` `#36D1A7`은 채움색이며 글자로 쓰면 1.9:1로 읽히지 않는다). 민트 채움 위 글자는 `--adm-on-primary`(`#032B25`).
+- 은하수 판 Seed 내보내기는 `yellow` 단계를 민트로 바꿔 두었다. 그대로 쓰면 주의·완료·주요 색이 모두 초록이라 관리자의 주의(대기·확인 필요)는 당근 Seed 원래 노랑 값을 `admin-tokens.css`에 적어 쓴다. `--seed-scale-color-yellow-*`를 주의 색으로 쓰지 않는다.
 - 간격은 4px 단위, 주요(채움) 버튼은 화면당 하나.
-- 상태색은 의미가 정해져 있다: 빨강=삭제·오류·미처리, 주황=주의·대기, 초록=완료, 민트 글자=안내·진행, 회색=보류·종료. 꾸밈용으로 쓰지 않고, 색만으로 알리지 않고 아이콘·문장과 함께 쓴다.
+- 상태색은 의미가 정해져 있다: 빨강=삭제·오류·미처리, 노랑=주의·대기, 초록=완료, 파랑=안내·진행, 회색=보류·종료. 꾸밈용으로 쓰지 않고, 색만으로 알리지 않고 아이콘·문장과 함께 쓴다.
+- 카드·목록 줄은 Seed처럼 그림자 없이 구분선으로 나눈다. 그림자는 메뉴·팝업·떠 있는 버튼에만.
 - 화면 본문은 `--adm-content-max`까지 넓어지고 왼쪽에 붙는다. 화면 제목과 본문의 왼쪽 선은 `--adm-pad-page`로 같다. 화면별 CSS에 최대 폭을 따로 적지 않는다(React는 `AdminLayout`의 `.content`, 견적 도구는 `admin-tools.css`가 정한다).
 - 기존 이름(`--mrt-blue`, `--text-*`, `--border-*`, `--r-*`, 견적 도구의 `--accent`·`--p`·`--brand` 등)은 `--adm-*`를 가리키는 별칭으로 남겨 두었다. 새 CSS에서는 쓰지 않는다.
 - 반투명 민트는 `rgba(var(--adm-accent-rgb), .16)`처럼 쓴다.

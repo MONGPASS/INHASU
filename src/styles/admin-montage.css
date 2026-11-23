@@ -148,7 +148,7 @@
 .admin-app-wrapper .metric { padding: var(--adm-pad-card); }
 .admin-app-wrapper .metric-ico { width: 36px; height: 36px; border-radius: var(--adm-radius-sm); }
 .admin-app-wrapper .metric-label { color: var(--adm-text-2); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-medium); }
-.admin-app-wrapper .metric-value { color: var(--adm-ink); font-size: 28px; font-weight: var(--adm-fw-bold); line-height: 44px; letter-spacing: -0.0253em; font-variant-numeric: tabular-nums; }
+.admin-app-wrapper .metric-value { color: var(--adm-ink); font-size: 26px; font-weight: var(--adm-fw-bold); line-height: 44px; letter-spacing: -0.0253em; font-variant-numeric: tabular-nums; }
 .admin-app-wrapper .metric-value small { color: var(--adm-text-3); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-semibold); }
 .admin-app-wrapper .metric-trend { border-radius: var(--adm-radius-xs); font-weight: var(--adm-fw-semibold); }
 .admin-app-wrapper .qlink .qt { color: var(--adm-ink); font-weight: var(--adm-fw-semibold); }
@@ -233,7 +233,7 @@
 .admin-app-wrapper .v7-list-sort { flex: none; width: 264px; margin-left: auto; } /* 세 항목이 잘리지 않는 폭 */
 .admin-app-wrapper .v7-list-card .v7-list-scroll { border-top: 1px solid var(--adm-line-subtle); }
 .admin-app-wrapper .v7-list-empty { display: flex; flex-direction: column; align-items: center; gap: var(--adm-space-3); padding: 56px var(--adm-space-5); color: var(--adm-text-2); font-size: var(--adm-fs-base); text-align: center; }
-.admin-app-wrapper .v7-list-empty svg { font-size: 28px; color: var(--adm-text-3); }
+.admin-app-wrapper .v7-list-empty svg { font-size: 26px; color: var(--adm-text-3); }
 .admin-app-wrapper .v7-list-bulk { position: fixed; left: 50%; bottom: var(--adm-space-6); z-index: 50; display: flex; align-items: center; gap: var(--adm-space-2); padding: var(--adm-space-2) var(--adm-space-2) var(--adm-space-2) var(--adm-space-5); transform: translateX(-50%); border: 1px solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); box-shadow: var(--adm-shadow-lg); white-space: nowrap; }
 .admin-app-wrapper .v7-list-bulk b { margin-right: var(--adm-space-2); color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-semibold); }
 @media (max-width: 760px) {

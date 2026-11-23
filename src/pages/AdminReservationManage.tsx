@@ -2130,7 +2130,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                                                 />
                                             ) : (
                                                 <>
-                                                    <span className="cell-price" style={{ fontSize: 22 }}>{won(paidAmount || 0)}</span>
+                                                    <span className="cell-price" style={{ fontSize: 20 }}>{won(paidAmount || 0)}</span>
                                                     <span className="cell-muted" style={{ fontSize: 12 }}>/ {won(editForm.totalAmount || 0)}</span>
                                                 </>
                                             )}

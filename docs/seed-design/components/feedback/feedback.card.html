@@ -1,0 +1,26 @@
+<!-- @dsCard group="Components" viewport="700x330" name="Feedback" subtitle="Callouts, InlineAlerts, Snackbar, Spinner, HelpBubble" -->
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>window.__seedIconBase="../../assets/svg"</script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:16px;background:var(--seed-semantic-color-paper-default)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}circle[stroke="var(--seed-semantic-color-primary)"]{stroke:#36D1A7}[data-seed-icon="check_fill"][data-om-id*="1049"],div[style*="gray-900"]>span>[data-seed-icon="check_fill"]{color:#36D1A7!important}div[style*="gray-900"]>button{color:#36D1A7!important}div[style*="gray-900"][style*="radius-large"]{background-color:#032B25!important}div[style*="yellow-alpha-50"]{background-color:#D2F9E914!important}div[style*="yellow-alpha-50"]>span:first-child>[data-seed-icon],div[style*="yellow-alpha-50"]>div>span:first-child{color:#067661!important}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Callout, ActionableCallout, DismissableCallout, InlineAlert, ActionableInlineAlert, Snackbar, Spinner, HelpBubble, Icon } = window.SeedDesignSystem_ee0fab;
+function Card(){return (<div className="grid">
+<Callout variant="info" icon={<Icon name="info_fill" size={16} />} title="안전 거래 안내">직거래는 공공장소에서 만나세요.</Callout>
+<Callout variant="warning" icon={<Icon name="warning_fill" size={16} />}>거래 전 판매자 정보를 확인하세요.</Callout>
+<ActionableCallout variant="normal" title="본인인증이 필요해요" actionIndicator={<Icon name="chevron_right_regular" size={18} />}>인증하고 더 안전하게 거래하세요.</ActionableCallout>
+<DismissableCallout variant="danger" title="결제 실패" closeIcon={<Icon name="close_regular" size={18} />}>카드 정보를 다시 확인해주세요.</DismissableCallout>
+<InlineAlert variant="success" icon={<Icon name="check_fill" size={16} />}>동네 인증이 완료되었어요.</InlineAlert>
+<ActionableInlineAlert variant="info" icon={<Icon name="info_fill" size={16} />} actionIndicator={<Icon name="chevron_right_regular" size={16} />}>동네 인증하고 글 올리기</ActionableInlineAlert>
+<Snackbar type="success" icon={<Icon name="check_fill" size={20} />} message="관심 목록에 저장했어요" actionLabel="보기" />
+<div style={{display:"flex",alignItems:"center",gap:24,paddingLeft:8}}>
+<Spinner size="medium" /><Spinner size="small" variant="primary" />
+<div style={{paddingTop:28}}><HelpBubble message="여기서 동네를 바꿀 수 있어요"><span style={{fontSize:14,fontWeight:"bold"}}>서초동</span></HelpBubble></div>
+</div>
+</div>)}
+ReactDOM.createRoot(document.getElementById("root")).render(<Card />);
+</script></body></html>

@@ -23,12 +23,12 @@
 .product-customer-page .cw-detail-workspace .reservation-workspace-body > .stack { max-width: none; margin: 0; }
 .cw-detail-workspace .reservation-workspace-body section[id] { scroll-margin-top: 200px!important; }
 .cw-panel-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 0 0 4px; }
-.cw-panel-heading h2 { margin: 0; color: var(--adm-ink); font-size: 22px; font-weight: var(--adm-fw-bold); letter-spacing: -.5px; }
+.cw-panel-heading h2 { margin: 0; color: var(--adm-ink); font-size: 20px; font-weight: var(--adm-fw-bold); letter-spacing: -.5px; }
 .cw-panel-heading p { margin: 6px 0 0; color: var(--adm-text-3); font-size: 13px; }
 .cw-panel-heading > span { font-size: 12px; color: var(--adm-text-3); }
 .product-customer-page .cw-detail-workspace .card { border: 1px solid var(--adm-accent-line); border-radius: var(--adm-radius-md); box-shadow: none; }
 .product-customer-page .cw-detail-workspace .card-head { gap: 12px; padding: 20px 24px; min-height: 72px; flex-wrap: wrap; border-bottom-color: var(--adm-line-subtle); }
-.product-customer-page .cw-detail-workspace .card-head h2 { font-size: 17px; line-height: 1.5; color: var(--adm-ink); letter-spacing: -.4px; }
+.product-customer-page .cw-detail-workspace .card-head h2 { font-size: 16px; line-height: 1.5; color: var(--adm-ink); letter-spacing: -.4px; }
 .product-customer-page .cw-detail-workspace .card-head p { font-size: 13px; color: var(--adm-text-3); line-height: 1.7; }
 .product-customer-page .cw-detail-workspace .card-pad { padding: 20px 24px!important; }
 .product-customer-page .cw-detail-workspace .kv { min-height: 52px; padding: 14px 0; align-items: center; gap: 20px; font-size: 14px; border-color: var(--adm-line-subtle); }

@@ -1,11 +1,12 @@
-// 관리자 화면의 글자 크기가 Montage 글자 크기 단계에 있는지 검사한다(--fix로 가장 가까운 단계로 바꾼다).
-// 단계: 11 · 12 · 13 · 14 · 15 · 16 · 17 · 18 · 20 · 22 · 24 · 28 · 36 · 40px (docs/admin-design-system.md 글자 크기)
+// 관리자 화면의 글자 크기가 Seed 글자 크기 단계에 있는지 검사한다(--fix로 가장 가까운 단계로 바꾼다).
+// 단계: 11 · 12 · 13 · 14 · 15 · 16 · 18 · 20 · 24 · 26 · 32 · 34 · 42 · 48px (public/seed/typography.css의 font-size-25~1000,
+// Seed의 10px(label6)은 관리자에서 너무 작아 쓰지 않는다. docs/admin-design-system.md 글자 크기)
 // 대상: 관리자 React 화면의 CSS와 인라인 style, 견적 도구 공통 CSS. 고객 문서·인쇄·캔버스는 대상이 아니다.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const FONT_SCALE = [11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 36, 40];
+export const FONT_SCALE = [11, 12, 13, 14, 15, 16, 18, 20, 24, 26, 32, 34, 42, 48];
 const root = fileURLToPath(new URL('../', import.meta.url));
 
 /** 가장 가까운 단계. 두 단계의 한가운데면 작은 쪽(칸이 넘치지 않게). */
