@@ -21,6 +21,8 @@ import { documentLodgingSnapshot } from '../../utils/lodgingItinerarySnapshot';
 import { travelSpotSnapshot } from '../../utils/travelSpotSnapshot';
 import { normalizeRepresentativeSpots } from '../../../functions/lib/productItinerary';
 import { adminConfirm, adminNotify } from './ui/adminFeedback';
+import { AdminButton, AdminIconButton, AdminSelect, AdminTextButton, AdminTextInput, IconCheck, IconChevronLeft, IconClose, IconDownload, IconHome, IconPerson, IconPlus, IconTrash } from './ui';
+import '../../styles/reservation-inline.css';
 
 export interface ReservationDocContent {
     name: string;
@@ -384,19 +386,17 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
             <div className="bg-[color:var(--adm-gray-50)] dark:bg-slate-900 rounded-2xl w-full h-full flex flex-col overflow-hidden shadow-2xl" inert={saving} aria-busy={saving}>
                 <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-center gap-3 min-w-0">
-                        <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
-                            <span className="material-symbols-outlined">arrow_back</span>
-                        </button>
+                        <AdminIconButton label="편집 닫기" onClick={onClose}>
+                            <IconChevronLeft />
+                        </AdminIconButton>
                         <div className="min-w-0">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{templateMode ? '일정 프리셋 편집' : '고객 문서 편집'}</p>
                             <p className="truncate text-lg font-bold text-slate-900 dark:text-white">{title}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                        <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">취소</button>
-                        <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-sm font-bold bg-[var(--adm-accent)] hover:bg-[var(--adm-accent-hover)] text-white rounded-lg inline-flex items-center gap-1.5 disabled:opacity-50">
-                            <span className="material-symbols-outlined text-base">check</span>{saving ? '저장 중' : '저장'}
-                        </button>
+                        <AdminButton variant="weak" onClick={onClose}>취소</AdminButton>
+                        <AdminButton variant="primary" onClick={handleSave} disabled={saving} leading={<IconCheck />}>{saving ? '저장 중' : '저장'}</AdminButton>
                     </div>
                 </div>
                 {(customer || (documentType === 'contract' && (onAssignGuide || onAssignAccommodation))) && <div className="flex flex-shrink-0 flex-col gap-3 border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900 lg:flex-row lg:items-center lg:justify-between">
@@ -416,21 +416,20 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                         {datesEditable && <>
                             <label className="rounded-2xl border border-[color:var(--adm-accent-line)] bg-white px-4 py-2 dark:border-blue-800 dark:bg-slate-800">
                                 <span className="block text-[10px] font-bold uppercase tracking-widest text-[color:var(--adm-accent-hover)]">투어 시작일</span>
-                                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 w-full border-0 bg-transparent p-0 text-sm font-bold text-slate-900 outline-none dark:text-white" />
+                                <AdminTextInput type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="ri-de-ghost ri-de-ghost-date" />
                             </label>
                             <label className="rounded-2xl border border-[color:var(--adm-accent-line)] bg-white px-4 py-2 dark:border-blue-800 dark:bg-slate-800">
                                 <span className="block text-[10px] font-bold uppercase tracking-widest text-[color:var(--adm-accent-hover)]">투어 종료일</span>
-                                <input type="date" value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)} className="mt-1 w-full border-0 bg-transparent p-0 text-sm font-bold text-slate-900 outline-none dark:text-white" />
+                                <AdminTextInput type="date" value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)} className="ri-de-ghost ri-de-ghost-date" />
                             </label>
                         </>}
                     </div>
                     {documentType === 'contract' && (onAssignGuide || onAssignAccommodation) && (
                         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                         {onAssignGuide && (
-                            <button onClick={onAssignGuide} className="inline-flex h-12 items-center gap-2 rounded-xl border border-[color:var(--adm-accent-line)] bg-white px-4 text-sm font-bold text-[color:var(--adm-accent-hover)] shadow-sm transition-colors hover:bg-[var(--adm-accent-soft)] dark:border-teal-700 dark:bg-slate-800 dark:text-teal-300 dark:hover:bg-teal-900/30">
-                                <span className="material-symbols-outlined text-[20px]">{assignedGuide?.name ? 'badge' : 'person_add'}</span>
-                                <span>{assignedGuide?.name || '가이드 배정'}</span>
-                            </button>
+                            <AdminButton size="lg" className="ri-de-assign" onClick={onAssignGuide} leading={<IconPerson />}>
+                                {assignedGuide?.name || '가이드 배정'}
+                            </AdminButton>
                         )}
                         {onAssignAccommodation && (
                             <div className="flex flex-wrap items-center gap-2">
@@ -438,10 +437,9 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                     const dayNum = i + 1;
                                     const a = dailyAccommodations?.find(d => d.day === dayNum);
                                     return (
-                                        <button key={i} onClick={() => onAssignAccommodation(dayNum)} className={`inline-flex h-12 items-center gap-1.5 rounded-xl border px-3 text-xs font-bold shadow-sm transition-colors hover:bg-[var(--adm-accent-soft)] dark:hover:bg-teal-900/30 ${a ? 'border-[color:var(--adm-accent-line)] bg-white text-[color:var(--adm-accent-hover)] dark:border-teal-700 dark:bg-slate-800 dark:text-teal-300' : 'border-dashed border-slate-300 bg-white text-slate-500 dark:border-slate-600 dark:bg-slate-800'}`}>
-                                            <span className="material-symbols-outlined text-[18px]">hotel</span>
-                                            <span>{dayNum}일차: {a?.accommodation?.name || '숙소 선택'}</span>
-                                        </button>
+                                        <AdminButton key={i} size="lg" className={`ri-de-assign${a ? '' : ' is-empty'}`} onClick={() => onAssignAccommodation(dayNum)} leading={<IconHome />}>
+                                            {dayNum}일차: {a?.accommodation?.name || '숙소 선택'}
+                                        </AdminButton>
                                     );
                                 })}
                             </div>
@@ -457,9 +455,9 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                     <div className="flex flex-shrink-0 items-center gap-2 border-b border-emerald-200 bg-emerald-50 px-6 py-2 text-xs font-bold text-emerald-700">
                         <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                         <span>예약 상품 「{autoLoadedName}」의 일정을 자동으로 불러왔습니다 — <b>항공편 시간 등만 조정</b>하고 저장하세요.</span>
-                        <button onClick={() => setAutoLoadedName(null)} className="ml-auto text-emerald-400 hover:text-emerald-600">
-                            <span className="material-symbols-outlined text-[16px]">close</span>
-                        </button>
+                        <AdminIconButton size="sm" label="안내 닫기" className="ml-auto" onClick={() => setAutoLoadedName(null)}>
+                            <IconClose />
+                        </AdminIconButton>
                     </div>
                 )}
                 <div className="flex-1 overflow-hidden bg-[color:var(--adm-gray-50)] dark:bg-slate-900" onInputCapture={() => { autoImportRef.current = false; }}>
@@ -474,45 +472,48 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                         <p className="text-[9px] font-semibold text-slate-400">일정·가격·포함사항을 재사용합니다.</p>
                                     </div>
                                 </div>
-                                <select
+                                <AdminSelect
+                                    aria-label="불러올 상품"
                                     value={selectedProductId}
-                                    onChange={event => {
+                                    onChange={value => {
                                         autoImportRef.current = false;
-                                        setSelectedProductId(event.target.value);
+                                        setSelectedProductId(value);
                                     }}
-                                    className="mt-3 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-bold text-slate-700 outline-none focus:border-[color:var(--adm-accent)]"
+                                    className="ri-de-product"
                                     disabled={loadingProducts}
-                                >
-                                    <option value="">{loadingProducts ? '상품 불러오는 중...' : '상품 선택'}</option>
-                                    {products.map(product => {
-                                        const stats = getProductScheduleStats(product);
-                                        return <option key={product.id} value={product.id}>{product.name} ({stats.days}일 · 일정 {stats.activities}개)</option>;
-                                    })}
-                                </select>
+                                    options={[
+                                        { value: '', label: loadingProducts ? '상품 불러오는 중...' : '상품 선택' },
+                                        ...products.map(product => {
+                                            const stats = getProductScheduleStats(product);
+                                            return { value: String(product.id), label: `${product.name} (${stats.days}일 · 일정 ${stats.activities}개)` };
+                                        }),
+                                    ]}
+                                />
                                 {productsError && (
                                     <div role="alert" className="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-[11px] text-red-700">
                                         <p>{productsError}</p>
-                                        <button type="button" onClick={() => setProductsRetry(value => value + 1)} className="mt-1 font-bold underline">다시 시도</button>
+                                        <AdminTextButton size="sm" className="mt-1" onClick={() => setProductsRetry(value => value + 1)}>다시 시도</AdminTextButton>
                                     </div>
                                 )}
-                                <button
-                                    type="button"
+                                <AdminButton
+                                    size="sm"
+                                    fullWidth
+                                    className="mt-2"
                                     onClick={importSelectedProduct}
                                     disabled={!selectedProductId}
-                                    className="mt-2 flex h-8 w-full items-center justify-center gap-1 rounded-[10px] border border-[color:var(--adm-line-strong)] bg-white text-[12px] font-semibold text-[color:var(--adm-text)] hover:bg-[var(--adm-gray-50)] disabled:cursor-not-allowed disabled:opacity-40"
+                                    leading={<IconDownload />}
                                 >
-                                    <span className="material-symbols-outlined text-[15px]">download</span>
                                     선택 상품 적용
-                                </button>
+                                </AdminButton>
                             </div>
                             <div className="mb-4 flex items-center justify-between">
                                 <div>
                                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">일정 구성</p>
                                     <h2 className="mt-1 text-base font-bold text-slate-900 dark:text-white">{days.length}일 일정</h2>
                                 </div>
-                                <button onClick={addDay} className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-[color:var(--adm-line-strong)] bg-white text-[color:var(--adm-text-2)] hover:bg-[var(--adm-gray-50)]" title="DAY 추가" aria-label="DAY 추가">
-                                    <span className="material-symbols-outlined text-[18px]">add</span>
-                                </button>
+                                <AdminIconButton size="sm" variant="outlined" label="DAY 추가" onClick={addDay}>
+                                    <IconPlus />
+                                </AdminIconButton>
                             </div>
                             <div className="space-y-2">
                                 {days.map((day, index) => (
@@ -539,43 +540,42 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                                             </div>
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-[9px] font-bold text-slate-400">{day.activities.length}개 일정</span>
-                                                <button
-                                                    type="button"
+                                                <AdminIconButton
+                                                    size="sm"
+                                                    label="DAY 삭제"
+                                                    className="ri-de-day-remove"
                                                     onClick={async (e) => { e.stopPropagation(); if (await adminConfirm(`DAY ${day.day}을(를) 삭제할까요?`)) removeDay(index); }}
-                                                    title="DAY 삭제"
-                                                    className="flex h-6 w-6 items-center justify-center rounded-md text-slate-300 hover:bg-red-50 hover:text-red-500"
                                                 >
-                                                    <span className="material-symbols-outlined text-[15px]">delete</span>
-                                                </button>
+                                                    <IconTrash />
+                                                </AdminIconButton>
                                             </div>
                                         </div>
-                                        <input
+                                        <AdminTextInput
                                             value={day.title || ''}
                                             onClick={(e) => e.stopPropagation()}
                                             onChange={(e) => updateDay(index, 'title', e.target.value)}
                                             placeholder="일차 제목을 입력하세요"
-                                            className="mt-1 w-full truncate border-none bg-transparent p-0 text-xs font-bold text-slate-800 outline-none placeholder:font-semibold placeholder:text-slate-300 focus:ring-0"
+                                            className="ri-de-ghost ri-de-ghost-title"
                                         />
-                                        <input
+                                        <AdminTextInput
                                             value={day.region || ''}
                                             onClick={(e) => e.stopPropagation()}
                                             onChange={(e) => updateDay(index, 'region', e.target.value)}
                                             placeholder="지역 미정"
-                                            className="mt-0.5 w-full truncate border-none bg-transparent p-0 text-[10px] font-semibold text-slate-400 outline-none placeholder:text-slate-300 focus:ring-0"
+                                            className="ri-de-ghost ri-de-ghost-sub"
                                         />
-                                        <input
+                                        <AdminTextInput
                                             value={day.date || ''}
                                             onClick={(e) => e.stopPropagation()}
                                             onChange={(e) => updateDay(index, 'date', e.target.value)}
                                             placeholder={startDate ? '기준일로 자동 계산' : '날짜 직접 입력 (예: 9월 20일)'}
-                                            className="mt-0.5 w-full truncate border-none bg-transparent p-0 text-[10px] font-semibold text-[color:var(--adm-accent)] outline-none placeholder:text-slate-300 focus:ring-0"
+                                            className="ri-de-ghost ri-de-ghost-sub is-date"
                                         />
                                     </div>
                                 ))}
-                                <button onClick={addDay} className="flex w-full items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[color:var(--adm-accent-line)] px-3 py-3 text-xs font-bold text-[color:var(--adm-accent)] hover:bg-[var(--adm-accent-soft)]">
-                                    <span className="material-symbols-outlined text-[16px]">add</span>
+                                <AdminButton fullWidth className="ri-de-add-day" onClick={addDay} leading={<IconPlus />}>
                                     {days.length === 0 ? '첫 번째 DAY 추가' : 'DAY 추가'}
-                                </button>
+                                </AdminButton>
                             </div>
                         </aside>
 
@@ -667,12 +667,12 @@ export const ReservationDocumentEditor: React.FC<Props> = ({ open, onClose, titl
                             </div>
 
                             <div className="mt-4 space-y-2">
-                                {onAssignGuide && <button onClick={onAssignGuide} className="flex w-full items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs font-bold text-slate-700 hover:border-[color:var(--adm-accent)]">
-                                    <span className="material-symbols-outlined text-[18px] text-[color:var(--adm-accent)]">badge</span>{assignedGuide?.name || '담당 가이드 배정'}
-                                </button>}
-                                {onAssignAccommodation && selectedDay && <button onClick={() => onAssignAccommodation(selectedDay.day)} className="flex w-full items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs font-bold text-slate-700 hover:border-[color:var(--adm-accent)]">
-                                    <span className="material-symbols-outlined text-[18px] text-[color:var(--adm-accent)]">hotel</span>DAY {selectedDay.day} 숙소 배정
-                                </button>}
+                                {onAssignGuide && <AdminButton fullWidth className="ri-de-side-action" onClick={onAssignGuide} leading={<IconPerson />}>
+                                    {assignedGuide?.name || '담당 가이드 배정'}
+                                </AdminButton>}
+                                {onAssignAccommodation && selectedDay && <AdminButton fullWidth className="ri-de-side-action" onClick={() => onAssignAccommodation(selectedDay.day)} leading={<IconHome />}>
+                                    DAY {selectedDay.day} 숙소 배정
+                                </AdminButton>}
                             </div>
                         </aside>
                     </div>

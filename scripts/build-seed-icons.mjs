@@ -32,8 +32,8 @@ export const MAP = {
     IconClock: 'clock_regular',
     IconClose: 'close_regular',
     IconCoins: 'money_won_regular',
-    IconDocument: 'file_regular',
-    IconDocumentText: 'article_regular',
+    IconDocument: 'article_regular',        // 문서 템플릿(file은 클립 모양이라 쓰지 않음)
+    IconDocumentText: 'search_doc_regular', // 견적 문의
     IconDownload: 'download_regular',
     IconFlag: 'map_regular',                // 코스
     IconFolder: 'product_regular',          // 상품

@@ -6,33 +6,25 @@
 .reservation-workspace.product-workspace .ri-draft-status { margin-bottom:14px; padding:12px 14px; border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-md); background:var(--adm-accent-soft); font-size:13px; line-height:1.7; }
 .reservation-workspace.product-workspace .ri-draft-status.is-warning { border-color:var(--adm-warn); background:var(--adm-warn-soft); }
 .reservation-workspace.product-workspace .ri-modes { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:14px 24px; background:var(--adm-gray-50); border-bottom:1px solid var(--adm-line); }
-.reservation-workspace.product-workspace .ri-modes button { min-height:38px; padding:8px 16px; border:1px solid var(--adm-line); border-radius:var(--adm-radius-sm); background:var(--adm-surface); color:var(--adm-text-3); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
-.reservation-workspace.product-workspace .ri-modes button.is-selected { background:var(--adm-accent-strong); border-color:var(--adm-accent-strong); color:#fff; }
+.reservation-workspace.product-workspace .ri-modes .adm-ri-mode { min-height:var(--adm-control-h); padding:var(--adm-space-2) var(--adm-space-4); border:var(--adm-border-width) solid var(--adm-line); border-radius:var(--adm-radius-sm); background:var(--adm-surface); color:var(--adm-text-3); font:inherit; font-size:var(--adm-fs-caption); font-weight:var(--adm-fw-bold); cursor:pointer; }
+.reservation-workspace.product-workspace .ri-modes .adm-ri-mode.is-selected { background:var(--adm-accent-strong); border-color:var(--adm-accent-strong); color:var(--adm-surface); }
 .reservation-workspace.product-workspace .ri-modes > span { margin-left:auto; color:var(--adm-text-3); font-size:11px; line-height:1.6; }
 .reservation-workspace.product-workspace .ri-form { display:block; min-width:0; margin:0; padding:22px 24px; border:none; }
 .reservation-workspace.product-workspace .ri-form:disabled { opacity:.68; }
 .reservation-workspace.product-workspace .ri-basics { display:grid; grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr)); gap:14px; padding:16px; background:var(--adm-gray-50); border:1px solid var(--adm-line); border-radius:var(--adm-radius-md); margin-bottom:24px; }
 .reservation-workspace.product-workspace .ri-field { display:flex; flex-direction:column; gap:6px; min-width:0; color:var(--adm-text-2); font-size:11px; font-weight:700; line-height:1.6; }
-.reservation-workspace.product-workspace .ri-field input,
-.reservation-workspace.product-workspace .ri-field select,
-.reservation-workspace.product-workspace .ri-field textarea { width:100%; min-width:0; min-height:39px; padding:9px 11px; border:1px solid var(--adm-line); border-radius:var(--adm-radius-xs); background:var(--adm-surface); color:var(--adm-ink); font:inherit; font-size:13px; font-weight:500; line-height:1.5; outline:none; }
-.reservation-workspace.product-workspace .ri-field textarea { resize:vertical; min-height:64px; }
-.reservation-workspace.product-workspace .ri-field input:focus,
-.reservation-workspace.product-workspace .ri-field select:focus,
-.reservation-workspace.product-workspace .ri-field textarea:focus { border-color:var(--adm-accent); box-shadow:0 0 0 3px #e5f6ec; }
 .reservation-workspace.product-workspace .ri-section-title { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
 .reservation-workspace.product-workspace .ri-section-title h3,
 .reservation-workspace.product-workspace .ri-contract > h3 { margin:0; color:var(--adm-ink); font-size:16px; font-weight:var(--adm-fw-bold); line-height:1.6; }
 .reservation-workspace.product-workspace .ri-section-title p { margin:4px 0 0; color:var(--adm-text-3); font-size:11px; line-height:1.7; }
 .reservation-workspace.product-workspace .ri-library-note { margin:8px 0 16px; color:var(--adm-text-3); font-size:12px; line-height:1.7; }
 .reservation-workspace.product-workspace .ri-library-error { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:12px 0; padding:12px; border:1px solid var(--adm-warn-line); border-radius:var(--adm-radius-sm); background:var(--adm-warn-soft); color:var(--adm-warn-strong); font-size:12px; line-height:1.7; }
-.reservation-workspace.product-workspace .ri-library-error button { padding:2px; border:0; background:none; color:var(--adm-warn-strong); font:inherit; font-weight:var(--adm-fw-bold); text-decoration:underline; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-quote-section { padding:22px 20px; border-radius:var(--adm-radius-md); background:var(--adm-gray-50); }
 .reservation-workspace.product-workspace .ri-quote-head { margin-bottom:22px; }
 .reservation-workspace.product-workspace .ri-quote-head h3 { margin:0; color:var(--adm-ink); font-size:20px; font-weight:var(--adm-fw-bold); letter-spacing:-.5px; line-height:1.4; }
 .reservation-workspace.product-workspace .ri-quote-head p { margin:4px 0 0; color:var(--adm-text-3); font-size:13px; line-height:1.6; }
 .reservation-workspace.product-workspace .ri-quote-hint { margin:0 0 16px; color:var(--adm-text-3); font-size:12px; line-height:1.6; }
-.reservation-workspace.product-workspace .ri-fill-dates { margin-bottom:12px; padding:8px 13px; border:1px dashed var(--adm-line-strong); border-radius:var(--adm-radius-sm); background:var(--adm-surface); color:var(--adm-text-2); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+.reservation-workspace.product-workspace .ri-fill-dates { margin-bottom:var(--adm-space-3); }
 .reservation-workspace.product-workspace .ri-rich-details { margin-top:12px; border-top:1px solid var(--adm-line-subtle); }
 .reservation-workspace.product-workspace .ri-rich-details > summary { padding-top:10px; color:var(--adm-text-3); font-size:11px; font-weight:600; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-rich-body { display:grid; gap:12px; margin-top:12px; }
@@ -40,7 +32,7 @@
 .reservation-workspace.product-workspace .ri-days { display:grid; gap:18px; }
 .reservation-workspace.product-workspace .ri-day { min-width:0; border:1px solid var(--adm-line); border-radius:var(--adm-radius-md); overflow:hidden; background:var(--adm-surface); }
 .reservation-workspace.product-workspace .ri-day-heading { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:12px 16px; background:var(--adm-success-soft); border-bottom:1px solid var(--adm-line); }
-.reservation-workspace.product-workspace .ri-day-heading > b { padding:4px 9px; border-radius:var(--adm-radius-xs); background:var(--adm-accent-strong); color:#fff; font-size:12px; line-height:1.6; }
+.reservation-workspace.product-workspace .ri-day-heading > b { padding:4px 9px; border-radius:var(--adm-radius-xs); background:var(--adm-accent-strong); color:var(--adm-surface); font-size:12px; line-height:1.6; }
 .reservation-workspace.product-workspace .ri-day-heading > span { font-size:12px; font-weight:650; color:var(--adm-text-3); }
 .reservation-workspace.product-workspace .ri-day-heading > div { display:flex; gap:6px; margin-left:auto; }
 .reservation-workspace.product-workspace .ri-day-heading button { min-height:32px; min-width:32px; padding:4px 8px; border:1px solid var(--adm-line); border-radius:var(--adm-radius-xs); background:var(--adm-surface); color:var(--adm-text-2); font:inherit; font-size:11px; font-weight:700; cursor:pointer; }
@@ -49,17 +41,16 @@
 .reservation-workspace.product-workspace .ri-day-fields { display:grid; grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr)); gap:12px; }
 .reservation-workspace.product-workspace .ri-small-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
 .reservation-workspace.product-workspace .ri-small-heading h4 { margin:0; color:var(--adm-text-2); font-size:12px; font-weight:var(--adm-fw-bold); line-height:1.6; }
-.reservation-workspace.product-workspace .ri-small-heading button { min-height:32px; padding:5px 0; border:none; background:none; color:var(--adm-accent-strong); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-activities { min-width:0; }
 .reservation-workspace.product-workspace .ri-activity { display:grid; gap:10px; padding:14px; border:1px solid var(--adm-line); border-radius:var(--adm-radius-sm); margin-top:10px; background:var(--adm-gray-50); }
 .reservation-workspace.product-workspace .ri-activity-line { display:flex; align-items:flex-end; gap:10px; min-width:0; }
 .reservation-workspace.product-workspace .ri-time { flex:none; width:92px; }
 .reservation-workspace.product-workspace .ri-activity-title { flex:1; min-width:0; }
-.reservation-workspace.product-workspace .ri-remove { flex:none; min-height:38px; padding:5px 8px; border:none; border-radius:var(--adm-radius-xs); background:var(--adm-warn-soft); color:var(--adm-warn-strong); font:inherit; font-size:11px; font-weight:650; cursor:pointer; }
+.reservation-workspace.product-workspace .ri-remove { flex:none; }
 .reservation-workspace.product-workspace .ri-photos { display:flex; flex-wrap:wrap; gap:10px; }
 .reservation-workspace.product-workspace .ri-photos figure { position:relative; flex:none; width:92px; height:72px; margin:0; border:1px solid var(--adm-line); border-radius:var(--adm-radius-xs); background:var(--adm-gray-200); }
 .reservation-workspace.product-workspace .ri-photos img { width:100%; height:100%; border-radius:var(--adm-radius-xs); object-fit:cover; }
-.reservation-workspace.product-workspace .ri-photos button { position:absolute; top:-5px; right:-5px; width:23px; height:23px; border:1px solid var(--adm-line); border-radius:50%; background:var(--adm-surface); color:var(--adm-warn-strong); font:inherit; font-size:16px; line-height:1; cursor:pointer; }
+.reservation-workspace.product-workspace .ri-photos .adm-ri-photo-remove { position:absolute; top:calc(var(--adm-space-1) * -1.25); right:calc(var(--adm-space-1) * -1.25); display:grid; place-items:center; width:var(--adm-space-6); height:var(--adm-space-6); padding:0; border:var(--adm-border-width) solid var(--adm-line); border-radius:var(--adm-radius-pill); background:var(--adm-surface); color:var(--adm-warn-strong); font:inherit; font-size:var(--adm-fs-base); line-height:1; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-upload { position:relative; display:inline-flex; align-items:center; justify-content:center; justify-self:start; min-height:32px; padding:6px 10px; border:1px dashed var(--adm-line-strong); border-radius:var(--adm-radius-xs); background:var(--adm-surface); color:var(--adm-success-strong); font-size:11px; line-height:1.6; font-weight:650; cursor:pointer; overflow:hidden; }
 .reservation-workspace.product-workspace .ri-upload input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-stay-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
@@ -75,7 +66,7 @@
 .reservation-workspace.product-workspace .ri-spot-group button { display:flex; align-items:center; gap:9px; min-width:0; padding:12px; border:1px solid var(--adm-line); border-radius:var(--adm-radius-sm); background:var(--adm-surface); color:var(--adm-text-2); text-align:left; font:inherit; cursor:pointer; }
 .reservation-workspace.product-workspace .ri-spot-group button.is-selected { background:var(--adm-success-soft); border-color:var(--adm-accent); }
 .reservation-workspace.product-workspace .ri-spot-indicator { display:grid; place-items:center; flex:none; width:23px; height:23px; border-radius:50%; background:var(--adm-gray-200); color:var(--adm-text-3); font-size:12px; font-weight:var(--adm-fw-bold); }
-.reservation-workspace.product-workspace .ri-spot-group .is-selected .ri-spot-indicator { background:var(--adm-accent-strong); color:#fff; }
+.reservation-workspace.product-workspace .ri-spot-group .is-selected .ri-spot-indicator { background:var(--adm-accent-strong); color:var(--adm-surface); }
 .reservation-workspace.product-workspace .ri-spot-group button b { display:block; font-size:12px; font-weight:700; line-height:1.6; }
 .reservation-workspace.product-workspace .ri-spot-group button small { display:block; margin-top:3px; color:var(--adm-text-3); font-size:11px; line-height:1.6; overflow-wrap:anywhere; }
 .reservation-workspace.product-workspace .ri-contract { display:grid; gap:18px; }
@@ -94,18 +85,16 @@
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status strong { color:var(--adm-ink); font-weight:var(--adm-fw-medium); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-draft-status.is-warning { background:var(--adm-warn-soft); border-color:var(--adm-warn-line); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-modes { padding:16px 24px; gap:8px; background:var(--adm-surface); border-bottom:1px solid var(--adm-line-subtle); }
-.reservation-workspace.product-workspace .ri-editor-workflow .ri-modes button { min-height:40px; padding:9px 18px; border-radius:var(--adm-radius-sm); font-size:14px; }
-.reservation-workspace.product-workspace .ri-editor-workflow .ri-modes button.is-selected { background:var(--adm-accent-soft); border-color:var(--adm-accent-line); color:var(--adm-accent-strong); }
+.reservation-workspace.product-workspace .ri-editor-workflow .ri-modes .adm-ri-mode { min-height:var(--adm-control-h); padding:var(--adm-space-2) var(--adm-space-4); border-radius:var(--adm-radius-sm); font-size:var(--adm-fs-body); }
+.reservation-workspace.product-workspace .ri-editor-workflow .ri-modes .adm-ri-mode.is-selected { background:var(--adm-accent-soft); border-color:var(--adm-accent-line); color:var(--adm-accent-strong); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-modes > span { font-size:12px; color:var(--adm-text-3); }
 .reservation-workspace.product-workspace .ri-day-navigation { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:12px 24px; border-bottom:1px solid var(--adm-line-subtle); background:var(--adm-gray-50); }
 .reservation-workspace.product-workspace .ri-day-navigation > span { margin-right:4px; font-size:12px; font-weight:650; color:var(--adm-text-3); }
-.reservation-workspace.product-workspace .ri-day-navigation > button { min-height:32px; padding:6px 12px; border:1px solid var(--adm-accent-line); border-radius:var(--adm-radius-sm); background:var(--adm-surface); color:var(--adm-text-2); font:inherit; font-size:12px; font-weight:650; cursor:pointer; }
-.reservation-workspace.product-workspace .ri-day-navigation > button:hover { color:var(--adm-accent-strong); border-color:var(--adm-accent); background:var(--adm-accent-soft); }
+.reservation-workspace.product-workspace .ri-day-navigation > .adm-ri-jump { min-height:var(--adm-control-h-sm); padding:0 var(--adm-space-3); border:var(--adm-border-width) solid var(--adm-accent-line); border-radius:var(--adm-radius-sm); background:var(--adm-surface); color:var(--adm-text-2); font:inherit; font-size:var(--adm-fs-caption); font-weight:var(--adm-fw-bold); cursor:pointer; }
+.reservation-workspace.product-workspace .ri-day-navigation > .adm-ri-jump:hover { color:var(--adm-accent-strong); border-color:var(--adm-accent); background:var(--adm-accent-soft); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-form { padding:24px; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-basics { gap:16px; padding:20px; margin-bottom:24px; border-color:var(--adm-accent-line); background:var(--adm-gray-50); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-field { gap:8px; font-size:12px; color:var(--adm-text-2); }
-.reservation-workspace.product-workspace .ri-editor-workflow .ri-field input,
-.reservation-workspace.product-workspace .ri-editor-workflow .ri-field textarea { border-color:var(--adm-accent-line); min-height:42px; font-size:14px; color:var(--adm-ink); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-quote-section { padding:0; background:var(--adm-surface); }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-quote-head { margin-bottom:16px; }
 .reservation-workspace.product-workspace .ri-editor-workflow .ri-quote-head h3 { font-size:18px; }
@@ -162,5 +151,103 @@
     .reservation-workspace.product-workspace .ri-field input { padding:8px; }
     .reservation-workspace.product-workspace .ri-cancellation-row { grid-template-columns:minmax(0,1fr); }
     .reservation-workspace.product-workspace .ri-cancellation-row .ri-remove { justify-self:start; }
-    .reservation-workspace.product-workspace .ri-savebar > .btn { width:100%; }
+    .reservation-workspace.product-workspace .ri-savebar > .adm-ui-btn { width:100%; }
 }
+
+/* ============================================================
+   고객 예약 상세 부품(예약 문서·편집·운영)을 우리 관리자 부품(adm-ui-*)으로 바꾼 뒤의 규칙. --adm-* 변수만 쓴다.
+   ============================================================ */
+
+/* ── 우리 부품 지키기 ──
+   옛 화면 규칙(…ri-field input, …rw-delivery-panel button, …rw-secondary-actions button, …ri-modes button 등 클래스 3~4개 + 요소)이
+   이 영역 안 우리 부품의 모양을 덮는다. 부품 모양(ui/admin-components.css)을 같은 값으로 다시 적고,
+   :not(#ri-keep)(쓰지 않는 id)로 우선순위만 올린다. 새 값을 정하는 곳이 아니다. */
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-btn:not(#ri-keep) {
+  min-height: 0; height: var(--adm-control-h); padding: 0 var(--adm-control-pad-x);
+  border: var(--adm-border-width) solid var(--btn-line); border-radius: var(--adm-radius-sm);
+  background: var(--btn-bg); color: var(--btn-fg); box-shadow: none; outline: 0; opacity: 1;
+  font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh-tight); letter-spacing: normal; text-align: center; text-decoration: none;
+}
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-btn.is-sm:not(#ri-keep) { height: var(--adm-control-h-sm); padding: 0 var(--adm-space-3); font-size: var(--adm-fs-small); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-btn:hover:not(:disabled):not(#ri-keep) { border-color: var(--btn-line); background: var(--btn-bg-hover); color: var(--btn-fg); text-decoration: none; }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-btn:focus-visible:not(#ri-keep) { box-shadow: var(--adm-ring); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-btn.is-primary.adm-on-primary:not(#ri-keep) { color: var(--adm-on-primary); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-btn.is-primary.adm-on-primary:disabled:not(#ri-keep) { color: var(--adm-text-disabled); }
+
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-text-btn:not(#ri-keep) {
+  min-height: 0; height: auto; padding: 0; border: 0; border-radius: var(--adm-radius-xs); background: none; box-shadow: none; outline: 0; opacity: 1;
+  color: var(--adm-accent-strong); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); line-height: var(--adm-lh-tight); text-align: left; text-decoration: none;
+}
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-text-btn.is-assistive:not(#ri-keep) { color: var(--adm-text-2); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-text-btn.is-sm:not(#ri-keep) { font-size: var(--adm-fs-small); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-text-btn:hover:not(:disabled):not(#ri-keep) { color: var(--adm-accent-deep); text-decoration: none; }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-text-btn.is-assistive:hover:not(:disabled):not(#ri-keep) { color: var(--adm-ink); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-text-btn:disabled:not(#ri-keep) { color: var(--adm-text-disabled); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-text-btn:focus-visible:not(#ri-keep) { box-shadow: var(--adm-ring); }
+
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-icon-btn:not(#ri-keep) {
+  min-height: 0; width: var(--adm-control-h); height: var(--adm-control-h); padding: 0;
+  border: var(--adm-border-width) solid transparent; border-radius: var(--adm-radius-sm); background: transparent; box-shadow: none; outline: 0; opacity: 1;
+  color: var(--adm-text-2); font-size: var(--adm-fs-section); line-height: 1;
+}
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-icon-btn.is-sm:not(#ri-keep) { width: var(--adm-control-h-sm); height: var(--adm-control-h-sm); font-size: var(--adm-fs-lead); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-icon-btn:hover:not(:disabled):not(#ri-keep) { background: var(--adm-fill-subtle); color: var(--adm-ink); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-icon-btn:disabled:not(#ri-keep) { color: var(--adm-text-disabled); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-icon-btn:focus-visible:not(#ri-keep) { box-shadow: var(--adm-ring); }
+
+/* 칸 안의 실제 입력에는 선·여백을 그리지 않는다 — 바깥 칸(adm-ui-input·select·textarea)이 그린다 */
+:is(.ri-editor, .rw-documents, .rw-operations) :is(.adm-ui-input-el, .adm-ui-select-el, .adm-ui-textarea-el):not(#ri-keep) {
+  width: 100%; min-width: 0; max-width: none; min-height: 0; margin: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: 0;
+  font-size: var(--adm-fs-input); font-weight: var(--adm-fw-regular); letter-spacing: normal;
+}
+:is(.ri-editor, .rw-documents, .rw-operations) :is(.adm-ui-input-el, .adm-ui-select-el):not(#ri-keep) { height: 100%; line-height: var(--adm-lh-tight); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-input-el:not(#ri-keep) { padding: 0; }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-select-el:not(#ri-keep) { padding: 0 calc(var(--adm-space-8) + var(--adm-space-1)) 0 calc(var(--adm-space-3) + var(--adm-space-1) / 2); }
+:is(.ri-editor, .rw-documents, .rw-operations) .adm-ui-textarea-el:not(#ri-keep) { padding: var(--adm-space-3) calc(var(--adm-space-3) + var(--adm-space-1) / 2); line-height: var(--adm-lh); resize: none; }
+
+/* ── 고객 문서 작업(ReservationDocuments) ── */
+.row.ri-doc-card-head { justify-content: space-between; }
+.rw-inline-note.ri-doc-unsaved { display: flex; flex-wrap: wrap; align-items: center; gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); padding: 0 var(--adm-space-6); }
+.row.ri-doc-footer-actions { flex-wrap: wrap; }
+/* 템플릿 고르기: 옛 알약 테두리를 걷고 이름 + 고르기 칸(작은 높이) */
+.rw-delivery-panel .rw-delivery-template { height: auto; padding: 0; border: 0; gap: var(--adm-space-2); }
+.rw-delivery-template .ri-doc-template.adm-ui-select { width: auto; min-width: calc(var(--adm-space-8) * 5); height: var(--adm-control-h-sm); }
+.rw-delivery-template .ri-doc-template .adm-ui-select-el { font-size: var(--adm-fs-small); }
+
+/* ── 운영 정보(ReservationOperations) ── */
+.row.ri-ops-actions { gap: var(--adm-space-2); }
+
+/* ── 예약 문서 편집(ReservationInlineEditor) ── */
+.ri-heading-actions { display: flex; flex-wrap: wrap; gap: var(--adm-space-2); }
+.row.ri-draft-actions { flex-wrap: wrap; gap: var(--adm-space-2); }
+.adm-msg .ri-draft-error { margin-top: calc(var(--adm-space-1) * 1.5); color: var(--adm-warn-strong); }
+/* 생 버튼으로 둔 전환·바로가기·접기·사진 지우기의 키보드 초점 */
+.reservation-workspace.product-workspace .ri-editor :is(.adm-ri-mode, .adm-ri-jump, .adm-ri-toggle, .adm-ri-photo-remove):focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+/* 예약 진행 순서(ReservationWorkflow) — 카드 전체가 눌리는 생 버튼. 모양은 reservation-workspace.css */
+.reservation-workspace.product-workspace .adm-ri-flow-btn:focus-visible { outline: 0; box-shadow: var(--adm-ring); }
+
+/* ── 저장 전 초안 미리보기(ReservationDraftPreview) — 화면 전체를 덮는다 ── */
+.ri-preview { position: fixed; inset: 0; z-index: 10010; display: flex; flex-direction: column; background: var(--adm-canvas); }
+.ri-preview-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-3); padding: var(--adm-space-3) var(--adm-space-5); border-bottom: var(--adm-border-width) solid var(--adm-line); background: var(--adm-surface); }
+.ri-preview-title { flex: 1; min-width: 0; }
+.ri-preview-note { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.ri-preview-frame { flex: 1; width: 100%; border: 0; }
+
+/* ── 일정 프리셋·고객 문서 편집 창(ReservationDocumentEditor, 상품 템플릿·이전 견적 화면에서도 연다) ── */
+/* 일차 카드·날짜 카드 안 글자 칸: 테두리 없이 글자만, 쓰는 중이면 밑줄 */
+.ri-de-ghost.adm-ui-input { height: auto; padding: 0; border-color: transparent; border-radius: 0; background: transparent; }
+.ri-de-ghost.adm-ui-input:hover { border-color: transparent; }
+.ri-de-ghost.adm-ui-input:focus-within { border-color: transparent; box-shadow: inset 0 calc(var(--adm-border-width) * -1) 0 var(--adm-accent); }
+.ri-de-ghost .adm-ui-input-el { overflow: hidden; text-overflow: ellipsis; color: var(--adm-ink); font-weight: var(--adm-fw-bold); }
+.ri-de-ghost-title.adm-ui-input { margin-top: var(--adm-space-1); }
+.ri-de-ghost-title .adm-ui-input-el { font-size: var(--adm-fs-caption); }
+.ri-de-ghost-sub.adm-ui-input { margin-top: calc(var(--adm-space-1) / 2); }
+.ri-de-ghost-sub .adm-ui-input-el { color: var(--adm-text-3); font-size: var(--adm-fs-micro); }
+.ri-de-ghost-sub.is-date .adm-ui-input-el { color: var(--adm-accent-strong); }
+.ri-de-ghost-date.adm-ui-input { margin-top: var(--adm-space-1); }
+.ri-de-ghost-date .adm-ui-input-el { font-size: var(--adm-fs-body); }
+.ri-de-product.adm-ui-select { margin-top: var(--adm-space-3); }
+.adm-ui-btn.ri-de-assign.is-empty { border-style: dashed; --btn-fg: var(--adm-text-3); }
+.adm-ui-btn.ri-de-add-day { --btn-fg: var(--adm-accent-strong); --btn-line: var(--adm-accent-line); --btn-bg-hover: var(--adm-accent-soft); border-style: dashed; }
+.adm-ui-btn.ri-de-side-action { justify-content: flex-start; }
+.adm-ui-icon-btn.ri-de-day-remove:hover:not(:disabled) { background: var(--adm-danger-soft); color: var(--adm-danger); }

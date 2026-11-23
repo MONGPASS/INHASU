@@ -74,8 +74,8 @@ export const screenOf = (file) => (SCREENS.find(([, re]) => re.test(file)) || ['
 const HEX = /#[0-9a-fA-F]{3,8}\b/g;
 /** 우리 관리자 부품 폴더 — 생 <button>·<input>·<table>로 부품을 만드는 유일한 곳 */
 export const UI_DIR = /^src\/components\/admin\/ui\//;
-/** 우리 관리자 부품을 가져오는 경로: …/components/admin/ui, ../ui, (부품 폴더 안) ./AdminButton */
-const UI_IMPORT = /(^|\/)components\/admin\/ui(\/[\w-]+)?$|^(\.\.\/)+ui(\/[\w-]+)?$|^\.\/(Admin\w+|index)$/;
+/** 우리 관리자 부품을 가져오는 경로: …/components/admin/ui, ../ui, ./ui, (부품 폴더 안) ./AdminButton */
+const UI_IMPORT = /(^|\/)components\/admin\/ui(\/[\w-]+)?$|^(\.\.\/)+ui(\/[\w-]+)?$|^\.\/ui(\/[\w-]+)?$|^\.\/(Admin\w+|index)$/;
 const count = (s, re) => (s.match(re) || []).length;
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/[^\n]*/g, '$1');
 const SIZE_PROPS = 'fontSize|padding(?:Top|Bottom|Left|Right|Inline|Block)?|margin(?:Top|Bottom|Left|Right|Inline|Block)?|height|minHeight|maxHeight|width|minWidth|maxWidth|borderRadius|gap|rowGap|columnGap|top|left|right|bottom|lineHeight|letterSpacing';
