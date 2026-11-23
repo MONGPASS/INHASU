@@ -17,7 +17,8 @@ const built = await build({
             [/\/admin\/console\/Icon$/, 'icon'], [/\/lib\/api$/, 'api'],
             [/\/registeredAssignmentResources$/, 'resources'], [/\/ui\/adminFeedback$/, 'feedback'],
             // 배정 보드(LodgeAssignQueue)와 보기 전환(AdminSegmented)은 Montage 화면 부품이라 대역으로 둔다. 이 파일은 카드·표 보기의 편집 흐름을 검사한다.
-            [/\/accommodation\/LodgeAssignQueue$/, 'queue'], [/\/components\/admin\/ui$/, 'ui'],
+            // 표로 보기(LodgeAssignBoard)의 찾기·고르기·칩·배지도 우리 관리자 부품이라 같은 대역을 쓴다(값은 props로 확인).
+            [/\/accommodation\/LodgeAssignQueue$/, 'queue'], [/\/components\/admin\/ui$|^\.\.\/ui$/, 'ui'],
         ]) builder.onResolve({ filter }, () => ({ path, namespace: 'ops-events' }));
         builder.onLoad({ filter: /.*/, namespace: 'ops-events' }, ({ path }) => ({ loader: 'js', contents: {
             react: `export const useState=(...a)=>globalThis.h.useState(...a),useEffect=(...a)=>globalThis.h.useEffect(...a),useMemo=(...a)=>globalThis.h.useMemo(...a),useRef=(...a)=>globalThis.h.useRef(...a),useCallback=(f,d)=>useMemo(()=>f,d);export default {Fragment:'fragment'};`,
@@ -25,7 +26,7 @@ const built = await build({
             'react-router-dom': `export const useBlocker=()=>({state:'unblocked',reset(){},proceed(){}});`,
             user: `export const useUser=()=>({user:{id:'admin-fixture',role:'admin'},loading:false});`,
             layout: `export const AdminLayout=()=>null;`, icon: `export const Icon=()=>null;`,
-            queue: `export const LodgeAssignQueue=()=>null;`, ui: `export const AdminSegmented=()=>null;`,
+            queue: `export const LodgeAssignQueue=()=>null;`, ui: `export const AdminSegmented=()=>null,AdminBadge=()=>null,AdminChipGroup=()=>null,AdminIconButton=()=>null,AdminSearch=()=>null,AdminSelect=()=>null,AdminTextButton=()=>null,AdminButton=()=>null;`,
             api: `export const api=globalThis.api;`,
             resources: `export const loadRegisteredAssignmentResources=(...a)=>globalThis.loadResources(...a);`,
             // 공통 알림·확인 창은 화면 부품이라, 같은 약속(Promise<boolean>)의 대역으로 바꾼다.
@@ -65,14 +66,15 @@ class FixtureDate extends Date {
     constructor(...args) { super(...(args.length ? args : [FIXTURE_TODAY])); }
     static now() { return new Date(FIXTURE_TODAY).getTime(); }
 }
-function mount({ resources = async () => resourceFixture(), failPatch = false, items, view = 'card-view' } = {}) {
+function mount({ resources = async () => resourceFixture(), failPatch = false, items, view = 'sheet-view', search = '' } = {}) {
     const server = plain(items || [bookingFixture('product'), bookingFixture('quote_booking')]), requests = [], resourceCalls = [];
     const storage = new Map(), windowListeners = new Map(), documentListeners = new Map();
-    // 이 파일은 카드 보기의 편집 흐름을 검사한다. 보기 설정은 초안 저장소(storage)와 따로 둔다.
+    // 이 파일은 표로 보기의 편집 흐름을 검사한다(카드 보기는 2026-11-23 없앴다). 보기 설정은 초안 저장소(storage)와 따로 둔다.
+    let promptAnswer = null;
     const VIEW_KEY = 'inhasu:accommodation-board:view';
     const module = { exports: {} };
     const listeners = map => ({ addEventListener(name, fn) { if (!map.has(name)) map.set(name, new Set()); map.get(name).add(fn); }, removeEventListener(name, fn) { map.get(name)?.delete(fn); } });
-    const browser = { ...listeners(windowListeners), location: { search: '' }, confirm: () => true,
+    const browser = { ...listeners(windowListeners), location: { search }, confirm: () => true, prompt: () => promptAnswer,
         localStorage: { getItem: key => key === VIEW_KEY ? view : storage.get(key) ?? null, setItem: (key, value) => { if (key === VIEW_KEY) view = value; else storage.set(key, value); }, removeItem: key => storage.delete(key) },
         setTimeout: () => 1, clearTimeout() {},
     };
@@ -108,6 +110,7 @@ function mount({ resources = async () => resourceFixture(), failPatch = false, i
         useEffect(fn, deps) { const key = cursor++, before = effects.get(key); if (!before || !sameDeps(before.deps, deps)) pendingEffects.push(() => { before?.cleanup?.(); effects.set(key, { deps, cleanup: fn() }); }); },
         render() { cursor = 0; pendingEffects = []; context.h = h; const root = module.exports.AdminAccommodationOps({}); h.tree = typeof root.type === 'function' ? root.type(root.props) : root; pendingEffects.forEach(run => run()); return h.tree; },
         async settle() { await tick(); h.render(); await tick(); h.render(); },
+        answerPrompt(value) { promptAnswer = value; },
         row(source) { const row = nodes(h.tree).find(node => node.props?.id === `acc-row-${source}:same / #?`); assert.ok(row, `${source} 예약 행`); return row; },
         async open(source = 'quote_booking') { h.row(source).props.onClick(); h.render(); await h.settle(); },
         select(value) { const select = nodes(h.tree).find(node => node.type === 'select' && nodes(node).some(child => child.type === 'option' && child.props.value === value)); assert.ok(select, `선택 항목 ${value}`); assert.ok(!select.props.disabled, `${value} 선택 가능`); select.props.onChange({ target: { value } }); h.render(); },
@@ -119,102 +122,6 @@ function mount({ resources = async () => resourceFixture(), failPatch = false, i
     };
     h.render(); return h;
 }
-
-test('숙소 운영 보드의 실제 등록 선택은 자동 채움만 하고 저장할 때 정확한 원본·버전으로 전송한다', async () => {
-    const h = mount(); await h.settle(); await h.open();
-    assert.equal(h.resourceCalls.length, 1);
-    assert.equal(h.resourceCalls[0][0].accountId, 'admin-fixture');
-    const originalProduct = plain(h.server[0]);
-    h.select('resource-guide:등록 가이드 / #?');
-    h.select('등록 하이이스 / #?');
-    // A saved legacy supplier remains visible as manual input until the operator
-    // explicitly switches this cell to the common resource library.
-    const switchLodge = nodes(h.tree).find(node => node.type === 'button' && node.props.title === '등록 숙소 목록에서 선택');
-    assert.ok(switchLodge); switchLodge.props.onClick(); h.render();
-    h.select('resource-lodge:등록 게르 / #?');
-    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
-    assert.ok(nodes(h.tree).some(node => node.type === 'input' && node.props.value === '010-2222-3333'));
-    assert.ok(nodes(h.tree).some(node => node.type === 'input' && node.props.value === '010-4444-5555'));
-    h.flushDraft();
-    const savedDraft = [...h.storage.values()].map(JSON.parse).find(value => value.scope?.source === 'quote_booking');
-    assert.ok(savedDraft, '선택을 계정·원본별 초안으로 보관');
-    assert.equal(savedDraft.scope.id, 'same / #?'); assert.equal(savedDraft.scope.userId, 'admin-fixture');
-    assert.equal(savedDraft.baseVersion, 'a'.repeat(64));
-    const save = h.button('배정 저장'); assert.equal(save.props.disabled, false); await save.props.onClick(); await h.settle();
-    const patch = h.requests.find(call => call.options.method === 'PATCH');
-    assert.equal(patch.url, '/api/admin/assignments/quote_booking/same%20%2F%20%23%3F');
-    assert.equal(patch.options.credentials, 'same-origin'); assert.equal(patch.body.expectedVersion, 'a'.repeat(64));
-    const guide = patch.body.assignment.guide, vehicle = patch.body.assignment.vehicle;
-    assert.equal(guide.id, 'resource-guide:등록 가이드 / #?'); assert.equal(guide.name, '등록 가이드 / #?'); assert.equal(guide.phone, '010-2222-3333');
-    assert.equal(vehicle.type, '등록 하이이스 / #?'); assert.equal(vehicle.phone, '010-4444-5555');
-    assert.equal(guide.image, '/new-guide.webp'); assert.equal(guide.introduction, '가이드 소개');
-    assert.deepEqual(guide.languages, ['한국어']); assert.equal(guide.qr, undefined);
-    assert.equal(vehicle.resource.img, '/new-car.webp'); assert.equal(vehicle.resource.description, '등록 차량 소개');
-    const stay = patch.body.assignment.accommodations[0];
-    assert.equal(stay.day, 1); assert.equal(stay.date, '2026-11-01');
-    assert.equal(stay.accommodation.id, 'resource-lodge:등록 게르 / #?');
-    assert.equal(stay.accommodation.location, '중앙몽골'); assert.equal(stay.accommodation.type, '고급게르');
-    assert.deepEqual(stay.accommodation.images, []); assert.equal(stay.accommodation.description, '');
-    assert.deepEqual(stay.accommodation.facilities, ['온수']); assert.equal(stay.accommodation.bookingStatus, 'Илгээгээгүй');
-    assert.equal(stay.accommodation.roomCount, 2); assert.equal(stay.accommodation.occupancy, '2 хүн/өрөө');
-    assert.deepEqual(h.server[0], originalProduct); assert.equal(h.storage.size, 0);
-    await h.reload(); await h.open();
-    assert.ok(nodes(h.tree).some(node => node.type === 'select' && node.props.value === 'resource-guide:등록 가이드 / #?'));
-    assert.ok(nodes(h.tree).some(node => node.type === 'select' && node.props.value === 'resource-lodge:등록 게르 / #?'));
-    h.unmount();
-});
-
-test('숙소 운영의 저장 충돌은 선택한 배정과 계정별 초안을 남기고 기존 원본을 바꾸지 않는다', async () => {
-    const h = mount({ failPatch: true }); await h.settle(); await h.open();
-    const before = plain(h.server);
-    h.select('resource-guide:등록 가이드 / #?');
-    await h.button('배정 저장').props.onClick(); await h.settle();
-    assert.deepEqual(h.server, before); assert.ok(text(h.tree).includes('다른 곳에서 예약이 변경되었습니다.'));
-    assert.ok(nodes(h.tree).some(node => node.type === 'select' && node.props.value === 'resource-guide:등록 가이드 / #?'));
-    assert.equal(h.storage.size, 1);
-    assert.equal(JSON.parse([...h.storage.values()][0]).assignment.guide.id, 'resource-guide:등록 가이드 / #?');
-    h.unmount();
-});
-
-test('숙소 입력 모드 전환은 현재 배정을 보존하고 실제 수동 변경만 이전 숙소 정보를 해제한다', async () => {
-    const h = mount(); await h.settle(); await h.open('product');
-    const originalQuote = plain(h.server[1]);
-    const manualInput = () => {
-        const input = nodes(h.tree).find(node => node.type === 'input' && node.props['aria-label'] === '숙소명 직접 입력');
-        assert.ok(input, '현재 숙소 직접 입력'); return input;
-    };
-    assert.equal(manualInput().props.value, '이전 숙소');
-    const switchMode = nodes(h.tree).find(node => node.type === 'button' && node.props.title === '등록 숙소 목록에서 선택');
-    assert.ok(switchMode); switchMode.props.onClick(); h.render();
-    const current = nodes(h.tree).find(node => node.type === 'select' && node.props['aria-label'] === '등록 숙소 선택');
-    assert.equal(current.props.value, '__current__'); assert.ok(text(current).includes('현재 배정: 이전 숙소'));
-    h.select('__manual__');
-    assert.equal(manualInput().props.value, '이전 숙소');
-    assert.equal(h.button('배정 저장').props.disabled, true);
-    manualInput().props.onChange({ target: { value: '이전 숙소' } }); h.render();
-    h.flushDraft(); assert.equal(h.storage.size, 0);
-    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
-
-    manualInput().props.onChange({ target: { value: '새로 직접 작성한 숙소' } }); h.render();
-    const region = nodes(h.tree).find(node => node.type === 'input' && node.props.placeholder === '지역 입력');
-    assert.ok(region); region.props.onChange({ target: { value: '새 운영 지역' } }); h.render();
-    await h.button('배정 저장').props.onClick(); await h.settle();
-    const patch = h.requests.find(call => call.options.method === 'PATCH');
-    assert.equal(patch.url, '/api/admin/assignments/product/same%20%2F%20%23%3F');
-    const stay = patch.body.assignment.accommodations[0], acc = stay.accommodation;
-    assert.equal(acc.name, '새로 직접 작성한 숙소'); assert.equal(acc.id, undefined);
-    assert.deepEqual(acc.images, []); assert.equal(acc.description, ''); assert.deepEqual(acc.facilities, []);
-    assert.equal(acc.address, ''); assert.deepEqual(acc.roomAmenities, []); assert.deepEqual(acc.sharedFacilities, []);
-    assert.equal(acc.bookingStatus, 'Илгээгээгүй');
-    assert.equal(stay.day, 1); assert.equal(stay.date, '2026-11-01');
-    assert.equal(acc.roomCount, 2); assert.equal(acc.occupancy, '2 хүн/өрөө');
-    assert.equal(acc.location, '새 운영 지역'); assert.equal(acc.region, '새 운영 지역');
-    assert.deepEqual(h.server[1], originalQuote);
-    await h.reload(); await h.open('product');
-    assert.equal(manualInput().props.value, '새로 직접 작성한 숙소');
-    assert.ok(nodes(h.tree).some(node => node.type === 'input' && node.props.placeholder === '지역 입력' && node.props.value === '새 운영 지역'));
-    h.unmount();
-});
 
 test('숙소 운영 화면을 벗어난 뒤 도착한 공통 자료는 선택·초안·외부 저장을 만들지 않는다', async () => {
     const pending = deferred(), h = mount({ resources: () => pending.promise }); await h.settle();
@@ -235,284 +142,16 @@ const twoNightFixture = (source = 'quote_booking', scheduleSource = 'booking') =
     return row;
 };
 
-test('고객의 2박3일 일정과 출처를 보여 주고 빠진 숙박일만 추가하며 필요한 전체 박수로 완료를 판단한다', async () => {
-    const row = twoNightFixture(), before = plain(row.assignment.accommodations[0]);
-    const libraries = resourceFixture();
-    libraries.lodges.push({ ...plain(libraries.lodges[0]), id: 'resource-lodge:고비 등록 숙소', name: '고비 등록 숙소', location: '고비사막', region: '고비사막' });
-    const h = mount({ items: [row], resources: async () => libraries }); await h.settle();
-    assert.match(text(h.row('quote_booking')), /1\/2/, '한 행만 확정되어도 필요한 2박 중 1박으로 표시');
-    assert.ok(!text(h.row('quote_booking')).includes('Баталгаажсан'), '누락 숙박일이 있는 투어를 완료로 표시하지 않음');
-    await h.open();
-    assert.ok(text(h.tree).includes('예약 확정 일정'));
-    assert.ok(nodes(h.tree).some(node => node.type === 'summary' && text(node).includes('전체 고객 일정 보기')));
-    for (const day of row.schedule.days) assert.ok(text(h.tree).includes(day.title), day.title);
-    assert.equal(nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').length, 1);
-    h.button('누락 숙박일 추가').props.onClick(); h.render();
-    const dates = nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').map(node => node.props.value);
-    assert.deepEqual(dates, ['2026-11-01', '2026-11-02']);
-    const select = nodes(h.tree).find(node => node.type === 'select' && node.props['aria-label'] === '등록 숙소 선택');
-    assert.ok(select, '추가한 두 번째 밤의 공통 숙소 선택');
-    const groups = nodes(select).filter(node => node.type === 'optgroup');
-    assert.equal(groups[0]?.props.label, '일정 지역: 고비사막');
-    assert.equal(groups[1]?.props.label, '전체 다른 지역');
-    assert.ok(nodes(groups[0]).some(node => node.type === 'option' && node.props.value === 'resource-lodge:고비 등록 숙소'));
-    assert.ok(nodes(groups[1]).some(node => node.type === 'option' && node.props.value === 'resource-lodge:등록 게르 / #?'));
-    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
-    await h.button('배정 저장').props.onClick(); await h.settle();
-    const patch = h.requests.find(call => call.options.method === 'PATCH');
-    assert.deepEqual(Object.keys(patch.body).sort(), ['assignment', 'expectedVersion']);
-    const stays = patch.body.assignment.accommodations;
-    assert.deepEqual(stays[0], before, '기존 숙소·객실·인실·확정 상태를 보존');
-    assert.equal(stays.length, 2); assert.equal(stays[1].day, 2); assert.equal(stays[1].date, '2026-11-02');
-    assert.ok(!stays[1].accommodation.name, '일정의 숙소를 운영 배정으로 임의 확정하지 않음');
-    h.unmount();
-});
-
-test('기존 숙박 날짜 불일치는 먼저 경고하고 명시적 날짜 맞추기에서만 변경하며 수배 정보를 보존한다', async () => {
-    const row = twoNightFixture('product', 'customer');
-    row.assignment.accommodations[0].date = '2026-10-01';
-    row.assignment.accommodations.push({ day: 2, date: '2026-11-02', accommodation: { ...plain(row.assignment.accommodations[0].accommodation), id: 'second-lodge', name: '둘째 밤 숙소', roomCount: 1 } });
-    const h = mount({ items: [row] }); await h.settle(); await h.open('product');
-    const dates = () => nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').map(node => node.props.value);
-    assert.deepEqual(dates(), ['2026-10-01', '2026-11-02'], '펼치기만 해서 기존 날짜를 고치지 않음');
-    assert.ok(text(h.tree).includes('고객별 저장 일정'));
-    assert.ok(nodes(h.tree).some(node => ['alert', 'status'].includes(node.props?.role) && /날짜|불일치/.test(text(node))), '날짜 문제를 운영자가 확인할 수 있게 표시');
-    assert.equal(h.button('배정 저장').props.disabled, true);
-    h.button('여행 날짜에 맞추기').props.onClick(); h.render();
-    assert.deepEqual(dates(), ['2026-11-01', '2026-11-02']);
-    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
-    await h.button('배정 저장').props.onClick(); await h.settle();
-    const stays = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
-    assert.equal(stays[0].accommodation.id, 'old-lodge'); assert.equal(stays[0].accommodation.name, '이전 숙소');
-    assert.deepEqual(stays[0].accommodation.images, ['/old-lodge.webp']);
-    assert.equal(stays[0].accommodation.roomCount, 2); assert.equal(stays[0].accommodation.occupancy, '2 хүн/өрөө');
-    assert.equal(stays[0].accommodation.bookingStatus, 'Илгээгээгүй', '변경된 숙박 날짜는 다시 수배해야 함');
-    assert.equal(stays[1].accommodation.bookingStatus, 'Баталгаажсан', '날짜가 맞는 행의 수배 상태는 보존');
-    h.unmount();
-});
-
-test('명시적으로 비운 고객 일정과 저장된 빈 숙소 배열은 보드를 펼치거나 새로고침해도 자동 복구하지 않는다', async () => {
-    const row = twoNightFixture('product', 'customer');
-    row.schedule.days = []; row.assignment.accommodations = []; row.accommodationsInitialized = true;
-    const h = mount({ items: [row] }); await h.settle(); await h.open('product');
-    assert.ok(text(h.tree).includes('고객별 저장 일정'));
-    assert.equal(nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').length, 0);
-    h.flushDraft(); assert.equal(h.storage.size, 0); assert.equal(h.button('배정 저장').props.disabled, true);
-    await h.reload(); await h.open('product');
-    assert.equal(nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').length, 0);
-    assert.deepEqual(h.server[0].schedule.days, []); assert.deepEqual(h.server[0].assignment.accommodations, []);
-    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
-    h.unmount();
-});
-
-test('보관된 초안을 고르기 전에도 고객 일정의 숙박일을 잠긴 채 보여 주고 버리면 수정할 수 있다', async () => {
-    const row = twoNightFixture();
-    row.assignment.accommodations = []; row.accommodationsInitialized = true;
-    const h = mount({ items: [row] }); await h.settle(); await h.open('quote_booking');
-    const regions = () => nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '숙박 지역 선택');
-    const dates = () => nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').map(node => node.props.value);
-    regions()[0].props.onChange({ target: { value: '중앙몽골' } }); h.render(); h.flushDraft();
-    assert.equal(h.storage.size, 1);
-
-    await h.reload();
-    const fieldset = nodes(h.tree).find(node => node.type === 'fieldset');
-    assert.equal(fieldset.props.disabled, true, '초안을 고르기 전에는 잠긴다');
-    assert.deepEqual(dates(), ['2026-11-01', '2026-11-02']);
-    assert.equal(text(h.tree).includes('숙박일이 없어요'), false);
-    assert.ok(text(h.tree).includes('보관된 초안이 있어 잠겨 있어요'));
-
-    h.button('초안 버리기').props.onClick(); h.render();
-    assert.equal(nodes(h.tree).find(node => node.type === 'fieldset').props.disabled, false);
-    assert.deepEqual(dates(), ['2026-11-01', '2026-11-02']);
-    assert.equal(text(h.tree).includes('보관된 초안이 있어 잠겨 있어요'), false);
-    h.unmount();
-});
-
-test('지역은 일정 목적지로 미리 선택되고 비우면 비운 채 유지하며 직접 입력 숙소에 함께 저장된다', async () => {
-    const row = twoNightFixture();
-    row.schedule.days.forEach(day => { day.region = ''; });
-    row.schedule.days[0].title = '고비사막 이동'; row.schedule.days[1].title = '톱아이막';
-    row.assignment.accommodations = []; row.accommodationsInitialized = true;
-    const libraries = resourceFixture();
-    libraries.lodges.push({ ...plain(libraries.lodges[0]), id: 'resource-lodge:고비 등록 숙소', name: '고비 등록 숙소', location: '고비사막', region: '고비사막' });
-    const h = mount({ items: [row], resources: async () => libraries }); await h.settle(); await h.open('quote_booking');
-    const regions = () => nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '숙박 지역 선택');
-    assert.deepEqual(regions().map(select => select.props.value), ['고비사막', '톱아이막']);
-    const planDays = nodes(h.tree).filter(node => node.type === 'details' && node.props.className === 'lo-plan-day');
-    assert.equal(planDays.length, 3, '일차마다 접이식 행을 하나씩 만든다');
-    assert.deepEqual(planDays.map(day => !!day.props.open), [true, false, false], '처음에는 첫 일차만 펼쳐 둔다');
-    const planRegions = planDays.map(day => text(nodes(day).find(node => String(node.props?.className).includes('lo-plan-region'))));
-    assert.deepEqual(planRegions.slice(0, 2), ['고비사막', '톱아이막'], '전체 일정에도 같은 지역을 보여 준다');
-    assert.deepEqual(nodes(planDays[0]).filter(node => node.type === 'li').map(text), ['공항 픽업 · 초원 산책']);
-    assert.equal(nodes(nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '등록 숙소 선택')[0]).find(node => node.type === 'optgroup').props.label, '일정 지역: 고비사막');
-    regions()[0].props.onChange({ target: { value: '' } }); h.render();
-    assert.deepEqual(regions().map(select => select.props.value), ['', '톱아이막']);
-    nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '등록 숙소 선택')[1].props.onChange({ target: { value: '__manual__' } }); h.render();
-    nodes(h.tree).find(node => node.type === 'input' && node.props['aria-label'] === '숙소명 직접 입력').props.onChange({ target: { value: '직접 입력 숙소' } }); h.render();
-    await h.button('배정 저장').props.onClick(); await h.settle();
-    const saved = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
-    assert.equal(saved[0].accommodation.location || '', '');
-    assert.equal(saved[1].accommodation.location, '톱아이막');
-    assert.equal(saved[1].accommodation.region, '톱아이막');
-    h.unmount();
-});
-
-test('저장된 숙소 배열이 비어 있어도 고객 일정대로 숙박 행을 펼치고 지역을 선택해 저장하기 전에는 서버를 바꾸지 않는다', async () => {
-    const row = twoNightFixture();
-    row.schedule.days.forEach(day => { day.region = ''; });
-    row.assignment.accommodations = []; row.accommodationsInitialized = true;
-    const libraries = resourceFixture();
-    libraries.lodges.push({ ...plain(libraries.lodges[0]), id: 'resource-lodge:고비 등록 숙소', name: '고비 등록 숙소', location: '고비사막', region: '고비사막' });
-    const h = mount({ items: [row], resources: async () => libraries }); await h.settle(); await h.open('quote_booking');
-    const dates = () => nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').map(node => node.props.value);
-    assert.deepEqual(dates(), ['2026-11-01', '2026-11-02']);
-    assert.equal(text(h.tree).includes('숙박 행이 없습니다'), false);
-    h.flushDraft(); assert.equal(h.storage.size, 0); assert.equal(h.button('배정 저장').props.disabled, true);
-    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
-
-    const regions = () => nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '숙박 지역 선택');
-    assert.equal(regions().length, 2);
-    assert.ok(nodes(regions()[0]).some(node => node.type === 'option' && node.props.value === '고비사막'));
-    assert.equal(regions()[1].props.value, '고비사막', '일정 제목의 등록 지역을 미리 선택한다');
-    regions()[1].props.onChange({ target: { value: '중앙몽골' } }); h.render();
-    assert.equal(regions()[1].props.value, '중앙몽골');
-    const lodgeSelect = nodes(h.tree).filter(node => node.type === 'select' && node.props['aria-label'] === '등록 숙소 선택')[1];
-    assert.equal(nodes(lodgeSelect).find(node => node.type === 'optgroup').props.label, '선택 지역: 중앙몽골');
-
-    await h.button('배정 저장').props.onClick(); await h.settle();
-    const saved = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
-    assert.deepEqual(saved.map(stay => [stay.day, stay.date, stay.accommodation.location || '']), [[1, '2026-11-01', ''], [2, '2026-11-02', '중앙몽골']]);
-    h.unmount();
-});
-
-test('변경 취소는 편집과 브라우저 초안을 버리고 서버 배정으로 되돌리며 저장 요청을 보내지 않는다', async () => {
-    const row = twoNightFixture();
-    const h = mount({ items: [row] }); await h.settle(); await h.open('quote_booking');
-    assert.equal(nodes(h.tree).some(node => node.type === 'button' && text(node).includes('변경 취소')), false, '변경 전에는 취소 버튼이 없다');
-    const guideName = () => nodes(h.tree).find(node => node.type === 'input' && node.props['aria-label'] === '가이드 이름 직접 입력');
-    guideName().props.onChange({ target: { value: '임시 가이드' } }); h.render();
-    h.button('누락 숙박일 추가').props.onClick(); h.render();
-    h.flushDraft(); assert.equal(h.storage.size, 1, '편집 내용은 초안으로 보관');
-    assert.equal(h.button('배정 저장').props.disabled, false);
-
-    await h.button('변경 취소').props.onClick(); h.render(); // 공통 확인 창의 답을 기다린 뒤 되돌린다
-    assert.equal(guideName().props.value, '이전 가이드');
-    assert.equal(nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').length, 1);
-    assert.equal(h.button('배정 저장').props.disabled, true);
-    assert.equal(h.storage.size, 0, '초안도 함께 지운다');
-    h.flushDraft(); assert.equal(h.storage.size, 0);
-    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
-
-    guideName().props.onChange({ target: { value: '저장한 가이드' } }); h.render();
-    await h.button('배정 저장').props.onClick(); await h.settle();
-    guideName().props.onChange({ target: { value: '또 바꾼 가이드' } }); h.render();
-    await h.button('변경 취소').props.onClick(); h.render();
-    assert.equal(guideName().props.value, '저장한 가이드', '저장 뒤에는 저장한 값으로 되돌린다');
-    h.unmount();
-});
-
-test('앞 일차와 동일은 숙소·객실을 가져오되 일차·날짜를 유지하고 수배 상태는 미발송으로 시작한다', async () => {
-    const row = twoNightFixture(), first = plain(row.assignment.accommodations[0]);
-    assert.equal(first.accommodation.bookingStatus, 'Баталгаажсан');
-    row.assignment.accommodations.push({ day: 2, date: '2026-11-02', accommodation: {} });
-    const h = mount({ items: [row] }); await h.settle(); await h.open('quote_booking');
-    h.button('앞 일차와 동일').props.onClick(); h.render();
-    await h.button('배정 저장').props.onClick(); await h.settle();
-    const stays = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
-    assert.equal(stays[0].accommodation.bookingStatus, 'Баталгаажсан', '앞 일차는 그대로');
-    assert.equal(stays[1].day, 2); assert.equal(stays[1].date, '2026-11-02');
-    assert.equal(stays[1].accommodation.name, first.accommodation.name);
-    assert.equal(stays[1].accommodation.bookingStatus, 'Илгээгээгүй');
-    h.unmount();
-});
-
-test('숙박 날짜를 직접 고칠 때도 변경한 예약만 다시 수배하고 기존 객실과 배정 자료는 보존한다', async () => {
-    const row = twoNightFixture('product', 'customer');
-    row.assignment.accommodations[0].accommodation.roomCount = 0;
-    Object.assign(row.assignment.accommodations[0].accommodation, { mailStatus: '3메일완료', mailSentDate: '2026-10-20' });
-    row.assignment.accommodations.push({ day: 2, date: '2026-11-02', accommodation: {
-        ...plain(row.assignment.accommodations[0].accommodation), id: 'second-lodge', name: '둘째 밤 숙소', roomCount: 1,
-    } });
-    const before = plain(row.assignment.accommodations);
-    const h = mount({ items: [row] }); await h.settle(); await h.open('product');
-    const dates = () => nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜');
-    dates()[1].props.onChange({ target: { value: '2026-11-02' } }); h.render();
-    dates()[0].props.onChange({ target: { value: '2026-10-31' } }); h.render();
-    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
-    await h.button('배정 저장').props.onClick(); await h.settle();
-    const stays = h.requests.find(call => call.options.method === 'PATCH').body.assignment.accommodations;
-    assert.deepEqual(stays[0], { ...before[0], date: '2026-10-31', accommodation: {
-        ...before[0].accommodation, bookingStatus: 'Илгээгээгүй', mailStatus: '발송전', mailSentDate: '',
-    } }, '직접 바꾼 날짜만 수배 재확인이 필요하며 객실 0을 비롯한 자료를 보존');
-    assert.deepEqual(stays[1], before[1], '같은 날짜를 다시 입력해도 확정 상태를 유지');
-    await h.reload(); await h.open('product');
-    assert.deepEqual(dates().map(node => node.props.value), ['2026-10-31', '2026-11-02']);
-    h.unmount();
-});
-
-test('카드 보기에서도 발송 회차·날짜와 예약상태를 독립적으로 수정하고 다시 연다', async () => {
-    const h = mount({ items: [bookingFixture('quote_booking')] });
-    await h.settle(); await h.open('quote_booking');
-    const field = label => nodes(h.tree).find(n => n.props?.['aria-label'] === label);
-    const edit = (label, value) => { field(label).props.onChange({ target: { value } }); h.render(); };
-    assert.equal(field('숙소 예약 상태').props.value, '예약완료');
-    edit('숙소 메일발송', '2메일완료');
-    edit('숙소 메일발송일자', '2026-10-23');
-    edit('숙소 예약 상태', '취소요청');
-    await h.button('배정 저장').props.onClick(); await h.settle();
-    await h.reload(); await h.open('quote_booking');
-    assert.deepEqual(['숙소 메일발송', '숙소 메일발송일자', '숙소 예약 상태'].map(label => field(label).props.value),
-        ['2메일완료', '2026-10-23', '취소요청']);
-    h.unmount();
-});
-
-test('일정 원본을 불러오지 못하면 저장된 숙소는 보여 주되 자동 날짜 맞추기와 누락일 생성은 하지 않는다', async () => {
-    const row = twoNightFixture('product', 'unavailable');
-    row.schedule.days = []; row.schedule.warnings = ['고객 일정 원본 확인 필요'];
-    row.assignment.accommodations[0].date = '2026-10-31';
-    const h = mount({ items: [row] }); await h.settle();
-    assert.ok(!text(h.row('product')).includes('Баталгаажсан'), '원본 불명확한 예약을 배정 완료로 표시하지 않음');
-    await h.open('product');
-    assert.ok(text(h.tree).includes('고객 일정 원본 확인 필요'));
-    assert.ok(nodes(h.tree).some(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜' && node.props.value === '2026-10-31'));
-    assert.equal(h.button('여행 날짜에 맞추기').props.disabled, true);
-    assert.equal(h.button('누락 숙박일 추가').props.disabled, true);
-    assert.equal(h.button('배정 저장').props.disabled, true);
-    h.flushDraft(); assert.equal(h.storage.size, 0);
-    assert.equal(h.requests.filter(call => call.options.method === 'PATCH').length, 0);
-    assert.deepEqual(h.server[0], row);
-    h.unmount();
-});
-
-test('당일 투어와 여행 기간이 없는 예약은 잘못된 0박 확정 건수로 표시하지 않는다', async () => {
-    const dayTrip = twoNightFixture('product', 'customer');
-    dayTrip.endDate = dayTrip.startDate;
-    dayTrip.schedule.days = dayTrip.schedule.days.slice(0, 1);
-    dayTrip.assignment.accommodations = [];
-    const h = mount({ items: [dayTrip] }); await h.settle();
-    assert.ok(text(h.row('product')).includes('숙박 없음'));
-    assert.ok(!text(h.row('product')).includes('0/0'));
-    await h.open('product');
-    assert.ok(text(h.tree).includes('당일 여행으로 숙박 배정이 필요하지 않습니다.'));
-    assert.equal(nodes(h.tree).filter(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜').length, 0);
-    h.unmount();
-
-    const unknown = bookingFixture('product');
-    unknown.startDate = ''; unknown.endDate = '';
-    const pending = mount({ items: [unknown] }); await pending.settle();
-    assert.ok(text(pending.row('product')).includes('필요 숙박일 확인'));
-    assert.ok(!text(pending.row('product')).includes('0/0'));
-    await pending.open('product');
-    assert.ok(text(pending.tree).includes('여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.'));
-    assert.equal(pending.button('여행 날짜에 맞추기').props.disabled, true);
-    assert.ok(nodes(pending.tree).some(node => node.type === 'input' && node.props['aria-label'] === '숙박 날짜' && node.props.value === '2026-11-01'), '저장된 수배 날짜는 유지');
-    pending.unmount();
-});
-
 // 숙소 배정 시트(LodgeAssignBoard)는 별도 컴포넌트라 직접 그려서 칸을 찾고, 칸을 누르면 뜨는 고르기 창에서 값을 고른다.
 const boardEl = h => { const el = nodes(h.tree).find(node => typeof node.type === 'function' && Array.isArray(node.props?.tours)); assert.ok(el, '시트 보기'); return el; };
 // 보드도 hook을 쓰므로 페이지를 먼저 다시 그려 hook 순서를 맞춘 뒤 보드를 그린다.
-const boardNodes = h => { h.render(); const el = boardEl(h); return nodes(el.type(el.props)); };
+// 표로 보기는 예약 줄이 접힌 채로 시작한다. 숙박 칸을 찾기 전에 아래 ‘모두 펼치기’를 한 번 누른다(이미 펼쳤으면 그대로).
+const boardNodes = h => {
+    h.render(); let el = boardEl(h), found = nodes(el.type(el.props));
+    const expand = found.find(n => typeof n.type === 'function' && text(n) === '모두 펼치기');
+    if (expand) { expand.props.onClick(); h.render(); el = boardEl(h); found = nodes(el.type(el.props)); }
+    return found;
+};
 const fakeClick = { stopPropagation() {}, preventDefault() {}, currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, right: 0, bottom: 0 }) } };
 const boardField = (h, label) => { const node = boardNodes(h).find(n => n.props?.['aria-label'] === label); assert.ok(node, label); return node; };
 const boardPick = (h, label, value) => {
@@ -520,7 +159,9 @@ const boardPick = (h, label, value) => {
     const item = boardNodes(h).find(n => n.type === 'button' && n.props?.className === 'la-pop-item' && text(nodes(n).find(c => c.type === 'b')) === value);
     assert.ok(item, `${label} → ${value}`); item.props.onClick(); h.render();
 };
-const boardButton = (h, label) => { const node = boardNodes(h).find(n => n.type === 'button' && text(n).includes(label)); assert.ok(node, label); return node; };
+// 생 버튼과 우리 관리자 부품(AdminButton 대역)을 함께 찾는다.
+const isButton = n => n.type === 'button' || (typeof n.type === 'function' && typeof n.props?.onClick === 'function');
+const boardButton = (h, label) => { const node = boardNodes(h).find(n => isButton(n) && text(n).includes(label)); assert.ok(node, label); return node; };
 
 test('예약 정보는 선택한 상품·견적 계약서 한 건을 미리 보고 같은 문서를 새 창에서 연다', async () => {
     const h = mount({ view: 'sheet-view' });
@@ -549,7 +190,7 @@ test('시트 보기: 오늘 이후 투어만 보여 주고 분류·배정 구분
     assert.deepEqual(plain(boardEl(h).props.tours.map(t => t.customerName)).sort(), ['견적 고객', '상품 고객'], '지난 투어는 목록에 없다');
     assert.ok(!nodes(h.tree).some(node => node.props?.id === 'acc-row-product:same / #?'), '시트 보기에서는 카드 목록을 그리지 않는다');
     // 들어오면 달을 고르지 않고 전체 기간의 예약을 모두 보여 준다.
-    assert.ok(boardNodes(h).some(n => n.type === 'b' && text(n) === '전체 기간'), '처음에는 전체 기간');
+    assert.equal(boardField(h, '숙박 기간').props.value, 'all', '처음에는 전체 기간');
 
     boardField(h, '상품 고객 예약 정보 보기').props.onClick(fakeClick); h.render();
     boardPick(h, '상품 고객 분류', '골프투어');
@@ -590,7 +231,7 @@ test('시트 보기: 숙소지역은 계약 일정의 그날 지역을 불러오
     assert.equal(text(boardField(h, '대표 고객 1박 숙소지역')), 'Terelj', '저장된 지역이 없으면 계약 일정의 지역');
     assert.match(boardField(h, '대표 고객 1박 숙소지역').props.className, /is-planned/);
     assert.equal(text(boardField(h, '대표 고객 2박 숙소지역')), 'UB', '저장된 지역이 우선');
-    assert.match(text(boardField(h, '대표 고객 1박 숙소정보')), /미배정/, '숙소가 없으면 미배정');
+    assert.match(text(boardField(h, '대표 고객 1박 숙소정보')), /숙소 고르기/, '숙소가 없으면 숙소 고르기 칸');
     // 그 숙박일을 고치면 불러온 지역이 함께 저장된다.
     boardPick(h, '대표 고객 1박 등급', '고급 게르');
     assert.equal(plan(), '풀패키지', '배정한 등급으로 다시 판단');
@@ -653,7 +294,7 @@ test('시트 보기: 숙소를 고르면 지역을 함께 넣고, 숙박 추가�
     assert.equal(boardNodes(h).filter(n => n.props?.className === 'la-remove').length, 0, '계약 일정 숙박은 지울 수 없다');
     boardButton(h, '숙박 추가').props.onClick(); h.render();
     assert.equal(boardNodes(h).filter(n => n.props?.className === 'la-remove').length, 1, '추가한 숙박만 지울 수 있다');
-    assert.ok(boardNodes(h).some(n => n.props?.className === 'la-date' && text(n).startsWith('2026-11-02')), '마지막 숙박 다음 날');
+    assert.ok(boardNodes(h).some(n => n.props?.className === 'la-date' && text(n).startsWith('11.02')), '마지막 숙박 다음 날');
     boardPick(h, '상품 고객 2박 숙소지역', '중앙몽골');
     boardPick(h, '상품 고객 2박 숙소정보', '등록 게르 / #?');
     assert.match(text(boardField(h, '상품 고객 2박 메일발송')), /발송전/);
@@ -670,22 +311,235 @@ test('시트 보기: 숙소를 고르면 지역을 함께 넣고, 숙박 추가�
     h.unmount();
 });
 
-test('카드 보기 가이드 선택: 같은 기간에 다른 예약이 있는 가이드는 이유를 붙이고, 확인 후 저장하면 서버 중복 확인을 다시 묻지 않는다', async () => {
-    const quote = bookingFixture('quote_booking');
-    quote.assignment.guide = { id: 'resource-guide:등록 가이드 / #?', name: '등록 가이드 / #?', phone: '' };
-    const h = mount({ items: [bookingFixture('product'), quote] });
-    await h.settle(); await h.open('product');
-    const select = () => nodes(h.tree).find(node => node.type === 'select' && node.props['aria-label'] === '등록 가이드 선택');
-    const optionText = plain(nodes(select()).filter(n => n.type === 'option' && n.props.value).map(n => text(n)));
-    assert.equal(optionText.length, 1);
-    assert.match(optionText[0], /등록 가이드 \/ #\? · 일정 겹침 \(견적 고객 11\.01~11\.02\)/);
-    // 고를 때 한 번 확인한다(테스트 브라우저의 confirm은 항상 예).
-    select().props.onChange({ target: { value: 'resource-guide:등록 가이드 / #?' } });
-    h.render(); await h.settle();
-    h.button('배정 저장').props.onClick(); await h.settle(); await h.settle();
-    const patch = h.requests.filter(r => r.options.method === 'PATCH').at(-1);
-    assert.ok(patch, '저장 요청');
-    assert.equal(patch.body.allowGuideConflict, true, '고를 때 확인한 중복은 저장할 때 다시 묻지 않는다');
-    assert.equal(patch.body.assignment.guide.name, '등록 가이드 / #?');
+// ── 예전 카드 보기에서 검사하던 흐름을 표로 보기에서 검사한다(2026-11-23 카드 보기 삭제) ──
+const PATCHES = h => h.requests.filter(call => call.options.method === 'PATCH');
+const sheetDates = h => boardNodes(h).filter(n => n.props?.className === 'la-date').map(text);
+const alerts = h => boardNodes(h).filter(n => ['alert', 'status'].includes(n.props?.role)).map(text);
+const saveAllSheet = async h => { boardButton(h, '모두 저장').props.onClick(); await h.settle(); await h.settle(); };
+
+test('표로 보기: 등록 숙소를 고르면 자동 채움만 하고 저장할 때 정확한 원본·버전으로 보내며 가이드·차량은 바꾸지 않는다', async () => {
+    const h = mount(); await h.settle();
+    assert.equal(h.resourceCalls.length, 1);
+    assert.equal(h.resourceCalls[0][0].accountId, 'admin-fixture');
+    const originalProduct = plain(h.server[0]);
+    boardPick(h, '견적 고객 1박 숙소정보', '등록 게르 / #?');
+    assert.equal(PATCHES(h).length, 0);
+    h.flushDraft();
+    const savedDraft = [...h.storage.values()].map(JSON.parse).find(value => value.scope?.source === 'quote_booking');
+    assert.ok(savedDraft, '선택을 계정·원본별 초안으로 보관');
+    assert.equal(savedDraft.scope.id, 'same / #?'); assert.equal(savedDraft.scope.userId, 'admin-fixture');
+    assert.equal(savedDraft.baseVersion, 'a'.repeat(64));
+    await saveAllSheet(h);
+    const patch = PATCHES(h)[0];
+    assert.equal(patch.url, '/api/admin/assignments/quote_booking/same%20%2F%20%23%3F');
+    assert.equal(patch.options.credentials, 'same-origin'); assert.equal(patch.body.expectedVersion, 'a'.repeat(64));
+    assert.equal(patch.body.assignment.guide.id, 'old-guide', '숙소 배정에서는 가이드를 바꾸지 않는다');
+    assert.equal(patch.body.assignment.vehicle.type, '이전 차량', '숙소 배정에서는 차량을 바꾸지 않는다');
+    const stay = patch.body.assignment.accommodations[0];
+    assert.equal(stay.day, 1); assert.equal(stay.date, '2026-11-01');
+    assert.equal(stay.accommodation.id, 'resource-lodge:등록 게르 / #?'); assert.equal(stay.accommodation.type, '고급게르');
+    assert.deepEqual(stay.accommodation.images, []); assert.equal(stay.accommodation.description, '');
+    assert.deepEqual(stay.accommodation.facilities, ['온수']); assert.equal(stay.accommodation.bookingStatus, 'Илгээгээгүй');
+    assert.equal(stay.accommodation.roomCount, 2); assert.equal(stay.accommodation.occupancy, '2 хүн/өрөө');
+    assert.deepEqual(h.server[0], originalProduct); assert.equal(h.storage.size, 0);
+    await h.reload();
+    assert.match(text(boardField(h, '견적 고객 1박 숙소정보')), /등록 게르/);
+    h.unmount();
+});
+
+test('표로 보기: 저장 충돌은 고른 숙소와 계정별 초안을 남기고 기존 원본을 바꾸지 않는다', async () => {
+    const h = mount({ failPatch: true }); await h.settle();
+    const before = plain(h.server);
+    boardPick(h, '견적 고객 1박 숙소정보', '등록 게르 / #?');
+    await saveAllSheet(h);
+    assert.deepEqual(h.server, before); assert.ok(text(h.tree).includes('다른 곳에서 예약이 변경되었습니다.'));
+    assert.match(text(boardField(h, '견적 고객 1박 숙소정보')), /등록 게르/);
+    assert.equal(h.storage.size, 1);
+    assert.equal(JSON.parse([...h.storage.values()][0]).assignment.accommodations[0].accommodation.id, 'resource-lodge:등록 게르 / #?');
+    h.unmount();
+});
+
+test('표로 보기: 숙소를 직접 입력하면 이전 숙소 정보만 지우고 객실·인원은 그대로 저장한다', async () => {
+    const h = mount(); await h.settle();
+    const originalQuote = plain(h.server[1]);
+    const openManual = () => {
+        boardField(h, '상품 고객 1박 숙소정보').props.onClick(fakeClick); h.render();
+        const manual = boardNodes(h).find(n => n.type === 'button' && n.props?.className === 'la-pop-item is-manual');
+        assert.ok(manual, '직접 입력'); manual.props.onClick(); h.render();
+    };
+    h.answerPrompt('이전 숙소'); openManual();
+    h.flushDraft(); assert.equal(h.storage.size, 0, '같은 이름을 다시 넣으면 바꾸지 않는다');
+    h.answerPrompt('새로 직접 작성한 숙소'); openManual();
+    assert.equal(PATCHES(h).length, 0);
+    await saveAllSheet(h);
+    const patch = PATCHES(h)[0];
+    assert.equal(patch.url, '/api/admin/assignments/product/same%20%2F%20%23%3F');
+    const stay = patch.body.assignment.accommodations[0], acc = stay.accommodation;
+    assert.equal(acc.name, '새로 직접 작성한 숙소'); assert.equal(acc.id, undefined);
+    assert.deepEqual(acc.images, []); assert.equal(acc.description, ''); assert.deepEqual(acc.facilities, []);
+    assert.equal(acc.address, ''); assert.deepEqual(acc.roomAmenities, []); assert.deepEqual(acc.sharedFacilities, []);
+    assert.equal(acc.bookingStatus, 'Илгээгээгүй');
+    assert.equal(stay.day, 1); assert.equal(stay.date, '2026-11-01');
+    assert.equal(acc.roomCount, 2); assert.equal(acc.occupancy, '2 хүн/өрөө');
+    assert.deepEqual(h.server[1], originalQuote);
+    await h.reload();
+    assert.match(text(boardField(h, '상품 고객 1박 숙소정보')), /새로 직접 작성한 숙소/);
+    h.unmount();
+});
+
+test('표로 보기: 계약 일정의 2박 중 빠진 숙박일을 알리고 누락 숙박일 추가는 빈 숙박만 덧붙인다', async () => {
+    const row = twoNightFixture(), before = plain(row.assignment.accommodations[0]);
+    const h = mount({ items: [row] }); await h.settle();
+    assert.ok(boardNodes(h).some(n => text(n) === '1 / 2박 배정'), '한 박만 확정되어도 필요한 2박 중 1박으로 센다');
+    assert.ok(!boardNodes(h).some(n => text(n) === '모두 확정'), '누락 숙박일이 있으면 완료로 보이지 않는다');
+    assert.deepEqual(sheetDates(h), ['11.01 (일)']);
+    assert.ok(alerts(h).some(t => /2박 중 1개 일차의 숙박 행이 없습니다/.test(t)), '빠진 숙박일을 알린다');
+    boardButton(h, '누락 숙박일 추가').props.onClick(); h.render();
+    assert.deepEqual(sheetDates(h), ['11.01 (일)', '11.02 (월)']);
+    assert.equal(PATCHES(h).length, 0);
+    await saveAllSheet(h);
+    const patch = PATCHES(h)[0];
+    assert.deepEqual(Object.keys(patch.body).sort(), ['assignment', 'expectedVersion']);
+    const stays = patch.body.assignment.accommodations;
+    assert.deepEqual(stays[0], before, '기존 숙소·객실·인실·확정 상태를 보존');
+    assert.equal(stays.length, 2); assert.equal(stays[1].day, 2); assert.equal(stays[1].date, '2026-11-02');
+    assert.ok(!stays[1].accommodation.name, '일정의 숙소를 운영 배정으로 임의 확정하지 않음');
+    h.unmount();
+});
+
+test('표로 보기: 숙박 날짜가 계약 일정과 다르면 먼저 알리고 여행 날짜에 맞추기에서만 바꾸며 수배 정보를 보존한다', async () => {
+    const row = twoNightFixture('product', 'customer');
+    row.assignment.accommodations[0].date = '2026-10-01';
+    row.assignment.accommodations.push({ day: 2, date: '2026-11-02', accommodation: { ...plain(row.assignment.accommodations[0].accommodation), id: 'second-lodge', name: '둘째 밤 숙소', roomCount: 1 } });
+    const h = mount({ items: [row] }); await h.settle();
+    assert.deepEqual(sheetDates(h), ['10.01 (목)', '11.02 (월)'], '펼치기만 해서 기존 날짜를 고치지 않음');
+    assert.ok(alerts(h).some(t => /날짜|불일치/.test(t)), '날짜 문제를 운영자가 확인할 수 있게 표시');
+    assert.ok(!boardNodes(h).some(n => text(n) === '모두 저장'), '알리기만 하고 저장할 변경은 만들지 않는다');
+    boardButton(h, '여행 날짜에 맞추기').props.onClick(); h.render();
+    assert.deepEqual(sheetDates(h), ['11.01 (일)', '11.02 (월)']);
+    assert.equal(PATCHES(h).length, 0);
+    await saveAllSheet(h);
+    const stays = PATCHES(h)[0].body.assignment.accommodations;
+    assert.equal(stays[0].accommodation.id, 'old-lodge'); assert.equal(stays[0].accommodation.name, '이전 숙소');
+    assert.deepEqual(stays[0].accommodation.images, ['/old-lodge.webp']);
+    assert.equal(stays[0].accommodation.roomCount, 2); assert.equal(stays[0].accommodation.occupancy, '2 хүн/өрөө');
+    assert.equal(stays[0].accommodation.bookingStatus, 'Илгээгээгүй', '변경된 숙박 날짜는 다시 수배해야 함');
+    assert.equal(stays[1].accommodation.bookingStatus, 'Баталгаажсан', '날짜가 맞는 행의 수배 상태는 보존');
+    h.unmount();
+});
+
+test('표로 보기: 명시적으로 비운 고객 일정과 저장된 빈 숙소 배열은 펼치거나 새로고침해도 자동 복구하지 않는다', async () => {
+    const row = twoNightFixture('product', 'customer');
+    row.schedule.days = []; row.assignment.accommodations = []; row.accommodationsInitialized = true;
+    const h = mount({ items: [row] }); await h.settle();
+    assert.equal(sheetDates(h).length, 0);
+    assert.ok(text(boardNodes(h).find(n => n.props?.className === 'la-none')).includes('숙박이 아직 없습니다'));
+    h.flushDraft(); assert.equal(h.storage.size, 0);
+    await h.reload();
+    assert.equal(sheetDates(h).length, 0);
+    assert.deepEqual(h.server[0].schedule.days, []); assert.deepEqual(h.server[0].assignment.accommodations, []);
+    assert.equal(PATCHES(h).length, 0);
+    h.unmount();
+});
+
+test('표로 보기: 보관된 초안을 고르기 전에도 계약 일정의 숙박일을 잠긴 채 보여 주고 버리면 수정할 수 있다', async () => {
+    const row = twoNightFixture();
+    row.assignment.accommodations = []; row.accommodationsInitialized = true;
+    const h = mount({ items: [row] }); await h.settle();
+    boardPick(h, '견적 고객 1박 숙소지역', '중앙몽골'); h.flushDraft();
+    assert.equal(h.storage.size, 1);
+    await h.reload();
+    assert.equal(boardField(h, '견적 고객 1박 숙소지역').props.disabled, true, '초안을 고르기 전에는 잠긴다');
+    assert.deepEqual(sheetDates(h), ['11.01 (일)', '11.02 (월)']);
+    assert.ok(alerts(h).some(t => t.includes('보관된 초안이 있어 잠겨 있어요')));
+    boardButton(h, '버리기').props.onClick(); h.render();
+    assert.equal(boardField(h, '견적 고객 1박 숙소지역').props.disabled, false);
+    assert.deepEqual(sheetDates(h), ['11.01 (일)', '11.02 (월)']);
+    assert.ok(!alerts(h).some(t => t.includes('보관된 초안이 있어 잠겨 있어요')));
+    h.unmount();
+});
+
+test('표로 보기: 변경 취소는 편집과 브라우저 초안을 버리고 서버 배정으로 되돌리며 저장 요청을 보내지 않는다', async () => {
+    const h = mount({ items: [twoNightFixture()] }); await h.settle();
+    assert.ok(!boardNodes(h).some(n => isButton(n) && text(n) === '변경 취소'), '변경 전에는 취소 버튼이 없다');
+    const memo = () => boardField(h, '견적 고객 1박 예약메모');
+    memo().props.onChange({ target: { value: '임시 메모' } }); h.render();
+    boardButton(h, '누락 숙박일 추가').props.onClick(); h.render();
+    h.flushDraft(); assert.equal(h.storage.size, 1, '편집 내용은 초안으로 보관');
+    boardButton(h, '변경 취소').props.onClick(); await h.settle(); // 공통 확인 창의 답을 기다린 뒤 되돌린다
+    assert.equal(memo().props.value, '');
+    assert.equal(sheetDates(h).length, 1);
+    assert.equal(h.storage.size, 0, '초안도 함께 지운다');
+    h.flushDraft(); assert.equal(h.storage.size, 0);
+    assert.equal(PATCHES(h).length, 0);
+    memo().props.onChange({ target: { value: '저장한 메모' } }); h.render();
+    await saveAllSheet(h);
+    memo().props.onChange({ target: { value: '또 바꾼 메모' } }); h.render();
+    boardButton(h, '변경 취소').props.onClick(); await h.settle();
+    assert.equal(memo().props.value, '저장한 메모', '저장 뒤에는 저장한 값으로 되돌린다');
+    h.unmount();
+});
+
+test('표로 보기: 일정 원본을 불러오지 못하면 저장된 숙소는 보여 주되 날짜 맞추기와 누락일 생성은 하지 않는다', async () => {
+    const row = twoNightFixture('product', 'unavailable');
+    row.schedule.days = []; row.schedule.warnings = ['고객 일정 원본 확인 필요'];
+    row.assignment.accommodations[0].date = '2026-10-31';
+    const h = mount({ items: [row] }); await h.settle();
+    assert.ok(!boardNodes(h).some(n => text(n) === '모두 확정'), '원본 불명확한 예약을 배정 완료로 표시하지 않음');
+    assert.ok(alerts(h).some(t => t.includes('고객 일정 원본 확인 필요')));
+    assert.deepEqual(sheetDates(h), ['10.31 (토)']);
+    for (const label of ['여행 날짜에 맞추기', '누락 숙박일 추가']) {
+        const button = boardNodes(h).find(n => isButton(n) && text(n).includes(label));
+        assert.ok(!button || button.props.disabled, label);
+    }
+    h.flushDraft(); assert.equal(h.storage.size, 0);
+    assert.equal(PATCHES(h).length, 0);
+    assert.deepEqual(h.server[0], row);
+    h.unmount();
+});
+
+test('표로 보기: 당일 투어와 여행 기간이 없는 예약은 잘못된 0박 확정으로 표시하지 않는다', async () => {
+    const dayTrip = twoNightFixture('product', 'customer');
+    dayTrip.endDate = dayTrip.startDate;
+    dayTrip.schedule.days = dayTrip.schedule.days.slice(0, 1);
+    dayTrip.assignment.accommodations = [];
+    const h = mount({ items: [dayTrip] }); await h.settle();
+    assert.ok(boardNodes(h).some(n => text(n) === '숙박 없음'));
+    assert.ok(!boardNodes(h).some(n => /0 \/ 0/.test(text(n))));
+    assert.ok(text(boardNodes(h).find(n => n.props?.className === 'la-none')).includes('당일 여행으로 숙박 배정이 필요하지 않습니다.'));
+    assert.equal(sheetDates(h).length, 0);
+    h.unmount();
+
+    const unknown = bookingFixture('product');
+    unknown.startDate = ''; unknown.endDate = '';
+    const pending = mount({ items: [unknown] }); await pending.settle();
+    assert.ok(boardNodes(pending).some(n => text(n) === '필요 숙박일 확인'));
+    assert.ok(!boardNodes(pending).some(n => text(n) === '모두 확정'));
+    assert.ok(alerts(pending).some(t => t.includes('여행 기간을 확인하면 필요한 숙박일을 계산할 수 있습니다.')));
+    const align = boardNodes(pending).find(n => isButton(n) && text(n).includes('여행 날짜에 맞추기'));
+    assert.ok(align); assert.equal(align.props.disabled, true);
+    assert.deepEqual(sheetDates(pending), ['11.01 (일)'], '저장된 수배 날짜는 유지');
+    pending.unmount();
+});
+
+test('예약 상세의 ?open= 링크는 표로 보기에서 그 예약만 펼쳐 강조하고, 예약 정보 창에서 여행자·항공을 본다', async () => {
+    const product = bookingFixture('product');
+    product.contractData = { ...product.contractData, arrival: { date: '2026-11-01', time: '09:10', flight: 'OM302' },
+        travelers: [{ name: '상품 여행자', passportName: 'TRAVELER ONE', birthdate: '1990-01-01', gender: '여성', phone: '010-1234-5678' }] };
+    const h = mount({ items: [product, bookingFixture('quote_booking')], view: 'board-view', search: '?open=same / #?&source=product' });
+    await h.settle();
+    const el = boardEl(h);
+    assert.equal(el.props.focus.id, 'product:same / #?', '표로 보기로 열고 그 예약을 고른다');
+    h.render(); const first = nodes(boardEl(h).type(boardEl(h).props));
+    h.render(); const opened = nodes(boardEl(h).type(boardEl(h).props));
+    assert.ok(first.length || true);
+    assert.ok(opened.some(n => n.props?.['aria-label'] === '상품 고객 1박 숙소정보'), '링크로 연 예약은 펼친다');
+    assert.ok(!opened.some(n => n.props?.['aria-label'] === '견적 고객 1박 숙소정보'), '다른 예약은 접힌 채로 둔다');
+    assert.ok(opened.some(n => n.props?.id === 'acc-row-product:same / #?' && /is-focus/.test(n.props.className)), '링크로 연 예약을 강조한다');
+    boardField(h, '상품 고객 예약 정보 보기').props.onClick(fakeClick);
+    const info = boardNodes(h).find(n => n.props?.className === 'la-trav');
+    assert.ok(info, '예약 정보 창의 여행자 · 항공');
+    for (const value of ['2026-11-01 · 09:10 · OM302', '여행자 1명', '상품 여행자', 'TRAVELER ONE', '1990-01-01 · 여', '010-1234-5678']) assert.ok(text(info).includes(value), value);
+    assert.ok(!boardNodes(h).some(n => n.type === 'button' && text(n).includes('카드 보기')), '카드 보기는 없앴다');
     h.unmount();
 });
