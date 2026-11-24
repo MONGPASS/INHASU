@@ -76,3 +76,17 @@ export function lodgingSummary(record: LodgingRecord = {}): string {
         .map(([key, label]) => `${label}: ${(details[key] as string).trim()}`).join(' · ')
         || (typeof record.grade === 'string' && record.grade.trim() ? `유형·등급: ${record.grade.trim()}` : '등록된 상세 정보가 없습니다');
 }
+
+/** 고객 문서에 넘겨도 되는 숙소 칸만(옛 Lodging.publicData와 같다) */
+const PUBLIC_FIELDS = ['day', 'name', 'region', 'grade', 'img', 'imgs', 'tags', 'desc', 'representativePhotos', ...LODGING_FIELDS];
+export function lodgingPublicData(l: LodgingRecord = {}): LodgingRecord {
+    return Object.fromEntries(PUBLIC_FIELDS.filter(k => Object.hasOwn(l, k)).map(k => [k, l[k]]));
+}
+/** 예약에 넣을 숙소 사본(옛 Lodging.snapshot과 같다): 등록 정보가 있으면 그 사진·칸으로, 이전 사본의 사진은 보관 사진으로 남긴다 */
+export function lodgingSnapshot(library: LodgingRecord | null | undefined, previous: LodgingRecord = {}): LodgingRecord {
+    if (!library) return lodgingPublicData(previous);
+    const list = (value: unknown) => (Array.isArray(value) ? value : []);
+    return { ...lodgingPublicData(previous), ...lodgingPublicData(library),
+        representativePhotos: lodgingPhotos(library),
+        imgs: [...new Set([library.img, ...list(library.imgs), previous.img, ...list(previous.imgs), ...list(previous.representativePhotos)].filter(Boolean))] };
+}
