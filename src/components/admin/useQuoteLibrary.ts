@@ -16,6 +16,8 @@ interface Options<M> {
     mergeCats?: (map: M, cats: string[]) => string[];
     /** 서버에 저장된 자료가 없을 때(옛 도구와 같이 이 브라우저 저장분 → presets.js 기본값) */
     fallback: () => Promise<unknown>;
+    /** 서버에 지역 목록이 없을 때(옛 도구의 기본 지역 등). 없으면 빈 목록 */
+    catsFallback?: () => string[];
 }
 
 const readCatList = (data: unknown): string[] => {
@@ -68,7 +70,7 @@ export function useQuoteLibrary<M extends Record<string, unknown>>(options: Opti
             if (request !== loadRequest.current) return;
             meta.current = { [mapKey]: items.updatedAt, ...(catsKey && catList ? { [catsKey]: catList.updatedAt } : {}) };
             setMap(nextMap);
-            const savedCats = catList ? readCatList(catList.data) : [];
+            const savedCats = catList ? (catList.data == null && optionsRef.current.catsFallback ? optionsRef.current.catsFallback() : readCatList(catList.data)) : [];
             setCats(mergeCats ? mergeCats(nextMap, savedCats) : savedCats);
             setPhase('ready');
         } catch (error) {

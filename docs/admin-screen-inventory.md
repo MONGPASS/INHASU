@@ -52,7 +52,7 @@
 | 견적 관리 | 코스 관리 | `/admin/quote-desk/courses` | **React로 전환(2026-11-24)**: `src/pages/AdminCourseManage.tsx`(+ `.css`). 옛 `코스관리.html`은 비교용으로만 남음 | 목록형 | 코스 추가·편집 창(요금·대표 명소·일자별 일정, `AdminDialog`) |
 | 견적 관리 | 일정 관리 | `/admin/quote-desk/itinerary` | **React로 전환(2026-11-21)**: `src/pages/AdminItineraryManage.tsx`(+ `.css`). 옛 `일정관리.html`은 비교용으로만 남음 | 목록형 | 일정 추가·편집 창, 지역 추가·이름 바꾸기 창(`AdminDialog`) |
 | 견적 관리 | 여행지 관리 | `/admin/quote-desk/spots` | **React로 전환(2026-11-21)**: `src/pages/AdminSpotManage.tsx`(+ `.css`). 옛 `명소관리.html`은 비교용으로만 남음 | 목록형 | 여행지 추가·편집 창(사진 올리기 포함), 지역 추가·이름 바꾸기 창, 문구 초안 가져오기 창(`AdminDialog`) |
-| 배정·자원 | 가이드·숙소·차량 — 등록 정보 | `/admin/quote-desk/resources?view=registry` | `리소스관리.html` | 목록형(카드/목록) | 등록 정보 편집 서랍 |
+| 배정·자원 | 가이드·숙소·차량 — 등록 정보 | `/admin/quote-desk/resources?view=registry` | **React로 전환(2026-11-24)**: `src/pages/AdminResourceManage.tsx`(+ `.css`, 배정 현황 탭과 같은 화면). 옛 `리소스관리.html`은 비교용으로만 남음 | 목록형(카드/목록) | 가이드·숙소·차량 추가·편집 창(사진·QR 올리기), 숙소 지역 추가·이름 바꾸기 창(`AdminDialog`) |
 | (휴대폰 전용) | 모바일 관리자 | `/견적관리-모바일` | `견적관리-모바일.html` | 여러 유형 | 아래 시트·전체 화면 시트·확인 창(`appConfirm`) |
 | (새 창 문서) | 가이드 시트 | `/가이드시트?id=` | `가이드시트.html` | 인쇄 문서 — 관리자 규격 대상 아님 | 없음 |
 
