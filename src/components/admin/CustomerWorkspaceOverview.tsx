@@ -45,7 +45,11 @@ export interface CustomerWorkspaceFlow {
     steps: Array<{ id: string; label: string; done: boolean }>;
     /** 지금 단계(첫 미완료). 모두 끝났으면 steps.length */
     current: number;
-    next: { title: string; detail?: string; waiting?: boolean; primary?: CustomerWorkspaceFlowButton; secondary?: CustomerWorkspaceFlowButton };
+    next: { title: string; detail?: string; waiting?: boolean; primary?: CustomerWorkspaceFlowButton; secondary?: CustomerWorkspaceFlowButton;
+        /** 고객 차례(waiting)일 때 마지막으로 안내한 시각과 그 이름(예: 서명 안내 발송) — 기다린 날수와 타임라인에 쓴다 */
+        since?: { at: string; label: string };
+        /** 출발일(YYYY-MM-DD) — 기다리는 중 타임라인의 끝 점 */
+        departure?: string };
 }
 
 /** 고객 예약 상세 — 예약 관리 v7 디자인. links가 있으면 결제·배정·운영 값을 이 화면에서 바로 저장한다. */
