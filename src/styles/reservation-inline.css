@@ -217,15 +217,6 @@
 /* ── 운영 정보(ReservationOperations) ── */
 .row.ri-ops-actions { gap: var(--adm-space-2); }
 
-/* ── 차량 바로 배정(CustomerVehicleAssignment) ──
-   옛 규칙(product-customer-workspace.css의 .cw-quick-assignment input)이 칸 안 입력에 선·여백을 그리지 않게 부품 모양으로 되돌린다. */
-.cw-quick-assignment .adm-ui-input .adm-ui-input-el { min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font-size: var(--adm-fs-input); font-weight: var(--adm-fw-regular); }
-.cw-quick-assignment .adm-ui-input .adm-ui-input-el:focus-visible { outline: 0; }
-.cw-quick-assignment > header > .cva-close { flex-shrink: 0; }
-/* 등록 차량 고르기 카드(AdminPickCard): 사진 · 이름 · 표시를 한 줄로 */
-.cw-quick-assignment .adm-ui-pick.crp-vehicle-choice { flex-direction: row; align-items: center; gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); padding: calc(var(--adm-space-2) + var(--adm-space-1) / 2); border-radius: var(--adm-radius-sm); }
-.cw-quick-assignment .adm-ui-text-btn.crp-clear { justify-self: start; color: var(--adm-danger); }
-.cw-quick-assignment .adm-ui-text-btn.crp-clear:hover:not(:disabled) { color: var(--adm-danger); text-decoration: underline; }
 
 /* ── 고객 계정 연결 창(QuoteAccountLinkDialog) — 브라우저 기본 dialog 위에 공통 창 모양(adm-dialog) ── */
 .adm-dialog.qald-dialog { margin: auto; border: 0; }

@@ -48,7 +48,6 @@ import {
 import type { V7Source } from '../utils/reservationV7';
 import type { ReservationDetailV7Links } from '../components/admin/v7/ReservationDetailV7';
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
-import { CustomerVehicleAssignment } from '../components/admin/CustomerVehicleAssignment';
 import { customerProductReference } from '../utils/customerProductReference';
 import { loadRegisteredAssignmentResources, type RegisteredAssignmentResources } from '../utils/registeredAssignmentResources';
 import { productWorkspaceReservation, legacyWorkspaceReservation, productCustomerOverview, sameAccountProductBookings } from '../utils/productCustomerWorkspace';
@@ -1675,31 +1674,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
     const orderDirty = isEditing && JSON.stringify(editForm) !== JSON.stringify(reservation);
     const resumeWorkLabel = inlineDirty ? activeDocument === 'contract' ? '여행 계약서 편집' : '일정표 편집'
         : operationsDirty ? '운영·영수증 작성' : orderDirty ? detailSection === 'pay' ? '결제 정보 수정' : '주문자 정보 수정' : '';
-    const closeQuickAssignment = async () => {
-        if (workspaceIsBusy()) return;
-        if (quickAssignmentDirty && !await adminConfirm('저장하지 않은 차량 정보를 버리고 닫을까요?')) return;
-        setQuickAssignment(null); setQuickAssignmentDirty(false);
-    };
-    const saveQuickVehicle = async (vehicle: { type: string; phone: string; resource?: Record<string, any> }) => {
-        if (workspaceIsBusy() || isEditing || inlineDirty || operationsDirty) return false;
-        const currentVehicle = readProductVehicle(reservation.adminOperations, reservation.contractData);
-        const saved = await onUpdate({ ...reservation,
-            adminOperations: { ...emptyReservationOperations(), ...(reservation.adminOperations || {}), vehicle: vehicle.type, driverPhone: vehicle.phone },
-            ...(vehicle.resource ? { contractData: { ...(reservation.contractData || {}), vehicle: { ...vehicle.resource, type: vehicle.type, model: vehicle.type, phone: vehicle.phone } } } : {}),
-            history: [...(reservation.history || []), { timestamp: new Date().toISOString(), type: 'modification',
-                description: vehicle.type ? '배정 차량 정보를 저장했습니다.' : '차량 배정을 해제했습니다.',
-                detail: vehicle.type || currentVehicle.type }],
-        }, true);
-        if (saved) setNavigationNotice(vehicle.type ? '차량 배정을 저장했습니다.' : '차량 배정을 해제했습니다.');
-        return saved;
-    };
-    const quickAssignmentEditor = quickAssignment === 'vehicle'
-        ? <CustomerVehicleAssignment key={reservation.id} value={readProductVehicle(reservation.adminOperations, reservation.contractData)} vehicles={registered?.vehicles || []} loading={registeredPending} resourceNotice={registeredNotice} onRetry={() => setRegisteredRevision(value => value + 1)} disabled={workspaceIsBusy()} onSave={saveQuickVehicle} onDirtyChange={setQuickAssignmentDirty} onClose={closeQuickAssignment} onSaved={() => { setQuickAssignmentDirty(false); setQuickAssignment(null); }} />
-        : quickAssignment === 'stay' && workspace.nights <= 0 ? <section className="cw-quick-assignment" aria-label="숙소 바로 배정">
-            <header><strong>일자별 숙소 바로 배정</strong><AdminTextButton size="sm" disabled={workspaceIsBusy()} onClick={closeQuickAssignment}>닫기</AdminTextButton></header>
-            <p>{validAssignmentPeriod(reservation) ? '당일 투어는 숙소 배정이 필요하지 않습니다.' : '여행 시작일과 종료일을 먼저 확인해 주세요.'}</p>
-        </section> : null;
-    // 예약 관리 v7 상세: 결제·진행상황·운영 정보·배정을 상세 카드에서 바로 저장한다.
+    // 예약 관리 v7 상세: 결제·진행상황·운영 정보를 상세 카드에서 바로 저장한다. 배정은 결과만 보여 준다.
     const v7Links: ReservationDetailV7Links = {
         source: reservation as V7Source, userId: user?.id || '',
         operations: { ...emptyReservationOperations(), ...(reservation.adminOperations || {}) },
@@ -1718,20 +1693,8 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
         if (workspaceIsBusy()) return;
         if (action === 'back') { closeWorkspace(); return; }
         if (quickAssignmentDirty) { setNavigationNotice('입력 중인 차량 정보를 먼저 저장하거나 차량 편집을 닫아 주세요.'); return; }
-        if (fullPage && ['guide', 'stay', 'vehicle'].includes(action)) {
-            if (reservation.status === 'cancelled') { setNavigationNotice('취소된 예약의 배정은 변경할 수 없습니다.'); return; }
-            if (isEditing || inlineDirty || operationsDirty) { setNavigationNotice('작성 중인 주문·일정·운영 정보를 먼저 저장한 뒤 배정해 주세요.'); return; }
-            setNavigationNotice('');
-            setWorkflowOpen(false);
-            if (action === 'guide') { setQuickAssignment(null); setPickerSaveError(''); setGuideConfirmation(null); setShowGuideModal(true); }
-            else if (action === 'stay') {
-                setQuickAssignment('stay');
-                if (workspace.nights > 0) {
-                    const pickedDay = id ? overview.days.find(day => day.id === id)?.day : undefined;
-                    const nextDay = pickedDay || Array.from({ length: Math.min(100, workspace.nights) }, (_, index) => index + 1).find(day => !reservation.dailyAccommodations?.some(stay => Number(stay.day) === day && stay.accommodation?.name?.trim())) || 1;
-                    setSelectedDay(nextDay); setPickerSaveError(''); setShowAccommodationModal(true);
-                }
-            } else setQuickAssignment('vehicle');
+        if (fullPage && ['guide', 'stay', 'vehicle', 'assignments'].includes(action)) {
+            setNavigationNotice('가이드·차량은 ‘가이드·숙소·차량’ 배정 현황, 숙소는 ‘숙소 배정’ 메뉴에서 배정해 주세요.');
             return;
         }
         if (action === 'customer-link') { void copyCustomerMessage(workspace.published ? 'itinerary' : 'contract'); return; }
@@ -1773,7 +1736,7 @@ const ReservationDetailModal = ({ reservation, onClose, onUpdate, onRefresh, upd
                 {fullPage && <>
                     <div id="product-customer-overview" hidden={workflowOpen}>
                     {resumeWorkLabel && <div className="cw-resume-work"><div><strong>{resumeWorkLabel} 내용이 저장되지 않았습니다.</strong><span>입력한 내용을 이어서 확인하고 저장하세요.</span></div><AdminButton variant="primary" disabled={workspaceIsBusy()} trailing={<IconChevronRight aria-hidden="true" />} onClick={() => setWorkflowOpen(true)}>{resumeWorkLabel} 이어서 하기</AdminButton></div>}
-                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} links={v7Links} notificationActions={notificationActions} directAssignments assignmentEditor={quickAssignmentEditor} bookingSelector={bookingSelector && <fieldset className="rw-dm-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="rw-dm-note"><AdminTextArea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} minRows={3} placeholder="고객 상담 내용을 기록하세요." /><AdminButton variant="primary" size="sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</AdminButton></div>} />
+                    <CustomerWorkspaceOverview model={overview} onAction={overviewAction} busy={workspaceIsBusy()} links={v7Links} notificationActions={notificationActions} directAssignments bookingSelector={bookingSelector && <fieldset className="rw-dm-bookings" disabled={workspaceIsBusy()}>{bookingSelector}</fieldset>} noteComposer={<div className="rw-dm-note"><AdminTextArea aria-label="고객 내부 메모" value={memoDraft} disabled={workspaceIsBusy()} onChange={e => setMemoDraft(e.target.value)} onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void addMemo(); } }} minRows={3} placeholder="고객 상담 내용을 기록하세요." /><AdminButton variant="primary" size="sm" disabled={workspaceIsBusy() || isEditing || operationsDirty || inlineDirty || quickAssignmentDirty || !memoDraft.trim()} onClick={() => void addMemo()}>메모 저장</AdminButton></div>} />
 
                     </div>
                 </>}

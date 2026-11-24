@@ -43,6 +43,12 @@
 .rdc-field { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) * 1.5); min-width: 0; padding: calc(var(--adm-space-2) + var(--adm-space-1) / 2) var(--adm-space-2); }
 .rdc-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3) calc(var(--adm-space-2) + var(--adm-space-1) / 2); padding: var(--adm-space-5); }
 .rdc-grid2 .rdc-field { padding: 0; }
+/* 배정 결과(2026-11-24): 고르기 대신 배정된 이름과 한 줄 설명. 미배정은 빨간 글자(색만으로 알리지 않도록 "미배정" 문구와 함께) */
+.rdc-result { display: flex; flex-direction: column; gap: var(--adm-space-0-5); min-width: 0; }
+.rdc-result-name { overflow: hidden; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.rdc-result-name.is-warn { color: var(--adm-danger); }
+.rdc-result-sub { overflow: hidden; color: var(--adm-text-3); font-size: var(--adm-fs-caption); text-overflow: ellipsis; white-space: nowrap; }
+.rdc-asg-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-2); }
 
 /* 고르기 버튼: AdminSelect 모양(흰 바탕 · 선 · 오른쪽 화살표). 누르면 기존 고르기 창이 열린다. */
 .adm-rdc-sel { display: inline-flex; flex: none; align-items: center; justify-content: space-between; gap: var(--adm-space-2); box-sizing: border-box; width: calc(var(--adm-space-8) * 4); max-width: 100%;
@@ -69,6 +75,7 @@
 .rdc-box-note { color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
 .rdc-box-note.is-alert { color: var(--adm-danger); }
 .rdc-nights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--adm-space-1) * 1.5); }
+.rdc-night.is-warn { color: var(--adm-danger); }
 .rdc-night { display: flex; align-items: center; justify-content: center; min-height: var(--adm-control-h-sm); padding: 0 var(--adm-space-2); border-radius: var(--adm-radius-sm);
   background: var(--adm-surface); color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); text-align: center; }
 

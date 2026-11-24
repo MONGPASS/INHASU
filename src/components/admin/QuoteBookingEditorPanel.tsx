@@ -464,60 +464,33 @@ export const QuoteBookingEditor = forwardRef<QuoteBookingEditorHandle, Props>(fu
                     </AdminCard>
                 </>}
 
-                {section === 'assign' && <AdminCard id="qbe-assign" title="가이드 · 차량 · 숙소" description="이름·소개는 고객 확정안내에 보여요 · 차량번호는 내부용">
+                {/* 배정은 ‘가이드·숙소·차량’ 배정 현황과 ‘숙소 배정’ 메뉴에서만 한다(2026-11-24). 여기서는 저장된 결과만 보여 준다. */}
+                {section === 'assign' && <AdminCard id="qbe-assign" title="가이드 · 차량 · 숙소" description="배정은 ‘가이드 배정 현황’과 ‘숙소 배정’ 메뉴에서 해요. 여기서는 배정 결과만 보여요."
+                    actions={<>
+                        <AdminButton variant="secondary" size="sm" to="/admin/quote-desk/resources?view=schedule">가이드·차량 배정</AdminButton>
+                        <AdminButton variant="primary" size="sm" to={`/admin/accommodation-ops?open=${encodeURIComponent(requestId)}&source=quote_booking`}>숙소 배정</AdminButton>
+                    </>}>
                     <div className="qbe-assign">
                         <section id="qbe-guide" className="qbe-box">
-                            <div className="qbe-box-head"><b>가이드</b>
-                                <AdminSelect aria-label="가이드 고르기" value={libs.guides[guide.name] ? guide.name : ''} placeholder={guideOptions.length ? (guide.name ? '다른 리소스로 변경…' : '리소스에서 선택…') : '리소스관리에 등록된 항목 없음'}
-                                    options={guideOptions} onChange={name => { const next = guideFromLibrary(name, libs); if (next) { field('guide', next); adminNotify(`가이드 "${name}" 정보를 불러왔어요`, 'info'); } }} /></div>
-                            <Preview kind="가이드" {...resourcePreview('guide', guide, libs)} />
-                            <details className="qbe-more"><summary>세부정보 수정</summary><div className="adm-ui-form-grid qbe-grid-3">
-                                {text('이름', guide.name, v => field('guide', guideFromLibrary(v.trim(), libs) || { ...guide, name: v }), { list: 'qbe-guide-list' })}
-                                {text('영문 이름 (고객 노출)', guide.nameEn, v => sub('guide', { nameEn: v }), { placeholder: 'Hyeonjin' })}
-                                {text('가이드 구분 (고객 노출)', guide.role, v => sub('guide', { role: v }), { list: 'qbe-guide-roles', placeholder: '가이드 겸 드라이버' })}
-                                {text('전화번호 (고객 노출 — 일정표 표시)', guide.phone, v => sub('guide', { phone: v }), { placeholder: '+976 8000-0000' })}
-                                {text('카카오톡 QR 이미지 URL (고객 노출)', guide.qr, v => sub('guide', { qr: v }), { placeholder: 'img/… 또는 업로드 주소' })}
-                                {text('사진 URL (선택)', guide.img, v => sub('guide', { img: v }), { placeholder: 'img/… 또는 업로드 주소' })}
-                                {text('한 줄 소개 (고객 노출)', guide.desc, v => sub('guide', { desc: v }), { placeholder: '한국 유학 5년 · 고비 투어 전문', full: true })}
-                            </div></details>
+                            <div className="qbe-box-head"><b>가이드</b></div>
+                            {guide.name ? <Preview kind="가이드" {...resourcePreview('guide', guide, libs)} /> : <p className="qbe-unassigned">가이드 미배정</p>}
                         </section>
                         <section id="qbe-vehicle" className="qbe-box">
-                            <div className="qbe-box-head"><b>차량</b>
-                                <AdminSelect aria-label="차량 고르기" value={libs.vehicles[vehicle.model] ? vehicle.model : ''} placeholder={vehicleOptions.length ? (vehicle.model ? '다른 리소스로 변경…' : '리소스에서 선택…') : '리소스관리에 등록된 항목 없음'}
-                                    options={vehicleOptions} onChange={name => { const next = vehicleFromLibrary(name, libs); if (next) { field('vehicle', next); adminNotify(`차량 "${name}" 정보를 불러왔어요`, 'info'); } }} /></div>
-                            <Preview kind="차량" {...resourcePreview('vehicle', bk.assign.vehicle, libs)} />
-                            <details className="qbe-more"><summary>세부정보 수정</summary><div className="adm-ui-form-grid qbe-grid-3">
-                                {text('차종', vehicle.model, v => field('vehicle', vehicleFromLibrary(v.trim(), libs) || { ...vehicle, model: v }), { list: 'qbe-vehicle-list', placeholder: '하이스' })}
-                                {text('탑승 인원 (고객 노출)', vehicle.seats, v => sub('vehicle', { seats: v }), { placeholder: '6인' })}
-                                {text('수하물 (고객 노출)', vehicle.luggage, v => sub('vehicle', { luggage: v }), { placeholder: '대형 캐리어 4개 적재 가능' })}
-                                {text('차량번호 (내부용)', vehicle.plate, v => sub('vehicle', { plate: v }))}
-                                {text('차량 특징 (고객 노출 — 비우면 리소스 설명 사용)', vehicle.desc, v => sub('vehicle', { desc: v }), { placeholder: '몽골 장거리 이동에 적합한 차량입니다.', full: true })}
-                            </div></details>
+                            <div className="qbe-box-head"><b>차량</b></div>
+                            {vehicle.model ? <Preview kind="차량" {...resourcePreview('vehicle', bk.assign.vehicle, libs)} /> : <p className="qbe-unassigned">차량 미배정</p>}
                         </section>
                         <section id="qbe-lodges" className="qbe-box">
                             <div className="qbe-box-head"><b>일차별 숙소</b></div>
-                            {bk.days.length > 0 && <p className="qbe-note">숙박 {stats.lodgeNeeded}일 기준으로 숙소 누락 여부를 확인합니다. (귀국일 제외)</p>}
-                            {form.lodges.map((row, i) => <div key={i} className="qbe-lodge">
-                                <div className="qbe-box-head"><span>{row.day || i + 1}일차 숙소</span>
-                                    <span className="qbe-row-tools">
-                                        <AdminSelect aria-label={`${row.day || i + 1}일차 숙소 고르기`} value={libs.lodges[row.name.trim()] ? row.name.trim() : ''} options={lodgeChoices}
-                                            placeholder={lodgeChoices.length ? (row.name ? '다른 리소스로 변경…' : '리소스에서 선택…') : '리소스관리에 등록된 항목 없음'}
-                                            onChange={name => { updateForm(f => ({ ...f, lodges: f.lodges.map((r, j) => j === i ? lodgeFromLibrary(r, name, libs) : r) })); adminNotify(`숙소 "${name}" 정보를 불러왔어요`, 'info'); }} />
-                                        <AdminIconButton size="sm" label={`${row.day || i + 1}일차 숙소 배정 삭제`} onClick={() => updateForm(f => ({ ...f, lodges: f.lodges.filter((_, j) => j !== i) }))}><IconClose /></AdminIconButton>
-                                    </span></div>
-                                <Preview kind="숙소" {...lodgePreview({ name: row.name.trim(), grade: row.grade }, libs)} />
-                                <details className="qbe-more"><summary>세부정보 수정</summary><div className="adm-ui-form-grid qbe-grid-3">
-                                    {text('일차', row.day, v => updateForm(f => ({ ...f, lodges: f.lodges.map((r, j) => j === i ? { ...r, day: v } : r) })), { type: 'number' })}
-                                    {text('캠프장/호텔 이름', row.name, v => updateForm(f => ({ ...f, lodges: f.lodges.map((r, j) => j === i ? { ...r, name: v, grade: libs.lodges[v.trim()]?.grade ? (LODGE_GRADES as readonly string[]).includes(libs.lodges[v.trim()].grade) ? libs.lodges[v.trim()].grade : '' : r.grade } : r) })), { list: 'qbe-lodge-list', placeholder: '○○ 여행자 캠프' })}
-                                    {select('등급', row.grade, LODGE_GRADES.map(g => ({ value: g, label: g || '선택' })), v => updateForm(f => ({ ...f, lodges: f.lodges.map((r, j) => j === i ? { ...r, grade: v } : r) })))}
-                                    {text('숙소 설명 (고객 노출 — 비우면 위 리소스 설명이 그대로 나갑니다)', row.desc, v => updateForm(f => ({ ...f, lodges: f.lodges.map((r, j) => j === i ? { ...r, desc: v } : r) })), { placeholder: '리소스 설명 대신 보여줄 문구 (선택)', full: true })}
-                                </div></details>
-                            </div>)}
-                            <div className="qbe-add">
-                                <AdminButton variant="secondary" size="sm" leading={<IconPlus />} onClick={() => updateForm(f => ({ ...f, lodges: [...f.lodges, lodgeRowOf({ day: bk.assign.lodges.length + 1, name: '', grade: '' }, f.lodges.length)] }))}>숙소 배정 추가</AdminButton>
-                                {bk.days.length > 0 && <AdminButton variant="secondary" size="sm" onClick={() => { const lodges = lodgesFromDays(bk.days);
-                                    setBk(b => (b ? { ...b, assign: { ...b.assign, lodges } } : b)); setForm(f => (f ? { ...f, lodges: lodges.map(lodgeRowOf) } : f)); adminNotify('일정표 숙소를 배정 목록으로 복사했어요', 'info'); }}>확정 일정표의 숙소를 그대로 가져오기</AdminButton>}
-                            </div>
+                            {bk.days.length > 0 && <p className="qbe-note">숙박 {stats.lodgeNeeded}일 기준 · 배정 {form.lodges.filter(row => row.name.trim()).length}일 (귀국일 제외)</p>}
+                            {/* 숙박해야 하는 날마다 한 줄: 배정된 숙소, 없으면 ‘숙소 미배정’ */}
+                            {Array.from({ length: Math.max(stats.lodgeNeeded || 0, ...form.lodges.map((row, i) => Number(row.day) || i + 1)) }, (_, i) => i + 1).map(day => {
+                                const row = form.lodges.find((r, i) => (Number(r.day) || i + 1) === day && r.name.trim());
+                                return <div key={day} className="qbe-lodge">
+                                    <div className="qbe-box-head"><span>{day}일차 숙소</span></div>
+                                    {row ? <Preview kind="숙소" {...lodgePreview({ name: row.name.trim(), grade: row.grade }, libs)} /> : <p className="qbe-unassigned">숙소 미배정</p>}
+                                </div>;
+                            })}
+                            {!stats.lodgeNeeded && !form.lodges.length && <p className="qbe-note">숙박이 없는 일정이에요.</p>}
                         </section>
                     </div>
                 </AdminCard>}

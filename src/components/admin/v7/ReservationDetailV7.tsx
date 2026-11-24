@@ -34,6 +34,9 @@ export interface ReservationDetailV7Links {
     onAssignmentSaved?: () => void;
 }
 
+/** 이 화면에서 열지 않는 배정 업무. 배정은 ‘숙소 배정’·‘가이드·숙소·차량’ 메뉴에서만 한다(2026-11-24). */
+const GUIDE_SCHEDULE_HREF = '/admin/quote-desk/resources?view=schedule';
+const ASSIGN_ACTIONS = new Set(['assignments', 'assign', 'guide', 'vehicle', 'stay']);
 /** 바로가기 6개(디자인 v7): 같은 화면 안의 해당 카드로 이동한다. 업무 화면은 각 카드의 버튼이 연다. */
 const NAV: Array<{ label: string; icon: DashboardIconName; sid: string }> = [
     { label: '일정표 편집', icon: 'lc-calendar', sid: 'sec-plan' }, { label: '고객·항공편', icon: 'lc-user', sid: 'sec-info' },
@@ -76,7 +79,7 @@ function disclosure({ icon, title, sub, badge, open, onToggle, children }: { ico
 
 export interface ReservationDetailV7Props {
     model: Model; onAction: (action: string, id?: string) => void; busy?: boolean;
-    noteComposer?: ReactNode; bookingSelector?: ReactNode; assignmentEditor?: ReactNode; notificationActions?: ReactNode; links?: ReservationDetailV7Links;
+    noteComposer?: ReactNode; bookingSelector?: ReactNode; notificationActions?: ReactNode; links?: ReservationDetailV7Links;
 }
 /** 화면 상태. 테스트는 같은 상태 객체로 그리기 결과와 버튼 연결을 확인한다. */
 export interface DetailState {
@@ -104,7 +107,7 @@ export function ReservationDetailV7(props: ReservationDetailV7Props) {
 }
 
 /** 상세 화면의 그리기와 버튼 동작. React 상태는 st/set으로만 다룬다. */
-export function reservationDetailView({ model: m, onAction, busy = false, noteComposer, bookingSelector, assignmentEditor, notificationActions, links }: ReservationDetailV7Props,
+export function reservationDetailView({ model: m, onAction, busy = false, noteComposer, bookingSelector, notificationActions, links }: ReservationDetailV7Props,
     st: DetailState, set: DetailSet, env: DetailEnv) {
     const today = dashboardSeoulDate(new Date().toISOString());
     const rootRef = env.root, mounted = env.mounted, toastTimer = env.toastTimer;
@@ -130,100 +133,27 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             set({ allItems: data.items, item: data.items.find(x => x.key === assignmentKey) });
         } catch { /* 배정 원본을 못 읽으면 저장된 예약 값으로 표시하고 버튼은 기존 화면을 연다. */ }
     };
-    const ensureResources = async () => {
-        if (resources) return resources;
-        if (!links?.userId) return null;
-        try { const loaded = await loadRegisteredAssignmentResources({ accountId: links.userId }); if (mounted.current) setResources(loaded); if (loaded.warnings[0]) flash(loaded.warnings[0]); return loaded; }
-        catch { flash('등록된 가이드·숙소·차량 자료를 불러오지 못했습니다.'); return null; }
-    };
 
     const row: V7Row | null = source && source.type !== 'quote' ? v7Row(source, item, today) : null;
     const [startKey, endKey] = dateKeys(m.period || '');
     const cancelled = row ? row.tab === 'cancel' : m.currentStage?.tone === 'cancelled';
     const name = m.customerName || '고객 정보 확인 필요';
-    const action = (a: string, id?: string) => () => onAction(a, id);
+    const runAction = (a: string, id?: string) => ASSIGN_ACTIONS.has(a) ? goSec('sec-asg') : onAction(a, id);
+    const action = (a: string, id?: string) => () => runAction(a, id);
     // 화면 안 이동. 관리자 레이아웃마다 스크롤 영역이 달라 요소 기준으로 이동한다(카드의 scrollMarginTop이 고정 바로가기 높이를 비운다).
-    const goSec = (sid: string) => {
+    function goSec(sid: string) {
         const el = rootRef.current?.querySelector<HTMLElement>(`#${sid}`);
         if (!el) return;
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         // 고정 열의 카드처럼 이미 보이는 대상은 움직이지 않으므로 잠깐 강조해 어디로 왔는지 보여 준다.
         el.classList.remove('v7-sec-flash'); void el.offsetWidth; el.classList.add('v7-sec-flash');
         window.setTimeout(() => el.classList.remove('v7-sec-flash'), 1400);
-    };
+    }
     const openMenu = (e: React.MouseEvent, title: string, items: V7MenuItem[], wide = false) => { e.stopPropagation(); setMenu(menuAt(e.currentTarget as HTMLElement, title, items, wide)); };
     const closeMenu = () => setMenu(null);
     const phoneFact = m.facts.find(f => /연락처|전화/.test(f.label))?.value || '';
     const emailFact = m.facts.find(f => /이메일/.test(f.label))?.value || '';
 
-    const save = async (build: (it: V7AssignmentItem) => Parameters<typeof saveV7Assignment>[1], done: string, allowGuideConflict = false): Promise<boolean> => {
-        if (!item) { flash('배정 정보를 아직 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'); void loadItem(); return false; }
-        if (saving) return false;
-        setSaving(true);
-        let retry = false;
-        try {
-            const saved = await saveV7Assignment(item, build(item), { allowGuideConflict });
-            if (!mounted.current) return false;
-            setItem(saved); setAllItems(prev => prev.map(x => x.key === saved.key ? saved : x));
-            flash(done); links?.onAssignmentSaved?.();
-            return true;
-        } catch (e: any) {
-            // 다른 화면에서 방금 같은 가이드를 배정했으면 서버가 거절한다. 확인하면 그대로 다시 저장한다.
-            if (mounted.current && !allowGuideConflict && await confirmGuideConflict(e)) retry = true;
-            else if (mounted.current) { flash(e?.message || '배정을 저장하지 못했습니다.'); void loadItem(); }
-            return false;
-        } finally {
-            if (mounted.current) setSaving(false);
-            if (retry) window.setTimeout(() => { void save(build, done, true); }, 0);
-        }
-    };
-    const peopleMenu = async (e: React.MouseEvent, kind: 'guide' | 'vehicle') => {
-        e.stopPropagation();
-        if (!row || !item) { onAction(kind); return; }
-        const target = e.currentTarget as HTMLElement, loaded = await ensureResources();
-        const items: V7MenuItem[] = kind === 'guide' ? [
-            { key: 'none', label: '배정 해제', muted: true, on: !row.guide, onPick: () => { if (row.guide) void save(it => withGuide(it, { id: '', name: '', phone: '' }), '가이드 배정을 해제했어요'); } },
-            ...guideMenuItems(loaded?.guides || [], allItems, { id: item.id, source: item.source, startDate: item.startDate, endDate: item.endDate }, row.guide?.name,
-                (g, confirmed) => { void save(it => withGuide(it, selectResourceGuide(it.assignment.guide, g)), `${g.name} 가이드를 배정했어요`, confirmed); }),
-        ] : [
-            { key: 'none', label: '배정 해제', muted: true, on: !row.vehicle, onPick: () => { if (row.vehicle) void save(it => withVehicle(it, { type: '', phone: '' }), '차량 배정을 해제했어요'); } },
-            ...(loaded?.vehicles || []).map(v => ({ key: v.name, label: v.name, on: row.vehicle?.type === v.type, sub: [v.snapshot.seats && `${v.snapshot.seats}인승`, v.snapshot.plate].filter(Boolean).join(' · ') || undefined, subTone: 'muted' as const,
-                onPick: () => void save(it => withVehicle(it, selectResourceVehicle(it.assignment.vehicle, v)), `${v.name} 차량을 배정했어요`) })),
-        ];
-        setMenu(menuAt(target, kind === 'guide' ? '가이드 선택' : '차량 선택', items, true));
-    };
-    const nightMenu = async (e: React.MouseEvent, day: number, field: 'hotel' | 'occ' | 'status' | 'grade') => {
-        e.stopPropagation();
-        if (!row || !item) { onAction('stay'); return; }
-        const night = row.stays.find(s => s.day === day);
-        if (!night) return;
-        if (field === 'status' && !night.hotel) { flash('숙소를 먼저 골라 주세요'); return; }
-        const target = e.currentTarget as HTMLElement;
-        if (field === 'occ') { setMenu(menuAt(target, `${day}박 객실 인원`, OCCUPANCY_OPTIONS.map(o => ({ key: o, label: occupancyLabel(o), on: night.occupancy === o,
-            onPick: () => void save(it => withNight(it, day, r => ({ ...r, accommodation: { ...r.accommodation, occupancy: o } })), `${day}박 객실을 ${occupancyLabel(o)}(으)로 바꿨어요`) })))); return; }
-        if (field === 'grade') { setMenu(menuAt(target, `${day}박 숙소 등급`, [...(night.grade && !LODGE_GRADES.includes(night.grade) ? [night.grade] : []), ...LODGE_GRADES].map(g => ({ key: g, label: g, on: night.grade === g,
-            onPick: () => void save(it => withNight(it, day, r => ({ ...r, accommodation: { ...r.accommodation, type: g } })), `${day}박 숙소 등급을 ${g}(으)로 바꿨어요`) })))); return; }
-        if (field === 'status') { setMenu(menuAt(target, `${day}박 수배 상태`, BOOKING_STATUS_OPTIONS.map(o => ({ key: o.value, label: o.label, on: night.bookingStatus === o.value,
-            onPick: () => void save(it => withNight(it, day, r => ({ ...r, accommodation: { ...r.accommodation, ...changeV7StayStatus(r.accommodation, o.value) } })), `${day}박 ${o.label}(으)로 변경했어요`) })))); return; }
-        const loaded = await ensureResources(), place = night.region.replace(/\s+/g, '');
-        const lodges = [...(loaded?.lodges || [])].sort((a, b) => Number(!!place && (b.region || b.location).replace(/\s+/g, '').includes(place)) - Number(!!place && (a.region || a.location).replace(/\s+/g, '').includes(place)));
-        setMenu(menuAt(target, `${day}박 숙소 선택`, [
-            { key: 'none', label: '숙소 비우기', muted: true, on: !night.hotel, onPick: () => { if (night.hotel) void save(it => withNight(it, day, r => ({ day: r.day, ...(r.date ? { date: r.date } : {}), accommodation: night.region ? { location: night.region, region: night.region } : {} })), `${day}박 숙소를 비웠어요`); } },
-            ...lodges.map(l => ({ key: l.id, label: l.name, on: night.hotel === l.name, sub: [l.type, l.region || l.location].filter(Boolean).join(' · ') + ' · 고르면 미발송부터 시작', subTone: 'muted' as const,
-                onPick: () => void save(it => withNight(it, day, r => selectResourceLodge(r, l)), `${day}박 ${l.name} 선택`) })),
-        ], true));
-    };
-    const pendingNights = row ? row.stays.filter(s => s.hotel && s.bookingStatus === BOOKING_STATUS.unsent) : [];
-    const requestLodging = async () => {
-        if (!row || !item) { onAction('stay'); return; }
-        if (!pendingNights.length) { flash('새로 보낼 수배 요청이 없어요'); return; }
-        if (!await adminConfirm(`숙소 ${pendingNights.length}박을 '메일 발송'(현지 운영 수배 요청) 상태로 바꿀까요?\n이 버튼은 상태만 기록하며 숙소에 직접 메일을 보내지 않습니다.`)) return;
-        const days = new Set(pendingNights.map(s => s.day));
-        void save(it => {
-            const base = withNight(it, -1, r => r);
-            return { ...base, accommodations: base.accommodations.map(r => days.has(Number(r.day)) ? { ...r, accommodation: { ...r.accommodation, ...changeV7StayStatus(r.accommodation, BOOKING_STATUS.mailed) } } : r) };
-        }, `${pendingNights.length}박 수배 요청을 현지 운영에 보냈어요`);
-    };
     const paymentMenu = (e: React.MouseEvent, field: 'deposit' | 'final') => {
         if (!links?.onPayment || !row) { e.stopPropagation(); onAction('payments'); return; }
         const paid = field === 'deposit' ? row.depositPaid : row.balancePaid, labels = field === 'deposit' ? ['입금 완료', '미입금'] : ['완납', '미수'];
@@ -340,24 +270,34 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         </div>
     </section>;
 
-    // 배정: 가이드·차량 고르기 + 숙소 상자(박별 상태, 박별 관리)
+    // 배정: 결과만 보여 준다(2026-11-24). 가이드·차량은 ‘가이드·숙소·차량’ 배정 현황, 숙소는 ‘숙소 배정’ 메뉴에서만 배정한다.
     const asgLeft = [!guideValue, !vehicleValue, !stayReady].filter(Boolean).length;
     const nights = row?.stays || [];
     const stayText = row ? row.accN ? `${row.accC} / ${row.accN}박 확정` : '숙박 없음' : m.assignments.find(a => a.id === 'stay')?.value || '';
     const stayAlert = !asgLocked && !stayReady;
     const asgField = (label: string, done: boolean, control: ReactNode) => <div className="rdc-field"><span className="rdc-label">{dot(done)}{label}</span>{control}</div>;
-    const asgCard = <section key="sec-asg-s" id="sec-asg-s" className="rdc-card" aria-label="배정">
+    const asgValue = (value: string, label: string, sub?: string) => <span className="rdc-result">
+        <b className={value ? 'rdc-result-name' : 'rdc-result-name is-warn'}>{value || `${label} 미배정`}</b>{value && sub && <span className="rdc-result-sub">{sub}</span>}
+    </span>;
+    const guidePhone = row?.guide?.phone ? maskFact('연락처', row.guide.phone, maskOn) : m.assignments.find(a => a.id === 'guide')?.detail || '';
+    const vehicleSub = [item?.assignment.vehicle?.driver && `기사 ${item.assignment.vehicle.driver}`, row?.vehicle?.phone && maskFact('연락처', row.vehicle.phone, maskOn)].filter(Boolean).join(' · ')
+        || m.assignments.find(a => a.id === 'vehicle')?.detail || '';
+    const lodgeHref = source && source.type !== 'quote' ? `/admin/accommodation-ops?open=${encodeURIComponent(source.id)}&source=${source.type === 'quote_booking' ? 'quote_booking' : 'product'}` : '/admin/accommodation-ops';
+    const asgCard = <section key="sec-asg" id="sec-asg" className="rdc-card" aria-label="배정">
         {rdcHead(IconPersons, '배정', asgLocked ? cardBadge(null, '예약 전', true) : cardBadge(asgLeft))}
         <div className="rdc-body">
-            {asgField('가이드', !!guideValue, asgLocked ? lockedNote : btnSel(guideValue || '선택', !guideValue, e => void peopleMenu(e, 'guide'), undefined, selClass(!guideValue, true)))}
-            {asgField('차량', !!vehicleValue, asgLocked ? lockedNote : btnSel(vehicleValue || '선택', !vehicleValue, e => void peopleMenu(e, 'vehicle'), undefined, selClass(!vehicleValue, true)))}
+            {asgField('가이드', !!guideValue, asgLocked ? lockedNote : asgValue(guideValue, '가이드', guidePhone))}
+            {asgField('차량', !!vehicleValue, asgLocked ? lockedNote : asgValue(vehicleValue, '차량', vehicleSub))}
             <div className={cls('rdc-box', stayAlert ? 'is-alert' : 'is-soft')}>
                 <div className="rdc-box-head"><span className={cls('rdc-label', stayAlert && 'is-alert')}>{dot(!stayAlert)}숙소{stayAlert ? ' · 확정 필요' : ''}</span><span className="rdc-box-value">{stayText}</span></div>
                 {nights.length > 0 && <div className="rdc-nights">
-                    {nights.slice(0, 6).map(n => <span key={n.rowIndex} className="rdc-night">{n.day}박째 · {n.hotel ? bookingStatusMeta(n.bookingStatus).label : '숙소 미정'}</span>)}
+                    {nights.slice(0, 6).map(n => <span key={n.rowIndex} className={n.hotel ? 'rdc-night' : 'rdc-night is-warn'}>{n.day}박째 · {n.hotel ? `${n.hotel} · ${bookingStatusMeta(n.bookingStatus).label}` : '숙소 미배정'}</span>)}
                     {nights.length > 6 && <span className="rdc-night">+{nights.length - 6}박 더</span>}
                 </div>}
-                {asgLocked ? lockedNote : btnSel('박별 관리', false, () => goSec('sec-asg'), 'lc-arrow-right', 'rdc-sel is-full is-primary')}
+                {asgLocked ? lockedNote : <div className="rdc-asg-links">
+                    <AdminButton size="sm" variant="secondary" fullWidth to={GUIDE_SCHEDULE_HREF} trailing={<Ico name="lc-arrow-right" size={14} />}>가이드·차량 배정</AdminButton>
+                    <AdminButton size="sm" variant="primary" fullWidth to={lodgeHref} trailing={<Ico name="lc-arrow-right" size={14} />}>숙소 배정</AdminButton>
+                </div>}
             </div>
         </div>
     </section>;
@@ -425,7 +365,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
 
         <div className="v7-panel v7-progress">
             <V7StepHead big label={stepHead.label} tone={stepHead.tone} count={cancelled ? '' : `${steps.filter(s => s.done).length} / ${steps.length} 단계 완료`} />
-            <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => flow ? goSec(flowStepSec[flow.steps[i]?.id] || 'sec-plan') : stepTargets[i] ? goSec(stepTargets[i]) : onAction(m.steps[i]?.id || 'payments')} />
+            <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => flow ? goSec(flowStepSec[flow.steps[i]?.id] || 'sec-plan') : stepTargets[i] ? goSec(stepTargets[i]) : ASSIGN_ACTIONS.has(m.steps[i]?.id || '') ? goSec('sec-asg') : onAction(m.steps[i]?.id || 'payments')} />
             {flow && <div className={flow.next.waiting ? 'v7-next is-waiting' : 'v7-next'} role="group" aria-label="지금 할 일">
                 <div className="v7-next-text">
                     <div className="v7-next-kicker">{flow.current >= flow.steps.length ? '완료' : flow.next.waiting ? '고객 응답을 기다리는 중' : '지금 할 일'}</div>
@@ -451,50 +391,6 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
 
         <div className="v7-cols">
             <div className="v7-main">
-                <div id="sec-asg" className="v7-card is-clip">
-                    {cardHead({ icon: 'lc-users', title: '숙소 · 가이드 · 차량', right: <>
-                        {row && <V7Badge tone={row.board === '배정 완료' ? 'solid' : row.board === '진행 중' ? 'amber' : 'red'}>{row.board}</V7Badge>}
-                        <a className="v7-link v7-head-link" href="/admin/accommodation-ops">숙소 배정<Ico name="lc-chevron-right" size={14} /></a>
-                    </> })}
-                    {(['guide', 'vehicle'] as const).map(kind => {
-                        const v = kind === 'guide' ? row?.guide : row?.vehicle, fallback = m.assignments.find(a => a.id === kind), label = kind === 'guide' ? '가이드' : '차량';
-                        const value = kind === 'guide' ? guideValue : vehicleValue;
-                        const tel = v?.phone ? maskFact('연락처', v.phone, maskOn) : value ? fallback?.detail || '연락처 미등록' : '배정 전';
-                        const photo = kind === 'guide' ? item?.assignment.guide?.image : item?.assignment.vehicle?.resource?.img || item?.assignment.vehicle?.resource?.images?.[0];
-                        const icon = kind === 'guide' ? 'lc-user-round' : 'lc-car';
-                        return <div key={kind} className="v7-asg-row">
-                            <span className="v7-asg-kind"><Ico name={icon} size={14} />{label}</span>
-                            {value && photo ? <img src={photo} alt={`${label} ${value} 사진`} loading="lazy" className="v7-avatar" />
-                                : <span aria-hidden="true" className="v7-avatar is-empty">{value ? <span className="v7-avatar-text">사진</span> : <Ico name={icon} size={20} color="var(--adm-line-strong)" />}</span>}
-                            <span className="v7-asg-text">
-                                <b className="v7-asg-name">{value || `${label} 미배정`}</b>
-                                <span className={value ? 'v7-asg-tel' : 'v7-asg-tel is-empty'}>{tel}</span>
-                            </span>
-                            {asgLocked ? lockedNote : btnSel(value || `${label} 선택`, !value, e => void peopleMenu(e, kind))}
-                        </div>;
-                    })}
-                    <div className="v7-sub-head">
-                        <b className="v7-sub-title">일자별 숙소</b>
-                        {!asgLocked && <AdminButton variant="secondary" size="sm" className="v7-push" disabled={busy || saving} onClick={requestLodging}
-                            leading={<Ico name="lc-send" size={14} />} trailing={pendingNights.length > 0 ? <span className="v7-count">{pendingNights.length}</span> : undefined}>현지 운영에 수배 요청</AdminButton>}
-                    </div>
-                    <div className="v7-stay-head v7-stay-grid"><span>박</span><span>날짜 · 지역</span><span>숙소</span><span>등급</span><span>객실</span><span>수배 상태</span></div>
-                    {(row?.stays || []).map(nt => {
-                        const st = bookingStatusMeta(nt.bookingStatus);
-                        return <div key={nt.day} className="v7-stay-row v7-stay-grid">
-                            <b className="v7-stay-day">{nt.day}박</b>
-                            <span className="v7-stay-when"><b className="v7-stay-date">{nt.date ? shortDate(nt.date) : '날짜 확인'}</b><span className="v7-stay-region">{nt.region || '지역 미정'}</span></span>
-                            <span className="v7-stay-cell is-hotel">{btnSel(nt.hotel || '숙소 선택', !nt.hotel, e => void nightMenu(e, nt.day, 'hotel'), 'lc-chevron-down', cls('v7-sel is-fit', !nt.hotel && 'is-warn'))}</span>
-                            <span className="v7-stay-cell">{btnSel(nt.grade || '등급 선택', !nt.grade && !nt.hotel, e => void nightMenu(e, nt.day, 'grade'), 'lc-chevron-down', cls('v7-sel is-fit', !nt.grade && !nt.hotel && 'is-warn'))}</span>
-                            <span className="v7-stay-cell">{btnSel(occupancyLabel(nt.occupancy), false, e => void nightMenu(e, nt.day, 'occ'))}</span>
-                            <span className="v7-stay-cell">{nt.hotel ? btnPill(st.label, st.tone, e => void nightMenu(e, nt.day, 'status')) : <button type="button" className="adm-v7-pill is-gray is-blocked" onClick={e => void nightMenu(e, nt.day, 'status')}>숙소 먼저 선택<Ico name="lc-chevron-down" size={12} /></button>}</span>
-                        </div>;
-                    })}
-                    {row && !row.stays.length && <div className="v7-card-note">{row.accN === 0 && startKey ? '숙박이 없는 당일 일정이에요.' : '여행 시작일·종료일을 먼저 확인해 주세요.'}</div>}
-                    {!row && <div className="v7-card-note">{asgLocked ? (m.disabledActionReason || '예약 진행 후 배정할 수 있습니다.') : m.assignments.find(a => a.id === 'stay')?.detail || '숙소 배정은 배정 업무 화면에서 관리합니다.'}</div>}
-                    {assignmentEditor}
-                </div>
-
                 <div id="sec-plan" className="v7-card">
                     <div className="v7-card-head is-nowrap">
                         <span className="v7-tile"><Ico name="lc-route" size={16} /></span><b className="v7-card-title">일정</b>
