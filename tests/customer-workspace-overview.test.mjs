@@ -313,3 +313,18 @@ test('배정 카드의 박별 숙소는 기본 접힘이고 펼치면 한 줄에
     assert.ok(rows[1].includes('Birga Resort') && rows[0].includes('숙소 미배정') && rows[2].includes('숙소 미배정'));
     assert.ok(opened.includes('박별 숙소 접기'));
 });
+
+test('네 칸 카드 제목 줄의 편집은 그 업무의 편집 화면을 열고 배정은 숙소 배정 화면으로 간다', () => {
+    const calls = [];
+    const source = { id: 'res-3', type: 'quote_booking', status: 'confirmed', startDate: '2026-11-27', endDate: '2026-11-28', totalAmount: 0, depositStatus: 'paid' };
+    const { tree } = view({ model, links: { source, userId: 'admin' }, onAction: (...args) => calls.push(args) });
+    byLabel(tree, '결제 편집').props.onClick();
+    byLabel(tree, '분류 편집').props.onClick();
+    byLabel(tree, '서류 편집').props.onClick();
+    assert.deepEqual(calls.map(call => call[0]), ['payments', 'operations', 'documents']);
+    assert.equal(byLabel(tree, '배정 편집').props.to, '/admin/accommodation-ops?open=res-3&source=quote_booking');
+    // 예약 전(배정·결제 잠김)에는 그 카드의 편집이 없다
+    const locked = view({ model: { ...model, disabledActions: ['payments', 'assignments'] } }).tree;
+    assert.equal(byLabel(locked, '결제 편집'), undefined);
+    assert.equal(byLabel(locked, '배정 편집'), undefined);
+});

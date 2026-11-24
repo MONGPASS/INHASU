@@ -239,8 +239,12 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             {done ? <><IconCheckThick aria-hidden="true" />완료</> : left ? `${left}건 남음` : badge}
         </span>;
     };
-    const rdcHead = (Icon: React.ComponentType<{ 'aria-hidden'?: boolean | 'true' }>, title: string, badge: ReactNode) =>
-        <header className="rdc-head"><span className="rdc-tile"><Icon aria-hidden="true" /></span><h2 className="rdc-title">{title}</h2>{badge}</header>;
+    const rdcHead = (Icon: React.ComponentType<{ 'aria-hidden'?: boolean | 'true' }>, title: string, badge: ReactNode, edit?: ReactNode) =>
+        <header className="rdc-head"><span className="rdc-tile"><Icon aria-hidden="true" /></span><h2 className="rdc-title">{title}</h2>{badge}{edit}</header>;
+    /** 카드 제목 줄 끝의 연필 버튼(2026-11-24, 고객 정보 카드의 수정 버튼과 같은 모양): 그 업무의 편집 화면을 연다(배정은 숙소 배정 화면으로 이동). */
+    const cardEdit = (label: string, go: { onClick?: () => void; to?: string }) => <AdminIconButton label={`${label} 편집`} variant="outlined" className="rdc-edit"
+        disabled={busy} onClick={go.onClick} to={go.to}><Ico name="lc-pencil" size={16} /></AdminIconButton>;
+    const lodgeHref = source && source.type !== 'quote' ? `/admin/accommodation-ops?open=${encodeURIComponent(source.id)}&source=${source.type === 'quote_booking' ? 'quote_booking' : 'product'}` : '/admin/accommodation-ops';
     const dot = (done: boolean) => <span className={cls('rdc-dot', done ? 'is-done' : 'is-open')} aria-hidden="true" />;
     const selClass = (warn: boolean, full = false) => cls('rdc-sel', full && 'is-full', warn && 'is-warn');
 
@@ -251,7 +255,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
         <span className="rdc-row-main"><span className="rdc-label">{label}</span><span className="rdc-amount">{amount}</span></span>{control}
     </div>;
     const payCard = <section key="sec-pay" id="sec-pay" className="rdc-card" aria-label="결제">
-        {rdcHead(IconCoins, '결제', payLocked ? cardBadge(null, '예약 전', true) : cardBadge(payLeft))}
+        {rdcHead(IconCoins, '결제', payLocked ? cardBadge(null, '예약 전', true) : cardBadge(payLeft), !payLocked && cardEdit('결제', { onClick: action('payments') }))}
         <div className="rdc-total">
             <span className="rdc-label">총 매출</span>
             <span className="rdc-total-value">{v7Won(pay.total)}</span>
@@ -284,7 +288,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const vehicleSub = [item?.assignment.vehicle?.driver && `기사 ${item.assignment.vehicle.driver}`, row?.vehicle?.phone && maskFact('연락처', row.vehicle.phone, maskOn)].filter(Boolean).join(' · ')
         || m.assignments.find(a => a.id === 'vehicle')?.detail || '';
     const asgCard = <section key="sec-asg" id="sec-asg" className="rdc-card" aria-label="배정">
-        {rdcHead(IconPersons, '배정', asgLocked ? cardBadge(null, '예약 전', true) : cardBadge(asgLeft))}
+        {rdcHead(IconPersons, '배정', asgLocked ? cardBadge(null, '예약 전', true) : cardBadge(asgLeft), !asgLocked && cardEdit('배정', { to: lodgeHref }))}
         <div className="rdc-body">
             {asgField('가이드', !!guideValue, asgLocked ? lockedNote : asgValue(guideValue, '가이드', guidePhone))}
             {asgField('차량', !!vehicleValue, asgLocked ? lockedNote : asgValue(vehicleValue, '차량', vehicleSub))}
@@ -310,7 +314,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
 
     // 분류: 2×2 고르기
     const clsCard = <section key="sec-cls" id="sec-cls" className="rdc-card" aria-label="분류">
-        {rdcHead(IconListCategory, '분류', cardBadge(null, ops ? '완료' : '견적 편집기에서 관리', !ops))}
+        {rdcHead(IconListCategory, '분류', cardBadge(null, ops ? '완료' : '견적 편집기에서 관리', !ops), cardEdit('분류', { onClick: action('operations') }))}
         <div className="rdc-grid2">
             {([['조인여부', 'joining'], ['분류', 'category'], ['구분', 'serviceType'], ['항공', 'airfare']] as const).map(([label, key]) => {
                 const value = ops ? key === 'joining' ? JOINING_LABELS[ops.joining] : (ops[key] || '') as string : key === 'category' ? row?.category || '' : '';
@@ -323,7 +327,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const docAlert = (status?: string) => /실패|필요|미작성|미발송|전/.test(status || '');
     const agreeAlert = !!m.agreement && /전|필요|미/.test(m.agreement.label);
     const docCard = <section key="sec-doc" id="sec-doc" className="rdc-card" aria-label="서류">
-        {rdcHead(IconDocument, '서류', cardBadge(docAlerts))}
+        {rdcHead(IconDocument, '서류', cardBadge(docAlerts), cardEdit('서류', { onClick: action('documents') }))}
         <div className="rdc-body">
             {m.documents.map(doc => <div key={doc.id} className="rdc-row">
                 <span className="rdc-row-main"><span className="rdc-row-title">{doc.label}</span>

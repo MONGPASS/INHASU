@@ -11,6 +11,8 @@
 .rdc-tile { display: inline-flex; flex: none; align-items: center; justify-content: center; width: calc(var(--adm-space-8) + var(--adm-space-1)); height: calc(var(--adm-space-8) + var(--adm-space-1));
   border-radius: var(--adm-radius-sm); background: var(--adm-gray-100); color: var(--adm-text-2); font-size: var(--adm-fs-section); }
 .rdc-tile svg, .rdc-badge svg { width: 1em; height: 1em; }
+/* 제목 줄 끝의 연필(편집) 버튼 — 고객 정보 카드의 수정 버튼과 같은 모양 */
+.rdc-head .rdc-edit { flex: none; }
 .rdc-title { flex: 1 1 auto; margin: 0; color: var(--adm-text); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); }
 .rdc-badge { display: inline-flex; align-items: center; gap: var(--adm-space-1); padding: var(--adm-space-1) var(--adm-space-2); border-radius: var(--adm-radius-xs);
   font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); white-space: nowrap; }
