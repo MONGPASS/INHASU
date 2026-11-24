@@ -298,3 +298,20 @@ test('고객 통합 작업에서는 가이드·차량·숙소를 배정하지 �
     assert.deepEqual(scrolled, ['#sec-asg']);
     assert.deepEqual(calls, []);
 });
+
+test('배정 카드의 박별 숙소는 기본 접힘이고 펼치면 한 줄에 한 박씩, 미배정 박도 겹치지 않게 보여 준다', () => {
+    const source = { id: 'res-2', type: 'product', status: 'confirmed', startDate: '2026-11-27', endDate: '2026-11-30', totalAmount: 0, depositStatus: 'paid',
+        dailyAccommodations: [{ day: 2, date: '2026-11-28', accommodation: { name: 'Birga Resort', type: '고급게르', bookingStatus: '예약완료' } }] };
+    const first = view({ model, links: { source, userId: 'admin' } });
+    const closed = renderToStaticMarkup(first.tree);
+    assert.ok(closed.includes('박별 숙소 보기 · 3박'));
+    assert.ok(!closed.includes('class="rdc-stay-list"'));
+    byText(first.tree, '박별 숙소 보기 · 3박').props.onClick();
+    assert.equal(first.st.staysOpen, true);
+    const opened = renderToStaticMarkup(view({ model, links: { source, userId: 'admin' } }, first.st).tree);
+    const rows = opened.match(/<li class="rdc-stay">.*?<\/li>/g) || [];
+    assert.equal(rows.length, 3, 'one line per night');
+    assert.deepEqual(rows.map(row => row.match(/rdc-stay-day">(\d+)박/)[1]), ['1', '2', '3']);
+    assert.ok(rows[1].includes('Birga Resort') && rows[0].includes('숙소 미배정') && rows[2].includes('숙소 미배정'));
+    assert.ok(opened.includes('박별 숙소 접기'));
+});

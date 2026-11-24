@@ -87,9 +87,11 @@ export interface DetailState {
     maskOn: boolean; sections: Record<string, boolean>; travelerOpen: number; dayOpen: Record<string, boolean>;
     /** 구역 탭에서 마지막으로 고른 구역(밑줄 표시용). */
     navSid: string;
+    /** 배정 카드의 박별 숙소 목록을 펼쳤는지(기본 접힘). */
+    staysOpen: boolean;
 }
 export const initialDetailState = (): DetailState => ({ allItems: [], resources: null, menu: null, toast: '', saving: false, maskOn: true,
-    sections: {}, travelerOpen: 0, dayOpen: {}, navSid: 'sec-plan' });
+    sections: {}, travelerOpen: 0, dayOpen: {}, navSid: 'sec-plan', staysOpen: false });
 export type DetailSet = (patch: Partial<DetailState> | ((s: DetailState) => Partial<DetailState>)) => void;
 export interface DetailEnv { mounted: { current: boolean }; toastTimer: { current: number | undefined }; root: { current: HTMLElement | null } }
 
@@ -290,10 +292,19 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             {asgField('차량', !!vehicleValue, asgLocked ? lockedNote : asgValue(vehicleValue, '차량', vehicleSub))}
             <div className={cls('rdc-box', stayAlert ? 'is-alert' : 'is-soft')}>
                 <div className="rdc-box-head"><span className={cls('rdc-label', stayAlert && 'is-alert')}>{dot(!stayAlert)}숙소{stayAlert ? ' · 확정 필요' : ''}</span><span className="rdc-box-value">{stayText}</span></div>
-                {nights.length > 0 && <div className="rdc-nights">
-                    {nights.slice(0, 6).map(n => <span key={n.rowIndex} className={n.hotel ? 'rdc-night' : 'rdc-night is-warn'}>{n.day}박째 · {n.hotel ? `${n.hotel} · ${bookingStatusMeta(n.bookingStatus).label}` : '숙소 미배정'}</span>)}
-                    {nights.length > 6 && <span className="rdc-night">+{nights.length - 6}박 더</span>}
-                </div>}
+                {/* 박별 숙소: 기본 접힘, 펼치면 한 줄에 한 박(박 · 날짜 · 숙소 · 수배 상태). key는 박 번호 — 미배정 박은 rowIndex가 모두 -1이라 겹친다 */}
+                {nights.length > 0 && <AdminTextButton size="sm" tone="assistive" className="rdc-stay-toggle" aria-expanded={st.staysOpen} aria-controls="rdc-stay-list"
+                    onClick={() => set(s => ({ staysOpen: !s.staysOpen }))} trailing={<Ico name="lc-chevron-down" size={14} />}>
+                    {st.staysOpen ? '박별 숙소 접기' : `박별 숙소 보기 · ${nights.length}박`}
+                </AdminTextButton>}
+                {nights.length > 0 && st.staysOpen && <ul id="rdc-stay-list" className="rdc-stay-list">
+                    {nights.map(n => <li key={n.day} className="rdc-stay">
+                        <b className="rdc-stay-day">{n.day}박</b>
+                        <span className="rdc-stay-date">{n.date ? shortDate(n.date) : '날짜 확인'}</span>
+                        <span className={n.hotel ? 'rdc-stay-name' : 'rdc-stay-name is-warn'}>{n.hotel || '숙소 미배정'}</span>
+                        {n.hotel && <span className="rdc-stay-status">{bookingStatusMeta(n.bookingStatus).label}</span>}
+                    </li>)}
+                </ul>}
                 {asgLocked ? lockedNote : <div className="rdc-asg-links">
                     <AdminButton size="sm" variant="secondary" fullWidth to={GUIDE_SCHEDULE_HREF} trailing={<Ico name="lc-arrow-right" size={14} />}>가이드·차량 배정</AdminButton>
                     <AdminButton size="sm" variant="primary" fullWidth to={lodgeHref} trailing={<Ico name="lc-arrow-right" size={14} />}>숙소 배정</AdminButton>
