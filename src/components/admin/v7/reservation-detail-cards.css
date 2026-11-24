@@ -10,15 +10,23 @@
 .rdc-head { display: flex; align-items: center; gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); padding: var(--adm-space-5) var(--adm-space-5) 0; }
 .rdc-tile { display: inline-flex; flex: none; align-items: center; justify-content: center; width: calc(var(--adm-space-8) + var(--adm-space-1)); height: calc(var(--adm-space-8) + var(--adm-space-1));
   border-radius: var(--adm-radius-sm); background: var(--adm-gray-100); color: var(--adm-text-2); font-size: var(--adm-fs-section); }
-.rdc-tile svg, .rdc-badge svg { width: 1em; height: 1em; }
+.rdc-tile svg { width: 1em; height: 1em; }
+/* 카드 상태: 아이콘 모서리 표시(남은 건수 빨강 · 완료 민트 체크)와 아이콘 아래 말풍선(올리거나 키보드로 고르면 보인다) */
+.rdc-tile { position: relative; }
+.rdc-tile-mark { position: absolute; top: -6px; right: -6px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 18px;
+  height: calc(var(--adm-space-4) + var(--adm-space-0-5)); padding: 0 var(--adm-space-1); border: 2px solid var(--adm-surface); border-radius: var(--adm-radius-pill);
+  font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-bold); line-height: 1; }
+.rdc-tile.is-left .rdc-tile-mark { background: var(--adm-danger); color: var(--adm-on-dark); }
+.rdc-tile.is-done .rdc-tile-mark { background: var(--adm-accent); color: var(--adm-on-primary); }
+.rdc-tile[data-tip] { cursor: help; }
+.rdc-tile[data-tip]:focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-accent-strong); outline-offset: var(--adm-border-width); }
+.rdc-tile[data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; padding: var(--adm-space-1) var(--adm-space-2);
+  border-radius: var(--adm-radius-sm); background: var(--adm-ink); color: var(--adm-on-dark); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold);
+  white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity var(--adm-dur) var(--adm-ease); }
+.rdc-tile[data-tip]:hover::after, .rdc-tile[data-tip]:focus-visible::after { opacity: 1; }
 /* 제목 줄 끝의 연필(편집) 버튼 — 고객 정보 카드의 수정 버튼과 같은 모양 */
 .rdc-head .rdc-edit { flex: none; }
 .rdc-title { flex: 1 1 auto; margin: 0; color: var(--adm-text); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); }
-.rdc-badge { display: inline-flex; align-items: center; gap: var(--adm-space-1); padding: var(--adm-space-1) var(--adm-space-2); border-radius: var(--adm-radius-xs);
-  font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); white-space: nowrap; }
-.rdc-badge.is-done { background: var(--adm-accent-soft); color: var(--adm-accent-strong); }
-.rdc-badge.is-left { background: var(--adm-danger-soft); color: var(--adm-danger); }
-.rdc-badge.is-muted { background: var(--adm-gray-100); color: var(--adm-text-3); }
 
 /* 결제: 총 매출과 예약금·잔금 막대 */
 .rdc-total { display: flex; flex-direction: column; gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); padding: var(--adm-space-5) var(--adm-space-5) var(--adm-space-4); }

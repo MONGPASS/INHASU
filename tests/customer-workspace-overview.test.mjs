@@ -144,7 +144,10 @@ test('서류 카드는 저장된 문서의 기존 액션만 열고 없는 문서
     assert.deepEqual(calls, [['quote-preview', 'quote'], ['contract', 'contract']]);
     byText(card, '공개·전달 관리').props.onClick();
     assert.deepEqual(calls.at(-1), ['documents', undefined]);
-    assert.ok(childrenText(card).includes('1건 남음') || childrenText(card).includes('2건 남음'));
+    // 남은 건수는 아이콘 모서리 숫자와 아이콘 말풍선(data-tip)으로 보인다
+    const tile = elements(card, node => node.props?.className?.includes?.('rdc-tile'))[0];
+    assert.match(tile.props['data-tip'], /^[12]건 남음$/);
+    assert.match(tile.props['aria-label'], /^서류 · [12]건 남음$/);
 });
 
 test('결제는 0원과 미확인 금액을 구분하고 입금 확인 상태만 버튼에 표시한다', () => {

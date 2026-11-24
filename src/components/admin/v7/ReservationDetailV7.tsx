@@ -245,14 +245,24 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const lockedNote = mutedNote('예약 후 배정할 수 있어요'), payNote = mutedNote('예약 후 관리할 수 있어요');
     // Claude Design ‘예약 관리 · 강력 개선안’ 예약상세 카드(2026-11-23): 결제·배정·분류·서류 네 칸.
     // 모양은 reservation-detail-cards.css(rdc-*)가 정하고, 버튼 동작은 예전 카드와 같다(입금·배정·분류 고르기, 서류 열기, 업무 화면 열기).
-    const cardBadge = (left: number | null, badge?: string, muted = false) => {
+    /** 카드 상태(2026-11-24): 제목 줄 꼬리표 대신 아이콘 모서리 표시(남은 건수·완료 체크) + 아이콘에 올리면 뜨는 말풍선. */
+    type CardState = { text: string; tone: 'done' | 'left' | 'muted'; mark?: ReactNode };
+    const cardBadge = (left: number | null, badge?: string, muted = false): CardState => {
         const done = left === 0 || (left === null && badge === '완료' && !muted);
-        return <span className={cls('rdc-badge', muted ? 'is-muted' : done ? 'is-done' : left ? 'is-left' : 'is-muted')}>
-            {done ? <><IconCheckThick aria-hidden="true" />완료</> : left ? `${left}건 남음` : badge}
-        </span>;
+        if (muted) return { text: badge || '', tone: 'muted' };
+        if (done) return { text: '완료', tone: 'done', mark: <IconCheckThick aria-hidden="true" /> };
+        if (left) return { text: `${left}건 남음`, tone: 'left', mark: left };
+        return { text: badge || '', tone: 'muted' };
     };
-    const rdcHead = (Icon: React.ComponentType<{ 'aria-hidden'?: boolean | 'true' }>, title: string, badge: ReactNode, edit?: ReactNode) =>
-        <header className="rdc-head"><span className="rdc-tile"><Icon aria-hidden="true" /></span><h2 className="rdc-title">{title}</h2>{badge}{edit}</header>;
+    const rdcHead = (Icon: React.ComponentType<{ 'aria-hidden'?: boolean | 'true' }>, title: string, state: CardState, edit?: ReactNode) =>
+        <header className="rdc-head">
+            <span className={cls('rdc-tile', `is-${state.tone}`)} data-tip={state.text || undefined} tabIndex={state.text ? 0 : undefined}
+                role={state.text ? 'img' : undefined} aria-label={state.text ? `${title} · ${state.text}` : undefined}>
+                <Icon aria-hidden="true" />
+                {state.mark != null && <span className="rdc-tile-mark" aria-hidden="true">{state.mark}</span>}
+            </span>
+            <h2 className="rdc-title">{title}</h2>{edit}
+        </header>;
     /** 카드 제목 줄 끝의 연필 버튼(2026-11-24, 고객 정보 카드의 수정 버튼과 같은 모양): 그 업무의 편집 화면을 연다(배정은 숙소 배정 화면으로 이동). */
     const cardEdit = (label: string, go: { onClick?: () => void; to?: string }) => <AdminIconButton label={`${label} 편집`} variant="outlined" className="rdc-edit"
         disabled={busy} onClick={go.onClick} to={go.to}><Ico name="lc-pencil" size={16} /></AdminIconButton>;
