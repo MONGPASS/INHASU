@@ -54,6 +54,16 @@ export function validQuoteDraft(value: unknown): boolean {
     return ['options', 'balances'].every(field => !Array.isArray(value[field]) || value[field].every(isRecord));
 }
 
+/** 예약 초안 모양 확인(옛 quote-editor-state.js의 validBooking과 같다) */
+export function validBookingDraft(value: unknown): boolean {
+    if (!isRecord(value)) return false;
+    const v = value as Record<string, any>;
+    return ['days', 'highlights', 'travelers'].every(field => v[field] === undefined || (Array.isArray(v[field]) && v[field].every(isRecord)))
+        && validQuoteDraft({ days: v.days })
+        && ['assign', 'contractInfo', 'flight', 'checklist'].every(field => v[field] == null || isRecord(v[field]))
+        && (v.assign?.lodges === undefined || (Array.isArray(v.assign.lodges) && v.assign.lodges.every(isRecord)));
+}
+
 export interface DraftScope { account: string; kind: string; requestId: string }
 export type DraftRead = { kind: 'empty' } | { kind: 'error'; error: string } | { kind: 'draft'; value: Json; savedAt: string; legacy: boolean; conflict: boolean };
 type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;

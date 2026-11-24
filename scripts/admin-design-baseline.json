@@ -134,6 +134,15 @@
   "hex": 0,
   "nativeDialog": 0
  },
+ "src/components/admin/QuoteBookingEditorPanel.tsx": {
+  "rawButton": 0,
+  "rawField": 0,
+  "rawTable": 0,
+  "inlineStyle": 0,
+  "px": 0,
+  "hex": 0,
+  "nativeDialog": 0
+ },
  "src/components/admin/QuoteDayEditor.tsx": {
   "rawButton": 0,
   "rawField": 0,
@@ -815,6 +824,11 @@
   "rawPx": 0
  },
  "src/components/admin/CustomerWorkspaceOverview.css": {
+  "hex": 0,
+  "important": 0,
+  "rawPx": 0
+ },
+ "src/components/admin/QuoteBookingEditorPanel.css": {
   "hex": 0,
   "important": 0,
   "rawPx": 0

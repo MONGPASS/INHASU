@@ -19,6 +19,8 @@
 .quote-customer-page.is-editing{display:flex;flex-direction:column;overflow:hidden}
 .quote-customer-editor-shell{position:relative;display:flex;flex-direction:column;min-width:0;height:0;overflow:hidden;background:var(--adm-surface);scroll-margin-top:var(--adm-space-4)}
 .quote-customer-editor-shell.is-expanded{flex:1;height:auto;min-height:0;max-width:none;margin:0;border:0;border-radius:0}
+/* React 작업 화면(문의 상세·견적 편집·예약 편집과 작업 탭)은 줄어들지 않고 자기 높이대로 쌓인다 */
+.quote-customer-editor-shell.is-expanded>*{flex-shrink:0}
 /* Customer editor heading — Admin Dashboard v3 "일정표 편집": back button, name + glow badge.
    The share/guide actions continue directly below inside the frame (body>header). */
 .quote-customer-editor-heading{position:relative;z-index:3;display:flex;flex:none;align-items:center;gap:var(--adm-space-3);padding:var(--adm-space-2) var(--adm-pad-page);border-bottom:var(--adm-border-width) solid var(--adm-line);background:var(--adm-surface)}

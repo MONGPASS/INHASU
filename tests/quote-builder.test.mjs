@@ -188,7 +188,8 @@ test('견적서 만들기 메뉴는 React로 열리고, 고객 화면 안 편집
     assert.match(page, /navigate\(section\) \{ navStep\.current = section === 'quote-share' \? STEPS\.length - 1 : 1;/, '옛 setStep(4)·setStep(1)과 같은 단계');
     assert.match(page, /setStep\(navStep\.current \?\? 0\)/, '불러오기 전에 고른 단계로 연다');
     const desk = readFileSync('src/pages/AdminQuoteDesk.tsx', 'utf8');
-    assert.match(desk, /customerPage && \(tool\.key === 'inbox' \|\| tool\.key === 'builder'\)\n\s+\? 'about:blank'/, '고객 화면은 견적만들기 iframe을 만들지 않는다');
+    assert.doesNotMatch(desk, /견적만들기\?id=/, '고객 화면은 견적만들기 iframe을 만들지 않는다');
+    assert.match(desk, /const nativeEditor = nativeInquiry \|\| nativeBuilder \|\| nativeBooking;/, '고객 화면의 작업은 모두 React 편집기(iframe 없음)');
     assert.match(desk, /const nativeBuilder = customerPage && tool\.key === 'builder';/);
     assert.match(desk, /if \(nativeBuilder\) return builderRef\.current\?\.flushAll\(\) \|\| \{ ok: true, busy: false \};/, '이동·새로고침 보호가 견적 초안을 보관한다');
     assert.match(desk, /if \(nativeBuilder\) return !!builderRef\.current\?\.navigate\(section\);/);
