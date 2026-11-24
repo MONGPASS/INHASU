@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
-import { Icon } from '../components/admin/console/Icon';
+import { Icon, MaterialIcon } from '../components/admin/console/Icon';
+import { IconApps, IconArrowDown, IconChevronLeft, IconMegaphone, IconUpload } from '../components/admin/ui/AdminIcons';
 import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
 import { api } from '../lib/api';
 import { uploadImage } from '../utils/upload';
@@ -128,19 +129,20 @@ const DEFAULT_CATEGORY_TABS: CategoryTab[] = [
     },
 ];
 
-/* Lucide outlines (ISC) that DashboardIcon does not carry. `lc-` keys keep them out of the Material Symbols subset check. */
-const HM_PATHS = {
+/* 이 화면 아이콘 → 당근 Seed(2026-11-24). 휴대폰·PC 미리보기 전환 두 개만 Seed 모양이 저장소에 없어 예전 Lucide 선(ISC)으로 둔다.
+   `lc-` 키는 Material 아이콘 검사(scripts/check-icon-subset.mjs)에 걸리지 않게 하려는 것이다. */
+const HM_SEED = {
+    'lc-arrow-down': IconArrowDown, 'lc-arrow-left': IconChevronLeft, 'lc-upload': IconUpload, 'lc-megaphone': IconMegaphone, 'lc-layout-grid': IconApps,
+} as const;
+const HM_LINE = {
     'lc-smartphone': <><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" /></>,
     'lc-monitor': <><rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" x2="16" y1="21" y2="21" /><line x1="12" x2="12" y1="17" y2="21" /></>,
-    'lc-arrow-down': <><path d="M12 5v14" /><path d="m19 12-7 7-7-7" /></>,
-    'lc-arrow-left': <><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></>,
-    'lc-upload': <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></>,
-    'lc-megaphone': <><path d="m3 11 18-5v12L3 14v-3z" /><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></>,
-    'lc-layout-grid': <><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></>,
 } as const;
-const HmIcon = ({ name, size = 16 }: { name: keyof typeof HM_PATHS; size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flex: 'none', display: 'block' }}>{HM_PATHS[name]}</svg>
-);
+const hmGlyphStyle: React.CSSProperties = { flex: 'none', display: 'block' };
+const HmIcon = ({ name, size = 16 }: { name: keyof typeof HM_SEED | keyof typeof HM_LINE; size?: number }) => {
+    if (name in HM_SEED) { const Glyph = HM_SEED[name as keyof typeof HM_SEED]; return <Glyph width={size} height={size} focusable="false" style={hmGlyphStyle} />; }
+    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={hmGlyphStyle}>{HM_LINE[name as keyof typeof HM_LINE]}</svg>;
+};
 
 const EVENT_COLORS = ['#0F766E', '#12b28c', '#6D28D9', '#E11D48', '#1A1B1E'];
 const EVENT_PLACES: { value: NonNullable<EventBanner['location']>; label: string; summary: string }[] = [
@@ -509,7 +511,7 @@ export const AdminBannerManage: React.FC = () => {
             <div className="hm-icon-top">
                 <button type="button" className={`hm-icon-img${link.image ? ' has-image' : ''}`} title="이미지 변경" aria-label={`바로가기 #${index + 1} 이미지 변경`}
                     onClick={() => { setSelectedId(link.id); iconFileInputRef.current?.click(); }}>
-                    {link.image ? <img src={link.image} alt="" /> : <Icon name={link.icon} />}
+                    {link.image ? <img src={link.image} alt="" /> : <MaterialIcon name={link.icon} />}
                 </button>
                 <span className="hm-icon-meta"><span className="hm-icon-num">#{index + 1}</span><span className={`hm-name${link.label ? '' : ' is-empty'}`}>{link.label || '이름 없음'}</span></span>
             </div>
@@ -555,7 +557,7 @@ export const AdminBannerManage: React.FC = () => {
                                     <span className="hm-mov-tag">{banner.tag}</span>
                                     <span className="hm-mov-title">{banner.title}</span>
                                 </span>
-                                {!banner.image && banner.icon && <Icon name={banner.icon} />}
+                                {!banner.image && banner.icon && <MaterialIcon name={banner.icon} />}
                                 <span className="hm-upload-pill"><HmIcon name="lc-upload" size={12} />{banner.image ? '이미지 바꾸기' : '이미지 올리기 (선택)'}</span>
                             </button>
                             {banner.image && <button type="button" className="hm-btn-sm" onClick={() => clearEventImage(banner.id)}>이미지 제거 · 배경색 사용</button>}

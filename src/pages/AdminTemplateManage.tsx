@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
 import { ReservationDocumentEditor, type ReservationDocContent } from '../components/admin/ReservationDocumentEditor';
-import { Icon } from '../components/admin/console/Icon';
+// 문서 템플릿 화면은 고객 문서 미리보기와 같은 Material 아이콘을 쓴다(화면을 Seed로 다시 짤 때 편집 도구 아이콘만 Icon*으로)
+import { MaterialIcon as Icon } from '../components/admin/console/Icon';
 import { api } from '../lib/api';
 import { BRAND, COMPANY_INFO, CONTRACT_CANCELLATION_ROWS, DEPOSIT_ACCOUNT, DEPOSIT_PAYMENT_METHOD, resolveCancellationRows, resolveDepositMethod } from '../constants/company';
 import { uploadImage } from '../utils/upload';

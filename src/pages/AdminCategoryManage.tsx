@@ -5,7 +5,7 @@ import { uploadImage } from '../utils/upload';
 import { useAdminContentGuard, type AdminContentState } from '../hooks/useAdminContentGuard';
 import { createAdminContentTask, moveAdminRow } from '../utils/adminContentWorkflow';
 import { AdminLayout } from '../components/admin/AdminLayout';
-import { Icon } from '../components/admin/console/Icon';
+import { MaterialIcon } from '../components/admin/console/Icon';
 import {
     AdminBadge, AdminButton, AdminCard, AdminDialog, AdminEmpty, AdminError, AdminField, AdminFileButton, AdminIconButton, AdminLoading,
     AdminMessage, AdminSwitch, AdminTable, AdminTbody, AdminTd, AdminTextArea, AdminTextButton, AdminTextInput, AdminTh, AdminThead, AdminTr,
@@ -261,7 +261,7 @@ export const AdminCategoryManage: React.FC = () => {
                                                 <AdminTd className="cg-c-icon">
                                                     {isImageIcon(category.icon)
                                                         ? <img src={category.icon} alt={category.name} className="cg-icon" />
-                                                        : <span className="cg-icon" aria-hidden="true"><Icon name={category.icon} /></span>}
+                                                        : <span className="cg-icon" aria-hidden="true"><MaterialIcon name={category.icon} /></span>}
                                                 </AdminTd>
                                                 <AdminTd className="cg-name" nowrap>{category.name}</AdminTd>
                                                 <AdminTd className="cg-desc">{category.description || '—'}</AdminTd>

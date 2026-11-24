@@ -170,6 +170,13 @@ Montage를 화면에서 직접 쓰게 강제하면 단점이 있다:
 > - 틀 CSS 읽는 순서 고정: 상단 바 도구가 `console/Icon`을 그만 쓰자 빌드가 `admin-console.css`(로그인과 함께 씀)를 따로 떼어 맨 뒤에 읽게 되어 화면 제목이 상단 바로 올라갔다. 틀 CSS 네 장을 `src/styles/adminShell.ts` 한 모듈로 묶어 AdminLayout·로그인이 함께 가져오게 했다(`tests/admin-design-tokens.test.mjs`가 순서를 검사).
 > - 전체 전환율 82%→83%.
 
+> **관리자 아이콘 전부 Seed로(2026-11-24, `feature/seed-icons-all`)** — 예전 이름으로 부르는 두 부품이 Seed 모양을 그린다.
+> - `ui/legacyIconNames.ts`: Lucide 이름 81개(`DashboardIcon`)·Material 이름 236개(`console/Icon`) → Seed `Icon*`. `DashboardIcon`은 Lucide 선을 더 그리지 않고, `console/Icon`은 바깥 `span.material-symbols-outlined`를 그대로 두어 화면 CSS가 정한 크기·색이 Seed 아이콘(1em, `.adm-glyph > svg`)에 똑같이 적용된다. 표에 없는 이름만 Material 글꼴.
+> - Seed 아이콘 29개 추가(76개): 저장소에 있던 SVG 11개 + `daangn/seed-icon`(Apache-2.0)에서 받은 18개(copy·car·restaurant·translate·handle·view_count·near_me·convert·filter02·call·note·photo_several·certification·ai·chatting_send·prohibition·list_card·walk). Seed에 없는 호텔·침대는 집, 비행기는 보내기 화살표(near_me).
+> - 휴대폰 아래 메뉴는 사이드바와 같은 Seed 아이콘을 바로 쓴다. 대시보드·홈 화면 관리·매거진의 화면 전용 Lucide 선도 Seed로.
+> - Material 그대로(7절): 카테고리·배너 아이콘(자료), 문서 템플릿 화면(고객 문서 미리보기). Lucide 그대로: 홈 화면 관리의 휴대폰·PC 미리보기 2종.
+> - `tests/admin-legacy-icons.test.mjs`: 예전 부품을 새 파일에서 쓰면 실패, `console/Icon`에 넘기는 글자 이름이 모두 표에 있는지, 표가 실제 Seed 아이콘만 가리키는지 검사.
+
 ### 단계 4. 상세형·입력형·대시보드형
 - 고객 예약 상세(`v7/ReservationDetailV7.tsx`, `CustomerWorkspaceOverview`, `Reservation*`) — 상세형 기준
 - 상품 추가·수정(`AdminProductManage.tsx`의 `ProductModal`, 디자인 블록 편집기는 기능 유지) — 입력형 기준

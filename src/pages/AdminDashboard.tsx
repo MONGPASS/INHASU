@@ -6,6 +6,7 @@ import {
 } from '../components/admin/ui';
 import { useAdminWorkspace } from '../components/admin/AdminWorkspaceContext';
 import { DashboardIcon, type DashboardIconName } from '../components/admin/dashboard/DashboardIcon';
+import { IconBlock, IconCalendar, IconCoins, IconDocument, IconListCategory, IconWrite } from '../components/admin/ui/AdminIcons';
 import { TrafficSources } from '../components/admin/dashboard/TrafficSources';
 import { useEntrance, type DashboardTipFor, type DashboardTipLine } from '../components/admin/dashboard/dashboardMotion';
 import type { AdminWorkspaceData } from '../types/adminWorkspace';
@@ -26,26 +27,24 @@ interface DashboardState {
 interface Tip { x: number; y: number; title: string; lines: DashboardTipLine[] }
 
 /**
- * Lucide outlines (ISC, lucide-static@0.460.0) this page needs beyond the shared DashboardIcon set.
- * `lc-` keys keep scripts/check-icon-subset.mjs from reading them as Material Symbols names.
+ * 공통 DashboardIcon 표에 없는 이 화면 전용 이름 → 당근 Seed 아이콘(2026-11-24, 예전 Lucide 선 대신).
+ * `lc-` 키는 scripts/check-icon-subset.mjs가 Material 이름으로 읽지 않게 하려는 것이다.
  */
 const PAGE_ICONS = {
-    'lc-wallet': <><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></>,
-    'lc-calendar-plus': <><path d="M8 2v4" /><path d="M16 2v4" /><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8" /><path d="M3 10h18" /><path d="M16 19h6" /><path d="M19 16v6" /></>,
-    'lc-file-plus': <><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M9 15h6" /><path d="M12 18v-6" /></>,
-    'lc-list': <><path d="M3 12h.01" /><path d="M3 18h.01" /><path d="M3 6h.01" /><path d="M8 12h13" /><path d="M8 18h13" /><path d="M8 6h13" /></>,
-    'lc-user-x': <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="17" x2="22" y1="8" y2="13" /><line x1="22" x2="17" y1="8" y2="13" /></>,
-    'lc-file-pen-line': <><path d="m18 5-2.414-2.414A2 2 0 0 0 14.172 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2" /><path d="M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" /><path d="M8 18h1" /></>,
+    'lc-wallet': IconCoins,
+    'lc-calendar-plus': IconCalendar,
+    'lc-file-plus': IconDocument,
+    'lc-list': IconListCategory,
+    'lc-user-x': IconBlock,
+    'lc-file-pen-line': IconWrite,
 } as const;
 type PageIconName = keyof typeof PAGE_ICONS;
 type AnyIcon = DashboardIconName | PageIconName;
 
 function PageIcon({ name, size = 16 }: { name: AnyIcon; size?: number }) {
     if (!(name in PAGE_ICONS)) return <DashboardIcon name={name as DashboardIconName} size={size} />;
-    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
-        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" className={styles.pageIcon}>
-        {PAGE_ICONS[name as PageIconName]}
-    </svg>;
+    const Glyph = PAGE_ICONS[name as PageIconName];
+    return <Glyph width={size} height={size} focusable="false" className={styles.pageIcon} />;
 }
 
 const TASK_TABS: { kind: DashboardTaskKind; label: string; icon: AnyIcon; chip: AnyIcon; action: string }[] = [

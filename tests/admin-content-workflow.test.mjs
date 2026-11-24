@@ -25,7 +25,7 @@ const result = await build({ stdin: { contents: `
             : path === 'react-router-dom' ? `export const useBlocker=predicate=>{globalThis.h.predicate=predicate;return globalThis.h.blocker};`
             : path === 'AdminLayout' ? `export const AdminLayout='layout';`
             : path === 'admin-ui' ? stubModule(namedImports('../components/admin/ui'))
-            : path === 'Icon' ? `export const Icon='icon';`
+            : path === 'Icon' ? `export const Icon='icon';export const MaterialIcon='icon';`
             : path === 'adminFeedback' ? `export const adminNotify=()=>{};export const adminConfirm=async m=>(typeof window!=='undefined'&&window.confirm?!!window.confirm(typeof m==='string'?m:m.message):true);`
             : path === 'api' ? `export const api=new Proxy({}, {get:(_,key)=>globalThis.adapters.api[key]});`
             : `export const uploadImage=(...args)=>globalThis.adapters.upload(...args);` }));

@@ -13,21 +13,22 @@ import { useUser } from '../contexts/UserContext';
 import { magazineDraftFingerprint, readMagazineDraft, writeMagazineDraft, removeMagazineDraft, type MagazineDraftScope, type MagazineDraftRead, type MagazineDraftResult, type MagazineDraftForm } from '../utils/adminMagazineDraft';
 import './AdminContentManage.css';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import { IconBook, IconChevronUp, IconImage, IconWrite } from '../components/admin/ui/AdminIcons';
 import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 
-/** Lucide outlines (ISC) that DashboardIcon does not carry. Keys keep the `lc-` prefix for the icon-subset check. */
+/** 이 화면 아이콘 → 당근 Seed(2026-11-24, 예전 Lucide 선 대신). `lc-` 키는 Material 아이콘 검사에 걸리지 않게 하려는 것이다. */
 const MAGAZINE_ICONS = {
-    'lc-square-pen': <><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" /></>,
-    'lc-image': <><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></>,
-    'lc-chevron-up': <path d="m18 15-6-6-6 6" />,
-    'lc-book-open':<><path d="M12 7v14" /><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></>,
+    'lc-square-pen': IconWrite,
+    'lc-image': IconImage,
+    'lc-chevron-up': IconChevronUp,
+    'lc-book-open': IconBook,
 } as const;
 
-const MagazineIcon: React.FC<{ name: keyof typeof MAGAZINE_ICONS; size?: number }> = ({ name, size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flex: 'none', display: 'block' }}>
-        {MAGAZINE_ICONS[name]}
-    </svg>
-);
+const magazineGlyphStyle: React.CSSProperties = { flex: 'none', display: 'block' };
+const MagazineIcon: React.FC<{ name: keyof typeof MAGAZINE_ICONS; size?: number }> = ({ name, size = 16 }) => {
+    const Glyph = MAGAZINE_ICONS[name];
+    return <Glyph width={size} height={size} focusable="false" style={magazineGlyphStyle} />;
+};
 
 interface Magazine {
     id: string;
