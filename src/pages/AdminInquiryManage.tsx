@@ -1,17 +1,25 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AdminLayout } from '../components/admin/AdminLayout';
-import { DashboardIcon } from '../components/admin/dashboard/DashboardIcon';
+import {
+    AdminBadge, AdminButton, AdminChipGroup, AdminEmpty, AdminError, AdminField, AdminIconButton, AdminLoading, AdminMessage, AdminSearch,
+    AdminStat, AdminStatRow, AdminTextArea, AdminTextButton, IconClock, IconClose, IconMail, IconRefresh, IconTicket, IconTrash,
+    adminConfirm, adminNotify, type AdminBadgeProps,
+} from '../components/admin/ui';
 import { api } from '../lib/api';
 import type { InquiryRecord, InquiryStatus } from '../types/inquiry';
-import './AdminContentManage.css';
-import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
+import './AdminInquiryManage.css';
 
+/*
+ * 일반 문의 — 당근 Seed(은하수 판) 관리자 부품으로 그린다(2026-11-24).
+ * 요약·검색·칩·입력칸·버튼·알림·빈 화면은 우리 관리자 부품이고, 목록 줄·첫 글자 동그라미·문의 말풍선만 AdminInquiryManage.css가 그린다.
+ * API 호출·저장 순서는 바꾸지 않았다. 다른 문의로 옮길 때 묻는 확인은 브라우저 기본 창 대신 공통 확인 창(adminConfirm)이다.
+ */
 type StatusFilter = InquiryStatus | 'all';
 
-const STATUS_META: Record<InquiryStatus, { label: string; tone: 'mint' | 'gray' }> = {
-    new: { label: '신규', tone: 'mint' },
-    answered: { label: '답변 완료', tone: 'mint' },
-    closed: { label: '종료', tone: 'gray' },
+const STATUS_META: Record<InquiryStatus, { label: string; tone: AdminBadgeProps['tone'] }> = {
+    new: { label: '신규', tone: 'warn' },
+    answered: { label: '답변 완료', tone: 'success' },
+    closed: { label: '종료', tone: 'neutral' },
 };
 const STATUS_ORDER: InquiryStatus[] = ['new', 'answered', 'closed'];
 
@@ -25,25 +33,6 @@ const QUICK_PHRASES: Array<{ label: string; text: string; append?: boolean }> = 
     { label: '견적 안내', text: '말씀하신 일정으로 맞춤 견적을 준비해 드릴게요. 희망 출발일과 인원을 한 번 더 알려 주세요.\n' },
     { label: '마무리', text: '\n더 궁금한 점이 있으면 언제든 편하게 문의해 주세요. 감사합니다.', append: true },
 ];
-
-/** Lucide outlines (ISC) that DashboardIcon does not carry. Keys keep the `lc-` prefix for the icon-subset check. */
-const LOCAL_ICONS = {
-    'lc-inbox': <><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></>,
-    'lc-mail': <><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></>,
-    'lc-mail-plus': <><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /><path d="M19 16v6" /><path d="M16 19h6" /></>,
-    'lc-mail-check': <><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /><path d="m16 19 2 2 4-4" /></>,
-    'lc-clock': <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>,
-    'lc-send': <><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /><path d="m21.854 2.147-10.94 10.939" /></>,
-    'lc-ticket': <><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" /></>,
-    'lc-save': <><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></>,
-    'lc-triangle-alert': <><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></>,
-} as const;
-
-const LocalIcon: React.FC<{ name: keyof typeof LOCAL_ICONS; size?: number }> = ({ name, size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flex: 'none', display: 'block' }}>
-        {LOCAL_ICONS[name]}
-    </svg>
-);
 
 /** The API names the fix in its "table missing" error. */
 const isMigrationError = (e: unknown) => e instanceof Error && e.message.includes('migrate-db');
@@ -88,27 +77,20 @@ const mailtoHref = (inquiry: InquiryRecord, body = '') => {
     return `mailto:${encodeURIComponent(inquiry.email).replace('%40', '@')}?${params.join('&')}`;
 };
 
+const openInNewTab = (href: string) => { window.open(href, '_blank', 'noopener,noreferrer'); };
+
 const initialOf = (inquiry: InquiryRecord) => (inquiry.name || inquiry.email || '?').trim().slice(0, 1) || '?';
 
-const StatusPill: React.FC<{ status: InquiryStatus }> = ({ status }) => (
-    <span className="cm-pill" data-tone={STATUS_META[status].tone}>{STATUS_META[status].label}</span>
-);
+const StatusBadge: React.FC<{ status: InquiryStatus }> = ({ status }) => <AdminBadge tone={STATUS_META[status].tone}>{STATUS_META[status].label}</AdminBadge>;
 
 const MigrationNotice: React.FC<{ onRetry: () => void }> = ({ onRetry }) => (
-    <div className="cm-notice" data-tone="wait" role="alert">
-        <LocalIcon name="lc-triangle-alert" size={20} />
-        <div style={{ flex: 1, minWidth: 240 }}>
-            {MIGRATION_TEXT}
-            <div style={{ fontWeight: 500 }}>열린 화면에 결과(JSON)가 나오면 완료입니다. 배포 후 한 번만 하면 됩니다. 그 전에는 고객의 문의 폼 전송이 실패합니다.</div>
-        </div>
-        <a className="cm-btn" href="/api/migrate-db" target="_blank" rel="noopener noreferrer">
-            <DashboardIcon name="lc-external-link" />/api/migrate-db 열기
-        </a>
-        <button type="button" className="cm-btn" onClick={onRetry}>
-            <DashboardIcon name="lc-refresh-cw" />다시 확인
-        </button>
-    </div>
+    <AdminMessage tone="cautionary" role="alert" title={MIGRATION_TEXT}
+        actions={<><AdminTextButton size="sm" onClick={() => openInNewTab('/api/migrate-db')}>/api/migrate-db 열기</AdminTextButton><AdminTextButton size="sm" tone="assistive" onClick={onRetry}>다시 확인</AdminTextButton></>}>
+        열린 화면에 결과(JSON)가 나오면 완료입니다. 배포 후 한 번만 하면 됩니다. 그 전에는 고객의 문의 폼 전송이 실패합니다.
+    </AdminMessage>
 );
+
+type LeaveGuard = () => Promise<boolean>;
 
 interface PanelProps {
     inquiry: InquiryRecord;
@@ -118,7 +100,7 @@ interface PanelProps {
     onSaveNote: (note: string) => Promise<boolean>;
     onDelete: () => void;
     /** 다른 문의로 옮기기 전에 저장하지 않은 메모·답장 초안을 확인한다. */
-    registerLeaveGuard: (guard: (() => boolean) | null) => void;
+    registerLeaveGuard: (guard: LeaveGuard | null) => void;
 }
 
 const InquiryPanel: React.FC<PanelProps> = ({ inquiry, busy, onClose, onStatus, onSaveNote, onDelete, registerLeaveGuard }) => {
@@ -128,12 +110,13 @@ const InquiryPanel: React.FC<PanelProps> = ({ inquiry, busy, onClose, onStatus, 
     const noteDirty = note !== inquiry.admin_note;
     const draftDirty = draft.trim() !== '';
     const closed = inquiry.status === 'closed';
+    const who = inquiry.name || inquiry.email;
 
     useEffect(() => {
-        registerLeaveGuard(() => {
+        registerLeaveGuard(async () => {
             if (!noteDirty && !draftDirty) return true;
             const what = noteDirty && draftDirty ? '저장하지 않은 메모와 답장 초안' : noteDirty ? '저장하지 않은 메모' : '작성 중인 답장 초안';
-            return window.confirm(`${what}이 있습니다. 이 문의를 닫을까요?`);
+            return adminConfirm({ title: '이 문의를 닫을까요?', message: `${what}이 있습니다. 닫으면 지금 적은 내용이 사라집니다.`, confirmLabel: '닫기', cancelLabel: '계속 작성' });
         });
         return () => registerLeaveGuard(null);
     }, [noteDirty, draftDirty, registerLeaveGuard]);
@@ -149,109 +132,72 @@ const InquiryPanel: React.FC<PanelProps> = ({ inquiry, busy, onClose, onStatus, 
         setDraft((current) => (phrase.append ? current + phrase.text : phrase.text + current));
 
     return (
-        <section className="cm-card iq-panel" aria-label={`${inquiry.name || inquiry.email} 님의 문의`}>
-            <div className="iq-panel-head">
-                <span className="iq-avatar is-lg" data-new={inquiry.status === 'new' || undefined}>{initialOf(inquiry)}</span>
-                <div className="iq-panel-who">
-                    <div className="iq-panel-name">
-                        <span>{inquiry.name || '이름 없음'}</span>
-                        <StatusPill status={inquiry.status} />
-                        {inquiry.user_id && <span className="cm-tag">회원</span>}
+        <section className="adm-iq-panel" aria-label={`${who} 님의 문의`}>
+            <header className="adm-iq-panel-head">
+                <span className="adm-iq-avatar is-lg" data-new={inquiry.status === 'new' || undefined} aria-hidden="true">{initialOf(inquiry)}</span>
+                <div className="adm-iq-panel-who">
+                    <div className="adm-iq-panel-name">
+                        <h2>{inquiry.name || '이름 없음'}</h2>
+                        <StatusBadge status={inquiry.status} />
+                        {inquiry.user_id && <AdminBadge outlined>회원</AdminBadge>}
                     </div>
-                    <div className="iq-panel-meta">
-                        <a href={mailtoHref(inquiry)} title="메일 앱으로 답장"><LocalIcon name="lc-mail" size={14} />{inquiry.email}</a>
-                        {inquiry.reservation_number && <span title="예약번호"><LocalIcon name="lc-ticket" size={14} />{inquiry.reservation_number}</span>}
-                        <span title={`${inquiry.created_at} UTC`}><LocalIcon name="lc-clock" size={14} />{formatReceived(inquiry.created_at)}</span>
+                    <div className="adm-iq-panel-meta">
+                        <a href={mailtoHref(inquiry)} title="메일 앱으로 답장"><IconMail />{inquiry.email}</a>
+                        {inquiry.reservation_number && <span title="예약번호"><IconTicket />{inquiry.reservation_number}</span>}
+                        <span title={`${inquiry.created_at} UTC`}><IconClock />{formatReceived(inquiry.created_at)}</span>
                     </div>
                 </div>
-                <button type="button" className="cm-icon-btn" title="닫기" aria-label="문의 닫기" onClick={onClose}>
-                    <DashboardIcon name="lc-x" />
-                </button>
-            </div>
+                <AdminIconButton label="문의 닫기" size="sm" onClick={onClose}><IconClose /></AdminIconButton>
+            </header>
 
-            <div className="iq-panel-body">
-                <div className="iq-message">
-                    <span className="iq-kind">{inquiry.kind}</span>
-                    <div className="iq-bubble">{inquiry.message}</div>
+            <div className="adm-iq-panel-body">
+                <div className="adm-iq-message">
+                    <span className="adm-iq-kind">{inquiry.kind}</span>
+                    <div className="adm-iq-bubble">{inquiry.message}</div>
                 </div>
 
-                <div className="iq-status">
-                    <span className="cm-label">처리 상태</span>
-                    <div className="cm-chips">
-                        {STATUS_ORDER.map((status) => (
-                            <button
-                                key={status}
-                                type="button"
-                                className="cm-chip"
-                                aria-pressed={inquiry.status === status}
-                                disabled={busy || inquiry.status === status}
-                                onClick={() => onStatus(status)}
-                            >
-                                {STATUS_META[status].label}
-                            </button>
-                        ))}
-                    </div>
+                <div className="adm-iq-status">
+                    <span className="adm-iq-label">처리 상태</span>
+                    <AdminChipGroup label="처리 상태" value={inquiry.status} onChange={onStatus}
+                        items={STATUS_ORDER.map((status) => ({ value: status, label: STATUS_META[status].label, disabled: busy }))} />
                 </div>
 
                 {closed ? (
-                    <div className="iq-closed"><DashboardIcon name="lc-lock" size={14} />종료된 문의예요. 다시 열면 답장을 이어서 쓸 수 있어요.</div>
+                    <AdminMessage>종료된 문의예요. 다시 열면 답장을 이어서 쓸 수 있어요.</AdminMessage>
                 ) : (
-                    <div className="iq-compose">
-                        <div className="iq-compose-head">
-                            <span className="iq-compose-title">답장 작성</span>
+                    <div className="adm-iq-section">
+                        <div className="adm-iq-compose-head">
+                            <span className="adm-iq-label">답장 작성</span>
                             {QUICK_PHRASES.map((phrase) => (
-                                <button key={phrase.label} type="button" className="iq-phrase" onClick={() => insertPhrase(phrase)}>{phrase.label}</button>
+                                <AdminButton key={phrase.label} size="sm" variant="weak" onClick={() => insertPhrase(phrase)}>{phrase.label}</AdminButton>
                             ))}
                         </div>
-                        <textarea
-                            className="cm-textarea"
-                            value={draft}
-                            onChange={(e) => setDraft(e.target.value)}
-                            placeholder="고객 이메일로 보낼 답장을 적어 주세요"
-                            aria-label="답장 초안"
-                        />
-                        <p className="cm-hint">
+                        <AdminTextArea value={draft} onChange={(e) => setDraft(e.target.value)} minRows={5} placeholder="고객 이메일로 보낼 답장을 적어 주세요" aria-label="답장 초안" />
+                        <p className="adm-iq-hint">
                             「메일 앱으로 답장」은 이 컴퓨터의 메일 앱을 열고 받는 사람·제목·작성한 내용을 채워 넣습니다. 이 화면에서 메일을 자동 발송하거나 초안을 저장하지 않으니, 답장을 보낸 뒤 「답변 완료」로 바꿔 주세요.
                         </p>
                     </div>
                 )}
 
-                <div className="iq-note">
-                    <label className="cm-label" htmlFor={`iq-note-${inquiry.id}`}>관리자 메모 <span className="cm-label-sub">· 고객에게 보이지 않습니다</span></label>
-                    <textarea
-                        id={`iq-note-${inquiry.id}`}
-                        className="cm-textarea is-short"
-                        maxLength={NOTE_MAX}
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                        placeholder="처리 내용, 담당자 등을 적어 두세요."
-                    />
-                    <div className="iq-note-foot">
-                        <span>{note.length} / {NOTE_MAX}</span>
-                        <button type="button" className="cm-btn is-sm" onClick={() => void saveNote()} disabled={!noteDirty || savingNote}>
-                            <LocalIcon name="lc-save" size={14} />{savingNote ? '저장 중…' : '메모 저장'}
-                        </button>
+                <div className="adm-iq-section">
+                    <AdminField label="관리자 메모" hint="고객에게 보이지 않습니다." aside={`${note.length} / ${NOTE_MAX}`} id={`adm-iq-note-${inquiry.id}`}>
+                        {(id, describedBy) => <AdminTextArea id={id} aria-describedby={describedBy} minRows={3} maxLength={NOTE_MAX} value={note} onChange={(e) => setNote(e.target.value)} placeholder="처리 내용, 담당자 등을 적어 두세요." />}
+                    </AdminField>
+                    <div className="adm-iq-note-foot">
+                        <AdminButton size="sm" loading={savingNote} disabled={!noteDirty} onClick={() => void saveNote()}>{savingNote ? '저장 중…' : '메모 저장'}</AdminButton>
                     </div>
                 </div>
             </div>
 
-            <div className="iq-panel-foot">
-                <button type="button" className="cm-icon-btn is-danger" title="삭제" aria-label="문의 삭제" onClick={onDelete} disabled={busy}>
-                    <DashboardIcon name="lc-trash" />
-                </button>
-                <button type="button" className="cm-btn" disabled={busy} onClick={() => onStatus(closed ? 'new' : 'closed')}>
-                    {closed ? '다시 열기' : '문의 종료'}
-                </button>
+            <footer className="adm-iq-panel-foot">
+                <AdminButton size="sm" variant="weak" leading={<IconTrash />} disabled={busy} onClick={onDelete}>삭제</AdminButton>
+                <span className="adm-iq-spacer" />
+                <AdminButton size="sm" disabled={busy} onClick={() => onStatus(closed ? 'new' : 'closed')}>{closed ? '다시 열기' : '문의 종료'}</AdminButton>
                 {!closed && (
-                    <a
-                        className={`cm-btn iq-send${draftDirty ? ' is-ready' : ''}`}
-                        href={mailtoHref(inquiry, draft)}
-                        title="메일 앱을 열어 작성한 답장을 채워 넣습니다"
-                    >
-                        <LocalIcon name="lc-send" />메일 앱으로 답장
-                    </a>
+                    <AdminButton size="sm" variant={draftDirty ? 'primary' : 'secondary'} leading={<IconMail />} title="메일 앱을 열어 작성한 답장을 채워 넣습니다"
+                        onClick={() => { window.location.href = mailtoHref(inquiry, draft); }}>메일 앱으로 답장</AdminButton>
                 )}
-            </div>
+            </footer>
         </section>
     );
 };
@@ -266,13 +212,18 @@ export const AdminInquiryManage: React.FC = () => {
     /** undefined = 보이는 첫 문의를 자동 선택, null = 사용자가 닫음 */
     const [selectedId, setSelectedId] = useState<string | null | undefined>(undefined);
     const [busyId, setBusyId] = useState<string | null>(null);
-    const [toast, setToast] = useState('');
     const [now, setNow] = useState(() => Date.now());
-    const toastTimer = useRef<number | undefined>(undefined);
-    const leaveGuard = useRef<(() => boolean) | null>(null);
+    const leaveGuard = useRef<LeaveGuard | null>(null);
+    /** 확인 창이 열려 있는 동안 다른 이동 요청은 받지 않는다(확인 창이 겹치지 않게). */
+    const asking = useRef(false);
 
-    const registerLeaveGuard = useCallback((guard: (() => boolean) | null) => { leaveGuard.current = guard; }, []);
-    const canLeave = () => !leaveGuard.current || leaveGuard.current();
+    const registerLeaveGuard = useCallback((guard: LeaveGuard | null) => { leaveGuard.current = guard; }, []);
+    const canLeave = async () => {
+        if (!leaveGuard.current) return true;
+        if (asking.current) return false;
+        asking.current = true;
+        try { return await leaveGuard.current(); } finally { asking.current = false; }
+    };
 
     const load = useCallback(async () => {
         try {
@@ -297,17 +248,9 @@ export const AdminInquiryManage: React.FC = () => {
         void load();
     }, [load]);
 
-    useEffect(() => () => window.clearTimeout(toastTimer.current), []);
-
-    const showToast = (message: string) => {
-        setToast(message);
-        window.clearTimeout(toastTimer.current);
-        toastTimer.current = window.setTimeout(() => setToast(''), 2600);
-    };
-
     const fail = (e: unknown) => {
         if (isMigrationError(e)) setNeedsMigration(true);
-        adminNotify(describeError(e));
+        adminNotify(describeError(e), 'error');
     };
 
     const counts = useMemo(() => {
@@ -325,13 +268,13 @@ export const AdminInquiryManage: React.FC = () => {
     const effectiveId = selectedId === undefined ? visible[0]?.id ?? null : selectedId;
     const selected = rows.find((row) => row.id === effectiveId) ?? null;
 
-    const select = (id: string | null) => {
-        if (id === effectiveId || !canLeave()) return;
+    const select = async (id: string | null) => {
+        if (id === effectiveId || !(await canLeave())) return;
         setSelectedId(id);
     };
 
-    const changeFilter = (next: StatusFilter) => {
-        if (next === filter || !canLeave()) return;
+    const changeFilter = async (next: StatusFilter) => {
+        if (next === filter || !(await canLeave())) return;
         setFilter(next);
         setSelectedId(undefined);
     };
@@ -345,7 +288,7 @@ export const AdminInquiryManage: React.FC = () => {
         patchRow(inquiry.id, { status });
         try {
             await api.inquiries.update(inquiry.id, { status });
-            showToast(`상태를 「${STATUS_META[status].label}」로 변경했습니다.`);
+            adminNotify(`상태를 「${STATUS_META[status].label}」로 변경했습니다.`, 'success');
         } catch (e) {
             patchRow(inquiry.id, { status: inquiry.status });
             fail(e);
@@ -358,7 +301,7 @@ export const AdminInquiryManage: React.FC = () => {
         try {
             await api.inquiries.update(inquiry.id, { admin_note });
             patchRow(inquiry.id, { admin_note });
-            showToast('메모를 저장했습니다.');
+            adminNotify('메모를 저장했습니다.', 'success');
             return true;
         } catch (e) {
             fail(e);
@@ -374,7 +317,7 @@ export const AdminInquiryManage: React.FC = () => {
             leaveGuard.current = null;
             setRows((list) => list.filter((row) => row.id !== inquiry.id));
             setSelectedId((id) => (id === inquiry.id || id === undefined ? undefined : id));
-            showToast('문의를 삭제했습니다.');
+            adminNotify('문의를 삭제했습니다.', 'success');
         } catch (e) {
             fail(e);
         } finally {
@@ -382,94 +325,74 @@ export const AdminInquiryManage: React.FC = () => {
         }
     };
 
-    const refresh = () => {
-        if (!canLeave()) return;
+    const refresh = async () => {
+        if (!(await canLeave())) return;
         leaveGuard.current = null;
         void load();
     };
 
     const headerActions = (
         <>
-            <a className="btn btn-ghost" href="/contact" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                <DashboardIcon name="lc-external-link" />고객 화면 보기
-            </a>
-            <button type="button" className="btn btn-ghost" onClick={refresh}>
-                <DashboardIcon name="lc-refresh-cw" />새로고침
-            </button>
+            <AdminButton onClick={() => openInNewTab('/contact')}>고객 화면 보기</AdminButton>
+            <AdminButton leading={<IconRefresh />} onClick={() => void refresh()}>새로고침</AdminButton>
         </>
     );
 
-    const emptyText = loading
-        ? '불러오는 중…'
-        : loadError
-            ? `목록을 불러오지 못했습니다: ${loadError}`
-            : rows.length === 0
-                ? '접수된 문의가 없어요.'
-                : query.trim()
-                    ? '검색 결과가 없어요.'
-                    : `${filter === 'all' ? '' : `${STATUS_META[filter].label} `}문의가 없어요.`;
+    const emptyTitle = rows.length === 0
+        ? '접수된 문의가 없어요.'
+        : query.trim()
+            ? '검색 결과가 없어요.'
+            : `${filter === 'all' ? '' : `${STATUS_META[filter].label} `}문의가 없어요.`;
 
-    const kpis: Array<{ key: StatusFilter; label: string; icon: React.ReactNode }> = [
-        { key: 'all', label: '전체', icon: <LocalIcon name="lc-inbox" /> },
-        { key: 'new', label: '신규', icon: <LocalIcon name="lc-mail-plus" /> },
-        { key: 'answered', label: '답변 완료', icon: <LocalIcon name="lc-mail-check" /> },
-        { key: 'closed', label: '종료', icon: <DashboardIcon name="lc-archive" /> },
+    const kpis: Array<{ key: StatusFilter; label: string }> = [
+        { key: 'all', label: '전체' },
+        { key: 'new', label: '신규' },
+        { key: 'answered', label: '답변 완료' },
+        { key: 'closed', label: '종료' },
     ];
 
     return (
         <AdminLayout activePage="inquiries" title="일반 문의" eyebrow="고객 지원" showSearch={false} actions={headerActions}>
-            <div className="cm-page iq-page route-anim">
-                {needsMigration && <MigrationNotice onRetry={refresh} />}
+            <div className="adm-iq route-anim">
+                {needsMigration && <MigrationNotice onRetry={() => void refresh()} />}
 
-                <section className="cm-kpis" aria-label="문의 현황">
-                    {kpis.map(({ key, label, icon }) => {
-                        const n = counts[key];
-                        return (
-                            <button key={key} type="button" className="cm-kpi" aria-pressed={filter === key} onClick={() => changeFilter(key)}>
-                                <span className="cm-kpi-head">
-                                    <span className="cm-kpi-ico" data-tone={key === 'new' && n > 0 ? 'warn' : n ? 'has' : 'zero'}>{icon}</span>
-                                    <span className="cm-kpi-label">{label}</span>
-                                </span>
-                                <span className="cm-kpi-value"><span className="cm-kpi-num" data-zero={!n || undefined}>{loading ? '–' : n}</span><span className="cm-kpi-unit">건</span></span>
-                            </button>
-                        );
+                <AdminStatRow label="문의 현황">
+                    {kpis.map(({ key, label }) => {
+                        // 처음 불러오기 전·실패했을 때는 0건으로 단정하지 않는다.
+                        const unknown = loading || (Boolean(loadError) && rows.length === 0);
+                        return <AdminStat key={key} label={label} value={unknown ? '–' : counts[key]} unit={unknown ? undefined : '건'}
+                            attention={key === 'new' && !unknown && counts.new > 0} active={filter === key} onClick={() => void changeFilter(key)} />;
                     })}
-                </section>
+                </AdminStatRow>
 
-                <div className="iq-split">
-                    <section className="cm-card iq-list" aria-label="문의 목록">
-                        <div className="iq-list-search">
-                            <label className="cm-search">
-                                <DashboardIcon name="lc-search" color="var(--text-tertiary)" />
-                                <input type="text" placeholder="이름 · 이메일 · 내용 검색" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="문의 검색" />
-                            </label>
+                <div className="adm-iq-split">
+                    <section className="adm-iq-list" aria-label="문의 목록">
+                        <div className="adm-iq-list-search">
+                            <AdminSearch wide value={query} onChange={setQuery} placeholder="이름 · 이메일 · 내용 검색" aria-label="문의 검색" />
                         </div>
                         {visible.map((inquiry) => (
                             <button
                                 key={inquiry.id}
                                 type="button"
-                                className="iq-row"
+                                className="adm-iq-row"
                                 aria-current={inquiry.id === effectiveId || undefined}
-                                onClick={() => select(inquiry.id)}
+                                onClick={() => void select(inquiry.id)}
                             >
-                                <span className="iq-avatar" data-new={inquiry.status === 'new' || undefined}>{initialOf(inquiry)}</span>
-                                <span className="iq-row-main">
-                                    <span className="iq-row-top">
-                                        <span className="iq-row-name">{inquiry.name || '이름 없음'}</span>
-                                        <span className="iq-row-kind">{inquiry.kind}</span>
-                                        <span className="iq-row-ago" title={formatReceived(inquiry.created_at)}>{formatAgo(inquiry.created_at, now)}</span>
+                                <span className="adm-iq-avatar" data-new={inquiry.status === 'new' || undefined} aria-hidden="true">{initialOf(inquiry)}</span>
+                                <span className="adm-iq-row-main">
+                                    <span className="adm-iq-row-top">
+                                        <span className="adm-iq-row-name">{inquiry.name || '이름 없음'}</span>
+                                        <span className="adm-iq-row-kind">{inquiry.kind}</span>
+                                        <span className="adm-iq-row-ago" title={formatReceived(inquiry.created_at)}>{formatAgo(inquiry.created_at, now)}</span>
                                     </span>
-                                    <span className="iq-row-preview" data-new={inquiry.status === 'new' || undefined}>{inquiry.message.replace(/\s+/g, ' ')}</span>
+                                    <span className="adm-iq-row-preview" data-new={inquiry.status === 'new' || undefined}>{inquiry.message.replace(/\s+/g, ' ')}</span>
                                 </span>
-                                <StatusPill status={inquiry.status} />
+                                <StatusBadge status={inquiry.status} />
                             </button>
                         ))}
-                        {visible.length === 0 && (
-                            <div className="cm-empty">
-                                {loadError ? <DashboardIcon name="lc-circle-alert" size={32} /> : <LocalIcon name="lc-inbox" size={32} />}
-                                <span>{emptyText}</span>
-                            </div>
-                        )}
+                        {visible.length === 0 && (loading ? <AdminLoading />
+                            : loadError ? <AdminError title="목록을 불러오지 못했습니다" reason={loadError} onRetry={() => void refresh()} />
+                                : <AdminEmpty title={emptyTitle} />)}
                     </section>
 
                     {selected && (
@@ -477,7 +400,7 @@ export const AdminInquiryManage: React.FC = () => {
                             key={selected.id}
                             inquiry={selected}
                             busy={busyId === selected.id}
-                            onClose={() => select(null)}
+                            onClose={() => void select(null)}
                             onStatus={(status) => void changeStatus(selected, status)}
                             onSaveNote={(note) => saveNote(selected, note)}
                             onDelete={() => void remove(selected)}
@@ -486,13 +409,6 @@ export const AdminInquiryManage: React.FC = () => {
                     )}
                 </div>
             </div>
-
-            {toast && (
-                <div className="page-toast">
-                    <DashboardIcon name="lc-circle-check" color="var(--mrt-green)" />
-                    <span>{toast}</span>
-                </div>
-            )}
         </AdminLayout>
     );
 };

@@ -1,266 +1,136 @@
-/* 투어 캘린더 — Admin Dashboard v3 "Page 03 Tour Calendar". 관리자 토큰을 민트로 바꿔 이 화면에만 적용합니다. */
-.tour-calendar {
-  display: flex; flex-direction: column; gap: 16px;
-  color: var(--text-strong);
-  min-width: 0;
-}
+/*
+ * 투어 캘린더 — 당근 Seed(은하수 판). 버튼·칩·검색·표·배지·알림·빈 화면 모양은 우리 관리자 부품이 정하고,
+ * 이 파일은 배치와 부품에 없는 업무 모양(월간 달력 칸·일정 막대·선택일 패널·팀 카드)만 둔다. 값은 --adm-* 변수만 쓴다.
+ * 구분색: 상품 예약 = tag-blue, 견적 예약 = tag-violet, 이전 문의 = 주의 노랑, 겹침 = danger(색만으로 알리지 않고 이름·배지와 함께).
+ */
+.adm-cal { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; color: var(--adm-text); }
+.adm-cal *, .adm-cal *::before, .adm-cal *::after { box-sizing: border-box; }
+.adm-cal-note { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-1); margin: 0; color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
 
-.tour-calendar *, .tour-calendar *::before, .tour-calendar *::after { box-sizing: border-box; }
-.tour-calendar .tc-glyph { width: 16px; height: 16px; flex: none; vertical-align: middle; }
-.tour-calendar button, .tour-calendar input, .tour-calendar select { font: inherit; }
-.tour-calendar button { cursor: pointer; }
-.tour-calendar button:disabled { cursor: wait; opacity: .55; }
-.tour-calendar button:focus-visible, .tour-calendar a:focus-visible, .tour-calendar input:focus-visible,
-.tour-calendar select:focus-visible, .tour-calendar summary:focus-visible {
-  outline: 2px solid var(--mrt-ink); outline-offset: 2px;
-}
-.tour-calendar .tc-button, .tour-calendar .tc-icon-button {
-  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
-  height: 32px; padding: 0 12px; border: 1.5px solid var(--border-default);
-  border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-strong); font-size: 12px;
-  font-weight: 700; line-height: 1.25; text-decoration: none; white-space: nowrap;
-  transition: background .14s ease, border-color .14s ease, color .14s ease;
-}
-.tour-calendar .tc-button:hover, .tour-calendar .tc-icon-button:hover { border-color: var(--mrt-ink); }
-.tour-calendar .tc-icon-button { width: 36px; height: 36px; padding: 0; flex: none; }
-.tour-calendar .tc-button .tc-glyph { width: 14px; height: 14px; }
-.tour-calendar .tc-note { margin: 0; color: var(--text-tertiary); font-size: 12px; line-height: 1.6; }
-.tour-calendar .tc-note a { display: inline-flex; align-items: center; gap: 3px; color: var(--text-link); font-weight: 600; text-decoration: none; }
-.tour-calendar .tc-note a:hover { text-decoration: underline; }
-.tour-calendar .tc-note a .tc-glyph { width: 12px; height: 12px; }
-
-/* 요약 카드 */
-.tour-calendar .tc-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
-.tour-calendar .tc-metric {
-  display: flex; align-items: center; gap: 12px; min-width: 0;
-  padding: 16px 18px; background: var(--adm-surface);
-  border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); text-align: left;
-  transition: border-color .14s ease;
-}
-.tour-calendar .tc-metric > span:last-child { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.tour-calendar .tc-metric:disabled { opacity: 1; cursor: default; }
-.tour-calendar .tc-metric:not(:disabled):hover { border-color: var(--mrt-gray-300); }
-.tour-calendar .tc-metric.is-active, .tour-calendar .tc-metric.is-active:hover { border: 1.5px solid var(--mrt-ink); padding: 15.5px 17.5px; }
-.tour-calendar .tc-metric-icon { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: var(--adm-radius-md); background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
-.tour-calendar .tc-metric-icon[data-tone="green"] { background: var(--mrt-green-soft); color: var(--mrt-green); }
-.tour-calendar .tc-metric-icon[data-tone="purple"] { background: var(--mrt-purple-soft); color: var(--mrt-purple-2); }
-.tour-calendar .tc-metric-icon[data-tone="red"] { background: var(--mrt-red-soft); color: var(--mrt-red); }
-.tour-calendar .tc-metric-label { color: var(--text-secondary); font-size: 13px; font-weight: 600; }
-.tour-calendar .tc-metric strong { color: var(--text-strong); font-size: 24px; font-weight: var(--adm-fw-bold); line-height: 1.2; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.tour-calendar .tc-metric small { color: var(--text-tertiary); font-size: 11px; line-height: 1.5; }
-
-/* 검색·필터 */
-.tour-calendar .tc-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
-.tour-calendar .tc-search { position: relative; display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 200px; max-width: 320px; height: 40px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-tertiary); }
-.tour-calendar .tc-search:focus-within { border-color: var(--mrt-ink); }
-.tour-calendar .tc-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text-strong); font-size: 14px; }
-.tour-calendar .tc-search input::placeholder { color: var(--text-tertiary); }
-.tour-calendar .tc-search .tc-icon-button { width: 24px; height: 24px; margin-right: -6px; border: 0; background: transparent; color: var(--text-tertiary); }
-.tour-calendar .tc-search .tc-icon-button:hover { color: var(--text-strong); }
-.tour-calendar .tc-filter-chips { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--border-default); border-radius:var(--adm-radius-sm); background: var(--adm-surface); }
-.tour-calendar .tc-filter-chips .tc-button { height: 32px; padding: 0 12px; border: 0; background: transparent; color: var(--text-secondary); font-weight: 600; }
-.tour-calendar .tc-filter-chips .tc-button:hover { color: var(--text-strong); }
-.tour-calendar .tc-filter-chips .tc-button.is-active { background: var(--mrt-ink); color: #fff; font-weight: var(--adm-fw-bold); }
-.tour-calendar .tc-check { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--text-secondary); font-size: 12px; font-weight: 600; white-space: nowrap; }
-.tour-calendar .tc-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--mrt-ink); }
-.tour-calendar .tc-reset { padding: 4px 0; border: 0; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 600; }
-.tour-calendar .tc-reset:hover { color: var(--text-strong); text-decoration: underline; }
+/* 검색·필터 줄 */
+.adm-cal-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2) var(--adm-space-3); min-width: 0; }
+.adm-cal-filters-end { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-3); margin-left: auto; }
 
 /* 달력 + 선택한 날짜 */
-.tour-calendar .tc-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); gap: 16px; align-items: start; min-width: 0; }
-.tour-calendar .tc-month-card { min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
-.tour-calendar .tc-month-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 16px 20px; }
-.tour-calendar .tc-month-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
-.tour-calendar .tc-month-nav h2 { min-width: 130px; margin: 0; color: var(--text-strong); font-size: 20px; font-weight: var(--adm-fw-bold); letter-spacing: -.03em; text-align: center; white-space: nowrap; }
-.tour-calendar .tc-view-switch { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--mrt-gray-100); flex: none; }
-.tour-calendar .tc-view-switch .tc-button { height: 32px; border: 0; background: transparent; color: var(--text-secondary); font-weight: 600; }
-.tour-calendar .tc-view-switch .tc-button.is-active { background: var(--adm-surface); color: var(--text-strong); font-weight: var(--adm-fw-bold); box-shadow: var(--shadow-sm); }
-.tour-calendar .tc-weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--border-subtle); background: var(--mrt-gray-50); }
-.tour-calendar .tc-weekdays > * { min-width: 0; padding: 8px 0; text-align: center; color: var(--text-tertiary); font-size: 12px; font-weight: 700; }
-.tour-calendar .tc-weekdays > :first-child { color: var(--mrt-red); }
-.tour-calendar .tc-month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); min-width: 0; }
-.tour-calendar .tc-day { position: relative; display: flex; flex-direction: column; gap: 3px; height: 112px; min-width: 0; padding: 8px; border-top: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); text-align: left; background: var(--adm-surface); overflow: hidden; }
-.tour-calendar .tc-day:nth-child(7n) { border-right: 0; }
-.tour-calendar .tc-day.is-outside { background: var(--mrt-gray-50); }
-.tour-calendar .tc-day.is-selected { background: var(--mrt-blue-50); box-shadow: inset 0 0 0 2px var(--mrt-blue); z-index: 1; }
-.tour-calendar .tc-day-heading { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; color: var(--text-strong); font-size: 12px; font-weight: var(--adm-fw-bold); text-align: left; }
-.tour-calendar .tc-day-heading > :first-child { display: inline-flex; justify-content: center; align-items: center; min-width: 22px; height: 22px; border-radius: var(--adm-radius-sm); }
-.tour-calendar .tc-day:nth-child(7n + 1) .tc-day-heading { color: var(--mrt-red); }
-.tour-calendar .tc-day.is-outside .tc-day-heading { color: var(--mrt-gray-300); }
-.tour-calendar .tc-day.is-today .tc-day-heading > :first-child { background: var(--mrt-blue); color: var(--adm-on-primary); }
-.tour-calendar .tc-day-heading .tc-attention-dot { margin-left: auto; }
-.tour-calendar .tc-day-count { display: block; flex: none; overflow: hidden; color: var(--text-tertiary); font-size: 11px; font-weight: 600; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
-.tour-calendar .tc-attention-dot { display: inline-block; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--mrt-purple-2); }
-.tour-calendar .tc-events { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: none; }
-.tour-calendar .tc-event { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; height: 20px; padding: 0 6px; overflow: hidden; border: 0; border-left: 3px solid var(--mrt-green); border-radius: var(--adm-radius-xs); background: var(--mrt-green-soft); color: var(--text-strong); font-size: 11px; font-weight: 700; text-align: left; }
-.tour-calendar .tc-event > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tour-calendar .tc-event small { flex: none; font-size: 11px; opacity: .8; white-space: nowrap; }
-.tour-calendar .tc-event[data-source="quote_booking"] { border-left-color: var(--mrt-blue); background: var(--mrt-blue-50); }
-.tour-calendar .tc-event[data-source="legacy_quote"] { border-left-color: var(--mrt-star); background: var(--adm-warn-soft); }
-.tour-calendar .tc-event.is-conflict { border-left-color: var(--mrt-red); background: var(--mrt-red-soft); }
-.tour-calendar .tc-event.is-muted { border-left-color: var(--mrt-gray-300); background: var(--mrt-gray-100); color: var(--text-tertiary); }
-.tour-calendar .tc-event:hover { filter: brightness(.97); }
-.tour-calendar .tc-more { align-self: flex-start; padding: 0; border: 0; background: transparent; color: var(--text-tertiary); font-size: 11px; font-weight: 700; white-space: nowrap; }
-.tour-calendar .tc-more:hover { color: var(--text-strong); text-decoration: underline; }
-.tour-calendar .tc-month-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 12px 20px; border-top: 1px solid var(--border-subtle); color: var(--text-tertiary); font-size: 11px; }
-.tour-calendar .tc-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
-.tour-calendar .tc-legend > span { display: inline-flex; align-items: center; gap: 5px; }
-.tour-calendar .tc-legend > [data-source]::before { content: ''; width: 8px; height: 8px; flex: none; border-radius: var(--adm-radius-xs); background: var(--mrt-green); }
-.tour-calendar .tc-legend > [data-source="quote_booking"]::before { background: var(--mrt-blue); }
-.tour-calendar .tc-legend > [data-source="legacy_quote"]::before { background: var(--mrt-star); }
+.adm-cal-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(calc(var(--adm-space-8) * 10.5), calc(var(--adm-space-8) * 12.5)); gap: var(--adm-space-4); align-items: start; min-width: 0; }
+.adm-cal-month, .adm-cal-panel { min-width: 0; overflow: hidden; border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
 
-/* 선택한 날짜 패널 */
-.tour-calendar .tc-day-panel { position: sticky; top: 16px; min-width: 0; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
-.tour-calendar .tc-panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 18px 20px 8px; }
-.tour-calendar .tc-panel-header h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; color: var(--text-strong); font-size: 20px; font-weight: var(--adm-fw-bold); letter-spacing: -.03em; }
-.tour-calendar .tc-eyebrow { display: block; margin-bottom: 8px; color: var(--text-tertiary); font-size: 12px; }
-.tour-calendar .tc-today-badge { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--adm-radius-xs); background: var(--mrt-blue-50); color: var(--mrt-blue-strong); font-size: 11px; font-weight: var(--adm-fw-bold); letter-spacing: 0; }
-.tour-calendar .tc-panel-count { flex: none; padding: 4px 8px; border-radius: var(--adm-radius-sm); background: var(--mrt-gray-50); color: var(--text-secondary); font-size: 12px; font-weight: 700; }
-.tour-calendar .tc-panel-stats { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 0 20px 18px; border-bottom: 1px solid var(--border-subtle); }
-.tour-calendar .tc-panel-stats > span { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: var(--adm-radius-sm); background: var(--mrt-gray-50); color: var(--text-secondary); font-size: 12px; }
-.tour-calendar .tc-panel-stats b { color: var(--text-strong); font-weight: var(--adm-fw-bold); }
-.tour-calendar .tc-panel-body { display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 240px); overflow-y: auto; overscroll-behavior: contain; padding: 14px; }
+.adm-cal-month-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--adm-space-2); padding: var(--adm-space-4) var(--adm-pad-card); }
+.adm-cal-month-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-1); min-width: 0; }
+.adm-cal-month-nav h2 { min-width: calc(var(--adm-space-8) * 4); margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-section); font-weight: var(--adm-fw-bold); line-height: 1.4; text-align: center; white-space: nowrap; }
+.adm-cal-month-nav .adm-ui-btn { margin-left: var(--adm-space-2); }
 
-.tour-calendar .tc-tour-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--border-default); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
-.tour-calendar .tc-tour-card.is-selected { border: 1.5px solid var(--mrt-ink); padding: 13.5px; }
-.tour-calendar .tc-tour-card.is-conflict { border-color: var(--adm-danger-line); }
-.tour-calendar .tc-tour-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
-.tour-calendar .tc-tour-title { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
-.tour-calendar .tc-tour-title h3 { margin: 0; color: var(--text-strong); font-size: 16px; font-weight: var(--adm-fw-bold); letter-spacing: -.02em; overflow-wrap: anywhere; }
-.tour-calendar .tc-product-name { margin: -6px 0 0; color: var(--text-secondary); font-size: 13px; overflow-wrap: anywhere; }
-.tour-calendar .tc-source { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: var(--adm-radius-xs); background: var(--mrt-green-soft); color: var(--mrt-green); font-size: 11px; font-weight: var(--adm-fw-bold); white-space: nowrap; }
-.tour-calendar .tc-source[data-source="quote_booking"] { background: var(--mrt-blue-50); color: var(--mrt-blue-strong); }
-.tour-calendar .tc-source[data-source="legacy_quote"] { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
-.tour-calendar .tc-people { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 26px; padding: 0 9px; border-radius: var(--adm-radius-sm); background: var(--mrt-gray-50); color: var(--text-strong); font-size: 12px; font-weight: var(--adm-fw-bold); white-space: nowrap; }
-.tour-calendar .tc-people .tc-glyph { width: 13px; height: 13px; }
-.tour-calendar .tc-tour-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; color: var(--text-tertiary); font-size: 12px; }
-.tour-calendar .tc-tour-meta > span { overflow-wrap: anywhere; }
-.tour-calendar .tc-conflict { display: flex; align-items: flex-start; gap: 6px; padding: 8px 10px; border-radius: var(--adm-radius-sm); background: var(--mrt-red-soft); color: var(--mrt-red); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
-.tour-calendar .tc-conflict .tc-glyph { width: 14px; height: 14px; margin-top: 1px; }
-.tour-calendar .tc-resources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.tour-calendar .tc-resource { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; padding: 10px 12px; border-radius: var(--adm-radius-md); background: var(--mrt-gray-50); }
-.tour-calendar .tc-resource.is-missing { background: var(--adm-danger-soft); }
-.tour-calendar .tc-resource-label { display: flex; align-items: center; gap: 5px; color: var(--text-tertiary); font-size: 11px; font-weight: 600; }
-.tour-calendar .tc-resource-label .tc-glyph { width: 13px; height: 13px; color: var(--mrt-green); }
-.tour-calendar .tc-resource.is-missing .tc-resource-label, .tour-calendar .tc-resource.is-missing .tc-resource-label .tc-glyph { color: var(--mrt-red); }
-.tour-calendar .tc-resource-value { display: block; width: 100%; color: var(--text-strong); font-size: 14px; font-weight: var(--adm-fw-bold); overflow-wrap: anywhere; }
-.tour-calendar .tc-resource.is-missing .tc-resource-value { color: var(--mrt-red); }
-.tour-calendar .tc-resource-detail { display: block; width: 100%; color: var(--text-tertiary); font-size: 11px; overflow-wrap: anywhere; }
-.tour-calendar .tc-resource.is-missing .tc-resource-detail { color: var(--mrt-red); font-weight: 700; }
-.tour-calendar .tc-resource-action { display: inline-flex; align-items: center; gap: 2px; margin-top: 2px; color: var(--text-strong); font-size: 11px; font-weight: 700; text-decoration: none; }
-.tour-calendar .tc-resource-action:hover { text-decoration: underline; }
-.tour-calendar .tc-resource.is-missing .tc-resource-action { color: var(--mrt-red); }
-.tour-calendar .tc-resource-action .tc-glyph { width: 11px; height: 11px; }
-.tour-calendar .tc-issues { display: flex; flex-wrap: wrap; gap: 4px; }
-.tour-calendar .tc-issue { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--adm-radius-xs); background: var(--mrt-purple-soft); color: var(--mrt-purple-2); font-size: 11px; font-weight: var(--adm-fw-bold); }
-.tour-calendar .tc-inquiry-note { margin: 0; padding: 10px 12px; border-radius: var(--adm-radius-sm); background: var(--adm-warn-soft); color: var(--adm-warn-strong); font-size: 12px; line-height: 1.5; }
-.tour-calendar .tc-tour-details { border-top: 1px solid var(--border-subtle); padding-top: 10px; }
-.tour-calendar .tc-tour-details summary { color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer; }
-.tour-calendar .tc-tour-details dl { display: grid; gap: 6px; margin: 10px 0 0; font-size: 12px; }
-.tour-calendar .tc-tour-details dl > div { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 12px; min-width: 0; }
-.tour-calendar .tc-tour-details dt { color: var(--text-tertiary); }
-.tour-calendar .tc-tour-details dd { min-width: 0; margin: 0; color: var(--text-strong); font-weight: 600; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.tour-calendar .tc-tour-footer { display: flex; align-items: center; gap: 8px; }
-.tour-calendar .tc-tour-footer > span { flex: 1; color: var(--text-tertiary); font-size: 12px; }
-.tour-calendar .tc-tour-footer > a { display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 14px; border: 1.5px solid var(--border-default); border-radius:var(--adm-radius-sm); background: var(--adm-surface); color: var(--text-strong); font-size: 13px; font-weight: 700; text-decoration: none; }
-.tour-calendar .tc-tour-footer > a:hover { border-color: var(--mrt-ink); }
-.tour-calendar .tc-tour-footer > a .tc-glyph { width: 14px; height: 14px; }
+.adm-cal-weekdays, .adm-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); min-width: 0; }
+.adm-cal-weekdays { border-top: var(--adm-border-width) solid var(--adm-line-subtle); background: var(--adm-gray-50); }
+.adm-cal-weekdays > span { min-width: 0; padding: var(--adm-space-2) var(--adm-space-3); color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }
+
+.adm-cal-day { position: relative; display: flex; flex-direction: column; gap: var(--adm-space-1); min-width: 0; height: calc(var(--adm-space-8) * 4.25); padding: var(--adm-space-2); overflow: hidden;
+  border-top: var(--adm-border-width) solid var(--adm-line-subtle); border-right: var(--adm-border-width) solid var(--adm-line-subtle); background: var(--adm-surface); }
+.adm-cal-day:nth-child(7n) { border-right: 0; }
+.adm-cal-day.is-outside { background: var(--adm-gray-50); }
+.adm-cal-day.is-selected { z-index: 1; background: var(--adm-accent-soft); box-shadow: inset 0 0 0 var(--adm-border-width) var(--adm-accent-line); }
+.adm-cal-day-head { display: flex; align-items: center; gap: var(--adm-space-1); width: 100%; min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; color: var(--adm-ink);
+  font: inherit; font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); text-align: left; cursor: pointer; }
+.adm-cal-day-head:focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-accent-strong); outline-offset: var(--adm-border-width); border-radius: var(--adm-radius-xs); }
+.adm-cal-day-num { display: inline-flex; align-items: center; justify-content: center; min-width: calc(var(--adm-space-6) + var(--adm-space-1)); height: calc(var(--adm-space-6) + var(--adm-space-1));
+  padding: 0 var(--adm-space-1); border-radius: var(--adm-radius-pill); font-variant-numeric: tabular-nums; }
+.adm-cal-day.is-outside .adm-cal-day-head { color: var(--adm-text-3); }
+.adm-cal-day.is-today .adm-cal-day-num { background: var(--adm-accent); color: var(--adm-on-primary); }
+.adm-cal-day-head .adm-cal-dot { margin-left: auto; }
+.adm-cal-day-count { display: block; flex: none; overflow: hidden; color: var(--adm-text-3); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.adm-cal-dot { display: inline-block; flex: none; width: calc(var(--adm-space-1) * 1.5); height: calc(var(--adm-space-1) * 1.5); border-radius: var(--adm-radius-pill); background: var(--adm-danger); }
+
+/* 일정 막대: 옅은 구분색 바탕 + 앞 점 + 이름 */
+.adm-cal-events { display: flex; flex: none; flex-direction: column; gap: var(--adm-space-1); min-width: 0; }
+.adm-cal-event { --cal-dot: var(--adm-tag-blue-solid); display: flex; align-items: center; gap: calc(var(--adm-space-1) * 1.5); width: 100%; min-width: 0; height: var(--adm-space-6); padding: 0 var(--adm-space-2);
+  overflow: hidden; border: 0; border-radius: var(--adm-radius-xs); background: var(--adm-tag-blue-soft); color: var(--adm-ink); font: inherit; font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); text-align: left; cursor: pointer; }
+.adm-cal-event::before { content: ''; flex: none; width: calc(var(--adm-space-1) * 1.5); height: calc(var(--adm-space-1) * 1.5); border-radius: var(--adm-radius-pill); background: var(--cal-dot); }
+.adm-cal-event > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-cal-event small { flex: none; color: var(--adm-text-2); font-size: var(--adm-fs-micro); white-space: nowrap; }
+.adm-cal-event[data-source="quote_booking"] { --cal-dot: var(--adm-tag-violet-solid); background: var(--adm-tag-violet-soft); }
+.adm-cal-event[data-source="legacy_quote"] { --cal-dot: var(--adm-warn); background: var(--adm-warn-soft); }
+.adm-cal-event.is-conflict { --cal-dot: var(--adm-danger); background: var(--adm-danger-soft); }
+.adm-cal-event.is-muted { --cal-dot: var(--adm-text-3); background: var(--adm-neutral-soft); color: var(--adm-text-3); }
+.adm-cal-event:hover { box-shadow: inset 0 0 0 var(--adm-border-width) var(--adm-line-strong); }
+.adm-cal-event:focus-visible, .adm-cal-more:focus-visible, .adm-cal-table-customer:focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-accent-strong); outline-offset: var(--adm-border-width); }
+.adm-cal-more { align-self: flex-start; padding: 0; border: 0; background: transparent; color: var(--adm-text-2); font: inherit; font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-bold); white-space: nowrap; cursor: pointer; }
+.adm-cal-more:hover { color: var(--adm-ink); text-decoration: underline; }
+
+.adm-cal-month-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--adm-space-2) var(--adm-space-4); padding: var(--adm-space-3) var(--adm-pad-card);
+  border-top: var(--adm-border-width) solid var(--adm-line-subtle); color: var(--adm-text-2); font-size: var(--adm-fs-caption); }
+.adm-cal-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-4); }
+.adm-cal-legend > span { display: inline-flex; align-items: center; gap: calc(var(--adm-space-1) * 1.5); }
+.adm-cal-legend > [data-source]::before { content: ''; flex: none; width: var(--adm-space-2); height: var(--adm-space-2); border-radius: var(--adm-radius-pill); background: var(--adm-tag-blue-solid); }
+.adm-cal-legend > [data-source="quote_booking"]::before { background: var(--adm-tag-violet-solid); }
+.adm-cal-legend > [data-source="legacy_quote"]::before { background: var(--adm-warn); }
 
 /* 목록 보기 */
-.tour-calendar .tc-table-wrap { max-width: 100%; min-width: 0; max-height: 660px; overflow: auto; overscroll-behavior: contain; border-top: 1px solid var(--border-subtle); }
-.tour-calendar .tc-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; line-height: 1.5; }
-.tour-calendar .tc-table th { position: sticky; top: 0; z-index: 1; padding: 10px 16px; background: var(--mrt-gray-50); color: var(--text-tertiary); font-size: 12px; font-weight: 700; white-space: nowrap; }
-.tour-calendar .tc-table td { min-width: 80px; max-width: 260px; padding: 12px 16px; border-top: 1px solid var(--border-subtle); color: var(--text-secondary); overflow-wrap: anywhere; vertical-align: top; }
-.tour-calendar .tc-table td:nth-child(2) { color: var(--text-strong); font-weight: var(--adm-fw-bold); white-space: nowrap; }
-.tour-calendar .tc-table tbody tr:hover { background: var(--mrt-gray-50); }
-.tour-calendar .tc-table-customer { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; min-width: 140px; padding: 0; border: 0; background: transparent; text-align: left; }
-.tour-calendar .tc-table-customer strong { color: var(--text-strong); font-size: 14px; font-weight: var(--adm-fw-bold); }
-.tour-calendar .tc-table-customer small { color: var(--text-tertiary); font-size: 12px; }
-.tour-calendar .tc-table-customer:hover strong { text-decoration: underline; }
-.tour-calendar .tc-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 180px; padding: 36px 16px; text-align: center; color: var(--text-tertiary); font-size: 12px; line-height: 1.6; }
-.tour-calendar .tc-empty .tc-glyph { width: 28px; height: 28px; color: var(--mrt-gray-400); }
-.tour-calendar .tc-empty strong { color: var(--text-strong); font-size: 14px; font-weight: var(--adm-fw-bold); }
-.tour-calendar .tc-empty p { margin: 0; }
-.tour-calendar .tc-warning { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border-radius: var(--adm-radius-md); background: var(--adm-warn-soft); color: var(--adm-warn-strong); font-size: 13px; line-height: 1.6; }
-.tour-calendar .tc-warning > span { flex: 1; min-width: 0; }
+.adm-cal-list { min-width: 0; max-height: calc(var(--adm-space-8) * 20.5); overflow: auto; overscroll-behavior: contain; border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.adm-cal-table-customer { display: flex; flex-direction: column; align-items: flex-start; gap: var(--adm-space-1); width: 100%; min-width: calc(var(--adm-space-8) * 4.5); padding: 0; border: 0; background: transparent;
+  color: var(--adm-text); font: inherit; text-align: left; cursor: pointer; }
+.adm-cal-table-customer strong { color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); }
+.adm-cal-table-customer small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.adm-cal-table-customer:hover strong { text-decoration: underline; }
+
+/* 선택한 날짜 패널 */
+.adm-cal-panel { position: sticky; top: var(--adm-space-4); }
+.adm-cal-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--adm-space-3); padding: var(--adm-space-5) var(--adm-pad-card) var(--adm-space-2); }
+.adm-cal-panel-head h2 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-section); font-weight: var(--adm-fw-bold); }
+.adm-cal-eyebrow { display: block; margin-bottom: var(--adm-space-1); color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.adm-cal-panel-stats { display: flex; flex-wrap: wrap; align-items: center; gap: calc(var(--adm-space-1) * 1.5); padding: 0 var(--adm-pad-card) var(--adm-space-4); border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
+.adm-cal-panel-stats > span { display: inline-flex; align-items: center; gap: var(--adm-space-1); padding: var(--adm-space-1) var(--adm-space-2); border-radius: var(--adm-radius-xs); background: var(--adm-gray-50); color: var(--adm-text-2); font-size: var(--adm-fs-caption); }
+.adm-cal-panel-stats b { color: var(--adm-ink); font-weight: var(--adm-fw-bold); }
+.adm-cal-panel-body { display: flex; flex-direction: column; gap: var(--adm-space-3); max-height: calc(100vh - var(--adm-space-8) * 7.5); overflow-y: auto; overscroll-behavior: contain; padding: var(--adm-space-4); }
+
+/* 팀 카드 */
+.adm-cal-tour { display: flex; flex-direction: column; gap: var(--adm-space-3); min-width: 0; padding: var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); }
+.adm-cal-tour.is-selected { border-color: var(--adm-accent); box-shadow: inset 0 0 0 var(--adm-border-width) var(--adm-accent); }
+.adm-cal-tour.is-conflict:not(.is-selected) { border-color: var(--adm-danger-line); }
+.adm-cal-tour-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--adm-space-2); min-width: 0; }
+.adm-cal-tour-title { display: flex; flex-direction: column; align-items: flex-start; gap: var(--adm-space-1); min-width: 0; }
+.adm-cal-tour-title h3 { margin: 0; color: var(--adm-ink); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); overflow-wrap: anywhere; }
+.adm-cal-tour-product { margin: calc(var(--adm-space-2) * -1) 0 0; color: var(--adm-text-2); font-size: var(--adm-fs-small); overflow-wrap: anywhere; }
+.adm-cal-tour-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-1) var(--adm-space-3); color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.adm-cal-tour-meta > span { overflow-wrap: anywhere; }
+.adm-cal-tour .adm-msg { margin: 0; }
+
+.adm-cal-res-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-2); }
+.adm-cal-res { display: flex; flex-direction: column; align-items: flex-start; gap: var(--adm-space-1); min-width: 0; padding: var(--adm-space-3); border-radius: var(--adm-radius-sm); background: var(--adm-gray-50); }
+.adm-cal-res.is-missing { background: var(--adm-danger-soft); }
+.adm-cal-res-label { color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); }
+.adm-cal-res-value { display: block; width: 100%; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); overflow-wrap: anywhere; }
+.adm-cal-res-detail { display: block; width: 100%; color: var(--adm-text-3); font-size: var(--adm-fs-caption); overflow-wrap: anywhere; }
+.adm-cal-res.is-missing :is(.adm-cal-res-label, .adm-cal-res-value, .adm-cal-res-detail) { color: var(--adm-danger); }
+
+.adm-cal-issues { display: flex; flex-wrap: wrap; gap: var(--adm-space-1); }
+.adm-cal-details { padding-top: var(--adm-space-3); border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.adm-cal-details summary { color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); cursor: pointer; }
+.adm-cal-details summary:focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-accent-strong); outline-offset: var(--adm-border-width); }
+.adm-cal-details dl { display: grid; gap: calc(var(--adm-space-1) * 1.5); margin: var(--adm-space-3) 0 0; font-size: var(--adm-fs-caption); }
+.adm-cal-details dl > div { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--adm-space-3); min-width: 0; }
+.adm-cal-details dt { color: var(--adm-text-3); }
+.adm-cal-details dd { min-width: 0; margin: 0; color: var(--adm-ink); font-weight: var(--adm-fw-bold); text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.adm-cal-tour-foot { display: flex; align-items: center; gap: var(--adm-space-2); }
+.adm-cal-tour-foot > span { flex: 1; color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
 
 @media (max-width: 1280px) {
-  .tour-calendar .tc-workspace { grid-template-columns: minmax(0, 1fr); }
-  .tour-calendar .tc-day-panel { position: static; }
-  .tour-calendar .tc-panel-body { max-height: none; overflow-y: visible; }
-  .tour-calendar .tc-check { margin-left: 0; }
-  .tour-calendar .tc-search { max-width: none; }
+  .adm-cal-workspace { grid-template-columns: minmax(0, 1fr); }
+  .adm-cal-panel { position: static; }
+  .adm-cal-panel-body { max-height: none; overflow-y: visible; }
 }
 @media (max-width: 760px) {
-  .tour-calendar .tc-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .tour-calendar .tc-metric { padding: 12px; gap: 8px; border-radius: var(--adm-radius-md); }
-  .tour-calendar .tc-metric.is-active { padding: 11.5px; }
-  .tour-calendar .tc-metric-icon { width: 36px; height: 36px; border-radius: var(--adm-radius-sm); }
-  .tour-calendar .tc-metric strong { font-size: 20px; }
-  .tour-calendar .tc-month-header { padding: 12px; }
-  .tour-calendar .tc-month-nav h2 { min-width: 0; font-size: 18px; }
-  .tour-calendar .tc-month-card, .tour-calendar .tc-day-panel { border-radius: var(--adm-radius-md); }
-  .tour-calendar .tc-day { height: 96px; padding: 5px 3px; }
-  .tour-calendar .tc-day-count { display: none; }
-  .tour-calendar .tc-event { padding: 0 3px; border-left-width: 2px; font-size: 11px; }
-  .tour-calendar .tc-event small { display: none; }
-  .tour-calendar .tc-panel-header { padding: 16px 14px 8px; }
-  .tour-calendar .tc-panel-stats { padding: 0 14px 14px; }
-  .tour-calendar .tc-panel-body { padding: 10px; }
+  .adm-cal-filters-end { margin-left: 0; }
+  .adm-cal-month-head { padding: var(--adm-space-3); }
+  .adm-cal-month-nav h2 { min-width: 0; }
+  .adm-cal-weekdays > span { padding: var(--adm-space-2) 0; text-align: center; }
+  .adm-cal-day { height: auto; min-height: calc(var(--adm-space-8) * 3); padding: var(--adm-space-1); }
+  .adm-cal-more { white-space: normal; text-align: left; }
+  .adm-cal-day-head { justify-content: center; }
+  .adm-cal-day-head .adm-cal-dot { margin-left: 0; }
+  .adm-cal-day-count { display: none; }
+  .adm-cal-event { padding: 0 var(--adm-space-1); }
+  .adm-cal-event::before, .adm-cal-event small { display: none; }
+  .adm-cal-panel-head { padding: var(--adm-space-4) var(--adm-space-4) var(--adm-space-2); }
+  .adm-cal-panel-stats { padding: 0 var(--adm-space-4) var(--adm-space-4); }
+  .adm-cal-panel-body { padding: var(--adm-space-3); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .tour-calendar .tc-button, .tour-calendar .tc-icon-button, .tour-calendar .tc-metric { transition: none; }
-}
-
-/* ── Montage 시안 ④ 캘린더형(2026-11-20) ──
-   달 이동은 테두리 없는 아이콘 버튼, 달 제목 20px 600, 보기 전환은 회색 묶음 전환,
-   요일 줄은 왼쪽 정렬 13px, 날짜는 28px 동그라미(오늘은 브랜드 채움), 일정 막대는 옅은 구분색 + 점. */
-.tour-calendar .tc-month-header { padding: var(--adm-space-4) var(--adm-pad-card); }
-.tour-calendar .tc-month-nav { gap: var(--adm-space-1); }
-.tour-calendar .tc-month-nav h2 { min-width: 132px; color: var(--adm-ink); font-size: var(--adm-fs-section); font-weight: var(--adm-fw-semibold); line-height: 28px; letter-spacing: -0.012em; }
-.tour-calendar .tc-month-nav .tc-icon-button { width: 32px; height: 32px; border: 0; border-radius: var(--adm-radius-sm); background: transparent; color: var(--adm-text-2); }
-.tour-calendar .tc-month-nav .tc-icon-button:hover { background: var(--adm-neutral-soft); color: var(--adm-ink); }
-.tour-calendar .tc-button { height: var(--adm-control-h-sm); border: 1px solid var(--adm-line-strong); border-radius: 8px; color: var(--adm-text); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
-.tour-calendar .tc-button:hover, .tour-calendar .tc-icon-button:hover { border-color: var(--adm-line-strong); background: var(--adm-gray-50); }
-.tour-calendar :is(.tc-view-switch, .tc-filter-chips) { gap: 0; padding: 2px; border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); }
-.tour-calendar :is(.tc-view-switch, .tc-filter-chips) .tc-button { height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--adm-text-2); font-weight: var(--adm-fw-medium); }
-.tour-calendar :is(.tc-view-switch, .tc-filter-chips) .tc-button.is-active { background: var(--adm-surface); color: var(--adm-ink); font-weight: var(--adm-fw-semibold); box-shadow: var(--adm-shadow-xs); }
-.tour-calendar .tc-search { height: var(--adm-control-h); border: 0; border-radius: var(--adm-radius-sm); background: var(--adm-neutral-soft); }
-.tour-calendar .tc-search:focus-within { outline: 1px solid var(--adm-accent); box-shadow: var(--adm-ring); background: var(--adm-surface); }
-
-.tour-calendar .tc-weekdays { border-top: 1px solid var(--adm-line-subtle); background: var(--adm-gray-50); }
-.tour-calendar .tc-weekdays > * { padding: var(--adm-space-2) var(--adm-space-3); text-align: left; color: var(--adm-text-2); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
-.tour-calendar .tc-weekdays > :first-child { color: var(--adm-text-2); }
-.tour-calendar .tc-day { gap: var(--adm-space-1); height: 136px; padding: var(--adm-space-2); border-top: 1px solid var(--adm-line-subtle); border-right: 1px solid var(--adm-line-subtle); }
-.tour-calendar .tc-day.is-outside { background: var(--adm-gray-50); }
-.tour-calendar .tc-day.is-selected { background: var(--adm-accent-soft); box-shadow: inset 0 0 0 1px var(--adm-accent-line); }
-.tour-calendar .tc-day-heading { color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-semibold); }
-.tour-calendar .tc-day-heading > :first-child { min-width: 28px; height: 28px; padding: 0 var(--adm-space-1); border-radius: var(--adm-radius-pill); font-variant-numeric: tabular-nums; }
-.tour-calendar .tc-day:nth-child(7n + 1) .tc-day-heading { color: var(--adm-text-2); }
-.tour-calendar .tc-day.is-outside .tc-day-heading { color: var(--adm-text-3); }
-.tour-calendar .tc-day.is-today .tc-day-heading > :first-child { background: var(--adm-accent); color: var(--adm-on-primary); }
-.tour-calendar .tc-day-count { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
-.tour-calendar .tc-attention-dot { background: var(--adm-danger); }
-
-/* 일정 막대: 옅은 구분색 바탕 + 앞 점(색만으로 알리지 않고 이름과 함께). 상품 예약 = 하늘, 견적 예약 = 보라 */
-.tour-calendar .tc-events { gap: var(--adm-space-1); }
-.tour-calendar .tc-event { --ev-dot: var(--adm-tag-blue-solid); gap: 6px; height: 24px; padding: 0 var(--adm-space-2); border: 0; border-radius: 8px; background: var(--adm-tag-blue-soft); color: var(--adm-ink); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-medium); }
-.tour-calendar .tc-event::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--ev-dot); }
-.tour-calendar .tc-event[data-source="quote_booking"] { --ev-dot: var(--adm-tag-violet-solid); background: var(--adm-tag-violet-soft); }
-.tour-calendar .tc-event[data-source="legacy_quote"] { --ev-dot: var(--adm-warn); background: var(--adm-warn-soft); }
-.tour-calendar .tc-event.is-conflict { --ev-dot: var(--adm-danger); background: var(--adm-danger-soft); }
-.tour-calendar .tc-event.is-muted { --ev-dot: var(--adm-text-3); background: var(--adm-neutral-soft); color: var(--adm-text-3); }
-.tour-calendar .tc-event:hover { filter: none; box-shadow: inset 0 0 0 1px var(--adm-line-strong); }
-.tour-calendar .tc-more { color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
-.tour-calendar .tc-month-footer { padding: var(--adm-space-3) var(--adm-pad-card); border-top: 1px solid var(--adm-line-subtle); color: var(--adm-text-2); font-size: var(--adm-fs-small); }
-.tour-calendar .tc-legend > [data-source]::before { border-radius: 50%; background: var(--adm-tag-blue-solid); }
-.tour-calendar .tc-legend > [data-source="quote_booking"]::before { background: var(--adm-tag-violet-solid); }
-.tour-calendar .tc-legend > [data-source="legacy_quote"]::before { background: var(--adm-warn); }
-
-/* 요약 카드·선택한 날짜 패널: 흰 카드 + 1px 테두리 */
-.tour-calendar .tc-metric { padding: var(--adm-pad-card); border: 1px solid var(--adm-line); }
-.tour-calendar .tc-metric.is-active, .tour-calendar .tc-metric.is-active:hover { padding: calc(var(--adm-pad-card) - 0.5px); border: 1.5px solid var(--adm-ink); }
-.tour-calendar .tc-metric-icon { width: 36px; height: 36px; border-radius: var(--adm-radius-sm); }
-.tour-calendar .tc-metric strong { color: var(--adm-ink); font-size: 24px; font-weight: var(--adm-fw-bold); }
-.tour-calendar .tc-day-panel { border: 1px solid var(--adm-line); }
-.tour-calendar .tc-panel-header h2 { font-size: var(--adm-fs-section); font-weight: var(--adm-fw-semibold); }
