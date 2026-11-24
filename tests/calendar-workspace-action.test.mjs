@@ -62,7 +62,7 @@ test('견적 캘린더 바로가기는 실제 편집기 준비와 성공한 패�
     const base = { customerPage: true, linked: true, customerRecord: { id: 'a' }, bookingId: 'a', accountId: 'admin-a', customerRefreshing: false,
         editorBusy: false, sendingKakao: false, editorDirty: false, workspaceLocation: { pathname: '/admin/customer-workspace/quote/a', search: search('stay'), key: 'navigation-a', hash: '' },
         calendarActionRequest: request, flushFrame: () => ({ ok: true, busy: false }), customerAction: action => opened.push(action),
-        editorExpanded: false, customerEditorMounted: false, frameIsMounted: false, nativeInquiry: false, frameWaiting: true, pendingSection: 'stay', navigate: (...args) => navigated.push(args) };
+        editorExpanded: false, customerEditorMounted: false, frameIsMounted: false, nativeEditor: false, frameWaiting: true, pendingSection: 'stay', navigate: (...args) => navigated.push(args) };
     for (const patch of [{ linked: false }, { customerRecord: null }, { customerRefreshing: true }, { editorBusy: true }, { sendingKakao: true }, { editorDirty: true }, { flushFrame: () => ({ ok: false, busy: false }) }]) run(quoteStart, { ...base, ...patch });
     assert.deepEqual(opened, []);
     run(quoteStart, base); run(quoteStart, base); assert.deepEqual(opened, ['stay']);
@@ -71,8 +71,8 @@ test('견적 캘린더 바로가기는 실제 편집기 준비와 성공한 패�
     run(quoteComplete, { ...ready, bookingId: 'other' }); assert.deepEqual(navigated, []);
     run(quoteComplete, { ...ready, pendingSection: 'stay' }); assert.deepEqual(navigated, []);
     run(quoteComplete, { ...ready, frameIsMounted: false }); assert.deepEqual(navigated, [], '편집 문서가 없으면 기다린다');
-    // 예약 전 고객의 문의 상세는 iframe 없이 React 화면이라, 그 화면이 열리면 소비한다.
-    run(quoteComplete, { ...ready, frameIsMounted: false, nativeInquiry: true }); run(quoteComplete, ready);
+    // 문의 상세·견적 편집은 iframe 없이 React 화면이라, 그 화면이 열리면 소비한다.
+    run(quoteComplete, { ...ready, frameIsMounted: false, nativeEditor: true }); run(quoteComplete, ready);
     assert.equal(navigated.length, 1); assert.equal(navigated[0][1].replace, true);
     assert.equal(new URLSearchParams(navigated[0][0].search).get('keep'), '1');
 });

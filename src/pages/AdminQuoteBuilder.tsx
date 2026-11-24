@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { AdminLayout } from '../components/admin/AdminLayout';
@@ -29,7 +29,8 @@ import './AdminQuoteBuilder.css';
  * - 견적 문서는 components/admin/quoteBuilder.ts의 buildQuote(옛 도구와 같은 칸)로 만들고, 같은 `/api/requests`에 저장한다.
  *   저장하기 = 서버 저장만(silentQuote), 링크 공유하기 = 저장 + 고객 알림톡(notifyQuote) + 고객 링크.
  * - 초안은 옛 편집기(quote-editor-state.js)와 같은 자리·형식(quoteDraftStore.ts)으로 이 브라우저에 보관한다.
- * - 고객 통합 작업 화면 안의 견적 편집(iframe `/견적만들기?id=`)은 아직 옛 문서를 쓴다.
+ * - 고객 통합 작업 화면 안의 견적 편집도 같은 편집기(QuoteBuilderEditor, embedded)를 끼워 쓴다(옛 iframe `/견적만들기?id=` 대신).
+ *   바깥 화면은 ref의 flushAll()로 이동 전에 초안을 보관하고 onState로 저장 중·미저장을 받는다(옛 QuoteEditorState와 같은 약속).
  */
 const tool = findQuoteDeskTool('builder');
 const STEPS = ['기본정보 · 코스', '일자별 일정', '요금', '대표 명소', '혜택 · 비고'] as const;
@@ -71,7 +72,33 @@ function takeHandoffs(params: URLSearchParams): { shareCourse: string; anonymous
     return { shareCourse, anonymous, prefillId };
 }
 
-export const AdminQuoteBuilder: React.FC = () => {
+export interface QuoteBuilderState { busy: boolean; dirty: boolean; error: string }
+export interface QuoteBuilderFlush { ok: boolean; busy: boolean; dirty?: boolean; error?: string }
+export interface QuoteBuilderHandle {
+    /** 초안을 이 브라우저에 보관한다(옛 QuoteEditorState.flushAll과 같은 결과) */
+    flushAll: () => QuoteBuilderFlush;
+    /** 고객 화면의 작업 이동: quote-share → 마지막 단계(링크 공유), 그 밖 → 일자별 일정(옛 setStep(4)/setStep(1)) */
+    navigate: (section: string) => boolean;
+}
+interface ShellParts { actions: React.ReactNode; description: string; content: React.ReactNode }
+interface EditorProps {
+    /** 고객 화면에 끼울 때 — 주소 대신 이 요청을 열고, 주소·다른 화면이 넘긴 값(코스 공유 등)은 건드리지 않는다 */
+    embedded?: boolean;
+    requestId?: string;
+    onState?: (state: QuoteBuilderState) => void;
+    /** 서버 저장이 끝난 뒤(바깥 고객 현황을 다시 읽게) */
+    onSaved?: (requestId: string) => void;
+    /** 화면 틀(독립 화면은 AdminLayout). 없으면 끼워 쓰는 틀 */
+    shell?: (parts: ShellParts) => React.ReactNode;
+}
+const embeddedShell = ({ actions, description, content }: ShellParts) => (
+    <div className="qbd-embedded">
+        <div className="qbd-embedded-head"><p>{description}</p>{actions && <div className="qbd-embedded-tools">{actions}</div>}</div>
+        {content}
+    </div>
+);
+
+export const QuoteBuilderEditor = forwardRef<QuoteBuilderHandle, EditorProps>(function QuoteBuilderEditor({ embedded = false, requestId, onState, onSaved, shell }, ref) {
     const { user } = useUser();
     const accountId = user?.role === 'admin' ? user.id : '';
     const [params, setParams] = useSearchParams();
@@ -103,6 +130,8 @@ export const AdminQuoteBuilder: React.FC = () => {
     const legacyOwned = useRef(false);
     const pendingRef = useRef(pending); pendingRef.current = pending;
     const busyRef = useRef(busy); busyRef.current = busy;
+    // 불러오기 전에 바깥 화면이 고른 단계(불러오기가 끝나면 그 단계로 연다)
+    const navStep = useRef<number | null>(null);
 
     // ── 처음 열기: 연결 → 기본값·자료 → (요청이면) 원본 → 시작 내용 → 초안 확인 ──
     const start = useCallback(async () => {
@@ -116,7 +145,7 @@ export const AdminQuoteBuilder: React.FC = () => {
             if (!value) { setPhase('unset'); return; }
             token.current = value;
             setPhase('loading');
-            handoff.current ??= takeHandoffs(paramsRef.current);
+            handoff.current ??= embedded ? { shareCourse: '', anonymous: false, prefillId: '' } : takeHandoffs(paramsRef.current);
             const { shareCourse, anonymous, prefillId } = handoff.current;
             const [quoteBase, library] = await Promise.all([loadQuoteBase(), loadLibrary(value)]);
             if (run !== boot.current) return;
@@ -124,7 +153,7 @@ export const AdminQuoteBuilder: React.FC = () => {
             let legacyId = '';
             const legacy = localJson(LEGACY_DRAFT) as Json | null;
             if (!prefillId && !shareCourse && legacy?.st && validQuoteDraft(legacy.st)) legacyId = String(legacy.reqId || '');
-            const id = paramsRef.current.get('id') || prefillId || legacyId;
+            const id = (embedded ? requestId : paramsRef.current.get('id')) || prefillId || legacyId;
             let restore: Json | null = null;
             if (id) {
                 const item = await loadQuoteCustomerRequest(id, value).catch(error => { throw new Error(error?.status === 404 ? '이 견적의 원본을 찾지 못했습니다. 견적 문의 목록에서 다시 열어 주세요.' : '이 견적의 원본을 불러오지 못했습니다. 다시 시도해 주세요.'); });
@@ -150,8 +179,8 @@ export const AdminQuoteBuilder: React.FC = () => {
                 const first = Object.keys(library.courses)[0];
                 if (first) { s = applyCourse(s, library.courses[first]); picked = first; message = `“${first}” 코스를 불러왔습니다`; }
             }
-            setBase(quoteBase); setLib(library); setSt(s); setCtx(c); setPickedCourse(picked); setAutoNo(autoQuoteNo()); setStep(0); setSyncKey(k => k + 1);
-            if (c.reqId && paramsRef.current.get('id') !== c.reqId) { const q = new URLSearchParams(paramsRef.current); q.set('id', c.reqId); setParams(q, { replace: true }); }
+            setBase(quoteBase); setLib(library); setSt(s); setCtx(c); setPickedCourse(picked); setAutoNo(autoQuoteNo()); setStep(navStep.current ?? 0); setSyncKey(k => k + 1);
+            if (!embedded && c.reqId && paramsRef.current.get('id') !== c.reqId) { const q = new URLSearchParams(paramsRef.current); q.set('id', c.reqId); setParams(q, { replace: true }); }
             // 초안: 옛 편집기와 같은 자리(계정·종류·요청 ID). 원본과 다르면 복원/버리기를 고를 때까지 편집을 잠근다.
             scope.current = { account: accountId, kind: 'quote', requestId: c.reqId };
             baseline.current = s; lastStored.current = '';
@@ -168,20 +197,20 @@ export const AdminQuoteBuilder: React.FC = () => {
             setLoadError(error instanceof Error ? error.message : String(error));
             setPhase('error');
         }
-    }, [accountId, setParams]);
+    }, [accountId, setParams, embedded, requestId]);
 
     useEffect(() => { token.current = ''; void start(); return () => { boot.current++; }; }, [start]);
 
     // ── 초안 보관: 고칠 때마다 잠시 뒤 이 브라우저에 보관(원본과 같으면 보관하지 않는다) ──
-    const flushDraft = useCallback((): boolean => {
-        if (!scope.current || pendingRef.current) return true;
+    const flushDraft = useCallback((): string => {
+        if (!scope.current || pendingRef.current) return '';
         const current = draftFingerprint(stRef.current);
-        if (current === draftFingerprint(baseline.current) || current === lastStored.current) return true;
+        if (current === draftFingerprint(baseline.current) || current === lastStored.current) return '';
         let result: ReturnType<typeof writeDraft>;
         try { result = writeDraft(localStorage, scope.current, baseline.current, stRef.current); }
         catch { result = { ok: false, error: '브라우저 저장소를 사용할 수 없어 초안을 보관하지 못했습니다.' }; }
-        if (result.ok) { lastStored.current = current; setDraftError(''); return true; }
-        setDraftError(result.error); return false;
+        if (result.ok) { lastStored.current = current; setDraftError(''); return ''; }
+        setDraftError(result.error); return result.error;
     }, []);
     const commitDraft = (nextRequestId: string) => {
         if (!scope.current) return;
@@ -321,7 +350,8 @@ export const AdminQuoteBuilder: React.FC = () => {
             next = { ...next, savedEmail: email };
             setCtx(next);
             commitDraft(next.reqId);
-            if (next.reqId && paramsRef.current.get('id') !== next.reqId) { const query = new URLSearchParams(paramsRef.current); query.set('id', next.reqId); setParams(query, { replace: true }); }
+            onSaved?.(next.reqId);
+            if (!embedded && next.reqId && paramsRef.current.get('id') !== next.reqId) { const query = new URLSearchParams(paramsRef.current); query.set('id', next.reqId); setParams(query, { replace: true }); }
             if (!share) { adminNotify('저장했어요 — 고객에게는 아직 보내지 않았어요.', 'success'); return; }
             const url = customerQuoteLink(window.location.origin, next.reqToken);
             try { await navigator.clipboard.writeText(url); } catch { /* 링크 창에서 복사할 수 있다 */ }
@@ -331,6 +361,22 @@ export const AdminQuoteBuilder: React.FC = () => {
             adminNotify('저장하지 못했습니다: ' + (error instanceof Error ? error.message : '서버 연결을 확인하세요'), 'error');
         } finally { setBusy(''); }
     };
+
+    // ── 바깥 화면(고객 통합 작업)과의 약속 ──
+    const draftErrorRef = useRef(draftError); draftErrorRef.current = draftError;
+    const dirty = phase === 'ready' && !pending && draftFingerprint(st) !== draftFingerprint(baseline.current);
+    const stateRef = useRef(onState); stateRef.current = onState;
+    useEffect(() => { stateRef.current?.({ busy: !!busy, dirty, error: draftError }); }, [busy, dirty, draftError]);
+    useEffect(() => () => stateRef.current?.({ busy: false, dirty: false, error: '' }), []);
+    useImperativeHandle(ref, () => ({
+        flushAll() {
+            if (busyRef.current) return { ok: false, busy: true };
+            const isDirty = !!scope.current && !pendingRef.current && draftFingerprint(stRef.current) !== draftFingerprint(baseline.current);
+            const error = flushDraft();
+            return error ? { ok: false, busy: false, dirty: isDirty, error } : { ok: true, busy: false, dirty: isDirty };
+        },
+        navigate(section) { navStep.current = section === 'quote-share' ? STEPS.length - 1 : 1; setStep(navStep.current); return true; },
+    }), [flushDraft]);
 
     // ── 화면 ──
     const total = estimateTotal(st);
@@ -484,22 +530,18 @@ export const AdminQuoteBuilder: React.FC = () => {
             </div>
         </>;
 
-    return (
-        <AdminLayout
-            activePage={quoteDeskPageId('builder')}
-            title={tool.label}
-            description={phase === 'ready' ? `${headTitle} · 문서번호 ${st.quoteNo || autoNo}` : tool.description}
-            eyebrow={null}
-            actions={phase === 'ready' ? <>
-                {ctx.reqId && <AdminBadge tone="info">{ctx.anonymousShare ? '공유 견적' : '고객 요청'}</AdminBadge>}
+    const actions = phase === 'ready' ? <>
+                {ctx.reqId && !embedded && <AdminBadge tone="info">{ctx.anonymousShare ? '공유 견적' : '고객 요청'}</AdminBadge>}
                 <AdminTextButton tone="assistive" disabled={locked} onClick={() => void reset()}>초기화</AdminTextButton>
                 <AdminButton variant="secondary" disabled={!!pending} onClick={() => preview('/일정지도')}>지도 미리보기</AdminButton>
                 <AdminButton variant="secondary" disabled={!!pending} onClick={() => preview('/견적서')}>견적서 미리보기</AdminButton>
                 <AdminButton variant="secondary" loading={busy === 'save'} disabled={locked} onClick={() => void runSave(false)}>저장하기</AdminButton>
                 <AdminButton variant="primary" loading={busy === 'share'} disabled={locked} onClick={() => void runSave(true)}>링크 공유하기</AdminButton>
-            </> : undefined}
-        >
-            <div className="adm-ui-page is-form qbd-page">{body}</div>
+    </> : undefined;
+    const description = phase === 'ready' ? `${headTitle} · 문서번호 ${st.quoteNo || autoNo}` : tool.description;
+    return (
+        <>
+            {(shell || embeddedShell)({ actions, description, content: <div className={`adm-ui-page is-form qbd-page${embedded ? ' is-embedded' : ''}`}>{body}</div> })}
             <AdminDialog open={clone.open} onClose={() => setClone(c => ({ ...c, open: false }))} title="다른 견적에서 복제" size="md"
                 description="일정·명소·요금·차량·혜택을 그대로 가져오고, 고객명·날짜·인원은 지금 값을 둡니다.">
                 {clone.loading ? <AdminLoading label="발행된 견적을 불러오는 중…" />
@@ -528,8 +570,15 @@ export const AdminQuoteBuilder: React.FC = () => {
                     <AdminTextButton onClick={() => window.open(link, '_blank', 'noopener')}>고객 화면 열기</AdminTextButton>
                 </div>
             </AdminDialog>
-        </AdminLayout>
+        </>
     );
-};
+});
+
+/** 견적서 만들기 독립 화면(`/admin/quote-desk/builder`) */
+export const AdminQuoteBuilder: React.FC = () => (
+    <QuoteBuilderEditor shell={({ actions, description, content }) => (
+        <AdminLayout activePage={quoteDeskPageId('builder')} title={tool.label} description={description} eyebrow={null} actions={actions}>{content}</AdminLayout>
+    )} />
+);
 
 export default AdminQuoteBuilder;
