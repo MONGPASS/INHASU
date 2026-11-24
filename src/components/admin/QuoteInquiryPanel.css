@@ -1,0 +1,44 @@
+/*
+ * 고객 통합 작업 안의 견적 문의 상세(QuoteInquiryPanel) — 모양은 우리 관리자 부품(AdminCard·AdminMessage·AdminSegmented·AdminTextArea)이 정한다.
+ * 이 파일은 두 칸 배치·문의 내용 표·타임라인·아래 고정 줄만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.qip { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; margin: 0; padding: 0; border: 0; }
+.qip-legend { position: absolute; overflow: hidden; width: 1px; height: 1px; clip-path: inset(50%); white-space: nowrap; }
+.qip-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, calc(var(--adm-space-8) * 11)); align-items: start; gap: var(--adm-space-4); }
+.qip-main, .qip-side { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.qip-next, .qip-accept { margin-top: var(--adm-space-4); }
+
+/* 문의 내용 */
+.qip-info { display: flex; flex-direction: column; gap: var(--adm-space-4); outline: none; }
+.qip-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3) var(--adm-space-5); margin: 0; }
+.qip-row { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) / 2); min-width: 0; }
+.qip-row dt { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.qip-row dd { display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--adm-space-1) / 2); margin: 0; color: var(--adm-ink); font-weight: var(--adm-fw-bold); overflow-wrap: anywhere; }
+.qip-row dd small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-regular); }
+.qip-request { margin: 0; padding: var(--adm-space-3) var(--adm-space-4); border-radius: var(--adm-radius-md); background: var(--adm-gray-50); color: var(--adm-text-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* 견적서 · 고객 링크 */
+.qip-links { display: flex; flex-wrap: wrap; gap: var(--adm-space-2); }
+
+/* 고객 진행 타임라인 */
+.qip-timeline { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; outline: none; }
+.qip-event { position: relative; display: flex; align-items: flex-start; gap: var(--adm-space-3); padding-bottom: var(--adm-space-3); }
+.qip-event:not(:last-child)::before { content: ''; position: absolute; top: var(--adm-space-3); bottom: 0; left: calc(var(--adm-space-1) - var(--adm-border-width) / 2); border-left: var(--adm-border-width) solid var(--adm-line-subtle); }
+.qip-dot { position: relative; flex: none; width: var(--adm-space-2); height: var(--adm-space-2); margin-top: calc(var(--adm-space-1) + var(--adm-border-width)); border-radius: var(--adm-radius-pill); background: var(--adm-gray-400); }
+.qip-event.is-customer .qip-dot { background: var(--adm-accent); }
+.qip-event-body { display: flex; flex: 1; flex-direction: column; gap: calc(var(--adm-space-1) / 2); min-width: 0; }
+.qip-event-body b { color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); overflow-wrap: anywhere; }
+.qip-event-body small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.qip-empty { margin: 0; color: var(--adm-text-3); font-size: var(--adm-fs-small); }
+
+/* 아래 고정 줄: 삭제 · 정보 복사 · 견적서 만들기 */
+.qip-footer { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; justify-content: flex-end; gap: var(--adm-space-2);
+  padding: var(--adm-space-3) var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line-subtle); border-radius: var(--adm-radius-lg); background: var(--adm-surface); }
+.qip-footer > :first-child { margin-right: auto; }
+
+@media (max-width: 1100px) {
+  .qip-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .qip-dl { grid-template-columns: minmax(0, 1fr); }
+}

@@ -349,7 +349,7 @@ export const AdminQuoteBuilder: React.FC = () => {
         : phase === 'unset' ? <AdminError title="견적 데스크가 연결되지 않았어요" reason="서버에 견적 관리자 값(ADMIN_TOKEN)이 설정되어 있어야 견적서를 만들 수 있습니다." />
         : phase === 'error' ? <AdminError title="견적서 편집기를 열지 못했습니다" reason={loadError} onRetry={() => void start()} />
         : <>
-            {pending && <AdminMessage tone="cautionary" role="alert"
+            {pending && pending.kind !== 'empty' && <AdminMessage tone="cautionary" role="alert"
                 title={pending.kind === 'error' ? '초안을 복원하지 못했습니다' : pending.conflict ? '서버 원본과 다른 버전의 초안이 있습니다' : '작성 중이던 초안이 있습니다'}
                 actions={<>
                     {pending.kind === 'draft' && <AdminButton size="sm" variant="primary" onClick={restoreDraft}>초안 복원</AdminButton>}

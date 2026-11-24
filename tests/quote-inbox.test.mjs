@@ -99,6 +99,6 @@ test('견적 문의 메뉴는 React 목록으로 열리고, 고객 한 명 주�
     assert.doesNotMatch(page, /method: '(?:PATCH|DELETE|PUT|POST)'/, '목록 화면은 읽기만 한다');
     const desk = readFileSync('src/pages/AdminQuoteDesk.tsx', 'utf8');
     assert.match(desk, /const toolParam = toolProp \?\? routeParams\.tool/);
-    assert.match(desk, /\/견적관리\?id=\$\{encodeURIComponent\(id\)\}&m=0&workspace=1/, '고객 화면 안의 문의 상세는 옛 문서 그대로');
+    assert.match(desk, /<QuoteInquiryPanel /, '고객 화면 안의 문의 상세는 React(QuoteInquiryPanel — tests/quote-customer-inquiry.test.mjs)');
     assert.match(readFileSync('src/lib/adminPagePreload.ts', 'utf8'), /'\/admin\/quote-desk\/inbox': 'inbox'/);
 });
