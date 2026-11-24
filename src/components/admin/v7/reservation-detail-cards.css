@@ -236,8 +236,11 @@
 /* 바로가기 아래 한 줄: 고객 정보 · 운영 메모(2026-11-24). 좁으면 아래위로 */
 /* 두 카드는 같은 높이(긴 쪽에 맞춘다). 고객 정보의 세부 묶음은 펼침 버튼 뒤라 평소에는 짧다 */
 .v7-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); align-items: stretch; gap: var(--adm-space-4); }
-.v7-info .adm-ui-text-btn.v7-info-more { align-self: flex-start; margin: var(--adm-space-1) 0 var(--adm-space-2); }
-.v7-info-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+/* 카드 아래 가운데 펼침 아이콘: 카드 맨 아래에 붙는다(두 카드 높이가 같아도 아이콘 줄이 맞는다) */
+.v7-top > .v7-card { display: flex; flex-direction: column; }
+.v7-fold { display: flex; justify-content: center; margin-top: auto; padding: var(--adm-space-1) 0 var(--adm-space-2); }
+.v7-fold-btn svg { transition: transform var(--adm-dur) var(--adm-ease); }
+.v7-fold-btn.is-open svg { transform: rotate(180deg); }
 .v7-info-more-body { display: flex; flex-direction: column; }
 /* 오른쪽 칸의 고객 알림 자동발송: 다른 카드처럼 그림자 없이. 펼치면 길어지므로 오른쪽 칸을 화면에 붙이지 않는다 */
 .v7-side > .cw-kakao { box-shadow: none; }

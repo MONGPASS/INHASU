@@ -234,7 +234,7 @@ test('고객 정보는 기본 접힘·한 번에 하나만 펼치고 개인정�
     // 예약 상세·항공편·여행자·요청은 펼침 버튼 뒤에 있다(기본 접힘)
     const collapsed = renderToStaticMarkup(first.tree);
     assert.ok(collapsed.includes('예약·항공편·여행자 정보 보기')); assert.ok(!collapsed.includes('1/2편 정보 등록'));
-    byText(first.tree, '예약·항공편·여행자 정보 보기').props.onClick();
+    byLabel(first.tree, '예약·항공편·여행자 정보 보기').props.onClick();
     assert.equal(first.st.infoMore, true);
     const closed = renderToStaticMarkup(view({ model: detailed }, first.st).tree);
     for (const value of ['1/2편 정보 등록', '1/10명 등록', '요청 1건', '접수 · 주문 경로 등 2개 항목']) assert.ok(closed.includes(value), value);
@@ -348,4 +348,18 @@ test('알림 · 변경 이력은 고객 알림 자동발송 안(맨 아래)에 �
     const tree = reservationDetailView({ model, notificationActions: React.createElement(KakaoStub), onAction() {} }, st, patch => Object.assign(st, patch), env).element;
     byLabel(tree, '메모·이력 위치로 이동').props.onClick();
     assert.equal(folded.open, true);
+});
+
+test('일정 카드는 3일까지만 보이고 카드 아래 가운데 펼침 아이콘으로 나머지 일차를 펼친다', () => {
+    const days = Array.from({ length: 8 }, (_, i) => ({ id: `d${i + 1}`, day: i + 1, title: `${i + 1}일차 장소` }));
+    const first = view({ model: { ...model, days } });
+    const closed = renderToStaticMarkup(first.tree);
+    assert.ok(closed.includes('3일차 장소') && !closed.includes('4일차 장소'));
+    byLabel(first.tree, '일정 8일 모두 보기').props.onClick();
+    assert.equal(first.st.daysAll, true);
+    const opened = view({ model: { ...model, days } }, first.st);
+    assert.ok(renderToStaticMarkup(opened.tree).includes('8일차 장소'));
+    assert.ok(byLabel(opened.tree, '일정 접기'));
+    // 3일 이하면 펼침 아이콘이 없다
+    assert.equal(byLabel(view({ model: { ...model, days: days.slice(0, 3) } }).tree, '일정 3일 모두 보기'), undefined);
 });
