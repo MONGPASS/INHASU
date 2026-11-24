@@ -46,3 +46,10 @@
   .qbd-total { flex: 1 1 100%; flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: space-between; }
   .qbd-total b { font-size: var(--adm-fs-body); white-space: nowrap; }
 }
+
+/* 고객 통합 작업 화면에 끼운 견적 편집(QuoteBuilderEditor embedded): 머리 버튼은 카드 위 한 줄, 아래 막대는 화면 여백 안쪽 */
+.qbd-embedded { display: flex; flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
+.qbd-embedded-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--adm-space-2) var(--adm-space-4); }
+.qbd-embedded-head p { overflow: hidden; min-width: 0; margin: 0; color: var(--adm-text-2); font-size: var(--adm-fs-small); text-overflow: ellipsis; white-space: nowrap; }
+.qbd-embedded-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
+.qbd-page.is-embedded > .adm-ui-form-bar { margin: 0; padding-inline: var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line-subtle); border-radius: var(--adm-radius-lg); }

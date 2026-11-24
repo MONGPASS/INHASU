@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { useBlocker, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { AdminDeliveryHistory } from '../components/admin/AdminDeliveryHistory';
@@ -10,6 +10,7 @@ import { ReservationWorkflow } from '../components/admin/ReservationWorkflow';
 import { CustomerWorkspaceOverview } from '../components/admin/CustomerWorkspaceOverview';
 import { QuoteAccountLinkDialog } from '../components/admin/QuoteAccountLinkDialog';
 import { QuoteInquiryPanel, type QuoteInquiryHandle, type QuoteInquiryState } from '../components/admin/QuoteInquiryPanel';
+import type { QuoteBuilderHandle } from './AdminQuoteBuilder';
 import { CustomerKakaoActions } from '../components/admin/CustomerKakaoActions';
 import { Ico, V7Menu, V7Styles, menuAt, type V7MenuItem, type V7MenuState } from '../components/admin/v7/v7Ui';
 import { api } from '../lib/api';
@@ -55,9 +56,12 @@ interface BookingWorkspaceState {
     schedule: boolean; published: boolean; dayCount: number; guideReady: boolean; vehicleReady: boolean;
     lodgeCount: number; lodgeNeeded: number; travelerCount: number; expectedTravelers: number;
 }
-// 고객 화면의 문의 상세는 React(QuoteInquiryPanel)라 iframe 주소가 없다(옛 견적관리 상세 문서는 비교용으로 남는다).
-const workspaceFrameSrc = (customerPage: boolean, tool: ReturnType<typeof findQuoteDeskTool>, id?: string, editorId?: string, resourceType?: string) => customerPage && tool.key === 'inbox'
+// 고객 화면의 문의 상세(QuoteInquiryPanel)·견적 편집(QuoteBuilderEditor)은 React라 iframe 주소가 없다(옛 견적관리·견적만들기 문서는 비교용으로 남는다).
+const workspaceFrameSrc = (customerPage: boolean, tool: ReturnType<typeof findQuoteDeskTool>, id?: string, editorId?: string, resourceType?: string) => customerPage && (tool.key === 'inbox' || tool.key === 'builder')
     ? 'about:blank' : quoteDeskFrameSrc(tool, id, editorId, resourceType);
+
+// 견적 편집기는 고객 화면에서 그 작업을 열 때만 받는다(고객 현황만 보는 화면이 큰 편집기 코드를 함께 받지 않게).
+const QuoteBuilderEditor = lazy(() => import('./AdminQuoteBuilder').then(module => ({ default: module.QuoteBuilderEditor })));
 
 /** 견적 도구 안에서 편집 서랍이 열렸을 때 바깥 관리자(메뉴·제목·아래 메뉴)도 같은 막으로 덮는다.
  *  iframe 영역은 비워 두어(그 안은 도구 자체의 막이 덮는다) 서랍 조작은 그대로 되고, 바깥 막을 누르면 서랍 닫기를 요청한다. */
@@ -154,10 +158,16 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean; tool?: string }>
     const frameReady = frame.routeKey === frameKey || followedKeyRef.current === tool.key;
     // 고객 화면의 문의 상세(예약 전)는 iframe 대신 React 화면이다.
     const nativeInquiry = customerPage && tool.key === 'inbox';
+    // 고객 화면의 견적 편집도 iframe 대신 React 견적서 만들기(QuoteBuilderEditor)를 끼운다.
+    const nativeBuilder = customerPage && tool.key === 'builder';
+    const nativeEditor = nativeInquiry || nativeBuilder;
     const inquiryRef = useRef<QuoteInquiryHandle>(null);
-    const frameIsMounted = linked && frameReady && !nativeInquiry && (!customerPage || !!customerRecord && customerEditorMounted);
+    const builderRef = useRef<QuoteBuilderHandle>(null);
+    // ‘작업 화면 다시 불러오기’로 React 작업 화면을 새로 그릴 때 올린다.
+    const [nativeReload, setNativeReload] = useState(0);
+    const frameIsMounted = linked && frameReady && !nativeEditor && (!customerPage || !!customerRecord && customerEditorMounted);
     // 문의 상세는 불러올 문서가 없으니 ‘불러오는 중’으로 보지 않는다.
-    const frameWaiting = frameLoading && !nativeInquiry;
+    const frameWaiting = frameLoading && !nativeEditor;
     const shownKeyRef = useRef(frameKey);
     const [editorNotice, setEditorNotice] = useState('');
     const [accountReviewId, setAccountReviewId] = useState('');
@@ -196,12 +206,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean; tool?: string }>
     const flushFrame = useCallback(() => {
         if (sendingKakao) return { ok: false, busy: true, error: '카카오 알림 발송이 끝난 뒤 이동해 주세요.' };
         if (nativeInquiry) return inquiryRef.current?.flushAll() || { ok: true, busy: false };
+        if (nativeBuilder) return builderRef.current?.flushAll() || { ok: true, busy: false };
         try {
             const inner = frameRef.current?.contentWindow as EditorWindow | null;
             if (!inner || inner.location.origin !== window.location.origin) return { ok: true, busy: false };
             return inner.QuoteEditorState?.flushAll() || inner.InhasuQuoteInquiryWorkspace?.flushAll() || { ok: true, busy: false };
         } catch { return { ok: false, busy: false, error: '견적 편집 상태를 확인하지 못했습니다. 내용을 저장한 뒤 이동해 주세요.' }; }
-    }, [sendingKakao, nativeInquiry]);
+    }, [sendingKakao, nativeInquiry, nativeBuilder]);
     const sendAccount = useCallback(() => {
         frameRef.current?.contentWindow?.postMessage({ type: 'inhasu-editor-account', version: 1,
             userId: user?.role === 'admin' ? user.id : '' }, window.location.origin);
@@ -234,11 +245,15 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean; tool?: string }>
         window.addEventListener('message', receive);
         return () => window.removeEventListener('message', receive);
     }, [sendAccount, bookingId, customerPage, navigate, returnTo, tool.key]);
-    // 문의 상세(React)의 저장 중·미저장 — iframe의 inhasu-editor-state와 같다. 고객 현황은 저장이 성공했을 때 onSaved로 한 번만 다시 읽는다.
-    const receiveInquiryState = useCallback((state: QuoteInquiryState) => {
+    // React 작업 화면(문의 상세·견적 편집)의 저장 중·미저장 — iframe의 inhasu-editor-state와 같다. 고객 현황은 저장이 성공했을 때 onSaved로 한 번만 다시 읽는다.
+    // 편집기가 처음 상태를 알리면(불러오기 끝) 기다리던 작업 위치(pendingSection)로 옮긴다.
+    const focusRef = useRef<(section: string) => boolean>(() => false);
+    const receiveNativeState = useCallback((state: QuoteInquiryState) => {
         if (!state.busy && !state.error) setEditorNotice('');
         lastEditorBusy.current = state.busy;
         setEditorBusy(state.busy); setEditorDirty(state.dirty);
+        const pending = pendingSectionRef.current;
+        if (pending && focusRef.current(pending)) setPendingSection('');
     }, []);
     const blocker = useBlocker(useCallback(({ currentLocation, nextLocation }) => {
         if (currentLocation.pathname === nextLocation.pathname && currentLocation.search === nextLocation.search) return false;
@@ -324,7 +339,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean; tool?: string }>
         setEditorBusy(false);
         recoverySrc.current = workspaceFrameSrc(customerPage, tool, bookingId, quoteEditorId, resourceType);
         setFrame((prev) => ({ src: recoverySrc.current, seq: prev.seq + 1, routeKey: frameKey }));
-        setFrameLoading(!nativeInquiry);
+        setFrameLoading(!nativeEditor);
         // tool 은 tool.key 로 정해진다.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [frameKey]);
@@ -393,6 +408,7 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean; tool?: string }>
         if (result.busy) { setEditorNotice('저장·발송·사진 업로드가 끝난 뒤 새로고침해 주세요.'); return; }
         if (!result.ok && !await adminConfirm({ title: '작업 화면 새로고침', message: (result.error || '초안을 보관하지 못했습니다.') + '\n\n초안을 보관하지 못한 상태로 새로고침할까요?', confirmLabel: '새로고침' })) return;
         if (!result.ok) (frameRef.current?.contentWindow as EditorWindow | null)?.QuoteEditorState?.approveLeaveOnce?.();
+        if (nativeEditor) { setNativeReload(value => value + 1); return; }
         setFrameLoading(true); setFrameDelayed(false); setReloadAttempt(value => value + 1);
         try {
             const inner = frameRef.current?.contentWindow;
@@ -412,11 +428,13 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean; tool?: string }>
             const inner = frameRef.current?.contentWindow as EditorWindow | null;
             if (tool.key === 'bookings') return !!inner?.InhasuQuoteBookingWorkspace?.navigate(section);
             if (nativeInquiry) return !!inquiryRef.current?.navigate(section);
+            if (nativeBuilder) return !!builderRef.current?.navigate(section);
             if (tool.key === 'inbox') return !!inner?.InhasuQuoteInquiryWorkspace?.navigate(section);
             if (tool.key === 'builder' && inner?.setStep) { inner.setStep(section === 'quote-share' ? 4 : 1); return true; }
         } catch { /* The loading state retains the requested section until the document is ready. */ }
         return false;
-    }, [tool.key, nativeInquiry]);
+    }, [tool.key, nativeInquiry, nativeBuilder]);
+    focusRef.current = focusCustomerEditor;
     useEffect(() => {
         if (!customerPage || !editorExpanded || !pendingSection || frameWaiting) return;
         if (focusCustomerEditor(pendingSection)) setPendingSection('');
@@ -535,10 +553,10 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean; tool?: string }>
         const request = calendarActionRequest.current;
         if (!request || request.consumed || request.scope !== JSON.stringify([accountId, bookingId]) || !readCalendarWorkspaceAction(workspaceLocation.search)) return;
         // A successful existing iframe navigate callback clears pendingSection.
-        if (!editorExpanded || !customerEditorMounted || !(frameIsMounted || nativeInquiry) || frameWaiting || pendingSection || editorBusy || sendingKakao) return;
+        if (!editorExpanded || !customerEditorMounted || !(frameIsMounted || nativeEditor) || frameWaiting || pendingSection || editorBusy || sendingKakao) return;
         request.consumed = true;
         navigate({ pathname: workspaceLocation.pathname, search: consumedCalendarWorkspaceSearch(workspaceLocation.search), hash: workspaceLocation.hash }, { replace: true });
-    }, [accountId, bookingId, workspaceLocation, editorExpanded, customerEditorMounted, frameIsMounted, nativeInquiry, frameWaiting, pendingSection, editorBusy, sendingKakao, navigate]);
+    }, [accountId, bookingId, workspaceLocation, editorExpanded, customerEditorMounted, frameIsMounted, nativeEditor, frameWaiting, pendingSection, editorBusy, sendingKakao, navigate]);
     const canSendCustomerKakao = () => {
         if (editorBusy || customerRefreshing || sendingKakao || customerEditorMounted && frameWaiting) return false;
         try {
@@ -654,12 +672,16 @@ export const AdminQuoteDesk: React.FC<{ customerPage?: boolean; tool?: string }>
                             <AdminIconButton variant="outlined" size="sm" disabled={editorBusy} label="기타 작업" aria-haspopup="menu" onClick={event => moreMenu(event.currentTarget)}><IconMoreHorizontal /></AdminIconButton>
                         </div>
                     </div>}
-                    {nativeInquiry && customerRecord && customerEditorMounted && <QuoteInquiryPanel key={`${accountId}:${bookingId}`} ref={inquiryRef}
-                        record={customerRecord as React.ComponentProps<typeof QuoteInquiryPanel>['record']} token={linkedToken.current} onState={receiveInquiryState}
+                    {nativeInquiry && customerRecord && customerEditorMounted && <QuoteInquiryPanel key={`${accountId}:${bookingId}:${nativeReload}`} ref={inquiryRef}
+                        record={customerRecord as React.ComponentProps<typeof QuoteInquiryPanel>['record']} token={linkedToken.current} onState={receiveNativeState}
                         onSaved={() => setCustomerRefresh(value => value + 1)}
                         onOpenBuilder={() => { void openCustomerEditor('builder', 'docs'); }}
                         onOpenBooking={() => { void openCustomerEditor('bookings', 'docs'); }}
                         onDeleted={() => { setEditorBusy(false); setEditorDirty(false); navigate(returnTo); }} />}
+                    {nativeBuilder && customerRecord && customerEditorMounted && <Suspense fallback={<AdminLoading inline label="견적서 편집기를 불러오는 중" />}>
+                        <QuoteBuilderEditor key={`${accountId}:${bookingId}:${nativeReload}`} ref={builderRef} embedded requestId={bookingId}
+                            onState={receiveNativeState} onSaved={() => setCustomerRefresh(value => value + 1)} />
+                    </Suspense>}
                     {frameIsMounted && <iframe
                         key={frame.seq}
                         ref={frameRef}
