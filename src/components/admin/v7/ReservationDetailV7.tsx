@@ -147,6 +147,8 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     function goSec(sid: string) {
         const el = rootRef.current?.querySelector<HTMLElement>(`#${sid}`);
         if (!el) return;
+        const folded = el.closest('details');
+        if (folded && !folded.open) folded.open = true;
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         // 고정 열의 카드처럼 이미 보이는 대상은 움직이지 않으므로 잠깐 강조해 어디로 왔는지 보여 준다.
         el.classList.remove('v7-sec-flash'); void el.offsetWidth; el.classList.add('v7-sec-flash');
@@ -345,6 +347,20 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     </section>;
     const quadCards = [payCard, asgCard, clsCard, docCard];
 
+    const logBody = <>
+
+                        <div className="v7-log-head"><b className="v7-card-title">알림 · 변경 이력</b><span className="v7-log-count">{logs.length}건</span></div>
+                        {logs.map((lg, i) => { const tag = LOG_TAGS[lg.kind] || LOG_TAGS.change; return <div key={lg.id} className="v7-log-row">
+                            <span className="v7-log-rail"><span className={i === 0 ? 'v7-log-dot is-latest' : 'v7-log-dot'} /><span className="v7-log-line" /></span>
+                            <span className="v7-log-text">
+                                <span className="v7-log-title-row"><V7Badge tone={tag.tone} size="sm">{tag.tag}</V7Badge><span className="v7-log-title">{lg.title}</span>{lg.internal && <span className="v7-log-internal">내부</span>}</span>
+                                {lg.detail && <span className="v7-log-detail">{lg.detail}</span>}
+                                <span className="v7-log-time">{historyTime(lg.at)}</span>
+                            </span>
+                        </div>; })}
+                        {!logs.length && <span className="v7-empty-text">저장된 처리 이력이 없습니다.</span>}
+                        <AdminTextButton className="v7-end" disabled={busy} onClick={action('history')} trailing={<Ico name="lc-chevron-right" size={14} />}>전체 이력</AdminTextButton>
+    </>;
     const element = <section ref={rootRef as React.RefObject<HTMLElement>} className="v7-root cw-overview" aria-label="예약 상세" aria-busy={busy || saving}>
         <V7Styles />
         <div className="v7-crumb">
@@ -513,21 +529,11 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
 
             <div className="v7-side">
                 {/* 고객 알림 자동발송·이력/다시 보내기는 오른쪽 칸(2026-11-24, 고객 정보·운영 메모와 자리 바꿈) */}
-                {notificationActions}
+                {/* 알림 · 변경 이력은 고객 알림 자동발송 안 맨 아래(2026-11-24). 알림 부품이 없는 화면(이전 견적)에서는 따로 카드로 */}
+                {React.isValidElement(notificationActions) && typeof notificationActions.type !== 'string'
+                    ? React.cloneElement(notificationActions as React.ReactElement<{ extra?: ReactNode }>, { extra: <section id="sec-log" className="v7-log is-in-kakao" aria-label="알림 · 변경 이력">{logBody}</section> })
+                    : <>{notificationActions}<div id="sec-log" className="v7-card v7-card-pad v7-log">{logBody}</div></>}
 
-                <div id="sec-log" className="v7-card v7-card-pad v7-log">
-                    <div className="v7-log-head"><b className="v7-card-title">알림 · 변경 이력</b><span className="v7-log-count">{logs.length}건</span></div>
-                    {logs.map((lg, i) => { const tag = LOG_TAGS[lg.kind] || LOG_TAGS.change; return <div key={lg.id} className="v7-log-row">
-                        <span className="v7-log-rail"><span className={i === 0 ? 'v7-log-dot is-latest' : 'v7-log-dot'} /><span className="v7-log-line" /></span>
-                        <span className="v7-log-text">
-                            <span className="v7-log-title-row"><V7Badge tone={tag.tone} size="sm">{tag.tag}</V7Badge><span className="v7-log-title">{lg.title}</span>{lg.internal && <span className="v7-log-internal">내부</span>}</span>
-                            {lg.detail && <span className="v7-log-detail">{lg.detail}</span>}
-                            <span className="v7-log-time">{historyTime(lg.at)}</span>
-                        </span>
-                    </div>; })}
-                    {!logs.length && <span className="v7-empty-text">저장된 처리 이력이 없습니다.</span>}
-                    <AdminTextButton className="v7-end" disabled={busy} onClick={action('history')} trailing={<Ico name="lc-chevron-right" size={14} />}>전체 이력</AdminTextButton>
-                </div>
             </div>
         </div>
         <V7Menu menu={menu} onClose={closeMenu} />

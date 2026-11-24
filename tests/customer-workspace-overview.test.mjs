@@ -47,7 +47,7 @@ const byLabel = (tree, label) => buttons(tree).find(b => (b.props['aria-label'] 
 const html = props => renderToStaticMarkup(React.createElement(CustomerWorkspaceOverview, { onAction() {}, ...props }));
 const stop = { stopPropagation() {} };
 /** 바로가기 이동 대상 카드 흉내: 이동 호출과 잠깐 강조(class)만 받는다. */
-const sectionStub = (selector, onScroll) => ({ id: selector.slice(1), offsetWidth: 1, classList: { add() {}, remove() {}, contains: () => false }, scrollIntoView: onScroll });
+const sectionStub = (selector, onScroll) => ({ id: selector.slice(1), offsetWidth: 1, classList: { add() {}, remove() {}, contains: () => false }, closest: () => null, scrollIntoView: onScroll });
 if (typeof globalThis.window === 'undefined') globalThis.window = globalThis;
 
 test('고객 상세는 예약 관리 v7 화면으로 그리고 렌더만으로 업무·발송을 실행하지 않는다', () => {
@@ -332,4 +332,20 @@ test('네 칸 카드 제목 줄의 편집은 그 업무의 편집 화면을 열�
     const locked = view({ model: { ...model, disabledActions: ['payments', 'assignments'] } }).tree;
     assert.equal(byLabel(locked, '결제 편집'), undefined);
     assert.equal(byLabel(locked, '배정 편집'), undefined);
+});
+
+test('알림 · 변경 이력은 고객 알림 자동발송 안(맨 아래)에 들어가고, 바로가기로 가면 접힌 알림을 펼친다', () => {
+    function KakaoStub({ extra }) { return React.createElement('details', { className: 'cw-kakao' }, React.createElement('summary', null, '고객 알림'), extra); }
+    const history = [{ id: 'h1', at: '2026-10-14T00:00:00Z', title: '상품 예약 접수', kind: 'booking' }];
+    const markup = renderToStaticMarkup(view({ model: { ...model, recentHistory: history }, notificationActions: React.createElement(KakaoStub) }).tree);
+    const inside = markup.match(/<details class="cw-kakao">.*?<\/details>/s)?.[0] || '';
+    assert.ok(inside.includes('id="sec-log"') && inside.includes('알림 · 변경 이력') && inside.includes('상품 예약 접수'));
+    assert.equal(markup.match(/id="sec-log"/g).length, 1, 'no separate history card');
+    // 바로가기 ‘메모·이력’: 접힌 알림을 펼친 뒤 이동
+    const folded = { open: false };
+    const env = { mounted: { current: true }, toastTimer: { current: undefined }, root: { current: { querySelector: () => ({ classList: { add() {}, remove() {} }, offsetWidth: 1, closest: () => folded, scrollIntoView() {} }) } } };
+    const st = initialDetailState();
+    const tree = reservationDetailView({ model, notificationActions: React.createElement(KakaoStub), onAction() {} }, st, patch => Object.assign(st, patch), env).element;
+    byLabel(tree, '메모·이력 위치로 이동').props.onClick();
+    assert.equal(folded.open, true);
 });

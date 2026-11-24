@@ -27,9 +27,11 @@ const noticeKinds = new Set(['quote', 'contract', 'itinerary', 'travel_notice'])
 const timeLabel = (at: string) => Number.isFinite(Date.parse(at)) ? new Date(at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
 
 /** Each explicit button sends one saved customer notice. Merely opening this panel never sends. */
-export function CustomerKakaoActions({ source, bookingId, disabled = false, disabledReason, revision = 0, beforeSend, onBusyChange, onResult, onHistory }: {
+export function CustomerKakaoActions({ source, bookingId, disabled = false, disabledReason, revision = 0, beforeSend, onBusyChange, onResult, onHistory, extra }: {
     source: Snapshot['source']; bookingId: string; disabled?: boolean; disabledReason?: string; revision?: string | number;
     beforeSend?: () => boolean; onBusyChange?: (busy: boolean) => void; onResult?: () => void; onHistory?: () => void;
+    /** 본문 맨 아래에 붙는 내용(고객 상세의 알림 · 변경 이력, 2026-11-24) */
+    extra?: React.ReactNode;
 }) {
     const { user } = useUser();
     const account = user?.role === 'admin' ? user.id : '';
@@ -136,6 +138,7 @@ export function CustomerKakaoActions({ source, bookingId, disabled = false, disa
             </article>;
         })}</div></>}
         <p className="cw-kakao-hint">버튼을 누르면 등록된 고객에게 바로 발송합니다.</p>
+        {extra}
         </div>
     </details>;
 }
