@@ -138,6 +138,8 @@
 .v7-card-pad { padding: var(--adm-space-4) calc(var(--adm-space-4) + var(--adm-space-1) / 2); }
 .v7-memo.v7-card-pad { gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); }
 .v7-log.v7-card-pad { gap: var(--adm-space-1); }
+/* 고객 알림 자동발송 안의 알림 · 변경 이력 */
+.v7-log.is-in-kakao { display: flex; flex-direction: column; gap: var(--adm-space-1); margin-top: var(--adm-space-4); padding-top: var(--adm-space-4); border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
 .v7-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); padding: var(--adm-space-4) calc(var(--adm-space-4) + var(--adm-space-1) / 2) var(--adm-space-3); }
 .v7-card-head.is-nowrap { flex-wrap: nowrap; }
 .v7-tile { display: flex; flex: none; align-items: center; justify-content: center; width: calc(var(--adm-space-6) + var(--adm-space-1) * 1.5); height: calc(var(--adm-space-6) + var(--adm-space-1) * 1.5);
