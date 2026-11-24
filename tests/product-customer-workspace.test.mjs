@@ -312,81 +312,24 @@ test('항공편·여행자·계약 동의 확인 업무는 주문 수정 모드�
     calls.length = 0; context.workspaceIsBusy = () => true; context.action('flights'); assert.deepEqual(calls, []);
 });
 
-test('고객 카드 배정은 기존 상세로 이동하지 않고 바로 선택하며 미저장 차량·문서·운영·취소·처리 중을 보호한다', () => {
+test('고객 통합 작업에서는 가이드·차량·숙소 배정 창을 열지 않고 전용 메뉴를 안내한다(2026-11-24)', () => {
     const calls = [];
     const context = { fullPage: true, quickAssignmentDirty: false, inlineDirty: false, operationsDirty: false, isEditing: false, workspace: { nights: 2 },
         reservation: { id: 'local-product', status: 'confirmed', dailyAccommodations: [{ day: 1, accommodation: { name: '첫날 확정 숙소' } }] }, workspaceIsBusy: () => false };
     for (const name of ['setNavigationNotice', 'setQuickAssignment', 'setShowGuideModal', 'setWorkflowOpen', 'setPickerSaveError', 'setGuideConfirmation', 'setSelectedDay', 'setShowAccommodationModal', 'scrollToSec', 'closeWorkspace']) context[name] = (...args) => calls.push([name, ...args]);
     const start = source.indexOf('    const overviewAction = ('), end = source.indexOf('\n\n    return (<>', start);
     execute(source.slice(start, end) + '\nglobalThis.action = overviewAction;', context);
-    for (const action of ['guide', 'stay', 'vehicle']) context.action(action);
-    assert.deepEqual(calls.filter(call => call[0] !== 'setNavigationNotice'), [['setWorkflowOpen', false], ['setQuickAssignment', null], ['setPickerSaveError', ''], ['setGuideConfirmation', null], ['setShowGuideModal', true], ['setWorkflowOpen', false], ['setQuickAssignment', 'stay'], ['setSelectedDay', 2], ['setPickerSaveError', ''], ['setShowAccommodationModal', true], ['setWorkflowOpen', false], ['setQuickAssignment', 'vehicle']]);
-    calls.length = 0; context.workspace.nights = 0; context.action('stay');
-    assert.ok(calls.some(call => call[0] === 'setQuickAssignment' && call[1] === 'stay')); assert.equal(calls.some(call => call[0] === 'setShowAccommodationModal'), false); context.workspace.nights = 2;
-    for (const blockedField of ['quickAssignmentDirty', 'inlineDirty', 'operationsDirty', 'isEditing']) {
-        calls.length = 0; context[blockedField] = true;
-        for (const action of ['guide', 'stay', 'vehicle']) context.action(action);
-        assert.equal(calls.length, 3); assert.ok(calls.every(call => call[0] === 'setNavigationNotice'));
-        context[blockedField] = false;
-    }
-    calls.length = 0; context.reservation.status = 'cancelled';
-    for (const action of ['guide', 'stay', 'vehicle']) context.action(action);
-    assert.equal(calls.length, 3); assert.ok(calls.every(call => call[0] === 'setNavigationNotice' && /취소/.test(call[1])));
-    calls.length = 0; context.reservation.status = 'confirmed'; context.workspaceIsBusy = () => true;
+    for (const action of ['guide', 'stay', 'vehicle', 'assignments']) context.action(action);
+    assert.equal(calls.length, 4);
+    assert.ok(calls.every(call => call[0] === 'setNavigationNotice' && /배정 현황/.test(call[1]) && /숙소 배정/.test(call[1])), 'only a notice pointing to the dedicated menus');
+    calls.length = 0; context.workspaceIsBusy = () => true;
     for (const action of ['guide', 'stay', 'vehicle']) context.action(action);
     assert.deepEqual(calls, []);
-    context.workspaceIsBusy = () => false; context.quickAssignmentDirty = true; context.action('back');
+    context.workspaceIsBusy = () => false; context.action('back');
     assert.deepEqual(calls, [['closeWorkspace']]);
-});
-
-test('고객 카드 차량 저장은 기존 운영·현금영수증·계약·가이드·숙소를 보존하고 실패 뒤 성공으로 오인하지 않는다', async () => {
-    const reservation = { ...base, id: 'local-product', adminOperations: { vehicle: '이전 차량', driverPhone: 'OLD-PRIVATE', opsNote: '내부 운영 기록', receipt: { number: 'receipt-123' } },
-        contractData: { agreement: { agreed: true }, travelers: [{ name: '고객' }], vehicle: { type: '이전 차량' } }, assignedGuide: { id: 'guide-a', name: '담당 가이드' }, dailyAccommodations: [{ day: 1, accommodation: { name: '확정 숙소' } }], history: [{ type: 'payment', description: '이전 입금 이력' }] };
-    const payloads = [], notices = [];
-    const context = { reservation, workspaceIsBusy: () => false, isEditing: false, inlineDirty: false, operationsDirty: false,
-        readProductVehicle, emptyReservationOperations, Date, setNavigationNotice: value => notices.push(value),
-        onUpdate: async (...args) => { payloads.push(args); return false; } };
-    const start = source.indexOf('    const saveQuickVehicle = async'), end = source.indexOf('    const quickAssignmentEditor =', start);
-    execute(source.slice(start, end) + '\nglobalThis.save = saveQuickVehicle;', context);
-    const next = { type: '하이이스', phone: 'NEW-PRIVATE' };
-    assert.equal(await context.save(next), false); assert.deepEqual(notices, []);
-    const [updated, quiet] = payloads[0];
-    assert.equal(quiet, true); assert.equal(updated.adminOperations.vehicle, next.type); assert.equal(updated.adminOperations.driverPhone, next.phone);
-    for (const key of ['opsNote', 'receipt']) assert.equal(updated.adminOperations[key], reservation.adminOperations[key]);
-    for (const key of ['contractData', 'assignedGuide', 'dailyAccommodations']) assert.equal(updated[key], reservation[key]);
-    assert.equal(reservation.adminOperations.vehicle, '이전 차량'); assert.equal(reservation.history.length, 1);
-    assert.equal(updated.history.length, 2); assert.equal(updated.history.at(-1).type, 'modification');
-    assert.match(updated.history.at(-1).description, /차량/);
-    context.onUpdate = async (...args) => { payloads.push(args); return true; };
-    assert.equal(await context.save({ type: '', phone: '' }), true); assert.match(notices.at(-1), /해제/);
-    assert.equal(payloads.at(-1)[0].adminOperations.vehicle, ''); assert.equal(payloads.at(-1)[0].adminOperations.driverPhone, '');
-    const count = payloads.length;
-    for (const field of ['isEditing', 'inlineDirty', 'operationsDirty']) { context[field] = true; assert.equal(await context.save(next), false); context[field] = false; }
-    context.workspaceIsBusy = () => true; assert.equal(await context.save(next), false); assert.equal(payloads.length, count);
-});
-
-test('등록 차량 선택은 사진·소개·좌석을 계약에 저장하고 기사 연락처만 수정할 때 저장된 차량 자료를 보존한다', async () => {
-    const agreement = { agreed: true, name: '서명 고객' }, travelers = [{ name: '고객' }], payloads = [];
-    const reservation = { ...base, adminOperations: { vehicle: '이전 차량', driverPhone: 'OLD-PRIVATE', receipt: { number: 'existing-receipt' } },
-        contractData: { agreement, travelers, vehicle: { type: '이전 차량', img: '/old-car.webp', desc: '이전 설명' } }, assignedGuide: { name: '기존 가이드' }, dailyAccommodations: [{ day: 1, accommodation: { name: '기존 숙소' } }], history: [] };
-    const context = { reservation, workspaceIsBusy: () => false, isEditing: false, inlineDirty: false, operationsDirty: false, readProductVehicle, emptyReservationOperations, Date,
-        setNavigationNotice: () => {}, onUpdate: async (...args) => { payloads.push(args); return true; } };
-    const start = source.indexOf('    const saveQuickVehicle = async'), end = source.indexOf('    const quickAssignmentEditor =', start);
-    execute(source.slice(start, end) + '\nglobalThis.save = saveQuickVehicle;', context);
-    const snapshot = { img: '/registered-car.webp', images: ['/registered-car.webp', '/registered-interior.webp'], imgs: ['/registered-car.webp', '/registered-interior.webp'], description: '등록 차량 설명', desc: '등록 차량 설명', seats: '6인', luggage: '캐리어 4개', plate: 'REGISTERED-PLATE', model: '리소스 차종', type: '리소스 차종' };
-    assert.equal(await context.save({ type: '등록 하이이스', phone: 'REGISTERED-DRIVER', resource: snapshot }), true);
-    const first = payloads[0][0];
-    assert.equal(first.contractData.agreement, agreement); assert.equal(first.contractData.travelers, travelers);
-    assert.equal(first.assignedGuide, reservation.assignedGuide); assert.equal(first.dailyAccommodations, reservation.dailyAccommodations); assert.equal(first.adminOperations.receipt, reservation.adminOperations.receipt);
-    assert.equal(first.contractData.vehicle.type, '등록 하이이스'); assert.equal(first.contractData.vehicle.model, '등록 하이이스'); assert.equal(first.contractData.vehicle.phone, 'REGISTERED-DRIVER');
-    for (const key of ['img', 'images', 'imgs', 'description', 'desc', 'seats', 'luggage', 'plate']) assert.equal(first.contractData.vehicle[key], snapshot[key]);
-    assert.equal(snapshot.type, '리소스 차종'); assert.equal(reservation.contractData.vehicle.img, '/old-car.webp');
-    context.reservation = first;
-    assert.equal(await context.save({ type: '등록 하이이스', phone: 'UPDATED-DRIVER' }), true);
-    const second = payloads[1][0];
-    assert.equal(second.adminOperations.driverPhone, 'UPDATED-DRIVER'); assert.equal(second.contractData, first.contractData);
-    assert.equal(second.contractData.vehicle.img, '/registered-car.webp'); assert.equal(second.contractData.vehicle.desc, '등록 차량 설명'); assert.equal(second.contractData.vehicle.seats, '6인');
-    assert.equal(first.adminOperations.driverPhone, 'REGISTERED-DRIVER'); assert.equal(second.history.length, 2); assert.equal(payloads[1][1], true);
+    // 바로 배정 창(차량 바로 배정·숙소 바로 배정)은 고객 화면에 더는 없다
+    assert.ok(!source.includes('assignmentEditor={'));
+    assert.ok(!source.includes('saveQuickVehicle'));
 });
 
 test('등록 가이드 배정 실패는 선택창을 유지하고 성공한 뒤에만 닫으며 전화·QR·소개·사진을 저장한다', async () => {

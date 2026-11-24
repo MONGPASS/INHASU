@@ -10,6 +10,8 @@
 .qbe-assign { display: flex; flex-direction: column; gap: var(--adm-space-4); }
 .qbe-box { display: flex; flex-direction: column; gap: var(--adm-space-3); min-width: 0; padding: var(--adm-space-4); border: var(--adm-border-width) solid var(--adm-line-subtle); border-radius: var(--adm-radius-md); }
 .qbe-box + .qbe-box { margin-top: var(--adm-space-4); }
+/* 배정 결과만 보여 주는 칸의 미배정 표시(2026-11-24) */
+.qbe-unassigned { margin: 0; color: var(--adm-danger); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); }
 .qbe-box-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--adm-space-2) var(--adm-space-3); }
 .qbe-box-head b { color: var(--adm-ink); font-size: var(--adm-fs-body); }
 .qbe-box-head span { color: var(--adm-accent-strong); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); }

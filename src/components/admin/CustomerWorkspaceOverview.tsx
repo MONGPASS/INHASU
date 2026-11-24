@@ -49,11 +49,11 @@ export interface CustomerWorkspaceFlow {
 }
 
 /** 고객 예약 상세 — 예약 관리 v7 디자인. links가 있으면 결제·배정·운영 값을 이 화면에서 바로 저장한다. */
-export function CustomerWorkspaceOverview({ model, onAction, busy = false, noteComposer, bookingSelector, assignmentEditor, notificationActions, links }: {
+export function CustomerWorkspaceOverview({ model, onAction, busy = false, noteComposer, bookingSelector, notificationActions, links }: {
     model: CustomerWorkspaceOverviewModel; onAction: (action: string, id?: string) => void;
-    busy?: boolean; noteComposer?: ReactNode; bookingSelector?: ReactNode; assignmentEditor?: ReactNode; notificationActions?: ReactNode; directAssignments?: boolean;
+    busy?: boolean; noteComposer?: ReactNode; bookingSelector?: ReactNode; notificationActions?: ReactNode; directAssignments?: boolean;
     links?: ReservationDetailV7Links;
 }) {
     return <ReservationDetailV7 model={model} onAction={onAction} busy={busy} noteComposer={noteComposer} bookingSelector={bookingSelector}
-        assignmentEditor={assignmentEditor} notificationActions={notificationActions} links={links} />;
+        notificationActions={notificationActions} links={links} />;
 }

@@ -11,6 +11,8 @@
 .rdc-tile { display: inline-flex; flex: none; align-items: center; justify-content: center; width: calc(var(--adm-space-8) + var(--adm-space-1)); height: calc(var(--adm-space-8) + var(--adm-space-1));
   border-radius: var(--adm-radius-sm); background: var(--adm-gray-100); color: var(--adm-text-2); font-size: var(--adm-fs-section); }
 .rdc-tile svg, .rdc-badge svg { width: 1em; height: 1em; }
+/* 제목 줄 끝의 연필(편집) 버튼 — 고객 정보 카드의 수정 버튼과 같은 모양 */
+.rdc-head .rdc-edit { flex: none; }
 .rdc-title { flex: 1 1 auto; margin: 0; color: var(--adm-text); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); }
 .rdc-badge { display: inline-flex; align-items: center; gap: var(--adm-space-1); padding: var(--adm-space-1) var(--adm-space-2); border-radius: var(--adm-radius-xs);
   font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); white-space: nowrap; }
@@ -43,6 +45,11 @@
 .rdc-field { display: flex; flex-direction: column; gap: calc(var(--adm-space-1) * 1.5); min-width: 0; padding: calc(var(--adm-space-2) + var(--adm-space-1) / 2) var(--adm-space-2); }
 .rdc-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--adm-space-3) calc(var(--adm-space-2) + var(--adm-space-1) / 2); padding: var(--adm-space-5); }
 .rdc-grid2 .rdc-field { padding: 0; }
+/* 배정 결과(2026-11-24): 고르기 대신 배정된 이름과 한 줄 설명. 미배정은 빨간 글자(색만으로 알리지 않도록 "미배정" 문구와 함께) */
+.rdc-result { display: flex; flex-direction: column; gap: var(--adm-space-0-5); min-width: 0; }
+.rdc-result-name { overflow: hidden; color: var(--adm-ink); font-size: var(--adm-fs-body); font-weight: var(--adm-fw-bold); text-overflow: ellipsis; white-space: nowrap; }
+.rdc-result-name.is-warn { color: var(--adm-danger); }
+.rdc-result-sub { overflow: hidden; color: var(--adm-text-3); font-size: var(--adm-fs-caption); text-overflow: ellipsis; white-space: nowrap; }
 
 /* 고르기 버튼: AdminSelect 모양(흰 바탕 · 선 · 오른쪽 화살표). 누르면 기존 고르기 창이 열린다. */
 .adm-rdc-sel { display: inline-flex; flex: none; align-items: center; justify-content: space-between; gap: var(--adm-space-2); box-sizing: border-box; width: calc(var(--adm-space-8) * 4); max-width: 100%;
@@ -61,16 +68,25 @@
 
 /* 숙소·계약 동의 상자 */
 .rdc-box { display: flex; flex-direction: column; gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); margin-top: var(--adm-space-1); padding: var(--adm-space-3); border-radius: var(--adm-radius-md); }
-.rdc-box.is-alert { background: var(--adm-danger-soft); }
+/* 확인이 필요한 상자도 바탕은 회색 — 빨간 바탕 대신 빨간 점과 글자로만 알린다(2026-11-24) */
+.rdc-box.is-alert { background: var(--adm-gray-100); }
 .rdc-box.is-soft { background: var(--adm-gray-100); }
 .rdc-box.is-row { flex-direction: row; align-items: center; }
 .rdc-box-head { display: flex; align-items: center; justify-content: space-between; gap: var(--adm-space-2); }
 .rdc-box-value { color: var(--adm-text); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); white-space: nowrap; }
 .rdc-box-note { color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); }
 .rdc-box-note.is-alert { color: var(--adm-danger); }
-.rdc-nights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--adm-space-1) * 1.5); }
-.rdc-night { display: flex; align-items: center; justify-content: center; min-height: var(--adm-control-h-sm); padding: 0 var(--adm-space-2); border-radius: var(--adm-radius-sm);
-  background: var(--adm-surface); color: var(--adm-text-2); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-semibold); text-align: center; }
+/* 박별 숙소(2026-11-24): 기본 접힘, 펼치면 한 줄에 한 박 — 박 · 날짜 · 숙소 이름 · 수배 상태 */
+.rdc-box .adm-ui-text-btn.rdc-stay-toggle { align-self: flex-start; }
+.rdc-stay-toggle[aria-expanded="true"] .adm-ui-btn-icon svg, .rdc-stay-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.rdc-stay-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border-radius: var(--adm-radius-sm); background: var(--adm-surface); }
+.rdc-stay { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: var(--adm-space-2); min-height: var(--adm-control-h-sm); padding: 0 var(--adm-space-2-5);
+  font-size: var(--adm-fs-caption); color: var(--adm-text-2); }
+.rdc-stay + .rdc-stay { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.rdc-stay-day { color: var(--adm-ink); }
+.rdc-stay-name { min-width: 0; overflow: hidden; color: var(--adm-ink); font-weight: var(--adm-fw-semibold); text-overflow: ellipsis; white-space: nowrap; }
+.rdc-stay-name.is-warn { color: var(--adm-danger); }
+.rdc-stay-status { color: var(--adm-accent-strong); font-weight: var(--adm-fw-bold); white-space: nowrap; }
 
 /* 서류 */
 .rdc-tag { align-self: flex-start; padding: calc(var(--adm-space-1) / 2) calc(var(--adm-space-1) * 1.5); border-radius: var(--adm-radius-xs); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-semibold); }
@@ -215,10 +231,22 @@
 .v7-step-sub.is-ok { color: var(--adm-text-2); }
 .v7-step-sub.is-now { color: var(--adm-danger); animation: rvBlink 1.8s ease-in-out infinite; }
 
+/* 바로가기 아래 한 줄: 고객 정보 · 운영 메모(2026-11-24). 좁으면 아래위로 */
+/* 두 카드는 같은 높이(긴 쪽에 맞춘다). 고객 정보의 세부 묶음은 펼침 버튼 뒤라 평소에는 짧다 */
+.v7-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); align-items: stretch; gap: var(--adm-space-4); }
+.v7-info .adm-ui-text-btn.v7-info-more { align-self: flex-start; margin: var(--adm-space-1) 0 var(--adm-space-2); }
+.v7-info-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+.v7-info-more-body { display: flex; flex-direction: column; }
+/* 오른쪽 칸의 고객 알림 자동발송: 다른 카드처럼 그림자 없이. 펼치면 길어지므로 오른쪽 칸을 화면에 붙이지 않는다 */
+.v7-side > .cw-kakao { box-shadow: none; }
+/* 좁은 오른쪽 칸에서는 수동 재안내 카드를 한 줄에 하나씩(두 칸이면 글자가 몇 자씩 끊긴다) */
+.v7-side > .cw-kakao .cw-kakao-list { grid-template-columns: minmax(0, 1fr); }
+.v7-side > .cw-kakao .cw-kakao-notice { flex-direction: row; align-items: center; }
+
 /* 아래 두 열 */
 .v7-cols { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--adm-space-4); }
 .v7-main { display: flex; flex: 1 1 calc(var(--adm-space-8) * 17.5); flex-direction: column; gap: var(--adm-space-4); min-width: 0; }
-.v7-side { position: sticky; top: calc(var(--adm-space-8) * 2.5 + var(--adm-space-1)); display: flex; flex: 1 1 calc(var(--adm-space-8) * 10); flex-direction: column; gap: var(--adm-space-4);
+.v7-side { display: flex; flex: 1 1 calc(var(--adm-space-8) * 10); flex-direction: column; gap: var(--adm-space-4);
   min-width: 0; max-width: calc(var(--adm-space-8) * 13.75); }
 
 /* 숙소·가이드·차량: 가이드·차량 줄 */
