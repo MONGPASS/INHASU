@@ -1,0 +1,34 @@
+/*
+ * 견적 문의(/admin/quote-desk/inbox) — 모양은 우리 관리자 부품(ListPage·AdminStat·AdminDataTable·AdminPickCard)이 정한다.
+ * 이 파일은 표 칸 안의 두 줄 글자와 행동 알림 줄의 배치만 둔다. 값은 --adm-* 변수만 쓴다.
+ */
+.qi-name, .qi-state { display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--adm-space-1) / 2); min-width: 0; }
+.qi-name b { color: var(--adm-ink); font-weight: var(--adm-fw-bold); }
+.qi-name small, .qi-want small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+.qi-c-want { min-width: calc(var(--adm-space-8) * 7); }
+.qi-want { color: var(--adm-text-3); overflow-wrap: anywhere; }
+.qi-want b { color: var(--adm-ink); font-weight: var(--adm-fw-bold); }
+.qi-next { color: var(--adm-danger); font-size: var(--adm-fs-caption); font-weight: var(--adm-fw-bold); white-space: nowrap; }
+.qi-trip { display: inline-flex; align-items: center; gap: var(--adm-space-2); }
+.qi-muted { color: var(--adm-text-2); }
+
+/* 고객·예약 행동 알림 */
+.qi-action-title { display: inline-flex; align-items: center; gap: var(--adm-space-2); }
+.qi-action-list { margin: 0; padding: 0; list-style: none; }
+.qi-action-list > li + li { border-top: var(--adm-border-width) solid var(--adm-line-subtle); }
+.qi-action { display: flex; align-items: center; gap: var(--adm-space-3); padding: var(--adm-space-3) var(--adm-space-5); }
+.qi-action-dot { flex: none; width: var(--adm-space-2); height: var(--adm-space-2); border-radius: var(--adm-radius-pill); background: var(--adm-accent); }
+.qi-action.is-urgent .qi-action-dot { background: var(--adm-danger); }
+.qi-action.is-waiting .qi-action-dot { background: var(--adm-warn); }
+.qi-action-body { display: flex; flex: 1; flex-direction: column; gap: calc(var(--adm-space-1) / 2); min-width: 0; }
+.qi-action-head { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--adm-space-2); }
+.qi-action-head b { color: var(--adm-ink); font-weight: var(--adm-fw-bold); }
+.qi-action-body small { color: var(--adm-text-3); font-size: var(--adm-fs-caption); overflow-wrap: anywhere; }
+.qi-action > .adm-ui-btn { flex: none; }
+.qi-action-more { margin: 0; padding: var(--adm-space-3) var(--adm-space-5); border-top: var(--adm-border-width) solid var(--adm-line-subtle); color: var(--adm-text-3); font-size: var(--adm-fs-caption); }
+
+@media (max-width: 760px) {
+  .qi-c-want { min-width: 0; }
+  .qi-action { padding-inline: var(--adm-space-4); }
+  .qi-action-more { padding-inline: var(--adm-space-4); }
+}

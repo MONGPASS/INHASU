@@ -45,7 +45,7 @@
 
 | 메뉴 | 화면 | 주소 | 파일(`public/`) | 유형 | 화면 안의 팝업 |
 |---|---|---|---|---|---|
-| 견적 관리 | 견적 문의 | `/admin/quote-desk/inbox` | `견적관리.html` | 목록형 | 문의 상세 서랍(`#drawer`), 삭제·상태 확인 |
+| 견적 관리 | 견적 문의 | `/admin/quote-desk/inbox` | **목록은 React로 전환(2026-11-24)**: `src/pages/AdminQuoteInbox.tsx`(+ `.css`). 줄을 누르면 고객 통합 작업 화면. `견적관리.html`은 고객 화면 안의 문의 상세(`?workspace=1`)로 계속 쓴다 | 목록형 | 없음(목록). 고객 화면 안 문의 상세: 삭제·상태 확인 |
 | 견적 관리 | 견적 예약 목록 | `/admin/quote-desk/bookings` | `예약목록.html` | 목록형 | 출발 일정 패널(`#tlMask`) |
 | (목록에서 진입) | 견적 예약 편집 | 고객 통합 작업 화면 안 | `예약관리.html` | 상세형 | 확인 창(`#confirmLayer`), 더보기 메뉴, 확정일정표 알림 창 |
 | 견적 관리 | 견적서 만들기 | `/admin/quote-desk/builder` | `견적만들기.html` | 입력형(4단계) | 고객 링크 창(`#linkMask`) |
