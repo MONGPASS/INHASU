@@ -394,7 +394,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             {NAV.map(n => <button key={n.sid} type="button" className="adm-v7-tab v7-tab" aria-label={`${n.label} 위치로 이동`} aria-current={st.navSid === n.sid ? 'true' : undefined}
                 onClick={() => { set({ navSid: n.sid }); goSec(n.sid); }}>{n.label}</button>)}
         </nav>
-        {/* 고객 정보 · 운영 메모: 바로가기 바로 아래 한 줄(2026-11-24, 고객 알림 자동발송과 자리 바꿈) */}
+        {/* 고객 정보 · 일정: 바로가기 바로 아래 한 줄(2026-11-24 — 고객 알림 자동발송·운영 메모와 자리 바꿈) */}
         <div className="v7-top">
                 <div id="sec-info" className="v7-card v7-info">
                     <div className="v7-info-head">
@@ -446,21 +446,6 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     })}
                 </div>
 
-                <div id="sec-memo" className="v7-memo v7-card v7-card-pad">
-                    <b className="v7-card-title">운영 메모</b>
-                    {m.notes.length > 0 && <ol className="v7-notes">{m.notes.slice(-4).map(note => <li key={note.id} className="v7-note">
-                        <div className="v7-note-meta"><b>{note.author || '관리자 메모'}</b>{note.at && <span>{note.at}</span>}</div>
-                        <p className="v7-note-body">{note.body}</p>
-                    </li>)}</ol>}
-                    {noteComposer || <AdminButton variant="secondary" disabled={busy} onClick={action('notes')}>메모 작성</AdminButton>}
-                </div>
-        </div>
-        <div className="v7-quad rdc-grid">
-            {quadCards}
-        </div>
-
-        <div className="v7-cols">
-            <div className="v7-main">
                 <div id="sec-plan" className="v7-card">
                     <div className="v7-card-head is-nowrap">
                         <span className="v7-tile"><Ico name="lc-route" size={16} /></span><b className="v7-card-title">일정</b>
@@ -502,6 +487,21 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
                     {!m.days.length && <div className="v7-card-note is-row"><span className="v7-grow">아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><AdminButton variant="secondary" size="sm" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</AdminButton></div>}
                 </div>
 
+        </div>
+        <div className="v7-quad rdc-grid">
+            {quadCards}
+        </div>
+
+        <div className="v7-cols">
+            <div className="v7-main">
+                <div id="sec-memo" className="v7-memo v7-card v7-card-pad">
+                    <b className="v7-card-title">운영 메모</b>
+                    {m.notes.length > 0 && <ol className="v7-notes">{m.notes.slice(-4).map(note => <li key={note.id} className="v7-note">
+                        <div className="v7-note-meta"><b>{note.author || '관리자 메모'}</b>{note.at && <span>{note.at}</span>}</div>
+                        <p className="v7-note-body">{note.body}</p>
+                    </li>)}</ol>}
+                    {noteComposer || <AdminButton variant="secondary" disabled={busy} onClick={action('notes')}>메모 작성</AdminButton>}
+                </div>
             </div>
 
             <div className="v7-side">
