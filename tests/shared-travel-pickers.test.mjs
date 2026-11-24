@@ -12,6 +12,8 @@ const bundles = await Promise.all(names.map(async name => {
             builder.onResolve({ filter: /\/lib\/api$/ }, () => ({ path: 'api', namespace: 'shared-picker-test' }));
             builder.onLoad({ filter: /.*/, namespace: 'shared-picker-test' }, ({ path }) => ({ loader: 'js', contents: path === 'api' ? 'export const api=globalThis.api;'
                 : path === 'react' ? 'export const useState=(...args)=>globalThis.h.useState(...args),useEffect=(...args)=>globalThis.h.useEffect(...args),useMemo=(...args)=>globalThis.h.useMemo(...args);'
+                    // 부품 파일(AdminFields 등)은 불러올 때 forwardRef를 부른다 — 부품은 그려지지 않으니 함수를 그대로 돌려준다
+                    + 'export const forwardRef=render=>render,useRef=()=>({current:null}),useId=()=>"id",useLayoutEffect=()=>{};export default {forwardRef};'
                 : 'export const jsx=(type,props,key)=>({type,props,key});export const jsxs=jsx;' }));
         } }],
     });

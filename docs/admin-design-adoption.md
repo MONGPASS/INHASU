@@ -6,21 +6,21 @@
 - **직접 지정**: 인라인 `style={{}}` 수, 숫자로 적은 크기(px), 직접 적은 색(hex), `!important`, CSS에 숫자로 적은 크기(글자·모서리·높이·여백).
 - 이 수치는 `scripts/admin-design-baseline.json`의 상한보다 늘어나면 `tests/admin-design-budget.test.mjs`가 실패한다(PR마다 CI에서 검사). 줄였으면 `--write-baseline`으로 상한을 낮춘다.
 
-전체: 공통 부품 1267개 / 생 HTML 부품 272개 → **전환율 82%** · 인라인 style 1169 · 숫자 크기 3594 · 직접 색 353 · !important 281
+전체: 공통 부품 1285개 / 생 HTML 부품 255개 → **전환율 83%** · 인라인 style 1163 · 숫자 크기 3544 · 직접 색 309 · !important 276
 
 | 화면 | 파일 | 부품 전환율 | 공통 부품 | 생 HTML 부품 | 인라인 style | 숫자 크기(TSX/CSS) | 직접 색 | !important | 기본 확인창 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 공통 틀·부품 | 27 | 95% | 166 | 9 | 4 | 7 / 789 | 32 | 98 | 0 |
+| 공통 틀·부품 | 27 | 100% | 174 | 0 | 1 | 2 / 749 | 0 | 93 | 0 |
 | 대시보드 | 5 | 100% | 17 | 0 | 8 | 0 / 0 | 0 | 0 | 0 |
-| 통합 예약 목록 | 3 | 96% | 143 | 6 | 1 | 33 / 190 | 27 | 0 | 0 |
+| 통합 예약 목록 | 3 | 96% | 143 | 6 | 1 | 33 / 190 | 26 | 0 | 0 |
 | 고객 예약 상세(상품·이전 견적) | 24 | 100% | 114 | 0 | 4 | 1 / 282 | 4 | 2 | 1 |
 | 고객 통합 작업(견적)·견적 도구 틀 | 2 | 100% | 22 | 0 | 1 | 0 / 94 | 0 | 17 | 0 |
 | 투어 캘린더 | 2 | 100% | 48 | 0 | 0 | 1 / 0 | 0 | 0 | 0 |
 | 맞춤견적 관리(이전) | 2 | 0% | 0 | 52 | 96 | 100 / 0 | 0 | 0 | 0 |
 | 숙소 배정 · 배정 보드(새 디자인) | 4 | 100% | 71 | 0 | 0 | 0 / 0 | 0 | 0 | 0 |
-| 숙소 배정·현지 운영 | 5 | 99% | 94 | 1 | 0 | 0 / 0 | 0 | 0 | 0 |
+| 숙소 배정·현지 운영 | 5 | 100% | 95 | 0 | 0 | 0 / 0 | 0 | 0 | 0 |
 | 가이드 배정 현황 | 5 | 100% | 39 | 0 | 10 | 0 / 0 | 0 | 0 | 0 |
-| 상품 목록·추가·수정 | 21 | 97% | 200 | 7 | 6 | 11 / 73 | 11 | 137 | 1 |
+| 상품 목록·추가·수정 | 22 | 100% | 209 | 0 | 3 | 6 / 73 | 0 | 137 | 1 |
 | 상품 카테고리 | 2 | 100% | 69 | 0 | 0 | 0 / 0 | 0 | 0 | 0 |
 | 문서 템플릿 | 1 | 0% | 0 | 45 | 86 | 50 / 0 | 49 | 0 | 1 |
 | 일반 문의 | 2 | 100% | 24 | 0 | 0 | 0 / 0 | 0 | 0 | 0 |
@@ -61,12 +61,12 @@
 | `src/pages/AdminReservationManage.tsx` | 통합 예약 목록 | 6 | 1 | 33 | 26 |
 | `src/pages/AdminQuoteManage.tsx` | 맞춤견적 관리(이전) | 11 | 12 | 12 | 0 |
 | `src/pages/AdminAssignment.tsx` | (쓰이지 않는 파일) | 5 | 8 | 8 | 0 |
-| `src/components/admin/AdminLayout.tsx` | 공통 틀·부품 | 3 | 3 | 7 | 0 |
-| `src/components/admin/QuoteSpotSelector.tsx` | 상품 목록·추가·수정 | 2 | 3 | 5 | 0 |
 | `src/components/admin/guides/GuideSchedule.tsx` | 가이드 배정 현황 | 0 | 8 | 0 | 0 |
-| `src/pages/AdminProductManage.tsx` | 상품 목록·추가·수정 | 1 | 1 | 6 | 0 |
-| `src/components/admin/AdminToolbar.tsx` | 공통 틀·부품 | 6 | 0 | 0 | 0 |
+| `src/pages/AdminProductManage.tsx` | 상품 목록·추가·수정 | 0 | 1 | 6 | 0 |
 | `src/pages/AdminDashboard.tsx` | 대시보드 | 0 | 4 | 0 | 0 |
 | `src/components/admin/dashboard/TrafficSources.tsx` | 대시보드 | 0 | 3 | 0 | 0 |
+| `src/components/admin/AdminLayout.tsx` | 공통 틀·부품 | 0 | 0 | 2 | 0 |
 | `src/components/admin/guides/GuideAssignList.tsx` | 가이드 배정 현황 | 0 | 2 | 0 | 0 |
 | `src/components/admin/v7/ReservationDetailV7.tsx` | 고객 예약 상세(상품·이전 견적) | 0 | 2 | 0 | 0 |
+| `src/components/admin/Admin3DIcon.tsx` | 공통 틀·부품 | 0 | 1 | 0 | 0 |
+| `src/components/admin/ReservationInlineEditor.tsx` | 고객 예약 상세(상품·이전 견적) | 0 | 0 | 1 | 0 |

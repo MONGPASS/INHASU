@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { BRAND } from '../constants/company';
 import { Icon } from '../components/admin/console/Icon';
-import '../styles/admin-console.css';
+import '../styles/adminShell';
 
 const ADMIN_BRAND = `${BRAND.name} 관리자`;
 const MIN_PASSWORD_LENGTH = 10;

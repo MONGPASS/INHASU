@@ -122,7 +122,21 @@ export const AdminTextArea = React.forwardRef<HTMLTextAreaElement, AdminTextArea
     );
 });
 
-export interface AdminSelectOption { value: string; label: React.ReactNode; disabled?: boolean }
+/** `group`을 주면 같은 group이 이어진 칸끼리 묶음(optgroup) 이름 아래에 보인다 */
+export interface AdminSelectOption { value: string; label: React.ReactNode; disabled?: boolean; group?: string }
+
+/** 이어진 같은 group끼리 묶는다(group 없는 칸은 묶지 않는다) */
+function renderSelectOptions(options: AdminSelectOption[]) {
+    const out: React.ReactNode[] = [];
+    for (let i = 0; i < options.length;) {
+        const group = options[i].group;
+        if (!group) { const option = options[i++]; out.push(<option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</option>); continue; }
+        const members: AdminSelectOption[] = [];
+        while (i < options.length && options[i].group === group) members.push(options[i++]);
+        out.push(<optgroup key={`group:${group}:${i}`} label={group}>{members.map((option) => <option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</option>)}</optgroup>);
+    }
+    return out;
+}
 
 export interface AdminSelectProps {
     id?: string;
@@ -153,7 +167,7 @@ export const AdminSelect: React.FC<AdminSelectProps> = ({ options, onChange, inv
                 onChange={(event) => onChange?.(event.target.value)}
             >
                 {(!hasValue || placeholder) && !options.some((option) => option.value === '') && <option value="" disabled hidden={!!placeholder && hasValue}>{placeholder ?? ''}</option>}
-                {options.map((option) => <option key={option.value} value={option.value} disabled={option.disabled}>{option.label}</option>)}
+                {renderSelectOptions(options)}
             </select>
             <span className="adm-ui-select-caret" aria-hidden="true"><IconChevronDown /></span>
         </div>
@@ -199,6 +213,73 @@ export const AdminCheckbox: React.FC<AdminCheckboxProps> = ({ checked, onChange,
             </span>
             {label && <label htmlFor={boxId} className="adm-ui-check-label">{label}</label>}
         </span>
+    );
+};
+
+export interface AdminRadioProps {
+    checked?: boolean;
+    /** 이 칸을 고르면 부른다(라디오는 끌 수 없다) */
+    onChange?: () => void;
+    label?: React.ReactNode;
+    /** 같은 묶음의 라디오는 같은 name */
+    name?: string;
+    value?: string;
+    disabled?: boolean;
+    'aria-label'?: string;
+    id?: string;
+    className?: string;
+    size?: 'sm' | 'md';
+}
+
+/** 하나만 고르는 동그라미(Seed RadioGroup 한 칸): 20(작게 18), 고르면 민트 채움 + 가운데 점. 여러 칸은 같은 name으로 묶는다 */
+export const AdminRadio: React.FC<AdminRadioProps> = ({ checked, onChange, label, disabled, size = 'md', className, id, ...rest }) => {
+    const auto = useId();
+    const radioId = id || `adm-r${auto.replace(/:/g, '')}`;
+    return (
+        <span className={cx('adm-ui-radio', `is-${size}`, disabled && 'is-disabled', className)}>
+            <span className="adm-ui-radio-box">
+                <input {...rest} id={radioId} type="radio" className="adm-ui-radio-input" checked={!!checked} disabled={disabled} onChange={() => onChange?.()} />
+                <span className="adm-ui-radio-mark" aria-hidden="true" />
+            </span>
+            {label && <label htmlFor={radioId} className="adm-ui-radio-label">{label}</label>}
+        </span>
+    );
+};
+
+export interface AdminSliderProps {
+    value: number;
+    onChange: (value: number) => void;
+    min?: number;
+    max?: number;
+    step?: number;
+    disabled?: boolean;
+    'aria-label'?: string;
+    'aria-valuetext'?: string;
+    id?: string;
+    className?: string;
+}
+
+/** 값 끌어 고르기(Seed Slider): 6 두께 막대 + 28 흰 손잡이, 고른 만큼 민트. 값 표시는 화면이 라벨에 적는다 */
+export const AdminSlider: React.FC<AdminSliderProps> = ({ value, onChange, min = 0, max = 100, step = 1, disabled, className, ...rest }) => {
+    const input = useRef<HTMLInputElement>(null);
+    // 채운 비율은 CSS 변수로 넘긴다(인라인 style 대신 ref)
+    useLayoutEffect(() => {
+        const pct = max > min ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100)) : 0;
+        input.current?.style.setProperty('--adm-slider-pct', `${pct}%`);
+    }, [value, min, max]);
+    return (
+        <input
+            ref={input}
+            {...rest}
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            disabled={disabled}
+            className={cx('adm-ui-slider', className)}
+            onChange={(event) => onChange(Number(event.target.value))}
+        />
     );
 };
 

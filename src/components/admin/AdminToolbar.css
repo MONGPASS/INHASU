@@ -1,49 +1,56 @@
-.admin-toolbar { display:flex; align-items:center; gap:10px; position:relative; color:var(--text-body, var(--adm-text-2)); }
-.admin-toolbar button, .admin-toolbar input { font:inherit; }
-.admin-toolbar .at-search, .admin-toolbar .at-tasks { position:relative; }
-.admin-toolbar .at-search-field { display:flex; align-items:center; gap:8px; height:40px; width:248px; border:1px solid transparent; border-radius:var(--adm-radius-sm); background:var(--adm-gray-50); padding:0 14px; color:var(--adm-text-3); }
-.admin-toolbar .at-search-field:focus-within { border-color:var(--adm-accent); background:var(--adm-surface); box-shadow:0 0 0 3px #12b28c1f; }
-.admin-toolbar .at-search-field input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:var(--adm-text-2); font-size:13px; }
-.admin-toolbar .at-search-field .material-symbols-outlined { font-size:20px; }
-.admin-toolbar .at-icon-button { width:40px; height:40px; padding:0; display:grid; place-items:center; border:1px solid var(--adm-line); background:var(--adm-surface); border-radius:50%; color:var(--adm-text-2); cursor:pointer; position:relative; }
-.admin-toolbar .at-icon-button:hover { background:var(--adm-gray-50); }
-.admin-toolbar .at-mobile-search { display:none; }
-.admin-toolbar .at-count { position:absolute; top:-5px; right:-5px; min-width:19px; padding:2px 4px; border-radius:var(--adm-radius-md); background:var(--adm-accent-soft); border:2px solid var(--adm-surface); color:var(--adm-accent-strong); font-size:11px; font-weight:var(--adm-fw-bold); line-height:1.2; }
-.admin-toolbar .at-count-warning { color:var(--adm-warn-strong); background:var(--adm-warn-soft); }
-.admin-toolbar .at-panel { position:absolute; right:0; top:calc(100% + 14px); width:450px; max-width:calc(100vw - 32px); max-height:calc(100dvh - 110px); overflow:auto; border:1px solid var(--adm-line); border-radius:var(--adm-radius-md); background:var(--adm-surface); box-shadow:0 16px 44px #10182826; z-index:90; outline:0; }
-.admin-toolbar .at-panel-head { display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid var(--adm-line-subtle); }
-.admin-toolbar .at-panel-head > strong { flex:1; font-size:15px; color:var(--adm-ink); }
-.admin-toolbar .at-refresh, .admin-toolbar .at-close { border:1px solid var(--adm-line); background:var(--adm-surface); color:var(--adm-text-2); border-radius:var(--adm-radius-sm); font-size:12px; cursor:pointer; padding:6px 9px; }
-.admin-toolbar .at-close { display:grid; place-items:center; padding:6px; }
-.admin-toolbar button:focus-visible, .admin-toolbar a:focus-visible { outline:2px solid var(--adm-accent); outline-offset:2px; }
-.admin-toolbar button:disabled { opacity:.55; cursor:default; }
-.admin-toolbar .at-warning { display:block; margin:12px 16px; padding:10px 12px; background:var(--adm-warn-soft); border:1px solid var(--adm-warn-line); color:var(--adm-warn-strong); border-radius:var(--adm-radius-sm); font-size:12px; line-height:1.55; }
-.admin-toolbar .at-warning span { display:block; }
-.admin-toolbar .at-empty { margin:0; padding:28px 20px; font-size:13px; line-height:1.65; text-align:center; color:var(--adm-text-3); }
-.admin-toolbar .at-hint { padding:10px 18px; margin:0; color:var(--adm-text-3); font-size:11px; line-height:1.55; }
-.admin-toolbar .at-group-label { padding:12px 18px 5px; color:var(--adm-text-3); font-size:11px; font-weight:var(--adm-fw-bold); }
-.admin-toolbar .at-result { display:flex; align-items:center; gap:12px; padding:11px 18px; text-decoration:none; color:var(--adm-text-2); border-left:3px solid transparent; }
-.admin-toolbar .at-result.at-active, .admin-toolbar .at-result:hover { background:var(--adm-accent-soft); border-left-color:var(--adm-accent); }
-.admin-toolbar .at-result > span:first-child { flex:1; min-width:0; }
-.admin-toolbar .at-result strong, .admin-toolbar .at-task strong { display:block; font-size:13px; font-weight:700; color:var(--adm-ink); overflow-wrap:anywhere; }
-.admin-toolbar .at-result small, .admin-toolbar .at-task small { display:block; margin-top:3px; font-size:11px; line-height:1.5; color:var(--adm-text-3); overflow-wrap:anywhere; }
-.admin-toolbar .at-state { flex:none; max-width:100px; color:var(--adm-text-3); font-size:11px; }
-.admin-toolbar .at-task { display:block; padding:13px 18px; border-top:1px solid var(--adm-line-subtle); text-decoration:none; }
-.admin-toolbar .at-task:hover { background:var(--adm-gray-50); }
-.admin-toolbar .at-task-kind { display:inline-block; margin-bottom:5px; padding:3px 7px; border-radius:var(--adm-radius-xs); background:var(--adm-accent-soft); color:var(--adm-accent-strong); font-size:11px; font-weight:var(--adm-fw-bold); }
-.admin-toolbar .at-task-urgent { background:var(--adm-warn-soft); color:var(--adm-warn-strong); }
-@media (max-width:1100px) {
-  .admin-toolbar .at-search-field { display:none; }
-  .admin-toolbar .at-mobile-search { display:grid; }
-  .admin-toolbar .at-search-open .at-search-field { display:flex; position:fixed; top:82px; left:16px; right:16px; width:auto; height:44px; border:1px solid var(--adm-line-strong); border-radius:var(--adm-radius-md); background:var(--adm-surface); z-index:91; box-shadow:0 8px 25px #1018281a; }
-  .admin-toolbar .at-panel { position:fixed; left:16px; right:16px; width:auto; max-width:none; top:82px; max-height:calc(100dvh - 100px); }
-  .admin-toolbar .at-search-panel { top:134px; max-height:calc(100dvh - 152px); }
+/*
+ * 관리자 상단 바 도구(통합 검색·업무 알림·사이트 보기) — 당근 Seed(은하수 판).
+ * 검색 칸은 AdminSearch, 아이콘 버튼은 AdminIconButton, 새로고침은 AdminTextButton이 그린다. 이 파일은 배치와 펼침 창만 둔다.
+ * 색·크기는 --adm-* 변수만 쓴다. 회색 채움 검색 칸·테두리 아이콘 버튼 모양은 admin-montage.css ‘상단 바 도구’ 블록.
+ */
+.admin-toolbar { position: relative; display: flex; align-items: center; gap: calc(var(--adm-space-2) + var(--adm-space-1) / 2); color: var(--adm-text-2); }
+.admin-toolbar .at-search, .admin-toolbar .at-tasks { position: relative; }
+.admin-toolbar .at-search-field { width: calc(var(--adm-space-8) * 7.75); }
+.admin-toolbar .at-icon-button { position: relative; width: calc(var(--adm-space-8) + var(--adm-space-2)); height: calc(var(--adm-space-8) + var(--adm-space-2)); font-size: var(--adm-fs-section); }
+.admin-toolbar .at-mobile-search { display: none; }
+.admin-toolbar .at-count { position: absolute; top: calc(var(--adm-space-1) * -1.25); right: calc(var(--adm-space-1) * -1.25); min-width: calc(var(--adm-space-4) + var(--adm-space-1) - var(--adm-border-width));
+  padding: calc(var(--adm-space-1) / 2) var(--adm-space-1); border: calc(var(--adm-border-width) * 2) solid var(--adm-surface); border-radius: var(--adm-radius-md);
+  background: var(--adm-accent-soft); color: var(--adm-accent-strong); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-bold); line-height: 1; text-align: center; box-sizing: border-box; }
+.admin-toolbar .at-count-warning { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
+
+/* 펼침 창(검색 결과·업무 알림) */
+.admin-toolbar .at-panel { position: absolute; top: calc(100% + var(--adm-space-3) + var(--adm-space-1) / 2); right: 0; z-index: 90; width: calc(var(--adm-space-8) * 14); max-width: calc(100vw - var(--adm-space-8));
+  max-height: calc(100dvh - var(--adm-space-8) * 3.5); overflow: auto; border: var(--adm-border-width) solid var(--adm-line); border-radius: var(--adm-radius-md); background: var(--adm-surface); box-shadow: var(--adm-shadow-lg); outline: 0; }
+.admin-toolbar .at-panel-head { display: flex; align-items: center; gap: var(--adm-space-2); padding: var(--adm-space-4) var(--adm-space-5); border-bottom: var(--adm-border-width) solid var(--adm-line-subtle); }
+.admin-toolbar .at-panel-head > strong { flex: 1; color: var(--adm-ink); font-size: var(--adm-fs-base); }
+.admin-toolbar .at-warning { display: block; margin: var(--adm-space-3) var(--adm-space-4); padding: var(--adm-space-2) var(--adm-space-3); border: var(--adm-border-width) solid var(--adm-warn-line); border-radius: var(--adm-radius-sm);
+  background: var(--adm-warn-soft); color: var(--adm-warn-strong); font-size: var(--adm-fs-caption); line-height: 1.55; }
+.admin-toolbar .at-warning span { display: block; }
+.admin-toolbar .at-empty { margin: 0; padding: var(--adm-space-6) var(--adm-space-5); color: var(--adm-text-3); font-size: var(--adm-fs-small); line-height: 1.65; text-align: center; }
+.admin-toolbar .at-hint { margin: 0; padding: var(--adm-space-2) var(--adm-space-5); color: var(--adm-text-3); font-size: var(--adm-fs-micro); line-height: 1.55; }
+.admin-toolbar .at-group-label { padding: var(--adm-space-3) var(--adm-space-5) var(--adm-space-1); color: var(--adm-text-3); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-bold); }
+.admin-toolbar .at-result { display: flex; align-items: center; gap: var(--adm-space-3); padding: calc(var(--adm-space-3) - var(--adm-border-width)) var(--adm-space-5);
+  border-left: calc(var(--adm-border-width) * 3) solid transparent; color: var(--adm-text-2); text-decoration: none; }
+.admin-toolbar .at-result.at-active, .admin-toolbar .at-result:hover { border-left-color: var(--adm-accent); background: var(--adm-accent-soft); }
+.admin-toolbar .at-result > span:first-child { flex: 1; min-width: 0; }
+.admin-toolbar .at-result strong, .admin-toolbar .at-task strong { display: block; color: var(--adm-ink); font-size: var(--adm-fs-small); font-weight: var(--adm-fw-bold); overflow-wrap: anywhere; }
+.admin-toolbar .at-result small, .admin-toolbar .at-task small { display: block; margin-top: var(--adm-space-1); color: var(--adm-text-3); font-size: var(--adm-fs-micro); line-height: 1.5; overflow-wrap: anywhere; }
+.admin-toolbar .at-state { flex: none; max-width: calc(var(--adm-space-8) * 3); color: var(--adm-text-3); font-size: var(--adm-fs-micro); }
+.admin-toolbar .at-task { display: block; padding: var(--adm-space-3) var(--adm-space-5); border-top: var(--adm-border-width) solid var(--adm-line-subtle); text-decoration: none; }
+.admin-toolbar .at-task:hover { background: var(--adm-gray-50); }
+.admin-toolbar .at-task-kind { display: inline-block; margin-bottom: var(--adm-space-1); padding: calc(var(--adm-space-1) - var(--adm-border-width)) calc(var(--adm-space-2) - var(--adm-border-width)); border-radius: var(--adm-radius-xs);
+  background: var(--adm-accent-soft); color: var(--adm-accent-strong); font-size: var(--adm-fs-micro); font-weight: var(--adm-fw-bold); }
+.admin-toolbar .at-task-urgent { background: var(--adm-warn-soft); color: var(--adm-warn-strong); }
+.admin-toolbar a:focus-visible { outline: calc(var(--adm-border-width) * 2) solid var(--adm-accent); outline-offset: calc(var(--adm-border-width) * 2); }
+
+@media (max-width: 1100px) {
+  .admin-toolbar .at-search-field { display: none; }
+  .admin-toolbar .at-mobile-search { display: inline-flex; }
+  .admin-toolbar .at-search-open .at-search-field { position: fixed; top: calc(var(--adm-space-8) * 2.5 + var(--adm-space-1) / 2); right: var(--adm-space-4); left: var(--adm-space-4); z-index: 91; display: flex;
+    width: auto; height: calc(var(--adm-space-8) + var(--adm-space-3)); border-color: var(--adm-line-strong); border-radius: var(--adm-radius-md); background: var(--adm-surface); box-shadow: var(--adm-shadow-lg); }
+  .admin-toolbar .at-panel { position: fixed; top: calc(var(--adm-space-8) * 2.5 + var(--adm-space-1) / 2); right: var(--adm-space-4); left: var(--adm-space-4); width: auto; max-width: none; max-height: calc(100dvh - var(--adm-space-8) * 3.125); }
+  .admin-toolbar .at-search-panel { top: calc(var(--adm-space-8) * 4.1875); max-height: calc(100dvh - var(--adm-space-8) * 4.75); }
 }
-@media (max-width:540px) {
-  .admin-toolbar { gap:7px; }
-  .admin-toolbar .at-icon-button { width:36px; height:36px; }
-  .admin-toolbar .at-panel { left:8px; right:8px; }
-  .admin-toolbar .at-search-open .at-search-field { left:8px; right:8px; }
-  .admin-toolbar .at-result { padding:11px 12px; gap:8px; }
-  .admin-toolbar .at-panel-head { padding:13px 12px; }
+@media (max-width: 540px) {
+  .admin-toolbar { gap: calc(var(--adm-space-2) - var(--adm-border-width)); }
+  .admin-toolbar .at-icon-button { width: calc(var(--adm-space-8) + var(--adm-space-1)); height: calc(var(--adm-space-8) + var(--adm-space-1)); }
+  .admin-toolbar .at-panel { right: var(--adm-space-2); left: var(--adm-space-2); }
+  .admin-toolbar .at-search-open .at-search-field { right: var(--adm-space-2); left: var(--adm-space-2); }
+  .admin-toolbar .at-result { gap: var(--adm-space-2); padding: calc(var(--adm-space-3) - var(--adm-border-width)) var(--adm-space-3); }
+  .admin-toolbar .at-panel-head { padding: calc(var(--adm-space-3) + var(--adm-border-width)) var(--adm-space-3); }
 }

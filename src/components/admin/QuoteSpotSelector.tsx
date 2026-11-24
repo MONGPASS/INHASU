@@ -2,6 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RepresentativeSpotSnapshot } from '../../types/product';
 import { normalizeRepresentativeSpots } from '../../../functions/lib/productItinerary';
 import { loadQuoteSpots, loadQuoteSpotCategories } from './quoteLibrary';
+import { AdminTextButton } from './ui/AdminButton';
+import { AdminLoading, AdminMessage } from './ui/AdminSurface';
+import './QuoteSpotSelector.css';
 
 interface Library { spots: Record<string, any>; categories: string[]; }
 interface SelectorProps extends Library {
@@ -58,8 +61,8 @@ export function QuoteSpotSelector(p: SelectorProps) {
     useLayoutEffect(() => { widget.current?.update(options()); });
     return <>
         <link rel="stylesheet" href="/quote-spot-selector.css" precedence="quote-spot-selector" />
-        {!ready && !error && <p role="status">대표 명소 선택 화면을 불러오고 있습니다.</p>}
-        {error && <p role="alert">{error} <button type="button" disabled={p.disabled} onClick={() => setAttempt(value => value + 1)}>다시 시도</button></p>}
+        {!ready && !error && <AdminLoading inline label="대표 명소 선택 화면을 불러오고 있습니다." />}
+        {error && <AdminMessage tone="negative" actions={<AdminTextButton size="sm" disabled={p.disabled} onClick={() => setAttempt(value => value + 1)}>다시 시도</AdminTextButton>}>{error}</AdminMessage>}
         <div ref={host} className="quote-spot-selector" aria-label="대표 명소 선택" />
     </>;
 }
@@ -90,11 +93,11 @@ export function ProductRepresentativeSpots({ value, onChange, disabled = false }
         }).catch(reason => { if (!controller.signal.aborted) setError(reason?.message || '명소 자료를 불러오지 못했습니다.'); });
         return () => controller.abort();
     }, [attempt]);
-    return <section style={{ maxWidth: 1000 }} aria-label="상품 대표 명소">
-        <h3 style={{ margin: '0 0 6px', fontSize: 18 }}>대표 명소</h3>
-        <p style={{ margin: '0 0 18px', color: 'var(--text-muted)', fontSize: 13 }}>견적서와 같은 목록입니다. 선택한 순서·사진·설명이 이 상품의 예약 일정표에 이어집니다.</p>
-        {error ? <p role="alert">{error} <button type="button" className="btn btn-ghost btn-sm" disabled={disabled} onClick={() => setAttempt(current => current + 1)}>다시 시도</button></p>
-            : !library ? <p role="status">등록된 명소를 불러오고 있습니다.</p>
+    return <section className="adm-qss" aria-label="상품 대표 명소">
+        <h3 className="adm-qss-title">대표 명소</h3>
+        <p className="adm-qss-desc">견적서와 같은 목록입니다. 선택한 순서·사진·설명이 이 상품의 예약 일정표에 이어집니다.</p>
+        {error ? <AdminMessage tone="negative" actions={<AdminTextButton size="sm" disabled={disabled} onClick={() => setAttempt(current => current + 1)}>다시 시도</AdminTextButton>}>{error}</AdminMessage>
+            : !library ? <AdminLoading inline label="등록된 명소를 불러오고 있습니다." />
             : <QuoteSpotSelector {...library} selected={value.map(spot => spot.name)} disabled={disabled}
                 onToggle={(name, spot) => onChange(toggleRepresentativeSpot(value, name, spot))} />}
     </section>;

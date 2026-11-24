@@ -17,6 +17,7 @@ export const MAP = {
     IconApps: 'chart_regular',              // 대시보드
     IconArrowDown: 'arrow_downward_regular',
     IconArrowUp: 'arrow_upward_regular',
+    IconBell: 'notification_regular',       // 업무 알림
     IconBook: 'story_article_regular',      // 매거진
     IconCalendar: 'calendar_regular',
     IconCheck: 'check_regular',
@@ -45,6 +46,7 @@ export const MAP = {
     IconLogout: 'signout_regular',
     IconMail: 'chatting_regular',           // 문의
     IconMegaphone: 'loudspeaker_regular',
+    IconMenu: 'menu_regular',               // 휴대폰 위 바 메뉴 열기
     IconMinus: 'subtraction_regular',
     IconMoreHorizontal: 'more_horiz_regular',
     IconMoreVertical: 'more_vert_regular',

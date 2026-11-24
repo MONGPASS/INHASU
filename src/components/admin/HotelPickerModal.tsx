@@ -3,7 +3,8 @@ import { api } from '../../lib/api';
 import type { Hotel } from '../../types/hotel';
 // 부품 묶음(./ui)이 아니라 파일을 하나씩 가져온다 — 테스트의 가짜 React로도 묶이는 것만(아래 창 틀 주석)
 import { AdminTable, AdminTbody, AdminTd, AdminTh, AdminThead, AdminTr } from './ui/AdminTable';
-import { IconClose, IconHome, IconSearch } from './ui/AdminIcons';
+import { IconClose, IconHome } from './ui/AdminIcons';
+import { AdminSearch } from './ui/AdminFields';
 import './CourseImportModal.css';
 
 interface HotelPickerModalProps {
@@ -101,18 +102,7 @@ export const HotelPickerModal: React.FC<HotelPickerModalProps> = ({
                 <div className="adm-ui-dialog-body is-flush">
                     {/* Filter bar */}
                     <div className="cim-search">
-                        <div className="adm-ui-search is-md is-wide">
-                            <span className="adm-ui-search-icon" aria-hidden="true"><IconSearch /></span>
-                            <input
-                                type="text"
-                                value={q}
-                                onChange={(e) => setQ(e.target.value)}
-                                placeholder="숙소명으로 검색"
-                                aria-label="숙소명으로 검색"
-                                autoFocus
-                                className="adm-ui-search-el"
-                            />
-                        </div>
+                        <AdminSearch wide value={q} onChange={setQ} placeholder="숙소명으로 검색" aria-label="숙소명으로 검색" autoFocus />
                     </div>
 
                     {/* List */}

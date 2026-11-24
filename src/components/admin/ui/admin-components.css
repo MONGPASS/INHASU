@@ -154,6 +154,40 @@
 .adm-ui-check-label { color: var(--adm-text); font-size: var(--adm-fs-body); line-height: var(--adm-lh); cursor: pointer; user-select: none; }
 .adm-ui-check.is-disabled .adm-ui-check-label { color: var(--adm-text-disabled); cursor: not-allowed; }
 
+/* 라디오(Seed RadioGroup 한 칸): 동그라미 20(작게 18), 고르면 민트 채움 + 가운데 점 */
+.adm-ui-radio { display: inline-flex; align-items: center; gap: var(--adm-space-2); min-height: var(--adm-control-h-sm); vertical-align: middle; }
+.adm-ui-radio-box { position: relative; display: inline-flex; flex: none; width: var(--adm-space-5); height: var(--adm-space-5); }
+.adm-ui-radio.is-sm .adm-ui-radio-box { width: calc(var(--adm-space-4) + var(--adm-space-1) / 2); height: calc(var(--adm-space-4) + var(--adm-space-1) / 2); }
+.adm-ui-radio-input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.adm-ui-radio-mark { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%; box-sizing: border-box; border: var(--adm-border-width) solid var(--adm-gray-300); border-radius: var(--adm-radius-pill); background: var(--adm-surface); transition: background var(--adm-dur) var(--adm-ease), border-color var(--adm-dur) var(--adm-ease); }
+.adm-ui-radio-mark::after { content: ''; width: 40%; height: 40%; border-radius: var(--adm-radius-pill); background: var(--adm-on-primary); transform: scale(0); transition: transform var(--adm-dur) var(--adm-ease); }
+.adm-ui-radio-input:hover + .adm-ui-radio-mark { border-color: var(--adm-gray-500); }
+.adm-ui-radio-input:checked + .adm-ui-radio-mark { border-color: var(--adm-accent); background: var(--adm-accent); }
+.adm-ui-radio-input:checked + .adm-ui-radio-mark::after { transform: scale(1); }
+.adm-ui-radio-input:focus-visible + .adm-ui-radio-mark { box-shadow: var(--adm-ring); }
+.adm-ui-radio-input:disabled { cursor: not-allowed; }
+.adm-ui-radio-input:disabled + .adm-ui-radio-mark { border-color: var(--adm-gray-300); background: var(--adm-gray-100); }
+.adm-ui-radio-input:disabled:checked + .adm-ui-radio-mark::after { background: var(--adm-gray-400); }
+.adm-ui-radio-label { color: var(--adm-text); font-size: var(--adm-fs-body); line-height: var(--adm-lh); cursor: pointer; user-select: none; }
+.adm-ui-radio.is-disabled .adm-ui-radio-label { color: var(--adm-text-disabled); cursor: not-allowed; }
+
+/* 슬라이더(Seed Slider): 막대 6, 손잡이 28 흰 원 + 그림자, 고른 만큼 민트(--adm-slider-pct) */
+.adm-ui-slider { --adm-slider-track: calc(var(--adm-space-1) * 1.5); --adm-slider-thumb: calc(var(--adm-space-6) + var(--adm-space-1));
+  appearance: none; -webkit-appearance: none; width: 100%; min-width: 0; height: var(--adm-slider-thumb); margin: 0; background: transparent; cursor: pointer; }
+.adm-ui-slider::-webkit-slider-runnable-track { height: var(--adm-slider-track); border-radius: var(--adm-radius-pill);
+  background: linear-gradient(to right, var(--adm-accent) var(--adm-slider-pct, 0%), var(--adm-gray-200) var(--adm-slider-pct, 0%)); }
+.adm-ui-slider::-moz-range-track { height: var(--adm-slider-track); border-radius: var(--adm-radius-pill); background: var(--adm-gray-200); }
+.adm-ui-slider::-moz-range-progress { height: var(--adm-slider-track); border-radius: var(--adm-radius-pill); background: var(--adm-accent); }
+.adm-ui-slider::-webkit-slider-thumb { -webkit-appearance: none; width: var(--adm-slider-thumb); height: var(--adm-slider-thumb); margin-top: calc((var(--adm-slider-track) - var(--adm-slider-thumb)) / 2);
+  border: 0; border-radius: var(--adm-radius-pill); background: var(--seed-static-color-static-white); box-shadow: var(--adm-shadow-md); }
+.adm-ui-slider::-moz-range-thumb { width: var(--adm-slider-thumb); height: var(--adm-slider-thumb); border: 0; border-radius: var(--adm-radius-pill); background: var(--seed-static-color-static-white); box-shadow: var(--adm-shadow-md); }
+.adm-ui-slider:focus-visible { outline: 0; }
+.adm-ui-slider:focus-visible::-webkit-slider-thumb { box-shadow: var(--adm-shadow-md), var(--adm-ring); }
+.adm-ui-slider:focus-visible::-moz-range-thumb { box-shadow: var(--adm-shadow-md), var(--adm-ring); }
+.adm-ui-slider:disabled { cursor: not-allowed; }
+.adm-ui-slider:disabled::-webkit-slider-runnable-track { background: var(--adm-gray-200); }
+.adm-ui-slider:disabled::-moz-range-progress { background: var(--adm-gray-400); }
+
 /* 스위치(Seed Switch): 길 52×30·손잡이 26(작게 40×24·20), 켜면 민트 */
 .adm-ui-switch { display: inline-flex; align-items: flex-start; gap: var(--adm-space-3); min-height: var(--adm-control-h-sm); vertical-align: middle; }
 .adm-ui-switch-control {

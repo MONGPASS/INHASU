@@ -1,0 +1,5 @@
+/* 상품 대표 명소 구역(React 바깥 틀). 명소 카드 모양은 견적과 함께 쓰는 public/quote-spot-selector.css. 값은 --adm-* 변수만 쓴다. */
+.adm-qss { max-width: calc(var(--adm-space-8) * 31.25); }
+.adm-qss-title { margin: 0 0 calc(var(--adm-space-1) * 1.5); color: var(--adm-ink); font-size: var(--adm-fs-lead); font-weight: var(--adm-fw-bold); }
+.adm-qss-desc { margin: 0 0 var(--adm-space-4); color: var(--adm-text-3); font-size: var(--adm-fs-small); }
+.adm-qss .adm-msg { margin: 0; }
