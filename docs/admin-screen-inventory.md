@@ -16,7 +16,7 @@
 | 예약 관리 | 투어 캘린더 | `/admin/calendar` | `pages/AdminCalendar.tsx` | 대시보드형 | 날짜 옆 패널(화면 안에 고정) |
 | (목록에서 진입) | 고객 예약 관리 — 상품 예약 | `/admin/customer-workspace/product/:id` | `AdminReservationManage.tsx`(`customerPage`) + `v7/ReservationDetailV7.tsx` | 상세형 | 가이드·숙소·차량 고르기, 저장 전 미리보기(전체 화면), 일정표·계약 편집기(전체 화면), 휴대폰용 메뉴 |
 | (목록에서 진입) | 고객 예약 관리 — 이전 견적 | `/admin/customer-workspace/legacy-quote/:id` | 위와 같음(`customerSource="quote"`) | 상세형 | 위와 같음 |
-| (목록에서 진입) | 고객 통합 작업 — 견적 예약 | `/admin/customer-workspace/quote/:id` | `pages/AdminQuoteDesk.tsx`(`customerPage`) | 상세형(+견적 도구) | 더보기 메뉴, 발송 이력 옆 패널, 예약 편집기(`예약관리.html`)의 확인 창 |
+| (목록에서 진입) | 고객 통합 작업 — 견적 예약 | `/admin/customer-workspace/quote/:id` | `pages/AdminQuoteDesk.tsx`(`customerPage`) | 상세형(+견적 도구) | 더보기 메뉴, 발송 이력 옆 패널, 작업 화면 셋(문의 상세·견적 편집·예약 편집, 모두 React — iframe 없음) |
 | (목록 필터) | 맞춤견적 관리(이전 MILKYWAY 견적) | `/admin/quotes` | `pages/AdminQuoteManage.tsx` | 목록형 | 견적 상세 서랍, 예약 전환 선택 창 |
 | 배정·자원 | 숙소 배정(옛 이름 ‘숙소 배정 · 현지 운영’) | `/admin/accommodation-ops` | `pages/AdminAccommodationOps.tsx` + **배정 보드(기본, 2026-11-21 새 디자인)** `accommodation/LodgeAssignQueue.tsx` · 표로 보기 `accommodation/LodgeAssignBoard.tsx` · 카드 보기(여행자·일정·가이드·차량). 계산 공용 `accommodation/lodgeBoardModel.ts` | 작업대형(대기열 + 상세) / 목록형(칸에서 바로 고침) | 숙소 고르기 창(`LodgePicker`: 찾기·지역·등급 칩), 숙소·등급·상태 고르기 창, 숙박 추가 |
 | 배정·자원 | 가이드·숙소·차량 — 가이드 배정 현황 | `/admin/quote-desk/resources?view=schedule` | `components/admin/guides/GuideSchedule.tsx`(목록 `GuideAssignList.tsx`, 상세 패널 `GuideDrawer.tsx`) | 대시보드형 | 가이드 상세 옆 패널, 가이드 피켓 미리보기, 배정 고르기 창 |
@@ -47,7 +47,7 @@
 |---|---|---|---|---|---|
 | 견적 관리 | 견적 문의 | `/admin/quote-desk/inbox` | **목록은 React로 전환(2026-11-24)**: `src/pages/AdminQuoteInbox.tsx`(+ `.css`). 줄을 누르면 고객 통합 작업 화면. 고객 화면 안의 문의 상세도 React `components/admin/QuoteInquiryPanel.tsx`(2026-11-24, 옛 `견적관리.html?workspace=1`은 비교용) | 목록형 | 없음(목록). 고객 화면 안 문의 상세: 예약 진행 기록·고객 링크 재발급·삭제 확인 창(`adminConfirm`) |
 | 견적 관리 | 견적 예약 목록 | `/admin/quote-desk/bookings` | **React로 전환(2026-11-24)**: `src/pages/AdminQuoteBookings.tsx`(+ `.css`). 옛 `예약목록.html`은 비교용으로만 남음 | 목록형 | 고객 진행 기록 창(`AdminDialog`), 입금완료·복제·영구 삭제 확인 창(`adminConfirm`) |
-| (목록에서 진입) | 견적 예약 편집 | 고객 통합 작업 화면 안 | `예약관리.html` | 상세형 | 확인 창(`#confirmLayer`), 더보기 메뉴, 확정일정표 알림 창 |
+| (목록에서 진입) | 견적 예약 편집 | 고객 통합 작업 화면 안 | **React로 전환(2026-11-24)**: `components/admin/QuoteBookingEditorPanel.tsx`(+ `.css`, 계산 `quoteBookingEditor.ts`). 옛 `예약관리.html`은 휴대폰 옛 관리자·비교용 | 상세형(작업 탭) | 단계 요청·예약 확정·일정표 공개·서명 초기화·되돌리기·일차 삭제 확인 창(`adminConfirm`), 확정일정표 알림 창(옛 `itinerary-notice.js`) |
 | 견적 관리 | 견적서 만들기 | `/admin/quote-desk/builder` | **React로 전환(2026-11-24)**: `src/pages/AdminQuoteBuilder.tsx`(+ `.css`). 고객 통합 작업 화면 안의 견적 편집도 같은 편집기(`QuoteBuilderEditor` embedded, 2026-11-24 — 옛 `견적만들기.html`은 비교용) | 입력형(5단계) | 다른 견적에서 복제 창·고객 링크 창(`AdminDialog`), 링크 공유·초기화·복제 확인 창(`adminConfirm`), 초안 복원 안내(`AdminMessage`) |
 | 견적 관리 | 코스 관리 | `/admin/quote-desk/courses` | **React로 전환(2026-11-24)**: `src/pages/AdminCourseManage.tsx`(+ `.css`). 옛 `코스관리.html`은 비교용으로만 남음 | 목록형 | 코스 추가·편집 창(요금·대표 명소·일자별 일정, `AdminDialog`) |
 | 견적 관리 | 일정 관리 | `/admin/quote-desk/itinerary` | **React로 전환(2026-11-21)**: `src/pages/AdminItineraryManage.tsx`(+ `.css`). 옛 `일정관리.html`은 비교용으로만 남음 | 목록형 | 일정 추가·편집 창, 지역 추가·이름 바꾸기 창(`AdminDialog`) |

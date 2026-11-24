@@ -297,7 +297,3 @@
   .admin-app-wrapper .app .la :is(.la-area, .la-hotel, .la-dd, .la-status, .la-room-count, .la-memo, .la-mail-date input, .la-ghost, .la-today, .la-add) { height: 32px; }
   .admin-app-wrapper .app :is(.gs-round, .gs-pill, .gs-chip) { height: 32px; }
 }
-/* 견적 도구의 편집 서랍이 열리면 바깥 메뉴·제목·아래 메뉴도 같은 막으로 덮는다(iframe 영역은 도구 자체의 막). AdminQuoteDesk의 EmbedDim */
-.adm-embed-dim { position: fixed; inset: 0; z-index: var(--adm-z-modal); background: var(--adm-scrim); cursor: pointer; animation: admEmbedDimIn .2s ease; }
-@keyframes admEmbedDimIn { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .adm-embed-dim { animation: none; } }

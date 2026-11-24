@@ -110,7 +110,7 @@ test('견적 예약 목록 메뉴는 React로 열리고, ?id=는 예전 처리·
     const own = app.indexOf('path="/admin/quote-desk/bookings"');
     assert.ok(own > 0 && own < app.indexOf('path="/admin/quote-desk/:tool?"'), '견적 도구 iframe보다 앞에서 잡는다');
     const page = readFileSync('src/pages/AdminQuoteBookings.tsx', 'utf8');
-    assert.match(page, /if \(params\.get\('id'\)\) return <AdminQuoteDesk tool="bookings" \/>/);
+    assert.match(page, /if \(id\) return <Navigate replace to=\{quoteCustomerHref\(id, params\.has\('returnTo'\)/, '예전 ?id= 주소는 고객 통합 작업 화면으로 넘긴다');
     assert.match(page, /const fresh = await loadQuoteCustomerRequest\(id, token\.current\);\s+const booking = withPaymentStatus\(fresh\.booking, field, value\);/, '결제 상태는 최신 예약에 적용해 저장');
     assert.match(page, /body: JSON\.stringify\(\{ booking \}\)/, '옛 도구와 같은 PATCH { booking }');
     assert.match(page, /field === 'depositStatus' && value === '입금완료'[\s\S]{0,200}adminConfirm/, '처음 입금완료(고객 안내가 나갈 수 있음)는 확인 창');

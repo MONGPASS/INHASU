@@ -18,7 +18,10 @@ test('견적 고객 발송 원장은 현재 계정·예약의 응답만 모델�
     assert.match(source,/!editorExpanded && bookingId && <div hidden><AdminDeliveryHistory[^>]+onData=\{receiveCustomerDelivery\}/);
 });
 const handlers = source.slice(source.indexOf('    const openCustomerEditor = '), source.indexOf('    const customerAction = '));
-const { code } = await transform(handlers + '\nglobalThis.open = openCustomerEditor; globalThis.close = closeCustomerEditor;', { loader: 'ts' });
+// 작업 위치 이름 맞추기(sectionOf)는 파일 맨 위의 같은 식을 함께 꺼낸다.
+const sectionStart = source.indexOf('const sectionOf = ');
+const sectionLine = source.slice(sectionStart, source.indexOf('\n', sectionStart));
+const { code } = await transform(sectionLine + '\n' + handlers + '\nglobalThis.open = openCustomerEditor; globalThis.close = closeCustomerEditor;', { loader: 'ts' });
 
 function harness() {
     const calls = [], frames = [];

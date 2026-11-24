@@ -93,12 +93,12 @@ test('견적 문의 메뉴는 React 목록으로 열리고, 고객 한 명 주�
     assert.ok(own > 0 && own < app.indexOf('path="/admin/quote-desk/:tool?"'), '견적 도구 iframe보다 앞에서 잡는다');
     assert.ok(app.indexOf('path="/admin/quote-desk"') > 0, '도구 이름 없는 주소도 견적 문의로');
     const page = readFileSync('src/pages/AdminQuoteInbox.tsx', 'utf8');
-    assert.match(page, /params\.get\('id'\) \|\| params\.get\('qe'\)\) return <AdminQuoteDesk tool="inbox" \/>/, '?id=(고객 화면으로)·?qe=(휴대폰 편집)는 AdminQuoteDesk');
+    assert.match(page, /const id = params\.get\('id'\) \|\| params\.get\('qe'\);\n\s+if \(id\) return <Navigate replace to=\{quoteCustomerHref\(id,/, '예전 ?id=·?qe= 주소는 고객 통합 작업 화면으로 넘긴다');
     assert.match(page, /fetch\('\/api\/requests', \{ headers: \{ 'x-admin-token': token\.current \}, cache: 'no-store' \}\)/, '같은 자료를 관리자 값으로 읽는다');
     assert.match(page, /quoteCustomerHref\(String\(record\.id\), returnTo\)/, '줄을 누르면 고객 통합 작업 화면(목록 상태를 returnTo로)');
     assert.doesNotMatch(page, /method: '(?:PATCH|DELETE|PUT|POST)'/, '목록 화면은 읽기만 한다');
     const desk = readFileSync('src/pages/AdminQuoteDesk.tsx', 'utf8');
-    assert.match(desk, /const toolParam = toolProp \?\? routeParams\.tool/);
+    assert.match(desk, /const \{ id: bookingId \} = useParams<\{ id\?: string \}>\(\);/, '고객 통합 작업 화면은 주소의 고객 ID 하나로 연다');
     assert.match(desk, /<QuoteInquiryPanel /, '고객 화면 안의 문의 상세는 React(QuoteInquiryPanel — tests/quote-customer-inquiry.test.mjs)');
     assert.match(readFileSync('src/lib/adminPagePreload.ts', 'utf8'), /'\/admin\/quote-desk\/inbox': 'inbox'/);
 });
