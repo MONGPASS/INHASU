@@ -168,6 +168,11 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
     const flowCurrent = flowSteps.findIndex(step => !step.done);
     const assignLeft = assignments.filter(item => item.state !== 'ready').map(item => item.id === 'stay' ? `숙소 ${item.statusLabel}` : `${item.label} 미배정`);
     const quoteIssue = issue('quote'), contractIssue = issue('contract');
+    // 고객 차례 타임라인(2026-11-24 디자인): 마지막 안내 시각 — 저장된 요청 시각 → 접수된 발송 기록 순
+    const deliveredAt = (kind: string) => deliveries.find(item => item.kind === kind && item.state === 'accepted')?.at || '';
+    const sentAt = deliveredAt('quote') || text(list(record.activities).filter(row => text(row.type) === 'quote_sent').map(row => text(row.at)).filter(Boolean).sort().at(-1));
+    const sinceOf = (at: string, label: string) => at ? { since: { at, label } } : {};
+    const departure = /^\d{4}-\d{2}-\d{2}$/.test(text(record.depart)) ? { departure: text(record.depart) } : {};
     const flowNext = ((): CustomerWorkspaceFlow['next'] => {
         switch (flowSteps[flowCurrent]?.id) {
             case 'quote': return !quoted
@@ -177,7 +182,7 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
                     : { title: '견적서를 고객에게 보내 주세요', detail: '견적서는 저장돼 있어요. 내용을 확인한 뒤 [링크 공유하기]로 고객에게 카카오 알림을 보내요.', primary: { label: '견적서 보내기', action: 'quote-share' }, secondary: { label: '견적서 수정', action: 'quote-edit' } };
             case 'answer': return accepted
                 ? { title: '예약 정보를 만들어 주세요', detail: '고객 수락 기록은 있지만 예약 정보가 없어요. 견적 금액으로 예약금·입금 계좌가 담긴 예약을 만들어요.', primary: { label: '예약 만들기', action: 'accept-quote', confirm: '견적 금액으로 예약을 만들까요? 예약금이 있으면 고객 화면에 입금 계좌가 보입니다.' } }
-                : { title: '고객이 예약하겠다고 하면 눌러 주세요', waiting: true,
+                : { title: '고객이 예약하겠다고 하면 눌러 주세요', waiting: true, ...sinceOf(sentAt, '견적서 발송'), ...departure,
                     detail: `견적서를 보냈어요. 고객이 카카오톡 등으로 진행하겠다고 알려 오면 버튼을 눌러요.${deposit ? ` 예약금 ${won(deposit)}과 입금 계좌가 담긴 예약이 만들어지고 고객에게 예약 접수 알림이 가요.` : ''}`,
                     primary: { label: '고객이 예약하겠대요', action: 'accept-quote', confirm: `${text(record.name) || '고객'}님이 예약 진행 의사를 알려 왔나요?\n\n예약을 만들고 고객에게 예약 접수 알림(예약금${deposit ? ` ${won(deposit)}` : ''}·입금 계좌 안내)을 보냅니다.` },
                     secondary: { label: '견적서 수정', action: 'quote-edit' } };
@@ -185,6 +190,7 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
                 const reported = booking.depositReport?.status === 'reported';
                 if (!deposit) return { title: '예약금 금액을 먼저 정해 주세요', detail: '예약금이 0원이거나 비어 있어요. 결제 정보에서 예약금과 입금 계좌를 확인해 주세요.', primary: { label: '결제 정보 열기', action: 'payments' } };
                 return { title: reported ? '고객이 입금했다고 알려 왔어요' : '예약금 입금을 기다리고 있어요', waiting: !reported,
+                    ...(reported ? {} : { ...sinceOf(nonempty(booking.depositRequest?.requestedAt) || deliveredAt('deposit_requested'), '입금 안내'), ...departure }),
                     detail: [`예약금 ${won(deposit)}`, [nonempty(ci.bankName), nonempty(ci.accountNumber)].filter(Boolean).join(' '),
                         reported ? `입금자 ${nonempty(booking.depositReport?.name) || '미입력'}` : '통장에 들어오면 버튼을 눌러요'].filter(Boolean).join(' · '),
                     primary: { label: '입금 확인했어요', action: 'confirm-deposit', confirm: `예약금 ${won(deposit)} 입금을 통장에서 확인했나요?\n\n확인하면 고객에게 계약서 서명·여행자 정보 요청 알림이 갑니다.` },
@@ -192,6 +198,7 @@ export function quoteCustomerWorkspaceModel(record: any, options: { deliveryHist
             }
             case 'sign': return {
                 title: contractRequested ? '고객 서명을 기다리고 있어요' : '계약서 서명을 요청해 주세요', waiting: !!contractRequested && !contractIssue,
+                ...(contractRequested && !contractIssue ? { ...sinceOf(nonempty(booking.contractRequest?.requestedAt) || deliveredAt('contract'), '서명 안내 발송'), ...departure } : {}),
                 detail: contractIssue ? `서명 안내 알림이 ${contractIssue.state === 'failed' ? '실패했어요' : '확인되지 않았어요'}. 다시 보내 주세요.`
                     : contractRequested ? `${nonempty(booking.contractRequest?.requestedAt).slice(0, 10)} 서명 안내를 보냈어요. 고객이 서명하면 다음 단계로 넘어가요.`.trim() : '예약금은 확인됐어요. 고객에게 계약서 서명을 요청해요.',
                 primary: { label: contractRequested ? '서명 안내 다시 보내기' : '서명 요청 보내기', action: 'notify-contract', confirm: '고객에게 계약서 서명·여행자 정보 요청 알림을 보낼까요?' },

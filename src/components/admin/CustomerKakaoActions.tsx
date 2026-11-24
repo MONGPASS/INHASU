@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUser } from '../../contexts/UserContext';
-import { Icon } from './console/Icon';
-import { AdminButton, AdminTextButton, IconChevronRight } from './ui';
+import { AdminTextButton, IconBell, IconChevronDown } from './ui';
 import './CustomerKakaoActions.css';
 
 type CustomerNoticeKind = 'quote' | 'contract' | 'itinerary' | 'travel_notice';
@@ -116,29 +115,40 @@ export function CustomerKakaoActions({ source, bookingId, disabled = false, disa
         }
     };
 
-    return <details className="cw-kakao" aria-label="고객 카카오 알림 발송" aria-busy={!!sending}>
-        <summary><span className="cw-kakao-icon"><Icon name="chat_bubble_outline" /></span><span className="cw-kakao-summary-copy"><strong>고객 알림 자동발송 · 이력/다시 보내기</strong><small>{automation?.enabled ? automationIssues ? `발송 상태 확인 ${automationIssues}건` : '업무 상태에 따른 자동 안내 연결됨' : '자동 안내와 수동 재안내 상태 확인'}</small></span><Icon name="expand_more" /></summary>
-        <div className="cw-kakao-body">
-        <header><div><h3>고객 알림 관리</h3><p>{data ? `${data.recipient.name || '고객'} · ${data.recipient.phone || '전화번호 미등록'}` : '등록된 고객의 수신번호와 발송 상태를 확인합니다.'}</p></div>{onHistory && <AdminTextButton size="sm" disabled={disabled || !!sending} onClick={onHistory} trailing={<IconChevronRight />}>발송 이력</AdminTextButton>}</header>
+    // 고객 알림 카드(디자인 ‘고객 통합 작업 · 개선안’ 2026-11-24): 머리(종 아이콘 · 제목 · 설명 · 발송 이력) → 알림 줄(이름 · 마지막 발송 · 다시 보내기)
+    // → 접힌 자동 안내 → 안내 문구 → 아래에 붙는 내용(extra: 알림 · 변경 이력). 카드를 보거나 펼치는 것만으로는 발송하지 않는다.
+    const noticeWhen = (notice: Notice) => notice.lastAttempt
+        ? `${states[notice.lastAttempt.state] || '결과 확인 필요'}${timeLabel(notice.lastAttempt.at) && ` · ${timeLabel(notice.lastAttempt.at)}`}`
+        : !notice.available && notice.reason ? notice.reason : notice.description || descriptions[notice.kind];
+    return <section id="sec-notice" className="cw-kakao" aria-label="고객 알림" aria-busy={!!sending}>
+        <header className="cw-kakao-head">
+            <span className="cw-kakao-tile"><IconBell aria-hidden="true" /></span>
+            <h2 className="cw-kakao-title">고객 알림</h2>
+            <span className="cw-kakao-caption">상태가 바뀌면 자동으로 보내요</span>
+            <span className="cw-kakao-grow" />
+            {onHistory && <AdminTextButton size="sm" tone="assistive" disabled={disabled || !!sending} onClick={onHistory}>발송 이력 보기</AdminTextButton>}
+        </header>
+        <p className="cw-kakao-recipient">{data ? `${data.recipient.name || '고객'} · ${data.recipient.phone || '전화번호 미등록'}` : '등록된 고객의 수신번호와 발송 상태를 확인합니다.'}</p>
         {error?.scope === scope && <div className="cw-kakao-feedback is-error" role="alert">{error.text}<AdminTextButton size="sm" disabled={disabled || loading || !!sending} onClick={() => setAttempt(value => value + 1)}>다시 확인</AdminTextButton></div>}
         {feedback?.scope === scope && <p className={`cw-kakao-feedback${feedback.failed ? ' is-error' : ''}`} role={feedback.failed ? 'alert' : 'status'}>{feedback.text}</p>}
         {disabledReason && <p className="cw-kakao-blocked" role="status">{disabledReason}</p>}
         {!data && error?.scope !== scope && <p className="cw-kakao-loading" role="status">{account ? '발송 가능한 알림을 확인하고 있습니다…' : '관리자 로그인이 필요합니다.'}</p>}
-        {automation && <section className="cw-automation" aria-label="자동 고객 알림 상태"><h4>자동 안내</h4><p>각 업무가 새로 처리되면 자동으로 안내를 요청합니다. 서비스 접수는 실제 수신 완료와 다릅니다.</p><ul>{automation.notices.map(notice => <li key={notice.kind}><div><strong>{notice.label}</strong><small>{notice.trigger}</small>{notice.reason && <small className="cw-kakao-reason">{notice.reason}</small>}{notice.lastAttempt?.at && <small>{timeLabel(notice.lastAttempt.at)}</small>}</div><span className={`cw-automation-state is-${notice.state}`}>{automationStates[notice.state] || '상태 확인 필요'}</span></li>)}</ul></section>}
-        {data && <><div className="cw-kakao-manual-heading"><h4>수동 재안내</h4><p>이미 안내한 내용을 다시 보내거나, 필요한 안내를 직접 보냅니다.</p></div><div className="cw-kakao-list">{data.notices.map(notice => {
+        {data && <ul className="cw-kakao-list" aria-label="수동 재안내">{data.notices.map(notice => {
             const seconds = notice.cooldownUntil ? Math.max(0, Math.ceil((Date.parse(notice.cooldownUntil) - now) / 1000)) : 0;
             const blocked = disabled || loading || !!sending || !notice.available || error?.scope === scope || seconds > 0;
-            return <article className="cw-kakao-notice" key={notice.kind}>
-                <div><h4>{notice.label}</h4><p>{notice.description || descriptions[notice.kind]}</p>
-                    {notice.lastAttempt && <small className={`cw-kakao-last is-${notice.lastAttempt.state}`}>{states[notice.lastAttempt.state] || '결과 확인 필요'}{timeLabel(notice.lastAttempt.at) && ` · ${timeLabel(notice.lastAttempt.at)}`}</small>}
-                    {notice.reason && !notice.available && <small className="cw-kakao-reason">{notice.reason}</small>}
-                </div>
-                <AdminButton variant="secondary" size="sm" className="cw-kakao-send" disabled={!!blocked} title={disabledReason || (!notice.available ? notice.reason : undefined)} aria-label={`${notice.label} 카카오 알림 발송`} onClick={() => void send(notice)}
-                    leading={<Icon name="send" className="cw-kakao-glyph" />}>{sending === notice.kind ? '접수 중…' : seconds > 0 ? `${seconds}초 후 재발송` : notice.lastAttempt?.state === 'accepted' ? '다시 보내기' : '카카오 발송'}</AdminButton>
-            </article>;
-        })}</div></>}
+            return <li className="cw-kakao-row" key={notice.kind}>
+                <span className="cw-kakao-row-text"><b>{notice.label}</b>
+                    <small className={notice.lastAttempt ? `cw-kakao-last is-${notice.lastAttempt.state}` : !notice.available ? 'cw-kakao-reason' : undefined}>{noticeWhen(notice)}</small></span>
+                <AdminTextButton size="sm" tone="assistive" className="cw-kakao-send" disabled={!!blocked} title={disabledReason || (!notice.available ? notice.reason : undefined)} aria-label={`${notice.label} 카카오 알림 발송`} onClick={() => void send(notice)}>
+                    {sending === notice.kind ? '접수 중…' : seconds > 0 ? `${seconds}초 후 재발송` : notice.lastAttempt?.state === 'accepted' ? '다시 보내기' : '보내기'}</AdminTextButton>
+            </li>;
+        })}</ul>}
+        {automation && <details className="cw-automation" aria-label="자동 고객 알림 상태">
+            <summary className="cw-automation-summary"><b>자동 안내</b><span className={automationIssues ? 'cw-automation-count is-alert' : 'cw-automation-count'}>{automation.enabled ? automationIssues ? `발송 상태 확인 ${automationIssues}건` : '업무 상태에 따라 자동 발송' : '자동 안내 꺼짐'}</span><IconChevronDown aria-hidden="true" /></summary>
+            <p>각 업무가 새로 처리되면 자동으로 안내를 요청합니다. 서비스 접수는 실제 수신 완료와 다릅니다.</p>
+            <ul>{automation.notices.map(notice => <li key={notice.kind}><div><strong>{notice.label}</strong><small>{notice.trigger}</small>{notice.reason && <small className="cw-kakao-reason">{notice.reason}</small>}{notice.lastAttempt?.at && <small>{timeLabel(notice.lastAttempt.at)}</small>}</div><span className={`cw-automation-state is-${notice.state}`}>{automationStates[notice.state] || '상태 확인 필요'}</span></li>)}</ul>
+        </details>}
         <p className="cw-kakao-hint">버튼을 누르면 등록된 고객에게 바로 발송합니다.</p>
         {extra}
-        </div>
-    </details>;
+    </section>;
 }

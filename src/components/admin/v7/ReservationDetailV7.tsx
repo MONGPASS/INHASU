@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { DashboardIconName } from '../dashboard/DashboardIcon';
 import type { CustomerWorkspaceOverviewModel } from '../CustomerWorkspaceOverview';
 import { dashboardSeoulDate } from '../../../utils/adminDashboard';
 import { confirmGuideConflict, guideMenuItems } from './guideMenuItems';
@@ -12,12 +11,12 @@ import {
     v7Dday, v7Range, v7Row, v7StepLabel, v7StepSubs, v7Won, withGuide, withNight, withVehicle, type V7AssignmentItem, type V7Row, type V7Source,
 } from '../../../utils/reservationV7';
 import { PRODUCT_STATUS_OPTIONS, statusLabelOf } from './ReservationListV7';
-import {
-    Ico, V7Badge, V7Menu, V7Steps, V7StepHead, V7Styles, V7Toast, menuAt,
-    type PillTone, type V7MenuItem, type V7MenuState,
-} from './v7Ui';
+import { V7Badge, V7Menu, V7Styles, V7Toast, menuAt, type V7MenuItem, type V7MenuState } from './v7Ui';
 import { adminConfirm } from '../ui/adminFeedback';
-import { AdminButton, AdminIconButton, AdminTextButton, IconCheckThick, IconCoins, IconDocument, IconListCategory, IconPersons } from '../ui';
+import {
+    AdminButton, AdminIconButton, AdminTextButton, IconBell, IconCar, IconChat, IconCheckThick, IconChevronDown, IconChevronLeft, IconChevronRight, IconClock, IconCoupon,
+    IconExternal, IconHotel, IconListCategory, IconLocation, IconMap, IconPencil, IconPerson, IconPersons, IconWrite,
+} from '../ui';
 import './reservation-detail-cards.css';
 
 type Model = CustomerWorkspaceOverviewModel;
@@ -34,15 +33,19 @@ export interface ReservationDetailV7Links {
     onAssignmentSaved?: () => void;
 }
 
-/** 이 화면에서 열지 않는 배정 업무. 배정은 ‘숙소 배정’·‘가이드·숙소·차량’ 메뉴에서만 한다(2026-11-24). */
+/** 가이드·차량 배정 화면(‘가이드·숙소·차량’의 가이드 배정 현황). 숙소는 숙소 배정 화면(lodgeHref). */
+const GUIDE_SCHEDULE_HREF = '/admin/quote-desk/resources?view=schedule';
+/** 받침이 있으면 true — 이/가, 을/를 고르기. */
+const hasFinal = (word: string) => { const c = word.charCodeAt(word.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 > 0; };
 /** 일정 카드가 처음에 보여 주는 일차 수(고객 정보 카드와 같은 높이). */
 const PLAN_PREVIEW_DAYS = 3;
+/** 이 화면에서 열지 않는 배정 업무 — 누르면 배정 카드로 이동한다. 배정은 ‘숙소 배정’·‘가이드·숙소·차량’ 메뉴에서만 한다(2026-11-24). */
 const ASSIGN_ACTIONS = new Set(['assignments', 'assign', 'guide', 'vehicle', 'stay']);
 /** 바로가기 6개(디자인 v7): 같은 화면 안의 해당 카드로 이동한다. 업무 화면은 각 카드의 버튼이 연다. */
-const NAV: Array<{ label: string; icon: DashboardIconName; sid: string }> = [
-    { label: '일정표 편집', icon: 'lc-calendar', sid: 'sec-plan' }, { label: '고객·항공편', icon: 'lc-user', sid: 'sec-info' },
-    { label: '결제·영수증', icon: 'lc-banknote', sid: 'sec-pay' }, { label: '가이드·숙소', icon: 'lc-bed', sid: 'sec-asg' },
-    { label: '운영·메모', icon: 'lc-clipboard-check', sid: 'sec-memo' }, { label: '메모·이력', icon: 'lc-history', sid: 'sec-log' },
+const NAV: Array<{ label: string; sid: string }> = [
+    { label: '일정표 편집', sid: 'sec-plan' }, { label: '고객·항공편', sid: 'sec-info' },
+    { label: '결제·영수증', sid: 'sec-pay' }, { label: '가이드·숙소', sid: 'sec-asg' },
+    { label: '운영 메모', sid: 'sec-memo' }, { label: '변경 이력', sid: 'sec-log' },
 ];
 const LOG_TAGS: Record<HistoryKind, { tag: string; tone: 'gray' | 'blue' | 'mint' | 'amber' }> = {
     inquiry: { tag: '접수', tone: 'gray' }, quote: { tag: '알림', tone: 'blue' }, booking: { tag: '접수', tone: 'gray' }, payment: { tag: '완료', tone: 'mint' },
@@ -59,25 +62,6 @@ const dateKeys = (text: string) => (text.match(/\d{4}[-.]\d{2}[-.]\d{2}/g) || []
 const shortDate = (key: string) => { const d = new Date(`${key}T00:00:00Z`); return Number.isFinite(d.getTime()) ? `${String(d.getUTCMonth() + 1).padStart(2, '0')}.${String(d.getUTCDate()).padStart(2, '0')} (${'일월화수목금토'[d.getUTCDay()]})` : key; };
 const historyTime = (at: string) => at.length === 10 ? at.replaceAll('-', '.') : Number.isFinite(Date.parse(at)) ? new Date(at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).replace(/\. /g, '.').replace(/\.$/, '') : at;
 
-function cardHead({ icon, title, right }: { icon: DashboardIconName; title: string; right?: ReactNode }) {
-    return <div className="v7-card-head">
-        <span className="v7-tile"><Ico name={icon} size={16} /></span><b className="v7-card-title">{title}</b>{right}
-    </div>;
-}
-/** 접는 줄(고객 정보 카드 안). 머리 전체가 눌리는 모양이라 생 button + adm-v7-* 클래스로 그린다. */
-function disclosure({ icon, title, sub, badge, open, onToggle, children }: { icon: DashboardIconName; title: string; sub: string; badge?: string; open: boolean; onToggle: () => void; children: ReactNode }) {
-    return <React.Fragment key={title}>
-        <div className="v7-rule" />
-        <button type="button" aria-expanded={!!open} className="adm-v7-disclosure" onClick={onToggle}>
-            <span className="v7-disclosure-icon"><Ico name={icon} size={17} /></span>
-            <span className="v7-disclosure-text"><b className="v7-disclosure-title">{title}</b><span className="v7-disclosure-sub">{sub}</span></span>
-            {badge && <V7Badge tone="mint">{badge}</V7Badge>}
-            <span className={open ? 'v7-chevron is-open' : 'v7-chevron'}><Ico name="lc-chevron-down" size={16} /></span>
-        </button>
-        {open && children}
-    </React.Fragment>;
-}
-
 export interface ReservationDetailV7Props {
     model: Model; onAction: (action: string, id?: string) => void; busy?: boolean;
     noteComposer?: ReactNode; bookingSelector?: ReactNode; notificationActions?: ReactNode; links?: ReservationDetailV7Links;
@@ -85,18 +69,18 @@ export interface ReservationDetailV7Props {
 /** 화면 상태. 테스트는 같은 상태 객체로 그리기 결과와 버튼 연결을 확인한다. */
 export interface DetailState {
     item?: V7AssignmentItem; allItems: V7AssignmentItem[]; resources: RegisteredAssignmentResources | null; menu: V7MenuState | null; toast: string; saving: boolean;
-    maskOn: boolean; sections: Record<string, boolean>; travelerOpen: number; dayOpen: Record<string, boolean>;
+    maskOn: boolean;
     /** 구역 탭에서 마지막으로 고른 구역(밑줄 표시용). */
     navSid: string;
-    /** 일정 카드에서 4일차 이후도 펼쳤는지(기본: 3일까지만). */
+    /** 일정 카드를 펼쳤는지(모든 일차 + 일차별 상세, 기본: 3일까지만). */
     daysAll: boolean;
-    /** 고객 정보 카드의 예약 상세·항공편·여행자·요청 묶음을 펼쳤는지(기본 접힘). */
+    /** 고객 정보 카드의 예약 상세·항공편·여행자·요청·예약번호를 펼쳤는지(기본 접힘). */
     infoMore: boolean;
     /** 배정 카드의 박별 숙소 목록을 펼쳤는지(기본 접힘). */
     staysOpen: boolean;
 }
 export const initialDetailState = (): DetailState => ({ allItems: [], resources: null, menu: null, toast: '', saving: false, maskOn: true,
-    sections: {}, travelerOpen: 0, dayOpen: {}, navSid: 'sec-plan', staysOpen: false, infoMore: false, daysAll: false });
+    navSid: 'sec-plan', staysOpen: false, infoMore: false, daysAll: false });
 export type DetailSet = (patch: Partial<DetailState> | ((s: DetailState) => Partial<DetailState>)) => void;
 export interface DetailEnv { mounted: { current: boolean }; toastTimer: { current: number | undefined }; root: { current: HTMLElement | null } }
 
@@ -118,7 +102,7 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     st: DetailState, set: DetailSet, env: DetailEnv) {
     const today = dashboardSeoulDate(new Date().toISOString());
     const rootRef = env.root, mounted = env.mounted, toastTimer = env.toastTimer;
-    const { item, resources, allItems, menu, toast, saving, maskOn, sections, travelerOpen, dayOpen } = st;
+    const { item, menu, toast, saving, maskOn } = st;
     const setItem = (value: V7AssignmentItem | undefined) => set({ item: value });
     const setAllItems = (value: V7AssignmentItem[] | ((prev: V7AssignmentItem[]) => V7AssignmentItem[])) => set(s => ({ allItems: typeof value === 'function' ? value(s.allItems) : value }));
     const setResources = (value: RegisteredAssignmentResources) => set({ resources: value });
@@ -126,9 +110,6 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
     const setToast = (value: string) => set({ toast: value });
     const setSaving = (value: boolean) => set({ saving: value });
     const setMaskOn = (value: boolean) => set({ maskOn: value });
-    const setSections = (fn: (prev: Record<string, boolean>) => Record<string, boolean>) => set(s => ({ sections: fn(s.sections) }));
-    const setTravelerOpen = (value: number) => set({ travelerOpen: value });
-    const setDayOpen = (fn: (prev: Record<string, boolean>) => Record<string, boolean>) => set(s => ({ dayOpen: fn(s.dayOpen) }));
     const flash = (text: string) => { window.clearTimeout(toastTimer.current); setToast(text); toastTimer.current = window.setTimeout(() => mounted.current && setToast(''), 2600); };
     const source = links?.source || null;
     const assignmentKey = source && source.type !== 'quote' ? `${source.type === 'quote_booking' ? 'quote_booking' : 'product'}:${source.id}` : '';
@@ -194,356 +175,353 @@ export function reservationDetailView({ model: m, onAction, busy = false, noteCo
             void links.onStatus!(o.value).then(() => flash(`${o.label}(으)로 변경했어요`));
         } })));
     };
-    const openNotices = (event: React.MouseEvent) => {
-        const panel = notificationActions && m.documentAction !== 'documents' ? (event.currentTarget as HTMLElement).closest('.v7-root')?.querySelector<HTMLDetailsElement>('details.cw-kakao') : null;
-        if (!panel) { onAction('documents'); return; }
-        panel.open = true; panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); panel.querySelector('summary')?.focus({ preventScroll: true });
-    };
+    /** 알림 보내기: 같은 화면의 고객 알림 카드로 이동한다. 예약 전(견적 문의)에는 견적서 확인·전달 화면을 연다. */
+    const openNotices = () => { if (notificationActions && m.documentAction !== 'documents') goSec('sec-notice'); else onAction('documents'); };
     const copyInfo = async () => {
         const text = [name, phoneFact, emailFact, m.placeLabel || row?.region || '', m.period, m.partyLabel].filter(Boolean).join('\n');
         try { await navigator.clipboard.writeText(text); flash('고객 정보를 복사했어요'); } catch { flash('복사하지 못했어요. 브라우저 권한을 확인해 주세요.'); }
     };
 
-    // 진행 단계: 맞춤 견적은 견적서~일정표 공개 7단계(m.flow), 상품 예약은 v7 계산(예약 원본이 있을 때) 또는 고객 화면 모델의 단계
-    const flow = m.flow;
-    const flowStepSec: Record<string, string> = { quote: 'sec-doc', answer: 'sec-doc', deposit: 'sec-pay', sign: 'sec-doc', confirm: 'sec-pay', assign: 'sec-asg', publish: 'sec-plan' };
-    const steps = flow ? flow.steps.map((s, i) => ({ label: s.label, done: s.done, sub: s.done ? '완료' : i === flow.current ? flow.next.waiting ? '기다리는 중' : '지금' : '대기' })) : row ? row.steps.map((s, i) => ({ ...s, sub: v7StepSubs(row)[i] })) : m.steps.map(s => ({ label: s.label, done: s.done, sub: s.done ? '완료' : s.current ? '진행 중' : '대기' }));
-    const stepHead = flow ? flow.current >= flow.steps.length ? { label: '모든 단계 완료', tone: 'mint' as const } : { label: `${flow.current + 1}단계 · ${flow.steps[flow.current].label}`, tone: flow.next.waiting ? 'gray' as const : 'red' as const } : row ? v7StepLabel(row) : cancelled ? { label: '취소된 예약', tone: 'gray' as const } : steps.every(s => s.done) ? { label: '모든 단계 완료', tone: 'mint' as const } : { label: m.steps.find(s => s.current)?.label || steps.find(s => !s.done)?.label || '', tone: 'red' as const };
-    // 진행 단계 클릭은 디자인대로 해당 카드로 이동한다(서류·결제·배정·결제·일정). 원본이 없는 모델 단계는 해당 업무를 연다.
-    const stepTargets = row ? ['sec-doc', 'sec-pay', 'sec-asg', 'sec-pay', 'sec-plan'] : [];
     const dd = row ? v7Dday(row) : null;
     const period = row ? v7Range(row) : null;
-    const tabName = row ? V7_TABS.find(t => t.key === row.tab)?.label : m.statusLabel;
-    const statusTone: PillTone = row ? ({ contract: 'gray', ongoing: 'solid', ended: 'mint', cancel: 'gray' } as const)[row.tab] : 'gray';
-    const pay = m.payment, depositPaid = row ? row.depositPaid : pay.depositPaid === true, balancePaid = row ? row.balancePaid : pay.balancePaid === true;
-    const receipt = (ops?.receipt.status || 'not_requested') as ReceiptStatus;
-    const receiptLate = !!row?.ended && ['pending', 'info_missing'].includes(receipt);
+    // ── 디자인 ‘고객 통합 작업 · 개선안’(2026-11-24): 흰 카드(모서리 16) 머리 → 진행 단계 + 고객 차례 판 → 탭 → 고객 정보·일정 → 결제·배정·분류·서류 → 운영 메모·고객 알림.
+    const cls = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(' ');
+    type PillTone = 'neutral' | 'danger' | 'accent';
+    /** 알약(높이 24): 누를 수 있으면 메뉴를 여는 버튼, 아니면 표시만. */
+    const pill = (text: ReactNode, tone: PillTone, opt: { onClick?: (e: React.MouseEvent) => void; title?: string; label?: string } = {}) => opt.onClick
+        ? <button type="button" disabled={busy || saving} className={`adm-cw-pill is-${tone}`} title={opt.title} aria-label={opt.label} onClick={opt.onClick}>{text}<IconChevronDown aria-hidden="true" /></button>
+        : <span className={`cw-pill is-${tone}`} title={opt.title}>{text}</span>;
+    const toneOf = (t: string): PillTone => t === 'red' ? 'danger' : t === 'mint' ? 'accent' : 'neutral';
+    type CardIcon = React.ComponentType<{ 'aria-hidden'?: boolean | 'true' }>;
+    /** 카드 상태(제목 바로 뒤 작은 숫자 알약): 남은 건수 + 올리거나 키보드로 고르면 뜨는 말풍선(무엇이 남았는지). */
+    type CardState = { n: ReactNode; msg: string; tone: 'urgent' | 'muted' | 'done' };
+    /** count: 문구 수와 남은 건수가 다를 때(배정 셋을 한 문장으로 말할 때) */
+    const leftState = (parts: string[], doneMsg: string, count = parts.length): CardState => parts.length
+        ? { n: count, msg: `${count}건 남음 · ${parts.join(' · ')}`, tone: 'urgent' } : { n: <IconCheckThick aria-hidden="true" />, msg: doneMsg, tone: 'done' };
+    const countChip = (title: string, s: CardState) => <span className={`cw-count is-${s.tone}`} data-tip={s.msg} tabIndex={0} role="img" aria-label={`${title} · ${s.msg}`}>{s.n}</span>;
+    /** 카드 머리: 34px 회색 아이콘 칸 · 제목 · (설명·건수) · 오른쪽 버튼 */
+    const head = (Icon: CardIcon, title: string, opt: { meta?: ReactNode; state?: CardState; right?: ReactNode } = {}) => <header className="cw-head">
+        <span className="cw-tile"><Icon aria-hidden="true" /></span><h2 className="cw-title">{title}</h2>
+        {opt.meta && <span className="cw-head-meta">{opt.meta}</span>}{opt.state && countChip(title, opt.state)}<span className="cw-grow" />{opt.right}
+    </header>;
+    /** 카드 제목 줄 끝의 연필 버튼: 그 업무의 편집 화면을 연다(배정은 숙소 배정 화면으로 이동). */
+    const cardEdit = (label: string, go: { onClick?: () => void; to?: string }) => <AdminIconButton label={`${label} 편집`} variant="outlined" className="cw-edit"
+        disabled={busy} onClick={go.onClick} to={go.to}><IconPencil aria-hidden="true" /></AdminIconButton>;
+    /** 카드 아래 가운데 펼침 아이콘. */
+    const foldButton = (open: boolean, label: string, controls: string | undefined, toggle: () => void) => <div className="cw-fold">
+        <AdminIconButton label={label} aria-expanded={open} aria-controls={controls} className={open ? 'cw-fold-btn is-open' : 'cw-fold-btn'} onClick={toggle}><IconChevronDown aria-hidden="true" /></AdminIconButton>
+    </div>;
+    const textBtn = (label: string, go: () => void, aria?: string, disabled = false) => <AdminTextButton size="sm" tone="assistive" aria-label={aria} disabled={busy || disabled} onClick={go}>{label}</AdminTextButton>;
+    const row2 = (label: ReactNode, value: ReactNode, key?: string) => <div key={key} className="cw-row"><span className="cw-row-label">{label}</span><span className="cw-row-value">{value}</span></div>;
+    const lodgeHref = source && source.type !== 'quote' ? `/admin/accommodation-ops?open=${encodeURIComponent(source.id)}&source=${source.type === 'quote_booking' ? 'quote_booking' : 'product'}` : '/admin/accommodation-ops';
+    const dayKey = (at: string) => at ? dashboardSeoulDate(at) : '';
+    const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
+    const mmdd = (key: string) => key.length >= 10 ? `${key.slice(5, 7)}.${key.slice(8, 10)}` : key;
+    const toDeparture = startKey ? dayDiff(today, startKey) : null;
+    // 예약 전 견적 문의: 결제·배정은 예약으로 전환한 뒤에 한다(회색 안내 글자).
+    const asgLocked = !!m.disabledActions?.includes('assignments'), payLocked = !!m.disabledActions?.includes('payments');
+    const mutedNote = (text: string) => <p className="cw-note">{text}</p>;
+
+    // ── 머리
+    const statusText = source ? statusLabelOf(source) : m.statusLabel;
+    const dday = dd || (toDeparture !== null && toDeparture >= 0 ? { label: toDeparture === 0 ? 'D-DAY' : `D-${toDeparture}`, tone: toDeparture <= 7 ? 'red' : 'gray' } : null);
+    const shortNo = m.bookingNumber && /^[0-9a-f-]{20,}$/i.test(m.bookingNumber) ? m.bookingNumber.slice(0, 8) : m.bookingNumber;
+    const hero = <section className="cw-card cw-hero" aria-label="고객 요약">
+        <div className="cw-hero-main">
+            <div className="cw-hero-title">
+                <h1 className="cw-hero-name">{name}</h1>
+                {dday && pill(dday.label, dday.tone === 'red' ? 'danger' : 'neutral')}
+                {pill(statusText, 'neutral', links?.onStatus && source?.type === 'product' ? { onClick: statusMenu, label: `진행상황 ${statusText} · 바꾸기` } : {})}
+                {m.packageInfo && pill(m.packageInfo.tier === 'full' ? '풀패키지' : m.packageInfo.tier === 'value' ? '실속형' : '패키지 미지정', 'neutral', { title: m.packageInfo.detail })}
+                <span className="cw-hero-meta">{m.sourceLabel}{shortNo ? ` · #${shortNo}` : ''}</span>
+            </div>
+            <div className="cw-hero-facts">
+                <span className="cw-fact is-num"><IconClock aria-hidden="true" />{period ? `${period.range}${period.sch ? ` · ${period.sch}` : ''}` : m.period || '일정 미정'}</span>
+                {m.partyLabel && <span className="cw-fact"><IconPerson aria-hidden="true" />{m.partyLabel}</span>}
+                <span className="cw-fact"><IconLocation aria-hidden="true" />{m.placeLabel || row?.region || m.bookedProduct?.name || '지역 미정'}</span>
+                {phoneFact && <span className="cw-fact is-num"><IconChat aria-hidden="true" />{maskFact('연락처', phoneFact, maskOn)}</span>}
+                {m.bookedProduct?.href && <a className="cw-fact is-link" href={m.bookedProduct.href} target="_blank" rel="noopener noreferrer">{m.bookedProduct.name}<IconExternal aria-hidden="true" /></a>}
+            </div>
+        </div>
+        <div className="cw-hero-actions">
+            <AdminButton variant="weak" disabled={busy} onClick={openNotices}>{m.documentAction === 'documents' ? m.documentLabel || '견적서 확인·전달' : '알림 보내기'}</AdminButton>
+            <AdminButton variant="primary" disabled={busy} onClick={action('edit-itinerary')}>일정표 편집</AdminButton>
+        </div>
+    </section>;
+
+    // ── 진행 단계: 번호 원 + 잇는 선(완료 구간은 민트), 지금 단계 위 작은 화살표. 맞춤 견적은 견적서~일정표 공개 7단계(m.flow)
+    const flow = m.flow;
+    const flowStepSec: Record<string, string> = { quote: 'sec-doc', answer: 'sec-doc', deposit: 'sec-pay', sign: 'sec-doc', confirm: 'sec-pay', assign: 'sec-asg', publish: 'sec-plan' };
+    const steps: Array<{ label: string; done: boolean }> = flow ? flow.steps : row ? row.steps : m.steps;
+    const stepNow = steps.findIndex(s => !s.done);
+    const stepHead = flow ? flow.current >= flow.steps.length ? { label: '모든 단계 완료', tone: 'mint' } : { label: `${flow.current + 1}단계 · ${flow.steps[flow.current].label}`, tone: flow.next.waiting ? 'gray' : 'red' }
+        : row ? v7StepLabel(row) : cancelled ? { label: '취소된 예약', tone: 'gray' } : steps.every(s => s.done) ? { label: '모든 단계 완료', tone: 'mint' } : { label: m.steps.find(s => s.current)?.label || steps.find(s => !s.done)?.label || '', tone: 'red' };
+    // 단계를 누르면 그 단계의 카드로 이동한다. 원본이 없는 모델 단계는 해당 업무를 연다.
+    const stepTargets = row ? ['sec-doc', 'sec-pay', 'sec-asg', 'sec-pay', 'sec-plan'] : [];
+    const onStep = (i: number) => flow ? goSec(flowStepSec[flow.steps[i]?.id] || 'sec-plan') : stepTargets[i] ? goSec(stepTargets[i]) : ASSIGN_ACTIONS.has(m.steps[i]?.id || '') ? goSec('sec-asg') : onAction(m.steps[i]?.id || 'payments');
+    const RESEND = new Set(['notify-contract', 'quote-share']);
+    const nextPanel = flow && (() => {
+        const doneAll = flow.current >= flow.steps.length, now = flow.steps[flow.current], next = flow.next;
+        const waiting = !doneAll && !!next.waiting;
+        const sinceKey = waiting && next.since ? dayKey(next.since.at) : '';
+        const waited = sinceKey ? Math.max(0, dayDiff(sinceKey, today)) : null;
+        const depKey = next.departure || startKey || '';
+        const depLeft = depKey ? dayDiff(today, depKey) : null;
+        const urgent = waiting && waited !== null && waited >= 2;
+        const resend = !!next.primary && RESEND.has(next.primary.action);
+        const kicker = doneAll ? '모든 단계 완료' : waiting ? `고객 차례 · ${waited === null ? '응답을 기다리는 중' : waited === 0 ? '오늘 안내했어요' : `${waited}일째 응답 없음`}` : `내 차례 · ${flow.current + 1}단계 ${now?.label || ''}`;
+        const detail = urgent && depLeft !== null && depLeft >= 0 ? `출발 ${depLeft === 0 ? '당일' : `${depLeft}일 전`}이에요. ${resend ? '오늘 다시 안내해 주세요.' : '고객에게 다시 연락해 보세요.'}` : next.detail;
+        const showDep = depLeft !== null && depLeft >= 0;
+        return <div className={cls('cw-next', doneAll ? 'is-done' : waiting ? 'is-waiting' : 'is-action', sinceKey && 'has-line')} role="group" aria-label="지금 할 일">
+            <div className="cw-next-text">
+                <span className="cw-next-kicker"><span className="cw-next-dot" aria-hidden="true" />{kicker}</span>
+                <b className="cw-next-title">{next.title}</b>
+                {detail && <span className="cw-next-detail">{detail}</span>}
+            </div>
+            {sinceKey && next.since && <div className="cw-wait" role="img" aria-label={`${mmdd(sinceKey)} ${next.since.label} · 오늘 ${waited}일째${showDep ? ` · ${mmdd(depKey)} 출발` : ''}`}>
+                <ol className={cls('cw-wait-points', !showDep && 'is-two')} aria-hidden="true">
+                    <li className="is-start"><span className="cw-wait-dot" /><span className="cw-wait-text"><b>{mmdd(sinceKey)}</b> {next.since.label}</span></li>
+                    <li className="is-today"><span className="cw-wait-dot" /><span className="cw-wait-text"><b>오늘</b> {waited ? `${waited}일째` : '안내'}</span></li>
+                    {showDep && <li className="is-end"><span className="cw-wait-dot" /><span className="cw-wait-text"><b>{mmdd(depKey)}</b> 출발</span></li>}
+                </ol>
+            </div>}
+            {(next.primary || next.secondary) && <div className="cw-next-actions">
+                {next.primary && <AdminButton fullWidth variant={waiting && resend ? 'danger' : 'primary'} disabled={busy} onClick={action(next.primary.action)}>{next.primary.label}</AdminButton>}
+                {next.secondary && <AdminButton fullWidth variant="secondary" disabled={busy} onClick={action(next.secondary.action)}>{next.secondary.label}</AdminButton>}
+            </div>}
+        </div>;
+    })();
+    const progress = <section className="cw-card cw-progress" aria-label="진행 단계">
+        <header className="cw-progress-head">
+            <h2 className="cw-title">진행 단계</h2>{stepHead.label && pill(stepHead.label, toneOf(stepHead.tone))}<span className="cw-grow" />
+            {!cancelled && <span className="cw-progress-count"><b>{steps.filter(s => s.done).length}</b> / {steps.length} 완료</span>}
+        </header>
+        <ol className={cls('cw-steps', cancelled && 'is-cancelled')}>
+            {steps.map((s, i) => { const now = !cancelled && i === stepNow; return <li key={`${i}-${s.label}`} className={cls('cw-step', s.done ? 'is-done' : now ? 'is-now' : 'is-todo')}>
+                <button type="button" className="adm-cw-step" aria-current={now ? 'true' : undefined} aria-label={`${i + 1}단계 ${s.label} · ${s.done ? '완료' : now ? flow?.next.waiting ? '기다리는 중' : '지금' : '대기'}`} onClick={() => onStep(i)}>
+                    {now && <span className="cw-step-chev" aria-hidden="true"><IconChevronDown /></span>}
+                    <span className="cw-step-dot" aria-hidden="true">{s.done ? <IconCheckThick /> : i + 1}</span>
+                    <span className="cw-step-label">{s.label}</span>
+                </button>
+            </li>; })}
+        </ol>
+        {nextPanel}
+    </section>;
+
+    // ── 고객 정보: 연락처·이메일 등 세 줄, 펼치면 예약 상세·항공편·여행자·요청·예약번호
     const travelers = m.travelers;
     const missingTravelers = travelers && travelers.expected !== null && travelers.expected > travelers.registered ? travelers.expected - travelers.registered : 0;
     const confirmedFlights = m.flights?.filter(f => f.date && f.time && f.flight).length || 0;
-    const docAlerts = m.documents.filter(d => /실패|필요|미작성|미발송|전/.test(d.status || '')).length;
-    const logs = [...(m.recentHistory || [])];
+    const travelerNames = travelers?.people.map(p => p.name).filter(Boolean) || [];
+    const infoCard = <section id="sec-info" className="cw-card cw-info" aria-label="고객 정보">
+        {head(IconPerson, '고객 정보', { right: <span className="cw-head-actions">
+            {textBtn('복사', () => void copyInfo(), '고객 정보 복사')}
+            <AdminTextButton size="sm" tone="assistive" aria-pressed={!maskOn} aria-label={maskOn ? '개인정보 보기' : '개인정보 가리기'} onClick={() => setMaskOn(!maskOn)}>{maskOn ? '보기' : '가리기'}</AdminTextButton>
+            {textBtn('수정', action('edit-info'), '고객 정보 수정')}
+        </span> })}
+        {m.facts.slice(0, 3).map((f, i) => row2(f.label, f.value ? maskFact(f.label, f.value, maskOn) : <span className="is-empty">미입력</span>, `${f.label}-${i}`))}
+        {st.infoMore && <div id="cw-info-more" className="cw-more">
+            {m.facts.slice(3).map((f, i) => row2(f.label, f.value ? maskFact(f.label, f.value, maskOn) : <span className="is-empty">미입력</span>, `more-${f.label}-${i}`))}
+            {!!m.flights?.length && row2('항공편', <>{m.flights.map(f => `${f.label} ${f.flight || '미등록'}${f.date ? ` ${f.date}` : ''}${f.time ? ` ${f.time}` : ''}`).join(' · ')}
+                <span className="cw-row-sub">{confirmedFlights}/{m.flights.length}편 정보 등록</span>{textBtn('수정', action('flights'), '항공편 수정')}</>, 'flights')}
+            {travelers && row2('여행자', <>{`${travelers.registered}${travelers.expected !== null ? `/${travelers.expected}` : ''}명 등록`}{travelerNames.length ? ` · ${travelerNames.slice(0, 3).join(', ')}${travelerNames.length > 3 ? ` 외 ${travelerNames.length - 3}명` : ''}` : ''}
+                {missingTravelers > 0 && <span className="cw-row-sub is-warn">{missingTravelers}명 여권 정보 미제출</span>}{textBtn('상세', action('travelers'), '여행자 상세보기')}</>, 'travelers')}
+            {row2('요청 사항', m.preferences?.length ? m.preferences.join(' · ') : <span className="is-empty">없음</span>, 'requests')}
+            {m.bookingNumber && row2('예약번호', `#${m.bookingNumber}`, 'number')}
+        </div>}
+        {foldButton(st.infoMore, st.infoMore ? '고객 정보 접기' : '고객 정보 펼쳐 보기', 'cw-info-more', () => set(s => ({ infoMore: !s.infoMore })))}
+    </section>;
 
-    const cls = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(' ');
-    /** 고르기 버튼(누르면 고르기 메뉴가 열린다). look: 'rdc-sel …'(네 칸 카드) 또는 'v7-sel …'(배정·숙소 줄) — 앞에 adm-를 붙여 클래스가 된다. */
-    const btnSel = (value: string, empty: boolean, go: (e: React.MouseEvent) => void, icon: DashboardIconName = 'lc-chevron-down', look = cls('v7-sel', empty && 'is-warn')) =>
-        <button type="button" disabled={busy || saving} className={`adm-${look}`} onClick={go}><span className="rdc-sel-text">{value}</span><Ico name={icon} size={look.startsWith('rdc-sel') ? 16 : 12} /></button>;
-    /** 눌러서 상태 메뉴를 여는 알약(Seed 배지 모양 + 아래 화살표). */
-    const btnPill = (value: string, tone: PillTone, go: (e: React.MouseEvent) => void) => <button type="button" disabled={busy || saving} className={`adm-v7-pill is-${tone}`} onClick={go}>{value}<Ico name="lc-chevron-down" size={12} /></button>;
-    const openLink = (label: string, go: () => void, disabled = false) => <button type="button" aria-label={`${label} 열기`} disabled={busy || disabled} className="adm-rdc-open" onClick={go}>열기<Ico name="lc-external-link" size={14} /></button>;
-    const editLink = (label: string, go: () => void) => <AdminTextButton size="sm" className="v7-edit-link" aria-label={label} disabled={busy} onClick={go} trailing={<Ico name="lc-pencil" size={12} />}>수정</AdminTextButton>;
+    // ── 일정: 번호 원 · 날짜 · 제목 · 숙소 알약. 처음에는 3일까지, 펼치면 모든 일차와 일차별 상세(활동·식사·이동·편집)
+    const dayKeyOf = (day: Model['days'][number]) => day.date && /^\d{4}-\d{2}-\d{2}$/.test(day.date) ? day.date
+        : !day.date && startKey ? new Date(Date.parse(`${startKey}T00:00:00Z`) + (day.day - 1) * 864e5).toISOString().slice(0, 10) : '';
+    const dayDate = (day: Model['days'][number]) => dayKeyOf(day) ? shortDate(dayKeyOf(day)) : day.date || '';
+    const tripDays = startKey && endKey && endKey >= startKey ? dayDiff(startKey, endKey) + 1 : null;
+    const tripLabel = period?.sch || (tripDays ? `${tripDays - 1}박 ${tripDays}일` : '');
+    const extraDay = tripDays !== null && m.days.length > tripDays ? m.days[tripDays] : null;
+    const planWarn = extraDay ? `예약 기간은 ${tripLabel}(${mmdd(startKey)}–${mmdd(endKey)})인데 ${extraDay.day}일차${dayKeyOf(extraDay) ? `(${mmdd(dayKeyOf(extraDay))})` : ''} 일정이 있어요. 확인해 주세요.`
+        : tripDays !== null && m.days.length && m.days.length < tripDays ? `예약 기간은 ${tripLabel}인데 일정은 ${m.days.length}일차까지만 있어요. 확인해 주세요.` : '';
+    const planCard = <section id="sec-plan" className="cw-card cw-plan" aria-label="일정">
+        {head(IconMap, '일정', { meta: tripLabel || (m.days.length ? `${m.days.length}일` : ''), right: textBtn('일정표 편집', action('edit-itinerary'), '일정표 편집 열기') })}
+        {(st.daysAll ? m.days : m.days.slice(0, PLAN_PREVIEW_DAYS)).map((day, i) => {
+            const last = i === m.days.length - 1, night = row?.stays.find(s => s.day === day.day);
+            const stayText = day.stayRequired === false || (last && !night) ? '숙박 없음' : night?.hotel ? `${night.hotel} · ${bookingStatusMeta(night.bookingStatus).label}` : day.stayAssigned && day.stay ? day.stay : '숙소 미정';
+            const activities = day.activities?.length ? day.activities : scheduleTimeline(day.summary || '').map(s => ({ time: s.time, title: s.text }));
+            return <React.Fragment key={day.id}>
+                <div className="cw-day">
+                    <span className="cw-day-no">{day.day}</span>
+                    <span className="cw-day-date">{dayDate(day)}</span>
+                    <b className="cw-day-title">{day.title || `${day.day}일차 일정 작성`}</b>
+                    {pill(stayText, stayText === '숙소 미정' ? 'danger' : 'neutral')}
+                </div>
+                {st.daysAll && <div className="cw-day-detail">
+                    {activities.length ? activities.map((it, k) => <span key={k} className="cw-day-act">{it.time && <b>{it.time}</b>} {it.title}{(it as { description?: string }).description ? ` — ${(it as { description?: string }).description}` : ''}</span>)
+                        : <span className="is-empty">상세 일정이 입력되지 않았습니다.</span>}
+                    <span className="cw-day-meta">식사 {day.meals || '미입력'} · 이동 {day.travel || '미입력'}</span>
+                    <span className="cw-day-edit">{textBtn(`${day.day}일차 편집`, action('edit-itinerary', day.id))}</span>
+                </div>}
+            </React.Fragment>;
+        })}
+        {!m.days.length && <div className="cw-empty-row"><span>아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><AdminButton variant="secondary" size="sm" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</AdminButton></div>}
+        {planWarn && <p className="cw-warn">{planWarn}</p>}
+        {m.days.length > 0 && foldButton(st.daysAll, st.daysAll ? '일정 접기' : m.days.length > PLAN_PREVIEW_DAYS ? `일정 ${m.days.length}일 모두 보기` : '일정 펼쳐 보기', undefined, () => set(s => ({ daysAll: !s.daysAll })))}
+    </section>;
+
+    // ── 결제: 총 매출 · 입금 % 막대 · 예약금/잔금 알약(누르면 입금 상태 메뉴) · 현금영수증 · 아래 다음 수납 버튼
+    const pay = m.payment, depositPaid = row ? row.depositPaid : pay.depositPaid === true, balancePaid = row ? row.balancePaid : pay.balancePaid === true;
+    const receipt = (ops?.receipt.status || 'not_requested') as ReceiptStatus;
+    const receiptLate = !!row?.ended && ['pending', 'info_missing'].includes(receipt);
+    const depositAmount = pay.deposit ?? 0, balanceAmount = pay.balance ?? 0;
+    const paidPct = pay.total ? Math.min(100, Math.round(((depositPaid ? depositAmount : 0) + (balancePaid ? balanceAmount : 0)) / pay.total * 100)) : null;
+    const payParts = payLocked ? [] : [!depositPaid && `예약금 ${v7Won(pay.deposit)} 입금 전이에요`, !balancePaid && `잔금 ${v7Won(pay.balance)}이 아직 들어오지 않았어요`, receiptLate && '현금영수증을 아직 발급하지 않았어요'].filter(Boolean) as string[];
+    /** 아래 버튼: 다음 수납 기록. 맞춤 견적의 예약금은 ‘입금 확인’ 단계 버튼(서명 안내 알림)과 같은 동작, 그 밖에 연결이 없으면 결제 화면을 연다. */
+    const markPaid = async (field: 'deposit' | 'final') => {
+        if (field === 'deposit' && flow?.next.primary?.action === 'confirm-deposit') { onAction('confirm-deposit'); return; }
+        if (!links?.onPayment || !row) { onAction('payments'); return; }
+        const ok = await adminConfirm(field === 'deposit' ? `예약금 ${v7Won(row.source.deposit)} 입금을 확인할까요?${row.source.status === 'pending_payment' ? '\n예약이 확정되고 고객에게 입금 확인 메일이 발송됩니다.' : ''}` : `잔금 ${v7Won(pay.balance)} 수납을 기록할까요?`);
+        if (ok && await links.onPayment(field, true)) flash(field === 'deposit' ? '예약금 입금 완료로 기록했어요' : '잔금 완납으로 기록했어요');
+    };
+    const payRow = (label: string, amount: string, control: ReactNode) => <div className="cw-row"><span className="cw-row-stack"><span className="cw-row-label is-small">{label}</span><b className="cw-num">{amount}</b></span>{control}</div>;
+    const payCard = <section id="sec-pay" className="cw-card cw-quad" aria-label="결제">
+        {head(IconCoupon, '결제', { state: payLocked ? { n: '–', msg: '예약 후 관리할 수 있어요', tone: 'muted' } : leftState(payParts, '결제를 모두 받았어요'), right: !payLocked && cardEdit('결제', { onClick: action('payments') }) })}
+        <span className="cw-label">총 매출</span>
+        <div className="cw-total"><span className="cw-total-value">{v7Won(pay.total)}</span>{!payLocked && paidPct !== null && <span className="cw-total-pct">입금 {paidPct}%</span>}</div>
+        {!payLocked && paidPct !== null && <span className="cw-bar" role="img" aria-label={`입금 ${paidPct}% · 예약금 ${depositPaid ? '입금 완료' : '미입금'} · 잔금 ${balancePaid ? '완납' : '미수'}`}>
+            {/* 막대 길이는 받은 금액 비율이라 실행 중에 정해진다 */}
+            <span className="cw-bar-fill" style={{ width: `${paidPct}%` }} />
+        </span>}
+        {payRow('예약금', v7Won(pay.deposit), payLocked ? mutedNote('예약 후 관리할 수 있어요') : pill(depositPaid ? '입금 완료' : '미입금', depositPaid ? 'neutral' : 'danger', { onClick: e => paymentMenu(e, 'deposit') }))}
+        {payRow('잔금', v7Won(pay.balance), payLocked ? mutedNote('예약 후 관리할 수 있어요') : pill(balancePaid ? '완납' : '미수', balancePaid ? 'neutral' : 'danger', { onClick: e => paymentMenu(e, 'final') }))}
+        {row2('현금영수증', payLocked ? '–' : ops ? pill(RECEIPT_LABELS[receipt], receiptLate ? 'danger' : 'neutral', { onClick: e => opsMenu(e, 'receipt') }) : textBtn('결제 화면', action('payments')))}
+        {!payLocked && <div className="cw-foot">
+            {!depositPaid ? <AdminButton variant="weak" size="sm" fullWidth disabled={busy || saving} onClick={() => void markPaid('deposit')}>예약금 입금 확인</AdminButton>
+                : !balancePaid ? <AdminButton variant="weak" size="sm" fullWidth disabled={busy || saving} onClick={() => void markPaid('final')}>잔금 수납 등록</AdminButton>
+                    : <AdminButton variant="weak" size="sm" fullWidth disabled={busy} onClick={action('payments')}>결제 내역 보기</AdminButton>}
+        </div>}
+    </section>;
+
+    // ── 배정: 결과만(배정은 ‘가이드·숙소·차량’·‘숙소 배정’ 메뉴에서). 아래 버튼은 첫 미배정 항목의 배정 화면으로 간다.
     const guideValue = row?.guide?.name || (m.assignments.find(a => a.id === 'guide')?.state === 'ready' ? m.assignments.find(a => a.id === 'guide')!.value : '');
     const vehicleValue = row?.vehicle?.type || (m.assignments.find(a => a.id === 'vehicle')?.state === 'ready' ? m.assignments.find(a => a.id === 'vehicle')!.value : '');
     const stayReady = row ? row.accDone : m.assignments.find(a => a.id === 'stay')?.state === 'ready';
-    // 예약 전 견적 문의: 배정은 예약으로 전환한 뒤에 한다. '선택' 버튼 대신 회색 안내 글자를 둔다(눌러서 다른 화면으로 넘어가지 않게).
-    const asgLocked = !!m.disabledActions?.includes('assignments'), payLocked = !!m.disabledActions?.includes('payments');
-    const mutedNote = (text: string) => <span className="v7-muted-note">{text}</span>;
-    const lockedNote = mutedNote('예약 후 배정할 수 있어요'), payNote = mutedNote('예약 후 관리할 수 있어요');
-    // Claude Design ‘예약 관리 · 강력 개선안’ 예약상세 카드(2026-11-23): 결제·배정·분류·서류 네 칸.
-    // 모양은 reservation-detail-cards.css(rdc-*)가 정하고, 버튼 동작은 예전 카드와 같다(입금·배정·분류 고르기, 서류 열기, 업무 화면 열기).
-    const cardBadge = (left: number | null, badge?: string, muted = false) => {
-        const done = left === 0 || (left === null && badge === '완료' && !muted);
-        return <span className={cls('rdc-badge', muted ? 'is-muted' : done ? 'is-done' : left ? 'is-left' : 'is-muted')}>
-            {done ? <><IconCheckThick aria-hidden="true" />완료</> : left ? `${left}건 남음` : badge}
-        </span>;
-    };
-    const rdcHead = (Icon: React.ComponentType<{ 'aria-hidden'?: boolean | 'true' }>, title: string, badge: ReactNode, edit?: ReactNode) =>
-        <header className="rdc-head"><span className="rdc-tile"><Icon aria-hidden="true" /></span><h2 className="rdc-title">{title}</h2>{badge}{edit}</header>;
-    /** 카드 제목 줄 끝의 연필 버튼(2026-11-24, 고객 정보 카드의 수정 버튼과 같은 모양): 그 업무의 편집 화면을 연다(배정은 숙소 배정 화면으로 이동). */
-    const cardEdit = (label: string, go: { onClick?: () => void; to?: string }) => <AdminIconButton label={`${label} 편집`} variant="outlined" className="rdc-edit"
-        disabled={busy} onClick={go.onClick} to={go.to}><Ico name="lc-pencil" size={16} /></AdminIconButton>;
-    /** 카드 아래 가운데 펼침 아이콘(2026-11-24): 눌러서 숨긴 내용을 펼치고 접는다. */
-    const foldButton = (open: boolean, label: string, controls: string | undefined, toggle: () => void) => <div className="v7-fold">
-        <AdminIconButton size="sm" label={label} aria-expanded={open} aria-controls={controls} className={open ? 'v7-fold-btn is-open' : 'v7-fold-btn'} onClick={toggle}><Ico name="lc-chevron-down" size={18} /></AdminIconButton>
-    </div>;
-    const lodgeHref = source && source.type !== 'quote' ? `/admin/accommodation-ops?open=${encodeURIComponent(source.id)}&source=${source.type === 'quote_booking' ? 'quote_booking' : 'product'}` : '/admin/accommodation-ops';
-    const dot = (done: boolean) => <span className={cls('rdc-dot', done ? 'is-done' : 'is-open')} aria-hidden="true" />;
-    const selClass = (warn: boolean, full = false) => cls('rdc-sel', full && 'is-full', warn && 'is-warn');
-
-    // 결제: 총 매출 + 예약금·잔금 막대, 예약금·잔금·현금영수증
-    const payLeft = [!depositPaid, !balancePaid, receiptLate].filter(Boolean).length;
-    const depositAmount = pay.deposit ?? 0, balanceAmount = pay.balance ?? 0;
-    const payRow = (label: string, amount: string, control: ReactNode) => <div className="rdc-row">
-        <span className="rdc-row-main"><span className="rdc-label">{label}</span><span className="rdc-amount">{amount}</span></span>{control}
-    </div>;
-    const payCard = <section key="sec-pay" id="sec-pay" className="rdc-card" aria-label="결제">
-        {rdcHead(IconCoins, '결제', payLocked ? cardBadge(null, '예약 전', true) : cardBadge(payLeft), !payLocked && cardEdit('결제', { onClick: action('payments') }))}
-        <div className="rdc-total">
-            <span className="rdc-label">총 매출</span>
-            <span className="rdc-total-value">{v7Won(pay.total)}</span>
-            {!payLocked && depositAmount + balanceAmount > 0 && <span className="rdc-bar" role="img"
-                aria-label={`예약금 ${v7Won(pay.deposit)} ${depositPaid ? '입금 완료' : '미입금'}, 잔금 ${v7Won(pay.balance)} ${balancePaid ? '완납' : '미수'}`}>
-                <span className={cls('rdc-bar-part', depositPaid && 'is-paid')} style={{ flexGrow: depositAmount }} />
-                <span className={cls('rdc-bar-part', 'is-balance', balancePaid && 'is-paid')} style={{ flexGrow: balanceAmount }} />
-            </span>}
-        </div>
-        <div className="rdc-rows">
-            {payRow('예약금', v7Won(pay.deposit), payLocked ? payNote : btnSel(depositPaid ? '입금 완료' : '미입금', !depositPaid, e => paymentMenu(e, 'deposit'), undefined, selClass(!depositPaid)))}
-            {payRow('잔금', v7Won(pay.balance), payLocked ? payNote : btnSel(balancePaid ? '완납' : '미수', !balancePaid, e => paymentMenu(e, 'final'), undefined, selClass(!balancePaid)))}
-            <div className="rdc-row is-split"><span className="rdc-row-title">현금영수증</span>
-                {payLocked ? payNote : ops ? btnSel(RECEIPT_LABELS[receipt], false, e => opsMenu(e, 'receipt'), undefined, selClass(receiptLate))
-                    : btnSel('결제 화면', false, action('payments'), 'lc-chevron-right', selClass(false))}
-            </div>
-        </div>
-    </section>;
-
-    // 배정: 결과만 보여 준다(2026-11-24). 가이드·차량은 ‘가이드·숙소·차량’ 배정 현황, 숙소는 ‘숙소 배정’ 메뉴에서만 배정한다.
-    const asgLeft = [!guideValue, !vehicleValue, !stayReady].filter(Boolean).length;
     const nights = row?.stays || [];
     const stayText = row ? row.accN ? `${row.accC} / ${row.accN}박 확정` : '숙박 없음' : m.assignments.find(a => a.id === 'stay')?.value || '';
-    const stayAlert = !asgLocked && !stayReady;
-    const asgField = (label: string, done: boolean, control: ReactNode) => <div className="rdc-field"><span className="rdc-label">{dot(done)}{label}</span>{control}</div>;
-    const asgValue = (value: string, label: string, sub?: string) => <span className="rdc-result">
-        <b className={value ? 'rdc-result-name' : 'rdc-result-name is-warn'}>{value || `${label} 미배정`}</b>{value && sub && <span className="rdc-result-sub">{sub}</span>}
-    </span>;
+    const stayNames = [...new Set(nights.map(n => n.hotel).filter(Boolean))].join(' · ');
     const guidePhone = row?.guide?.phone ? maskFact('연락처', row.guide.phone, maskOn) : m.assignments.find(a => a.id === 'guide')?.detail || '';
     const vehicleSub = [item?.assignment.vehicle?.driver && `기사 ${item.assignment.vehicle.driver}`, row?.vehicle?.phone && maskFact('연락처', row.vehicle.phone, maskOn)].filter(Boolean).join(' · ')
         || m.assignments.find(a => a.id === 'vehicle')?.detail || '';
-    const asgCard = <section key="sec-asg" id="sec-asg" className="rdc-card" aria-label="배정">
-        {rdcHead(IconPersons, '배정', asgLocked ? cardBadge(null, '예약 전', true) : cardBadge(asgLeft), !asgLocked && cardEdit('배정', { to: lodgeHref }))}
-        <div className="rdc-body">
-            {asgField('가이드', !!guideValue, asgLocked ? lockedNote : asgValue(guideValue, '가이드', guidePhone))}
-            {asgField('차량', !!vehicleValue, asgLocked ? lockedNote : asgValue(vehicleValue, '차량', vehicleSub))}
-            <div className={cls('rdc-box', stayAlert ? 'is-alert' : 'is-soft')}>
-                <div className="rdc-box-head"><span className={cls('rdc-label', stayAlert && 'is-alert')}>{dot(!stayAlert)}숙소{stayAlert ? ' · 확정 필요' : ''}</span><span className="rdc-box-value">{stayText}</span></div>
-                {/* 박별 숙소: 기본 접힘, 펼치면 한 줄에 한 박(박 · 날짜 · 숙소 · 수배 상태). key는 박 번호 — 미배정 박은 rowIndex가 모두 -1이라 겹친다 */}
-                {nights.length > 0 && <AdminTextButton size="sm" tone="assistive" className="rdc-stay-toggle" aria-expanded={st.staysOpen} aria-controls="rdc-stay-list"
-                    onClick={() => set(s => ({ staysOpen: !s.staysOpen }))} trailing={<Ico name="lc-chevron-down" size={14} />}>
-                    {st.staysOpen ? '박별 숙소 접기' : `박별 숙소 보기 · ${nights.length}박`}
-                </AdminTextButton>}
-                {nights.length > 0 && st.staysOpen && <ul id="rdc-stay-list" className="rdc-stay-list">
-                    {nights.map(n => <li key={n.day} className="rdc-stay">
-                        <b className="rdc-stay-day">{n.day}박</b>
-                        <span className="rdc-stay-date">{n.date ? shortDate(n.date) : '날짜 확인'}</span>
-                        <span className={n.hotel ? 'rdc-stay-name' : 'rdc-stay-name is-warn'}>{n.hotel || '숙소 미배정'}</span>
-                        {n.hotel && <span className="rdc-stay-status">{bookingStatusMeta(n.bookingStatus).label}</span>}
-                    </li>)}
-                </ul>}
-                {asgLocked && lockedNote}
+    const depSub = toDeparture !== null && toDeparture >= 0 ? `출발 ${toDeparture === 0 ? '당일' : `${toDeparture}일 전`}` : '';
+    const missing = [!guideValue && '가이드', !vehicleValue && '차량', !stayReady && '숙소'].filter(Boolean) as string[];
+    const asgRow = (Icon: CardIcon, label: string, done: boolean, value: string, sub: string) => <div className="cw-asg">
+        <span className="cw-asg-icon"><Icon aria-hidden="true" /></span>
+        <span className="cw-asg-text"><span className="cw-row-label is-small">{label}</span><b className={done ? 'cw-asg-value' : 'cw-asg-value is-warn'}>{value}</b>{sub && <span className="cw-row-sub">{sub}</span>}</span>
+        {pill(done ? '완료' : '필요', done ? 'neutral' : 'danger')}
+    </div>;
+    const firstMissing = missing[0];
+    const asgCard = <section id="sec-asg" className="cw-card cw-quad" aria-label="배정">
+        {head(IconPersons, '배정', { state: asgLocked ? { n: '–', msg: '예약 후 배정할 수 있어요', tone: 'muted' } : leftState(missing.length ? [`${missing.join('·')}${hasFinal(missing.at(-1)!) ? '이' : '가'} 아직 배정되지 않았어요`] : [], '배정을 모두 마쳤어요', missing.length), right: !asgLocked && cardEdit('배정', { to: lodgeHref }) })}
+        {asgLocked ? mutedNote('예약 후 배정할 수 있어요') : <>
+            {asgRow(IconPerson, '가이드', !!guideValue, guideValue || '가이드 미배정', guideValue ? guidePhone : depSub)}
+            {asgRow(IconCar, '차량', !!vehicleValue, vehicleValue || '차량 미배정', vehicleValue ? vehicleSub : depSub)}
+            {asgRow(IconHotel, '숙소', !!stayReady, stayText || '숙소 미배정', stayNames || (stayReady ? '' : depSub))}
+            {/* 박별 숙소: 기본 접힘, 펼치면 한 줄에 한 박(박 · 날짜 · 숙소 · 수배 상태). key는 박 번호 — 미배정 박은 rowIndex가 모두 -1이라 겹친다 */}
+            {nights.length > 0 && <AdminTextButton size="sm" tone="assistive" className="cw-stay-toggle" aria-expanded={st.staysOpen} aria-controls="cw-stay-list"
+                onClick={() => set(s => ({ staysOpen: !s.staysOpen }))} trailing={<IconChevronDown aria-hidden="true" />}>{st.staysOpen ? '박별 숙소 접기' : `박별 숙소 보기 · ${nights.length}박`}</AdminTextButton>}
+            {nights.length > 0 && st.staysOpen && <ul id="cw-stay-list" className="cw-stay-list">
+                {nights.map(n => <li key={n.day} className="cw-stay">
+                    <b className="cw-stay-day">{n.day}박</b>
+                    <span className="cw-stay-date">{n.date ? shortDate(n.date) : '날짜 확인'}</span>
+                    <span className={n.hotel ? 'cw-stay-name' : 'cw-stay-name is-warn'}>{n.hotel || '숙소 미배정'}</span>
+                    {n.hotel && <span className="cw-stay-status">{bookingStatusMeta(n.bookingStatus).label}</span>}
+                </li>)}
+            </ul>}
+            <div className="cw-foot">
+                <AdminButton variant="weak" size="sm" fullWidth disabled={busy} to={firstMissing && firstMissing !== '숙소' ? GUIDE_SCHEDULE_HREF : lodgeHref}>{firstMissing ? `${firstMissing} 배정` : '배정 화면 열기'}</AdminButton>
             </div>
-        </div>
+        </>}
     </section>;
 
-    // 분류: 2×2 고르기
-    const clsCard = <section key="sec-cls" id="sec-cls" className="rdc-card" aria-label="분류">
-        {rdcHead(IconListCategory, '분류', cardBadge(null, ops ? '완료' : '견적 편집기에서 관리', !ops), cardEdit('분류', { onClick: action('operations') }))}
-        <div className="rdc-grid2">
-            {([['조인여부', 'joining'], ['분류', 'category'], ['구분', 'serviceType'], ['항공', 'airfare']] as const).map(([label, key]) => {
-                const value = ops ? key === 'joining' ? JOINING_LABELS[ops.joining] : (ops[key] || '') as string : key === 'category' ? row?.category || '' : '';
-                return <div key={key} className="rdc-field"><span className="rdc-label">{label}</span>{btnSel(value || '미정', false, e => opsMenu(e, key), undefined, selClass(false, true))}</div>;
-            })}
+    // ── 분류: 2×2 칸(누르면 고르기 메뉴, 운영 정보가 없으면 편집 화면)
+    const clsValues = ([['조인 여부', 'joining'], ['분류', 'category'], ['구분', 'serviceType'], ['항공', 'airfare']] as const).map(([label, key]) => {
+        const value = ops ? key === 'joining' ? ops.joining === 'undecided' ? '' : JOINING_LABELS[ops.joining] : (ops[key] || '') as string : key === 'category' ? row?.category || '' : '';
+        return { label, key, value };
+    });
+    const undecided = clsValues.filter(v => !v.value).map(v => v.label);
+    const clsCard = <section id="sec-cls" className="cw-card cw-quad" aria-label="분류">
+        {head(IconListCategory, '분류', { state: undecided.length ? { n: undecided.length, msg: `${undecided.length}개 미정 · ${undecided.join(', ')}${hasFinal(undecided.at(-1)!) ? '을' : '를'} 정해 주세요`, tone: 'muted' } : { n: <IconCheckThick aria-hidden="true" />, msg: '분류를 모두 정했어요', tone: 'done' },
+            right: cardEdit('분류', { onClick: action('operations') }) })}
+        <div className="cw-grid2">
+            {clsValues.map(v => <button key={v.key} type="button" disabled={busy || saving} className="adm-cw-cell" aria-label={`${v.label} ${v.value || '미정'} · 바꾸기`} onClick={e => opsMenu(e, v.key)}>
+                <span className="cw-row-label is-small">{v.label}</span><b className={v.value ? 'cw-cell-value' : 'cw-cell-value is-empty'}>{v.value || '미정'}</b>
+            </button>)}
         </div>
+        {!ops && <p className="cw-note">분류는 예약 편집기에서 관리해요.</p>}
+        <div className="cw-foot"><AdminButton variant="weak" size="sm" fullWidth disabled={busy} onClick={action('operations')}>{ops ? '운영 정보 열기' : '예약 편집기 열기'}</AdminButton></div>
     </section>;
 
-    // 서류: 문서별 상태 꼬리표 + 열기, 아래 계약 동의·공개·전달 상자
+    // ── 서류: 문서 이름 + 상태 글자 + 수정·열기, 계약 동의 상자, 아래 공개·전달 관리
     const docAlert = (status?: string) => /실패|필요|미작성|미발송|전/.test(status || '');
-    const agreeAlert = !!m.agreement && /전|필요|미/.test(m.agreement.label);
-    const docCard = <section key="sec-doc" id="sec-doc" className="rdc-card" aria-label="서류">
-        {rdcHead(IconDocument, '서류', cardBadge(docAlerts), cardEdit('서류', { onClick: action('documents') }))}
-        <div className="rdc-body">
-            {m.documents.map(doc => <div key={doc.id} className="rdc-row">
-                <span className="rdc-row-main"><span className="rdc-row-title">{doc.label}</span>
-                    <span className={cls('rdc-tag', docAlert(doc.status) ? 'is-alert' : doc.status ? 'is-info' : 'is-neutral')}>{doc.status || doc.detail || '내용 확인'}</span></span>
-                {doc.editAction && editLink(doc.editLabel || `${doc.label} 수정`, action(doc.editAction, doc.id))}{openLink(doc.label, action(doc.action || doc.id, doc.id), doc.disabled)}
-            </div>)}
-            <div className={cls('rdc-box', 'is-row', agreeAlert ? 'is-alert' : 'is-soft')}>
-                <span className="rdc-row-main"><span className="rdc-row-title">{m.agreement && dot(!agreeAlert)}{m.agreement ? '계약 동의' : '공개·전달'}</span>
-                    <span className={cls('rdc-box-note', agreeAlert && 'is-alert')}>{m.agreement ? [m.agreement.label, m.agreement.name && `서명자 ${m.agreement.name}`].filter(Boolean).join(' · ') : '고객 문서 공개와 알림 발송'}</span></span>
-                {btnSel('공개·전달 관리', false, action('documents'), 'lc-arrow-right', 'rdc-sel is-brand')}
-            </div>
-        </div>
+    const agreeAlert = !!m.agreement && /전|필요|미|대기|요청/.test(m.agreement.label);
+    const docParts = [...m.documents.filter(d => docAlert(d.status)).map(d => `${d.label} ${d.status}`), ...(agreeAlert ? [/요청됨|대기|기다/.test(m.agreement!.label) ? '계약서에 고객 서명을 기다리고 있어요' : `계약 동의 ${m.agreement!.label}`] : [])];
+    const docCard = <section id="sec-doc" className="cw-card cw-quad" aria-label="서류">
+        {head(IconWrite, '서류', { state: leftState(docParts, '서류 준비가 끝났어요'), right: cardEdit('서류', { onClick: action('documents') }) })}
+        {m.documents.map(doc => <div key={doc.id} className="cw-doc">
+            <span className="cw-row-stack"><b className="cw-doc-name">{doc.label}</b><span className={docAlert(doc.status) ? 'cw-doc-state is-warn' : 'cw-doc-state'}>{doc.status || doc.detail || '내용 확인'}</span></span>
+            {doc.editAction && textBtn('수정', action(doc.editAction, doc.id), doc.editLabel || `${doc.label} 수정`)}
+            {textBtn('열기', action(doc.action || doc.id, doc.id), `${doc.label} 열기`, doc.disabled)}
+        </div>)}
+        {m.agreement && <div className="cw-box">
+            <b className={agreeAlert ? 'cw-box-title is-warn' : 'cw-box-title'}>계약 동의 · {m.agreement.label}</b>
+            <span className="cw-box-sub">{m.agreement.name ? `서명자 ${m.agreement.name}` : m.agreement.at ? `${historyTime(m.agreement.at)} 서명 요청을 보냈어요` : '고객 서명 기록이 없어요'}</span>
+        </div>}
+        <div className="cw-foot"><AdminButton variant="weak" size="sm" fullWidth disabled={busy} onClick={action('documents')}>공개 · 전달 관리</AdminButton></div>
     </section>;
-    const quadCards = [payCard, asgCard, clsCard, docCard];
 
-    const logBody = <>
+    // ── 알림 · 변경 이력: 고객 알림 카드 맨 아래 접힘(바로가기 ‘변경 이력’은 펼친 뒤 이동)
+    const logs = [...(m.recentHistory || [])];
+    const logSection = <details id="sec-log" className="cw-log">
+        <summary className="cw-log-summary"><span className="cw-log-head">알림 · 변경 이력</span><span className="cw-log-count">{logs.length}건</span><IconChevronDown aria-hidden="true" /></summary>
+        <div className="cw-log-body">
+            {logs.map((lg, i) => { const tag = LOG_TAGS[lg.kind] || LOG_TAGS.change; return <div key={lg.id} className="v7-log-row">
+                <span className="v7-log-rail"><span className={i === 0 ? 'v7-log-dot is-latest' : 'v7-log-dot'} /><span className="v7-log-line" /></span>
+                <span className="v7-log-text">
+                    <span className="v7-log-title-row"><V7Badge tone={tag.tone} size="sm">{tag.tag}</V7Badge><span className="v7-log-title">{lg.title}</span>{lg.internal && <span className="v7-log-internal">내부</span>}</span>
+                    {lg.detail && <span className="v7-log-detail">{lg.detail}</span>}
+                    <span className="v7-log-time">{historyTime(lg.at)}</span>
+                </span>
+            </div>; })}
+            {!logs.length && <span className="cw-note">저장된 처리 이력이 없습니다.</span>}
+            <AdminTextButton size="sm" className="cw-log-all" disabled={busy} onClick={action('history')} trailing={<IconChevronRight aria-hidden="true" />}>전체 이력</AdminTextButton>
+        </div>
+    </details>;
+    const noticeCard = React.isValidElement(notificationActions) && typeof notificationActions.type !== 'string'
+        ? React.cloneElement(notificationActions as React.ReactElement<{ extra?: ReactNode }>, { extra: logSection })
+        : <section id="sec-notice" className="cw-card" aria-label="고객 알림">{head(IconBell, '고객 알림', { right: textBtn('전체 이력', action('history'), '발송 이력 보기') })}{notificationActions}{logSection}</section>;
 
-                        <div className="v7-log-head"><b className="v7-card-title">알림 · 변경 이력</b><span className="v7-log-count">{logs.length}건</span></div>
-                        {logs.map((lg, i) => { const tag = LOG_TAGS[lg.kind] || LOG_TAGS.change; return <div key={lg.id} className="v7-log-row">
-                            <span className="v7-log-rail"><span className={i === 0 ? 'v7-log-dot is-latest' : 'v7-log-dot'} /><span className="v7-log-line" /></span>
-                            <span className="v7-log-text">
-                                <span className="v7-log-title-row"><V7Badge tone={tag.tone} size="sm">{tag.tag}</V7Badge><span className="v7-log-title">{lg.title}</span>{lg.internal && <span className="v7-log-internal">내부</span>}</span>
-                                {lg.detail && <span className="v7-log-detail">{lg.detail}</span>}
-                                <span className="v7-log-time">{historyTime(lg.at)}</span>
-                            </span>
-                        </div>; })}
-                        {!logs.length && <span className="v7-empty-text">저장된 처리 이력이 없습니다.</span>}
-                        <AdminTextButton className="v7-end" disabled={busy} onClick={action('history')} trailing={<Ico name="lc-chevron-right" size={14} />}>전체 이력</AdminTextButton>
-    </>;
-    const element = <section ref={rootRef as React.RefObject<HTMLElement>} className="v7-root cw-overview" aria-label="예약 상세" aria-busy={busy || saving}>
+    const element = <section ref={rootRef as React.RefObject<HTMLElement>} className="v7-root cw-overview cw-v8" aria-label="예약 상세" aria-busy={busy || saving}>
         <V7Styles />
-        <div className="v7-crumb">
-            <button type="button" className="adm-v7-back v7-back" disabled={busy} onClick={action('back')}><Ico name="lc-chevron-left" size={16} />{m.backLabel || '통합 예약 목록'}</button>
-            <span className="v7-crumb-text">예약 관리 · {m.backLabel || '통합 예약 목록'}{tabName ? ` · ${tabName}` : ''}{m.bookingNumber ? ` · 예약번호 ${m.bookingNumber}` : ''} · {m.sourceLabel}</span>
-        </div>
-
-        <div className="v7-panel v7-hero">
-            <div className="v7-hero-main">
-                <div className="v7-hero-title">
-                    <h1 className="v7-hero-name">{name}</h1>
-                    <button type="button" disabled={busy} className={`adm-v7-pill is-${statusTone}`} onClick={statusMenu}>{source ? statusLabelOf(source) : m.statusLabel}<Ico name="lc-chevron-down" size={12} /></button>
-                    {dd && <V7Badge tone={dd.tone}>{dd.label}</V7Badge>}
-                    {m.packageInfo && <V7Badge tone={m.packageInfo.tier === 'full' ? 'mint' : m.packageInfo.tier === 'value' ? 'blue' : 'gray'} title={m.packageInfo.detail}>{m.packageInfo.tier === 'full' ? '풀패키지' : m.packageInfo.tier === 'value' ? '실속형' : '패키지 미지정'}</V7Badge>}
-                </div>
-                <div className="v7-hero-facts">
-                    {phoneFact && <span className="v7-fact is-num"><Ico name="lc-phone" size={14} color="var(--adm-text-3)" />{maskFact('연락처', phoneFact, maskOn)}</span>}
-                    <span className="v7-fact is-num"><Ico name="lc-calendar" size={14} color="var(--adm-text-3)" />{period ? `${period.range}${period.sch ? ` · ${period.sch}` : ''}` : m.period || '일정 미정'}</span>
-                    {m.partyLabel && <span className="v7-fact"><Ico name="lc-users" size={14} color="var(--adm-text-3)" />{m.partyLabel}</span>}
-                    <span className="v7-fact"><Ico name="lc-map-pin" size={14} color="var(--adm-text-3)" />{m.placeLabel || row?.region || m.bookedProduct?.name || '지역 미정'}</span>
-                    {m.bookedProduct?.href && <a className="v7-link v7-fact is-link" href={m.bookedProduct.href} target="_blank" rel="noopener noreferrer">{m.bookedProduct.name}<Ico name="lc-external-link" size={12} /></a>}
-                </div>
-            </div>
-            <div className="v7-hero-actions">
-                <AdminButton variant="secondary" disabled={busy} onClick={openNotices} leading={<Ico name="lc-send" size={15} color="var(--adm-accent-strong)" />}>{m.documentAction === 'documents' ? m.documentLabel || '견적서 확인·전달' : '알림 보내기'}</AdminButton>
-                <AdminButton variant="primary" disabled={busy} onClick={action('edit-itinerary')} leading={<Ico name="lc-calendar-check" size={15} />}>일정표 편집</AdminButton>
-            </div>
-        </div>
+        <AdminTextButton size="sm" tone="assistive" className="cw-back" disabled={busy} onClick={action('back')} leading={<IconChevronLeft aria-hidden="true" />}>{m.backLabel || '통합 예약 목록'}</AdminTextButton>
+        {hero}
         {bookingSelector && <div className="cw-booking-switcher">{bookingSelector}</div>}
-
-        <div className="v7-panel v7-progress">
-            <V7StepHead big label={stepHead.label} tone={stepHead.tone} count={cancelled ? '' : `${steps.filter(s => s.done).length} / ${steps.length} 단계 완료`} />
-            <V7Steps large steps={steps} cancelled={!!cancelled} onStep={i => flow ? goSec(flowStepSec[flow.steps[i]?.id] || 'sec-plan') : stepTargets[i] ? goSec(stepTargets[i]) : ASSIGN_ACTIONS.has(m.steps[i]?.id || '') ? goSec('sec-asg') : onAction(m.steps[i]?.id || 'payments')} />
-            {flow && <div className={flow.next.waiting ? 'v7-next is-waiting' : 'v7-next'} role="group" aria-label="지금 할 일">
-                <div className="v7-next-text">
-                    <div className="v7-next-kicker">{flow.current >= flow.steps.length ? '완료' : flow.next.waiting ? '고객 응답을 기다리는 중' : '지금 할 일'}</div>
-                    <div className="v7-next-title">{flow.next.title}</div>
-                    {flow.next.detail && <div className="v7-next-detail">{flow.next.detail}</div>}
-                </div>
-                {(flow.next.primary || flow.next.secondary) && <div className="v7-next-actions">
-                    {flow.next.secondary && <AdminButton variant="secondary" disabled={busy} onClick={action(flow.next.secondary.action)}>{flow.next.secondary.label}</AdminButton>}
-                    {flow.next.primary && <AdminButton variant="primary" disabled={busy} onClick={action(flow.next.primary.action)}>{flow.next.primary.label}</AdminButton>}
-                </div>}
-            </div>}
-        </div>
-
-        {/* Montage 시안: 구역 탭(밑줄). 누르면 해당 카드로 이동만 하고 업무를 실행하지 않는다. */}
+        {progress}
+        {/* 구역 탭(밑줄): 누르면 해당 카드로 이동만 하고 업무를 실행하지 않는다. */}
         <nav aria-label="예약 상세 바로가기" className="v7-nav v7-tabs">
             {NAV.map(n => <button key={n.sid} type="button" className="adm-v7-tab v7-tab" aria-label={`${n.label} 위치로 이동`} aria-current={st.navSid === n.sid ? 'true' : undefined}
                 onClick={() => { set({ navSid: n.sid }); goSec(n.sid); }}>{n.label}</button>)}
         </nav>
-        {/* 고객 정보 · 일정: 바로가기 바로 아래 한 줄(2026-11-24 — 고객 알림 자동발송·운영 메모와 자리 바꿈) */}
-        <div className={!st.infoMore && !st.daysAll ? 'v7-top is-even' : 'v7-top'}>
-                <div id="sec-info" className="v7-card v7-info">
-                    <div className="v7-info-head">
-                        <b className="v7-info-title">고객 정보</b>
-                        <AdminIconButton label="고객 정보 복사" variant="outlined" onClick={() => void copyInfo()}><Ico name="lc-copy" size={16} /></AdminIconButton>
-                        <AdminIconButton label={maskOn ? '개인정보 보기' : '개인정보 가리기'} variant="outlined" aria-pressed={!maskOn} onClick={() => setMaskOn(!maskOn)}><Ico name={maskOn ? 'lc-eye' : 'lc-eye-off'} size={16} /></AdminIconButton>
-                        <AdminIconButton label="고객 정보 수정" variant="outlined" disabled={busy} onClick={action('edit-info')}><Ico name="lc-pencil" size={16} /></AdminIconButton>
-                    </div>
-                    {m.facts.slice(0, 3).map((f, i) => <div key={`${f.label}-${i}`} className="v7-info-row">
-                        <span className="v7-info-label">{f.label}</span>
-                        <span className={f.value ? 'v7-info-value' : 'v7-info-value is-empty'}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span>
-                    </div>)}
-                    {/* 예약 상세·항공편·여행자·요청은 카드 아래 가운데 펼침 아이콘 뒤로(2026-11-24): 옆 일정 카드와 높이가 맞는다 */}
-                    {st.infoMore && <div id="v7-info-more" className="v7-info-more-body">
-                    <div className="v7-rule is-spaced" />
-                    {m.facts.length > 3 && disclosure({ icon: 'lc-file-text', title: '예약 상세 정보', sub: `접수 · 주문 경로 등 ${m.facts.length - 3}개 항목`, open: sections.bk, onToggle: () => setSections(s => s.bk ? {} as Record<string, boolean> : { bk: true }), children:
-                        <div className="v7-soft-box v7-kv-list">
-                            {m.facts.slice(3).map((f, i) => <div key={`${f.label}-${i}`} className="v7-kv is-wide"><span className="v7-kv-key">{f.label}</span><span className={f.value ? 'v7-kv-value' : 'v7-kv-value is-empty'}>{f.value ? maskFact(f.label, f.value, maskOn) : '미입력'}</span></div>)}
-                        </div>
-                    })}
-                    {!!m.flights?.length && disclosure({ icon: 'lc-plane', title: '항공편', sub: `${confirmedFlights}/${m.flights.length}편 정보 등록`, badge: confirmedFlights === m.flights.length ? '등록됨' : undefined, open: sections.fl, onToggle: () => setSections(s => s.fl ? {} as Record<string, boolean> : { fl: true }), children:
-                        <div className="v7-stack">
-                            {m.flights.map(f => { const ok = !!(f.date && f.time && f.flight); return <div key={f.id} className="v7-soft-box v7-flight">
-                                <div className="v7-flight-head"><Ico name={f.id === 'departure' ? 'lc-plane-takeoff' : 'lc-plane-landing'} size={15} /><b className="v7-grow">{f.label}</b><V7Badge tone={ok ? 'mint' : 'red'} size="sm">{ok ? '등록됨' : '미등록'}</V7Badge></div>
-                                <b className={f.flight ? 'v7-flight-no' : 'v7-flight-no is-empty'}>{f.flight || '미등록'}</b>
-                                {[{ k: '날짜', v: f.date }, { k: f.id === 'departure' ? '몽골 출발' : '몽골 도착', v: f.time }, ...(f.extra || []).map(x => ({ k: x.label, v: x.value }))].map((kv, i) => <div key={i} className="v7-kv is-split"><span className="v7-kv-key">{kv.k}</span><b className="v7-kv-num">{kv.v || '미입력'}</b></div>)}
-                            </div>; })}
-                            <AdminTextButton size="sm" className="v7-end" disabled={busy} onClick={action('flights')} trailing={<Ico name="lc-chevron-right" size={12} />}>항공편 수정</AdminTextButton>
-                        </div>
-                    })}
-                    {travelers && disclosure({ icon: 'lc-users', title: '여행자 정보', sub: `${travelers.registered}${travelers.expected !== null ? `/${travelers.expected}` : ''}명 등록`, open: sections.tr, onToggle: () => setSections(s => s.tr ? {} as Record<string, boolean> : { tr: true }), children: <>
-                        <div className="v7-travelers">
-                            {travelers.people.map((person, i) => { const open = travelerOpen === i; return <div key={person.id} className="v7-traveler">
-                                <button type="button" aria-expanded={open} className="adm-v7-traveler" onClick={() => setTravelerOpen(open ? -1 : i)}>
-                                    <span className="v7-traveler-no">{i + 1}</span>
-                                    <b className="v7-traveler-name">{person.name || '이름 미입력'}</b>
-                                    <span className="v7-traveler-kind">{person.details.find(d => /구분|성인|아동/.test(d.label))?.value || ''}</span>
-                                    <span className={open ? 'v7-chevron is-open' : 'v7-chevron'}><Ico name="lc-chevron-down" size={15} /></span>
-                                </button>
-                                {open && <div className="v7-soft-box v7-traveler-body">
-                                    {person.details.map((kv, k) => <div key={k} className="v7-kv is-split"><span className="v7-kv-key">{kv.label}</span><b className="v7-kv-num is-end">{kv.value ? maskFact(kv.label, kv.value, maskOn) : '미입력'}</b></div>)}
-                                </div>}
-                            </div>; })}
-                            {!travelers.people.length && <div className="v7-travelers-empty">등록된 여행자가 없습니다.</div>}
-                            {missingTravelers > 0 && <div className="v7-travelers-alert"><Ico name="lc-circle-alert" size={14} />{missingTravelers}명 여권 정보 미제출</div>}
-                        </div>
-                        <AdminTextButton size="sm" className="v7-after" disabled={busy} onClick={action('travelers')} trailing={<Ico name="lc-chevron-right" size={12} />}>여행자 전체 상세보기</AdminTextButton>
-                    </> })}
-                    {disclosure({ icon: 'lc-message-circle', title: '고객 요청 사항', sub: m.preferences?.length ? `요청 ${m.preferences.length}건` : '등록된 요청 없음', open: sections.rq, onToggle: () => setSections(s => s.rq ? {} as Record<string, boolean> : { rq: true }), children:
-                        <div className={m.preferences?.length ? 'v7-soft-box v7-requests' : 'v7-requests is-empty'}>{m.preferences?.length ? m.preferences.join('\n') : '등록된 요청 사항이 없어요.'}</div>
-                    })}
-                    </div>}
-                    {foldButton(st.infoMore, st.infoMore ? '예약·항공편·여행자 정보 접기' : '예약·항공편·여행자 정보 보기', 'v7-info-more', () => set(s => ({ infoMore: !s.infoMore })))}
-                </div>
-
-                <div id="sec-plan" className="v7-card">
-                    <div className="v7-card-head is-nowrap">
-                        <span className="v7-tile"><Ico name="lc-route" size={16} /></span><b className="v7-card-title">일정</b>
-                        <span className="v7-card-meta">{period?.sch || (m.days.length ? `${m.days.length}일` : '')}</span>
-                        <AdminTextButton tone="assistive" size="sm" className="v7-push" disabled={busy} onClick={action('edit-itinerary')} trailing={<Ico name="lc-chevron-right" size={14} />}>일정표 편집</AdminTextButton>
-                    </div>
-                    {(st.daysAll ? m.days : m.days.slice(0, PLAN_PREVIEW_DAYS)).map((day, i) => {
-                        const open = !!dayOpen[day.id], last = i === m.days.length - 1;
-                        const night = row?.stays.find(s => s.day === day.day);
-                        const stayText = day.stayRequired === false || (last && !night) ? '숙박 없음' : night?.hotel ? `${night.hotel} · ${bookingStatusMeta(night.bookingStatus).label}` : day.stayAssigned && day.stay ? day.stay : '숙소 미정';
-                        const has = stayText !== '숙소 미정', none = stayText === '숙박 없음', c = none ? 'var(--adm-line-strong)' : night?.hotel ? bookingStatusMeta(night.bookingStatus).color : has ? 'var(--adm-accent-strong)' : 'var(--adm-danger)';
-                        const activities = day.activities?.length ? day.activities : scheduleTimeline(day.summary || '').map(s => ({ time: s.time, title: s.text }));
-                        // 숙소 점 색은 수배 상태 원본(bookingStatusMeta.color)에서 실행 중에 정해진다.
-                        const dotColor = { '--v7-stay-dot': c } as React.CSSProperties;
-                        return <div key={day.id} className="v7-day">
-                            <button type="button" aria-expanded={open} className={open ? 'adm-v7-day v7-day-btn is-open' : 'adm-v7-day v7-day-btn'} onClick={() => setDayOpen(prev => ({ ...prev, [day.id]: !open }))}>
-                                <b className="v7-day-no">{day.day}일차</b>
-                                <span className="v7-day-date">{day.date ? (/^\d{4}-\d{2}-\d{2}$/.test(day.date) ? shortDate(day.date) : day.date) : startKey ? shortDate(new Date(Date.parse(`${startKey}T00:00:00Z`) + (day.day - 1) * 864e5).toISOString().slice(0, 10)) : ''}</span>
-                                <span className="v7-day-title">{day.title || `${day.day}일차 일정 작성`}</span>
-                                <span className={none ? 'v7-day-stay is-none' : has ? 'v7-day-stay' : 'v7-day-stay is-missing'} style={dotColor}><Ico name="lc-bed-double" size={13} />{stayText}</span>
-                                <span className={open ? 'v7-chevron is-open' : 'v7-chevron'}><Ico name="lc-chevron-down" size={16} color="var(--adm-text-3)" /></span>
-                            </button>
-                            {open && <div className="v7-day-body">
-                                <div className="v7-timeline">
-                                    {activities.length ? activities.map((it, k) => <div key={k} className="v7-tl-row">
-                                        <span className="v7-tl-time">{it.time || ''}</span>
-                                        <span className="v7-tl-rail"><span className="v7-tl-dot" /><span className={k === activities.length - 1 ? 'v7-tl-line is-last' : 'v7-tl-line'} /></span>
-                                        <span className="v7-tl-text"><b className="v7-tl-title">{it.title}</b>{(it as any).description && <span className="v7-tl-desc">{(it as any).description}</span>}</span>
-                                    </div>) : <span className="v7-empty-text">상세 일정이 입력되지 않았습니다.</span>}
-                                </div>
-                                <div className="v7-day-foot">
-                                    <span className="v7-fact"><Ico name="lc-utensils" size={13} color="var(--adm-accent-strong)" /><b>식사</b>{day.meals || '미입력'}</span>
-                                    <span className="v7-fact"><Ico name="lc-car" size={13} color="var(--adm-accent-strong)" /><b>이동</b>{day.travel || '미입력'}</span>
-                                    <AdminTextButton size="sm" className="v7-push" disabled={busy} onClick={action('edit-itinerary', day.id)} leading={<Ico name="lc-pencil" size={12} />}>{`${day.day}일차 편집`}</AdminTextButton>
-                                </div>
-                            </div>}
-                        </div>;
-                    })}
-                    {!m.days.length && <div className="v7-card-note is-row"><span className="v7-grow">아직 작성된 일정이 없어요. 기존 견적·상품 일정을 불러와 편집할 수 있습니다.</span><AdminButton variant="secondary" size="sm" disabled={busy} onClick={action('edit-itinerary')}>일정 작성하기</AdminButton></div>}
-                    {/* 일정은 3일까지만 보이고 나머지는 카드 아래 가운데 펼침 아이콘으로(2026-11-24): 옆 고객 정보 카드와 높이를 맞춘다 */}
-                    {m.days.length > PLAN_PREVIEW_DAYS && foldButton(st.daysAll, st.daysAll ? '일정 접기' : `일정 ${m.days.length}일 모두 보기`, undefined, () => set(s => ({ daysAll: !s.daysAll })))}
-                </div>
-
-        </div>
-        <div className="v7-quad rdc-grid">
-            {quadCards}
-        </div>
-
-        <div className="v7-cols">
-            <div className="v7-main">
-                <div id="sec-memo" className="v7-memo v7-card v7-card-pad">
-                    <b className="v7-card-title">운영 메모</b>
-                    {m.notes.length > 0 && <ol className="v7-notes">{m.notes.slice(-4).map(note => <li key={note.id} className="v7-note">
-                        <div className="v7-note-meta"><b>{note.author || '관리자 메모'}</b>{note.at && <span>{note.at}</span>}</div>
-                        <p className="v7-note-body">{note.body}</p>
-                    </li>)}</ol>}
-                    {noteComposer || <AdminButton variant="secondary" disabled={busy} onClick={action('notes')}>메모 작성</AdminButton>}
-                </div>
-            </div>
-
-            <div className="v7-side">
-                {/* 고객 알림 자동발송·이력/다시 보내기는 오른쪽 칸(2026-11-24, 고객 정보·운영 메모와 자리 바꿈) */}
-                {/* 알림 · 변경 이력은 고객 알림 자동발송 안 맨 아래(2026-11-24). 알림 부품이 없는 화면(이전 견적)에서는 따로 카드로 */}
-                {React.isValidElement(notificationActions) && typeof notificationActions.type !== 'string'
-                    ? React.cloneElement(notificationActions as React.ReactElement<{ extra?: ReactNode }>, { extra: <section id="sec-log" className="v7-log is-in-kakao" aria-label="알림 · 변경 이력">{logBody}</section> })
-                    : <>{notificationActions}<div id="sec-log" className="v7-card v7-card-pad v7-log">{logBody}</div></>}
-
-            </div>
+        {/* 두 카드는 각자 펼친다 — 둘 다 접혀 있을 때만 높이를 맞춘다 */}
+        <div className={!st.infoMore && !st.daysAll ? 'cw-row2 is-even' : 'cw-row2'}>{infoCard}{planCard}</div>
+        <div className="cw-row4">{payCard}{asgCard}{clsCard}{docCard}</div>
+        <div className="cw-row2 is-even">
+            <section id="sec-memo" className="cw-card cw-memo" aria-label="운영 메모">
+                {head(IconWrite, '운영 메모')}
+                {m.notes.length > 0 && <ol className="v7-notes">{m.notes.slice(-4).map(note => <li key={note.id} className="v7-note">
+                    <div className="v7-note-meta"><b>{note.author || '관리자 메모'}</b>{note.at && <span>{note.at}</span>}</div>
+                    <p className="v7-note-body">{note.body}</p>
+                </li>)}</ol>}
+                {noteComposer || <div className="cw-foot is-end"><AdminButton variant="weak" size="sm" disabled={busy} onClick={action('notes')}>메모 작성</AdminButton></div>}
+            </section>
+            {noticeCard}
         </div>
         <V7Menu menu={menu} onClose={closeMenu} />
         <V7Toast text={toast} />

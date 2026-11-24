@@ -48,17 +48,22 @@ const html = props => renderToStaticMarkup(React.createElement(CustomerWorkspace
 const stop = { stopPropagation() {} };
 /** 바로가기 이동 대상 카드 흉내: 이동 호출과 잠깐 강조(class)만 받는다. */
 const sectionStub = (selector, onScroll) => ({ id: selector.slice(1), offsetWidth: 1, classList: { add() {}, remove() {}, contains: () => false }, closest: () => null, scrollIntoView: onScroll });
+/** 진행 단계 번호 원 버튼(생 button + adm-cw-step) */
+const stepButtons = tree => elements(tree, node => node.type === 'button' && node.props.className === 'adm-cw-step');
+/** 카드 제목 뒤 건수 알약(말풍선 data-tip) */
+const countChip = card => elements(card, node => String(node.props?.className || '').startsWith('cw-count'))[0];
 if (typeof globalThis.window === 'undefined') globalThis.window = globalThis;
 
-test('고객 상세는 예약 관리 v7 화면으로 그리고 렌더만으로 업무·발송을 실행하지 않는다', () => {
+test('고객 상세는 고객 통합 작업 화면으로 그리고 렌더만으로 업무·발송을 실행하지 않는다', () => {
     let sent = 0; const calls = [];
     const notices = React.createElement('details', { className: 'cw-kakao' }, React.createElement('button', { type: 'button', onClick: () => sent++ }, '카카오 발송'));
     const markup = html({ model, notificationActions: notices, onAction: (...args) => calls.push(args) });
-    assert.match(markup, /class="v7-root cw-overview"/);
-    for (const label of ['일정표 편집', '고객·항공편', '결제·영수증', '가이드·숙소', '운영·메모', '메모·이력']) assert.ok(markup.includes(label), label);
-    for (const id of ['sec-pay', 'sec-cls', 'sec-doc', 'sec-asg', 'sec-plan', 'sec-info', 'sec-memo', 'sec-log']) assert.ok(markup.includes(`id="${id}"`), id);
+    assert.match(markup, /class="v7-root cw-overview cw-v8"/);
+    for (const label of ['일정표 편집', '고객·항공편', '결제·영수증', '가이드·숙소', '운영 메모', '변경 이력']) assert.ok(markup.includes(label), label);
+    for (const id of ['sec-pay', 'sec-cls', 'sec-doc', 'sec-asg', 'sec-plan', 'sec-info', 'sec-memo', 'sec-log', 'sec-notice']) assert.ok(markup.includes(`id="${id}"`), id);
     assert.equal((markup.match(/class="cw-kakao"/g) || []).length, 1);
     assert.equal(sent, 0); assert.deepEqual(calls, []);
+    // 맞춤 견적 흐름(m.flow)이 없으면 ‘지금 할 일’ 판을 그리지 않는다
     assert.equal(markup.includes('지금 할 일'), false);
 });
 
@@ -69,7 +74,7 @@ test('바로가기 6개는 디자인대로 화면 안 카드로 이동만 하고
     const tree = reservationDetailView({ model, onAction: (...args) => calls.push(args) }, st, patch => Object.assign(st, patch), env).element;
     const nav = elements(tree, node => node.type === 'nav' && node.props['aria-label'] === '예약 상세 바로가기')[0];
     const items = elements(nav, node => node.type === 'button');
-    assert.deepEqual(items.map(childrenText), ['일정표 편집', '고객·항공편', '결제·영수증', '가이드·숙소', '운영·메모', '메모·이력']);
+    assert.deepEqual(items.map(childrenText), ['일정표 편집', '고객·항공편', '결제·영수증', '가이드·숙소', '운영 메모', '변경 이력']);
     for (const item of items) { assert.notEqual(item.props.disabled, true); item.props.onClick(); }
     assert.deepEqual(scrolled.map(([selector]) => selector), ['#sec-plan', '#sec-info', '#sec-pay', '#sec-asg', '#sec-memo', '#sec-log']);
     assert.deepEqual(calls, []);
@@ -81,16 +86,14 @@ test('바로가기 6개는 디자인대로 화면 안 카드로 이동만 하고
     assert.ok(elements(busyNav, node => node.type === 'button').every(b => b.props.disabled !== true));
 });
 
-test('알림 보내기는 같은 화면의 고객 알림 패널을 펼치고 문의 단계에서는 문서 화면을 연다', () => {
-    const calls = [];
-    let opened = false, scrolled = 0, focused = 0;
-    const panel = { set open(value) { opened = value; }, get open() { return opened; }, scrollIntoView: () => scrolled++, querySelector: () => ({ focus: () => focused++ }) };
-    const event = { currentTarget: { closest: () => ({ querySelector: selector => selector === 'details.cw-kakao' ? panel : null }) } };
-    const notices = React.createElement('details', { className: 'cw-kakao' });
-    byText(view({ model, notificationActions: notices, onAction: (...args) => calls.push(args) }).tree, '알림 보내기').props.onClick(event);
-    assert.deepEqual(calls, []); assert.equal(opened, true); assert.equal(scrolled, 1); assert.equal(focused, 1);
-    const inquiry = view({ model: { ...model, documentAction: 'documents', documentLabel: '견적서 확인·전달' }, notificationActions: notices, onAction: (...args) => calls.push(args) }).tree;
-    byText(inquiry, '견적서 확인·전달').props.onClick(event);
+test('알림 보내기는 같은 화면의 고객 알림 카드로 이동하고 문의 단계에서는 문서 화면을 연다', () => {
+    const calls = [], scrolled = [];
+    const env = { mounted: { current: true }, toastTimer: { current: undefined }, root: { current: { querySelector: selector => sectionStub(selector, () => scrolled.push(selector)) } } };
+    const notices = React.createElement('section', { className: 'cw-kakao' });
+    const render = extra => { const st = initialDetailState(); return reservationDetailView({ model: { ...model, ...extra }, notificationActions: notices, onAction: (...args) => calls.push(args) }, st, patch => Object.assign(st, patch), env).element; };
+    byText(render({}), '알림 보내기').props.onClick();
+    assert.deepEqual(calls, []); assert.deepEqual(scrolled, ['#sec-notice']);
+    byText(render({ documentAction: 'documents', documentLabel: '견적서 확인·전달' }), '견적서 확인·전달').props.onClick();
     assert.deepEqual(calls, [['documents']]);
 });
 
@@ -107,27 +110,49 @@ test('진행 단계는 현재 단계를 표시하고 단계 클릭은 저장 없
     const calls = [];
     const { tree } = view({ model, onAction: (...args) => calls.push(args) });
     const head = renderToStaticMarkup(tree);
-    assert.ok(head.includes('견적 준비')); assert.ok(head.includes('1 / 2 단계 완료'));
-    const steps = elements(tree, node => typeof node.type === 'function' && node.props.steps)[0];
-    assert.deepEqual(steps.props.steps.map(s => s.label), ['문의 접수', '견적 준비']);
+    assert.ok(head.includes('견적 준비')); assert.match(head, /<b>1<\/b> \/ 2 완료/);
+    // 번호 원: 끝난 단계는 체크, 지금 단계는 aria-current와 위 화살표
+    const steps = stepButtons(tree);
+    assert.deepEqual(steps.map(b => b.props['aria-label']), ['1단계 문의 접수 · 완료', '2단계 견적 준비 · 지금']);
+    assert.equal(steps[1].props['aria-current'], 'true');
     assert.deepEqual(calls, []);
-    steps.props.onStep(1);
+    steps[1].props.onClick();
     assert.deepEqual(calls, [['quote']]);
     const cancelled = renderToStaticMarkup(view({ model: { ...model, currentStage: { label: '취소됨', tone: 'cancelled' } } }).tree);
-    assert.ok(cancelled.includes('취소된 예약')); assert.ok(!cancelled.includes('단계 완료'));
+    assert.ok(cancelled.includes('취소된 예약')); assert.ok(!cancelled.includes(' 완료</span>')); assert.ok(cancelled.includes('cw-steps is-cancelled'));
+});
+
+test('고객 차례면 기다린 날수·안내 날짜·출발일 타임라인과 다시 보내기(빨강)를 보여 준다', () => {
+    const calls = [];
+    // 화면은 한국 날짜로 센다(UTC 날짜와 다를 수 있다)
+    const day = n => new Date(Date.now() + 9 * 3600e3 + n * 864e5).toISOString().slice(0, 10);
+    const flow = { steps: [{ id: 'quote', label: '견적서', done: true }, { id: 'answer', label: '고객 답변', done: true }, { id: 'deposit', label: '예약금', done: true },
+        { id: 'sign', label: '계약서 서명', done: false }, { id: 'confirm', label: '예약 확정', done: false }, { id: 'assign', label: '배정', done: false }, { id: 'publish', label: '일정표 공개', done: false }],
+        current: 3, next: { title: '고객 서명을 기다리고 있어요', detail: '서명 안내를 보냈어요.', waiting: true, since: { at: day(-3), label: '서명 안내 발송' }, departure: day(3),
+            primary: { label: '서명 안내 다시 보내기', action: 'notify-contract' }, secondary: { label: '기다리는 동안 배정하기', action: 'assignments' } } };
+    const { tree } = view({ model: { ...model, flow }, onAction: (...args) => calls.push(args) });
+    const markup = renderToStaticMarkup(tree);
+    for (const value of ['4단계 · 계약서 서명', '<b>3</b> / 7 완료', '고객 차례 · 3일째 응답 없음', '고객 서명을 기다리고 있어요', '출발 3일 전이에요. 오늘 다시 안내해 주세요.', '서명 안내 발송', '3일째', '출발'])
+        assert.ok(markup.includes(value), value);
+    const resend = byText(tree, '서명 안내 다시 보내기');
+    assert.equal(resend.props.variant, 'danger'); assert.equal(byText(tree, '기다리는 동안 배정하기').props.variant, 'secondary');
+    resend.props.onClick(); assert.deepEqual(calls, [['notify-contract', undefined]]);
+    // 내 차례(기다리지 않음)는 민트 꼬리말과 주요 버튼, 타임라인 없음
+    const mine = renderToStaticMarkup(view({ model: { ...model, flow: { ...flow, current: 4, next: { title: '예약을 확정해 주세요', primary: { label: '예약 확정', action: 'confirm-booking' } } } } }).tree);
+    assert.ok(mine.includes('내 차례 · 5단계 예약 확정')); assert.ok(!mine.includes('cw-wait'));
 });
 
 test('예약 원본이 연결되면 계약서·예약금·배정·잔금·출발 5단계로 계산한다', () => {
     const source = { id: 'r1', type: 'product', status: 'confirmed', customerName: '합성 고객', productName: '테를지', startDate: '2099-10-24', endDate: '2099-10-26',
         totalAmount: 3000000, deposit: 600000, balance: 2400000, depositStatus: 'paid', balanceStatus: 'unpaid', contractData: { agreement: { agreed: false } } };
     const markup = renderToStaticMarkup(view({ model, links: { source, userId: 'admin' } }).tree);
-    for (const label of ['계약서', '예약금', '배정', '잔금', '출발', '계약서 서명', '₩600,000 입금', '₩2,400,000 미수']) assert.ok(markup.includes(label), label);
-    assert.ok(markup.includes('1 / 5 단계 완료'));
+    for (const label of ['계약서', '예약금', '배정', '잔금', '출발', '>입금 완료<', '>미수<']) assert.ok(markup.includes(label), label);
+    assert.ok(markup.includes('<b>1</b> / 5 완료'));
     const calls = [], scrolled = [];
     const st = initialDetailState();
     const env = { mounted: { current: true }, toastTimer: { current: undefined }, root: { current: { querySelector: selector => sectionStub(selector, () => scrolled.push(selector)) } } };
-    const steps = elements(reservationDetailView({ model, links: { source, userId: 'admin' }, onAction: (...args) => calls.push(args) }, st, patch => Object.assign(st, patch), env).element, node => typeof node.type === 'function' && node.props.steps)[0];
-    [0, 1, 2, 3, 4].forEach(i => steps.props.onStep(i));
+    const steps = stepButtons(reservationDetailView({ model, links: { source, userId: 'admin' }, onAction: (...args) => calls.push(args) }, st, patch => Object.assign(st, patch), env).element);
+    steps.forEach(b => b.props.onClick());
     assert.deepEqual(scrolled, ['#sec-doc', '#sec-pay', '#sec-asg', '#sec-pay', '#sec-plan']);
     assert.deepEqual(calls, []);
 });
@@ -137,14 +162,19 @@ test('서류 카드는 저장된 문서의 기존 액션만 열고 없는 문서
     const documents = [{ id: 'quote', label: '견적서', action: 'quote-preview', status: '저장됨' }, { id: 'contract', label: '계약서', status: '미작성' }, { id: 'guide', label: '가이드 시트', disabled: true }];
     const { tree } = view({ model: { ...model, documents }, onAction: (...args) => calls.push(args) });
     const card = elements(tree, node => node.props.id === 'sec-doc')[0];
-    const opens = elements(card, node => node.type === 'button' && /열기$/.test(node.props['aria-label'] || ''));
+    const opens = buttons(card).filter(node => /열기$/.test(node.props['aria-label'] || ''));
     assert.deepEqual(opens.map(b => b.props['aria-label']), ['견적서 열기', '계약서 열기', '가이드 시트 열기']);
     assert.equal(opens[2].props.disabled, true);
     opens[0].props.onClick(); opens[1].props.onClick();
     assert.deepEqual(calls, [['quote-preview', 'quote'], ['contract', 'contract']]);
-    byText(card, '공개·전달 관리').props.onClick();
+    byText(card, '공개 · 전달 관리').props.onClick();
     assert.deepEqual(calls.at(-1), ['documents', undefined]);
-    assert.ok(childrenText(card).includes('1건 남음') || childrenText(card).includes('2건 남음'));
+    // 문서 상태는 이름 아래 글자(확인이 필요하면 빨강), 남은 건수는 제목 뒤 알약 + 말풍선
+    const markup = renderToStaticMarkup(card);
+    assert.ok(markup.includes('cw-doc-state">저장됨<')); assert.ok(markup.includes('cw-doc-state is-warn">미작성<'));
+    const chip = countChip(card);
+    assert.equal(chip.props.children, 1); assert.equal(chip.props['data-tip'], '1건 남음 · 계약서 미작성');
+    assert.equal(chip.props['aria-label'], '서류 · 1건 남음 · 계약서 미작성');
 });
 
 test('결제는 0원과 미확인 금액을 구분하고 입금 확인 상태만 버튼에 표시한다', () => {
@@ -185,7 +215,7 @@ test('머리·고객 정보·일정 버튼은 선택한 업무 액션에 연결�
 
 test('처리 중에는 업무·문서 버튼을 잠근다', () => {
     const { tree } = view({ model: { ...model, documents: [{ id: 'contract', label: '계약서' }] }, busy: true });
-    for (const text of ['알림 보내기', '일정표 편집', '공개·전달 관리', '결제 화면']) assert.equal(byText(tree, text).props.disabled, true, text);
+    for (const text of ['알림 보내기', '일정표 편집', '공개 · 전달 관리', '결제 화면', '예약금 입금 확인']) assert.equal(byText(tree, text).props.disabled, true, text);
     assert.equal(byLabel(tree, '고객 정보 수정').props.disabled, true);
     assert.equal(byLabel(tree, '계약서 열기').props.disabled, true);
 });
@@ -206,16 +236,14 @@ const disclosureDays = () => [
     { id: 'saved-return-day', day: 6, title: '귀국일', date: '', activities: [], stayRequired: false, stay: '숙박하지 않는 날의 이전 값' },
 ];
 
-test('일차별 일정은 기본 접힘이며 펼치면 활동·시간·설명과 숙소·식사·이동을 모두 보여 준다', () => {
+test('일정 카드는 접혀 있을 때 일차 줄만, 펼치면 일차별 활동·시간·설명과 식사·이동·편집을 보여 준다', () => {
     const days = disclosureDays(), calls = [];
     const first = view({ model: { ...model, days }, onAction: (...args) => calls.push(args) });
-    const toggles = elements(first.tree, node => node.type === 'button' && node.props['aria-expanded'] !== undefined && /일차/.test(childrenText(node)));
-    assert.equal(toggles.length, 2); assert.ok(toggles.every(t => t.props['aria-expanded'] === false));
     const closed = renderToStaticMarkup(first.tree);
-    assert.ok(closed.includes('실제 배정 캠프')); assert.ok(!closed.includes('입국장 출구에서 만납니다.'));
+    assert.ok(closed.includes('저장된 고비 일정') && closed.includes('실제 배정 캠프')); assert.ok(!closed.includes('입국장 출구에서 만납니다.'));
     assert.ok(closed.includes('숙박 없음')); assert.ok(!closed.includes('숙박하지 않는 날의 이전 값'));
-    toggles[0].props.onClick();
-    assert.deepEqual(first.st.dayOpen, { 'saved-day-5': true });
+    byLabel(first.tree, '일정 펼쳐 보기').props.onClick();
+    assert.equal(first.st.daysAll, true);
     const opened = view({ model: { ...model, days }, onAction: (...args) => calls.push(args) }, first.st);
     const markup = renderToStaticMarkup(opened.tree);
     for (const value of ['09:00', '공항 픽업', '입국장 출구에서 만납니다.', '21:00', '별 관측', '마지막 활동 설명도 보존합니다.', '조식 호텔식 · 석식 캠프식', '4시간 · 250km']) assert.ok(markup.includes(value), value);
@@ -224,30 +252,34 @@ test('일차별 일정은 기본 접힘이며 펼치면 활동·시간·설명�
     assert.deepEqual(calls, [['edit-itinerary', 'saved-day-5']]);
 });
 
-test('고객 정보는 기본 접힘·한 번에 하나만 펼치고 개인정보는 기본으로 가린다', () => {
+test('일정이 예약 기간보다 길거나 짧으면 빨간 글자로 알린다', () => {
+    const days = n => Array.from({ length: n }, (_, i) => ({ id: `d${i + 1}`, day: i + 1, title: `${i + 1}일차 장소` }));
+    const short = { ...model, period: '2026-11-27 ~ 2026-11-28' };
+    assert.ok(renderToStaticMarkup(view({ model: { ...short, days: days(3) } }).tree).includes('예약 기간은 1박 2일(11.27–11.28)인데 3일차(11.29) 일정이 있어요. 확인해 주세요.'));
+    assert.ok(renderToStaticMarkup(view({ model: { ...short, period: '2026-11-27 ~ 2026-11-30', days: days(2) } }).tree).includes('예약 기간은 3박 4일인데 일정은 2일차까지만 있어요.'));
+    assert.ok(!renderToStaticMarkup(view({ model: { ...short, days: days(2) } }).tree).includes('cw-warn'));
+});
+
+test('고객 정보는 세 줄만 보이고 펼치면 예약 상세·항공편·여행자·요청·예약번호를 보여 주며 개인정보는 기본으로 가린다', () => {
+    const calls = [];
     const detailed = { ...model,
         facts: [...model.facts, { label: '이메일', value: 'local@example.invalid' }, { label: '상품', value: '실제 상품' }, { label: '접수일', value: '2026-10-19' }, { label: '주문 메모', value: '보존할 메모' }],
         flights: [{ id: 'arrival', label: '도착편', flight: 'LOCAL-1', date: '2026-10-25', time: '12:30' }, { id: 'departure', label: '출발편' }],
         travelers: { expected: 10, registered: 1, people: [{ id: 't1', name: '저장 여행자', details: [{ label: '여권번호', value: 'M12345678' }] }] },
         preferences: ['보존할 요청'] };
-    const first = view({ model: detailed });
-    // 예약 상세·항공편·여행자·요청은 펼침 버튼 뒤에 있다(기본 접힘)
+    const first = view({ model: detailed, onAction: (...args) => calls.push(args) });
     const collapsed = renderToStaticMarkup(first.tree);
-    assert.ok(collapsed.includes('예약·항공편·여행자 정보 보기')); assert.ok(!collapsed.includes('1/2편 정보 등록'));
-    byLabel(first.tree, '예약·항공편·여행자 정보 보기').props.onClick();
+    assert.ok(!collapsed.includes('LOCAL-1')); assert.ok(!collapsed.includes('보존할 메모'));
+    byLabel(first.tree, '고객 정보 펼쳐 보기').props.onClick();
     assert.equal(first.st.infoMore, true);
-    const closed = renderToStaticMarkup(view({ model: detailed }, first.st).tree);
-    for (const value of ['1/2편 정보 등록', '1/10명 등록', '요청 1건', '접수 · 주문 경로 등 2개 항목']) assert.ok(closed.includes(value), value);
-    for (const value of ['보존할 메모', 'LOCAL-1', '보존할 요청']) assert.ok(!closed.includes(value), value);
-    assert.ok(closed.includes('010-1234***')); assert.ok(!closed.includes('010-1234-5678'));
-    const toggle = title => buttons(view({ model: detailed }, first.st).tree).find(b => b.props['aria-expanded'] !== undefined && childrenText(b).includes(title));
-    toggle('항공편').props.onClick(); toggle('여행자 정보').props.onClick();
-    assert.deepEqual(first.st.sections, { tr: true });
-    const travelers = renderToStaticMarkup(view({ model: detailed }, first.st).tree);
-    assert.ok(travelers.includes('저장 여행자')); assert.ok(travelers.includes('9명 여권 정보 미제출')); assert.ok(!travelers.includes('M12345678')); assert.ok(!travelers.includes('LOCAL-1'));
-    byLabel(view({ model: detailed }, first.st).tree, '개인정보 보기').props.onClick();
-    const shown = renderToStaticMarkup(view({ model: detailed }, first.st).tree);
-    assert.ok(shown.includes('010-1234-5678')); assert.ok(shown.includes('M12345678'));
+    const opened = view({ model: detailed, onAction: (...args) => calls.push(args) }, first.st);
+    const markup = renderToStaticMarkup(opened.tree);
+    for (const value of ['보존할 메모', 'LOCAL-1', '1/2편 정보 등록', '1/10명 등록', '저장 여행자', '9명 여권 정보 미제출', '보존할 요청', '#same-id']) assert.ok(markup.includes(value), value);
+    assert.ok(markup.includes('010-1234***')); assert.ok(!markup.includes('010-1234-5678')); assert.ok(!markup.includes('M12345678'));
+    byLabel(opened.tree, '항공편 수정').props.onClick(); byLabel(opened.tree, '여행자 상세보기').props.onClick();
+    assert.deepEqual(calls, [['flights', undefined], ['travelers', undefined]]);
+    byLabel(opened.tree, '개인정보 보기').props.onClick();
+    assert.ok(renderToStaticMarkup(view({ model: detailed }, first.st).tree).includes('010-1234-5678'));
 });
 
 test('알림·변경 이력은 저장된 기록을 모두 보여 주고 전체 이력으로 연결한다', () => {
@@ -290,6 +322,9 @@ test('고객 통합 작업에서는 가이드·차량·숙소를 배정하지 �
     const markup = renderToStaticMarkup(tree);
     for (const gone of ['박별 관리', '일자별 숙소', '현지 운영에 수배 요청', '가이드 선택', '차량 선택', '숙소 선택']) assert.ok(!markup.includes(gone), gone);
     for (const shown of ['가이드 미배정', '차량 미배정']) assert.ok(markup.includes(shown), shown);
+    // 건수 알약: 미배정 셋을 한 문장으로 말해도 건수는 셋
+    const chip = countChip(elements(tree, node => node.props.id === 'sec-asg')[0]);
+    assert.equal(chip.props.children, 3); assert.equal(chip.props['data-tip'], '3건 남음 · 가이드·차량·숙소가 아직 배정되지 않았어요');
     assert.equal(markup.match(/id="sec-asg"/g).length, 1, 'one assignment card');
     // ‘배정하기’ 같은 배정 업무 버튼은 업무 창을 열지 않고 배정 카드로 이동한다
     const root = { querySelector: sel => sel === '#sec-asg' ? sectionStub(sel, () => scrolled.push(sel)) : null };
@@ -308,13 +343,13 @@ test('배정 카드의 박별 숙소는 기본 접힘이고 펼치면 한 줄에
     const first = view({ model, links: { source, userId: 'admin' } });
     const closed = renderToStaticMarkup(first.tree);
     assert.ok(closed.includes('박별 숙소 보기 · 3박'));
-    assert.ok(!closed.includes('class="rdc-stay-list"'));
+    assert.ok(!closed.includes('class="cw-stay-list"'));
     byText(first.tree, '박별 숙소 보기 · 3박').props.onClick();
     assert.equal(first.st.staysOpen, true);
     const opened = renderToStaticMarkup(view({ model, links: { source, userId: 'admin' } }, first.st).tree);
-    const rows = opened.match(/<li class="rdc-stay">.*?<\/li>/g) || [];
+    const rows = opened.match(/<li class="cw-stay">.*?<\/li>/g) || [];
     assert.equal(rows.length, 3, 'one line per night');
-    assert.deepEqual(rows.map(row => row.match(/rdc-stay-day">(\d+)박/)[1]), ['1', '2', '3']);
+    assert.deepEqual(rows.map(row => row.match(/cw-stay-day">(\d+)박/)[1]), ['1', '2', '3']);
     assert.ok(rows[1].includes('Birga Resort') && rows[0].includes('숙소 미배정') && rows[2].includes('숙소 미배정'));
     assert.ok(opened.includes('박별 숙소 접기'));
 });
@@ -334,19 +369,22 @@ test('네 칸 카드 제목 줄의 편집은 그 업무의 편집 화면을 열�
     assert.equal(byLabel(locked, '배정 편집'), undefined);
 });
 
-test('알림 · 변경 이력은 고객 알림 자동발송 안(맨 아래)에 들어가고, 바로가기로 가면 접힌 알림을 펼친다', () => {
-    function KakaoStub({ extra }) { return React.createElement('details', { className: 'cw-kakao' }, React.createElement('summary', null, '고객 알림'), extra); }
+test('알림 · 변경 이력은 고객 알림 카드 맨 아래(기본 접힘)에 들어가고, 바로가기 ‘변경 이력’은 펼친 뒤 이동한다', () => {
+    function KakaoStub({ extra }) { return React.createElement('section', { id: 'sec-notice', className: 'cw-kakao' }, React.createElement('h2', null, '고객 알림'), extra); }
     const history = [{ id: 'h1', at: '2026-10-14T00:00:00Z', title: '상품 예약 접수', kind: 'booking' }];
     const markup = renderToStaticMarkup(view({ model: { ...model, recentHistory: history }, notificationActions: React.createElement(KakaoStub) }).tree);
-    const inside = markup.match(/<details class="cw-kakao">.*?<\/details>/s)?.[0] || '';
-    assert.ok(inside.includes('id="sec-log"') && inside.includes('알림 · 변경 이력') && inside.includes('상품 예약 접수'));
+    const inside = markup.match(/<section id="sec-notice" class="cw-kakao">.*?<\/section>/s)?.[0] || '';
+    assert.ok(inside.includes('<details id="sec-log"') && inside.includes('알림 · 변경 이력') && inside.includes('상품 예약 접수'));
     assert.equal(markup.match(/id="sec-log"/g).length, 1, 'no separate history card');
-    // 바로가기 ‘메모·이력’: 접힌 알림을 펼친 뒤 이동
+    // 알림 부품이 없는 화면(이전 견적)에서는 같은 모양의 카드를 따로 그린다
+    const plain = renderToStaticMarkup(view({ model }).tree);
+    assert.ok(plain.includes('id="sec-notice"') && plain.includes('id="sec-log"'));
+    // 바로가기 ‘변경 이력’: 접힌 이력(details)을 펼친 뒤 이동
     const folded = { open: false };
     const env = { mounted: { current: true }, toastTimer: { current: undefined }, root: { current: { querySelector: () => ({ classList: { add() {}, remove() {} }, offsetWidth: 1, closest: () => folded, scrollIntoView() {} }) } } };
     const st = initialDetailState();
     const tree = reservationDetailView({ model, notificationActions: React.createElement(KakaoStub), onAction() {} }, st, patch => Object.assign(st, patch), env).element;
-    byLabel(tree, '메모·이력 위치로 이동').props.onClick();
+    byLabel(tree, '변경 이력 위치로 이동').props.onClick();
     assert.equal(folded.open, true);
 });
 
@@ -360,6 +398,7 @@ test('일정 카드는 3일까지만 보이고 카드 아래 가운데 펼침 �
     const opened = view({ model: { ...model, days } }, first.st);
     assert.ok(renderToStaticMarkup(opened.tree).includes('8일차 장소'));
     assert.ok(byLabel(opened.tree, '일정 접기'));
-    // 3일 이하면 펼침 아이콘이 없다
+    // 3일 이하면 같은 아이콘이 일차별 상세만 펼친다
     assert.equal(byLabel(view({ model: { ...model, days: days.slice(0, 3) } }).tree, '일정 3일 모두 보기'), undefined);
+    assert.ok(byLabel(view({ model: { ...model, days: days.slice(0, 3) } }).tree, '일정 펼쳐 보기'));
 });

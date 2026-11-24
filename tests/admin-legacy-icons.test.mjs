@@ -19,12 +19,10 @@ const iconExports = new Set([...read('src/components/admin/ui/AdminIcons.tsx').m
 // 지금 예전 부품을 가져오는 파일(화면을 Seed로 다시 짤 때 Icon*으로 바꾸고 이 목록에서 뺀다). 새 파일은 Icon*을 바로 쓴다.
 const LEGACY_IMPORTERS = new Set([
     'src/components/admin/Admin3DIcon.tsx',
-    'src/components/admin/CustomerKakaoActions.tsx',
     'src/components/admin/DesignTemplateBlockEditor.tsx',
     'src/components/admin/ReservationInlineEditor.tsx',
     'src/components/admin/accommodation/LodgeAssignBoard.tsx',
     'src/components/admin/adminNav.ts',
-    'src/components/admin/v7/ReservationDetailV7.tsx',
     'src/components/admin/v7/v7Ui.tsx',
     'src/pages/AdminAccommodationOps.tsx',
     'src/pages/AdminAssignment.tsx',

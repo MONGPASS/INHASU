@@ -214,16 +214,20 @@ test('발송 후 대기 시간은 비활성 버튼과 handler 양쪽에서 차�
     assert.ok(historyButton); historyButton.props.onClick(); assert.equal(history, 1); assert.equal(posts(h).length, 0);
 });
 
-test('자동 안내와 수동 재안내는 기본 접힌 상태로 나뉘며 기록 없음·설정 누락·서비스 접수를 실제 수신으로 표시하지 않는다', async t => {
+test('고객 알림 카드는 알림 줄을 보이고 자동 안내는 기본 접힘이며 기록 없음·설정 누락·서비스 접수를 실제 수신으로 표시하지 않는다', async t => {
     const h = mount(t, {}, (call, current) => call.method === 'GET' ? Response.json({ ...current.data(), automation: { enabled: true, notices: [
         { kind: 'request_received', label: '문의 접수 안내', trigger: '신규 문의 저장 시', state: 'accepted', lastAttempt: { state: 'accepted', at: '2026-10-20T01:00:00Z' } },
         { kind: 'contract_signed', label: '계약 서명 안내', trigger: '고객 서명 저장 시', state: 'not_triggered' },
         { kind: 'booking_confirmed', label: '예약 확정 안내', trigger: '예약 확정 시', state: 'unavailable', reason: '전용 승인 템플릿이 없습니다.' },
     ] } }) : undefined);
-    await h.settle(); assert.equal(h.tree.type, 'details'); assert.equal(h.tree.props.open, undefined); assert.equal(h.tree.props.onToggle, undefined);
-    const summary = nodes(h.tree).find(node => node.type === 'summary'); assert.ok(summary); assert.equal(summary.props.onClick, undefined);
-    assert.equal(nodes(summary).some(node => BUTTON_TYPES.has(node.type)), false); assert.match(text(summary), /고객 알림 자동발송 · 이력\/다시 보내기/);
+    // 카드(디자인 2026-11-24): 머리 ‘고객 알림 · 상태가 바뀌면 자동으로 보내요’, 알림 줄은 바로 보이고 자동 안내만 접혀 있다
+    await h.settle(); assert.equal(h.tree.type, 'section'); assert.equal(h.tree.props.id, 'sec-notice'); assert.equal(h.tree.props['aria-label'], '고객 알림');
+    assert.match(text(h.tree), /고객 알림상태가 바뀌면 자동으로 보내요/);
+    const automation = nodes(h.tree).find(node => node.type === 'details'); assert.ok(automation); assert.equal(automation.props.open, undefined); assert.equal(automation.props.onToggle, undefined);
+    const summary = nodes(automation).find(node => node.type === 'summary'); assert.ok(summary); assert.equal(summary.props.onClick, undefined);
+    assert.equal(nodes(summary).some(node => BUTTON_TYPES.has(node.type)), false); assert.match(text(summary), /자동 안내/);
     assert.match(text(summary), /발송 상태 확인 1건/);
+    assert.ok(noticeButton(h), '알림 줄의 보내기 버튼은 접힘 없이 보인다');
     const html = renderToStaticMarkup(h.tree);
     for (const value of ['자동 안내', '수동 재안내', '문의 접수 안내', '신규 문의 저장 시', '자동 발송 기록 없음', '발송 설정 필요', '전용 승인 템플릿이 없습니다.', '발송 서비스 접수']) assert.ok(html.includes(value), value);
     assert.doesNotMatch(html, /수신 완료<|전달 완료<|자동발송 켜기/); assert.equal(posts(h).length, 0);

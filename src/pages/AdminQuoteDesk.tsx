@@ -20,7 +20,7 @@ import '../styles/quote-booking-workspace.css';
 import { connectQuoteDesk, findQuoteDeskTool, quoteDeskPageId } from '../components/admin/quoteDesk';
 import { adminConfirmLeave } from '../components/admin/ui/adminLeaveConfirm';
 import { adminConfirm, adminNotify } from '../components/admin/ui/adminFeedback';
-import { AdminButton, AdminCard, AdminEmpty, AdminIconButton, AdminLoading, AdminTabs, AdminTextButton, IconChevronDown, IconChevronLeft, IconCircleExclamationFill, IconLock, IconMoreHorizontal, IconRefresh } from '../components/admin/ui';
+import { AdminButton, AdminCard, AdminEmpty, AdminIconButton, AdminLoading, AdminTabs, AdminTextArea, AdminTextButton, IconChevronDown, IconChevronLeft, IconCircleExclamationFill, IconLock, IconMoreHorizontal, IconRefresh } from '../components/admin/ui';
 
 /**
  * 견적 고객 통합 작업 — `/admin/customer-workspace/quote/:id`
@@ -111,6 +111,8 @@ export const AdminQuoteDesk: React.FC = () => {
     const [sendingKakao, setSendingKakao] = useState(false);
     // 고객 현황 '지금 할 일' 버튼(예약 만들기·입금 확인·서명 안내·예약 확정·일정표 공개)을 서버에 저장하는 중
     const [quickBusy, setQuickBusy] = useState(false);
+    /** 고객 현황 운영 메모(견적 문의의 상담 메모 requests.memo — 문의 상세와 같은 칸). 고객·계정이 바뀌면 입력을 버린다. */
+    const [memoDraft, setMemoDraft] = useState<{ scope: string; text: string } | null>(null);
     const [editorDirty, setEditorDirty] = useState(false);
     const [activeSection, setActiveSection] = useState('docs');
     const blockedReason = useRef({ busy: false, error: '' });
@@ -382,6 +384,24 @@ export const AdminQuoteDesk: React.FC = () => {
         ]);
     };
 
+    const memoScope = `${accountId}:${bookingId || ''}`;
+    const savedMemo = typeof customerRecord?.memo === 'string' ? customerRecord.memo : '';
+    const memoText = memoDraft?.scope === memoScope ? memoDraft.text : savedMemo;
+    /** 운영 메모 저장: 문의 상세의 상담 메모와 같은 PATCH { memo }. 고객에게 알림이 가지 않는다. */
+    const saveCustomerMemo = async () => {
+        const id = bookingId, account = accountId, text = memoText;
+        if (!customerRecord || !id || quickBusy || editorBusy || text === savedMemo) return;
+        setQuickBusy(true);
+        try {
+            const response = await fetch(`/api/requests/${encodeURIComponent(id)}`, { method: 'PATCH', cache: 'no-store',
+                headers: { 'Content-Type': 'application/json', 'x-admin-token': linkedToken.current }, body: JSON.stringify({ memo: text }) });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || payload?.ok !== true) { adminNotify(typeof payload?.error === 'string' && payload.error ? payload.error : '메모를 저장하지 못했습니다. 다시 시도해 주세요.', 'error'); return; }
+            if (activeCustomer.current.accountId === account && activeCustomer.current.id === id) setMemoDraft(null);
+            adminNotify('운영 메모를 저장했어요.', 'success');
+        } catch { adminNotify('연결이 끊겨 메모를 저장하지 못했습니다. 다시 시도해 주세요.', 'error'); }
+        finally { setQuickBusy(false); setCustomerRefresh(value => value + 1); }
+    };
     return (
         <AdminLayout
             activePage={quoteDeskPageId(tool.key)}
@@ -390,6 +410,7 @@ export const AdminQuoteDesk: React.FC = () => {
             description="선택한 문의·견적의 고객 정보와 일정·문서·예약 업무를 한곳에서 확인합니다."
             flush
             hideHeading={editorExpanded}
+            headingInBody={linked}
             actions={<>
                 {/* 고객 현황 머리: 목록 복귀와 ⋯(견적서 수정 · 발송 이력)만. 나머지는 v7 상세 카드와 편집 도구줄이 맡는다. */}
                 <AdminButton variant="secondary" leading={<IconChevronLeft />} onClick={() => navigate(returnTo)}>목록으로</AdminButton>
@@ -406,7 +427,13 @@ export const AdminQuoteDesk: React.FC = () => {
                         customerName={customerModel.customerName} onClose={() => setAccountReviewId('')} />}
                     {customerError && <div role="alert" className="adm-msg is-cautionary qd-customer-error">{customerError} <AdminTextButton size="sm" disabled={customerRefreshing} onClick={() => setCustomerRefresh(value => value + 1)}>다시 불러오기</AdminTextButton></div>}
                     {customerModel ? <div className="quote-customer-overview" hidden={editorExpanded}>
-                        <CustomerWorkspaceOverview model={customerModel} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao || quickBusy}
+                        <CustomerWorkspaceOverview model={{ ...customerModel, notes: customerModel.notes.filter(note => note.id !== 'inquiry-memo') }} onAction={customerAction} busy={editorBusy || customerRefreshing || sendingKakao || quickBusy}
+                            noteComposer={<div className="cw-memo-composer">
+                                <AdminTextArea aria-label="운영 메모" value={memoText} minRows={3} disabled={editorBusy || customerRefreshing || quickBusy}
+                                    placeholder="고객 요청, 현지 연락 내용, 인수인계 사항을 남겨 두세요" onChange={e => setMemoDraft({ scope: memoScope, text: e.target.value })}
+                                    onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void saveCustomerMemo(); } }} />
+                                <AdminButton variant="weak" size="sm" disabled={editorBusy || customerRefreshing || quickBusy || memoText === savedMemo} onClick={() => void saveCustomerMemo()}>메모 저장</AdminButton>
+                            </div>}
                             links={{ source: v7Source, userId: accountId, onAssignmentSaved: () => setCustomerRefresh(value => value + 1) }}
                             notificationActions={<CustomerKakaoActions key={`${accountId}:${bookingId}`} source="quote_booking" bookingId={bookingId!}
                                 revision={JSON.stringify([customerCheckedAt, customerRecord, recordedDelivery?.items.map(item => [item.id, item.kind, item.channel, item.state, item.at, item.error])])} disabled={editorBusy || customerRefreshing || sendingKakao || editorDirty}
