@@ -160,3 +160,86 @@ export function dashboardTaskCards(data: AdminWorkspaceData | null): Record<Dash
     (Object.keys(groups) as DashboardTaskKind[]).forEach(kind => groups[kind].sort((a, b) => order(a) - order(b)));
     return groups;
 }
+
+/** "11.27 – 11.28": the work-queue period. The year is kept only when it is not this year. */
+export function dashboardMonthRange(start: string, end: string, today: string): string {
+    const valid = (value: string) => isDateKey(value) && !!dashboardDate(value);
+    const short = (value: string) => value.slice(0, 4) === today.slice(0, 4) ? value.slice(5).replace('-', '.') : value.slice(2).replaceAll('-', '.');
+    if (!valid(start)) return valid(end) ? short(end) : '일정 미정';
+    if (!valid(end) || end === start) return short(start);
+    return `${short(start)} – ${end.slice(0, 4) === start.slice(0, 4) ? end.slice(5).replace('-', '.') : end.slice(2).replaceAll('-', '.')}`;
+}
+
+export type DashboardQueueKind = DashboardTaskKind | 'quote';
+export interface DashboardQueueRow {
+    key: string; kind: DashboardQueueKind; href: string;
+    /** 출발: D-day, "N일 지남", or the inquiry's reception date */
+    due: string; dueTone: 'danger' | 'accent' | 'neutral';
+    name: string; product: string; period: string; periodLabel: string; category: '상품' | '견적';
+    status: string; statusTone: 'danger' | 'info' | 'neutral'; action: string; overdue: boolean;
+}
+const QUEUE_ACTION: Record<DashboardTaskKind, string> = { assignment: '배정하기', deposit_report: '입금 확인', contract: '계약 확인' };
+
+/**
+ * 오늘 처리할 일(업무함): the server's booking tasks and pending-inquiry tasks in one list, most urgent first —
+ * upcoming departures nearest first, then departures already passed (oldest first), then inquiries by reception.
+ * Text comes from the task and the booking or inquiry it points to; nothing is invented when either is missing.
+ */
+export function dashboardWorkQueue(data: AdminWorkspaceData | null): DashboardQueueRow[] {
+    if (!data) return [];
+    const cards = dashboardTaskCards(data);
+    const bookingRows = (Object.keys(cards) as DashboardTaskKind[]).flatMap(kind => cards[kind].map((card): DashboardQueueRow & { order: number } => {
+        const bookingKey = card.task.key.slice(kind.length + 1);
+        const overdue = card.dday !== null && card.dday < 0;
+        return {
+            key: card.task.key, kind, href: card.task.href, overdue,
+            due: card.dday === null ? '미정' : card.dday === 0 ? 'D-DAY' : overdue ? `${-card.dday}일 지남` : `D-${card.dday}`,
+            dueTone: card.dday === null ? 'neutral' : overdue ? 'danger' : 'accent',
+            name: card.name, product: card.product, period: dashboardMonthRange(card.start, card.end, data.today),
+            periodLabel: dashboardPeriod(card.start, card.end), category: bookingKey.startsWith('quote_booking:') ? '견적' : '상품',
+            status: card.task.title, statusTone: overdue || card.task.priority === 'urgent' ? 'danger' : 'info',
+            action: overdue ? '상태 정리' : QUEUE_ACTION[kind],
+            order: card.dday === null ? 3e6 : overdue ? 1e6 + card.dday : card.dday,
+        };
+    }));
+    const inquiries = new Map(data.inquiries.map(inquiry => [inquiry.key, inquiry]));
+    const quoteRows = data.tasks.filter(task => task.kind === 'quote').map((task): DashboardQueueRow & { order: number } => {
+        const inquiry = inquiries.get(task.key.slice('quote:'.length));
+        const received = dashboardSeoulDate(inquiry?.createdAt || task.createdAt);
+        const status = inquiry?.statusLabel || inquiry?.status || '답변 대기';
+        return {
+            key: task.key, kind: 'quote', href: task.href, overdue: false,
+            due: received ? `접수 ${received.slice(5).replace('-', '.')}` : '접수일 미정', dueTone: 'neutral',
+            name: inquiry?.name || task.description.split(' · ')[0] || '이름 미정',
+            product: `${inquiry?.destination || '희망 여행 미정'} · ${inquiry?.type === 'legacy_quote' ? '기존 견적' : '맞춤 견적'}`,
+            period: '일정 미정', periodLabel: '일정 미정', category: '견적', status, statusTone: 'neutral',
+            action: status.includes('작성') ? '견적 작성' : '답변 작성',
+            order: 4e6 + (received ? keyTime(received) / dayMs : 1e5),
+        };
+    });
+    return [...bookingRows, ...quoteRows].sort((a, b) => a.order - b.order).map(({ order: _order, ...row }) => row);
+}
+
+export interface DashboardDeparture {
+    key: string; href: string; name: string; date: string; step: string; percent: number; next: 'deposit' | 'contract' | 'confirm' | 'depart';
+}
+/**
+ * 출발 준비 현황: the next departures (today included, cancelled left out) and how far each booking has come —
+ * 예약 접수 → 예약금 확인 → 계약 서명 → 예약 확정 → 출발, one fifth per step, from the booking's own flags.
+ */
+export function dashboardDepartures(data: AdminWorkspaceData | null, limit = 3): DashboardDeparture[] {
+    if (!data || !isDateKey(data.today)) return [];
+    const labels = { deposit: '예약금 확인', contract: '계약 서명', confirm: '예약 확정', depart: '출발' } as const;
+    return data.bookings
+        .filter(b => dashboardBookingGroup(b.status) !== 'other' && isDateKey(b.startDate) && b.startDate >= data.today)
+        .sort((a, b) => a.startDate.localeCompare(b.startDate))
+        .slice(0, limit)
+        .map(b => {
+            const confirmed = dashboardBookingGroup(b.status) === 'confirmed';
+            const next = !b.depositPaid ? 'deposit' : !b.contractSigned ? 'contract' : !confirmed ? 'confirm' : 'depart';
+            const done = 1 + (b.depositPaid ? 1 : 0) + (b.contractSigned ? 1 : 0) + (confirmed ? 1 : 0);
+            const last = next === 'deposit' ? '예약 접수' : next === 'contract' ? '예약금 확인' : next === 'confirm' ? '계약 서명' : '예약 확정';
+            return { key: b.key, href: b.href, name: b.customerName || '이름 미정', date: `${dashboardMonthRange(b.startDate, b.startDate, data.today)} 출발`,
+                step: `${last} 완료 → ${labels[next]} 대기`, percent: done * 20, next };
+        });
+}

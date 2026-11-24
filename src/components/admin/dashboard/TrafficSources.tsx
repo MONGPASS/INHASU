@@ -1,45 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import type { AdminTrafficChannel, AdminTrafficData, AdminTrafficPeriod } from '../../../types/adminTraffic';
+import type { AdminTrafficData } from '../../../types/adminTraffic';
 import { trafficKpis, trafficRows } from '../../../utils/adminTraffic';
-import { dashboardTimestamp } from '../../../utils/adminDashboard';
-import { DashboardIcon, type DashboardIconName } from './DashboardIcon';
-import { useEntrance, type DashboardTipFor } from './dashboardMotion';
-import { AdminButton, AdminSegmented } from '../ui';
+import { AdminButton, IconCircleExclamationFill, IconInfo } from '../ui';
 import styles from './TrafficSources.module.css';
 
-const PERIODS: { key: AdminTrafficPeriod; label: string }[] = [{ key: 'today', label: '오늘' }, { key: '7d', label: '7일' }, { key: '30d', label: '30일' }];
-const logo = (slug: string, color: string) => `https://cdn.simpleicons.org/${slug}/${color}`;
-// 채널 바탕색은 CSS 클래스(Seed 색 단계)로. 로고 색은 로고 주소 안에만 있다.
-const BRAND: Record<AdminTrafficChannel, { tone: string; logo?: string; icon?: DashboardIconName }> = {
-    '네이버 검색': { tone: styles.dotNaver, logo: logo('naver', 'ffffff') },
-    '네이버 블로그': { tone: styles.dotPaper, logo: logo('naver', '03C75A') },
-    '인스타그램': { tone: styles.dotInstagram, logo: logo('instagram', 'ffffff') },
-    '페이스북': { tone: styles.dotFacebook, logo: logo('facebook', 'ffffff') },
-    '구글 검색': { tone: styles.dotPaper, logo: logo('google', '4285F4') },
-    '유튜브': { tone: styles.dotYoutube, logo: logo('youtube', 'ffffff') },
-    '카카오톡 채널': { tone: styles.dotKakao, logo: logo('kakaotalk', '191919') },
-    '직접 방문': { tone: styles.dotPlain, icon: 'lc-mouse-pointer-click' },
-    '기타·추천': { tone: styles.dotPlain, icon: 'lc-link' },
-};
-/** Mint scale from the design (largest channel darkest); the 7th step is added for the ninth channel, 페이스북. */
-// 순위 막대: 브랜드 민트를 진한 것부터 옅게, 하위는 회색(--adm-* 토큰). 평평한 색만 쓴다.
-const mint = (p: number) => `color-mix(in srgb, var(--adm-accent) ${p}%, var(--adm-surface))`;
-const TONES = ['var(--adm-accent-strong)', 'var(--adm-accent)', mint(80), mint(64), mint(50), mint(38), mint(28), 'var(--adm-gray-300)', 'var(--adm-gray-200)'];
-const numbers = new Intl.NumberFormat('ko-KR');
+type Ready = Extract<AdminTrafficData, { configured: true }>;
+export type AdminTrafficLoad = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: AdminTrafficData };
 
-type Load = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; data: AdminTrafficData };
-
-/** 유입 경로: GA4 aggregates from /api/admin/traffic. Missing setup or a failed read is shown as such, never as zero. */
-export function TrafficSources({ tipFor }: { tipFor: DashboardTipFor }) {
-    const [period, setPeriod] = useState<AdminTrafficPeriod>('30d');
-    const [load, setLoad] = useState<Load>({ status: 'loading' });
+/**
+ * GA4 aggregates for the last 30 days from /api/admin/traffic. The dashboard reads it once and shares it between
+ * the 문의 전환율 card and the 유입 경로 card. A missing setup or failed read is reported as such, never as zero.
+ */
+export function useAdminTraffic(): { load: AdminTrafficLoad; retry: () => void } {
+    const [load, setLoad] = useState<AdminTrafficLoad>({ status: 'loading' });
     const [attempt, setAttempt] = useState(0);
-    const t = useEntrance(`${load.status}:${period}`);
     const retry = useCallback(() => { setLoad({ status: 'loading' }); setAttempt(n => n + 1); }, []);
-
     useEffect(() => {
         const controller = new AbortController();
-        fetch(`/api/admin/traffic?period=${period}`, { credentials: 'same-origin', signal: controller.signal })
+        fetch('/api/admin/traffic?period=30d', { credentials: 'same-origin', signal: controller.signal })
             .then(async res => {
                 const body = await res.json().catch(() => null);
                 if (!res.ok || !body || typeof body.configured !== 'boolean') throw new Error(body?.error || '유입 통계를 불러오지 못했습니다. 다시 시도해 주세요.');
@@ -47,82 +25,63 @@ export function TrafficSources({ tipFor }: { tipFor: DashboardTipFor }) {
             })
             .catch(error => { if (!controller.signal.aborted) setLoad({ status: 'error', message: error instanceof Error ? error.message : String(error) }); });
         return () => controller.abort();
-    }, [period, attempt]);
+    }, [attempt]);
+    return { load, retry };
+}
 
-    const choose = (next: AdminTrafficPeriod) => { if (next !== period) { setLoad({ status: 'loading' }); setPeriod(next); } };
-    const data = load.status === 'ready' && load.data.configured ? load.data : null;
+export const trafficReady = (load: AdminTrafficLoad): Ready | null => load.status === 'ready' && load.data.configured ? load.data : null;
+
+const numbers = new Intl.NumberFormat('ko-KR');
+/** 채널 순서 색(1위 진한 민트 → 옅은 민트 → 파랑 → 초록, 나머지 회색). 색은 CSS 클래스(--adm-* 토큰)로. */
+const TONES = [styles.tone0, styles.tone1, styles.tone2, styles.tone3];
+const tone = (index: number) => TONES[index] || styles.toneRest;
+
+/** 유입 경로 카드(디자인 시안 A): 최근 30일 방문자 · 채널 비중 막대 · 상위 채널 4개. */
+export function TrafficSources({ load, retry }: { load: AdminTrafficLoad; retry: () => void }) {
+    const data = trafficReady(load);
     const rows = data ? trafficRows(data) : [];
-    const max = Math.max(1, ...rows.map(row => row.sessions));
+    const kpis = data ? trafficKpis(data) : [];
+    const visitors = kpis.find(kpi => kpi.label === '홈페이지 방문자');
+    const leads = kpis.find(kpi => kpi.label === '견적 문의');
 
-    return <section className={styles.card} aria-busy={load.status === 'loading'}>
+    return <section className={styles.card} id="dashboard-traffic" aria-labelledby="dashboard-traffic-title" aria-busy={load.status === 'loading'}>
         <div className={styles.head}>
-            <span className={styles.title}>유입 경로</span>
-            <span className={styles.info} role="img" aria-label="GA4 기준. 최대 15분 단위로 갱신되며 오늘 자료는 GA 반영까지 몇 시간 걸릴 수 있습니다."
-                title="GA4 기준 · 15분 단위 갱신 · 오늘 자료는 GA 반영까지 몇 시간 걸릴 수 있습니다">
-                <DashboardIcon name="lc-info" size={14} color="var(--adm-text-3)" />
-            </span>
-            <AdminSegmented label="유입 경로 기간" className={styles.seg} value={period} onChange={choose}
-                items={PERIODS.map(option => ({ value: option.key, label: option.label }))} />
+            <h2 id="dashboard-traffic-title" className={styles.title}>유입 경로</h2>
+            <span className={styles.info} role="img" aria-label="GA4 기준. 방문은 세션 수, 문의는 접수가 확인된 견적 요청입니다. 오늘 자료는 GA 반영까지 몇 시간 걸릴 수 있습니다."
+                title="GA4 기준 · 방문은 세션 수 · 오늘 자료는 GA 반영까지 몇 시간 걸릴 수 있습니다"><IconInfo /></span>
+            <span className={styles.period}>최근 30일</span>
         </div>
 
-        {load.status === 'loading' && <div className={styles.state} role="status"><p>유입 통계를 불러오고 있습니다.</p></div>}
+        {load.status === 'loading' && <p className={styles.state} role="status">유입 통계를 불러오고 있습니다.</p>}
         {load.status === 'error' && <div className={styles.state} role="alert">
-            <span className={styles.stateIcon}><DashboardIcon name="lc-circle-alert" size={20} /></span>
+            <IconCircleExclamationFill className={styles.stateIcon} aria-hidden="true" />
             <p>{load.message}</p>
             <AdminButton variant="weak" size="sm" onClick={retry}>다시 시도</AdminButton>
         </div>}
         {load.status === 'ready' && !load.data.configured && <div className={styles.state}>
-            <span className={styles.stateIcon}><DashboardIcon name="lc-trending-up" size={20} /></span>
             <strong>GA4 연결 설정이 필요합니다.</strong>
-            <p>Cloudflare에 GA4_PROPERTY_ID와 GA4_SERVICE_ACCOUNT_JSON(비밀)을 등록하면 채널별 방문·견적 문의·전환율을 이 영역에 표시합니다.</p>
+            <p>Cloudflare에 GA4_PROPERTY_ID와 GA4_SERVICE_ACCOUNT_JSON(비밀)을 등록하면 채널별 방문·견적 문의를 이 영역에 표시합니다.</p>
         </div>}
 
         {data && <>
-            <div className={styles.kpis}>
-                {trafficKpis(data).map(kpi => <div key={kpi.label} className={styles.kpi}>
-                    <span className={styles.kpiLabel}>{kpi.label}</span>
-                    <div className={styles.kpiRow}>
-                        <span className={styles.kpiValue}>{kpi.value === null ? '—' : kpi.format(kpi.value * t)}</span>
-                        {kpi.value !== null && <span className={styles.kpiUnit}>{kpi.unit}</span>}
-                        {kpi.delta && <span className={`${styles.kpiDelta} ${kpi.down ? styles.kpiDown : ''}`}>{kpi.delta}</span>}
-                    </div>
-                </div>)}
+            <div className={styles.total}>
+                <span className={styles.totalValue}>{visitors?.value == null ? '—' : `${numbers.format(visitors.value)}명`}</span>
+                {visitors?.delta && <span className={`${styles.delta} ${visitors.down ? styles.deltaDown : ''}`}>{visitors.delta}</span>}
+                <span className={styles.totalNote}>방문자 · 문의 {leads?.value == null ? '—' : numbers.format(leads.value)}건</span>
             </div>
-            {/* 막대 길이·채널 순위 색만 실행 중 계산값이라 인라인 */}
-            <div className={styles.track}>
-                <div className={styles.segments} style={{ width: `${t * 100}%` }}>
-                    {rows.map((row, index) => <span key={row.name} style={{ flex: row.sessions, background: TONES[index] }}
-                        {...tipFor(row.name, [{ k: '방문', v: `${numbers.format(row.sessions)}회` }, { k: '비중', v: `${row.share.toFixed(1)}%` },
-                            { k: '견적 문의', v: `${numbers.format(row.leads)}건` }, { k: '전환율', v: row.cvr === null ? '—' : `${row.cvr.toFixed(2)}%` }])} />)}
-                </div>
-            </div>
-            <div className={styles.table}>
-                <div className={styles.tableHead} aria-hidden="true">
-                    <span>채널</span><span>비중</span><span className={styles.right}>방문</span><span className={styles.right}>문의</span><span className={styles.right}>전환율</span>
-                </div>
-                {rows.map((row, index) => {
-                    const brand = BRAND[row.name];
-                    return <div key={row.name} className={styles.row}>
-                        <span className={styles.channel}>
-                            <span className={`${styles.dot} ${brand.tone}`}>
-                                {brand.logo ? <img src={brand.logo} alt="" width={16} height={16} loading="lazy" /> : brand.icon && <DashboardIcon name={brand.icon} size={15} />}
-                            </span>
-                            <span className={styles.channelName}>{row.name}</span>
-                        </span>
-                        <span className={styles.shareCell}>
-                            <span className={styles.bar} {...tipFor(row.name, [{ k: '방문', v: `${numbers.format(row.sessions)}회` }, { k: '비중', v: `${row.share.toFixed(1)}%` }])}>
-                                <span style={{ width: `${row.sessions / max * 100 * t}%`, background: TONES[index] }} />
-                            </span>
-                            <span className={styles.share}>{Math.round(row.share)}%</span>
-                        </span>
-                        <span className={styles.visits}>{numbers.format(row.sessions)}</span>
-                        <span className={styles.leads}>{numbers.format(row.leads)}</span>
-                        <span className={styles.cvr}>{row.cvr === null ? '—' : `${row.cvr.toFixed(1)}%`}</span>
-                    </div>;
-                })}
-                {!rows.length && <div className={styles.state}><p>선택한 기간에 수집된 방문이 없습니다.</p></div>}
-            </div>
-            <p className={styles.note}>GA4 기준 · {dashboardTimestamp(data.generatedAt)} 조회 · 방문은 세션 수, 문의는 접수가 확인된 견적 요청입니다.</p>
+            {/* 막대 길이만 실행 중 계산값이라 인라인 */}
+            {!!rows.length && <div className={styles.stack} role="img" aria-label={rows.map(row => `${row.name} ${Math.round(row.share)}%`).join(', ')}>
+                {rows.map((row, index) => <span key={row.name} className={tone(index)} style={{ flexGrow: row.sessions }} />)}
+            </div>}
+            <ul className={styles.list}>
+                {rows.slice(0, 4).map((row, index) => <li key={row.name} className={styles.row}>
+                    <span className={`${styles.dot} ${tone(index)}`} aria-hidden="true" />
+                    <span className={styles.name}>{row.name}</span>
+                    <span className={styles.share}>{Math.round(row.share)}%</span>
+                    <span className={styles.visits}>{numbers.format(row.sessions)}회</span>
+                </li>)}
+            </ul>
+            {!rows.length && <p className={styles.state}>최근 30일에 수집된 방문이 없습니다.</p>}
         </>}
     </section>;
 }
